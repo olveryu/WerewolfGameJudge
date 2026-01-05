@@ -31,7 +31,6 @@
     "react-native-web": "^0.21.0"
   },
   "devDependencies": {
-    "@types/jdenticon": "^2.2.0",
     "@types/jest": "29.5.14",
     "@types/react": "~19.1.0",
     "@typescript-eslint/eslint-plugin": "^8.51.0",

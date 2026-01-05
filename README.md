@@ -17,9 +17,8 @@ A React Native / Expo app for moderating Werewolf (Mafia) party games.
 src/
 ├── components/      # Reusable UI components
 │   ├── Button/
-│   ├── RoleCard/
-│   ├── PlayerTile/
-│   └── MainPageTile/
+│   ├── AlertModal.tsx
+│   └── Avatar.tsx
 ├── constants/       # App constants and role definitions
 ├── hooks/           # Custom React hooks
 │   ├── useAuth.ts
