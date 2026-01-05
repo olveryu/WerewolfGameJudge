@@ -1018,7 +1018,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 '填充测试机器人',
                 '⚠️ 仅供测试使用\n\n将用机器人填满所有座位，房主作为法官观察流程。\n\n确定要继续吗？',
                 [
-                  { text: '取消', style: 'cancel' },
                   { 
                     text: '确定', 
                     onPress: () => {
@@ -1029,6 +1028,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                       });
                     }
                   },
+                  { text: '取消', style: 'cancel' },
                 ]
               );
             }}

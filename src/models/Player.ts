@@ -1,4 +1,4 @@
-import { RoleName, roleToIndex, indexToRole } from '../constants/roles';
+import { RoleName } from '../constants/roles';
 
 export enum PlayerStatus {
   alive = 0,
@@ -46,7 +46,7 @@ export const createPlayer = (
 export const playerToMap = (player: Player): Record<string, any> => ({
   [PLAYER_KEYS.uid]: player.uid,
   [PLAYER_KEYS.seatNumber]: player.seatNumber,
-  [PLAYER_KEYS.role]: roleToIndex(player.role),
+  [PLAYER_KEYS.role]: player.role,  // Store role name directly
   [PLAYER_KEYS.status]: player.status,
   [PLAYER_KEYS.skillStatus]: player.skillStatus,
   [PLAYER_KEYS.displayName]: player.displayName,
@@ -56,7 +56,7 @@ export const playerToMap = (player: Player): Record<string, any> => ({
 export const playerFromMap = (map: Record<string, any>): Player => ({
   uid: map[PLAYER_KEYS.uid],
   seatNumber: map[PLAYER_KEYS.seatNumber],
-  role: indexToRole(map[PLAYER_KEYS.role]) || 'villager',
+  role: map[PLAYER_KEYS.role] as RoleName,  // Read role name directly
   status: map[PLAYER_KEYS.status] ?? PlayerStatus.alive,
   skillStatus: map[PLAYER_KEYS.skillStatus] ?? SkillStatus.available,
   displayName: map[PLAYER_KEYS.displayName],

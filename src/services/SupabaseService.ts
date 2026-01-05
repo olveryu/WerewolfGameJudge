@@ -1,7 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../config/supabase';
 import { Room, RoomStatus } from '../models/Room';
 import { Player, createPlayer } from '../models/Player';
-import { RoleName, roleToIndex, indexToRole, ACTION_ORDER, ROLES } from '../constants/roles';
+import { RoleName, ACTION_ORDER, ROLES } from '../constants/roles';
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 // Database types for Supabase
@@ -9,9 +9,9 @@ interface DbRoom {
   room_number: string;
   host_uid: string;
   room_status: number;
-  roles: number[];
+  roles: string[];  // RoleName strings
   players: Record<string, any>;
-  actions: Record<string, number>;
+  actions: Record<string, number>;  // RoleName -> target
   wolf_votes: Record<string, number>;
   current_actioner_index: number;
   has_poison: boolean;
@@ -28,7 +28,7 @@ const roomToDb = (room: Room): Omit<DbRoom, 'created_at' | 'updated_at'> => {
       playersMap[seat.toString()] = {
         uid: player.uid,
         seatNumber: player.seatNumber,
-        roleIndex: roleToIndex(player.role),
+        role: player.role,  // Store role name directly
         status: player.status,
         skillStatus: player.skillStatus,
         displayName: player.displayName,
@@ -42,7 +42,7 @@ const roomToDb = (room: Room): Omit<DbRoom, 'created_at' | 'updated_at'> => {
 
   const actionsMap: Record<string, number> = {};
   room.actions.forEach((target, role) => {
-    actionsMap[roleToIndex(role).toString()] = target;
+    actionsMap[role] = target;  // Use role name as key directly
   });
 
   const wolfVotesMap: Record<string, number> = {};
@@ -54,7 +54,7 @@ const roomToDb = (room: Room): Omit<DbRoom, 'created_at' | 'updated_at'> => {
     room_number: room.roomNumber,
     host_uid: room.hostUid,
     room_status: room.roomStatus,
-    roles: room.template.roles.map(r => roleToIndex(r)),
+    roles: room.template.roles,  // Store role names directly
     players: playersMap,
     actions: actionsMap,
     wolf_votes: wolfVotesMap,
@@ -66,9 +66,7 @@ const roomToDb = (room: Room): Omit<DbRoom, 'created_at' | 'updated_at'> => {
 
 // Convert database format to Room
 const dbToRoom = (dbRoom: DbRoom): Room => {
-  const roles = dbRoom.roles
-    .map(i => indexToRole(i))
-    .filter((r): r is RoleName => r !== null);
+  const roles = dbRoom.roles as RoleName[];
   
   const players = new Map<number, Player | null>();
   roles.forEach((_, index) => {
@@ -78,7 +76,7 @@ const dbToRoom = (dbRoom: DbRoom): Room => {
   Object.entries(dbRoom.players || {}).forEach(([seatStr, playerData]) => {
     if (playerData) {
       const seat = parseInt(seatStr);
-      const role = indexToRole(playerData.roleIndex);
+      const role = playerData.role as RoleName;
       if (role) {
         players.set(seat, {
           uid: playerData.uid,
@@ -94,11 +92,8 @@ const dbToRoom = (dbRoom: DbRoom): Room => {
   });
 
   const actions = new Map<RoleName, number>();
-  Object.entries(dbRoom.actions || {}).forEach(([roleIndexStr, target]) => {
-    const role = indexToRole(parseInt(roleIndexStr));
-    if (role) {
-      actions.set(role, target as number);
-    }
+  Object.entries(dbRoom.actions || {}).forEach(([roleName, target]) => {
+    actions.set(roleName as RoleName, target as number);
   });
 
   const wolfVotes = new Map<number, number>();

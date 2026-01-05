@@ -34,15 +34,12 @@ src/
 │   ├── HomeScreen/
 │   ├── ConfigScreen/
 │   ├── RoomScreen/
-│   ├── HistoryScreen/
 │   ├── JoinRoomScreen/
 │   └── SettingsScreen/
 └── services/        # Business logic services
-    ├── AuthService.ts
     ├── AudioService.ts
-    ├── BackendService.ts    # Unified backend interface
-    ├── SupabaseService.ts   # Supabase backend for production
-    ├── RoomService.ts
+    ├── BackendService.ts
+    ├── SupabaseService.ts
     └── StorageService.ts
 ```
 

@@ -22,7 +22,7 @@ type RoleSelectionKey = string;
 const getInitialSelection = (): Record<RoleSelectionKey, boolean> => ({
   wolf: true, wolf1: true, wolf2: true, wolf3: true, wolf4: false,
   wolfQueen: false, wolfKing: false, darkWolfKing: false, gargoyle: false, nightmare: false,
-  bloodMoon: false, wolfRobot: false,
+  bloodMoon: false, wolfRobot: false, spiritKnight: false,
   villager: true, villager1: true, villager2: true, villager3: true, villager4: false,
   seer: true, witch: true, hunter: true, guard: false, idiot: true,
   graveyardKeeper: false, slacker: false, knight: false,
@@ -169,6 +169,7 @@ export const ConfigScreen: React.FC = () => {
             <RoleChip id="nightmare" label="梦魇" selected={selection.nightmare} />
             <RoleChip id="bloodMoon" label="血月使徒" selected={selection.bloodMoon} />
             <RoleChip id="wolfRobot" label="机械狼" selected={selection.wolfRobot} />
+            <RoleChip id="spiritKnight" label="恶灵骑士" selected={selection.spiritKnight} />
           </Section>
 
           <Section title="👤 村民">
