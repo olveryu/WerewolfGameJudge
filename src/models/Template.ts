@@ -1,4 +1,4 @@
-import { RoleName, ACTION_ORDER, ROLES, roleToIndex, indexToRole } from '../constants/roles';
+import { RoleName, ACTION_ORDER, ROLES } from '../constants/roles';
 
 export interface GameTemplate {
   name: string;
@@ -58,20 +58,6 @@ export const createTemplateFromRoles = (roles: RoleName[]): GameTemplate => ({
   roles,
   actionOrder: getActionOrderForRoles(roles),
 });
-
-// Convert template to database format
-export const templateToMap = (template: GameTemplate): number[] =>
-  template.roles.map((role) => roleToIndex(role));
-
-// Convert database format to template
-export const templateFromRoleIndices = (roleIndices: number[]): GameTemplate => {
-  const roles = roleIndices.map((i) => indexToRole(i) || 'villager');
-  return createTemplateFromRoles(roles);
-};
-
-// Get role types in template
-export const getTemplateRoleTypes = (template: GameTemplate): Set<RoleName> =>
-  new Set(template.roles);
 
 // Check if template has skilled wolves
 export const templateHasSkilledWolf = (template: GameTemplate): boolean => {
@@ -157,6 +143,14 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleName[] }[] = [
       'villager', 'villager', 'villager', 'villager',
       'wolf', 'wolf', 'wolf', 'wolfRobot',
       'psychic', 'witch', 'hunter', 'guard',
+    ],
+  },
+  {
+    name: '恶灵骑士12人',
+    roles: [
+      'villager', 'villager', 'villager', 'villager',
+      'wolf', 'wolf', 'wolf', 'spiritKnight',
+      'seer', 'witch', 'hunter', 'guard',
     ],
   },
 ];

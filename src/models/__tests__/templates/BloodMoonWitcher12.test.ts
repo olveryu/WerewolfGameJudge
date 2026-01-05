@@ -14,7 +14,7 @@ import {
   getNightResult,
 } from '../../Room';
 import { createTemplateFromRoles } from '../../Template';
-import { RoleName, ROLES } from '../../../constants/roles';
+import { RoleName, ROLES, hasNightAction } from '../../../constants/roles';
 import { PlayerStatus, SkillStatus } from '../../Player';
 
 const TEMPLATE_NAME = '血月猎魔12人';
@@ -107,15 +107,15 @@ describe(`${TEMPLATE_NAME} - 场景2: 女巫毒猎魔人`, () => {
 
 describe(`${TEMPLATE_NAME} - 角色特性测试`, () => {
   it('血月使徒没有夜间行动', () => {
-    expect(ROLES.bloodMoon.hasNightAction).toBe(false);
+    expect(hasNightAction('bloodMoon')).toBe(false);
   });
 
   it('猎魔人没有夜间行动', () => {
-    expect(ROLES.witcher.hasNightAction).toBe(false);
+    expect(hasNightAction('witcher')).toBe(false);
   });
 
   it('白痴没有夜间行动', () => {
-    expect(ROLES.idiot.hasNightAction).toBe(false);
+    expect(hasNightAction('idiot')).toBe(false);
   });
 
   it('猎魔人描述应该包含女巫毒药无效', () => {

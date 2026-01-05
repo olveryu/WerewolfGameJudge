@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   room_number TEXT UNIQUE NOT NULL,
   host_uid TEXT NOT NULL,
   room_status INTEGER DEFAULT 0,
-  roles INTEGER[] NOT NULL,
+  roles TEXT[] NOT NULL,
   players JSONB DEFAULT '{}',
   actions JSONB DEFAULT '{}',
   wolf_votes JSONB DEFAULT '{}',

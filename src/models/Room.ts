@@ -1,6 +1,6 @@
 import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from './Player';
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
-import { RoleName, ROLES, isWolfRole, indexToRole, roleToIndex } from '../constants/roles';
+import { RoleName, ROLES, isWolfRole } from '../constants/roles';
 
 // Room status matching Flutter
 export enum RoomStatus {
@@ -69,7 +69,7 @@ export const roomToDbMap = (room: Room): Record<string, any> => {
 
   const actionsMap: Record<string, number> = {};
   room.actions.forEach((target, role) => {
-    actionsMap[roleToIndex(role).toString()] = target;
+    actionsMap[role] = target;  // Use role name as key directly
   });
 
   const wolfVotesMap: Record<string, number> = {};
@@ -81,7 +81,7 @@ export const roomToDbMap = (room: Room): Record<string, any> => {
     [ROOM_KEYS.timestamp]: room.timestamp,
     [ROOM_KEYS.hostUid]: room.hostUid,
     [ROOM_KEYS.roomStatus]: room.roomStatus,
-    [ROOM_KEYS.roles]: room.template.roles.map((r) => roleToIndex(r)),
+    [ROOM_KEYS.roles]: room.template.roles,  // Store role names directly
     [ROOM_KEYS.players]: playersMap,
     [ROOM_KEYS.actions]: actionsMap,
     [ROOM_KEYS.wolfVotes]: wolfVotesMap,
@@ -96,9 +96,7 @@ export const roomFromDb = (
   roomNumber: string,
   data: Record<string, any>
 ): Room => {
-  const roles = (data[ROOM_KEYS.roles] as number[]).map(
-    (i) => indexToRole(i) || 'villager'
-  );
+  const roles = data[ROOM_KEYS.roles] as RoleName[];
   const template = createTemplateFromRoles(roles);
 
   const players = new Map<number, Player | null>();
@@ -106,7 +104,7 @@ export const roomFromDb = (
   if (playersData) {
     Object.entries(playersData).forEach(([seat, playerData]) => {
       players.set(
-        parseInt(seat),
+        Number.parseInt(seat),
         playerData ? playerFromMap(playerData) : null
       );
     });
@@ -115,11 +113,8 @@ export const roomFromDb = (
   const actions = new Map<RoleName, number>();
   const actionsData = data[ROOM_KEYS.actions] as Record<string, number>;
   if (actionsData) {
-    Object.entries(actionsData).forEach(([roleIndex, target]) => {
-      const role = indexToRole(parseInt(roleIndex));
-      if (role) {
-        actions.set(role, target);
-      }
+    Object.entries(actionsData).forEach(([roleName, target]) => {
+      actions.set(roleName as RoleName, target);
     });
   }
 
@@ -127,7 +122,7 @@ export const roomFromDb = (
   const wolfVotesData = data[ROOM_KEYS.wolfVotes] as Record<string, number>;
   if (wolfVotesData) {
     Object.entries(wolfVotesData).forEach(([wolfSeat, target]) => {
-      wolfVotes.set(parseInt(wolfSeat), target);
+      wolfVotes.set(Number.parseInt(wolfSeat), target);
     });
   }
 

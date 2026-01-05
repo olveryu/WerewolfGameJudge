@@ -14,7 +14,7 @@ import {
   getNightResult,
 } from '../../Room';
 import { createTemplateFromRoles } from '../../Template';
-import { RoleName, ROLES } from '../../../constants/roles';
+import { RoleName, ROLES, hasNightAction } from '../../../constants/roles';
 import { PlayerStatus, SkillStatus } from '../../Player';
 
 const TEMPLATE_NAME = '石像鬼守墓人12人';
@@ -119,6 +119,6 @@ describe(`${TEMPLATE_NAME} - 角色对话消息测试`, () => {
   });
 
   it('守墓人没有夜间行动', () => {
-    expect(ROLES.graveyardKeeper.hasNightAction).toBe(false);
+    expect(hasNightAction('graveyardKeeper')).toBe(false);
   });
 });
