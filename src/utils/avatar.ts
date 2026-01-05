@@ -25,20 +25,6 @@ const AVATAR_IMAGES = [
 ];
 
 /**
- * Get total number of available avatars
- */
-export const getAvatarCount = (): number => AVATAR_IMAGES.length;
-
-/**
- * Get avatar image by index (0-based)
- * Returns a local image source (for use with Image component)
- */
-export const getAvatarByIndex = (index: number): number => {
-  const safeIndex = Math.abs(index) % AVATAR_IMAGES.length;
-  return AVATAR_IMAGES[safeIndex];
-};
-
-/**
  * Get a random avatar image based on seed
  * Returns a local image source (for use with Image component)
  */
@@ -71,23 +57,4 @@ export const getUniqueAvatarBySeat = (seatNumber: number, roomId?: string): numb
   // Seat number is 1-based, convert to 0-based index with room offset
   const index = ((seatNumber - 1) + roomOffset) % AVATAR_IMAGES.length;
   return AVATAR_IMAGES[index];
-};
-
-/**
- * Get avatar image for a user
- */
-export const getDefaultAvatar = (userId?: string, displayName?: string): number => {
-  const seed = displayName || userId || 'anonymous';
-  return getAvatarImage(seed);
-};
-
-// Keep URL function for backwards compatibility (deprecated)
-export const generateAvatarUrl = (seed: string, size = 200): string => {
-  const encodedSeed = encodeURIComponent(seed);
-  return `https://api.dicebear.com/7.x/adventurer/png?seed=${encodedSeed}&size=${size}`;
-};
-
-export const getDefaultAvatarUrl = (userId?: string, displayName?: string): string => {
-  const seed = displayName || userId || 'anonymous';
-  return generateAvatarUrl(seed);
 };

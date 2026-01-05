@@ -15,7 +15,7 @@ import { useAuth } from '../../hooks';
 import { colors } from '../../constants/theme';
 import { styles } from './SettingsScreen.styles';
 import { showAlert } from '../../utils/alert';
-import { getDefaultAvatarUrl } from '../../utils/avatar';
+import { getAvatarImage } from '../../utils/avatar';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -44,8 +44,10 @@ const SettingsScreen: React.FC = () => {
   const [editName, setEditName] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  // Get avatar URL - use uploaded one or generate from DiceBear
-  const avatarUrl = user?.avatarUrl || getDefaultAvatarUrl(user?.uid, user?.displayName || undefined);
+  // Get avatar source - use uploaded URL or local image based on user id
+  const avatarSource = user?.avatarUrl 
+    ? { uri: user.avatarUrl } 
+    : getAvatarImage(user?.uid || user?.displayName || 'anonymous');
 
   const handlePickAvatar = async () => {
     try {
@@ -146,7 +148,7 @@ const SettingsScreen: React.FC = () => {
                       </View>
                     ) : (
                       <View>
-                        <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                        <Image source={avatarSource} style={styles.avatar} />
                         <View style={styles.avatarEditBadge}>
                           <Text style={styles.avatarEditIcon}>📷</Text>
                         </View>
@@ -154,7 +156,7 @@ const SettingsScreen: React.FC = () => {
                     )}
                   </TouchableOpacity>
                 ) : (
-                  <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                  <Image source={avatarSource} style={styles.avatar} />
                 )}
                 
                 {/* Display name for all users */}
