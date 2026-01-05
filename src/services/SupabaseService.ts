@@ -657,29 +657,28 @@ export class SupabaseService {
     return roomNumber!;
   }
 
-  // Fill empty seats with bots (for testing/single player)
+  // Fill ALL seats with bots (for testing mode)
+  // Host acts as moderator/observer, not as a player
   async fillWithBots(roomNumber: string): Promise<number> {
     const room = await this.getRoom(roomNumber);
     if (!room) return 0;
 
-    const newPlayers = new Map(room.players);
+    const newPlayers = new Map<number, Player>();
     let filledCount = 0;
 
+    // Fill ALL seats with bots - host is moderator, not a player
     room.template.roles.forEach((role, index) => {
-      if (!newPlayers.get(index)) {
-        // Create a bot player
-        const botId = `bot_${index}_${Math.random().toString(36).substring(2, 8)}`;
-        const botPlayer = createPlayer(botId, index, role);
-        botPlayer.displayName = this.generateDisplayName(botId);
-        newPlayers.set(index, botPlayer);
-        filledCount++;
-      }
+      const botId = `bot_${index}_${Math.random().toString(36).substring(2, 8)}`;
+      const botPlayer = createPlayer(botId, index, role);
+      botPlayer.displayName = this.generateDisplayName(botId);
+      newPlayers.set(index, botPlayer);
+      filledCount++;
     });
 
     const updatedRoom = { ...room, players: newPlayers };
     await this.updateRoom(roomNumber, updatedRoom);
     
-    console.log(`[SupabaseService] Filled ${filledCount} seats with bots`);
+    console.log(`[SupabaseService] Test mode: filled all ${filledCount} seats with bots, host is moderator`);
     return filledCount;
   }
 
