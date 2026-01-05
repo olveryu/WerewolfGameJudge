@@ -1,0 +1,241 @@
+import { StyleSheet } from 'react-native';
+import { colors, spacing, borderRadius, typography, shadows } from '../../constants/theme';
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+  },
+  logo: {
+    fontSize: 64,
+    marginBottom: spacing.md,
+  },
+  title: {
+    fontSize: typography['3xl'],
+    fontWeight: typography.bold,
+    color: colors.text,
+  },
+  subtitle: {
+    fontSize: typography.sm,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+    letterSpacing: 2,
+  },
+  userBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    ...shadows.md,
+  },
+  userAvatar: {
+    fontSize: 28,
+    marginRight: spacing.sm,
+  },
+  userNameText: {
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
+    color: '#FFFFFF',
+    marginLeft: spacing.sm,
+  },
+  menu: {
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    ...shadows.md,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  menuIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuIconText: {
+    fontSize: 20,
+  },
+  menuContent: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  menuTitle: {
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
+    color: colors.text,
+  },
+  menuSubtitle: {
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  menuArrow: {
+    fontSize: 24,
+    color: colors.textMuted,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.borderLight,
+    marginHorizontal: spacing.md,
+  },
+  instructionCard: {
+    backgroundColor: colors.primary,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    ...shadows.md,
+  },
+  instructionTitle: {
+    fontSize: typography.base,
+    fontWeight: typography.bold,
+    color: '#FFFFFF',
+    marginBottom: spacing.sm,
+  },
+  instructionText: {
+    fontSize: typography.sm,
+    color: 'rgba(255,255,255,0.9)',
+    lineHeight: 20,
+  },
+  userStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 'auto',
+    paddingVertical: spacing.lg,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: spacing.sm,
+  },
+  statusOnline: {
+    backgroundColor: colors.success,
+  },
+  statusOffline: {
+    backgroundColor: colors.textMuted,
+  },
+  statusText: {
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 340,
+  },
+  modalTitle: {
+    fontSize: typography.xl,
+    fontWeight: typography.bold,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+    marginBottom: spacing.lg,
+  },
+  codeInput: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: 32,
+    fontWeight: typography.bold,
+    textAlign: 'center',
+    letterSpacing: 12,
+    marginBottom: spacing.lg,
+    color: colors.text,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  primaryButton: {
+    backgroundColor: colors.primary,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
+  },
+  secondaryButton: {
+    backgroundColor: colors.background,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: colors.textSecondary,
+    fontSize: typography.base,
+    fontWeight: typography.medium,
+  },
+  input: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: typography.base,
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: typography.sm,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  linkButton: {
+    padding: spacing.sm,
+    alignItems: 'center',
+  },
+  linkButtonText: {
+    color: colors.primary,
+    fontSize: typography.sm,
+    fontWeight: typography.medium,
+  },
+  outlineButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  outlineButtonText: {
+    color: colors.textSecondary,
+    fontSize: typography.base,
+    fontWeight: typography.medium,
+  },
+});
