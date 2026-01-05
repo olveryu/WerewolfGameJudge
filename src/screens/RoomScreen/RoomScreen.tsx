@@ -18,7 +18,6 @@ import {
   getKilledIndex,
   getHunterStatus,
   getDarkWolfKingStatus,
-  getActionWolfIndex,
   getAllWolfSeats,
   getLastNightInfo,
   performSeerAction,
@@ -242,7 +241,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         setShowWolves(false);
       }
     }
-  }, [room, currentUserId, isHost]);
+  }, [room, currentUserId, isHost, mySeatNumber]);
   
   // Ref to store the latest showActionDialog callback
   const showActionDialogRef = useRef<((role: RoleName) => void) | null>(null);
@@ -416,7 +415,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     
     if (room.roomStatus === RoomStatus.seating) {
       console.log('In seating mode, isHost:', isHost, 'mySeatNumber:', mySeatNumber);
-      if (!isHost && index === mySeatNumber) {
+      // 如果点击的是自己的座位，询问是否站起
+      if (mySeatNumber !== null && index === mySeatNumber) {
         showLeaveSeatDialog(index);
       } else {
         console.log('Showing enter seat dialog for index:', index);
@@ -1013,14 +1013,27 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {isHost && room.roomStatus === RoomStatus.seating && (
           <TouchableOpacity 
             style={[styles.actionButton, { backgroundColor: '#F59E0B' }]} 
-            onPress={async () => {
-              const count = await backendService.current.fillWithBots(roomNumber);
-              if (count > 0) {
-                showAlert('已填充', `已添加 ${count} 个机器人玩家`);
-              }
+            onPress={() => {
+              showAlert(
+                '填充测试机器人',
+                '⚠️ 仅供测试使用\n\n将用机器人填满所有座位，房主作为法官观察流程。\n\n确定要继续吗？',
+                [
+                  { text: '取消', style: 'cancel' },
+                  { 
+                    text: '确定', 
+                    onPress: () => {
+                      backendService.current.fillWithBots(roomNumber).then((count) => {
+                        if (count > 0) {
+                          showAlert('已填充', `已用 ${count} 个机器人填满所有座位`);
+                        }
+                      });
+                    }
+                  },
+                ]
+              );
             }}
           >
-            <Text style={styles.buttonText}>🤖 填充机器人</Text>
+            <Text style={styles.buttonText}>🤖 填充机器人 (测试)</Text>
           </TouchableOpacity>
         )}
         
@@ -1092,12 +1105,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              {modalType === 'enter' ? '入座' : '离席'}
+              {modalType === 'enter' ? '入座' : '站起'}
             </Text>
             <Text style={styles.modalMessage}>
               {modalType === 'enter' 
                 ? `确定在${(pendingSeatIndex ?? 0) + 1}号位入座?`
-                : `确定离开${(pendingSeatIndex ?? 0) + 1}号?`
+                : `确定从${(pendingSeatIndex ?? 0) + 1}号位站起?`
               }
             </Text>
             <View style={styles.modalButtons}>
