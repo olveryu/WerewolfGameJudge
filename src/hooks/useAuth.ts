@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BackendService } from '../services/BackendService';
+import { SupabaseService } from '../services/SupabaseService';
 import { supabase, isSupabaseConfigured } from '../config/supabase';
 
 export interface User {
@@ -14,7 +14,7 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const backendService = BackendService.getInstance();
+  const supabaseService = SupabaseService.getInstance();
 
   // Convert Supabase user to our User type
   const toUser = useCallback((supabaseUser: any): User | null => {
@@ -38,7 +38,7 @@ export const useAuth = () => {
 
     const loadUser = async () => {
       try {
-        const result = await backendService.getCurrentUser();
+        const result = await supabaseService.getCurrentUser();
         if (result?.data?.user) {
           setUser(toUser(result.data.user));
         }
@@ -67,13 +67,13 @@ export const useAuth = () => {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [backendService, toUser]);
+  }, [supabaseService, toUser]);
 
   const signInAnonymously = async () => {
     setLoading(true);
     setError(null);
     try {
-      await backendService.signInAnonymously();
+      await supabaseService.signInAnonymously();
     } catch (e: any) {
       setError(e.message);
       throw e;
@@ -86,7 +86,7 @@ export const useAuth = () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await backendService.signUpWithEmail(email, password, displayName);
+      const result = await supabaseService.signUpWithEmail(email, password, displayName);
       // Use the user data returned from signup directly
       if (result.user) {
         setUser(toUser(result.user));
@@ -103,9 +103,9 @@ export const useAuth = () => {
     setLoading(true);
     setError(null);
     try {
-      await backendService.signInWithEmail(email, password);
+      await supabaseService.signInWithEmail(email, password);
       // Refresh user data after login
-      const result = await backendService.getCurrentUser();
+      const result = await supabaseService.getCurrentUser();
       if (result?.data?.user) {
         setUser(toUser(result.data.user));
       }
@@ -120,9 +120,9 @@ export const useAuth = () => {
   const updateProfile = async (updates: { displayName?: string; avatarUrl?: string }) => {
     setError(null);
     try {
-      await backendService.updateProfile(updates);
+      await supabaseService.updateProfile(updates);
       // Refresh user data
-      const result = await backendService.getCurrentUser();
+      const result = await supabaseService.getCurrentUser();
       if (result?.data?.user) {
         setUser(toUser(result.data.user));
       }
@@ -135,9 +135,9 @@ export const useAuth = () => {
   const uploadAvatar = async (fileUri: string): Promise<string> => {
     setError(null);
     try {
-      const url = await backendService.uploadAvatar(fileUri);
+      const url = await supabaseService.uploadAvatar(fileUri);
       // Refresh user data
-      const result = await backendService.getCurrentUser();
+      const result = await supabaseService.getCurrentUser();
       if (result?.data?.user) {
         setUser(toUser(result.data.user));
       }
@@ -151,7 +151,7 @@ export const useAuth = () => {
   const signOut = async () => {
     setLoading(true);
     try {
-      await backendService.signOut();
+      await supabaseService.signOut();
       setUser(null);
     } catch (e: any) {
       setError(e.message);

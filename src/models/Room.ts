@@ -278,7 +278,7 @@ export const getHunterStatus = (room: Room): boolean => {
   // Get hunter seat
   let hunterSeat = -1;
   room.players.forEach((player, seat) => {
-    if (player && player.role === 'hunter') {
+    if (player?.role === 'hunter') {
       hunterSeat = seat;
     }
   });
@@ -304,7 +304,7 @@ export const getDarkWolfKingStatus = (room: Room): boolean => {
 
   let darkWolfKingSeat = -1;
   room.players.forEach((player, seat) => {
-    if (player && player.role === 'darkWolfKing') {
+    if (player?.role === 'darkWolfKing') {
       darkWolfKingSeat = seat;
     }
   });
@@ -335,35 +335,68 @@ export const isCurrentActionerSkillBlocked = (room: Room): boolean => {
 };
 
 // Calculate last night info (matching Flutter)
-export const getLastNightInfo = (room: Room): string => {
-  const killedByWolf = room.actions.get('wolf');
-  const witchAction = room.actions.get('witch');
-  const killedByWitch = witchAction !== undefined && witchAction < 0 ? -witchAction - 1 : null;
-  const savedByWitch = witchAction !== undefined && witchAction >= 0 ? witchAction : null;
-  const sleptWith = room.actions.get('wolfQueen');
-  const guardedByGuard = room.actions.get('guard');
-  const nightWalker = room.actions.get('celebrity');
-  const magicianAction = room.actions.get('magician');
-
-  let firstExchanged: number | undefined;
-  let secondExchanged: number | undefined;
-  if (magicianAction !== undefined && magicianAction !== -1) {
-    firstExchanged = magicianAction % 100;
-    secondExchanged = Math.floor(magicianAction / 100);
+// Parse witch action into killed/saved
+function parseWitchAction(witchAction: number | undefined): { killedByWitch: number | null; savedByWitch: number | null } {
+  if (witchAction === undefined) {
+    return { killedByWitch: null, savedByWitch: null };
   }
+  if (witchAction < 0) {
+    return { killedByWitch: -witchAction - 1, savedByWitch: null };
+  }
+  return { killedByWitch: null, savedByWitch: witchAction };
+}
 
-  // Find special role seats
+// Parse magician action into exchanged seats
+function parseMagicianAction(magicianAction: number | undefined): { firstExchanged?: number; secondExchanged?: number } {
+  if (magicianAction === undefined || magicianAction === -1) {
+    return {};
+  }
+  return {
+    firstExchanged: magicianAction % 100,
+    secondExchanged: Math.floor(magicianAction / 100)
+  };
+}
+
+// Find special role seats
+function findSpecialRoleSeats(room: Room): { queenIndex?: number; celebrityIndex?: number; witcherIndex?: number } {
   let queenIndex: number | undefined;
   let celebrityIndex: number | undefined;
   let witcherIndex: number | undefined;
 
   room.players.forEach((player, seat) => {
-    if (player) {
-      if (player.role === 'wolfQueen') queenIndex = seat;
-      if (player.role === 'celebrity') celebrityIndex = seat;
-      if (player.role === 'witcher') witcherIndex = seat;
-    }
+    if (player?.role === 'wolfQueen') queenIndex = seat;
+    if (player?.role === 'celebrity') celebrityIndex = seat;
+    if (player?.role === 'witcher') witcherIndex = seat;
   });
+
+  return { queenIndex, celebrityIndex, witcherIndex };
+}
+
+// Apply magician swap to deaths
+function applyMagicianSwap(deaths: Set<number>, firstExchanged?: number, secondExchanged?: number): void {
+  if (firstExchanged === undefined || secondExchanged === undefined) return;
+  
+  const firstDead = deaths.has(firstExchanged);
+  const secondDead = deaths.has(secondExchanged);
+  
+  if (firstDead && !secondDead) {
+    deaths.delete(firstExchanged);
+    deaths.add(secondExchanged);
+  } else if (!firstDead && secondDead) {
+    deaths.delete(secondExchanged);
+    deaths.add(firstExchanged);
+  }
+}
+
+export const getLastNightInfo = (room: Room): string => {
+  const killedByWolf = room.actions.get('wolf');
+  const witchAction = room.actions.get('witch');
+  const { killedByWitch, savedByWitch } = parseWitchAction(witchAction);
+  const sleptWith = room.actions.get('wolfQueen');
+  const guardedByGuard = room.actions.get('guard');
+  const nightWalker = room.actions.get('celebrity');
+  const { firstExchanged, secondExchanged } = parseMagicianAction(room.actions.get('magician'));
+  const { queenIndex, celebrityIndex, witcherIndex } = findSpecialRoleSeats(room);
 
   const deaths = new Set<number>();
 
@@ -373,9 +406,9 @@ export const getLastNightInfo = (room: Room): string => {
   }
 
   // Killed by wolf (not saved or guarded)
-  if (killedByWolf !== undefined && killedByWolf !== -1 && 
-      killedByWolf !== guardedByGuard && 
-      (savedByWitch === null || savedByWitch !== killedByWolf)) {
+  const wolfKillValid = killedByWolf !== undefined && killedByWolf !== -1 && killedByWolf !== guardedByGuard;
+  const notSaved = savedByWitch === null || savedByWitch !== killedByWolf;
+  if (wolfKillValid && notSaved) {
     deaths.add(killedByWolf);
   }
 
@@ -400,25 +433,15 @@ export const getLastNightInfo = (room: Room): string => {
   }
 
   // Magician swap death
-  if (firstExchanged !== undefined && secondExchanged !== undefined) {
-    if (deaths.has(firstExchanged) && !deaths.has(secondExchanged)) {
-      deaths.delete(firstExchanged);
-      deaths.add(secondExchanged);
-    } else if (!deaths.has(firstExchanged) && deaths.has(secondExchanged)) {
-      deaths.delete(secondExchanged);
-      deaths.add(firstExchanged);
-    }
-  }
+  applyMagicianSwap(deaths, firstExchanged, secondExchanged);
 
-  let info: string;
   if (deaths.size === 0) {
-    info = '昨天晚上是平安夜。';
-  } else {
-    const sortedDeaths = Array.from(deaths).sort((a, b) => a - b);
-    info = `昨天晚上${sortedDeaths.map((d) => `${d + 1}号`).join(', ')}玩家死亡。`;
+    return '昨天晚上是平安夜。';
   }
-
-  return info;
+  
+  const sortedDeaths = Array.from(deaths).sort((a, b) => a - b);
+  const deathNumbers = sortedDeaths.map((d) => `${d + 1}号`).join(', ');
+  return `昨天晚上${deathNumbers}玩家死亡。`;
 };
 
 // Get room info string
@@ -467,7 +490,7 @@ export const performPsychicAction = (room: Room, targetSeat: number): string => 
   const wolfRobotAction = room.actions.get('wolfRobot');
   let wolfRobotSeat = -1;
   room.players.forEach((player, seat) => {
-    if (player && player.role === 'wolfRobot') {
+    if (player?.role === 'wolfRobot') {
       wolfRobotSeat = seat;
     }
   });

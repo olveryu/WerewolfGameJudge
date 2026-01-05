@@ -42,16 +42,19 @@ const NIGHT_END_AUDIO = require('../../assets/audio/night_end.mp3');
 
 class AudioService {
   private static instance: AudioService;
+  private static initPromise: Promise<void> | null = null;
   private sound: Audio.Sound | null = null;
   private isPlaying = false;
 
   private constructor() {
-    this.initAudio();
+    // Constructor does not call async methods
   }
 
   static getInstance(): AudioService {
     if (!AudioService.instance) {
       AudioService.instance = new AudioService();
+      // Initialize audio asynchronously outside constructor
+      AudioService.initPromise = AudioService.instance.initAudio();
     }
     return AudioService.instance;
   }
@@ -143,13 +146,13 @@ class AudioService {
   }
 
   // Get beginning audio for role
-  getBeginningAudio(role: RoleName): any | null {
-    return AUDIO_FILES[role] || null;
+  getBeginningAudio(role: RoleName): number | null {
+    return AUDIO_FILES[role] ?? null;
   }
 
   // Get ending audio for role
-  getEndingAudio(role: RoleName): any | null {
-    return AUDIO_END_FILES[role] || null;
+  getEndingAudio(role: RoleName): number | null {
+    return AUDIO_END_FILES[role] ?? null;
   }
 
   // Stop all audio

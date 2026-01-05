@@ -21,6 +21,10 @@ import { styles } from './HomeScreen.styles';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
+// ============================================
+// Sub-components
+// ============================================
+
 interface MenuItemProps {
   icon: string;
   title: string;
@@ -40,6 +44,182 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, title, subtitle, onPress }) =
     <Text style={styles.menuArrow}>›</Text>
   </TouchableOpacity>
 );
+
+interface EmailFormProps {
+  isSignUp: boolean;
+  email: string;
+  password: string;
+  displayName: string;
+  authError: string | null;
+  authLoading: boolean;
+  onEmailChange: (text: string) => void;
+  onPasswordChange: (text: string) => void;
+  onDisplayNameChange: (text: string) => void;
+  onSubmit: () => void;
+  onToggleMode: () => void;
+  onBack: () => void;
+}
+
+const EmailForm: React.FC<EmailFormProps> = ({
+  isSignUp,
+  email,
+  password,
+  displayName,
+  authError,
+  authLoading,
+  onEmailChange,
+  onPasswordChange,
+  onDisplayNameChange,
+  onSubmit,
+  onToggleMode,
+  onBack,
+}) => {
+  const getButtonText = () => {
+    if (authLoading) return '处理中...';
+    return isSignUp ? '注册' : '登录';
+  };
+
+  return (
+    <>
+      <Text style={styles.modalTitle}>{isSignUp ? '注册账号' : '邮箱登录'}</Text>
+      
+      <TextInput
+        style={styles.input}
+        placeholder="邮箱"
+        placeholderTextColor={colors.textMuted}
+        value={email}
+        onChangeText={onEmailChange}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      
+      <TextInput
+        style={styles.input}
+        placeholder="密码"
+        placeholderTextColor={colors.textMuted}
+        value={password}
+        onChangeText={onPasswordChange}
+        secureTextEntry
+      />
+      
+      {isSignUp && (
+        <TextInput
+          style={styles.input}
+          placeholder="昵称（可选）"
+          placeholderTextColor={colors.textMuted}
+          value={displayName}
+          onChangeText={onDisplayNameChange}
+        />
+      )}
+      
+      {authError && <Text style={styles.errorText}>{authError}</Text>}
+      
+      <TouchableOpacity 
+        style={[styles.primaryButton, authLoading && styles.buttonDisabled]} 
+        onPress={onSubmit}
+        disabled={authLoading}
+      >
+        <Text style={styles.primaryButtonText}>{getButtonText()}</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity style={styles.linkButton} onPress={onToggleMode}>
+        <Text style={styles.linkButtonText}>
+          {isSignUp ? '已有账号？去登录' : '没有账号？去注册'}
+        </Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity style={styles.secondaryButton} onPress={onBack}>
+        <Text style={styles.secondaryButtonText}>返回</Text>
+      </TouchableOpacity>
+    </>
+  );
+};
+
+interface LoginOptionsProps {
+  authLoading: boolean;
+  onEmailLogin: () => void;
+  onAnonymousLogin: () => void;
+  onCancel: () => void;
+}
+
+const LoginOptions: React.FC<LoginOptionsProps> = ({
+  authLoading,
+  onEmailLogin,
+  onAnonymousLogin,
+  onCancel,
+}) => (
+  <>
+    <Text style={styles.modalTitle}>登录</Text>
+    <Text style={styles.modalSubtitle}>选择登录方式继续</Text>
+    
+    <TouchableOpacity style={styles.primaryButton} onPress={onEmailLogin}>
+      <Text style={styles.primaryButtonText}>📧 邮箱登录/注册</Text>
+    </TouchableOpacity>
+    
+    <TouchableOpacity 
+      style={[styles.outlineButton, authLoading && styles.buttonDisabled]} 
+      onPress={onAnonymousLogin}
+      disabled={authLoading}
+    >
+      <Text style={styles.outlineButtonText}>
+        {authLoading ? '处理中...' : '👤 匿名登录'}
+      </Text>
+    </TouchableOpacity>
+    
+    <TouchableOpacity style={styles.secondaryButton} onPress={onCancel}>
+      <Text style={styles.secondaryButtonText}>取消</Text>
+    </TouchableOpacity>
+  </>
+);
+
+interface JoinRoomModalProps {
+  visible: boolean;
+  roomCode: string;
+  onRoomCodeChange: (text: string) => void;
+  onJoin: () => void;
+  onCancel: () => void;
+}
+
+const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
+  visible,
+  roomCode,
+  onRoomCodeChange,
+  onJoin,
+  onCancel,
+}) => (
+  <Modal visible={visible} transparent animationType="fade">
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>加入房间</Text>
+        <Text style={styles.modalSubtitle}>输入4位房间号码</Text>
+        
+        <TextInput
+          style={styles.codeInput}
+          value={roomCode}
+          onChangeText={onRoomCodeChange}
+          keyboardType="number-pad"
+          maxLength={4}
+          placeholder="0000"
+          placeholderTextColor={colors.textMuted}
+          autoFocus
+        />
+        
+        <View style={styles.modalButtons}>
+          <TouchableOpacity style={[styles.secondaryButton, { flex: 1 }]} onPress={onCancel}>
+            <Text style={styles.secondaryButtonText}>取消</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={onJoin}>
+            <Text style={styles.primaryButtonText}>加入</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  </Modal>
+);
+
+// ============================================
+// Main Component
+// ============================================
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -63,22 +243,18 @@ export const HomeScreen: React.FC = () => {
     });
   }, []);
   
-  // Get user display name - use registered name if available, otherwise generate one
+  // Get user display name
   const userName = useMemo(() => {
-    if (user) {
-      // Use the registered display name if available
-      if (user.displayName) {
-        return user.displayName;
-      }
-      // Fallback: generate a random name based on user ID
-      const adjectives = ['快乐', '勇敢', '聪明', '神秘', '可爱', '酷炫', '狡猾', '正义'];
-      const nouns = ['小狼', '村民', '猎人', '女巫', '守卫', '预言家', '骑士', '法官'];
-      const hash = user.uid.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const idx = hash % adjectives.length;
-      const idx2 = (hash + 3) % nouns.length;
-      return adjectives[idx] + nouns[idx2];
-    }
-    return '';
+    if (!user) return '';
+    if (user.displayName) return user.displayName;
+    
+    // Fallback: generate a random name based on user ID
+    const adjectives = ['快乐', '勇敢', '聪明', '神秘', '可爱', '酷炫', '狡猾', '正义'];
+    const nouns = ['小狼', '村民', '猎人', '女巫', '守卫', '预言家', '骑士', '法官'];
+    const hash = user.uid.split('').reduce((acc, char) => acc + (char.codePointAt(0) || 0), 0);
+    const idx = hash % adjectives.length;
+    const idx2 = (hash + 3) % nouns.length;
+    return adjectives[idx] + nouns[idx2];
   }, [user]);
 
   const requireAuth = useCallback((action: () => void) => {
@@ -92,7 +268,7 @@ export const HomeScreen: React.FC = () => {
     action();
   }, [user]);
 
-  const handleLogin = useCallback(async () => {
+  const handleAnonymousLogin = useCallback(async () => {
     try {
       await signInAnonymously();
       setShowLoginModal(false);
@@ -120,8 +296,9 @@ export const HomeScreen: React.FC = () => {
       setEmail('');
       setPassword('');
       setDisplayName('');
-    } catch (e: any) {
-      showAlert('错误', e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '未知错误';
+      showAlert('错误', message);
     }
   }, [email, password, displayName, isSignUp, signUpWithEmail, signInWithEmail]);
 
@@ -140,7 +317,6 @@ export const HomeScreen: React.FC = () => {
       return;
     }
     setShowJoinModal(false);
-    // Save as last room
     AsyncStorage.setItem('lastRoomNumber', roomCode);
     navigation.navigate('Room', { roomNumber: roomCode, isHost: false });
     setRoomCode('');
@@ -154,6 +330,11 @@ export const HomeScreen: React.FC = () => {
     navigation.navigate('Room', { roomNumber: lastRoomNumber, isHost: false });
   }, [lastRoomNumber, navigation]);
 
+  const handleCancelJoin = useCallback(() => {
+    setShowJoinModal(false);
+    setRoomCode('');
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
@@ -166,7 +347,7 @@ export const HomeScreen: React.FC = () => {
           <Text style={styles.subtitle}>Werewolf Judge</Text>
         </View>
 
-        {/* User Bar - shows login status or user info */}
+        {/* User Bar */}
         <TouchableOpacity
           style={styles.userBar}
           onPress={user ? () => signOut() : () => setShowLoginModal(true)}
@@ -222,139 +403,40 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {showEmailForm ? (
-              // Email login/register form
-              <>
-                <Text style={styles.modalTitle}>{isSignUp ? '注册账号' : '邮箱登录'}</Text>
-                
-                <TextInput
-                  style={styles.input}
-                  placeholder="邮箱"
-                  placeholderTextColor={colors.textMuted}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-                
-                <TextInput
-                  style={styles.input}
-                  placeholder="密码"
-                  placeholderTextColor={colors.textMuted}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                />
-                
-                {isSignUp && (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="昵称（可选）"
-                    placeholderTextColor={colors.textMuted}
-                    value={displayName}
-                    onChangeText={setDisplayName}
-                  />
-                )}
-                
-                {authError && (
-                  <Text style={styles.errorText}>{authError}</Text>
-                )}
-                
-                <TouchableOpacity 
-                  style={[styles.primaryButton, authLoading && styles.buttonDisabled]} 
-                  onPress={handleEmailAuth}
-                  disabled={authLoading}
-                >
-                  <Text style={styles.primaryButtonText}>
-                    {authLoading ? '处理中...' : (isSignUp ? '注册' : '登录')}
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.linkButton}
-                  onPress={() => setIsSignUp(!isSignUp)}
-                >
-                  <Text style={styles.linkButtonText}>
-                    {isSignUp ? '已有账号？去登录' : '没有账号？去注册'}
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={() => setShowEmailForm(false)}
-                >
-                  <Text style={styles.secondaryButtonText}>返回</Text>
-                </TouchableOpacity>
-              </>
+              <EmailForm
+                isSignUp={isSignUp}
+                email={email}
+                password={password}
+                displayName={displayName}
+                authError={authError}
+                authLoading={authLoading}
+                onEmailChange={setEmail}
+                onPasswordChange={setPassword}
+                onDisplayNameChange={setDisplayName}
+                onSubmit={handleEmailAuth}
+                onToggleMode={() => setIsSignUp(!isSignUp)}
+                onBack={() => setShowEmailForm(false)}
+              />
             ) : (
-              // Login method selection
-              <>
-                <Text style={styles.modalTitle}>登录</Text>
-                <Text style={styles.modalSubtitle}>选择登录方式继续</Text>
-                
-                <TouchableOpacity 
-                  style={styles.primaryButton} 
-                  onPress={() => setShowEmailForm(true)}
-                >
-                  <Text style={styles.primaryButtonText}>📧 邮箱登录/注册</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.outlineButton, authLoading && styles.buttonDisabled]} 
-                  onPress={handleLogin}
-                  disabled={authLoading}
-                >
-                  <Text style={styles.outlineButtonText}>
-                    {authLoading ? '处理中...' : '👤 匿名登录'}
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={resetLoginModal}
-                >
-                  <Text style={styles.secondaryButtonText}>取消</Text>
-                </TouchableOpacity>
-              </>
+              <LoginOptions
+                authLoading={authLoading}
+                onEmailLogin={() => setShowEmailForm(true)}
+                onAnonymousLogin={handleAnonymousLogin}
+                onCancel={resetLoginModal}
+              />
             )}
           </View>
         </View>
       </Modal>
 
       {/* Join Room Modal */}
-      <Modal visible={showJoinModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>加入房间</Text>
-            <Text style={styles.modalSubtitle}>输入4位房间号码</Text>
-            
-            <TextInput
-              style={styles.codeInput}
-              value={roomCode}
-              onChangeText={setRoomCode}
-              keyboardType="number-pad"
-              maxLength={4}
-              placeholder="0000"
-              placeholderTextColor={colors.textMuted}
-              autoFocus
-            />
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.secondaryButton, { flex: 1 }]}
-                onPress={() => { setShowJoinModal(false); setRoomCode(''); }}
-              >
-                <Text style={styles.secondaryButtonText}>取消</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.primaryButton, { flex: 1 }]}
-                onPress={handleJoinRoom}
-              >
-                <Text style={styles.primaryButtonText}>加入</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <JoinRoomModal
+        visible={showJoinModal}
+        roomCode={roomCode}
+        onRoomCodeChange={setRoomCode}
+        onJoin={handleJoinRoom}
+        onCancel={handleCancelJoin}
+      />
     </SafeAreaView>
   );
 };

@@ -6,7 +6,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
-  Platform,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -33,13 +32,98 @@ import {
 } from '../../models/Room';
 import { RoleName, ROLES, isWolfRole } from '../../constants/roles';
 import AudioService from '../../services/AudioService';
-import { BackendService } from '../../services/BackendService';
+import { SupabaseService } from '../../services/SupabaseService';
 import { showAlert, setAlertListener, AlertConfig } from '../../utils/alert';
 import { AlertModal } from '../../components/AlertModal';
 import { Avatar } from '../../components/Avatar';
 import { styles, TILE_SIZE } from './RoomScreen.styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
+
+// Helper function to check if current actioner is a bot
+function checkIfCurrentActionerBot(room: Room, currentActionRole: RoleName | null): boolean {
+  if (!currentActionRole) return false;
+  
+  // Find the player with the current action role
+  for (const [seat, player] of room.players.entries()) {
+    if (player && room.template.roles[seat] === currentActionRole) {
+      // Check if it's a bot (uid starts with 'bot_')
+      if (player.uid.startsWith('bot_')) {
+        return true;
+      }
+    }
+  }
+  
+  // For wolf turn, check if ALL wolves are bots
+  if (currentActionRole !== 'wolf') {
+    return false;
+  }
+  
+  for (const [seat, player] of room.players.entries()) {
+    const role = room.template.roles[seat];
+    if (player && isWolfRole(role) && !player.uid.startsWith('bot_')) {
+      return false; // Found a human wolf
+    }
+  }
+  return true;
+}
+
+// Helper to determine imActioner state for ongoing game
+interface ActionerState {
+  imActioner: boolean;
+  showWolves: boolean;
+}
+
+function determineActionerState(
+  myRole: RoleName | null,
+  currentActionRole: RoleName | null,
+  mySeatNumber: number | null,
+  room: Room,
+  isHost: boolean
+): ActionerState {
+  if (!currentActionRole) {
+    return { imActioner: false, showWolves: false };
+  }
+  
+  // My role matches current action
+  if (myRole === currentActionRole) {
+    return handleMatchingRole(myRole, mySeatNumber, room);
+  }
+  
+  // Wolf team members during wolf turn
+  if (currentActionRole === 'wolf' && myRole && isWolfRole(myRole)) {
+    return handleWolfTeamTurn(mySeatNumber, room);
+  }
+  
+  // Host controls bot players
+  if (isHost && checkIfCurrentActionerBot(room, currentActionRole)) {
+    const showWolves = currentActionRole && isWolfRole(currentActionRole);
+    return { imActioner: true, showWolves };
+  }
+  
+  return { imActioner: false, showWolves: false };
+}
+
+function handleMatchingRole(myRole: RoleName, mySeatNumber: number | null, room: Room): ActionerState {
+  // For wolves, check if already voted
+  if (myRole === 'wolf' && mySeatNumber !== null && hasWolfVoted(room, mySeatNumber)) {
+    return { imActioner: false, showWolves: true };
+  }
+  
+  // Show wolves to wolf team (except nightmare, gargoyle, wolfRobot)
+  const showWolves = isWolfRole(myRole) && 
+    myRole !== 'nightmare' && 
+    myRole !== 'gargoyle' && 
+    myRole !== 'wolfRobot';
+  
+  return { imActioner: true, showWolves };
+}
+
+function handleWolfTeamTurn(mySeatNumber: number | null, room: Room): ActionerState {
+  // Check if this wolf has already voted
+  const hasVoted = mySeatNumber !== null && hasWolfVoted(room, mySeatNumber);
+  return { imActioner: !hasVoted, showWolves: true };
+}
 
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const { roomNumber, isHost, template } = route.params;
@@ -50,7 +134,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const [imActioner, setImActioner] = useState(false);
   const [showWolves, setShowWolves] = useState(false);
   const [firstNightEnded, setFirstNightEnded] = useState(false);
-  const [, setLastDialogShownForIndex] = useState<number | null>(null); // Track which action index we've shown dialog for
   const [anotherIndex, setAnotherIndex] = useState<number | null>(null); // For Magician
   const [isAudioPlaying, setIsAudioPlaying] = useState(false); // Block actions while audio playing
   const [isStartingGame, setIsStartingGame] = useState(false); // Hide start button after clicking
@@ -64,10 +147,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
 
   const audioService = useRef(AudioService.getInstance());
-  const backendService = useRef(BackendService.getInstance());
+  const supabaseService = useRef(SupabaseService.getInstance());
   const lastPlayedActionIndex = useRef<number | null>(null);
   const roomRef = useRef<Room | null>(null); // Keep latest room for closures
-  const currentUserId = backendService.current.getCurrentUserId();
+  const currentUserId = supabaseService.current.getCurrentUserId();
 
   // Set up alert listener for custom modal
   useEffect(() => {
@@ -85,7 +168,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!roomNumber) return;
     
     console.log('Subscribing to room:', roomNumber);
-    const unsubscribe = backendService.current.subscribeToRoom(
+    const unsubscribe = supabaseService.current.subscribeToRoom(
       roomNumber,
       (roomData) => {
         console.log('Room data received:', roomData?.roomNumber, 'status:', roomData?.roomStatus);
@@ -119,17 +202,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       hasCreatedRoom.current = true;
       
       // Wait for backend to be ready (auth initialized)
-      await backendService.current.waitForInit?.();
-      const userId = backendService.current.getCurrentUserId() || 'anonymous';
+      await supabaseService.current.waitForInit?.();
+      const userId = supabaseService.current.getCurrentUserId() || 'anonymous';
       
       console.log('Creating room as host:', roomNumber, 'userId:', userId);
       const newRoom = createRoom(userId, roomNumber, template);
       console.log('Room created:', newRoom.roomNumber, 'status:', newRoom.roomStatus);
-      await backendService.current.createRoom(roomNumber, newRoom);
+      await supabaseService.current.createRoom(roomNumber, newRoom);
       
       // Auto-sit host on seat 1 (index 0)
       console.log('Auto-seating host on seat 1');
-      await backendService.current.takeSeat(roomNumber, 0, null);
+      await supabaseService.current.takeSeat(roomNumber, 0, null);
     };
     createRoomAndSit();
   }, [isHost, template, roomNumber]);
@@ -148,98 +231,32 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         myIndex = seat;
       }
     });
-    if (myIndex !== null) {
-      setMySeatNumber(myIndex);
-    } else {
-      setMySeatNumber(null);
-    }
+    // Update my seat number
+    setMySeatNumber(myIndex);
     
-    // Check if I'm the current actioner
-    const myRole = myIndex !== null ? room.template.roles[myIndex] : null;
-    const currentActionRole = getCurrentActionRole(room);
-    
-    // Check if current actioner is a bot (for host control)
-    const isCurrentActionerBot = (): boolean => {
-      if (!currentActionRole) return false;
-      // Find the player with the current action role
-      for (const [seat, player] of room.players.entries()) {
-        if (player && room.template.roles[seat] === currentActionRole) {
-          // Check if it's a bot (uid starts with 'bot_')
-          if (player.uid.startsWith('bot_')) {
-            return true;
-          }
-        }
-      }
-      // For wolf turn, check if ALL wolves are bots
-      if (currentActionRole === 'wolf') {
-        let hasHumanWolf = false;
-        for (const [seat, player] of room.players.entries()) {
-          const role = room.template.roles[seat];
-          if (player && isWolfRole(role)) {
-            if (!player.uid.startsWith('bot_')) {
-              hasHumanWolf = true;
-              break;
-            }
-          }
-        }
-        return !hasHumanWolf;
-      }
-      return false;
-    };
-    
+    // Handle seating status
     if (room.roomStatus === RoomStatus.seating) {
       setImActioner(false);
       setShowWolves(false);
       setFirstNightEnded(false);
-      setLastDialogShownForIndex(null);
-    } else if (room.roomStatus === RoomStatus.ongoing) {
+      return;
+    }
+    
+    // Handle ongoing game
+    if (room.roomStatus === RoomStatus.ongoing) {
+      const myRole = myIndex === null ? null : room.template.roles[myIndex];
+      const currentActionRole = getCurrentActionRole(room);
+      
       if (!currentActionRole) {
         setFirstNightEnded(true);
         setImActioner(false);
         setShowWolves(false);
-      } else if (myRole === currentActionRole) {
-        // I am the actioner (my role matches current action)
-        // For wolves, check if already voted
-        if (currentActionRole === 'wolf' && mySeatNumber !== null && hasWolfVoted(room, mySeatNumber)) {
-          setImActioner(false);
-          setShowWolves(true); // Can still see other wolves
-        } else {
-          setImActioner(true);
-        }
-        
-        // Show wolves to wolf team
-        if (myRole && isWolfRole(myRole) && 
-            myRole !== 'nightmare' && 
-            myRole !== 'gargoyle' && 
-            myRole !== 'wolfRobot') {
-          setShowWolves(true);
-        }
-        
-        // Dialog will be shown after audio completes (see audio useEffect)
-      } else if (currentActionRole === 'wolf' && myRole && isWolfRole(myRole)) {
-        // Wolf team members can all vote during wolf turn
-        // Check if this wolf has already voted
-        if (mySeatNumber !== null && hasWolfVoted(room, mySeatNumber)) {
-          setImActioner(false);
-        } else {
-          setImActioner(true); // All wolves can act now
-        }
-        setShowWolves(true);
-        // Dialog will be shown after audio completes
-      } else if (isHost && isCurrentActionerBot()) {
-        // Host controls bot players during night
-        setImActioner(true);
-        
-        // Show wolves if current action is wolf-related
-        if (currentActionRole && isWolfRole(currentActionRole)) {
-          setShowWolves(true);
-        }
-        
-        // Dialog will be shown after audio completes
-      } else {
-        setImActioner(false);
-        setShowWolves(false);
+        return;
       }
+      
+      const state = determineActionerState(myRole, currentActionRole, mySeatNumber, room, isHost);
+      setImActioner(state.imActioner);
+      setShowWolves(state.showWolves);
     }
   }, [room, currentUserId, isHost, mySeatNumber]);
   
@@ -260,7 +277,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (currentIndex !== lastPlayedActionIndex.current) {
       lastPlayedActionIndex.current = currentIndex;
       setIsAudioPlaying(true);
-      setLastDialogShownForIndex(null); // Reset dialog state for new action
       
       const playAudioAndShowDialog = async () => {
         if (currentRole) {
@@ -269,7 +285,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           
           // Show action dialog after audio completes
           setIsAudioPlaying(false);
-          setLastDialogShownForIndex(currentIndex);
           showActionDialogRef.current?.(currentRole);
         } else {
           // Night has ended - no more actions
@@ -297,7 +312,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // If I'm the host and controlling a bot, return the current action role
     if (isHost && imActioner && currentActionRole) {
       // Check if my own role matches - if so, use my role
-      const myRole = mySeatNumber !== null ? room.template.roles[mySeatNumber] : null;
+      const myRole = mySeatNumber === null ? null : room.template.roles[mySeatNumber];
       if (myRole === currentActionRole) {
         return myRole;
       }
@@ -398,6 +413,38 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   };
   
+  const handleSeatingTap = (index: number) => {
+    console.log('In seating mode, isHost:', isHost, 'mySeatNumber:', mySeatNumber);
+    // 如果点击的是自己的座位，询问是否站起
+    if (mySeatNumber !== null && index === mySeatNumber) {
+      showLeaveSeatDialog(index);
+    } else {
+      console.log('Showing enter seat dialog for index:', index);
+      showEnterSeatDialog(index);
+    }
+  };
+
+  const handleActionTap = (index: number) => {
+    const actingRole = getActingRole();
+    
+    // Hunter and darkWolfKing only need to confirm status, not select target
+    if (actingRole === 'hunter') {
+      showHunterStatusDialog();
+      return;
+    }
+    if (actingRole === 'darkWolfKing') {
+      showDarkWolfKingStatusDialog();
+      return;
+    }
+    
+    if (actingRole === 'magician' && anotherIndex === null) {
+      setAnotherIndex(index);
+      showAlert('已选择第一位玩家', `${index + 1}号，请选择第二位玩家`);
+    } else {
+      showActionConfirmDialog(index);
+    }
+  };
+
   const onSeatTapped = (index: number) => {
     console.log('Seat tapped:', index, 'room:', room?.roomNumber, 'status:', room?.roomStatus);
     if (!room) {
@@ -414,33 +461,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     console.log('Room status:', room.roomStatus, 'RoomStatus.seating:', RoomStatus.seating);
     
     if (room.roomStatus === RoomStatus.seating) {
-      console.log('In seating mode, isHost:', isHost, 'mySeatNumber:', mySeatNumber);
-      // 如果点击的是自己的座位，询问是否站起
-      if (mySeatNumber !== null && index === mySeatNumber) {
-        showLeaveSeatDialog(index);
-      } else {
-        console.log('Showing enter seat dialog for index:', index);
-        showEnterSeatDialog(index);
-      }
+      handleSeatingTap(index);
     } else if (imActioner) {
-      const actingRole = getActingRole();
-      
-      // Hunter and darkWolfKing only need to confirm status, not select target
-      if (actingRole === 'hunter') {
-        showHunterStatusDialog();
-        return;
-      }
-      if (actingRole === 'darkWolfKing') {
-        showDarkWolfKingStatusDialog();
-        return;
-      }
-      
-      if (actingRole === 'magician' && anotherIndex === null) {
-        setAnotherIndex(index);
-        showAlert('已选择第一位玩家', `${index + 1}号，请选择第二位玩家`);
-      } else {
-        showActionConfirmDialog(index);
-      }
+      handleActionTap(index);
     }
   };
   
@@ -455,18 +478,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (pendingSeatIndex === null) return;
     
     console.log('Confirm pressed, calling takeSeat for index:', pendingSeatIndex);
-    const result = await backendService.current.takeSeat(roomNumber, pendingSeatIndex, mySeatNumber);
+    const result = await supabaseService.current.takeSeat(roomNumber, pendingSeatIndex, mySeatNumber);
     console.log('takeSeat result:', result);
     
     setSeatModalVisible(false);
     
     if (result === -1) {
-      // Seat already taken - show alert (or could use another modal)
-      if (Platform.OS === 'web') {
-        window.alert(`${pendingSeatIndex + 1}号座已被占用，请选择其他位置。`);
-      } else {
-        showAlert(`${pendingSeatIndex + 1}号座已被占用`, '请选择其他位置。');
-      }
+      // Seat already taken - show alert
+      showAlert(`${pendingSeatIndex + 1}号座已被占用`, '请选择其他位置。');
     }
     setPendingSeatIndex(null);
   };
@@ -485,58 +504,62 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleConfirmLeave = () => {
     if (pendingSeatIndex === null) return;
     
-    backendService.current.leaveSeat(roomNumber, pendingSeatIndex);
+    supabaseService.current.leaveSeat(roomNumber, pendingSeatIndex);
     setMySeatNumber(null);
     setSeatModalVisible(false);
     setPendingSeatIndex(null);
   };
   
+  // 找到需要投票的狼人座位
+  const findVotingWolfSeat = (): number | null => {
+    // 首先检查自己是否是狼人且未投票
+    if (mySeatNumber !== null) {
+      const myRole = getMyRole();
+      if (myRole && isWolfRole(myRole) && !hasWolfVoted(room!, mySeatNumber)) {
+        return mySeatNumber;
+      }
+    }
+    
+    // 如果自己不是狼人或已投票，作为 host 找第一个未投票的机器人狼
+    if (!isHost || !room) return null;
+    
+    const wolfSeats = getAllWolfSeats(room);
+    for (const seat of wolfSeats) {
+      const player = room.players.get(seat);
+      if (player && player.uid.startsWith('bot_') && !hasWolfVoted(room, seat)) {
+        return seat;
+      }
+    }
+    return null;
+  };
+
+  const buildActionMessage = (index: number, actingRole: RoleName): string => {
+    const roleInfo = ROLES[actingRole];
+    const actionConfirmMessage = roleInfo?.actionConfirmMessage || '对';
+    
+    if (index === -1) {
+      return '确定不发动技能吗？';
+    }
+    if (anotherIndex === null) {
+      return `确定${actionConfirmMessage}${index + 1}号玩家?`;
+    }
+    return `确定${actionConfirmMessage}${index + 1}号和${anotherIndex + 1}号玩家?`;
+  };
+
   const showActionConfirmDialog = (index: number) => {
     const actingRole = getActingRole();
     if (!actingRole) return;
     
     // 狼人投票使用单独的确认对话框
     if (actingRole === 'wolf') {
-      // 找到需要投票的狼人座位
-      let votingWolfSeat: number | null = null;
-      
-      // 首先检查自己是否是狼人且未投票
-      if (mySeatNumber !== null) {
-        const myRole = getMyRole();
-        if (myRole && isWolfRole(myRole) && !hasWolfVoted(room!, mySeatNumber)) {
-          votingWolfSeat = mySeatNumber;
-        }
-      }
-      
-      // 如果自己不是狼人或已投票，作为 host 找第一个未投票的机器人狼
-      if (votingWolfSeat === null && isHost && room) {
-        const wolfSeats = getAllWolfSeats(room);
-        for (const seat of wolfSeats) {
-          const player = room.players.get(seat);
-          if (player && player.uid.startsWith('bot_') && !hasWolfVoted(room, seat)) {
-            votingWolfSeat = seat;
-            break;
-          }
-        }
-      }
-      
+      const votingWolfSeat = findVotingWolfSeat();
       if (votingWolfSeat !== null) {
         showWolfVoteConfirmDialog(index, votingWolfSeat);
         return;
       }
     }
     
-    const roleInfo = ROLES[actingRole];
-    const actionConfirmMessage = roleInfo?.actionConfirmMessage || '对';
-    
-    let msg: string;
-    if (index === -1) {
-      msg = '确定不发动技能吗？';
-    } else if (anotherIndex !== null) {
-      msg = `确定${actionConfirmMessage}${index + 1}号和${anotherIndex + 1}号玩家?`;
-    } else {
-      msg = `确定${actionConfirmMessage}${index + 1}号玩家?`;
-    }
+    const msg = buildActionMessage(index, actingRole);
     
     showAlert(
       index === -1 ? '不发动技能' : '使用技能',
@@ -587,10 +610,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               // 计算最终目标并进入下一阶段
               const finalTarget = calculateWolfKillTarget(updatedRoom);
               const finalRoom = proceedToNextAction(updatedRoom, finalTarget);
-              backendService.current.updateRoom(roomNumber, finalRoom);
+              supabaseService.current.updateRoom(roomNumber, finalRoom);
             } else {
               // 还有狼人未投票，只更新投票记录
-              backendService.current.updateRoom(roomNumber, updatedRoom);
+              supabaseService.current.updateRoom(roomNumber, updatedRoom);
             }
           }
         },
@@ -637,7 +660,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     console.log('[proceedWithAction] Calling proceedToNextAction');
     const updatedRoom = proceedToNextAction(room, targetIndex, extra);
     console.log('[proceedWithAction] Updated room currentActionerIndex:', updatedRoom.currentActionerIndex);
-    backendService.current.updateRoom(roomNumber, updatedRoom);
+    supabaseService.current.updateRoom(roomNumber, updatedRoom);
     
     // No need to reset dialog state - we track by action index now
   };
@@ -664,13 +687,24 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           text: '确定', 
           onPress: () => {
             const updatedRoom = { ...room, roomStatus: RoomStatus.seated };
-            backendService.current.updateRoom(roomNumber, updatedRoom);
+            supabaseService.current.updateRoom(roomNumber, updatedRoom);
           }
         }
       ]
     );
   };
   
+  const handleStartGame = async () => {
+    setIsStartingGame(true); // Hide start button immediately
+    await audioService.current.playNightBeginAudio();
+    setTimeout(() => {
+      if (room) {
+        const startedRoom = startGame(room);
+        supabaseService.current.updateRoom(roomNumber, startedRoom);
+      }
+    }, 5000);
+  };
+
   const showStartGameDialog = () => {
     showAlert(
       '开始游戏？',
@@ -678,16 +712,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       [
         { 
           text: '确定', 
-          onPress: async () => {
-            setIsStartingGame(true); // Hide start button immediately
-            await audioService.current.playNightBeginAudio();
-            setTimeout(() => {
-              if (room) {
-                const startedRoom = startGame(room);
-                backendService.current.updateRoom(roomNumber, startedRoom);
-              }
-            }, 5000);
-          }
+          onPress: () => { handleStartGame(); }
         }
       ]
     );
@@ -741,7 +766,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onPress: () => {
             if (room) {
               const restarted = restartRoom(room);
-              backendService.current.updateRoom(roomNumber, restarted);
+              supabaseService.current.updateRoom(roomNumber, restarted);
             }
           }
         },
@@ -797,47 +822,56 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const currentActionRole = getCurrentActionRole(room);
   
   // 生成行动消息，对于狼人包含投票状态
+  // 获取我的狼人投票状态消息
+  const getMyWolfVoteStatus = (baseMessage: string, voteSummary: string): string | null => {
+    if (mySeatNumber === null) return null;
+    
+    const myRole = getMyRole();
+    if (!myRole || !isWolfRole(myRole)) return null;
+    
+    if (hasWolfVoted(room, mySeatNumber)) {
+      return `${baseMessage}\n${voteSummary} (你已投票，等待其他狼人)`;
+    }
+    return `${baseMessage}\n${voteSummary}`;
+  };
+
+  // 获取机器人狼的投票状态消息
+  const getBotWolfVoteStatus = (baseMessage: string, voteSummary: string): string | null => {
+    if (!isHost) return null;
+    
+    const wolfSeats = getAllWolfSeats(room);
+    for (const seat of wolfSeats) {
+      const player = room.players.get(seat);
+      if (player && player.uid.startsWith('bot_') && !hasWolfVoted(room, seat)) {
+        const wolfName = player.displayName || `${seat + 1}号`;
+        return `${baseMessage}\n${voteSummary}\n当前: ${wolfName} 投票`;
+      }
+    }
+    return null;
+  };
+
   const getActionMessage = () => {
     if (!currentActionRole) return '';
     
     const baseMessage = ROLES[currentActionRole]?.actionMessage || `请${ROLES[currentActionRole]?.name}行动`;
     
-    // 如果是狼人回合，显示投票状态
-    if (currentActionRole === 'wolf') {
-      const voteSummary = getWolfVoteSummary(room);
-      
-      // 找到当前需要投票的狼人
-      let currentVotingWolf: string | null = null;
-      
-      // 检查自己是否是狼人且未投票
-      if (mySeatNumber !== null) {
-        const myRole = getMyRole();
-        if (myRole && isWolfRole(myRole) && !hasWolfVoted(room, mySeatNumber)) {
-          return `${baseMessage}\n${voteSummary}`;
-        } else if (myRole && isWolfRole(myRole) && hasWolfVoted(room, mySeatNumber)) {
-          return `${baseMessage}\n${voteSummary} (你已投票，等待其他狼人)`;
-        }
-      }
-      
-      // Host 控制机器人狼的情况
-      if (isHost) {
-        const wolfSeats = getAllWolfSeats(room);
-        for (const seat of wolfSeats) {
-          const player = room.players.get(seat);
-          if (player && player.uid.startsWith('bot_') && !hasWolfVoted(room, seat)) {
-            currentVotingWolf = player.displayName || `${seat + 1}号`;
-            break;
-          }
-        }
-        if (currentVotingWolf) {
-          return `${baseMessage}\n${voteSummary}\n当前: ${currentVotingWolf} 投票`;
-        }
-      }
-      
-      return `${baseMessage}\n${voteSummary}`;
+    // 非狼人回合直接返回基础消息
+    if (currentActionRole !== 'wolf') {
+      return baseMessage;
     }
     
-    return baseMessage;
+    // 狼人回合，显示投票状态
+    const voteSummary = getWolfVoteSummary(room);
+    
+    // 检查自己是否是狼人
+    const myStatus = getMyWolfVoteStatus(baseMessage, voteSummary);
+    if (myStatus) return myStatus;
+    
+    // Host 控制机器人狼的情况
+    const botStatus = getBotWolfVoteStatus(baseMessage, voteSummary);
+    if (botStatus) return botStatus;
+    
+    return `${baseMessage}\n${voteSummary}`;
   };
   
   const actionMessage = getActionMessage();
@@ -878,6 +912,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   };
   
   const { roleCounts, wolfRoles, godRoles, specialRoles, villagerCount } = getRoleStats();
+
+  // Helper function to format role list with counts
+  const formatRoleList = (roles: string[], counts: Record<string, number>): string => {
+    if (roles.length === 0) return '无';
+    return roles.map(r => {
+      const count = counts[r];
+      return count > 1 ? `${r}×${count}` : r;
+    }).join('、');
+  };
   
   return (
     <View style={styles.container}>
@@ -899,14 +942,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={styles.roleCategory}>
               <Text style={styles.roleCategoryLabel}>🐺 狼人：</Text>
               <Text style={styles.roleCategoryText}>
-                {wolfRoles.map(r => `${r}${roleCounts[r] > 1 ? `×${roleCounts[r]}` : ''}`).join('、') || '无'}
+                {formatRoleList(wolfRoles, roleCounts)}
               </Text>
             </View>
             {/* God roles */}
             <View style={styles.roleCategory}>
               <Text style={styles.roleCategoryLabel}>✨ 神职：</Text>
               <Text style={styles.roleCategoryText}>
-                {godRoles.map(r => `${r}${roleCounts[r] > 1 ? `×${roleCounts[r]}` : ''}`).join('、') || '无'}
+                {formatRoleList(godRoles, roleCounts)}
               </Text>
             </View>
             {/* Special roles */}
@@ -914,7 +957,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               <View style={styles.roleCategory}>
                 <Text style={styles.roleCategoryLabel}>🎭 特殊：</Text>
                 <Text style={styles.roleCategoryText}>
-                  {specialRoles.map(r => `${r}${roleCounts[r] > 1 ? `×${roleCounts[r]}` : ''}`).join('、')}
+                  {formatRoleList(specialRoles, roleCounts)}
                 </Text>
               </View>
             )}
@@ -936,9 +979,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                           role !== 'wolfRobot' && role !== 'gargoyle';
             const isSelected = anotherIndex === index;
             const isMySpot = mySeatNumber === index;
+            const seatKey = `seat-${index}-${role}`;
             
             return (
-              <View key={index} style={styles.tileWrapper}>
+              <View key={seatKey} style={styles.tileWrapper}>
                 <TouchableOpacity
                   style={[
                     styles.playerTile,
@@ -1021,7 +1065,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                   { 
                     text: '确定', 
                     onPress: () => {
-                      backendService.current.fillWithBots(roomNumber).then((count) => {
+                      supabaseService.current.fillWithBots(roomNumber).then((count) => {
                         if (count > 0) {
                           showAlert('已填充', `已用 ${count} 个机器人填满所有座位`);
                         }
