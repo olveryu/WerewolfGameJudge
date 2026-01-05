@@ -154,6 +154,202 @@ describe('Action Order - 黑狼王守卫12人', () => {
     // Should be: guard, wolf, witch, seer, hunter, darkWolfKing
     expect(template.actionOrder).toEqual(['guard', 'wolf', 'witch', 'seer', 'hunter', 'darkWolfKing']);
   });
+
+  it('should progress through all actions correctly', () => {
+    let room = createTestRoom(darkWolfKingRoles);
+    
+    // Step 0: Guard
+    expect(getCurrentActionRole(room)).toBe('guard');
+    room = proceedToNextAction(room, 0);
+    
+    // Step 1: Wolf
+    expect(getCurrentActionRole(room)).toBe('wolf');
+    room = proceedToNextAction(room, 1);
+    
+    // Step 2: Witch
+    expect(getCurrentActionRole(room)).toBe('witch');
+    room = proceedToNextAction(room, null);
+    
+    // Step 3: Seer
+    expect(getCurrentActionRole(room)).toBe('seer');
+    room = proceedToNextAction(room, 4);
+    
+    // Step 4: Hunter
+    expect(getCurrentActionRole(room)).toBe('hunter');
+    room = proceedToNextAction(room, null);
+    
+    // Step 5: Dark Wolf King
+    expect(getCurrentActionRole(room)).toBe('darkWolfKing');
+    room = proceedToNextAction(room, null);
+    
+    // Night ended
+    expect(getCurrentActionRole(room)).toBe(null);
+  });
+});
+
+describe('Action Order - 石像鬼守墓人12人', () => {
+  const gargoyleRoles: RoleName[] = [
+    'villager', 'villager', 'villager', 'villager',
+    'wolf', 'wolf', 'wolf', 'gargoyle',
+    'seer', 'witch', 'hunter', 'graveyardKeeper',
+  ];
+
+  it('should have correct action order with gargoyle', () => {
+    const template = createTemplateFromRoles(gargoyleRoles);
+    
+    // Gargoyle is in ACTION_ORDER at index 4, before wolf
+    // Should be: gargoyle, wolf, witch, seer, hunter
+    expect(template.actionOrder).toEqual(['gargoyle', 'wolf', 'witch', 'seer', 'hunter']);
+  });
+
+  it('should have gargoyle act before wolf', () => {
+    let room = createTestRoom(gargoyleRoles);
+    
+    // Step 0: Gargoyle
+    expect(getCurrentActionRole(room)).toBe('gargoyle');
+    room = proceedToNextAction(room, 8); // Gargoyle checks player 8 (seer) if it's a god
+    
+    // Step 1: Wolf
+    expect(getCurrentActionRole(room)).toBe('wolf');
+  });
+});
+
+describe('Action Order - 梦魇守卫12人', () => {
+  const nightmareRoles: RoleName[] = [
+    'villager', 'villager', 'villager', 'villager',
+    'wolf', 'wolf', 'wolf', 'nightmare',
+    'seer', 'witch', 'hunter', 'guard',
+  ];
+
+  it('should have correct action order with nightmare and guard', () => {
+    const template = createTemplateFromRoles(nightmareRoles);
+    
+    // Nightmare is at index 5, guard at index 6, wolf at index 7
+    // Should be: nightmare, guard, wolf, witch, seer, hunter
+    expect(template.actionOrder).toEqual(['nightmare', 'guard', 'wolf', 'witch', 'seer', 'hunter']);
+  });
+
+  it('should have nightmare act first, then guard, then wolf', () => {
+    let room = createTestRoom(nightmareRoles);
+    
+    // Step 0: Nightmare
+    expect(getCurrentActionRole(room)).toBe('nightmare');
+    room = proceedToNextAction(room, 8); // Nightmare blocks seer
+    
+    // Step 1: Guard
+    expect(getCurrentActionRole(room)).toBe('guard');
+    room = proceedToNextAction(room, 9); // Guard protects witch
+    
+    // Step 2: Wolf
+    expect(getCurrentActionRole(room)).toBe('wolf');
+  });
+});
+
+describe('Action Order - 血月猎魔12人', () => {
+  const bloodMoonRoles: RoleName[] = [
+    'villager', 'villager', 'villager', 'villager',
+    'wolf', 'wolf', 'wolf', 'bloodMoon',
+    'seer', 'witch', 'idiot', 'witcher',
+  ];
+
+  it('should have correct action order (bloodMoon has no night action)', () => {
+    const template = createTemplateFromRoles(bloodMoonRoles);
+    
+    // bloodMoon has no night action (actionOrder: -1)
+    // Should be: wolf, witch, seer
+    expect(template.actionOrder).toEqual(['wolf', 'witch', 'seer']);
+  });
+
+  it('should not include bloodMoon in action order', () => {
+    const template = createTemplateFromRoles(bloodMoonRoles);
+    expect(template.actionOrder).not.toContain('bloodMoon');
+  });
+});
+
+describe('Action Order - 狼王摄梦人12人', () => {
+  const celebrityRoles: RoleName[] = [
+    'villager', 'villager', 'villager', 'villager',
+    'wolf', 'wolf', 'wolf', 'darkWolfKing',
+    'seer', 'witch', 'hunter', 'celebrity',
+  ];
+
+  it('should have correct action order with celebrity', () => {
+    const template = createTemplateFromRoles(celebrityRoles);
+    
+    // celebrity (摄梦人) is at index 3 in ACTION_ORDER
+    // Should be: celebrity, wolf, witch, seer, hunter, darkWolfKing
+    expect(template.actionOrder).toEqual(['celebrity', 'wolf', 'witch', 'seer', 'hunter', 'darkWolfKing']);
+  });
+
+  it('should have celebrity act first', () => {
+    let room = createTestRoom(celebrityRoles);
+    
+    // Step 0: Celebrity
+    expect(getCurrentActionRole(room)).toBe('celebrity');
+    room = proceedToNextAction(room, 0); // Celebrity puts player 0 into dream
+    
+    // Step 1: Wolf
+    expect(getCurrentActionRole(room)).toBe('wolf');
+  });
+});
+
+describe('Action Order - 狼王魔术师12人', () => {
+  const magicianRoles: RoleName[] = [
+    'villager', 'villager', 'villager', 'villager',
+    'wolf', 'wolf', 'wolf', 'darkWolfKing',
+    'seer', 'witch', 'hunter', 'magician',
+  ];
+
+  it('should have correct action order with magician', () => {
+    const template = createTemplateFromRoles(magicianRoles);
+    
+    // magician is at index 2 in ACTION_ORDER
+    // Should be: magician, wolf, witch, seer, hunter, darkWolfKing
+    expect(template.actionOrder).toEqual(['magician', 'wolf', 'witch', 'seer', 'hunter', 'darkWolfKing']);
+  });
+
+  it('should have magician act first', () => {
+    let room = createTestRoom(magicianRoles);
+    
+    // Step 0: Magician
+    expect(getCurrentActionRole(room)).toBe('magician');
+    room = proceedToNextAction(room, null); // Magician chooses not to swap
+    
+    // Step 1: Wolf
+    expect(getCurrentActionRole(room)).toBe('wolf');
+  });
+});
+
+describe('Action Order - 机械狼通灵师12人', () => {
+  const wolfRobotRoles: RoleName[] = [
+    'villager', 'villager', 'villager', 'villager',
+    'wolf', 'wolf', 'wolf', 'wolfRobot',
+    'psychic', 'witch', 'hunter', 'guard',
+  ];
+
+  it('should have correct action order with wolfRobot and psychic', () => {
+    const template = createTemplateFromRoles(wolfRobotRoles);
+    
+    // wolfRobot is at index 1, psychic is at index 11 in ACTION_ORDER
+    // Should be: wolfRobot, guard, wolf, witch, psychic, hunter
+    expect(template.actionOrder).toEqual(['wolfRobot', 'guard', 'wolf', 'witch', 'psychic', 'hunter']);
+  });
+
+  it('should have wolfRobot act first (learns a player skill)', () => {
+    let room = createTestRoom(wolfRobotRoles);
+    
+    // Step 0: WolfRobot
+    expect(getCurrentActionRole(room)).toBe('wolfRobot');
+    room = proceedToNextAction(room, 8); // WolfRobot learns from psychic
+    
+    // Step 1: Guard
+    expect(getCurrentActionRole(room)).toBe('guard');
+  });
+
+  it('wolfRobot action message should be 请选择学习对象', () => {
+    expect(ROLES.wolfRobot.actionMessage).toBe('请选择学习对象');
+    expect(ROLES.wolfRobot.actionConfirmMessage).toBe('学习');
+  });
 });
 
 describe('Role dialog messages', () => {
