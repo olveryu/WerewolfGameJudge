@@ -577,3 +577,61 @@ const shuffleArray = <T>(array: T[]): T[] => {
   }
   return result;
 };
+
+// Night result interface
+export interface NightResult {
+  killedByWolf: number | null;       // 被狼人杀的玩家座位
+  savedByWitch: boolean;              // 女巫是否使用解药
+  poisonedPlayer: number | null;      // 被女巫毒的玩家座位
+  protectedBySeer: number | null;     // 被预言家查验的玩家座位（仅记录）
+  deadPlayers: number[];              // 当晚死亡的玩家列表
+}
+
+// Calculate night result based on actions
+export const getNightResult = (room: Room): NightResult => {
+  const wolfAction = room.actions.get('wolf') ?? null;
+  const witchAction = room.actions.get('witch') ?? null;
+  const seerAction = room.actions.get('seer') ?? null;
+  const guardAction = room.actions.get('guard') ?? null;
+  
+  const killedByWolf = wolfAction;
+  
+  // proceedToNextAction encoding:
+  // - Save: stores targetIndex (positive/zero)
+  // - Poison: stores -(targetIndex + 1) (negative)
+  // So positive/zero = save, negative = poison
+  const savedByWitch = witchAction !== null && witchAction >= 0;
+  const poisonedPlayer = (witchAction !== null && witchAction < 0) ? -(witchAction + 1) : null;
+  
+  // 检查守卫是否守护了被杀的人
+  const protectedByGuard = killedByWolf !== null && killedByWolf === guardAction;
+  
+  // 计算死亡玩家
+  const deadPlayers: number[] = [];
+  
+  if (killedByWolf !== null) {
+    // 同守必死：女巫救 + 守卫守同一个人 = 死亡
+    const doubleProtection = savedByWitch && protectedByGuard && killedByWolf === witchAction;
+    // 存活条件：只有女巫救或只有守卫守（不是同时）
+    const survived = (savedByWitch || protectedByGuard) && !doubleProtection;
+    
+    if (!survived) {
+      deadPlayers.push(killedByWolf);
+    }
+  }
+  
+  // 被女巫毒
+  if (poisonedPlayer !== null) {
+    if (!deadPlayers.includes(poisonedPlayer)) {
+      deadPlayers.push(poisonedPlayer);
+    }
+  }
+  
+  return {
+    killedByWolf,
+    savedByWitch,
+    poisonedPlayer,
+    protectedBySeer: seerAction,
+    deadPlayers,
+  };
+};

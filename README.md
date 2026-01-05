@@ -40,8 +40,7 @@ src/
 └── services/        # Business logic services
     ├── AuthService.ts
     ├── AudioService.ts
-    ├── BackendService.ts    # Unified backend (switches demo/Supabase)
-    ├── InMemoryService.ts   # In-memory storage for demo mode
+    ├── BackendService.ts    # Unified backend interface
     ├── SupabaseService.ts   # Supabase backend for production
     ├── RoomService.ts
     └── StorageService.ts
