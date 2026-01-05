@@ -201,18 +201,37 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       
       hasCreatedRoom.current = true;
       
-      // Wait for backend to be ready (auth initialized)
-      await supabaseService.current.waitForInit?.();
-      const userId = supabaseService.current.getCurrentUserId() || 'anonymous';
-      
-      console.log('Creating room as host:', roomNumber, 'userId:', userId);
-      const newRoom = createRoom(userId, roomNumber, template);
-      console.log('Room created:', newRoom.roomNumber, 'status:', newRoom.roomStatus);
-      await supabaseService.current.createRoom(roomNumber, newRoom);
-      
-      // Auto-sit host on seat 1 (index 0)
-      console.log('Auto-seating host on seat 1');
-      await supabaseService.current.takeSeat(roomNumber, 0, null);
+      try {
+        // Wait for backend to be ready (auth initialized)
+        await supabaseService.current.waitForInit?.();
+        const userId = supabaseService.current.getCurrentUserId() || 'anonymous';
+        
+        console.log('Creating room as host:', roomNumber, 'userId:', userId);
+        const newRoom = createRoom(userId, roomNumber, template);
+        console.log('Room created:', newRoom.roomNumber, 'status:', newRoom.roomStatus);
+        
+        // Try to create room - if it already exists (409/400), delete and recreate
+        try {
+          await supabaseService.current.createRoom(roomNumber, newRoom);
+        } catch (createError: unknown) {
+          const errorMessage = createError instanceof Error ? createError.message : String(createError);
+          // Room might already exist from a previous session - delete and recreate
+          if (errorMessage.includes('duplicate') || errorMessage.includes('unique')) {
+            console.log('Room already exists, deleting and recreating...');
+            await supabaseService.current.deleteRoom(roomNumber);
+            await supabaseService.current.createRoom(roomNumber, newRoom);
+          } else {
+            throw createError;
+          }
+        }
+        
+        // Auto-sit host on seat 1 (index 0)
+        console.log('Auto-seating host on seat 1');
+        await supabaseService.current.takeSeat(roomNumber, 0, null);
+      } catch (error) {
+        console.error('Failed to create room:', error);
+        hasCreatedRoom.current = false; // Allow retry
+      }
     };
     createRoomAndSit();
   }, [isHost, template, roomNumber]);
