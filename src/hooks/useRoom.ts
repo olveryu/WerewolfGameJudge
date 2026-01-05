@@ -1,20 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Room, createRoom as createRoomModel } from '../models/Room';
-import { SupabaseService } from '../services/SupabaseService';
+import { RoomService } from '../services/RoomService';
 import { GameTemplate } from '../models/Template';
 
 export const useRoom = (roomNumber?: string) => {
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const supabaseService = useRef(SupabaseService.getInstance());
+  const roomService = useRef(RoomService.getInstance());
 
   // Subscribe to room changes
   useEffect(() => {
     if (!roomNumber) return;
 
     setLoading(true);
-    const unsubscribe = supabaseService.current.subscribeToRoom(roomNumber, (updatedRoom) => {
+    const unsubscribe = roomService.current.subscribeToRoom(roomNumber, (updatedRoom) => {
       setRoom(updatedRoom);
       setLoading(false);
     });
@@ -27,9 +27,9 @@ export const useRoom = (roomNumber?: string) => {
       setLoading(true);
       setError(null);
       try {
-        const roomNum = await supabaseService.current.generateRoomNumber();
+        const roomNum = await roomService.current.generateRoomNumber();
         const newRoom = createRoomModel(hostId, roomNum, template);
-        await supabaseService.current.createRoom(roomNum, newRoom);
+        await roomService.current.createRoom(roomNum, newRoom);
         setRoom(newRoom);
         return newRoom;
       } catch {
@@ -49,7 +49,7 @@ export const useRoom = (roomNumber?: string) => {
       setError(null);
       try {
         const updatedRoom = { ...room, ...updates };
-        await supabaseService.current.updateRoom(room.roomNumber, updatedRoom);
+        await roomService.current.updateRoom(room.roomNumber, updatedRoom);
       } catch {
         setError('Failed to update room');
       }
@@ -61,7 +61,7 @@ export const useRoom = (roomNumber?: string) => {
     if (!room) return;
 
     try {
-      await supabaseService.current.deleteRoom(room.roomNumber);
+      await roomService.current.deleteRoom(room.roomNumber);
     } catch {
       setError('Failed to end room');
     }
@@ -71,7 +71,7 @@ export const useRoom = (roomNumber?: string) => {
     setLoading(true);
     setError(null);
     try {
-      const foundRoom = await supabaseService.current.getRoom(roomNum);
+      const foundRoom = await roomService.current.getRoom(roomNum);
       if (foundRoom) {
         setRoom(foundRoom);
         return foundRoom;

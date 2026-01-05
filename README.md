@@ -122,8 +122,8 @@ npm run web
 - **Language**: TypeScript
 - **Navigation**: React Navigation
 - **State Management**: React Hooks
-- **Backend**: Firebase (Auth, Firestore, Storage)
-- **Audio**: expo-av
+- **Backend**: Supabase (Auth, Database, Storage)
+- **Audio**: expo-audio
 
 ## License
 

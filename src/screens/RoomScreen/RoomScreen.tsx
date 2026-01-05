@@ -32,7 +32,9 @@ import {
 } from '../../models/Room';
 import { RoleName, ROLES, isWolfRole } from '../../constants/roles';
 import AudioService from '../../services/AudioService';
-import { SupabaseService } from '../../services/SupabaseService';
+import { AuthService } from '../../services/AuthService';
+import { RoomService } from '../../services/RoomService';
+import { SeatService } from '../../services/SeatService';
 import { showAlert, setAlertListener, AlertConfig } from '../../utils/alert';
 import { AlertModal } from '../../components/AlertModal';
 import { Avatar } from '../../components/Avatar';
@@ -147,10 +149,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
 
   const audioService = useRef(AudioService.getInstance());
-  const supabaseService = useRef(SupabaseService.getInstance());
+  const authService = useRef(AuthService.getInstance());
+  const roomService = useRef(RoomService.getInstance());
+  const seatService = useRef(SeatService.getInstance());
   const lastPlayedActionIndex = useRef<number | null>(null);
   const roomRef = useRef<Room | null>(null); // Keep latest room for closures
-  const currentUserId = supabaseService.current.getCurrentUserId();
+  const currentUserId = authService.current.getCurrentUserId();
 
   // Set up alert listener for custom modal
   useEffect(() => {
@@ -168,7 +172,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!roomNumber) return;
     
     console.log('Subscribing to room:', roomNumber);
-    const unsubscribe = supabaseService.current.subscribeToRoom(
+    const unsubscribe = roomService.current.subscribeToRoom(
       roomNumber,
       (roomData) => {
         console.log('Room data received:', roomData?.roomNumber, 'status:', roomData?.roomStatus);
@@ -203,8 +207,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       
       try {
         // Wait for backend to be ready (auth initialized)
-        await supabaseService.current.waitForInit?.();
-        const userId = supabaseService.current.getCurrentUserId() || 'anonymous';
+        await authService.current.waitForInit?.();
+        const userId = authService.current.getCurrentUserId() || 'anonymous';
         
         console.log('Creating room as host:', roomNumber, 'userId:', userId);
         const newRoom = createRoom(userId, roomNumber, template);
@@ -212,14 +216,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         
         // Try to create room - if it already exists (409/400), delete and recreate
         try {
-          await supabaseService.current.createRoom(roomNumber, newRoom);
+          await roomService.current.createRoom(roomNumber, newRoom);
         } catch (createError: unknown) {
           const errorMessage = createError instanceof Error ? createError.message : String(createError);
           // Room might already exist from a previous session - delete and recreate
           if (errorMessage.includes('duplicate') || errorMessage.includes('unique')) {
             console.log('Room already exists, deleting and recreating...');
-            await supabaseService.current.deleteRoom(roomNumber);
-            await supabaseService.current.createRoom(roomNumber, newRoom);
+            await roomService.current.deleteRoom(roomNumber);
+            await roomService.current.createRoom(roomNumber, newRoom);
           } else {
             throw createError;
           }
@@ -227,7 +231,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         
         // Auto-sit host on seat 1 (index 0)
         console.log('Auto-seating host on seat 1');
-        await supabaseService.current.takeSeat(roomNumber, 0, null);
+        await seatService.current.takeSeat(roomNumber, 0, null);
       } catch (error) {
         console.error('Failed to create room:', error);
         hasCreatedRoom.current = false; // Allow retry
@@ -497,7 +501,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (pendingSeatIndex === null) return;
     
     console.log('Confirm pressed, calling takeSeat for index:', pendingSeatIndex);
-    const result = await supabaseService.current.takeSeat(roomNumber, pendingSeatIndex, mySeatNumber);
+    const result = await seatService.current.takeSeat(roomNumber, pendingSeatIndex, mySeatNumber);
     console.log('takeSeat result:', result);
     
     setSeatModalVisible(false);
@@ -523,7 +527,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleConfirmLeave = () => {
     if (pendingSeatIndex === null) return;
     
-    supabaseService.current.leaveSeat(roomNumber, pendingSeatIndex);
+    seatService.current.leaveSeat(roomNumber, pendingSeatIndex);
     setMySeatNumber(null);
     setSeatModalVisible(false);
     setPendingSeatIndex(null);
@@ -629,10 +633,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               // 计算最终目标并进入下一阶段
               const finalTarget = calculateWolfKillTarget(updatedRoom);
               const finalRoom = proceedToNextAction(updatedRoom, finalTarget);
-              supabaseService.current.updateRoom(roomNumber, finalRoom);
+              roomService.current.updateRoom(roomNumber, finalRoom);
             } else {
               // 还有狼人未投票，只更新投票记录
-              supabaseService.current.updateRoom(roomNumber, updatedRoom);
+              roomService.current.updateRoom(roomNumber, updatedRoom);
             }
           }
         },
@@ -679,7 +683,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     console.log('[proceedWithAction] Calling proceedToNextAction');
     const updatedRoom = proceedToNextAction(room, targetIndex, extra);
     console.log('[proceedWithAction] Updated room currentActionerIndex:', updatedRoom.currentActionerIndex);
-    supabaseService.current.updateRoom(roomNumber, updatedRoom);
+    roomService.current.updateRoom(roomNumber, updatedRoom);
     
     // No need to reset dialog state - we track by action index now
   };
@@ -706,7 +710,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           text: '确定', 
           onPress: () => {
             const updatedRoom = { ...room, roomStatus: RoomStatus.seated };
-            supabaseService.current.updateRoom(roomNumber, updatedRoom);
+            roomService.current.updateRoom(roomNumber, updatedRoom);
           }
         }
       ]
@@ -719,7 +723,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     setTimeout(() => {
       if (room) {
         const startedRoom = startGame(room);
-        supabaseService.current.updateRoom(roomNumber, startedRoom);
+        roomService.current.updateRoom(roomNumber, startedRoom);
       }
     }, 5000);
   };
@@ -785,7 +789,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onPress: () => {
             if (room) {
               const restarted = restartRoom(room);
-              supabaseService.current.updateRoom(roomNumber, restarted);
+              roomService.current.updateRoom(roomNumber, restarted);
             }
           }
         },
@@ -1084,7 +1088,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                   { 
                     text: '确定', 
                     onPress: () => {
-                      supabaseService.current.fillWithBots(roomNumber).then((count) => {
+                      seatService.current.fillWithBots(roomNumber).then((count) => {
                         if (count > 0) {
                           showAlert('已填充', `已用 ${count} 个机器人填满所有座位`);
                         }

@@ -1,4 +1,4 @@
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, AudioPlayer, AudioStatus } from 'expo-audio';
 import { RoleName } from '../constants/roles';
 
 // Audio file mappings matching Flutter's JudgeAudioProvider
@@ -43,7 +43,7 @@ const NIGHT_END_AUDIO = require('../../assets/audio/night_end.mp3');
 class AudioService {
   private static instance: AudioService;
   private static initPromise: Promise<void> | null = null;
-  private sound: Audio.Sound | null = null;
+  private player: AudioPlayer | null = null;
   private isPlaying = false;
 
   private constructor() {
@@ -61,52 +61,50 @@ class AudioService {
 
   private async initAudio(): Promise<void> {
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-        shouldDuckAndroid: true,
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
+        interruptionMode: 'duckOthers',
       });
     } catch (error) {
       console.error('Failed to initialize audio:', error);
     }
   }
 
-  private async stopCurrentSound(): Promise<void> {
-    if (this.sound) {
+  private stopCurrentPlayer(): void {
+    if (this.player) {
       try {
-        await this.sound.stopAsync();
-        await this.sound.unloadAsync();
+        this.player.pause();
+        this.player.remove();
       } catch {
         // Ignore errors when stopping
       }
-      this.sound = null;
+      this.player = null;
       this.isPlaying = false;
     }
   }
 
   private async playAudioFile(audioFile: any): Promise<void> {
-    await this.stopCurrentSound();
+    this.stopCurrentPlayer();
 
     try {
-      const { sound } = await Audio.Sound.createAsync(audioFile);
-      this.sound = sound;
+      const player = createAudioPlayer(audioFile);
+      this.player = player;
       this.isPlaying = true;
 
       // Return a promise that resolves when playback finishes
       return new Promise((resolve) => {
-        sound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
-          if (status.isLoaded && status.didJustFinish) {
+        const subscription = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
+          if (status.didJustFinish) {
             this.isPlaying = false;
+            subscription.remove();
+            player.remove();
+            this.player = null;
             resolve();
           }
         });
 
-        sound.playAsync().catch((error) => {
-          console.error('Failed to play audio:', error);
-          this.isPlaying = false;
-          resolve();
-        });
+        player.play();
       });
     } catch (error) {
       console.error('Failed to play audio:', error);
@@ -156,8 +154,8 @@ class AudioService {
   }
 
   // Stop all audio
-  async stop(): Promise<void> {
-    await this.stopCurrentSound();
+  stop(): void {
+    this.stopCurrentPlayer();
   }
 
   // Check if audio is currently playing
@@ -166,8 +164,8 @@ class AudioService {
   }
 
   // Clean up
-  async cleanup(): Promise<void> {
-    await this.stopCurrentSound();
+  cleanup(): void {
+    this.stopCurrentPlayer();
   }
 }
 
