@@ -17,9 +17,44 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { spacing } from '../../constants/theme';
 import { styles } from './ConfigScreen.styles';
 
-type RoleSelectionKey = string;
+// ============================================
+// Sub-components (extracted to avoid nested component definitions)
+// ============================================
 
-const getInitialSelection = (): Record<RoleSelectionKey, boolean> => ({
+interface RoleChipProps {
+  id: string;
+  label: string;
+  selected: boolean;
+  onToggle: (id: string) => void;
+}
+
+const RoleChip: React.FC<RoleChipProps> = ({ id, label, selected, onToggle }) => (
+  <TouchableOpacity
+    style={[styles.chip, selected && styles.chipSelected]}
+    onPress={() => onToggle(id)}
+    activeOpacity={0.7}
+  >
+    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+  </TouchableOpacity>
+);
+
+interface SectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+const Section: React.FC<SectionProps> = ({ title, children }) => (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={styles.chipContainer}>{children}</View>
+  </View>
+);
+
+// ============================================
+// Helper functions
+// ============================================
+
+const getInitialSelection = (): Record<string, boolean> => ({
   wolf: true, wolf1: true, wolf2: true, wolf3: true, wolf4: false,
   wolfQueen: false, wolfKing: false, darkWolfKing: false, gargoyle: false, nightmare: false,
   bloodMoon: false, wolfRobot: false, spiritKnight: false,
@@ -54,6 +89,10 @@ const applyPreset = (presetRoles: RoleName[]): Record<string, boolean> => {
   });
   return selection;
 };
+
+// ============================================
+// Main Component
+// ============================================
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Config'>;
 
@@ -92,23 +131,6 @@ export const ConfigScreen: React.FC = () => {
       setIsCreating(false);
     }
   }, [selection, navigation]);
-
-  const RoleChip = ({ id, label, selected }: { id: string; label: string; selected: boolean }) => (
-    <TouchableOpacity
-      style={[styles.chip, selected && styles.chipSelected]}
-      onPress={() => toggleRole(id)}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
-    </TouchableOpacity>
-  );
-
-  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.chipContainer}>{children}</View>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -153,49 +175,49 @@ export const ConfigScreen: React.FC = () => {
 
         {/* Roles */}
         <View style={styles.card}>
-          <Section title="�� 狼人">
-            <RoleChip id="wolf" label="普狼" selected={selection.wolf} />
-            <RoleChip id="wolf1" label="普狼" selected={selection.wolf1} />
-            <RoleChip id="wolf2" label="普狼" selected={selection.wolf2} />
-            <RoleChip id="wolf3" label="普狼" selected={selection.wolf3} />
-            <RoleChip id="wolf4" label="普狼" selected={selection.wolf4} />
+          <Section title="🐺 狼人">
+            <RoleChip id="wolf" label="普狼" selected={selection.wolf} onToggle={toggleRole} />
+            <RoleChip id="wolf1" label="普狼" selected={selection.wolf1} onToggle={toggleRole} />
+            <RoleChip id="wolf2" label="普狼" selected={selection.wolf2} onToggle={toggleRole} />
+            <RoleChip id="wolf3" label="普狼" selected={selection.wolf3} onToggle={toggleRole} />
+            <RoleChip id="wolf4" label="普狼" selected={selection.wolf4} onToggle={toggleRole} />
           </Section>
 
           <Section title="🎭 技能狼">
-            <RoleChip id="wolfQueen" label="狼美人" selected={selection.wolfQueen} />
-            <RoleChip id="wolfKing" label="白狼王" selected={selection.wolfKing} />
-            <RoleChip id="darkWolfKing" label="黑狼王" selected={selection.darkWolfKing} />
-            <RoleChip id="gargoyle" label="石像鬼" selected={selection.gargoyle} />
-            <RoleChip id="nightmare" label="梦魇" selected={selection.nightmare} />
-            <RoleChip id="bloodMoon" label="血月使徒" selected={selection.bloodMoon} />
-            <RoleChip id="wolfRobot" label="机械狼" selected={selection.wolfRobot} />
-            <RoleChip id="spiritKnight" label="恶灵骑士" selected={selection.spiritKnight} />
+            <RoleChip id="wolfQueen" label="狼美人" selected={selection.wolfQueen} onToggle={toggleRole} />
+            <RoleChip id="wolfKing" label="白狼王" selected={selection.wolfKing} onToggle={toggleRole} />
+            <RoleChip id="darkWolfKing" label="黑狼王" selected={selection.darkWolfKing} onToggle={toggleRole} />
+            <RoleChip id="gargoyle" label="石像鬼" selected={selection.gargoyle} onToggle={toggleRole} />
+            <RoleChip id="nightmare" label="梦魇" selected={selection.nightmare} onToggle={toggleRole} />
+            <RoleChip id="bloodMoon" label="血月使徒" selected={selection.bloodMoon} onToggle={toggleRole} />
+            <RoleChip id="wolfRobot" label="机械狼" selected={selection.wolfRobot} onToggle={toggleRole} />
+            <RoleChip id="spiritKnight" label="恶灵骑士" selected={selection.spiritKnight} onToggle={toggleRole} />
           </Section>
 
           <Section title="👤 村民">
-            <RoleChip id="villager" label="村民" selected={selection.villager} />
-            <RoleChip id="villager1" label="村民" selected={selection.villager1} />
-            <RoleChip id="villager2" label="村民" selected={selection.villager2} />
-            <RoleChip id="villager3" label="村民" selected={selection.villager3} />
-            <RoleChip id="villager4" label="村民" selected={selection.villager4} />
+            <RoleChip id="villager" label="村民" selected={selection.villager} onToggle={toggleRole} />
+            <RoleChip id="villager1" label="村民" selected={selection.villager1} onToggle={toggleRole} />
+            <RoleChip id="villager2" label="村民" selected={selection.villager2} onToggle={toggleRole} />
+            <RoleChip id="villager3" label="村民" selected={selection.villager3} onToggle={toggleRole} />
+            <RoleChip id="villager4" label="村民" selected={selection.villager4} onToggle={toggleRole} />
           </Section>
 
           <Section title="✨ 神职">
-            <RoleChip id="seer" label="预言家" selected={selection.seer} />
-            <RoleChip id="witch" label="女巫" selected={selection.witch} />
-            <RoleChip id="hunter" label="猎人" selected={selection.hunter} />
-            <RoleChip id="guard" label="守卫" selected={selection.guard} />
-            <RoleChip id="idiot" label="白痴" selected={selection.idiot} />
-            <RoleChip id="graveyardKeeper" label="守墓人" selected={selection.graveyardKeeper} />
-            <RoleChip id="knight" label="骑士" selected={selection.knight} />
-            <RoleChip id="celebrity" label="摄梦人" selected={selection.celebrity} />
-            <RoleChip id="magician" label="魔术师" selected={selection.magician} />
-            <RoleChip id="witcher" label="猎魔人" selected={selection.witcher} />
-            <RoleChip id="psychic" label="通灵师" selected={selection.psychic} />
+            <RoleChip id="seer" label="预言家" selected={selection.seer} onToggle={toggleRole} />
+            <RoleChip id="witch" label="女巫" selected={selection.witch} onToggle={toggleRole} />
+            <RoleChip id="hunter" label="猎人" selected={selection.hunter} onToggle={toggleRole} />
+            <RoleChip id="guard" label="守卫" selected={selection.guard} onToggle={toggleRole} />
+            <RoleChip id="idiot" label="白痴" selected={selection.idiot} onToggle={toggleRole} />
+            <RoleChip id="graveyardKeeper" label="守墓人" selected={selection.graveyardKeeper} onToggle={toggleRole} />
+            <RoleChip id="knight" label="骑士" selected={selection.knight} onToggle={toggleRole} />
+            <RoleChip id="celebrity" label="摄梦人" selected={selection.celebrity} onToggle={toggleRole} />
+            <RoleChip id="magician" label="魔术师" selected={selection.magician} onToggle={toggleRole} />
+            <RoleChip id="witcher" label="猎魔人" selected={selection.witcher} onToggle={toggleRole} />
+            <RoleChip id="psychic" label="通灵师" selected={selection.psychic} onToggle={toggleRole} />
           </Section>
 
           <Section title="🎲 特殊">
-            <RoleChip id="slacker" label="混子" selected={selection.slacker} />
+            <RoleChip id="slacker" label="混子" selected={selection.slacker} onToggle={toggleRole} />
           </Section>
         </View>
 
