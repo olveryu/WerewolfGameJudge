@@ -462,11 +462,16 @@ export class SupabaseService {
     this.cleanupInactiveRooms().catch(() => {});
     
     const dbRoom = roomToDb(room);
+    console.log('[SupabaseService] createRoom dbRoom:', JSON.stringify(dbRoom, null, 2));
     const { error } = await supabase!
       .from('rooms')
       .insert(dbRoom);
     
-    if (error) throw error;
+    if (error) {
+      console.error('[SupabaseService] createRoom error:', error.code, error.message, error.details);
+      throw error;
+    }
+    console.log('[SupabaseService] Room created successfully:', roomNumber);
   }
 
   async getRoom(roomNumber: string): Promise<Room | null> {
