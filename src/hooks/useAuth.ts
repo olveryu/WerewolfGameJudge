@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { SupabaseService } from '../services/SupabaseService';
+import { AuthService } from '../services/AuthService';
+import { AvatarUploadService } from '../services/AvatarUploadService';
 import { supabase, isSupabaseConfigured } from '../config/supabase';
 
 export interface User {
@@ -14,7 +15,8 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabaseService = SupabaseService.getInstance();
+  const authService = AuthService.getInstance();
+  const avatarUploadService = AvatarUploadService.getInstance();
 
   // Convert Supabase user to our User type
   const toUser = useCallback((supabaseUser: any): User | null => {
@@ -38,7 +40,7 @@ export const useAuth = () => {
 
     const loadUser = async () => {
       try {
-        const result = await supabaseService.getCurrentUser();
+        const result = await authService.getCurrentUser();
         if (result?.data?.user) {
           setUser(toUser(result.data.user));
         }
@@ -67,13 +69,13 @@ export const useAuth = () => {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [supabaseService, toUser]);
+  }, [authService, toUser]);
 
   const signInAnonymously = async () => {
     setLoading(true);
     setError(null);
     try {
-      await supabaseService.signInAnonymously();
+      await authService.signInAnonymously();
     } catch (e: any) {
       setError(e.message);
       throw e;
@@ -86,7 +88,7 @@ export const useAuth = () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await supabaseService.signUpWithEmail(email, password, displayName);
+      const result = await authService.signUpWithEmail(email, password, displayName);
       // Use the user data returned from signup directly
       if (result.user) {
         setUser(toUser(result.user));
@@ -103,9 +105,9 @@ export const useAuth = () => {
     setLoading(true);
     setError(null);
     try {
-      await supabaseService.signInWithEmail(email, password);
+      await authService.signInWithEmail(email, password);
       // Refresh user data after login
-      const result = await supabaseService.getCurrentUser();
+      const result = await authService.getCurrentUser();
       if (result?.data?.user) {
         setUser(toUser(result.data.user));
       }
@@ -120,9 +122,9 @@ export const useAuth = () => {
   const updateProfile = async (updates: { displayName?: string; avatarUrl?: string }) => {
     setError(null);
     try {
-      await supabaseService.updateProfile(updates);
+      await authService.updateProfile(updates);
       // Refresh user data
-      const result = await supabaseService.getCurrentUser();
+      const result = await authService.getCurrentUser();
       if (result?.data?.user) {
         setUser(toUser(result.data.user));
       }
@@ -135,9 +137,9 @@ export const useAuth = () => {
   const uploadAvatar = async (fileUri: string): Promise<string> => {
     setError(null);
     try {
-      const url = await supabaseService.uploadAvatar(fileUri);
+      const url = await avatarUploadService.uploadAvatar(fileUri);
       // Refresh user data
-      const result = await supabaseService.getCurrentUser();
+      const result = await authService.getCurrentUser();
       if (result?.data?.user) {
         setUser(toUser(result.data.user));
       }
@@ -151,7 +153,7 @@ export const useAuth = () => {
   const signOut = async () => {
     setLoading(true);
     try {
-      await supabaseService.signOut();
+      await authService.signOut();
       setUser(null);
     } catch (e: any) {
       setError(e.message);
