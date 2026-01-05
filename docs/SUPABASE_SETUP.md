@@ -63,13 +63,12 @@ const SUPABASE_ANON_KEY = 'your-anon-key-here';
 ## 6. Test the Connection
 
 1. Start your app: `npm start`
-2. The console should show: `BackendService initialized in supabase mode`
-3. Create a room - it should now persist!
-4. Open another browser/device and join with the room code
+2. Create a room - it should now persist!
+3. Open another browser/device and join with the room code
 
 ## Troubleshooting
 
-### "BackendService initialized in demo mode"
+### Room not working / App in demo mode
 - Check that your `.env` file is in the project root
 - Restart the Expo server after adding `.env`
 - Verify the URL starts with `https://`

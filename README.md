@@ -22,8 +22,7 @@ src/
 ├── constants/       # App constants and role definitions
 ├── hooks/           # Custom React hooks
 │   ├── useAuth.ts
-│   ├── useRoom.ts
-│   └── useAudio.ts
+│   └── useRoom.ts
 ├── models/          # TypeScript interfaces
 │   ├── Player.ts
 │   ├── Room.ts
@@ -37,9 +36,10 @@ src/
 │   └── SettingsScreen/
 └── services/        # Business logic services
     ├── AudioService.ts
-    ├── BackendService.ts
-    ├── SupabaseService.ts
-    └── StorageService.ts
+    ├── AuthService.ts
+    ├── AvatarUploadService.ts
+    ├── RoomService.ts
+    └── SeatService.ts
 ```
 
 ## Getting Started
