@@ -32,7 +32,7 @@ jest.mock('../../models/Room', () => ({
     timestamp: Date.now(),
     hostUid,
     roomNumber,
-    roomStatus: 0, // RoomStatus.seating
+    roomStatus: 0, // RoomStatus.unseated
     template,
     players: new Map(),
     actions: new Map(),
@@ -56,7 +56,7 @@ const createMockRoom = (overrides: Partial<Room> = {}): Room => ({
   timestamp: Date.now(),
   hostUid: 'host-123',
   roomNumber: '1234',
-  roomStatus: RoomStatus.seating,
+  roomStatus: RoomStatus.unseated,
   template: createMockTemplate(),
   players: new Map(),
   actions: new Map(),
@@ -64,6 +64,7 @@ const createMockRoom = (overrides: Partial<Room> = {}): Room => ({
   currentActionerIndex: 0,
   hasPoison: true,
   hasAntidote: true,
+  isAudioPlaying: false,
   ...overrides,
 });
 
@@ -184,11 +185,11 @@ describe('useRoom hook', () => {
       });
       
       await act(async () => {
-        await result.current.updateRoom({ roomStatus: RoomStatus.ongoing });
+        await result.current.updateRoom({ roomStatus: RoomStatus.assigned });
       });
       
       expect(mockUpdateRoom).toHaveBeenCalledWith('1234', expect.objectContaining({
-        roomStatus: RoomStatus.ongoing,
+        roomStatus: RoomStatus.assigned,
       }));
     });
 
@@ -196,7 +197,7 @@ describe('useRoom hook', () => {
       const { result } = renderHook(() => useRoom());
       
       await act(async () => {
-        await result.current.updateRoom({ roomStatus: RoomStatus.ongoing });
+        await result.current.updateRoom({ roomStatus: RoomStatus.assigned });
       });
       
       expect(mockUpdateRoom).not.toHaveBeenCalled();
@@ -213,7 +214,7 @@ describe('useRoom hook', () => {
       });
       
       await act(async () => {
-        await result.current.updateRoom({ roomStatus: RoomStatus.ongoing });
+        await result.current.updateRoom({ roomStatus: RoomStatus.assigned });
       });
       
       expect(result.current.error).toBe('Failed to update room');

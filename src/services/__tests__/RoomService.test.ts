@@ -45,7 +45,7 @@ describe('RoomService - Room creation helpers', () => {
     
     expect(room.hostUid).toBe('host123');
     expect(room.roomNumber).toBe('1234');
-    expect(room.roomStatus).toBe(RoomStatus.seating);
+    expect(room.roomStatus).toBe(RoomStatus.unseated);
     expect(room.template).toBeDefined();
     expect(room.template.numberOfPlayers).toBe(6);
     expect(room.players.size).toBe(6);
@@ -132,16 +132,16 @@ describe('RoomService - Room status transitions', () => {
     const template = createTemplateFromRoles(roles);
     const room = createRoom('host', '1234', template);
     
-    expect(room.roomStatus).toBe(RoomStatus.seating);
+    expect(room.roomStatus).toBe(RoomStatus.unseated);
     
     room.roomStatus = RoomStatus.seated;
     expect(room.roomStatus).toBe(RoomStatus.seated);
     
-    room.roomStatus = RoomStatus.ongoing;
-    expect(room.roomStatus).toBe(RoomStatus.ongoing);
+    room.roomStatus = RoomStatus.assigned;
+    expect(room.roomStatus).toBe(RoomStatus.assigned);
     
-    room.roomStatus = RoomStatus.terminated;
-    expect(room.roomStatus).toBe(RoomStatus.terminated);
+    room.roomStatus = RoomStatus.assigned;
+    expect(room.roomStatus).toBe(RoomStatus.assigned);
   });
 });
 

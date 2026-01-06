@@ -63,48 +63,221 @@ async function waitForLoggedIn(page: Page, maxRetries = 5) {
 
 // Click on a specific seat number tile (1-based)
 async function clickSeat(page: Page, seatNumber: number): Promise<void> {
-  // The seat number is displayed as text in the tile
-  // We need to click the tile that shows this number
-  const seatText = page.locator(`text="${seatNumber}"`).first();
-  await expect(seatText).toBeVisible({ timeout: 3000 });
-  await seatText.click();
-  await page.waitForTimeout(300);
+  // The seat tiles are rendered with seat number as text
+  // We need to find the correct tile by looking for the seat number text
+  // Wait a bit for the UI to be interactive
+  await page.waitForTimeout(500);
+  
+  // Find all elements with the seat number text
+  const seatLocator = page.locator(`text="${seatNumber}"`);
+  const count = await seatLocator.count();
+  console.log(`      [clickSeat] Found ${count} elements with text "${seatNumber}"`);
+  
+  // Click the first visible one
+  await expect(seatLocator.first()).toBeVisible({ timeout: 5000 });
+  await seatLocator.first().click();
+  await page.waitForTimeout(500);
 }
 
 // Confirm action dialog
 async function confirmAction(page: Page): Promise<void> {
+  console.log(`      [confirmAction] Looking for 确定 button...`);
   const confirmButton = page.getByText('确定', { exact: true });
-  if (await confirmButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await confirmButton.click();
-    await page.waitForTimeout(500);
+  const isVisible = await confirmButton.isVisible({ timeout: 2000 }).catch(() => false);
+  console.log(`      [confirmAction] 确定 button visible: ${isVisible}`);
+  if (!isVisible) {
+    // Log what's visible on page
+    const bodyText = await page.locator('body').textContent().catch(() => 'error');
+    console.log(`      [confirmAction] Page content: ${bodyText?.substring(0, 300)}`);
   }
+  await expect(confirmButton).toBeVisible({ timeout: 5000 });
+  await confirmButton.click();
+  console.log(`      [confirmAction] Clicked 确定`);
+  await page.waitForTimeout(300);
 }
 
-// Dismiss "好" dialog after audio
+// Wait for and dismiss the "好" dialog after audio plays
+async function waitForActionDialog(page: Page, timeoutMs = 30000): Promise<void> {
+  // Wait for any dialog element to appear
+  // We check for specific elements that indicate a dialog is ready
+  const startTime = Date.now();
+  let lastDebugTime = 0;
+  while (Date.now() - startTime < timeoutMs) {
+    // Debug: print page state every 5 seconds
+    const elapsed = Date.now() - startTime;
+    if (elapsed - lastDebugTime > 5000) {
+      lastDebugTime = elapsed;
+      // Check if we're in the room and game is ongoing
+      const isInRoom = await page.getByText(/房间 \d{4}/).isVisible().catch(() => false);
+      const seeRoleBtn = await page.getByText('查看身份').isVisible().catch(() => false);
+      const skipBtn = await page.getByText('跳过').isVisible().catch(() => false);
+      const pageUrl = page.url();
+      console.log(`      [waitForActionDialog] ${elapsed}ms - URL: ${pageUrl}, inRoom: ${isInRoom}, seeRoleBtn: ${seeRoleBtn}, skipBtn: ${skipBtn}`);
+    }
+    
+    // Check for "好" button
+    if (await page.getByText('好', { exact: true }).isVisible().catch(() => false)) {
+      return;
+    }
+    // Check for witch save dialog (救助/不救助 buttons)
+    if (await page.getByText('是否救助?').isVisible().catch(() => false)) {
+      return;
+    }
+    // Check for "昨夜无人倒台"
+    if (await page.getByText('昨夜无人倒台').isVisible().catch(() => false)) {
+      return;
+    }
+    await page.waitForTimeout(100);
+  }
+  throw new Error(`waitForActionDialog: No dialog appeared within ${timeoutMs}ms`);
+}
+
+// Dismiss "好" dialog after audio - used for most roles
 async function dismissActionDialog(page: Page): Promise<void> {
+  // First wait for the dialog to appear
+  await waitForActionDialog(page);
+  
+  // If it's the "好" button, click it
   const okButton = page.getByText('好', { exact: true });
-  if (await okButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+  if (await okButton.isVisible({ timeout: 1000 }).catch(() => false)) {
     await okButton.click();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(300);
   }
 }
 
-// Skip current role's action
+// Skip current role's action - click skip button then confirm
 async function skipAction(page: Page): Promise<void> {
+  // Look for skip button: "不使用技能" or "投票空刀"
   const skipButton = page.getByText('不使用技能').or(page.getByText('投票空刀'));
-  if (await skipButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await skipButton.click();
-    await confirmAction(page);
+  await expect(skipButton).toBeVisible({ timeout: 5000 });
+  await skipButton.click();
+  await page.waitForTimeout(300);
+  await confirmAction(page);
+}
+
+// Handle witch action - complex dialog flow
+async function executeWitchAction(
+  page: Page,
+  targetSeat: number | null,
+  isPoison: boolean
+): Promise<void> {
+  // Wait for witch dialog
+  await waitForActionDialog(page);
+  
+  // Check what dialog we have
+  const noVictimText = page.getByText('昨夜无人倒台');
+  const saveButton = page.getByText('救助', { exact: true });
+  const noSaveButton = page.getByText('不救助', { exact: true });
+  
+  if (await noVictimText.isVisible({ timeout: 1000 }).catch(() => false)) {
+    // No one killed - click "好" to continue
+    await page.getByText('好', { exact: true }).click();
+    await page.waitForTimeout(300);
+    
+    if (targetSeat !== null && isPoison) {
+      // Use poison
+      await clickSeat(page, targetSeat);
+      await confirmAction(page);
+    } else {
+      // Skip - click "不使用技能"
+      await skipAction(page);
+    }
+  } else if (await saveButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+    // Someone was killed - save/don't save dialog
+    if (targetSeat !== null && !isPoison) {
+      // Save the victim
+      await saveButton.click();
+      await page.waitForTimeout(300);
+    } else {
+      // Don't save - might use poison
+      await noSaveButton.click();
+      await page.waitForTimeout(300);
+      
+      // Wait for poison dialog
+      await page.getByText('好', { exact: true }).click();
+      await page.waitForTimeout(300);
+      
+      if (targetSeat !== null && isPoison) {
+        // Use poison
+        await clickSeat(page, targetSeat);
+        await confirmAction(page);
+      } else {
+        // Skip poison too
+        await skipAction(page);
+      }
+    }
+  }
+}
+
+// Execute wolf votes - all wolves must vote for the same target
+async function executeWolfVotes(
+  roleMapping: Map<string, Page[]>,
+  targetSeat: number | null  // 1-based seat number
+): Promise<void> {
+  const wolfPages = getPagesForRole(roleMapping, 'wolf');
+  console.log(`    [Wolf voting] ${wolfPages.length} wolves voting for target: ${targetSeat ?? 'skip'}`);
+  
+  for (let i = 0; i < wolfPages.length; i++) {
+    const wolfPage = wolfPages[i];
+    console.log(`      Wolf ${i + 1}/${wolfPages.length} voting...`);
+    
+    // Wait for wolf's turn - the dialog should appear
+    await waitForActionDialog(wolfPage);
+    
+    // Click "好" to dismiss initial dialog
+    const okButton = wolfPage.getByText('好', { exact: true });
+    if (await okButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await okButton.click();
+      await wolfPage.waitForTimeout(300);
+    }
+    
+    if (targetSeat === null) {
+      // Vote for empty kill (空刀)
+      const emptyKillButton = wolfPage.getByText('投票空刀');
+      await expect(emptyKillButton).toBeVisible({ timeout: 5000 });
+      await emptyKillButton.click();
+      await wolfPage.waitForTimeout(300);
+    } else {
+      // Click on target seat
+      await clickSeat(wolfPage, targetSeat);
+    }
+    
+    // Confirm vote
+    await confirmAction(wolfPage);
+    console.log(`      Wolf ${i + 1} voted!`);
   }
 }
 
 // Execute a role action with specific target
 async function executeRoleAction(
-  page: Page, 
+  page: Page,   // The page of the player with this role
+  role: string,
   targetSeat: number | null,
   isPoison = false // For witch: true = poison, false = save
 ): Promise<void> {
-  // Wait for and dismiss the "好" dialog
+  console.log(`    [Action] ${role}: target=${targetSeat}, isPoison=${isPoison}`);
+  
+  // Handle witch specially - has complex dialog flow
+  if (role === 'witch') {
+    await executeWitchAction(page, targetSeat, isPoison);
+    return;
+  }
+  
+  // Hunter and darkWolfKing only need to confirm status - clicking "好" auto-proceeds
+  // Their dialog shows "猎人技能状态" or "黑狼王技能状态" with a "好" button
+  // that automatically calls proceedWithAction(null) when clicked
+  if (role === 'hunter' || role === 'darkWolfKing') {
+    await waitForActionDialog(page);
+    const okButton = page.getByText('好', { exact: true });
+    if (await okButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await okButton.click();
+      await page.waitForTimeout(500);
+    }
+    console.log(`    [Action] ${role} completed!`);
+    return;
+  }
+  
+  // For other roles: wait for dialog, dismiss "好", then act
   await dismissActionDialog(page);
   
   if (targetSeat === null) {
@@ -113,12 +286,22 @@ async function executeRoleAction(
   } else {
     // Click on target seat
     await clickSeat(page, targetSeat);
-    
-    // For witch, may need to select poison vs save
-    // This is handled by the extra parameter in the confirm dialog
-    
     await confirmAction(page);
+    
+    // For seer/psychic: there's an extra "result" dialog showing the check result
+    // that also has a "确定" button to proceed
+    if (role === 'seer' || role === 'psychic') {
+      console.log(`      [${role}] Waiting for check result dialog...`);
+      await page.waitForTimeout(500);
+      const resultConfirm = page.getByText('确定', { exact: true });
+      if (await resultConfirm.isVisible({ timeout: 3000 }).catch(() => false)) {
+        console.log(`      [${role}] Found result dialog, clicking confirm...`);
+        await resultConfirm.click();
+        await page.waitForTimeout(300);
+      }
+    }
   }
+  console.log(`    [Action] ${role} completed!`);
 }
 
 // Wait for night to end (重新开始 button appears)
@@ -134,19 +317,116 @@ async function getLastNightInfo(page: Page): Promise<string> {
   await expect(infoButton).toBeVisible({ timeout: 5000 });
   await infoButton.click();
   
-  // Wait for dialog
+  // Wait for first confirmation dialog to appear
   await page.waitForTimeout(500);
   
-  // Get the dialog content - look for text containing "昨天晚上"
+  // First dialog: "确定查看昨夜信息？" - click 确定 to proceed
+  const confirmFirstDialog = page.getByText('确定', { exact: true }).first();
+  await confirmFirstDialog.click();
+  
+  // Wait for actual last night info dialog to appear
+  await page.waitForTimeout(500);
+  
+  // Get the dialog content - look for text containing "昨天晚上" or "平安夜"
   const dialogContent = page.locator('text=/昨天晚上.*/')
     .or(page.locator('text=平安夜'));
   
   const text = await dialogContent.textContent({ timeout: 3000 }).catch(() => null);
   
-  // Dismiss dialog
+  // Dismiss the info dialog
   await page.getByText('确定', { exact: true }).click().catch(() => {});
   
   return text || '';
+}
+
+// ============ DYNAMIC ROLE DETECTION ============
+// Role display name to internal name mapping
+const ROLE_DISPLAY_TO_INTERNAL: { [displayName: string]: string } = {
+  '村民': 'villager',
+  '狼人': 'wolf',
+  '预言家': 'seer',
+  '女巫': 'witch',
+  '猎人': 'hunter',
+  '白痴': 'idiot',
+  '守卫': 'guard',
+  '狼王': 'darkWolfKing',
+  '狼美人': 'wolfQueen',
+  '石像鬼': 'gargoyle',
+  '守墓人': 'graveyardKeeper',
+  '梦魇': 'nightmare',
+  '血月使徒': 'bloodMoon',
+  '猎魔人': 'witcher',
+  '摄梦人': 'celebrity',
+  '魔术师': 'magician',
+  '机械狼': 'wolfRobot',
+  '通灵师': 'psychic',
+  '恶灵骑士': 'spiritKnight',
+};
+
+// Read a player's role by clicking "查看身份" button
+async function getPlayerRole(page: Page, timeoutMs = 10000): Promise<string | null> {
+  const viewRoleButton = page.getByText('查看身份');
+  
+  // Check if button exists and is clickable with proper timeout
+  try {
+    await expect(viewRoleButton).toBeVisible({ timeout: timeoutMs });
+  } catch {
+    console.log('    [getPlayerRole] "查看身份" button not visible');
+    return null;
+  }
+  
+  await viewRoleButton.click();
+  await page.waitForTimeout(300);
+  
+  // Look for "你的身份是：{角色名}" text
+  const roleText = page.locator('text=/你的身份是：.*/');
+  const text = await roleText.textContent({ timeout: 5000 }).catch(() => null);
+  
+  // Dismiss dialog
+  const confirmButton = page.getByText('确定', { exact: true });
+  await confirmButton.click({ timeout: 3000 }).catch(() => {});
+  await page.waitForTimeout(200);
+  
+  if (!text) {
+    console.log('    [getPlayerRole] Role text not found');
+    return null;
+  }
+  
+  // Extract role name: "你的身份是：狼人" -> "狼人"
+  const rolePattern = /你的身份是：(.+)/;
+  const match = rolePattern.exec(text);
+  if (!match) return null;
+  
+  const displayName = match[1];
+  return ROLE_DISPLAY_TO_INTERNAL[displayName] || displayName;
+}
+
+// Build role -> page mapping by reading each player's role
+async function buildRoleMapping(pages: Page[]): Promise<Map<string, Page[]>> {
+  const roleToPages = new Map<string, Page[]>();
+  
+  console.log('[RoleMapping] Reading roles from all players...');
+  
+  for (let i = 0; i < pages.length; i++) {
+    const page = pages[i];
+    const role = await getPlayerRole(page);
+    
+    if (role) {
+      console.log(`  Seat ${i + 1}: ${role}`);
+      const existing = roleToPages.get(role) || [];
+      existing.push(page);
+      roleToPages.set(role, existing);
+    } else {
+      console.log(`  Seat ${i + 1}: (no role found)`);
+    }
+  }
+  
+  return roleToPages;
+}
+
+// Get pages for a specific role
+function getPagesForRole(roleMapping: Map<string, Page[]>, role: string): Page[] {
+  return roleMapping.get(role) || [];
 }
 
 // Interface for scenario definition
@@ -400,6 +680,14 @@ test.describe('Template Scenarios E2E', () => {
     for (let i = 0; i < PLAYER_COUNT; i++) {
       const context = await browser.newContext();
       const page = await context.newPage();
+      
+      // Add console listener to capture browser logs
+      page.on('console', msg => {
+        if (msg.text().includes('[ActionDialog Effect]')) {
+          console.log(`[Browser ${i + 1}] ${msg.text()}`);
+        }
+      });
+      
       contexts.push(context);
       pages.push(page);
     }
@@ -428,14 +716,14 @@ test.describe('Template Scenarios E2E', () => {
       if (!roomNumber) throw new Error('Failed to extract room number');
       console.log(`[Setup] Room created: ${roomNumber}`);
 
-      // Host sits first
-      await hostPage.getByText('空').first().click();
-      await hostPage.getByText('确定', { exact: true }).click().catch(() => {});
-      await hostPage.waitForTimeout(500);
+      // Host is already seated at seat 0 (auto-sit on first empty seat)
+      await hostPage.waitForTimeout(1000);
 
-      // All joiners join and sit
+      // All joiners join and sit - do it sequentially with longer waits
       for (let i = 0; i < joinerPages.length; i++) {
         const page = joinerPages[i];
+        console.log(`[Setup] Player ${i + 2}/12 joining...`);
+        
         await page.goto('/');
         await waitForAppReady(page);
         await waitForLoggedIn(page);
@@ -444,12 +732,18 @@ test.describe('Template Scenarios E2E', () => {
         await expect(page.getByText('加入房间')).toBeVisible({ timeout: 5000 });
         await page.getByPlaceholder('0000').fill(roomNumber);
         await page.getByText('加入', { exact: true }).click();
-        await expect(page.getByText(/房间 \d{4}/)).toBeVisible({ timeout: 10000 });
+        
+        // Wait longer for room to load
+        await expect(page.getByText(/房间 \d{4}/)).toBeVisible({ timeout: 20000 });
+        
+        // Wait a bit for room state to sync
+        await page.waitForTimeout(500);
         
         const emptySeat = page.getByText('空').first();
+        await expect(emptySeat).toBeVisible({ timeout: 5000 });
         await emptySeat.click();
         await page.getByText('确定', { exact: true }).click().catch(() => {});
-        await page.waitForTimeout(300);
+        await page.waitForTimeout(500);
       }
 
       console.log('[Setup] All 12 players joined!');
@@ -460,14 +754,48 @@ test.describe('Template Scenarios E2E', () => {
         const template = TEMPLATE_CONFIGS[templateIndex];
         console.log(`\n========== Template ${templateIndex + 1}/${TEMPLATE_CONFIGS.length}: ${template.name} ==========`);
 
+        // Change template using settings if not the first template
+        if (templateIndex > 0) {
+          console.log(`[${template.name}] Changing template via settings...`);
+          
+          // Host clicks settings button
+          const settingsButton = hostPage.getByText('⚙️ 设置');
+          await expect(settingsButton).toBeVisible({ timeout: 5000 });
+          await settingsButton.click();
+          
+          // Wait for config screen
+          await expect(hostPage.getByText('快速模板')).toBeVisible({ timeout: 5000 });
+          
+          // Select new template
+          await hostPage.getByText(template.name, { exact: true }).click();
+          
+          // Save changes
+          await hostPage.getByText('保存', { exact: true }).click();
+          
+          // Wait for return to room
+          await expect(hostPage.getByText(/房间 \d{4}/)).toBeVisible({ timeout: 10000 });
+          console.log(`[${template.name}] Template changed!`);
+          
+          // All players need to re-sit after template change
+          await hostPage.waitForTimeout(1000);
+          for (const page of pages) {
+            const emptySeat = page.getByText('空');
+            if (await emptySeat.first().isVisible({ timeout: 2000 }).catch(() => false)) {
+              await emptySeat.first().click();
+              await page.getByText('确定', { exact: true }).click().catch(() => {});
+              await page.waitForTimeout(300);
+            }
+          }
+          await hostPage.waitForTimeout(1000);
+        }
+
         for (let scenarioIndex = 0; scenarioIndex < template.scenarios.length; scenarioIndex++) {
           const scenario = template.scenarios[scenarioIndex];
           console.log(`\n----- Scenario ${scenarioIndex + 1}: ${scenario.name} -----`);
 
-          // Re-seat if needed (after restart)
-          if (templateIndex > 0 || scenarioIndex > 0) {
+          // Re-seat if needed (after restart within same template)
+          if (scenarioIndex > 0) {
             await hostPage.waitForTimeout(1000);
-            // Re-seat all players
             for (const page of pages) {
               const emptySeat = page.getByText('空');
               if (await emptySeat.first().isVisible({ timeout: 1000 }).catch(() => false)) {
@@ -485,15 +813,22 @@ test.describe('Template Scenarios E2E', () => {
           await prepareButton.click();
           await expect(hostPage.getByText('允许看牌')).toBeVisible({ timeout: 3000 });
           await hostPage.getByText('确定', { exact: true }).click();
-          await hostPage.waitForTimeout(1000);
+          
+          // Wait for "准备看牌" button to disappear (roomStatus changed to seated)
+          await expect(prepareButton).not.toBeVisible({ timeout: 10000 });
+          console.log(`[${template.name}] Prepare button hidden, waiting for start button...`);
 
           const startButton = hostPage.getByText('开始游戏');
-          await expect(startButton).toBeVisible({ timeout: 5000 });
+          await expect(startButton).toBeVisible({ timeout: 10000 });
           await startButton.click();
           await expect(hostPage.getByText('开始游戏？')).toBeVisible({ timeout: 3000 });
           await hostPage.getByText('确定', { exact: true }).click();
           await expect(hostPage.getByText('开始游戏')).not.toBeVisible({ timeout: 10000 });
           console.log(`[${template.name}] Game started!`);
+
+          // Build role mapping by reading each player's role
+          const roleMapping = await buildRoleMapping(pages);
+          console.log(`[${template.name}] Role mapping built!`);
 
           // Execute each action in order
           for (let actionIndex = 0; actionIndex < scenario.actions.length; actionIndex++) {
@@ -501,7 +836,19 @@ test.describe('Template Scenarios E2E', () => {
             const roleName = template.actionOrder[actionIndex];
             console.log(`  [${roleName}] Target: ${action.targetSeat ?? 'skip'}`);
             
-            await executeRoleAction(hostPage, action.targetSeat, action.isPoison);
+            // Special handling for wolf - all wolves must vote
+            if (roleName === 'wolf') {
+              await executeWolfVotes(roleMapping, action.targetSeat);
+            } else {
+              // Get the page for this role
+              const rolePages = getPagesForRole(roleMapping, roleName);
+              if (rolePages.length === 0) {
+                console.error(`No page found for role ${roleName}`);
+                continue;
+              }
+              const rolePage = rolePages[0];
+              await executeRoleAction(rolePage, roleName, action.targetSeat, action.isPoison);
+            }
           }
 
           // Wait for night to end
@@ -521,13 +868,23 @@ test.describe('Template Scenarios E2E', () => {
 
           console.log(`✅ Scenario "${scenario.name}" passed!`);
 
-          // Restart for next scenario
-          const restartButton = hostPage.getByText('重新开始');
-          await expect(restartButton).toBeVisible({ timeout: 5000 });
-          await restartButton.click();
-          await expect(hostPage.getByText('重新开始游戏？')).toBeVisible({ timeout: 3000 });
-          await hostPage.getByText('确定', { exact: true }).click();
-          await hostPage.waitForTimeout(2000);
+          // Restart for next scenario (if not last scenario of last template)
+          const isLastScenario = templateIndex === TEMPLATE_CONFIGS.length - 1 && 
+                                  scenarioIndex === template.scenarios.length - 1;
+          if (!isLastScenario) {
+            console.log(`[${template.name}] Restarting for next scenario...`);
+            const restartButton = hostPage.getByText('重新开始');
+            await expect(restartButton).toBeVisible({ timeout: 5000 });
+            await restartButton.click();
+            await expect(hostPage.getByText('重新开始游戏？')).toBeVisible({ timeout: 3000 });
+            await hostPage.getByText('确定', { exact: true }).click();
+            
+            // Wait for room to reset to seating status (准备看牌 button should appear)
+            const restartPrepareButton = hostPage.getByText('准备看牌');
+            await expect(restartPrepareButton).toBeVisible({ timeout: 10000 });
+            console.log(`[${template.name}] Room restarted, 准备看牌 button visible`);
+            await hostPage.waitForTimeout(500);
+          }
         }
 
         console.log(`✅ Template "${template.name}" - all scenarios passed!`);

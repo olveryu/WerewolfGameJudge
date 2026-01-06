@@ -23,30 +23,12 @@ const shuffleArray = <T>(array: T[]): T[] => {
   return shuffled;
 };
 
-// Create custom template (matching Flutter's CustomTemplate.newGame)
+// Create custom template (roles are NOT shuffled here - shuffling happens at "准备看牌")
 export const createCustomTemplate = (roles: RoleName[]): GameTemplate => {
-  // Shuffle roles with the special algorithm from Flutter
-  const shuffledRoles = shuffleArray(roles);
-  const firstHalf: RoleName[] = [];
-  const secondHalf: RoleName[] = [];
-
-  shuffledRoles.forEach((role, i) => {
-    if (i % 2 === 0) {
-      firstHalf.push(role);
-    } else {
-      secondHalf.push(role);
-    }
-  });
-
-  const finalRoles = shuffleArray([
-    ...shuffleArray(firstHalf),
-    ...shuffleArray(secondHalf),
-  ]);
-
   return {
     name: '',
     numberOfPlayers: roles.length,
-    roles: finalRoles,
+    roles: roles,  // Keep original order, shuffle later when assigning roles
     actionOrder: getActionOrderForRoles(roles),
   };
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,16 +19,20 @@ import {
   getDarkWolfKingStatus,
   getAllWolfSeats,
   getLastNightInfo,
+  getActionLog,
   performSeerAction,
   performPsychicAction,
   proceedToNextAction,
   startGame,
   restartRoom,
+  assignRoles,
   recordWolfVote,
   allWolvesVoted,
   getWolfVoteSummary,
   calculateWolfKillTarget,
   hasWolfVoted,
+  markPlayerViewedRole,
+  getPlayersNotViewedRole,
 } from '../../models/Room';
 import { RoleName, ROLES, isWolfRole } from '../../constants/roles';
 import AudioService from '../../services/AudioService';
@@ -41,32 +45,33 @@ import { styles, TILE_SIZE } from './RoomScreen.styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
-// Helper function to check if current actioner is a bot
+// Helper function to check if current actioner is a bot (or all bots for wolf turn)
 function checkIfCurrentActionerBot(room: Room, currentActionRole: RoleName | null): boolean {
   if (!currentActionRole) return false;
   
-  // Find the player with the current action role
-  for (const [seat, player] of room.players.entries()) {
-    if (player && room.template.roles[seat] === currentActionRole) {
-      // Check if it's a bot (uid starts with 'bot_')
-      if (player.uid.startsWith('bot_')) {
-        return true;
+  // For wolf turn, check if there are any bot wolves that haven't voted yet
+  if (currentActionRole === 'wolf') {
+    let hasUnvotedBotWolf = false;
+    for (const [seat, player] of room.players.entries()) {
+      if (player?.role && isWolfRole(player.role) && player.uid.startsWith('bot_')) {
+        if (!hasWolfVoted(room, seat)) {
+          hasUnvotedBotWolf = true;
+          break;
+        }
       }
     }
+    return hasUnvotedBotWolf;
   }
   
-  // For wolf turn, check if ALL wolves are bots
-  if (currentActionRole !== 'wolf') {
-    return false;
-  }
-  
-  for (const [seat, player] of room.players.entries()) {
-    const role = room.template.roles[seat];
-    if (player && isWolfRole(role) && !player.uid.startsWith('bot_')) {
-      return false; // Found a human wolf
+  // For other roles, find the player with the current action role
+  // and check if they are a bot
+  for (const [, player] of room.players.entries()) {
+    if (player?.role === currentActionRole) {
+      return player.uid.startsWith('bot_');
     }
   }
-  return true;
+  
+  return false;
 }
 
 // Helper to determine imActioner state for ongoing game
@@ -96,11 +101,8 @@ function determineActionerState(
     return handleWolfTeamTurn(mySeatNumber, room);
   }
   
-  // Host controls bot players
-  if (isHost && checkIfCurrentActionerBot(room, currentActionRole)) {
-    const showWolves = currentActionRole && isWolfRole(currentActionRole);
-    return { imActioner: true, showWolves };
-  }
+  // Bot players auto-act randomly, so we don't set imActioner for host
+  // This means bots will be handled by the auto-bot-action effect instead
   
   return { imActioner: false, showWolves: false };
 }
@@ -133,18 +135,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('加载房间...');
   const [showRetryButton, setShowRetryButton] = useState(false);
-  const [mySeatNumber, setMySeatNumber] = useState<number | null>(null);
-  const [imActioner, setImActioner] = useState(false);
-  const [showWolves, setShowWolves] = useState(false);
   const [firstNightEnded, setFirstNightEnded] = useState(false);
   const [anotherIndex, setAnotherIndex] = useState<number | null>(null); // For Magician
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false); // Block actions while audio playing
   const [isStartingGame, setIsStartingGame] = useState(false); // Hide start button after clicking
 
   // Modal state for web compatibility
   const [seatModalVisible, setSeatModalVisible] = useState(false);
   const [pendingSeatIndex, setPendingSeatIndex] = useState<number | null>(null);
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const audioService = useRef(AudioService.getInstance());
   const authService = useRef(AuthService.getInstance());
@@ -152,7 +151,68 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const seatService = useRef(SeatService.getInstance());
   const lastPlayedActionIndex = useRef<number | null>(null);
   const roomRef = useRef<Room | null>(null); // Keep latest room for closures
-  const currentUserId = authService.current.getCurrentUserId();
+
+  // Initialize currentUserId and refresh when needed
+  useEffect(() => {
+    const initUserId = async () => {
+      await authService.current.waitForInit();
+      setCurrentUserId(authService.current.getCurrentUserId());
+    };
+    initUserId();
+  }, []);
+  
+  // Derived state: is audio currently playing (from room state, synced across all clients)
+  const isAudioPlaying = room?.isAudioPlaying ?? false;
+
+  // Computed values using useMemo - these are synchronously derived from room state
+  // No more race conditions between effects
+  const mySeatNumber = useMemo(() => {
+    if (!room || !currentUserId) return null;
+    const myUserId = currentUserId || 'anonymous';
+    for (const [seat, player] of room.players.entries()) {
+      if (player?.uid === myUserId) return seat;
+    }
+    return null;
+  }, [room, currentUserId]);
+
+  const myRole = useMemo((): RoleName | null => {
+    if (!room || mySeatNumber === null) return null;
+    // Get role from player.role (assigned during "准备看牌")
+    // In seating status, player.role is null
+    const player = room.players.get(mySeatNumber);
+    return player?.role ?? null;
+  }, [room, mySeatNumber]);
+
+  const currentActionRole = useMemo((): RoleName | null => {
+    if (!room) return null;
+    return getCurrentActionRole(room);
+  }, [room]);
+
+  const { imActioner, showWolves } = useMemo(() => {
+    if (!room || room.roomStatus !== RoomStatus.ongoing || !currentActionRole) {
+      return { imActioner: false, showWolves: false };
+    }
+    return determineActionerState(myRole, currentActionRole, mySeatNumber, room, isHost);
+  }, [room, myRole, currentActionRole, mySeatNumber, isHost]);
+
+  // Check if room has any bots (fill with bot mode)
+  const hasBots = useMemo(() => {
+    if (!room) return false;
+    for (const [, player] of room.players.entries()) {
+      if (player?.uid.startsWith('bot_')) {
+        return true;
+      }
+    }
+    return false;
+  }, [room]);
+
+  // Get action log for bot mode display
+  const actionLog = useMemo(() => {
+    if (!room || !hasBots || room.roomStatus !== RoomStatus.ongoing) {
+      return [];
+    }
+    return getActionLog(room);
+  }, [room, hasBots]);
 
   // Keep roomRef in sync with room state
   useEffect(() => {
@@ -265,53 +325,37 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     return () => clearTimeout(timeout);
   }, [loading]);
   
-  // Update player state based on room changes
+  // Track when first night ends (one-time trigger)
+  // Also reset isStartingGame when game is restarted
   useEffect(() => {
     if (!room) return;
     
-    // Use the same userId logic as takeSeat
-    const myUserId = currentUserId || 'anonymous';
-    
-    // Find my seat
-    let myIndex: number | null = null;
-    room.players.forEach((player, seat) => {
-      if (player?.uid === myUserId) {
-        myIndex = seat;
-      }
-    });
-    // Update my seat number
-    setMySeatNumber(myIndex);
-    
-    // Handle seating status
-    if (room.roomStatus === RoomStatus.seating) {
-      setImActioner(false);
-      setShowWolves(false);
+    // Reset when game is restarted (goes back to unseated or seated status)
+    if (room.roomStatus === RoomStatus.unseated || room.roomStatus === RoomStatus.seated) {
       setFirstNightEnded(false);
+      setIsStartingGame(false);  // Reset so buttons show again after restart
       return;
     }
     
-    // Handle ongoing game
-    if (room.roomStatus === RoomStatus.ongoing) {
-      const myRole = myIndex === null ? null : room.template.roles[myIndex];
-      const currentActionRole = getCurrentActionRole(room);
-      
-      if (!currentActionRole) {
-        setFirstNightEnded(true);
-        setImActioner(false);
-        setShowWolves(false);
-        return;
-      }
-      
-      const state = determineActionerState(myRole, currentActionRole, mySeatNumber, room, isHost);
-      setImActioner(state.imActioner);
-      setShowWolves(state.showWolves);
+    if (room.roomStatus === RoomStatus.ongoing && !currentActionRole) {
+      setFirstNightEnded(true);
     }
-  }, [room, currentUserId, isHost, mySeatNumber]);
+  }, [room, currentActionRole]);
   
   // Ref to store the latest showActionDialog callback
   const showActionDialogRef = useRef<((role: RoleName) => void) | null>(null);
   
-  // Play audio for current action role (host only) and show dialog after audio completes
+  // Ref to store the latest handleBotAction callback
+  const handleBotActionRef = useRef<((role: RoleName) => void) | null>(null);
+  
+  // Track which action index we've already shown dialog for (to avoid duplicates)
+  const lastShownDialogIndex = useRef<number | null>(null);
+  
+  // Play audio for current action role (host only) and handle post-audio actions
+  // This is the main flow controller - after audio completes, it directly triggers:
+  // 1. For bots: auto-action
+  // 2. For host player: show action dialog
+  // Non-host players listen to isAudioPlaying state separately
   useEffect(() => {
     if (!room || !isHost || room.roomStatus !== RoomStatus.ongoing) {
       lastPlayedActionIndex.current = null;
@@ -324,31 +368,255 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // Only play audio if the action index has changed
     if (currentIndex !== lastPlayedActionIndex.current) {
       lastPlayedActionIndex.current = currentIndex;
-      setIsAudioPlaying(true);
       
-      const playAudioAndShowDialog = async () => {
+      const playAudioAndHandleAction = async () => {
+        // Use roomRef for the latest local state to avoid overwriting concurrent updates
+        // roomRef is updated by the subscription, so it has the latest state
+        const currentRoomState = roomRef.current;
+        if (!currentRoomState) return;
+        
+        // Set isAudioPlaying = true in room (sync to all clients)
+        // Use spread from roomRef to preserve all concurrent updates
+        const roomWithAudioPlaying = { ...currentRoomState, isAudioPlaying: true };
+        await roomService.current.updateRoom(roomNumber, roomWithAudioPlaying);
+        
         if (currentRole) {
-          console.log('Playing audio for role:', currentRole);
+          console.log('[Host Audio] Playing audio for role:', currentRole);
           await audioService.current.playRoleBeginningAudio(currentRole);
-          
-          // Show action dialog after audio completes
-          setIsAudioPlaying(false);
-          showActionDialogRef.current?.(currentRole);
         } else {
           // Night has ended - no more actions
-          console.log('Playing night end audio');
+          console.log('[Host Audio] Playing night end audio');
           await audioService.current.playNightEndAudio();
-          setIsAudioPlaying(false);
+        }
+        
+        // Audio finished - get latest room state from ref (not database)
+        // This ensures we have all concurrent updates (like wolf votes)
+        const latestRoom = roomRef.current;
+        if (latestRoom) {
+          console.log('[Host Audio] Setting isAudioPlaying=false. roomStatus:', latestRoom.roomStatus);
+          const roomWithAudioDone = { ...latestRoom, isAudioPlaying: false };
+          await roomService.current.updateRoom(roomNumber, roomWithAudioDone);
+          
+          // === POST-AUDIO ACTION (Host only) ===
+          // After audio completes and isAudioPlaying is set to false,
+          // immediately handle the action without waiting for state sync
+          if (currentRole) {
+            // Check if current actioner is a bot
+            const isBot = checkIfCurrentActionerBot(latestRoom, currentRole);
+            console.log('[Host Audio] Audio finished. Role:', currentRole, 'isBot:', isBot);
+            
+            if (isBot) {
+              // Bot turn - trigger auto-action
+              console.log('[Host Audio] Triggering bot auto-action for:', currentRole);
+              handleBotActionRef.current?.(currentRole);
+            } else {
+              // Check if host is the actioner
+              const hostIsActioner = determineActionerState(
+                roomRef.current ? (roomRef.current.players.get(mySeatNumber ?? -1)?.role ?? null) : null,
+                currentRole,
+                mySeatNumber,
+                latestRoom,
+                true
+              ).imActioner;
+              
+              if (hostIsActioner) {
+                console.log('[Host Audio] Host is actioner, showing dialog for:', currentRole);
+                lastShownDialogIndex.current = currentIndex;
+                showActionDialogRef.current?.(currentRole);
+              }
+            }
+          }
         }
       };
       
-      playAudioAndShowDialog();
+      playAudioAndHandleAction();
     }
-  }, [room?.currentActionerIndex, room?.roomStatus, isHost, room]);
+  }, [room?.currentActionerIndex, room?.roomStatus, isHost, roomNumber, mySeatNumber]);
+  
+  // Show action dialog for NON-HOST players when audio finishes (isAudioPlaying becomes false)
+  // Host handles their own dialog in the audio effect above
+  // Each player shows dialog only once per action index
+  useEffect(() => {
+    // Skip for host - host handles dialog in audio effect
+    if (isHost) return;
+    
+    if (!room || room.roomStatus !== RoomStatus.ongoing) {
+      lastShownDialogIndex.current = null;
+      return;
+    }
+    
+    const currentIndex = room.currentActionerIndex;
+    const currentRole = getCurrentActionRole(room);
+    
+    // Debug log
+    console.log('[ActionDialog Effect] (non-host) currentIndex:', currentIndex, 
+      'currentRole:', currentRole, 
+      'isAudioPlaying:', room.isAudioPlaying, 
+      'imActioner:', imActioner,
+      'myRole:', myRole,
+      'mySeatNumber:', mySeatNumber,
+      'lastShownDialogIndex:', lastShownDialogIndex.current);
+    
+    // Show dialog when:
+    // 1. Audio is not playing (finished or never started)
+    // 2. I'm an actioner for this role
+    // 3. We haven't shown dialog for this index yet
+    if (!room.isAudioPlaying && imActioner && currentRole && 
+        lastShownDialogIndex.current !== currentIndex) {
+      console.log('[ActionDialog Effect] Showing action dialog for role:', currentRole, 'at index:', currentIndex);
+      lastShownDialogIndex.current = currentIndex;
+      showActionDialogRef.current?.(currentRole);
+    }
+  }, [room?.isAudioPlaying, room?.currentActionerIndex, room?.roomStatus, imActioner, room, myRole, mySeatNumber, isHost]);
+
+  // Bot auto-view role: When in assigned status with bots, automatically mark bots as having viewed their roles
+  // Only host handles bot role viewing to avoid duplicates
+  useEffect(() => {
+    if (!room || !isHost) return;
+    if (room.roomStatus !== RoomStatus.assigned) return;
+    
+    // Check if there are any bots that haven't viewed their roles
+    const botsNotViewed: number[] = [];
+    room.players.forEach((player, seat) => {
+      if (player?.uid.startsWith('bot_') && !player.hasViewedRole) {
+        botsNotViewed.push(seat);
+      }
+    });
+    
+    if (botsNotViewed.length === 0) return;
+    
+    console.log('[Bot Auto-View] Found bots that need to view roles:', botsNotViewed);
+    
+    // Small delay to make it feel natural
+    const timer = setTimeout(() => {
+      // Re-fetch room to get latest state
+      const latestRoom = roomRef.current;
+      if (!latestRoom || latestRoom.roomStatus !== RoomStatus.assigned) return;
+      
+      console.log('[Bot Auto-View] Marking all bots as having viewed their roles');
+      let updatedRoom = latestRoom;
+      latestRoom.players.forEach((player, seat) => {
+        if (player?.uid.startsWith('bot_') && !player.hasViewedRole) {
+          updatedRoom = markPlayerViewedRole(updatedRoom, seat);
+        }
+      });
+      
+      // Only update if changes were made
+      if (updatedRoom !== latestRoom) {
+        console.log('[Bot Auto-View] Updating room with bot viewedRole changes');
+        roomService.current.updateRoom(roomNumber, updatedRoom);
+      }
+    }, 800);
+    
+    return () => clearTimeout(timer);
+  }, [room?.roomStatus, room?.players, isHost, roomNumber]);
+
+  // Bot auto-action function - called by host after audio finishes
+  // This handles the actual bot action logic
+  const handleBotAction = useCallback((role: RoleName) => {
+    const latestRoom = roomRef.current;
+    if (!latestRoom || latestRoom.roomStatus !== RoomStatus.ongoing) {
+      console.log('[Bot Action] Room not ready, skipping');
+      return;
+    }
+    
+    console.log('[Bot Action] Executing bot action for role:', role);
+    const numberOfPlayers = latestRoom.template.numberOfPlayers;
+    
+    // Small delay to make it feel natural
+    const delay = 500 + Math.random() * 1000;
+    
+    setTimeout(() => {
+      // Re-fetch latest room state
+      const currentRoom = roomRef.current;
+      if (!currentRoom || currentRoom.roomStatus !== RoomStatus.ongoing) {
+        console.log('[Bot Action] Room no longer ongoing, skipping');
+        return;
+      }
+      
+      // Different handling based on role
+      if (role === 'witch') {
+        console.log('[Bot Action] Witch bot skipping action');
+        const updatedRoom = proceedToNextAction(currentRoom, null);
+        roomService.current.updateRoom(roomNumber, updatedRoom);
+      } else if (role === 'hunter' || role === 'darkWolfKing') {
+        console.log('[Bot Action] Hunter/DarkWolfKing bot proceeding');
+        const updatedRoom = proceedToNextAction(currentRoom, null);
+        roomService.current.updateRoom(roomNumber, updatedRoom);
+      } else if (role === 'magician') {
+        const shouldAct = Math.random() > 0.3;
+        if (shouldAct && numberOfPlayers >= 2) {
+          const first = Math.floor(Math.random() * numberOfPlayers);
+          let second = Math.floor(Math.random() * numberOfPlayers);
+          while (second === first) {
+            second = Math.floor(Math.random() * numberOfPlayers);
+          }
+          const target = first + second * 100;
+          console.log('[Bot Action] Magician bot swapping:', first, 'and', second);
+          const updatedRoom = proceedToNextAction(currentRoom, target);
+          roomService.current.updateRoom(roomNumber, updatedRoom);
+        } else {
+          console.log('[Bot Action] Magician bot skipping');
+          const updatedRoom = proceedToNextAction(currentRoom, null);
+          roomService.current.updateRoom(roomNumber, updatedRoom);
+        }
+      } else if (role === 'wolf') {
+        // All bot wolves auto-vote for random target
+        const botWolves: number[] = [];
+        currentRoom.players.forEach((player, seat) => {
+          if (player?.role && isWolfRole(player.role) && player.uid.startsWith('bot_')) {
+            if (!hasWolfVoted(currentRoom, seat)) {
+              botWolves.push(seat);
+            }
+          }
+        });
+        
+        console.log('[Bot Action] Bot wolves that need to vote:', botWolves);
+        
+        if (botWolves.length > 0) {
+          const target = Math.floor(Math.random() * numberOfPlayers);
+          console.log('[Bot Action] Bot wolves voting for target:', target);
+          
+          let updatedRoom = currentRoom;
+          for (const wolfSeat of botWolves) {
+            updatedRoom = recordWolfVote(updatedRoom, wolfSeat, target);
+          }
+          
+          if (allWolvesVoted(updatedRoom)) {
+            const finalTarget = calculateWolfKillTarget(updatedRoom);
+            console.log('[Bot Action] All wolves voted, final target:', finalTarget);
+            const finalRoom = proceedToNextAction(updatedRoom, finalTarget);
+            roomService.current.updateRoom(roomNumber, finalRoom);
+          } else {
+            console.log('[Bot Action] Not all wolves voted yet, updating room');
+            roomService.current.updateRoom(roomNumber, updatedRoom);
+          }
+        }
+      } else {
+        // Other roles: random target or skip
+        const shouldAct = Math.random() > 0.2;
+        if (shouldAct) {
+          const target = Math.floor(Math.random() * numberOfPlayers);
+          console.log('[Bot Action] Bot', role, 'targeting:', target);
+          const updatedRoom = proceedToNextAction(currentRoom, target);
+          roomService.current.updateRoom(roomNumber, updatedRoom);
+        } else {
+          console.log('[Bot Action] Bot', role, 'skipping');
+          const updatedRoom = proceedToNextAction(currentRoom, null);
+          roomService.current.updateRoom(roomNumber, updatedRoom);
+        }
+      }
+    }, delay);
+  }, [roomNumber]);
+  
+  // Keep handleBotActionRef updated
+  handleBotActionRef.current = handleBotAction;
   
   const getMyRole = useCallback((): RoleName | null => {
     if (!room || mySeatNumber === null) return null;
-    return room.template.roles[mySeatNumber];
+    // Get role from player.role (assigned during "准备看牌")
+    const player = room.players.get(mySeatNumber);
+    return player?.role ?? null;
   }, [room, mySeatNumber]);
 
   // Get the role currently being acted (for host controlling bots)
@@ -360,9 +628,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // If I'm the host and controlling a bot, return the current action role
     if (isHost && imActioner && currentActionRole) {
       // Check if my own role matches - if so, use my role
-      const myRole = mySeatNumber === null ? null : room.template.roles[mySeatNumber];
-      if (myRole === currentActionRole) {
-        return myRole;
+      const player = mySeatNumber === null ? null : room.players.get(mySeatNumber);
+      const myRoleValue = player?.role ?? null;
+      if (myRoleValue === currentActionRole) {
+        return myRoleValue;
       }
       // Otherwise, I'm controlling a bot - use the current action role
       return currentActionRole;
@@ -506,11 +775,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
     
-    console.log('Room status:', room.roomStatus, 'RoomStatus.seating:', RoomStatus.seating);
+    console.log('Room status:', room.roomStatus, 'RoomStatus.unseated:', RoomStatus.unseated);
     
-    if (room.roomStatus === RoomStatus.seating) {
+    if (room.roomStatus === RoomStatus.unseated || room.roomStatus === RoomStatus.seated) {
       handleSeatingTap(index);
-    } else if (imActioner) {
+    } else if (room.roomStatus === RoomStatus.ongoing && imActioner) {
       handleActionTap(index);
     }
   };
@@ -553,7 +822,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (pendingSeatIndex === null) return;
     
     seatService.current.leaveSeat(roomNumber, pendingSeatIndex);
-    setMySeatNumber(null);
+    // Note: mySeatNumber is now computed from room state, no need to manually set
     setSeatModalVisible(false);
     setPendingSeatIndex(null);
   };
@@ -729,12 +998,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     
     showAlert(
       '允许看牌？',
-      '所有座位已被占用。',
+      '所有座位已被占用。将洗牌并分配角色。',
       [
         { 
           text: '确定', 
           onPress: () => {
-            const updatedRoom = { ...room, roomStatus: RoomStatus.seated };
+            // IMPORTANT: Use roomRef.current to get latest room state, not stale closure
+            const latestRoom = roomRef.current;
+            if (!latestRoom) return;
+            // Shuffle roles and assign to players, then set status to seated
+            const updatedRoom = assignRoles(latestRoom);
             roomService.current.updateRoom(roomNumber, updatedRoom);
           }
         }
@@ -743,11 +1016,23 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   };
   
   const handleStartGame = async () => {
+    console.log('[handleStartGame] Starting game...');
     setIsStartingGame(true); // Hide start button immediately
-    await audioService.current.playNightBeginAudio();
+    try {
+      console.log('[handleStartGame] Playing night begin audio...');
+      await audioService.current.playNightBeginAudio();
+      console.log('[handleStartGame] Night begin audio finished, waiting 5s...');
+    } catch (error) {
+      console.error('[handleStartGame] Audio error:', error);
+    }
     setTimeout(() => {
-      if (room) {
-        const startedRoom = startGame(room);
+      console.log('[handleStartGame] 5s timeout reached, starting game...');
+      // IMPORTANT: Use roomRef.current to get latest room state, not stale closure
+      const latestRoom = roomRef.current;
+      console.log('[handleStartGame] latestRoom status:', latestRoom?.roomStatus);
+      if (latestRoom) {
+        const startedRoom = startGame(latestRoom);
+        console.log('[handleStartGame] startedRoom status:', startedRoom.roomStatus);
         roomService.current.updateRoom(roomNumber, startedRoom);
       }
     }, 5000);
@@ -797,6 +1082,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     const roleName = roleInfo?.displayName || myRole;
     const description = roleInfo?.description || '无技能描述';
     
+    // Mark player as having viewed their role (only in assigned status, not during ongoing game)
+    // In ongoing status, player has already viewed their role
+    if (mySeatNumber !== null) {
+      const latestRoom = roomRef.current;
+      if (latestRoom && latestRoom.roomStatus === RoomStatus.assigned) {
+        const updatedRoom = markPlayerViewedRole(latestRoom, mySeatNumber);
+        roomService.current.updateRoom(roomNumber, updatedRoom);
+      }
+    }
+    
     showAlert(
       `你的身份是：${roleName}`,
       `【技能介绍】\n${description}`,
@@ -812,8 +1107,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         { 
           text: '确定', 
           onPress: () => {
-            if (room) {
-              const restarted = restartRoom(room);
+            // IMPORTANT: Use roomRef.current to get latest room state, not stale closure
+            const latestRoom = roomRef.current;
+            if (latestRoom) {
+              const restarted = restartRoom(latestRoom);
               roomService.current.updateRoom(roomNumber, restarted);
             }
           }
@@ -828,7 +1125,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   };
   
   const handleLeaveRoom = () => {
-    if (room?.roomStatus === RoomStatus.terminated) {
+    // If game is in progress (ongoing), leave without confirmation
+    if (room?.roomStatus === RoomStatus.ongoing) {
       navigation.navigate('Home');
       return;
     }
@@ -888,7 +1186,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
   
-  const currentActionRole = getCurrentActionRole(room);
+  // Use the computed currentActionRole from useMemo
   
   // 生成行动消息，对于狼人包含投票状态
   // 获取我的狼人投票状态消息
@@ -1069,7 +1367,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                         value={player.uid} 
                         size={TILE_SIZE - 16} 
                         avatarUrl={player.avatarUrl}
-                        seatNumber={player.seatNumber}
+                        seatNumber={player.seatNumber + 1}
                         roomId={room.roomNumber}
                       />
                       {/* Overlay for wolf/selected state */}
@@ -1111,12 +1409,36 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {imActioner && (
           <Text style={styles.actionMessage}>{actionMessage}</Text>
         )}
+        
+        {/* Show players who haven't viewed their roles yet */}
+        {isHost && room.roomStatus === RoomStatus.assigned && (() => {
+          const notViewed = getPlayersNotViewedRole(room);
+          if (notViewed.length === 0) return null;
+          return (
+            <View style={styles.actionLogContainer}>
+              <Text style={styles.actionLogTitle}>⏳ 等待查看身份</Text>
+              <Text style={styles.actionLogItem}>
+                {notViewed.map(s => `${s + 1}号`).join(', ')}
+              </Text>
+            </View>
+          );
+        })()}
+        
+        {/* Action Log for Bot Mode */}
+        {isHost && hasBots && room.roomStatus === RoomStatus.ongoing && actionLog.length > 0 && (
+          <View style={styles.actionLogContainer}>
+            <Text style={styles.actionLogTitle}>📋 行动记录</Text>
+            {actionLog.map((log, index) => (
+              <Text key={index} style={styles.actionLogItem}>{log}</Text>
+            ))}
+          </View>
+        )}
       </ScrollView>
       
       {/* Bottom Buttons */}
       <View style={styles.buttonContainer}>
-        {/* Host: Settings - modify room config */}
-        {isHost && room.roomStatus === RoomStatus.seating && (
+        {/* Host: Settings - modify room config (available before game is ongoing) */}
+        {isHost && !isStartingGame && !isAudioPlaying && (room.roomStatus === RoomStatus.unseated || room.roomStatus === RoomStatus.seated || room.roomStatus === RoomStatus.assigned || room.roomStatus === RoomStatus.ready) && (
           <TouchableOpacity 
             style={[styles.actionButton, { backgroundColor: '#6B7280' }]} 
             onPress={() => navigation.navigate('Config', { existingRoomNumber: roomNumber })}
@@ -1125,21 +1447,21 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         )}
 
-        {/* Host: Prepare to Flip */}
-        {isHost && room.roomStatus === RoomStatus.seating && (
+        {/* Host: Prepare to Flip - show when seated (players joined but roles not assigned) */}
+        {isHost && room.roomStatus === RoomStatus.seated && (
           <TouchableOpacity style={styles.actionButton} onPress={showPrepareToFlipDialog}>
             <Text style={styles.buttonText}>准备看牌</Text>
           </TouchableOpacity>
         )}
         
-        {/* Host: Start Game */}
-        {isHost && room.roomStatus === RoomStatus.seated && !isStartingGame && (
+        {/* Host: Start Game - show when ready (all players have viewed their roles) */}
+        {isHost && room.roomStatus === RoomStatus.ready && !isStartingGame && (
           <TouchableOpacity style={styles.actionButton} onPress={showStartGameDialog}>
             <Text style={styles.buttonText}>开始游戏</Text>
           </TouchableOpacity>
         )}
         
-        {/* Actioner: Skip Action - only for roles that can skip */}
+        {/* Actioner: Skip Action - only for roles that can skip (during ongoing game) */}
         {imActioner && room.roomStatus === RoomStatus.ongoing && !isAudioPlaying && (() => {
           const actingRole = getActingRole();
           // These roles cannot skip their action:
@@ -1165,18 +1487,18 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         )}
         
-        {/* View Role Card */}
-        {room.roomStatus !== RoomStatus.seating && mySeatNumber !== null && (
+        {/* View Role Card - when roles are assigned, ready, or game is ongoing */}
+        {(room.roomStatus === RoomStatus.assigned || room.roomStatus === RoomStatus.ready || room.roomStatus === RoomStatus.ongoing) && mySeatNumber !== null && (
           <TouchableOpacity style={styles.actionButton} onPress={showRoleCardDialog}>
             <Text style={styles.buttonText}>查看身份</Text>
           </TouchableOpacity>
         )}
         
-        {/* Greyed View Role (waiting for host) */}
-        {room.roomStatus === RoomStatus.seating && mySeatNumber !== null && (
+        {/* Greyed View Role (waiting for host to assign roles) */}
+        {(room.roomStatus === RoomStatus.unseated || room.roomStatus === RoomStatus.seated) && mySeatNumber !== null && (
           <TouchableOpacity 
             style={[styles.actionButton, styles.disabledButton]}
-            onPress={() => showAlert('等待房主确认所有人已入座')}
+            onPress={() => showAlert('等待房主点击"准备看牌"分配角色')}
           >
             <Text style={styles.buttonText}>查看身份</Text>
           </TouchableOpacity>

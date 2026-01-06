@@ -297,4 +297,30 @@ export const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 20,
   },
+  notViewedText: {
+    fontSize: typography.sm,
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: spacing.xs,
+  },
+  actionLogContainer: {
+    marginTop: spacing.md,
+    marginHorizontal: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  actionLogTitle: {
+    fontSize: typography.base,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  actionLogItem: {
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    paddingVertical: 2,
+  },
 });

@@ -34,11 +34,12 @@ const createTestRoom = (): Room => {
       role,
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
+      hasViewedRole: false,
       displayName: `玩家${seat + 1}`,
     });
   });
   
-  room.roomStatus = RoomStatus.ongoing;
+  room.roomStatus = RoomStatus.assigned;
   room.currentActionerIndex = 0;
   
   return room;
