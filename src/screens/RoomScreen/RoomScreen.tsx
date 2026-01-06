@@ -35,8 +35,7 @@ import AudioService from '../../services/AudioService';
 import { AuthService } from '../../services/AuthService';
 import { RoomService } from '../../services/RoomService';
 import { SeatService } from '../../services/SeatService';
-import { showAlert, setAlertListener, AlertConfig } from '../../utils/alert';
-import { AlertModal } from '../../components/AlertModal';
+import { showAlert } from '../../utils/alert';
 import { Avatar } from '../../components/Avatar';
 import { styles, TILE_SIZE } from './RoomScreen.styles';
 
@@ -132,6 +131,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('加载房间...');
+  const [showRetryButton, setShowRetryButton] = useState(false);
   const [mySeatNumber, setMySeatNumber] = useState<number | null>(null);
   const [imActioner, setImActioner] = useState(false);
   const [showWolves, setShowWolves] = useState(false);
@@ -145,9 +146,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const [pendingSeatIndex, setPendingSeatIndex] = useState<number | null>(null);
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
 
-  // Custom alert modal state
-  const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
-
   const audioService = useRef(AudioService.getInstance());
   const authService = useRef(AuthService.getInstance());
   const roomService = useRef(RoomService.getInstance());
@@ -155,12 +153,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const lastPlayedActionIndex = useRef<number | null>(null);
   const roomRef = useRef<Room | null>(null); // Keep latest room for closures
   const currentUserId = authService.current.getCurrentUserId();
-
-  // Set up alert listener for custom modal
-  useEffect(() => {
-    setAlertListener(setAlertConfig);
-    return () => setAlertListener(null);
-  }, []);
 
   // Keep roomRef in sync with room state
   useEffect(() => {
@@ -197,48 +189,81 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Create room if host and auto-sit on first seat
   // Using ref to track if we've already created the room
   const hasCreatedRoom = useRef(false);
-  useEffect(() => {
-    const createRoomAndSit = async () => {
-      // Only create once
-      if (hasCreatedRoom.current) return;
-      if (!isHost || !template) return;
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  
+  const createRoomAndSit = useCallback(async () => {
+    // Only create once
+    if (hasCreatedRoom.current || isCreatingRoom) return;
+    if (!isHost || !template) return;
+    
+    hasCreatedRoom.current = true;
+    setIsCreatingRoom(true);
+    setLoadingMessage('正在登录...');
+    
+    try {
+      // Wait for backend to be ready (auth initialized) with timeout
+      await authService.current.waitForInit?.();
+      const userId = authService.current.getCurrentUserId() || 'anonymous';
       
-      hasCreatedRoom.current = true;
+      setLoadingMessage('正在创建房间...');
+      console.log('Creating room as host:', roomNumber, 'userId:', userId);
+      const newRoom = createRoom(userId, roomNumber, template);
+      console.log('Room created:', newRoom.roomNumber, 'status:', newRoom.roomStatus);
       
+      // Try to create room - if it already exists (409/400), delete and recreate
       try {
-        // Wait for backend to be ready (auth initialized)
-        await authService.current.waitForInit?.();
-        const userId = authService.current.getCurrentUserId() || 'anonymous';
-        
-        console.log('Creating room as host:', roomNumber, 'userId:', userId);
-        const newRoom = createRoom(userId, roomNumber, template);
-        console.log('Room created:', newRoom.roomNumber, 'status:', newRoom.roomStatus);
-        
-        // Try to create room - if it already exists (409/400), delete and recreate
-        try {
+        await roomService.current.createRoom(roomNumber, newRoom);
+      } catch (createError: unknown) {
+        const errorMessage = createError instanceof Error ? createError.message : String(createError);
+        // Room might already exist from a previous session - delete and recreate
+        if (errorMessage.includes('duplicate') || errorMessage.includes('unique')) {
+          console.log('Room already exists, deleting and recreating...');
+          setLoadingMessage('重新创建房间...');
+          await roomService.current.deleteRoom(roomNumber);
           await roomService.current.createRoom(roomNumber, newRoom);
-        } catch (createError: unknown) {
-          const errorMessage = createError instanceof Error ? createError.message : String(createError);
-          // Room might already exist from a previous session - delete and recreate
-          if (errorMessage.includes('duplicate') || errorMessage.includes('unique')) {
-            console.log('Room already exists, deleting and recreating...');
-            await roomService.current.deleteRoom(roomNumber);
-            await roomService.current.createRoom(roomNumber, newRoom);
-          } else {
-            throw createError;
-          }
+        } else {
+          throw createError;
         }
-        
-        // Auto-sit host on seat 1 (index 0)
-        console.log('Auto-seating host on seat 1');
-        await seatService.current.takeSeat(roomNumber, 0, null);
-      } catch (error) {
-        console.error('Failed to create room:', error);
-        hasCreatedRoom.current = false; // Allow retry
       }
-    };
+      
+      // Auto-sit host on seat 1 (index 0)
+      setLoadingMessage('正在入座...');
+      console.log('Auto-seating host on seat 1');
+      await seatService.current.takeSeat(roomNumber, 0, null);
+    } catch (error) {
+      console.error('Failed to create room:', error);
+      hasCreatedRoom.current = false; // Allow retry
+      setLoadingMessage('创建失败');
+      const errorMessage = error instanceof Error ? error.message : '创建房间失败';
+      showAlert('创建失败', errorMessage, [
+        { text: '重试', onPress: () => { createRoomAndSit(); } },
+        { text: '返回', style: 'cancel', onPress: () => navigation.goBack() },
+      ]);
+    } finally {
+      setIsCreatingRoom(false);
+    }
+  }, [isHost, template, roomNumber, isCreatingRoom, navigation]);
+  
+  useEffect(() => {
     createRoomAndSit();
-  }, [isHost, template, roomNumber]);
+  }, [createRoomAndSit]);
+  
+  // Loading timeout - show retry button after 5 seconds
+  useEffect(() => {
+    if (!loading) {
+      setShowRetryButton(false);
+      return;
+    }
+    
+    const timeout = setTimeout(() => {
+      if (loading) {
+        setShowRetryButton(true);
+        setLoadingMessage('加载超时');
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timeout);
+  }, [loading]);
   
   // Update player state based on room changes
   useEffect(() => {
@@ -822,7 +847,28 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF9800" />
-        <Text style={styles.loadingText}>加载房间...</Text>
+        <Text style={styles.loadingText}>{loadingMessage}</Text>
+        {showRetryButton && (
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+            <TouchableOpacity 
+              style={[styles.errorBackButton, { backgroundColor: '#FF9800' }]} 
+              onPress={() => {
+                hasCreatedRoom.current = false;
+                setShowRetryButton(false);
+                setLoadingMessage('重试中...');
+                createRoomAndSit();
+              }}
+            >
+              <Text style={styles.errorBackButtonText}>重试</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.errorBackButton} 
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={styles.errorBackButtonText}>返回</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   }
@@ -1069,38 +1115,20 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       
       {/* Bottom Buttons */}
       <View style={styles.buttonContainer}>
+        {/* Host: Settings - modify room config */}
+        {isHost && room.roomStatus === RoomStatus.seating && (
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: '#6B7280' }]} 
+            onPress={() => navigation.navigate('Config', { existingRoomNumber: roomNumber })}
+          >
+            <Text style={styles.buttonText}>⚙️ 设置</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Host: Prepare to Flip */}
         {isHost && room.roomStatus === RoomStatus.seating && (
           <TouchableOpacity style={styles.actionButton} onPress={showPrepareToFlipDialog}>
             <Text style={styles.buttonText}>准备看牌</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Host: Fill with Bots (Demo Testing) */}
-        {isHost && room.roomStatus === RoomStatus.seating && (
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: '#F59E0B' }]} 
-            onPress={() => {
-              showAlert(
-                '填充测试机器人',
-                '⚠️ 仅供测试使用\n\n将用机器人填满所有座位，房主作为法官观察流程。\n\n确定要继续吗？',
-                [
-                  { 
-                    text: '确定', 
-                    onPress: () => {
-                      seatService.current.fillWithBots(roomNumber).then((count) => {
-                        if (count > 0) {
-                          showAlert('已填充', `已用 ${count} 个机器人填满所有座位`);
-                        }
-                      });
-                    }
-                  },
-                  { text: '取消', style: 'cancel' },
-                ]
-              );
-            }}
-          >
-            <Text style={styles.buttonText}>🤖 填充机器人 (测试)</Text>
           </TouchableOpacity>
         )}
         
@@ -1197,17 +1225,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-
-      {/* Custom Alert Modal */}
-      {alertConfig && (
-        <AlertModal
-          visible={true}
-          title={alertConfig.title}
-          message={alertConfig.message}
-          buttons={alertConfig.buttons}
-          onClose={() => setAlertConfig(null)}
-        />
-      )}
     </View>
   );
 };

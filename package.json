@@ -4,11 +4,13 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "e2e": "playwright test",
+    "e2e:multiplayer": "playwright test e2e/multiplayer.spec.ts",
+    "e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -31,6 +33,7 @@
     "react-native-web": "^0.21.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "29.5.14",
     "@types/react": "~19.1.0",

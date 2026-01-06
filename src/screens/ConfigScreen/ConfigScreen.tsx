@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,15 +7,22 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { RoleName } from '../../constants/roles';
 import { PRESET_TEMPLATES, createCustomTemplate } from '../../models/Template';
+import { updateRoomTemplate } from '../../models/Room';
+import { RoomService } from '../../services/RoomService';
+import { SeatService } from '../../services/SeatService';
 import { showAlert } from '../../utils/alert';
+import { PromptModal } from '../../components/PromptModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { spacing } from '../../constants/theme';
+import { spacing, colors } from '../../constants/theme';
 import { styles } from './ConfigScreen.styles';
+
+// Bot mode password
+const BOT_MODE_PASSWORD = '469022042';
 
 // ============================================
 // Sub-components (extracted to avoid nested component definitions)
@@ -95,13 +102,43 @@ const applyPreset = (presetRoles: RoleName[]): Record<string, boolean> => {
 // ============================================
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Config'>;
+type ConfigRouteProp = RouteProp<RootStackParamList, 'Config'>;
 
 export const ConfigScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<ConfigRouteProp>();
+  const existingRoomNumber = route.params?.existingRoomNumber;
+  const isEditMode = !!existingRoomNumber;
+  
   const [selection, setSelection] = useState(getInitialSelection);
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(isEditMode);
+  const [isFillingBots, setIsFillingBots] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
+  const roomService = RoomService.getInstance();
+  const seatService = SeatService.getInstance();
   const selectedCount = Object.values(selection).filter(Boolean).length;
+
+  // Load current room's roles when in edit mode
+  useEffect(() => {
+    if (!isEditMode || !existingRoomNumber) return;
+    
+    const loadCurrentRoles = async () => {
+      try {
+        const room = await roomService.getRoom(existingRoomNumber);
+        if (room) {
+          setSelection(applyPreset(room.template.roles));
+        }
+      } catch (error) {
+        console.error('Failed to load room:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadCurrentRoles();
+  }, [isEditMode, existingRoomNumber, roomService]);
 
   const toggleRole = useCallback((key: string) => {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -121,16 +158,54 @@ export const ConfigScreen: React.FC = () => {
     setIsCreating(true);
     try {
       const template = createCustomTemplate(roles);
-      const roomNumber = Math.floor(1000 + Math.random() * 9000).toString();
-      // Save as last room for "返回上局" feature
-      await AsyncStorage.setItem('lastRoomNumber', roomNumber);
-      navigation.navigate('Room', { roomNumber, isHost: true, template });
+      
+      if (isEditMode && existingRoomNumber) {
+        // Update existing room with new template
+        const currentRoom = await roomService.getRoom(existingRoomNumber);
+        if (currentRoom) {
+          const updatedRoom = updateRoomTemplate(currentRoom, template);
+          await roomService.updateRoom(existingRoomNumber, updatedRoom);
+        }
+        navigation.goBack();
+      } else {
+        // Create new room
+        const roomNumber = Math.floor(1000 + Math.random() * 9000).toString();
+        // Save as last room for "返回上局" feature
+        await AsyncStorage.setItem('lastRoomNumber', roomNumber);
+        navigation.navigate('Room', { roomNumber, isHost: true, template });
+      }
     } catch {
-      showAlert('错误', '创建房间失败');
+      showAlert('错误', isEditMode ? '更新房间失败' : '创建房间失败');
     } finally {
       setIsCreating(false);
     }
-  }, [selection, navigation]);
+  }, [selection, navigation, isEditMode, existingRoomNumber, roomService]);
+
+  const handleFillBots = useCallback(() => {
+    if (!existingRoomNumber) return;
+    setShowPasswordModal(true);
+  }, [existingRoomNumber]);
+
+  const handlePasswordConfirm = useCallback(async (password: string) => {
+    setShowPasswordModal(false);
+    if (!existingRoomNumber) return;
+    
+    if (password !== BOT_MODE_PASSWORD) {
+      showAlert('错误', '密码错误');
+      return;
+    }
+    
+    setIsFillingBots(true);
+    try {
+      await seatService.fillWithBots(existingRoomNumber);
+      showAlert('成功', '已填充机器人');
+      navigation.goBack();
+    } catch {
+      showAlert('错误', '填充机器人失败');
+    } finally {
+      setIsFillingBots(false);
+    }
+  }, [existingRoomNumber, seatService, navigation]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -140,23 +215,44 @@ export const ConfigScreen: React.FC = () => {
           <Text style={styles.headerBtnText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>创建房间</Text>
+          <Text style={styles.title}>{isEditMode ? '修改配置' : '创建房间'}</Text>
           <Text style={styles.subtitle}>{selectedCount} 名玩家</Text>
         </View>
-        <TouchableOpacity 
-          style={[styles.headerBtn, styles.createBtn]} 
-          onPress={handleCreateRoom} 
-          disabled={isCreating}
-        >
-          {isCreating ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.createBtnText}>创建</Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {isEditMode && (
+            <TouchableOpacity 
+              style={[styles.headerBtn, { backgroundColor: colors.warning }]} 
+              onPress={handleFillBots} 
+              disabled={isFillingBots}
+            >
+              {isFillingBots ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.createBtnText}>🤖</Text>
+              )}
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.headerBtn, styles.createBtn]} 
+            onPress={handleCreateRoom} 
+            disabled={isCreating || isLoading}
+          >
+            {isCreating ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.createBtnText}>{isEditMode ? '保存' : '创建'}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366F1" />
+          <Text style={styles.loadingText}>加载中...</Text>
+        </View>
+      ) : (
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Presets */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>快速模板</Text>
@@ -222,7 +318,19 @@ export const ConfigScreen: React.FC = () => {
         </View>
 
         <View style={{ height: spacing.xxl }} />
-      </ScrollView>
+        </ScrollView>
+      )}
+
+      {/* Password Modal for Bot Fill */}
+      <PromptModal
+        visible={showPasswordModal}
+        title="需要密码"
+        message="请输入密码以填充机器人"
+        placeholder="密码"
+        secureTextEntry={true}
+        onCancel={() => setShowPasswordModal(false)}
+        onConfirm={handlePasswordConfirm}
+      />
     </SafeAreaView>
   );
 };

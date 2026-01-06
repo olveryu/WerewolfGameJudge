@@ -29,7 +29,12 @@ export class AuthService {
 
   async waitForInit(): Promise<void> {
     if (this.initPromise) {
-      await this.initPromise;
+      // Add timeout to prevent infinite waiting
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        setTimeout(() => reject(new Error('登录超时，请重试')), 10000);
+      });
+      
+      await Promise.race([this.initPromise, timeoutPromise]);
     }
   }
 

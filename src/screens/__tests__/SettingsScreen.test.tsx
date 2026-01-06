@@ -93,11 +93,11 @@ describe('SettingsScreen', () => {
       expect(getByText('匿名登录')).toBeTruthy();
     });
 
-    it('should show backend mode info', () => {
+    it('should show version info', () => {
       const { getByText } = render(<SettingsScreen />);
       
-      expect(getByText('后端模式')).toBeTruthy();
-      expect(getByText('在线模式')).toBeTruthy();
+      expect(getByText('版本')).toBeTruthy();
+      expect(getByText('1.0.0')).toBeTruthy();
     });
   });
 

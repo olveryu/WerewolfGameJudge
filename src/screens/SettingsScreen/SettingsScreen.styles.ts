@@ -133,21 +133,6 @@ export const styles = StyleSheet.create({
     fontSize: typography.sm,
     color: colors.text,
   },
-  modeBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
-  },
-  modeOnline: {
-    backgroundColor: colors.success + '20',
-  },
-  modeDemo: {
-    backgroundColor: colors.warning + '20',
-  },
-  modeText: {
-    fontSize: typography.xs,
-    color: colors.text,
-  },
   
   // Profile section
   profileSection: {
