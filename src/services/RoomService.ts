@@ -34,6 +34,7 @@ const roomToDb = (room: Room): Omit<DbRoom, 'created_at' | 'updated_at'> => {
         skillStatus: player.skillStatus,
         displayName: player.displayName,
         avatarUrl: player.avatarUrl,
+        hasViewedRole: player.hasViewedRole,
       };
     } else {
       playersMap[seat.toString()] = null;
@@ -76,18 +77,18 @@ const dbToRoom = (dbRoom: DbRoom): Room => {
   Object.entries(dbRoom.players || {}).forEach(([seatStr, playerData]) => {
     if (playerData) {
       const seat = Number.parseInt(seatStr);
-      const role = playerData.role as RoleName;
-      if (role) {
-        players.set(seat, {
-          uid: playerData.uid,
-          seatNumber: playerData.seatNumber,
-          role,
-          status: playerData.status,
-          skillStatus: playerData.skillStatus,
-          displayName: playerData.displayName,
-          avatarUrl: playerData.avatarUrl,
-        });
-      }
+      const role = playerData.role as RoleName | null;
+      // Set player even if role is null (during seating phase)
+      players.set(seat, {
+        uid: playerData.uid,
+        seatNumber: playerData.seatNumber,
+        role,
+        status: playerData.status,
+        skillStatus: playerData.skillStatus,
+        hasViewedRole: playerData.hasViewedRole ?? false,
+        displayName: playerData.displayName,
+        avatarUrl: playerData.avatarUrl,
+      });
     }
   });
 
@@ -121,6 +122,7 @@ const dbToRoom = (dbRoom: DbRoom): Room => {
     currentActionerIndex: dbRoom.current_actioner_index,
     hasPoison: dbRoom.has_poison,
     hasAntidote: dbRoom.has_antidote,
+    isAudioPlaying: false,
   };
 };
 

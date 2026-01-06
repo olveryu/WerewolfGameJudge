@@ -1,5 +1,5 @@
 import { SeatService } from '../SeatService';
-import { createRoom, Room } from '../../models/Room';
+import { createRoom, Room, RoomStatus } from '../../models/Room';
 import { Player, PlayerStatus, SkillStatus } from '../../models/Player';
 import { createTemplateFromRoles } from '../../models/Template';
 import { RoleName } from '../../constants/roles';
@@ -90,12 +90,12 @@ describe('SeatService - takeSeat', () => {
     expect(result).toBe(0);
     expect(mockUpdateRoom).toHaveBeenCalled();
     
-    // Verify the room was updated with the player
+    // Verify the room was updated with the player (no role yet - roles assigned during "准备看牌")
     const updateCall = mockUpdateRoom.mock.calls[0];
     const updatedRoom = updateCall[1] as Room;
     expect(updatedRoom.players.get(0)).toBeDefined();
     expect(updatedRoom.players.get(0)?.uid).toBe('user123');
-    expect(updatedRoom.players.get(0)?.role).toBe('wolf');
+    expect(updatedRoom.players.get(0)?.role).toBeNull();
   });
 
   it('should return -1 when seat is taken by another user', async () => {
@@ -105,6 +105,7 @@ describe('SeatService - takeSeat', () => {
       role: 'wolf',
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
+      hasViewedRole: false,
     };
     testRoom.players.set(0, existingPlayer);
     mockGetRoom.mockResolvedValue(testRoom);
@@ -122,6 +123,7 @@ describe('SeatService - takeSeat', () => {
       role: 'wolf',
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
+      hasViewedRole: false,
     };
     testRoom.players.set(0, existingPlayer);
     mockGetRoom.mockResolvedValue(testRoom);
@@ -141,6 +143,7 @@ describe('SeatService - takeSeat', () => {
       role: 'wolf',
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
+      hasViewedRole: false,
     };
     testRoom.players.set(0, currentPlayer);
     mockGetRoom.mockResolvedValue(testRoom);
@@ -156,22 +159,22 @@ describe('SeatService - takeSeat', () => {
     const updatedRoom = updateCall[1] as Room;
     // Old seat should be empty
     expect(updatedRoom.players.get(0)).toBeNull();
-    // New seat should have player
+    // New seat should have player (no role assigned yet - roles assigned during "准备看牌")
     expect(updatedRoom.players.get(2)?.uid).toBe('user123');
-    expect(updatedRoom.players.get(2)?.role).toBe('seer');
+    expect(updatedRoom.players.get(2)?.role).toBeNull();
   });
 
-  it('should assign correct role based on seat position', async () => {
+  it('should not assign role when taking seat (roles are assigned later)', async () => {
     mockGetRoom.mockResolvedValue(testRoom);
     mockUpdateRoom.mockResolvedValue(undefined);
 
-    // Take seat 3 which should be witch
+    // Take seat 3 - role should NOT be assigned yet
     const result = await seatService.takeSeat('1234', 3, null);
 
     expect(result).toBe(0);
     const updateCall = mockUpdateRoom.mock.calls[0];
     const updatedRoom = updateCall[1] as Room;
-    expect(updatedRoom.players.get(3)?.role).toBe('witch');
+    expect(updatedRoom.players.get(3)?.role).toBeNull();
   });
 
   it('should return -1 for invalid seat index', async () => {
@@ -205,6 +208,7 @@ describe('SeatService - leaveSeat', () => {
       role: 'seer',
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
+      hasViewedRole: false,
     });
   });
 
@@ -254,27 +258,32 @@ describe('SeatService - fillWithBots', () => {
     expect(mockUpdateRoom).not.toHaveBeenCalled();
   });
 
-  it('should fill all seats with bots', async () => {
+  it('should fill seats with host at seat 0 and bots in remaining seats', async () => {
     mockGetRoom.mockResolvedValue(testRoom);
     mockUpdateRoom.mockResolvedValue(undefined);
 
     const result = await seatService.fillWithBots('1234');
 
-    expect(result).toBe(6); // All 6 seats filled
+    expect(result).toBe(6); // All 6 seats filled (1 host + 5 bots)
     expect(mockUpdateRoom).toHaveBeenCalled();
     
     const updateCall = mockUpdateRoom.mock.calls[0];
     const updatedRoom = updateCall[1] as Room;
     
-    // All seats should have players
-    for (let i = 0; i < 6; i++) {
+    // Seat 0 should be host (not a bot)
+    const hostPlayer = updatedRoom.players.get(0);
+    expect(hostPlayer).toBeDefined();
+    expect(hostPlayer?.uid).toBe('user123'); // Host UID from mock
+    
+    // Remaining seats (1-5) should have bots
+    for (let i = 1; i < 6; i++) {
       const player = updatedRoom.players.get(i);
       expect(player).toBeDefined();
       expect(player?.uid).toMatch(/^bot_\d+_/);
     }
   });
 
-  it('should assign correct roles to bots', async () => {
+  it('should not assign roles to bots (roles assigned later during "准备看牌")', async () => {
     mockGetRoom.mockResolvedValue(testRoom);
     mockUpdateRoom.mockResolvedValue(undefined);
 
@@ -283,12 +292,13 @@ describe('SeatService - fillWithBots', () => {
     const updateCall = mockUpdateRoom.mock.calls[0];
     const updatedRoom = updateCall[1] as Room;
     
-    expect(updatedRoom.players.get(0)?.role).toBe('wolf');
-    expect(updatedRoom.players.get(1)?.role).toBe('wolf');
-    expect(updatedRoom.players.get(2)?.role).toBe('seer');
-    expect(updatedRoom.players.get(3)?.role).toBe('witch');
-    expect(updatedRoom.players.get(4)?.role).toBe('villager');
-    expect(updatedRoom.players.get(5)?.role).toBe('villager');
+    // No roles should be assigned yet
+    for (let i = 0; i < 6; i++) {
+      expect(updatedRoom.players.get(i)?.role).toBeNull();
+    }
+    
+    // Room status should be seated (all seats filled)
+    expect(updatedRoom.roomStatus).toBe(RoomStatus.seated);
   });
 });
 
@@ -316,6 +326,7 @@ describe('SeatService - updatePlayerSeat', () => {
       role: 'witch',
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
+      hasViewedRole: false,
       displayName: 'New Player',
     };
 
@@ -335,6 +346,7 @@ describe('SeatService - updatePlayerSeat', () => {
       role: 'seer',
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
+      hasViewedRole: false,
     });
     mockGetRoom.mockResolvedValue(testRoom);
     mockUpdateRoom.mockResolvedValue(undefined);
@@ -356,6 +368,7 @@ describe('SeatService - updatePlayerSeat', () => {
       role: 'wolf',
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
+      hasViewedRole: false,
     };
 
     await seatService.updatePlayerSeat('9999', 0, newPlayer);

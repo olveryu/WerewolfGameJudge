@@ -176,7 +176,7 @@ export const ROLES: Record<RoleName, RoleDefinition> = {
     type: 'special',
     description: '第一晚选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份',
     actionMessage: '请选择你的榜样',
-    actionConfirmMessage: '确认',
+    actionConfirmMessage: '选择榜样',
   },
   knight: {
     name: 'knight',

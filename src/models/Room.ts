@@ -2,12 +2,13 @@ import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from '.
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
 import { RoleName, ROLES, isWolfRole } from '../constants/roles';
 
-// Room status matching Flutter
+// Room status
 export enum RoomStatus {
-  seating = 0,
-  seated = 1,
-  ongoing = 2,
-  terminated = 3,
+  unseated = 0,  // 等待入座
+  seated = 1,    // 所有人入座，等待准备看牌
+  assigned = 2,  // 角色已分配，等待所有人查看身份
+  ready = 3,     // 所有人已看身份，可以开始游戏
+  ongoing = 4,   // 游戏进行中
 }
 
 // Database keys matching Flutter (for Supabase serialization)
@@ -23,6 +24,7 @@ export const ROOM_KEYS = {
   currentActionerIndex: 'currentActionerIndex',
   hasPoison: 'hasPoison',
   hasAntidote: 'hasAntidote',
+  isAudioPlaying: 'isAudioPlaying',
 } as const;
 
 export interface Room {
@@ -37,6 +39,7 @@ export interface Room {
   currentActionerIndex: number;
   hasPoison: boolean;
   hasAntidote: boolean;
+  isAudioPlaying: boolean; // Whether host is playing audio for current action
 }
 
 // Create a new room
@@ -48,7 +51,7 @@ export const createRoom = (
   timestamp: Date.now(),
   hostUid,
   roomNumber,
-  roomStatus: RoomStatus.seating,
+  roomStatus: RoomStatus.unseated,
   template,
   players: new Map(
     Array.from({ length: template.numberOfPlayers }, (_, i) => [i, null])
@@ -58,6 +61,7 @@ export const createRoom = (
   currentActionerIndex: 0,
   hasPoison: true,
   hasAntidote: true,
+  isAudioPlaying: false,
 });
 
 // Convert room to database format
@@ -88,6 +92,7 @@ export const roomToDbMap = (room: Room): Record<string, any> => {
     [ROOM_KEYS.currentActionerIndex]: room.currentActionerIndex,
     [ROOM_KEYS.hasPoison]: room.hasPoison,
     [ROOM_KEYS.hasAntidote]: room.hasAntidote,
+    [ROOM_KEYS.isAudioPlaying]: room.isAudioPlaying,
   };
 };
 
@@ -130,7 +135,7 @@ export const roomFromDb = (
     timestamp: data[ROOM_KEYS.timestamp] ?? Date.now(),
     hostUid: data[ROOM_KEYS.hostUid],
     roomNumber,
-    roomStatus: data[ROOM_KEYS.roomStatus] ?? RoomStatus.seating,
+    roomStatus: data[ROOM_KEYS.roomStatus] ?? RoomStatus.unseated,
     template,
     players,
     actions,
@@ -138,6 +143,7 @@ export const roomFromDb = (
     currentActionerIndex: data[ROOM_KEYS.currentActionerIndex] ?? 0,
     hasPoison: data[ROOM_KEYS.hasPoison] ?? true,
     hasAntidote: data[ROOM_KEYS.hasAntidote] ?? true,
+    isAudioPlaying: data[ROOM_KEYS.isAudioPlaying] ?? false,
   };
 };
 
@@ -173,7 +179,7 @@ export const roomHasSkilledWolf = (room: Room): boolean =>
 export const getAllWolfSeats = (room: Room): number[] => {
   const wolfSeats: number[] = [];
   room.players.forEach((player, seat) => {
-    if (player && isWolfRole(player.role)) {
+    if (player?.role && isWolfRole(player.role)) {
       wolfSeats.push(seat);
     }
   });
@@ -444,6 +450,61 @@ export const getLastNightInfo = (room: Room): string => {
   return `昨天晚上${deathNumbers}玩家死亡。`;
 };
 
+// Get action log for all completed actions in the current night
+export const getActionLog = (room: Room): string[] => {
+  const logs: string[] = [];
+  
+  // Go through action order to show completed actions
+  for (let i = 0; i < room.currentActionerIndex; i++) {
+    const roleName = room.template.actionOrder[i];
+    if (!roleName) continue;
+    
+    const roleInfo = ROLES[roleName];
+    if (!roleInfo) continue;
+    
+    const actionValue = room.actions.get(roleName);
+    const displayName = roleInfo.displayName;
+    const actionVerb = roleInfo.actionConfirmMessage || '选择';
+    
+    // Special handling for roles with specific action formats
+    if (roleName === 'wolf') {
+      if (actionValue === undefined || actionValue === -1) {
+        logs.push(`${displayName}: 空刀`);
+      } else {
+        logs.push(`${displayName}: 猎杀 ${actionValue + 1}号`);
+      }
+    } else if (roleName === 'witch') {
+      const { killedByWitch, savedByWitch } = parseWitchAction(actionValue);
+      if (savedByWitch !== null) {
+        logs.push(`${displayName}: 救了 ${savedByWitch + 1}号`);
+      } else if (killedByWitch !== null) {
+        logs.push(`${displayName}: 毒了 ${killedByWitch + 1}号`);
+      } else {
+        logs.push(`${displayName}: 未使用技能`);
+      }
+    } else if (roleName === 'magician') {
+      if (actionValue === undefined || actionValue === null) {
+        logs.push(`${displayName}: 未${actionVerb}`);
+      } else {
+        const first = actionValue % 100;
+        const second = Math.floor(actionValue / 100);
+        logs.push(`${displayName}: ${actionVerb} ${first + 1}号 和 ${second + 1}号`);
+      }
+    } else if (roleName === 'hunter' || roleName === 'darkWolfKing') {
+      // Status confirmation roles - just show they confirmed
+      logs.push(`${displayName}: ${actionVerb}`);
+    } else if (actionValue === undefined || actionValue === null || actionValue === -1) {
+      // Generic handling - no target selected
+      logs.push(`${displayName}: 未${actionVerb}`);
+    } else {
+      // Generic handling - target selected (seer, slacker, guard, etc.)
+      logs.push(`${displayName}: ${actionVerb} ${actionValue + 1}号`);
+    }
+  }
+  
+  return logs;
+};
+
 // Get room info string
 export const getRoomInfo = (room: Room): string => {
   const villagerCount = room.template.roles.filter((r) => r === 'villager').length;
@@ -474,14 +535,14 @@ export const performSeerAction = (room: Room, targetSeat: number): string => {
 
     if (targetSeat === first) {
       const swappedPlayer = room.players.get(second);
-      return swappedPlayer && isWolfRole(swappedPlayer.role) ? '狼人' : '好人';
+      return swappedPlayer?.role && isWolfRole(swappedPlayer.role) ? '狼人' : '好人';
     } else if (targetSeat === second) {
       const swappedPlayer = room.players.get(first);
-      return swappedPlayer && isWolfRole(swappedPlayer.role) ? '狼人' : '好人';
+      return swappedPlayer?.role && isWolfRole(swappedPlayer.role) ? '狼人' : '好人';
     }
   }
 
-  return isWolfRole(targetPlayer.role) ? '狼人' : '好人';
+  return targetPlayer.role && isWolfRole(targetPlayer.role) ? '狼人' : '好人';
 };
 
 // Perform psychic action (check exact role)
@@ -497,11 +558,11 @@ export const performPsychicAction = (room: Room, targetSeat: number): string => 
 
   if (wolfRobotSeat === targetSeat && wolfRobotAction !== undefined) {
     const learnedPlayer = room.players.get(wolfRobotAction);
-    return learnedPlayer ? ROLES[learnedPlayer.role].displayName : '未知';
+    return learnedPlayer?.role ? ROLES[learnedPlayer.role].displayName : '未知';
   }
 
   const targetPlayer = room.players.get(targetSeat);
-  return targetPlayer ? ROLES[targetPlayer.role].displayName : '未知';
+  return targetPlayer?.role ? ROLES[targetPlayer.role].displayName : '未知';
 };
 
 // Proceed to next action (matching Flutter room.proceed)
@@ -548,60 +609,181 @@ export const startGame = (room: Room): Room => ({
   wolfVotes: new Map(),
   hasPoison: true,
   hasAntidote: true,
+  isAudioPlaying: true, // Audio will start playing immediately
 });
 
-// Restart the game with same template (matching Flutter room.restart)
-// 重新开始：回到seating状态，玩家保留但需要重新入座确认，角色重新洗牌
-export const restartRoom = (room: Room): Room => {
+// Assign roles to all seated players (called when host clicks "准备看牌")
+// Shuffles roles and assigns them to players, then changes status to seated
+export const assignRoles = (room: Room): Room => {
   const shuffledRoles = shuffleArray([...room.template.roles]);
   
-  // Keep players but update their roles based on new shuffle
-  const updatedPlayers = new Map<number, Player>();
+  // Assign shuffled roles to all seated players
+  const updatedPlayers = new Map<number, Player | null>();
   room.players.forEach((player, seatNumber) => {
-    if (!player) return;
+    if (!player) {
+      updatedPlayers.set(seatNumber, null);
+      return;
+    }
     const updatedPlayer: Player = {
-      uid: player.uid,
-      seatNumber: player.seatNumber,
-      displayName: player.displayName,
+      ...player,
       role: shuffledRoles[seatNumber],
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
+      hasViewedRole: false,  // 重置查看状态
     };
     updatedPlayers.set(seatNumber, updatedPlayer);
   });
   
   return {
     ...room,
-    roomStatus: RoomStatus.seating, // 回到入座状态，玩家需要重新点击确认
-    currentActionerIndex: 0,
-    actions: new Map(),
-    wolfVotes: new Map(),
-    hasPoison: true,
-    hasAntidote: true,
+    roomStatus: RoomStatus.assigned,  // 角色已分配
     players: updatedPlayers,
     template: {
       ...room.template,
-      roles: shuffledRoles,
+      roles: shuffledRoles,  // Store shuffled roles in template
     },
   };
 };
 
-// Update room template with new roles (clears all players)
-export const updateRoomTemplate = (room: Room, newTemplate: GameTemplate): Room => {
-  // Create new players map with correct size (all empty)
-  const newPlayers = new Map<number, Player | null>(
-    Array.from({ length: newTemplate.numberOfPlayers }, (_, i) => [i, null])
-  );
+// Restart the game with same template (matching Flutter room.restart)
+// 重新开始：回到seated状态，玩家保留座位但角色清空，等待host再次点击"准备看牌"
+export const restartRoom = (room: Room): Room => {
+  // Keep players but clear their roles
+  const updatedPlayers = new Map<number, Player | null>();
+  room.players.forEach((player, seatNumber) => {
+    if (!player) {
+      updatedPlayers.set(seatNumber, null);
+      return;
+    }
+    const updatedPlayer: Player = {
+      ...player,
+      role: null,  // Clear role, will be reassigned when host clicks "准备看牌"
+      status: PlayerStatus.alive,
+      skillStatus: SkillStatus.available,
+      hasViewedRole: false,  // 重置查看状态
+    };
+    updatedPlayers.set(seatNumber, updatedPlayer);
+  });
   
   return {
     ...room,
-    roomStatus: RoomStatus.seating,
+    roomStatus: RoomStatus.seated, // 回到已入座状态，等待host点击"准备看牌"
     currentActionerIndex: 0,
     actions: new Map(),
     wolfVotes: new Map(),
     hasPoison: true,
     hasAntidote: true,
-    players: newPlayers,
+    isAudioPlaying: false,
+    players: updatedPlayers,
+  };
+};
+
+// Mark a player as having viewed their role
+// Automatically changes status to 'ready' when all players have viewed
+export const markPlayerViewedRole = (room: Room, seatNumber: number): Room => {
+  const player = room.players.get(seatNumber);
+  if (!player) return room;
+  
+  const updatedPlayers = new Map(room.players);
+  updatedPlayers.set(seatNumber, {
+    ...player,
+    hasViewedRole: true,
+  });
+  
+  // Check if all players have now viewed their roles
+  let allViewed = true;
+  updatedPlayers.forEach((p) => {
+    if (p && !p.hasViewedRole) {
+      allViewed = false;
+    }
+  });
+  
+  return {
+    ...room,
+    roomStatus: allViewed ? RoomStatus.ready : room.roomStatus,
+    players: updatedPlayers,
+  };
+};
+
+// Get list of players who haven't viewed their role
+export const getPlayersNotViewedRole = (room: Room): number[] => {
+  const notViewed: number[] = [];
+  room.players.forEach((player, seat) => {
+    if (player && !player.hasViewedRole) {
+      notViewed.push(seat);
+    }
+  });
+  return notViewed.sort((a, b) => a - b);
+};
+
+// Check if all players have viewed their roles
+export const allPlayersViewedRoles = (room: Room): boolean => {
+  return getPlayersNotViewedRole(room).length === 0;
+};
+
+// Update room template with new roles
+// - If template unchanged: no changes
+// - If template changed: adjust player seats and reset game state
+//   - Same player count: keep players seated (status = seated)
+//   - Adding roles: add empty seats at the end (status = unseated, need new players)
+//   - Removing roles: remove seats from the end (status = seated if all kept seats have players)
+export const updateRoomTemplate = (room: Room, newTemplate: GameTemplate): Room => {
+  const oldPlayerCount = room.template.numberOfPlayers;
+  const newPlayerCount = newTemplate.numberOfPlayers;
+  
+  // Check if template actually changed (compare roles)
+  const oldRoles = [...room.template.roles].sort((a, b) => a.localeCompare(b));
+  const newRoles = [...newTemplate.roles].sort((a, b) => a.localeCompare(b));
+  const rolesChanged = JSON.stringify(oldRoles) !== JSON.stringify(newRoles);
+  
+  if (!rolesChanged) {
+    // No changes, return room as-is
+    return room;
+  }
+  
+  // Template changed - adjust players
+  const updatedPlayers = new Map<number, Player | null>();
+  
+  // Keep existing players (without roles), adjust seat count
+  const seatsToKeep = Math.min(oldPlayerCount, newPlayerCount);
+  
+  for (let i = 0; i < seatsToKeep; i++) {
+    const player = room.players.get(i);
+    if (player) {
+      // Keep player but clear role info
+      updatedPlayers.set(i, {
+        ...player,
+        role: null,
+        status: PlayerStatus.alive,
+        skillStatus: SkillStatus.available,
+        hasViewedRole: false,
+      });
+    } else {
+      updatedPlayers.set(i, null);
+    }
+  }
+  
+  // Add new empty seats if increasing
+  for (let i = oldPlayerCount; i < newPlayerCount; i++) {
+    updatedPlayers.set(i, null);
+  }
+  // Players at seats >= newPlayerCount are removed (become unseated)
+  
+  // Determine new room status:
+  // - If all seats have players: seated
+  // - If any seat is empty: unseated
+  const allSeated = Array.from(updatedPlayers.values()).every(p => p !== null);
+  
+  return {
+    ...room,
+    roomStatus: allSeated ? RoomStatus.seated : RoomStatus.unseated,
+    currentActionerIndex: 0,
+    actions: new Map(),
+    wolfVotes: new Map(),
+    hasPoison: true,
+    hasAntidote: true,
+    isAudioPlaying: false,
+    players: updatedPlayers,
     template: newTemplate,
   };
 };

@@ -13,6 +13,9 @@ jest.mock('@react-navigation/native', () => ({
     replace: mockReplace,
     goBack: mockGoBack,
   }),
+  useRoute: () => ({
+    params: {},
+  }),
 }));
 
 // Mock useRoom hook

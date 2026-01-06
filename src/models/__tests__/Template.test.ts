@@ -68,18 +68,15 @@ describe('Template - createTemplateFromRoles', () => {
 });
 
 describe('Template - createCustomTemplate', () => {
-  it('should shuffle roles', () => {
-    const roles: RoleName[] = ['wolf', 'wolf', 'wolf', 'wolf', 'seer', 'witch', 'hunter', 'guard', 'villager', 'villager', 'villager', 'villager'];
+  it('should keep roles in original order (shuffling happens at assignRoles)', () => {
+    const roles: RoleName[] = ['wolf', 'wolf', 'seer', 'witch', 'hunter', 'villager'];
+    const template = createCustomTemplate([...roles]);
     
-    // Run multiple times to verify shuffling (statistically unlikely to be same)
-    const templates = Array.from({ length: 10 }, () => createCustomTemplate([...roles]));
-    const uniqueOrders = new Set(templates.map(t => JSON.stringify(t.roles)));
-    
-    // Should have at least 2 different orders (very high probability)
-    expect(uniqueOrders.size).toBeGreaterThan(1);
+    // Roles should be in the same order as input
+    expect(template.roles).toEqual(roles);
   });
 
-  it('should preserve all roles after shuffling', () => {
+  it('should preserve all roles', () => {
     const roles: RoleName[] = ['wolf', 'wolf', 'seer', 'witch', 'hunter', 'villager'];
     const template = createCustomTemplate(roles);
 

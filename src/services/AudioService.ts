@@ -93,14 +93,36 @@ class AudioService {
       this.isPlaying = true;
 
       // Return a promise that resolves when playback finishes
+      // Add timeout to prevent hanging if audio fails to play (e.g., Web autoplay blocked)
+      const AUDIO_TIMEOUT_MS = 15000; // 15 seconds max per audio file
+      
       return new Promise((resolve) => {
+        let resolved = false;
+        
+        const cleanup = () => {
+          if (resolved) return;
+          resolved = true;
+          this.isPlaying = false;
+          try {
+            subscription?.remove();
+            player?.remove();
+          } catch {
+            // Ignore cleanup errors
+          }
+          this.player = null;
+          resolve();
+        };
+        
+        // Timeout fallback - resolve after max time even if audio didn't finish
+        const timeoutId = setTimeout(() => {
+          console.warn('Audio playback timeout - proceeding without waiting for completion');
+          cleanup();
+        }, AUDIO_TIMEOUT_MS);
+        
         const subscription = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
           if (status.didJustFinish) {
-            this.isPlaying = false;
-            subscription.remove();
-            player.remove();
-            this.player = null;
-            resolve();
+            clearTimeout(timeoutId);
+            cleanup();
           }
         });
 

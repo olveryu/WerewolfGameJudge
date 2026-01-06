@@ -9,6 +9,11 @@ import {
   performPsychicAction,
   getCurrentActionRole,
   updateRoomTemplate,
+  assignRoles,
+  startGame,
+  restartRoom,
+  markPlayerViewedRole,
+  getPlayersNotViewedRole,
 } from '../Room';
 import { GameTemplate } from '../Template';
 import { Player, PlayerStatus, SkillStatus } from '../Player';
@@ -38,10 +43,11 @@ const createTestRoom = (roles: RoleName[]): Room => {
       status: PlayerStatus.alive,
       role: role,
       skillStatus: SkillStatus.available,
+      hasViewedRole: false,
     });
   });
 
-  return { ...room, players, roomStatus: RoomStatus.ongoing };
+  return { ...room, players, roomStatus: RoomStatus.assigned };
 };
 
 // Helper to advance action to specific role
@@ -511,7 +517,7 @@ describe('Room - 白狼王 (Wolf King)', () => {
 });
 
 describe('updateRoomTemplate', () => {
-  it('should update template and clear all players', () => {
+  it('should update template and clear all players when player count changes', () => {
     // Create a room with 4 players
     const roles4: RoleName[] = ['wolf', 'seer', 'villager', 'villager'];
     const room = createTestRoom(roles4);
@@ -542,12 +548,42 @@ describe('updateRoomTemplate', () => {
       expect(player).toBeNull();
     });
     
-    // Room should be reset to seating status
-    expect(updatedRoom.roomStatus).toBe(RoomStatus.seating);
+    // Room should be reset to unseated status
+    expect(updatedRoom.roomStatus).toBe(RoomStatus.unseated);
     expect(updatedRoom.currentActionerIndex).toBe(0);
     expect(updatedRoom.actions.size).toBe(0);
     expect(updatedRoom.hasPoison).toBe(true);
     expect(updatedRoom.hasAntidote).toBe(true);
+  });
+  
+  it('should preserve players when player count stays same', () => {
+    const roles: RoleName[] = ['wolf', 'seer', 'villager', 'villager'];
+    const room = createTestRoom(roles);
+    
+    // Set status to seated (with players)
+    const seatedRoom = { ...room, roomStatus: RoomStatus.seated };
+    
+    // New template with same number of players but different roles
+    const newRoles: RoleName[] = ['wolf', 'witch', 'guard', 'villager'];
+    const newTemplate: GameTemplate = {
+      name: 'Different Roles',
+      roles: newRoles,
+      numberOfPlayers: 4,
+      actionOrder: ACTION_ORDER.filter((role) => new Set(newRoles).has(role)),
+    };
+    
+    const updatedRoom = updateRoomTemplate(seatedRoom, newTemplate);
+    
+    // Players should be preserved (but roles cleared)
+    expect(updatedRoom.players.size).toBe(4);
+    updatedRoom.players.forEach((player, seat) => {
+      expect(player).not.toBeNull();
+      expect(player?.uid).toBe(`player_${seat}`);
+      expect(player?.role).toBeNull(); // Roles cleared
+    });
+    
+    // Status should be seated (players still there)
+    expect(updatedRoom.roomStatus).toBe(RoomStatus.seated);
   });
   
   it('should preserve room metadata (hostUid, roomNumber)', () => {
@@ -567,5 +603,172 @@ describe('updateRoomTemplate', () => {
     expect(updatedRoom.hostUid).toBe(room.hostUid);
     expect(updatedRoom.roomNumber).toBe(room.roomNumber);
     expect(updatedRoom.timestamp).toBe(room.timestamp);
+  });
+});
+
+describe('Room Status Flow', () => {
+  // Helper to create a basic seated room (players joined, no roles assigned)
+  const createSeatedRoom = (roles: RoleName[]): Room => {
+    const template: GameTemplate = {
+      name: 'Test',
+      roles,
+      numberOfPlayers: roles.length,
+      actionOrder: ACTION_ORDER.filter((role) => new Set(roles).has(role)),
+    };
+    
+    const room = createRoom('host123', '1234', template);
+    
+    // Simulate players joining (no roles assigned yet)
+    const players = new Map<number, Player | null>();
+    roles.forEach((_, index) => {
+      players.set(index, {
+        uid: `player_${index}`,
+        seatNumber: index,
+        status: PlayerStatus.alive,
+        role: null, // No role assigned yet
+        skillStatus: SkillStatus.available,
+        hasViewedRole: false,
+      });
+    });
+    
+    return { ...room, players, roomStatus: RoomStatus.seated };
+  };
+
+  describe('assignRoles', () => {
+    it('should assign roles to all players and set status to assigned', () => {
+      const roles: RoleName[] = ['wolf', 'seer', 'villager', 'villager'];
+      const room = createSeatedRoom(roles);
+      
+      const assignedRoom = assignRoles(room);
+      
+      expect(assignedRoom.roomStatus).toBe(RoomStatus.assigned);
+      
+      // All players should have roles
+      const assignedRoles: RoleName[] = [];
+      assignedRoom.players.forEach((player) => {
+        expect(player).not.toBeNull();
+        expect(player?.role).not.toBeNull();
+        if (player?.role) assignedRoles.push(player.role);
+      });
+      
+      // All roles should be assigned (sort both arrays and compare)
+      const sortedAssigned = [...assignedRoles].sort((a, b) => a.localeCompare(b));
+      const sortedRoles = [...roles].sort((a, b) => a.localeCompare(b));
+      expect(sortedAssigned).toEqual(sortedRoles);
+      
+      // All hasViewedRole should be false
+      assignedRoom.players.forEach((player) => {
+        expect(player?.hasViewedRole).toBe(false);
+      });
+    });
+  });
+
+  describe('markPlayerViewedRole', () => {
+    it('should mark player as viewed', () => {
+      const roles: RoleName[] = ['wolf', 'seer', 'villager', 'villager'];
+      const room = createSeatedRoom(roles);
+      const assignedRoom = assignRoles(room);
+      
+      const updatedRoom = markPlayerViewedRole(assignedRoom, 0);
+      
+      expect(updatedRoom.players.get(0)?.hasViewedRole).toBe(true);
+      expect(updatedRoom.players.get(1)?.hasViewedRole).toBe(false);
+    });
+
+    it('should auto-transition to ready when all players have viewed', () => {
+      const roles: RoleName[] = ['wolf', 'seer', 'villager'];
+      const room = createSeatedRoom(roles);
+      const assignedRoom = assignRoles(room);
+      
+      // Status should be assigned
+      expect(assignedRoom.roomStatus).toBe(RoomStatus.assigned);
+      
+      // Mark first two players
+      let current = markPlayerViewedRole(assignedRoom, 0);
+      expect(current.roomStatus).toBe(RoomStatus.assigned);
+      
+      current = markPlayerViewedRole(current, 1);
+      expect(current.roomStatus).toBe(RoomStatus.assigned);
+      
+      // Mark last player - should transition to ready
+      current = markPlayerViewedRole(current, 2);
+      expect(current.roomStatus).toBe(RoomStatus.ready);
+    });
+  });
+
+  describe('getPlayersNotViewedRole', () => {
+    it('should return all players initially', () => {
+      const roles: RoleName[] = ['wolf', 'seer', 'villager'];
+      const room = createSeatedRoom(roles);
+      const assignedRoom = assignRoles(room);
+      
+      const notViewed = getPlayersNotViewedRole(assignedRoom);
+      const sortedNotViewed = [...notViewed].sort((a, b) => a - b);
+      expect(sortedNotViewed).toEqual([0, 1, 2]);
+    });
+
+    it('should exclude players who have viewed', () => {
+      const roles: RoleName[] = ['wolf', 'seer', 'villager'];
+      const room = createSeatedRoom(roles);
+      const assignedRoom = assignRoles(room);
+      
+      const current = markPlayerViewedRole(assignedRoom, 1);
+      
+      const notViewed = getPlayersNotViewedRole(current);
+      const sortedNotViewed = [...notViewed].sort((a, b) => a - b);
+      expect(sortedNotViewed).toEqual([0, 2]);
+    });
+
+    it('should return empty when all have viewed', () => {
+      const roles: RoleName[] = ['wolf', 'seer'];
+      const room = createSeatedRoom(roles);
+      const assignedRoom = assignRoles(room);
+      
+      let current = markPlayerViewedRole(assignedRoom, 0);
+      current = markPlayerViewedRole(current, 1);
+      
+      const notViewed = getPlayersNotViewedRole(current);
+      expect(notViewed).toEqual([]);
+    });
+  });
+
+  describe('startGame', () => {
+    it('should set status to ongoing', () => {
+      const roles: RoleName[] = ['wolf', 'seer', 'villager'];
+      const room = createSeatedRoom(roles);
+      const assignedRoom = assignRoles(room);
+      
+      // Mark all as viewed
+      let current = markPlayerViewedRole(assignedRoom, 0);
+      current = markPlayerViewedRole(current, 1);
+      current = markPlayerViewedRole(current, 2);
+      expect(current.roomStatus).toBe(RoomStatus.ready);
+      
+      // Start game
+      const gameRoom = startGame(current);
+      expect(gameRoom.roomStatus).toBe(RoomStatus.ongoing);
+      expect(gameRoom.currentActionerIndex).toBe(0);
+    });
+  });
+
+  describe('restartRoom', () => {
+    it('should reset to seated with players but no roles', () => {
+      const room = createTestRoom(['wolf', 'seer', 'villager', 'villager']);
+      // Simulate game in progress
+      const ongoingRoom = { ...room, roomStatus: RoomStatus.ongoing };
+      
+      const restartedRoom = restartRoom(ongoingRoom);
+      
+      expect(restartedRoom.roomStatus).toBe(RoomStatus.seated);
+      expect(restartedRoom.currentActionerIndex).toBe(0);
+      expect(restartedRoom.actions.size).toBe(0);
+      
+      // Players should still be there but roles cleared
+      restartedRoom.players.forEach((player) => {
+        expect(player).not.toBeNull();
+        expect(player?.role).toBeNull();
+        expect(player?.hasViewedRole).toBe(false);
+      });
+    });
   });
 });

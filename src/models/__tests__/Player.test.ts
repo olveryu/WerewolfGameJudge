@@ -18,6 +18,7 @@ describe('Player - createPlayer', () => {
     expect(player.role).toBe('wolf');
     expect(player.status).toBe(PlayerStatus.alive);
     expect(player.skillStatus).toBe(SkillStatus.available);
+    expect(player.hasViewedRole).toBe(false);
   });
 
   it('should create players with different roles', () => {
@@ -73,6 +74,7 @@ describe('Player - Serialization', () => {
       role: 'seer',
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
+      hasViewedRole: true,
       displayName: 'TestPlayer',
       avatarUrl: 'https://example.com/avatar.png',
     };
@@ -84,6 +86,7 @@ describe('Player - Serialization', () => {
     expect(map.role).toBe('seer');
     expect(map.status).toBe(PlayerStatus.alive);
     expect(map.skillStatus).toBe(SkillStatus.available);
+    expect(map.hasViewedRole).toBe(true);
     expect(map.displayName).toBe('TestPlayer');
     expect(map.avatarUrl).toBe('https://example.com/avatar.png');
   });
@@ -103,6 +106,7 @@ describe('Player - Serialization', () => {
       role: 'witch',
       status: PlayerStatus.dead,
       skillStatus: SkillStatus.unavailable,
+      hasViewedRole: true,
       displayName: 'AnotherPlayer',
       avatarUrl: 'https://example.com/avatar2.png',
     };
@@ -114,6 +118,7 @@ describe('Player - Serialization', () => {
     expect(player.role).toBe('witch');
     expect(player.status).toBe(PlayerStatus.dead);
     expect(player.skillStatus).toBe(SkillStatus.unavailable);
+    expect(player.hasViewedRole).toBe(true);
     expect(player.displayName).toBe('AnotherPlayer');
     expect(player.avatarUrl).toBe('https://example.com/avatar2.png');
   });
@@ -129,6 +134,7 @@ describe('Player - Serialization', () => {
 
     expect(player.status).toBe(PlayerStatus.alive);
     expect(player.skillStatus).toBe(SkillStatus.available);
+    expect(player.hasViewedRole).toBe(false);
   });
 
   it('round trip serialization should preserve all data', () => {
@@ -138,6 +144,7 @@ describe('Player - Serialization', () => {
       role: 'hunter',
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
+      hasViewedRole: false,
       displayName: 'RoundTrip',
       avatarUrl: 'https://example.com/roundtrip.png',
     };
@@ -189,6 +196,7 @@ describe('Player - Edge Cases', () => {
       role: 'wolf',
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
+      hasViewedRole: false,
       avatarUrl: null,
     };
 
