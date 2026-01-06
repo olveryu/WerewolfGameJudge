@@ -257,10 +257,20 @@ const SettingsScreen: React.FC = () => {
   const [editName, setEditName] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  // Get avatar source - use uploaded URL or local image based on user id
-  const avatarSource = user?.avatarUrl 
-    ? { uri: user.avatarUrl } 
-    : getAvatarImage(user?.uid || user?.displayName || 'anonymous');
+  // Get avatar source - anonymous users get default, logged-in users get their avatar
+  const getAvatarSource = () => {
+    // Anonymous users get default app icon
+    if (user?.isAnonymous) {
+      return require('../../../assets/icon.png');
+    }
+    // Logged-in users with custom avatar
+    if (user?.avatarUrl) {
+      return { uri: user.avatarUrl };
+    }
+    // Logged-in users without avatar - generate based on uid
+    return getAvatarImage(user?.uid || user?.displayName || 'anonymous');
+  };
+  const avatarSource = getAvatarSource();
 
   const handlePickAvatar = async () => {
     try {
@@ -445,13 +455,6 @@ const SettingsScreen: React.FC = () => {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>ℹ️ 系统信息</Text>
-          
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>后端模式</Text>
-            <View style={[styles.modeBadge, styles.modeOnline]}>
-              <Text style={styles.modeText}>在线模式</Text>
-            </View>
-          </View>
           
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>版本</Text>

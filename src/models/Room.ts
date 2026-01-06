@@ -586,6 +586,26 @@ export const restartRoom = (room: Room): Room => {
   };
 };
 
+// Update room template with new roles (clears all players)
+export const updateRoomTemplate = (room: Room, newTemplate: GameTemplate): Room => {
+  // Create new players map with correct size (all empty)
+  const newPlayers = new Map<number, Player | null>(
+    Array.from({ length: newTemplate.numberOfPlayers }, (_, i) => [i, null])
+  );
+  
+  return {
+    ...room,
+    roomStatus: RoomStatus.seating,
+    currentActionerIndex: 0,
+    actions: new Map(),
+    wolfVotes: new Map(),
+    hasPoison: true,
+    hasAntidote: true,
+    players: newPlayers,
+    template: newTemplate,
+  };
+};
+
 // Helper to shuffle array
 const shuffleArray = <T>(array: T[]): T[] => {
   const result = [...array];

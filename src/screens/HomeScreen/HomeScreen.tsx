@@ -246,22 +246,22 @@ export const HomeScreen: React.FC = () => {
   // Get user display name
   const userName = useMemo(() => {
     if (!user) return '';
+    // Anonymous users should show "匿名用户"
+    if (user.isAnonymous) return '匿名用户';
     if (user.displayName) return user.displayName;
     
-    // Fallback: generate a random name based on user ID
-    const adjectives = ['快乐', '勇敢', '聪明', '神秘', '可爱', '酷炫', '狡猾', '正义'];
-    const nouns = ['小狼', '村民', '猎人', '女巫', '守卫', '预言家', '骑士', '法官'];
-    const hash = user.uid.split('').reduce((acc, char) => acc + (char.codePointAt(0) || 0), 0);
-    const idx = hash % adjectives.length;
-    const idx2 = (hash + 3) % nouns.length;
-    return adjectives[idx] + nouns[idx2];
+    // Fallback for logged-in users without displayName: use email prefix
+    if (user.email) {
+      return user.email.split('@')[0];
+    }
+    return '用户';
   }, [user]);
 
   const requireAuth = useCallback((action: () => void) => {
     if (!user) {
       showAlert('需要登录', '请先登录后继续', [
-        { text: '取消', style: 'cancel' },
         { text: '登录', onPress: () => setShowLoginModal(true) },
+        { text: '取消', style: 'cancel' },
       ]);
       return;
     }
@@ -350,18 +350,39 @@ export const HomeScreen: React.FC = () => {
         {/* User Bar */}
         <TouchableOpacity
           style={styles.userBar}
-          onPress={user ? () => signOut() : () => setShowLoginModal(true)}
+          onPress={() => {
+            if (user) {
+              // Show user menu with logout option
+              showAlert(
+                userName,
+                user.isAnonymous ? '匿名登录用户' : (user.email || '已登录'),
+                [
+                  { text: '退出登录', style: 'destructive', onPress: () => { signOut(); } },
+                  { text: '取消', style: 'cancel' },
+                ]
+              );
+            } else {
+              setShowLoginModal(true);
+            }
+          }}
           activeOpacity={0.8}
         >
-          {user ? (
-            <>
-              <Avatar value={user.uid} size={36} avatarUrl={user.avatarUrl} />
-              <Text style={styles.userNameText}>{userName}</Text>
-            </>
-          ) : (
+          {!user && (
             <>
               <Text style={styles.userAvatar}>👤</Text>
               <Text style={styles.userNameText}>点击登录</Text>
+            </>
+          )}
+          {user && user.isAnonymous && (
+            <>
+              <Text style={styles.userAvatar}>👤</Text>
+              <Text style={styles.userNameText}>{userName}</Text>
+            </>
+          )}
+          {user && !user.isAnonymous && (
+            <>
+              <Avatar value={user.uid} size={36} avatarUrl={user.avatarUrl} />
+              <Text style={styles.userNameText}>{userName}</Text>
             </>
           )}
         </TouchableOpacity>

@@ -8,6 +8,7 @@ import {
   performSeerAction,
   performPsychicAction,
   getCurrentActionRole,
+  updateRoomTemplate,
 } from '../Room';
 import { GameTemplate } from '../Template';
 import { Player, PlayerStatus, SkillStatus } from '../Player';
@@ -506,5 +507,65 @@ describe('Room - 白狼王 (Wolf King)', () => {
     }
     
     expect(foundWolfKing).toBe(false);
+  });
+});
+
+describe('updateRoomTemplate', () => {
+  it('should update template and clear all players', () => {
+    // Create a room with 4 players
+    const roles4: RoleName[] = ['wolf', 'seer', 'villager', 'villager'];
+    const room = createTestRoom(roles4);
+    
+    // Verify initial state
+    expect(room.template.numberOfPlayers).toBe(4);
+    expect(room.players.size).toBe(4);
+    
+    // Create new template with 6 players
+    const newRoles: RoleName[] = ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'];
+    const newTemplate: GameTemplate = {
+      name: 'New Template',
+      roles: newRoles,
+      numberOfPlayers: 6,
+      actionOrder: ACTION_ORDER.filter((role) => new Set(newRoles).has(role)),
+    };
+    
+    // Update room template
+    const updatedRoom = updateRoomTemplate(room, newTemplate);
+    
+    // Verify updated state
+    expect(updatedRoom.template.numberOfPlayers).toBe(6);
+    expect(updatedRoom.template.roles).toEqual(newRoles);
+    expect(updatedRoom.players.size).toBe(6);
+    
+    // All players should be null (empty seats)
+    updatedRoom.players.forEach((player) => {
+      expect(player).toBeNull();
+    });
+    
+    // Room should be reset to seating status
+    expect(updatedRoom.roomStatus).toBe(RoomStatus.seating);
+    expect(updatedRoom.currentActionerIndex).toBe(0);
+    expect(updatedRoom.actions.size).toBe(0);
+    expect(updatedRoom.hasPoison).toBe(true);
+    expect(updatedRoom.hasAntidote).toBe(true);
+  });
+  
+  it('should preserve room metadata (hostUid, roomNumber)', () => {
+    const roles: RoleName[] = ['wolf', 'seer', 'villager', 'villager'];
+    const room = createTestRoom(roles);
+    
+    const newRoles: RoleName[] = ['wolf', 'wolf', 'seer', 'witch'];
+    const newTemplate: GameTemplate = {
+      name: 'New',
+      roles: newRoles,
+      numberOfPlayers: 4,
+      actionOrder: [],
+    };
+    
+    const updatedRoom = updateRoomTemplate(room, newTemplate);
+    
+    expect(updatedRoom.hostUid).toBe(room.hostUid);
+    expect(updatedRoom.roomNumber).toBe(room.roomNumber);
+    expect(updatedRoom.timestamp).toBe(room.timestamp);
   });
 });

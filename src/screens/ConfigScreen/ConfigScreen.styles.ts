@@ -117,4 +117,14 @@ export const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: typography.medium,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: typography.base,
+    color: colors.textSecondary,
+  },
 });
