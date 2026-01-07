@@ -12,8 +12,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { RoleName } from '../../constants/roles';
 import { PRESET_TEMPLATES, createCustomTemplate } from '../../models/Template';
-import { updateRoomTemplate } from '../../models/Room';
 import { RoomService } from '../../services/RoomService';
+import { AuthService } from '../../services/AuthService';
 import { SeatService } from '../../services/SeatService';
 import { showAlert } from '../../utils/alert';
 import { PromptModal } from '../../components/PromptModal';
@@ -117,22 +117,30 @@ export const ConfigScreen: React.FC = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const roomService = RoomService.getInstance();
+  const authService = AuthService.getInstance();
   const seatService = SeatService.getInstance();
   const selectedCount = Object.values(selection).filter(Boolean).length;
 
   // Load current room's roles when in edit mode
   useEffect(() => {
-    if (!isEditMode || !existingRoomNumber) return;
+    console.log('[ConfigScreen] useEffect triggered, isEditMode:', isEditMode, 'existingRoomNumber:', existingRoomNumber);
+    if (!isEditMode || !existingRoomNumber) {
+      console.log('[ConfigScreen] Skipping load - not in edit mode or no room number');
+      return;
+    }
     
     const loadCurrentRoles = async () => {
+      console.log('[ConfigScreen] Loading room:', existingRoomNumber);
       try {
         const room = await roomService.getRoom(existingRoomNumber);
+        console.log('[ConfigScreen] Room loaded:', room ? 'success' : 'not found');
         if (room) {
           setSelection(applyPreset(room.template.roles));
         }
       } catch (error) {
-        console.error('Failed to load room:', error);
+        console.error('[ConfigScreen] Failed to load room:', error);
       } finally {
+        console.log('[ConfigScreen] Setting isLoading=false');
         setIsLoading(false);
       }
     };
@@ -160,11 +168,19 @@ export const ConfigScreen: React.FC = () => {
       const template = createCustomTemplate(roles);
       
       if (isEditMode && existingRoomNumber) {
-        // Update existing room with new template
-        const currentRoom = await roomService.getRoom(existingRoomNumber);
-        if (currentRoom) {
-          const updatedRoom = updateRoomTemplate(currentRoom, template);
-          await roomService.updateRoom(existingRoomNumber, updatedRoom);
+        // Update existing room with new template using V2 RPC
+        const currentUserId = authService.getCurrentUserId();
+        if (currentUserId) {
+          const result = await roomService.updateRolesArray(
+            existingRoomNumber,
+            template.roles,
+            currentUserId
+          );
+          if (!result.success) {
+            console.error('[ConfigScreen] updateRolesArray failed:', result.error);
+            showAlert('错误', result.error ?? '更新房间失败');
+            return;
+          }
         }
         navigation.goBack();
       } else {
@@ -179,7 +195,7 @@ export const ConfigScreen: React.FC = () => {
     } finally {
       setIsCreating(false);
     }
-  }, [selection, navigation, isEditMode, existingRoomNumber, roomService]);
+  }, [selection, navigation, isEditMode, existingRoomNumber, roomService, authService]);
 
   const handleFillBots = useCallback(() => {
     if (!existingRoomNumber) return;

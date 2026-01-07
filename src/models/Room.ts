@@ -265,14 +265,19 @@ export const getWolfVoteSummary = (room: Room): string => {
   return `${voted.length}/${wolfSeats.length} 狼人已投票`;
 };
 
-// Get killed index from wolf action (uses wolfVotes now)
+// Get killed index from wolf action
+// Priority: actions['wolf'] (set by RPC) > calculate from wolfVotes (legacy)
 export const getKilledIndex = (room: Room): number => {
-  // Check if wolfVotes is populated (new voting system)
+  // Prefer actions['wolf'] - this is set atomically by the RPC when all wolves vote
+  const actionResult = room.actions.get('wolf');
+  if (actionResult !== undefined) {
+    return actionResult;
+  }
+  // Fallback: calculate from wolfVotes (for backward compatibility)
   if (room.wolfVotes.size > 0) {
     return calculateWolfKillTarget(room);
   }
-  // Fallback to old system for backward compatibility
-  return room.actions.get('wolf') ?? -1;
+  return -1;
 };
 
 // Check hunter status (can shoot or not)
@@ -680,9 +685,14 @@ export const restartRoom = (room: Room): Room => {
 
 // Mark a player as having viewed their role
 // Automatically changes status to 'ready' when all players have viewed
+// This function is IDEMPOTENT - calling it multiple times has no effect
 export const markPlayerViewedRole = (room: Room, seatNumber: number): Room => {
   const player = room.players.get(seatNumber);
-  if (!player) return room;
+  
+  // Idempotent: return unchanged room if player doesn't exist or already viewed
+  if (!player || player.hasViewedRole) {
+    return room;
+  }
   
   const updatedPlayers = new Map(room.players);
   updatedPlayers.set(seatNumber, {

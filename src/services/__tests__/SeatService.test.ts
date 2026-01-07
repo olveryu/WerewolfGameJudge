@@ -1,12 +1,13 @@
 import { SeatService } from '../SeatService';
-import { createRoom, Room, RoomStatus } from '../../models/Room';
-import { Player, PlayerStatus, SkillStatus } from '../../models/Player';
+import { createRoom, Room } from '../../models/Room';
 import { createTemplateFromRoles } from '../../models/Template';
 import { RoleName } from '../../constants/roles';
 
-// Mock dependencies
+// Mock dependencies - V2 uses RPC methods instead of updateRoom
 const mockGetRoom = jest.fn();
-const mockUpdateRoom = jest.fn();
+const mockTakeSeat = jest.fn();
+const mockLeaveSeat = jest.fn();
+const mockBatchUpdatePlayers = jest.fn();
 const mockWaitForInit = jest.fn().mockResolvedValue(undefined);
 const mockGetCurrentUserId = jest.fn();
 const mockGetCurrentDisplayName = jest.fn();
@@ -17,7 +18,9 @@ jest.mock('../RoomService', () => ({
   RoomService: {
     getInstance: jest.fn(() => ({
       getRoom: mockGetRoom,
-      updateRoom: mockUpdateRoom,
+      takeSeat: mockTakeSeat,
+      leaveSeat: mockLeaveSeat,
+      batchUpdatePlayers: mockBatchUpdatePlayers,
     })),
   },
 }));
@@ -53,7 +56,103 @@ describe('SeatService - Singleton', () => {
   });
 });
 
-describe('SeatService - takeSeat', () => {
+describe('SeatService - takeSeat (V2 RPC)', () => {
+  let seatService: SeatService;
+
+  beforeEach(() => {
+    (SeatService as any).instance = null;
+    seatService = SeatService.getInstance();
+    jest.clearAllMocks();
+
+    // Setup default mocks
+    mockGetCurrentUserId.mockReturnValue('user123');
+    mockGetCurrentDisplayName.mockResolvedValue('TestUser');
+    mockGetCurrentAvatarUrl.mockResolvedValue('https://example.com/avatar.png');
+  });
+
+  it('should return -1 when RPC fails', async () => {
+    mockTakeSeat.mockResolvedValue({ success: false, error: 'seat_taken' });
+
+    const result = await seatService.takeSeat('1234', 0, null);
+
+    expect(result).toBe(-1);
+    expect(mockTakeSeat).toHaveBeenCalledWith(
+      '1234',
+      0,
+      'user123',
+      'TestUser',
+      'https://example.com/avatar.png'
+    );
+  });
+
+  it('should take an empty seat successfully', async () => {
+    mockTakeSeat.mockResolvedValue({ success: true, allSeated: false });
+
+    const result = await seatService.takeSeat('1234', 0, null);
+
+    expect(result).toBe(0);
+    expect(mockTakeSeat).toHaveBeenCalledWith(
+      '1234',
+      0,
+      'user123',
+      'TestUser',
+      'https://example.com/avatar.png'
+    );
+  });
+
+  it('should leave current seat when moving to new seat', async () => {
+    mockLeaveSeat.mockResolvedValue({ success: true });
+    mockTakeSeat.mockResolvedValue({ success: true, allSeated: false });
+
+    // User is moving from seat 0 to seat 1
+    const result = await seatService.takeSeat('1234', 1, 0);
+
+    expect(result).toBe(0);
+    // Should leave seat 0 first
+    expect(mockLeaveSeat).toHaveBeenCalledWith('1234', 0, 'user123');
+    // Then take seat 1
+    expect(mockTakeSeat).toHaveBeenCalledWith(
+      '1234',
+      1,
+      'user123',
+      'TestUser',
+      'https://example.com/avatar.png'
+    );
+  });
+
+  it('should not leave current seat when re-taking same seat', async () => {
+    mockTakeSeat.mockResolvedValue({ success: true, allSeated: false });
+
+    // User is clicking on their current seat (seat 0)
+    const result = await seatService.takeSeat('1234', 0, 0);
+
+    expect(result).toBe(0);
+    // Should NOT call leaveSeat since we're staying on same seat
+    expect(mockLeaveSeat).not.toHaveBeenCalled();
+    expect(mockTakeSeat).toHaveBeenCalled();
+  });
+});
+
+describe('SeatService - leaveSeat (V2 RPC)', () => {
+  let seatService: SeatService;
+
+  beforeEach(() => {
+    (SeatService as any).instance = null;
+    seatService = SeatService.getInstance();
+    jest.clearAllMocks();
+    mockGetCurrentUserId.mockReturnValue('user123');
+  });
+
+  it('should call leaveSeat RPC', async () => {
+    mockLeaveSeat.mockResolvedValue({ success: true });
+
+    await seatService.leaveSeat('1234', 0);
+
+    expect(mockLeaveSeat).toHaveBeenCalledWith('1234', 0, 'user123');
+  });
+});
+
+describe('SeatService - fillWithBots (V2 RPC)', () => {
   let seatService: SeatService;
   let testRoom: Room;
 
@@ -68,185 +167,10 @@ describe('SeatService - takeSeat', () => {
     testRoom = createRoom('host123', '1234', template);
 
     // Setup default mocks
-    mockGetCurrentUserId.mockReturnValue('user123');
-    mockGetCurrentDisplayName.mockResolvedValue('TestUser');
-    mockGetCurrentAvatarUrl.mockResolvedValue('https://example.com/avatar.png');
-  });
-
-  it('should return -1 when room not found', async () => {
-    mockGetRoom.mockResolvedValue(null);
-
-    const result = await seatService.takeSeat('9999', 0, null);
-
-    expect(result).toBe(-1);
-  });
-
-  it('should take an empty seat successfully', async () => {
-    mockGetRoom.mockResolvedValue(testRoom);
-    mockUpdateRoom.mockResolvedValue(undefined);
-
-    const result = await seatService.takeSeat('1234', 0, null);
-
-    expect(result).toBe(0);
-    expect(mockUpdateRoom).toHaveBeenCalled();
-    
-    // Verify the room was updated with the player (no role yet - roles assigned during "准备看牌")
-    const updateCall = mockUpdateRoom.mock.calls[0];
-    const updatedRoom = updateCall[1] as Room;
-    expect(updatedRoom.players.get(0)).toBeDefined();
-    expect(updatedRoom.players.get(0)?.uid).toBe('user123');
-    expect(updatedRoom.players.get(0)?.role).toBeNull();
-  });
-
-  it('should return -1 when seat is taken by another user', async () => {
-    const existingPlayer: Player = {
-      uid: 'other_user',
-      seatNumber: 0,
-      role: 'wolf',
-      status: PlayerStatus.alive,
-      skillStatus: SkillStatus.available,
-      hasViewedRole: false,
-    };
-    testRoom.players.set(0, existingPlayer);
-    mockGetRoom.mockResolvedValue(testRoom);
-
-    const result = await seatService.takeSeat('1234', 0, null);
-
-    expect(result).toBe(-1);
-    expect(mockUpdateRoom).not.toHaveBeenCalled();
-  });
-
-  it('should allow user to take their current seat again', async () => {
-    const existingPlayer: Player = {
-      uid: 'user123', // Same user
-      seatNumber: 0,
-      role: 'wolf',
-      status: PlayerStatus.alive,
-      skillStatus: SkillStatus.available,
-      hasViewedRole: false,
-    };
-    testRoom.players.set(0, existingPlayer);
-    mockGetRoom.mockResolvedValue(testRoom);
-    mockUpdateRoom.mockResolvedValue(undefined);
-
-    const result = await seatService.takeSeat('1234', 0, null);
-
-    expect(result).toBe(0);
-    expect(mockUpdateRoom).toHaveBeenCalled();
-  });
-
-  it('should leave current seat when moving to new seat', async () => {
-    // User is currently at seat 0
-    const currentPlayer: Player = {
-      uid: 'user123',
-      seatNumber: 0,
-      role: 'wolf',
-      status: PlayerStatus.alive,
-      skillStatus: SkillStatus.available,
-      hasViewedRole: false,
-    };
-    testRoom.players.set(0, currentPlayer);
-    mockGetRoom.mockResolvedValue(testRoom);
-    mockUpdateRoom.mockResolvedValue(undefined);
-
-    // Move to seat 2
-    const result = await seatService.takeSeat('1234', 2, 0);
-
-    expect(result).toBe(0);
-    expect(mockUpdateRoom).toHaveBeenCalled();
-    
-    const updateCall = mockUpdateRoom.mock.calls[0];
-    const updatedRoom = updateCall[1] as Room;
-    // Old seat should be empty
-    expect(updatedRoom.players.get(0)).toBeNull();
-    // New seat should have player (no role assigned yet - roles assigned during "准备看牌")
-    expect(updatedRoom.players.get(2)?.uid).toBe('user123');
-    expect(updatedRoom.players.get(2)?.role).toBeNull();
-  });
-
-  it('should not assign role when taking seat (roles are assigned later)', async () => {
-    mockGetRoom.mockResolvedValue(testRoom);
-    mockUpdateRoom.mockResolvedValue(undefined);
-
-    // Take seat 3 - role should NOT be assigned yet
-    const result = await seatService.takeSeat('1234', 3, null);
-
-    expect(result).toBe(0);
-    const updateCall = mockUpdateRoom.mock.calls[0];
-    const updatedRoom = updateCall[1] as Room;
-    expect(updatedRoom.players.get(3)?.role).toBeNull();
-  });
-
-  it('should return -1 for invalid seat index', async () => {
-    mockGetRoom.mockResolvedValue(testRoom);
-
-    // Seat 10 doesn't exist in 6-player room
-    const result = await seatService.takeSeat('1234', 10, null);
-
-    expect(result).toBe(-1);
-    expect(mockUpdateRoom).not.toHaveBeenCalled();
-  });
-});
-
-describe('SeatService - leaveSeat', () => {
-  let seatService: SeatService;
-  let testRoom: Room;
-
-  beforeEach(() => {
-    (SeatService as any).instance = null;
-    seatService = SeatService.getInstance();
-    jest.clearAllMocks();
-
-    const roles: RoleName[] = ['wolf', 'seer', 'witch', 'villager'];
-    const template = createTemplateFromRoles(roles);
-    testRoom = createRoom('host123', '1234', template);
-    
-    // Add a player to seat 1
-    testRoom.players.set(1, {
-      uid: 'user123',
-      seatNumber: 1,
-      role: 'seer',
-      status: PlayerStatus.alive,
-      skillStatus: SkillStatus.available,
-      hasViewedRole: false,
-    });
-  });
-
-  it('should leave seat when room exists', async () => {
-    mockGetRoom.mockResolvedValue(testRoom);
-    mockUpdateRoom.mockResolvedValue(undefined);
-
-    await seatService.leaveSeat('1234', 1);
-
-    expect(mockUpdateRoom).toHaveBeenCalled();
-    const updateCall = mockUpdateRoom.mock.calls[0];
-    const updatedRoom = updateCall[1] as Room;
-    expect(updatedRoom.players.get(1)).toBeNull();
-  });
-
-  it('should do nothing when room not found', async () => {
-    mockGetRoom.mockResolvedValue(null);
-
-    await seatService.leaveSeat('9999', 1);
-
-    expect(mockUpdateRoom).not.toHaveBeenCalled();
-  });
-});
-
-describe('SeatService - fillWithBots', () => {
-  let seatService: SeatService;
-  let testRoom: Room;
-
-  beforeEach(() => {
-    (SeatService as any).instance = null;
-    seatService = SeatService.getInstance();
-    jest.clearAllMocks();
-
-    const roles: RoleName[] = ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'];
-    const template = createTemplateFromRoles(roles);
-    testRoom = createRoom('host123', '1234', template);
-
-    mockGenerateDisplayName.mockImplementation((id: string) => `Bot ${id.substring(0, 6)}`);
+    mockGetCurrentUserId.mockReturnValue('host123');
+    mockGetCurrentDisplayName.mockResolvedValue('HostUser');
+    mockGetCurrentAvatarUrl.mockResolvedValue('https://example.com/host.png');
+    mockGenerateDisplayName.mockImplementation((id: string) => `Bot-${id.substring(0, 4)}`);
   });
 
   it('should return 0 when room not found', async () => {
@@ -255,124 +179,77 @@ describe('SeatService - fillWithBots', () => {
     const result = await seatService.fillWithBots('9999');
 
     expect(result).toBe(0);
-    expect(mockUpdateRoom).not.toHaveBeenCalled();
   });
 
-  it('should fill seats with host at seat 0 and bots in remaining seats', async () => {
+  it('should fill all seats with bots using batch RPC', async () => {
     mockGetRoom.mockResolvedValue(testRoom);
-    mockUpdateRoom.mockResolvedValue(undefined);
+    mockBatchUpdatePlayers.mockResolvedValue({ success: true });
 
     const result = await seatService.fillWithBots('1234');
 
-    expect(result).toBe(6); // All 6 seats filled (1 host + 5 bots)
-    expect(mockUpdateRoom).toHaveBeenCalled();
-    
-    const updateCall = mockUpdateRoom.mock.calls[0];
-    const updatedRoom = updateCall[1] as Room;
-    
-    // Seat 0 should be host (not a bot)
-    const hostPlayer = updatedRoom.players.get(0);
-    expect(hostPlayer).toBeDefined();
-    expect(hostPlayer?.uid).toBe('user123'); // Host UID from mock
-    
-    // Remaining seats (1-5) should have bots
-    for (let i = 1; i < 6; i++) {
-      const player = updatedRoom.players.get(i);
-      expect(player).toBeDefined();
-      expect(player?.uid).toMatch(/^bot_\d+_/);
-    }
+    expect(result).toBe(6); // 6 players total
+    expect(mockBatchUpdatePlayers).toHaveBeenCalledWith(
+      '1234',
+      expect.objectContaining({
+        '0': expect.objectContaining({ uid: 'host123' }),
+      }),
+      'host123'
+    );
   });
 
-  it('should not assign roles to bots (roles assigned later during "准备看牌")', async () => {
+  it('should return 0 when batch RPC fails', async () => {
     mockGetRoom.mockResolvedValue(testRoom);
-    mockUpdateRoom.mockResolvedValue(undefined);
+    mockBatchUpdatePlayers.mockResolvedValue({ success: false, error: 'some_error' });
 
-    await seatService.fillWithBots('1234');
+    const result = await seatService.fillWithBots('1234');
 
-    const updateCall = mockUpdateRoom.mock.calls[0];
-    const updatedRoom = updateCall[1] as Room;
-    
-    // No roles should be assigned yet
-    for (let i = 0; i < 6; i++) {
-      expect(updatedRoom.players.get(i)?.role).toBeNull();
-    }
-    
-    // Room status should be seated (all seats filled)
-    expect(updatedRoom.roomStatus).toBe(RoomStatus.seated);
+    expect(result).toBe(0);
   });
 });
 
-describe('SeatService - updatePlayerSeat', () => {
+describe('SeatService - updatePlayerSeat (V2 RPC)', () => {
   let seatService: SeatService;
-  let testRoom: Room;
 
   beforeEach(() => {
     (SeatService as any).instance = null;
     seatService = SeatService.getInstance();
     jest.clearAllMocks();
-
-    const roles: RoleName[] = ['wolf', 'seer', 'witch', 'villager'];
-    const template = createTemplateFromRoles(roles);
-    testRoom = createRoom('host123', '1234', template);
+    mockGetCurrentUserId.mockReturnValue('user123');
+    mockGetCurrentDisplayName.mockResolvedValue('TestUser');
+    mockGetCurrentAvatarUrl.mockResolvedValue('https://example.com/avatar.png');
   });
 
-  it('should update player at specific seat', async () => {
-    mockGetRoom.mockResolvedValue(testRoom);
-    mockUpdateRoom.mockResolvedValue(undefined);
-
-    const newPlayer: Player = {
-      uid: 'player_new',
-      seatNumber: 2,
-      role: 'witch',
-      status: PlayerStatus.alive,
-      skillStatus: SkillStatus.available,
-      hasViewedRole: false,
-      displayName: 'New Player',
-    };
-
-    await seatService.updatePlayerSeat('1234', 2, newPlayer);
-
-    expect(mockUpdateRoom).toHaveBeenCalled();
-    const updateCall = mockUpdateRoom.mock.calls[0];
-    const updatedRoom = updateCall[1] as Room;
-    expect(updatedRoom.players.get(2)).toEqual(newPlayer);
-  });
-
-  it('should set seat to null when player is null', async () => {
-    // Start with a player at seat 1
-    testRoom.players.set(1, {
-      uid: 'existing_player',
-      seatNumber: 1,
-      role: 'seer',
-      status: PlayerStatus.alive,
-      skillStatus: SkillStatus.available,
-      hasViewedRole: false,
-    });
-    mockGetRoom.mockResolvedValue(testRoom);
-    mockUpdateRoom.mockResolvedValue(undefined);
+  it('should call leaveSeat when player is null', async () => {
+    mockLeaveSeat.mockResolvedValue({ success: true });
 
     await seatService.updatePlayerSeat('1234', 1, null);
 
-    expect(mockUpdateRoom).toHaveBeenCalled();
-    const updateCall = mockUpdateRoom.mock.calls[0];
-    const updatedRoom = updateCall[1] as Room;
-    expect(updatedRoom.players.get(1)).toBeNull();
+    expect(mockLeaveSeat).toHaveBeenCalledWith('1234', 1, 'user123');
   });
 
-  it('should do nothing when room not found', async () => {
-    mockGetRoom.mockResolvedValue(null);
+  it('should call takeSeat when player is provided', async () => {
+    mockTakeSeat.mockResolvedValue({ success: true, allSeated: false });
 
-    const newPlayer: Player = {
-      uid: 'player_new',
-      seatNumber: 0,
-      role: 'wolf',
-      status: PlayerStatus.alive,
-      skillStatus: SkillStatus.available,
+    const player = {
+      uid: 'user123',
+      seatNumber: 1,
+      role: null,
+      status: 0,
+      skillStatus: 0,
       hasViewedRole: false,
+      displayName: 'PlayerName',
+      avatarUrl: 'https://example.com/player.png',
     };
 
-    await seatService.updatePlayerSeat('9999', 0, newPlayer);
+    await seatService.updatePlayerSeat('1234', 1, player);
 
-    expect(mockUpdateRoom).not.toHaveBeenCalled();
+    // updatePlayerSeat uses player.displayName and player.avatarUrl, not AuthService
+    expect(mockTakeSeat).toHaveBeenCalledWith(
+      '1234',
+      1,
+      'user123',
+      'PlayerName',
+      'https://example.com/player.png'
+    );
   });
 });

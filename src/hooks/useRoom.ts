@@ -1,20 +1,58 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Room, createRoom as createRoomModel } from '../models/Room';
+import { Room, createRoom as createRoomModel, RoomStatus } from '../models/Room';
 import { RoomService } from '../services/RoomService';
 import { GameTemplate } from '../models/Template';
+
+// Calculate a "progress score" for a room state during ongoing game
+// Higher score = more progress in the game
+const calculateProgressScore = (room: Room): number => {
+  // Primary: action index (each action increases by 1000)
+  // Secondary: wolf votes count (each vote increases by 1)
+  return room.currentActionerIndex * 1000 + room.wolfVotes.size;
+};
 
 export const useRoom = (roomNumber?: string) => {
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const roomService = useRef(RoomService.getInstance());
+  
+  // Track the highest progress score to prevent out-of-order updates
+  const highestProgressScore = useRef<number>(-1);
 
   // Subscribe to room changes
   useEffect(() => {
     if (!roomNumber) return;
 
+    // Reset tracking when room changes
+    highestProgressScore.current = -1;
+    
     setLoading(true);
     const unsubscribe = roomService.current.subscribeToRoom(roomNumber, (updatedRoom) => {
+      if (!updatedRoom) {
+        setRoom(null);
+        setLoading(false);
+        return;
+      }
+      
+      // During ongoing game, only accept updates with non-decreasing progress
+      // This prevents out-of-order Supabase real-time updates from causing UI flickering
+      if (updatedRoom.roomStatus === RoomStatus.ongoing) {
+        const newScore = calculateProgressScore(updatedRoom);
+        
+        if (newScore < highestProgressScore.current) {
+          // Ignore this stale update
+          console.log(`[useRoom] Ignoring stale update: score ${newScore} < ${highestProgressScore.current}, actionerIndex=${updatedRoom.currentActionerIndex}, wolfVotes=${updatedRoom.wolfVotes.size}`);
+          return;
+        }
+        
+        console.log(`[useRoom] Accepting update: score ${newScore} >= ${highestProgressScore.current}, actionerIndex=${updatedRoom.currentActionerIndex}, wolfVotes=${updatedRoom.wolfVotes.size}`);
+        highestProgressScore.current = newScore;
+      } else {
+        // When game is not ongoing, reset tracking
+        highestProgressScore.current = -1;
+      }
+      
       setRoom(updatedRoom);
       setLoading(false);
     });
@@ -40,21 +78,6 @@ export const useRoom = (roomNumber?: string) => {
       }
     },
     []
-  );
-
-  const updateRoom = useCallback(
-    async (updates: Partial<Room>) => {
-      if (!room) return;
-
-      setError(null);
-      try {
-        const updatedRoom = { ...room, ...updates };
-        await roomService.current.updateRoom(room.roomNumber, updatedRoom);
-      } catch {
-        setError('Failed to update room');
-      }
-    },
-    [room]
   );
 
   const endRoom = useCallback(async () => {
@@ -92,7 +115,6 @@ export const useRoom = (roomNumber?: string) => {
     loading,
     error,
     createRoom,
-    updateRoom,
     endRoom,
     joinRoom,
     setRoom,

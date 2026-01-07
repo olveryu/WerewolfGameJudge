@@ -22,16 +22,8 @@ import {
   getActionLog,
   performSeerAction,
   performPsychicAction,
-  proceedToNextAction,
-  startGame,
-  restartRoom,
-  assignRoles,
-  recordWolfVote,
-  allWolvesVoted,
   getWolfVoteSummary,
-  calculateWolfKillTarget,
   hasWolfVoted,
-  markPlayerViewedRole,
   getPlayersNotViewedRole,
 } from '../../models/Room';
 import { RoleName, ROLES, isWolfRole } from '../../constants/roles';
@@ -376,9 +368,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         if (!currentRoomState) return;
         
         // Set isAudioPlaying = true in room (sync to all clients)
-        // Use spread from roomRef to preserve all concurrent updates
-        const roomWithAudioPlaying = { ...currentRoomState, isAudioPlaying: true };
-        await roomService.current.updateRoom(roomNumber, roomWithAudioPlaying);
+        // V2: Use atomic RPC update instead of full room update
+        await roomService.current.setAudioPlaying(roomNumber, true);
         
         if (currentRole) {
           console.log('[Host Audio] Playing audio for role:', currentRole);
@@ -394,8 +385,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         const latestRoom = roomRef.current;
         if (latestRoom) {
           console.log('[Host Audio] Setting isAudioPlaying=false. roomStatus:', latestRoom.roomStatus);
-          const roomWithAudioDone = { ...latestRoom, isAudioPlaying: false };
-          await roomService.current.updateRoom(roomNumber, roomWithAudioDone);
+          // V2: Use atomic RPC update instead of full room update
+          await roomService.current.setAudioPlaying(roomNumber, false);
           
           // === POST-AUDIO ACTION (Host only) ===
           // After audio completes and isAudioPlaying is set to false,
@@ -469,16 +460,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [room?.isAudioPlaying, room?.currentActionerIndex, room?.roomStatus, imActioner, room, myRole, mySeatNumber, isHost]);
 
-  // Bot auto-view role: When in assigned status with bots, automatically mark bots as having viewed their roles
+  // Bot auto-view role: When bots haven't viewed their roles, automatically mark them as having viewed
   // Only host handles bot role viewing to avoid duplicates
+  // Note: Bot mode is single-user testing only, so no concurrency issues
   useEffect(() => {
     if (!room || !isHost) return;
-    if (room.roomStatus !== RoomStatus.assigned) return;
     
-    // Check if there are any bots that haven't viewed their roles
+    // Check if there are any bots that haven't viewed their roles and have a role assigned
     const botsNotViewed: number[] = [];
     room.players.forEach((player, seat) => {
-      if (player?.uid.startsWith('bot_') && !player.hasViewedRole) {
+      if (player?.uid.startsWith('bot_') && player.role && !player.hasViewedRole) {
         botsNotViewed.push(seat);
       }
     });
@@ -488,23 +479,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     console.log('[Bot Auto-View] Found bots that need to view roles:', botsNotViewed);
     
     // Small delay to make it feel natural
-    const timer = setTimeout(() => {
-      // Re-fetch room to get latest state
-      const latestRoom = roomRef.current;
-      if (!latestRoom || latestRoom.roomStatus !== RoomStatus.assigned) return;
+    const timer = setTimeout(async () => {
+      console.log('[Bot Auto-View] Marking all bots as having viewed their roles via RPC');
       
-      console.log('[Bot Auto-View] Marking all bots as having viewed their roles');
-      let updatedRoom = latestRoom;
-      latestRoom.players.forEach((player, seat) => {
-        if (player?.uid.startsWith('bot_') && !player.hasViewedRole) {
-          updatedRoom = markPlayerViewedRole(updatedRoom, seat);
-        }
-      });
-      
-      // Only update if changes were made
-      if (updatedRoom !== latestRoom) {
-        console.log('[Bot Auto-View] Updating room with bot viewedRole changes');
-        roomService.current.updateRoom(roomNumber, updatedRoom);
+      // Use atomic RPC for each bot (sequential to be safe)
+      for (const seat of botsNotViewed) {
+        await roomService.current.markPlayerViewedRole(roomNumber, seat);
       }
     }, 800);
     
@@ -526,7 +506,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // Small delay to make it feel natural
     const delay = 500 + Math.random() * 1000;
     
-    setTimeout(() => {
+    setTimeout(async () => {
       // Re-fetch latest room state
       const currentRoom = roomRef.current;
       if (!currentRoom || currentRoom.roomStatus !== RoomStatus.ongoing) {
@@ -534,15 +514,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         return;
       }
       
+      const currentIndex = currentRoom.currentActionerIndex;
+      
       // Different handling based on role
       if (role === 'witch') {
         console.log('[Bot Action] Witch bot skipping action');
-        const updatedRoom = proceedToNextAction(currentRoom, null);
-        roomService.current.updateRoom(roomNumber, updatedRoom);
+        await roomService.current.proceedAction(roomNumber, null, 'witch_skip', currentIndex, role);
       } else if (role === 'hunter' || role === 'darkWolfKing') {
         console.log('[Bot Action] Hunter/DarkWolfKing bot proceeding');
-        const updatedRoom = proceedToNextAction(currentRoom, null);
-        roomService.current.updateRoom(roomNumber, updatedRoom);
+        await roomService.current.proceedAction(roomNumber, null, 'normal', currentIndex, role);
       } else if (role === 'magician') {
         const shouldAct = Math.random() > 0.3;
         if (shouldAct && numberOfPlayers >= 2) {
@@ -553,15 +533,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           }
           const target = first + second * 100;
           console.log('[Bot Action] Magician bot swapping:', first, 'and', second);
-          const updatedRoom = proceedToNextAction(currentRoom, target);
-          roomService.current.updateRoom(roomNumber, updatedRoom);
+          await roomService.current.proceedAction(roomNumber, target, 'normal', currentIndex, role);
         } else {
           console.log('[Bot Action] Magician bot skipping');
-          const updatedRoom = proceedToNextAction(currentRoom, null);
-          roomService.current.updateRoom(roomNumber, updatedRoom);
+          await roomService.current.proceedAction(roomNumber, null, 'normal', currentIndex, role);
         }
       } else if (role === 'wolf') {
-        // All bot wolves auto-vote for random target
+        // All bot wolves auto-vote for random target using RPC
+        const allWolfSeats = getAllWolfSeats(currentRoom);
         const botWolves: number[] = [];
         currentRoom.players.forEach((player, seat) => {
           if (player?.role && isWolfRole(player.role) && player.uid.startsWith('bot_')) {
@@ -577,19 +556,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           const target = Math.floor(Math.random() * numberOfPlayers);
           console.log('[Bot Action] Bot wolves voting for target:', target);
           
-          let updatedRoom = currentRoom;
+          // Record votes for all bot wolves using RPC
           for (const wolfSeat of botWolves) {
-            updatedRoom = recordWolfVote(updatedRoom, wolfSeat, target);
-          }
-          
-          if (allWolvesVoted(updatedRoom)) {
-            const finalTarget = calculateWolfKillTarget(updatedRoom);
-            console.log('[Bot Action] All wolves voted, final target:', finalTarget);
-            const finalRoom = proceedToNextAction(updatedRoom, finalTarget);
-            roomService.current.updateRoom(roomNumber, finalRoom);
-          } else {
-            console.log('[Bot Action] Not all wolves voted yet, updating room');
-            roomService.current.updateRoom(roomNumber, updatedRoom);
+            const result = await roomService.current.recordWolfVote(roomNumber, wolfSeat, target, allWolfSeats);
+            console.log(`[Bot Action] Wolf ${wolfSeat} vote result:`, result);
+            // RPC will auto-advance when all wolves have voted
+            if (result.allWolvesVoted) {
+              console.log('[Bot Action] All wolves voted, new index:', result.newIndex);
+              break;  // No need to continue, game has advanced
+            }
           }
         }
       } else {
@@ -598,12 +573,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         if (shouldAct) {
           const target = Math.floor(Math.random() * numberOfPlayers);
           console.log('[Bot Action] Bot', role, 'targeting:', target);
-          const updatedRoom = proceedToNextAction(currentRoom, target);
-          roomService.current.updateRoom(roomNumber, updatedRoom);
+          await roomService.current.proceedAction(roomNumber, target, 'normal', currentIndex, role);
         } else {
           console.log('[Bot Action] Bot', role, 'skipping');
-          const updatedRoom = proceedToNextAction(currentRoom, null);
-          roomService.current.updateRoom(roomNumber, updatedRoom);
+          await roomService.current.proceedAction(roomNumber, null, 'normal', currentIndex, role);
         }
       }
     }, delay);
@@ -907,6 +880,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     
     const player = room.players.get(wolfSeat);
     const wolfName = player?.displayName || `${wolfSeat + 1}号狼人`;
+    const allWolfSeats = getAllWolfSeats(room);
     
     const msg = targetIndex === -1 
       ? `${wolfName} 确定投票空刀吗？` 
@@ -918,19 +892,20 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       [
         { 
           text: '确定', 
-          onPress: () => {
-            // 记录狼人投票
-            const updatedRoom = recordWolfVote(room, wolfSeat, targetIndex);
+          onPress: async () => {
+            // 使用 RPC 记录狼人投票，自动处理所有狼人投票完成后的推进
+            const result = await roomService.current.recordWolfVote(
+              roomNumber,
+              wolfSeat,
+              targetIndex,
+              allWolfSeats
+            );
             
-            // 检查是否所有狼人都投票了
-            if (allWolvesVoted(updatedRoom)) {
-              // 计算最终目标并进入下一阶段
-              const finalTarget = calculateWolfKillTarget(updatedRoom);
-              const finalRoom = proceedToNextAction(updatedRoom, finalTarget);
-              roomService.current.updateRoom(roomNumber, finalRoom);
+            if (!result.success) {
+              console.error('[Wolf Vote] RPC failed:', result.error);
             } else {
-              // 还有狼人未投票，只更新投票记录
-              roomService.current.updateRoom(roomNumber, updatedRoom);
+              console.log('[Wolf Vote] RPC success, allWolvesVoted:', result.allWolvesVoted);
+              // Real-time subscription will update the UI
             }
           }
         },
@@ -967,17 +942,43 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
   
-  const proceedWithAction = (targetIndex: number | null, extra?: any) => {
-    console.log('[proceedWithAction] called with targetIndex:', targetIndex, 'room:', room?.roomNumber);
+  const proceedWithAction = async (targetIndex: number | null, extra?: any) => {
+    console.log('[proceedWithAction] called with targetIndex:', targetIndex, 'extra:', extra);
     if (!room) {
       console.log('[proceedWithAction] No room, returning');
       return;
     }
     
-    console.log('[proceedWithAction] Calling proceedToNextAction');
-    const updatedRoom = proceedToNextAction(room, targetIndex, extra);
-    console.log('[proceedWithAction] Updated room currentActionerIndex:', updatedRoom.currentActionerIndex);
-    roomService.current.updateRoom(roomNumber, updatedRoom);
+    const currentIndex = room.currentActionerIndex;
+    const currentRole = getCurrentActionRole(room);
+    
+    // Determine action type for witch
+    let actionType: 'normal' | 'witch_save' | 'witch_poison' | 'witch_skip' | 'skip' = 'normal';
+    if (currentRole === 'witch') {
+      if (targetIndex === null) {
+        actionType = 'witch_skip';
+      } else if (extra === false) {
+        actionType = 'witch_save';
+      } else {
+        actionType = 'witch_poison';
+      }
+    }
+    
+    console.log('[proceedWithAction] Calling RPC with index:', currentIndex, 'actionType:', actionType, 'role:', currentRole);
+    const result = await roomService.current.proceedAction(
+      roomNumber,
+      targetIndex,
+      actionType,
+      currentIndex,
+      currentRole ?? undefined
+    );
+    
+    if (!result.success) {
+      console.error('[proceedWithAction] RPC failed:', result.error);
+      // State was already updated by another client, subscription will sync
+    } else {
+      console.log('[proceedWithAction] RPC success, new index:', result.newIndex);
+    }
     
     // No need to reset dialog state - we track by action index now
   };
@@ -1002,13 +1003,26 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       [
         { 
           text: '确定', 
-          onPress: () => {
-            // IMPORTANT: Use roomRef.current to get latest room state, not stale closure
+          onPress: async () => {
+            // IMPORTANT: Use roomRef.current to get latest room state
             const latestRoom = roomRef.current;
-            if (!latestRoom) return;
-            // Shuffle roles and assign to players, then set status to seated
-            const updatedRoom = assignRoles(latestRoom);
-            roomService.current.updateRoom(roomNumber, updatedRoom);
+            if (!latestRoom) {
+              console.error('[AssignRoles] No latestRoom available!');
+              return;
+            }
+            console.log('[AssignRoles] Current roomStatus:', latestRoom.roomStatus, 'Players count:', latestRoom.players.size);
+            
+            // V2: Use RPC to assign roles atomically on server side
+            try {
+              const result = await roomService.current.assignRoles(roomNumber, currentUserId ?? '');
+              if (result.success) {
+                console.log('[AssignRoles] RPC assignRoles succeeded');
+              } else {
+                console.error('[AssignRoles] RPC assignRoles failed:', result.error);
+              }
+            } catch (error) {
+              console.error('[AssignRoles] assignRoles failed:', error);
+            }
           }
         }
       ]
@@ -1025,15 +1039,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     } catch (error) {
       console.error('[handleStartGame] Audio error:', error);
     }
-    setTimeout(() => {
+    setTimeout(async () => {
       console.log('[handleStartGame] 5s timeout reached, starting game...');
-      // IMPORTANT: Use roomRef.current to get latest room state, not stale closure
-      const latestRoom = roomRef.current;
-      console.log('[handleStartGame] latestRoom status:', latestRoom?.roomStatus);
-      if (latestRoom) {
-        const startedRoom = startGame(latestRoom);
-        console.log('[handleStartGame] startedRoom status:', startedRoom.roomStatus);
-        roomService.current.updateRoom(roomNumber, startedRoom);
+      if (currentUserId) {
+        const result = await roomService.current.startGame(roomNumber, currentUserId);
+        console.log('[handleStartGame] startGame result:', result);
+        if (!result.success) {
+          console.error('[handleStartGame] startGame failed:', result.error);
+        }
       }
     }, 5000);
   };
@@ -1074,7 +1087,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   };
   
-  const showRoleCardDialog = () => {
+  const showRoleCardDialog = async () => {
     const myRole = getMyRole();
     if (!myRole) return;
     
@@ -1082,13 +1095,25 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     const roleName = roleInfo?.displayName || myRole;
     const description = roleInfo?.description || '无技能描述';
     
-    // Mark player as having viewed their role (only in assigned status, not during ongoing game)
-    // In ongoing status, player has already viewed their role
+    // Mark player as having viewed their role using ATOMIC RPC operation
+    // This prevents race conditions when multiple players view simultaneously
+    // ALWAYS call RPC - don't check local state because it may be stale after room restart
+    // The RPC is IDEMPOTENT (server-side check), so multiple calls are safe
+    // IMPORTANT: Must await RPC before showing dialog to ensure DB is updated
+    // before the next player tries to view their role
     if (mySeatNumber !== null) {
       const latestRoom = roomRef.current;
-      if (latestRoom && latestRoom.roomStatus === RoomStatus.assigned) {
-        const updatedRoom = markPlayerViewedRole(latestRoom, mySeatNumber);
-        roomService.current.updateRoom(roomNumber, updatedRoom);
+      if (latestRoom) {
+        const myPlayer = latestRoom.players.get(mySeatNumber);
+        console.log(`[ViewRole] Seat ${mySeatNumber}: hasViewedRole=${myPlayer?.hasViewedRole}, roomStatus=${latestRoom.roomStatus}`);
+        // Use atomic RPC instead of read-modify-write pattern
+        // Don't skip based on local hasViewedRole - it may be stale after restart
+        try {
+          const result = await roomService.current.markPlayerViewedRole(roomNumber, mySeatNumber);
+          console.log(`[ViewRole] Seat ${mySeatNumber}: RPC result:`, JSON.stringify(result));
+        } catch (err) {
+          console.error(`[ViewRole] Seat ${mySeatNumber}: RPC error:`, err);
+        }
       }
     }
     
@@ -1106,12 +1131,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       [
         { 
           text: '确定', 
-          onPress: () => {
-            // IMPORTANT: Use roomRef.current to get latest room state, not stale closure
-            const latestRoom = roomRef.current;
-            if (latestRoom) {
-              const restarted = restartRoom(latestRoom);
-              roomService.current.updateRoom(roomNumber, restarted);
+          onPress: async () => {
+            if (currentUserId) {
+              console.log('[Restart] Calling restartGame RPC...');
+              const result = await roomService.current.restartGame(roomNumber, currentUserId);
+              console.log('[Restart] restartGame result:', result);
+              if (!result.success) {
+                console.error('[Restart] restartGame failed:', result.error);
+              }
             }
           }
         },

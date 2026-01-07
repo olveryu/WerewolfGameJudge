@@ -7,7 +7,6 @@ import { RoleName } from '../../constants/roles';
 // Mock RoomService
 const mockGenerateRoomNumber = jest.fn();
 const mockCreateRoom = jest.fn();
-const mockUpdateRoom = jest.fn();
 const mockDeleteRoom = jest.fn();
 const mockGetRoom = jest.fn();
 const mockSubscribeToRoom = jest.fn();
@@ -17,7 +16,6 @@ jest.mock('../../services/RoomService', () => ({
     getInstance: jest.fn(() => ({
       generateRoomNumber: mockGenerateRoomNumber,
       createRoom: mockCreateRoom,
-      updateRoom: mockUpdateRoom,
       deleteRoom: mockDeleteRoom,
       getRoom: mockGetRoom,
       subscribeToRoom: mockSubscribeToRoom,
@@ -87,7 +85,6 @@ describe('useRoom hook', () => {
       const { result } = renderHook(() => useRoom());
       
       expect(typeof result.current.createRoom).toBe('function');
-      expect(typeof result.current.updateRoom).toBe('function');
       expect(typeof result.current.endRoom).toBe('function');
       expect(typeof result.current.joinRoom).toBe('function');
       expect(typeof result.current.setRoom).toBe('function');
@@ -169,55 +166,6 @@ describe('useRoom hook', () => {
       });
       
       expect(result.current.error).toBe('Failed to create room');
-    });
-  });
-
-  describe('updateRoom', () => {
-    it('should update room when room exists', async () => {
-      const mockRoom = createMockRoom();
-      mockUpdateRoom.mockResolvedValue(undefined);
-      
-      const { result } = renderHook(() => useRoom());
-      
-      // Set room first
-      await act(async () => {
-        result.current.setRoom(mockRoom);
-      });
-      
-      await act(async () => {
-        await result.current.updateRoom({ roomStatus: RoomStatus.assigned });
-      });
-      
-      expect(mockUpdateRoom).toHaveBeenCalledWith('1234', expect.objectContaining({
-        roomStatus: RoomStatus.assigned,
-      }));
-    });
-
-    it('should not update when room is null', async () => {
-      const { result } = renderHook(() => useRoom());
-      
-      await act(async () => {
-        await result.current.updateRoom({ roomStatus: RoomStatus.assigned });
-      });
-      
-      expect(mockUpdateRoom).not.toHaveBeenCalled();
-    });
-
-    it('should set error when updateRoom fails', async () => {
-      const mockRoom = createMockRoom();
-      mockUpdateRoom.mockRejectedValue(new Error('Update failed'));
-      
-      const { result } = renderHook(() => useRoom());
-      
-      await act(async () => {
-        result.current.setRoom(mockRoom);
-      });
-      
-      await act(async () => {
-        await result.current.updateRoom({ roomStatus: RoomStatus.assigned });
-      });
-      
-      expect(result.current.error).toBe('Failed to update room');
     });
   });
 

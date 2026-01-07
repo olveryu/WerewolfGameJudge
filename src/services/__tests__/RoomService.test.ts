@@ -95,15 +95,6 @@ describe('RoomService - Unconfigured state', () => {
       .rejects.toThrow('Supabase is not configured');
   });
 
-  it('should throw error when updating room without config', async () => {
-    const roles: RoleName[] = ['wolf', 'villager'];
-    const template = createTemplateFromRoles(roles);
-    const room = createRoom('host', '1234', template);
-    
-    await expect(roomService.updateRoom('1234', room))
-      .rejects.toThrow('Supabase is not configured');
-  });
-
   it('should throw error when deleting room without config', async () => {
     await expect(roomService.deleteRoom('1234'))
       .rejects.toThrow('Supabase is not configured');
