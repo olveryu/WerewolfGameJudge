@@ -2,7 +2,7 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useRoom } from '../useRoom';
 import { Room, RoomStatus } from '../../models/Room';
 import { GameTemplate } from '../../models/Template';
-import { RoleName } from '../../constants/roles';
+import { RoleName } from '../../models/roles';
 
 // Mock RoomService
 const mockGenerateRoomNumber = jest.fn();
@@ -36,8 +36,7 @@ jest.mock('../../models/Room', () => ({
     actions: new Map(),
     wolfVotes: new Map(),
     currentActionerIndex: 0,
-    hasPoison: true,
-    hasAntidote: true,
+    isAudioPlaying: false,
   })),
 }));
 
@@ -60,8 +59,6 @@ const createMockRoom = (overrides: Partial<Room> = {}): Room => ({
   actions: new Map(),
   wolfVotes: new Map(),
   currentActionerIndex: 0,
-  hasPoison: true,
-  hasAntidote: true,
   isAudioPlaying: false,
   ...overrides,
 });

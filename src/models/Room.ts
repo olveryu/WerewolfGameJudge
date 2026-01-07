@@ -1,6 +1,6 @@
 import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from './Player';
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
-import { RoleName, ROLES, isWolfRole } from '../constants/roles';
+import { RoleName, ROLES, isWolfRole } from './roles';
 
 // Room status
 export enum RoomStatus {
@@ -22,8 +22,6 @@ export const ROOM_KEYS = {
   actions: 'actions',
   wolfVotes: 'wolfVotes',
   currentActionerIndex: 'currentActionerIndex',
-  hasPoison: 'hasPoison',
-  hasAntidote: 'hasAntidote',
   isAudioPlaying: 'isAudioPlaying',
 } as const;
 
@@ -34,11 +32,9 @@ export interface Room {
   roomStatus: RoomStatus;
   template: GameTemplate;
   players: Map<number, Player | null>; // seatNumber -> Player
-  actions: Map<RoleName, number>; // Role -> target seat
+  actions: Map<RoleName, number>; // Role -> target seat (negative for witch poison: -target-1)
   wolfVotes: Map<number, number>; // Wolf seat -> target seat (for wolf voting)
   currentActionerIndex: number;
-  hasPoison: boolean;
-  hasAntidote: boolean;
   isAudioPlaying: boolean; // Whether host is playing audio for current action
 }
 
@@ -59,8 +55,6 @@ export const createRoom = (
   actions: new Map(),
   wolfVotes: new Map(),
   currentActionerIndex: 0,
-  hasPoison: true,
-  hasAntidote: true,
   isAudioPlaying: false,
 });
 
@@ -90,8 +84,6 @@ export const roomToDbMap = (room: Room): Record<string, any> => {
     [ROOM_KEYS.actions]: actionsMap,
     [ROOM_KEYS.wolfVotes]: wolfVotesMap,
     [ROOM_KEYS.currentActionerIndex]: room.currentActionerIndex,
-    [ROOM_KEYS.hasPoison]: room.hasPoison,
-    [ROOM_KEYS.hasAntidote]: room.hasAntidote,
     [ROOM_KEYS.isAudioPlaying]: room.isAudioPlaying,
   };
 };
@@ -141,8 +133,6 @@ export const roomFromDb = (
     actions,
     wolfVotes,
     currentActionerIndex: data[ROOM_KEYS.currentActionerIndex] ?? 0,
-    hasPoison: data[ROOM_KEYS.hasPoison] ?? true,
-    hasAntidote: data[ROOM_KEYS.hasAntidote] ?? true,
     isAudioPlaying: data[ROOM_KEYS.isAudioPlaying] ?? false,
   };
 };
@@ -612,8 +602,6 @@ export const startGame = (room: Room): Room => ({
   currentActionerIndex: 0,
   actions: new Map(),
   wolfVotes: new Map(),
-  hasPoison: true,
-  hasAntidote: true,
   isAudioPlaying: true, // Audio will start playing immediately
 });
 
@@ -676,8 +664,6 @@ export const restartRoom = (room: Room): Room => {
     currentActionerIndex: 0,
     actions: new Map(),
     wolfVotes: new Map(),
-    hasPoison: true,
-    hasAntidote: true,
     isAudioPlaying: false,
     players: updatedPlayers,
   };
@@ -790,8 +776,6 @@ export const updateRoomTemplate = (room: Room, newTemplate: GameTemplate): Room 
     currentActionerIndex: 0,
     actions: new Map(),
     wolfVotes: new Map(),
-    hasPoison: true,
-    hasAntidote: true,
     isAudioPlaying: false,
     players: updatedPlayers,
     template: newTemplate,

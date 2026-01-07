@@ -52,6 +52,75 @@ All functions take `p_room_number` and use `FOR UPDATE` row locks for atomic ope
 5. Keep screens thin - delegate to hooks and services
 6. **Always use RPC functions for state changes - never update Supabase directly**
 7. **Role definitions only in `roles.ts` - never hardcode in database**
+8. **Avoid hardcoding**: Use constants, configurations, or model properties instead of hardcoded values
+   - Role-specific rules (e.g., `canSaveSelf: false` for witch) should be in role definitions
+   - UI strings should be centralized or derived from data
+   - Magic numbers should be named constants
+
+## Design Patterns & Best Practices
+
+### Use Inheritance to Reduce Duplication
+When multiple classes share common properties, use inheritance:
+
+```
+BaseRole (abstract)
+├── WolfBaseRole (abstract) - Common wolf properties
+│   ├── WolfRole, WolfQueenRole, NightmareRole...
+│   └── Default: participatesInWolfVote=true, canSeeWolves=true
+├── GodBaseRole (abstract) - Common god properties  
+│   ├── SeerRole, WitchRole, HunterRole...
+│   └── Default: faction='god'
+└── VillagerRole, SlackerRole - Direct inheritance
+```
+
+Benefits:
+- **DRY Principle**: Common properties defined once in base class
+- **Override Only Exceptions**: Subclasses only override when different from default
+- **Type Safety**: Base class guarantees faction type
+
+### Singleton Pattern for Services
+Services like `RoomService`, `AudioService` should use singleton pattern:
+```typescript
+class MyService {
+  private static instance: MyService;
+  static getInstance(): MyService {
+    if (!MyService.instance) {
+      MyService.instance = new MyService();
+    }
+    return MyService.instance;
+  }
+}
+```
+
+### Strategy Pattern for Role Actions
+Each role encapsulates its own action logic:
+- `getActionDialog()`: Returns dialog configuration
+- `validateAction()`: Validates if action is allowed
+- `canSaveSelf`, `immuneToPoison`: Role-specific rules as properties
+
+### Factory Pattern for Role Registry
+Use a registry to get role instances by ID:
+```typescript
+const role = ROLE_MODELS[roleId]; // or getRoleModel(roleId)
+```
+
+## Role Models Architecture
+
+Each role has its own model class in `/src/models/roles/`:
+- `id`: Role identifier
+- `name`: Display name
+- `faction`: Team (wolf/villager/god)
+- `actionOrder`: Priority in night phase
+- `canSaveSelf`: Whether the role can save itself (e.g., witch = false)
+- `getActionDialog()`: Dialog configuration for this role
+- `validateAction()`: Action validation logic
+- `executeAction()`: Action execution logic
+
+This design ensures:
+- **Single Responsibility**: Each role's logic in one file
+- **Easy Extension**: Add new roles by creating new files
+- **Easy Testing**: Test each role independently
+- **Configuration-Driven**: Rules become config, not hardcoded logic
 
 ## Debugging Guidelines
 

@@ -14,7 +14,7 @@ import {
   getNightResult,
 } from '../../Room';
 import { createTemplateFromRoles } from '../../Template';
-import { RoleName, ROLES, hasNightAction } from '../../../constants/roles';
+import { RoleName, ROLES, hasNightAction } from '../../roles';
 import { PlayerStatus, SkillStatus } from '../../Player';
 
 const TEMPLATE_NAME = '石像鬼守墓人12人';

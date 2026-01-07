@@ -1,4 +1,4 @@
-import { RoleName, ACTION_ORDER, ROLES } from '../constants/roles';
+import { RoleName, ACTION_ORDER, ROLES } from './roles';
 
 export interface GameTemplate {
   name: string;

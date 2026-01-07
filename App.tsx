@@ -4,6 +4,7 @@ import { AppNavigator } from './src/navigation';
 import { colors } from './src/constants/theme';
 import { AlertModal } from './src/components/AlertModal';
 import { setAlertListener, AlertConfig } from './src/utils/alert';
+import { NetworkProvider } from './src/contexts';
 
 export default function App() {
   console.log('App rendering...');
@@ -22,7 +23,7 @@ export default function App() {
   }, []);
 
   return (
-    <>
+    <NetworkProvider>
       <StatusBar style="dark" backgroundColor={colors.background} />
       <AppNavigator />
       {alertConfig && (
@@ -34,6 +35,6 @@ export default function App() {
           onClose={handleAlertClose}
         />
       )}
-    </>
+    </NetworkProvider>
   );
 }

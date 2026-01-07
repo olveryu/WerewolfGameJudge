@@ -1,4 +1,4 @@
-import { RoleName } from '../../constants/roles';
+import { RoleName } from '../../models/roles';
 
 // Mock expo-audio
 const mockPlay = jest.fn();

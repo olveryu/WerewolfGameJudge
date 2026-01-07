@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../config/supabase';
-import { ROLES } from '../constants/roles';
+import { ROLES } from '../models/roles';
 
 export class AuthService {
   private static instance: AuthService;

@@ -26,13 +26,21 @@ import {
   hasWolfVoted,
   getPlayersNotViewedRole,
 } from '../../models/Room';
-import { RoleName, ROLES, isWolfRole } from '../../constants/roles';
+import { 
+  witchRole, 
+  hunterRole, 
+  darkWolfKingRole,
+  getRoleModel,
+  RoleName,
+  isWolfRole,
+} from '../../models/roles';
 import AudioService from '../../services/AudioService';
 import { AuthService } from '../../services/AuthService';
 import { RoomService } from '../../services/RoomService';
 import { SeatService } from '../../services/SeatService';
 import { showAlert } from '../../utils/alert';
 import { Avatar } from '../../components/Avatar';
+import { useNetwork } from '../../contexts';
 import { styles, TILE_SIZE } from './RoomScreen.styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -122,6 +130,7 @@ function handleWolfTeamTurn(mySeatNumber: number | null, room: Room): ActionerSt
 
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const { roomNumber, isHost, template } = route.params;
+  const { reportNetworkError } = useNetwork();
 
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
@@ -616,10 +625,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   
   // Function to show action dialog - update ref to always have latest version
   const showActionDialog = (role: RoleName) => {
-    const roleInfo = ROLES[role];
-    if (!roleInfo) return;
+    const roleModel = getRoleModel(role);
+    if (!roleModel) return;
     
-    const actionMessage = roleInfo.actionMessage || `请${roleInfo.displayName}行动`;
+    const actionMessage = roleModel.actionMessage || `请${roleModel.displayName}行动`;
     
     if (role === 'witch') {
       showWitchDialog();
@@ -628,53 +637,38 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     } else if (role === 'darkWolfKing') {
       showDarkWolfKingStatusDialog();
     } else if (role === 'wolf') {
-      showAlert('狼人行动', '请选择今晚猎杀对象', [{ text: '好', style: 'default' }]);
+      showAlert('狼人请睁眼', actionMessage, [{ text: '好', style: 'default' }]);
     } else {
-      showAlert('行动', actionMessage, [{ text: '好', style: 'default' }]);
+      showAlert(`${roleModel.displayName}请睁眼`, actionMessage, [{ text: '好', style: 'default' }]);
     }
   };
   // Keep ref updated with latest function
   showActionDialogRef.current = showActionDialog;
   
   const showWitchDialog = () => {
-    if (!room) return;
+    if (!room || mySeatNumber === null) return;
     const killedIndex = getKilledIndex(room);
     
-    if (killedIndex === -1) {
-      showAlert('昨夜无人倒台', '', [
-        { text: '好', onPress: () => {} }
-      ]);
-    } else {
-      showAlert(
-        `昨夜倒台玩家为${killedIndex + 1}号`,
-        '是否救助?',
-        [
-          { 
-            text: '救助', 
-            onPress: () => {
-              if (killedIndex === mySeatNumber) {
-                showAlert('女巫无法自救');
-              } else {
-                proceedWithAction(killedIndex, false);
-              }
-            }
-          },
-          { 
-            text: '不救助', 
-            style: 'cancel',
-            onPress: () => showWitchPoisonDialog() 
-          },
-        ]
-      );
+    // Use WitchRole model for dialog configuration
+    const dialogConfig = witchRole.getActionDialogConfig({
+      mySeatNumber,
+      killedIndex,
+      playerCount: room.players.size,
+      alivePlayers: [],
+      currentActions: {},
+      proceedWithAction: (target, isPoison) => proceedWithAction(target, isPoison ?? false),
+      showNextDialog: showWitchPoisonDialog,
+    });
+    
+    if (dialogConfig) {
+      showAlert(dialogConfig.title, dialogConfig.message ?? '', dialogConfig.buttons);
     }
   };
   
   const showWitchPoisonDialog = () => {
-    showAlert(
-      '请选择是否使用毒药',
-      '点击玩家头像使用毒药，如不使用毒药，请点击下方「不使用技能」',
-      [{ text: '好', style: 'default' }]
-    );
+    // Use WitchRole model for poison dialog
+    const dialogConfig = witchRole.getPoisonDialogConfig();
+    showAlert(dialogConfig.title, dialogConfig.message ?? '', dialogConfig.buttons);
   };
   
   const showHunterStatusDialog = () => {
@@ -682,25 +676,25 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     const canUseSkill = getHunterStatus(room);
     
     console.log('[Hunter] Showing status dialog, canUseSkill:', canUseSkill);
-    showAlert(
-      '猎人技能状态',
-      canUseSkill ? '可以发动' : '不可发动',
-      [{ text: '好', onPress: () => {
+    // Use HunterRole model for dialog
+    const dialogConfig = hunterRole.getStatusDialogConfig(canUseSkill);
+    showAlert(dialogConfig.title, dialogConfig.message ?? '', [
+      { text: dialogConfig.buttons[0].text, onPress: () => {
         console.log('[Hunter] Button pressed, calling proceedWithAction(null)');
         proceedWithAction(null);
-      }}]
-    );
+      }}
+    ]);
   };
   
   const showDarkWolfKingStatusDialog = () => {
     if (!room) return;
     const canUseSkill = getDarkWolfKingStatus(room);
     
-    showAlert(
-      '黑狼王技能状态',
-      canUseSkill ? '可以发动' : '不可发动',
-      [{ text: '好', onPress: () => proceedWithAction(null) }]
-    );
+    // Use DarkWolfKingRole model for dialog
+    const dialogConfig = darkWolfKingRole.getStatusDialogConfig(canUseSkill);
+    showAlert(dialogConfig.title, dialogConfig.message ?? '', [
+      { text: dialogConfig.buttons[0].text, onPress: () => proceedWithAction(null) }
+    ]);
   };
   
   const handleSeatingTap = (index: number) => {
@@ -824,8 +818,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const buildActionMessage = (index: number, actingRole: RoleName): string => {
-    const roleInfo = ROLES[actingRole];
-    const actionConfirmMessage = roleInfo?.actionConfirmMessage || '对';
+    const roleModel = getRoleModel(actingRole);
+    const actionConfirmMessage = roleModel?.actionConfirmMessage || '对';
     
     if (index === -1) {
       return '确定不发动技能吗？';
@@ -903,6 +897,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             
             if (!result.success) {
               console.error('[Wolf Vote] RPC failed:', result.error);
+              // Network error - report for retry
+              reportNetworkError(
+                new Error(result.error || '狼人投票失败'),
+                async () => { showWolfVoteConfirmDialog(targetIndex, wolfSeat); }
+              );
             } else {
               console.log('[Wolf Vote] RPC success, allWolvesVoted:', result.allWolvesVoted);
               // Real-time subscription will update the UI
@@ -975,7 +974,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     
     if (!result.success) {
       console.error('[proceedWithAction] RPC failed:', result.error);
-      // State was already updated by another client, subscription will sync
+      // Network error - report for retry
+      reportNetworkError(
+        new Error(result.error || '行动提交失败'),
+        async () => { await proceedWithAction(targetIndex, extra); }
+      );
     } else {
       console.log('[proceedWithAction] RPC success, new index:', result.newIndex);
     }
@@ -1019,9 +1022,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 console.log('[AssignRoles] RPC assignRoles succeeded');
               } else {
                 console.error('[AssignRoles] RPC assignRoles failed:', result.error);
+                reportNetworkError(
+                  new Error(result.error || '分配角色失败'),
+                  async () => { showPrepareToFlipDialog(); }
+                );
               }
             } catch (error) {
               console.error('[AssignRoles] assignRoles failed:', error);
+              reportNetworkError(
+                error instanceof Error ? error : new Error('分配角色失败'),
+                async () => { showPrepareToFlipDialog(); }
+              );
             }
           }
         }
@@ -1046,6 +1057,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         console.log('[handleStartGame] startGame result:', result);
         if (!result.success) {
           console.error('[handleStartGame] startGame failed:', result.error);
+          setIsStartingGame(false); // Re-enable start button on failure
+          reportNetworkError(
+            new Error(result.error || '开始游戏失败'),
+            async () => { await handleStartGame(); }
+          );
         }
       }
     }, 5000);
@@ -1091,28 +1107,31 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     const myRole = getMyRole();
     if (!myRole) return;
     
-    const roleInfo = ROLES[myRole];
-    const roleName = roleInfo?.displayName || myRole;
-    const description = roleInfo?.description || '无技能描述';
+    const roleModel = getRoleModel(myRole);
+    const roleName = roleModel?.displayName || myRole;
+    const description = roleModel?.description || '无技能描述';
     
     // Mark player as having viewed their role using ATOMIC RPC operation
     // This prevents race conditions when multiple players view simultaneously
-    // ALWAYS call RPC - don't check local state because it may be stale after room restart
+    // Only call RPC during "flipping" status (roomStatus=2), skip if game already started
     // The RPC is IDEMPOTENT (server-side check), so multiple calls are safe
-    // IMPORTANT: Must await RPC before showing dialog to ensure DB is updated
-    // before the next player tries to view their role
     if (mySeatNumber !== null) {
       const latestRoom = roomRef.current;
-      if (latestRoom) {
+      if (latestRoom && latestRoom.roomStatus === RoomStatus.assigned) {
         const myPlayer = latestRoom.players.get(mySeatNumber);
         console.log(`[ViewRole] Seat ${mySeatNumber}: hasViewedRole=${myPlayer?.hasViewedRole}, roomStatus=${latestRoom.roomStatus}`);
         // Use atomic RPC instead of read-modify-write pattern
         // Don't skip based on local hasViewedRole - it may be stale after restart
-        try {
-          const result = await roomService.current.markPlayerViewedRole(roomNumber, mySeatNumber);
-          console.log(`[ViewRole] Seat ${mySeatNumber}: RPC result:`, JSON.stringify(result));
-        } catch (err) {
-          console.error(`[ViewRole] Seat ${mySeatNumber}: RPC error:`, err);
+        const result = await roomService.current.markPlayerViewedRole(roomNumber, mySeatNumber);
+        console.log(`[ViewRole] Seat ${mySeatNumber}: RPC result:`, JSON.stringify(result));
+        
+        if (!result.success && result.error) {
+          // Network error - report to global error handler for retry
+          reportNetworkError(
+            new Error(result.error),
+            async () => { await showRoleCardDialog(); }
+          );
+          return;
         }
       }
     }
@@ -1138,6 +1157,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               console.log('[Restart] restartGame result:', result);
               if (!result.success) {
                 console.error('[Restart] restartGame failed:', result.error);
+                reportNetworkError(
+                  new Error(result.error || '重新开始游戏失败'),
+                  async () => { showRestartDialog(); }
+                );
               }
             }
           }
@@ -1247,7 +1270,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const getActionMessage = () => {
     if (!currentActionRole) return '';
     
-    const baseMessage = ROLES[currentActionRole]?.actionMessage || `请${ROLES[currentActionRole]?.name}行动`;
+    const roleModel = getRoleModel(currentActionRole);
+    const baseMessage = roleModel?.actionMessage || `请${roleModel?.displayName || currentActionRole}行动`;
     
     // 非狼人回合直接返回基础消息
     if (currentActionRole !== 'wolf') {
@@ -1273,36 +1297,36 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Calculate role statistics for board display
   const getRoleStats = () => {
     const roleCounts: Record<string, number> = {};
-    const wolfRoles: string[] = [];
-    const godRoles: string[] = [];
-    const specialRoles: string[] = [];
+    const wolfRolesList: string[] = [];
+    const godRolesList: string[] = [];
+    const specialRolesList: string[] = [];
     const villagerCount = { count: 0 };
     
     room.template.roles.forEach((role) => {
-      const roleInfo = ROLES[role];
-      if (!roleInfo) return;
+      const roleModel = getRoleModel(role);
+      if (!roleModel) return;
       
-      if (roleInfo.type === 'wolf') {
-        roleCounts[roleInfo.displayName] = (roleCounts[roleInfo.displayName] || 0) + 1;
-        if (!wolfRoles.includes(roleInfo.displayName)) {
-          wolfRoles.push(roleInfo.displayName);
+      if (roleModel.faction === 'wolf') {
+        roleCounts[roleModel.displayName] = (roleCounts[roleModel.displayName] || 0) + 1;
+        if (!wolfRolesList.includes(roleModel.displayName)) {
+          wolfRolesList.push(roleModel.displayName);
         }
-      } else if (roleInfo.type === 'god') {
-        roleCounts[roleInfo.displayName] = (roleCounts[roleInfo.displayName] || 0) + 1;
-        if (!godRoles.includes(roleInfo.displayName)) {
-          godRoles.push(roleInfo.displayName);
+      } else if (roleModel.faction === 'god') {
+        roleCounts[roleModel.displayName] = (roleCounts[roleModel.displayName] || 0) + 1;
+        if (!godRolesList.includes(roleModel.displayName)) {
+          godRolesList.push(roleModel.displayName);
         }
-      } else if (roleInfo.type === 'special') {
-        roleCounts[roleInfo.displayName] = (roleCounts[roleInfo.displayName] || 0) + 1;
-        if (!specialRoles.includes(roleInfo.displayName)) {
-          specialRoles.push(roleInfo.displayName);
+      } else if (roleModel.faction === 'special') {
+        roleCounts[roleModel.displayName] = (roleCounts[roleModel.displayName] || 0) + 1;
+        if (!specialRolesList.includes(roleModel.displayName)) {
+          specialRolesList.push(roleModel.displayName);
         }
       } else if (role === 'villager') {
         villagerCount.count++;
       }
     });
     
-    return { roleCounts, wolfRoles, godRoles, specialRoles, villagerCount: villagerCount.count };
+    return { roleCounts, wolfRoles: wolfRolesList, godRoles: godRolesList, specialRoles: specialRolesList, villagerCount: villagerCount.count };
   };
   
   const { roleCounts, wolfRoles, godRoles, specialRoles, villagerCount } = getRoleStats();

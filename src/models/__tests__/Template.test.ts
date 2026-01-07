@@ -5,7 +5,7 @@ import {
   getTemplateRoomInfo,
   PRESET_TEMPLATES,
 } from '../Template';
-import { RoleName, ACTION_ORDER } from '../../constants/roles';
+import { RoleName, ACTION_ORDER } from '../roles';
 
 describe('Template - createTemplateFromRoles', () => {
   it('should create template with correct number of players', () => {

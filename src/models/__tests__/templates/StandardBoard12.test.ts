@@ -15,7 +15,7 @@ import {
   getNightResult,
 } from '../../Room';
 import { createTemplateFromRoles } from '../../Template';
-import { RoleName, ROLES } from '../../../constants/roles';
+import { RoleName, ROLES } from '../../roles';
 import { PlayerStatus, SkillStatus } from '../../Player';
 
 const TEMPLATE_NAME = '标准板12人';

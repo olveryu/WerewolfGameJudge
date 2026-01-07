@@ -1,7 +1,7 @@
 import { RoomService } from '../RoomService';
 import { RoomStatus, createRoom } from '../../models/Room';
 import { createTemplateFromRoles } from '../../models/Template';
-import { RoleName } from '../../constants/roles';
+import { RoleName } from '../../models/roles';
 
 // Mock supabase
 jest.mock('../../config/supabase', () => ({
@@ -49,8 +49,6 @@ describe('RoomService - Room creation helpers', () => {
     expect(room.template).toBeDefined();
     expect(room.template.numberOfPlayers).toBe(6);
     expect(room.players.size).toBe(6);
-    expect(room.hasPoison).toBe(true);
-    expect(room.hasAntidote).toBe(true);
   });
 
   it('should initialize players map with null values', () => {

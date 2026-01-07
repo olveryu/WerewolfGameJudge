@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { RoleName } from '../../constants/roles';
+import { RoleName } from '../../models/roles';
 import { PRESET_TEMPLATES, createCustomTemplate } from '../../models/Template';
 import { RoomService } from '../../services/RoomService';
 import { AuthService } from '../../services/AuthService';
