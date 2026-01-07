@@ -9,6 +9,6 @@ IF p_reset_fields THEN
   FOR v_key, v_value IN SELECT * FROM jsonb_each(COALESCE(v_players, '{}'::jsonb)) LOOP
     v_updated_players := jsonb_set(v_updated_players, ARRAY[v_key], jsonb_set(v_value, '{hasViewedRole}', 'false'::jsonb));
   END LOOP;
-  UPDATE public.rooms SET room_status = p_new_status, current_actioner_index = 0, actions = '{}'::jsonb, wolf_votes = '{}'::jsonb, has_poison = true, has_antidote = true, is_audio_playing = false, players = v_updated_players WHERE room_number = p_room_number;
+  UPDATE public.rooms SET room_status = p_new_status, current_actioner_index = 0, actions = '{}'::jsonb, wolf_votes = '{}'::jsonb, is_audio_playing = false, players = v_updated_players WHERE room_number = p_room_number;
 ELSE UPDATE public.rooms SET room_status = p_new_status WHERE room_number = p_room_number; END IF;
 RETURN jsonb_build_object('success', true, 'new_status', p_new_status); END; $$;

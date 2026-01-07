@@ -1,9 +1,59 @@
 import { supabase, isSupabaseConfigured } from '../config/supabase';
 import { Room, RoomStatus } from '../models/Room';
 import { Player } from '../models/Player';
-import { RoleName, ACTION_ORDER } from '../constants/roles';
+import { RoleName, ACTION_ORDER } from '../models/roles';
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { AuthService } from './AuthService';
+
+// Default timeout for RPC/DB operations (10 seconds)
+// Note: Some operations like witch_poison require multiple RPC calls,
+// so we need enough time for the full sequence
+const RPC_TIMEOUT = 10000;
+
+// Timeout wrapper for async operations
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, _operation: string): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error(`请求超时，请检查网络连接后重试`)), timeoutMs)
+    )
+  ]);
+};
+
+// Safe RPC call with timeout - returns error for UI to handle
+const safeRpc = async <T = any>(
+  rpcName: string, 
+  params: Record<string, any>,
+  timeoutMs: number = RPC_TIMEOUT
+): Promise<{ data: T | null; error: Error | null }> => {
+  try {
+    console.log(`[safeRpc] ${rpcName} starting...`);
+    const rpcPromise = Promise.resolve(supabase!.rpc(rpcName, params));
+    const result = await withTimeout(rpcPromise, timeoutMs, `RPC ${rpcName}`);
+    console.log(`[safeRpc] ${rpcName} completed`);
+    return { data: result.data as T, error: result.error };
+  } catch (err) {
+    console.error(`[safeRpc] ${rpcName} failed:`, err);
+    return { data: null, error: err as Error };
+  }
+};
+
+// Safe DB query with timeout
+const safeQuery = async <T = any>(
+  queryFn: () => Promise<{ data: T | null; error: any }>,
+  operation: string,
+  timeoutMs: number = RPC_TIMEOUT
+): Promise<{ data: T | null; error: Error | null }> => {
+  try {
+    console.log(`[safeQuery] ${operation} starting...`);
+    const result = await withTimeout(queryFn(), timeoutMs, operation);
+    console.log(`[safeQuery] ${operation} completed`);
+    return { data: result.data, error: result.error };
+  } catch (err) {
+    console.error(`[safeQuery] ${operation} failed:`, err);
+    return { data: null, error: err as Error };
+  }
+};
 
 // Database types for Supabase
 interface DbRoom {
@@ -12,11 +62,9 @@ interface DbRoom {
   room_status: number;
   roles: string[];  // RoleName strings
   players: Record<string, any>;
-  actions: Record<string, number>;  // RoleName -> target
+  actions: Record<string, number>;  // RoleName -> target (negative for witch poison)
   wolf_votes: Record<string, number>;
   current_actioner_index: number;
-  has_poison: boolean;
-  has_antidote: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -60,8 +108,6 @@ const roomToDb = (room: Room): Omit<DbRoom, 'created_at' | 'updated_at'> => {
     actions: actionsMap,
     wolf_votes: wolfVotesMap,
     current_actioner_index: room.currentActionerIndex,
-    has_poison: room.hasPoison,
-    has_antidote: room.hasAntidote,
   };
 };
 
@@ -120,8 +166,6 @@ const dbToRoom = (dbRoom: DbRoom): Room => {
     actions,
     wolfVotes,
     currentActionerIndex: dbRoom.current_actioner_index,
-    hasPoison: dbRoom.has_poison,
-    hasAntidote: dbRoom.has_antidote,
     isAudioPlaying: false,
   };
 };
@@ -203,11 +247,14 @@ export class RoomService {
 
   async getRoom(roomNumber: string): Promise<Room | null> {
     this.ensureConfigured();
-    const { data, error } = await supabase!
-      .from('rooms')
-      .select('*')
-      .eq('room_number', roomNumber)
-      .maybeSingle();
+    const { data, error } = await safeQuery(
+      () => Promise.resolve(supabase!
+        .from('rooms')
+        .select('*')
+        .eq('room_number', roomNumber)
+        .maybeSingle()),
+      `getRoom(${roomNumber})`
+    );
     
     if (error) {
       console.error('[RoomService] getRoom error:', error);
@@ -248,13 +295,12 @@ export class RoomService {
     // Update player with hasViewedRole = true
     const updatedPlayer = { ...player, hasViewedRole: true };
     
-    const { data, error } = await supabase!
-      .rpc('atomic_field_update', {
-        p_room_number: roomNumber,
-        p_field: 'players',
-        p_key: seatNumber.toString(),
-        p_value: updatedPlayer,
-      });
+    const { data, error } = await safeRpc('atomic_field_update', {
+      p_room_number: roomNumber,
+      p_field: 'players',
+      p_key: seatNumber.toString(),
+      p_value: updatedPlayer,
+    });
     
     if (error) {
       console.error('[RoomService] markPlayerViewedRole RPC error:', error);
@@ -317,14 +363,13 @@ export class RoomService {
   }> {
     this.ensureConfigured();
     
-    const { data, error } = await supabase!
-      .rpc('update_room_status', {
-        p_room_number: roomNumber,
-        p_new_status: newStatus,
-        p_expected_status: expectedStatus ?? null,
-        p_host_uid: hostUid ?? null,
-        p_reset_fields: resetFields,
-      });
+    const { data, error } = await safeRpc('update_room_status', {
+      p_room_number: roomNumber,
+      p_new_status: newStatus,
+      p_expected_status: expectedStatus ?? null,
+      p_host_uid: hostUid ?? null,
+      p_reset_fields: resetFields,
+    });
     
     if (error) {
       console.error('[RoomService] updateRoomStatus RPC error:', error);
@@ -356,61 +401,37 @@ export class RoomService {
   }> {
     this.ensureConfigured();
     
-    // Handle witch potion usage - use generic update_room_scalar
-    // Business logic (can witch use potion, on whom) is handled by caller
-    if (actionType === 'witch_save') {
-      const { data, error } = await supabase!
-        .rpc('update_room_scalar', {
-          p_room_number: roomNumber,
-          p_field: 'has_antidote',
-          p_value: false,
-        });
-      
-      if (error) {
-        console.error('[RoomService] proceedAction witch_save error:', error);
-        return { success: false, error: error.message };
-      }
-      
-      return {
-        success: data?.success ?? false,
-        error: data?.error,
-      };
+    // Build action data based on action type
+    // For witch: target >= 0 means save, target < 0 means poison (encoded as -target-1)
+    // This encoding is handled by the caller (RoomScreen)
+    let actionData: { role: string; target: number } | null = null;
+    
+    if (actionType === 'witch_save' && targetIndex !== null) {
+      // Save: store target as-is (positive number = saved player seat)
+      actionData = { role: 'witch', target: targetIndex };
+    } else if (actionType === 'witch_poison' && targetIndex !== null) {
+      // Poison: encode as negative number (-target-1)
+      actionData = { role: 'witch', target: -targetIndex - 1 };
+    } else if (actionType === 'normal' && currentRole && targetIndex !== null) {
+      actionData = { role: currentRole, target: targetIndex };
     }
+    // For 'skip' and 'witch_skip', actionData remains null
     
-    if (actionType === 'witch_poison') {
-      const { data, error } = await supabase!
-        .rpc('update_room_scalar', {
-          p_room_number: roomNumber,
-          p_field: 'has_poison',
-          p_value: false,
-        });
-      
-      if (error) {
-        console.error('[RoomService] proceedAction witch_poison error:', error);
-        return { success: false, error: error.message };
-      }
-      
-      return {
-        success: data?.success ?? false,
-        error: data?.error,
-      };
-    }
-    
-    // Normal action or skip - use advance_action_index
-    const actionData = (actionType === 'normal' && currentRole && targetIndex !== null) 
-      ? { role: currentRole, target: targetIndex }
-      : null;
-    
-    const { data, error } = await supabase!
-      .rpc('advance_action_index', {
-        p_room_number: roomNumber,
-        p_expected_index: expectedIndex ?? 0,
-        p_action_data: actionData,
-      });
+    const { data, error } = await safeRpc('advance_action_index', {
+      p_room_number: roomNumber,
+      p_expected_index: expectedIndex ?? 0,
+      p_action_data: actionData,
+    });
     
     if (error) {
       console.error('[RoomService] proceedAction RPC error:', error);
       return { success: false, error: error.message };
+    }
+    
+    // Handle already_advanced (idempotency for retries)
+    if (data?.already_advanced) {
+      console.log('[RoomService] proceedAction: already advanced, treating as success');
+      return { success: true, newIndex: data.current_index };
     }
     
     console.log(`[RoomService] proceedAction result:`, data);
@@ -444,13 +465,12 @@ export class RoomService {
     this.ensureConfigured();
     
     // Use atomic_field_update for conflict-free wolf voting
-    const { data, error } = await supabase!
-      .rpc('atomic_field_update', {
-        p_room_number: roomNumber,
-        p_field: 'wolf_votes',
-        p_key: wolfSeat.toString(),
-        p_value: targetSeat,
-      });
+    const { data, error } = await safeRpc('atomic_field_update', {
+      p_room_number: roomNumber,
+      p_field: 'wolf_votes',
+      p_key: wolfSeat.toString(),
+      p_value: targetSeat,
+    });
     
     if (error) {
       console.error('[RoomService] recordWolfVote RPC error:', error);
@@ -537,14 +557,13 @@ export class RoomService {
     this.ensureConfigured();
     
     // Use update_room_status to change from ready (3) to ongoing (4)
-    const { data, error } = await supabase!
-      .rpc('update_room_status', {
-        p_room_number: roomNumber,
-        p_new_status: 4,  // ongoing
-        p_expected_status: 3,  // ready
-        p_host_uid: hostUid,
-        p_reset_fields: false,
-      });
+    const { data, error } = await safeRpc('update_room_status', {
+      p_room_number: roomNumber,
+      p_new_status: 4,  // ongoing
+      p_expected_status: 3,  // ready
+      p_host_uid: hostUid,
+      p_reset_fields: false,
+    });
     
     if (error) {
       console.error('[RoomService] startGame RPC error:', error);
@@ -589,13 +608,12 @@ export class RoomService {
       avatarUrl: avatarUrl ?? null,
     };
     
-    const { data, error } = await supabase!
-      .rpc('atomic_field_update', {
-        p_room_number: roomNumber,
-        p_field: 'players',
-        p_key: seatNumber.toString(),
-        p_value: playerData,
-      });
+    const { data, error } = await safeRpc('atomic_field_update', {
+      p_room_number: roomNumber,
+      p_field: 'players',
+      p_key: seatNumber.toString(),
+      p_value: playerData,
+    });
     
     if (error) {
       console.error('[RoomService] takeSeat RPC error:', error);
@@ -659,12 +677,11 @@ export class RoomService {
       }
     }
     
-    const { data, error } = await supabase!
-      .rpc('remove_field_key', {
-        p_room_number: roomNumber,
-        p_field: 'players',
-        p_key: seatNumber.toString(),
-      });
+    const { data, error } = await safeRpc('remove_field_key', {
+      p_room_number: roomNumber,
+      p_field: 'players',
+      p_key: seatNumber.toString(),
+    });
     
     if (error) {
       console.error('[RoomService] leaveSeat RPC error:', error);
@@ -694,14 +711,13 @@ export class RoomService {
     
     // Use update_room_status with reset_fields=true to reset game state
     // Status 1 = seated (players are still in their seats, waiting for "准备看牌")
-    const { data, error } = await supabase!
-      .rpc('update_room_status', {
-        p_room_number: roomNumber,
-        p_new_status: 1,  // seated (players still in seats)
-        p_expected_status: null,  // Any status
-        p_host_uid: hostUid,
-        p_reset_fields: true,  // Reset all game fields
-      });
+    const { data, error } = await safeRpc('update_room_status', {
+      p_room_number: roomNumber,
+      p_new_status: 1,  // seated (players still in seats)
+      p_expected_status: null,  // Any status
+      p_host_uid: hostUid,
+      p_reset_fields: true,  // Reset all game fields
+    });
     
     if (error) {
       console.error('[RoomService] restartGame RPC error:', error);
@@ -753,12 +769,11 @@ export class RoomService {
       }
     });
     
-    const { data, error } = await supabase!
-      .rpc('batch_update_players', {
-        p_room_number: roomNumber,
-        p_players: updates,
-        p_host_uid: hostUid,
-      });
+    const { data, error } = await safeRpc('batch_update_players', {
+      p_room_number: roomNumber,
+      p_players: updates,
+      p_host_uid: hostUid,
+    });
     
     if (error) {
       console.error('[RoomService] assignRoles RPC error:', error);
@@ -788,12 +803,11 @@ export class RoomService {
   }> {
     this.ensureConfigured();
     
-    const { data, error } = await supabase!
-      .rpc('update_roles_array', {
-        p_room_number: roomNumber,
-        p_roles: roles,
-        p_host_uid: hostUid,
-      });
+    const { data, error } = await safeRpc('update_roles_array', {
+      p_room_number: roomNumber,
+      p_roles: roles,
+      p_host_uid: hostUid,
+    });
     
     if (error) {
       console.error('[RoomService] updateRoomTemplate RPC error:', error);

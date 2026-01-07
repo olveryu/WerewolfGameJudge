@@ -17,7 +17,7 @@ import {
 } from '../Room';
 import { GameTemplate } from '../Template';
 import { Player, PlayerStatus, SkillStatus } from '../Player';
-import { RoleName, ACTION_ORDER } from '../../constants/roles';
+import { RoleName, ACTION_ORDER } from '../roles';
 
 // Helper to create a test room with specific roles
 const createTestRoom = (roles: RoleName[]): Room => {
@@ -560,8 +560,6 @@ describe('updateRoomTemplate', () => {
     expect(updatedRoom.roomStatus).toBe(RoomStatus.unseated);
     expect(updatedRoom.currentActionerIndex).toBe(0);
     expect(updatedRoom.actions.size).toBe(0);
-    expect(updatedRoom.hasPoison).toBe(true);
-    expect(updatedRoom.hasAntidote).toBe(true);
   });
   
   it('should preserve players when player count stays same', () => {

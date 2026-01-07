@@ -4,7 +4,7 @@ import {
   ACTION_ORDER,
   isWolfRole,
   hasNightAction,
-  RoleType,
+  Faction,
 } from '../roles';
 
 describe('roles - ROLES constant', () => {
@@ -24,7 +24,7 @@ describe('roles - ROLES constant', () => {
   });
 
   it('should have valid type assignment', () => {
-    const validTypes: RoleType[] = ['wolf', 'villager', 'god', 'special'];
+    const validTypes: Faction[] = [Faction.Wolf, Faction.Villager, Faction.God, Faction.Special];
     Object.values(ROLES).forEach(role => {
       expect(validTypes).toContain(role.type);
     });

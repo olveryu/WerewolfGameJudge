@@ -1,4 +1,4 @@
-import { RoleName } from '../constants/roles';
+import { RoleName } from './roles';
 
 export enum PlayerStatus {
   alive = 0,

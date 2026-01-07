@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { RoleName } from '../../constants/roles';
+import { RoleName } from '../../models/roles';
 import { GameTemplate, PRESET_TEMPLATES, createCustomTemplate } from '../../models/Template';
 import { colors, spacing, borderRadius, typography } from '../../constants/theme';
 

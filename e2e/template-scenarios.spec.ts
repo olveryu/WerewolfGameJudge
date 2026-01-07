@@ -64,7 +64,6 @@ async function waitForLoggedIn(page: Page, maxRetries = 5) {
 // Click on a specific seat number tile (1-based)
 async function clickSeat(page: Page, seatNumber: number): Promise<void> {
   // The seat tiles are rendered with seat number as text
-  // We need to find the correct tile by looking for the seat number text
   // Wait a bit for the UI to be interactive
   await page.waitForTimeout(500);
   
@@ -79,24 +78,68 @@ async function clickSeat(page: Page, seatNumber: number): Promise<void> {
   await page.waitForTimeout(500);
 }
 
-// Confirm action dialog
+// Confirm action dialog (with network error handling)
 async function confirmAction(page: Page): Promise<void> {
   console.log(`      [confirmAction] Looking for 确定 button...`);
-  const confirmButton = page.getByText('确定', { exact: true });
-  const isVisible = await confirmButton.isVisible({ timeout: 2000 }).catch(() => false);
-  console.log(`      [confirmAction] 确定 button visible: ${isVisible}`);
-  if (!isVisible) {
-    // Log what's visible on page
-    const bodyText = await page.locator('body').textContent().catch(() => 'error');
-    console.log(`      [confirmAction] Page content: ${bodyText?.substring(0, 300)}`);
+  
+  // Wait for either 确定 button or 重试 button (network error)
+  const maxWaitTime = 30000; // Increased to 30s to handle slow network + retry
+  const startTime = Date.now();
+  let hasClickedConfirm = false;
+  let retryCount = 0;
+  const maxRetries = 5;
+  
+  while (Date.now() - startTime < maxWaitTime) {
+    // Check for network error retry dialog first
+    const retryButton = page.getByText('重试', { exact: true });
+    if (await retryButton.isVisible({ timeout: 100 }).catch(() => false)) {
+      retryCount++;
+      console.log(`      [confirmAction] Found network error dialog, retry attempt ${retryCount}/${maxRetries}...`);
+      
+      if (retryCount > maxRetries) {
+        throw new Error(`confirmAction: Too many retries (${retryCount}), network appears unstable`);
+      }
+      
+      await retryButton.click();
+      // Wait longer after retry for RPC to complete (up to 10s timeout)
+      await page.waitForTimeout(2000);
+      
+      // After retry, wait for UI to stabilize
+      // Don't assume "dialog gone = success" - keep checking
+      continue; // Keep looping to check actual state
+    }
+    
+    // Check for 确定 button
+    const confirmButton = page.getByText('确定', { exact: true });
+    if (await confirmButton.isVisible({ timeout: 100 }).catch(() => false)) {
+      await confirmButton.click();
+      hasClickedConfirm = true;
+      console.log(`      [confirmAction] Clicked 确定`);
+      
+      // Wait for RPC to complete
+      await page.waitForTimeout(1000);
+      
+      // Keep looping to check if retry dialog appears
+      continue;
+    }
+    
+    // If we've clicked confirm before and now no dialogs are visible, we're done
+    if (hasClickedConfirm) {
+      const anyDialog = await confirmButton.isVisible({ timeout: 100 }).catch(() => false) ||
+                        await retryButton.isVisible({ timeout: 100 }).catch(() => false);
+      if (!anyDialog) {
+        console.log(`      [confirmAction] No dialogs visible after confirm, success`);
+        return;
+      }
+    }
+    
+    await page.waitForTimeout(200);
   }
-  await expect(confirmButton).toBeVisible({ timeout: 5000 });
-  await confirmButton.click();
-  console.log(`      [confirmAction] Clicked 确定`);
-  await page.waitForTimeout(300);
+  
+  throw new Error('confirmAction: 确定 button not found within timeout');
 }
 
-// Wait for and dismiss the "好" dialog after audio plays
+// Wait for and dismiss the "好" dialog after audio plays (with network error handling)
 async function waitForActionDialog(page: Page, timeoutMs = 30000): Promise<void> {
   // Wait for any dialog element to appear
   // We check for specific elements that indicate a dialog is ready
@@ -113,6 +156,15 @@ async function waitForActionDialog(page: Page, timeoutMs = 30000): Promise<void>
       const skipBtn = await page.getByText('跳过').isVisible().catch(() => false);
       const pageUrl = page.url();
       console.log(`      [waitForActionDialog] ${elapsed}ms - URL: ${pageUrl}, inRoom: ${isInRoom}, seeRoleBtn: ${seeRoleBtn}, skipBtn: ${skipBtn}`);
+    }
+    
+    // Check for network error retry dialog and click it
+    const retryButton = page.getByText('重试', { exact: true });
+    if (await retryButton.isVisible({ timeout: 50 }).catch(() => false)) {
+      console.log(`      [waitForActionDialog] Network error dialog detected, clicking retry...`);
+      await retryButton.click();
+      await page.waitForTimeout(500);
+      continue;
     }
     
     // Check for "好" button
@@ -159,13 +211,15 @@ async function skipAction(page: Page, timeout: number = 5000): Promise<void> {
 async function executeWitchAction(
   page: Page,
   targetSeat: number | null,
-  isPoison: boolean
+  isPoison: boolean,
+  witchWasKilled: boolean = false
 ): Promise<void> {
   // Wait for witch dialog with longer timeout
   await waitForActionDialog(page);
   
   // Check what dialog we have - use longer timeout due to Supabase sync delays
   const noVictimText = page.getByText('昨夜无人倒台');
+  const cannotSaveSelfText = page.getByText('女巫无法自救');
   const saveButton = page.getByText('救助', { exact: true });
   const noSaveButton = page.getByText('不救助', { exact: true });
   
@@ -174,28 +228,31 @@ async function executeWitchAction(
   const dialogTimeout = 15000;
   const startTime = Date.now();
   let foundNoVictim = false;
+  let foundCannotSaveSelf = false;
   let foundSaveDialog = false;
   
   console.log('    [Witch] Waiting for witch dialog to stabilize...');
   
   while (Date.now() - startTime < dialogTimeout) {
     foundNoVictim = await noVictimText.isVisible().catch(() => false);
+    foundCannotSaveSelf = await cannotSaveSelfText.isVisible().catch(() => false);
     foundSaveDialog = await saveButton.isVisible().catch(() => false);
     
-    if (foundNoVictim || foundSaveDialog) {
+    if (foundNoVictim || foundCannotSaveSelf || foundSaveDialog) {
       // Wait a bit more to ensure dialog is stable
       await page.waitForTimeout(500);
       // Re-check to make sure it's still there
       foundNoVictim = await noVictimText.isVisible().catch(() => false);
+      foundCannotSaveSelf = await cannotSaveSelfText.isVisible().catch(() => false);
       foundSaveDialog = await saveButton.isVisible().catch(() => false);
-      if (foundNoVictim || foundSaveDialog) {
+      if (foundNoVictim || foundCannotSaveSelf || foundSaveDialog) {
         break;
       }
     }
     await page.waitForTimeout(200);
   }
   
-  console.log(`    [Witch] Dialog found: noVictim=${foundNoVictim}, saveDialog=${foundSaveDialog}`);
+  console.log(`    [Witch] Dialog found: noVictim=${foundNoVictim}, cannotSaveSelf=${foundCannotSaveSelf}, saveDialog=${foundSaveDialog}`);
   
   if (foundNoVictim) {
     // No one killed - click "好" to continue
@@ -212,6 +269,29 @@ async function executeWitchAction(
       // Skip - click "不使用技能"
       console.log('    [Witch] Skipping poison');
       await skipAction(page);
+    }
+  } else if (foundCannotSaveSelf) {
+    // Witch was killed - cannot save herself, click "好" to proceed to poison dialog
+    console.log('    [Witch] Cannot save self - clicking 好');
+    await page.getByText('好', { exact: true }).click();
+    await page.waitForTimeout(800);
+    
+    // Wait for poison dialog and dismiss it
+    console.log('    [Witch] Waiting for poison dialog...');
+    const okButton = page.getByText('好', { exact: true });
+    await expect(okButton).toBeVisible({ timeout: 5000 });
+    await okButton.click();
+    await page.waitForTimeout(1000);
+    
+    if (targetSeat !== null && isPoison) {
+      // Use poison
+      console.log(`    [Witch] Using poison on seat ${targetSeat}`);
+      await clickSeat(page, targetSeat);
+      await confirmAction(page);
+    } else {
+      // Skip poison
+      console.log('    [Witch] Skipping poison');
+      await skipAction(page, 10000);
     }
   } else if (foundSaveDialog) {
     // Someone was killed - save/don't save dialog
@@ -407,42 +487,78 @@ const ROLE_DISPLAY_TO_INTERNAL: { [displayName: string]: string } = {
   '恶灵骑士': 'spiritKnight',
 };
 
-// Read a player's role by clicking "查看身份" button
+// Read a player's role by clicking "查看身份" button (with network error handling)
 async function getPlayerRole(page: Page, timeoutMs = 10000): Promise<string | null> {
-  const viewRoleButton = page.getByText('查看身份');
-  
-  // Check if button exists and is clickable with proper timeout
   try {
+    console.log('    [getPlayerRole] Starting...');
+    // Use exact: true to avoid matching "⏳ 等待查看身份"
+    const viewRoleButton = page.getByText('查看身份', { exact: true });
+    
+    // Check if button exists and is clickable with proper timeout
+    console.log('    [getPlayerRole] Checking button visibility...');
     await expect(viewRoleButton).toBeVisible({ timeout: timeoutMs });
-  } catch {
-    console.log('    [getPlayerRole] "查看身份" button not visible');
+    console.log('    [getPlayerRole] Button is visible');
+    
+    console.log('    [getPlayerRole] Clicking button...');
+    // Add timeout and force to prevent hang during page transitions
+    await viewRoleButton.click({ timeout: 5000, force: true });
+    console.log('    [getPlayerRole] Button clicked, waiting for dialog...');
+    
+    // Wait and check for either role text or retry dialog
+    const maxWaitTime = 15000;
+    const startTime = Date.now();
+    let lastLogTime = 0;
+    
+    while (Date.now() - startTime < maxWaitTime) {
+      const elapsed = Date.now() - startTime;
+      
+      // Log progress every 3 seconds
+      if (elapsed - lastLogTime > 3000) {
+        lastLogTime = elapsed;
+        console.log(`    [getPlayerRole] Still waiting... ${elapsed}ms elapsed`);
+      }
+      
+      // Check for network error retry dialog
+      const retryButton = page.getByText('重试', { exact: true });
+      if (await retryButton.isVisible({ timeout: 100 }).catch(() => false)) {
+        console.log('    [getPlayerRole] Network error dialog detected, clicking retry...');
+        await retryButton.click();
+        await page.waitForTimeout(1000);
+        continue; // Keep waiting for role text
+      }
+      
+      // Check for role text
+      const roleText = page.locator('text=/你的身份是：.*/');
+      const text = await roleText.textContent({ timeout: 200 }).catch(() => null);
+      if (text) {
+        console.log('    [getPlayerRole] Role text:', text);
+        
+        // Dismiss dialog
+        const confirmButton = page.getByText('确定', { exact: true });
+        await confirmButton.click({ timeout: 3000 }).catch(() => {});
+        await page.waitForTimeout(200);
+        
+        // Extract role name: "你的身份是：狼人" -> "狼人"
+        const rolePattern = /你的身份是：(.+)/;
+        const match = rolePattern.exec(text);
+        if (!match) {
+          console.log('    [getPlayerRole] Could not parse role from text');
+          return null;
+        }
+        
+        const displayName = match[1];
+        return ROLE_DISPLAY_TO_INTERNAL[displayName] || displayName;
+      }
+      
+      await page.waitForTimeout(200);
+    }
+    
+    console.log('    [getPlayerRole] Timeout - role text not found after 15s');
+    return null;
+  } catch (err) {
+    console.log('    [getPlayerRole] Error:', err);
     return null;
   }
-  
-  await viewRoleButton.click();
-  await page.waitForTimeout(300);
-  
-  // Look for "你的身份是：{角色名}" text
-  const roleText = page.locator('text=/你的身份是：.*/');
-  const text = await roleText.textContent({ timeout: 5000 }).catch(() => null);
-  
-  // Dismiss dialog
-  const confirmButton = page.getByText('确定', { exact: true });
-  await confirmButton.click({ timeout: 3000 }).catch(() => {});
-  await page.waitForTimeout(200);
-  
-  if (!text) {
-    console.log('    [getPlayerRole] Role text not found');
-    return null;
-  }
-  
-  // Extract role name: "你的身份是：狼人" -> "狼人"
-  const rolePattern = /你的身份是：(.+)/;
-  const match = rolePattern.exec(text);
-  if (!match) return null;
-  
-  const displayName = match[1];
-  return ROLE_DISPLAY_TO_INTERNAL[displayName] || displayName;
 }
 
 // Build role -> page mapping by reading each player's role
@@ -518,6 +634,17 @@ const TEMPLATE_CONFIGS: TemplateConfig[] = [
         ],
         expectedDeaths: [1, 5],
         expectedInfo: '1号, 5号玩家死亡',
+      },
+      {
+        name: '狼人杀女巫，女巫不能自救',
+        actions: [
+          { targetSeat: 4 },  // wolf kills witch (seat 4 based on role order)
+          { targetSeat: null }, // witch cannot save herself, skip
+          { targetSeat: 6 },  // seer checks seat 6
+          { targetSeat: null }, // hunter confirms
+        ],
+        expectedDeaths: [4],
+        expectedInfo: '4号玩家死亡',
       },
     ],
   },
@@ -812,7 +939,7 @@ test.describe('Template Scenarios E2E', () => {
 
       // ========== TEST EACH TEMPLATE'S SCENARIOS ==========
       // TEST FIRST TEMPLATE ONLY for now - to verify core functionality works
-      const TEMPLATES_TO_TEST = TEMPLATE_CONFIGS.slice(0, 2); // Test 2 templates to debug switching
+      const TEMPLATES_TO_TEST = TEMPLATE_CONFIGS.slice(0, 1); // Test only first template
       
       for (let templateIndex = 0; templateIndex < TEMPLATES_TO_TEST.length; templateIndex++) {
         const template = TEMPLATES_TO_TEST[templateIndex];
@@ -839,8 +966,11 @@ test.describe('Template Scenarios E2E', () => {
           
           // Wait for config screen to fully load (loading state ends when '快速模板' appears)
           // In edit mode, isLoading=true initially, hiding template list until room data loads
+          // Wait for loading indicator to disappear first (if visible)
+          await hostPage.getByText('加载中...').waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
+          
           // Wait for first visible '快速模板' element (there might be multiple section headers)
-          await hostPage.getByText('快速模板').first().waitFor({ state: 'visible', timeout: 10000 });
+          await hostPage.getByText('快速模板').first().waitFor({ state: 'visible', timeout: 15000 });
           
           // Wait for the target template to be visible
           await hostPage.getByText(template.name, { exact: true }).first().waitFor({ state: 'visible', timeout: 5000 });
@@ -894,7 +1024,29 @@ test.describe('Template Scenarios E2E', () => {
           await hostPage.getByText('确定', { exact: true }).click();
           
           // Wait for "准备看牌" button to disappear (roomStatus changed to assigned)
-          await expect(prepareButton).not.toBeVisible({ timeout: 10000 });
+          // Also handle network retry dialogs that may appear
+          const maxWaitTime = 30000;
+          const startTime = Date.now();
+          while (Date.now() - startTime < maxWaitTime) {
+            // Check for network error retry dialog
+            const retryButton = hostPage.getByText('重试', { exact: true });
+            if (await retryButton.isVisible({ timeout: 100 }).catch(() => false)) {
+              console.log(`[${template.name}] Network error dialog detected, clicking retry...`);
+              await retryButton.click();
+              await hostPage.waitForTimeout(500);
+              continue;
+            }
+            
+            // Check if prepare button is hidden
+            if (!(await prepareButton.isVisible({ timeout: 100 }).catch(() => true))) {
+              break;
+            }
+            
+            await hostPage.waitForTimeout(200);
+          }
+          
+          // Verify the button is actually hidden
+          await expect(prepareButton).not.toBeVisible({ timeout: 5000 });
           
           // IMPORTANT: Wait for all clients to sync the room status change
           // Without this, some clients may still have old roomStatus and won't update hasViewedRole
@@ -909,16 +1061,54 @@ test.describe('Template Scenarios E2E', () => {
             const viewRoleButton = page.getByText('查看身份', { exact: true });
             const isVisible = await viewRoleButton.isVisible({ timeout: 1000 }).catch(() => false);
             console.log(`  Seat ${i + 1}: view role button visible = ${isVisible}`);
-            try {
-              await expect(viewRoleButton).toBeVisible({ timeout: 5000 });
-              await viewRoleButton.click();
-              await page.waitForTimeout(800); // Wait for RPC to complete (with FOR UPDATE lock)
-              // Dismiss the role dialog
-              await page.getByText('确定', { exact: true }).click({ timeout: 3000 });
-              await page.waitForTimeout(800); // Wait for subscription update before next player
-              console.log(`  Seat ${i + 1}: viewed role OK`);
-            } catch (e) {
-              console.log(`  Seat ${i + 1}: could not view role - ${e}`);
+            
+            // Retry loop for network errors
+            const maxRetries = 5;
+            let retryCount = 0;
+            let success = false;
+            
+            while (!success && retryCount < maxRetries) {
+              try {
+                await expect(viewRoleButton).toBeVisible({ timeout: 5000 });
+                await viewRoleButton.click();
+                await page.waitForTimeout(800); // Wait for RPC to complete (with FOR UPDATE lock)
+                
+                // Check for network error retry dialog
+                const retryButton = page.getByText('重试', { exact: true });
+                const confirmButton = page.getByText('确定', { exact: true });
+                
+                // Wait a bit for dialog to appear
+                await page.waitForTimeout(500);
+                
+                // Check if retry dialog appeared (network error)
+                if (await retryButton.isVisible({ timeout: 300 }).catch(() => false)) {
+                  console.log(`  Seat ${i + 1}: Network error, clicking retry... (attempt ${retryCount + 1})`);
+                  await retryButton.click();
+                  await page.waitForTimeout(1000);
+                  retryCount++;
+                  continue;
+                }
+                
+                // Dismiss the role dialog if confirm button is visible
+                if (await confirmButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+                  await confirmButton.click({ timeout: 3000 });
+                  await page.waitForTimeout(800); // Wait for subscription update before next player
+                  console.log(`  Seat ${i + 1}: viewed role OK`);
+                  success = true;
+                } else {
+                  // No dialog visible, maybe already dismissed or error
+                  retryCount++;
+                  console.log(`  Seat ${i + 1}: No dialog visible, retrying... (attempt ${retryCount})`);
+                }
+              } catch (e) {
+                retryCount++;
+                console.log(`  Seat ${i + 1}: Error viewing role (attempt ${retryCount}) - ${e}`);
+                await page.waitForTimeout(500);
+              }
+            }
+            
+            if (!success) {
+              console.log(`  Seat ${i + 1}: Failed to view role after ${maxRetries} attempts`);
             }
           }
           

@@ -13,7 +13,7 @@ import {
   proceedToNextAction,
 } from '../Room';
 import { createTemplateFromRoles } from '../Template';
-import { RoleName, ROLES } from '../../constants/roles';
+import { RoleName, ROLES } from '../roles';
 import { PlayerStatus, SkillStatus } from '../Player';
 
 // Helper to create a room with all seats filled

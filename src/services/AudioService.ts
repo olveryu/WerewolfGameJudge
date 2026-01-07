@@ -1,5 +1,5 @@
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer, AudioStatus } from 'expo-audio';
-import { RoleName } from '../constants/roles';
+import { RoleName } from '../models/roles';
 
 // Audio file mappings matching Flutter's JudgeAudioProvider
 const AUDIO_FILES: Partial<Record<RoleName, any>> = {

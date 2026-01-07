@@ -1,7 +1,7 @@
 import { SeatService } from '../SeatService';
 import { createRoom, Room } from '../../models/Room';
 import { createTemplateFromRoles } from '../../models/Template';
-import { RoleName } from '../../constants/roles';
+import { RoleName } from '../../models/roles';
 
 // Mock dependencies - V2 uses RPC methods instead of updateRoom
 const mockGetRoom = jest.fn();
