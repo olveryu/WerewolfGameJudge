@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.batch_update_players TO anon, authenticated;

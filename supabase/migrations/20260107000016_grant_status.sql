@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.update_room_status TO anon, authenticated;
