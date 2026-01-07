@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.remove_field_key TO anon, authenticated;

@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.atomic_field_update TO anon, authenticated;

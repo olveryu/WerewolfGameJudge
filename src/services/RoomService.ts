@@ -254,7 +254,6 @@ export class RoomService {
         p_field: 'players',
         p_key: seatNumber.toString(),
         p_value: updatedPlayer,
-        p_condition: null,  // Overwrite allowed
       });
     
     if (error) {
@@ -451,7 +450,6 @@ export class RoomService {
         p_field: 'wolf_votes',
         p_key: wolfSeat.toString(),
         p_value: targetSeat,
-        p_condition: 'not_exists',  // Each wolf can only vote once
       });
     
     if (error) {
@@ -459,10 +457,12 @@ export class RoomService {
       return { success: false, error: error.message };
     }
     
+    // Handle already_voted response
+    if (data?.already_voted) {
+      return { success: true, alreadyVoted: true };
+    }
+    
     if (!data?.success) {
-      if (data?.error === 'already_exists') {
-        return { success: true, alreadyVoted: true };
-      }
       return { success: false, error: data?.error };
     }
     
@@ -476,12 +476,31 @@ export class RoomService {
       console.log(`[RoomService] recordWolfVote seat ${wolfSeat} -> ${targetSeat}: ${voteCount}/${totalWolves}`);
       
       if (allWolvesVoted) {
-        // Advance to next action
+        // Calculate the final wolf target (majority vote)
+        const voteCounts = new Map<number, number>();
+        room.wolfVotes.forEach((target) => {
+          voteCounts.set(target, (voteCounts.get(target) || 0) + 1);
+        });
+        
+        // Find the target with most votes
+        let finalTarget = -1;
+        let maxVotes = 0;
+        voteCounts.forEach((count, target) => {
+          if (count > maxVotes) {
+            maxVotes = count;
+            finalTarget = target;
+          }
+        });
+        
+        console.log(`[RoomService] Wolf final target: ${finalTarget} (votes: ${maxVotes})`);
+        
+        // Advance to next action with wolf's kill target
         const advanceResult = await this.proceedAction(
           roomNumber,
-          null,
-          'skip',
-          room.currentActionerIndex
+          finalTarget,
+          'normal',
+          room.currentActionerIndex,
+          'wolf'
         );
         
         return {
@@ -576,7 +595,6 @@ export class RoomService {
         p_field: 'players',
         p_key: seatNumber.toString(),
         p_value: playerData,
-        p_condition: 'empty',  // Only take if seat is empty
       });
     
     if (error) {
@@ -675,10 +693,11 @@ export class RoomService {
     this.ensureConfigured();
     
     // Use update_room_status with reset_fields=true to reset game state
+    // Status 1 = seated (players are still in their seats, waiting for "准备看牌")
     const { data, error } = await supabase!
       .rpc('update_room_status', {
         p_room_number: roomNumber,
-        p_new_status: 0,  // waiting
+        p_new_status: 1,  // seated (players still in seats)
         p_expected_status: null,  // Any status
         p_host_uid: hostUid,
         p_reset_fields: true,  // Reset all game fields
@@ -737,7 +756,7 @@ export class RoomService {
     const { data, error } = await supabase!
       .rpc('batch_update_players', {
         p_room_number: roomNumber,
-        p_updates: updates,
+        p_players: updates,
         p_host_uid: hostUid,
       });
     
@@ -977,7 +996,7 @@ export class RoomService {
     const { data, error } = await supabase!
       .rpc('batch_update_players', {
         p_room_number: roomNumber,
-        p_updates: playerUpdates,
+        p_players: playerUpdates,
         p_host_uid: hostUid,
       });
     
