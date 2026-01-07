@@ -217,15 +217,75 @@ export class RoomService {
     return dbToRoom(data);
   }
 
-  async updateRoom(roomNumber: string, room: Room): Promise<void> {
+  /**
+   * V2: Atomic operation to mark a player as having viewed their role.
+   * Uses atomic_field_update to partially update player data.
+   */
+  async markPlayerViewedRole(roomNumber: string, seatNumber: number): Promise<{
+    success: boolean;
+    alreadyViewed?: boolean;
+    allViewed?: boolean;
+    roomStatus?: number;
+    error?: string;
+  }> {
     this.ensureConfigured();
-    const dbRoom = roomToDb(room);
-    const { error } = await supabase!
-      .from('rooms')
-      .update(dbRoom)
-      .eq('room_number', roomNumber);
     
-    if (error) throw error;
+    // First get current player data
+    const room = await this.getRoom(roomNumber);
+    if (!room) {
+      return { success: false, error: 'room_not_found' };
+    }
+    
+    const player = room.players.get(seatNumber);
+    if (!player) {
+      return { success: false, error: 'player_not_found' };
+    }
+    
+    if (player.hasViewedRole) {
+      return { success: true, alreadyViewed: true };
+    }
+    
+    // Update player with hasViewedRole = true
+    const updatedPlayer = { ...player, hasViewedRole: true };
+    
+    const { data, error } = await supabase!
+      .rpc('atomic_field_update', {
+        p_room_number: roomNumber,
+        p_field: 'players',
+        p_key: seatNumber.toString(),
+        p_value: updatedPlayer,
+        p_condition: null,  // Overwrite allowed
+      });
+    
+    if (error) {
+      console.error('[RoomService] markPlayerViewedRole RPC error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    if (!data?.success) {
+      return { success: false, error: data?.error };
+    }
+    
+    // Check if all players have viewed
+    const updatedRoom = await this.getRoom(roomNumber);
+    if (updatedRoom) {
+      const allViewed = Array.from(updatedRoom.players.values())
+        .filter(p => p !== null)
+        .every(p => p?.hasViewedRole === true);
+      
+      if (allViewed && updatedRoom.roomStatus === 2) {
+        // Advance to ready status
+        await this.updateRoomStatus(roomNumber, 3, 2);
+      }
+      
+      return { 
+        success: true, 
+        allViewed,
+        roomStatus: allViewed ? 3 : updatedRoom.roomStatus,
+      };
+    }
+    
+    return { success: true };
   }
 
   async deleteRoom(roomNumber: string): Promise<void> {
@@ -236,6 +296,495 @@ export class RoomService {
       .eq('room_number', roomNumber);
     
     if (error) throw error;
+  }
+
+  // ============================================
+  // V2 RPC Methods for atomic game operations
+  // ============================================
+
+  /**
+   * V2: Update room status atomically.
+   */
+  async updateRoomStatus(
+    roomNumber: string,
+    newStatus: number,
+    expectedStatus?: number,
+    hostUid?: string,
+    resetFields: boolean = false
+  ): Promise<{
+    success: boolean;
+    newStatus?: number;
+    error?: string;
+  }> {
+    this.ensureConfigured();
+    
+    const { data, error } = await supabase!
+      .rpc('update_room_status', {
+        p_room_number: roomNumber,
+        p_new_status: newStatus,
+        p_expected_status: expectedStatus ?? null,
+        p_host_uid: hostUid ?? null,
+        p_reset_fields: resetFields,
+      });
+    
+    if (error) {
+      console.error('[RoomService] updateRoomStatus RPC error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    return {
+      success: data?.success ?? false,
+      newStatus: data?.new_status,
+      error: data?.error,
+    };
+  }
+
+  /**
+   * V2: Proceed to next action in the game.
+   * Uses advance_action_index for atomic index advancement.
+   */
+  async proceedAction(
+    roomNumber: string,
+    targetIndex: number | null = null,
+    actionType: 'normal' | 'witch_save' | 'witch_poison' | 'witch_skip' | 'skip' = 'normal',
+    expectedIndex?: number,
+    currentRole?: RoleName
+  ): Promise<{
+    success: boolean;
+    previousIndex?: number;
+    newIndex?: number;
+    error?: string;
+  }> {
+    this.ensureConfigured();
+    
+    // Handle witch potion usage - use generic update_room_scalar
+    // Business logic (can witch use potion, on whom) is handled by caller
+    if (actionType === 'witch_save') {
+      const { data, error } = await supabase!
+        .rpc('update_room_scalar', {
+          p_room_number: roomNumber,
+          p_field: 'has_antidote',
+          p_value: false,
+        });
+      
+      if (error) {
+        console.error('[RoomService] proceedAction witch_save error:', error);
+        return { success: false, error: error.message };
+      }
+      
+      return {
+        success: data?.success ?? false,
+        error: data?.error,
+      };
+    }
+    
+    if (actionType === 'witch_poison') {
+      const { data, error } = await supabase!
+        .rpc('update_room_scalar', {
+          p_room_number: roomNumber,
+          p_field: 'has_poison',
+          p_value: false,
+        });
+      
+      if (error) {
+        console.error('[RoomService] proceedAction witch_poison error:', error);
+        return { success: false, error: error.message };
+      }
+      
+      return {
+        success: data?.success ?? false,
+        error: data?.error,
+      };
+    }
+    
+    // Normal action or skip - use advance_action_index
+    const actionData = (actionType === 'normal' && currentRole && targetIndex !== null) 
+      ? { role: currentRole, target: targetIndex }
+      : null;
+    
+    const { data, error } = await supabase!
+      .rpc('advance_action_index', {
+        p_room_number: roomNumber,
+        p_expected_index: expectedIndex ?? 0,
+        p_action_data: actionData,
+      });
+    
+    if (error) {
+      console.error('[RoomService] proceedAction RPC error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log(`[RoomService] proceedAction result:`, data);
+    return {
+      success: data?.success ?? false,
+      previousIndex: data?.previous_index,
+      newIndex: data?.new_index,
+      error: data?.error,
+    };
+  }
+
+  /**
+   * V2: Record a wolf's vote for their kill target.
+   * Uses atomic_field_update for conflict-free voting.
+   * Automatically advances when all wolves have voted.
+   */
+  async recordWolfVote(
+    roomNumber: string,
+    wolfSeat: number,
+    targetSeat: number,  // -1 for 空刀
+    wolfSeats: number[]  // Client provides list of all wolf seats
+  ): Promise<{
+    success: boolean;
+    alreadyVoted?: boolean;
+    allWolvesVoted?: boolean;
+    newIndex?: number;
+    voteCount?: number;
+    totalWolves?: number;
+    error?: string;
+  }> {
+    this.ensureConfigured();
+    
+    // Use atomic_field_update for conflict-free wolf voting
+    const { data, error } = await supabase!
+      .rpc('atomic_field_update', {
+        p_room_number: roomNumber,
+        p_field: 'wolf_votes',
+        p_key: wolfSeat.toString(),
+        p_value: targetSeat,
+        p_condition: 'not_exists',  // Each wolf can only vote once
+      });
+    
+    if (error) {
+      console.error('[RoomService] recordWolfVote RPC error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    if (!data?.success) {
+      if (data?.error === 'already_exists') {
+        return { success: true, alreadyVoted: true };
+      }
+      return { success: false, error: data?.error };
+    }
+    
+    // Check if all wolves have voted
+    const room = await this.getRoom(roomNumber);
+    if (room) {
+      const voteCount = room.wolfVotes.size;
+      const totalWolves = wolfSeats.length;
+      const allWolvesVoted = voteCount >= totalWolves;
+      
+      console.log(`[RoomService] recordWolfVote seat ${wolfSeat} -> ${targetSeat}: ${voteCount}/${totalWolves}`);
+      
+      if (allWolvesVoted) {
+        // Advance to next action
+        const advanceResult = await this.proceedAction(
+          roomNumber,
+          null,
+          'skip',
+          room.currentActionerIndex
+        );
+        
+        return {
+          success: true,
+          allWolvesVoted: true,
+          newIndex: advanceResult.newIndex,
+          voteCount,
+          totalWolves,
+        };
+      }
+      
+      return {
+        success: true,
+        allWolvesVoted: false,
+        voteCount,
+        totalWolves,
+      };
+    }
+    
+    return { success: true };
+  }
+
+  /**
+   * V2: Start the game. Only host can call this.
+   */
+  async startGame(
+    roomNumber: string,
+    hostUid: string
+  ): Promise<{
+    success: boolean;
+    roomStatus?: number;
+    error?: string;
+  }> {
+    this.ensureConfigured();
+    
+    // Use update_room_status to change from ready (3) to ongoing (4)
+    const { data, error } = await supabase!
+      .rpc('update_room_status', {
+        p_room_number: roomNumber,
+        p_new_status: 4,  // ongoing
+        p_expected_status: 3,  // ready
+        p_host_uid: hostUid,
+        p_reset_fields: false,
+      });
+    
+    if (error) {
+      console.error('[RoomService] startGame RPC error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log('[RoomService] startGame result:', data);
+    return {
+      success: data?.success ?? false,
+      roomStatus: data?.new_status,
+      error: data?.error,
+    };
+  }
+
+  /**
+   * V2: Take a seat in the room using atomic_field_update.
+   */
+  async takeSeat(
+    roomNumber: string,
+    seatNumber: number,
+    uid: string,
+    displayName?: string,
+    avatarUrl?: string
+  ): Promise<{
+    success: boolean;
+    alreadySeated?: boolean;
+    allSeated?: boolean;
+    seatedCount?: number;
+    totalSeats?: number;
+    error?: string;
+  }> {
+    this.ensureConfigured();
+    
+    const playerData = {
+      uid,
+      seatNumber,
+      role: null,
+      status: 'alive',
+      skillStatus: 'not_used',
+      hasViewedRole: false,
+      displayName: displayName ?? null,
+      avatarUrl: avatarUrl ?? null,
+    };
+    
+    const { data, error } = await supabase!
+      .rpc('atomic_field_update', {
+        p_room_number: roomNumber,
+        p_field: 'players',
+        p_key: seatNumber.toString(),
+        p_value: playerData,
+        p_condition: 'empty',  // Only take if seat is empty
+      });
+    
+    if (error) {
+      console.error('[RoomService] takeSeat RPC error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    if (!data?.success) {
+      if (data?.error === 'already_taken') {
+        return { success: false, alreadySeated: true, error: 'seat_taken' };
+      }
+      return { success: false, error: data?.error };
+    }
+    
+    // Check if all seats are filled
+    const room = await this.getRoom(roomNumber);
+    if (room) {
+      const seatedCount = Array.from(room.players.values()).filter(p => p !== null).length;
+      const totalSeats = room.template.numberOfPlayers;
+      const allSeated = seatedCount >= totalSeats;
+      
+      if (allSeated && room.roomStatus === 0) {
+        // Advance to seated status
+        await this.updateRoomStatus(roomNumber, 1, 0);
+      }
+      
+      console.log(`[RoomService] takeSeat ${seatNumber}: ${seatedCount}/${totalSeats}`);
+      return {
+        success: true,
+        allSeated,
+        seatedCount,
+        totalSeats,
+      };
+    }
+    
+    return { success: true };
+  }
+
+  /**
+   * V2: Leave a seat in the room using remove_field_key.
+   */
+  async leaveSeat(
+    roomNumber: string,
+    seatNumber: number,
+    uid: string
+  ): Promise<{
+    success: boolean;
+    alreadyEmpty?: boolean;
+    error?: string;
+  }> {
+    this.ensureConfigured();
+    
+    // First verify the player in this seat is the one leaving
+    const room = await this.getRoom(roomNumber);
+    if (room) {
+      const player = room.players.get(seatNumber);
+      if (!player) {
+        return { success: true, alreadyEmpty: true };
+      }
+      if (player.uid !== uid) {
+        return { success: false, error: 'not_your_seat' };
+      }
+    }
+    
+    const { data, error } = await supabase!
+      .rpc('remove_field_key', {
+        p_room_number: roomNumber,
+        p_field: 'players',
+        p_key: seatNumber.toString(),
+      });
+    
+    if (error) {
+      console.error('[RoomService] leaveSeat RPC error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log(`[RoomService] leaveSeat ${seatNumber}:`, data);
+    return {
+      success: data?.success ?? false,
+      error: data?.error,
+    };
+  }
+
+  /**
+   * V2: Restart the game. Only host can call this.
+   * Uses update_room_status with reset_fields=true.
+   */
+  async restartGame(
+    roomNumber: string,
+    hostUid: string
+  ): Promise<{
+    success: boolean;
+    roomStatus?: number;
+    error?: string;
+  }> {
+    this.ensureConfigured();
+    
+    // Use update_room_status with reset_fields=true to reset game state
+    const { data, error } = await supabase!
+      .rpc('update_room_status', {
+        p_room_number: roomNumber,
+        p_new_status: 0,  // waiting
+        p_expected_status: null,  // Any status
+        p_host_uid: hostUid,
+        p_reset_fields: true,  // Reset all game fields
+      });
+    
+    if (error) {
+      console.error('[RoomService] restartGame RPC error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log('[RoomService] restartGame result:', data);
+    return {
+      success: data?.success ?? false,
+      roomStatus: data?.new_status,
+      error: data?.error,
+    };
+  }
+
+  /**
+   * V2: Assign roles to players.
+   * Uses batch_update_players for atomic role assignment.
+   */
+  async assignRoles(
+    roomNumber: string,
+    hostUid: string
+  ): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
+    this.ensureConfigured();
+    
+    // Get room and shuffle roles on client side
+    const room = await this.getRoom(roomNumber);
+    if (!room) {
+      return { success: false, error: 'room_not_found' };
+    }
+    
+    const roles = [...room.template.roles];
+    // Fisher-Yates shuffle
+    for (let i = roles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [roles[i], roles[j]] = [roles[j], roles[i]];
+    }
+    
+    // Build updates object
+    const updates: Record<string, any> = {};
+    room.players.forEach((player, seat) => {
+      if (player) {
+        updates[seat.toString()] = {
+          ...player,
+          role: roles[seat],
+        };
+      }
+    });
+    
+    const { data, error } = await supabase!
+      .rpc('batch_update_players', {
+        p_room_number: roomNumber,
+        p_updates: updates,
+        p_host_uid: hostUid,
+      });
+    
+    if (error) {
+      console.error('[RoomService] assignRoles RPC error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    if (!data?.success) {
+      return { success: false, error: data?.error };
+    }
+    
+    // Update room status to assigned (2)
+    await this.updateRoomStatus(roomNumber, 2, 1, hostUid);
+    
+    return { success: true };
+  }
+
+  /**
+   * V2: Update room template (roles array).
+   */
+  async updateRoomTemplate(
+    roomNumber: string,
+    hostUid: string,
+    roles: RoleName[]
+  ): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
+    this.ensureConfigured();
+    
+    const { data, error } = await supabase!
+      .rpc('update_roles_array', {
+        p_room_number: roomNumber,
+        p_roles: roles,
+        p_host_uid: hostUid,
+      });
+    
+    if (error) {
+      console.error('[RoomService] updateRoomTemplate RPC error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    return {
+      success: data?.success ?? false,
+      error: data?.error,
+    };
   }
 
   // Real-time subscription
@@ -320,6 +869,128 @@ export class RoomService {
       return localStorage.getItem('werewolf_last_room');
     }
     return null;
+  }
+
+  /**
+   * V2: Set audio playing state.
+   * Uses update_room_scalar RPC for atomic update.
+   */
+  async setAudioPlaying(
+    roomNumber: string,
+    isPlaying: boolean
+  ): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
+    this.ensureConfigured();
+    
+    const { data, error } = await supabase!
+      .rpc('update_room_scalar', {
+        p_room_number: roomNumber,
+        p_field: 'is_audio_playing',
+        p_value: isPlaying,
+        p_expected_value: null,
+      });
+    
+    if (error) {
+      console.error('[RoomService] setAudioPlaying RPC error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log('[RoomService] setAudioPlaying result:', data);
+    return {
+      success: data?.success ?? false,
+      error: data?.error,
+    };
+  }
+
+  /**
+   * V2: Update room template (roles array).
+   * Uses update_roles_array RPC for atomic update.
+   * Only host can call this.
+   */
+  async updateRolesArray(
+    roomNumber: string,
+    roles: string[],
+    hostUid: string
+  ): Promise<{
+    success: boolean;
+    rolesCount?: number;
+    error?: string;
+  }> {
+    this.ensureConfigured();
+    
+    const { data, error } = await supabase!
+      .rpc('update_roles_array', {
+        p_room_number: roomNumber,
+        p_roles: roles,
+        p_host_uid: hostUid,
+      });
+    
+    if (error) {
+      console.error('[RoomService] updateRolesArray RPC error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log('[RoomService] updateRolesArray result:', data);
+    return {
+      success: data?.success ?? false,
+      rolesCount: data?.roles_count,
+      error: data?.error,
+    };
+  }
+
+  /**
+   * V2: Batch update players.
+   * Uses batch_update_players RPC for atomic bulk player updates.
+   */
+  async batchUpdatePlayers(
+    roomNumber: string,
+    updates: Record<string, {
+      uid: string;
+      displayName?: string;
+      avatarUrl?: string;
+      role?: string | null;
+    }>,
+    hostUid: string
+  ): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
+    this.ensureConfigured();
+    
+    // Convert updates to proper player format
+    const playerUpdates: Record<string, object> = {};
+    Object.entries(updates).forEach(([seatNumber, playerData]) => {
+      playerUpdates[seatNumber] = {
+        uid: playerData.uid,
+        seatNumber: Number.parseInt(seatNumber, 10),
+        role: playerData.role ?? null,
+        status: 'alive',
+        skillStatus: 'not_used',
+        hasViewedRole: false,
+        displayName: playerData.displayName ?? null,
+        avatarUrl: playerData.avatarUrl ?? null,
+      };
+    });
+    
+    const { data, error } = await supabase!
+      .rpc('batch_update_players', {
+        p_room_number: roomNumber,
+        p_updates: playerUpdates,
+        p_host_uid: hostUid,
+      });
+    
+    if (error) {
+      console.error('[RoomService] batchUpdatePlayers RPC error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log('[RoomService] batchUpdatePlayers result:', data);
+    return {
+      success: data?.success ?? false,
+      error: data?.error,
+    };
   }
 }
 

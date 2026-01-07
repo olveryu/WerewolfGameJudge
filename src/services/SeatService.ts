@@ -1,8 +1,10 @@
-import { Player, createPlayer } from '../models/Player';
-import { RoomStatus } from '../models/Room';
+import { Player } from '../models/Player';
 import { AuthService } from './AuthService';
 import { RoomService } from './RoomService';
 
+/**
+ * V2 SeatService: Uses RPC-based atomic updates for seat operations
+ */
 export class SeatService {
   private static instance: SeatService;
   private readonly authService: AuthService;
@@ -20,6 +22,9 @@ export class SeatService {
     return SeatService.instance;
   }
 
+  /**
+   * V2: Take a seat using atomic RPC update
+   */
   async takeSeat(
     roomNumber: string,
     seatIndex: number,
@@ -27,89 +32,55 @@ export class SeatService {
   ): Promise<number> {
     await this.authService.waitForInit();
     const userId = this.authService.getCurrentUserId();
+    const displayName = await this.authService.getCurrentDisplayName();
+    const avatarUrl = await this.authService.getCurrentAvatarUrl();
+    
     console.log('[SeatService] takeSeat called:', { roomNumber, seatIndex, currentSeat, userId });
     
-    const room = await this.roomService.getRoom(roomNumber);
-    if (!room) {
-      console.log('[SeatService] Room not found');
-      return -1;
-    }
-
-    // Check if seat is taken by someone else
-    const existingPlayer = room.players.get(seatIndex);
-    if (existingPlayer && existingPlayer.uid !== userId) {
-      console.log('[SeatService] Seat taken by someone else:', existingPlayer.uid);
-      return -1;
-    }
-
-    // Check seat index is valid
-    if (seatIndex < 0 || seatIndex >= room.template.numberOfPlayers) {
-      console.log('[SeatService] Invalid seat index:', seatIndex);
-      return -1;
-    }
-
-    // Create new player WITHOUT role (role is assigned later during "准备看牌")
-    const playerId = userId || 'anonymous';
-    const newPlayer = createPlayer(playerId, seatIndex, null);
-    newPlayer.displayName = await this.authService.getCurrentDisplayName();
-    newPlayer.avatarUrl = await this.authService.getCurrentAvatarUrl();
-    console.log('[SeatService] takeSeat - newPlayer:', {
-      uid: newPlayer.uid,
-      displayName: newPlayer.displayName,
-      avatarUrl: newPlayer.avatarUrl,
-      role: newPlayer.role,  // Should be null
-    });
-
-    // Update players map
-    const newPlayers = new Map(room.players);
+    // If switching seats, leave current seat first
     if (currentSeat !== null && currentSeat !== seatIndex) {
       console.log('[SeatService] Leaving current seat:', currentSeat);
-      newPlayers.set(currentSeat, null);
+      await this.roomService.leaveSeat(roomNumber, currentSeat, userId || 'anonymous');
     }
-    newPlayers.set(seatIndex, newPlayer);
     
-    console.log('[SeatService] New players map:');
-    newPlayers.forEach((p, seat) => {
-      console.log(`  Seat ${seat}:`, p ? p.uid : 'null');
-    });
-
-    // Check if all seats are filled
-    let allSeated = true;
-    newPlayers.forEach((p) => {
-      if (!p) allSeated = false;
-    });
-
-    // Update room - change to seated if all seats are filled
-    const updatedRoom = { 
-      ...room, 
-      players: newPlayers,
-      roomStatus: allSeated ? RoomStatus.seated : room.roomStatus,
-    };
-    await this.roomService.updateRoom(roomNumber, updatedRoom);
+    // Take the new seat using V2 RPC
+    const result = await this.roomService.takeSeat(
+      roomNumber,
+      seatIndex,
+      userId || 'anonymous',
+      displayName ?? undefined,
+      avatarUrl ?? undefined
+    );
     
-    console.log('[SeatService] Room updated successfully, allSeated:', allSeated);
+    if (!result.success) {
+      console.log('[SeatService] takeSeat failed:', result.error);
+      return -1;
+    }
+    
+    console.log('[SeatService] takeSeat success, allSeated:', result.allSeated);
     return 0;
   }
 
+  /**
+   * V2: Leave a seat using atomic RPC update
+   */
   async leaveSeat(roomNumber: string, seatIndex: number): Promise<void> {
-    const room = await this.roomService.getRoom(roomNumber);
-    if (!room) return;
-
-    const newPlayers = new Map(room.players);
-    newPlayers.set(seatIndex, null);
-
-    // If someone leaves, go back to unseated
-    const updatedRoom = { 
-      ...room, 
-      players: newPlayers,
-      roomStatus: RoomStatus.unseated,
-    };
-    await this.roomService.updateRoom(roomNumber, updatedRoom);
+    const userId = this.authService.getCurrentUserId();
+    console.log('[SeatService] leaveSeat called:', { roomNumber, seatIndex, userId });
+    
+    const result = await this.roomService.leaveSeat(roomNumber, seatIndex, userId || 'anonymous');
+    
+    if (result.success) {
+      console.log('[SeatService] leaveSeat success');
+    } else {
+      console.log('[SeatService] leaveSeat failed:', result.error);
+    }
   }
 
-  // Fill remaining seats with bots (for testing mode)
-  // Host takes seat 0, bots fill the rest
-  // Note: This fills seats without assigning roles - use assignRoles separately
+  /**
+   * V2: Fill remaining seats with bots using batch update RPC
+   * Host takes seat 0, bots fill the rest
+   */
   async fillWithBots(roomNumber: string): Promise<number> {
     await this.authService.waitForInit();
     const userId = this.authService.getCurrentUserId();
@@ -117,52 +88,81 @@ export class SeatService {
     const room = await this.roomService.getRoom(roomNumber);
     if (!room) return 0;
 
-    const newPlayers = new Map<number, Player>();
+    // Build player updates for batch operation
+    const playerUpdates: Record<string, {
+      uid: string;
+      displayName?: string;
+      avatarUrl?: string;
+      role?: string | null;
+    }> = {};
+    
     let filledCount = 0;
+    const hostDisplayName = await this.authService.getCurrentDisplayName();
+    const hostAvatarUrl = await this.authService.getCurrentAvatarUrl();
 
     for (let index = 0; index < room.template.numberOfPlayers; index++) {
       if (index === 0) {
         // Host takes seat 0
-        const hostPlayer = createPlayer(userId || 'host', 0, null);
-        hostPlayer.displayName = await this.authService.getCurrentDisplayName();
-        hostPlayer.avatarUrl = await this.authService.getCurrentAvatarUrl();
-        newPlayers.set(0, hostPlayer);
+        playerUpdates[index.toString()] = {
+          uid: userId || 'host',
+          displayName: hostDisplayName ?? undefined,
+          avatarUrl: hostAvatarUrl ?? undefined,
+        };
       } else {
         // Bots fill the rest
         const botId = `bot_${index}_${Math.random().toString(36).substring(2, 8)}`;
-        const botPlayer = createPlayer(botId, index, null);
-        botPlayer.displayName = this.authService.generateDisplayName(botId);
-        newPlayers.set(index, botPlayer);
+        playerUpdates[index.toString()] = {
+          uid: botId,
+          displayName: this.authService.generateDisplayName(botId),
+        };
       }
       filledCount++;
     }
 
-    // All seats filled, set status to seated
-    const updatedRoom = { 
-      ...room, 
-      players: newPlayers,
-      roomStatus: RoomStatus.seated,
-    };
-    await this.roomService.updateRoom(roomNumber, updatedRoom);
+    // Use batch_update_players RPC
+    const result = await this.roomService.batchUpdatePlayers(
+      roomNumber,
+      playerUpdates,
+      userId || 'host'
+    );
     
-    console.log(`[SeatService] Test mode: host at seat 0, filled ${filledCount - 1} seats with bots, status -> seated`);
+    if (!result.success) {
+      console.error('[SeatService] fillWithBots failed:', result.error);
+      return 0;
+    }
+    
+    console.log(`[SeatService] Test mode: host at seat 0, filled ${filledCount - 1} seats with bots`);
     return filledCount;
   }
 
-  // Update a single player seat
+  /**
+   * V2: Update a single player seat using atomic field update
+   */
   async updatePlayerSeat(
     roomNumber: string,
     seatIndex: number,
     player: Player | null
   ): Promise<void> {
-    const room = await this.roomService.getRoom(roomNumber);
-    if (!room) return;
-
-    const newPlayers = new Map(room.players);
-    newPlayers.set(seatIndex, player);
-
-    const updatedRoom = { ...room, players: newPlayers };
-    await this.roomService.updateRoom(roomNumber, updatedRoom);
+    if (player === null) {
+      // Remove player from seat
+      const userId = this.authService.getCurrentUserId();
+      const result = await this.roomService.leaveSeat(roomNumber, seatIndex, userId || 'anonymous');
+      if (!result.success) {
+        console.error('[SeatService] updatePlayerSeat (remove) failed:', result.error);
+      }
+    } else {
+      // Set player at seat - use takeSeat
+      const result = await this.roomService.takeSeat(
+        roomNumber,
+        seatIndex,
+        player.uid,
+        player.displayName ?? undefined,
+        player.avatarUrl ?? undefined
+      );
+      if (!result.success) {
+        console.error('[SeatService] updatePlayerSeat (set) failed:', result.error);
+      }
+    }
   }
 }
 

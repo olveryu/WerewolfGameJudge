@@ -517,7 +517,7 @@ describe('Room - 白狼王 (Wolf King)', () => {
 });
 
 describe('updateRoomTemplate', () => {
-  it('should update template and clear all players when player count changes', () => {
+  it('should update template and preserve existing players when player count changes', () => {
     // Create a room with 4 players
     const roles4: RoleName[] = ['wolf', 'seer', 'villager', 'villager'];
     const room = createTestRoom(roles4);
@@ -543,12 +543,20 @@ describe('updateRoomTemplate', () => {
     expect(updatedRoom.template.roles).toEqual(newRoles);
     expect(updatedRoom.players.size).toBe(6);
     
-    // All players should be null (empty seats)
-    updatedRoom.players.forEach((player) => {
-      expect(player).toBeNull();
-    });
+    // Existing players (seats 0-3) should be preserved but roles cleared
+    for (let i = 0; i < 4; i++) {
+      const player = updatedRoom.players.get(i);
+      expect(player).not.toBeNull();
+      expect(player?.uid).toBe(`player_${i}`);
+      expect(player?.role).toBeNull();
+      expect(player?.hasViewedRole).toBe(false);
+    }
     
-    // Room should be reset to unseated status
+    // New seats (4-5) should be empty
+    expect(updatedRoom.players.get(4)).toBeNull();
+    expect(updatedRoom.players.get(5)).toBeNull();
+    
+    // Room should be reset to unseated status (because new seats are empty)
     expect(updatedRoom.roomStatus).toBe(RoomStatus.unseated);
     expect(updatedRoom.currentActionerIndex).toBe(0);
     expect(updatedRoom.actions.size).toBe(0);
