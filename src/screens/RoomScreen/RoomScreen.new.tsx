@@ -155,7 +155,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     isAudioPlaying,
     hasBots,
     createRoom,
-    joinRoom,
     takeSeat,
     leaveSeat,
     assignRoles,
@@ -229,21 +228,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           setShowRetryButton(true);
         }
       } else {
-        // Player joins existing room via BroadcastService
-        setLoadingMessage('正在加入房间...');
-        const joined = await joinRoom(roomNumber);
-        
-        if (joined) {
-          setIsInitialized(true);
-        } else {
-          setLoadingMessage('加入房间失败');
-          setShowRetryButton(true);
-        }
+        // Player joins existing room
+        // Note: In new architecture, player joins via BroadcastService
+        // For now, just mark as initialized - the hook handles joining
+        setIsInitialized(true);
       }
     };
     
     initRoom();
-  }, [isInitialized, isHostParam, template, roomNumber, createRoom, joinRoom, takeSeat]);
+  }, [isInitialized, isHostParam, template, createRoom, takeSeat]);
 
   // Track when first night ends
   useEffect(() => {

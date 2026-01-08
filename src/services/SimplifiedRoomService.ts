@@ -1,0 +1,181 @@
+/**
+ * SimplifiedRoomService - Minimal Supabase room storage
+ * 
+ * This service ONLY handles basic room record in Supabase.
+ * All game state is managed by GameStateService (in-memory on Host).
+ * 
+ * Supabase rooms table schema (simplified):
+ * - id: uuid (primary key)
+ * - code: text (unique, 4-digit room code)
+ * - host_id: text
+ * - created_at: timestamptz
+ * - updated_at: timestamptz
+ */
+
+import { supabase, isSupabaseConfigured } from '../config/supabase';
+
+// Minimal room record stored in Supabase
+export interface RoomRecord {
+  roomNumber: string;
+  hostUid: string;
+  createdAt: Date;
+}
+
+// Database row format
+interface DbRoomRecord {
+  id: string;
+  code: string;
+  host_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export class SimplifiedRoomService {
+  private static instance: SimplifiedRoomService;
+
+  private constructor() {}
+
+  static getInstance(): SimplifiedRoomService {
+    if (!SimplifiedRoomService.instance) {
+      SimplifiedRoomService.instance = new SimplifiedRoomService();
+    }
+    return SimplifiedRoomService.instance;
+  }
+
+  private isConfigured(): boolean {
+    return isSupabaseConfigured() && supabase !== null;
+  }
+
+  private ensureConfigured(): void {
+    if (!this.isConfigured()) {
+      throw new Error('Supabase is not configured');
+    }
+  }
+
+  /**
+   * Generate a unique 4-digit room number
+   */
+  async generateRoomNumber(): Promise<string> {
+    this.ensureConfigured();
+
+    const maxAttempts = 10;
+    for (let i = 0; i < maxAttempts; i++) {
+      const roomNumber = Math.floor(1000 + Math.random() * 9000).toString();
+      
+      // Check if room exists (use maybeSingle to avoid 406 on no match)
+      const { data, error } = await supabase!
+        .from('rooms')
+        .select('code')
+        .eq('code', roomNumber)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[SimplifiedRoomService] Error checking room:', error);
+        continue;
+      }
+
+      if (!data) {
+        // Room doesn't exist, we can use this number
+        return roomNumber;
+      }
+    }
+
+    throw new Error('Failed to generate unique room number');
+  }
+
+  /**
+   * Create a new room record
+   */
+  async createRoom(roomNumber: string, hostUid: string): Promise<RoomRecord> {
+    this.ensureConfigured();
+
+    const { error } = await supabase!
+      .from('rooms')
+      .insert({
+        code: roomNumber,
+        host_id: hostUid,
+      });
+
+    if (error) {
+      throw new Error(`Failed to create room: ${error.message}`);
+    }
+
+    return {
+      roomNumber,
+      hostUid,
+      createdAt: new Date(),
+    };
+  }
+
+  /**
+   * Check if a room exists and get its host
+   */
+  async getRoom(roomNumber: string): Promise<RoomRecord | null> {
+    this.ensureConfigured();
+
+    const { data, error } = await supabase!
+      .from('rooms')
+      .select('id, code, host_id, created_at')
+      .eq('code', roomNumber)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    const dbRoom = data as DbRoomRecord;
+    return {
+      roomNumber: dbRoom.code,
+      hostUid: dbRoom.host_id,
+      createdAt: new Date(dbRoom.created_at),
+    };
+  }
+
+  /**
+   * Check if a room exists
+   */
+  async roomExists(roomNumber: string): Promise<boolean> {
+    const room = await this.getRoom(roomNumber);
+    return room !== null;
+  }
+
+  /**
+   * Delete a room (cleanup)
+   */
+  async deleteRoom(roomNumber: string): Promise<void> {
+    this.ensureConfigured();
+
+    const { error } = await supabase!
+      .from('rooms')
+      .delete()
+      .eq('code', roomNumber);
+
+    if (error) {
+      console.error('[SimplifiedRoomService] Failed to delete room:', error);
+    }
+  }
+
+  /**
+   * Clean up old rooms (more than 2 hours old)
+   */
+  async cleanupOldRooms(): Promise<number> {
+    this.ensureConfigured();
+
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+
+    const { data, error } = await supabase!
+      .from('rooms')
+      .delete()
+      .lt('created_at', twoHoursAgo)
+      .select('code');
+
+    if (error) {
+      console.error('[SimplifiedRoomService] Cleanup error:', error);
+      return 0;
+    }
+
+    return data?.length ?? 0;
+  }
+}
+
+export default SimplifiedRoomService;

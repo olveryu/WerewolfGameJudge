@@ -1,6 +1,7 @@
 import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from './Player';
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
 import { RoleName, ROLES, isWolfRole } from './roles';
+import { NightPhase } from './NightPhase';
 
 // Room status
 export enum RoomStatus {
@@ -9,6 +10,17 @@ export enum RoomStatus {
   assigned = 2,  // 角色已分配，等待所有人查看身份
   ready = 3,     // 所有人已看身份，可以开始游戏
   ongoing = 4,   // 游戏进行中
+}
+
+// =============================================================================
+// Common interface for Room-like objects (supports both Room and LocalGameState)
+// =============================================================================
+export interface GameRoomLike {
+  template: GameTemplate;
+  players: Map<number, { uid: string; seatNumber: number; role: RoleName | null; hasViewedRole: boolean; displayName?: string; avatarUrl?: string | null } | null>;
+  actions: Map<RoleName, number>;
+  wolfVotes: Map<number, number>;
+  currentActionerIndex: number;
 }
 
 // Database keys matching Flutter (for Supabase serialization)
@@ -23,6 +35,7 @@ export const ROOM_KEYS = {
   wolfVotes: 'wolfVotes',
   currentActionerIndex: 'currentActionerIndex',
   isAudioPlaying: 'isAudioPlaying',
+  nightPhase: 'nightPhase',  // V2: Server-driven night phase state
 } as const;
 
 export interface Room {
@@ -36,6 +49,7 @@ export interface Room {
   wolfVotes: Map<number, number>; // Wolf seat -> target seat (for wolf voting)
   currentActionerIndex: number;
   isAudioPlaying: boolean; // Whether host is playing audio for current action
+  nightPhase?: NightPhase | null; // V2: Optional server-driven night phase state (for future use)
 }
 
 // Create a new room
@@ -138,7 +152,7 @@ export const roomFromDb = (
 };
 
 // Get current actioner role
-export const getCurrentActionRole = (room: Room): RoleName | null => {
+export const getCurrentActionRole = (room: GameRoomLike): RoleName | null => {
   const { currentActionerIndex } = room;
   const actionOrder = room.template.actionOrder;
 
@@ -150,7 +164,7 @@ export const getCurrentActionRole = (room: Room): RoleName | null => {
 };
 
 // Get last actioner role
-export const getLastActionRole = (room: Room): RoleName | null => {
+export const getLastActionRole = (room: GameRoomLike): RoleName | null => {
   const { currentActionerIndex } = room;
   const actionOrder = room.template.actionOrder;
 
@@ -162,11 +176,11 @@ export const getLastActionRole = (room: Room): RoleName | null => {
 };
 
 // Check if template has skilled wolves
-export const roomHasSkilledWolf = (room: Room): boolean =>
+export const roomHasSkilledWolf = (room: GameRoomLike): boolean =>
   templateHasSkilledWolf(room.template);
 
 // Get all wolf seats in the room
-export const getAllWolfSeats = (room: Room): number[] => {
+export const getAllWolfSeats = (room: GameRoomLike): number[] => {
   const wolfSeats: number[] = [];
   room.players.forEach((player, seat) => {
     if (player?.role && isWolfRole(player.role)) {
@@ -178,7 +192,7 @@ export const getAllWolfSeats = (room: Room): number[] => {
 };
 
 // Get the wolf player index that should act (smallest seat number among all wolves)
-export const getActionWolfIndex = (room: Room): number => {
+export const getActionWolfIndex = (room: GameRoomLike): number => {
   const wolfSeats = getAllWolfSeats(room);
   return wolfSeats.length > 0 ? wolfSeats[0] : -1;
 };
@@ -195,7 +209,7 @@ export const recordWolfVote = (
 
 // Calculate the final wolf kill target based on votes
 // Returns -1 (empty kill) if there's a tie
-export const calculateWolfKillTarget = (room: Room): number => {
+export const calculateWolfKillTarget = (room: GameRoomLike): number => {
   const wolfSeats = getAllWolfSeats(room);
   
   // Count votes for each target
@@ -232,24 +246,24 @@ export const calculateWolfKillTarget = (room: Room): number => {
 };
 
 // Check if all wolves have voted
-export const allWolvesVoted = (room: Room): boolean => {
+export const allWolvesVoted = (room: GameRoomLike): boolean => {
   const wolfSeats = getAllWolfSeats(room);
   return wolfSeats.every((seat) => room.wolfVotes.has(seat));
 };
 
 // Check if a specific wolf has voted
-export const hasWolfVoted = (room: Room, seatNumber: number): boolean => {
+export const hasWolfVoted = (room: GameRoomLike, seatNumber: number): boolean => {
   return room.wolfVotes.has(seatNumber);
 };
 
 // Get wolves who haven't voted yet
-export const getWolvesNotVoted = (room: Room): number[] => {
+export const getWolvesNotVoted = (room: GameRoomLike): number[] => {
   const wolfSeats = getAllWolfSeats(room);
   return wolfSeats.filter((seat) => !room.wolfVotes.has(seat));
 };
 
 // Get wolf vote summary for display
-export const getWolfVoteSummary = (room: Room): string => {
+export const getWolfVoteSummary = (room: GameRoomLike): string => {
   const wolfSeats = getAllWolfSeats(room);
   const voted = wolfSeats.filter((seat) => room.wolfVotes.has(seat));
   return `${voted.length}/${wolfSeats.length} 狼人已投票`;
@@ -257,7 +271,7 @@ export const getWolfVoteSummary = (room: Room): string => {
 
 // Get killed index from wolf action
 // Priority: actions['wolf'] (set by RPC) > calculate from wolfVotes (legacy)
-export const getKilledIndex = (room: Room): number => {
+export const getKilledIndex = (room: GameRoomLike): number => {
   // Prefer actions['wolf'] - this is set atomically by the RPC when all wolves vote
   const actionResult = room.actions.get('wolf');
   if (actionResult !== undefined) {
@@ -271,7 +285,7 @@ export const getKilledIndex = (room: Room): number => {
 };
 
 // Check hunter status (can shoot or not)
-export const getHunterStatus = (room: Room): boolean => {
+export const getHunterStatus = (room: GameRoomLike): boolean => {
   const killedByWitch = room.actions.get('witch');
   const linkedByWolfQueen = room.actions.get('wolfQueen');
   const nightmared = room.actions.get('nightmare');
@@ -300,7 +314,7 @@ export const getHunterStatus = (room: Room): boolean => {
 };
 
 // Check dark wolf king status (can use skill if not poisoned by witch)
-export const getDarkWolfKingStatus = (room: Room): boolean => {
+export const getDarkWolfKingStatus = (room: GameRoomLike): boolean => {
   const killedByWitch = room.actions.get('witch');
 
   let darkWolfKingSeat = -1;
@@ -320,7 +334,7 @@ export const getDarkWolfKingStatus = (room: Room): boolean => {
 };
 
 // Check if current actioner's skill is blocked by nightmare
-export const isCurrentActionerSkillBlocked = (room: Room): boolean => {
+export const isCurrentActionerSkillBlocked = (room: GameRoomLike): boolean => {
   if (!room.template.roles.includes('nightmare')) return false;
 
   const nightmaredIndex = room.actions.get('nightmare');
@@ -358,8 +372,8 @@ function parseMagicianAction(magicianAction: number | undefined): { firstExchang
   };
 }
 
-// Find special role seats
-function findSpecialRoleSeats(room: Room): { queenIndex?: number; celebrityIndex?: number; witcherIndex?: number } {
+// Find special role seats (works with GameRoomLike)
+function findSpecialRoleSeats(room: GameRoomLike): { queenIndex?: number; celebrityIndex?: number; witcherIndex?: number } {
   let queenIndex: number | undefined;
   let celebrityIndex: number | undefined;
   let witcherIndex: number | undefined;
@@ -389,7 +403,7 @@ function applyMagicianSwap(deaths: Set<number>, firstExchanged?: number, secondE
   }
 }
 
-export const getLastNightInfo = (room: Room): string => {
+export const getLastNightInfo = (room: GameRoomLike): string => {
   const killedByWolf = room.actions.get('wolf');
   const witchAction = room.actions.get('witch');
   const { killedByWitch, savedByWitch } = parseWitchAction(witchAction);
@@ -446,7 +460,7 @@ export const getLastNightInfo = (room: Room): string => {
 };
 
 // Get action log for all completed actions in the current night
-export const getActionLog = (room: Room): string[] => {
+export const getActionLog = (room: GameRoomLike): string[] => {
   const logs: string[] = [];
   
   // Go through action order to show completed actions
@@ -501,7 +515,7 @@ export const getActionLog = (room: Room): string[] => {
 };
 
 // Get room info string
-export const getRoomInfo = (room: Room): string => {
+export const getRoomInfo = (room: GameRoomLike): string => {
   const villagerCount = room.template.roles.filter((r) => r === 'villager').length;
   const wolfCount = room.template.roles.filter((r) => r === 'wolf').length;
 
@@ -518,7 +532,7 @@ export const getRoomInfo = (room: Room): string => {
 };
 
 // Perform seer action (check player identity)
-export const performSeerAction = (room: Room, targetSeat: number): string => {
+export const performSeerAction = (room: GameRoomLike, targetSeat: number): string => {
   const targetPlayer = room.players.get(targetSeat);
   if (!targetPlayer) return '好人';
 
@@ -541,7 +555,7 @@ export const performSeerAction = (room: Room, targetSeat: number): string => {
 };
 
 // Perform psychic action (check exact role)
-export const performPsychicAction = (room: Room, targetSeat: number): string => {
+export const performPsychicAction = (room: GameRoomLike, targetSeat: number): string => {
   // Check if wolf robot learned this player's role
   const wolfRobotAction = room.actions.get('wolfRobot');
   let wolfRobotSeat = -1;
@@ -702,7 +716,7 @@ export const markPlayerViewedRole = (room: Room, seatNumber: number): Room => {
 };
 
 // Get list of players who haven't viewed their role
-export const getPlayersNotViewedRole = (room: Room): number[] => {
+export const getPlayersNotViewedRole = (room: GameRoomLike): number[] => {
   const notViewed: number[] = [];
   room.players.forEach((player, seat) => {
     if (player && !player.hasViewedRole) {
@@ -713,7 +727,7 @@ export const getPlayersNotViewedRole = (room: Room): number[] => {
 };
 
 // Check if all players have viewed their roles
-export const allPlayersViewedRoles = (room: Room): boolean => {
+export const allPlayersViewedRoles = (room: GameRoomLike): boolean => {
   return getPlayersNotViewedRole(room).length === 0;
 };
 
@@ -802,7 +816,7 @@ export interface NightResult {
 }
 
 // Calculate night result based on actions
-export const getNightResult = (room: Room): NightResult => {
+export const getNightResult = (room: GameRoomLike): NightResult => {
   const wolfAction = room.actions.get('wolf') ?? null;
   const witchAction = room.actions.get('witch') ?? null;
   const seerAction = room.actions.get('seer') ?? null;

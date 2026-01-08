@@ -1,1 +1,0 @@
-GRANT EXECUTE ON FUNCTION public.update_roles_array TO anon, authenticated;
