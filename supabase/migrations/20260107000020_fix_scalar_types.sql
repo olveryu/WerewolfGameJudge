@@ -1,3 +1,4 @@
+-- Fix update_room_scalar to properly cast JSONB to correct types
 CREATE OR REPLACE FUNCTION public.update_room_scalar(p_room_number TEXT, p_field TEXT, p_value JSONB)
 RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 AS $$ 
@@ -13,7 +14,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'room_not_found'); 
   END IF;
   
-  -- Handle different field types
+  -- Handle different field types by casting JSONB to proper type
   IF p_field = 'is_audio_playing' THEN
     UPDATE public.rooms SET is_audio_playing = (p_value)::boolean WHERE room_number = p_room_number;
   ELSIF p_field = 'current_actioner_index' THEN
