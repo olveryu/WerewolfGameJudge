@@ -16,6 +16,7 @@ import { GameTemplate, createTemplateFromRoles } from '../models/Template';
 import { BroadcastService, BroadcastGameState, BroadcastPlayer, HostBroadcast, PlayerMessage } from './BroadcastService';
 import AudioService from './AudioService';
 import { NightFlowController, NightPhase, NightEvent, InvalidNightTransitionError } from './NightFlowController';
+import { calculateDeaths, type NightActions, type RoleSeatMap } from './DeathCalculator';
 
 // Import types/enums needed internally
 import {
@@ -906,8 +907,8 @@ export class GameStateService {
       }
     }
 
-    // Calculate deaths
-    const deaths = this.calculateDeaths();
+    // Calculate deaths using DeathCalculator
+    const deaths = this.doCalculateDeaths();
     this.state.lastNightDeaths = deaths;
     this.state.status = GameStatus.ended;
 
@@ -1100,108 +1101,82 @@ export class GameStateService {
     return topTargets[0];
   }
 
-  private calculateDeaths(): number[] {
+  /**
+   * Build NightActions from internal actions Map (decode encoding)
+   */
+  private buildNightActions(): NightActions {
+    if (!this.state) return {};
+
+    const actions = this.state.actions;
+    const nightActions: NightActions = {};
+
+    // Wolf kill
+    const wolfKill = actions.get('wolf');
+    if (wolfKill !== undefined && wolfKill !== -1) {
+      nightActions.wolfKill = wolfKill;
+    }
+
+    // Guard protect
+    const guardProtect = actions.get('guard');
+    if (guardProtect !== undefined && guardProtect !== -1) {
+      nightActions.guardProtect = guardProtect;
+    }
+
+    // Witch action (decode: >=0 = save, <0 = poison)
+    const witchAction = actions.get('witch');
+    if (witchAction !== undefined) {
+      if (witchAction >= 0) {
+        nightActions.witchSave = witchAction;
+      } else {
+        nightActions.witchPoison = -(witchAction + 1);
+      }
+    }
+
+    // Wolf Queen charm
+    const wolfQueenCharm = actions.get('wolfQueen');
+    if (wolfQueenCharm !== undefined) {
+      nightActions.wolfQueenCharm = wolfQueenCharm;
+    }
+
+    // Celebrity dream
+    const celebrityDream = actions.get('celebrity');
+    if (celebrityDream !== undefined) {
+      nightActions.celebrityDream = celebrityDream;
+    }
+
+    // Magician swap (decode: first = action % 100, second = action / 100)
+    const magicianAction = actions.get('magician');
+    if (magicianAction !== undefined && magicianAction !== -1) {
+      nightActions.magicianSwap = {
+        first: magicianAction % 100,
+        second: Math.floor(magicianAction / 100),
+      };
+    }
+
+    return nightActions;
+  }
+
+  /**
+   * Build RoleSeatMap for death calculation context
+   */
+  private buildRoleSeatMap(): RoleSeatMap {
+    return {
+      witcher: this.findSeatByRole('witcher'),
+      wolfQueen: this.findSeatByRole('wolfQueen'),
+      celebrity: this.findSeatByRole('celebrity'),
+    };
+  }
+
+  /**
+   * Calculate deaths using DeathCalculator
+   */
+  private doCalculateDeaths(): number[] {
     if (!this.state) return [];
 
-    const deaths = new Set<number>();
-    const actions = this.state.actions;
+    const nightActions = this.buildNightActions();
+    const roleSeatMap = this.buildRoleSeatMap();
 
-    // Process wolf kill
-    this.processWolfKill(actions, deaths);
-    
-    // Process witch poison
-    this.processWitchPoison(actions, deaths);
-    
-    // Process wolf queen link
-    this.processWolfQueenLink(actions, deaths);
-    
-    // Process celebrity protection
-    this.processCelebrityEffect(actions, deaths);
-    
-    // Process magician swap
-    this.processMagicianSwap(actions, deaths);
-
-    return Array.from(deaths).sort((a, b) => a - b);
-  }
-
-  private parseWitchAction(witchAction: number | undefined): { saved: number | null; poisoned: number | null } {
-    if (witchAction === undefined) {
-      return { saved: null, poisoned: null };
-    }
-    if (witchAction >= 0) {
-      return { saved: witchAction, poisoned: null };
-    }
-    return { saved: null, poisoned: -(witchAction + 1) };
-  }
-
-  private processWolfKill(actions: Map<RoleName, number>, deaths: Set<number>): void {
-    const killedByWolf = actions.get('wolf');
-    if (killedByWolf === undefined || killedByWolf === -1) return;
-
-    const { saved: savedByWitch } = this.parseWitchAction(actions.get('witch'));
-    const guardedBy = actions.get('guard');
-    
-    const isSaved = savedByWitch === killedByWolf;
-    const isGuarded = guardedBy === killedByWolf;
-    
-    // 同守同救必死, or not saved and not guarded = dies
-    const diesFromWolf = (isSaved && isGuarded) || (!isSaved && !isGuarded);
-    if (diesFromWolf) {
-      deaths.add(killedByWolf);
-    }
-  }
-
-  private processWitchPoison(actions: Map<RoleName, number>, deaths: Set<number>): void {
-    const { poisoned: poisonedByWitch } = this.parseWitchAction(actions.get('witch'));
-    if (poisonedByWitch === null) return;
-
-    // Check for witcher immunity
-    const witcherSeat = this.findSeatByRole('witcher');
-    if (witcherSeat !== poisonedByWitch) {
-      deaths.add(poisonedByWitch);
-    }
-  }
-
-  private processWolfQueenLink(actions: Map<RoleName, number>, deaths: Set<number>): void {
-    const linkedBy = actions.get('wolfQueen');
-    if (linkedBy === undefined) return;
-
-    const queenSeat = this.findSeatByRole('wolfQueen');
-    if (queenSeat !== -1 && deaths.has(queenSeat)) {
-      deaths.add(linkedBy);
-    }
-  }
-
-  private processCelebrityEffect(actions: Map<RoleName, number>, deaths: Set<number>): void {
-    const dreamer = actions.get('celebrity');
-    if (dreamer === undefined) return;
-
-    // Celebrity protects dreamer
-    deaths.delete(dreamer);
-
-    // If celebrity dies, dreamer also dies
-    const celebritySeat = this.findSeatByRole('celebrity');
-    if (celebritySeat !== -1 && deaths.has(celebritySeat)) {
-      deaths.add(dreamer);
-    }
-  }
-
-  private processMagicianSwap(actions: Map<RoleName, number>, deaths: Set<number>): void {
-    const magicianAction = actions.get('magician');
-    if (magicianAction === undefined || magicianAction === -1) return;
-
-    const first = magicianAction % 100;
-    const second = Math.floor(magicianAction / 100);
-    const firstDead = deaths.has(first);
-    const secondDead = deaths.has(second);
-
-    if (firstDead && !secondDead) {
-      deaths.delete(first);
-      deaths.add(second);
-    } else if (!firstDead && secondDead) {
-      deaths.delete(second);
-      deaths.add(first);
-    }
+    return calculateDeaths(nightActions, roleSeatMap);
   }
 
   private findSeatByRole(role: RoleName): number {
