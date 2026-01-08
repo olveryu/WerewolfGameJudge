@@ -21,7 +21,7 @@ const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUP
 export const isSupabaseConfigured = (): boolean => {
   return SUPABASE_URL !== 'YOUR_SUPABASE_URL' && 
          SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY' &&
-         SUPABASE_URL.startsWith('https://');
+         (SUPABASE_URL.startsWith('https://') || SUPABASE_URL.startsWith('http://'));
 };
 
 // Only create Supabase client if properly configured
