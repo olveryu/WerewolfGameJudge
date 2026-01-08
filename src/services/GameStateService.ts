@@ -17,6 +17,7 @@ import { BroadcastService, BroadcastGameState, BroadcastPlayer, HostBroadcast, P
 import AudioService from './AudioService';
 import { NightFlowController, NightPhase, NightEvent, InvalidNightTransitionError } from './NightFlowController';
 import { calculateDeaths, type NightActions, type RoleSeatMap } from './DeathCalculator';
+import { resolveWolfVotes } from './WolfVoteResolver';
 
 // Import types/enums needed internally
 import {
@@ -393,9 +394,9 @@ export class GameStateService {
     const allVoted = allWolfSeats.every(s => this.state!.wolfVotes.has(s));
 
     if (allVoted) {
-      // Calculate final target
-      const finalTarget = this.calculateWolfKillTarget();
-      if (finalTarget !== -1) {
+      // Calculate final target using extracted resolver
+      const finalTarget = resolveWolfVotes(this.state.wolfVotes);
+      if (finalTarget !== null) {
         this.state.actions.set('wolf', finalTarget);
       }
       await this.advanceToNextAction();
@@ -1068,37 +1069,6 @@ export class GameStateService {
       }
     });
     return seats.sort((a, b) => a - b);
-  }
-
-  private calculateWolfKillTarget(): number {
-    if (!this.state) return -1;
-
-    const wolfSeats = this.getAllWolfSeats();
-    const voteCount = new Map<number, number>();
-
-    wolfSeats.forEach(seat => {
-      const target = this.state!.wolfVotes.get(seat);
-      if (target !== undefined && target !== -1) {
-        voteCount.set(target, (voteCount.get(target) ?? 0) + 1);
-      }
-    });
-
-    if (voteCount.size === 0) return -1;
-
-    let maxVotes = 0;
-    voteCount.forEach(count => {
-      if (count > maxVotes) maxVotes = count;
-    });
-
-    const topTargets: number[] = [];
-    voteCount.forEach((count, target) => {
-      if (count === maxVotes) topTargets.push(target);
-    });
-
-    // Tie = empty kill
-    if (topTargets.length > 1) return -1;
-
-    return topTargets[0];
   }
 
   /**
