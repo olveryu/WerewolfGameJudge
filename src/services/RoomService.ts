@@ -922,7 +922,6 @@ export class RoomService {
         p_room_number: roomNumber,
         p_field: 'is_audio_playing',
         p_value: isPlaying,
-        p_expected_value: null,
       });
     
     if (error) {

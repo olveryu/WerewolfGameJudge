@@ -132,6 +132,17 @@ export class SeatService {
     }
     
     console.log(`[SeatService] Test mode: host at seat 0, filled ${filledCount - 1} seats with bots`);
+    
+    // All seats are now filled, update room status from unseated(0) to seated(1)
+    if (room.roomStatus === 0) {
+      const statusResult = await this.roomService.updateRoomStatus(roomNumber, 1, 0);
+      if (statusResult.success) {
+        console.log('[SeatService] Room status updated to seated(1)');
+      } else {
+        console.warn('[SeatService] Failed to update room status:', statusResult.error);
+      }
+    }
+    
     return filledCount;
   }
 

@@ -1491,7 +1491,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Host: Settings - modify room config (available before game is ongoing) */}
         {isHost && !isStartingGame && !isAudioPlaying && (room.roomStatus === RoomStatus.unseated || room.roomStatus === RoomStatus.seated || room.roomStatus === RoomStatus.assigned || room.roomStatus === RoomStatus.ready) && (
           <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: '#6B7280' }]} 
+            style={[styles.actionButton, { backgroundColor: '#6366F1' }]} 
             onPress={() => navigation.navigate('Config', { existingRoomNumber: roomNumber })}
           >
             <Text style={styles.buttonText}>⚙️ 设置</Text>

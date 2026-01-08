@@ -22,7 +22,7 @@ import { spacing, colors } from '../../constants/theme';
 import { styles } from './ConfigScreen.styles';
 
 // Bot mode password
-const BOT_MODE_PASSWORD = '469022042';
+const BOT_MODE_PASSWORD = '369';
 
 // ============================================
 // Sub-components (extracted to avoid nested component definitions)
