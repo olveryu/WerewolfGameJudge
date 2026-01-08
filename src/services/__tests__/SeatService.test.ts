@@ -8,6 +8,7 @@ const mockGetRoom = jest.fn();
 const mockTakeSeat = jest.fn();
 const mockLeaveSeat = jest.fn();
 const mockBatchUpdatePlayers = jest.fn();
+const mockUpdateRoomStatus = jest.fn();
 const mockWaitForInit = jest.fn().mockResolvedValue(undefined);
 const mockGetCurrentUserId = jest.fn();
 const mockGetCurrentDisplayName = jest.fn();
@@ -21,6 +22,7 @@ jest.mock('../RoomService', () => ({
       takeSeat: mockTakeSeat,
       leaveSeat: mockLeaveSeat,
       batchUpdatePlayers: mockBatchUpdatePlayers,
+      updateRoomStatus: mockUpdateRoomStatus,
     })),
   },
 }));
@@ -171,6 +173,7 @@ describe('SeatService - fillWithBots (V2 RPC)', () => {
     mockGetCurrentDisplayName.mockResolvedValue('HostUser');
     mockGetCurrentAvatarUrl.mockResolvedValue('https://example.com/host.png');
     mockGenerateDisplayName.mockImplementation((id: string) => `Bot-${id.substring(0, 4)}`);
+    mockUpdateRoomStatus.mockResolvedValue({ success: true });
   });
 
   it('should return 0 when room not found', async () => {
