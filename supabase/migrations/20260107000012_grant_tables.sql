@@ -1,1 +1,0 @@
-GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;

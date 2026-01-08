@@ -12,9 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { RoleName } from '../../models/roles';
 import { PRESET_TEMPLATES, createCustomTemplate } from '../../models/Template';
-import { RoomService } from '../../services/RoomService';
-import { AuthService } from '../../services/AuthService';
-import { SeatService } from '../../services/SeatService';
+import { GameStateService } from '../../services/GameStateService';
 import { showAlert } from '../../utils/alert';
 import { PromptModal } from '../../components/PromptModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -116,9 +114,7 @@ export const ConfigScreen: React.FC = () => {
   const [isFillingBots, setIsFillingBots] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
-  const roomService = RoomService.getInstance();
-  const authService = AuthService.getInstance();
-  const seatService = SeatService.getInstance();
+  const gameStateService = GameStateService.getInstance();
   const selectedCount = Object.values(selection).filter(Boolean).length;
 
   // Load current room's roles when in edit mode
@@ -129,13 +125,14 @@ export const ConfigScreen: React.FC = () => {
       return;
     }
     
-    const loadCurrentRoles = async () => {
+    const loadCurrentRoles = () => {
       console.log('[ConfigScreen] Loading room:', existingRoomNumber);
       try {
-        const room = await roomService.getRoom(existingRoomNumber);
-        console.log('[ConfigScreen] Room loaded:', room ? 'success' : 'not found');
-        if (room) {
-          setSelection(applyPreset(room.template.roles));
+        // Get template from GameStateService (local state)
+        const state = gameStateService.getState();
+        console.log('[ConfigScreen] State loaded:', state ? 'success' : 'not found');
+        if (state?.template) {
+          setSelection(applyPreset(state.template.roles));
         }
       } catch (error) {
         console.error('[ConfigScreen] Failed to load room:', error);
@@ -146,7 +143,7 @@ export const ConfigScreen: React.FC = () => {
     };
     
     loadCurrentRoles();
-  }, [isEditMode, existingRoomNumber, roomService]);
+  }, [isEditMode, existingRoomNumber, gameStateService]);
 
   const toggleRole = useCallback((key: string) => {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -168,20 +165,8 @@ export const ConfigScreen: React.FC = () => {
       const template = createCustomTemplate(roles);
       
       if (isEditMode && existingRoomNumber) {
-        // Update existing room with new template using V2 RPC
-        const currentUserId = authService.getCurrentUserId();
-        if (currentUserId) {
-          const result = await roomService.updateRolesArray(
-            existingRoomNumber,
-            template.roles,
-            currentUserId
-          );
-          if (!result.success) {
-            console.error('[ConfigScreen] updateRolesArray failed:', result.error);
-            showAlert('错误', result.error ?? '更新房间失败');
-            return;
-          }
-        }
+        // Update existing room's template via GameStateService (local state + broadcast)
+        await gameStateService.updateTemplate(template);
         navigation.goBack();
       } else {
         // Create new room
@@ -195,7 +180,7 @@ export const ConfigScreen: React.FC = () => {
     } finally {
       setIsCreating(false);
     }
-  }, [selection, navigation, isEditMode, existingRoomNumber, roomService, authService]);
+  }, [selection, navigation, isEditMode, existingRoomNumber, gameStateService]);
 
   const handleFillBots = useCallback(() => {
     if (!existingRoomNumber) return;
@@ -213,7 +198,7 @@ export const ConfigScreen: React.FC = () => {
     
     setIsFillingBots(true);
     try {
-      await seatService.fillWithBots(existingRoomNumber);
+      await gameStateService.fillWithBots();
       showAlert('成功', '已填充机器人');
       navigation.goBack();
     } catch {
@@ -221,7 +206,7 @@ export const ConfigScreen: React.FC = () => {
     } finally {
       setIsFillingBots(false);
     }
-  }, [existingRoomNumber, seatService, navigation]);
+  }, [existingRoomNumber, gameStateService, navigation]);
 
   return (
     <SafeAreaView style={styles.container}>

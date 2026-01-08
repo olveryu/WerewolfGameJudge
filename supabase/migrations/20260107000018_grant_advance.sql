@@ -1,1 +1,0 @@
-GRANT EXECUTE ON FUNCTION public.advance_action_index TO anon, authenticated;

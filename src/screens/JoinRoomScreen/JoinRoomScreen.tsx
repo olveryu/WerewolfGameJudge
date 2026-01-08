@@ -10,22 +10,38 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../../components';
 import { COLORS } from '../../constants';
-import { useRoom } from '../../hooks';
+import { SimplifiedRoomService } from '../../services/SimplifiedRoomService';
 import { RootStackParamList } from '../../navigation/types';
 
 type JoinRoomScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 const JoinRoomScreen: React.FC = () => {
   const navigation = useNavigation<JoinRoomScreenNavigationProp>();
-  const { joinRoom, loading, error } = useRoom();
   const [roomNumber, setRoomNumber] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleJoin = async () => {
     if (roomNumber.length !== 4) return;
 
-    const room = await joinRoom(roomNumber);
-    if (room) {
-      navigation.replace('Room', { roomNumber: room.roomNumber, isHost: false });
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Check if room exists using SimplifiedRoomService
+      const roomService = SimplifiedRoomService.getInstance();
+      const room = await roomService.getRoom(roomNumber);
+      
+      if (room) {
+        // Room exists, navigate to RoomScreen (it will handle actual joining via useGameRoom)
+        navigation.replace('Room', { roomNumber, isHost: false });
+      } else {
+        setError('房间不存在');
+      }
+    } catch {
+      setError('加入房间失败');
+    } finally {
+      setLoading(false);
     }
   };
 
