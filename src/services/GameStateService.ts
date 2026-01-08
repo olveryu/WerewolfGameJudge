@@ -16,66 +16,32 @@ import { GameTemplate, createTemplateFromRoles } from '../models/Template';
 import { BroadcastService, BroadcastGameState, BroadcastPlayer, HostBroadcast, PlayerMessage } from './BroadcastService';
 import AudioService from './AudioService';
 
+// Import types/enums needed internally
+import {
+  GameStatus,
+  LocalPlayer,
+  LocalGameState,
+} from './types/GameStateTypes';
+
+// Import type-only imports
+import type { GameStateListener } from './types/GameStateTypes';
+
+// Re-export types for backward compatibility
+// (consumers can still import from GameStateService)
+export {
+  GameStatus,
+  gameStatusToRoomStatus,
+  LocalPlayer,
+  LocalGameState,
+  GameStateListener,
+} from './types/GameStateTypes';
+
 /** Async handler wrapper to avoid unhandled promise rejection */
 const asyncHandler = <T extends (...args: any[]) => Promise<void>>(fn: T) => {
   return (...args: Parameters<T>): void => {
     fn(...args).catch(console.error);
   };
 };
-
-// =============================================================================
-// Game State Types
-// =============================================================================
-
-export enum GameStatus {
-  unseated = 'unseated',    // Waiting for players to join
-  seated = 'seated',        // All seats filled, waiting for host to assign roles
-  assigned = 'assigned',    // Roles assigned, players viewing their cards
-  ready = 'ready',          // All players have viewed cards, ready to start
-  ongoing = 'ongoing',      // Night phase in progress
-  ended = 'ended',          // Game ended (first night complete)
-}
-
-// Convert GameStatus to RoomStatus number (for backward compatibility)
-export const gameStatusToRoomStatus = (status: GameStatus): number => {
-  switch (status) {
-    case GameStatus.unseated: return 0;
-    case GameStatus.seated: return 1;
-    case GameStatus.assigned: return 2;
-    case GameStatus.ready: return 3;
-    case GameStatus.ongoing: return 4;
-    case GameStatus.ended: return 4; // ended is still "ongoing" in old enum
-    default: return 0;
-  }
-};
-
-export interface LocalPlayer {
-  uid: string;
-  seatNumber: number;
-  displayName?: string;
-  avatarUrl?: string;
-  role: RoleName | null;
-  hasViewedRole: boolean;
-}
-
-export interface LocalGameState {
-  roomCode: string;
-  hostUid: string;
-  status: GameStatus;
-  template: GameTemplate;
-  players: Map<number, LocalPlayer | null>;  // seat -> player
-  actions: Map<RoleName, number>;  // role -> target (negative for witch poison)
-  wolfVotes: Map<number, number>;  // wolf seat -> target
-  currentActionerIndex: number;
-  isAudioPlaying: boolean;
-  lastNightDeaths: number[];  // Calculated after night ends
-}
-
-// =============================================================================
-// State Change Callbacks
-// =============================================================================
-
-export type GameStateListener = (state: LocalGameState) => void;
 
 // =============================================================================
 // Service Implementation
