@@ -27,6 +27,10 @@ import {
   getPlayersNotViewedRole,
 } from '../../models/Room';
 import { 
+  parseNightPhase,
+  shouldShowActionDialog,
+} from '../../models/NightPhase';
+import { 
   witchRole, 
   hunterRole, 
   darkWolfKingRole,
@@ -195,6 +199,18 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     }
     return determineActionerState(myRole, currentActionRole, mySeatNumber, room, isHost);
   }, [room, myRole, currentActionRole, mySeatNumber, isHost]);
+
+  // V2: Parse nightPhase from room state (Server-Driven Architecture)
+  const nightPhase = useMemo(() => {
+    if (!room?.nightPhase) return null;
+    return parseNightPhase(room.nightPhase);
+  }, [room?.nightPhase]);
+
+  // V2: Use pure function to determine if dialog should show based on nightPhase
+  // This is the Server-Driven approach - no refs needed, purely computed from state
+  const shouldShowDialogFromNightPhase = useMemo(() => {
+    return shouldShowActionDialog(nightPhase, mySeatNumber);
+  }, [nightPhase, mySeatNumber]);
 
   // Check if room has any bots (fill with bot mode)
   const hasBots = useMemo(() => {
@@ -436,6 +452,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Show action dialog for NON-HOST players when audio finishes (isAudioPlaying becomes false)
   // Host handles their own dialog in the audio effect above
   // Each player shows dialog only once per action index
+  // 
+  // V2 Server-Driven: Also uses shouldShowDialogFromNightPhase when nightPhase is available
   useEffect(() => {
     // Skip for host - host handles dialog in audio effect
     if (isHost) return;
@@ -448,26 +466,32 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     const currentIndex = room.currentActionerIndex;
     const currentRole = getCurrentActionRole(room);
     
+    // V2: If nightPhase is available, use server-driven logic
+    const shouldShowFromNightPhase = shouldShowDialogFromNightPhase;
+    
     // Debug log
     console.log('[ActionDialog Effect] (non-host) currentIndex:', currentIndex, 
       'currentRole:', currentRole, 
       'isAudioPlaying:', room.isAudioPlaying, 
       'imActioner:', imActioner,
+      'shouldShowFromNightPhase:', shouldShowFromNightPhase,
       'myRole:', myRole,
       'mySeatNumber:', mySeatNumber,
       'lastShownDialogIndex:', lastShownDialogIndex.current);
     
     // Show dialog when:
+    // V2: Use nightPhase-based logic if available, otherwise fallback to legacy
     // 1. Audio is not playing (finished or never started)
-    // 2. I'm an actioner for this role
+    // 2. I'm an actioner for this role (or nightPhase says I should show dialog)
     // 3. We haven't shown dialog for this index yet
-    if (!room.isAudioPlaying && imActioner && currentRole && 
-        lastShownDialogIndex.current !== currentIndex) {
+    const shouldShow = shouldShowFromNightPhase || (!room.isAudioPlaying && imActioner);
+    
+    if (shouldShow && currentRole && lastShownDialogIndex.current !== currentIndex) {
       console.log('[ActionDialog Effect] Showing action dialog for role:', currentRole, 'at index:', currentIndex);
       lastShownDialogIndex.current = currentIndex;
       showActionDialogRef.current?.(currentRole);
     }
-  }, [room?.isAudioPlaying, room?.currentActionerIndex, room?.roomStatus, imActioner, room, myRole, mySeatNumber, isHost]);
+  }, [room?.isAudioPlaying, room?.currentActionerIndex, room?.roomStatus, imActioner, room, myRole, mySeatNumber, isHost, shouldShowDialogFromNightPhase]);
 
   // Bot auto-view role: When bots haven't viewed their roles, automatically mark them as having viewed
   // Only host handles bot role viewing to avoid duplicates
@@ -1491,7 +1515,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Host: Settings - modify room config (available before game is ongoing) */}
         {isHost && !isStartingGame && !isAudioPlaying && (room.roomStatus === RoomStatus.unseated || room.roomStatus === RoomStatus.seated || room.roomStatus === RoomStatus.assigned || room.roomStatus === RoomStatus.ready) && (
           <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: '#6366F1' }]} 
+            style={[styles.actionButton, { backgroundColor: '#3B82F6' }]} 
             onPress={() => navigation.navigate('Config', { existingRoomNumber: roomNumber })}
           >
             <Text style={styles.buttonText}>⚙️ 设置</Text>
