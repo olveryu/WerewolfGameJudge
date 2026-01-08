@@ -15,6 +15,27 @@ import { RoleName, isWolfRole } from '../models/roles';
 import { GameTemplate, createTemplateFromRoles } from '../models/Template';
 import { BroadcastService, BroadcastGameState, BroadcastPlayer, HostBroadcast, PlayerMessage } from './BroadcastService';
 import AudioService from './AudioService';
+import { NightFlowController, NightPhase, NightEvent, InvalidNightTransitionError } from './NightFlowController';
+
+// Import types/enums needed internally
+import {
+  GameStatus,
+  LocalPlayer,
+  LocalGameState,
+} from './types/GameStateTypes';
+
+// Import type-only imports
+import type { GameStateListener } from './types/GameStateTypes';
+
+// Re-export types for backward compatibility
+// (consumers can still import from GameStateService)
+export {
+  GameStatus,
+  gameStatusToRoomStatus,
+  LocalPlayer,
+  LocalGameState,
+  GameStateListener,
+} from './types/GameStateTypes';
 
 /** Async handler wrapper to avoid unhandled promise rejection */
 const asyncHandler = <T extends (...args: any[]) => Promise<void>>(fn: T) => {
@@ -22,60 +43,6 @@ const asyncHandler = <T extends (...args: any[]) => Promise<void>>(fn: T) => {
     fn(...args).catch(console.error);
   };
 };
-
-// =============================================================================
-// Game State Types
-// =============================================================================
-
-export enum GameStatus {
-  unseated = 'unseated',    // Waiting for players to join
-  seated = 'seated',        // All seats filled, waiting for host to assign roles
-  assigned = 'assigned',    // Roles assigned, players viewing their cards
-  ready = 'ready',          // All players have viewed cards, ready to start
-  ongoing = 'ongoing',      // Night phase in progress
-  ended = 'ended',          // Game ended (first night complete)
-}
-
-// Convert GameStatus to RoomStatus number (for backward compatibility)
-export const gameStatusToRoomStatus = (status: GameStatus): number => {
-  switch (status) {
-    case GameStatus.unseated: return 0;
-    case GameStatus.seated: return 1;
-    case GameStatus.assigned: return 2;
-    case GameStatus.ready: return 3;
-    case GameStatus.ongoing: return 4;
-    case GameStatus.ended: return 4; // ended is still "ongoing" in old enum
-    default: return 0;
-  }
-};
-
-export interface LocalPlayer {
-  uid: string;
-  seatNumber: number;
-  displayName?: string;
-  avatarUrl?: string;
-  role: RoleName | null;
-  hasViewedRole: boolean;
-}
-
-export interface LocalGameState {
-  roomCode: string;
-  hostUid: string;
-  status: GameStatus;
-  template: GameTemplate;
-  players: Map<number, LocalPlayer | null>;  // seat -> player
-  actions: Map<RoleName, number>;  // role -> target (negative for witch poison)
-  wolfVotes: Map<number, number>;  // wolf seat -> target
-  currentActionerIndex: number;
-  isAudioPlaying: boolean;
-  lastNightDeaths: number[];  // Calculated after night ends
-}
-
-// =============================================================================
-// State Change Callbacks
-// =============================================================================
-
-export type GameStateListener = (state: LocalGameState) => void;
 
 // =============================================================================
 // Service Implementation
@@ -88,6 +55,9 @@ export class GameStateService {
   private isHost: boolean = false;
   private myUid: string | null = null;
   private mySeatNumber: number | null = null;
+  
+  /** NightFlowController: explicit state machine for night phase (Host only) */
+  private nightFlow: NightFlowController | null = null;
   
   private readonly broadcastService: BroadcastService;
   private readonly audioService: AudioService;
@@ -354,6 +324,18 @@ export class GameStateService {
       return;
     }
 
+    // NightFlow guard: only allow action in WaitingForAction phase and matching role
+    if (this.nightFlow) {
+      if (this.nightFlow.phase !== NightPhase.WaitingForAction) {
+        console.log('[GameState Host] NightFlow not in WaitingForAction phase, ignoring action');
+        return;
+      }
+      if (this.nightFlow.currentRole !== role) {
+        console.log('[GameState Host] NightFlow role mismatch:', role, 'expected:', this.nightFlow.currentRole);
+        return;
+      }
+    }
+
     // Record action
     if (target !== null) {
       if (role === 'witch') {
@@ -365,6 +347,26 @@ export class GameStateService {
         }
       } else {
         this.state.actions.set(role, target);
+      }
+
+      // Record action in nightFlow (use raw target, encoding handled above)
+      try {
+        const rawTarget = role === 'witch' && extra === true ? -(target + 1) : target;
+        this.nightFlow?.recordAction(role, rawTarget);
+      } catch (err) {
+        console.error('[GameStateService] NightFlow recordAction failed:', err);
+        // Continue with legacy flow
+      }
+    }
+
+    // Dispatch ActionSubmitted to nightFlow
+    try {
+      this.nightFlow?.dispatch(NightEvent.ActionSubmitted);
+    } catch (err) {
+      if (err instanceof InvalidNightTransitionError) {
+        console.error('[GameStateService] NightFlow ActionSubmitted failed:', err.message);
+      } else {
+        throw err;
       }
     }
 
@@ -635,6 +637,21 @@ export class GameStateService {
     if (!this.isHost || !this.state) return;
     if (this.state.status !== GameStatus.ready) return;
 
+    // Initialize NightFlowController with action order
+    this.nightFlow = new NightFlowController(this.state.template.actionOrder);
+    
+    // Dispatch StartNight event (with error recovery)
+    try {
+      this.nightFlow.dispatch(NightEvent.StartNight);
+    } catch (err) {
+      if (err instanceof InvalidNightTransitionError) {
+        console.error('[GameStateService] NightFlow StartNight failed:', err.message);
+        // Continue with legacy flow
+      } else {
+        throw err;
+      }
+    }
+
     // Reset night state
     this.state.actions = new Map();
     this.state.wolfVotes = new Map();
@@ -647,6 +664,21 @@ export class GameStateService {
 
     // Wait 5 seconds
     await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // Night begin audio done - dispatch event
+    try {
+      this.nightFlow?.dispatch(NightEvent.NightBeginAudioDone);
+      // Sync currentActionerIndex from nightFlow
+      if (this.nightFlow) {
+        this.state.currentActionerIndex = this.nightFlow.currentActionIndex;
+      }
+    } catch (err) {
+      if (err instanceof InvalidNightTransitionError) {
+        console.error('[GameStateService] NightFlow NightBeginAudioDone failed:', err.message);
+      } else {
+        throw err;
+      }
+    }
 
     // Set status to ongoing
     this.state.status = GameStatus.ongoing;
@@ -663,6 +695,17 @@ export class GameStateService {
    */
   async restartGame(): Promise<void> {
     if (!this.isHost || !this.state) return;
+
+    // Reset nightFlow
+    if (this.nightFlow) {
+      try {
+        this.nightFlow.dispatch(NightEvent.Reset);
+      } catch (err) {
+        // Reset should always succeed, but handle gracefully
+        console.error('[GameStateService] NightFlow Reset failed:', err);
+      }
+      this.nightFlow = null;
+    }
 
     // Reset state
     this.state.status = GameStatus.seated;
@@ -780,7 +823,17 @@ export class GameStateService {
     console.log('[GameStateService] Playing audio for role:', currentRole);
     await this.audioService.playRoleBeginningAudio(currentRole);
 
-    // Audio finished
+    // Audio finished - dispatch RoleBeginAudioDone
+    try {
+      this.nightFlow?.dispatch(NightEvent.RoleBeginAudioDone);
+    } catch (err) {
+      if (err instanceof InvalidNightTransitionError) {
+        console.error('[GameStateService] NightFlow RoleBeginAudioDone failed:', err.message);
+      } else {
+        throw err;
+      }
+    }
+
     this.state.isAudioPlaying = false;
 
     // Get pending seats for this role
@@ -812,8 +865,23 @@ export class GameStateService {
       await this.audioService.playRoleEndingAudio(currentRole).catch(() => {});
     }
 
-    // Advance index
-    this.state.currentActionerIndex++;
+    // Dispatch RoleEndAudioDone to nightFlow
+    try {
+      this.nightFlow?.dispatch(NightEvent.RoleEndAudioDone);
+      // Sync currentActionerIndex from nightFlow
+      if (this.nightFlow) {
+        this.state.currentActionerIndex = this.nightFlow.currentActionIndex;
+      }
+    } catch (err) {
+      if (err instanceof InvalidNightTransitionError) {
+        console.error('[GameStateService] NightFlow RoleEndAudioDone failed:', err.message);
+        // Fallback: advance manually
+        this.state.currentActionerIndex++;
+      } else {
+        throw err;
+      }
+    }
+
     this.state.wolfVotes = new Map();  // Clear wolf votes for next role
 
     // Play next role's audio
@@ -826,6 +894,17 @@ export class GameStateService {
     // Play night end audio
     console.log('[GameStateService] Playing night end audio...');
     await this.audioService.playNightEndAudio();
+
+    // Dispatch NightEndAudioDone to nightFlow
+    try {
+      this.nightFlow?.dispatch(NightEvent.NightEndAudioDone);
+    } catch (err) {
+      if (err instanceof InvalidNightTransitionError) {
+        console.error('[GameStateService] NightFlow NightEndAudioDone failed:', err.message);
+      } else {
+        throw err;
+      }
+    }
 
     // Calculate deaths
     const deaths = this.calculateDeaths();
