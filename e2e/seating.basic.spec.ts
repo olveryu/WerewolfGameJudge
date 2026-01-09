@@ -591,9 +591,15 @@ test.describe('Seating Diagnostic', () => {
       
       await takeScreenshot(pageB, testInfo, 'B-04-rejection-check.png');
       
-      // Close any modal/alert
-      await pageB.getByText('确定').click().catch(() => {});
-      await pageB.getByText('取消').click().catch(() => {});
+      // Dismiss rejection alert - must explicitly click the button on the alert
+      if (hasRejectionAlert) {
+        console.log('[DIAG] Dismissing rejection alert...');
+        // The alert has a single "确定" button - click it
+        await pageB.getByRole('button', { name: '确定' }).click({ timeout: 2000 }).catch(() => {
+          console.log('[DIAG] Could not click 确定 button by role, trying text...');
+        });
+        await pageB.waitForTimeout(300);
+      }
 
       // ===================== DIAGNOSTIC SUMMARY =====================
       printDiagnosticSummary('HOST A', diagA);
