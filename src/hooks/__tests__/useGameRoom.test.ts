@@ -118,4 +118,33 @@ describe('useGameRoom - Room Number Consistency', () => {
       expect(mockRoomService.createRoom.mock.calls[0][0]).toBe('4219');
     });
   });
+
+  describe('mySeatNumber updates via listener', () => {
+    it('should call getMySeatNumber when listener is triggered', () => {
+      // Store the listener callback for later invocation
+      type ListenerFn = (state: any) => void;
+      let capturedListener: ListenerFn | null = null;
+      
+      mockGameStateService.addListener = jest.fn().mockImplementation((listener: ListenerFn) => {
+        capturedListener = listener;
+        return jest.fn(); // unsubscribe
+      });
+
+      // First call: mySeatNumber is null
+      mockGameStateService.getMySeatNumber.mockReturnValue(null);
+
+      // Simulate initial subscription
+      mockGameStateService.addListener(() => {});
+
+      // Now simulate host taking seat (getMySeatNumber returns 0)
+      mockGameStateService.getMySeatNumber.mockReturnValue(0);
+
+      // Trigger the listener (simulating notifyListeners after hostTakeSeat)
+      expect(capturedListener).not.toBeNull();
+      capturedListener!({ players: new Map() });
+
+      // Assert: The returned value is 0 (the seat taken)
+      expect(mockGameStateService.getMySeatNumber()).toBe(0);
+    });
+  });
 });

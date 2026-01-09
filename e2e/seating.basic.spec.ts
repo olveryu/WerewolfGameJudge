@@ -175,20 +175,36 @@ async function extractRoomNumber(page: Page): Promise<string> {
 }
 
 /**
- * Collect seat UI state for diagnostics
+ * Get a precise locator for a seat tile by its 0-based seat index.
+ * Uses the seat number's parent container which is the clickable tile.
  */
-async function collectSeatUIState(page: Page, seatNumber: number): Promise<{
+function getSeatTileLocator(page: Page, seatIndex: number) {
+  const displayNumber = seatIndex + 1; // Convert 0-based index to 1-based display number
+  // Find the seat number text, then go to its parent container (the clickable tile wrapper)
+  // The structure is: tileWrapper (clickable) > content > number + (空/我/player)
+  return page.locator(`text="${displayNumber}"`).first().locator('..').locator('..');
+}
+
+/**
+ * Collect seat UI state for diagnostics.
+ * Uses precise locator to find the seat tile by its display number.
+ */
+async function collectSeatUIState(page: Page, seatDisplayNumber: number): Promise<{
   seatContent: string | null;
   hasPlayerName: boolean;
   isEmpty: boolean;
 }> {
-  // Find the seat tile by looking for the seat number
-  const seatLocator = page.locator(`text="${seatNumber}"`).first();
-  const parent = seatLocator.locator('..'); // Go to parent container
-  const fullText = await parent.textContent().catch(() => null);
+  // Find the seat number text, then get its parent tile container
+  // The seat tile structure is: tileWrapper > [playerTile with number, 空/我] > [playerName]
+  const seatNumberLocator = page.locator(`text="${seatDisplayNumber}"`).first();
+  
+  // Go up to the tile container (which contains number + 空/我 + potential player name)
+  // The parent of the number is the playerTile, its parent is tileWrapper
+  const tileWrapper = seatNumberLocator.locator('..').locator('..');
+  const fullText = await tileWrapper.textContent().catch(() => null);
   
   return {
-    seatContent: fullText,
+    seatContent: fullText?.trim() ?? null,
     hasPlayerName: fullText !== null && !fullText.includes('空'),
     isEmpty: fullText?.includes('空') ?? true,
   };
@@ -220,7 +236,7 @@ test.describe('Seating Diagnostic', () => {
     await ensureAnonLogin(page);
     console.log('[DIAG] Login complete');
 
-    // 2) Create room
+    // 2) Create room (HOST auto-takes seat 0)
     await page.getByText('创建房间').click();
     await expect(getVisibleText(page, '创建')).toBeVisible({ timeout: 10000 });
     await getVisibleText(page, '创建').click();
@@ -231,66 +247,46 @@ test.describe('Seating Diagnostic', () => {
     
     await takeScreenshot(page, testInfo, '01-room-created.png');
 
-    // 3) Collect seat 1 state BEFORE seating
-    const seat1Before = await collectSeatUIState(page, 1);
-    console.log(`[DIAG] Seat 1 BEFORE: ${JSON.stringify(seat1Before)}`);
-
-    // 4) Click seat 1
-    console.log('[DIAG] Clicking seat 1...');
-    await page.locator('text="1"').first().click();
-    
-    // Wait for modal
-    await expect(page.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
-    console.log('[DIAG] Modal appeared with title "入座"');
-    
-    await takeScreenshot(page, testInfo, '02-seat-modal.png');
-
-    // 5) Confirm seating
-    console.log('[DIAG] Clicking 确定...');
-    await page.getByText('确定', { exact: true }).click();
-    
-    // Wait for modal to close
-    await page.waitForTimeout(1000);
-    
-    await takeScreenshot(page, testInfo, '03-after-confirm.png');
-
-    // 6) Collect seat 1 state AFTER seating
-    const seat1After = await collectSeatUIState(page, 1);
-    console.log(`[DIAG] Seat 1 AFTER: ${JSON.stringify(seat1After)}`);
+    // 3) Collect seat 1 state - HOST should already be seated here (auto-take seat 0)
+    const seat1State = await collectSeatUIState(page, 1);
+    console.log(`[DIAG] Seat 1 state: ${JSON.stringify(seat1State)}`);
 
     // =================================================================
-    // LAYER A: Objective evidence - seat is occupied
+    // LAYER A: Objective evidence - HOST auto-seated at seat 0 (displayed as "1")
     // =================================================================
     console.log('\n--- LAYER A: Objective Evidence ---');
     
-    const layerA_passed = seat1After.hasPlayerName && !seat1After.isEmpty;
-    console.log(`[DIAG] Layer A - Seat occupied: ${layerA_passed}`);
-    console.log(`[DIAG]   Before: isEmpty=${seat1Before.isEmpty}`);
-    console.log(`[DIAG]   After:  isEmpty=${seat1After.isEmpty}, hasPlayerName=${seat1After.hasPlayerName}`);
-    
-    // This SHOULD pass - it's objective evidence the seat was taken
-    expect(layerA_passed, 'Seat should be occupied after confirming').toBe(true);
+    const layerA_seated = seat1State.hasPlayerName && !seat1State.isEmpty;
+    console.log(`[DIAG] Layer A - Seat 1 occupied: ${layerA_seated}`);
+    expect(layerA_seated, 'Seat 1 should be occupied (HOST auto-takes seat 0)').toBe(true);
 
     // =================================================================
-    // LAYER B: Bug symptoms - collect evidence, don't assert
+    // LAYER B: BUG-1 verification - "我" should now be visible
     // =================================================================
-    console.log('\n--- LAYER B: Bug Symptom Evidence ---');
+    console.log('\n--- LAYER B: BUG-1 Fix Verification ---');
     
-    // B1: Check if "我" is visible anywhere
+    // B1: Check if "我" is visible
     const hasWo = await page.getByText('我').isVisible({ timeout: 1000 }).catch(() => false);
     console.log(`[DIAG] B1 - "我" visible: ${hasWo}`);
     
-    // B2: Re-click seat 1 and check modal title
-    console.log('[DIAG] Re-clicking seat 1 to check modal...');
-    await page.locator('text="1"').first().click();
+    // This should now PASS after the fix
+    expect(hasWo, '"我" should be visible after HOST takes seat').toBe(true);
+    
+    // B2: Click seat 1 and check modal shows "站起" (not "入座")
+    console.log('[DIAG] Clicking seat 1 to check modal...');
+    await getSeatTileLocator(page, 0).click();
     await page.waitForTimeout(500);
     
-    await takeScreenshot(page, testInfo, '04-reclick-seat-modal.png');
+    await takeScreenshot(page, testInfo, '02-seat-modal.png');
     
-    const modalTitleZhanQi = await page.getByText('站起', { exact: true }).isVisible({ timeout: 1000 }).catch(() => false);
+    const modalTitleZhanQi = await page.getByText('站起', { exact: true }).isVisible({ timeout: 2000 }).catch(() => false);
     const modalTitleRuZuo = await page.getByText('入座', { exact: true }).isVisible({ timeout: 1000 }).catch(() => false);
     
-    console.log(`[DIAG] B2 - Re-click modal: 站起=${modalTitleZhanQi}, 入座=${modalTitleRuZuo}`);
+    console.log(`[DIAG] B2 - Modal: 站起=${modalTitleZhanQi}, 入座=${modalTitleRuZuo}`);
+    
+    // This should now show "站起" since HOST is already seated
+    expect(modalTitleZhanQi, 'Modal should show 站起 for own seat').toBe(true);
+    expect(modalTitleRuZuo, 'Modal should NOT show 入座 for own seat').toBe(false);
     
     // Close modal
     await page.getByText('取消').click().catch(() => {});
@@ -307,24 +303,20 @@ test.describe('Seating Diagnostic', () => {
         ...diag.consoleLogs,
         '',
         '=== LAYER A ===',
-        `Seat occupied: ${layerA_passed}`,
-        `Before: ${JSON.stringify(seat1Before)}`,
-        `After: ${JSON.stringify(seat1After)}`,
+        `Seat 1 occupied: ${layerA_seated}`,
+        `State: ${JSON.stringify(seat1State)}`,
         '',
-        '=== LAYER B (Bug Symptoms) ===',
+        '=== LAYER B (BUG-1 Fix Verification) ===',
         `"我" visible: ${hasWo}`,
-        `Re-click shows 站起: ${modalTitleZhanQi}`,
-        `Re-click shows 入座: ${modalTitleRuZuo}`,
+        `Click shows 站起: ${modalTitleZhanQi}`,
+        `Click shows 入座: ${modalTitleRuZuo}`,
         '',
-        '=== DIAGNOSIS ===',
-        hasWo ? '✅ "我" shows correctly' : '❌ "我" NOT showing - possible mySeatNumber sync issue',
-        modalTitleZhanQi ? '✅ Re-click shows 站起' : '❌ Re-click shows 入座 - seat ownership not recognized',
+        '=== RESULT ===',
+        hasWo && modalTitleZhanQi ? '✅ BUG-1 FIXED - "我" shows and modal shows 站起' : '❌ BUG-1 NOT FIXED',
       ].join('\n'),
       contentType: 'text/plain',
     });
 
-    // Final assertion for Layer A only
-    // Layer B issues are logged but not asserted (known bugs)
     console.log('\n🔍 DIAGNOSTIC COMPLETE - Check attached logs and screenshots\n');
   });
 
@@ -341,7 +333,7 @@ test.describe('Seating Diagnostic', () => {
     const diagB = setupDiagnostics(pageB, 'JOINER-B');
 
     try {
-      // ===================== HOST A: Create room & take seat 1 =====================
+      // ===================== HOST A: Create room (auto-takes seat 0) =====================
       console.log('[DIAG] === HOST A Setup ===');
       
       await pageA.goto('/');
@@ -356,17 +348,14 @@ test.describe('Seating Diagnostic', () => {
       const roomNumber = await extractRoomNumber(pageA);
       console.log(`[DIAG] HOST A created room: ${roomNumber}`);
       
-      // Host takes seat 1
-      console.log('[DIAG] HOST A taking seat 1...');
-      await pageA.locator('text="1"').first().click();
-      await expect(pageA.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
-      await pageA.getByText('确定', { exact: true }).click();
-      await pageA.waitForTimeout(1000);
-      
-      await takeScreenshot(pageA, testInfo, 'A-01-host-seated.png');
+      // HOST auto-takes seat 0 (displayed as "1"), verify it
+      await takeScreenshot(pageA, testInfo, 'A-01-host-auto-seated.png');
       
       const hostSeat1 = await collectSeatUIState(pageA, 1);
       console.log(`[DIAG] HOST A seat 1 state: ${JSON.stringify(hostSeat1)}`);
+      
+      // Verify HOST is seated
+      expect(hostSeat1.hasPlayerName, 'HOST should be auto-seated at seat 1').toBe(true);
 
       // ===================== JOINER B: Join room =====================
       console.log('\n[DIAG] === JOINER B Setup ===');
@@ -412,7 +401,7 @@ test.describe('Seating Diagnostic', () => {
       // ===================== JOINER B: Try to take seat 1 (conflict) =====================
       console.log('\n[DIAG] JOINER B attempting to take seat 1 (should conflict)...');
       
-      await pageB.locator('text="1"').first().click();
+      await getSeatTileLocator(pageB, 0).click();
       await pageB.waitForTimeout(500);
       
       await takeScreenshot(pageB, testInfo, 'B-02-click-occupied-seat.png');
@@ -430,7 +419,7 @@ test.describe('Seating Diagnostic', () => {
       // ===================== JOINER B: Take seat 2 =====================
       console.log('\n[DIAG] JOINER B taking seat 2...');
       
-      await pageB.locator('text="2"').first().click();
+      await getSeatTileLocator(pageB, 1).click();
       await expect(pageB.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
       await pageB.getByText('确定', { exact: true }).click();
       await pageB.waitForTimeout(1000);

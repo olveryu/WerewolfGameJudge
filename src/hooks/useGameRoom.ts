@@ -74,6 +74,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Track these in state so they trigger re-renders
   const [isHost, setIsHost] = useState(false);
   const [myUid, setMyUid] = useState<string | null>(null);
+  const [mySeatNumber, setMySeatNumber] = useState<number | null>(null);
 
   const gameStateService = useRef(GameStateService.getInstance());
   const roomService = useRef(SimplifiedRoomService.getInstance());
@@ -86,15 +87,11 @@ export const useGameRoom = (): UseGameRoomResult => {
       // Update derived values when state changes
       setIsHost(gameStateService.current.isHostPlayer());
       setMyUid(gameStateService.current.getMyUid());
+      setMySeatNumber(gameStateService.current.getMySeatNumber());
     });
     return unsubscribe;
   }, []);
 
-  // Derived values that depend on gameState - use useMemo for reactivity
-  const mySeatNumber = useMemo(() => {
-    return gameStateService.current.getMySeatNumber();
-  }, [gameState]);
-  
   const myRole = useMemo(() => {
     return gameStateService.current.getMyRole();
   }, [gameState]);
