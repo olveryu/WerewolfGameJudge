@@ -1,4 +1,5 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
+import * as path from 'path';
 
 /**
  * Template Scenario E2E Tests
@@ -12,6 +13,70 @@ import { test, expect, Page, BrowserContext } from '@playwright/test';
 
 // Increase timeout for multiplayer tests
 test.setTimeout(300000);
+
+// ============ FAIL-FAST DEBUG HELPERS ============
+
+/**
+ * Debug probe - prints page state for diagnostics when a step fails
+ */
+async function debugProbe(page: Page, label: string): Promise<void> {
+  console.log(`\n========== DEBUG PROBE: ${label} ==========`);
+  console.log(`URL: ${page.url()}`);
+  
+  const checks = [
+    { name: '房间号', selector: /房间 \d{4}/ },
+    { name: '准备看牌', selector: '准备看牌' },
+    { name: '查看身份', selector: '查看身份' },
+    { name: '开始游戏', selector: '开始游戏' },
+    { name: '重新开始', selector: '重新开始' },
+    { name: '查看昨晚信息', selector: '查看昨晚信息' },
+    { name: '重试', selector: '重试' },
+    { name: '确定', selector: '确定' },
+    { name: '好', selector: '好' },
+    { name: '救助', selector: '救助' },
+    { name: '不救助', selector: '不救助' },
+    { name: '不使用技能', selector: '不使用技能' },
+    { name: '投票空刀', selector: '投票空刀' },
+  ];
+  
+  for (const check of checks) {
+    try {
+      const locator = typeof check.selector === 'string' 
+        ? page.getByText(check.selector, { exact: true })
+        : page.getByText(check.selector);
+      const visible = await locator.isVisible({ timeout: 100 }).catch(() => false);
+      if (visible) console.log(`  ✓ ${check.name}`);
+    } catch {
+      // ignore
+    }
+  }
+  
+  try {
+    const bodyText = await page.locator('body').textContent({ timeout: 1000 });
+    console.log(`Body (first 500 chars): ${bodyText?.substring(0, 500)}`);
+  } catch (e) {
+    console.log(`Body text error: ${e}`);
+  }
+  console.log(`========== END PROBE ==========\n`);
+}
+
+/**
+ * Wrap a step with fail-fast diagnostics
+ */
+async function withStep<T>(name: string, page: Page, fn: () => Promise<T>): Promise<T> {
+  console.log(`>> STEP: ${name}`);
+  try {
+    return await fn();
+  } catch (error) {
+    await debugProbe(page, name);
+    const timestamp = Date.now();
+    const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50);
+    const screenshotPath = path.join('test-results', `fail-${safeName}-${timestamp}.png`);
+    await page.screenshot({ path: screenshotPath }).catch(() => {});
+    console.log(`Screenshot saved: ${screenshotPath}`);
+    throw error;
+  }
+}
 
 // ============ HELPER FUNCTIONS ============
 
@@ -912,26 +977,65 @@ test.describe('Template Scenarios E2E', () => {
         const page = joinerPages[i];
         console.log(`[Setup] Player ${i + 2}/12 joining...`);
         
-        await page.goto('/');
-        await waitForAppReady(page);
-        await waitForLoggedIn(page);
-        
-        await page.getByText('进入房间').click();
-        await expect(page.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-        await page.getByPlaceholder('0000').fill(roomNumber);
-        await page.getByText('加入', { exact: true }).click();
-        
-        // Wait longer for room to load
-        await expect(page.getByText(/房间 \d{4}/)).toBeVisible({ timeout: 20000 });
-        
-        // Wait a bit for room state to sync
-        await page.waitForTimeout(500);
-        
-        const emptySeat = page.getByText('空').first();
-        await expect(emptySeat).toBeVisible({ timeout: 5000 });
-        await emptySeat.click();
-        await page.getByText('确定', { exact: true }).click().catch(() => {});
-        await page.waitForTimeout(500);
+        await withStep(`Player ${i + 2} join room`, page, async () => {
+          await page.goto('/');
+          await waitForAppReady(page);
+          
+          // Dismiss any timeout dialog that appears during session restore
+          const dismissTimeoutDialog = async () => {
+            for (let retry = 0; retry < 5; retry++) {
+              if (await page.getByText('加载超时').isVisible({ timeout: 1000 }).catch(() => false)) {
+                console.log(`  Player ${i + 2}: Timeout dialog detected, dismissing...`);
+                const backButton = page.getByText('返回', { exact: true });
+                if (await backButton.isVisible({ timeout: 500 }).catch(() => false)) {
+                  await backButton.click();
+                } else {
+                  await page.getByText('重试', { exact: true }).click().catch(() => {});
+                }
+                await page.waitForTimeout(1000);
+              } else {
+                break;
+              }
+            }
+          };
+          
+          await dismissTimeoutDialog();
+          await waitForLoggedIn(page);
+          await dismissTimeoutDialog();
+          
+          await page.getByText('进入房间').click();
+          await expect(page.getByText('加入房间')).toBeVisible({ timeout: 5000 });
+          await page.getByPlaceholder('0000').fill(roomNumber);
+          await page.getByText('加入', { exact: true }).click();
+          
+          // Handle timeout retry dialog if it appears after joining
+          const maxRetries = 3;
+          for (let retry = 0; retry < maxRetries; retry++) {
+            // Check for timeout dialog
+            if (await page.getByText('加载超时').isVisible({ timeout: 2000 }).catch(() => false)) {
+              console.log(`  Player ${i + 2}: Timeout dialog after join, clicking retry...`);
+              await page.getByText('重试', { exact: true }).click().catch(() => {});
+              await page.waitForTimeout(1000);
+              continue;
+            }
+            // Check if room loaded successfully
+            if (await page.getByText(/房间 \d{4}/).isVisible({ timeout: 5000 }).catch(() => false)) {
+              break;
+            }
+          }
+          
+          // Wait longer for room to load
+          await expect(page.getByText(/房间 \d{4}/)).toBeVisible({ timeout: 20000 });
+          
+          // Wait a bit for room state to sync
+          await page.waitForTimeout(500);
+          
+          const emptySeat = page.getByText('空').first();
+          await expect(emptySeat).toBeVisible({ timeout: 5000 });
+          await emptySeat.click();
+          await page.getByText('确定', { exact: true }).click().catch(() => {});
+          await page.waitForTimeout(500);
+        });
       }
 
       console.log('[Setup] All 12 players joined!');
@@ -1017,36 +1121,38 @@ test.describe('Template Scenarios E2E', () => {
           }
 
           // Start game
-          const prepareButton = hostPage.getByText('准备看牌');
-          await expect(prepareButton).toBeVisible({ timeout: 10000 });
-          await prepareButton.click();
-          await expect(hostPage.getByText('允许看牌')).toBeVisible({ timeout: 3000 });
-          await hostPage.getByText('确定', { exact: true }).click();
-          
-          // Wait for "准备看牌" button to disappear (roomStatus changed to assigned)
-          // Also handle network retry dialogs that may appear
-          const maxWaitTime = 30000;
-          const startTime = Date.now();
-          while (Date.now() - startTime < maxWaitTime) {
-            // Check for network error retry dialog
-            const retryButton = hostPage.getByText('重试', { exact: true });
-            if (await retryButton.isVisible({ timeout: 100 }).catch(() => false)) {
-              console.log(`[${template.name}] Network error dialog detected, clicking retry...`);
-              await retryButton.click();
-              await hostPage.waitForTimeout(500);
-              continue;
+          await withStep('Host prepareToFlip', hostPage, async () => {
+            const prepareButton = hostPage.getByText('准备看牌');
+            await expect(prepareButton).toBeVisible({ timeout: 10000 });
+            await prepareButton.click();
+            await expect(hostPage.getByText('允许看牌')).toBeVisible({ timeout: 3000 });
+            await hostPage.getByText('确定', { exact: true }).click();
+            
+            // Wait for "准备看牌" button to disappear (roomStatus changed to assigned)
+            // Also handle network retry dialogs that may appear
+            const maxWaitTime = 30000;
+            const startTime = Date.now();
+            while (Date.now() - startTime < maxWaitTime) {
+              // Check for network error retry dialog
+              const retryButton = hostPage.getByText('重试', { exact: true });
+              if (await retryButton.isVisible({ timeout: 100 }).catch(() => false)) {
+                console.log(`[${template.name}] Network error dialog detected, clicking retry...`);
+                await retryButton.click();
+                await hostPage.waitForTimeout(500);
+                continue;
+              }
+              
+              // Check if prepare button is hidden
+              if (!(await prepareButton.isVisible({ timeout: 100 }).catch(() => true))) {
+                break;
+              }
+              
+              await hostPage.waitForTimeout(200);
             }
             
-            // Check if prepare button is hidden
-            if (!(await prepareButton.isVisible({ timeout: 100 }).catch(() => true))) {
-              break;
-            }
-            
-            await hostPage.waitForTimeout(200);
-          }
-          
-          // Verify the button is actually hidden
-          await expect(prepareButton).not.toBeVisible({ timeout: 5000 });
+            // Verify the button is actually hidden
+            await expect(prepareButton).not.toBeVisible({ timeout: 5000 });
+          });
           
           // IMPORTANT: Wait for all clients to sync the room status change
           // Without this, some clients may still have old roomStatus and won't update hasViewedRole
@@ -1120,12 +1226,14 @@ test.describe('Template Scenarios E2E', () => {
           const roleMapping = await buildRoleMapping(pages);
           console.log(`[${template.name}] Role mapping built!`);
 
-          const startButton = hostPage.getByText('开始游戏');
-          await expect(startButton).toBeVisible({ timeout: 10000 });
-          await startButton.click();
-          await expect(hostPage.getByText('开始游戏？')).toBeVisible({ timeout: 3000 });
-          await hostPage.getByText('确定', { exact: true }).click();
-          await expect(hostPage.getByText('开始游戏')).not.toBeVisible({ timeout: 10000 });
+          await withStep(`[${template.name}] Start game`, hostPage, async () => {
+            const startButton = hostPage.getByText('开始游戏');
+            await expect(startButton).toBeVisible({ timeout: 10000 });
+            await startButton.click();
+            await expect(hostPage.getByText('开始游戏？')).toBeVisible({ timeout: 3000 });
+            await hostPage.getByText('确定', { exact: true }).click();
+            await expect(hostPage.getByText('开始游戏')).not.toBeVisible({ timeout: 10000 });
+          });
           console.log(`[${template.name}] Game started!`);
 
           // Execute each action in order
@@ -1150,11 +1258,15 @@ test.describe('Template Scenarios E2E', () => {
           }
 
           // Wait for night to end
-          await waitForNightEnd(hostPage);
+          await withStep(`[${template.name}] Wait for night end`, hostPage, async () => {
+            await waitForNightEnd(hostPage);
+          });
           console.log(`[${template.name}] Night ended!`);
 
           // Verify last night info
-          const lastNightInfo = await getLastNightInfo(hostPage);
+          const lastNightInfo = await withStep(`[${template.name}] Get last night info`, hostPage, async () => {
+            return await getLastNightInfo(hostPage);
+          });
           console.log(`[${template.name}] Last night info: "${lastNightInfo}"`);
           
           // Check if expected info is in the result
@@ -1197,7 +1309,7 @@ test.describe('Template Scenarios E2E', () => {
     } finally {
       console.log('[Cleanup] Closing all browser contexts...');
       for (const context of contexts) {
-        await context.close();
+        await context.close().catch((e) => console.warn('[Cleanup] context.close error:', e));
       }
     }
   });
