@@ -274,6 +274,19 @@ export class GameStateService {
     }
   }
 
+  /**
+   * Clear ALL seats occupied by a given uid (defensive: handles dirty data).
+   * Optionally skip a specific seat (used when that seat is the new target).
+   */
+  private clearSeatsByUid(uid: string, skipSeat?: number): void {
+    if (!this.state) return;
+    for (const [seat, player] of this.state.players.entries()) {
+      if (player?.uid === uid && seat !== skipSeat) {
+        this.state.players.set(seat, null);
+      }
+    }
+  }
+
   private async handlePlayerJoin(
     seat: number,
     uid: string,
@@ -294,13 +307,8 @@ export class GameStateService {
       return;
     }
 
-    // Clear old seat if player is switching seats (find by uid, not trusting client)
-    for (const [oldSeat, oldPlayer] of this.state.players.entries()) {
-      if (oldPlayer?.uid === uid) {
-        this.state.players.set(oldSeat, null);
-        break;
-      }
-    }
+    // Clear ALL old seats if player is switching (defensive: no break, handles dirty data)
+    this.clearSeatsByUid(uid, seat);
 
     const player: LocalPlayer = {
       uid,
@@ -565,6 +573,9 @@ export class GameStateService {
     if (!this.isHost || !this.state) return false;
 
     if (this.state.players.get(seat) !== null) return false;
+
+    // Clear ALL old seats if host is switching (reuses same defensive logic)
+    this.clearSeatsByUid(this.myUid!, seat);
 
     const player: LocalPlayer = {
       uid: this.myUid!,
