@@ -16,6 +16,7 @@ import { GameTemplate, createTemplateFromRoles } from '../models/Template';
 import { BroadcastService, BroadcastGameState, BroadcastPlayer, HostBroadcast, PlayerMessage } from './BroadcastService';
 import AudioService from './AudioService';
 import { NightFlowController, NightPhase, NightEvent, InvalidNightTransitionError } from './NightFlowController';
+import { shuffleArray } from '../utils/shuffle';
 import { calculateDeaths, type NightActions, type RoleSeatMap } from './DeathCalculator';
 import { resolveWolfVotes } from './WolfVoteResolver';
 
@@ -730,6 +731,118 @@ export class GameStateService {
     this.notifyListeners();
     
     console.log('[GameStateService] Game restarted');
+  }
+
+  /**
+   * Emergency restart: invalidate current game and reshuffle roles.
+   * Used when night flow is stuck or corrupted (rescue protocol).
+   * 
+   * GUARANTEE: When status === ongoing and all players have roles,
+   * this method MUST succeed (return true).
+   * 
+   * Seats remain unchanged; only roles are reshuffled.
+   * 
+   * @returns true if restart succeeded, false if preconditions not met
+   */
+  emergencyRestartAndReshuffleRoles(): boolean {
+    // ==========================================================================
+    // Layer 1: Hard preconditions (always checked, cannot skip)
+    // ==========================================================================
+    
+    if (!this.isHost) {
+      console.warn('[GameStateService] emergencyRestart: not host');
+      return false;
+    }
+
+    if (!this.state) {
+      console.warn('[GameStateService] emergencyRestart: no state');
+      return false;
+    }
+
+    if (!this.state.template) {
+      console.warn('[GameStateService] emergencyRestart: no template');
+      return false;
+    }
+
+    const players = Array.from(this.state.players.values()).filter(
+      (p): p is LocalPlayer => p !== null
+    );
+
+    if (players.length === 0) {
+      console.warn('[GameStateService] emergencyRestart: no players');
+      return false;
+    }
+
+    // Role pool is template.roles (already a RoleName[] array)
+    const rolePool: RoleName[] = [...this.state.template.roles];
+
+    if (rolePool.length !== players.length) {
+      console.warn(
+        '[GameStateService] emergencyRestart: rolePool size mismatch',
+        `(${rolePool.length} roles vs ${players.length} players)`
+      );
+      return false;
+    }
+
+    // ==========================================================================
+    // Layer 2: Status check (rescue guarantee for ongoing + all have roles)
+    // ==========================================================================
+    
+    const allPlayersHaveRoles = players.every(p => p.role != null);
+
+    if (this.state.status === GameStatus.ongoing && allPlayersHaveRoles) {
+      // Rescue protocol: skip other checks, proceed with restart
+    } else if (this.state.status === GameStatus.unseated) {
+      console.warn('[GameStateService] emergencyRestart: cannot restart in unseated status');
+      return false;
+    }
+    // ready, ended, assigned, seated, ongoing (without all roles): proceed
+
+    // ==========================================================================
+    // Execution: Perform emergency restart
+    // ==========================================================================
+
+    // 1. Stop audio
+    this.audioService.stop();
+
+    // 2. Clear night caches
+    this.state.actions.clear();
+    this.state.wolfVotes.clear();
+    this.state.currentActionerIndex = 0;
+    this.state.isAudioPlaying = false;
+    this.state.lastNightDeaths = [];
+
+    // 3. Reset NightFlowController
+    if (this.nightFlow) {
+      try {
+        this.nightFlow.dispatch(NightEvent.Reset);
+      } catch (err) {
+        console.warn('[GameStateService] emergencyRestart: NightFlow Reset failed:', err);
+      }
+      this.nightFlow = null;
+    }
+
+    // 4. Shuffle roles
+    const shuffledRoles = shuffleArray(rolePool);
+
+    // 5. Assign roles to players (seats unchanged)
+    let i = 0;
+    this.state.players.forEach((player) => {
+      if (player) {
+        player.role = shuffledRoles[i];
+        player.hasViewedRole = false;
+        i++;
+      }
+    });
+
+    // 6. Reset game phase
+    this.state.status = GameStatus.ready;
+
+    // 7. Notify listeners (uses existing mechanism)
+    this.notifyListeners();
+
+    console.log('[GameStateService] Emergency restart completed');
+    return true;
   }
 
   /**
