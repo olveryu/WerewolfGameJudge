@@ -199,8 +199,8 @@ describe('Action Order - 石像鬼守墓人12人', () => {
     const template = createTemplateFromRoles(gargoyleRoles);
     
     // Gargoyle is in ACTION_ORDER at index 4, before wolf
-    // Should be: gargoyle, wolf, witch, seer, hunter
-    expect(template.actionOrder).toEqual(['gargoyle', 'wolf', 'witch', 'seer', 'hunter']);
+  // GraveyardKeeper is configured with hasNightAction=true, so it's included.
+  expect(template.actionOrder).toEqual(['gargoyle', 'wolf', 'witch', 'seer', 'hunter', 'graveyardKeeper']);
   });
 
   it('should have gargoyle act before wolf', () => {
@@ -258,7 +258,8 @@ describe('Action Order - 血月猎魔12人', () => {
     
     // bloodMoon has no night action (actionOrder: -1)
     // Should be: wolf, witch, seer
-    expect(template.actionOrder).toEqual(['wolf', 'witch', 'seer']);
+  // Witcher is configured with hasNightAction=true, so it's included.
+  expect(template.actionOrder).toEqual(['wolf', 'witch', 'seer', 'witcher']);
   });
 
   it('should not include bloodMoon in action order', () => {

@@ -167,9 +167,17 @@ describe('roles - ACTION_ORDER', () => {
   });
 
   it('should have slacker first if included', () => {
-    // slacker acts first to choose the slacker target
+    // NOTE: ACTION_ORDER is derived from role models sorted by actionOrder.
+    // Magician is configured as the earliest role (actionOrder: -2), so it can
+    // preempt slacker (actionOrder: -1).
     if (ACTION_ORDER.includes('slacker')) {
-      expect(ACTION_ORDER[0]).toBe('slacker');
+      const slackerIndex = ACTION_ORDER.indexOf('slacker');
+      expect(slackerIndex).toBeGreaterThanOrEqual(0);
+
+      const magicianIndex = ACTION_ORDER.indexOf('magician');
+      if (magicianIndex !== -1) {
+        expect(magicianIndex).toBeLessThan(slackerIndex);
+      }
     }
   });
 

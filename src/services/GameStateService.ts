@@ -394,7 +394,7 @@ export class GameStateService {
     const allVoted = allWolfSeats.every(s => this.state!.wolfVotes.has(s));
 
     if (allVoted) {
-      // Calculate final target using extracted resolver
+  // [Bridge: WolfVoteResolver] Resolve final kill target from wolf votes
       const finalTarget = resolveWolfVotes(this.state.wolfVotes);
       if (finalTarget !== null) {
         this.state.actions.set('wolf', finalTarget);
@@ -639,10 +639,10 @@ export class GameStateService {
     if (!this.isHost || !this.state) return;
     if (this.state.status !== GameStatus.ready) return;
 
-    // Initialize NightFlowController with action order
+  // [Bridge: NightFlowController] Initialize night-phase state machine with action order
     this.nightFlow = new NightFlowController(this.state.template.actionOrder);
     
-    // Dispatch StartNight event (with error recovery)
+  // [Bridge: NightFlowController] Dispatch StartNight event (with error recovery)
     try {
       this.nightFlow.dispatch(NightEvent.StartNight);
     } catch (err) {
@@ -667,7 +667,7 @@ export class GameStateService {
     // Wait 5 seconds
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    // Night begin audio done - dispatch event
+  // [Bridge: NightFlowController] Night begin audio done - dispatch transition event
     try {
       this.nightFlow?.dispatch(NightEvent.NightBeginAudioDone);
       // Sync currentActionerIndex from nightFlow
@@ -867,7 +867,7 @@ export class GameStateService {
       await this.audioService.playRoleEndingAudio(currentRole).catch(() => {});
     }
 
-    // Dispatch RoleEndAudioDone to nightFlow
+  // [Bridge: NightFlowController] Dispatch RoleEndAudioDone to advance state machine
     try {
       this.nightFlow?.dispatch(NightEvent.RoleEndAudioDone);
       // Sync currentActionerIndex from nightFlow
@@ -897,7 +897,7 @@ export class GameStateService {
     console.log('[GameStateService] Playing night end audio...');
     await this.audioService.playNightEndAudio();
 
-    // Dispatch NightEndAudioDone to nightFlow
+  // [Bridge: NightFlowController] Dispatch NightEndAudioDone to complete state machine
     try {
       this.nightFlow?.dispatch(NightEvent.NightEndAudioDone);
     } catch (err) {
@@ -908,7 +908,7 @@ export class GameStateService {
       }
     }
 
-    // Calculate deaths using DeathCalculator
+  // [Bridge: DeathCalculator] Calculate deaths via extracted pure function
     const deaths = this.doCalculateDeaths();
     this.state.lastNightDeaths = deaths;
     this.state.status = GameStatus.ended;
@@ -1071,6 +1071,10 @@ export class GameStateService {
     return seats.sort((a, b) => a - b);
   }
 
+  // ===========================================================================
+  // Death Calculation Bridge (DeathCalculator)
+  // ===========================================================================
+
   /**
    * Build NightActions from internal actions Map (decode encoding)
    */
@@ -1146,6 +1150,7 @@ export class GameStateService {
     const nightActions = this.buildNightActions();
     const roleSeatMap = this.buildRoleSeatMap();
 
+  // [Bridge: DeathCalculator] Invoke extracted pure function
     return calculateDeaths(nightActions, roleSeatMap);
   }
 

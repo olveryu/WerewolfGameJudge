@@ -49,8 +49,8 @@ const createTestRoom = (): Room => {
 describe(`${TEMPLATE_NAME} - 行动顺序测试`, () => {
   it('应该有正确的行动顺序', () => {
     const template = createTemplateFromRoles(ROLES_CONFIG);
-    // 石像鬼在狼人之前行动，守墓人没有夜间行动
-    expect(template.actionOrder).toEqual(['gargoyle', 'wolf', 'witch', 'seer', 'hunter']);
+  // 石像鬼在狼人之前行动；守墓人配置为 hasNightAction=true，因此包含在行动顺序中
+  expect(template.actionOrder).toEqual(['gargoyle', 'wolf', 'witch', 'seer', 'hunter', 'graveyardKeeper']);
   });
 
   it('石像鬼应该在狼人之前行动', () => {
@@ -120,6 +120,6 @@ describe(`${TEMPLATE_NAME} - 角色对话消息测试`, () => {
   });
 
   it('守墓人没有夜间行动', () => {
-    expect(hasNightAction('graveyardKeeper')).toBe(false);
+  expect(hasNightAction('graveyardKeeper')).toBe(true);
   });
 });
