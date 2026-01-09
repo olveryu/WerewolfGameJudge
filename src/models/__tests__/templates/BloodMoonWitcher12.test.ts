@@ -49,8 +49,8 @@ const createTestRoom = (): Room => {
 describe(`${TEMPLATE_NAME} - 行动顺序测试`, () => {
   it('应该有正确的行动顺序（血月使徒无夜间行动）', () => {
     const template = createTemplateFromRoles(ROLES_CONFIG);
-    // 血月使徒没有夜间行动，白痴和猎魔人也没有
-    expect(template.actionOrder).toEqual(['wolf', 'witch', 'seer']);
+  // 血月使徒没有夜间行动，白痴没有；猎魔人配置为 hasNightAction=true，因此包含在行动顺序中
+  expect(template.actionOrder).toEqual(['wolf', 'witch', 'seer', 'witcher']);
   });
 
   it('血月使徒不在行动顺序中', () => {
@@ -60,7 +60,7 @@ describe(`${TEMPLATE_NAME} - 行动顺序测试`, () => {
 
   it('猎魔人不在行动顺序中', () => {
     const template = createTemplateFromRoles(ROLES_CONFIG);
-    expect(template.actionOrder).not.toContain('witcher');
+  expect(template.actionOrder).toContain('witcher');
   });
 });
 
@@ -76,8 +76,12 @@ describe(`${TEMPLATE_NAME} - 场景1: 正常夜晚`, () => {
     
     expect(getCurrentActionRole(room)).toBe('seer');
     room = proceedToNextAction(room, 4); // 预言家查验
-    
-    expect(getCurrentActionRole(room)).toBe(null); // 夜晚结束
+
+  // 猎魔人（从第二晚开始才可狩猎，但仍然是夜间行动步骤）
+  expect(getCurrentActionRole(room)).toBe('witcher');
+  room = proceedToNextAction(room, null);
+
+  expect(getCurrentActionRole(room)).toBe(null); // 夜晚结束
     
     const result = getNightResult(room);
     expect(result.deadPlayers).toContain(0);
@@ -97,6 +101,9 @@ describe(`${TEMPLATE_NAME} - 场景2: 女巫毒猎魔人`, () => {
     
     // 预言家查验
     room = proceedToNextAction(room, 4);
+
+  // 猎魔人步骤
+  room = proceedToNextAction(room, null);
     
     // 检查结果 - 猎魔人免疫毒药，但这需要在游戏逻辑中处理
     // 测试只验证流程正确，毒药记录正确
@@ -112,7 +119,7 @@ describe(`${TEMPLATE_NAME} - 角色特性测试`, () => {
   });
 
   it('猎魔人没有夜间行动', () => {
-    expect(hasNightAction('witcher')).toBe(false);
+  expect(hasNightAction('witcher')).toBe(true);
   });
 
   it('白痴没有夜间行动', () => {
