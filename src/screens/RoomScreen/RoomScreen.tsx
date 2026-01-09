@@ -45,6 +45,7 @@ import { styles, TILE_SIZE } from './RoomScreen.styles';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import type { LocalGameState } from '../../services/GameStateService';
 import { GameStateService } from '../../services/GameStateService';
+import { HostControlButtons } from './HostControlButtons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -722,6 +723,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }, []);
   
+  const handleSettingsPress = useCallback(() => {
+    navigation.navigate('Config', { existingRoomNumber: roomNumber });
+  }, [navigation, roomNumber]);
+  
   const handleSkipAction = useCallback(() => {
     showActionConfirmDialog(-1);
   }, [showActionConfirmDialog]);
@@ -994,29 +999,22 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       
       {/* Bottom Buttons */}
       <View style={styles.buttonContainer}>
-        {/* Host: Settings */}
-        {isHost && !isStartingGame && !isAudioPlaying && (roomStatus === RoomStatus.unseated || roomStatus === RoomStatus.seated || roomStatus === RoomStatus.assigned || roomStatus === RoomStatus.ready) && (
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: '#3B82F6' }]} 
-            onPress={() => navigation.navigate('Config', { existingRoomNumber: roomNumber })}
-          >
-            <Text style={styles.buttonText}>⚙️ 设置</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Host: Prepare to Flip */}
-        {isHost && roomStatus === RoomStatus.seated && (
-          <TouchableOpacity style={styles.actionButton} onPress={showPrepareToFlipDialog}>
-            <Text style={styles.buttonText}>准备看牌</Text>
-          </TouchableOpacity>
-        )}
-        
-        {/* Host: Start Game */}
-        {isHost && roomStatus === RoomStatus.ready && !isStartingGame && (
-          <TouchableOpacity style={styles.actionButton} onPress={showStartGameDialog}>
-            <Text style={styles.buttonText}>开始游戏</Text>
-          </TouchableOpacity>
-        )}
+        {/* Host Control Buttons */}
+        <HostControlButtons
+          isHost={isHost}
+          showSettings={!isStartingGame && !isAudioPlaying && (roomStatus === RoomStatus.unseated || roomStatus === RoomStatus.seated || roomStatus === RoomStatus.assigned || roomStatus === RoomStatus.ready)}
+          showPrepareToFlip={roomStatus === RoomStatus.seated}
+          showStartGame={roomStatus === RoomStatus.ready && !isStartingGame}
+          showLastNightInfo={firstNightEnded}
+          showRestart={firstNightEnded}
+          showEmergencyRestart={roomStatus === RoomStatus.ongoing}
+          onSettingsPress={handleSettingsPress}
+          onPrepareToFlipPress={showPrepareToFlipDialog}
+          onStartGamePress={showStartGameDialog}
+          onLastNightInfoPress={showLastNightInfoDialog}
+          onRestartPress={showRestartDialog}
+          onEmergencyRestartPress={showEmergencyRestartDialog}
+        />
         
         {/* Actioner: Skip Action */}
         {imActioner && roomStatus === RoomStatus.ongoing && !isAudioPlaying && (() => {
@@ -1027,13 +1025,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.buttonText}>
               {myRole === 'wolf' ? '投票空刀' : '不使用技能'}
             </Text>
-          </TouchableOpacity>
-        )}
-        
-        {/* Host: View Last Night Info */}
-        {isHost && firstNightEnded && (
-          <TouchableOpacity style={styles.actionButton} onPress={showLastNightInfoDialog}>
-            <Text style={styles.buttonText}>查看昨晚信息</Text>
           </TouchableOpacity>
         )}
         
@@ -1051,23 +1042,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             onPress={() => showAlert('等待房主点击"准备看牌"分配角色')}
           >
             <Text style={styles.buttonText}>查看身份</Text>
-          </TouchableOpacity>
-        )}
-        
-        {/* Host: Restart Game */}
-        {isHost && firstNightEnded && (
-          <TouchableOpacity style={styles.actionButton} onPress={showRestartDialog}>
-            <Text style={styles.buttonText}>重新开始</Text>
-          </TouchableOpacity>
-        )}
-        
-        {/* Host: Emergency Restart (reshuffle roles) - only during ongoing game */}
-        {isHost && roomStatus === RoomStatus.ongoing && (
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: '#EF4444' }]} 
-            onPress={showEmergencyRestartDialog}
-          >
-            <Text style={styles.buttonText}>🔥 救火重开</Text>
           </TouchableOpacity>
         )}
       </View>
