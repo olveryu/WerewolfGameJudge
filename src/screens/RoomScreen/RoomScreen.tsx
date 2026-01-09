@@ -21,9 +21,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { 
   RoomStatus, 
-  getKilledIndex,
-  getHunterStatus,
-  getDarkWolfKingStatus,
   getActionLog,
   performSeerAction,
   performPsychicAction,
@@ -32,9 +29,6 @@ import {
   GameRoomLike,
 } from '../../models/Room';
 import { 
-  witchRole, 
-  hunterRole, 
-  darkWolfKingRole,
   getRoleModel,
   RoleName,
   isWolfRole,
@@ -47,6 +41,7 @@ import type { LocalGameState } from '../../services/GameStateService';
 import { HostControlButtons } from './HostControlButtons';
 import { useRoomHostDialogs } from './useRoomHostDialogs';
 import { useRoomPlayerDialogs } from './useRoomPlayerDialogs';
+import { useRoomNightDialogs } from './useRoomNightDialogs';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -188,6 +183,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const lastShownDialogIndex = useRef<number | null>(null);
   const showActionDialogRef = useRef<((role: RoleName) => void) | null>(null);
   const handleBotActionRef = useRef<((role: RoleName) => void) | null>(null);
+  const proceedWithActionRef = useRef<((targetIndex: number | null, extra?: any) => Promise<void>) | null>(null);
 
   // Keep gameStateRef in sync
   useEffect(() => {
@@ -350,71 +346,21 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   
   handleBotActionRef.current = handleBotAction;
 
-  // Function to show action dialog
-  const showActionDialog = useCallback((role: RoleName) => {
-    const roleModel = getRoleModel(role);
-    if (!roleModel) return;
-    
-    const actionMessage = roleModel.actionMessage || `请${roleModel.displayName}行动`;
-    
-    if (role === 'witch') {
-      showWitchDialog();
-    } else if (role === 'hunter') {
-      showHunterStatusDialog();
-    } else if (role === 'darkWolfKing') {
-      showDarkWolfKingStatusDialog();
-    } else if (role === 'wolf') {
-      showAlert('狼人请睁眼', actionMessage, [{ text: '好', style: 'default' }]);
-    } else {
-      showAlert(`${roleModel.displayName}请睁眼`, actionMessage, [{ text: '好', style: 'default' }]);
-    }
-  }, []);
+  // Night dialogs from hook
+  const {
+    showActionDialog,
+    showWitchDialog,
+    showWitchPoisonDialog,
+    showHunterStatusDialog,
+    showDarkWolfKingStatusDialog,
+  } = useRoomNightDialogs({
+    gameState,
+    mySeatNumber,
+    proceedWithActionRef,
+    toGameRoomLike,
+  });
   
   showActionDialogRef.current = showActionDialog;
-  
-  const showWitchDialog = useCallback(() => {
-    if (!gameState || mySeatNumber === null) return;
-    const killedIndex = getKilledIndex(toGameRoomLike(gameState));
-    
-    const dialogConfig = witchRole.getActionDialogConfig({
-      mySeatNumber,
-      killedIndex,
-      playerCount: gameState.players.size,
-      alivePlayers: [],
-      currentActions: {},
-      proceedWithAction: (target, isPoison) => { void proceedWithAction(target, isPoison ?? false); },
-      showNextDialog: showWitchPoisonDialog,
-    });
-    
-    if (dialogConfig) {
-      showAlert(dialogConfig.title, dialogConfig.message ?? '', dialogConfig.buttons);
-    }
-  }, [gameState, mySeatNumber]);
-  
-  const showWitchPoisonDialog = useCallback(() => {
-    const dialogConfig = witchRole.getPoisonDialogConfig();
-    showAlert(dialogConfig.title, dialogConfig.message ?? '', dialogConfig.buttons);
-  }, []);
-  
-  const showHunterStatusDialog = useCallback(() => {
-    if (!gameState) return;
-    const canUseSkill = getHunterStatus(toGameRoomLike(gameState));
-    
-    const dialogConfig = hunterRole.getStatusDialogConfig(canUseSkill);
-    showAlert(dialogConfig.title, dialogConfig.message ?? '', [
-      { text: dialogConfig.buttons[0].text, onPress: () => { void proceedWithAction(null); } }
-    ]);
-  }, [gameState]);
-  
-  const showDarkWolfKingStatusDialog = useCallback(() => {
-    if (!gameState) return;
-    const canUseSkill = getDarkWolfKingStatus(toGameRoomLike(gameState));
-    
-    const dialogConfig = darkWolfKingRole.getStatusDialogConfig(canUseSkill);
-    showAlert(dialogConfig.title, dialogConfig.message ?? '', [
-      { text: dialogConfig.buttons[0].text, onPress: () => { void proceedWithAction(null); } }
-    ]);
-  }, [gameState]);
 
   // Seat handling
   const handleSeatingTap = useCallback((index: number) => {
@@ -515,6 +461,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const proceedWithAction = useCallback(async (targetIndex: number | null, extra?: any) => {
     await submitAction(targetIndex, extra);
   }, [submitAction]);
+  
+  proceedWithActionRef.current = proceedWithAction;
   
   // Player dialog callbacks from hook
   const {
