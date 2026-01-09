@@ -61,12 +61,18 @@ async function debugProbe(page: Page, label: string): Promise<void> {
 }
 
 /**
- * Wrap a step with fail-fast diagnostics
+ * Wrap a step with fail-fast diagnostics and 60s timeout
  */
 async function withStep<T>(name: string, page: Page, fn: () => Promise<T>): Promise<T> {
   console.log(`>> STEP: ${name}`);
+  const STEP_TIMEOUT = 60000; // 60 seconds per step
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error(`Step "${name}" timed out after 60s`)), STEP_TIMEOUT);
+  });
+
   try {
-    return await fn();
+    return await Promise.race([fn(), timeoutPromise]);
   } catch (error) {
     await debugProbe(page, name);
     const timestamp = Date.now();
@@ -79,6 +85,52 @@ async function withStep<T>(name: string, page: Page, fn: () => Promise<T>): Prom
 }
 
 // ============ HELPER FUNCTIONS ============
+
+/**
+ * Diagnose the environment: print page origin and any supabase config we can extract.
+ * This helps identify if the app is hitting the wrong supabase URL or can't reach it.
+ */
+async function diagnoseEnvironment(page: Page, label: string): Promise<void> {
+  try {
+    console.log(`\n========== ENVIRONMENT DIAGNOSIS: ${label} ==========`);
+    
+    const envInfo = await page.evaluate(() => {
+      const info: Record<string, string> = {};
+      
+      // Page origin
+      info['window.location.origin'] = window.location.origin;
+      info['window.location.href'] = window.location.href;
+      
+      // Try to get Expo public env vars (available in web builds)
+      // @ts-expect-error - These may not exist
+      if (typeof process !== 'undefined' && process.env) {
+        // @ts-expect-error
+        info['EXPO_PUBLIC_SUPABASE_URL'] = process.env.EXPO_PUBLIC_SUPABASE_URL || '(not set)';
+        // @ts-expect-error
+        info['EXPO_PUBLIC_SUPABASE_ANON_KEY'] = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ? '(set, hidden)' : '(not set)';
+      } else {
+        info['process.env'] = '(not available in browser)';
+      }
+      
+      // Try to find supabase client config in window (some apps expose it)
+      // @ts-expect-error
+      if (window.__SUPABASE_URL__) {
+        // @ts-expect-error
+        info['window.__SUPABASE_URL__'] = window.__SUPABASE_URL__;
+      }
+      
+      return info;
+    });
+    
+    for (const [key, value] of Object.entries(envInfo)) {
+      console.log(`  ${key}: ${value}`);
+    }
+    
+    console.log(`========== END DIAGNOSIS ==========\n`);
+  } catch (e) {
+    console.log(`[diagnoseEnvironment] Error: ${e}`);
+  }
+}
 
 /**
  * Dismiss the "加载超时" dialog if it is present.
@@ -122,6 +174,103 @@ async function dismissLoadingTimeoutIfPresent(page: Page, label: string): Promis
     console.log(`[TimeoutDialog][${label}] dismissed via ${via}`);
     return true;
   } catch {
+    return false;
+  }
+}
+
+/**
+ * Dismiss any generic alert dialogs that might block the UI.
+ * Examples:
+ *   - "没有上局游戏记录" with "确定" button
+ *   - "提示" with "确定" button
+ * Never throws; returns true if a dialog was dismissed.
+ */
+async function dismissGenericAlertIfPresent(page: Page, label: string): Promise<boolean> {
+  try {
+    // Check for common alert patterns
+    const alerts = [
+      { text: '没有上局游戏记录', btn: '确定' },
+      { text: '提示', btn: '确定' },
+    ];
+    
+    for (const alert of alerts) {
+      const hasAlert = await page.getByText(alert.text).isVisible({ timeout: 500 }).catch(() => false);
+      if (hasAlert) {
+        console.log(`[GenericAlert][${label}] Found: "${alert.text}"`);
+        const btn = page.getByText(alert.btn, { exact: true });
+        if (await btn.isVisible({ timeout: 500 }).catch(() => false)) {
+          await btn.click();
+          await page.waitForTimeout(300);
+          console.log(`[GenericAlert][${label}] Dismissed via "${alert.btn}"`);
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Dismiss "需要登录" / "请先登录后继续" dialog and complete anonymous login.
+ * - Detects login-required overlays and completes the full login flow
+ * - Never throws; returns true if login was needed and completed
+ */
+async function dismissLoginRequiredIfPresent(page: Page, label: string): Promise<boolean> {
+  try {
+    // Check for login-required overlay (either variant)
+    const hasLoginRequired1 = await page.getByText('需要登录').isVisible({ timeout: 800 }).catch(() => false);
+    const hasLoginRequired2 = await page.getByText('请先登录后继续').isVisible({ timeout: 500 }).catch(() => false);
+    const hasLoginRequired3 = await page.getByText('请先登陆后继续').isVisible({ timeout: 500 }).catch(() => false);
+
+    if (!hasLoginRequired1 && !hasLoginRequired2 && !hasLoginRequired3) {
+      return false;
+    }
+
+    console.log(`[LoginRequired][${label}] found`);
+
+    // Priority 1: Click "点击登录" if visible
+    const clickLoginBtn = page.getByText('点击登录');
+    if (await clickLoginBtn.isVisible({ timeout: 800 }).catch(() => false)) {
+      console.log(`[LoginRequired][${label}] clicking 点击登录`);
+      await clickLoginBtn.click({ timeout: 2000 }).catch(() => {});
+      await page.waitForTimeout(500);
+    }
+
+    // Priority 2: Click anonymous login button (use regex to match variants)
+    const anonLoginBtn = page.getByText(/匿名登录/);
+    if (await anonLoginBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      console.log(`[LoginRequired][${label}] clicking 匿名登录`);
+      await anonLoginBtn.first().click({ timeout: 2000 }).catch(() => {});
+      await page.waitForTimeout(1000);
+    }
+
+    // Wait for login to complete (匿名用户 visible = logged in)
+    console.log(`[LoginRequired][${label}] waiting for login to complete...`);
+    await expect(page.getByText('匿名用户')).toBeVisible({ timeout: 15000 });
+
+    // IMPORTANT: After login, the dialog may still be visible. Wait for it to dismiss.
+    // If it doesn't auto-dismiss, click "取消" to close it.
+    await page.waitForTimeout(500);
+    const dialogStillVisible = await page.getByText('需要登录').isVisible({ timeout: 500 }).catch(() => false);
+    if (dialogStillVisible) {
+      console.log(`[LoginRequired][${label}] dialog still visible after login, clicking 取消`);
+      const cancelBtn = page.getByText('取消', { exact: true });
+      if (await cancelBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+        await cancelBtn.click({ timeout: 2000 }).catch(() => {});
+        await page.waitForTimeout(300);
+      }
+    }
+
+    // Final wait for dialog to be fully gone
+    await page.getByText('需要登录').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+
+    console.log(`[LoginRequired][${label}] completed anonymous login`);
+    return true;
+  } catch (e) {
+    console.log(`[LoginRequired][${label}] error: ${e}`);
     return false;
   }
 }
@@ -973,6 +1122,63 @@ test.describe('Template Scenarios E2E', () => {
           console.log(`[Browser ${i + 1}] ${text}`);
         }
       });
+
+      // ========== NETWORK DIAGNOSTICS FOR SUPABASE ==========
+      // Track if we've logged the first supabase URL (to identify actual target)
+      let firstSupabaseUrlLogged = false;
+
+      // Listen for failed requests (ECONNREFUSED, DNS, CORS preflight failures, etc.)
+      page.on('requestfailed', request => {
+        const url = request.url();
+        // Filter: only supabase-related or localhost:54321 (local supabase default)
+        if (url.includes('supabase') || url.includes(':54321') || url.includes('127.0.0.1') || url.includes('localhost')) {
+          const failure = request.failure();
+          console.log(`[NET FAIL][Browser ${i + 1}] ${request.method()} ${url}`);
+          console.log(`  -> errorText: ${failure?.errorText || 'unknown'}`);
+        }
+      });
+
+      // Listen for responses with errors (401, 403, 404, 500, etc.)
+      page.on('response', async response => {
+        const url = response.url();
+        const status = response.status();
+        const request = response.request();
+        const method = request.method();
+        
+        // Filter: only supabase-related
+        if (url.includes('supabase') || url.includes(':54321')) {
+          // Log the first supabase URL to identify target
+          if (!firstSupabaseUrlLogged) {
+            firstSupabaseUrlLogged = true;
+            const urlObj = new URL(url);
+            console.log(`[NET INFO][Browser ${i + 1}] First Supabase request detected:`);
+            console.log(`  -> Target host: ${urlObj.origin}`);
+          }
+          
+          // Log ALL POST/INSERT requests to rooms table (to track room creation)
+          if (method === 'POST' && url.includes('/rooms')) {
+            // Log request headers to diagnose auth issues
+            const reqHeaders = request.headers();
+            const authHeader = reqHeaders['authorization'] || 'MISSING';
+            const apikeyHeader = reqHeaders['apikey'] || 'MISSING';
+            console.log(`[NET POST][Browser ${i + 1}] ${method} ${url} -> ${status}`);
+            console.log(`  -> Authorization: ${authHeader.substring(0, 50)}...`);
+            console.log(`  -> apikey: ${apikeyHeader.substring(0, 30)}...`);
+            try {
+              const body = await response.text();
+              console.log(`  -> Response body: ${body.substring(0, 500)}`);
+            } catch { 
+              console.log(`  -> Response body: (unable to read)`);
+            }
+          }
+          
+          // Log errors
+          if (status >= 400) {
+            console.log(`[NET ERROR][Browser ${i + 1}] ${status} ${response.statusText()} - ${url}`);
+          }
+        }
+      });
+      // ========== END NETWORK DIAGNOSTICS ==========
       
       contexts.push(context);
       pages.push(page);
@@ -995,12 +1201,33 @@ test.describe('Template Scenarios E2E', () => {
       await withStep('Host waitForAppReady', hostPage, async () => {
         await waitForAppReady(hostPage);
       });
+
+      // ========== ENVIRONMENT DIAGNOSIS ==========
+      await diagnoseEnvironment(hostPage, 'Host after waitForAppReady');
+
       await withStep('Host waitForLoggedIn', hostPage, async () => {
         await waitForLoggedIn(hostPage);
       });
 
+      // Dismiss "请先登陆后继续" if it appears before clicking 创建房间
+      await withStep('Host dismissLoginRequiredIfPresent', hostPage, async () => {
+        await dismissLoginRequiredIfPresent(hostPage, 'Host before 创建房间');
+      });
+
+      // Dismiss "没有上局游戏记录" alert if it appears
+      await withStep('Host dismissGenericAlertIfPresent', hostPage, async () => {
+        await dismissGenericAlertIfPresent(hostPage, 'Host before 创建房间');
+      });
+
       // Create room with first template
-      await hostPage.getByText('创建房间').click();
+      await withStep('Host click 创建房间', hostPage, async () => {
+        // Pre-condition: dismiss any dialogs and ensure logged in
+        await dismissGenericAlertIfPresent(hostPage, 'before click 创建房间');
+        await dismissLoginRequiredIfPresent(hostPage, 'before click 创建房间');
+        await expect(hostPage.getByText('匿名用户')).toBeVisible({ timeout: 15000 });
+        // Now click
+        await hostPage.getByText('创建房间').click();
+      });
       await withStep('Host create room with template 标准板12人', hostPage, async () => {
         await expect(hostPage.getByText('快速模板')).toBeVisible({ timeout: 5000 });
         await hostPage.getByText(firstTemplate.name, { exact: true }).click();
@@ -1046,16 +1273,28 @@ test.describe('Template Scenarios E2E', () => {
           await waitForLoggedIn(page);
           await dismissLoadingTimeoutIfPresent(page, `Joiner ${i + 2} after login`);
           
+          // Dismiss any generic alerts (e.g. "没有上局游戏记录")
+          await dismissGenericAlertIfPresent(page, `Joiner ${i + 2} after login`);
+          
+          // Dismiss login-required overlay if present (needed for each player)
+          await dismissLoginRequiredIfPresent(page, `Joiner ${i + 2} before 进入房间`);
+          
           await page.getByText('进入房间').click();
           await expect(page.getByText('加入房间')).toBeVisible({ timeout: 5000 });
           await page.getByPlaceholder('0000').fill(roomNumber);
+
           await page.getByText('加入', { exact: true }).click();
 
-          // Single-point timeout dialog dismissal after join
-          await dismissLoadingTimeoutIfPresent(page, `Joiner ${i + 2} after clicking join`);
+          // Handle timeout dialog with simple retry (max 3 attempts)
+          for (let attempt = 0; attempt < 3; attempt++) {
+            await dismissLoadingTimeoutIfPresent(page, `Joiner ${i + 2} after clicking join attempt ${attempt + 1}`);
+            if (await page.getByText(/房间 \d{4}/).isVisible({ timeout: 3000 }).catch(() => false)) {
+              break;
+            }
+          }
           
-          // Wait longer for room to load
-          await expect(page.getByText(/房间 \d{4}/)).toBeVisible({ timeout: 20000 });
+          // Final verification
+          await expect(page.getByText(/房间 \d{4}/)).toBeVisible({ timeout: 10000 });
           
           // Wait a bit for room state to sync
           await page.waitForTimeout(500);
