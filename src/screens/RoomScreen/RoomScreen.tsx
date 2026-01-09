@@ -344,7 +344,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     }, delay);
   }, [roomStatus, submitAction, submitWolfVote, getAllWolfSeats, hasWolfVoted]);
   
-  handleBotActionRef.current = handleBotAction;
+  useEffect(() => {
+    handleBotActionRef.current = handleBotAction;
+  }, [handleBotAction]);
 
   // Night dialogs from hook
   const {
@@ -360,7 +362,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     toGameRoomLike,
   });
   
-  showActionDialogRef.current = showActionDialog;
+  useEffect(() => {
+    showActionDialogRef.current = showActionDialog;
+  }, [showActionDialog]);
 
   // Seat handling
   const handleSeatingTap = useCallback((index: number) => {
@@ -462,7 +466,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     await submitAction(targetIndex, extra);
   }, [submitAction]);
   
-  proceedWithActionRef.current = proceedWithAction;
+  useEffect(() => {
+    proceedWithActionRef.current = proceedWithAction;
+  }, [proceedWithAction]);
   
   // Player dialog callbacks from hook
   const {
