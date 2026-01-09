@@ -2,6 +2,7 @@ import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from '.
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
 import { RoleName, ROLES, isWolfRole } from './roles';
 import { NightPhase } from './NightPhase';
+import { shuffleArray } from '../utils/shuffle';
 
 // Room status
 export enum RoomStatus {
@@ -794,16 +795,6 @@ export const updateRoomTemplate = (room: Room, newTemplate: GameTemplate): Room 
     players: updatedPlayers,
     template: newTemplate,
   };
-};
-
-// Helper to shuffle array
-const shuffleArray = <T>(array: T[]): T[] => {
-  const result = [...array];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
 };
 
 // Night result interface

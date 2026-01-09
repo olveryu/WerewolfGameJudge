@@ -13,16 +13,6 @@ const getActionOrderForRoles = (roles: RoleName[]): RoleName[] => {
   return ACTION_ORDER.filter((role) => roleSet.has(role));
 };
 
-// Fisher-Yates shuffle
-const shuffleArray = <T>(array: T[]): T[] => {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-};
-
 // Create custom template (roles are NOT shuffled here - shuffling happens at "准备看牌")
 export const createCustomTemplate = (roles: RoleName[]): GameTemplate => {
   return {
