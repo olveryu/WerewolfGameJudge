@@ -44,8 +44,9 @@ import { Avatar } from '../../components/Avatar';
 import { styles, TILE_SIZE } from './RoomScreen.styles';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import type { LocalGameState } from '../../services/GameStateService';
-import { GameStateService } from '../../services/GameStateService';
 import { HostControlButtons } from './HostControlButtons';
+import { useRoomHostDialogs } from './useRoomHostDialogs';
+import { useRoomPlayerDialogs } from './useRoomPlayerDialogs';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -455,43 +456,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       handleActionTap(index);
     }
   }, [gameState, roomStatus, isAudioPlaying, handleSeatingTap, handleActionTap, imActioner]);
-  
-  const showEnterSeatDialog = useCallback((index: number) => {
-    setPendingSeatIndex(index);
-    setModalType('enter');
-    setSeatModalVisible(true);
-  }, []);
-  
-  const handleConfirmSeat = useCallback(async () => {
-    if (pendingSeatIndex === null) return;
-    
-    const success = await takeSeat(pendingSeatIndex);
-    setSeatModalVisible(false);
-    
-    if (!success) {
-      showAlert(`${pendingSeatIndex + 1}号座已被占用`, '请选择其他位置。');
-    }
-    setPendingSeatIndex(null);
-  }, [pendingSeatIndex, takeSeat]);
-  
-  const handleCancelSeat = useCallback(() => {
-    setSeatModalVisible(false);
-    setPendingSeatIndex(null);
-  }, []);
-  
-  const showLeaveSeatDialog = useCallback((index: number) => {
-    setPendingSeatIndex(index);
-    setModalType('leave');
-    setSeatModalVisible(true);
-  }, []);
-  
-  const handleConfirmLeave = useCallback(async () => {
-    if (pendingSeatIndex === null) return;
-    
-    await leaveSeat();
-    setSeatModalVisible(false);
-    setPendingSeatIndex(null);
-  }, [pendingSeatIndex, leaveSeat]);
 
   // Wolf vote handling
   const findVotingWolfSeat = useCallback((): number | null => {
@@ -526,65 +490,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     return `确定${actionConfirmMessage}${index + 1}号和${anotherIndex + 1}号玩家?`;
   }, [anotherIndex]);
 
-  const showActionConfirmDialog = useCallback((index: number) => {
-    if (!myRole) return;
-    
-    if (myRole === 'wolf') {
-      const votingWolfSeat = findVotingWolfSeat();
-      if (votingWolfSeat !== null) {
-        showWolfVoteConfirmDialog(index, votingWolfSeat);
-        return;
-      }
-    }
-    
-    const msg = buildActionMessage(index, myRole);
-    
-    showAlert(
-      index === -1 ? '不发动技能' : '使用技能',
-      msg,
-      [
-        { 
-          text: '确定', 
-          onPress: () => {
-            if (index === -1) {
-              proceedWithAction(null);
-            } else {
-              performAction(index);
-            }
-          }
-        },
-        { 
-          text: '取消', 
-          style: 'cancel',
-          onPress: () => setAnotherIndex(null)
-        },
-      ]
-    );
-  }, [myRole, findVotingWolfSeat, buildActionMessage]);
-  
-  const showWolfVoteConfirmDialog = useCallback((targetIndex: number, wolfSeat: number) => {
-    if (!gameState) return;
-    
-    const player = gameState.players.get(wolfSeat);
-    const wolfName = player?.displayName || `${wolfSeat + 1}号狼人`;
-    
-    const msg = targetIndex === -1 
-      ? `${wolfName} 确定投票空刀吗？` 
-      : `${wolfName} 确定要猎杀${targetIndex + 1}号玩家吗？`;
-    
-    showAlert(
-      '狼人投票',
-      msg,
-      [
-        { 
-          text: '确定', 
-          onPress: () => { void submitWolfVote(targetIndex); }
-        },
-        { text: '取消', style: 'cancel' },
-      ]
-    );
-  }, [gameState, submitWolfVote]);
-  
   const performAction = useCallback((targetIndex: number) => {
     if (!gameState || !myRole) return;
     
@@ -611,66 +516,54 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     await submitAction(targetIndex, extra);
   }, [submitAction]);
   
-  const showPrepareToFlipDialog = useCallback(() => {
-    if (!gameState) return;
-    
-    let seatedCount = 0;
-    gameState.players.forEach((player) => {
-      if (player !== null) seatedCount++;
-    });
-    const totalSeats = gameState.template.roles.length;
-    
-    if (seatedCount !== totalSeats) {
-      showAlert('无法开始游戏', '有座位尚未被占用。');
-      return;
-    }
-    
-    showAlert(
-      '允许看牌？',
-      '所有座位已被占用。将洗牌并分配角色。',
-      [
-        { 
-          text: '确定', 
-          onPress: () => { void assignRoles(); }
-        }
-      ]
-    );
-  }, [gameState, assignRoles]);
-  
-  const handleStartGame = useCallback(async () => {
-    setIsStartingGame(true);
-    await startGame();
-  }, [startGame]);
+  // Player dialog callbacks from hook
+  const {
+    showEnterSeatDialog,
+    handleConfirmSeat,
+    handleCancelSeat,
+    showLeaveSeatDialog,
+    handleConfirmLeave,
+    showActionConfirmDialog,
+    showWolfVoteConfirmDialog,
+    handleSkipAction,
+    handleLeaveRoom,
+  } = useRoomPlayerDialogs({
+    setPendingSeatIndex,
+    setModalType,
+    setSeatModalVisible,
+    pendingSeatIndex,
+    takeSeat,
+    leaveSeat,
+    myRole,
+    gameState,
+    findVotingWolfSeat,
+    buildActionMessage,
+    proceedWithAction,
+    performAction,
+    setAnotherIndex,
+    submitWolfVote,
+    roomStatus,
+    navigation,
+  });
 
-  const showStartGameDialog = useCallback(() => {
-    showAlert(
-      '开始游戏？',
-      '请将您的手机音量调整到最大。',
-      [
-        { 
-          text: '确定', 
-          onPress: () => { void handleStartGame(); }
-        }
-      ]
-    );
-  }, [handleStartGame]);
-  
-  const showLastNightInfoDialog = useCallback(() => {
-    showAlert(
-      '确定查看昨夜信息？',
-      '',
-      [
-        { 
-          text: '确定', 
-          onPress: () => {
-            const info = getLastNightInfoFn();
-            showAlert('昨夜信息', info);
-          }
-        },
-        { text: '取消', style: 'cancel' },
-      ]
-    );
-  }, [getLastNightInfoFn]);
+  // Host dialog callbacks from hook
+  const {
+    showPrepareToFlipDialog,
+    showStartGameDialog,
+    showLastNightInfoDialog,
+    showRestartDialog,
+    showEmergencyRestartDialog,
+    handleSettingsPress,
+  } = useRoomHostDialogs({
+    gameState,
+    assignRoles,
+    startGame,
+    restartGame,
+    getLastNightInfo: getLastNightInfoFn,
+    setIsStartingGame,
+    navigation,
+    roomNumber,
+  });
   
   const showRoleCardDialog = useCallback(async () => {
     if (!myRole) return;
@@ -687,65 +580,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       [{ text: '确定', style: 'default' }]
     );
   }, [myRole, viewedRole]);
-  
-  const showRestartDialog = useCallback(() => {
-    showAlert(
-      '重新开始游戏？',
-      '使用相同板子开始新一局游戏。',
-      [
-        { 
-          text: '确定', 
-          onPress: () => { void restartGame(); }
-        },
-        { text: '取消', style: 'cancel' },
-      ]
-    );
-  }, [restartGame]);
-  
-  const showEmergencyRestartDialog = useCallback(() => {
-    showAlert(
-      '救火重开',
-      '将作废当前局并重新发身份。所有人需要重新查看身份后再开始。是否继续？',
-      [
-        {
-          text: '继续重开',
-          onPress: () => {
-            const success = GameStateService.getInstance().emergencyRestartAndReshuffleRoles();
-            if (success) {
-              showAlert('已重开', '请所有人重新查看身份。');
-            } else {
-              showAlert('无法重开', '当前状态不允许重开（未就绪/模板缺失/人数不匹配/非房主）。');
-            }
-          },
-        },
-        { text: '取消', style: 'cancel' },
-      ]
-    );
-  }, []);
-  
-  const handleSettingsPress = useCallback(() => {
-    navigation.navigate('Config', { existingRoomNumber: roomNumber });
-  }, [navigation, roomNumber]);
-  
-  const handleSkipAction = useCallback(() => {
-    showActionConfirmDialog(-1);
-  }, [showActionConfirmDialog]);
-  
-  const handleLeaveRoom = useCallback(() => {
-    if (roomStatus === RoomStatus.ongoing) {
-      navigation.navigate('Home');
-      return;
-    }
-    
-    showAlert(
-      '离开房间？',
-      '',
-      [
-        { text: '确定', onPress: () => navigation.navigate('Home') },
-        { text: '取消', style: 'cancel' },
-      ]
-    );
-  }, [roomStatus, navigation]);
 
   // Loading state
   if (!isInitialized || !gameState) {
