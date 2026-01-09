@@ -294,6 +294,14 @@ export class GameStateService {
       return;
     }
 
+    // Clear old seat if player is switching seats (find by uid, not trusting client)
+    for (const [oldSeat, oldPlayer] of this.state.players.entries()) {
+      if (oldPlayer?.uid === uid) {
+        this.state.players.set(oldSeat, null);
+        break;
+      }
+    }
+
     const player: LocalPlayer = {
       uid,
       seatNumber: seat,

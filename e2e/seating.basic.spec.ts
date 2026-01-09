@@ -773,4 +773,153 @@ test.describe('Seating Diagnostic', () => {
     }
   });
 
+  test('DIAG-5: Seat switching → old seat becomes empty', async ({ browser }, testInfo) => {
+    console.log('\n🔍 DIAGNOSTIC TEST: Seat switching clears old seat\n');
+    
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+    
+    const diagA = setupDiagnostics(pageA, 'HOST-A');
+    const diagB = setupDiagnostics(pageB, 'JOINER-B');
+
+    try {
+      // ===================== HOST A: Create room =====================
+      console.log('[DIAG] === HOST A Setup ===');
+      
+      await pageA.goto('/');
+      await waitForAppReady(pageA);
+      await ensureAnonLogin(pageA);
+      
+      await pageA.getByText('创建房间').click();
+      await expect(getVisibleText(pageA, '创建')).toBeVisible({ timeout: 10000 });
+      await getVisibleText(pageA, '创建').click();
+      await waitForRoomScreenReady(pageA);
+      
+      const roomNumber = await extractRoomNumber(pageA);
+      console.log(`[DIAG] HOST A created room: ${roomNumber}`);
+
+      // ===================== JOINER B: Join room =====================
+      console.log('\n[DIAG] === JOINER B Setup ===');
+      
+      await pageB.goto('/');
+      await waitForAppReady(pageB);
+      await ensureAnonLogin(pageB);
+      
+      await getVisibleText(pageB, '进入房间').first().click();
+      await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
+      
+      const input = pageB.locator('input').first();
+      await input.fill(roomNumber);
+      await pageB.getByText('加入', { exact: true }).click();
+      
+      await waitForRoomScreenReady(pageB);
+      console.log(`[DIAG] JOINER B joined room ${roomNumber}`);
+
+      // ===================== JOINER B: Take seat 2 =====================
+      console.log('\n[DIAG] JOINER B taking seat 2...');
+      
+      await getSeatTileLocator(pageB, 1).click(); // seat index 1 = display "2"
+      await expect(pageB.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
+      await pageB.getByText('确定', { exact: true }).click();
+      await pageB.waitForTimeout(500);
+      
+      // Dismiss any alert
+      await pageB.getByRole('button', { name: '确定' }).click({ timeout: 1000 }).catch(() => {});
+      
+      const joinerSeat2After = await collectSeatUIState(pageB, 2);
+      console.log(`[DIAG] JOINER B seat 2: ${JSON.stringify(joinerSeat2After)}`);
+      expect(joinerSeat2After.hasPlayerName, 'Joiner should be seated at seat 2').toBe(true);
+      
+      await takeScreenshot(pageB, testInfo, 'B-01-seated-at-2.png');
+
+      // ===================== JOINER B: Switch to seat 5 =====================
+      console.log('\n[DIAG] JOINER B switching to seat 5...');
+      
+      await getSeatTileLocator(pageB, 4).click(); // seat index 4 = display "5"
+      await expect(pageB.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
+      await pageB.getByText('确定', { exact: true }).click();
+      await pageB.waitForTimeout(500);
+      
+      // Dismiss any alert
+      await pageB.getByRole('button', { name: '确定' }).click({ timeout: 1000 }).catch(() => {});
+      
+      const joinerSeat5After = await collectSeatUIState(pageB, 5);
+      const joinerSeat2AfterSwitch = await collectSeatUIState(pageB, 2);
+      
+      console.log(`[DIAG] JOINER B seat 5: ${JSON.stringify(joinerSeat5After)}`);
+      console.log(`[DIAG] JOINER B seat 2 (should be empty): ${JSON.stringify(joinerSeat2AfterSwitch)}`);
+      
+      await takeScreenshot(pageB, testInfo, 'B-02-switched-to-5.png');
+
+      // ===================== HOST A: Verify seat states =====================
+      console.log('\n[DIAG] Polling HOST A for seat updates...');
+      
+      // Poll for Host to see seat 5 occupied
+      let hostSeat5 = await collectSeatUIState(pageA, 5);
+      const maxPollTime = 5000;
+      const pollInterval = 250;
+      const startTime = Date.now();
+      
+      while (Date.now() - startTime < maxPollTime) {
+        hostSeat5 = await collectSeatUIState(pageA, 5);
+        if (!hostSeat5.isEmpty && hostSeat5.hasPlayerName) {
+          break;
+        }
+        await pageA.waitForTimeout(pollInterval);
+      }
+      
+      const hostSeat2 = await collectSeatUIState(pageA, 2);
+      
+      console.log(`[DIAG] HOST A seat 5: ${JSON.stringify(hostSeat5)}`);
+      console.log(`[DIAG] HOST A seat 2 (should be empty): ${JSON.stringify(hostSeat2)}`);
+      
+      await takeScreenshot(pageA, testInfo, 'A-01-after-switch.png');
+
+      // ===================== DIAGNOSTIC SUMMARY =====================
+      printDiagnosticSummary('HOST A', diagA);
+      printDiagnosticSummary('JOINER B', diagB);
+      
+      await testInfo.attach('seat-switch-diagnostic.txt', {
+        body: [
+          '=== Seat Switch Test ===',
+          `Room: ${roomNumber}`,
+          '',
+          '=== JOINER B VIEW ===',
+          `Seat 5 (new): ${JSON.stringify(joinerSeat5After)}`,
+          `Seat 2 (old, should be empty): ${JSON.stringify(joinerSeat2AfterSwitch)}`,
+          '',
+          '=== HOST A VIEW ===',
+          `Seat 5 (new): ${JSON.stringify(hostSeat5)}`,
+          `Seat 2 (old, should be empty): ${JSON.stringify(hostSeat2)}`,
+          '',
+          '=== DIAGNOSIS ===',
+          joinerSeat2AfterSwitch.isEmpty && hostSeat2.isEmpty
+            ? '✅ FIXED - Old seat properly cleared on switch'
+            : '❌ BUG - Old seat not cleared on switch',
+          '',
+          '=== HOST A LOGS ===',
+          ...diagA.consoleLogs,
+          '',
+          '=== JOINER B LOGS ===',
+          ...diagB.consoleLogs,
+        ].join('\n'),
+        contentType: 'text/plain',
+      });
+
+      // Assertions
+      expect(joinerSeat5After.hasPlayerName, 'Joiner seat 5 should have player').toBe(true);
+      expect(joinerSeat2AfterSwitch.isEmpty, 'Joiner old seat 2 should be empty').toBe(true);
+      expect(hostSeat5.hasPlayerName, 'Host sees seat 5 occupied').toBe(true);
+      expect(hostSeat2.isEmpty, 'Host sees old seat 2 empty').toBe(true);
+      
+      console.log('\n🔍 DIAGNOSTIC COMPLETE\n');
+      
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+
 });
