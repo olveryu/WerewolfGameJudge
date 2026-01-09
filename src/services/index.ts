@@ -1,6 +1,5 @@
 export { default as AudioService } from './AudioService';
 export { AuthService } from './AuthService';
-export { RoomService } from './RoomService';
 export { AvatarUploadService } from './AvatarUploadService';
 
 // New Broadcast Architecture (Host as Authority)
