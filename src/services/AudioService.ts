@@ -1,6 +1,13 @@
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer, AudioStatus } from 'expo-audio';
 import { RoleName } from '../models/roles';
 
+/**
+ * Maximum time to wait for audio playback completion before auto-resolving.
+ * This prevents the night flow from getting stuck if audio fails to play or
+ * the completion event is never fired (e.g., Web autoplay blocked, app backgrounded).
+ */
+const AUDIO_TIMEOUT_MS = 15000;
+
 // Audio file mappings matching Flutter's JudgeAudioProvider
 const AUDIO_FILES: Partial<Record<RoleName, any>> = {
   slacker: require('../../assets/audio/slacker.mp3'),
@@ -84,21 +91,27 @@ class AudioService {
     }
   }
 
-  private async playAudioFile(audioFile: any): Promise<void> {
-    this.stopCurrentPlayer();
-
+  /**
+   * Safe wrapper for audio playback that guarantees resolution.
+   * This is the outermost fallback layer - it catches all possible errors
+   * from player creation, loading, playback, and listener callbacks.
+   * 
+   * Guarantees:
+   * - Always returns a Promise that resolves (never rejects)
+   * - Resolves on: normal completion, timeout, or any error
+   * - Logs warnings on fallback scenarios for debugging
+   */
+  private async safePlayAudioFile(audioFile: any): Promise<void> {
     try {
+      this.stopCurrentPlayer();
+
       const player = createAudioPlayer(audioFile);
       this.player = player;
       this.isPlaying = true;
 
-      // Return a promise that resolves when playback finishes
-      // Add timeout to prevent hanging if audio fails to play (e.g., Web autoplay blocked)
-      const AUDIO_TIMEOUT_MS = 15000; // 15 seconds max per audio file
-      
-      return new Promise((resolve) => {
+      return new Promise<void>((resolve) => {
         let resolved = false;
-        
+
         const cleanup = () => {
           if (resolved) return;
           resolved = true;
@@ -112,15 +125,26 @@ class AudioService {
           this.player = null;
           resolve();
         };
-        
+
         // Timeout fallback - resolve after max time even if audio didn't finish
         const timeoutId = setTimeout(() => {
-          console.warn('Audio playback timeout - proceeding without waiting for completion');
+          console.warn('[AudioService] Playback timeout - proceeding without waiting for completion');
           cleanup();
         }, AUDIO_TIMEOUT_MS);
-        
+
         const subscription = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
-          if (status.didJustFinish) {
+          try {
+            // Warn if duration is 0 (possible invalid audio), but let timeout handle it
+            if (status.isLoaded && status.duration === 0) {
+              console.warn('[AudioService] Audio duration is 0 - may be invalid, waiting for timeout fallback');
+            }
+            if (status.didJustFinish) {
+              clearTimeout(timeoutId);
+              cleanup();
+            }
+          } catch {
+            // Listener callback error - cleanup and resolve
+            console.warn('[AudioService] Error in playback status listener - resolving');
             clearTimeout(timeoutId);
             cleanup();
           }
@@ -129,40 +153,54 @@ class AudioService {
         player.play();
       });
     } catch (error) {
-      console.error('Failed to play audio:', error);
+      // Catch any error from createAudioPlayer, addListener, play, etc.
+      console.warn('[AudioService] Audio playback failed, resolving anyway:', error);
       this.isPlaying = false;
+      // Explicitly resolve - do not throw (return from async function resolves)
+      return;
     }
+  }
+
+  /**
+   * @deprecated Use safePlayAudioFile instead. Kept for reference.
+   */
+  private async playAudioFile(audioFile: any): Promise<void> {
+    return this.safePlayAudioFile(audioFile);
   }
 
   // Play night start audio
   async playNightAudio(): Promise<void> {
-    await this.playAudioFile(NIGHT_AUDIO);
+    return this.safePlayAudioFile(NIGHT_AUDIO);
   }
 
   // Alias for playNightAudio
   async playNightBeginAudio(): Promise<void> {
-    await this.playNightAudio();
+    return this.safePlayAudioFile(NIGHT_AUDIO);
   }
 
   // Play night end audio
   async playNightEndAudio(): Promise<void> {
-    await this.playAudioFile(NIGHT_END_AUDIO);
+    return this.safePlayAudioFile(NIGHT_END_AUDIO);
   }
 
   // Play role beginning audio (when role's turn starts)
   async playRoleBeginningAudio(role: RoleName): Promise<void> {
     const audioFile = AUDIO_FILES[role];
-    if (audioFile) {
-      await this.playAudioFile(audioFile);
+    if (!audioFile) {
+      console.warn(`[AudioService] No beginning audio registered for role: ${role}`);
+      return;
     }
+    return this.safePlayAudioFile(audioFile);
   }
 
   // Play role ending audio (when role's turn ends)
   async playRoleEndingAudio(role: RoleName): Promise<void> {
     const audioFile = AUDIO_END_FILES[role];
-    if (audioFile) {
-      await this.playAudioFile(audioFile);
+    if (!audioFile) {
+      console.warn(`[AudioService] No ending audio registered for role: ${role}`);
+      return;
     }
+    return this.safePlayAudioFile(audioFile);
   }
 
   // Get beginning audio for role

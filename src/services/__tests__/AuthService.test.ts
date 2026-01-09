@@ -30,9 +30,16 @@ describe('AuthService - Unconfigured state', () => {
   let authService: AuthService;
 
   beforeEach(() => {
+    jest.useFakeTimers();
     (AuthService as any).instance = null;
     authService = AuthService.getInstance();
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.clearAllTimers();
+    jest.useRealTimers();
   });
 
   it('isConfigured should return false when supabase is null', () => {
