@@ -641,4 +641,136 @@ test.describe('Seating Diagnostic', () => {
     }
   });
 
+  test('DIAG-4: BUG-3 verification → Host sees joiner seat update', async ({ browser }, testInfo) => {
+    console.log('\n🔍 DIAGNOSTIC TEST: BUG-3 - Host visibility of joiner seating\n');
+    
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+    
+    const diagA = setupDiagnostics(pageA, 'HOST-A');
+    const diagB = setupDiagnostics(pageB, 'JOINER-B');
+
+    try {
+      // ===================== HOST A: Create room (auto-takes seat 0) =====================
+      console.log('[DIAG] === HOST A Setup ===');
+      
+      await pageA.goto('/');
+      await waitForAppReady(pageA);
+      await ensureAnonLogin(pageA);
+      
+      await pageA.getByText('创建房间').click();
+      await expect(getVisibleText(pageA, '创建')).toBeVisible({ timeout: 10000 });
+      await getVisibleText(pageA, '创建').click();
+      await waitForRoomScreenReady(pageA);
+      
+      const roomNumber = await extractRoomNumber(pageA);
+      console.log(`[DIAG] HOST A created room: ${roomNumber}`);
+      
+      // Capture HOST's view of seat 2 BEFORE joiner
+      const hostSeat2Before = await collectSeatUIState(pageA, 2);
+      console.log(`[DIAG] HOST A seat 2 BEFORE: ${JSON.stringify(hostSeat2Before)}`);
+      await takeScreenshot(pageA, testInfo, 'A-01-seat2-before.png');
+
+      // ===================== JOINER B: Join room =====================
+      console.log('\n[DIAG] === JOINER B Setup ===');
+      
+      await pageB.goto('/');
+      await waitForAppReady(pageB);
+      await ensureAnonLogin(pageB);
+      
+      // Click 进入房间
+      await getVisibleText(pageB, '进入房间').first().click();
+      await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
+      
+      // Enter room code
+      const input = pageB.locator('input').first();
+      await input.fill(roomNumber);
+      await pageB.getByText('加入', { exact: true }).click();
+      
+      await waitForRoomScreenReady(pageB);
+      console.log(`[DIAG] JOINER B joined room ${roomNumber}`);
+
+      // ===================== JOINER B: Take seat 2 =====================
+      console.log('\n[DIAG] JOINER B taking seat 2...');
+      
+      await getSeatTileLocator(pageB, 1).click(); // seat index 1 = display "2"
+      await expect(pageB.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
+      await pageB.getByText('确定', { exact: true }).click();
+      
+      // Wait for seat confirmation
+      await pageB.waitForTimeout(500);
+      
+      // Dismiss any alert that might appear
+      await pageB.getByRole('button', { name: '确定' }).click({ timeout: 1000 }).catch(() => {});
+      
+      const joinerSeat2 = await collectSeatUIState(pageB, 2);
+      console.log(`[DIAG] JOINER B seat 2: ${JSON.stringify(joinerSeat2)}`);
+      await takeScreenshot(pageB, testInfo, 'B-01-seated-at-2.png');
+      
+      // Verify joiner is seated
+      expect(joinerSeat2.hasPlayerName, 'Joiner should be seated at seat 2').toBe(true);
+
+      // ===================== HOST A: Poll for seat 2 update =====================
+      console.log('\n[DIAG] Polling HOST A for seat 2 update...');
+      
+      let hostSeat2After = hostSeat2Before;
+      const maxPollTime = 5000;
+      const pollInterval = 250;
+      const startTime = Date.now();
+      
+      while (Date.now() - startTime < maxPollTime) {
+        hostSeat2After = await collectSeatUIState(pageA, 2);
+        if (!hostSeat2After.isEmpty && hostSeat2After.hasPlayerName) {
+          console.log(`[DIAG] HOST A seat 2 updated after ${Date.now() - startTime}ms`);
+          break;
+        }
+        await pageA.waitForTimeout(pollInterval);
+      }
+      
+      console.log(`[DIAG] HOST A seat 2 AFTER: ${JSON.stringify(hostSeat2After)}`);
+      await takeScreenshot(pageA, testInfo, 'A-02-seat2-after.png');
+
+      // ===================== DIAGNOSTIC SUMMARY =====================
+      printDiagnosticSummary('HOST A', diagA);
+      printDiagnosticSummary('JOINER B', diagB);
+      
+      const hostSawUpdate = !hostSeat2After.isEmpty && hostSeat2After.hasPlayerName;
+      
+      await testInfo.attach('bug3-diagnostic.txt', {
+        body: [
+          '=== BUG-3: Host Visibility of Joiner Seating ===',
+          `Room: ${roomNumber}`,
+          '',
+          '=== SEAT 2 STATE ===',
+          `HOST A seat 2 BEFORE joiner: ${JSON.stringify(hostSeat2Before)}`,
+          `HOST A seat 2 AFTER joiner:  ${JSON.stringify(hostSeat2After)}`,
+          `JOINER B seat 2:             ${JSON.stringify(joinerSeat2)}`,
+          '',
+          '=== DIAGNOSIS ===',
+          hostSawUpdate
+            ? '✅ BUG-3 FIXED - Host sees joiner seat update'
+            : '❌ BUG-3 NOT FIXED - Host does not see joiner in seat 2',
+          '',
+          '=== HOST A LOGS ===',
+          ...diagA.consoleLogs,
+          '',
+          '=== JOINER B LOGS ===',
+          ...diagB.consoleLogs,
+        ].join('\n'),
+        contentType: 'text/plain',
+      });
+
+      // Assertion: Host must see the joiner's seat update
+      expect(hostSawUpdate, 'Host should see joiner seated at seat 2').toBe(true);
+      
+      console.log('\n🔍 DIAGNOSTIC COMPLETE\n');
+      
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+
 });
