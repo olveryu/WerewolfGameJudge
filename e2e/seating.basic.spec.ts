@@ -176,32 +176,46 @@ async function extractRoomNumber(page: Page): Promise<string> {
 
 /**
  * Get a precise locator for a seat tile by its 0-based seat index.
- * Uses the seat number's parent container which is the clickable tile.
+ * 
+ * Strategy: Seat tiles are identified by containing BOTH:
+ * 1. A seat number (1, 2, 3, ...)
+ * 2. A seat indicator (空 for empty, 我 for self, or player name)
+ * 
+ * We filter elements that contain "空" (empty seat indicator) to find seat tiles,
+ * then use nth() to get the specific seat by index.
  */
 function getSeatTileLocator(page: Page, seatIndex: number) {
-  const displayNumber = seatIndex + 1; // Convert 0-based index to 1-based display number
-  // Find the seat number text, then go to its parent container (the clickable tile wrapper)
-  // The structure is: tileWrapper (clickable) > content > number + (空/我/player)
-  return page.locator(`text="${displayNumber}"`).first().locator('..').locator('..');
+  // All seat tiles that are empty contain "空"
+  // All seat tiles that are occupied contain the seat number
+  // Find containers that have "空" text - these are definitely seat tiles
+  // Then we can use nth() to get by position
+  
+  // For occupied seats: find by seat number pattern "N我" or "N<playerName>"
+  // For any seat: the tileWrapper always contains the seat number as a child
+  const displayNumber = seatIndex + 1;
+  
+  // Use a more specific locator: find text that is EXACTLY the seat number
+  // In the seat tile, the number is in its own Text element
+  // Filter by parent containing either "空" or "我" to ensure it's a seat tile
+  return page.locator(`text="${displayNumber}"`)
+    .locator('..')  // parent (playerTile or similar)
+    .filter({ has: page.locator('text=/^(空|我)$/').or(page.locator(`text="${displayNumber}"`)) })
+    .first()
+    .locator('..');  // go up to tileWrapper
 }
 
 /**
  * Collect seat UI state for diagnostics.
- * Uses precise locator to find the seat tile by its display number.
+ * Uses getSeatTileLocator for consistent targeting.
  */
 async function collectSeatUIState(page: Page, seatDisplayNumber: number): Promise<{
   seatContent: string | null;
   hasPlayerName: boolean;
   isEmpty: boolean;
 }> {
-  // Find the seat number text, then get its parent tile container
-  // The seat tile structure is: tileWrapper > [playerTile with number, 空/我] > [playerName]
-  const seatNumberLocator = page.locator(`text="${seatDisplayNumber}"`).first();
-  
-  // Go up to the tile container (which contains number + 空/我 + potential player name)
-  // The parent of the number is the playerTile, its parent is tileWrapper
-  const tileWrapper = seatNumberLocator.locator('..').locator('..');
-  const fullText = await tileWrapper.textContent().catch(() => null);
+  const seatIndex = seatDisplayNumber - 1;
+  const tile = getSeatTileLocator(page, seatIndex);
+  const fullText = await tile.textContent().catch(() => null);
   
   return {
     seatContent: fullText?.trim() ?? null,
