@@ -37,7 +37,7 @@ export interface UseGameRoomResult {
   error: string | null;
   
   // Actions
-  createRoom: (template: GameTemplate) => Promise<string | null>;
+  createRoom: (template: GameTemplate, roomNumber?: string) => Promise<string | null>;
   joinRoom: (roomNumber: string) => Promise<boolean>;
   leaveRoom: () => Promise<void>;
   
@@ -130,7 +130,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   }, [gameState]);
 
   // Create a new room as host
-  const createRoom = useCallback(async (template: GameTemplate): Promise<string | null> => {
+  const createRoom = useCallback(async (template: GameTemplate, providedRoomNumber?: string): Promise<string | null> => {
     setLoading(true);
     setError(null);
 
@@ -141,8 +141,8 @@ export const useGameRoom = (): UseGameRoomResult => {
         throw new Error('User not authenticated');
       }
 
-      // Generate room number
-      const roomNumber = await roomService.current.generateRoomNumber();
+      // Use provided room number or generate a new one
+      const roomNumber = providedRoomNumber || await roomService.current.generateRoomNumber();
 
       // Create room record in Supabase
       const record = await roomService.current.createRoom(roomNumber, hostUid);

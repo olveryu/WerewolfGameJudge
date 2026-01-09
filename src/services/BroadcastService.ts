@@ -112,6 +112,7 @@ export class BroadcastService {
     this.onPresenceChange = callbacks.onPresenceChange || null;
 
     // Create channel with room code
+    console.log(`[BroadcastService] Creating channel for room:${roomCode}, userId:${userId.substring(0, 8)}...`);
     this.channel = supabase!.channel(`room:${roomCode}`, {
       config: {
         broadcast: { self: true },  // Receive own broadcasts (for testing)
@@ -146,12 +147,20 @@ export class BroadcastService {
       }
     });
 
-    // Subscribe to channel
-    const subscribePromise = new Promise<void>((resolve) => {
+    // Subscribe to channel with timeout
+    const subscribePromise = new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('BroadcastService: subscribe timeout after 8s'));
+      }, 8000);
+      
       this.channel!.subscribe((status) => {
         console.log('[BroadcastService] Channel status:', status);
         if (status === 'SUBSCRIBED') {
+          clearTimeout(timeout);
           resolve();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          clearTimeout(timeout);
+          reject(new Error(`BroadcastService: subscribe failed with status ${status}`));
         }
       });
     });

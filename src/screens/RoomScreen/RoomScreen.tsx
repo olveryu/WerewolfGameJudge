@@ -214,9 +214,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       setLoadingMessage('正在初始化...');
       
       if (isHostParam && template) {
-        // Host creates room
+        // Host creates room with the provided roomNumber from ConfigScreen
         setLoadingMessage('正在创建房间...');
-        const createdRoomNumber = await createRoom(template);
+        const createdRoomNumber = await createRoom(template, roomNumber);
         
         if (createdRoomNumber) {
           // Host auto-takes seat 0
