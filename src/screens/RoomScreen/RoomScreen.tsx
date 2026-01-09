@@ -43,7 +43,8 @@ import { showAlert } from '../../utils/alert';
 import { Avatar } from '../../components/Avatar';
 import { styles, TILE_SIZE } from './RoomScreen.styles';
 import { useGameRoom } from '../../hooks/useGameRoom';
-import { LocalGameState } from '../../services/GameStateService';
+import type { LocalGameState } from '../../services/GameStateService';
+import { GameStateService } from '../../services/GameStateService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -700,6 +701,27 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }, [restartGame]);
   
+  const showEmergencyRestartDialog = useCallback(() => {
+    showAlert(
+      '救火重开',
+      '将作废当前局并重新发身份。所有人需要重新查看身份后再开始。是否继续？',
+      [
+        {
+          text: '继续重开',
+          onPress: () => {
+            const success = GameStateService.getInstance().emergencyRestartAndReshuffleRoles();
+            if (success) {
+              showAlert('已重开', '请所有人重新查看身份。');
+            } else {
+              showAlert('无法重开', '当前状态不允许重开（未就绪/模板缺失/人数不匹配/非房主）。');
+            }
+          },
+        },
+        { text: '取消', style: 'cancel' },
+      ]
+    );
+  }, []);
+  
   const handleSkipAction = useCallback(() => {
     showActionConfirmDialog(-1);
   }, [showActionConfirmDialog]);
@@ -1036,6 +1058,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {isHost && firstNightEnded && (
           <TouchableOpacity style={styles.actionButton} onPress={showRestartDialog}>
             <Text style={styles.buttonText}>重新开始</Text>
+          </TouchableOpacity>
+        )}
+        
+        {/* Host: Emergency Restart (reshuffle roles) - only during ongoing game */}
+        {isHost && roomStatus === RoomStatus.ongoing && (
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: '#EF4444' }]} 
+            onPress={showEmergencyRestartDialog}
+          >
+            <Text style={styles.buttonText}>🔥 救火重开</Text>
           </TouchableOpacity>
         )}
       </View>
