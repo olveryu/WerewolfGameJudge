@@ -2,6 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Playwright configuration for Werewolf Game E2E tests.
+ * 
+ * IMPORTANT: For local supabase testing, configure .env.local with:
+ *   EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+ *   EXPO_PUBLIC_SUPABASE_ANON_KEY=<your local anon key>
+ * 
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
@@ -49,7 +54,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run web',
     url: 'http://localhost:8081',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,  // Always reuse existing server
     timeout: 120 * 1000,
     stdout: 'pipe',  // Pipe stdout so we can see test output
   },
