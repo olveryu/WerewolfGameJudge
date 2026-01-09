@@ -165,6 +165,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     hasWolfVoted,
     getAllWolfSeats,
     getLastNightInfo: getLastNightInfoFn,
+    lastSeatError,
+    clearLastSeatError,
   } = useGameRoom();
 
   // Local UI state
@@ -205,6 +207,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     }
     return getActionLog(toGameRoomLike(gameState));
   }, [gameState, hasBots, roomStatus]);
+
+  // Show alert when seat request is rejected (BUG-2 fix)
+  useEffect(() => {
+    if (lastSeatError) {
+      showAlert('入座失败', '该座位已被占用，请选择其他位置。');
+      clearLastSeatError();
+    }
+  }, [lastSeatError, clearLastSeatError]);
 
   // Initialize room on mount (host creates, player joins)
   useEffect(() => {

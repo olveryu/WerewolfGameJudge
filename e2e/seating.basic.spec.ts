@@ -511,4 +511,128 @@ test.describe('Seating Diagnostic', () => {
     }
   });
 
+  test('DIAG-3: BUG-2 verification → Joiner gets rejection alert when taking occupied seat', async ({ browser }, testInfo) => {
+    console.log('\n🔍 DIAGNOSTIC TEST: BUG-2 - Seat rejection alert\n');
+    
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+    
+    const diagA = setupDiagnostics(pageA, 'HOST-A');
+    const diagB = setupDiagnostics(pageB, 'JOINER-B');
+
+    try {
+      // ===================== HOST A: Create room (auto-takes seat 0) =====================
+      console.log('[DIAG] === HOST A Setup ===');
+      
+      await pageA.goto('/');
+      await waitForAppReady(pageA);
+      await ensureAnonLogin(pageA);
+      
+      await pageA.getByText('创建房间').click();
+      await expect(getVisibleText(pageA, '创建')).toBeVisible({ timeout: 10000 });
+      await getVisibleText(pageA, '创建').click();
+      await waitForRoomScreenReady(pageA);
+      
+      const roomNumber = await extractRoomNumber(pageA);
+      console.log(`[DIAG] HOST A created room: ${roomNumber}`);
+      
+      await takeScreenshot(pageA, testInfo, 'A-01-host-seated.png');
+
+      // ===================== JOINER B: Join room =====================
+      console.log('\n[DIAG] === JOINER B Setup ===');
+      
+      await pageB.goto('/');
+      await waitForAppReady(pageB);
+      await ensureAnonLogin(pageB);
+      
+      await getVisibleText(pageB, '进入房间').first().click();
+      await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
+      
+      const input = pageB.locator('input').first();
+      await input.fill(roomNumber);
+      await pageB.getByText('加入', { exact: true }).click();
+      
+      await waitForRoomScreenReady(pageB);
+      console.log(`[DIAG] JOINER B joined room ${roomNumber}`);
+      
+      await takeScreenshot(pageB, testInfo, 'B-01-joined.png');
+
+      // ===================== JOINER B: Try to take seat 0 (occupied by HOST) =====================
+      console.log('\n[DIAG] JOINER B attempting to take occupied seat 1...');
+      
+      // Click on seat 1 (index 0)
+      await getSeatTileLocator(pageB, 0).click();
+      await pageB.waitForTimeout(500);
+      
+      await takeScreenshot(pageB, testInfo, 'B-02-clicked-occupied-seat.png');
+      
+      // Check if "入座" modal appears (BUG: it shouldn't for occupied seats)
+      const hasRuZuoModal = await pageB.getByText('入座', { exact: true }).isVisible({ timeout: 2000 }).catch(() => false);
+      console.log(`[DIAG] "入座" modal visible: ${hasRuZuoModal}`);
+      
+      if (hasRuZuoModal) {
+        // BUG behavior: modal appeared, try to confirm
+        console.log('[DIAG] Clicking 确定 to attempt seat...');
+        await pageB.getByText('确定', { exact: true }).click();
+        await pageB.waitForTimeout(1000);
+        
+        await takeScreenshot(pageB, testInfo, 'B-03-after-confirm.png');
+      }
+      
+      // ===================== Check for rejection alert =====================
+      // After fix: should show "入座失败" alert
+      const hasRejectionAlert = await pageB.getByText('入座失败').isVisible({ timeout: 3000 }).catch(() => false);
+      const hasSeatTakenMsg = await pageB.getByText('该座位已被占用').isVisible({ timeout: 1000 }).catch(() => false);
+      
+      console.log(`[DIAG] Rejection alert visible: ${hasRejectionAlert}`);
+      console.log(`[DIAG] "该座位已被占用" message: ${hasSeatTakenMsg}`);
+      
+      await takeScreenshot(pageB, testInfo, 'B-04-rejection-check.png');
+      
+      // Close any modal/alert
+      await pageB.getByText('确定').click().catch(() => {});
+      await pageB.getByText('取消').click().catch(() => {});
+
+      // ===================== DIAGNOSTIC SUMMARY =====================
+      printDiagnosticSummary('HOST A', diagA);
+      printDiagnosticSummary('JOINER B', diagB);
+      
+      await testInfo.attach('bug2-diagnostic.txt', {
+        body: [
+          '=== BUG-2: Seat Rejection Alert ===',
+          `Room: ${roomNumber}`,
+          '',
+          '=== EVIDENCE ===',
+          `入座 modal appeared for occupied seat: ${hasRuZuoModal}`,
+          `Rejection alert shown: ${hasRejectionAlert}`,
+          `"该座位已被占用" message: ${hasSeatTakenMsg}`,
+          '',
+          '=== DIAGNOSIS ===',
+          hasRejectionAlert && hasSeatTakenMsg
+            ? '✅ BUG-2 FIXED - Rejection alert shown correctly'
+            : '❌ BUG-2 NOT FIXED - No rejection alert for occupied seat',
+          '',
+          '=== HOST A LOGS ===',
+          ...diagA.consoleLogs,
+          '',
+          '=== JOINER B LOGS ===',
+          ...diagB.consoleLogs,
+        ].join('\n'),
+        contentType: 'text/plain',
+      });
+
+      // Assertion: After fix, rejection alert must be shown
+      expect(hasRejectionAlert, 'Joiner should see rejection alert when taking occupied seat').toBe(true);
+      expect(hasSeatTakenMsg, 'Rejection message should mention seat is taken').toBe(true);
+      
+      console.log('\n🔍 DIAGNOSTIC COMPLETE\n');
+      
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+
 });
