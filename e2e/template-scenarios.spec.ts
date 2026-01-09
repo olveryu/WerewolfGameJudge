@@ -102,11 +102,8 @@ async function diagnoseEnvironment(page: Page, label: string): Promise<void> {
       info['window.location.href'] = window.location.href;
       
       // Try to get Expo public env vars (available in web builds)
-      // @ts-expect-error - These may not exist
       if (typeof process !== 'undefined' && process.env) {
-        // @ts-expect-error
         info['EXPO_PUBLIC_SUPABASE_URL'] = process.env.EXPO_PUBLIC_SUPABASE_URL || '(not set)';
-        // @ts-expect-error
         info['EXPO_PUBLIC_SUPABASE_ANON_KEY'] = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ? '(set, hidden)' : '(not set)';
       } else {
         info['process.env'] = '(not available in browser)';
