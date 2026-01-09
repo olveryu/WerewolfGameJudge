@@ -18,17 +18,6 @@ jest.mock('@react-navigation/native', () => ({
   }),
 }));
 
-// Mock useRoom hook
-const mockCreateRoom = jest.fn();
-
-jest.mock('../../hooks/useRoom', () => ({
-  useRoom: () => ({
-    createRoom: mockCreateRoom,
-    loading: false,
-    error: null,
-  }),
-}));
-
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(() => Promise.resolve(null)),
