@@ -1,7 +1,6 @@
 import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from './Player';
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
 import { RoleName, ROLES, isWolfRole } from './roles';
-import { NightPhase } from './NightPhase';
 import { shuffleArray } from '../utils/shuffle';
 
 // Room status
@@ -36,7 +35,6 @@ export const ROOM_KEYS = {
   wolfVotes: 'wolfVotes',
   currentActionerIndex: 'currentActionerIndex',
   isAudioPlaying: 'isAudioPlaying',
-  nightPhase: 'nightPhase',  // V2: Server-driven night phase state
 } as const;
 
 export interface Room {
@@ -50,7 +48,6 @@ export interface Room {
   wolfVotes: Map<number, number>; // Wolf seat -> target seat (for wolf voting)
   currentActionerIndex: number;
   isAudioPlaying: boolean; // Whether host is playing audio for current action
-  nightPhase?: NightPhase | null; // V2: Optional server-driven night phase state (for future use)
 }
 
 // Create a new room
