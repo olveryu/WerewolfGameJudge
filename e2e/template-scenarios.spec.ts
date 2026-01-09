@@ -14,6 +14,9 @@ import * as path from 'path';
 // Increase timeout for multiplayer tests
 test.setTimeout(300000);
 
+// Fail fast: stop on first failure
+test.describe.configure({ mode: 'serial' });
+
 // ============ FAIL-FAST DEBUG HELPERS ============
 
 /**

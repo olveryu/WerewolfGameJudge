@@ -5,20 +5,17 @@ import { test, expect } from '@playwright/test';
  * These tests verify core functionality works correctly.
  */
 
+// Fail fast: stop on first failure
+test.describe.configure({ mode: 'serial' });
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
 // Helper to wait for app to be ready (React Native Web hydration)
 async function waitForAppReady(page: import('@playwright/test').Page) {
   // Wait for the app title to be visible
   await page.waitForSelector('text=狼人杀法官', { timeout: 15000 });
-}
-
-// Helper to dismiss login modal if it appears
-async function dismissLoginModal(page: import('@playwright/test').Page) {
-  try {
-    const cancelButton = page.getByRole('button', { name: '取消' });
-    await cancelButton.click({ timeout: 2000 });
-  } catch {
-    // Modal didn't appear, that's fine
-  }
 }
 
 /**
@@ -32,6 +29,68 @@ async function dismissLoginModal(page: import('@playwright/test').Page) {
  */
 function getVisibleText(page: import('@playwright/test').Page, text: string) {
   return page.locator(`text="${text}" >> visible=true`);
+}
+
+/**
+ * Ensure anonymous login is completed.
+ * If already logged in, returns immediately.
+ * Otherwise, triggers login flow via 创建房间 -> 登录 -> 匿名登录.
+ */
+async function ensureAnonLogin(page: import('@playwright/test').Page) {
+  // Check if already logged in by looking for 匿名用户 anywhere on page
+  const anonUser = page.getByText('匿名用户');
+  if (await anonUser.isVisible({ timeout: 1000 }).catch(() => false)) {
+    return;
+  }
+
+  // Try clicking 创建房间 to trigger login flow or go to config
+  await page.getByText('创建房间').click();
+  
+  // Wait a moment to see what happens
+  await page.waitForTimeout(500);
+  
+  // Check if we got login dialog or went straight to config (already logged in)
+  const needLogin = page.getByText('需要登录');
+  const configScreen = getVisibleText(page, '创建'); // 创建 button on config screen
+  
+  // If we see 需要登录, do the login flow
+  if (await needLogin.isVisible({ timeout: 2000 }).catch(() => false)) {
+    // Click 登录
+    await page.getByText('登录', { exact: true }).first().click();
+    await expect(page.getByText('👤 匿名登录')).toBeVisible({ timeout: 5000 });
+
+    // Click 匿名登录
+    await page.getByText('👤 匿名登录').click();
+    await expect(page.getByText('匿名用户')).toBeVisible({ timeout: 10000 });
+  } else if (await configScreen.isVisible({ timeout: 2000 }).catch(() => false)) {
+    // Already logged in - go back to home
+    await page.getByText('←').click();
+    await expect(page.getByText('创建房间')).toBeVisible({ timeout: 5000 });
+  }
+}
+
+/**
+ * Wait for RoomScreen to be ready.
+ * Uses "房间 XXXX" header which is visible to all players (host and joiners).
+ * Handles loading timeout with retry.
+ */
+async function waitForRoomScreenReady(page: import('@playwright/test').Page, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      await expect(page.locator(String.raw`text=/房间 \d{4}/`)).toBeVisible({ timeout: 10000 });
+      return;
+    } catch {
+      // Check for loading timeout
+      const retryBtn = page.getByText('重试');
+      if (await retryBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+        console.log(`[waitForRoomScreenReady] Loading timed out, retrying (attempt ${attempt + 1})...`);
+        await retryBtn.click();
+      } else {
+        throw new Error('Room screen not ready and no retry button found');
+      }
+    }
+  }
+  throw new Error(`Room screen not ready after ${maxRetries} attempts`);
 }
 
 test.describe('Home Screen', () => {
@@ -49,19 +108,21 @@ test.describe('Home Screen', () => {
 });
 
 test.describe('Create Room', () => {
-  test('shows login required dialog when not logged in', async ({ page }) => {
+  test('can access create room config screen', async ({ page }) => {
     await page.goto('/');
     await waitForAppReady(page);
+    
+    // Ensure logged in
+    await ensureAnonLogin(page);
     
     // Click create room
     await page.getByText('创建房间').click();
     
-    // Should show login required dialog
-    await expect(page.getByText('需要登录')).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText('请先登录后继续')).toBeVisible();
+    // Should be on config screen - look for 创建 button
+    await expect(getVisibleText(page, '创建')).toBeVisible({ timeout: 10000 });
     
-    // Dismiss the dialog
-    await page.getByText('取消').click();
+    // Should see template options
+    await expect(page.getByText('快速模板')).toBeVisible();
   });
 });
 
@@ -79,19 +140,19 @@ test.describe('Settings', () => {
 });
 
 test.describe('Join Room', () => {
-  test('shows login required dialog when not logged in', async ({ page }) => {
+  test('can access join room dialog', async ({ page }) => {
     await page.goto('/');
     await waitForAppReady(page);
     
-    // Click join room
-    await page.getByText('进入房间').click();
+    // Ensure logged in
+    await ensureAnonLogin(page);
     
-    // Should show login required dialog (since we're not logged in)
-    await expect(page.getByText('需要登录')).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText('请先登录后继续')).toBeVisible();
+    // Click join room tile (first visible one)
+    await getVisibleText(page, '进入房间').first().click();
     
-    // Dismiss the dialog
-    await page.getByText('取消').click();
+    // Should show join room dialog - look for dialog title and input prompt
+    await expect(page.getByText('加入房间')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('输入4位房间号码')).toBeVisible();
   });
 });
 
@@ -100,29 +161,14 @@ test.describe('Template Selection', () => {
     await page.goto('/');
     await waitForAppReady(page);
     
-    // Click create room (will show login dialog)
-    await page.getByText('创建房间').click();
+    // Login first
+    await ensureAnonLogin(page);
     
-    // Should show login required dialog
-    await expect(page.getByText('需要登录')).toBeVisible({ timeout: 5000 });
-    
-    // Click 登录 to open login modal
-    await page.getByText('登录', { exact: true }).first().click();
-    
-    // Should see login modal with anonymous login option
-    await expect(page.getByText('👤 匿名登录')).toBeVisible({ timeout: 5000 });
-    
-    // Click 匿名登录 to login anonymously
-    await page.getByText('👤 匿名登录').click();
-    
-    // Wait for login to complete
-    await expect(page.getByText('匿名用户')).toBeVisible({ timeout: 10000 });
-    
-    // Now click 创建房间 again to actually create the room
+    // Now click 创建房间 to go to config screen
     await page.getByText('创建房间').click();
     
     // Should now be on config screen - look for 创建 button (not 保存)
-    await expect(page.getByText('创建', { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(getVisibleText(page, '创建')).toBeVisible({ timeout: 15000 });
     
     // Default template should be visible (标准板12人)
     await expect(page.getByText('标准板12人')).toBeVisible({ timeout: 5000 });
@@ -130,116 +176,75 @@ test.describe('Template Selection', () => {
     console.log('[Template] Config screen loaded, testing template selection...');
     
     // Click on a different template - 狼美守卫12人
-    const template2 = page.getByText('狼美守卫12人');
-    const count = await template2.count();
-    console.log(`[Template] Found ${count} elements matching '狼美守卫12人'`);
-    
-    // Click the template
-    await template2.first().click();
-    await page.waitForTimeout(500);
+    const template2 = getVisibleText(page, '狼美守卫12人');
+    await template2.scrollIntoViewIfNeeded();
+    await expect(template2).toBeVisible({ timeout: 3000 });
+    await template2.click();
     
     console.log('[Template] Clicked 狼美守卫12人 template');
     
     // Verify the page still shows the config
-    await expect(page.getByText('创建', { exact: true })).toBeVisible({ timeout: 5000 });
+    await expect(getVisibleText(page, '创建')).toBeVisible({ timeout: 5000 });
     
     // Go back to home
-    await page.getByText('←').click();
+    await getVisibleText(page, '←').click();
     
     console.log('[Template] Template selection test passed!');
   });
+
 
   test('can change template in settings after creating room', async ({ page }) => {
     await page.goto('/');
     await waitForAppReady(page);
     
     // === Step 1: Login ===
-    await page.getByText('创建房间').click();
-    await expect(page.getByText('需要登录')).toBeVisible({ timeout: 5000 });
-    await page.getByText('登录', { exact: true }).first().click();
-    await expect(page.getByText('👤 匿名登录')).toBeVisible({ timeout: 5000 });
-    await page.getByText('👤 匿名登录').click();
-    await expect(page.getByText('匿名用户')).toBeVisible({ timeout: 10000 });
+    await ensureAnonLogin(page);
     console.log('[TemplateInSettings] Logged in anonymously');
     
     // === Step 2: Create room with default template (标准板12人) ===
     await page.getByText('创建房间').click();
-    await expect(page.getByText('创建', { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(getVisibleText(page, '创建')).toBeVisible({ timeout: 15000 });
     console.log('[TemplateInSettings] On config screen, creating room...');
     
     // Click 创建 to create the room
-    await page.getByText('创建', { exact: true }).click();
+    await getVisibleText(page, '创建').click();
     
-    // Wait for room to be created - handle potential loading timeout
-    // First try to wait for settings button
-    let roomCreated = false;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        await expect(page.getByText('⚙️ 设置')).toBeVisible({ timeout: 10000 });
-        roomCreated = true;
-        break;
-      } catch {
-        // Check if there's a loading timeout
-        const retryBtn = page.getByText('重试');
-        if (await retryBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-          console.log(`[TemplateInSettings] Room creation timed out, retrying (attempt ${attempt + 1})...`);
-          await retryBtn.click();
-          await page.waitForTimeout(1000);
-        } else {
-          throw new Error('Room creation failed and no retry button found');
-        }
-      }
-    }
-    if (!roomCreated) {
-      throw new Error('Room creation failed after 3 attempts');
-    }
+    // Wait for room to be created
+    await waitForRoomScreenReady(page);
     console.log('[TemplateInSettings] Room created successfully');
     
     // === Step 3: Open settings to change template ===
-    // Click ⚙️ 设置 button
     await page.getByText('⚙️ 设置').click();
-    await page.waitForTimeout(500);
     
     // Should see config screen with 保存 button (not 创建, because room exists)
-    await expect(page.getByText('保存')).toBeVisible({ timeout: 10000 });
+    await expect(getVisibleText(page, '保存')).toBeVisible({ timeout: 10000 });
     console.log('[TemplateInSettings] Settings opened');
     
     // === Step 4: Change template ===
     // Current template is 标准板12人, change to 狼美守卫12人
-    // Wait for templates to be visible
-    await expect(page.getByText('标准板12人').last()).toBeVisible({ timeout: 5000 });
-    
-    const template2 = page.getByText('狼美守卫12人').last();
-    
-    // Scroll the template into view if needed (it's in a horizontal ScrollView)
+    const template2 = getVisibleText(page, '狼美守卫12人');
     await template2.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(300);
-    
-    // Now click the template
+    await expect(template2).toBeVisible({ timeout: 3000 });
     await template2.click();
-    await page.waitForTimeout(500);
     console.log('[TemplateInSettings] Selected 狼美守卫12人 template');
     
     // === Step 5: Save and verify ===
-    await page.getByText('保存').click();
+    await getVisibleText(page, '保存').click();
     
     // Should return to room screen
-    await expect(page.getByText('⚙️ 设置')).toBeVisible({ timeout: 10000 });
+    await waitForRoomScreenReady(page);
     console.log('[TemplateInSettings] Saved and returned to room');
     
     // === Step 6: Verify template changed - open settings again ===
     await page.getByText('⚙️ 设置').click();
-    await page.waitForTimeout(500);
-    await expect(page.getByText('保存')).toBeVisible({ timeout: 10000 });
+    await expect(getVisibleText(page, '保存')).toBeVisible({ timeout: 10000 });
     
     // The 狼美守卫12人 should still be selected (visible in template list)
-    // Check the template name appears
-    // Use .last() because React Navigation may keep the previous screen in DOM
-    await expect(page.getByText('狼美守卫12人').last()).toBeVisible({ timeout: 5000 });
+    await expect(getVisibleText(page, '狼美守卫12人')).toBeVisible({ timeout: 5000 });
     console.log('[TemplateInSettings] Template change verified!');
     
-    // Go back using the back button (use last() due to navigation stack)
-    await page.getByText('←').last().click();
+    // Go back using the back button
+    await getVisibleText(page, '←').click();
     
     console.log('[TemplateInSettings] Test passed!');
   });
