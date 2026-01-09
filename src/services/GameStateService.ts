@@ -59,6 +59,9 @@ export class GameStateService {
   private myUid: string | null = null;
   private mySeatNumber: number | null = null;
   
+  /** Last seat error for UI display (BUG-2 fix) */
+  private lastSeatError: { seat: number; reason: 'seat_taken' } | null = null;
+  
   /** NightFlowController: explicit state machine for night phase (Host only) */
   private nightFlow: NightFlowController | null = null;
   
@@ -102,6 +105,14 @@ export class GameStateService {
   getMyRole(): RoleName | null {
     if (this.mySeatNumber === null || !this.state) return null;
     return this.state.players.get(this.mySeatNumber)?.role ?? null;
+  }
+
+  getLastSeatError(): { seat: number; reason: 'seat_taken' } | null {
+    return this.lastSeatError;
+  }
+
+  clearLastSeatError(): void {
+    this.lastSeatError = null;
   }
 
   // ===========================================================================
@@ -270,7 +281,13 @@ export class GameStateService {
 
     // Check if seat is available
     if (this.state.players.get(seat) !== null) {
-      console.log('[GameState Host] Seat', seat, 'already taken');
+      console.log('[GameState Host] Seat', seat, 'already taken, sending SEAT_REJECTED');
+      await this.broadcastService.broadcastAsHost({
+        type: 'SEAT_REJECTED',
+        seat,
+        requestUid: uid,
+        reason: 'seat_taken',
+      });
       return;
     }
 
@@ -448,6 +465,14 @@ export class GameStateService {
         if (this.state) {
           this.state.lastNightDeaths = msg.deaths;
           this.state.status = GameStatus.ended;
+          this.notifyListeners();
+        }
+        break;
+      case 'SEAT_REJECTED':
+        // Only the player who requested the seat should handle this
+        if (msg.requestUid === this.myUid) {
+          console.log('[GameState Player] My seat request rejected:', msg.seat, msg.reason);
+          this.lastSeatError = { seat: msg.seat, reason: msg.reason };
           this.notifyListeners();
         }
         break;

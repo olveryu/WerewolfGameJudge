@@ -60,6 +60,10 @@ export interface UseGameRoomResult {
   // Info
   getLastNightInfo: () => string;
   
+  // Seat error (BUG-2 fix)
+  lastSeatError: { seat: number; reason: 'seat_taken' } | null;
+  clearLastSeatError: () => void;
+  
   // Utility
   hasWolfVoted: (seatNumber: number) => boolean;
   getAllWolfSeats: () => number[];
@@ -75,6 +79,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   const [isHost, setIsHost] = useState(false);
   const [myUid, setMyUid] = useState<string | null>(null);
   const [mySeatNumber, setMySeatNumber] = useState<number | null>(null);
+  const [lastSeatError, setLastSeatError] = useState<{ seat: number; reason: 'seat_taken' } | null>(null);
 
   const gameStateService = useRef(GameStateService.getInstance());
   const roomService = useRef(SimplifiedRoomService.getInstance());
@@ -88,6 +93,8 @@ export const useGameRoom = (): UseGameRoomResult => {
       setIsHost(gameStateService.current.isHostPlayer());
       setMyUid(gameStateService.current.getMyUid());
       setMySeatNumber(gameStateService.current.getMySeatNumber());
+      // Update seat error (BUG-2 fix)
+      setLastSeatError(gameStateService.current.getLastSeatError());
     });
     return unsubscribe;
   }, []);
@@ -333,6 +340,12 @@ export const useGameRoom = (): UseGameRoomResult => {
     return wolfSeats;
   }, [gameState]);
 
+  // Clear seat error (BUG-2 fix)
+  const clearLastSeatError = useCallback(() => {
+    gameStateService.current.clearLastSeatError();
+    setLastSeatError(null);
+  }, []);
+
   return {
     roomRecord,
     gameState,
@@ -360,6 +373,8 @@ export const useGameRoom = (): UseGameRoomResult => {
     submitAction,
     submitWolfVote,
     getLastNightInfo,
+    lastSeatError,
+    clearLastSeatError,
     hasWolfVoted: hasWolfVotedFn,
     getAllWolfSeats: getAllWolfSeatsFn,
   };

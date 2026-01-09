@@ -23,7 +23,8 @@ export type HostBroadcast =
   | { type: 'NIGHT_END'; deaths: number[] }
   | { type: 'PLAYER_JOINED'; seat: number; player: BroadcastPlayer }
   | { type: 'PLAYER_LEFT'; seat: number }
-  | { type: 'GAME_RESTARTED' };
+  | { type: 'GAME_RESTARTED' }
+  | { type: 'SEAT_REJECTED'; seat: number; requestUid: string; reason: 'seat_taken' };
 
 /** Messages sent by players to Host */
 export type PlayerMessage = 
