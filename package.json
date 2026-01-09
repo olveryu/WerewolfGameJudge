@@ -9,6 +9,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "e2e": "playwright test",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "e2e:multiplayer": "playwright test e2e/multiplayer.spec.ts",
     "e2e:ui": "playwright test --ui"
   },
