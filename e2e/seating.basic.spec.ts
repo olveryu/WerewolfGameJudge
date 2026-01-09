@@ -922,4 +922,168 @@ test.describe('Seating Diagnostic', () => {
     }
   });
 
+  test('DIAG-6: Player stand up → seat becomes empty on both views', async ({ browser }, testInfo) => {
+    console.log('\n🔍 DIAGNOSTIC TEST: Stand up / leave seat\n');
+    
+    // Create two isolated contexts
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+    
+    const diagA = setupDiagnostics(pageA, 'HOST-A');
+    const diagB = setupDiagnostics(pageB, 'JOINER-B');
+
+    try {
+      // ===================== HOST A: Create room =====================
+      console.log('[DIAG] === HOST A Setup ===');
+      
+      await pageA.goto('/');
+      await waitForAppReady(pageA);
+      await ensureAnonLogin(pageA);
+      
+      await pageA.getByText('创建房间').click();
+      await expect(getVisibleText(pageA, '创建')).toBeVisible({ timeout: 10000 });
+      await getVisibleText(pageA, '创建').click();
+      await waitForRoomScreenReady(pageA);
+      
+      const roomNumber = await extractRoomNumber(pageA);
+      console.log(`[DIAG] HOST A created room: ${roomNumber}`);
+
+      // ===================== JOINER B: Join room =====================
+      console.log('\n[DIAG] === JOINER B Setup ===');
+      
+      await pageB.goto('/');
+      await waitForAppReady(pageB);
+      await ensureAnonLogin(pageB);
+      
+      await getVisibleText(pageB, '进入房间').first().click();
+      await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
+      
+      const input = pageB.locator('input').first();
+      await input.fill(roomNumber);
+      await pageB.getByText('加入', { exact: true }).click();
+      
+      await waitForRoomScreenReady(pageB);
+      console.log(`[DIAG] JOINER B joined room ${roomNumber}`);
+
+      // ===================== JOINER B: Take seat 2 =====================
+      console.log('\n[DIAG] JOINER B taking seat 2...');
+      
+      await getSeatTileLocator(pageB, 1).click(); // seat index 1 = display "2"
+      await expect(pageB.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
+      await pageB.getByText('确定', { exact: true }).click();
+      await pageB.waitForTimeout(500);
+      
+      // Dismiss any alert
+      await pageB.getByRole('button', { name: '确定' }).click({ timeout: 1000 }).catch(() => {});
+      
+      const joinerSeat2After = await collectSeatUIState(pageB, 2);
+      console.log(`[DIAG] JOINER B seat 2: ${JSON.stringify(joinerSeat2After)}`);
+      expect(joinerSeat2After.hasPlayerName, 'Joiner should be seated at seat 2').toBe(true);
+      
+      await takeScreenshot(pageB, testInfo, 'B-01-seated-at-2.png');
+
+      // ===================== Wait for HOST A to see JOINER B =====================
+      console.log('\n[DIAG] Waiting for HOST A to see seat 2 occupied...');
+      
+      let hostSeat2Before = await collectSeatUIState(pageA, 2);
+      const maxPollTime = 5000;
+      const pollInterval = 250;
+      let startTime = Date.now();
+      
+      while (Date.now() - startTime < maxPollTime) {
+        hostSeat2Before = await collectSeatUIState(pageA, 2);
+        if (!hostSeat2Before.isEmpty && hostSeat2Before.hasPlayerName) {
+          break;
+        }
+        await pageA.waitForTimeout(pollInterval);
+      }
+      
+      console.log(`[DIAG] HOST A seat 2 before stand up: ${JSON.stringify(hostSeat2Before)}`);
+      expect(hostSeat2Before.hasPlayerName, 'Host should see seat 2 occupied').toBe(true);
+      
+      await takeScreenshot(pageA, testInfo, 'A-01-sees-joiner-seated.png');
+
+      // ===================== JOINER B: Stand up from seat 2 =====================
+      console.log('\n[DIAG] JOINER B standing up from seat 2...');
+      
+      await getSeatTileLocator(pageB, 1).click(); // Click own seat
+      
+      // Modal should show "站起" since it's own seat
+      await expect(pageB.getByText('站起', { exact: true })).toBeVisible({ timeout: 5000 });
+      console.log('[DIAG] JOINER B sees 站起 modal');
+      
+      // Click confirm button in the modal (use text locator - RN Web TouchableOpacity is not a button role)
+      await pageB.getByText('确定', { exact: true }).click();
+      await pageB.waitForTimeout(500);
+      
+      await takeScreenshot(pageB, testInfo, 'B-02-after-stand-up.png');
+
+      // ===================== Verify: JOINER B sees seat 2 empty =====================
+      const joinerSeat2AfterStandUp = await collectSeatUIState(pageB, 2);
+      console.log(`[DIAG] JOINER B seat 2 after stand up: ${JSON.stringify(joinerSeat2AfterStandUp)}`);
+      
+      expect(joinerSeat2AfterStandUp.isEmpty, 'Joiner seat 2 should be empty after stand up').toBe(true);
+
+      // ===================== Verify: HOST A sees seat 2 empty =====================
+      console.log('\n[DIAG] Polling HOST A for seat 2 empty...');
+      
+      let hostSeat2After = await collectSeatUIState(pageA, 2);
+      startTime = Date.now();
+      
+      while (Date.now() - startTime < maxPollTime) {
+        hostSeat2After = await collectSeatUIState(pageA, 2);
+        if (hostSeat2After.isEmpty) {
+          break;
+        }
+        await pageA.waitForTimeout(pollInterval);
+      }
+      
+      console.log(`[DIAG] HOST A seat 2 after stand up: ${JSON.stringify(hostSeat2After)}`);
+      
+      await takeScreenshot(pageA, testInfo, 'A-02-sees-joiner-left.png');
+
+      // ===================== DIAGNOSTIC SUMMARY =====================
+      printDiagnosticSummary('HOST A', diagA);
+      printDiagnosticSummary('JOINER B', diagB);
+      
+      await testInfo.attach('stand-up-diagnostic.txt', {
+        body: [
+          '=== Stand Up Test ===',
+          `Room: ${roomNumber}`,
+          '',
+          '=== JOINER B VIEW ===',
+          `Seat 2 after sit: ${JSON.stringify(joinerSeat2After)}`,
+          `Seat 2 after stand up: ${JSON.stringify(joinerSeat2AfterStandUp)}`,
+          '',
+          '=== HOST A VIEW ===',
+          `Seat 2 before stand up: ${JSON.stringify(hostSeat2Before)}`,
+          `Seat 2 after stand up: ${JSON.stringify(hostSeat2After)}`,
+          '',
+          '=== DIAGNOSIS ===',
+          joinerSeat2AfterStandUp.isEmpty && hostSeat2After.isEmpty
+            ? '✅ PASS - Stand up properly broadcasts empty seat'
+            : '❌ FAIL - Stand up not properly broadcast',
+          '',
+          '=== HOST A LOGS ===',
+          ...diagA.consoleLogs,
+          '',
+          '=== JOINER B LOGS ===',
+          ...diagB.consoleLogs,
+        ].join('\n'),
+        contentType: 'text/plain',
+      });
+
+      // Final assertions
+      expect(hostSeat2After.isEmpty, 'Host sees seat 2 empty after joiner stands up').toBe(true);
+      
+      console.log('\n🔍 DIAGNOSTIC COMPLETE\n');
+      
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+
 });
