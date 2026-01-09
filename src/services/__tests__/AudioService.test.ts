@@ -254,6 +254,7 @@ describe('AudioService - Stop current player', () => {
   let audioService: AudioService;
 
   beforeEach(() => {
+    jest.useFakeTimers();
     (AudioService as any).instance = null;
     (AudioService as any).initPromise = null;
     audioService = AudioService.getInstance();
@@ -263,6 +264,12 @@ describe('AudioService - Stop current player', () => {
     mockAddListener.mockImplementation(() => {
       return { remove: jest.fn() };
     });
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.clearAllTimers();
+    jest.useRealTimers();
   });
 
   it('should stop current player when playing new audio', async () => {
@@ -278,6 +285,9 @@ describe('AudioService - Stop current player', () => {
     expect(mockPause).toHaveBeenCalled();
     expect(mockRemove).toHaveBeenCalled();
     expect(createAudioPlayer).toHaveBeenCalledTimes(2);
+
+    // Consume pending timers to avoid open handles
+    jest.advanceTimersByTime(15000);
   });
 
   it('stop method should pause and remove player', () => {
@@ -348,5 +358,128 @@ describe('AudioService - Audio roles coverage', () => {
     it(`should NOT have ending audio for ${role}`, () => {
       expect(audioService.getEndingAudio(role)).toBeNull();
     });
+  });
+});
+
+// =============================================================================
+// Fallback / Error Handling Tests
+// =============================================================================
+
+describe('AudioService - Fallback: unregistered audio', () => {
+  let audioService: AudioService;
+  let warnSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    (AudioService as any).instance = null;
+    (AudioService as any).initPromise = null;
+    audioService = AudioService.getInstance();
+    jest.clearAllMocks();
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  it('should resolve immediately with warning when beginning audio is not registered', async () => {
+    // villager has no audio registered
+    await expect(audioService.playRoleBeginningAudio('villager')).resolves.toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('No beginning audio registered for role: villager')
+    );
+  });
+
+  it('should resolve immediately with warning when ending audio is not registered', async () => {
+    // villager has no audio registered
+    await expect(audioService.playRoleEndingAudio('villager')).resolves.toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('No ending audio registered for role: villager')
+    );
+  });
+});
+
+describe('AudioService - Fallback: createAudioPlayer throws', () => {
+  let audioService: AudioService;
+  let warnSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    (AudioService as any).instance = null;
+    (AudioService as any).initPromise = null;
+    audioService = AudioService.getInstance();
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+    jest.clearAllMocks();
+  });
+
+  it('should resolve (not reject) when createAudioPlayer throws', async () => {
+    const { createAudioPlayer } = require('expo-audio');
+    createAudioPlayer.mockImplementationOnce(() => {
+      throw new Error('Simulated player creation failure');
+    });
+
+    // Should resolve, not reject
+    await expect(audioService.playNightBeginAudio()).resolves.toBeUndefined();
+
+    // Should have logged a warning
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Audio playback failed, resolving anyway'),
+      expect.any(Error)
+    );
+  });
+
+  it('should resolve (not reject) when createAudioPlayer throws for role audio', async () => {
+    const { createAudioPlayer } = require('expo-audio');
+    createAudioPlayer.mockImplementationOnce(() => {
+      throw new Error('Simulated player creation failure');
+    });
+
+    // Should resolve, not reject
+    await expect(audioService.playRoleBeginningAudio('wolf')).resolves.toBeUndefined();
+
+    // Should have logged a warning
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Audio playback failed, resolving anyway'),
+      expect.any(Error)
+    );
+  });
+});
+
+describe('AudioService - Fallback: timeout', () => {
+  let audioService: AudioService;
+  let warnSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    (AudioService as any).instance = null;
+    (AudioService as any).initPromise = null;
+    audioService = AudioService.getInstance();
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Mock player that never fires didJustFinish
+    mockAddListener.mockImplementation(() => {
+      return { remove: jest.fn() };
+    });
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+    jest.useRealTimers();
+    jest.clearAllMocks();
+  });
+
+  it('should resolve after timeout if didJustFinish never fires', async () => {
+    const playPromise = audioService.playNightBeginAudio();
+
+    // Fast-forward past the timeout (15 seconds)
+    jest.advanceTimersByTime(15000);
+
+    await expect(playPromise).resolves.toBeUndefined();
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Playback timeout - proceeding without waiting for completion')
+    );
   });
 });
