@@ -129,7 +129,10 @@ export class GameStateService {
 
   private notifyListeners(): void {
     if (this.state) {
-      this.listeners.forEach(listener => listener(this.state!));
+      // Create a shallow copy of state so React detects the change
+      // (Map is a reference type, so we need a new object for React's shallow comparison)
+      const stateCopy = { ...this.state };
+      this.listeners.forEach(listener => listener(stateCopy));
     }
   }
 
@@ -455,6 +458,11 @@ export class GameStateService {
 
     switch (msg.type) {
       case 'STATE_UPDATE':
+        // Host is authoritative - should not overwrite local state from broadcast
+        if (this.isHost) {
+          console.log('[GameState Host] Ignoring own STATE_UPDATE broadcast');
+          return;
+        }
         this.applyStateUpdate(msg.state);
         break;
       case 'ROLE_TURN':
