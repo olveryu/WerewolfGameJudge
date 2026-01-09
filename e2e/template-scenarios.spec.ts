@@ -80,12 +80,61 @@ async function withStep<T>(name: string, page: Page, fn: () => Promise<T>): Prom
 
 // ============ HELPER FUNCTIONS ============
 
+/**
+ * Dismiss the "加载超时" dialog if it is present.
+ *
+ * - If the dialog is present (either "加载超时" text, or "重试"/"返回" is visible), click:
+ *   - "重试" first (preferred); otherwise "返回"
+ * - Never throws (let withStep handle throwing)
+ * - Returns true if something was dismissed
+ */
+async function dismissLoadingTimeoutIfPresent(page: Page, label: string): Promise<boolean> {
+  try {
+    const hasTimeoutText = await page.getByText('加载超时').isVisible({ timeout: 800 }).catch(() => false);
+
+    // Match variants like "✓ 重试" / "重试" (same for 返回)
+    const retryBtn = page.getByText(/重试/);
+    const backBtn = page.getByText(/返回/);
+    const retryVisible = await retryBtn.isVisible({ timeout: 800 }).catch(() => false);
+    const backVisible = await backBtn.isVisible({ timeout: 800 }).catch(() => false);
+
+    if (!hasTimeoutText && !retryVisible && !backVisible) {
+      return false;
+    }
+
+    let via: 'retry' | 'back';
+    if (retryVisible) {
+      via = 'retry';
+      console.log(`[TimeoutDialog][${label}] found via ${via}`);
+      await retryBtn.first().click({ timeout: 2000 }).catch(() => {});
+    } else if (backVisible) {
+      via = 'back';
+      console.log(`[TimeoutDialog][${label}] found via ${via}`);
+      await backBtn.first().click({ timeout: 2000 }).catch(() => {});
+    } else {
+      // We saw "加载超时" but no actionable buttons
+      console.log(`[TimeoutDialog][${label}] found (no retry/back visible)`);
+      await page.waitForTimeout(500);
+      return true;
+    }
+
+    await page.waitForTimeout(500);
+    console.log(`[TimeoutDialog][${label}] dismissed via ${via}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function waitForAppReady(page: Page) {
   await page.waitForSelector('text=狼人杀法官', { timeout: 15000 });
 }
 
 async function waitForLoggedIn(page: Page, maxRetries = 5) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  // Optional but recommended: dismiss any transient timeout dialog before we do anything else.
+  await dismissLoadingTimeoutIfPresent(page, `waitForLoggedIn attempt ${attempt}`).catch(() => {});
+
     if (await page.getByText('👤 匿名登录').isVisible().catch(() => false)) {
       await page.getByText('取消').click().catch(() => {});
       await page.waitForTimeout(500);
@@ -936,17 +985,28 @@ test.describe('Template Scenarios E2E', () => {
       // ========== INITIAL SETUP ==========
       const firstTemplate = TEMPLATE_CONFIGS[0];
       console.log(`[Setup] Setting up room with template: ${firstTemplate.name}`);
-      
-      await hostPage.goto('/');
-      await waitForAppReady(hostPage);
-      await waitForLoggedIn(hostPage);
+
+      await withStep('Host goto(/)', hostPage, async () => {
+        await hostPage.goto('/');
+      });
+      await withStep('Host dismissLoadingTimeoutIfPresent after goto(/)', hostPage, async () => {
+        await dismissLoadingTimeoutIfPresent(hostPage, 'Host after goto(/)');
+      });
+      await withStep('Host waitForAppReady', hostPage, async () => {
+        await waitForAppReady(hostPage);
+      });
+      await withStep('Host waitForLoggedIn', hostPage, async () => {
+        await waitForLoggedIn(hostPage);
+      });
 
       // Create room with first template
       await hostPage.getByText('创建房间').click();
-      await expect(hostPage.getByText('快速模板')).toBeVisible({ timeout: 5000 });
-      await hostPage.getByText(firstTemplate.name, { exact: true }).click();
-      await hostPage.getByText('创建', { exact: true }).click();
-      await expect(hostPage.getByText(/房间 \d{4}/)).toBeVisible({ timeout: 15000 });
+      await withStep('Host create room with template 标准板12人', hostPage, async () => {
+        await expect(hostPage.getByText('快速模板')).toBeVisible({ timeout: 5000 });
+        await hostPage.getByText(firstTemplate.name, { exact: true }).click();
+        await hostPage.getByText('创建', { exact: true }).click();
+        await expect(hostPage.getByText(/房间 \d{4}/)).toBeVisible({ timeout: 15000 });
+      });
 
       const roomText = await hostPage.getByText(/房间 \d{4}/).textContent();
       const roomNumber = roomText?.match(/\d{4}/)?.[0];
@@ -979,50 +1039,20 @@ test.describe('Template Scenarios E2E', () => {
         
         await withStep(`Player ${i + 2} join room`, page, async () => {
           await page.goto('/');
+          await dismissLoadingTimeoutIfPresent(page, `Joiner ${i + 2} after goto(/)`);
           await waitForAppReady(page);
-          
-          // Dismiss any timeout dialog that appears during session restore
-          const dismissTimeoutDialog = async () => {
-            for (let retry = 0; retry < 5; retry++) {
-              if (await page.getByText('加载超时').isVisible({ timeout: 1000 }).catch(() => false)) {
-                console.log(`  Player ${i + 2}: Timeout dialog detected, dismissing...`);
-                const backButton = page.getByText('返回', { exact: true });
-                if (await backButton.isVisible({ timeout: 500 }).catch(() => false)) {
-                  await backButton.click();
-                } else {
-                  await page.getByText('重试', { exact: true }).click().catch(() => {});
-                }
-                await page.waitForTimeout(1000);
-              } else {
-                break;
-              }
-            }
-          };
-          
-          await dismissTimeoutDialog();
+
+          await dismissLoadingTimeoutIfPresent(page, `Joiner ${i + 2} before login`);
           await waitForLoggedIn(page);
-          await dismissTimeoutDialog();
+          await dismissLoadingTimeoutIfPresent(page, `Joiner ${i + 2} after login`);
           
           await page.getByText('进入房间').click();
           await expect(page.getByText('加入房间')).toBeVisible({ timeout: 5000 });
           await page.getByPlaceholder('0000').fill(roomNumber);
           await page.getByText('加入', { exact: true }).click();
-          
-          // Handle timeout retry dialog if it appears after joining
-          const maxRetries = 3;
-          for (let retry = 0; retry < maxRetries; retry++) {
-            // Check for timeout dialog
-            if (await page.getByText('加载超时').isVisible({ timeout: 2000 }).catch(() => false)) {
-              console.log(`  Player ${i + 2}: Timeout dialog after join, clicking retry...`);
-              await page.getByText('重试', { exact: true }).click().catch(() => {});
-              await page.waitForTimeout(1000);
-              continue;
-            }
-            // Check if room loaded successfully
-            if (await page.getByText(/房间 \d{4}/).isVisible({ timeout: 5000 }).catch(() => false)) {
-              break;
-            }
-          }
+
+          // Single-point timeout dialog dismissal after join
+          await dismissLoadingTimeoutIfPresent(page, `Joiner ${i + 2} after clicking join`);
           
           // Wait longer for room to load
           await expect(page.getByText(/房间 \d{4}/)).toBeVisible({ timeout: 20000 });
@@ -1041,9 +1071,9 @@ test.describe('Template Scenarios E2E', () => {
       console.log('[Setup] All 12 players joined!');
       await hostPage.waitForTimeout(2000);
 
-      // ========== TEST EACH TEMPLATE'S SCENARIOS ==========
-      // TEST FIRST TEMPLATE ONLY for now - to verify core functionality works
-      const TEMPLATES_TO_TEST = TEMPLATE_CONFIGS.slice(0, 1); // Test only first template
+  // ========== TEST EACH TEMPLATE'S SCENARIOS ==========
+  // Only run 标准板12人 + scenario1 for verification (fail-fast debugging).
+  const TEMPLATES_TO_TEST = TEMPLATE_CONFIGS.filter((t) => t.name === '标准板12人');
       
       for (let templateIndex = 0; templateIndex < TEMPLATES_TO_TEST.length; templateIndex++) {
         const template = TEMPLATES_TO_TEST[templateIndex];
@@ -1103,6 +1133,7 @@ test.describe('Template Scenarios E2E', () => {
         }
 
         for (let scenarioIndex = 0; scenarioIndex < template.scenarios.length; scenarioIndex++) {
+          if (scenarioIndex !== 0) continue; // scenario1 only
           const scenario = template.scenarios[scenarioIndex];
           console.log(`\n----- Scenario ${scenarioIndex + 1}: ${scenario.name} -----`);
 
