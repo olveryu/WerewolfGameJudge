@@ -47,10 +47,13 @@ Low-level utilities with no app-specific knowledge.
 
 **Purpose:** Navigate to URL with automatic retry on connection errors.
 
+**TRUE MITIGATION:** Before each navigation attempt, verifies server is responding to HTTP 
+requests (not just port-reachable) via `isServerReady()` health check.
+
 | | |
 |-|-|
 | **Success condition** | Page navigates successfully (DOMContentLoaded) |
-| **Recovery actions** | On `ERR_CONNECTION_REFUSED`: wait `retryDelayMs` (default 2s), retry up to `maxRetries` (default 3) |
+| **Recovery actions** | 1. HTTP health check before each attempt <br> 2. On `ERR_CONNECTION_REFUSED`: wait `retryDelayMs` (default 2s), retry up to `maxRetries` (default 5) |
 | **Timeout behavior** | Throws after maxRetries with grep-friendly signature: `ERR_CONNECTION_REFUSED: Failed to navigate to...` |
 | **Evidence on failure** | 1. Detailed logs (attempt, URL, baseURL, page.url(), error) <br> 2. Screenshot: `test-results/fail-goto-refused-*.png` <br> 3. debugProbe: page state dump <br> 4. Diagnostic hints in console |
 
@@ -162,23 +165,64 @@ Specialized waits for RoomScreen after creation or joining.
 
 ---
 
-## Connection Refused Handling
+## Connection Refused Handling (ERR_CONNECTION_REFUSED)
 
-When `net::ERR_CONNECTION_REFUSED` occurs:
+**Failure Signature:** `ERR_CONNECTION_REFUSED: Failed to navigate to...`
 
-1. **Root cause:** Dev server (localhost:8081) not ready or crashed
-2. **Playwright mitigation:**
+**Root Cause:** Dev server (localhost:8081) not ready or crashed.
+
+### Mitigation (IMPLEMENTED)
+
+1. **HTTP health check in gotoWithRetry:**
+   - Before each navigation, `isServerReady(baseURL)` makes an HTTP GET request
+   - Only attempts `page.goto()` when server actually responds (not just port-reachable)
+   - 5 retries with 2s delay = up to ~10s of server wait
+
+2. **Playwright webServer config:**
+   - `webServer.url` check waits for server to be accessible
    - `webServer.timeout: 120000` — wait up to 2min for server start
-   - `webServer.reuseExistingServer: true` — use pre-started server if available
    - `stdout: 'pipe'` — capture server output for debugging
-3. **Spec-level mitigation:**
-   - `waitForAppReady()` waits for hydration before any action
-   - `retry()` wrapper available for flaky network operations
-4. **CI mitigation:**
-   - `retries: 2` on CI — auto-retry failed tests
-   - `trace: 'on-first-retry'` — collect trace for debugging
 
-**If connection refused persists:**
-- Check terminal output for server crash logs
-- Verify port 8081 is not occupied: `lsof -i :8081`
-- Manually start server: `npx expo start --web --port 8081`
+3. **Evidence on failure:**
+   - Attempt number, URL, baseURL, error logged
+   - Screenshot saved to `test-results/fail-goto-refused-*.png`
+   - Diagnostic hints printed
+
+**Status:** ✅ MITIGATED at code level. Server availability is verified via HTTP before navigation.
+
+---
+
+## HTTP 409 Conflict Handling (Room Creation)
+
+**Failure Signature:** `Failed to create room: duplicate key value violates unique constraint`
+
+**Root Cause:** Race condition between `generateRoomNumber()` check and `createRoom()` insert.
+If another client creates a room with the same 4-digit code in between, Supabase returns 409.
+
+### Mitigation (IMPLEMENTED in SimplifiedRoomService)
+
+1. **createRoom() retry logic:**
+   - On 409/duplicate error: generate new room number and retry
+   - Up to 3 attempts (configurable via `maxRetries`)
+   - Logs each retry attempt with error details
+
+2. **Detection patterns:**
+   - PostgreSQL error code `23505` (unique_violation)
+   - Error message contains "duplicate", "conflict", or "already exists"
+
+**Status:** ✅ MITIGATED at app level. Room creation retries with new code on conflict.
+
+---
+
+## Flake Reporting Rules
+
+Per `.github/copilot-instructions.md`:
+
+> "Re-run and it passed" is NOT evidence. If a test fails during validation:
+> - Record the exact failure signature (error type/message)
+> - State whether it's mitigated by code in this PR (and where)
+> - Or explicitly mark as "unmitigated external flake"
+
+**Known mitigated flakes:**
+- `ERR_CONNECTION_REFUSED` → `gotoWithRetry()` with HTTP health check
+- `HTTP 409 room conflict` → `createRoom()` retry logic in SimplifiedRoomService

@@ -124,6 +124,12 @@ Do not hand-roll home/login waits in specs.
   - keep the public API stable (domain files can re-export **domain helpers**, but must not re-export generic primitives)
 - Exception: e2e helpers may need loops/retries, but complexity must be contained via extraction (no mega-functions).
 
+### Recommended refactor shape (directory + facade)
+
+- When splitting a large file, prefer `folder/` modules + a stable facade entry (`index.ts` or the original file) that re-exports **domain helpers only**.
+- Keep imports stable when possible (avoid churn). Example: keep `import { ensureHomeReady } from './helpers/home'` working while moving internals into `home/*.ts`.
+- Do **not** use the facade to re-export generic primitives (e.g., `getVisibleText`, `gotoWithRetry`). Specs must import primitives from `e2e/helpers/ui.ts`.
+
 ---
 
 ## 7) Collaboration mode
