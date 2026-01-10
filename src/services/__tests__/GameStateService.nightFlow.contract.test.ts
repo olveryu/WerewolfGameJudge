@@ -500,4 +500,91 @@ describe('GameStateService NightFlow Contract Tests', () => {
       debugSpy.mockRestore();
     });
   });
+
+  // ===========================================================================
+  // C12-C14: Strict Invariant Violation Tests (nightFlow === null when ongoing)
+  // ===========================================================================
+
+  describe('C12: advanceToNextAction throws when nightFlow is null and status is ongoing', () => {
+    it('should throw strict invariant violation error', async () => {
+      // Given: game is ongoing but nightFlow is forcibly set to null
+      const actionOrder: RoleName[] = ['seer'];
+      await setupReadyStateWithRoles(service, actionOrder, new Map([
+        [0, 'seer'],
+      ]));
+      
+      const startPromise = service.startGame();
+      await jest.advanceTimersByTimeAsync(5000);
+      await startPromise;
+      
+      // Force nightFlow to null (simulating a bug)
+      (service as any).nightFlow = null;
+      
+      // Confirm status is ongoing
+      expect(service.getState()!.status).toBe(GameStatus.ongoing);
+      
+      // When/Then: advanceToNextAction should throw
+      await expect((service as any).advanceToNextAction()).rejects.toThrow(
+        'advanceToNextAction: nightFlow is null - strict invariant violation'
+      );
+    });
+  });
+
+  describe('C13: endNight throws when nightFlow is null and status is ongoing', () => {
+    it('should throw strict invariant violation error and not change status', async () => {
+      // Given: game is ongoing but nightFlow is forcibly set to null
+      const actionOrder: RoleName[] = ['seer'];
+      await setupReadyStateWithRoles(service, actionOrder, new Map([
+        [0, 'seer'],
+      ]));
+      
+      const startPromise = service.startGame();
+      await jest.advanceTimersByTimeAsync(5000);
+      await startPromise;
+      
+      const statusBefore = service.getState()!.status;
+      const lastNightDeathsBefore = service.getState()!.lastNightDeaths;
+      
+      // Force nightFlow to null
+      (service as any).nightFlow = null;
+      
+      // When/Then: endNight should throw
+      await expect((service as any).endNight()).rejects.toThrow(
+        'endNight: nightFlow is null - strict invariant violation'
+      );
+      
+      // And: status should NOT have changed
+      expect(service.getState()!.status).toBe(statusBefore);
+      expect(service.getState()!.lastNightDeaths).toEqual(lastNightDeathsBefore);
+    });
+  });
+
+  describe('C14: handlePlayerAction throws when nightFlow is null and status is ongoing', () => {
+    it('should throw strict invariant violation error and not record action', async () => {
+      // Given: game is ongoing but nightFlow is forcibly set to null
+      const actionOrder: RoleName[] = ['seer'];
+      await setupReadyStateWithRoles(service, actionOrder, new Map([
+        [0, 'seer'],
+      ]));
+      
+      const startPromise = service.startGame();
+      await jest.advanceTimersByTimeAsync(5000);
+      await startPromise;
+      
+      const actionsBefore = new Map(service.getState()!.actions);
+      const indexBefore = service.getState()!.currentActionerIndex;
+      
+      // Force nightFlow to null
+      (service as any).nightFlow = null;
+      
+      // When/Then: handlePlayerAction should throw
+      await expect((service as any).handlePlayerAction(0, 'seer', 1)).rejects.toThrow(
+        'handlePlayerAction: nightFlow is null - strict invariant violation'
+      );
+      
+      // And: actions should NOT have been recorded, index should NOT change
+      expect(service.getState()!.actions).toEqual(actionsBefore);
+      expect(service.getState()!.currentActionerIndex).toBe(indexBefore);
+    });
+  });
 });
