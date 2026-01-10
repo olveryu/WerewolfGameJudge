@@ -66,15 +66,26 @@ Low-level utilities with no app-specific knowledge.
 
 **Purpose:** Navigate to URL with automatic retry on connection errors.
 
-**TRUE MITIGATION:** Before each navigation attempt, verifies server is responding to HTTP 
-requests (not just port-reachable) via `isServerReady()` health check.
+**TRUE MITIGATION:** Before each navigation attempt, probes server readiness using 
+Playwright's `page.request.get()` (same network stack as `page.goto()`).
+
+**Probe target:** `/favicon.ico` (static asset, fast response)  
+> TODO: Replace with `/health` endpoint when app provides one.
 
 | | |
 |-|-|
 | **Success condition** | Page navigates successfully (DOMContentLoaded) |
-| **Recovery actions** | 1. HTTP health check before each attempt <br> 2. On `ERR_CONNECTION_REFUSED`: wait `retryDelayMs` (default 2s), retry up to `maxRetries` (default 5) |
-| **Timeout behavior** | Throws after maxRetries with grep-friendly signature: `ERR_CONNECTION_REFUSED: Failed to navigate to...` |
-| **Evidence on failure** | 1. Detailed logs (attempt, URL, baseURL, page.url(), error) <br> 2. Screenshot: `test-results/fail-goto-refused-*.png` <br> 3. debugProbe: page state dump <br> 4. Diagnostic hints in console |
+| **Probe timeout** | 10s (Expo cold start can be slow) |
+| **Retry strategy** | Exponential backoff: 2s → 4s → 8s → 16s (capped) |
+| **Timeout behavior** | Throws after maxRetries with grep-friendly signature |
+
+**Evidence on failure (grep-friendly categories):**
+- `REFUSED`: Connection refused - server not listening
+- `TIMEOUT`: Server slow to respond (cold start/compile)  
+- `DNS`: DNS resolution failed
+- `UNKNOWN`: Other network error
+- Screenshot: `test-results/fail-goto-refused-*.png`
+- Final error: `ERR_CONNECTION_REFUSED: Failed to navigate to... [probe: <category>]`
 
 **When to use:** Always use `gotoWithRetry` instead of `page.goto` in specs.
 

@@ -3,10 +3,13 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * E2E_BASE_URL: Single source of truth for all E2E navigation.
  * 
- * Set by scripts/run-e2e-web.mjs.
- * Used by: playwright.config.ts, e2e/helpers/ui.ts
+ * Resolved at config load time, then exported to process.env for test runtime.
+ * Used by: playwright.config.ts (use.baseURL, webServer.url), e2e/helpers/ui.ts (getBaseURL)
  */
 const E2E_BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8081';
+
+// Export to process.env so ui.ts can access it at test runtime
+process.env.E2E_BASE_URL = E2E_BASE_URL;
 
 /**
  * Playwright configuration for Werewolf Game E2E tests.
