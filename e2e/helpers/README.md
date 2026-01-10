@@ -14,10 +14,20 @@ Layered test helpers for Playwright E2E tests.
 
 **Rule: NEVER hardcode `http://localhost:8081` in E2E code.**
 
-If `E2E_BASE_URL` is not set, `ui.ts` logs a fallback warning:
-```
-[gotoWithRetry] E2E_BASE_URL not set, fallback to http://localhost:8081
-```
+### Running E2E Tests
+
+| Command | Supabase | Web Server | Use Case |
+|---------|----------|------------|----------|
+| `npm run e2e:core` | Local (`127.0.0.1:54321`) | Local (`:8081`) | Default dev |
+| `npm run e2e:remote` | Remote (from `e2e.remote.json`) | Local (`:8081`) | Test with production Supabase |
+| `E2E_BASE_URL=https://... npm run e2e:remote` | Remote | Remote URL | CI / staging |
+
+### Environment Variables
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `E2E_ENV` | Supabase config: `local` or `remote` | `local` |
+| `E2E_BASE_URL` | Web server URL for tests | `http://localhost:8081` |
 
 ---
 
