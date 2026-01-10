@@ -48,8 +48,31 @@
 - 开局准备与角色分配
 - 第一晚流程概览
 - 音频异常说明
-- 卡住/救火协议（� 救火重开）
+- 卡住/救火协议（🧯 救火重开）
 - 常见问题
+
+---
+
+## E2E 测试：Local / Remote Supabase 切换
+
+E2E 测试支持在本地 Supabase 与远程 Supabase 之间切换：
+
+```bash
+# 使用本地 Supabase（默认，127.0.0.1:54321）
+E2E_ENV=local npx playwright test e2e/basic.spec.ts
+
+# 使用远程 Supabase（生产/共享环境）
+E2E_ENV=remote npx playwright test e2e/basic.spec.ts
+
+# 推荐：运行非 template 的核心 E2E 测试
+E2E_ENV=local npx playwright test e2e/basic.spec.ts e2e/seating.basic.spec.ts e2e/night1.basic.spec.ts
+```
+
+**配置文件位置：**
+- `env/e2e.local.json` - 本地 Supabase 配置
+- `env/e2e.remote.json` - 远程 Supabase 配置（可通过 CI secrets 覆盖）
+
+**CI 使用：** 设置 `EXPO_PUBLIC_SUPABASE_URL` 和 `EXPO_PUBLIC_SUPABASE_ANON_KEY` 环境变量即可覆盖 remote 配置。
 
 ---
 
