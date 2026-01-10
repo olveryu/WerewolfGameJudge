@@ -83,6 +83,13 @@ Database schema: only `rooms` table (ephemeral rooms).
   - Joiner must reach `🟢 已连接` OR complete the “强制同步” recovery loop.
   - Do not rely on header-only waits.
 
+### Flake reporting rule (mandatory)
+
+- “Re-run and it passed” is **not** evidence. If a test fails during validation (even if a re-run passes), you must:
+  - record the **exact failure signature** (error type/message, e.g., `HTTP 409`, `ERR_CONNECTION_REFUSED`, timeout)
+  - state whether it’s **mitigated** by code in this PR (and where), or explicitly mark it as **unmitigated external flake**
+  - keep `e2e:core` green at the end, but do not hide intermediate failures
+
 ### Helper layering (mandatory)
 
 Specs should be thin.
