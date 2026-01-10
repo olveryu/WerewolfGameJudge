@@ -1,5 +1,7 @@
 import { test, expect, Page, TestInfo } from '@playwright/test';
 import { waitForRoomScreenReady } from './helpers/waits';
+import { getVisibleText, gotoWithRetry } from './helpers/ui';
+import { waitForAppReady, ensureAnonLogin, extractRoomNumber } from './helpers/home';
 
 /**
  * Night 1 Happy Path E2E Test
@@ -88,48 +90,8 @@ function setupDiagnostics(page: Page, label: string): DiagnosticData {
 }
 
 // =============================================================================
-// Helpers
+// Helpers (Seat-specific only - shared helpers imported from home.ts)
 // =============================================================================
-
-async function waitForAppReady(page: Page) {
-  await page.waitForSelector('text=狼人杀法官', { timeout: 15000 });
-}
-
-function getVisibleText(page: Page, text: string) {
-  return page.locator(`text="${text}" >> visible=true`);
-}
-
-async function ensureAnonLogin(page: Page) {
-  const anonUser = page.getByText('匿名用户');
-  if (await anonUser.isVisible({ timeout: 1000 }).catch(() => false)) {
-    return;
-  }
-
-  await page.getByText('创建房间').click();
-  await page.waitForTimeout(500);
-
-  const needLogin = page.getByText('需要登录');
-  const configScreen = getVisibleText(page, '创建');
-
-  if (await needLogin.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await page.getByText('登录', { exact: true }).first().click();
-    await expect(page.getByText('👤 匿名登录')).toBeVisible({ timeout: 5000 });
-    await page.getByText('👤 匿名登录').click();
-    await expect(page.getByText('匿名用户')).toBeVisible({ timeout: 10000 });
-  } else if (await configScreen.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await page.getByText('←').click();
-    await expect(page.getByText('创建房间')).toBeVisible({ timeout: 5000 });
-  }
-}
-
-async function extractRoomNumber(page: Page): Promise<string> {
-  const headerLocator = page.locator(String.raw`text=/房间 \d{4}/`);
-  await expect(headerLocator).toBeVisible({ timeout: 5000 });
-  const headerText = await headerLocator.textContent();
-  const match = headerText?.match(/\b(\d{4})\b/);
-  if (!match) throw new Error(`Could not extract room number from: ${headerText}`);
-  return match[1];
-}
 
 /**
  * Get a precise locator for a seat tile by its 0-based seat index.
@@ -472,7 +434,7 @@ test.describe('Night 1 Happy Path', () => {
       // ===================== HOST A: Create room with 2-player template =====================
       console.log('[NIGHT] === HOST A Setup ===');
       
-      await pageA.goto('/');
+      await gotoWithRetry(pageA, '/');
       await waitForAppReady(pageA);
       await ensureAnonLogin(pageA);
       
@@ -499,7 +461,7 @@ test.describe('Night 1 Happy Path', () => {
       // ===================== JOINER B: Join room =====================
       console.log('\n[NIGHT] === JOINER B Setup ===');
       
-      await pageB.goto('/');
+      await gotoWithRetry(pageB, '/');
       await waitForAppReady(pageB);
       await ensureAnonLogin(pageB);
       

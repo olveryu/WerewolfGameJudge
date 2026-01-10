@@ -1,78 +1,22 @@
 import { test, expect } from '@playwright/test';
 import { waitForRoomScreenReady } from './helpers/waits';
+import { getVisibleText, gotoWithRetry } from './helpers/ui';
+import { waitForAppReady, ensureAnonLogin } from './helpers/home';
 
 /**
  * Basic E2E tests for Werewolf Game
  * These tests verify core functionality works correctly.
+ * 
+ * Uses gotoWithRetry() for robust navigation that handles
+ * transient ERR_CONNECTION_REFUSED when dev server is slow to start.
  */
 
 // Fail fast: stop on first failure
 test.describe.configure({ mode: 'serial' });
 
-// =============================================================================
-// Helpers
-// =============================================================================
-
-// Helper to wait for app to be ready (React Native Web hydration)
-async function waitForAppReady(page: import('@playwright/test').Page) {
-  // Wait for the app title to be visible
-  await page.waitForSelector('text=狼人杀法官', { timeout: 15000 });
-}
-
-/**
- * Helper to get a visible element on the current screen.
- * 
- * React Navigation on Web keeps previous screens in the DOM with aria-hidden="true".
- * When navigating to the same screen type (e.g., Home -> Config -> Room -> Config),
- * there can be multiple elements matching the same selector.
- * 
- * This helper uses Playwright's :visible filter to only match visible elements.
- */
-function getVisibleText(page: import('@playwright/test').Page, text: string) {
-  return page.locator(`text="${text}" >> visible=true`);
-}
-
-/**
- * Ensure anonymous login is completed.
- * If already logged in, returns immediately.
- * Otherwise, triggers login flow via 创建房间 -> 登录 -> 匿名登录.
- */
-async function ensureAnonLogin(page: import('@playwright/test').Page) {
-  // Check if already logged in by looking for 匿名用户 anywhere on page
-  const anonUser = page.getByText('匿名用户');
-  if (await anonUser.isVisible({ timeout: 1000 }).catch(() => false)) {
-    return;
-  }
-
-  // Try clicking 创建房间 to trigger login flow or go to config
-  await page.getByText('创建房间').click();
-  
-  // Wait a moment to see what happens
-  await page.waitForTimeout(500);
-  
-  // Check if we got login dialog or went straight to config (already logged in)
-  const needLogin = page.getByText('需要登录');
-  const configScreen = getVisibleText(page, '创建'); // 创建 button on config screen
-  
-  // If we see 需要登录, do the login flow
-  if (await needLogin.isVisible({ timeout: 2000 }).catch(() => false)) {
-    // Click 登录
-    await page.getByText('登录', { exact: true }).first().click();
-    await expect(page.getByText('👤 匿名登录')).toBeVisible({ timeout: 5000 });
-
-    // Click 匿名登录
-    await page.getByText('👤 匿名登录').click();
-    await expect(page.getByText('匿名用户')).toBeVisible({ timeout: 10000 });
-  } else if (await configScreen.isVisible({ timeout: 2000 }).catch(() => false)) {
-    // Already logged in - go back to home
-    await page.getByText('←').click();
-    await expect(page.getByText('创建房间')).toBeVisible({ timeout: 5000 });
-  }
-}
-
 test.describe('Home Screen', () => {
   test('displays main navigation tiles', async ({ page }) => {
-    await page.goto('/');
+    await gotoWithRetry(page, '/');
     await waitForAppReady(page);
     
     // Check all main tiles are visible (actual UI text)
@@ -86,7 +30,7 @@ test.describe('Home Screen', () => {
 
 test.describe('Create Room', () => {
   test('can access create room config screen', async ({ page }) => {
-    await page.goto('/');
+    await gotoWithRetry(page, '/');
     await waitForAppReady(page);
     
     // Ensure logged in
@@ -105,7 +49,7 @@ test.describe('Create Room', () => {
 
 test.describe('Settings', () => {
   test('can view settings screen', async ({ page }) => {
-    await page.goto('/');
+    await gotoWithRetry(page, '/');
     await waitForAppReady(page);
     
     // Click settings (use exact match)
@@ -118,7 +62,7 @@ test.describe('Settings', () => {
 
 test.describe('Join Room', () => {
   test('can access join room dialog', async ({ page }) => {
-    await page.goto('/');
+    await gotoWithRetry(page, '/');
     await waitForAppReady(page);
     
     // Ensure logged in
@@ -135,7 +79,7 @@ test.describe('Join Room', () => {
 
 test.describe('Template Selection', () => {
   test('can select different templates on config screen', async ({ page }) => {
-    await page.goto('/');
+    await gotoWithRetry(page, '/');
     await waitForAppReady(page);
     
     // Login first
@@ -171,7 +115,7 @@ test.describe('Template Selection', () => {
 
 
   test('can change template in settings after creating room', async ({ page }) => {
-    await page.goto('/');
+    await gotoWithRetry(page, '/');
     await waitForAppReady(page);
     
     // === Step 1: Login ===

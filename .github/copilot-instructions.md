@@ -105,7 +105,7 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
 **No overreach rules:**
 - Never manually advance `currentActionerIndex` (no fallback `++`).
 - Phase mismatch events must be treated as idempotent no-ops (debug only). No side effects.
-- `endNight()` must not perform death calculation, status change, or broadcasts unless the controller is in the proper phase.
+- Night bridge functions (e.g., `advanceToNextAction()`, `playCurrentRoleAudio()`, `endNight()`) must not perform side effects (death calculation, status change, broadcasts, index changes) unless the controller is in the proper phase.
 
 ### Sync Protocol Requirements (Transport-only, but reliable)
 
@@ -126,3 +126,22 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
    - `e2e/helpers/waits.ts`: `waitForRoomScreenReady()` (joiner live gate + 强制同步 loop)
 - Avoid single-text gates (UI copy changes). Prefer stable selectors (role/testid) and composite conditions.
 - Avoid `waitForTimeout` as synchronization (only allowed with explicit justification).
+
+### Engineering Best Practices (avoid hardcoding)
+
+- Avoid hard-coded strings and one-off logic. Prefer shared helpers/utilities and stable selectors.
+- Exception: protocol/contract UI strings that are part of stability gates (e.g., connection status bar text) may be matched exactly, but must be centralized in helpers/constants (not scattered in specs/components).
+- When a pattern appears twice (especially waits/retries/guards/log formatting), extract it into a reusable helper (`src/utils/*`, `src/services/*`, `e2e/helpers/*`).
+- Keep helpers layered (generic primitives → domain helpers) and keep specs/components thin.
+
+### Engineering Best Practices (use design patterns)
+
+- Prefer clear, proven design patterns over ad-hoc branching (e.g., state machine for phases, strategy for role behaviors, adapter for transport/services, layered helpers for e2e).
+- Keep responsibilities separated: domain logic in controllers/services, UI thin, transport as a dumb pipe.
+- Prefer idempotent handlers and explicit invariants for concurrency/timing-sensitive flows.
+
+### Bugfix + small refactor (preferred)
+
+- When fixing a bug, it’s encouraged to do a small, low-risk refactor in the same area (extract helpers, remove duplication, clarify invariants), **but keep the diff minimal**.
+- Do not mix in broad rewrites. Scope should be limited to the bug’s module/flow.
+- Must keep quality gates green (typecheck/Jest/e2e as applicable) and provide evidence in the commit message or task notes.
