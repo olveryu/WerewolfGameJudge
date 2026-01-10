@@ -587,4 +587,67 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(service.getState()!.currentActionerIndex).toBe(indexBefore);
     });
   });
+
+  // ===========================================================================
+  // C15: Boundary test - non-ongoing + nightFlow null should NOT throw
+  // ===========================================================================
+
+  describe('C15: non-ongoing status with nightFlow null should NOT throw', () => {
+    it('advanceToNextAction should not throw when status is ready and nightFlow is null', async () => {
+      // Given: game is in ready status (not ongoing)
+      const actionOrder: RoleName[] = ['seer'];
+      await setupReadyStateWithRoles(service, actionOrder, new Map([
+        [0, 'seer'],
+      ]));
+      
+      // Confirm status is ready (not ongoing)
+      expect(service.getState()!.status).toBe(GameStatus.ready);
+      
+      // nightFlow should be null before game starts
+      expect((service as any).nightFlow).toBeNull();
+      
+      // When/Then: advanceToNextAction should NOT throw (just return silently)
+      await expect((service as any).advanceToNextAction()).resolves.not.toThrow();
+    });
+
+    it('endNight should not throw when status is ready and nightFlow is null', async () => {
+      // Given: game is in ready status (not ongoing)
+      const actionOrder: RoleName[] = ['seer'];
+      await setupReadyStateWithRoles(service, actionOrder, new Map([
+        [0, 'seer'],
+      ]));
+      
+      expect(service.getState()!.status).toBe(GameStatus.ready);
+      expect((service as any).nightFlow).toBeNull();
+      
+      // When/Then: endNight should NOT throw
+      await expect((service as any).endNight()).resolves.not.toThrow();
+    });
+
+    it('handlePlayerAction should not throw when status is ready (early return before null check)', async () => {
+      // Given: game is in ready status (not ongoing)
+      const actionOrder: RoleName[] = ['seer'];
+      await setupReadyStateWithRoles(service, actionOrder, new Map([
+        [0, 'seer'],
+      ]));
+      
+      expect(service.getState()!.status).toBe(GameStatus.ready);
+      
+      // When/Then: handlePlayerAction should NOT throw (returns early due to status check)
+      await expect((service as any).handlePlayerAction(0, 'seer', 1)).resolves.not.toThrow();
+    });
+
+    it('handleWolfVote should not throw when status is ready (early return before null check)', async () => {
+      // Given: game is in ready status (not ongoing)
+      const actionOrder: RoleName[] = ['wolf'];
+      await setupReadyStateWithRoles(service, actionOrder, new Map([
+        [0, 'wolf'],
+      ]));
+      
+      expect(service.getState()!.status).toBe(GameStatus.ready);
+      
+      // When/Then: handleWolfVote should NOT throw (returns early due to status check)
+      await expect((service as any).handleWolfVote(0, 1)).resolves.not.toThrow();
+    });
+  });
 });

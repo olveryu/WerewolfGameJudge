@@ -92,3 +92,28 @@ Supabase is used strictly as:
 5. **Designed for In-Person Play**
    - All players are physically present
    - Backend is not a referee, only an infrastructure provider
+
+### Strict Night Flow (NightFlowController as Authority)
+
+**NightFlowController is the single source of truth for night-phase progression.**  
+GameStateService acts only as a bridge (audio + broadcast + local caches) and must not “advance the game” outside the controller’s legal transitions.
+
+**Strict invariant (Host night):**
+- When `isHost === true` and `state.status === ongoing`, `nightFlow` MUST be non-null.
+- If `nightFlow` is null during ongoing night, this is a bug: fail-fast (throw) or enter an explicit rescue protocol. Do **not** silently fall back to “legacy mode”.
+
+**No overreach rules:**
+- Never manually advance `currentActionerIndex` (no fallback `++`).
+- Phase mismatch events must be treated as idempotent no-ops (debug only). No side effects.
+- `endNight()` must not perform death calculation, status change, or broadcasts unless the controller is in the proper phase.
+
+### Sync Protocol Requirements (Transport-only, but reliable)
+
+- Host broadcasts `STATE_UPDATE` with a monotonically increasing `revision`.
+- Players support snapshot recovery via request/response (toUid) with timeout/rollback.
+- Seat actions use requestId+ACK (toUid), and clients must filter ACK by requestId.
+
+### E2E Gate & Stability Rules
+
+- Core e2e runs with workers=1 and must collect evidence on failure (logs/screenshot).
+- Room readiness must use the shared `waitForRoomScreenReady` helper (joiner must reach `🟢 已连接` or complete the “强制同步” recovery loop). Do not rely on header-only waits.
