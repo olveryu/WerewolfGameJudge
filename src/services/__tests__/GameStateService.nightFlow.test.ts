@@ -325,11 +325,11 @@ describe('GameStateService NightFlowController Integration', () => {
   });
 
   // ===========================================================================
-  // 4. dispatch() error recovery
+  // 4. dispatch() idempotent handling (strict state machine authority)
   // ===========================================================================
 
-  describe('dispatch() error recovery', () => {
-    it('should not throw when dispatch fails with InvalidNightTransitionError', async () => {
+  describe('dispatch() idempotent handling', () => {
+    it('should not throw when advanceToNextAction called in wrong phase', async () => {
       // Given: Game started
       await setupReadyState(service, ['wolf', 'witch', 'seer']);
       const startPromise = service.startGame();
@@ -340,24 +340,19 @@ describe('GameStateService NightFlowController Integration', () => {
       const state = getState(service);
       state.status = GameStatus.ongoing;
       
-      // Force nightFlow to Ended state (terminal)
-      nightFlow.dispatch(NightEvent.Reset);
-      nightFlow.dispatch(NightEvent.StartNight);
-      nightFlow.dispatch(NightEvent.NightBeginAudioDone);
-      // Now we have no roles, so it goes to NightEndAudio
-      // For this test, let's manually force Ended state
+      // Force nightFlow to Ended state (terminal) - wrong phase for RoleEndAudioDone
       (nightFlow as any)._phase = NightPhase.Ended;
       
       // When: Call advanceToNextAction which will try to dispatch RoleEndAudioDone
-      // This should throw InvalidNightTransitionError but be caught
+      // This should be ignored (idempotent) with debug log, not error
       const advanceToNextAction = (service as any).advanceToNextAction.bind(service);
       
-      // Then: Should not throw, should log error
+      // Then: Should not throw
       await expect(advanceToNextAction()).resolves.not.toThrow();
-      expect(consoleErrorSpy).toHaveBeenCalled();
+      // Note: With strict semantics, we use debug not error
     });
 
-    it('should fallback to manual index advance when RoleEndAudioDone dispatch fails', async () => {
+    it('should NOT advance index when RoleEndAudioDone called in wrong phase (strict)', async () => {
       // Given: Game started with action order
       await setupReadyState(service, ['wolf', 'witch', 'seer']);
       const startPromise = service.startGame();
@@ -369,16 +364,16 @@ describe('GameStateService NightFlowController Integration', () => {
       state.status = GameStatus.ongoing;
       state.currentActionerIndex = 0;
       
-      // Force nightFlow to a phase where RoleEndAudioDone will fail
+      // Force nightFlow to a phase where RoleEndAudioDone will be ignored
       (nightFlow as any)._phase = NightPhase.Ended;
       
       // When: Call advanceToNextAction
       const advanceToNextAction = (service as any).advanceToNextAction.bind(service);
       await advanceToNextAction();
       
-      // Then: currentActionerIndex should still be incremented (fallback)
-      expect(state.currentActionerIndex).toBe(1);
-      expect(consoleErrorSpy).toHaveBeenCalled();
+      // Then: currentActionerIndex should NOT be incremented (strict: no fallback)
+      // This is the key semantic change: GameStateService respects NightFlowController authority
+      expect(state.currentActionerIndex).toBe(0);
     });
   });
 });
