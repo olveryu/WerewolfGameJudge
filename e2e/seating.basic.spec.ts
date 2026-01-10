@@ -233,6 +233,57 @@ async function takeScreenshot(page: Page, testInfo: TestInfo, name: string) {
 }
 
 // =============================================================================
+// Stabilization Helpers (for DIAG-3/4/5/6)
+// =============================================================================
+
+/**
+ * Settle wait after room screen is ready.
+ * Gives RN Web / Supabase Realtime a moment to stabilize before UI interactions.
+ */
+async function settleAfterRoomReady(page: Page) {
+  await page.waitForTimeout(300);
+}
+
+/**
+ * Wait for channel subscription confirmation in logs.
+ * Polls DiagnosticData.consoleLogs for "Channel status: SUBSCRIBED".
+ * 
+ * @param diag - DiagnosticData with consoleLogs
+ * @param label - Label for logging
+ * @param timeout - Max wait time in ms (default 8000)
+ * @returns true if subscribed, false if timeout
+ */
+async function waitForChannelSubscribed(
+  diag: DiagnosticData,
+  label: string,
+  timeout = 8000
+): Promise<boolean> {
+  const startTime = Date.now();
+  const pollInterval = 100;
+  
+  while (Date.now() - startTime < timeout) {
+    if (diag.consoleLogs.some(log => log.includes('Channel status: SUBSCRIBED'))) {
+      console.log(`[DIAG] ${label} channel SUBSCRIBED after ${Date.now() - startTime}ms`);
+      return true;
+    }
+    await new Promise(r => setTimeout(r, pollInterval));
+  }
+  
+  // On timeout, log last 10 entries for debugging
+  console.log(`[DIAG] ${label} channel subscription TIMEOUT (${timeout}ms). Last 10 logs:`);
+  diag.consoleLogs.slice(-10).forEach(log => console.log(`  ${log}`));
+  return false;
+}
+
+/**
+ * Dismiss any confirm alert that might be blocking UI.
+ * Safe to call even if no alert is present.
+ */
+async function dismissAnyConfirmAlert(page: Page) {
+  await page.getByText('确定', { exact: true }).click({ timeout: 1000 }).catch(() => {});
+}
+
+// =============================================================================
 // Diagnostic Tests
 // =============================================================================
 
@@ -550,6 +601,11 @@ test.describe('Seating Diagnostic', () => {
       await getVisibleText(pageA, '创建').click();
       await waitForRoomScreenReady(pageA);
       
+      // Settle + warm-up
+      await settleAfterRoomReady(pageA);
+      const hostSubscribed = await waitForChannelSubscribed(diagA, 'HOST-A');
+      console.log(`[DIAG] HOST A channel subscribed: ${hostSubscribed}`);
+      
       const roomNumber = await extractRoomNumber(pageA);
       console.log(`[DIAG] HOST A created room: ${roomNumber}`);
       
@@ -570,6 +626,12 @@ test.describe('Seating Diagnostic', () => {
       await pageB.getByText('加入', { exact: true }).click();
       
       await waitForRoomScreenReady(pageB);
+      
+      // Settle + warm-up
+      await settleAfterRoomReady(pageB);
+      const joinerSubscribed = await waitForChannelSubscribed(diagB, 'JOINER-B');
+      console.log(`[DIAG] JOINER B channel subscribed: ${joinerSubscribed}`);
+      
       console.log(`[DIAG] JOINER B joined room ${roomNumber}`);
       
       await takeScreenshot(pageB, testInfo, 'B-01-joined.png');
@@ -606,13 +668,10 @@ test.describe('Seating Diagnostic', () => {
       
       await takeScreenshot(pageB, testInfo, 'B-04-rejection-check.png');
       
-      // Dismiss rejection alert - must explicitly click the button on the alert
+      // Dismiss rejection alert (use getByText for RN Web compatibility)
       if (hasRejectionAlert) {
         console.log('[DIAG] Dismissing rejection alert...');
-        // The alert has a single "确定" button - click it
-        await pageB.getByRole('button', { name: '确定' }).click({ timeout: 2000 }).catch(() => {
-          console.log('[DIAG] Could not click 确定 button by role, trying text...');
-        });
+        await pageB.getByText('确定', { exact: true }).click({ timeout: 2000 }).catch(() => {});
         await pageB.waitForTimeout(300);
       }
 
@@ -691,25 +750,6 @@ test.describe('Seating Diagnostic', () => {
       error: null,
     };
 
-    // Warm-up helper: poll for "Channel status: SUBSCRIBED" in console logs
-    const waitForChannelSubscribed = async (
-      diag: { consoleLogs: string[] },
-      label: string,
-      timeoutMs: number = 8000  // Extended for cold-start
-    ): Promise<boolean> => {
-      const startTime = Date.now();
-      while (Date.now() - startTime < timeoutMs) {
-        if (diag.consoleLogs.some(log => log.includes('Channel status: SUBSCRIBED'))) {
-          return true;
-        }
-        await new Promise(r => setTimeout(r, 100));
-      }
-      // On timeout, log last 10 entries for debugging
-      console.log(`[DIAG] ${label} channel subscription TIMEOUT. Last 10 logs:`);
-      diag.consoleLogs.slice(-10).forEach(log => console.log(`  ${log}`));
-      return false;
-    };
-
     try {
       // ===================== HOST A: Create room (auto-takes seat 0) =====================
       diag4State.phase = 'host_create';
@@ -724,11 +764,9 @@ test.describe('Seating Diagnostic', () => {
       await getVisibleText(pageA, '创建').click();
       await waitForRoomScreenReady(pageA);
 
-      // Settle wait for realtime
-      await pageA.waitForTimeout(300);
-
-      // Warm-up: wait for Host channel subscription
-      diag4State.hostSubscribed = await waitForChannelSubscribed(diagA, 'HOST-A', 8000);
+      // Settle + warm-up
+      await settleAfterRoomReady(pageA);
+      diag4State.hostSubscribed = await waitForChannelSubscribed(diagA, 'HOST-A');
       console.log(`[DIAG] HOST A channel subscribed: ${diag4State.hostSubscribed}`);
       
       diag4State.roomNumber = await extractRoomNumber(pageA);
@@ -759,11 +797,9 @@ test.describe('Seating Diagnostic', () => {
       await waitForRoomScreenReady(pageB);
       console.log(`[DIAG] JOINER B joined room ${diag4State.roomNumber}`);
 
-      // Settle wait for realtime
-      await pageB.waitForTimeout(300);
-
-      // Warm-up: wait for Joiner channel subscription
-      diag4State.joinerSubscribed = await waitForChannelSubscribed(diagB, 'JOINER-B', 8000);
+      // Settle + warm-up
+      await settleAfterRoomReady(pageB);
+      diag4State.joinerSubscribed = await waitForChannelSubscribed(diagB, 'JOINER-B');
       console.log(`[DIAG] JOINER B channel subscribed: ${diag4State.joinerSubscribed}`);
 
       // ===================== JOINER B: Take seat 2 =====================
@@ -774,11 +810,9 @@ test.describe('Seating Diagnostic', () => {
       await expect(pageB.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
       await pageB.getByText('确定', { exact: true }).click();
       
-      // Wait for seat confirmation
+      // Wait for seat confirmation + dismiss any alert
       await pageB.waitForTimeout(500);
-      
-      // Dismiss any alert that might appear
-      await pageB.getByRole('button', { name: '确定' }).click({ timeout: 1000 }).catch(() => {});
+      await dismissAnyConfirmAlert(pageB);
       
       diag4State.joinerSeat2 = await collectSeatUIState(pageB, 2);
       console.log(`[DIAG] JOINER B seat 2: ${JSON.stringify(diag4State.joinerSeat2)}`);
@@ -902,6 +936,11 @@ test.describe('Seating Diagnostic', () => {
       await getVisibleText(pageA, '创建').click();
       await waitForRoomScreenReady(pageA);
       
+      // Settle + warm-up
+      await settleAfterRoomReady(pageA);
+      const hostSubscribed = await waitForChannelSubscribed(diagA, 'HOST-A');
+      console.log(`[DIAG] HOST A channel subscribed: ${hostSubscribed}`);
+      
       const roomNumber = await extractRoomNumber(pageA);
       console.log(`[DIAG] HOST A created room: ${roomNumber}`);
 
@@ -920,6 +959,12 @@ test.describe('Seating Diagnostic', () => {
       await pageB.getByText('加入', { exact: true }).click();
       
       await waitForRoomScreenReady(pageB);
+      
+      // Settle + warm-up
+      await settleAfterRoomReady(pageB);
+      const joinerSubscribed = await waitForChannelSubscribed(diagB, 'JOINER-B');
+      console.log(`[DIAG] JOINER B channel subscribed: ${joinerSubscribed}`);
+      
       console.log(`[DIAG] JOINER B joined room ${roomNumber}`);
 
       // ===================== JOINER B: Take seat 2 =====================
@@ -929,9 +974,7 @@ test.describe('Seating Diagnostic', () => {
       await expect(pageB.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
       await pageB.getByText('确定', { exact: true }).click();
       await pageB.waitForTimeout(500);
-      
-      // Dismiss any alert
-      await pageB.getByRole('button', { name: '确定' }).click({ timeout: 1000 }).catch(() => {});
+      await dismissAnyConfirmAlert(pageB);
       
       const joinerSeat2After = await collectSeatUIState(pageB, 2);
       console.log(`[DIAG] JOINER B seat 2: ${JSON.stringify(joinerSeat2After)}`);
@@ -946,9 +989,7 @@ test.describe('Seating Diagnostic', () => {
       await expect(pageB.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
       await pageB.getByText('确定', { exact: true }).click();
       await pageB.waitForTimeout(500);
-      
-      // Dismiss any alert
-      await pageB.getByRole('button', { name: '确定' }).click({ timeout: 1000 }).catch(() => {});
+      await dismissAnyConfirmAlert(pageB);
       
       const joinerSeat5After = await collectSeatUIState(pageB, 5);
       const joinerSeat2AfterSwitch = await collectSeatUIState(pageB, 2);
@@ -961,15 +1002,16 @@ test.describe('Seating Diagnostic', () => {
       // ===================== HOST A: Verify seat states =====================
       console.log('\n[DIAG] Polling HOST A for seat updates...');
       
-      // Poll for Host to see seat 5 occupied
+      // Poll for Host to see seat 5 occupied (10s timeout for cold-start)
       let hostSeat5 = await collectSeatUIState(pageA, 5);
-      const maxPollTime = 5000;
+      const maxPollTime = 10000;
       const pollInterval = 250;
       const startTime = Date.now();
       
       while (Date.now() - startTime < maxPollTime) {
         hostSeat5 = await collectSeatUIState(pageA, 5);
         if (!hostSeat5.isEmpty && hostSeat5.hasPlayerName) {
+          console.log(`[DIAG] HOST A seat 5 updated after ${Date.now() - startTime}ms`);
           break;
         }
         await pageA.waitForTimeout(pollInterval);
@@ -1052,6 +1094,11 @@ test.describe('Seating Diagnostic', () => {
       await getVisibleText(pageA, '创建').click();
       await waitForRoomScreenReady(pageA);
       
+      // Settle + warm-up
+      await settleAfterRoomReady(pageA);
+      const hostSubscribed = await waitForChannelSubscribed(diagA, 'HOST-A');
+      console.log(`[DIAG] HOST A channel subscribed: ${hostSubscribed}`);
+      
       const roomNumber = await extractRoomNumber(pageA);
       console.log(`[DIAG] HOST A created room: ${roomNumber}`);
 
@@ -1070,6 +1117,12 @@ test.describe('Seating Diagnostic', () => {
       await pageB.getByText('加入', { exact: true }).click();
       
       await waitForRoomScreenReady(pageB);
+      
+      // Settle + warm-up
+      await settleAfterRoomReady(pageB);
+      const joinerSubscribed = await waitForChannelSubscribed(diagB, 'JOINER-B');
+      console.log(`[DIAG] JOINER B channel subscribed: ${joinerSubscribed}`);
+      
       console.log(`[DIAG] JOINER B joined room ${roomNumber}`);
 
       // ===================== JOINER B: Take seat 2 =====================
@@ -1079,9 +1132,7 @@ test.describe('Seating Diagnostic', () => {
       await expect(pageB.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
       await pageB.getByText('确定', { exact: true }).click();
       await pageB.waitForTimeout(500);
-      
-      // Dismiss any alert
-      await pageB.getByRole('button', { name: '确定' }).click({ timeout: 1000 }).catch(() => {});
+      await dismissAnyConfirmAlert(pageB);
       
       const joinerSeat2After = await collectSeatUIState(pageB, 2);
       console.log(`[DIAG] JOINER B seat 2: ${JSON.stringify(joinerSeat2After)}`);
@@ -1093,13 +1144,14 @@ test.describe('Seating Diagnostic', () => {
       console.log('\n[DIAG] Waiting for HOST A to see seat 2 occupied...');
       
       let hostSeat2Before = await collectSeatUIState(pageA, 2);
-      const maxPollTime = 5000;
+      const maxPollTime = 10000;  // Extended for cold-start scenarios
       const pollInterval = 250;
       let startTime = Date.now();
       
       while (Date.now() - startTime < maxPollTime) {
         hostSeat2Before = await collectSeatUIState(pageA, 2);
         if (!hostSeat2Before.isEmpty && hostSeat2Before.hasPlayerName) {
+          console.log(`[DIAG] HOST A sees seat 2 occupied after ${Date.now() - startTime}ms`);
           break;
         }
         await pageA.waitForTimeout(pollInterval);
@@ -1140,6 +1192,7 @@ test.describe('Seating Diagnostic', () => {
       while (Date.now() - startTime < maxPollTime) {
         hostSeat2After = await collectSeatUIState(pageA, 2);
         if (hostSeat2After.isEmpty) {
+          console.log(`[DIAG] HOST A sees seat 2 empty after ${Date.now() - startTime}ms`);
           break;
         }
         await pageA.waitForTimeout(pollInterval);

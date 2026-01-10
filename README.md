@@ -71,6 +71,19 @@ E2E_ENV=remote npm run e2e:core
 
 > 注意：核心 E2E 需 `--workers=1`，避免 Supabase/Realtime channel 资源竞争导致的偶发失败。
 
+**查看测试失败 Evidence：**
+诊断测试（DIAG-*）失败时会生成 `*-evidence.txt` 附件，包含失败阶段、错误堆栈和日志。查看方式：
+```bash
+# 方法1：JSON reporter（推荐脚本解析）
+npx playwright test -g "DIAG-4" --reporter=json | python3 -c "..."
+
+# 方法2：HTML report（推荐人工查看）
+npx playwright test -g "DIAG-4" --reporter=html
+npx playwright show-report
+# 在 report 中点击失败测试 → Attachments → diag4-evidence.txt
+```
+> ⚠️ VS Code Playwright 插件的 "Ask AI to fix" 页面**不显示附件**，请使用上述方法。
+
 **配置文件位置：**
 - `env/e2e.local.json` - 本地 Supabase 配置
 - `env/e2e.remote.json` - 远程 Supabase 配置（可通过 CI secrets 覆盖）
