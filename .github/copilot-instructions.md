@@ -117,3 +117,12 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
 
 - Core e2e runs with workers=1 and must collect evidence on failure (logs/screenshot).
 - Room readiness must use the shared `waitForRoomScreenReady` helper (joiner must reach `🟢 已连接` or complete the “强制同步” recovery loop). Do not rely on header-only waits.
+
+**E2E helper reuse (mandatory)**
+- Do not hand-roll “home/login readiness” waits inside specs. Use shared helpers only.
+- Helpers must be layered and reusable:
+   - `e2e/helpers/ui.ts`: generic primitives (retry, clickIfVisible, waitForEitherVisible, etc.)
+   - `e2e/helpers/home.ts`: `ensureHomeReady()` / `ensureInRoomOrHomeReady()`
+   - `e2e/helpers/waits.ts`: `waitForRoomScreenReady()` (joiner live gate + 强制同步 loop)
+- Avoid single-text gates (UI copy changes). Prefer stable selectors (role/testid) and composite conditions.
+- Avoid `waitForTimeout` as synchronization (only allowed with explicit justification).
