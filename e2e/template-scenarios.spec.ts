@@ -3,13 +3,22 @@ import { waitForAppReady } from './helpers/home';
 import { withStep, gotoWithRetry } from './helpers/ui';
 
 /**
- * Template Scenario E2E Tests
+ * [DEPRECATED - SKIPPED]
  * 
- * Tests each template's night phase scenarios similar to unit tests:
- * - Execute specific actions for each role in order
- * - Verify "查看昨晚信息" shows correct death info
+ * Template Scenario E2E Tests - LEGACY FILE
  * 
- * This mirrors the unit tests in src/models/__tests__/templates/
+ * This file is SKIPPED because:
+ * 1. E2E 不应裁决模板结果（狼刀谁/女巫救不救/最后死谁）
+ * 2. 这种测试太依赖 UI/网络/selector/弹窗，flaky 且维护成本爆炸
+ * 3. 模板正确性（谁死/平安夜/昨夜信息）已下沉到 Jest:
+ *    - src/models/__tests__/templates/contract.test.ts (数据自洽)
+ *    - src/models/__tests__/templates/<TemplateName>.test.ts (场景覆盖)
+ * 
+ * E2E 只保留 smoke 测试 (night1.basic.spec.ts)：
+ * - 验证"流程可跑通 + UI 可见"
+ * - 不写"精确死亡名单/精确昨夜信息文本"的断言
+ * 
+ * 若需重新启用，移除下方的 test.describe.skip
  */
 
 // Increase timeout for multiplayer tests
@@ -1030,7 +1039,8 @@ const TEMPLATE_CONFIGS: TemplateConfig[] = [
 
 // ============ TEST SUITE ============
 
-test.describe('Template Scenarios E2E', () => {
+// ⚠️ SKIP - This entire test suite is deprecated. See file header for explanation.
+test.describe.skip('Template Scenarios E2E', () => {
   test('All templates - night scenarios with verification', async ({ browser }) => {
     const PLAYER_COUNT = 12;
     const contexts: BrowserContext[] = [];
