@@ -115,6 +115,15 @@ Do not hand-roll home/login waits in specs.
   - Layered helpers (e2e)
 - Bugfix may include a small, low-risk refactor nearby (extract helper / remove duplication / clarify invariant), but keep the diff minimal.
 
+### Keep complexity & file size under control
+
+- Large files are a **smell**: they often mix responsibilities and make reviews/tests fragile.
+- If a file grows beyond ~300 LOC or a function trips `Cognitive Complexity`, do a minimal refactor instead of piling more logic in:
+  - extract constants/specs into `*.constants.ts`
+  - extract loops/guards into small helpers (table-driven style)
+  - keep the public API stable (domain files can re-export **domain helpers**, but must not re-export generic primitives)
+- Exception: e2e helpers may need loops/retries, but complexity must be contained via extraction (no mega-functions).
+
 ---
 
 ## 7) Collaboration mode

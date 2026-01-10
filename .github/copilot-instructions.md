@@ -140,6 +140,16 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
 - When a pattern appears twice (especially waits/retries/guards/log formatting), extract it into a reusable helper (`src/utils/*`, `src/services/*`, `e2e/helpers/*`).
 - Keep helpers layered (generic primitives → domain helpers) and keep specs/components thin.
 
+### Engineering Best Practices (keep complexity & file size under control)
+
+- Large files are a **smell**: they often mix responsibilities and make reviews/tests fragile.
+- Prefer small, composable helpers and “orchestrator” functions that delegate to focused sub-functions.
+- If a file grows beyond ~300 LOC or a function trips `Cognitive Complexity`, do a minimal refactor:
+   - extract constants/specs into `*.constants.ts`
+   - extract reusable loops/guards into helpers (table-driven style)
+   - keep the public API stable (re-export from the domain entry file is OK **only for domain helpers**, not generic primitives)
+- Exception: e2e helpers may need loops/retries, but complexity must be contained via extraction (no monolithic mega-functions).
+
 ### Engineering Best Practices (use design patterns)
 
 - Prefer clear, proven design patterns over ad-hoc branching (e.g., state machine for phases, strategy for role behaviors, adapter for transport/services, layered helpers for e2e).

@@ -62,11 +62,17 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
     command: 'node scripts/run-e2e-web.mjs',
+    // Playwright waits for this URL to be accessible before running tests
+    // This is the primary "ready check" - ensures server is actually serving
     url: 'http://localhost:8081',
-    reuseExistingServer: true,  // Always reuse existing server
-    timeout: 120 * 1000,        // 2 minutes for slow server starts
-    stdout: 'pipe',             // Pipe stdout to see server logs on failure
-    stderr: 'pipe',             // Pipe stderr for error diagnosis
+    // Local: reuse existing server (faster dev iteration)
+    // CI: always start fresh (reproducible)
+    reuseExistingServer: !process.env.CI,
+    // 2 minutes for slow server starts (Metro bundler can be slow on first run)
+    timeout: 120 * 1000,
+    // Pipe output for diagnosis when server fails to start
+    stdout: 'pipe',
+    stderr: 'pipe',
     env: {
       E2E_ENV: process.env.E2E_ENV || 'local',
     },

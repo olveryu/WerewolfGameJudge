@@ -360,7 +360,7 @@ test.describe('Seating Diagnostic', () => {
       // ===================== HOST A: Create room (auto-takes seat 0) =====================
       console.log('[DIAG] === HOST A Setup ===');
       
-      await pageA.goto('/');
+      await gotoWithRetry(pageA, '/');
       await waitForAppReady(pageA);
       await ensureAnonLogin(pageA);
       
@@ -384,7 +384,7 @@ test.describe('Seating Diagnostic', () => {
       // ===================== JOINER B: Join room =====================
       console.log('\n[DIAG] === JOINER B Setup ===');
       
-      await pageB.goto('/');
+      await gotoWithRetry(pageB, '/');
       await waitForAppReady(pageB);
       await ensureAnonLogin(pageB);
       
@@ -536,7 +536,7 @@ test.describe('Seating Diagnostic', () => {
       // ===================== HOST A: Create room (auto-takes seat 0) =====================
       console.log('[DIAG] === HOST A Setup ===');
       
-      await pageA.goto('/');
+      await gotoWithRetry(pageA, '/');
       await waitForAppReady(pageA);
       await ensureAnonLogin(pageA);
       
@@ -558,7 +558,7 @@ test.describe('Seating Diagnostic', () => {
       // ===================== JOINER B: Join room =====================
       console.log('\n[DIAG] === JOINER B Setup ===');
       
-      await pageB.goto('/');
+      await gotoWithRetry(pageB, '/');
       await waitForAppReady(pageB);
       await ensureAnonLogin(pageB);
       
@@ -699,7 +699,7 @@ test.describe('Seating Diagnostic', () => {
       diag4State.phase = 'host_create';
       console.log('[DIAG] === HOST A Setup ===');
       
-      await pageA.goto('/');
+      await gotoWithRetry(pageA, '/');
       await waitForAppReady(pageA);
       await ensureAnonLogin(pageA);
       
@@ -725,7 +725,7 @@ test.describe('Seating Diagnostic', () => {
       diag4State.phase = 'joiner_join';
       console.log('\n[DIAG] === JOINER B Setup ===');
       
-      await pageB.goto('/');
+      await gotoWithRetry(pageB, '/');
       await waitForAppReady(pageB);
       await ensureAnonLogin(pageB);
       
@@ -871,7 +871,7 @@ test.describe('Seating Diagnostic', () => {
       // ===================== HOST A: Create room =====================
       console.log('[DIAG] === HOST A Setup ===');
       
-      await pageA.goto('/');
+      await gotoWithRetry(pageA, '/');
       await waitForAppReady(pageA);
       await ensureAnonLogin(pageA);
       
@@ -891,7 +891,7 @@ test.describe('Seating Diagnostic', () => {
       // ===================== JOINER B: Join room =====================
       console.log('\n[DIAG] === JOINER B Setup ===');
       
-      await pageB.goto('/');
+      await gotoWithRetry(pageB, '/');
       await waitForAppReady(pageB);
       await ensureAnonLogin(pageB);
       
@@ -1029,7 +1029,7 @@ test.describe('Seating Diagnostic', () => {
       // ===================== HOST A: Create room =====================
       console.log('[DIAG] === HOST A Setup ===');
       
-      await pageA.goto('/');
+      await gotoWithRetry(pageA, '/');
       await waitForAppReady(pageA);
       await ensureAnonLogin(pageA);
       
@@ -1049,7 +1049,7 @@ test.describe('Seating Diagnostic', () => {
       // ===================== JOINER B: Join room =====================
       console.log('\n[DIAG] === JOINER B Setup ===');
       
-      await pageB.goto('/');
+      await gotoWithRetry(pageB, '/');
       await waitForAppReady(pageB);
       await ensureAnonLogin(pageB);
       
