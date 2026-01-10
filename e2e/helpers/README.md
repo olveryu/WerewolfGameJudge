@@ -2,6 +2,25 @@
 
 Layered test helpers for Playwright E2E tests.
 
+## Configuration
+
+### E2E_BASE_URL — Single Source of Truth
+
+| Layer | How it uses E2E_BASE_URL |
+|-------|--------------------------|
+| `scripts/run-e2e-web.mjs` | **Defines** the env var (default: `http://localhost:8081`) |
+| `playwright.config.ts` | Reads `process.env.E2E_BASE_URL` for `use.baseURL` and `webServer.url` |
+| `e2e/helpers/ui.ts` | Reads `process.env.E2E_BASE_URL` for `gotoWithRetry()` health check |
+
+**Rule: NEVER hardcode `http://localhost:8081` in E2E code.**
+
+If `E2E_BASE_URL` is not set, `ui.ts` logs a fallback warning:
+```
+[gotoWithRetry] E2E_BASE_URL not set, fallback to http://localhost:8081
+```
+
+---
+
 ## Architecture
 
 ```

@@ -18,8 +18,23 @@ import * as path from 'node:path';
 /** Signature for connection refused errors (grep-friendly) */
 const CONNECTION_REFUSED_SIGNATURE = 'ERR_CONNECTION_REFUSED';
 
-/** Default baseURL for E2E tests */
-const DEFAULT_BASE_URL = 'http://localhost:8081';
+/** Default fallback for E2E_BASE_URL (only used if env not set) */
+const DEFAULT_BASE_URL_FALLBACK = 'http://localhost:8081';
+
+/**
+ * Get the E2E base URL from environment.
+ * 
+ * Single source of truth: process.env.E2E_BASE_URL (set by run-e2e-web.mjs)
+ * Logs warning if falling back to default (never silent).
+ */
+function getBaseURL(): string {
+  const envBaseURL = process.env.E2E_BASE_URL;
+  if (envBaseURL) {
+    return envBaseURL;
+  }
+  console.log(`[gotoWithRetry] E2E_BASE_URL not set, fallback to ${DEFAULT_BASE_URL_FALLBACK}`);
+  return DEFAULT_BASE_URL_FALLBACK;
+}
 
 /**
  * Check if the server is ready by making an HTTP GET request.
@@ -120,7 +135,7 @@ export async function gotoWithRetry(
 ): Promise<void> {
   const { maxRetries = 5, retryDelayMs = 2000, timeoutMs = 30000 } = opts;
   let lastError: Error | undefined;
-  const baseURL = DEFAULT_BASE_URL;
+  const baseURL = getBaseURL();
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const isLastAttempt = attempt === maxRetries;

@@ -1,6 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
+ * E2E_BASE_URL: Single source of truth for all E2E navigation.
+ * 
+ * Set by scripts/run-e2e-web.mjs.
+ * Used by: playwright.config.ts, e2e/helpers/ui.ts
+ */
+const E2E_BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8081';
+
+/**
  * Playwright configuration for Werewolf Game E2E tests.
  * 
  * ENVIRONMENT SWITCHING:
@@ -42,7 +50,7 @@ export default defineConfig({
   /* Shared settings for all the projects below */
   use: {
     /* Base URL to use in actions like `await page.goto('/')` */
-    baseURL: 'http://localhost:8081',
+    baseURL: E2E_BASE_URL,
 
     /* Collect trace when retrying the failed test - helps debug connection issues */
     trace: 'on-first-retry',
@@ -64,7 +72,7 @@ export default defineConfig({
     command: 'node scripts/run-e2e-web.mjs',
     // Playwright waits for this URL to be accessible before running tests
     // This is the primary "ready check" - ensures server is actually serving
-    url: 'http://localhost:8081',
+    url: E2E_BASE_URL,
     // Local: reuse existing server (faster dev iteration)
     // CI: always start fresh (reproducible)
     reuseExistingServer: !process.env.CI,

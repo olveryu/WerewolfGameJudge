@@ -72,19 +72,27 @@ if (stillMissing.length > 0) {
   process.exit(1);
 }
 
-// Log URL only (not the key for security)
+// === E2E_BASE_URL: Single source of truth for all E2E navigation ===
+const E2E_BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8081';
+
+// Log configuration (not the key for security)
+console.log(`🌐 E2E Base URL: ${E2E_BASE_URL} (single source of truth)`);
 console.log(`📡 Supabase URL: ${config.EXPO_PUBLIC_SUPABASE_URL}`);
 console.log(`🔑 Supabase Key: [configured, ${config.EXPO_PUBLIC_SUPABASE_ANON_KEY.length} chars]\n`);
 
 // Prepare environment for child process
 const childEnv = {
   ...process.env,
+  // E2E_BASE_URL injected for Playwright tests (ui.ts reads this)
+  E2E_BASE_URL,
   EXPO_PUBLIC_SUPABASE_URL: config.EXPO_PUBLIC_SUPABASE_URL,
   EXPO_PUBLIC_SUPABASE_ANON_KEY: config.EXPO_PUBLIC_SUPABASE_ANON_KEY,
 };
 
 // Start Expo web server
-const expoArgs = ['expo', 'start', '--web', '--port', '8081'];
+// Port must match E2E_BASE_URL (default 8081)
+const port = new URL(E2E_BASE_URL).port || '8081';
+const expoArgs = ['expo', 'start', '--web', '--port', port];
 console.log(`🚀 Starting: npx ${expoArgs.join(' ')}\n`);
 
 const child = spawn('npx', expoArgs, {
