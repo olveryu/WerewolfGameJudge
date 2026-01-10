@@ -652,6 +652,24 @@ test.describe('Seating Diagnostic', () => {
     const diagA = setupDiagnostics(pageA, 'HOST-A');
     const diagB = setupDiagnostics(pageB, 'JOINER-B');
 
+    // Warm-up helper: poll for "Channel status: SUBSCRIBED" in console logs
+    const waitForChannelSubscribed = async (
+      diag: { consoleLogs: string[] },
+      timeoutMs: number = 5000
+    ): Promise<boolean> => {
+      const startTime = Date.now();
+      while (Date.now() - startTime < timeoutMs) {
+        if (diag.consoleLogs.some(log => log.includes('Channel status: SUBSCRIBED'))) {
+          return true;
+        }
+        await new Promise(r => setTimeout(r, 100));
+      }
+      return false;
+    };
+
+    let hostSubscribed = false;
+    let joinerSubscribed = false;
+
     try {
       // ===================== HOST A: Create room (auto-takes seat 0) =====================
       console.log('[DIAG] === HOST A Setup ===');
@@ -664,6 +682,10 @@ test.describe('Seating Diagnostic', () => {
       await expect(getVisibleText(pageA, '创建')).toBeVisible({ timeout: 10000 });
       await getVisibleText(pageA, '创建').click();
       await waitForRoomScreenReady(pageA);
+
+      // Warm-up: wait for Host channel subscription
+      hostSubscribed = await waitForChannelSubscribed(diagA, 5000);
+      console.log(`[DIAG] HOST A channel subscribed: ${hostSubscribed}`);
       
       const roomNumber = await extractRoomNumber(pageA);
       console.log(`[DIAG] HOST A created room: ${roomNumber}`);
@@ -692,6 +714,10 @@ test.describe('Seating Diagnostic', () => {
       await waitForRoomScreenReady(pageB);
       console.log(`[DIAG] JOINER B joined room ${roomNumber}`);
 
+      // Warm-up: wait for Joiner channel subscription
+      joinerSubscribed = await waitForChannelSubscribed(diagB, 5000);
+      console.log(`[DIAG] JOINER B channel subscribed: ${joinerSubscribed}`);
+
       // ===================== JOINER B: Take seat 2 =====================
       console.log('\n[DIAG] JOINER B taking seat 2...');
       
@@ -716,7 +742,7 @@ test.describe('Seating Diagnostic', () => {
       console.log('\n[DIAG] Polling HOST A for seat 2 update...');
       
       let hostSeat2After = hostSeat2Before;
-      const maxPollTime = 5000;
+      const maxPollTime = 10000;  // Extended timeout for cold-start scenarios
       const pollInterval = 250;
       const startTime = Date.now();
       
@@ -738,10 +764,19 @@ test.describe('Seating Diagnostic', () => {
       
       const hostSawUpdate = !hostSeat2After.isEmpty && hostSeat2After.hasPlayerName;
       
-      await testInfo.attach('bug3-diagnostic.txt', {
+      // Enhanced evidence with warm-up status and truncated logs
+      const hostLast30 = diagA.consoleLogs.slice(-30);
+      const joinerLast30 = diagB.consoleLogs.slice(-30);
+      
+      await testInfo.attach('diag4-evidence.txt', {
         body: [
-          '=== BUG-3: Host Visibility of Joiner Seating ===',
+          '=== DIAG-4: Host Visibility of Joiner Seating ===',
+          `Timestamp: ${new Date().toISOString()}`,
           `Room: ${roomNumber}`,
+          '',
+          '=== CHANNEL SUBSCRIPTION ===',
+          `Host channel subscribed: ${hostSubscribed}`,
+          `Joiner channel subscribed: ${joinerSubscribed}`,
           '',
           '=== SEAT 2 STATE ===',
           `HOST A seat 2 BEFORE joiner: ${JSON.stringify(hostSeat2Before)}`,
@@ -750,14 +785,14 @@ test.describe('Seating Diagnostic', () => {
           '',
           '=== DIAGNOSIS ===',
           hostSawUpdate
-            ? '✅ BUG-3 FIXED - Host sees joiner seat update'
-            : '❌ BUG-3 NOT FIXED - Host does not see joiner in seat 2',
+            ? '✅ PASS - Host sees joiner seat update'
+            : '❌ FAIL - Host does not see joiner in seat 2',
           '',
-          '=== HOST A LOGS ===',
-          ...diagA.consoleLogs,
+          '=== HOST A LOGS (last 30) ===',
+          ...hostLast30,
           '',
-          '=== JOINER B LOGS ===',
-          ...diagB.consoleLogs,
+          '=== JOINER B LOGS (last 30) ===',
+          ...joinerLast30,
         ].join('\n'),
         contentType: 'text/plain',
       });
