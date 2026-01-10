@@ -580,6 +580,16 @@ export class GameStateService {
     const allVoted = allWolfSeats.every(s => this.state!.wolfVotes.has(s));
 
     if (allVoted) {
+      // ONCE-GUARD: If wolf action already recorded, this is a duplicate finalize - skip
+      if (this.state.actions.has('wolf')) {
+        console.debug(
+          '[GameStateService] handleWolfVote finalize skipped (once-guard): wolf action already recorded.',
+          'phase:', this.nightFlow?.phase,
+          'currentActionerIndex:', this.state.currentActionerIndex
+        );
+        return;
+      }
+
   // [Bridge: WolfVoteResolver] Resolve final kill target from wolf votes
       const finalTarget = resolveWolfVotes(this.state.wolfVotes);
       if (finalTarget !== null) {
@@ -588,7 +598,11 @@ export class GameStateService {
         try {
           this.nightFlow?.recordAction('wolf', finalTarget);
         } catch (err) {
-          console.debug('[GameStateService] NightFlow recordAction (wolf) failed:', err);
+          console.debug(
+            '[GameStateService] NightFlow recordAction (wolf) failed:',
+            err,
+            'phase:', this.nightFlow?.phase
+          );
         }
       }
 
@@ -597,7 +611,13 @@ export class GameStateService {
         this.nightFlow?.dispatch(NightEvent.ActionSubmitted);
       } catch (err) {
         if (err instanceof InvalidNightTransitionError) {
-          console.debug('[GameStateService] NightFlow ActionSubmitted (wolf) skipped: not in WaitingForAction phase');
+          // This should NOT happen with proper once-guard above
+          // If it does, it indicates a bug in the call chain
+          console.debug(
+            '[GameStateService] NightFlow ActionSubmitted (wolf) rejected:',
+            'phase:', this.nightFlow?.phase,
+            '(expected WaitingForAction). This may indicate a call chain bug.'
+          );
         } else {
           throw err;
         }
@@ -1334,21 +1354,23 @@ export class GameStateService {
 
   // [Bridge: NightFlowController] Dispatch NightEndAudioDone to complete state machine
     // STRICT: Only dispatch if nightFlow is in NightEndAudio phase
-    // If phase mismatch, this is a duplicate/stale callback - ignore (idempotent)
+    // If phase mismatch, this is a duplicate/stale callback - STRICT no-op (no death calc, no broadcast)
     if (this.nightFlow) {
       if (this.nightFlow.phase === NightPhase.NightEndAudio) {
         this.nightFlow.dispatch(NightEvent.NightEndAudioDone);
       } else {
-        // Phase mismatch - duplicate/stale callback, ignore silently (idempotent)
+        // Phase mismatch - duplicate/stale callback
+        // STRICT: Do NOT proceed to death calculation - that would be越权推进
+        // NightFlowController hasn't ended, so GameStateService must not end either
         console.debug(
-          '[GameStateService] NightEndAudioDone ignored (idempotent): phase is',
+          '[GameStateService] endNight() ignored (strict no-op): phase is',
           this.nightFlow.phase,
-          '- not NightEndAudio'
+          '- not NightEndAudio. No death calc, no status change.'
         );
-        // Note: We still proceed to death calculation as endNight() should only be called once
-        // If this is truly a duplicate call, the game state is already ended anyway
+        return; // STRICT: early return, no side effects
       }
     }
+    // Note: If nightFlow is null, we're in legacy mode - proceed without state machine
 
   // [Bridge: DeathCalculator] Calculate deaths via extracted pure function
     const deaths = this.doCalculateDeaths();

@@ -370,8 +370,8 @@ describe('GameStateService NightFlow Contract Tests', () => {
     });
   });
 
-  describe('C9: duplicate NightEndAudioDone is idempotent', () => {
-    it('should not throw or log error when NightEndAudioDone called in wrong phase', async () => {
+  describe('C9: endNight() in wrong phase is strict no-op (no death calc, no status change)', () => {
+    it('should not throw or log error when endNight called in wrong phase', async () => {
       // Given: game is ongoing, first role's turn
       const actionOrder: RoleName[] = ['seer'];
       await setupReadyStateWithRoles(service, actionOrder, new Map([
@@ -398,6 +398,45 @@ describe('GameStateService NightFlow Contract Tests', () => {
       errorSpy.mockRestore();
       debugSpy.mockRestore();
     });
+
+    it('should NOT change status or lastNightDeaths when endNight called in wrong phase (strict)', async () => {
+      // Given: game is ongoing, first role's turn
+      const actionOrder: RoleName[] = ['seer'];
+      await setupReadyStateWithRoles(service, actionOrder, new Map([
+        [0, 'seer'],
+      ]));
+      
+      const startPromise = service.startGame();
+      await jest.advanceTimersByTimeAsync(5000);
+      await startPromise;
+      
+      const stateBefore = service.getState()!;
+      const statusBefore = stateBefore.status;
+      const lastNightDeathsBefore = stateBefore.lastNightDeaths;
+      
+      // Confirm we're in WaitingForAction phase (not NightEndAudio)
+      expect(statusBefore).toBe(GameStatus.ongoing);
+      expect(lastNightDeathsBefore).toEqual([]);
+      
+      // When: we directly call endNight in wrong phase
+      const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+      
+      await (service as any).endNight();
+      
+      // Then: status should NOT have changed (strict no-op)
+      const stateAfter = service.getState()!;
+      expect(stateAfter.status).toBe(statusBefore);
+      expect(stateAfter.lastNightDeaths).toEqual(lastNightDeathsBefore);
+      
+      // And: debug log was called with phase info
+      expect(debugSpy).toHaveBeenCalledWith(
+        expect.stringContaining('endNight() ignored (strict no-op)'),
+        expect.anything(),
+        expect.anything()
+      );
+      
+      debugSpy.mockRestore();
+    });
   });
 
   describe('C10: ActionSubmitted is required before RoleEndAudioDone', () => {
@@ -420,6 +459,45 @@ describe('GameStateService NightFlow Contract Tests', () => {
       
       // Then: currentActionerIndex advances to 1
       expect(service.getState()!.currentActionerIndex).toBe(1);
+    });
+  });
+
+  describe('C11: handleWolfVote once-guard prevents duplicate finalize', () => {
+    it('should skip finalize when wolf action already recorded (once-guard)', async () => {
+      // Given: game is ongoing, wolf's turn
+      const actionOrder: RoleName[] = ['wolf', 'witch'];
+      await setupReadyStateWithRoles(service, actionOrder, new Map([
+        [0, 'wolf'],
+        [1, 'witch'],
+      ]));
+      
+      const startPromise = service.startGame();
+      await jest.advanceTimersByTimeAsync(5000);
+      await startPromise;
+      
+      // Manually set wolf action as if already finalized
+      const state = service.getState()!;
+      state.actions.set('wolf', 1);
+      const indexBefore = state.currentActionerIndex;
+      
+      // When: wolf votes again (simulating duplicate finalize attempt)
+      const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+      
+      await (service as any).handleWolfVote(0, 1);
+      
+      // Then: currentActionerIndex should NOT have changed (once-guard)
+      expect(service.getState()!.currentActionerIndex).toBe(indexBefore);
+      
+      // And: debug log was called indicating once-guard
+      expect(debugSpy).toHaveBeenCalledWith(
+        expect.stringContaining('handleWolfVote finalize skipped (once-guard)'),
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        expect.anything()
+      );
+      
+      debugSpy.mockRestore();
     });
   });
 });
