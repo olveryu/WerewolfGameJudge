@@ -6,6 +6,11 @@
  * - Host broadcasts state updates to all players in the room
  * - Players send actions to Host via broadcast
  * - No game state is stored in database (only room basic info)
+ * 
+ * Protocol Features:
+ * - stateRevision: Monotonic counter for ordering state updates
+ * - requestId + ACK: Reliable seat/standup actions with acknowledgment
+ * - SNAPSHOT_REQUEST/RESPONSE: State recovery for reconnection/packet loss
  */
 
 import { supabase, isSupabaseConfigured } from '../config/supabase';
@@ -13,18 +18,32 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { RoleName } from '../models/roles';
 
 // =============================================================================
+// Connection Status
+// =============================================================================
+
+/** Connection status for UI display */
+export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected';
+
+/** Status change listener */
+export type ConnectionStatusListener = (status: ConnectionStatus) => void;
+
+// =============================================================================
 // Message Types
 // =============================================================================
 
 /** Messages broadcast by Host to all players */
 export type HostBroadcast = 
-  | { type: 'STATE_UPDATE'; state: BroadcastGameState }
+  | { type: 'STATE_UPDATE'; state: BroadcastGameState; revision: number }
   | { type: 'ROLE_TURN'; role: RoleName; pendingSeats: number[]; killedIndex?: number }
   | { type: 'NIGHT_END'; deaths: number[] }
   | { type: 'PLAYER_JOINED'; seat: number; player: BroadcastPlayer }
   | { type: 'PLAYER_LEFT'; seat: number }
   | { type: 'GAME_RESTARTED' }
-  | { type: 'SEAT_REJECTED'; seat: number; requestUid: string; reason: 'seat_taken' };
+  | { type: 'SEAT_REJECTED'; seat: number; requestUid: string; reason: 'seat_taken' }
+  // New: Acknowledgment for seat actions (toUid for targeting specific player)
+  | { type: 'SEAT_ACTION_ACK'; requestId: string; toUid: string; success: boolean; seat: number; reason?: string }
+  // New: Snapshot response for state recovery (toUid for targeting specific player)
+  | { type: 'SNAPSHOT_RESPONSE'; requestId: string; toUid: string; state: BroadcastGameState; revision: number };
 
 /** Messages sent by players to Host */
 export type PlayerMessage = 
@@ -33,7 +52,11 @@ export type PlayerMessage =
   | { type: 'LEAVE'; seat: number; uid: string }
   | { type: 'ACTION'; seat: number; role: RoleName; target: number | null; extra?: any }
   | { type: 'WOLF_VOTE'; seat: number; target: number }
-  | { type: 'VIEWED_ROLE'; seat: number };
+  | { type: 'VIEWED_ROLE'; seat: number }
+  // New: Seat action request with requestId for acknowledgment
+  | { type: 'SEAT_ACTION_REQUEST'; requestId: string; action: 'sit' | 'standup'; seat: number; uid: string; displayName?: string; avatarUrl?: string }
+  // New: Snapshot request for state recovery
+  | { type: 'SNAPSHOT_REQUEST'; requestId: string; uid: string; lastRevision?: number };
 
 // =============================================================================
 // Broadcast State Types (serializable for transmission)
@@ -69,6 +92,10 @@ export class BroadcastService {
   private channel: RealtimeChannel | null = null;
   private roomCode: string | null = null;
   
+  // Connection status
+  private connectionStatus: ConnectionStatus = 'disconnected';
+  private readonly statusListeners: Set<ConnectionStatusListener> = new Set();
+  
   // Callbacks for received messages
   private onHostBroadcast: ((message: HostBroadcast) => void) | null = null;
   private onPlayerMessage: ((message: PlayerMessage, senderId: string) => void) | null = null;
@@ -85,6 +112,34 @@ export class BroadcastService {
 
   private isConfigured(): boolean {
     return isSupabaseConfigured() && supabase !== null;
+  }
+
+  /**
+   * Get current connection status
+   */
+  getConnectionStatus(): ConnectionStatus {
+    return this.connectionStatus;
+  }
+
+  /**
+   * Subscribe to connection status changes
+   */
+  addStatusListener(listener: ConnectionStatusListener): () => void {
+    this.statusListeners.add(listener);
+    // Immediately notify of current status
+    listener(this.connectionStatus);
+    return () => this.statusListeners.delete(listener);
+  }
+
+  /**
+   * Set connection status (public for GameStateService to use on timeout)
+   */
+  setConnectionStatus(status: ConnectionStatus): void {
+    if (this.connectionStatus !== status) {
+      console.log(`[BroadcastService] Connection status: ${this.connectionStatus} -> ${status}`);
+      this.connectionStatus = status;
+      this.statusListeners.forEach(listener => listener(status));
+    }
   }
 
   /**
@@ -106,6 +161,8 @@ export class BroadcastService {
 
     // Leave previous room if any
     await this.leaveRoom();
+
+    this.setConnectionStatus('connecting');
 
     this.roomCode = roomCode;
     this.onHostBroadcast = callbacks.onHostBroadcast || null;
@@ -151,6 +208,7 @@ export class BroadcastService {
     // Subscribe to channel with timeout
     const subscribePromise = new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
+        this.setConnectionStatus('disconnected');
         reject(new Error('BroadcastService: subscribe timeout after 8s'));
       }, 8000);
       
@@ -158,9 +216,11 @@ export class BroadcastService {
         console.log('[BroadcastService] Channel status:', status);
         if (status === 'SUBSCRIBED') {
           clearTimeout(timeout);
+          this.setConnectionStatus('syncing');
           resolve();
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           clearTimeout(timeout);
+          this.setConnectionStatus('disconnected');
           reject(new Error(`BroadcastService: subscribe failed with status ${status}`));
         }
       });
@@ -170,7 +230,27 @@ export class BroadcastService {
     // Track presence
     await this.channel.track({ user_id: userId });
     
+    // Now we're fully connected and syncing
+    // Status will be set to 'live' after receiving first STATE_UPDATE
     console.log('[BroadcastService] Joined room:', roomCode);
+  }
+
+  /**
+   * Mark connection as live (called after receiving state)
+   */
+  markAsLive(): void {
+    if (this.connectionStatus === 'syncing') {
+      this.setConnectionStatus('live');
+    }
+  }
+
+  /**
+   * Mark connection as syncing (called when requesting snapshot)
+   */
+  markAsSyncing(): void {
+    if (this.connectionStatus === 'live') {
+      this.setConnectionStatus('syncing');
+    }
   }
 
   /**
@@ -185,6 +265,7 @@ export class BroadcastService {
     this.onHostBroadcast = null;
     this.onPlayerMessage = null;
     this.onPresenceChange = null;
+    this.setConnectionStatus('disconnected');
     console.log('[BroadcastService] Left room');
   }
 

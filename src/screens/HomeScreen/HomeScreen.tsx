@@ -175,6 +175,8 @@ const LoginOptions: React.FC<LoginOptionsProps> = ({
 interface JoinRoomModalProps {
   visible: boolean;
   roomCode: string;
+  isLoading: boolean;
+  errorMessage: string | null;
   onRoomCodeChange: (text: string) => void;
   onJoin: () => void;
   onCancel: () => void;
@@ -183,6 +185,8 @@ interface JoinRoomModalProps {
 const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
   visible,
   roomCode,
+  isLoading,
+  errorMessage,
   onRoomCodeChange,
   onJoin,
   onCancel,
@@ -202,14 +206,27 @@ const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
           placeholder="0000"
           placeholderTextColor={colors.textMuted}
           autoFocus
+          editable={!isLoading}
         />
         
+        {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+        
         <View style={styles.modalButtons}>
-          <TouchableOpacity style={[styles.secondaryButton, { flex: 1 }]} onPress={onCancel}>
+          <TouchableOpacity 
+            style={[styles.secondaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]} 
+            onPress={onCancel}
+            disabled={isLoading}
+          >
             <Text style={styles.secondaryButtonText}>取消</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={onJoin}>
-            <Text style={styles.primaryButtonText}>加入</Text>
+          <TouchableOpacity 
+            style={[styles.primaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]} 
+            onPress={onJoin}
+            disabled={isLoading}
+          >
+            <Text style={styles.primaryButtonText}>
+              {isLoading ? '加入中...' : '加入'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -228,6 +245,11 @@ export const HomeScreen: React.FC = () => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [lastRoomNumber, setLastRoomNumber] = useState<string | null>(null);
+  
+  // Loading states for actions
+  const [isJoining, setIsJoining] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
   
   // Email auth form state
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -311,15 +333,40 @@ export const HomeScreen: React.FC = () => {
     setIsSignUp(false);
   }, []);
 
-  const handleJoinRoom = useCallback(() => {
+  const handleJoinRoom = useCallback(async () => {
     if (roomCode.length !== 4) {
-      showAlert('错误', '请输入4位房间号');
+      setJoinError('请输入4位房间号');
       return;
     }
-    setShowJoinModal(false);
-    AsyncStorage.setItem('lastRoomNumber', roomCode);
-    navigation.navigate('Room', { roomNumber: roomCode, isHost: false });
-    setRoomCode('');
+    
+    setJoinError(null);
+    setIsJoining(true);
+    
+    try {
+      // Set timeout for slow network
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('timeout')), 10000);
+      });
+      
+      // Navigate with timeout protection
+      await Promise.race([
+        (async () => {
+          await AsyncStorage.setItem('lastRoomNumber', roomCode);
+          setShowJoinModal(false);
+          navigation.navigate('Room', { roomNumber: roomCode, isHost: false });
+          setRoomCode('');
+        })(),
+        timeoutPromise,
+      ]);
+    } catch (e) {
+      if (e instanceof Error && e.message === 'timeout') {
+        setJoinError('网络较慢，请重试');
+      } else {
+        setJoinError('加入失败，请重试');
+      }
+    } finally {
+      setIsJoining(false);
+    }
   }, [roomCode, navigation]);
 
   const handleReturnToLastGame = useCallback(() => {
@@ -333,7 +380,16 @@ export const HomeScreen: React.FC = () => {
   const handleCancelJoin = useCallback(() => {
     setShowJoinModal(false);
     setRoomCode('');
+    setJoinError(null);
+    setIsJoining(false);
   }, []);
+
+  const handleCreateRoom = useCallback(() => {
+    setIsCreating(true);
+    // Navigation happens immediately, HomeScreen will blur/unmount
+    navigation.navigate('Config');
+    // No need to reset - component will unmount or blur
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -391,15 +447,15 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.menu}>
           <MenuItem
             icon="🚪"
-            title="进入房间"
+            title={isJoining ? '进入中...' : '进入房间'}
             subtitle="输入房间号进入游戏"
             onPress={() => requireAuth(() => setShowJoinModal(true))}
           />
           <MenuItem
             icon="➕"
-            title="创建房间"
+            title={isCreating ? '创建中...' : '创建房间'}
             subtitle="开始新的一局游戏"
-            onPress={() => requireAuth(() => navigation.navigate('Config'))}
+            onPress={() => requireAuth(handleCreateRoom)}
           />
           <View style={styles.divider} />
           <MenuItem
@@ -454,6 +510,8 @@ export const HomeScreen: React.FC = () => {
       <JoinRoomModal
         visible={showJoinModal}
         roomCode={roomCode}
+        isLoading={isJoining}
+        errorMessage={joinError}
         onRoomCodeChange={setRoomCode}
         onJoin={handleJoinRoom}
         onCancel={handleCancelJoin}

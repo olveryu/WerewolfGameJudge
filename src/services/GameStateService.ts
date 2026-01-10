@@ -59,8 +59,29 @@ export class GameStateService {
   private myUid: string | null = null;
   private mySeatNumber: number | null = null;
   
+  /** State revision counter (Host: incremented on each change, Player: received from Host) */
+  private stateRevision: number = 0;
+  
   /** Last seat error for UI display (BUG-2 fix) */
   private lastSeatError: { seat: number; reason: 'seat_taken' } | null = null;
+  
+  /** Pending seat action requests (Player: waiting for ACK) */
+  private pendingSeatAction: {
+    requestId: string;
+    action: 'sit' | 'standup';
+    seat: number;
+    timestamp: number;
+    timeoutHandle: ReturnType<typeof setTimeout>;
+    resolve: (success: boolean) => void;
+    reject: (error: Error) => void;
+  } | null = null;
+  
+  /** Pending snapshot request (Player: waiting for response) */
+  private pendingSnapshotRequest: {
+    requestId: string;
+    timestamp: number;
+    timeoutHandle: ReturnType<typeof setTimeout>;
+  } | null = null;
   
   /** NightFlowController: explicit state machine for night phase (Host only) */
   private nightFlow: NightFlowController | null = null;
@@ -271,7 +292,135 @@ export class GameStateService {
       case 'VIEWED_ROLE':
         await this.handlePlayerViewedRole(msg.seat);
         break;
+      case 'SEAT_ACTION_REQUEST':
+        await this.handleSeatActionRequest(msg);
+        break;
+      case 'SNAPSHOT_REQUEST':
+        await this.handleSnapshotRequest(msg);
+        break;
     }
+  }
+
+  /**
+   * Host: Handle seat action request with ACK
+   */
+  private async handleSeatActionRequest(msg: {
+    requestId: string;
+    action: 'sit' | 'standup';
+    seat: number;
+    uid: string;
+    displayName?: string;
+    avatarUrl?: string;
+  }): Promise<void> {
+    if (!this.state) return;
+
+    console.log(`[GameState Host] Seat action request: ${msg.action} seat ${msg.seat} from ${msg.uid.substring(0, 8)}`);
+
+    if (msg.action === 'sit') {
+      // Check if seat is available
+      if (this.state.players.get(msg.seat) !== null) {
+        // Seat taken - send rejection ACK
+        await this.broadcastService.broadcastAsHost({
+          type: 'SEAT_ACTION_ACK',
+          requestId: msg.requestId,
+          toUid: msg.uid,
+          success: false,
+          seat: msg.seat,
+          reason: 'seat_taken',
+        });
+        return;
+      }
+
+      // Clear any old seats for this player
+      this.clearSeatsByUid(msg.uid, msg.seat);
+
+      // Assign seat
+      const player: LocalPlayer = {
+        uid: msg.uid,
+        seatNumber: msg.seat,
+        displayName: msg.displayName,
+        avatarUrl: msg.avatarUrl,
+        role: null,
+        hasViewedRole: false,
+      };
+      this.state.players.set(msg.seat, player);
+
+      // Update status if all seated
+      const allSeated = Array.from(this.state.players.values()).every(p => p !== null);
+      if (allSeated && this.state.status === GameStatus.unseated) {
+        this.state.status = GameStatus.seated;
+      }
+
+      // Send success ACK
+      await this.broadcastService.broadcastAsHost({
+        type: 'SEAT_ACTION_ACK',
+        requestId: msg.requestId,
+        toUid: msg.uid,
+        success: true,
+        seat: msg.seat,
+      });
+
+      await this.broadcastState();
+      this.notifyListeners();
+
+    } else if (msg.action === 'standup') {
+      // Verify player is in this seat
+      const player = this.state.players.get(msg.seat);
+      if (player?.uid !== msg.uid) {
+        // Not in this seat - send failure ACK
+        await this.broadcastService.broadcastAsHost({
+          type: 'SEAT_ACTION_ACK',
+          requestId: msg.requestId,
+          toUid: msg.uid,
+          success: false,
+          seat: msg.seat,
+          reason: 'not_seated',
+        });
+        return;
+      }
+
+      // Clear seat
+      this.state.players.set(msg.seat, null);
+
+      // Revert status if needed
+      if (this.state.status === GameStatus.seated) {
+        this.state.status = GameStatus.unseated;
+      }
+
+      // Send success ACK
+      await this.broadcastService.broadcastAsHost({
+        type: 'SEAT_ACTION_ACK',
+        requestId: msg.requestId,
+        toUid: msg.uid,
+        success: true,
+        seat: msg.seat,
+      });
+
+      await this.broadcastState();
+      this.notifyListeners();
+    }
+  }
+
+  /**
+   * Host: Handle snapshot request (for reconnection/state recovery)
+   */
+  private async handleSnapshotRequest(msg: {
+    requestId: string;
+    uid: string;
+    lastRevision?: number;
+  }): Promise<void> {
+    if (!this.state) return;
+
+    console.log(`[GameState Host] Snapshot request from ${msg.uid.substring(0, 8)}, lastRev: ${msg.lastRevision ?? 'none'}`);
+
+    const broadcastState = this.toBroadcastState();
+    await this.broadcastService.broadcastAsHost({
+      type: 'SNAPSHOT_RESPONSE',
+      requestId: msg.requestId,
+      toUid: msg.uid,
+      state: broadcastState,
+      revision: this.stateRevision,
+    });
   }
 
   /**
@@ -479,7 +628,7 @@ export class GameStateService {
           console.log('[GameState Host] Ignoring own STATE_UPDATE broadcast');
           return;
         }
-        this.applyStateUpdate(msg.state);
+        this.applyStateUpdate(msg.state, msg.revision);
         break;
       case 'ROLE_TURN':
         // State will be updated via STATE_UPDATE
@@ -500,6 +649,14 @@ export class GameStateService {
           this.notifyListeners();
         }
         break;
+      case 'SEAT_ACTION_ACK':
+        // Handle ACK for pending seat action
+        this.handleSeatActionAck(msg);
+        break;
+      case 'SNAPSHOT_RESPONSE':
+        // Handle snapshot response (only if we requested it)
+        this.handleSnapshotResponse(msg);
+        break;
       case 'GAME_RESTARTED':
         // Reset local state
         if (this.state) {
@@ -509,7 +666,7 @@ export class GameStateService {
           this.state.currentActionerIndex = 0;
           this.state.lastNightDeaths = [];
           // Clear roles
-          this.state.players.forEach((p, seat) => {
+          this.state.players.forEach((p, _seat) => {
             if (p) {
               p.role = null;
               p.hasViewedRole = false;
@@ -521,7 +678,97 @@ export class GameStateService {
     }
   }
 
-  private applyStateUpdate(broadcastState: BroadcastGameState): void {
+  /**
+   * Player: Handle seat action ACK from Host
+   */
+  private handleSeatActionAck(msg: {
+    requestId: string;
+    success: boolean;
+    seat: number;
+    toUid: string;
+    reason?: string;
+  }): void {
+    // Only handle if addressed to us
+    if (msg.toUid !== this.myUid) {
+      return;
+    }
+
+    // Only handle if we have a pending request with matching ID
+    if (!this.pendingSeatAction || this.pendingSeatAction.requestId !== msg.requestId) {
+      return;
+    }
+
+    console.log(`[GameState Player] Seat action ACK: ${msg.success ? 'success' : 'failed'} for seat ${msg.seat}`);
+
+    // Clear timeout first
+    clearTimeout(this.pendingSeatAction.timeoutHandle);
+
+    if (msg.success) {
+      // Update local state based on action
+      if (this.pendingSeatAction.action === 'sit') {
+        this.mySeatNumber = msg.seat;
+      } else {
+        this.mySeatNumber = null;
+      }
+      this.pendingSeatAction.resolve(true);
+    } else {
+      // Action failed
+      if (msg.reason === 'seat_taken') {
+        this.lastSeatError = { seat: msg.seat, reason: 'seat_taken' };
+      }
+      this.pendingSeatAction.resolve(false);
+    }
+
+    this.pendingSeatAction = null;
+    this.notifyListeners();
+  }
+
+  /**
+   * Player: Handle snapshot response from Host
+   */
+  private handleSnapshotResponse(msg: {
+    requestId: string;
+    toUid: string;
+    state: BroadcastGameState;
+    revision: number;
+  }): void {
+    // Only handle if addressed to us
+    if (msg.toUid !== this.myUid) {
+      return;
+    }
+
+    // Only handle if we have a pending request with matching ID
+    if (!this.pendingSnapshotRequest || this.pendingSnapshotRequest.requestId !== msg.requestId) {
+      console.log(`[GameState Player] Ignoring snapshot - no matching pending request`);
+      return;
+    }
+
+    console.log(`[GameState Player] Snapshot received, revision: ${msg.revision}`);
+
+    // Clear timeout
+    clearTimeout(this.pendingSnapshotRequest.timeoutHandle);
+    this.pendingSnapshotRequest = null;
+    
+    // Apply state unconditionally (snapshot is always authoritative)
+    this.applyStateUpdate(msg.state, msg.revision);
+    
+    // Mark connection as live
+    this.broadcastService.markAsLive();
+  }
+
+  private applyStateUpdate(broadcastState: BroadcastGameState, revision?: number): void {
+    // Update revision if provided
+    if (revision !== undefined) {
+      // Skip if we've already seen a newer revision
+      if (revision <= this.stateRevision) {
+        console.log(`[GameState Player] Skipping stale update (rev ${revision} <= ${this.stateRevision})`);
+        return;
+      }
+      this.stateRevision = revision;
+    }
+    
+    // Mark connection as live after receiving state
+    this.broadcastService.markAsLive();
     // Create or update local state from broadcast
     const template = createTemplateFromRoles(broadcastState.templateRoles);
     
@@ -1095,7 +1342,15 @@ export class GameStateService {
   // ===========================================================================
 
   /**
-   * Player: Request to take a seat
+   * Generate unique request ID
+   */
+  private generateRequestId(): string {
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  }
+
+  /**
+   * Player: Request to take a seat (with ACK)
+   * Returns true if successful, false if failed
    */
   async playerTakeSeat(seat: number, displayName?: string, avatarUrl?: string): Promise<void> {
     if (this.isHost) {
@@ -1106,15 +1361,124 @@ export class GameStateService {
 
     if (!this.myUid) return;
 
-    await this.broadcastService.sendToHost({
-      type: 'JOIN',
-      seat,
-      uid: this.myUid,
-      displayName: displayName ?? '',
-      avatarUrl,
-    });
+    // Use new ACK-based protocol
+    const success = await this.sendSeatActionWithAck('sit', seat, displayName, avatarUrl);
+    if (!success) {
+      // Error already set in handleSeatActionAck
+      console.log('[GameState Player] Seat action failed');
+    }
+  }
 
-    this.mySeatNumber = seat;  // Optimistic update
+  /**
+   * Player: Request to take a seat with requestId and wait for ACK
+   */
+  async playerTakeSeatWithAck(
+    seat: number,
+    displayName?: string,
+    avatarUrl?: string,
+    timeoutMs: number = 5000
+  ): Promise<{ success: boolean; reason?: string }> {
+    if (this.isHost) {
+      const success = await this.hostTakeSeat(seat, displayName, avatarUrl);
+      return { success };
+    }
+
+    if (!this.myUid) {
+      return { success: false, reason: 'not_authenticated' };
+    }
+
+    const success = await this.sendSeatActionWithAck('sit', seat, displayName, avatarUrl, timeoutMs);
+    if (!success) {
+      const reason = this.lastSeatError?.reason;
+      return { success: false, reason: reason ?? 'unknown' };
+    }
+    return { success: true };
+  }
+
+  /**
+   * Player: Leave seat with ACK
+   */
+  async playerLeaveSeatWithAck(timeoutMs: number = 5000): Promise<{ success: boolean; reason?: string }> {
+    if (!this.myUid || this.mySeatNumber === null) {
+      return { success: false, reason: 'not_seated' };
+    }
+
+    if (this.isHost) {
+      if (this.state) {
+        this.state.players.set(this.mySeatNumber, null);
+        this.mySeatNumber = null;
+        await this.broadcastState();
+        this.notifyListeners();
+      }
+      return { success: true };
+    }
+
+    const success = await this.sendSeatActionWithAck('standup', this.mySeatNumber, undefined, undefined, timeoutMs);
+    return { success, reason: success ? undefined : 'timeout_or_rejected' };
+  }
+
+  /**
+   * Internal: Send seat action and wait for ACK
+   */
+  private async sendSeatActionWithAck(
+    action: 'sit' | 'standup',
+    seat: number,
+    displayName?: string,
+    avatarUrl?: string,
+    timeoutMs: number = 5000
+  ): Promise<boolean> {
+    if (!this.myUid) return false;
+
+    // Cancel any pending action (clear timeout first)
+    if (this.pendingSeatAction) {
+      clearTimeout(this.pendingSeatAction.timeoutHandle);
+      this.pendingSeatAction.reject(new Error('Cancelled by new action'));
+      this.pendingSeatAction = null;
+    }
+
+    const requestId = this.generateRequestId();
+    
+    return new Promise<boolean>((resolve, reject) => {
+      // Set up timeout first
+      const timeoutHandle = setTimeout(() => {
+        if (this.pendingSeatAction?.requestId === requestId) {
+          console.log(`[GameState Player] Seat action timeout for ${action} seat ${seat}`);
+          this.pendingSeatAction = null;
+          this.notifyListeners();
+          resolve(false);
+        }
+      }, timeoutMs);
+
+      // Set up pending action with timeout handle
+      this.pendingSeatAction = {
+        requestId,
+        action,
+        seat,
+        timestamp: Date.now(),
+        timeoutHandle,
+        resolve,
+        reject,
+      };
+
+      // Send request
+      this.broadcastService.sendToHost({
+        type: 'SEAT_ACTION_REQUEST',
+        requestId,
+        action,
+        seat,
+        uid: this.myUid!,
+        displayName,
+        avatarUrl,
+      }).catch(err => {
+        if (this.pendingSeatAction?.requestId === requestId) {
+          clearTimeout(this.pendingSeatAction.timeoutHandle);
+          this.pendingSeatAction = null;
+          reject(err);
+        }
+      });
+
+      // Note: resolve/reject will be called by handleSeatActionAck or timeout
+    });
   }
 
   /**
@@ -1134,13 +1498,83 @@ export class GameStateService {
       return;
     }
 
-    await this.broadcastService.sendToHost({
-      type: 'LEAVE',
-      seat: this.mySeatNumber,
-      uid: this.myUid,
-    });
+    // Use ACK-based protocol
+    await this.sendSeatActionWithAck('standup', this.mySeatNumber);
+  }
 
-    this.mySeatNumber = null;
+  /**
+   * Player: Request full state snapshot from Host (for recovery)
+   * Returns true if request was sent, false if failed
+   * Timeout after 10s will mark connection as disconnected
+   */
+  async requestSnapshot(timeoutMs: number = 10000): Promise<boolean> {
+    if (this.isHost) {
+      // Host is authoritative, no need to request
+      return true;
+    }
+
+    if (!this.myUid) return false;
+
+    // Cancel any pending snapshot request
+    if (this.pendingSnapshotRequest) {
+      clearTimeout(this.pendingSnapshotRequest.timeoutHandle);
+      this.pendingSnapshotRequest = null;
+    }
+
+    // Mark as syncing
+    this.broadcastService.markAsSyncing();
+
+    const requestId = this.generateRequestId();
+    
+    console.log(`[GameState Player] Requesting snapshot, lastRev: ${this.stateRevision}`);
+
+    // Set up timeout
+    const timeoutHandle = setTimeout(() => {
+      if (this.pendingSnapshotRequest?.requestId === requestId) {
+        console.log(`[GameState Player] Snapshot request timeout`);
+        this.pendingSnapshotRequest = null;
+        // Mark as disconnected on timeout
+        this.broadcastService.setConnectionStatus('disconnected');
+        this.notifyListeners();
+      }
+    }, timeoutMs);
+
+    // Store pending request
+    this.pendingSnapshotRequest = {
+      requestId,
+      timestamp: Date.now(),
+      timeoutHandle,
+    };
+    
+    try {
+      await this.broadcastService.sendToHost({
+        type: 'SNAPSHOT_REQUEST',
+        requestId,
+        uid: this.myUid,
+        lastRevision: this.stateRevision,
+      });
+    } catch (err) {
+      // sendToHost failed - rollback pending state immediately
+      if (this.pendingSnapshotRequest?.requestId === requestId) {
+        console.log(`[GameState Player] Snapshot request send failed:`, err);
+        clearTimeout(this.pendingSnapshotRequest.timeoutHandle);
+        this.pendingSnapshotRequest = null;
+        this.broadcastService.setConnectionStatus('disconnected');
+        this.notifyListeners();
+      }
+      return false;
+    }
+
+    // Response will be handled by handleSnapshotResponse
+    // Timeout will mark as disconnected if no response
+    return true;
+  }
+
+  /**
+   * Get current state revision
+   */
+  getStateRevision(): number {
+    return this.stateRevision;
   }
 
   /**
@@ -1346,10 +1780,14 @@ export class GameStateService {
   private async broadcastState(): Promise<void> {
     if (!this.isHost || !this.state) return;
 
+    // Increment revision on each broadcast
+    this.stateRevision++;
+    
     const broadcastState = this.toBroadcastState();
     await this.broadcastService.broadcastAsHost({
       type: 'STATE_UPDATE',
       state: broadcastState,
+      revision: this.stateRevision,
     });
   }
 

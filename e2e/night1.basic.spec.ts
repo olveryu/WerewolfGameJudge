@@ -1,4 +1,5 @@
 import { test, expect, Page, TestInfo } from '@playwright/test';
+import { waitForRoomScreenReady } from './helpers/waits';
 
 /**
  * Night 1 Happy Path E2E Test
@@ -119,24 +120,6 @@ async function ensureAnonLogin(page: Page) {
     await page.getByText('←').click();
     await expect(page.getByText('创建房间')).toBeVisible({ timeout: 5000 });
   }
-}
-
-async function waitForRoomScreenReady(page: Page, maxRetries = 3) {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      await expect(page.locator(String.raw`text=/房间 \d{4}/`)).toBeVisible({ timeout: 10000 });
-      return;
-    } catch {
-      const retryBtn = page.getByText('重试');
-      if (await retryBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-        console.log(`[waitForRoomScreenReady] Retry attempt ${attempt + 1}...`);
-        await retryBtn.click();
-      } else {
-        throw new Error('Room screen not ready and no retry button found');
-      }
-    }
-  }
-  throw new Error(`Room screen not ready after ${maxRetries} attempts`);
 }
 
 async function extractRoomNumber(page: Page): Promise<string> {
@@ -506,7 +489,7 @@ test.describe('Night 1 Happy Path', () => {
       
       // Click 创建 to create room
       await getVisibleText(pageA, '创建').click();
-      await waitForRoomScreenReady(pageA);
+      await waitForRoomScreenReady(pageA, { role: 'host' });
       
       roomNumber = await extractRoomNumber(pageA);
       console.log(`[NIGHT] HOST A created room: ${roomNumber}`);
@@ -528,7 +511,7 @@ test.describe('Night 1 Happy Path', () => {
       await input.fill(roomNumber);
       await pageB.getByText('加入', { exact: true }).click();
       
-      await waitForRoomScreenReady(pageB);
+      await waitForRoomScreenReady(pageB, { role: 'joiner' });
       console.log(`[NIGHT] JOINER B joined room ${roomNumber}`);
 
       // ===================== JOINER B: Take seat 2 =====================

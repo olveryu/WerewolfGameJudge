@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForRoomScreenReady } from './helpers/waits';
 
 /**
  * Basic E2E tests for Werewolf Game
@@ -67,30 +68,6 @@ async function ensureAnonLogin(page: import('@playwright/test').Page) {
     await page.getByText('←').click();
     await expect(page.getByText('创建房间')).toBeVisible({ timeout: 5000 });
   }
-}
-
-/**
- * Wait for RoomScreen to be ready.
- * Uses "房间 XXXX" header which is visible to all players (host and joiners).
- * Handles loading timeout with retry.
- */
-async function waitForRoomScreenReady(page: import('@playwright/test').Page, maxRetries = 3) {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      await expect(page.locator(String.raw`text=/房间 \d{4}/`)).toBeVisible({ timeout: 10000 });
-      return;
-    } catch {
-      // Check for loading timeout
-      const retryBtn = page.getByText('重试');
-      if (await retryBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-        console.log(`[waitForRoomScreenReady] Loading timed out, retrying (attempt ${attempt + 1})...`);
-        await retryBtn.click();
-      } else {
-        throw new Error('Room screen not ready and no retry button found');
-      }
-    }
-  }
-  throw new Error(`Room screen not ready after ${maxRetries} attempts`);
 }
 
 test.describe('Home Screen', () => {
@@ -210,7 +187,7 @@ test.describe('Template Selection', () => {
     await getVisibleText(page, '创建').click();
     
     // Wait for room to be created
-    await waitForRoomScreenReady(page);
+    await waitForRoomScreenReady(page, { role: 'host' });
     console.log('[TemplateInSettings] Room created successfully');
     
     // === Step 3: Open settings to change template ===
@@ -232,7 +209,7 @@ test.describe('Template Selection', () => {
     await getVisibleText(page, '保存').click();
     
     // Should return to room screen
-    await waitForRoomScreenReady(page);
+    await waitForRoomScreenReady(page, { role: 'host' });
     console.log('[TemplateInSettings] Saved and returned to room');
     
     // === Step 6: Verify template changed - open settings again ===
