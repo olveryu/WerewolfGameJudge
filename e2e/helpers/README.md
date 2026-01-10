@@ -6,13 +6,13 @@ Layered test helpers for Playwright E2E tests.
 
 ### E2E_BASE_URL — Single Source of Truth
 
-| Layer | How it uses E2E_BASE_URL |
-|-------|--------------------------|
-| `scripts/run-e2e-web.mjs` | **Defines** the env var (default: `http://localhost:8081`) |
-| `playwright.config.ts` | Reads `process.env.E2E_BASE_URL` for `use.baseURL` and `webServer.url` |
-| `e2e/helpers/ui.ts` | Reads `process.env.E2E_BASE_URL` for `gotoWithRetry()` health check |
+| Layer | Role |
+|-------|------|
+| `playwright.config.ts` | **DEFINES** `E2E_BASE_URL` (default: `http://localhost:8081`), exports to `process.env` |
+| `scripts/run-e2e-web.mjs` | **READS** from `process.env.E2E_BASE_URL` (fail-fast if not set) |
+| `e2e/helpers/ui.ts` | **READS** from `process.env.E2E_BASE_URL` (fail-fast if not set) |
 
-**Rule: NEVER hardcode `http://localhost:8081` in E2E code.**
+**Rule: NEVER hardcode `http://localhost:8081` in E2E code. Only `playwright.config.ts` may have a default.**
 
 ### Running E2E Tests
 

@@ -3,12 +3,16 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * E2E_BASE_URL: Single source of truth for all E2E navigation.
  * 
- * Resolved at config load time, then exported to process.env for test runtime.
- * Used by: playwright.config.ts (use.baseURL, webServer.url), e2e/helpers/ui.ts (getBaseURL)
+ * DEFINED HERE, exported to process.env for:
+ * - webServer (via env inheritance)
+ * - test runtime (ui.ts reads process.env.E2E_BASE_URL)
+ * 
+ * Default: http://localhost:8081 (local dev)
+ * Override: E2E_BASE_URL=https://... npx playwright test
  */
-const E2E_BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8081';
+const E2E_BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
 
-// Export to process.env so ui.ts can access it at test runtime
+// Export to process.env so ui.ts and webServer can access it
 process.env.E2E_BASE_URL = E2E_BASE_URL;
 
 /**
