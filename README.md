@@ -64,9 +64,12 @@ E2E_ENV=local npx playwright test e2e/basic.spec.ts
 # 使用远程 Supabase（生产/共享环境）
 E2E_ENV=remote npx playwright test e2e/basic.spec.ts
 
-# 推荐：运行非 template 的核心 E2E 测试
-E2E_ENV=local npx playwright test e2e/basic.spec.ts e2e/seating.basic.spec.ts e2e/night1.basic.spec.ts
+# 推荐：运行核心 E2E 测试（通过 e2e:core 脚本）
+E2E_ENV=local npm run e2e:core
+E2E_ENV=remote npm run e2e:core
 ```
+
+> 注意：核心 E2E 需 `--workers=1`，避免 Supabase/Realtime channel 资源竞争导致的偶发失败。
 
 **配置文件位置：**
 - `env/e2e.local.json` - 本地 Supabase 配置
