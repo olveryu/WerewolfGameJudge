@@ -236,6 +236,21 @@ async function takeScreenshot(page: Page, testInfo: TestInfo, name: string) {
 // Diagnostic Tests
 // =============================================================================
 
+// Helper for DIAG-4 verdict (avoids nested ternary)
+function getDiag4Verdict(
+  error: string | null,
+  hostSawUpdate: boolean | null,
+  phase: string
+): string {
+  if (error) {
+    return `❌ ERROR at phase [${phase}]`;
+  }
+  if (hostSawUpdate) {
+    return '✅ PASS - Host sees joiner seat update';
+  }
+  return '❌ FAIL - Host does not see joiner in seat 2';
+}
+
 test.describe('Seating Diagnostic', () => {
 
   test('DIAG-1: Single player seat → collect evidence', async ({ page }, testInfo) => {
@@ -652,10 +667,35 @@ test.describe('Seating Diagnostic', () => {
     const diagA = setupDiagnostics(pageA, 'HOST-A');
     const diagB = setupDiagnostics(pageB, 'JOINER-B');
 
+    // State object for evidence (always populated, even on early failure)
+    type SeatState = { seatContent: string | null; hasPlayerName: boolean; isEmpty: boolean };
+    const diag4State: {
+      phase: 'init' | 'host_create' | 'joiner_join' | 'joiner_seat' | 'host_poll' | 'done';
+      roomNumber: string | null;
+      hostSubscribed: boolean | null;
+      joinerSubscribed: boolean | null;
+      hostSeat2Before: SeatState | null;
+      joinerSeat2: SeatState | null;
+      hostSeat2After: SeatState | null;
+      hostSawUpdate: boolean | null;
+      error: string | null;
+    } = {
+      phase: 'init',
+      roomNumber: null,
+      hostSubscribed: null,
+      joinerSubscribed: null,
+      hostSeat2Before: null,
+      joinerSeat2: null,
+      hostSeat2After: null,
+      hostSawUpdate: null,
+      error: null,
+    };
+
     // Warm-up helper: poll for "Channel status: SUBSCRIBED" in console logs
     const waitForChannelSubscribed = async (
       diag: { consoleLogs: string[] },
-      timeoutMs: number = 5000
+      label: string,
+      timeoutMs: number = 8000  // Extended for cold-start
     ): Promise<boolean> => {
       const startTime = Date.now();
       while (Date.now() - startTime < timeoutMs) {
@@ -664,14 +704,15 @@ test.describe('Seating Diagnostic', () => {
         }
         await new Promise(r => setTimeout(r, 100));
       }
+      // On timeout, log last 10 entries for debugging
+      console.log(`[DIAG] ${label} channel subscription TIMEOUT. Last 10 logs:`);
+      diag.consoleLogs.slice(-10).forEach(log => console.log(`  ${log}`));
       return false;
     };
 
-    let hostSubscribed = false;
-    let joinerSubscribed = false;
-
     try {
       // ===================== HOST A: Create room (auto-takes seat 0) =====================
+      diag4State.phase = 'host_create';
       console.log('[DIAG] === HOST A Setup ===');
       
       await pageA.goto('/');
@@ -683,19 +724,23 @@ test.describe('Seating Diagnostic', () => {
       await getVisibleText(pageA, '创建').click();
       await waitForRoomScreenReady(pageA);
 
+      // Settle wait for realtime
+      await pageA.waitForTimeout(300);
+
       // Warm-up: wait for Host channel subscription
-      hostSubscribed = await waitForChannelSubscribed(diagA, 5000);
-      console.log(`[DIAG] HOST A channel subscribed: ${hostSubscribed}`);
+      diag4State.hostSubscribed = await waitForChannelSubscribed(diagA, 'HOST-A', 8000);
+      console.log(`[DIAG] HOST A channel subscribed: ${diag4State.hostSubscribed}`);
       
-      const roomNumber = await extractRoomNumber(pageA);
-      console.log(`[DIAG] HOST A created room: ${roomNumber}`);
+      diag4State.roomNumber = await extractRoomNumber(pageA);
+      console.log(`[DIAG] HOST A created room: ${diag4State.roomNumber}`);
       
       // Capture HOST's view of seat 2 BEFORE joiner
-      const hostSeat2Before = await collectSeatUIState(pageA, 2);
-      console.log(`[DIAG] HOST A seat 2 BEFORE: ${JSON.stringify(hostSeat2Before)}`);
+      diag4State.hostSeat2Before = await collectSeatUIState(pageA, 2);
+      console.log(`[DIAG] HOST A seat 2 BEFORE: ${JSON.stringify(diag4State.hostSeat2Before)}`);
       await takeScreenshot(pageA, testInfo, 'A-01-seat2-before.png');
 
       // ===================== JOINER B: Join room =====================
+      diag4State.phase = 'joiner_join';
       console.log('\n[DIAG] === JOINER B Setup ===');
       
       await pageB.goto('/');
@@ -708,17 +753,21 @@ test.describe('Seating Diagnostic', () => {
       
       // Enter room code
       const input = pageB.locator('input').first();
-      await input.fill(roomNumber);
+      await input.fill(diag4State.roomNumber);
       await pageB.getByText('加入', { exact: true }).click();
       
       await waitForRoomScreenReady(pageB);
-      console.log(`[DIAG] JOINER B joined room ${roomNumber}`);
+      console.log(`[DIAG] JOINER B joined room ${diag4State.roomNumber}`);
+
+      // Settle wait for realtime
+      await pageB.waitForTimeout(300);
 
       // Warm-up: wait for Joiner channel subscription
-      joinerSubscribed = await waitForChannelSubscribed(diagB, 5000);
-      console.log(`[DIAG] JOINER B channel subscribed: ${joinerSubscribed}`);
+      diag4State.joinerSubscribed = await waitForChannelSubscribed(diagB, 'JOINER-B', 8000);
+      console.log(`[DIAG] JOINER B channel subscribed: ${diag4State.joinerSubscribed}`);
 
       // ===================== JOINER B: Take seat 2 =====================
+      diag4State.phase = 'joiner_seat';
       console.log('\n[DIAG] JOINER B taking seat 2...');
       
       await getSeatTileLocator(pageB, 1).click(); // seat index 1 = display "2"
@@ -731,40 +780,51 @@ test.describe('Seating Diagnostic', () => {
       // Dismiss any alert that might appear
       await pageB.getByRole('button', { name: '确定' }).click({ timeout: 1000 }).catch(() => {});
       
-      const joinerSeat2 = await collectSeatUIState(pageB, 2);
-      console.log(`[DIAG] JOINER B seat 2: ${JSON.stringify(joinerSeat2)}`);
+      diag4State.joinerSeat2 = await collectSeatUIState(pageB, 2);
+      console.log(`[DIAG] JOINER B seat 2: ${JSON.stringify(diag4State.joinerSeat2)}`);
       await takeScreenshot(pageB, testInfo, 'B-01-seated-at-2.png');
       
       // Verify joiner is seated
-      expect(joinerSeat2.hasPlayerName, 'Joiner should be seated at seat 2').toBe(true);
+      expect(diag4State.joinerSeat2.hasPlayerName, 'Joiner should be seated at seat 2').toBe(true);
 
       // ===================== HOST A: Poll for seat 2 update =====================
+      diag4State.phase = 'host_poll';
       console.log('\n[DIAG] Polling HOST A for seat 2 update...');
       
-      let hostSeat2After = hostSeat2Before;
+      diag4State.hostSeat2After = diag4State.hostSeat2Before;
       const maxPollTime = 10000;  // Extended timeout for cold-start scenarios
       const pollInterval = 250;
       const startTime = Date.now();
       
       while (Date.now() - startTime < maxPollTime) {
-        hostSeat2After = await collectSeatUIState(pageA, 2);
-        if (!hostSeat2After.isEmpty && hostSeat2After.hasPlayerName) {
+        diag4State.hostSeat2After = await collectSeatUIState(pageA, 2);
+        if (!diag4State.hostSeat2After.isEmpty && diag4State.hostSeat2After.hasPlayerName) {
           console.log(`[DIAG] HOST A seat 2 updated after ${Date.now() - startTime}ms`);
           break;
         }
         await pageA.waitForTimeout(pollInterval);
       }
       
-      console.log(`[DIAG] HOST A seat 2 AFTER: ${JSON.stringify(hostSeat2After)}`);
+      console.log(`[DIAG] HOST A seat 2 AFTER: ${JSON.stringify(diag4State.hostSeat2After)}`);
       await takeScreenshot(pageA, testInfo, 'A-02-seat2-after.png');
 
       // ===================== DIAGNOSTIC SUMMARY =====================
       printDiagnosticSummary('HOST A', diagA);
       printDiagnosticSummary('JOINER B', diagB);
       
-      const hostSawUpdate = !hostSeat2After.isEmpty && hostSeat2After.hasPlayerName;
+      diag4State.hostSawUpdate = !diag4State.hostSeat2After.isEmpty && diag4State.hostSeat2After.hasPlayerName;
+      diag4State.phase = 'done';
+
+      // Assertion: Host must see the joiner's seat update
+      expect(diag4State.hostSawUpdate, 'Host should see joiner seated at seat 2').toBe(true);
       
-      // Enhanced evidence with warm-up status and truncated logs
+      console.log('\n🔍 DIAGNOSTIC COMPLETE\n');
+      
+    } catch (e) {
+      diag4State.error = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+      throw e;
+    } finally {
+      // ALWAYS generate evidence, even on early failure
       const hostLast30 = diagA.consoleLogs.slice(-30);
       const joinerLast30 = diagB.consoleLogs.slice(-30);
       
@@ -772,37 +832,47 @@ test.describe('Seating Diagnostic', () => {
         body: [
           '=== DIAG-4: Host Visibility of Joiner Seating ===',
           `Timestamp: ${new Date().toISOString()}`,
-          `Room: ${roomNumber}`,
+          `Phase: ${diag4State.phase}`,
+          `Room: ${diag4State.roomNumber ?? '<unknown>'}`,
           '',
           '=== CHANNEL SUBSCRIPTION ===',
-          `Host channel subscribed: ${hostSubscribed}`,
-          `Joiner channel subscribed: ${joinerSubscribed}`,
+          `Host channel subscribed: ${diag4State.hostSubscribed ?? '<not reached>'}`,
+          `Joiner channel subscribed: ${diag4State.joinerSubscribed ?? '<not reached>'}`,
           '',
           '=== SEAT 2 STATE ===',
-          `HOST A seat 2 BEFORE joiner: ${JSON.stringify(hostSeat2Before)}`,
-          `HOST A seat 2 AFTER joiner:  ${JSON.stringify(hostSeat2After)}`,
-          `JOINER B seat 2:             ${JSON.stringify(joinerSeat2)}`,
+          `HOST A seat 2 BEFORE joiner: ${diag4State.hostSeat2Before ? JSON.stringify(diag4State.hostSeat2Before) : '<not reached>'}`,
+          `HOST A seat 2 AFTER joiner:  ${diag4State.hostSeat2After ? JSON.stringify(diag4State.hostSeat2After) : '<not reached>'}`,
+          `JOINER B seat 2:             ${diag4State.joinerSeat2 ? JSON.stringify(diag4State.joinerSeat2) : '<not reached>'}`,
           '',
           '=== DIAGNOSIS ===',
-          hostSawUpdate
-            ? '✅ PASS - Host sees joiner seat update'
-            : '❌ FAIL - Host does not see joiner in seat 2',
+          getDiag4Verdict(diag4State.error, diag4State.hostSawUpdate, diag4State.phase),
           '',
+          ...(diag4State.error ? [
+            '=== ERROR DETAILS ===',
+            diag4State.error,
+            '',
+          ] : []),
           '=== HOST A LOGS (last 30) ===',
           ...hostLast30,
           '',
           '=== JOINER B LOGS (last 30) ===',
           ...joinerLast30,
+          '',
+          '=== HOST A PAGE ERRORS ===',
+          ...(diagA.pageErrors.length > 0 ? diagA.pageErrors : ['(none)']),
+          '',
+          '=== JOINER B PAGE ERRORS ===',
+          ...(diagB.pageErrors.length > 0 ? diagB.pageErrors : ['(none)']),
+          '',
+          '=== HOST A FAILED REQUESTS ===',
+          ...(diagA.failedRequests.length > 0 ? diagA.failedRequests : ['(none)']),
+          '',
+          '=== JOINER B FAILED REQUESTS ===',
+          ...(diagB.failedRequests.length > 0 ? diagB.failedRequests : ['(none)']),
         ].join('\n'),
         contentType: 'text/plain',
       });
 
-      // Assertion: Host must see the joiner's seat update
-      expect(hostSawUpdate, 'Host should see joiner seated at seat 2').toBe(true);
-      
-      console.log('\n🔍 DIAGNOSTIC COMPLETE\n');
-      
-    } finally {
       await contextA.close();
       await contextB.close();
     }
