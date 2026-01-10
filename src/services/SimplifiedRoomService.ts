@@ -84,27 +84,62 @@ export class SimplifiedRoomService {
   }
 
   /**
-   * Create a new room record
+   * Create a new room record with retry on conflict (HTTP 409).
+   * 
+   * MITIGATION for room code race condition:
+   * If another client creates a room with the same code between our
+   * generateRoomNumber() check and insert, Supabase returns 409 (conflict).
+   * We retry with a new room number up to maxRetries times.
+   * 
+   * @param roomNumber - Initial room number to try
+   * @param hostUid - Host user ID
+   * @param maxRetries - Max retry attempts on 409 conflict (default: 3)
    */
-  async createRoom(roomNumber: string, hostUid: string): Promise<RoomRecord> {
+  async createRoom(roomNumber: string, hostUid: string, maxRetries: number = 3): Promise<RoomRecord> {
     this.ensureConfigured();
 
-    const { error } = await supabase!
-      .from('rooms')
-      .insert({
-        code: roomNumber,
-        host_id: hostUid,
-      });
+    let currentRoomNumber = roomNumber;
+    let lastError: Error | undefined;
 
-    if (error) {
-      throw new Error(`Failed to create room: ${error.message}`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const { error } = await supabase!
+        .from('rooms')
+        .insert({
+          code: currentRoomNumber,
+          host_id: hostUid,
+        });
+
+      if (!error) {
+        if (attempt > 1) {
+          console.log(`[SimplifiedRoomService] Room created on attempt ${attempt} with code ${currentRoomNumber}`);
+        }
+        return {
+          roomNumber: currentRoomNumber,
+          hostUid,
+          createdAt: new Date(),
+        };
+      }
+
+      // Check for conflict (409) - unique constraint violation
+      const isConflict = error.code === '23505' || // PostgreSQL unique violation
+                         error.message.includes('duplicate') ||
+                         error.message.includes('conflict') ||
+                         error.message.includes('already exists');
+      
+      if (isConflict && attempt < maxRetries) {
+        console.log(`[SimplifiedRoomService] HTTP 409 conflict on attempt ${attempt}, room ${currentRoomNumber} already exists`);
+        console.log(`  Error: ${error.message}`);
+        console.log(`  Generating new room number...`);
+        
+        // Generate a new room number for retry
+        currentRoomNumber = await this.generateRoomNumber();
+        continue;
+      }
+
+      lastError = new Error(`Failed to create room: ${error.message}`);
     }
 
-    return {
-      roomNumber,
-      hostUid,
-      createdAt: new Date(),
-    };
+    throw lastError || new Error('Failed to create room after max retries');
   }
 
   /**

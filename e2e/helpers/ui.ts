@@ -18,11 +18,90 @@ import * as path from 'node:path';
 /** Signature for connection refused errors (grep-friendly) */
 const CONNECTION_REFUSED_SIGNATURE = 'ERR_CONNECTION_REFUSED';
 
+/** Default baseURL for E2E tests */
+const DEFAULT_BASE_URL = 'http://localhost:8081';
+
+/**
+ * Check if the server is ready by making an HTTP GET request.
+ * Returns true if we get any HTTP response (even 4xx/5xx means server is up).
+ * Returns false if connection is refused.
+ */
+async function isServerReady(baseURL: string): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    
+    const response = await fetch(baseURL, { 
+      method: 'GET',
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    
+    // Any HTTP response means server is ready (even 404 is fine)
+    console.log(`[isServerReady] Server responded with HTTP ${response.status}`);
+    return true;
+  } catch (e) {
+    const error = e instanceof Error ? e : new Error(String(e));
+    // Connection refused = not ready
+    if (error.message.includes('ECONNREFUSED') || 
+        error.message.includes('fetch failed') ||
+        error.name === 'AbortError') {
+      return false;
+    }
+    // Other errors (e.g., DNS) - treat as ready to fail fast
+    console.log(`[isServerReady] Unexpected error: ${error.message}`);
+    return true;
+  }
+}
+
+/** Log detailed info about a navigation failure */
+function logNavigationFailure(
+  attempt: number,
+  maxRetries: number,
+  url: string,
+  baseURL: string,
+  pageUrl: string,
+  error: Error,
+  isConnectionRefused: boolean
+): void {
+  console.log(`[gotoWithRetry] Attempt ${attempt}/${maxRetries} navigation failed`);
+  console.log(`  URL: ${url}`);
+  console.log(`  baseURL: ${baseURL}`);
+  console.log(`  page.url(): ${pageUrl}`);
+  console.log(`  Error: ${error.message}`);
+  if (isConnectionRefused) {
+    console.log(`  Signature: ${CONNECTION_REFUSED_SIGNATURE}`);
+  }
+}
+
+/** Collect evidence and log diagnostic hints on final failure */
+async function collectNavigationFailureEvidence(
+  page: Page,
+  maxRetries: number
+): Promise<void> {
+  console.log(`\n[gotoWithRetry] ❌ FAILED after ${maxRetries} attempts - collecting evidence...`);
+  
+  const screenshotPath = await screenshotOnFail(page, 'goto-refused');
+  console.log(`  Screenshot: ${screenshotPath || 'failed to capture'}`);
+  
+  await debugProbe(page, 'goto-refused');
+  
+  console.log('\n[gotoWithRetry] Diagnostic hints:');
+  console.log('  1. Is dev server running? Run: npx expo start --web --port 8081');
+  console.log('  2. Port conflict? Run: lsof -i :8081');
+  console.log('  3. Check Playwright webServer logs above (stdout/stderr piped)');
+  console.log('  4. Try: pkill -f "expo" && npm run e2e:core');
+}
+
 /**
  * Navigate to a URL with automatic retry on connection errors.
  * 
- * Handles net::ERR_CONNECTION_REFUSED by waiting and retrying.
- * Collects evidence (screenshot + logs) on persistent failure.
+ * TRUE MITIGATION: Before each navigation attempt, we verify the server is 
+ * actually responding to HTTP requests (not just port-reachable).
+ * 
+ * Handles net::ERR_CONNECTION_REFUSED by:
+ * 1. Polling server with HTTP GET until it responds
+ * 2. Only then attempting page.goto()
  * 
  * EVIDENCE ON FAILURE:
  * - Logs: attempt number, baseURL, current page.url(), error message
@@ -39,65 +118,67 @@ export async function gotoWithRetry(
   url: string = '/',
   opts: { maxRetries?: number; retryDelayMs?: number; timeoutMs?: number } = {}
 ): Promise<void> {
-  const { maxRetries = 3, retryDelayMs = 2000, timeoutMs = 30000 } = opts;
+  const { maxRetries = 5, retryDelayMs = 2000, timeoutMs = 30000 } = opts;
   let lastError: Error | undefined;
-  
-  // Get baseURL from page context for logging
-  const baseURL = page.context().browser()?.version() ? 'http://localhost:8081' : 'unknown';
+  const baseURL = DEFAULT_BASE_URL;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      await page.goto(url, { timeout: timeoutMs, waitUntil: 'domcontentloaded' });
+    const isLastAttempt = attempt === maxRetries;
+    
+    // Step 1: Wait for server to be ready (HTTP health check)
+    const serverUp = await isServerReady(baseURL);
+    if (!serverUp) {
+      console.log(`[gotoWithRetry] Attempt ${attempt}/${maxRetries}: Server not ready`);
+      lastError = new Error(`Server at ${baseURL} did not respond to HTTP health check`);
+      if (!isLastAttempt) {
+        await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+      }
+      continue;
+    }
+
+    // Step 2: Server is up, attempt navigation
+    const navResult = await attemptNavigation(page, url, timeoutMs);
+    if (navResult.success) {
       console.log(`[gotoWithRetry] Navigation successful on attempt ${attempt}`);
       return;
-    } catch (e) {
-      lastError = e instanceof Error ? e : new Error(String(e));
-      const isConnectionRefused = lastError.message.includes('ERR_CONNECTION_REFUSED') ||
-                                   lastError.message.includes('ECONNREFUSED');
-      
-      // Detailed logging for each attempt
-      console.log(`[gotoWithRetry] Attempt ${attempt}/${maxRetries} failed`);
-      console.log(`  URL: ${url}`);
-      console.log(`  baseURL: ${baseURL}`);
-      console.log(`  page.url(): ${page.url()}`);
-      console.log(`  Error: ${lastError.message}`);
-      
-      if (isConnectionRefused) {
-        console.log(`  Signature: ${CONNECTION_REFUSED_SIGNATURE}`);
-      }
-
-      if (isConnectionRefused && attempt < maxRetries) {
-        // Retry delay with clear justification
-        console.log(`[gotoWithRetry] Server not ready, waiting ${retryDelayMs}ms before retry...`);
-        console.log(`  (Reason: webServer may still be starting - this is expected on cold start)`);
-        await new Promise(resolve => setTimeout(resolve, retryDelayMs));
-        continue;
-      }
-
-      // Last attempt or non-recoverable error - collect evidence
-      if (attempt === maxRetries) {
-        console.log(`\n[gotoWithRetry] ❌ FAILED after ${maxRetries} attempts - collecting evidence...`);
-        
-        // Screenshot
-        const screenshotPath = await screenshotOnFail(page, 'goto-refused');
-        console.log(`  Screenshot: ${screenshotPath || 'failed to capture'}`);
-        
-        // Debug probe
-        await debugProbe(page, 'goto-refused');
-        
-        // Diagnostic hints
-        console.log('\n[gotoWithRetry] Diagnostic hints:');
-        console.log('  1. Is dev server running? Run: npx expo start --web --port 8081');
-        console.log('  2. Port conflict? Run: lsof -i :8081');
-        console.log('  3. Check Playwright webServer logs above (stdout/stderr piped)');
-        console.log('  4. Try: pkill -f "expo" && npm run e2e:core');
-      }
+    }
+    
+    lastError = navResult.error!;
+    logNavigationFailure(attempt, maxRetries, url, baseURL, page.url(), lastError, navResult.isRefused);
+    
+    if (navResult.isRefused && !isLastAttempt) {
+      await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+      continue;
+    }
+    
+    // Non-retryable error (not connection refused) - fail immediately
+    if (!navResult.isRefused) {
+      break;
     }
   }
 
-  // Throw with grep-friendly signature
+  // Failed after all attempts - collect evidence
+  await collectNavigationFailureEvidence(page, maxRetries);
+  
   const finalMessage = `[gotoWithRetry] ${CONNECTION_REFUSED_SIGNATURE}: Failed to navigate to ${url} after ${maxRetries} attempts. ${lastError?.message || 'Unknown error'}`;
   throw new Error(finalMessage);
+}
+
+/** Attempt a single navigation, return structured result */
+async function attemptNavigation(
+  page: Page,
+  url: string,
+  timeoutMs: number
+): Promise<{ success: boolean; error?: Error; isRefused: boolean }> {
+  try {
+    await page.goto(url, { timeout: timeoutMs, waitUntil: 'domcontentloaded' });
+    return { success: true, isRefused: false };
+  } catch (e) {
+    const error = e instanceof Error ? e : new Error(String(e));
+    const isRefused = error.message.includes('ERR_CONNECTION_REFUSED') ||
+                      error.message.includes('ECONNREFUSED');
+    return { success: false, error, isRefused };
+  }
 }
 
 // =============================================================================

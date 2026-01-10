@@ -150,6 +150,11 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
    - keep the public API stable (re-export from the domain entry file is OK **only for domain helpers**, not generic primitives)
 - Exception: e2e helpers may need loops/retries, but complexity must be contained via extraction (no monolithic mega-functions).
 
+**Recommended refactor shape (directory + facade)**
+- When splitting a large file, prefer `folder/` modules + a stable facade entry (`index.ts` or the original file) that re-exports **domain helpers only**.
+- Keep spec imports stable when possible (avoid churn). Example: keep `import { ensureHomeReady } from './helpers/home'` working while moving internals into `home/*.ts`.
+- Do **not** use the facade to re-export generic primitives (e.g., `getVisibleText`, `gotoWithRetry`). Specs must import primitives from `e2e/helpers/ui.ts`.
+
 ### Engineering Best Practices (use design patterns)
 
 - Prefer clear, proven design patterns over ad-hoc branching (e.g., state machine for phases, strategy for role behaviors, adapter for transport/services, layered helpers for e2e).
