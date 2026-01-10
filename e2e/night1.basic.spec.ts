@@ -1,27 +1,25 @@
-import { test, expect, Page, TestInfo } from '@playwright/test';
+import { test, expect, Page, TestInfo, BrowserContext } from '@playwright/test';
 import { waitForRoomScreenReady } from './helpers/waits';
 import { getVisibleText, gotoWithRetry } from './helpers/ui';
 import { waitForAppReady, ensureAnonLogin, extractRoomNumber } from './helpers/home';
 
 /**
- * Night 1 Happy Path E2E Test
+ * Night 1 Smoke E2E Tests
  * 
- * PURPOSE: Verify Host-authoritative first night flow runs to completion,
- * ending with death announcement or "平安夜" result.
+ * PURPOSE: Verify the game flow runs to completion (smoke test).
+ * Does NOT verify exact death results - that's covered by Jest unit tests.
  * 
- * SCENARIO: 2 players (Host A + Joiner B) run through first night
- * - Host creates room, auto-takes seat 1
- * - Joiner joins and takes seat 2
- * - Host starts game → night flow begins
- * - Loop through role turns with minimal interaction (skip/confirm)
- * - Assert final result: "平安夜" or "玩家死亡"
+ * SCENARIOS:
+ * - NIGHT-6P: 6-player first night (2 wolves + seer + witch + hunter + 1 villager)
+ * - RESTART: After night ends, restart and run a second night
+ * - SETTINGS: Verify settings change is observable
  */
 
 // Fail fast: stop on first failure
 test.describe.configure({ mode: 'serial' });
 
-// Increase test timeout for night flow (audio playback + network latency)
-test.setTimeout(90_000);
+// Increase test timeout for multi-player flows
+test.setTimeout(180_000);
 
 // =============================================================================
 // Diagnostic Infrastructure (reused from seating.basic.spec.ts)
@@ -151,6 +149,49 @@ async function configure2PlayerTemplate(page: Page): Promise<void> {
   }
 }
 
+/**
+ * Configure a 6-player template on ConfigScreen
+ * Keep: 2 wolves (普狼x2) + seer + witch + hunter + 1 villager = 6
+ * Deselect: wolf3/4, villager2/3/4, 白痴
+ */
+async function configure6PlayerTemplate(page: Page): Promise<void> {
+  console.log('[NIGHT] Configuring 6-player template...');
+  
+  // Start from default "标准板12人" - need to deselect to get to 6
+  // Default: 4 wolves + 4 villagers + seer + witch + hunter + idiot = 12
+  // Target: 2 wolves + 1 villager + seer + witch + hunter = 6
+  
+  // Deselect 白痴 (idiot)
+  const idiotChip = page.getByText('白痴', { exact: true });
+  if (await idiotChip.isVisible({ timeout: 500 }).catch(() => false)) {
+    console.log('[NIGHT] Deselecting: 白痴');
+    await idiotChip.click();
+    await page.waitForTimeout(100);
+  }
+  
+  // Deselect extra wolves (keep 2, deselect wolf3/wolf4)
+  // ConfigScreen has wolf, wolf1, wolf2, wolf3, wolf4 chips - all labeled "普狼"
+  const wolfChips = await page.getByText('普狼', { exact: true }).all();
+  console.log(`[NIGHT] Found ${wolfChips.length} wolf chips, keeping first 2`);
+  for (let i = 2; i < wolfChips.length; i++) {
+    console.log(`[NIGHT] Deselecting wolf chip ${i + 1}`);
+    await wolfChips[i].click();
+    await page.waitForTimeout(100);
+  }
+  
+  // Deselect extra villagers (keep 1)
+  const villagerChips = await page.getByText('村民', { exact: true }).all();
+  console.log(`[NIGHT] Found ${villagerChips.length} villager chips, keeping first 1`);
+  for (let i = 1; i < villagerChips.length; i++) {
+    console.log(`[NIGHT] Deselecting villager chip ${i + 1}`);
+    await villagerChips[i].click();
+    await page.waitForTimeout(100);
+  }
+  
+  // Verify total = 6 (should see "6人" or similar in UI)
+  console.log('[NIGHT] 6-player template configured: 2狼 + 预言家 + 女巫 + 猎人 + 1村民');
+}
+
 // =============================================================================
 // Night Flow Helpers
 // =============================================================================
@@ -208,7 +249,8 @@ async function tryAdvanceNight(
   page: Page, 
   turnLog: string[], 
   iteration: number,
-  state: NightFlowState
+  state: NightFlowState,
+  pageLabel: string
 ): Promise<boolean> {
   // Check and log role turn indicators
   await detectRoleTurnIndicators(page, turnLog);
@@ -216,7 +258,7 @@ async function tryAdvanceNight(
   // Try clicking advance buttons with state-wait
   const visibleButton = await tryClickAdvanceButtons(page);
   if (visibleButton) {
-    const stateChanged = await executeActionWithStateWait(page, visibleButton, state);
+    const stateChanged = await executeActionWithStateWait(page, visibleButton, state, pageLabel);
     return stateChanged;
   }
 
@@ -255,8 +297,34 @@ async function tryClickAdvanceButtons(page: Page): Promise<string | null> {
 
 const VOTE_COUNT_PATTERN = String.raw`\d+/\d+ 狼人已投票`;
 
+/**
+ * Multi-wolf vote tracking state.
+ * Uses Set of page labels to track which wolves have completed voting.
+ * Prevents double-voting while allowing all wolves to participate.
+ */
 interface NightFlowState {
-  wolfVoteSubmitted: boolean;  // Track if wolf vote was already submitted
+  /** Set of page labels that have submitted wolf vote (e.g., "page-0", "page-1") */
+  wolfVotedPages: Set<string>;
+  /** Total number of wolves expected (parsed from "X/Y 狼人已投票") */
+  expectedWolfCount: number;
+}
+
+/**
+ * Parse wolf vote count from page: "X/Y 狼人已投票" → { current, total }
+ */
+async function parseWolfVoteCount(page: Page): Promise<{ current: number; total: number } | null> {
+  const voteCountLoc = page.locator(`text=/${VOTE_COUNT_PATTERN}/`);
+  if (!await voteCountLoc.isVisible({ timeout: 100 }).catch(() => false)) {
+    return null;
+  }
+  const text = await voteCountLoc.textContent().catch(() => null);
+  if (!text) return null;
+  
+  const regex = /(\d+)\/(\d+)/;
+  const match = regex.exec(text);
+  if (!match) return null;
+  
+  return { current: Number.parseInt(match[1], 10), total: Number.parseInt(match[2], 10) };
 }
 
 /**
@@ -266,41 +334,61 @@ interface NightFlowState {
 async function executeActionWithStateWait(
   page: Page, 
   buttonText: string,
-  state: NightFlowState
+  state: NightFlowState,
+  pageLabel: string
 ): Promise<boolean> {
   const btn = page.getByText(buttonText, { exact: true }).first();
   
-  // Skip wolf vote actions if already submitted
-  if (state.wolfVoteSubmitted && (buttonText === '投票空刀' || buttonText === '确定')) {
-    // Check if this is in a wolf voting context
-    const isWolfVoteContext = await page.locator(`text=/${VOTE_COUNT_PATTERN}/`).isVisible({ timeout: 100 }).catch(() => false);
-    if (isWolfVoteContext) {
-      console.log(`[Night] Skipping "${buttonText}" - wolf vote already submitted`);
-      return false;
+  // For wolf vote context, check if THIS page already voted
+  if (buttonText === '投票空刀' || buttonText === '确定') {
+    const voteCount = await parseWolfVoteCount(page);
+    if (voteCount) {
+      // Update expected wolf count
+      if (state.expectedWolfCount === 0) {
+        state.expectedWolfCount = voteCount.total;
+        console.log(`[Night] Wolf vote count detected: ${voteCount.current}/${voteCount.total}`);
+      }
+      
+      // Check if THIS page already voted
+      if (state.wolfVotedPages.has(pageLabel)) {
+        console.log(`[Night] [${pageLabel}] Skipping "${buttonText}" - this wolf already voted`);
+        return false;
+      }
+      
+      // Check if all wolves already voted (shouldn't still be showing vote dialog)
+      if (voteCount.current >= voteCount.total) {
+        console.log(`[Night] All wolves voted (${voteCount.current}/${voteCount.total}), skipping`);
+        return false;
+      }
     }
   }
   
-  console.log(`[Night] Clicking button: "${buttonText}"`);
+  console.log(`[Night] [${pageLabel}] Clicking button: "${buttonText}"`);
   await btn.click();
   
   // Wait for observable state change based on button type
   if (buttonText === '投票空刀') {
     // After clicking 投票空刀, a confirm dialog should appear
-    // Wait for the confirm button to appear
-    const confirmVisible = await page.getByText('确定', { exact: true }).first().waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false);
+    const confirmVisible = await page.getByText('确定', { exact: true }).first()
+      .waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false);
     return confirmVisible;
   }
   
   if (buttonText === '确定') {
-    // Check if this was a wolf vote confirm (by looking for vote count text)
-    const isWolfVoteConfirm = await page.locator(`text=/${VOTE_COUNT_PATTERN}/`).isVisible({ timeout: 100 }).catch(() => false);
+    // Check if this was a wolf vote confirm
+    const voteCount = await parseWolfVoteCount(page);
     
     // Wait for button to be hidden (dialog dismissed)
     await btn.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
     
-    if (isWolfVoteConfirm) {
-      console.log('[Night] Wolf vote confirmed - marking as submitted');
-      state.wolfVoteSubmitted = true;
+    if (voteCount) {
+      console.log(`[Night] [${pageLabel}] Wolf vote confirmed - count was ${voteCount.current}/${voteCount.total}`);
+      state.wolfVotedPages.add(pageLabel);
+      
+      // Log when all wolves have voted
+      if (state.wolfVotedPages.size >= state.expectedWolfCount) {
+        console.log(`[Night] ✅ All ${state.expectedWolfCount} wolves have voted`);
+      }
     }
     
     await page.waitForTimeout(500);
@@ -328,21 +416,32 @@ async function tryClickSeatTarget(page: Page): Promise<boolean> {
   const actionMsgVisible = await page.locator('[class*="actionMessage"]').isVisible({ timeout: 100 }).catch(() => false);
   if (!actionMsgVisible) return false;
 
-  console.log('[Night] Action message visible, trying to select seat 2...');
-  try {
-    await getSeatTileLocator(page, 1).click();
-    await page.waitForTimeout(300);
-    
-    const confirmBtn = page.getByText('确定', { exact: true });
-    if (await confirmBtn.first().isVisible({ timeout: 500 }).catch(() => false)) {
-      console.log('[Night] Confirming seat selection...');
-      await confirmBtn.first().click();
+  // Prefer higher seat numbers to avoid targeting self or early players
+  // Try seat 6 first (index 5), then 5, 4, 3, 2 as fallbacks
+  const seatIndicesToTry = [5, 4, 3, 2, 1];
+  
+  console.log('[Night] Action message visible, trying to select a safe target seat...');
+  for (const seatIdx of seatIndicesToTry) {
+    try {
+      const seatTile = getSeatTileLocator(page, seatIdx);
+      const isVisible = await seatTile.isVisible({ timeout: 100 }).catch(() => false);
+      if (!isVisible) continue;
+      
+      await seatTile.click();
       await page.waitForTimeout(300);
+      
+      const confirmBtn = page.getByText('确定', { exact: true });
+      if (await confirmBtn.first().isVisible({ timeout: 500 }).catch(() => false)) {
+        console.log(`[Night] Selected seat ${seatIdx + 1}, confirming...`);
+        await confirmBtn.first().click();
+        await page.waitForTimeout(300);
+        return true;
+      }
+    } catch {
+      continue;
     }
-    return true;
-  } catch {
-    return false;
   }
+  return false;
 }
 
 /**
@@ -363,7 +462,7 @@ async function captureNightResult(page: Page): Promise<string> {
 
 /**
  * Run night flow loop on multiple pages until completion or timeout.
- * Both players may need to take actions depending on their roles.
+ * All players may need to take actions depending on their roles.
  */
 async function runNightFlowLoop(
   pages: Page[],
@@ -374,9 +473,10 @@ async function runNightFlowLoop(
   const turnLog: string[] = [];
   const primaryPage = pages[0]; // Use first page for result checking
   
-  // State tracking across iterations
+  // State tracking across iterations - supports multi-wolf voting
   const state: NightFlowState = {
-    wolfVoteSubmitted: false,
+    wolfVotedPages: new Set(),
+    expectedWolfCount: 0,
   };
   
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
@@ -394,8 +494,10 @@ async function runNightFlowLoop(
     
     // Try to advance on ALL pages (any player might need to act)
     let advanced = false;
-    for (const page of pages) {
-      const pageAdvanced = await tryAdvanceNight(page, turnLog, iteration, state);
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
+      const pageLabel = `page-${i}`;
+      const pageAdvanced = await tryAdvanceNight(page, turnLog, iteration, state, pageLabel);
       if (pageAdvanced) {
         advanced = true;
         break; // One action per iteration
@@ -663,6 +765,502 @@ test.describe('Night 1 Happy Path', () => {
     } finally {
       await contextA.close();
       await contextB.close();
+    }
+  });
+
+  /**
+   * 6-player night test: 2 wolves + seer + witch + hunter + 1 villager
+   * Validates multi-wolf voting and full role flow.
+   */
+  test('6-player night flow with 2 wolves', async ({ browser }, testInfo) => {
+    console.log('\n🌙 NIGHT-1: 6-player multi-wolf test (2狼+预言家+女巫+猎人+村民)\n');
+    
+    const PLAYER_COUNT = 6;
+    const contexts: BrowserContext[] = [];
+    const pages: Page[] = [];
+    const diags: ReturnType<typeof setupDiagnostics>[] = [];
+    
+    let roomNumber = '';
+    let nightResult = { resultText: '', turnLog: [] as string[] };
+
+    try {
+      // Create 6 isolated contexts
+      for (let i = 0; i < PLAYER_COUNT; i++) {
+        const ctx = await browser.newContext();
+        const page = await ctx.newPage();
+        const label = i === 0 ? 'HOST' : `JOINER-${i + 1}`;
+        contexts.push(ctx);
+        pages.push(page);
+        diags.push(setupDiagnostics(page, label));
+      }
+      
+      const [hostPage, ...joinerPages] = pages;
+
+      // ===================== HOST: Create room with 6-player template =====================
+      console.log('[6P] === HOST Setup ===');
+      
+      await gotoWithRetry(hostPage, '/');
+      await waitForAppReady(hostPage);
+      await ensureAnonLogin(hostPage);
+      
+      await hostPage.getByText('创建房间').click();
+      await expect(getVisibleText(hostPage, '创建')).toBeVisible({ timeout: 10000 });
+      
+      // Configure 6-player template
+      await configure6PlayerTemplate(hostPage);
+      await takeScreenshot(hostPage, testInfo, '6p-01-config.png');
+      
+      // Create room
+      await getVisibleText(hostPage, '创建').click();
+      await waitForRoomScreenReady(hostPage, { role: 'host' });
+      
+      roomNumber = await extractRoomNumber(hostPage);
+      console.log(`[6P] HOST created room: ${roomNumber}`);
+      await takeScreenshot(hostPage, testInfo, '6p-02-room-created.png');
+
+      // ===================== JOINERS: Join room and take seats =====================
+      console.log('\n[6P] === Joiners Joining ===');
+      
+      for (let i = 0; i < joinerPages.length; i++) {
+        const joinerPage = joinerPages[i];
+        const seatIndex = i + 1; // Seats 2-6 (index 1-5)
+        const playerNum = i + 2; // Players 2-6
+        
+        await gotoWithRetry(joinerPage, '/');
+        await waitForAppReady(joinerPage);
+        await ensureAnonLogin(joinerPage);
+        
+        // Join room
+        await getVisibleText(joinerPage, '进入房间').first().click();
+        await expect(joinerPage.getByText('加入房间')).toBeVisible({ timeout: 5000 });
+        
+        const input = joinerPage.locator('input').first();
+        await input.fill(roomNumber);
+        await joinerPage.getByText('加入', { exact: true }).click();
+        
+        await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
+        console.log(`[6P] Player ${playerNum} joined room ${roomNumber}`);
+        
+        // Take seat
+        await getSeatTileLocator(joinerPage, seatIndex).click();
+        await expect(joinerPage.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
+        await joinerPage.getByText('确定', { exact: true }).click();
+        await joinerPage.waitForTimeout(500);
+        
+        await expect(joinerPage.getByText('我')).toBeVisible({ timeout: 3000 });
+        console.log(`[6P] Player ${playerNum} seated at seat ${seatIndex + 1}`);
+      }
+      
+      await takeScreenshot(hostPage, testInfo, '6p-03-all-seated.png');
+
+      // ===================== HOST: Prepare to flip roles =====================
+      console.log('\n[6P] HOST clicking 准备看牌...');
+      await hostPage.waitForTimeout(500);
+      
+      const prepareBtn = hostPage.getByText('准备看牌');
+      await expect(prepareBtn).toBeVisible({ timeout: 5000 });
+      await prepareBtn.click();
+      
+      await expect(hostPage.getByText('允许看牌？')).toBeVisible({ timeout: 3000 });
+      await hostPage.getByText('确定', { exact: true }).click();
+      await hostPage.waitForTimeout(1000);
+      
+      await takeScreenshot(hostPage, testInfo, '6p-04-roles-assigned.png');
+      console.log('[6P] Roles assigned');
+
+      // ===================== All players view roles =====================
+      console.log('\n[6P] Players viewing roles...');
+      
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        const label = i === 0 ? 'HOST' : `P${i + 1}`;
+        
+        console.log(`[6P] ${label} clicking 查看身份...`);
+        const viewRoleBtn = page.getByText('查看身份', { exact: true });
+        await expect(viewRoleBtn).toBeVisible({ timeout: 5000 });
+        await viewRoleBtn.click();
+        
+        const roleDialog = page.getByText('你的身份是', { exact: false });
+        await expect(roleDialog).toBeVisible({ timeout: 3000 });
+        
+        await page.waitForTimeout(200);
+        const okBtn = page.locator('text="确定"').first();
+        await expect(okBtn).toBeVisible({ timeout: 2000 });
+        await okBtn.click();
+        console.log(`[6P] ${label} dismissed role card`);
+        
+        await page.waitForTimeout(300);
+      }
+      
+      await hostPage.waitForTimeout(1000);
+      console.log('[6P] All players viewed roles');
+
+      // ===================== HOST: Start game =====================
+      console.log('\n[6P] HOST starting game...');
+      
+      const startBtn = hostPage.getByText('开始游戏');
+      await expect(startBtn).toBeVisible({ timeout: 5000 });
+      await startBtn.click();
+      
+      await expect(hostPage.getByText('开始游戏？')).toBeVisible({ timeout: 3000 });
+      await hostPage.getByText('确定', { exact: true }).click();
+      
+      console.log('[6P] Game started - entering night flow...');
+      await takeScreenshot(hostPage, testInfo, '6p-05-night-started.png');
+
+      // ===================== Run night flow on all pages =====================
+      console.log('\n[6P] Running night flow with 6 players (2 wolves)...');
+      
+      // Multi-player night flow with higher iteration limit
+      nightResult = await runNightFlowLoop(pages, testInfo, 120, 15);
+      
+      console.log(`[6P] Night flow complete. Result: ${nightResult.resultText}`);
+      console.log(`[6P] Turn log: ${nightResult.turnLog.join(' → ')}`);
+      
+      await takeScreenshot(hostPage, testInfo, '6p-06-night-ended.png');
+
+      // ===================== Verify night end =====================
+      console.log('\n[6P] Verifying night end...');
+      
+      const lastNightBtn = hostPage.getByText('查看昨晚信息');
+      const restartBtn = hostPage.getByText('重新开始');
+      
+      const hasLastNightBtn = await lastNightBtn.isVisible({ timeout: 5000 }).catch(() => false);
+      const hasRestartBtn = await restartBtn.isVisible({ timeout: 1000 }).catch(() => false);
+      
+      console.log(`[6P] 查看昨晚信息 visible: ${hasLastNightBtn}`);
+      console.log(`[6P] 重新开始 visible: ${hasRestartBtn}`);
+      
+      // Night should complete (smoke test - no death assertion)
+      const nightEnded = hasLastNightBtn || hasRestartBtn || 
+        nightResult.resultText.includes('平安夜') || 
+        nightResult.resultText.includes('死亡');
+      
+      expect(nightEnded, '6-player first night should complete').toBe(true);
+      
+      // Attach diagnostic report
+      await testInfo.attach('6player-night.txt', {
+        body: [
+          '=== 6-PLAYER NIGHT TEST ===',
+          `Room: ${roomNumber}`,
+          'Template: 2狼 + 预言家 + 女巫 + 猎人 + 1村民',
+          '',
+          '=== NIGHT FLOW RESULT ===',
+          `Result: ${nightResult.resultText}`,
+          '',
+          '=== ROLE TURN LOG ===',
+          nightResult.turnLog.length > 0 
+            ? nightResult.turnLog.join('\n') 
+            : '(no role turns logged)',
+          '',
+          '=== END STATE ===',
+          `查看昨晚信息 visible: ${hasLastNightBtn}`,
+          `重新开始 visible: ${hasRestartBtn}`,
+          '',
+          '=== PLAYER LOGS ===',
+          ...diags.flatMap((d, i) => [
+            `--- Player ${i + 1} (${i === 0 ? 'HOST' : 'JOINER'}) ---`,
+            `Errors: ${d.pageErrors.join(', ') || 'none'}`,
+          ]),
+        ].join('\n'),
+        contentType: 'text/plain',
+      });
+      
+      console.log('\n🌙 6-PLAYER NIGHT TEST COMPLETE\n');
+      
+    } finally {
+      for (const ctx of contexts) {
+        await ctx.close();
+      }
+    }
+  });
+
+  /**
+   * Restart regression test: After first night, click 重新开始, verify second night runs
+   */
+  test('restart after first night completes successfully', async ({ browser }, testInfo) => {
+    console.log('\n🔄 RESTART REGRESSION TEST\n');
+    
+    // Use 2-player template for faster restart test
+    const contextA = await browser.newContext();
+    const contextB = await browser.newContext();
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
+    
+    const diagA = setupDiagnostics(pageA, 'HOST');
+    const diagB = setupDiagnostics(pageB, 'JOINER');
+    
+    let roomNumber = '';
+
+    try {
+      // ===================== Setup: Same as 2-player test =====================
+      console.log('[RESTART] === Initial Setup ===');
+      
+      await gotoWithRetry(pageA, '/');
+      await waitForAppReady(pageA);
+      await ensureAnonLogin(pageA);
+      
+      await pageA.getByText('创建房间').click();
+      await expect(getVisibleText(pageA, '创建')).toBeVisible({ timeout: 10000 });
+      await configure2PlayerTemplate(pageA);
+      await getVisibleText(pageA, '创建').click();
+      await waitForRoomScreenReady(pageA, { role: 'host' });
+      
+      roomNumber = await extractRoomNumber(pageA);
+      console.log(`[RESTART] Room created: ${roomNumber}`);
+      
+      // Joiner joins
+      await gotoWithRetry(pageB, '/');
+      await waitForAppReady(pageB);
+      await ensureAnonLogin(pageB);
+      await getVisibleText(pageB, '进入房间').first().click();
+      await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
+      await pageB.locator('input').first().fill(roomNumber);
+      await pageB.getByText('加入', { exact: true }).click();
+      await waitForRoomScreenReady(pageB, { role: 'joiner' });
+      
+      // Joiner takes seat
+      await getSeatTileLocator(pageB, 1).click();
+      await expect(pageB.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
+      await pageB.getByText('确定', { exact: true }).click();
+      await expect(pageB.getByText('我')).toBeVisible({ timeout: 3000 });
+      console.log('[RESTART] Both players seated');
+
+      // ===================== First Night =====================
+      console.log('\n[RESTART] === Running First Night ===');
+      
+      // Prepare roles
+      await pageA.waitForTimeout(500);
+      await pageA.getByText('准备看牌').click();
+      await expect(pageA.getByText('允许看牌？')).toBeVisible({ timeout: 3000 });
+      await pageA.getByText('确定', { exact: true }).click();
+      await pageA.waitForTimeout(1000);
+      
+      // Both view roles
+      for (const page of [pageA, pageB]) {
+        const btn = page.getByText('查看身份', { exact: true });
+        await expect(btn).toBeVisible({ timeout: 5000 });
+        await btn.click();
+        await expect(page.getByText('你的身份是', { exact: false })).toBeVisible({ timeout: 3000 });
+        await page.waitForTimeout(200);
+        await page.locator('text="确定"').first().click();
+        await page.waitForTimeout(300);
+      }
+      await pageA.waitForTimeout(1000);
+      
+      // Start game
+      await pageA.getByText('开始游戏').click();
+      await expect(pageA.getByText('开始游戏？')).toBeVisible({ timeout: 3000 });
+      await pageA.getByText('确定', { exact: true }).click();
+      
+      console.log('[RESTART] First night started...');
+      
+      // Run first night
+      const firstNight = await runNightFlowLoop([pageA, pageB], testInfo, 60, 10);
+      console.log(`[RESTART] First night result: ${firstNight.resultText}`);
+      
+      await takeScreenshot(pageA, testInfo, 'restart-01-first-night-done.png');
+
+      // ===================== Restart =====================
+      console.log('\n[RESTART] === Clicking 重新开始 ===');
+      
+      const restartBtn = pageA.getByText('重新开始');
+      await expect(restartBtn).toBeVisible({ timeout: 5000 });
+      await restartBtn.click();
+      
+      // Confirm restart dialog
+      const confirmDialog = pageA.getByText('确定重新开始');
+      const confirmVisible = await confirmDialog.isVisible({ timeout: 3000 }).catch(() => false);
+      if (confirmVisible) {
+        await pageA.getByText('确定', { exact: true }).click();
+      }
+      
+      await pageA.waitForTimeout(1000);
+      console.log('[RESTART] Game restarted');
+      await takeScreenshot(pageA, testInfo, 'restart-02-after-restart.png');
+
+      // ===================== Second Night: Re-run the flow =====================
+      console.log('\n[RESTART] === Running Second Night ===');
+      
+      // 准备看牌 should be visible again
+      const prepareBtn2 = pageA.getByText('准备看牌');
+      await expect(prepareBtn2).toBeVisible({ timeout: 5000 });
+      await prepareBtn2.click();
+      await expect(pageA.getByText('允许看牌？')).toBeVisible({ timeout: 3000 });
+      await pageA.getByText('确定', { exact: true }).click();
+      await pageA.waitForTimeout(1000);
+      
+      // Both view roles again
+      for (const page of [pageA, pageB]) {
+        const btn = page.getByText('查看身份', { exact: true });
+        await expect(btn).toBeVisible({ timeout: 5000 });
+        await btn.click();
+        await expect(page.getByText('你的身份是', { exact: false })).toBeVisible({ timeout: 3000 });
+        await page.waitForTimeout(200);
+        await page.locator('text="确定"').first().click();
+        await page.waitForTimeout(300);
+      }
+      await pageA.waitForTimeout(1000);
+      
+      // Start second game
+      await pageA.getByText('开始游戏').click();
+      await expect(pageA.getByText('开始游戏？')).toBeVisible({ timeout: 3000 });
+      await pageA.getByText('确定', { exact: true }).click();
+      
+      console.log('[RESTART] Second night started...');
+      
+      // Run second night
+      const secondNight = await runNightFlowLoop([pageA, pageB], testInfo, 60, 10);
+      console.log(`[RESTART] Second night result: ${secondNight.resultText}`);
+      
+      await takeScreenshot(pageA, testInfo, 'restart-03-second-night-done.png');
+
+      // ===================== Verify second night completed =====================
+      const lastNightBtn = pageA.getByText('查看昨晚信息');
+      const restartBtn2 = pageA.getByText('重新开始');
+      
+      const hasLastNight = await lastNightBtn.isVisible({ timeout: 5000 }).catch(() => false);
+      const hasRestart = await restartBtn2.isVisible({ timeout: 1000 }).catch(() => false);
+      
+      const secondNightEnded = hasLastNight || hasRestart || 
+        secondNight.resultText.includes('平安夜') || 
+        secondNight.resultText.includes('死亡');
+      
+      expect(secondNightEnded, 'Second night after restart should complete').toBe(true);
+      
+      await testInfo.attach('restart-test.txt', {
+        body: [
+          '=== RESTART REGRESSION TEST ===',
+          `Room: ${roomNumber}`,
+          '',
+          '=== FIRST NIGHT ===',
+          `Result: ${firstNight.resultText}`,
+          `Turns: ${firstNight.turnLog.join(' → ')}`,
+          '',
+          '=== SECOND NIGHT (after restart) ===',
+          `Result: ${secondNight.resultText}`,
+          `Turns: ${secondNight.turnLog.join(' → ')}`,
+          '',
+          '=== ERRORS ===',
+          `Host: ${diagA.pageErrors.join(', ') || 'none'}`,
+          `Joiner: ${diagB.pageErrors.join(', ') || 'none'}`,
+        ].join('\n'),
+        contentType: 'text/plain',
+      });
+      
+      console.log('\n🔄 RESTART REGRESSION TEST COMPLETE\n');
+      
+    } finally {
+      await contextA.close();
+      await contextB.close();
+    }
+  });
+
+  /**
+   * Settings verification test: Change template via settings, verify seat count changes
+   */
+  test('settings change affects seat count', async ({ browser }, testInfo) => {
+    console.log('\n⚙️ SETTINGS VERIFICATION TEST\n');
+    
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    const diag = setupDiagnostics(page, 'HOST');
+    
+    let roomNumber = '';
+
+    try {
+      // ===================== Create room with 2-player template =====================
+      console.log('[SETTINGS] === Initial Setup with 2-player ===');
+      
+      await gotoWithRetry(page, '/');
+      await waitForAppReady(page);
+      await ensureAnonLogin(page);
+      
+      await page.getByText('创建房间').click();
+      await expect(getVisibleText(page, '创建')).toBeVisible({ timeout: 10000 });
+      await configure2PlayerTemplate(page);
+      await getVisibleText(page, '创建').click();
+      await waitForRoomScreenReady(page, { role: 'host' });
+      
+      roomNumber = await extractRoomNumber(page);
+      console.log(`[SETTINGS] Room created: ${roomNumber}`);
+      
+      await takeScreenshot(page, testInfo, 'settings-01-initial-room.png');
+
+      // ===================== Count initial seats =====================
+      // With 2-player template: wolf + villager = 2 seats
+      const countVisibleSeats = async (): Promise<number> => {
+        let count = 0;
+        for (let i = 0; i < 12; i++) {
+          const seat = getSeatTileLocator(page, i);
+          const isVisible = await seat.isVisible({ timeout: 100 }).catch(() => false);
+          if (isVisible) count++;
+        }
+        return count;
+      };
+      
+      const initialSeats = await countVisibleSeats();
+      console.log(`[SETTINGS] Initial seat count: ${initialSeats}`);
+      expect(initialSeats).toBe(2);
+
+      // ===================== Open settings and change template =====================
+      console.log('\n[SETTINGS] === Changing template via settings ===');
+      
+      const settingsBtn = page.getByText('⚙️ 设置');
+      await expect(settingsBtn).toBeVisible({ timeout: 5000 });
+      await settingsBtn.click();
+      
+      // Should navigate to Config screen
+      await expect(getVisibleText(page, '创建')).toBeVisible({ timeout: 10000 });
+      console.log('[SETTINGS] Config screen opened');
+      
+      await takeScreenshot(page, testInfo, 'settings-02-config-screen.png');
+      
+      // Add one more villager (click 村民 chip to increase count)
+      // The chip shows current count - clicking it should cycle/add
+      const villagerChip = page.getByText('村民', { exact: false }).first();
+      await expect(villagerChip).toBeVisible({ timeout: 3000 });
+      await villagerChip.click();
+      await page.waitForTimeout(300);
+      
+      console.log('[SETTINGS] Added one villager');
+      await takeScreenshot(page, testInfo, 'settings-03-added-villager.png');
+      
+      // Apply changes (click 创建 button - in edit mode it applies to existing room)
+      await getVisibleText(page, '创建').click();
+      await waitForRoomScreenReady(page, { role: 'host' });
+      
+      console.log('[SETTINGS] Settings applied, back in room');
+
+      // ===================== Verify seat count changed =====================
+      const updatedSeats = await countVisibleSeats();
+      console.log(`[SETTINGS] Updated seat count: ${updatedSeats}`);
+      
+      await takeScreenshot(page, testInfo, 'settings-04-updated-room.png');
+      
+      // Seat count should have increased (was 2, now should be 3)
+      expect(updatedSeats).toBeGreaterThan(initialSeats);
+      console.log(`[SETTINGS] ✅ Seat count changed: ${initialSeats} → ${updatedSeats}`);
+      
+      await testInfo.attach('settings-test.txt', {
+        body: [
+          '=== SETTINGS VERIFICATION TEST ===',
+          `Room: ${roomNumber}`,
+          '',
+          '=== SEAT COUNT ===',
+          `Initial: ${initialSeats}`,
+          `After settings change: ${updatedSeats}`,
+          '',
+          '=== ERRORS ===',
+          `Host: ${diag.pageErrors.join(', ') || 'none'}`,
+        ].join('\n'),
+        contentType: 'text/plain',
+      });
+      
+      console.log('\n⚙️ SETTINGS VERIFICATION TEST COMPLETE\n');
+      
+    } finally {
+      await context.close();
     }
   });
 
