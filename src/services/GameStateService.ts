@@ -1327,12 +1327,18 @@ export class GameStateService {
     if (!this.isHost || !this.state) return;
 
     // STRICT INVARIANT: nightFlow must exist when status === ongoing
-    if (!this.nightFlow) {
+    // Only enforce this invariant during active night phase
+    if (this.state.status === GameStatus.ongoing && !this.nightFlow) {
       console.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: advanceToNextAction() called but nightFlow is null.',
         'status:', this.state.status
       );
       throw new Error('advanceToNextAction: nightFlow is null - strict invariant violation');
+    }
+
+    // If not ongoing (e.g., ended, ready), just return silently - not an error
+    if (!this.nightFlow) {
+      return;
     }
 
     const currentRole = this.getCurrentActionRole();
@@ -1372,12 +1378,18 @@ export class GameStateService {
     if (!this.isHost || !this.state) return;
 
     // STRICT INVARIANT: nightFlow must exist when status === ongoing
-    if (!this.nightFlow) {
+    // Only enforce this invariant during active night phase
+    if (this.state.status === GameStatus.ongoing && !this.nightFlow) {
       console.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: endNight() called but nightFlow is null.',
         'status:', this.state.status
       );
       throw new Error('endNight: nightFlow is null - strict invariant violation');
+    }
+
+    // If not ongoing (e.g., ended, ready), just return silently - not an error
+    if (!this.nightFlow) {
+      return;
     }
 
     // Play night end audio
