@@ -505,6 +505,15 @@ export class GameStateService {
   ): Promise<void> {
     if (!this.state || this.state.status !== GameStatus.ongoing) return;
 
+    // STRICT INVARIANT: nightFlow must exist when status === ongoing
+    if (!this.nightFlow) {
+      console.error(
+        '[GameStateService] STRICT INVARIANT VIOLATION: handlePlayerAction() called but nightFlow is null.',
+        'seat:', seat, 'role:', role
+      );
+      throw new Error('handlePlayerAction: nightFlow is null - strict invariant violation');
+    }
+
     // Verify this is the correct role's turn
     const currentRole = this.getCurrentActionRole();
     if (currentRole !== role) {
@@ -513,15 +522,13 @@ export class GameStateService {
     }
 
     // NightFlow guard: only allow action in WaitingForAction phase and matching role
-    if (this.nightFlow) {
-      if (this.nightFlow.phase !== NightPhase.WaitingForAction) {
-        console.log('[GameState Host] NightFlow not in WaitingForAction phase, ignoring action');
-        return;
-      }
-      if (this.nightFlow.currentRole !== role) {
-        console.log('[GameState Host] NightFlow role mismatch:', role, 'expected:', this.nightFlow.currentRole);
-        return;
-      }
+    if (this.nightFlow.phase !== NightPhase.WaitingForAction) {
+      console.log('[GameState Host] NightFlow not in WaitingForAction phase, ignoring action');
+      return;
+    }
+    if (this.nightFlow.currentRole !== role) {
+      console.log('[GameState Host] NightFlow role mismatch:', role, 'expected:', this.nightFlow.currentRole);
+      return;
     }
 
     // Record action
@@ -540,19 +547,20 @@ export class GameStateService {
       // Record action in nightFlow (use raw target, encoding handled above)
       try {
         const rawTarget = role === 'witch' && extra === true ? -(target + 1) : target;
-        this.nightFlow?.recordAction(role, rawTarget);
+        this.nightFlow.recordAction(role, rawTarget);
       } catch (err) {
         console.error('[GameStateService] NightFlow recordAction failed:', err);
-        // Continue with legacy flow
+        throw err; // STRICT: propagate error, don't continue
       }
     }
 
     // Dispatch ActionSubmitted to nightFlow
     try {
-      this.nightFlow?.dispatch(NightEvent.ActionSubmitted);
+      this.nightFlow.dispatch(NightEvent.ActionSubmitted);
     } catch (err) {
       if (err instanceof InvalidNightTransitionError) {
         console.error('[GameStateService] NightFlow ActionSubmitted failed:', err.message);
+        throw err; // STRICT: propagate error
       } else {
         throw err;
       }
@@ -564,6 +572,15 @@ export class GameStateService {
 
   private async handleWolfVote(seat: number, target: number): Promise<void> {
     if (!this.state || this.state.status !== GameStatus.ongoing) return;
+
+    // STRICT INVARIANT: nightFlow must exist when status === ongoing
+    if (!this.nightFlow) {
+      console.error(
+        '[GameStateService] STRICT INVARIANT VIOLATION: handleWolfVote() called but nightFlow is null.',
+        'seat:', seat
+      );
+      throw new Error('handleWolfVote: nightFlow is null - strict invariant violation');
+    }
 
     const currentRole = this.getCurrentActionRole();
     if (currentRole !== 'wolf') return;
@@ -584,7 +601,7 @@ export class GameStateService {
       if (this.state.actions.has('wolf')) {
         console.debug(
           '[GameStateService] handleWolfVote finalize skipped (once-guard): wolf action already recorded.',
-          'phase:', this.nightFlow?.phase,
+          'phase:', this.nightFlow.phase,
           'currentActionerIndex:', this.state.currentActionerIndex
         );
         return;
@@ -596,26 +613,26 @@ export class GameStateService {
         this.state.actions.set('wolf', finalTarget);
         // Record action in nightFlow
         try {
-          this.nightFlow?.recordAction('wolf', finalTarget);
+          this.nightFlow.recordAction('wolf', finalTarget);
         } catch (err) {
           console.debug(
             '[GameStateService] NightFlow recordAction (wolf) failed:',
             err,
-            'phase:', this.nightFlow?.phase
+            'phase:', this.nightFlow.phase
           );
         }
       }
 
       // Dispatch ActionSubmitted to nightFlow (required before advanceToNextAction)
       try {
-        this.nightFlow?.dispatch(NightEvent.ActionSubmitted);
+        this.nightFlow.dispatch(NightEvent.ActionSubmitted);
       } catch (err) {
         if (err instanceof InvalidNightTransitionError) {
           // This should NOT happen with proper once-guard above
           // If it does, it indicates a bug in the call chain
           console.debug(
             '[GameStateService] NightFlow ActionSubmitted (wolf) rejected:',
-            'phase:', this.nightFlow?.phase,
+            'phase:', this.nightFlow.phase,
             '(expected WaitingForAction). This may indicate a call chain bug.'
           );
         } else {
@@ -1309,6 +1326,15 @@ export class GameStateService {
   private async advanceToNextAction(): Promise<void> {
     if (!this.isHost || !this.state) return;
 
+    // STRICT INVARIANT: nightFlow must exist when status === ongoing
+    if (!this.nightFlow) {
+      console.error(
+        '[GameStateService] STRICT INVARIANT VIOLATION: advanceToNextAction() called but nightFlow is null.',
+        'status:', this.state.status
+      );
+      throw new Error('advanceToNextAction: nightFlow is null - strict invariant violation');
+    }
+
     const currentRole = this.getCurrentActionRole();
     
     // Play role ending audio if available
@@ -1321,23 +1347,20 @@ export class GameStateService {
     // STRICT: Only dispatch if nightFlow is in RoleEndAudio phase
     // If phase mismatch, this is a duplicate/stale callback - ignore (idempotent)
     // NO FALLBACK: We never manually advance index; NightFlowController is the single source of truth
-    if (this.nightFlow) {
-      if (this.nightFlow.phase === NightPhase.RoleEndAudio) {
-        this.nightFlow.dispatch(NightEvent.RoleEndAudioDone);
-        // Sync currentActionerIndex from nightFlow (the ONLY place this should be updated)
-        this.state.currentActionerIndex = this.nightFlow.currentActionIndex;
-      } else {
-        // Phase mismatch - duplicate/stale callback, ignore silently (idempotent)
-        console.debug(
-          '[GameStateService] RoleEndAudioDone ignored (idempotent): phase is',
-          this.nightFlow.phase,
-          '- not RoleEndAudio'
-        );
-        // DO NOT advance index manually - that would violate state machine authority
-        return; // Early return: don't proceed to playCurrentRoleAudio again
-      }
+    if (this.nightFlow.phase === NightPhase.RoleEndAudio) {
+      this.nightFlow.dispatch(NightEvent.RoleEndAudioDone);
+      // Sync currentActionerIndex from nightFlow (the ONLY place this should be updated)
+      this.state.currentActionerIndex = this.nightFlow.currentActionIndex;
+    } else {
+      // Phase mismatch - duplicate/stale callback, ignore silently (idempotent)
+      console.debug(
+        '[GameStateService] RoleEndAudioDone ignored (idempotent): phase is',
+        this.nightFlow.phase,
+        '- not RoleEndAudio'
+      );
+      // DO NOT advance index manually - that would violate state machine authority
+      return; // Early return: don't proceed to playCurrentRoleAudio again
     }
-    // Note: If nightFlow is null, we're in legacy mode - proceed without state machine
 
     this.state.wolfVotes = new Map();  // Clear wolf votes for next role
 
@@ -1348,6 +1371,15 @@ export class GameStateService {
   private async endNight(): Promise<void> {
     if (!this.isHost || !this.state) return;
 
+    // STRICT INVARIANT: nightFlow must exist when status === ongoing
+    if (!this.nightFlow) {
+      console.error(
+        '[GameStateService] STRICT INVARIANT VIOLATION: endNight() called but nightFlow is null.',
+        'status:', this.state.status
+      );
+      throw new Error('endNight: nightFlow is null - strict invariant violation');
+    }
+
     // Play night end audio
     console.log('[GameStateService] Playing night end audio...');
     await this.audioService.playNightEndAudio();
@@ -1355,22 +1387,19 @@ export class GameStateService {
   // [Bridge: NightFlowController] Dispatch NightEndAudioDone to complete state machine
     // STRICT: Only dispatch if nightFlow is in NightEndAudio phase
     // If phase mismatch, this is a duplicate/stale callback - STRICT no-op (no death calc, no broadcast)
-    if (this.nightFlow) {
-      if (this.nightFlow.phase === NightPhase.NightEndAudio) {
-        this.nightFlow.dispatch(NightEvent.NightEndAudioDone);
-      } else {
-        // Phase mismatch - duplicate/stale callback
-        // STRICT: Do NOT proceed to death calculation - that would be越权推进
-        // NightFlowController hasn't ended, so GameStateService must not end either
-        console.debug(
-          '[GameStateService] endNight() ignored (strict no-op): phase is',
-          this.nightFlow.phase,
-          '- not NightEndAudio. No death calc, no status change.'
-        );
-        return; // STRICT: early return, no side effects
-      }
+    if (this.nightFlow.phase === NightPhase.NightEndAudio) {
+      this.nightFlow.dispatch(NightEvent.NightEndAudioDone);
+    } else {
+      // Phase mismatch - duplicate/stale callback
+      // STRICT: Do NOT proceed to death calculation - that would be越权推进
+      // NightFlowController hasn't ended, so GameStateService must not end either
+      console.debug(
+        '[GameStateService] endNight() ignored (strict no-op): phase is',
+        this.nightFlow.phase,
+        '- not NightEndAudio. No death calc, no status change.'
+      );
+      return; // STRICT: early return, no side effects
     }
-    // Note: If nightFlow is null, we're in legacy mode - proceed without state machine
 
   // [Bridge: DeathCalculator] Calculate deaths via extracted pure function
     const deaths = this.doCalculateDeaths();
