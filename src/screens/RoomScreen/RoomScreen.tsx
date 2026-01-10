@@ -152,6 +152,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     currentActionRole,
     isAudioPlaying,
     hasBots,
+    connectionStatus,
     createRoom,
     joinRoom,
     takeSeat,
@@ -167,6 +168,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     getLastNightInfo: getLastNightInfoFn,
     lastSeatError,
     clearLastSeatError,
+    requestSnapshot,
   } = useGameRoom();
 
   // Local UI state
@@ -666,6 +668,35 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         <Text style={styles.headerTitle}>房间 {roomNumber}</Text>
         <View style={styles.headerSpacer} />
       </View>
+
+      {/* Connection Status Bar */}
+      {!isHost && (
+        <View style={[
+          styles.connectionStatusBar,
+          connectionStatus === 'live' && styles.connectionStatusLive,
+          connectionStatus === 'syncing' && styles.connectionStatusSyncing,
+          connectionStatus === 'connecting' && styles.connectionStatusConnecting,
+          connectionStatus === 'disconnected' && styles.connectionStatusDisconnected,
+        ]}>
+          <Text style={styles.connectionStatusText}>
+            {connectionStatus === 'live' && '🟢 已连接'}
+            {connectionStatus === 'syncing' && '🔄 同步中...'}
+            {connectionStatus === 'connecting' && '⏳ 连接中...'}
+            {connectionStatus === 'disconnected' && '🔴 连接断开'}
+          </Text>
+          {(connectionStatus === 'disconnected' || connectionStatus === 'syncing') && (
+            <TouchableOpacity 
+              onPress={() => requestSnapshot()} 
+              style={styles.forceSyncButton}
+              disabled={connectionStatus === 'syncing'}
+            >
+              <Text style={styles.forceSyncButtonText}>
+                {connectionStatus === 'syncing' ? '同步中' : '强制同步'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Board Info */}

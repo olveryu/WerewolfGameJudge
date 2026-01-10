@@ -323,4 +323,44 @@ export const styles = StyleSheet.create({
     color: colors.textSecondary,
     paddingVertical: 2,
   },
+  // Connection Status Bar styles
+  connectionStatusBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  connectionStatusLive: {
+    backgroundColor: '#E8F5E9',
+  },
+  connectionStatusSyncing: {
+    backgroundColor: '#FFF8E1',
+  },
+  connectionStatusConnecting: {
+    backgroundColor: '#E3F2FD',
+  },
+  connectionStatusDisconnected: {
+    backgroundColor: '#FFEBEE',
+  },
+  connectionStatusText: {
+    fontSize: typography.sm,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  forceSyncButton: {
+    marginLeft: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.sm,
+  },
+  forceSyncButtonText: {
+    fontSize: typography.sm,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
 });

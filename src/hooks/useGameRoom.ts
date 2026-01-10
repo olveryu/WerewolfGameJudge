@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { GameStateService, LocalGameState, gameStatusToRoomStatus } from '../services/GameStateService';
 import { SimplifiedRoomService, RoomRecord } from '../services/SimplifiedRoomService';
+import { BroadcastService, type ConnectionStatus } from '../services/BroadcastService';
 import { AuthService } from '../services/AuthService';
 import { GameTemplate } from '../models/Template';
 import { RoleName, isWolfRole } from '../models/roles';
@@ -32,6 +33,10 @@ export interface UseGameRoomResult {
   isAudioPlaying: boolean;
   hasBots: boolean;
   
+  // Connection status
+  connectionStatus: ConnectionStatus;
+  stateRevision: number;
+  
   // Status
   loading: boolean;
   error: string | null;
@@ -43,7 +48,9 @@ export interface UseGameRoomResult {
   
   // Seat actions
   takeSeat: (seatNumber: number) => Promise<boolean>;
+  takeSeatWithAck: (seatNumber: number) => Promise<{ success: boolean; reason?: string }>;
   leaveSeat: () => Promise<void>;
+  leaveSeatWithAck: () => Promise<{ success: boolean; reason?: string }>;
   fillWithBots: () => Promise<void>;
   
   // Host game control
@@ -56,6 +63,9 @@ export interface UseGameRoomResult {
   viewedRole: () => Promise<void>;
   submitAction: (target: number | null, extra?: any) => Promise<void>;
   submitWolfVote: (target: number) => Promise<void>;
+  
+  // Sync actions
+  requestSnapshot: () => Promise<boolean>;
   
   // Info
   getLastNightInfo: () => string;
@@ -80,10 +90,15 @@ export const useGameRoom = (): UseGameRoomResult => {
   const [myUid, setMyUid] = useState<string | null>(null);
   const [mySeatNumber, setMySeatNumber] = useState<number | null>(null);
   const [lastSeatError, setLastSeatError] = useState<{ seat: number; reason: 'seat_taken' } | null>(null);
+  
+  // Connection status
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
+  const [stateRevision, setStateRevision] = useState(0);
 
   const gameStateService = useRef(GameStateService.getInstance());
   const roomService = useRef(SimplifiedRoomService.getInstance());
   const authService = useRef(AuthService.getInstance());
+  const broadcastService = useRef(BroadcastService.getInstance());
 
   // Subscribe to game state changes
   useEffect(() => {
@@ -95,6 +110,16 @@ export const useGameRoom = (): UseGameRoomResult => {
       setMySeatNumber(gameStateService.current.getMySeatNumber());
       // Update seat error (BUG-2 fix)
       setLastSeatError(gameStateService.current.getLastSeatError());
+      // Update state revision
+      setStateRevision(gameStateService.current.getStateRevision());
+    });
+    return unsubscribe;
+  }, []);
+
+  // Subscribe to connection status changes
+  useEffect(() => {
+    const unsubscribe = broadcastService.current.addStatusListener((status) => {
+      setConnectionStatus(status);
     });
     return unsubscribe;
   }, []);
@@ -257,6 +282,51 @@ export const useGameRoom = (): UseGameRoomResult => {
     }
   }, []);
 
+  // Take seat with ack (for sync protocol)
+  const takeSeatWithAck = useCallback(async (seatNumber: number): Promise<{ success: boolean; reason?: string }> => {
+    try {
+      const displayName = await authService.current.getCurrentDisplayName();
+      const avatarUrl = await authService.current.getCurrentAvatarUrl();
+      
+      return await gameStateService.current.playerTakeSeatWithAck(
+        seatNumber,
+        displayName ?? undefined,
+        avatarUrl ?? undefined
+      );
+    } catch (err) {
+      console.error('[useGameRoom] Error taking seat with ack:', err);
+      return { success: false, reason: String(err) };
+    }
+  }, []);
+
+  // Leave seat with ack (for sync protocol)
+  const leaveSeatWithAck = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
+    try {
+      return await gameStateService.current.playerLeaveSeatWithAck();
+    } catch (err) {
+      console.error('[useGameRoom] Error leaving seat with ack:', err);
+      return { success: false, reason: String(err) };
+    }
+  }, []);
+
+  // Request snapshot from host (force sync)
+  const requestSnapshot = useCallback(async (): Promise<boolean> => {
+    try {
+      setConnectionStatus('syncing');
+      const result = await gameStateService.current.requestSnapshot();
+      if (result) {
+        setConnectionStatus('live');
+      } else {
+        setConnectionStatus('disconnected');
+      }
+      return result;
+    } catch (err) {
+      console.error('[useGameRoom] Error requesting snapshot:', err);
+      setConnectionStatus('disconnected');
+      return false;
+    }
+  }, []);
+
   // Fill remaining seats with bots (host only)
   const fillWithBots = useCallback(async (): Promise<void> => {
     if (!isHost || !gameState) return;
@@ -359,11 +429,16 @@ export const useGameRoom = (): UseGameRoomResult => {
     hasBots,
     loading,
     error,
+    connectionStatus,
+    stateRevision,
     createRoom,
     joinRoom,
     leaveRoom,
     takeSeat,
     leaveSeat,
+    takeSeatWithAck,
+    leaveSeatWithAck,
+    requestSnapshot,
     fillWithBots,
     updateTemplate,
     assignRoles,

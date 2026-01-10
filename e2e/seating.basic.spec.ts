@@ -1,4 +1,5 @@
 import { test, expect, Page, TestInfo } from '@playwright/test';
+import { waitForRoomScreenReady } from './helpers/waits';
 
 /**
  * Seating Diagnostic E2E Tests
@@ -144,25 +145,6 @@ async function ensureAnonLogin(page: Page) {
     await page.getByText('←').click();
     await expect(page.getByText('创建房间')).toBeVisible({ timeout: 5000 });
   }
-}
-
-async function waitForRoomScreenReady(page: Page, maxRetries = 3) {
-  // Use "房间 XXXX" header which is visible to all players (not ⚙️ 设置 which is host-only)
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      await expect(page.locator(String.raw`text=/房间 \d{4}/`)).toBeVisible({ timeout: 10000 });
-      return;
-    } catch {
-      const retryBtn = page.getByText('重试');
-      if (await retryBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-        console.log(`[waitForRoomScreenReady] Retry attempt ${attempt + 1}...`);
-        await retryBtn.click();
-      } else {
-        throw new Error('Room screen not ready and no retry button found');
-      }
-    }
-  }
-  throw new Error(`Room screen not ready after ${maxRetries} attempts`);
 }
 
 async function extractRoomNumber(page: Page): Promise<string> {
@@ -320,7 +302,7 @@ test.describe('Seating Diagnostic', () => {
     await page.getByText('创建房间').click();
     await expect(getVisibleText(page, '创建')).toBeVisible({ timeout: 10000 });
     await getVisibleText(page, '创建').click();
-    await waitForRoomScreenReady(page);
+    await waitForRoomScreenReady(page, { role: 'host' });
     
     const roomNumber = await extractRoomNumber(page);
     console.log(`[DIAG] Room created: ${roomNumber}`);
@@ -423,7 +405,7 @@ test.describe('Seating Diagnostic', () => {
       await pageA.getByText('创建房间').click();
       await expect(getVisibleText(pageA, '创建')).toBeVisible({ timeout: 10000 });
       await getVisibleText(pageA, '创建').click();
-      await waitForRoomScreenReady(pageA);
+      await waitForRoomScreenReady(pageA, { role: 'host' });
       
       const roomNumber = await extractRoomNumber(pageA);
       console.log(`[DIAG] HOST A created room: ${roomNumber}`);
@@ -469,7 +451,7 @@ test.describe('Seating Diagnostic', () => {
       }
       
       // Wait for room screen
-      await waitForRoomScreenReady(pageB);
+      await waitForRoomScreenReady(pageB, { role: 'joiner' });
       console.log(`[DIAG] JOINER B joined room ${roomNumber}`);
       
       await takeScreenshot(pageB, testInfo, 'B-01-joined-room.png');
@@ -599,7 +581,7 @@ test.describe('Seating Diagnostic', () => {
       await pageA.getByText('创建房间').click();
       await expect(getVisibleText(pageA, '创建')).toBeVisible({ timeout: 10000 });
       await getVisibleText(pageA, '创建').click();
-      await waitForRoomScreenReady(pageA);
+      await waitForRoomScreenReady(pageA, { role: 'host' });
       
       // Settle + warm-up
       await settleAfterRoomReady(pageA);
@@ -625,7 +607,7 @@ test.describe('Seating Diagnostic', () => {
       await input.fill(roomNumber);
       await pageB.getByText('加入', { exact: true }).click();
       
-      await waitForRoomScreenReady(pageB);
+      await waitForRoomScreenReady(pageB, { role: 'joiner' });
       
       // Settle + warm-up
       await settleAfterRoomReady(pageB);
@@ -762,7 +744,7 @@ test.describe('Seating Diagnostic', () => {
       await pageA.getByText('创建房间').click();
       await expect(getVisibleText(pageA, '创建')).toBeVisible({ timeout: 10000 });
       await getVisibleText(pageA, '创建').click();
-      await waitForRoomScreenReady(pageA);
+      await waitForRoomScreenReady(pageA, { role: 'host' });
 
       // Settle + warm-up
       await settleAfterRoomReady(pageA);
@@ -794,7 +776,7 @@ test.describe('Seating Diagnostic', () => {
       await input.fill(diag4State.roomNumber);
       await pageB.getByText('加入', { exact: true }).click();
       
-      await waitForRoomScreenReady(pageB);
+      await waitForRoomScreenReady(pageB, { role: 'joiner' });
       console.log(`[DIAG] JOINER B joined room ${diag4State.roomNumber}`);
 
       // Settle + warm-up
@@ -934,7 +916,7 @@ test.describe('Seating Diagnostic', () => {
       await pageA.getByText('创建房间').click();
       await expect(getVisibleText(pageA, '创建')).toBeVisible({ timeout: 10000 });
       await getVisibleText(pageA, '创建').click();
-      await waitForRoomScreenReady(pageA);
+      await waitForRoomScreenReady(pageA, { role: 'host' });
       
       // Settle + warm-up
       await settleAfterRoomReady(pageA);
@@ -958,7 +940,7 @@ test.describe('Seating Diagnostic', () => {
       await input.fill(roomNumber);
       await pageB.getByText('加入', { exact: true }).click();
       
-      await waitForRoomScreenReady(pageB);
+      await waitForRoomScreenReady(pageB, { role: 'joiner' });
       
       // Settle + warm-up
       await settleAfterRoomReady(pageB);
@@ -1092,7 +1074,7 @@ test.describe('Seating Diagnostic', () => {
       await pageA.getByText('创建房间').click();
       await expect(getVisibleText(pageA, '创建')).toBeVisible({ timeout: 10000 });
       await getVisibleText(pageA, '创建').click();
-      await waitForRoomScreenReady(pageA);
+      await waitForRoomScreenReady(pageA, { role: 'host' });
       
       // Settle + warm-up
       await settleAfterRoomReady(pageA);
@@ -1116,7 +1098,7 @@ test.describe('Seating Diagnostic', () => {
       await input.fill(roomNumber);
       await pageB.getByText('加入', { exact: true }).click();
       
-      await waitForRoomScreenReady(pageB);
+      await waitForRoomScreenReady(pageB, { role: 'joiner' });
       
       // Settle + warm-up
       await settleAfterRoomReady(pageB);
