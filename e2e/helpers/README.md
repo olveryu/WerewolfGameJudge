@@ -51,10 +51,12 @@ Low-level utilities with no app-specific knowledge.
 |-|-|
 | **Success condition** | Page navigates successfully (DOMContentLoaded) |
 | **Recovery actions** | On `ERR_CONNECTION_REFUSED`: wait `retryDelayMs` (default 2s), retry up to `maxRetries` (default 3) |
-| **Timeout behavior** | Throws after maxRetries; saves screenshot + diagnostic info |
-| **Evidence on failure** | Screenshot saved to `test-results/fail-connection-refused-*.png` + console guidance |
+| **Timeout behavior** | Throws after maxRetries with grep-friendly signature: `ERR_CONNECTION_REFUSED: Failed to navigate to...` |
+| **Evidence on failure** | 1. Detailed logs (attempt, URL, baseURL, page.url(), error) <br> 2. Screenshot: `test-results/fail-goto-refused-*.png` <br> 3. debugProbe: page state dump <br> 4. Diagnostic hints in console |
 
-**When to use:** Always prefer `gotoWithRetry` over `page.goto` in specs to handle slow server starts.
+**When to use:** Always use `gotoWithRetry` instead of `page.goto` in specs.
+
+**Grep gate:** No spec should contain direct `page.goto(` calls.
 
 ---
 

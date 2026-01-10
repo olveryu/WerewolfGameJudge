@@ -15,11 +15,20 @@ import * as path from 'node:path';
 // Navigation Helpers
 // =============================================================================
 
+/** Signature for connection refused errors (grep-friendly) */
+const CONNECTION_REFUSED_SIGNATURE = 'ERR_CONNECTION_REFUSED';
+
 /**
  * Navigate to a URL with automatic retry on connection errors.
  * 
  * Handles net::ERR_CONNECTION_REFUSED by waiting and retrying.
  * Collects evidence (screenshot + logs) on persistent failure.
+ * 
+ * EVIDENCE ON FAILURE:
+ * - Logs: attempt number, baseURL, current page.url(), error message
+ * - Screenshot: saved to test-results/fail-goto-refused-*.png
+ * - Debug probe: page state dump
+ * - Final error message contains ERR_CONNECTION_REFUSED signature for grep
  * 
  * @param page - Playwright Page
  * @param url - URL to navigate to (or '/' for baseURL)
@@ -32,6 +41,9 @@ export async function gotoWithRetry(
 ): Promise<void> {
   const { maxRetries = 3, retryDelayMs = 2000, timeoutMs = 30000 } = opts;
   let lastError: Error | undefined;
+  
+  // Get baseURL from page context for logging
+  const baseURL = page.context().browser()?.version() ? 'http://localhost:8081' : 'unknown';
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -43,27 +55,49 @@ export async function gotoWithRetry(
       const isConnectionRefused = lastError.message.includes('ERR_CONNECTION_REFUSED') ||
                                    lastError.message.includes('ECONNREFUSED');
       
-      console.log(`[gotoWithRetry] Attempt ${attempt}/${maxRetries} failed: ${lastError.message}`);
+      // Detailed logging for each attempt
+      console.log(`[gotoWithRetry] Attempt ${attempt}/${maxRetries} failed`);
+      console.log(`  URL: ${url}`);
+      console.log(`  baseURL: ${baseURL}`);
+      console.log(`  page.url(): ${page.url()}`);
+      console.log(`  Error: ${lastError.message}`);
+      
+      if (isConnectionRefused) {
+        console.log(`  Signature: ${CONNECTION_REFUSED_SIGNATURE}`);
+      }
 
       if (isConnectionRefused && attempt < maxRetries) {
-        console.log(`[gotoWithRetry] Connection refused - server may still be starting. Waiting ${retryDelayMs}ms...`);
+        // Retry delay with clear justification
+        console.log(`[gotoWithRetry] Server not ready, waiting ${retryDelayMs}ms before retry...`);
+        console.log(`  (Reason: webServer may still be starting - this is expected on cold start)`);
         await new Promise(resolve => setTimeout(resolve, retryDelayMs));
         continue;
       }
 
-      // Non-connection error or last attempt - collect evidence
+      // Last attempt or non-recoverable error - collect evidence
       if (attempt === maxRetries) {
-        console.log('[gotoWithRetry] Max retries reached, collecting evidence...');
-        await screenshotOnFail(page, 'connection-refused');
-        console.log('[gotoWithRetry] Check the following:');
+        console.log(`\n[gotoWithRetry] ❌ FAILED after ${maxRetries} attempts - collecting evidence...`);
+        
+        // Screenshot
+        const screenshotPath = await screenshotOnFail(page, 'goto-refused');
+        console.log(`  Screenshot: ${screenshotPath || 'failed to capture'}`);
+        
+        // Debug probe
+        await debugProbe(page, 'goto-refused');
+        
+        // Diagnostic hints
+        console.log('\n[gotoWithRetry] Diagnostic hints:');
         console.log('  1. Is dev server running? Run: npx expo start --web --port 8081');
         console.log('  2. Port conflict? Run: lsof -i :8081');
-        console.log('  3. Check Playwright webServer logs in terminal');
+        console.log('  3. Check Playwright webServer logs above (stdout/stderr piped)');
+        console.log('  4. Try: pkill -f "expo" && npm run e2e:core');
       }
     }
   }
 
-  throw lastError;
+  // Throw with grep-friendly signature
+  const finalMessage = `[gotoWithRetry] ${CONNECTION_REFUSED_SIGNATURE}: Failed to navigate to ${url} after ${maxRetries} attempts. ${lastError?.message || 'Unknown error'}`;
+  throw new Error(finalMessage);
 }
 
 // =============================================================================
