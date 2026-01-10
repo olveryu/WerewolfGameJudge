@@ -9,6 +9,13 @@ import { defineConfig, devices } from '@playwright/test';
  * 
  * Configuration is loaded from env/e2e.{local,remote}.json by scripts/run-e2e-web.mjs
  * 
+ * CONNECTION_REFUSED HANDLING:
+ *   If tests fail with ERR_CONNECTION_REFUSED:
+ *   1. Check webServer logs in terminal (stdout: 'pipe')
+ *   2. Verify port 8081 not occupied: lsof -i :8081
+ *   3. webServer.timeout is 120s to allow slow server starts
+ *   4. Tests use gotoWithRetry() for automatic retry on connection issues
+ * 
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
@@ -23,7 +30,7 @@ export default defineConfig({
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
   
-  /* Retry on CI only */
+  /* Retry on CI only - helps with transient connection issues */
   retries: process.env.CI ? 2 : 0,
   
   /* Use all available workers for parallel tests */
@@ -37,7 +44,7 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('/')` */
     baseURL: 'http://localhost:8081',
 
-    /* Collect trace when retrying the failed test */
+    /* Collect trace when retrying the failed test - helps debug connection issues */
     trace: 'on-first-retry',
     
     /* Take screenshot on failure */
@@ -57,8 +64,9 @@ export default defineConfig({
     command: 'node scripts/run-e2e-web.mjs',
     url: 'http://localhost:8081',
     reuseExistingServer: true,  // Always reuse existing server
-    timeout: 120 * 1000,
-    stdout: 'pipe',  // Pipe stdout so we can see test output
+    timeout: 120 * 1000,        // 2 minutes for slow server starts
+    stdout: 'pipe',             // Pipe stdout to see server logs on failure
+    stderr: 'pipe',             // Pipe stderr for error diagnosis
     env: {
       E2E_ENV: process.env.E2E_ENV || 'local',
     },

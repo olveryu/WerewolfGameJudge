@@ -1,5 +1,6 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
-import * as path from 'path';
+import { waitForAppReady } from './helpers/home';
+import { withStep, gotoWithRetry } from './helpers/ui';
 
 /**
  * Template Scenario E2E Tests
@@ -16,76 +17,6 @@ test.setTimeout(300000);
 
 // Fail fast: stop on first failure
 test.describe.configure({ mode: 'serial' });
-
-// ============ FAIL-FAST DEBUG HELPERS ============
-
-/**
- * Debug probe - prints page state for diagnostics when a step fails
- */
-async function debugProbe(page: Page, label: string): Promise<void> {
-  console.log(`\n========== DEBUG PROBE: ${label} ==========`);
-  console.log(`URL: ${page.url()}`);
-  
-  const checks = [
-    { name: '房间号', selector: /房间 \d{4}/ },
-    { name: '准备看牌', selector: '准备看牌' },
-    { name: '查看身份', selector: '查看身份' },
-    { name: '开始游戏', selector: '开始游戏' },
-    { name: '重新开始', selector: '重新开始' },
-    { name: '查看昨晚信息', selector: '查看昨晚信息' },
-    { name: '重试', selector: '重试' },
-    { name: '确定', selector: '确定' },
-    { name: '好', selector: '好' },
-    { name: '救助', selector: '救助' },
-    { name: '不救助', selector: '不救助' },
-    { name: '不使用技能', selector: '不使用技能' },
-    { name: '投票空刀', selector: '投票空刀' },
-  ];
-  
-  for (const check of checks) {
-    try {
-      const locator = typeof check.selector === 'string' 
-        ? page.getByText(check.selector, { exact: true })
-        : page.getByText(check.selector);
-      const visible = await locator.isVisible({ timeout: 100 }).catch(() => false);
-      if (visible) console.log(`  ✓ ${check.name}`);
-    } catch {
-      // ignore
-    }
-  }
-  
-  try {
-    const bodyText = await page.locator('body').textContent({ timeout: 1000 });
-    console.log(`Body (first 500 chars): ${bodyText?.substring(0, 500)}`);
-  } catch (e) {
-    console.log(`Body text error: ${e}`);
-  }
-  console.log(`========== END PROBE ==========\n`);
-}
-
-/**
- * Wrap a step with fail-fast diagnostics and 60s timeout
- */
-async function withStep<T>(name: string, page: Page, fn: () => Promise<T>): Promise<T> {
-  console.log(`>> STEP: ${name}`);
-  const STEP_TIMEOUT = 60000; // 60 seconds per step
-
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error(`Step "${name}" timed out after 60s`)), STEP_TIMEOUT);
-  });
-
-  try {
-    return await Promise.race([fn(), timeoutPromise]);
-  } catch (error) {
-    await debugProbe(page, name);
-    const timestamp = Date.now();
-    const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50);
-    const screenshotPath = path.join('test-results', `fail-${safeName}-${timestamp}.png`);
-    await page.screenshot({ path: screenshotPath }).catch(() => {});
-    console.log(`Screenshot saved: ${screenshotPath}`);
-    throw error;
-  }
-}
 
 // ============ HELPER FUNCTIONS ============
 
@@ -273,10 +204,6 @@ async function dismissLoginRequiredIfPresent(page: Page, label: string): Promise
     console.log(`[LoginRequired][${label}] error: ${e}`);
     return false;
   }
-}
-
-async function waitForAppReady(page: Page) {
-  await page.waitForSelector('text=狼人杀法官', { timeout: 15000 });
 }
 
 async function waitForLoggedIn(page: Page, maxRetries = 5) {
@@ -1193,7 +1120,7 @@ test.describe('Template Scenarios E2E', () => {
       console.log(`[Setup] Setting up room with template: ${firstTemplate.name}`);
 
       await withStep('Host goto(/)', hostPage, async () => {
-        await hostPage.goto('/');
+        await gotoWithRetry(hostPage, '/');
       });
       await withStep('Host dismissLoadingTimeoutIfPresent after goto(/)', hostPage, async () => {
         await dismissLoadingTimeoutIfPresent(hostPage, 'Host after goto(/)');
@@ -1265,7 +1192,7 @@ test.describe('Template Scenarios E2E', () => {
         console.log(`[Setup] Player ${i + 2}/12 joining...`);
         
         await withStep(`Player ${i + 2} join room`, page, async () => {
-          await page.goto('/');
+          await gotoWithRetry(page, '/');
           await dismissLoadingTimeoutIfPresent(page, `Joiner ${i + 2} after goto(/)`);
           await waitForAppReady(page);
 
