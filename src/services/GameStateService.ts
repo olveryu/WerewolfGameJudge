@@ -584,7 +584,25 @@ export class GameStateService {
       const finalTarget = resolveWolfVotes(this.state.wolfVotes);
       if (finalTarget !== null) {
         this.state.actions.set('wolf', finalTarget);
+        // Record action in nightFlow
+        try {
+          this.nightFlow?.recordAction('wolf', finalTarget);
+        } catch (err) {
+          console.debug('[GameStateService] NightFlow recordAction (wolf) failed:', err);
+        }
       }
+
+      // Dispatch ActionSubmitted to nightFlow (required before advanceToNextAction)
+      try {
+        this.nightFlow?.dispatch(NightEvent.ActionSubmitted);
+      } catch (err) {
+        if (err instanceof InvalidNightTransitionError) {
+          console.debug('[GameStateService] NightFlow ActionSubmitted (wolf) skipped: not in WaitingForAction phase');
+        } else {
+          throw err;
+        }
+      }
+
       await this.advanceToNextAction();
     } else {
       // Broadcast vote status update
@@ -1280,20 +1298,24 @@ export class GameStateService {
     }
 
   // [Bridge: NightFlowController] Dispatch RoleEndAudioDone to advance state machine
-    try {
-      this.nightFlow?.dispatch(NightEvent.RoleEndAudioDone);
+    // Phase guard: only dispatch if nightFlow is in RoleEndAudio phase
+    if (this.nightFlow && this.nightFlow.phase === NightPhase.RoleEndAudio) {
+      this.nightFlow.dispatch(NightEvent.RoleEndAudioDone);
       // Sync currentActionerIndex from nightFlow
-      if (this.nightFlow) {
-        this.state.currentActionerIndex = this.nightFlow.currentActionIndex;
-      }
-    } catch (err) {
-      if (err instanceof InvalidNightTransitionError) {
-        console.error('[GameStateService] NightFlow RoleEndAudioDone failed:', err.message);
-        // Fallback: advance manually
-        this.state.currentActionerIndex++;
-      } else {
-        throw err;
-      }
+      this.state.currentActionerIndex = this.nightFlow.currentActionIndex;
+    } else if (this.nightFlow) {
+      // Phase mismatch - expected RoleEndAudio but got something else
+      // This is a recoverable race condition, not an error
+      console.debug(
+        '[GameStateService] RoleEndAudioDone skipped: phase is',
+        this.nightFlow.phase,
+        'expected RoleEndAudio'
+      );
+      // Fallback: advance manually
+      this.state.currentActionerIndex++;
+    } else {
+      // No nightFlow - fallback to manual advance
+      this.state.currentActionerIndex++;
     }
 
     this.state.wolfVotes = new Map();  // Clear wolf votes for next role
@@ -1310,15 +1332,19 @@ export class GameStateService {
     await this.audioService.playNightEndAudio();
 
   // [Bridge: NightFlowController] Dispatch NightEndAudioDone to complete state machine
-    try {
-      this.nightFlow?.dispatch(NightEvent.NightEndAudioDone);
-    } catch (err) {
-      if (err instanceof InvalidNightTransitionError) {
-        console.error('[GameStateService] NightFlow NightEndAudioDone failed:', err.message);
-      } else {
-        throw err;
-      }
+    // Phase guard: only dispatch if nightFlow is in NightEndAudio phase
+    if (this.nightFlow && this.nightFlow.phase === NightPhase.NightEndAudio) {
+      this.nightFlow.dispatch(NightEvent.NightEndAudioDone);
+    } else if (this.nightFlow) {
+      // Phase mismatch - expected NightEndAudio but got something else
+      // This is a recoverable race condition, not an error
+      console.debug(
+        '[GameStateService] NightEndAudioDone skipped: phase is',
+        this.nightFlow.phase,
+        'expected NightEndAudio'
+      );
     }
+    // Note: No fallback needed here as endNight() proceeds to death calculation regardless
 
   // [Bridge: DeathCalculator] Calculate deaths via extracted pure function
     const deaths = this.doCalculateDeaths();
