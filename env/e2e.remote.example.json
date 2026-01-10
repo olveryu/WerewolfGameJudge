@@ -1,0 +1,5 @@
+{
+  "_comment": "Copy to e2e.remote.json and fill in your remote Supabase credentials, or set via CI environment variables",
+  "EXPO_PUBLIC_SUPABASE_URL": "",
+  "EXPO_PUBLIC_SUPABASE_ANON_KEY": ""
+}

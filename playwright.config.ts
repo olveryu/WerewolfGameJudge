@@ -3,9 +3,11 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Playwright configuration for Werewolf Game E2E tests.
  * 
- * IMPORTANT: For local supabase testing, configure .env.local with:
- *   EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
- *   EXPO_PUBLIC_SUPABASE_ANON_KEY=<your local anon key>
+ * ENVIRONMENT SWITCHING:
+ *   E2E_ENV=local npx playwright test   # Use local Supabase (127.0.0.1:54321)
+ *   E2E_ENV=remote npx playwright test  # Use remote Supabase
+ * 
+ * Configuration is loaded from env/e2e.{local,remote}.json by scripts/run-e2e-web.mjs
  * 
  * @see https://playwright.dev/docs/test-configuration
  */
@@ -52,10 +54,13 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run web',
+    command: 'node scripts/run-e2e-web.mjs',
     url: 'http://localhost:8081',
     reuseExistingServer: true,  // Always reuse existing server
     timeout: 120 * 1000,
     stdout: 'pipe',  // Pipe stdout so we can see test output
+    env: {
+      E2E_ENV: process.env.E2E_ENV || 'local',
+    },
   },
 });

@@ -1,0 +1,5 @@
+{
+  "_comment": "Copy to e2e.local.json and fill in your local Supabase credentials",
+  "EXPO_PUBLIC_SUPABASE_URL": "http://127.0.0.1:54321",
+  "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-local-anon-key-here"
+}
