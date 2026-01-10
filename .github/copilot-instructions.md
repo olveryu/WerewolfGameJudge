@@ -118,6 +118,12 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
 - Core e2e runs with workers=1 and must collect evidence on failure (logs/screenshot).
 - Room readiness must use the shared `waitForRoomScreenReady` helper (joiner must reach `🟢 已连接` or complete the “强制同步” recovery loop). Do not rely on header-only waits.
 
+**Flake reporting rule (mandatory)**
+- “Re-run and it passed” is **not** evidence. If a test fails during validation (even if a re-run passes), you must:
+   - record the **exact failure signature** (error type/message, e.g., `HTTP 409`, `ERR_CONNECTION_REFUSED`, timeout)
+   - state whether it’s **mitigated** by code in this PR (and where), or explicitly mark it as **unmitigated external flake**
+   - keep `e2e:core` green at the end, but do not hide intermediate failures
+
 **E2E helper reuse (mandatory)**
 - Do not hand-roll “home/login readiness” waits inside specs. Use shared helpers only.
 - Helpers must be layered and reusable:
