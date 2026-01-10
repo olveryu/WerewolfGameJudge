@@ -301,4 +301,125 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(witchTurn).toBeDefined();
     });
   });
+
+  // ===========================================================================
+  // C8-C10: State Machine Strictness Tests
+  // These tests verify that GameStateService respects NightFlowController authority
+  // ===========================================================================
+
+  describe('C8: duplicate RoleEndAudioDone is idempotent (no side effects)', () => {
+    it('should not change currentActionerIndex when RoleEndAudioDone called in wrong phase', async () => {
+      // Given: game is ongoing, currentActionerIndex=0 (seer's turn), phase=WaitingForAction
+      const actionOrder: RoleName[] = ['seer', 'witch'];
+      await setupReadyStateWithRoles(service, actionOrder, new Map([
+        [0, 'seer'],
+        [1, 'witch'],
+      ]));
+      
+      const startPromise = service.startGame();
+      await jest.advanceTimersByTimeAsync(5000);
+      await startPromise;
+      
+      const stateBefore = service.getState()!;
+      const indexBefore = stateBefore.currentActionerIndex;
+      expect(indexBefore).toBe(0);
+      
+      // When: we directly call advanceToNextAction (simulating duplicate/stale callback)
+      // WITHOUT first calling ActionSubmitted - phase is still WaitingForAction
+      const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+      
+      // Access private method via any
+      await (service as any).advanceToNextAction();
+      
+      // Then: currentActionerIndex should NOT have changed (idempotent)
+      const stateAfter = service.getState()!;
+      expect(stateAfter.currentActionerIndex).toBe(indexBefore);
+      
+      // And: debug log was called (not error)
+      expect(debugSpy).toHaveBeenCalledWith(
+        expect.stringContaining('RoleEndAudioDone ignored (idempotent)'),
+        expect.anything(),
+        expect.anything()
+      );
+      
+      debugSpy.mockRestore();
+    });
+
+    it('should not call console.error when RoleEndAudioDone called in wrong phase', async () => {
+      // Given: game is ongoing
+      const actionOrder: RoleName[] = ['seer'];
+      await setupReadyStateWithRoles(service, actionOrder, new Map([
+        [0, 'seer'],
+      ]));
+      
+      const startPromise = service.startGame();
+      await jest.advanceTimersByTimeAsync(5000);
+      await startPromise;
+      
+      // When: we directly call advanceToNextAction without ActionSubmitted
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+      
+      await (service as any).advanceToNextAction();
+      
+      // Then: console.error should NOT have been called
+      expect(errorSpy).not.toHaveBeenCalled();
+      
+      errorSpy.mockRestore();
+      debugSpy.mockRestore();
+    });
+  });
+
+  describe('C9: duplicate NightEndAudioDone is idempotent', () => {
+    it('should not throw or log error when NightEndAudioDone called in wrong phase', async () => {
+      // Given: game is ongoing, first role's turn
+      const actionOrder: RoleName[] = ['seer'];
+      await setupReadyStateWithRoles(service, actionOrder, new Map([
+        [0, 'seer'],
+      ]));
+      
+      const startPromise = service.startGame();
+      await jest.advanceTimersByTimeAsync(5000);
+      await startPromise;
+      
+      // Confirm we're in WaitingForAction phase (not NightEndAudio)
+      expect(service.getState()!.currentActionerIndex).toBe(0);
+      
+      // When: we directly call endNight (simulating duplicate/stale callback)
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+      
+      // This should NOT throw
+      await expect((service as any).endNight()).resolves.not.toThrow();
+      
+      // Then: console.error should NOT have been called
+      expect(errorSpy).not.toHaveBeenCalled();
+      
+      errorSpy.mockRestore();
+      debugSpy.mockRestore();
+    });
+  });
+
+  describe('C10: ActionSubmitted is required before RoleEndAudioDone', () => {
+    it('should successfully advance when ActionSubmitted is dispatched first', async () => {
+      // Given: game is ongoing, seer's turn
+      const actionOrder: RoleName[] = ['seer', 'witch'];
+      await setupReadyStateWithRoles(service, actionOrder, new Map([
+        [0, 'seer'],
+        [1, 'witch'],
+      ]));
+      
+      const startPromise = service.startGame();
+      await jest.advanceTimersByTimeAsync(5000);
+      await startPromise;
+      
+      expect(service.getState()!.currentActionerIndex).toBe(0);
+      
+      // When: we submit action (which dispatches ActionSubmitted + RoleEndAudioDone)
+      await invokeHandlePlayerAction(service, 0, 'seer', 3);
+      
+      // Then: currentActionerIndex advances to 1
+      expect(service.getState()!.currentActionerIndex).toBe(1);
+    });
+  });
 });

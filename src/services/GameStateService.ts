@@ -1298,25 +1298,26 @@ export class GameStateService {
     }
 
   // [Bridge: NightFlowController] Dispatch RoleEndAudioDone to advance state machine
-    // Phase guard: only dispatch if nightFlow is in RoleEndAudio phase
-    if (this.nightFlow && this.nightFlow.phase === NightPhase.RoleEndAudio) {
-      this.nightFlow.dispatch(NightEvent.RoleEndAudioDone);
-      // Sync currentActionerIndex from nightFlow
-      this.state.currentActionerIndex = this.nightFlow.currentActionIndex;
-    } else if (this.nightFlow) {
-      // Phase mismatch - expected RoleEndAudio but got something else
-      // This is a recoverable race condition, not an error
-      console.debug(
-        '[GameStateService] RoleEndAudioDone skipped: phase is',
-        this.nightFlow.phase,
-        'expected RoleEndAudio'
-      );
-      // Fallback: advance manually
-      this.state.currentActionerIndex++;
-    } else {
-      // No nightFlow - fallback to manual advance
-      this.state.currentActionerIndex++;
+    // STRICT: Only dispatch if nightFlow is in RoleEndAudio phase
+    // If phase mismatch, this is a duplicate/stale callback - ignore (idempotent)
+    // NO FALLBACK: We never manually advance index; NightFlowController is the single source of truth
+    if (this.nightFlow) {
+      if (this.nightFlow.phase === NightPhase.RoleEndAudio) {
+        this.nightFlow.dispatch(NightEvent.RoleEndAudioDone);
+        // Sync currentActionerIndex from nightFlow (the ONLY place this should be updated)
+        this.state.currentActionerIndex = this.nightFlow.currentActionIndex;
+      } else {
+        // Phase mismatch - duplicate/stale callback, ignore silently (idempotent)
+        console.debug(
+          '[GameStateService] RoleEndAudioDone ignored (idempotent): phase is',
+          this.nightFlow.phase,
+          '- not RoleEndAudio'
+        );
+        // DO NOT advance index manually - that would violate state machine authority
+        return; // Early return: don't proceed to playCurrentRoleAudio again
+      }
     }
+    // Note: If nightFlow is null, we're in legacy mode - proceed without state machine
 
     this.state.wolfVotes = new Map();  // Clear wolf votes for next role
 
@@ -1332,19 +1333,22 @@ export class GameStateService {
     await this.audioService.playNightEndAudio();
 
   // [Bridge: NightFlowController] Dispatch NightEndAudioDone to complete state machine
-    // Phase guard: only dispatch if nightFlow is in NightEndAudio phase
-    if (this.nightFlow && this.nightFlow.phase === NightPhase.NightEndAudio) {
-      this.nightFlow.dispatch(NightEvent.NightEndAudioDone);
-    } else if (this.nightFlow) {
-      // Phase mismatch - expected NightEndAudio but got something else
-      // This is a recoverable race condition, not an error
-      console.debug(
-        '[GameStateService] NightEndAudioDone skipped: phase is',
-        this.nightFlow.phase,
-        'expected NightEndAudio'
-      );
+    // STRICT: Only dispatch if nightFlow is in NightEndAudio phase
+    // If phase mismatch, this is a duplicate/stale callback - ignore (idempotent)
+    if (this.nightFlow) {
+      if (this.nightFlow.phase === NightPhase.NightEndAudio) {
+        this.nightFlow.dispatch(NightEvent.NightEndAudioDone);
+      } else {
+        // Phase mismatch - duplicate/stale callback, ignore silently (idempotent)
+        console.debug(
+          '[GameStateService] NightEndAudioDone ignored (idempotent): phase is',
+          this.nightFlow.phase,
+          '- not NightEndAudio'
+        );
+        // Note: We still proceed to death calculation as endNight() should only be called once
+        // If this is truly a duplicate call, the game state is already ended anyway
+      }
     }
-    // Note: No fallback needed here as endNight() proceeds to death calculation regardless
 
   // [Bridge: DeathCalculator] Calculate deaths via extracted pure function
     const deaths = this.doCalculateDeaths();
