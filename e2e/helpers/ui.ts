@@ -18,54 +18,82 @@ import * as path from 'node:path';
 /** Signature for connection refused errors (grep-friendly) */
 const CONNECTION_REFUSED_SIGNATURE = 'ERR_CONNECTION_REFUSED';
 
-/** Default fallback for E2E_BASE_URL (only used if env not set) */
-const DEFAULT_BASE_URL_FALLBACK = 'http://localhost:8081';
-
 /**
  * Get the E2E base URL from environment.
  * 
  * Single source of truth: process.env.E2E_BASE_URL (set by run-e2e-web.mjs)
- * Logs warning if falling back to default (never silent).
+ * REQUIRED: E2E_BASE_URL must be set. Throws if not set (fail-fast, never silent fallback).
  */
 function getBaseURL(): string {
   const envBaseURL = process.env.E2E_BASE_URL;
-  if (envBaseURL) {
-    return envBaseURL;
+  if (!envBaseURL) {
+    throw new Error(
+      '[gotoWithRetry] E2E_BASE_URL not set. ' +
+      'Run via `npm run e2e:core` or set E2E_BASE_URL explicitly. ' +
+      'No hardcoded fallback allowed.'
+    );
   }
-  console.log(`[gotoWithRetry] E2E_BASE_URL not set, fallback to ${DEFAULT_BASE_URL_FALLBACK}`);
-  return DEFAULT_BASE_URL_FALLBACK;
+  return envBaseURL;
 }
 
 /**
- * Check if the server is ready by making an HTTP GET request.
- * Returns true if we get any HTTP response (even 4xx/5xx means server is up).
- * Returns false if connection is refused.
+ * Health probe result for evidence-based logging
  */
-async function isServerReady(baseURL: string): Promise<boolean> {
+type HealthProbeResult = {
+  ready: boolean;
+  category: 'ok' | 'refused' | 'timeout' | 'dns' | 'unknown';
+  message: string;
+};
+
+/**
+ * Probe server readiness using Playwright's request API (same network stack as page.goto).
+ * 
+ * IMPORTANT: We probe /favicon.ico (static asset) instead of / (root) because:
+ * - Root may trigger heavy first-compile or redirects on Expo web cold start
+ * - favicon.ico is a small static file, fast to respond if server is up
+ * - TODO: Replace with /health endpoint when app provides one
+ * 
+ * @param page - Playwright Page (uses page.request for consistent network stack)
+ * @param baseURL - Base URL to probe
+ * @param timeoutMs - Timeout for the probe (default 10s, Expo cold start can be slow)
+ */
+async function probeServerHealth(
+  page: Page,
+  baseURL: string,
+  timeoutMs: number = 10000
+): Promise<HealthProbeResult> {
+  // Probe favicon.ico - small static file, fast if server is up
+  // TODO: Replace with /health endpoint when app provides one
+  const probeURL = `${baseURL}/favicon.ico`;
+  
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
-    
-    const response = await fetch(baseURL, { 
-      method: 'GET',
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    
-    // Any HTTP response means server is ready (even 404 is fine)
-    console.log(`[isServerReady] Server responded with HTTP ${response.status}`);
-    return true;
+    const response = await page.request.get(probeURL, { timeout: timeoutMs });
+    // Any HTTP response means server is ready (even 404 is fine - server responded)
+    console.log(`[probeServerHealth] OK: ${probeURL} -> HTTP ${response.status()}`);
+    return { ready: true, category: 'ok', message: `HTTP ${response.status()}` };
   } catch (e) {
     const error = e instanceof Error ? e : new Error(String(e));
-    // Connection refused = not ready
-    if (error.message.includes('ECONNREFUSED') || 
-        error.message.includes('fetch failed') ||
-        error.name === 'AbortError') {
-      return false;
+    const msg = error.message;
+    
+    // Categorize error for evidence-based logging
+    if (msg.includes('ECONNREFUSED') || msg.includes('ERR_CONNECTION_REFUSED')) {
+      console.log(`[probeServerHealth] REFUSED: ${probeURL} -> ${msg}`);
+      return { ready: false, category: 'refused', message: msg };
     }
-    // Other errors (e.g., DNS) - treat as ready to fail fast
-    console.log(`[isServerReady] Unexpected error: ${error.message}`);
-    return true;
+    
+    if (msg.includes('Timeout') || error.name === 'TimeoutError') {
+      console.log(`[probeServerHealth] TIMEOUT: ${probeURL} -> ${msg}`);
+      return { ready: false, category: 'timeout', message: msg };
+    }
+    
+    if (msg.includes('ENOTFOUND') || msg.includes('getaddrinfo')) {
+      console.log(`[probeServerHealth] DNS: ${probeURL} -> ${msg}`);
+      return { ready: false, category: 'dns', message: msg };
+    }
+    
+    // Unknown error - treat as not ready (never assume success)
+    console.log(`[probeServerHealth] UNKNOWN: ${probeURL} -> [${error.name}] ${msg}`);
+    return { ready: false, category: 'unknown', message: `[${error.name}] ${msg}` };
   }
 }
 
@@ -112,16 +140,20 @@ async function collectNavigationFailureEvidence(
  * Navigate to a URL with automatic retry on connection errors.
  * 
  * TRUE MITIGATION: Before each navigation attempt, we verify the server is 
- * actually responding to HTTP requests (not just port-reachable).
+ * actually responding to HTTP requests (not just port-reachable) using
+ * Playwright's request API (same network stack as page.goto).
  * 
  * Handles net::ERR_CONNECTION_REFUSED by:
- * 1. Polling server with HTTP GET until it responds
+ * 1. Probing server with HTTP GET to /favicon.ico until it responds
  * 2. Only then attempting page.goto()
+ * 3. Using exponential backoff for retries
  * 
- * EVIDENCE ON FAILURE:
- * - Logs: attempt number, baseURL, current page.url(), error message
+ * EVIDENCE ON FAILURE (grep-friendly categories):
+ * - `REFUSED`: Connection refused - server not listening
+ * - `TIMEOUT`: Server slow to respond (cold start/compile)
+ * - `DNS`: DNS resolution failed
+ * - `UNKNOWN`: Other network error
  * - Screenshot: saved to test-results/fail-goto-refused-*.png
- * - Debug probe: page state dump
  * - Final error message contains ERR_CONNECTION_REFUSED signature for grep
  * 
  * @param page - Playwright Page
@@ -131,22 +163,36 @@ async function collectNavigationFailureEvidence(
 export async function gotoWithRetry(
   page: Page,
   url: string = '/',
-  opts: { maxRetries?: number; retryDelayMs?: number; timeoutMs?: number } = {}
+  opts: { maxRetries?: number; retryDelayMs?: number; timeoutMs?: number; probeTimeoutMs?: number } = {}
 ): Promise<void> {
-  const { maxRetries = 5, retryDelayMs = 2000, timeoutMs = 30000 } = opts;
+  const { 
+    maxRetries = 5, 
+    retryDelayMs = 2000, 
+    timeoutMs = 30000,
+    probeTimeoutMs = 10000  // 10s for cold start scenarios
+  } = opts;
   let lastError: Error | undefined;
+  let lastProbeResult: HealthProbeResult | undefined;
   const baseURL = getBaseURL();
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const isLastAttempt = attempt === maxRetries;
     
-    // Step 1: Wait for server to be ready (HTTP health check)
-    const serverUp = await isServerReady(baseURL);
-    if (!serverUp) {
-      console.log(`[gotoWithRetry] Attempt ${attempt}/${maxRetries}: Server not ready`);
-      lastError = new Error(`Server at ${baseURL} did not respond to HTTP health check`);
+    // Exponential backoff: 2s, 4s, 8s, 16s (capped)
+    const backoffMs = Math.min(retryDelayMs * Math.pow(2, attempt - 1), 16000);
+    
+    // Step 1: Probe server health using Playwright's request API
+    const probeResult = await probeServerHealth(page, baseURL, probeTimeoutMs);
+    lastProbeResult = probeResult;
+    
+    if (!probeResult.ready) {
+      console.log(`[gotoWithRetry] Attempt ${attempt}/${maxRetries}: Server not ready (${probeResult.category})`);
+      lastError = new Error(`Server at ${baseURL} health probe failed: ${probeResult.message}`);
+      
+      // Timeout/unknown are "maybe slow" - don't burn retries too fast
       if (!isLastAttempt) {
-        await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+        console.log(`[gotoWithRetry] Waiting ${backoffMs}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
       }
       continue;
     }
@@ -162,7 +208,8 @@ export async function gotoWithRetry(
     logNavigationFailure(attempt, maxRetries, url, baseURL, page.url(), lastError, navResult.isRefused);
     
     if (navResult.isRefused && !isLastAttempt) {
-      await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+      console.log(`[gotoWithRetry] Waiting ${backoffMs}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, backoffMs));
       continue;
     }
     
@@ -175,7 +222,9 @@ export async function gotoWithRetry(
   // Failed after all attempts - collect evidence
   await collectNavigationFailureEvidence(page, maxRetries);
   
-  const finalMessage = `[gotoWithRetry] ${CONNECTION_REFUSED_SIGNATURE}: Failed to navigate to ${url} after ${maxRetries} attempts. ${lastError?.message || 'Unknown error'}`;
+  // Include last probe result category for grep-friendly evidence
+  const probeInfo = lastProbeResult ? ` [probe: ${lastProbeResult.category}]` : '';
+  const finalMessage = `[gotoWithRetry] ${CONNECTION_REFUSED_SIGNATURE}: Failed to navigate to ${url} after ${maxRetries} attempts.${probeInfo} ${lastError?.message || 'Unknown error'}`;
   throw new Error(finalMessage);
 }
 
