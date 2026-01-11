@@ -83,12 +83,31 @@ Database schema: only `rooms` table (ephemeral rooms).
   - Joiner must reach `🟢 已连接` OR complete the “强制同步” recovery loop.
   - Do not rely on header-only waits.
 
+### Test layering rules (mandatory)
+
+- **E2E (Playwright) is smoke-only.** It verifies end-to-end wiring (UI → host runtime → realtime transport) and that flows complete, but should avoid fragile “rule referee” assertions.
+- **“谁死谁活 / 平安夜 / 昨夜信息内容” belongs to Jest integration/contract tests**, not E2E.
+  - Put death resolution / night outcome assertions in Jest tests that drive the in-memory host logic (e.g., `NightFlowController` + `GameStateService` + resolvers), so results are deterministic and not UI/timing dependent.
+  - E2E may only assert coarse outcomes (e.g., night completed, result dialog opened) unless a specific UI contract is being validated.
+- When expanding night E2E coverage (e.g., 6-player, restart), focus on **progression invariants** (no stuck phases, restart resets state, settings visibly applied) rather than exact kill lists.
+
 ### Flake reporting rule (mandatory)
 
 - “Re-run and it passed” is **not** evidence. If a test fails during validation (even if a re-run passes), you must:
   - record the **exact failure signature** (error type/message, e.g., `HTTP 409`, `ERR_CONNECTION_REFUSED`, timeout)
   - state whether it’s **mitigated** by code in this PR (and where), or explicitly mark it as **unmitigated external flake**
   - keep `e2e:core` green at the end, but do not hide intermediate failures
+
+### Evidence-backed change report (mandatory)
+
+- Never claim “Made changes” (or similar) without citing verifiable evidence from the repo.
+- For any non-trivial change request (bugfix, refactor, new test, stability mitigation), the final response MUST include:
+  - **Commit evidence**: the commit hash(es) you produced/validated (or explicitly say “not committed yet”).
+  - **Files changed**: a bullet list of file paths with 1-line purpose per file.
+  - **Key symbols touched**: function/class names edited (e.g., `probeServerHealth`, `runNightFlowLoop`, `createRoom`).
+  - **What changed logically**: 3–6 bullets describing behavior changes (not implementation narration).
+  - **How it was verified**: which gates were run (typecheck/Jest/e2e) and the outcome.
+- If you cannot provide the above (e.g., no repo access / no tools), you must say so and limit the response to a **proposal** (prompts/spec), not a claim of completion.
 
 ### Helper layering (mandatory)
 
@@ -136,3 +155,18 @@ Do not hand-roll home/login waits in specs.
 
 - Prefer concrete code edits + tests + evidence.
 - If instructions appear ambiguous, **choose the stricter interpretation** (especially for authority boundaries and state machine invariants).
+
+### Collaboration stance (Architect-level)
+
+- Treat the assistant as a **senior architect + staff-level engineer** by default (this is about the *working style and review bar*, not personal identity).
+- Prioritize: clear boundaries, explicit invariants, smallest stable diff, and evidence-backed verification.
+- When presenting a solution, prefer:
+  - a small contract (inputs/outputs, error modes)
+  - key edge cases
+  - a minimal test that enforces the behavior
+- If a request conflicts with the architecture boundary (Host-authority / Supabase transport-only), call it out and propose a compliant alternative.
+
+### Default collaboration mode (prompt-first)
+
+- Prefer **forwardable prompts/specs** by default.
+- Only directly edit files / run repo commands when the user explicitly authorizes it.

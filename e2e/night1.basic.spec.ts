@@ -328,26 +328,6 @@ async function parseWolfVoteCount(page: Page): Promise<{ current: number; total:
 }
 
 /**
- * Check if page is in wolf voting context.
- * Only returns true if actionMessage contains wolf-related text OR vote count is visible.
- */
-async function isWolfVoteContext(page: Page): Promise<boolean> {
-  // Check for wolf vote count pattern "X/Y 狼人已投票"
-  const voteCount = await parseWolfVoteCount(page);
-  if (voteCount) return true;
-  
-  // Check for wolf-specific action message
-  const actionMsgLoc = page.locator('[class*="actionMessage"]');
-  if (!await actionMsgLoc.isVisible({ timeout: 100 }).catch(() => false)) {
-    return false;
-  }
-  const msgText = await actionMsgLoc.textContent().catch(() => '') || '';
-  // Wolf-specific keywords in action message
-  const wolfKeywords = ['狼人', '猎杀', '投票空刀'];
-  return wolfKeywords.some(kw => msgText.includes(kw));
-}
-
-/**
  * Execute a single action and wait for observable state change.
  * Returns true if an action was taken and state changed.
  */
@@ -360,29 +340,25 @@ async function executeActionWithStateWait(
   const btn = page.getByText(buttonText, { exact: true }).first();
   
   // For wolf vote context, check if THIS page already voted
-  // ONLY count as wolf vote if we're actually in wolf context
   if (buttonText === '投票空刀' || buttonText === '确定') {
-    const inWolfContext = await isWolfVoteContext(page);
-    if (inWolfContext) {
-      const voteCount = await parseWolfVoteCount(page);
-      if (voteCount) {
-        // Update expected wolf count
-        if (state.expectedWolfCount === 0) {
-          state.expectedWolfCount = voteCount.total;
-          console.log(`[Night] Wolf vote count detected: ${voteCount.current}/${voteCount.total}`);
-        }
-        
-        // Check if THIS page already voted
-        if (state.wolfVotedPages.has(pageLabel)) {
-          console.log(`[Night] [${pageLabel}] Skipping "${buttonText}" - this wolf already voted`);
-          return false;
-        }
-        
-        // Check if all wolves already voted (shouldn't still be showing vote dialog)
-        if (voteCount.current >= voteCount.total) {
-          console.log(`[Night] All wolves voted (${voteCount.current}/${voteCount.total}), skipping`);
-          return false;
-        }
+    const voteCount = await parseWolfVoteCount(page);
+    if (voteCount) {
+      // Update expected wolf count
+      if (state.expectedWolfCount === 0) {
+        state.expectedWolfCount = voteCount.total;
+        console.log(`[Night] Wolf vote count detected: ${voteCount.current}/${voteCount.total}`);
+      }
+      
+      // Check if THIS page already voted
+      if (state.wolfVotedPages.has(pageLabel)) {
+        console.log(`[Night] [${pageLabel}] Skipping "${buttonText}" - this wolf already voted`);
+        return false;
+      }
+      
+      // Check if all wolves already voted (shouldn't still be showing vote dialog)
+      if (voteCount.current >= voteCount.total) {
+        console.log(`[Night] All wolves voted (${voteCount.current}/${voteCount.total}), skipping`);
+        return false;
       }
     }
   }
@@ -399,9 +375,8 @@ async function executeActionWithStateWait(
   }
   
   if (buttonText === '确定') {
-    // Check if this was a wolf vote confirm - only if in wolf context
-    const inWolfContext = await isWolfVoteContext(page);
-    const voteCount = inWolfContext ? await parseWolfVoteCount(page) : null;
+    // Check if this was a wolf vote confirm
+    const voteCount = await parseWolfVoteCount(page);
     
     // Wait for button to be hidden (dialog dismissed)
     await btn.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
@@ -441,35 +416,11 @@ async function tryClickSeatTarget(page: Page): Promise<boolean> {
   const actionMsgVisible = await page.locator('[class*="actionMessage"]').isVisible({ timeout: 100 }).catch(() => false);
   if (!actionMsgVisible) return false;
 
-  // Check if any skip button is available first - prefer skip over targeting
-  const skipButtons = ['不使用技能', '跳过'];
-  for (const skipText of skipButtons) {
-    const skipBtn = page.getByText(skipText, { exact: true });
-    if (await skipBtn.first().isVisible({ timeout: 100 }).catch(() => false)) {
-      console.log(`[Night] Found skip option "${skipText}", preferring skip over target selection`);
-      return false; // Let the main loop handle the skip button
-    }
-  }
-
-  // Find which seat has "我" badge to avoid self-targeting
-  let mySeatIdx = -1;
-  for (let i = 0; i < 12; i++) {
-    const seatTile = getSeatTileLocator(page, i);
-    const isVisible = await seatTile.isVisible({ timeout: 50 }).catch(() => false);
-    if (!isVisible) continue;
-    // Check if this seat has the "我" badge
-    const hasMeBadge = await seatTile.locator('text="我"').isVisible({ timeout: 50 }).catch(() => false);
-    if (hasMeBadge) {
-      mySeatIdx = i;
-      break;
-    }
-  }
-
-  // Prefer higher seat numbers to avoid early players
-  // Try seat 6 first (index 5), then 5, 4, 3, 2 as fallbacks - skip self
-  const seatIndicesToTry = [5, 4, 3, 2, 1, 0].filter(idx => idx !== mySeatIdx);
+  // Prefer higher seat numbers to avoid targeting self or early players
+  // Try seat 6 first (index 5), then 5, 4, 3, 2 as fallbacks
+  const seatIndicesToTry = [5, 4, 3, 2, 1];
   
-  console.log(`[Night] Action message visible, my seat: ${mySeatIdx + 1}, trying safe targets...`);
+  console.log('[Night] Action message visible, trying to select a safe target seat...');
   for (const seatIdx of seatIndicesToTry) {
     try {
       const seatTile = getSeatTileLocator(page, seatIdx);
@@ -900,27 +851,14 @@ test.describe('Night 1 Happy Path', () => {
         console.log(`[6P] Player ${playerNum} seated at seat ${seatIndex + 1}`);
       }
       
-      // Wait for all players to stabilize (presence sync can take time with 6 players)
-      console.log('[6P] Waiting for presence to stabilize...');
-      await hostPage.waitForTimeout(2000);
-      
       await takeScreenshot(hostPage, testInfo, '6p-03-all-seated.png');
 
       // ===================== HOST: Prepare to flip roles =====================
       console.log('\n[6P] HOST clicking 准备看牌...');
-      
-      // Verify all seats are occupied from host perspective before proceeding
-      for (let i = 0; i < 6; i++) {
-        const seat = getSeatTileLocator(hostPage, i);
-        const isEmpty = await seat.locator('text="空"').isVisible({ timeout: 100 }).catch(() => false);
-        if (isEmpty) {
-          console.log(`[6P] WARNING: Seat ${i + 1} is empty on host view, waiting...`);
-          await hostPage.waitForTimeout(1000);
-        }
-      }
+      await hostPage.waitForTimeout(500);
       
       const prepareBtn = hostPage.getByText('准备看牌');
-      await expect(prepareBtn).toBeVisible({ timeout: 10000 }); // Increased timeout
+      await expect(prepareBtn).toBeVisible({ timeout: 5000 });
       await prepareBtn.click();
       
       await expect(hostPage.getByText('允许看牌？')).toBeVisible({ timeout: 3000 });
@@ -1251,20 +1189,12 @@ test.describe('Night 1 Happy Path', () => {
 
       // ===================== Count initial seats =====================
       // With 2-player template: wolf + villager = 2 seats
-      // Count seats by finding seat number elements (1, 2, 3, ...) that are part of seat tiles
-      // Each seat tile has: seat number + ("空" if empty, or player info)
       const countVisibleSeats = async (): Promise<number> => {
         let count = 0;
         for (let i = 0; i < 12; i++) {
-          const seatNumber = i + 1;
-          // Look for seat tile: parent container with seat number AND either "空" or "我" or avatar
-          const seatTile = getSeatTileLocator(page, i);
-          const isVisible = await seatTile.isVisible({ timeout: 50 }).catch(() => false);
-          if (isVisible) {
-            // Double-check by verifying the seat number text is inside
-            const hasNumber = await seatTile.locator(`text="${seatNumber}"`).isVisible({ timeout: 50 }).catch(() => false);
-            if (hasNumber) count++;
-          }
+          const seat = getSeatTileLocator(page, i);
+          const isVisible = await seat.isVisible({ timeout: 100 }).catch(() => false);
+          if (isVisible) count++;
         }
         return count;
       };
