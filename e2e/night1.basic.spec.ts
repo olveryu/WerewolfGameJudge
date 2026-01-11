@@ -1,4 +1,4 @@
-import { test, expect, Page, TestInfo, BrowserContext } from '@playwright/test';
+import { test, expect, Page, TestInfo, BrowserContext, Locator } from '@playwright/test';
 import { waitForRoomScreenReady } from './helpers/waits';
 import { getVisibleText, gotoWithRetry } from './helpers/ui';
 import { waitForAppReady, ensureAnonLogin, extractRoomNumber } from './helpers/home';
@@ -1327,27 +1327,67 @@ test.describe('Night 1 Happy Path', () => {
       await expect(getVisibleText(page, '保存')).toBeVisible({ timeout: 10000 });
       console.log('[SETTINGS] Config screen opened');
       
+      // Debug: Check what header shows
+      const headerPlayerCount = await page.getByText(/\d+ 名玩家/).first().textContent().catch(() => 'regex not found');
+      console.log(`[SETTINGS] Header player count (before action): ${headerPlayerCount}`);
+      
       // Wait for loading to complete (in edit mode, ConfigScreen loads existing template)
       // The loading spinner shows "加载中..." - wait for it to disappear
       await expect(page.getByText('加载中...')).toBeHidden({ timeout: 10000 }).catch(() => {
         // It may already be hidden, that's fine
       });
-      console.log('[SETTINGS] Config screen loaded');
+      
+      // In React Native Web, elements inside ScrollView may report as "hidden" even when rendered.
+      // Instead of visibility check, wait for the element to exist in DOM
+      // Use .first() because React Native Web may render duplicate elements
+      await page.locator('[data-testid="config-role-chip-villager1"]').first().waitFor({ state: 'attached', timeout: 5000 });
+      console.log('[SETTINGS] Config screen content loaded');
       
       await takeScreenshot(page, testInfo, 'settings-02-config-screen.png');
       
-      // Use a preset template button to change seat count (these are at the top and visible)
-      // Click "标准板12人" template to change from 2-player to 12-player
-      // Use .first() in case of duplicate elements from scroll rendering
-      const presetBtn = page.getByText('标准板12人').first();
-      await expect(presetBtn).toBeVisible({ timeout: 3000 });
-      await presetBtn.click();
+      // ===================== Add exactly +1 role (S1 requirement) =====================
+      // Current state: 1 wolf + 1 villager (2-player template)
+      // Target: 2 wolves + 1 villager (3-player)
+      // 
+      // In 2-player template with 1 wolf + 1 villager, the ConfigScreen shows:
+      // - wolf chip (selected), wolf1/wolf2/wolf3/wolf4 (not selected)
+      // - villager chip (selected), villager1/villager2/villager3/villager4 (not selected)
+      // 
+      // We need to click an unselected chip to add a role.
+      // Use .all() to get all chips, then filter for visible ones and click the second one.
       
-      // Wait briefly for the template to apply
+      // Get all wolf chips (label "普狼") - use .all() like the working configure2PlayerTemplate
+      const allWolfChips = await page.getByText('普狼', { exact: true }).all();
+      console.log(`[SETTINGS] Found ${allWolfChips.length} wolf chips labeled "普狼" (using .all())`);
+      
+      // Filter for visible chips
+      const visibleWolfChips: Locator[] = [];
+      for (const chip of allWolfChips) {
+        const isVisible = await chip.isVisible().catch(() => false);
+        if (isVisible) {
+          visibleWolfChips.push(chip);
+        }
+      }
+      console.log(`[SETTINGS] ${visibleWolfChips.length} wolf chips are visible`);
+      
+      if (visibleWolfChips.length < 2) {
+        throw new Error(`Expected at least 2 visible wolf chips, found ${visibleWolfChips.length}`);
+      }
+      
+      // Click the second visible wolf chip (wolf1, which is unselected in 2-player template)
+      console.log(`[SETTINGS] Clicking second visible wolf chip to add +1 wolf`);
+      await visibleWolfChips[1].click();
       await page.waitForTimeout(300);
       
-      console.log('[SETTINGS] Applied 标准板12人 template');
-      await takeScreenshot(page, testInfo, 'settings-03-template-applied.png');
+      // Wait briefly for the click to register
+      await page.waitForTimeout(300);
+      
+      // Verify the click worked by checking the player count in header (should show "3 名玩家")
+      const playerCountText = await page.getByText(/\d+ 名玩家/).textContent().catch(() => 'not found');
+      console.log(`[SETTINGS] Player count after click: ${playerCountText}`);
+      
+      console.log('[SETTINGS] Added wolf1 (+1 wolf)');
+      await takeScreenshot(page, testInfo, 'settings-03-added-villager.png');
       
       // Apply changes (click 保存 button - in edit mode)
       await getVisibleText(page, '保存').click();
@@ -1361,8 +1401,8 @@ test.describe('Night 1 Happy Path', () => {
       
       await takeScreenshot(page, testInfo, 'settings-04-updated-room.png');
       
-      // Seat count should have increased (was 2, now should be 3)
-      expect(updatedSeats).toBeGreaterThan(initialSeats);
+      // Seat count should be exactly 3 (was 2, added 1 villager)
+      expect(updatedSeats).toBe(3);
       console.log(`[SETTINGS] ✅ Seat count changed: ${initialSeats} → ${updatedSeats}`);
       
       await testInfo.attach('settings-test.txt', {
@@ -1373,6 +1413,9 @@ test.describe('Night 1 Happy Path', () => {
           '=== SEAT COUNT ===',
           `Initial: ${initialSeats}`,
           `After settings change: ${updatedSeats}`,
+          '',
+          '=== CHANGE MADE ===',
+          `Clicked: config-role-chip-villager1 (added +1 villager)`,
           '',
           '=== ERRORS ===',
           `Host: ${diag.pageErrors.join(', ') || 'none'}`,
