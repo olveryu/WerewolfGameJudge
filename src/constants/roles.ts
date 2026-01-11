@@ -5,16 +5,28 @@
  * Prefer importing from '@/models/roles' directly for new code.
  */
 
+// Re-export types and constants from role models
+export { 
+  Faction, 
+  Team, 
+  TEAM_DISPLAY_NAMES, 
+  ROLE_MODELS,
+} from '../models/roles';
+
 import { 
   ROLE_MODELS, 
   getRolesByActionOrder, 
-  Faction,
   isWolfRole as isWolfRoleFromModels,
   hasNightAction as hasNightActionFromModels,
+  getRoleDisplayName as getRoleDisplayNameFromModels,
+  getRoleTeam as getRoleTeamFromModels,
+  getRoleTeamDisplayName as getRoleTeamDisplayNameFromModels,
+  getTeamDisplayName as getTeamDisplayNameFromModels,
+  getNightActionOrderForRoles as getNightActionOrderForRolesFromModels,
+  getWolfRoleIds as getWolfRoleIdsFromModels,
+  Faction,
+  Team,
 } from '../models/roles';
-
-// Re-export Faction enum
-export { Faction };
 
 // Define RoleName as literal union type for backward compatibility
 export type RoleName =
@@ -76,3 +88,22 @@ export const isWolfRole = (role: RoleName): boolean => isWolfRoleFromModels(role
 
 // Check if a role has night action (derived from role models)
 export const hasNightAction = (role: RoleName): boolean => hasNightActionFromModels(role);
+
+// Get role display name (from registry)
+export const getRoleDisplayName = (role: RoleName): string => getRoleDisplayNameFromModels(role);
+
+// Get role team (wolf/good/third)
+export const getRoleTeam = (role: RoleName): Team => getRoleTeamFromModels(role);
+
+// Get team display name in Chinese
+export const getTeamDisplayName = (team: Team): string => getTeamDisplayNameFromModels(team);
+
+// Get role team display name (for seer/psychic results)
+export const getRoleTeamDisplayName = (role: RoleName): string => getRoleTeamDisplayNameFromModels(role);
+
+// Get night action order for a set of roles
+export const getNightActionOrderForRoles = (roles: RoleName[]): RoleName[] => 
+  getNightActionOrderForRolesFromModels(roles);
+
+// Get all wolf role IDs
+export const getWolfRoleIds = (): RoleName[] => getWolfRoleIdsFromModels();

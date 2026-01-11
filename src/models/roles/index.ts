@@ -234,6 +234,68 @@ export function getRoleDescription(roleId: string): string {
 }
 
 // ============================================================
+// Team (Camp) Display Names - Single Source of Truth
+// ============================================================
+
+/**
+ * Team type for role camp classification
+ */
+export type Team = 'wolf' | 'good' | 'third';
+
+/**
+ * Team display names in Chinese
+ */
+export const TEAM_DISPLAY_NAMES: Record<Team, string> = {
+  wolf: '狼人',
+  good: '好人',
+  third: '第三方',
+} as const;
+
+/**
+ * Get team display name in Chinese
+ */
+export function getTeamDisplayName(team: Team): string {
+  return TEAM_DISPLAY_NAMES[team];
+}
+
+/**
+ * Get team for a role
+ */
+export function getRoleTeam(roleId: string): Team {
+  const role = getRoleModel(roleId);
+  if (!role) return 'good';
+  
+  if (role.isWolf) return 'wolf';
+  if (role.faction === Faction.Special) return 'third';
+  return 'good';
+}
+
+/**
+ * Get team display name for a role (for seer/psychic results)
+ */
+export function getRoleTeamDisplayName(roleId: string): string {
+  return TEAM_DISPLAY_NAMES[getRoleTeam(roleId)];
+}
+
+/**
+ * Get all wolf role IDs
+ */
+export function getWolfRoleIds(): RoleName[] {
+  return getWolfRoles().map(role => role.id) as RoleName[];
+}
+
+/**
+ * Get night action order for a set of roles
+ * Returns only roles that have night actions, sorted by action order
+ */
+export function getNightActionOrderForRoles(roles: RoleName[]): RoleName[] {
+  const roleSet = new Set(roles);
+  return getRolesByActionOrder()
+    .filter(role => roleSet.has(role.id as RoleName))
+    .map(role => role.id as RoleName);
+}
+
+// ============================================================
 // Backward Compatibility Exports (previously in constants/roles.ts)
 // ============================================================
 
