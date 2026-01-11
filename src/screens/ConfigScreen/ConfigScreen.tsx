@@ -35,6 +35,7 @@ interface RoleChipProps {
 
 const RoleChip: React.FC<RoleChipProps> = ({ id, label, selected, onToggle }) => (
   <TouchableOpacity
+    testID={`config-role-chip-${id}`}
     style={[styles.chip, selected && styles.chipSelected]}
     onPress={() => onToggle(id)}
     activeOpacity={0.7}

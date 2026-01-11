@@ -93,14 +93,64 @@ function setupDiagnostics(page: Page, label: string): DiagnosticData {
 
 /**
  * Get a precise locator for a seat tile by its 0-based seat index.
+ * Uses data-testid for stable selection (requires testID on View in RoomScreen).
  */
 function getSeatTileLocator(page: Page, seatIndex: number) {
+  // Primary: use testID (stable)
+  const byTestId = page.locator(`[data-testid="seat-tile-${seatIndex}"]`);
+  // Fallback: legacy text-based approach
   const displayNumber = seatIndex + 1;
-  return page.locator(`text="${displayNumber}"`)
+  const byText = page.locator(`text="${displayNumber}"`)
     .locator('..')
     .filter({ has: page.locator('text=/^(空|我)$/').or(page.locator(`text="${displayNumber}"`)) })
     .first()
     .locator('..');
+  // Use OR to support both
+  return byTestId.or(byText).first();
+}
+
+/**
+ * Get the 0-based seat index of "my" seat (the one with "我" badge).
+ * Returns null if no seat is occupied by the current player.
+ */
+async function getMySeatIndex(page: Page): Promise<number | null> {
+  // Find the "我" text and trace back to the seat tile's testID
+  const myBadge = page.getByText('我', { exact: true }).first();
+  const isVisible = await myBadge.isVisible({ timeout: 500 }).catch(() => false);
+  if (!isVisible) return null;
+  
+  // Walk up to find the parent with data-testid="seat-tile-N"
+  const seatTileAncestor = myBadge.locator('xpath=ancestor::*[starts-with(@data-testid, "seat-tile-")]').first();
+  const testId = await seatTileAncestor.getAttribute('data-testid').catch(() => null);
+  
+  if (testId?.startsWith('seat-tile-')) {
+    const seatIndex = Number.parseInt(testId.replace('seat-tile-', ''), 10);
+    if (!Number.isNaN(seatIndex)) {
+      console.log(`[Night] My seat index: ${seatIndex}`);
+      return seatIndex;
+    }
+  }
+  
+  // Fallback: scan all seats for the one containing "我"
+  for (let i = 0; i < 12; i++) {
+    const tile = page.locator(`[data-testid="seat-tile-${i}"]`);
+    const hasMyBadge = await tile.locator('text="我"').isVisible({ timeout: 100 }).catch(() => false);
+    if (hasMyBadge) {
+      console.log(`[Night] My seat index (fallback scan): ${i}`);
+      return i;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Count visible seat tiles using stable testID selector.
+ */
+async function countSeatTiles(page: Page): Promise<number> {
+  const seatTiles = page.locator('[data-testid^="seat-tile-"]');
+  const count = await seatTiles.count();
+  return count;
 }
 
 /**
@@ -161,31 +211,38 @@ async function configure6PlayerTemplate(page: Page): Promise<void> {
   // Default: 4 wolves + 4 villagers + seer + witch + hunter + idiot = 12
   // Target: 2 wolves + 1 villager + seer + witch + hunter = 6
   
+  // Using stable testid selectors (config-role-chip-{id}) instead of fragile getByText
+  
   // Deselect 白痴 (idiot)
-  const idiotChip = page.getByText('白痴', { exact: true });
+  const idiotChip = page.locator('[data-testid="config-role-chip-idiot"]');
   if (await idiotChip.isVisible({ timeout: 500 }).catch(() => false)) {
-    console.log('[NIGHT] Deselecting: 白痴');
+    console.log('[NIGHT] Deselecting: idiot');
     await idiotChip.click();
     await page.waitForTimeout(100);
   }
   
-  // Deselect extra wolves (keep 2, deselect wolf3/wolf4)
-  // ConfigScreen has wolf, wolf1, wolf2, wolf3, wolf4 chips - all labeled "普狼"
-  const wolfChips = await page.getByText('普狼', { exact: true }).all();
-  console.log(`[NIGHT] Found ${wolfChips.length} wolf chips, keeping first 2`);
-  for (let i = 2; i < wolfChips.length; i++) {
-    console.log(`[NIGHT] Deselecting wolf chip ${i + 1}`);
-    await wolfChips[i].click();
-    await page.waitForTimeout(100);
+  // Deselect extra wolves (keep wolf, wolf1; deselect wolf2, wolf3)
+  // Default selection: wolf=true, wolf1=true, wolf2=true, wolf3=true, wolf4=false
+  const wolvesToDeselect = ['wolf2', 'wolf3'];
+  for (const wolfId of wolvesToDeselect) {
+    const wolfChip = page.locator(`[data-testid="config-role-chip-${wolfId}"]`);
+    if (await wolfChip.isVisible({ timeout: 500 }).catch(() => false)) {
+      console.log(`[NIGHT] Deselecting: ${wolfId}`);
+      await wolfChip.click();
+      await page.waitForTimeout(100);
+    }
   }
   
-  // Deselect extra villagers (keep 1)
-  const villagerChips = await page.getByText('村民', { exact: true }).all();
-  console.log(`[NIGHT] Found ${villagerChips.length} villager chips, keeping first 1`);
-  for (let i = 1; i < villagerChips.length; i++) {
-    console.log(`[NIGHT] Deselecting villager chip ${i + 1}`);
-    await villagerChips[i].click();
-    await page.waitForTimeout(100);
+  // Deselect extra villagers (keep villager; deselect villager1, villager2, villager3)
+  // Default selection: villager=true, villager1=true, villager2=true, villager3=true, villager4=false
+  const villagersToDeselect = ['villager1', 'villager2', 'villager3'];
+  for (const villagerId of villagersToDeselect) {
+    const villagerChip = page.locator(`[data-testid="config-role-chip-${villagerId}"]`);
+    if (await villagerChip.isVisible({ timeout: 500 }).catch(() => false)) {
+      console.log(`[NIGHT] Deselecting: ${villagerId}`);
+      await villagerChip.click();
+      await page.waitForTimeout(100);
+    }
   }
   
   // Verify total = 6 (should see "6人" or similar in UI)
@@ -413,14 +470,43 @@ async function logPageState(page: Page, iteration: number): Promise<void> {
 }
 
 async function tryClickSeatTarget(page: Page): Promise<boolean> {
-  const actionMsgVisible = await page.locator('[class*="actionMessage"]').isVisible({ timeout: 100 }).catch(() => false);
-  if (!actionMsgVisible) return false;
-
-  // Prefer higher seat numbers to avoid targeting self or early players
-  // Try seat 6 first (index 5), then 5, 4, 3, 2 as fallbacks
-  const seatIndicesToTry = [5, 4, 3, 2, 1];
+  // Gate: Only proceed if we're clearly in a target selection UI state
+  // Look for known target selection action messages (not just any actionMessage)
+  const TARGET_SELECTION_PATTERNS = [
+    '请选择猎杀对象',
+    '请选择查验对象',
+    '请选择守护对象',
+    '请选择救人',
+    '请选择毒杀',
+    '点击选择',
+    '选择目标',
+  ];
   
-  console.log('[Night] Action message visible, trying to select a safe target seat...');
+  const actionMsgLocator = page.locator('[class*="actionMessage"]');
+  const actionMsgVisible = await actionMsgLocator.isVisible({ timeout: 100 }).catch(() => false);
+  if (!actionMsgVisible) return false;
+  
+  const actionMsgText = await actionMsgLocator.textContent().catch(() => '') ?? '';
+  const isTargetSelectionMode = TARGET_SELECTION_PATTERNS.some(pat => actionMsgText.includes(pat));
+  
+  if (!isTargetSelectionMode) {
+    // Not in target selection mode - don't randomly click seats
+    return false;
+  }
+  
+  // Get my seat index to exclude self-targeting
+  const mySeatIndex = await getMySeatIndex(page);
+  if (mySeatIndex === null) {
+    // Cannot reliably identify self-seat, fail-safe: do not attempt target selection
+    console.log('[Night] Cannot identify my seat - skipping target selection (fail-safe)');
+    return false;
+  }
+  
+  // Try seats from highest to lowest, excluding self
+  const seatIndicesToTry = [5, 4, 3, 2, 1, 0].filter(idx => idx !== mySeatIndex);
+  
+  console.log(`[Night] Target selection mode detected ("${actionMsgText.slice(0, 30)}..."), my seat=${mySeatIndex}, trying safe targets...`);
+  
   for (const seatIdx of seatIndicesToTry) {
     try {
       const seatTile = getSeatTileLocator(page, seatIdx);
@@ -428,13 +514,17 @@ async function tryClickSeatTarget(page: Page): Promise<boolean> {
       if (!isVisible) continue;
       
       await seatTile.click();
-      await page.waitForTimeout(300);
       
+      // Wait for confirm button to appear (state change)
       const confirmBtn = page.getByText('确定', { exact: true });
-      if (await confirmBtn.first().isVisible({ timeout: 500 }).catch(() => false)) {
-        console.log(`[Night] Selected seat ${seatIdx + 1}, confirming...`);
+      const confirmVisible = await confirmBtn.first().waitFor({ state: 'visible', timeout: 1000 })
+        .then(() => true).catch(() => false);
+      
+      if (confirmVisible) {
+        console.log(`[Night] Selected seat ${seatIdx + 1} (excluding self=${mySeatIndex + 1}), confirming...`);
         await confirmBtn.first().click();
-        await page.waitForTimeout(300);
+        // Wait for confirm button to disappear (state change complete)
+        await confirmBtn.first().waitFor({ state: 'hidden', timeout: 1000 }).catch(() => {});
         return true;
       }
     } catch {
@@ -853,9 +943,36 @@ test.describe('Night 1 Happy Path', () => {
       
       await takeScreenshot(hostPage, testInfo, '6p-03-all-seated.png');
 
+      // ===================== Stabilization: Ensure all players connected =====================
+      // Wait for presence count to stabilize at 6 before proceeding
+      console.log('\n[6P] Waiting for presence stabilization...');
+      const presenceStableStart = Date.now();
+      let presenceCheckAttempts = 0;
+      const MAX_PRESENCE_ATTEMPTS = 10;
+      
+      while (presenceCheckAttempts < MAX_PRESENCE_ATTEMPTS) {
+        presenceCheckAttempts++;
+        // Poll each joiner page to keep their connections alive
+        for (const joinerPage of joinerPages) {
+          // Simple DOM read to keep the page active
+          await joinerPage.locator('body').count();
+        }
+        await hostPage.waitForTimeout(200);
+        
+        // Check if 准备看牌 is visible (means roomStatus === seated)
+        const isPrepareVisible = await hostPage.getByText('准备看牌').isVisible().catch(() => false);
+        if (isPrepareVisible) {
+          console.log(`[6P] Presence stable, 准备看牌 visible after ${Date.now() - presenceStableStart}ms (attempt ${presenceCheckAttempts})`);
+          break;
+        }
+        
+        if (presenceCheckAttempts === MAX_PRESENCE_ATTEMPTS) {
+          console.log(`[6P] ⚠️ 准备看牌 not visible after ${MAX_PRESENCE_ATTEMPTS} attempts`);
+        }
+      }
+
       // ===================== HOST: Prepare to flip roles =====================
       console.log('\n[6P] HOST clicking 准备看牌...');
-      await hostPage.waitForTimeout(500);
       
       const prepareBtn = hostPage.getByText('准备看牌');
       await expect(prepareBtn).toBeVisible({ timeout: 5000 });
@@ -1068,23 +1185,30 @@ test.describe('Night 1 Happy Path', () => {
       await expect(restartBtn).toBeVisible({ timeout: 5000 });
       await restartBtn.click();
       
-      // Confirm restart dialog
-      const confirmDialog = pageA.getByText('确定重新开始');
-      const confirmVisible = await confirmDialog.isVisible({ timeout: 3000 }).catch(() => false);
-      if (confirmVisible) {
-        await pageA.getByText('确定', { exact: true }).click();
-      }
+      // Confirm restart dialog - the dialog text is "重新开始游戏？"
+      const confirmDialog = pageA.getByText('重新开始游戏？');
+      await expect(confirmDialog).toBeVisible({ timeout: 3000 });
+      await pageA.getByText('确定', { exact: true }).click();
       
       await pageA.waitForTimeout(1000);
       console.log('[RESTART] Game restarted');
       await takeScreenshot(pageA, testInfo, 'restart-02-after-restart.png');
 
+      // Wait for both pages to stabilize after restart
+      // After restart, state resets to seating phase - both pages should show seat grid
+      console.log('[RESTART] Waiting for both pages to stabilize...');
+      for (const page of [pageA, pageB]) {
+        // Wait for seat grid to be visible (game reset to seating phase)
+        await expect(page.locator('[data-testid^="seat-tile-"]').first()).toBeVisible({ timeout: 5000 });
+      }
+      console.log('[RESTART] Both pages stabilized after restart');
+
       // ===================== Second Night: Re-run the flow =====================
       console.log('\n[RESTART] === Running Second Night ===');
       
-      // 准备看牌 should be visible again
+      // 准备看牌 should be visible again (host only)
       const prepareBtn2 = pageA.getByText('准备看牌');
-      await expect(prepareBtn2).toBeVisible({ timeout: 5000 });
+      await expect(prepareBtn2).toBeVisible({ timeout: 8000 });
       await prepareBtn2.click();
       await expect(pageA.getByText('允许看牌？')).toBeVisible({ timeout: 3000 });
       await pageA.getByText('确定', { exact: true }).click();
@@ -1187,19 +1311,8 @@ test.describe('Night 1 Happy Path', () => {
       
       await takeScreenshot(page, testInfo, 'settings-01-initial-room.png');
 
-      // ===================== Count initial seats =====================
-      // With 2-player template: wolf + villager = 2 seats
-      const countVisibleSeats = async (): Promise<number> => {
-        let count = 0;
-        for (let i = 0; i < 12; i++) {
-          const seat = getSeatTileLocator(page, i);
-          const isVisible = await seat.isVisible({ timeout: 100 }).catch(() => false);
-          if (isVisible) count++;
-        }
-        return count;
-      };
-      
-      const initialSeats = await countVisibleSeats();
+      // ===================== Count initial seats using stable testID selector =====================
+      const initialSeats = await countSeatTiles(page);
       console.log(`[SETTINGS] Initial seat count: ${initialSeats}`);
       expect(initialSeats).toBe(2);
 
@@ -1210,30 +1323,40 @@ test.describe('Night 1 Happy Path', () => {
       await expect(settingsBtn).toBeVisible({ timeout: 5000 });
       await settingsBtn.click();
       
-      // Should navigate to Config screen
-      await expect(getVisibleText(page, '创建')).toBeVisible({ timeout: 10000 });
+      // Should navigate to Config screen (in edit mode, button shows "保存" not "创建")
+      await expect(getVisibleText(page, '保存')).toBeVisible({ timeout: 10000 });
       console.log('[SETTINGS] Config screen opened');
+      
+      // Wait for loading to complete (in edit mode, ConfigScreen loads existing template)
+      // The loading spinner shows "加载中..." - wait for it to disappear
+      await expect(page.getByText('加载中...')).toBeHidden({ timeout: 10000 }).catch(() => {
+        // It may already be hidden, that's fine
+      });
+      console.log('[SETTINGS] Config screen loaded');
       
       await takeScreenshot(page, testInfo, 'settings-02-config-screen.png');
       
-      // Add one more villager (click 村民 chip to increase count)
-      // The chip shows current count - clicking it should cycle/add
-      const villagerChip = page.getByText('村民', { exact: false }).first();
-      await expect(villagerChip).toBeVisible({ timeout: 3000 });
-      await villagerChip.click();
+      // Use a preset template button to change seat count (these are at the top and visible)
+      // Click "标准板12人" template to change from 2-player to 12-player
+      // Use .first() in case of duplicate elements from scroll rendering
+      const presetBtn = page.getByText('标准板12人').first();
+      await expect(presetBtn).toBeVisible({ timeout: 3000 });
+      await presetBtn.click();
+      
+      // Wait briefly for the template to apply
       await page.waitForTimeout(300);
       
-      console.log('[SETTINGS] Added one villager');
-      await takeScreenshot(page, testInfo, 'settings-03-added-villager.png');
+      console.log('[SETTINGS] Applied 标准板12人 template');
+      await takeScreenshot(page, testInfo, 'settings-03-template-applied.png');
       
-      // Apply changes (click 创建 button - in edit mode it applies to existing room)
-      await getVisibleText(page, '创建').click();
+      // Apply changes (click 保存 button - in edit mode)
+      await getVisibleText(page, '保存').click();
       await waitForRoomScreenReady(page, { role: 'host' });
       
       console.log('[SETTINGS] Settings applied, back in room');
 
-      // ===================== Verify seat count changed =====================
-      const updatedSeats = await countVisibleSeats();
+      // ===================== Verify seat count changed using stable testID selector =====================
+      const updatedSeats = await countSeatTiles(page);
       console.log(`[SETTINGS] Updated seat count: ${updatedSeats}`);
       
       await takeScreenshot(page, testInfo, 'settings-04-updated-room.png');

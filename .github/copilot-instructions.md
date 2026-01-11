@@ -118,6 +118,14 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
 - Core e2e runs with workers=1 and must collect evidence on failure (logs/screenshot).
 - Room readiness must use the shared `waitForRoomScreenReady` helper (joiner must reach `🟢 已连接` or complete the “强制同步” recovery loop). Do not rely on header-only waits.
 
+### E2E stability rules (target selection + stable assertions)
+
+- **Target selection must be fail-safe and must never self-target.** Any “click a seat to choose a target” fallback must:
+   - Exclude the current player’s own seat when it can be determined.
+   - If the current player’s seat cannot be determined reliably, **return false** (fail-safe) instead of guessing.
+   - Only run when the UI is in a confirmed “choose target” state. Do **not** trigger merely because an action message is visible.
+- **Assertions and counts must use stable selectors/structure.** Do not use viewport `isVisible()` loops as a proxy for counts (e.g., seat count). Prefer stable selectors (`data-testid`/role) or a deterministic structural locator.
+
 ### Test layering rules (mandatory)
 
 - **E2E (Playwright) is smoke-only.** It verifies end-to-end wiring (UI → host runtime → realtime transport) and that flows complete, but must avoid fragile “rule referee” assertions.
