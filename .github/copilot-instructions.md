@@ -2,7 +2,13 @@
 
 ### CRITICAL PRINCIPLE（最高优先级）
 
-The Host client (房主客户端) is the **authority for all game LOGIC and runtime decisions**, including:
+The Host client (房主客户端) is the **authority ### E2E Gate & Stability Rules
+
+- Core e2e runs with workers=1 and must collect evidence on failure (logs/screenshot).
+- Room readiness must use the shared `waitForRoomScreenReady` helper (joiner must reach `🟢 已连接` or complete the "强制同步" recovery loop). Do not rely on header-only waits.
+- **Never run multiple e2e processes in parallel.** Do not start a new `npm run e2e:core` (or any Playwright command) while another is still running. Doing so causes port/server conflicts (`ECONNREFUSED`, `HTTP 409`) and invalidates test results.
+
+### E2E stability rules (target selection + stable assertions)l game LOGIC and runtime decisions**, including:
 - Night flow control (phase order, timing)
 - Role action execution and validation
 - Audio sequencing and progression

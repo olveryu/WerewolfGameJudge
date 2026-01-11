@@ -1,6 +1,15 @@
 # Assistant Working Contract (Repo Backup)
 
-This file is a **durable backup** of the “how we work with the assistant” rules, so we don’t lose them when chat history is gone.
+This file is a **durable backup**## 5) E2E stability contract (non-negotiable)
+
+- Core e2e runs with **workers=1**.
+- Failures must collect evidence (logs/screenshot).
+- Room readiness must use the shared `waitForRoomScreenReady()` helper:
+  - Joiner must reach `🟢 已连接` OR complete the "强制同步" recovery loop.
+  - Do not rely on header-only waits.
+- **Never run multiple e2e processes in parallel.** Do not start a new `npm run e2e:core` (or any Playwright command) while another is still running. Doing so causes port/server conflicts (`ECONNREFUSED`, `HTTP 409`) and invalidates test results.
+
+### E2E stability rules (target selection + stable assertions)how we work with the assistant” rules, so we don’t lose them when chat history is gone.
 
 If this file conflicts with `.github/copilot-instructions.md`, treat **`.github/copilot-instructions.md` as the primary source of truth** and update this backup accordingly.
 
