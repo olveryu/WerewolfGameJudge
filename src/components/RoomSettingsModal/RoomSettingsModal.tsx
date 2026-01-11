@@ -34,6 +34,7 @@ const RoleChip: React.FC<RoleChipProps> = ({ id, label, selected, onToggle }) =>
     style={[styles.chip, selected && styles.chipSelected]}
     onPress={() => onToggle(id)}
     activeOpacity={0.7}
+    testID={`role-chip-${id}`}
   >
     <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
   </TouchableOpacity>

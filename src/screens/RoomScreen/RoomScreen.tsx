@@ -743,7 +743,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             const seatKey = `seat-${index}-${role}`;
             
             return (
-              <View key={seatKey} style={styles.tileWrapper}>
+              <View key={seatKey} style={styles.tileWrapper} testID={`seat-tile-${index}`}>
                 <TouchableOpacity
                   style={[
                     styles.playerTile,

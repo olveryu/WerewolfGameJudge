@@ -105,7 +105,7 @@ export const useRoomNightDialogs = ({
     } else {
       showAlert(`${roleModel.displayName}请睁眼`, actionMessage, [{ text: '好', style: 'default' }]);
     }
-  }, []);
+  }, [showWitchDialog, showHunterStatusDialog, showDarkWolfKingStatusDialog]);
 
   return {
     showActionDialog,
