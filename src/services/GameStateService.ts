@@ -997,13 +997,14 @@ export class GameStateService {
   // [Bridge: NightFlowController] Initialize night-phase state machine with action order
     this.nightFlow = new NightFlowController(this.state.template.actionOrder);
     
-  // [Bridge: NightFlowController] Dispatch StartNight event (with error recovery)
+  // [Bridge: NightFlowController] Dispatch StartNight event (STRICT: fail-fast on error)
     try {
       this.nightFlow.dispatch(NightEvent.StartNight);
     } catch (err) {
       if (err instanceof InvalidNightTransitionError) {
         console.error('[GameStateService] NightFlow StartNight failed:', err.message);
-        // Continue with legacy flow
+        // STRICT: fail-fast, no legacy fallback
+        throw new Error(`[NightFlow] startGame failed: ${err.message}`);
       } else {
         throw err;
       }
@@ -1022,7 +1023,7 @@ export class GameStateService {
     // Wait 5 seconds
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-  // [Bridge: NightFlowController] Night begin audio done - dispatch transition event
+  // [Bridge: NightFlowController] Night begin audio done - dispatch transition event (STRICT)
     try {
       this.nightFlow?.dispatch(NightEvent.NightBeginAudioDone);
       // Sync currentActionerIndex from nightFlow
@@ -1032,6 +1033,8 @@ export class GameStateService {
     } catch (err) {
       if (err instanceof InvalidNightTransitionError) {
         console.error('[GameStateService] NightFlow NightBeginAudioDone failed:', err.message);
+        // STRICT: fail-fast, no legacy fallback
+        throw new Error(`[NightFlow] NightBeginAudioDone failed: ${err.message}`);
       } else {
         throw err;
       }
@@ -1292,12 +1295,14 @@ export class GameStateService {
     console.log('[GameStateService] Playing audio for role:', currentRole);
     await this.audioService.playRoleBeginningAudio(currentRole);
 
-    // Audio finished - dispatch RoleBeginAudioDone
+    // Audio finished - dispatch RoleBeginAudioDone (STRICT)
     try {
       this.nightFlow?.dispatch(NightEvent.RoleBeginAudioDone);
     } catch (err) {
       if (err instanceof InvalidNightTransitionError) {
         console.error('[GameStateService] NightFlow RoleBeginAudioDone failed:', err.message);
+        // STRICT: fail-fast, no legacy fallback
+        throw new Error(`[NightFlow] RoleBeginAudioDone failed: ${err.message}`);
       } else {
         throw err;
       }
