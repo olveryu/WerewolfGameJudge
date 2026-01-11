@@ -19,12 +19,6 @@ export class WitcherRole extends GodBaseRole {
   // Witcher is immune to poison
   readonly immuneToPoison = true;
   
-  /**
-   * Witcher can only hunt starting from the second night
-   */
-  canHunt(nightNumber: number): boolean {
-    return nightNumber >= 2;
-  }
 }
 
 export const witcherRole = new WitcherRole();

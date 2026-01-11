@@ -30,10 +30,10 @@ export class PsychicRole extends GodBaseRole {
    * Get the result dialog after checking a player
    * Returns the exact role, not just faction
    */
-  getCheckResultDialogConfig(targetSeat: number, roleName: string): ActionDialogConfig {
+  getCheckResultDialogConfig(targetSeat: number, roleDisplayName: string): ActionDialogConfig {
     return {
       title: `${targetSeat + 1}号玩家`,
-      message: `是${roleName}`,
+      message: `具体身份：${roleDisplayName}`,
       buttons: [
         { text: '确定', onPress: () => {} }
       ]

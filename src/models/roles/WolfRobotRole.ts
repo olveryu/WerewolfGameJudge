@@ -34,6 +34,19 @@ export class WolfRobotRole extends WolfBaseRole {
       ]
     };
   }
+
+  /**
+   * UI helper: show the learned target's exact identity.
+   *
+   * Note: the actual resolution (including swap effects etc.) is handled by model/services.
+   */
+  getCheckResultDialogConfig(targetSeat: number, roleDisplayName: string): ActionDialogConfig {
+    return {
+      title: '机械狼学习结果',
+      message: `${targetSeat + 1}号的身份是：${roleDisplayName}`,
+      buttons: [{ text: '好', onPress: () => {} }],
+    };
+  }
 }
 
 export const wolfRobotRole = new WolfRobotRole();
