@@ -24,7 +24,7 @@ const createTestRoom = (roles: RoleName[]): Room => {
   // Fill all seats
   roles.forEach((role, seat) => {
     room.players.set(seat, {
-      uid: `bot_${seat}`,
+      uid: `player_${seat}`,
       seatNumber: seat,
       role,
       status: PlayerStatus.alive,

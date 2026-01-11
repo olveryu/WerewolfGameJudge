@@ -31,7 +31,6 @@ export interface UseGameRoomResult {
   roomStatus: RoomStatus; // Maps GameStatus to RoomStatus for UI compatibility
   currentActionRole: RoleName | null;
   isAudioPlaying: boolean;
-  hasBots: boolean;
   
   // Connection status
   connectionStatus: ConnectionStatus;
@@ -51,7 +50,6 @@ export interface UseGameRoomResult {
   takeSeatWithAck: (seatNumber: number) => Promise<{ success: boolean; reason?: string }>;
   leaveSeat: () => Promise<void>;
   leaveSeatWithAck: () => Promise<{ success: boolean; reason?: string }>;
-  fillWithBots: () => Promise<void>;
   
   // Host game control
   updateTemplate: (template: GameTemplate) => Promise<void>;
@@ -145,17 +143,6 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Check if audio is currently playing
   const isAudioPlaying = useMemo((): boolean => {
     return gameState?.isAudioPlaying ?? false;
-  }, [gameState]);
-  
-  // Check if there are any bots in the room
-  const hasBots = useMemo((): boolean => {
-    if (!gameState) return false;
-    for (const [, player] of gameState.players.entries()) {
-      if (player?.uid.startsWith('bot_')) {
-        return true;
-      }
-    }
-    return false;
   }, [gameState]);
 
   // Create a new room as host
@@ -327,27 +314,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     }
   }, []);
 
-  // Fill remaining seats with bots (host only)
-  const fillWithBots = useCallback(async (): Promise<void> => {
-    if (!isHost || !gameState) return;
-
-    const displayName = await authService.current.getCurrentDisplayName();
-    const avatarUrl = await authService.current.getCurrentAvatarUrl();
-
-    // Host takes seat 0 first
-    if (mySeatNumber === null) {
-      await gameStateService.current.hostTakeSeat(0, displayName ?? 'Host', avatarUrl ?? undefined);
-    }
-
-    // Fill remaining seats with bots
-    for (let i = 0; i < gameState.template.numberOfPlayers; i++) {
-      const player = gameState.players.get(i);
-      if (player === null) {
-        await gameStateService.current.hostAddBot(i, `机器人 ${i + 1}`);
-      }
-    }
-  }, [isHost, gameState, mySeatNumber]);
-
   // Update template (host only)
   const updateTemplate = useCallback(async (template: GameTemplate): Promise<void> => {
     if (!isHost) return;
@@ -426,7 +392,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     roomStatus,
     currentActionRole,
     isAudioPlaying,
-    hasBots,
     loading,
     error,
     connectionStatus,
@@ -439,7 +404,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     takeSeatWithAck,
     leaveSeatWithAck,
     requestSnapshot,
-    fillWithBots,
     updateTemplate,
     assignRoles,
     startGame,

@@ -91,14 +91,24 @@ async function setupReadyState(
   // Initialize as host
   await service.initializeAsHost('TEST01', 'host-uid', template);
   
-  // Fill with bots
-  await service.fillWithBots();
+  // Fill all seats with players (directly set state for testing - unique UIDs per seat)
+  const state = service.getState()!;
+  for (let i = 0; i < template.numberOfPlayers; i++) {
+    state.players.set(i, {
+      uid: `player_${i}`,
+      seatNumber: i,
+      displayName: `Player ${i + 1}`,
+      avatarUrl: undefined,
+      role: null,
+      hasViewedRole: false,
+    });
+  }
+  state.status = GameStatus.seated;
   
   // Assign roles
   await service.assignRoles();
   
   // Mark all as viewed (simulate all players viewed roles)
-  const state = service.getState()!;
   state.players.forEach((player) => {
     if (player) {
       player.hasViewedRole = true;
