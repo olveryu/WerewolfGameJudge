@@ -14,13 +14,9 @@ import { RoleName } from '../../models/roles';
 import { PRESET_TEMPLATES, createCustomTemplate, validateTemplateRoles } from '../../models/Template';
 import { GameStateService } from '../../services/GameStateService';
 import { showAlert } from '../../utils/alert';
-import { PromptModal } from '../../components/PromptModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { spacing, colors } from '../../constants/theme';
+import { spacing } from '../../constants/theme';
 import { styles } from './ConfigScreen.styles';
-
-// Bot mode password
-const BOT_MODE_PASSWORD = '369';
 
 // ============================================
 // Sub-components (extracted to avoid nested component definitions)
@@ -112,8 +108,6 @@ export const ConfigScreen: React.FC = () => {
   const [selection, setSelection] = useState(getInitialSelection);
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
-  const [isFillingBots, setIsFillingBots] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const gameStateService = GameStateService.getInstance();
   const selectedCount = Object.values(selection).filter(Boolean).length;
@@ -191,32 +185,6 @@ export const ConfigScreen: React.FC = () => {
     }
   }, [selection, navigation, isEditMode, existingRoomNumber, gameStateService]);
 
-  const handleFillBots = useCallback(() => {
-    if (!existingRoomNumber) return;
-    setShowPasswordModal(true);
-  }, [existingRoomNumber]);
-
-  const handlePasswordConfirm = useCallback(async (password: string) => {
-    setShowPasswordModal(false);
-    if (!existingRoomNumber) return;
-    
-    if (password !== BOT_MODE_PASSWORD) {
-      showAlert('错误', '密码错误');
-      return;
-    }
-    
-    setIsFillingBots(true);
-    try {
-      await gameStateService.fillWithBots();
-      showAlert('成功', '已填充机器人');
-      navigation.goBack();
-    } catch {
-      showAlert('错误', '填充机器人失败');
-    } finally {
-      setIsFillingBots(false);
-    }
-  }, [existingRoomNumber, gameStateService, navigation]);
-
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -228,32 +196,17 @@ export const ConfigScreen: React.FC = () => {
           <Text style={styles.title}>{isEditMode ? '修改配置' : '创建房间'}</Text>
           <Text style={styles.subtitle}>{selectedCount} 名玩家</Text>
         </View>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {isEditMode && (
-            <TouchableOpacity 
-              style={[styles.headerBtn, { backgroundColor: colors.warning }]} 
-              onPress={handleFillBots} 
-              disabled={isFillingBots}
-            >
-              {isFillingBots ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.createBtnText}>🤖</Text>
-              )}
-            </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.headerBtn, styles.createBtn]} 
+          onPress={handleCreateRoom} 
+          disabled={isCreating || isLoading}
+        >
+          {isCreating ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.createBtnText}>{isEditMode ? '保存' : '创建'}</Text>
           )}
-          <TouchableOpacity 
-            style={[styles.headerBtn, styles.createBtn]} 
-            onPress={handleCreateRoom} 
-            disabled={isCreating || isLoading}
-          >
-            {isCreating ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={styles.createBtnText}>{isEditMode ? '保存' : '创建'}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {isLoading ? (
@@ -330,17 +283,6 @@ export const ConfigScreen: React.FC = () => {
         <View style={{ height: spacing.xxl }} />
         </ScrollView>
       )}
-
-      {/* Password Modal for Bot Fill */}
-      <PromptModal
-        visible={showPasswordModal}
-        title="需要密码"
-        message="请输入密码以填充机器人"
-        placeholder="密码"
-        secureTextEntry={true}
-        onCancel={() => setShowPasswordModal(false)}
-        onConfirm={handlePasswordConfirm}
-      />
     </SafeAreaView>
   );
 };

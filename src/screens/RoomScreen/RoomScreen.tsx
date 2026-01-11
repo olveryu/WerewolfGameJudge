@@ -21,7 +21,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { 
   RoomStatus, 
-  getActionLog,
   performSeerAction,
   performPsychicAction,
   getWolfVoteSummary,
@@ -44,35 +43,6 @@ import { useRoomPlayerDialogs } from './useRoomPlayerDialogs';
 import { useRoomNightDialogs } from './useRoomNightDialogs';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
-
-// Helper function to check if current actioner is a bot (or all bots for wolf turn)
-function checkIfCurrentActionerBot(gameState: LocalGameState, currentActionRole: RoleName | null): boolean {
-  if (!currentActionRole) return false;
-  
-  // For wolf turn, check if there are any bot wolves that haven't voted yet
-  if (currentActionRole === 'wolf') {
-    let hasUnvotedBotWolf = false;
-    for (const [seat, player] of gameState.players.entries()) {
-      if (player?.role && isWolfRole(player.role) && player.uid.startsWith('bot_')) {
-        if (!gameState.wolfVotes.has(seat)) {
-          hasUnvotedBotWolf = true;
-          break;
-        }
-      }
-    }
-    return hasUnvotedBotWolf;
-  }
-  
-  // For other roles, find the player with the current action role
-  // and check if they are a bot
-  for (const [, player] of gameState.players.entries()) {
-    if (player?.role === currentActionRole) {
-      return player.uid.startsWith('bot_');
-    }
-  }
-  
-  return false;
-}
 
 // Helper to determine imActioner state for ongoing game
 interface ActionerState {
@@ -151,7 +121,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     roomStatus,
     currentActionRole,
     isAudioPlaying,
-    hasBots,
     connectionStatus,
     createRoom,
     joinRoom,
@@ -164,7 +133,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     submitAction,
     submitWolfVote,
     hasWolfVoted,
-    getAllWolfSeats,
     getLastNightInfo: getLastNightInfoFn,
     lastSeatError,
     clearLastSeatError,
@@ -186,7 +154,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const gameStateRef = useRef<LocalGameState | null>(null);
   const lastShownDialogIndex = useRef<number | null>(null);
   const showActionDialogRef = useRef<((role: RoleName) => void) | null>(null);
-  const handleBotActionRef = useRef<((role: RoleName) => void) | null>(null);
   const proceedWithActionRef = useRef<((targetIndex: number | null, extra?: any) => Promise<void>) | null>(null);
 
   // Keep gameStateRef in sync
@@ -201,14 +168,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     }
     return determineActionerState(myRole, currentActionRole, mySeatNumber, gameState, isHost);
   }, [gameState, roomStatus, myRole, currentActionRole, mySeatNumber, isHost]);
-
-  // Action log for bot mode
-  const actionLog = useMemo(() => {
-    if (!gameState || !hasBots || roomStatus !== RoomStatus.ongoing) {
-      return [];
-    }
-    return getActionLog(toGameRoomLike(gameState));
-  }, [gameState, hasBots, roomStatus]);
 
   // Show alert when seat request is rejected (BUG-2 fix)
   useEffect(() => {
@@ -306,60 +265,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [gameState, roomStatus, isAudioPlaying, imActioner, currentActionRole]);
 
-  // Bot auto-view role
-  useEffect(() => {
-    if (!gameState || !isHost) return;
-    
-    const botsNotViewed: number[] = [];
-    gameState.players.forEach((player, seat) => {
-      if (player?.uid.startsWith('bot_') && player.role && !player.hasViewedRole) {
-        botsNotViewed.push(seat);
-      }
-    });
-    
-    if (botsNotViewed.length === 0) return;
-    
-    // In new architecture, bot role viewing is handled by GameStateService
-    // This is just a placeholder for now
-  }, [gameState, isHost]);
-
-  // Bot auto-action
-  const handleBotAction = useCallback((role: RoleName) => {
-    const latestGameState = gameStateRef.current;
-    if (!latestGameState || roomStatus !== RoomStatus.ongoing) return;
-    
-    const numberOfPlayers = latestGameState.template.numberOfPlayers;
-    
-    const delay = 500 + Math.random() * 1000;
-    setTimeout(async () => {
-      if (role === 'witch') {
-        await submitAction(null); // Skip
-      } else if (role === 'wolf') {
-        // All bot wolves vote for random target
-        const wolfSeats = getAllWolfSeats();
-        for (const seat of wolfSeats) {
-          const player = latestGameState.players.get(seat);
-          if (player?.uid.startsWith('bot_') && !hasWolfVoted(seat)) {
-            const target = Math.floor(Math.random() * numberOfPlayers);
-            await submitWolfVote(target);
-          }
-        }
-      } else {
-        const shouldAct = Math.random() > 0.2;
-        if (shouldAct) {
-          const target = Math.floor(Math.random() * numberOfPlayers);
-          await submitAction(target);
-        } else {
-          await submitAction(null);
-        }
-      }
-    }, delay);
-  }, [roomStatus, submitAction, submitWolfVote, getAllWolfSeats, hasWolfVoted]);
-  
-  useEffect(() => {
-    handleBotActionRef.current = handleBotAction;
-  }, [handleBotAction]);
-
   // Night dialogs from hook
   const {
     showActionDialog,
@@ -427,17 +332,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       return mySeatNumber;
     }
     
-    if (!isHost) return null;
-    
-    const wolfSeats = getAllWolfSeats();
-    for (const seat of wolfSeats) {
-      const player = gameState.players.get(seat);
-      if (player?.uid.startsWith('bot_') && !hasWolfVoted(seat)) {
-        return seat;
-      }
-    }
     return null;
-  }, [gameState, mySeatNumber, myRole, isHost, hasWolfVoted, getAllWolfSeats]);
+  }, [gameState, mySeatNumber, myRole, hasWolfVoted]);
 
   const buildActionMessage = useCallback((index: number, actingRole: RoleName): string => {
     const roleModel = getRoleModel(actingRole);
@@ -595,17 +491,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         return `${baseMessage}\n${voteSummary} (你已投票，等待其他狼人)`;
       }
       return `${baseMessage}\n${voteSummary}`;
-    }
-    
-    if (isHost) {
-      const wolfSeats = getAllWolfSeats();
-      for (const seat of wolfSeats) {
-        const player = gameState.players.get(seat);
-        if (player?.uid.startsWith('bot_') && !hasWolfVoted(seat)) {
-          const wolfName = player.displayName || `${seat + 1}号`;
-          return `${baseMessage}\n${voteSummary}\n当前: ${wolfName} 投票`;
-        }
-      }
     }
     
     return `${baseMessage}\n${voteSummary}`;
@@ -814,16 +699,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           );
         })()}
-        
-        {/* Action Log for Bot Mode */}
-        {isHost && hasBots && roomStatus === RoomStatus.ongoing && actionLog.length > 0 && (
-          <View style={styles.actionLogContainer}>
-            <Text style={styles.actionLogTitle}>📋 行动记录</Text>
-            {actionLog.map((log, idx) => (
-              <Text key={`log-${log.substring(0, 10)}-${idx}`} style={styles.actionLogItem}>{log}</Text>
-            ))}
-          </View>
-        )}
       </ScrollView>
       
       {/* Bottom Buttons */}

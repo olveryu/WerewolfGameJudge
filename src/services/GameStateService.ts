@@ -903,39 +903,6 @@ export class GameStateService {
   }
 
   /**
-   * Host: Add a bot to a seat
-   */
-  async hostAddBot(seat: number, displayName?: string): Promise<boolean> {
-    if (!this.isHost || !this.state) return false;
-
-    if (this.state.players.get(seat) !== null) return false;
-
-    // Generate bot uid
-    const botId = `bot_${seat}_${Math.random().toString(36).substring(2, 8)}`;
-
-    const player: LocalPlayer = {
-      uid: botId,
-      seatNumber: seat,
-      displayName: displayName ?? `机器人 ${seat + 1}`,
-      avatarUrl: undefined,
-      role: null,
-      hasViewedRole: false,
-    };
-
-    this.state.players.set(seat, player);
-
-    // Check if all seats are filled
-    const allSeated = Array.from(this.state.players.values()).every(p => p !== null);
-    if (allSeated) {
-      this.state.status = GameStatus.seated;
-    }
-
-    await this.broadcastState();
-    this.notifyListeners();
-    return true;
-  }
-
-  /**
    * Host: Assign roles to all players
    */
   async assignRoles(): Promise<void> {
@@ -1242,33 +1209,6 @@ export class GameStateService {
     this.notifyListeners();
     
     console.log('[GameStateService] Template updated:', newTemplate.name);
-  }
-
-  /**
-   * Fill all empty seats with bots (host only).
-   * This is a convenience method for filling the room quickly.
-   */
-  async fillWithBots(): Promise<void> {
-    if (!this.isHost || !this.state) {
-      console.warn('[GameStateService] fillWithBots: Not host or no state');
-      return;
-    }
-
-    // Only allow before game starts
-    if (this.state.status !== GameStatus.unseated && this.state.status !== GameStatus.seated) {
-      console.warn('[GameStateService] Cannot fill bots after game starts');
-      return;
-    }
-
-    // Fill all empty seats with bots
-    for (let i = 0; i < this.state.template.numberOfPlayers; i++) {
-      const player = this.state.players.get(i);
-      if (player === null) {
-        await this.hostAddBot(i, `机器人 ${i + 1}`);
-      }
-    }
-    
-    console.log('[GameStateService] Filled empty seats with bots');
   }
 
   // ===========================================================================
