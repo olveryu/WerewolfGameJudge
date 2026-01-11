@@ -11,7 +11,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { RoleName } from '../../models/roles';
-import { PRESET_TEMPLATES, createCustomTemplate } from '../../models/Template';
+import { PRESET_TEMPLATES, createCustomTemplate, validateTemplateRoles } from '../../models/Template';
 import { GameStateService } from '../../services/GameStateService';
 import { showAlert } from '../../utils/alert';
 import { PromptModal } from '../../components/PromptModal';
@@ -161,6 +161,14 @@ export const ConfigScreen: React.FC = () => {
       showAlert('错误', '请至少选择一个角色');
       return;
     }
+
+    // Validate template roles before proceeding
+    const validationError = validateTemplateRoles(roles);
+    if (validationError) {
+      showAlert('配置不合法', validationError);
+      return;
+    }
+
     setIsCreating(true);
     try {
       const template = createCustomTemplate(roles);

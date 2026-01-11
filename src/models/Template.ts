@@ -1,4 +1,45 @@
-import { RoleName, ACTION_ORDER, ROLES } from './roles';
+import { RoleName, ACTION_ORDER, ROLES, isWolfRole, isValidRoleName } from './roles';
+
+// ---------------------------------------------------------------------------
+// Template validation
+// ---------------------------------------------------------------------------
+
+/** Minimum number of players for a valid template */
+export const MINIMUM_PLAYERS = 4;
+
+/**
+ * Validate a list of roles for template creation.
+ * Returns null if valid, otherwise a human-readable reason string.
+ */
+export function validateTemplateRoles(roles: RoleName[]): string | null {
+  // Rule 1: must have at least MINIMUM_PLAYERS
+  if (roles.length < MINIMUM_PLAYERS) {
+    return `至少需要 ${MINIMUM_PLAYERS} 名玩家`;
+  }
+
+  // Rule 2: all roles must be valid RoleName (defensive, in case of external data)
+  for (const r of roles) {
+    if (!isValidRoleName(r)) {
+      return `无效角色: ${r}`;
+    }
+  }
+
+  // Rule 3: at least 1 wolf faction role
+  if (!roles.some((r) => isWolfRole(r))) {
+    return '至少需要 1 个狼人阵营角色';
+  }
+
+  // Rule 4: at least 1 role with night action (otherwise night phase ends immediately)
+  const roleSet = new Set(roles);
+  const actionOrder = ACTION_ORDER.filter((role) => roleSet.has(role));
+  if (actionOrder.length === 0) {
+    return '至少需要 1 个夜晚行动角色';
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 
 export interface GameTemplate {
   name: string;

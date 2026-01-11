@@ -12,7 +12,7 @@
  */
 
 import { RoleName, isWolfRole } from '../models/roles';
-import { GameTemplate, createTemplateFromRoles } from '../models/Template';
+import { GameTemplate, createTemplateFromRoles, validateTemplateRoles } from '../models/Template';
 import { BroadcastService, BroadcastGameState, BroadcastPlayer, HostBroadcast, PlayerMessage } from './BroadcastService';
 import AudioService from './AudioService';
 import { NightFlowController, NightPhase, NightEvent, InvalidNightTransitionError } from './NightFlowController';
@@ -1212,6 +1212,13 @@ export class GameStateService {
     // Only allow template changes before game starts
     if (this.state.status !== GameStatus.unseated && this.state.status !== GameStatus.seated) {
       console.warn('[GameStateService] Cannot update template after game starts');
+      return;
+    }
+
+    // Host-side defensive validation: reject clearly invalid templates
+    const validationError = validateTemplateRoles(newTemplate.roles);
+    if (validationError) {
+      console.warn('[GameStateService] updateTemplate rejected: invalid roles -', validationError);
       return;
     }
 
