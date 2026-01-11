@@ -1,6 +1,6 @@
 import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from './Player';
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
-import { RoleName, ROLES, isWolfRole } from './roles';
+import { RoleName, ROLES, isWolfRole, getRoleTeamDisplayName } from './roles';
 import { shuffleArray } from '../utils/shuffle';
 
 // Room status
@@ -532,7 +532,7 @@ export const getRoomInfo = (room: GameRoomLike): string => {
 // Perform seer action (check player identity)
 export const performSeerAction = (room: GameRoomLike, targetSeat: number): string => {
   const targetPlayer = room.players.get(targetSeat);
-  if (!targetPlayer) return '好人';
+  if (!targetPlayer?.role) return getRoleTeamDisplayName('villager');
 
   // Check magician swap
   const magicianAction = room.actions.get('magician');
@@ -542,14 +542,14 @@ export const performSeerAction = (room: GameRoomLike, targetSeat: number): strin
 
     if (targetSeat === first) {
       const swappedPlayer = room.players.get(second);
-      return swappedPlayer?.role && isWolfRole(swappedPlayer.role) ? '狼人' : '好人';
+      return swappedPlayer?.role ? getRoleTeamDisplayName(swappedPlayer.role) : getRoleTeamDisplayName('villager');
     } else if (targetSeat === second) {
       const swappedPlayer = room.players.get(first);
-      return swappedPlayer?.role && isWolfRole(swappedPlayer.role) ? '狼人' : '好人';
+      return swappedPlayer?.role ? getRoleTeamDisplayName(swappedPlayer.role) : getRoleTeamDisplayName('villager');
     }
   }
 
-  return targetPlayer.role && isWolfRole(targetPlayer.role) ? '狼人' : '好人';
+  return getRoleTeamDisplayName(targetPlayer.role);
 };
 
 // Perform psychic action (check exact role)

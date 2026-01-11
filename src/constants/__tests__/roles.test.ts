@@ -5,6 +5,14 @@ import {
   isWolfRole,
   hasNightAction,
   Faction,
+  getRoleDisplayName,
+  getRoleTeam,
+  getRoleTeamDisplayName,
+  getTeamDisplayName,
+  getNightActionOrderForRoles,
+  getWolfRoleIds,
+  TEAM_DISPLAY_NAMES,
+  ROLE_MODELS,
 } from '../roles';
 
 describe('roles - ROLES constant', () => {
@@ -291,5 +299,151 @@ describe('roles - Role descriptions', () => {
 
   it('should have meaningful hunter description', () => {
     expect(ROLES.hunter.description).toMatch(/带|枪|开枪/);
+  });
+});
+
+// ============================================================
+// Role Registry Contract Tests - Single Source of Truth
+// ============================================================
+
+describe('Role Registry - Single Source of Truth', () => {
+  const allRoleNames: RoleName[] = Object.keys(ROLE_MODELS) as RoleName[];
+
+  describe('Exhaustiveness - Every RoleName has a definition', () => {
+    it('should have ROLE_MODELS entry for every role', () => {
+      allRoleNames.forEach(roleName => {
+        expect(ROLE_MODELS[roleName]).toBeDefined();
+        expect(ROLE_MODELS[roleName].id).toBe(roleName);
+      });
+    });
+
+    it('should have ROLES entry for every role', () => {
+      allRoleNames.forEach(roleName => {
+        expect(ROLES[roleName]).toBeDefined();
+        expect(ROLES[roleName].name).toBe(roleName);
+      });
+    });
+  });
+
+  describe('getRoleDisplayName - returns non-empty for all roles', () => {
+    it('should return non-empty string for every role', () => {
+      allRoleNames.forEach(roleName => {
+        const displayName = getRoleDisplayName(roleName);
+        expect(displayName).toBeTruthy();
+        expect(displayName.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should match ROLES displayName', () => {
+      allRoleNames.forEach(roleName => {
+        expect(getRoleDisplayName(roleName)).toBe(ROLES[roleName].displayName);
+      });
+    });
+  });
+
+  describe('Team classification - Consistent wolf/good/third', () => {
+    it('should return wolf team for all wolf faction roles', () => {
+      allRoleNames.filter(r => isWolfRole(r)).forEach(roleName => {
+        expect(getRoleTeam(roleName)).toBe('wolf');
+      });
+    });
+
+    it('should return good team for non-wolf non-special roles', () => {
+      const goodRoles: RoleName[] = ['seer', 'witch', 'hunter', 'guard', 'villager'];
+      goodRoles.forEach(roleName => {
+        expect(getRoleTeam(roleName)).toBe('good');
+      });
+    });
+
+    it('should have consistent team display names', () => {
+      expect(TEAM_DISPLAY_NAMES.wolf).toBe('狼人');
+      expect(TEAM_DISPLAY_NAMES.good).toBe('好人');
+      expect(TEAM_DISPLAY_NAMES.third).toBe('第三方');
+    });
+
+    it('getTeamDisplayName should return correct Chinese names', () => {
+      expect(getTeamDisplayName('wolf')).toBe('狼人');
+      expect(getTeamDisplayName('good')).toBe('好人');
+      expect(getTeamDisplayName('third')).toBe('第三方');
+    });
+
+    it('getRoleTeamDisplayName should return 狼人 for wolf roles', () => {
+      expect(getRoleTeamDisplayName('wolf')).toBe('狼人');
+      expect(getRoleTeamDisplayName('wolfQueen')).toBe('狼人');
+      expect(getRoleTeamDisplayName('darkWolfKing')).toBe('狼人');
+    });
+
+    it('getRoleTeamDisplayName should return 好人 for good roles', () => {
+      expect(getRoleTeamDisplayName('seer')).toBe('好人');
+      expect(getRoleTeamDisplayName('witch')).toBe('好人');
+      expect(getRoleTeamDisplayName('villager')).toBe('好人');
+    });
+  });
+
+  describe('getWolfRoleIds - returns all wolf roles', () => {
+    it('should return array of wolf role IDs', () => {
+      const wolfIds = getWolfRoleIds();
+      expect(Array.isArray(wolfIds)).toBe(true);
+      expect(wolfIds.length).toBeGreaterThan(0);
+    });
+
+    it('should include all known wolf roles', () => {
+      const wolfIds = getWolfRoleIds();
+      expect(wolfIds).toContain('wolf');
+      expect(wolfIds).toContain('wolfQueen');
+      expect(wolfIds).toContain('darkWolfKing');
+    });
+
+    it('should not include non-wolf roles', () => {
+      const wolfIds = getWolfRoleIds();
+      expect(wolfIds).not.toContain('seer');
+      expect(wolfIds).not.toContain('villager');
+      expect(wolfIds).not.toContain('witch');
+    });
+
+    it('every returned ID should pass isWolfRole', () => {
+      getWolfRoleIds().forEach(id => {
+        expect(isWolfRole(id)).toBe(true);
+      });
+    });
+  });
+
+  describe('getNightActionOrderForRoles - stable order, no duplicates', () => {
+    it('should return subset of input roles that have night actions', () => {
+      const input: RoleName[] = ['wolf', 'seer', 'witch', 'villager', 'guard'];
+      const result = getNightActionOrderForRoles(input);
+      
+      // All results should be in input
+      result.forEach(r => expect(input).toContain(r));
+      
+      // All results should have night action
+      result.forEach(r => expect(hasNightAction(r)).toBe(true));
+      
+      // villager should not be in result (no night action)
+      expect(result).not.toContain('villager');
+    });
+
+    it('should have no duplicates', () => {
+      const input: RoleName[] = ['wolf', 'seer', 'witch', 'guard', 'hunter'];
+      const result = getNightActionOrderForRoles(input);
+      const unique = new Set(result);
+      expect(result.length).toBe(unique.size);
+    });
+
+    it('should be stable (same input → same output)', () => {
+      const input: RoleName[] = ['witch', 'wolf', 'seer', 'guard'];
+      const result1 = getNightActionOrderForRoles(input);
+      const result2 = getNightActionOrderForRoles(input);
+      expect(result1).toEqual(result2);
+    });
+
+    it('should respect action order (wolf before seer in standard order)', () => {
+      const input: RoleName[] = ['seer', 'wolf', 'witch'];
+      const result = getNightActionOrderForRoles(input);
+      const wolfIndex = result.indexOf('wolf');
+      const seerIndex = result.indexOf('seer');
+      // Wolf should act before seer
+      expect(wolfIndex).toBeLessThan(seerIndex);
+    });
   });
 });
