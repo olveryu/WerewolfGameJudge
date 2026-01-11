@@ -1,4 +1,4 @@
-import { test, expect, Page, TestInfo, BrowserContext, Locator } from '@playwright/test';
+import { test, expect, Page, TestInfo, BrowserContext } from '@playwright/test';
 import { waitForRoomScreenReady } from './helpers/waits';
 import { getVisibleText, gotoWithRetry } from './helpers/ui';
 import { waitForAppReady, ensureAnonLogin, extractRoomNumber } from './helpers/home';
@@ -1345,48 +1345,45 @@ test.describe('Night 1 Happy Path', () => {
       
       await takeScreenshot(page, testInfo, 'settings-02-config-screen.png');
       
-      // ===================== Add exactly +1 role (S1 requirement) =====================
+      // ===================== Add exactly +1 villager (S1 requirement) =====================
       // Current state: 1 wolf + 1 villager (2-player template)
-      // Target: 2 wolves + 1 villager (3-player)
+      // Target: 1 wolf + 2 villagers (3-player)
       // 
-      // In 2-player template with 1 wolf + 1 villager, the ConfigScreen shows:
-      // - wolf chip (selected), wolf1/wolf2/wolf3/wolf4 (not selected)
-      // - villager chip (selected), villager1/villager2/villager3/villager4 (not selected)
+      // In 2-player template:
+      // - wolf (selected), wolf1-4 (not selected)
+      // - villager (selected), villager1-4 (not selected)
       // 
-      // We need to click an unselected chip to add a role.
-      // Use .all() to get all chips, then filter for visible ones and click the second one.
+      // We click villager1 to add +1 villager.
+      // Current state after 2-player template: villager (selected), villager1-4 (not selected)
+      // 
+      // React Native Web may render duplicate elements. Filter for visible chips only.
       
-      // Get all wolf chips (label "普狼") - use .all() like the working configure2PlayerTemplate
-      const allWolfChips = await page.getByText('普狼', { exact: true }).all();
-      console.log(`[SETTINGS] Found ${allWolfChips.length} wolf chips labeled "普狼" (using .all())`);
+      const allVillagerChips = await page.getByText('村民', { exact: true }).all();
+      console.log(`[SETTINGS] Found ${allVillagerChips.length} total villager chips (may include hidden duplicates)`);
       
-      // Filter for visible chips
-      const visibleWolfChips: Locator[] = [];
-      for (const chip of allWolfChips) {
-        const isVisible = await chip.isVisible().catch(() => false);
-        if (isVisible) {
-          visibleWolfChips.push(chip);
+      // Filter for visible chips only
+      const visibleVillagerChips: typeof allVillagerChips = [];
+      for (const chip of allVillagerChips) {
+        if (await chip.isVisible().catch(() => false)) {
+          visibleVillagerChips.push(chip);
         }
       }
-      console.log(`[SETTINGS] ${visibleWolfChips.length} wolf chips are visible`);
+      console.log(`[SETTINGS] ${visibleVillagerChips.length} visible villager chips`);
       
-      if (visibleWolfChips.length < 2) {
-        throw new Error(`Expected at least 2 visible wolf chips, found ${visibleWolfChips.length}`);
+      if (visibleVillagerChips.length < 2) {
+        throw new Error(`Expected at least 2 visible villager chips, found ${visibleVillagerChips.length}`);
       }
       
-      // Click the second visible wolf chip (wolf1, which is unselected in 2-player template)
-      console.log(`[SETTINGS] Clicking second visible wolf chip to add +1 wolf`);
-      await visibleWolfChips[1].click();
-      await page.waitForTimeout(300);
-      
-      // Wait briefly for the click to register
+      // Click the second visible villager chip (villager1) to add +1 villager
+      console.log(`[SETTINGS] Clicking visible villager chip[1] (villager1) to add +1 villager`);
+      await visibleVillagerChips[1].click();
       await page.waitForTimeout(300);
       
       // Verify the click worked by checking the player count in header (should show "3 名玩家")
       const playerCountText = await page.getByText(/\d+ 名玩家/).textContent().catch(() => 'not found');
       console.log(`[SETTINGS] Player count after click: ${playerCountText}`);
       
-      console.log('[SETTINGS] Added wolf1 (+1 wolf)');
+      console.log('[SETTINGS] Added villager1 (+1 villager)');
       await takeScreenshot(page, testInfo, 'settings-03-added-villager.png');
       
       // Apply changes (click 保存 button - in edit mode)
