@@ -1,6 +1,6 @@
 /**
  * Local avatar images for werewolf game
- * 17 dark fantasy style character portraits
+ * 29 dark fantasy style character portraits
  */
 
 // Import all avatar images
@@ -22,6 +22,18 @@ const AVATAR_IMAGES = [
   require('../../assets/avatars/villager_015.png'),
   require('../../assets/avatars/villager_016.png'),
   require('../../assets/avatars/villager_017.jpg'),
+  require('../../assets/avatars/villager_018.jpg'),
+  require('../../assets/avatars/villager_019.jpg'),
+  require('../../assets/avatars/villager_020.jpg'),
+  require('../../assets/avatars/villager_021.jpg'),
+  require('../../assets/avatars/villager_022.jpg'),
+  require('../../assets/avatars/villager_023.jpg'),
+  require('../../assets/avatars/villager_024.jpg'),
+  require('../../assets/avatars/villager_025.jpg'),
+  require('../../assets/avatars/villager_026.jpg'),
+  require('../../assets/avatars/villager_027.jpg'),
+  require('../../assets/avatars/villager_028.jpg'),
+  require('../../assets/avatars/villager_029.jpg'),
 ];
 
 /**
