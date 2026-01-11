@@ -5,7 +5,7 @@ import { RoleName, ACTION_ORDER, ROLES, isWolfRole, isValidRoleName } from './ro
 // ---------------------------------------------------------------------------
 
 /** Minimum number of players for a valid template */
-export const MINIMUM_PLAYERS = 4;
+export const MINIMUM_PLAYERS = 2;
 
 /**
  * Validate a list of roles for template creation.
