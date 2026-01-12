@@ -47,15 +47,16 @@ export const AlertModal: React.FC<AlertModalProps> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.alertBox}>
-          <Text style={styles.title}>{title}</Text>
-          {message ? <Text style={styles.message}>{message}</Text> : null}
+      <View style={styles.overlay} testID="alert-modal-overlay">
+        <View style={styles.alertBox} testID="alert-modal">
+          <Text style={styles.title} testID="alert-title">{title}</Text>
+          {message ? <Text style={styles.message} testID="alert-message">{message}</Text> : null}
           
           <View style={styles.buttonContainer}>
             {buttons.map((button, index) => (
               <TouchableOpacity
                 key={index}
+                testID={`alert-button-${index}`}
                 style={[
                   styles.button,
                   button.style === 'cancel' && styles.cancelButton,
