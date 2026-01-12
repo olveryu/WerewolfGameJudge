@@ -129,6 +129,7 @@ describe('DeathCalculator - Guard Protection', () => {
     spiritKnight: -1,
     seer: 8,
     witch: 9,
+    guard: 11,
   };
 
   it('守卫保护目标 → 狼刀无效', () => {

@@ -110,6 +110,7 @@ describe('DeathCalculator - Wolf Queen Link Death', () => {
     spiritKnight: -1,
     seer: 8,
     witch: 9,
+    guard: 11,
   };
 
   it('狼美人被狼刀 → 被链接的玩家也死亡', () => {

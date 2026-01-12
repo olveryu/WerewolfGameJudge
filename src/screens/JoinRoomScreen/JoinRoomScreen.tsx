@@ -8,7 +8,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Button } from '../../components';
+import Button from '../../components/Button';
 import { COLORS } from '../../constants';
 import { SimplifiedRoomService } from '../../services/SimplifiedRoomService';
 import { RootStackParamList } from '../../navigation/types';

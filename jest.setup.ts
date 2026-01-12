@@ -6,33 +6,38 @@
 // ---------------------------------------------------------------------------
 // React Native test env stability
 // ---------------------------------------------------------------------------
-// Prevent Animated/TouchableOpacity internals from triggering renderer version checks
-// when tests update TextInput and toggle button disabled/opacity.
-// RN internal paths can vary between versions, so we mock it as a virtual module.
+// Keep RN's public surface stable in Jest.
+// - Avoid relying on internal RN module paths (they change between RN versions).
+// - Defang NativeAnimatedHelper warnings/noise.
+// - Make TouchableOpacity deterministic to avoid animation side effects.
+
 jest.mock(
   'react-native/Libraries/Animated/NativeAnimatedHelper',
   () => ({}),
   { virtual: true }
 );
 
-// TouchableOpacity triggers Animated timing on opacity transitions.
-// In our current dependency set, that codepath hits a react vs react-native-renderer
-// version mismatch check. For unit tests, a simple Pressable-based shim is sufficient.
-jest.mock('react-native/Libraries/Components/Touchable/TouchableOpacity', () => {
-  const React = require('react');
-  const { Pressable } = require('react-native');
+// Provide a stable TouchableOpacity implementation without pulling in the full
+// `react-native` entrypoint (which can require unavailable native TurboModules
+// like DevMenu under Jest).
+jest.mock(
+  'react-native/Libraries/Components/Touchable/TouchableOpacity',
+  () => {
+    const React = require('react');
 
-  function TouchableOpacityShim(props: any) {
-    const { children, onPress, disabled, ...rest } = props;
-    return React.createElement(
-      Pressable,
-      { onPress, disabled, accessibilityRole: 'button', ...rest },
-      children
-    );
-  }
+    function TouchableOpacityShim(props: any) {
+      const { children, onPress, disabled, ...rest } = props;
+      return React.createElement(
+        'TouchableOpacity',
+        { onPress, disabled, accessibilityRole: 'button', ...rest },
+        children
+      );
+    }
 
-  return TouchableOpacityShim;
-});
+    return TouchableOpacityShim;
+  },
+  { virtual: true }
+);
 
 // Mock Supabase client
 jest.mock('./src/config/supabase', () => ({

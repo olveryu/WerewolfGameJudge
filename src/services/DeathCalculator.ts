@@ -47,6 +47,18 @@ export interface NightActions {
 
   /** Seer check target seat. undefined = not used */
   seerCheck?: number;
+
+  /**
+   * Nightmare block target seat. undefined = not used.
+   * The blocked player's night skill is nullified for this night.
+   */
+  nightmareBlock?: number;
+
+  /**
+   * Whether nightmare blocked a wolf player on night 1.
+   * When true, the wolf kill is nullified (wolves cannot kill).
+   */
+  nightmareBlockedWolf?: boolean;
 }
 
 /**
@@ -71,6 +83,9 @@ export interface RoleSeatMap {
 
   /** Witch seat (for spirit knight reflection). -1 if not present */
   witch: number;
+
+  /** Guard seat (for nightmare block check). -1 if not present */
+  guard: number;
 }
 
 /**
@@ -83,6 +98,7 @@ export const DEFAULT_ROLE_SEAT_MAP: RoleSeatMap = {
   spiritKnight: -1,
   seer: -1,
   witch: -1,
+  guard: -1,
 };
 
 // =============================================================================
@@ -104,10 +120,10 @@ export function calculateDeaths(
 
   // Order matters: some effects depend on prior death state
 
-  // 1. Process wolf kill (with guard/witch interaction)
-  processWolfKill(actions, deaths);
+  // 1. Process wolf kill (with guard/witch/nightmare interaction)
+  processWolfKill(actions, roleSeatMap, deaths);
 
-  // 2. Process witch poison (with witcher immunity)
+  // 2. Process witch poison (with witcher immunity and nightmare block)
   processWitchPoison(actions, roleSeatMap, deaths);
 
   // 3. Process wolf queen link death
@@ -130,24 +146,43 @@ export function calculateDeaths(
 // =============================================================================
 
 /**
- * Process wolf kill with guard/witch save interaction.
+ * Process wolf kill with guard/witch save interaction and nightmare block rules.
  *
  * Rules:
  * - Wolf kills target
  * - Guard protection OR witch save can prevent death
  * - BUT: 同守同救必死 (if both guard and witch save the same target, target dies)
+ * - Nightmare block:
+ *   - If guard is blocked, guard protection is nullified
+ *   - If witch is blocked, witch save is nullified
+ *   - If nightmare blocked a wolf on night 1 (nightmareBlockedWolf), wolf kill is nullified
  */
-function processWolfKill(actions: NightActions, deaths: Set<number>): void {
-  const { wolfKill, guardProtect, witchAction } = actions;
+function processWolfKill(
+  actions: NightActions,
+  roleSeatMap: RoleSeatMap,
+  deaths: Set<number>
+): void {
+  const { wolfKill, guardProtect, witchAction, nightmareBlock, nightmareBlockedWolf } = actions;
+  const { guard: guardSeat, witch: witchSeat } = roleSeatMap;
+
+  // Nightmare blocked a wolf on night 1: wolves cannot kill
+  if (nightmareBlockedWolf) return;
 
   // No wolf kill or empty kill
   if (wolfKill === undefined) return;
 
-  const witchSaveTarget = getWitchSaveTarget(witchAction);
-  const isSaved = witchSaveTarget === wolfKill;
-  const isGuarded = guardProtect === wolfKill;
+  // Check if guard protection is effective (not blocked by nightmare)
+  const isGuardBlocked = nightmareBlock !== undefined && guardSeat !== -1 && nightmareBlock === guardSeat;
+  const effectiveGuardProtect = isGuardBlocked ? undefined : guardProtect;
+  const isGuarded = effectiveGuardProtect === wolfKill;
 
-  // 同守同救必死: if BOTH guard and witch save, target still dies
+  // Check if witch save is effective (not blocked by nightmare)
+  const isWitchBlocked = nightmareBlock !== undefined && witchSeat !== -1 && nightmareBlock === witchSeat;
+  const witchSaveTarget = getWitchSaveTarget(witchAction);
+  const effectiveWitchSave = isWitchBlocked ? undefined : witchSaveTarget;
+  const isSaved = effectiveWitchSave === wolfKill;
+
+  // 同守同救必死: if BOTH guard and witch (effectively) save, target still dies
   // Otherwise: either guard OR witch can save
   const diesFromWolf = (isSaved && isGuarded) || (!isSaved && !isGuarded);
 
@@ -157,19 +192,26 @@ function processWolfKill(actions: NightActions, deaths: Set<number>): void {
 }
 
 /**
- * Process witch poison with witcher immunity.
+ * Process witch poison with witcher immunity and nightmare block.
  *
  * Rules:
  * - Witch poison kills target
  * - Witcher is immune to poison
+ * - If witch is blocked by nightmare, poison has no effect
  */
 function processWitchPoison(
   actions: NightActions,
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>
 ): void {
+  const { nightmareBlock } = actions;
+  const { witcher: witcherSeat, witch: witchSeat } = roleSeatMap;
+
+  // If witch is blocked by nightmare, poison has no effect
+  const isWitchBlocked = nightmareBlock !== undefined && witchSeat !== -1 && nightmareBlock === witchSeat;
+  if (isWitchBlocked) return;
+
   const witchPoisonTarget = getWitchPoisonTarget(actions.witchAction);
-  const { witcher: witcherSeat } = roleSeatMap;
 
   if (witchPoisonTarget === undefined) return;
 

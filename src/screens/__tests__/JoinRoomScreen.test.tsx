@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { ActivityIndicator } from 'react-native';
 import JoinRoomScreen from '../JoinRoomScreen/JoinRoomScreen';
 
 // Mock navigation
@@ -110,14 +111,20 @@ describe('JoinRoomScreen', () => {
     it('should disable button while joining', async () => {
       mockGetRoom.mockReturnValue(new Promise(() => {}));
 
-      const { getByPlaceholderText, getByText } = render(<JoinRoomScreen />);
+      const { getByPlaceholderText, getByText, UNSAFE_getByType } = render(
+        <JoinRoomScreen />
+      );
 
       fireEvent.changeText(getByPlaceholderText('输入房间号'), '1234');
       fireEvent.press(getByText('加入'));
 
       await waitFor(() => {
-        // When joining, button should show loading text.
-        expect(getByText('加入中...')).toBeTruthy();
+  // When joining, our Button renders an ActivityIndicator and becomes disabled.
+  const spinner = UNSAFE_getByType(ActivityIndicator);
+  expect(spinner).toBeTruthy();
+
+  const wrapper = spinner.parent;
+  expect(wrapper?.props?.accessibilityState?.disabled).toBe(true);
       });
     });
   });

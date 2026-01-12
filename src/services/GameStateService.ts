@@ -1780,6 +1780,20 @@ export class GameStateService {
       nightActions.seerCheck = seerAction.targetSeat;
     }
 
+    // Nightmare block
+    const nightmareAction = actions.get('nightmare');
+    if (nightmareAction?.kind === 'target') {
+      nightActions.nightmareBlock = nightmareAction.targetSeat;
+
+      // Check if nightmare blocked a wolf player on night 1
+      // If so, wolves cannot kill this night
+      const blockedSeat = nightmareAction.targetSeat;
+      const blockedPlayer = this.state.players.get(blockedSeat);
+      if (blockedPlayer?.role && isWolfRole(blockedPlayer.role)) {
+        nightActions.nightmareBlockedWolf = true;
+      }
+    }
+
     return nightActions;
   }
 
@@ -1794,6 +1808,7 @@ export class GameStateService {
       spiritKnight: this.findSeatByRole('spiritKnight'),
       seer: this.findSeatByRole('seer'),
       witch: this.findSeatByRole('witch'),
+      guard: this.findSeatByRole('guard'),
     };
   }
 
