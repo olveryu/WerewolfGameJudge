@@ -157,12 +157,13 @@ async function isHomeReady(page: Page): Promise<boolean> {
  * Returns true if login was performed.
  */
 async function completeAnonLoginIfNeeded(page: Page): Promise<boolean> {
-  // Already logged in?
-  if (await page.getByText('匿名用户').isVisible({ timeout: 500 }).catch(() => false)) {
+  // Already logged in? Check for user name display via testID
+  const userNameLocator = page.locator(`[data-testid="${TESTIDS.homeUserName}"]`);
+  if (await userNameLocator.isVisible({ timeout: 500 }).catch(() => false)) {
     return false;
   }
 
-  // Check for login-required overlay
+  // Check for login-required overlay (these are modal texts, kept as text match)
   const loginPrompts = ['需要登录', '请先登录后继续', '请先登陆后继续'];
   let needsLogin = false;
   for (const prompt of loginPrompts) {
@@ -178,16 +179,22 @@ async function completeAnonLoginIfNeeded(page: Page): Promise<boolean> {
 
   console.log('[completeAnonLoginIfNeeded] Login required, completing flow...');
 
-  // Click "登录" or "点击登录" if visible
-  await clickIfVisible(page, '点击登录', { timeout: 1000 });
-  await clickIfVisible(page, '登录', { exact: true, timeout: 1000 });
+  // Click login trigger via testID or text fallback
+  const loginBtn = page.locator(`[data-testid="${TESTIDS.homeLoginButton}"]`);
+  if (await loginBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+    await loginBtn.click();
+  } else {
+    await clickIfVisible(page, '点击登录', { timeout: 1000 });
+    await clickIfVisible(page, '登录', { exact: true, timeout: 1000 });
+  }
 
-  // Wait for and click anonymous login
-  await expect(page.getByText('👤 匿名登录')).toBeVisible({ timeout: 5000 });
-  await page.getByText('👤 匿名登录').click();
+  // Wait for and click anonymous login via testID
+  const anonLoginBtn = page.locator(`[data-testid="${TESTIDS.homeAnonLoginButton}"]`);
+  await expect(anonLoginBtn).toBeVisible({ timeout: 5000 });
+  await anonLoginBtn.click();
 
-  // Wait for login to complete
-  await expect(page.getByText('匿名用户')).toBeVisible({ timeout: 15000 });
+  // Wait for login to complete - check for user name display
+  await expect(userNameLocator).toBeVisible({ timeout: 15000 });
   console.log('[completeAnonLoginIfNeeded] Login completed');
 
   // Dismiss any remaining login dialogs
@@ -302,8 +309,8 @@ export async function ensureHomeReady(
  * Ensure anonymous login is completed, then return to stable home state.
  * 
  * Strategy:
- * 1. If already logged in (匿名用户 visible), verify home is stable
- * 2. Otherwise click "点击登录" in header to trigger login
+ * 1. If already logged in (user name visible), verify home is stable
+ * 2. Otherwise click login button in header to trigger login
  * 3. Complete login flow
  * 4. Wait for home to be stable
  * 
@@ -316,24 +323,25 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
   // First ensure we're on a stable screen
   await waitForAppReady(page);
 
-  // Already logged in?
-  const alreadyLoggedIn = await page.getByText('匿名用户').isVisible({ timeout: 1000 }).catch(() => false);
+  // Already logged in? Check via testID
+  const userNameLocator = page.locator(`[data-testid="${TESTIDS.homeUserName}"]`);
+  const alreadyLoggedIn = await userNameLocator.isVisible({ timeout: 1000 }).catch(() => false);
   if (alreadyLoggedIn) {
     console.log('[ensureAnonLogin] Already logged in');
     await ensureHomeReady(page);
     return;
   }
 
-  // Check for "点击登录" button in header
-  const hasLoginBtn = await page.getByText('点击登录').isVisible({ timeout: 2000 }).catch(() => false);
+  // Check for login button in header via testID
+  const loginBtnLocator = page.locator(`[data-testid="${TESTIDS.homeLoginButton}"]`);
+  const hasLoginBtn = await loginBtnLocator.isVisible({ timeout: 2000 }).catch(() => false);
   if (hasLoginBtn) {
-    console.log('[ensureAnonLogin] Clicking 点击登录...');
-    // Use force:true because the element might be replaced during click
+    console.log('[ensureAnonLogin] Clicking login button...');
     try {
-      await page.getByText('点击登录').click({ timeout: 2000 });
+      await loginBtnLocator.click({ timeout: 2000 });
     } catch {
       // Element was replaced - login might have auto-completed
-      console.log('[ensureAnonLogin] 点击登录 was replaced, checking if logged in...');
+      console.log('[ensureAnonLogin] Login button was replaced, checking if logged in...');
     }
     await page.waitForTimeout(500);
     
@@ -342,7 +350,7 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
     
     // Wait for home to be stable
     await ensureHomeReady(page);
-    console.log('[ensureAnonLogin] Completed via 点击登录');
+    console.log('[ensureAnonLogin] Completed via login button');
     return;
   }
 
@@ -355,11 +363,11 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
     return;
   }
 
-  // Last resort: trigger login via some action
-  // This is not ideal but better than nothing
-  console.log('[ensureAnonLogin] No login trigger found, trying 创建房间...');
-  await expect(page.getByText('创建房间')).toBeVisible({ timeout: 5000 });
-  await page.getByText('创建房间').click();
+  // Last resort: trigger login via create room button (testID)
+  console.log('[ensureAnonLogin] No login trigger found, trying create room...');
+  const createRoomBtn = page.locator(`[data-testid="${TESTIDS.homeCreateRoomButton}"]`);
+  await expect(createRoomBtn).toBeVisible({ timeout: 5000 });
+  await createRoomBtn.click();
   await page.waitForTimeout(500);
   
   await completeAnonLoginIfNeeded(page);
@@ -377,10 +385,10 @@ async function waitForPostLoginStable(page: Page, maxWaitMs = 15000): Promise<vo
   const startTime = Date.now();
   
   while (Date.now() - startTime < maxWaitMs) {
-    // Check if we're on a stable screen
-    const onConfig = await page.getByText('快速模板').isVisible({ timeout: 200 }).catch(() => false);
-    const onRoom = await page.locator(String.raw`text=/房间 \d{4}/`).isVisible({ timeout: 200 }).catch(() => false);
-    const onHome = await page.getByText('创建房间').isVisible({ timeout: 200 }).catch(() => false);
+    // Check if we're on a stable screen using testIDs (preferred) or fallback regex
+    const onConfig = await page.locator(`[data-testid="${TESTIDS.configScreenRoot}"]`).isVisible({ timeout: 200 }).catch(() => false);
+    const onRoom = await page.locator(`[data-testid="${TESTIDS.roomScreenRoot}"]`).isVisible({ timeout: 200 }).catch(() => false);
+    const onHome = await page.locator(`[data-testid="${TESTIDS.homeScreenRoot}"]`).isVisible({ timeout: 200 }).catch(() => false);
     
     if (onConfig || onRoom || onHome) {
       return;
@@ -401,8 +409,8 @@ async function navigateBackToHome(page: Page): Promise<void> {
   const maxAttempts = 5;
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // Check if we're on ConfigScreen (has "快速模板")
-    const onConfig = await page.getByText('快速模板').isVisible({ timeout: 300 }).catch(() => false);
+    // Check if we're on ConfigScreen using testID
+    const onConfig = await page.locator(`[data-testid="${TESTIDS.configScreenRoot}"]`).isVisible({ timeout: 300 }).catch(() => false);
     if (onConfig) {
       console.log('[navigateBackToHome] On ConfigScreen, clicking back');
       const backBtn = getVisibleText(page, '←');
@@ -413,8 +421,8 @@ async function navigateBackToHome(page: Page): Promise<void> {
       }
     }
     
-    // Check if we're on RoomScreen (has "房间 XXXX")
-    const onRoom = await page.locator(String.raw`text=/房间 \d{4}/`).isVisible({ timeout: 300 }).catch(() => false);
+    // Check if we're on RoomScreen using testID
+    const onRoom = await page.locator(`[data-testid="${TESTIDS.roomScreenRoot}"]`).isVisible({ timeout: 300 }).catch(() => false);
     if (onRoom) {
       console.log('[navigateBackToHome] On RoomScreen, need to leave room');
       // This is a more complex case - for now just return and let the caller handle

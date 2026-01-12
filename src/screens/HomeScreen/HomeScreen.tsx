@@ -167,6 +167,7 @@ const LoginOptions: React.FC<LoginOptionsProps> = ({
       style={[styles.outlineButton, authLoading && styles.buttonDisabled]} 
       onPress={onAnonymousLogin}
       disabled={authLoading}
+      testID={TESTIDS.homeAnonLoginButton}
     >
       <Text style={styles.outlineButtonText}>
         {authLoading ? '处理中...' : '👤 匿名登录'}
@@ -413,6 +414,7 @@ export const HomeScreen: React.FC = () => {
         {/* User Bar */}
         <TouchableOpacity
           style={styles.userBar}
+          testID={TESTIDS.homeUserBar}
           onPress={() => {
             if (user) {
               // Show user menu with logout option
@@ -433,19 +435,19 @@ export const HomeScreen: React.FC = () => {
           {!user && (
             <>
               <Text style={styles.userAvatar}>👤</Text>
-              <Text style={styles.userNameText}>点击登录</Text>
+              <Text style={styles.userNameText} testID={TESTIDS.homeLoginButton}>点击登录</Text>
             </>
           )}
           {user && user.isAnonymous && (
             <>
               <Text style={styles.userAvatar}>👤</Text>
-              <Text style={styles.userNameText}>{userName}</Text>
+              <Text style={styles.userNameText} testID={TESTIDS.homeUserName}>{userName}</Text>
             </>
           )}
           {user && !user.isAnonymous && (
             <>
               <Avatar value={user.uid} size={36} avatarUrl={user.avatarUrl} />
-              <Text style={styles.userNameText}>{userName}</Text>
+              <Text style={styles.userNameText} testID={TESTIDS.homeUserName}>{userName}</Text>
             </>
           )}
         </TouchableOpacity>
