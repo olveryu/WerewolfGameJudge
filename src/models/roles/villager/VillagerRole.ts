@@ -5,7 +5,7 @@
  * Wins with the village team through discussion and voting.
  */
 
-import { BaseRole, Faction } from './BaseRole';
+import { BaseRole, Faction } from '../base/BaseRole';
 
 export class VillagerRole extends BaseRole {
   readonly id = 'villager';

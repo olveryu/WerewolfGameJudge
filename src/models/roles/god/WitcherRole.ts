@@ -7,7 +7,7 @@
  * Immune to witch's poison.
  */
 
-import { GodBaseRole } from './GodBaseRole';
+import { GodBaseRole } from '../base/GodBaseRole';
 
 export class WitcherRole extends GodBaseRole {
   readonly id = 'witcher';

@@ -8,8 +8,8 @@
  * Each potion can only be used once per game.
  */
 
-import { GodBaseRole } from './GodBaseRole';
-import { ActionDialogConfig, RoleActionContext, ActionResult } from './BaseRole';
+import { GodBaseRole } from '../base/GodBaseRole';
+import { ActionDialogConfig, RoleActionContext, ActionResult } from '../base/BaseRole';
 
 export class WitchRole extends GodBaseRole {
   readonly id = 'witch';

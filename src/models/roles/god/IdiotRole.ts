@@ -7,7 +7,7 @@
  * Note: Day voting is not implemented yet (only first night is supported).
  */
 
-import { GodBaseRole } from './GodBaseRole';
+import { GodBaseRole } from '../base/GodBaseRole';
 
 export class IdiotRole extends GodBaseRole {
   readonly id = 'idiot';

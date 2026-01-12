@@ -4,7 +4,7 @@
  * Each night can check a dead player's identity card.
  */
 
-import { GodBaseRole } from './GodBaseRole';
+import { GodBaseRole } from '../base/GodBaseRole';
 
 export class GraveyardKeeperRole extends GodBaseRole {
   readonly id = 'graveyardKeeper';

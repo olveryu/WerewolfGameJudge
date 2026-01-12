@@ -4,8 +4,8 @@
  * Each night can check a player's exact identity card (not just faction).
  */
 
-import { GodBaseRole } from './GodBaseRole';
-import { ActionDialogConfig, RoleActionContext } from './BaseRole';
+import { GodBaseRole } from '../base/GodBaseRole';
+import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class PsychicRole extends GodBaseRole {
   readonly id = 'psychic';

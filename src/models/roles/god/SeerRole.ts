@@ -4,9 +4,9 @@
  * The seer can check one player each night to learn if they are a wolf or not.
  */
 
-import { GodBaseRole } from './GodBaseRole';
-import { ActionDialogConfig, RoleActionContext } from './BaseRole';
-import type { SeerCheckResult } from './index';
+import { GodBaseRole } from '../base/GodBaseRole';
+import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
+import type { SeerCheckResult } from '../index';
 
 export class SeerRole extends GodBaseRole {
   readonly id = 'seer';

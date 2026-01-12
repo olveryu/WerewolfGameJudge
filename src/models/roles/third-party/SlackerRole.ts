@@ -5,7 +5,7 @@
  * Shares the same faction as the idol, but doesn't know the idol's identity.
  */
 
-import { BaseRole, Faction, ActionDialogConfig, RoleActionContext } from './BaseRole';
+import { BaseRole, Faction, ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class SlackerRole extends BaseRole {
   readonly id = 'slacker';

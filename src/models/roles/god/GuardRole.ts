@@ -6,8 +6,8 @@
  * Cannot protect against witch's poison.
  */
 
-import { GodBaseRole } from './GodBaseRole';
-import { ActionDialogConfig, RoleActionContext, ActionResult } from './BaseRole';
+import { GodBaseRole } from '../base/GodBaseRole';
+import { ActionDialogConfig, RoleActionContext, ActionResult } from '../base/BaseRole';
 
 export class GuardRole extends GodBaseRole {
   readonly id = 'guard';

@@ -4,6 +4,17 @@
  * Central registry for all role models.
  * Import roles from here to access their configurations and logic.
  * 
+ * Directory structure:
+ * 
+ * roles/
+ * ├── base/           - Base classes (BaseRole, WolfBaseRole, GodBaseRole)
+ * ├── wolf/           - Basic wolf roles (Wolf, WolfQueen, WolfKing)
+ * ├── skilled-wolf/   - Skilled wolf roles (DarkWolfKing, Nightmare, Gargoyle, etc.)
+ * ├── god/            - God roles (Seer, Witch, Hunter, Guard, etc.)
+ * ├── villager/       - Villager roles (Villager, Idiot, Celebrity, etc.)
+ * ├── third-party/    - Third-party roles (Slacker)
+ * └── index.ts        - This file (central registry)
+ * 
  * Inheritance structure:
  * 
  * BaseRole (abstract)
@@ -18,64 +29,63 @@
  */
 
 // Base classes and types
-export * from './BaseRole';
-export * from './WolfBaseRole';
-export * from './GodBaseRole';
+export * from './base/BaseRole';
+export * from './base/WolfBaseRole';
+export * from './base/GodBaseRole';
 
-// Wolf roles
-export * from './WolfRole';
-export * from './WolfQueenRole';
-export * from './WolfKingRole';
-export * from './DarkWolfKingRole';
-export * from './NightmareRole';
-export * from './GargoyleRole';
-export * from './BloodMoonRole';
-export * from './WolfRobotRole';
-export * from './SpiritKnightRole';
+// Skilled wolf roles (wolves with special abilities)
+export * from './skilled-wolf/WolfQueenRole';
+export * from './skilled-wolf/WolfKingRole';
+export * from './skilled-wolf/DarkWolfKingRole';
+export * from './skilled-wolf/NightmareRole';
+export * from './skilled-wolf/GargoyleRole';
+export * from './skilled-wolf/BloodMoonRole';
+export * from './skilled-wolf/WolfRobotRole';
+export * from './skilled-wolf/SpiritKnightRole';
 
 // God roles
-export * from './SeerRole';
-export * from './WitchRole';
-export * from './HunterRole';
-export * from './GuardRole';
-export * from './IdiotRole';
-export * from './GraveyardKeeperRole';
-export * from './KnightRole';
-export * from './CelebrityRole';
-export * from './MagicianRole';
-export * from './WitcherRole';
-export * from './PsychicRole';
+export * from './god/SeerRole';
+export * from './god/WitchRole';
+export * from './god/HunterRole';
+export * from './god/GuardRole';
+export * from './god/KnightRole';
+export * from './god/MagicianRole';
+export * from './god/WitcherRole';
+export * from './god/PsychicRole';
+export * from './god/IdiotRole';
+export * from './god/CelebrityRole';
+export * from './god/GraveyardKeeperRole';
 
 // Villager roles
-export * from './VillagerRole';
+export * from './villager/VillagerRole';
 
-// Special roles
-export * from './SlackerRole';
+// Third-party roles
+export * from './third-party/SlackerRole';
 
 // Import instances for registry
-import { BaseRole, Faction } from './BaseRole';
-import { wolfRole } from './WolfRole';
-import { wolfQueenRole } from './WolfQueenRole';
-import { wolfKingRole } from './WolfKingRole';
-import { darkWolfKingRole } from './DarkWolfKingRole';
-import { nightmareRole } from './NightmareRole';
-import { gargoyleRole } from './GargoyleRole';
-import { bloodMoonRole } from './BloodMoonRole';
-import { wolfRobotRole } from './WolfRobotRole';
-import { spiritKnightRole } from './SpiritKnightRole';
-import { seerRole } from './SeerRole';
-import { witchRole } from './WitchRole';
-import { hunterRole } from './HunterRole';
-import { guardRole } from './GuardRole';
-import { idiotRole } from './IdiotRole';
-import { graveyardKeeperRole } from './GraveyardKeeperRole';
-import { knightRole } from './KnightRole';
-import { celebrityRole } from './CelebrityRole';
-import { magicianRole } from './MagicianRole';
-import { witcherRole } from './WitcherRole';
-import { psychicRole } from './PsychicRole';
-import { villagerRole } from './VillagerRole';
-import { slackerRole } from './SlackerRole';
+import { BaseRole, Faction } from './base/BaseRole';
+import { wolfRole } from './wolf/WolfRole';
+import { wolfQueenRole } from './skilled-wolf/WolfQueenRole';
+import { wolfKingRole } from './skilled-wolf/WolfKingRole';
+import { darkWolfKingRole } from './skilled-wolf/DarkWolfKingRole';
+import { nightmareRole } from './skilled-wolf/NightmareRole';
+import { gargoyleRole } from './skilled-wolf/GargoyleRole';
+import { bloodMoonRole } from './skilled-wolf/BloodMoonRole';
+import { wolfRobotRole } from './skilled-wolf/WolfRobotRole';
+import { spiritKnightRole } from './skilled-wolf/SpiritKnightRole';
+import { seerRole } from './god/SeerRole';
+import { witchRole } from './god/WitchRole';
+import { hunterRole } from './god/HunterRole';
+import { guardRole } from './god/GuardRole';
+import { knightRole } from './god/KnightRole';
+import { magicianRole } from './god/MagicianRole';
+import { witcherRole } from './god/WitcherRole';
+import { psychicRole } from './god/PsychicRole';
+import { idiotRole } from './god/IdiotRole';
+import { celebrityRole } from './god/CelebrityRole';
+import { graveyardKeeperRole } from './god/GraveyardKeeperRole';
+import { villagerRole } from './villager/VillagerRole';
+import { slackerRole } from './third-party/SlackerRole';
 
 /**
  * Role name type (all valid role IDs)
@@ -155,6 +165,22 @@ export function getRoleModel(roleId: string): BaseRole | undefined {
 }
 
 /**
+ * Get all wolf-faction roles (camp classification).
+ * IMPORTANT: This is NOT the same as "wolves who meet at night".
+ */
+export function getWolfFactionRoles(): BaseRole[] {
+  return Object.values(ROLE_MODELS).filter(role => role.isWolf);
+}
+
+/**
+ * Get the wolf pack roles (wolves who "meet" / can see wolves at night).
+ * This is used for night UI visibility.
+ */
+export function getWolfPackRoles(): BaseRole[] {
+  return getWolfFactionRoles().filter(role => role.canSeeWolves);
+}
+
+/**
  * Check if a role can save itself (e.g., witch cannot)
  */
 export function canRoleSaveSelf(roleId: string): boolean {
@@ -167,7 +193,11 @@ export function canRoleSaveSelf(roleId: string): boolean {
  */
 export function doesRoleParticipateInWolfVote(roleId: string): boolean {
   const role = getRoleModel(roleId);
-  return role?.participatesInWolfVote ?? false;
+  if (!role) return false;
+  if (!role.isWolf) return false;
+  // RULE: non-meeting wolves can't vote
+  if (!role.canSeeWolves) return false;
+  return role.participatesInWolfVote ?? false;
 }
 
 /**
@@ -195,10 +225,11 @@ export function hasNightAction(roleId: string): boolean {
 }
 
 /**
- * Get all wolves (roles that can see each other)
+ * Get all wolves (wolf pack roles that can see each other).
+ * For all wolf-faction roles, use `getWolfFactionRoles()`.
  */
 export function getWolfRoles(): BaseRole[] {
-  return Object.values(ROLE_MODELS).filter(role => role.canSeeWolves);
+  return getWolfPackRoles();
 }
 
 /**
@@ -297,7 +328,7 @@ export function getSeerCheckResult(roleId: string): SeerCheckResult {
  * Get all wolf role IDs
  */
 export function getWolfRoleIds(): RoleName[] {
-  return getWolfRoles().map(role => role.id) as RoleName[];
+  return getWolfFactionRoles().map(role => role.id) as RoleName[];
 }
 
 /**

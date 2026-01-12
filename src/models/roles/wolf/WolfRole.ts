@@ -4,8 +4,8 @@
  * Basic werewolf that participates in the nightly kill vote.
  */
 
-import { WolfBaseRole } from './WolfBaseRole';
-import { ActionDialogConfig, RoleActionContext } from './BaseRole';
+import { WolfBaseRole } from '../base/WolfBaseRole';
+import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class WolfRole extends WolfBaseRole {
   readonly id = 'wolf';

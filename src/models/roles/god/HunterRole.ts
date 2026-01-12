@@ -7,8 +7,8 @@
  * Note: This app only handles the first night, so there's no daytime voting.
  */
 
-import { GodBaseRole } from './GodBaseRole';
-import { ActionDialogConfig } from './BaseRole';
+import { GodBaseRole } from '../base/GodBaseRole';
+import { ActionDialogConfig } from '../base/BaseRole';
 
 export class HunterRole extends GodBaseRole {
   readonly id = 'hunter';
