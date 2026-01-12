@@ -81,6 +81,8 @@ export interface BroadcastGameState {
   isAudioPlaying: boolean;
   // Wolf-specific: which wolves have voted (for showing vote status)
   wolfVoteStatus?: Record<number, boolean>;  // seat -> hasVoted
+  // Nightmare block: the seat whose skill is disabled this night
+  nightmareBlockedSeat?: number;
 }
 
 // =============================================================================

@@ -78,6 +78,7 @@ export interface LocalGameState {
   currentActionerIndex: number;
   isAudioPlaying: boolean;
   lastNightDeaths: number[];  // Calculated after night ends
+  nightmareBlockedSeat?: number;  // Seat blocked by nightmare (skill disabled for this night)
 }
 
 // =============================================================================

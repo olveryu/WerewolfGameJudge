@@ -235,6 +235,8 @@ export async function createHostGame(
     nightFlow.recordAction(currentRole, legacyValue);
     nightFlow.dispatch(NightEvent.ActionSubmitted);
     nightFlow.dispatch(NightEvent.RoleEndAudioDone);
+    // Sync currentActionerIndex from nightFlow (mirrors GameStateService.advanceToNextAction)
+    s.currentActionerIndex = nightFlow.currentActionIndex;
   };
 
   const runNight = async (actions: NightActionSequence): Promise<NightResult> => {

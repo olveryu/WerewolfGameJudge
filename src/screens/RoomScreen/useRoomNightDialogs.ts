@@ -4,7 +4,7 @@
  * Centralizes action dialogs for witch, hunter, dark wolf king, and generic roles.
  * RoomScreen only needs to call these returned functions.
  */
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { MutableRefObject } from 'react';
 import { showAlert } from '../../utils/alert';
 import { 
@@ -31,10 +31,12 @@ export interface UseRoomNightDialogsParams {
 
 export interface UseRoomNightDialogsResult {
   showActionDialog: (role: RoleName) => void;
+  showBlockedDialog: (role: RoleName) => void;
   showWitchDialog: () => void;
   showWitchPoisonDialog: () => void;
   showHunterStatusDialog: () => void;
   showDarkWolfKingStatusDialog: () => void;
+  isBlockedByNightmare: boolean;
 }
 
 export const useRoomNightDialogs = ({
@@ -107,12 +109,32 @@ export const useRoomNightDialogs = ({
     }
   }, [showWitchDialog, showHunterStatusDialog, showDarkWolfKingStatusDialog]);
 
+  // Nightmare block detection
+  const isBlockedByNightmare = useMemo(() => {
+    if (!gameState || mySeatNumber === null) return false;
+    return gameState.nightmareBlockedSeat === mySeatNumber;
+  }, [gameState, mySeatNumber]);
+
+  // Show blocked dialog for nightmare-blocked players
+  const showBlockedDialog = useCallback((role: RoleName) => {
+    const roleModel = getRoleModel(role);
+    if (!roleModel) return;
+    
+    showAlert(
+      `${roleModel.displayName}请睁眼`,
+      '技能被封锁\n\n你被梦魇恐惧，今晚无法使用技能。',
+      [{ text: '跳过', style: 'default', onPress: () => { proceedWithActionRef.current?.(null); } }]
+    );
+  }, [proceedWithActionRef]);
+
   return {
     showActionDialog,
+    showBlockedDialog,
     showWitchDialog,
     showWitchPoisonDialog,
     showHunterStatusDialog,
     showDarkWolfKingStatusDialog,
+    isBlockedByNightmare,
   };
 };
 

@@ -172,6 +172,27 @@ UI components must provide stable `testID`s for:
 - Loading indicators (e.g., `ActivityIndicator`) must have a dedicated `testID` (or a derivation from `Button` testID).
 - Disabled/loading state must be reflected via `accessibilityState.disabled` for reliable assertions.
 
+### Host-side enforcement & state truth rules (mandatory)
+
+These rules apply to Host-authoritative runtime + broadcasted UI state.
+
+#### Host must enforce invalid actions (no UI-only enforcement)
+
+- If a player is blocked/invalid (e.g., Nightmare block), the **Host** must treat incoming action messages as idempotent no-ops and must not record them.
+- UI-only prevention (disabling seat taps / showing dialogs) is not sufficient for correctness.
+
+#### Single source of truth (avoid dual-write drift)
+
+- For any gameplay fact, keep **one** source of truth.
+   - Either derive it from structured `actions` (recommended for purely UI-facing facts),
+   - or store it as an explicit state field.
+- Avoid maintaining the same fact in both `actions` and a separate state field unless there is a documented cache strategy and deterministic clearing rules.
+
+#### Broadcast is view-model only (minimal derived fields)
+
+- Players should not receive the full `actions` payload.
+- If the UI needs extra information, broadcast a minimal derived field in `BroadcastGameState` (view-model style), e.g. `nightmareBlockedSeat`.
+
 **Flake reporting rule (mandatory)**
 - “Re-run and it passed” is **not** evidence. If a test fails during validation (even if a re-run passes), you must:
    - record the **exact failure signature** (error type/message, e.g., `HTTP 409`, `ERR_CONNECTION_REFUSED`, timeout)
