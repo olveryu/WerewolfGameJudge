@@ -268,10 +268,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Night dialogs from hook
   const {
     showActionDialog,
+    showBlockedDialog,
     showWitchDialog,
     showWitchPoisonDialog,
     showHunterStatusDialog,
     showDarkWolfKingStatusDialog,
+    isBlockedByNightmare,
   } = useRoomNightDialogs({
     gameState,
     mySeatNumber,
@@ -280,8 +282,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   });
   
   useEffect(() => {
-    showActionDialogRef.current = showActionDialog;
-  }, [showActionDialog]);
+    // When blocked by nightmare, show blocked dialog instead of action dialog
+    showActionDialogRef.current = isBlockedByNightmare ? showBlockedDialog : showActionDialog;
+  }, [showActionDialog, showBlockedDialog, isBlockedByNightmare]);
 
   // Seat handling
   const handleSeatingTap = useCallback((index: number) => {
@@ -293,6 +296,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [mySeatNumber]);
 
   const handleActionTap = useCallback((index: number) => {
+    // Nightmare block: prevent action when blocked
+    if (isBlockedByNightmare) {
+      showAlert('技能被封锁', '你被梦魇恐惧，今晚无法使用技能。\n请点击"跳过"按钮。');
+      return;
+    }
+    
     if (myRole === 'hunter') {
       showHunterStatusDialog();
       return;
@@ -308,7 +317,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     } else {
       showActionConfirmDialog(index);
     }
-  }, [myRole, anotherIndex, showHunterStatusDialog, showDarkWolfKingStatusDialog]);
+  }, [myRole, anotherIndex, showHunterStatusDialog, showDarkWolfKingStatusDialog, isBlockedByNightmare]);
 
   const onSeatTapped = useCallback((index: number) => {
     if (!gameState) return;
@@ -722,12 +731,19 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         
         {/* Actioner: Skip Action */}
         {imActioner && roomStatus === RoomStatus.ongoing && !isAudioPlaying && (() => {
+          // When blocked by nightmare, always show skip button (regardless of role)
+          if (isBlockedByNightmare) return true;
+          // Otherwise, only show for roles that can skip
           const noSkipRoles: RoleName[] = ['hunter', 'darkWolfKing', 'wolfRobot', 'slacker'];
           return myRole && !noSkipRoles.includes(myRole);
         })() && (
           <TouchableOpacity style={styles.actionButton} onPress={handleSkipAction}>
             <Text style={styles.buttonText}>
-              {myRole === 'wolf' ? '投票空刀' : '不使用技能'}
+              {isBlockedByNightmare 
+                ? '跳过（技能被封锁）' 
+                : myRole === 'wolf' 
+                  ? '投票空刀' 
+                  : '不使用技能'}
             </Text>
           </TouchableOpacity>
         )}

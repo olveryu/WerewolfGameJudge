@@ -538,6 +538,17 @@ export class GameStateService {
       return;
     }
 
+    // Authoritative gate: ignore action if player is blocked by nightmare
+    // Blocked players can ONLY skip (target=null, extra=undefined). Any other action is a no-op.
+    const nightmareAction = this.state.actions.get('nightmare');
+    if (nightmareAction?.kind === 'target' && nightmareAction.targetSeat === seat) {
+      if (target !== null || extra !== undefined) {
+        console.log('[GameState Host] Ignoring non-skip action from nightmare-blocked seat:', seat, 'role:', role, 'target:', target, 'extra:', extra);
+        return;
+      }
+      // target === null && extra === undefined: allowed (skip)
+    }
+
     // Record action using structured RoleAction
     if (target !== null) {
       if (role === 'witch') {
@@ -865,6 +876,7 @@ export class GameStateService {
       currentActionerIndex: broadcastState.currentActionerIndex,
       isAudioPlaying: broadcastState.isAudioPlaying,
       lastNightDeaths: this.state?.lastNightDeaths ?? [],
+      nightmareBlockedSeat: broadcastState.nightmareBlockedSeat,
     };
 
     this.notifyListeners();
@@ -1890,6 +1902,12 @@ export class GameStateService {
       wolfVoteStatus[seat] = this.state!.wolfVotes.has(seat);
     });
 
+    // Get nightmare blocked seat from actions
+    const nightmareAction = this.state.actions.get('nightmare');
+    const nightmareBlockedSeat = nightmareAction?.kind === 'target' 
+      ? nightmareAction.targetSeat 
+      : undefined;
+
     return {
       roomCode: this.state.roomCode,
       hostUid: this.state.hostUid,
@@ -1899,6 +1917,7 @@ export class GameStateService {
       currentActionerIndex: this.state.currentActionerIndex,
       isAudioPlaying: this.state.isAudioPlaying,
       wolfVoteStatus,
+      nightmareBlockedSeat,
     };
   }
 }
