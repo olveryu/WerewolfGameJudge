@@ -41,13 +41,14 @@ import { useRoomPlayerDialogs } from './useRoomPlayerDialogs';
 import { useRoomNightDialogs } from './useRoomNightDialogs';
 import { PlayerGrid } from './components/PlayerGrid';
 import { 
-  determineActionerState,
   toGameRoomLike, 
   getRoleStats, 
   formatRoleList,
   buildSeatViewModels,
 } from './RoomScreen.helpers';
 import { TESTIDS } from '../../testids';
+import { useActionerState } from './hooks/useActionerState';
+import { useRoomActions } from './hooks/useRoomActions';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -103,13 +104,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     gameStateRef.current = gameState;
   }, [gameState]);
 
-  // Computed values
-  const { imActioner, showWolves } = useMemo(() => {
-    if (!gameState || roomStatus !== RoomStatus.ongoing || !currentActionRole) {
-      return { imActioner: false, showWolves: false };
-    }
-    return determineActionerState(myRole, currentActionRole, mySeatNumber, gameState.wolfVotes, isHost);
-  }, [gameState, roomStatus, myRole, currentActionRole, mySeatNumber, isHost]);
+  // Computed values: use useActionerState hook
+  const { imActioner, showWolves } = useActionerState({
+    myRole,
+    currentActionRole,
+    mySeatNumber,
+    wolfVotes: gameState?.wolfVotes ?? new Map(),
+    isHost,
+  });
 
   // Build seat view models for PlayerGrid
   const seatViewModels = useMemo(() => {

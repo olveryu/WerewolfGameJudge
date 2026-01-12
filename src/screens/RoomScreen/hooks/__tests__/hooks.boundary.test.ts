@@ -135,17 +135,28 @@ describe('RoomScreen hooks boundary constraints', () => {
       expect(containsForbiddenImport(content, 'NightFlowController')).toBe(false);
     });
 
-    it('receives callbacks via params, does not create them', () => {
+    it('is pure Intent Layer - returns ActionIntent, does NOT call submit functions', () => {
       const filePath = path.join(HOOKS_DIR, 'useRoomActions.ts');
       if (!fs.existsSync(filePath)) {
         return;
       }
       const content = fs.readFileSync(filePath, 'utf-8');
 
-      // Should receive submitAction via params/interface
-      expect(content).toMatch(/submitAction.*:/);
+      // Intent Layer: must export ActionIntent type
+      expect(content).toMatch(/export\s+(interface|type)\s+ActionIntent/);
 
-      // Should NOT directly call GameStateService
+      // Intent Layer: must export getActionIntent function
+      expect(content).toMatch(/getActionIntent/);
+
+      // Intent Layer: must NOT call submitAction / submitWolfVote directly
+      expect(content).not.toMatch(/submitAction\s*\(/);
+      expect(content).not.toMatch(/submitWolfVote\s*\(/);
+
+      // Intent Layer: must NOT show dialogs (those are in useRoomActionDialogs)
+      expect(content).not.toMatch(/showAlert\s*\(/);
+      expect(content).not.toMatch(/Alert\.alert\s*\(/);
+
+      // Intent Layer: must NOT directly call GameStateService
       expect(content).not.toMatch(/GameStateService\.getInstance/);
     });
   });
