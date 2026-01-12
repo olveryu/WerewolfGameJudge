@@ -233,6 +233,84 @@ describe('Room - 预言家 (Seer)', () => {
     
     expect(result).toBe('狼人');
   });
+
+  it('预言家查验女巫 - 应该显示好人', () => {
+    const room = createTestRoom(['wolf', 'seer', 'witch', 'villager']);
+    
+    let current = advanceToRole(room, 'wolf');
+    current = proceedToNextAction(current, 3);
+    
+    current = advanceToRole(current, 'seer');
+    const result = performSeerAction(current, 2); // Check witch
+    
+    expect(result).toBe('好人');
+  });
+
+  it('预言家查验猎人 - 应该显示好人', () => {
+    const room = createTestRoom(['wolf', 'seer', 'hunter', 'villager']);
+    
+    let current = advanceToRole(room, 'wolf');
+    current = proceedToNextAction(current, 3);
+    
+    current = advanceToRole(current, 'seer');
+    const result = performSeerAction(current, 2); // Check hunter
+    
+    expect(result).toBe('好人');
+  });
+
+  it('预言家查验守卫 - 应该显示好人', () => {
+    const room = createTestRoom(['wolf', 'seer', 'guard', 'villager']);
+    
+    let current = advanceToRole(room, 'wolf');
+    current = proceedToNextAction(current, 3);
+    
+    current = advanceToRole(current, 'seer');
+    const result = performSeerAction(current, 2); // Check guard
+    
+    expect(result).toBe('好人');
+  });
+
+  it('预言家查验梦魇 - 应该显示狼人', () => {
+    const room = createTestRoom(['nightmare', 'seer', 'villager', 'villager']);
+    
+    const current = advanceToRole(room, 'seer');
+    const result = performSeerAction(current, 0); // Check nightmare
+    
+    expect(result).toBe('狼人');
+  });
+
+  it('预言家查验狼美人 - 应该显示狼人', () => {
+    const room = createTestRoom(['wolfQueen', 'seer', 'villager', 'villager']);
+    
+    const current = advanceToRole(room, 'seer');
+    const result = performSeerAction(current, 0); // Check wolfQueen
+    
+    expect(result).toBe('狼人');
+  });
+
+  it('魔术师交换后预言家查验 - 应该看到交换后的身份', () => {
+    // Roles: wolf(0), seer(1), magician(2), villager(3)
+    // Action order: magician(-2) -> wolf(5) -> seer(15)
+    // Magician swaps wolf(0) and villager(3)
+    // When seer checks seat 0, should see villager's identity (好人)
+    const room = createTestRoom(['wolf', 'seer', 'magician', 'villager']);
+    
+    // 1. Magician acts first (actionOrder = -2)
+    let current = advanceToRole(room, 'magician');
+    // Magician swap encoding: first + second * 100 = 0 + 3 * 100 = 300
+    current = proceedToNextAction(current, 300); // Swap seat 0 and seat 3
+    
+    // 2. Wolf acts second (actionOrder = 5)
+    current = advanceToRole(current, 'wolf');
+    current = proceedToNextAction(current, 1); // Wolf kills seer
+    
+    // Now check seer result - magician swap should be applied
+    const resultSeat0 = performSeerAction(current, 0); // Check seat 0 (swapped to villager identity)
+    const resultSeat3 = performSeerAction(current, 3); // Check seat 3 (swapped to wolf identity)
+    
+    expect(resultSeat0).toBe('好人'); // Seat 0 now has villager's identity after swap
+    expect(resultSeat3).toBe('狼人'); // Seat 3 now has wolf's identity after swap
+  });
 });
 
 describe('Room - 狼美人 (Wolf Queen)', () => {

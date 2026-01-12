@@ -271,10 +271,26 @@ export function getRoleTeam(roleId: string): Team {
 }
 
 /**
- * Get team display name for a role (for seer/psychic results)
+ * Get team display name for a role (for UI purposes - can include '第三方')
  */
 export function getRoleTeamDisplayName(roleId: string): string {
   return TEAM_DISPLAY_NAMES[getRoleTeam(roleId)];
+}
+
+/**
+ * Seer check result type - strictly binary, no third party
+ */
+export type SeerCheckResult = '好人' | '狼人';
+
+/**
+ * Get seer check result for a role.
+ * IMPORTANT: Seer can only see binary '好人' or '狼人'.
+ * - All wolf-faction roles (wolf, gargoyle, wolfQueen, etc.) → '狼人'
+ * - All other roles (villager, god, third-party) → '好人'
+ * This is the authoritative function for seer results.
+ */
+export function getSeerCheckResult(roleId: string): SeerCheckResult {
+  return isWolfRole(roleId) ? '狼人' : '好人';
 }
 
 /**
