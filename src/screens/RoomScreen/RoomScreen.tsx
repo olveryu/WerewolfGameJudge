@@ -1,12 +1,12 @@
 /**
  * RoomScreen - Main game room screen
  * 
- * Refactored to use the new Broadcast architecture:
- * - GameStateService (local state on Host)
- * - BroadcastService (Supabase Realtime)
- * - SimplifiedRoomService (minimal DB storage)
+ * Refactored to use modular architecture:
+ * - RoomScreen.helpers.ts (pure functions)
+ * - hooks/ (useRoomInit, useRoomActions, useActionerState)
+ * - components/PlayerGrid.tsx (seat grid display)
  * 
- * All accessed through the useGameRoom hook.
+ * All game state accessed through useGameRoom hook.
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
@@ -25,7 +25,6 @@ import {
   performPsychicAction,
   getWolfVoteSummary,
   getPlayersNotViewedRole,
-  GameRoomLike,
 } from '../../models/Room';
 import { 
   getRoleModel,
@@ -33,81 +32,23 @@ import {
   isWolfRole,
 } from '../../models/roles';
 import { showAlert } from '../../utils/alert';
-import { Avatar } from '../../components/Avatar';
-import { styles, TILE_SIZE } from './RoomScreen.styles';
+import { styles } from './RoomScreen.styles';
 import { useGameRoom } from '../../hooks/useGameRoom';
-import type { LocalGameState } from '../../services/GameStateService';
+import type { LocalGameState } from '../../services/types/GameStateTypes';
 import { HostControlButtons } from './HostControlButtons';
 import { useRoomHostDialogs } from './useRoomHostDialogs';
 import { useRoomPlayerDialogs } from './useRoomPlayerDialogs';
 import { useRoomNightDialogs } from './useRoomNightDialogs';
+import { PlayerGrid } from './components/PlayerGrid';
+import { 
+  determineActionerState,
+  toGameRoomLike, 
+  getRoleStats, 
+  formatRoleList,
+  buildSeatViewModels,
+} from './RoomScreen.helpers';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
-
-// Helper to determine imActioner state for ongoing game
-interface ActionerState {
-  imActioner: boolean;
-  showWolves: boolean;
-}
-
-function determineActionerState(
-  myRole: RoleName | null,
-  currentActionRole: RoleName | null,
-  mySeatNumber: number | null,
-  gameState: LocalGameState,
-  isHost: boolean
-): ActionerState {
-  if (!currentActionRole) {
-    return { imActioner: false, showWolves: false };
-  }
-  
-  // My role matches current action
-  if (myRole === currentActionRole) {
-    return handleMatchingRole(myRole, mySeatNumber, gameState);
-  }
-  
-  // Wolf team members during wolf turn
-  if (currentActionRole === 'wolf' && myRole && isWolfRole(myRole)) {
-    return handleWolfTeamTurn(mySeatNumber, gameState);
-  }
-  
-  // Bot players auto-act randomly, so we don't set imActioner for host
-  // This means bots will be handled by the auto-bot-action effect instead
-  
-  return { imActioner: false, showWolves: false };
-}
-
-function handleMatchingRole(myRole: RoleName, mySeatNumber: number | null, gameState: LocalGameState): ActionerState {
-  // For wolves, check if already voted
-  if (myRole === 'wolf' && mySeatNumber !== null && gameState.wolfVotes.has(mySeatNumber)) {
-    return { imActioner: false, showWolves: true };
-  }
-  
-  // Show wolves to wolf team (except nightmare, gargoyle, wolfRobot)
-  const showWolves = isWolfRole(myRole) && 
-    myRole !== 'nightmare' && 
-    myRole !== 'gargoyle' && 
-    myRole !== 'wolfRobot';
-  
-  return { imActioner: true, showWolves };
-}
-
-function handleWolfTeamTurn(mySeatNumber: number | null, gameState: LocalGameState): ActionerState {
-  // Check if this wolf has already voted
-  const hasVoted = mySeatNumber !== null && gameState.wolfVotes.has(mySeatNumber);
-  return { imActioner: !hasVoted, showWolves: true };
-}
-
-// Helper to convert LocalGameState to GameRoomLike for helper functions
-function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
-  return {
-    template: gameState.template,
-    players: gameState.players,
-    actions: gameState.actions,
-    wolfVotes: gameState.wolfVotes,
-    currentActionerIndex: gameState.currentActionerIndex,
-  };
-}
 
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const { roomNumber, isHost: isHostParam, template } = route.params;
@@ -166,8 +107,22 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!gameState || roomStatus !== RoomStatus.ongoing || !currentActionRole) {
       return { imActioner: false, showWolves: false };
     }
-    return determineActionerState(myRole, currentActionRole, mySeatNumber, gameState, isHost);
+    return determineActionerState(myRole, currentActionRole, mySeatNumber, gameState.wolfVotes, isHost);
   }, [gameState, roomStatus, myRole, currentActionRole, mySeatNumber, isHost]);
+
+  // Build seat view models for PlayerGrid
+  const seatViewModels = useMemo(() => {
+    if (!gameState) return [];
+    return buildSeatViewModels(gameState, mySeatNumber, showWolves, anotherIndex);
+  }, [gameState, mySeatNumber, showWolves, anotherIndex]);
+
+  // Calculate role statistics using helper
+  const { roleCounts, wolfRoles, godRoles, specialRoles, villagerCount } = useMemo(() => {
+    if (!gameState) {
+      return { roleCounts: {}, wolfRoles: [], godRoles: [], specialRoles: [], villagerCount: 0 };
+    }
+    return getRoleStats(gameState.template.roles);
+  }, [gameState]);
 
   // Show alert when seat request is rejected (BUG-2 fix)
   useEffect(() => {
@@ -506,51 +461,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   };
   
   const actionMessage = getActionMessage();
-
-  // Calculate role statistics
-  const getRoleStats = () => {
-    const roleCounts: Record<string, number> = {};
-    const wolfRolesList: string[] = [];
-    const godRolesList: string[] = [];
-    const specialRolesList: string[] = [];
-    const villagerCount = { count: 0 };
-    
-    gameState.template.roles.forEach((role) => {
-      const roleModel = getRoleModel(role);
-      if (!roleModel) return;
-      
-      if (roleModel.faction === 'wolf') {
-        roleCounts[roleModel.displayName] = (roleCounts[roleModel.displayName] || 0) + 1;
-        if (!wolfRolesList.includes(roleModel.displayName)) {
-          wolfRolesList.push(roleModel.displayName);
-        }
-      } else if (roleModel.faction === 'god') {
-        roleCounts[roleModel.displayName] = (roleCounts[roleModel.displayName] || 0) + 1;
-        if (!godRolesList.includes(roleModel.displayName)) {
-          godRolesList.push(roleModel.displayName);
-        }
-      } else if (roleModel.faction === 'special') {
-        roleCounts[roleModel.displayName] = (roleCounts[roleModel.displayName] || 0) + 1;
-        if (!specialRolesList.includes(roleModel.displayName)) {
-          specialRolesList.push(roleModel.displayName);
-        }
-      } else if (role === 'villager') {
-        villagerCount.count++;
-      }
-    });
-    
-    return { roleCounts, wolfRoles: wolfRolesList, godRoles: godRolesList, specialRoles: specialRolesList, villagerCount: villagerCount.count };
-  };
-  
-  const { roleCounts, wolfRoles, godRoles, specialRoles, villagerCount } = getRoleStats();
-
-  const formatRoleList = (roles: string[], counts: Record<string, number>): string => {
-    if (roles.length === 0) return '无';
-    return roles.map(r => {
-      const count = counts[r];
-      return count > 1 ? `${r}×${count}` : r;
-    }).join('、');
-  };
   
   return (
     <View style={styles.container}>
@@ -627,68 +537,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
 
         {/* Player Grid */}
-        <View style={styles.gridContainer}>
-          {gameState.template.roles.map((role, index) => {
-            const player = gameState.players.get(index);
-            const isWolf = showWolves && isWolfRole(role) && 
-                          role !== 'wolfRobot' && role !== 'gargoyle';
-            const isSelected = anotherIndex === index;
-            const isMySpot = mySeatNumber === index;
-            const seatKey = `seat-${index}-${role}`;
-            
-            return (
-              <View key={seatKey} style={styles.tileWrapper} testID={`seat-tile-${index}`}>
-                <TouchableOpacity
-                  style={[
-                    styles.playerTile,
-                    isMySpot && styles.mySpotTile,
-                    isWolf && styles.wolfTile,
-                    isSelected && styles.selectedTile,
-                  ]}
-                  onPress={() => onSeatTapped(index)}
-                  activeOpacity={0.7}
-                >
-                  {player && (
-                    <View style={styles.avatarContainer}>
-                      <Avatar 
-                        value={player.uid} 
-                        size={TILE_SIZE - 16} 
-                        avatarUrl={player.avatarUrl}
-                        seatNumber={player.seatNumber + 1}
-                        roomId={roomNumber}
-                      />
-                      {(isWolf || isSelected) && (
-                        <View style={[
-                          styles.avatarOverlay,
-                          isWolf && styles.wolfOverlay,
-                          isSelected && styles.selectedOverlay,
-                        ]} />
-                      )}
-                    </View>
-                  )}
-                  
-                  <Text style={[styles.seatNumber, player && styles.seatedSeatNumber]}>
-                    {index + 1}
-                  </Text>
-                  
-                  {!player && (
-                    <Text style={styles.emptyIndicator}>空</Text>
-                  )}
-                  
-                  {isMySpot && player && (
-                    <Text style={styles.mySeatBadge}>我</Text>
-                  )}
-                </TouchableOpacity>
-                
-                {player && (
-                  <Text style={styles.playerName} numberOfLines={1}>
-                    {player.displayName || '玩家'}
-                  </Text>
-                )}
-              </View>
-            );
-          })}
-        </View>
+        <PlayerGrid
+          seats={seatViewModels}
+          roomNumber={roomNumber}
+          onSeatPress={onSeatTapped}
+          disabled={roomStatus === RoomStatus.ongoing && isAudioPlaying}
+        />
         
         {/* Action Message */}
         {imActioner && (
@@ -739,11 +593,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         })() && (
           <TouchableOpacity style={styles.actionButton} onPress={handleSkipAction}>
             <Text style={styles.buttonText}>
-              {isBlockedByNightmare 
-                ? '跳过（技能被封锁）' 
-                : myRole === 'wolf' 
-                  ? '投票空刀' 
-                  : '不使用技能'}
+              {(() => {
+                if (isBlockedByNightmare) return '跳过（技能被封锁）';
+                if (myRole === 'wolf') return '投票空刀';
+                return '不使用技能';
+              })()}
             </Text>
           </TouchableOpacity>
         )}
