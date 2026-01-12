@@ -98,6 +98,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Refs for callback stability
   const gameStateRef = useRef<LocalGameState | null>(null);
 
+  // Auto-trigger intent idempotency: prevent duplicate triggers in the same turn
+  const lastAutoIntentKeyRef = useRef<string | null>(null);
+
   // Keep gameStateRef in sync
   useEffect(() => {
     gameStateRef.current = gameState;
@@ -438,17 +441,47 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [gameState, myRole, anotherIndex, actionDialogs, proceedWithAction, submitWolfVote, getMagicianTarget, setAnotherIndex, setWitchPhase]);
 
   // ───────────────────────────────────────────────────────────────────────────
-  // Auto-trigger intent (witch phases)
+  // Auto-trigger intent (with idempotency to prevent duplicate triggers)
   // ───────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
+    // Guard: reset key when not in ongoing state or night ended
+    if (roomStatus !== RoomStatus.ongoing || !currentActionRole) {
+      if (lastAutoIntentKeyRef.current !== null) {
+        console.log('[AutoIntent] Clearing key (not ongoing or night ended)');
+        lastAutoIntentKeyRef.current = null;
+      }
+      return;
+    }
+
     if (!imActioner || isAudioPlaying) return;
     
     const autoIntent = getAutoTriggerIntent();
-    if (autoIntent) {
-      handleActionIntent(autoIntent);
+    if (!autoIntent) return;
+
+    // Build idempotency key: stable representation of "same turn"
+    const key = [
+      roomStatus,
+      gameState?.currentActionerIndex ?? 'null',
+      currentActionRole ?? 'null',
+      imActioner ? 'A' : 'N',
+      isAudioPlaying ? 'P' : 'S',
+      myRole ?? 'null',
+      witchPhase ?? 'null',
+      anotherIndex ?? 'null',
+      autoIntent.type,
+    ].join('|');
+
+    // Skip if same key (idempotent - already triggered this exact intent)
+    if (key === lastAutoIntentKeyRef.current) {
+      console.log(`[AutoIntent] Skipping duplicate: key=${key}`);
+      return;
     }
-  }, [imActioner, isAudioPlaying, myRole, witchPhase, getAutoTriggerIntent, handleActionIntent]);
+
+    console.log(`[AutoIntent] Triggering: key=${key}, intent=${autoIntent.type}`);
+    lastAutoIntentKeyRef.current = key;
+    handleActionIntent(autoIntent);
+  }, [imActioner, isAudioPlaying, myRole, witchPhase, anotherIndex, roomStatus, currentActionRole, gameState?.currentActionerIndex, getAutoTriggerIntent, handleActionIntent]);
 
   // ───────────────────────────────────────────────────────────────────────────
   // Seat tap handlers
