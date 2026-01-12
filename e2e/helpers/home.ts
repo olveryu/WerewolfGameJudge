@@ -1,5 +1,6 @@
 import { Page, expect } from '@playwright/test';
 import { clickIfVisible, screenshotOnFail, getVisibleText } from './ui';
+import { TESTIDS } from '../../src/testids';
 
 /**
  * Home Screen Helpers (首页/登录稳定化层)
@@ -20,8 +21,8 @@ import { clickIfVisible, screenshotOnFail, getVisibleText } from './ui';
 
 /** Stable selectors for home screen ready state (composite condition) */
 const HOME_READY_SELECTORS = [
-  'text=创建房间',
-  'text=进入房间',
+  `[data-testid="${TESTIDS.homeEnterRoomButton}"]`,
+  `[data-testid="${TESTIDS.homeCreateRoomButton}"]`,
 ];
 
 /** Transient/loading states to wait out */
@@ -112,6 +113,12 @@ async function waitForTransientToClear(page: Page, maxWaitMs = 10000): Promise<b
  * Must see home buttons AND no blocking modals AND no transient states.
  */
 async function isHomeReady(page: Page): Promise<boolean> {
+  // Root must be present (stable screen gate)
+  const hasRoot = await page.locator(`[data-testid="${TESTIDS.homeScreenRoot}"]`).isVisible({ timeout: 200 }).catch(() => false);
+  if (!hasRoot) {
+    return false;
+  }
+
   // First check no blocking modals are visible
   for (const pattern of BLOCKING_MODAL_PATTERNS) {
     const isBlocking = await page.getByText(pattern).isVisible({ timeout: 100 }).catch(() => false);
@@ -442,7 +449,7 @@ async function navigateBackToHome(page: Page): Promise<void> {
  * If in room, returns the room code. Otherwise returns null.
  */
 export async function getCurrentRoomCode(page: Page): Promise<string | null> {
-  const roomHeader = page.locator(String.raw`text=/房间 \d{4}/`);
+  const roomHeader = page.locator(`[data-testid="${TESTIDS.roomHeader}"]`);
   if (await roomHeader.isVisible({ timeout: 500 }).catch(() => false)) {
     const text = await roomHeader.textContent();
     const match = text?.match(/\b(\d{4})\b/);
@@ -479,7 +486,7 @@ export async function ensureInRoomOrHomeReady(page: Page): Promise<string | null
  * Assumes we're on a room screen.
  */
 export async function extractRoomNumber(page: Page): Promise<string> {
-  const headerLocator = page.locator(String.raw`text=/房间 \d{4}/`);
+  const headerLocator = page.locator(`[data-testid="${TESTIDS.roomHeader}"]`);
   await expect(headerLocator).toBeVisible({ timeout: 5000 });
   const headerText = await headerLocator.textContent();
   const match = headerText?.match(/\b(\d{4})\b/);
@@ -502,12 +509,12 @@ export async function createRoom(page: Page): Promise<string> {
   console.log('[createRoom] Starting...');
   
   // Click 创建房间
-  await page.getByText('创建房间').click();
+  await page.locator(`[data-testid="${TESTIDS.homeCreateRoomButton}"]`).click();
   
   // Wait for config screen
-  await expect(getVisibleText(page, '创建')).toBeVisible({ timeout: 10000 });
+  await expect(page.locator(`[data-testid="${TESTIDS.configScreenRoot}"]`)).toBeVisible({ timeout: 10000 });
   
-  // Click 创建 to create the room
+  // Click 创建 to create the room (header right button)
   await getVisibleText(page, '创建').click();
   
   // Wait for room to be created (room header visible)
@@ -531,7 +538,7 @@ export async function joinRoom(page: Page, roomCode: string): Promise<void> {
   console.log(`[joinRoom] Joining room ${roomCode}...`);
   
   // Click 进入房间
-  await getVisibleText(page, '进入房间').first().click();
+  await page.locator(`[data-testid="${TESTIDS.homeEnterRoomButton}"]`).click();
   
   // Wait for join dialog
   await expect(page.getByText('加入房间')).toBeVisible({ timeout: 5000 });

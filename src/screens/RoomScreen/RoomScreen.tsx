@@ -47,6 +47,7 @@ import {
   formatRoleList,
   buildSeatViewModels,
 } from './RoomScreen.helpers';
+import { TESTIDS } from '../../testids';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -224,8 +225,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const {
     showActionDialog,
     showBlockedDialog,
-    showWitchDialog,
-    showWitchPoisonDialog,
     showHunterStatusDialog,
     showDarkWolfKingStatusDialog,
     isBlockedByNightmare,
@@ -350,7 +349,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     showLeaveSeatDialog,
     handleConfirmLeave,
     showActionConfirmDialog,
-    showWolfVoteConfirmDialog,
     handleSkipAction,
     handleLeaveRoom,
   } = useRoomPlayerDialogs({
@@ -463,9 +461,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const actionMessage = getActionMessage();
   
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID={TESTIDS.roomScreenRoot}>
       {/* Header */}
-      <View style={styles.header}>
+  <View style={styles.header} testID={TESTIDS.roomHeader}>
         <TouchableOpacity onPress={handleLeaveRoom} style={styles.backButton}>
           <Text style={styles.backButtonText}>← 返回</Text>
         </TouchableOpacity>
@@ -481,7 +479,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           connectionStatus === 'syncing' && styles.connectionStatusSyncing,
           connectionStatus === 'connecting' && styles.connectionStatusConnecting,
           connectionStatus === 'disconnected' && styles.connectionStatusDisconnected,
-        ]}>
+  ]} testID={TESTIDS.connectionStatusContainer}>
           <Text style={styles.connectionStatusText}>
             {connectionStatus === 'live' && '🟢 已连接'}
             {connectionStatus === 'syncing' && '🔄 同步中...'}
@@ -493,6 +491,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               onPress={() => requestSnapshot()} 
               style={styles.forceSyncButton}
               disabled={connectionStatus === 'syncing'}
+              testID={TESTIDS.forceSyncButton}
             >
               <Text style={styles.forceSyncButtonText}>
                 {connectionStatus === 'syncing' ? '同步中' : '强制同步'}
