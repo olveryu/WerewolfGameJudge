@@ -17,6 +17,7 @@ import { showAlert } from '../../utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { spacing } from '../../constants/theme';
 import { styles } from './ConfigScreen.styles';
+import { TESTIDS } from '../../testids';
 
 // ============================================
 // Sub-components (extracted to avoid nested component definitions)
@@ -186,7 +187,7 @@ export const ConfigScreen: React.FC = () => {
   }, [selection, navigation, isEditMode, existingRoomNumber, gameStateService]);
 
   return (
-    <SafeAreaView style={styles.container}>
+  <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
@@ -216,42 +217,42 @@ export const ConfigScreen: React.FC = () => {
         </View>
       ) : (
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Presets */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>快速模板</Text>
-          <View style={styles.presetContainer}>
-            {PRESET_TEMPLATES.map((preset) => (
-              <TouchableOpacity
-                key={preset.name}
-                style={styles.presetBtn}
-                onPress={() => handlePresetSelect(preset.name)}
-              >
-                <Text style={styles.presetText}>{preset.name}</Text>
-              </TouchableOpacity>
-            ))}
+          {/* Presets */}
+          <View style={styles.card} testID={TESTIDS.configPresetSection}>
+            <Text style={styles.cardTitle}>快速模板</Text>
+            <View style={styles.presetContainer}>
+              {PRESET_TEMPLATES.map((preset) => (
+                <TouchableOpacity
+                  key={preset.name}
+                  style={styles.presetBtn}
+                  onPress={() => handlePresetSelect(preset.name)}
+                >
+                  <Text style={styles.presetText}>{preset.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        </View>
 
-        {/* Roles */}
-        <View style={styles.card}>
-          <Section title="🐺 狼人">
-            <RoleChip id="wolf" label="普狼" selected={selection.wolf} onToggle={toggleRole} />
-            <RoleChip id="wolf1" label="普狼" selected={selection.wolf1} onToggle={toggleRole} />
-            <RoleChip id="wolf2" label="普狼" selected={selection.wolf2} onToggle={toggleRole} />
-            <RoleChip id="wolf3" label="普狼" selected={selection.wolf3} onToggle={toggleRole} />
-            <RoleChip id="wolf4" label="普狼" selected={selection.wolf4} onToggle={toggleRole} />
-          </Section>
+          {/* Roles */}
+          <View style={styles.card}>
+            <Section title="🐺 狼人">
+              <RoleChip id="wolf" label="普狼" selected={selection.wolf} onToggle={toggleRole} />
+              <RoleChip id="wolf1" label="普狼" selected={selection.wolf1} onToggle={toggleRole} />
+              <RoleChip id="wolf2" label="普狼" selected={selection.wolf2} onToggle={toggleRole} />
+              <RoleChip id="wolf3" label="普狼" selected={selection.wolf3} onToggle={toggleRole} />
+              <RoleChip id="wolf4" label="普狼" selected={selection.wolf4} onToggle={toggleRole} />
+            </Section>
 
-          <Section title="🎭 技能狼">
-            <RoleChip id="wolfQueen" label="狼美人" selected={selection.wolfQueen} onToggle={toggleRole} />
-            <RoleChip id="wolfKing" label="白狼王" selected={selection.wolfKing} onToggle={toggleRole} />
-            <RoleChip id="darkWolfKing" label="黑狼王" selected={selection.darkWolfKing} onToggle={toggleRole} />
-            <RoleChip id="gargoyle" label="石像鬼" selected={selection.gargoyle} onToggle={toggleRole} />
-            <RoleChip id="nightmare" label="梦魇" selected={selection.nightmare} onToggle={toggleRole} />
-            <RoleChip id="bloodMoon" label="血月使徒" selected={selection.bloodMoon} onToggle={toggleRole} />
-            <RoleChip id="wolfRobot" label="机械狼" selected={selection.wolfRobot} onToggle={toggleRole} />
-            <RoleChip id="spiritKnight" label="恶灵骑士" selected={selection.spiritKnight} onToggle={toggleRole} />
-          </Section>
+            <Section title="🎭 技能狼">
+              <RoleChip id="wolfQueen" label="狼美人" selected={selection.wolfQueen} onToggle={toggleRole} />
+              <RoleChip id="wolfKing" label="白狼王" selected={selection.wolfKing} onToggle={toggleRole} />
+              <RoleChip id="darkWolfKing" label="黑狼王" selected={selection.darkWolfKing} onToggle={toggleRole} />
+              <RoleChip id="gargoyle" label="石像鬼" selected={selection.gargoyle} onToggle={toggleRole} />
+              <RoleChip id="nightmare" label="梦魇" selected={selection.nightmare} onToggle={toggleRole} />
+              <RoleChip id="bloodMoon" label="血月使徒" selected={selection.bloodMoon} onToggle={toggleRole} />
+              <RoleChip id="wolfRobot" label="机械狼" selected={selection.wolfRobot} onToggle={toggleRole} />
+              <RoleChip id="spiritKnight" label="恶灵骑士" selected={selection.spiritKnight} onToggle={toggleRole} />
+            </Section>
 
           <Section title="👤 村民">
             <RoleChip id="villager" label="村民" selected={selection.villager} onToggle={toggleRole} />
@@ -278,9 +279,9 @@ export const ConfigScreen: React.FC = () => {
           <Section title="🎲 特殊">
             <RoleChip id="slacker" label="混子" selected={selection.slacker} onToggle={toggleRole} />
           </Section>
-        </View>
+          </View>
 
-        <View style={{ height: spacing.xxl }} />
+          <View style={{ height: spacing.xxl }} />
         </ScrollView>
       )}
     </SafeAreaView>

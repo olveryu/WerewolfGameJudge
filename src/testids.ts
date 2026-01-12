@@ -14,4 +14,18 @@ export const TESTIDS = {
   // RoomScreen - Seat Grid
   // Used by: RoomScreen.tsx, e2e/night1.basic.spec.ts
   seatTile: (index: number) => `seat-tile-${index}`,
+
+  // Home / Config / Room readiness gates (stable, non-copy based)
+  homeScreenRoot: 'home-screen-root',
+  homeEnterRoomButton: 'home-enter-room-button',
+  homeCreateRoomButton: 'home-create-room-button',
+  homeReturnLastGameButton: 'home-return-last-game-button',
+
+  configScreenRoot: 'config-screen-root',
+  configPresetSection: 'config-preset-section',
+
+  roomScreenRoot: 'room-screen-root',
+  roomHeader: 'room-header',
+  connectionStatusContainer: 'connection-status-container',
+  forceSyncButton: 'force-sync-button',
 } as const;

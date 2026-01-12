@@ -18,6 +18,7 @@ import { colors, spacing } from '../../constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Avatar from '../../components/Avatar';
 import { styles } from './HomeScreen.styles';
+import { TESTIDS } from '../../testids';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -30,10 +31,16 @@ interface MenuItemProps {
   title: string;
   subtitle?: string;
   onPress: () => void;
+  testID?: string;
 }
 
-const MenuItem: React.FC<MenuItemProps> = ({ icon, title, subtitle, onPress }) => (
-  <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
+const MenuItem: React.FC<MenuItemProps> = ({ icon, title, subtitle, onPress, testID }) => (
+  <TouchableOpacity
+    testID={testID}
+    style={styles.menuItem}
+    onPress={onPress}
+    activeOpacity={0.7}
+  >
     <View style={styles.menuIcon}>
       <Text style={styles.menuIconText}>{icon}</Text>
     </View>
@@ -392,7 +399,7 @@ export const HomeScreen: React.FC = () => {
   }, [navigation]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} testID={TESTIDS.homeScreenRoot}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -444,18 +451,20 @@ export const HomeScreen: React.FC = () => {
         </TouchableOpacity>
 
         {/* Menu */}
-        <View style={styles.menu}>
+  <View style={styles.menu}>
           <MenuItem
             icon="🚪"
             title={isJoining ? '进入中...' : '进入房间'}
             subtitle="输入房间号进入游戏"
             onPress={() => requireAuth(() => setShowJoinModal(true))}
+              testID={TESTIDS.homeEnterRoomButton}
           />
           <MenuItem
             icon="➕"
             title={isCreating ? '创建中...' : '创建房间'}
             subtitle="开始新的一局游戏"
             onPress={() => requireAuth(handleCreateRoom)}
+              testID={TESTIDS.homeCreateRoomButton}
           />
           <View style={styles.divider} />
           <MenuItem
@@ -463,6 +472,7 @@ export const HomeScreen: React.FC = () => {
             title="返回上局"
             subtitle={lastRoomNumber ? `房间 ${lastRoomNumber}` : '没有上局记录'}
             onPress={() => requireAuth(handleReturnToLastGame)}
+              testID={TESTIDS.homeReturnLastGameButton}
           />
           <MenuItem
             icon="⚙️"
