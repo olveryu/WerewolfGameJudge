@@ -2,6 +2,20 @@ import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from '.
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
 import { RoleName, ROLES, isWolfRole, getSeerCheckResult, SeerCheckResult } from './roles';
 import { shuffleArray } from '../utils/shuffle';
+import {
+  type RoleAction,
+  isActionTarget,
+  isActionWitch,
+  isActionMagicianSwap,
+  getActionTargetSeat,
+  makeActionTarget,
+  makeActionWitch,
+  makeActionMagicianSwap,
+  makeWitchSave,
+  makeWitchPoison,
+  isWitchSave,
+  isWitchPoison,
+} from './actions';
 
 // Room status
 export enum RoomStatus {
@@ -18,7 +32,7 @@ export enum RoomStatus {
 export interface GameRoomLike {
   template: GameTemplate;
   players: Map<number, { uid: string; seatNumber: number; role: RoleName | null; hasViewedRole: boolean; displayName?: string; avatarUrl?: string | null } | null>;
-  actions: Map<RoleName, number>;
+  actions: Map<RoleName, RoleAction>;
   wolfVotes: Map<number, number>;
   currentActionerIndex: number;
 }
@@ -44,7 +58,7 @@ export interface Room {
   roomStatus: RoomStatus;
   template: GameTemplate;
   players: Map<number, Player | null>; // seatNumber -> Player
-  actions: Map<RoleName, number>; // Role -> target seat (negative for witch poison: -target-1)
+  actions: Map<RoleName, RoleAction>; // Role -> structured action
   wolfVotes: Map<number, number>; // Wolf seat -> target seat (for wolf voting)
   currentActionerIndex: number;
   isAudioPlaying: boolean; // Whether host is playing audio for current action
@@ -70,6 +84,38 @@ export const createRoom = (
   isAudioPlaying: false,
 });
 
+// Serialize RoleAction to database format (JSON-serializable object)
+function serializeRoleAction(action: RoleAction): Record<string, any> {
+  if (isActionTarget(action)) {
+    return { kind: 'target', targetSeat: action.targetSeat };
+  }
+  if (isActionWitch(action)) {
+    const wa = action.witchAction;
+    if (wa.kind === 'none') return { kind: 'witch', witchAction: { kind: 'none' } };
+    if (wa.kind === 'save') return { kind: 'witch', witchAction: { kind: 'save', targetSeat: wa.targetSeat } };
+    return { kind: 'witch', witchAction: { kind: 'poison', targetSeat: wa.targetSeat } };
+  }
+  if (isActionMagicianSwap(action)) {
+    return { kind: 'magicianSwap', firstSeat: action.firstSeat, secondSeat: action.secondSeat };
+  }
+  return { kind: 'none' };
+}
+
+// Deserialize RoleAction from database format
+function deserializeRoleAction(data: Record<string, any>): RoleAction {
+  if (!data || !data.kind) return { kind: 'none' };
+  if (data.kind === 'target') return makeActionTarget(data.targetSeat);
+  if (data.kind === 'witch') {
+    const wa = data.witchAction;
+    if (!wa || wa.kind === 'none') return makeActionWitch({ kind: 'none' });
+    if (wa.kind === 'save') return makeActionWitch(makeWitchSave(wa.targetSeat));
+    if (wa.kind === 'poison') return makeActionWitch(makeWitchPoison(wa.targetSeat));
+    return makeActionWitch({ kind: 'none' });
+  }
+  if (data.kind === 'magicianSwap') return makeActionMagicianSwap(data.firstSeat, data.secondSeat);
+  return { kind: 'none' };
+}
+
 // Convert room to database format
 export const roomToDbMap = (room: Room): Record<string, any> => {
   const playersMap: Record<string, any> = {};
@@ -77,9 +123,9 @@ export const roomToDbMap = (room: Room): Record<string, any> => {
     playersMap[seat.toString()] = player ? playerToMap(player) : null;
   });
 
-  const actionsMap: Record<string, number> = {};
-  room.actions.forEach((target, role) => {
-    actionsMap[role] = target;  // Use role name as key directly
+  const actionsMap: Record<string, any> = {};
+  room.actions.forEach((action, role) => {
+    actionsMap[role] = serializeRoleAction(action);
   });
 
   const wolfVotesMap: Record<string, number> = {};
@@ -119,11 +165,11 @@ export const roomFromDb = (
     });
   }
 
-  const actions = new Map<RoleName, number>();
-  const actionsData = data[ROOM_KEYS.actions] as Record<string, number>;
+  const actions = new Map<RoleName, RoleAction>();
+  const actionsData = data[ROOM_KEYS.actions] as Record<string, any>;
   if (actionsData) {
-    Object.entries(actionsData).forEach(([roleName, target]) => {
-      actions.set(roleName as RoleName, target);
+    Object.entries(actionsData).forEach(([roleName, actionData]) => {
+      actions.set(roleName as RoleName, deserializeRoleAction(actionData));
     });
   }
 
@@ -271,9 +317,10 @@ export const getWolfVoteSummary = (room: GameRoomLike): string => {
 // Priority: actions['wolf'] (set by RPC) > calculate from wolfVotes (legacy)
 export const getKilledIndex = (room: GameRoomLike): number => {
   // Prefer actions['wolf'] - this is set atomically by the RPC when all wolves vote
-  const actionResult = room.actions.get('wolf');
-  if (actionResult !== undefined) {
-    return actionResult;
+  const wolfAction = room.actions.get('wolf');
+  const targetSeat = getActionTargetSeat(wolfAction);
+  if (targetSeat !== undefined) {
+    return targetSeat;
   }
   // Fallback: calculate from wolfVotes (for backward compatibility)
   if (room.wolfVotes.size > 0) {
@@ -284,9 +331,9 @@ export const getKilledIndex = (room: GameRoomLike): number => {
 
 // Check hunter status (can shoot or not)
 export const getHunterStatus = (room: GameRoomLike): boolean => {
-  const killedByWitch = room.actions.get('witch');
-  const linkedByWolfQueen = room.actions.get('wolfQueen');
-  const nightmared = room.actions.get('nightmare');
+  const witchAction = room.actions.get('witch');
+  const wolfQueenAction = room.actions.get('wolfQueen');
+  const nightmareAction = room.actions.get('nightmare');
 
   // Get hunter seat
   let hunterSeat = -1;
@@ -298,13 +345,21 @@ export const getHunterStatus = (room: GameRoomLike): boolean => {
 
   if (hunterSeat === -1) return true;
 
-  if (killedByWitch !== undefined && killedByWitch < 0 && -killedByWitch - 1 === hunterSeat) {
+  // Check if hunter was poisoned by witch
+  if (witchAction && isActionWitch(witchAction)) {
+    const wa = witchAction.witchAction;
+    if (isWitchPoison(wa) && wa.targetSeat === hunterSeat) {
+      return false;
+    }
+  }
+  // Check if hunter was charmed by wolf queen
+  const linkedSeat = getActionTargetSeat(wolfQueenAction);
+  if (linkedSeat !== undefined && linkedSeat === hunterSeat) {
     return false;
   }
-  if (linkedByWolfQueen !== undefined && linkedByWolfQueen === hunterSeat) {
-    return false;
-  }
-  if (nightmared !== undefined && nightmared === hunterSeat) {
+  // Check if hunter was nightmared
+  const nightmaredSeat = getActionTargetSeat(nightmareAction);
+  if (nightmaredSeat !== undefined && nightmaredSeat === hunterSeat) {
     return false;
   }
 
@@ -313,7 +368,7 @@ export const getHunterStatus = (room: GameRoomLike): boolean => {
 
 // Check dark wolf king status (can use skill if not poisoned by witch)
 export const getDarkWolfKingStatus = (room: GameRoomLike): boolean => {
-  const killedByWitch = room.actions.get('witch');
+  const witchAction = room.actions.get('witch');
 
   let darkWolfKingSeat = -1;
   room.players.forEach((player, seat) => {
@@ -324,8 +379,12 @@ export const getDarkWolfKingStatus = (room: GameRoomLike): boolean => {
 
   if (darkWolfKingSeat === -1) return true;
 
-  if (killedByWitch !== undefined && killedByWitch < 0 && -killedByWitch - 1 === darkWolfKingSeat) {
-    return false;
+  // Check if dark wolf king was poisoned by witch
+  if (witchAction && isActionWitch(witchAction)) {
+    const wa = witchAction.witchAction;
+    if (isWitchPoison(wa) && wa.targetSeat === darkWolfKingSeat) {
+      return false;
+    }
   }
 
   return true;
@@ -335,38 +394,43 @@ export const getDarkWolfKingStatus = (room: GameRoomLike): boolean => {
 export const isCurrentActionerSkillBlocked = (room: GameRoomLike): boolean => {
   if (!room.template.roles.includes('nightmare')) return false;
 
-  const nightmaredIndex = room.actions.get('nightmare');
-  if (nightmaredIndex === undefined) return false;
+  const nightmareAction = room.actions.get('nightmare');
+  const nightmaredSeat = getActionTargetSeat(nightmareAction);
+  if (nightmaredSeat === undefined) return false;
 
   const currentRole = getCurrentActionRole(room);
   if (!currentRole) return false;
 
-  const nightmaredPlayer = room.players.get(nightmaredIndex);
+  const nightmaredPlayer = room.players.get(nightmaredSeat);
   if (!nightmaredPlayer) return false;
 
   return nightmaredPlayer.role === currentRole;
 };
 
 // Calculate last night info (matching Flutter)
-// Parse witch action into killed/saved
-function parseWitchAction(witchAction: number | undefined): { killedByWitch: number | null; savedByWitch: number | null } {
-  if (witchAction === undefined) {
+// Parse witch action into killed/saved (from structured RoleAction)
+function parseWitchActionFromRoleAction(action: RoleAction | undefined): { killedByWitch: number | null; savedByWitch: number | null } {
+  if (!action || !isActionWitch(action)) {
     return { killedByWitch: null, savedByWitch: null };
   }
-  if (witchAction < 0) {
-    return { killedByWitch: -witchAction - 1, savedByWitch: null };
+  const wa = action.witchAction;
+  if (isWitchPoison(wa)) {
+    return { killedByWitch: wa.targetSeat, savedByWitch: null };
   }
-  return { killedByWitch: null, savedByWitch: witchAction };
+  if (isWitchSave(wa)) {
+    return { killedByWitch: null, savedByWitch: wa.targetSeat };
+  }
+  return { killedByWitch: null, savedByWitch: null };
 }
 
-// Parse magician action into exchanged seats
-function parseMagicianAction(magicianAction: number | undefined): { firstExchanged?: number; secondExchanged?: number } {
-  if (magicianAction === undefined || magicianAction === -1) {
+// Parse magician action into exchanged seats (from structured RoleAction)
+function parseMagicianActionFromRoleAction(action: RoleAction | undefined): { firstExchanged?: number; secondExchanged?: number } {
+  if (!action || !isActionMagicianSwap(action)) {
     return {};
   }
   return {
-    firstExchanged: magicianAction % 100,
-    secondExchanged: Math.floor(magicianAction / 100)
+    firstExchanged: action.firstSeat,
+    secondExchanged: action.secondSeat
   };
 }
 
@@ -408,28 +472,29 @@ function applyMagicianSwap(deaths: Set<number>, firstExchanged?: number, secondE
 }
 
 export const getLastNightInfo = (room: GameRoomLike): string => {
-  const killedByWolf = room.actions.get('wolf');
+  // Extract targets from structured actions
+  const wolfKillSeat = getActionTargetSeat(room.actions.get('wolf'));
   const witchAction = room.actions.get('witch');
-  const { killedByWitch, savedByWitch } = parseWitchAction(witchAction);
-  const sleptWith = room.actions.get('wolfQueen');
-  const guardedByGuard = room.actions.get('guard');
-  const nightWalker = room.actions.get('celebrity');
-  const seerCheckedSeat = room.actions.get('seer');
-  const { firstExchanged, secondExchanged } = parseMagicianAction(room.actions.get('magician'));
+  const { killedByWitch, savedByWitch } = parseWitchActionFromRoleAction(witchAction);
+  const sleptWithSeat = getActionTargetSeat(room.actions.get('wolfQueen'));
+  const guardProtectSeat = getActionTargetSeat(room.actions.get('guard'));
+  const nightWalkerSeat = getActionTargetSeat(room.actions.get('celebrity'));
+  const seerCheckedSeat = getActionTargetSeat(room.actions.get('seer'));
+  const { firstExchanged, secondExchanged } = parseMagicianActionFromRoleAction(room.actions.get('magician'));
   const { queenIndex, celebrityIndex, witcherIndex, spiritKnightIndex, seerIndex, witchIndex } = findSpecialRoleSeats(room);
 
   const deaths = new Set<number>();
 
   // 奶死 (saved and guarded same person)
-  if (savedByWitch !== null && savedByWitch === guardedByGuard) {
+  if (savedByWitch !== null && guardProtectSeat !== undefined && savedByWitch === guardProtectSeat) {
     deaths.add(savedByWitch);
   }
 
   // Killed by wolf (not saved or guarded)
-  const wolfKillValid = killedByWolf !== undefined && killedByWolf !== -1 && killedByWolf !== guardedByGuard;
-  const notSaved = savedByWitch === null || savedByWitch !== killedByWolf;
+  const wolfKillValid = wolfKillSeat !== undefined && wolfKillSeat !== guardProtectSeat;
+  const notSaved = savedByWitch === null || savedByWitch !== wolfKillSeat;
   if (wolfKillValid && notSaved) {
-    deaths.add(killedByWolf);
+    deaths.add(wolfKillSeat);
   }
 
   // Poisoned by witch (witcher is immune)
@@ -457,18 +522,18 @@ export const getLastNightInfo = (room: GameRoomLike): string => {
   }
 
   // Wolf queen dies, linked player dies too
-  if (queenIndex !== undefined && deaths.has(queenIndex) && sleptWith !== undefined) {
-    deaths.add(sleptWith);
+  if (queenIndex !== undefined && deaths.has(queenIndex) && sleptWithSeat !== undefined) {
+    deaths.add(sleptWithSeat);
   }
 
   // Celebrity protects from death
-  if (nightWalker !== undefined) {
-    deaths.delete(nightWalker);
+  if (nightWalkerSeat !== undefined) {
+    deaths.delete(nightWalkerSeat);
   }
 
   // Celebrity dies, dreamer dies too
-  if (celebrityIndex !== undefined && deaths.has(celebrityIndex) && nightWalker !== undefined) {
-    deaths.add(nightWalker);
+  if (celebrityIndex !== undefined && deaths.has(celebrityIndex) && nightWalkerSeat !== undefined) {
+    deaths.add(nightWalkerSeat);
   }
 
   // Magician swap death
@@ -495,19 +560,20 @@ export const getActionLog = (room: GameRoomLike): string[] => {
     const roleInfo = ROLES[roleName];
     if (!roleInfo) continue;
     
-    const actionValue = room.actions.get(roleName);
+    const action = room.actions.get(roleName);
     const displayName = roleInfo.displayName;
     const actionVerb = roleInfo.actionConfirmMessage || '选择';
     
     // Special handling for roles with specific action formats
     if (roleName === 'wolf') {
-      if (actionValue === undefined || actionValue === -1) {
+      const targetSeat = getActionTargetSeat(action);
+      if (targetSeat === undefined) {
         logs.push(`${displayName}: 空刀`);
       } else {
-        logs.push(`${displayName}: 猎杀 ${actionValue + 1}号`);
+        logs.push(`${displayName}: 猎杀 ${targetSeat + 1}号`);
       }
     } else if (roleName === 'witch') {
-      const { killedByWitch, savedByWitch } = parseWitchAction(actionValue);
+      const { killedByWitch, savedByWitch } = parseWitchActionFromRoleAction(action);
       if (savedByWitch !== null) {
         logs.push(`${displayName}: 救了 ${savedByWitch + 1}号`);
       } else if (killedByWitch !== null) {
@@ -516,22 +582,23 @@ export const getActionLog = (room: GameRoomLike): string[] => {
         logs.push(`${displayName}: 未使用技能`);
       }
     } else if (roleName === 'magician') {
-      if (actionValue === undefined || actionValue === null) {
+      const magicianParsed = parseMagicianActionFromRoleAction(action);
+      if (magicianParsed.firstExchanged === undefined) {
         logs.push(`${displayName}: 未${actionVerb}`);
       } else {
-        const first = actionValue % 100;
-        const second = Math.floor(actionValue / 100);
-        logs.push(`${displayName}: ${actionVerb} ${first + 1}号 和 ${second + 1}号`);
+        logs.push(`${displayName}: ${actionVerb} ${magicianParsed.firstExchanged + 1}号 和 ${magicianParsed.secondExchanged! + 1}号`);
       }
     } else if (roleName === 'hunter' || roleName === 'darkWolfKing') {
       // Status confirmation roles - just show they confirmed
       logs.push(`${displayName}: ${actionVerb}`);
-    } else if (actionValue === undefined || actionValue === null || actionValue === -1) {
-      // Generic handling - no target selected
-      logs.push(`${displayName}: 未${actionVerb}`);
     } else {
       // Generic handling - target selected (seer, slacker, guard, etc.)
-      logs.push(`${displayName}: ${actionVerb} ${actionValue + 1}号`);
+      const targetSeat = getActionTargetSeat(action);
+      if (targetSeat === undefined) {
+        logs.push(`${displayName}: 未${actionVerb}`);
+      } else {
+        logs.push(`${displayName}: ${actionVerb} ${targetSeat + 1}号`);
+      }
     }
   }
   
@@ -563,10 +630,10 @@ export const performSeerAction = (room: GameRoomLike, targetSeat: number): SeerC
   if (!targetPlayer?.role) return getSeerCheckResult('villager');
 
   // Check magician swap
-  const magicianAction = room.actions.get('magician');
-  if (magicianAction !== undefined && magicianAction !== -1) {
-    const first = magicianAction % 100;
-    const second = Math.floor(magicianAction / 100);
+  const magicianParsed = parseMagicianActionFromRoleAction(room.actions.get('magician'));
+  if (magicianParsed.firstExchanged !== undefined && magicianParsed.secondExchanged !== undefined) {
+    const first = magicianParsed.firstExchanged;
+    const second = magicianParsed.secondExchanged;
 
     if (targetSeat === first) {
       const swappedPlayer = room.players.get(second);
@@ -584,6 +651,7 @@ export const performSeerAction = (room: GameRoomLike, targetSeat: number): SeerC
 export const performPsychicAction = (room: GameRoomLike, targetSeat: number): string => {
   // Check if wolf robot learned this player's role
   const wolfRobotAction = room.actions.get('wolfRobot');
+  const wolfRobotTargetSeat = getActionTargetSeat(wolfRobotAction);
   let wolfRobotSeat = -1;
   room.players.forEach((player, seat) => {
     if (player?.role === 'wolfRobot') {
@@ -591,8 +659,8 @@ export const performPsychicAction = (room: GameRoomLike, targetSeat: number): st
     }
   });
 
-  if (wolfRobotSeat === targetSeat && wolfRobotAction !== undefined) {
-    const learnedPlayer = room.players.get(wolfRobotAction);
+  if (wolfRobotSeat === targetSeat && wolfRobotTargetSeat !== undefined) {
+    const learnedPlayer = room.players.get(wolfRobotTargetSeat);
     return learnedPlayer?.role ? ROLES[learnedPlayer.role].displayName : '未知';
   }
 
@@ -612,19 +680,20 @@ export const proceedToNextAction = (
 
   const newActions = new Map(room.actions);
   
-  // Record action
+  // Record action using structured RoleAction
   if (targetIndex !== null) {
     if (currentRole === 'witch') {
-      // Witch can save (positive) or poison (negative - 1)
-      if (extra === false) {
-        // Save action
-        newActions.set(currentRole, targetIndex);
+      // Witch can save (extra=false) or poison (extra=true)
+      if (extra === true) {
+        newActions.set(currentRole, makeActionWitch(makeWitchPoison(targetIndex)));
       } else {
-        // Poison action (negative encoding)
-        newActions.set(currentRole, -(targetIndex + 1));
+        newActions.set(currentRole, makeActionWitch(makeWitchSave(targetIndex)));
       }
+    } else if (currentRole === 'magician' && extra !== undefined) {
+      // Magician swap: targetIndex is first, extra is second
+      newActions.set(currentRole, makeActionMagicianSwap(targetIndex, extra as number));
     } else {
-      newActions.set(currentRole, targetIndex);
+      newActions.set(currentRole, makeActionTarget(targetIndex));
     }
   }
 
@@ -833,47 +902,39 @@ export interface NightResult {
 
 // Calculate night result based on actions
 export const getNightResult = (room: GameRoomLike): NightResult => {
-  const wolfAction = room.actions.get('wolf') ?? null;
-  const witchAction = room.actions.get('witch') ?? null;
-  const seerAction = room.actions.get('seer') ?? null;
-  const guardAction = room.actions.get('guard') ?? null;
+  // Extract targets from structured actions
+  const killedByWolfSeat = getActionTargetSeat(room.actions.get('wolf')) ?? null;
+  const seerCheckedSeat = getActionTargetSeat(room.actions.get('seer')) ?? null;
+  const guardProtectSeat = getActionTargetSeat(room.actions.get('guard')) ?? null;
+  const { killedByWitch, savedByWitch: savedSeat } = parseWitchActionFromRoleAction(room.actions.get('witch'));
   
   // For role-specific rules (e.g. poison immunity)
   const { witcherIndex, spiritKnightIndex, seerIndex, witchIndex } = findSpecialRoleSeats(room);
   
-  const killedByWolf = wolfAction;
-  
-  // proceedToNextAction encoding:
-  // - Save: stores targetIndex (positive/zero)
-  // - Poison: stores -(targetIndex + 1) (negative)
-  // So positive/zero = save, negative = poison
-  const savedByWitch = witchAction !== null && witchAction >= 0;
-  const poisonedPlayer = (witchAction !== null && witchAction < 0) ? -(witchAction + 1) : null;
-  
   // 检查守卫是否守护了被杀的人
-  const protectedByGuard = killedByWolf !== null && killedByWolf === guardAction;
+  const protectedByGuard = killedByWolfSeat !== null && killedByWolfSeat === guardProtectSeat;
   
   // 计算死亡玩家
   const deadPlayers: number[] = [];
   
-  if (killedByWolf !== null) {
+  if (killedByWolfSeat !== null) {
     // 同守必死：女巫救 + 守卫守同一个人 = 死亡
-    const doubleProtection = savedByWitch && protectedByGuard && killedByWolf === witchAction;
+    const doubleProtection = savedSeat !== null && protectedByGuard && killedByWolfSeat === savedSeat;
     // 存活条件：只有女巫救或只有守卫守（不是同时）
-    const survived = (savedByWitch || protectedByGuard) && !doubleProtection;
+    const survived = (savedSeat !== null || protectedByGuard) && !doubleProtection;
     
     if (!survived) {
-      deadPlayers.push(killedByWolf);
+      deadPlayers.push(killedByWolfSeat);
     }
   }
   
   // 被女巫毒
-  if (poisonedPlayer !== null) {
+  if (killedByWitch !== null) {
     // Witcher is immune to poison
-    if (witcherIndex === poisonedPlayer) {
+    if (witcherIndex === killedByWitch) {
       // Still record poisonedPlayer, but do not add to deaths
-    } else if (!deadPlayers.includes(poisonedPlayer)) {
-      deadPlayers.push(poisonedPlayer);
+    } else if (!deadPlayers.includes(killedByWitch)) {
+      deadPlayers.push(killedByWitch);
     }
   }
 
@@ -881,13 +942,13 @@ export const getNightResult = (room: GameRoomLike): NightResult => {
   // - If seer checks spiritKnight, seer dies
   // - If witch poisons spiritKnight, witch dies and spiritKnight doesn't die
   if (spiritKnightIndex !== undefined) {
-    if (seerAction !== null && seerAction === spiritKnightIndex && seerIndex !== undefined) {
+    if (seerCheckedSeat !== null && seerCheckedSeat === spiritKnightIndex && seerIndex !== undefined) {
       if (!deadPlayers.includes(seerIndex)) {
         deadPlayers.push(seerIndex);
       }
     }
 
-    if (poisonedPlayer !== null && poisonedPlayer === spiritKnightIndex) {
+    if (killedByWitch !== null && killedByWitch === spiritKnightIndex) {
       // Remove spirit knight from deaths if it was added
       const idx = deadPlayers.indexOf(spiritKnightIndex);
       if (idx !== -1) deadPlayers.splice(idx, 1);
@@ -898,11 +959,13 @@ export const getNightResult = (room: GameRoomLike): NightResult => {
     }
   }
   
+  deadPlayers.sort((a, b) => a - b);
   return {
-    killedByWolf,
-    savedByWitch,
-    poisonedPlayer,
-    protectedBySeer: seerAction,
-  deadPlayers: deadPlayers.sort((a, b) => a - b),
+    killedByWolf: killedByWolfSeat,
+    savedByWitch: savedSeat !== null,
+    poisonedPlayer: killedByWitch,
+    protectedBySeer: seerCheckedSeat,
+    deadPlayers,
   };
 };
+

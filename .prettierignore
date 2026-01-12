@@ -1,0 +1,10 @@
+node_modules
+.expo
+.expo-shared
+android
+ios
+dist
+build
+coverage
+playwright-report
+*.log

@@ -19,6 +19,13 @@ import { NightFlowController, NightPhase, NightEvent, InvalidNightTransitionErro
 import { shuffleArray } from '../utils/shuffle';
 import { calculateDeaths, type NightActions, type RoleSeatMap } from './DeathCalculator';
 import { resolveWolfVotes } from './WolfVoteResolver';
+import {
+  makeActionTarget,
+  makeActionWitch,
+  makeWitchSave,
+  makeWitchPoison,
+  getActionTargetSeat,
+} from '../models/actions';
 
 // Import types/enums needed internally
 import {
@@ -531,23 +538,22 @@ export class GameStateService {
       return;
     }
 
-    // Record action
+    // Record action using structured RoleAction
     if (target !== null) {
       if (role === 'witch') {
         // Witch: extra=true means poison, extra=false means save
         if (extra === true) {
-          this.state.actions.set(role, -(target + 1));  // Poison encoding
+          this.state.actions.set(role, makeActionWitch(makeWitchPoison(target)));
         } else {
-          this.state.actions.set(role, target);  // Save
+          this.state.actions.set(role, makeActionWitch(makeWitchSave(target)));
         }
       } else {
-        this.state.actions.set(role, target);
+        this.state.actions.set(role, makeActionTarget(target));
       }
 
-      // Record action in nightFlow (use raw target, encoding handled above)
+      // Record action in nightFlow (raw target only for logging/debug)
       try {
-        const rawTarget = role === 'witch' && extra === true ? -(target + 1) : target;
-        this.nightFlow.recordAction(role, rawTarget);
+        this.nightFlow.recordAction(role, target);
       } catch (err) {
         console.error('[GameStateService] NightFlow recordAction failed:', err);
         throw err; // STRICT: propagate error, don't continue
@@ -610,7 +616,7 @@ export class GameStateService {
   // [Bridge: WolfVoteResolver] Resolve final kill target from wolf votes
       const finalTarget = resolveWolfVotes(this.state.wolfVotes);
       if (finalTarget !== null) {
-        this.state.actions.set('wolf', finalTarget);
+        this.state.actions.set('wolf', makeActionTarget(finalTarget));
         // Record action in nightFlow
         try {
           this.nightFlow.recordAction('wolf', finalTarget);
@@ -1260,8 +1266,9 @@ export class GameStateService {
     // Get pending seats for this role
     const pendingSeats = this.getSeatsForRole(currentRole);
     
-    // For wolf role, include kill target info
-    const killedIndex = currentRole === 'witch' ? this.state.actions.get('wolf') : undefined;
+    // For wolf role, include kill target info (extract from structured action)
+    const wolfAction = currentRole === 'witch' ? this.state.actions.get('wolf') : undefined;
+    const killedIndex = getActionTargetSeat(wolfAction);
 
     // Broadcast role turn
     await this.broadcastService.broadcastAsHost({
@@ -1720,7 +1727,7 @@ export class GameStateService {
   // ===========================================================================
 
   /**
-   * Build NightActions from internal actions Map (decode encoding)
+   * Build NightActions from structured actions Map
    */
   private buildNightActions(): NightActions {
     if (!this.state) return {};
@@ -1729,46 +1736,48 @@ export class GameStateService {
     const nightActions: NightActions = {};
 
     // Wolf kill
-    const wolfKill = actions.get('wolf');
-    if (wolfKill !== undefined && wolfKill !== -1) {
-      nightActions.wolfKill = wolfKill;
+    const wolfAction = actions.get('wolf');
+    if (wolfAction && wolfAction.kind === 'target') {
+      nightActions.wolfKill = wolfAction.targetSeat;
     }
 
     // Guard protect
-    const guardProtect = actions.get('guard');
-    if (guardProtect !== undefined && guardProtect !== -1) {
-      nightActions.guardProtect = guardProtect;
+    const guardAction = actions.get('guard');
+    if (guardAction && guardAction.kind === 'target') {
+      nightActions.guardProtect = guardAction.targetSeat;
     }
 
-    // Witch action (decode: >=0 = save, <0 = poison)
-    const witchAction = actions.get('witch');
-    if (witchAction !== undefined) {
-      if (witchAction >= 0) {
-        nightActions.witchSave = witchAction;
-      } else {
-        nightActions.witchPoison = -(witchAction + 1);
-      }
+    // Witch action (structured)
+    const witchRoleAction = actions.get('witch');
+    if (witchRoleAction && witchRoleAction.kind === 'witch') {
+      nightActions.witchAction = witchRoleAction.witchAction;
     }
 
     // Wolf Queen charm
-    const wolfQueenCharm = actions.get('wolfQueen');
-    if (wolfQueenCharm !== undefined) {
-      nightActions.wolfQueenCharm = wolfQueenCharm;
+    const wolfQueenAction = actions.get('wolfQueen');
+    if (wolfQueenAction && wolfQueenAction.kind === 'target') {
+      nightActions.wolfQueenCharm = wolfQueenAction.targetSeat;
     }
 
     // Celebrity dream
-    const celebrityDream = actions.get('celebrity');
-    if (celebrityDream !== undefined) {
-      nightActions.celebrityDream = celebrityDream;
+    const celebrityAction = actions.get('celebrity');
+    if (celebrityAction && celebrityAction.kind === 'target') {
+      nightActions.celebrityDream = celebrityAction.targetSeat;
     }
 
-    // Magician swap (decode: first = action % 100, second = action / 100)
+    // Magician swap
     const magicianAction = actions.get('magician');
-    if (magicianAction !== undefined && magicianAction !== -1) {
+    if (magicianAction && magicianAction.kind === 'magicianSwap') {
       nightActions.magicianSwap = {
-        first: magicianAction % 100,
-        second: Math.floor(magicianAction / 100),
+        first: magicianAction.firstSeat,
+        second: magicianAction.secondSeat,
       };
+    }
+
+    // Seer check (for spirit knight reflection)
+    const seerAction = actions.get('seer');
+    if (seerAction && seerAction.kind === 'target') {
+      nightActions.seerCheck = seerAction.targetSeat;
     }
 
     return nightActions;
@@ -1782,6 +1791,9 @@ export class GameStateService {
       witcher: this.findSeatByRole('witcher'),
       wolfQueen: this.findSeatByRole('wolfQueen'),
       celebrity: this.findSeatByRole('celebrity'),
+      spiritKnight: this.findSeatByRole('spiritKnight'),
+      seer: this.findSeatByRole('seer'),
+      witch: this.findSeatByRole('witch'),
     };
   }
 

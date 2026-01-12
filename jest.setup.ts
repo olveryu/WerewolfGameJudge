@@ -3,6 +3,37 @@
  * Mocks external dependencies that are not available in test environment
  */
 
+// ---------------------------------------------------------------------------
+// React Native test env stability
+// ---------------------------------------------------------------------------
+// Prevent Animated/TouchableOpacity internals from triggering renderer version checks
+// when tests update TextInput and toggle button disabled/opacity.
+// RN internal paths can vary between versions, so we mock it as a virtual module.
+jest.mock(
+  'react-native/Libraries/Animated/NativeAnimatedHelper',
+  () => ({}),
+  { virtual: true }
+);
+
+// TouchableOpacity triggers Animated timing on opacity transitions.
+// In our current dependency set, that codepath hits a react vs react-native-renderer
+// version mismatch check. For unit tests, a simple Pressable-based shim is sufficient.
+jest.mock('react-native/Libraries/Components/Touchable/TouchableOpacity', () => {
+  const React = require('react');
+  const { Pressable } = require('react-native');
+
+  function TouchableOpacityShim(props: any) {
+    const { children, onPress, disabled, ...rest } = props;
+    return React.createElement(
+      Pressable,
+      { onPress, disabled, accessibilityRole: 'button', ...rest },
+      children
+    );
+  }
+
+  return TouchableOpacityShim;
+});
+
 // Mock Supabase client
 jest.mock('./src/config/supabase', () => ({
   supabase: {

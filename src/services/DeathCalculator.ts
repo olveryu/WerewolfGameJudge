@@ -5,7 +5,7 @@
  * It is a pure function with no side effects, no state access, and no external dependencies.
  *
  * Responsibilities:
- * - Receive night action data (semantically clear, no encoding)
+ * - Receive night action data (semantically clear, structured types)
  * - Apply game rules to determine who dies
  * - Return list of dead seats
  *
@@ -16,12 +16,14 @@
  * - Modifying any UI
  */
 
+import { WitchAction, getWitchSaveTarget, getWitchPoisonTarget } from '../models/actions/WitchAction';
+
 // =============================================================================
 // Types
 // =============================================================================
 
 /**
- * Night actions with semantically clear fields (no encoding)
+ * Night actions with semantically clear fields (structured types)
  * All seat numbers are 0-based indices.
  */
 export interface NightActions {
@@ -31,11 +33,8 @@ export interface NightActions {
   /** Guard protection target seat. undefined = not used */
   guardProtect?: number;
 
-  /** Witch save target seat. undefined = not used */
-  witchSave?: number;
-
-  /** Witch poison target seat. undefined = not used */
-  witchPoison?: number;
+  /** Witch action (structured type) */
+  witchAction?: WitchAction;
 
   /** Wolf Queen charm target seat. undefined = not used */
   wolfQueenCharm?: number;
@@ -45,6 +44,9 @@ export interface NightActions {
 
   /** Magician swap targets. undefined = not used */
   magicianSwap?: { first: number; second: number };
+
+  /** Seer check target seat. undefined = not used */
+  seerCheck?: number;
 }
 
 /**
@@ -60,6 +62,15 @@ export interface RoleSeatMap {
 
   /** Celebrity seat (for link death check). -1 if not present */
   celebrity: number;
+
+  /** Spirit Knight seat (reflects damage to seer/witch). -1 if not present */
+  spiritKnight: number;
+
+  /** Seer seat (for spirit knight reflection). -1 if not present */
+  seer: number;
+
+  /** Witch seat (for spirit knight reflection). -1 if not present */
+  witch: number;
 }
 
 /**
@@ -69,6 +80,9 @@ export const DEFAULT_ROLE_SEAT_MAP: RoleSeatMap = {
   witcher: -1,
   wolfQueen: -1,
   celebrity: -1,
+  spiritKnight: -1,
+  seer: -1,
+  witch: -1,
 };
 
 // =============================================================================
@@ -102,7 +116,10 @@ export function calculateDeaths(
   // 4. Process celebrity effect (protection + link death)
   processCelebrityEffect(actions, roleSeatMap, deaths);
 
-  // 5. Process magician swap (swap death between two targets)
+  // 5. Process spirit knight reflection (seer/witch attacking spirit knight dies)
+  processSpiritKnightReflection(actions, roleSeatMap, deaths);
+
+  // 6. Process magician swap (swap death between two targets)
   processMagicianSwap(actions, deaths);
 
   return Array.from(deaths).sort((a, b) => a - b);
@@ -121,12 +138,13 @@ export function calculateDeaths(
  * - BUT: 同守同救必死 (if both guard and witch save the same target, target dies)
  */
 function processWolfKill(actions: NightActions, deaths: Set<number>): void {
-  const { wolfKill, guardProtect, witchSave } = actions;
+  const { wolfKill, guardProtect, witchAction } = actions;
 
   // No wolf kill or empty kill
   if (wolfKill === undefined) return;
 
-  const isSaved = witchSave === wolfKill;
+  const witchSaveTarget = getWitchSaveTarget(witchAction);
+  const isSaved = witchSaveTarget === wolfKill;
   const isGuarded = guardProtect === wolfKill;
 
   // 同守同救必死: if BOTH guard and witch save, target still dies
@@ -150,17 +168,17 @@ function processWitchPoison(
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>
 ): void {
-  const { witchPoison } = actions;
+  const witchPoisonTarget = getWitchPoisonTarget(actions.witchAction);
   const { witcher: witcherSeat } = roleSeatMap;
 
-  if (witchPoison === undefined) return;
+  if (witchPoisonTarget === undefined) return;
 
   // Witcher is immune to poison
-  if (witcherSeat !== -1 && witchPoison === witcherSeat) {
+  if (witcherSeat !== -1 && witchPoisonTarget === witcherSeat) {
     return;
   }
 
-  deaths.add(witchPoison);
+  deaths.add(witchPoisonTarget);
 }
 
 /**
@@ -209,6 +227,42 @@ function processCelebrityEffect(
   // If celebrity dies, dream target also dies
   if (celebritySeat !== -1 && deaths.has(celebritySeat)) {
     deaths.add(celebrityDream);
+  }
+}
+
+/**
+ * Process spirit knight reflection.
+ *
+ * Rules:
+ * - Spirit Knight is a wolf that reflects damage to attackers
+ * - If seer checks spirit knight, seer dies (reflection)
+ * - If witch poisons spirit knight, witch dies and spirit knight survives (immune to poison + reflection)
+ */
+function processSpiritKnightReflection(
+  actions: NightActions,
+  roleSeatMap: RoleSeatMap,
+  deaths: Set<number>
+): void {
+  const { seerCheck, witchAction } = actions;
+  const witchPoisonTarget = getWitchPoisonTarget(witchAction);
+  const { spiritKnight: spiritKnightSeat, seer: seerSeat, witch: witchSeat } = roleSeatMap;
+
+  // Spirit knight not present
+  if (spiritKnightSeat === -1) return;
+
+  // Seer checks spirit knight → seer dies by reflection
+  if (seerCheck === spiritKnightSeat && seerSeat !== -1) {
+    deaths.add(seerSeat);
+  }
+
+  // Witch poisons spirit knight → witch dies, spirit knight is immune
+  if (witchPoisonTarget === spiritKnightSeat) {
+    // Remove spirit knight from deaths (immune to poison)
+    deaths.delete(spiritKnightSeat);
+    // Witch dies by reflection
+    if (witchSeat !== -1) {
+      deaths.add(witchSeat);
+    }
   }
 }
 

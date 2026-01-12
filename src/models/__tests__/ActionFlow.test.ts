@@ -258,8 +258,8 @@ describe('Action Order - 血月猎魔12人', () => {
     
     // bloodMoon has no night action (actionOrder: -1)
     // Should be: wolf, witch, seer
-  // Witcher is configured with hasNightAction=true, so it's included.
-  expect(template.actionOrder).toEqual(['wolf', 'witch', 'seer', 'witcher']);
+  // Witcher can only act starting from the second night, so it must be excluded.
+  expect(template.actionOrder).toEqual(['wolf', 'witch', 'seer']);
   });
 
   it('should not include bloodMoon in action order', () => {

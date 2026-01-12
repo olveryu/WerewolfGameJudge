@@ -1,4 +1,4 @@
-import { RoleName, ACTION_ORDER, ROLES, isWolfRole, isValidRoleName } from './roles';
+import { RoleName, ACTION_ORDER, ROLES, isValidRoleName } from './roles';
 
 // ---------------------------------------------------------------------------
 // Template validation
@@ -22,18 +22,6 @@ export function validateTemplateRoles(roles: RoleName[]): string | null {
     if (!isValidRoleName(r)) {
       return `无效角色: ${r}`;
     }
-  }
-
-  // Rule 3: at least 1 wolf faction role
-  if (!roles.some((r) => isWolfRole(r))) {
-    return '至少需要 1 个狼人阵营角色';
-  }
-
-  // Rule 4: at least 1 role with night action (otherwise night phase ends immediately)
-  const roleSet = new Set(roles);
-  const actionOrder = ACTION_ORDER.filter((role) => roleSet.has(role));
-  if (actionOrder.length === 0) {
-    return '至少需要 1 个夜晚行动角色';
   }
 
   return null;

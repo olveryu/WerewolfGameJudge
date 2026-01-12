@@ -19,6 +19,7 @@ import {
   RoleSeatMap,
   DEFAULT_ROLE_SEAT_MAP,
 } from '../DeathCalculator';
+import { makeWitchSave, makeWitchPoison, makeWitchNone } from '../../models/actions/WitchAction';
 
 describe('DeathCalculator', () => {
   // ===========================================================================
@@ -46,8 +47,7 @@ describe('DeathCalculator', () => {
       const actions: NightActions = {
         wolfKill: undefined,
         guardProtect: 5,
-        witchSave: undefined,
-        witchPoison: undefined,
+        witchAction: undefined,
       };
 
       const deaths = calculateDeaths(actions);
@@ -89,7 +89,7 @@ describe('DeathCalculator', () => {
     it('should prevent death when witch saves wolf target', () => {
       const actions: NightActions = {
         wolfKill: 3,
-        witchSave: 3,
+        witchAction: makeWitchSave(3),
       };
 
       const deaths = calculateDeaths(actions);
@@ -99,7 +99,7 @@ describe('DeathCalculator', () => {
     it('should not prevent death when witch saves different target', () => {
       const actions: NightActions = {
         wolfKill: 3,
-        witchSave: 5,
+        witchAction: makeWitchSave(5),
       };
 
       const deaths = calculateDeaths(actions);
@@ -116,7 +116,7 @@ describe('DeathCalculator', () => {
       const actions: NightActions = {
         wolfKill: 3,
         guardProtect: 3,
-        witchSave: 3,
+        witchAction: makeWitchSave(3),
       };
 
       const deaths = calculateDeaths(actions);
@@ -131,7 +131,7 @@ describe('DeathCalculator', () => {
   describe('Witch Poison', () => {
     it('should kill poison target', () => {
       const actions: NightActions = {
-        witchPoison: 5,
+        witchAction: makeWitchPoison(5),
       };
 
       const deaths = calculateDeaths(actions);
@@ -141,7 +141,7 @@ describe('DeathCalculator', () => {
     it('should kill both wolf target and poison target', () => {
       const actions: NightActions = {
         wolfKill: 3,
-        witchPoison: 5,
+        witchAction: makeWitchPoison(5),
       };
 
       const deaths = calculateDeaths(actions);
@@ -150,7 +150,7 @@ describe('DeathCalculator', () => {
 
     it('should not kill witcher when poisoned', () => {
       const actions: NightActions = {
-        witchPoison: 5,
+        witchAction: makeWitchPoison(5),
       };
       const roleSeatMap: RoleSeatMap = {
         ...DEFAULT_ROLE_SEAT_MAP,
@@ -163,7 +163,7 @@ describe('DeathCalculator', () => {
 
     it('should kill non-witcher when poisoned', () => {
       const actions: NightActions = {
-        witchPoison: 5,
+        witchAction: makeWitchPoison(5),
       };
       const roleSeatMap: RoleSeatMap = {
         ...DEFAULT_ROLE_SEAT_MAP,
@@ -253,7 +253,7 @@ describe('DeathCalculator', () => {
       // Dream target is protected from wolf kill, then dies with celebrity
       const actions: NightActions = {
         wolfKill: 2, // wolf kills celebrity
-        witchPoison: 5, // witch poisons dream target
+        witchAction: makeWitchPoison(5), // witch poisons dream target
         celebrityDream: 5,
       };
       const roleSeatMap: RoleSeatMap = {
@@ -261,7 +261,7 @@ describe('DeathCalculator', () => {
         celebrity: 2,
       };
 
-      // Dream target (5) is protected from poison, then dies with celebrity
+      // Dream target (5) is protected from poison, then dies because celebrity (2) dies
       const deaths = calculateDeaths(actions, roleSeatMap);
       // 5 is protected from poison, but dies because celebrity (2) dies
       expect(deaths).toEqual([2, 5]);
@@ -296,7 +296,7 @@ describe('DeathCalculator', () => {
     it('should not swap when both targets are dead', () => {
       const actions: NightActions = {
         wolfKill: 3,
-        witchPoison: 7,
+        witchAction: makeWitchPoison(7),
         magicianSwap: { first: 3, second: 7 },
       };
 
@@ -333,7 +333,7 @@ describe('DeathCalculator', () => {
       const actions: NightActions = {
         wolfKill: 3,
         guardProtect: 5,
-        witchPoison: 7,
+        witchAction: makeWitchPoison(7),
       };
 
       const deaths = calculateDeaths(actions);
@@ -345,7 +345,7 @@ describe('DeathCalculator', () => {
       const actions: NightActions = {
         wolfKill: 3,
         guardProtect: 7,
-        witchPoison: 7,
+        witchAction: makeWitchPoison(7),
       };
 
       const deaths = calculateDeaths(actions);
@@ -356,7 +356,7 @@ describe('DeathCalculator', () => {
       const actions: NightActions = {
         wolfKill: 3,
         guardProtect: 5,
-        witchSave: 3, // witch saves wolf target
+        witchAction: makeWitchSave(3), // witch saves wolf target
       };
 
       const deaths = calculateDeaths(actions);
@@ -379,7 +379,7 @@ describe('DeathCalculator', () => {
     it('should return sorted death list', () => {
       const actions: NightActions = {
         wolfKill: 9,
-        witchPoison: 2,
+        witchAction: makeWitchPoison(2),
       };
 
       const deaths = calculateDeaths(actions);

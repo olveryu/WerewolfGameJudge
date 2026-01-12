@@ -17,6 +17,7 @@ import { GameStateService, GameStatus } from '../GameStateService';
 import { NightPhase, NightEvent } from '../NightFlowController';
 import { GameTemplate } from '../../models/Template';
 import { RoleName } from '../../models/roles';
+import { isActionTarget, getActionTargetSeat } from '../../models/actions';
 
 // =============================================================================
 // Mocks
@@ -330,7 +331,10 @@ describe('GameStateService NightFlowController Integration', () => {
       await handlePlayerAction(0, 'wolf', 3);
       
       // Then: Action should be recorded
-      expect(state.actions.get('wolf')).toBe(3);
+      const wolfAction = state.actions.get('wolf');
+      expect(wolfAction).toBeDefined();
+      expect(isActionTarget(wolfAction!)).toBe(true);
+      expect(getActionTargetSeat(wolfAction)).toBe(3);
     });
   });
 

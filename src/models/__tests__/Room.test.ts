@@ -18,6 +18,7 @@ import {
 import { GameTemplate } from '../Template';
 import { Player, PlayerStatus, SkillStatus } from '../Player';
 import { RoleName, ACTION_ORDER } from '../roles';
+import { isActionTarget, getActionTargetSeat, isActionWitch, isWitchPoison } from '../actions';
 
 // Helper to create a test room with specific roles
 const createTestRoom = (roles: RoleName[]): Room => {
@@ -297,8 +298,8 @@ describe('Room - 预言家 (Seer)', () => {
     
     // 1. Magician acts first (actionOrder = -2)
     let current = advanceToRole(room, 'magician');
-    // Magician swap encoding: first + second * 100 = 0 + 3 * 100 = 300
-    current = proceedToNextAction(current, 300); // Swap seat 0 and seat 3
+    // Magician swap: firstSeat=0, secondSeat=3 (passed as extra)
+    current = proceedToNextAction(current, 0, 3); // Swap seat 0 and seat 3
     
     // 2. Wolf acts second (actionOrder = 5)
     current = advanceToRole(current, 'wolf');
@@ -401,9 +402,8 @@ describe('Room - 魔术师 (Magician)', () => {
     const room = createTestRoom(['wolf', 'magician', 'villager', 'seer', 'villager']);
     
     let current = advanceToRole(room, 'magician');
-    // Magician swaps player 3 and player 4 (encoded as first + second * 100)
-    const encodedAction = 2 + 3 * 100; // swap seat 2 and seat 3
-    current = proceedToNextAction(current, encodedAction);
+    // Magician swaps seat 2 and seat 3: firstSeat=2, secondSeat=3 (passed as extra)
+    current = proceedToNextAction(current, 2, 3);
     
     current = advanceToRole(current, 'wolf');
     current = proceedToNextAction(current, 2); // Wolf kills player 3
@@ -442,8 +442,11 @@ describe('Room - 梦魇 (Nightmare)', () => {
     let current = advanceToRole(room, 'nightmare');
     current = proceedToNextAction(current, 1); // Nightmare blocks seer
     
-    // We'd need to check nightmared status, but for now just verify action recorded
-    expect(current.actions.get('nightmare')).toBe(1);
+    // Verify action recorded as RoleAction
+    const action = current.actions.get('nightmare');
+    expect(action).toBeDefined();
+    expect(isActionTarget(action!)).toBe(true);
+    expect(getActionTargetSeat(action)).toBe(1);
   });
 });
 
@@ -454,7 +457,10 @@ describe('Room - 石像鬼 (Gargoyle)', () => {
     let current = advanceToRole(room, 'gargoyle');
     current = proceedToNextAction(current, 3); // Gargoyle checks player 4 (wolf)
     
-    expect(current.actions.get('gargoyle')).toBe(3);
+    const action = current.actions.get('gargoyle');
+    expect(action).toBeDefined();
+    expect(isActionTarget(action!)).toBe(true);
+    expect(getActionTargetSeat(action)).toBe(3);
   });
 });
 
@@ -465,7 +471,10 @@ describe('Room - 机械狼 (Wolf Robot)', () => {
     let current = advanceToRole(room, 'wolfRobot');
     current = proceedToNextAction(current, 1); // Wolf robot checks seer
     
-    expect(current.actions.get('wolfRobot')).toBe(1);
+    const action = current.actions.get('wolfRobot');
+    expect(action).toBeDefined();
+    expect(isActionTarget(action!)).toBe(true);
+    expect(getActionTargetSeat(action)).toBe(1);
   });
 });
 
@@ -549,7 +558,10 @@ describe('Room - 黑狼王 (Dark Wolf King)', () => {
     
     current = advanceToRole(current, 'darkWolfKing');
     // Dark wolf king can use skill when killed normally
-    expect(current.actions.get('wolf')).toBe(1);
+    const wolfAction = current.actions.get('wolf');
+    expect(wolfAction).toBeDefined();
+    expect(isActionTarget(wolfAction!)).toBe(true);
+    expect(getActionTargetSeat(wolfAction)).toBe(1);
   });
 
   it('黑狼王被女巫毒死 - 不能发动技能', () => {
@@ -562,7 +574,12 @@ describe('Room - 黑狼王 (Dark Wolf King)', () => {
     current = proceedToNextAction(current, 2, true); // Witch poisons dark wolf king
     
     // Dark wolf king should not be able to use skill when poisoned
-    expect(current.actions.get('witch')).toBe(-3); // Poisoned seat 2 encoded as -(2+1)
+    const witchAction = current.actions.get('witch');
+    expect(witchAction).toBeDefined();
+    expect(isActionWitch(witchAction!)).toBe(true);
+    if (isActionWitch(witchAction!)) {
+      expect(isWitchPoison(witchAction.witchAction)).toBe(true);
+    }
   });
 });
 
