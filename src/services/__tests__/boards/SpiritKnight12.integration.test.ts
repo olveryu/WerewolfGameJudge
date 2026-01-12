@@ -124,6 +124,7 @@ describe('DeathCalculator - Spirit Knight Reflection', () => {
     spiritKnight: 7,
     seer: 8,
     witch: 9,
+    guard: 11,
   };
 
   it('预言家查验恶灵骑士 → 预言家死亡', () => {

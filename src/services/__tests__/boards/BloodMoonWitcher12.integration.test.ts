@@ -85,6 +85,7 @@ describe('DeathCalculator - Witcher Poison Immunity', () => {
     spiritKnight: -1,
     seer: 8,
     witch: 9,
+    guard: -1,
   };
 
   it('女巫毒猎魔人 → 猎魔人免疫，不死', () => {

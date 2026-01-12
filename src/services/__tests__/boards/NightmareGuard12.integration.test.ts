@@ -78,14 +78,12 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
   });
 
   describe('梦魇封锁技能', () => {
-    // 梦魇封锁逻辑需要在 DeathCalculator 中实现 nightmareBlock 支持
-    // 当前测试暂时跳过，等待封锁逻辑实现后再启用
-    it.skip('梦魇封锁守卫 → 守卫技能无效', async () => {
+    it('梦魇封锁守卫 → 守卫技能无效', async () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
         guard: 0, // 守卫想守0号
-        nightmare: 11, // 梦魇封锁守卫
+        nightmare: 11, // 梦魇封锁守卫（座位11）
         wolf: 0, // 狼刀0号
         witch: null,
         seer: 4,
@@ -97,12 +95,12 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       expect(result.deaths).toContain(0);
     });
 
-    it.skip('梦魇封锁女巫 → 女巫救人无效', async () => {
+    it('梦魇封锁女巫 → 女巫救人无效', async () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
         guard: null,
-        nightmare: 9, // 梦魇封锁女巫
+        nightmare: 9, // 梦魇封锁女巫（座位9）
         wolf: 0, // 狼刀0号
         witch: 0, // 女巫想救0号
         seer: 4,
@@ -113,12 +111,48 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       // 女巫被封锁，救人无效，0号死亡
       expect(result.deaths).toContain(0);
     });
+
+    it('梦魇封锁女巫 → 女巫毒人无效', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        guard: null,
+        nightmare: 9, // 梦魇封锁女巫（座位9）
+        wolf: 0, // 狼刀0号
+        witch: null,
+        witchPoison: 1, // 女巫想毒1号
+        seer: 4,
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      // 女巫被封锁，毒人无效，只有0号死亡
+      expect(result.deaths).toEqual([0]);
+    });
+
+    it('梦魇封锁狼人 → 狼人无法杀人', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      // 注意：梦魇封锁任意一个狼人（座位4、5、6）都会导致当夜狼人阵营无法刀人
+      const result = await ctx.runNight({
+        guard: null,
+        nightmare: 4, // 梦魇封锁座位4（普狼）
+        wolf: 0, // 狼想刀0号
+        witch: null,
+        seer: 8,
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      // 梦魇封锁狼人，狼人阵营当夜不能刀人
+      expect(result.deaths).toEqual([]);
+      expect(result.info).toContain('平安夜');
+    });
   });
 });
 
 // =============================================================================
 // DeathCalculator 单元测试（梦魇封锁）
-// 注意：梦魇封锁逻辑可能需要在 DeathCalculator 中添加 nightmareBlock 支持
 // =============================================================================
 
 describe('DeathCalculator - Nightmare Block', () => {
@@ -129,42 +163,108 @@ describe('DeathCalculator - Nightmare Block', () => {
     spiritKnight: -1,
     seer: 8,
     witch: 9,
+    guard: 11,
   };
 
-  it('正常情况：守卫保护有效', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      guardProtect: 0,
-    };
+  describe('正常情况（无梦魇封锁）', () => {
+    it('守卫保护有效', () => {
+      const actions: NightActions = {
+        wolfKill: 0,
+        guardProtect: 0,
+      };
 
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
+      const deaths = calculateDeaths(actions, baseRoleSeatMap);
 
-    expect(deaths).toEqual([]);
+      expect(deaths).toEqual([]);
+    });
+
+    it('女巫救人有效', () => {
+      const actions: NightActions = {
+        wolfKill: 0,
+        witchAction: makeWitchSave(0),
+      };
+
+      const deaths = calculateDeaths(actions, baseRoleSeatMap);
+
+      expect(deaths).toEqual([]);
+    });
+
+    it('女巫毒人有效', () => {
+      const actions: NightActions = {
+        wolfKill: 0,
+        witchAction: makeWitchPoison(1),
+      };
+
+      const deaths = calculateDeaths(actions, baseRoleSeatMap);
+
+      expect(deaths).toContain(0);
+      expect(deaths).toContain(1);
+    });
   });
 
-  it('正常情况：女巫救人有效', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      witchAction: makeWitchSave(0),
-    };
+  describe('梦魇封锁效果', () => {
+    it('封锁守卫 → 守卫保护无效', () => {
+      const actions: NightActions = {
+        wolfKill: 0,
+        guardProtect: 0, // 守卫想保护0号
+        nightmareBlock: 11, // 封锁守卫（座位11）
+      };
 
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
+      const deaths = calculateDeaths(actions, baseRoleSeatMap);
 
-    expect(deaths).toEqual([]);
+      // 守卫被封锁，保护无效，0号死亡
+      expect(deaths).toEqual([0]);
+    });
+
+    it('封锁女巫 → 女巫救人无效', () => {
+      const actions: NightActions = {
+        wolfKill: 0,
+        witchAction: makeWitchSave(0), // 女巫想救0号
+        nightmareBlock: 9, // 封锁女巫（座位9）
+      };
+
+      const deaths = calculateDeaths(actions, baseRoleSeatMap);
+
+      // 女巫被封锁，救人无效，0号死亡
+      expect(deaths).toEqual([0]);
+    });
+
+    it('封锁女巫 → 女巫毒人无效', () => {
+      const actions: NightActions = {
+        wolfKill: 0,
+        witchAction: makeWitchPoison(1), // 女巫想毒1号
+        nightmareBlock: 9, // 封锁女巫（座位9）
+      };
+
+      const deaths = calculateDeaths(actions, baseRoleSeatMap);
+
+      // 女巫被封锁，毒人无效，只有0号死亡
+      expect(deaths).toEqual([0]);
+    });
+
+    it('封锁狼人 → 狼人无法杀人', () => {
+      const actions: NightActions = {
+        wolfKill: 0, // 狼想杀0号
+        nightmareBlockedWolf: true, // 梦魇封锁了狼人
+      };
+
+      const deaths = calculateDeaths(actions, baseRoleSeatMap);
+
+      // 狼人被封锁，当夜无法杀人
+      expect(deaths).toEqual([]);
+    });
+
+    it('封锁非关键角色 → 不影响其他技能', () => {
+      const actions: NightActions = {
+        wolfKill: 0,
+        guardProtect: 0, // 守卫保护0号
+        nightmareBlock: 0, // 封锁座位0（村民）
+      };
+
+      const deaths = calculateDeaths(actions, baseRoleSeatMap);
+
+      // 封锁的是村民，守卫保护有效
+      expect(deaths).toEqual([]);
+    });
   });
-
-  it('正常情况：女巫毒人有效', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      witchAction: makeWitchPoison(1),
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toContain(0);
-    expect(deaths).toContain(1);
-  });
-
-  // 梦魇封锁逻辑需要在 DeathCalculator 中添加 nightmareBlock 支持
-  // 当前测试仅覆盖基础场景，封锁逻辑在 Host Runtime Integration 中测试
 });
