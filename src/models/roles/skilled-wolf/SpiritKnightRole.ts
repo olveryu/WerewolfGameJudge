@@ -6,7 +6,7 @@
  * Cannot self-destruct, can only be voted out or shot by hunter.
  */
 
-import { WolfBaseRole } from './WolfBaseRole';
+import { WolfBaseRole } from '../base/WolfBaseRole';
 
 export class SpiritKnightRole extends WolfBaseRole {
   readonly id = 'spiritKnight';

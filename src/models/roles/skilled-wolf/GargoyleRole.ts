@@ -5,8 +5,8 @@
  * Does not participate in the wolf kill vote.
  */
 
-import { WolfBaseRole } from './WolfBaseRole';
-import { ActionDialogConfig, RoleActionContext } from './BaseRole';
+import { WolfBaseRole } from '../base/WolfBaseRole';
+import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class GargoyleRole extends WolfBaseRole {
   readonly id = 'gargoyle';

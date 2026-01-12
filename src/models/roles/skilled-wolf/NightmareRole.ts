@@ -5,8 +5,8 @@
  * The blocked player's skill is ineffective for that night.
  */
 
-import { WolfBaseRole } from './WolfBaseRole';
-import { ActionDialogConfig, RoleActionContext } from './BaseRole';
+import { WolfBaseRole } from '../base/WolfBaseRole';
+import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class NightmareRole extends WolfBaseRole {
   readonly id = 'nightmare';

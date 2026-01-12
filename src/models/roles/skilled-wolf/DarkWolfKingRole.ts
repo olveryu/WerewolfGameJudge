@@ -5,8 +5,8 @@
  * This is the wolf version of the hunter.
  */
 
-import { WolfBaseRole } from './WolfBaseRole';
-import { ActionDialogConfig } from './BaseRole';
+import { WolfBaseRole } from '../base/WolfBaseRole';
+import { ActionDialogConfig } from '../base/BaseRole';
 
 export class DarkWolfKingRole extends WolfBaseRole {
   readonly id = 'darkWolfKing';

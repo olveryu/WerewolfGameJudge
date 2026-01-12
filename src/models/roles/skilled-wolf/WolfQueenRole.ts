@@ -6,8 +6,8 @@
  * The charmed player doesn't know they are charmed.
  */
 
-import { WolfBaseRole } from './WolfBaseRole';
-import { ActionDialogConfig, RoleActionContext } from './BaseRole';
+import { WolfBaseRole } from '../base/WolfBaseRole';
+import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class WolfQueenRole extends WolfBaseRole {
   readonly id = 'wolfQueen';

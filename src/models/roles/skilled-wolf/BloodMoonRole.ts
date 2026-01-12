@@ -5,7 +5,7 @@
  * After that, acts as a normal wolf.
  */
 
-import { WolfBaseRole } from './WolfBaseRole';
+import { WolfBaseRole } from '../base/WolfBaseRole';
 
 export class BloodMoonRole extends WolfBaseRole {
   readonly id = 'bloodMoon';

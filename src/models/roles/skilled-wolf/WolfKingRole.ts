@@ -8,7 +8,7 @@
  * Note: Day actions are not implemented yet (only first night is supported).
  */
 
-import { WolfBaseRole } from './WolfBaseRole';
+import { WolfBaseRole } from '../base/WolfBaseRole';
 
 export class WolfKingRole extends WolfBaseRole {
   readonly id = 'wolfKing';

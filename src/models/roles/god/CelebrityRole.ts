@@ -7,8 +7,8 @@
  * If the same player is the sleepwalker two nights in a row, they die.
  */
 
-import { GodBaseRole } from './GodBaseRole';
-import { ActionDialogConfig, RoleActionContext, ActionResult } from './BaseRole';
+import { GodBaseRole } from '../base/GodBaseRole';
+import { ActionDialogConfig, RoleActionContext, ActionResult } from '../base/BaseRole';
 
 export class CelebrityRole extends GodBaseRole {
   readonly id = 'celebrity';
@@ -28,19 +28,7 @@ export class CelebrityRole extends GodBaseRole {
       ]
     };
   }
-  
-  /**
-   * Validate that the same player is not chosen two nights in a row
-   */
-  validateAction(target: number | null, _context: RoleActionContext, lastTarget?: number | null): ActionResult {
-    if (target !== null && target === lastTarget) {
-      return {
-        success: false,
-        error: '不能连续两晚选择同一名玩家'
-      };
-    }
-    return { success: true, target };
-  }
+
 }
 
 export const celebrityRole = new CelebrityRole();

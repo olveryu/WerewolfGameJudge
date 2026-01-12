@@ -8,7 +8,7 @@
  * Note: Day actions are not implemented yet (only first night is supported).
  */
 
-import { GodBaseRole } from './GodBaseRole';
+import { GodBaseRole } from '../base/GodBaseRole';
 
 export class KnightRole extends GodBaseRole {
   readonly id = 'knight';
