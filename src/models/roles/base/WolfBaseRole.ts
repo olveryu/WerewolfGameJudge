@@ -19,8 +19,14 @@ export abstract class WolfBaseRole extends BaseRole {
   
   /**
    * Whether this wolf can see other wolves' identities.
-   * Most wolves can, but WolfRobot cannot.
-   * Override to false for wolves that can't see others.
+   *
+  * DOMAIN RULE (authoritative):
+  * - Non-meeting wolves: do NOT see wolves AND do NOT participate in the wolf vote
+  *   (e.g. Gargoyle, WolfRobot).
+  * - Meeting wolves: see wolves AND participate in the wolf vote.
+  *
+  * Some meeting wolves may have an earlier solo skill action (e.g. Nightmare), but
+  * they still "meet" later with the pack to discuss/vote.
    */
   readonly canSeeWolves: boolean = true;
   
