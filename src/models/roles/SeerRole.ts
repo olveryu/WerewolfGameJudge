@@ -6,6 +6,7 @@
 
 import { GodBaseRole } from './GodBaseRole';
 import { ActionDialogConfig, RoleActionContext } from './BaseRole';
+import type { SeerCheckResult } from './index';
 
 export class SeerRole extends GodBaseRole {
   readonly id = 'seer';
@@ -29,10 +30,10 @@ export class SeerRole extends GodBaseRole {
   /**
    * Get the result dialog after checking a player
    */
-  getCheckResultDialogConfig(targetSeat: number, isWolf: boolean): ActionDialogConfig {
+  getCheckResultDialogConfig(targetSeat: number, result: SeerCheckResult): ActionDialogConfig {
     return {
       title: `${targetSeat + 1}号玩家`,
-      message: isWolf ? '是狼人' : '是好人',
+      message: `是${result}`,
       buttons: [
         { text: '确定', onPress: () => {} }
       ]
