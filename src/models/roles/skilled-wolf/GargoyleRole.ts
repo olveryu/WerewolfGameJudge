@@ -19,6 +19,7 @@ export class GargoyleRole extends WolfBaseRole {
   
   // Gargoyle does NOT participate in wolf vote
   readonly participatesInWolfVote = false;
+  readonly canSeeWolves = false;
   
   getActionDialogConfig(_context: RoleActionContext): ActionDialogConfig | null {
     return {

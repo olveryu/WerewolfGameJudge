@@ -3,6 +3,8 @@ import {
   ROLES,
   ACTION_ORDER,
   isWolfRole,
+  canRoleSeeWolves,
+  doesRoleParticipateInWolfVote,
   hasNightAction,
   Faction,
   getRoleDisplayName,
@@ -406,6 +408,18 @@ describe('Role Registry - Single Source of Truth', () => {
     it('every returned ID should pass isWolfRole', () => {
       getWolfRoleIds().forEach(id => {
         expect(isWolfRole(id)).toBe(true);
+      });
+    });
+  });
+
+  describe('Wolf meeting/vote invariants', () => {
+    it('non-voting wolves must not see wolves (non-meeting)', () => {
+      const allRoles = Object.keys(ROLE_MODELS) as RoleName[];
+
+      allRoles.filter(r => isWolfRole(r)).forEach(roleId => {
+        if (!doesRoleParticipateInWolfVote(roleId)) {
+          expect(canRoleSeeWolves(roleId)).toBe(false);
+        }
       });
     });
   });

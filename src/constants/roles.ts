@@ -18,6 +18,8 @@ import {
   ROLE_MODELS, 
   getRolesByActionOrder, 
   isWolfRole as isWolfRoleFromModels,
+  canRoleSeeWolves as canRoleSeeWolvesFromModels,
+  doesRoleParticipateInWolfVote as doesRoleParticipateInWolfVoteFromModels,
   hasNightAction as hasNightActionFromModels,
   getRoleDisplayName as getRoleDisplayNameFromModels,
   getRoleTeam as getRoleTeamFromModels,
@@ -110,6 +112,13 @@ export const getNightActionOrderForRoles = (roles: RoleName[]): RoleName[] =>
 
 // Get all wolf role IDs
 export const getWolfRoleIds = (): RoleName[] => getWolfRoleIdsFromModels();
+
+// Whether a role can see other wolves
+export const canRoleSeeWolves = (role: RoleName): boolean => canRoleSeeWolvesFromModels(role);
+
+// Whether a role participates in the wolf kill vote
+export const doesRoleParticipateInWolfVote = (role: RoleName): boolean =>
+  doesRoleParticipateInWolfVoteFromModels(role);
 
 // Get seer check result - strictly binary '好人' or '狼人'
 export const getSeerCheckResult = (role: RoleName): SeerCheckResult => getSeerCheckResultFromModels(role);
