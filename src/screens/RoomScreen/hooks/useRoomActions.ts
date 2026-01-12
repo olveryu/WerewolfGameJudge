@@ -40,7 +40,10 @@ export type ActionIntentType =
   // Vote/Confirm
   | 'wolfVote'             // Wolf vote
   | 'actionConfirm'        // Normal action confirm
-  | 'skip';                // Skip action
+  | 'skip'                 // Skip action
+  
+  // Auto-trigger prompt (dismiss → wait for seat tap)
+  | 'actionPrompt';        // Generic action prompt for all roles
 
 export interface ActionIntent {
   type: ActionIntentType;
@@ -184,27 +187,42 @@ export function useRoomActions(
   const getAutoTriggerIntent = useCallback((): ActionIntent | null => {
     if (!myRole || !imActioner || isAudioPlaying) return null;
 
-    // Witch save phase auto-trigger
-    if (myRole === 'witch' && witchPhase === 'save') {
-      const killedIndex = getKilledIndex();
-      const canSave = killedIndex !== -1 && killedIndex !== mySeatNumber;
-      return {
-        type: 'witchSavePhase',
-        targetIndex: killedIndex,
-        killedIndex,
-        canSave,
-      };
+    // Witch: auto-trigger when becoming actioner (two-phase flow)
+    // witchPhase === null means just became actioner → start with save phase
+    // witchPhase === 'save' means we need to show save dialog
+    // witchPhase === 'poison' means we need to show poison prompt
+    if (myRole === 'witch') {
+      if (witchPhase === null || witchPhase === 'save') {
+        const killedIndex = getKilledIndex();
+        const canSave = killedIndex !== -1 && killedIndex !== mySeatNumber;
+        return {
+          type: 'witchSavePhase',
+          targetIndex: killedIndex,
+          killedIndex,
+          canSave,
+        };
+      }
+      if (witchPhase === 'poison') {
+        return {
+          type: 'witchPoisonPhase',
+          targetIndex: -1,
+        };
+      }
+      return null;
     }
 
-    // Witch poison phase auto-trigger
-    if (myRole === 'witch' && witchPhase === 'poison') {
-      return {
-        type: 'witchPoisonPhase',
-        targetIndex: -1,
-      };
+    // Hunter: auto-trigger status dialog, click "确定" → proceedWithAction(null)
+    if (myRole === 'hunter') {
+      return { type: 'hunterStatus', targetIndex: -1 };
     }
 
-    return null;
+    // DarkWolfKing: auto-trigger status dialog, click "确定" → proceedWithAction(null)
+    if (myRole === 'darkWolfKing') {
+      return { type: 'darkWolfKingStatus', targetIndex: -1 };
+    }
+
+    // All other roles: show generic action prompt, dismiss → wait for seat tap
+    return { type: 'actionPrompt', targetIndex: -1 };
   }, [myRole, imActioner, isAudioPlaying, witchPhase, mySeatNumber, getKilledIndex]);
 
   // ─────────────────────────────────────────────────────────────────────────
