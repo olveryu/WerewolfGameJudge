@@ -1,93 +1,114 @@
 /**
- * useRoomActions.ts - Room action orchestration hook
+ * useRoomActions.ts - Room action orchestration hook (Intent Layer)
  *
- * Coordinates player actions during night phase (tap handling, wolf vote, etc.)
- * but does NOT advance night phase. That is NightFlowController's job (host-side).
+ * Provides pure logic for determining what action to take when user interacts.
+ * Returns ActionIntent objects that RoomScreen orchestrator handles.
  *
- * ❌ Do NOT: advance game phase, call NightFlowController directly
- * ✅ Allowed: call submitAction/submitWolfVote, show dialogs, manage UI state
+ * ❌ Do NOT: call dialogs, import services/nightFlow/supabase, call Room model functions
+ * ✅ Allowed: pure logic, return ActionIntent, helper functions
  */
 
-import { useCallback, useEffect, useRef } from 'react';
-import type { LocalGameState } from '../../../services/GameStateService';
+import { useCallback } from 'react';
+import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { RoomStatus } from '../../../models/Room';
 import { getRoleModel, RoleName, isWolfRole } from '../../../models/roles';
-import { showAlert } from '../../../utils/alert';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parameter aggregation (per hard constraint: aggregate into 2-3 objects)
+// ActionIntent Types (must be serializable - no callbacks/refs/functions)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ActionIntentType =
+  // Block
+  | 'blocked'              // Nightmare blocked
+  
+  // Special role status
+  | 'hunterStatus'         // Hunter view status
+  | 'darkWolfKingStatus'   // DarkWolfKing view status
+  
+  // Reveal (RoomScreen calculates result)
+  | 'seerReveal'           // Seer check
+  | 'psychicReveal'        // Psychic check
+  
+  // Witch two-phase
+  | 'witchSavePhase'       // Witch save phase (auto-trigger)
+  | 'witchPoisonPhase'     // Witch poison phase (after save)
+  | 'witchPoison'          // Witch poison confirm (tap seat)
+  
+  // Two-step
+  | 'magicianFirst'        // Magician first target
+  
+  // Vote/Confirm
+  | 'wolfVote'             // Wolf vote
+  | 'actionConfirm'        // Normal action confirm
+  | 'skip';                // Skip action
+
+export interface ActionIntent {
+  type: ActionIntentType;
+  targetIndex: number;
+  
+  // Optional fields (based on type)
+  wolfSeat?: number;           // for wolfVote
+  message?: string;            // for actionConfirm
+  
+  // Witch specific
+  killedIndex?: number;        // for witchSavePhase
+  canSave?: boolean;           // for witchSavePhase
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Context & Dependencies
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface GameContext {
-  /** Current game state from useGameRoom */
   gameState: LocalGameState | null;
-  /** Current room status */
   roomStatus: RoomStatus;
-  /** Current action role in night phase */
   currentActionRole: RoleName | null;
-  /** Whether I'm an actioner this turn */
   imActioner: boolean;
-  /** My seat number */
   mySeatNumber: number | null;
-  /** My role */
   myRole: RoleName | null;
-  /** Whether audio is playing */
   isAudioPlaying: boolean;
-  /** Whether blocked by nightmare */
   isBlockedByNightmare: boolean;
+  anotherIndex: number | null;              // Magician first target
+  witchPhase: 'save' | 'poison' | null;     // Witch current phase
 }
 
-export interface UiState {
-  /** Current magician first-target selection (for two-target action) */
-  anotherIndex: number | null;
-  /** Setter for magician first-target */
-  setAnotherIndex: (index: number | null) => void;
-}
-
-export interface ActionCallbacks {
-  /** From useGameRoom: submit action result */
-  submitAction: (targetIndex: number | null, extra?: Record<string, unknown>) => Promise<void>;
-  /** From useGameRoom: submit wolf vote */
-  submitWolfVote: (wolfSeat: number, targetSeat: number) => Promise<void>;
-  /** From useGameRoom: check if wolf has voted */
+export interface ActionDeps {
+  /** Check if wolf has voted */
   hasWolfVoted: (seatNumber: number) => boolean;
-  /** Show action dialog for a role */
-  showActionDialog: (role: RoleName) => void;
-  /** Show action confirm dialog */
-  showActionConfirmDialog: (targetIndex: number) => void;
-  /** Show wolf vote confirm dialog */
-  showWolfVoteConfirmDialog: (targetIndex: number) => void;
-  /** Show hunter status dialog */
-  showHunterStatusDialog: () => void;
-  /** Show dark wolf king status dialog */
-  showDarkWolfKingStatusDialog: () => void;
+  /** Get killed player index (provided by RoomScreen from gameState) */
+  getKilledIndex: () => number;
 }
 
 export interface UseRoomActionsResult {
-  /** Handler for seat tap (delegates to seating or action based on status) */
-  onSeatTapped: (index: number) => void;
-  /** Handler for skip action button */
-  handleSkipAction: () => void;
-  /** Build action message for current actioner */
+  /** Get intent when seat is tapped */
+  getActionIntent: (index: number) => ActionIntent | null;
+  
+  /** Get skip action intent */
+  getSkipIntent: () => ActionIntent | null;
+  
+  /** Get auto-trigger intent (witch/etc. auto-popup on turn start) */
+  getAutoTriggerIntent: () => ActionIntent | null;
+  
+  /** Build action confirm message */
   buildActionMessage: (index: number, actingRole: RoleName) => string;
-  /** Find which wolf seat should vote (for wolf vote flow) */
+  
+  /** Find voting wolf seat */
   findVotingWolfSeat: () => number | null;
-  /** Perform the action (may show reveal dialog for seer/psychic) */
-  performAction: (targetIndex: number) => void;
-  /** Proceed with action submission */
-  proceedWithAction: (targetIndex: number | null, extra?: Record<string, unknown>) => Promise<void>;
-  /** Ref to proceedWithAction for stable callback reference */
-  proceedWithActionRef: React.RefObject<((targetIndex: number | null, extra?: Record<string, unknown>) => Promise<void>) | null>;
+  
+  /** Check if can tap for action */
+  canTapForAction: () => boolean;
+  
+  /** Merge magician two-target */
+  getMagicianTarget: (secondIndex: number) => number;
 }
 
-/**
- * Orchestrates player actions during the game.
- * Does NOT advance the night phase (that's NightFlowController's job).
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Hook Implementation
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function useRoomActions(
   gameContext: GameContext,
-  uiState: UiState,
-  callbacks: ActionCallbacks
+  deps: ActionDeps
 ): UseRoomActionsResult {
   const {
     gameState,
@@ -98,22 +119,11 @@ export function useRoomActions(
     myRole,
     isAudioPlaying,
     isBlockedByNightmare,
+    anotherIndex,
+    witchPhase,
   } = gameContext;
 
-  const { anotherIndex, setAnotherIndex } = uiState;
-
-  const {
-    submitAction,
-    // submitWolfVote is used via showWolfVoteConfirmDialog, not directly here
-    hasWolfVoted,
-    showActionConfirmDialog,
-    showWolfVoteConfirmDialog,
-    showHunterStatusDialog,
-    showDarkWolfKingStatusDialog,
-  } = callbacks;
-
-  // Ref for stable callback
-  const proceedWithActionRef = useRef<((targetIndex: number | null, extra?: Record<string, unknown>) => Promise<void>) | null>(null);
+  const { hasWolfVoted, getKilledIndex } = deps;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Wolf vote helpers
@@ -145,104 +155,153 @@ export function useRoomActions(
   }, [anotherIndex]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Action handlers
+  // Can tap for action
   // ─────────────────────────────────────────────────────────────────────────
 
-  const proceedWithAction = useCallback(async (targetIndex: number | null, extra?: Record<string, unknown>) => {
-    await submitAction(targetIndex, extra);
-  }, [submitAction]);
+  const canTapForAction = useCallback((): boolean => {
+    if (!gameState) return false;
+    if (roomStatus !== RoomStatus.ongoing) return false;
+    if (isAudioPlaying) return false;
+    if (!imActioner) return false;
+    return true;
+  }, [gameState, roomStatus, isAudioPlaying, imActioner]);
 
-  // Keep ref in sync
-  useEffect(() => {
-    proceedWithActionRef.current = proceedWithAction;
-  }, [proceedWithAction]);
+  // ─────────────────────────────────────────────────────────────────────────
+  // Magician two-target merge
+  // ─────────────────────────────────────────────────────────────────────────
 
-  const performAction = useCallback((targetIndex: number) => {
-    if (!gameState || !myRole) return;
+  const getMagicianTarget = useCallback((secondIndex: number): number => {
+    if (anotherIndex === null) {
+      throw new Error('getMagicianTarget called without first target set');
+    }
+    return anotherIndex + secondIndex * 100;
+  }, [anotherIndex]);
 
-    // Magician two-target handling
-    if (myRole === 'magician' && anotherIndex !== null) {
-      const target = anotherIndex + targetIndex * 100;
-      setAnotherIndex(null);
-      void proceedWithAction(target);
-      return;
+  // ─────────────────────────────────────────────────────────────────────────
+  // Auto-trigger intent (for roles that popup on turn start)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const getAutoTriggerIntent = useCallback((): ActionIntent | null => {
+    if (!myRole || !imActioner || isAudioPlaying) return null;
+
+    // Witch save phase auto-trigger
+    if (myRole === 'witch' && witchPhase === 'save') {
+      const killedIndex = getKilledIndex();
+      const canSave = killedIndex !== -1 && killedIndex !== mySeatNumber;
+      return {
+        type: 'witchSavePhase',
+        targetIndex: killedIndex,
+        killedIndex,
+        canSave,
+      };
     }
 
-    void proceedWithAction(targetIndex);
-  }, [gameState, myRole, anotherIndex, setAnotherIndex, proceedWithAction]);
+    // Witch poison phase auto-trigger
+    if (myRole === 'witch' && witchPhase === 'poison') {
+      return {
+        type: 'witchPoisonPhase',
+        targetIndex: -1,
+      };
+    }
 
-  const handleActionTap = useCallback((index: number) => {
-    // Nightmare block: prevent action when blocked
+    return null;
+  }, [myRole, imActioner, isAudioPlaying, witchPhase, mySeatNumber, getKilledIndex]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Get action intent when seat is tapped
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const getActionIntent = useCallback((index: number): ActionIntent | null => {
+    if (!myRole) return null;
+
+    // Nightmare block
     if (isBlockedByNightmare) {
-      showAlert('技能被封锁', '你被梦魇恐惧，今晚无法使用技能。\n请点击"跳过"按钮。');
-      return;
+      return { type: 'blocked', targetIndex: index };
     }
 
-    // Hunter and DarkWolfKing show status dialog instead
+    // Hunter shows status dialog
     if (myRole === 'hunter') {
-      showHunterStatusDialog();
-      return;
-    }
-    if (myRole === 'darkWolfKing') {
-      showDarkWolfKingStatusDialog();
-      return;
+      return { type: 'hunterStatus', targetIndex: index };
     }
 
-    // Magician: first target selection
+    // DarkWolfKing shows status dialog
+    if (myRole === 'darkWolfKing') {
+      return { type: 'darkWolfKingStatus', targetIndex: index };
+    }
+
+    // Magician first target selection
     if (myRole === 'magician' && anotherIndex === null) {
-      setAnotherIndex(index);
-      showAlert('已选择第一位玩家', `${index + 1}号，请选择第二位玩家`);
-      return;
+      return { type: 'magicianFirst', targetIndex: index };
+    }
+
+    // Seer reveal
+    if (myRole === 'seer') {
+      return { type: 'seerReveal', targetIndex: index };
+    }
+
+    // Psychic reveal
+    if (myRole === 'psychic') {
+      return { type: 'psychicReveal', targetIndex: index };
+    }
+
+    // Witch poison phase - tap seat to poison
+    if (myRole === 'witch' && witchPhase === 'poison') {
+      const message = `确定要毒杀${index + 1}号玩家吗？`;
+      return {
+        type: 'witchPoison',
+        targetIndex: index,
+        message,
+      };
+    }
+
+    // Wolf vote flow
+    if (currentActionRole === 'wolf' && isWolfRole(myRole)) {
+      const wolfSeat = findVotingWolfSeat();
+      if (wolfSeat !== null) {
+        return { type: 'wolfVote', targetIndex: index, wolfSeat };
+      }
     }
 
     // Normal action confirm
-    showActionConfirmDialog(index);
+    const message = buildActionMessage(index, myRole);
+    return { type: 'actionConfirm', targetIndex: index, message };
   }, [
     myRole,
-    anotherIndex,
-    setAnotherIndex,
     isBlockedByNightmare,
-    showHunterStatusDialog,
-    showDarkWolfKingStatusDialog,
-    showActionConfirmDialog,
+    anotherIndex,
+    witchPhase,
+    currentActionRole,
+    findVotingWolfSeat,
+    buildActionMessage,
   ]);
 
-  const onSeatTapped = useCallback((index: number) => {
-    if (!gameState) return;
+  // ─────────────────────────────────────────────────────────────────────────
+  // Get skip intent
+  // ─────────────────────────────────────────────────────────────────────────
 
-    // Block taps during audio
-    if (roomStatus === RoomStatus.ongoing && isAudioPlaying) {
-      return;
-    }
-
-    // During ongoing game, only actioners can tap to perform action
-    if (roomStatus === RoomStatus.ongoing && imActioner) {
-      handleActionTap(index);
-    }
-    // Note: seating taps (unseated/seated status) are handled separately
-    // in RoomScreen via handleSeatingTap, not in this hook
-  }, [gameState, roomStatus, isAudioPlaying, imActioner, handleActionTap]);
-
-  const handleSkipAction = useCallback(() => {
-    if (!myRole) return;
+  const getSkipIntent = useCallback((): ActionIntent | null => {
+    if (!myRole) return null;
 
     // Wolf: vote for empty knife
-    if (myRole === 'wolf' || (currentActionRole === 'wolf' && isWolfRole(myRole))) {
-      showWolfVoteConfirmDialog(-1);
-      return;
+    if (currentActionRole === 'wolf' && isWolfRole(myRole)) {
+      const wolfSeat = findVotingWolfSeat();
+      if (wolfSeat !== null) {
+        return { type: 'wolfVote', targetIndex: -1, wolfSeat };
+      }
     }
 
     // Other roles: confirm skip
-    showActionConfirmDialog(-1);
-  }, [myRole, currentActionRole, showActionConfirmDialog, showWolfVoteConfirmDialog]);
+    const message = buildActionMessage(-1, myRole);
+    return { type: 'skip', targetIndex: -1, message };
+  }, [myRole, currentActionRole, findVotingWolfSeat, buildActionMessage]);
 
   return {
-    onSeatTapped,
-    handleSkipAction,
+    getActionIntent,
+    getSkipIntent,
+    getAutoTriggerIntent,
     buildActionMessage,
     findVotingWolfSeat,
-    performAction,
-    proceedWithAction,
-    proceedWithActionRef,
+    canTapForAction,
+    getMagicianTarget,
   };
 }
