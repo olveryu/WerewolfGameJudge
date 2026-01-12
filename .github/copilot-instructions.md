@@ -211,6 +211,16 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
 - Do not mix in broad rewrites. Scope should be limited to the bug’s module/flow.
 - Must keep quality gates green (typecheck/Jest/e2e as applicable) and provide evidence in the commit message or task notes.
 
+### Large-scope refactor (when justified)
+
+- When the task inherently requires broad changes (e.g., replacing a cross-cutting pattern, removing legacy encoding, restructuring a core type), do NOT artificially keep the diff small.
+- Before starting a large-scope refactor, ask the user for confirmation: **"这个改动涉及多个模块，需要大范围重构，可以吗？"** Wait for confirmation before proceeding.
+- In such cases:
+   - Make **all** necessary changes across the codebase in one pass (UI, host runtime, tests, types).
+   - Completely remove deprecated patterns/fields/files rather than leaving "兼容层" or dual-write logic.
+   - Prioritize a clean end-state over incremental migration.
+- Verification requirement is unchanged: quality gates must be green (typecheck/Jest/e2e as applicable) and evidence must be provided.
+
 ---
 
 ## Collaboration stance (Architect-level)
@@ -236,3 +246,23 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
    - provide metadata (displayName/description/faction/actionOrder/messages)
    - perform light validation
    - return `ActionResult` (or validation errors via `ActionResult.error`)
+
+---
+
+## Night-1-only scope rules (MANDATORY)
+
+This app acts as an **electronic judge for the first night only**.
+
+### Rule: “No Night-1 action” ⇒ “No night action”
+
+If a role **cannot act on the first night** (e.g. “从第二晚开始才行动”), it MUST be modeled as:
+
+- `hasNightAction = false`
+
+Do **NOT** special-case such roles in:
+
+- `Template.ts` action order generation
+- `NightFlowController` progression
+- UI conditional logic
+
+Rationale: With night-1-only scope, a role that never acts on night 1 must never appear in `template.actionOrder`, otherwise the Host flow will incorrectly prompt it to wake up.

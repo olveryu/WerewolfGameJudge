@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import JoinRoomScreen from '../JoinRoomScreen/JoinRoomScreen';
 
 // Mock navigation
@@ -82,10 +82,17 @@ describe('JoinRoomScreen', () => {
      * - Upgrade react-native to version with renderer matching React 19.2.x, OR
      * - Add global jest mock for Animated/TouchableOpacity in jest.setup.ts
      */
-    it.skip('should display error when room does not exist', async () => {
+    it('should display error when room does not exist', async () => {
       mockGetRoom.mockResolvedValue(null);
-      render(<JoinRoomScreen />);
-      // Test requires fireEvent which triggers animation version mismatch
+
+      const { getByPlaceholderText, getByText, findByText } = render(
+        <JoinRoomScreen />
+      );
+
+      fireEvent.changeText(getByPlaceholderText('输入房间号'), '1234');
+      fireEvent.press(getByText('加入'));
+
+      expect(await findByText('房间不存在')).toBeTruthy();
     });
   });
 
@@ -100,10 +107,18 @@ describe('JoinRoomScreen', () => {
      * - Upgrade react-native to version with renderer matching React 19.2.x, OR
      * - Add global jest mock for Animated/TouchableOpacity in jest.setup.ts
      */
-    it.skip('should disable button while joining', async () => {
+    it('should disable button while joining', async () => {
       mockGetRoom.mockReturnValue(new Promise(() => {}));
-      render(<JoinRoomScreen />);
-      // Test requires fireEvent which triggers animation version mismatch
+
+      const { getByPlaceholderText, getByText } = render(<JoinRoomScreen />);
+
+      fireEvent.changeText(getByPlaceholderText('输入房间号'), '1234');
+      fireEvent.press(getByText('加入'));
+
+      await waitFor(() => {
+        // When joining, button should show loading text.
+        expect(getByText('加入中...')).toBeTruthy();
+      });
     });
   });
 });

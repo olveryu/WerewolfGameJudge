@@ -16,6 +16,7 @@
 import { GameStateService, GameStatus } from '../GameStateService';
 import { GameTemplate } from '../../models/Template';
 import { RoleName } from '../../models/roles';
+import { isActionTarget, getActionTargetSeat, makeActionTarget } from '../../models/actions';
 
 // =============================================================================
 // Mocks
@@ -235,9 +236,12 @@ describe('GameStateService NightFlow Contract Tests', () => {
       // When: seer submits action with target=3
       await invokeHandlePlayerAction(service, 0, 'seer', 3);
       
-      // Then: state.actions.get('seer') === 3
+      // Then: state.actions.get('seer') is a target action with seat 3
       const state = service.getState()!;
-      expect(state.actions.get('seer')).toBe(3);
+      const seerAction = state.actions.get('seer');
+      expect(seerAction).toBeDefined();
+      expect(isActionTarget(seerAction!)).toBe(true);
+      expect(getActionTargetSeat(seerAction)).toBe(3);
     });
   });
 
@@ -489,7 +493,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       
       // Manually set wolf action as if already finalized
       const state = service.getState()!;
-      state.actions.set('wolf', 1);
+      state.actions.set('wolf', makeActionTarget(1));
       const indexBefore = state.currentActionerIndex;
       
       // When: wolf votes again (simulating duplicate finalize attempt)

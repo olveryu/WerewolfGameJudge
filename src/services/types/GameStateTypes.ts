@@ -65,13 +65,15 @@ export interface LocalPlayer {
 // Game State Types
 // =============================================================================
 
+import { RoleAction } from '../../models/actions/RoleAction';
+
 export interface LocalGameState {
   roomCode: string;
   hostUid: string;
   status: GameStatus;
   template: GameTemplate;
   players: Map<number, LocalPlayer | null>;  // seat -> player
-  actions: Map<RoleName, number>;  // role -> target (negative for witch poison)
+  actions: Map<RoleName, RoleAction>;  // role -> structured action
   wolfVotes: Map<number, number>;  // wolf seat -> target
   currentActionerIndex: number;
   isAudioPlaying: boolean;
