@@ -9,7 +9,7 @@ import { GodBaseRole } from './GodBaseRole';
 export class GraveyardKeeperRole extends GodBaseRole {
   readonly id = 'graveyardKeeper';
   readonly displayName = '守墓人';
-  readonly description = '每晚可以查验一名死亡玩家的身份牌';
+  readonly description = '每晚可以得知上一个白天被放逐的玩家是好人或狼人。';
   readonly hasNightAction = true;
   readonly actionOrder = 30; // Late in night
 }

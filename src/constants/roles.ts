@@ -11,6 +11,7 @@ export {
   Team, 
   TEAM_DISPLAY_NAMES, 
   ROLE_MODELS,
+  SeerCheckResult,
 } from '../models/roles';
 
 import { 
@@ -24,8 +25,10 @@ import {
   getTeamDisplayName as getTeamDisplayNameFromModels,
   getNightActionOrderForRoles as getNightActionOrderForRolesFromModels,
   getWolfRoleIds as getWolfRoleIdsFromModels,
+  getSeerCheckResult as getSeerCheckResultFromModels,
   Faction,
   Team,
+  SeerCheckResult,
 } from '../models/roles';
 
 // Define RoleName as literal union type for backward compatibility
@@ -98,7 +101,7 @@ export const getRoleTeam = (role: RoleName): Team => getRoleTeamFromModels(role)
 // Get team display name in Chinese
 export const getTeamDisplayName = (team: Team): string => getTeamDisplayNameFromModels(team);
 
-// Get role team display name (for seer/psychic results)
+// Get role team display name (for UI - can include '第三方')
 export const getRoleTeamDisplayName = (role: RoleName): string => getRoleTeamDisplayNameFromModels(role);
 
 // Get night action order for a set of roles
@@ -107,3 +110,6 @@ export const getNightActionOrderForRoles = (roles: RoleName[]): RoleName[] =>
 
 // Get all wolf role IDs
 export const getWolfRoleIds = (): RoleName[] => getWolfRoleIdsFromModels();
+
+// Get seer check result - strictly binary '好人' or '狼人'
+export const getSeerCheckResult = (role: RoleName): SeerCheckResult => getSeerCheckResultFromModels(role);

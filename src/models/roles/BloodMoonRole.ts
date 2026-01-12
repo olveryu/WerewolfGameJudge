@@ -10,7 +10,7 @@ import { WolfBaseRole } from './WolfBaseRole';
 export class BloodMoonRole extends WolfBaseRole {
   readonly id = 'bloodMoon';
   readonly displayName = '血月使徒';
-  readonly description = '第一晚随机获得一个神职技能，之后作为普通狼人';
+  readonly description = '血月使徒自爆后的当晚所有好人的技能都将会被封印，若血月使徒是最后一个被放逐出局的狼人，他可以存活到下一个白天天亮之后才出局。';
   readonly hasNightAction = false; // Special handling on first night
   readonly actionOrder = 999;
 }

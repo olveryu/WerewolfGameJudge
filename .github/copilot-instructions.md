@@ -227,3 +227,12 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
 
 - Prefer **forwardable prompts/specs** by default.
 - Only directly edit files / run repo commands when the user explicitly authorizes it.
+
+### Roles model hard constraint (MANDATORY)
+
+- Role models under `src/models/roles/**` MUST NOT depend on `GameStateService`, `BroadcastService`, Supabase Realtime, or any transport/service layer.
+- Role models MUST NOT write/mutate state (no direct changes to game state, actions, votes, deaths, phase/index, broadcasts).
+- Role models may ONLY:
+   - provide metadata (displayName/description/faction/actionOrder/messages)
+   - perform light validation
+   - return `ActionResult` (or validation errors via `ActionResult.error`)

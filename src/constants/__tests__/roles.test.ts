@@ -11,6 +11,8 @@ import {
   getTeamDisplayName,
   getNightActionOrderForRoles,
   getWolfRoleIds,
+  getSeerCheckResult,
+  SeerCheckResult,
   TEAM_DISPLAY_NAMES,
   ROLE_MODELS,
 } from '../roles';
@@ -444,6 +446,62 @@ describe('Role Registry - Single Source of Truth', () => {
       const seerIndex = result.indexOf('seer');
       // Wolf should act before seer
       expect(wolfIndex).toBeLessThan(seerIndex);
+    });
+  });
+});
+
+describe('roles - getSeerCheckResult (Seer Binary Result)', () => {
+  it('should return only 好人 or 狼人 - no other values allowed', () => {
+    const allRoles = Object.keys(ROLE_MODELS) as RoleName[];
+    const validResults: SeerCheckResult[] = ['好人', '狼人'];
+    
+    allRoles.forEach(role => {
+      const result = getSeerCheckResult(role);
+      expect(validResults).toContain(result);
+    });
+  });
+
+  it('should return 狼人 for all wolf-faction roles', () => {
+    const wolfRoles: RoleName[] = ['wolf', 'wolfQueen', 'wolfKing', 'darkWolfKing', 'nightmare', 'gargoyle', 'bloodMoon', 'wolfRobot'];
+    
+    wolfRoles.forEach(role => {
+      expect(getSeerCheckResult(role)).toBe('狼人');
+    });
+  });
+
+  it('should return 好人 for all god-faction roles', () => {
+    const godRoles: RoleName[] = ['seer', 'witch', 'hunter', 'guard', 'knight', 'magician', 'witcher', 'psychic'];
+    
+    godRoles.forEach(role => {
+      expect(getSeerCheckResult(role)).toBe('好人');
+    });
+  });
+
+  it('should return 好人 for villager-faction roles', () => {
+    const villagerRoles: RoleName[] = ['villager', 'idiot', 'celebrity'];
+    
+    villagerRoles.forEach(role => {
+      expect(getSeerCheckResult(role)).toBe('好人');
+    });
+  });
+
+  it('should return 好人 for third-party roles (slacker)', () => {
+    // Third-party roles are also seen as 好人 by seer
+    expect(getSeerCheckResult('slacker')).toBe('好人');
+  });
+
+  it('should be consistent with isWolfRole', () => {
+    const allRoles = Object.keys(ROLE_MODELS) as RoleName[];
+    
+    allRoles.forEach(role => {
+      const seerResult = getSeerCheckResult(role);
+      const isWolf = isWolfRole(role);
+      
+      if (isWolf) {
+        expect(seerResult).toBe('狼人');
+      } else {
+        expect(seerResult).toBe('好人');
+      }
     });
   });
 });

@@ -1,6 +1,6 @@
 import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from './Player';
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
-import { RoleName, ROLES, isWolfRole, getRoleTeamDisplayName } from './roles';
+import { RoleName, ROLES, isWolfRole, getSeerCheckResult, SeerCheckResult } from './roles';
 import { shuffleArray } from '../utils/shuffle';
 
 // Room status
@@ -530,9 +530,11 @@ export const getRoomInfo = (room: GameRoomLike): string => {
 };
 
 // Perform seer action (check player identity)
-export const performSeerAction = (room: GameRoomLike, targetSeat: number): string => {
+// IMPORTANT: Seer result is strictly binary - only '好人' or '狼人'
+// All wolf-faction roles → '狼人', all others (god/villager/third-party) → '好人'
+export const performSeerAction = (room: GameRoomLike, targetSeat: number): SeerCheckResult => {
   const targetPlayer = room.players.get(targetSeat);
-  if (!targetPlayer?.role) return getRoleTeamDisplayName('villager');
+  if (!targetPlayer?.role) return getSeerCheckResult('villager');
 
   // Check magician swap
   const magicianAction = room.actions.get('magician');
@@ -542,14 +544,14 @@ export const performSeerAction = (room: GameRoomLike, targetSeat: number): strin
 
     if (targetSeat === first) {
       const swappedPlayer = room.players.get(second);
-      return swappedPlayer?.role ? getRoleTeamDisplayName(swappedPlayer.role) : getRoleTeamDisplayName('villager');
+      return swappedPlayer?.role ? getSeerCheckResult(swappedPlayer.role) : getSeerCheckResult('villager');
     } else if (targetSeat === second) {
       const swappedPlayer = room.players.get(first);
-      return swappedPlayer?.role ? getRoleTeamDisplayName(swappedPlayer.role) : getRoleTeamDisplayName('villager');
+      return swappedPlayer?.role ? getSeerCheckResult(swappedPlayer.role) : getSeerCheckResult('villager');
     }
   }
 
-  return getRoleTeamDisplayName(targetPlayer.role);
+  return getSeerCheckResult(targetPlayer.role);
 };
 
 // Perform psychic action (check exact role)

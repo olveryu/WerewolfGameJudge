@@ -27,19 +27,7 @@ export class GuardRole extends GodBaseRole {
       ]
     };
   }
-  
-  /**
-   * Validate guard action - cannot protect same player two nights in a row
-   */
-  validateAction(target: number | null, _context: RoleActionContext, lastProtected?: number | null): ActionResult {
-    if (target !== null && target === lastProtected) {
-      return {
-        success: false,
-        error: '不能连续两晚守护同一人'
-      };
-    }
-    return { success: true, target };
-  }
+
 }
 
 export const guardRole = new GuardRole();
