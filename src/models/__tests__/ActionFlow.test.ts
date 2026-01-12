@@ -269,14 +269,14 @@ describe('Action Order - 血月猎魔12人', () => {
 });
 
 describe('Action Order - 狼王摄梦人12人', () => {
-  const celebrityRoles: RoleName[] = [
+  const dreamcatcherRoles: RoleName[] = [
     'villager', 'villager', 'villager', 'villager',
     'wolf', 'wolf', 'wolf', 'darkWolfKing',
     'seer', 'witch', 'hunter', 'celebrity',
   ];
 
   it('should have correct action order with celebrity', () => {
-    const template = createTemplateFromRoles(celebrityRoles);
+    const template = createTemplateFromRoles(dreamcatcherRoles);
     
     // celebrity (摄梦人) is at index 3 in ACTION_ORDER
     // Should be: celebrity, wolf, witch, seer, hunter, darkWolfKing
@@ -284,7 +284,7 @@ describe('Action Order - 狼王摄梦人12人', () => {
   });
 
   it('should have celebrity act first', () => {
-    let room = createTestRoom(celebrityRoles);
+    let room = createTestRoom(dreamcatcherRoles);
     
     // Step 0: Celebrity
     expect(getCurrentActionRole(room)).toBe('celebrity');

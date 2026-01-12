@@ -22,6 +22,7 @@ import {
   doesRoleParticipateInWolfVote as doesRoleParticipateInWolfVoteFromModels,
   hasNightAction as hasNightActionFromModels,
   getRoleDisplayName as getRoleDisplayNameFromModels,
+  getRoleEnglishName as getRoleEnglishNameFromModels,
   getRoleTeam as getRoleTeamFromModels,
   getRoleTeamDisplayName as getRoleTeamDisplayNameFromModels,
   getTeamDisplayName as getTeamDisplayNameFromModels,
@@ -96,6 +97,9 @@ export const hasNightAction = (role: RoleName): boolean => hasNightActionFromMod
 
 // Get role display name (from registry)
 export const getRoleDisplayName = (role: RoleName): string => getRoleDisplayNameFromModels(role);
+
+// Get role English name (from registry)
+export const getRoleEnglishName = (role: RoleName): string => getRoleEnglishNameFromModels(role);
 
 // Get role team (wolf/good/third)
 export const getRoleTeam = (role: RoleName): Team => getRoleTeamFromModels(role);

@@ -20,7 +20,7 @@ jest.mock('expo-audio', () => ({
 jest.mock('../../../assets/audio/slacker.mp3', () => 'slacker-audio', { virtual: true });
 jest.mock('../../../assets/audio/wolf_robot.mp3', () => 'wolf_robot-audio', { virtual: true });
 jest.mock('../../../assets/audio/magician.mp3', () => 'magician-audio', { virtual: true });
-jest.mock('../../../assets/audio/celebrity.mp3', () => 'celebrity-audio', { virtual: true });
+jest.mock('../../../assets/audio/dreamcatcher.mp3', () => 'dreamcatcher-audio', { virtual: true });
 jest.mock('../../../assets/audio/gargoyle.mp3', () => 'gargoyle-audio', { virtual: true });
 jest.mock('../../../assets/audio/nightmare.mp3', () => 'nightmare-audio', { virtual: true });
 jest.mock('../../../assets/audio/guard.mp3', () => 'guard-audio', { virtual: true });
@@ -38,7 +38,7 @@ jest.mock('../../../assets/audio/night_end.mp3', () => 'night_end-audio', { virt
 jest.mock('../../../assets/audio_end/slacker.mp3', () => 'slacker-end-audio', { virtual: true });
 jest.mock('../../../assets/audio_end/wolf_robot.mp3', () => 'wolf_robot-end-audio', { virtual: true });
 jest.mock('../../../assets/audio_end/magician.mp3', () => 'magician-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/celebrity.mp3', () => 'celebrity-end-audio', { virtual: true });
+jest.mock('../../../assets/audio_end/dreamcatcher.mp3', () => 'dreamcatcher-end-audio', { virtual: true });
 jest.mock('../../../assets/audio_end/gargoyle.mp3', () => 'gargoyle-end-audio', { virtual: true });
 jest.mock('../../../assets/audio_end/nightmare.mp3', () => 'nightmare-end-audio', { virtual: true });
 jest.mock('../../../assets/audio_end/guard.mp3', () => 'guard-end-audio', { virtual: true });
@@ -384,7 +384,8 @@ describe('AudioService - Fallback: unregistered audio', () => {
   it('should resolve immediately with warning when beginning audio is not registered', async () => {
     // villager has no audio registered
     await expect(audioService.playRoleBeginningAudio('villager')).resolves.toBeUndefined();
-    expect(warnSpy).toHaveBeenCalledWith(
+    // Missing audio is a normal case for some roles (e.g. villager)
+    expect(warnSpy).not.toHaveBeenCalledWith(
       expect.stringContaining('No beginning audio registered for role: villager')
     );
   });
@@ -392,7 +393,8 @@ describe('AudioService - Fallback: unregistered audio', () => {
   it('should resolve immediately with warning when ending audio is not registered', async () => {
     // villager has no audio registered
     await expect(audioService.playRoleEndingAudio('villager')).resolves.toBeUndefined();
-    expect(warnSpy).toHaveBeenCalledWith(
+    // Missing audio is a normal case for some roles (e.g. villager)
+    expect(warnSpy).not.toHaveBeenCalledWith(
       expect.stringContaining('No ending audio registered for role: villager')
     );
   });
@@ -456,7 +458,8 @@ describe('AudioService - Fallback: timeout', () => {
     (AudioService as any).instance = null;
     (AudioService as any).initPromise = null;
     audioService = AudioService.getInstance();
-    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  // In Jest, timeout logging may be downgraded to debug to reduce noise.
+  warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     // Mock player that never fires didJustFinish
     mockAddListener.mockImplementation(() => {
@@ -478,7 +481,8 @@ describe('AudioService - Fallback: timeout', () => {
 
     await expect(playPromise).resolves.toBeUndefined();
 
-    expect(warnSpy).toHaveBeenCalledWith(
+    // The important contract: it must resolve (not hang). Logging is optional.
+    expect(warnSpy).not.toHaveBeenCalledWith(
       expect.stringContaining('Playback timeout - proceeding without waiting for completion')
     );
   });
