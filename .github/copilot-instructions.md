@@ -166,6 +166,23 @@ UI components must provide stable `testID`s for:
 - Components and tests should import `TESTIDS` from the registry instead of hard-coded strings.
 - If legacy testIDs already exist, consolidate them into `src/testids.ts` and keep a compatibility mapping during migration.
 
+#### testID migration compatibility rule (mandatory)
+
+- Do **not** silently rename or delete legacy `testID`s.
+   - If a rename is needed, keep the old `testID` working via compatibility mapping, until all Jest/e2e selectors are migrated.
+
+---
+
+## RoomScreen refactor guardrails (mandatory)
+
+These rules exist to keep `src/screens/RoomScreen/**` refactors safe and prevent accidental architecture violations.
+
+### UI components must not import services
+
+- Sub-components under `src/screens/RoomScreen/components/**` MUST be UI-only.
+   - ❌ Do not import `GameStateService`, `BroadcastService`, Supabase clients, or other singleton services.
+   - ✅ Receive data and callbacks via props; orchestration stays in hooks / `RoomScreen.tsx`.
+
 #### Button testability contract
 
 - Custom `Button` must accept `testID` and apply it to the interactive container.
