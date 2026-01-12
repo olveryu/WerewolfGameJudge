@@ -98,8 +98,16 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
   });
 
   describe('黑狼王技能', () => {
-    it('黑狼王自刀死亡不能发动技能', async () => {
-      // 黑狼王自刀 = 自杀，不算正常死亡
+    /**
+     * 黑狼王"带走一人"技能是白天死亡时由玩家自己宣布发动的，不在夜间处理。
+     * 夜间只需验证死亡方式是否允许发动技能（getDarkWolfKingStatus）。
+     *
+     * 规则：
+     * - 被狼刀死亡（包括自刀）→ 可以发动技能
+     * - 被女巫毒死 → 不能发动技能
+     */
+
+    it('黑狼王被狼刀死亡（包括自刀）→ 死亡，可发动技能', async () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
@@ -108,11 +116,30 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
         witch: null,
         seer: 4,
         hunter: null,
-        darkWolfKing: null, // 自刀不能发动技能
+        darkWolfKing: null, // 夜间无行动
       });
 
       expect(result.completed).toBe(true);
-      expect(result.deaths).toContain(7);
+      expect(result.deaths).toContain(7); // 黑狼王死亡
+      // 注：是否可发动技能由 getDarkWolfKingStatus 判定（DeathCalculator 单测覆盖）
+    });
+
+    it('黑狼王被女巫毒死 → 死亡，不能发动技能', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        guard: null,
+        wolf: 0, // 狼刀座位0
+        witchPoison: 7, // 女巫毒黑狼王
+        seer: 4,
+        hunter: null,
+        darkWolfKing: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toContain(7); // 黑狼王被毒死
+      expect(result.deaths).toContain(0); // 狼刀目标死亡
+      // 注：被毒死不能发动技能，由 getDarkWolfKingStatus 返回 false
     });
   });
 });
