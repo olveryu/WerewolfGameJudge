@@ -17,6 +17,7 @@ import {
   getCurrentActionRole,
   proceedToNextAction,
   getNightResult,
+  getLastNightInfo,
 } from '../../Room';
 import { createTemplateFromRoles } from '../../Template';
 import { RoleName, ROLES, hasNightAction } from '../../roles';
@@ -153,10 +154,14 @@ describe(`${TEMPLATE_NAME} - 场景3: 预言家查验恶灵骑士（反伤）`, 
     // 猎人确认
     room = proceedToNextAction(room, null);
     
-    // 注意：反伤逻辑需要在游戏逻辑中单独处理
-    // 这里只测试动作记录正确
     const result = getNightResult(room);
     expect(result.protectedBySeer).toBe(7);
+  // Seer dies by reflection when checking spirit knight
+  expect(result.deadPlayers).toContain(8);
+
+  const info = getLastNightInfo(room);
+  expect(info).toContain('9号');
+  expect(info).not.toContain('8号');
   });
 });
 
@@ -180,9 +185,16 @@ describe(`${TEMPLATE_NAME} - 场景4: 女巫毒恶灵骑士（反伤）`, () => 
     // 猎人确认
     room = proceedToNextAction(room, null);
     
-    // 注意：恶灵骑士免疫毒药，反伤逻辑需要单独处理
     const result = getNightResult(room);
     expect(result.poisonedPlayer).toBe(7);
+  // Witch dies by reflection when poisoning spirit knight
+  expect(result.deadPlayers).toContain(9);
+  // Spirit knight does not die
+  expect(result.deadPlayers).not.toContain(7);
+
+  const info = getLastNightInfo(room);
+  expect(info).toContain('10号');
+  expect(info).not.toContain('8号');
   });
 });
 

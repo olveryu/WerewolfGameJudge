@@ -371,18 +371,24 @@ function parseMagicianAction(magicianAction: number | undefined): { firstExchang
 }
 
 // Find special role seats (works with GameRoomLike)
-function findSpecialRoleSeats(room: GameRoomLike): { queenIndex?: number; celebrityIndex?: number; witcherIndex?: number } {
+function findSpecialRoleSeats(room: GameRoomLike): { queenIndex?: number; celebrityIndex?: number; witcherIndex?: number; spiritKnightIndex?: number; seerIndex?: number; witchIndex?: number } {
   let queenIndex: number | undefined;
   let celebrityIndex: number | undefined;
   let witcherIndex: number | undefined;
+  let spiritKnightIndex: number | undefined;
+  let seerIndex: number | undefined;
+  let witchIndex: number | undefined;
 
   room.players.forEach((player, seat) => {
     if (player?.role === 'wolfQueen') queenIndex = seat;
     if (player?.role === 'celebrity') celebrityIndex = seat;
     if (player?.role === 'witcher') witcherIndex = seat;
+    if (player?.role === 'spiritKnight') spiritKnightIndex = seat;
+    if (player?.role === 'seer') seerIndex = seat;
+    if (player?.role === 'witch') witchIndex = seat;
   });
 
-  return { queenIndex, celebrityIndex, witcherIndex };
+  return { queenIndex, celebrityIndex, witcherIndex, spiritKnightIndex, seerIndex, witchIndex };
 }
 
 // Apply magician swap to deaths
@@ -408,8 +414,9 @@ export const getLastNightInfo = (room: GameRoomLike): string => {
   const sleptWith = room.actions.get('wolfQueen');
   const guardedByGuard = room.actions.get('guard');
   const nightWalker = room.actions.get('celebrity');
+  const seerCheckedSeat = room.actions.get('seer');
   const { firstExchanged, secondExchanged } = parseMagicianAction(room.actions.get('magician'));
-  const { queenIndex, celebrityIndex, witcherIndex } = findSpecialRoleSeats(room);
+  const { queenIndex, celebrityIndex, witcherIndex, spiritKnightIndex, seerIndex, witchIndex } = findSpecialRoleSeats(room);
 
   const deaths = new Set<number>();
 
@@ -428,6 +435,25 @@ export const getLastNightInfo = (room: GameRoomLike): string => {
   // Poisoned by witch (witcher is immune)
   if (killedByWitch !== null && witcherIndex !== killedByWitch) {
     deaths.add(killedByWitch);
+  }
+
+  // Spirit Knight reflect rules:
+  // - If seer checks spiritKnight, seer dies (next day). We model it as a death in last night info.
+  // - If witch poisons spiritKnight, witch dies (next day) and poison is ineffective.
+  if (spiritKnightIndex !== undefined) {
+    if (seerCheckedSeat !== undefined && seerCheckedSeat === spiritKnightIndex && seerIndex !== undefined) {
+      deaths.add(seerIndex);
+    }
+
+    if (killedByWitch !== null && killedByWitch === spiritKnightIndex) {
+      // Poison has no effect on spirit knight
+      deaths.delete(spiritKnightIndex);
+
+      // Witch dies by reflection
+      if (witchIndex !== undefined) {
+        deaths.add(witchIndex);
+      }
+    }
   }
 
   // Wolf queen dies, linked player dies too
@@ -812,6 +838,9 @@ export const getNightResult = (room: GameRoomLike): NightResult => {
   const seerAction = room.actions.get('seer') ?? null;
   const guardAction = room.actions.get('guard') ?? null;
   
+  // For role-specific rules (e.g. poison immunity)
+  const { witcherIndex, spiritKnightIndex, seerIndex, witchIndex } = findSpecialRoleSeats(room);
+  
   const killedByWolf = wolfAction;
   
   // proceedToNextAction encoding:
@@ -840,8 +869,32 @@ export const getNightResult = (room: GameRoomLike): NightResult => {
   
   // 被女巫毒
   if (poisonedPlayer !== null) {
-    if (!deadPlayers.includes(poisonedPlayer)) {
+    // Witcher is immune to poison
+    if (witcherIndex === poisonedPlayer) {
+      // Still record poisonedPlayer, but do not add to deaths
+    } else if (!deadPlayers.includes(poisonedPlayer)) {
       deadPlayers.push(poisonedPlayer);
+    }
+  }
+
+  // Spirit Knight reflection:
+  // - If seer checks spiritKnight, seer dies
+  // - If witch poisons spiritKnight, witch dies and spiritKnight doesn't die
+  if (spiritKnightIndex !== undefined) {
+    if (seerAction !== null && seerAction === spiritKnightIndex && seerIndex !== undefined) {
+      if (!deadPlayers.includes(seerIndex)) {
+        deadPlayers.push(seerIndex);
+      }
+    }
+
+    if (poisonedPlayer !== null && poisonedPlayer === spiritKnightIndex) {
+      // Remove spirit knight from deaths if it was added
+      const idx = deadPlayers.indexOf(spiritKnightIndex);
+      if (idx !== -1) deadPlayers.splice(idx, 1);
+
+      if (witchIndex !== undefined && !deadPlayers.includes(witchIndex)) {
+        deadPlayers.push(witchIndex);
+      }
     }
   }
   
@@ -850,6 +903,6 @@ export const getNightResult = (room: GameRoomLike): NightResult => {
     savedByWitch,
     poisonedPlayer,
     protectedBySeer: seerAction,
-    deadPlayers,
+  deadPlayers: deadPlayers.sort((a, b) => a - b),
   };
 };
