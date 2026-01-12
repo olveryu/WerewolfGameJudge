@@ -8,6 +8,7 @@ import {
   hasNightAction,
   Faction,
   getRoleDisplayName,
+  getRoleEnglishName,
   getRoleTeam,
   getRoleTeamDisplayName,
   getTeamDisplayName,
@@ -342,6 +343,20 @@ describe('Role Registry - Single Source of Truth', () => {
       allRoleNames.forEach(roleName => {
         expect(getRoleDisplayName(roleName)).toBe(ROLES[roleName].displayName);
       });
+    });
+  });
+
+  describe('getRoleEnglishName - returns English name for roles', () => {
+    it('should return Dreamcatcher for celebrity role id', () => {
+      // celebrity role id was renamed from Celebrity to Dreamcatcher (摄梦人)
+      expect(getRoleEnglishName('celebrity')).toBe('Dreamcatcher');
+    });
+
+    it('should return non-empty string for roles with englishName defined', () => {
+      // Currently only Dreamcatcher has explicit englishName; others fallback to id
+      const englishName = getRoleEnglishName('celebrity');
+      expect(englishName).toBeTruthy();
+      expect(englishName.length).toBeGreaterThan(0);
     });
   });
 

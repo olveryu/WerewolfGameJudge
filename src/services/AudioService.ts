@@ -8,12 +8,14 @@ import { RoleName } from '../models/roles';
  */
 const AUDIO_TIMEOUT_MS = 15000;
 
+const isJest = typeof process !== 'undefined' && !!process.env?.JEST_WORKER_ID;
+
 // Audio file mappings matching Flutter's JudgeAudioProvider
 const AUDIO_FILES: Partial<Record<RoleName, any>> = {
   slacker: require('../../assets/audio/slacker.mp3'),
   wolfRobot: require('../../assets/audio/wolf_robot.mp3'),
   magician: require('../../assets/audio/magician.mp3'),
-  celebrity: require('../../assets/audio/celebrity.mp3'),
+  celebrity: require('../../assets/audio/dreamcatcher.mp3'),
   gargoyle: require('../../assets/audio/gargoyle.mp3'),
   nightmare: require('../../assets/audio/nightmare.mp3'),
   guard: require('../../assets/audio/guard.mp3'),
@@ -30,7 +32,7 @@ const AUDIO_END_FILES: Partial<Record<RoleName, any>> = {
   slacker: require('../../assets/audio_end/slacker.mp3'),
   wolfRobot: require('../../assets/audio_end/wolf_robot.mp3'),
   magician: require('../../assets/audio_end/magician.mp3'),
-  celebrity: require('../../assets/audio_end/celebrity.mp3'),
+  celebrity: require('../../assets/audio_end/dreamcatcher.mp3'),
   gargoyle: require('../../assets/audio_end/gargoyle.mp3'),
   nightmare: require('../../assets/audio_end/nightmare.mp3'),
   guard: require('../../assets/audio_end/guard.mp3'),
@@ -128,7 +130,13 @@ class AudioService {
 
         // Timeout fallback - resolve after max time even if audio didn't finish
         const timeoutId = setTimeout(() => {
-          console.warn('[AudioService] Playback timeout - proceeding without waiting for completion');
+          // In Jest we frequently don't get a real "didJustFinish" event from mocks.
+          // Keep the fallback, but avoid noisy test output.
+          if (isJest) {
+            console.debug('[AudioService] Playback timeout - proceeding without waiting for completion');
+          } else {
+            console.warn('[AudioService] Playback timeout - proceeding without waiting for completion');
+          }
           cleanup();
         }, AUDIO_TIMEOUT_MS);
 
@@ -187,7 +195,7 @@ class AudioService {
   async playRoleBeginningAudio(role: RoleName): Promise<void> {
     const audioFile = AUDIO_FILES[role];
     if (!audioFile) {
-      console.warn(`[AudioService] No beginning audio registered for role: ${role}`);
+  // Normal case: some roles (e.g. villager) intentionally have no narration.
       return;
     }
     return this.safePlayAudioFile(audioFile);
@@ -197,7 +205,7 @@ class AudioService {
   async playRoleEndingAudio(role: RoleName): Promise<void> {
     const audioFile = AUDIO_END_FILES[role];
     if (!audioFile) {
-      console.warn(`[AudioService] No ending audio registered for role: ${role}`);
+  // Normal case: some roles (e.g. villager) intentionally have no narration.
       return;
     }
     return this.safePlayAudioFile(audioFile);

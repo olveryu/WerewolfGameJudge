@@ -8,10 +8,10 @@
  * 
  * roles/
  * ├── base/           - Base classes (BaseRole, WolfBaseRole, GodBaseRole)
- * ├── wolf/           - Basic wolf roles (Wolf, WolfQueen, WolfKing)
- * ├── skilled-wolf/   - Skilled wolf roles (DarkWolfKing, Nightmare, Gargoyle, etc.)
- * ├── god/            - God roles (Seer, Witch, Hunter, Guard, etc.)
- * ├── villager/       - Villager roles (Villager, Idiot, Celebrity, etc.)
+ * ├── wolf/           - Basic wolf roles (Wolf)
+ * ├── skilled-wolf/   - Skilled wolf roles (WolfQueen, WolfKing, DarkWolfKing, Nightmare, Gargoyle, etc.)
+ * ├── god/            - God roles (Seer, Witch, Hunter, Guard, Dreamcatcher, etc.)
+ * ├── villager/       - Villager roles (Villager)
  * ├── third-party/    - Third-party roles (Slacker)
  * └── index.ts        - This file (central registry)
  * 
@@ -53,7 +53,7 @@ export * from './god/MagicianRole';
 export * from './god/WitcherRole';
 export * from './god/PsychicRole';
 export * from './god/IdiotRole';
-export * from './god/CelebrityRole';
+export * from './god/DreamcatcherRole';
 export * from './god/GraveyardKeeperRole';
 
 // Villager roles
@@ -82,7 +82,7 @@ import { magicianRole } from './god/MagicianRole';
 import { witcherRole } from './god/WitcherRole';
 import { psychicRole } from './god/PsychicRole';
 import { idiotRole } from './god/IdiotRole';
-import { celebrityRole } from './god/CelebrityRole';
+import { dreamcatcherRole } from './god/DreamcatcherRole';
 import { graveyardKeeperRole } from './god/GraveyardKeeperRole';
 import { villagerRole } from './villager/VillagerRole';
 import { slackerRole } from './third-party/SlackerRole';
@@ -137,7 +137,7 @@ export const ROLE_MODELS: Record<RoleName, BaseRole> = {
   idiot: idiotRole,
   graveyardKeeper: graveyardKeeperRole,
   knight: knightRole,
-  celebrity: celebrityRole,
+  celebrity: dreamcatcherRole, // Dreamcatcher (摄梦人) - role id kept as 'celebrity' for backward compatibility
   magician: magicianRole,
   witcher: witcherRole,
   psychic: psychicRole,
@@ -254,6 +254,18 @@ export function getActionOrder(): string[] {
 export function getRoleDisplayName(roleId: string): string {
   const role = getRoleModel(roleId);
   return role?.displayName ?? roleId;
+}
+
+/**
+ * Get role English name
+ * Returns the englishName if defined, otherwise derives from role id (capitalize first letter)
+ */
+export function getRoleEnglishName(roleId: string): string {
+  const role = getRoleModel(roleId);
+  if (!role) return roleId;
+  if (role.englishName) return role.englishName;
+  // Derive from id: 'celebrity' -> 'Celebrity', 'wolfQueen' -> 'WolfQueen'
+  return roleId.charAt(0).toUpperCase() + roleId.slice(1);
 }
 
 /**

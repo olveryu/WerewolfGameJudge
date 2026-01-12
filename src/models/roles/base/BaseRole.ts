@@ -41,6 +41,9 @@ export abstract class BaseRole {
   /** Display name in Chinese */
   abstract readonly displayName: string;
   
+  /** Display name in English (optional, derived from class name if not set) */
+  readonly englishName?: string;
+  
   /** Role faction */
   abstract readonly faction: Faction;
   
