@@ -139,6 +139,39 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
    - E2E may only assert coarse outcomes (e.g., night completed, result dialog opened) unless a specific UI contract is being validated.
 - When expanding night E2E coverage (e.g., 6-player, restart), focus on **progression invariants** (no stuck phases, restart resets state, settings visibly applied) rather than exact kill lists.
 
+### Jest UI test stability rules (mandatory)
+
+These rules apply to Jest + `@testing-library/react-native` UI tests.
+
+**Goal:** UI tests must use stable selectors and must not be fragile to copy/layout refactors.
+
+#### Stable selector requirement
+
+- Prefer `getByTestId` / `findByTestId` / `queryByTestId`.
+- Avoid `UNSAFE_*` queries, `.parent` traversal, and text-only gates (unless the UI copy itself is the contract being validated).
+- Do not add new `UNSAFE_*` usages. Existing ones should be migrated when touched.
+
+#### High-ROI elements must have `testID`
+
+UI components must provide stable `testID`s for:
+
+- Clickable elements: `Button` / `Pressable` / `TouchableOpacity` (especially loading/disabled states)
+- Inputs: `TextInput`
+- State nodes: loading spinner, error message, connection status
+- List items: seat/player card containers (each item must have a deterministic `testID`)
+
+#### Single source of truth: `src/testids.ts`
+
+- Maintain a single testID registry at `src/testids.ts`.
+- Components and tests should import `TESTIDS` from the registry instead of hard-coded strings.
+- If legacy testIDs already exist, consolidate them into `src/testids.ts` and keep a compatibility mapping during migration.
+
+#### Button testability contract
+
+- Custom `Button` must accept `testID` and apply it to the interactive container.
+- Loading indicators (e.g., `ActivityIndicator`) must have a dedicated `testID` (or a derivation from `Button` testID).
+- Disabled/loading state must be reflected via `accessibilityState.disabled` for reliable assertions.
+
 **Flake reporting rule (mandatory)**
 - “Re-run and it passed” is **not** evidence. If a test fails during validation (even if a re-run passes), you must:
    - record the **exact failure signature** (error type/message, e.g., `HTTP 409`, `ERR_CONNECTION_REFUSED`, timeout)
