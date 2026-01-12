@@ -60,15 +60,86 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
     });
   });
 
-  describe('猎魔人特性: 免疫毒药', () => {
-    it('女巫毒猎魔人，猎魔人不死', async () => {
+  describe('猎魔人特性: 免疫毒药 (Host Runtime)', () => {
+    it('女巫毒猎魔人 → 猎魔人免疫，不死', async () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const witcherSeat = ctx.findSeatByRole('witcher');
       expect(witcherSeat).toBe(11);
 
-      // Note: runNight currently uses witch action as save, not poison
-      // We'll test via DeathCalculator directly
+      // Host runtime: 女巫使用 witchPoison 毒猎魔人
+      const result = await ctx.runNight({
+        wolf: 0, // 狼刀座位0（村民）
+        witchPoison: witcherSeat, // 毒猎魔人 (seat 11)
+        seer: 4, // 预言家查狼
+        witcher: null, // 猎魔人第一夜不行动
+      });
+
+      // 最小判定信号:
+      // 1. 夜晚完成（不 stuck）
+      expect(result.completed).toBe(true);
+      // 2. 猎魔人免疫毒药，不在死亡列表
+      expect(result.deaths).not.toContain(witcherSeat);
+      // 3. 狼刀目标应该死亡
+      expect(result.deaths).toContain(0);
+    });
+
+    it('女巫毒普通村民 → 村民死亡（对照组）', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        wolf: 0, // 狼刀座位0
+        witchPoison: 1, // 毒座位1（村民）
+        seer: 4,
+        witcher: null,
+      });
+
+      expect(result.completed).toBe(true);
+      // 狼刀 + 女巫毒都应该生效
+      expect(result.deaths).toContain(0);
+      expect(result.deaths).toContain(1);
+    });
+  });
+
+  describe('女巫救人链路 (Host Runtime)', () => {
+    it('女巫救被刀村民 → 平安夜', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        wolf: 0, // 狼刀座位0
+        witch: 0, // 救座位0 (witch 不指定 witchPoison 时默认为救)
+        seer: 4,
+        witcher: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([]);
+      expect(result.info).toContain('平安夜');
+    });
+
+    /**
+     * 女巫同夜救毒限制：
+     * 当前规则是女巫每夜只能使用一种药（救或毒，不可同时）。
+     * hostGameFactory.runNight 的设计：如果同时传入 witch 和 witchPoison，
+     * 会优先使用 witchPoison（参见 processRoleAction）。
+     *
+     * 此测试锁定该行为契约。
+     */
+    it('同时传入 witch 和 witchPoison → witchPoison 优先', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        wolf: 0, // 狼刀座位0
+        witch: 0, // 尝试救座位0
+        witchPoison: 1, // 同时尝试毒座位1
+        seer: 4,
+        witcher: null,
+      });
+
+      expect(result.completed).toBe(true);
+      // witchPoison 优先：座位0 未被救（死亡），座位1 被毒（死亡）
+      expect(result.deaths).toContain(0);
+      expect(result.deaths).toContain(1);
     });
   });
 });
