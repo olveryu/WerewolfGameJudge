@@ -8,7 +8,7 @@
  * - 同守同救必死 (double save = death)
  * - Witcher poison immunity
  * - Wolf Queen link death
- * - Celebrity protection and link death
+ * - Dreamcatcher protection and link death
  * - Magician swap
  * - Peaceful night (no deaths)
  */

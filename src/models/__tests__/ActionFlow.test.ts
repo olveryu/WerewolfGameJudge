@@ -288,7 +288,7 @@ describe('Action Order - 狼王摄梦人12人', () => {
     
       // Step 0: Dreamcatcher
       expect(getCurrentActionRole(room)).toBe('dreamcatcher');
-    room = proceedToNextAction(room, 0); // Celebrity puts player 0 into dream
+    room = proceedToNextAction(room, 0); // Dreamcatcher puts player 0 into dream
     
     // Step 1: Wolf
     expect(getCurrentActionRole(room)).toBe('wolf');
