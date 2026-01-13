@@ -426,15 +426,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       case 'actionPrompt': {
         // Generic action prompt for all roles (dismiss → wait for seat tap)
         const roleModel = getRoleModel(myRole!);
-        const roleName = roleModel?.displayName || '';
-        const actionMessage = roleModel?.actionMessage || '请选择目标';
+        if (!roleModel) return;
         
-        // Wolf uses special title
-        const title = myRole === 'wolf' ? '狼人请睁眼' : `${roleName}请睁眼`;
-        
-        actionDialogs.showRoleActionPrompt(title, actionMessage, () => {
-          // dismiss → do nothing, wait for user to tap seat
-        });
+        actionDialogs.showRoleActionPrompt(
+          roleModel.actionTitle,
+          roleModel.actionMessage || '请选择目标',
+          () => {
+            // dismiss → do nothing, wait for user to tap seat
+          }
+        );
         break;
       }
     }

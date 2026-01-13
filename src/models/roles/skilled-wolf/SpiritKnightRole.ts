@@ -14,23 +14,6 @@ export class SpiritKnightRole extends WolfBaseRole {
   readonly description = '永久免疫夜间伤害（无法自刀、吃毒不死）。被预言家查验或女巫毒杀，则次日对方神职死亡（反伤）。不能自爆，只能被放逐或猎人枪杀';
   readonly hasNightAction = false;
   readonly actionOrder = 999;
-  
-  readonly immuneToWolfKill = true;
-  readonly immuneToPoison = true;
-  
-  /**
-   * Spirit Knight reflects damage to seer if checked
-   */
-  reflectsSeerCheck(): boolean {
-    return true;
-  }
-  
-  /**
-   * Spirit Knight reflects damage to witch if poisoned
-   */
-  reflectsPoison(): boolean {
-    return true;
-  }
 }
 
 export const spiritKnightRole = new SpiritKnightRole();

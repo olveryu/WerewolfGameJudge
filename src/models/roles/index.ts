@@ -181,14 +181,6 @@ export function getWolfPackRoles(): BaseRole[] {
 }
 
 /**
- * Check if a role can save itself (e.g., witch cannot)
- */
-export function canRoleSaveSelf(roleId: string): boolean {
-  const role = getRoleModel(roleId);
-  return role?.canSaveSelf ?? true;
-}
-
-/**
  * Check if a role participates in wolf vote
  */
 export function doesRoleParticipateInWolfVote(roleId: string): boolean {
@@ -225,27 +217,12 @@ export function hasNightAction(roleId: string): boolean {
 }
 
 /**
- * Get all wolves (wolf pack roles that can see each other).
- * For all wolf-faction roles, use `getWolfFactionRoles()`.
- */
-export function getWolfRoles(): BaseRole[] {
-  return getWolfPackRoles();
-}
-
-/**
  * Get roles sorted by action order
  */
 export function getRolesByActionOrder(): BaseRole[] {
   return Object.values(ROLE_MODELS)
     .filter(role => role.hasNightAction)
     .sort((a, b) => a.actionOrder - b.actionOrder);
-}
-
-/**
- * Get action order array (role IDs sorted by action order)
- */
-export function getActionOrder(): string[] {
-  return getRolesByActionOrder().map(role => role.id);
 }
 
 /**
@@ -266,14 +243,6 @@ export function getRoleEnglishName(roleId: string): string {
   if (role.englishName) return role.englishName;
   // Derive from id: 'celebrity' -> 'Celebrity', 'wolfQueen' -> 'WolfQueen'
   return roleId.charAt(0).toUpperCase() + roleId.slice(1);
-}
-
-/**
- * Get role description
- */
-export function getRoleDescription(roleId: string): string {
-  const role = getRoleModel(roleId);
-  return role?.description ?? '';
 }
 
 // ============================================================
