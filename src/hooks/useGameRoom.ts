@@ -80,6 +80,9 @@ export interface UseGameRoomResult {
   // Utility
   hasWolfVoted: (seatNumber: number) => boolean;
   getAllWolfSeats: () => number[];
+  
+  // Private inbox (anti-cheat: Zero-Trust)
+  getWitchContext: () => import('../services/types/PrivateBroadcast').WitchContextPayload | null;
 }
 
 export const useGameRoom = (): UseGameRoomResult => {
@@ -439,6 +442,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     clearLastSeatError,
     hasWolfVoted: hasWolfVotedFn,
     getAllWolfSeats: getAllWolfSeatsFn,
+    getWitchContext: () => gameStateService.current.getWitchContext(),
   };
 };
 

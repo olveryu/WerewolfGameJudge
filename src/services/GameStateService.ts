@@ -95,6 +95,13 @@ export class GameStateService {
   /** NightFlowController: explicit state machine for night phase (Host only) */
   private nightFlow: NightFlowController | null = null;
   
+  /**
+   * Private message inbox (Zero-Trust: only stores messages where toUid === myUid)
+   * Key: `${revision}_${kind}` to prevent cross-turn contamination
+   * @see docs/phase4-final-migration.md
+   */
+  private readonly privateInbox: Map<string, WitchContextPayload> = new Map();
+  
   private readonly broadcastService: BroadcastService;
   private readonly audioService: AudioService;
   
@@ -692,7 +699,13 @@ export class GameStateService {
   // Player: Handle Host Broadcasts
   // ===========================================================================
 
-  private handleHostBroadcast(msg: HostBroadcast): void {
+  private handleHostBroadcast(msg: HostBroadcast | PrivateMessage): void {
+    // Handle private messages (ANTI-CHEAT: Zero-Trust filtering)
+    if (msg.type === 'PRIVATE_EFFECT') {
+      this.handlePrivateMessage(msg);
+      return;
+    }
+
     console.log('[GameState Player] Received host broadcast:', msg.type);
 
     switch (msg.type) {
@@ -746,10 +759,65 @@ export class GameStateService {
               p.hasViewedRole = false;
             }
           });
+          // Clear private inbox on game restart
+          this.clearPrivateInbox();
           this.notifyListeners();
         }
         break;
     }
+  }
+
+  /**
+   * Handle private messages (ANTI-CHEAT: Zero-Trust filtering)
+   * Only stores messages where toUid === myUid
+   * 
+   * @see docs/phase4-final-migration.md
+   */
+  private handlePrivateMessage(msg: PrivateMessage): void {
+    // ZERO-TRUST: Only accept messages addressed to me
+    if (msg.toUid !== this.myUid) {
+      console.debug('[GameState] Ignoring private message not for me');
+      return;
+    }
+
+    console.log('[GameState] Received private message:', msg.payload.kind);
+
+    // Store in inbox with revision-bound key
+    const key = `${msg.revision}_${msg.payload.kind}`;
+    
+    switch (msg.payload.kind) {
+      case 'WITCH_CONTEXT':
+        this.privateInbox.set(key, msg.payload);
+        console.log('[GameState] Stored WITCH_CONTEXT:', msg.payload.killedIndex, 'canSave:', msg.payload.canSave);
+        // Notify listeners so UI can update
+        this.notifyListeners();
+        break;
+      case 'SEER_REVEAL':
+      case 'PSYCHIC_REVEAL':
+      case 'BLOCKED':
+        // TODO: Handle other private message types in future commits
+        console.log('[GameState] Private message type not yet handled:', msg.payload.kind);
+        break;
+    }
+  }
+
+  /**
+   * Get witch context from private inbox (for current revision only)
+   * Returns null if no WITCH_CONTEXT message received for current revision.
+   * 
+   * ANTI-CHEAT: Only returns data sent privately to this player.
+   * @see docs/phase4-final-migration.md
+   */
+  getWitchContext(): WitchContextPayload | null {
+    const key = `${this.stateRevision}_WITCH_CONTEXT`;
+    return this.privateInbox.get(key) ?? null;
+  }
+
+  /**
+   * Clear private inbox (called on game restart or revision rollback)
+   */
+  private clearPrivateInbox(): void {
+    this.privateInbox.clear();
   }
 
   /**
