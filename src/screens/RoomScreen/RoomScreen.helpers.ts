@@ -9,7 +9,7 @@
  */
 
 import type { RoleName } from '../../models/roles';
-import { getRoleModel, isWolfRole } from '../../models/roles';
+import { canRoleSeeWolves, doesRoleParticipateInWolfVote, getRoleModel, isWolfRole } from '../../models/roles';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
 import type { GameRoomLike } from '../../models/Room';
 
@@ -79,6 +79,11 @@ export function determineActionerState(
     return { imActioner: false, showWolves: false };
   }
 
+  // Phase rule: Nightmare's fear step is solo (does NOT see wolves).
+  if (currentActionRole === 'nightmare' && myRole === 'nightmare') {
+    return { imActioner: true, showWolves: false };
+  }
+
   // My role matches current action
   if (myRole === currentActionRole) {
     return handleMatchingRole(myRole, mySeatNumber, wolfVotes);
@@ -86,6 +91,11 @@ export function determineActionerState(
 
   // Wolf team members during wolf turn
   if (currentActionRole === 'wolf' && myRole && isWolfRole(myRole)) {
+    // Only wolves who participate in vote/discussion can see the pack list here.
+    // (e.g. gargoyle/wolfRobot are wolves but do not join the vote)
+    if (!doesRoleParticipateInWolfVote(myRole)) {
+      return { imActioner: false, showWolves: false };
+    }
     return handleWolfTeamTurn(mySeatNumber, wolfVotes);
   }
 
@@ -102,12 +112,8 @@ function handleMatchingRole(
     return { imActioner: false, showWolves: true };
   }
 
-  // Show wolves to wolf team (except nightmare, gargoyle, wolfRobot)
-  const showWolves =
-    isWolfRole(myRole) &&
-    myRole !== 'nightmare' &&
-    myRole !== 'gargoyle' &&
-    myRole !== 'wolfRobot';
+  // Show wolves based on registry (meeting wolves only)
+  const showWolves = isWolfRole(myRole) && canRoleSeeWolves(myRole);
 
   return { imActioner: true, showWolves };
 }
