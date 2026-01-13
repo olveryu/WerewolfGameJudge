@@ -18,10 +18,6 @@ export class WitcherRole extends GodBaseRole {
   // be treated as having no night action.
   readonly hasNightAction = false;
   readonly actionOrder = 18; // After seer
-  
-  // Witcher is immune to poison
-  readonly immuneToPoison = true;
-  
 }
 
 export const witcherRole = new WitcherRole();

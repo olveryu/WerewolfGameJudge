@@ -221,8 +221,8 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showRoleActionPrompt = useCallback(
-    (roleName: string, actionMessage: string, onDismiss: () => void) => {
-      showAlert(`${roleName}请睁眼`, actionMessage, [
+    (title: string, actionMessage: string, onDismiss: () => void) => {
+      showAlert(title, actionMessage, [
         { text: '好', style: 'default', onPress: onDismiss },
       ]);
     },

@@ -5,7 +5,6 @@
  */
 
 import { WolfBaseRole } from '../base/WolfBaseRole';
-import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class WolfRole extends WolfBaseRole {
   readonly id = 'wolf';
@@ -15,16 +14,6 @@ export class WolfRole extends WolfBaseRole {
   readonly actionOrder = 5;
   readonly actionMessage = '请选择猎杀对象';
   readonly actionConfirmMessage = '猎杀';
-  
-  getActionDialogConfig(context: RoleActionContext): ActionDialogConfig | null {
-    return {
-      title: '狼人请睁眼',
-      message: this.actionMessage,
-      buttons: [
-        { text: '好', onPress: () => {} }
-      ]
-    };
-  }
 }
 
 export const wolfRole = new WolfRole();
