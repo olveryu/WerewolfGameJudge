@@ -220,50 +220,50 @@ describe('DeathCalculator', () => {
   });
 
   // ===========================================================================
-  // Celebrity Protection and Link Death
+  // Dreamcatcher Protection and Link Death
   // ===========================================================================
 
-  describe('Celebrity Effect', () => {
+  describe('Dreamcatcher Effect', () => {
     it('should protect dream target from wolf kill', () => {
       const actions: NightActions = {
         wolfKill: 3,
-        celebrityDream: 3,
+        dreamcatcherDream: 3,
       };
 
       const deaths = calculateDeaths(actions);
       expect(deaths).toEqual([]);
     });
 
-    it('should kill dream target when celebrity dies', () => {
+  it('should kill dream target when dreamcatcher dies', () => {
       const actions: NightActions = {
-        wolfKill: 2, // wolf kills celebrity
-        celebrityDream: 5,
+    wolfKill: 2, // wolf kills dreamcatcher
+    dreamcatcherDream: 5,
       };
       const roleSeatMap: RoleSeatMap = {
         ...DEFAULT_ROLE_SEAT_MAP,
-        celebrity: 2,
+    dreamcatcher: 2,
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);
       expect(deaths).toEqual([2, 5]);
     });
 
-    it('should protect dream target even if celebrity dies (protection first)', () => {
-      // Celebrity protects target, but celebrity dies
-      // Dream target is protected from wolf kill, then dies with celebrity
+    it('should protect dream target even if dreamcatcher dies (protection first)', () => {
+      // Dreamcatcher protects target, but dreamcatcher dies
+      // Dream target is protected from wolf kill, then dies with dreamcatcher
       const actions: NightActions = {
-        wolfKill: 2, // wolf kills celebrity
+        wolfKill: 2, // wolf kills dreamcatcher
         witchAction: makeWitchPoison(5), // witch poisons dream target
-        celebrityDream: 5,
+        dreamcatcherDream: 5,
       };
       const roleSeatMap: RoleSeatMap = {
         ...DEFAULT_ROLE_SEAT_MAP,
-        celebrity: 2,
+        dreamcatcher: 2,
       };
 
-      // Dream target (5) is protected from poison, then dies because celebrity (2) dies
+      // Dream target (5) is protected from poison, then dies because dreamcatcher (2) dies
       const deaths = calculateDeaths(actions, roleSeatMap);
-      // 5 is protected from poison, but dies because celebrity (2) dies
+      // 5 is protected from poison, but dies because dreamcatcher (2) dies
       expect(deaths).toEqual([2, 5]);
     });
   });

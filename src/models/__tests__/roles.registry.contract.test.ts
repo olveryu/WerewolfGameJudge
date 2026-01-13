@@ -68,7 +68,7 @@ describe('Role Registry - isWolfRole', () => {
   });
 
   it('should return false for non-wolf roles', () => {
-    const nonWolves: RoleName[] = ['villager', 'seer', 'witch', 'hunter', 'guard', 'idiot', 'graveyardKeeper', 'slacker', 'knight', 'celebrity', 'magician', 'witcher', 'psychic'];
+    const nonWolves: RoleName[] = ['villager', 'seer', 'witch', 'hunter', 'guard', 'idiot', 'graveyardKeeper', 'slacker', 'knight', 'dreamcatcher', 'magician', 'witcher', 'psychic'];
     nonWolves.forEach(role => {
       expect(isWolfRole(role)).toBe(false);
     });
@@ -124,7 +124,7 @@ describe('Role Registry - Type classification', () => {
   });
 
   it('should have god roles as God faction', () => {
-    const godRoles: RoleName[] = ['seer', 'witch', 'hunter', 'guard', 'idiot', 'knight', 'magician', 'witcher', 'psychic', 'graveyardKeeper', 'celebrity'];
+  const godRoles: RoleName[] = ['seer', 'witch', 'hunter', 'guard', 'idiot', 'knight', 'magician', 'witcher', 'psychic', 'graveyardKeeper', 'dreamcatcher'];
     godRoles.forEach(name => {
       expect(ROLES[name].type).toBe(Faction.God);
     });
@@ -150,9 +150,10 @@ describe('Role Registry - Display names and descriptions', () => {
     });
   });
 
-  it('getRoleEnglishName should return Dreamcatcher for celebrity role id', () => {
-    expect(getRoleEnglishName('celebrity')).toBe('Dreamcatcher');
+  it('getRoleEnglishName should return Dreamcatcher for dreamcatcher role id', () => {
+    expect(getRoleEnglishName('dreamcatcher')).toBe('Dreamcatcher');
   });
+
 });
 
 describe('Role Registry - Team classification', () => {

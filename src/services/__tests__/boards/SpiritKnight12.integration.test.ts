@@ -120,7 +120,7 @@ describe('DeathCalculator - Spirit Knight Reflection', () => {
   const baseRoleSeatMap: RoleSeatMap = {
     witcher: -1,
     wolfQueen: -1,
-    celebrity: -1,
+  dreamcatcher: -1,
     spiritKnight: 7,
     seer: 8,
     witch: 9,

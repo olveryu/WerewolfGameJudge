@@ -280,7 +280,7 @@ We standardize on a **declarative** roles system so that Host remains the only a
 
 - Role IDs MUST be derived from registry keys (e.g., `export type RoleId = keyof typeof ROLE_SPECS`).
 - Do NOT maintain a hand-written `RoleName` union long-term.
-- If a legacy/compat alias is needed (e.g., `celebrity` -> `dreamcatcher`), it MUST be handled via a single alias layer at the registry boundary.
+- Avoid long-lived legacy/compat aliases. If one is unavoidable, it MUST be handled via a single alias layer at the registry boundary and deleted promptly.
 
 ### Spec + Schema + Resolver + NightPlan (target end-state)
 
@@ -399,3 +399,10 @@ Do **NOT** special-case such roles in:
 - UI conditional logic
 
 Rationale: With night-1-only scope, a role that never acts on night 1 must never appear in `template.actionOrder`, otherwise the Host flow will incorrectly prompt it to wake up.
+
+### Roles behavior contract (MANDATORY)
+
+- **Authority**: Role behavior rules (description, night-1 capability, resolver logic) MUST be based on the current `*Role.ts` files (or future `*.spec.ts`).
+- **No guessing**: When writing/refactoring RoleSpec or Resolver, you MUST read the corresponding role file first. Do NOT write from memory.
+- **Night-1-only**: If a role cannot act on Night 1 (e.g., `witcher` starts from Night 2), it MUST have `hasNightAction: false`.
+- **Special rules**: Resolver validation MUST match the declared constraints (e.g., `witch.canSaveSelf=false` → resolver rejects self-save; seer cannot check self).

@@ -152,7 +152,7 @@ describe('DeathCalculator - Guard Protection', () => {
   const baseRoleSeatMap: RoleSeatMap = {
     witcher: -1,
     wolfQueen: -1,
-    celebrity: -1,
+  dreamcatcher: -1,
     spiritKnight: -1,
     seer: 8,
     witch: 9,

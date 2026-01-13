@@ -10,7 +10,7 @@
 import { GodBaseRole } from '../base/GodBaseRole';
 
 export class DreamcatcherRole extends GodBaseRole {
-  readonly id = 'celebrity'; // Keep role id for backward compatibility
+  readonly id = 'dreamcatcher';
   readonly displayName = '摄梦人';
   readonly englishName = 'Dreamcatcher';
   readonly description = '每晚必须选择一名玩家成为梦游者，梦游者不知道自己正在梦游，且免疫夜间伤害。摄梦人夜间出局则梦游者一并出局，连续两晚成为梦游者也会出局';

@@ -39,8 +39,8 @@ export interface NightActions {
   /** Wolf Queen charm target seat. undefined = not used */
   wolfQueenCharm?: number;
 
-  /** Celebrity dream target seat. undefined = not used */
-  celebrityDream?: number;
+  /** Dreamcatcher dream target seat. undefined = not used */
+  dreamcatcherDream?: number;
 
   /** Magician swap targets. undefined = not used */
   magicianSwap?: { first: number; second: number };
@@ -72,8 +72,8 @@ export interface RoleSeatMap {
   /** Wolf Queen seat (for link death check). -1 if not present */
   wolfQueen: number;
 
-  /** Celebrity seat (for link death check). -1 if not present */
-  celebrity: number;
+  /** Dreamcatcher seat (for link death check). -1 if not present */
+  dreamcatcher: number;
 
   /** Spirit Knight seat (reflects damage to seer/witch). -1 if not present */
   spiritKnight: number;
@@ -94,7 +94,7 @@ export interface RoleSeatMap {
 export const DEFAULT_ROLE_SEAT_MAP: RoleSeatMap = {
   witcher: -1,
   wolfQueen: -1,
-  celebrity: -1,
+  dreamcatcher: -1,
   spiritKnight: -1,
   seer: -1,
   witch: -1,
@@ -129,8 +129,8 @@ export function calculateDeaths(
   // 3. Process wolf queen link death
   processWolfQueenLink(actions, roleSeatMap, deaths);
 
-  // 4. Process celebrity effect (protection + link death)
-  processCelebrityEffect(actions, roleSeatMap, deaths);
+  // 4. Process dreamcatcher effect (protection + link death)
+  processDreamcatcherEffect(actions, roleSeatMap, deaths);
 
   // 5. Process spirit knight reflection (seer/witch attacking spirit knight dies)
   processSpiritKnightReflection(actions, roleSeatMap, deaths);
@@ -247,28 +247,28 @@ function processWolfQueenLink(
 }
 
 /**
- * Process celebrity effect.
+ * Process dreamcatcher effect.
  *
  * Rules:
- * - Celebrity protects her dream target from death
- * - If celebrity dies, her dream target also dies
+ * - Dreamcatcher protects her dream target from death
+ * - If dreamcatcher dies, her dream target also dies
  */
-function processCelebrityEffect(
+function processDreamcatcherEffect(
   actions: NightActions,
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>
 ): void {
-  const { celebrityDream } = actions;
-  const { celebrity: celebritySeat } = roleSeatMap;
+  const { dreamcatcherDream } = actions;
+  const { dreamcatcher: dreamcatcherSeat } = roleSeatMap;
 
-  if (celebrityDream === undefined) return;
+  if (dreamcatcherDream === undefined) return;
 
-  // Celebrity protects dream target
-  deaths.delete(celebrityDream);
+  // Dreamcatcher dream target is protected from night deaths
+  deaths.delete(dreamcatcherDream);
 
-  // If celebrity dies, dream target also dies
-  if (celebritySeat !== -1 && deaths.has(celebritySeat)) {
-    deaths.add(celebrityDream);
+  // If dreamcatcher dies, dream target also dies
+  if (dreamcatcherSeat !== -1 && deaths.has(dreamcatcherSeat)) {
+    deaths.add(dreamcatcherDream);
   }
 }
 

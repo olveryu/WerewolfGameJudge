@@ -272,22 +272,22 @@ describe('Action Order - 狼王摄梦人12人', () => {
   const dreamcatcherRoles: RoleName[] = [
     'villager', 'villager', 'villager', 'villager',
     'wolf', 'wolf', 'wolf', 'darkWolfKing',
-    'seer', 'witch', 'hunter', 'celebrity',
+  'seer', 'witch', 'hunter', 'dreamcatcher',
   ];
 
-  it('should have correct action order with celebrity', () => {
+    it('should have correct action order with dreamcatcher', () => {
     const template = createTemplateFromRoles(dreamcatcherRoles);
     
-    // celebrity (摄梦人) is at index 3 in ACTION_ORDER
-    // Should be: celebrity, wolf, witch, seer, hunter, darkWolfKing
-    expect(template.actionOrder).toEqual(['celebrity', 'wolf', 'witch', 'seer', 'hunter', 'darkWolfKing']);
+      // dreamcatcher (摄梦人) is at index 3 in ACTION_ORDER
+      // Should be: dreamcatcher, wolf, witch, seer, hunter, darkWolfKing
+  expect(template.actionOrder).toEqual(['dreamcatcher', 'wolf', 'witch', 'seer', 'hunter', 'darkWolfKing']);
   });
 
-  it('should have celebrity act first', () => {
+    it('should have dreamcatcher act first', () => {
     let room = createTestRoom(dreamcatcherRoles);
     
-    // Step 0: Celebrity
-    expect(getCurrentActionRole(room)).toBe('celebrity');
+      // Step 0: Dreamcatcher
+      expect(getCurrentActionRole(room)).toBe('dreamcatcher');
     room = proceedToNextAction(room, 0); // Celebrity puts player 0 into dream
     
     // Step 1: Wolf

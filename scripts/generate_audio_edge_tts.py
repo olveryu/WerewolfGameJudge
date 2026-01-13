@@ -50,7 +50,7 @@ BEGIN_TEXT: dict[str, str] = {
     "magician": "魔术师请睁眼，请选择要交换的两名玩家。",
     "psychic": "通灵师请睁眼。",
     "slacker": "懒人请睁眼。",
-    "celebrity": "摄梦人请睁眼，请选择摄梦对象。",
+    "dreamcatcher": "摄梦人请睁眼，请选择摄梦对象。",
 }
 
 END_TEXT: dict[str, str] = {
@@ -67,7 +67,7 @@ END_TEXT: dict[str, str] = {
     "magician": "魔术师请闭眼。",
     "psychic": "通灵师请闭眼。",
     "slacker": "懒人请闭眼。",
-    "celebrity": "摄梦人请闭眼。",
+    "dreamcatcher": "摄梦人请闭眼。",
 }
 
 

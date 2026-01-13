@@ -319,7 +319,7 @@ describe('AudioService - Audio roles coverage', () => {
     'slacker',
     'wolfRobot',
     'magician',
-    'celebrity',
+  'dreamcatcher',
     'gargoyle',
     'nightmare',
     'guard',

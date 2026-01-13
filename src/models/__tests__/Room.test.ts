@@ -364,12 +364,12 @@ describe('Room - 狼美人 (Wolf Queen)', () => {
   });
 });
 
-describe('Room - 摄梦人 (Celebrity)', () => {
+describe('Room - 摄梦人 (Dreamcatcher)', () => {
   it('摄梦人守护 - 被守护的玩家免于死亡', () => {
-    const room = createTestRoom(['wolf', 'celebrity', 'villager', 'villager']);
+  const room = createTestRoom(['wolf', 'dreamcatcher', 'villager', 'villager']);
     
-    let current = advanceToRole(room, 'celebrity');
-    current = proceedToNextAction(current, 2); // Celebrity protects player 3
+  let current = advanceToRole(room, 'dreamcatcher');
+  current = proceedToNextAction(current, 2); // Dreamcatcher protects player 3
     
     current = advanceToRole(current, 'wolf');
     current = proceedToNextAction(current, 2); // Wolf kills player 3
@@ -381,19 +381,19 @@ describe('Room - 摄梦人 (Celebrity)', () => {
   });
 
   it('摄梦人死亡 - 被守护的玩家也死亡', () => {
-    const room = createTestRoom(['wolf', 'celebrity', 'villager', 'villager']);
+  const room = createTestRoom(['wolf', 'dreamcatcher', 'villager', 'villager']);
     
-    let current = advanceToRole(room, 'celebrity');
-    current = proceedToNextAction(current, 2); // Celebrity protects player 3
+  let current = advanceToRole(room, 'dreamcatcher');
+  current = proceedToNextAction(current, 2); // Dreamcatcher protects player 3
     
     current = advanceToRole(current, 'wolf');
-    current = proceedToNextAction(current, 1); // Wolf kills celebrity
+  current = proceedToNextAction(current, 1); // Wolf kills dreamcatcher
     
     current = completeNight(current);
     
     const info = getLastNightInfo(current);
-    expect(info).toContain('2号'); // Celebrity
-    expect(info).toContain('3号'); // Protected player dies with celebrity
+  expect(info).toContain('2号'); // Dreamcatcher
+  expect(info).toContain('3号'); // Protected player dies with dreamcatcher
   });
 });
 
@@ -517,10 +517,10 @@ describe('Room - 综合场景测试', () => {
   });
 
   it('复杂场景：女巫救人 + 摄梦人守护 = 平安夜', () => {
-    const room = createTestRoom(['wolf', 'celebrity', 'seer', 'witch', 'villager']);
+  const room = createTestRoom(['wolf', 'dreamcatcher', 'seer', 'witch', 'villager']);
     
-    let current = advanceToRole(room, 'celebrity');
-    current = proceedToNextAction(current, 4); // Celebrity protects villager
+  let current = advanceToRole(room, 'dreamcatcher');
+  current = proceedToNextAction(current, 4); // Dreamcatcher protects villager
     
     current = advanceToRole(current, 'wolf');
     current = proceedToNextAction(current, 2); // Wolf kills seer
