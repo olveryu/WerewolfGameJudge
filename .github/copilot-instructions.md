@@ -234,6 +234,13 @@ These rules apply to Host-authoritative runtime + broadcasted UI state.
 - Players should not receive the full `actions` payload.
 - If the UI needs extra information, broadcast a minimal derived field in `BroadcastGameState` (view-model style), e.g. `nightmareBlockedSeat`.
 
+#### Visibility is not a Host privilege (anti-cheat, mandatory)
+
+- Host is authority for computation and routing, **NOT** privilege for visibility.
+- Any sensitive action result MUST be delivered via **toUid private messages** and MUST **NOT** appear in `BroadcastGameState`.
+   - Examples (sensitive): seer/psychic reveal results, any per-player-only prompts/results.
+   - `BroadcastGameState` must contain only room-public view-model fields.
+
 **Flake reporting rule (mandatory)**
 - “Re-run and it passed” is **not** evidence. If a test fails during validation (even if a re-run passes), you must:
    - record the **exact failure signature** (error type/message, e.g., `HTTP 409`, `ERR_CONNECTION_REFUSED`, timeout)
