@@ -25,7 +25,6 @@ import {
   performPsychicAction,
   getWolfVoteSummary,
   getPlayersNotViewedRole,
-  getKilledIndex,
 } from '../../models/Room';
 import { 
   getRoleModel,
@@ -82,6 +81,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     lastSeatError,
     clearLastSeatError,
     requestSnapshot,
+    getWitchContext,
   } = useGameRoom();
 
   // Local UI state
@@ -248,11 +248,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const actionDeps = useMemo(() => ({
     hasWolfVoted,
-    getKilledIndex: () => {
-      if (!gameState) return -1;
-      return getKilledIndex(toGameRoomLike(gameState));
-    },
-  }), [gameState, hasWolfVoted]);
+    getWitchContext,
+  }), [hasWolfVoted, getWitchContext]);
 
   const {
     getActionIntent,

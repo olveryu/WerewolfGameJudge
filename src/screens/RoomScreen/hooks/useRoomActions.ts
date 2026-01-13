@@ -82,8 +82,12 @@ export interface GameContext {
 export interface ActionDeps {
   /** Check if wolf has voted */
   hasWolfVoted: (seatNumber: number) => boolean;
-  /** Get killed player index (provided by RoomScreen from gameState) */
-  getKilledIndex: () => number;
+  /** 
+   * Get witch context from private inbox (ANTI-CHEAT: Zero-Trust)
+   * Returns null if no WITCH_CONTEXT received for current turn
+   * @see docs/phase4-final-migration.md
+   */
+  getWitchContext: () => import('../../../services/types/PrivateBroadcast').WitchContextPayload | null;
 }
 
 export interface UseRoomActionsResult {
@@ -186,7 +190,7 @@ export function useRoomActions(
     witchPhase,
   } = gameContext;
 
-  const { hasWolfVoted, getKilledIndex } = deps;
+  const { hasWolfVoted, getWitchContext } = deps;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Wolf vote helpers
@@ -254,13 +258,19 @@ export function useRoomActions(
       // witchPhase === 'save' means we need to show save dialog
       // witchPhase === 'poison' means we need to show poison prompt
       if (witchPhase === null || witchPhase === 'save') {
-        const killedIndex = getKilledIndex();
-        const canSave = killedIndex !== -1 && killedIndex !== mySeatNumber;
+        // ANTI-CHEAT: Read witch context from private inbox (Zero-Trust)
+        // Returns null if Host hasn't sent WITCH_CONTEXT yet
+        const witchCtx = getWitchContext();
+        if (!witchCtx) {
+          // Still waiting for private message - don't trigger yet
+          return null;
+        }
+        // Host already calculated canSave (including self-save check)
         return {
           type: 'witchSavePhase',
-          targetIndex: killedIndex,
-          killedIndex,
-          canSave,
+          targetIndex: witchCtx.killedIndex,
+          killedIndex: witchCtx.killedIndex,
+          canSave: witchCtx.canSave,
         };
       }
       if (witchPhase === 'poison') {
@@ -287,7 +297,7 @@ export function useRoomActions(
 
     // All other schemas: show generic action prompt, dismiss → wait for seat tap
     return { type: 'actionPrompt', targetIndex: -1 };
-  }, [myRole, imActioner, isAudioPlaying, currentSchema, witchPhase, mySeatNumber, getKilledIndex]);
+  }, [myRole, imActioner, isAudioPlaying, currentSchema, witchPhase, getWitchContext]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Get action intent when seat is tapped

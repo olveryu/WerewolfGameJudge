@@ -387,6 +387,27 @@ We standardize on a **declarative** roles system so that Host remains the only a
    - do not add new usages
 - Prefer deleting deprecated code once all call-sites migrate (avoid long-lived compatibility layers).
 
+### Incremental migration guardrail (MANDATORY)
+
+Incremental / transitional refactors are allowed, but **must not become permanent**.
+
+If you introduce or keep any temporary compatibility behavior (e.g. “use legacy for now”, dual-write, fallback mode, adapter shims), you MUST:
+
+- **Add an explicit exit plan** near the code *and* in the PR description/task notes:
+   - what is temporary (exact symbol/file/behavior)
+   - what the replacement is
+   - the concrete removal criteria (what call-sites/tests must be migrated)
+   - a hard deadline: `TODO(remove by YYYY-MM-DD)`
+- **Block new usages** of the legacy path (prefer an ESLint rule, no-export, or a `/** @deprecated */` annotation).
+- **Add a minimal test** that fails if the temporary fallback is still present past the intended migration (or if new usages appear).
+- **Add/maintain a migration tracking doc** under `docs/migrations/` and link it from PR/task notes:
+   - use a deterministic file name (e.g. `docs/migrations/roles-spec-schema-phase4.md`)
+   - keep a checklist of remaining call-sites and tests to migrate
+   - list every temporary symbol/behavior that still exists (single source of truth)
+   - include removal criteria + deadline for each item
+
+Do NOT leave “temporary” code without a removal date + test coverage. If the safe end-state requires a broad refactor, ask for confirmation before proceeding.
+
 ---
 
 ## Night-1-only scope rules (MANDATORY)
