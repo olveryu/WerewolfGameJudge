@@ -141,6 +141,22 @@ export const ConfigScreen: React.FC = () => {
     loadCurrentRoles();
   }, [isEditMode, existingRoomNumber, gameStateService]);
 
+  // Reset transient states when screen regains focus (e.g. after back navigation)
+  useEffect(() => {
+    const addListener = (navigation as unknown as { addListener?: (event: string, cb: () => void) => () => void })
+      .addListener;
+
+    if (!addListener) {
+      // Jest tests may mock navigation without addListener; don't crash.
+      return;
+    }
+
+    const unsubscribe = addListener('focus', () => {
+      setIsCreating(false);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
   const toggleRole = useCallback((key: string) => {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
