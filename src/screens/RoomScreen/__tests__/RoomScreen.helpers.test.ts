@@ -73,15 +73,33 @@ describe('determineActionerState', () => {
     expect(result.showWolves).toBe(false);
   });
 
-  it('should not show wolves for nightmare/gargoyle/wolfRobot', () => {
-    const result1 = determineActionerState('nightmare', 'nightmare', 0, new Map(), false);
-    expect(result1.showWolves).toBe(false);
+  it('should apply wolf visibility rules (phase-based for nightmare, meeting wolves for pack)', () => {
+    // Nightmare fear step: solo, does NOT see wolves
+    const nightmareFear = determineActionerState('nightmare', 'nightmare', 0, new Map(), false);
+    expect(nightmareFear.showWolves).toBe(false);
 
-    const result2 = determineActionerState('gargoyle', 'gargoyle', 0, new Map(), false);
-    expect(result2.showWolves).toBe(false);
+    // WolfRobot/Gargoyle are non-meeting wolves: their own step shouldn't show wolves
+    const gargoyleSelfStep = determineActionerState('gargoyle', 'gargoyle', 0, new Map(), false);
+    expect(gargoyleSelfStep.showWolves).toBe(false);
 
-    const result3 = determineActionerState('wolfRobot', 'wolfRobot', 0, new Map(), false);
-    expect(result3.showWolves).toBe(false);
+    const wolfRobotSelfStep = determineActionerState('wolfRobot', 'wolfRobot', 0, new Map(), false);
+    expect(wolfRobotSelfStep.showWolves).toBe(false);
+
+    // SpiritKnight is a meeting wolf: should see wolves when it's their turn (if any)
+    const spiritKnightSelf = determineActionerState('spiritKnight', 'spiritKnight', 0, new Map(), false);
+    expect(spiritKnightSelf.showWolves).toBe(true);
+
+    // Wolf turn: participating wolves see pack list
+    const nightmareWolfTurn = determineActionerState('nightmare', 'wolf', 0, new Map(), false);
+    expect(nightmareWolfTurn.showWolves).toBe(true);
+    const spiritKnightWolfTurn = determineActionerState('spiritKnight', 'wolf', 0, new Map(), false);
+    expect(spiritKnightWolfTurn.showWolves).toBe(true);
+
+    // Wolf turn: non-voting wolves do NOT see pack list
+    const gargoyleWolfTurn = determineActionerState('gargoyle', 'wolf', 0, new Map(), false);
+    expect(gargoyleWolfTurn.showWolves).toBe(false);
+    const wolfRobotWolfTurn = determineActionerState('wolfRobot', 'wolf', 0, new Map(), false);
+    expect(wolfRobotWolfTurn.showWolves).toBe(false);
   });
 });
 
