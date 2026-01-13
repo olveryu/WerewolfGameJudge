@@ -435,9 +435,9 @@ function parseMagicianActionFromRoleAction(action: RoleAction | undefined): { fi
 }
 
 // Find special role seats (works with GameRoomLike)
-function findSpecialRoleSeats(room: GameRoomLike): { queenIndex?: number; celebrityIndex?: number; witcherIndex?: number; spiritKnightIndex?: number; seerIndex?: number; witchIndex?: number } {
+function findSpecialRoleSeats(room: GameRoomLike): { queenIndex?: number; dreamcatcherIndex?: number; witcherIndex?: number; spiritKnightIndex?: number; seerIndex?: number; witchIndex?: number } {
   let queenIndex: number | undefined;
-  let celebrityIndex: number | undefined;
+  let dreamcatcherIndex: number | undefined;
   let witcherIndex: number | undefined;
   let spiritKnightIndex: number | undefined;
   let seerIndex: number | undefined;
@@ -445,14 +445,14 @@ function findSpecialRoleSeats(room: GameRoomLike): { queenIndex?: number; celebr
 
   room.players.forEach((player, seat) => {
     if (player?.role === 'wolfQueen') queenIndex = seat;
-    if (player?.role === 'celebrity') celebrityIndex = seat;
+    if (player?.role === 'dreamcatcher') dreamcatcherIndex = seat;
     if (player?.role === 'witcher') witcherIndex = seat;
     if (player?.role === 'spiritKnight') spiritKnightIndex = seat;
     if (player?.role === 'seer') seerIndex = seat;
     if (player?.role === 'witch') witchIndex = seat;
   });
 
-  return { queenIndex, celebrityIndex, witcherIndex, spiritKnightIndex, seerIndex, witchIndex };
+  return { queenIndex, dreamcatcherIndex, witcherIndex, spiritKnightIndex, seerIndex, witchIndex };
 }
 
 // Apply magician swap to deaths
@@ -478,10 +478,10 @@ export const getLastNightInfo = (room: GameRoomLike): string => {
   const { killedByWitch, savedByWitch } = parseWitchActionFromRoleAction(witchAction);
   const sleptWithSeat = getActionTargetSeat(room.actions.get('wolfQueen'));
   const guardProtectSeat = getActionTargetSeat(room.actions.get('guard'));
-  const nightWalkerSeat = getActionTargetSeat(room.actions.get('celebrity'));
+  const nightWalkerSeat = getActionTargetSeat(room.actions.get('dreamcatcher'));
   const seerCheckedSeat = getActionTargetSeat(room.actions.get('seer'));
   const { firstExchanged, secondExchanged } = parseMagicianActionFromRoleAction(room.actions.get('magician'));
-  const { queenIndex, celebrityIndex, witcherIndex, spiritKnightIndex, seerIndex, witchIndex } = findSpecialRoleSeats(room);
+  const { queenIndex, dreamcatcherIndex, witcherIndex, spiritKnightIndex, seerIndex, witchIndex } = findSpecialRoleSeats(room);
 
   const deaths = new Set<number>();
 
@@ -531,8 +531,8 @@ export const getLastNightInfo = (room: GameRoomLike): string => {
     deaths.delete(nightWalkerSeat);
   }
 
-  // Celebrity dies, dreamer dies too
-  if (celebrityIndex !== undefined && deaths.has(celebrityIndex) && nightWalkerSeat !== undefined) {
+  // Dreamcatcher dies, dreamer dies too
+  if (dreamcatcherIndex !== undefined && deaths.has(dreamcatcherIndex) && nightWalkerSeat !== undefined) {
     deaths.add(nightWalkerSeat);
   }
 

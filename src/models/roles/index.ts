@@ -109,7 +109,7 @@ export type RoleName =
   | 'graveyardKeeper'
   | 'slacker'
   | 'knight'
-  | 'celebrity'
+  | 'dreamcatcher'
   | 'magician'
   | 'witcher'
   | 'psychic';
@@ -137,7 +137,7 @@ export const ROLE_MODELS: Record<RoleName, BaseRole> = {
   idiot: idiotRole,
   graveyardKeeper: graveyardKeeperRole,
   knight: knightRole,
-  celebrity: dreamcatcherRole, // Dreamcatcher (摄梦人) - role id kept as 'celebrity' for backward compatibility
+  dreamcatcher: dreamcatcherRole,
   magician: magicianRole,
   witcher: witcherRole,
   psychic: psychicRole,
@@ -241,7 +241,7 @@ export function getRoleEnglishName(roleId: string): string {
   const role = getRoleModel(roleId);
   if (!role) return roleId;
   if (role.englishName) return role.englishName;
-  // Derive from id: 'celebrity' -> 'Celebrity', 'wolfQueen' -> 'WolfQueen'
+  // Derive from id: 'dreamcatcher' -> 'Dreamcatcher', 'wolfQueen' -> 'WolfQueen'
   return roleId.charAt(0).toUpperCase() + roleId.slice(1);
 }
 

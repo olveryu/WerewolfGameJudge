@@ -64,7 +64,7 @@ const getInitialSelection = (): Record<string, boolean> => ({
   villager: true, villager1: true, villager2: true, villager3: true, villager4: false,
   seer: true, witch: true, hunter: true, guard: false, idiot: true,
   graveyardKeeper: false, slacker: false, knight: false,
-  celebrity: false, magician: false,
+  dreamcatcher: false, magician: false,
   tree: false, witcher: false, psychic: false,
 });
 
@@ -286,7 +286,7 @@ export const ConfigScreen: React.FC = () => {
             <RoleChip id="idiot" label="白痴" selected={selection.idiot} onToggle={toggleRole} />
             <RoleChip id="graveyardKeeper" label="守墓人" selected={selection.graveyardKeeper} onToggle={toggleRole} />
             <RoleChip id="knight" label="骑士" selected={selection.knight} onToggle={toggleRole} />
-            <RoleChip id="celebrity" label="摄梦人" selected={selection.celebrity} onToggle={toggleRole} />
+            <RoleChip id="dreamcatcher" label="摄梦人" selected={selection.dreamcatcher} onToggle={toggleRole} />
             <RoleChip id="magician" label="魔术师" selected={selection.magician} onToggle={toggleRole} />
             <RoleChip id="witcher" label="猎魔人" selected={selection.witcher} onToggle={toggleRole} />
             <RoleChip id="psychic" label="通灵师" selected={selection.psychic} onToggle={toggleRole} />

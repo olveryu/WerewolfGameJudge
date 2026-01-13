@@ -252,7 +252,7 @@ describe('Template - Action Order Edge Cases', () => {
   it('should handle all action roles', () => {
     // Template with many action roles
     const roles: RoleName[] = [
-      'slacker', 'wolfRobot', 'magician', 'celebrity',
+  'slacker', 'wolfRobot', 'magician', 'dreamcatcher',
       'gargoyle', 'nightmare', 'guard', 'wolf',
       'wolfQueen', 'witch', 'seer', 'hunter',
     ];

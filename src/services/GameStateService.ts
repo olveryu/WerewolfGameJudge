@@ -1771,10 +1771,10 @@ export class GameStateService {
       nightActions.wolfQueenCharm = wolfQueenAction.targetSeat;
     }
 
-    // Celebrity dream
-    const celebrityAction = actions.get('celebrity');
-    if (celebrityAction && celebrityAction.kind === 'target') {
-      nightActions.celebrityDream = celebrityAction.targetSeat;
+    // Dreamcatcher dream
+    const dreamcatcherAction = actions.get('dreamcatcher');
+    if (dreamcatcherAction && dreamcatcherAction.kind === 'target') {
+      nightActions.dreamcatcherDream = dreamcatcherAction.targetSeat;
     }
 
     // Magician swap
@@ -1815,8 +1815,8 @@ export class GameStateService {
   private buildRoleSeatMap(): RoleSeatMap {
     return {
       witcher: this.findSeatByRole('witcher'),
-      wolfQueen: this.findSeatByRole('wolfQueen'),
-      celebrity: this.findSeatByRole('celebrity'),
+  wolfQueen: this.findSeatByRole('wolfQueen'),
+  dreamcatcher: this.findSeatByRole('dreamcatcher'),
       spiritKnight: this.findSeatByRole('spiritKnight'),
       seer: this.findSeatByRole('seer'),
       witch: this.findSeatByRole('witch'),

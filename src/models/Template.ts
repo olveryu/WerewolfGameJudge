@@ -127,7 +127,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleName[] }[] = [
     roles: [
       'villager', 'villager', 'villager', 'villager',
       'wolf', 'wolf', 'wolf', 'darkWolfKing',
-      'seer', 'witch', 'hunter', 'celebrity',
+  'seer', 'witch', 'hunter', 'dreamcatcher',
     ],
   },
   {
