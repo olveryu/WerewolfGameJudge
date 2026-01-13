@@ -313,8 +313,14 @@ export const getWolfVoteSummary = (room: GameRoomLike): string => {
   return `${voted.length}/${wolfSeats.length} 狼人已投票`;
 };
 
-// Get killed index from wolf action
-// Priority: actions['wolf'] (set by RPC) > calculate from wolfVotes (legacy)
+/**
+ * Get killed index from wolf action
+ * Priority: actions['wolf'] (set by RPC) > calculate from wolfVotes (legacy)
+ * 
+ * @deprecated Use getWitchContext() from private inbox instead for anti-cheat.
+ * UI should NOT access killedIndex directly. Host sends it privately to witch.
+ * TODO(remove by 2026-02-01): Delete after UI fully migrated to private inbox.
+ */
 export const getKilledIndex = (room: GameRoomLike): number => {
   // Prefer actions['wolf'] - this is set atomically by the RPC when all wolves vote
   const wolfAction = room.actions.get('wolf');
@@ -622,9 +628,14 @@ export const getRoomInfo = (room: GameRoomLike): string => {
   return info;
 };
 
-// Perform seer action (check player identity)
-// IMPORTANT: Seer result is strictly binary - only '好人' or '狼人'
-// All wolf-faction roles → '狼人', all others (god/villager/third-party) → '好人'
+/**
+ * Perform seer action (check player identity)
+ * IMPORTANT: Seer result is strictly binary - only '好人' or '狼人'
+ * All wolf-faction roles → '狼人', all others (god/villager/third-party) → '好人'
+ * 
+ * @deprecated Use getSeerReveal() from private inbox instead for anti-cheat.
+ * TODO(remove by 2026-02-01): Migrate UI to async private message flow.
+ */
 export const performSeerAction = (room: GameRoomLike, targetSeat: number): SeerCheckResult => {
   const targetPlayer = room.players.get(targetSeat);
   if (!targetPlayer?.role) return getSeerCheckResult('villager');
@@ -647,7 +658,12 @@ export const performSeerAction = (room: GameRoomLike, targetSeat: number): SeerC
   return getSeerCheckResult(targetPlayer.role);
 };
 
-// Perform psychic action (check exact role)
+/**
+ * Perform psychic action (check exact role)
+ * 
+ * @deprecated Use getPsychicReveal() from private inbox instead for anti-cheat.
+ * TODO(remove by 2026-02-01): Migrate UI to async private message flow.
+ */
 export const performPsychicAction = (room: GameRoomLike, targetSeat: number): string => {
   // Check if wolf robot learned this player's role
   const wolfRobotAction = room.actions.get('wolfRobot');
