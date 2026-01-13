@@ -13,6 +13,7 @@ import { AuthService } from '../services/AuthService';
 import { GameTemplate } from '../models/Template';
 import { RoleName, isWolfRole } from '../models/roles';
 import { RoomStatus } from '../models/Room';
+import { isValidRoleId, getRoleSpec, getSchema, type ActionSchema, type SchemaId } from '../models/roles/spec';
 
 export interface UseGameRoomResult {
   // Room info
@@ -31,6 +32,10 @@ export interface UseGameRoomResult {
   roomStatus: RoomStatus; // Maps GameStatus to RoomStatus for UI compatibility
   currentActionRole: RoleName | null;
   isAudioPlaying: boolean;
+  
+  // Schema-driven UI (Phase 3)
+  currentSchemaId: SchemaId | null;        // schemaId for current action role (null if no action)
+  currentSchema: ActionSchema | null;       // Full schema (derived from schemaId, null if no schema)
   
   // Connection status
   connectionStatus: ConnectionStatus;
@@ -139,6 +144,22 @@ export const useGameRoom = (): UseGameRoomResult => {
     if (gameState.currentActionerIndex >= actionOrder.length) return null;
     return actionOrder[gameState.currentActionerIndex];
   }, [gameState]);
+
+  // Schema-driven UI (Phase 3): derive schemaId from currentActionRole locally
+  // No broadcast needed - schema is derived from local spec
+  const currentSchemaId = useMemo((): SchemaId | null => {
+    if (!currentActionRole) return null;
+    if (!isValidRoleId(currentActionRole)) return null;
+    const spec = getRoleSpec(currentActionRole);
+    if (!spec.night1.hasAction) return null;
+    return spec.night1.schemaId ?? null;
+  }, [currentActionRole]);
+
+  // Schema-driven UI (Phase 3): derive full schema from schemaId
+  const currentSchema = useMemo((): ActionSchema | null => {
+    if (!currentSchemaId) return null;
+    return getSchema(currentSchemaId);
+  }, [currentSchemaId]);
   
   // Check if audio is currently playing
   const isAudioPlaying = useMemo((): boolean => {
@@ -392,6 +413,8 @@ export const useGameRoom = (): UseGameRoomResult => {
     roomStatus,
     currentActionRole,
     isAudioPlaying,
+  currentSchemaId,
+  currentSchema,
     loading,
     error,
     connectionStatus,

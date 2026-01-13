@@ -64,6 +64,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     myRole,
     roomStatus,
     currentActionRole,
+    currentSchema,
     isAudioPlaying,
     connectionStatus,
     createRoom,
@@ -235,6 +236,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     gameState,
     roomStatus,
     currentActionRole,
+    currentSchema,
     imActioner,
     mySeatNumber,
     myRole,
@@ -242,7 +244,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     isBlockedByNightmare,
     anotherIndex,
     witchPhase,
-  }), [gameState, roomStatus, currentActionRole, imActioner, mySeatNumber, myRole, isAudioPlaying, isBlockedByNightmare, anotherIndex, witchPhase]);
+  }), [gameState, roomStatus, currentActionRole, currentSchema, imActioner, mySeatNumber, myRole, isAudioPlaying, isBlockedByNightmare, anotherIndex, witchPhase]);
 
   const actionDeps = useMemo(() => ({
     hasWolfVoted,

@@ -12,7 +12,7 @@ export const SCHEMAS = {
     id: 'seerCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+  constraints: [],
     canSkip: false,
   },
 
@@ -25,7 +25,7 @@ export const SCHEMAS = {
         stepId: 'save',
         displayName: '救人',
         kind: 'chooseSeat',
-        constraints: ['notSelf'],  // canSaveSelf=false 由 resolver 校验
+  constraints: ['notSelf'],
         canSkip: true,
       },
       {
@@ -50,7 +50,7 @@ export const SCHEMAS = {
     id: 'psychicCheck',
     displayName: '通灵',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+  constraints: [],
     canSkip: false,
   },
 
@@ -96,7 +96,7 @@ export const SCHEMAS = {
     id: 'nightmareBlock',
     displayName: '恐惧',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+  constraints: [],
     canSkip: false,
   },
 
@@ -104,7 +104,7 @@ export const SCHEMAS = {
     id: 'gargoyleCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+  constraints: [],
     canSkip: false,
   },
 

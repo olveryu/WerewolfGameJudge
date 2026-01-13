@@ -5,7 +5,7 @@ import {
   getTemplateRoomInfo,
   PRESET_TEMPLATES,
 } from '../Template';
-import { RoleName, ACTION_ORDER } from '../roles';
+import { RoleName, getActionOrderViaNightPlan } from '../roles';
 
 describe('Template - createTemplateFromRoles', () => {
   it('should create template with correct number of players', () => {
@@ -27,12 +27,12 @@ describe('Template - createTemplateFromRoles', () => {
     expect(template.actionOrder).not.toContain('villager'); // villager has no night action
   });
 
-  it('should respect ACTION_ORDER sequence', () => {
+  it('should respect NightPlan-derived order sequence', () => {
     const roles: RoleName[] = ['seer', 'wolf', 'witch', 'guard', 'hunter'];
     const template = createTemplateFromRoles(roles);
 
-    // Verify order matches ACTION_ORDER
-    const expectedOrder = ACTION_ORDER.filter(role => roles.includes(role));
+    // Verify order matches NightPlan-derived order
+    const expectedOrder = getActionOrderViaNightPlan(roles);
     expect(template.actionOrder).toEqual(expectedOrder);
   });
 
@@ -42,7 +42,7 @@ describe('Template - createTemplateFromRoles', () => {
 
     expect(template.actionOrder).toContain('wolf');
     expect(template.actionOrder).toContain('wolfQueen');
-    // wolf should come before wolfQueen in ACTION_ORDER
+    // wolf should come before wolfQueen per NightPlan order
     const wolfIndex = template.actionOrder.indexOf('wolf');
     const wolfQueenIndex = template.actionOrder.indexOf('wolfQueen');
     expect(wolfIndex).toBeLessThan(wolfQueenIndex);

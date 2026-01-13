@@ -6,12 +6,15 @@
  *
  * ❌ Do NOT: call dialogs, import services/nightFlow/supabase, call Room model functions
  * ✅ Allowed: pure logic, return ActionIntent, helper functions
+ * 
+ * Phase 3: Schema-driven - uses currentSchema.kind instead of role names
  */
 
 import { useCallback } from 'react';
 import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { RoomStatus } from '../../../models/Room';
 import { getRoleModel, RoleName, isWolfRole } from '../../../models/roles';
+import type { ActionSchema } from '../../../models/roles/spec';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ActionIntent Types (must be serializable - no callbacks/refs/functions)
@@ -66,6 +69,7 @@ export interface GameContext {
   gameState: LocalGameState | null;
   roomStatus: RoomStatus;
   currentActionRole: RoleName | null;
+  currentSchema: ActionSchema | null;       // Phase 3: schema for current action role
   imActioner: boolean;
   mySeatNumber: number | null;
   myRole: RoleName | null;
@@ -106,6 +110,62 @@ export interface UseRoomActionsResult {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Pure helper: derive intent from schema kind (extracted to reduce complexity)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface IntentContext {
+  myRole: RoleName;
+  schemaKind: ActionSchema['kind'] | undefined;
+  index: number;
+  anotherIndex: number | null;
+  witchPhase: 'save' | 'poison' | null;
+  isWolf: boolean;
+  wolfSeat: number | null;
+  buildMessage: (idx: number) => string;
+}
+
+/** confirm schema: hunter/darkWolfKing status dialog */
+function deriveConfirmIntent(ctx: IntentContext): ActionIntent {
+  const { myRole, index, buildMessage } = ctx;
+  if (myRole === 'hunter') return { type: 'hunterStatus', targetIndex: index };
+  if (myRole === 'darkWolfKing') return { type: 'darkWolfKingStatus', targetIndex: index };
+  return { type: 'actionConfirm', targetIndex: index, message: buildMessage(index) };
+}
+
+/** chooseSeat schema: seer/psychic reveal, or normal action */
+function deriveChooseSeatIntent(ctx: IntentContext): ActionIntent {
+  const { myRole, index, buildMessage } = ctx;
+  if (myRole === 'seer') return { type: 'seerReveal', targetIndex: index };
+  if (myRole === 'psychic') return { type: 'psychicReveal', targetIndex: index };
+  return { type: 'actionConfirm', targetIndex: index, message: buildMessage(index) };
+}
+
+/**
+ * Derives ActionIntent from schema kind. Pure function (no hooks).
+ * Uses focused sub-helpers to keep each branch simple.
+ */
+function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
+  const { schemaKind, index, anotherIndex, witchPhase, isWolf, wolfSeat } = ctx;
+
+  switch (schemaKind) {
+    case 'confirm':
+      return deriveConfirmIntent(ctx);
+    case 'swap':
+      return anotherIndex === null ? { type: 'magicianFirst', targetIndex: index } : null;
+    case 'compound':
+      return witchPhase === 'poison'
+        ? { type: 'witchPoison', targetIndex: index, message: `确定要毒杀${index + 1}号玩家吗？` }
+        : null;
+    case 'wolfVote':
+      return isWolf && wolfSeat !== null ? { type: 'wolfVote', targetIndex: index, wolfSeat } : null;
+    case 'chooseSeat':
+      return deriveChooseSeatIntent(ctx);
+    default:
+      return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Hook Implementation
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -116,7 +176,7 @@ export function useRoomActions(
   const {
     gameState,
     roomStatus,
-    currentActionRole,
+    currentSchema,
     imActioner,
     mySeatNumber,
     myRole,
@@ -182,16 +242,17 @@ export function useRoomActions(
 
   // ─────────────────────────────────────────────────────────────────────────
   // Auto-trigger intent (for roles that popup on turn start)
+  // Phase 3: Schema-driven - uses currentSchema.kind instead of role names
   // ─────────────────────────────────────────────────────────────────────────
 
   const getAutoTriggerIntent = useCallback((): ActionIntent | null => {
     if (!myRole || !imActioner || isAudioPlaying) return null;
 
-    // Witch: auto-trigger when becoming actioner (two-phase flow)
-    // witchPhase === null means just became actioner → start with save phase
-    // witchPhase === 'save' means we need to show save dialog
-    // witchPhase === 'poison' means we need to show poison prompt
-    if (myRole === 'witch') {
+    // Schema-driven: compound schema (witch two-phase flow)
+    if (currentSchema?.kind === 'compound') {
+      // witchPhase === null means just became actioner → start with save phase
+      // witchPhase === 'save' means we need to show save dialog
+      // witchPhase === 'poison' means we need to show poison prompt
       if (witchPhase === null || witchPhase === 'save') {
         const killedIndex = getKilledIndex();
         const canSave = killedIndex !== -1 && killedIndex !== mySeatNumber;
@@ -211,107 +272,88 @@ export function useRoomActions(
       return null;
     }
 
-    // Hunter: auto-trigger status dialog, click "确定" → proceedWithAction(null)
-    if (myRole === 'hunter') {
-      return { type: 'hunterStatus', targetIndex: -1 };
+    // Schema-driven: confirm schema (hunter/darkWolfKing status dialog)
+    if (currentSchema?.kind === 'confirm') {
+      // Use role-specific intent type for backward compatibility
+      if (myRole === 'hunter') {
+        return { type: 'hunterStatus', targetIndex: -1 };
+      }
+      if (myRole === 'darkWolfKing') {
+        return { type: 'darkWolfKingStatus', targetIndex: -1 };
+      }
+      // Fallback for future confirm roles
+      return { type: 'actionPrompt', targetIndex: -1 };
     }
 
-    // DarkWolfKing: auto-trigger status dialog, click "确定" → proceedWithAction(null)
-    if (myRole === 'darkWolfKing') {
-      return { type: 'darkWolfKingStatus', targetIndex: -1 };
-    }
-
-    // All other roles: show generic action prompt, dismiss → wait for seat tap
+    // All other schemas: show generic action prompt, dismiss → wait for seat tap
     return { type: 'actionPrompt', targetIndex: -1 };
-  }, [myRole, imActioner, isAudioPlaying, witchPhase, mySeatNumber, getKilledIndex]);
+  }, [myRole, imActioner, isAudioPlaying, currentSchema, witchPhase, mySeatNumber, getKilledIndex]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Get action intent when seat is tapped
+  // Phase 3: Schema-driven - uses currentSchema.kind instead of role names
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Get action intent when seat is tapped
+  // Phase 3: Schema-driven - uses currentSchema.kind instead of role names
   // ─────────────────────────────────────────────────────────────────────────
 
   const getActionIntent = useCallback((index: number): ActionIntent | null => {
     if (!myRole) return null;
 
-    // Nightmare block
+    // Nightmare block (applies to all schemas)
     if (isBlockedByNightmare) {
       return { type: 'blocked', targetIndex: index };
     }
 
-    // Hunter shows status dialog
-    if (myRole === 'hunter') {
-      return { type: 'hunterStatus', targetIndex: index };
-    }
+    // Delegate to pure helper for schema-driven intent derivation
+    const schemaIntent = deriveIntentFromSchema({
+      myRole,
+      schemaKind: currentSchema?.kind,
+      index,
+      anotherIndex,
+      witchPhase,
+      isWolf: isWolfRole(myRole),
+      wolfSeat: findVotingWolfSeat(),
+      buildMessage: (idx) => buildActionMessage(idx, myRole),
+    });
 
-    // DarkWolfKing shows status dialog
-    if (myRole === 'darkWolfKing') {
-      return { type: 'darkWolfKingStatus', targetIndex: index };
-    }
+    if (schemaIntent) return schemaIntent;
 
-    // Magician first target selection
-    if (myRole === 'magician' && anotherIndex === null) {
-      return { type: 'magicianFirst', targetIndex: index };
-    }
-
-    // Seer reveal
-    if (myRole === 'seer') {
-      return { type: 'seerReveal', targetIndex: index };
-    }
-
-    // Psychic reveal
-    if (myRole === 'psychic') {
-      return { type: 'psychicReveal', targetIndex: index };
-    }
-
-    // Witch poison phase - tap seat to poison
-    if (myRole === 'witch' && witchPhase === 'poison') {
-      const message = `确定要毒杀${index + 1}号玩家吗？`;
-      return {
-        type: 'witchPoison',
-        targetIndex: index,
-        message,
-      };
-    }
-
-    // Wolf vote flow
-    if (currentActionRole === 'wolf' && isWolfRole(myRole)) {
-      const wolfSeat = findVotingWolfSeat();
-      if (wolfSeat !== null) {
-        return { type: 'wolfVote', targetIndex: index, wolfSeat };
-      }
-    }
-
-    // Normal action confirm
+    // Default fallback: normal action confirm
     const message = buildActionMessage(index, myRole);
     return { type: 'actionConfirm', targetIndex: index, message };
   }, [
     myRole,
     isBlockedByNightmare,
+    currentSchema,
     anotherIndex,
     witchPhase,
-    currentActionRole,
     findVotingWolfSeat,
     buildActionMessage,
   ]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Get skip intent
+  // Phase 3: Schema-driven
   // ─────────────────────────────────────────────────────────────────────────
 
   const getSkipIntent = useCallback((): ActionIntent | null => {
     if (!myRole) return null;
 
-    // Wolf: vote for empty knife
-    if (currentActionRole === 'wolf' && isWolfRole(myRole)) {
+    // Schema-driven: wolfVote schema (vote for empty knife)
+    if (currentSchema?.kind === 'wolfVote' && isWolfRole(myRole)) {
       const wolfSeat = findVotingWolfSeat();
       if (wolfSeat !== null) {
         return { type: 'wolfVote', targetIndex: -1, wolfSeat };
       }
     }
 
-    // Other roles: confirm skip
+    // Other schemas: confirm skip
     const message = buildActionMessage(-1, myRole);
     return { type: 'skip', targetIndex: -1, message };
-  }, [myRole, currentActionRole, findVotingWolfSeat, buildActionMessage]);
+  }, [myRole, currentSchema, findVotingWolfSeat, buildActionMessage]);
 
   return {
     getActionIntent,

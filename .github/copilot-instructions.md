@@ -386,6 +386,65 @@ We standardize on a **declarative** roles system so that Host remains the only a
 
 This app acts as an **electronic judge for the first night only**.
 
+### Hard ban: cross-night state / constraints (Night-2+ is out of scope)
+
+- Do **NOT** introduce or use any cross-night state in Host logic or resolvers.
+   - Examples (ban): `previousActions`, `lastNightTarget`, `notSameAsLastNight`, “连续两晚/第二晚开始/每晚/下一晚” constraints.
+   - Resolver context/types MUST NOT carry cross-night fields.
+- If a rule depends on Night-2+ memory, it is **out of scope** and must be deleted/ignored.
+- Prefer enforcing this with Jest contract tests in `src/services/night/resolvers/__tests__/*`.
+
+### Neutral judge rule: wolf kill can target ANYONE
+
+- **Project rule**: Wolf kill/vote is neutral in this app.
+   - Wolves can target **any seat**, including **self** and **wolf teammates**.
+- Do NOT add schema/resolver constraints like `notSelf` / `notWolf` for `wolfKill`.
+
+### Self-target constraints must be schema-first and resolver-aligned
+
+- `SCHEMAS[*].constraints` is the first-class source of truth for UI restrictions (e.g. `notSelf`).
+- Host resolvers MUST align with schema constraints:
+   - If schema says `notSelf`, resolver MUST reject self-target.
+   - If schema allows self-target, resolver MUST NOT reject it unless there is a documented exception + contract test.
+
+---
+
+## Refactor plan guardrails (mandatory)
+
+These are repo-level refactor constraints to keep the migration safe and reviewable.
+
+- **Small, evidence-backed steps**: each migration phase must land with:
+   - contract tests (Jest) for the new behavior,
+   - typecheck green,
+   - minimal blast radius (avoid broad rewrites).
+- **File boundaries**:
+   - Role models under `src/models/roles/**` are declarative only (spec/schema/types). No services, no side effects.
+   - Host-only resolution lives under `src/services/night/resolvers/**` (pure functions), and must not be imported by UI.
+   - UI under `src/screens/RoomScreen/components/**` must be UI-only (no services imports).
+- **Single source of truth**:
+   - Night order must come from `NightPlan` (no parallel `ACTION_ORDER`).
+   - UI should render from `schemaId` + local schemas (or broadcast view-model), not from role-specific branches.
+
+### Night-1-only enforcement (NO cross-night state)
+
+- **Hard constraint**: Do NOT introduce or use any cross-night state in Host logic (e.g. `previousActions`, `lastNightTarget`, “two nights in a row” constraints).
+   - If a rule requires Night-2+ memory, it is **out of scope** and must be deleted/ignored.
+   - Resolver types MUST NOT carry cross-night fields (e.g. no `previousActions` in resolver context).
+   - Enforce with Jest contract tests (preferred) rather than E2E.
+
+### Neutral judge rule: wolf kill can target ANYONE
+
+- **Project rule**: Wolf kill/vote is **neutral** in this app.
+   - Wolves can target **any seat**, including **self** and **wolf teammates**.
+   - Do NOT add schema/resolver constraints like `notSelf` / `notWolf` for `wolfKill`.
+
+### Self-target constraints must be schema-first and resolver-aligned
+
+- `SCHEMAS[*].constraints` is the first-class source of truth for UI restrictions (e.g. `notSelf`).
+- Host resolvers MUST align with schema constraints:
+   - If schema says `notSelf`, resolver MUST reject self-target.
+   - If schema allows self-target, resolver MUST NOT reject it unless there is a documented exception + a contract test.
+
 ### Rule: “No Night-1 action” ⇒ “No night action”
 
 If a role **cannot act on the first night** (e.g. “从第二晚开始才行动”), it MUST be modeled as:

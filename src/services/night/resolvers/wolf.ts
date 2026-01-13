@@ -29,12 +29,8 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
   if (!targetRoleId) {
     return { valid: false, rejectReason: '目标玩家不存在' };
   }
-  
-  // Cannot kill a wolf (resolver-level validation)
-  const targetSpec = ROLE_SPECS[targetRoleId];
-  if (targetSpec.team === 'wolf') {
-    return { valid: false, rejectReason: '不能选择狼人队友' };
-  }
+
+  // Neutral judge: wolves can target ANY seat (including self / wolf teammates).
   
   return {
     valid: true,

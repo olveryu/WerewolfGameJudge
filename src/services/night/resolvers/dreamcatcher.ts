@@ -7,7 +7,7 @@
 import type { ResolverFn } from './types';
 
 export const dreamcatcherDreamResolver: ResolverFn = (context, input) => {
-  const { actorSeat, previousActions, currentNightResults } = context;
+  const { actorSeat, currentNightResults } = context;
   const target = input.target;
   
   // Validate target exists (dreamcatcher must choose someone)
@@ -15,7 +15,7 @@ export const dreamcatcherDreamResolver: ResolverFn = (context, input) => {
     return { valid: false, rejectReason: '必须选择摄梦对象' };
   }
   
-  // Cannot dream self
+  // Cannot dream self (contract rule)
   if (target === actorSeat) {
     return { valid: false, rejectReason: '不能摄梦自己' };
   }
@@ -25,11 +25,7 @@ export const dreamcatcherDreamResolver: ResolverFn = (context, input) => {
     return { valid: true, result: {} };
   }
   
-  // Cannot dream same player two nights in a row
-  const lastDreamTarget = previousActions?.get('dreamcatcher');
-  if (lastDreamTarget === target) {
-    return { valid: false, rejectReason: '不能连续两晚摄梦同一玩家' };
-  }
+  // Night-1-only scope: no cross-night restriction.
   
   return {
     valid: true,
