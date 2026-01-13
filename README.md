@@ -94,6 +94,12 @@ npx playwright show-report
 
 ## 架构说明（简版）
 
+### 角色系统 / 首夜夜晚流程重构记录（给开发者）
+
+如果你想了解本仓库最近一次关于 **Spec + Schema + NightPlan + Host-only Resolvers** 的重构目标与迁移路线（Phase 1 → Phase 3），请读：
+
+- `docs/roles-spec-schema-nightplan-migration.md`
+
 ### Host as authority（房主是逻辑权威）
 
 这款 App 的“游戏逻辑权威”在 Host（房主设备）本地内存中，包括：
