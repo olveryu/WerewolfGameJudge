@@ -26,6 +26,7 @@ import {
   makeWitchPoison,
   getActionTargetSeat,
 } from '../models/actions';
+import { isValidRoleId, getRoleSpec, type SchemaId } from '../models/roles/spec';
 
 // Import types/enums needed internally
 import {
@@ -1282,12 +1283,25 @@ export class GameStateService {
     const wolfAction = currentRole === 'witch' ? this.state.actions.get('wolf') : undefined;
     const killedIndex = getActionTargetSeat(wolfAction);
 
+    // Get schemaId from RoleSpec (fail-safe: only if valid roleId)
+    let schemaId: SchemaId | undefined;
+    if (isValidRoleId(currentRole)) {
+      const spec = getRoleSpec(currentRole);
+      // schemaId only exists when hasAction is true
+      if (spec.night1.hasAction) {
+        schemaId = spec.night1.schemaId;
+      }
+    } else {
+      console.warn(`[GameStateService] ROLE_TURN: Invalid roleId "${currentRole}", schemaId not sent`);
+    }
+
     // Broadcast role turn
     await this.broadcastService.broadcastAsHost({
       type: 'ROLE_TURN',
       role: currentRole,
       pendingSeats,
       killedIndex,
+      schemaId,
     });
 
     await this.broadcastState();

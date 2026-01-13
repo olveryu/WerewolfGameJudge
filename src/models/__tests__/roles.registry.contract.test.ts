@@ -8,6 +8,7 @@ import {
   Team,
   canRoleSeeWolves,
   doesRoleParticipateInWolfVote,
+  getActionOrderViaNightPlan,
   getNightActionOrderForRoles,
   getRoleDisplayName,
   getRoleEnglishName,
@@ -246,5 +247,66 @@ describe('Role Registry - getSeerCheckResult (Seer Binary Result)', () => {
 
   it("should return '好人' for slacker (third-party)", () => {
     expect(getSeerCheckResult('slacker')).toBe('好人');
+  });
+});
+
+// =============================================================================
+// NightPlan compat tests - ensure new path matches legacy
+// =============================================================================
+describe('NightPlan compat with legacy getNightActionOrderForRoles', () => {
+  it('should match getNightActionOrderForRoles for basic roles', () => {
+    const testCases: RoleName[][] = [
+      ['wolf', 'seer', 'witch', 'villager'],
+      ['wolf', 'guard', 'seer', 'hunter'],
+      ['wolf', 'witch', 'seer', 'villager', 'villager'],
+    ];
+    testCases.forEach(roles => {
+      const legacy = getNightActionOrderForRoles(roles);
+      const newPath = getActionOrderViaNightPlan(roles);
+      expect(newPath).toEqual(legacy);
+    });
+  });
+
+  it('should match for skilled wolves (gargoyle, nightmare, wolfRobot)', () => {
+    const roles: RoleName[] = ['gargoyle', 'wolf', 'witch', 'seer', 'hunter', 'villager'];
+    expect(getActionOrderViaNightPlan(roles)).toEqual(getNightActionOrderForRoles(roles));
+
+    const roles2: RoleName[] = ['nightmare', 'guard', 'wolf', 'witch', 'seer', 'hunter'];
+    expect(getActionOrderViaNightPlan(roles2)).toEqual(getNightActionOrderForRoles(roles2));
+
+    const roles3: RoleName[] = ['wolfRobot', 'guard', 'wolf', 'witch', 'psychic', 'hunter'];
+    expect(getActionOrderViaNightPlan(roles3)).toEqual(getNightActionOrderForRoles(roles3));
+  });
+
+  it('should match for god roles (magician, dreamcatcher, psychic)', () => {
+    const roles: RoleName[] = ['magician', 'wolf', 'witch', 'seer', 'hunter', 'darkWolfKing'];
+    expect(getActionOrderViaNightPlan(roles)).toEqual(getNightActionOrderForRoles(roles));
+
+    const roles2: RoleName[] = ['dreamcatcher', 'wolf', 'witch', 'seer', 'hunter', 'darkWolfKing'];
+    expect(getActionOrderViaNightPlan(roles2)).toEqual(getNightActionOrderForRoles(roles2));
+
+    const roles3: RoleName[] = ['wolf', 'witch', 'psychic', 'hunter', 'villager'];
+    expect(getActionOrderViaNightPlan(roles3)).toEqual(getNightActionOrderForRoles(roles3));
+  });
+
+  it('should match for slacker (third-party)', () => {
+    const roles: RoleName[] = ['slacker', 'wolf', 'seer', 'witch', 'hunter', 'villager'];
+    expect(getActionOrderViaNightPlan(roles)).toEqual(getNightActionOrderForRoles(roles));
+  });
+
+  it('should exclude roles without night-1 action (witcher, bloodMoon, wolfKing)', () => {
+    const roles: RoleName[] = ['witcher', 'bloodMoon', 'wolfKing', 'wolf', 'seer', 'witch'];
+    const result = getActionOrderViaNightPlan(roles);
+    expect(result).not.toContain('witcher');
+    expect(result).not.toContain('bloodMoon');
+    expect(result).not.toContain('wolfKing');
+    expect(result).toEqual(getNightActionOrderForRoles(roles));
+  });
+
+  it('should deduplicate multiple wolves', () => {
+    const roles: RoleName[] = ['wolf', 'wolf', 'wolf', 'seer', 'witch', 'villager'];
+    const result = getActionOrderViaNightPlan(roles);
+    expect(result.filter(r => r === 'wolf').length).toBe(1);
+    expect(result).toEqual(getNightActionOrderForRoles(roles));
   });
 });

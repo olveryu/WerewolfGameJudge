@@ -315,12 +315,30 @@ export function getWolfRoleIds(): RoleName[] {
 /**
  * Get night action order for a set of roles
  * Returns only roles that have night actions, sorted by action order
+ * 
+ * @deprecated Use getActionOrderViaNightPlan() instead
+ * TODO(remove by 2026-04-01)
  */
 export function getNightActionOrderForRoles(roles: RoleName[]): RoleName[] {
   const roleSet = new Set(roles);
   return getRolesByActionOrder()
     .filter(role => roleSet.has(role.id as RoleName))
     .map(role => role.id as RoleName);
+}
+
+/**
+ * Get night action order via NightPlan (new declarative path)
+ * Signature matches getNightActionOrderForRoles for easy migration
+ * 
+ * @param roles - Array of role names in the template
+ * @returns Ordered array of role names with night-1 actions
+ */
+export function getActionOrderViaNightPlan(roles: RoleName[]): RoleName[] {
+  // Import dynamically to avoid circular dependency issues
+  // buildNightPlan validates all roleIds and throws NightPlanBuildError if invalid
+  const { buildNightPlan } = require('./spec/plan');
+  const plan = buildNightPlan(roles);
+  return plan.steps.map((step: { roleId: string }) => step.roleId as RoleName);
 }
 
 // ============================================================
@@ -341,6 +359,9 @@ export interface RoleDefinition {
 
 /**
  * Night action order (role IDs sorted by action order)
+ * 
+ * @deprecated Use getActionOrderViaNightPlan() instead
+ * TODO(remove by 2026-04-01)
  */
 export const ACTION_ORDER: RoleName[] = getRolesByActionOrder().map(r => r.id) as RoleName[];
 

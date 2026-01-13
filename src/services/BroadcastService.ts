@@ -16,6 +16,7 @@
 import { supabase, isSupabaseConfigured } from '../config/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { RoleName } from '../models/roles';
+import type { SchemaId } from '../models/roles/spec';
 
 // =============================================================================
 // Connection Status
@@ -34,7 +35,7 @@ export type ConnectionStatusListener = (status: ConnectionStatus) => void;
 /** Messages broadcast by Host to all players */
 export type HostBroadcast = 
   | { type: 'STATE_UPDATE'; state: BroadcastGameState; revision: number }
-  | { type: 'ROLE_TURN'; role: RoleName; pendingSeats: number[]; killedIndex?: number }
+  | { type: 'ROLE_TURN'; role: RoleName; pendingSeats: number[]; killedIndex?: number; schemaId?: SchemaId }
   | { type: 'NIGHT_END'; deaths: number[] }
   | { type: 'PLAYER_JOINED'; seat: number; player: BroadcastPlayer }
   | { type: 'PLAYER_LEFT'; seat: number }
