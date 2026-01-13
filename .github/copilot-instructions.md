@@ -117,6 +117,17 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
 - Phase mismatch events must be treated as idempotent no-ops (debug only). No side effects.
 - Night bridge functions (e.g., `advanceToNextAction()`, `playCurrentRoleAudio()`, `endNight()`) must not perform side effects (death calculation, status change, broadcasts, index changes) unless the controller is in the proper phase.
 
+**NightPlan (table-driven) requirement:**
+- Night-1 role progression MUST be derived from a single table-driven `NightPlan`.
+- Do NOT maintain a separate `ACTION_ORDER` array (or per-role ordering maps) across UI/services/tests.
+- Any "action order" exposed for UI is a derived view of `NightPlan`.
+
+**Contract (target end-state):**
+- Input: `Template.roles`
+- Output: `NightPlanStep[]` (includes `roleId`, `schemaId`, visibility, optional audio keys)
+- `NightFlowController` is responsible only for legal phase/step transitions.
+- `GameStateService` is a bridge only (audio + broadcast + apply patches). It must not advance flow outside controller transitions.
+
 ### Sync Protocol Requirements (Transport-only, but reliable)
 
 - Host broadcasts `STATE_UPDATE` with a monotonically increasing `revision`.
@@ -130,6 +141,7 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
    - If the current player’s seat cannot be determined reliably, **return false** (fail-safe) instead of guessing.
    - Only run when the UI is in a confirmed “choose target” state. Do **not** trigger merely because an action message is visible.
 - **Assertions and counts must use stable selectors/structure.** Do not use viewport `isVisible()` loops as a proxy for counts (e.g., seat count). Prefer stable selectors (`data-testid`/role) or a deterministic structural locator.
+- When choosing a target (seat tap), tests must respect the **current step constraints** (schema/host view-model) and must not guess.
 
 ### Test layering rules (mandatory)
 
@@ -182,6 +194,18 @@ These rules exist to keep `src/screens/RoomScreen/**` refactors safe and prevent
 - Sub-components under `src/screens/RoomScreen/components/**` MUST be UI-only.
    - ❌ Do not import `GameStateService`, `BroadcastService`, Supabase clients, or other singleton services.
    - ✅ Receive data and callbacks via props; orchestration stays in hooks / `RoomScreen.tsx`.
+
+### UI/hooks must not encode gameplay rules
+
+- ❌ Do NOT implement gameplay rules via role-specific branches in `RoomScreen.tsx` or hooks under `src/screens/RoomScreen/**`.
+   - UI should render from **schema + broadcast view-model**.
+- ✅ Temporary migration branches are allowed only if:
+   - they are clearly marked as migration-only (comment + TODO), and
+   - a follow-up removes them once the schema/view-model path is in place.
+
+**Broadcast ViewModel contract (future-friendly):**
+- UI should prefer consuming `BroadcastGameState` view-model fields (step/schema/constraints) over deriving rules from local `actions`.
+- Do NOT add new UI logic that depends on raw `actions` payloads.
 
 #### Button testability contract
 
@@ -242,18 +266,44 @@ These rules apply to Host-authoritative runtime + broadcasted UI state.
 - When a pattern appears twice (especially waits/retries/guards/log formatting), extract it into a reusable helper (`src/utils/*`, `src/services/*`, `e2e/helpers/*`).
 - Keep helpers layered (generic primitives → domain helpers) and keep specs/components thin.
 
-### Roles registry: single source of truth (mandatory)
+## Roles Architecture (MANDATORY)
 
-- All role metadata MUST come from the shared roles registry (e.g. `src/models/roles/registry.ts`) as the single source of truth, including:
-   - display name (中文名/英文名)
-   - camp/team classification
-   - night action capability + order
-   - UI labels/messages related to roles
-- Do NOT introduce new ad-hoc mappings like `Record<RoleName, string>`, `isWolf` arrays, or duplicated `ACTION_ORDER` in UI/services/tests.
-- Wrapper helpers (e.g. `getRoleDisplayName(role)`, `isWolfRole(role)`, `getNightActionOrderForRoles(roles)`) are allowed, but they MUST be thin pass-throughs to the registry.
-- Any change that adds/removes/renames a `RoleName` MUST update:
-   - the registry definition (exhaustive)
-   - Jest coverage ensuring all roles are defined and display names are non-empty
+We standardize on a **declarative** roles system so that Host remains the only authority and UI stays thin.
+
+### Single source of truth: registry
+
+- All role metadata MUST come from the shared roles registry: `src/models/roles/registry.ts`.
+- Do NOT introduce new ad-hoc mappings like `Record<RoleId, string>`, `isWolf` arrays, or duplicated `ACTION_ORDER` in UI/services/tests.
+- Wrapper helpers (e.g. `getRoleDisplayName(role)`, `isWolfRole(role)`) are allowed, but they MUST be thin pass-throughs to the registry.
+
+### RoleId typing requirement (future-proof)
+
+- Role IDs MUST be derived from registry keys (e.g., `export type RoleId = keyof typeof ROLE_SPECS`).
+- Do NOT maintain a hand-written `RoleName` union long-term.
+- If a legacy/compat alias is needed (e.g., `celebrity` -> `dreamcatcher`), it MUST be handled via a single alias layer at the registry boundary.
+
+### Spec + Schema + Resolver + NightPlan (target end-state)
+
+- **RoleSpec (models)**: static metadata + UX copy + night-1 capability declaration.
+- **ActionSchema (models)**: declarative description of required input (targets/steps/constraints). Pure data.
+- **Resolver (host)**: pure function that validates + computes results/patches + reject reasons.
+- **NightPlan (host/controller)**: table-driven ordered steps derived from roles/template for Night-1.
+
+### Hard prohibitions (avoid “role-script UI engine”)
+
+- ❌ Do NOT implement role-driven UI behavior scripts such as `RoleBehavior.getInitialPhase()` / `ActionPhase.nextPhase()` callbacks.
+   - No function-valued fields inside schemas/phases.
+   - No embedded flow control in role models.
+- ❌ UI must not contain role-specific switch/case for gameplay logic.
+   - UI should render from **schema + broadcast view-model**.
+
+### Tests (roles)
+
+- Add/maintain Jest contract tests to enforce:
+   - every role has a RoleSpec
+   - displayName/description/actionTitle are non-empty
+   - referenced schemas exist and are valid
+   - NightPlan excludes roles with `night1.hasAction=false`
 
 ### Engineering Best Practices (keep complexity & file size under control)
 
@@ -311,12 +361,24 @@ These rules apply to Host-authoritative runtime + broadcasted UI state.
 
 ### Roles model hard constraint (MANDATORY)
 
+
 - Role models under `src/models/roles/**` MUST NOT depend on `GameStateService`, `BroadcastService`, Supabase Realtime, or any transport/service layer.
 - Role models MUST NOT write/mutate state (no direct changes to game state, actions, votes, deaths, phase/index, broadcasts).
-- Role models may ONLY:
-   - provide metadata (displayName/description/faction/actionOrder/messages)
-   - perform light validation
-   - return `ActionResult` (or validation errors via `ActionResult.error`)
+- Role models may ONLY provide:
+   - declarative specs/schemas (e.g., `RoleSpec`, `ActionSchema`, constraints)
+   - light validation and structured validation errors
+
+> Host-side resolution MUST live in host resolvers (pure functions). Role models must not embed flow control or side effects.
+
+---
+
+## Deprecation policy (MANDATORY)
+
+- If a module/symbol is being replaced:
+   - mark it with `@deprecated` and point to the replacement path
+   - add a `TODO(remove by YYYY-MM-DD)`
+   - do not add new usages
+- Prefer deleting deprecated code once all call-sites migrate (avoid long-lived compatibility layers).
 
 ---
 
