@@ -526,7 +526,7 @@ export const getLastNightInfo = (room: GameRoomLike): string => {
     deaths.add(sleptWithSeat);
   }
 
-  // Celebrity protects from death
+  // Dreamcatcher protects dream target from death
   if (nightWalkerSeat !== undefined) {
     deaths.delete(nightWalkerSeat);
   }
