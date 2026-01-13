@@ -6,7 +6,6 @@
  */
 
 import { WolfBaseRole } from '../base/WolfBaseRole';
-import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class NightmareRole extends WolfBaseRole {
   readonly id = 'nightmare';
@@ -16,16 +15,6 @@ export class NightmareRole extends WolfBaseRole {
   readonly actionOrder = 2; // Early in night, before most actions
   readonly actionMessage = '请选择封锁对象';
   readonly actionConfirmMessage = '封锁';
-  
-  getActionDialogConfig(_context: RoleActionContext): ActionDialogConfig | null {
-    return {
-      title: '梦魇请睁眼',
-      message: this.actionMessage,
-      buttons: [
-        { text: '好', onPress: () => {} }
-      ]
-    };
-  }
 }
 
 export const nightmareRole = new NightmareRole();

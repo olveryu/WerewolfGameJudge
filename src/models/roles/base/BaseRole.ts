@@ -27,11 +27,22 @@ export interface ActionDialogConfig {
   buttons: ActionDialogButton[];
 }
 
-export interface ActionResult {
-  success: boolean;
-  target?: number | null;
-  actionType?: string;
-  error?: string;
+/**
+ * Context passed to role methods for decision making
+ * Currently only used by WitchRole for multi-phase dialog
+ */
+export interface RoleActionContext {
+  /** Current player's seat number (0-based) */
+  mySeatNumber: number;
+  
+  /** Index of the player killed by wolves this night (-1 if none) */
+  killedIndex: number;
+  
+  /** Callback to proceed with action */
+  proceedWithAction: (target: number | null, isPoison?: boolean) => void;
+  
+  /** Callback to show next dialog */
+  showNextDialog?: () => void;
 }
 
 export abstract class BaseRole {
@@ -59,6 +70,14 @@ export abstract class BaseRole {
   /** Action message shown during night phase */
   readonly actionMessage?: string;
   
+  /**
+   * Action title shown in dialog (e.g., "狼人请睁眼")
+   * Default: "{displayName}请睁眼"
+   */
+  get actionTitle(): string {
+    return `${this.displayName}请睁眼`;
+  }
+
   /** Confirm button text for action */
   readonly actionConfirmMessage?: string;
   
@@ -81,18 +100,6 @@ export abstract class BaseRole {
   readonly canSeeWolves: boolean = false;
   
   /**
-   * Whether this role is immune to wolf kill
-   * Default: false
-   */
-  readonly immuneToWolfKill: boolean = false;
-  
-  /**
-   * Whether this role is immune to witch poison
-   * Default: false
-   */
-  readonly immuneToPoison: boolean = false;
-  
-  /**
    * Check if this role is a wolf
    */
   get isWolf(): boolean {
@@ -100,51 +107,16 @@ export abstract class BaseRole {
   }
   
   /**
-   * Check if this role is a god (special power role on villager side)
-   */
-  get isGod(): boolean {
-    return this.faction === 'god';
-  }
-  
-  /**
    * Get the action dialog configuration for this role
-   * Override in subclass for role-specific dialogs
+   * Default implementation returns standard dialog with actionTitle + actionMessage
+   * Override in subclass for role-specific dialogs (e.g., Witch's multi-phase dialog)
    */
   getActionDialogConfig(_context: RoleActionContext): ActionDialogConfig | null {
-    return null;
+    if (!this.hasNightAction) return null;
+    return {
+      title: this.actionTitle,
+      message: this.actionMessage,
+      buttons: [{ text: '好', onPress: () => {} }]
+    };
   }
-  
-  /**
-   * Validate if an action is legal for this role
-   * Override in subclass for role-specific validation
-   */
-  validateAction(_target: number | null, _context: RoleActionContext): ActionResult {
-    return { success: true };
-  }
-}
-
-/**
- * Context passed to role methods for decision making
- */
-export interface RoleActionContext {
-  /** Current player's seat number (0-based) */
-  mySeatNumber: number;
-  
-  /** Index of the player killed by wolves this night (-1 if none) */
-  killedIndex: number;
-  
-  /** Total number of players */
-  playerCount: number;
-  
-  /** List of alive player indices */
-  alivePlayers: number[];
-  
-  /** Actions taken so far this night */
-  currentActions: Record<string, number>;
-  
-  /** Callback to proceed with action */
-  proceedWithAction: (target: number | null, isPoison?: boolean) => void;
-  
-  /** Callback to show next dialog */
-  showNextDialog?: () => void;
 }

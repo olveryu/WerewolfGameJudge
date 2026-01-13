@@ -8,7 +8,6 @@
  */
 
 import { GodBaseRole } from '../base/GodBaseRole';
-import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class DreamcatcherRole extends GodBaseRole {
   readonly id = 'celebrity'; // Keep role id for backward compatibility
@@ -19,17 +18,6 @@ export class DreamcatcherRole extends GodBaseRole {
   readonly actionOrder = 1; // Early in night
   readonly actionMessage = '请选择摄梦对象';
   readonly actionConfirmMessage = '摄梦';
-  
-  getActionDialogConfig(_context: RoleActionContext): ActionDialogConfig | null {
-    return {
-      title: '摄梦人请睁眼',
-      message: this.actionMessage,
-      buttons: [
-        { text: '好', onPress: () => {} }
-      ]
-    };
-  }
-
 }
 
 export const dreamcatcherRole = new DreamcatcherRole();

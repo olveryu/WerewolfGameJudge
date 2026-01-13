@@ -25,6 +25,7 @@ import {
   performPsychicAction,
   getWolfVoteSummary,
   getPlayersNotViewedRole,
+  getKilledIndex,
 } from '../../models/Room';
 import { 
   getRoleModel,
@@ -37,17 +38,18 @@ import { useGameRoom } from '../../hooks/useGameRoom';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
 import { HostControlButtons } from './HostControlButtons';
 import { useRoomHostDialogs } from './useRoomHostDialogs';
-import { useRoomPlayerDialogs } from './useRoomPlayerDialogs';
-import { useRoomNightDialogs } from './useRoomNightDialogs';
+import { useRoomActionDialogs } from './useRoomActionDialogs';
+import { useRoomSeatDialogs } from './useRoomSeatDialogs';
 import { PlayerGrid } from './components/PlayerGrid';
 import { 
-  determineActionerState,
   toGameRoomLike, 
   getRoleStats, 
   formatRoleList,
   buildSeatViewModels,
 } from './RoomScreen.helpers';
 import { TESTIDS } from '../../testids';
+import { useActionerState } from './hooks/useActionerState';
+import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -84,6 +86,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Local UI state
   const [firstNightEnded, setFirstNightEnded] = useState(false);
   const [anotherIndex, setAnotherIndex] = useState<number | null>(null); // For Magician
+  const [witchPhase, setWitchPhase] = useState<'save' | 'poison' | null>(null); // Witch two-phase flow
   const [isStartingGame, setIsStartingGame] = useState(false); // Hide start button after clicking
   const [seatModalVisible, setSeatModalVisible] = useState(false);
   const [pendingSeatIndex, setPendingSeatIndex] = useState<number | null>(null);
@@ -94,22 +97,23 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Refs for callback stability
   const gameStateRef = useRef<LocalGameState | null>(null);
-  const lastShownDialogIndex = useRef<number | null>(null);
-  const showActionDialogRef = useRef<((role: RoleName) => void) | null>(null);
-  const proceedWithActionRef = useRef<((targetIndex: number | null, extra?: any) => Promise<void>) | null>(null);
+
+  // Auto-trigger intent idempotency: prevent duplicate triggers in the same turn
+  const lastAutoIntentKeyRef = useRef<string | null>(null);
 
   // Keep gameStateRef in sync
   useEffect(() => {
     gameStateRef.current = gameState;
   }, [gameState]);
 
-  // Computed values
-  const { imActioner, showWolves } = useMemo(() => {
-    if (!gameState || roomStatus !== RoomStatus.ongoing || !currentActionRole) {
-      return { imActioner: false, showWolves: false };
-    }
-    return determineActionerState(myRole, currentActionRole, mySeatNumber, gameState.wolfVotes, isHost);
-  }, [gameState, roomStatus, myRole, currentActionRole, mySeatNumber, isHost]);
+  // Computed values: use useActionerState hook
+  const { imActioner, showWolves } = useActionerState({
+    myRole,
+    currentActionRole,
+    mySeatNumber,
+    wolfVotes: gameState?.wolfVotes ?? new Map(),
+    isHost,
+  });
 
   // Build seat view models for PlayerGrid
   const seatViewModels = useMemo(() => {
@@ -178,13 +182,24 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (roomStatus === RoomStatus.unseated || roomStatus === RoomStatus.seated) {
       setFirstNightEnded(false);
       setIsStartingGame(false);
+      setWitchPhase(null); // Reset witch phase on game restart
+      setAnotherIndex(null); // Reset magician state
       return;
     }
     
     if (roomStatus === RoomStatus.ongoing && !currentActionRole) {
       setFirstNightEnded(true);
+      // Note: Do NOT reset witchPhase here - it should persist until phase changes away from ongoing
     }
   }, [gameState, roomStatus, currentActionRole]);
+
+  // Reset witchPhase only when game is not ongoing (more conservative)
+  // This prevents losing witchPhase state during normal night flow
+  useEffect(() => {
+    if (roomStatus !== RoomStatus.ongoing) {
+      setWitchPhase(null);
+    }
+  }, [roomStatus]);
 
   // Loading timeout
   useEffect(() => {
@@ -203,75 +218,289 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     return () => clearTimeout(timeout);
   }, [isInitialized, gameState]);
 
-  // Show action dialog for player when their turn comes
-  useEffect(() => {
-    if (!gameState || roomStatus !== RoomStatus.ongoing) {
-      lastShownDialogIndex.current = null;
-      return;
-    }
-    
-    const currentIndex = gameState.currentActionerIndex;
-    
-    // Only show dialog when audio is not playing and I'm an actioner
-    if (!isAudioPlaying && imActioner && currentActionRole) {
-      if (lastShownDialogIndex.current !== currentIndex) {
-        lastShownDialogIndex.current = currentIndex;
-        showActionDialogRef.current?.(currentActionRole);
+  // ───────────────────────────────────────────────────────────────────────────
+  // Nightmare block detection
+  // ───────────────────────────────────────────────────────────────────────────
+
+  const isBlockedByNightmare = useMemo(() => {
+    if (!gameState || mySeatNumber === null) return false;
+    return gameState.nightmareBlockedSeat === mySeatNumber;
+  }, [gameState, mySeatNumber]);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Intent Layer: useRoomActions
+  // ───────────────────────────────────────────────────────────────────────────
+
+  const gameContext = useMemo(() => ({
+    gameState,
+    roomStatus,
+    currentActionRole,
+    imActioner,
+    mySeatNumber,
+    myRole,
+    isAudioPlaying,
+    isBlockedByNightmare,
+    anotherIndex,
+    witchPhase,
+  }), [gameState, roomStatus, currentActionRole, imActioner, mySeatNumber, myRole, isAudioPlaying, isBlockedByNightmare, anotherIndex, witchPhase]);
+
+  const actionDeps = useMemo(() => ({
+    hasWolfVoted,
+    getKilledIndex: () => {
+      if (!gameState) return -1;
+      return getKilledIndex(toGameRoomLike(gameState));
+    },
+  }), [gameState, hasWolfVoted]);
+
+  const {
+    getActionIntent,
+    getSkipIntent,
+    getAutoTriggerIntent,
+    getMagicianTarget,
+  } = useRoomActions(gameContext, actionDeps);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Dialog Layer: useRoomActionDialogs + useRoomSeatDialogs
+  // ───────────────────────────────────────────────────────────────────────────
+
+  const actionDialogs = useRoomActionDialogs();
+
+  const seatDialogs = useRoomSeatDialogs({
+    pendingSeatIndex,
+    setPendingSeatIndex,
+    setSeatModalVisible,
+    setModalType,
+    takeSeat,
+    leaveSeat,
+    roomStatus,
+    navigation,
+  });
+
+  const {
+    showEnterSeatDialog,
+    showLeaveSeatDialog,
+    handleConfirmSeat,
+    handleCancelSeat,
+    handleConfirmLeave,
+    handleLeaveRoom,
+  } = seatDialogs;
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Execution Layer: proceedWithAction
+  // ───────────────────────────────────────────────────────────────────────────
+
+  const proceedWithAction = useCallback(async (targetIndex: number | null, extra?: any) => {
+    await submitAction(targetIndex, extra);
+  }, [submitAction]);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Intent Handler (Orchestrator)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  const handleActionIntent = useCallback((intent: ActionIntent) => {
+    switch (intent.type) {
+      case 'blocked':
+        actionDialogs.showBlockedAlert();
+        break;
+
+      case 'hunterStatus':
+        actionDialogs.showStatusDialog(
+          '猎人不需要行动',
+          '猎人只在死亡时发动技能，请点击"跳过"',
+          () => void proceedWithAction(-1)
+        );
+        break;
+
+      case 'darkWolfKingStatus':
+        actionDialogs.showStatusDialog(
+          '狼王不需要行动',
+          '狼王只在死亡时发动技能，请点击"跳过"',
+          () => void proceedWithAction(-1)
+        );
+        break;
+
+      case 'magicianFirst':
+        setAnotherIndex(intent.targetIndex);
+        actionDialogs.showMagicianFirstAlert(intent.targetIndex);
+        break;
+
+      case 'seerReveal': {
+        if (!gameState) return;
+        const result = performSeerAction(toGameRoomLike(gameState), intent.targetIndex);
+        actionDialogs.showRevealDialog(
+          `${intent.targetIndex + 1}号是${result}`,
+          '',
+          () => void proceedWithAction(intent.targetIndex)
+        );
+        break;
+      }
+
+      case 'psychicReveal': {
+        if (!gameState) return;
+        const result = performPsychicAction(toGameRoomLike(gameState), intent.targetIndex);
+        actionDialogs.showRevealDialog(
+          `${intent.targetIndex + 1}号是${result}`,
+          '',
+          () => void proceedWithAction(intent.targetIndex)
+        );
+        break;
+      }
+
+      case 'witchSavePhase':
+        setWitchPhase('save');
+        actionDialogs.showWitchSaveDialog(
+          intent.killedIndex ?? -1,
+          intent.canSave ?? false,
+          () => {
+            // Save - proceed with save action
+            if (intent.killedIndex !== undefined && intent.killedIndex !== -1) {
+              void proceedWithAction(intent.killedIndex, { save: true });
+            }
+            setWitchPhase(null);
+          },
+          () => {
+            // Skip save - move to poison phase
+            setWitchPhase('poison');
+          }
+        );
+        break;
+
+      case 'witchPoisonPhase':
+        actionDialogs.showWitchPoisonPrompt(() => {
+          // Dismiss - skip poison and end witch turn
+          void proceedWithAction(-1);
+          setWitchPhase(null);
+        });
+        break;
+
+      case 'witchPoison':
+        actionDialogs.showWitchPoisonConfirm(
+          intent.targetIndex,
+          () => {
+            // Confirm poison
+            void proceedWithAction(intent.targetIndex, { poison: true });
+            setWitchPhase(null);
+          },
+          () => {
+            // Cancel - stay in poison phase
+          }
+        );
+        break;
+
+      case 'wolfVote':
+        if (intent.wolfSeat !== undefined) {
+          actionDialogs.showWolfVoteDialog(
+            `${intent.wolfSeat + 1}号狼人`,
+            intent.targetIndex,
+            () => void submitWolfVote(intent.targetIndex)
+          );
+        }
+        break;
+
+      case 'actionConfirm':
+        if (myRole === 'magician' && anotherIndex !== null) {
+          const mergedTarget = getMagicianTarget(intent.targetIndex);
+          setAnotherIndex(null);
+          actionDialogs.showConfirmDialog(
+            '确认交换',
+            intent.message || `确定交换${anotherIndex + 1}号和${intent.targetIndex + 1}号?`,
+            () => void proceedWithAction(mergedTarget)
+          );
+        } else {
+          actionDialogs.showConfirmDialog(
+            '确认行动',
+            intent.message || '',
+            () => void proceedWithAction(intent.targetIndex)
+          );
+        }
+        break;
+
+      case 'skip':
+        actionDialogs.showConfirmDialog(
+          '确认跳过',
+          intent.message || '确定不发动技能吗？',
+          () => void proceedWithAction(-1)
+        );
+        break;
+
+      case 'actionPrompt': {
+        // Generic action prompt for all roles (dismiss → wait for seat tap)
+        const roleModel = getRoleModel(myRole!);
+        if (!roleModel) return;
+        
+        actionDialogs.showRoleActionPrompt(
+          roleModel.actionTitle,
+          roleModel.actionMessage || '请选择目标',
+          () => {
+            // dismiss → do nothing, wait for user to tap seat
+          }
+        );
+        break;
       }
     }
-  }, [gameState, roomStatus, isAudioPlaying, imActioner, currentActionRole]);
+  }, [gameState, myRole, anotherIndex, actionDialogs, proceedWithAction, submitWolfVote, getMagicianTarget, setAnotherIndex, setWitchPhase]);
 
-  // Night dialogs from hook
-  const {
-    showActionDialog,
-    showBlockedDialog,
-    showHunterStatusDialog,
-    showDarkWolfKingStatusDialog,
-    isBlockedByNightmare,
-  } = useRoomNightDialogs({
-    gameState,
-    mySeatNumber,
-    proceedWithActionRef,
-    toGameRoomLike,
-  });
-  
+  // ───────────────────────────────────────────────────────────────────────────
+  // Auto-trigger intent (with idempotency to prevent duplicate triggers)
+  // ───────────────────────────────────────────────────────────────────────────
+
   useEffect(() => {
-    // When blocked by nightmare, show blocked dialog instead of action dialog
-    showActionDialogRef.current = isBlockedByNightmare ? showBlockedDialog : showActionDialog;
-  }, [showActionDialog, showBlockedDialog, isBlockedByNightmare]);
+    // Guard: reset key when not in ongoing state or night ended
+    if (roomStatus !== RoomStatus.ongoing || !currentActionRole) {
+      if (lastAutoIntentKeyRef.current !== null) {
+        console.log('[AutoIntent] Clearing key (not ongoing or night ended)');
+        lastAutoIntentKeyRef.current = null;
+      }
+      return;
+    }
 
-  // Seat handling
+    if (!imActioner || isAudioPlaying) return;
+    
+    const autoIntent = getAutoTriggerIntent();
+    if (!autoIntent) return;
+
+    // Build idempotency key: stable representation of "same turn"
+    const key = [
+      roomStatus,
+      gameState?.currentActionerIndex ?? 'null',
+      currentActionRole ?? 'null',
+      imActioner ? 'A' : 'N',
+      isAudioPlaying ? 'P' : 'S',
+      myRole ?? 'null',
+      witchPhase ?? 'null',
+      anotherIndex ?? 'null',
+      autoIntent.type,
+    ].join('|');
+
+    // Skip if same key (idempotent - already triggered this exact intent)
+    if (key === lastAutoIntentKeyRef.current) {
+      console.log(`[AutoIntent] Skipping duplicate: key=${key}`);
+      return;
+    }
+
+    console.log(`[AutoIntent] Triggering: key=${key}, intent=${autoIntent.type}`);
+    lastAutoIntentKeyRef.current = key;
+    handleActionIntent(autoIntent);
+  }, [imActioner, isAudioPlaying, myRole, witchPhase, anotherIndex, roomStatus, currentActionRole, gameState?.currentActionerIndex, getAutoTriggerIntent, handleActionIntent]);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Seat tap handlers
+  // ───────────────────────────────────────────────────────────────────────────
+
   const handleSeatingTap = useCallback((index: number) => {
     if (mySeatNumber !== null && index === mySeatNumber) {
       showLeaveSeatDialog(index);
     } else {
       showEnterSeatDialog(index);
     }
-  }, [mySeatNumber]);
+  }, [mySeatNumber, showLeaveSeatDialog, showEnterSeatDialog]);
 
   const handleActionTap = useCallback((index: number) => {
-    // Nightmare block: prevent action when blocked
-    if (isBlockedByNightmare) {
-      showAlert('技能被封锁', '你被梦魇恐惧，今晚无法使用技能。\n请点击"跳过"按钮。');
-      return;
+    const intent = getActionIntent(index);
+    if (intent) {
+      handleActionIntent(intent);
     }
-    
-    if (myRole === 'hunter') {
-      showHunterStatusDialog();
-      return;
-    }
-    if (myRole === 'darkWolfKing') {
-      showDarkWolfKingStatusDialog();
-      return;
-    }
-    
-    if (myRole === 'magician' && anotherIndex === null) {
-      setAnotherIndex(index);
-      showAlert('已选择第一位玩家', `${index + 1}号，请选择第二位玩家`);
-    } else {
-      showActionConfirmDialog(index);
-    }
-  }, [myRole, anotherIndex, showHunterStatusDialog, showDarkWolfKingStatusDialog, isBlockedByNightmare]);
+  }, [getActionIntent, handleActionIntent]);
 
   const onSeatTapped = useCallback((index: number) => {
     if (!gameState) return;
@@ -287,88 +516,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [gameState, roomStatus, isAudioPlaying, handleSeatingTap, handleActionTap, imActioner]);
 
-  // Wolf vote handling
-  const findVotingWolfSeat = useCallback((): number | null => {
-    if (!gameState) return null;
-    
-    if (mySeatNumber !== null && myRole && isWolfRole(myRole) && !hasWolfVoted(mySeatNumber)) {
-      return mySeatNumber;
-    }
-    
-    return null;
-  }, [gameState, mySeatNumber, myRole, hasWolfVoted]);
+  // ───────────────────────────────────────────────────────────────────────────
+  // Skip action handler
+  // ───────────────────────────────────────────────────────────────────────────
 
-  const buildActionMessage = useCallback((index: number, actingRole: RoleName): string => {
-    const roleModel = getRoleModel(actingRole);
-    const actionConfirmMessage = roleModel?.actionConfirmMessage || '对';
-    
-    if (index === -1) {
-      return '确定不发动技能吗？';
+  const handleSkipAction = useCallback(() => {
+    const intent = getSkipIntent();
+    if (intent) {
+      handleActionIntent(intent);
     }
-    if (anotherIndex === null) {
-      return `确定${actionConfirmMessage}${index + 1}号玩家?`;
-    }
-    return `确定${actionConfirmMessage}${index + 1}号和${anotherIndex + 1}号玩家?`;
-  }, [anotherIndex]);
-
-  const performAction = useCallback((targetIndex: number) => {
-    if (!gameState || !myRole) return;
-    
-    if (myRole === 'seer' || myRole === 'psychic') {
-      const result = myRole === 'seer' 
-        ? performSeerAction(toGameRoomLike(gameState), targetIndex)
-        : performPsychicAction(toGameRoomLike(gameState), targetIndex);
-      
-      showAlert(
-        `${targetIndex + 1}号是${result}`,
-        '',
-        [{ text: '确定', onPress: () => { void proceedWithAction(targetIndex); } }]
-      );
-    } else if (myRole === 'magician' && anotherIndex !== null) {
-      const target = anotherIndex + targetIndex * 100;
-      setAnotherIndex(null);
-      void proceedWithAction(target);
-    } else {
-      void proceedWithAction(targetIndex);
-    }
-  }, [gameState, myRole, anotherIndex]);
-  
-  const proceedWithAction = useCallback(async (targetIndex: number | null, extra?: any) => {
-    await submitAction(targetIndex, extra);
-  }, [submitAction]);
-  
-  useEffect(() => {
-    proceedWithActionRef.current = proceedWithAction;
-  }, [proceedWithAction]);
-  
-  // Player dialog callbacks from hook
-  const {
-    showEnterSeatDialog,
-    handleConfirmSeat,
-    handleCancelSeat,
-    showLeaveSeatDialog,
-    handleConfirmLeave,
-    showActionConfirmDialog,
-    handleSkipAction,
-    handleLeaveRoom,
-  } = useRoomPlayerDialogs({
-    setPendingSeatIndex,
-    setModalType,
-    setSeatModalVisible,
-    pendingSeatIndex,
-    takeSeat,
-    leaveSeat,
-    myRole,
-    gameState,
-    findVotingWolfSeat,
-    buildActionMessage,
-    proceedWithAction,
-    performAction,
-    setAnotherIndex,
-    submitWolfVote,
-    roomStatus,
-    navigation,
-  });
+  }, [getSkipIntent, handleActionIntent]);
 
   // Host dialog callbacks from hook
   const {

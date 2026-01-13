@@ -7,7 +7,6 @@
  */
 
 import { GodBaseRole } from '../base/GodBaseRole';
-import { ActionDialogConfig, RoleActionContext, ActionResult } from '../base/BaseRole';
 
 export class GuardRole extends GodBaseRole {
   readonly id = 'guard';
@@ -17,17 +16,6 @@ export class GuardRole extends GodBaseRole {
   readonly actionOrder = 3; // Before wolves
   readonly actionMessage = '请选择守护对象';
   readonly actionConfirmMessage = '守护';
-  
-  getActionDialogConfig(_context: RoleActionContext): ActionDialogConfig | null {
-    return {
-      title: '守卫请睁眼',
-      message: this.actionMessage,
-      buttons: [
-        { text: '好', onPress: () => {} }
-      ]
-    };
-  }
-
 }
 
 export const guardRole = new GuardRole();

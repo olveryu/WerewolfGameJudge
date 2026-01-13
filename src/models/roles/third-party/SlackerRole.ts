@@ -5,7 +5,7 @@
  * Shares the same faction as the idol, but doesn't know the idol's identity.
  */
 
-import { BaseRole, Faction, ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
+import { BaseRole, Faction } from '../base/BaseRole';
 
 export class SlackerRole extends BaseRole {
   readonly id = 'slacker';
@@ -16,16 +16,6 @@ export class SlackerRole extends BaseRole {
   readonly actionOrder = -1; // First to act on first night only
   readonly actionMessage = '请选择你的榜样';
   readonly actionConfirmMessage = '选择榜样';
-  
-  getActionDialogConfig(_context: RoleActionContext): ActionDialogConfig | null {
-    return {
-      title: '混子请睁眼',
-      message: this.actionMessage,
-      buttons: [
-        { text: '好', onPress: () => {} }
-      ]
-    };
-  }
 }
 
 export const slackerRole = new SlackerRole();

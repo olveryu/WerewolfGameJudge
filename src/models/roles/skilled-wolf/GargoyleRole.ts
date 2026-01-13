@@ -6,7 +6,6 @@
  */
 
 import { WolfBaseRole } from '../base/WolfBaseRole';
-import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class GargoyleRole extends WolfBaseRole {
   readonly id = 'gargoyle';
@@ -20,30 +19,6 @@ export class GargoyleRole extends WolfBaseRole {
   // Gargoyle does NOT participate in wolf vote
   readonly participatesInWolfVote = false;
   readonly canSeeWolves = false;
-  
-  getActionDialogConfig(_context: RoleActionContext): ActionDialogConfig | null {
-    return {
-      title: '石像鬼请睁眼',
-      message: this.actionMessage,
-      buttons: [
-        { text: '好', onPress: () => {} }
-      ]
-    };
-  }
-  
-  /**
-   * Get the result dialog after checking a player.
-   * Returns the exact role, not just faction.
-   */
-  getCheckResultDialogConfig(targetSeat: number, roleName: string): ActionDialogConfig {
-    return {
-      title: `${targetSeat + 1}号玩家`,
-    message: `是${roleName}`,
-      buttons: [
-        { text: '确定', onPress: () => {} }
-      ]
-    };
-  }
 }
 
 export const gargoyleRole = new GargoyleRole();
