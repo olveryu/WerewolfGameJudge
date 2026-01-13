@@ -54,9 +54,6 @@ export interface ResolverContext {
   /** All players (seat -> roleId) */
   readonly players: ReadonlyMap<number, RoleId>;
   
-  /** Previous night actions (for notSameAsLastNight constraint) */
-  readonly previousActions?: ReadonlyMap<RoleId, number>;
-  
   /** Current night's resolved results so far */
   readonly currentNightResults: CurrentNightResults;
   

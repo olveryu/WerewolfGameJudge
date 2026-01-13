@@ -7,7 +7,7 @@
 import type { ResolverFn } from './types';
 
 export const guardProtectResolver: ResolverFn = (context, input) => {
-  const { actorSeat, previousActions, currentNightResults } = context;
+  const { actorSeat, currentNightResults } = context;
   const target = input.target;
   
   // Guard can skip (choose not to protect anyone)
@@ -20,11 +20,7 @@ export const guardProtectResolver: ResolverFn = (context, input) => {
     return { valid: true, result: {} };
   }
   
-  // Cannot protect same player two nights in a row
-  const lastGuardedTarget = previousActions?.get('guard');
-  if (lastGuardedTarget === target) {
-    return { valid: false, rejectReason: '不能连续两晚守护同一玩家' };
-  }
+  // Night-1-only scope: no cross-night restriction.
   
   return {
     valid: true,

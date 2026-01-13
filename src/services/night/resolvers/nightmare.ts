@@ -10,7 +10,7 @@ import { ROLE_SPECS } from '../../../models/roles/spec/specs';
 import type { ResolverFn } from './types';
 
 export const nightmareBlockResolver: ResolverFn = (context, input) => {
-  const { actorSeat, players, previousActions } = context;
+  const { actorSeat, players } = context;
   const target = input.target;
   
   // Validate target exists
@@ -19,15 +19,10 @@ export const nightmareBlockResolver: ResolverFn = (context, input) => {
   }
   
   // Cannot block self
-  if (target === actorSeat) {
-    return { valid: false, rejectReason: '不能恐惧自己' };
-  }
+  // NOTE: Self-target is allowed in this app (neutral judge rule).
+  // If nightmare blocks a wolf (including themselves), wolves cannot kill this night.
   
-  // Cannot block same player two nights in a row
-  const lastBlockedTarget = previousActions?.get('nightmare');
-  if (lastBlockedTarget === target) {
-    return { valid: false, rejectReason: '不能连续两晚恐惧同一玩家' };
-  }
+  // Night-1-only scope: no cross-night restriction.
   
   // Target must exist
   const targetRoleId = players.get(target);

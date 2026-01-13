@@ -12,7 +12,7 @@
 import { PRESET_TEMPLATES, createTemplateFromRoles } from '../Template';
 import {
   RoleName,
-  ACTION_ORDER,
+  getActionOrderViaNightPlan,
   ROLE_MODELS,
   isValidRoleName,
   hasNightAction,
@@ -66,16 +66,10 @@ describe('PRESET_TEMPLATES - 数据自洽性', () => {
         }
       });
 
-      it('actionOrder 顺序应该符合 ACTION_ORDER', () => {
-        for (let i = 0; i < template.actionOrder.length - 1; i++) {
-          const currentRole = template.actionOrder[i];
-          const nextRole = template.actionOrder[i + 1];
-
-          const currentIndex = ACTION_ORDER.indexOf(currentRole);
-          const nextIndex = ACTION_ORDER.indexOf(nextRole);
-
-          expect(currentIndex).toBeLessThan(nextIndex);
-        }
+      it('actionOrder 顺序应该符合 NightPlan 定义的顺序', () => {
+        // Get the expected order from NightPlan
+        const expectedOrder = getActionOrderViaNightPlan(preset.roles);
+        expect(template.actionOrder).toEqual(expectedOrder);
       });
 
       it('应该有合理的阵营分布', () => {

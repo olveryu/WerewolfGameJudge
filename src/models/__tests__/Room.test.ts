@@ -17,14 +17,13 @@ import {
 } from '../Room';
 import { GameTemplate } from '../Template';
 import { Player, PlayerStatus, SkillStatus } from '../Player';
-import { RoleName, ACTION_ORDER } from '../roles';
+import { RoleName, getActionOrderViaNightPlan } from '../roles';
 import { isActionTarget, getActionTargetSeat, isActionWitch, isWitchPoison } from '../actions';
 
 // Helper to create a test room with specific roles
 const createTestRoom = (roles: RoleName[]): Room => {
-  // Get action order for these roles
-  const roleSet = new Set(roles);
-  const actionOrder = ACTION_ORDER.filter((role) => roleSet.has(role));
+  // Get action order for these roles via NightPlan
+  const actionOrder = getActionOrderViaNightPlan(roles);
 
   const template: GameTemplate = {
     name: 'Test Template',
@@ -627,7 +626,7 @@ describe('updateRoomTemplate', () => {
       name: 'New Template',
       roles: newRoles,
       numberOfPlayers: 6,
-      actionOrder: ACTION_ORDER.filter((role) => new Set(newRoles).has(role)),
+      actionOrder: getActionOrderViaNightPlan(newRoles),
     };
     
     // Update room template
@@ -670,7 +669,7 @@ describe('updateRoomTemplate', () => {
       name: 'Different Roles',
       roles: newRoles,
       numberOfPlayers: 4,
-      actionOrder: ACTION_ORDER.filter((role) => new Set(newRoles).has(role)),
+      actionOrder: getActionOrderViaNightPlan(newRoles),
     };
     
     const updatedRoom = updateRoomTemplate(seatedRoom, newTemplate);
@@ -714,7 +713,7 @@ describe('Room Status Flow', () => {
       name: 'Test',
       roles,
       numberOfPlayers: roles.length,
-      actionOrder: ACTION_ORDER.filter((role) => new Set(roles).has(role)),
+      actionOrder: getActionOrderViaNightPlan(roles),
     };
     
     const room = createRoom('host123', '1234', template);
