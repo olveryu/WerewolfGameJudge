@@ -30,6 +30,8 @@ jest.mock('../BroadcastService', () => ({
       joinRoom: jest.fn().mockResolvedValue(undefined),
       leaveRoom: jest.fn().mockResolvedValue(undefined),
       broadcastAsHost: jest.fn().mockResolvedValue(undefined),
+      broadcastPublic: jest.fn().mockResolvedValue(undefined),
+      sendPrivate: jest.fn().mockResolvedValue(undefined),
       sendToHost: jest.fn().mockResolvedValue(undefined),
     })),
   },

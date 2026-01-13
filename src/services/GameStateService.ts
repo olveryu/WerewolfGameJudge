@@ -27,6 +27,7 @@ import {
   getActionTargetSeat,
 } from '../models/actions';
 import { isValidRoleId, getRoleSpec, type SchemaId } from '../models/roles/spec';
+import type { PrivateMessage, WitchContextPayload } from './types/PrivateBroadcast';
 
 // Import types/enums needed internally
 import {
@@ -1279,10 +1280,6 @@ export class GameStateService {
     // Get pending seats for this role
     const pendingSeats = this.getSeatsForRole(currentRole);
     
-    // For wolf role, include kill target info (extract from structured action)
-    const wolfAction = currentRole === 'witch' ? this.state.actions.get('wolf') : undefined;
-    const killedIndex = getActionTargetSeat(wolfAction);
-
     // Get schemaId from RoleSpec (fail-safe: only if valid roleId)
     let schemaId: SchemaId | undefined;
     if (isValidRoleId(currentRole)) {
@@ -1295,13 +1292,20 @@ export class GameStateService {
       console.warn(`[GameStateService] ROLE_TURN: Invalid roleId "${currentRole}", schemaId not sent`);
     }
 
-    // Broadcast role turn
+    // ANTI-CHEAT: For witch, send killedIndex via private message, NOT public broadcast
+    if (currentRole === 'witch') {
+      const wolfAction = this.state.actions.get('wolf');
+      const killedIndex = getActionTargetSeat(wolfAction) ?? -1;
+      await this.sendWitchContext(killedIndex);
+    }
+
+    // Broadcast role turn (PUBLIC - no killedIndex)
     await this.broadcastService.broadcastAsHost({
       type: 'ROLE_TURN',
       role: currentRole,
       pendingSeats,
-      killedIndex,
       schemaId,
+      // ❌ killedIndex removed from public broadcast (anti-cheat)
     });
 
     await this.broadcastState();
@@ -1746,6 +1750,73 @@ export class GameStateService {
       }
     });
     return seats.sort((a, b) => a - b);
+  }
+
+  /**
+   * Get the UID of a player with a specific role.
+   * Returns null if role not found in this game.
+   */
+  private getPlayerUidByRole(role: RoleName): string | null {
+    if (!this.state) return null;
+    for (const [, player] of this.state.players) {
+      if (player?.role === role) {
+        return player.uid;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Get the seat number of a player with a specific role.
+   * Returns -1 if role not found.
+   */
+  private getPlayerSeatByRole(role: RoleName): number {
+    if (!this.state) return -1;
+    for (const [seat, player] of this.state.players) {
+      if (player?.role === role) {
+        return seat;
+      }
+    }
+    return -1;
+  }
+
+  // ===========================================================================
+  // Private Effect Sending (Anti-cheat: toUid targeted messages)
+  // ===========================================================================
+
+  /**
+   * Send WITCH_CONTEXT to the witch player.
+   * Contains sensitive info: killedIndex, canSave.
+   * 
+   * @see docs/phase4-final-migration.md for anti-cheat architecture
+   */
+  private async sendWitchContext(killedIndex: number): Promise<void> {
+    const witchUid = this.getPlayerUidByRole('witch');
+    if (!witchUid) {
+      console.warn('[GameStateService] sendWitchContext: witch not found in game');
+      return;
+    }
+
+    const witchSeat = this.getPlayerSeatByRole('witch');
+    // canSave: Host determines if witch can save (not self, has antidote)
+    // Night-1-only: witch always has antidote, canSaveSelf = false
+    const canSave = killedIndex !== -1 && killedIndex !== witchSeat;
+
+    const privateMessage: PrivateMessage = {
+      type: 'PRIVATE_EFFECT',
+      toUid: witchUid,
+      revision: this.stateRevision,
+      payload: {
+        kind: 'WITCH_CONTEXT',
+        killedIndex,
+        canSave,
+        canPoison: true,  // Night-1: always has poison
+        phase: 'save',
+      } as WitchContextPayload,
+    };
+
+    console.log('[GameStateService] Sending WITCH_CONTEXT to witch:', witchUid.substring(0, 8), 'killedIndex:', killedIndex, 'canSave:', canSave);
+    await this.broadcastService.sendPrivate(privateMessage);
   }
 
   // ===========================================================================
