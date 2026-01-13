@@ -83,6 +83,8 @@ export interface UseGameRoomResult {
   
   // Private inbox (anti-cheat: Zero-Trust)
   getWitchContext: () => import('../services/types/PrivateBroadcast').WitchContextPayload | null;
+  getSeerReveal: () => import('../services/types/PrivateBroadcast').SeerRevealPayload | null;
+  getPsychicReveal: () => import('../services/types/PrivateBroadcast').PsychicRevealPayload | null;
 }
 
 export const useGameRoom = (): UseGameRoomResult => {
@@ -443,6 +445,8 @@ export const useGameRoom = (): UseGameRoomResult => {
     hasWolfVoted: hasWolfVotedFn,
     getAllWolfSeats: getAllWolfSeatsFn,
     getWitchContext: () => gameStateService.current.getWitchContext(),
+    getSeerReveal: () => gameStateService.current.getSeerReveal(),
+    getPsychicReveal: () => gameStateService.current.getPsychicReveal(),
   };
 };
 

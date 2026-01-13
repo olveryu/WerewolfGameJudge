@@ -25,11 +25,11 @@ describe('GameStateService Private Inbox', () => {
 
     it('Host player should also be filtered (no visibility privilege)', () => {
       // Even Host device filters by toUid
-      const hostUid = 'host-player-uid';
-      const witchUid = 'witch-player-uid';
+      const hostUid: string = 'host-player-uid';
+      const witchUid: string = 'witch-player-uid';
       
       // If Host is NOT the witch, they shouldn't see witch context
-      const msgToUid = witchUid;
+      const msgToUid: string = witchUid;
       const hostShouldProcess = msgToUid === hostUid;
       
       expect(hostShouldProcess).toBe(false);
@@ -108,6 +108,63 @@ describe('GameStateService Private Inbox', () => {
       const result = inbox.get(key) ?? null;
       
       expect(result).toBeNull();
+    });
+  });
+
+  describe('Seer and Psychic reveal retrieval', () => {
+    it('should retrieve SEER_REVEAL from inbox with correct key', () => {
+      type SeerPayload = { kind: 'SEER_REVEAL'; targetSeat: number; result: '好人' | '狼人' };
+      const inbox = new Map<string, SeerPayload>();
+      const revision = 3;
+      
+      const payload: SeerPayload = {
+        kind: 'SEER_REVEAL',
+        targetSeat: 5,
+        result: '狼人',
+      };
+      
+      const key = `${revision}_SEER_REVEAL`;
+      inbox.set(key, payload);
+      
+      const retrieved = inbox.get(key);
+      expect(retrieved?.kind).toBe('SEER_REVEAL');
+      expect(retrieved?.targetSeat).toBe(5);
+      expect(retrieved?.result).toBe('狼人');
+    });
+
+    it('should retrieve PSYCHIC_REVEAL from inbox with correct key', () => {
+      type PsychicPayload = { kind: 'PSYCHIC_REVEAL'; targetSeat: number; result: string };
+      const inbox = new Map<string, PsychicPayload>();
+      const revision = 3;
+      
+      const payload: PsychicPayload = {
+        kind: 'PSYCHIC_REVEAL',
+        targetSeat: 2,
+        result: '预言家',
+      };
+      
+      const key = `${revision}_PSYCHIC_REVEAL`;
+      inbox.set(key, payload);
+      
+      const retrieved = inbox.get(key);
+      expect(retrieved?.kind).toBe('PSYCHIC_REVEAL');
+      expect(retrieved?.targetSeat).toBe(2);
+      expect(retrieved?.result).toBe('预言家');
+    });
+
+    it('should not cross-contaminate between reveal types', () => {
+      type AnyPayload = { kind: string; targetSeat: number; result: string };
+      const inbox = new Map<string, AnyPayload>();
+      const revision = 3;
+      
+      inbox.set(`${revision}_SEER_REVEAL`, { kind: 'SEER_REVEAL', targetSeat: 1, result: '好人' });
+      inbox.set(`${revision}_PSYCHIC_REVEAL`, { kind: 'PSYCHIC_REVEAL', targetSeat: 2, result: '守卫' });
+      
+      const seerKey = `${revision}_SEER_REVEAL`;
+      const psychicKey = `${revision}_PSYCHIC_REVEAL`;
+      
+      expect(inbox.get(seerKey)?.kind).toBe('SEER_REVEAL');
+      expect(inbox.get(psychicKey)?.kind).toBe('PSYCHIC_REVEAL');
     });
   });
 

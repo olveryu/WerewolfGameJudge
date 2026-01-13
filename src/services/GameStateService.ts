@@ -27,7 +27,7 @@ import {
   getActionTargetSeat,
 } from '../models/actions';
 import { isValidRoleId, getRoleSpec, type SchemaId } from '../models/roles/spec';
-import type { PrivateMessage, WitchContextPayload } from './types/PrivateBroadcast';
+import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload } from './types/PrivateBroadcast';
 
 // Import types/enums needed internally
 import {
@@ -100,7 +100,7 @@ export class GameStateService {
    * Key: `${revision}_${kind}` to prevent cross-turn contamination
    * @see docs/phase4-final-migration.md
    */
-  private readonly privateInbox: Map<string, WitchContextPayload> = new Map();
+  private readonly privateInbox: Map<string, PrivatePayload> = new Map();
   
   private readonly broadcastService: BroadcastService;
   private readonly audioService: AudioService;
@@ -792,10 +792,22 @@ export class GameStateService {
         // Notify listeners so UI can update
         this.notifyListeners();
         break;
-      case 'SEER_REVEAL':
-      case 'PSYCHIC_REVEAL':
+      case 'SEER_REVEAL': {
+        const revealKey = `${this.stateRevision}_SEER_REVEAL`;
+        this.privateInbox.set(revealKey, msg.payload);
+        console.log('[GameState] Stored SEER_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
+        this.notifyListeners();
+        break;
+      }
+      case 'PSYCHIC_REVEAL': {
+        const revealKey = `${this.stateRevision}_PSYCHIC_REVEAL`;
+        this.privateInbox.set(revealKey, msg.payload);
+        console.log('[GameState] Stored PSYCHIC_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
+        this.notifyListeners();
+        break;
+      }
       case 'BLOCKED':
-        // TODO: Handle other private message types in future commits
+        // TODO: Handle blocked message in future commit
         console.log('[GameState] Private message type not yet handled:', msg.payload.kind);
         break;
     }
@@ -810,7 +822,41 @@ export class GameStateService {
    */
   getWitchContext(): WitchContextPayload | null {
     const key = `${this.stateRevision}_WITCH_CONTEXT`;
-    return this.privateInbox.get(key) ?? null;
+    const payload = this.privateInbox.get(key);
+    if (payload?.kind === 'WITCH_CONTEXT') {
+      return payload;
+    }
+    return null;
+  }
+
+  /**
+   * Get seer reveal from private inbox (for current revision only)
+   * Returns null if no SEER_REVEAL message received for current revision.
+   * 
+   * ANTI-CHEAT: Only returns data sent privately to this player.
+   */
+  getSeerReveal(): SeerRevealPayload | null {
+    const key = `${this.stateRevision}_SEER_REVEAL`;
+    const payload = this.privateInbox.get(key);
+    if (payload?.kind === 'SEER_REVEAL') {
+      return payload;
+    }
+    return null;
+  }
+
+  /**
+   * Get psychic reveal from private inbox (for current revision only)
+   * Returns null if no PSYCHIC_REVEAL message received for current revision.
+   * 
+   * ANTI-CHEAT: Only returns data sent privately to this player.
+   */
+  getPsychicReveal(): PsychicRevealPayload | null {
+    const key = `${this.stateRevision}_PSYCHIC_REVEAL`;
+    const payload = this.privateInbox.get(key);
+    if (payload?.kind === 'PSYCHIC_REVEAL') {
+      return payload;
+    }
+    return null;
   }
 
   /**
