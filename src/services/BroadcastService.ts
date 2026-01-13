@@ -17,6 +17,8 @@ import { supabase, isSupabaseConfigured } from '../config/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { RoleName } from '../models/roles';
 import type { SchemaId } from '../models/roles/spec';
+import type { PublicPayload } from './types/PublicBroadcast';
+import type { PrivateMessage } from './types/PrivateBroadcast';
 
 // =============================================================================
 // Connection Status
@@ -282,6 +284,52 @@ export class BroadcastService {
     }
 
     console.log('[BroadcastService] Broadcasting as host:', message.type);
+    await this.channel.send({
+      type: 'broadcast',
+      event: 'host',
+      payload: message,
+    });
+  }
+
+  /**
+   * Host: Broadcast a PUBLIC message to all players (type-safe, whitelist-only)
+   * 
+   * ANTI-CHEAT: Only accepts PublicPayload types (compiler-enforced).
+   * Sensitive information MUST use sendPrivate() instead.
+   * 
+   * @see docs/phase4-final-migration.md for anti-cheat architecture
+   */
+  async broadcastPublic(payload: PublicPayload): Promise<void> {
+    if (!this.channel) {
+      console.warn('[BroadcastService] Not connected to any room');
+      return;
+    }
+
+    console.log('[BroadcastService] Broadcasting public:', payload.type);
+    await this.channel.send({
+      type: 'broadcast',
+      event: 'host',
+      payload,
+    });
+  }
+
+  /**
+   * Host: Send a PRIVATE message to a specific player (type-safe, sensitive info)
+   * 
+   * ANTI-CHEAT:
+   * - Only the recipient (toUid) should process this message
+   * - UI must filter: only accept if toUid === myUid
+   * - Host player has NO visibility privilege (also filtered by toUid)
+   * 
+   * @see docs/phase4-final-migration.md for anti-cheat architecture
+   */
+  async sendPrivate(message: PrivateMessage): Promise<void> {
+    if (!this.channel) {
+      console.warn('[BroadcastService] Not connected to any room');
+      return;
+    }
+
+    console.log('[BroadcastService] Sending private to:', message.toUid.substring(0, 8), 'kind:', message.payload.kind);
     await this.channel.send({
       type: 'broadcast',
       event: 'host',

@@ -25,6 +25,9 @@ import { isActionTarget, getActionTargetSeat, makeActionTarget } from '../../mod
 // Capture broadcastAsHost calls for contract assertions
 const broadcastCalls: Array<{ type: string; [key: string]: any }> = [];
 
+// Capture sendPrivate calls for anti-cheat assertions
+const privateCalls: Array<{ type: string; toUid: string; payload: any }> = [];
+
 // Mock BroadcastService
 jest.mock('../BroadcastService', () => ({
   BroadcastService: {
@@ -33,6 +36,14 @@ jest.mock('../BroadcastService', () => ({
       leaveRoom: jest.fn().mockResolvedValue(undefined),
       broadcastAsHost: jest.fn().mockImplementation((msg: any) => {
         broadcastCalls.push(msg);
+        return Promise.resolve();
+      }),
+      broadcastPublic: jest.fn().mockImplementation((msg: any) => {
+        broadcastCalls.push(msg);
+        return Promise.resolve();
+      }),
+      sendPrivate: jest.fn().mockImplementation((msg: any) => {
+        privateCalls.push(msg);
         return Promise.resolve();
       }),
       sendToHost: jest.fn().mockResolvedValue(undefined),
