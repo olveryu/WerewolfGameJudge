@@ -7,7 +7,6 @@
  */
 
 import { WolfBaseRole } from '../base/WolfBaseRole';
-import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class WolfQueenRole extends WolfBaseRole {
   readonly id = 'wolfQueen';
@@ -17,16 +16,6 @@ export class WolfQueenRole extends WolfBaseRole {
   readonly actionOrder = 6; // After wolf kill vote
   readonly actionMessage = '请选择魅惑对象';
   readonly actionConfirmMessage = '魅惑';
-  
-  getActionDialogConfig(_context: RoleActionContext): ActionDialogConfig | null {
-    return {
-      title: '狼美人请睁眼',
-      message: this.actionMessage,
-      buttons: [
-        { text: '好', onPress: () => {} }
-      ]
-    };
-  }
 }
 
 export const wolfQueenRole = new WolfQueenRole();

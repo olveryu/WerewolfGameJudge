@@ -5,8 +5,6 @@
  */
 
 import { GodBaseRole } from '../base/GodBaseRole';
-import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
-import type { SeerCheckResult } from '../index';
 
 export class SeerRole extends GodBaseRole {
   readonly id = 'seer';
@@ -16,29 +14,6 @@ export class SeerRole extends GodBaseRole {
   readonly actionOrder = 15;
   readonly actionMessage = '请选择查验对象';
   readonly actionConfirmMessage = '查验';
-  
-  getActionDialogConfig(_context: RoleActionContext): ActionDialogConfig | null {
-    return {
-      title: '预言家请睁眼',
-      message: this.actionMessage,
-      buttons: [
-        { text: '好', onPress: () => {} }
-      ]
-    };
-  }
-  
-  /**
-   * Get the result dialog after checking a player
-   */
-  getCheckResultDialogConfig(targetSeat: number, result: SeerCheckResult): ActionDialogConfig {
-    return {
-      title: `${targetSeat + 1}号玩家`,
-      message: `是${result}`,
-      buttons: [
-        { text: '确定', onPress: () => {} }
-      ]
-    };
-  }
 }
 
 export const seerRole = new SeerRole();

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -256,6 +256,23 @@ const SettingsScreen: React.FC = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // Reset transient states when screen regains focus (e.g. after back navigation)
+  useEffect(() => {
+    const addListener = (navigation as unknown as { addListener?: (event: string, cb: () => void) => () => void })
+      .addListener;
+
+    if (!addListener) {
+      // Jest tests may mock navigation without addListener; don't crash.
+      return;
+    }
+
+    const unsubscribe = addListener('focus', () => {
+      setUploadingAvatar(false);
+      setIsEditingName(false);
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   // Get avatar source - anonymous users get default, logged-in users get their avatar
   const getAvatarSource = () => {

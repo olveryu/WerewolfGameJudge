@@ -9,8 +9,9 @@ export type { UseRoomInitParams, UseRoomInitResult } from './useRoomInit';
 
 export { useRoomActions } from './useRoomActions';
 export type {
+  ActionIntent,
+  ActionIntentType,
+  ActionDeps,
   GameContext,
-  UiState,
-  ActionCallbacks,
   UseRoomActionsResult,
 } from './useRoomActions';

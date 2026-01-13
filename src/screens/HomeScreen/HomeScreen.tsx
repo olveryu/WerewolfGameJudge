@@ -258,6 +258,24 @@ export const HomeScreen: React.FC = () => {
   const [isJoining, setIsJoining] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+
+  // Prevent transient UI states (e.g. "创建中...") from getting stuck if we navigate away
+  // and then come back via back actions (common during e2e recovery flows).
+  useEffect(() => {
+    const addListener = (navigation as unknown as { addListener?: (event: string, cb: () => void) => () => void })
+      .addListener;
+
+    if (!addListener) {
+      // Jest tests may mock navigation without addListener; don't crash.
+      return;
+    }
+
+    const unsubscribe = addListener('focus', () => {
+      setIsCreating(false);
+      setIsJoining(false);
+    });
+    return unsubscribe;
+  }, [navigation]);
   
   // Email auth form state
   const [showEmailForm, setShowEmailForm] = useState(false);

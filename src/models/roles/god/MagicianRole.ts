@@ -7,7 +7,6 @@
  */
 
 import { GodBaseRole } from '../base/GodBaseRole';
-import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class MagicianRole extends GodBaseRole {
   readonly id = 'magician';
@@ -21,16 +20,6 @@ export class MagicianRole extends GodBaseRole {
   readonly actionOrder = -2; // Very first to act
   readonly actionMessage = '请选择两名交换对象';
   readonly actionConfirmMessage = '交换';
-  
-  getActionDialogConfig(_context: RoleActionContext): ActionDialogConfig | null {
-    return {
-      title: '魔术师请睁眼',
-      message: this.actionMessage,
-      buttons: [
-        { text: '好', onPress: () => {} }
-      ]
-    };
-  }
 }
 
 export const magicianRole = new MagicianRole();

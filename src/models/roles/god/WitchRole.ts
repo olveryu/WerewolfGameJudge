@@ -9,7 +9,7 @@
  */
 
 import { GodBaseRole } from '../base/GodBaseRole';
-import { ActionDialogConfig, RoleActionContext, ActionResult } from '../base/BaseRole';
+import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class WitchRole extends GodBaseRole {
   readonly id = 'witch';
@@ -67,31 +67,6 @@ export class WitchRole extends GodBaseRole {
         }
       ]
     };
-  }
-  
-  /**
-   * Get the poison dialog configuration
-   */
-  getPoisonDialogConfig(): ActionDialogConfig {
-    return {
-      title: '请选择是否使用毒药',
-      message: '点击玩家头像使用毒药，如不使用毒药，请点击下方「不使用技能」',
-      buttons: [
-        { text: '好', style: 'default', onPress: () => {} }
-      ]
-    };
-  }
-  
-  validateAction(target: number | null, context: RoleActionContext): ActionResult {
-    // Saving self is not allowed
-    if (target === context.mySeatNumber && target === context.killedIndex) {
-      return { 
-        success: false, 
-        error: '女巫无法自救' 
-      };
-    }
-    
-    return { success: true, target };
   }
 }
 

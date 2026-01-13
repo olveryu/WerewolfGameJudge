@@ -10,7 +10,6 @@
  */
 
 import { WolfBaseRole } from '../base/WolfBaseRole';
-import { ActionDialogConfig, RoleActionContext } from '../base/BaseRole';
 
 export class WolfRobotRole extends WolfBaseRole {
   readonly id = 'wolfRobot';
@@ -24,29 +23,6 @@ export class WolfRobotRole extends WolfBaseRole {
   // Wolf Robot does NOT know other wolves and doesn't participate in vote
   readonly participatesInWolfVote = false;
   readonly canSeeWolves = false;
-  
-  getActionDialogConfig(_context: RoleActionContext): ActionDialogConfig | null {
-    return {
-      title: '机械狼请睁眼',
-      message: this.actionMessage,
-      buttons: [
-        { text: '好', onPress: () => {} }
-      ]
-    };
-  }
-
-  /**
-   * UI helper: show the learned target's exact identity.
-   *
-   * Note: the actual resolution (including swap effects etc.) is handled by model/services.
-   */
-  getCheckResultDialogConfig(targetSeat: number, roleDisplayName: string): ActionDialogConfig {
-    return {
-      title: '机械狼学习结果',
-      message: `${targetSeat + 1}号的身份是：${roleDisplayName}`,
-      buttons: [{ text: '好', onPress: () => {} }],
-    };
-  }
 }
 
 export const wolfRobotRole = new WolfRobotRole();
