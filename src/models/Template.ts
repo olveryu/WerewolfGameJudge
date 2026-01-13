@@ -1,4 +1,4 @@
-import { RoleName, ACTION_ORDER, ROLES, isValidRoleName } from './roles';
+import { RoleName, ROLES, isValidRoleName, getActionOrderViaNightPlan } from './roles';
 
 // ---------------------------------------------------------------------------
 // Template validation
@@ -36,10 +36,15 @@ export interface GameTemplate {
   actionOrder: RoleName[];
 }
 
-// Get action order based on roles in the template
+/**
+ * Get action order based on roles in the template.
+ * Uses NightPlan-based implementation (new declarative path).
+ * 
+ * @deprecated Legacy internal function, use getActionOrderViaNightPlan directly
+ */
 const getActionOrderForRoles = (roles: RoleName[]): RoleName[] => {
-  const roleSet = new Set(roles);
-  return ACTION_ORDER.filter((role) => roleSet.has(role));
+  // New path: use NightPlan-based implementation
+  return getActionOrderViaNightPlan(roles);
 };
 
 // Create custom template (roles are NOT shuffled here - shuffling happens at "准备看牌")
