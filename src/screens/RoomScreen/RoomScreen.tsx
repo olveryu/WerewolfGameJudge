@@ -82,6 +82,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     getWitchContext,
     waitForSeerReveal,
     waitForPsychicReveal,
+    waitForGargoyleReveal,
+    waitForWolfRobotReveal,
   } = useGameRoom();
 
   // Local UI state
@@ -355,6 +357,42 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           );
         } else {
           console.warn('[RoomScreen] psychicReveal timeout - no reveal received');
+        }
+        break;
+      }
+
+      case 'gargoyleReveal': {
+        if (!gameState) return;
+        // Anti-cheat: Submit action to Host first, Host sends GARGOYLE_REVEAL privately
+        // Then wait for result from inbox (handles network latency)
+        await proceedWithAction(intent.targetIndex);
+        const reveal = await waitForGargoyleReveal();
+        if (reveal) {
+          actionDialogs.showRevealDialog(
+            `${reveal.targetSeat + 1}号是${reveal.result}`,
+            '',
+            () => {} // No further action needed, already submitted
+          );
+        } else {
+          console.warn('[RoomScreen] gargoyleReveal timeout - no reveal received');
+        }
+        break;
+      }
+
+      case 'wolfRobotReveal': {
+        if (!gameState) return;
+        // Anti-cheat: Submit action to Host first, Host sends WOLF_ROBOT_REVEAL privately
+        // Then wait for result from inbox (handles network latency)
+        await proceedWithAction(intent.targetIndex);
+        const reveal = await waitForWolfRobotReveal();
+        if (reveal) {
+          actionDialogs.showRevealDialog(
+            `${reveal.targetSeat + 1}号是${reveal.result}`,
+            '',
+            () => {} // No further action needed, already submitted
+          );
+        } else {
+          console.warn('[RoomScreen] wolfRobotReveal timeout - no reveal received');
         }
         break;
       }

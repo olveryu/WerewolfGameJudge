@@ -41,6 +41,8 @@ export type PrivatePayload =
   | WitchContextPayload
   | SeerRevealPayload
   | PsychicRevealPayload
+  | GargoyleRevealPayload
+  | WolfRobotRevealPayload
   | BlockedPayload;
 
 // =============================================================================
@@ -77,6 +79,28 @@ export interface SeerRevealPayload {
  */
 export interface PsychicRevealPayload {
   kind: 'PSYCHIC_REVEAL';
+  targetSeat: number;
+  /** The specific role name */
+  result: string;
+}
+
+/**
+ * Gargoyle reveal - sent to gargoyle after checking a target.
+ * Returns exact role identity (same as psychic).
+ */
+export interface GargoyleRevealPayload {
+  kind: 'GARGOYLE_REVEAL';
+  targetSeat: number;
+  /** The specific role name */
+  result: string;
+}
+
+/**
+ * Wolf Robot reveal - sent to wolf robot after learning a target's identity.
+ * Returns exact role identity.
+ */
+export interface WolfRobotRevealPayload {
+  kind: 'WOLF_ROBOT_REVEAL';
   targetSeat: number;
   /** The specific role name */
   result: string;

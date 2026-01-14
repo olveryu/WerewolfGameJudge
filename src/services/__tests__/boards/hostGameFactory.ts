@@ -6,19 +6,41 @@ import { GameStateService, GameStatus } from '../../GameStateService';
 import { NightFlowController, NightPhase, NightEvent } from '../../NightFlowController';
 import { PRESET_TEMPLATES, createTemplateFromRoles, GameTemplate } from '../../../models/Template';
 import { RoleName } from '../../../models/roles';
-import { RoleAction, makeActionNone, makeActionTarget, makeActionWitch, makeWitchNone, makeWitchSave, makeWitchPoison } from '../../../models/actions';
+import { RoleAction, makeActionNone, makeActionTarget, makeActionWitch, makeWitchNone, makeWitchSave, makeWitchPoison, getActionTargetSeat } from '../../../models/actions';
+import type { PlayerMessage } from '../../BroadcastService';
 
 // =============================================================================
 // Mocks
 // =============================================================================
 
+// Track sendPrivate calls for testing
+export const mockSendPrivate = jest.fn().mockResolvedValue(undefined);
+
+// Captured onPlayerMessage callback from joinRoom - allows simulating player→host messages
+let capturedOnPlayerMessage: ((msg: PlayerMessage, senderId: string) => void | Promise<void>) | null = null;
+
+/**
+ * Reset module-level shared state to avoid cross-test pollution.
+ * Called at the start of createHostGame and in cleanupHostGame.
+ */
+function resetSharedState(): void {
+  capturedOnPlayerMessage = null;
+  mockSendPrivate.mockClear();
+}
+
 jest.mock('../../BroadcastService', () => ({
   BroadcastService: {
     getInstance: jest.fn(() => ({
-      joinRoom: jest.fn().mockResolvedValue(undefined),
+      joinRoom: jest.fn().mockImplementation((_roomCode: string, _uid: string, handlers?: { onPlayerMessage?: (msg: any, senderId: string) => void }) => {
+        if (handlers?.onPlayerMessage) {
+          capturedOnPlayerMessage = handlers.onPlayerMessage;
+        }
+        return Promise.resolve(undefined);
+      }),
       leaveRoom: jest.fn().mockResolvedValue(undefined),
       broadcastAsHost: jest.fn().mockResolvedValue(undefined),
       sendToHost: jest.fn().mockResolvedValue(undefined),
+      sendPrivate: mockSendPrivate,
     })),
   },
 }));
@@ -114,35 +136,133 @@ function buildRoleAction(role: RoleName, target: number | null, extra?: boolean)
   return makeActionTarget(target);
 }
 
-function processRoleAction(
+/**
+ * Find the seat number for a given role in the current game state.
+ */
+function findSeatForRole(service: GameStateService, role: RoleName): number {
+  const state = service.getState();
+  if (!state) return 0;
+  for (const [seat, player] of state.players) {
+    if (player?.role === role) return seat;
+  }
+  return 0;
+}
+
+/**
+ * Process a role action by simulating a player→host ACTION message.
+ * This goes through the real handlePlayerAction path, which triggers private reveals.
+ * 
+ * Special handling for nightmare-blocked players:
+ * - If a player is blocked by nightmare and test specifies a non-null action,
+ *   we send a skip (target=null) to advance the flow, then directly write the
+ *   test-specified action to state for DeathCalculator defensive testing.
+ */
+async function processRoleAction(
   nightFlow: NightFlowController,
   actions: NightActionSequence,
-  stateActions: Map<RoleName, RoleAction>
-): void {
+  service: GameStateService
+): Promise<void> {
   const currentRole = nightFlow.currentRole;
   if (!currentRole) return;
 
   const action = actions[currentRole];
   const witchPoison = actions.witchPoison;
 
-  // Build action value
-  let roleAction: RoleAction;
+  // Determine target and extra for the ACTION message
+  let target: number | null;
+  let extra: boolean | undefined;
+
   if (currentRole === 'witch' && witchPoison !== undefined) {
-    // Use witchPoison if specified
-    roleAction = buildRoleAction('witch', witchPoison ?? null, true);
+    // Witch poison case
+    target = witchPoison ?? null;
+    extra = target === null ? undefined : true;
   } else if (action === undefined) {
-    roleAction = buildRoleAction(currentRole, null);
+    target = null;
+    extra = undefined;
   } else {
-    roleAction = buildRoleAction(currentRole, action ?? null);
+    target = action ?? null;
+    extra = undefined;
   }
 
-  stateActions.set(currentRole, roleAction);
+  // Find the seat for this role
+  const seat = findSeatForRole(service, currentRole);
 
-  // Legacy: NightFlowController still uses number encoding internally for recordAction
-  const legacyActionValue = action ?? -1;
-  nightFlow.recordAction(currentRole, legacyActionValue);
-  nightFlow.dispatch(NightEvent.ActionSubmitted);
-  nightFlow.dispatch(NightEvent.RoleEndAudioDone);
+  // Check if this player is blocked by nightmare
+  const state = service.getState()!;
+  const nightmareAction = state.actions.get('nightmare');
+  const blockedSeat = getActionTargetSeat(nightmareAction);
+  const isBlocked = blockedSeat === seat;
+
+  // If blocked and test specified non-null target, we need special handling:
+  // 1. Send skip (target=null) to advance the flow (Host accepts skip from blocked players)
+  // 2. Directly write the test-specified action to state for DeathCalculator testing
+  const actualTarget = isBlocked && target !== null ? null : target;
+  const actualExtra = isBlocked && target !== null ? undefined : extra;
+
+  // Simulate player→host ACTION message via captured callback
+  // FAIL-FAST: capturedOnPlayerMessage must be set by joinRoom mock
+  if (!capturedOnPlayerMessage) {
+    throw new Error(
+      `[hostGameFactory] capturedOnPlayerMessage is null - BroadcastService mock not set up correctly. ` +
+      `role=${currentRole} seat=${seat}`
+    );
+  }
+
+  const msg: PlayerMessage = {
+    type: 'ACTION',
+    seat,
+    role: currentRole,
+    target: actualTarget,
+    extra: actualExtra,
+  };
+  
+  // Remember current action index to detect when processing completes
+  const startIndex = nightFlow.currentActionIndex;
+  const startPhase = nightFlow.phase;
+  
+  // Call the captured callback (this triggers handlePlayerAction in GameStateService)
+  // Note: GameStateService uses asyncHandler which returns void, not Promise
+  // So we need to wait for the state machine to advance
+  capturedOnPlayerMessage(msg, `player_${seat}`);
+  
+  // Wait for nightFlow to advance (handlePlayerAction is async, wrapped by asyncHandler)
+  // Use a generous upper bound (fake timers don't add real delay)
+  // Each iteration flushes pending timers and microtasks
+  const maxIterations = 100; // ~500ms equivalent with fake timers, plenty of headroom
+  let iterations = 0;
+  
+  while (iterations < maxIterations) {
+    // Flush only pending timers (not advancing time beyond what's scheduled)
+    await jest.runOnlyPendingTimersAsync();
+    await Promise.resolve(); // microtask flush
+    
+    // Check if nightFlow advanced (index changed, phase changed, or terminal)
+    if (nightFlow.currentActionIndex !== startIndex || 
+        nightFlow.phase !== startPhase ||
+        nightFlow.isTerminal()) {
+      break;
+    }
+    iterations++;
+  }
+  
+  // FAIL-FAST: If we exhausted iterations without advancing, something is wrong
+  if (iterations >= maxIterations && 
+      nightFlow.currentActionIndex === startIndex && 
+      nightFlow.phase === startPhase && 
+      !nightFlow.isTerminal()) {
+    throw new Error(
+      `[hostGameFactory] processRoleAction timed out waiting for nightFlow to advance. ` +
+      `role=${currentRole} seat=${seat} phase=${nightFlow.phase} index=${nightFlow.currentActionIndex} ` +
+      `blockedSeat=${blockedSeat} isBlocked=${isBlocked} target=${target} actualTarget=${actualTarget}`
+    );
+  }
+  
+  // For blocked players with non-null test action: directly write to state for DeathCalculator testing
+  // This simulates "what if the action somehow got into state" for defensive testing
+  if (isBlocked && target !== null) {
+    const roleAction = buildRoleAction(currentRole, target, extra);
+    state.actions.set(currentRole, roleAction);
+  }
 }
 
 // =============================================================================
@@ -153,6 +273,9 @@ export async function createHostGame(
   templateNameOrRoles: string | RoleName[],
   roleAssignment?: Map<number, RoleName>
 ): Promise<HostGameContext> {
+  // Reset shared state to avoid cross-test pollution
+  resetSharedState();
+  
   jest.useFakeTimers();
 
   const service = resetGameStateService();
@@ -248,7 +371,7 @@ export async function createHostGame(
     while (nightFlow.hasMoreRoles() && !nightFlow.isTerminal()) {
       advanceToWaitingForAction(nightFlow);
       if (nightFlow.isTerminal()) break;
-      processRoleAction(nightFlow, actions, s.actions);
+      await processRoleAction(nightFlow, actions, service);
     }
 
     if (nightFlow.phase === NightPhase.NightEndAudio) {
@@ -282,4 +405,6 @@ export async function createHostGame(
 export function cleanupHostGame(): void {
   jest.useRealTimers();
   (GameStateService as any).instance = undefined;
+  // Reset shared state to avoid cross-test pollution
+  resetSharedState();
 }

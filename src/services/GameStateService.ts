@@ -28,7 +28,7 @@ import {
 } from '../models/actions';
 import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, type RoleId, buildNightPlan, getStepsByRoleStrict } from '../models/roles/spec';
 import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
-import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload } from './types/PrivateBroadcast';
+import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload, GargoyleRevealPayload, WolfRobotRevealPayload } from './types/PrivateBroadcast';
 import { getRoleAfterSwap } from './night/resolvers/types';
 
 // Import types/enums needed internally
@@ -586,6 +586,10 @@ export class GameStateService {
         await this.sendSeerReveal(seat, target);
       } else if (role === 'psychic') {
         await this.sendPsychicReveal(seat, target);
+      } else if (role === 'gargoyle') {
+        await this.sendGargoyleReveal(seat, target);
+      } else if (role === 'wolfRobot') {
+        await this.sendWolfRobotReveal(seat, target);
       }
     }
 
@@ -815,6 +819,20 @@ export class GameStateService {
         this.notifyListeners();
         break;
       }
+      case 'GARGOYLE_REVEAL': {
+        const revealKey = `${this.stateRevision}_GARGOYLE_REVEAL`;
+        this.privateInbox.set(revealKey, msg.payload);
+        console.log('[GameState] Stored GARGOYLE_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
+        this.notifyListeners();
+        break;
+      }
+      case 'WOLF_ROBOT_REVEAL': {
+        const revealKey = `${this.stateRevision}_WOLF_ROBOT_REVEAL`;
+        this.privateInbox.set(revealKey, msg.payload);
+        console.log('[GameState] Stored WOLF_ROBOT_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
+        this.notifyListeners();
+        break;
+      }
       case 'BLOCKED':
         // TODO: Handle blocked message in future commit
         console.log('[GameState] Private message type not yet handled:', msg.payload.kind);
@@ -911,6 +929,82 @@ export class GameStateService {
     }
     
     console.warn('[GameStateService] waitForPsychicReveal timeout after', timeoutMs, 'ms');
+    return null;
+  }
+
+  /**
+   * Get gargoyle reveal from private inbox (for current revision only)
+   * Returns null if no GARGOYLE_REVEAL message received for current revision.
+   * 
+   * ANTI-CHEAT: Only returns data sent privately to this player.
+   */
+  getGargoyleReveal(): GargoyleRevealPayload | null {
+    const key = `${this.stateRevision}_GARGOYLE_REVEAL`;
+    const payload = this.privateInbox.get(key);
+    if (payload?.kind === 'GARGOYLE_REVEAL') {
+      return payload;
+    }
+    return null;
+  }
+
+  /**
+   * Wait for gargoyle reveal to arrive in inbox (with timeout).
+   * Used after submitting action to ensure Host's private message has arrived.
+   * 
+   * @param timeoutMs - Maximum time to wait (default: 3000ms)
+   * @returns GargoyleRevealPayload if received, null if timeout
+   */
+  async waitForGargoyleReveal(timeoutMs: number = 3000): Promise<GargoyleRevealPayload | null> {
+    const pollIntervalMs = 50;
+    const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
+    
+    for (let i = 0; i < maxAttempts; i++) {
+      const reveal = this.getGargoyleReveal();
+      if (reveal) {
+        return reveal;
+      }
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    }
+    
+    console.warn('[GameStateService] waitForGargoyleReveal timeout after', timeoutMs, 'ms');
+    return null;
+  }
+
+  /**
+   * Get wolf robot reveal from private inbox (for current revision only)
+   * Returns null if no WOLF_ROBOT_REVEAL message received for current revision.
+   * 
+   * ANTI-CHEAT: Only returns data sent privately to this player.
+   */
+  getWolfRobotReveal(): WolfRobotRevealPayload | null {
+    const key = `${this.stateRevision}_WOLF_ROBOT_REVEAL`;
+    const payload = this.privateInbox.get(key);
+    if (payload?.kind === 'WOLF_ROBOT_REVEAL') {
+      return payload;
+    }
+    return null;
+  }
+
+  /**
+   * Wait for wolf robot reveal to arrive in inbox (with timeout).
+   * Used after submitting action to ensure Host's private message has arrived.
+   * 
+   * @param timeoutMs - Maximum time to wait (default: 3000ms)
+   * @returns WolfRobotRevealPayload if received, null if timeout
+   */
+  async waitForWolfRobotReveal(timeoutMs: number = 3000): Promise<WolfRobotRevealPayload | null> {
+    const pollIntervalMs = 50;
+    const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
+    
+    for (let i = 0; i < maxAttempts; i++) {
+      const reveal = this.getWolfRobotReveal();
+      if (reveal) {
+        return reveal;
+      }
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    }
+    
+    console.warn('[GameStateService] waitForWolfRobotReveal timeout after', timeoutMs, 'ms');
     return null;
   }
 
@@ -2075,6 +2169,90 @@ export class GameStateService {
     };
 
     console.log('[GameStateService] Sending PSYCHIC_REVEAL to psychic:', psychicUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
+    await this.broadcastService.sendPrivate(privateMessage);
+  }
+
+  /**
+   * Send GARGOYLE_REVEAL to the gargoyle player after they check a target.
+   * Contains sensitive info: target's exact role name.
+   * 
+   * @see docs/phase4-final-migration.md for anti-cheat architecture
+   */
+  private async sendGargoyleReveal(gargoyleSeat: number, targetSeat: number): Promise<void> {
+    const gargoyleUid = this.getPlayerUidByRole('gargoyle');
+    if (!gargoyleUid || !this.state) {
+      console.warn('[GameStateService] sendGargoyleReveal: gargoyle not found or no state');
+      return;
+    }
+
+    // Build role map and get swapped seats for identity check
+    const roleMap = this.buildRoleMap();
+    const swappedSeats = this.getMagicianSwappedSeats();
+    
+    // Get target's role AFTER magician swap (identity swap)
+    const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
+    if (!effectiveRoleId) {
+      console.warn('[GameStateService] sendGargoyleReveal: target not found at seat', targetSeat);
+      return;
+    }
+
+    const targetSpec = ROLE_SPECS[effectiveRoleId];
+    const result = targetSpec.displayName;
+
+    const privateMessage: PrivateMessage = {
+      type: 'PRIVATE_EFFECT',
+      toUid: gargoyleUid,
+      revision: this.stateRevision,
+      payload: {
+        kind: 'GARGOYLE_REVEAL',
+        targetSeat,
+        result,
+      } as GargoyleRevealPayload,
+    };
+
+    console.log('[GameStateService] Sending GARGOYLE_REVEAL to gargoyle:', gargoyleUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
+    await this.broadcastService.sendPrivate(privateMessage);
+  }
+
+  /**
+   * Send WOLF_ROBOT_REVEAL to the wolf robot player after they learn a target's identity.
+   * Contains sensitive info: target's exact role name.
+   * 
+   * @see docs/phase4-final-migration.md for anti-cheat architecture
+   */
+  private async sendWolfRobotReveal(robotSeat: number, targetSeat: number): Promise<void> {
+    const robotUid = this.getPlayerUidByRole('wolfRobot');
+    if (!robotUid || !this.state) {
+      console.warn('[GameStateService] sendWolfRobotReveal: wolfRobot not found or no state');
+      return;
+    }
+
+    // Build role map and get swapped seats for identity check
+    const roleMap = this.buildRoleMap();
+    const swappedSeats = this.getMagicianSwappedSeats();
+    
+    // Get target's role AFTER magician swap (identity swap)
+    const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
+    if (!effectiveRoleId) {
+      console.warn('[GameStateService] sendWolfRobotReveal: target not found at seat', targetSeat);
+      return;
+    }
+
+    const targetSpec = ROLE_SPECS[effectiveRoleId];
+    const result = targetSpec.displayName;
+
+    const privateMessage: PrivateMessage = {
+      type: 'PRIVATE_EFFECT',
+      toUid: robotUid,
+      revision: this.stateRevision,
+      payload: {
+        kind: 'WOLF_ROBOT_REVEAL',
+        targetSeat,
+        result,
+      } as WolfRobotRevealPayload,
+    };
+
+    console.log('[GameStateService] Sending WOLF_ROBOT_REVEAL to wolfRobot:', robotUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
     await this.broadcastService.sendPrivate(privateMessage);
   }
 

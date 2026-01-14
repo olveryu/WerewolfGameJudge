@@ -8,7 +8,7 @@
  * - graveyardKeeper 在 Night-1 无动作（需要上一个白天有人被放逐）
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
+import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './hostGameFactory';
 import { RoleName } from '../../../models/roles';
 
 const TEMPLATE_NAME = '石像鬼守墓人12人';
@@ -99,6 +99,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
     });
 
     it('石像鬼查验获得目标的具体身份（私信结果）', async () => {
+      mockSendPrivate.mockClear();
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
@@ -110,8 +111,16 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       });
 
       expect(result.completed).toBe(true);
-      // 注意：具体的私信结果验证应在 privateEffect.contract.test.ts 中
-      // 这里只验证流程完整性
+      
+      // 验证 GARGOYLE_REVEAL 私信被发送
+      const gargoyleRevealCalls = mockSendPrivate.mock.calls.filter(
+        (call: any[]) => call[0]?.payload?.kind === 'GARGOYLE_REVEAL'
+      );
+      expect(gargoyleRevealCalls.length).toBe(1);
+      
+      const revealPayload = gargoyleRevealCalls[0][0].payload;
+      expect(revealPayload.targetSeat).toBe(8);
+      expect(revealPayload.result).toBe('预言家'); // seat 8 是预言家
     });
   });
 
