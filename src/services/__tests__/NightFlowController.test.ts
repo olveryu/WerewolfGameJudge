@@ -25,7 +25,7 @@ const createMinimalPlan = (roleIds: string[]): NightPlan => {
   return {
     steps: roleIds.map((roleId, idx) => ({
       roleId: roleId as any,
-      schemaId: `${roleId}Action` as any,
+      stepId: `${roleId}Action` as any,
       order: idx,
       displayName: roleId,
       audioKey: roleId,
@@ -56,7 +56,7 @@ describe('NightFlowController', () => {
       const step = controller.currentStep;
       expect(step).not.toBeNull();
       expect(step?.roleId).toBe('wolf');
-      expect(step?.schemaId).toBe('wolfKill');
+      expect(step?.stepId).toBe('wolfKill');
     });
 
     it('should complete full night flow with 3 roles', () => {

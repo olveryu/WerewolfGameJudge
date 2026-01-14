@@ -48,7 +48,7 @@ export interface PublicStateUpdate {
 export interface PublicRoleTurn {
   type: 'ROLE_TURN';
   role: RoleName;
-  schemaId?: SchemaId;
+  stepId?: SchemaId;
   pendingSeats?: number[];
   // ❌ FORBIDDEN: killedIndex, checkResult, canSave, selectableSeats
 }

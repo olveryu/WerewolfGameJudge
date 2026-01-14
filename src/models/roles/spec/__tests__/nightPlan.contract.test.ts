@@ -90,11 +90,11 @@ describe('buildNightPlan', () => {
   });
 
   describe('step properties', () => {
-    it('each step should have roleId, schemaId, and order', () => {
+    it('each step should have roleId, stepId, and order', () => {
       const plan = buildNightPlan(['seer', 'witch', 'guard']);
       for (const [idx, step] of plan.steps.entries()) {
         expect(step.roleId).toBeTruthy();
-        expect(step.schemaId).toBeTruthy();
+        expect(step.stepId).toBeTruthy();
         expect(typeof step.order).toBe('number');
         expect(step.order).toBe(idx);
       }
@@ -109,7 +109,7 @@ describe('buildNightPlan', () => {
       const plan = buildNightPlan(['seer']);
       const seerStep = plan.steps[0];
       expect(seerStep.roleId).toBe('seer');
-      expect(seerStep.schemaId).toBe('seerCheck');
+      expect(seerStep.stepId).toBe('seerCheck');
   expect(seerStep.order).toBe(0);
     });
   });
@@ -132,7 +132,7 @@ describe('buildNightPlan', () => {
     it('orders steps based on table index for a full plan input', () => {
       const plan = buildNightPlan(Object.keys(ROLE_SPECS));
       expect(plan.steps.map(s => s.roleId)).toEqual(NIGHT_STEPS.map(s => s.roleId));
-      expect(plan.steps.map(s => s.schemaId)).toEqual(NIGHT_STEPS.map(s => s.id));
+      expect(plan.steps.map(s => s.stepId)).toEqual(NIGHT_STEPS.map(s => s.id));
     });
 
     it('audioKey should stay aligned with ROLE_SPECS UX audioKey (transition contract)', () => {
