@@ -4,7 +4,7 @@
  * Validates NIGHT_STEPS as the single source of truth for night action order.
  */
 
-import { NIGHT_STEPS, getAllStepIds, getStepSpec, getStepsByRole } from '../nightSteps';
+import { NIGHT_STEPS, getAllStepIds, getStepSpec, getStepSpecStrict, getStepsByRole, getStepsByRoleStrict } from '../nightSteps';
 import { ROLE_SPECS, isValidRoleId } from '../specs';
 import type { RoleSpec } from '../spec.types';
 import { isValidSchemaId } from '../schemas';
@@ -135,8 +135,19 @@ describe('NIGHT_STEPS contract', () => {
       expect(getStepSpec('invalid')).toBeUndefined();
     });
 
+    it('getStepSpecStrict should return correct step', () => {
+      const step = getStepSpecStrict('seerCheck');
+      expect(step.roleId).toBe('seer');
+    });
+
     it('getStepsByRole should return steps for a role', () => {
       const wolfSteps = getStepsByRole('wolf');
+      expect(wolfSteps).toHaveLength(1);
+      expect(wolfSteps[0].id).toBe('wolfKill');
+    });
+
+    it('getStepsByRoleStrict should return steps for a role', () => {
+      const wolfSteps = getStepsByRoleStrict('wolf');
       expect(wolfSteps).toHaveLength(1);
       expect(wolfSteps[0].id).toBe('wolfKill');
     });
