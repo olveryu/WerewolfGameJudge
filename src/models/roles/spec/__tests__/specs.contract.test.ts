@@ -21,7 +21,7 @@ describe('ROLE_SPECS contract', () => {
       expect(spec.faction).toBeDefined();
       expect(spec.team).toMatch(/^(wolf|good|third)$/);
       expect(spec.night1).toBeDefined();
-      expect(spec.ux.audioKey).toBeTruthy();
+      expect(spec.ux).toBeDefined();
     }
   });
 
@@ -72,8 +72,9 @@ describe('ROLE_SPECS contract', () => {
   });
 
   describe('dreamcatcher spec', () => {
-    it('should use audioKey "dreamcatcher" not "celebrity"', () => {
-      expect(ROLE_SPECS.dreamcatcher.ux.audioKey).toBe('dreamcatcher');
+    it('dreamcatcher step should use audioKey "dreamcatcher" in NIGHT_STEPS', () => {
+      const step = NIGHT_STEPS.find(s => s.roleId === 'dreamcatcher');
+      expect(step?.audioKey).toBe('dreamcatcher');
     });
 
     it('should NOT have a "celebrity" key in ROLE_SPECS', () => {
@@ -201,6 +202,27 @@ describe('ROLE_SPECS contract', () => {
       const godRoles = getAllRoleIds().filter(id => ROLE_SPECS[id].faction === Faction.God);
       for (const roleId of godRoles) {
         expect(ROLE_SPECS[roleId].team).toBe('good');
+      }
+    });
+  });
+
+  describe('night1.hasAction ↔ NIGHT_STEPS alignment (M3c contract)', () => {
+    it('night1.hasAction should match NIGHT_STEPS presence for all roles', () => {
+      const stepsRoleIds = new Set(NIGHT_STEPS.map(s => s.roleId));
+      
+      for (const roleId of getAllRoleIds()) {
+        const spec = ROLE_SPECS[roleId];
+        const hasStepInNightSteps = stepsRoleIds.has(roleId);
+        expect(spec.night1.hasAction).toBe(hasStepInNightSteps);
+      }
+    });
+
+    it('night1 should NOT contain legacy fields (order/schemaId/actsSolo)', () => {
+      for (const roleId of getAllRoleIds()) {
+        const night1 = ROLE_SPECS[roleId].night1 as Record<string, unknown>;
+        expect(night1).not.toHaveProperty('order');
+        expect(night1).not.toHaveProperty('schemaId');
+        expect(night1).not.toHaveProperty('actsSolo');
       }
     });
   });

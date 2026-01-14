@@ -134,11 +134,5 @@ describe('buildNightPlan', () => {
       expect(plan.steps.map(s => s.roleId)).toEqual(NIGHT_STEPS.map(s => s.roleId));
       expect(plan.steps.map(s => s.stepId)).toEqual(NIGHT_STEPS.map(s => s.id));
     });
-
-    it('audioKey should stay aligned with ROLE_SPECS UX audioKey (transition contract)', () => {
-      for (const step of NIGHT_STEPS) {
-        expect(ROLE_SPECS[step.roleId].ux.audioKey).toBe(step.audioKey);
-      }
-    });
   });
 });

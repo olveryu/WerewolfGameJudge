@@ -1,7 +1,9 @@
 
 # Night-1 编排单一真相（改良版）迁移方案
 
-> 目标：在 **Host 权威**（Host as Authority）、**Night-1-only**、**anti-cheat** 的架构红线下，把 Night-1 的“顺序 + stepId/schemaId + 音频编排 + 可见性”收敛为可验证的**单一真相**，并以契约测试防止回退与漂移。
+> 目标：在 **Host 权威**（Host as Authority）、**Night-1-only**、**anti-cheat** 的架构红线下，把 Night-1 的“顺序 + stepI### M3c（改良点）：保留 `night1.hasAction` 语义标签，但用契约测试锁一致 ✅ 已完成
+
+**目标**：避免"硬删 night1 导致阅读/审计困难"，同时阻止 legacy 字段回归。chemaId + 音频编排 + 可见性”收敛为可验证的**单一真相**，并以契约测试防止回退与漂移。
 
 ## 背景与动机
 
@@ -88,7 +90,7 @@
 
 > 推荐按三个小里程碑提交（M3a/M3b/M3c）。每一步都给出验收标准。
 
-### M3a：删除 StepSpec 的 schemaId 双写（低风险、高收益）
+### M3a：删除 StepSpec 的 schemaId 双写（低风险、高收益）✅ 已完成
 
 **目标**：`StepSpec` 只保留 `id: SchemaId`，不再保留 `schemaId` 字段。
 
@@ -106,7 +108,7 @@
 - TypeScript typecheck 通过
 - `nightSteps.contract.test.ts` 仍断言 `step.id` 是有效 `SchemaId`
 
-### M3b：audioKey 单一真相归 NIGHT_STEPS（删除 `ROLE_SPECS.ux.audioKey`）
+### M3b：audioKey 单一真相归 NIGHT_STEPS（删除 `ROLE_SPECS.ux.audioKey`）✅ 已完成
 
 **目标**：Night-1 的音频编排只在 `NIGHT_STEPS` 定义。
 

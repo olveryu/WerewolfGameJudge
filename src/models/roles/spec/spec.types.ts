@@ -38,11 +38,8 @@ export interface RoleFlags {
   readonly reflectsDamage?: boolean;
 }
 
-/** UX configuration for audio/display */
+/** UX configuration for display (audio is in NIGHT_STEPS) */
 export interface RoleUxConfig {
-  /** Audio file key (without extension) */
-  readonly audioKey: string;
-  
   /** Action message shown to player */
   readonly actionMessage?: string;
   
