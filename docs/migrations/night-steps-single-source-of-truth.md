@@ -67,34 +67,39 @@ ROLE_SPECS[role].night1.hasAction → 仅布尔开关（是否参与夜晚）
 文件：`src/models/roles/spec/nightSteps.types.ts`
 
 ```typescript
-export type NightStepId = 
-  | 'magicianSwap'
-  | 'slackerChoose'
-  | 'dreamcatcherDream'
-  | 'guardProtect'
-  | 'nightmareBlock'
-  | 'gargoyleCheck'
-  | 'wolfRobotLearn'
-  | 'wolfKill'
-  | 'wolfQueenCharm'
-  | 'witchAction'
-  | 'seerCheck'
-  | 'psychicCheck'
-  | 'hunterConfirm'
-  | 'darkWolfKingConfirm';
+import type { RoleId } from './specs';
+import type { SchemaId } from './schemas';
 
+/**
+ * 步骤可见性配置
+ */
 export interface StepVisibility {
+  /** 是否单独行动（不能看到队友） */
   readonly actsSolo: boolean;
+  /** 是否是狼会阶段（host-side view-model，用于展示狼队友） */
+  readonly wolfMeetingPhase?: boolean;
 }
 
+/**
+ * 夜晚步骤规格
+ * 
+ * ⚠️ 重要约束：step.id === step.schemaId（强制一一对应）
+ */
 export interface StepSpec {
-  readonly id: NightStepId;
+  /** 步骤 ID（必须等于 schemaId） */
+  readonly id: SchemaId;
   readonly roleId: RoleId;
   readonly schemaId: SchemaId;
   readonly audioKey: string;
   readonly audioEndKey?: string;
   readonly visibility: StepVisibility;
 }
+
+/**
+ * NightStepId 从 NIGHT_STEPS 自动推导，避免类型漂移
+ * 定义在 nightSteps.ts 中：
+ * export type NightStepId = (typeof NIGHT_STEPS)[number]['id'];
+ */
 ```
 
 ### 2.2 步骤表
@@ -102,7 +107,15 @@ export interface StepSpec {
 文件：`src/models/roles/spec/nightSteps.ts`
 
 ```typescript
-export const NIGHT_STEPS: readonly StepSpec[] = [
+import type { StepSpec } from './nightSteps.types';
+
+/**
+ * NIGHT_STEPS - 夜晚步骤的单一真相
+ * 
+ * 数组顺序 = 权威顺序（无 order 字段）
+ * step.id === step.schemaId（强制一一对应）
+ */
+const NIGHT_STEPS_INTERNAL = [
   // === 特殊角色（最先行动）===
   {
     id: 'magicianSwap',
@@ -112,9 +125,9 @@ export const NIGHT_STEPS: readonly StepSpec[] = [
     visibility: { actsSolo: true },
   },
   {
-    id: 'slackerChoose',
+    id: 'slackerChooseIdol',
     roleId: 'slacker',
-    schemaId: 'slackerChoose',
+    schemaId: 'slackerChooseIdol',
     audioKey: 'slacker',
     visibility: { actsSolo: true },
   },
@@ -125,6 +138,13 @@ export const NIGHT_STEPS: readonly StepSpec[] = [
     roleId: 'dreamcatcher',
     schemaId: 'dreamcatcherDream',
     audioKey: 'dreamcatcher',
+    visibility: { actsSolo: true },
+  },
+  {
+    id: 'gargoyleCheck',
+    roleId: 'gargoyle',
+    schemaId: 'gargoyleCheck',
+    audioKey: 'gargoyle',
     visibility: { actsSolo: true },
   },
   {
@@ -144,13 +164,6 @@ export const NIGHT_STEPS: readonly StepSpec[] = [
     visibility: { actsSolo: true },  // 梦魇独立行动
   },
   {
-    id: 'gargoyleCheck',
-    roleId: 'gargoyle',
-    schemaId: 'gargoyleCheck',
-    audioKey: 'gargoyle',
-    visibility: { actsSolo: true },  // 石像鬼不知道狼队友
-  },
-  {
     id: 'wolfRobotLearn',
     roleId: 'wolfRobot',
     schemaId: 'wolfRobotLearn',
@@ -162,14 +175,14 @@ export const NIGHT_STEPS: readonly StepSpec[] = [
     roleId: 'wolf',
     schemaId: 'wolfKill',
     audioKey: 'wolf',
-    visibility: { actsSolo: false }, // 狼人互相可见
+    visibility: { actsSolo: false, wolfMeetingPhase: true }, // 狼会阶段
   },
   {
     id: 'wolfQueenCharm',
     roleId: 'wolfQueen',
     schemaId: 'wolfQueenCharm',
     audioKey: 'wolf_queen',
-    visibility: { actsSolo: false }, // 狼美人可见狼队友
+    visibility: { actsSolo: false, wolfMeetingPhase: true }, // 狼会阶段
   },
   
   // === 女巫 ===
@@ -212,7 +225,12 @@ export const NIGHT_STEPS: readonly StepSpec[] = [
     audioKey: 'dark_wolf_king',
     visibility: { actsSolo: true },
   },
-] as const;
+] as const satisfies readonly StepSpec[];
+
+export const NIGHT_STEPS: readonly StepSpec[] = NIGHT_STEPS_INTERNAL;
+
+/** NightStepId 从 NIGHT_STEPS 自动推导 */
+export type NightStepId = (typeof NIGHT_STEPS_INTERNAL)[number]['id'];
 ```
 
 ---
@@ -243,23 +261,31 @@ npm run test -- nightSteps.contract
 
 **改动点**：
 - [ ] `src/models/roles/spec/plan.ts` — 改为遍历 NIGHT_STEPS
-- [ ] `src/models/roles/spec/plan.types.ts` — 更新 NightPlanStep 类型
+- [ ] `src/models/roles/spec/plan.types.ts` — 更新 NightPlanStep 类型（如需要）
 - [ ] `src/models/roles/spec/__tests__/plan.contract.test.ts` — 更新测试
+
+**关键约束**：
+- **保持现有对外返回结构不变**（NightPlan/NightPlanStep）
+- NightFlowController 无需改动
+- 只是 steps 来源从 ROLE_SPECS 排序 → NIGHT_STEPS 过滤
 
 **新逻辑**：
 ```typescript
 export function buildNightPlan(roles: RoleId[]): NightPlanStep[] {
   const roleSet = new Set(roles);
   return NIGHT_STEPS
-    .filter(step => roleSet.has(step.roleId) && ROLE_SPECS[step.roleId].night1.hasAction)
+    .filter(step => roleSet.has(step.roleId as RoleId))
     .map(step => ({
       stepId: step.id,
-      roleId: step.roleId,
+      roleId: step.roleId as RoleId,
       schemaId: step.schemaId,
       audioKey: step.audioKey,
       visibility: step.visibility,
     }));
 }
+```
+
+> 注意：不再需要检查 `hasAction`，因为 NIGHT_STEPS 本身只包含 hasAction=true 的角色（由 contract test 保证）。
 ```
 
 **验证**：
@@ -312,12 +338,15 @@ npm run e2e:core
 | 测试项 | 说明 |
 |--------|------|
 | stepId 唯一性 | 无重复 stepId |
+| **stepId === schemaId** | 强制一一对应 |
 | 数组顺序稳定 | snapshot 锁定 |
 | roleId 有效性 | 每个 roleId ∈ RoleId |
 | schemaId 有效性 | 每个 schemaId ∈ SchemaId |
 | audioKey 非空 | 必须有音频 |
 | Night-1-only | 无跨夜字段 |
-| 与 RoleSpec 对齐 | hasAction=false 的角色不在表中 |
+| **NIGHT_STEPS 的每个 roleId 必须 hasAction=true** | fail-fast 防错 |
+| **hasAction=true 的角色恰好出现一次** | 防漏步骤/多步骤 |
+| visibility 不进 BroadcastGameState | 反作弊红线 |
 
 ### 4.2 plan.contract.test.ts
 
@@ -327,6 +356,7 @@ npm run e2e:core
 | 过滤正确 | 只包含模板中的角色 |
 | hasAction=false 过滤 | 不包含无行动角色 |
 | 空模板 | 返回空数组 |
+| **返回类型兼容** | 沿用现有 NightPlan/NightPlanStep 结构 |
 
 ---
 
@@ -387,19 +417,21 @@ src/models/roles/spec/
 
 ## 9. 附录：stepId 与 schemaId 对照表
 
-| stepId | roleId | schemaId | 说明 |
-|--------|--------|----------|------|
-| magicianSwap | magician | magicianSwap | 魔术师交换 |
-| slackerChoose | slacker | slackerChoose | 懒汉选偶像 |
-| dreamcatcherDream | dreamcatcher | dreamcatcherDream | 追梦人追梦 |
-| guardProtect | guard | guardProtect | 守卫守护 |
-| nightmareBlock | nightmare | nightmareBlock | 梦魇恐惧 |
-| gargoyleCheck | gargoyle | gargoyleCheck | 石像鬼查验 |
-| wolfRobotLearn | wolfRobot | wolfRobotLearn | 机器狼学习 |
-| wolfKill | wolf | wolfKill | 狼人杀人 |
-| wolfQueenCharm | wolfQueen | wolfQueenCharm | 狼美人魅惑 |
-| witchAction | witch | witchAction | 女巫用药 |
-| seerCheck | seer | seerCheck | 预言家查验 |
-| psychicCheck | psychic | psychicCheck | 通灵师查验 |
-| hunterConfirm | hunter | hunterConfirm | 猎人确认 |
-| darkWolfKingConfirm | darkWolfKing | darkWolfKingConfirm | 黑狼王标记 |
+> 强制约束：stepId === schemaId
+
+| stepId (=schemaId) | roleId | 说明 |
+|--------------------|--------|------|
+| magicianSwap | magician | 魔术师交换 |
+| slackerChooseIdol | slacker | 懒汉选偶像 |
+| dreamcatcherDream | dreamcatcher | 追梦人追梦 |
+| gargoyleCheck | gargoyle | 石像鬼查验 |
+| guardProtect | guard | 守卫守护 |
+| nightmareBlock | nightmare | 梦魇恐惧 |
+| wolfRobotLearn | wolfRobot | 机器狼学习 |
+| wolfKill | wolf | 狼人杀人 |
+| wolfQueenCharm | wolfQueen | 狼美人魅惑 |
+| witchAction | witch | 女巫用药 |
+| seerCheck | seer | 预言家查验 |
+| psychicCheck | psychic | 通灵师查验 |
+| hunterConfirm | hunter | 猎人确认 |
+| darkWolfKingConfirm | darkWolfKing | 黑狼王标记 |
