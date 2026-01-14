@@ -122,6 +122,22 @@ GameStateService acts only as a bridge (audio + broadcast + local caches) and mu
 - Do NOT maintain a separate `ACTION_ORDER` array (or per-role ordering maps) across UI/services/tests.
 - Any "action order" exposed for UI is a derived view of `NightPlan`.
 
+**Table-driven NightPlan core conditions (mandatory):**
+- **Single source of truth**: step order + step→schema mapping MUST come from exactly one authoritative table/module.
+   - Do NOT dual-write order/schema mapping across multiple places (e.g., both RoleSpec and a separate script/steps table).
+   - If a temporary compatibility layer is unavoidable, it MUST follow the repo's deprecation + deadline rules (`@deprecated` + `TODO(remove by YYYY-MM-DD)` + block new usages + a minimal Jest test).
+- **Copy is not contract**: narration/copy fields (e.g. host lines, UI text) MUST NOT be used as logic keys or as the primary basis of stable tests.
+   - Tests should assert stable identifiers (e.g. `roleId`, `schemaId`, step id, `testID`) instead of copy.
+- **Fail-fast on invalid config**: the plan builder MUST validate referenced `roleId`/`schemaId` and throw on invalid values.
+   - No silent skip or fallback behavior for unknown roles/schemas.
+- **Contract tests are required**: maintain Jest contract tests that guard the table-driven plan.
+   - Uniqueness (e.g. step ids if present)
+   - Reference validity (`roleId` exists; `schemaId` exists)
+   - Deterministic order (stable sequence)
+   - Night-1-only scope (no cross-night fields/semantics)
+- **Visibility boundary (anti-cheat)**: any step "visibility" helpers (e.g. actsSolo / wolf-meeting visibility) MUST NOT leak into `BroadcastGameState`.
+   - Sensitive information remains toUid private messages only.
+
 **Contract (target end-state):**
 - Input: `Template.roles`
 - Output: `NightPlanStep[]` (includes `roleId`, `schemaId`, visibility, optional audio keys)
@@ -367,6 +383,12 @@ We standardize on a **declarative** roles system so that Host remains the only a
 
 - Prefer **forwardable prompts/specs** by default.
 - Only directly edit files / run repo commands when the user explicitly authorizes it.
+
+### Facts & uncertainty rule (mandatory)
+
+- Do NOT invent project facts (file paths, symbols, APIs, behavior, requirements) that are not verified in the repo or explicitly stated by the user.
+- If a detail is uncertain or multiple interpretations exist, you MUST ask the user to confirm before proceeding.
+- Any assumptions must be stated explicitly as assumptions (and kept minimal) before acting.
 
 ### Roles model hard constraint (MANDATORY)
 
