@@ -3,6 +3,13 @@
  * 
  * Builds night action sequence from template roles.
  * Single source of truth for action order.
+ *
+ * LEGACY NOTE (pre-M2):
+ * - This builder still derives steps from `ROLE_SPECS[*].night1` and sorts by `night1.order`.
+ * - M1 introduced `NIGHT_STEPS` as the single source of truth for step ordering, but buildNightPlan
+ *   has not been switched yet to avoid widening blast radius.
+ * - M2 will switch buildNightPlan to filter/map from `NIGHT_STEPS` and remove reliance on
+ *   `night1.order/schemaId/actsSolo` as the authoritative ordering source.
  */
 
 import { ROLE_SPECS, type RoleId, isValidRoleId } from './specs';

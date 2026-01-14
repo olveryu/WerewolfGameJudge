@@ -6,6 +6,7 @@
 
 import { NIGHT_STEPS, getAllStepIds, getStepSpec, getStepsByRole } from '../nightSteps';
 import { ROLE_SPECS, isValidRoleId } from '../specs';
+import type { RoleSpec } from '../spec.types';
 import { isValidSchemaId } from '../schemas';
 
 describe('NIGHT_STEPS contract', () => {
@@ -102,11 +103,19 @@ describe('NIGHT_STEPS contract', () => {
       }
     });
 
-    it('wolf meeting steps should have wolfMeetingPhase=true', () => {
-      const wolfMeetingSteps = ['wolfKill', 'wolfQueenCharm'];
-      for (const stepId of wolfMeetingSteps) {
-        const step = getStepSpec(stepId);
-        expect(step?.visibility.wolfMeetingPhase).toBe(true);
+    it('wolf meeting steps should be derived from NIGHT_STEPS (snapshot)', () => {
+      const wolfMeetingStepIds = NIGHT_STEPS
+        .filter(s => s.visibility.wolfMeetingPhase === true)
+        .map(s => s.id);
+      expect(wolfMeetingStepIds).toMatchSnapshot();
+    });
+
+    it('wolfMeetingPhase=true must align with ROLE_SPECS wolfMeeting participants', () => {
+      const wolfMeetingSteps = NIGHT_STEPS.filter(s => s.visibility.wolfMeetingPhase === true);
+      for (const step of wolfMeetingSteps) {
+  const spec = ROLE_SPECS[step.roleId] as RoleSpec;
+        expect(spec.wolfMeeting?.canSeeWolves).toBe(true);
+        expect(spec.wolfMeeting?.participatesInWolfVote).toBe(true);
       }
     });
 
