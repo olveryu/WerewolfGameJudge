@@ -169,12 +169,23 @@
 
 ## 7. 分 3 个 commit 的落地切片（建议）
 
-### Commit 1：ACTION_REJECTED 基建 + UI 统一弹窗
+### Commit 1：ACTION_REJECTED 基建 + UI 统一弹窗 + Host 入口 gate（把 silent no-op 变成可观测 reject）
 范围：
 - `PrivateBroadcast.ts`：新增 `ACTION_REJECTED`
 - `GameStateService`：收/存/wait reject
 - `RoomScreen`：`proceedWithAction` 提交后等待 reject 并弹窗；seer/psychic 分支先 reject 后 reveal
-- Host：至少把“梦魇封锁非 skip”与“wrong phase/role 之一”接入回执
+- Host：在 action 入口统一做 gate，把“silent ignore / silent no-op”改为 reject + 回执（最少覆盖主路径）：
+
+  > 这里的“silent ignore / silent no-op”特指：**本应判定为输入不合法** 的提交，在 Host 入口被静默丢弃（silent ignore），或被下游 resolver 用 `valid:true + 空 result` 吞成 no-op（silent no-op），从而 UI 侧拿不到 `ACTION_REJECTED`（玩家感觉“点了没反应”）。
+  > 这不否定 resolver 作为纯计算层的“no-op 表达”本身；问题在于 **不合法输入** 没有走统一的 reject 回执契约。
+
+  - 最少覆盖主路径：
+  - 梦魇封锁（blockedSeat）：非 skip 一律 `ACTION_REJECTED`
+  - `wolfKillDisabled`：非“空刀/跳过”一律 `ACTION_REJECTED`
+  - wrong phase / wrong role：至少覆盖 1 条主路径，确认端到端链路可观测
+
+验收要点（面向你这次新增的问题）：
+- 被封锁的玩家点击任意座位：**一定**收到 `ACTION_REJECTED`（不再出现 resolver 返回 `valid:true result:{}` 造成的“点了没反应”）
 
 验收：
 - 触发一个 Host reject 的场景，用户必然看到弹窗。
