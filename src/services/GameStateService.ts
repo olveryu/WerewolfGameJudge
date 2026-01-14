@@ -26,7 +26,7 @@ import {
   makeWitchPoison,
   getActionTargetSeat,
 } from '../models/actions';
-import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, buildNightPlan } from '../models/roles/spec';
+import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, buildNightPlan, getStepsByRoleStrict } from '../models/roles/spec';
 import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
 import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload } from './types/PrivateBroadcast';
 
@@ -1451,13 +1451,16 @@ export class GameStateService {
     // Get pending seats for this role
     const pendingSeats = this.getSeatsForRole(currentRole);
     
-    // Get schemaId from RoleSpec (fail-safe: only if valid roleId)
+  // Get schemaId from NIGHT_STEPS (fail-safe: only if valid roleId)
     let schemaId: SchemaId | undefined;
     if (isValidRoleId(currentRole)) {
       const spec = getRoleSpec(currentRole);
       // schemaId only exists when hasAction is true
       if (spec.night1.hasAction) {
-        schemaId = spec.night1.schemaId;
+    // M3: schemaId is derived from NIGHT_STEPS single source of truth.
+    // Current assumption (locked by contract tests): each role has at most one NightStep.
+    const [step] = getStepsByRoleStrict(currentRole);
+    schemaId = step?.schemaId;
       }
     } else {
       console.warn(`[GameStateService] ROLE_TURN: Invalid roleId "${currentRole}", schemaId not sent`);

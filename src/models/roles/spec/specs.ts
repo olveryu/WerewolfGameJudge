@@ -10,14 +10,13 @@
  * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, bloodMoon, wolfRobot, spiritKnight (9)
  * - Third-party: slacker (1)
  */
-
 import type { RoleSpec } from './spec.types';
 import { Faction } from './types';
+import { NIGHT_STEPS } from './nightSteps';
 
 export const ROLE_SPECS = {
   // ===================================================================
   // VILLAGER FACTION
-  // ===================================================================
   villager: {
     id: 'villager',
     displayName: '普通村民',
@@ -37,7 +36,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: 'good',
     description: '每晚可以查验一名玩家的身份，获知该玩家是好人还是狼人',
-    night1: { hasAction: true, order: 15, schemaId: 'seerCheck' },
+    night1: { hasAction: true },
     ux: {
       audioKey: 'seer',
       actionMessage: '请选择查验对象',
@@ -51,7 +50,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: 'good',
     description: '拥有一瓶解药和一瓶毒药，每晚可以选择救活被狼人袭击的玩家或毒死一名玩家，每瓶药只能使用一次',
-    night1: { hasAction: true, order: 10, schemaId: 'witchAction' },
+    night1: { hasAction: true },
     // Night-1-only: "女巫不能自救"规则已在 schema.witchAction.save.constraints=['notSelf'] 中定义
     // 不再使用 flags.canSaveSelf，避免双写漂移
     ux: {
@@ -67,7 +66,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: 'good',
     description: '被狼人杀害时，可以开枪带走一名玩家。被女巫毒死则不能开枪',
-    night1: { hasAction: true, order: 20, schemaId: 'hunterConfirm' },
+  night1: { hasAction: true },
     ux: {
       audioKey: 'hunter',
       actionMessage: '请确认你的发动状态',
@@ -81,7 +80,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: 'good',
     description: '每晚可以守护一名玩家使其不被狼人杀害，但不能连续两晚守护同一人。守卫无法防御女巫的毒药',
-    night1: { hasAction: true, order: 3, schemaId: 'guardProtect' },
+  night1: { hasAction: true },
     ux: {
       audioKey: 'guard',
       actionMessage: '请选择守护对象',
@@ -115,7 +114,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: 'good',
     description: '每晚在其他所有人之前行动，交换2个人的号码牌，当晚有效',
-    night1: { hasAction: true, order: -2, schemaId: 'magicianSwap' },
+  night1: { hasAction: true },
     ux: {
       audioKey: 'magician',
       actionMessage: '请选择两名交换对象',
@@ -140,7 +139,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: 'good',
     description: '每晚可以查验一名玩家的具体身份牌（不只是阵营）',
-    night1: { hasAction: true, order: 16, schemaId: 'psychicCheck' },
+  night1: { hasAction: true },
     ux: {
       audioKey: 'psychic',
       actionMessage: '请选择查验对象',
@@ -155,7 +154,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: 'good',
     description: '每晚必须选择一名玩家成为梦游者，梦游者不知道自己正在梦游，且免疫夜间伤害。摄梦人夜间出局则梦游者一并出局，连续两晚成为梦游者也会出局',
-    night1: { hasAction: true, order: 1, schemaId: 'dreamcatcherDream' },
+  night1: { hasAction: true },
     ux: {
       audioKey: 'dreamcatcher',  // NOT 'celebrity'
       actionMessage: '请选择摄梦对象',
@@ -183,7 +182,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: 'wolf',
     description: '每晚与狼队友共同选择一名玩家猎杀',
-    night1: { hasAction: true, order: 5, schemaId: 'wolfKill' },
+  night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
     ux: {
       audioKey: 'wolf',
@@ -198,7 +197,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: 'wolf',
     description: '每晚参与袭击后可魅惑一名玩家，狼美人白天出局时被魅惑者随之殉情出局。被魅惑者不知情',
-    night1: { hasAction: true, order: 6, schemaId: 'wolfQueenCharm' },
+  night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
     ux: {
       audioKey: 'wolf_queen',
@@ -225,7 +224,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: 'wolf',
     description: '被刀杀时可以开枪带走一名玩家（狼人版猎人）',
-    night1: { hasAction: true, order: 25, schemaId: 'darkWolfKingConfirm' },
+  night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
     ux: {
       audioKey: 'dark_wolf_king',
@@ -240,12 +239,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: 'wolf',
     description: '每晚在所有人行动之前恐惧一名玩家，使其当夜无法使用技能。不能连续两晚恐惧同一名玩家。首夜进行恐惧时与其他狼人不互知身份；若首夜选择到狼人，则狼人阵营当夜不能刀人。',
-    night1: { 
-      hasAction: true, 
-      order: 2, 
-      schemaId: 'nightmareBlock',
-      actsSolo: true,  // 恐惧阶段独自行动，不知道狼队友（但能看到自己）
-    },
+  night1: { hasAction: true },
     // 狼人刀人阶段：互知+参刀
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
     flags: { blocksSkill: true },
@@ -262,7 +256,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: 'wolf',
     description: '每晚可以查验一名玩家的具体身份。当其他所有狼人出局后，可在夜间进行袭击。石像鬼不参与狼人投票。',
-    night1: { hasAction: true, order: 1, schemaId: 'gargoyleCheck' },
+  night1: { hasAction: true },
     // 永远不互知不参刀
     wolfMeeting: { canSeeWolves: false, participatesInWolfVote: false },
     ux: {
@@ -290,7 +284,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: 'wolf',
     description: '与普通狼人互不相认，第一晚最早睁眼学习任一玩家技能并获得其身份，当夜不能使用，下一夜可用。普通狼人全死后带刀，不能自爆（不参与狼人刀人）',
-    night1: { hasAction: true, order: 0, schemaId: 'wolfRobotLearn' },
+  night1: { hasAction: true },
     // 永远不互知不参刀
     wolfMeeting: { canSeeWolves: false, participatesInWolfVote: false },
     ux: {
@@ -323,7 +317,7 @@ export const ROLE_SPECS = {
     faction: Faction.Special,
     team: 'third',  // Before choosing idol; seer sees "好人" (not "第三方")
     description: '第一晚选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份',
-    night1: { hasAction: true, order: -1, schemaId: 'slackerChooseIdol' },
+  night1: { hasAction: true },
     ux: {
       audioKey: 'slacker',
       actionMessage: '请选择你的榜样',
@@ -352,10 +346,13 @@ export function getAllRoleIds(): RoleId[] {
 
 /** Get roles with night-1 action, sorted by order */
 export function getNight1ActionRoles(): RoleId[] {
-  return (Object.entries(ROLE_SPECS) as [RoleId, RoleSpec][])
-    .filter(([, spec]) => spec.night1.hasAction)
-    .sort((a, b) => (a[1].night1.order ?? 999) - (b[1].night1.order ?? 999))
-    .map(([id]) => id);
+  // Derive order from NIGHT_STEPS (single source of truth), not legacy RoleSpec.night1.order.
+  // NOTE: Current contract assumes each role appears at most once in NIGHT_STEPS.
+  const roleIds = new Set<RoleId>();
+  for (const step of NIGHT_STEPS) {
+    roleIds.add(step.roleId);
+  }
+  return Array.from(roleIds);
 }
 
 // Re-export types
