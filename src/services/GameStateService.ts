@@ -868,6 +868,52 @@ export class GameStateService {
   }
 
   /**
+   * Wait for seer reveal to arrive in inbox (with timeout).
+   * Used after submitting action to ensure Host's private message has arrived.
+   * 
+   * @param timeoutMs - Maximum time to wait (default: 3000ms)
+   * @returns SeerRevealPayload if received, null if timeout
+   */
+  async waitForSeerReveal(timeoutMs: number = 3000): Promise<SeerRevealPayload | null> {
+    const pollIntervalMs = 50;
+    const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
+    
+    for (let i = 0; i < maxAttempts; i++) {
+      const reveal = this.getSeerReveal();
+      if (reveal) {
+        return reveal;
+      }
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    }
+    
+    console.warn('[GameStateService] waitForSeerReveal timeout after', timeoutMs, 'ms');
+    return null;
+  }
+
+  /**
+   * Wait for psychic reveal to arrive in inbox (with timeout).
+   * Used after submitting action to ensure Host's private message has arrived.
+   * 
+   * @param timeoutMs - Maximum time to wait (default: 3000ms)
+   * @returns PsychicRevealPayload if received, null if timeout
+   */
+  async waitForPsychicReveal(timeoutMs: number = 3000): Promise<PsychicRevealPayload | null> {
+    const pollIntervalMs = 50;
+    const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
+    
+    for (let i = 0; i < maxAttempts; i++) {
+      const reveal = this.getPsychicReveal();
+      if (reveal) {
+        return reveal;
+      }
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    }
+    
+    console.warn('[GameStateService] waitForPsychicReveal timeout after', timeoutMs, 'ms');
+    return null;
+  }
+
+  /**
    * Clear private inbox (called on game restart or revision rollback)
    */
   private clearPrivateInbox(): void {

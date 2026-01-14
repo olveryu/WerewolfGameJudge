@@ -80,8 +80,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     clearLastSeatError,
     requestSnapshot,
     getWitchContext,
-    getSeerReveal,
-    getPsychicReveal,
+    waitForSeerReveal,
+    waitForPsychicReveal,
   } = useGameRoom();
 
   // Local UI state
@@ -326,15 +326,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       case 'seerReveal': {
         if (!gameState) return;
         // Anti-cheat: Submit action to Host first, Host sends SEER_REVEAL privately
-        // Then show result from inbox
+        // Then wait for result from inbox (handles network latency)
         await proceedWithAction(intent.targetIndex);
-        const reveal = getSeerReveal();
+        const reveal = await waitForSeerReveal();
         if (reveal) {
           actionDialogs.showRevealDialog(
             `${reveal.targetSeat + 1}号是${reveal.result}`,
             '',
             () => {} // No further action needed, already submitted
           );
+        } else {
+          console.warn('[RoomScreen] seerReveal timeout - no reveal received');
         }
         break;
       }
@@ -342,15 +344,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       case 'psychicReveal': {
         if (!gameState) return;
         // Anti-cheat: Submit action to Host first, Host sends PSYCHIC_REVEAL privately
-        // Then show result from inbox
+        // Then wait for result from inbox (handles network latency)
         await proceedWithAction(intent.targetIndex);
-        const reveal = getPsychicReveal();
+        const reveal = await waitForPsychicReveal();
         if (reveal) {
           actionDialogs.showRevealDialog(
             `${reveal.targetSeat + 1}号是${reveal.result}`,
             '',
             () => {} // No further action needed, already submitted
           );
+        } else {
+          console.warn('[RoomScreen] psychicReveal timeout - no reveal received');
         }
         break;
       }

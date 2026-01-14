@@ -85,6 +85,9 @@ export interface UseGameRoomResult {
   getWitchContext: () => import('../services/types/PrivateBroadcast').WitchContextPayload | null;
   getSeerReveal: () => import('../services/types/PrivateBroadcast').SeerRevealPayload | null;
   getPsychicReveal: () => import('../services/types/PrivateBroadcast').PsychicRevealPayload | null;
+  // Async wait methods (handle network latency)
+  waitForSeerReveal: (timeoutMs?: number) => Promise<import('../services/types/PrivateBroadcast').SeerRevealPayload | null>;
+  waitForPsychicReveal: (timeoutMs?: number) => Promise<import('../services/types/PrivateBroadcast').PsychicRevealPayload | null>;
 }
 
 export const useGameRoom = (): UseGameRoomResult => {
@@ -447,6 +450,8 @@ export const useGameRoom = (): UseGameRoomResult => {
     getWitchContext: () => gameStateService.current.getWitchContext(),
     getSeerReveal: () => gameStateService.current.getSeerReveal(),
     getPsychicReveal: () => gameStateService.current.getPsychicReveal(),
+    waitForSeerReveal: (timeoutMs?: number) => gameStateService.current.waitForSeerReveal(timeoutMs),
+    waitForPsychicReveal: (timeoutMs?: number) => gameStateService.current.waitForPsychicReveal(timeoutMs),
   };
 };
 
