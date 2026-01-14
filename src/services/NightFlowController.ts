@@ -11,6 +11,7 @@
  */
 
 import { RoleName } from '../models/roles';
+import { type NightPlan, type NightPlanStep } from '../models/roles/spec/plan.types';
 
 // =============================================================================
 // Night Phase State Machine
@@ -64,6 +65,8 @@ export interface NightFlowState {
   readonly actionOrder: readonly RoleName[];
   readonly currentActionIndex: number;
   readonly actions: ReadonlyMap<RoleName, number>;
+  /** Current step from NightPlan (null if no more steps) */
+  readonly currentStep: NightPlanStep | null;
 }
 
 /**
@@ -97,12 +100,18 @@ export class InvalidNightTransitionError extends Error {
  */
 export class NightFlowController {
   private _phase: NightPhase = NightPhase.Idle;
-  private _actionOrder: RoleName[];
+  private readonly _nightPlan: NightPlan;
+  private readonly _actionOrder: RoleName[];  // Derived from NightPlan for backward compat
   private _currentActionIndex: number = 0;
   private _actions: Map<RoleName, number> = new Map();
 
-  constructor(actionOrder: RoleName[]) {
-    this._actionOrder = [...actionOrder]; // Defensive copy
+  /**
+   * Create a new NightFlowController from a NightPlan.
+   * @param nightPlan - The night plan (table-driven action sequence)
+   */
+  constructor(nightPlan: NightPlan) {
+    this._nightPlan = nightPlan;
+    this._actionOrder = nightPlan.steps.map(step => step.roleId);
   }
 
   // ===========================================================================
@@ -111,6 +120,14 @@ export class NightFlowController {
 
   get phase(): NightPhase {
     return this._phase;
+  }
+
+  /** Current NightPlanStep (null if no more steps) */
+  get currentStep(): NightPlanStep | null {
+    if (this._currentActionIndex >= this._nightPlan.steps.length) {
+      return null;
+    }
+    return this._nightPlan.steps[this._currentActionIndex];
   }
 
   get currentRole(): RoleName | null {
@@ -141,6 +158,7 @@ export class NightFlowController {
       actionOrder: this._actionOrder,
       currentActionIndex: this._currentActionIndex,
       actions: new Map(this._actions),
+      currentStep: this.currentStep,
     };
   }
 

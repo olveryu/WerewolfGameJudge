@@ -4,6 +4,8 @@
  * Validates dreamcatcher action and computes result.
  */
 
+import { SCHEMAS } from '../../../models/roles/spec/schemas';
+import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
 
 export const dreamcatcherDreamResolver: ResolverFn = (context, input) => {
@@ -15,9 +17,11 @@ export const dreamcatcherDreamResolver: ResolverFn = (context, input) => {
     return { valid: false, rejectReason: '必须选择摄梦对象' };
   }
   
-  // Cannot dream self (contract rule)
-  if (target === actorSeat) {
-    return { valid: false, rejectReason: '不能摄梦自己' };
+  // Validate constraints from schema
+  const schema = SCHEMAS.dreamcatcherDream;
+  const constraintResult = validateConstraints(schema.constraints, { actorSeat, target });
+  if (!constraintResult.valid) {
+    return { valid: false, rejectReason: constraintResult.rejectReason };
   }
   
   // Check blocked by nightmare

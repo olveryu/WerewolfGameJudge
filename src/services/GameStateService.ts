@@ -26,7 +26,7 @@ import {
   makeWitchPoison,
   getActionTargetSeat,
 } from '../models/actions';
-import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId } from '../models/roles/spec';
+import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, buildNightPlan } from '../models/roles/spec';
 import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
 import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload } from './types/PrivateBroadcast';
 
@@ -1149,8 +1149,11 @@ export class GameStateService {
     if (!this.isHost || !this.state) return;
     if (this.state.status !== GameStatus.ready) return;
 
-  // [Bridge: NightFlowController] Initialize night-phase state machine with action order
-    this.nightFlow = new NightFlowController(this.state.template.actionOrder);
+    // [Bridge: NightFlowController] Build NightPlan from template roles (table-driven)
+    const nightPlan = buildNightPlan(this.state.template.roles);
+    
+    // [Bridge: NightFlowController] Initialize night-phase state machine with NightPlan
+    this.nightFlow = new NightFlowController(nightPlan);
     
   // [Bridge: NightFlowController] Dispatch StartNight event (STRICT: fail-fast on error)
     try {

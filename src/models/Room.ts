@@ -1,6 +1,6 @@
 import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from './Player';
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
-import { RoleName, ROLES, isWolfRole, getSeerCheckResult, SeerCheckResult } from './roles';
+import { RoleName, ROLES, isWolfRole } from './roles';
 import { shuffleArray } from '../utils/shuffle';
 import {
   type RoleAction,
@@ -313,28 +313,6 @@ export const getWolfVoteSummary = (room: GameRoomLike): string => {
   return `${voted.length}/${wolfSeats.length} 狼人已投票`;
 };
 
-/**
- * Get killed index from wolf action
- * Priority: actions['wolf'] (set by RPC) > calculate from wolfVotes (legacy)
- * 
- * @deprecated Use getWitchContext() from private inbox instead for anti-cheat.
- * UI should NOT access killedIndex directly. Host sends it privately to witch.
- * TODO(remove by 2026-02-01): Delete after UI fully migrated to private inbox.
- */
-export const getKilledIndex = (room: GameRoomLike): number => {
-  // Prefer actions['wolf'] - this is set atomically by the RPC when all wolves vote
-  const wolfAction = room.actions.get('wolf');
-  const targetSeat = getActionTargetSeat(wolfAction);
-  if (targetSeat !== undefined) {
-    return targetSeat;
-  }
-  // Fallback: calculate from wolfVotes (for backward compatibility)
-  if (room.wolfVotes.size > 0) {
-    return calculateWolfKillTarget(room);
-  }
-  return -1;
-};
-
 // Check hunter status (can shoot or not)
 export const getHunterStatus = (room: GameRoomLike): boolean => {
   const witchAction = room.actions.get('witch');
@@ -626,62 +604,6 @@ export const getRoomInfo = (room: GameRoomLike): string => {
   info += uniqueSpecialRoles.map((r) => ROLES[r].displayName).join(', ');
 
   return info;
-};
-
-/**
- * Perform seer action (check player identity)
- * IMPORTANT: Seer result is strictly binary - only '好人' or '狼人'
- * All wolf-faction roles → '狼人', all others (god/villager/third-party) → '好人'
- * 
- * @deprecated Use getSeerReveal() from private inbox instead for anti-cheat.
- * TODO(remove by 2026-02-01): Migrate UI to async private message flow.
- */
-export const performSeerAction = (room: GameRoomLike, targetSeat: number): SeerCheckResult => {
-  const targetPlayer = room.players.get(targetSeat);
-  if (!targetPlayer?.role) return getSeerCheckResult('villager');
-
-  // Check magician swap
-  const magicianParsed = parseMagicianActionFromRoleAction(room.actions.get('magician'));
-  if (magicianParsed.firstExchanged !== undefined && magicianParsed.secondExchanged !== undefined) {
-    const first = magicianParsed.firstExchanged;
-    const second = magicianParsed.secondExchanged;
-
-    if (targetSeat === first) {
-      const swappedPlayer = room.players.get(second);
-      return swappedPlayer?.role ? getSeerCheckResult(swappedPlayer.role) : getSeerCheckResult('villager');
-    } else if (targetSeat === second) {
-      const swappedPlayer = room.players.get(first);
-      return swappedPlayer?.role ? getSeerCheckResult(swappedPlayer.role) : getSeerCheckResult('villager');
-    }
-  }
-
-  return getSeerCheckResult(targetPlayer.role);
-};
-
-/**
- * Perform psychic action (check exact role)
- * 
- * @deprecated Use getPsychicReveal() from private inbox instead for anti-cheat.
- * TODO(remove by 2026-02-01): Migrate UI to async private message flow.
- */
-export const performPsychicAction = (room: GameRoomLike, targetSeat: number): string => {
-  // Check if wolf robot learned this player's role
-  const wolfRobotAction = room.actions.get('wolfRobot');
-  const wolfRobotTargetSeat = getActionTargetSeat(wolfRobotAction);
-  let wolfRobotSeat = -1;
-  room.players.forEach((player, seat) => {
-    if (player?.role === 'wolfRobot') {
-      wolfRobotSeat = seat;
-    }
-  });
-
-  if (wolfRobotSeat === targetSeat && wolfRobotTargetSeat !== undefined) {
-    const learnedPlayer = room.players.get(wolfRobotTargetSeat);
-    return learnedPlayer?.role ? ROLES[learnedPlayer.role].displayName : '未知';
-  }
-
-  const targetPlayer = room.players.get(targetSeat);
-  return targetPlayer?.role ? ROLES[targetPlayer.role].displayName : '未知';
 };
 
 // Proceed to next action (matching Flutter room.proceed)

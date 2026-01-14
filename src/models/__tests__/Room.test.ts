@@ -4,9 +4,6 @@ import {
   createRoom,
   proceedToNextAction,
   getLastNightInfo,
-  getKilledIndex,
-  performSeerAction,
-  performPsychicAction,
   getCurrentActionRole,
   updateRoomTemplate,
   assignRoles,
@@ -106,9 +103,7 @@ describe('Room - 女巫 (Witch)', () => {
     current = proceedToNextAction(current, 3); // Wolf kills player 4
     
     current = advanceToRole(current, 'witch');
-    const killedIndex = getKilledIndex(current);
-    expect(killedIndex).toBe(3);
-    
+    // NOTE: getKilledIndex removed (deprecated). Witch context now via private inbox.
     // Witch saves (extra = false means save)
     current = proceedToNextAction(current, 3, false);
     current = completeNight(current);
@@ -200,118 +195,9 @@ describe('Room - 守卫 (Guard)', () => {
   });
 });
 
-describe('Room - 预言家 (Seer)', () => {
-  it('预言家查验狼人 - 应该显示狼人', () => {
-    const room = createTestRoom(['wolf', 'seer', 'villager', 'villager']);
-    
-    let current = advanceToRole(room, 'wolf');
-    current = proceedToNextAction(current, 2);
-    
-    current = advanceToRole(current, 'seer');
-    const result = performSeerAction(current, 0); // Check wolf
-    
-    expect(result).toBe('狼人');
-  });
-
-  it('预言家查验好人 - 应该显示好人', () => {
-    const room = createTestRoom(['wolf', 'seer', 'villager', 'villager']);
-    
-    let current = advanceToRole(room, 'wolf');
-    current = proceedToNextAction(current, 3);
-    
-    current = advanceToRole(current, 'seer');
-    const result = performSeerAction(current, 2); // Check villager
-    
-    expect(result).toBe('好人');
-  });
-
-  it('预言家查验石像鬼 - 应该显示狼人', () => {
-    const room = createTestRoom(['gargoyle', 'seer', 'villager', 'villager']);
-    
-    const current = advanceToRole(room, 'seer');
-    const result = performSeerAction(current, 0); // Check gargoyle
-    
-    expect(result).toBe('狼人');
-  });
-
-  it('预言家查验女巫 - 应该显示好人', () => {
-    const room = createTestRoom(['wolf', 'seer', 'witch', 'villager']);
-    
-    let current = advanceToRole(room, 'wolf');
-    current = proceedToNextAction(current, 3);
-    
-    current = advanceToRole(current, 'seer');
-    const result = performSeerAction(current, 2); // Check witch
-    
-    expect(result).toBe('好人');
-  });
-
-  it('预言家查验猎人 - 应该显示好人', () => {
-    const room = createTestRoom(['wolf', 'seer', 'hunter', 'villager']);
-    
-    let current = advanceToRole(room, 'wolf');
-    current = proceedToNextAction(current, 3);
-    
-    current = advanceToRole(current, 'seer');
-    const result = performSeerAction(current, 2); // Check hunter
-    
-    expect(result).toBe('好人');
-  });
-
-  it('预言家查验守卫 - 应该显示好人', () => {
-    const room = createTestRoom(['wolf', 'seer', 'guard', 'villager']);
-    
-    let current = advanceToRole(room, 'wolf');
-    current = proceedToNextAction(current, 3);
-    
-    current = advanceToRole(current, 'seer');
-    const result = performSeerAction(current, 2); // Check guard
-    
-    expect(result).toBe('好人');
-  });
-
-  it('预言家查验梦魇 - 应该显示狼人', () => {
-    const room = createTestRoom(['nightmare', 'seer', 'villager', 'villager']);
-    
-    const current = advanceToRole(room, 'seer');
-    const result = performSeerAction(current, 0); // Check nightmare
-    
-    expect(result).toBe('狼人');
-  });
-
-  it('预言家查验狼美人 - 应该显示狼人', () => {
-    const room = createTestRoom(['wolfQueen', 'seer', 'villager', 'villager']);
-    
-    const current = advanceToRole(room, 'seer');
-    const result = performSeerAction(current, 0); // Check wolfQueen
-    
-    expect(result).toBe('狼人');
-  });
-
-  it('魔术师交换后预言家查验 - 应该看到交换后的身份', () => {
-    // Roles: wolf(0), seer(1), magician(2), villager(3)
-    // Action order: magician(-2) -> wolf(5) -> seer(15)
-    // Magician swaps wolf(0) and villager(3)
-    // When seer checks seat 0, should see villager's identity (好人)
-    const room = createTestRoom(['wolf', 'seer', 'magician', 'villager']);
-    
-    // 1. Magician acts first (actionOrder = -2)
-    let current = advanceToRole(room, 'magician');
-    // Magician swap: firstSeat=0, secondSeat=3 (passed as extra)
-    current = proceedToNextAction(current, 0, 3); // Swap seat 0 and seat 3
-    
-    // 2. Wolf acts second (actionOrder = 5)
-    current = advanceToRole(current, 'wolf');
-    current = proceedToNextAction(current, 1); // Wolf kills seer
-    
-    // Now check seer result - magician swap should be applied
-    const resultSeat0 = performSeerAction(current, 0); // Check seat 0 (swapped to villager identity)
-    const resultSeat3 = performSeerAction(current, 3); // Check seat 3 (swapped to wolf identity)
-    
-    expect(resultSeat0).toBe('好人'); // Seat 0 now has villager's identity after swap
-    expect(resultSeat3).toBe('狼人'); // Seat 3 now has wolf's identity after swap
-  });
-});
+// NOTE: Seer check tests have been moved to resolver tests
+// (src/services/night/resolvers/__tests__/seer.test.ts)
+// See seerCheckResolver for the new architecture.
 
 describe('Room - 狼美人 (Wolf Queen)', () => {
   it('狼美人连接后死亡 - 被连接的玩家也死亡', () => {
@@ -534,19 +420,8 @@ describe('Room - 综合场景测试', () => {
   });
 });
 
-describe('Room - 通灵师 (Psychic)', () => {
-  it('通灵师查验玩家身份', () => {
-    const room = createTestRoom(['wolf', 'psychic', 'seer', 'villager']);
-    
-    let current = advanceToRole(room, 'wolf');
-    current = proceedToNextAction(current, 3);
-    
-    current = advanceToRole(current, 'psychic');
-    const result = performPsychicAction(current, 2); // Check seer
-    
-    expect(result).toBe('预言家');
-  });
-});
+// NOTE: Psychic check tests have been moved to resolver tests
+// See psychicCheckResolver for the new architecture.
 
 describe('Room - 黑狼王 (Dark Wolf King)', () => {
   it('黑狼王正常死亡 - 可以发动技能', () => {
@@ -583,14 +458,8 @@ describe('Room - 黑狼王 (Dark Wolf King)', () => {
 });
 
 describe('Room - 白狼王 (Wolf King)', () => {
-  it('白狼王是狼人身份', () => {
-    const room = createTestRoom(['wolfKing', 'seer', 'villager', 'villager']);
-    
-    const current = advanceToRole(room, 'seer');
-    const result = performSeerAction(current, 0); // Check wolf king
-    
-    expect(result).toBe('狼人');
-  });
+  // NOTE: Wolf king seer check test moved to resolver tests
+  // Wolf king has team='wolf', so seer sees '狼人'
 
   it('白狼王没有夜间行动', () => {
     const room = createTestRoom(['wolfKing', 'seer', 'villager', 'villager']);

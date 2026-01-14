@@ -4,6 +4,8 @@
  * Validates wolf queen charm action and computes result.
  */
 
+import { SCHEMAS } from '../../../models/roles/spec/schemas';
+import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
 
 export const wolfQueenCharmResolver: ResolverFn = (context, input) => {
@@ -20,9 +22,11 @@ export const wolfQueenCharmResolver: ResolverFn = (context, input) => {
     return { valid: true, result: {} };
   }
   
-  // Cannot charm self
-  if (target === actorSeat) {
-    return { valid: false, rejectReason: '不能魅惑自己' };
+  // Validate constraints from schema
+  const schema = SCHEMAS.wolfQueenCharm;
+  const constraintResult = validateConstraints(schema.constraints, { actorSeat, target });
+  if (!constraintResult.valid) {
+    return { valid: false, rejectReason: constraintResult.rejectReason };
   }
   
   // Target must exist

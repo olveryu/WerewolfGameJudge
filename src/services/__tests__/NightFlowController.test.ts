@@ -13,6 +13,27 @@ import {
   NightEvent,
   InvalidNightTransitionError,
 } from '../NightFlowController';
+import { buildNightPlan, type NightPlan } from '../../models/roles/spec/plan';
+
+/** Helper: build NightPlan from role list for testing */
+const buildTestPlan = (roles: string[]): NightPlan => {
+  return buildNightPlan(roles);
+};
+
+/** Helper: create minimal NightPlan for unit tests (bypass ROLE_SPECS validation) */
+const createMinimalPlan = (roleIds: string[]): NightPlan => {
+  return {
+    steps: roleIds.map((roleId, idx) => ({
+      roleId: roleId as any,
+      schemaId: `${roleId}Action` as any,
+      order: idx,
+      displayName: roleId,
+      audioKey: roleId,
+      actsSolo: false,
+    })),
+    length: roleIds.length,
+  };
+};
 
 describe('NightFlowController', () => {
   // ===========================================================================
@@ -21,14 +42,26 @@ describe('NightFlowController', () => {
 
   describe('Happy Path - Complete Night Flow', () => {
     it('should start in Idle phase', () => {
-      const controller = new NightFlowController(['wolf', 'witch', 'seer']);
+      const plan = buildTestPlan(['wolf', 'witch', 'seer']);
+      const controller = new NightFlowController(plan);
       expect(controller.phase).toBe(NightPhase.Idle);
       expect(controller.currentRole).toBe('wolf');
       expect(controller.currentActionIndex).toBe(0);
     });
 
+    it('should expose currentStep from NightPlan', () => {
+      const plan = buildTestPlan(['wolf', 'witch', 'seer']);
+      const controller = new NightFlowController(plan);
+      
+      const step = controller.currentStep;
+      expect(step).not.toBeNull();
+      expect(step?.roleId).toBe('wolf');
+      expect(step?.schemaId).toBe('wolfKill');
+    });
+
     it('should complete full night flow with 3 roles', () => {
-      const controller = new NightFlowController(['wolf', 'witch', 'seer']);
+      const plan = buildTestPlan(['wolf', 'witch', 'seer']);
+      const controller = new NightFlowController(plan);
 
       // Start night
       controller.dispatch(NightEvent.StartNight);
@@ -87,7 +120,8 @@ describe('NightFlowController', () => {
     });
 
     it('should handle empty action order (no roles with night actions)', () => {
-      const controller = new NightFlowController([]);
+      const emptyPlan: NightPlan = { steps: [], length: 0 };
+      const controller = new NightFlowController(emptyPlan);
 
       controller.dispatch(NightEvent.StartNight);
       expect(controller.phase).toBe(NightPhase.NightBeginAudio);
@@ -102,7 +136,8 @@ describe('NightFlowController', () => {
     });
 
     it('should handle single role night', () => {
-      const controller = new NightFlowController(['wolf']);
+      const plan = buildTestPlan(['wolf']);
+      const controller = new NightFlowController(plan);
 
       controller.dispatch(NightEvent.StartNight);
       controller.dispatch(NightEvent.NightBeginAudioDone);
@@ -125,7 +160,8 @@ describe('NightFlowController', () => {
 
   describe('Invalid Transitions', () => {
     it('should throw when StartNight called in non-Idle phase', () => {
-      const controller = new NightFlowController(['wolf']);
+      const plan = buildTestPlan(['wolf']);
+      const controller = new NightFlowController(plan);
       controller.dispatch(NightEvent.StartNight);
       expect(controller.phase).toBe(NightPhase.NightBeginAudio);
 
@@ -135,7 +171,8 @@ describe('NightFlowController', () => {
     });
 
     it('should throw when NightBeginAudioDone called in wrong phase', () => {
-      const controller = new NightFlowController(['wolf']);
+      const plan = buildTestPlan(['wolf']);
+      const controller = new NightFlowController(plan);
       // Still in Idle
 
       expect(() => {
@@ -144,7 +181,8 @@ describe('NightFlowController', () => {
     });
 
     it('should throw when ActionSubmitted called outside WaitingForAction', () => {
-      const controller = new NightFlowController(['wolf']);
+      const plan = buildTestPlan(['wolf']);
+      const controller = new NightFlowController(plan);
       controller.dispatch(NightEvent.StartNight);
       // In NightBeginAudio, not WaitingForAction
 
@@ -154,7 +192,8 @@ describe('NightFlowController', () => {
     });
 
     it('should throw when recording action for wrong role', () => {
-      const controller = new NightFlowController(['wolf', 'witch']);
+      const plan = buildTestPlan(['wolf', 'witch']);
+      const controller = new NightFlowController(plan);
       controller.dispatch(NightEvent.StartNight);
       controller.dispatch(NightEvent.NightBeginAudioDone);
       controller.dispatch(NightEvent.RoleBeginAudioDone);
@@ -166,7 +205,8 @@ describe('NightFlowController', () => {
     });
 
     it('should throw when recording action outside WaitingForAction phase', () => {
-      const controller = new NightFlowController(['wolf']);
+      const plan = buildTestPlan(['wolf']);
+      const controller = new NightFlowController(plan);
       controller.dispatch(NightEvent.StartNight);
       // In NightBeginAudio phase
 
@@ -182,7 +222,8 @@ describe('NightFlowController', () => {
 
   describe('Reset', () => {
     it('should reset from any phase to Idle', () => {
-      const controller = new NightFlowController(['wolf', 'witch']);
+      const plan = buildTestPlan(['wolf', 'witch']);
+      const controller = new NightFlowController(plan);
       
       // Go to middle of night
       controller.dispatch(NightEvent.StartNight);
@@ -199,7 +240,8 @@ describe('NightFlowController', () => {
     });
 
     it('should allow starting new night after reset', () => {
-      const controller = new NightFlowController(['wolf']);
+      const plan = buildTestPlan(['wolf']);
+      const controller = new NightFlowController(plan);
       
       // Complete a night
       controller.dispatch(NightEvent.StartNight);
@@ -226,7 +268,8 @@ describe('NightFlowController', () => {
 
   describe('State Snapshot', () => {
     it('should return immutable state snapshot', () => {
-      const controller = new NightFlowController(['wolf', 'witch']);
+      const plan = buildTestPlan(['wolf', 'witch']);
+      const controller = new NightFlowController(plan);
       controller.dispatch(NightEvent.StartNight);
       controller.dispatch(NightEvent.NightBeginAudioDone);
       controller.dispatch(NightEvent.RoleBeginAudioDone);
@@ -238,6 +281,7 @@ describe('NightFlowController', () => {
       expect(state.actionOrder).toEqual(['wolf', 'witch']);
       expect(state.currentActionIndex).toBe(0);
       expect(state.actions.get('wolf')).toBe(3);
+      expect(state.currentStep?.roleId).toBe('wolf');
 
       // Verify it's a copy (modifying doesn't affect controller)
       (state.actions as Map<string, number>).set('wolf', 999);
@@ -245,7 +289,8 @@ describe('NightFlowController', () => {
     });
 
     it('should correctly report hasMoreRoles', () => {
-      const controller = new NightFlowController(['wolf']);
+      const plan = buildTestPlan(['wolf']);
+      const controller = new NightFlowController(plan);
       expect(controller.hasMoreRoles()).toBe(true);
 
       controller.dispatch(NightEvent.StartNight);
@@ -261,7 +306,8 @@ describe('NightFlowController', () => {
     });
 
     it('should correctly report isTerminal', () => {
-      const controller = new NightFlowController(['wolf']);
+      const plan = buildTestPlan(['wolf']);
+      const controller = new NightFlowController(plan);
       expect(controller.isTerminal()).toBe(true); // Idle is terminal
 
       controller.dispatch(NightEvent.StartNight);
