@@ -25,7 +25,7 @@
 | 狼美守卫12人 | 12 | `wolfQueen` 链接死亡；有 guard | `src/services/__tests__/boards/WolfQueenGuard12.integration.test.ts` | 狼美被杀触发连坐；guard/witch 交互；反作弊可见性 |
 | 狼王守卫12人 | 12 | `darkWolfKing` 死亡状态（可/不可开枪）；有 guard | `src/services/__tests__/boards/DarkWolfKingGuard12.integration.test.ts` | 黑狼王被毒 vs 被刀差异；status 弹窗（UI） |
 | 石像鬼守墓人12人 | 12 | `gargoyle` 非参会狼（不该看到队友）；`graveyardKeeper` | **缺少 boards 集成测试文件**（现只有 template contract） | 重点：gargoyle wolfMeeting 可见性（不参会）；守墓人能力（若 Night-1 有动作） |
-| 梦魇守卫12人 | 12 | `nightmare` block 一名玩家；有 guard | `src/services/__tests__/boards/NightmareGuard12.integration.test.ts` | block gate（host 拒绝 action）；block 对 DeathCalculator 的兜底；UI blocked 弹窗 |
+| 梦魇守卫12人 | 12 | `nightmare` block 一名玩家；有 guard | `src/services/__tests__/boards/NightmareGuard12.integration.test.ts` | block gate（host reject action + toUid ACTION_REJECTED）；block 对 DeathCalculator 的兜底 |
 | 血月猎魔12人 | 12 | `witcher` 免疫毒；`bloodMoon` 技能狼但 Night-1 无动作 | `src/services/__tests__/boards/BloodMoonWitcher12.integration.test.ts` | witcher 毒免疫；bloodMoon 是否出现在 actionOrder（应不行动） |
 | 狼王摄梦人12人 | 12 | `dreamcatcher`（摄梦人）；`darkWolfKing` | **缺少 boards 集成测试文件** | 摄梦人夜间动作与约束（Night-1-only）；黑狼王 status |
 | 狼王魔术师12人 | 12 | `magician` swap 两段；`darkWolfKing` | **缺少 boards 集成测试文件** | magician first/second 选择；UI 两段提示；黑狼王 status |
@@ -53,7 +53,7 @@
 | UI1 | RoomScreen：板子配置渲染正确（狼/神/特殊/村民计数） | RNTL | `RoomScreen.tsx` Board Info + `RoomScreen.helpers.ts` | 渲染文本/计数与 template.roles 一致 |
 | UI2 | RoomScreen：女巫两阶段弹窗（save→poison prompt→confirm/cancel） | RNTL | `RoomScreen.tsx handleActionIntent` + `useRoomActionDialogs.ts` | 弹窗出现时机正确、按钮回调触发正确、幂等不重复 |
 | UI3 | RoomScreen：seer/psychic reveal（submit 后等待 inbox 私信结果） | RNTL（可配合 hook mock） | `waitForSeerReveal/waitForPsychicReveal` | success: 展示 reveal；timeout: 有可恢复提示/重试入口（按你现有 UX 约束） |
-| UI4 | RoomScreen：blocked（nightmare）弹窗与 skip 行为 | RNTL | `showBlockedAlert` + skip button | blocked 时不可提交非空 action，UI 引导“跳过” |
+| UI4 | RoomScreen：Host reject（action rejected）统一提示 | RNTL | submitAction + waitForActionRejected | submit 后收到 toUid ACTION_REJECTED，弹出统一 Alert/Toast；不再有 UI-side blocked intent |
 | V1 | 队友显示：wolfMeeting 可见性（参会狼可见队友；非参会狼不可见） | Jest Unit | `determineActionerState` + `buildSeatViewModels` | `showWolves` 与 overlay 标识严格符合规则 |
 | V2 | actsSolo：单独行动不显示队友（但可见自己） | Jest Unit | NightSteps actsSolo + `determineActionerState` | actsSolo 时 `showWolves=false` |
 | E2E1 | E2E smoke：1 局能跑通，不 stuck（不当规则裁判） | Playwright | `e2e/night1.basic.spec.ts` | 只验证流程可达终点，workers=1 |
