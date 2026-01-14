@@ -100,6 +100,11 @@ describe('buildNightPlan', () => {
       }
     });
 
+    it('order should be a contiguous 0..n-1 sequence (plan-local index semantics)', () => {
+      const plan = buildNightPlan(['seer', 'witch', 'guard']);
+      expect(plan.steps.map(s => s.order)).toEqual([0, 1, 2]);
+    });
+
     it('seer step should have correct properties', () => {
       const plan = buildNightPlan(['seer']);
       const seerStep = plan.steps[0];
@@ -128,6 +133,12 @@ describe('buildNightPlan', () => {
       const plan = buildNightPlan(Object.keys(ROLE_SPECS));
       expect(plan.steps.map(s => s.roleId)).toEqual(NIGHT_STEPS.map(s => s.roleId));
       expect(plan.steps.map(s => s.schemaId)).toEqual(NIGHT_STEPS.map(s => s.schemaId));
+    });
+
+    it('audioKey should stay aligned with ROLE_SPECS UX audioKey (transition contract)', () => {
+      for (const step of NIGHT_STEPS) {
+        expect(ROLE_SPECS[step.roleId].ux.audioKey).toBe(step.audioKey);
+      }
     });
   });
 });
