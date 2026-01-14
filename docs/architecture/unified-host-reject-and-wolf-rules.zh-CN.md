@@ -125,6 +125,46 @@
 - nightFlow phase 不匹配
 - nightFlow role mismatch
 
+### 6.4 【新增】把 “blocked/disabled 目前是 valid:true + 空 result” 统一收敛成 reject（并回执）
+现状（repo 扫描结论）：Night-1 的多个 resolver 在遇到梦魇封锁（`currentNightResults.blockedSeat === actorSeat`）或类似禁用条件时，返回的通常是：
+
+- `return { valid: true, result: {} }`（silent no-op）
+
+这会导致 2 个问题：
+
+1) **与本方案的最终 UX Contract 冲突**：UI 侧永远等不到 `ACTION_REJECTED`，玩家看到的仍是“点了没反应”。
+2) **测试不可观测**：集成测试难以断言“为什么没效果”，只能从最终状态猜。
+
+本方案要求的统一口径：
+
+- 对于 “输入不可被接受” 的场景（典型：被梦魇封锁但提交了非 skip 行为），Host 必须走 **reject + `ACTION_REJECTED`**。
+
+落点选择（两种都可，但必须统一，且不能双写）：
+
+- **推荐（更符合 Host-authority）**：在 `GameStateService` 的 action 入口做 gate。
+  - 入口判断 `blockedSeat`/`wolfKillDisabled` 等 → 直接 `sendPrivate(ACTION_REJECTED)` 并 return。
+  - resolver 继续保持“纯计算/纯解析”风格，避免 resolver 自己发消息。
+- **备选**：resolver validation 层返回 `valid:false + rejectReason`（由 host 入口统一转成 `ACTION_REJECTED`）。
+  - 仍然禁止 resolver 直接触发副作用。
+
+需要特别覆盖的“silent no-op”路径包括（Night-1-only，按扫描到的文件列出）：
+
+- 典型 `blockedSeat === actorSeat -> { valid:true, result:{} }`：
+  - `src/services/night/resolvers/seer.ts`
+  - `src/services/night/resolvers/psychic.ts`
+  - `src/services/night/resolvers/gargoyle.ts`
+  - `src/services/night/resolvers/witch.ts`
+  - `src/services/night/resolvers/guard.ts`
+  - `src/services/night/resolvers/magician.ts`
+  - `src/services/night/resolvers/wolfRobot.ts`
+  - `src/services/night/resolvers/dreamcatcher.ts`
+  - `src/services/night/resolvers/wolfQueen.ts`
+  - `src/services/night/resolvers/slacker.ts`
+- `wolfKillDisabled -> { valid:true, result:{} }`：
+  - `src/services/night/resolvers/wolf.ts`
+
+> 注意：这些属于“可观测性/UX 契约”的统一改造，不改变任何 Night-1 规则本身，也不触碰 `SCHEMAS.wolfKill.constraints` 的中立红线。
+
 ---
 
 ## 7. 分 3 个 commit 的落地切片（建议）
