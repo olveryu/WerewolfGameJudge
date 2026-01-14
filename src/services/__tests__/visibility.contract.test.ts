@@ -36,6 +36,7 @@ const SENSITIVE_FIELD_NAMES = [
   'nightmareBlockedSeat',
   'actions',
   'wolfKillTarget',
+  'visibility', // StepSpec.visibility 不得进入 BroadcastGameState（反作弊红线）
 ] as const;
 
 describe('Visibility Contract (Anti-cheat)', () => {
