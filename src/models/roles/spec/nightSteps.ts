@@ -142,12 +142,27 @@ export function getStepSpec(stepId: string): StepSpec | undefined {
   return NIGHT_STEPS.find(s => s.id === stepId);
 }
 
+/** 强类型版本：调用方传错 stepId 会在编译期报错 */
+export function getStepSpecStrict(stepId: NightStepId): StepSpec {
+  const step = getStepSpec(stepId);
+  if (!step) {
+    // should be unreachable: NightStepId is derived from NIGHT_STEPS
+    throw new Error(`[nightSteps] Unknown stepId: ${stepId}`);
+  }
+  return step;
+}
+
 /** 获取所有 stepId（按顺序） */
 export function getAllStepIds(): NightStepId[] {
-  return NIGHT_STEPS.map(s => s.id) as NightStepId[];
+  return NIGHT_STEPS.map(s => s.id);
 }
 
 /** 通过 roleId 获取该角色的步骤 */
 export function getStepsByRole(roleId: string): StepSpec[] {
   return NIGHT_STEPS.filter(s => s.roleId === roleId);
+}
+
+/** 强类型版本：调用方传错 roleId 会在编译期报错 */
+export function getStepsByRoleStrict(roleId: StepSpec['roleId']): StepSpec[] {
+  return getStepsByRole(roleId);
 }
