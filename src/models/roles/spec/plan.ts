@@ -46,7 +46,7 @@ export function buildNightPlan(templateRoles: readonly string[]): NightPlan {
       const spec = ROLE_SPECS[step.roleId];
       return {
         roleId: step.roleId,
-        schemaId: step.id,  // step.id is the schemaId (single field)
+        stepId: step.id,  // step.id is the stepId (= schemaId)
         // Keep NightPlanStep shape stable for existing consumers/tests.
         // The numeric order is now derived from table sequence.
         order: idx,

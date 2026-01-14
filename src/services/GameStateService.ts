@@ -1451,19 +1451,19 @@ export class GameStateService {
     // Get pending seats for this role
     const pendingSeats = this.getSeatsForRole(currentRole);
     
-  // Get schemaId from NIGHT_STEPS (fail-safe: only if valid roleId)
-    let schemaId: SchemaId | undefined;
+  // Get stepId from NIGHT_STEPS (fail-safe: only if valid roleId)
+    let stepId: SchemaId | undefined;
     if (isValidRoleId(currentRole)) {
       const spec = getRoleSpec(currentRole);
-      // schemaId only exists when hasAction is true
+      // stepId only exists when hasAction is true
       if (spec.night1.hasAction) {
-    // M3: schemaId is derived from NIGHT_STEPS single source of truth.
+    // M3: stepId is derived from NIGHT_STEPS single source of truth.
     // Current assumption (locked by contract tests): each role has at most one NightStep.
     const [step] = getStepsByRoleStrict(currentRole);
-    schemaId = step?.id;  // step.id is the schemaId
+    stepId = step?.id;  // step.id is the stepId (= schemaId)
       }
     } else {
-      console.warn(`[GameStateService] ROLE_TURN: Invalid roleId "${currentRole}", schemaId not sent`);
+      console.warn(`[GameStateService] ROLE_TURN: Invalid roleId "${currentRole}", stepId not sent`);
     }
 
     // ANTI-CHEAT: For witch, send killedIndex via private message, NOT public broadcast
@@ -1478,7 +1478,7 @@ export class GameStateService {
       type: 'ROLE_TURN',
       role: currentRole,
       pendingSeats,
-      schemaId,
+      stepId,
       // ❌ killedIndex removed from public broadcast (anti-cheat)
     });
 

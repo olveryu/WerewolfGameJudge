@@ -80,13 +80,13 @@ describe('Visibility Contract (Anti-cheat)', () => {
       const mockRoleTurn: PublicRoleTurn = {
         type: 'ROLE_TURN',
         role: 'witch',
-        schemaId: 'witchAction',
+        stepId: 'witchAction',
         pendingSeats: [3],
       };
 
       expect(mockRoleTurn.type).toBe('ROLE_TURN');
       expect(mockRoleTurn.role).toBe('witch');
-      expect(mockRoleTurn.schemaId).toBe('witchAction');
+      expect(mockRoleTurn.stepId).toBe('witchAction');
       expect(mockRoleTurn.pendingSeats).toEqual([3]);
 
       // Verify sensitive fields are NOT in the object's keys
