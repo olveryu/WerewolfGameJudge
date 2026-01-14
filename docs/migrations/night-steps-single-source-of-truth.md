@@ -72,6 +72,10 @@ import type { SchemaId } from './schemas';
 
 /**
  * 步骤可见性配置
+ * 
+ * ⚠️ 这是 host-side view-model，用于 UI 展示/音频编排。
+ * 不替代角色固有 wolfMeeting 定义（canSeeWolves/participatesInWolfVote）。
+ * ⚠️ visibility 字段不得进入 BroadcastGameState（反作弊红线）。
  */
 export interface StepVisibility {
   /** 是否单独行动（不能看到队友） */
@@ -84,11 +88,17 @@ export interface StepVisibility {
  * 夜晚步骤规格
  * 
  * ⚠️ 重要约束：step.id === step.schemaId（强制一一对应）
+ * 
+ * 💡 终局清理项（M3+）：
+ * 建议删除 schemaId 字段，只保留 id 作为 schemaId。
+ * 因为强制相等，双字段存在"双写漂移"风险。
+ * 届时 NightPlanStep.stepId 直接取 step.id 即可。
  */
 export interface StepSpec {
-  /** 步骤 ID（必须等于 schemaId） */
+  /** 步骤 ID（必须等于 schemaId，终局可合并为单一字段） */
   readonly id: SchemaId;
   readonly roleId: RoleId;
+  /** @deprecated 终局建议删除，改用 id（强制 id===schemaId） */
   readonly schemaId: SchemaId;
   readonly audioKey: string;
   readonly audioEndKey?: string;
@@ -265,28 +275,30 @@ npm run test -- nightSteps.contract
 - [ ] `src/models/roles/spec/__tests__/plan.contract.test.ts` — 更新测试
 
 **关键约束**：
-- **保持现有对外返回结构不变**（NightPlan/NightPlanStep）
+- **保持现有对外返回结构不变**（以当前 `plan.ts` / `plan.types.ts` 为准）
 - NightFlowController 无需改动
 - 只是 steps 来源从 ROLE_SPECS 排序 → NIGHT_STEPS 过滤
 
-**新逻辑**：
+**新逻辑（伪代码，仅展示 steps 来源切换）**：
 ```typescript
-export function buildNightPlan(roles: RoleId[]): NightPlanStep[] {
+// ⚠️ 实际返回类型以当前 plan.types.ts 为准（可能是 NightPlan 或 NightPlanStep[]）
+export function buildNightPlan(roles: RoleId[]): /* 以 repo 为准 */ {
   const roleSet = new Set(roles);
-  return NIGHT_STEPS
+  const steps = NIGHT_STEPS
     .filter(step => roleSet.has(step.roleId as RoleId))
     .map(step => ({
       stepId: step.id,
       roleId: step.roleId as RoleId,
-      schemaId: step.schemaId,
+      schemaId: step.schemaId,  // 终局可改用 step.id
       audioKey: step.audioKey,
       visibility: step.visibility,
     }));
+  // 返回结构保持与当前实现一致
+  return /* 当前返回结构 */;
 }
 ```
 
 > 注意：不再需要检查 `hasAction`，因为 NIGHT_STEPS 本身只包含 hasAction=true 的角色（由 contract test 保证）。
-```
 
 **验证**：
 ```bash
@@ -346,7 +358,6 @@ npm run e2e:core
 | Night-1-only | 无跨夜字段 |
 | **NIGHT_STEPS 的每个 roleId 必须 hasAction=true** | fail-fast 防错 |
 | **hasAction=true 的角色恰好出现一次** | 防漏步骤/多步骤 |
-| visibility 不进 BroadcastGameState | 反作弊红线 |
 
 ### 4.2 plan.contract.test.ts
 
@@ -357,6 +368,29 @@ npm run e2e:core
 | hasAction=false 过滤 | 不包含无行动角色 |
 | 空模板 | 返回空数组 |
 | **返回类型兼容** | 沿用现有 NightPlan/NightPlanStep 结构 |
+
+### 4.3 反作弊边界测试：visibility 不进 BroadcastGameState
+
+**测试策略（二选一）**：
+
+1. **类型层策略（推荐）**：
+   - 确保 `BroadcastGameState` 类型定义中不包含 `visibility` 字段
+   - 在 test 中断言：`'visibility' in broadcastPayload === false`
+
+2. **运行时策略**：
+   - 构造一个含 step.visibility 的 NightPlan
+   - 调用 broadcast view-model 构建函数
+   - 断言输出对象不含 `visibility` key
+
+**测试位置**：`src/services/__tests__/broadcast.contract.test.ts`（或类似）
+
+```typescript
+it('BroadcastGameState should NOT contain visibility field', () => {
+  const broadcastState = buildBroadcastState(gameState);
+  expect(broadcastState).not.toHaveProperty('visibility');
+  expect(JSON.stringify(broadcastState)).not.toContain('"visibility"');
+});
+```
 
 ---
 
