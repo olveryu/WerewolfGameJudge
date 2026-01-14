@@ -96,6 +96,124 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       expect(result.deaths).toContain(0); // 被链接的0号也死亡
     });
   });
+
+  describe('边界情况和复杂场景', () => {
+    it('狼美人被女巫毒死 → 被链接的玩家也死亡', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        guard: null,
+        wolf: 0,           // 狼刀村民
+        wolfQueen: 1,      // 狼美人链接1号
+        witchPoison: 7,    // 女巫毒狼美人
+        seer: 4,
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toContain(0);  // 狼刀目标
+      expect(result.deaths).toContain(7);  // 狼美人被毒死
+      expect(result.deaths).toContain(1);  // 被链接的玩家死亡
+    });
+
+    it('守卫守狼美人 + 狼刀狼美人 → 狼美人存活，链接不触发', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const wolfQueenSeat = ctx.findSeatByRole('wolfQueen');
+      expect(wolfQueenSeat).toBe(7);
+
+      const result = await ctx.runNight({
+        guard: wolfQueenSeat,  // 守卫守狼美人
+        wolf: wolfQueenSeat,   // 狼刀狼美人
+        wolfQueen: 0,          // 狼美人链接0号
+        witch: null,
+        seer: 4,
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([]);  // 没人死亡
+      expect(result.info).toContain('平安夜');
+    });
+
+    it('女巫救狼美人（被狼刀）→ 狼美人存活，链接不触发', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const wolfQueenSeat = ctx.findSeatByRole('wolfQueen');
+
+      const result = await ctx.runNight({
+        guard: null,
+        wolf: wolfQueenSeat,   // 狼刀狼美人
+        wolfQueen: 0,          // 狼美人链接0号
+        witch: wolfQueenSeat,  // 女巫救狼美人
+        seer: 4,
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([]);
+      expect(result.info).toContain('平安夜');
+    });
+
+    it('狼美人链接预言家 + 狼刀狼美人 → 预言家连坐死', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const wolfQueenSeat = ctx.findSeatByRole('wolfQueen');
+      const seerSeat = ctx.findSeatByRole('seer');
+
+      const result = await ctx.runNight({
+        guard: null,
+        wolf: wolfQueenSeat,   // 狼刀狼美人
+        wolfQueen: seerSeat,   // 狼美人链接预言家
+        witch: null,
+        seer: 4,
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toContain(wolfQueenSeat);  // 狼美人死亡
+      expect(result.deaths).toContain(seerSeat);       // 预言家连坐死
+    });
+
+    it('同守同救必死规则 + 狼美人链接', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const wolfQueenSeat = ctx.findSeatByRole('wolfQueen');
+
+      const result = await ctx.runNight({
+        guard: wolfQueenSeat,  // 守卫守狼美人
+        wolf: wolfQueenSeat,   // 狼刀狼美人
+        wolfQueen: 0,          // 狼美人链接0号
+        witch: wolfQueenSeat,  // 女巫救狼美人
+        seer: 4,
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      // 同守同救必死：狼美人死亡
+      expect(result.deaths).toContain(wolfQueenSeat);
+      // 链接触发：0号连坐死
+      expect(result.deaths).toContain(0);
+    });
+
+    it('双死亡：狼刀村民 + 女巫毒另一村民', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        guard: null,
+        wolf: 0,          // 狼刀座位0
+        wolfQueen: 3,     // 狼美人链接3号（不触发）
+        witchPoison: 1,   // 女巫毒座位1
+        seer: 4,
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toContain(0);
+      expect(result.deaths).toContain(1);
+      expect(result.deaths).not.toContain(3); // 狼美人没死，链接不触发
+    });
+  });
 });
 
 // =============================================================================

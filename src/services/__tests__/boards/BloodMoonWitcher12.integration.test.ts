@@ -142,6 +142,107 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       expect(result.deaths).toContain(1);
     });
   });
+
+  describe('边界情况和复杂场景', () => {
+    it('狼人刀猎魔人 → 猎魔人死亡（只免疫毒药）', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const witcherSeat = ctx.findSeatByRole('witcher');
+      expect(witcherSeat).toBe(11);
+
+      const result = await ctx.runNight({
+        wolf: witcherSeat, // 狼刀猎魔人
+        witch: null,
+        seer: 4,
+        witcher: null,
+      });
+
+      expect(result.completed).toBe(true);
+      // 猎魔人只免疫毒药，不免疫狼刀
+      expect(result.deaths).toContain(witcherSeat);
+    });
+
+    it('狼刀猎魔人 + 女巫救 → 猎魔人存活', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const witcherSeat = ctx.findSeatByRole('witcher');
+
+      const result = await ctx.runNight({
+        wolf: witcherSeat, // 狼刀猎魔人
+        witch: witcherSeat, // 女巫救猎魔人
+        seer: 4,
+        witcher: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([]);
+      expect(result.info).toContain('平安夜');
+    });
+
+    it('狼刀村民 + 女巫毒猎魔人 → 只有村民死（猎魔人免疫毒药）', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const witcherSeat = ctx.findSeatByRole('witcher');
+
+      const result = await ctx.runNight({
+        wolf: 0, // 狼刀村民
+        witchPoison: witcherSeat, // 毒猎魔人
+        seer: 4,
+        witcher: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([0]); // 只有村民死
+    });
+
+    it('预言家查血月使徒 → 查狼人身份', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      // 血月使徒是技能狼，应该查验为狼人阵营
+      const result = await ctx.runNight({
+        wolf: 0,
+        witch: null,
+        seer: 7, // 查血月使徒
+        witcher: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([0]);
+    });
+
+    it('狼刀预言家 + 女巫救预言家 → 预言家存活', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const seerSeat = ctx.findSeatByRole('seer');
+
+      const result = await ctx.runNight({
+        wolf: seerSeat, // 狼刀预言家
+        witch: seerSeat, // 女巫救预言家
+        seer: 4, // 预言家查狼
+        witcher: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([]);
+      expect(result.info).toContain('平安夜');
+    });
+
+    it('双死亡：狼刀村民 + 女巫毒另一村民', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        wolf: 0, // 狼刀座位0
+        witchPoison: 1, // 女巫毒座位1
+        seer: 4,
+        witcher: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toContain(0);
+      expect(result.deaths).toContain(1);
+      expect(result.deaths.length).toBe(2);
+    });
+  });
 });
 
 // =============================================================================

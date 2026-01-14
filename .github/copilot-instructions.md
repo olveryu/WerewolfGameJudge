@@ -91,6 +91,18 @@ If something is unclear, ask before coding. Don’t invent repo facts.
 
 ## Tests & quality gates
 
+### Anti-guessing discipline (NO speculative tests/logic)
+
+- **No guessing repo behavior.** If unsure, stop and gather evidence (search/read existing tests, inspect the authoritative tables) before writing code.
+- **Expected values must come from a source of truth** (not a hardcoded guess):
+   - `PRESET_TEMPLATES` (templates)
+   - `NIGHT_STEPS` (night order + audio + visibility)
+   - `SCHEMAS[*].constraints` (input legality)
+   - existing host runtime integration tests (observed facts)
+- **Red → Green rule:** for any behavior change (resolver/night flow/visibility/private messages), write a failing test first, then implement until green. Don’t only add tests after code “seems to work”.
+- **Never snapshot UI copy as logic.** Assertions must use stable identifiers (SchemaId/roleId/testIDs), not user-facing strings.
+- **When changing tables/specs**, update/extend contract tests in the same change so drift is impossible.
+
 ### Jest contract tests (required for table-driven night)
 
 Maintain/update contract tests to guarantee:

@@ -30,7 +30,8 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
     return { valid: false, rejectReason: '目标玩家不存在' };
   }
 
-  // Neutral judge: wolves can target ANY seat (including self / wolf teammates).
+  // Neutral judge: wolves can target ANY seat (including self / wolf teammates / spiritKnight).
+  // Death calculation (including spiritKnight immunity) is handled in DeathCalculator.
   
   return {
     valid: true,

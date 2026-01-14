@@ -142,6 +142,117 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       // 注：被毒死不能发动技能，由 getDarkWolfKingStatus 返回 false
     });
   });
+
+  describe('边界情况和复杂场景', () => {
+    it('守卫守自己 + 狼刀守卫 → 守卫存活', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const guardSeat = ctx.findSeatByRole('guard');
+      expect(guardSeat).toBe(11);
+
+      const result = await ctx.runNight({
+        guard: guardSeat, // 守卫守自己
+        wolf: guardSeat,  // 狼刀守卫
+        witch: null,
+        seer: 4,
+        hunter: null,
+        darkWolfKing: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([]);
+      expect(result.info).toContain('平安夜');
+    });
+
+    it('同守同救必死：狼刀 + 守卫守 + 女巫救同一目标 → 必死', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        guard: 0, // 守座位0
+        wolf: 0,  // 狼刀座位0
+        witch: 0, // 救座位0
+        seer: 4,
+        hunter: null,
+        darkWolfKing: null,
+      });
+
+      expect(result.completed).toBe(true);
+      // 同守同救必死规则
+      expect(result.deaths).toContain(0);
+    });
+
+    it('守卫守预言家 + 狼刀预言家 → 预言家存活', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const seerSeat = ctx.findSeatByRole('seer');
+
+      const result = await ctx.runNight({
+        guard: seerSeat,
+        wolf: seerSeat,
+        witch: null,
+        seer: 4,
+        hunter: null,
+        darkWolfKing: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([]);
+      expect(result.info).toContain('平安夜');
+    });
+
+    it('守卫守护 + 女巫毒同一目标 → 死亡（守卫不防毒）', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        guard: 0,         // 守卫守座位0
+        wolf: 1,          // 狼刀座位1
+        witchPoison: 0,   // 女巫毒座位0
+        seer: 4,
+        hunter: null,
+        darkWolfKing: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toContain(0);  // 守卫不防毒
+      expect(result.deaths).toContain(1);  // 狼刀目标死
+    });
+
+    it('预言家查黑狼王 → 查狼人身份', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const darkWolfKingSeat = ctx.findSeatByRole('darkWolfKing');
+
+      const result = await ctx.runNight({
+        guard: null,
+        wolf: 0,
+        witch: null,
+        seer: darkWolfKingSeat, // 查黑狼王
+        hunter: null,
+        darkWolfKing: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([0]);
+    });
+
+    it('双死亡：狼刀村民 + 女巫毒狼人', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        guard: null,
+        wolf: 0,          // 狼刀村民
+        witchPoison: 4,   // 女巫毒普狼
+        seer: 5,          // 预言家查另一狼
+        hunter: null,
+        darkWolfKing: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toContain(0);  // 村民死
+      expect(result.deaths).toContain(4);  // 狼被毒死
+      expect(result.deaths.length).toBe(2);
+    });
+  });
 });
 
 // =============================================================================

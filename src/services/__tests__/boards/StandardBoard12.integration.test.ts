@@ -104,5 +104,80 @@ describe('标准板12人 - Host Runtime Integration', () => {
       expect(result.deaths).toEqual([]);
       expect(result.info).toContain('平安夜');
     });
+
+    it('狼人刀预言家：预言家死亡', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        wolf: 8,          // 狼人杀预言家
+        witch: null,
+        seer: 4,          // 预言家查狼
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([8]);
+      expect(result.info).toContain('9号');
+    });
+
+    it('狼人刀女巫，无人救 → 女巫死亡', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      // 女巫被刀，没有人救
+      const result = await ctx.runNight({
+        wolf: 9,          // 狼人杀女巫
+        witch: null,      // 女巫不行动（第一夜不可自救）
+        seer: 4,
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toContain(9);
+    });
+
+    it('狼人刀猎人：猎人死亡（可开枪）', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        wolf: 10,         // 狼人杀猎人
+        witch: null,
+        seer: 4,
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([10]);
+      // 猎人被狼刀可以开枪（白天结算）
+    });
+
+    it('女巫毒猎人：猎人死亡（不可开枪）', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        wolf: 0,
+        witchPoison: 10,  // 女巫毒猎人
+        seer: 4,
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toContain(0);   // 狼刀目标
+      expect(result.deaths).toContain(10);  // 猎人被毒
+      // 猎人被毒不可开枪
+    });
+
+    it('狼人刀 + 女巫毒同一人：目标死亡', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        wolf: 0,
+        witchPoison: 0,   // 女巫也毒0号
+        seer: 4,
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([0]);
+    });
   });
 });
