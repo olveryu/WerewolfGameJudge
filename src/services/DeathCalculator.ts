@@ -276,7 +276,7 @@ function processDreamcatcherEffect(
  * Process spirit knight reflection.
  *
  * Rules:
- * - Spirit Knight is a wolf that reflects damage to attackers
+ * - Spirit Knight is immune to wolf attack (wolf kill has no effect)
  * - If seer checks spirit knight, seer dies (reflection)
  * - If witch poisons spirit knight, witch dies and spirit knight survives (immune to poison + reflection)
  */
@@ -285,12 +285,17 @@ function processSpiritKnightReflection(
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>
 ): void {
-  const { seerCheck, witchAction } = actions;
+  const { wolfKill, seerCheck, witchAction } = actions;
   const witchPoisonTarget = getWitchPoisonTarget(witchAction);
   const { spiritKnight: spiritKnightSeat, seer: seerSeat, witch: witchSeat } = roleSeatMap;
 
   // Spirit knight not present
   if (spiritKnightSeat === -1) return;
+
+  // Wolf attacks spirit knight → spirit knight is immune (remove from deaths)
+  if (wolfKill === spiritKnightSeat) {
+    deaths.delete(spiritKnightSeat);
+  }
 
   // Seer checks spirit knight → seer dies by reflection
   if (seerCheck === spiritKnightSeat && seerSeat !== -1) {

@@ -81,7 +81,7 @@ export const SCHEMAS = {
     id: 'wolfKill',
     displayName: '狼刀',
     kind: 'wolfVote',
-    constraints: [],  // 'notWolf' 由 resolver 校验
+    constraints: [],  // Neutral judge: wolves can target ANY seat
   },
 
   wolfQueenCharm: {
