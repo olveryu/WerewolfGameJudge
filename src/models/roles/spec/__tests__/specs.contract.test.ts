@@ -5,6 +5,7 @@
  */
 
 import { ROLE_SPECS, type RoleId, getRoleSpec, isValidRoleId, getAllRoleIds } from '../index';
+import { SCHEMAS } from '../schemas';
 import { Faction } from '../types';
 import type { RoleSpec } from '../spec.types';
 
@@ -34,8 +35,15 @@ describe('ROLE_SPECS contract', () => {
   });
 
   describe('witch spec', () => {
-    it('should have canSaveSelf=false', () => {
-      expect(ROLE_SPECS.witch.flags?.canSaveSelf).toBe(false);
+    it('witch save action should have notSelf constraint in schema', () => {
+      // Night-1-only: 女巫不能自救规则定义在 schema.witchAction.save.constraints
+      // 不再使用 flags.canSaveSelf，避免双写
+      const witchSchema = SCHEMAS.witchAction;
+      expect(witchSchema.kind).toBe('compound');
+      if (witchSchema.kind === 'compound') {
+        const saveStep = witchSchema.steps.find((s: { stepId: string }) => s.stepId === 'save');
+        expect(saveStep?.constraints).toContain('notSelf');
+      }
     });
   });
 

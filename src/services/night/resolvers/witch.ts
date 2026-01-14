@@ -4,7 +4,6 @@
  * Validates witch action (save/poison compound) and computes result.
  */
 
-import { ROLE_SPECS } from '../../../models/roles/spec/specs';
 import type { ResolverFn, ResolverResult } from './types';
 
 function validateSaveAction(
@@ -17,8 +16,9 @@ function validateSaveAction(
     return '解药已用完';
   }
   
-  const witchSpec = ROLE_SPECS.witch;
-  if (witchSpec.flags?.canSaveSelf === false && saveTarget === actorSeat) {
+  // Night-1-only: 女巫不能自救
+  // 此规则与 schema.witchAction.save.constraints=['notSelf'] 对齐
+  if (saveTarget === actorSeat) {
     return '女巫不能自救';
   }
   

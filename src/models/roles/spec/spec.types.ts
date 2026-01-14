@@ -47,7 +47,10 @@ export interface WolfMeetingConfig {
 
 /** Role-specific flags */
 export interface RoleFlags {
-  /** Witch: cannot save self (default: true for witch only) */
+  /**
+   * @deprecated Input validation MUST come from `SCHEMAS[*].constraints`.
+  * NOTE(remove by 2026-03-01): delete this field after all legacy call-sites are removed.
+   */
   readonly canSaveSelf?: boolean;
   
   /** Nightmare: blocks player skill for the night */

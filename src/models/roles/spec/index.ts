@@ -22,6 +22,10 @@ export * from './schemas';
 export * from './spec.types';
 export * from './specs';
 
+// Night steps types and registry
+export * from './nightSteps.types';
+export * from './nightSteps';
+
 // Night plan types and builder
 export * from './plan.types';
 export * from './plan';
