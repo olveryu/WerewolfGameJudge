@@ -132,7 +132,7 @@ describe('buildNightPlan', () => {
     it('orders steps based on table index for a full plan input', () => {
       const plan = buildNightPlan(Object.keys(ROLE_SPECS));
       expect(plan.steps.map(s => s.roleId)).toEqual(NIGHT_STEPS.map(s => s.roleId));
-      expect(plan.steps.map(s => s.schemaId)).toEqual(NIGHT_STEPS.map(s => s.schemaId));
+      expect(plan.steps.map(s => s.schemaId)).toEqual(NIGHT_STEPS.map(s => s.id));
     });
 
     it('audioKey should stay aligned with ROLE_SPECS UX audioKey (transition contract)', () => {

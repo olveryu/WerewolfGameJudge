@@ -163,7 +163,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // M3: schemaId is derived from NIGHT_STEPS single source of truth.
   // Current assumption (locked by contract tests): each role has at most one NightStep.
   const [step] = getStepsByRoleStrict(currentActionRole);
-  return step?.schemaId ?? null;
+  return step?.id ?? null;  // step.id is the schemaId
   }, [currentActionRole]);
 
   // Schema-driven UI (Phase 3): derive full schema from schemaId

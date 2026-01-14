@@ -27,20 +27,13 @@ export interface StepVisibility {
 /**
  * 夜晚步骤规格
  * 
- * ⚠️ 重要约束：step.id === step.schemaId（强制一一对应）
- * 
- * 💡 终局清理项（M3+）：
- * 建议删除 schemaId 字段，只保留 id 作为 schemaId。
- * 因为强制相等，双字段存在"双写漂移"风险。
- * 届时 NightPlanStep.stepId 直接取 step.id 即可。
+ * ⚠️ step.id 即 schemaId（一一对应，无需双字段）
  */
 export interface StepSpec {
-  /** 步骤 ID（必须等于 schemaId，终局可合并为单一字段） */
+  /** 步骤 ID（同时作为 schemaId） */
   readonly id: SchemaId;
   /** 执行此步骤的角色 */
   readonly roleId: RoleId;
-  /** UI 使用的 schema（强制 === id） */
-  readonly schemaId: SchemaId;
   /** 开始音频文件名（不含路径和扩展名） */
   readonly audioKey: string;
   /** 结束音频文件名（可选，默认使用 audioKey） */
