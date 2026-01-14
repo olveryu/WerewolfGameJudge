@@ -15,7 +15,14 @@ export interface NightPlanStep {
   /** Schema for this action */
   readonly schemaId: SchemaId;
   
-  /** Action order (for sorting) */
+  /**
+   * Step order inside THIS plan.
+   *
+   * NOTE (M2+): This is no longer a global/stable role order value.
+   * It is derived from the final plan sequence (0..n-1) after filtering by the template.
+   *
+   * Do NOT assume values like 15 means "seer". If you need stable identity, use roleId/schemaId.
+   */
   readonly order: number;
   
   /** Display name for this step */
