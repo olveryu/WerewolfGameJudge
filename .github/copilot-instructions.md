@@ -279,7 +279,7 @@ We standardize on a **declarative** roles system so that Host remains the only a
 
 ### Single source of truth: registry
 
-- All role metadata MUST come from the shared roles registry: `src/models/roles/registry.ts`.
+- All role metadata MUST come from the shared roles registry: `src/models/roles/spec/specs.ts` (the `ROLE_SPECS` registry).
 - Do NOT introduce new ad-hoc mappings like `Record<RoleId, string>`, `isWolf` arrays, or duplicated `ACTION_ORDER` in UI/services/tests.
 - Wrapper helpers (e.g. `getRoleDisplayName(role)`, `isWolfRole(role)`) are allowed, but they MUST be thin pass-throughs to the registry.
 
@@ -342,7 +342,9 @@ We standardize on a **declarative** roles system so that Host remains the only a
 ### Large-scope refactor (when justified)
 
 - When the task inherently requires broad changes (e.g., replacing a cross-cutting pattern, removing legacy encoding, restructuring a core type), do NOT artificially keep the diff small.
-- Before starting a large-scope refactor, ask the user for confirmation: **"这个改动涉及多个模块，需要大范围重构，可以吗？"** Wait for confirmation before proceeding.
+- Before starting a large-scope refactor, ask the user for confirmation **only if the user has not already explicitly authorized a large-scope refactor in this conversation**:
+   - **"这个改动涉及多个模块，需要大范围重构，可以吗？"**
+   - If the user already said it's OK to do a large-scope refactor, proceed without re-asking.
 - In such cases:
    - Make **all** necessary changes across the codebase in one pass (UI, host runtime, tests, types).
    - Completely remove deprecated patterns/fields/files rather than leaving "兼容层" or dual-write logic.
@@ -455,29 +457,13 @@ These are repo-level refactor constraints to keep the migration safe and reviewa
 
 ### Night-1-only enforcement (NO cross-night state)
 
-- **Hard constraint**: Do NOT introduce or use any cross-night state in Host logic (e.g. `previousActions`, `lastNightTarget`, “two nights in a row” constraints).
-   - If a rule requires Night-2+ memory, it is **out of scope** and must be deleted/ignored.
-   - Resolver types MUST NOT carry cross-night fields (e.g. no `previousActions` in resolver context).
-   - Enforce with Jest contract tests (preferred) rather than E2E.
-
-### Neutral judge rule: wolf kill can target ANYONE
-
-- **Project rule**: Wolf kill/vote is **neutral** in this app.
-   - Wolves can target **any seat**, including **self** and **wolf teammates**.
-   - Do NOT add schema/resolver constraints like `notSelf` / `notWolf` for `wolfKill`.
-
-### Self-target constraints must be schema-first and resolver-aligned
-
-- `SCHEMAS[*].constraints` is the first-class source of truth for UI restrictions (e.g. `notSelf`).
-- Host resolvers MUST align with schema constraints:
-   - If schema says `notSelf`, resolver MUST reject self-target.
-   - If schema allows self-target, resolver MUST NOT reject it unless there is a documented exception + a contract test.
+- Follow **"Night-1-only scope rules (MANDATORY)"** above. Do not duplicate or re-encode those rules here.
 
 ### Rule: “No Night-1 action” ⇒ “No night action”
 
 If a role **cannot act on the first night** (e.g. “从第二晚开始才行动”), it MUST be modeled as:
 
-- `hasNightAction = false`
+- `night1.hasAction = false`
 
 Do **NOT** special-case such roles in:
 
@@ -491,5 +477,5 @@ Rationale: With night-1-only scope, a role that never acts on night 1 must never
 
 - **Authority**: Role behavior rules (description, night-1 capability, resolver logic) MUST be based on the current `*Role.ts` files (or future `*.spec.ts`).
 - **No guessing**: When writing/refactoring RoleSpec or Resolver, you MUST read the corresponding role file first. Do NOT write from memory.
-- **Night-1-only**: If a role cannot act on Night 1 (e.g., `witcher` starts from Night 2), it MUST have `hasNightAction: false`.
+- **Night-1-only**: If a role cannot act on Night 1 (e.g., `witcher` starts from Night 2), it MUST have `night1.hasAction: false`.
 - **Special rules**: Resolver validation MUST match the declared constraints (e.g., `witch.canSaveSelf=false` → resolver rejects self-save; seer cannot check self).
