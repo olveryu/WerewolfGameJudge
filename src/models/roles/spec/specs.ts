@@ -52,8 +52,8 @@ export const ROLE_SPECS = {
     team: 'good',
     description: '拥有一瓶解药和一瓶毒药，每晚可以选择救活被狼人袭击的玩家或毒死一名玩家，每瓶药只能使用一次',
     night1: { hasAction: true, order: 10, schemaId: 'witchAction' },
-  // Night-1 rule: witch cannot save self, but CAN poison self.
-  flags: { canSaveSelf: false },
+    // Night-1-only: "女巫不能自救"规则已在 schema.witchAction.save.constraints=['notSelf'] 中定义
+    // 不再使用 flags.canSaveSelf，避免双写漂移
     ux: {
       audioKey: 'witch',
       actionMessage: '请选择使用毒药或解药',

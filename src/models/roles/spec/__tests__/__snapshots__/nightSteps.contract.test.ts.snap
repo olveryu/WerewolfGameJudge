@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot) 1`] = `
+[
+  "magicianSwap",
+  "slackerChooseIdol",
+  "wolfRobotLearn",
+  "dreamcatcherDream",
+  "gargoyleCheck",
+  "nightmareBlock",
+  "guardProtect",
+  "wolfKill",
+  "wolfQueenCharm",
+  "witchAction",
+  "seerCheck",
+  "psychicCheck",
+  "hunterConfirm",
+  "darkWolfKingConfirm",
+]
+`;
