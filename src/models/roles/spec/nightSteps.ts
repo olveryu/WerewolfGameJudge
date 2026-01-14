@@ -4,7 +4,7 @@
  * 夜晚步骤的单一真相。
  * 
  * 数组顺序 = 权威顺序（无 order 字段）
- * step.id === step.schemaId（强制一一对应）
+ * step.id 即 schemaId（无需双字段）
  * 
  * 策划维护：调顺序只需移动数组元素
  */
@@ -22,14 +22,12 @@ const NIGHT_STEPS_INTERNAL = [
   {
     id: 'magicianSwap',
     roleId: 'magician',
-    schemaId: 'magicianSwap',
     audioKey: 'magician',
     visibility: { actsSolo: true },
   },
   {
     id: 'slackerChooseIdol',
     roleId: 'slacker',
-    schemaId: 'slackerChooseIdol',
     audioKey: 'slacker',
     visibility: { actsSolo: true },
   },
@@ -38,35 +36,30 @@ const NIGHT_STEPS_INTERNAL = [
   {
     id: 'wolfRobotLearn',
     roleId: 'wolfRobot',
-    schemaId: 'wolfRobotLearn',
     audioKey: 'wolf_robot',
     visibility: { actsSolo: true },  // 机器狼不知道狼队友
   },
   {
     id: 'dreamcatcherDream',
     roleId: 'dreamcatcher',
-    schemaId: 'dreamcatcherDream',
     audioKey: 'dreamcatcher',
     visibility: { actsSolo: true },
   },
   {
     id: 'gargoyleCheck',
     roleId: 'gargoyle',
-    schemaId: 'gargoyleCheck',
     audioKey: 'gargoyle',
     visibility: { actsSolo: true },  // 石像鬼不知道狼队友
   },
   {
     id: 'nightmareBlock',
     roleId: 'nightmare',
-    schemaId: 'nightmareBlock',
     audioKey: 'nightmare',
     visibility: { actsSolo: true },  // 梦魇恐惧阶段独立行动
   },
   {
     id: 'guardProtect',
     roleId: 'guard',
-    schemaId: 'guardProtect',
     audioKey: 'guard',
     visibility: { actsSolo: true },
   },
@@ -75,14 +68,12 @@ const NIGHT_STEPS_INTERNAL = [
   {
     id: 'wolfKill',
     roleId: 'wolf',
-    schemaId: 'wolfKill',
     audioKey: 'wolf',
     visibility: { actsSolo: false, wolfMeetingPhase: true },
   },
   {
     id: 'wolfQueenCharm',
     roleId: 'wolfQueen',
-    schemaId: 'wolfQueenCharm',
     audioKey: 'wolf_queen',
     visibility: { actsSolo: false, wolfMeetingPhase: true },
   },
@@ -91,7 +82,6 @@ const NIGHT_STEPS_INTERNAL = [
   {
     id: 'witchAction',
     roleId: 'witch',
-    schemaId: 'witchAction',
     audioKey: 'witch',
     visibility: { actsSolo: true },
   },
@@ -100,14 +90,12 @@ const NIGHT_STEPS_INTERNAL = [
   {
     id: 'seerCheck',
     roleId: 'seer',
-    schemaId: 'seerCheck',
     audioKey: 'seer',
     visibility: { actsSolo: true },
   },
   {
     id: 'psychicCheck',
     roleId: 'psychic',
-    schemaId: 'psychicCheck',
     audioKey: 'psychic',
     visibility: { actsSolo: true },
   },
@@ -116,14 +104,12 @@ const NIGHT_STEPS_INTERNAL = [
   {
     id: 'hunterConfirm',
     roleId: 'hunter',
-    schemaId: 'hunterConfirm',
     audioKey: 'hunter',
     visibility: { actsSolo: true },
   },
   {
     id: 'darkWolfKingConfirm',
     roleId: 'darkWolfKing',
-    schemaId: 'darkWolfKingConfirm',
     audioKey: 'dark_wolf_king',
     visibility: { actsSolo: true },
   },

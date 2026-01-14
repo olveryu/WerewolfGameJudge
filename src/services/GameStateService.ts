@@ -1460,7 +1460,7 @@ export class GameStateService {
     // M3: schemaId is derived from NIGHT_STEPS single source of truth.
     // Current assumption (locked by contract tests): each role has at most one NightStep.
     const [step] = getStepsByRoleStrict(currentRole);
-    schemaId = step?.schemaId;
+    schemaId = step?.id;  // step.id is the schemaId
       }
     } else {
       console.warn(`[GameStateService] ROLE_TURN: Invalid roleId "${currentRole}", schemaId not sent`);

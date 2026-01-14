@@ -78,9 +78,10 @@ describe('SCHEMAS contract', () => {
   });
 
   describe('schema references in specs', () => {
-    it('every schemaId referenced in NIGHT_STEPS should exist in SCHEMAS', () => {
+    it('every step.id in NIGHT_STEPS should exist in SCHEMAS', () => {
+      // step.id is the schemaId (single field design)
       for (const step of NIGHT_STEPS) {
-        expect(isValidSchemaId(step.schemaId)).toBe(true);
+        expect(isValidSchemaId(step.id)).toBe(true);
       }
     });
 
@@ -88,7 +89,7 @@ describe('SCHEMAS contract', () => {
       const referencedSchemaIds = new Set<SchemaId>();
       // Collect referenced schemas from the canonical night steps table.
       for (const step of NIGHT_STEPS) {
-        referencedSchemaIds.add(step.schemaId);
+        referencedSchemaIds.add(step.id);
       }
 
       // All 14 schemas should be referenced

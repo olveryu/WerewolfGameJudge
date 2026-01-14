@@ -30,15 +30,10 @@ describe('NIGHT_STEPS contract', () => {
       }
     });
 
-    it('every schemaId should be a valid SchemaId', () => {
+    it('step.id should be a valid SchemaId', () => {
+      // step.id serves as schemaId (single field design)
       for (const step of NIGHT_STEPS) {
-        expect(isValidSchemaId(step.schemaId)).toBe(true);
-      }
-    });
-
-    it('stepId should equal schemaId (strong constraint)', () => {
-      for (const step of NIGHT_STEPS) {
-        expect(step.id).toBe(step.schemaId);
+        expect(isValidSchemaId(step.id)).toBe(true);
       }
     });
 
