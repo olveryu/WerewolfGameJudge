@@ -1970,7 +1970,7 @@ export class GameStateService {
 
     const witchSeat = this.getPlayerSeatByRole('witch');
     // canSave: Host determines if witch can save (not self, has antidote)
-    // Night-1-only: witch always has antidote, canSaveSelf = false
+  // Night-1-only: witch always has antidote, and self-save is not allowed per schema constraints
     const canSave = killedIndex !== -1 && killedIndex !== witchSeat;
 
     const privateMessage: PrivateMessage = {
