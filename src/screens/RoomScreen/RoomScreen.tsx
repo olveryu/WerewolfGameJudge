@@ -21,8 +21,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { 
   RoomStatus, 
-  performSeerAction,
-  performPsychicAction,
   getWolfVoteSummary,
   getPlayersNotViewedRole,
 } from '../../models/Room';
@@ -82,6 +80,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     clearLastSeatError,
     requestSnapshot,
     getWitchContext,
+    getSeerReveal,
+    getPsychicReveal,
   } = useGameRoom();
 
   // Local UI state
@@ -296,7 +296,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Intent Handler (Orchestrator)
   // ───────────────────────────────────────────────────────────────────────────
 
-  const handleActionIntent = useCallback((intent: ActionIntent) => {
+  const handleActionIntent = useCallback(async (intent: ActionIntent) => {
     switch (intent.type) {
       case 'blocked':
         actionDialogs.showBlockedAlert();
@@ -325,23 +325,33 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       case 'seerReveal': {
         if (!gameState) return;
-        const result = performSeerAction(toGameRoomLike(gameState), intent.targetIndex);
-        actionDialogs.showRevealDialog(
-          `${intent.targetIndex + 1}号是${result}`,
-          '',
-          () => void proceedWithAction(intent.targetIndex)
-        );
+        // Anti-cheat: Submit action to Host first, Host sends SEER_REVEAL privately
+        // Then show result from inbox
+        await proceedWithAction(intent.targetIndex);
+        const reveal = getSeerReveal();
+        if (reveal) {
+          actionDialogs.showRevealDialog(
+            `${reveal.targetSeat + 1}号是${reveal.result}`,
+            '',
+            () => {} // No further action needed, already submitted
+          );
+        }
         break;
       }
 
       case 'psychicReveal': {
         if (!gameState) return;
-        const result = performPsychicAction(toGameRoomLike(gameState), intent.targetIndex);
-        actionDialogs.showRevealDialog(
-          `${intent.targetIndex + 1}号是${result}`,
-          '',
-          () => void proceedWithAction(intent.targetIndex)
-        );
+        // Anti-cheat: Submit action to Host first, Host sends PSYCHIC_REVEAL privately
+        // Then show result from inbox
+        await proceedWithAction(intent.targetIndex);
+        const reveal = getPsychicReveal();
+        if (reveal) {
+          actionDialogs.showRevealDialog(
+            `${reveal.targetSeat + 1}号是${reveal.result}`,
+            '',
+            () => {} // No further action needed, already submitted
+          );
+        }
         break;
       }
 

@@ -26,7 +26,8 @@ import {
   makeWitchPoison,
   getActionTargetSeat,
 } from '../models/actions';
-import { isValidRoleId, getRoleSpec, type SchemaId } from '../models/roles/spec';
+import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId } from '../models/roles/spec';
+import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
 import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload } from './types/PrivateBroadcast';
 
 // Import types/enums needed internally
@@ -577,6 +578,13 @@ export class GameStateService {
       } catch (err) {
         console.error('[GameStateService] NightFlow recordAction failed:', err);
         throw err; // STRICT: propagate error, don't continue
+      }
+
+      // Send private reveal for seer/psychic (anti-cheat: Host computes result)
+      if (role === 'seer') {
+        await this.sendSeerReveal(seat, target);
+      } else if (role === 'psychic') {
+        await this.sendPsychicReveal(seat, target);
       }
     }
 
@@ -1930,6 +1938,82 @@ export class GameStateService {
     };
 
     console.log('[GameStateService] Sending WITCH_CONTEXT to witch:', witchUid.substring(0, 8), 'killedIndex:', killedIndex, 'canSave:', canSave);
+    await this.broadcastService.sendPrivate(privateMessage);
+  }
+
+  /**
+   * Send SEER_REVEAL to the seer player after they check a target.
+   * Contains sensitive info: target's alignment (好人/狼人).
+   * 
+   * @see docs/phase4-final-migration.md for anti-cheat architecture
+   */
+  private async sendSeerReveal(seerSeat: number, targetSeat: number): Promise<void> {
+    const seerUid = this.getPlayerUidByRole('seer');
+    if (!seerUid || !this.state) {
+      console.warn('[GameStateService] sendSeerReveal: seer not found or no state');
+      return;
+    }
+
+    // Get target's role and compute result
+    const targetPlayer = this.state.players.get(targetSeat);
+    if (!targetPlayer?.role) {
+      console.warn('[GameStateService] sendSeerReveal: target not found at seat', targetSeat);
+      return;
+    }
+
+    const targetSpec = ROLE_SPECS[targetPlayer.role];
+    const result = getSeerCheckResultForTeam(targetSpec.team);
+
+    const privateMessage: PrivateMessage = {
+      type: 'PRIVATE_EFFECT',
+      toUid: seerUid,
+      revision: this.stateRevision,
+      payload: {
+        kind: 'SEER_REVEAL',
+        targetSeat,
+        result,
+      } as SeerRevealPayload,
+    };
+
+    console.log('[GameStateService] Sending SEER_REVEAL to seer:', seerUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
+    await this.broadcastService.sendPrivate(privateMessage);
+  }
+
+  /**
+   * Send PSYCHIC_REVEAL to the psychic player after they check a target.
+   * Contains sensitive info: target's exact role name.
+   * 
+   * @see docs/phase4-final-migration.md for anti-cheat architecture
+   */
+  private async sendPsychicReveal(psychicSeat: number, targetSeat: number): Promise<void> {
+    const psychicUid = this.getPlayerUidByRole('psychic');
+    if (!psychicUid || !this.state) {
+      console.warn('[GameStateService] sendPsychicReveal: psychic not found or no state');
+      return;
+    }
+
+    // Get target's role and return exact role name
+    const targetPlayer = this.state.players.get(targetSeat);
+    if (!targetPlayer?.role) {
+      console.warn('[GameStateService] sendPsychicReveal: target not found at seat', targetSeat);
+      return;
+    }
+
+    const targetSpec = ROLE_SPECS[targetPlayer.role];
+    const result = targetSpec.displayName;
+
+    const privateMessage: PrivateMessage = {
+      type: 'PRIVATE_EFFECT',
+      toUid: psychicUid,
+      revision: this.stateRevision,
+      payload: {
+        kind: 'PSYCHIC_REVEAL',
+        targetSeat,
+        result,
+      } as PsychicRevealPayload,
+    };
+
+    console.log('[GameStateService] Sending PSYCHIC_REVEAL to psychic:', psychicUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
     await this.broadcastService.sendPrivate(privateMessage);
   }
 
