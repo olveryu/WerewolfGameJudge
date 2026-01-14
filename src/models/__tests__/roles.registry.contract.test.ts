@@ -1,12 +1,12 @@
 import {
   Faction,
-  ROLE_MODELS,
   ROLES,
   SeerCheckResult,
   TEAM_DISPLAY_NAMES,
   Team,
   canRoleSeeWolves,
   doesRoleParticipateInWolfVote,
+  getAllRoleIds,
   getRoleDisplayName,
   getRoleEnglishName,
   getRoleTeam,
@@ -117,7 +117,7 @@ describe('Role Registry - Type classification', () => {
 
 describe('Role Registry - Display names and descriptions', () => {
   it('should have non-empty displayName and description for all roles', () => {
-    (Object.keys(ROLE_MODELS) as RoleName[]).forEach(roleId => {
+    getAllRoleIds().forEach(roleId => {
       const def = ROLES[roleId];
       expect(def.displayName).toBeTruthy();
       expect(def.description).toBeTruthy();
@@ -125,7 +125,7 @@ describe('Role Registry - Display names and descriptions', () => {
   });
 
   it('getRoleDisplayName should match ROLES displayName', () => {
-    (Object.keys(ROLE_MODELS) as RoleName[]).forEach(roleId => {
+    getAllRoleIds().forEach(roleId => {
       expect(getRoleDisplayName(roleId)).toBe(ROLES[roleId].displayName);
     });
   });
@@ -149,7 +149,7 @@ describe('Role Registry - Team classification', () => {
   });
 
   it('getRoleTeamDisplayName should be consistent with getRoleTeam', () => {
-    (Object.keys(ROLE_MODELS) as RoleName[]).forEach(roleId => {
+    getAllRoleIds().forEach(roleId => {
       expect(getRoleTeamDisplayName(roleId)).toBe(TEAM_DISPLAY_NAMES[getRoleTeam(roleId)]);
     });
   });
@@ -184,7 +184,7 @@ describe('Role Registry - Wolf meeting/vote invariants', () => {
 
 describe('Role Registry - getSeerCheckResult (Seer Binary Result)', () => {
   it("should return only '好人' or '狼人'", () => {
-    const allRoles = Object.keys(ROLE_MODELS) as RoleName[];
+    const allRoles = getAllRoleIds();
     const validResults: SeerCheckResult[] = ['好人', '狼人'];
 
     allRoles.forEach(role => {

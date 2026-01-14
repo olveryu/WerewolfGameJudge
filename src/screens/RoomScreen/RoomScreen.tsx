@@ -27,7 +27,7 @@ import {
   getPlayersNotViewedRole,
 } from '../../models/Room';
 import { 
-  getRoleModel,
+  getRoleDisplayInfo,
   RoleName,
   isWolfRole,
 } from '../../models/roles';
@@ -424,12 +424,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       case 'actionPrompt': {
         // Generic action prompt for all roles (dismiss → wait for seat tap)
-        const roleModel = getRoleModel(myRole!);
-        if (!roleModel) return;
+        const roleInfo = getRoleDisplayInfo(myRole!);
+        if (!roleInfo) return;
         
         actionDialogs.showRoleActionPrompt(
-          roleModel.actionTitle,
-          roleModel.actionMessage || '请选择目标',
+          roleInfo.actionTitle,
+          roleInfo.actionMessage || '请选择目标',
           () => {
             // dismiss → do nothing, wait for user to tap seat
           }
@@ -548,9 +548,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const showRoleCardDialog = useCallback(async () => {
     if (!myRole) return;
     
-    const roleModel = getRoleModel(myRole);
-    const roleName = roleModel?.displayName || myRole;
-    const description = roleModel?.description || '无技能描述';
+    const roleInfo = getRoleDisplayInfo(myRole);
+    const roleName = roleInfo?.displayName || myRole;
+    const description = roleInfo?.description || '无技能描述';
     
     await viewedRole();
     
@@ -595,8 +595,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const getActionMessage = () => {
     if (!currentActionRole) return '';
     
-    const roleModel = getRoleModel(currentActionRole);
-    const baseMessage = roleModel?.actionMessage || `请${roleModel?.displayName || currentActionRole}行动`;
+    const roleInfo = getRoleDisplayInfo(currentActionRole);
+    const baseMessage = roleInfo?.actionMessage || `请${roleInfo?.displayName || currentActionRole}行动`;
     
     if (currentActionRole !== 'wolf') {
       return baseMessage;
