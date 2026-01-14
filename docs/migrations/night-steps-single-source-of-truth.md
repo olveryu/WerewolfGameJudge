@@ -1,6 +1,6 @@
 # NightSteps 单一真相重构方案
 
-> 状态：待实施  
+> 状态：✅ 已完成  
 > 作者：技术团队  
 > 日期：2026-01-14  
 > 分支：`refactor/roles-spec-schema-resolver`
