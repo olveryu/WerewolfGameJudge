@@ -4,7 +4,7 @@
  * Validates the buildNightPlan function and NightPlan structure.
  */
 
-import { buildNightPlan, type NightPlanStep, ROLE_SPECS, type RoleId } from '../index';
+import { buildNightPlan, type NightPlanStep, ROLE_SPECS, type RoleId, NIGHT_STEPS } from '../index';
 
 describe('buildNightPlan', () => {
   describe('basic functionality', () => {
@@ -26,18 +26,18 @@ describe('buildNightPlan', () => {
   });
 
   describe('ordering', () => {
-    it('should order steps by night1.order', () => {
+    it('should order steps by NIGHT_STEPS sequence (single source of truth)', () => {
       const plan = buildNightPlan(['seer', 'witch', 'guard']);
-      // guard=3, witch=10, seer=15
+      // NIGHT_STEPS order defines guard -> witch -> seer
       expect(plan.steps.map((s: NightPlanStep) => s.roleId)).toEqual(['guard', 'witch', 'seer']);
     });
 
-    it('should handle magician order=-2 (first)', () => {
+  it('should handle magician before seer when both present', () => {
       const plan = buildNightPlan(['seer', 'magician']);
       expect(plan.steps[0].roleId).toBe('magician');
     });
 
-    it('should handle slacker order=-1 (second after magician)', () => {
+  it('should handle slacker after magician when both present', () => {
       const plan = buildNightPlan(['magician', 'slacker', 'seer']);
       expect(plan.steps.map((s: NightPlanStep) => s.roleId)).toEqual(['magician', 'slacker', 'seer']);
     });
@@ -50,22 +50,15 @@ describe('buildNightPlan', () => {
       ];
       const plan = buildNightPlan(roles);
 
-      // Expected order: guard(3), wolf(5) - only once, wolfQueen(6), witch(10), seer(15), hunter(20)
-      const roleOrder = plan.steps.map((s: NightPlanStep) => s.roleId);
-
-      // guard < wolf < wolfQueen < witch < seer < hunter
-      const guardIdx = roleOrder.indexOf('guard');
-      const wolfIdx = roleOrder.indexOf('wolf');
-      const wolfQueenIdx = roleOrder.indexOf('wolfQueen');
-      const witchIdx = roleOrder.indexOf('witch');
-      const seerIdx = roleOrder.indexOf('seer');
-      const hunterIdx = roleOrder.indexOf('hunter');
-
-      expect(guardIdx).toBeLessThan(wolfIdx);
-      expect(wolfIdx).toBeLessThan(wolfQueenIdx);
-      expect(wolfQueenIdx).toBeLessThan(witchIdx);
-      expect(witchIdx).toBeLessThan(seerIdx);
-      expect(seerIdx).toBeLessThan(hunterIdx);
+      // Expected sequence is derived from NIGHT_STEPS for roles present.
+      expect(plan.steps.map((s: NightPlanStep) => s.roleId)).toEqual([
+        'guard',
+        'wolf',
+        'wolfQueen',
+        'witch',
+        'seer',
+        'hunter',
+      ]);
     });
   });
 
@@ -99,10 +92,11 @@ describe('buildNightPlan', () => {
   describe('step properties', () => {
     it('each step should have roleId, schemaId, and order', () => {
       const plan = buildNightPlan(['seer', 'witch', 'guard']);
-      for (const step of plan.steps) {
+      for (const [idx, step] of plan.steps.entries()) {
         expect(step.roleId).toBeTruthy();
         expect(step.schemaId).toBeTruthy();
         expect(typeof step.order).toBe('number');
+        expect(step.order).toBe(idx);
       }
     });
 
@@ -111,7 +105,7 @@ describe('buildNightPlan', () => {
       const seerStep = plan.steps[0];
       expect(seerStep.roleId).toBe('seer');
       expect(seerStep.schemaId).toBe('seerCheck');
-      expect(seerStep.order).toBe(15);
+  expect(seerStep.order).toBe(0);
     });
   });
 
@@ -129,31 +123,11 @@ describe('buildNightPlan', () => {
     });
   });
 
-  describe('night1 order values from specs', () => {
-    const expectedOrders: Partial<Record<RoleId, number>> = {
-      magician: -2,
-      slacker: -1,
-      wolfRobot: 0,
-      dreamcatcher: 1,
-      gargoyle: 1,
-      nightmare: 2,
-      guard: 3,
-      wolf: 5,
-      wolfQueen: 6,
-      witch: 10,
-      seer: 15,
-      psychic: 16,
-      hunter: 20,
-      darkWolfKing: 25,
-    };
-
-    for (const [roleId, expectedOrder] of Object.entries(expectedOrders)) {
-      it(`${roleId} should have order=${expectedOrder}`, () => {
-        const spec = ROLE_SPECS[roleId as RoleId];
-        if (spec.night1.hasAction) {
-          expect(spec.night1.order).toBe(expectedOrder);
-        }
-      });
-    }
+  describe('NIGHT_STEPS alignment', () => {
+    it('orders steps based on table index for a full plan input', () => {
+      const plan = buildNightPlan(Object.keys(ROLE_SPECS));
+      expect(plan.steps.map(s => s.roleId)).toEqual(NIGHT_STEPS.map(s => s.roleId));
+      expect(plan.steps.map(s => s.schemaId)).toEqual(NIGHT_STEPS.map(s => s.schemaId));
+    });
   });
 });

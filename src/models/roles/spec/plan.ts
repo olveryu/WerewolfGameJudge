@@ -13,6 +13,7 @@
  */
 
 import { ROLE_SPECS, type RoleId, isValidRoleId } from './specs';
+import { NIGHT_STEPS } from './nightSteps';
 import { NightPlanBuildError, type NightPlan, type NightPlanStep } from './plan.types';
 
 /**
@@ -38,45 +39,25 @@ export function buildNightPlan(templateRoles: readonly string[]): NightPlan {
     );
   }
   
-  const steps: NightPlanStep[] = [];
-  
-  // Deduplicate roles (e.g., multiple wolves)
-  const seenRoles = new Set<RoleId>();
-  
-  for (const roleId of templateRoles as RoleId[]) {
-    // Skip if already processed
-    if (seenRoles.has(roleId)) {
-      continue;
-    }
-    seenRoles.add(roleId);
-    
-    const spec = ROLE_SPECS[roleId];
-    
-    // Skip roles without night-1 action
-    if (!spec.night1.hasAction) {
-      continue;
-    }
-    
-    // Must have schemaId if hasAction=true (this is a type-level guarantee from RoleSpec)
-    if (!spec.night1.schemaId) {
-      throw new NightPlanBuildError(
-        `Role ${roleId} has night1.hasAction=true but no schemaId`,
-        [roleId],
-      );
-    }
-    
-    steps.push({
-      roleId,
-      schemaId: spec.night1.schemaId,
-      order: spec.night1.order ?? 999,
-      displayName: spec.displayName,
-      audioKey: spec.ux.audioKey,
-      actsSolo: 'actsSolo' in spec.night1 ? (spec.night1.actsSolo ?? false) : false,
+  const templateRoleSet = new Set(templateRoles as RoleId[]);
+
+  // M2: derive ordered steps from NIGHT_STEPS (array order = authority)
+  // Dedupe is implicit because NIGHT_STEPS contains each night-1 action role exactly once.
+  const steps: NightPlanStep[] = NIGHT_STEPS
+    .filter(step => templateRoleSet.has(step.roleId))
+    .map((step, idx) => {
+      const spec = ROLE_SPECS[step.roleId];
+      return {
+        roleId: step.roleId,
+        schemaId: step.schemaId,
+        // Keep NightPlanStep shape stable for existing consumers/tests.
+        // The numeric order is now derived from table sequence.
+        order: idx,
+        displayName: spec.displayName,
+        audioKey: step.audioKey,
+        actsSolo: step.visibility.actsSolo,
+      };
     });
-  }
-  
-  // Sort by order
-  steps.sort((a, b) => a.order - b.order);
   
   return {
     steps,
