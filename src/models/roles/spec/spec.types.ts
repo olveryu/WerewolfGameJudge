@@ -6,34 +6,11 @@
  */
 
 import type { Faction, Team } from './types';
-import type { SchemaId } from './schemas';
 
 /** Night-1 action configuration */
 export interface Night1Config {
   /** Whether this role has a night-1 action */
   readonly hasAction: boolean;
-  
-  /** 
-   * Action order for night-1 (lower = earlier).
-   * Only meaningful if hasAction=true.
-   * Use undefined if no action.
-   */
-  readonly order?: number;
-  
-  /** Schema ID for night-1 action (if hasAction=true) */
-  readonly schemaId?: SchemaId;
-  
-  /**
-   * Whether this role acts alone (cannot see teammates) in this step.
-   * 
-   * CONTRACT:
-   * - actsSolo = true: Cannot see wolf teammates, but CAN still see self (seat/role).
-   * - Used for nightmare's fear phase - acts alone before wolf meeting.
-   * - Default: false (can see teammates if wolfMeeting.canSeeWolves=true)
-   * 
-   * UI behavior: visibility = {selfSeat} + other non-teammate info
-   */
-  readonly actsSolo?: boolean;
 }
 
 /** Wolf meeting configuration (for wolf kill phase) */
