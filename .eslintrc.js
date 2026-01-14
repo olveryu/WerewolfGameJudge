@@ -34,6 +34,18 @@ module.exports = {
     'react/prop-types': 'off', // Using TypeScript
     '@typescript-eslint/no-empty-object-type': 'off',
     'react-hooks/static-components': 'off', // Allow inline components for simple cases
+  // This repo isn't using React Compiler as a hard gate; these rules are too noisy and
+  // flag common state-sync patterns that are acceptable for this app.
+  'react-hooks/set-state-in-effect': 'off',
+  'react-hooks/preserve-manual-memoization': 'off',
   },
-  ignorePatterns: ['node_modules/', 'dist/', 'build/', '*.config.js'],
+  ignorePatterns: [
+    'node_modules/',
+    'dist/',
+    'build/',
+    'playwright-report/',
+    'test-results/',
+    '.expo/',
+    '*.config.js',
+  ],
 };

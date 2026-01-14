@@ -7,7 +7,7 @@
  * NOTE (M2):
  * - This builder derives steps from `NIGHT_STEPS` (array order = authority).
  * - `NightPlanStep.order` is derived from the table index (consumer-facing field kept for backward compatibility).
- * - `ROLE_SPECS[*].night1.order/schemaId/actsSolo` are no longer authoritative for plan generation.
+ * - RoleSpec no longer carries night-1 ordering or schemaId. Treat `NIGHT_STEPS` as authoritative.
  */
 
 import { ROLE_SPECS, type RoleId, isValidRoleId } from './specs';

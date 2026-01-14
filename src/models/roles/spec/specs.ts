@@ -344,7 +344,7 @@ export function getAllRoleIds(): RoleId[] {
   return Object.keys(ROLE_SPECS) as RoleId[];
 }
 
-/** Get roles with night-1 action, sorted by order */
+/** Get roles with night-1 action in the authoritative NIGHT_STEPS order */
 export function getNight1ActionRoles(): RoleId[] {
   // Derive order from NIGHT_STEPS (single source of truth), not legacy RoleSpec.night1.order.
   // NOTE: Current contract assumes each role appears at most once in NIGHT_STEPS.

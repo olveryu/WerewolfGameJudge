@@ -191,13 +191,15 @@ describe('AudioService - Play methods', () => {
     jest.clearAllMocks();
     
     // Setup mock to simulate playback completion
-    mockAddListener.mockImplementation((event: string, callback: Function) => {
+    mockAddListener.mockImplementation(
+      (event: string, callback: (status: { didJustFinish?: boolean }) => void) => {
       // Immediately call the callback with didJustFinish to resolve the promise
       setTimeout(() => {
         callback({ didJustFinish: true });
       }, 0);
       return { remove: jest.fn() };
-    });
+      }
+    );
   });
 
   it('playRoleBeginningAudio should call createAudioPlayer for valid role', async () => {

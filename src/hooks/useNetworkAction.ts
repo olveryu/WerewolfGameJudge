@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { showAlert } from '../utils/alert';
 
 /**
@@ -8,10 +8,15 @@ import { showAlert } from '../utils/alert';
 export function useNetworkAction() {
   const [isLoading, setIsLoading] = useState(false);
 
+  // Keep a stable way to call the latest execute implementation (for retry callbacks)
+  const executeRef = useRef<
+    (<T>(action: () => Promise<T>, actionName?: string) => Promise<T | null>) | null
+  >(null);
+
   /**
    * Execute an async action with network error handling.
    * If the action fails, shows a retry dialog to the user.
-   * 
+   *
    * @param action - The async function to execute
    * @param actionName - A user-friendly name for the action (e.g., "查看身份")
    * @returns The result of the action, or null if cancelled
@@ -29,7 +34,7 @@ export function useNetworkAction() {
     } catch (error) {
       setIsLoading(false);
       const errorMessage = error instanceof Error ? error.message : '未知错误';
-      
+
       return new Promise((resolve) => {
         showAlert(
           '网络错误',
@@ -39,7 +44,7 @@ export function useNetworkAction() {
               text: '重试',
               onPress: () => {
                 // Restart the whole execute flow
-                execute(action, actionName).then(resolve);
+                executeRef.current?.(action, actionName).then(resolve);
               },
             },
             {
@@ -52,6 +57,10 @@ export function useNetworkAction() {
       });
     }
   }, []);
+
+  useEffect(() => {
+    executeRef.current = execute;
+  }, [execute]);
 
   return { execute, isLoading };
 }
