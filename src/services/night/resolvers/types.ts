@@ -110,3 +110,39 @@ export type ResolverFn = (
 
 /** Resolver registry type */
 export type ResolverRegistry = Partial<Record<SchemaId, ResolverFn>>;
+
+// =============================================================================
+// Magician Swap Helpers (HOST-ONLY)
+// =============================================================================
+
+/**
+ * Get the effective role at a seat after magician swap.
+ * 
+ * If magician swapped seats A and B, checking seat A returns B's role and vice versa.
+ * This is for "check" actions (seer, psychic, gargoyle) that reveal identity.
+ * 
+ * NOTE: Does NOT affect physical seat or death calculation - only identity checks.
+ * 
+ * @param seat - The seat to check
+ * @param players - Original seat->roleId map
+ * @param swappedSeats - [seatA, seatB] if magician swapped, undefined otherwise
+ * @returns The role at the effective seat (after swap if applicable)
+ */
+export function getRoleAfterSwap(
+  seat: number,
+  players: ReadonlyMap<number, RoleId>,
+  swappedSeats?: readonly [number, number],
+): RoleId | undefined {
+  if (!swappedSeats) {
+    return players.get(seat);
+  }
+  
+  const [a, b] = swappedSeats;
+  if (seat === a) {
+    return players.get(b);
+  }
+  if (seat === b) {
+    return players.get(a);
+  }
+  return players.get(seat);
+}

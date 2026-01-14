@@ -26,9 +26,10 @@ import {
   makeWitchPoison,
   getActionTargetSeat,
 } from '../models/actions';
-import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, buildNightPlan, getStepsByRoleStrict } from '../models/roles/spec';
+import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, type RoleId, buildNightPlan, getStepsByRoleStrict } from '../models/roles/spec';
 import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
 import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload } from './types/PrivateBroadcast';
+import { getRoleAfterSwap } from './night/resolvers/types';
 
 // Import types/enums needed internally
 import {
@@ -2006,14 +2007,18 @@ export class GameStateService {
       return;
     }
 
-    // Get target's role and compute result
-    const targetPlayer = this.state.players.get(targetSeat);
-    if (!targetPlayer?.role) {
+    // Build role map and get swapped seats for identity check
+    const roleMap = this.buildRoleMap();
+    const swappedSeats = this.getMagicianSwappedSeats();
+    
+    // Get target's role AFTER magician swap (identity swap)
+    const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
+    if (!effectiveRoleId) {
       console.warn('[GameStateService] sendSeerReveal: target not found at seat', targetSeat);
       return;
     }
 
-    const targetSpec = ROLE_SPECS[targetPlayer.role];
+    const targetSpec = ROLE_SPECS[effectiveRoleId];
     const result = getSeerCheckResultForTeam(targetSpec.team);
 
     const privateMessage: PrivateMessage = {
@@ -2044,14 +2049,18 @@ export class GameStateService {
       return;
     }
 
-    // Get target's role and return exact role name
-    const targetPlayer = this.state.players.get(targetSeat);
-    if (!targetPlayer?.role) {
+    // Build role map and get swapped seats for identity check
+    const roleMap = this.buildRoleMap();
+    const swappedSeats = this.getMagicianSwappedSeats();
+    
+    // Get target's role AFTER magician swap (identity swap)
+    const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
+    if (!effectiveRoleId) {
       console.warn('[GameStateService] sendPsychicReveal: target not found at seat', targetSeat);
       return;
     }
 
-    const targetSpec = ROLE_SPECS[targetPlayer.role];
+    const targetSpec = ROLE_SPECS[effectiveRoleId];
     const result = targetSpec.displayName;
 
     const privateMessage: PrivateMessage = {
@@ -2157,6 +2166,36 @@ export class GameStateService {
       witch: this.findSeatByRole('witch'),
       guard: this.findSeatByRole('guard'),
     };
+  }
+
+  /**
+   * Build a seat -> roleId map for resolver context.
+   * Used for identity checks (seer, psychic, gargoyle).
+   */
+  private buildRoleMap(): ReadonlyMap<number, RoleId> {
+    if (!this.state) return new Map();
+    
+    const roleMap = new Map<number, RoleId>();
+    for (const [seat, player] of this.state.players) {
+      if (player?.role && isValidRoleId(player.role)) {
+        roleMap.set(seat, player.role);
+      }
+    }
+    return roleMap;
+  }
+
+  /**
+   * Get magician swapped seats from current night actions.
+   * Returns undefined if no swap happened.
+   */
+  private getMagicianSwappedSeats(): readonly [number, number] | undefined {
+    if (!this.state) return undefined;
+    
+    const magicianAction = this.state.actions.get('magician');
+    if (magicianAction?.kind === 'magicianSwap') {
+      return [magicianAction.firstSeat, magicianAction.secondSeat];
+    }
+    return undefined;
   }
 
   /**
