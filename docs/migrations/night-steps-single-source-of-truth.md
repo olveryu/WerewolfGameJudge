@@ -109,6 +109,9 @@ export interface StepSpec {
  * NightStepId 从 NIGHT_STEPS 自动推导，避免类型漂移
  * 定义在 nightSteps.ts 中：
  * export type NightStepId = (typeof NIGHT_STEPS)[number]['id'];
+ * 
+ * 实现细节：使用 NIGHT_STEPS_INTERNAL（as const satisfies）推导，
+ * 再导出 NIGHT_STEPS: readonly StepSpec[] 供外部使用。
  */
 ```
 
@@ -282,13 +285,14 @@ npm run test -- nightSteps.contract
 **新逻辑（伪代码，仅展示 steps 来源切换）**：
 ```typescript
 // ⚠️ 实际返回类型以当前 plan.types.ts 为准（可能是 NightPlan 或 NightPlanStep[]）
+// ⚠️ 实际实现应通过类型设计消除 as 强转（NIGHT_STEPS_INTERNAL satisfies readonly StepSpec[] 已基本做到）
 export function buildNightPlan(roles: RoleId[]): /* 以 repo 为准 */ {
   const roleSet = new Set(roles);
   const steps = NIGHT_STEPS
-    .filter(step => roleSet.has(step.roleId as RoleId))
+    .filter(step => roleSet.has(step.roleId))
     .map(step => ({
       stepId: step.id,
-      roleId: step.roleId as RoleId,
+      roleId: step.roleId,
       schemaId: step.schemaId,  // 终局可改用 step.id
       audioKey: step.audioKey,
       visibility: step.visibility,
