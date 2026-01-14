@@ -31,6 +31,8 @@ export type ActionIntentType =
   // Reveal (RoomScreen calculates result)
   | 'seerReveal'           // Seer check
   | 'psychicReveal'        // Psychic check
+  | 'gargoyleReveal'       // Gargoyle check
+  | 'wolfRobotReveal'      // Wolf Robot learn identity
   
   // Witch two-phase
   | 'witchSavePhase'       // Witch save phase (auto-trigger)
@@ -136,11 +138,13 @@ function deriveConfirmIntent(ctx: IntentContext): ActionIntent {
   return { type: 'actionConfirm', targetIndex: index, message: buildMessage(index) };
 }
 
-/** chooseSeat schema: seer/psychic reveal, or normal action */
+/** chooseSeat schema: seer/psychic/gargoyle/wolfRobot reveal, or normal action */
 function deriveChooseSeatIntent(ctx: IntentContext): ActionIntent {
   const { myRole, index, buildMessage } = ctx;
   if (myRole === 'seer') return { type: 'seerReveal', targetIndex: index };
   if (myRole === 'psychic') return { type: 'psychicReveal', targetIndex: index };
+  if (myRole === 'gargoyle') return { type: 'gargoyleReveal', targetIndex: index };
+  if (myRole === 'wolfRobot') return { type: 'wolfRobotReveal', targetIndex: index };
   return { type: 'actionConfirm', targetIndex: index, message: buildMessage(index) };
 }
 
