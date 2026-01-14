@@ -13,7 +13,7 @@
 import { useCallback } from 'react';
 import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { RoomStatus } from '../../../models/Room';
-import { getRoleModel, RoleName, isWolfRole } from '../../../models/roles';
+import { getRoleDisplayInfo, RoleName, isWolfRole } from '../../../models/roles';
 import type { ActionSchema } from '../../../models/roles/spec';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -209,8 +209,8 @@ export function useRoomActions(
   // ─────────────────────────────────────────────────────────────────────────
 
   const buildActionMessage = useCallback((index: number, actingRole: RoleName): string => {
-    const roleModel = getRoleModel(actingRole);
-    const actionConfirmMessage = roleModel?.actionConfirmMessage || '对';
+    const roleInfo = getRoleDisplayInfo(actingRole);
+    const actionConfirmMessage = roleInfo?.actionConfirmMessage || '对';
 
     if (index === -1) {
       return '确定不发动技能吗？';
