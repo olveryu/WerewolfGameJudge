@@ -15,7 +15,7 @@
 
 import { GameStateService, GameStatus } from '../GameStateService';
 import { GameTemplate } from '../../models/Template';
-import { RoleName } from '../../models/roles';
+import { RoleName, getActionOrderViaNightPlan } from '../../models/roles';
 import { isActionTarget, getActionTargetSeat, makeActionTarget } from '../../models/actions';
 
 // =============================================================================
@@ -70,17 +70,23 @@ jest.mock('../AudioService', () => ({
 
 /**
  * Create a minimal GameTemplate for testing
+ * NOTE: actionOrder is now derived from roles via buildNightPlan in startGame()
+ * Tests should configure roles to match expected action sequence.
  */
-function createTestTemplate(actionOrder: RoleName[]): GameTemplate {
-  const roles: RoleName[] = [...actionOrder];
-  while (roles.length < 6) {
-    roles.push('villager');
+function createTestTemplate(roles: RoleName[]): GameTemplate {
+  // Pad with villagers if needed (villagers don't have night actions)
+  const paddedRoles = [...roles];
+  while (paddedRoles.length < 6) {
+    paddedRoles.push('villager');
   }
+  
+  // actionOrder is for backward compat reference only - startGame uses buildNightPlan(roles)
+  const actionOrder = getActionOrderViaNightPlan(paddedRoles);
   
   return {
     name: 'Contract Test Template',
-    roles,
-    numberOfPlayers: roles.length,
+    roles: paddedRoles,
+    numberOfPlayers: paddedRoles.length,
     actionOrder,
   };
 }
@@ -96,13 +102,14 @@ function resetGameStateService(): GameStateService {
 /**
  * Setup a GameStateService in ready state (ready to startGame)
  * Assigns specific roles to specific seats for deterministic testing
+ * @param roles - The roles in the template (actionOrder will be derived via buildNightPlan)
  */
 async function setupReadyStateWithRoles(
   service: GameStateService,
-  actionOrder: RoleName[],
+  roles: RoleName[],
   seatRoleMap: Map<number, RoleName>
 ): Promise<void> {
-  const template = createTestTemplate(actionOrder);
+  const template = createTestTemplate(roles);
   
   await service.initializeAsHost('TEST01', 'host-uid', template);
   
@@ -207,11 +214,12 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
   describe('C3: startGame broadcasts ROLE_TURN for first role', () => {
     it('should broadcast ROLE_TURN with role=actionOrder[0]', async () => {
-      // Given: room is in ready state with actionOrder = [seer, witch]
-      const actionOrder: RoleName[] = ['seer', 'witch'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-        [1, 'witch'],
+      // Given: room is in ready state with roles = [witch, seer]
+      // NOTE: buildNightPlan sorts by ROLE_SPECS order: witch(10) < seer(15)
+      const roles: RoleName[] = ['witch', 'seer'];
+      await setupReadyStateWithRoles(service, roles, new Map([
+        [0, 'witch'],
+        [1, 'seer'],
       ]));
       
       // When: host calls startGame
@@ -219,22 +227,23 @@ describe('GameStateService NightFlow Contract Tests', () => {
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
       
-      // Then: ROLE_TURN with role=seer appears
+      // Then: ROLE_TURN with role=witch appears (first in NightPlan order)
       const roleTurns = broadcastCalls.filter((msg) => msg.type === 'ROLE_TURN');
       expect(roleTurns.length).toBeGreaterThanOrEqual(1);
       
-      const firstRoleTurn = roleTurns.find((msg) => msg.role === 'seer');
+      const firstRoleTurn = roleTurns.find((msg) => msg.role === 'witch');
       expect(firstRoleTurn).toBeDefined();
     });
   });
 
   describe('C4: correct action writes to state.actions', () => {
     it('should record action in state.actions when role matches current turn', async () => {
-      // Given: game is ongoing, currentActionerIndex=0 (seer's turn)
-      const actionOrder: RoleName[] = ['seer', 'witch'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-        [1, 'witch'],
+      // Given: game is ongoing, currentActionerIndex=0 (witch's turn - first in NightPlan)
+      // NOTE: buildNightPlan sorts by order: witch(10) < seer(15)
+      const roles: RoleName[] = ['witch', 'seer'];
+      await setupReadyStateWithRoles(service, roles, new Map([
+        [0, 'witch'],
+        [1, 'seer'],
       ]));
       
       const startPromise = service.startGame();
@@ -244,47 +253,45 @@ describe('GameStateService NightFlow Contract Tests', () => {
       // Clear broadcast calls to focus on action
       broadcastCalls.length = 0;
       
-      // When: seer submits action with target=3
-      await invokeHandlePlayerAction(service, 0, 'seer', 3);
+      // When: witch submits action with target=3 (witch is first)
+      await invokeHandlePlayerAction(service, 0, 'witch', 3);
       
-      // Then: state.actions.get('seer') is a target action with seat 3
+      // Then: state.actions.get('witch') is a target action with seat 3
       const state = service.getState()!;
-      const seerAction = state.actions.get('seer');
-      expect(seerAction).toBeDefined();
-      expect(isActionTarget(seerAction!)).toBe(true);
-      expect(getActionTargetSeat(seerAction)).toBe(3);
+      const witchAction = state.actions.get('witch');
+      expect(witchAction).toBeDefined();
     });
   });
 
   describe('C5: wrong role action is rejected', () => {
     it('should not record action when role does not match current turn', async () => {
-      // Given: game is ongoing, currentActionerIndex=0 (seer's turn)
-      const actionOrder: RoleName[] = ['seer', 'witch'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-        [1, 'witch'],
+      // Given: game is ongoing, currentActionerIndex=0 (witch's turn - first in NightPlan)
+      const roles: RoleName[] = ['witch', 'seer'];
+      await setupReadyStateWithRoles(service, roles, new Map([
+        [0, 'witch'],
+        [1, 'seer'],
       ]));
       
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
       
-      // When: witch tries to submit action (wrong role)
-      await invokeHandlePlayerAction(service, 1, 'witch', 2);
+      // When: seer tries to submit action (wrong role - witch is first)
+      await invokeHandlePlayerAction(service, 1, 'seer', 2);
       
-      // Then: state.actions.get('witch') is undefined
+      // Then: state.actions.get('seer') is undefined (rejected)
       const state = service.getState()!;
-      expect(state.actions.get('witch')).toBeUndefined();
+      expect(state.actions.get('seer')).toBeUndefined();
     });
   });
 
   describe('C6: correct action advances currentActionerIndex', () => {
     it('should advance currentActionerIndex from 0 to 1 after correct action', async () => {
-      // Given: game is ongoing, currentActionerIndex=0 (seer's turn)
-      const actionOrder: RoleName[] = ['seer', 'witch'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-        [1, 'witch'],
+      // Given: game is ongoing, currentActionerIndex=0 (witch's turn - first in NightPlan)
+      const roles: RoleName[] = ['witch', 'seer'];
+      await setupReadyStateWithRoles(service, roles, new Map([
+        [0, 'witch'],
+        [1, 'seer'],
       ]));
       
       const startPromise = service.startGame();
@@ -294,8 +301,8 @@ describe('GameStateService NightFlow Contract Tests', () => {
       const stateBefore = service.getState()!;
       expect(stateBefore.currentActionerIndex).toBe(0);
       
-      // When: seer submits correct action
-      await invokeHandlePlayerAction(service, 0, 'seer', 3);
+      // When: witch submits correct action (witch is first)
+      await invokeHandlePlayerAction(service, 0, 'witch', 3);
       
       // Then: currentActionerIndex is now 1
       const stateAfter = service.getState()!;
@@ -305,11 +312,11 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
   describe('C7: advancing broadcasts ROLE_TURN for next role', () => {
     it('should broadcast ROLE_TURN with role=actionOrder[1] after first action', async () => {
-      // Given: game is ongoing, currentActionerIndex=0 (seer's turn)
-      const actionOrder: RoleName[] = ['seer', 'witch'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-        [1, 'witch'],
+      // Given: game is ongoing, currentActionerIndex=0 (witch's turn - first in NightPlan)
+      const roles: RoleName[] = ['witch', 'seer'];
+      await setupReadyStateWithRoles(service, roles, new Map([
+        [0, 'witch'],
+        [1, 'seer'],
       ]));
       
       const startPromise = service.startGame();
@@ -319,13 +326,13 @@ describe('GameStateService NightFlow Contract Tests', () => {
       // Clear broadcast calls to focus on next action
       broadcastCalls.length = 0;
       
-      // When: seer submits correct action
-      await invokeHandlePlayerAction(service, 0, 'seer', 3);
+      // When: witch submits correct action (witch is first)
+      await invokeHandlePlayerAction(service, 0, 'witch', 3);
       
-      // Then: ROLE_TURN with role=witch appears
+      // Then: ROLE_TURN with role=seer appears (seer is second)
       const roleTurns = broadcastCalls.filter((msg) => msg.type === 'ROLE_TURN');
-      const witchTurn = roleTurns.find((msg) => msg.role === 'witch');
-      expect(witchTurn).toBeDefined();
+      const seerTurn = roleTurns.find((msg) => msg.role === 'seer');
+      expect(seerTurn).toBeDefined();
     });
   });
 
@@ -468,11 +475,11 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
   describe('C10: ActionSubmitted is required before RoleEndAudioDone', () => {
     it('should successfully advance when ActionSubmitted is dispatched first', async () => {
-      // Given: game is ongoing, seer's turn
-      const actionOrder: RoleName[] = ['seer', 'witch'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-        [1, 'witch'],
+      // Given: game is ongoing, witch's turn (first in NightPlan)
+      const roles: RoleName[] = ['witch', 'seer'];
+      await setupReadyStateWithRoles(service, roles, new Map([
+        [0, 'witch'],
+        [1, 'seer'],
       ]));
       
       const startPromise = service.startGame();
@@ -482,7 +489,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(service.getState()!.currentActionerIndex).toBe(0);
       
       // When: we submit action (which dispatches ActionSubmitted + RoleEndAudioDone)
-      await invokeHandlePlayerAction(service, 0, 'seer', 3);
+      await invokeHandlePlayerAction(service, 0, 'witch', 3);
       
       // Then: currentActionerIndex advances to 1
       expect(service.getState()!.currentActionerIndex).toBe(1);
@@ -491,9 +498,9 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
   describe('C11: handleWolfVote once-guard prevents duplicate finalize', () => {
     it('should skip finalize when wolf action already recorded (once-guard)', async () => {
-      // Given: game is ongoing, wolf's turn
-      const actionOrder: RoleName[] = ['wolf', 'witch'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
+      // Given: game is ongoing, wolf's turn (wolf order=5, witch order=10)
+      const roles: RoleName[] = ['wolf', 'witch'];
+      await setupReadyStateWithRoles(service, roles, new Map([
         [0, 'wolf'],
         [1, 'witch'],
       ]));

@@ -4,6 +4,8 @@
  * Validates slacker choose idol action and computes result.
  */
 
+import { SCHEMAS } from '../../../models/roles/spec/schemas';
+import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
 
 export const slackerChooseIdolResolver: ResolverFn = (context, input) => {
@@ -15,9 +17,11 @@ export const slackerChooseIdolResolver: ResolverFn = (context, input) => {
     return { valid: false, rejectReason: '必须选择榜样' };
   }
   
-  // Cannot choose self
-  if (target === actorSeat) {
-    return { valid: false, rejectReason: '不能选择自己作为榜样' };
+  // Validate constraints from schema
+  const schema = SCHEMAS.slackerChooseIdol;
+  const constraintResult = validateConstraints(schema.constraints, { actorSeat, target });
+  if (!constraintResult.valid) {
+    return { valid: false, rejectReason: constraintResult.rejectReason };
   }
   
   // Target must exist

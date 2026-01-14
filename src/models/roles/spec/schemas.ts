@@ -12,7 +12,7 @@ export const SCHEMAS = {
     id: 'seerCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-  constraints: [],
+    constraints: ['notSelf'],
     canSkip: false,
   },
 
@@ -50,7 +50,7 @@ export const SCHEMAS = {
     id: 'psychicCheck',
     displayName: '通灵',
     kind: 'chooseSeat',
-  constraints: [],
+    constraints: ['notSelf'],
     canSkip: false,
   },
 
@@ -104,7 +104,7 @@ export const SCHEMAS = {
     id: 'gargoyleCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-  constraints: [],
+    constraints: ['notSelf'],
     canSkip: false,
   },
 
