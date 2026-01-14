@@ -5,7 +5,7 @@
  */
 
 import { SCHEMAS, type SchemaId, getAllSchemaIds, isValidSchemaId } from '../index';
-import { ROLE_SPECS, getAllRoleIds } from '../index';
+import { NIGHT_STEPS } from '../index';
 
 describe('SCHEMAS contract', () => {
   it('should have exactly 14 schemas', () => {
@@ -78,22 +78,17 @@ describe('SCHEMAS contract', () => {
   });
 
   describe('schema references in specs', () => {
-    it('every schemaId referenced in ROLE_SPECS should exist in SCHEMAS', () => {
-      for (const roleId of getAllRoleIds()) {
-        const spec = ROLE_SPECS[roleId];
-        if (spec.night1.hasAction && spec.night1.schemaId) {
-          expect(isValidSchemaId(spec.night1.schemaId)).toBe(true);
-        }
+    it('every schemaId referenced in NIGHT_STEPS should exist in SCHEMAS', () => {
+      for (const step of NIGHT_STEPS) {
+        expect(isValidSchemaId(step.schemaId)).toBe(true);
       }
     });
 
     it('every schema should be referenced by at least one role', () => {
       const referencedSchemaIds = new Set<SchemaId>();
-      for (const roleId of getAllRoleIds()) {
-        const spec = ROLE_SPECS[roleId];
-        if (spec.night1.hasAction && spec.night1.schemaId) {
-          referencedSchemaIds.add(spec.night1.schemaId);
-        }
+      // Collect referenced schemas from the canonical night steps table.
+      for (const step of NIGHT_STEPS) {
+        referencedSchemaIds.add(step.schemaId);
       }
 
       // All 14 schemas should be referenced

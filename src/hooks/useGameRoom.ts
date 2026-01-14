@@ -13,7 +13,7 @@ import { AuthService } from '../services/AuthService';
 import { GameTemplate } from '../models/Template';
 import { RoleName, isWolfRole } from '../models/roles';
 import { RoomStatus } from '../models/Room';
-import { isValidRoleId, getRoleSpec, getSchema, type ActionSchema, type SchemaId } from '../models/roles/spec';
+import { isValidRoleId, getRoleSpec, getSchema, type ActionSchema, type SchemaId, getStepsByRoleStrict } from '../models/roles/spec';
 
 export interface UseGameRoomResult {
   // Room info
@@ -160,7 +160,10 @@ export const useGameRoom = (): UseGameRoomResult => {
     if (!isValidRoleId(currentActionRole)) return null;
     const spec = getRoleSpec(currentActionRole);
     if (!spec.night1.hasAction) return null;
-    return spec.night1.schemaId ?? null;
+  // M3: schemaId is derived from NIGHT_STEPS single source of truth.
+  // Current assumption (locked by contract tests): each role has at most one NightStep.
+  const [step] = getStepsByRoleStrict(currentActionRole);
+  return step?.schemaId ?? null;
   }, [currentActionRole]);
 
   // Schema-driven UI (Phase 3): derive full schema from schemaId
