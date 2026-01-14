@@ -1,215 +1,151 @@
-## Core Architecture: Host as Authority
+## WerewolfGameJudge Copilot Instructions (short)
 
-### CRITICAL PRINCIPLE（最高优先级）
+### 0) Non-negotiables (read first)
 
-The Host client (房主客户端) is the **authority for all game LOGIC and runtime decisions**, including:
-- Night flow control (phase order, timing)
-- Role action execution and validation
-- Audio sequencing and progression
-- Death calculation and first-night resolution
+- **Host is the ONLY authority for game logic.** Supabase is transport/discovery/identity only.
+- **Night-1-only scope.** Do NOT add cross-night state/rules.
+- **Anti-cheat.** Sensitive info goes via toUid private messages; keep `BroadcastGameState` as room-public view-model only.
+- **Single source of truth.** No parallel ordering maps/arrays/dual-write drift.
 
-Supabase is still responsible for **system-level responsibilities**, including:
-- Room existence and discovery (4-digit room code)
-- User identity (anonymous login & registered users)
-- Player joining and leaving a room
-- Realtime message transport via Supabase Realtime Broadcast
-- Automatic cleanup of inactive rooms
-
-Supabase does **NOT**:
-- Execute any game logic
-- Validate night actions
-- Determine game outcomes
-- Store game state, actions, votes, or results
-
-IMPORTANT:
-“Host as authority” refers strictly to **game logic authority**, NOT system authority.
-Room lifecycle, user presence, and room validity are always managed and validated through Supabase.
+If something is unclear, ask before coding. Don’t invent repo facts.
 
 ---
 
-### Database Schema (Supabase)
+## Architecture boundaries
 
-Only one table - `rooms`:
+### Host vs Supabase
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | uuid | 房间唯一 ID，主键 |
-| `code` | text | 4 位房间加入码 |
-| `host_id` | text | 创建者用户 ID |
-| `created_at` | timestamptz | 房间创建时间 |
-| `updated_at` | timestamptz | 房间最后活跃时间 |
+- Host controls: night flow, validation, resolver execution, death calculation, audio sequencing.
+- Supabase controls: room lifecycle (4-digit code), presence, auth metadata, realtime transport.
+- Supabase must NOT store/validate any game state, actions, votes, results.
 
-Room records are ephemeral:
-- Rooms exist only for short-lived sessions
-- Inactive rooms may be deleted automatically based on `updated_at`
-- No historical game data is persisted
+### Code ownership boundaries
 
-User display information (display_name, avatar_url) is stored in Supabase Auth `user_metadata`.
-No separate profiles table is required.
+- `src/models/roles/**`: declarative only (spec/schema/types). No services, no side effects.
+- `src/services/night/resolvers/**`: host-only pure resolution + validation.
+- `src/screens/RoomScreen/components/**`: UI-only, no service imports.
 
 ---
 
-### Game State Ownership
+## Night flow & NightPlan (host authority)
 
-All **game state** exists only in memory on the Host client, including:
-- Player seating and roles
-- Night actions and votes
-- Current phase and action index
-- Temporary results (e.g. deaths of the first night)
+### NightFlowController invariants
 
-This state is:
-- Authored by the Host client
-- Broadcast to players via Supabase Realtime
-- Cleared on game restart or room destruction
-- Never written to the database
+- `NightFlowController` is the single source of truth for night progression.
+- When `isHost === true` and `state.status === ongoing`, `nightFlow` MUST be non-null (fail-fast if violated).
+- Do NOT advance indices manually (`++` fallback is banned).
+- Phase mismatch events are idempotent no-ops (debug only).
 
-Supabase is used strictly as:
-- A discovery layer (room code → room exists)
-- A communication layer (realtime broadcast)
-- An identity layer (who is connected)
+### Table-driven NightPlan single-source-of-truth
 
----
+- Night-1 progression MUST come from a single table-driven plan.
+- **Authoritative table (Night-1):** `NIGHT_STEPS` in `src/models/roles/spec/nightSteps.ts`.
+   - Array order is the authority order.
+   - Step id MUST be a stable `SchemaId`.
+   - Do NOT reintroduce `night1.order` or any parallel `ACTION_ORDER`.
+- Plan builder MUST fail-fast on invalid `roleId` / `schemaId`.
+- Do NOT use UI copy as logic keys; tests must assert stable identifiers.
 
-### Why This Architecture?
+### Audio sequencing single source of truth
 
-1. **Clear Authority Boundary**
-   - Host controls game logic
-   - Supabase controls room and user lifecycle
+- Night-1 `audioKey` / optional `audioEndKey` MUST come from `NIGHT_STEPS`.
+- Do NOT dual-write audio keys across specs/steps. If a temporary compat is needed: `@deprecated` + removal date + contract test enforcing equality.
 
-2. **Minimal Backend Complexity**
-   - No RPC
-   - No triggers
-   - No game tables
+### StepSpec id/schemaId de-dupe (migration rule)
 
-3. **Low Latency & Predictable Flow**
-   - No database round-trips during night actions
-   - Sequential, host-driven night flow
-
-4. **Failure Tolerance**
-   - Temporary network issues do not corrupt game state
-   - Game state can be reset locally by the Host at any time
-
-5. **Designed for In-Person Play**
-   - All players are physically present
-   - Backend is not a referee, only an infrastructure provider
+- If `StepSpec` has both `id` and `schemaId`, it’s migration-only.
+   - `schemaId` must be `@deprecated` + `TODO(remove by YYYY-MM-DD)`.
+   - Keep a contract test enforcing `step.id === step.schemaId`.
+- End-state: only `id: SchemaId`.
 
 ---
 
-## Project Quality Gates (mandatory)
+## Constraints, validation, and Night-1-only red lines
 
-### E2E Gate & Stability Rules
+### Schema-first constraints
 
-- Core e2e runs with workers=1 and must collect evidence on failure (logs/screenshot).
-- Room readiness must use the shared `waitForRoomScreenReady` helper (joiner must reach `🟢 已连接` or complete the “强制同步” recovery loop). Do not rely on header-only waits.
-- **Never run multiple e2e processes in parallel.** Do not start a new `npm run e2e:core` (or any Playwright command) while another is still running. Doing so causes port/server conflicts (`ECONNREFUSED`, `HTTP 409`) and invalidates test results.
+- Input legality belongs in `SCHEMAS[*].constraints` (schema-first).
+- Host resolvers MUST align with schema constraints.
+   - If schema says `notSelf`, resolver must reject self-target.
+   - If schema allows self-target, resolver must not reject it unless documented + tested.
 
-### Strict Night Flow (NightFlowController as Authority)
+### Night-1-only bans
 
-**NightFlowController is the single source of truth for night-phase progression.**  
-GameStateService acts only as a bridge (audio + broadcast + local caches) and must not “advance the game” outside the controller’s legal transitions.
+- Ban cross-night memory: no `previousActions`, `lastNightTarget`, “连续两晚/第二晚开始” constraints, etc.
+- Resolver contexts/types must not carry cross-night fields.
 
-**Strict invariant (Host night):**
-- When `isHost === true` and `state.status === ongoing`, `nightFlow` MUST be non-null.
-- If `nightFlow` is null during ongoing night, this is a bug: fail-fast (throw) or enter an explicit rescue protocol. Do **not** silently fall back to “legacy mode”.
+### Neutral judge rule (wolves)
 
-**No overreach rules:**
-- Never manually advance `currentActionerIndex` (no fallback `++`).
-- Phase mismatch events must be treated as idempotent no-ops (debug only). No side effects.
-- Night bridge functions (e.g., `advanceToNextAction()`, `playCurrentRoleAudio()`, `endNight()`) must not perform side effects (death calculation, status change, broadcasts, index changes) unless the controller is in the proper phase.
-
-**NightPlan (table-driven) requirement:**
-- Night-1 role progression MUST be derived from a single table-driven `NightPlan`.
-- Do NOT maintain a separate `ACTION_ORDER` array (or per-role ordering maps) across UI/services/tests.
-- Any "action order" exposed for UI is a derived view of `NightPlan`.
-
-**Table-driven NightPlan core conditions (mandatory):**
-- **Single source of truth**: step order + step→schema mapping MUST come from exactly one authoritative table/module.
-   - Do NOT dual-write order/schema mapping across multiple places (e.g., both RoleSpec and a separate script/steps table).
-   - If a temporary compatibility layer is unavoidable, it MUST follow the repo's deprecation + deadline rules (`@deprecated` + `TODO(remove by YYYY-MM-DD)` + block new usages + a minimal Jest test).
-- **Copy is not contract**: narration/copy fields (e.g. host lines, UI text) MUST NOT be used as logic keys or as the primary basis of stable tests.
-   - Tests should assert stable identifiers (e.g. `roleId`, `schemaId`, step id, `testID`) instead of copy.
-- **Fail-fast on invalid config**: the plan builder MUST validate referenced `roleId`/`schemaId` and throw on invalid values.
-   - No silent skip or fallback behavior for unknown roles/schemas.
-- **Contract tests are required**: maintain Jest contract tests that guard the table-driven plan.
-   - Uniqueness (e.g. step ids if present)
-   - Reference validity (`roleId` exists; `schemaId` exists)
-   - Deterministic order (stable sequence)
-   - Night-1-only scope (no cross-night fields/semantics)
-- **Visibility boundary (anti-cheat)**: any step "visibility" helpers (e.g. actsSolo / wolf-meeting visibility) MUST NOT leak into `BroadcastGameState`.
-   - Sensitive information remains toUid private messages only.
-
-**Contract (target end-state):**
-- Input: `Template.roles`
-- Output: `NightPlanStep[]` (includes `roleId`, `schemaId`, visibility, optional audio keys)
-- `NightFlowController` is responsible only for legal phase/step transitions.
-- `GameStateService` is a bridge only (audio + broadcast + apply patches). It must not advance flow outside controller transitions.
-
-### Sync Protocol Requirements (Transport-only, but reliable)
-
-- Host broadcasts `STATE_UPDATE` with a monotonically increasing `revision`.
-- Players support snapshot recovery via request/response (toUid) with timeout/rollback.
-- Seat actions use requestId+ACK (toUid), and clients must filter ACK by requestId.
-
-### E2E stability rules (target selection + stable assertions)
-
-- **Target selection must be fail-safe and must never self-target.** Any “click a seat to choose a target” fallback must:
-   - Exclude the current player’s own seat when it can be determined.
-   - If the current player’s seat cannot be determined reliably, **return false** (fail-safe) instead of guessing.
-   - Only run when the UI is in a confirmed “choose target” state. Do **not** trigger merely because an action message is visible.
-- **Assertions and counts must use stable selectors/structure.** Do not use viewport `isVisible()` loops as a proxy for counts (e.g., seat count). Prefer stable selectors (`data-testid`/role) or a deterministic structural locator.
-- When choosing a target (seat tap), tests must respect the **current step constraints** (schema/host view-model) and must not guess.
-
-### Test layering rules (mandatory)
-
-- **E2E (Playwright) is smoke-only.** It verifies end-to-end wiring (UI → host runtime → realtime transport) and that flows complete, but must avoid fragile “rule referee” assertions.
-- **“谁死谁活 / 平安夜 / 昨夜信息内容” belongs to Jest integration/contract tests**, not E2E.
-   - Put death resolution / night outcome assertions in Jest tests that drive the in-memory host logic (e.g., `NightFlowController` + `GameStateService` + resolvers), so results are deterministic and not UI/timing dependent.
-   - E2E may only assert coarse outcomes (e.g., night completed, result dialog opened) unless a specific UI contract is being validated.
-- When expanding night E2E coverage (e.g., 6-player, restart), focus on **progression invariants** (no stuck phases, restart resets state, settings visibly applied) rather than exact kill lists.
-
-### Jest UI test stability rules (mandatory)
-
-These rules apply to Jest + `@testing-library/react-native` UI tests.
-
-**Goal:** UI tests must use stable selectors and must not be fragile to copy/layout refactors.
-
-#### Stable selector requirement
-
-- Prefer `getByTestId` / `findByTestId` / `queryByTestId`.
-- Avoid `UNSAFE_*` queries, `.parent` traversal, and text-only gates (unless the UI copy itself is the contract being validated).
-- Do not add new `UNSAFE_*` usages. Existing ones should be migrated when touched.
-
-#### High-ROI elements must have `testID`
-
-UI components must provide stable `testID`s for:
-
-- Clickable elements: `Button` / `Pressable` / `TouchableOpacity` (especially loading/disabled states)
-- Inputs: `TextInput`
-- State nodes: loading spinner, error message, connection status
-- List items: seat/player card containers (each item must have a deterministic `testID`)
-
-#### Single source of truth: `src/testids.ts`
-
-- Maintain a single testID registry at `src/testids.ts`.
-- Components and tests should import `TESTIDS` from the registry instead of hard-coded strings.
-- If legacy testIDs already exist, consolidate them into `src/testids.ts` and keep a compatibility mapping during migration.
-
-#### testID migration compatibility rule (mandatory)
-
-- Do **not** silently rename or delete legacy `testID`s.
-   - If a rename is needed, keep the old `testID` working via compatibility mapping, until all Jest/e2e selectors are migrated.
+- Wolf kill is neutral in this app: can target ANY seat (including self/wolf teammates).
+- Don’t add `notSelf`/`notWolf` constraints for wolf kill.
 
 ---
 
-## RoomScreen refactor guardrails (mandatory)
+## Anti-cheat & broadcast rules
 
-These rules exist to keep `src/screens/RoomScreen/**` refactors safe and prevent accidental architecture violations.
+- `BroadcastGameState` is room-public view-model only.
+- Sensitive results (seer/psychic reveals, per-player prompts/results) MUST be toUid private messages.
+- Any step visibility helpers (e.g. `actsSolo`) must NOT leak into public broadcasts.
 
-### UI components must not import services
+---
 
-- Sub-components under `src/screens/RoomScreen/components/**` MUST be UI-only.
-   - ❌ Do not import `GameStateService`, `BroadcastService`, Supabase clients, or other singleton services.
-   - ✅ Receive data and callbacks via props; orchestration stays in hooks / `RoomScreen.tsx`.
+## Tests & quality gates
+
+### Jest contract tests (required for table-driven night)
+
+Maintain/update contract tests to guarantee:
+
+- `NIGHT_STEPS` reference validity (`roleId` exists; `SchemaId` exists)
+- deterministic order (snapshot of step ids)
+- uniqueness (step ids)
+- Night-1-only red lines
+- audioKey non-empty
+- anti-cheat boundary (no sensitive fields in public broadcasts)
+
+### E2E rules (Playwright)
+
+- E2E is smoke-only. Never use it as the rule referee.
+- Run core e2e with workers=1. Never run multiple e2e processes in parallel.
+- Room readiness must use `waitForRoomScreenReady()` (joiner must reach `🟢 已连接` or finish “强制同步”).
+
+### UI test stability (Jest + RNTL)
+
+- Prefer `getByTestId`/`findByTestId`. Don’t add new `UNSAFE_*`.
+- Keep testIDs centralized in `src/testids.ts` and preserve legacy IDs via compatibility mapping.
+
+---
+
+## Checklists
+
+### Adding a new role / schema / step
+
+- Add role to `ROLE_SPECS` (`src/models/roles/spec/specs.ts`) and keep `RoleId` derived from registry keys.
+- If it acts on Night-1:
+   - add/extend `SCHEMAS` (`src/models/roles/spec/schemas.ts`) with schema-first constraints
+   - add a step to `NIGHT_STEPS` (`src/models/roles/spec/nightSteps.ts`) with `id: SchemaId`, `audioKey`, `visibility`
+   - implement/update resolver under `src/services/night/resolvers/**` (schema-aligned)
+   - update contract tests (order snapshot + validity + red lines)
+   - add/extend `SCHEMAS` (`src/models/roles/spec/schemas.ts`) with schema-first constraints
+   - add a step to `NIGHT_STEPS` (`src/models/roles/spec/nightSteps.ts`) with `id: SchemaId`, `audioKey`, `visibility`
+   - implement/update resolver under `src/services/night/resolvers/**` (schema-aligned)
+   - update contract tests (order snapshot + validity + red lines)
+
+---
+
+## Reporting discipline
+
+- Don’t claim changes without evidence.
+- For non-trivial work, report:
+   - commit hash (or “not committed yet”)
+   - files changed
+   - key symbols changed
+   - logical behavior changes
+   - verification run (typecheck/Jest/e2e) + outcome
+   - commit hash (or “not committed yet”)
+   - files changed
+   - key symbols changed
+   - logical behavior changes
+   - verification run (typecheck/Jest/e2e) + outcome
 
 ### UI/hooks must not encode gameplay rules
 
