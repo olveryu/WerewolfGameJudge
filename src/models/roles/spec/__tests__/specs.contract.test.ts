@@ -4,7 +4,7 @@
  * Validates the ROLE_SPECS registry against the authoritative requirements.
  */
 
-import { ROLE_SPECS, type RoleId, getRoleSpec, isValidRoleId, getAllRoleIds } from '../index';
+import { ROLE_SPECS, type RoleId, getRoleSpec, isValidRoleId, getAllRoleIds, NIGHT_STEPS } from '../index';
 import { SCHEMAS } from '../schemas';
 import { Faction } from '../types';
 import type { RoleSpec } from '../spec.types';
@@ -25,12 +25,13 @@ describe('ROLE_SPECS contract', () => {
     }
   });
 
-  it('roles with hasAction=true should have schemaId and order', () => {
-    for (const spec of Object.values(ROLE_SPECS) as RoleSpec[]) {
-      if (spec.night1.hasAction) {
-        expect(spec.night1.schemaId).toBeTruthy();
-        expect(spec.night1.order).toBeDefined();
-      }
+  it('roles with hasAction=true should appear exactly once in NIGHT_STEPS', () => {
+    const rolesWithAction = getAllRoleIds().filter((id: RoleId) => ROLE_SPECS[id].night1.hasAction);
+    const rolesInSteps = NIGHT_STEPS.map(s => s.roleId);
+
+    for (const roleId of rolesWithAction) {
+      const count = rolesInSteps.filter(r => r === roleId).length;
+      expect(count).toBe(1);
     }
   });
 
@@ -81,8 +82,9 @@ describe('ROLE_SPECS contract', () => {
   });
 
   describe('nightmare spec', () => {
-    it('should have actsSolo=true for fear phase', () => {
-      expect(ROLE_SPECS.nightmare.night1.actsSolo).toBe(true);
+    it('nightmare step should have actsSolo=true (from NIGHT_STEPS visibility)', () => {
+      const step = NIGHT_STEPS.find(s => s.roleId === 'nightmare');
+      expect(step?.visibility.actsSolo).toBe(true);
     });
 
     it('should participate in wolf meeting (canSeeWolves=true, participatesInWolfVote=true)', () => {
@@ -90,8 +92,9 @@ describe('ROLE_SPECS contract', () => {
       expect(ROLE_SPECS.nightmare.wolfMeeting?.participatesInWolfVote).toBe(true);
     });
 
-    it('should have order=2 (before wolf kill order=5)', () => {
-      expect(ROLE_SPECS.nightmare.night1.order).toBe(2);
+    it('nightmare should come before wolf in NIGHT_STEPS', () => {
+      const roleOrder = NIGHT_STEPS.map(s => s.roleId);
+      expect(roleOrder.indexOf('nightmare')).toBeLessThan(roleOrder.indexOf('wolf'));
     });
   });
 

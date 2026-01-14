@@ -4,12 +4,10 @@
  * Builds night action sequence from template roles.
  * Single source of truth for action order.
  *
- * LEGACY NOTE (pre-M2):
- * - This builder still derives steps from `ROLE_SPECS[*].night1` and sorts by `night1.order`.
- * - M1 introduced `NIGHT_STEPS` as the single source of truth for step ordering, but buildNightPlan
- *   has not been switched yet to avoid widening blast radius.
- * - M2 will switch buildNightPlan to filter/map from `NIGHT_STEPS` and remove reliance on
- *   `night1.order/schemaId/actsSolo` as the authoritative ordering source.
+ * NOTE (M2):
+ * - This builder derives steps from `NIGHT_STEPS` (array order = authority).
+ * - `NightPlanStep.order` is derived from the table index (consumer-facing field kept for backward compatibility).
+ * - `ROLE_SPECS[*].night1.order/schemaId/actsSolo` are no longer authoritative for plan generation.
  */
 
 import { ROLE_SPECS, type RoleId, isValidRoleId } from './specs';
@@ -26,7 +24,6 @@ import { NightPlanBuildError, type NightPlan, type NightPlanStep } from './plan.
  * IMPORTANT: 
  * - Input must be canonical RoleIds (no aliases like 'celebrity')
  * - Roles with night1.hasAction=false are excluded
- * - Steps are sorted by night1.order
  * - Duplicate roles are deduplicated (e.g., multiple wolves → one wolf step)
  */
 export function buildNightPlan(templateRoles: readonly string[]): NightPlan {
