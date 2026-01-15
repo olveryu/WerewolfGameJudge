@@ -47,6 +47,27 @@ If something is unclear, ask before coding. Don’t invent repo facts.
 - Supabase controls: room lifecycle (4-digit code), presence, auth metadata, realtime transport.
 - Supabase must NOT store/validate any game state, actions, votes, results.
 
+### Host-as-Player unified API (prevent duplicate code paths)
+
+- **Host is also a player.** All player actions (takeSeat, leaveSeat, submitAction, submitWolfVote, submitRevealAck, playerViewedRole) must use the **same handler logic** for both Host and non-Host players.
+- **Pattern:** Public API checks `if (this.isHost)` then calls the handler directly; else sends message to Host. The handler is the **single source of truth** for validation and state mutation.
+- **Do NOT create separate `hostXxx()` methods** that duplicate logic from `handleXxx()`. If you need Host-specific behavior, add it as a branch inside the unified handler.
+- **Example (correct):**
+  ```typescript
+  async takeSeat(seat, displayName, avatarUrl) {
+    if (this.isHost) {
+      return (await this.processSeatAction('sit', seat, this.myUid, displayName, avatarUrl)).success;
+    }
+    return this.sendSeatActionWithAck('sit', seat, displayName, avatarUrl);
+  }
+  ```
+- **Anti-pattern (banned):**
+  ```typescript
+  // DON'T: separate host method with duplicated logic
+  async hostTakeSeat(...) { /* duplicated seat logic */ }
+  async playerTakeSeat(...) { if (this.isHost) this.hostTakeSeat(); else ... }
+  ```
+
 ### Code ownership boundaries
 
 - `src/models/roles/**`: declarative only (spec/schema/types). No services, no side effects.
