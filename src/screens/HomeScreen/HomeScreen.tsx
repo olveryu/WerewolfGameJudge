@@ -321,8 +321,10 @@ export const HomeScreen: React.FC = () => {
       await signInAnonymously();
       setShowLoginModal(false);
       setShowEmailForm(false);
-    } catch {
-      showAlert('登录失败', '请稍后重试');
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.error('[handleAnonymousLogin] Error:', e);
+      showAlert('登录失败', message || '请稍后重试');
     }
   }, [signInAnonymously]);
 
