@@ -113,6 +113,15 @@ supabase projects api-keys --project-ref <your-project-ref>
 
 ## 环境变量配置
 
+项目使用两套环境配置，自动切换：
+
+| 文件 | 用途 | Supabase URL |
+|------|------|--------------|
+| `.env` | 生产环境 | `https://xxx.supabase.co` |
+| `.env.local` | 本地开发 | `http://127.0.0.1:54321` |
+
+> ⚠️ `.env.local` 优先级高于 `.env`。两个文件都不会被 Git 追踪。
+
 ### 本地开发（.env.local）
 
 ```bash
@@ -135,60 +144,64 @@ EXPO_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
-> ⚠️ 不要提交 `.env` 到 Git！已在 `.gitignore` 中排除。
-
 ---
 
 ## Web 构建与部署
 
-### 1. 确认环境变量
+### 方式一：使用部署脚本（推荐）
 
 ```bash
-cat .env
-# 确保是远程 Supabase 的 URL 和 Key
+./scripts/deploy.sh
 ```
 
-### 2. 构建 Web 版本
+脚本会自动：
+1. 备份本地开发配置 (`.env.local`)
+2. 切换到生产配置
+3. 清除缓存并构建
+4. 部署到 Vercel
+5. 设置别名 `werewolf-judge.vercel.app`
+6. 恢复本地开发配置
+
+### 方式二：手动部署
+
+#### 1. 切换到生产配置
 
 ```bash
-npx expo export --platform web
+# 临时使用生产配置
+cp .env .env.local
 ```
 
-输出在 `dist/` 目录，包含：
-- `index.html`
-- `_expo/static/js/` (JS bundle)
-- `assets/` (图片、音频等)
-
-### 3. 登录 Vercel
+#### 2. 构建 Web 版本
 
 ```bash
-vercel login
-# 选择登录方式（GitHub/Email 等）
+# 清除缓存很重要！否则可能使用旧的环境变量
+npx expo export --platform web --clear
 ```
 
-### 4. 部署到生产环境
-
+验证构建使用了正确的 URL：
 ```bash
-vercel deploy dist --prod
+grep -o "supabase.co\|127.0.0.1" dist/_expo/static/js/web/*.js
+# 应该输出 supabase.co，而不是 127.0.0.1
 ```
 
-首次部署会询问：
-- **Set up and deploy?** → `yes`
-- **Which scope?** → 选择你的账号
-- **Link to existing project?** → `no`（首次）或 `yes`（后续）
-- **Project name?** → `werewolf-judge`
-
-### 5. 设置自定义域名（可选）
+#### 3. 部署到 Vercel
 
 ```bash
-# 设置别名
-vercel alias set <deployment-url> werewolf-judge.vercel.app
+cd dist
+vercel --prod --yes
+```
 
-# 查看所有别名
-vercel alias ls
+#### 4. 设置别名
 
-# 删除不需要的别名
-vercel alias rm <unwanted-alias> -y
+```bash
+vercel alias <deployment-url> werewolf-judge.vercel.app
+```
+
+#### 5. 恢复本地配置
+
+```bash
+cd ..
+# 编辑 .env.local 改回 http://127.0.0.1:54321
 ```
 
 ---
@@ -229,20 +242,29 @@ supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
-### Q2: 部署后页面空白
+### Q2: 部署后页面空白 / 手机上登录失败 (Load failed)
 
-**原因**: 环境变量未正确配置
+**原因**: 构建时使用了本地开发的环境变量（`127.0.0.1`），手机无法访问
 
 **解决**:
 ```bash
-# 确认 .env 内容
-cat .env
+# 检查构建中使用的 URL
+grep -o "supabase.co\|127.0.0.1" dist/_expo/static/js/web/*.js
 
-# 重新构建
-npx expo export --platform web
+# 如果输出 127.0.0.1，需要：
+# 1. 切换到生产配置
+cp .env .env.local
 
-# 重新部署
-vercel deploy dist --prod
+# 2. 清除缓存重新构建（--clear 很重要！）
+npx expo export --platform web --clear
+
+# 3. 重新部署
+cd dist && vercel --prod --yes
+```
+
+或直接使用部署脚本：
+```bash
+./scripts/deploy.sh
 ```
 
 ### Q3: Realtime 不工作（加入房间后看不到更新）
@@ -256,12 +278,10 @@ vercel deploy dist --prod
 ### Q4: 如何更新部署？
 
 ```bash
-# 1. 修改代码
-# 2. 重新构建
-npx expo export --platform web
+# 使用部署脚本（推荐）
+./scripts/deploy.sh
 
-# 3. 重新部署（会自动更新 werewolf-judge.vercel.app）
-vercel deploy dist --prod
+# 或手动：参考上面的「手动部署」步骤
 ```
 
 ### Q5: 如何回滚？
@@ -280,13 +300,16 @@ vercel alias set <old-deployment-url> werewolf-judge.vercel.app
 
 | 操作 | 命令 |
 |------|------|
+| **本地开发** | |
 | 启动本地 Supabase | `supabase start` |
 | 停止本地 Supabase | `supabase stop` |
+| 启动开发服务器 | `npm start` |
+| **生产部署** | |
+| 一键部署 | `./scripts/deploy.sh` |
 | 推送数据库迁移 | `supabase db push` |
 | 获取 API Keys | `supabase projects api-keys --project-ref <ref>` |
-| 构建 Web | `npx expo export --platform web` |
-| 部署到 Vercel | `vercel deploy dist --prod` |
 | 查看部署别名 | `vercel alias ls` |
+| 回滚部署 | `vercel alias set <old-url> werewolf-judge.vercel.app` |
 
 ---
 
