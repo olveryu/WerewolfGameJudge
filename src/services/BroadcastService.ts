@@ -56,6 +56,8 @@ export type PlayerMessage =
   | { type: 'ACTION'; seat: number; role: RoleName; target: number | null; extra?: any }
   | { type: 'WOLF_VOTE'; seat: number; target: number }
   | { type: 'VIEWED_ROLE'; seat: number }
+  // New: reveal acknowledgement (client confirms they've read the private reveal popup)
+  | { type: 'REVEAL_ACK'; seat: number; role: RoleName; revision: number }
   // New: Seat action request with requestId for acknowledgment
   | { type: 'SEAT_ACTION_REQUEST'; requestId: string; action: 'sit' | 'standup'; seat: number; uid: string; displayName?: string; avatarUrl?: string }
   // New: Snapshot request for state recovery
@@ -102,7 +104,9 @@ export class BroadcastService {
   private readonly statusListeners: Set<ConnectionStatusListener> = new Set();
   
   // Callbacks for received messages
-  private onHostBroadcast: ((message: HostBroadcast) => void) | null = null;
+  // Host broadcasts include both room-public state and toUid-scoped PRIVATE_EFFECT.
+  // IMPORTANT: do NOT cast away PRIVATE_EFFECT here; GameStateService needs it.
+  private onHostBroadcast: ((message: HostBroadcast | PrivateMessage) => void) | null = null;
   private onPlayerMessage: ((message: PlayerMessage, senderId: string) => void) | null = null;
   private onPresenceChange: ((users: string[]) => void) | null = null;
 
@@ -154,7 +158,7 @@ export class BroadcastService {
     roomCode: string,
     userId: string,
     callbacks: {
-      onHostBroadcast?: (message: HostBroadcast) => void;
+  onHostBroadcast?: (message: HostBroadcast | PrivateMessage) => void;
       onPlayerMessage?: (message: PlayerMessage, senderId: string) => void;
       onPresenceChange?: (users: string[]) => void;
     }
@@ -187,7 +191,8 @@ export class BroadcastService {
     this.channel.on('broadcast', { event: 'host' }, (payload) => {
       console.log('[BroadcastService] Received host broadcast:', payload.payload?.type);
       if (this.onHostBroadcast && payload.payload) {
-        this.onHostBroadcast(payload.payload as HostBroadcast);
+  // payload.payload is either HostBroadcast (public) or PrivateMessage (PRIVATE_EFFECT)
+  this.onHostBroadcast(payload.payload as HostBroadcast | PrivateMessage);
       }
     });
 

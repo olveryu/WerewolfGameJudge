@@ -245,8 +245,33 @@ async function processRoleAction(
   
   // Call the captured callback (this triggers handlePlayerAction in GameStateService)
   // Note: GameStateService uses asyncHandler which returns void, not Promise
-  // So we need to wait for the state machine to advance
+  // So we need to wait for the state machine to advance.
+  //
+  // Reveal roles (seer/psychic/gargoyle/wolfRobot) are now gated by an explicit
+  // REVEAL_ACK from the acting player before the night flow can advance.
+  // For most host runtime integration tests we auto-ACK to keep them focused on
+  // game logic invariants rather than UI confirmation.
   capturedOnPlayerMessage(msg, `player_${seat}`);
+
+  const isRevealRole =
+    currentRole === 'seer' ||
+    currentRole === 'psychic' ||
+    currentRole === 'gargoyle' ||
+    currentRole === 'wolfRobot';
+
+  if (isRevealRole) {
+    // Force microtasks/timers to run so the host can send the private reveal first.
+    await jest.runOnlyPendingTimersAsync();
+    await Promise.resolve();
+
+    const ackMsg: PlayerMessage = {
+      type: 'REVEAL_ACK',
+      seat,
+      role: currentRole,
+  revision: service.getStateRevision(),
+    };
+    capturedOnPlayerMessage(ackMsg, `player_${seat}`);
+  }
   
   // Wait for nightFlow to advance (handlePlayerAction is async, wrapped by asyncHandler)
   // Use a generous upper bound (fake timers don't add real delay)
