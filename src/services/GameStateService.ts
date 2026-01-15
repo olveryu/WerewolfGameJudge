@@ -226,6 +226,10 @@ export class GameStateService {
 
     // Join broadcast channel
     await this.broadcastService.joinRoom(roomCode, hostUid, {
+  // Host must also receive its own host broadcasts (broadcast.self=true),
+  // including PRIVATE_EFFECT messages addressed to hostUid.
+  // Otherwise, reveal roles won't work when the host is the actioner.
+  onHostBroadcast: (msg) => this.handleHostBroadcast(msg),
       onPlayerMessage: asyncHandler((msg, senderId) => this.handlePlayerMessage(msg, senderId)),
       onPresenceChange: asyncHandler(async (users) => {
         console.log('[GameState] Users in room:', users.length);
