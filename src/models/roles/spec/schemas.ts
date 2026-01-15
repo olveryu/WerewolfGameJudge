@@ -13,7 +13,7 @@ export const SCHEMAS = {
     displayName: '查验',
     kind: 'chooseSeat',
     constraints: ['notSelf'],
-    canSkip: false,
+  canSkip: true,
   },
 
   witchAction: {
@@ -97,7 +97,7 @@ export const SCHEMAS = {
     displayName: '恐惧',
     kind: 'chooseSeat',
   constraints: [],
-    canSkip: false,
+  canSkip: true,
   },
 
   gargoyleCheck: {
@@ -105,7 +105,7 @@ export const SCHEMAS = {
     displayName: '查验',
     kind: 'chooseSeat',
     constraints: ['notSelf'],
-    canSkip: false,
+  canSkip: true,
   },
 
   wolfRobotLearn: {
@@ -113,7 +113,7 @@ export const SCHEMAS = {
     displayName: '学习',
     kind: 'chooseSeat',
     constraints: ['notSelf'],
-    canSkip: false,
+  canSkip: true,
   },
 
   darkWolfKingConfirm: {

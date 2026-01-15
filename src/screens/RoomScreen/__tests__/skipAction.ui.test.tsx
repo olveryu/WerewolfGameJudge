@@ -25,6 +25,7 @@ jest.mock('react-native-safe-area-context', () => ({
 const mockSubmitAction = jest.fn();
 
 let mockedCanSkip = true;
+let mockedSchemaId: ChooseSeatSchema['id'] = 'seerCheck';
 
 // Minimal RoomScreen runtime: we only care that pressing "不使用技能" triggers submitAction(null)
 jest.mock('../../../hooks/useGameRoom', () => ({
@@ -70,7 +71,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
       kind: 'chooseSeat',
   canSkip: mockedCanSkip,
       constraints: [],
-      id: 'seerCheck',
+  id: mockedSchemaId,
       displayName: '预言家查验',
     } as ChooseSeatSchema),
 
@@ -145,10 +146,12 @@ describe('RoomScreen skip action UI', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   mockedCanSkip = true;
+  mockedSchemaId = 'seerCheck';
   });
 
   it('schema.canSkip=false (chooseSeat) -> does not render bottom skip button', async () => {
   mockedCanSkip = false;
+  mockedSchemaId = 'psychicCheck';
     const props: any = {
       navigation: mockNavigation,
       route: {
@@ -170,6 +173,7 @@ describe('RoomScreen skip action UI', () => {
 
   it('press "不使用技能" -> confirm -> submitAction(null)', async () => {
   mockedCanSkip = true;
+  mockedSchemaId = 'seerCheck';
     const props: any = {
       navigation: mockNavigation,
       route: {
