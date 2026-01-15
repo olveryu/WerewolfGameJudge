@@ -155,8 +155,7 @@ vercel deploy dist --prod
 | 文档 | 说明 |
 |-----|------|
 | [线下玩法 SOP](docs/offline-sop.md) | 完整的线下游戏流程指南 |
-| [Supabase 配置](docs/SUPABASE_SETUP.md) | 数据库和认证配置 |
-| [架构设计](docs/architecture/) | 详细架构文档 |
+| [部署指南](docs/DEPLOYMENT.md) | Supabase + Vercel 完整部署流程 |
 
 ---
 
