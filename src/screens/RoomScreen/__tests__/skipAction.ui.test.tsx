@@ -24,6 +24,8 @@ jest.mock('react-native-safe-area-context', () => ({
 
 const mockSubmitAction = jest.fn();
 
+let mockedCanSkip = true;
+
 // Minimal RoomScreen runtime: we only care that pressing "不使用技能" triggers submitAction(null)
 jest.mock('../../../hooks/useGameRoom', () => ({
   useGameRoom: () => ({
@@ -66,7 +68,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     currentActionRole: 'seer',
     currentSchema: ({
       kind: 'chooseSeat',
-      canSkip: true,
+  canSkip: mockedCanSkip,
       constraints: [],
       id: 'seerCheck',
       displayName: '预言家查验',
@@ -142,9 +144,32 @@ jest.mock('../useRoomSeatDialogs', () => ({
 describe('RoomScreen skip action UI', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  mockedCanSkip = true;
+  });
+
+  it('schema.canSkip=false (chooseSeat) -> does not render bottom skip button', async () => {
+  mockedCanSkip = false;
+    const props: any = {
+      navigation: mockNavigation,
+      route: {
+        params: {
+          roomNumber: '1234',
+          isHost: false,
+          template: '梦魇守卫12人',
+        },
+      },
+    };
+
+    const { queryByText } = render(<RoomScreen {...props} />);
+
+  // chooseSeat + canSkip=false => no bottom skip button
+    await waitFor(() => {
+      expect(queryByText('不使用技能')).toBeNull();
+    });
   });
 
   it('press "不使用技能" -> confirm -> submitAction(null)', async () => {
+  mockedCanSkip = true;
     const props: any = {
       navigation: mockNavigation,
       route: {
