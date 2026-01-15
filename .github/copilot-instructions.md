@@ -3,7 +3,33 @@
 ### 0) Non-negotiables (read first)
 
 - **Host is the ONLY authority for game logic.** Supabase is transport/discovery/identity only.
-- **Night-1-only scope.** Do NOT add cross-night state/rules.
+- **Night## Fix strategy
+
+### Prefer big fixes over small patches
+
+- When fixing a bug, prefer a **single, complete root-cause fix** over multiple small / band-aid patches.
+- If the fix requires touching multiple files or layers, that's acceptable—holistic fixes are better than scattered workarounds.
+- Do NOT add "temporary" or "partial" fixes unless the complete fix is blocked by an external dependency or explicitly agreed with the user.
+
+### Revert obsolete / wrong fixes after finding root cause
+
+- Once the **true root cause** is identified and fixed:
+   1. Audit any prior patches made under a wrong hypothesis.
+   2. **Revert** those obsolete patches entirely (don't leave dead / misleading code).
+   3. Document in the commit message which earlier commits were reverted and why.
+- A single clean fix + revert is better than accumulating layers of "just-in-case" code.
+
+---
+
+## Reporting discipline
+
+- Don't claim changes without evidence.
+- For non-trivial work, report:
+   - commit hash (or "not committed yet")
+   - files changed
+   - key symbols changed
+   - logical behavior changes
+   - verification run (typecheck/Jest/e2e) + outcomecope.** Do NOT add cross-night state/rules.
 - **Anti-cheat.** Sensitive info goes via toUid private messages; keep `BroadcastGameState` as room-public view-model only.
 - **Single source of truth.** No parallel ordering maps/arrays/dual-write drift.
 

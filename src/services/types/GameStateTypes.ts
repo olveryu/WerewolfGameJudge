@@ -43,9 +43,7 @@ export const gameStatusToRoomStatus = (status: GameStatus): number => {
     case GameStatus.assigned: return 2;
     case GameStatus.ready: return 3;
     case GameStatus.ongoing: return 4;
-  // Daytime: treat as non-ongoing so night-only UI (e.g. emergency restart) is hidden.
-  // Night-1-only scope: ended represents "night finished" here.
-  case GameStatus.ended: return 3;
+    case GameStatus.ended: return 5;  // Night finished, daytime
     default: return 0;
   }
 };

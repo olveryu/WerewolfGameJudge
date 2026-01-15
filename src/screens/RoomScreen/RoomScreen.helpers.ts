@@ -12,6 +12,7 @@ import type { RoleName } from '../../models/roles';
 import { canRoleSeeWolves, doesRoleParticipateInWolfVote, getRoleDisplayInfo, isWolfRole } from '../../models/roles';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
 import type { GameRoomLike } from '../../models/Room';
+import type { RoleAction } from '../../models/actions/RoleAction';
 
 // =============================================================================
 // Types
@@ -67,13 +68,15 @@ export interface SeatViewModel {
  * @param mySeatNumber - Current player's seat number
  * @param wolfVotes - Map of wolf votes (seat -> target)
  * @param isHost - Whether current player is host (unused but kept for future)
+ * @param actions - Map of already submitted role actions
  */
 export function determineActionerState(
   myRole: RoleName | null,
   currentActionRole: RoleName | null,
   mySeatNumber: number | null,
   wolfVotes: Map<number, number>,
-  _isHost: boolean
+  _isHost: boolean,
+  actions: Map<RoleName, RoleAction> = new Map()
 ): ActionerState {
   if (!currentActionRole) {
     return { imActioner: false, showWolves: false };
@@ -86,7 +89,7 @@ export function determineActionerState(
 
   // My role matches current action
   if (myRole === currentActionRole) {
-    return handleMatchingRole(myRole, mySeatNumber, wolfVotes);
+    return handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions);
   }
 
   // Wolf team members during wolf turn
@@ -105,11 +108,18 @@ export function determineActionerState(
 function handleMatchingRole(
   myRole: RoleName,
   mySeatNumber: number | null,
-  wolfVotes: Map<number, number>
+  wolfVotes: Map<number, number>,
+  actions: Map<RoleName, RoleAction>
 ): ActionerState {
   // For wolves, check if already voted
   if (myRole === 'wolf' && mySeatNumber !== null && wolfVotes.has(mySeatNumber)) {
     return { imActioner: false, showWolves: true };
+  }
+
+  // For non-wolf roles, check if action already submitted
+  // (Skip wolf roles as they use wolfVotes for vote tracking)
+  if (!isWolfRole(myRole) && actions.has(myRole)) {
+    return { imActioner: false, showWolves: false };
   }
 
   // Show wolves based on registry (meeting wolves only)

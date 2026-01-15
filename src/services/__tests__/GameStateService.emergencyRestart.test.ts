@@ -122,7 +122,8 @@ describe('GameStateService.emergencyRestartAndReshuffleRoles', () => {
       const result = service.emergencyRestartAndReshuffleRoles();
 
       expect(result).toBe(true);
-      expect(state.status).toBe(GameStatus.ready);
+      // Emergency restart goes back to seated (host clicks "准备看牌" to assign new roles)
+      expect(state.status).toBe(GameStatus.seated);
       expect(state.actions.size).toBe(0);
       expect(state.wolfVotes.size).toBe(0);
       expect(state.currentActionerIndex).toBe(0);
@@ -130,23 +131,18 @@ describe('GameStateService.emergencyRestartAndReshuffleRoles', () => {
       expect(mockAudioStop).toHaveBeenCalled();
     });
 
-    it('should reshuffle roles when ongoing with all roles assigned', () => {
+    it('should clear roles when restarting (host will reassign via "准备看牌")', () => {
       const roles: RoleName[] = ['wolf', 'seer', 'witch', 'villager'];
       setupGameWithPlayers(service, roles, GameStatus.ongoing, true);
-
-      const state = (service as any).state;
-      const originalRoles = Array.from(state.players.values()).map((p: any) => p.role);
 
       const result = service.emergencyRestartAndReshuffleRoles();
 
       expect(result).toBe(true);
       
-      // Roles should be reshuffled (reversed due to mock)
+      // Roles should be cleared (not reshuffled)
+      const state = (service as any).state;
       const newRoles = Array.from(state.players.values()).map((p: any) => p.role);
-      expect(newRoles).toEqual([...roles].reverse());
-      
-      // But multiset should be the same
-      expect([...newRoles].sort()).toEqual([...originalRoles].sort());
+      expect(newRoles).toEqual([null, null, null, null]);
     });
   });
 
@@ -162,7 +158,7 @@ describe('GameStateService.emergencyRestartAndReshuffleRoles', () => {
       const result = service.emergencyRestartAndReshuffleRoles();
 
       expect(result).toBe(true);
-      expect((service as any).state.status).toBe(GameStatus.ready);
+      expect((service as any).state.status).toBe(GameStatus.seated);
     });
 
     it('should succeed when status is ended', () => {
@@ -172,7 +168,7 @@ describe('GameStateService.emergencyRestartAndReshuffleRoles', () => {
       const result = service.emergencyRestartAndReshuffleRoles();
 
       expect(result).toBe(true);
-      expect((service as any).state.status).toBe(GameStatus.ready);
+      expect((service as any).state.status).toBe(GameStatus.seated);
     });
 
     it('should succeed when status is assigned', () => {
@@ -182,7 +178,7 @@ describe('GameStateService.emergencyRestartAndReshuffleRoles', () => {
       const result = service.emergencyRestartAndReshuffleRoles();
 
       expect(result).toBe(true);
-      expect((service as any).state.status).toBe(GameStatus.ready);
+      expect((service as any).state.status).toBe(GameStatus.seated);
     });
 
     it('should preserve seat indices after restart', () => {
@@ -204,7 +200,7 @@ describe('GameStateService.emergencyRestartAndReshuffleRoles', () => {
       expect(newSeats).toEqual(originalSeats);
     });
 
-    it('should have role pool matching template (multiset equality)', () => {
+    it('should clear roles for all players (host will reassign)', () => {
       const roles: RoleName[] = ['wolf', 'wolf', 'seer', 'witch', 'guard', 'villager'];
       setupGameWithPlayers(service, roles, GameStatus.ongoing, true);
 
@@ -213,10 +209,10 @@ describe('GameStateService.emergencyRestartAndReshuffleRoles', () => {
       const state = (service as any).state;
       const assignedRoles = Array.from(state.players.values())
         .filter((p: any) => p !== null)
-        .map((p: any) => p.role)
-        .sort();
+        .map((p: any) => p.role);
       
-      expect(assignedRoles).toEqual([...roles].sort());
+      // All roles should be null (cleared, not reassigned)
+      expect(assignedRoles.every((r: any) => r === null)).toBe(true);
     });
 
     it('should clear Map-based actions and wolfVotes', () => {

@@ -1407,6 +1407,8 @@ export class GameStateService {
    */
   async hostViewedRole(): Promise<void> {
     if (!this.isHost || !this.state || this.mySeatNumber === null) return;
+    // Only process during assigned phase (same check as handlePlayerViewedRole)
+    if (this.state.status !== GameStatus.assigned) return;
 
     const player = this.state.players.get(this.mySeatNumber);
     if (player) {
@@ -1621,23 +1623,18 @@ export class GameStateService {
       this.nightFlow = null;
     }
 
-    // 4. Shuffle roles
-    const shuffledRoles = shuffleArray(rolePool);
-
-    // 5. Assign roles to players (seats unchanged)
-    let i = 0;
+    // 4. Clear roles (host will click "准备看牌" to assign new roles)
     this.state.players.forEach((player) => {
       if (player) {
-        player.role = shuffledRoles[i];
+        player.role = null;
         player.hasViewedRole = false;
-        i++;
       }
     });
 
-    // 6. Reset game phase
-    this.state.status = GameStatus.ready;
+    // 5. Reset game phase to seated (host needs to click "准备看牌" again)
+    this.state.status = GameStatus.seated;
 
-    // 7. Broadcast authoritative state so all clients (and host UI) exit ongoing immediately.
+    // 6. Broadcast authoritative state so all clients (and host UI) exit ongoing immediately.
     // Fire-and-forget: this method has a sync signature and is used from UI handlers.
     void (async () => {
       try {
@@ -1648,7 +1645,7 @@ export class GameStateService {
       }
     })();
 
-    // 8. Notify listeners (local)
+    // 7. Notify listeners (local)
     this.notifyListeners();
 
     console.log('[GameStateService] Emergency restart completed');
@@ -1803,8 +1800,16 @@ export class GameStateService {
     
     // Play role ending audio if available
     if (currentRole) {
+      // Set audio playing state during ending audio
+      this.state.isAudioPlaying = true;
+      await this.broadcastState();
+      this.notifyListeners();
+
       // Ending audio is optional, ignore errors
       await this.audioService.playRoleEndingAudio(currentRole).catch(() => {});
+
+      // Audio done - clear flag
+      this.state.isAudioPlaying = false;
     }
 
   // [Bridge: NightFlowController] Dispatch RoleEndAudioDone to advance state machine
