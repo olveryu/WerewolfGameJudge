@@ -27,6 +27,35 @@ If something is unclear, ask before coding. Don’t invent repo facts.
 - `src/services/night/resolvers/**`: host-only pure resolution + validation.
 - `src/screens/RoomScreen/components/**`: UI-only, no service imports.
 
+### Directory & file responsibility map (prevent repeat mistakes)
+
+- `src/models/roles/spec/schemas.ts`
+   - **Only** the action schema registry `SCHEMAS` (+ schema helpers/types).
+   - `SchemaId` is derived from `keyof typeof SCHEMAS`.
+   - **Do NOT** put non-night-step configs or “non-schema” rule knobs here (it expands `SchemaId` and breaks night-step typing/contract).
+- `src/models/roles/spec/nightSteps.ts`
+   - Night-1 step order + audio + visibility **single source of truth**.
+   - Each step `id` must be a `SchemaId` that exists in `SCHEMAS`.
+- `src/models/roles/spec/index.ts`
+   - Public API for declarative spec layer.
+   - **Must not export** host-only runtime code (`src/services/**`, resolvers).
+- `src/models/roles/spec/wolfMeetingVoteConfig.ts`
+   - Wolf-meeting-vote-only restrictions/config **must live here** (or an equivalent dedicated module).
+   - This config is **not** a night-step schema; it must **not** be added to `SCHEMAS`.
+- `src/services/GameStateService.ts`
+   - Host-authoritative runtime gate + message routing.
+   - Illegal input must produce private reject receipt (`sendPrivate(toUid, ACTION_REJECTED)`), never public.
+- `src/services/types/PrivateBroadcast.ts`
+   - **Single source of truth** for private payload union (sensitive info).
+   - Reject reasons/reveals must be private (`toUid`).
+- `src/screens/RoomScreen/**`
+   - UI orchestrator/intent/dialogs only; UI is not the rule authority.
+   - Any local “blocked/disabled/selectable” is UX only; Host remains the judge.
+- `src/services/__tests__/boards/*.integration.test.ts`
+   - Host runtime integration tests (observed facts), using `hostGameFactory.ts`.
+- `src/**/__tests__/*.contract.test.ts`
+   - “Red line” contract tests: schema/table boundaries, anti-cheat boundaries, single-source-of-truth invariants.
+
 ---
 
 ## Night flow & NightPlan (host authority)
@@ -81,6 +110,12 @@ If something is unclear, ask before coding. Don’t invent repo facts.
 - Wolf kill is neutral in this app: can target ANY seat (including self/wolf teammates).
 - Don’t add `notSelf`/`notWolf` constraints for wolf kill.
 
+### Wolf meeting vote vs wolfKill (do not mix)
+
+- `wolfKill` is a Night-1 action schema/step and must remain **neutral judge**.
+- Any forbidden-target logic for **wolf meeting vote** (`WOLF_VOTE` messages) must be implemented only in the meeting-vote input gate (host-side) and configured via `wolfMeetingVoteConfig.ts` (or equivalent), **not** via `SCHEMAS.wolfKill`.
+- Maintain a contract test that fails if `SCHEMAS.wolfKill` gains a forbidden-target field.
+
 ---
 
 ## Anti-cheat & broadcast rules
@@ -92,6 +127,20 @@ If something is unclear, ask before coding. Don’t invent repo facts.
 ---
 
 ## Tests & quality gates
+
+### Type-safety rules (avoid papering over bugs)
+
+- **Do not use `as any` / `as unknown as` / `as string[]` (or similar casts) to bypass the type system.**
+   - If the code needs a cast, first ask: “Is the type model wrong, or am I comparing the wrong concepts?”
+   - Preferred fixes:
+      - add/adjust the correct type at the source (e.g. `RoleId`, `SchemaId`)
+      - use type guards / narrowing (e.g. `isValidRoleId(x)` before treating `x` as `RoleId`)
+      - use discriminated unions instead of casting.
+- **Allowed exceptions** (must be documented in code):
+   - migration shims with a clear `TODO(remove by YYYY-MM-DD)` and a contract test preventing drift.
+- Concrete pitfall to avoid (real incident):
+   - Wolf meeting vote restrictions must **not** do `(forbiddenRoles as string[]).includes(targetRole)`.
+   - Instead: narrow `targetRole` with `isValidRoleId` and compare `RoleId` vs `RoleId`.
 
 ### Anti-guessing discipline (NO speculative tests/logic)
 

@@ -28,8 +28,9 @@ import {
   getActionTargetSeat,
 } from '../models/actions';
 import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, type RoleId, buildNightPlan, getStepsByRoleStrict } from '../models/roles/spec';
+import { WOLF_MEETING_VOTE_CONFIG } from '../models/roles/spec/wolfMeetingVoteConfig';
 import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
-import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload, GargoyleRevealPayload, WolfRobotRevealPayload } from './types/PrivateBroadcast';
+import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload, GargoyleRevealPayload, WolfRobotRevealPayload, ActionRejectedPayload } from './types/PrivateBroadcast';
 import { getRoleAfterSwap } from './night/resolvers/types';
 
 // Import types/enums needed internally
@@ -550,12 +551,28 @@ export class GameStateService {
       return;
     }
 
-    // Authoritative gate: ignore action if player is blocked by nightmare
-    // Blocked players can ONLY skip (target=null, extra=undefined). Any other action is a no-op.
+    // Authoritative gate: reject action if player is blocked by nightmare
+    // Blocked players can ONLY skip (target=null, extra=undefined). Any other action is rejected.
     const nightmareAction = this.state.actions.get('nightmare');
     if (nightmareAction?.kind === 'target' && nightmareAction.targetSeat === seat) {
       if (target !== null || extra !== undefined) {
-        console.log('[GameState Host] Ignoring non-skip action from nightmare-blocked seat:', seat, 'role:', role, 'target:', target, 'extra:', extra);
+        console.log('[GameState Host] Rejecting non-skip action from nightmare-blocked seat:', seat, 'role:', role, 'target:', target, 'extra:', extra);
+        // Send ACTION_REJECTED private message to player
+        const playerUid = this.state.players.get(seat)?.uid;
+        if (playerUid) {
+          const rejectPayload: ActionRejectedPayload = {
+            kind: 'ACTION_REJECTED',
+            action: 'submitAction',
+            reason: '你被梦魇封锁，本回合只能跳过',
+          };
+          const privateMessage: PrivateMessage = {
+            type: 'PRIVATE_EFFECT',
+            toUid: playerUid,
+            revision: this.stateRevision,
+            payload: rejectPayload,
+          };
+          await this.broadcastService.sendPrivate(privateMessage);
+        }
         return;
       }
       // target === null && extra === undefined: allowed (skip)
@@ -651,6 +668,57 @@ export class GameStateService {
     // Verify this is a wolf
     const player = this.state.players.get(seat);
     if (!player?.role || !isWolfRole(player.role)) return;
+
+    // === Commit 3: Wolf vote rejection checks ===
+    const playerUid = player.uid;
+
+    // 1. Actor-specific: spiritKnight cannot vote for self
+    if (player.role === 'spiritKnight' && target === seat) {
+      if (playerUid) {
+        const rejectPayload: ActionRejectedPayload = {
+          kind: 'ACTION_REJECTED',
+          action: 'submitWolfVote',
+          reason: '恶灵骑士不能投自己',
+        };
+        const privateMessage: PrivateMessage = {
+          type: 'PRIVATE_EFFECT',
+          toUid: playerUid,
+          revision: this.stateRevision,
+          payload: rejectPayload,
+        };
+        await this.broadcastService.sendPrivate(privateMessage);
+      }
+      return;
+    }
+
+    // 2. Target-based: forbiddenTargetRoleIds check (from WOLF_MEETING_VOTE_CONFIG, NOT wolfKill)
+    // RED LINE: wolfKill stays neutral (can target ANY seat); restrictions are on meeting vote only
+    const forbiddenRoles: readonly RoleId[] = WOLF_MEETING_VOTE_CONFIG.forbiddenTargetRoleIds;
+    if (forbiddenRoles.length > 0) {
+      const targetPlayer = this.state.players.get(target);
+      const targetRole = targetPlayer?.role;
+      // Type guard: only compare if targetRole is a valid RoleId
+      if (targetRole && isValidRoleId(targetRole) && forbiddenRoles.includes(targetRole)) {
+        const targetRoleSpec = getRoleSpec(targetRole);
+        const targetRoleName = targetRoleSpec?.displayName ?? targetRole;
+        if (playerUid) {
+          const rejectPayload: ActionRejectedPayload = {
+            kind: 'ACTION_REJECTED',
+            action: 'submitWolfVote',
+            reason: `不能投${targetRoleName}`,
+          };
+          const privateMessage: PrivateMessage = {
+            type: 'PRIVATE_EFFECT',
+            toUid: playerUid,
+            revision: this.stateRevision,
+            payload: rejectPayload,
+          };
+          await this.broadcastService.sendPrivate(privateMessage);
+        }
+        return;
+      }
+    }
+    // === End Commit 3 checks ===
 
     // Record vote
     this.state.wolfVotes.set(seat, target);
@@ -861,6 +929,13 @@ export class GameStateService {
         // TODO: Handle blocked message in future commit
         console.log('[GameState] Private message type not yet handled:', msg.payload.kind);
         break;
+      case 'ACTION_REJECTED': {
+        const rejectKey = `${this.stateRevision}_ACTION_REJECTED`;
+        this.privateInbox.set(rejectKey, msg.payload);
+        console.log('[GameState] Stored ACTION_REJECTED:', msg.payload.action, 'reason:', msg.payload.reason);
+        this.notifyListeners();
+        break;
+      }
     }
   }
 
@@ -1029,6 +1104,48 @@ export class GameStateService {
     }
     
     console.warn('[GameStateService] waitForWolfRobotReveal timeout after', timeoutMs, 'ms');
+    return null;
+  }
+
+  /**
+   * Get action rejected from private inbox (for current revision only)
+   * Returns null if no ACTION_REJECTED message received for current revision.
+   * 
+   * @see docs/architecture/unified-host-reject-and-wolf-rules.zh-CN.md
+   */
+  getActionRejected(): ActionRejectedPayload | null {
+    const key = `${this.stateRevision}_ACTION_REJECTED`;
+    const payload = this.privateInbox.get(key);
+    if (payload?.kind === 'ACTION_REJECTED') {
+      return payload;
+    }
+    return null;
+  }
+
+  /**
+   * Wait for action rejected from Host.
+   * Used by UI to detect if action was rejected before waiting for reveal.
+   * 
+   * NOTE: Uses short timeout (default 800ms) since reject should arrive quickly.
+   * 
+   * @param timeoutMs - Maximum time to wait for reject
+   * @returns ActionRejectedPayload if received, null if timeout (action was accepted)
+   * 
+   * @see docs/architecture/unified-host-reject-and-wolf-rules.zh-CN.md
+   */
+  async waitForActionRejected(timeoutMs: number = 800): Promise<ActionRejectedPayload | null> {
+    const pollIntervalMs = 50;
+    const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
+    
+    for (let i = 0; i < maxAttempts; i++) {
+      const rejected = this.getActionRejected();
+      if (rejected) {
+        return rejected;
+      }
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    }
+    
+    // No rejection received = action was accepted
     return null;
   }
 

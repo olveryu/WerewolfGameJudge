@@ -72,6 +72,11 @@ export interface HostGameContext {
   runNight: (actions: NightActionSequence) => Promise<NightResult>;
   findSeatByRole: (role: RoleName) => number;
   getRoleAtSeat: (seat: number) => RoleName | null;
+  /**
+   * Send a WOLF_VOTE message from a specific seat.
+   * Used for testing wolf vote rejection logic (Commit 3).
+   */
+  sendWolfVote: (seat: number, target: number) => Promise<void>;
 }
 
 export interface NightActionSequence {
@@ -406,6 +411,33 @@ export async function createHostGame(
     };
   };
 
+  /**
+   * Send a WOLF_VOTE message from a specific seat.
+   * Used for testing wolf vote rejection logic (Commit 3).
+   * This simulates a wolf player voting during the wolf meeting phase.
+   */
+  const sendWolfVote = async (seat: number, target: number): Promise<void> => {
+    if (!capturedOnPlayerMessage) {
+      throw new Error(
+        `[hostGameFactory] capturedOnPlayerMessage is null - BroadcastService mock not set up correctly. ` +
+        `Cannot send WOLF_VOTE from seat=${seat}`
+      );
+    }
+
+    const msg: PlayerMessage = {
+      type: 'WOLF_VOTE',
+      seat,
+      target,
+    };
+
+    // Call the captured callback
+    capturedOnPlayerMessage(msg, `player_${seat}`);
+
+    // Wait for async processing
+    await jest.runOnlyPendingTimersAsync();
+    await Promise.resolve();
+  };
+
   return {
     service,
     template,
@@ -417,6 +449,7 @@ export async function createHostGame(
     runNight,
     findSeatByRole,
     getRoleAtSeat,
+    sendWolfVote,
   };
 }
 

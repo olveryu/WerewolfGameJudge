@@ -87,11 +87,13 @@ export interface UseGameRoomResult {
   getPsychicReveal: () => import('../services/types/PrivateBroadcast').PsychicRevealPayload | null;
   getGargoyleReveal: () => import('../services/types/PrivateBroadcast').GargoyleRevealPayload | null;
   getWolfRobotReveal: () => import('../services/types/PrivateBroadcast').WolfRobotRevealPayload | null;
+  getActionRejected: () => import('../services/types/PrivateBroadcast').ActionRejectedPayload | null;
   // Async wait methods (handle network latency)
   waitForSeerReveal: (timeoutMs?: number) => Promise<import('../services/types/PrivateBroadcast').SeerRevealPayload | null>;
   waitForPsychicReveal: (timeoutMs?: number) => Promise<import('../services/types/PrivateBroadcast').PsychicRevealPayload | null>;
   waitForGargoyleReveal: (timeoutMs?: number) => Promise<import('../services/types/PrivateBroadcast').GargoyleRevealPayload | null>;
   waitForWolfRobotReveal: (timeoutMs?: number) => Promise<import('../services/types/PrivateBroadcast').WolfRobotRevealPayload | null>;
+  waitForActionRejected: (timeoutMs?: number) => Promise<import('../services/types/PrivateBroadcast').ActionRejectedPayload | null>;
 }
 
 export const useGameRoom = (): UseGameRoomResult => {
@@ -459,10 +461,12 @@ export const useGameRoom = (): UseGameRoomResult => {
     getPsychicReveal: () => gameStateService.current.getPsychicReveal(),
     getGargoyleReveal: () => gameStateService.current.getGargoyleReveal(),
     getWolfRobotReveal: () => gameStateService.current.getWolfRobotReveal(),
+    getActionRejected: () => gameStateService.current.getActionRejected(),
     waitForSeerReveal: (timeoutMs?: number) => gameStateService.current.waitForSeerReveal(timeoutMs),
     waitForPsychicReveal: (timeoutMs?: number) => gameStateService.current.waitForPsychicReveal(timeoutMs),
     waitForGargoyleReveal: (timeoutMs?: number) => gameStateService.current.waitForGargoyleReveal(timeoutMs),
     waitForWolfRobotReveal: (timeoutMs?: number) => gameStateService.current.waitForWolfRobotReveal(timeoutMs),
+    waitForActionRejected: (timeoutMs?: number) => gameStateService.current.waitForActionRejected(timeoutMs),
   };
 };
 

@@ -10,7 +10,7 @@
  * - 梦魇是狼人阵营（技能狼）
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
+import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './hostGameFactory';
 import { NightPhase, NightEvent } from '../../NightFlowController';
 import { RoleName } from '../../../models/roles';
 
@@ -92,7 +92,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
      * 所以我们用 submitAction 完成 nightmare 行动后，nightFlow 会自动进入 guard 阶段。
      */
 
-    it('blocked seat 的非空 target 被拒绝（不记录 action，不推进流程）', async () => {
+    it('blocked seat 的非空 target 被拒绝（不记录 action，不推进流程，发送 ACTION_REJECTED）', async () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
       const service = ctx.service;
       const state = ctx.getState()!;
@@ -120,6 +120,9 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       const guardActionBefore = state.actions.get('guard');
       expect(guardActionBefore).toBeUndefined();
 
+      // 记录 reject 前的 sendPrivate 调用次数
+      const sendPrivateCallsBefore = mockSendPrivate.mock.calls.length;
+
       // 4. 模拟被封锁的守卫发送非空 target 的 action
       await (service as any).handlePlayerAction(11, 'guard', 0);
 
@@ -130,6 +133,16 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       // 6. 验证：nightFlow 没有被推进（currentRole 和 phase 保持不变）
       expect(nightFlow.currentRole).toBe('guard');
       expect(nightFlow.phase).toBe(NightPhase.WaitingForAction);
+
+      // 7. 验证：ACTION_REJECTED 私信被发送
+      const sendPrivateCallsAfter = mockSendPrivate.mock.calls.length;
+      expect(sendPrivateCallsAfter).toBe(sendPrivateCallsBefore + 1);
+      
+      const lastCall = mockSendPrivate.mock.calls[sendPrivateCallsAfter - 1][0];
+      expect(lastCall.type).toBe('PRIVATE_EFFECT');
+      expect(lastCall.payload.kind).toBe('ACTION_REJECTED');
+      expect(lastCall.payload.action).toBe('submitAction');
+      expect(lastCall.payload.reason).toBe('你被梦魇封锁，本回合只能跳过');
     });
 
     it('blocked seat 的 skip（target=null）允许推进流程', async () => {

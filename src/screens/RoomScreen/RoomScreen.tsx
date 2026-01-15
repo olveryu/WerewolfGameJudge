@@ -84,6 +84,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     waitForPsychicReveal,
     waitForGargoyleReveal,
     waitForWolfRobotReveal,
+    waitForActionRejected,
   } = useGameRoom();
 
   // Local UI state
@@ -288,11 +289,23 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ───────────────────────────────────────────────────────────────────────────
   // Execution Layer: proceedWithAction
+  // Implements "reject-first" pattern: wait for ACTION_REJECTED before proceeding.
+  // @see docs/architecture/unified-host-reject-and-wolf-rules.zh-CN.md
   // ───────────────────────────────────────────────────────────────────────────
 
-  const proceedWithAction = useCallback(async (targetIndex: number | null, extra?: any) => {
+  const proceedWithAction = useCallback(async (targetIndex: number | null, extra?: any): Promise<boolean> => {
     await submitAction(targetIndex, extra);
-  }, [submitAction]);
+    
+    // Wait for potential rejection first (short timeout: 800ms)
+    const rejected = await waitForActionRejected();
+    if (rejected) {
+      // Show rejection alert with reason from Host
+      actionDialogs.showActionRejectedAlert(rejected.reason);
+      return false; // Action was rejected
+    }
+    
+    return true; // Action was accepted
+  }, [submitAction, waitForActionRejected, actionDialogs]);
 
   // ───────────────────────────────────────────────────────────────────────────
   // Intent Handler (Orchestrator)
@@ -300,9 +313,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleActionIntent = useCallback(async (intent: ActionIntent) => {
     switch (intent.type) {
-      case 'blocked':
-        actionDialogs.showBlockedAlert();
-        break;
+      // NOTE: 'blocked' intent removed - nightmare block is now handled by Host (ACTION_REJECTED).
+      // If blocked player submits action, Host will send ACTION_REJECTED private message.
 
       case 'hunterStatus':
         actionDialogs.showStatusDialog(
@@ -329,7 +341,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         if (!gameState) return;
         // Anti-cheat: Submit action to Host first, Host sends SEER_REVEAL privately
         // Then wait for result from inbox (handles network latency)
-        await proceedWithAction(intent.targetIndex);
+        const accepted = await proceedWithAction(intent.targetIndex);
+        if (!accepted) return; // Action rejected, alert already shown
         const reveal = await waitForSeerReveal();
         if (reveal) {
           actionDialogs.showRevealDialog(
@@ -347,7 +360,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         if (!gameState) return;
         // Anti-cheat: Submit action to Host first, Host sends PSYCHIC_REVEAL privately
         // Then wait for result from inbox (handles network latency)
-        await proceedWithAction(intent.targetIndex);
+        const accepted = await proceedWithAction(intent.targetIndex);
+        if (!accepted) return; // Action rejected, alert already shown
         const reveal = await waitForPsychicReveal();
         if (reveal) {
           actionDialogs.showRevealDialog(
@@ -365,7 +379,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         if (!gameState) return;
         // Anti-cheat: Submit action to Host first, Host sends GARGOYLE_REVEAL privately
         // Then wait for result from inbox (handles network latency)
-        await proceedWithAction(intent.targetIndex);
+        const accepted = await proceedWithAction(intent.targetIndex);
+        if (!accepted) return; // Action rejected, alert already shown
         const reveal = await waitForGargoyleReveal();
         if (reveal) {
           actionDialogs.showRevealDialog(
@@ -383,7 +398,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         if (!gameState) return;
         // Anti-cheat: Submit action to Host first, Host sends WOLF_ROBOT_REVEAL privately
         // Then wait for result from inbox (handles network latency)
-        await proceedWithAction(intent.targetIndex);
+        const accepted = await proceedWithAction(intent.targetIndex);
+        if (!accepted) return; // Action rejected, alert already shown
         const reveal = await waitForWolfRobotReveal();
         if (reveal) {
           actionDialogs.showRevealDialog(

@@ -13,8 +13,11 @@ import { useCallback } from 'react';
 import { showAlert } from '../../utils/alert';
 
 export interface UseRoomActionDialogsResult {
-  /** Nightmare blocked alert */
-  showBlockedAlert: () => void;
+  /** 
+   * Action rejected alert - displays when Host rejects an action.
+   * @param reason - Human-readable reason from ACTION_REJECTED payload
+   */
+  showActionRejectedAlert: (reason: string) => void;
 
   /** Magician first target alert */
   showMagicianFirstAlert: (index: number) => void;
@@ -76,14 +79,11 @@ export interface UseRoomActionDialogsResult {
 
 export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
-  // Blocked alert
+  // Action rejected alert (unified UX for Host rejections)
   // ─────────────────────────────────────────────────────────────────────────
 
-  const showBlockedAlert = useCallback(() => {
-    showAlert(
-      '技能被封锁',
-      '你被梦魇恐惧，今晚无法使用技能。\n请点击"跳过"按钮。'
-    );
+  const showActionRejectedAlert = useCallback((reason: string) => {
+    showAlert('操作无效', reason);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -230,7 +230,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   );
 
   return {
-    showBlockedAlert,
+    showActionRejectedAlert,
     showMagicianFirstAlert,
     showRevealDialog,
     showStatusDialog,
