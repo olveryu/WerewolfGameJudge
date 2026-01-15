@@ -15,6 +15,10 @@ export const TESTIDS = {
   // Used by: RoomScreen.tsx, e2e/night1.basic.spec.ts
   seatTile: (index: number) => `seat-tile-${index}`,
 
+  // RoomScreen - Seat Grid (pressable target)
+  // Purpose: avoid duplicate testID collisions when the wrapper View also has seatTile.
+  seatTilePressable: (index: number) => `seat-tile-pressable-${index}`,
+
   // Home / Config / Room readiness gates (stable, non-copy based)
   homeScreenRoot: 'home-screen-root',
   homeEnterRoomButton: 'home-enter-room-button',

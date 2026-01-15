@@ -337,7 +337,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         actionDialogs.showStatusDialog(
           '猎人不需要行动',
           '猎人只在死亡时发动技能，请点击"跳过"',
-          () => void proceedWithAction(-1)
+          () => void proceedWithAction(null)
         );
         break;
 
@@ -345,7 +345,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         actionDialogs.showStatusDialog(
           '狼王不需要行动',
           '狼王只在死亡时发动技能，请点击"跳过"',
-          () => void proceedWithAction(-1)
+          () => void proceedWithAction(null)
         );
         break;
 
@@ -486,7 +486,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       case 'witchPoisonPhase':
         actionDialogs.showWitchPoisonPrompt(() => {
           // Dismiss - skip poison and end witch turn
-          void proceedWithAction(-1);
+          void proceedWithAction(null);
           setWitchPhase(null);
         });
         break;
@@ -537,7 +537,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         actionDialogs.showConfirmDialog(
           '确认跳过',
           intent.message || '确定不发动技能吗？',
-          () => void proceedWithAction(-1)
+          () => void proceedWithAction(null)
         );
         break;
 
