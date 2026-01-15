@@ -247,3 +247,4 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 });
 
 // DeathCalculator unit tests for Spirit Knight Reflection are in src/services/__tests__/DeathCalculator.test.ts
+// Wolf Vote Rejection tests are in src/services/__tests__/GameStateService.wolfVoteRejection.test.ts

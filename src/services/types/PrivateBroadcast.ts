@@ -43,7 +43,8 @@ export type PrivatePayload =
   | PsychicRevealPayload
   | GargoyleRevealPayload
   | WolfRobotRevealPayload
-  | BlockedPayload;
+  | BlockedPayload
+  | ActionRejectedPayload;
 
 // =============================================================================
 // Private Payload Types
@@ -113,6 +114,23 @@ export interface WolfRobotRevealPayload {
 export interface BlockedPayload {
   kind: 'BLOCKED';
   reason: 'nightmare';
+}
+
+/**
+ * Action rejected - sent when Host rejects a player's action.
+ * 
+ * Use cases:
+ * - Nightmare-blocked player attempts non-skip action
+ * - (Future) Other gate rejections
+ * 
+ * UI should display `reason` to the player.
+ */
+export interface ActionRejectedPayload {
+  kind: 'ACTION_REJECTED';
+  /** Which action was rejected */
+  action: 'submitAction' | 'submitWolfVote';
+  /** Human-readable reason (display to player) */
+  reason: string;
 }
 
 // =============================================================================

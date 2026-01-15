@@ -189,7 +189,8 @@ export function useRoomActions(
     mySeatNumber,
     myRole,
     isAudioPlaying,
-    isBlockedByNightmare,
+    // NOTE: isBlockedByNightmare is no longer used for intent derivation.
+    // Nightmare block is handled by Host (ACTION_REJECTED). Kept in GameContext for UX hints only.
     anotherIndex,
     witchPhase,
   } = gameContext;
@@ -316,10 +317,8 @@ export function useRoomActions(
   const getActionIntent = useCallback((index: number): ActionIntent | null => {
     if (!myRole) return null;
 
-    // Nightmare block (applies to all schemas)
-    if (isBlockedByNightmare) {
-      return { type: 'blocked', targetIndex: index };
-    }
+    // NOTE: Nightmare block is now handled by Host (ACTION_REJECTED).
+    // Do NOT check isBlockedByNightmare here - let the action go to Host for validation.
 
     // Delegate to pure helper for schema-driven intent derivation
     const schemaIntent = deriveIntentFromSchema({
@@ -340,7 +339,6 @@ export function useRoomActions(
     return { type: 'actionConfirm', targetIndex: index, message };
   }, [
     myRole,
-    isBlockedByNightmare,
     currentSchema,
     anotherIndex,
     witchPhase,

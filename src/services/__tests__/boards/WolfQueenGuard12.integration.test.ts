@@ -215,3 +215,4 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 });
 
 // DeathCalculator unit tests for Wolf Queen Link Death are in src/services/__tests__/DeathCalculator.test.ts
+// Wolf Vote Rejection tests are in src/services/__tests__/GameStateService.wolfVoteRejection.test.ts
