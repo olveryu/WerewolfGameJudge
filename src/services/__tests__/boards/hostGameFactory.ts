@@ -75,9 +75,11 @@ export interface HostGameContext {
 }
 
 export interface NightActionSequence {
-  [role: string]: number | null | undefined;
+  [role: string]: number | null | undefined | { firstSeat: number; secondSeat: number };
   /** Special key for witch poison (separate from witch save) */
   witchPoison?: number | null;
+  /** Special key for magician swap (two seats) */
+  magician?: { firstSeat: number; secondSeat: number } | null;
 }
 
 export interface NightResult {
@@ -121,8 +123,10 @@ function advanceToWaitingForAction(nightFlow: NightFlowController): void {
 /**
  * Builds a RoleAction for a given role based on target and extra flag.
  * - For witch: extra=false → save, extra=true → poison
- * - For magician: target is firstSeat, extra is ignored (magician has separate handling if needed)
  * - For other roles: target action or none
+ * 
+ * NOTE: Magician is handled separately in processRoleAction using encoded target.
+ * This function is NOT called for magician - see processRoleAction for wire protocol.
  */
 function buildRoleAction(role: RoleName, target: number | null, extra?: boolean): RoleAction {
   if (target === null) {
@@ -167,16 +171,30 @@ async function processRoleAction(
 
   const action = actions[currentRole];
   const witchPoison = actions.witchPoison;
+  const magicianAction = actions.magician;
 
   // Determine target and extra for the ACTION message
   let target: number | null;
-  let extra: boolean | undefined;
+  let extra: boolean | number | undefined;
 
-  if (currentRole === 'witch' && witchPoison !== undefined) {
+  if (currentRole === 'magician') {
+    // Magician: send encoded target = firstSeat + secondSeat * 100
+    if (magicianAction && typeof magicianAction === 'object') {
+      target = magicianAction.firstSeat + magicianAction.secondSeat * 100;
+      extra = undefined;
+    } else {
+      target = null;
+      extra = undefined;
+    }
+  } else if (currentRole === 'witch' && witchPoison !== undefined) {
     // Witch poison case
     target = witchPoison ?? null;
     extra = target === null ? undefined : true;
   } else if (action === undefined) {
+    target = null;
+    extra = undefined;
+  } else if (typeof action === 'object' && action !== null) {
+    // Object action for non-magician roles should not happen, but handle gracefully
     target = null;
     extra = undefined;
   } else {

@@ -5,7 +5,7 @@
  * 特点: 基础配置，无特殊技能狼，无守卫
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
+import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './hostGameFactory';
 import { RoleName } from '../../../models/roles';
 
 const TEMPLATE_NAME = '标准板12人';
@@ -178,6 +178,62 @@ describe('标准板12人 - Host Runtime Integration', () => {
 
       expect(result.completed).toBe(true);
       expect(result.deaths).toEqual([0]);
+    });
+  });
+
+  describe('Private Reveal 存在性锁', () => {
+    it('预言家查验触发 SEER_REVEAL 私信', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      await ctx.runNight({
+        wolf: 0,
+        witch: null,
+        seer: 4,          // 预言家查 4 号（狼人）
+        hunter: null,
+      });
+
+      // 验证 SEER_REVEAL 私信被发送
+      const seerRevealCalls = mockSendPrivate.mock.calls.filter(
+        (call: unknown[]) => 
+          (call[0] as { type: string }).type === 'PRIVATE_EFFECT' &&
+          ((call[0] as { payload?: { kind: string } }).payload?.kind === 'SEER_REVEAL')
+      );
+      expect(seerRevealCalls.length).toBe(1);
+      expect(seerRevealCalls[0][0]).toMatchObject({
+        type: 'PRIVATE_EFFECT',
+        payload: {
+          kind: 'SEER_REVEAL',
+          targetSeat: 4,
+          result: '狼人',  // 查验到狼人
+        },
+      });
+    });
+
+    it('预言家查验好人：返回好人结果', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      await ctx.runNight({
+        wolf: 0,
+        witch: null,
+        seer: 1,          // 预言家查 1 号（村民）
+        hunter: null,
+      });
+
+      // 验证 SEER_REVEAL 私信被发送
+      const seerRevealCalls = mockSendPrivate.mock.calls.filter(
+        (call: unknown[]) => 
+          (call[0] as { type: string }).type === 'PRIVATE_EFFECT' &&
+          ((call[0] as { payload?: { kind: string } }).payload?.kind === 'SEER_REVEAL')
+      );
+      expect(seerRevealCalls.length).toBe(1);
+      expect(seerRevealCalls[0][0]).toMatchObject({
+        type: 'PRIVATE_EFFECT',
+        payload: {
+          kind: 'SEER_REVEAL',
+          targetSeat: 1,
+          result: '好人',  // 查验到好人
+        },
+      });
     });
   });
 });

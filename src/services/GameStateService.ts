@@ -24,6 +24,7 @@ import {
   makeActionWitch,
   makeWitchSave,
   makeWitchPoison,
+  makeActionMagicianSwap,
   getActionTargetSeat,
 } from '../models/actions';
 import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, type RoleId, buildNightPlan, getStepsByRoleStrict } from '../models/roles/spec';
@@ -569,6 +570,29 @@ export class GameStateService {
         } else {
           this.state.actions.set(role, makeActionWitch(makeWitchSave(target)));
         }
+      } else if (role === 'magician') {
+        // Magician Wire Protocol: encoded target = firstSeat + secondSeat * 100
+        // Constraint: secondSeat must be >= 1 to ensure target >= 100 (protocol invariant)
+        // If target < 100, it's a protocol error (cannot distinguish from skip or single-seat action)
+        if (target < 100) {
+          console.error(
+            '[GameStateService] Magician protocol error: encoded target < 100.',
+            'target:', target, 'seat:', seat,
+            'Protocol requires secondSeat >= 1 (target >= 100).'
+          );
+          return; // FAIL-FAST: reject malformed magician action
+        }
+        const firstSeat = target % 100;
+        const secondSeat = Math.floor(target / 100);
+        // Validate seat range [0..11] for 12-player games
+        if (secondSeat > 11 || firstSeat > 11 || firstSeat < 0) {
+          console.error(
+            '[GameStateService] Magician protocol error: seat out of range.',
+            'firstSeat:', firstSeat, 'secondSeat:', secondSeat
+          );
+          return; // FAIL-FAST: reject invalid seat numbers
+        }
+        this.state.actions.set(role, makeActionMagicianSwap(firstSeat, secondSeat));
       } else {
         this.state.actions.set(role, makeActionTarget(target));
       }
