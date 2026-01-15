@@ -43,7 +43,9 @@ export const gameStatusToRoomStatus = (status: GameStatus): number => {
     case GameStatus.assigned: return 2;
     case GameStatus.ready: return 3;
     case GameStatus.ongoing: return 4;
-    case GameStatus.ended: return 4; // ended is still "ongoing" in old enum
+  // Daytime: treat as non-ongoing so night-only UI (e.g. emergency restart) is hidden.
+  // Night-1-only scope: ended represents "night finished" here.
+  case GameStatus.ended: return 3;
     default: return 0;
   }
 };
