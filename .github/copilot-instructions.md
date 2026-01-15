@@ -9,6 +9,8 @@
 
 If something is unclear, ask before coding. Don’t invent repo facts.
 
+**Additional rule:** Follow the architecture constraints in this document exactly; if a requirement or boundary is unclear or conflicts with what you see in the repo, stop and ask the user before making changes.
+
 ---
 
 ## Architecture boundaries

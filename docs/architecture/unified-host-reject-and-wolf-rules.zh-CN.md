@@ -1,334 +1,310 @@
-# 统一 Host Reject 回执 + 移除 blocked intent + wolf meeting vote 禁投角色（Schema-first, Night-1-only）方案（中文）
+# 统一 Host Reject 回执 + 移除 blocked intent + wolf meeting vote 禁投角色（Schema-first, Night-1-only）方案（v2 中文）
 
-> 目的：把“Host 拒绝无提示”“梦魇封锁只能跳过”“见面狼投票禁投角色（如恶灵骑士/狼美人）”这类问题统一收敛到一套可复用的架构里，避免后续上下文丢失。
->
-> 关键红线（必须遵守）：
-> - **Host 是唯一裁判**。Supabase 只做 transport/discovery/identity，不存储/校验游戏逻辑。
-> - **Night-1-only**：不引入跨夜状态/规则。
-> - **Anti-cheat**：敏感/个体化结果必须 `toUid` 私信；public broadcast 仅 room-public view-model。
-> - **Wolf kill 中立规则**：狼刀（wolfKill）默认可 target ANY seat（包括自刀/队友/恶灵骑士）。不要把“结算规则”前移成“输入禁选”。
-> - 单一真相：不引入平行 order 表/双写映射。
+> 这是一份「对外可引用」的整理稿（v2）。目标是把规则边界、协议、Host/UI 职责、落地步骤写成单一真相，避免实现方读完后仍产生“到底改哪、先改哪、能不能动 resolver”的歧义。
 
 ---
 
-## 1. 背景与问题清单
+## 0. 目标、红线、非目标
 
-### 1.1 Host reject 静默 return（可观测性差）
-当前 `GameStateService` 的 `handlePlayerAction/handleWolfVote` 在大量非法输入时直接 `return/ignore`。用户侧表现为“点了没反应”，测试也很难断言。
+### 0.1 目标（Goals）
 
-### 1.2 梦魇封锁（nightmare block）是特例而不是通用机制
-当前 UI 有“技能被封锁，只能跳过”的提示，但这条路径是 UI 特判（`blocked` intent）+ Host gate 的混合，缺少统一的 Host→玩家拒绝回执。
+- 任何玩家提交被 Host 判定为“不接受（输入不合法）”的操作时：**必须收到可观测的拒绝回执**，UI 不再出现“点了没反应”。
+- 统一梦魇封锁等“只能跳过”的逻辑表达：**不靠 UI blocked intent 作为裁判**，而是让 Host authoritative。
+- 支持新增规则：**wolf meeting vote 禁投某些角色**（例如 `spiritKnight`、`wolfQueen`），通过 schema-first 的方式配置，Host 必须拒绝并回执。
 
-### 1.3 恶灵骑士不能自刀（actor-specific 输入合法性）缺失
-`ROLE_SPECS.spiritKnight.description` 明确写了“无法自刀”，但当前实现存在允许 wolf vote 指向特殊目标（包含投自己/投特定角色）的路径。
+### 0.2 关键红线（Non-negotiables）
 
-本方案的关键不是“让 UI 禁选”，而是把这类 **输入不合法** 统一收敛为：
+- **Host 是唯一裁判**。Supabase 只做 transport/discovery/identity，不存储/校验任何游戏逻辑。
+- **Night-1-only**：不引入跨夜状态/规则。
+- **Anti-cheat**：拒绝原因、占卜类 reveal 等个体化结果必须 `toUid` 私信；public broadcast 仅 room-public view-model。
+- **Wolf kill 中立规则**：狼刀（`wolfKill`）默认可 target ANY seat（包括自刀/队友/恶灵骑士）。不要把“结算规则”前移成“输入禁选”。
+- 单一真相：不引入平行 order 表/双写映射。
 
-- Host 必须 reject（不写入投票/不推进状态）
-- Host 必须给出 `ACTION_REJECTED` 私信回执（让 UI 可观测，不再出现“点了没反应”）
+### 0.3 非目标（Not in scope）
 
-> 注意：这条规则是 **actor-specific 输入合法性**，不能改 `SCHEMAS.wolfKill.constraints`，否则会破坏“狼刀中立”红线。
-
----
-
-## 2. 统一解决思路（核心抽象）
-
-把规则分成两类，避免重蹈“恶灵骑士免疫被塞进 schema/constraint/UI 禁选”的坑：
-
-- **输入合法性（Input Legality）**：能不能提交/被 Host 接受。
-  - 例：梦魇封锁者不能放技能只能 skip；恶灵骑士不能自刀；wrong phase/role。
-  - ✅ 放在 Host 接收处（`GameStateService` / host-only resolver validation）。
-
-- **结算规则（Resolution/Death Calculation）**：提交后最终算不算生效、如何死亡。
-  - 例：恶灵骑士免疫夜伤+反伤；女巫被封导致救/毒无效。
-  - ✅ 放在 `DeathCalculator`/结算层。
+- 不做跨夜记忆/连续两晚等规则。
+- 不把 reject 写入 public broadcast。
+- 不把恶灵骑士免疫/反伤等 **结算规则** 下沉成 `wolfKill` 的输入 constraints。
 
 ---
 
-## 2.1 【新增】见面狼投票：Schema-first 禁投某 Role（Design A）
+## 1. 问题陈述（为什么要改）
 
-> 需求：在见面狼投票（wolf meeting vote）中，若投票目标的 **role** 属于禁投集合（例如 `spiritKnight`、`wolfQueen`），则该投票必须被 Host **refuse**；玩家必须改投其他目标或选择 skip。
+现状存在两类“不可观测”问题：
 
-### 2.1.1 原则
+1) Host 入口静默丢弃：`GameStateService` 在大量非法输入时直接 `return/ignore`。
+2) resolver 静默 no-op：部分 resolver 遇到封锁/禁用条件时返回 `valid: true, result: {}`。
 
-- 这是 **输入合法性（Input Legality）**，不是结算规则。
-  - 禁投应发生在 Host 接收投票的入口（例如 `handleWolfVote`）并回执。
-  - 不允许“写入投票→下游结算时忽略”的 silent no-op（会让 UI 变成“点了没反应”）。
+两者都会导致：
 
-### 2.1.2 Schema-first（Design A）字段形状
+- 用户侧：“点了没反应”
+- 测试侧：无法稳定断言“为什么没效果”
 
-> 关键点：禁投维度是“角色（roleId）”，不是 seat，也不是阵营。
+本方案建立一个统一 UX/协议契约：
 
-建议在 wolf meeting vote 对应的 schema constraints 中新增：
+- **输入不合法（Host 不接受）**：必须 `ACTION_REJECTED` 私信回执。
+- **输入合法但结算无效**：由结算层决定（例如 `DeathCalculator`），不依赖回执。
+
+---
+
+## 2. 规则分层：Input Legality vs Resolution
+
+为避免把结算规则塞进 schema/constraint/UI（破坏 wolfKill 红线），将规则分为两类：
+
+### 2.1 输入合法性（Input Legality：能不能提交/被 Host 接受）
+
+典型例子：
+
+- 梦魇封锁：被封锁者本回合只能 skip，提交非 skip 必须被拒绝
+- 恶灵骑士不能自刀（actor-specific）
+- wolf meeting vote 禁投某些角色（target-based）
+- wrong phase / wrong role / role mismatch
+
+落点：Host 接收处（`GameStateService` 的入口 gate，或 host-only resolver validation）
+
+### 2.2 结算规则（Resolution：提交后最终如何生效/如何死亡）
+
+典型例子：
+
+- 恶灵骑士免疫夜伤+反伤
+- 女巫被封导致救/毒无效
+
+落点：`DeathCalculator` / 结算层
+
+---
+
+## 3. 新增规则：wolf meeting vote 禁投角色（Schema-first, Design A）
+
+需求：在 wolf meeting vote 中，若投票目标 seat 对应的 `roleId` 属于禁投集合（例如 `spiritKnight`、`wolfQueen`），则该投票必须被 Host **refuse**；玩家必须改投其他目标或选择 skip。
+
+### 3.1 Schema-first 字段
+
+在 wolf meeting vote 对应 schema 的 constraints 中新增：
 
 - `forbiddenTargetRoleIds: RoleId[]`
 
 语义：
 
-- 当玩家提交 wolf vote，若 `targetSeat` 对应的 `roleId` ∈ `forbiddenTargetRoleIds`，Host 必须 reject。
+- 当玩家提交 wolf vote，若 `targetSeat.roleId` ∈ `forbiddenTargetRoleIds`，Host 必须 reject
 
-### 2.1.3 Host 行为（必须回执）
+### 3.2 Host 行为（必须回执）
 
-- 若命中 `forbiddenTargetRoleIds`：
+- 命中 `forbiddenTargetRoleIds`：
   - 不写入 `wolfVotes`
-  - 通过 `toUid` 私信回执 `ACTION_REJECTED`（复用 `PRIVATE_EFFECT`）
-    - `action: 'submitWolfVote'`
-    - `reason`: 例如 `该目标不可被见面狼投票，请改投其他目标或跳过`（文案以 Host 为准）
+  - 发送 `ACTION_REJECTED(action='submitWolfVote')` 私信
+  - reason：例如“该目标不可被见面狼投票，请改投其他目标或跳过”（文案以 Host 为准）
 
-### 2.1.4 为什么不做成 wolfKill 的 constraints？
+### 3.3 与 wolfKill 红线的关系
 
-- 本条是“见面狼投票”的输入合法性约束，不是“狼刀结算”。
-- 仍然遵守本文档红线：**不改** `SCHEMAS.wolfKill.constraints`，保持 wolfKill 中立规则。
-
----
-
-## 3. 最终用户体验 Contract
-
-### 3.1 输入
-夜晚行动阶段，玩家点击任意座位，或点击“跳过/空刀”。
-
-### 3.2 输出
-- Host **接受**：夜晚推进；seer/psychic 收到私信 reveal 并展示。
-- Host **拒绝**：玩家 **一定**收到统一弹窗：标题“操作无效”，正文为 Host 提供的 `reason`。
-- 取消 `blocked` intent 后：梦魇封锁不再靠 UI 判定，任何点击都可提交，但会被 Host reject 并弹窗；同时底部仍显示“跳过（技能被封锁）”作为 UX。
+- 该规则仅适用于 wolf meeting vote 的输入合法性
+- **不得**改 `SCHEMAS.wolfKill.constraints`
 
 ---
 
-## 4. 关键重构：`ACTION_REJECTED` 私信回执（复用 `PRIVATE_EFFECT`）
+## 4. 协议：ACTION_REJECTED（私信回执）
 
-### 4.1 为什么用私信（Anti-cheat）
-拒绝原因属于“个体化判定”，且可能包含裁判细节。应通过 `toUid` 私信回执发送。
+### 4.1 为什么必须走私信（Anti-cheat）
 
-### 4.2 协议：新增 PrivatePayload 种类
-文件：`src/services/types/PrivateBroadcast.ts`
+拒绝原因属于个体化判定，不能进入 public broadcast。
 
-新增：
+### 4.2 Payload（最终约定）
+
+在 `src/services/types/PrivateBroadcast.ts` 的 `PrivatePayload` union 新增：
+
 - `kind: 'ACTION_REJECTED'`
 - `reason: string`
-- `action: 'submitAction' | 'submitWolfVote'`（建议保留）
+- `action: 'submitAction' | 'submitWolfVote'`
 - 可选：`schemaId?: SchemaId`
-- 可选：`requestId?: string`（用于防连点串台；可复用 `makeInboxKey(revision, kind, requestId)`）
+- 可选：`requestId?: string`
 
-### 4.3 GameStateService：存 inbox + wait
-文件：`src/services/GameStateService.ts`
+约束：
 
-- 在 `handlePrivateMessage` 中存储 `ACTION_REJECTED`
-- 提供 `getActionRejected()` 与 `waitForActionRejected(timeoutMs=800)`
-- Zero-trust：仍需 `toUid === myUid` 才处理
-
-### 4.4 UI：统一消费 reject（不再靠 blocked intent）
-文件：`src/screens/RoomScreen/RoomScreen.tsx`
-
-- `proceedWithAction()`：提交后短等待 `ACTION_REJECTED`，如果收到则 `showAlert('操作无效', reason)` 并 return。
-- seer/psychic：必须先等待 reject（如 reject 则不再等待 reveal），避免“被拒绝但仍 waitForReveal 卡住”。
+- `action` 值域本阶段**只保留** `'submitAction' | 'submitWolfVote'`，不要自行扩张。
 
 ---
 
-## 5. 移除 blocked intent（你选择的统一逻辑版本）
+## 5. Host 侧：统一 gate 原则（单一真相）
 
-### 5.1 改动点
-文件：`src/screens/RoomScreen/hooks/useRoomActions.ts`
+### 5.1 核心原则
 
-- 删除 ActionIntentType `blocked`
-- 删除：
-  - `if (isBlockedByNightmare) return { type: 'blocked', ... }`
+- Host 入口必须把“输入不合法”从 silent ignore/no-op 收敛为：`sendPrivate(ACTION_REJECTED)` + return
+- resolver 继续保持“纯计算/纯解析”，避免 resolver 直接发消息
 
-文件：`src/screens/RoomScreen/RoomScreen.tsx`
+### 5.2 需要覆盖的输入不合法场景（Night-1-only）
 
-- 删除 `handleActionIntent` 的 `case 'blocked'`
+最少覆盖（先打通链路）：
 
-> 仍建议保留底部按钮 UX：当 `isBlockedByNightmare === true` 时强制显示“跳过（技能被封锁）”。
+- 梦魇封锁（blockedSeat）：非 skip 一律 reject
 
----
+随后逐步扩展：
 
-## 6. Host 侧输入合法性修复点
+- `wolfKillDisabled`：非“空刀/跳过”一律 reject
+- wrong phase / wrong role / role mismatch：至少覆盖主路径
 
-### 6.1 梦魇封锁：非 skip 一律 reject（并回执）
-文件：`src/services/GameStateService.ts`，函数：`handlePlayerAction`
+### 5.3 spiritKnight 不能自刀（actor-specific）
 
-- 保留现有 gate（blocked 只能 skip）
-- 将“静默 return”改为：
-  - `sendPrivate(ACTION_REJECTED)` + return
+在 `GameStateService.handleWolfVote`：
 
-### 6.2 恶灵骑士不能自刀：actor-specific 校验（并回执）
-文件：`src/services/GameStateService.ts`，函数：`handleWolfVote`
+- `player.role === 'spiritKnight' && targetSeat === actorSeat` → reject + `ACTION_REJECTED(action='submitWolfVote')`
 
-规则：
-- 若 `player.role === 'spiritKnight' && target === seat`：
-  - 拒绝该投票（不写入 wolfVotes）
-  - `sendPrivate(ACTION_REJECTED, reason='恶灵骑士不能自刀，请重新选择', action='submitWolfVote')`
-  - return
+### 5.4 wolf meeting vote 禁投角色（target-based, schema-first）
 
-> 注意：**不改** `SCHEMAS.wolfKill.constraints`，保持 wolfKill 中立。
+在 `GameStateService.handleWolfVote`：
 
-> 说明：6.2 属于 **actor-specific**（谁在投）输入合法性；而 2.1/6.2.1 属于 **target-based**（投给谁）输入合法性。两者都使用统一的 `ACTION_REJECTED(action='submitWolfVote')` 回执。
-
-### 6.2.1 【新增】见面狼投票禁投某 Role：schema-first 校验（并回执）
-
-文件：`src/services/GameStateService.ts`，函数：`handleWolfVote`
-
-规则：
-
-- 若 wolf meeting vote 对应的 schema constraints（Design A）包含 `forbiddenTargetRoleIds`，且 `targetSeat` 对应的 `roleId` ∈ `forbiddenTargetRoleIds`：
-  - 拒绝该投票（不写入 wolfVotes）
-  - 发送 `ACTION_REJECTED` 私信回执（`action='submitWolfVote'`）
-  - 要求玩家改投其他目标或 skip
-
-> 备注：这里的目标是让“禁投规则”有单一真相（schema constraints），而不是散落在 host if-else 中。
-
-### 6.3 wrong role/phase 等：统一回执
-建议将以下 silent ignore 都逐步改为“回执 + return”（至少覆盖主路径）：
-- wrong role acting
-- nightFlow phase 不匹配
-- nightFlow role mismatch
-
-### 6.4 【新增】把 “blocked/disabled 目前是 valid:true + 空 result” 统一收敛成 reject（并回执）
-现状（repo 扫描结论）：Night-1 的多个 resolver 在遇到梦魇封锁（`currentNightResults.blockedSeat === actorSeat`）或类似禁用条件时，返回的通常是：
-
-- `return { valid: true, result: {} }`（silent no-op）
-
-这会导致 2 个问题：
-
-1) **与本方案的最终 UX Contract 冲突**：UI 侧永远等不到 `ACTION_REJECTED`，玩家看到的仍是“点了没反应”。
-2) **测试不可观测**：集成测试难以断言“为什么没效果”，只能从最终状态猜。
-
-本方案要求的统一口径：
-
-- 对于 “输入不可被接受” 的场景（典型：被梦魇封锁但提交了非 skip 行为），Host 必须走 **reject + `ACTION_REJECTED`**。
-
-落点选择（两种都可，但必须统一，且不能双写）：
-
-- **推荐（更符合 Host-authority）**：在 `GameStateService` 的 action 入口做 gate。
-  - 入口判断 `blockedSeat`/`wolfKillDisabled` 等 → 直接 `sendPrivate(ACTION_REJECTED)` 并 return。
-  - resolver 继续保持“纯计算/纯解析”风格，避免 resolver 自己发消息。
-- **备选**：resolver validation 层返回 `valid:false + rejectReason`（由 host 入口统一转成 `ACTION_REJECTED`）。
-  - 仍然禁止 resolver 直接触发副作用。
-
-需要特别覆盖的“silent no-op”路径包括（Night-1-only，按扫描到的文件列出）：
-
-- 典型 `blockedSeat === actorSeat -> { valid:true, result:{} }`：
-  - `src/services/night/resolvers/seer.ts`
-  - `src/services/night/resolvers/psychic.ts`
-  - `src/services/night/resolvers/gargoyle.ts`
-  - `src/services/night/resolvers/witch.ts`
-  - `src/services/night/resolvers/guard.ts`
-  - `src/services/night/resolvers/magician.ts`
-  - `src/services/night/resolvers/wolfRobot.ts`
-  - `src/services/night/resolvers/dreamcatcher.ts`
-  - `src/services/night/resolvers/wolfQueen.ts`
-  - `src/services/night/resolvers/slacker.ts`
-- `wolfKillDisabled -> { valid:true, result:{} }`：
-  - `src/services/night/resolvers/wolf.ts`
-
-> 注意：这些属于“可观测性/UX 契约”的统一改造，不改变任何 Night-1 规则本身，也不触碰 `SCHEMAS.wolfKill.constraints` 的中立红线。
+- 读取 wolf meeting vote schema constraints 的 `forbiddenTargetRoleIds`
+- 若命中 `targetSeat.roleId` → reject + `ACTION_REJECTED(action='submitWolfVote')`
 
 ---
 
-## 7. 分 3 个 commit 的落地切片（建议）
+## 6. UI 侧：统一消费 reject（并消除 blocked intent）
 
-### Commit 1：ACTION_REJECTED 基建 + UI 统一弹窗 + Host 入口 gate（把 silent ignore / silent no-op 变成可观测 reject）
+### 6.1 统一 UX Contract
 
-目标：先把“Host 拒绝必须有回执”的链路打通，让 UI 能稳定看到拒绝原因，再做规则细化；避免一上来就改大量 resolver 导致定位困难。
+- Host 接受：正常推进/正常等待 reveal
+- Host 拒绝：弹窗标题统一“操作无效”，正文来自 `reason`
 
-改动范围：
-- `src/services/types/PrivateBroadcast.ts`
-  - 新增 `PrivatePayload` 分支：`kind: 'ACTION_REJECTED'`
-  - 字段至少包含：`reason: string`、`action: 'submitAction' | 'submitWolfVote'`
-  - 可选：`schemaId?: SchemaId`、`requestId?: string`
-- `src/services/GameStateService.ts`
-  - 在私信 inbox/handle 里接入并存储 `ACTION_REJECTED`
-  - 提供 `getActionRejected()` / `waitForActionRejected(timeoutMs=800)`（供 UI 轮询/await）
-  - **Host gate**：把最少覆盖的一条主路径从“静默 return/ignore”改为 `sendPrivate(ACTION_REJECTED)` + return
-- `src/screens/RoomScreen/RoomScreen.tsx`
-  - `proceedWithAction()`：提交后短等待 `ACTION_REJECTED`，若收到则统一弹窗并停止后续 wait
-  - seer/psychic：必须先等待 reject（如 reject 则不再等待 reveal），防止“被拒绝但仍 waitForReveal 卡住”
+### 6.2 proceedWithAction 的时序（reject 优先）
 
-Host gate 的“最少覆盖主路径”（先做 1~2 条，打通端到端即可）：
-- 梦魇封锁（blockedSeat）：非 skip 一律 `ACTION_REJECTED`
-- `wolfKillDisabled`：非“空刀/跳过”一律 `ACTION_REJECTED`
-- wrong phase / wrong role：至少覆盖 1 条主路径，确认端到端链路可观测
+在 `RoomScreen.tsx`：
 
-  > 这里的“silent ignore / silent no-op”特指：**本应判定为输入不合法** 的提交，在 Host 入口被静默丢弃（silent ignore），或被下游 resolver 用 `valid:true + 空 result` 吞成 no-op（silent no-op），从而 UI 侧拿不到 `ACTION_REJECTED`（玩家感觉“点了没反应”）。
-  > 这不否定 resolver 作为纯计算层的“no-op 表达”本身；问题在于 **不合法输入** 没有走统一的 reject 回执契约。
+1) 提交 action / vote
+2) **先等待 `ACTION_REJECTED`（短 timeout，例如 800ms）**
+   - 收到则弹窗 + return
+3) 再等待对应 reveal（seer/psychic 等）
 
-验收：
-- 触发任意一条 Host reject 场景，用户端 **一定**出现统一弹窗（标题“操作无效”+ Host reason）
-- 端到端至少能观测到 1 条“之前静默丢弃”的路径已变为 `ACTION_REJECTED`
+理由：避免“已拒绝但仍 waitForReveal 卡住”的 UX bug。
 
-### Commit 2：移除 blocked intent（逻辑统一版本）
-目标：彻底移除“UI blocked intent 特判”，把“只能跳过/不能行动”统一交给 Host reject 回执表达。
+### 6.3 移除 blocked intent
+
+`blocked` intent 不是裁判，只能作为 UX 提示。
+
+- 移除 `useRoomActions.ts` 的 blocked intent 分支
+- 移除 `RoomScreen.tsx` 的 `case 'blocked'`
+- 仍保留底部按钮 UX：封锁时强制显示“跳过（技能被封锁）”
+
+> 约束：实现过程中**不得出现双写**（同时 UI blocked 弹一次 + Host reject 再弹一次）。一旦 Host 在该路径上发送 `ACTION_REJECTED`，UI 就必须走统一消费逻辑。
+
+---
+
+## 7. 实施切片：3 个 commit（可验收）
+
+### Commit 1：打通 ACTION_REJECTED 端到端（Host gate 优先，不动 resolver）
+
+目标：先让“Host 拒绝可观测”成立。
 
 范围：
-- `useRoomActions.ts`：移除 blocked intent
-- `RoomScreen.tsx`：移除 `case 'blocked'`
 
-同时保留纯 UX：当 `isBlockedByNightmare === true` 时底部仍强制显示“跳过（技能被封锁）”。
+- `src/services/types/PrivateBroadcast.ts`：新增 `ACTION_REJECTED`
+- `src/services/GameStateService.ts`：inbox 存储 + `waitForActionRejected()`
+- `src/screens/RoomScreen/RoomScreen.tsx`：提交后先等 reject，再决定是否等 reveal
+- Host gate：先挑 **blockedSeat 非 skip** 这条主路径改成 reject（最小链路验证）
 
 验收：
-- 被梦魇封锁者点击任意座位：走提交→Host reject→统一弹窗；仍可“跳过（技能被封锁）”。
 
-### Commit 3：见面狼投票禁投角色（Design A）+ 恶灵骑士不能自刀（输入合法性）
+- 被梦魇封锁者点击任意座位：必出现统一“操作无效”弹窗
 
-目标：把“wolf meeting vote 禁投角色（target-based）”与“恶灵骑士不能自刀（actor-specific）”这两类输入合法性都收敛到同一个 `submitWolfVote` 的 reject 回执路径。
+> resolver 不动：Commit 1 不要求把 `valid:true, result:{}` 改成 `valid:false`。
 
-范围（规则实现）：
-- `src/models/roles/spec/schemas.ts`
-  - 在 wolf meeting vote 对应 schema 的 constraints 中新增：`forbiddenTargetRoleIds: RoleId[]`
-  - 配置：至少包含 `['spiritKnight', 'wolfQueen']`（以最终 roleId 为准）
-- `src/services/GameStateService.ts`（函数：`handleWolfVote`）
-  - actor-specific：`spiritKnight self-vote` → reject + `ACTION_REJECTED(action='submitWolfVote')`
-  - target-based：若 constraints 的 `forbiddenTargetRoleIds` 命中 `targetSeat.roleId` → reject + 回执（要求改投或 skip）
+### Commit 2：移除 blocked intent（避免双逻辑）
+
+目标：统一逻辑，避免 UI 自己当裁判。
+
+范围：
+
+- `src/screens/RoomScreen/hooks/useRoomActions.ts`：移除 blocked intent
+- `src/screens/RoomScreen/RoomScreen.tsx`：移除 `case 'blocked'`
+
+验收：
+
+- 封锁者点击座位：仍会提交到 Host → Host reject → 弹窗（不再走 UI blocked）
+
+### Commit 3：wolf vote 输入合法性（spiritKnight self-vote + 禁投角色 Design A）
+
+范围（规则）：
+
+- `src/models/roles/spec/schemas.ts`：wolf meeting vote schema constraints 新增 `forbiddenTargetRoleIds: RoleId[]`（至少包含 `spiritKnight`、`wolfQueen`）
+- `src/services/GameStateService.ts`：`handleWolfVote` 同时覆盖
+  - actor-specific：spiritKnight self-vote reject
+  - target-based：命中 `forbiddenTargetRoleIds` reject
 
 范围（测试）：
-- Integration test：
-  - spiritKnight 投自己 → 必拒绝（不写入 wolfVotes，不推进 finalize）
-  - 任意狼投 spiritKnight / wolfQueen → 必拒绝；随后改投其他目标或 skip → 可继续流程
-- Contract test（若项目已有 schema/role/step 的 contract tests）：
-  - 断言 `forbiddenTargetRoleIds` 只能包含有效 `RoleId`
-  - 断言表驱动配置不漂移（避免之后改了 schema 但 Host 校验没跟上）
+
+- Integration：
+  - spiritKnight 投自己 → 必拒绝；可改投/skip
+  - 任意狼投 spiritKnight / wolfQueen → 必拒绝；可改投/skip
 
 验收：
-- spiritKnight self-vote 不会写入 wolfVotes / 不会推进 finalize；且 UI 有统一弹窗提示
-- 投 spiritKnight / wolfQueen 会被拒绝；玩家改投其他目标或 skip 后流程可继续
+
+- wolf meeting vote 的禁投规则稳定生效且可观测
 
 ---
 
-## 8. 测试清单（避免回归与踩红线）
+## 8. FAQ（实现方常见疑问，写死口径）
 
-### 8.1 Contract tests
-- `src/services/__tests__/privateEffect.contract.test.ts`
-  - 增加 `ACTION_REJECTED` payload 结构断言
-- 若存在 PrivatePayload union 覆盖测试（如 `visibility.contract.test.ts`）：把新 kind 加进去
+### Q1：Commit 1 要不要同时把 resolver 收敛成 `valid:false + rejectReason`？
 
-### 8.2 Host runtime integration（建议）
-- `src/services/__tests__/boards/SpiritKnight12.integration.test.ts`
-  - 新增用例：spiritKnight 在狼队投票时投自己 → 被拒绝（行为不生效）
-  - 新增用例：任意狼投票目标为 spiritKnight 或 wolfQueen → 被拒绝（必须可改投或 skip）
+不需要。Commit 1 的推荐路径是 **Host 入口 gate**，resolver 保持纯函数风格。
+
+### Q2：reject 和 reveal 的等待要并行 race 吗？
+
+不建议。采用“reject 优先 + 短等待”的顺序，降低串台/取消问题。
+
+### Q3：Commit 1 会不会出现 UI blocked 弹窗 + Host reject 弹窗双写？
+
+不允许。实现过程中必须避免双逻辑；Commit 1 打通 reject 后应尽快进入 Commit 2。
+
+### Q4：Commit 1 的 blockedSeat 检测是否只改 1 个 silent return 即可？
+
+可以。Commit 1 的“最小链路验证”允许只覆盖一条主路径：
+
+- 在 `GameStateService.handlePlayerAction` 里，检测到玩家 seat 被梦魇封锁（blockedSeat），且提交的是非 skip（例如包含 target/extra）时：
+  - 将当前的 silent `return/ignore` 改为：`sendPrivate(ACTION_REJECTED)` + return
+
+不要求同时改 resolver；也不要求一次性覆盖所有输入 gate（先打通端到端回执链路即可）。
+
+### Q5：文档里写的 `src/services/types/PrivateBroadcast.ts` 如果仓库里不存在怎么办？
+
+以仓库现状为准：
+
+- `ACTION_REJECTED` 必须加入“现有的 private payload union / PRIVATE_EFFECT 类型定义”的单一真相位置。
+- 如果当前不是 `PrivateBroadcast.ts`，就加在项目里实际承载 `PrivatePayload`/inbox 消费的那个 types 文件里。
+
+约束不变：`ACTION_REJECTED` 必须是 `toUid` 私信（anti-cheat），不能进入 public broadcast。
+
+### Q6：`waitForActionRejected()` 应该放在哪一侧？Host 还是 UI？
+
+放在 **UI（客户端）侧**，与现有的 `waitForSeerReveal()` / inbox 机制保持一致。
+
+- Host 侧负责：判定不合法输入 → `sendPrivate(ACTION_REJECTED)`。
+- UI 侧负责：提交后短等待 reject（例如 800ms），若收到则弹窗并 return。
+
+> 文档指向的“GameStateService”是“客户端 service/inbox 层”的概念落点；如果你们仓库里 `GameStateService.ts` 是 Host runtime，请不要把 `waitFor*` 误放到 Host。
+
+### Q7：Commit 1 和 Commit 2 必须一起提交吗？
+
+原则是：**任何可运行版本里不得出现双弹窗/双逻辑**（UI blocked 弹一次 + Host reject 再弹一次）。
+
+因此建议：
+
+- Commit 1 打通 `ACTION_REJECTED` 后，应尽快进入 Commit 2 移除 blocked intent。
+- 实操上可以在同一 PR 里用两个 commit 连续提交、一起合并，确保不会在中间态暴露“双弹窗”。
 
 ---
 
-## 9. 文案建议
+## 9. 测试建议（防回归）
 
-- 弹窗标题建议统一：`操作无效`
-- 文案由 Host `reason` 提供：
-  - 梦魇封锁：`你被梦魇封锁，本回合只能跳过`
-  - 恶灵骑士自刀：`恶灵骑士不能自刀，请重新选择`
+- Contract test：`ACTION_REJECTED` payload 结构断言（如项目已有对应 contract 层）
+- Integration（boards）：覆盖封锁拒绝 + wolf vote 拒绝（自刀与禁投角色）
 
 ---
 
-## 10. 非目标（明确不做）
+## 10. 文件索引
 
-- 不把恶灵骑士免疫做成 `wolfKill` 的 constraint / UI 禁选。
-- 不引入跨夜状态/记忆。
-- 不把 reject 写入 public broadcast。
-
----
-
-## 11. 影响面与风险
-
-- 移除 blocked intent 后，会增加一次“无效提交”到 host 的机会（请求更多）。
-  - 但换来逻辑统一与可测试性。
-  - 可通过短 timeout 的 reject wait（例如 800ms）降低 UI 卡顿。
+- 私信协议：`src/services/types/PrivateBroadcast.ts`
+- Host 行为：`src/services/GameStateService.ts`
+- UI orchestrator：`src/screens/RoomScreen/RoomScreen.tsx`
+- UI intent 层：`src/screens/RoomScreen/hooks/useRoomActions.ts`
+- Schemas：`src/models/roles/spec/schemas.ts`（红线：`wolfKill` constraints 不得加入禁选）
 
 ---
 
