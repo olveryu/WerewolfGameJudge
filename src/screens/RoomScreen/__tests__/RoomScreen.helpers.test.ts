@@ -101,6 +101,38 @@ describe('determineActionerState', () => {
     const wolfRobotWolfTurn = determineActionerState('wolfRobot', 'wolf', 0, new Map(), false);
     expect(wolfRobotWolfTurn.showWolves).toBe(false);
   });
+
+  it('should return imActioner=false when non-wolf role has already submitted action', () => {
+    // Seer has already submitted their action
+    const actions = new Map<RoleName, unknown>();
+    actions.set('seer', { type: 'seerCheck', target: 2 });
+
+    const result = determineActionerState(
+      'seer',           // myRole
+      'seer',           // currentActionRole
+      0,                // mySeatNumber
+      new Map(),        // wolfVotes
+      false,            // isHost
+      actions as Map<RoleName, import('../../../models/actions/RoleAction').RoleAction>
+    );
+
+    expect(result.imActioner).toBe(false);
+    expect(result.showWolves).toBe(false);
+  });
+
+  it('should return imActioner=true when non-wolf role has NOT submitted action', () => {
+    // Empty actions = no action submitted yet
+    const result = determineActionerState(
+      'witch',          // myRole
+      'witch',          // currentActionRole
+      1,                // mySeatNumber
+      new Map(),        // wolfVotes
+      false,            // isHost
+      new Map()         // actions (empty)
+    );
+
+    expect(result.imActioner).toBe(true);
+  });
 });
 
 // =============================================================================

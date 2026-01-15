@@ -125,6 +125,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     mySeatNumber,
     wolfVotes: gameState?.wolfVotes ?? new Map(),
     isHost,
+    actions: gameState?.actions ?? new Map(),
   });
 
   // Build seat view models for PlayerGrid
@@ -206,12 +207,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       setFirstNightEnded(true);
       // Note: Do NOT reset witchPhase here - it should persist until phase changes away from ongoing
     }
+    
+    // When night ends (status becomes ended), mark firstNightEnded
+    if (roomStatus === RoomStatus.ended) {
+      setFirstNightEnded(true);
+    }
   }, [gameState, roomStatus, currentActionRole]);
 
-  // Reset witchPhase only when game is not ongoing (more conservative)
+  // Reset witchPhase only when game is not ongoing/ended (more conservative)
   // This prevents losing witchPhase state during normal night flow
   useEffect(() => {
-    if (roomStatus !== RoomStatus.ongoing) {
+    if (roomStatus !== RoomStatus.ongoing && roomStatus !== RoomStatus.ended) {
       setWitchPhase(null);
     }
   }, [roomStatus]);
@@ -871,7 +877,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         )}
         
         {/* View Role Card */}
-        {(roomStatus === RoomStatus.assigned || roomStatus === RoomStatus.ready || roomStatus === RoomStatus.ongoing) && mySeatNumber !== null && (
+        {(roomStatus === RoomStatus.assigned || roomStatus === RoomStatus.ready || roomStatus === RoomStatus.ongoing || roomStatus === RoomStatus.ended) && mySeatNumber !== null && (
           <TouchableOpacity style={styles.actionButton} onPress={showRoleCardDialog}>
             <Text style={styles.buttonText}>查看身份</Text>
           </TouchableOpacity>

@@ -9,6 +9,7 @@
 
 import { useMemo } from 'react';
 import type { RoleName } from '../../../models/roles';
+import type { RoleAction } from '../../../models/actions/RoleAction';
 import { determineActionerState, type ActionerState } from '../RoomScreen.helpers';
 
 export interface UseActionerStateParams {
@@ -22,6 +23,8 @@ export interface UseActionerStateParams {
   wolfVotes: Map<number, number>;
   /** Whether current player is host */
   isHost: boolean;
+  /** Already submitted role actions */
+  actions: Map<RoleName, RoleAction>;
 }
 
 /**
@@ -34,8 +37,9 @@ export function useActionerState({
   mySeatNumber,
   wolfVotes,
   isHost,
+  actions,
 }: UseActionerStateParams): ActionerState {
   return useMemo(() => {
-    return determineActionerState(myRole, currentActionRole, mySeatNumber, wolfVotes, isHost);
-  }, [myRole, currentActionRole, mySeatNumber, wolfVotes, isHost]);
+    return determineActionerState(myRole, currentActionRole, mySeatNumber, wolfVotes, isHost, actions);
+  }, [myRole, currentActionRole, mySeatNumber, wolfVotes, isHost, actions]);
 }

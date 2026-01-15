@@ -117,7 +117,7 @@ export function useRoomSeatDialogs({
   // ─────────────────────────────────────────────────────────────────────────
 
   const handleLeaveRoom = useCallback(() => {
-    if (roomStatus === RoomStatus.ongoing) {
+    if (roomStatus === RoomStatus.ongoing || roomStatus === RoomStatus.ended) {
       navigation.navigate('Home');
       return;
     }
