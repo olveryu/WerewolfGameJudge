@@ -1633,7 +1633,18 @@ export class GameStateService {
     // 6. Reset game phase
     this.state.status = GameStatus.ready;
 
-    // 7. Notify listeners (uses existing mechanism)
+    // 7. Broadcast authoritative state so all clients (and host UI) exit ongoing immediately.
+    // Fire-and-forget: this method has a sync signature and is used from UI handlers.
+    void (async () => {
+      try {
+        await this.broadcastService.broadcastAsHost({ type: 'GAME_RESTARTED' });
+        await this.broadcastState();
+      } catch (err) {
+        console.warn('[GameStateService] emergencyRestart: broadcast failed:', err);
+      }
+    })();
+
+    // 8. Notify listeners (local)
     this.notifyListeners();
 
     console.log('[GameStateService] Emergency restart completed');

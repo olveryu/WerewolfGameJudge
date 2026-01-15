@@ -241,4 +241,65 @@ describe('buildSeatViewModels', () => {
     // Seat 2: empty
     expect(seats[2].player).toBeNull();
   });
+
+  it('should highlight all wolf-faction roles when showWolves=true', () => {
+    const mockState: LocalGameState = {
+      roomCode: 'TEST',
+      hostUid: 'host1',
+      template: {
+        name: 'Test',
+        numberOfPlayers: 4,
+        roles: ['wolf', 'gargoyle', 'wolfRobot', 'seer'] as RoleName[],
+        actionOrder: ['wolf', 'seer'],
+      },
+      players: new Map([
+        [0, { uid: 'p1', seatNumber: 0, displayName: 'Wolf', role: 'wolf' as RoleName, hasViewedRole: true }],
+        [1, { uid: 'p2', seatNumber: 1, displayName: 'Gargoyle', role: 'gargoyle' as RoleName, hasViewedRole: true }],
+        [2, { uid: 'p3', seatNumber: 2, displayName: 'Robot', role: 'wolfRobot' as RoleName, hasViewedRole: true }],
+        [3, { uid: 'p4', seatNumber: 3, displayName: 'Seer', role: 'seer' as RoleName, hasViewedRole: true }],
+      ]),
+      actions: new Map(),
+      wolfVotes: new Map(),
+      currentActionerIndex: 0,
+      isAudioPlaying: false,
+      lastNightDeaths: [],
+      status: GameStatus.ongoing,
+    };
+
+    const seats = buildSeatViewModels(mockState, null, true, null);
+
+    expect(seats[0].isWolf).toBe(true);
+    expect(seats[1].isWolf).toBe(true);
+    expect(seats[2].isWolf).toBe(true);
+    expect(seats[3].isWolf).toBe(false);
+  });
+
+  it('should highlight based on assigned player.role (not template.roles ordering)', () => {
+    // This reproduces the "2号是狼人但1号标红" style bug caused by seat/template mismatch.
+    const mockState: LocalGameState = {
+      roomCode: 'TEST',
+      hostUid: 'host1',
+      template: {
+        name: 'Test',
+        numberOfPlayers: 2,
+        roles: ['wolf', 'villager'] as RoleName[],
+        actionOrder: ['wolf'],
+      },
+      // Seat 1 is the wolf, but template says seat 0 is wolf.
+      players: new Map([
+        [0, { uid: 'p1', seatNumber: 0, displayName: 'P1', role: 'villager' as RoleName, hasViewedRole: true }],
+        [1, { uid: 'p2', seatNumber: 1, displayName: 'P2', role: 'wolf' as RoleName, hasViewedRole: true }],
+      ]),
+      actions: new Map(),
+      wolfVotes: new Map(),
+      currentActionerIndex: 0,
+      isAudioPlaying: false,
+      lastNightDeaths: [],
+      status: GameStatus.ongoing,
+    };
+
+    const seats = buildSeatViewModels(mockState, null, true, null);
+    expect(seats[0].isWolf).toBe(false);
+    expect(seats[1].isWolf).toBe(true);
+  });
 });

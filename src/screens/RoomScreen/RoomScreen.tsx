@@ -198,6 +198,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       setAnotherIndex(null); // Reset magician state
       return;
     }
+
+  // NOTE: roomStatus=ready is handled by the normal non-ongoing resets.
+  // Keep logic minimal here to avoid masking state-sync bugs.
     
     if (roomStatus === RoomStatus.ongoing && !currentActionRole) {
       setFirstNightEnded(true);
@@ -347,86 +350,111 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       case 'seerReveal': {
         if (!gameState) return;
-        // Anti-cheat: Submit action to Host first, Host sends SEER_REVEAL privately
-        // Then wait for result from inbox (handles network latency)
-        const accepted = await proceedWithAction(intent.targetIndex);
-        if (!accepted) return; // Action rejected, alert already shown
-        const reveal = await waitForSeerReveal();
-        if (reveal) {
-          actionDialogs.showRevealDialog(
-            `${reveal.targetSeat + 1}号是${reveal.result}`,
-            '',
-            () => {
-              // Tell host we have read the reveal so it can advance the night flow.
-              submitRevealAckSafe('seer');
+        // Confirm intent before submitting to Host
+        actionDialogs.showConfirmDialog(
+          '确认查验',
+          `是否查验${intent.targetIndex + 1}号玩家？`,
+          async () => {
+            // Anti-cheat: Submit action to Host first, Host sends SEER_REVEAL privately
+            // Then wait for result from inbox (handles network latency)
+            const accepted = await proceedWithAction(intent.targetIndex);
+            if (!accepted) return; // Action rejected, alert already shown
+            const reveal = await waitForSeerReveal();
+            if (reveal) {
+              actionDialogs.showRevealDialog(
+                `${reveal.targetSeat + 1}号是${reveal.result}`,
+                '',
+                () => {
+                  // Tell host we have read the reveal so it can advance the night flow.
+                  submitRevealAckSafe('seer');
+                }
+              );
+            } else {
+              console.warn('[RoomScreen] seerReveal timeout - no reveal received');
             }
-          );
-        } else {
-          console.warn('[RoomScreen] seerReveal timeout - no reveal received');
-        }
+          }
+        );
         break;
       }
 
       case 'psychicReveal': {
         if (!gameState) return;
-        // Anti-cheat: Submit action to Host first, Host sends PSYCHIC_REVEAL privately
-        // Then wait for result from inbox (handles network latency)
-        const accepted = await proceedWithAction(intent.targetIndex);
-        if (!accepted) return; // Action rejected, alert already shown
-        const reveal = await waitForPsychicReveal();
-        if (reveal) {
-          actionDialogs.showRevealDialog(
-            `${reveal.targetSeat + 1}号是${reveal.result}`,
-            '',
-            () => {
-              submitRevealAckSafe('psychic');
+        actionDialogs.showConfirmDialog(
+          '确认查验',
+          `是否查验${intent.targetIndex + 1}号玩家？`,
+          async () => {
+            // Anti-cheat: Submit action to Host first, Host sends PSYCHIC_REVEAL privately
+            // Then wait for result from inbox (handles network latency)
+            const accepted = await proceedWithAction(intent.targetIndex);
+            if (!accepted) return; // Action rejected, alert already shown
+            const reveal = await waitForPsychicReveal();
+            if (reveal) {
+              actionDialogs.showRevealDialog(
+                `${reveal.targetSeat + 1}号是${reveal.result}`,
+                '',
+                () => {
+                  submitRevealAckSafe('psychic');
+                }
+              );
+            } else {
+              console.warn('[RoomScreen] psychicReveal timeout - no reveal received');
             }
-          );
-        } else {
-          console.warn('[RoomScreen] psychicReveal timeout - no reveal received');
-        }
+          }
+        );
         break;
       }
 
       case 'gargoyleReveal': {
         if (!gameState) return;
-        // Anti-cheat: Submit action to Host first, Host sends GARGOYLE_REVEAL privately
-        // Then wait for result from inbox (handles network latency)
-        const accepted = await proceedWithAction(intent.targetIndex);
-        if (!accepted) return; // Action rejected, alert already shown
-        const reveal = await waitForGargoyleReveal();
-        if (reveal) {
-          actionDialogs.showRevealDialog(
-            `${reveal.targetSeat + 1}号是${reveal.result}`,
-            '',
-            () => {
-              submitRevealAckSafe('gargoyle');
+        actionDialogs.showConfirmDialog(
+          '确认查验',
+          `是否查验${intent.targetIndex + 1}号玩家？`,
+          async () => {
+            // Anti-cheat: Submit action to Host first, Host sends GARGOYLE_REVEAL privately
+            // Then wait for result from inbox (handles network latency)
+            const accepted = await proceedWithAction(intent.targetIndex);
+            if (!accepted) return; // Action rejected, alert already shown
+            const reveal = await waitForGargoyleReveal();
+            if (reveal) {
+              actionDialogs.showRevealDialog(
+                `${reveal.targetSeat + 1}号是${reveal.result}`,
+                '',
+                () => {
+                  submitRevealAckSafe('gargoyle');
+                }
+              );
+            } else {
+              console.warn('[RoomScreen] gargoyleReveal timeout - no reveal received');
             }
-          );
-        } else {
-          console.warn('[RoomScreen] gargoyleReveal timeout - no reveal received');
-        }
+          }
+        );
         break;
       }
 
       case 'wolfRobotReveal': {
         if (!gameState) return;
-        // Anti-cheat: Submit action to Host first, Host sends WOLF_ROBOT_REVEAL privately
-        // Then wait for result from inbox (handles network latency)
-        const accepted = await proceedWithAction(intent.targetIndex);
-        if (!accepted) return; // Action rejected, alert already shown
-        const reveal = await waitForWolfRobotReveal();
-        if (reveal) {
-          actionDialogs.showRevealDialog(
-            `${reveal.targetSeat + 1}号是${reveal.result}`,
-            '',
-            () => {
-              submitRevealAckSafe('wolfRobot');
+        actionDialogs.showConfirmDialog(
+          '确认查验',
+          `是否查验${intent.targetIndex + 1}号玩家？`,
+          async () => {
+            // Anti-cheat: Submit action to Host first, Host sends WOLF_ROBOT_REVEAL privately
+            // Then wait for result from inbox (handles network latency)
+            const accepted = await proceedWithAction(intent.targetIndex);
+            if (!accepted) return; // Action rejected, alert already shown
+            const reveal = await waitForWolfRobotReveal();
+            if (reveal) {
+              actionDialogs.showRevealDialog(
+                `${reveal.targetSeat + 1}号是${reveal.result}`,
+                '',
+                () => {
+                  submitRevealAckSafe('wolfRobot');
+                }
+              );
+            } else {
+              console.warn('[RoomScreen] wolfRobotReveal timeout - no reveal received');
             }
-          );
-        } else {
-          console.warn('[RoomScreen] wolfRobotReveal timeout - no reveal received');
-        }
+          }
+        );
         break;
       }
 
@@ -823,8 +851,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onEmergencyRestartPress={showEmergencyRestartDialog}
         />
         
-        {/* Actioner: Skip Action */}
-        {imActioner && roomStatus === RoomStatus.ongoing && !isAudioPlaying && (() => {
+  {/* Actioner: Skip Action */}
+  {imActioner && roomStatus === RoomStatus.ongoing && !isAudioPlaying && (() => {
           // When blocked by nightmare, always show skip button (regardless of role)
           if (isBlockedByNightmare) return true;
           // Otherwise, only show for roles that can skip

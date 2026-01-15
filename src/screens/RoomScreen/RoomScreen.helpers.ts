@@ -204,11 +204,11 @@ export function buildSeatViewModels(
 ): SeatViewModel[] {
   return gameState.template.roles.map((role, index) => {
     const player = gameState.players.get(index);
-    const isWolf =
-      showWolves &&
-      isWolfRole(role) &&
-      role !== 'wolfRobot' &&
-      role !== 'gargoyle';
+  const effectiveRole = player?.role ?? role;
+  // Wolf visibility is controlled by ActionerState.showWolves.
+  // When true, ALL wolf-faction roles should be highlighted consistently.
+  // (Whether a wolf participates in meeting/vote is a separate rule.)
+  const isWolf = showWolves && isWolfRole(effectiveRole);
 
     return {
       index,
