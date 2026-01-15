@@ -85,7 +85,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     waitForGargoyleReveal,
     waitForWolfRobotReveal,
     waitForActionRejected,
+    submitRevealAck,
   } = useGameRoom();
+
+  const submitRevealAckSafe = useCallback(
+    (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => {
+      void submitRevealAck(role);
+    },
+    [submitRevealAck]
+  );
 
   // Local UI state
   const [firstNightEnded, setFirstNightEnded] = useState(false);
@@ -348,7 +356,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           actionDialogs.showRevealDialog(
             `${reveal.targetSeat + 1}号是${reveal.result}`,
             '',
-            () => {} // No further action needed, already submitted
+            () => {
+              // Tell host we have read the reveal so it can advance the night flow.
+              submitRevealAckSafe('seer');
+            }
           );
         } else {
           console.warn('[RoomScreen] seerReveal timeout - no reveal received');
@@ -367,7 +378,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           actionDialogs.showRevealDialog(
             `${reveal.targetSeat + 1}号是${reveal.result}`,
             '',
-            () => {} // No further action needed, already submitted
+            () => {
+              submitRevealAckSafe('psychic');
+            }
           );
         } else {
           console.warn('[RoomScreen] psychicReveal timeout - no reveal received');
@@ -386,7 +399,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           actionDialogs.showRevealDialog(
             `${reveal.targetSeat + 1}号是${reveal.result}`,
             '',
-            () => {} // No further action needed, already submitted
+            () => {
+              submitRevealAckSafe('gargoyle');
+            }
           );
         } else {
           console.warn('[RoomScreen] gargoyleReveal timeout - no reveal received');
@@ -405,7 +420,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           actionDialogs.showRevealDialog(
             `${reveal.targetSeat + 1}号是${reveal.result}`,
             '',
-            () => {} // No further action needed, already submitted
+            () => {
+              submitRevealAckSafe('wolfRobot');
+            }
           );
         } else {
           console.warn('[RoomScreen] wolfRobotReveal timeout - no reveal received');

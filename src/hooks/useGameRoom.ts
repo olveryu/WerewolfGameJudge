@@ -67,6 +67,7 @@ export interface UseGameRoomResult {
   viewedRole: () => Promise<void>;
   submitAction: (target: number | null, extra?: any) => Promise<void>;
   submitWolfVote: (target: number) => Promise<void>;
+  submitRevealAck: (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => Promise<void>;
   
   // Sync actions
   requestSnapshot: () => Promise<boolean>;
@@ -394,6 +395,11 @@ export const useGameRoom = (): UseGameRoomResult => {
     await gameStateService.current.submitWolfVote(target);
   }, []);
 
+  // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
+  const submitRevealAck = useCallback(async (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot'): Promise<void> => {
+    await gameStateService.current.submitRevealAck(role);
+  }, []);
+
   // Get last night info
   const getLastNightInfo = useCallback((): string => {
     return gameStateService.current.getLastNightInfo();
@@ -454,6 +460,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     viewedRole,
     submitAction,
     submitWolfVote,
+  submitRevealAck,
     getLastNightInfo,
     lastSeatError,
     clearLastSeatError,

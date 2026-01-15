@@ -105,9 +105,21 @@ export class GameStateService {
    * @see docs/phase4-final-migration.md
    */
   private readonly privateInbox: Map<string, PrivatePayload> = new Map();
+
+  // Tracks latest revision for each private payload kind so UI can read reliably
+  // even if stateRevision advanced due to unrelated STATE_UPDATE broadcasts.
+  // Key: payload kind (e.g. 'SEER_REVEAL'), Value: last seen msg.revision
+  private readonly privateInboxLatestRevisionByKind: Map<PrivatePayload['kind'], number> = new Map();
+
+  /**
+   * Host-only: gate advancing after a reveal action until the revealer confirms.
+   * Key format: `${revision}_${role}`
+   */
+  private readonly pendingRevealAcks: Set<string> = new Set();
   
   private readonly broadcastService: BroadcastService;
   private readonly audioService: AudioService;
+
   
   private listeners: GameStateListener[] = [];
   
@@ -306,6 +318,9 @@ export class GameStateService {
       case 'ACTION':
         await this.handlePlayerAction(msg.seat, msg.role, msg.target, msg.extra);
         break;
+      case 'REVEAL_ACK':
+        await this.handleRevealAck(msg.seat, msg.role, msg.revision);
+        break;
       case 'WOLF_VOTE':
         await this.handleWolfVote(msg.seat, msg.target);
         break;
@@ -319,6 +334,50 @@ export class GameStateService {
         await this.handleSnapshotRequest(msg);
         break;
     }
+  }
+
+  private isRevealRole(role: RoleName): boolean {
+    return role === 'seer' || role === 'psychic' || role === 'gargoyle' || role === 'wolfRobot';
+  }
+
+  private makeRevealAckKey(revision: number, role: RoleName): string {
+    return `${revision}_${role}`;
+  }
+
+  private async handleRevealAck(seat: number, role: RoleName, revision: number): Promise<void> {
+    if (!this.isHost || !this.state) return;
+    if (this.state.status !== GameStatus.ongoing) return;
+    if (!this.nightFlow) return;
+
+    // Only relevant for reveal roles
+    if (!this.isRevealRole(role)) return;
+
+    const player = this.state.players.get(seat);
+    if (!player) return;
+
+    // Must match role and revision; otherwise ignore (idempotent/no-op)
+    if (player.role !== role) return;
+    if (revision !== this.stateRevision) return;
+    if (this.nightFlow.phase !== NightPhase.WaitingForAction) return;
+    if (this.nightFlow.currentRole !== role) return;
+
+    const key = this.makeRevealAckKey(revision, role);
+    if (!this.pendingRevealAcks.has(key)) return;
+
+    this.pendingRevealAcks.delete(key);
+
+    // Now we can finish the step just like a normal action-submitted flow.
+    try {
+      this.nightFlow.dispatch(NightEvent.ActionSubmitted);
+    } catch (err) {
+      if (err instanceof InvalidNightTransitionError) {
+        console.debug('[GameStateService] REVEAL_ACK ignored (phase mismatch):', err.message);
+        return;
+      }
+      throw err;
+    }
+
+    await this.advanceToNextAction();
   }
 
   /**
@@ -634,7 +693,15 @@ export class GameStateService {
       }
     }
 
-    // Dispatch ActionSubmitted to nightFlow
+    // Reveal roles require an explicit "I read it" ACK before advancing.
+    // This prevents the next narration ("闭眼") from cutting off the popup.
+    if (this.isRevealRole(role) && target !== null) {
+      this.pendingRevealAcks.add(this.makeRevealAckKey(this.stateRevision, role));
+      // Stay in WaitingForAction until REVEAL_ACK arrives.
+      return;
+    }
+
+    // Non-reveal roles proceed immediately
     try {
       this.nightFlow.dispatch(NightEvent.ActionSubmitted);
     } catch (err) {
@@ -646,7 +713,6 @@ export class GameStateService {
       }
     }
 
-    // Advance to next action
     await this.advanceToNextAction();
   }
 
@@ -887,8 +953,9 @@ export class GameStateService {
 
     console.log('[GameState] Received private message:', msg.payload.kind);
 
-    // Store in inbox with revision-bound key
-    const key = `${msg.revision}_${msg.payload.kind}`;
+  // Store in inbox with revision-bound key (MUST use msg.revision; stateRevision may race)
+  const key = `${msg.revision}_${msg.payload.kind}`;
+  this.privateInboxLatestRevisionByKind.set(msg.payload.kind, msg.revision);
     
     switch (msg.payload.kind) {
       case 'WITCH_CONTEXT':
@@ -898,29 +965,25 @@ export class GameStateService {
         this.notifyListeners();
         break;
       case 'SEER_REVEAL': {
-        const revealKey = `${this.stateRevision}_SEER_REVEAL`;
-        this.privateInbox.set(revealKey, msg.payload);
+  this.privateInbox.set(key, msg.payload);
         console.log('[GameState] Stored SEER_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
         this.notifyListeners();
         break;
       }
       case 'PSYCHIC_REVEAL': {
-        const revealKey = `${this.stateRevision}_PSYCHIC_REVEAL`;
-        this.privateInbox.set(revealKey, msg.payload);
+  this.privateInbox.set(key, msg.payload);
         console.log('[GameState] Stored PSYCHIC_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
         this.notifyListeners();
         break;
       }
       case 'GARGOYLE_REVEAL': {
-        const revealKey = `${this.stateRevision}_GARGOYLE_REVEAL`;
-        this.privateInbox.set(revealKey, msg.payload);
+  this.privateInbox.set(key, msg.payload);
         console.log('[GameState] Stored GARGOYLE_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
         this.notifyListeners();
         break;
       }
       case 'WOLF_ROBOT_REVEAL': {
-        const revealKey = `${this.stateRevision}_WOLF_ROBOT_REVEAL`;
-        this.privateInbox.set(revealKey, msg.payload);
+  this.privateInbox.set(key, msg.payload);
         console.log('[GameState] Stored WOLF_ROBOT_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
         this.notifyListeners();
         break;
@@ -930,13 +993,23 @@ export class GameStateService {
         console.log('[GameState] Private message type not yet handled:', msg.payload.kind);
         break;
       case 'ACTION_REJECTED': {
-        const rejectKey = `${this.stateRevision}_ACTION_REJECTED`;
-        this.privateInbox.set(rejectKey, msg.payload);
+  this.privateInbox.set(key, msg.payload);
         console.log('[GameState] Stored ACTION_REJECTED:', msg.payload.action, 'reason:', msg.payload.reason);
         this.notifyListeners();
         break;
       }
     }
+  }
+
+  private getLatestPrivatePayloadByKind<T extends PrivatePayload['kind']>(
+    kind: T
+  ): Extract<PrivatePayload, { kind: T }> | null {
+    const rev = this.privateInboxLatestRevisionByKind.get(kind);
+    if (rev === undefined) return null;
+    const payload = this.privateInbox.get(`${rev}_${kind}`);
+    return payload?.kind === kind
+      ? (payload as Extract<PrivatePayload, { kind: T }>)
+      : null;
   }
 
   /**
@@ -947,12 +1020,7 @@ export class GameStateService {
    * @see docs/phase4-final-migration.md
    */
   getWitchContext(): WitchContextPayload | null {
-    const key = `${this.stateRevision}_WITCH_CONTEXT`;
-    const payload = this.privateInbox.get(key);
-    if (payload?.kind === 'WITCH_CONTEXT') {
-      return payload;
-    }
-    return null;
+  return this.getLatestPrivatePayloadByKind('WITCH_CONTEXT');
   }
 
   /**
@@ -962,12 +1030,7 @@ export class GameStateService {
    * ANTI-CHEAT: Only returns data sent privately to this player.
    */
   getSeerReveal(): SeerRevealPayload | null {
-    const key = `${this.stateRevision}_SEER_REVEAL`;
-    const payload = this.privateInbox.get(key);
-    if (payload?.kind === 'SEER_REVEAL') {
-      return payload;
-    }
-    return null;
+  return this.getLatestPrivatePayloadByKind('SEER_REVEAL');
   }
 
   /**
@@ -977,12 +1040,7 @@ export class GameStateService {
    * ANTI-CHEAT: Only returns data sent privately to this player.
    */
   getPsychicReveal(): PsychicRevealPayload | null {
-    const key = `${this.stateRevision}_PSYCHIC_REVEAL`;
-    const payload = this.privateInbox.get(key);
-    if (payload?.kind === 'PSYCHIC_REVEAL') {
-      return payload;
-    }
-    return null;
+  return this.getLatestPrivatePayloadByKind('PSYCHIC_REVEAL');
   }
 
   /**
@@ -1038,12 +1096,7 @@ export class GameStateService {
    * ANTI-CHEAT: Only returns data sent privately to this player.
    */
   getGargoyleReveal(): GargoyleRevealPayload | null {
-    const key = `${this.stateRevision}_GARGOYLE_REVEAL`;
-    const payload = this.privateInbox.get(key);
-    if (payload?.kind === 'GARGOYLE_REVEAL') {
-      return payload;
-    }
-    return null;
+  return this.getLatestPrivatePayloadByKind('GARGOYLE_REVEAL');
   }
 
   /**
@@ -1076,12 +1129,7 @@ export class GameStateService {
    * ANTI-CHEAT: Only returns data sent privately to this player.
    */
   getWolfRobotReveal(): WolfRobotRevealPayload | null {
-    const key = `${this.stateRevision}_WOLF_ROBOT_REVEAL`;
-    const payload = this.privateInbox.get(key);
-    if (payload?.kind === 'WOLF_ROBOT_REVEAL') {
-      return payload;
-    }
-    return null;
+  return this.getLatestPrivatePayloadByKind('WOLF_ROBOT_REVEAL');
   }
 
   /**
@@ -1114,12 +1162,7 @@ export class GameStateService {
    * @see docs/architecture/unified-host-reject-and-wolf-rules.zh-CN.md
    */
   getActionRejected(): ActionRejectedPayload | null {
-    const key = `${this.stateRevision}_ACTION_REJECTED`;
-    const payload = this.privateInbox.get(key);
-    if (payload?.kind === 'ACTION_REJECTED') {
-      return payload;
-    }
-    return null;
+  return this.getLatestPrivatePayloadByKind('ACTION_REJECTED');
   }
 
   /**
@@ -1154,6 +1197,7 @@ export class GameStateService {
    */
   private clearPrivateInbox(): void {
     this.privateInbox.clear();
+  this.privateInboxLatestRevisionByKind.clear();
   }
 
   /**
@@ -2125,6 +2169,29 @@ export class GameStateService {
       type: 'WOLF_VOTE',
       seat: this.mySeatNumber,
       target,
+    });
+  }
+
+  /**
+   * Player: Acknowledge a private reveal popup has been read.
+   * This lets the Host advance the night flow for reveal roles (seer/psychic/gargoyle/wolfRobot)
+   * without relying on timing.
+   */
+  async submitRevealAck(role: RoleName): Promise<void> {
+    if (!this.state || this.mySeatNumber === null) return;
+
+    // Host doesn't need to ACK itself via network.
+    if (this.isHost) {
+      // In host-as-player mode we can short-circuit by simulating receipt.
+      await this.handleRevealAck(this.mySeatNumber, role, this.stateRevision);
+      return;
+    }
+
+    await this.broadcastService.sendToHost({
+      type: 'REVEAL_ACK',
+      seat: this.mySeatNumber,
+      role,
+      revision: this.stateRevision,
     });
   }
 
