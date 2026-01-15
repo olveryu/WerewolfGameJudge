@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { GameStateService, LocalGameState, gameStatusToRoomStatus } from '../services/GameStateService';
+import { GameStatus } from '../services/types/GameStateTypes';
 import { SimplifiedRoomService, RoomRecord } from '../services/SimplifiedRoomService';
 import { BroadcastService, type ConnectionStatus } from '../services/BroadcastService';
 import { AuthService } from '../services/AuthService';
@@ -151,9 +152,11 @@ export const useGameRoom = (): UseGameRoomResult => {
     return gameStatusToRoomStatus(gameState.status);
   }, [gameState]);
   
-  // Current action role
+  // Current action role - only valid when game is ongoing (night phase)
   const currentActionRole = useMemo((): RoleName | null => {
     if (!gameState) return null;
+    // Only return action role when game is in progress
+    if (gameState.status !== GameStatus.ongoing) return null;
     const actionOrder = gameState.template.actionOrder;
     if (gameState.currentActionerIndex >= actionOrder.length) return null;
     return actionOrder[gameState.currentActionerIndex];
