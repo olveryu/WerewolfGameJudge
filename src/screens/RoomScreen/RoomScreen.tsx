@@ -767,8 +767,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           disabled={roomStatus === RoomStatus.ongoing && isAudioPlaying}
         />
         
-        {/* Action Message */}
-        {imActioner && (
+        {/* Action Message - only show after audio finishes */}
+        {imActioner && !isAudioPlaying && (
           <Text style={styles.actionMessage}>{actionMessage}</Text>
         )}
         
