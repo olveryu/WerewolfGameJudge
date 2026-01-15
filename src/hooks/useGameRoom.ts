@@ -284,40 +284,39 @@ export const useGameRoom = (): UseGameRoomResult => {
     }
   }, [isHost, roomRecord]);
 
-  // Take a seat
+  // Take a seat (unified API)
   const takeSeat = useCallback(async (seatNumber: number): Promise<boolean> => {
     try {
       const displayName = await authService.current.getCurrentDisplayName();
       const avatarUrl = await authService.current.getCurrentAvatarUrl();
       
-      await gameStateService.current.playerTakeSeat(
+      return await gameStateService.current.takeSeat(
         seatNumber,
         displayName ?? undefined,
         avatarUrl ?? undefined
       );
-      return true;
     } catch (err) {
       console.error('[useGameRoom] Error taking seat:', err);
       return false;
     }
   }, []);
 
-  // Leave seat
+  // Leave seat (unified API)
   const leaveSeat = useCallback(async (): Promise<void> => {
     try {
-      await gameStateService.current.playerLeaveSeat();
+      await gameStateService.current.leaveSeat();
     } catch (err) {
       console.error('[useGameRoom] Error leaving seat:', err);
     }
   }, []);
 
-  // Take seat with ack (for sync protocol)
+  // Take seat with ack (unified API)
   const takeSeatWithAck = useCallback(async (seatNumber: number): Promise<{ success: boolean; reason?: string }> => {
     try {
       const displayName = await authService.current.getCurrentDisplayName();
       const avatarUrl = await authService.current.getCurrentAvatarUrl();
       
-      return await gameStateService.current.playerTakeSeatWithAck(
+      return await gameStateService.current.takeSeatWithAck(
         seatNumber,
         displayName ?? undefined,
         avatarUrl ?? undefined
@@ -328,10 +327,10 @@ export const useGameRoom = (): UseGameRoomResult => {
     }
   }, []);
 
-  // Leave seat with ack (for sync protocol)
+  // Leave seat with ack (unified API)
   const leaveSeatWithAck = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
     try {
-      return await gameStateService.current.playerLeaveSeatWithAck();
+      return await gameStateService.current.leaveSeatWithAck();
     } catch (err) {
       console.error('[useGameRoom] Error leaving seat with ack:', err);
       return { success: false, reason: String(err) };
