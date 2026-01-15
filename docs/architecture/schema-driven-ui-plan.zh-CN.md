@@ -386,6 +386,32 @@ RoomScreen 目标：
 
 > 仅用于显示“正在播放：xxx”，不参与任何逻辑 gating。
 
+### Commit 7：清理旧的/不对的/没用的 legacy（收口清理，必须做）
+
+> 你提的这个点很关键：当 Commit 1~6 把 UI 真正收敛到 schema-driven 之后，必须再做一次“删旧代码”提交，避免：
+>
+>- 以后维护者误以为两套逻辑都要改（双写 drift）
+>- 测试继续为旧分支兜底，导致新逻辑回退也不报错
+>
+**清理目标（按本方案范围）**
+
+1) RoomScreen / hooks 里所有“已被 schema.ui.* 替代”的 role/legacy 分支
+  - 例如：以 `myRole/currentActionRole` 决定 prompt/confirm 文案、reveal intent 的 switch 分支
+2) 不再被使用的 fallback/compat helper（如果只剩 0~1 处使用，也应内联或删除）
+3) 过期的注释/文档段落（与新 schema-driven contract 冲突的说明）
+4) 测试里对 legacy 行为的兜底断言（改为断言 schema-driven 行为，或删除不再需要的 staging compat tests）
+
+**红线**
+
+- 不删 Host 权威 gate / ACTION_REJECTED 消费逻辑
+- 不删 anti-cheat 的 private inbox 流程
+- 不把“结算逻辑”拖回 UI
+
+**验收**
+
+- 全套测试门禁通过（同 5.2）
+- grep 验证：RoomScreen 中不再出现已淘汰的 role-specific prompt/confirm/reveal 分支（以 schema.ui.* 为准）
+
 ---
 
 ## 5.1 逐条映射：哪些清单项由哪个 commit 覆盖（防漏表）
@@ -412,6 +438,7 @@ RoomScreen 目标：
 - `WolfVoteSchema.forbiddenTargetRoleIds` → Commit 5（可选，纯 UX）
 - `NIGHT_STEPS.visibility.*` → Commit 4
 - `NIGHT_STEPS.audioKey/audioEndKey` → Commit 6（可选，纯展示）
+- “旧的/不对的/没用的删掉” → Commit 7（必须做，收口清理）
 
 ---
 
