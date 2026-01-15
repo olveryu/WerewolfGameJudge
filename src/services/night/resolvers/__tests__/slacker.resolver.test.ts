@@ -1,0 +1,128 @@
+/**
+ * Slacker Resolver Unit Tests
+ * 
+ * Tests for slackerChooseIdolResolver validation and resolution logic.
+ */
+
+import { slackerChooseIdolResolver } from '../slacker';
+import type { ResolverContext, ActionInput } from '../types';
+import type { RoleId } from '../../../../models/roles/spec/specs';
+
+// =============================================================================
+// Test Helpers
+// =============================================================================
+
+function createContext(overrides: Partial<ResolverContext> = {}): ResolverContext {
+  const defaultPlayers = new Map<number, RoleId>([
+    [0, 'villager'],
+    [1, 'villager'],
+    [2, 'wolf'],
+    [3, 'wolf'],
+    [4, 'seer'],
+    [5, 'slacker'],
+  ]);
+
+  return {
+    actorSeat: 5,
+    actorRoleId: 'slacker',
+    players: defaultPlayers,
+    currentNightResults: {},
+    gameState: {
+      isNight1: true,
+    },
+    ...overrides,
+  };
+}
+
+function createInput(target: number | undefined): ActionInput {
+  return {
+    schemaId: 'slackerChooseIdol',
+    target,
+  };
+}
+
+// =============================================================================
+// Tests
+// =============================================================================
+
+describe('slackerChooseIdolResolver', () => {
+  describe('validation', () => {
+    it('应该拒绝缺少目标', () => {
+      const ctx = createContext();
+      const input = createInput(undefined);
+
+      const result = slackerChooseIdolResolver(ctx, input);
+
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toContain('必须选择');
+    });
+
+    it('应该拒绝不存在的目标玩家', () => {
+      const ctx = createContext();
+      const input = createInput(99);
+
+      const result = slackerChooseIdolResolver(ctx, input);
+
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toContain('不存在');
+    });
+  });
+
+  describe('choose idol action', () => {
+    it('应该接受选择村民为榜样', () => {
+      const ctx = createContext();
+      const input = createInput(0);
+
+      const result = slackerChooseIdolResolver(ctx, input);
+
+      expect(result.valid).toBe(true);
+      expect(result.result?.idolTarget).toBe(0);
+    });
+
+    it('应该接受选择神职为榜样', () => {
+      const ctx = createContext();
+      const input = createInput(4); // seer
+
+      const result = slackerChooseIdolResolver(ctx, input);
+
+      expect(result.valid).toBe(true);
+      expect(result.result?.idolTarget).toBe(4);
+    });
+
+    it('应该接受选择狼人为榜样', () => {
+      const ctx = createContext();
+      const input = createInput(2); // wolf
+
+      const result = slackerChooseIdolResolver(ctx, input);
+
+      expect(result.valid).toBe(true);
+      expect(result.result?.idolTarget).toBe(2);
+    });
+  });
+
+  describe('constraint: notSelf', () => {
+    it('不能选自己为榜样 (notSelf constraint)', () => {
+      const ctx = createContext();
+      const input = createInput(5); // self
+
+      const result = slackerChooseIdolResolver(ctx, input);
+
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toBeDefined();
+    });
+  });
+
+  describe('nightmare block', () => {
+    it('被梦魇封锁时应该返回空结果', () => {
+      const ctx = createContext({
+        currentNightResults: { blockedSeat: 5 },
+      });
+      const input = createInput(0);
+
+      const result = slackerChooseIdolResolver(ctx, input);
+
+      expect(result.valid).toBe(true);
+      expect(result.result?.idolTarget).toBeUndefined();
+    });
+  });
+});

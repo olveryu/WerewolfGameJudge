@@ -381,15 +381,44 @@ describe('SeerResolver', () => {
 ### 当前 0% 覆盖文件（需优先处理）
 
 ```
-src/services/night/resolvers/hunter.ts
-src/services/night/resolvers/magician.ts
-src/services/night/resolvers/psychic.ts
-src/services/night/resolvers/seer.ts
-src/services/night/resolvers/witch.ts
-src/services/night/resolvers/gargoyle.ts
-src/services/night/resolvers/darkWolfKing.ts
-src/hooks/useGameRoom.ts
-src/screens/RoomScreen/hooks/useActionerState.ts
+src/services/night/resolvers/hunter.ts   ✅ 已覆盖
+src/services/night/resolvers/magician.ts ✅ 已覆盖
+src/services/night/resolvers/psychic.ts  ✅ 已覆盖
+src/services/night/resolvers/seer.ts     ✅ 已覆盖
+src/services/night/resolvers/witch.ts    ✅ 已覆盖
+src/services/night/resolvers/gargoyle.ts ✅ 已覆盖
+src/services/night/resolvers/darkWolfKing.ts ✅ 已覆盖
+src/services/night/resolvers/guard.ts    ✅ 已覆盖 (Session 3)
+src/services/night/resolvers/wolf.ts     ✅ 已覆盖 (Session 3)
+src/services/night/resolvers/nightmare.ts ✅ 已覆盖 (Session 3)
+src/services/night/resolvers/dreamcatcher.ts ✅ 已覆盖 (Session 3)
+src/services/night/resolvers/slacker.ts  ✅ 已覆盖 (Session 3)
+src/hooks/useGameRoom.ts                 🔄 待处理
+src/screens/RoomScreen/hooks/useActionerState.ts ✅ 已覆盖
+```
+
+### 新增测试文件（Session 2）
+
+```
+src/services/__tests__/GameStateService.lifecycle.test.ts  - 19 tests
+src/services/__tests__/GameStateService.recovery.test.ts   - 32 tests
+```
+
+### 新增测试文件（Session 3）
+
+```
+src/services/night/resolvers/__tests__/guard.resolver.test.ts      - 8 tests
+src/services/night/resolvers/__tests__/wolf.resolver.test.ts       - 9 tests
+src/services/night/resolvers/__tests__/nightmare.resolver.test.ts  - 8 tests
+src/services/night/resolvers/__tests__/dreamcatcher.resolver.test.ts - 5 tests
+src/services/night/resolvers/__tests__/slacker.resolver.test.ts    - 6 tests
+```
+
+### 当前测试总数
+
+```
+Test Suites: 72 passed
+Tests:       1005 passed
 ```
 
 ### 当前高覆盖文件（可参考）
@@ -400,3 +429,4 @@ src/screens/RoomScreen/hooks/useActionerState.ts
 90% src/services/AudioService.ts
 87% src/services/night/constraintValidator.ts
 ```
+
