@@ -212,6 +212,55 @@ npm run android
 npm run web
 ```
 
+---
+
+## 部署 (Deployment)
+
+### 1. 配置远程 Supabase
+
+```bash
+# 确认已 link 到 Supabase 项目
+supabase projects list
+
+# 推送数据库迁移到远程
+supabase db push
+
+# 获取 API keys
+supabase projects api-keys --project-ref <your-project-ref>
+```
+
+### 2. 更新 `.env` 为远程配置
+
+```env
+EXPO_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+```
+
+### 3. 构建 Web 版本
+
+```bash
+npx expo export --platform web
+```
+
+输出在 `dist/` 目录。
+
+### 4. 部署到 Vercel
+
+```bash
+# 安装 Vercel CLI（如果没有）
+npm install -g vercel
+
+# 部署到生产环境
+vercel deploy dist --prod
+
+# 设置自定义别名（可选）
+vercel alias set <deployment-url> werewolf-judge.vercel.app
+```
+
+**当前生产环境：** https://werewolf-judge.vercel.app
+
+---
+
 ## Game Roles
 
 ### Wolf Team 🐺
