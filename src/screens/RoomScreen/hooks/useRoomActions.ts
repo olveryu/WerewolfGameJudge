@@ -140,10 +140,13 @@ export function deriveSkipIntentFromSchema(
   buildMessage: (idx: number) => string,
   isWolf: boolean,
   wolfSeat: number | null
-): ActionIntent {
-  // chooseSeat schemas: allow generic skip when schema allows skipping
-  if (currentSchema?.kind === 'chooseSeat' && currentSchema.canSkip) {
-    return { type: 'skip', targetIndex: -1, message: buildMessage(-1) };
+): ActionIntent | null {
+  // chooseSeat schemas: only allow generic skip when schema allows skipping
+  if (currentSchema?.kind === 'chooseSeat') {
+    if (currentSchema.canSkip) {
+      return { type: 'skip', targetIndex: -1, message: buildMessage(-1) };
+    }
+    return null;
   }
 
   // wolfVote schema: skip means "vote empty knife" (handled elsewhere as wolfVote intent)

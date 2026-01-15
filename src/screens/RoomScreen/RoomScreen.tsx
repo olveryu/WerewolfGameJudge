@@ -371,7 +371,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 `${reveal.targetSeat + 1}号是${reveal.result}`,
                 '',
                 () => {
-                  // Tell host we have read the reveal so it can advance the night flow.
                   submitRevealAckSafe('seer');
                 }
               );
@@ -859,11 +858,22 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         
   {/* Actioner: Skip Action */}
   {imActioner && roomStatus === RoomStatus.ongoing && !isAudioPlaying && (() => {
-          // When blocked by nightmare, always show skip button (regardless of role)
+          // When blocked by nightmare, always show skip button (regardless of schema)
           if (isBlockedByNightmare) return true;
-          // Otherwise, only show for roles that can skip
+
+          if (!myRole) return false;
+
+          // Wolf meeting vote: allow "empty knife" (vote -1)
+          if (myRole === 'wolf') return true;
+
+          // Schema-driven: for chooseSeat steps, honor canSkip strictly
+          if (currentSchema?.kind === 'chooseSeat') {
+            return currentSchema.canSkip;
+          }
+
+          // Otherwise, keep legacy role-based skip gating
           const noSkipRoles: RoleName[] = ['hunter', 'darkWolfKing', 'wolfRobot', 'slacker'];
-          return myRole && !noSkipRoles.includes(myRole);
+          return !noSkipRoles.includes(myRole);
         })() && (
           <TouchableOpacity style={styles.actionButton} onPress={handleSkipAction}>
             <Text style={styles.buttonText}>
