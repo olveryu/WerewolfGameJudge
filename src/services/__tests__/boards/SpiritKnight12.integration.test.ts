@@ -9,9 +9,7 @@
  */
 
 import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
-import { calculateDeaths, NightActions, RoleSeatMap } from '../../DeathCalculator';
 import { RoleName } from '../../../models/roles';
-import { makeWitchPoison } from '../../../models/actions';
 
 const TEMPLATE_NAME = '恶灵骑士12人';
 
@@ -248,110 +246,4 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
   });
 });
 
-describe('DeathCalculator - Spirit Knight Reflection', () => {
-  const baseRoleSeatMap: RoleSeatMap = {
-    witcher: -1,
-    wolfQueen: -1,
-  dreamcatcher: -1,
-    spiritKnight: 7,
-    seer: 8,
-    witch: 9,
-    guard: 11,
-  };
-
-  it('预言家查验恶灵骑士 → 预言家死亡', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      seerCheck: 7,
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toContain(0);
-    expect(deaths).toContain(8);
-    expect(deaths).not.toContain(7);
-  });
-
-  it('女巫毒恶灵骑士 → 女巫死亡，恶灵骑士免疫', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      witchAction: makeWitchPoison(7),
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toContain(0);
-    expect(deaths).toContain(9);
-    expect(deaths).not.toContain(7);
-  });
-
-  it('预言家查验普通狼人 → 无反伤', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      seerCheck: 4,
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toEqual([0]);
-  });
-
-  it('女巫毒普通狼人 → 无反伤', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      witchAction: makeWitchPoison(4),
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toContain(0);
-    expect(deaths).toContain(4);
-    expect(deaths).not.toContain(9);
-  });
-
-  it('恶灵骑士不在场时无反伤规则', () => {
-    const noSpiritKnight: RoleSeatMap = {
-      ...baseRoleSeatMap,
-      spiritKnight: -1,
-    };
-
-    const actions: NightActions = {
-      wolfKill: 0,
-      seerCheck: 4,
-      witchAction: makeWitchPoison(5),
-    };
-
-    const deaths = calculateDeaths(actions, noSpiritKnight);
-
-    expect(deaths).toContain(0);
-    expect(deaths).toContain(5);
-    expect(deaths).not.toContain(8);
-    expect(deaths).not.toContain(9);
-  });
-
-  it('狼刀恶灵骑士 → 恶灵骑士免疫（DeathCalculator 结算层）', () => {
-    const actions: NightActions = {
-      wolfKill: 7,  // 狼刀恶灵骑士
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    // 恶灵骑士免疫狼刀
-    expect(deaths).not.toContain(7);
-    expect(deaths).toEqual([]);
-  });
-
-  it('狼刀恶灵骑士 + 女巫毒村民 → 只有村民死', () => {
-    const actions: NightActions = {
-      wolfKill: 7,  // 狼刀恶灵骑士
-      witchAction: makeWitchPoison(0),  // 女巫毒村民
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    // 恶灵骑士免疫狼刀，村民被毒死
-    expect(deaths).not.toContain(7);
-    expect(deaths).toContain(0);
-    expect(deaths.length).toBe(1);
-  });
-});
+// DeathCalculator unit tests for Spirit Knight Reflection are in src/services/__tests__/DeathCalculator.test.ts

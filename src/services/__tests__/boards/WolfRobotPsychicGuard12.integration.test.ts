@@ -8,7 +8,7 @@
  * - guard 守护一个人（被守护者今夜免刀）
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
+import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './hostGameFactory';
 import { RoleName } from '../../../models/roles';
 
 const TEMPLATE_NAME = '机械狼通灵师12人';
@@ -280,6 +280,68 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       expect(result.completed).toBe(true);
       // 守卫被毒，但守护仍生效，0 号不死
       expect(result.deaths).toEqual([11]);
+    });
+  });
+
+  describe('Private Reveal 存在性锁', () => {
+    it('机械狼查验触发 WOLF_ROBOT_REVEAL 私信', async () => {
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      await ctx.runNight({
+        guard: 0,
+        wolfRobot: 2,     // 机械狼查 2 号（村民）
+        wolf: 0,
+        witch: null,
+        psychic: null,
+        hunter: null,
+      });
+
+      // 验证 WOLF_ROBOT_REVEAL 私信被发送
+      const wolfRobotRevealCalls = mockSendPrivate.mock.calls.filter(
+        (call: unknown[]) => 
+          (call[0] as { type: string }).type === 'PRIVATE_EFFECT' &&
+          ((call[0] as { payload?: { kind: string } }).payload?.kind === 'WOLF_ROBOT_REVEAL')
+      );
+      expect(wolfRobotRevealCalls.length).toBe(1);
+      expect(wolfRobotRevealCalls[0][0]).toMatchObject({
+        type: 'PRIVATE_EFFECT',
+        payload: {
+          kind: 'WOLF_ROBOT_REVEAL',
+          targetSeat: 2,
+        },
+      });
+    });
+
+    // NOTE: psychic 查验第一夜无死者，不会触发 reveal
+    // 这里测试结构性验证 - psychic 查验会触发私信（如果有死者）
+    it('通灵师在有死者时触发 PSYCHIC_REVEAL 私信（第一夜验证）', async () => {
+      // 第一夜死者：0 号被杀
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      await ctx.runNight({
+        guard: 8,         // 守卫守通灵师
+        wolfRobot: null,
+        wolf: 0,          // 狼人杀 0 号（村民）
+        witch: null,
+        psychic: 0,       // 通灵师查 0 号（本夜被杀的村民）
+        hunter: null,
+      });
+
+      // 验证 PSYCHIC_REVEAL 私信被发送
+      const psychicRevealCalls = mockSendPrivate.mock.calls.filter(
+        (call: unknown[]) => 
+          (call[0] as { type: string }).type === 'PRIVATE_EFFECT' &&
+          ((call[0] as { payload?: { kind: string } }).payload?.kind === 'PSYCHIC_REVEAL')
+      );
+      expect(psychicRevealCalls.length).toBe(1);
+      expect(psychicRevealCalls[0][0]).toMatchObject({
+        type: 'PRIVATE_EFFECT',
+        payload: {
+          kind: 'PSYCHIC_REVEAL',
+          targetSeat: 0,
+          result: '普通村民',  // 查验到村民（displayName）
+        },
+      });
     });
   });
 });

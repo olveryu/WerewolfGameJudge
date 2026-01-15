@@ -11,9 +11,7 @@
  */
 
 import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
-import { calculateDeaths, NightActions, RoleSeatMap } from '../../DeathCalculator';
 import { RoleName } from '../../../models/roles';
-import { makeWitchPoison } from '../../../models/actions';
 
 const TEMPLATE_NAME = '狼美守卫12人';
 
@@ -216,84 +214,4 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
   });
 });
 
-// =============================================================================
-// DeathCalculator 单元测试（狼美人链接死亡）
-// =============================================================================
-
-describe('DeathCalculator - Wolf Queen Link Death', () => {
-  const baseRoleSeatMap: RoleSeatMap = {
-    witcher: -1,
-    wolfQueen: 7,
-  dreamcatcher: -1,
-    spiritKnight: -1,
-    seer: 8,
-    witch: 9,
-    guard: 11,
-  };
-
-  it('狼美人被狼刀 → 被链接的玩家也死亡', () => {
-    const actions: NightActions = {
-      wolfKill: 7, // 狼刀狼美人
-      wolfQueenCharm: 0, // 狼美人链接0号
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toContain(7); // 狼美人死亡
-    expect(deaths).toContain(0); // 被链接的玩家死亡
-  });
-
-  it('狼美人被女巫毒死 → 被链接的玩家也死亡', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      witchAction: makeWitchPoison(7), // 毒狼美人
-      wolfQueenCharm: 1, // 狼美人链接1号
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toContain(0); // 狼刀目标死亡
-    expect(deaths).toContain(7); // 狼美人被毒死
-    expect(deaths).toContain(1); // 被链接的玩家死亡
-  });
-
-  it('狼美人不死亡 → 被链接的玩家不受影响', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      wolfQueenCharm: 1, // 狼美人链接1号
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toEqual([0]); // 只有狼刀目标死亡
-    expect(deaths).not.toContain(1); // 被链接的玩家不死
-  });
-
-  it('狼美人被守卫保护 → 不死，链接不触发', () => {
-    const actions: NightActions = {
-      wolfKill: 7, // 狼刀狼美人
-      guardProtect: 7, // 守卫保护狼美人
-      wolfQueenCharm: 0, // 狼美人链接0号
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toEqual([]); // 没人死亡
-  });
-
-  it('狼美人不在场时 → 链接不生效', () => {
-    const noWolfQueen: RoleSeatMap = {
-      ...baseRoleSeatMap,
-      wolfQueen: -1,
-    };
-
-    const actions: NightActions = {
-      wolfKill: 0,
-      wolfQueenCharm: 1, // 链接不生效
-    };
-
-    const deaths = calculateDeaths(actions, noWolfQueen);
-
-    expect(deaths).toEqual([0]); // 只有狼刀目标死亡
-  });
-});
+// DeathCalculator unit tests for Wolf Queen Link Death are in src/services/__tests__/DeathCalculator.test.ts

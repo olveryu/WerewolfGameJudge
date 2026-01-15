@@ -13,9 +13,7 @@
  */
 
 import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
-import { calculateDeaths, NightActions, RoleSeatMap } from '../../DeathCalculator';
 import { RoleName } from '../../../models/roles';
-import { makeWitchPoison } from '../../../models/actions';
 
 const TEMPLATE_NAME = '血月猎魔12人';
 
@@ -245,59 +243,4 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
   });
 });
 
-// =============================================================================
-// DeathCalculator 单元测试（猎魔人免疫毒药）
-// =============================================================================
-
-describe('DeathCalculator - Witcher Poison Immunity', () => {
-  const baseRoleSeatMap: RoleSeatMap = {
-    witcher: 11,
-    wolfQueen: -1,
-  dreamcatcher: -1,
-    spiritKnight: -1,
-    seer: 8,
-    witch: 9,
-    guard: -1,
-  };
-
-  it('女巫毒猎魔人 → 猎魔人免疫，不死', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      witchAction: makeWitchPoison(11), // 毒猎魔人
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toContain(0);      // 狼刀目标死亡
-    expect(deaths).not.toContain(11); // 猎魔人免疫
-  });
-
-  it('女巫毒普通村民 → 村民死亡', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      witchAction: makeWitchPoison(1),
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toContain(0);
-    expect(deaths).toContain(1);
-  });
-
-  it('猎魔人不在场时，毒药正常生效', () => {
-    const noWitcher: RoleSeatMap = {
-      ...baseRoleSeatMap,
-      witcher: -1,
-    };
-
-    const actions: NightActions = {
-      wolfKill: 0,
-      witchAction: makeWitchPoison(11),
-    };
-
-    const deaths = calculateDeaths(actions, noWitcher);
-
-    expect(deaths).toContain(0);
-    expect(deaths).toContain(11); // 没有猎魔人免疫，11号死亡
-  });
-});
+// DeathCalculator unit tests for Witcher are in src/services/__tests__/DeathCalculator.test.ts

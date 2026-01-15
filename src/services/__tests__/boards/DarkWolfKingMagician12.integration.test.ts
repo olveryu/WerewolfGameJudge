@@ -7,7 +7,7 @@
  * - darkWolfKing 参与狼人会议，被刀杀时可开枪
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
+import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './hostGameFactory';
 import { RoleName } from '../../../models/roles';
 
 const TEMPLATE_NAME = '狼王魔术师12人';
@@ -126,8 +126,60 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       expect(result.deaths).toEqual([1]);
     });
 
-    // TODO: 魔术师交换两人的测试需要 hostGameFactory 支持两段选择
-    // 当前 hostGameFactory.buildRoleAction 暂不支持 magician 的 compound swap
+    it('魔术师交换身份：狼刀 A，实际 B 死亡（身份交换）', async () => {
+      // 角色分配:
+      // 座位 0: 村民, 座位 1: 村民, 座位 2: 村民, 座位 3: 村民
+      // 座位 4: 狼人, 座位 5: 狼人, 座位 6: 狼人, 座位 7: 黑狼王
+      // 座位 8: 预言家, 座位 9: 女巫, 座位 10: 猎人, 座位 11: 魔术师
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        magician: { firstSeat: 0, secondSeat: 1 },  // 交换 0 号和 1 号身份
+        darkWolfKing: null,
+        wolf: 0,          // 狼人刀 0 号（原村民，现在身份是 1 号村民）
+        witch: null,
+        seer: 4,
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      // 0 号被刀，但身份已交换到 1 号，所以 1 号死亡
+      expect(result.deaths).toEqual([1]);
+      expect(result.info).toContain('2号'); // 1+1=2（座位号+1显示）
+      expect(result.info).not.toContain('1号'); // 0+1=1 不应该出现
+    });
+
+    it('魔术师交换身份：预言家查验按交换后身份', async () => {
+      // 座位 8: 预言家, 座位 4: 狼人
+      // 如果魔术师交换 4 和 0，预言家查 4 应该看到好人（因为 4 现在是村民身份）
+      ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = await ctx.runNight({
+        magician: { firstSeat: 0, secondSeat: 4 },  // 交换村民和狼人身份
+        darkWolfKing: null,
+        wolf: 0,          // 狼人刀 0 号
+        witch: null,
+        seer: 4,          // 预言家查 4 号（原狼人，现在身份是村民）
+        hunter: null,
+      });
+
+      expect(result.completed).toBe(true);
+      // 验证 seer reveal 私信发送
+      const seerRevealCalls = mockSendPrivate.mock.calls.filter(
+        (call: unknown[]) => (call[0] as { type: string }).type === 'PRIVATE_EFFECT' &&
+          ((call[0] as { payload?: { kind: string } }).payload?.kind === 'SEER_REVEAL')
+      );
+      expect(seerRevealCalls.length).toBe(1);
+      // 预言家查 4 号，由于身份交换，应该显示好人
+      expect(seerRevealCalls[0][0]).toMatchObject({
+        type: 'PRIVATE_EFFECT',
+        payload: {
+          kind: 'SEER_REVEAL',
+          targetSeat: 4,
+          result: '好人',  // 身份已交换为村民
+        },
+      });
+    });
   });
 
   describe('DarkWolfKing 特性', () => {

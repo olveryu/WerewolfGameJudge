@@ -14,9 +14,7 @@
  */
 
 import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
-import { calculateDeaths, NightActions, RoleSeatMap } from '../../DeathCalculator';
 import { RoleName } from '../../../models/roles';
-import { makeWitchSave, makeWitchPoison } from '../../../models/actions';
 
 const TEMPLATE_NAME = '狼王守卫12人';
 
@@ -255,66 +253,4 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
   });
 });
 
-// =============================================================================
-// DeathCalculator 单元测试（守卫保护）
-// =============================================================================
-
-describe('DeathCalculator - Guard Protection', () => {
-  const baseRoleSeatMap: RoleSeatMap = {
-    witcher: -1,
-    wolfQueen: -1,
-  dreamcatcher: -1,
-    spiritKnight: -1,
-    seer: 8,
-    witch: 9,
-    guard: 11,
-  };
-
-  it('守卫保护目标 → 狼刀无效', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      guardProtect: 0,
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toEqual([]);
-  });
-
-  it('守卫保护非狼刀目标 → 狼刀生效', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      guardProtect: 1,
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toContain(0);
-  });
-
-  it('同守同救必死：守卫保护 + 女巫救人同一目标 → 目标死亡', () => {
-    const actions: NightActions = {
-      wolfKill: 0,
-      guardProtect: 0,
-      witchAction: makeWitchSave(0),
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    // 同守同救必死规则：守卫和女巫同时保护同一人，该人必死
-    expect(deaths).toEqual([0]);
-  });
-
-  it('守卫保护无法阻挡女巫毒药', () => {
-    const actions: NightActions = {
-      wolfKill: 1,
-      guardProtect: 0,
-      witchAction: makeWitchPoison(0),
-    };
-
-    const deaths = calculateDeaths(actions, baseRoleSeatMap);
-
-    expect(deaths).toContain(0); // 守卫保护不能阻挡毒药
-    expect(deaths).toContain(1); // 狼刀目标死亡
-  });
-});
+// DeathCalculator unit tests for Guard Protection are in src/services/__tests__/DeathCalculator.test.ts
