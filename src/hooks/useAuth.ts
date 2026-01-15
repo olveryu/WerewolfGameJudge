@@ -44,8 +44,10 @@ export const useAuth = () => {
         if (result?.data?.user) {
           setUser(toUser(result.data.user));
         }
-      } catch (e) {
-        console.error('Failed to load user:', e);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        console.error('[useAuth] Failed to load user:', message, e);
+        setError(message);
       } finally {
         setLoading(false);
       }

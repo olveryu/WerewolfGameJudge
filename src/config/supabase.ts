@@ -76,6 +76,7 @@ if (isSupabaseConfigured()) {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,
+      flowType: 'pkce', // More reliable for mobile browsers
     },
   });
   console.log('[Supabase] Client initialized, isBrowser:', isBrowser);
