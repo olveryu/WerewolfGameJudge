@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { RoomScreen } from '../RoomScreen';
 import { TESTIDS } from '../../../testids';
 import { TouchableOpacity } from 'react-native';
@@ -72,7 +72,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
 
   // Host/role/step info used by RoomScreen
   isHost: false,
-  roomStatus: 'ongoing',
+  roomStatus: require('../../../models/Room').RoomStatus.ongoing,
   // Make this client the current actioner so seat taps route to handleActionTap
   currentActionRole: 'wolf',
   currentSchema: 'wolfKill',
@@ -118,18 +118,25 @@ jest.mock('../../../hooks/useGameRoom', () => ({
 }));
 
 // Force intent for seat taps: always return wolfVote when user taps a seat
-jest.mock('../hooks/useRoomActions', () => ({
-  useRoomActions: () => ({
-    getActionIntent: jest.fn((index: number) => ({
-      type: 'wolfVote',
-      wolfSeat: 0,
-      targetIndex: index,
-    })),
+jest.mock('../hooks/useRoomActions', () => {
+  const getActionIntent = jest.fn((index: number) => ({
+    type: 'wolfVote',
+    wolfSeat: 0,
+    targetIndex: index,
+  }));
+
+  const api = {
+    getActionIntent,
     getSkipIntent: () => null,
     getAutoTriggerIntent: () => null,
     getMagicianTarget: (targetIndex: number) => targetIndex,
-  }),
-}));
+  };
+
+  return {
+    __test: { getActionIntent },
+    useRoomActions: (_gameContext?: unknown, _deps?: unknown) => api,
+  };
+});
 
 // Avoid host dialogs complexity
 jest.mock('../useRoomHostDialogs', () => ({
@@ -222,7 +229,7 @@ describe('RoomScreen wolf vote UI', () => {
     expect(mockSubmitWolfVote).toHaveBeenCalledWith(2);
   });
 
-  it.skip('tap seat tile -> triggers intent and shows wolf vote dialog (E2E)', async () => {
+  it('tap seat tile -> triggers intent and shows wolf vote dialog (E2E)', async () => {
     const props: any = {
       navigation: mockNavigation,
       route: {
@@ -234,26 +241,24 @@ describe('RoomScreen wolf vote UI', () => {
       },
   };
 
-    const { findByTestId } = render(<RoomScreen {...props} />);
+  const { findByTestId, findByText } = render(<RoomScreen {...props} />);
+
+  // Ensure we're in the actionable state and the UI finished initial render
+  await findByText(/请选择猎杀对象/);
 
     // Tap seat 3 (index 2)
-    const seatWrapper: any = await findByTestId(TESTIDS.seatTile(2));
-    const pressable = (seatWrapper as any).findByType
-      ? (seatWrapper as any).findByType(TouchableOpacity)
-      : (seatWrapper as any);
-    fireEvent.press(pressable);
+  const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
+    await act(async () => {
+      fireEvent.press(seatPressable);
+    });
 
-    // Expect intent handler to be called
-    const { useRoomActions } = require('../hooks/useRoomActions');
-    const actions = useRoomActions();
-    expect(actions.getActionIntent).toHaveBeenCalledWith(2);
-
-    // Expect wolf vote dialog
-    expect(showAlert).toHaveBeenCalledWith(
-      '狼人投票',
-      expect.stringContaining('确定要猎杀3号玩家吗？'),
-      expect.any(Array)
-    );
+    await waitFor(() => {
+      expect(showAlert).toHaveBeenCalledWith(
+        '狼人投票',
+        expect.stringContaining('确定要猎杀3号玩家吗？'),
+        expect.any(Array)
+      );
+    });
 
   const buttons = (showAlert as jest.Mock).mock.calls[0][2] as Array<{ text: string; onPress?: () => void }>;
   const confirmBtn = buttons.find((b) => b.text === '确定');

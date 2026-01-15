@@ -44,13 +44,18 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
             testID={TESTIDS.seatTile(seat.index)}
           >
             <TouchableOpacity
+              testID={TESTIDS.seatTilePressable(seat.index)}
+              accessibilityLabel={TESTIDS.seatTilePressable(seat.index)}
               style={[
                 styles.playerTile,
                 seat.isMySpot && styles.mySpotTile,
                 seat.isWolf && styles.wolfTile,
                 seat.isSelected && styles.selectedTile,
               ]}
-              onPress={() => !disabled && onSeatPress(seat.index)}
+              onPress={() => {
+                if (disabled) return;
+                onSeatPress(seat.index);
+              }}
               activeOpacity={disabled ? 1 : 0.7}
               disabled={disabled}
             >

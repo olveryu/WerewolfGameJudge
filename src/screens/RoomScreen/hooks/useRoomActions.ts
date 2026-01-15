@@ -130,6 +130,31 @@ interface IntentContext {
   buildMessage: (idx: number) => string;
 }
 
+/**
+ * Pure helper used by getSkipIntent.
+ * Exported for testability (avoid calling hooks directly in unit tests).
+ */
+export function deriveSkipIntentFromSchema(
+  myRole: RoleName,
+  currentSchema: ActionSchema | null | undefined,
+  buildMessage: (idx: number) => string,
+  isWolf: boolean,
+  wolfSeat: number | null
+): ActionIntent {
+  // chooseSeat schemas: allow generic skip when schema allows skipping
+  if (currentSchema?.kind === 'chooseSeat' && currentSchema.canSkip) {
+    return { type: 'skip', targetIndex: -1, message: buildMessage(-1) };
+  }
+
+  // wolfVote schema: skip means "vote empty knife" (handled elsewhere as wolfVote intent)
+  if (currentSchema?.kind === 'wolfVote' && isWolf && wolfSeat !== null) {
+    return { type: 'wolfVote', targetIndex: -1, wolfSeat };
+  }
+
+  // default: confirm skip
+  return { type: 'skip', targetIndex: -1, message: buildMessage(-1) };
+}
+
 /** confirm schema: hunter/darkWolfKing status dialog */
 function deriveConfirmIntent(ctx: IntentContext): ActionIntent {
   const { myRole, index, buildMessage } = ctx;
@@ -354,17 +379,15 @@ export function useRoomActions(
   const getSkipIntent = useCallback((): ActionIntent | null => {
     if (!myRole) return null;
 
-    // Schema-driven: wolfVote schema (vote for empty knife)
-    if (currentSchema?.kind === 'wolfVote' && isWolfRole(myRole)) {
-      const wolfSeat = findVotingWolfSeat();
-      if (wolfSeat !== null) {
-        return { type: 'wolfVote', targetIndex: -1, wolfSeat };
-      }
-    }
-
-    // Other schemas: confirm skip
-    const message = buildActionMessage(-1, myRole);
-    return { type: 'skip', targetIndex: -1, message };
+    const isWolf = isWolfRole(myRole);
+    const wolfSeat = findVotingWolfSeat();
+    return deriveSkipIntentFromSchema(
+      myRole,
+      currentSchema,
+      (idx) => buildActionMessage(idx, myRole),
+      isWolf,
+      wolfSeat
+    );
   }, [myRole, currentSchema, findVotingWolfSeat, buildActionMessage]);
 
   return {
