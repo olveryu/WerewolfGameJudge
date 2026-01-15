@@ -75,7 +75,10 @@ jest.mock('../../../hooks/useGameRoom', () => ({
   roomStatus: require('../../../models/Room').RoomStatus.ongoing,
   // Make this client the current actioner so seat taps route to handleActionTap
   currentActionRole: 'wolf',
-  currentSchema: 'wolfKill',
+  currentSchema: ((): any => {
+    const { getSchema } = require('../../../models/roles/spec/schemas');
+    return getSchema('wolfKill');
+  })(),
   isAudioPlaying: false,
 
     // Identity
@@ -116,27 +119,6 @@ jest.mock('../../../hooks/useGameRoom', () => ({
   submitRevealAck: jest.fn(),
   }),
 }));
-
-// Force intent for seat taps: always return wolfVote when user taps a seat
-jest.mock('../hooks/useRoomActions', () => {
-  const getActionIntent = jest.fn((index: number) => ({
-    type: 'wolfVote',
-    wolfSeat: 0,
-    targetIndex: index,
-  }));
-
-  const api = {
-    getActionIntent,
-    getSkipIntent: () => null,
-    getAutoTriggerIntent: () => null,
-    getMagicianTarget: (targetIndex: number) => targetIndex,
-  };
-
-  return {
-    __test: { getActionIntent },
-    useRoomActions: (_gameContext?: unknown, _deps?: unknown) => api,
-  };
-});
 
 // Avoid host dialogs complexity
 jest.mock('../useRoomHostDialogs', () => ({

@@ -1,0 +1,218 @@
+import React from 'react';
+import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
+import { RoomScreen } from '../RoomScreen';
+import { TESTIDS } from '../../../testids';
+import { showAlert } from '../../../utils/alert';
+
+jest.mock('../../../utils/alert', () => ({
+  showAlert: jest.fn(),
+}));
+
+const mockNavigation = {
+  navigate: jest.fn(),
+  replace: jest.fn(),
+  goBack: jest.fn(),
+  setOptions: jest.fn(),
+};
+
+jest.mock('@react-navigation/native', () => ({}));
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+// RoomScreen keeps witchPhase in local state; for poison-seat-tap flow we force it to start at 'poison'.
+// This keeps the smoke test stable while still using the real useRoomActions intent derivation.
+jest.mock('react', () => {
+  const ReactActual = jest.requireActual('react');
+  return {
+    ...ReactActual,
+    useState: (initialValue: unknown) => {
+      if (initialValue === null) {
+        // This covers witchPhase initialization in RoomScreen.
+        return ReactActual.useState('poison');
+      }
+      return ReactActual.useState(initialValue);
+    },
+  };
+});
+
+const mockSubmitAction = jest.fn();
+
+// Witch poison phase: seat tap should open poison confirm -> confirm submits submitAction(target, {poison:true})
+jest.mock('../../../hooks/useGameRoom', () => ({
+  useGameRoom: () => ({
+    gameState: {
+      status: 'ongoing',
+      template: {
+        numberOfPlayers: 12,
+        roles: Array.from({ length: 12 }).map(() => 'villager'),
+        actionOrder: ['witch'],
+      },
+      players: new Map(
+        Array.from({ length: 12 }).map((_, i) => [
+          i,
+          {
+            uid: `p${i}`,
+            seatNumber: i,
+            displayName: `P${i + 1}`,
+            avatarUrl: undefined,
+            role: i === 0 ? 'witch' : 'villager',
+            hasViewedRole: true,
+          },
+        ])
+      ),
+      actions: new Map(),
+      wolfVotes: new Map(),
+      currentActionerIndex: 0,
+      isAudioPlaying: false,
+      lastNightDeaths: [],
+      nightmareBlockedSeat: null,
+      templateRoles: [],
+      hostUid: 'host',
+      roomCode: '1234',
+    },
+
+    connectionStatus: 'live',
+
+    isHost: false,
+    roomStatus: require('../../../models/Room').RoomStatus.ongoing,
+
+    currentActionRole: 'witch',
+    currentSchema: ((): any => {
+      const { getSchema } = require('../../../models/roles/spec/schemas');
+      return getSchema('witchAction');
+    })(),
+
+    isAudioPlaying: false,
+
+    mySeatNumber: 0,
+    myRole: 'witch',
+
+    createRoom: jest.fn(),
+    joinRoom: jest.fn().mockResolvedValue(true),
+    takeSeat: jest.fn(),
+    leaveSeat: jest.fn(),
+    assignRoles: jest.fn(),
+    startGame: jest.fn(),
+    restartGame: jest.fn(),
+
+    submitAction: mockSubmitAction,
+    submitWolfVote: jest.fn(),
+
+    hasWolfVoted: () => false,
+    requestSnapshot: jest.fn(),
+    viewedRole: jest.fn(),
+
+    lastSeatError: null,
+    clearLastSeatError: jest.fn(),
+
+    waitForActionRejected: jest.fn().mockResolvedValue(null),
+
+    getWitchContext: jest.fn().mockReturnValue(null),
+    getLastNightInfo: jest.fn().mockReturnValue(''),
+    getLastNightDeaths: jest.fn().mockReturnValue([]),
+
+    waitForSeerReveal: jest.fn(),
+    waitForPsychicReveal: jest.fn(),
+    waitForGargoyleReveal: jest.fn(),
+    waitForWolfRobotReveal: jest.fn(),
+    submitRevealAck: jest.fn(),
+  }),
+}));
+
+jest.mock('../hooks/useActionerState', () => ({
+  useActionerState: () => ({
+    imActioner: true,
+    showWolves: false,
+  }),
+}));
+
+jest.mock('../useRoomActionDialogs', () => ({
+  useRoomActionDialogs: () => ({
+    showWitchPoisonConfirm: (targetIndex: number, onConfirm: () => void, onCancel?: () => void) => {
+      const { showAlert: mockShowAlert } = require('../../../utils/alert');
+      mockShowAlert('女巫毒药', `确定要毒杀${targetIndex + 1}号玩家吗？`, [
+        { text: '确定', onPress: onConfirm },
+        { text: '取消', style: 'cancel', onPress: onCancel },
+      ]);
+    },
+    showConfirmDialog: jest.fn(),
+    showWolfVoteDialog: jest.fn(),
+    showStatusDialog: jest.fn(),
+    showActionRejectedAlert: jest.fn(),
+    showRevealDialog: jest.fn(),
+    showRoleActionPrompt: jest.fn(),
+    showMagicianFirstAlert: jest.fn(),
+    showWitchSaveDialog: jest.fn(),
+    showWitchPoisonPrompt: jest.fn(),
+  }),
+}));
+
+jest.mock('../useRoomHostDialogs', () => ({
+  useRoomHostDialogs: () => ({
+    showPrepareToFlipDialog: jest.fn(),
+    showStartGameDialog: jest.fn(),
+    showLastNightInfoDialog: jest.fn(),
+    showRestartDialog: jest.fn(),
+    showEmergencyRestartDialog: jest.fn(),
+    handleSettingsPress: jest.fn(),
+  }),
+}));
+
+jest.mock('../useRoomSeatDialogs', () => ({
+  useRoomSeatDialogs: () => ({
+    showEnterSeatDialog: jest.fn(),
+    showLeaveSeatDialog: jest.fn(),
+    handleConfirmSeat: jest.fn(),
+    handleCancelSeat: jest.fn(),
+    handleConfirmLeave: jest.fn(),
+    handleLeaveRoom: jest.fn(),
+  }),
+}));
+
+describe('RoomScreen witch poison UI (smoke)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('tap seat -> poison confirm -> submitAction(target, {poison:true})', async () => {
+    const props: any = {
+      navigation: mockNavigation,
+      route: {
+        params: {
+          roomNumber: '1234',
+          isHost: false,
+          template: '梦魇守卫12人',
+        },
+      },
+    };
+
+    const { findByTestId } = render(<RoomScreen {...props} />);
+
+    const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
+    await act(async () => {
+      fireEvent.press(seatPressable);
+    });
+
+    await waitFor(() => {
+      expect(showAlert).toHaveBeenCalledWith(
+        '女巫毒药',
+        expect.stringContaining('毒杀3号'),
+        expect.any(Array)
+      );
+    });
+
+    const poisonCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '女巫毒药');
+    expect(poisonCall).toBeDefined();
+
+    const buttons = (poisonCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
+    const confirmBtn = buttons.find((b) => b.text === '确定');
+
+    await act(async () => {
+      confirmBtn?.onPress?.();
+    });
+
+    expect(mockSubmitAction).toHaveBeenCalledWith(2, { poison: true });
+  });
+});
