@@ -1,0 +1,187 @@
+import React from 'react';
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { RoomScreen } from '../RoomScreen';
+import { showAlert } from '../../../utils/alert';
+import type { ChooseSeatSchema } from '../../../models/roles/spec/schema.types';
+
+jest.mock('../../../utils/alert', () => ({
+  showAlert: jest.fn(),
+}));
+
+// Mock navigation
+const mockNavigation = {
+  navigate: jest.fn(),
+  replace: jest.fn(),
+  goBack: jest.fn(),
+  setOptions: jest.fn(),
+};
+
+jest.mock('@react-navigation/native', () => ({}));
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+const mockSubmitAction = jest.fn();
+
+// Minimal RoomScreen runtime: we only care that pressing "不使用技能" triggers submitAction(null)
+jest.mock('../../../hooks/useGameRoom', () => ({
+  useGameRoom: () => ({
+    gameState: {
+      status: 'ongoing',
+      template: {
+        numberOfPlayers: 12,
+        roles: Array.from({ length: 12 }).map(() => 'villager'),
+        actionOrder: ['seer'],
+      },
+      players: new Map(
+        Array.from({ length: 12 }).map((_, i) => [
+          i,
+          {
+            uid: `p${i}`,
+            seatNumber: i,
+            displayName: `P${i + 1}`,
+            avatarUrl: undefined,
+            role: i === 0 ? 'seer' : 'villager',
+            hasViewedRole: true,
+          },
+        ])
+      ),
+      actions: new Map(),
+      wolfVotes: new Map(),
+      currentActionerIndex: 0,
+      isAudioPlaying: false,
+      lastNightDeaths: [],
+      nightmareBlockedSeat: null,
+      templateRoles: [],
+      hostUid: 'host',
+      roomCode: '1234',
+    },
+
+    connectionStatus: 'live',
+
+    isHost: false,
+    roomStatus: require('../../../models/Room').RoomStatus.ongoing,
+
+    currentActionRole: 'seer',
+    currentSchema: ({
+      kind: 'chooseSeat',
+      canSkip: true,
+      constraints: [],
+      id: 'seerCheck',
+      displayName: '预言家查验',
+    } as ChooseSeatSchema),
+
+    isAudioPlaying: false,
+
+    mySeatNumber: 0,
+    myRole: 'seer',
+
+    createRoom: jest.fn(),
+    joinRoom: jest.fn().mockResolvedValue(true),
+    takeSeat: jest.fn(),
+    leaveSeat: jest.fn(),
+    assignRoles: jest.fn(),
+    startGame: jest.fn(),
+    restartGame: jest.fn(),
+
+    submitAction: mockSubmitAction,
+    submitWolfVote: jest.fn(),
+
+    hasWolfVoted: () => false,
+    requestSnapshot: jest.fn(),
+    viewedRole: jest.fn(),
+
+    lastSeatError: null,
+    clearLastSeatError: jest.fn(),
+
+    waitForActionRejected: jest.fn().mockResolvedValue(null),
+
+    getWitchContext: jest.fn().mockReturnValue(null),
+    getLastNightInfo: jest.fn().mockReturnValue(''),
+    getLastNightDeaths: jest.fn().mockReturnValue([]),
+
+    waitForSeerReveal: jest.fn(),
+    waitForPsychicReveal: jest.fn(),
+    waitForGargoyleReveal: jest.fn(),
+    waitForWolfRobotReveal: jest.fn(),
+    submitRevealAck: jest.fn(),
+  }),
+}));
+
+jest.mock('../hooks/useActionerState', () => ({
+  useActionerState: () => ({
+    imActioner: true,
+    showWolves: false,
+  }),
+}));
+
+// Keep other dialog hooks simple
+jest.mock('../useRoomHostDialogs', () => ({
+  useRoomHostDialogs: () => ({
+    showPrepareToFlipDialog: jest.fn(),
+    showStartGameDialog: jest.fn(),
+    showLastNightInfoDialog: jest.fn(),
+    showRestartDialog: jest.fn(),
+    showEmergencyRestartDialog: jest.fn(),
+    handleSettingsPress: jest.fn(),
+  }),
+}));
+
+jest.mock('../useRoomSeatDialogs', () => ({
+  useRoomSeatDialogs: () => ({
+    showEnterSeatDialog: jest.fn(),
+    showLeaveSeatDialog: jest.fn(),
+    handleConfirmSeat: jest.fn(),
+    handleCancelSeat: jest.fn(),
+    handleConfirmLeave: jest.fn(),
+    handleLeaveRoom: jest.fn(),
+  }),
+}));
+
+describe('RoomScreen skip action UI', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('press "不使用技能" -> confirm -> submitAction(null)', async () => {
+    const props: any = {
+      navigation: mockNavigation,
+      route: {
+        params: {
+          roomNumber: '1234',
+          isHost: false,
+          template: '梦魇守卫12人',
+        },
+      },
+    };
+
+    const { findByText } = render(<RoomScreen {...props} />);
+
+    const skipButton = await findByText('不使用技能');
+
+    await act(async () => {
+      fireEvent.press(skipButton);
+    });
+
+    await waitFor(() => {
+      expect(showAlert).toHaveBeenCalled();
+    });
+
+    // Confirm the *skip confirm* alert (auto-intent prompts may also call showAlert)
+    const skipCall = (showAlert as jest.Mock).mock.calls.find(
+      (c) => c[0] === '确认跳过'
+    );
+    expect(skipCall).toBeDefined();
+
+    const buttons = (skipCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
+    const confirmBtn = buttons.find((b) => b.text === '确定');
+    expect(confirmBtn).toBeDefined();
+
+    await act(async () => {
+      confirmBtn?.onPress?.();
+    });
+
+    expect(mockSubmitAction).toHaveBeenCalledWith(null, undefined);
+  });
+});
