@@ -1,5 +1,4 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ============================================
@@ -25,39 +24,44 @@ export const isSupabaseConfigured = (): boolean => {
          (SUPABASE_URL.startsWith('https://') || SUPABASE_URL.startsWith('http://'));
 };
 
+// Detect if running in browser environment
+const isBrowser = globalThis?.window?.localStorage !== undefined;
+
 // Platform-specific storage adapter
-// - Web: use localStorage (works on mobile browsers)
+// - Web/Browser: use localStorage (works on mobile browsers)
 // - Native: use AsyncStorage
 const getStorageAdapter = () => {
-  if (Platform.OS === 'web') {
+  if (isBrowser) {
     // For web (including mobile browsers), use localStorage
+    console.log('[Supabase] Using localStorage for auth storage');
     return {
-      getItem: (key: string) => {
+      getItem: async (key: string): Promise<string | null> => {
         try {
-          return Promise.resolve(localStorage.getItem(key));
-        } catch {
-          return Promise.resolve(null);
+          const value = globalThis.localStorage.getItem(key);
+          return value;
+        } catch (e) {
+          console.warn('[Supabase] localStorage.getItem failed:', e);
+          return null;
         }
       },
-      setItem: (key: string, value: string) => {
+      setItem: async (key: string, value: string): Promise<void> => {
         try {
-          localStorage.setItem(key, value);
-          return Promise.resolve();
-        } catch {
-          return Promise.resolve();
+          globalThis.localStorage.setItem(key, value);
+        } catch (e) {
+          console.warn('[Supabase] localStorage.setItem failed:', e);
         }
       },
-      removeItem: (key: string) => {
+      removeItem: async (key: string): Promise<void> => {
         try {
-          localStorage.removeItem(key);
-          return Promise.resolve();
-        } catch {
-          return Promise.resolve();
+          globalThis.localStorage.removeItem(key);
+        } catch (e) {
+          console.warn('[Supabase] localStorage.removeItem failed:', e);
         }
       },
     };
   }
   // For native platforms, use AsyncStorage
+  console.log('[Supabase] Using AsyncStorage for auth storage');
   return AsyncStorage;
 };
 
@@ -74,9 +78,9 @@ if (isSupabaseConfigured()) {
       detectSessionInUrl: false,
     },
   });
-  console.log('Supabase client initialized for platform:', Platform.OS);
+  console.log('[Supabase] Client initialized, isBrowser:', isBrowser);
 } else {
-  console.log('Supabase not configured - running in demo mode');
+  console.log('[Supabase] Not configured - running in demo mode');
 }
 
 export const supabase = supabaseClient;
