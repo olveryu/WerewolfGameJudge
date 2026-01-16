@@ -177,6 +177,36 @@ describe('determineActionerState', () => {
     expect(wolfRobotWolfTurn.showWolves).toBe(false);
   });
 
+  it('should not show wolves for non-meeting wolves even on their own (non-solo) step', () => {
+    // Assert the new rule surface: when a step is explicitly non-solo,
+    // only meeting wolves (participating in vote) can see the pack list.
+    const nonSoloVisibility = { actsSolo: false };
+
+    const wolfRobot = determineActionerState(
+      'wolfRobot',
+      'wolfRobot',
+      0,
+      new Map(),
+      false,
+      new Map(),
+      nonSoloVisibility
+    );
+    expect(wolfRobot.imActioner).toBe(true);
+    expect(wolfRobot.showWolves).toBe(false);
+
+    const gargoyle = determineActionerState(
+      'gargoyle',
+      'gargoyle',
+      0,
+      new Map(),
+      false,
+      new Map(),
+      nonSoloVisibility
+    );
+    expect(gargoyle.imActioner).toBe(true);
+    expect(gargoyle.showWolves).toBe(false);
+  });
+
   it('should return imActioner=false when non-wolf role has already submitted action', () => {
     // Seer has already submitted their action
     const actions = new Map<RoleName, unknown>();
