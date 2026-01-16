@@ -220,6 +220,24 @@ describe('SCHEMAS contract', () => {
       expect(notSkippable).toEqual([]);
     });
 
+    it('reveal-style chooseSeat schemas (schema.ui.revealKind) should provide schema.ui.confirmTitle', () => {
+      const missing: string[] = [];
+
+      for (const schema of Object.values(SCHEMAS)) {
+        if (schema.kind !== 'chooseSeat') continue;
+        if (!schema.ui) continue;
+        if (!('revealKind' in schema.ui)) continue;
+        if (!schema.ui.revealKind) continue;
+
+        if (!schema.ui.confirmTitle || typeof schema.ui.confirmTitle !== 'string') {
+          missing.push(schema.id);
+        }
+      }
+
+      missing.sort();
+      expect(missing).toEqual([]);
+    });
+
     it('wolfVote schema should provide schema.ui.emptyVoteText', () => {
       // Commit 1: text is schema-driven even if behavior stays the same for now.
       expect(SCHEMAS.wolfKill.kind).toBe('wolfVote');

@@ -45,6 +45,7 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
     canSkip: true,
     ui: {
+  confirmTitle: '确认查验',
       prompt: '请选择要查验的玩家',
       confirmText: '确定要查验该玩家吗？',
       revealKind: 'seer',
@@ -89,6 +90,7 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
   canSkip: true,
     ui: {
+  confirmTitle: '确认通灵',
       prompt: '请选择要通灵的玩家',
       confirmText: '确定要通灵该玩家吗？',
       revealKind: 'psychic',
@@ -178,6 +180,7 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
     canSkip: true,
     ui: {
+  confirmTitle: '确认查验',
       prompt: '请选择要查验的玩家',
       confirmText: '确定要查验该玩家吗？',
       revealKind: 'gargoyle',
@@ -192,6 +195,7 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
     canSkip: true,
     ui: {
+  confirmTitle: '确认学习',
       prompt: '请选择要学习的玩家',
       confirmText: '确定要学习该玩家吗？',
       revealKind: 'wolfRobot',

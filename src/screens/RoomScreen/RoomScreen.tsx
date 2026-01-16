@@ -331,8 +331,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         if (!gameState) return;
         // Confirm intent before submitting to Host
         actionDialogs.showConfirmDialog(
-          '确认查验',
-          `是否查验${intent.targetIndex + 1}号玩家？`,
+          currentSchema?.kind === 'chooseSeat' ? (currentSchema.ui?.confirmTitle || '确认行动') : '确认行动',
+          currentSchema?.kind === 'chooseSeat'
+            ? (currentSchema.ui?.confirmText || `是否对${intent.targetIndex + 1}号玩家使用技能？`)
+            : `是否对${intent.targetIndex + 1}号玩家使用技能？`,
           async () => {
             // Anti-cheat: Submit action to Host first, Host sends SEER_REVEAL privately
             // Then wait for result from inbox (handles network latency)
@@ -358,8 +360,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       case 'psychicReveal': {
         if (!gameState) return;
         actionDialogs.showConfirmDialog(
-          '确认查验',
-          `是否查验${intent.targetIndex + 1}号玩家？`,
+          currentSchema?.kind === 'chooseSeat' ? (currentSchema.ui?.confirmTitle || '确认行动') : '确认行动',
+          currentSchema?.kind === 'chooseSeat'
+            ? (currentSchema.ui?.confirmText || `是否对${intent.targetIndex + 1}号玩家使用技能？`)
+            : `是否对${intent.targetIndex + 1}号玩家使用技能？`,
           async () => {
             // Anti-cheat: Submit action to Host first, Host sends PSYCHIC_REVEAL privately
             // Then wait for result from inbox (handles network latency)
@@ -385,8 +389,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       case 'gargoyleReveal': {
         if (!gameState) return;
         actionDialogs.showConfirmDialog(
-          '确认查验',
-          `是否查验${intent.targetIndex + 1}号玩家？`,
+          currentSchema?.kind === 'chooseSeat' ? (currentSchema.ui?.confirmTitle || '确认行动') : '确认行动',
+          currentSchema?.kind === 'chooseSeat'
+            ? (currentSchema.ui?.confirmText || `是否对${intent.targetIndex + 1}号玩家使用技能？`)
+            : `是否对${intent.targetIndex + 1}号玩家使用技能？`,
           async () => {
             // Anti-cheat: Submit action to Host first, Host sends GARGOYLE_REVEAL privately
             // Then wait for result from inbox (handles network latency)
@@ -412,8 +418,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       case 'wolfRobotReveal': {
         if (!gameState) return;
         actionDialogs.showConfirmDialog(
-          '确认查验',
-          `是否查验${intent.targetIndex + 1}号玩家？`,
+          currentSchema?.kind === 'chooseSeat' ? (currentSchema.ui?.confirmTitle || '确认行动') : '确认行动',
+          currentSchema?.kind === 'chooseSeat'
+            ? (currentSchema.ui?.confirmText || `是否对${intent.targetIndex + 1}号玩家使用技能？`)
+            : `是否对${intent.targetIndex + 1}号玩家使用技能？`,
           async () => {
             // Anti-cheat: Submit action to Host first, Host sends WOLF_ROBOT_REVEAL privately
             // Then wait for result from inbox (handles network latency)

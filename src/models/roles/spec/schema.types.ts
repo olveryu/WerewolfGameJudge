@@ -23,6 +23,8 @@ export type RevealKind = 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot';
 export interface SchemaUi {
   /** Top-of-screen prompt / action message (non-sensitive). */
   readonly prompt?: string;
+  /** Confirm dialog title (UI-only). If omitted, RoomScreen may fall back to a generic title. */
+  readonly confirmTitle?: string;
   /** Confirm dialog text for seat-based actions (non-sensitive). */
   readonly confirmText?: string;
   /** How chooseSeat intent should behave when it represents a reveal flow. */
