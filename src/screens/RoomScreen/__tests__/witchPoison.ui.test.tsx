@@ -203,4 +203,50 @@ describe('RoomScreen witch poison UI (smoke)', () => {
 
     expect(mockSubmitAction).toHaveBeenCalledWith(2, { poison: true });
   });
+
+  it("phase='save' still tap seat -> poison confirm -> submitAction(target, {poison:true})", async () => {
+    // Regression guard: seat-tap poison must NOT be driven by witchCtx.phase.
+    const { useGameRoom } = require('../../../hooks/useGameRoom');
+    const room = useGameRoom();
+    room.getWitchContext.mockReturnValue({
+      kind: 'WITCH_CONTEXT',
+      killedIndex: 2,
+      canSave: true,
+      canPoison: true,
+      phase: 'save',
+    });
+
+    const props: any = {
+      navigation: mockNavigation,
+      route: {
+        params: {
+          roomNumber: '1234',
+          isHost: false,
+          template: '梦魇守卫12人',
+        },
+      },
+    };
+
+    const { findByTestId } = render(<RoomScreen {...props} />);
+    const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
+
+    await act(async () => {
+      fireEvent.press(seatPressable);
+    });
+
+    await waitFor(() => {
+      expect(showAlert).toHaveBeenCalledWith('确认行动', expect.any(String), expect.any(Array));
+    });
+
+    const confirmCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
+    expect(confirmCall).toBeDefined();
+
+  const buttons = (confirmCall as any)[2];
+  const confirmBtn = (buttons as any[]).find((b: any) => b.text === '确定');
+    await act(async () => {
+      confirmBtn?.onPress?.();
+    });
+
+    expect(mockSubmitAction).toHaveBeenCalledWith(2, { poison: true });
+  });
 });
