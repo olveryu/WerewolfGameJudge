@@ -10,6 +10,8 @@
 import { useMemo } from 'react';
 import type { RoleName } from '../../../models/roles';
 import type { RoleAction } from '../../../models/actions/RoleAction';
+import type { ActionSchema } from '../../../models/roles/spec';
+import { NIGHT_STEPS } from '../../../models/roles/spec/nightSteps';
 import { determineActionerState, type ActionerState } from '../RoomScreen.helpers';
 
 export interface UseActionerStateParams {
@@ -17,6 +19,8 @@ export interface UseActionerStateParams {
   myRole: RoleName | null;
   /** Currently acting role in night phase */
   currentActionRole: RoleName | null;
+  /** Current action schema (Phase 3: schema-driven UI) */
+  currentSchema: ActionSchema | null;
   /** Current player's seat number */
   mySeatNumber: number | null;
   /** Wolf votes map (seatNumber -> targetSeat) */
@@ -34,12 +38,17 @@ export interface UseActionerStateParams {
 export function useActionerState({
   myRole,
   currentActionRole,
+  currentSchema,
   mySeatNumber,
   wolfVotes,
   isHost,
   actions,
 }: UseActionerStateParams): ActionerState {
   return useMemo(() => {
-    return determineActionerState(myRole, currentActionRole, mySeatNumber, wolfVotes, isHost, actions);
-  }, [myRole, currentActionRole, mySeatNumber, wolfVotes, isHost, actions]);
+    const visibility = currentSchema
+      ? NIGHT_STEPS.find((s) => s.id === currentSchema.id)?.visibility
+      : undefined;
+
+    return determineActionerState(myRole, currentActionRole, mySeatNumber, wolfVotes, isHost, actions, visibility);
+  }, [myRole, currentActionRole, currentSchema, mySeatNumber, wolfVotes, isHost, actions]);
 }

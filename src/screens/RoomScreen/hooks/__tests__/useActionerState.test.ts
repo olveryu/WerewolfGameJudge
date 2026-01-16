@@ -17,6 +17,7 @@ function createParams(overrides: Partial<UseActionerStateParams> = {}): UseActio
   return {
     myRole: null,
     currentActionRole: null,
+  currentSchema: null,
     mySeatNumber: null,
     wolfVotes: new Map(),
     isHost: false,
@@ -76,6 +77,7 @@ describe('useActionerState', () => {
           createParams({
             myRole: 'wolf',
             currentActionRole: 'wolf',
+            currentSchema: require('../../../../models/roles/spec/schemas').getSchema('wolfKill'),
             mySeatNumber: 1,
             wolfVotes: new Map(),
           })
@@ -95,6 +97,7 @@ describe('useActionerState', () => {
           createParams({
             myRole: 'wolf',
             currentActionRole: 'wolf',
+            currentSchema: require('../../../../models/roles/spec/schemas').getSchema('wolfKill'),
             mySeatNumber: 1,
             wolfVotes,
           })
@@ -111,6 +114,7 @@ describe('useActionerState', () => {
           createParams({
             myRole: 'nightmare',
             currentActionRole: 'wolf',
+            currentSchema: require('../../../../models/roles/spec/schemas').getSchema('wolfKill'),
             mySeatNumber: 2,
           })
         )
@@ -162,6 +166,7 @@ describe('useActionerState', () => {
           createParams({
             myRole: 'nightmare',
             currentActionRole: 'nightmare',
+            currentSchema: require('../../../../models/roles/spec/schemas').getSchema('nightmareBlock'),
             mySeatNumber: 0,
           })
         )

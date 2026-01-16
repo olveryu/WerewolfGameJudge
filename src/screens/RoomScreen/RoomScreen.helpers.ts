@@ -23,6 +23,16 @@ export interface ActionerState {
   showWolves: boolean;
 }
 
+export interface StepVisibilityLike {
+  /**
+   * Whether this step is a "solo" action where even wolves shouldn't see the pack list.
+   * If omitted, callers fall back to legacy role-based behavior.
+   */
+  actsSolo?: boolean;
+  /** True when the night flow is in a wolf-meeting phase where pack list can be shown. */
+  wolfMeetingPhase?: boolean;
+}
+
 // Re-export GameRoomLike for convenience
 export type { GameRoomLike } from '../../models/Room';
 
@@ -76,15 +86,19 @@ export function determineActionerState(
   mySeatNumber: number | null,
   wolfVotes: Map<number, number>,
   _isHost: boolean,
-  actions: Map<RoleName, RoleAction> = new Map()
+  actions: Map<RoleName, RoleAction> = new Map(),
+  visibility?: StepVisibilityLike
 ): ActionerState {
   if (!currentActionRole) {
     return { imActioner: false, showWolves: false };
   }
 
-  // Phase rule: Nightmare's fear step is solo (does NOT see wolves).
-  if (currentActionRole === 'nightmare' && myRole === 'nightmare') {
-    return { imActioner: true, showWolves: false };
+  // Step visibility is the single source of truth for "actsSolo".
+  // When actsSolo=true, the actioner cannot see wolves.
+  if (myRole === currentActionRole && visibility?.actsSolo === true) {
+    // Still an actioner (unless already acted), but never show wolves.
+    const state = handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions);
+    return { ...state, showWolves: false };
   }
 
   // My role matches current action
@@ -92,10 +106,9 @@ export function determineActionerState(
     return handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions);
   }
 
-  // Wolf team members during wolf turn
-  if (currentActionRole === 'wolf' && myRole && isWolfRole(myRole)) {
-    // Only wolves who participate in vote/discussion can see the pack list here.
-    // (e.g. gargoyle/wolfRobot are wolves but do not join the vote)
+  // Wolf meeting phase: participating wolves can see pack list.
+  // NOTE: visibility.wolfMeetingPhase is the single source of truth for when the pack list is shown.
+  if (visibility?.wolfMeetingPhase === true && myRole && isWolfRole(myRole)) {
     if (!doesRoleParticipateInWolfVote(myRole)) {
       return { imActioner: false, showWolves: false };
     }
