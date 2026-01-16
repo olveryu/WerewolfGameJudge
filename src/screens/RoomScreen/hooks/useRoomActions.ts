@@ -159,10 +159,17 @@ function deriveConfirmIntent(ctx: IntentContext): ActionIntent {
 /** chooseSeat schema: seer/psychic/gargoyle/wolfRobot reveal, or normal action */
 function deriveChooseSeatIntent(ctx: IntentContext): ActionIntent {
   const { uiRevealKind, index, buildMessage } = ctx;
-  if (uiRevealKind === 'seer') return { type: 'seerReveal', targetIndex: index };
-  if (uiRevealKind === 'psychic') return { type: 'psychicReveal', targetIndex: index };
-  if (uiRevealKind === 'gargoyle') return { type: 'gargoyleReveal', targetIndex: index };
-  if (uiRevealKind === 'wolfRobot') return { type: 'wolfRobotReveal', targetIndex: index };
+
+  const revealIntentTypeByKind: Record<RevealKind, ActionIntentType> = {
+    seer: 'seerReveal',
+    psychic: 'psychicReveal',
+    gargoyle: 'gargoyleReveal',
+    wolfRobot: 'wolfRobotReveal',
+  };
+
+  if (uiRevealKind) {
+    return { type: revealIntentTypeByKind[uiRevealKind], targetIndex: index };
+  }
   return { type: 'actionConfirm', targetIndex: index, message: buildMessage(index) };
 }
 
