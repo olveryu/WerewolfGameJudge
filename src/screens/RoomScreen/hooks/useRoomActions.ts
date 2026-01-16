@@ -164,6 +164,8 @@ export function deriveSkipIntentFromSchema(
 
   // compound schema (witch): use witchPhase to find matching sub-step by key
   // Fail fast: witchPhase is required and must match step.key exactly
+  // TODO: When adding more compound roles, generalize witchPhase to activeStepKey
+  // and create a unified getCompoundStepKey(schemaId, deps) helper
   if (currentSchema?.kind === 'compound' && currentSchema.steps?.length) {
     if (!witchPhase) return null;
     const step = currentSchema.steps.find(s => s.key === witchPhase);
@@ -214,6 +216,7 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
       // Compound (witchAction): seat tap should behave like a step chooseSeat schema, driven by
       // the compound.steps table. We attach stepKey so RoomScreen can derive copy/payload.
       // Fail fast: witchPhase is required and must match step.key exactly
+      // TODO: When adding more compound roles, generalize witchPhase to activeStepKey
       if (!witchPhase) return null;
       if (ctx.schemaId && isValidSchemaId(ctx.schemaId)) {
         const compound = (SCHEMAS as Record<string, ActionSchema>)[ctx.schemaId];
@@ -369,6 +372,7 @@ export function useRoomActions(
     }
 
     // compound: use witchPhase to find matching sub-step's skip button by key
+    // TODO: When adding more compound roles, generalize witchPhase to activeStepKey
     if (currentSchema.kind === 'compound' && currentSchema.steps?.length) {
       const witchCtx = getWitchContext();
       if (!witchCtx) return { visible: false, label: '' };
