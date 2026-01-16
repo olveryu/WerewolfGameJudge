@@ -41,7 +41,8 @@ export interface UseRoomActionDialogsResult {
   showWolfVoteDialog: (
     wolfName: string,
     targetIndex: number, // -1 = empty knife
-    onConfirm: () => void
+  onConfirm: () => void,
+  messageOverride?: string
   ) => void;
 
   /** Witch save phase dialog */
@@ -122,11 +123,17 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showWolfVoteDialog = useCallback(
-    (wolfName: string, targetIndex: number, onConfirm: () => void) => {
+    (
+      wolfName: string,
+      targetIndex: number,
+      onConfirm: () => void,
+      messageOverride?: string
+    ) => {
       const msg =
-        targetIndex === -1
+        messageOverride ||
+        (targetIndex === -1
           ? `${wolfName} 确定投票空刀吗？`
-          : `${wolfName} 确定要猎杀${targetIndex + 1}号玩家吗？`;
+          : `${wolfName} 确定要猎杀${targetIndex + 1}号玩家吗？`);
 
       showAlert('狼人投票', msg, [
         { text: '确定', onPress: onConfirm },

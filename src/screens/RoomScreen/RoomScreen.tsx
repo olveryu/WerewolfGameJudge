@@ -48,6 +48,7 @@ import { TESTIDS } from '../../testids';
 import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
 import { getStepSpec } from '../../models/roles/spec/nightSteps';
+import type { RevealKind } from '../../models/roles/spec';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -413,65 +414,49 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         actionDialogs.showMagicianFirstAlert(intent.targetIndex);
         break;
 
-      case 'seerReveal': {
+      case 'reveal': {
         if (!gameState) return;
-        confirmThenAct(intent.targetIndex, async () => {
-          // Anti-cheat: Host will send SEER_REVEAL privately. We only wait for it.
-          const reveal = await waitForSeerReveal();
-          if (reveal) {
-            actionDialogs.showRevealDialog(`${reveal.targetSeat + 1}号是${reveal.result}`, '', () => {
-              submitRevealAckSafe('seer');
-            });
-          } else {
-            console.warn('[RoomScreen] seerReveal timeout - no reveal received');
-          }
-        });
-        break;
-      }
+        if (!intent.revealKind) {
+          console.warn('[RoomScreen] reveal intent missing revealKind');
+          return;
+        }
 
-      case 'psychicReveal': {
-        if (!gameState) return;
-        confirmThenAct(intent.targetIndex, async () => {
-          // Anti-cheat: Host will send PSYCHIC_REVEAL privately. We only wait for it.
-          const reveal = await waitForPsychicReveal();
-          if (reveal) {
-            actionDialogs.showRevealDialog(`${reveal.targetSeat + 1}号是${reveal.result}`, '', () => {
-              submitRevealAckSafe('psychic');
-            });
-          } else {
-            console.warn('[RoomScreen] psychicReveal timeout - no reveal received');
-          }
-        });
-        break;
-      }
+        const revealExecutors: Record<RevealKind, {
+          wait: () => Promise<{ targetSeat: number; result: string } | null>;
+          ack: () => void;
+          timeoutLog: string;
+        }> = {
+          seer: {
+            wait: waitForSeerReveal,
+            ack: () => submitRevealAckSafe('seer'),
+            timeoutLog: 'seerReveal',
+          },
+          psychic: {
+            wait: waitForPsychicReveal,
+            ack: () => submitRevealAckSafe('psychic'),
+            timeoutLog: 'psychicReveal',
+          },
+          gargoyle: {
+            wait: waitForGargoyleReveal,
+            ack: () => submitRevealAckSafe('gargoyle'),
+            timeoutLog: 'gargoyleReveal',
+          },
+          wolfRobot: {
+            wait: waitForWolfRobotReveal,
+            ack: () => submitRevealAckSafe('wolfRobot'),
+            timeoutLog: 'wolfRobotReveal',
+          },
+        };
 
-      case 'gargoyleReveal': {
-        if (!gameState) return;
+        const exec = revealExecutors[intent.revealKind];
         confirmThenAct(intent.targetIndex, async () => {
-          // Anti-cheat: Host will send GARGOYLE_REVEAL privately. We only wait for it.
-          const reveal = await waitForGargoyleReveal();
+          const reveal = await exec.wait();
           if (reveal) {
             actionDialogs.showRevealDialog(`${reveal.targetSeat + 1}号是${reveal.result}`, '', () => {
-              submitRevealAckSafe('gargoyle');
+              exec.ack();
             });
           } else {
-            console.warn('[RoomScreen] gargoyleReveal timeout - no reveal received');
-          }
-        });
-        break;
-      }
-
-      case 'wolfRobotReveal': {
-        if (!gameState) return;
-        confirmThenAct(intent.targetIndex, async () => {
-          // Anti-cheat: Host will send WOLF_ROBOT_REVEAL privately. We only wait for it.
-          const reveal = await waitForWolfRobotReveal();
-          if (reveal) {
-            actionDialogs.showRevealDialog(`${reveal.targetSeat + 1}号是${reveal.result}`, '', () => {
-              submitRevealAckSafe('wolfRobot');
-            });
-          } else {
-            console.warn('[RoomScreen] wolfRobotReveal timeout - no reveal received');
+            console.warn(`[RoomScreen] ${exec.timeoutLog} timeout - no reveal received`);
           }
         });
         break;
@@ -482,7 +467,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           actionDialogs.showWolfVoteDialog(
             `${intent.wolfSeat + 1}号狼人`,
             intent.targetIndex,
-            () => void submitWolfVote(intent.targetIndex)
+            () => void submitWolfVote(intent.targetIndex),
+            // Schema-driven copy: prefer schema.ui.confirmText (contract-enforced)
+            currentSchema?.ui?.confirmText
           );
         }
         break;
@@ -519,9 +506,18 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       case 'actionPrompt': {
         // Generic action prompt for all roles (dismiss → wait for seat tap)
+        // Prefer schema-driven prompt (single source of truth). Role copy is last-resort fallback.
+        const schemaPrompt = currentSchema?.ui?.prompt;
+        if (schemaPrompt) {
+          actionDialogs.showRoleActionPrompt('行动提示', schemaPrompt, () => {
+            // dismiss → do nothing, wait for user to tap seat
+          });
+          break;
+        }
+
         const roleInfo = getRoleDisplayInfo(myRole!);
         if (!roleInfo) return;
-        
+
         actionDialogs.showRoleActionPrompt(
           roleInfo.actionTitle,
           roleInfo.actionMessage || '请选择目标',
