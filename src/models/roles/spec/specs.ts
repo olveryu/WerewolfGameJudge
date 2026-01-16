@@ -24,7 +24,6 @@ export const ROLE_SPECS = {
     team: 'good',
     description: '没有特殊能力，依靠推理和投票帮助好人阵营获胜',
     night1: { hasAction: false },
-    ux: {},
   },
 
   // ===================================================================
@@ -37,10 +36,6 @@ export const ROLE_SPECS = {
     team: 'good',
     description: '每晚可以查验一名玩家的身份，获知该玩家是好人还是狼人',
     night1: { hasAction: true },
-    ux: {
-      actionMessage: '请选择查验对象',
-      actionConfirmMessage: '查验',
-    },
   },
 
   witch: {
@@ -52,10 +47,6 @@ export const ROLE_SPECS = {
     night1: { hasAction: true },
     // Night-1-only: "女巫不能自救"规则已在 schema.witchAction.save.constraints=['notSelf'] 中定义
     // 不再使用 flags.canSaveSelf，避免双写漂移
-    ux: {
-      actionMessage: '请选择使用毒药或解药',
-      actionConfirmMessage: '使用',
-    },
   },
 
   hunter: {
@@ -65,10 +56,6 @@ export const ROLE_SPECS = {
     team: 'good',
     description: '被狼人杀害时，可以开枪带走一名玩家。被女巫毒死则不能开枪',
   night1: { hasAction: true },
-    ux: {
-      actionMessage: '请确认你的发动状态',
-      actionConfirmMessage: '确认',
-    },
   },
 
   guard: {
@@ -78,10 +65,6 @@ export const ROLE_SPECS = {
     team: 'good',
     description: '每晚可以守护一名玩家使其不被狼人杀害，但不能连续两晚守护同一人。守卫无法防御女巫的毒药',
   night1: { hasAction: true },
-    ux: {
-      actionMessage: '请选择守护对象',
-      actionConfirmMessage: '守护',
-    },
   },
 
   idiot: {
@@ -91,7 +74,6 @@ export const ROLE_SPECS = {
     team: 'good',
     description: '被投票放逐时可以翻牌免死，但之后不能投票和发动技能',
     night1: { hasAction: false },
-    ux: {},
   },
 
   knight: {
@@ -101,7 +83,6 @@ export const ROLE_SPECS = {
     team: 'good',
     description: '白天可以翻牌与一名玩家决斗，狼人死；若对方是好人，骑士死',
     night1: { hasAction: false },
-    ux: {},
   },
 
   magician: {
@@ -111,10 +92,6 @@ export const ROLE_SPECS = {
     team: 'good',
     description: '每晚在其他所有人之前行动，交换2个人的号码牌，当晚有效',
   night1: { hasAction: true },
-    ux: {
-      actionMessage: '请选择两名交换对象',
-      actionConfirmMessage: '交换',
-    },
   },
 
   witcher: {
@@ -125,7 +102,6 @@ export const ROLE_SPECS = {
     description: '从第二晚开始，每晚可选择一名玩家狩猎。若对方是狼人则次日对方出局，若对方是好人则次日猎魔人出局。女巫毒药对猎魔人无效',
     // Night-1-only scope: witcher starts from night 2, so no night-1 action
     night1: { hasAction: false },
-    ux: {},
   },
 
   psychic: {
@@ -135,10 +111,6 @@ export const ROLE_SPECS = {
     team: 'good',
     description: '每晚可以查验一名玩家的具体身份牌（不只是阵营）',
   night1: { hasAction: true },
-    ux: {
-      actionMessage: '请选择查验对象',
-      actionConfirmMessage: '查验',
-    },
   },
 
   dreamcatcher: {
@@ -149,10 +121,6 @@ export const ROLE_SPECS = {
     team: 'good',
     description: '每晚必须选择一名玩家成为梦游者，梦游者不知道自己正在梦游，且免疫夜间伤害。摄梦人夜间出局则梦游者一并出局，连续两晚成为梦游者也会出局',
   night1: { hasAction: true },
-    ux: {
-      actionMessage: '请选择摄梦对象',
-      actionConfirmMessage: '摄梦',
-    },
   },
 
   graveyardKeeper: {
@@ -163,7 +131,6 @@ export const ROLE_SPECS = {
     description: '每晚可以得知上一个白天被放逐的玩家是好人或狼人',
     // Night-1-only scope: no "last day exile" on first night
     night1: { hasAction: false },
-    ux: {},
   },
 
   // ===================================================================
@@ -177,10 +144,6 @@ export const ROLE_SPECS = {
     description: '每晚与狼队友共同选择一名玩家猎杀',
   night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
-    ux: {
-      actionMessage: '请选择猎杀对象',
-      actionConfirmMessage: '猎杀',
-    },
   },
 
   wolfQueen: {
@@ -191,10 +154,6 @@ export const ROLE_SPECS = {
     description: '每晚参与袭击后可魅惑一名玩家，狼美人白天出局时被魅惑者随之殉情出局。被魅惑者不知情',
   night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
-    ux: {
-      actionMessage: '请选择魅惑对象',
-      actionConfirmMessage: '魅惑',
-    },
   },
 
   wolfKing: {
@@ -206,7 +165,6 @@ export const ROLE_SPECS = {
     // Day ability only, no night action
     night1: { hasAction: false },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
-    ux: {},
   },
 
   darkWolfKing: {
@@ -217,10 +175,6 @@ export const ROLE_SPECS = {
     description: '被刀杀时可以开枪带走一名玩家（狼人版猎人）',
   night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
-    ux: {
-      actionMessage: '请确认你的发动状态',
-      actionConfirmMessage: '确认',
-    },
   },
 
   nightmare: {
@@ -233,10 +187,6 @@ export const ROLE_SPECS = {
     // 狼人刀人阶段：互知+参刀
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
     flags: { blocksSkill: true },
-    ux: {
-      actionMessage: '请选择封锁对象',
-      actionConfirmMessage: '封锁',
-    },
   },
 
   gargoyle: {
@@ -248,10 +198,6 @@ export const ROLE_SPECS = {
   night1: { hasAction: true },
     // 永远不互知不参刀
     wolfMeeting: { canSeeWolves: false, participatesInWolfVote: false },
-    ux: {
-      actionMessage: '请选择查验对象',
-      actionConfirmMessage: '查验',
-    },
   },
 
   bloodMoon: {
@@ -263,7 +209,6 @@ export const ROLE_SPECS = {
     // No night-1 action
     night1: { hasAction: false },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
-    ux: {},
   },
 
   wolfRobot: {
@@ -275,10 +220,6 @@ export const ROLE_SPECS = {
   night1: { hasAction: true },
     // 永远不互知不参刀
     wolfMeeting: { canSeeWolves: false, participatesInWolfVote: false },
-    ux: {
-      actionMessage: '请选择学习对象',
-      actionConfirmMessage: '学习',
-    },
   },
 
   spiritKnight: {
@@ -292,7 +233,6 @@ export const ROLE_SPECS = {
     // 互知+参刀
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
     flags: { immuneToNightDamage: true, reflectsDamage: true },
-    ux: {},
   },
 
   // ===================================================================
@@ -305,10 +245,6 @@ export const ROLE_SPECS = {
     team: 'third',  // Before choosing idol; seer sees "好人" (not "第三方")
     description: '第一晚选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份',
   night1: { hasAction: true },
-    ux: {
-      actionMessage: '请选择你的榜样',
-      actionConfirmMessage: '选择榜样',
-    },
   },
 } as const satisfies Record<string, RoleSpec>;
 

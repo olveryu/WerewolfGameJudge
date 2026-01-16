@@ -21,7 +21,6 @@ describe('ROLE_SPECS contract', () => {
       expect(spec.faction).toBeDefined();
       expect(spec.team).toMatch(/^(wolf|good|third)$/);
       expect(spec.night1).toBeDefined();
-      expect(spec.ux).toBeDefined();
     }
   });
 

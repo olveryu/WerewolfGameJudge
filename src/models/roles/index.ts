@@ -64,6 +64,9 @@ export function isValidRoleName(roleId: string): roleId is RoleName {
 // Display Info (UI-facing helpers)
 // ============================================================
 
+import type { SchemaId } from './spec/schemas';
+import { getSchema } from './spec/schemas';
+
 /**
  * Display information for UI rendering.
  * Derived from RoleSpec - no game logic.
@@ -84,15 +87,36 @@ export function getRoleDisplayInfo(roleId: string): RoleDisplayInfo | undefined 
   if (!isValidRoleId(roleId)) return undefined;
   
   const spec = getRoleSpec(roleId);
-  const ux = spec.ux as { actionMessage?: string; actionConfirmMessage?: string; audioKey: string };
+
+  // Schema-driven default copy for legacy UI surfaces that still consume RoleDisplayInfo.
+  // RoomScreen itself is schema-driven already; this is compatibility glue.
+  const roleToSchemaId: Partial<Record<RoleName, SchemaId>> = {
+    seer: 'seerCheck',
+    witch: 'witchAction',
+    guard: 'guardProtect',
+    magician: 'magicianSwap',
+    psychic: 'psychicCheck',
+    dreamcatcher: 'dreamcatcherDream',
+    wolf: 'wolfKill',
+    wolfQueen: 'wolfQueenCharm',
+    nightmare: 'nightmareBlock',
+    gargoyle: 'gargoyleCheck',
+    wolfRobot: 'wolfRobotLearn',
+    slacker: 'slackerChooseIdol',
+    hunter: 'hunterConfirm',
+    darkWolfKing: 'darkWolfKingConfirm',
+  };
+
+  const schemaId = roleToSchemaId[roleId];
+  const schema = schemaId ? getSchema(schemaId) : undefined;
   
   return {
     displayName: spec.displayName,
     description: spec.description,
     faction: spec.faction,
     actionTitle: `${spec.displayName}请睁眼`,
-    actionMessage: ux.actionMessage ?? `请${spec.displayName}行动`,
-    actionConfirmMessage: ux.actionConfirmMessage ?? '确认',
+    actionMessage: schema?.ui?.prompt ?? `请${spec.displayName}行动`,
+    actionConfirmMessage: schema?.displayName ?? '确认',
   };
 }
 
@@ -245,8 +269,6 @@ export interface RoleDefinition {
   displayName: string;
   type: Faction;
   description: string;
-  actionMessage?: string;
-  actionConfirmMessage?: string;
 }
 
 /**
@@ -256,14 +278,11 @@ function buildRolesRecord(): Record<RoleName, RoleDefinition> {
   const roles: Partial<Record<RoleName, RoleDefinition>> = {};
   for (const id of getAllRoleIds()) {
     const spec = ROLE_SPECS[id];
-    const ux = spec.ux as { actionMessage?: string; actionConfirmMessage?: string };
     roles[id] = {
       name: id,
       displayName: spec.displayName,
       type: spec.faction,
       description: spec.description,
-      actionMessage: ux.actionMessage,
-      actionConfirmMessage: ux.actionConfirmMessage,
     };
   }
   return roles as Record<RoleName, RoleDefinition>;

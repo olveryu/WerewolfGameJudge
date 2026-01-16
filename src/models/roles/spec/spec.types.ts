@@ -38,14 +38,15 @@ export interface RoleFlags {
   readonly reflectsDamage?: boolean;
 }
 
-/** UX configuration for display (audio is in NIGHT_STEPS) */
-export interface RoleUxConfig {
-  /** Action message shown to player */
-  readonly actionMessage?: string;
-  
-  /** Action button text */
-  readonly actionConfirmMessage?: string;
-}
+/**
+ * UX configuration for display.
+ *
+ * Night action prompts/confirm verbs are schema-driven (SCHEMAS[*].ui.*, SCHEMAS[*].displayName).
+ * @deprecated
+ * This layer has been removed in favor of schema-driven UI.
+ * TODO(remove by 2026-03-01): delete this comment block after downstream branches merge.
+ */
+
 
 /**
  * Complete Role Specification
@@ -96,6 +97,4 @@ export interface RoleSpec {
   /** Role-specific flags */
   readonly flags?: RoleFlags;
   
-  /** UX configuration */
-  readonly ux: RoleUxConfig;
 }
