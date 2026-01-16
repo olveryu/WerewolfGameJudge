@@ -56,20 +56,19 @@ jest.mock('../AudioService', () => ({
 
 /**
  * Create a minimal GameTemplate for testing
+ * Phase 5: actionOrder removed, pass roles directly
  */
-function createTestTemplate(actionOrder: RoleName[]): GameTemplate {
-  // Template needs roles array matching actionOrder length + some villagers
-  const roles: RoleName[] = [...actionOrder];
+function createTestTemplate(roles: RoleName[]): GameTemplate {
   // Fill remaining with villagers to make a valid template
-  while (roles.length < 6) {
-    roles.push('villager');
+  const paddedRoles = [...roles];
+  while (paddedRoles.length < 6) {
+    paddedRoles.push('villager');
   }
   
   return {
     name: 'Test Template',
-    roles,
-    numberOfPlayers: roles.length,
-    actionOrder,
+    roles: paddedRoles,
+    numberOfPlayers: paddedRoles.length,
   };
 }
 
@@ -172,19 +171,21 @@ describe('GameStateService NightFlowController Integration', () => {
       expect(nightFlow).not.toBeNull();
     });
 
-    it('should initialize nightFlow with correct actionOrder from template', async () => {
-      // Given: Host in ready state with specific action order
-      const actionOrder: RoleName[] = ['wolf', 'witch', 'seer'];
-      await setupReadyState(service, actionOrder);
+    it('should initialize nightFlow with correct action order from NightPlan', async () => {
+      // Given: Host in ready state with specific roles
+      const roles: RoleName[] = ['wolf', 'witch', 'seer'];
+      await setupReadyState(service, roles);
       
       // When: Start game
       const startPromise = service.startGame();
       await jest.runAllTimersAsync();
       await startPromise;
       
-      // Then: nightFlow.actionOrder should match template
+      // Then: nightFlow.actionOrder should be derived from NightPlan
       const nightFlow = getNightFlow(service);
-      expect(nightFlow.actionOrder).toEqual(actionOrder);
+      // NIGHT_STEPS order: ... -> wolfKill -> wolfQueenCharm -> witchAction -> seerCheck -> ...
+      // For roles [wolf, witch, seer], expected order is [wolf, witch, seer] based on NIGHT_STEPS order
+      expect(nightFlow.actionOrder).toEqual(['wolf', 'witch', 'seer']);
     });
 
     it('should sync currentActionerIndex to 0 after startGame', async () => {

@@ -56,7 +56,6 @@ function createTestTemplate(roles: RoleName[]): GameTemplate {
     name: 'Test Template',
     roles,
     numberOfPlayers: roles.length,
-    actionOrder: ['wolf', 'seer', 'witch'],
   };
 }
 

@@ -1696,9 +1696,10 @@ export class GameStateService {
   private getCurrentActionRole(): RoleName | null {
     if (!this.state) return null;
     const { currentActionerIndex } = this.state;
-    const actionOrder = this.state.template.actionOrder;
-    if (currentActionerIndex >= actionOrder.length) return null;
-    return actionOrder[currentActionerIndex];
+    // Phase 5: actionOrder removed from template, derive from NightPlan
+    const nightPlan = buildNightPlan(this.state.template.roles);
+    if (currentActionerIndex >= nightPlan.steps.length) return null;
+    return nightPlan.steps[currentActionerIndex].roleId;
   }
 
   private async playCurrentRoleAudio(): Promise<void> {

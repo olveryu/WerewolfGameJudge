@@ -31,7 +31,6 @@ describe('Host loopback: PRIVATE_EFFECT for host reveal roles', () => {
       name: 'T',
       numberOfPlayers: 2,
       roles: ['seer', 'villager'],
-      actionOrder: ['seer'],
     });
 
     expect(typeof onHostBroadcast).toBe('function');

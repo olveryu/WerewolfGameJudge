@@ -1,4 +1,4 @@
-import { RoleName, ROLES, isValidRoleName, getActionOrderViaNightPlan } from './roles';
+import { RoleName, isValidRoleName, getRoleSpec } from './roles';
 
 // ---------------------------------------------------------------------------
 // Template validation
@@ -29,23 +29,17 @@ export function validateTemplateRoles(roles: RoleName[]): string | null {
 
 // ---------------------------------------------------------------------------
 
+/**
+ * GameTemplate - defines the player composition for a game.
+ * 
+ * Phase 5: actionOrder has been removed. Night action order is now
+ * derived dynamically from roles via buildNightPlan(roles).
+ */
 export interface GameTemplate {
   name: string;
   numberOfPlayers: number;
   roles: RoleName[];
-  actionOrder: RoleName[];
 }
-
-/**
- * Get action order based on roles in the template.
- * Uses NightPlan-based implementation (new declarative path).
- * 
- * @deprecated Legacy internal function, use getActionOrderViaNightPlan directly
- */
-const getActionOrderForRoles = (roles: RoleName[]): RoleName[] => {
-  // New path: use NightPlan-based implementation
-  return getActionOrderViaNightPlan(roles);
-};
 
 // Create custom template (roles are NOT shuffled here - shuffling happens at "准备看牌")
 export const createCustomTemplate = (roles: RoleName[]): GameTemplate => {
@@ -53,7 +47,6 @@ export const createCustomTemplate = (roles: RoleName[]): GameTemplate => {
     name: '',
     numberOfPlayers: roles.length,
     roles: roles,  // Keep original order, shuffle later when assigning roles
-    actionOrder: getActionOrderForRoles(roles),
   };
 };
 
@@ -62,7 +55,6 @@ export const createTemplateFromRoles = (roles: RoleName[]): GameTemplate => ({
   name: '',
   numberOfPlayers: roles.length,
   roles,
-  actionOrder: getActionOrderForRoles(roles),
 });
 
 // Check if template has skilled wolves
@@ -173,7 +165,7 @@ export const getTemplateRoomInfo = (template: GameTemplate): string => {
   );
   const uniqueSpecialRoles = [...new Set(specialRoles)];
 
-  info += uniqueSpecialRoles.map((r) => ROLES[r].displayName).join(', ');
+  info += uniqueSpecialRoles.map((r) => getRoleSpec(r).displayName).join(', ');
 
   return info;
 };

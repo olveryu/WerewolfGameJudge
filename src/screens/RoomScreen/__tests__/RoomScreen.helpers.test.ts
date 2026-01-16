@@ -312,7 +312,6 @@ describe('toGameRoomLike', () => {
         name: 'Test',
         numberOfPlayers: 6,
         roles: ['villager', 'wolf', 'seer'],
-        actionOrder: ['wolf', 'seer'],
       },
       players: new Map(),
       actions: new Map(),
@@ -346,7 +345,6 @@ describe('buildSeatViewModels', () => {
         name: 'Test',
         numberOfPlayers: 3,
         roles: ['villager', 'wolf', 'seer'] as RoleName[],
-        actionOrder: ['wolf', 'seer'],
       },
       players: new Map([
         [0, { uid: 'p1', seatNumber: 0, displayName: 'Player1', role: 'villager' as RoleName, hasViewedRole: true }],
@@ -387,7 +385,6 @@ describe('buildSeatViewModels', () => {
         name: 'Test',
         numberOfPlayers: 4,
         roles: ['wolf', 'gargoyle', 'wolfRobot', 'seer'] as RoleName[],
-        actionOrder: ['wolf', 'seer'],
       },
       players: new Map([
         [0, { uid: 'p1', seatNumber: 0, displayName: 'Wolf', role: 'wolf' as RoleName, hasViewedRole: true }],
@@ -420,7 +417,6 @@ describe('buildSeatViewModels', () => {
         name: 'Test',
         numberOfPlayers: 2,
         roles: ['wolf', 'villager'] as RoleName[],
-        actionOrder: ['wolf'],
       },
       // Seat 1 is the wolf, but template says seat 0 is wolf.
       players: new Map([

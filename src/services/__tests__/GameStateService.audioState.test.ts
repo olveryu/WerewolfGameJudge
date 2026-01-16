@@ -42,17 +42,16 @@ jest.mock('../AudioService', () => ({
 // Test Helpers
 // =============================================================================
 
-function createTestTemplate(actionOrder: RoleName[]): GameTemplate {
-  const roles: RoleName[] = [...actionOrder];
-  while (roles.length < 6) {
-    roles.push('villager');
+function createTestTemplate(roles: RoleName[]): GameTemplate {
+  const paddedRoles: RoleName[] = [...roles];
+  while (paddedRoles.length < 6) {
+    paddedRoles.push('villager');
   }
   
   return {
     name: 'Test Template',
-    roles,
-    numberOfPlayers: roles.length,
-    actionOrder,
+    roles: paddedRoles,
+    numberOfPlayers: paddedRoles.length,
   };
 }
 

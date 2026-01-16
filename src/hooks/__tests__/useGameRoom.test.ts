@@ -17,11 +17,11 @@ jest.mock('../../services/AuthService');
 jest.mock('../../services/GameStateService');
 
 // Helper to create mock template
+// Phase 5: actionOrder removed from GameTemplate
 const createMockTemplate = (): GameTemplate => ({
   name: 'Test Template',
   roles: ['wolf', 'seer', 'witch', 'villager'] as RoleName[],
   numberOfPlayers: 4,
-  actionOrder: ['wolf', 'seer', 'witch'] as RoleName[],
 });
 
 describe('useGameRoom - Room Number Consistency', () => {
