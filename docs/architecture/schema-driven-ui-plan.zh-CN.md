@@ -278,6 +278,53 @@ type SchemaUi = {
 - 现状问题：RoomScreen 不直接使用 visibility；显示狼队友的逻辑来源分散（useActionerState/Host state/历史分支）
 - 收口方式：PR4（turnVM 暴露 showWolves/actsSolo，UI 单点消费，避免重复推导）
 
+---
+
+## 9. Final cleanup commit：删掉所有 fallback（并且不踩红线）
+
+这部分回答你的问题：**可以**。在最后一个清理 commit 里，我们会把 RoomScreen 体系里“为兼容旧实现而保留的 fallback / legacy 分支”全部删掉，让 UI 100% 以 schema-driven（+必要的 turn state / private inbox）为准。
+
+### 9.1 这里说的“fallback”具体指什么
+
+在本迁移里，fallback 主要是这些：
+
+- UI 文案/编排仍从 `ROLE_SPECS[*].ux.*` 来（例如 `getRoleDisplayInfo(role).actionMessage` / `actionConfirmMessage`），而不是从 schema 驱动。
+- UI 在 `chooseSeat` 下仍 `switch (myRole)` 来决定 intent 类型（seer/psychic/gargoyle/wolfRobot），而不是由 schema 元数据说明“这是哪种 reveal 的等待/ack 流程”。
+- 底部按钮（skip / 空刀 / blocked 等）仍有 role/legacy 特例，而不是一个统一的 schema/turnVM 驱动入口。
+
+### 9.2 不会删的东西（避免误会）
+
+下面这些不是“fallback”，也不属于要删的范围：
+
+- **Host 权威判定与回执**：非法输入由 Host 私信 `ACTION_REJECTED`，UI 只是展示，不会被当成 fallback 删除。
+- **Anti-cheat 私信消费**：seer/psychic/gargoyle/wolfRobot 的 reveal 结果仍只来自 `PrivateBroadcast`（PrivateInbox），不会被 schema/public state 取代。
+- 角色介绍/阵营说明等纯展示字段（不和 schema.ui 重叠的部分）可以继续保留在 role spec。
+
+### 9.3 “可以删 fallback”之前必须满足的门禁（删前准入）
+
+为了避免“删了 fallback 但 schema 没补齐”导致运行时空文案/空按钮/无法操作，最终清理 commit 之前，必须满足：
+
+1) **Contract tests 已覆盖并且全绿**（防 drift）
+  - `NIGHT_STEPS[*].id` 必须全部是有效 `SchemaId`（已存在）。
+  - schema-driven UI 所需要的 `schema.ui.*` 必填字段必须有 contract tests（例如：
+    - `NIGHT_STEPS` 引用的 schema 必须提供非空 `ui.actionMessage`（或等价字段）
+    - chooseSeat/swap/confirm 等 kind 的 confirm 元数据必须齐全）
+
+2) **RoomScreen smoke tests 全绿**（防交互回归）
+  - 至少覆盖：seat tap → intent → 触发 `submitAction/submitWolfVote/submitRevealAck`。
+  - 断言使用稳定标识（schemaId/testID/intent type），不依赖 UI copy。
+
+3) **全仓 Jest 全绿**
+  - 最终清理 commit 必须跑完整测试回归并通过（尤其是 services/night/resolvers + RoomScreen）。
+
+### 9.4 最终清理 commit 会删哪些代码形态
+
+- `RoomScreen` / `useRoomActions` 中所有“schema.ui 缺失时退回 role.ux/hardcode 文案”的分支。
+- `chooseSeat` 下所有基于 `myRole` 的 reveal intent 分支（改为仅依赖 schema 元数据）。
+- 所有底部按钮的 legacy 规则分支：统一改为由 schema/turnVM 驱动，缺字段直接 contract 失败（而不是 runtime fallback）。
+
+> 备注：如果迁移过程中出现“不得不临时保留 fallback”的情况，需要在代码里加 `TODO(remove by YYYY-MM-DD)`，并配套 contract test 防止长期漂移；最终清理 commit 会把这些 TODO 一并清空。
+
 #### C.4 `NIGHT_STEPS.audioKey/audioEndKey`（UI 不展示）
 
 - 现状位置：`src/models/roles/spec/nightSteps.ts`
