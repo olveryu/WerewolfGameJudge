@@ -12,13 +12,21 @@
 import { PRESET_TEMPLATES, createTemplateFromRoles } from '../Template';
 import {
   RoleName,
-  getActionOrderViaNightPlan,
+  buildNightPlan,
   ROLES,
   isValidRoleName,
   hasNightAction,
   isWolfRole,
   Faction,
 } from '../roles';
+
+/**
+ * Helper: Get action order from roles via NightPlan
+ */
+function getActionOrderFromRoles(roles: RoleName[]): RoleName[] {
+  const nightPlan = buildNightPlan(roles);
+  return nightPlan.steps.map(step => step.roleId);
+}
 
 // Helper functions extracted to avoid nesting depth issues
 const countWolves = (roles: RoleName[]): number => roles.filter(r => isWolfRole(r)).length;
@@ -36,6 +44,7 @@ describe('PRESET_TEMPLATES - 数据自洽性', () => {
   PRESET_TEMPLATES.forEach((preset, index) => {
     describe(`模板 ${index + 1}: ${preset.name}`, () => {
       const template = createTemplateFromRoles(preset.roles);
+      const actionOrder = getActionOrderFromRoles(preset.roles);
 
       it('名称应该包含人数且与 roles 数量匹配', () => {
         const regex = /(\d+)人/;
@@ -56,21 +65,21 @@ describe('PRESET_TEMPLATES - 数据自洽性', () => {
 
       it('actionOrder 应该只包含模板中存在的角色', () => {
         const roleSet = new Set(preset.roles);
-        for (const actionRole of template.actionOrder) {
+        for (const actionRole of actionOrder) {
           expect(roleSet.has(actionRole)).toBe(true);
         }
       });
 
       it('actionOrder 中的角色都应该有夜间行动', () => {
-        for (const actionRole of template.actionOrder) {
+        for (const actionRole of actionOrder) {
           expect(hasNightAction(actionRole)).toBe(true);
         }
       });
 
       it('actionOrder 顺序应该符合 NightPlan 定义的顺序', () => {
         // Get the expected order from NightPlan
-        const expectedOrder = getActionOrderViaNightPlan(preset.roles);
-        expect(template.actionOrder).toEqual(expectedOrder);
+        const expectedOrder = getActionOrderFromRoles(preset.roles);
+        expect(actionOrder).toEqual(expectedOrder);
       });
 
       it('应该有合理的阵营分布', () => {

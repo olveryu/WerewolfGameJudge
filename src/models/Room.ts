@@ -1,6 +1,6 @@
 import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from './Player';
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
-import { RoleName, ROLES, isWolfRole } from './roles';
+import { RoleName, ROLES, isWolfRole, buildNightPlan } from './roles';
 import { getSchema, type SchemaId } from './roles/spec';
 import { shuffleArray } from '../utils/shuffle';
 import {
@@ -198,27 +198,29 @@ export const roomFromDb = (
 };
 
 // Get current actioner role
+// Phase 5: actionOrder removed, derive from NightPlan
 export const getCurrentActionRole = (room: GameRoomLike): RoleName | null => {
   const { currentActionerIndex } = room;
-  const actionOrder = room.template.actionOrder;
+  const nightPlan = buildNightPlan(room.template.roles);
 
-  if (currentActionerIndex >= actionOrder.length) {
+  if (currentActionerIndex >= nightPlan.steps.length) {
     return null;
   }
 
-  return actionOrder[currentActionerIndex];
+  return nightPlan.steps[currentActionerIndex].roleId;
 };
 
 // Get last actioner role
+// Phase 5: actionOrder removed, derive from NightPlan
 export const getLastActionRole = (room: GameRoomLike): RoleName | null => {
   const { currentActionerIndex } = room;
-  const actionOrder = room.template.actionOrder;
+  const nightPlan = buildNightPlan(room.template.roles);
 
   if (currentActionerIndex === 0) return null;
 
-  if (currentActionerIndex > actionOrder.length) return null;
+  if (currentActionerIndex > nightPlan.steps.length) return null;
 
-  return actionOrder[currentActionerIndex - 1];
+  return nightPlan.steps[currentActionerIndex - 1].roleId;
 };
 
 // Check if template has skilled wolves
@@ -557,8 +559,11 @@ export const getActionLog = (room: GameRoomLike): string[] => {
   };
   
   // Go through action order to show completed actions
+  // Phase 5: actionOrder removed, derive from NightPlan
+  const nightPlan = buildNightPlan(room.template.roles);
   for (let i = 0; i < room.currentActionerIndex; i++) {
-    const roleName = room.template.actionOrder[i];
+    if (i >= nightPlan.steps.length) continue;
+    const roleName = nightPlan.steps[i].roleId;
     if (!roleName) continue;
     
     const roleInfo = ROLES[roleName];

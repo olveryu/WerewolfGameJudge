@@ -12,7 +12,7 @@ import { SimplifiedRoomService, RoomRecord } from '../services/SimplifiedRoomSer
 import { BroadcastService, type ConnectionStatus } from '../services/BroadcastService';
 import { AuthService } from '../services/AuthService';
 import { GameTemplate } from '../models/Template';
-import { RoleName, isWolfRole } from '../models/roles';
+import { RoleName, isWolfRole, buildNightPlan } from '../models/roles';
 import { RoomStatus } from '../models/Room';
 import { isValidRoleId, getRoleSpec, getSchema, type ActionSchema, type SchemaId, getStepsByRoleStrict } from '../models/roles/spec';
 
@@ -157,13 +157,15 @@ export const useGameRoom = (): UseGameRoomResult => {
   }, [gameState]);
   
   // Current action role - only valid when game is ongoing (night phase)
+  // Phase 5: actionOrder removed from template, now derived from NightPlan
   const currentActionRole = useMemo((): RoleName | null => {
     if (!gameState) return null;
     // Only return action role when game is in progress
     if (gameState.status !== GameStatus.ongoing) return null;
-    const actionOrder = gameState.template.actionOrder;
-    if (gameState.currentActionerIndex >= actionOrder.length) return null;
-    return actionOrder[gameState.currentActionerIndex];
+    // Derive action order dynamically from template.roles via NightPlan
+    const nightPlan = buildNightPlan(gameState.template.roles);
+    if (gameState.currentActionerIndex >= nightPlan.steps.length) return null;
+    return nightPlan.steps[gameState.currentActionerIndex].roleId;
   }, [gameState]);
 
   // Schema-driven UI (Phase 3): derive schemaId from currentActionRole locally

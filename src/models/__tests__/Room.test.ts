@@ -14,19 +14,16 @@ import {
 } from '../Room';
 import { GameTemplate } from '../Template';
 import { Player, PlayerStatus, SkillStatus } from '../Player';
-import { RoleName, getActionOrderViaNightPlan } from '../roles';
+import { RoleName } from '../roles';
 import { isActionTarget, getActionTargetSeat, isActionWitch, isWitchPoison } from '../actions';
 
 // Helper to create a test room with specific roles
+// Phase 5: actionOrder removed from GameTemplate
 const createTestRoom = (roles: RoleName[]): Room => {
-  // Get action order for these roles via NightPlan
-  const actionOrder = getActionOrderViaNightPlan(roles);
-
   const template: GameTemplate = {
     name: 'Test Template',
     roles,
     numberOfPlayers: roles.length,
-    actionOrder,
   };
 
   const room = createRoom('host123', '1234', template);
@@ -490,12 +487,12 @@ describe('updateRoomTemplate', () => {
     expect(room.players.size).toBe(4);
     
     // Create new template with 6 players
+    // Phase 5: actionOrder removed from GameTemplate
     const newRoles: RoleName[] = ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'];
     const newTemplate: GameTemplate = {
       name: 'New Template',
       roles: newRoles,
       numberOfPlayers: 6,
-      actionOrder: getActionOrderViaNightPlan(newRoles),
     };
     
     // Update room template
@@ -538,7 +535,6 @@ describe('updateRoomTemplate', () => {
       name: 'Different Roles',
       roles: newRoles,
       numberOfPlayers: 4,
-      actionOrder: getActionOrderViaNightPlan(newRoles),
     };
     
     const updatedRoom = updateRoomTemplate(seatedRoom, newTemplate);
@@ -564,7 +560,6 @@ describe('updateRoomTemplate', () => {
       name: 'New',
       roles: newRoles,
       numberOfPlayers: 4,
-      actionOrder: [],
     };
     
     const updatedRoom = updateRoomTemplate(room, newTemplate);
@@ -577,12 +572,12 @@ describe('updateRoomTemplate', () => {
 
 describe('Room Status Flow', () => {
   // Helper to create a basic seated room (players joined, no roles assigned)
+  // Phase 5: actionOrder removed from GameTemplate
   const createSeatedRoom = (roles: RoleName[]): Room => {
     const template: GameTemplate = {
       name: 'Test',
       roles,
       numberOfPlayers: roles.length,
-      actionOrder: getActionOrderViaNightPlan(roles),
     };
     
     const room = createRoom('host123', '1234', template);

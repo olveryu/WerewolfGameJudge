@@ -42,12 +42,12 @@ jest.mock('../BroadcastService', () => ({
 }));
 
 // Helper to create a minimal template
+// Phase 5: actionOrder removed from GameTemplate
 function createTestTemplate(roles: RoleName[]) {
   return {
     name: 'Test Template',
     numberOfPlayers: roles.length,
     roles,
-    actionOrder: roles.filter(r => ['wolf', 'seer', 'witch', 'guard'].includes(r)),
   };
 }
 

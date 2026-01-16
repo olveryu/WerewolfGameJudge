@@ -15,7 +15,7 @@
 
 import { GameStateService, GameStatus } from '../GameStateService';
 import { GameTemplate } from '../../models/Template';
-import { RoleName, getActionOrderViaNightPlan } from '../../models/roles';
+import { RoleName, buildNightPlan } from '../../models/roles';
 import { isActionTarget, getActionTargetSeat, makeActionTarget } from '../../models/actions';
 
 // =============================================================================
@@ -70,7 +70,7 @@ jest.mock('../AudioService', () => ({
 
 /**
  * Create a minimal GameTemplate for testing
- * NOTE: actionOrder is now derived from roles via buildNightPlan in startGame()
+ * Phase 5: actionOrder removed from GameTemplate
  * Tests should configure roles to match expected action sequence.
  */
 function createTestTemplate(roles: RoleName[]): GameTemplate {
@@ -80,15 +80,19 @@ function createTestTemplate(roles: RoleName[]): GameTemplate {
     paddedRoles.push('villager');
   }
   
-  // actionOrder is for backward compat reference only - startGame uses buildNightPlan(roles)
-  const actionOrder = getActionOrderViaNightPlan(paddedRoles);
-  
   return {
     name: 'Contract Test Template',
     roles: paddedRoles,
     numberOfPlayers: paddedRoles.length,
-    actionOrder,
   };
+}
+
+/**
+ * Get expected action order from roles via NightPlan
+ */
+function getExpectedActionOrder(roles: RoleName[]): RoleName[] {
+  const nightPlan = buildNightPlan(roles);
+  return nightPlan.steps.map(step => step.roleId);
 }
 
 /**
