@@ -425,8 +425,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleActionIntent = useCallback(async (intent: ActionIntent) => {
     switch (intent.type) {
-      // NOTE: 'blocked' intent removed - nightmare block is now handled by Host (ACTION_REJECTED).
-      // If blocked player submits action, Host will send ACTION_REJECTED private message.
+      case 'blocked':
+        // UX: Show feedback when blocked player taps a seat
+        actionDialogs.showBlockedAlert();
+        break;
 
       case 'magicianFirst':
   setAnotherIndex(intent.targetIndex);
