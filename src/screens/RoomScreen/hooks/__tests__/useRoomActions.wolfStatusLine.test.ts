@@ -1,0 +1,89 @@
+import { renderHook } from '@testing-library/react-native';
+
+import { RoomStatus } from '../../../../models/Room';
+import type { ActionSchema } from '../../../../models/roles/spec';
+import type { LocalGameState } from '../../../../services/types/GameStateTypes';
+import { useRoomActions, type ActionDeps, type GameContext } from '../useRoomActions';
+
+function makeContext(partial: Partial<GameContext>): GameContext {
+  return {
+    gameState: null,
+    roomStatus: RoomStatus.ongoing,
+    currentActionRole: null,
+    currentSchema: null,
+    imActioner: true,
+    mySeatNumber: null,
+    myRole: null,
+    isAudioPlaying: false,
+    isBlockedByNightmare: false,
+    anotherIndex: null,
+    ...partial,
+  };
+}
+
+function makeDeps(partial: Partial<ActionDeps>): ActionDeps {
+  return {
+    hasWolfVoted: () => false,
+    getWolfVoteSummary: () => '1/3 狼人已投票',
+    getWitchContext: () => null,
+    ...partial,
+  };
+}
+
+describe('useRoomActions.getWolfStatusLine (UI-only)', () => {
+  it('returns null when not wolf', () => {
+    const ctx = makeContext({
+      myRole: 'villager',
+      mySeatNumber: 0,
+      currentSchema: { kind: 'wolfVote' } as ActionSchema,
+    });
+    const deps = makeDeps({});
+
+    const { result } = renderHook(() => useRoomActions(ctx, deps));
+    expect(result.current.getWolfStatusLine()).toBeNull();
+  });
+
+  it('returns null when schema is not wolfVote', () => {
+    const ctx = makeContext({
+      myRole: 'wolf',
+      mySeatNumber: 0,
+      currentSchema: { kind: 'chooseSeat' } as ActionSchema,
+    });
+    const deps = makeDeps({});
+
+    const { result } = renderHook(() => useRoomActions(ctx, deps));
+    expect(result.current.getWolfStatusLine()).toBeNull();
+  });
+
+  it('returns only summary when I have not voted yet', () => {
+    const ctx = makeContext({
+      myRole: 'wolf',
+      mySeatNumber: 2,
+      currentSchema: { kind: 'wolfVote' } as ActionSchema,
+      gameState: {} as LocalGameState,
+    });
+    const deps = makeDeps({
+      hasWolfVoted: () => false,
+      getWolfVoteSummary: () => '0/3 狼人已投票',
+    });
+
+    const { result } = renderHook(() => useRoomActions(ctx, deps));
+    expect(result.current.getWolfStatusLine()).toBe('0/3 狼人已投票');
+  });
+
+  it('adds suffix when I have voted (or seat is null)', () => {
+    const ctx = makeContext({
+      myRole: 'wolf',
+      mySeatNumber: 1,
+      currentSchema: { kind: 'wolfVote' } as ActionSchema,
+      gameState: {} as LocalGameState,
+    });
+    const deps = makeDeps({
+      hasWolfVoted: () => true,
+      getWolfVoteSummary: () => '1/3 狼人已投票',
+    });
+
+    const { result } = renderHook(() => useRoomActions(ctx, deps));
+    expect(result.current.getWolfStatusLine()).toBe('1/3 狼人已投票 (你已投票，等待其他狼人)');
+  });
+});

@@ -126,7 +126,6 @@ jest.mock('../useRoomActionDialogs', () => ({
     showWitchPoisonConfirm: jest.fn(),
     showWitchSaveDialog: jest.fn(),
     showWolfVoteDialog: jest.fn(),
-    showStatusDialog: jest.fn(),
     showActionRejectedAlert: jest.fn(),
     showRevealDialog: jest.fn(),
     showRoleActionPrompt: jest.fn(),

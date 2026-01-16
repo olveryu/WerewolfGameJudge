@@ -219,6 +219,38 @@ type SchemaUi = {
 - chooseSeat 的 `canSkip`：已做双保险（RoomScreen + intent 层）
 - confirm/swap/compound/wolfVote：入口已按 `kind` 分流
 
+#### A.1 wolf status line：从 RoomScreen 下沉到 intent 层（已完成）
+
+目的：让 `RoomScreen.tsx` 的“回合提示区”不再包含 wolf 的 role-special-case 拼接，减少 drift 面。
+
+当前约定：
+
+- `ActionDeps.getWolfVoteSummary(): string`
+  - UI-only：返回 wolf 投票摘要字符串（例如 `"1/3 狼人已投票"`）
+  - 由 `RoomScreen.tsx` 负责注入（可基于 `getWolfVoteSummary(toGameRoomLike(gameState))` 计算）
+- `useRoomActions().getWolfStatusLine(): string | null`
+  - UI-only：仅当 `currentSchema.kind === 'wolfVote'` 且自己是狼阵营时返回
+  - 返回值为 vote summary +（可选）`"(你已投票，等待其他狼人)"` 后缀
+
+RoomScreen 的渲染逻辑保持简单：
+
+- `baseMessage` 主源优先来自 `currentSchema.ui.prompt`，role.ux 仅 fallback
+- 如 `getWolfStatusLine()` 非空，则展示：`${baseMessage}\n${wolfStatusLine}`
+
+红线说明：wolfStatusLine 只是 UI 文案，不参与任何合法性裁决；非法投票仍必须由 Host 拒绝并发送 `ACTION_REJECTED` 私信回执。
+
+#### A.2 typed boundary：在不改传输协议的前提下收敛 `extra?: any`（已完成）
+
+背景：`submitAction(targetIndex, extra?: any)` 仍是现有传输协议；为了避免 UI 层 `any` 扩散，RoomScreen 内部使用本地 union 做最小强类型边界。
+
+当前约定：
+
+- `type ActionExtra = { save: boolean } | { poison: boolean }`
+- `buildWitchExtra(opts)`：根据 `currentSchema.id`（`witchSave`/`witchPoison`）生成 payload
+- `proceedWithActionTyped(targetIndex, extra?: ActionExtra)`：统一作为 confirm/skip 的执行入口
+
+说明：这是 UI-side 类型收敛，不改变 Host 权威和协议字段；Host 仍需做 schema-first 校验与 reject 回执。
+
 ### B) ⚠️ 仍有 role-specific 分支（可收敛）
 
 #### B.1 顶部/回合提示文案依赖 role.ux（应迁移到 schema/turnVM）

@@ -128,7 +128,6 @@ jest.mock('../useRoomActionDialogs', () => ({
       mockShowAlert(title, message, [{ text: '好', onPress: onConfirm }]);
     },
     showWolfVoteDialog: jest.fn(),
-    showStatusDialog: jest.fn(),
     showActionRejectedAlert: jest.fn(),
     showRoleActionPrompt: jest.fn(),
     showMagicianFirstAlert: jest.fn(),

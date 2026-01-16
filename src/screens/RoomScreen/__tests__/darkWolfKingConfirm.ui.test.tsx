@@ -113,7 +113,6 @@ jest.mock('../hooks/useActionerState', () => ({
 
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showStatusDialog: jest.fn(),
     showConfirmDialog: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       mockShowAlert(title, message, [
