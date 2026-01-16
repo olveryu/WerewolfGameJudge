@@ -30,9 +30,16 @@ jest.mock('react-native-safe-area-context', () => ({
 const mockSubmitWolfVote = jest.fn();
 const mockRequestSnapshot = jest.fn();
 
+type UseGameRoomReturn = any;
+let mockUseGameRoomImpl: () => UseGameRoomReturn;
+
 
 jest.mock('../../../hooks/useGameRoom', () => ({
-  useGameRoom: () => ({
+  useGameRoom: () => mockUseGameRoomImpl(),
+}));
+
+function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseGameRoomReturn {
+  return {
     // Room data
     gameState: {
       status: 'ongoing',
@@ -51,7 +58,8 @@ jest.mock('../../../hooks/useGameRoom', () => ({
             seatNumber: i,
             displayName: `P${i + 1}`,
             avatarUrl: undefined,
-            role: i === 0 ? 'wolf' : 'villager',
+            // Use a concrete wolf-faction RoleId so isWolfRole() is true.
+            role: i === 0 ? 'wolfQueen' : 'villager',
             hasViewedRole: true,
           },
         ])
@@ -67,27 +75,27 @@ jest.mock('../../../hooks/useGameRoom', () => ({
       roomCode: '1234',
     },
 
-  // Connection
-  connectionStatus: 'live',
+    // Connection
+    connectionStatus: 'live',
 
-  // Host/role/step info used by RoomScreen
-  isHost: false,
-  roomStatus: require('../../../models/Room').RoomStatus.ongoing,
-  // Make this client the current actioner so seat taps route to handleActionTap
-  currentActionRole: 'wolf',
-  currentSchema: ((): any => {
-    const { getSchema } = require('../../../models/roles/spec/schemas');
-    return getSchema('wolfKill');
-  })(),
-  isAudioPlaying: false,
+    // Host/role/step info used by RoomScreen
+    isHost: false,
+    roomStatus: require('../../../models/Room').RoomStatus.ongoing,
+    // Make this client the current actioner so seat taps route to handleActionTap
+    currentActionRole: 'wolf',
+    currentSchema: (() => {
+      const { getSchema } = require('../../../models/roles/spec/schemas');
+      return getSchema('wolfKill');
+    })(),
+    isAudioPlaying: false,
 
     // Identity
     mySeatNumber: 0,
-    myRole: 'wolf',
+  myRole: 'wolfQueen',
 
-  // Actions used by RoomScreen
-  createRoom: jest.fn(),
-  joinRoom: jest.fn().mockResolvedValue(true),
+    // Actions used by RoomScreen
+    createRoom: jest.fn(),
+    joinRoom: jest.fn().mockResolvedValue(true),
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
     assignRoles: jest.fn(),
@@ -99,9 +107,9 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     requestSnapshot: mockRequestSnapshot,
     viewedRole: jest.fn(),
 
-  // Error plumbing
-  lastSeatError: null,
-  clearLastSeatError: jest.fn(),
+    // Error plumbing
+    lastSeatError: null,
+    clearLastSeatError: jest.fn(),
 
     // Reject-first plumbing
     waitForActionRejected: jest.fn().mockResolvedValue(null),
@@ -117,8 +125,9 @@ jest.mock('../../../hooks/useGameRoom', () => ({
   waitForGargoyleReveal: jest.fn(),
   waitForWolfRobotReveal: jest.fn(),
   submitRevealAck: jest.fn(),
-  }),
-}));
+    ...overrides,
+  };
+}
 
 // Avoid host dialogs complexity
 jest.mock('../useRoomHostDialogs', () => ({
@@ -187,6 +196,7 @@ jest.mock('../useRoomActionDialogs', () => ({
 describe('RoomScreen wolf vote UI', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
   });
 
   it('wolf vote dialog -> confirm triggers submitWolfVote', () => {
@@ -247,5 +257,69 @@ describe('RoomScreen wolf vote UI', () => {
   expect(confirmBtn).toBeDefined();
   confirmBtn?.onPress?.();
   expect(mockSubmitWolfVote).toHaveBeenCalledWith(2);
+  });
+
+  it('forbidden target role should be disabled in UI (no vote sent, show hint)', async () => {
+    // Commit 5 (UX-only): wolves should not be able to vote for forbidden target roles.
+    // Host already enforces this via ACTION_REJECTED; UI adds early disable/hint.
+
+  // Override just the players map: seat 3 (index 2) is spiritKnight, which is forbidden by meeting vote config.
+  mockUseGameRoomImpl = () => {
+      const base = makeBaseUseGameRoomReturn();
+      const players = new Map(base.gameState.players);
+  const target = players.get(2);
+      players.set(2, {
+        ...(target ?? {
+          uid: 'p2',
+          seatNumber: 2,
+          displayName: 'P3',
+          avatarUrl: undefined,
+          role: 'villager',
+          hasViewedRole: true,
+        }),
+  role: 'spiritKnight',
+      });
+      return makeBaseUseGameRoomReturn({
+        gameState: {
+          ...base.gameState,
+          players,
+        },
+        currentSchema: (() => {
+          const { getSchema } = require('../../../models/roles/spec/schemas');
+          return getSchema('wolfKill');
+        })(),
+      });
+    };
+
+    const props: any = {
+      navigation: mockNavigation,
+      route: {
+        params: {
+          roomNumber: '1234',
+          isHost: false,
+          template: '梦魇守卫12人',
+        },
+      },
+    };
+
+  const { findByTestId, findByText } = render(<RoomScreen {...props} />);
+  await findByText(/请选择要猎杀的玩家/);
+
+  // Ignore any alerts from initial render/auto intent.
+  (showAlert as jest.Mock).mockClear();
+
+    // Tap seat 3 (index 2) -> spiritKnight (forbidden target role)
+    const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
+    await act(async () => {
+      fireEvent.press(seatPressable);
+    });
+
+    expect(showAlert).toHaveBeenCalledWith('不可选择', expect.any(String), expect.any(Array));
+
+    const titles = (showAlert as jest.Mock).mock.calls.map((c) => c[0]);
+    expect(titles).not.toContain('狼人投票');
+
+    // Never sends vote
+    expect(mockSubmitWolfVote).not.toHaveBeenCalled();
   });
 });

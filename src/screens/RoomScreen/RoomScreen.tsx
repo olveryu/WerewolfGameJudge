@@ -131,8 +131,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Build seat view models for PlayerGrid
   const seatViewModels = useMemo(() => {
     if (!gameState) return [];
-    return buildSeatViewModels(gameState, mySeatNumber, showWolves, anotherIndex);
-  }, [gameState, mySeatNumber, showWolves, anotherIndex]);
+    return buildSeatViewModels(gameState, mySeatNumber, showWolves, anotherIndex, {
+      // Commit 5 (UX-only): meeting vote restrictions apply during the wolf-meeting vote,
+      // and this codebase currently models that voting step as the wolfKill schema.
+      // Neutral-judge red line is enforced host-side; UI-disable here is UX-only.
+      enableWolfVoteRestrictions:
+        currentSchema?.kind === 'wolfVote' && currentSchema?.id === 'wolfKill',
+    });
+  }, [gameState, mySeatNumber, showWolves, anotherIndex, currentSchema?.kind, currentSchema?.id]);
 
   // Calculate role statistics using helper
   const { roleCounts, wolfRoles, godRoles, specialRoles, villagerCount } = useMemo(() => {
@@ -486,7 +492,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           if (currentSchema.id === 'witchPoison') extra = { poison: false };
         }
         actionDialogs.showConfirmDialog(
-          (currentSchema?.ui?.confirmTitle || '确认跳过'),
+          '确认跳过',
           intent.message || '确定不发动技能吗？',
           () => void proceedWithAction(null, extra)
         );
