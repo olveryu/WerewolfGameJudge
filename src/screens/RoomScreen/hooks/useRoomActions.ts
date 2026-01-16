@@ -26,11 +26,8 @@ export type ActionIntentType =
   // Block
   | 'blocked'              // Nightmare blocked
   
-  // Reveal (RoomScreen calculates result)
-  | 'seerReveal'           // Seer check
-  | 'psychicReveal'        // Psychic check
-  | 'gargoyleReveal'       // Gargoyle check
-  | 'wolfRobotReveal'      // Wolf Robot learn identity
+  // Reveal (ANTI-CHEAT: RoomScreen only waits for private reveal + sends ack)
+  | 'reveal'
   
   // Witch (schema-driven)
   
@@ -51,6 +48,7 @@ export interface ActionIntent {
   
   // Optional fields (based on type)
   wolfSeat?: number;           // for wolfVote
+  revealKind?: RevealKind;      // for reveal
   message?: string;            // for actionConfirm
   
 }
@@ -174,15 +172,8 @@ function deriveConfirmIntent(ctx: IntentContext): ActionIntent {
 function deriveChooseSeatIntent(ctx: IntentContext): ActionIntent {
   const { uiRevealKind, index, buildMessage } = ctx;
 
-  const revealIntentTypeByKind: Record<RevealKind, ActionIntentType> = {
-    seer: 'seerReveal',
-    psychic: 'psychicReveal',
-    gargoyle: 'gargoyleReveal',
-    wolfRobot: 'wolfRobotReveal',
-  };
-
   if (uiRevealKind) {
-    return { type: revealIntentTypeByKind[uiRevealKind], targetIndex: index };
+  return { type: 'reveal', revealKind: uiRevealKind, targetIndex: index };
   }
   return { type: 'actionConfirm', targetIndex: index, message: buildMessage(index) };
 }
@@ -256,14 +247,23 @@ export function useRoomActions(
     (index: number): string => {
       const confirmText = currentSchema?.ui?.confirmText;
 
+      // Contract: chooseSeat schemas must provide schema.ui.confirmText.
+      // We still keep a tiny final fallback here to avoid crashing in dev if a schema is incomplete.
+      // (UI copy should not quietly drift away from schema-driven source of truth.)
+      const fallback = '确认操作？';
+
+      if (confirmText) {
+        return confirmText;
+      }
+
       if (index === -1) {
         // Skip confirm
-        return confirmText || '确定不发动技能吗？';
+        return fallback;
       }
       if (anotherIndex === null) {
-        return confirmText || `确定对${index + 1}号玩家使用技能?`;
+        return fallback;
       }
-      return confirmText || `确定对${index + 1}号和${anotherIndex + 1}号玩家使用技能?`;
+      return fallback;
     },
     [anotherIndex, currentSchema]
   );

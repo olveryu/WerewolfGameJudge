@@ -169,12 +169,13 @@ jest.mock('../hooks/useActionerState', () => ({
 // (seat tap -> intent -> showWolfVoteDialog).
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showWolfVoteDialog: (wolfName: string, targetIndex: number, onConfirm: () => void) => {
+    showWolfVoteDialog: (wolfName: string, targetIndex: number, onConfirm: () => void, messageOverride?: string) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       const msg =
-        targetIndex === -1
+        messageOverride ||
+        (targetIndex === -1
           ? `${wolfName} 确定投票空刀吗？`
-          : `${wolfName} 确定要猎杀${targetIndex + 1}号玩家吗？`;
+          : `${wolfName} 确定要猎杀${targetIndex + 1}号玩家吗？`);
 
       mockShowAlert('狼人投票', msg, [
         { text: '确定', onPress: onConfirm },
@@ -246,7 +247,7 @@ describe('RoomScreen wolf vote UI', () => {
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
         '狼人投票',
-        expect.stringContaining('确定要猎杀3号玩家吗？'),
+  expect.stringContaining('确定要猎杀该玩家吗？'),
         expect.any(Array)
       );
     });
