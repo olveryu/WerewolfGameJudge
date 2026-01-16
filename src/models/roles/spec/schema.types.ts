@@ -65,26 +65,27 @@ export interface WolfVoteSchema extends BaseActionSchema {
   readonly forbiddenTargetRoleIds?: readonly RoleId[];
 }
 
+/**
+ * Inline sub-step schema for compound actions.
+ * 
+ * This is a self-contained ChooseSeat-like schema embedded within a compound action.
+ * Not a top-level SchemaId - only exists inside CompoundSchema.steps.
+ */
+export interface InlineSubStepSchema {
+  /** Internal key (not a SchemaId) */
+  readonly key: string;
+  readonly displayName: string;
+  readonly kind: 'chooseSeat';
+  readonly constraints: readonly TargetConstraint[];
+  readonly canSkip: boolean;
+  readonly ui?: SchemaUi;
+}
+
 /** Compound action (e.g., witch: save OR poison) */
 export interface CompoundSchema extends BaseActionSchema {
   readonly kind: 'compound';
-  readonly steps: readonly CompoundStep[];
-}
-
-export interface CompoundStep {
-  /** Migration: prefer schemaId-driven steps; will remove legacy per-step fields later. */
-  readonly stepSchemaId: string;
-
-  /** @deprecated TODO(remove by 2026-03-01) */
-  readonly stepId?: string;
-  /** @deprecated TODO(remove by 2026-03-01) */
-  readonly displayName?: string;
-  /** @deprecated TODO(remove by 2026-03-01) */
-  readonly kind?: 'chooseSeat' | 'skip';
-  /** @deprecated TODO(remove by 2026-03-01) */
-  readonly constraints?: readonly TargetConstraint[];
-  /** @deprecated TODO(remove by 2026-03-01) */
-  readonly canSkip?: boolean;
+  /** Inline sub-steps (each is a self-contained action definition) */
+  readonly steps: readonly InlineSubStepSchema[];
 }
 
 /** Swap two players (magician) */

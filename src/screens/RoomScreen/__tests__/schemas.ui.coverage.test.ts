@@ -18,15 +18,18 @@ describe('RoomScreen schema ui coverage (contract)', () => {
 
       if (schema.kind === 'compound') {
         // Compound schema doesn't go through the normal confirm flow.
-        // It must have prompt and stepSchemaIds.
+        // It must have prompt and inline sub-steps.
         expect(typeof schema.ui?.prompt).toBe('string');
         expect(schema.ui?.prompt.length).toBeGreaterThan(0);
         expect(Array.isArray(schema.steps)).toBe(true);
         expect(schema.steps.length).toBeGreaterThan(0);
         for (const step of schema.steps) {
-          // Ensure steps reference valid schema IDs.
-          expect(typeof step.stepSchemaId).toBe('string');
-          expect(step.stepSchemaId.length).toBeGreaterThan(0);
+          // Ensure each sub-step has required fields (key, kind, ui).
+          expect(typeof step.key).toBe('string');
+          expect(step.key.length).toBeGreaterThan(0);
+          expect(step.kind).toBe('chooseSeat');
+          expect(step.ui).toBeDefined();
+          expect(typeof step.ui?.prompt).toBe('string');
         }
         continue;
       }

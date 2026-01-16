@@ -52,11 +52,10 @@ export interface ActionIntent {
   message?: string;            // for actionConfirm
 
   /**
-   * For compound schemas (e.g. witchAction), the UI may still be on the compound schema.
-   * This field tells RoomScreen which step schema should be treated as the active step for
-   * confirm copy + payload derivation.
+   * For compound schemas (e.g. witchAction), this is the key of the active sub-step
+   * (e.g., 'save' or 'poison' for witch). Used by RoomScreen to derive confirm copy + payload.
    */
-  stepSchemaId?: SchemaId;
+  stepKey?: string;
   
 }
 
@@ -139,6 +138,8 @@ interface IntentContext {
   isWolf: boolean;
   wolfSeat: number | null;
   buildMessage: (idx: number) => string;
+  /** Witch phase from witchContext (for compound schema sub-step selection) */
+  witchPhase?: 'save' | 'poison' | null;
 }
 
 /**
@@ -150,12 +151,24 @@ export function deriveSkipIntentFromSchema(
   currentSchema: ActionSchema | null | undefined,
   buildMessage: (idx: number) => string,
   isWolf: boolean,
-  wolfSeat: number | null
+  wolfSeat: number | null,
+  witchPhase?: 'save' | 'poison' | null
 ): ActionIntent | null {
   // chooseSeat schemas: only allow generic skip when schema allows skipping
   if (currentSchema?.kind === 'chooseSeat') {
     if (currentSchema.canSkip) {
       return { type: 'skip', targetIndex: -1, message: buildMessage(-1) };
+    }
+    return null;
+  }
+
+  // compound schema (witch): use witchPhase to determine which sub-step
+  if (currentSchema?.kind === 'compound' && currentSchema.steps?.length) {
+    // Determine step index: 'poison' → step[1], otherwise step[0] (save)
+    const stepIndex = witchPhase === 'poison' ? 1 : 0;
+    const step = currentSchema.steps[stepIndex] ?? currentSchema.steps[0];
+    if (step?.kind === 'chooseSeat' && step.canSkip) {
+      return { type: 'skip', targetIndex: -1, message: buildMessage(-1), stepKey: step.key };
     }
     return null;
   }
@@ -190,7 +203,7 @@ function deriveChooseSeatIntent(ctx: IntentContext): ActionIntent {
  * Uses focused sub-helpers to keep each branch simple.
  */
 function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
-  const { schemaKind, index, anotherIndex, isWolf, wolfSeat } = ctx;
+  const { schemaKind, index, anotherIndex, isWolf, wolfSeat, witchPhase } = ctx;
 
   switch (schemaKind) {
     case 'confirm':
@@ -199,13 +212,15 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
       return anotherIndex === null ? { type: 'magicianFirst', targetIndex: index } : null;
     case 'compound':
       // Compound (witchAction): seat tap should behave like a step chooseSeat schema, driven by
-      // the compound.steps table. We attach stepSchemaId so RoomScreen can derive copy/payload.
+      // the compound.steps table. We attach stepKey so RoomScreen can derive copy/payload.
+      // Use witchPhase to determine which sub-step: 'poison' → step[1], otherwise step[0] (save)
       if (ctx.schemaId && isValidSchemaId(ctx.schemaId)) {
         const compound = (SCHEMAS as Record<string, ActionSchema>)[ctx.schemaId];
-        if (compound && compound.kind === 'compound') {
-          const step0 = compound.steps?.[0]?.stepSchemaId;
-          if (step0 && isValidSchemaId(step0)) {
-            return { type: 'actionConfirm', targetIndex: index, message: ctx.buildMessage(index), stepSchemaId: step0 };
+        if (compound?.kind === 'compound') {
+          const stepIndex = witchPhase === 'poison' ? 1 : 0;
+          const step = compound.steps?.[stepIndex] ?? compound.steps?.[0];
+          if (step) {
+            return { type: 'actionConfirm', targetIndex: index, message: ctx.buildMessage(index), stepKey: step.key };
           }
         }
       }
@@ -353,9 +368,20 @@ export function useRoomActions(
       return { visible: true, label: currentSchema.ui?.bottomActionText || '不使用技能' };
     }
 
-    // compound/confirm/skip: no generic bottom action
+    // compound: use witchPhase to determine which sub-step's skip button to show
+    if (currentSchema.kind === 'compound' && currentSchema.steps?.length) {
+      const witchCtx = getWitchContext();
+      const witchPhase = witchCtx?.phase ?? 'save';
+      const stepIndex = witchPhase === 'poison' ? 1 : 0;
+      const step = currentSchema.steps[stepIndex] ?? currentSchema.steps[0];
+      if (step?.kind === 'chooseSeat' && step.canSkip) {
+        return { visible: true, label: step.ui?.bottomActionText || '不使用技能' };
+      }
+    }
+
+    // confirm/skip: no generic bottom action
     return { visible: false, label: '' };
-  }, [gameState, roomStatus, currentSchema, imActioner, isAudioPlaying, isBlockedByNightmare]);
+  }, [gameState, roomStatus, currentSchema, imActioner, isAudioPlaying, isBlockedByNightmare, getWitchContext]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Auto-trigger intent (for roles that popup on turn start)
@@ -398,6 +424,10 @@ export function useRoomActions(
     // NOTE: Nightmare block is now handled by Host (ACTION_REJECTED).
     // Do NOT check isBlockedByNightmare here - let the action go to Host for validation.
 
+    // Get witch phase for compound schema sub-step selection
+    const witchCtx = getWitchContext();
+    const witchPhase = witchCtx?.phase ?? null;
+
     // Delegate to pure helper for schema-driven intent derivation
     const schemaIntent = deriveIntentFromSchema({
       myRole,
@@ -412,6 +442,7 @@ export function useRoomActions(
       isWolf: isWolfRole(myRole),
       wolfSeat: findVotingWolfSeat(),
       buildMessage: (idx) => buildActionMessage(idx),
+      witchPhase,
     });
 
     if (schemaIntent) return schemaIntent;
@@ -425,6 +456,7 @@ export function useRoomActions(
     anotherIndex,
     findVotingWolfSeat,
     buildActionMessage,
+    getWitchContext,
   ]);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -437,14 +469,17 @@ export function useRoomActions(
 
     const isWolf = isWolfRole(myRole);
     const wolfSeat = findVotingWolfSeat();
+    const witchCtx = getWitchContext();
+    const witchPhase = witchCtx?.phase ?? null;
     return deriveSkipIntentFromSchema(
       myRole,
       currentSchema,
   (idx) => buildActionMessage(idx),
       isWolf,
-      wolfSeat
+      wolfSeat,
+      witchPhase
     );
-  }, [myRole, currentSchema, findVotingWolfSeat, buildActionMessage]);
+  }, [myRole, currentSchema, findVotingWolfSeat, buildActionMessage, getWitchContext]);
 
   return {
     getActionIntent,

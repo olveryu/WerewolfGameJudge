@@ -86,8 +86,6 @@ const schemaToRole: Record<string, string> = {
   dreamcatcherDream: 'dreamcatcher',
   magicianSwap: 'magician',
   hunterConfirm: 'hunter',
-  witchSave: 'witch',
-  witchPoison: 'witch',
   witchAction: 'witch',
 
   // wolf
@@ -117,12 +115,12 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
 
   for (const schemaId of getAllSchemaIds()) {
     it(`renders schema: ${schemaId}`, async () => {
-  const schema = getSchema(schemaId);
+      const schema = getSchema(schemaId);
       const role = roleForSchemaId(schemaId);
 
       // Some schemas require extra hook data to avoid hitting code paths that assume it.
       const overrides: any = {};
-      if (schemaId === 'witchAction' || schemaId === 'witchSave' || schemaId === 'witchPoison') {
+      if (schemaId === 'witchAction') {
         overrides.getWitchContext = jest.fn().mockReturnValue({
           kind: 'WITCH_CONTEXT',
           killedIndex: 2,
