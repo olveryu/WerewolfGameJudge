@@ -2,7 +2,15 @@
 
 > 目标：把仓库里所有标注为 **legacy / backward compat / deprecated** 的结构与 API 全部清掉，让 **NightPlan(NIGHT_STEPS + SCHEMAS)** 成为唯一权威；Host 仍是唯一裁判（Supabase 只做传输/发现/身份）。
 >
-> 本文是“怎么删干净”的方案，不是一次性 PR；会拆成多个小 PR，每个 PR 都必须：Typecheck + Jest 全绿。
+> 本文是“怎么删干净”的方案。
+>
+> **执行方式（按你的要求）**：
+> - 只开 **1 个迁移分支**（例如 `phase5-remove-legacy`）
+> - 按下面的 **STEP-1 ~ STEP-8** 逐步推进
+> - **每个 STEP 做 1 个 commit（共 8 个 commit）**
+> - 最后把分支合回 `main`
+>
+> 质量门禁不变：每个 STEP 完成后建议跑 `npm run test`，最终合并前必须 **Typecheck + Jest 全绿**。
 
 ---
 
@@ -10,7 +18,7 @@
 
 - [x] **scan 完所有 legacy / deprecated**（基于全仓库关键词：`legacy|backward compat|deprecated|compatibility` + 关键符号：`RoleName/ROLES/actionOrder/RoomStatus/...`）。
 - [x] **写 1 个中文 doc**，给出“全部干掉”的落地方案。
-- [ ] **真正落地代码删除**：按本文分 PR 推进（下一步我可以直接开干）。
+- [ ] **真正落地代码删除**：在同一分支按 STEP 推进，每个 STEP 一个 commit（共 8 个 commit）。
 
 ---
 
@@ -123,12 +131,13 @@
 
 ---
 
-## 3）分 PR 执行路线（每步都能绿）
+## 3）执行步骤（同一分支，8 个 commit）
 
-> 为什么要分：你要求“删干净”，但这些 legacy 贯穿 types/tests/ui/service。切成可验证的 PR 才不会大爆炸。
+> 为什么要分 STEP：你要求“删干净”，但这些 legacy 贯穿 types/tests/ui/service。
+> 我们不拆成多个 PR，但依然把工程改动拆成 8 个可验证步骤（每步一个 commit），避免一次提交爆炸。
 
 
-### PR-1：去掉 `Template.actionOrder`（最关键的“第二真相”）
+### STEP-1：去掉 `Template.actionOrder`（最关键的“第二真相”）
 
 **目标：**`GameTemplate` 只保留 `roles`，夜晚顺序实时从 `buildNightPlan(roles)` 推导。
 
@@ -147,7 +156,7 @@
 - 验证：Jest 全绿 + 增加 contract test：`GameTemplate` 不允许有 `actionOrder`
 
 
-### PR-2：NightFlowController 移除 `_actionOrder` & 面向 step 驱动
+### STEP-2：NightFlowController 移除 `_actionOrder` & 面向 step 驱动
 
 **目标：**NightFlow state machine 只认识 `NightPlanStep`，不再公开 `actionOrder/currentRole(RoleName)`。
 
@@ -162,7 +171,7 @@
 - 验证：现有 nightFlow contract tests + boards integration tests
 
 
-### PR-3：干掉 RoleName（统一 RoleId）
+### STEP-3：干掉 RoleName（统一 RoleId）
 
 **目标：**工程内只存在 `RoleId`（来自 `ROLE_SPECS` key），不再有 `RoleName` alias。
 
@@ -180,7 +189,7 @@
 - 验证：Typecheck + Jest
 
 
-### PR-4：干掉 ROLES record + getRoleDisplayInfo（compat glue）
+### STEP-4：干掉 ROLES record + getRoleDisplayInfo（compat glue）
 
 **目标：**roles facade 不再提供“旧 UI 面向 display info” 的 API；UI 只使用 schema/spec。
 
@@ -192,12 +201,12 @@
   - 角色百科/展示：`getRoleSpec(roleId)`（displayName/description/team/faction）
   - 行动提示：`getSchema(schemaId).ui.*` + `NIGHT_STEPS`
 
-- 额外顺带：`src/models/Template.ts:getTemplateRoomInfo()` 必须已在 PR-1 去掉 ROLES，否则这里会卡死。
+- 额外顺带：`src/models/Template.ts:getTemplateRoomInfo()` 必须已在 STEP-1 去掉 ROLES，否则这里会卡死。
 
 - 验证：Jest + contract test：禁止 `src/models/roles/index.ts` 出现 `ROLES|getRoleDisplayInfo|RoleName`
 
 
-### PR-5：消灭 GameStatus→RoomStatus numeric 映射（协议层 legacy）
+### STEP-5：消灭 GameStatus→RoomStatus numeric 映射（协议层 legacy）
 
 **目标：**UI/state 只消费 `GameStatus`（string enum）或新的 `RoomStatus`（非 number）。
 
@@ -217,7 +226,7 @@
 - 验证：Jest + UI smoke tests（你现在的 per-schema smoke suite 可以帮我们防回归）
 
 
-### PR-6：清理 spec 层 migration-only deprecated 字段（remove by 2026-03-01）
+### STEP-6：清理 spec 层 migration-only deprecated 字段（remove by 2026-03-01）
 
 **目标：**spec/types 里所有 `@deprecated TODO(remove by 2026-03-01)` 字段全部删除，并通过 contract test 锁死。
 
@@ -236,13 +245,13 @@
   - 新增 contract：`NightPlanStep` 只允许 `{ roleId, schemaId, audioKey, ... }`（以当前最终设计为准）
 
 
-### PR-7：清理 AudioService 的 @deprecated
+### STEP-7：清理 AudioService 的 @deprecated
 
 - 删除旧方法（如 `playAudioFile`）或改为 private，更新调用点到 `safePlayAudioFile`
 - 验证：`AudioService.test.ts` 全绿
 
 
-### PR-8（收尾）：删除 services/types 的 legacy re-export & repo 级“禁回归”护栏
+### STEP-8（收尾）：删除 services/types 的 legacy re-export & repo 级“禁回归”护栏
 
 - 修改：`src/services/types/index.ts`
   - 移除 `export * from './GameStateTypes'`
@@ -262,7 +271,7 @@
 
 ## 5）验证与回滚策略
 
-- 每个 PR：
+- 每个 STEP：
   - Typecheck（TS）
   - Jest（全量）
 - 任一步出现大面积失败：
@@ -273,7 +282,7 @@
 
 ## 6）下一步我能直接做什么（不需要你再拆任务）
 
-你如果点头，我建议我直接从 **PR-1（删 Template.actionOrder）** 开始落地：
+你如果点头，我建议我直接从 **STEP-1（删 Template.actionOrder）** 开始落地：
 
 - 修改 `Template.ts` + 相关 tests 工厂
 - 把 `useGameRoom.ts` 中 `currentActionRole` 从 `actionOrder` 改为 schema/step 推导
