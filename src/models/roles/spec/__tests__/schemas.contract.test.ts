@@ -95,6 +95,40 @@ describe('SCHEMAS contract', () => {
       // All 14 schemas should be referenced
       expect(referencedSchemaIds.size).toBe(14);
     });
+
+    it('every NIGHT_STEPS schema should provide schema.ui.prompt (schema-driven UI contract)', () => {
+      // Commit 1 gate: RoomScreen prompt text should be primarily schema-driven.
+      for (const step of NIGHT_STEPS) {
+        const schema = SCHEMAS[step.id];
+        expect(schema.ui?.prompt).toBeTruthy();
+        expect(typeof schema.ui?.prompt).toBe('string');
+      }
+    });
+  });
+
+  describe('schema.ui contract (RoomScreen orchestration)', () => {
+    it('chooseSeat schemas should provide schema.ui.confirmText', () => {
+      for (const schema of Object.values(SCHEMAS)) {
+        if (schema.kind !== 'chooseSeat') continue;
+        expect(schema.ui?.confirmText).toBeTruthy();
+        expect(typeof schema.ui?.confirmText).toBe('string');
+      }
+    });
+
+    it('schema.ui.revealKind is only allowed on chooseSeat schemas', () => {
+      for (const schema of Object.values(SCHEMAS)) {
+  if (!schema.ui) continue;
+  if (!('revealKind' in schema.ui)) continue;
+  if (!schema.ui.revealKind) continue;
+  expect(schema.kind).toBe('chooseSeat');
+      }
+    });
+
+    it('wolfVote schema should provide schema.ui.emptyVoteText', () => {
+      // Commit 1: text is schema-driven even if behavior stays the same for now.
+      expect(SCHEMAS.wolfKill.kind).toBe('wolfVote');
+      expect(SCHEMAS.wolfKill.ui?.emptyVoteText).toBeTruthy();
+    });
   });
 
   describe('helper functions', () => {
