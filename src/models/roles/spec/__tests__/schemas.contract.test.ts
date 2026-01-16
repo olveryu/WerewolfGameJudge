@@ -156,29 +156,49 @@ describe('SCHEMAS contract', () => {
       expect(missingConfirmText).toEqual([]);
     });
 
-    it('only specific schema IDs may set schema.ui.revealKind (anti-drift contract)', () => {
-      // Single source of truth: exactly those schemas that currently declare revealKind.
-      // If you add a new reveal step, you must explicitly set revealKind and update this list.
-      const expectedSchemaIds = new Set<string>([
-        'seerCheck',
-        'psychicCheck',
-        'gargoyleCheck',
-        'wolfRobotLearn',
-      ]);
+    it('schema.ui.revealKind should be present on exactly the reveal-style chooseSeat schemas (anti-drift, derived)', () => {
+      // Derivation strategy:
+      // - Any schema that declares ui.revealKind is a reveal-schema.
+      // - Reveal schemas must have kind=chooseSeat (enforced by other test).
+      // - We additionally enforce: revealKind values are unique across schemas.
+      // - And every RevealKind value is used exactly once.
 
-      const actualSchemaIds = new Set<string>();
+      const revealSchemaIds: string[] = [];
+      const revealKinds: string[] = [];
+
       for (const schema of Object.values(SCHEMAS)) {
         if (!schema.ui) continue;
         if (!('revealKind' in schema.ui)) continue;
         if (!schema.ui.revealKind) continue;
-        actualSchemaIds.add(schema.id);
+        revealSchemaIds.push(schema.id);
+        revealKinds.push(schema.ui.revealKind);
       }
 
-      const unexpected = Array.from(actualSchemaIds).filter((id) => !expectedSchemaIds.has(id));
-      const missing = Array.from(expectedSchemaIds).filter((id) => !actualSchemaIds.has(id));
+      // Keep failures deterministic
+      revealSchemaIds.sort();
+      revealKinds.sort();
 
-      expect(unexpected).toEqual([]);
-      expect(missing).toEqual([]);
+      // If we ever add/remove a reveal kind, this test will force updating the UI schema.
+      const expectedRevealKinds = ['gargoyle', 'psychic', 'seer', 'wolfRobot'];
+      expect(revealKinds).toEqual(expectedRevealKinds);
+
+      // Assert 1:1 mapping (no two schemas share same revealKind)
+      const seen = new Set<string>();
+      const duplicates: string[] = [];
+      for (const schema of Object.values(SCHEMAS)) {
+        if (!schema.ui) continue;
+        if (!('revealKind' in schema.ui)) continue;
+        const rk = schema.ui.revealKind;
+        if (!rk) continue;
+        if (seen.has(rk)) duplicates.push(rk);
+        seen.add(rk);
+      }
+      duplicates.sort();
+      expect(duplicates).toEqual([]);
+
+      // This snapshot-like list is intentionally explicit: reveal flow is sensitive.
+      // If this changes, reviewers should inspect the UI/reveal ack flow carefully.
+      expect(revealSchemaIds).toEqual(['gargoyleCheck', 'psychicCheck', 'seerCheck', 'wolfRobotLearn']);
     });
 
     it('wolfVote schema should provide schema.ui.emptyVoteText', () => {
