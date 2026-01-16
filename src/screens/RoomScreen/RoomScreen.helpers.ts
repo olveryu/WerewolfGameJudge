@@ -97,13 +97,13 @@ export function determineActionerState(
   // When actsSolo=true, the actioner cannot see wolves.
   if (myRole === currentActionRole && visibility?.actsSolo === true) {
     // Still an actioner (unless already acted), but never show wolves.
-    const state = handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions);
+  const state = handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions, visibility);
     return { ...state, showWolves: false };
   }
 
   // My role matches current action
   if (myRole === currentActionRole) {
-    return handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions);
+  return handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions, visibility);
   }
 
   // Wolf meeting phase: participating wolves can see pack list.
@@ -122,7 +122,8 @@ function handleMatchingRole(
   myRole: RoleName,
   mySeatNumber: number | null,
   wolfVotes: Map<number, number>,
-  actions: Map<RoleName, RoleAction>
+  actions: Map<RoleName, RoleAction>,
+  visibility?: StepVisibilityLike
 ): ActionerState {
   // For wolves, check if already voted
   if (myRole === 'wolf' && mySeatNumber !== null && wolfVotes.has(mySeatNumber)) {
@@ -135,8 +136,19 @@ function handleMatchingRole(
     return { imActioner: false, showWolves: false };
   }
 
-  // Show wolves based on registry (meeting wolves only)
-  const showWolves = isWolfRole(myRole) && canRoleSeeWolves(myRole);
+  // PR4: Prefer step visibility for wolf pack display.
+  // - actsSolo=true   => never show wolves
+  // - actsSolo=false  => show wolves for meeting wolves (participate in vote)
+  // - actsSolo=undef  => fallback to legacy role registry
+  let showWolves: boolean;
+  if (visibility?.actsSolo === true) {
+    showWolves = false;
+  } else if (visibility?.actsSolo === false) {
+    showWolves = isWolfRole(myRole) && doesRoleParticipateInWolfVote(myRole);
+  } else {
+    // Legacy fallback (registry can be more permissive than meeting-vote rules)
+    showWolves = isWolfRole(myRole) && canRoleSeeWolves(myRole);
+  }
 
   return { imActioner: true, showWolves };
 }
