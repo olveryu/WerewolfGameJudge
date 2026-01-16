@@ -14,6 +14,7 @@ import { Avatar } from '../../../components/Avatar';
 import { styles, TILE_SIZE } from '../RoomScreen.styles';
 import { TESTIDS } from '../../../testids';
 import type { SeatViewModel } from '../RoomScreen.helpers';
+import { showAlert } from '../../../utils/alert';
 
 export interface PlayerGridProps {
   /** Array of seat view models (pre-computed from game state) */
@@ -36,6 +37,7 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
     <View style={styles.gridContainer}>
       {seats.map((seat) => {
         const seatKey = `seat-${seat.index}-${seat.role}`;
+  const isDisabled = disabled || !!seat.disabledReason;
 
         return (
           <View
@@ -53,11 +55,17 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
                 seat.isSelected && styles.selectedTile,
               ]}
               onPress={() => {
-                if (disabled) return;
+                if (isDisabled) {
+                  if (seat.disabledReason) {
+                    showAlert('不可选择', seat.disabledReason, [{ text: '好' }]);
+                  }
+                  return;
+                }
                 onSeatPress(seat.index);
               }}
-              activeOpacity={disabled ? 1 : 0.7}
-              disabled={disabled}
+              activeOpacity={isDisabled ? 1 : 0.7}
+              // Don't set `disabled` here. In test environments it can prevent `press` events
+              // from firing at all, which would skip our UX-only hint.
             >
               {seat.player && (
                 <View style={styles.avatarContainer}>

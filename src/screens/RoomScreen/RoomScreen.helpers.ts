@@ -13,6 +13,8 @@ import { canRoleSeeWolves, doesRoleParticipateInWolfVote, getRoleDisplayInfo, is
 import type { LocalGameState } from '../../services/types/GameStateTypes';
 import type { GameRoomLike } from '../../models/Room';
 import type { RoleAction } from '../../models/actions/RoleAction';
+import { WOLF_MEETING_VOTE_CONFIG } from '../../models/roles/spec/wolfMeetingVoteConfig';
+import { getRoleSpec, isValidRoleId, type RoleId } from '../../models/roles/spec';
 
 // =============================================================================
 // Types
@@ -64,6 +66,8 @@ export interface SeatViewModel {
   isMySpot: boolean;
   isWolf: boolean;
   isSelected: boolean;
+  /** UX-only: if set, the seat is non-selectable for the current UI context (Host still validates). */
+  disabledReason?: string;
 }
 
 // =============================================================================
@@ -235,15 +239,35 @@ export function buildSeatViewModels(
   gameState: LocalGameState,
   mySeatNumber: number | null,
   showWolves: boolean,
-  selectedIndex: number | null
+  selectedIndex: number | null,
+  options?: {
+    /** When true, apply wolf meeting vote UX restrictions (Host still validates). */
+    enableWolfVoteRestrictions?: boolean;
+  }
 ): SeatViewModel[] {
   return gameState.template.roles.map((role, index) => {
     const player = gameState.players.get(index);
-  const effectiveRole = player?.role ?? role;
-  // Wolf visibility is controlled by ActionerState.showWolves.
-  // When true, ALL wolf-faction roles should be highlighted consistently.
-  // (Whether a wolf participates in meeting/vote is a separate rule.)
-  const isWolf = showWolves && isWolfRole(effectiveRole);
+    const effectiveRole = player?.role ?? role;
+    // Wolf visibility is controlled by ActionerState.showWolves.
+    // When true, ALL wolf-faction roles should be highlighted consistently.
+    // (Whether a wolf participates in meeting/vote is a separate rule.)
+    const isWolf = showWolves && isWolfRole(effectiveRole);
+
+    // Commit 5 (UX-only): disable forbidden wolf meeting vote target roles.
+    // IMPORTANT: Host remains the authority. This is just early UI guidance.
+    let disabledReason: string | undefined;
+    if (options?.enableWolfVoteRestrictions) {
+      const forbidden: readonly RoleId[] = WOLF_MEETING_VOTE_CONFIG.forbiddenTargetRoleIds;
+      // Use the same "effective role" used elsewhere in this function.
+      // In tests and early game screens, player.role is often filled even if the UI wouldn't
+      // normally know it; in other contexts it may still be null and we should fall back.
+      const targetRole = effectiveRole;
+      if (isValidRoleId(targetRole) && forbidden.includes(targetRole)) {
+        const spec = getRoleSpec(targetRole);
+        const name = spec?.displayName ?? targetRole;
+        disabledReason = `不能投${name}`;
+      }
+    }
 
     return {
       index,
@@ -258,6 +282,7 @@ export function buildSeatViewModels(
       isMySpot: mySeatNumber === index,
       isWolf,
       isSelected: selectedIndex === index,
+  disabledReason,
     };
   });
 }
