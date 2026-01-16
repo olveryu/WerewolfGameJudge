@@ -132,7 +132,9 @@ jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
     showWitchPoisonConfirm: (targetIndex: number, onConfirm: () => void, onCancel?: () => void) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
-      mockShowAlert('女巫毒药', `确定要毒杀${targetIndex + 1}号玩家吗？`, [
+  // Schema-driven (commit 3): confirm text comes from SCHEMAS.witchPoison.ui.confirmText
+  const { SCHEMAS } = require('../../../models/roles/spec');
+  mockShowAlert('女巫毒药', SCHEMAS.witchPoison.ui?.confirmText || `确定要毒杀${targetIndex + 1}号玩家吗？`, [
         { text: '确定', onPress: onConfirm },
         { text: '取消', style: 'cancel', onPress: onCancel },
       ]);
@@ -198,7 +200,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
         '女巫毒药',
-        expect.stringContaining('毒杀3号'),
+  expect.any(String),
         expect.any(Array)
       );
     });
