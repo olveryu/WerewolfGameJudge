@@ -58,14 +58,14 @@
 |---|---|------|
 | `kind` | ✅ | ✅ |  |
 | `constraints` | ⚠️ 同 chooseSeat | ⚠️ 同 chooseSeat（仅 UX hint） |  |
-| `forbiddenTargetRoleIds?` | ❌ RoomScreen 未消费 | ✅（可选）在 turnVM 里生成 `disabledSeatIds`/提示文案（仅 UX） | **禁止**改 `SCHEMAS.wolfKill`；该字段只用于 meeting vote gate（Host 拒绝 + 回执） |
+| `forbiddenTargetRoleIds?` | ✅（UX-only：seat 禁点 + 提示） | ✅ 保持（仅 UX hint，Host 仍裁判） | **禁止**改 `SCHEMAS.wolfKill`；该字段只用于 meeting vote gate（Host 拒绝 + 回执） |
 
 #### A.4 CompoundSchema / CompoundStep（witch）
 
 | 字段 | As-is（RoomScreen） | To-be（迁移动作） | 红线/备注 |
 |---|---|---|---|
 | `kind:'compound'` | ✅ 用于 auto-trigger 分流 | ✅ 保持 |  |
-| `steps[*]`（含 stepId/displayName/kind/constraints/canSkip） | ❌ UI 走专用两阶段逻辑，未消费 steps | ✅ 迁移为 steps 驱动（PR3） | 私信 `WITCH_CONTEXT` 仍必须是 Host 发送，UI 只消费展示 |
+| `steps[*]`（含 stepId/displayName/kind/constraints/canSkip） | ⚠️ 已部分消费（payload 推导不依赖本地 witchPhase） | ✅ 迁移为完整 steps 驱动（PR3） | 私信 `WITCH_CONTEXT` 仍必须是 Host 发送，UI 只消费展示 |
 
 #### A.5 SwapSchema（magician）
 
@@ -117,8 +117,19 @@
 |---|---|---|---|
 | `id`（SchemaId） | ✅（经由 Host 派发 currentSchema/turn） | ✅ 保持，并用于 turnVM.schemaId | 单一真相 |
 | `roleId` | ✅（currentActionRole） | ✅ 保持 |  |
-| `audioKey/audioEndKey` | ❌（RoomScreen 只看 isAudioPlaying） | ⚠️ 可选：turnVM 暴露 `audioKey` 仅用于 UI 展示“正在播放…” | 不应影响逻辑，只显示 |
+| `audioKey/audioEndKey` | ✅（UI-only：显示当前 step 的 audioKey） | ✅ 保持（仅展示，不参与逻辑） | 不应影响逻辑，只显示 |
 | `visibility.actsSolo/wolfMeetingPhase` | ❌（RoomScreen 未直接消费） | ✅ turnVM 统一暴露 `showWolves`/`actsSolo`（PR4） | 不能把敏感信息塞进 public；actsSolo 只是“显示规则” |
+
+> 更新（2026-01-16）：
+>
+> - `audioKey` UI-only 展示已落地：`src/screens/RoomScreen/RoomScreen.tsx`（通过 `getStepSpec(currentStepId)?.audioKey`）
+>   - 对应测试：`src/screens/RoomScreen/__tests__/audioKeyDisplay.ui.test.tsx`
+> - wolf meeting vote forbidden UX（禁点/提示）已实现为“纯 UX”：
+>   - seat VM：`src/screens/RoomScreen/RoomScreen.helpers.ts`（`enableWolfVoteRestrictions` + `disabledReason`）
+>   - UI：`src/screens/RoomScreen/components/PlayerGrid.tsx`（disabled seat 点击弹窗提示）
+> - reveal 已完成“极致去分支”：RoomScreen 只处理 `intent.type === 'reveal'` + `revealKind`（表驱动 wait/ack）
+>   - 代码：`src/screens/RoomScreen/revealExecutors.ts` + `src/screens/RoomScreen/RoomScreen.tsx`
+>   - 合同测试：`src/screens/RoomScreen/__tests__/revealExecutors.contract.test.ts`
 
 ---
 

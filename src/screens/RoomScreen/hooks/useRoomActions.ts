@@ -50,6 +50,13 @@ export interface ActionIntent {
   wolfSeat?: number;           // for wolfVote
   revealKind?: RevealKind;      // for reveal
   message?: string;            // for actionConfirm
+
+  /**
+   * For compound schemas (e.g. witchAction), the UI may still be on the compound schema.
+   * This field tells RoomScreen which step schema should be treated as the active step for
+   * confirm copy + payload derivation.
+   */
+  stepSchemaId?: SchemaId;
   
 }
 
@@ -191,9 +198,18 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
     case 'swap':
       return anotherIndex === null ? { type: 'magicianFirst', targetIndex: index } : null;
     case 'compound':
-  // compound 行为统一交给 RoomScreen 的通用 actionPrompt/skip/actionConfirm 流程处理。
-  // 这里不再做 role-specific 的“poison/confirm”分支，避免 UI 层维护 witchPhase。
-  return null;
+      // Compound (witchAction): seat tap should behave like a step chooseSeat schema, driven by
+      // the compound.steps table. We attach stepSchemaId so RoomScreen can derive copy/payload.
+      if (ctx.schemaId && isValidSchemaId(ctx.schemaId)) {
+        const compound = (SCHEMAS as Record<string, ActionSchema>)[ctx.schemaId];
+        if (compound && compound.kind === 'compound') {
+          const step0 = compound.steps?.[0]?.stepSchemaId;
+          if (step0 && isValidSchemaId(step0)) {
+            return { type: 'actionConfirm', targetIndex: index, message: ctx.buildMessage(index), stepSchemaId: step0 };
+          }
+        }
+      }
+      return null;
     case 'wolfVote':
       return isWolf && wolfSeat !== null ? { type: 'wolfVote', targetIndex: index, wolfSeat } : null;
     case 'chooseSeat':
