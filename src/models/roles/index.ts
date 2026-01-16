@@ -64,20 +64,17 @@ export function isValidRoleName(roleId: string): roleId is RoleName {
 // Display Info (UI-facing helpers)
 // ============================================================
 
-import type { SchemaId } from './spec/schemas';
-import { getSchema } from './spec/schemas';
-
 /**
  * Display information for UI rendering.
  * Derived from RoleSpec - no game logic.
+ * 
+ * NOTE: Action-related copy (prompt/confirm) is now schema-driven (SCHEMAS[*].ui.*).
+ * RoomScreen no longer consumes RoleDisplayInfo for action copy.
  */
 export interface RoleDisplayInfo {
   displayName: string;
   description: string;
   faction: Faction;
-  actionTitle: string;
-  actionMessage: string;
-  actionConfirmMessage: string;
 }
 
 /**
@@ -87,36 +84,11 @@ export function getRoleDisplayInfo(roleId: string): RoleDisplayInfo | undefined 
   if (!isValidRoleId(roleId)) return undefined;
   
   const spec = getRoleSpec(roleId);
-
-  // Schema-driven default copy for legacy UI surfaces that still consume RoleDisplayInfo.
-  // RoomScreen itself is schema-driven already; this is compatibility glue.
-  const roleToSchemaId: Partial<Record<RoleName, SchemaId>> = {
-    seer: 'seerCheck',
-    witch: 'witchAction',
-    guard: 'guardProtect',
-    magician: 'magicianSwap',
-    psychic: 'psychicCheck',
-    dreamcatcher: 'dreamcatcherDream',
-    wolf: 'wolfKill',
-    wolfQueen: 'wolfQueenCharm',
-    nightmare: 'nightmareBlock',
-    gargoyle: 'gargoyleCheck',
-    wolfRobot: 'wolfRobotLearn',
-    slacker: 'slackerChooseIdol',
-    hunter: 'hunterConfirm',
-    darkWolfKing: 'darkWolfKingConfirm',
-  };
-
-  const schemaId = roleToSchemaId[roleId];
-  const schema = schemaId ? getSchema(schemaId) : undefined;
   
   return {
     displayName: spec.displayName,
     description: spec.description,
     faction: spec.faction,
-    actionTitle: `${spec.displayName}请睁眼`,
-    actionMessage: schema?.ui?.prompt ?? `请${spec.displayName}行动`,
-    actionConfirmMessage: schema?.displayName ?? '确认',
   };
 }
 

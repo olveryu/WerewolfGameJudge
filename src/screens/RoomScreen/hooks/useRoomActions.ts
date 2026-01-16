@@ -13,7 +13,7 @@
 import { useCallback } from 'react';
 import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { RoomStatus } from '../../../models/Room';
-import { getRoleDisplayInfo, RoleName, isWolfRole } from '../../../models/roles';
+import { RoleName, isWolfRole } from '../../../models/roles';
 import type { ActionSchema, SchemaId, RevealKind } from '../../../models/roles/spec';
 import { SCHEMAS } from '../../../models/roles/spec';
 import { isValidSchemaId } from '../../../models/roles/spec';
