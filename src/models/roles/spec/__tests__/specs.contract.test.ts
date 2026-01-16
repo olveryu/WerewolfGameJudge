@@ -39,12 +39,9 @@ describe('ROLE_SPECS contract', () => {
     it('witch save action should have notSelf constraint in schema', () => {
       // Night-1-only: 女巫不能自救规则定义在 schema.witchAction.save.constraints
       // 不再使用 flags.canSaveSelf，避免双写
-      const witchSchema = SCHEMAS.witchAction;
-      expect(witchSchema.kind).toBe('compound');
-      if (witchSchema.kind === 'compound') {
-        const saveStep = witchSchema.steps.find((s: { stepId: string }) => s.stepId === 'save');
-        expect(saveStep?.constraints).toContain('notSelf');
-      }
+  const saveSchema = SCHEMAS.witchSave;
+  expect(saveSchema.kind).toBe('chooseSeat');
+  expect(saveSchema.constraints).toContain('notSelf');
     });
   });
 

@@ -8,11 +8,17 @@ import { SCHEMAS, type SchemaId, getAllSchemaIds, isValidSchemaId } from '../ind
 import { NIGHT_STEPS } from '../index';
 
 describe('SCHEMAS contract', () => {
-  it('should have exactly 14 schemas', () => {
-    // seerCheck, witchAction, guardProtect, psychicCheck, dreamcatcherDream,
-    // magicianSwap, hunterConfirm, wolfKill, wolfQueenCharm, nightmareBlock,
-    // gargoyleCheck, wolfRobotLearn, darkWolfKingConfirm, slackerChooseIdol
-    expect(getAllSchemaIds()).toHaveLength(14);
+  it('should include at least all NIGHT_STEPS schemas (and may include helper schemas)', () => {
+    // NOTE: SCHEMAS may include helper schemas not directly referenced by NIGHT_STEPS
+    // (e.g., compound sub-step schemas), but NIGHT_STEPS must remain the authoritative
+    // runtime plan.
+    const stepSchemaIds = new Set(NIGHT_STEPS.map((s) => s.id));
+    const allSchemaIds = getAllSchemaIds();
+
+    for (const stepId of stepSchemaIds) {
+      expect(allSchemaIds).toContain(stepId);
+    }
+    expect(allSchemaIds.length).toBeGreaterThanOrEqual(stepSchemaIds.size);
   });
 
   it('every schema should have required fields', () => {
@@ -85,15 +91,14 @@ describe('SCHEMAS contract', () => {
       }
     });
 
-    it('every schema should be referenced by at least one role', () => {
+    it('every NIGHT_STEPS schema should exist in SCHEMAS', () => {
       const referencedSchemaIds = new Set<SchemaId>();
-      // Collect referenced schemas from the canonical night steps table.
       for (const step of NIGHT_STEPS) {
         referencedSchemaIds.add(step.id);
       }
-
-      // All 14 schemas should be referenced
-      expect(referencedSchemaIds.size).toBe(14);
+      for (const schemaId of referencedSchemaIds) {
+        expect(isValidSchemaId(schemaId)).toBe(true);
+      }
     });
 
     it('every NIGHT_STEPS schema should provide schema.ui.prompt (schema-driven UI contract)', () => {

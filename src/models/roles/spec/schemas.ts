@@ -7,6 +7,36 @@
 import type { ActionSchema } from './schema.types';
 
 export const SCHEMAS = {
+  // === Compound sub-steps (used by compound schemas) ===
+  // NOTE: These are normal schema IDs so RoomScreen can be fully schema-driven.
+  witchSave: {
+    id: 'witchSave',
+    displayName: '救人',
+    kind: 'chooseSeat',
+    // NOTE: self-save legality is determined by Host via WITCH_CONTEXT.canSave.
+    // UI uses this for generic disable/hint only; Host remains the judge.
+    constraints: ['notSelf'],
+    canSkip: true,
+    ui: {
+      prompt: '请选择使用解药',
+      confirmText: '确定使用解药吗？',
+      bottomActionText: '不使用技能',
+    },
+  },
+
+  witchPoison: {
+    id: 'witchPoison',
+    displayName: '毒人',
+    kind: 'chooseSeat',
+    constraints: [],
+    canSkip: true,
+    ui: {
+      prompt: '请选择使用毒药',
+      confirmText: '确定使用毒药吗？',
+      bottomActionText: '不使用技能',
+    },
+  },
+
   // === God actions ===
   seerCheck: {
     id: 'seerCheck',
@@ -31,18 +61,10 @@ export const SCHEMAS = {
     },
     steps: [
       {
-        stepId: 'save',
-        displayName: '救人',
-        kind: 'chooseSeat',
-        constraints: ['notSelf'],
-        canSkip: true,
+  stepSchemaId: 'witchSave',
       },
       {
-        stepId: 'poison',
-        displayName: '毒人',
-        kind: 'chooseSeat',
-        constraints: [],
-        canSkip: true,
+  stepSchemaId: 'witchPoison',
       },
     ],
   },
