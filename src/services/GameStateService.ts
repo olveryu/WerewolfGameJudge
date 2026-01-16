@@ -220,6 +220,7 @@ export class GameStateService {
       actions: new Map(),
       wolfVotes: new Map(),
       currentActionerIndex: 0,
+  currentStepId: undefined,
       isAudioPlaying: false,
       lastNightDeaths: [],
     };
@@ -829,7 +830,12 @@ export class GameStateService {
         this.applyStateUpdate(msg.state, msg.revision);
         break;
       case 'ROLE_TURN':
-        // State will be updated via STATE_UPDATE
+        // UI-only: stash current stepId for schema-driven UI mapping.
+        // Logic continues to come from STATE_UPDATE (Host is authoritative).
+        if (!this.isHost && this.state) {
+          this.state.currentStepId = msg.stepId;
+          this.notifyListeners();
+        }
         break;
       case 'NIGHT_END':
         // Update local deaths
@@ -863,6 +869,7 @@ export class GameStateService {
           this.state.wolfVotes = new Map();
           this.state.currentActionerIndex = 0;
           this.state.lastNightDeaths = [];
+          this.state.currentStepId = undefined;
           // Clear roles
           this.state.players.forEach((p, _seat) => {
             if (p) {

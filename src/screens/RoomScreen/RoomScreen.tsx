@@ -47,6 +47,7 @@ import {
 import { TESTIDS } from '../../testids';
 import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
+import { getStepSpec } from '../../models/roles/spec/nightSteps';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -62,6 +63,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     roomStatus,
     currentActionRole,
     currentSchema,
+  currentStepId,
     isAudioPlaying,
     connectionStatus,
     createRoom,
@@ -87,6 +89,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     waitForActionRejected,
     submitRevealAck,
   } = useGameRoom();
+
+  // Commit 6 (UI-only): display the authoritative audioKey (from NIGHT_STEPS via ROLE_TURN.stepId)
+  const currentAudioKeyForUi = useMemo(() => {
+    if (!currentStepId) return null;
+  return getStepSpec(currentStepId)?.audioKey ?? null;
+  }, [currentStepId]);
 
   const submitRevealAckSafe = useCallback(
     (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => {
@@ -780,6 +788,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Action Message - only show after audio finishes */}
         {imActioner && !isAudioPlaying && (
           <Text style={styles.actionMessage}>{actionMessage}</Text>
+        )}
+
+        {/* Commit 6 (UI-only): show which audioKey is currently playing */}
+        {roomStatus === RoomStatus.ongoing && isAudioPlaying && currentAudioKeyForUi && (
+          <Text style={styles.actionMessage}>正在播放：{currentAudioKeyForUi}</Text>
         )}
         
         {/* Show players who haven't viewed their roles yet */}

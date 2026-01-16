@@ -76,6 +76,12 @@ export interface LocalGameState {
   actions: Map<RoleName, RoleAction>;  // role -> structured action
   wolfVotes: Map<number, number>;  // wolf seat -> target
   currentActionerIndex: number;
+  /**
+   * UI-only: authoritative current stepId broadcast from Host via ROLE_TURN.
+   * This is used for schema-driven UI mapping (e.g. NIGHT_STEPS.audioKey display).
+   * It must not be used to drive game logic.
+   */
+  currentStepId?: import('../../models/roles/spec').SchemaId;
   isAudioPlaying: boolean;
   lastNightDeaths: number[];  // Calculated after night ends
   nightmareBlockedSeat?: number;  // Seat blocked by nightmare (skill disabled for this night)
