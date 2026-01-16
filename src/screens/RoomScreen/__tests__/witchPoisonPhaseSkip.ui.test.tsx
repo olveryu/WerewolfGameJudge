@@ -91,8 +91,8 @@ jest.mock('../../../hooks/useGameRoom', () => ({
 
     waitForActionRejected: jest.fn().mockResolvedValue(null),
 
-    // Provide witch context so save phase can show; we'll skip it.
-    getWitchContext: jest.fn().mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: 2, canSave: true, canPoison: true, phase: 'save' }),
+    // Provide witch context (phase field removed).
+    getWitchContext: jest.fn().mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: 2, canSave: true, canPoison: true }),
     getLastNightInfo: jest.fn().mockReturnValue(''),
     getLastNightDeaths: jest.fn().mockReturnValue([]),
 

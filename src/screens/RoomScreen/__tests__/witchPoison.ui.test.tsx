@@ -94,7 +94,8 @@ jest.mock('../../../hooks/useGameRoom', () => ({
 
     waitForActionRejected: jest.fn().mockResolvedValue(null),
 
-    getWitchContext: jest.fn().mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: -1, canSave: false, canPoison: true, phase: 'poison' }),
+    // NOTE(phase removed): phase no longer exists; seat taps always mean poison.
+    getWitchContext: jest.fn().mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: -1, canSave: false, canPoison: true }),
     getLastNightInfo: jest.fn().mockReturnValue(''),
     getLastNightDeaths: jest.fn().mockReturnValue([]),
 
@@ -204,8 +205,9 @@ describe('RoomScreen witch poison UI (smoke)', () => {
     expect(mockSubmitAction).toHaveBeenCalledWith(2, { poison: true });
   });
 
-  it("phase='save' still tap seat -> poison confirm -> submitAction(target, {poison:true})", async () => {
-    // Regression guard: seat-tap poison must NOT be driven by witchCtx.phase.
+  // Regression guard: seat-tap poison must NOT be driven by any save-related context.
+  // (phase field removed; seat taps always mean poison under new UX.)
+  it("canSave=true still tap seat -> poison confirm -> submitAction(target, {poison:true})", async () => {
     const { useGameRoom } = require('../../../hooks/useGameRoom');
     const room = useGameRoom();
     room.getWitchContext.mockReturnValue({
@@ -213,7 +215,6 @@ describe('RoomScreen witch poison UI (smoke)', () => {
       killedIndex: 2,
       canSave: true,
       canPoison: true,
-      phase: 'save',
     });
 
     const props: any = {

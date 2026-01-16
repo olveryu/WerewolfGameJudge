@@ -258,12 +258,36 @@ describe('GameStateService NightFlow Contract Tests', () => {
       broadcastCalls.length = 0;
       
       // When: witch submits action with target=3 (witch is first)
-      await invokeHandlePlayerAction(service, 0, 'witch', 3);
+  await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
       
       // Then: state.actions.get('witch') is a target action with seat 3
       const state = service.getState()!;
       const witchAction = state.actions.get('witch');
       expect(witchAction).toBeDefined();
+    });
+
+    it('should record poison action when witch submits {poison:true}', async () => {
+      // Given: game is ongoing, witch is current turn
+      const roles: RoleName[] = ['witch', 'seer'];
+      await setupReadyStateWithRoles(service, roles, new Map([
+        [0, 'witch'],
+        [1, 'seer'],
+      ]));
+
+      const startPromise = service.startGame();
+      await jest.advanceTimersByTimeAsync(5000);
+      await startPromise;
+
+      // When: witch submits a poison action using the NEW wire protocol
+      await invokeHandlePlayerAction(service, 0, 'witch', 3, { poison: true });
+
+      // Then: state.actions.get('witch') is a witch action with poisonedSeat=3
+      const state = service.getState()!;
+      const witchAction = state.actions.get('witch');
+      expect(witchAction).toBeDefined();
+      expect(witchAction?.kind).toBe('witch');
+  expect((witchAction as any).witchAction?.kind).toBe('poison');
+  expect((witchAction as any).witchAction?.targetSeat).toBe(3);
     });
   });
 
@@ -306,7 +330,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(stateBefore.currentActionerIndex).toBe(0);
       
       // When: witch submits correct action (witch is first)
-      await invokeHandlePlayerAction(service, 0, 'witch', 3);
+  await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
       
       // Then: currentActionerIndex is now 1
       const stateAfter = service.getState()!;
@@ -331,7 +355,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       broadcastCalls.length = 0;
       
       // When: witch submits correct action (witch is first)
-      await invokeHandlePlayerAction(service, 0, 'witch', 3);
+  await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
       
       // Then: ROLE_TURN with role=seer appears (seer is second)
       const roleTurns = broadcastCalls.filter((msg) => msg.type === 'ROLE_TURN');
@@ -493,7 +517,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(service.getState()!.currentActionerIndex).toBe(0);
       
       // When: we submit action (which dispatches ActionSubmitted + RoleEndAudioDone)
-      await invokeHandlePlayerAction(service, 0, 'witch', 3);
+  await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
       
       // Then: currentActionerIndex advances to 1
       expect(service.getState()!.currentActionerIndex).toBe(1);

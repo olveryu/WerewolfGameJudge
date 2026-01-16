@@ -104,14 +104,12 @@ describe('Visibility Contract (Anti-cheat)', () => {
         killedIndex: 2,
         canSave: true,
         canPoison: true,
-        phase: 'save',
       };
 
       expect(witchContext.kind).toBe('WITCH_CONTEXT');
       expect(witchContext.killedIndex).toBe(2);
       expect(witchContext.canSave).toBe(true);
       expect(witchContext.canPoison).toBe(true);
-      expect(witchContext.phase).toBe('save');
     });
 
     it('SeerRevealPayload should contain result', () => {
@@ -163,7 +161,7 @@ describe('Visibility Contract (Anti-cheat)', () => {
       type ExpectedKinds = PrivatePayload['kind'];
       
       // Runtime verification
-      const witchContext: PrivatePayload = { kind: 'WITCH_CONTEXT', killedIndex: -1, canSave: false, canPoison: true, phase: 'save' };
+      const witchContext: PrivatePayload = { kind: 'WITCH_CONTEXT', killedIndex: -1, canSave: false, canPoison: true };
       const seerReveal: PrivatePayload = { kind: 'SEER_REVEAL', targetSeat: 1, result: '好人' };
       const psychicReveal: PrivatePayload = { kind: 'PSYCHIC_REVEAL', targetSeat: 2, result: '预言家' };
       const blocked: PrivatePayload = { kind: 'BLOCKED', reason: 'nightmare' };

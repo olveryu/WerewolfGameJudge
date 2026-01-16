@@ -62,7 +62,6 @@ describe('GameStateService Private Inbox', () => {
         killedIndex: 3,
         canSave: true,
         canPoison: true,
-        phase: 'save',
       };
       inbox.set('1_WITCH_CONTEXT', payload1);
       
@@ -85,7 +84,6 @@ describe('GameStateService Private Inbox', () => {
         killedIndex: 2,
         canSave: true,
         canPoison: true,
-        phase: 'save',
       };
       
       inbox.set(`${currentRevision}_WITCH_CONTEXT`, payload);
@@ -178,7 +176,6 @@ describe('GameStateService Private Inbox', () => {
         killedIndex: 3,
         canSave: true,
         canPoison: true,
-        phase: 'save',
       });
       
       expect(inbox.size).toBe(1);

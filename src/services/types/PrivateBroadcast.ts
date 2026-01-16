@@ -62,8 +62,6 @@ export interface WitchContextPayload {
   canSave: boolean;
   /** Whether witch has poison available */
   canPoison: boolean;
-  /** Current phase of witch action */
-  phase: 'save' | 'poison';
 }
 
 /**

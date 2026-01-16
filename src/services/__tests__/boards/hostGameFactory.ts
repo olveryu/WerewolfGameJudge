@@ -93,6 +93,8 @@ export interface NightResult {
   completed: boolean;
 }
 
+type WitchExtra = { poison: true } | { save: true };
+
 // =============================================================================
 // Internal Helpers
 // =============================================================================
@@ -127,19 +129,21 @@ function advanceToWaitingForAction(nightFlow: NightFlowController): void {
 
 /**
  * Builds a RoleAction for a given role based on target and extra flag.
- * - For witch: extra=false → save, extra=true → poison
+ * - For witch: extra={save:true} → save, extra={poison:true} → poison
  * - For other roles: target action or none
  * 
  * NOTE: Magician is handled separately in processRoleAction using encoded target.
  * This function is NOT called for magician - see processRoleAction for wire protocol.
  */
-function buildRoleAction(role: RoleName, target: number | null, extra?: boolean): RoleAction {
+function buildRoleAction(role: RoleName, target: number | null, extra?: any): RoleAction {
   if (target === null) {
     if (role === 'witch') return makeActionWitch(makeWitchNone());
     return makeActionNone();
   }
   if (role === 'witch') {
-    return makeActionWitch(extra ? makeWitchPoison(target) : makeWitchSave(target));
+  if (extra?.poison === true) return makeActionWitch(makeWitchPoison(target));
+  if (extra?.save === true) return makeActionWitch(makeWitchSave(target));
+  throw new Error('[hostGameFactory] Invalid witch extra payload for buildRoleAction');
   }
   // For standard roles (seer, guard, wolf, etc.)
   return makeActionTarget(target);
@@ -180,7 +184,7 @@ async function processRoleAction(
 
   // Determine target and extra for the ACTION message
   let target: number | null;
-  let extra: boolean | number | undefined;
+  let extra: WitchExtra | undefined;
 
   if (currentRole === 'magician') {
     // Magician: send encoded target = firstSeat + secondSeat * 100
@@ -194,17 +198,20 @@ async function processRoleAction(
   } else if (currentRole === 'witch' && witchPoison !== undefined) {
     // Witch poison case
     target = witchPoison ?? null;
-    extra = target === null ? undefined : true;
-  } else if (action === undefined) {
-    target = null;
-    extra = undefined;
-  } else if (typeof action === 'object' && action !== null) {
+  extra = target === null ? undefined : { poison: true };
+  } else if (action === undefined || (typeof action === 'object' && action !== null)) {
     // Object action for non-magician roles should not happen, but handle gracefully
     target = null;
     extra = undefined;
   } else {
     target = action ?? null;
-    extra = undefined;
+    if (target === null) {
+      extra = undefined;
+    } else if (currentRole === 'witch') {
+  extra = { save: true };
+    } else {
+      extra = undefined;
+    }
   }
 
   // Find the seat for this role
@@ -308,7 +315,7 @@ async function processRoleAction(
   // For blocked players with non-null test action: directly write to state for DeathCalculator testing
   // This simulates "what if the action somehow got into state" for defensive testing
   if (isBlocked && target !== null) {
-    const roleAction = buildRoleAction(currentRole, target, extra);
+  const roleAction = buildRoleAction(currentRole, target, extra);
     state.actions.set(currentRole, roleAction);
   }
 }
@@ -399,7 +406,15 @@ export async function createHostGame(
     if (!currentRole) throw new Error('No current role');
 
     const s = getState()!;
-    const roleAction = buildRoleAction(currentRole, target, extra);
+    let witchExtra: WitchExtra | undefined;
+    if (currentRole === 'witch' && target !== null) {
+      witchExtra = extra === true ? { poison: true } : { save: true };
+    }
+    const roleAction = buildRoleAction(
+      currentRole,
+      target,
+      witchExtra
+    );
     s.actions.set(currentRole, roleAction);
     // Legacy: NightFlowController still uses number encoding
     const legacyValue = target ?? -1;
