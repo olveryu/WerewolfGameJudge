@@ -121,6 +121,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const { imActioner, showWolves } = useActionerState({
     myRole,
     currentActionRole,
+  currentSchema,
     mySeatNumber,
     wolfVotes: gameState?.wolfVotes ?? new Map(),
     isHost,

@@ -12,6 +12,7 @@ import {
 import type { RoleName } from '../../../models/roles';
 import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { GameStatus } from '../../../services/GameStateService';
+import { NIGHT_STEPS } from '../../../models/roles/spec/nightSteps';
 
 // =============================================================================
 // determineActionerState
@@ -24,7 +25,9 @@ describe('determineActionerState', () => {
       'seer',           // currentActionRole
       0,                // mySeatNumber
       new Map(),        // wolfVotes
-      false             // isHost
+  false,            // isHost
+  new Map(),        // actions
+  NIGHT_STEPS.find(s => s.id === 'seerCheck')?.visibility
     );
 
     expect(result.imActioner).toBe(true);
@@ -40,7 +43,9 @@ describe('determineActionerState', () => {
       'wolf',           // currentActionRole
       1,                // mySeatNumber (same as voted seat)
       wolfVotes,
-      false
+  false,
+  new Map(),
+  NIGHT_STEPS.find(s => s.id === 'wolfKill')?.visibility
     );
 
     expect(result.imActioner).toBe(false);
@@ -53,7 +58,9 @@ describe('determineActionerState', () => {
       'wolf',           // currentActionRole
       2,                // mySeatNumber
       new Map(),        // wolfVotes (empty, not voted)
-      false
+  false,
+  new Map(),
+  NIGHT_STEPS.find(s => s.id === 'wolfKill')?.visibility
     );
 
     expect(result.imActioner).toBe(true);
@@ -66,7 +73,9 @@ describe('determineActionerState', () => {
       null,             // no current action
       0,
       new Map(),
-      false
+  false,
+  new Map(),
+  undefined
     );
 
     expect(result.imActioner).toBe(false);
@@ -75,30 +84,96 @@ describe('determineActionerState', () => {
 
   it('should apply wolf visibility rules (phase-based for nightmare, meeting wolves for pack)', () => {
     // Nightmare fear step: solo, does NOT see wolves
-    const nightmareFear = determineActionerState('nightmare', 'nightmare', 0, new Map(), false);
+    const nightmareFear = determineActionerState(
+      'nightmare',
+      'nightmare',
+      0,
+      new Map(),
+      false,
+      new Map(),
+      NIGHT_STEPS.find(s => s.id === 'nightmareBlock')?.visibility
+    );
     expect(nightmareFear.showWolves).toBe(false);
 
     // WolfRobot/Gargoyle are non-meeting wolves: their own step shouldn't show wolves
-    const gargoyleSelfStep = determineActionerState('gargoyle', 'gargoyle', 0, new Map(), false);
+    const gargoyleSelfStep = determineActionerState(
+      'gargoyle',
+      'gargoyle',
+      0,
+      new Map(),
+      false,
+      new Map(),
+      NIGHT_STEPS.find(s => s.id === 'gargoyleCheck')?.visibility
+    );
     expect(gargoyleSelfStep.showWolves).toBe(false);
 
-    const wolfRobotSelfStep = determineActionerState('wolfRobot', 'wolfRobot', 0, new Map(), false);
+    const wolfRobotSelfStep = determineActionerState(
+      'wolfRobot',
+      'wolfRobot',
+      0,
+      new Map(),
+      false,
+      new Map(),
+      NIGHT_STEPS.find(s => s.id === 'wolfRobotLearn')?.visibility
+    );
     expect(wolfRobotSelfStep.showWolves).toBe(false);
 
     // SpiritKnight is a meeting wolf: should see wolves when it's their turn (if any)
-    const spiritKnightSelf = determineActionerState('spiritKnight', 'spiritKnight', 0, new Map(), false);
+    const spiritKnightSelf = determineActionerState(
+      'spiritKnight',
+      'spiritKnight',
+      0,
+      new Map(),
+      false,
+      new Map(),
+      // This is actsSolo=false for meeting wolves, but we don't have a StepSpec for spiritKnight in all boards.
+      // Pass undefined so logic falls back to role registry.
+      undefined
+    );
     expect(spiritKnightSelf.showWolves).toBe(true);
 
     // Wolf turn: participating wolves see pack list
-    const nightmareWolfTurn = determineActionerState('nightmare', 'wolf', 0, new Map(), false);
+    const nightmareWolfTurn = determineActionerState(
+      'nightmare',
+      'wolf',
+      0,
+      new Map(),
+      false,
+      new Map(),
+      NIGHT_STEPS.find(s => s.id === 'wolfKill')?.visibility
+    );
     expect(nightmareWolfTurn.showWolves).toBe(true);
-    const spiritKnightWolfTurn = determineActionerState('spiritKnight', 'wolf', 0, new Map(), false);
+    const spiritKnightWolfTurn = determineActionerState(
+      'spiritKnight',
+      'wolf',
+      0,
+      new Map(),
+      false,
+      new Map(),
+      NIGHT_STEPS.find(s => s.id === 'wolfKill')?.visibility
+    );
     expect(spiritKnightWolfTurn.showWolves).toBe(true);
 
     // Wolf turn: non-voting wolves do NOT see pack list
-    const gargoyleWolfTurn = determineActionerState('gargoyle', 'wolf', 0, new Map(), false);
+    const gargoyleWolfTurn = determineActionerState(
+      'gargoyle',
+      'wolf',
+      0,
+      new Map(),
+      false,
+      new Map(),
+      NIGHT_STEPS.find(s => s.id === 'wolfKill')?.visibility
+    );
     expect(gargoyleWolfTurn.showWolves).toBe(false);
-    const wolfRobotWolfTurn = determineActionerState('wolfRobot', 'wolf', 0, new Map(), false);
+    const wolfRobotWolfTurn = determineActionerState(
+      'wolfRobot',
+      'wolf',
+      0,
+      new Map(),
+      false,
+      new Map(),
+      NIGHT_STEPS.find(s => s.id === 'wolfKill')?.visibility
+    );
     expect(wolfRobotWolfTurn.showWolves).toBe(false);
   });
 
