@@ -1,8 +1,7 @@
 import React from 'react';
-import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
+import { render, act, waitFor } from '@testing-library/react-native';
 
 import { RoomScreen } from '../RoomScreen';
-import { TESTIDS } from '../../../testids';
 import { showAlert } from '../../../utils/alert';
 
 jest.mock('../../../utils/alert', () => ({
@@ -129,6 +128,10 @@ jest.mock('../useRoomActionDialogs', () => ({
     showWitchSaveDialog: jest.fn(),
     showWitchPoisonPrompt: jest.fn(),
     showWitchPoisonConfirm: jest.fn(),
+    showWitchInfoPrompt: (ctx: any, schema: any, onDismiss: () => void) => {
+      const { showAlert: mockShowAlert } = require('../../../utils/alert');
+      mockShowAlert('女巫信息', schema?.ui?.prompt || '', [{ text: '知道了', onPress: onDismiss }]);
+    },
   }),
 }));
 
@@ -159,7 +162,7 @@ describe('RoomScreen witch compound UI (steps-driven)', () => {
     jest.clearAllMocks();
   });
 
-  it('currentSchema=witchAction: tap seat -> confirm -> submitAction(target,{save:true})', async () => {
+  it('auto info prompt once -> dismiss -> shows two bottom buttons (save + skip)', async () => {
     const props: any = {
       navigation: mockNavigation,
       route: {
@@ -171,27 +174,23 @@ describe('RoomScreen witch compound UI (steps-driven)', () => {
       },
     };
 
-    const { findByTestId } = render(<RoomScreen {...props} />);
+    const { findByText } = render(<RoomScreen {...props} />);
 
-    const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
-    await act(async () => {
-      fireEvent.press(seatPressable);
-    });
-
+    // Auto-trigger info prompt should show once.
     await waitFor(() => {
-      expect(showAlert).toHaveBeenCalledWith('确认行动', expect.any(String), expect.any(Array));
+      expect(showAlert).toHaveBeenCalledWith('女巫信息', expect.any(String), expect.any(Array));
     });
 
-    const confirmCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
-    expect(confirmCall).toBeDefined();
-
-    const buttons = (confirmCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
-    const confirmBtn = buttons.find((b) => b.text === '确定');
-
+    const promptCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '女巫信息');
+    expect(promptCall).toBeDefined();
+    const promptBtns = (promptCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
+    const okBtn = promptBtns.find((b) => b.text === '知道了');
     await act(async () => {
-      confirmBtn?.onPress?.();
+      okBtn?.onPress?.();
     });
 
-    expect(mockSubmitAction).toHaveBeenCalledWith(2, { save: true });
+    // After dismiss, bottom buttons should be visible.
+    await findByText('对3号用解药');
+    await findByText('不使用技能');
   });
 });

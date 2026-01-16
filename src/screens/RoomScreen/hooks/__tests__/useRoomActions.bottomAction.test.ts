@@ -33,8 +33,17 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
       })
     );
     expect(result.current.getBottomAction()).toEqual({
-      visible: true,
-      label: '跳过（技能被封锁）',
+      buttons: [
+        {
+          key: 'skip',
+          label: '跳过（技能被封锁）',
+          intent: {
+            type: 'skip',
+            targetIndex: -1,
+            message: '跳过（技能被封锁）',
+          },
+        },
+      ],
     });
   });
 
@@ -61,7 +70,18 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
       })
     );
 
-    expect(result.current.getBottomAction()).toEqual({ visible: true, label: '空刀' });
+    expect(result.current.getBottomAction()).toEqual({
+      buttons: [
+        {
+          key: 'wolfEmpty',
+          label: '空刀',
+          intent: {
+            type: 'wolfVote',
+            targetIndex: -1,
+          },
+        },
+      ],
+    });
   });
 
   it('hides when chooseSeat schema has canSkip=false', () => {
@@ -88,6 +108,6 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
       })
     );
 
-    expect(result.current.getBottomAction()).toEqual({ visible: false, label: '' });
+  expect(result.current.getBottomAction()).toEqual({ buttons: [] });
   });
 });

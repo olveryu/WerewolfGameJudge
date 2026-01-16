@@ -280,9 +280,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const {
     getActionIntent,
-    getSkipIntent,
     getAutoTriggerIntent,
     getMagicianTarget,
+  findVotingWolfSeat,
   getWolfStatusLine,
   getBottomAction,
   } = useRoomActions(gameContext, actionDeps);
@@ -478,9 +478,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       }
 
       case 'wolfVote':
-        if (intent.wolfSeat !== undefined) {
+        {
+          const seat = intent.wolfSeat ?? findVotingWolfSeat();
+          if (seat === null) return;
           actionDialogs.showWolfVoteDialog(
-            `${intent.wolfSeat + 1}号狼人`,
+            `${seat + 1}号狼人`,
             intent.targetIndex,
             () => void submitWolfVote(intent.targetIndex),
             // Schema-driven copy: prefer schema.ui.confirmText (contract-enforced)
@@ -501,11 +503,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         } else {
           // Witch/compound: drive copy + payload by stepKey when provided.
           const stepSchema = getSubStepByKey(intent.stepKey);
-          const extra = stepSchema?.key === 'save'
-            ? buildWitchExtra({ save: true })
-            : stepSchema?.key === 'poison'
-              ? buildWitchExtra({ poison: true })
-              : undefined;
+          let extra: ReturnType<typeof buildWitchExtra> | undefined;
+          if (stepSchema?.key === 'save') {
+            extra = buildWitchExtra({ save: true });
+          } else if (stepSchema?.key === 'poison') {
+            extra = buildWitchExtra({ poison: true });
+          }
 
           actionDialogs.showConfirmDialog(
             (stepSchema?.ui?.confirmTitle || currentSchema?.ui?.confirmTitle || '确认行动'),
@@ -518,11 +521,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       case 'skip': {
         // Witch/compound: drive copy + payload by stepKey when provided.
         const skipStepSchema = getSubStepByKey(intent.stepKey);
-        const skipExtra = skipStepSchema?.key === 'save'
-          ? buildWitchExtra({ save: false })
-          : skipStepSchema?.key === 'poison'
-            ? buildWitchExtra({ poison: false })
-            : undefined;
+        let skipExtra: ReturnType<typeof buildWitchExtra> | undefined;
+        if (intent.stepKey === 'skipAll') {
+          skipExtra = buildWitchExtra({ save: false, poison: false });
+        } else if (skipStepSchema?.key === 'save') {
+          skipExtra = buildWitchExtra({ save: false });
+        } else if (skipStepSchema?.key === 'poison') {
+          skipExtra = buildWitchExtra({ poison: false });
+        }
 
         actionDialogs.showConfirmDialog(
           '确认跳过',
@@ -533,7 +539,18 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       }
 
       case 'actionPrompt': {
-        // Generic action prompt for all roles (dismiss → wait for seat tap)
+        // Schema-driven prompt.
+        // WitchAction uses private WitchContext for dynamic info; template copy comes from schema.
+        if (currentSchema?.kind === 'compound' && currentSchema.id === 'witchAction') {
+          const witchCtx = getWitchContext();
+          if (!witchCtx) return;
+          actionDialogs.showWitchInfoPrompt(witchCtx, currentSchema, () => {
+            // dismiss → do nothing, wait for user to tap seat / use bottom buttons
+          });
+          break;
+        }
+
+        // Generic action prompt for all other roles (dismiss → wait for seat tap)
         // Schema-first: prompt copy must come from schema ui.
         // Keep a generic fallback (no role-specific copy) to avoid blank UI in dev if schema is incomplete.
         actionDialogs.showRoleActionPrompt('行动提示', currentSchema?.ui?.prompt || '请选择目标', () => {
@@ -634,17 +651,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       handleActionTap(index);
     }
   }, [gameState, roomStatus, isAudioPlaying, handleSeatingTap, handleActionTap, imActioner]);
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // Skip action handler
-  // ───────────────────────────────────────────────────────────────────────────
-
-  const handleSkipAction = useCallback(() => {
-    const intent = getSkipIntent();
-    if (intent) {
-      handleActionIntent(intent);
-    }
-  }, [getSkipIntent, handleActionIntent]);
 
   // Host dialog callbacks from hook
   const {
@@ -856,15 +862,19 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onEmergencyRestartPress={showEmergencyRestartDialog}
         />
         
-        {/* Actioner: schema-driven bottom action */}
+        {/* Actioner: schema-driven bottom action buttons */}
         {(() => {
           const bottom = getBottomAction();
-          if (!bottom.visible) return null;
-          return (
-            <TouchableOpacity style={styles.actionButton} onPress={handleSkipAction}>
-              <Text style={styles.buttonText}>{bottom.label}</Text>
+          if (!bottom.buttons.length) return null;
+          return bottom.buttons.map((b) => (
+            <TouchableOpacity
+              key={b.key}
+              style={styles.actionButton}
+              onPress={() => handleActionIntent(b.intent)}
+            >
+              <Text style={styles.buttonText}>{b.label}</Text>
             </TouchableOpacity>
-          );
+          ));
         })()}
         
         {/* View Role Card */}
