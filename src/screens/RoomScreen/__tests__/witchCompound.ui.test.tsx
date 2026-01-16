@@ -93,8 +93,8 @@ jest.mock('../../../hooks/useGameRoom', () => ({
 
     waitForActionRejected: jest.fn().mockResolvedValue(null),
 
-    // PR3: compound auto-trigger requires witch context.
-    getWitchContext: jest.fn().mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: 2, canSave: true }),
+    // PR3: compound auto-trigger requires witch context with explicit phase.
+    getWitchContext: jest.fn().mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: 2, canSave: true, canPoison: true, phase: 'save' }),
     getLastNightInfo: jest.fn().mockReturnValue(''),
 
     waitForSeerReveal: jest.fn(),
