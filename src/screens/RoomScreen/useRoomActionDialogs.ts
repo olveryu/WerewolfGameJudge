@@ -29,7 +29,10 @@ export interface UseRoomActionDialogsResult {
     onConfirm: () => void
   ) => void;
 
-  /** Status dialog (hunter/darkWolfKing) */
+  /**
+   * @deprecated Legacy status dialog.
+   * Confirm flows should use showConfirmDialog (schema-driven) instead.
+   */
   showStatusDialog: (
     title: string,
     message: string,
@@ -106,7 +109,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   );
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Status dialog (hunter/darkWolfKing)
+  // Legacy status dialog (deprecated)
   // ─────────────────────────────────────────────────────────────────────────
 
   const showStatusDialog = useCallback(

@@ -149,7 +149,7 @@ export function deriveSkipIntentFromSchema(
   return { type: 'skip', targetIndex: -1, message: buildMessage(-1) };
 }
 
-/** confirm schema: hunter/darkWolfKing status dialog */
+/** confirm schema: hunterConfirm/darkWolfKingConfirm */
 function deriveConfirmIntent(ctx: IntentContext): ActionIntent {
   const { index, buildMessage } = ctx;
   return { type: 'actionConfirm', targetIndex: index, message: buildMessage(index) };
@@ -281,7 +281,7 @@ export function useRoomActions(
   return { type: 'actionPrompt', targetIndex: -1 };
     }
 
-    // Schema-driven: confirm schema (hunter/darkWolfKing status dialog)
+  // Schema-driven: confirm schema (hunterConfirm/darkWolfKingConfirm)
     if (currentSchema?.kind === 'confirm') {
       return { type: 'actionPrompt', targetIndex: -1 };
     }
