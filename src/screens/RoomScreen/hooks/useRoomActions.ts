@@ -117,6 +117,7 @@ interface IntentContext {
   myRole: RoleName;
   schemaKind: ActionSchema['kind'] | undefined;
   schemaId: string | undefined;
+  uiRevealKind: import('../../../models/roles/spec/schema.types').RevealKind | undefined;
   index: number;
   anotherIndex: number | null;
   isWolf: boolean;
@@ -162,11 +163,11 @@ function deriveConfirmIntent(ctx: IntentContext): ActionIntent {
 
 /** chooseSeat schema: seer/psychic/gargoyle/wolfRobot reveal, or normal action */
 function deriveChooseSeatIntent(ctx: IntentContext): ActionIntent {
-  const { myRole, index, buildMessage } = ctx;
-  if (myRole === 'seer') return { type: 'seerReveal', targetIndex: index };
-  if (myRole === 'psychic') return { type: 'psychicReveal', targetIndex: index };
-  if (myRole === 'gargoyle') return { type: 'gargoyleReveal', targetIndex: index };
-  if (myRole === 'wolfRobot') return { type: 'wolfRobotReveal', targetIndex: index };
+  const { uiRevealKind, index, buildMessage } = ctx;
+  if (uiRevealKind === 'seer') return { type: 'seerReveal', targetIndex: index };
+  if (uiRevealKind === 'psychic') return { type: 'psychicReveal', targetIndex: index };
+  if (uiRevealKind === 'gargoyle') return { type: 'gargoyleReveal', targetIndex: index };
+  if (uiRevealKind === 'wolfRobot') return { type: 'wolfRobotReveal', targetIndex: index };
   return { type: 'actionConfirm', targetIndex: index, message: buildMessage(index) };
 }
 
@@ -324,6 +325,7 @@ export function useRoomActions(
       myRole,
       schemaKind: currentSchema?.kind,
   schemaId: currentSchema?.id,
+  uiRevealKind: currentSchema?.kind === 'chooseSeat' ? currentSchema.ui?.revealKind : undefined,
       index,
       anotherIndex,
       isWolf: isWolfRole(myRole),
