@@ -87,7 +87,7 @@ export const SCHEMAS = {
     displayName: '通灵',
     kind: 'chooseSeat',
     constraints: ['notSelf'],
-    canSkip: false,
+  canSkip: true,
     ui: {
       prompt: '请选择要通灵的玩家',
       confirmText: '确定要通灵该玩家吗？',

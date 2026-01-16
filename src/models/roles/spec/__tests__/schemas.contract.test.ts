@@ -201,6 +201,25 @@ describe('SCHEMAS contract', () => {
       expect(revealSchemaIds).toEqual(['gargoyleCheck', 'psychicCheck', 'seerCheck', 'wolfRobotLearn']);
     });
 
+    it('reveal-style chooseSeat schemas (schema.ui.revealKind) must be skippable (canSkip=true)', () => {
+      const notSkippable: string[] = [];
+
+      for (const schema of Object.values(SCHEMAS)) {
+        if (!schema.ui) continue;
+        if (!('revealKind' in schema.ui)) continue;
+        if (!schema.ui.revealKind) continue;
+
+  if (schema.kind !== 'chooseSeat') continue; // enforced elsewhere
+
+  // chooseSeat schemas should always carry canSkip; treat missing/false as not skippable
+  const canSkip = (schema as { canSkip?: boolean }).canSkip;
+  if (!canSkip) notSkippable.push(schema.id);
+      }
+
+      notSkippable.sort();
+      expect(notSkippable).toEqual([]);
+    });
+
     it('wolfVote schema should provide schema.ui.emptyVoteText', () => {
       // Commit 1: text is schema-driven even if behavior stays the same for now.
       expect(SCHEMAS.wolfKill.kind).toBe('wolfVote');
