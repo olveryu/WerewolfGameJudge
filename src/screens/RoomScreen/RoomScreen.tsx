@@ -861,29 +861,30 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         
   {/* Actioner: Skip Action */}
   {imActioner && roomStatus === RoomStatus.ongoing && !isAudioPlaying && (() => {
-          // When blocked by nightmare, always show skip button (regardless of schema)
+          // Nightmare blocked: UX-only skip button (Host still rejects illegal actions).
           if (isBlockedByNightmare) return true;
 
-          if (!myRole) return false;
+          // Schema-driven bottom action visibility.
+          if (!currentSchema) return false;
 
-          // Wolf meeting vote: allow "empty knife" (vote -1)
-          if (myRole === 'wolf') return true;
+          // wolfVote: always allow empty vote (-1)
+          if (currentSchema.kind === 'wolfVote') return true;
 
-          // Schema-driven: for chooseSeat steps, honor canSkip strictly
-          if (currentSchema?.kind === 'chooseSeat') {
-            return currentSchema.canSkip;
-          }
+          // chooseSeat/swap: honor canSkip
+          if (currentSchema.kind === 'chooseSeat') return currentSchema.canSkip;
+          if (currentSchema.kind === 'swap') return currentSchema.canSkip;
 
-          // Otherwise, keep legacy role-based skip gating
-          const noSkipRoles: RoleName[] = ['hunter', 'darkWolfKing', 'wolfRobot', 'slacker'];
-          return !noSkipRoles.includes(myRole);
+          // compound/confirm/skip: no generic bottom action in commit 2
+          return false;
         })() && (
           <TouchableOpacity style={styles.actionButton} onPress={handleSkipAction}>
             <Text style={styles.buttonText}>
               {(() => {
                 if (isBlockedByNightmare) return '跳过（技能被封锁）';
-                if (myRole === 'wolf') return '投票空刀';
-                return '不使用技能';
+                if (currentSchema?.kind === 'wolfVote') {
+                  return currentSchema.ui?.emptyVoteText || '投票空刀';
+                }
+                return currentSchema?.ui?.bottomActionText || '不使用技能';
               })()}
             </Text>
           </TouchableOpacity>
