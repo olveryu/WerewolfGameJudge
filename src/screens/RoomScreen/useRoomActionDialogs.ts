@@ -29,16 +29,6 @@ export interface UseRoomActionDialogsResult {
     onConfirm: () => void
   ) => void;
 
-  /**
-   * @deprecated Legacy status dialog.
-   * Confirm flows should use showConfirmDialog (schema-driven) instead.
-   */
-  showStatusDialog: (
-    title: string,
-    message: string,
-    onConfirm: () => void
-  ) => void;
-
   /** Generic confirm dialog */
   showConfirmDialog: (
     title: string,
@@ -102,17 +92,6 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showRevealDialog = useCallback(
-    (title: string, message: string, onConfirm: () => void) => {
-      showAlert(title, message, [{ text: '确定', onPress: onConfirm }]);
-    },
-    []
-  );
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Legacy status dialog (deprecated)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const showStatusDialog = useCallback(
     (title: string, message: string, onConfirm: () => void) => {
       showAlert(title, message, [{ text: '确定', onPress: onConfirm }]);
     },
@@ -236,7 +215,6 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
     showActionRejectedAlert,
     showMagicianFirstAlert,
     showRevealDialog,
-    showStatusDialog,
     showConfirmDialog,
     showWolfVoteDialog,
     showWitchSaveDialog,
