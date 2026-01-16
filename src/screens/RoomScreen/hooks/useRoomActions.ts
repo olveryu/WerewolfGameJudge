@@ -162,11 +162,11 @@ export function deriveSkipIntentFromSchema(
     return null;
   }
 
-  // compound schema (witch): use witchPhase to determine which sub-step
+  // compound schema (witch): use witchPhase to find matching sub-step by key
+  // Fail fast: witchPhase is required and must match step.key exactly
   if (currentSchema?.kind === 'compound' && currentSchema.steps?.length) {
-    // Determine step index: 'poison' → step[1], otherwise step[0] (save)
-    const stepIndex = witchPhase === 'poison' ? 1 : 0;
-    const step = currentSchema.steps[stepIndex] ?? currentSchema.steps[0];
+    if (!witchPhase) return null;
+    const step = currentSchema.steps.find(s => s.key === witchPhase);
     if (step?.kind === 'chooseSeat' && step.canSkip) {
       return { type: 'skip', targetIndex: -1, message: buildMessage(-1), stepKey: step.key };
     }
@@ -213,12 +213,12 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
     case 'compound':
       // Compound (witchAction): seat tap should behave like a step chooseSeat schema, driven by
       // the compound.steps table. We attach stepKey so RoomScreen can derive copy/payload.
-      // Use witchPhase to determine which sub-step: 'poison' → step[1], otherwise step[0] (save)
+      // Fail fast: witchPhase is required and must match step.key exactly
+      if (!witchPhase) return null;
       if (ctx.schemaId && isValidSchemaId(ctx.schemaId)) {
         const compound = (SCHEMAS as Record<string, ActionSchema>)[ctx.schemaId];
         if (compound?.kind === 'compound') {
-          const stepIndex = witchPhase === 'poison' ? 1 : 0;
-          const step = compound.steps?.[stepIndex] ?? compound.steps?.[0];
+          const step = compound.steps?.find(s => s.key === witchPhase);
           if (step) {
             return { type: 'actionConfirm', targetIndex: index, message: ctx.buildMessage(index), stepKey: step.key };
           }
@@ -368,12 +368,12 @@ export function useRoomActions(
       return { visible: true, label: currentSchema.ui?.bottomActionText || '不使用技能' };
     }
 
-    // compound: use witchPhase to determine which sub-step's skip button to show
+    // compound: use witchPhase to find matching sub-step's skip button by key
     if (currentSchema.kind === 'compound' && currentSchema.steps?.length) {
       const witchCtx = getWitchContext();
-      const witchPhase = witchCtx?.phase ?? 'save';
-      const stepIndex = witchPhase === 'poison' ? 1 : 0;
-      const step = currentSchema.steps[stepIndex] ?? currentSchema.steps[0];
+      if (!witchCtx) return { visible: false, label: '' };
+      const witchPhase = witchCtx.phase; // fail fast: phase is required
+      const step = currentSchema.steps.find(s => s.key === witchPhase);
       if (step?.kind === 'chooseSeat' && step.canSkip) {
         return { visible: true, label: step.ui?.bottomActionText || '不使用技能' };
       }
