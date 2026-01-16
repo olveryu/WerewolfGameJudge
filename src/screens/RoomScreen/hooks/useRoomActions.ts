@@ -359,7 +359,21 @@ export function useRoomActions(
     if (isAudioPlaying) return { buttons: [] };
 
     // Nightmare blocked: UX-only skip button (Host still rejects illegal actions).
+    // EXCEPTION: Blocked wolves during wolfVote should still use wolfVote intent (target=-1)
+    // so that only their vote is recorded, not advancing the entire phase.
     if (isBlockedByNightmare) {
+      if (currentSchema?.kind === 'wolfVote') {
+        // Blocked wolf: send wolfVote with -1 (empty vote), not skip
+        return {
+          buttons: [
+            {
+              key: 'wolfEmpty',
+              label: '跳过（技能被封锁）',
+              intent: { type: 'wolfVote', targetIndex: -1 },
+            },
+          ],
+        };
+      }
       return {
         buttons: [
           {

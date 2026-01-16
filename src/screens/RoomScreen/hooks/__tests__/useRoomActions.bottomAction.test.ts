@@ -110,4 +110,42 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
 
   expect(result.current.getBottomAction()).toEqual({ buttons: [] });
   });
+
+  // BUG LOCK: Blocked wolves should send wolfVote intent (not skip) to avoid skipping entire phase
+  // Issue: When one wolf is blocked and clicks "skip", it should only record their vote (-1),
+  // not advance the entire wolfKill phase before other wolves have voted.
+  it('blocked wolf during wolfVote should use wolfVote intent (not skip)', () => {
+    const wolfVoteSchema: ActionSchema = {
+      id: 'wolfVote',
+      kind: 'wolfVote',
+      displayName: '狼刀',
+      constraints: [],
+      ui: {
+        prompt: 'x',
+        confirmTitle: 'x',
+        confirmText: 'x',
+        emptyVoteText: '空刀',
+      },
+    };
+
+    const ctx = makeContext({
+      isBlockedByNightmare: true,
+      currentSchema: wolfVoteSchema,
+      myRole: 'wolf',
+    });
+    const { result } = renderHook(() =>
+      useRoomActions(ctx, {
+        hasWolfVoted: () => false,
+        getWolfVoteSummary: () => '0/2 狼人已投票',
+        getWitchContext: () => null,
+      })
+    );
+
+    const bottomAction = result.current.getBottomAction();
+    // Must use wolfVote intent (not skip) so only this wolf's vote is recorded
+    expect(bottomAction.buttons).toHaveLength(1);
+    expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
+    expect(bottomAction.buttons[0].intent.targetIndex).toBe(-1);
+    expect(bottomAction.buttons[0].label).toBe('跳过（技能被封锁）');
+  });
 });
