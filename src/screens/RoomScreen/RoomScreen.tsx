@@ -281,6 +281,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     getAutoTriggerIntent,
     getMagicianTarget,
   getWolfStatusLine,
+  getBottomAction,
   } = useRoomActions(gameContext, actionDeps);
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -847,37 +848,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onEmergencyRestartPress={showEmergencyRestartDialog}
         />
         
-  {/* Actioner: Skip Action */}
-  {imActioner && roomStatus === RoomStatus.ongoing && !isAudioPlaying && (() => {
-          // Nightmare blocked: UX-only skip button (Host still rejects illegal actions).
-          if (isBlockedByNightmare) return true;
-
-          // Schema-driven bottom action visibility.
-          if (!currentSchema) return false;
-
-          // wolfVote: always allow empty vote (-1)
-          if (currentSchema.kind === 'wolfVote') return true;
-
-          // chooseSeat/swap: honor canSkip
-          // NOTE: witchSave/witchPoison are chooseSeat sub-steps and should allow bottom skip.
-          if (currentSchema.kind === 'chooseSeat') return currentSchema.canSkip;
-          if (currentSchema.kind === 'swap') return currentSchema.canSkip;
-
-          // compound/confirm/skip: no generic bottom action in commit 2
-          return false;
-        })() && (
-          <TouchableOpacity style={styles.actionButton} onPress={handleSkipAction}>
-            <Text style={styles.buttonText}>
-              {(() => {
-                if (isBlockedByNightmare) return '跳过（技能被封锁）';
-                if (currentSchema?.kind === 'wolfVote') {
-                  return currentSchema.ui?.emptyVoteText || '投票空刀';
-                }
-                return currentSchema?.ui?.bottomActionText || '不使用技能';
-              })()}
-            </Text>
-          </TouchableOpacity>
-        )}
+        {/* Actioner: schema-driven bottom action */}
+        {(() => {
+          const bottom = getBottomAction();
+          if (!bottom.visible) return null;
+          return (
+            <TouchableOpacity style={styles.actionButton} onPress={handleSkipAction}>
+              <Text style={styles.buttonText}>{bottom.label}</Text>
+            </TouchableOpacity>
+          );
+        })()}
         
         {/* View Role Card */}
         {(roomStatus === RoomStatus.assigned || roomStatus === RoomStatus.ready || roomStatus === RoomStatus.ongoing || roomStatus === RoomStatus.ended) && mySeatNumber !== null && (

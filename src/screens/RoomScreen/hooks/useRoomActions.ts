@@ -110,6 +110,14 @@ export interface UseRoomActionsResult {
 
   /** UI-only: if current actor is wolf, returns vote summary + (optional) my-seat suffix. */
   getWolfStatusLine: () => string | null;
+
+  /** UI-only: schema-driven bottom action button view-model (visibility + label). */
+  getBottomAction: () => BottomActionVM;
+}
+
+export interface BottomActionVM {
+  visible: boolean;
+  label: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -222,6 +230,7 @@ export function useRoomActions(
     isAudioPlaying,
     // NOTE: isBlockedByNightmare is no longer used for intent derivation.
     // Nightmare block is handled by Host (ACTION_REJECTED). Kept in GameContext for UX hints only.
+  isBlockedByNightmare,
     anotherIndex,
   } = gameContext;
 
@@ -297,6 +306,41 @@ export function useRoomActions(
     }
     return `${base} (你已投票，等待其他狼人)`;
   }, [currentSchema?.kind, getWolfVoteSummary, hasWolfVoted, myRole, mySeatNumber]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // UI-only: schema-driven bottom action button (skip / wolf empty vote / blocked)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const getBottomAction = useCallback((): BottomActionVM => {
+    // Keep the same visibility rules previously in RoomScreen.
+    if (!imActioner) return { visible: false, label: '' };
+    if (!gameState) return { visible: false, label: '' };
+    if (roomStatus !== RoomStatus.ongoing) return { visible: false, label: '' };
+    if (isAudioPlaying) return { visible: false, label: '' };
+
+    // Nightmare blocked: UX-only skip button (Host still rejects illegal actions).
+    if (isBlockedByNightmare) {
+      return { visible: true, label: '跳过（技能被封锁）' };
+    }
+
+    // Schema-driven bottom action visibility.
+    if (!currentSchema) return { visible: false, label: '' };
+
+    // wolfVote: always allow empty vote (-1)
+    if (currentSchema.kind === 'wolfVote') {
+      return { visible: true, label: currentSchema.ui?.emptyVoteText || '投票空刀' };
+    }
+
+    // chooseSeat/swap: honor canSkip
+    // NOTE: witchSave/witchPoison are chooseSeat sub-steps and should allow bottom skip.
+    if (currentSchema.kind === 'chooseSeat' || currentSchema.kind === 'swap') {
+      if (!currentSchema.canSkip) return { visible: false, label: '' };
+      return { visible: true, label: currentSchema.ui?.bottomActionText || '不使用技能' };
+    }
+
+    // compound/confirm/skip: no generic bottom action
+    return { visible: false, label: '' };
+  }, [gameState, roomStatus, currentSchema, imActioner, isAudioPlaying, isBlockedByNightmare]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Auto-trigger intent (for roles that popup on turn start)
@@ -396,5 +440,6 @@ export function useRoomActions(
     canTapForAction,
     getMagicianTarget,
   getWolfStatusLine,
+  getBottomAction,
   };
 }

@@ -182,7 +182,6 @@ jest.mock('../useRoomActionDialogs', () => ({
       ]);
     },
     showConfirmDialog: jest.fn(),
-    showStatusDialog: jest.fn(),
     showActionRejectedAlert: jest.fn(),
     showRevealDialog: jest.fn(),
     showRoleActionPrompt: jest.fn(),
