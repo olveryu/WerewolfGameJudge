@@ -129,6 +129,16 @@ describe('SCHEMAS contract', () => {
       expect(SCHEMAS.wolfKill.kind).toBe('wolfVote');
       expect(SCHEMAS.wolfKill.ui?.emptyVoteText).toBeTruthy();
     });
+
+    it('schemas that support bottom actions should provide schema.ui.bottomActionText', () => {
+      // Commit 2 gate: RoomScreen bottom button text should be schema-driven for canSkip flows.
+      for (const schema of Object.values(SCHEMAS)) {
+        if (schema.kind === 'chooseSeat' || schema.kind === 'swap') {
+          // Note: some schemas may set canSkip=false, but providing text keeps UI consistent.
+          expect(schema.ui?.bottomActionText).toBeTruthy();
+        }
+      }
+    });
   });
 
   describe('helper functions', () => {

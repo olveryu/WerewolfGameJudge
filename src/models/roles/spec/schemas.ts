@@ -18,6 +18,7 @@ export const SCHEMAS = {
       prompt: '请选择要查验的玩家',
       confirmText: '确定要查验该玩家吗？',
       revealKind: 'seer',
+  bottomActionText: '不使用技能',
     },
   },
 
@@ -55,6 +56,7 @@ export const SCHEMAS = {
     ui: {
       prompt: '请选择要守护的玩家',
       confirmText: '确定要守护该玩家吗？',
+  bottomActionText: '不使用技能',
     },
   },
 
@@ -68,6 +70,7 @@ export const SCHEMAS = {
       prompt: '请选择要通灵的玩家',
       confirmText: '确定要通灵该玩家吗？',
       revealKind: 'psychic',
+  bottomActionText: '不使用技能',
     },
   },
 
@@ -80,6 +83,7 @@ export const SCHEMAS = {
     ui: {
       prompt: '请选择要摄梦的玩家',
       confirmText: '确定要摄梦该玩家吗？',
+  bottomActionText: '不使用技能',
     },
   },
 
@@ -92,6 +96,7 @@ export const SCHEMAS = {
     ui: {
       prompt: '请选择要交换的两名玩家',
       confirmText: '确定要交换这两名玩家吗？',
+  bottomActionText: '不使用技能',
     },
   },
 
@@ -127,6 +132,7 @@ export const SCHEMAS = {
     ui: {
       prompt: '请选择要魅惑的玩家',
       confirmText: '确定要魅惑该玩家吗？',
+  bottomActionText: '不使用技能',
     },
   },
 
@@ -139,6 +145,7 @@ export const SCHEMAS = {
     ui: {
       prompt: '请选择要封锁的玩家',
       confirmText: '确定要封锁该玩家吗？',
+  bottomActionText: '不使用技能',
     },
   },
 
@@ -152,6 +159,7 @@ export const SCHEMAS = {
       prompt: '请选择要查验的玩家',
       confirmText: '确定要查验该玩家吗？',
       revealKind: 'gargoyle',
+  bottomActionText: '不使用技能',
     },
   },
 
@@ -165,6 +173,7 @@ export const SCHEMAS = {
       prompt: '请选择要学习的玩家',
       confirmText: '确定要学习该玩家吗？',
       revealKind: 'wolfRobot',
+  bottomActionText: '不使用技能',
     },
   },
 
@@ -188,6 +197,7 @@ export const SCHEMAS = {
     ui: {
       prompt: '请选择你的榜样',
       confirmText: '确定选择该玩家为榜样吗？',
+  bottomActionText: '不使用技能',
     },
   },
 } as const satisfies Record<string, ActionSchema>;
