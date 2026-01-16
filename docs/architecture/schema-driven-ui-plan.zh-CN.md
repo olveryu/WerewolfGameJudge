@@ -1,5 +1,30 @@
 # Schema-driven UI 全量收口方案（不踩红线版）
 
+> 目标：在不违反项目既定红线（Host 权威 / Anti-cheat / Night-1-only / 单一真相）前提下，把 RoomScreen 里"仍然靠 role-specific 或 legacy 分支"的部分，尽可能收敛为 **schema-driven UI**。
+>
+> 本文只覆盖 **RoomScreen（及其 hooks/components/dialogs）** 的 UI 驱动方式，不更改 Supabase 责任边界。
+
+---
+
+## ✅ 实施进度（2025-01）
+
+| Commit | 状态 | 描述 |
+|--------|------|------|
+| Commit 1 | ✅ 完成 | UI 文案主源从 RoleUx 收敛到 Schema/TurnVM |
+| Commit 2 | ✅ 完成 | 底部按钮 schema-driven（覆盖 B.4/B.5 + canSkip） |
+| Commit 3 | ✅ 完成 | Witch compound steps-driven（移除 witchPhase 依赖） |
+| Commit 4 | ✅ 完成 | NIGHT_STEPS.visibility 作为 showWolves 单一来源 |
+| Commit 5 | ⏭️ 可选 | wolfVote forbiddenTargetRoleIds UI 消费（纯 UX） |
+| Commit 6 | ⏭️ 可选 | audioKey UI 显示（纯展示） |
+| Commit 7 | ✅ 完成 | 清理 legacy fields（RoleDisplayInfo.actionMessage 等） |
+
+---
+
+## 0. 结论先说
+
+- **是的**：在不踩红线的情况下，schema-driven UI 整体更好：
+  - 减少 role/name 分支爆炸；ven UI 全量收口方案（不踩红线版）
+
 > 目标：在不违反项目既定红线（Host 权威 / Anti-cheat / Night-1-only / 单一真相）前提下，把 RoomScreen 里“仍然靠 role-specific 或 legacy 分支”的部分，尽可能收敛为 **schema-driven UI**。
 >
 > 本文只覆盖 **RoomScreen（及其 hooks/components/dialogs）** 的 UI 驱动方式，不更改 Supabase 责任边界。
