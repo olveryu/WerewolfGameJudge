@@ -15,6 +15,7 @@ import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { RoomStatus } from '../../../models/Room';
 import { getRoleDisplayInfo, RoleName, isWolfRole } from '../../../models/roles';
 import type { ActionSchema } from '../../../models/roles/spec';
+import { SCHEMAS } from '../../../models/roles/spec';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ActionIntent Types (must be serializable - no callbacks/refs/functions)
@@ -122,6 +123,7 @@ export interface UseRoomActionsResult {
 interface IntentContext {
   myRole: RoleName;
   schemaKind: ActionSchema['kind'] | undefined;
+  schemaId: string | undefined;
   index: number;
   anotherIndex: number | null;
   witchPhase: 'save' | 'poison' | null;
@@ -181,7 +183,7 @@ function deriveChooseSeatIntent(ctx: IntentContext): ActionIntent {
  * Uses focused sub-helpers to keep each branch simple.
  */
 function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
-  const { schemaKind, index, anotherIndex, witchPhase, isWolf, wolfSeat } = ctx;
+  const { schemaKind, schemaId, index, anotherIndex, witchPhase, isWolf, wolfSeat } = ctx;
 
   switch (schemaKind) {
     case 'confirm':
@@ -189,9 +191,14 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
     case 'swap':
       return anotherIndex === null ? { type: 'magicianFirst', targetIndex: index } : null;
     case 'compound':
-      return witchPhase === 'poison'
-        ? { type: 'witchPoison', targetIndex: index, message: `确定要毒杀${index + 1}号玩家吗？` }
-        : null;
+      if (witchPhase !== 'poison') return null;
+      // Schema-driven (commit 3): use sub-step schema.ui.confirmText for poison confirm.
+      // NOTE: This assumes current compound schema is witchAction.
+      if (schemaId === 'witchAction') {
+        const msg = SCHEMAS.witchPoison.ui?.confirmText || `确定要毒杀${index + 1}号玩家吗？`;
+        return { type: 'witchPoison', targetIndex: index, message: msg };
+      }
+      return { type: 'witchPoison', targetIndex: index, message: `确定要毒杀${index + 1}号玩家吗？` };
     case 'wolfVote':
       return isWolf && wolfSeat !== null ? { type: 'wolfVote', targetIndex: index, wolfSeat } : null;
     case 'chooseSeat':
@@ -352,6 +359,7 @@ export function useRoomActions(
     const schemaIntent = deriveIntentFromSchema({
       myRole,
       schemaKind: currentSchema?.kind,
+  schemaId: currentSchema?.id,
       index,
       anotherIndex,
       witchPhase,
