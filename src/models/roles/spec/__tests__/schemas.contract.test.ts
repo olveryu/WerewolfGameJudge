@@ -113,11 +113,16 @@ describe('SCHEMAS contract', () => {
 
   describe('schema.ui contract (RoomScreen orchestration)', () => {
     it('chooseSeat schemas should provide schema.ui.confirmText', () => {
+      const missing: string[] = [];
       for (const schema of Object.values(SCHEMAS)) {
         if (schema.kind !== 'chooseSeat') continue;
-        expect(schema.ui?.confirmText).toBeTruthy();
-        expect(typeof schema.ui?.confirmText).toBe('string');
+        if (!schema.ui?.confirmText || typeof schema.ui.confirmText !== 'string') {
+          missing.push(schema.id);
+        }
       }
+
+      // Helpful error message: list exactly which schemas are missing confirmText.
+      expect(missing).toEqual([]);
     });
 
     it('schema.ui.revealKind is only allowed on chooseSeat schemas', () => {
