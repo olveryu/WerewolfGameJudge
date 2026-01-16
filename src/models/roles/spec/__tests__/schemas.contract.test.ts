@@ -156,6 +156,31 @@ describe('SCHEMAS contract', () => {
       expect(missingConfirmText).toEqual([]);
     });
 
+    it('only specific schema IDs may set schema.ui.revealKind (anti-drift contract)', () => {
+      // Single source of truth: exactly those schemas that currently declare revealKind.
+      // If you add a new reveal step, you must explicitly set revealKind and update this list.
+      const expectedSchemaIds = new Set<string>([
+        'seerCheck',
+        'psychicCheck',
+        'gargoyleCheck',
+        'wolfRobotLearn',
+      ]);
+
+      const actualSchemaIds = new Set<string>();
+      for (const schema of Object.values(SCHEMAS)) {
+        if (!schema.ui) continue;
+        if (!('revealKind' in schema.ui)) continue;
+        if (!schema.ui.revealKind) continue;
+        actualSchemaIds.add(schema.id);
+      }
+
+      const unexpected = Array.from(actualSchemaIds).filter((id) => !expectedSchemaIds.has(id));
+      const missing = Array.from(expectedSchemaIds).filter((id) => !actualSchemaIds.has(id));
+
+      expect(unexpected).toEqual([]);
+      expect(missing).toEqual([]);
+    });
+
     it('wolfVote schema should provide schema.ui.emptyVoteText', () => {
       // Commit 1: text is schema-driven even if behavior stays the same for now.
       expect(SCHEMAS.wolfKill.kind).toBe('wolfVote');
