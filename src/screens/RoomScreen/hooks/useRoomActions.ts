@@ -144,8 +144,6 @@ interface IntentContext {
   isWolf: boolean;
   wolfSeat: number | null;
   buildMessage: (idx: number) => string;
-  /** Witch phase from witchContext (for compound schema sub-step selection) */
-  witchPhase?: 'save' | 'poison' | null;
 }
 
 /**
@@ -168,10 +166,8 @@ export function deriveSkipIntentFromSchema(
     return null;
   }
 
-  // compound schema (witch): use witchPhase to find matching sub-step by key
-  // Fail fast: witchPhase is required and must match step.key exactly
-  // TODO: When adding more compound roles, generalize witchPhase to activeStepKey
-  // and create a unified getCompoundStepKey(schemaId, deps) helper
+  // compound schema (witch): skip intent still uses witchPhase to determine which sub-step is being skipped.
+  // NOTE: seat-tap behavior is handled separately (always poison) and does NOT rely on phase.
   if (currentSchema?.kind === 'compound' && currentSchema.steps?.length) {
     if (!witchPhase) return null;
     const step = currentSchema.steps.find(s => s.key === witchPhase);
@@ -211,7 +207,7 @@ function deriveChooseSeatIntent(ctx: IntentContext): ActionIntent {
  * Uses focused sub-helpers to keep each branch simple.
  */
 function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
-  const { schemaKind, index, anotherIndex, isWolf, wolfSeat, witchPhase } = ctx;
+  const { schemaKind, index, anotherIndex, isWolf, wolfSeat } = ctx;
 
   switch (schemaKind) {
     case 'confirm':
@@ -219,21 +215,26 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
     case 'swap':
       return anotherIndex === null ? { type: 'magicianFirst', targetIndex: index } : null;
     case 'compound':
-      // Compound (witchAction): seat tap should behave like a step chooseSeat schema, driven by
-      // the compound.steps table. We attach stepKey so RoomScreen can derive copy/payload.
-      // Fail fast: witchPhase is required and must match step.key exactly
-      // TODO: When adding more compound roles, generalize witchPhase to activeStepKey
-      if (!witchPhase) return null;
-      if (ctx.schemaId && isValidSchemaId(ctx.schemaId)) {
+      // Compound (witchAction): UX rule: seat tap is ALWAYS poison selection.
+      // Save is only triggered via the dedicated bottom button.
+      if (!ctx.schemaId) return null;
+      if (ctx.schemaId !== 'witchAction') return null;
+      if (!isValidSchemaId(ctx.schemaId)) return null;
+
+      {
         const compound = (SCHEMAS as Record<string, ActionSchema>)[ctx.schemaId];
-        if (compound?.kind === 'compound') {
-          const step = compound.steps?.find(s => s.key === witchPhase);
-          if (step) {
-            return { type: 'actionConfirm', targetIndex: index, message: ctx.buildMessage(index), stepKey: step.key };
-          }
+        if (compound?.kind !== 'compound') return null;
+        const poison = compound.steps?.find((s) => s.key === 'poison');
+        if (!poison) {
+          throw new Error('[SchemaDrivenUI] Missing poison sub-step in SCHEMAS.witchAction');
         }
+        return {
+          type: 'actionConfirm',
+          targetIndex: index,
+          message: poison.ui?.confirmText,
+          stepKey: 'poison',
+        };
       }
-      return null;
     case 'wolfVote':
       return isWolf && wolfSeat !== null ? { type: 'wolfVote', targetIndex: index, wolfSeat } : null;
     case 'chooseSeat':
@@ -495,10 +496,6 @@ export function useRoomActions(
     // NOTE: Nightmare block is now handled by Host (ACTION_REJECTED).
     // Do NOT check isBlockedByNightmare here - let the action go to Host for validation.
 
-    // Get witch phase for compound schema sub-step selection
-    const witchCtx = getWitchContext();
-    const witchPhase = witchCtx?.phase ?? null;
-
     // Delegate to pure helper for schema-driven intent derivation
     const schemaIntent = deriveIntentFromSchema({
       myRole,
@@ -513,7 +510,6 @@ export function useRoomActions(
       isWolf: isWolfRole(myRole),
       wolfSeat: findVotingWolfSeat(),
       buildMessage: (idx) => buildActionMessage(idx),
-      witchPhase,
     });
 
     if (schemaIntent) return schemaIntent;
