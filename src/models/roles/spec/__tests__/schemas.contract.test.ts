@@ -112,6 +112,18 @@ describe('SCHEMAS contract', () => {
   });
 
   describe('schema.ui contract (RoomScreen orchestration)', () => {
+    it('chooseSeat/swap/confirm schemas should provide schema.ui.confirmTitle', () => {
+      const missing: string[] = [];
+      for (const schema of Object.values(SCHEMAS)) {
+        if (schema.kind !== 'chooseSeat' && schema.kind !== 'swap' && schema.kind !== 'confirm') continue;
+        if (!schema.ui?.confirmTitle || typeof schema.ui.confirmTitle !== 'string') {
+          missing.push(schema.id);
+        }
+      }
+      missing.sort();
+      expect(missing).toEqual([]);
+    });
+
     it('chooseSeat schemas should provide schema.ui.confirmText', () => {
       const missing: string[] = [];
       for (const schema of Object.values(SCHEMAS)) {

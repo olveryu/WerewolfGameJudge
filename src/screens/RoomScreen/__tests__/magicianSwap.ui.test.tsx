@@ -196,14 +196,10 @@ describe('RoomScreen magician swap UI (smoke)', () => {
     });
 
     await waitFor(() => {
-      expect(showAlert).toHaveBeenCalledWith(
-        '确认交换',
-        expect.any(String),
-        expect.any(Array)
-      );
+        expect(showAlert).toHaveBeenCalledWith('确认交换', expect.any(String), expect.any(Array));
     });
 
-    const confirmCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认交换');
+  const confirmCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认交换');
     const buttons = (confirmCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
     const confirmBtn = buttons.find((b) => b.text === '确定');
 
