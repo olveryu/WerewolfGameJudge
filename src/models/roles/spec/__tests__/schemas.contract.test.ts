@@ -126,12 +126,34 @@ describe('SCHEMAS contract', () => {
     });
 
     it('schema.ui.revealKind is only allowed on chooseSeat schemas', () => {
+      const illegal: string[] = [];
+      const missingPrompt: string[] = [];
+      const missingConfirmText: string[] = [];
+
       for (const schema of Object.values(SCHEMAS)) {
   if (!schema.ui) continue;
   if (!('revealKind' in schema.ui)) continue;
-  if (!schema.ui.revealKind) continue;
-  expect(schema.kind).toBe('chooseSeat');
+
+  const revealKind = schema.ui.revealKind;
+        if (!revealKind) continue;
+
+        if (schema.kind !== 'chooseSeat') {
+          illegal.push(schema.id);
+          continue;
+        }
+
+        if (!schema.ui?.prompt || typeof schema.ui.prompt !== 'string') {
+          missingPrompt.push(schema.id);
+        }
+
+        if (!schema.ui?.confirmText || typeof schema.ui.confirmText !== 'string') {
+          missingConfirmText.push(schema.id);
+        }
       }
+
+      expect(illegal).toEqual([]);
+      expect(missingPrompt).toEqual([]);
+      expect(missingConfirmText).toEqual([]);
     });
 
     it('wolfVote schema should provide schema.ui.emptyVoteText', () => {
