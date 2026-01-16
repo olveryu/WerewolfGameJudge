@@ -33,7 +33,6 @@ jest.mock('../../../hooks/useGameRoom', () => ({
       template: {
         numberOfPlayers: 12,
         roles: Array.from({ length: 12 }).map(() => 'villager'),
-        actionOrder: ['witch'],
       },
       players: new Map(
         Array.from({ length: 12 }).map((_, i) => [
@@ -67,7 +66,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     currentActionRole: 'witch',
     currentSchema: ((): any => {
       const { getSchema } = require('../../../models/roles/spec/schemas');
-      return getSchema('witchPoison');
+      return getSchema('witchAction');
     })(),
 
     isAudioPlaying: false,
@@ -95,7 +94,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
 
     waitForActionRejected: jest.fn().mockResolvedValue(null),
 
-    getWitchContext: jest.fn().mockReturnValue(null),
+    getWitchContext: jest.fn().mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: -1, canSave: false, canPoison: true, phase: 'poison' }),
     getLastNightInfo: jest.fn().mockReturnValue(''),
     getLastNightDeaths: jest.fn().mockReturnValue([]),
 

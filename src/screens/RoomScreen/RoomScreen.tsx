@@ -48,7 +48,7 @@ import { TESTIDS } from '../../testids';
 import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
 import { getStepSpec } from '../../models/roles/spec/nightSteps';
-import type { ActionSchema, ChooseSeatSchema, CompoundSchema, RevealKind, SchemaId } from '../../models/roles/spec';
+import type { ActionSchema, CompoundSchema, RevealKind, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
 import { SCHEMAS, isValidSchemaId } from '../../models/roles/spec';
 import { createRevealExecutors } from './revealExecutors';
 
@@ -345,48 +345,32 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const getSchemaById = useCallback((id: string): ActionSchema | null => {
     if (!isValidSchemaId(id)) return null;
     const schemaId: SchemaId = id;
-  return SCHEMAS[schemaId] ?? null;
+    return SCHEMAS[schemaId] ?? null;
   }, []);
 
-  const getChooseSeatSchemaById = useCallback(
-    (id: string | undefined): ChooseSeatSchema | null => {
-      if (!id) return null;
-      const schema = getSchemaById(id);
-  return schema && schema.kind === 'chooseSeat' ? schema : null;
+  /**
+   * Get a compound sub-step by key (e.g., 'save', 'poison' for witchAction).
+   * Returns the InlineSubStepSchema or null if not found.
+   */
+  const getSubStepByKey = useCallback(
+    (stepKey: string | undefined): InlineSubStepSchema | null => {
+      if (!stepKey || !currentSchema || currentSchema.kind !== 'compound') return null;
+      const compound = currentSchema as CompoundSchema;
+      return compound.steps.find(s => s.key === stepKey) ?? null;
     },
-    [getSchemaById]
+    [currentSchema]
   );
-
-  const getCompoundStepSchemaForUi = useCallback((): ChooseSeatSchema | null => {
-    if (!currentSchema || currentSchema.kind !== 'compound') return null;
-  const compound: CompoundSchema = currentSchema;
-    const stepSchemaId = compound.steps?.[0]?.stepSchemaId;
-    if (!stepSchemaId) return null;
-    const stepSchema = getSchemaById(stepSchemaId);
-  return stepSchema && stepSchema.kind === 'chooseSeat' ? stepSchema : null;
-  }, [currentSchema, getSchemaById]);
 
   const buildWitchExtra = useCallback(
     (opts: { save?: boolean; poison?: boolean }): ActionExtra | undefined => {
-      if (currentSchema?.kind === 'chooseSeat') {
-        if (currentSchema.id === 'witchSave' && typeof opts.save === 'boolean') {
-          return { save: opts.save };
-        }
-        if (currentSchema.id === 'witchPoison' && typeof opts.poison === 'boolean') {
-          return { poison: opts.poison };
-        }
-      }
-
-      // If the UI is still on the compound schema (witchAction), derive the payload from step-0.
+      // For compound schema (witch), just pass through the save/poison option as ActionExtra
       if (currentSchema?.kind === 'compound') {
-        const stepSchema = getCompoundStepSchemaForUi();
-        if (!stepSchema) return undefined;
-        if (stepSchema.id === 'witchSave' && typeof opts.save === 'boolean') return { save: opts.save };
-        if (stepSchema.id === 'witchPoison' && typeof opts.poison === 'boolean') return { poison: opts.poison };
+        if (typeof opts.save === 'boolean') return { save: opts.save };
+        if (typeof opts.poison === 'boolean') return { poison: opts.poison };
       }
       return undefined;
     },
-    [currentSchema, getCompoundStepSchemaForUi]
+    [currentSchema]
   );
 
   const proceedWithActionTyped = useCallback(
@@ -515,14 +499,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             () => void proceedWithActionTyped(mergedTarget)
           );
         } else {
-          // Witch/compound: drive copy + payload by stepSchemaId when provided.
-          const stepSchema = getChooseSeatSchemaById(intent.stepSchemaId);
-          const extra =
-            stepSchema?.id === 'witchSave'
-              ? buildWitchExtra({ save: true })
-              : stepSchema?.id === 'witchPoison'
-                ? buildWitchExtra({ poison: true })
-                : buildWitchExtra({ save: true, poison: true });
+          // Witch/compound: drive copy + payload by stepKey when provided.
+          const stepSchema = getSubStepByKey(intent.stepKey);
+          const extra = stepSchema?.key === 'save'
+            ? buildWitchExtra({ save: true })
+            : stepSchema?.key === 'poison'
+              ? buildWitchExtra({ poison: true })
+              : undefined;
 
           actionDialogs.showConfirmDialog(
             (stepSchema?.ui?.confirmTitle || currentSchema?.ui?.confirmTitle || '确认行动'),
@@ -532,22 +515,22 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         }
         break;
 
-      case 'skip':
-        // Witch/compound: drive copy + payload by stepSchemaId when provided.
-        const stepSchema = getChooseSeatSchemaById(intent.stepSchemaId);
-        const extra =
-          stepSchema?.id === 'witchSave'
-            ? buildWitchExtra({ save: false })
-            : stepSchema?.id === 'witchPoison'
-              ? buildWitchExtra({ poison: false })
-              : buildWitchExtra({ save: false, poison: false });
+      case 'skip': {
+        // Witch/compound: drive copy + payload by stepKey when provided.
+        const skipStepSchema = getSubStepByKey(intent.stepKey);
+        const skipExtra = skipStepSchema?.key === 'save'
+          ? buildWitchExtra({ save: false })
+          : skipStepSchema?.key === 'poison'
+            ? buildWitchExtra({ poison: false })
+            : undefined;
 
         actionDialogs.showConfirmDialog(
           '确认跳过',
-          (stepSchema?.ui?.confirmText || intent.message || '确定不发动技能吗？'),
-          () => void proceedWithActionTyped(null, extra)
+          (skipStepSchema?.ui?.confirmText || intent.message || '确定不发动技能吗？'),
+          () => void proceedWithActionTyped(null, skipExtra)
         );
         break;
+      }
 
       case 'actionPrompt': {
         // Generic action prompt for all roles (dismiss → wait for seat tap)

@@ -4,41 +4,9 @@
  * Single source of truth for all action input protocols.
  */
 
-import type { ActionSchema } from './schema.types';
+import type { ActionSchema, InlineSubStepSchema, CompoundSchema } from './schema.types';
 
 export const SCHEMAS = {
-  // === Compound sub-steps (used by compound schemas) ===
-  // NOTE: These are normal schema IDs so RoomScreen can be fully schema-driven.
-  witchSave: {
-    id: 'witchSave',
-    displayName: '救人',
-    kind: 'chooseSeat',
-    // NOTE: self-save legality is determined by Host via WITCH_CONTEXT.canSave.
-    // UI uses this for generic disable/hint only; Host remains the judge.
-    constraints: ['notSelf'],
-    canSkip: true,
-    ui: {
-  confirmTitle: '确认行动',
-      prompt: '请选择使用解药',
-      confirmText: '确定使用解药吗？',
-      bottomActionText: '不使用技能',
-    },
-  },
-
-  witchPoison: {
-    id: 'witchPoison',
-    displayName: '毒人',
-    kind: 'chooseSeat',
-    constraints: [],
-    canSkip: true,
-    ui: {
-  confirmTitle: '确认行动',
-      prompt: '请选择使用毒药',
-      confirmText: '确定使用毒药吗？',
-      bottomActionText: '不使用技能',
-    },
-  },
-
   // === God actions ===
   seerCheck: {
     id: 'seerCheck',
@@ -47,11 +15,11 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
     canSkip: true,
     ui: {
-  confirmTitle: '确认查验',
+      confirmTitle: '确认查验',
       prompt: '请选择要查验的玩家',
       confirmText: '确定要查验该玩家吗？',
       revealKind: 'seer',
-  bottomActionText: '不使用技能',
+      bottomActionText: '不使用技能',
     },
   },
 
@@ -64,10 +32,32 @@ export const SCHEMAS = {
     },
     steps: [
       {
-  stepSchemaId: 'witchSave',
+        key: 'save',
+        displayName: '救人',
+        kind: 'chooseSeat',
+        // NOTE: self-save legality is determined by Host via WITCH_CONTEXT.canSave.
+        // UI uses this for generic disable/hint only; Host remains the judge.
+        constraints: ['notSelf'],
+        canSkip: true,
+        ui: {
+          confirmTitle: '确认行动',
+          prompt: '请选择使用解药',
+          confirmText: '确定使用解药吗？',
+          bottomActionText: '不使用技能',
+        },
       },
       {
-  stepSchemaId: 'witchPoison',
+        key: 'poison',
+        displayName: '毒人',
+        kind: 'chooseSeat',
+        constraints: [],
+        canSkip: true,
+        ui: {
+          confirmTitle: '确认行动',
+          prompt: '请选择使用毒药',
+          confirmText: '确定使用毒药吗？',
+          bottomActionText: '不使用技能',
+        },
       },
     ],
   },
@@ -79,10 +69,10 @@ export const SCHEMAS = {
     constraints: [],
     canSkip: true,
     ui: {
-  confirmTitle: '确认行动',
+      confirmTitle: '确认行动',
       prompt: '请选择要守护的玩家',
       confirmText: '确定要守护该玩家吗？',
-  bottomActionText: '不使用技能',
+      bottomActionText: '不使用技能',
     },
   },
 
@@ -97,7 +87,7 @@ export const SCHEMAS = {
       prompt: '请选择要通灵的玩家',
       confirmText: '确定要通灵该玩家吗？',
       revealKind: 'psychic',
-  bottomActionText: '不使用技能',
+      bottomActionText: '不使用技能',
     },
   },
 
@@ -108,10 +98,10 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
     canSkip: false,
     ui: {
-  confirmTitle: '确认行动',
+      confirmTitle: '确认行动',
       prompt: '请选择要摄梦的玩家',
       confirmText: '确定要摄梦该玩家吗？',
-  bottomActionText: '不使用技能',
+      bottomActionText: '不使用技能',
     },
   },
 
@@ -122,10 +112,10 @@ export const SCHEMAS = {
     constraints: [],
     canSkip: true,
     ui: {
-  confirmTitle: '确认交换',
+      confirmTitle: '确认交换',
       prompt: '请选择要交换的两名玩家',
       confirmText: '确定要交换这两名玩家吗？',
-  bottomActionText: '不使用技能',
+      bottomActionText: '不使用技能',
     },
   },
 
@@ -134,7 +124,7 @@ export const SCHEMAS = {
     displayName: '确认发动状态',
     kind: 'confirm',
     ui: {
-  confirmTitle: '确认行动',
+      confirmTitle: '确认行动',
       prompt: '猎人请确认是否可以发动技能',
       confirmText: '确定查看猎人发动状态吗？',
     },
@@ -160,10 +150,10 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
     canSkip: true,
     ui: {
-  confirmTitle: '确认行动',
+      confirmTitle: '确认行动',
       prompt: '请选择要魅惑的玩家',
       confirmText: '确定要魅惑该玩家吗？',
-  bottomActionText: '不使用技能',
+      bottomActionText: '不使用技能',
     },
   },
 
@@ -174,10 +164,10 @@ export const SCHEMAS = {
     constraints: [],
     canSkip: true,
     ui: {
-  confirmTitle: '确认行动',
+      confirmTitle: '确认行动',
       prompt: '请选择要封锁的玩家',
       confirmText: '确定要封锁该玩家吗？',
-  bottomActionText: '不使用技能',
+      bottomActionText: '不使用技能',
     },
   },
 
@@ -188,11 +178,11 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
     canSkip: true,
     ui: {
-  confirmTitle: '确认查验',
+      confirmTitle: '确认查验',
       prompt: '请选择要查验的玩家',
       confirmText: '确定要查验该玩家吗？',
       revealKind: 'gargoyle',
-  bottomActionText: '不使用技能',
+      bottomActionText: '不使用技能',
     },
   },
 
@@ -203,11 +193,11 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
     canSkip: true,
     ui: {
-  confirmTitle: '确认学习',
+      confirmTitle: '确认学习',
       prompt: '请选择要学习的玩家',
       confirmText: '确定要学习该玩家吗？',
       revealKind: 'wolfRobot',
-  bottomActionText: '不使用技能',
+      bottomActionText: '不使用技能',
     },
   },
 
@@ -216,7 +206,7 @@ export const SCHEMAS = {
     displayName: '确认发动状态',
     kind: 'confirm',
     ui: {
-  confirmTitle: '确认行动',
+      confirmTitle: '确认行动',
       prompt: '黑狼王请确认是否可以发动技能',
       confirmText: '确定查看黑狼王发动状态吗？',
     },
@@ -230,10 +220,10 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
     canSkip: false,
     ui: {
-  confirmTitle: '确认行动',
+      confirmTitle: '确认行动',
       prompt: '请选择你的榜样',
       confirmText: '确定选择该玩家为榜样吗？',
-  bottomActionText: '不使用技能',
+      bottomActionText: '不使用技能',
     },
   },
 } as const satisfies Record<string, ActionSchema>;
@@ -254,6 +244,32 @@ export function isValidSchemaId(id: string): id is SchemaId {
 /** Get all schema IDs */
 export function getAllSchemaIds(): SchemaId[] {
   return Object.keys(SCHEMAS) as SchemaId[];
+}
+
+/**
+ * Get a sub-step schema from a compound action.
+ * 
+ * @param schemaId - The compound schema ID (e.g., 'witchAction')
+ * @param stepIndex - Index of the sub-step (0 = save, 1 = poison for witch)
+ * @returns The inline sub-step schema, or undefined if not found
+ */
+export function getSubStepSchema(schemaId: SchemaId, stepIndex: number): InlineSubStepSchema | undefined {
+  const schema = SCHEMAS[schemaId];
+  if (schema.kind !== 'compound') return undefined;
+  return (schema as CompoundSchema).steps[stepIndex];
+}
+
+/**
+ * Get a sub-step schema by key from a compound action.
+ * 
+ * @param schemaId - The compound schema ID (e.g., 'witchAction')
+ * @param stepKey - Key of the sub-step (e.g., 'save', 'poison')
+ * @returns The inline sub-step schema, or undefined if not found
+ */
+export function getSubStepSchemaByKey(schemaId: SchemaId, stepKey: string): InlineSubStepSchema | undefined {
+  const schema = SCHEMAS[schemaId];
+  if (schema.kind !== 'compound') return undefined;
+  return (schema as CompoundSchema).steps.find(s => s.key === stepKey);
 }
 
 // Re-export types
