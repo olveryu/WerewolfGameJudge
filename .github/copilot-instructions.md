@@ -198,6 +198,10 @@ If something is unclear, ask before coding. Don’t invent repo facts.
    - `SCHEMAS[*].constraints` (input legality)
    - existing host runtime integration tests (observed facts)
 - **Red → Green rule:** for any behavior change (resolver/night flow/visibility/private messages), write a failing test first, then implement until green. Don’t only add tests after code “seems to work”.
+- **Bugfix test lock (required):** if you fix a bug, you MUST add (or update) a test that would fail before the fix and pass after it (“lock the bug”).
+   - Prefer the **smallest, closest-to-root-cause** test (unit/contract/integration) over UI/E2E.
+   - The change description must mention **which test locks the bug**.
+   - If a test truly can’t be added, stop and explain why, and propose the smallest viable alternative.
 - **Never snapshot UI copy as logic.** Assertions must use stable identifiers (SchemaId/roleId/testIDs), not user-facing strings.
 - **When changing tables/specs**, update/extend contract tests in the same change so drift is impossible.
 

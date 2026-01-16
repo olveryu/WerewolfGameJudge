@@ -581,11 +581,31 @@ export class GameStateService {
     // Record action using structured RoleAction
     if (target !== null) {
       if (role === 'witch') {
-        // Witch: extra=true means poison, extra=false means save
-        if (extra === true) {
+        // Witch wire protocol:
+        // - NEW (schema-driven): extra is an object: { poison: boolean } | { save: boolean }
+        // Fail-fast for unrecognized shapes to avoid silently doing the wrong action.
+        if (typeof extra !== 'object' || extra === null) {
+          throw new Error(
+            '[GameStateService] Invalid witch extra payload (expected {poison:true} or {save:true}).'
+          );
+        }
+
+        if ('poison' in extra) {
+          if (extra.poison !== true) {
+            throw new Error(
+              '[GameStateService] Invalid witch extra payload (poison must be true when provided).'
+            );
+          }
           this.state.actions.set(role, makeActionWitch(makeWitchPoison(target)));
-        } else {
+        } else if ('save' in extra) {
+          if (extra.save !== true) {
+            throw new Error(
+              '[GameStateService] Invalid witch extra payload (save must be true when provided).'
+            );
+          }
           this.state.actions.set(role, makeActionWitch(makeWitchSave(target)));
+        } else {
+          throw new Error('[GameStateService] Invalid witch extra payload (missing save/poison)');
         }
       } else if (role === 'magician') {
         // Magician Wire Protocol: encoded target = firstSeat + secondSeat * 100
@@ -2260,7 +2280,6 @@ export class GameStateService {
         killedIndex,
         canSave,
         canPoison: true,  // Night-1: always has poison
-        phase: 'save',
       } as WitchContextPayload,
     };
 

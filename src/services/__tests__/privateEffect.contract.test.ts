@@ -23,7 +23,6 @@ describe('Private Effect Contract', () => {
           killedIndex: 2,
           canSave: true,
           canPoison: true,
-          phase: 'save',
         },
       };
 
@@ -52,14 +51,12 @@ describe('Private Effect Contract', () => {
         killedIndex: 3,
         canSave: true,
         canPoison: true,
-        phase: 'save',
       };
 
       expect(payload.kind).toBe('WITCH_CONTEXT');
       expect(payload.killedIndex).toBe(3);
       expect(payload.canSave).toBe(true);
       expect(payload.canPoison).toBe(true);
-      expect(payload.phase).toBe('save');
     });
 
     it('killedIndex -1 means empty kill (no victim)', () => {
@@ -68,7 +65,6 @@ describe('Private Effect Contract', () => {
         killedIndex: -1,
         canSave: false,
         canPoison: true,
-        phase: 'save',
       };
 
       expect(emptyKill.killedIndex).toBe(-1);
@@ -82,32 +78,13 @@ describe('Private Effect Contract', () => {
         killedIndex: 5, // witch's seat
         canSave: false, // Host determined: no self-save
         canPoison: true,
-        phase: 'save',
       };
 
       expect(selfKill.canSave).toBe(false);
     });
 
-    it('phase can be save or poison', () => {
-      const savePhase: WitchContextPayload = {
-        kind: 'WITCH_CONTEXT',
-        killedIndex: 2,
-        canSave: true,
-        canPoison: true,
-        phase: 'save',
-      };
-
-      const poisonPhase: WitchContextPayload = {
-        kind: 'WITCH_CONTEXT',
-        killedIndex: 2,
-        canSave: false, // Already decided not to save
-        canPoison: true,
-        phase: 'poison',
-      };
-
-      expect(savePhase.phase).toBe('save');
-      expect(poisonPhase.phase).toBe('poison');
-    });
+  // NOTE(phase removed): WitchContextPayload no longer carries “save/poison phase”.
+  // UX is now schema-driven and seat taps always mean poison selection.
   });
 
   describe('SeerRevealPayload contract', () => {
@@ -202,7 +179,6 @@ describe('Private Effect Contract', () => {
           killedIndex: 3,
           canSave: true,
           canPoison: true,
-          phase: 'save',
         },
       };
 

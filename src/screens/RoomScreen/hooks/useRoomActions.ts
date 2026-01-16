@@ -536,15 +536,13 @@ export function useRoomActions(
 
     const isWolf = isWolfRole(myRole);
     const wolfSeat = findVotingWolfSeat();
-    const witchCtx = getWitchContext();
-    const witchPhase = witchCtx?.phase ?? null;
     return deriveSkipIntentFromSchema(
       myRole,
       currentSchema,
   (idx) => buildActionMessage(idx),
       isWolf,
       wolfSeat,
-      witchPhase
+  null
     );
   }, [myRole, currentSchema, findVotingWolfSeat, buildActionMessage, getWitchContext]);
 
