@@ -98,6 +98,16 @@ describe('NIGHT_STEPS contract', () => {
       }
     });
 
+    it('actsSolo=false steps must be wolfMeetingPhase=true', () => {
+      // In this app, the only time we show the wolf pack list is the wolf meeting phase.
+      // Contract: if a step is explicitly non-solo, it must be a wolf meeting step.
+      for (const step of NIGHT_STEPS) {
+        if (step.visibility.actsSolo === false) {
+          expect(step.visibility.wolfMeetingPhase).toBe(true);
+        }
+      }
+    });
+
     it('wolf meeting steps should be derived from NIGHT_STEPS (snapshot)', () => {
       const wolfMeetingStepIds = NIGHT_STEPS
         .filter(s => s.visibility.wolfMeetingPhase === true)
