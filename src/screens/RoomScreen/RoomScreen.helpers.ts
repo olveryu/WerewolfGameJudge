@@ -171,9 +171,15 @@ function handleWolfTeamTurn(
  * The types are compatible - LocalPlayer matches GameRoomLike's player type
  */
 export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
-  // LocalGameState.players is compatible with GameRoomLike.players
-  // (LocalPlayer has all required fields)
-  return gameState as unknown as GameRoomLike;
+  // Adapter object (avoid unsafe assertions like `as unknown as`).
+  // Treat this as a view over LocalGameState for model-layer helpers that expect GameRoomLike.
+  return {
+    template: gameState.template,
+    players: gameState.players,
+    actions: gameState.actions,
+    wolfVotes: gameState.wolfVotes,
+    currentActionerIndex: gameState.currentActionerIndex,
+  };
 }
 
 /**

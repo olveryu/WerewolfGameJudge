@@ -75,6 +75,9 @@ export interface GameContext {
 export interface ActionDeps {
   /** Check if wolf has voted */
   hasWolfVoted: (seatNumber: number) => boolean;
+
+  /** UI-only: precomputed wolf-vote summary string (e.g. "1/3 狼人已投票"). */
+  getWolfVoteSummary: () => string;
   /** 
    * Get witch context from private inbox (ANTI-CHEAT: Zero-Trust)
    * Returns null if no WITCH_CONTEXT received for current turn
@@ -104,6 +107,9 @@ export interface UseRoomActionsResult {
   
   /** Merge magician two-target */
   getMagicianTarget: (secondIndex: number) => number;
+
+  /** UI-only: if current actor is wolf, returns vote summary + (optional) my-seat suffix. */
+  getWolfStatusLine: () => string | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -219,7 +225,7 @@ export function useRoomActions(
     anotherIndex,
   } = gameContext;
 
-  const { hasWolfVoted, getWitchContext } = deps;
+  const { hasWolfVoted, getWolfVoteSummary, getWitchContext } = deps;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Wolf vote helpers
@@ -275,6 +281,22 @@ export function useRoomActions(
     }
     return anotherIndex + secondIndex * 100;
   }, [anotherIndex]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // UI-only: wolf status line for the action prompt area
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const getWolfStatusLine = useCallback((): string | null => {
+    if (!myRole || !isWolfRole(myRole)) return null;
+    // Only show during the schema-driven wolf-vote step.
+    if (currentSchema?.kind !== 'wolfVote') return null;
+
+    const base = getWolfVoteSummary();
+    if (mySeatNumber !== null && !hasWolfVoted(mySeatNumber)) {
+      return base;
+    }
+    return `${base} (你已投票，等待其他狼人)`;
+  }, [currentSchema?.kind, getWolfVoteSummary, hasWolfVoted, myRole, mySeatNumber]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Auto-trigger intent (for roles that popup on turn start)
@@ -373,5 +395,6 @@ export function useRoomActions(
     findVotingWolfSeat,
     canTapForAction,
     getMagicianTarget,
+  getWolfStatusLine,
   };
 }

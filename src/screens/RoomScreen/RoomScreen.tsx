@@ -57,23 +57,23 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Use the new game room hook
   const {
     gameState,
-    isHost,
-    mySeatNumber,
-    myRole,
-    roomStatus,
-    currentActionRole,
-    currentSchema,
+  isHost,
+  mySeatNumber,
+  myRole,
+  roomStatus,
+  currentActionRole,
+  currentSchema,
   currentStepId,
-    isAudioPlaying,
-    connectionStatus,
-    createRoom,
-    joinRoom,
-    takeSeat,
-    leaveSeat,
-    assignRoles,
-    startGame,
-    restartGame,
-    viewedRole,
+  isAudioPlaying,
+  connectionStatus,
+  createRoom,
+  joinRoom,
+  takeSeat,
+  leaveSeat,
+  assignRoles,
+  startGame,
+  restartGame,
+  viewedRole,
     submitAction,
     submitWolfVote,
     hasWolfVoted,
@@ -271,14 +271,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const actionDeps = useMemo(() => ({
     hasWolfVoted,
+  getWolfVoteSummary: () => (gameState ? getWolfVoteSummary(toGameRoomLike(gameState)) : '0/0 狼人已投票'),
     getWitchContext,
-  }), [hasWolfVoted, getWitchContext]);
+  }), [gameState, hasWolfVoted, getWitchContext]);
 
   const {
     getActionIntent,
     getSkipIntent,
     getAutoTriggerIntent,
     getMagicianTarget,
+  getWolfStatusLine,
   } = useRoomActions(gameContext, actionDeps);
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -327,6 +329,75 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     return true; // Action was accepted
   }, [submitAction, waitForActionRejected, actionDialogs]);
 
+  // ---------------------------------------------------------------------------------
+  // Action extra typing (UI -> Host wire payload)
+  //
+  // NOTE: The transport currently uses an untyped `extra?: any` field.
+  // We keep it type-safe on the UI side by narrowing locally.
+  // ---------------------------------------------------------------------------------
+
+  type ActionExtra = { save: boolean } | { poison: boolean };
+
+  const buildWitchExtra = useCallback(
+    (opts: { save?: boolean; poison?: boolean }): ActionExtra | undefined => {
+      if (currentSchema?.kind !== 'chooseSeat') return undefined;
+      if (currentSchema.id === 'witchSave' && typeof opts.save === 'boolean') {
+        return { save: opts.save };
+      }
+      if (currentSchema.id === 'witchPoison' && typeof opts.poison === 'boolean') {
+        return { poison: opts.poison };
+      }
+      return undefined;
+    },
+    [currentSchema]
+  );
+
+  const proceedWithActionTyped = useCallback(
+    async (targetIndex: number | null, extra?: ActionExtra): Promise<boolean> => {
+      return proceedWithAction(targetIndex, extra);
+    },
+    [proceedWithAction]
+  );
+
+  // UI-only helpers: keep confirm copy schema-driven and avoid repeating the same fallback logic.
+  const getConfirmTitleForSchema = useCallback((): string => {
+    return currentSchema?.kind === 'chooseSeat'
+      ? (currentSchema.ui?.confirmTitle || '确认行动')
+      : '确认行动';
+  }, [currentSchema]);
+
+  const getConfirmTextForSeatAction = useCallback(
+    (targetIndex: number): string => {
+      return currentSchema?.kind === 'chooseSeat'
+        ? (currentSchema.ui?.confirmText || `是否对${targetIndex + 1}号玩家使用技能？`)
+        : `是否对${targetIndex + 1}号玩家使用技能？`;
+    },
+    [currentSchema]
+  );
+
+  const confirmThenAct = useCallback(
+    (
+      targetIndex: number,
+      onAccepted: () => Promise<void> | void,
+      opts?: { title?: string; message?: string }
+    ) => {
+      const title = opts?.title ?? getConfirmTitleForSchema();
+      const message = opts?.message ?? getConfirmTextForSeatAction(targetIndex);
+
+      actionDialogs.showConfirmDialog(title, message, async () => {
+        const accepted = await proceedWithActionTyped(targetIndex);
+        if (!accepted) return;
+        await onAccepted();
+      });
+    },
+    [
+      actionDialogs,
+      getConfirmTextForSeatAction,
+      getConfirmTitleForSchema,
+      proceedWithActionTyped,
+    ]
+  );
+
   // ───────────────────────────────────────────────────────────────────────────
   // Intent Handler (Orchestrator)
   // ───────────────────────────────────────────────────────────────────────────
@@ -337,124 +408,71 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       // If blocked player submits action, Host will send ACTION_REJECTED private message.
 
       case 'magicianFirst':
-        setAnotherIndex(intent.targetIndex);
+  setAnotherIndex(intent.targetIndex);
         actionDialogs.showMagicianFirstAlert(intent.targetIndex);
         break;
 
       case 'seerReveal': {
         if (!gameState) return;
-        // Confirm intent before submitting to Host
-        actionDialogs.showConfirmDialog(
-          currentSchema?.kind === 'chooseSeat' ? (currentSchema.ui?.confirmTitle || '确认行动') : '确认行动',
-          currentSchema?.kind === 'chooseSeat'
-            ? (currentSchema.ui?.confirmText || `是否对${intent.targetIndex + 1}号玩家使用技能？`)
-            : `是否对${intent.targetIndex + 1}号玩家使用技能？`,
-          async () => {
-            // Anti-cheat: Submit action to Host first, Host sends SEER_REVEAL privately
-            // Then wait for result from inbox (handles network latency)
-            const accepted = await proceedWithAction(intent.targetIndex);
-            if (!accepted) return; // Action rejected, alert already shown
-            const reveal = await waitForSeerReveal();
-            if (reveal) {
-              actionDialogs.showRevealDialog(
-                `${reveal.targetSeat + 1}号是${reveal.result}`,
-                '',
-                () => {
-                  submitRevealAckSafe('seer');
-                }
-              );
-            } else {
-              console.warn('[RoomScreen] seerReveal timeout - no reveal received');
-            }
+        confirmThenAct(intent.targetIndex, async () => {
+          // Anti-cheat: Host will send SEER_REVEAL privately. We only wait for it.
+          const reveal = await waitForSeerReveal();
+          if (reveal) {
+            actionDialogs.showRevealDialog(`${reveal.targetSeat + 1}号是${reveal.result}`, '', () => {
+              submitRevealAckSafe('seer');
+            });
+          } else {
+            console.warn('[RoomScreen] seerReveal timeout - no reveal received');
           }
-        );
+        });
         break;
       }
 
       case 'psychicReveal': {
         if (!gameState) return;
-        actionDialogs.showConfirmDialog(
-          currentSchema?.kind === 'chooseSeat' ? (currentSchema.ui?.confirmTitle || '确认行动') : '确认行动',
-          currentSchema?.kind === 'chooseSeat'
-            ? (currentSchema.ui?.confirmText || `是否对${intent.targetIndex + 1}号玩家使用技能？`)
-            : `是否对${intent.targetIndex + 1}号玩家使用技能？`,
-          async () => {
-            // Anti-cheat: Submit action to Host first, Host sends PSYCHIC_REVEAL privately
-            // Then wait for result from inbox (handles network latency)
-            const accepted = await proceedWithAction(intent.targetIndex);
-            if (!accepted) return; // Action rejected, alert already shown
-            const reveal = await waitForPsychicReveal();
-            if (reveal) {
-              actionDialogs.showRevealDialog(
-                `${reveal.targetSeat + 1}号是${reveal.result}`,
-                '',
-                () => {
-                  submitRevealAckSafe('psychic');
-                }
-              );
-            } else {
-              console.warn('[RoomScreen] psychicReveal timeout - no reveal received');
-            }
+        confirmThenAct(intent.targetIndex, async () => {
+          // Anti-cheat: Host will send PSYCHIC_REVEAL privately. We only wait for it.
+          const reveal = await waitForPsychicReveal();
+          if (reveal) {
+            actionDialogs.showRevealDialog(`${reveal.targetSeat + 1}号是${reveal.result}`, '', () => {
+              submitRevealAckSafe('psychic');
+            });
+          } else {
+            console.warn('[RoomScreen] psychicReveal timeout - no reveal received');
           }
-        );
+        });
         break;
       }
 
       case 'gargoyleReveal': {
         if (!gameState) return;
-        actionDialogs.showConfirmDialog(
-          currentSchema?.kind === 'chooseSeat' ? (currentSchema.ui?.confirmTitle || '确认行动') : '确认行动',
-          currentSchema?.kind === 'chooseSeat'
-            ? (currentSchema.ui?.confirmText || `是否对${intent.targetIndex + 1}号玩家使用技能？`)
-            : `是否对${intent.targetIndex + 1}号玩家使用技能？`,
-          async () => {
-            // Anti-cheat: Submit action to Host first, Host sends GARGOYLE_REVEAL privately
-            // Then wait for result from inbox (handles network latency)
-            const accepted = await proceedWithAction(intent.targetIndex);
-            if (!accepted) return; // Action rejected, alert already shown
-            const reveal = await waitForGargoyleReveal();
-            if (reveal) {
-              actionDialogs.showRevealDialog(
-                `${reveal.targetSeat + 1}号是${reveal.result}`,
-                '',
-                () => {
-                  submitRevealAckSafe('gargoyle');
-                }
-              );
-            } else {
-              console.warn('[RoomScreen] gargoyleReveal timeout - no reveal received');
-            }
+        confirmThenAct(intent.targetIndex, async () => {
+          // Anti-cheat: Host will send GARGOYLE_REVEAL privately. We only wait for it.
+          const reveal = await waitForGargoyleReveal();
+          if (reveal) {
+            actionDialogs.showRevealDialog(`${reveal.targetSeat + 1}号是${reveal.result}`, '', () => {
+              submitRevealAckSafe('gargoyle');
+            });
+          } else {
+            console.warn('[RoomScreen] gargoyleReveal timeout - no reveal received');
           }
-        );
+        });
         break;
       }
 
       case 'wolfRobotReveal': {
         if (!gameState) return;
-        actionDialogs.showConfirmDialog(
-          currentSchema?.kind === 'chooseSeat' ? (currentSchema.ui?.confirmTitle || '确认行动') : '确认行动',
-          currentSchema?.kind === 'chooseSeat'
-            ? (currentSchema.ui?.confirmText || `是否对${intent.targetIndex + 1}号玩家使用技能？`)
-            : `是否对${intent.targetIndex + 1}号玩家使用技能？`,
-          async () => {
-            // Anti-cheat: Submit action to Host first, Host sends WOLF_ROBOT_REVEAL privately
-            // Then wait for result from inbox (handles network latency)
-            const accepted = await proceedWithAction(intent.targetIndex);
-            if (!accepted) return; // Action rejected, alert already shown
-            const reveal = await waitForWolfRobotReveal();
-            if (reveal) {
-              actionDialogs.showRevealDialog(
-                `${reveal.targetSeat + 1}号是${reveal.result}`,
-                '',
-                () => {
-                  submitRevealAckSafe('wolfRobot');
-                }
-              );
-            } else {
-              console.warn('[RoomScreen] wolfRobotReveal timeout - no reveal received');
-            }
+        confirmThenAct(intent.targetIndex, async () => {
+          // Anti-cheat: Host will send WOLF_ROBOT_REVEAL privately. We only wait for it.
+          const reveal = await waitForWolfRobotReveal();
+          if (reveal) {
+            actionDialogs.showRevealDialog(`${reveal.targetSeat + 1}号是${reveal.result}`, '', () => {
+              submitRevealAckSafe('wolfRobot');
+            });
+          } else {
+            console.warn('[RoomScreen] wolfRobotReveal timeout - no reveal received');
           }
-        );
+        });
         break;
       }
 
@@ -475,34 +493,26 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           actionDialogs.showConfirmDialog(
             (currentSchema?.ui?.confirmTitle || '确认交换'),
             intent.message || `确定交换${anotherIndex + 1}号和${intent.targetIndex + 1}号?`,
-            () => void proceedWithAction(mergedTarget)
+            () => void proceedWithActionTyped(mergedTarget)
           );
         } else {
           // Witch: payload is driven by step schema id
-          let extra: any | undefined;
-          if (currentSchema?.kind === 'chooseSeat') {
-            if (currentSchema.id === 'witchSave') extra = { save: true };
-            if (currentSchema.id === 'witchPoison') extra = { poison: true };
-          }
+          const extra = buildWitchExtra({ save: true, poison: true });
           actionDialogs.showConfirmDialog(
             (currentSchema?.ui?.confirmTitle || '确认行动'),
             intent.message || '',
-            () => void proceedWithAction(intent.targetIndex, extra)
+            () => void proceedWithActionTyped(intent.targetIndex, extra)
           );
         }
         break;
 
       case 'skip':
         // Witch: skip payload is driven by step schema id
-        let extra: any | undefined;
-        if (currentSchema?.kind === 'chooseSeat') {
-          if (currentSchema.id === 'witchSave') extra = { save: false };
-          if (currentSchema.id === 'witchPoison') extra = { poison: false };
-        }
+        const extra = buildWitchExtra({ save: false, poison: false });
         actionDialogs.showConfirmDialog(
           '确认跳过',
           intent.message || '确定不发动技能吗？',
-          () => void proceedWithAction(null, extra)
+          () => void proceedWithActionTyped(null, extra)
         );
         break;
 
@@ -521,7 +531,23 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         break;
       }
     }
-  }, [gameState, myRole, anotherIndex, currentSchema, actionDialogs, proceedWithAction, submitWolfVote, getMagicianTarget, setAnotherIndex]);
+  }, [
+    gameState,
+    myRole,
+    anotherIndex,
+    actionDialogs,
+    buildWitchExtra,
+    confirmThenAct,
+    currentSchema,
+    getMagicianTarget,
+    proceedWithActionTyped,
+    submitRevealAckSafe,
+    submitWolfVote,
+    waitForGargoyleReveal,
+    waitForPsychicReveal,
+    waitForSeerReveal,
+    waitForWolfRobotReveal,
+  ]);
 
   // ───────────────────────────────────────────────────────────────────────────
   // Auto-trigger intent (with idempotency to prevent duplicate triggers)
@@ -684,20 +710,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       roleInfo?.actionMessage ||
       `请${roleInfo?.displayName || currentActionRole}行动`;
     
-    if (currentActionRole !== 'wolf') {
-      return baseMessage;
+    const wolfStatusLine = getWolfStatusLine();
+    if (wolfStatusLine) {
+      return `${baseMessage}\n${wolfStatusLine}`;
     }
-    
-    const voteSummary = getWolfVoteSummary(toGameRoomLike(gameState));
-    
-    if (mySeatNumber !== null && myRole && isWolfRole(myRole)) {
-      if (hasWolfVoted(mySeatNumber)) {
-        return `${baseMessage}\n${voteSummary} (你已投票，等待其他狼人)`;
-      }
-      return `${baseMessage}\n${voteSummary}`;
-    }
-    
-    return `${baseMessage}\n${voteSummary}`;
+
+    return baseMessage;
   };
   
   const actionMessage = getActionMessage();
