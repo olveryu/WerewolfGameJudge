@@ -23,20 +23,6 @@ jest.mock('react-native-safe-area-context', () => ({
 
 // RoomScreen keeps witchPhase in local state; for poison-seat-tap flow we force it to start at 'poison'.
 // This keeps the smoke test stable while still using the real useRoomActions intent derivation.
-jest.mock('react', () => {
-  const ReactActual = jest.requireActual('react');
-  return {
-    ...ReactActual,
-    useState: (initialValue: unknown) => {
-      if (initialValue === null) {
-        // This covers witchPhase initialization in RoomScreen.
-        return ReactActual.useState('poison');
-      }
-      return ReactActual.useState(initialValue);
-    },
-  };
-});
-
 const mockSubmitAction = jest.fn();
 
 // Witch poison phase: seat tap should open poison confirm -> confirm submits submitAction(target, {poison:true})
@@ -81,7 +67,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     currentActionRole: 'witch',
     currentSchema: ((): any => {
       const { getSchema } = require('../../../models/roles/spec/schemas');
-      return getSchema('witchAction');
+      return getSchema('witchPoison');
     })(),
 
     isAudioPlaying: false,
@@ -130,16 +116,13 @@ jest.mock('../hooks/useActionerState', () => ({
 
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showWitchPoisonConfirm: (targetIndex: number, onConfirm: () => void, onCancel?: () => void) => {
+    showConfirmDialog: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
-  // Schema-driven (commit 3): confirm text comes from SCHEMAS.witchPoison.ui.confirmText
-  const { SCHEMAS } = require('../../../models/roles/spec');
-  mockShowAlert('女巫毒药', SCHEMAS.witchPoison.ui?.confirmText || `确定要毒杀${targetIndex + 1}号玩家吗？`, [
+      mockShowAlert(title, message, [
         { text: '确定', onPress: onConfirm },
         { text: '取消', style: 'cancel', onPress: onCancel },
       ]);
     },
-    showConfirmDialog: jest.fn(),
     showWolfVoteDialog: jest.fn(),
     showStatusDialog: jest.fn(),
     showActionRejectedAlert: jest.fn(),
@@ -148,6 +131,7 @@ jest.mock('../useRoomActionDialogs', () => ({
     showMagicianFirstAlert: jest.fn(),
     showWitchSaveDialog: jest.fn(),
     showWitchPoisonPrompt: jest.fn(),
+    showWitchPoisonConfirm: jest.fn(),
   }),
 }));
 
@@ -199,13 +183,13 @@ describe('RoomScreen witch poison UI (smoke)', () => {
 
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
-        '女巫毒药',
-  expect.any(String),
+    '确认行动',
+    expect.any(String),
         expect.any(Array)
       );
     });
 
-    const poisonCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '女巫毒药');
+  const poisonCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
     expect(poisonCall).toBeDefined();
 
     const buttons = (poisonCall as any)[2] as Array<{ text: string; onPress?: () => void }>;

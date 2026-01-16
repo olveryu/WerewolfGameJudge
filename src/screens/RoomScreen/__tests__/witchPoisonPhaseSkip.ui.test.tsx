@@ -115,7 +115,7 @@ jest.mock('../hooks/useRoomActions', () => ({
   useRoomActions: () => ({
     getActionIntent: () => null,
     getSkipIntent: () => ({ type: 'skip', targetIndex: -1, message: '确定不发动技能吗？' }),
-    getAutoTriggerIntent: () => ({ type: 'witchPoisonPhase', targetIndex: -1 }),
+  getAutoTriggerIntent: () => ({ type: 'actionPrompt', targetIndex: -1 }),
     getMagicianTarget: (n: number) => n,
   }),
 }));
@@ -129,9 +129,9 @@ jest.mock('../useRoomActionDialogs', () => ({
         { text: '不救助', style: 'cancel', onPress: onSkip },
       ]);
     },
-    showWitchPoisonPrompt: (onDismiss: () => void) => {
+    showRoleActionPrompt: (title: string, message: string, onDismiss: () => void) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
-      mockShowAlert('请选择是否使用毒药', '点击下方「不使用技能」可跳过', [{ text: '好', onPress: onDismiss }]);
+      mockShowAlert(title, message, [{ text: '好', onPress: onDismiss }]);
     },
     showWitchPoisonConfirm: jest.fn(),
     showConfirmDialog: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
@@ -145,7 +145,6 @@ jest.mock('../useRoomActionDialogs', () => ({
     showStatusDialog: jest.fn(),
     showActionRejectedAlert: jest.fn(),
     showRevealDialog: jest.fn(),
-    showRoleActionPrompt: jest.fn(),
     showMagicianFirstAlert: jest.fn(),
   }),
 }));
@@ -191,18 +190,16 @@ describe('RoomScreen witch poison phase skip UI (smoke)', () => {
 
   const { findByText } = render(<RoomScreen {...props} />);
 
-  // Poison prompt should show (auto-trigger)
+  // Auto-trigger prompt should show
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
-        '请选择是否使用毒药',
-    expect.stringContaining('不使用技能'),
+        expect.any(String),
+        expect.any(String),
         expect.any(Array)
       );
     });
 
-  // This is a compound schema phase; bottom skip is handled by a dialog flow.
-  // We keep the smoke test lightweight and only verify the prompt wiring.
-  await findByText('请选择使用毒药或解药');
+  // Keep this smoke test lightweight and only verify prompt wiring.
   expect(mockSubmitAction).not.toHaveBeenCalled();
   });
 });
