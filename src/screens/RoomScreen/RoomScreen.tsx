@@ -98,7 +98,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Local UI state
   const [firstNightEnded, setFirstNightEnded] = useState(false);
   const [anotherIndex, setAnotherIndex] = useState<number | null>(null); // For Magician
-  const [witchPhase, setWitchPhase] = useState<'save' | 'poison' | null>(null); // Witch two-phase flow
   const [isStartingGame, setIsStartingGame] = useState(false); // Hide start button after clicking
   const [seatModalVisible, setSeatModalVisible] = useState(false);
   const [pendingSeatIndex, setPendingSeatIndex] = useState<number | null>(null);
@@ -195,7 +194,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (roomStatus === RoomStatus.unseated || roomStatus === RoomStatus.seated) {
       setFirstNightEnded(false);
       setIsStartingGame(false);
-      setWitchPhase(null); // Reset witch phase on game restart
       setAnotherIndex(null); // Reset magician state
       return;
     }
@@ -205,7 +203,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     
     if (roomStatus === RoomStatus.ongoing && !currentActionRole) {
       setFirstNightEnded(true);
-      // Note: Do NOT reset witchPhase here - it should persist until phase changes away from ongoing
     }
     
     // When night ends (status becomes ended), mark firstNightEnded
@@ -213,14 +210,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       setFirstNightEnded(true);
     }
   }, [gameState, roomStatus, currentActionRole]);
-
-  // Reset witchPhase only when game is not ongoing/ended (more conservative)
-  // This prevents losing witchPhase state during normal night flow
-  useEffect(() => {
-    if (roomStatus !== RoomStatus.ongoing && roomStatus !== RoomStatus.ended) {
-      setWitchPhase(null);
-    }
-  }, [roomStatus]);
 
   // Loading timeout
   useEffect(() => {
@@ -263,8 +252,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     isAudioPlaying,
     isBlockedByNightmare,
     anotherIndex,
-    witchPhase,
-  }), [gameState, roomStatus, currentActionRole, currentSchema, imActioner, mySeatNumber, myRole, isAudioPlaying, isBlockedByNightmare, anotherIndex, witchPhase]);
+  }), [gameState, roomStatus, currentActionRole, currentSchema, imActioner, mySeatNumber, myRole, isAudioPlaying, isBlockedByNightmare, anotherIndex]);
 
   const actionDeps = useMemo(() => ({
     hasWolfVoted,
@@ -463,47 +451,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         break;
       }
 
-      case 'witchSavePhase':
-        setWitchPhase('save');
-        actionDialogs.showWitchSaveDialog(
-          intent.killedIndex ?? -1,
-          intent.canSave ?? false,
-          () => {
-            // Save - proceed with save action
-            if (intent.killedIndex !== undefined && intent.killedIndex !== -1) {
-              void proceedWithAction(intent.killedIndex, { save: true });
-            }
-            setWitchPhase(null);
-          },
-          () => {
-            // Skip save - move to poison phase
-            setWitchPhase('poison');
-          }
-        );
-        break;
-
-      case 'witchPoisonPhase':
-        actionDialogs.showWitchPoisonPrompt(() => {
-          // Dismiss - skip poison and end witch turn
-          void proceedWithAction(null);
-          setWitchPhase(null);
-        });
-        break;
-
-      case 'witchPoison':
-        actionDialogs.showWitchPoisonConfirm(
-          intent.targetIndex,
-          () => {
-            // Confirm poison
-            void proceedWithAction(intent.targetIndex, { poison: true });
-            setWitchPhase(null);
-          },
-          () => {
-            // Cancel - stay in poison phase
-          }
-        );
-        break;
-
       case 'wolfVote':
         if (intent.wolfSeat !== undefined) {
           actionDialogs.showWolfVoteDialog(
@@ -524,19 +471,31 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             () => void proceedWithAction(mergedTarget)
           );
         } else {
+          // Witch: payload is driven by step schema id
+          let extra: any | undefined;
+          if (currentSchema?.kind === 'chooseSeat') {
+            if (currentSchema.id === 'witchSave') extra = { save: true };
+            if (currentSchema.id === 'witchPoison') extra = { poison: true };
+          }
           actionDialogs.showConfirmDialog(
             '确认行动',
             intent.message || '',
-            () => void proceedWithAction(intent.targetIndex)
+            () => void proceedWithAction(intent.targetIndex, extra)
           );
         }
         break;
 
       case 'skip':
+        // Witch: skip payload is driven by step schema id
+        let extra: any | undefined;
+        if (currentSchema?.kind === 'chooseSeat') {
+          if (currentSchema.id === 'witchSave') extra = { save: false };
+          if (currentSchema.id === 'witchPoison') extra = { poison: false };
+        }
         actionDialogs.showConfirmDialog(
           '确认跳过',
           intent.message || '确定不发动技能吗？',
-          () => void proceedWithAction(null)
+          () => void proceedWithAction(null, extra)
         );
         break;
 
@@ -555,7 +514,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         break;
       }
     }
-  }, [gameState, myRole, anotherIndex, actionDialogs, proceedWithAction, submitWolfVote, getMagicianTarget, setAnotherIndex, setWitchPhase]);
+  }, [gameState, myRole, anotherIndex, currentSchema, actionDialogs, proceedWithAction, submitWolfVote, getMagicianTarget, setAnotherIndex]);
 
   // ───────────────────────────────────────────────────────────────────────────
   // Auto-trigger intent (with idempotency to prevent duplicate triggers)
@@ -584,7 +543,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       imActioner ? 'A' : 'N',
       isAudioPlaying ? 'P' : 'S',
       myRole ?? 'null',
-      witchPhase ?? 'null',
       anotherIndex ?? 'null',
       autoIntent.type,
     ].join('|');
@@ -598,7 +556,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     console.log(`[AutoIntent] Triggering: key=${key}, intent=${autoIntent.type}`);
     lastAutoIntentKeyRef.current = key;
     handleActionIntent(autoIntent);
-  }, [imActioner, isAudioPlaying, myRole, witchPhase, anotherIndex, roomStatus, currentActionRole, gameState?.currentActionerIndex, getAutoTriggerIntent, handleActionIntent]);
+  }, [imActioner, isAudioPlaying, myRole, anotherIndex, roomStatus, currentActionRole, gameState?.currentActionerIndex, getAutoTriggerIntent, handleActionIntent]);
 
   // ───────────────────────────────────────────────────────────────────────────
   // Seat tap handlers
@@ -871,6 +829,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           if (currentSchema.kind === 'wolfVote') return true;
 
           // chooseSeat/swap: honor canSkip
+          // NOTE: witchSave/witchPoison are chooseSeat sub-steps and should allow bottom skip.
           if (currentSchema.kind === 'chooseSeat') return currentSchema.canSkip;
           if (currentSchema.kind === 'swap') return currentSchema.canSkip;
 

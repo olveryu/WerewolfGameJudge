@@ -35,10 +35,7 @@ export type ActionIntentType =
   | 'gargoyleReveal'       // Gargoyle check
   | 'wolfRobotReveal'      // Wolf Robot learn identity
   
-  // Witch two-phase
-  | 'witchSavePhase'       // Witch save phase (auto-trigger)
-  | 'witchPoisonPhase'     // Witch poison phase (after save)
-  | 'witchPoison'          // Witch poison confirm (tap seat)
+  // Witch (schema-driven)
   
   // Two-step
   | 'magicianFirst'        // Magician first target
@@ -59,9 +56,6 @@ export interface ActionIntent {
   wolfSeat?: number;           // for wolfVote
   message?: string;            // for actionConfirm
   
-  // Witch specific
-  killedIndex?: number;        // for witchSavePhase
-  canSave?: boolean;           // for witchSavePhase
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,7 +73,6 @@ export interface GameContext {
   isAudioPlaying: boolean;
   isBlockedByNightmare: boolean;
   anotherIndex: number | null;              // Magician first target
-  witchPhase: 'save' | 'poison' | null;     // Witch current phase
 }
 
 export interface ActionDeps {
@@ -126,7 +119,6 @@ interface IntentContext {
   schemaId: string | undefined;
   index: number;
   anotherIndex: number | null;
-  witchPhase: 'save' | 'poison' | null;
   isWolf: boolean;
   wolfSeat: number | null;
   buildMessage: (idx: number) => string;
@@ -183,7 +175,7 @@ function deriveChooseSeatIntent(ctx: IntentContext): ActionIntent {
  * Uses focused sub-helpers to keep each branch simple.
  */
 function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
-  const { schemaKind, schemaId, index, anotherIndex, witchPhase, isWolf, wolfSeat } = ctx;
+  const { schemaKind, index, anotherIndex, isWolf, wolfSeat } = ctx;
 
   switch (schemaKind) {
     case 'confirm':
@@ -191,14 +183,9 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
     case 'swap':
       return anotherIndex === null ? { type: 'magicianFirst', targetIndex: index } : null;
     case 'compound':
-      if (witchPhase !== 'poison') return null;
-      // Schema-driven (commit 3): use sub-step schema.ui.confirmText for poison confirm.
-      // NOTE: This assumes current compound schema is witchAction.
-      if (schemaId === 'witchAction') {
-        const msg = SCHEMAS.witchPoison.ui?.confirmText || `确定要毒杀${index + 1}号玩家吗？`;
-        return { type: 'witchPoison', targetIndex: index, message: msg };
-      }
-      return { type: 'witchPoison', targetIndex: index, message: `确定要毒杀${index + 1}号玩家吗？` };
+  // compound 行为统一交给 RoomScreen 的通用 actionPrompt/skip/actionConfirm 流程处理。
+  // 这里不再做 role-specific 的“poison/confirm”分支，避免 UI 层维护 witchPhase。
+  return null;
     case 'wolfVote':
       return isWolf && wolfSeat !== null ? { type: 'wolfVote', targetIndex: index, wolfSeat } : null;
     case 'chooseSeat':
@@ -227,7 +214,6 @@ export function useRoomActions(
     // NOTE: isBlockedByNightmare is no longer used for intent derivation.
     // Nightmare block is handled by Host (ACTION_REJECTED). Kept in GameContext for UX hints only.
     anotherIndex,
-    witchPhase,
   } = gameContext;
 
   const { hasWolfVoted, getWitchContext } = deps;
@@ -294,32 +280,10 @@ export function useRoomActions(
 
     // Schema-driven: compound schema (witch two-phase flow)
     if (currentSchema?.kind === 'compound') {
-      // witchPhase === null means just became actioner → start with save phase
-      // witchPhase === 'save' means we need to show save dialog
-      // witchPhase === 'poison' means we need to show poison prompt
-      if (witchPhase === null || witchPhase === 'save') {
-        // ANTI-CHEAT: Read witch context from private inbox (Zero-Trust)
-        // Returns null if Host hasn't sent WITCH_CONTEXT yet
-        const witchCtx = getWitchContext();
-        if (!witchCtx) {
-          // Still waiting for private message - don't trigger yet
-          return null;
-        }
-        // Host already calculated canSave (including self-save check)
-        return {
-          type: 'witchSavePhase',
-          targetIndex: witchCtx.killedIndex,
-          killedIndex: witchCtx.killedIndex,
-          canSave: witchCtx.canSave,
-        };
-      }
-      if (witchPhase === 'poison') {
-        return {
-          type: 'witchPoisonPhase',
-          targetIndex: -1,
-        };
-      }
-      return null;
+  // ANTI-CHEAT: 仅在 WitchContext 到达后才弹 prompt（避免没有 killedIndex 时误导 UI）。
+  const witchCtx = getWitchContext();
+  if (!witchCtx) return null;
+  return { type: 'actionPrompt', targetIndex: -1 };
     }
 
     // Schema-driven: confirm schema (hunter/darkWolfKing status dialog)
@@ -337,7 +301,7 @@ export function useRoomActions(
 
     // All other schemas: show generic action prompt, dismiss → wait for seat tap
     return { type: 'actionPrompt', targetIndex: -1 };
-  }, [myRole, imActioner, isAudioPlaying, currentSchema, witchPhase, getWitchContext]);
+  }, [myRole, imActioner, isAudioPlaying, currentSchema, getWitchContext]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Get action intent when seat is tapped
@@ -362,7 +326,6 @@ export function useRoomActions(
   schemaId: currentSchema?.id,
       index,
       anotherIndex,
-      witchPhase,
       isWolf: isWolfRole(myRole),
       wolfSeat: findVotingWolfSeat(),
       buildMessage: (idx) => buildActionMessage(idx, myRole),
@@ -377,7 +340,6 @@ export function useRoomActions(
     myRole,
     currentSchema,
     anotherIndex,
-    witchPhase,
     findVotingWolfSeat,
     buildActionMessage,
   ]);
