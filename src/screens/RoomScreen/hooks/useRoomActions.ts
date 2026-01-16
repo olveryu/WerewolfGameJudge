@@ -229,18 +229,21 @@ export function useRoomActions(
   // Action message builder
   // ─────────────────────────────────────────────────────────────────────────
 
-  const buildActionMessage = useCallback((index: number, actingRole: RoleName): string => {
-    const roleInfo = getRoleDisplayInfo(actingRole);
-    const actionConfirmMessage = roleInfo?.actionConfirmMessage || '对';
+  const buildActionMessage = useCallback(
+    (index: number): string => {
+      const confirmText = currentSchema?.ui?.confirmText;
 
-    if (index === -1) {
-      return '确定不发动技能吗？';
-    }
-    if (anotherIndex === null) {
-      return `确定${actionConfirmMessage}${index + 1}号玩家?`;
-    }
-    return `确定${actionConfirmMessage}${index + 1}号和${anotherIndex + 1}号玩家?`;
-  }, [anotherIndex]);
+      if (index === -1) {
+        // Skip confirm
+        return confirmText || '确定不发动技能吗？';
+      }
+      if (anotherIndex === null) {
+        return confirmText || `确定对${index + 1}号玩家使用技能?`;
+      }
+      return confirmText || `确定对${index + 1}号和${anotherIndex + 1}号玩家使用技能?`;
+    },
+    [anotherIndex, currentSchema]
+  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // Can tap for action
@@ -310,19 +313,22 @@ export function useRoomActions(
     const schemaIntent = deriveIntentFromSchema({
       myRole,
       schemaKind: currentSchema?.kind,
-  schemaId: currentSchema?.id,
-  uiRevealKind: currentSchema?.kind === 'chooseSeat' ? currentSchema.ui?.revealKind : undefined,
+      schemaId: currentSchema?.id,
+      uiRevealKind:
+        currentSchema?.kind === 'chooseSeat'
+          ? currentSchema.ui?.revealKind
+          : undefined,
       index,
       anotherIndex,
       isWolf: isWolfRole(myRole),
       wolfSeat: findVotingWolfSeat(),
-      buildMessage: (idx) => buildActionMessage(idx, myRole),
+      buildMessage: (idx) => buildActionMessage(idx),
     });
 
     if (schemaIntent) return schemaIntent;
 
     // Default fallback: normal action confirm
-    const message = buildActionMessage(index, myRole);
+  const message = buildActionMessage(index);
     return { type: 'actionConfirm', targetIndex: index, message };
   }, [
     myRole,
@@ -345,7 +351,7 @@ export function useRoomActions(
     return deriveSkipIntentFromSchema(
       myRole,
       currentSchema,
-      (idx) => buildActionMessage(idx, myRole),
+  (idx) => buildActionMessage(idx),
       isWolf,
       wolfSeat
     );
