@@ -551,25 +551,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       case 'actionPrompt': {
         // Generic action prompt for all roles (dismiss → wait for seat tap)
-        // Prefer schema-driven prompt (single source of truth). Role copy is last-resort fallback.
-        const schemaPrompt = currentSchema?.ui?.prompt;
-        if (schemaPrompt) {
-          actionDialogs.showRoleActionPrompt('行动提示', schemaPrompt, () => {
-            // dismiss → do nothing, wait for user to tap seat
-          });
-          break;
-        }
-
-        const roleInfo = getRoleDisplayInfo(myRole!);
-        if (!roleInfo) return;
-
-        actionDialogs.showRoleActionPrompt(
-          roleInfo.actionTitle,
-          roleInfo.actionMessage || '请选择目标',
-          () => {
-            // dismiss → do nothing, wait for user to tap seat
-          }
-        );
+        // Schema-first: prompt copy must come from schema ui.
+        // Keep a generic fallback (no role-specific copy) to avoid blank UI in dev if schema is incomplete.
+        actionDialogs.showRoleActionPrompt('行动提示', currentSchema?.ui?.prompt || '请选择目标', () => {
+          // dismiss → do nothing, wait for user to tap seat
+        });
         break;
       }
     }
@@ -745,12 +731,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Get action message
   const getActionMessage = () => {
     if (!currentActionRole) return '';
-    
-    const roleInfo = getRoleDisplayInfo(currentActionRole);
-    const baseMessage =
-      currentSchema?.ui?.prompt ||
-      roleInfo?.actionMessage ||
-      `请${roleInfo?.displayName || currentActionRole}行动`;
+
+  // Schema-first: prompt copy must come from schema ui.
+  // Keep a generic fallback (no role-specific copy) to avoid blank UI in dev if schema is incomplete.
+  const baseMessage = currentSchema?.ui?.prompt || '请选择目标';
     
     const wolfStatusLine = getWolfStatusLine();
     if (wolfStatusLine) {

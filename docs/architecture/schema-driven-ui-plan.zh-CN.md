@@ -107,7 +107,7 @@
 | `flags.blocksSkill` | ⚠️ 只作为 UX hint；Host 才裁判 | ✅ turnVM 可提供 `bottomAction` 文案（如“技能被封锁，只能跳过”） | 不能让 UI 代替 Host reject |
 | `flags.immuneToNightDamage/reflectsDamage` | ❌（且不应在公屏透出） | ❌ 保持不进 UI（只在结算层） | anti-cheat + 规则边界 |
 | `flags.canSaveSelf?`（deprecated） | ❌ | ✅ 删除方向不在 UI；规则迁移到 schema.constraints | 独立迁移事项 |
-| `ux.actionMessage/actionConfirmMessage` | ✅ 当前是 UI 文案主源 | ⚠️ 逐步降级为 fallback：主源迁移到 schema/turnVM（PR1） | 避免 role/step/schema 多处写同一文案 |
+| `ux.actionMessage/actionConfirmMessage` | ⚠️（hardcore A 后不再作为 fallback） | ✅ 仅保留作历史字段；RoomScreen 文案必须来自 schema/turnVM，缺失则 fail-fast | 单一真相：避免 role/step/schema 多处写同一文案 |
 
 ---
 
@@ -118,7 +118,7 @@
 | `id`（SchemaId） | ✅（经由 Host 派发 currentSchema/turn） | ✅ 保持，并用于 turnVM.schemaId | 单一真相 |
 | `roleId` | ✅（currentActionRole） | ✅ 保持 |  |
 | `audioKey/audioEndKey` | ✅（UI-only：显示当前 step 的 audioKey） | ✅ 保持（仅展示，不参与逻辑） | 不应影响逻辑，只显示 |
-| `visibility.actsSolo/wolfMeetingPhase` | ❌（RoomScreen 未直接消费） | ✅ turnVM 统一暴露 `showWolves`/`actsSolo`（PR4） | 不能把敏感信息塞进 public；actsSolo 只是“显示规则” |
+| `visibility.actsSolo/wolfMeetingPhase` | ✅（UI 本地从 `NIGHT_STEPS` 消费，用于推导 `showWolves`） | ✅ 保持（PR4 已落地：step visibility 单一真相） | 不能把敏感信息塞进 public；actsSolo 只是“显示规则” |
 
 > 更新（2026-01-16）：
 >

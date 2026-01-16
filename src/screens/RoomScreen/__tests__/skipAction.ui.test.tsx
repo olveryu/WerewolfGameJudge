@@ -27,6 +27,19 @@ const mockSubmitAction = jest.fn();
 let mockedCanSkip = true;
 let mockedSchemaId: ChooseSeatSchema['id'] = 'seerCheck';
 
+const getChooseSeatSchema = (schemaId: ChooseSeatSchema['id']): ChooseSeatSchema => {
+  // Use the real schema as source-of-truth, then override the one test-specific knob.
+  const { getSchema } = require('../../../models/roles/spec/schemas');
+  const schema = getSchema(schemaId);
+  if (schema.kind !== 'chooseSeat') {
+    throw new Error(`Expected chooseSeat schema for ${schemaId}`);
+  }
+  return {
+    ...schema,
+    canSkip: mockedCanSkip,
+  };
+};
+
 // Minimal RoomScreen runtime: we only care that pressing "不使用技能" triggers submitAction(null)
 jest.mock('../../../hooks/useGameRoom', () => ({
   useGameRoom: () => ({
@@ -67,13 +80,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     roomStatus: require('../../../models/Room').RoomStatus.ongoing,
 
     currentActionRole: 'seer',
-    currentSchema: ({
-      kind: 'chooseSeat',
-  canSkip: mockedCanSkip,
-      constraints: [],
-  id: mockedSchemaId,
-      displayName: '预言家查验',
-    } as ChooseSeatSchema),
+  currentSchema: getChooseSeatSchema(mockedSchemaId),
 
     isAudioPlaying: false,
 

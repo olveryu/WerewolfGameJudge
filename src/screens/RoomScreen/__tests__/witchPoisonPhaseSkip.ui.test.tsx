@@ -61,7 +61,10 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     roomStatus: require('../../../models/Room').RoomStatus.ongoing,
 
     currentActionRole: 'witch',
-    currentSchema: ({ kind: 'compound', id: 'witch', displayName: '女巫' } as any),
+    currentSchema: (() => {
+      const { getSchema } = require('../../../models/roles/spec/schemas');
+      return getSchema('witchAction');
+    })(),
 
     isAudioPlaying: false,
 
