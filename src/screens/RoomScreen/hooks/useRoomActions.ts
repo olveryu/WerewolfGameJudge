@@ -14,8 +14,9 @@ import { useCallback } from 'react';
 import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { RoomStatus } from '../../../models/Room';
 import { getRoleDisplayInfo, RoleName, isWolfRole } from '../../../models/roles';
-import type { ActionSchema } from '../../../models/roles/spec';
+import type { ActionSchema, SchemaId } from '../../../models/roles/spec';
 import { SCHEMAS } from '../../../models/roles/spec';
+import { isValidSchemaId } from '../../../models/roles/spec';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ActionIntent Types (must be serializable - no callbacks/refs/functions)
@@ -112,7 +113,7 @@ export interface UseRoomActionsResult {
 interface IntentContext {
   myRole: RoleName;
   schemaKind: ActionSchema['kind'] | undefined;
-  schemaId: string | undefined;
+  schemaId: SchemaId | undefined;
   uiRevealKind: import('../../../models/roles/spec/schema.types').RevealKind | undefined;
   index: number;
   anotherIndex: number | null;
@@ -313,7 +314,7 @@ export function useRoomActions(
     const schemaIntent = deriveIntentFromSchema({
       myRole,
       schemaKind: currentSchema?.kind,
-      schemaId: currentSchema?.id,
+  schemaId: currentSchema?.id && isValidSchemaId(currentSchema.id) ? currentSchema.id : undefined,
       uiRevealKind:
         currentSchema?.kind === 'chooseSeat'
           ? currentSchema.ui?.revealKind
