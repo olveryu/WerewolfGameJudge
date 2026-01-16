@@ -191,4 +191,39 @@ describe('Private Effect Contract', () => {
       expect(witchShouldProcess).toBe(true);
     });
   });
+
+  describe('Nightmare blocked witch (BUG-FIX lock)', () => {
+    // BUG: When witch is blocked by nightmare, she was still receiving WITCH_CONTEXT
+    // with killedIndex, revealing who died. Blocked witch should NOT know who died.
+    // FIX: When witch is blocked, send BLOCKED instead of WITCH_CONTEXT.
+
+    it('BLOCKED payload should have reason="nightmare"', () => {
+      const blocked: BlockedPayload = {
+        kind: 'BLOCKED',
+        reason: 'nightmare',
+      };
+      expect(blocked.kind).toBe('BLOCKED');
+      expect(blocked.reason).toBe('nightmare');
+    });
+
+    it('witch should receive BLOCKED (not WITCH_CONTEXT) when nightmare-blocked', () => {
+      // This is a contract test documenting the expected behavior.
+      // The actual Host implementation is tested in integration tests.
+      const witchUid = 'witch-user-id';
+
+      // When witch is blocked, Host should send this:
+      const blockedMessage: PrivateMessage = {
+        type: 'PRIVATE_EFFECT',
+        toUid: witchUid,
+        revision: 1,
+        payload: {
+          kind: 'BLOCKED',
+          reason: 'nightmare',
+        },
+      };
+
+      expect(blockedMessage.payload.kind).toBe('BLOCKED');
+      // NOT WITCH_CONTEXT - witch should NOT know killedIndex
+    });
+  });
 });

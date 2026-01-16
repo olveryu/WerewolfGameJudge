@@ -135,4 +135,43 @@ describe('buildNightPlan', () => {
       expect(plan.steps.map(s => s.stepId)).toEqual(NIGHT_STEPS.map(s => s.id));
     });
   });
+
+  describe('wolfKill step inclusion (BUG-FIX lock)', () => {
+    // BUG: When template has only skill wolves (darkWolfKing, nightmare, etc.) but no 'wolf',
+    // wolfKill step was skipped because its roleId is 'wolf'.
+    // FIX: Include wolfKill step if ANY wolf with participatesInWolfVote=true is present.
+    
+    it('should include wolfKill step when only darkWolfKing is present (no basic wolf)', () => {
+      const plan = buildNightPlan(['darkWolfKing', 'seer', 'villager', 'villager']);
+      const wolfKillStep = plan.steps.find((s: NightPlanStep) => s.stepId === 'wolfKill');
+      expect(wolfKillStep).toBeDefined();
+      expect(wolfKillStep?.roleId).toBe('wolf');
+    });
+
+    it('should include wolfKill step when only nightmare + wolfQueen (no basic wolf)', () => {
+      const plan = buildNightPlan(['nightmare', 'wolfQueen', 'seer', 'guard']);
+      const wolfKillStep = plan.steps.find((s: NightPlanStep) => s.stepId === 'wolfKill');
+      expect(wolfKillStep).toBeDefined();
+    });
+
+    it('should NOT include wolfKill when only gargoyle (participatesInWolfVote=false)', () => {
+      // Gargoyle is a wolf but does NOT participate in wolf vote
+      const plan = buildNightPlan(['gargoyle', 'seer', 'villager']);
+      const wolfKillStep = plan.steps.find((s: NightPlanStep) => s.stepId === 'wolfKill');
+      expect(wolfKillStep).toBeUndefined();
+    });
+
+    it('should NOT include wolfKill when only wolfRobot (participatesInWolfVote=false)', () => {
+      // WolfRobot is a wolf but does NOT participate in wolf vote
+      const plan = buildNightPlan(['wolfRobot', 'seer', 'villager']);
+      const wolfKillStep = plan.steps.find((s: NightPlanStep) => s.stepId === 'wolfKill');
+      expect(wolfKillStep).toBeUndefined();
+    });
+
+    it('should include wolfKill when basic wolf + gargoyle (at least one voting wolf)', () => {
+      const plan = buildNightPlan(['wolf', 'gargoyle', 'seer']);
+      const wolfKillStep = plan.steps.find((s: NightPlanStep) => s.stepId === 'wolfKill');
+      expect(wolfKillStep).toBeDefined();
+    });
+  });
 });
