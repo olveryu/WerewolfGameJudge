@@ -263,23 +263,22 @@ export function useRoomActions(
     (index: number): string => {
       const confirmText = currentSchema?.ui?.confirmText;
 
-      // Contract: chooseSeat schemas must provide schema.ui.confirmText.
-      // We still keep a tiny final fallback here to avoid crashing in dev if a schema is incomplete.
-      // (UI copy should not quietly drift away from schema-driven source of truth.)
-      const fallback = '确认操作？';
-
-      if (confirmText) {
-        return confirmText;
+      // Hardcore schema-driven UI contract:
+      // confirm copy must come from schema.ui.confirmText (no role/legacy/dev fallback).
+      // NOTE: compound schemas don't confirm directly (they delegate to stepSchemaId);
+      // for those, confirmText is not required here.
+      if (currentSchema?.kind !== 'compound') {
+        if (!confirmText || typeof confirmText !== 'string') {
+          throw new Error(
+            `[SchemaDrivenUI] Missing currentSchema.ui.confirmText for schema: ${currentSchema?.id ?? 'unknown'}`
+          );
+        }
       }
 
-      if (index === -1) {
-        // Skip confirm
-        return fallback;
-      }
-      if (anotherIndex === null) {
-        return fallback;
-      }
-      return fallback;
+  // Keep dependencies explicit; index/anotherIndex affect action payload, not copy.
+  void index;
+  void anotherIndex;
+  return confirmText || '';
     },
     [anotherIndex, currentSchema]
   );

@@ -3,7 +3,6 @@ import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
 import { RoomScreen } from '../RoomScreen';
 import { TESTIDS } from '../../../testids';
 import { showAlert } from '../../../utils/alert';
-import type { SwapSchema } from '../../../models/roles/spec/schema.types';
 
 jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
@@ -63,7 +62,10 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     roomStatus: require('../../../models/Room').RoomStatus.ongoing,
 
     currentActionRole: 'magician',
-    currentSchema: ({ kind: 'swap', id: 'magicianSwap', displayName: '魔术师交换' } as SwapSchema),
+    currentSchema: (() => {
+      const { getSchema } = require('../../../models/roles/spec/schemas');
+      return getSchema('magicianSwap');
+    })(),
 
     isAudioPlaying: false,
 

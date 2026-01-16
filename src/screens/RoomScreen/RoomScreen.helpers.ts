@@ -28,7 +28,7 @@ export interface ActionerState {
 export interface StepVisibilityLike {
   /**
    * Whether this step is a "solo" action where even wolves shouldn't see the pack list.
-   * If omitted, callers fall back to legacy role-based behavior.
+  * NOTE: When present, this is the single source of truth.
    */
   actsSolo?: boolean;
   /** True when the night flow is in a wolf-meeting phase where pack list can be shown. */
@@ -97,11 +97,11 @@ export function determineActionerState(
     return { imActioner: false, showWolves: false };
   }
 
-  // Step visibility is the single source of truth for "actsSolo".
-  // When actsSolo=true, the actioner cannot see wolves.
+  // Step visibility is the single source of truth.
+  // When actsSolo=true, the actioner cannot see wolves (anti-cheat).
   if (myRole === currentActionRole && visibility?.actsSolo === true) {
     // Still an actioner (unless already acted), but never show wolves.
-  const state = handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions, visibility);
+    const state = handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions, visibility);
     return { ...state, showWolves: false };
   }
 
@@ -143,15 +143,14 @@ function handleMatchingRole(
   // PR4: Prefer step visibility for wolf pack display.
   // - actsSolo=true   => never show wolves
   // - actsSolo=false  => show wolves for meeting wolves (participate in vote)
-  // - actsSolo=undef  => fallback to legacy role registry
+  // - actsSolo=undef  => conservative default (anti-cheat): do not show wolves
   let showWolves: boolean;
   if (visibility?.actsSolo === true) {
     showWolves = false;
   } else if (visibility?.actsSolo === false) {
     showWolves = isWolfRole(myRole) && doesRoleParticipateInWolfVote(myRole);
   } else {
-    // Legacy fallback (registry can be more permissive than meeting-vote rules)
-    showWolves = isWolfRole(myRole) && canRoleSeeWolves(myRole);
+    showWolves = false;
   }
 
   return { imActioner: true, showWolves };

@@ -126,11 +126,11 @@ describe('determineActionerState', () => {
       new Map(),
       false,
       new Map(),
-      // This is actsSolo=false for meeting wolves, but we don't have a StepSpec for spiritKnight in all boards.
-      // Pass undefined so logic falls back to role registry.
+      // Visibility is now step-authoritative; if the current schema doesn't define visibility,
+      // we default to conservative "don't show wolves".
       undefined
     );
-    expect(spiritKnightSelf.showWolves).toBe(true);
+    expect(spiritKnightSelf.showWolves).toBe(false);
 
     // Wolf turn: participating wolves see pack list
     const nightmareWolfTurn = determineActionerState(
