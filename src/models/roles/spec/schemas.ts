@@ -18,6 +18,7 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
     canSkip: true,
     ui: {
+  confirmTitle: '确认行动',
       prompt: '请选择使用解药',
       confirmText: '确定使用解药吗？',
       bottomActionText: '不使用技能',
@@ -31,6 +32,7 @@ export const SCHEMAS = {
     constraints: [],
     canSkip: true,
     ui: {
+  confirmTitle: '确认行动',
       prompt: '请选择使用毒药',
       confirmText: '确定使用毒药吗？',
       bottomActionText: '不使用技能',
@@ -77,6 +79,7 @@ export const SCHEMAS = {
     constraints: [],
     canSkip: true,
     ui: {
+  confirmTitle: '确认行动',
       prompt: '请选择要守护的玩家',
       confirmText: '确定要守护该玩家吗？',
   bottomActionText: '不使用技能',
@@ -88,9 +91,9 @@ export const SCHEMAS = {
     displayName: '通灵',
     kind: 'chooseSeat',
     constraints: ['notSelf'],
-  canSkip: true,
+    canSkip: true,
     ui: {
-  confirmTitle: '确认通灵',
+      confirmTitle: '确认通灵',
       prompt: '请选择要通灵的玩家',
       confirmText: '确定要通灵该玩家吗？',
       revealKind: 'psychic',
@@ -105,6 +108,7 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
     canSkip: false,
     ui: {
+  confirmTitle: '确认行动',
       prompt: '请选择要摄梦的玩家',
       confirmText: '确定要摄梦该玩家吗？',
   bottomActionText: '不使用技能',
@@ -118,6 +122,7 @@ export const SCHEMAS = {
     constraints: [],
     canSkip: true,
     ui: {
+  confirmTitle: '确认交换',
       prompt: '请选择要交换的两名玩家',
       confirmText: '确定要交换这两名玩家吗？',
   bottomActionText: '不使用技能',
@@ -129,6 +134,7 @@ export const SCHEMAS = {
     displayName: '确认发动状态',
     kind: 'confirm',
     ui: {
+  confirmTitle: '确认行动',
       prompt: '猎人请确认是否可以发动技能',
       confirmText: '确定查看猎人发动状态吗？',
     },
@@ -154,6 +160,7 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
     canSkip: true,
     ui: {
+  confirmTitle: '确认行动',
       prompt: '请选择要魅惑的玩家',
       confirmText: '确定要魅惑该玩家吗？',
   bottomActionText: '不使用技能',
@@ -167,6 +174,7 @@ export const SCHEMAS = {
     constraints: [],
     canSkip: true,
     ui: {
+  confirmTitle: '确认行动',
       prompt: '请选择要封锁的玩家',
       confirmText: '确定要封锁该玩家吗？',
   bottomActionText: '不使用技能',
@@ -208,6 +216,7 @@ export const SCHEMAS = {
     displayName: '确认发动状态',
     kind: 'confirm',
     ui: {
+  confirmTitle: '确认行动',
       prompt: '黑狼王请确认是否可以发动技能',
       confirmText: '确定查看黑狼王发动状态吗？',
     },
@@ -221,6 +230,7 @@ export const SCHEMAS = {
     constraints: ['notSelf'],
     canSkip: false,
     ui: {
+  confirmTitle: '确认行动',
       prompt: '请选择你的榜样',
       confirmText: '确定选择该玩家为榜样吗？',
   bottomActionText: '不使用技能',

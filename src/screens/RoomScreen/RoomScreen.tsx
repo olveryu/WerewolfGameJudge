@@ -459,7 +459,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           const mergedTarget = getMagicianTarget(intent.targetIndex);
           setAnotherIndex(null);
           actionDialogs.showConfirmDialog(
-            '确认交换',
+            (currentSchema?.ui?.confirmTitle || '确认交换'),
             intent.message || `确定交换${anotherIndex + 1}号和${intent.targetIndex + 1}号?`,
             () => void proceedWithAction(mergedTarget)
           );
@@ -471,7 +471,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             if (currentSchema.id === 'witchPoison') extra = { poison: true };
           }
           actionDialogs.showConfirmDialog(
-            '确认行动',
+            (currentSchema?.ui?.confirmTitle || '确认行动'),
             intent.message || '',
             () => void proceedWithAction(intent.targetIndex, extra)
           );
@@ -486,7 +486,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           if (currentSchema.id === 'witchPoison') extra = { poison: false };
         }
         actionDialogs.showConfirmDialog(
-          '确认跳过',
+          (currentSchema?.ui?.confirmTitle || '确认跳过'),
           intent.message || '确定不发动技能吗？',
           () => void proceedWithAction(null, extra)
         );
