@@ -21,6 +21,9 @@ export interface UseRoomActionDialogsResult {
    */
   showActionRejectedAlert: (reason: string) => void;
 
+  /** Blocked alert - displays when nightmare-blocked player taps a seat */
+  showBlockedAlert: () => void;
+
   /** Magician first target alert */
   showMagicianFirstAlert: (index: number) => void;
 
@@ -90,6 +93,14 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
   const showActionRejectedAlert = useCallback((reason: string) => {
     showAlert('操作无效', reason);
+  }, []);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Blocked alert (nightmare block feedback)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const showBlockedAlert = useCallback(() => {
+    showAlert('技能被封锁', '你被梦魇封锁了，本回合无法行动');
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -255,6 +266,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
   return {
     showActionRejectedAlert,
+    showBlockedAlert,
     showMagicianFirstAlert,
     showRevealDialog,
     showConfirmDialog,

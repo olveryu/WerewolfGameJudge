@@ -507,8 +507,11 @@ export function useRoomActions(
   const getActionIntent = useCallback((index: number): ActionIntent | null => {
     if (!myRole) return null;
 
-    // NOTE: Nightmare block is now handled by Host (ACTION_REJECTED).
-    // Do NOT check isBlockedByNightmare here - let the action go to Host for validation.
+    // UX: Blocked players cannot tap seats to take action.
+    // Return 'blocked' intent so UI can show "你被封锁了" feedback.
+    if (isBlockedByNightmare) {
+      return { type: 'blocked', targetIndex: index };
+    }
 
     // Delegate to pure helper for schema-driven intent derivation
     const schemaIntent = deriveIntentFromSchema({
