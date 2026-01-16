@@ -14,7 +14,7 @@ import { useCallback } from 'react';
 import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { RoomStatus } from '../../../models/Room';
 import { getRoleDisplayInfo, RoleName, isWolfRole } from '../../../models/roles';
-import type { ActionSchema, SchemaId } from '../../../models/roles/spec';
+import type { ActionSchema, SchemaId, RevealKind } from '../../../models/roles/spec';
 import { SCHEMAS } from '../../../models/roles/spec';
 import { isValidSchemaId } from '../../../models/roles/spec';
 
@@ -114,7 +114,7 @@ interface IntentContext {
   myRole: RoleName;
   schemaKind: ActionSchema['kind'] | undefined;
   schemaId: SchemaId | undefined;
-  uiRevealKind: import('../../../models/roles/spec/schema.types').RevealKind | undefined;
+  uiRevealKind: RevealKind | undefined;
   index: number;
   anotherIndex: number | null;
   isWolf: boolean;
