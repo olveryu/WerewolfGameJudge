@@ -11,10 +11,33 @@ import type { RoleId } from './specs';
 export type TargetConstraint =
   | 'notSelf';           // 不能选自己
 
+export type RevealKind = 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot';
+
+/**
+ * UI-only metadata for RoomScreen orchestration.
+ *
+ * Red lines:
+ * - Must NOT contain sensitive info (reveal result, identities, private payload contents).
+ * - Host remains the authority; UI metadata is only for prompts/buttons.
+ */
+export interface SchemaUi {
+  /** Top-of-screen prompt / action message (non-sensitive). */
+  readonly prompt?: string;
+  /** Confirm dialog text for seat-based actions (non-sensitive). */
+  readonly confirmText?: string;
+  /** How chooseSeat intent should behave when it represents a reveal flow. */
+  readonly revealKind?: RevealKind;
+  /** Bottom action button text (skip / empty vote / blocked hint etc). */
+  readonly bottomActionText?: string;
+  /** Wolf vote "empty knife" button text (wolfVote only). */
+  readonly emptyVoteText?: string;
+}
+
 /** Base schema interface */
 interface BaseActionSchema {
   readonly id: string;
   readonly displayName: string;
+  readonly ui?: SchemaUi;
 }
 
 /** Choose one seat (target) */

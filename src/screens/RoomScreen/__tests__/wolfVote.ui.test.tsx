@@ -226,7 +226,7 @@ describe('RoomScreen wolf vote UI', () => {
   const { findByTestId, findByText } = render(<RoomScreen {...props} />);
 
   // Ensure we're in the actionable state and the UI finished initial render
-  await findByText(/请选择猎杀对象/);
+  await findByText(/请选择要猎杀的玩家/);
 
     // Tap seat 3 (index 2)
   const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));

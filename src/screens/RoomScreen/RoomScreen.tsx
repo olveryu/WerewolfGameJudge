@@ -714,7 +714,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!currentActionRole) return '';
     
     const roleInfo = getRoleDisplayInfo(currentActionRole);
-    const baseMessage = roleInfo?.actionMessage || `请${roleInfo?.displayName || currentActionRole}行动`;
+    const baseMessage =
+      currentSchema?.ui?.prompt ||
+      roleInfo?.actionMessage ||
+      `请${roleInfo?.displayName || currentActionRole}行动`;
     
     if (currentActionRole !== 'wolf') {
       return baseMessage;
