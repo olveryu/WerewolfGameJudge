@@ -13,19 +13,27 @@ export const SCHEMAS = {
     displayName: '查验',
     kind: 'chooseSeat',
     constraints: ['notSelf'],
-  canSkip: true,
+    canSkip: true,
+    ui: {
+      prompt: '请选择要查验的玩家',
+      confirmText: '确定要查验该玩家吗？',
+      revealKind: 'seer',
+    },
   },
 
   witchAction: {
     id: 'witchAction',
     displayName: '女巫行动',
     kind: 'compound',
+    ui: {
+      prompt: '女巫请行动',
+    },
     steps: [
       {
         stepId: 'save',
         displayName: '救人',
         kind: 'chooseSeat',
-  constraints: ['notSelf'],
+        constraints: ['notSelf'],
         canSkip: true,
       },
       {
@@ -44,6 +52,10 @@ export const SCHEMAS = {
     kind: 'chooseSeat',
     constraints: [],
     canSkip: true,
+    ui: {
+      prompt: '请选择要守护的玩家',
+      confirmText: '确定要守护该玩家吗？',
+    },
   },
 
   psychicCheck: {
@@ -52,6 +64,11 @@ export const SCHEMAS = {
     kind: 'chooseSeat',
     constraints: ['notSelf'],
     canSkip: false,
+    ui: {
+      prompt: '请选择要通灵的玩家',
+      confirmText: '确定要通灵该玩家吗？',
+      revealKind: 'psychic',
+    },
   },
 
   dreamcatcherDream: {
@@ -60,6 +77,10 @@ export const SCHEMAS = {
     kind: 'chooseSeat',
     constraints: ['notSelf'],
     canSkip: false,
+    ui: {
+      prompt: '请选择要摄梦的玩家',
+      confirmText: '确定要摄梦该玩家吗？',
+    },
   },
 
   magicianSwap: {
@@ -68,12 +89,20 @@ export const SCHEMAS = {
     kind: 'swap',
     constraints: [],
     canSkip: true,
+    ui: {
+      prompt: '请选择要交换的两名玩家',
+      confirmText: '确定要交换这两名玩家吗？',
+    },
   },
 
   hunterConfirm: {
     id: 'hunterConfirm',
     displayName: '确认发动状态',
     kind: 'confirm',
+    ui: {
+      prompt: '猎人请确认是否可以发动技能',
+      confirmText: '确定查看猎人发动状态吗？',
+    },
   },
 
   // === Wolf actions ===
@@ -82,6 +111,11 @@ export const SCHEMAS = {
     displayName: '狼刀',
     kind: 'wolfVote',
     constraints: [],  // Neutral judge: wolves can target ANY seat
+    ui: {
+      prompt: '请选择要猎杀的玩家',
+      confirmText: '确定要猎杀该玩家吗？',
+      emptyVoteText: '空刀',
+    },
   },
 
   wolfQueenCharm: {
@@ -90,14 +124,22 @@ export const SCHEMAS = {
     kind: 'chooseSeat',
     constraints: ['notSelf'],
     canSkip: true,
+    ui: {
+      prompt: '请选择要魅惑的玩家',
+      confirmText: '确定要魅惑该玩家吗？',
+    },
   },
 
   nightmareBlock: {
     id: 'nightmareBlock',
     displayName: '恐惧',
     kind: 'chooseSeat',
-  constraints: [],
-  canSkip: true,
+    constraints: [],
+    canSkip: true,
+    ui: {
+      prompt: '请选择要封锁的玩家',
+      confirmText: '确定要封锁该玩家吗？',
+    },
   },
 
   gargoyleCheck: {
@@ -105,7 +147,12 @@ export const SCHEMAS = {
     displayName: '查验',
     kind: 'chooseSeat',
     constraints: ['notSelf'],
-  canSkip: true,
+    canSkip: true,
+    ui: {
+      prompt: '请选择要查验的玩家',
+      confirmText: '确定要查验该玩家吗？',
+      revealKind: 'gargoyle',
+    },
   },
 
   wolfRobotLearn: {
@@ -113,13 +160,22 @@ export const SCHEMAS = {
     displayName: '学习',
     kind: 'chooseSeat',
     constraints: ['notSelf'],
-  canSkip: true,
+    canSkip: true,
+    ui: {
+      prompt: '请选择要学习的玩家',
+      confirmText: '确定要学习该玩家吗？',
+      revealKind: 'wolfRobot',
+    },
   },
 
   darkWolfKingConfirm: {
     id: 'darkWolfKingConfirm',
     displayName: '确认发动状态',
     kind: 'confirm',
+    ui: {
+      prompt: '黑狼王请确认是否可以发动技能',
+      confirmText: '确定查看黑狼王发动状态吗？',
+    },
   },
 
   // === Third-party actions ===
@@ -129,6 +185,10 @@ export const SCHEMAS = {
     kind: 'chooseSeat',
     constraints: ['notSelf'],
     canSkip: false,
+    ui: {
+      prompt: '请选择你的榜样',
+      confirmText: '确定选择该玩家为榜样吗？',
+    },
   },
 } as const satisfies Record<string, ActionSchema>;
 
