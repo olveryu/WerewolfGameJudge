@@ -49,6 +49,7 @@ import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
 import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import type { RevealKind } from '../../models/roles/spec';
+import { createRevealExecutors } from './revealExecutors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -421,11 +422,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           return;
         }
 
-        const revealExecutors: Record<RevealKind, {
-          wait: () => Promise<{ targetSeat: number; result: string } | null>;
-          ack: () => void;
-          timeoutLog: string;
-        }> = {
+  const revealExecutors = createRevealExecutors({
           seer: {
             wait: waitForSeerReveal,
             ack: () => submitRevealAckSafe('seer'),
@@ -446,7 +443,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             ack: () => submitRevealAckSafe('wolfRobot'),
             timeoutLog: 'wolfRobotReveal',
           },
-        };
+        });
 
         const exec = revealExecutors[intent.revealKind];
         confirmThenAct(intent.targetIndex, async () => {
