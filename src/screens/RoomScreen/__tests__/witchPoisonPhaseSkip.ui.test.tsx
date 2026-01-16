@@ -117,14 +117,26 @@ jest.mock('../hooks/useActionerState', () => ({
 jest.mock('../hooks/useRoomActions', () => ({
   useRoomActions: () => ({
     getActionIntent: () => null,
-    getSkipIntent: () => ({ type: 'skip', targetIndex: -1, message: '确定不发动技能吗？' }),
-  getAutoTriggerIntent: () => ({ type: 'actionPrompt', targetIndex: -1 }),
+    getBottomAction: () => ({
+      buttons: [
+        {
+          key: 'skipAll',
+          label: '不使用技能',
+          intent: { type: 'skip', targetIndex: -1, message: '', stepKey: 'skipAll' },
+        },
+      ],
+    }),
+    getAutoTriggerIntent: () => ({ type: 'actionPrompt', targetIndex: -1 }),
     getMagicianTarget: (n: number) => n,
   }),
 }));
 
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
+    showWitchInfoPrompt: (_ctx: any, _schema: any, onDismiss: () => void) => {
+      const { showAlert: mockShowAlert } = require('../../../utils/alert');
+      mockShowAlert('女巫信息', '提示', [{ text: '知道了', onPress: onDismiss }]);
+    },
     showWitchSaveDialog: (killedIndex: number, canSave: boolean, _onSave: () => void, onSkip: () => void) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       mockShowAlert(`昨夜倒台玩家为${killedIndex + 1}号`, '是否救助?', [
@@ -190,7 +202,7 @@ describe('RoomScreen witch poison phase skip UI (smoke)', () => {
       },
     };
 
-  const { findByText } = render(<RoomScreen {...props} />);
+  render(<RoomScreen {...props} />);
 
   // Auto-trigger prompt should show
     await waitFor(() => {

@@ -129,6 +129,10 @@ jest.mock('../useRoomActionDialogs', () => ({
     showRevealDialog: jest.fn(),
     showRoleActionPrompt: jest.fn(),
     showMagicianFirstAlert: jest.fn(),
+    showWitchInfoPrompt: (ctx: any, schema: any, onDismiss: () => void) => {
+      const { showAlert: mockShowAlert } = require('../../../utils/alert');
+      mockShowAlert('女巫信息', schema?.ui?.prompt || '', [{ text: '知道了', onPress: onDismiss }]);
+    },
   }),
 }));
 
@@ -159,7 +163,7 @@ describe('RoomScreen witch save UI (smoke)', () => {
     jest.clearAllMocks();
   });
 
-  it('auto-trigger prompt -> 点击底部跳过 -> submitAction(null,{save:false})', async () => {
+  it('auto-trigger info -> 点击“对X号用解药” -> confirm -> submitAction(killedIndex,{save:true})', async () => {
     const props: any = {
       navigation: mockNavigation,
       route: {
@@ -171,24 +175,23 @@ describe('RoomScreen witch save UI (smoke)', () => {
       },
     };
 
-  const { findByText } = render(<RoomScreen {...props} />);
+    const { findByText } = render(<RoomScreen {...props} />);
 
-    // Tap bottom skip button
-  const skipBtn = await findByText('不使用技能');
+    // Bottom buttons should include save.
+    const saveBtn = await findByText('对3号用解药');
     await act(async () => {
-      fireEvent.press(skipBtn);
+      fireEvent.press(saveBtn);
     });
 
-    // Confirm skip dialog
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
-        '确认跳过',
+        '确认行动',
         expect.any(String),
         expect.any(Array)
       );
     });
 
-    const confirmCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认跳过');
+    const confirmCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
     expect(confirmCall).toBeDefined();
     const buttons = (confirmCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
     const confirmBtn = buttons.find((b) => b.text === '确定');
@@ -196,6 +199,6 @@ describe('RoomScreen witch save UI (smoke)', () => {
       confirmBtn?.onPress?.();
     });
 
-    expect(mockSubmitAction).toHaveBeenCalledWith(null, { save: false });
+    expect(mockSubmitAction).toHaveBeenCalledWith(2, { save: true });
   });
 });

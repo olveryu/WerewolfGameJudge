@@ -11,6 +11,8 @@
 
 import { useCallback } from 'react';
 import { showAlert } from '../../utils/alert';
+import type { ActionSchema } from '../../models/roles/spec';
+import type { WitchContextPayload } from '../../services/types/PrivateBroadcast';
 
 export interface UseRoomActionDialogsResult {
   /** 
@@ -61,6 +63,16 @@ export interface UseRoomActionDialogsResult {
     targetIndex: number,
     onConfirm: () => void,
     onCancel: () => void
+  ) => void;
+
+  /**
+   * Witch info prompt (schema-driven): dynamic info comes from WitchContextPayload;
+   * template copy comes from currentSchema.
+   */
+  showWitchInfoPrompt: (
+    ctx: WitchContextPayload,
+    currentSchema: ActionSchema,
+    onDismiss: () => void
   ) => void;
 
   /** Generic role action prompt (e.g., "请预言家行动") */
@@ -206,6 +218,29 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   );
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Witch info prompt (schema-driven)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const showWitchInfoPrompt = useCallback(
+    (ctx: WitchContextPayload, currentSchema: ActionSchema, onDismiss: () => void) => {
+      // Static template copy must come from schema.
+      const rolePrompt = currentSchema.ui?.prompt || '女巫请行动';
+
+      // Prefer poison prompt (as it matches “毒药请选择号码”) but keep schema-driven.
+      const poisonPrompt =
+        currentSchema.kind === 'compound'
+          ? currentSchema.steps?.find((s) => s.key === 'poison')?.ui?.prompt
+          : undefined;
+
+      const hint = poisonPrompt || rolePrompt;
+
+      const title = ctx.killedIndex >= 0 ? `昨夜${ctx.killedIndex + 1}号玩家死亡` : '昨夜无人倒台';
+      showAlert(title, hint, [{ text: '知道了', style: 'default', onPress: onDismiss }]);
+    },
+    []
+  );
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Generic role action prompt
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -227,6 +262,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
     showWitchSaveDialog,
     showWitchPoisonPrompt,
     showWitchPoisonConfirm,
+  showWitchInfoPrompt,
     showRoleActionPrompt,
   };
 }

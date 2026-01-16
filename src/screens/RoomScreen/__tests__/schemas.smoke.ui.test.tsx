@@ -65,6 +65,7 @@ jest.mock('../useRoomSeatDialogs', () => ({
 // Keep action dialogs no-op for smoke rendering.
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
+  showWitchInfoPrompt: jest.fn(),
     showWitchSaveDialog: jest.fn(),
     showWitchPoisonConfirm: jest.fn(),
     showConfirmDialog: jest.fn(),

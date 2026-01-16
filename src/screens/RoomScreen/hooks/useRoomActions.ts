@@ -120,8 +120,14 @@ export interface UseRoomActionsResult {
 }
 
 export interface BottomActionVM {
-  visible: boolean;
+  buttons: BottomButton[];
+}
+
+export interface BottomButton {
+  /** Stable key (align to schema step keys when possible). */
+  key: string; // 'save' | 'skip' | 'wolfEmpty' ...
   label: string;
+  intent: ActionIntent;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -346,46 +352,107 @@ export function useRoomActions(
 
   const getBottomAction = useCallback((): BottomActionVM => {
     // Keep the same visibility rules previously in RoomScreen.
-    if (!imActioner) return { visible: false, label: '' };
-    if (!gameState) return { visible: false, label: '' };
-    if (roomStatus !== RoomStatus.ongoing) return { visible: false, label: '' };
-    if (isAudioPlaying) return { visible: false, label: '' };
+    if (!imActioner) return { buttons: [] };
+    if (!gameState) return { buttons: [] };
+    if (roomStatus !== RoomStatus.ongoing) return { buttons: [] };
+    if (isAudioPlaying) return { buttons: [] };
 
     // Nightmare blocked: UX-only skip button (Host still rejects illegal actions).
     if (isBlockedByNightmare) {
-      return { visible: true, label: '跳过（技能被封锁）' };
+      return {
+        buttons: [
+          {
+            key: 'skip',
+            label: '跳过（技能被封锁）',
+            intent: { type: 'skip', targetIndex: -1, message: '跳过（技能被封锁）' },
+          },
+        ],
+      };
     }
 
     // Schema-driven bottom action visibility.
-    if (!currentSchema) return { visible: false, label: '' };
+    if (!currentSchema) return { buttons: [] };
 
     // wolfVote: always allow empty vote (-1)
     if (currentSchema.kind === 'wolfVote') {
-      return { visible: true, label: currentSchema.ui?.emptyVoteText || '投票空刀' };
+      return {
+        buttons: [
+          {
+            key: 'wolfEmpty',
+            label: currentSchema.ui?.emptyVoteText || '投票空刀',
+            // NOTE: wolfSeat is derived by RoomScreen on intent handling; omit here.
+            intent: { type: 'wolfVote', targetIndex: -1 },
+          },
+        ],
+      };
     }
 
     // chooseSeat/swap: honor canSkip
     // NOTE: witchSave/witchPoison are chooseSeat sub-steps and should allow bottom skip.
     if (currentSchema.kind === 'chooseSeat' || currentSchema.kind === 'swap') {
-      if (!currentSchema.canSkip) return { visible: false, label: '' };
-      return { visible: true, label: currentSchema.ui?.bottomActionText || '不使用技能' };
+      if (!currentSchema.canSkip) return { buttons: [] };
+      return {
+        buttons: [
+          {
+            key: 'skip',
+            label: currentSchema.ui?.bottomActionText || '不使用技能',
+            intent: { type: 'skip', targetIndex: -1, message: currentSchema.ui?.bottomActionText || '不使用技能' },
+          },
+        ],
+      };
     }
 
-    // compound: use witchPhase to find matching sub-step's skip button by key
-    // TODO: When adding more compound roles, generalize witchPhase to activeStepKey
-    if (currentSchema.kind === 'compound' && currentSchema.steps?.length) {
+    // compound (witchAction): return two buttons (save + skip)
+    // NOTE: Sensitive info is from WitchContextPayload only.
+    if (currentSchema.kind === 'compound' && currentSchema.id === 'witchAction' && currentSchema.steps?.length) {
       const witchCtx = getWitchContext();
-      if (!witchCtx) return { visible: false, label: '' };
-      const witchPhase = witchCtx.phase; // fail fast: phase is required
-      const step = currentSchema.steps.find(s => s.key === witchPhase);
-      if (step?.kind === 'chooseSeat' && step.canSkip) {
-        return { visible: true, label: step.ui?.bottomActionText || '不使用技能' };
+      if (!witchCtx) return { buttons: [] };
+
+      const saveStep = currentSchema.steps.find((s) => s.key === 'save');
+      const poisonStep = currentSchema.steps.find((s) => s.key === 'poison');
+
+      const buttons: BottomButton[] = [];
+
+      // 1) Save button: only show when kill exists and canSave.
+      if (witchCtx.killedIndex >= 0 && witchCtx.canSave) {
+        const label = `对${witchCtx.killedIndex + 1}号用解药`;
+        buttons.push({
+          key: 'save',
+          label,
+          intent: {
+            type: 'actionConfirm',
+            targetIndex: witchCtx.killedIndex,
+            message: saveStep?.ui?.confirmText,
+            stepKey: 'save',
+          },
+        });
       }
+
+      // 2) Skip button: always available; should mean save=false AND poison=false.
+      // We route through RoomScreen with stepKey='skipAll' (not a schema step) to avoid dual-submit.
+      // RoomScreen will translate this to extra {save:false, poison:false}.
+      const skipLabel = poisonStep?.ui?.bottomActionText || saveStep?.ui?.bottomActionText || '不使用技能';
+      buttons.push({
+        key: 'skip',
+        label: skipLabel,
+        intent: { type: 'skip', targetIndex: -1, message: skipLabel, stepKey: 'skipAll' },
+      });
+
+      return { buttons };
     }
 
     // confirm/skip: no generic bottom action
-    return { visible: false, label: '' };
-  }, [gameState, roomStatus, currentSchema, imActioner, isAudioPlaying, isBlockedByNightmare, getWitchContext]);
+    return { buttons: [] };
+  }, [
+    findVotingWolfSeat,
+    gameState,
+    getWitchContext,
+    imActioner,
+    isAudioPlaying,
+    isBlockedByNightmare,
+    currentSchema,
+    roomStatus,
+  ]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Auto-trigger intent (for roles that popup on turn start)
