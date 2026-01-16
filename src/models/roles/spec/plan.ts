@@ -38,10 +38,29 @@ export function buildNightPlan(templateRoles: readonly string[]): NightPlan {
   
   const templateRoleSet = new Set(templateRoles as RoleId[]);
 
+  // Check if any wolf in template participates in wolf vote
+  // This is needed because wolfKill step has roleId='wolf', but templates may only have
+  // skill wolves (darkWolfKing, nightmare, wolfQueen, etc.) without basic 'wolf'.
+  const hasWolfVotingParticipant = templateRoles.some(roleId => {
+    const spec = ROLE_SPECS[roleId as RoleId];
+    // Use 'in' operator to check for optional property existence
+    if (spec && 'wolfMeeting' in spec && spec.wolfMeeting) {
+      return spec.wolfMeeting.participatesInWolfVote === true;
+    }
+    return false;
+  });
+
   // M2: derive ordered steps from NIGHT_STEPS (array order = authority)
   // Dedupe is implicit because NIGHT_STEPS contains each night-1 action role exactly once.
+  // Special case: wolfKill step is included if ANY wolf participates in vote, not just 'wolf' role.
   const steps: NightPlanStep[] = NIGHT_STEPS
-    .filter(step => templateRoleSet.has(step.roleId))
+    .filter(step => {
+      // Special case: wolfKill step should be included if any wolf participates in voting
+      if (step.id === 'wolfKill') {
+        return hasWolfVotingParticipant;
+      }
+      return templateRoleSet.has(step.roleId);
+    })
     .map((step, idx) => {
       const spec = ROLE_SPECS[step.roleId];
       return {

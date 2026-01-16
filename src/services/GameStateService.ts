@@ -30,7 +30,7 @@ import {
 import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, type RoleId, buildNightPlan, getStepsByRoleStrict } from '../models/roles/spec';
 import { WOLF_MEETING_VOTE_CONFIG } from '../models/roles/spec/wolfMeetingVoteConfig';
 import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
-import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload, GargoyleRevealPayload, WolfRobotRevealPayload, ActionRejectedPayload } from './types/PrivateBroadcast';
+import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload, GargoyleRevealPayload, WolfRobotRevealPayload, ActionRejectedPayload, BlockedPayload } from './types/PrivateBroadcast';
 import { getRoleAfterSwap } from './night/resolvers/types';
 
 // Import types/enums needed internally
@@ -1775,10 +1775,34 @@ export class GameStateService {
     }
 
     // ANTI-CHEAT: For witch, send killedIndex via private message, NOT public broadcast
+    // Exception: if witch is blocked by nightmare, send BLOCKED instead of WITCH_CONTEXT
     if (currentRole === 'witch') {
-      const wolfAction = this.state.actions.get('wolf');
-      const killedIndex = getActionTargetSeat(wolfAction) ?? -1;
-      await this.sendWitchContext(killedIndex);
+      const witchSeat = this.getPlayerSeatByRole('witch');
+      const nightmareAction = this.state.actions.get('nightmare');
+      const isWitchBlocked = nightmareAction?.kind === 'target' && nightmareAction.targetSeat === witchSeat;
+      
+      if (isWitchBlocked) {
+        // Witch is blocked by nightmare - send BLOCKED, not WITCH_CONTEXT
+        const witchUid = this.getPlayerUidByRole('witch');
+        if (witchUid) {
+          const blockedPayload: BlockedPayload = {
+            kind: 'BLOCKED',
+            reason: 'nightmare',
+          };
+          const privateMessage: PrivateMessage = {
+            type: 'PRIVATE_EFFECT',
+            toUid: witchUid,
+            revision: this.stateRevision,
+            payload: blockedPayload,
+          };
+          console.log('[GameStateService] Sending BLOCKED to nightmare-blocked witch');
+          await this.broadcastService.sendPrivate(privateMessage);
+        }
+      } else {
+        const wolfAction = this.state.actions.get('wolf');
+        const killedIndex = getActionTargetSeat(wolfAction) ?? -1;
+        await this.sendWitchContext(killedIndex);
+      }
     }
 
     // Broadcast role turn (PUBLIC - no killedIndex)
