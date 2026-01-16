@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
+
 import { RoomScreen } from '../RoomScreen';
 import { TESTIDS } from '../../../testids';
 import { showAlert } from '../../../utils/alert';
@@ -21,11 +22,8 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-// Schema-driven flow: when currentSchema is the step schema (witchPoison), seat tap triggers a confirm
-// and confirmation submits submitAction(target, { poison: true }).
 const mockSubmitAction = jest.fn();
 
-// Witch poison phase: seat tap should open poison confirm -> confirm submits submitAction(target, {poison:true})
 jest.mock('../../../hooks/useGameRoom', () => ({
   useGameRoom: () => ({
     gameState: {
@@ -60,16 +58,17 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     },
 
     connectionStatus: 'live',
-
     isHost: false,
     roomStatus: require('../../../models/Room').RoomStatus.ongoing,
 
     currentActionRole: 'witch',
+    // Key: compound schema, not the step schema.
     currentSchema: ((): any => {
       const { getSchema } = require('../../../models/roles/spec/schemas');
-      return getSchema('witchPoison');
+      return getSchema('witchAction');
     })(),
 
+    currentStepId: 'witchAction',
     isAudioPlaying: false,
 
     mySeatNumber: 0,
@@ -82,22 +81,21 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     assignRoles: jest.fn(),
     startGame: jest.fn(),
     restartGame: jest.fn(),
+    viewedRole: jest.fn(),
 
     submitAction: mockSubmitAction,
     submitWolfVote: jest.fn(),
-
     hasWolfVoted: () => false,
     requestSnapshot: jest.fn(),
-    viewedRole: jest.fn(),
 
     lastSeatError: null,
     clearLastSeatError: jest.fn(),
 
     waitForActionRejected: jest.fn().mockResolvedValue(null),
 
-    getWitchContext: jest.fn().mockReturnValue(null),
+    // PR3: compound auto-trigger requires witch context.
+    getWitchContext: jest.fn().mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: 2, canSave: true }),
     getLastNightInfo: jest.fn().mockReturnValue(''),
-    getLastNightDeaths: jest.fn().mockReturnValue([]),
 
     waitForSeerReveal: jest.fn(),
     waitForPsychicReveal: jest.fn(),
@@ -156,12 +154,12 @@ jest.mock('../useRoomSeatDialogs', () => ({
   }),
 }));
 
-describe('RoomScreen witch poison UI (smoke)', () => {
+describe('RoomScreen witch compound UI (steps-driven)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('tap seat -> poison confirm -> submitAction(target, {poison:true})', async () => {
+  it('currentSchema=witchAction: tap seat -> confirm -> submitAction(target,{save:true})', async () => {
     const props: any = {
       navigation: mockNavigation,
       route: {
@@ -181,23 +179,19 @@ describe('RoomScreen witch poison UI (smoke)', () => {
     });
 
     await waitFor(() => {
-      expect(showAlert).toHaveBeenCalledWith(
-    '确认行动',
-    expect.any(String),
-        expect.any(Array)
-      );
+      expect(showAlert).toHaveBeenCalledWith('确认行动', expect.any(String), expect.any(Array));
     });
 
-  const poisonCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
-    expect(poisonCall).toBeDefined();
+    const confirmCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
+    expect(confirmCall).toBeDefined();
 
-    const buttons = (poisonCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
+    const buttons = (confirmCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
     const confirmBtn = buttons.find((b) => b.text === '确定');
 
     await act(async () => {
       confirmBtn?.onPress?.();
     });
 
-    expect(mockSubmitAction).toHaveBeenCalledWith(2, { poison: true });
+    expect(mockSubmitAction).toHaveBeenCalledWith(2, { save: true });
   });
 });
