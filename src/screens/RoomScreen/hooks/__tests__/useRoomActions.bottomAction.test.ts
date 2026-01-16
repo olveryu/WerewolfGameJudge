@@ -149,3 +149,90 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
     expect(bottomAction.buttons[0].label).toBe('跳过（技能被封锁）');
   });
 });
+
+describe('useRoomActions.getActionIntent (blocked player)', () => {
+  // BUG LOCK: Blocked players tapping seats should get 'blocked' intent (not action confirm)
+  // so UI can show "你被封锁了" feedback instead of confirm dialog that does nothing.
+  it('blocked player tapping seat returns blocked intent', () => {
+    const chooseSeatSchema: ActionSchema = {
+      id: 'seerAction',
+      kind: 'chooseSeat',
+      displayName: '查验',
+      constraints: [],
+      canSkip: false,
+      ui: {
+        prompt: 'x',
+        confirmTitle: 'x',
+        confirmText: 'x',
+      },
+    };
+
+    const ctx: GameContext = {
+      gameState: ({ template: { roles: [] } } as unknown as LocalGameState),
+      roomStatus: RoomStatus.ongoing,
+      currentActionRole: 'seer',
+      currentSchema: chooseSeatSchema,
+      imActioner: true,
+      mySeatNumber: 0,
+      myRole: 'seer',
+      isAudioPlaying: false,
+      isBlockedByNightmare: true,  // BLOCKED
+      anotherIndex: null,
+    };
+
+    const { result } = renderHook(() =>
+      useRoomActions(ctx, {
+        hasWolfVoted: () => false,
+        getWolfVoteSummary: () => '',
+        getWitchContext: () => null,
+      })
+    );
+
+    const intent = result.current.getActionIntent(3);
+    expect(intent).not.toBeNull();
+    expect(intent?.type).toBe('blocked');
+    expect(intent?.targetIndex).toBe(3);
+  });
+
+  it('non-blocked player tapping seat returns normal intent', () => {
+    const chooseSeatSchema: ActionSchema = {
+      id: 'seerAction',
+      kind: 'chooseSeat',
+      displayName: '查验',
+      constraints: [],
+      canSkip: false,
+      ui: {
+        prompt: 'x',
+        confirmTitle: 'x',
+        confirmText: 'confirm?',
+        revealKind: 'seer',
+      },
+    };
+
+    const ctx: GameContext = {
+      gameState: ({ template: { roles: [] } } as unknown as LocalGameState),
+      roomStatus: RoomStatus.ongoing,
+      currentActionRole: 'seer',
+      currentSchema: chooseSeatSchema,
+      imActioner: true,
+      mySeatNumber: 0,
+      myRole: 'seer',
+      isAudioPlaying: false,
+      isBlockedByNightmare: false,  // NOT blocked
+      anotherIndex: null,
+    };
+
+    const { result } = renderHook(() =>
+      useRoomActions(ctx, {
+        hasWolfVoted: () => false,
+        getWolfVoteSummary: () => '',
+        getWitchContext: () => null,
+      })
+    );
+
+    const intent = result.current.getActionIntent(3);
+    expect(intent).not.toBeNull();
+    expect(intent?.type).toBe('reveal');  // seer uses reveal intent
+    expect(intent?.targetIndex).toBe(3);
+  });
+});
