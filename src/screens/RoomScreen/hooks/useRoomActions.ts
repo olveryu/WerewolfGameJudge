@@ -93,7 +93,7 @@ export interface UseRoomActionsResult {
   getAutoTriggerIntent: () => ActionIntent | null;
   
   /** Build action confirm message */
-  buildActionMessage: (index: number, actingRole: RoleName) => string;
+  buildActionMessage: (index: number) => string;
   
   /** Find voting wolf seat */
   findVotingWolfSeat: () => number | null;
