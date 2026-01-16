@@ -37,6 +37,9 @@ export interface UseGameRoomResult {
   // Schema-driven UI (Phase 3)
   currentSchemaId: SchemaId | null;        // schemaId for current action role (null if no action)
   currentSchema: ActionSchema | null;       // Full schema (derived from schemaId, null if no schema)
+
+  // Schema-driven UI (Phase 3.5): authoritative current stepId from Host ROLE_TURN
+  currentStepId: SchemaId | null;
   
   // Connection status
   connectionStatus: ConnectionStatus;
@@ -181,6 +184,11 @@ export const useGameRoom = (): UseGameRoomResult => {
     if (!currentSchemaId) return null;
     return getSchema(currentSchemaId);
   }, [currentSchemaId]);
+
+  // Authoritative stepId from Host ROLE_TURN (UI-only)
+  const currentStepId = useMemo((): SchemaId | null => {
+    return gameState?.currentStepId ?? null;
+  }, [gameState]);
   
   // Check if audio is currently playing
   const isAudioPlaying = useMemo((): boolean => {
@@ -440,6 +448,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     isAudioPlaying,
   currentSchemaId,
   currentSchema,
+  currentStepId,
     loading,
     error,
     connectionStatus,
