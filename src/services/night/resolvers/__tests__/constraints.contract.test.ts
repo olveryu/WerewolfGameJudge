@@ -62,17 +62,13 @@ describe('schema-resolver constraint alignment', () => {
   
   describe('witch compound schema step constraints', () => {
     it('witch save step should have notSelf constraint', () => {
-      const witchSchema = SCHEMAS.witchAction;
-      const saveStep = witchSchema.steps.find(s => s.stepId === 'save');
-      expect(saveStep).toBeDefined();
-      expect(saveStep!.constraints).toContain('notSelf');
+  const saveSchema = SCHEMAS.witchSave;
+  expect(saveSchema.constraints).toContain('notSelf');
     });
     
     it('witch poison step should NOT have notSelf constraint', () => {
-      const witchSchema = SCHEMAS.witchAction;
-      const poisonStep = witchSchema.steps.find(s => s.stepId === 'poison');
-      expect(poisonStep).toBeDefined();
-      expect(poisonStep!.constraints).not.toContain('notSelf');
+  const poisonSchema = SCHEMAS.witchPoison;
+  expect(poisonSchema.constraints).not.toContain('notSelf');
     });
   });
 });

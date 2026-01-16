@@ -70,11 +70,19 @@ export interface CompoundSchema extends BaseActionSchema {
 }
 
 export interface CompoundStep {
-  readonly stepId: string;
-  readonly displayName: string;
-  readonly kind: 'chooseSeat' | 'skip';
-  readonly constraints: readonly TargetConstraint[];
-  readonly canSkip: boolean;
+  /** Migration: prefer schemaId-driven steps; will remove legacy per-step fields later. */
+  readonly stepSchemaId: string;
+
+  /** @deprecated TODO(remove by 2026-03-01) */
+  readonly stepId?: string;
+  /** @deprecated TODO(remove by 2026-03-01) */
+  readonly displayName?: string;
+  /** @deprecated TODO(remove by 2026-03-01) */
+  readonly kind?: 'chooseSeat' | 'skip';
+  /** @deprecated TODO(remove by 2026-03-01) */
+  readonly constraints?: readonly TargetConstraint[];
+  /** @deprecated TODO(remove by 2026-03-01) */
+  readonly canSkip?: boolean;
 }
 
 /** Swap two players (magician) */
