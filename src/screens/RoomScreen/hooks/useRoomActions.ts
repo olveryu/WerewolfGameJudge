@@ -155,8 +155,7 @@ export function deriveSkipIntentFromSchema(
   currentSchema: ActionSchema | null | undefined,
   buildMessage: (idx: number) => string,
   isWolf: boolean,
-  wolfSeat: number | null,
-  witchPhase?: 'save' | 'poison' | null
+  wolfSeat: number | null
 ): ActionIntent | null {
   // chooseSeat schemas: only allow generic skip when schema allows skipping
   if (currentSchema?.kind === 'chooseSeat') {
@@ -166,14 +165,9 @@ export function deriveSkipIntentFromSchema(
     return null;
   }
 
-  // compound schema (witch): skip intent still uses witchPhase to determine which sub-step is being skipped.
-  // NOTE: seat-tap behavior is handled separately (always poison) and does NOT rely on phase.
-  if (currentSchema?.kind === 'compound' && currentSchema.steps?.length) {
-    if (!witchPhase) return null;
-    const step = currentSchema.steps.find(s => s.key === witchPhase);
-    if (step?.kind === 'chooseSeat' && step.canSkip) {
-      return { type: 'skip', targetIndex: -1, message: buildMessage(-1), stepKey: step.key };
-    }
+  // compound schema (witch): skip is handled via getBottomAction's 'skipAll' button.
+  // getSkipIntent should not provide a generic skip for compound schemas.
+  if (currentSchema?.kind === 'compound') {
     return null;
   }
 
@@ -556,12 +550,11 @@ export function useRoomActions(
     return deriveSkipIntentFromSchema(
       myRole,
       currentSchema,
-  (idx) => buildActionMessage(idx),
+      (idx) => buildActionMessage(idx),
       isWolf,
-      wolfSeat,
-  null
+      wolfSeat
     );
-  }, [myRole, currentSchema, findVotingWolfSeat, buildActionMessage, getWitchContext]);
+  }, [myRole, currentSchema, findVotingWolfSeat, buildActionMessage]);
 
   return {
     getActionIntent,
