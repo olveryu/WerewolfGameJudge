@@ -1,6 +1,7 @@
 import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from './Player';
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
 import { RoleName, ROLES, isWolfRole } from './roles';
+import { getSchema, type SchemaId } from './roles/spec';
 import { shuffleArray } from '../utils/shuffle';
 import {
   type RoleAction,
@@ -536,6 +537,24 @@ export const getLastNightInfo = (room: GameRoomLike): string => {
 // Get action log for all completed actions in the current night
 export const getActionLog = (room: GameRoomLike): string[] => {
   const logs: string[] = [];
+
+  // Map role -> schema that best represents the action for logs (schema is the copy authority).
+  const roleToActionSchemaId: Partial<Record<RoleName, SchemaId>> = {
+    seer: 'seerCheck',
+    witch: 'witchAction',
+    guard: 'guardProtect',
+    magician: 'magicianSwap',
+    psychic: 'psychicCheck',
+    dreamcatcher: 'dreamcatcherDream',
+    wolf: 'wolfKill',
+    wolfQueen: 'wolfQueenCharm',
+    nightmare: 'nightmareBlock',
+    gargoyle: 'gargoyleCheck',
+    wolfRobot: 'wolfRobotLearn',
+    slacker: 'slackerChooseIdol',
+    hunter: 'hunterConfirm',
+    darkWolfKing: 'darkWolfKingConfirm',
+  };
   
   // Go through action order to show completed actions
   for (let i = 0; i < room.currentActionerIndex; i++) {
@@ -547,7 +566,9 @@ export const getActionLog = (room: GameRoomLike): string[] => {
     
     const action = room.actions.get(roleName);
     const displayName = roleInfo.displayName;
-    const actionVerb = roleInfo.actionConfirmMessage || '选择';
+  const schemaId = roleToActionSchemaId[roleName];
+  const schema = schemaId ? getSchema(schemaId) : undefined;
+  const actionVerb = schema?.displayName ?? '选择';
     
     // Special handling for roles with specific action formats
     if (roleName === 'wolf') {
