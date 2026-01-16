@@ -321,22 +321,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       // NOTE: 'blocked' intent removed - nightmare block is now handled by Host (ACTION_REJECTED).
       // If blocked player submits action, Host will send ACTION_REJECTED private message.
 
-      case 'hunterStatus':
-        actionDialogs.showStatusDialog(
-          '猎人不需要行动',
-          '猎人只在死亡时发动技能，请点击"跳过"',
-          () => void proceedWithAction(null)
-        );
-        break;
-
-      case 'darkWolfKingStatus':
-        actionDialogs.showStatusDialog(
-          '狼王不需要行动',
-          '狼王只在死亡时发动技能，请点击"跳过"',
-          () => void proceedWithAction(null)
-        );
-        break;
-
       case 'magicianFirst':
         setAnotherIndex(intent.targetIndex);
         actionDialogs.showMagicianFirstAlert(intent.targetIndex);

@@ -1,7 +1,8 @@
 import React from 'react';
-import { render, act, waitFor } from '@testing-library/react-native';
+import { render, act, fireEvent, waitFor } from '@testing-library/react-native';
 import { RoomScreen } from '../RoomScreen';
 import { showAlert } from '../../../utils/alert';
+import { TESTIDS } from '../../../testids';
 
 jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
@@ -58,10 +59,13 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     connectionStatus: 'live',
 
     isHost: false,
-    roomStatus: require('../../../models/Room').RoomStatus.ongoing,
+  roomStatus: require('../../../models/Room').RoomStatus.ongoing,
 
     currentActionRole: 'hunter',
-    currentSchema: ({ kind: 'confirm', id: 'hunterStatus', displayName: '猎人状态' } as any),
+    currentSchema: ((): any => {
+      const { getSchema } = require('../../../models/roles/spec/schemas');
+      return getSchema('hunterConfirm');
+    })(),
 
     isAudioPlaying: false,
 
@@ -111,11 +115,14 @@ jest.mock('../hooks/useActionerState', () => ({
 
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showStatusDialog: (title: string, message: string, onConfirm: () => void) => {
+    showStatusDialog: jest.fn(),
+    showConfirmDialog: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
-      mockShowAlert(title, message, [{ text: '确定', onPress: onConfirm }]);
+      mockShowAlert(title, message, [
+        { text: '取消', onPress: onCancel },
+        { text: '确定', onPress: onConfirm },
+      ]);
     },
-    showConfirmDialog: jest.fn(),
     showWolfVoteDialog: jest.fn(),
     showActionRejectedAlert: jest.fn(),
     showRevealDialog: jest.fn(),
@@ -154,7 +161,7 @@ describe('RoomScreen hunter status UI (smoke)', () => {
     jest.clearAllMocks();
   });
 
-  it('auto-trigger status -> press 确定 -> submitAction(null)', async () => {
+  it('confirm schema -> tap seat -> press 确定 -> submitAction(targetSeat)', async () => {
     const props: any = {
       navigation: mockNavigation,
       route: {
@@ -166,17 +173,28 @@ describe('RoomScreen hunter status UI (smoke)', () => {
       },
     };
 
-    render(<RoomScreen {...props} />);
+    const screen = render(<RoomScreen {...props} />);
+
+  // Wait for RoomScreen to finish initialization (leave loading screen)
+  await screen.findByTestId(TESTIDS.roomScreenRoot);
+
+    // Confirm schema auto-triggers actionPrompt (dismiss → wait for user interaction),
+    // so we trigger the confirm flow by tapping a seat.
+    const seatPressable = await screen.findByTestId(TESTIDS.seatTilePressable(0));
+    await act(async () => {
+  fireEvent.press(seatPressable);
+    });
 
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
-        '猎人不需要行动',
+        '确认行动',
         expect.any(String),
         expect.any(Array)
       );
     });
 
-    const statusCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '猎人不需要行动');
+    const statusCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
+    expect(statusCall).toBeTruthy();
     const buttons = (statusCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
     const okBtn = buttons.find((b) => b.text === '确定');
 
@@ -184,6 +202,7 @@ describe('RoomScreen hunter status UI (smoke)', () => {
       okBtn?.onPress?.();
     });
 
-    expect(mockSubmitAction).toHaveBeenCalledWith(null, undefined);
+  // hunterConfirm is a confirm schema (not a status-only schema). It submits the selected seat.
+  expect(mockSubmitAction).toHaveBeenCalledWith(0, undefined);
   });
 });

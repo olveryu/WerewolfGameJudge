@@ -25,10 +25,6 @@ export type ActionIntentType =
   // Block
   | 'blocked'              // Nightmare blocked
   
-  // Special role status
-  | 'hunterStatus'         // Hunter view status
-  | 'darkWolfKingStatus'   // DarkWolfKing view status
-  
   // Reveal (RoomScreen calculates result)
   | 'seerReveal'           // Seer check
   | 'psychicReveal'        // Psychic check
@@ -155,9 +151,7 @@ export function deriveSkipIntentFromSchema(
 
 /** confirm schema: hunter/darkWolfKing status dialog */
 function deriveConfirmIntent(ctx: IntentContext): ActionIntent {
-  const { myRole, index, buildMessage } = ctx;
-  if (myRole === 'hunter') return { type: 'hunterStatus', targetIndex: index };
-  if (myRole === 'darkWolfKing') return { type: 'darkWolfKingStatus', targetIndex: index };
+  const { index, buildMessage } = ctx;
   return { type: 'actionConfirm', targetIndex: index, message: buildMessage(index) };
 }
 
@@ -289,14 +283,6 @@ export function useRoomActions(
 
     // Schema-driven: confirm schema (hunter/darkWolfKing status dialog)
     if (currentSchema?.kind === 'confirm') {
-      // Use role-specific intent type for backward compatibility
-      if (myRole === 'hunter') {
-        return { type: 'hunterStatus', targetIndex: -1 };
-      }
-      if (myRole === 'darkWolfKing') {
-        return { type: 'darkWolfKingStatus', targetIndex: -1 };
-      }
-      // Fallback for future confirm roles
       return { type: 'actionPrompt', targetIndex: -1 };
     }
 
