@@ -185,19 +185,13 @@ describe('RoomScreen psychic reveal UI (smoke)', () => {
       fireEvent.press(seatPressable);
     });
 
-    // Confirm check dialog
-    // Note: title copy may be shared across roles (e.g. still shows '确认查验');
-    // we only assert it is a confirm-style dialog and proceeds to submitAction.
+    // Confirm check dialog (schema-driven)
     await waitFor(() => {
-      expect(showAlert).toHaveBeenCalledWith(expect.stringMatching(/^确认/), expect.any(String), expect.any(Array));
+      expect(showAlert).toHaveBeenCalledWith('确认通灵', expect.any(String), expect.any(Array));
     });
 
-    const confirmCall = (showAlert as jest.Mock).mock.calls.find(
-      (c) => typeof c[0] === 'string' && /^确认/.test(c[0] as string)
-    );
-    expect(confirmCall).toBeDefined();
-
-    const confirmButtons = (confirmCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
+    const confirmCalls = (showAlert as jest.Mock).mock.calls.filter((c) => c[0] === '确认通灵');
+    const confirmButtons = confirmCalls[0][2] as Array<{ text: string; onPress?: () => void }>;
     const confirmBtn = confirmButtons.find((b) => b.text === '确定');
 
     await act(async () => {
