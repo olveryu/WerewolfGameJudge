@@ -4,8 +4,9 @@
  * Validates the SCHEMAS registry for consistency.
  */
 
-import { SCHEMAS, type SchemaId, getAllSchemaIds, isValidSchemaId } from '../index';
+import { SCHEMAS, type SchemaId, getAllSchemaIds, isValidSchemaId, BLOCKED_UI_DEFAULTS } from '../index';
 import { NIGHT_STEPS } from '../index';
+import type { CompoundSchema } from '../schema.types';
 
 describe('SCHEMAS contract', () => {
   it('should include at least all NIGHT_STEPS schemas (and may include helper schemas)', () => {
@@ -284,6 +285,64 @@ describe('SCHEMAS contract', () => {
       expect(ids).toContain('seerCheck');
       expect(ids).toContain('wolfKill');
       expect(ids).toContain('witchAction');
+    });
+  });
+
+  // =========================================================================
+  // BLOCKED_UI_DEFAULTS contract (P2 schema-driven)
+  // =========================================================================
+  describe('BLOCKED_UI_DEFAULTS contract', () => {
+    it('should have all required fields with non-empty string values', () => {
+      expect(typeof BLOCKED_UI_DEFAULTS.title).toBe('string');
+      expect(BLOCKED_UI_DEFAULTS.title.length).toBeGreaterThan(0);
+      
+      expect(typeof BLOCKED_UI_DEFAULTS.message).toBe('string');
+      expect(BLOCKED_UI_DEFAULTS.message.length).toBeGreaterThan(0);
+      
+      expect(typeof BLOCKED_UI_DEFAULTS.skipButtonText).toBe('string');
+      expect(BLOCKED_UI_DEFAULTS.skipButtonText.length).toBeGreaterThan(0);
+      
+      expect(typeof BLOCKED_UI_DEFAULTS.dismissButtonText).toBe('string');
+      expect(BLOCKED_UI_DEFAULTS.dismissButtonText.length).toBeGreaterThan(0);
+    });
+
+    it('should have exactly 4 keys (anti-drift)', () => {
+      const keys = Object.keys(BLOCKED_UI_DEFAULTS);
+      expect(keys).toHaveLength(4);
+      expect(keys).toContain('title');
+      expect(keys).toContain('message');
+      expect(keys).toContain('skipButtonText');
+      expect(keys).toContain('dismissButtonText');
+    });
+
+    it('values snapshot (change detection)', () => {
+      // If these values change, tests will fail - forcing explicit review
+      expect(BLOCKED_UI_DEFAULTS.title).toBe('技能被封锁');
+      expect(BLOCKED_UI_DEFAULTS.message).toBe('你被梦魇封锁了，本回合无法行动');
+      expect(BLOCKED_UI_DEFAULTS.skipButtonText).toBe('跳过（技能被封锁）');
+      expect(BLOCKED_UI_DEFAULTS.dismissButtonText).toBe('知道了');
+    });
+  });
+
+  // =========================================================================
+  // Witch promptTemplate contract (P3 schema-driven)
+  // =========================================================================
+  describe('witchAction.promptTemplate contract', () => {
+    it('witchAction save step should have promptTemplate with {seat} placeholder', () => {
+      const witchSchema = SCHEMAS.witchAction as CompoundSchema;
+      expect(witchSchema.kind).toBe('compound');
+      
+      const saveStep = witchSchema.steps[0];
+      expect(saveStep.key).toBe('save');
+      expect(saveStep.ui?.promptTemplate).toBeDefined();
+      expect(saveStep.ui?.promptTemplate).toContain('{seat}');
+    });
+
+    it('witchAction poison step should NOT have promptTemplate (static prompt)', () => {
+      const witchSchema = SCHEMAS.witchAction as CompoundSchema;
+      const poisonStep = witchSchema.steps[1];
+      expect(poisonStep.key).toBe('poison');
+      expect(poisonStep.ui?.promptTemplate).toBeUndefined();
     });
   });
 });
