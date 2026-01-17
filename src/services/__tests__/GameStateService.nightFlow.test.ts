@@ -181,11 +181,13 @@ describe('GameStateService NightFlowController Integration', () => {
       await jest.runAllTimersAsync();
       await startPromise;
       
-      // Then: nightFlow.actionOrder should be derived from NightPlan
+      // Then: nightFlow should have currentStep with correct roleId
       const nightFlow = getNightFlow(service);
       // NIGHT_STEPS order: ... -> wolfKill -> wolfQueenCharm -> witchAction -> seerCheck -> ...
-      // For roles [wolf, witch, seer], expected order is [wolf, witch, seer] based on NIGHT_STEPS order
-      expect(nightFlow.actionOrder).toEqual(['wolf', 'witch', 'seer']);
+      // For roles [wolf, witch, seer], expected first step is wolf based on NIGHT_STEPS order
+      // Phase 5: actionOrder removed, verify via currentStep.roleId
+      expect(nightFlow.currentStep?.roleId).toBe('wolf');
+      expect(nightFlow.currentActionIndex).toBe(0);
     });
 
     it('should sync currentActionerIndex to 0 after startGame', async () => {
@@ -248,7 +250,8 @@ describe('GameStateService NightFlowController Integration', () => {
       // Then: New nightFlow should be created
       const nightFlow = getNightFlow(service);
       expect(nightFlow).not.toBeNull();
-      expect(nightFlow.actionOrder).toEqual(['wolf', 'witch', 'seer']);
+      // Phase 5: actionOrder removed, verify currentStep instead
+      expect(nightFlow.currentStep?.roleId).toBe('wolf');
     });
   });
 

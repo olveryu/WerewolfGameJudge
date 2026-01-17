@@ -59,10 +59,10 @@ export enum NightEvent {
 
 /**
  * Immutable state snapshot of the night flow
+ * Phase 5: actionOrder removed, use currentStep.roleId for current role
  */
 export interface NightFlowState {
   readonly phase: NightPhase;
-  readonly actionOrder: readonly RoleName[];
   readonly currentActionIndex: number;
   readonly actions: ReadonlyMap<RoleName, number>;
   /** Current step from NightPlan (null if no more steps) */
@@ -101,7 +101,6 @@ export class InvalidNightTransitionError extends Error {
 export class NightFlowController {
   private _phase: NightPhase = NightPhase.Idle;
   private readonly _nightPlan: NightPlan;
-  private readonly _actionOrder: RoleName[];  // Derived from NightPlan for backward compat
   private _currentActionIndex: number = 0;
   private _actions: Map<RoleName, number> = new Map();
 
@@ -111,7 +110,6 @@ export class NightFlowController {
    */
   constructor(nightPlan: NightPlan) {
     this._nightPlan = nightPlan;
-    this._actionOrder = nightPlan.steps.map(step => step.roleId);
   }
 
   // ===========================================================================
@@ -131,10 +129,8 @@ export class NightFlowController {
   }
 
   get currentRole(): RoleName | null {
-    if (this._currentActionIndex >= this._actionOrder.length) {
-      return null;
-    }
-    return this._actionOrder[this._currentActionIndex];
+    const step = this.currentStep;
+    return step ? step.roleId : null;
   }
 
   get currentActionIndex(): number {
@@ -145,17 +141,13 @@ export class NightFlowController {
     return this._actions;
   }
 
-  get actionOrder(): readonly RoleName[] {
-    return this._actionOrder;
-  }
-
   /**
    * Get immutable state snapshot
+   * Phase 5: actionOrder removed, use currentStep.roleId instead
    */
   getState(): NightFlowState {
     return {
       phase: this._phase,
-      actionOrder: this._actionOrder,
       currentActionIndex: this._currentActionIndex,
       actions: new Map(this._actions),
       currentStep: this.currentStep,
@@ -166,7 +158,7 @@ export class NightFlowController {
    * Check if night has more roles to process
    */
   hasMoreRoles(): boolean {
-    return this._currentActionIndex < this._actionOrder.length;
+    return this._currentActionIndex < this._nightPlan.steps.length;
   }
 
   /**

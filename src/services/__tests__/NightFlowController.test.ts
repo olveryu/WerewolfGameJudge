@@ -278,10 +278,10 @@ describe('NightFlowController', () => {
       const state = controller.getState();
       
       expect(state.phase).toBe(NightPhase.WaitingForAction);
-      expect(state.actionOrder).toEqual(['wolf', 'witch']);
+      // Phase 5: actionOrder removed, verify via currentStep.roleId instead
+      expect(state.currentStep?.roleId).toBe('wolf');
       expect(state.currentActionIndex).toBe(0);
       expect(state.actions.get('wolf')).toBe(3);
-      expect(state.currentStep?.roleId).toBe('wolf');
 
       // Verify it's a copy (modifying doesn't affect controller)
       (state.actions as Map<string, number>).set('wolf', 999);
