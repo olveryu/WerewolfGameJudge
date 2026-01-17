@@ -30,8 +30,9 @@ import {
 import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, type RoleId, buildNightPlan, getStepsByRoleStrict } from '../models/roles/spec';
 import { WOLF_MEETING_VOTE_CONFIG } from '../models/roles/spec/wolfMeetingVoteConfig';
 import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
-import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload, GargoyleRevealPayload, WolfRobotRevealPayload, ActionRejectedPayload, BlockedPayload } from './types/PrivateBroadcast';
+import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload, GargoyleRevealPayload, WolfRobotRevealPayload, ActionRejectedPayload, BlockedPayload, ConfirmStatusPayload } from './types/PrivateBroadcast';
 import { getRoleAfterSwap } from './night/resolvers/types';
+import { getConfirmRoleCanShoot } from '../models/Room';
 
 // Import types/enums needed internally
 import {
@@ -1014,6 +1015,17 @@ export class GameStateService {
   }
 
   /**
+   * Get confirm status from private inbox (for current revision only)
+   * Returns null if no CONFIRM_STATUS message received for current revision.
+   * 
+   * Used by hunter/darkWolfKing to know if they can use their skill.
+   * ANTI-CHEAT: Client cannot compute this because actions Map is not broadcast.
+   */
+  getConfirmStatus(): ConfirmStatusPayload | null {
+    return this.getLatestPrivatePayloadByKind('CONFIRM_STATUS');
+  }
+
+  /**
    * Get psychic reveal from private inbox (for current revision only)
    * Returns null if no PSYCHIC_REVEAL message received for current revision.
    * 
@@ -1718,6 +1730,12 @@ export class GameStateService {
       }
     }
 
+    // ANTI-CHEAT: For hunter/darkWolfKing, send canShoot status via private message
+    // Client cannot compute this because actions Map is not broadcast
+    if (currentRole === 'hunter' || currentRole === 'darkWolfKing') {
+      await this.sendConfirmStatus(currentRole);
+    }
+
     // Broadcast role turn (PUBLIC - no killedIndex)
     await this.broadcastService.broadcastAsHost({
       type: 'ROLE_TURN',
@@ -2221,6 +2239,39 @@ export class GameStateService {
     };
 
     console.log('[GameStateService] Sending WITCH_CONTEXT to witch:', witchUid.substring(0, 8), 'killedIndex:', killedIndex, 'canSave:', canSave);
+    await this.broadcastService.sendPrivate(privateMessage);
+  }
+
+  /**
+   * Send CONFIRM_STATUS to hunter or darkWolfKing.
+   * Tells them if they can use their skill (not poisoned by witch).
+   * 
+   * ANTI-CHEAT: Client cannot compute this because actions Map is not broadcast.
+   * Host computes and sends via private message.
+   */
+  private async sendConfirmStatus(role: 'hunter' | 'darkWolfKing'): Promise<void> {
+    const roleUid = this.getPlayerUidByRole(role);
+    if (!roleUid || !this.state) {
+      console.warn(`[GameStateService] sendConfirmStatus: ${role} not found or no state`);
+      return;
+    }
+
+    // Use the same logic as getConfirmRoleCanShoot
+    // LocalGameState is compatible with GameRoomLike
+    const canShoot = getConfirmRoleCanShoot(this.state, role);
+
+    const privateMessage: PrivateMessage = {
+      type: 'PRIVATE_EFFECT',
+      toUid: roleUid,
+      revision: this.stateRevision,
+      payload: {
+        kind: 'CONFIRM_STATUS',
+        role,
+        canShoot,
+      } as ConfirmStatusPayload,
+    };
+
+    console.log(`[GameStateService] Sending CONFIRM_STATUS to ${role}:`, roleUid.substring(0, 8), 'canShoot:', canShoot);
     await this.broadcastService.sendPrivate(privateMessage);
   }
 

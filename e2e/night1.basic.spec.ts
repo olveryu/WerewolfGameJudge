@@ -482,7 +482,7 @@ async function tryClickSeatTarget(page: Page, state: NightFlowState, pageLabel: 
     '请选择救人',
     '请选择毒杀',
     '请选择使用解药',      // witch save step
-    '请选择使用毒药',      // witch poison step
+    '如要使用毒药，请点击座位。',      // witch poison step
     '点击选择',
     '选择目标',
   ];
