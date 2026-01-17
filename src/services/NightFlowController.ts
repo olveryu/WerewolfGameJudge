@@ -12,6 +12,7 @@
 
 import { RoleId } from '../models/roles';
 import { type NightPlan, type NightPlanStep } from '../models/roles/spec/plan.types';
+import { nightFlowLog } from '../utils/logger';
 
 // =============================================================================
 // Night Phase State Machine
@@ -216,6 +217,7 @@ export class NightFlowController {
       throw new Error(`Cannot record action for ${role}: current role is ${this.currentRole}`);
     }
     this._actions.set(role, target);
+    nightFlowLog.info('Action recorded', { role, target });
   }
 
   // ===========================================================================
@@ -230,6 +232,7 @@ export class NightFlowController {
     this._currentActionIndex = 0;
     this._actions = new Map();
     this._phase = NightPhase.NightBeginAudio;
+    nightFlowLog.info('Night started', { steps: this._nightPlan.steps.length });
   }
 
   private handleNightBeginAudioDone(): void {
@@ -244,6 +247,7 @@ export class NightFlowController {
       throw new InvalidNightTransitionError(this._phase, NightEvent.RoleBeginAudioDone);
     }
     this._phase = NightPhase.WaitingForAction;
+    nightFlowLog.debug('Waiting for action', { role: this.currentRole, index: this._currentActionIndex });
   }
 
   private handleActionSubmitted(): void {
@@ -267,10 +271,12 @@ export class NightFlowController {
       throw new InvalidNightTransitionError(this._phase, NightEvent.NightEndAudioDone);
     }
     this._phase = NightPhase.Ended;
+    nightFlowLog.info('Night ended', { actionsCount: this._actions.size });
   }
 
   private handleReset(): void {
     // Reset is always allowed
+    nightFlowLog.debug('Reset', { fromPhase: this._phase });
     this._phase = NightPhase.Idle;
     this._currentActionIndex = 0;
     this._actions = new Map();
@@ -282,8 +288,10 @@ export class NightFlowController {
   private transitionToNextRole(): void {
     if (this.hasMoreRoles()) {
       this._phase = NightPhase.RoleBeginAudio;
+      nightFlowLog.debug('Next role', { role: this.currentRole, index: this._currentActionIndex });
     } else {
       this._phase = NightPhase.NightEndAudio;
+      nightFlowLog.debug('All roles done, playing night end audio');
     }
   }
 }

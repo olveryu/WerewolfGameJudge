@@ -13,6 +13,7 @@
  */
 
 import { supabase, isSupabaseConfigured } from '../config/supabase';
+import { roomLog } from '../utils/logger';
 
 // Minimal room record stored in Supabase
 export interface RoomRecord {
@@ -70,7 +71,7 @@ export class SimplifiedRoomService {
         .maybeSingle();
 
       if (error) {
-        console.error('[SimplifiedRoomService] Error checking room:', error);
+        roomLog.error(' Error checking room:', error);
         continue;
       }
 
@@ -111,7 +112,7 @@ export class SimplifiedRoomService {
 
       if (!error) {
         if (attempt > 1) {
-          console.log(`[SimplifiedRoomService] Room created on attempt ${attempt} with code ${currentRoomNumber}`);
+          roomLog.info(` Room created on attempt ${attempt} with code ${currentRoomNumber}`);
         }
         return {
           roomNumber: currentRoomNumber,
@@ -127,9 +128,9 @@ export class SimplifiedRoomService {
                          error.message.includes('already exists');
       
       if (isConflict && attempt < maxRetries) {
-        console.log(`[SimplifiedRoomService] HTTP 409 conflict on attempt ${attempt}, room ${currentRoomNumber} already exists`);
-        console.log(`  Error: ${error.message}`);
-        console.log(`  Generating new room number...`);
+        roomLog.info(` HTTP 409 conflict on attempt ${attempt}, room ${currentRoomNumber} already exists`);
+        roomLog.debug(`  Error: ${error.message}`);
+        roomLog.debug(`  Generating new room number...`);
         
         // Generate a new room number for retry
         currentRoomNumber = await this.generateRoomNumber();
@@ -186,7 +187,7 @@ export class SimplifiedRoomService {
       .eq('code', roomNumber);
 
     if (error) {
-      console.error('[SimplifiedRoomService] Failed to delete room:', error);
+      roomLog.error(' Failed to delete room:', error);
     }
   }
 
@@ -205,7 +206,7 @@ export class SimplifiedRoomService {
       .select('code');
 
     if (error) {
-      console.error('[SimplifiedRoomService] Cleanup error:', error);
+      roomLog.error(' Cleanup error:', error);
       return 0;
     }
 

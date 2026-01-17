@@ -14,6 +14,7 @@ import { AuthService } from '../services/AuthService';
 import { GameTemplate } from '../models/Template';
 import { RoleId, isWolfRole, buildNightPlan } from '../models/roles';
 import { isValidRoleId, getRoleSpec, getSchema, type ActionSchema, type SchemaId, getStepsByRoleStrict } from '../models/roles/spec';
+import { gameRoomLog } from '../utils/logger';
 
 export interface UseGameRoomResult {
   // Room info
@@ -290,7 +291,7 @@ export const useGameRoom = (): UseGameRoomResult => {
       setRoomRecord(null);
       setGameState(null);
     } catch (err) {
-      console.error('[useGameRoom] Error leaving room:', err);
+      gameRoomLog.error(' Error leaving room:', err);
     }
   }, [isHost, roomRecord]);
 
@@ -306,7 +307,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         avatarUrl ?? undefined
       );
     } catch (err) {
-      console.error('[useGameRoom] Error taking seat:', err);
+      gameRoomLog.error(' Error taking seat:', err);
       return false;
     }
   }, []);
@@ -316,7 +317,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     try {
       await gameStateService.current.leaveSeat();
     } catch (err) {
-      console.error('[useGameRoom] Error leaving seat:', err);
+      gameRoomLog.error(' Error leaving seat:', err);
     }
   }, []);
 
@@ -332,7 +333,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         avatarUrl ?? undefined
       );
     } catch (err) {
-      console.error('[useGameRoom] Error taking seat with ack:', err);
+      gameRoomLog.error(' Error taking seat with ack:', err);
       return { success: false, reason: String(err) };
     }
   }, []);
@@ -342,7 +343,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     try {
       return await gameStateService.current.leaveSeatWithAck();
     } catch (err) {
-      console.error('[useGameRoom] Error leaving seat with ack:', err);
+      gameRoomLog.error(' Error leaving seat with ack:', err);
       return { success: false, reason: String(err) };
     }
   }, []);
@@ -359,7 +360,7 @@ export const useGameRoom = (): UseGameRoomResult => {
       }
       return result;
     } catch (err) {
-      console.error('[useGameRoom] Error requesting snapshot:', err);
+      gameRoomLog.error(' Error requesting snapshot:', err);
       setConnectionStatus('disconnected');
       return false;
     }

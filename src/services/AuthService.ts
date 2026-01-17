@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../config/supabase';
+import { authLog } from '../utils/logger';
 import { getAllRoleIds, getRoleSpec } from '../models/roles';
 
 export class AuthService {
@@ -16,14 +17,14 @@ export class AuthService {
     try {
       const existingUserId = await this.initAuth();
       if (existingUserId) {
-        console.log('[AuthService] Restored session:', existingUserId);
+        authLog.info(' Restored session:', existingUserId);
         return;
       }
       
       const userId = await this.signInAnonymously();
-      console.log('[AuthService] Auto signed in anonymously:', userId);
+      authLog.info(' Auto signed in anonymously:', userId);
     } catch (error) {
-      console.error('[AuthService] Auto sign in failed:', error);
+      authLog.error(' Auto sign in failed:', error);
     }
   }
 

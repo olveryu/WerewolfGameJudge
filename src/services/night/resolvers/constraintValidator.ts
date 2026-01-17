@@ -6,6 +6,7 @@
  */
 
 import type { TargetConstraint } from '../../../models/roles/spec/schema.types';
+import { log } from '../../../utils/logger';
 
 export interface ConstraintValidationContext {
   /** Current actor's seat */
@@ -44,7 +45,7 @@ export function validateConstraints(
       // case 'notDead': ...
       default:
         // Unknown constraint - treat as valid (fail-open for forward compat)
-        console.warn(`[ConstraintValidator] Unknown constraint: ${constraint}`);
+        log.extend('Constraint').warn(`Unknown constraint: ${constraint}`);
     }
   }
   

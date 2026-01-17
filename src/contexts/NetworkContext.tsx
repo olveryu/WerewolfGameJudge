@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
+import { log } from '../utils/logger';
 import { showAlert } from '../utils/alert';
 
 interface NetworkContextType {
@@ -39,7 +40,7 @@ export const NetworkProvider: React.FC<Props> = ({ children }) => {
 
   const retryLastOperation = useCallback(async () => {
     if (!retryFnRef.current) {
-      console.log('[Network] No operation to retry');
+      log.extend('Network').debug(' No operation to retry');
       return;
     }
 
@@ -47,12 +48,12 @@ export const NetworkProvider: React.FC<Props> = ({ children }) => {
     setLastError(null);
 
     try {
-      console.log('[Network] Retrying operation...');
+      log.extend('Network').debug(' Retrying operation...');
       await retryFnRef.current();
-      console.log('[Network] Retry successful');
+      log.extend('Network').debug(' Retry successful');
       retryFnRef.current = null;
     } catch (error) {
-      console.error('[Network] Retry failed:', error);
+      log.extend('Network').error(' Retry failed:', error);
       // The operation itself should call reportNetworkError again if it fails
     } finally {
       setIsConnecting(false);
@@ -61,7 +62,7 @@ export const NetworkProvider: React.FC<Props> = ({ children }) => {
 
   const reportNetworkError = useCallback((error: Error, retryFn?: () => Promise<void>) => {
     const errorMsg = error.message || '网络请求失败';
-    console.error('[Network] Error reported:', errorMsg);
+    log.extend('Network').error(' Error reported:', errorMsg);
     
     setLastError(errorMsg);
     if (retryFn) {

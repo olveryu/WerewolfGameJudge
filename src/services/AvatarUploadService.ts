@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../config/supabase';
+import { log } from '../utils/logger';
 import { AuthService } from './AuthService';
 
 export class AvatarUploadService {
@@ -93,7 +94,7 @@ export class AvatarUploadService {
         canvas.toBlob(
           (blob) => {
             if (blob) {
-              console.log(`[AvatarUploadService] Compressed image: ${Math.round(blob.size / 1024)}KB`);
+              log.extend('Avatar').debug(` Compressed image: ${Math.round(blob.size / 1024)}KB`);
               resolve(blob);
             } else {
               reject(new Error('Failed to compress image'));

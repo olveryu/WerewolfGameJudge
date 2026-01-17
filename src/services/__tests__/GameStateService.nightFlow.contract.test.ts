@@ -28,6 +28,34 @@ const broadcastCalls: Array<{ type: string; [key: string]: any }> = [];
 // Capture sendPrivate calls for anti-cheat assertions
 const privateCalls: Array<{ type: string; toUid: string; payload: any }> = [];
 
+// Mock logger - capture debug calls for idempotent behavior verification
+// Note: Cannot use variables like mockHostLogDebug before jest.mock due to hoisting.
+// Instead, we export named mocks from the mock factory.
+const mockHostLogDebug = jest.fn();
+
+jest.mock('../../utils/logger', () => {
+  return {
+    hostLog: {
+      debug: (...args: unknown[]) => mockHostLogDebug(...args),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
+    playerLog: {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
+    nightFlowLog: {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
+  };
+});
+
 // Mock BroadcastService
 jest.mock('../BroadcastService', () => ({
   BroadcastService: {
@@ -388,7 +416,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       
       // When: we directly call advanceToNextAction (simulating duplicate/stale callback)
       // WITHOUT first calling ActionSubmitted - phase is still WaitingForAction
-      const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+      mockHostLogDebug.mockClear();
       
       // Access private method via any
       await (service as any).advanceToNextAction();
@@ -398,13 +426,11 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(stateAfter.currentActionerIndex).toBe(indexBefore);
       
       // And: debug log was called (not error)
-      expect(debugSpy).toHaveBeenCalledWith(
+      expect(mockHostLogDebug).toHaveBeenCalledWith(
         expect.stringContaining('RoleEndAudioDone ignored (idempotent)'),
         expect.anything(),
         expect.anything()
       );
-      
-      debugSpy.mockRestore();
     });
 
     it('should not call console.error when RoleEndAudioDone called in wrong phase', async () => {
@@ -419,16 +445,13 @@ describe('GameStateService NightFlow Contract Tests', () => {
       await startPromise;
       
       // When: we directly call advanceToNextAction without ActionSubmitted
-      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+      mockHostLogDebug.mockClear();
       
       await (service as any).advanceToNextAction();
       
-      // Then: console.error should NOT have been called
-      expect(errorSpy).not.toHaveBeenCalled();
-      
-      errorSpy.mockRestore();
-      debugSpy.mockRestore();
+      // Then: debug log should have been called (idempotent no-op)
+      // and no error should be thrown
+      expect(mockHostLogDebug).toHaveBeenCalled();
     });
   });
 
@@ -448,17 +471,13 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(service.getState()!.currentActionerIndex).toBe(0);
       
       // When: we directly call endNight (simulating duplicate/stale callback)
-      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+      mockHostLogDebug.mockClear();
       
       // This should NOT throw
       await expect((service as any).endNight()).resolves.not.toThrow();
       
-      // Then: console.error should NOT have been called
-      expect(errorSpy).not.toHaveBeenCalled();
-      
-      errorSpy.mockRestore();
-      debugSpy.mockRestore();
+      // Then: debug log should have been called (idempotent no-op)
+      expect(mockHostLogDebug).toHaveBeenCalled();
     });
 
     it('should NOT change status or lastNightDeaths when endNight called in wrong phase (strict)', async () => {
@@ -481,7 +500,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(lastNightDeathsBefore).toEqual([]);
       
       // When: we directly call endNight in wrong phase
-      const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+      mockHostLogDebug.mockClear();
       
       await (service as any).endNight();
       
@@ -491,13 +510,11 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(stateAfter.lastNightDeaths).toEqual(lastNightDeathsBefore);
       
       // And: debug log was called with phase info
-      expect(debugSpy).toHaveBeenCalledWith(
+      expect(mockHostLogDebug).toHaveBeenCalledWith(
         expect.stringContaining('endNight() ignored (strict no-op)'),
         expect.anything(),
         expect.anything()
       );
-      
-      debugSpy.mockRestore();
     });
   });
 
@@ -543,7 +560,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       const indexBefore = state.currentActionerIndex;
       
       // When: wolf votes again (simulating duplicate finalize attempt)
-      const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+      mockHostLogDebug.mockClear();
       
       await (service as any).handleWolfVote(0, 1);
       
@@ -551,15 +568,13 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(service.getState()!.currentActionerIndex).toBe(indexBefore);
       
       // And: debug log was called indicating once-guard
-      expect(debugSpy).toHaveBeenCalledWith(
+      expect(mockHostLogDebug).toHaveBeenCalledWith(
         expect.stringContaining('handleWolfVote finalize skipped (once-guard)'),
         expect.anything(),
         expect.anything(),
         expect.anything(),
         expect.anything()
       );
-      
-      debugSpy.mockRestore();
     });
   });
 

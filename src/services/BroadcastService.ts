@@ -18,6 +18,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { RoleId } from '../models/roles';
 import type { SchemaId } from '../models/roles/spec';
 import type { PublicPayload } from './types/PublicBroadcast';
+import { broadcastLog } from '../utils/logger';
 import type { PrivateMessage } from './types/PrivateBroadcast';
 
 // =============================================================================
@@ -145,7 +146,7 @@ export class BroadcastService {
    */
   setConnectionStatus(status: ConnectionStatus): void {
     if (this.connectionStatus !== status) {
-      console.log(`[BroadcastService] Connection status: ${this.connectionStatus} -> ${status}`);
+      broadcastLog.info(` Connection status: ${this.connectionStatus} -> ${status}`);
       this.connectionStatus = status;
       this.statusListeners.forEach(listener => listener(status));
     }
@@ -164,7 +165,7 @@ export class BroadcastService {
     }
   ): Promise<void> {
     if (!this.isConfigured()) {
-      console.warn('[BroadcastService] Supabase not configured');
+      broadcastLog.warn(' Supabase not configured');
       return;
     }
 
@@ -179,7 +180,7 @@ export class BroadcastService {
     this.onPresenceChange = callbacks.onPresenceChange || null;
 
     // Create channel with room code
-    console.log(`[BroadcastService] Creating channel for room:${roomCode}, userId:${userId.substring(0, 8)}...`);
+    broadcastLog.info(` Creating channel for room:${roomCode}, userId:${userId.substring(0, 8)}...`);
     this.channel = supabase!.channel(`room:${roomCode}`, {
       config: {
         broadcast: { self: true },  // Receive own broadcasts (for testing)
@@ -189,7 +190,7 @@ export class BroadcastService {
 
     // Listen for host broadcasts
     this.channel.on('broadcast', { event: 'host' }, (payload) => {
-      console.log('[BroadcastService] Received host broadcast:', payload.payload?.type);
+      broadcastLog.info(' Received host broadcast:', payload.payload?.type);
       if (this.onHostBroadcast && payload.payload) {
   // payload.payload is either HostBroadcast (public) or PrivateMessage (PRIVATE_EFFECT)
   this.onHostBroadcast(payload.payload as HostBroadcast | PrivateMessage);
@@ -198,7 +199,7 @@ export class BroadcastService {
 
     // Listen for player messages (Host should listen to this)
     this.channel.on('broadcast', { event: 'player' }, (payload) => {
-      console.log('[BroadcastService] Received player message:', payload.payload?.type);
+      broadcastLog.info(' Received player message:', payload.payload?.type);
       if (this.onPlayerMessage && payload.payload) {
         const senderId = (payload as any).presence_ref || 'unknown';
         this.onPlayerMessage(payload.payload as PlayerMessage, senderId);
@@ -209,7 +210,7 @@ export class BroadcastService {
     this.channel.on('presence', { event: 'sync' }, () => {
       const state = this.channel?.presenceState() || {};
       const users = Object.keys(state);
-      console.log('[BroadcastService] Presence sync:', users.length, 'users');
+      broadcastLog.info(' Presence sync:', users.length, 'users');
       if (this.onPresenceChange) {
         this.onPresenceChange(users);
       }
@@ -223,7 +224,7 @@ export class BroadcastService {
       }, 8000);
       
       this.channel!.subscribe((status) => {
-        console.log('[BroadcastService] Channel status:', status);
+        broadcastLog.info(' Channel status:', status);
         if (status === 'SUBSCRIBED') {
           clearTimeout(timeout);
           this.setConnectionStatus('syncing');
@@ -242,7 +243,7 @@ export class BroadcastService {
     
     // Now we're fully connected and syncing
     // Status will be set to 'live' after receiving first STATE_UPDATE
-    console.log('[BroadcastService] Joined room:', roomCode);
+    broadcastLog.info(' Joined room:', roomCode);
   }
 
   /**
@@ -276,7 +277,7 @@ export class BroadcastService {
     this.onPlayerMessage = null;
     this.onPresenceChange = null;
     this.setConnectionStatus('disconnected');
-    console.log('[BroadcastService] Left room');
+    broadcastLog.info(' Left room');
   }
 
   /**
@@ -284,11 +285,11 @@ export class BroadcastService {
    */
   async broadcastAsHost(message: HostBroadcast): Promise<void> {
     if (!this.channel) {
-      console.warn('[BroadcastService] Not connected to any room');
+      broadcastLog.warn(' Not connected to any room');
       return;
     }
 
-    console.log('[BroadcastService] Broadcasting as host:', message.type);
+    broadcastLog.info(' Broadcasting as host:', message.type);
     await this.channel.send({
       type: 'broadcast',
       event: 'host',
@@ -306,11 +307,11 @@ export class BroadcastService {
    */
   async broadcastPublic(payload: PublicPayload): Promise<void> {
     if (!this.channel) {
-      console.warn('[BroadcastService] Not connected to any room');
+      broadcastLog.warn(' Not connected to any room');
       return;
     }
 
-    console.log('[BroadcastService] Broadcasting public:', payload.type);
+    broadcastLog.info(' Broadcasting public:', payload.type);
     await this.channel.send({
       type: 'broadcast',
       event: 'host',
@@ -330,11 +331,11 @@ export class BroadcastService {
    */
   async sendPrivate(message: PrivateMessage): Promise<void> {
     if (!this.channel) {
-      console.warn('[BroadcastService] Not connected to any room');
+      broadcastLog.warn(' Not connected to any room');
       return;
     }
 
-    console.log('[BroadcastService] Sending private to:', message.toUid.substring(0, 8), 'kind:', message.payload.kind);
+    broadcastLog.info(' Sending private to:', message.toUid.substring(0, 8), 'kind:', message.payload.kind);
     await this.channel.send({
       type: 'broadcast',
       event: 'host',
@@ -347,11 +348,11 @@ export class BroadcastService {
    */
   async sendToHost(message: PlayerMessage): Promise<void> {
     if (!this.channel) {
-      console.warn('[BroadcastService] Not connected to any room');
+      broadcastLog.warn(' Not connected to any room');
       return;
     }
 
-    console.log('[BroadcastService] Sending to host:', message.type);
+    broadcastLog.info(' Sending to host:', message.type);
     await this.channel.send({
       type: 'broadcast',
       event: 'player',
