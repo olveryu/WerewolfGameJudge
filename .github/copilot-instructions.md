@@ -55,6 +55,14 @@ If something is unclear, ask before coding. Don’t invent repo facts.
 - `src/services/night/resolvers/**`: host-only pure resolution + validation.
 - `src/screens/RoomScreen/components/**`: UI-only, no service imports.
 
+### Logging
+
+- **Use structured loggers** from `src/utils/logger.ts` (e.g., `gameRoomLog`, `roomScreenLog`, `gameStateLog`).
+- **Add logs for key events**: state transitions, action submissions, errors, and decision branches.
+- **Log format**: Include context (e.g., `[RoomScreen]`, `[GameStateService]`) and relevant data.
+- **Debug vs Error**: Use `.debug()` for normal flow tracing, `.warn()` for recoverable issues, `.error()` for failures.
+- **Do NOT log sensitive data** (player roles, private reveals) in production builds.
+
 ---
 
 ## Night flow & NightPlan (host authority)
