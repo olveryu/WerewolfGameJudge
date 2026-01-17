@@ -12,7 +12,7 @@ export const SCHEMAS = {
     id: 'seerCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: [],  // Can check self (neutral judge)
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -79,7 +79,7 @@ export const SCHEMAS = {
     id: 'psychicCheck',
     displayName: '通灵',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: [],  // Can check self (neutral judge)
     canSkip: true,
     ui: {
       confirmTitle: '确认通灵',
@@ -175,7 +175,7 @@ export const SCHEMAS = {
     id: 'gargoyleCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: [],  // Can check self (neutral judge)
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -190,7 +190,7 @@ export const SCHEMAS = {
     id: 'wolfRobotLearn',
     displayName: '学习',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: ['notSelf'],  // Cannot learn self
     canSkip: true,
     ui: {
       confirmTitle: '确认学习',

@@ -1,7 +1,8 @@
 /**
- * Gargoyle UI Test
+ * Slacker (懒汉) UI Test
  * 
- * Tests gargoyleCheck schema UI: prompt, seat selection, confirm dialog, reveal flow.
+ * Tests slackerChooseIdol schema UI: prompt, seat selection, confirm dialog.
+ * Special: canSkip = false (slacker MUST choose an idol).
  */
 
 import React from 'react';
@@ -26,13 +27,12 @@ const mockShowAlert = showAlert as jest.Mock;
 const mockSubmitAction = jest.fn();
 
 const makeMock = () => makeBaseUseGameRoomReturn({
-  schemaId: 'gargoyleCheck',
-  currentActionRole: 'gargoyle',
-  myRole: 'gargoyle',
+  schemaId: 'slackerChooseIdol',
+  currentActionRole: 'slacker',
+  myRole: 'slacker',
   mySeatNumber: 0,
   overrides: {
     submitAction: mockSubmitAction,
-    waitForGargoyleReveal: jest.fn().mockResolvedValue({ kind: 'GARGOYLE_REVEAL', targetSeat: 2, result: '狼人' }),
   },
 });
 
@@ -42,7 +42,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
   useGameRoom: () => mockUseGameRoomReturn,
 }));
 
-describe('Gargoyle UI (gargoyleCheck schema)', () => {
+describe('Slacker UI (slackerChooseIdol schema)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseGameRoomReturn = makeMock();
@@ -59,7 +59,7 @@ describe('Gargoyle UI (gargoyleCheck schema)', () => {
     await waitFor(() => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         '行动提示',
-        SCHEMAS.gargoyleCheck.ui.prompt,
+        SCHEMAS.slackerChooseIdol.ui.prompt,
         expect.any(Array)
       );
     });
@@ -83,14 +83,18 @@ describe('Gargoyle UI (gargoyleCheck schema)', () => {
 
     await waitFor(() => {
       expect(mockShowAlert).toHaveBeenCalledWith(
-        SCHEMAS.gargoyleCheck.ui.confirmTitle,
-        SCHEMAS.gargoyleCheck.ui.confirmText,
+        SCHEMAS.slackerChooseIdol.ui.confirmTitle,
+        SCHEMAS.slackerChooseIdol.ui.confirmText,
         expect.any(Array)
       );
     });
   });
 
-  it('gargoyle can check self (no notSelf constraint)', async () => {
+  it('schema has canSkip=false (slacker must choose idol)', () => {
+    expect(SCHEMAS.slackerChooseIdol.canSkip).toBe(false);
+  });
+
+  it('slacker cannot choose self (notSelf constraint)', async () => {
     const { getByTestId } = render(
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
@@ -102,26 +106,16 @@ describe('Gargoyle UI (gargoyleCheck schema)', () => {
       expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
     });
 
-    mockShowAlert.mockClear();
-
-    // Tap on self (seat 0) - should show confirm dialog (not disabled)
+    // Tap on self (seat 0) - should be rejected
     const seat0 = getByTestId(TESTIDS.seatTilePressable(0));
     fireEvent.press(seat0);
 
     await waitFor(() => {
       expect(mockShowAlert).toHaveBeenCalledWith(
-        SCHEMAS.gargoyleCheck.ui.confirmTitle,
-        SCHEMAS.gargoyleCheck.ui.confirmText,
+        '无法选择',
+        '不能选择自己',
         expect.any(Array)
       );
     });
-  });
-
-  it('schema has no notSelf constraint (can check self)', () => {
-    expect(SCHEMAS.gargoyleCheck.constraints).not.toContain('notSelf');
-  });
-
-  it('schema has revealKind=gargoyle for reveal flow', () => {
-    expect(SCHEMAS.gargoyleCheck.ui.revealKind).toBe('gargoyle');
   });
 });

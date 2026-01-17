@@ -147,6 +147,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     actions: gameState?.actions ?? new Map(),
   });
 
+  // Extract schema constraints for chooseSeat/swap schemas (non-compound).
+  // Compound schemas (witch) have fixed targets or step-specific handling.
+  const currentSchemaConstraints = useMemo(() => {
+    if (!currentSchema) return undefined;
+    // Only chooseSeat and swap schemas have constraints that affect seat selection
+    if (currentSchema.kind === 'chooseSeat' || currentSchema.kind === 'swap') {
+      return currentSchema.constraints;
+    }
+    return undefined;
+  }, [currentSchema]);
+
   // Build seat view models for PlayerGrid
   const seatViewModels = useMemo(() => {
     if (!gameState) return [];
@@ -156,8 +167,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       // Neutral-judge red line is enforced host-side; UI-disable here is UX-only.
       enableWolfVoteRestrictions:
         currentSchema?.kind === 'wolfVote' && currentSchema?.id === 'wolfKill',
+      // Schema-driven constraints (notSelf, etc.) - UX-only early rejection
+      schemaConstraints: imActioner ? currentSchemaConstraints : undefined,
     });
-  }, [gameState, mySeatNumber, showWolves, anotherIndex, currentSchema?.kind, currentSchema?.id]);
+  }, [gameState, mySeatNumber, showWolves, anotherIndex, currentSchema?.kind, currentSchema?.id, imActioner, currentSchemaConstraints]);
 
   // Calculate role statistics using helper
   const { roleCounts, wolfRoles, godRoles, specialRoles, villagerCount } = useMemo(() => {

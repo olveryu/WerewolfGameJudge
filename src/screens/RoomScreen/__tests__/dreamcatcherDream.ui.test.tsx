@@ -90,9 +90,35 @@ describe('Dreamcatcher UI (dreamcatcherDream schema)', () => {
     });
   });
 
-  it('schema has notSelf constraint (enforced by Host resolver)', () => {
-    // Schema-first constraint: notSelf is defined in schema
-    // Host resolver enforces this; UI tests just verify schema config
+  it('tapping self shows disabled alert (notSelf constraint - UX early rejection)', async () => {
+    const { getByTestId } = render(
+      <RoomScreen
+        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        navigation={mockNavigation as any}
+      />
+    );
+
+    await waitFor(() => {
+      expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
+    });
+
+    // Clear previous calls from action prompt
+    mockShowAlert.mockClear();
+
+    // Tap on self (seat 0) - should show disabled alert
+    const seat0 = getByTestId(TESTIDS.seatTilePressable(0));
+    fireEvent.press(seat0);
+
+    await waitFor(() => {
+      expect(mockShowAlert).toHaveBeenCalledWith(
+        '不可选择',
+        '不能选择自己',
+        expect.any(Array)
+      );
+    });
+  });
+
+  it('schema has notSelf constraint defined', () => {
     expect(SCHEMAS.dreamcatcherDream.constraints).toContain('notSelf');
   });
 });
