@@ -11,7 +11,7 @@
  * 4. Death calculations happen locally on Host
  */
 
-import { RoleId, isWolfRole } from '../models/roles';
+import { RoleId, isWolfRole, getWolfKillImmuneRoleIds } from '../models/roles';
 import { GameTemplate, createTemplateFromRoles, validateTemplateRoles } from '../models/Template';
 import { BroadcastService, BroadcastGameState, BroadcastPlayer, HostBroadcast, PlayerMessage } from './BroadcastService';
 import AudioService from './AudioService';
@@ -29,7 +29,6 @@ import {
   getActionTargetSeat,
 } from '../models/actions';
 import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, buildNightPlan, getStepsByRoleStrict, BLOCKED_UI_DEFAULTS } from '../models/roles/spec';
-import { WOLF_MEETING_VOTE_CONFIG } from '../models/roles/spec/wolfMeetingVoteConfig';
 import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
 import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload, GargoyleRevealPayload, WolfRobotRevealPayload, ActionRejectedPayload, BlockedPayload, ConfirmStatusPayload } from './types/PrivateBroadcast';
 import { getRoleAfterSwap } from './night/resolvers/types';
@@ -710,43 +709,23 @@ export class GameStateService {
     const player = this.state.players.get(seat);
     if (!player?.role || !isWolfRole(player.role)) return;
 
-    // === Commit 3: Wolf vote rejection checks ===
     const playerUid = player.uid;
 
-    // 1. Actor-specific: spiritKnight cannot vote for self
-    if (player.role === 'spiritKnight' && target === seat) {
-      if (playerUid) {
-        const rejectPayload: ActionRejectedPayload = {
-          kind: 'ACTION_REJECTED',
-          action: 'submitWolfVote',
-          reason: '恶灵骑士不能投自己',
-        };
-        const privateMessage: PrivateMessage = {
-          type: 'PRIVATE_EFFECT',
-          toUid: playerUid,
-          revision: this.stateRevision,
-          payload: rejectPayload,
-        };
-        await this.broadcastService.sendPrivate(privateMessage);
-      }
-      return;
-    }
-
-    // 2. Target-based: forbiddenTargetRoleIds check (from WOLF_MEETING_VOTE_CONFIG, NOT wolfKill)
+    // Target-based: immuneToWolfKill flag check (from ROLE_SPECS.flags)
     // RED LINE: wolfKill stays neutral (can target ANY seat); restrictions are on meeting vote only
-    const forbiddenRoles: readonly RoleId[] = WOLF_MEETING_VOTE_CONFIG.forbiddenTargetRoleIds;
-    if (forbiddenRoles.length > 0) {
+    const immuneRoleIds = getWolfKillImmuneRoleIds();
+    if (immuneRoleIds.length > 0) {
       const targetPlayer = this.state.players.get(target);
       const targetRole = targetPlayer?.role;
       // Type guard: only compare if targetRole is a valid RoleId
-      if (targetRole && isValidRoleId(targetRole) && forbiddenRoles.includes(targetRole)) {
+      if (targetRole && isValidRoleId(targetRole) && immuneRoleIds.includes(targetRole)) {
         const targetRoleSpec = getRoleSpec(targetRole);
-        const targetRoleId = targetRoleSpec?.displayName ?? targetRole;
+        const targetRoleName = targetRoleSpec?.displayName ?? targetRole;
         if (playerUid) {
           const rejectPayload: ActionRejectedPayload = {
             kind: 'ACTION_REJECTED',
             action: 'submitWolfVote',
-            reason: `不能投${targetRoleId}`,
+            reason: `不能投${targetRoleName}`,
           };
           const privateMessage: PrivateMessage = {
             type: 'PRIVATE_EFFECT',
@@ -759,7 +738,7 @@ export class GameStateService {
         return;
       }
     }
-    // === End Commit 3 checks ===
+    // === End immuneToWolfKill checks ===
 
     // Record vote
     this.state.wolfVotes.set(seat, target);

@@ -181,7 +181,7 @@
    - schema 注册以 `SCHEMAS` 为权威；
    - 不引入 parallel order/map。
 5. **Wolf kill neutral judge**：`SCHEMAS.wolfKill` 不得引入 forbidden/notSelf/notWolf 等限制。
-   - wolf meeting vote 的限制只能存在于专门 gate/config（例如 `wolfMeetingVoteConfig.ts` + Host gate）。
+   - wolf meeting vote 的限制通过 `ROLE_SPECS.flags.immuneToWolfKill` 定义（角色固有属性）。
 
 ---
 

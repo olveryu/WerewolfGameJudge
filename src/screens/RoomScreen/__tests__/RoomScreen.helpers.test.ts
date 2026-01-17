@@ -435,4 +435,220 @@ describe('buildSeatViewModels', () => {
     expect(seats[0].isWolf).toBe(false);
     expect(seats[1].isWolf).toBe(true);
   });
+
+  describe('schemaConstraints option (UX early rejection)', () => {
+    it('notSelf constraint disables own seat with reason', () => {
+      const mockState: LocalGameState = {
+        roomCode: 'TEST',
+        hostUid: 'host1',
+        template: {
+          name: 'Test',
+          numberOfPlayers: 3,
+          roles: ['seer', 'villager', 'wolf'] as RoleId[],
+        },
+        players: new Map([
+          [0, { uid: 'p1', seatNumber: 0, displayName: 'Seer', role: 'seer' as RoleId, hasViewedRole: true }],
+          [1, { uid: 'p2', seatNumber: 1, displayName: 'P2', role: 'villager' as RoleId, hasViewedRole: true }],
+          [2, { uid: 'p3', seatNumber: 2, displayName: 'P3', role: 'wolf' as RoleId, hasViewedRole: true }],
+        ]),
+        actions: new Map(),
+        wolfVotes: new Map(),
+        currentActionerIndex: 0,
+        isAudioPlaying: false,
+        lastNightDeaths: [],
+        status: GameStatus.ongoing,
+      };
+
+      // I am seat 0, with notSelf constraint
+      const seats = buildSeatViewModels(mockState, 0, false, null, {
+        schemaConstraints: ['notSelf'],
+      });
+
+      // My seat should be disabled
+      expect(seats[0].disabledReason).toBe('不能选择自己');
+      // Other seats should not be disabled
+      expect(seats[1].disabledReason).toBeUndefined();
+      expect(seats[2].disabledReason).toBeUndefined();
+    });
+
+    it('no constraint means own seat is selectable', () => {
+      const mockState: LocalGameState = {
+        roomCode: 'TEST',
+        hostUid: 'host1',
+        template: {
+          name: 'Test',
+          numberOfPlayers: 3,
+          roles: ['seer', 'villager', 'wolf'] as RoleId[],
+        },
+        players: new Map([
+          [0, { uid: 'p1', seatNumber: 0, displayName: 'Seer', role: 'seer' as RoleId, hasViewedRole: true }],
+          [1, { uid: 'p2', seatNumber: 1, displayName: 'P2', role: 'villager' as RoleId, hasViewedRole: true }],
+          [2, { uid: 'p3', seatNumber: 2, displayName: 'P3', role: 'wolf' as RoleId, hasViewedRole: true }],
+        ]),
+        actions: new Map(),
+        wolfVotes: new Map(),
+        currentActionerIndex: 0,
+        isAudioPlaying: false,
+        lastNightDeaths: [],
+        status: GameStatus.ongoing,
+      };
+
+      // I am seat 0, with NO constraints
+      const seats = buildSeatViewModels(mockState, 0, false, null, {
+        schemaConstraints: [],
+      });
+
+      // All seats should be selectable
+      expect(seats[0].disabledReason).toBeUndefined();
+      expect(seats[1].disabledReason).toBeUndefined();
+      expect(seats[2].disabledReason).toBeUndefined();
+    });
+  });
+
+  describe('enableWolfVoteRestrictions option (wolf meeting vote)', () => {
+    it('disables spiritKnight and wolfQueen targets', () => {
+      const mockState: LocalGameState = {
+        roomCode: 'TEST',
+        hostUid: 'host1',
+        template: {
+          name: 'Test',
+          numberOfPlayers: 5,
+          roles: ['wolf', 'villager', 'spiritKnight', 'wolfQueen', 'seer'] as RoleId[],
+        },
+        players: new Map([
+          [0, { uid: 'p1', seatNumber: 0, displayName: 'Wolf', role: 'wolf' as RoleId, hasViewedRole: true }],
+          [1, { uid: 'p2', seatNumber: 1, displayName: 'V', role: 'villager' as RoleId, hasViewedRole: true }],
+          [2, { uid: 'p3', seatNumber: 2, displayName: 'SK', role: 'spiritKnight' as RoleId, hasViewedRole: true }],
+          [3, { uid: 'p4', seatNumber: 3, displayName: 'WQ', role: 'wolfQueen' as RoleId, hasViewedRole: true }],
+          [4, { uid: 'p5', seatNumber: 4, displayName: 'Seer', role: 'seer' as RoleId, hasViewedRole: true }],
+        ]),
+        actions: new Map(),
+        wolfVotes: new Map(),
+        currentActionerIndex: 0,
+        isAudioPlaying: false,
+        lastNightDeaths: [],
+        status: GameStatus.ongoing,
+      };
+
+      const seats = buildSeatViewModels(mockState, 0, true, null, {
+        enableWolfVoteRestrictions: true,
+      });
+
+      // Wolf (seat 0) can be voted
+      expect(seats[0].disabledReason).toBeUndefined();
+      // Villager (seat 1) can be voted
+      expect(seats[1].disabledReason).toBeUndefined();
+      // SpiritKnight (seat 2) cannot be voted
+      expect(seats[2].disabledReason).toBe('不能投恶灵骑士');
+      // WolfQueen/狼美人 (seat 3) cannot be voted
+      expect(seats[3].disabledReason).toBe('不能投狼美人');
+      // Seer (seat 4) can be voted
+      expect(seats[4].disabledReason).toBeUndefined();
+    });
+
+    it('self is also disabled if self is spiritKnight (规则上不能自刀)', () => {
+      const mockState: LocalGameState = {
+        roomCode: 'TEST',
+        hostUid: 'host1',
+        template: {
+          name: 'Test',
+          numberOfPlayers: 4,
+          roles: ['spiritKnight', 'wolf', 'villager', 'villager'] as RoleId[],
+        },
+        players: new Map([
+          [0, { uid: 'p1', seatNumber: 0, displayName: 'SK', role: 'spiritKnight' as RoleId, hasViewedRole: true }],
+          [1, { uid: 'p2', seatNumber: 1, displayName: 'Wolf', role: 'wolf' as RoleId, hasViewedRole: true }],
+          [2, { uid: 'p3', seatNumber: 2, displayName: 'V1', role: 'villager' as RoleId, hasViewedRole: true }],
+          [3, { uid: 'p4', seatNumber: 3, displayName: 'V2', role: 'villager' as RoleId, hasViewedRole: true }],
+        ]),
+        actions: new Map(),
+        wolfVotes: new Map(),
+        currentActionerIndex: 0,
+        isAudioPlaying: false,
+        lastNightDeaths: [],
+        status: GameStatus.ongoing,
+      };
+
+      // I am seat 0 (spiritKnight), enableWolfVoteRestrictions is on
+      const seats = buildSeatViewModels(mockState, 0, true, null, {
+        enableWolfVoteRestrictions: true,
+      });
+
+      // My seat (spiritKnight) should be disabled
+      expect(seats[0].disabledReason).toBe('不能投恶灵骑士');
+      // Other seats should be selectable
+      expect(seats[1].disabledReason).toBeUndefined();
+      expect(seats[2].disabledReason).toBeUndefined();
+      expect(seats[3].disabledReason).toBeUndefined();
+    });
+
+    it('self is also disabled if self is wolfQueen (规则上不能自刀)', () => {
+      const mockState: LocalGameState = {
+        roomCode: 'TEST',
+        hostUid: 'host1',
+        template: {
+          name: 'Test',
+          numberOfPlayers: 4,
+          roles: ['wolfQueen', 'wolf', 'villager', 'villager'] as RoleId[],
+        },
+        players: new Map([
+          [0, { uid: 'p1', seatNumber: 0, displayName: 'WQ', role: 'wolfQueen' as RoleId, hasViewedRole: true }],
+          [1, { uid: 'p2', seatNumber: 1, displayName: 'Wolf', role: 'wolf' as RoleId, hasViewedRole: true }],
+          [2, { uid: 'p3', seatNumber: 2, displayName: 'V1', role: 'villager' as RoleId, hasViewedRole: true }],
+          [3, { uid: 'p4', seatNumber: 3, displayName: 'V2', role: 'villager' as RoleId, hasViewedRole: true }],
+        ]),
+        actions: new Map(),
+        wolfVotes: new Map(),
+        currentActionerIndex: 0,
+        isAudioPlaying: false,
+        lastNightDeaths: [],
+        status: GameStatus.ongoing,
+      };
+
+      // I am seat 0 (wolfQueen), enableWolfVoteRestrictions is on
+      const seats = buildSeatViewModels(mockState, 0, true, null, {
+        enableWolfVoteRestrictions: true,
+      });
+
+      // My seat (wolfQueen/狼美人) should be disabled
+      expect(seats[0].disabledReason).toBe('不能投狼美人');
+      // Other seats should be selectable
+      expect(seats[1].disabledReason).toBeUndefined();
+      expect(seats[2].disabledReason).toBeUndefined();
+      expect(seats[3].disabledReason).toBeUndefined();
+    });
+
+    it('without enableWolfVoteRestrictions, forbidden roles are selectable', () => {
+      const mockState: LocalGameState = {
+        roomCode: 'TEST',
+        hostUid: 'host1',
+        template: {
+          name: 'Test',
+          numberOfPlayers: 4,
+          roles: ['wolf', 'spiritKnight', 'wolfQueen', 'villager'] as RoleId[],
+        },
+        players: new Map([
+          [0, { uid: 'p1', seatNumber: 0, displayName: 'Wolf', role: 'wolf' as RoleId, hasViewedRole: true }],
+          [1, { uid: 'p2', seatNumber: 1, displayName: 'SK', role: 'spiritKnight' as RoleId, hasViewedRole: true }],
+          [2, { uid: 'p3', seatNumber: 2, displayName: 'WQ', role: 'wolfQueen' as RoleId, hasViewedRole: true }],
+          [3, { uid: 'p4', seatNumber: 3, displayName: 'V', role: 'villager' as RoleId, hasViewedRole: true }],
+        ]),
+        actions: new Map(),
+        wolfVotes: new Map(),
+        currentActionerIndex: 0,
+        isAudioPlaying: false,
+        lastNightDeaths: [],
+        status: GameStatus.ongoing,
+      };
+
+      // No enableWolfVoteRestrictions option
+      const seats = buildSeatViewModels(mockState, 0, true, null);
+
+      // All seats should be selectable
+      expect(seats[0].disabledReason).toBeUndefined();
+      expect(seats[1].disabledReason).toBeUndefined();
+      expect(seats[2].disabledReason).toBeUndefined();
+      expect(seats[3].disabledReason).toBeUndefined();
+    });
+  });
 });

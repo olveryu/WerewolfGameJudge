@@ -5,8 +5,6 @@
  * Pure data - no functions, no flow control.
  */
 
-import type { RoleId } from './specs';
-
 /**
  * Default UI text for nightmare-blocked actions.
  * 
@@ -82,16 +80,8 @@ export interface ChooseSeatSchema extends BaseActionSchema {
 export interface WolfVoteSchema extends BaseActionSchema {
   readonly kind: 'wolfVote';
   readonly constraints: readonly TargetConstraint[];
-  /**
-   * Role IDs that cannot be targeted by wolf vote.
-   * E.g., spiritKnight, wolfQueen - wolves cannot vote to kill these roles.
-   * 
-   * NOTE: This is target-based constraint, NOT actor-based.
-   * Actor-specific rules (e.g., spiritKnight self-vote) are handled separately.
-   * 
-   * @see docs/architecture/unified-host-reject-and-wolf-rules.zh-CN.md
-   */
-  readonly forbiddenTargetRoleIds?: readonly RoleId[];
+  // NOTE: Wolf vote target restrictions (immuneToWolfKill) are defined in
+  // ROLE_SPECS.flags.immuneToWolfKill, not here. This keeps wolfKill schema neutral.
 }
 
 /**

@@ -1,9 +1,9 @@
 /**
- * GameStateService Wolf Vote Rejection Tests (Commit 3)
+ * GameStateService Wolf Vote Rejection Tests
  * 
  * Tests for wolf vote input validation:
- * 1. spiritKnight cannot vote for self (actor-specific)
- * 2. Any wolf cannot vote for forbiddenTargetRoleIds (target-based)
+ * 1. Any wolf cannot vote for immuneToWolfKill roles (spiritKnight, wolfQueen)
+ * 2. Self-vote by immune roles is also rejected (covered by immuneToWolfKill check)
  */
 
 import { GameStateService, GameStatus } from '../GameStateService';
@@ -122,7 +122,7 @@ describe('GameStateService Wolf Vote Rejection', () => {
     jest.useRealTimers();
   });
 
-  describe('spiritKnight self-vote rejection (actor-specific)', () => {
+  describe('spiritKnight self-vote rejection (via immuneToWolfKill)', () => {
     it('spiritKnight投自己应被拒绝并发送ACTION_REJECTED私信', async () => {
       // Setup: Board with spiritKnight as one of the wolves
       const roles: RoleId[] = [
@@ -142,6 +142,7 @@ describe('GameStateService Wolf Vote Rejection', () => {
       await jest.runOnlyPendingTimersAsync();
       
       // Assert: ACTION_REJECTED private message was sent
+      // Note: Now uses unified immuneToWolfKill check, so message is target-based
       expect(mockSendPrivate).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'PRIVATE_EFFECT',
@@ -149,7 +150,7 @@ describe('GameStateService Wolf Vote Rejection', () => {
           payload: expect.objectContaining({
             kind: 'ACTION_REJECTED',
             action: 'submitWolfVote',
-            reason: '恶灵骑士不能投自己',
+            reason: '不能投恶灵骑士',
           }),
         })
       );
@@ -191,7 +192,7 @@ describe('GameStateService Wolf Vote Rejection', () => {
     });
   });
 
-  describe('forbiddenTargetRoleIds rejection (target-based)', () => {
+  describe('immuneToWolfKill rejection (target-based)', () => {
     it('普通狼投spiritKnight应被拒绝', async () => {
       const roles: RoleId[] = [
         'villager', 'villager', 'villager', 'villager',

@@ -148,6 +148,18 @@ export function getWolfRoleIds(): RoleId[] {
   return getAllRoleIds().filter(id => ROLE_SPECS[id].team === 'wolf');
 }
 
+/**
+ * Get all role IDs that are immune to wolf kill.
+ * These roles cannot be targeted by wolf vote/kill.
+ * (e.g., spiritKnight, wolfQueen)
+ */
+export function getWolfKillImmuneRoleIds(): RoleId[] {
+  return getAllRoleIds().filter(id => {
+    const spec = ROLE_SPECS[id] as { flags?: { immuneToWolfKill?: boolean } };
+    return spec.flags?.immuneToWolfKill === true;
+  });
+}
+
 // ============================================================
 // Night Action Helpers
 // ============================================================
