@@ -28,7 +28,7 @@ import {
   makeActionMagicianSwap,
   getActionTargetSeat,
 } from '../models/actions';
-import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, buildNightPlan, getStepsByRoleStrict } from '../models/roles/spec';
+import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, buildNightPlan, getStepsByRoleStrict, BLOCKED_UI_DEFAULTS } from '../models/roles/spec';
 import { WOLF_MEETING_VOTE_CONFIG } from '../models/roles/spec/wolfMeetingVoteConfig';
 import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
 import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload, GargoyleRevealPayload, WolfRobotRevealPayload, ActionRejectedPayload, BlockedPayload, ConfirmStatusPayload } from './types/PrivateBroadcast';
@@ -564,7 +564,7 @@ export class GameStateService {
           const rejectPayload: ActionRejectedPayload = {
             kind: 'ACTION_REJECTED',
             action: 'submitAction',
-            reason: '你被梦魇封锁，本回合只能跳过',
+            reason: BLOCKED_UI_DEFAULTS.message,
           };
           const privateMessage: PrivateMessage = {
             type: 'PRIVATE_EFFECT',

@@ -40,6 +40,7 @@ export const SCHEMAS = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '是否使用解药？',
+          promptTemplate: '{seat}号被狼人杀了，是否使用解药？',
           confirmText: '确定使用解药吗？',
           bottomActionText: '不使用技能',
         },

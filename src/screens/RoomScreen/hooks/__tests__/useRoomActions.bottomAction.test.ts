@@ -5,6 +5,7 @@ import type { LocalGameState } from '../../../../services/types/GameStateTypes';
 import type { GameContext } from '../../hooks/useRoomActions';
 import { useRoomActions } from '../../hooks/useRoomActions';
 import type { ActionSchema } from '../../../../models/roles/spec';
+import { BLOCKED_UI_DEFAULTS } from '../../../../models/roles/spec';
 
 function makeContext(overrides: Partial<GameContext> = {}): GameContext {
   const base: GameContext = {
@@ -36,11 +37,11 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
       buttons: [
         {
           key: 'skip',
-          label: '跳过（技能被封锁）',
+          label: BLOCKED_UI_DEFAULTS.skipButtonText,
           intent: {
             type: 'skip',
             targetIndex: -1,
-            message: '跳过（技能被封锁）',
+            message: BLOCKED_UI_DEFAULTS.skipButtonText,
           },
         },
       ],
@@ -146,7 +147,7 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
     expect(bottomAction.buttons).toHaveLength(1);
     expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
     expect(bottomAction.buttons[0].intent.targetIndex).toBe(-1);
-    expect(bottomAction.buttons[0].label).toBe('跳过（技能被封锁）');
+    expect(bottomAction.buttons[0].label).toBe(BLOCKED_UI_DEFAULTS.skipButtonText);
   });
 });
 
