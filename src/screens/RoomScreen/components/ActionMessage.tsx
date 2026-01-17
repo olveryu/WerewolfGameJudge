@@ -7,6 +7,7 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { styles } from '../RoomScreen.styles';
+import { TESTIDS } from '../../../testids';
 
 export interface ActionMessageProps {
   /** The message to display */
@@ -17,7 +18,7 @@ export const ActionMessage: React.FC<ActionMessageProps> = ({
   message,
 }) => {
   return (
-    <Text style={styles.actionMessage}>{message}</Text>
+    <Text style={styles.actionMessage} testID={TESTIDS.actionMessage}>{message}</Text>
   );
 };
 

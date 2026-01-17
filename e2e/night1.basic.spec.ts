@@ -283,7 +283,8 @@ const ROLE_TURN_KEYWORDS = [
 /**
  * Buttons to dismiss role dialogs / advance night flow
  */
-const ADVANCE_BUTTONS = ['好', '确定', '跳过', '不使用技能', '投票空刀'];
+// Dialog buttons that can advance night flow (unified: info="知道了", choice="确定"/"取消")
+const ADVANCE_BUTTONS = ['知道了', '确定', '不使用技能', '投票空刀'];
 
 /**
  * Check if any night end indicator is visible
@@ -325,7 +326,7 @@ async function tryAdvanceNight(
   }
 
   // Try clicking a seat tile if in selection mode
-  return tryClickSeatTarget(page);
+  return tryClickSeatTarget(page, state, pageLabel);
 }
 
 async function detectRoleTurnIndicators(page: Page, turnLog: string[]): Promise<void> {
@@ -462,27 +463,31 @@ async function executeActionWithStateWait(
 
 async function logPageState(page: Page, iteration: number): Promise<void> {
   console.log(`[Night] Iteration ${iteration} - checking page state...`);
-  const actionMsgLocator = page.locator('[class*="actionMessage"]');
+  const actionMsgLocator = page.locator('[data-testid="action-message"]');
   if (await actionMsgLocator.isVisible({ timeout: 100 }).catch(() => false)) {
     const msgText = await actionMsgLocator.textContent().catch(() => '(unknown)');
     console.log(`[Night] Action message text: "${msgText}"`);
   }
 }
 
-async function tryClickSeatTarget(page: Page): Promise<boolean> {
+async function tryClickSeatTarget(page: Page, state: NightFlowState, pageLabel: string): Promise<boolean> {
   // Gate: Only proceed if we're clearly in a target selection UI state
   // Look for known target selection action messages (not just any actionMessage)
   const TARGET_SELECTION_PATTERNS = [
+    '请选择要猎杀的玩家',  // wolfKill schema prompt
     '请选择猎杀对象',
     '请选择查验对象',
     '请选择守护对象',
     '请选择救人',
     '请选择毒杀',
+    '请选择使用解药',      // witch save step
+    '请选择使用毒药',      // witch poison step
     '点击选择',
     '选择目标',
   ];
   
-  const actionMsgLocator = page.locator('[class*="actionMessage"]');
+  // Use testID to locate action message (works on web)
+  const actionMsgLocator = page.locator('[data-testid="action-message"]');
   const actionMsgVisible = await actionMsgLocator.isVisible({ timeout: 100 }).catch(() => false);
   if (!actionMsgVisible) return false;
   
@@ -491,6 +496,13 @@ async function tryClickSeatTarget(page: Page): Promise<boolean> {
   
   if (!isTargetSelectionMode) {
     // Not in target selection mode - don't randomly click seats
+    return false;
+  }
+  
+  // Check if this is wolf vote mode and this page already voted
+  const isWolfVoteMode = actionMsgText.includes('猎杀') || actionMsgText.includes('狼人已投票');
+  if (isWolfVoteMode && state.wolfVotedPages.has(pageLabel)) {
+    // This wolf already voted, skip
     return false;
   }
   
@@ -505,7 +517,7 @@ async function tryClickSeatTarget(page: Page): Promise<boolean> {
   // Try seats from highest to lowest, excluding self
   const seatIndicesToTry = [5, 4, 3, 2, 1, 0].filter(idx => idx !== mySeatIndex);
   
-  console.log(`[Night] Target selection mode detected ("${actionMsgText.slice(0, 30)}..."), my seat=${mySeatIndex}, trying safe targets...`);
+  console.log(`[Night] [${pageLabel}] Target selection mode detected ("${actionMsgText.slice(0, 30)}..."), my seat=${mySeatIndex}, trying safe targets...`);
   
   for (const seatIdx of seatIndicesToTry) {
     try {
@@ -521,10 +533,17 @@ async function tryClickSeatTarget(page: Page): Promise<boolean> {
         .then(() => true).catch(() => false);
       
       if (confirmVisible) {
-        console.log(`[Night] Selected seat ${seatIdx + 1} (excluding self=${mySeatIndex + 1}), confirming...`);
+        console.log(`[Night] [${pageLabel}] Selected seat ${seatIdx + 1} (excluding self=${mySeatIndex + 1}), confirming...`);
         await confirmBtn.first().click();
         // Wait for confirm button to disappear (state change complete)
         await confirmBtn.first().waitFor({ state: 'hidden', timeout: 1000 }).catch(() => {});
+        
+        // If this was wolf vote, mark this page as voted
+        if (isWolfVoteMode) {
+          state.wolfVotedPages.add(pageLabel);
+          console.log(`[Night] [${pageLabel}] Wolf vote submitted, total voted: ${state.wolfVotedPages.size}`);
+        }
+        
         return true;
       }
     } catch {

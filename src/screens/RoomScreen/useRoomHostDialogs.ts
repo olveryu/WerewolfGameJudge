@@ -52,7 +52,7 @@ export const useRoomHostDialogs = ({
     const totalSeats = gameState.template.roles.length;
     
     if (seatedCount !== totalSeats) {
-      showAlert('无法开始游戏', '有座位尚未被占用。');
+      showAlert('无法开始游戏', '有座位尚未被占用。', [{ text: '知道了', style: 'default' }]);
       return;
     }
     
@@ -63,7 +63,8 @@ export const useRoomHostDialogs = ({
         { 
           text: '确定', 
           onPress: () => { void assignRoles(); }
-        }
+        },
+        { text: '取消', style: 'cancel' },
       ]
     );
   }, [gameState, assignRoles]);
@@ -81,7 +82,8 @@ export const useRoomHostDialogs = ({
         { 
           text: '确定', 
           onPress: () => { void handleStartGame(); }
-        }
+        },
+        { text: '取消', style: 'cancel' },
       ]
     );
   }, [handleStartGame]);
@@ -95,7 +97,7 @@ export const useRoomHostDialogs = ({
           text: '确定', 
           onPress: () => {
             const info = getLastNightInfo();
-            showAlert('昨夜信息', info);
+            showAlert('昨夜信息', info, [{ text: '知道了', style: 'default' }]);
           }
         },
         { text: '取消', style: 'cancel' },
