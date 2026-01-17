@@ -14,6 +14,7 @@ import type { LocalGameState } from '../../services/types/GameStateTypes';
 import type { GameRoomLike } from '../../models/Room';
 import type { RoleAction } from '../../models/actions/RoleAction';
 import { WOLF_MEETING_VOTE_CONFIG } from '../../models/roles/spec/wolfMeetingVoteConfig';
+import type { TargetConstraint } from '../../models/roles/spec';
 
 // =============================================================================
 // Types
@@ -247,6 +248,11 @@ export function buildSeatViewModels(
   options?: {
     /** When true, apply wolf meeting vote UX restrictions (Host still validates). */
     enableWolfVoteRestrictions?: boolean;
+    /**
+     * Schema constraints for current action (e.g. ['notSelf']).
+     * UX-only early rejection - Host still validates.
+     */
+    schemaConstraints?: readonly TargetConstraint[];
   }
 ): SeatViewModel[] {
   return gameState.template.roles.map((role, index) => {
@@ -257,10 +263,17 @@ export function buildSeatViewModels(
     // (Whether a wolf participates in meeting/vote is a separate rule.)
     const isWolf = showWolves && isWolfRole(effectiveRole);
 
-    // Commit 5 (UX-only): disable forbidden wolf meeting vote target roles.
+    // UX-only early rejection based on schema constraints.
     // IMPORTANT: Host remains the authority. This is just early UI guidance.
     let disabledReason: string | undefined;
-    if (options?.enableWolfVoteRestrictions) {
+
+    // Constraint: notSelf - cannot select own seat
+    if (options?.schemaConstraints?.includes('notSelf') && index === mySeatNumber) {
+      disabledReason = '不能选择自己';
+    }
+
+    // Commit 5 (UX-only): disable forbidden wolf meeting vote target roles.
+    if (!disabledReason && options?.enableWolfVoteRestrictions) {
       const forbidden: readonly RoleId[] = WOLF_MEETING_VOTE_CONFIG.forbiddenTargetRoleIds;
       // Use the same "effective role" used elsewhere in this function.
       // In tests and early game screens, player.role is often filled even if the UI wouldn't
@@ -286,7 +299,7 @@ export function buildSeatViewModels(
       isMySpot: mySeatNumber === index,
       isWolf,
       isSelected: selectedIndex === index,
-  disabledReason,
+      disabledReason,
     };
   });
 }

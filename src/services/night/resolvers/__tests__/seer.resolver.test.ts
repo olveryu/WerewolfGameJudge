@@ -65,14 +65,14 @@ describe('seerCheckResolver', () => {
       expect(result.rejectReason).toContain('选择');
     });
 
-    it('应该拒绝查验自己 (notSelf constraint)', () => {
+    it('应该允许查验自己 (no notSelf constraint - neutral judge)', () => {
       const ctx = createContext({ actorSeat: 4 });
       const input = createInput(4);
 
       const result = seerCheckResolver(ctx, input);
 
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toContain('自己');
+      // Seer can check self, result should show their own team
+      expect(result.valid).toBe(true);
     });
 
     it('应该拒绝不存在的目标', () => {
