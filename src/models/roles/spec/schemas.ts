@@ -34,14 +34,12 @@ export const SCHEMAS = {
       {
         key: 'save',
         displayName: '救人',
-        kind: 'chooseSeat',
-        // NOTE: self-save legality is determined by Host via WITCH_CONTEXT.canSave.
-        // UI uses this for generic disable/hint only; Host remains the judge.
-        constraints: ['notSelf'],
+        kind: 'confirmTarget',  // Target is fixed (WITCH_CONTEXT.killedIndex), user only confirms
+        constraints: ['notSelf'],  // Cannot save self (enforced by Host via canSave)
         canSkip: true,
         ui: {
           confirmTitle: '确认行动',
-          prompt: '请选择使用解药',
+          prompt: '是否使用解药？',
           confirmText: '确定使用解药吗？',
           bottomActionText: '不使用技能',
         },
@@ -49,7 +47,7 @@ export const SCHEMAS = {
       {
         key: 'poison',
         displayName: '毒人',
-        kind: 'chooseSeat',
+        kind: 'chooseSeat',  // User selects any target seat
         constraints: [],
         canSkip: true,
         ui: {
@@ -125,8 +123,9 @@ export const SCHEMAS = {
     kind: 'confirm',
     ui: {
       confirmTitle: '确认行动',
-      prompt: '猎人请确认是否可以发动技能',
+      prompt: '请点击下方按钮查看技能发动状态',
       confirmText: '确定查看猎人发动状态吗？',
+      bottomActionText: '查看发动状态',
     },
   },
 
@@ -207,8 +206,9 @@ export const SCHEMAS = {
     kind: 'confirm',
     ui: {
       confirmTitle: '确认行动',
-      prompt: '黑狼王请确认是否可以发动技能',
+      prompt: '请点击下方按钮查看技能发动状态',
       confirmText: '确定查看黑狼王发动状态吗？',
+      bottomActionText: '查看发动状态',
     },
   },
 

@@ -159,7 +159,7 @@ describe('RoomScreen hunter status UI (smoke)', () => {
     jest.clearAllMocks();
   });
 
-  it('confirm schema -> tap seat -> press 确定 -> submitAction(targetSeat)', async () => {
+  it('confirm schema -> tap seat -> NO action (seat tap has no effect)', async () => {
     const props: any = {
       navigation: mockNavigation,
       route: {
@@ -176,31 +176,21 @@ describe('RoomScreen hunter status UI (smoke)', () => {
   // Wait for RoomScreen to finish initialization (leave loading screen)
   await screen.findByTestId(TESTIDS.roomScreenRoot);
 
-    // Confirm schema auto-triggers actionPrompt (dismiss → wait for user interaction),
-    // so we trigger the confirm flow by tapping a seat.
+    // Confirm schema: seat tap should have NO effect.
+    // Action is triggered via bottom button only.
     const seatPressable = await screen.findByTestId(TESTIDS.seatTilePressable(0));
     await act(async () => {
   fireEvent.press(seatPressable);
     });
 
+    // Verify NO confirmation dialog was shown (seat tap has no effect for confirm schema)
     await waitFor(() => {
-      expect(showAlert).toHaveBeenCalledWith(
-        '确认行动',
-        expect.any(String),
-        expect.any(Array)
-      );
+      // showAlert should NOT have been called with '确认行动'
+      const statusCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
+      expect(statusCall).toBeFalsy();
     });
 
-    const statusCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
-    expect(statusCall).toBeTruthy();
-    const buttons = (statusCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
-    const okBtn = buttons.find((b) => b.text === '确定');
-
-    await act(async () => {
-      okBtn?.onPress?.();
-    });
-
-  // hunterConfirm is a confirm schema (not a status-only schema). It submits the selected seat.
-  expect(mockSubmitAction).toHaveBeenCalledWith(0, undefined);
+  // Verify submitAction was NOT called
+  expect(mockSubmitAction).not.toHaveBeenCalled();
   });
 });

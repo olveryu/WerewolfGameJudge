@@ -68,14 +68,18 @@ export interface WolfVoteSchema extends BaseActionSchema {
 /**
  * Inline sub-step schema for compound actions.
  * 
- * This is a self-contained ChooseSeat-like schema embedded within a compound action.
+ * This is a self-contained schema embedded within a compound action.
  * Not a top-level SchemaId - only exists inside CompoundSchema.steps.
+ * 
+ * Supports:
+ * - 'chooseSeat': user selects a target seat (e.g., witch poison)
+ * - 'confirmTarget': target is pre-determined, user only confirms (e.g., witch save)
  */
 export interface InlineSubStepSchema {
   /** Internal key (not a SchemaId) */
   readonly key: string;
   readonly displayName: string;
-  readonly kind: 'chooseSeat';
+  readonly kind: 'chooseSeat' | 'confirmTarget';
   readonly constraints: readonly TargetConstraint[];
   readonly canSkip: boolean;
   readonly ui?: SchemaUi;
@@ -105,6 +109,17 @@ export interface ConfirmSchema extends BaseActionSchema {
   readonly kind: 'confirm';
 }
 
+/** 
+ * Confirm with fixed target (witch save - target is pre-determined by context)
+ * 
+ * Unlike chooseSeat, the target is not selected by user but provided by context
+ * (e.g., WITCH_CONTEXT.killedIndex). User only confirms whether to act on that target.
+ */
+export interface ConfirmTargetSchema extends BaseActionSchema {
+  readonly kind: 'confirmTarget';
+  readonly canSkip: boolean;
+}
+
 /** Union type for all schemas */
 export type ActionSchema =
   | ChooseSeatSchema
@@ -112,7 +127,8 @@ export type ActionSchema =
   | CompoundSchema
   | SwapSchema
   | SkipSchema
-  | ConfirmSchema;
+  | ConfirmSchema
+  | ConfirmTargetSchema;
 
 /** Schema kind literal type */
 export type SchemaKind = ActionSchema['kind'];

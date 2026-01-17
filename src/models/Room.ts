@@ -317,66 +317,38 @@ export const getWolfVoteSummary = (room: GameRoomLike): string => {
   return `${voted.length}/${wolfSeats.length} 狼人已投票`;
 };
 
-// Check hunter status (can shoot or not)
-export const getHunterStatus = (room: GameRoomLike): boolean => {
+// Check if a role can use their "confirm" skill (hunter/darkWolfKing)
+// Rule: can shoot if NOT poisoned by witch
+export const getConfirmRoleCanShoot = (room: GameRoomLike, role: 'hunter' | 'darkWolfKing'): boolean => {
   const witchAction = room.actions.get('witch');
-  const wolfQueenAction = room.actions.get('wolfQueen');
-  const nightmareAction = room.actions.get('nightmare');
 
-  // Get hunter seat
-  let hunterSeat = -1;
+  // Find the role's seat
+  let roleSeat = -1;
   room.players.forEach((player, seat) => {
-    if (player?.role === 'hunter') {
-      hunterSeat = seat;
+    if (player?.role === role) {
+      roleSeat = seat;
     }
   });
 
-  if (hunterSeat === -1) return true;
+  if (roleSeat === -1) return true;
 
-  // Check if hunter was poisoned by witch
+  // Check if poisoned by witch
   if (witchAction && isActionWitch(witchAction)) {
     const wa = witchAction.witchAction;
-    if (isWitchPoison(wa) && wa.targetSeat === hunterSeat) {
-      return false;
-    }
-  }
-  // Check if hunter was charmed by wolf queen
-  const linkedSeat = getActionTargetSeat(wolfQueenAction);
-  if (linkedSeat !== undefined && linkedSeat === hunterSeat) {
-    return false;
-  }
-  // Check if hunter was nightmared
-  const nightmaredSeat = getActionTargetSeat(nightmareAction);
-  if (nightmaredSeat !== undefined && nightmaredSeat === hunterSeat) {
-    return false;
-  }
-
-  return true;
-};
-
-// Check dark wolf king status (can use skill if not poisoned by witch)
-export const getDarkWolfKingStatus = (room: GameRoomLike): boolean => {
-  const witchAction = room.actions.get('witch');
-
-  let darkWolfKingSeat = -1;
-  room.players.forEach((player, seat) => {
-    if (player?.role === 'darkWolfKing') {
-      darkWolfKingSeat = seat;
-    }
-  });
-
-  if (darkWolfKingSeat === -1) return true;
-
-  // Check if dark wolf king was poisoned by witch
-  if (witchAction && isActionWitch(witchAction)) {
-    const wa = witchAction.witchAction;
-    if (isWitchPoison(wa) && wa.targetSeat === darkWolfKingSeat) {
+    if (isWitchPoison(wa) && wa.targetSeat === roleSeat) {
       return false;
     }
   }
 
   return true;
 };
+
+// Convenience wrappers for backward compatibility
+export const getHunterStatus = (room: GameRoomLike): boolean => 
+  getConfirmRoleCanShoot(room, 'hunter');
+
+export const getDarkWolfKingStatus = (room: GameRoomLike): boolean => 
+  getConfirmRoleCanShoot(room, 'darkWolfKing');
 
 // Check if current actioner's skill is blocked by nightmare
 export const isCurrentActionerSkillBlocked = (room: GameRoomLike): boolean => {
