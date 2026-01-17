@@ -678,7 +678,10 @@ export class GameStateService {
   }
 
   private async handleWolfVote(seat: number, target: number): Promise<void> {
-    if (!this.state || this.state.status !== GameStatus.ongoing) return;
+    if (!this.state || this.state.status !== GameStatus.ongoing) {
+      console.debug('[GameStateService] handleWolfVote: early return - status not ongoing or no state');
+      return;
+    }
 
     // STRICT INVARIANT: nightFlow must exist when status === ongoing
     if (!this.nightFlow) {
@@ -690,7 +693,17 @@ export class GameStateService {
     }
 
     const currentRole = this.getCurrentActionRole();
-    if (currentRole !== 'wolf') return;
+    console.debug('[GameStateService] handleWolfVote:', {
+      seat,
+      target,
+      currentRole,
+      currentActionerIndex: this.state.currentActionerIndex,
+      nightFlowPhase: this.nightFlow.phase,
+    });
+    if (currentRole !== 'wolf') {
+      console.debug('[GameStateService] handleWolfVote: rejected - currentRole is not wolf:', currentRole);
+      return;
+    }
 
     // Verify this is a wolf
     const player = this.state.players.get(seat);

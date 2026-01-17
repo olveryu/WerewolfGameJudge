@@ -7,6 +7,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity } from 'react-native';
 import { styles } from '../RoomScreen.styles';
+import { TESTIDS } from '../../../testids';
 
 export type SeatModalType = 'enter' | 'leave';
 
@@ -44,19 +45,21 @@ export const SeatConfirmModal: React.FC<SeatConfirmModalProps> = ({
       onRequestClose={onCancel}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>{title}</Text>
-          <Text style={styles.modalMessage}>{message}</Text>
+        <View style={styles.modalContent} testID={TESTIDS.seatConfirmModal}>
+          <Text style={styles.modalTitle} testID={TESTIDS.seatConfirmTitle}>{title}</Text>
+          <Text style={styles.modalMessage} testID={TESTIDS.seatConfirmMessage}>{message}</Text>
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={[styles.modalButton, styles.modalCancelButton]}
               onPress={onCancel}
+              testID={TESTIDS.seatConfirmCancel}
             >
               <Text style={styles.modalCancelText}>取消</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modalButton, styles.modalConfirmButton]}
               onPress={onConfirm}
+              testID={TESTIDS.seatConfirmOk}
             >
               <Text style={styles.modalConfirmText}>确定</Text>
             </TouchableOpacity>

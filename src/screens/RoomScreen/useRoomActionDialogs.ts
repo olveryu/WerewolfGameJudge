@@ -92,7 +92,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showActionRejectedAlert = useCallback((reason: string) => {
-    showAlert('操作无效', reason);
+    showAlert('操作无效', reason, [{ text: '知道了', style: 'default' }]);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showBlockedAlert = useCallback(() => {
-    showAlert('技能被封锁', '你被梦魇封锁了，本回合无法行动');
+    showAlert('技能被封锁', '你被梦魇封锁了，本回合无法行动', [{ text: '知道了', style: 'default' }]);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showMagicianFirstAlert = useCallback((index: number) => {
-    showAlert('已选择第一位玩家', `${index + 1}号，请选择第二位玩家`);
+    showAlert('已选择第一位玩家', `${index + 1}号，请选择第二位玩家`, [{ text: '知道了', style: 'default' }]);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
   const showRevealDialog = useCallback(
     (title: string, message: string, onConfirm: () => void) => {
-      showAlert(title, message, [{ text: '确定', onPress: onConfirm }]);
+      showAlert(title, message, [{ text: '知道了', onPress: onConfirm }]);
     },
     []
   );
@@ -178,25 +178,25 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
       onSkip: () => void
     ) => {
       if (killedIndex === -1) {
-        // No one killed
-        showAlert('昨夜无人倒台', '', [{ text: '好', onPress: onSkip }]);
+        // No one killed - info prompt
+        showAlert('昨夜无人倒台', '', [{ text: '知道了', onPress: onSkip }]);
         return;
       }
 
       if (!canSave) {
-        // Cannot save (self killed)
+        // Cannot save (self killed) - info prompt
         showAlert(
           `昨夜倒台玩家为${killedIndex + 1}号（你自己）`,
           '女巫无法自救',
-          [{ text: '好', onPress: onSkip }]
+          [{ text: '知道了', onPress: onSkip }]
         );
         return;
       }
 
-      // Can save
+      // Can save - choice dialog
       showAlert(`昨夜倒台玩家为${killedIndex + 1}号`, '是否救助?', [
-        { text: '救助', onPress: onSave },
-        { text: '不救助', style: 'cancel', onPress: onSkip },
+        { text: '确定', onPress: onSave },
+        { text: '取消', style: 'cancel', onPress: onSkip },
       ]);
     },
     []
@@ -210,7 +210,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
     showAlert(
       '请选择是否使用毒药',
       '点击玩家头像使用毒药，如不使用毒药，请点击下方「不使用技能」',
-      [{ text: '好', style: 'default', onPress: onDismiss }]
+      [{ text: '知道了', style: 'default', onPress: onDismiss }]
     );
   }, []);
 
@@ -258,7 +258,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   const showRoleActionPrompt = useCallback(
     (title: string, actionMessage: string, onDismiss: () => void) => {
       showAlert(title, actionMessage, [
-        { text: '好', style: 'default', onPress: onDismiss },
+        { text: '知道了', style: 'default', onPress: onDismiss },
       ]);
     },
     []

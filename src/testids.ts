@@ -38,4 +38,14 @@ export const TESTIDS = {
   roomHeader: 'room-header',
   connectionStatusContainer: 'connection-status-container',
   forceSyncButton: 'force-sync-button',
+
+  // ActionMessage
+  actionMessage: 'action-message',
+
+  // SeatConfirmModal
+  seatConfirmModal: 'seat-confirm-modal',
+  seatConfirmTitle: 'seat-confirm-title',
+  seatConfirmMessage: 'seat-confirm-message',
+  seatConfirmOk: 'seat-confirm-ok',
+  seatConfirmCancel: 'seat-confirm-cancel',
 } as const;

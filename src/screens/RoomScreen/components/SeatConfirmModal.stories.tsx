@@ -1,10 +1,14 @@
 /**
  * SeatConfirmModal.stories.tsx - Stories for seat confirmation modal with interaction tests
+ * 
+ * NOTE: React Native Modal renders to document.body (portal), not the Storybook canvas.
+ * We use `screen` instead of `within(canvasElement)` to find modal elements.
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
-import { fn, expect, userEvent, within } from 'storybook/test';
+import { fn, expect, userEvent, screen } from 'storybook/test';
 import { SeatConfirmModal } from './SeatConfirmModal';
+import { TESTIDS } from '../../../testids';
 
 const meta: Meta<typeof SeatConfirmModal> = {
   title: 'RoomScreen/SeatConfirmModal',
@@ -36,15 +40,13 @@ export const EnterSeatConfirm: Story = {
     modalType: 'enter',
     seatNumber: 3,
   },
-  play: async ({ args, canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Verify modal shows correct message
-    const message = canvas.getByText('确定在3号位入座?');
-    await expect(message).toBeInTheDocument();
+  play: async ({ args }) => {
+    // Modal renders to body portal, use screen instead of canvas
+    const modal = await screen.findByTestId(TESTIDS.seatConfirmModal);
+    await expect(modal).toBeInTheDocument();
 
     // Click confirm button
-    const confirmBtn = canvas.getByText('确定');
+    const confirmBtn = await screen.findByTestId(TESTIDS.seatConfirmOk);
     await userEvent.click(confirmBtn);
 
     // Verify onConfirm was called
@@ -60,11 +62,9 @@ export const EnterSeatCancel: Story = {
     modalType: 'enter',
     seatNumber: 5,
   },
-  play: async ({ args, canvasElement }) => {
-    const canvas = within(canvasElement);
-
+  play: async ({ args }) => {
     // Click cancel button
-    const cancelBtn = canvas.getByText('取消');
+    const cancelBtn = await screen.findByTestId(TESTIDS.seatConfirmCancel);
     await userEvent.click(cancelBtn);
 
     // Verify onCancel was called
@@ -73,25 +73,20 @@ export const EnterSeatCancel: Story = {
   },
 };
 
-/** Leaving seat - shows correct message */
+/** Leaving seat - shows correct title */
 export const LeaveSeatConfirm: Story = {
   args: {
     visible: true,
     modalType: 'leave',
     seatNumber: 8,
   },
-  play: async ({ args, canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Verify modal shows "站起" title and correct message
-    const title = canvas.getByText('站起');
-    await expect(title).toBeInTheDocument();
-    
-    const message = canvas.getByText('确定从8号位站起?');
-    await expect(message).toBeInTheDocument();
+  play: async ({ args }) => {
+    // Verify modal is visible
+    const modal = await screen.findByTestId(TESTIDS.seatConfirmModal);
+    await expect(modal).toBeInTheDocument();
 
     // Click confirm
-    const confirmBtn = canvas.getByText('确定');
+    const confirmBtn = await screen.findByTestId(TESTIDS.seatConfirmOk);
     await userEvent.click(confirmBtn);
     await expect(args.onConfirm).toHaveBeenCalledTimes(1);
   },

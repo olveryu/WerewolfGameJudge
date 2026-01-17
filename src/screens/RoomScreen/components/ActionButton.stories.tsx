@@ -1,5 +1,8 @@
 /**
- * ActionButton.stories.tsx - Stories for action button with interaction tests
+ * ActionButton.stories.tsx - Stories for the generic action button component
+ * 
+ * This tests the button component itself (enabled/disabled states, click behavior).
+ * Business-specific labels come from schemas and are tested at higher levels.
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
@@ -31,7 +34,6 @@ const meta: Meta<typeof ActionButton> = {
     ),
   ],
   args: {
-    // Default mock for onPress
     onPress: fn(),
   },
 };
@@ -39,10 +41,10 @@ const meta: Meta<typeof ActionButton> = {
 export default meta;
 type Story = StoryObj<typeof ActionButton>;
 
-/** Primary button - click triggers onPress */
-export const Primary: Story = {
+/** Enabled button - click triggers onPress */
+export const Enabled: Story = {
   args: {
-    label: '确认',
+    label: 'Button Label',
     disabled: false,
     testID: 'action-button',
   },
@@ -50,10 +52,7 @@ export const Primary: Story = {
     const canvas = within(canvasElement);
     const button = canvas.getByTestId('action-button');
 
-    // Click the button
     await userEvent.click(button);
-
-    // Verify onPress was called
     await expect(args.onPress).toHaveBeenCalledTimes(1);
   },
 };
@@ -61,7 +60,7 @@ export const Primary: Story = {
 /** Disabled button - click should NOT trigger onPress */
 export const Disabled: Story = {
   args: {
-    label: '查看身份',
+    label: 'Disabled Button',
     disabled: true,
     testID: 'disabled-button',
   },
@@ -69,52 +68,17 @@ export const Disabled: Story = {
     const canvas = within(canvasElement);
     const button = canvas.getByTestId('disabled-button');
 
-    // Try to click the disabled button
     await userEvent.click(button);
-
-    // Verify onPress was NOT called
     await expect(args.onPress).not.toHaveBeenCalled();
   },
 };
 
-/** View Role button */
-export const ViewRole: Story = {
-  args: {
-    label: '查看身份',
-    disabled: false,
-  },
-};
-
-/** View Role - waiting for host */
-export const ViewRoleWaiting: Story = {
-  args: {
-    label: '查看身份',
-    disabled: true,
-  },
-};
-
-/** Confirm action */
-export const ConfirmAction: Story = {
-  args: {
-    label: '确认选择',
-    disabled: false,
-  },
-};
-
-/** Skip action */
-export const SkipAction: Story = {
-  args: {
-    label: '跳过',
-    disabled: false,
-  },
-};
-
-/** All states comparison */
-export const AllStates: Story = {
+/** Visual comparison of enabled vs disabled states */
+export const StateComparison: Story = {
   render: () => (
     <View style={{ gap: 12 }}>
-      <ActionButton label="确认" onPress={() => {}} />
-      <ActionButton label="查看身份 (等待中)" disabled onPress={() => {}} />
+      <ActionButton label="Enabled" onPress={() => {}} />
+      <ActionButton label="Disabled" disabled onPress={() => {}} />
     </View>
   ),
 };
