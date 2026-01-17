@@ -3,7 +3,25 @@
 ### 0) Non-negotiables (read first)
 
 - **Host is the ONLY authority for game logic.** Supabase is transport/discovery/identity only.
-- **Offline local play.** This is a local/offline game assistant. Host device is also a player, not a separate referee device.
+- **Offl---
+
+## Reporting discipline
+
+- Don't claim changes without evidence.
+- For non-trivial work, report:
+   - commit hash (or "not committed yet")
+   - files changed
+   - key symbols changed
+   - logical behavior changes
+   - verification run (typecheck/Jest/e2e) + outcome
+
+---
+
+## Terminal command rules
+
+- **No `| head` or `| tail` piping.** Run commands without output truncation so you can see the full result.
+- If output is very long, use `grep` to filter relevant lines instead of head/tail.lay.
+- ** This is a local/offline game assistant. Host device is also a player, not a separate referee device.
 - **Night-1-only scope.** Do NOT add cross-night state/rules.
 - **Anti-cheat.** Sensitive info goes via toUid private messages; keep `BroadcastGameState` as room-public view-model only. Client `actions` Map is always empty for non-Host players.
 - **Single source of truth.** No parallel ordering maps/arrays/dual-write drift.
