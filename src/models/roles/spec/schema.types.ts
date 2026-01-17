@@ -7,6 +7,19 @@
 
 import type { RoleId } from './specs';
 
+/**
+ * Default UI text for nightmare-blocked actions.
+ * 
+ * All roles share the same blocked UX by default.
+ * Individual schemas can override via SchemaUi.blocked* fields.
+ */
+export const BLOCKED_UI_DEFAULTS = {
+  title: '技能被封锁',
+  message: '你被梦魇封锁了，本回合无法行动',
+  skipButtonText: '跳过（技能被封锁）',
+  dismissButtonText: '知道了',
+} as const;
+
 /** Constraint types for target selection */
 export type TargetConstraint =
   | 'notSelf';           // 不能选自己
@@ -33,6 +46,22 @@ export interface SchemaUi {
   readonly bottomActionText?: string;
   /** Wolf vote "empty knife" button text (wolfVote only). */
   readonly emptyVoteText?: string;
+  
+  // === Nightmare block overrides (optional, defaults from BLOCKED_UI_DEFAULTS) ===
+  /** Override blocked dialog title. */
+  readonly blockedTitle?: string;
+  /** Override blocked dialog message. */
+  readonly blockedMessage?: string;
+  /** Override blocked skip button text. */
+  readonly blockedSkipButtonText?: string;
+  
+  // === Template support for dynamic prompts ===
+  /** 
+   * Template string with {seat} placeholder for dynamic prompts.
+   * Used when prompt needs runtime context (e.g., witch save showing killed seat).
+   * Example: "{seat}号被狼人杀了，是否使用解药？"
+   */
+  readonly promptTemplate?: string;
 }
 
 /** Base schema interface */

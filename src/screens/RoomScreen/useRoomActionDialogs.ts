@@ -12,6 +12,7 @@
 import { useCallback } from 'react';
 import { showAlert } from '../../utils/alert';
 import type { ActionSchema } from '../../models/roles/spec';
+import { BLOCKED_UI_DEFAULTS } from '../../models/roles/spec';
 import type { WitchContextPayload } from '../../services/types/PrivateBroadcast';
 
 export interface UseRoomActionDialogsResult {
@@ -100,7 +101,11 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showBlockedAlert = useCallback(() => {
-    showAlert('技能被封锁', '你被梦魇封锁了，本回合无法行动', [{ text: '知道了', style: 'default' }]);
+    showAlert(
+      BLOCKED_UI_DEFAULTS.title,
+      BLOCKED_UI_DEFAULTS.message,
+      [{ text: BLOCKED_UI_DEFAULTS.dismissButtonText, style: 'default' }]
+    );
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@
 import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './hostGameFactory';
 import { NightPhase, NightEvent } from '../../NightFlowController';
 import { RoleId } from '../../../models/roles';
+import { BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
 
 const TEMPLATE_NAME = '梦魇守卫12人';
 
@@ -142,7 +143,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       expect(lastCall.type).toBe('PRIVATE_EFFECT');
       expect(lastCall.payload.kind).toBe('ACTION_REJECTED');
       expect(lastCall.payload.action).toBe('submitAction');
-      expect(lastCall.payload.reason).toBe('你被梦魇封锁，本回合只能跳过');
+      expect(lastCall.payload.reason).toBe(BLOCKED_UI_DEFAULTS.message);
     });
 
     it('blocked seat 的 skip（target=null）允许推进流程', async () => {

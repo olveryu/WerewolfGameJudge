@@ -56,7 +56,7 @@ import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import { ConnectionStatusBar } from './components/ConnectionStatusBar';
 import { roomScreenLog } from '../../utils/logger';
 import type { ActionSchema, CompoundSchema, RevealKind, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
-import { SCHEMAS, isValidSchemaId } from '../../models/roles/spec';
+import { SCHEMAS, BLOCKED_UI_DEFAULTS, isValidSchemaId } from '../../models/roles/spec';
 import { createRevealExecutors } from './revealExecutors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -570,8 +570,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         if (currentSchema?.kind === 'confirm') {
           if (isBlockedByNightmare) {
             actionDialogs.showRoleActionPrompt(
-              '技能被封锁',
-              '你被梦魇封锁了，请点击下方按钮跳过',
+              BLOCKED_UI_DEFAULTS.title,
+              BLOCKED_UI_DEFAULTS.message,
               () => {}
             );
           } else {

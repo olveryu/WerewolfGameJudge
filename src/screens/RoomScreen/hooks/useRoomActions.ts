@@ -15,8 +15,7 @@ import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { GameStatus } from '../../../models/Room';
 import { RoleId, isWolfRole } from '../../../models/roles';
 import type { ActionSchema, SchemaId, RevealKind } from '../../../models/roles/spec';
-import { SCHEMAS } from '../../../models/roles/spec';
-import { isValidSchemaId } from '../../../models/roles/spec';
+import { SCHEMAS, BLOCKED_UI_DEFAULTS, isValidSchemaId } from '../../../models/roles/spec';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ActionIntent Types (must be serializable - no callbacks/refs/functions)
@@ -377,7 +376,7 @@ export function useRoomActions(
           buttons: [
             {
               key: 'wolfEmpty',
-              label: '跳过（技能被封锁）',
+              label: BLOCKED_UI_DEFAULTS.skipButtonText,
               intent: { type: 'wolfVote', targetIndex: -1 },
             },
           ],
@@ -387,8 +386,8 @@ export function useRoomActions(
         buttons: [
           {
             key: 'skip',
-            label: '跳过（技能被封锁）',
-            intent: { type: 'skip', targetIndex: -1, message: '跳过（技能被封锁）' },
+            label: BLOCKED_UI_DEFAULTS.skipButtonText,
+            intent: { type: 'skip', targetIndex: -1, message: BLOCKED_UI_DEFAULTS.skipButtonText },
           },
         ],
       };
