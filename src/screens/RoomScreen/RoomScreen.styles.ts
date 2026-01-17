@@ -26,6 +26,15 @@ export const styles = StyleSheet.create({
     fontSize: typography.sm,
     color: colors.textMuted,
   },
+  errorIcon: {
+    fontSize: 48,
+    marginBottom: spacing.md,
+  },
+  errorMessageText: {
+    color: colors.error,
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
+  },
   errorBackButton: {
     marginTop: spacing.lg,
     paddingHorizontal: spacing.lg,

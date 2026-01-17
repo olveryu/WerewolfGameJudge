@@ -65,6 +65,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     currentStepId,
     isAudioPlaying,
     connectionStatus,
+    error: gameRoomError,
     createRoom,
     joinRoom,
     takeSeat,
@@ -821,10 +822,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Loading state
   if (!isInitialized || !gameState) {
+    // Determine the display message: prefer specific error over generic loading message
+    const displayMessage = showRetryButton && gameRoomError ? gameRoomError : loadingMessage;
+    const isError = showRetryButton;
+
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF9800" />
-        <Text style={styles.loadingText}>{loadingMessage}</Text>
+        {!isError && <ActivityIndicator size="large" color="#FF9800" />}
+        {isError && <Text style={styles.errorIcon}>⚠️</Text>}
+        <Text style={[styles.loadingText, isError && styles.errorMessageText]}>
+          {displayMessage}
+        </Text>
         {showRetryButton && (
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
             <TouchableOpacity
