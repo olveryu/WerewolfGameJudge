@@ -665,7 +665,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     showStartGameDialog,
     showLastNightInfoDialog,
     showRestartDialog,
-    showEmergencyRestartDialog,
     handleSettingsPress,
   } = useRoomHostDialogs({
     gameState,
@@ -807,13 +806,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           showStartGame={roomStatus === RoomStatus.ready && !isStartingGame}
           showLastNightInfo={firstNightEnded}
           showRestart={firstNightEnded}
-          showEmergencyRestart={roomStatus === RoomStatus.ongoing}
           onSettingsPress={handleSettingsPress}
           onPrepareToFlipPress={showPrepareToFlipDialog}
           onStartGamePress={showStartGameDialog}
           onLastNightInfoPress={showLastNightInfoDialog}
           onRestartPress={showRestartDialog}
-          onEmergencyRestartPress={showEmergencyRestartDialog}
         />
         
         {/* Actioner: schema-driven bottom action buttons */}

@@ -16,7 +16,6 @@ export interface HostControlButtonsProps {
   showStartGame: boolean;
   showLastNightInfo: boolean;
   showRestart: boolean;
-  showEmergencyRestart: boolean;
   
   // Button press handlers (parent provides dialog/logic)
   onSettingsPress: () => void;
@@ -24,7 +23,6 @@ export interface HostControlButtonsProps {
   onStartGamePress: () => void;
   onLastNightInfoPress: () => void;
   onRestartPress: () => void;
-  onEmergencyRestartPress: () => void;
 }
 
 export const HostControlButtons: React.FC<HostControlButtonsProps> = ({
@@ -34,13 +32,11 @@ export const HostControlButtons: React.FC<HostControlButtonsProps> = ({
   showStartGame,
   showLastNightInfo,
   showRestart,
-  showEmergencyRestart,
   onSettingsPress,
   onPrepareToFlipPress,
   onStartGamePress,
   onLastNightInfoPress,
   onRestartPress,
-  onEmergencyRestartPress,
 }) => {
   if (!isHost) return null;
   
@@ -81,16 +77,6 @@ export const HostControlButtons: React.FC<HostControlButtonsProps> = ({
       {showRestart && (
         <TouchableOpacity style={styles.actionButton} onPress={onRestartPress}>
           <Text style={styles.buttonText}>重新开始</Text>
-        </TouchableOpacity>
-      )}
-      
-      {/* Host: Emergency Restart (reshuffle roles) - only during ongoing game */}
-      {showEmergencyRestart && (
-        <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: '#EF4444' }]} 
-          onPress={onEmergencyRestartPress}
-        >
-          <Text style={styles.buttonText}>🔥 救火重开</Text>
         </TouchableOpacity>
       )}
     </>

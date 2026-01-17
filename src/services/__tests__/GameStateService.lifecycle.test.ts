@@ -1,6 +1,5 @@
 /**
  * GameStateService Lifecycle Tests
- * 
  * Tests for game status transitions:
  * unseated → seated → assigned → ready → ongoing → ended
  * 

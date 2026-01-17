@@ -1510,18 +1510,35 @@ export class GameStateService {
   }
 
   /**
-   * Host: Restart game with same template
+   * Host: Restart game with same template.
+   * Clears roles and resets to seated status.
+   * 
+   * @returns true if restart succeeded, false if preconditions not met
    */
-  async restartGame(): Promise<void> {
-    if (!this.isHost || !this.state) return;
+  async restartGame(): Promise<boolean> {
+    // Preconditions
+    if (!this.isHost) {
+      console.warn('[GameStateService] restartGame: not host');
+      return false;
+    }
+
+    if (!this.state) {
+      console.warn('[GameStateService] restartGame: no state');
+      return false;
+    }
+
+    // Cannot restart if no one is seated
+    if (this.state.status === GameStatus.unseated) {
+      console.warn('[GameStateService] restartGame: cannot restart in unseated status');
+      return false;
+    }
 
     // Reset nightFlow
     if (this.nightFlow) {
       try {
         this.nightFlow.dispatch(NightEvent.Reset);
       } catch (err) {
-        // Reset should always succeed, but handle gracefully
-        console.error('[GameStateService] NightFlow Reset failed:', err);
+        console.warn('[GameStateService] restartGame: NightFlow Reset failed:', err);
       }
       this.nightFlow = null;
     }
@@ -1547,123 +1564,6 @@ export class GameStateService {
     this.notifyListeners();
     
     console.log('[GameStateService] Game restarted');
-  }
-
-  /**
-   * Emergency restart: invalidate current game and reshuffle roles.
-   * Used when night flow is stuck or corrupted (rescue protocol).
-   * 
-   * GUARANTEE: When status === ongoing and all players have roles,
-   * this method MUST succeed (return true).
-   * 
-   * Seats remain unchanged; only roles are reshuffled.
-   * 
-   * @returns true if restart succeeded, false if preconditions not met
-   */
-  emergencyRestartAndReshuffleRoles(): boolean {
-    // ==========================================================================
-    // Layer 1: Hard preconditions (always checked, cannot skip)
-    // ==========================================================================
-    
-    if (!this.isHost) {
-      console.warn('[GameStateService] emergencyRestart: not host');
-      return false;
-    }
-
-    if (!this.state) {
-      console.warn('[GameStateService] emergencyRestart: no state');
-      return false;
-    }
-
-    if (!this.state.template) {
-      console.warn('[GameStateService] emergencyRestart: no template');
-      return false;
-    }
-
-    const players = Array.from(this.state.players.values()).filter(
-      (p): p is LocalPlayer => p !== null
-    );
-
-    if (players.length === 0) {
-      console.warn('[GameStateService] emergencyRestart: no players');
-      return false;
-    }
-
-    // Role pool is template.roles (already a RoleName[] array)
-    const rolePool: RoleName[] = [...this.state.template.roles];
-
-    if (rolePool.length !== players.length) {
-      console.warn(
-        '[GameStateService] emergencyRestart: rolePool size mismatch',
-        `(${rolePool.length} roles vs ${players.length} players)`
-      );
-      return false;
-    }
-
-    // ==========================================================================
-    // Layer 2: Status check (rescue guarantee for ongoing + all have roles)
-    // ==========================================================================
-    
-    const allPlayersHaveRoles = players.every(p => p.role != null);
-
-    if (this.state.status === GameStatus.ongoing && allPlayersHaveRoles) {
-      // Rescue protocol: skip other checks, proceed with restart
-    } else if (this.state.status === GameStatus.unseated) {
-      console.warn('[GameStateService] emergencyRestart: cannot restart in unseated status');
-      return false;
-    }
-    // ready, ended, assigned, seated, ongoing (without all roles): proceed
-
-    // ==========================================================================
-    // Execution: Perform emergency restart
-    // ==========================================================================
-
-    // 1. Stop audio
-    this.audioService.stop();
-
-    // 2. Clear night caches
-    this.state.actions.clear();
-    this.state.wolfVotes.clear();
-    this.state.currentActionerIndex = 0;
-    this.state.isAudioPlaying = false;
-    this.state.lastNightDeaths = [];
-
-    // 3. Reset NightFlowController
-    if (this.nightFlow) {
-      try {
-        this.nightFlow.dispatch(NightEvent.Reset);
-      } catch (err) {
-        console.warn('[GameStateService] emergencyRestart: NightFlow Reset failed:', err);
-      }
-      this.nightFlow = null;
-    }
-
-    // 4. Clear roles (host will click "准备看牌" to assign new roles)
-    this.state.players.forEach((player) => {
-      if (player) {
-        player.role = null;
-        player.hasViewedRole = false;
-      }
-    });
-
-    // 5. Reset game phase to seated (host needs to click "准备看牌" again)
-    this.state.status = GameStatus.seated;
-
-    // 6. Broadcast authoritative state so all clients (and host UI) exit ongoing immediately.
-    // Fire-and-forget: this method has a sync signature and is used from UI handlers.
-    void (async () => {
-      try {
-        await this.broadcastService.broadcastAsHost({ type: 'GAME_RESTARTED' });
-        await this.broadcastState();
-      } catch (err) {
-        console.warn('[GameStateService] emergencyRestart: broadcast failed:', err);
-      }
-    })();
-
-    // 7. Notify listeners (local)
-    this.notifyListeners();
-
-    console.log('[GameStateService] Emergency restart completed');
     return true;
   }
 
