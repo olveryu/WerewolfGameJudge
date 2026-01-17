@@ -22,8 +22,6 @@ import {
   RoomStatus, 
   getWolfVoteSummary,
   getPlayersNotViewedRole,
-  getHunterStatus,
-  getDarkWolfKingStatus,
 } from '../../models/Room';
 import { 
   getRoleDisplayInfo,
@@ -92,6 +90,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     clearLastSeatError,
     requestSnapshot,
     getWitchContext,
+    getConfirmStatus,
     waitForSeerReveal,
     waitForPsychicReveal,
     waitForGargoyleReveal,
@@ -588,18 +587,25 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       case 'confirmTrigger': {
         // Hunter/DarkWolfKing: show status dialog (can shoot or not), then submit action
+        // ANTI-CHEAT: Status comes from Host via private message (CONFIRM_STATUS)
         if (!gameState) break;
         
-        const roomLike = toGameRoomLike(gameState);
-        let canShoot = true;
+        // Get status from private message (Host computed)
+        const confirmStatus = getConfirmStatus();
+        
+        let canShoot = true; // Default if no private message (shouldn't happen in normal flow)
         let roleDisplayName = '';
         
         if (myRole === 'hunter') {
-          canShoot = getHunterStatus(roomLike);
           roleDisplayName = '猎人';
+          if (confirmStatus && confirmStatus.role === 'hunter') {
+            canShoot = confirmStatus.canShoot;
+          }
         } else if (myRole === 'darkWolfKing') {
-          canShoot = getDarkWolfKingStatus(roomLike);
           roleDisplayName = '黑狼王';
+          if (confirmStatus && confirmStatus.role === 'darkWolfKing') {
+            canShoot = confirmStatus.canShoot;
+          }
         }
         
         const statusMessage = canShoot
@@ -625,6 +631,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     buildWitchExtra,
     confirmThenAct,
     currentSchema,
+    getConfirmStatus,
     getMagicianTarget,
     proceedWithActionTyped,
     submitRevealAckSafe,

@@ -52,7 +52,7 @@ export const SCHEMAS = {
         canSkip: true,
         ui: {
           confirmTitle: '确认行动',
-          prompt: '请选择使用毒药',
+          prompt: '如要使用毒药，请点击座位。',
           confirmText: '确定使用毒药吗？',
           bottomActionText: '不使用技能',
         },

@@ -43,6 +43,7 @@ export type PrivatePayload =
   | PsychicRevealPayload
   | GargoyleRevealPayload
   | WolfRobotRevealPayload
+  | ConfirmStatusPayload
   | BlockedPayload
   | ActionRejectedPayload;
 
@@ -103,6 +104,21 @@ export interface WolfRobotRevealPayload {
   targetSeat: number;
   /** The specific role name */
   result: string;
+}
+
+/**
+ * Confirm status - sent to hunter/darkWolfKing when their confirm turn starts.
+ * Tells them if they can use their skill (not poisoned by witch).
+ * 
+ * ANTI-CHEAT: Client cannot compute this because actions Map is not broadcast.
+ * Host computes and sends via private message.
+ */
+export interface ConfirmStatusPayload {
+  kind: 'CONFIRM_STATUS';
+  /** Which role this status is for */
+  role: 'hunter' | 'darkWolfKing';
+  /** Whether the role can use their skill (not poisoned) */
+  canShoot: boolean;
 }
 
 /**
