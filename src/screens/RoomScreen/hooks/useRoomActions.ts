@@ -6,7 +6,7 @@
  *
  * ❌ Do NOT: call dialogs, import services/nightFlow/supabase, call Room model functions
  * ✅ Allowed: pure logic, return ActionIntent, helper functions
- * 
+ *
  * Phase 3: Schema-driven - uses currentSchema.kind instead of role names
  */
 
@@ -23,40 +23,39 @@ import { SCHEMAS, BLOCKED_UI_DEFAULTS, isValidSchemaId } from '../../../models/r
 
 export type ActionIntentType =
   // Block
-  | 'blocked'              // Nightmare blocked
-  
+  | 'blocked' // Nightmare blocked
+
   // Reveal (ANTI-CHEAT: RoomScreen only waits for private reveal + sends ack)
   | 'reveal'
-  
+
   // Witch (schema-driven)
-  
+
   // Two-step
-  | 'magicianFirst'        // Magician first target
-  
+  | 'magicianFirst' // Magician first target
+
   // Vote/Confirm
-  | 'wolfVote'             // Wolf vote
-  | 'actionConfirm'        // Normal action confirm
-  | 'skip'                 // Skip action
-  | 'confirmTrigger'       // Hunter/DarkWolfKing: trigger status check via bottom button
-  
+  | 'wolfVote' // Wolf vote
+  | 'actionConfirm' // Normal action confirm
+  | 'skip' // Skip action
+  | 'confirmTrigger' // Hunter/DarkWolfKing: trigger status check via bottom button
+
   // Auto-trigger prompt (dismiss → wait for seat tap)
-  | 'actionPrompt';        // Generic action prompt for all roles
+  | 'actionPrompt'; // Generic action prompt for all roles
 
 export interface ActionIntent {
   type: ActionIntentType;
   targetIndex: number;
-  
+
   // Optional fields (based on type)
-  wolfSeat?: number;           // for wolfVote
-  revealKind?: RevealKind;      // for reveal
-  message?: string;            // for actionConfirm
+  wolfSeat?: number; // for wolfVote
+  revealKind?: RevealKind; // for reveal
+  message?: string; // for actionConfirm
 
   /**
    * For compound schemas (e.g. witchAction), this is the key of the active sub-step
    * (e.g., 'save' or 'poison' for witch). Used by RoomScreen to derive confirm copy + payload.
    */
   stepKey?: string;
-  
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,13 +66,13 @@ export interface GameContext {
   gameState: LocalGameState | null;
   roomStatus: GameStatus;
   currentActionRole: RoleId | null;
-  currentSchema: ActionSchema | null;       // Phase 3: schema for current action role
+  currentSchema: ActionSchema | null; // Phase 3: schema for current action role
   imActioner: boolean;
   mySeatNumber: number | null;
   myRole: RoleId | null;
   isAudioPlaying: boolean;
   isBlockedByNightmare: boolean;
-  anotherIndex: number | null;              // Magician first target
+  anotherIndex: number | null; // Magician first target
 }
 
 export interface ActionDeps {
@@ -82,33 +81,35 @@ export interface ActionDeps {
 
   /** UI-only: precomputed wolf-vote summary string (e.g. "1/3 狼人已投票"). */
   getWolfVoteSummary: () => string;
-  /** 
+  /**
    * Get witch context from private inbox (ANTI-CHEAT: Zero-Trust)
    * Returns null if no WITCH_CONTEXT received for current turn
    * @see docs/phase4-final-migration.md
    */
-  getWitchContext: () => import('../../../services/types/PrivateBroadcast').WitchContextPayload | null;
+  getWitchContext: () =>
+    | import('../../../services/types/PrivateBroadcast').WitchContextPayload
+    | null;
 }
 
 export interface UseRoomActionsResult {
   /** Get intent when seat is tapped */
   getActionIntent: (index: number) => ActionIntent | null;
-  
+
   /** Get skip action intent */
   getSkipIntent: () => ActionIntent | null;
-  
+
   /** Get auto-trigger intent (witch/etc. auto-popup on turn start) */
   getAutoTriggerIntent: () => ActionIntent | null;
-  
+
   /** Build action confirm message */
   buildActionMessage: (index: number) => string;
-  
+
   /** Find voting wolf seat */
   findVotingWolfSeat: () => number | null;
-  
+
   /** Check if can tap for action */
   canTapForAction: () => boolean;
-  
+
   /** Merge magician two-target */
   getMagicianTarget: (secondIndex: number) => number;
 
@@ -155,7 +156,7 @@ export function deriveSkipIntentFromSchema(
   currentSchema: ActionSchema | null | undefined,
   buildMessage: (idx: number) => string,
   isWolf: boolean,
-  wolfSeat: number | null
+  wolfSeat: number | null,
 ): ActionIntent | null {
   // chooseSeat schemas: only allow generic skip when schema allows skipping
   if (currentSchema?.kind === 'chooseSeat') {
@@ -180,8 +181,8 @@ export function deriveSkipIntentFromSchema(
   return { type: 'skip', targetIndex: -1, message: buildMessage(-1) };
 }
 
-/** confirm schema: hunterConfirm/darkWolfKingConfirm */
-function deriveConfirmIntent(ctx: IntentContext): ActionIntent {
+/** confirm schema: hunterConfirm/darkWolfKingConfirm (kept for future use) */
+function _deriveConfirmIntent(ctx: IntentContext): ActionIntent {
   const { index, buildMessage } = ctx;
   return { type: 'actionConfirm', targetIndex: index, message: buildMessage(index) };
 }
@@ -191,7 +192,7 @@ function deriveChooseSeatIntent(ctx: IntentContext): ActionIntent {
   const { uiRevealKind, index, buildMessage } = ctx;
 
   if (uiRevealKind) {
-  return { type: 'reveal', revealKind: uiRevealKind, targetIndex: index };
+    return { type: 'reveal', revealKind: uiRevealKind, targetIndex: index };
   }
   return { type: 'actionConfirm', targetIndex: index, message: buildMessage(index) };
 }
@@ -244,7 +245,9 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
         };
       }
     case 'wolfVote':
-      return isWolf && wolfSeat !== null ? { type: 'wolfVote', targetIndex: index, wolfSeat } : null;
+      return isWolf && wolfSeat !== null
+        ? { type: 'wolfVote', targetIndex: index, wolfSeat }
+        : null;
     case 'chooseSeat':
       return deriveChooseSeatIntent(ctx);
     default:
@@ -256,10 +259,7 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
 // Hook Implementation
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function useRoomActions(
-  gameContext: GameContext,
-  deps: ActionDeps
-): UseRoomActionsResult {
+export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseRoomActionsResult {
   const {
     gameState,
     roomStatus,
@@ -270,7 +270,7 @@ export function useRoomActions(
     isAudioPlaying,
     // NOTE: isBlockedByNightmare is no longer used for intent derivation.
     // Nightmare block is handled by Host (ACTION_REJECTED). Kept in GameContext for UX hints only.
-  isBlockedByNightmare,
+    isBlockedByNightmare,
     anotherIndex,
   } = gameContext;
 
@@ -303,17 +303,17 @@ export function useRoomActions(
       if (currentSchema?.kind !== 'compound') {
         if (!confirmText || typeof confirmText !== 'string') {
           throw new Error(
-            `[SchemaDrivenUI] Missing currentSchema.ui.confirmText for schema: ${currentSchema?.id ?? 'unknown'}`
+            `[SchemaDrivenUI] Missing currentSchema.ui.confirmText for schema: ${currentSchema?.id ?? 'unknown'}`,
           );
         }
       }
 
-  // Keep dependencies explicit; index/anotherIndex affect action payload, not copy.
-  void index;
-  void anotherIndex;
-  return confirmText || '';
+      // Keep dependencies explicit; index/anotherIndex affect action payload, not copy.
+      void index;
+      void anotherIndex;
+      return confirmText || '';
     },
-    [anotherIndex, currentSchema]
+    [anotherIndex, currentSchema],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -332,12 +332,15 @@ export function useRoomActions(
   // Magician two-target merge
   // ─────────────────────────────────────────────────────────────────────────
 
-  const getMagicianTarget = useCallback((secondIndex: number): number => {
-    if (anotherIndex === null) {
-      throw new Error('getMagicianTarget called without first target set');
-    }
-    return anotherIndex + secondIndex * 100;
-  }, [anotherIndex]);
+  const getMagicianTarget = useCallback(
+    (secondIndex: number): number => {
+      if (anotherIndex === null) {
+        throw new Error('getMagicianTarget called without first target set');
+      }
+      return anotherIndex + secondIndex * 100;
+    },
+    [anotherIndex],
+  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // UI-only: wolf status line for the action prompt area
@@ -419,7 +422,11 @@ export function useRoomActions(
           {
             key: 'skip',
             label: currentSchema.ui?.bottomActionText || '不使用技能',
-            intent: { type: 'skip', targetIndex: -1, message: currentSchema.ui?.bottomActionText || '不使用技能' },
+            intent: {
+              type: 'skip',
+              targetIndex: -1,
+              message: currentSchema.ui?.bottomActionText || '不使用技能',
+            },
           },
         ],
       };
@@ -429,13 +436,21 @@ export function useRoomActions(
     // Schema-driven: save step is 'confirmTarget' (fixed target from WITCH_CONTEXT),
     //                poison step is 'chooseSeat' (user taps seat).
     // NOTE: Sensitive info is from WitchContextPayload only.
-    if (currentSchema.kind === 'compound' && currentSchema.id === 'witchAction' && currentSchema.steps?.length) {
+    if (
+      currentSchema.kind === 'compound' &&
+      currentSchema.id === 'witchAction' &&
+      currentSchema.steps?.length
+    ) {
       const witchCtx = getWitchContext();
       if (!witchCtx) return { buttons: [] };
 
       // Schema-driven: save is confirmTarget (target = killedIndex), poison is chooseSeat
-      const saveStep = currentSchema.steps.find((s) => s.key === 'save' && s.kind === 'confirmTarget');
-      const poisonStep = currentSchema.steps.find((s) => s.key === 'poison' && s.kind === 'chooseSeat');
+      const saveStep = currentSchema.steps.find(
+        (s) => s.key === 'save' && s.kind === 'confirmTarget',
+      );
+      const poisonStep = currentSchema.steps.find(
+        (s) => s.key === 'poison' && s.kind === 'chooseSeat',
+      );
 
       const buttons: BottomButton[] = [];
 
@@ -458,7 +473,8 @@ export function useRoomActions(
       // 2) Skip button: always available; should mean save=false AND poison=false.
       // We route through RoomScreen with stepKey='skipAll' (not a schema step) to avoid dual-submit.
       // RoomScreen will translate this to extra {save:false, poison:false}.
-      const skipLabel = poisonStep?.ui?.bottomActionText || saveStep?.ui?.bottomActionText || '不使用技能';
+      const skipLabel =
+        poisonStep?.ui?.bottomActionText || saveStep?.ui?.bottomActionText || '不使用技能';
       buttons.push({
         key: 'skip',
         label: skipLabel,
@@ -484,7 +500,6 @@ export function useRoomActions(
     // skip: no generic bottom action
     return { buttons: [] };
   }, [
-    findVotingWolfSeat,
     gameState,
     getWitchContext,
     imActioner,
@@ -504,13 +519,13 @@ export function useRoomActions(
 
     // Schema-driven: compound schema (witch two-phase flow)
     if (currentSchema?.kind === 'compound') {
-  // ANTI-CHEAT: 仅在 WitchContext 到达后才弹 prompt（避免没有 killedIndex 时误导 UI）。
-  const witchCtx = getWitchContext();
-  if (!witchCtx) return null;
-  return { type: 'actionPrompt', targetIndex: -1 };
+      // ANTI-CHEAT: 仅在 WitchContext 到达后才弹 prompt（避免没有 killedIndex 时误导 UI）。
+      const witchCtx = getWitchContext();
+      if (!witchCtx) return null;
+      return { type: 'actionPrompt', targetIndex: -1 };
     }
 
-  // Schema-driven: confirm schema (hunterConfirm/darkWolfKingConfirm)
+    // Schema-driven: confirm schema (hunterConfirm/darkWolfKingConfirm)
     if (currentSchema?.kind === 'confirm') {
       return { type: 'actionPrompt', targetIndex: -1 };
     }
@@ -529,47 +544,42 @@ export function useRoomActions(
   // Phase 3: Schema-driven - uses currentSchema.kind instead of role names
   // ─────────────────────────────────────────────────────────────────────────
 
-  const getActionIntent = useCallback((index: number): ActionIntent | null => {
-    if (!myRole) return null;
+  const getActionIntent = useCallback(
+    (index: number): ActionIntent | null => {
+      if (!myRole) return null;
 
-    // UX: Blocked players cannot tap seats to take action.
-    // Return 'blocked' intent so UI can show "你被封锁了" feedback.
-    if (isBlockedByNightmare) {
-      return { type: 'blocked', targetIndex: index };
-    }
+      // UX: Blocked players cannot tap seats to take action.
+      // Return 'blocked' intent so UI can show "你被封锁了" feedback.
+      if (isBlockedByNightmare) {
+        return { type: 'blocked', targetIndex: index };
+      }
 
-    // Delegate to pure helper for schema-driven intent derivation
-    const schemaIntent = deriveIntentFromSchema({
-      myRole,
-      schemaKind: currentSchema?.kind,
-  schemaId: currentSchema?.id && isValidSchemaId(currentSchema.id) ? currentSchema.id : undefined,
-      uiRevealKind:
-        currentSchema?.kind === 'chooseSeat'
-          ? currentSchema.ui?.revealKind
-          : undefined,
-      index,
-      anotherIndex,
-      isWolf: isWolfRole(myRole),
-      wolfSeat: findVotingWolfSeat(),
-      buildMessage: (idx) => buildActionMessage(idx),
-    });
+      // Delegate to pure helper for schema-driven intent derivation
+      const schemaIntent = deriveIntentFromSchema({
+        myRole,
+        schemaKind: currentSchema?.kind,
+        schemaId:
+          currentSchema?.id && isValidSchemaId(currentSchema.id) ? currentSchema.id : undefined,
+        uiRevealKind:
+          currentSchema?.kind === 'chooseSeat' ? currentSchema.ui?.revealKind : undefined,
+        index,
+        anotherIndex,
+        isWolf: isWolfRole(myRole),
+        wolfSeat: findVotingWolfSeat(),
+        buildMessage: (idx) => buildActionMessage(idx),
+      });
 
-    // Schema-driven intent is the single source of truth for seat taps.
-    // - chooseSeat → actionConfirm/revealIntent
-    // - compound (witch) → actionConfirm for poison
-    // - wolfVote → wolfVote intent
-    // - swap (magician) → magicianFirst
-    // - confirm (hunter/darkWolfKing) → null (action via bottom button only)
-    // - default/unknown → null (no seat tap effect)
-    return schemaIntent;
-  }, [
-    myRole,
-    currentSchema,
-    anotherIndex,
-    findVotingWolfSeat,
-    buildActionMessage,
-    getWitchContext,
-  ]);
+      // Schema-driven intent is the single source of truth for seat taps.
+      // - chooseSeat → actionConfirm/revealIntent
+      // - compound (witch) → actionConfirm for poison
+      // - wolfVote → wolfVote intent
+      // - swap (magician) → magicianFirst
+      // - confirm (hunter/darkWolfKing) → null (action via bottom button only)
+      // - default/unknown → null (no seat tap effect)
+      return schemaIntent;
+    },
+    [myRole, currentSchema, anotherIndex, findVotingWolfSeat, buildActionMessage, isBlockedByNightmare],
+  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // Get skip intent
@@ -586,7 +596,7 @@ export function useRoomActions(
       currentSchema,
       (idx) => buildActionMessage(idx),
       isWolf,
-      wolfSeat
+      wolfSeat,
     );
   }, [myRole, currentSchema, findVotingWolfSeat, buildActionMessage]);
 
@@ -598,7 +608,7 @@ export function useRoomActions(
     findVotingWolfSeat,
     canTapForAction,
     getMagicianTarget,
-  getWolfStatusLine,
-  getBottomAction,
+    getWolfStatusLine,
+    getBottomAction,
   };
 }

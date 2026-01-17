@@ -1,10 +1,17 @@
 /**
  * Night Steps Contract Tests
- * 
+ *
  * Validates NIGHT_STEPS as the single source of truth for night action order.
  */
 
-import { NIGHT_STEPS, getAllStepIds, getStepSpec, getStepSpecStrict, getStepsByRole, getStepsByRoleStrict } from '../nightSteps';
+import {
+  NIGHT_STEPS,
+  getAllStepIds,
+  getStepSpec,
+  getStepSpecStrict,
+  getStepsByRole,
+  getStepsByRoleStrict,
+} from '../nightSteps';
 import { ROLE_SPECS, isValidRoleId } from '../specs';
 import type { RoleSpec } from '../spec.types';
 import { isValidSchemaId } from '../schemas';
@@ -12,7 +19,7 @@ import { isValidSchemaId } from '../schemas';
 describe('NIGHT_STEPS contract', () => {
   describe('uniqueness', () => {
     it('stepId should be unique', () => {
-      const stepIds = NIGHT_STEPS.map(s => s.id);
+      const stepIds = NIGHT_STEPS.map((s) => s.id);
       const uniqueIds = new Set(stepIds);
       expect(uniqueIds.size).toBe(stepIds.length);
     });
@@ -69,11 +76,11 @@ describe('NIGHT_STEPS contract', () => {
         .filter(([_, spec]) => spec.night1.hasAction)
         .map(([id]) => id);
 
-      const rolesInSteps = NIGHT_STEPS.map(s => s.roleId);
+      const rolesInSteps = NIGHT_STEPS.map((s) => s.roleId);
 
       // Each role with action should appear exactly once
       for (const roleId of rolesWithAction) {
-        const count = rolesInSteps.filter(r => r === roleId).length;
+        const count = rolesInSteps.filter((r) => r === roleId).length;
         expect(count).toBe(1);
       }
 
@@ -109,16 +116,16 @@ describe('NIGHT_STEPS contract', () => {
     });
 
     it('wolf meeting steps should be derived from NIGHT_STEPS (snapshot)', () => {
-      const wolfMeetingStepIds = NIGHT_STEPS
-        .filter(s => s.visibility.wolfMeetingPhase === true)
-        .map(s => s.id);
+      const wolfMeetingStepIds = NIGHT_STEPS.filter(
+        (s) => s.visibility.wolfMeetingPhase === true,
+      ).map((s) => s.id);
       expect(wolfMeetingStepIds).toMatchSnapshot();
     });
 
     it('wolfMeetingPhase=true must align with ROLE_SPECS wolfMeeting participants', () => {
-      const wolfMeetingSteps = NIGHT_STEPS.filter(s => s.visibility.wolfMeetingPhase === true);
+      const wolfMeetingSteps = NIGHT_STEPS.filter((s) => s.visibility.wolfMeetingPhase === true);
       for (const step of wolfMeetingSteps) {
-  const spec = ROLE_SPECS[step.roleId] as RoleSpec;
+        const spec = ROLE_SPECS[step.roleId] as RoleSpec;
         expect(spec.wolfMeeting?.canSeeWolves).toBe(true);
         expect(spec.wolfMeeting?.participatesInWolfVote).toBe(true);
       }

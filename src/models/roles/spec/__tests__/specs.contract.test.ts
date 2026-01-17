@@ -1,10 +1,17 @@
 /**
  * Role Specs Contract Tests
- * 
+ *
  * Validates the ROLE_SPECS registry against the authoritative requirements.
  */
 
-import { ROLE_SPECS, type RoleId, getRoleSpec, isValidRoleId, getAllRoleIds, NIGHT_STEPS } from '../index';
+import {
+  ROLE_SPECS,
+  type RoleId,
+  getRoleSpec,
+  isValidRoleId,
+  getAllRoleIds,
+  NIGHT_STEPS,
+} from '../index';
 import { SCHEMAS } from '../schemas';
 import { Faction } from '../types';
 import type { RoleSpec } from '../spec.types';
@@ -26,10 +33,10 @@ describe('ROLE_SPECS contract', () => {
 
   it('roles with hasAction=true should appear exactly once in NIGHT_STEPS', () => {
     const rolesWithAction = getAllRoleIds().filter((id: RoleId) => ROLE_SPECS[id].night1.hasAction);
-    const rolesInSteps = NIGHT_STEPS.map(s => s.roleId);
+    const rolesInSteps = NIGHT_STEPS.map((s) => s.roleId);
 
     for (const roleId of rolesWithAction) {
-      const count = rolesInSteps.filter(r => r === roleId).length;
+      const count = rolesInSteps.filter((r) => r === roleId).length;
       expect(count).toBe(1);
     }
   });
@@ -40,17 +47,17 @@ describe('ROLE_SPECS contract', () => {
       // save 是 confirmTarget 类型：目标是固定的（被杀的人），用户只需确认
       const witchSchema = SCHEMAS.witchAction;
       expect(witchSchema.kind).toBe('compound');
-      const saveStep = witchSchema.steps.find(s => s.key === 'save');
+      const saveStep = witchSchema.steps.find((s) => s.key === 'save');
       expect(saveStep).toBeDefined();
-      expect(saveStep!.kind).toBe('confirmTarget');  // Fixed target, user confirms
+      expect(saveStep!.kind).toBe('confirmTarget'); // Fixed target, user confirms
       expect(saveStep!.constraints).toContain('notSelf');
     });
 
     it('witch poison action should have chooseSeat kind', () => {
       const witchSchema = SCHEMAS.witchAction;
-      const poisonStep = witchSchema.steps.find(s => s.key === 'poison');
+      const poisonStep = witchSchema.steps.find((s) => s.key === 'poison');
       expect(poisonStep).toBeDefined();
-      expect(poisonStep!.kind).toBe('chooseSeat');  // User selects target
+      expect(poisonStep!.kind).toBe('chooseSeat'); // User selects target
     });
   });
 
@@ -79,7 +86,7 @@ describe('ROLE_SPECS contract', () => {
 
   describe('dreamcatcher spec', () => {
     it('dreamcatcher step should use audioKey "dreamcatcher" in NIGHT_STEPS', () => {
-      const step = NIGHT_STEPS.find(s => s.roleId === 'dreamcatcher');
+      const step = NIGHT_STEPS.find((s) => s.roleId === 'dreamcatcher');
       expect(step?.audioKey).toBe('dreamcatcher');
     });
 
@@ -90,7 +97,7 @@ describe('ROLE_SPECS contract', () => {
 
   describe('nightmare spec', () => {
     it('nightmare step should have actsSolo=true (from NIGHT_STEPS visibility)', () => {
-      const step = NIGHT_STEPS.find(s => s.roleId === 'nightmare');
+      const step = NIGHT_STEPS.find((s) => s.roleId === 'nightmare');
       expect(step?.visibility.actsSolo).toBe(true);
     });
 
@@ -100,31 +107,33 @@ describe('ROLE_SPECS contract', () => {
     });
 
     it('nightmare should come before wolf in NIGHT_STEPS', () => {
-      const roleOrder = NIGHT_STEPS.map(s => s.roleId);
+      const roleOrder = NIGHT_STEPS.map((s) => s.roleId);
       expect(roleOrder.indexOf('nightmare')).toBeLessThan(roleOrder.indexOf('wolf'));
     });
   });
 
   describe('night-1 action roles', () => {
     const expectedNight1Roles: RoleId[] = [
-      'magician',      // -2
-      'slacker',       // -1
-      'wolfRobot',     // 0
-      'dreamcatcher',  // 1
-      'gargoyle',      // 1
-      'nightmare',     // 2
-      'guard',         // 3
-      'wolf',          // 5
-      'wolfQueen',     // 6
-      'witch',         // 10
-      'seer',          // 15
-      'psychic',       // 16
-      'hunter',        // 20
-      'darkWolfKing',  // 25
+      'magician', // -2
+      'slacker', // -1
+      'wolfRobot', // 0
+      'dreamcatcher', // 1
+      'gargoyle', // 1
+      'nightmare', // 2
+      'guard', // 3
+      'wolf', // 5
+      'wolfQueen', // 6
+      'witch', // 10
+      'seer', // 15
+      'psychic', // 16
+      'hunter', // 20
+      'darkWolfKing', // 25
     ];
 
     it('should have correct night-1 action roles', () => {
-      const actualNight1Roles = getAllRoleIds().filter((id: RoleId) => ROLE_SPECS[id].night1.hasAction);
+      const actualNight1Roles = getAllRoleIds().filter(
+        (id: RoleId) => ROLE_SPECS[id].night1.hasAction,
+      );
       const sortedActual = [...actualNight1Roles].sort((a, b) => a.localeCompare(b));
       const sortedExpected = [...expectedNight1Roles].sort((a, b) => a.localeCompare(b));
       expect(sortedActual).toEqual(sortedExpected);
@@ -144,7 +153,9 @@ describe('ROLE_SPECS contract', () => {
     ];
 
     it('should have correct no-action roles', () => {
-      const actualNoActionRoles = getAllRoleIds().filter((id: RoleId) => !ROLE_SPECS[id].night1.hasAction);
+      const actualNoActionRoles = getAllRoleIds().filter(
+        (id: RoleId) => !ROLE_SPECS[id].night1.hasAction,
+      );
       const sortedActual = [...actualNoActionRoles].sort((a, b) => a.localeCompare(b));
       const sortedExpected = [...expectedNoActionRoles].sort((a, b) => a.localeCompare(b));
       expect(sortedActual).toEqual(sortedExpected);
@@ -170,10 +181,7 @@ describe('ROLE_SPECS contract', () => {
       'spiritKnight',
     ];
 
-    const loneWolves: RoleId[] = [
-      'gargoyle',
-      'wolfRobot',
-    ];
+    const loneWolves: RoleId[] = ['gargoyle', 'wolfRobot'];
 
     it('wolf pack members should see wolves and participate in vote', () => {
       for (const roleId of wolfPackMembers) {
@@ -194,7 +202,7 @@ describe('ROLE_SPECS contract', () => {
 
   describe('seer check rule (team field)', () => {
     it('all wolf-faction roles should have team="wolf"', () => {
-      const wolfRoles = getAllRoleIds().filter(id => ROLE_SPECS[id].faction === Faction.Wolf);
+      const wolfRoles = getAllRoleIds().filter((id) => ROLE_SPECS[id].faction === Faction.Wolf);
       for (const roleId of wolfRoles) {
         expect(ROLE_SPECS[roleId].team).toBe('wolf');
       }
@@ -205,7 +213,7 @@ describe('ROLE_SPECS contract', () => {
     });
 
     it('god roles should have team="good"', () => {
-      const godRoles = getAllRoleIds().filter(id => ROLE_SPECS[id].faction === Faction.God);
+      const godRoles = getAllRoleIds().filter((id) => ROLE_SPECS[id].faction === Faction.God);
       for (const roleId of godRoles) {
         expect(ROLE_SPECS[roleId].team).toBe('good');
       }
@@ -214,8 +222,8 @@ describe('ROLE_SPECS contract', () => {
 
   describe('night1.hasAction ↔ NIGHT_STEPS alignment (M3c contract)', () => {
     it('night1.hasAction should match NIGHT_STEPS presence for all roles', () => {
-      const stepsRoleIds = new Set(NIGHT_STEPS.map(s => s.roleId));
-      
+      const stepsRoleIds = new Set(NIGHT_STEPS.map((s) => s.roleId));
+
       for (const roleId of getAllRoleIds()) {
         const spec = ROLE_SPECS[roleId];
         const hasStepInNightSteps = stepsRoleIds.has(roleId);

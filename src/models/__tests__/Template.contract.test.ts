@@ -24,16 +24,16 @@ import {
  */
 function getActionOrderFromRoles(roles: RoleId[]): RoleId[] {
   const nightPlan = buildNightPlan(roles);
-  return nightPlan.steps.map(step => step.roleId);
+  return nightPlan.steps.map((step) => step.roleId);
 }
 
 // Helper functions extracted to avoid nesting depth issues
-const countWolves = (roles: RoleId[]): number => roles.filter(r => isWolfRole(r)).length;
-const countVillagers = (roles: RoleId[]): number => roles.filter(r => r === 'villager').length;
+const countWolves = (roles: RoleId[]): number => roles.filter((r) => isWolfRole(r)).length;
+const countVillagers = (roles: RoleId[]): number => roles.filter((r) => r === 'villager').length;
 const countGods = (roles: RoleId[]): number =>
-  roles.filter(r => getRoleSpec(r).faction === 'god').length;
+  roles.filter((r) => getRoleSpec(r).faction === 'god').length;
 const getSpecialRoles = (roles: RoleId[]): RoleId[] =>
-  roles.filter(r => r !== 'villager' && r !== 'wolf');
+  roles.filter((r) => r !== 'villager' && r !== 'wolf');
 
 describe('PRESET_TEMPLATES - 数据自洽性', () => {
   it('应该有预定义模板', () => {
@@ -109,8 +109,8 @@ describe('PRESET_TEMPLATES - 数据自洽性', () => {
 describe('PRESET_TEMPLATES - 角色引用完整性', () => {
   it('所有模板引用的角色都应该在 ROLE_SPECS 中定义', () => {
     const allRoles = new Set<string>();
-    PRESET_TEMPLATES.forEach(preset => {
-      preset.roles.forEach(role => allRoles.add(role));
+    PRESET_TEMPLATES.forEach((preset) => {
+      preset.roles.forEach((role) => allRoles.add(role));
     });
 
     for (const role of allRoles) {
@@ -121,8 +121,8 @@ describe('PRESET_TEMPLATES - 角色引用完整性', () => {
 
   it('所有模板引用的角色都应该有正确的属性', () => {
     const allRoles = new Set<string>();
-    PRESET_TEMPLATES.forEach(preset => {
-      preset.roles.forEach(role => allRoles.add(role));
+    PRESET_TEMPLATES.forEach((preset) => {
+      preset.roles.forEach((role) => allRoles.add(role));
     });
 
     for (const role of allRoles) {
@@ -147,7 +147,7 @@ describe('PRESET_TEMPLATES - 模板列表完整性', () => {
   ];
 
   it('应该包含所有预期的模板', () => {
-    const templateNames = PRESET_TEMPLATES.map(t => t.name);
+    const templateNames = PRESET_TEMPLATES.map((t) => t.name);
 
     for (const expectedName of EXPECTED_TEMPLATE_NAMES) {
       expect(templateNames).toContain(expectedName);

@@ -1,6 +1,6 @@
 /**
  * NightFlowController Unit Tests
- * 
+ *
  * Tests the night phase state machine transitions:
  * - Happy path: complete night flow
  * - Invalid transitions: error handling
@@ -20,8 +20,8 @@ const buildTestPlan = (roles: string[]): NightPlan => {
   return buildNightPlan(roles);
 };
 
-/** Helper: create minimal NightPlan for unit tests (bypass ROLE_SPECS validation) */
-const createMinimalPlan = (roleIds: string[]): NightPlan => {
+/** Helper: create minimal NightPlan for unit tests (bypass ROLE_SPECS validation) - kept for future use */
+const _createMinimalPlan = (roleIds: string[]): NightPlan => {
   return {
     steps: roleIds.map((roleId, idx) => ({
       roleId: roleId as any,
@@ -52,7 +52,7 @@ describe('NightFlowController', () => {
     it('should expose currentStep from NightPlan', () => {
       const plan = buildTestPlan(['wolf', 'witch', 'seer']);
       const controller = new NightFlowController(plan);
-      
+
       const step = controller.currentStep;
       expect(step).not.toBeNull();
       expect(step?.roleId).toBe('wolf');
@@ -75,11 +75,11 @@ describe('NightFlowController', () => {
       // Wolf turn
       controller.dispatch(NightEvent.RoleBeginAudioDone);
       expect(controller.phase).toBe(NightPhase.WaitingForAction);
-      
+
       controller.recordAction('wolf', 3); // Wolf kills seat 3
       controller.dispatch(NightEvent.ActionSubmitted);
       expect(controller.phase).toBe(NightPhase.RoleEndAudio);
-      
+
       controller.dispatch(NightEvent.RoleEndAudioDone);
       expect(controller.phase).toBe(NightPhase.RoleBeginAudio);
       expect(controller.currentRole).toBe('witch');
@@ -87,11 +87,11 @@ describe('NightFlowController', () => {
       // Witch turn
       controller.dispatch(NightEvent.RoleBeginAudioDone);
       expect(controller.phase).toBe(NightPhase.WaitingForAction);
-      
+
       controller.recordAction('witch', -1); // Witch does nothing
       controller.dispatch(NightEvent.ActionSubmitted);
       expect(controller.phase).toBe(NightPhase.RoleEndAudio);
-      
+
       controller.dispatch(NightEvent.RoleEndAudioDone);
       expect(controller.phase).toBe(NightPhase.RoleBeginAudio);
       expect(controller.currentRole).toBe('seer');
@@ -99,11 +99,11 @@ describe('NightFlowController', () => {
       // Seer turn
       controller.dispatch(NightEvent.RoleBeginAudioDone);
       expect(controller.phase).toBe(NightPhase.WaitingForAction);
-      
+
       controller.recordAction('seer', 5); // Seer checks seat 5
       controller.dispatch(NightEvent.ActionSubmitted);
       expect(controller.phase).toBe(NightPhase.RoleEndAudio);
-      
+
       controller.dispatch(NightEvent.RoleEndAudioDone);
       // No more roles -> night end audio
       expect(controller.phase).toBe(NightPhase.NightEndAudio);
@@ -224,7 +224,7 @@ describe('NightFlowController', () => {
     it('should reset from any phase to Idle', () => {
       const plan = buildTestPlan(['wolf', 'witch']);
       const controller = new NightFlowController(plan);
-      
+
       // Go to middle of night
       controller.dispatch(NightEvent.StartNight);
       controller.dispatch(NightEvent.NightBeginAudioDone);
@@ -242,7 +242,7 @@ describe('NightFlowController', () => {
     it('should allow starting new night after reset', () => {
       const plan = buildTestPlan(['wolf']);
       const controller = new NightFlowController(plan);
-      
+
       // Complete a night
       controller.dispatch(NightEvent.StartNight);
       controller.dispatch(NightEvent.NightBeginAudioDone);
@@ -276,7 +276,7 @@ describe('NightFlowController', () => {
       controller.recordAction('wolf', 3);
 
       const state = controller.getState();
-      
+
       expect(state.phase).toBe(NightPhase.WaitingForAction);
       // Phase 5: actionOrder removed, verify via currentStep.roleId instead
       expect(state.currentStep?.roleId).toBe('wolf');
@@ -301,7 +301,7 @@ describe('NightFlowController', () => {
       controller.recordAction('wolf', 1);
       controller.dispatch(NightEvent.ActionSubmitted);
       controller.dispatch(NightEvent.RoleEndAudioDone);
-      
+
       expect(controller.hasMoreRoles()).toBe(false);
     });
 
@@ -320,7 +320,7 @@ describe('NightFlowController', () => {
       controller.dispatch(NightEvent.ActionSubmitted);
       controller.dispatch(NightEvent.RoleEndAudioDone);
       controller.dispatch(NightEvent.NightEndAudioDone);
-      
+
       expect(controller.isTerminal()).toBe(true); // Ended is terminal
     });
   });

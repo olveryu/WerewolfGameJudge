@@ -49,9 +49,7 @@ const Button: React.FC<ButtonProps> = ({
       activeOpacity={0.7}
     >
       {loading ? (
-        <ActivityIndicator
-          color={variant === 'outline' ? COLORS.primary : COLORS.text}
-        />
+        <ActivityIndicator color={variant === 'outline' ? COLORS.primary : COLORS.text} />
       ) : (
         <>
           {icon}

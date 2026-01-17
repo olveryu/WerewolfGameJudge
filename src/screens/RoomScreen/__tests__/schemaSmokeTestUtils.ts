@@ -42,7 +42,7 @@ export function makeBaseUseGameRoomReturn({
         role: i === mySeatNumber ? myRole : 'villager',
         hasViewedRole: true,
       },
-    ])
+    ]),
   );
 
   return {

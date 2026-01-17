@@ -1,34 +1,34 @@
 // Modern minimal theme inspired by Linear/Notion
 export const colors = {
   // Primary
-  primary: '#6366F1',      // Indigo
+  primary: '#6366F1', // Indigo
   primaryLight: '#818CF8',
   primaryDark: '#4F46E5',
-  
+
   // Backgrounds
   background: '#FAFAFA',
   surface: '#FFFFFF',
   surfaceHover: '#F5F5F5',
-  
+
   // Text
   text: '#111827',
   textSecondary: '#6B7280',
   textMuted: '#9CA3AF',
-  
+
   // Borders
   border: '#E5E7EB',
   borderLight: '#F3F4F6',
-  
+
   // Status
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
-  
+
   // Game specific
   wolf: '#DC2626',
   villager: '#059669',
   god: '#7C3AED',
-  
+
   // Overlay
   overlay: 'rgba(0, 0, 0, 0.5)',
 };
@@ -60,7 +60,7 @@ export const typography = {
   '2xl': 24,
   '3xl': 30,
   '4xl': 36,
-  
+
   // Font weights
   normal: '400' as const,
   medium: '500' as const,

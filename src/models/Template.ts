@@ -31,7 +31,7 @@ export function validateTemplateRoles(roles: RoleId[]): string | null {
 
 /**
  * GameTemplate - defines the player composition for a game.
- * 
+ *
  * Phase 5: actionOrder has been removed. Night action order is now
  * derived dynamically from roles via buildNightPlan(roles).
  */
@@ -46,7 +46,7 @@ export const createCustomTemplate = (roles: RoleId[]): GameTemplate => {
   return {
     name: '',
     numberOfPlayers: roles.length,
-    roles: roles,  // Keep original order, shuffle later when assigning roles
+    roles: roles, // Keep original order, shuffle later when assigning roles
   };
 };
 
@@ -74,81 +74,171 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   {
     name: '标准板12人',
     roles: [
-      'villager', 'villager', 'villager', 'villager',
-      'wolf', 'wolf', 'wolf', 'wolf',
-      'seer', 'witch', 'hunter', 'idiot',
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'wolf',
+      'seer',
+      'witch',
+      'hunter',
+      'idiot',
     ],
   },
   {
     name: '狼美守卫12人',
     roles: [
-      'villager', 'villager', 'villager', 'villager',
-      'wolf', 'wolf', 'wolf', 'wolfQueen',
-      'seer', 'witch', 'hunter', 'guard',
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'wolfQueen',
+      'seer',
+      'witch',
+      'hunter',
+      'guard',
     ],
   },
   {
     name: '狼王守卫12人',
     roles: [
-      'villager', 'villager', 'villager', 'villager',
-      'wolf', 'wolf', 'wolf', 'darkWolfKing',
-      'seer', 'witch', 'hunter', 'guard',
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'darkWolfKing',
+      'seer',
+      'witch',
+      'hunter',
+      'guard',
     ],
   },
   {
     name: '石像鬼守墓人12人',
     roles: [
-      'villager', 'villager', 'villager', 'villager',
-      'wolf', 'wolf', 'wolf', 'gargoyle',
-      'seer', 'witch', 'hunter', 'graveyardKeeper',
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'gargoyle',
+      'seer',
+      'witch',
+      'hunter',
+      'graveyardKeeper',
     ],
   },
   {
     name: '梦魇守卫12人',
     roles: [
-      'villager', 'villager', 'villager', 'villager',
-      'wolf', 'wolf', 'wolf', 'nightmare',
-      'seer', 'witch', 'hunter', 'guard',
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'nightmare',
+      'seer',
+      'witch',
+      'hunter',
+      'guard',
     ],
   },
   {
     name: '血月猎魔12人',
     roles: [
-      'villager', 'villager', 'villager', 'villager',
-      'wolf', 'wolf', 'wolf', 'bloodMoon',
-      'seer', 'witch', 'idiot', 'witcher',
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'bloodMoon',
+      'seer',
+      'witch',
+      'idiot',
+      'witcher',
     ],
   },
   {
     name: '狼王摄梦人12人',
     roles: [
-      'villager', 'villager', 'villager', 'villager',
-      'wolf', 'wolf', 'wolf', 'darkWolfKing',
-  'seer', 'witch', 'hunter', 'dreamcatcher',
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'darkWolfKing',
+      'seer',
+      'witch',
+      'hunter',
+      'dreamcatcher',
     ],
   },
   {
     name: '狼王魔术师12人',
     roles: [
-      'villager', 'villager', 'villager', 'villager',
-      'wolf', 'wolf', 'wolf', 'darkWolfKing',
-      'seer', 'witch', 'hunter', 'magician',
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'darkWolfKing',
+      'seer',
+      'witch',
+      'hunter',
+      'magician',
     ],
   },
   {
     name: '机械狼通灵师12人',
     roles: [
-      'villager', 'villager', 'villager', 'villager',
-      'wolf', 'wolf', 'wolf', 'wolfRobot',
-      'psychic', 'witch', 'hunter', 'guard',
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'wolfRobot',
+      'psychic',
+      'witch',
+      'hunter',
+      'guard',
     ],
   },
   {
     name: '恶灵骑士12人',
     roles: [
-      'villager', 'villager', 'villager', 'villager',
-      'wolf', 'wolf', 'wolf', 'spiritKnight',
-      'seer', 'witch', 'hunter', 'guard',
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'spiritKnight',
+      'seer',
+      'witch',
+      'hunter',
+      'guard',
     ],
   },
 ];
@@ -160,9 +250,7 @@ export const getTemplateRoomInfo = (template: GameTemplate): string => {
 
   let info = `村民x${villagerCount}, 普狼x${wolfCount}, `;
 
-  const specialRoles = template.roles.filter(
-    (r) => r !== 'wolf' && r !== 'villager'
-  );
+  const specialRoles = template.roles.filter((r) => r !== 'wolf' && r !== 'villager');
   const uniqueSpecialRoles = [...new Set(specialRoles)];
 
   info += uniqueSpecialRoles.map((r) => getRoleSpec(r).displayName).join(', ');

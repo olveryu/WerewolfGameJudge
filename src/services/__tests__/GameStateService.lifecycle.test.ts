@@ -2,7 +2,7 @@
  * GameStateService Lifecycle Tests
  * Tests for game status transitions:
  * unseated → seated → assigned → ready → ongoing → ended
- * 
+ *
  * Also tests restart transitions.
  */
 
@@ -356,7 +356,7 @@ describe('GameStateService Lifecycle', () => {
     it('assignRoles 只能在 seated 状态调用', async () => {
       const template = createTestTemplate();
       await service.initializeAsHost('TEST01', 'host-uid', template);
-      
+
       // unseated 状态
       await service.assignRoles();
       expect(getState(service)!.status).toBe(GameStatus.unseated);
@@ -367,7 +367,7 @@ describe('GameStateService Lifecycle', () => {
       await service.initializeAsHost('TEST01', 'host-uid', template);
       await fillAllSeats(service);
       await service.assignRoles();
-      
+
       // assigned 状态（非 ready）
       await service.startGame();
       expect(getState(service)!.status).toBe(GameStatus.assigned);
@@ -381,23 +381,23 @@ describe('GameStateService Lifecycle', () => {
   describe('完整生命周期', () => {
     it('完整流程: unseated → seated → assigned → ready → ongoing', async () => {
       const template = createTestTemplate();
-      
+
       // 1. 初始化
       await service.initializeAsHost('TEST01', 'host-uid', template);
       expect(getState(service)!.status).toBe(GameStatus.unseated);
-      
+
       // 2. 入座
       await fillAllSeats(service);
       expect(getState(service)!.status).toBe(GameStatus.seated);
-      
+
       // 3. 分配角色
       await service.assignRoles();
       expect(getState(service)!.status).toBe(GameStatus.assigned);
-      
+
       // 4. 查看角色
       await markAllViewed(service);
       expect(getState(service)!.status).toBe(GameStatus.ready);
-      
+
       // 5. 开始游戏
       const startPromise = service.startGame();
       await jest.runAllTimersAsync();
@@ -407,7 +407,7 @@ describe('GameStateService Lifecycle', () => {
 
     it('重启后应该可以重新走完整流程', async () => {
       const template = createTestTemplate();
-      
+
       // 第一轮
       await service.initializeAsHost('TEST01', 'host-uid', template);
       await fillAllSeats(service);
@@ -417,18 +417,18 @@ describe('GameStateService Lifecycle', () => {
       await jest.runAllTimersAsync();
       await startPromise;
       expect(getState(service)!.status).toBe(GameStatus.ongoing);
-      
+
       // 重启
       await service.restartGame();
       expect(getState(service)!.status).toBe(GameStatus.seated);
-      
+
       // 第二轮
       await service.assignRoles();
       expect(getState(service)!.status).toBe(GameStatus.assigned);
-      
+
       await markAllViewed(service);
       expect(getState(service)!.status).toBe(GameStatus.ready);
-      
+
       const startPromise2 = service.startGame();
       await jest.runAllTimersAsync();
       await startPromise2;

@@ -1,13 +1,13 @@
 /**
  * Contract test: CONFIRM_STATUS private message for hunter/darkWolfKing
- * 
+ *
  * BUG FIX: Previously, getHunterStatus/getDarkWolfKingStatus computed canShoot
  * by looking at gameState.actions.get('witch'), but for non-Host players,
  * actions Map is always empty (anti-cheat: actions not broadcast).
- * 
+ *
  * FIX: Host sends CONFIRM_STATUS private message when hunter/darkWolfKing turn
  * starts. Client reads status from private message instead of computing.
- * 
+ *
  * This test locks the fix to prevent regression.
  */
 
@@ -21,7 +21,7 @@ describe('CONFIRM_STATUS private message contract', () => {
         role: 'hunter',
         canShoot: true,
       };
-      
+
       expect(payload.kind).toBe('CONFIRM_STATUS');
       expect(payload.role).toBe('hunter');
       expect(payload.canShoot).toBe(true);
@@ -33,13 +33,13 @@ describe('CONFIRM_STATUS private message contract', () => {
         role: 'hunter',
         canShoot: false,
       };
-      
+
       const darkWolfKingPayload: ConfirmStatusPayload = {
         kind: 'CONFIRM_STATUS',
         role: 'darkWolfKing',
         canShoot: true,
       };
-      
+
       expect(hunterPayload.role).toBe('hunter');
       expect(darkWolfKingPayload.role).toBe('darkWolfKing');
     });
@@ -48,15 +48,15 @@ describe('CONFIRM_STATUS private message contract', () => {
       const poisonedPayload: ConfirmStatusPayload = {
         kind: 'CONFIRM_STATUS',
         role: 'hunter',
-        canShoot: false,  // poisoned by witch
+        canShoot: false, // poisoned by witch
       };
-      
+
       const notPoisonedPayload: ConfirmStatusPayload = {
         kind: 'CONFIRM_STATUS',
         role: 'hunter',
-        canShoot: true,  // not poisoned
+        canShoot: true, // not poisoned
       };
-      
+
       expect(poisonedPayload.canShoot).toBe(false);
       expect(notPoisonedPayload.canShoot).toBe(true);
     });
@@ -71,7 +71,7 @@ describe('CONFIRM_STATUS private message contract', () => {
         role: 'hunter',
         canShoot: true,
       };
-      
+
       // Type assertion to prove it's part of PrivatePayload union
       const _: import('../types/PrivateBroadcast').PrivatePayload = payload;
       expect(_).toBeDefined();

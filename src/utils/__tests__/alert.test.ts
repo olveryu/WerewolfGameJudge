@@ -10,9 +10,9 @@ describe('alert utility', () => {
     it('should set the listener', () => {
       const mockListener = jest.fn();
       setAlertListener(mockListener);
-      
+
       showAlert('Test', 'Message');
-      
+
       expect(mockListener).toHaveBeenCalledWith({
         title: 'Test',
         message: 'Message',
@@ -24,7 +24,7 @@ describe('alert utility', () => {
       const mockListener = jest.fn();
       setAlertListener(mockListener);
       setAlertListener(null);
-      
+
       // Should not throw when listener is null
       // (will fall back to native alert)
       expect(() => showAlert('Test')).not.toThrow();
@@ -36,9 +36,9 @@ describe('alert utility', () => {
     it('should call listener with title only', () => {
       const mockListener = jest.fn();
       setAlertListener(mockListener);
-      
+
       showAlert('Title Only');
-      
+
       expect(mockListener).toHaveBeenCalledWith({
         title: 'Title Only',
         message: undefined,
@@ -49,9 +49,9 @@ describe('alert utility', () => {
     it('should call listener with title and message', () => {
       const mockListener = jest.fn();
       setAlertListener(mockListener);
-      
+
       showAlert('Title', 'This is a message');
-      
+
       expect(mockListener).toHaveBeenCalledWith({
         title: 'Title',
         message: 'This is a message',
@@ -62,14 +62,14 @@ describe('alert utility', () => {
     it('should call listener with custom buttons', () => {
       const mockListener = jest.fn();
       setAlertListener(mockListener);
-      
+
       const buttons = [
         { text: 'Cancel', style: 'cancel' as const },
         { text: '确定', style: 'default' as const, onPress: jest.fn() },
       ];
-      
+
       showAlert('Confirm', 'Are you sure?', buttons);
-      
+
       expect(mockListener).toHaveBeenCalledWith({
         title: 'Confirm',
         message: 'Are you sure?',
@@ -80,13 +80,13 @@ describe('alert utility', () => {
     it('should call listener with destructive button', () => {
       const mockListener = jest.fn();
       setAlertListener(mockListener);
-      
+
       const onDelete = jest.fn();
       showAlert('Delete', 'Delete this item?', [
         { text: 'Delete', style: 'destructive', onPress: onDelete },
         { text: 'Cancel', style: 'cancel' },
       ]);
-      
+
       expect(mockListener).toHaveBeenCalledWith({
         title: 'Delete',
         message: 'Delete this item?',
@@ -105,7 +105,7 @@ describe('alert utility', () => {
         message: 'Message',
         buttons: [{ text: '确定' }],
       };
-      
+
       expect(config.title).toBe('Test');
       expect(config.message).toBe('Message');
       expect(config.buttons).toHaveLength(1);
@@ -116,7 +116,7 @@ describe('alert utility', () => {
         title: 'Test',
         buttons: [{ text: '确定' }],
       };
-      
+
       expect(config.message).toBeUndefined();
     });
   });

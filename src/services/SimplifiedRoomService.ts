@@ -1,9 +1,9 @@
 /**
  * SimplifiedRoomService - Minimal Supabase room storage
- * 
+ *
  * This service ONLY handles basic room record in Supabase.
  * All game state is managed by GameStateService (in-memory on Host).
- * 
+ *
  * Supabase rooms table schema (simplified):
  * - id: uuid (primary key)
  * - code: text (unique, 4-digit room code)
@@ -62,7 +62,7 @@ export class SimplifiedRoomService {
     const maxAttempts = 10;
     for (let i = 0; i < maxAttempts; i++) {
       const roomNumber = Math.floor(1000 + Math.random() * 9000).toString();
-      
+
       // Check if room exists (use maybeSingle to avoid 406 on no match)
       const { data, error } = await supabase!
         .from('rooms')
@@ -86,29 +86,31 @@ export class SimplifiedRoomService {
 
   /**
    * Create a new room record with retry on conflict (HTTP 409).
-   * 
+   *
    * MITIGATION for room code race condition:
    * If another client creates a room with the same code between our
    * generateRoomNumber() check and insert, Supabase returns 409 (conflict).
    * We retry with a new room number up to maxRetries times.
-   * 
+   *
    * @param roomNumber - Initial room number to try
    * @param hostUid - Host user ID
    * @param maxRetries - Max retry attempts on 409 conflict (default: 3)
    */
-  async createRoom(roomNumber: string, hostUid: string, maxRetries: number = 3): Promise<RoomRecord> {
+  async createRoom(
+    roomNumber: string,
+    hostUid: string,
+    maxRetries: number = 3,
+  ): Promise<RoomRecord> {
     this.ensureConfigured();
 
     let currentRoomNumber = roomNumber;
     let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      const { error } = await supabase!
-        .from('rooms')
-        .insert({
-          code: currentRoomNumber,
-          host_id: hostUid,
-        });
+      const { error } = await supabase!.from('rooms').insert({
+        code: currentRoomNumber,
+        host_id: hostUid,
+      });
 
       if (!error) {
         if (attempt > 1) {
@@ -122,16 +124,19 @@ export class SimplifiedRoomService {
       }
 
       // Check for conflict (409) - unique constraint violation
-      const isConflict = error.code === '23505' || // PostgreSQL unique violation
-                         error.message.includes('duplicate') ||
-                         error.message.includes('conflict') ||
-                         error.message.includes('already exists');
-      
+      const isConflict =
+        error.code === '23505' || // PostgreSQL unique violation
+        error.message.includes('duplicate') ||
+        error.message.includes('conflict') ||
+        error.message.includes('already exists');
+
       if (isConflict && attempt < maxRetries) {
-        roomLog.info(` HTTP 409 conflict on attempt ${attempt}, room ${currentRoomNumber} already exists`);
+        roomLog.info(
+          ` HTTP 409 conflict on attempt ${attempt}, room ${currentRoomNumber} already exists`,
+        );
         roomLog.debug(`  Error: ${error.message}`);
         roomLog.debug(`  Generating new room number...`);
-        
+
         // Generate a new room number for retry
         currentRoomNumber = await this.generateRoomNumber();
         continue;
@@ -181,10 +186,7 @@ export class SimplifiedRoomService {
   async deleteRoom(roomNumber: string): Promise<void> {
     this.ensureConfigured();
 
-    const { error } = await supabase!
-      .from('rooms')
-      .delete()
-      .eq('code', roomNumber);
+    const { error } = await supabase!.from('rooms').delete().eq('code', roomNumber);
 
     if (error) {
       roomLog.error(' Failed to delete room:', error);

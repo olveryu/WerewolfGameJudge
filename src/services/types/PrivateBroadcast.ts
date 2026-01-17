@@ -1,12 +1,12 @@
 /**
  * PrivateBroadcast.ts - Private message payload types (sensitive information)
- * 
+ *
  * ANTI-CHEAT PRINCIPLE:
  * - All sensitive game information MUST be sent via sendPrivate(toUid, payload)
  * - Only the recipient (toUid) can see the message
  * - Host player also only sees messages sent TO them (no visibility privilege)
  * - Zero-Trust: UI filters by toUid === myUid
- * 
+ *
  * @see docs/phase4-final-migration.md for full architecture
  */
 
@@ -16,7 +16,7 @@
 
 /**
  * Private message wrapper.
- * 
+ *
  * IMPORTANT:
  * - `toUid` is REQUIRED - specifies the sole recipient
  * - `revision` binds the message to a specific game turn (prevents cross-turn contamination)
@@ -24,8 +24,8 @@
  */
 export interface PrivateMessage {
   type: 'PRIVATE_EFFECT';
-  toUid: string;           // Required: sole recipient
-  revision: number;        // Required: bind to game turn
+  toUid: string; // Required: sole recipient
+  revision: number; // Required: bind to game turn
   payload: PrivatePayload;
 }
 
@@ -109,7 +109,7 @@ export interface WolfRobotRevealPayload {
 /**
  * Confirm status - sent to hunter/darkWolfKing when their confirm turn starts.
  * Tells them if they can use their skill (not poisoned by witch).
- * 
+ *
  * ANTI-CHEAT: Client cannot compute this because actions Map is not broadcast.
  * Host computes and sends via private message.
  */
@@ -132,11 +132,11 @@ export interface BlockedPayload {
 
 /**
  * Action rejected - sent when Host rejects a player's action.
- * 
+ *
  * Use cases:
  * - Nightmare-blocked player attempts non-skip action
  * - (Future) Other gate rejections
- * 
+ *
  * UI should display `reason` to the player.
  */
 export interface ActionRejectedPayload {
@@ -154,7 +154,7 @@ export interface ActionRejectedPayload {
 /**
  * Generate inbox key for private message storage.
  * Format: `${revision}_${kind}` or `${revision}_${schemaId}_${requestId}`
- * 
+ *
  * Used by usePrivateInbox hook to prevent cross-turn contamination.
  */
 export type InboxKey = `${number}_${string}`;

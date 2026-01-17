@@ -250,14 +250,14 @@ describe('DeathCalculator', () => {
       expect(deaths).toEqual([]);
     });
 
-  it('should kill dream target when dreamcatcher dies', () => {
+    it('should kill dream target when dreamcatcher dies', () => {
       const actions: NightActions = {
-    wolfKill: 2, // wolf kills dreamcatcher
-    dreamcatcherDream: 5,
+        wolfKill: 2, // wolf kills dreamcatcher
+        dreamcatcherDream: 5,
       };
       const roleSeatMap: RoleSeatMap = {
         ...DEFAULT_ROLE_SEAT_MAP,
-    dreamcatcher: 2,
+        dreamcatcher: 2,
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);

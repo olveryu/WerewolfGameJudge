@@ -1,8 +1,8 @@
 /**
  * Night Steps Types
- * 
+ *
  * 夜晚步骤表类型定义。
- * 
+ *
  * ⚠️ 重要：这是 host-side view-model，用于 UI 展示/音频编排。
  * visibility 字段不得进入 BroadcastGameState（反作弊红线）。
  */
@@ -12,7 +12,7 @@ import type { SchemaId } from './schemas';
 
 /**
  * 步骤可见性配置
- * 
+ *
  * ⚠️ 这是 host-side view-model，用于 UI 展示/音频编排。
  * 不替代角色固有 wolfMeeting 定义（canSeeWolves/participatesInWolfVote）。
  * ⚠️ visibility 字段不得进入 BroadcastGameState（反作弊红线）。
@@ -26,7 +26,7 @@ export interface StepVisibility {
 
 /**
  * 夜晚步骤规格
- * 
+ *
  * ⚠️ step.id 即 schemaId（一一对应，无需双字段）
  */
 export interface StepSpec {

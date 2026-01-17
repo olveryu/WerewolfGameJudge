@@ -59,20 +59,20 @@ describe('HomeScreen', () => {
   describe('Rendering', () => {
     it('should render main menu items', () => {
       const { getByText } = render(<HomeScreen />);
-      
+
       expect(getByText('创建房间')).toBeTruthy();
       expect(getByText('进入房间')).toBeTruthy();
     });
 
     it('should render the app title', () => {
       const { getByText } = render(<HomeScreen />);
-      
+
       expect(getByText('狼人杀法官')).toBeTruthy();
     });
 
     it('should render settings menu item', () => {
       const { getByText } = render(<HomeScreen />);
-      
+
       expect(getByText('设置')).toBeTruthy();
     });
   });
@@ -93,9 +93,9 @@ describe('HomeScreen', () => {
       });
 
       const { getByText } = render(<HomeScreen />);
-      
+
       fireEvent.press(getByText('创建房间'));
-      
+
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('Config');
       });
@@ -103,9 +103,9 @@ describe('HomeScreen', () => {
 
     it('should navigate to Settings screen when settings is pressed', () => {
       const { getByText } = render(<HomeScreen />);
-      
+
       fireEvent.press(getByText('设置'));
-      
+
       expect(mockNavigate).toHaveBeenCalledWith('Settings');
     });
   });
@@ -126,9 +126,9 @@ describe('HomeScreen', () => {
       });
 
       const { getByText, queryByText } = render(<HomeScreen />);
-      
+
       fireEvent.press(getByText('进入房间'));
-      
+
       await waitFor(() => {
         expect(queryByText('输入4位房间号码')).toBeTruthy();
       });

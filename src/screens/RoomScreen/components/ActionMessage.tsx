@@ -14,11 +14,11 @@ export interface ActionMessageProps {
   message: string;
 }
 
-export const ActionMessage: React.FC<ActionMessageProps> = ({
-  message,
-}) => {
+export const ActionMessage: React.FC<ActionMessageProps> = ({ message }) => {
   return (
-    <Text style={styles.actionMessage} testID={TESTIDS.actionMessage}>{message}</Text>
+    <Text style={styles.actionMessage} testID={TESTIDS.actionMessage}>
+      {message}
+    </Text>
   );
 };
 

@@ -10,7 +10,12 @@
  * - 梦魇是狼人阵营（技能狼）
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './hostGameFactory';
+import {
+  createHostGame,
+  cleanupHostGame,
+  HostGameContext,
+  mockSendPrivate,
+} from './hostGameFactory';
 import { NightPhase, NightEvent } from '../../NightFlowController';
 import { RoleId } from '../../../models/roles';
 import { BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
@@ -65,7 +70,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       const result = await ctx.runNight({
         guard: 0, // 守座位0
         nightmare: 1,
-        wolf: 0,  // 狼刀座位0
+        wolf: 0, // 狼刀座位0
         witch: null,
         seer: 4,
         hunter: null,
@@ -85,10 +90,10 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
      * 验证 Host authoritative gate：
      * 当 seat 被梦魇封锁时，Host 对该 seat 发来的 action 必须 idempotent no-op，
      * 且不记录 action、不推进夜晚流程、不产生副作用。
-     * 
+     *
      * 使用 GameStateService.__testOnly__simulatePlayerMessage() 模拟真实的玩家消息路径。
      * 行动顺序从 roles registry 派生：nightmare(2) → guard(3) → wolf(5) → ...
-     * 
+     *
      * 注意：submitAction() 会同时推进测试工厂的 nightFlow 和 service 内部状态，
      * 所以我们用 submitAction 完成 nightmare 行动后，nightFlow 会自动进入 guard 阶段。
      */
@@ -138,7 +143,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       // 7. 验证：ACTION_REJECTED 私信被发送
       const sendPrivateCallsAfter = mockSendPrivate.mock.calls.length;
       expect(sendPrivateCallsAfter).toBe(sendPrivateCallsBefore + 1);
-      
+
       const lastCall = mockSendPrivate.mock.calls[sendPrivateCallsAfter - 1][0];
       expect(lastCall.type).toBe('PRIVATE_EFFECT');
       expect(lastCall.payload.kind).toBe('ACTION_REJECTED');

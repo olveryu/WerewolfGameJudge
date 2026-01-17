@@ -1,9 +1,9 @@
 /**
  * Role Specs Registry
- * 
+ *
  * Single source of truth for all role definitions.
  * Derived from authoritative role files.
- * 
+ *
  * 22 roles total:
  * - Villager faction: villager (1)
  * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic, dreamcatcher, graveyardKeeper (11)
@@ -43,7 +43,8 @@ export const ROLE_SPECS = {
     displayName: '女巫',
     faction: Faction.God,
     team: 'good',
-    description: '拥有一瓶解药和一瓶毒药，每晚可以选择救活被狼人袭击的玩家或毒死一名玩家，每瓶药只能使用一次',
+    description:
+      '拥有一瓶解药和一瓶毒药，每晚可以选择救活被狼人袭击的玩家或毒死一名玩家，每瓶药只能使用一次',
     night1: { hasAction: true },
     // Night-1-only: "女巫不能自救"规则在 schema.witchAction.save.constraints=['notSelf'] 中定义
   },
@@ -54,7 +55,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: 'good',
     description: '被狼人杀害时，可以开枪带走一名玩家。被女巫毒死则不能开枪',
-  night1: { hasAction: true },
+    night1: { hasAction: true },
   },
 
   guard: {
@@ -62,8 +63,9 @@ export const ROLE_SPECS = {
     displayName: '守卫',
     faction: Faction.God,
     team: 'good',
-    description: '每晚可以守护一名玩家使其不被狼人杀害，但不能连续两晚守护同一人。守卫无法防御女巫的毒药',
-  night1: { hasAction: true },
+    description:
+      '每晚可以守护一名玩家使其不被狼人杀害，但不能连续两晚守护同一人。守卫无法防御女巫的毒药',
+    night1: { hasAction: true },
   },
 
   idiot: {
@@ -90,7 +92,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: 'good',
     description: '每晚在其他所有人之前行动，交换2个人的号码牌，当晚有效',
-  night1: { hasAction: true },
+    night1: { hasAction: true },
   },
 
   witcher: {
@@ -98,7 +100,8 @@ export const ROLE_SPECS = {
     displayName: '猎魔人',
     faction: Faction.God,
     team: 'good',
-    description: '从第二晚开始，每晚可选择一名玩家狩猎。若对方是狼人则次日对方出局，若对方是好人则次日猎魔人出局。女巫毒药对猎魔人无效',
+    description:
+      '从第二晚开始，每晚可选择一名玩家狩猎。若对方是狼人则次日对方出局，若对方是好人则次日猎魔人出局。女巫毒药对猎魔人无效',
     // Night-1-only scope: witcher starts from night 2, so no night-1 action
     night1: { hasAction: false },
   },
@@ -109,7 +112,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: 'good',
     description: '每晚可以查验一名玩家的具体身份牌（不只是阵营）',
-  night1: { hasAction: true },
+    night1: { hasAction: true },
   },
 
   dreamcatcher: {
@@ -118,8 +121,9 @@ export const ROLE_SPECS = {
     englishName: 'Dreamcatcher',
     faction: Faction.God,
     team: 'good',
-    description: '每晚必须选择一名玩家成为梦游者，梦游者不知道自己正在梦游，且免疫夜间伤害。摄梦人夜间出局则梦游者一并出局，连续两晚成为梦游者也会出局',
-  night1: { hasAction: true },
+    description:
+      '每晚必须选择一名玩家成为梦游者，梦游者不知道自己正在梦游，且免疫夜间伤害。摄梦人夜间出局则梦游者一并出局，连续两晚成为梦游者也会出局',
+    night1: { hasAction: true },
   },
 
   graveyardKeeper: {
@@ -141,7 +145,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: 'wolf',
     description: '每晚与狼队友共同选择一名玩家猎杀',
-  night1: { hasAction: true },
+    night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
   },
 
@@ -150,8 +154,9 @@ export const ROLE_SPECS = {
     displayName: '狼美人',
     faction: Faction.Wolf,
     team: 'wolf',
-    description: '每晚参与袭击后可魅惑一名玩家，狼美人白天出局时被魅惑者随之殉情出局。被魅惑者不知情',
-  night1: { hasAction: true },
+    description:
+      '每晚参与袭击后可魅惑一名玩家，狼美人白天出局时被魅惑者随之殉情出局。被魅惑者不知情',
+    night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
     flags: { immuneToWolfKill: true },
   },
@@ -173,7 +178,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: 'wolf',
     description: '被刀杀时可以开枪带走一名玩家（狼人版猎人）',
-  night1: { hasAction: true },
+    night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
   },
 
@@ -182,8 +187,9 @@ export const ROLE_SPECS = {
     displayName: '梦魇',
     faction: Faction.Wolf,
     team: 'wolf',
-    description: '每晚在所有人行动之前恐惧一名玩家，使其当夜无法使用技能。不能连续两晚恐惧同一名玩家。首夜进行恐惧时与其他狼人不互知身份；若首夜选择到狼人，则狼人阵营当夜不能刀人。',
-  night1: { hasAction: true },
+    description:
+      '每晚在所有人行动之前恐惧一名玩家，使其当夜无法使用技能。不能连续两晚恐惧同一名玩家。首夜进行恐惧时与其他狼人不互知身份；若首夜选择到狼人，则狼人阵营当夜不能刀人。',
+    night1: { hasAction: true },
     // 狼人刀人阶段：互知+参刀
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
     flags: { blocksSkill: true },
@@ -194,8 +200,9 @@ export const ROLE_SPECS = {
     displayName: '石像鬼',
     faction: Faction.Wolf,
     team: 'wolf',
-    description: '每晚可以查验一名玩家的具体身份。当其他所有狼人出局后，可在夜间进行袭击。石像鬼不参与狼人投票。',
-  night1: { hasAction: true },
+    description:
+      '每晚可以查验一名玩家的具体身份。当其他所有狼人出局后，可在夜间进行袭击。石像鬼不参与狼人投票。',
+    night1: { hasAction: true },
     // 永远不互知不参刀
     wolfMeeting: { canSeeWolves: false, participatesInWolfVote: false },
   },
@@ -205,7 +212,8 @@ export const ROLE_SPECS = {
     displayName: '血月使徒',
     faction: Faction.Wolf,
     team: 'wolf',
-    description: '血月使徒自爆后的当晚所有好人的技能都将会被封印，若血月使徒是最后一个被放逐出局的狼人，他可以存活到下一个白天天亮之后才出局。',
+    description:
+      '血月使徒自爆后的当晚所有好人的技能都将会被封印，若血月使徒是最后一个被放逐出局的狼人，他可以存活到下一个白天天亮之后才出局。',
     // No night-1 action
     night1: { hasAction: false },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
@@ -216,8 +224,9 @@ export const ROLE_SPECS = {
     displayName: '机械狼',
     faction: Faction.Wolf,
     team: 'wolf',
-    description: '与普通狼人互不相认，第一晚最早睁眼学习任一玩家技能并获得其身份，当夜不能使用，下一夜可用。普通狼人全死后带刀，不能自爆（不参与狼人刀人）',
-  night1: { hasAction: true },
+    description:
+      '与普通狼人互不相认，第一晚最早睁眼学习任一玩家技能并获得其身份，当夜不能使用，下一夜可用。普通狼人全死后带刀，不能自爆（不参与狼人刀人）',
+    night1: { hasAction: true },
     // 永远不互知不参刀
     wolfMeeting: { canSeeWolves: false, participatesInWolfVote: false },
   },
@@ -227,7 +236,8 @@ export const ROLE_SPECS = {
     displayName: '恶灵骑士',
     faction: Faction.Wolf,
     team: 'wolf',
-    description: '永久免疫夜间伤害（无法自刀、吃毒不死）。被预言家查验或女巫毒杀，则次日对方神职死亡（反伤）。不能自爆，只能被放逐或猎人枪杀',
+    description:
+      '永久免疫夜间伤害（无法自刀、吃毒不死）。被预言家查验或女巫毒杀，则次日对方神职死亡（反伤）。不能自爆，只能被放逐或猎人枪杀',
     // No night action (passive ability)
     night1: { hasAction: false },
     // 互知+参刀
@@ -242,9 +252,9 @@ export const ROLE_SPECS = {
     id: 'slacker',
     displayName: '混子',
     faction: Faction.Special,
-    team: 'third',  // Before choosing idol; seer sees "好人" (not "第三方")
+    team: 'third', // Before choosing idol; seer sees "好人" (not "第三方")
     description: '第一晚选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份',
-  night1: { hasAction: true },
+    night1: { hasAction: true },
   },
 } as const satisfies Record<string, RoleSpec>;
 

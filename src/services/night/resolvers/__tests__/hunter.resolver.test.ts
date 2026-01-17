@@ -1,6 +1,6 @@
 /**
  * Hunter Resolver Unit Tests
- * 
+ *
  * Tests for hunterConfirmResolver validation logic.
  */
 

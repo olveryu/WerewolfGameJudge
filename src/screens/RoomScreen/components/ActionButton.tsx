@@ -27,10 +27,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
 }) => {
   return (
     <TouchableOpacity
-      style={[
-        styles.actionButton,
-        disabled && styles.disabledButton,
-      ]}
+      style={[styles.actionButton, disabled && styles.disabledButton]}
       onPress={onPress}
       disabled={disabled}
       testID={testID}

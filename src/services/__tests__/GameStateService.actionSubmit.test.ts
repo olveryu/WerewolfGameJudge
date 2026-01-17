@@ -1,12 +1,15 @@
 /**
  * GameStateService Action Submit Tests
- * 
+ *
  * Tests for player action submission flow through handlePlayerAction.
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './boards/hostGameFactory';
+import {
+  createHostGame,
+  cleanupHostGame,
+  HostGameContext,
+} from './boards/hostGameFactory';
 import { RoleId } from '../../models/roles';
-import { NightPhase } from '../NightFlowController';
 
 // =============================================================================
 // Test Fixtures
@@ -57,7 +60,7 @@ describe('GameStateService Action Submit', () => {
 
       const state = ctx.getState();
       expect(state).not.toBeNull();
-      
+
       const wolfAction = state!.actions.get('wolf');
       expect(wolfAction).toBeDefined();
     });
@@ -169,8 +172,8 @@ describe('GameStateService Action Submit', () => {
 
       const result = await ctx.runNight({
         nightmare: 11, // block guard at seat 11
-        guard: 2,      // guard tries to protect seat 2
-        wolf: 2,       // wolf kills seat 2
+        guard: 2, // guard tries to protect seat 2
+        wolf: 2, // wolf kills seat 2
         witch: null,
         seer: 4,
         hunter: null,
@@ -184,10 +187,10 @@ describe('GameStateService Action Submit', () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        nightmare: 9,  // block witch at seat 9
+        nightmare: 9, // block witch at seat 9
         guard: 1,
         wolf: 2,
-        witch: 2,      // witch tries to save (blocked)
+        witch: 2, // witch tries to save (blocked)
         seer: 4,
         hunter: null,
       });

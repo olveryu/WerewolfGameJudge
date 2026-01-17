@@ -1,6 +1,6 @@
 /**
  * Witch Resolver (HOST-ONLY)
- * 
+ *
  * Validates witch action (save/poison compound) and computes result.
  */
 
@@ -15,51 +15,48 @@ function validateSaveAction(
   if (!hasAntidote) {
     return '解药已用完';
   }
-  
+
   // Night-1-only: 女巫不能自救
   // 此规则与 schema.witchAction.save.constraints=['notSelf'] 对齐
   if (saveTarget === actorSeat) {
     return '女巫不能自救';
   }
-  
+
   if (saveTarget !== wolfKillTarget) {
     return '只能救被狼人袭击的玩家';
   }
-  
+
   return null;
 }
 
-function validatePoisonAction(
-  hasPoison: boolean,
-  hasSaveTarget: boolean,
-): string | null {
+function validatePoisonAction(hasPoison: boolean, hasSaveTarget: boolean): string | null {
   if (!hasPoison) {
     return '毒药已用完';
   }
-  
+
   if (hasSaveTarget) {
     return '同一晚不能同时使用解药和毒药';
   }
-  
+
   return null;
 }
 
 export const witchActionResolver: ResolverFn = (context, input): ResolverResult => {
   const { actorSeat, gameState, currentNightResults } = context;
   const stepResults = input.stepResults;
-  
+
   if (!stepResults) {
     return { valid: false, rejectReason: '缺少行动数据' };
   }
-  
+
   const saveTarget = stepResults.save ?? null;
   const poisonTarget = stepResults.poison ?? null;
-  
+
   // Check blocked by nightmare
   if (currentNightResults.blockedSeat === actorSeat) {
     return { valid: true, result: {} };
   }
-  
+
   // Validate save action
   if (saveTarget !== null) {
     const error = validateSaveAction(
@@ -72,18 +69,15 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
       return { valid: false, rejectReason: error };
     }
   }
-  
+
   // Validate poison action
   if (poisonTarget !== null) {
-    const error = validatePoisonAction(
-      gameState?.witchHasPoison ?? true,
-      saveTarget !== null,
-    );
+    const error = validatePoisonAction(gameState?.witchHasPoison ?? true, saveTarget !== null);
     if (error) {
       return { valid: false, rejectReason: error };
     }
   }
-  
+
   return {
     valid: true,
     updates: {

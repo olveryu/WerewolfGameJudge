@@ -5,7 +5,12 @@
  * 行动顺序：wolf → witch → seer → hunter
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './hostGameFactory';
+import {
+  createHostGame,
+  cleanupHostGame,
+  HostGameContext,
+  mockSendPrivate,
+} from './hostGameFactory';
 import { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '标准板12人';
@@ -94,7 +99,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       });
 
       const seerRevealCalls = mockSendPrivate.mock.calls.filter(
-        (call) => call[0]?.payload?.kind === 'SEER_REVEAL'
+        (call) => call[0]?.payload?.kind === 'SEER_REVEAL',
       );
 
       expect(seerRevealCalls.length).toBeGreaterThan(0);
@@ -113,7 +118,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       });
 
       const seerRevealCalls = mockSendPrivate.mock.calls.filter(
-        (call) => call[0]?.payload?.kind === 'SEER_REVEAL'
+        (call) => call[0]?.payload?.kind === 'SEER_REVEAL',
       );
 
       expect(seerRevealCalls.length).toBeGreaterThan(0);

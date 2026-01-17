@@ -1,6 +1,6 @@
 /**
  * RevealResult.stories.tsx - Stories for reveal result displays
- * 
+ *
  * Shows different reveal results for Seer, Psychic, and other checking roles.
  */
 
@@ -22,10 +22,7 @@ const SeerReveal: React.FC<SeerRevealProps> = ({ targetSeat, result }) => (
     <Text style={styles.title}>🔮 查验结果</Text>
     <View style={styles.divider} />
     <Text style={styles.targetText}>{targetSeat}号玩家</Text>
-    <View style={[
-      styles.resultBadge,
-      result === '狼人' ? styles.wolfBadge : styles.goodBadge
-    ]}>
+    <View style={[styles.resultBadge, result === '狼人' ? styles.wolfBadge : styles.goodBadge]}>
       <Text style={styles.resultText}>{result}</Text>
     </View>
   </View>
@@ -73,13 +70,8 @@ const GargoyleReveal: React.FC<GargoyleRevealProps> = ({ targetSeat, isSameTeam 
     <Text style={styles.title}>🗿 石像鬼查验</Text>
     <View style={styles.divider} />
     <Text style={styles.targetText}>{targetSeat}号玩家</Text>
-    <View style={[
-      styles.resultBadge,
-      isSameTeam ? styles.wolfBadge : styles.notSameBadge
-    ]}>
-      <Text style={styles.resultText}>
-        {isSameTeam ? '是狼队友' : '不是狼队友'}
-      </Text>
+    <View style={[styles.resultBadge, isSameTeam ? styles.wolfBadge : styles.notSameBadge]}>
+      <Text style={styles.resultText}>{isSameTeam ? '是狼队友' : '不是狼队友'}</Text>
     </View>
   </View>
 );
@@ -98,13 +90,8 @@ const DreamcatcherReveal: React.FC<DreamcatcherRevealProps> = ({ targetSeat, was
     <Text style={styles.title}>🌙 摄梦结果</Text>
     <View style={styles.divider} />
     <Text style={styles.targetText}>{targetSeat}号玩家</Text>
-    <View style={[
-      styles.resultBadge,
-      wasVisited ? styles.visitedBadge : styles.notVisitedBadge
-    ]}>
-      <Text style={styles.resultText}>
-        {wasVisited ? '昨晚有行动' : '昨晚没有行动'}
-      </Text>
+    <View style={[styles.resultBadge, wasVisited ? styles.visitedBadge : styles.notVisitedBadge]}>
+      <Text style={styles.resultText}>{wasVisited ? '昨晚有行动' : '昨晚没有行动'}</Text>
     </View>
   </View>
 );

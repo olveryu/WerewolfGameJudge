@@ -43,7 +43,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
             role: i === 0 ? 'hunter' : 'villager',
             hasViewedRole: true,
           },
-        ])
+        ]),
       ),
       actions: new Map(),
       wolfVotes: new Map(),
@@ -59,7 +59,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     connectionStatus: 'live',
 
     isHost: false,
-  roomStatus: require('../../../models/Room').GameStatus.ongoing,
+    roomStatus: require('../../../models/Room').GameStatus.ongoing,
 
     currentActionRole: 'hunter',
     currentSchema: ((): any => {
@@ -115,7 +115,12 @@ jest.mock('../hooks/useActionerState', () => ({
 
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showConfirmDialog: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
+    showConfirmDialog: (
+      title: string,
+      message: string,
+      onConfirm: () => void,
+      onCancel?: () => void,
+    ) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       mockShowAlert(title, message, [
         { text: '取消', onPress: onCancel },
@@ -173,14 +178,14 @@ describe('RoomScreen hunter status UI (smoke)', () => {
 
     const screen = render(<RoomScreen {...props} />);
 
-  // Wait for RoomScreen to finish initialization (leave loading screen)
-  await screen.findByTestId(TESTIDS.roomScreenRoot);
+    // Wait for RoomScreen to finish initialization (leave loading screen)
+    await screen.findByTestId(TESTIDS.roomScreenRoot);
 
     // Confirm schema: seat tap should have NO effect.
     // Action is triggered via bottom button only.
     const seatPressable = await screen.findByTestId(TESTIDS.seatTilePressable(0));
     await act(async () => {
-  fireEvent.press(seatPressable);
+      fireEvent.press(seatPressable);
     });
 
     // Verify NO confirmation dialog was shown (seat tap has no effect for confirm schema)
@@ -190,7 +195,7 @@ describe('RoomScreen hunter status UI (smoke)', () => {
       expect(statusCall).toBeFalsy();
     });
 
-  // Verify submitAction was NOT called
-  expect(mockSubmitAction).not.toHaveBeenCalled();
+    // Verify submitAction was NOT called
+    expect(mockSubmitAction).not.toHaveBeenCalled();
   });
 });

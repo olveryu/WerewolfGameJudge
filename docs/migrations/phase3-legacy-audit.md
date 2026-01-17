@@ -18,16 +18,16 @@ Phase 3 migration is complete. All legacy `ACTION_ORDER` / `getNightActionOrderF
 
 ### 代码引用（已迁移/删除）
 
-| 文件 | 原行号 | 类型 | 状态 |
-|------|--------|------|------|
-| `src/models/roles/index.ts` | 366 | 定义 | ✅ 删除 |
-| `src/models/roles/index.ts` | 322 | 定义 | ✅ 删除 |
-| `src/models/__tests__/roles.registry.contract.test.ts` | 2, 84-85, 91-111 | 测试 | ✅ 删除 ACTION_ORDER suite |
-| `src/models/__tests__/roles.registry.contract.test.ts` | 12, 206-227 | 测试 | ✅ 删除 getNightActionOrderForRoles suite |
-| `src/models/__tests__/roles.registry.contract.test.ts` | 256-310 | 测试 | ✅ 删除 NightPlan compat suite |
-| `src/models/__tests__/Template.test.ts` | 8, 30-45 | 测试 | ✅ 迁移到 getActionOrderViaNightPlan |
-| `src/models/__tests__/Template.contract.test.ts` | 15, 69-75 | 测试 | ✅ 迁移到 getActionOrderViaNightPlan |
-| `src/models/__tests__/Room.test.ts` | 20, 27, 630, 673, 717 | 测试 | ✅ 迁移到 getActionOrderViaNightPlan |
+| 文件                                                   | 原行号                | 类型 | 状态                                      |
+| ------------------------------------------------------ | --------------------- | ---- | ----------------------------------------- |
+| `src/models/roles/index.ts`                            | 366                   | 定义 | ✅ 删除                                   |
+| `src/models/roles/index.ts`                            | 322                   | 定义 | ✅ 删除                                   |
+| `src/models/__tests__/roles.registry.contract.test.ts` | 2, 84-85, 91-111      | 测试 | ✅ 删除 ACTION_ORDER suite                |
+| `src/models/__tests__/roles.registry.contract.test.ts` | 12, 206-227           | 测试 | ✅ 删除 getNightActionOrderForRoles suite |
+| `src/models/__tests__/roles.registry.contract.test.ts` | 256-310               | 测试 | ✅ 删除 NightPlan compat suite            |
+| `src/models/__tests__/Template.test.ts`                | 8, 30-45              | 测试 | ✅ 迁移到 getActionOrderViaNightPlan      |
+| `src/models/__tests__/Template.contract.test.ts`       | 15, 69-75             | 测试 | ✅ 迁移到 getActionOrderViaNightPlan      |
+| `src/models/__tests__/Room.test.ts`                    | 20, 27, 630, 673, 717 | 测试 | ✅ 迁移到 getActionOrderViaNightPlan      |
 
 ---
 
@@ -35,22 +35,22 @@ Phase 3 migration is complete. All legacy `ACTION_ORDER` / `getNightActionOrderF
 
 ### `src/hooks/useGameRoom.ts`
 
-| 新增字段 | 说明 |
-|----------|------|
+| 新增字段          | 说明                                    |
+| ----------------- | --------------------------------------- |
 | `currentSchemaId` | 从 `currentActionRole` 本地查 spec 得到 |
-| `currentSchema` | 从 `currentSchemaId` 本地查 schema 得到 |
+| `currentSchema`   | 从 `currentSchemaId` 本地查 schema 得到 |
 
 ### `src/screens/RoomScreen/hooks/useRoomActions.ts`
 
-| 原代码 | 新代码 | 状态 |
-|--------|--------|------|
-| `if (myRole === 'witch')` | `if (currentSchema?.kind === 'compound')` | ✅ |
-| `if (myRole === 'hunter')` | `if (currentSchema?.kind === 'confirm')` | ✅ |
-| `if (myRole === 'darkWolfKing')` | `if (currentSchema?.kind === 'confirm')` | ✅ |
-| `if (myRole === 'magician' && ...)` | `if (currentSchema?.kind === 'swap' && ...)` | ✅ |
-| `if (myRole === 'seer')` | `if (currentSchema?.kind === 'chooseSeat')` | ✅ |
-| `if (myRole === 'psychic')` | `if (currentSchema?.kind === 'chooseSeat')` | ✅ |
-| `if (currentActionRole === 'wolf' && ...)` | `if (currentSchema?.kind === 'wolfVote' && ...)` | ✅ |
+| 原代码                                     | 新代码                                           | 状态 |
+| ------------------------------------------ | ------------------------------------------------ | ---- |
+| `if (myRole === 'witch')`                  | `if (currentSchema?.kind === 'compound')`        | ✅   |
+| `if (myRole === 'hunter')`                 | `if (currentSchema?.kind === 'confirm')`         | ✅   |
+| `if (myRole === 'darkWolfKing')`           | `if (currentSchema?.kind === 'confirm')`         | ✅   |
+| `if (myRole === 'magician' && ...)`        | `if (currentSchema?.kind === 'swap' && ...)`     | ✅   |
+| `if (myRole === 'seer')`                   | `if (currentSchema?.kind === 'chooseSeat')`      | ✅   |
+| `if (myRole === 'psychic')`                | `if (currentSchema?.kind === 'chooseSeat')`      | ✅   |
+| `if (currentActionRole === 'wolf' && ...)` | `if (currentSchema?.kind === 'wolfVote' && ...)` | ✅   |
 
 ---
 
@@ -60,23 +60,24 @@ Phase 3 migration is complete. All legacy `ACTION_ORDER` / `getNightActionOrderF
 npm run typecheck  # ✅ Passed
 npm test           # ✅ 711 tests passed
 ```
+
 | 276 | `if (currentActionRole === 'wolf' && isWolfRole(myRole))` | wolf vote | 改为 `schema.kind === 'wolfVote'` |
 | 304 | `if (currentActionRole === 'wolf' && isWolfRole(myRole))` | wolf vote 文案 | 同上 |
 
 ### `src/screens/RoomScreen/RoomScreen.helpers.ts`
 
-| 行号 | 代码 | 说明 | 处理方式 |
-|------|------|------|---------|
-| 83 | `if (currentActionRole === 'nightmare' && myRole === 'nightmare')` | nightmare block | 可由 spec.night1.actsSolo 本地推导 |
-| 93 | `if (currentActionRole === 'wolf' && myRole && isWolfRole(myRole))` | wolf vote visibility | 改为 `schema.kind === 'wolfVote'` |
-| 111 | `if (myRole === 'wolf' && mySeatNumber !== null && wolfVotes.has(mySeatNumber))` | wolf vote status | 保留（这是状态判断，不是渲染分支）|
+| 行号 | 代码                                                                             | 说明                 | 处理方式                           |
+| ---- | -------------------------------------------------------------------------------- | -------------------- | ---------------------------------- |
+| 83   | `if (currentActionRole === 'nightmare' && myRole === 'nightmare')`               | nightmare block      | 可由 spec.night1.actsSolo 本地推导 |
+| 93   | `if (currentActionRole === 'wolf' && myRole && isWolfRole(myRole))`              | wolf vote visibility | 改为 `schema.kind === 'wolfVote'`  |
+| 111  | `if (myRole === 'wolf' && mySeatNumber !== null && wolfVotes.has(mySeatNumber))` | wolf vote status     | 保留（这是状态判断，不是渲染分支） |
 
 ---
 
 ## 3. UI 依赖 actionOrder 的位置
 
-| 文件 | 行号 | 说明 | 处理方式 |
-|------|------|------|---------|
+| 文件                                                          | 行号     | 说明                   | 处理方式                              |
+| ------------------------------------------------------------- | -------- | ---------------------- | ------------------------------------- |
 | `src/screens/RoomScreen/__tests__/RoomScreen.helpers.test.ts` | 178, 212 | 测试用的 mock template | 迁移到用 `getActionOrderViaNightPlan` |
 
 ---
@@ -86,6 +87,7 @@ npm test           # ✅ 711 tests passed
 ### Step 3.2（UI schema-driven）
 
 优先级排序：
+
 1. **高收益、低风险**：`confirm` schema（hunter/darkWolfKing）
 2. **高收益、中风险**：`wolfVote` schema
 3. **中收益、中风险**：`chooseSeat` schema（seer/psychic/guard 等）
@@ -95,6 +97,7 @@ npm test           # ✅ 711 tests passed
 ### Step 3.4（删除 legacy）
 
 删除顺序：
+
 1. 删除 `roles.registry.contract.test.ts` 的 legacy suites（3 个 describe）
 2. 迁移 `Template.test.ts` / `Template.contract.test.ts` / `Room.test.ts`
 3. 删除 `ActionFlow.test.ts` 的 ACTION_ORDER 注释

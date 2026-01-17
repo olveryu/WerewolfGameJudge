@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
  * E2E Web Server Launcher
- * 
+ *
  * Loads Supabase configuration based on E2E_ENV and starts Expo web server.
- * 
+ *
  * Usage:
  *   E2E_ENV=local node scripts/run-e2e-web.mjs   # Use local Supabase (127.0.0.1:54321)
  *   E2E_ENV=remote node scripts/run-e2e-web.mjs  # Use remote Supabase (production/shared)
- * 
+ *
  * Default: E2E_ENV=local
  */
 
@@ -51,7 +51,7 @@ try {
 
 // Validate required fields
 const requiredFields = ['EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_ANON_KEY'];
-const missing = requiredFields.filter(field => !config[field]);
+const missing = requiredFields.filter((field) => !config[field]);
 
 // For remote env, allow override from environment variables
 if (e2eEnv === 'remote') {
@@ -63,11 +63,13 @@ if (e2eEnv === 'remote') {
 }
 
 // Re-check after env override
-const stillMissing = requiredFields.filter(field => !config[field]);
+const stillMissing = requiredFields.filter((field) => !config[field]);
 if (stillMissing.length > 0) {
   console.error(`❌ Missing required config fields: ${stillMissing.join(', ')}`);
   if (e2eEnv === 'remote') {
-    console.error('   For remote env, set these via environment variables or edit env/e2e.remote.json');
+    console.error(
+      '   For remote env, set these via environment variables or edit env/e2e.remote.json',
+    );
   }
   process.exit(1);
 }
@@ -84,7 +86,9 @@ if (!E2E_BASE_URL) {
 // Log configuration (not the key for security)
 console.log(`🌐 E2E Base URL: ${E2E_BASE_URL} (from playwright.config.ts)`);
 console.log(`📡 Supabase URL: ${config.EXPO_PUBLIC_SUPABASE_URL}`);
-console.log(`🔑 Supabase Key: [configured, ${config.EXPO_PUBLIC_SUPABASE_ANON_KEY.length} chars]\n`);
+console.log(
+  `🔑 Supabase Key: [configured, ${config.EXPO_PUBLIC_SUPABASE_ANON_KEY.length} chars]\n`,
+);
 
 // Prepare environment for child process
 const childEnv = {
@@ -116,7 +120,7 @@ child.on('exit', (code) => {
 });
 
 // Forward signals to child process
-['SIGINT', 'SIGTERM'].forEach(signal => {
+['SIGINT', 'SIGTERM'].forEach((signal) => {
   process.on(signal, () => {
     child.kill(signal);
   });

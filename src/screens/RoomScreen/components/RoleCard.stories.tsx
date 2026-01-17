@@ -1,6 +1,6 @@
 /**
  * RoleCard.stories.tsx - Stories for role card display
- * 
+ *
  * Shows how different roles are displayed when players view their identity.
  */
 
@@ -32,12 +32,7 @@ const factionLabels: Record<Faction, string> = {
   special: '第三方',
 };
 
-const RoleCard: React.FC<RoleCardProps> = ({
-  roleName,
-  displayName,
-  description,
-  faction,
-}) => (
+const RoleCard: React.FC<RoleCardProps> = ({ roleName, displayName, description, faction }) => (
   <View style={[styles.card, { borderColor: factionColors[faction] }]}>
     <View style={[styles.header, { backgroundColor: factionColors[faction] }]}>
       <Text style={styles.factionLabel}>{factionLabels[faction]}</Text>

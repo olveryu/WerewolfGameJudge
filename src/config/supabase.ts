@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // ============================================
 // SUPABASE CONFIGURATION
 // ============================================
-// 
+//
 // To set up Supabase:
 // 1. Go to https://supabase.com and create a free account
 // 2. Create a new project
@@ -19,9 +19,11 @@ const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUP
 
 // Check if Supabase is configured with valid credentials
 export const isSupabaseConfigured = (): boolean => {
-  return SUPABASE_URL !== 'YOUR_SUPABASE_URL' && 
-         SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY' &&
-         (SUPABASE_URL.startsWith('https://') || SUPABASE_URL.startsWith('http://'));
+  return (
+    SUPABASE_URL !== 'YOUR_SUPABASE_URL' &&
+    SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY' &&
+    (SUPABASE_URL.startsWith('https://') || SUPABASE_URL.startsWith('http://'))
+  );
 };
 
 // Detect if running in browser environment

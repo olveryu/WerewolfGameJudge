@@ -7,25 +7,12 @@
  * 3. All RoleId values map to valid role specs
  * 4. Role metadata (displayName, faction, etc.) is complete
  */
-import {
-  ROLE_SPECS,
-  getRoleSpec,
-  isValidRoleId,
-  getAllRoleIds,
-  RoleId,
-} from '../roles';
+import { ROLE_SPECS, getRoleSpec, isValidRoleId, getAllRoleIds, RoleId } from '../roles';
 
 describe('Role Registry Contract Tests', () => {
   describe('ROLE_SPECS is single source of truth', () => {
     it('ROLE_SPECS contains all expected base roles', () => {
-      const baseRoles: RoleId[] = [
-        'villager',
-        'wolf',
-        'seer',
-        'witch',
-        'hunter',
-        'guard',
-      ];
+      const baseRoles: RoleId[] = ['villager', 'wolf', 'seer', 'witch', 'hunter', 'guard'];
       for (const roleId of baseRoles) {
         expect(ROLE_SPECS[roleId]).toBeDefined();
       }
@@ -91,19 +78,12 @@ describe('Role Registry Contract Tests', () => {
         const spec = getRoleSpec(roleId);
         expect(spec.displayName).toBeTruthy();
         expect(spec.faction).toBeTruthy();
-        expect(['villager', 'wolf', 'god', 'special']).toContain(
-          spec.faction
-        );
+        expect(['villager', 'wolf', 'god', 'special']).toContain(spec.faction);
       }
     });
 
     it('wolf faction roles are marked correctly', () => {
-      const wolfRoles: RoleId[] = [
-        'wolf',
-        'wolfQueen',
-        'wolfRobot',
-        'darkWolfKing',
-      ];
+      const wolfRoles: RoleId[] = ['wolf', 'wolfQueen', 'wolfRobot', 'darkWolfKing'];
       for (const roleId of wolfRoles) {
         const spec = getRoleSpec(roleId);
         expect(spec.faction).toBe('wolf');

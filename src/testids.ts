@@ -24,7 +24,7 @@ export const TESTIDS = {
   homeEnterRoomButton: 'home-enter-room-button',
   homeCreateRoomButton: 'home-create-room-button',
   homeReturnLastGameButton: 'home-return-last-game-button',
-  
+
   // User bar / login (HomeScreen)
   homeUserBar: 'home-user-bar',
   homeUserName: 'home-user-name',

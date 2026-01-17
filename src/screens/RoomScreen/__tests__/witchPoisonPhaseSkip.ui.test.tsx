@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 import { RoomScreen } from '../RoomScreen';
 import { showAlert } from '../../../utils/alert';
 
@@ -42,7 +42,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
             role: i === 0 ? 'witch' : 'villager',
             hasViewedRole: true,
           },
-        ])
+        ]),
       ),
       actions: new Map(),
       wolfVotes: new Map(),
@@ -92,7 +92,9 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     waitForActionRejected: jest.fn().mockResolvedValue(null),
 
     // Provide witch context (phase field removed).
-    getWitchContext: jest.fn().mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: 2, canSave: true, canPoison: true }),
+    getWitchContext: jest
+      .fn()
+      .mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: 2, canSave: true, canPoison: true }),
     getLastNightInfo: jest.fn().mockReturnValue(''),
     getLastNightDeaths: jest.fn().mockReturnValue([]),
 
@@ -137,7 +139,12 @@ jest.mock('../useRoomActionDialogs', () => ({
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       mockShowAlert('女巫信息', '提示', [{ text: '知道了', onPress: onDismiss }]);
     },
-    showWitchSaveDialog: (killedIndex: number, canSave: boolean, _onSave: () => void, onSkip: () => void) => {
+    showWitchSaveDialog: (
+      killedIndex: number,
+      canSave: boolean,
+      _onSave: () => void,
+      onSkip: () => void,
+    ) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       mockShowAlert(`昨夜倒台玩家为${killedIndex + 1}号`, '是否救助?', [
         { text: '救助', onPress: jest.fn() },
@@ -149,7 +156,12 @@ jest.mock('../useRoomActionDialogs', () => ({
       mockShowAlert(title, message, [{ text: '好', onPress: onDismiss }]);
     },
     showWitchPoisonConfirm: jest.fn(),
-    showConfirmDialog: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
+    showConfirmDialog: (
+      title: string,
+      message: string,
+      onConfirm: () => void,
+      onCancel?: () => void,
+    ) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       mockShowAlert(title, message, [
         { text: '确定', onPress: onConfirm },
@@ -201,18 +213,18 @@ describe('RoomScreen witch poison phase skip UI (smoke)', () => {
       },
     };
 
-  render(<RoomScreen {...props} />);
+    render(<RoomScreen {...props} />);
 
-  // Auto-trigger prompt should show
+    // Auto-trigger prompt should show
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
-        expect.any(Array)
+        expect.any(Array),
       );
     });
 
-  // Keep this smoke test lightweight and only verify prompt wiring.
-  expect(mockSubmitAction).not.toHaveBeenCalled();
+    // Keep this smoke test lightweight and only verify prompt wiring.
+    expect(mockSubmitAction).not.toHaveBeenCalled();
   });
 });

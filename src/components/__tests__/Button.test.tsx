@@ -26,17 +26,15 @@ describe('Button', () => {
   describe('Rendering', () => {
     it('should render button title', () => {
       const { getByText } = render(<Button {...defaultProps} />);
-      
+
       expect(getByText('Test Button')).toBeTruthy();
     });
 
     it('should render with icon when provided', () => {
       const icon = <Text testID="test-icon">Icon</Text>;
-      
-      const { getByTestId, getByText } = render(
-        <Button {...defaultProps} icon={icon} />
-      );
-      
+
+      const { getByTestId, getByText } = render(<Button {...defaultProps} icon={icon} />);
+
       expect(getByTestId('test-icon')).toBeTruthy();
       expect(getByText('Test Button')).toBeTruthy();
     });
@@ -45,31 +43,25 @@ describe('Button', () => {
   describe('Variants', () => {
     it('should render primary variant by default', () => {
       const { getByText } = render(<Button {...defaultProps} />);
-      
+
       expect(getByText('Test Button')).toBeTruthy();
     });
 
     it('should render secondary variant', () => {
-      const { getByText } = render(
-        <Button {...defaultProps} variant="secondary" />
-      );
-      
+      const { getByText } = render(<Button {...defaultProps} variant="secondary" />);
+
       expect(getByText('Test Button')).toBeTruthy();
     });
 
     it('should render danger variant', () => {
-      const { getByText } = render(
-        <Button {...defaultProps} variant="danger" />
-      );
-      
+      const { getByText } = render(<Button {...defaultProps} variant="danger" />);
+
       expect(getByText('Test Button')).toBeTruthy();
     });
 
     it('should render outline variant', () => {
-      const { getByText } = render(
-        <Button {...defaultProps} variant="outline" />
-      );
-      
+      const { getByText } = render(<Button {...defaultProps} variant="outline" />);
+
       expect(getByText('Test Button')).toBeTruthy();
     });
   });
@@ -77,23 +69,19 @@ describe('Button', () => {
   describe('Sizes', () => {
     it('should render medium size by default', () => {
       const { getByText } = render(<Button {...defaultProps} />);
-      
+
       expect(getByText('Test Button')).toBeTruthy();
     });
 
     it('should render small size', () => {
-      const { getByText } = render(
-        <Button {...defaultProps} size="small" />
-      );
-      
+      const { getByText } = render(<Button {...defaultProps} size="small" />);
+
       expect(getByText('Test Button')).toBeTruthy();
     });
 
     it('should render large size', () => {
-      const { getByText } = render(
-        <Button {...defaultProps} size="large" />
-      );
-      
+      const { getByText } = render(<Button {...defaultProps} size="large" />);
+
       expect(getByText('Test Button')).toBeTruthy();
     });
   });
@@ -101,32 +89,26 @@ describe('Button', () => {
   describe('Interactions', () => {
     it('should call onPress when pressed', () => {
       const onPress = jest.fn();
-      const { getByText } = render(
-        <Button {...defaultProps} onPress={onPress} />
-      );
-      
+      const { getByText } = render(<Button {...defaultProps} onPress={onPress} />);
+
       fireEvent.press(getByText('Test Button'));
-      
+
       expect(onPress).toHaveBeenCalledTimes(1);
     });
 
     it('should not call onPress when disabled', () => {
       const onPress = jest.fn();
-      const { getByText } = render(
-        <Button {...defaultProps} onPress={onPress} disabled={true} />
-      );
-      
+      const { getByText } = render(<Button {...defaultProps} onPress={onPress} disabled={true} />);
+
       fireEvent.press(getByText('Test Button'));
-      
+
       expect(onPress).not.toHaveBeenCalled();
     });
 
     it('should not call onPress when loading', () => {
       const onPress = jest.fn();
-      const { queryByText } = render(
-        <Button {...defaultProps} onPress={onPress} loading={true} />
-      );
-      
+      const { queryByText } = render(<Button {...defaultProps} onPress={onPress} loading={true} />);
+
       // When loading, title is not rendered (ActivityIndicator is shown instead)
       expect(queryByText('Test Button')).toBeNull();
     });
@@ -134,41 +116,35 @@ describe('Button', () => {
 
   describe('Loading state', () => {
     it('should show ActivityIndicator when loading', () => {
-      const { queryByText } = render(
-        <Button {...defaultProps} loading={true} />
-      );
-      
+      const { queryByText } = render(<Button {...defaultProps} loading={true} />);
+
       // Title should not be visible when loading
       expect(queryByText('Test Button')).toBeNull();
     });
 
     it('should show title when not loading', () => {
-      const { getByText } = render(
-        <Button {...defaultProps} loading={false} />
-      );
-      
+      const { getByText } = render(<Button {...defaultProps} loading={false} />);
+
       expect(getByText('Test Button')).toBeTruthy();
     });
   });
 
   describe('Disabled state', () => {
     it('should render with disabled style when disabled', () => {
-      const { getByText } = render(
-        <Button {...defaultProps} disabled={true} />
-      );
-      
+      const { getByText } = render(<Button {...defaultProps} disabled={true} />);
+
       // Just verify it renders without crashing
       expect(getByText('Test Button')).toBeTruthy();
     });
 
     it('should be disabled when loading', () => {
       const onPress = jest.fn();
-      
+
       // Render directly with loading=true
       const { UNSAFE_getByType } = render(
-        <Button {...defaultProps} onPress={onPress} loading={true} />
+        <Button {...defaultProps} onPress={onPress} loading={true} />,
       );
-      
+
       // When loading, button shows ActivityIndicator instead of text
       expect(UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
     });
@@ -176,18 +152,14 @@ describe('Button', () => {
 
   describe('Custom styles', () => {
     it('should apply custom style', () => {
-      const { getByText } = render(
-        <Button {...defaultProps} style={{ marginTop: 10 }} />
-      );
-      
+      const { getByText } = render(<Button {...defaultProps} style={{ marginTop: 10 }} />);
+
       expect(getByText('Test Button')).toBeTruthy();
     });
 
     it('should apply custom textStyle', () => {
-      const { getByText } = render(
-        <Button {...defaultProps} textStyle={{ fontWeight: 'bold' }} />
-      );
-      
+      const { getByText } = render(<Button {...defaultProps} textStyle={{ fontWeight: 'bold' }} />);
+
       expect(getByText('Test Button')).toBeTruthy();
     });
   });

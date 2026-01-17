@@ -1,8 +1,8 @@
 /**
  * Nightmare Resolver Unit Tests
- * 
+ *
  * Tests for nightmareBlockResolver validation and resolution logic.
- * 
+ *
  * IMPORTANT: If nightmare blocks a wolf, wolves cannot kill that night.
  */
 

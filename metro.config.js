@@ -6,9 +6,6 @@ const config = getDefaultConfig(__dirname);
 
 // Exclude legacy .env.e2e.local from Metro bundler (defensive)
 // New E2E config is in env/*.json and loaded by scripts/run-e2e-web.mjs
-config.resolver.blockList = [
-  ...(config.resolver.blockList || []),
-  /\.env\.e2e\.local$/,
-];
+config.resolver.blockList = [...(config.resolver.blockList || []), /\.env\.e2e\.local$/];
 
 module.exports = config;

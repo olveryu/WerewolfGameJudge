@@ -2,10 +2,12 @@ import { GameTemplate } from '../models/Template';
 
 export type RootStackParamList = {
   Home: undefined;
-  Config: {
-    // Optional: if provided, update existing room instead of creating new one
-    existingRoomNumber?: string;
-  } | undefined;
+  Config:
+    | {
+        // Optional: if provided, update existing room instead of creating new one
+        existingRoomNumber?: string;
+      }
+    | undefined;
   Room: {
     roomNumber: string;
     isHost: boolean;

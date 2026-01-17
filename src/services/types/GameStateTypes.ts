@@ -1,12 +1,12 @@
 /**
  * GameStateTypes - Pure type definitions extracted from GameStateService
- * 
+ *
  * This file contains only:
  * - Enums
  * - Interfaces
  * - Type aliases
  * - Pure mapping functions (no side effects)
- * 
+ *
  * No runtime logic or service dependencies.
  */
 
@@ -18,12 +18,12 @@ import { GameTemplate } from '../../models/Template';
 // =============================================================================
 
 export enum GameStatus {
-  unseated = 'unseated',    // Waiting for players to join
-  seated = 'seated',        // All seats filled, waiting for host to assign roles
-  assigned = 'assigned',    // Roles assigned, players viewing their cards
-  ready = 'ready',          // All players have viewed cards, ready to start
-  ongoing = 'ongoing',      // Night phase in progress
-  ended = 'ended',          // Game ended (first night complete)
+  unseated = 'unseated', // Waiting for players to join
+  seated = 'seated', // All seats filled, waiting for host to assign roles
+  assigned = 'assigned', // Roles assigned, players viewing their cards
+  ready = 'ready', // All players have viewed cards, ready to start
+  ongoing = 'ongoing', // Night phase in progress
+  ended = 'ended', // Game ended (first night complete)
 }
 
 // =============================================================================
@@ -50,9 +50,9 @@ export interface LocalGameState {
   hostUid: string;
   status: GameStatus;
   template: GameTemplate;
-  players: Map<number, LocalPlayer | null>;  // seat -> player
-  actions: Map<RoleId, RoleAction>;  // role -> structured action
-  wolfVotes: Map<number, number>;  // wolf seat -> target
+  players: Map<number, LocalPlayer | null>; // seat -> player
+  actions: Map<RoleId, RoleAction>; // role -> structured action
+  wolfVotes: Map<number, number>; // wolf seat -> target
   currentActionerIndex: number;
   /**
    * UI-only: authoritative current stepId broadcast from Host via ROLE_TURN.
@@ -61,8 +61,8 @@ export interface LocalGameState {
    */
   currentStepId?: import('../../models/roles/spec').SchemaId;
   isAudioPlaying: boolean;
-  lastNightDeaths: number[];  // Calculated after night ends
-  nightmareBlockedSeat?: number;  // Seat blocked by nightmare (skill disabled for this night)
+  lastNightDeaths: number[]; // Calculated after night ends
+  nightmareBlockedSeat?: number; // Seat blocked by nightmare (skill disabled for this night)
 }
 
 // =============================================================================

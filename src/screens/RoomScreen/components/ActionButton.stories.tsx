@@ -1,6 +1,6 @@
 /**
  * ActionButton.stories.tsx - Stories for the generic action button component
- * 
+ *
  * This tests the button component itself (enabled/disabled states, click behavior).
  * Business-specific labels come from schemas and are tested at higher levels.
  */

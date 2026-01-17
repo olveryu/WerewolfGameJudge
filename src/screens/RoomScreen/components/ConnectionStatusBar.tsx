@@ -27,31 +27,38 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
 }) => {
   const getStatusStyle = () => {
     switch (status) {
-      case 'live': return styles.statusLive;
-      case 'syncing': return styles.statusSyncing;
-      case 'connecting': return styles.statusConnecting;
-      case 'disconnected': return styles.statusDisconnected;
-      default: return undefined;
+      case 'live':
+        return styles.statusLive;
+      case 'syncing':
+        return styles.statusSyncing;
+      case 'connecting':
+        return styles.statusConnecting;
+      case 'disconnected':
+        return styles.statusDisconnected;
+      default:
+        return undefined;
     }
   };
 
   const getStatusText = () => {
     switch (status) {
-      case 'live': return '🟢 已连接';
-      case 'syncing': return '🔄 同步中...';
-      case 'connecting': return '⏳ 连接中...';
-      case 'disconnected': return '🔴 连接断开';
-      default: return '';
+      case 'live':
+        return '🟢 已连接';
+      case 'syncing':
+        return '🔄 同步中...';
+      case 'connecting':
+        return '⏳ 连接中...';
+      case 'disconnected':
+        return '🔴 连接断开';
+      default:
+        return '';
     }
   };
 
   const showSyncButton = status === 'disconnected' || status === 'syncing';
 
   return (
-    <View 
-      style={[styles.container, getStatusStyle()]} 
-      testID={TESTIDS.connectionStatusContainer}
-    >
+    <View style={[styles.container, getStatusStyle()]} testID={TESTIDS.connectionStatusContainer}>
       <Text style={styles.statusText}>{getStatusText()}</Text>
       {showSyncButton && onForceSync && (
         <TouchableOpacity
@@ -60,9 +67,7 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
           disabled={status === 'syncing'}
           testID={TESTIDS.forceSyncButton}
         >
-          <Text style={styles.syncButtonText}>
-            {status === 'syncing' ? '同步中' : '强制同步'}
-          </Text>
+          <Text style={styles.syncButtonText}>{status === 'syncing' ? '同步中' : '强制同步'}</Text>
         </TouchableOpacity>
       )}
     </View>

@@ -15,13 +15,16 @@ describe('Host loopback: PRIVATE_EFFECT for host reveal roles', () => {
   it('host can receive SEER_REVEAL via handleHostBroadcast()', async () => {
     const svc = GameStateService.getInstance();
 
-    const broadcastService = (svc as unknown as { broadcastService: BroadcastService }).broadcastService;
+    const broadcastService = (svc as unknown as { broadcastService: BroadcastService })
+      .broadcastService;
 
     // Minimal "joinRoom" mock: capture onHostBroadcast callback so we can simulate self-broadcast
     let onHostBroadcast: ((msg: any) => void) | null = null;
-    jest.spyOn(broadcastService, 'joinRoom').mockImplementation(async (_roomCode, _userId, callbacks) => {
-      onHostBroadcast = callbacks.onHostBroadcast ?? null;
-    });
+    jest
+      .spyOn(broadcastService, 'joinRoom')
+      .mockImplementation(async (_roomCode, _userId, callbacks) => {
+        onHostBroadcast = callbacks.onHostBroadcast ?? null;
+      });
 
     // Avoid any actual channel sends
     jest.spyOn(broadcastService, 'broadcastAsHost').mockResolvedValue(undefined);

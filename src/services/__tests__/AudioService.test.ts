@@ -41,25 +41,37 @@ jest.mock('../../../assets/audio/witch.mp3', () => 'witch-audio', { virtual: tru
 jest.mock('../../../assets/audio/seer.mp3', () => 'seer-audio', { virtual: true });
 jest.mock('../../../assets/audio/psychic.mp3', () => 'psychic-audio', { virtual: true });
 jest.mock('../../../assets/audio/hunter.mp3', () => 'hunter-audio', { virtual: true });
-jest.mock('../../../assets/audio/dark_wolf_king.mp3', () => 'dark_wolf_king-audio', { virtual: true });
+jest.mock('../../../assets/audio/dark_wolf_king.mp3', () => 'dark_wolf_king-audio', {
+  virtual: true,
+});
 jest.mock('../../../assets/audio/night.mp3', () => 'night-audio', { virtual: true });
 jest.mock('../../../assets/audio/night_end.mp3', () => 'night_end-audio', { virtual: true });
 
 // Mock ending audio files
 jest.mock('../../../assets/audio_end/slacker.mp3', () => 'slacker-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/wolf_robot.mp3', () => 'wolf_robot-end-audio', { virtual: true });
+jest.mock('../../../assets/audio_end/wolf_robot.mp3', () => 'wolf_robot-end-audio', {
+  virtual: true,
+});
 jest.mock('../../../assets/audio_end/magician.mp3', () => 'magician-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/dreamcatcher.mp3', () => 'dreamcatcher-end-audio', { virtual: true });
+jest.mock('../../../assets/audio_end/dreamcatcher.mp3', () => 'dreamcatcher-end-audio', {
+  virtual: true,
+});
 jest.mock('../../../assets/audio_end/gargoyle.mp3', () => 'gargoyle-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/nightmare.mp3', () => 'nightmare-end-audio', { virtual: true });
+jest.mock('../../../assets/audio_end/nightmare.mp3', () => 'nightmare-end-audio', {
+  virtual: true,
+});
 jest.mock('../../../assets/audio_end/guard.mp3', () => 'guard-end-audio', { virtual: true });
 jest.mock('../../../assets/audio_end/wolf.mp3', () => 'wolf-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/wolf_queen.mp3', () => 'wolf_queen-end-audio', { virtual: true });
+jest.mock('../../../assets/audio_end/wolf_queen.mp3', () => 'wolf_queen-end-audio', {
+  virtual: true,
+});
 jest.mock('../../../assets/audio_end/witch.mp3', () => 'witch-end-audio', { virtual: true });
 jest.mock('../../../assets/audio_end/seer.mp3', () => 'seer-end-audio', { virtual: true });
 jest.mock('../../../assets/audio_end/psychic.mp3', () => 'psychic-end-audio', { virtual: true });
 jest.mock('../../../assets/audio_end/hunter.mp3', () => 'hunter-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/dark_wolf_king.mp3', () => 'dark_wolf_king-end-audio', { virtual: true });
+jest.mock('../../../assets/audio_end/dark_wolf_king.mp3', () => 'dark_wolf_king-end-audio', {
+  virtual: true,
+});
 
 // Now import AudioService after mocks are set up
 import AudioService from '../AudioService';
@@ -75,7 +87,7 @@ describe('AudioService - Singleton', () => {
   it('should return same instance', () => {
     const instance1 = AudioService.getInstance();
     const instance2 = AudioService.getInstance();
-    
+
     expect(instance1).toBe(instance2);
   });
 
@@ -86,9 +98,9 @@ describe('AudioService - Singleton', () => {
 
   it('should initialize audio mode on first getInstance', () => {
     const { setAudioModeAsync } = require('expo-audio');
-    
+
     AudioService.getInstance();
-    
+
     expect(setAudioModeAsync).toHaveBeenCalledWith({
       playsInSilentMode: true,
       shouldPlayInBackground: true,
@@ -200,24 +212,24 @@ describe('AudioService - Play methods', () => {
     (AudioService as any).initPromise = null;
     audioService = AudioService.getInstance();
     jest.clearAllMocks();
-    
+
     // Setup mock to simulate playback completion
     mockAddListener.mockImplementation(
       (event: string, callback: (status: { didJustFinish?: boolean }) => void) => {
-      // Immediately call the callback with didJustFinish to resolve the promise
-      setTimeout(() => {
-        callback({ didJustFinish: true });
-      }, 0);
-      return { remove: jest.fn() };
-      }
+        // Immediately call the callback with didJustFinish to resolve the promise
+        setTimeout(() => {
+          callback({ didJustFinish: true });
+        }, 0);
+        return { remove: jest.fn() };
+      },
     );
   });
 
   it('playRoleBeginningAudio should call createAudioPlayer for valid role', async () => {
     const { createAudioPlayer } = require('expo-audio');
-    
+
     await audioService.playRoleBeginningAudio('wolf');
-    
+
     expect(createAudioPlayer).toHaveBeenCalled();
     expect(mockPlay).toHaveBeenCalled();
   });
@@ -228,36 +240,36 @@ describe('AudioService - Play methods', () => {
 
   it('playRoleEndingAudio should call createAudioPlayer for valid role', async () => {
     const { createAudioPlayer } = require('expo-audio');
-    
+
     await audioService.playRoleEndingAudio('wolf');
-    
+
     expect(createAudioPlayer).toHaveBeenCalled();
     expect(mockPlay).toHaveBeenCalled();
   });
 
   it('playNightAudio should create audio player', async () => {
     const { createAudioPlayer } = require('expo-audio');
-    
+
     await audioService.playNightAudio();
-    
+
     expect(createAudioPlayer).toHaveBeenCalled();
     expect(mockPlay).toHaveBeenCalled();
   });
 
   it('playNightBeginAudio should be alias for playNightAudio', async () => {
     const { createAudioPlayer } = require('expo-audio');
-    
+
     await audioService.playNightBeginAudio();
-    
+
     expect(createAudioPlayer).toHaveBeenCalled();
     expect(mockPlay).toHaveBeenCalled();
   });
 
   it('playNightEndAudio should create audio player', async () => {
     const { createAudioPlayer } = require('expo-audio');
-    
+
     await audioService.playNightEndAudio();
-    
+
     expect(createAudioPlayer).toHaveBeenCalled();
     expect(mockPlay).toHaveBeenCalled();
   });
@@ -272,7 +284,7 @@ describe('AudioService - Stop current player', () => {
     (AudioService as any).initPromise = null;
     audioService = AudioService.getInstance();
     jest.clearAllMocks();
-    
+
     // Setup mock to NOT auto-complete (so we can test stop)
     mockAddListener.mockImplementation(() => {
       return { remove: jest.fn() };
@@ -287,13 +299,13 @@ describe('AudioService - Stop current player', () => {
 
   it('should stop current player when playing new audio', async () => {
     const { createAudioPlayer } = require('expo-audio');
-    
+
     // Start playing (won't complete due to mock setup)
     audioService.playRoleBeginningAudio('wolf');
-    
+
     // Start another - should stop the first
     audioService.playRoleBeginningAudio('seer');
-    
+
     // Second call should have paused and removed the first player
     expect(mockPause).toHaveBeenCalled();
     expect(mockRemove).toHaveBeenCalled();
@@ -310,9 +322,9 @@ describe('AudioService - Stop current player', () => {
       remove: mockRemove,
     };
     (audioService as any).isPlaying = true;
-    
+
     audioService.stop();
-    
+
     expect(mockPause).toHaveBeenCalled();
     expect(mockRemove).toHaveBeenCalled();
     expect(audioService.getIsPlaying()).toBe(false);
@@ -332,7 +344,7 @@ describe('AudioService - Audio roles coverage', () => {
     'slacker',
     'wolfRobot',
     'magician',
-  'dreamcatcher',
+    'dreamcatcher',
     'gargoyle',
     'nightmare',
     'guard',
@@ -345,15 +357,9 @@ describe('AudioService - Audio roles coverage', () => {
     'darkWolfKing',
   ];
 
-  const rolesWithoutAudio: RoleId[] = [
-    'villager',
-    'idiot',
-    'knight',
-    'wolfKing',
-    'bloodMoon',
-  ];
+  const rolesWithoutAudio: RoleId[] = ['villager', 'idiot', 'knight', 'wolfKing', 'bloodMoon'];
 
-  rolesWithAudio.forEach(role => {
+  rolesWithAudio.forEach((role) => {
     it(`should have beginning audio for ${role}`, () => {
       expect(audioService.getBeginningAudio(role)).toBeDefined();
     });
@@ -363,7 +369,7 @@ describe('AudioService - Audio roles coverage', () => {
     });
   });
 
-  rolesWithoutAudio.forEach(role => {
+  rolesWithoutAudio.forEach((role) => {
     it(`should NOT have beginning audio for ${role}`, () => {
       expect(audioService.getBeginningAudio(role)).toBeNull();
     });
@@ -434,7 +440,7 @@ describe('AudioService - Fallback: createAudioPlayer throws', () => {
     // Should have logged a warning
     expect(mockAudioLogWarn).toHaveBeenCalledWith(
       expect.stringContaining('Audio playback failed, resolving anyway'),
-      expect.any(Error)
+      expect.any(Error),
     );
   });
 
@@ -450,7 +456,7 @@ describe('AudioService - Fallback: createAudioPlayer throws', () => {
     // Should have logged a warning
     expect(mockAudioLogWarn).toHaveBeenCalledWith(
       expect.stringContaining('Audio playback failed, resolving anyway'),
-      expect.any(Error)
+      expect.any(Error),
     );
   });
 });

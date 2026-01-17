@@ -9,7 +9,13 @@
  */
 
 import type { RoleId } from '../../models/roles';
-import { canRoleSeeWolves, doesRoleParticipateInWolfVote, isWolfRole, getRoleSpec, isValidRoleId, getWolfKillImmuneRoleIds } from '../../models/roles';
+import {
+  doesRoleParticipateInWolfVote,
+  isWolfRole,
+  getRoleSpec,
+  isValidRoleId,
+  getWolfKillImmuneRoleIds,
+} from '../../models/roles';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
 import type { GameRoomLike } from '../../models/Room';
 import type { RoleAction } from '../../models/actions/RoleAction';
@@ -27,7 +33,7 @@ export interface ActionerState {
 export interface StepVisibilityLike {
   /**
    * Whether this step is a "solo" action where even wolves shouldn't see the pack list.
-  * NOTE: When present, this is the single source of truth.
+   * NOTE: When present, this is the single source of truth.
    */
   actsSolo?: boolean;
   /** True when the night flow is in a wolf-meeting phase where pack list can be shown. */
@@ -90,7 +96,7 @@ export function determineActionerState(
   wolfVotes: Map<number, number>,
   _isHost: boolean,
   actions: Map<RoleId, RoleAction> = new Map(),
-  visibility?: StepVisibilityLike
+  visibility?: StepVisibilityLike,
 ): ActionerState {
   if (!currentActionRole) {
     return { imActioner: false, showWolves: false };
@@ -106,7 +112,7 @@ export function determineActionerState(
 
   // My role matches current action
   if (myRole === currentActionRole) {
-  return handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions, visibility);
+    return handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions, visibility);
   }
 
   // Wolf meeting phase: participating wolves can see pack list.
@@ -126,7 +132,7 @@ function handleMatchingRole(
   mySeatNumber: number | null,
   wolfVotes: Map<number, number>,
   actions: Map<RoleId, RoleAction>,
-  visibility?: StepVisibilityLike
+  visibility?: StepVisibilityLike,
 ): ActionerState {
   // For wolves, check if already voted
   if (myRole === 'wolf' && mySeatNumber !== null && wolfVotes.has(mySeatNumber)) {
@@ -157,7 +163,7 @@ function handleMatchingRole(
 
 function handleWolfTeamTurn(
   mySeatNumber: number | null,
-  wolfVotes: Map<number, number>
+  wolfVotes: Map<number, number>,
 ): ActionerState {
   // Check if this wolf has already voted
   const hasVoted = mySeatNumber !== null && wolfVotes.has(mySeatNumber);
@@ -252,7 +258,7 @@ export function buildSeatViewModels(
      * UX-only early rejection - Host still validates.
      */
     schemaConstraints?: readonly TargetConstraint[];
-  }
+  },
 ): SeatViewModel[] {
   return gameState.template.roles.map((role, index) => {
     const player = gameState.players.get(index);

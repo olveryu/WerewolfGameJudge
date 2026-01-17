@@ -54,31 +54,31 @@ describe('SettingsScreen', () => {
   describe('Rendering', () => {
     it('should render screen title', () => {
       const { getByText } = render(<SettingsScreen />);
-      
+
       expect(getByText('设置')).toBeTruthy();
     });
 
     it('should render account section', () => {
       const { getByText } = render(<SettingsScreen />);
-      
+
       expect(getByText('👤 账户')).toBeTruthy();
     });
 
     it('should render system info section', () => {
       const { getByText } = render(<SettingsScreen />);
-      
+
       expect(getByText('ℹ️ 系统信息')).toBeTruthy();
     });
 
     it('should render back button', () => {
       const { getByText } = render(<SettingsScreen />);
-      
+
       expect(getByText('←')).toBeTruthy();
     });
 
     it('should render version info', () => {
       const { getByText } = render(<SettingsScreen />);
-      
+
       expect(getByText('版本')).toBeTruthy();
       expect(getByText('1.0.0')).toBeTruthy();
     });
@@ -87,7 +87,7 @@ describe('SettingsScreen', () => {
   describe('Unauthenticated State', () => {
     it('should show login options when not authenticated', () => {
       const { getByText } = render(<SettingsScreen />);
-      
+
       // Unauthenticated state shows login options
       expect(getByText('邮箱登录/注册')).toBeTruthy();
       expect(getByText('匿名登录')).toBeTruthy();
@@ -95,7 +95,7 @@ describe('SettingsScreen', () => {
 
     it('should show version info', () => {
       const { getByText } = render(<SettingsScreen />);
-      
+
       expect(getByText('版本')).toBeTruthy();
       expect(getByText('1.0.0')).toBeTruthy();
     });
@@ -104,7 +104,7 @@ describe('SettingsScreen', () => {
   describe('Navigation', () => {
     it('should render navigation controls', () => {
       const { getByText } = render(<SettingsScreen />);
-      
+
       // Back button should be present
       expect(getByText('←')).toBeTruthy();
     });

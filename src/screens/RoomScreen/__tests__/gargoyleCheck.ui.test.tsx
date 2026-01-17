@@ -1,6 +1,6 @@
 /**
  * Gargoyle UI Test
- * 
+ *
  * Tests gargoyleCheck schema UI: prompt, seat selection, confirm dialog, reveal flow.
  */
 
@@ -25,16 +25,19 @@ jest.mock('react-native-safe-area-context', () => ({
 const mockShowAlert = showAlert as jest.Mock;
 const mockSubmitAction = jest.fn();
 
-const makeMock = () => makeBaseUseGameRoomReturn({
-  schemaId: 'gargoyleCheck',
-  currentActionRole: 'gargoyle',
-  myRole: 'gargoyle',
-  mySeatNumber: 0,
-  overrides: {
-    submitAction: mockSubmitAction,
-    waitForGargoyleReveal: jest.fn().mockResolvedValue({ kind: 'GARGOYLE_REVEAL', targetSeat: 2, result: '狼人' }),
-  },
-});
+const makeMock = () =>
+  makeBaseUseGameRoomReturn({
+    schemaId: 'gargoyleCheck',
+    currentActionRole: 'gargoyle',
+    myRole: 'gargoyle',
+    mySeatNumber: 0,
+    overrides: {
+      submitAction: mockSubmitAction,
+      waitForGargoyleReveal: jest
+        .fn()
+        .mockResolvedValue({ kind: 'GARGOYLE_REVEAL', targetSeat: 2, result: '狼人' }),
+    },
+  });
 
 let mockUseGameRoomReturn: ReturnType<typeof makeMock>;
 
@@ -53,14 +56,14 @@ describe('Gargoyle UI (gargoyleCheck schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         '行动提示',
         SCHEMAS.gargoyleCheck.ui.prompt,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -70,7 +73,7 @@ describe('Gargoyle UI (gargoyleCheck schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -85,7 +88,7 @@ describe('Gargoyle UI (gargoyleCheck schema)', () => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         SCHEMAS.gargoyleCheck.ui.confirmTitle,
         SCHEMAS.gargoyleCheck.ui.confirmText,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -95,7 +98,7 @@ describe('Gargoyle UI (gargoyleCheck schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -112,7 +115,7 @@ describe('Gargoyle UI (gargoyleCheck schema)', () => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         SCHEMAS.gargoyleCheck.ui.confirmTitle,
         SCHEMAS.gargoyleCheck.ui.confirmText,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });

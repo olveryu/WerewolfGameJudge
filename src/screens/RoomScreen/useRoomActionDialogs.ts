@@ -16,7 +16,7 @@ import { BLOCKED_UI_DEFAULTS } from '../../models/roles/spec';
 import type { WitchContextPayload } from '../../services/types/PrivateBroadcast';
 
 export interface UseRoomActionDialogsResult {
-  /** 
+  /**
    * Action rejected alert - displays when Host rejects an action.
    * @param reason - Human-readable reason from ACTION_REJECTED payload
    */
@@ -29,26 +29,22 @@ export interface UseRoomActionDialogsResult {
   showMagicianFirstAlert: (index: number) => void;
 
   /** Reveal dialog (seer/psychic) */
-  showRevealDialog: (
-    title: string,
-    message: string,
-    onConfirm: () => void
-  ) => void;
+  showRevealDialog: (title: string, message: string, onConfirm: () => void) => void;
 
   /** Generic confirm dialog */
   showConfirmDialog: (
     title: string,
     message: string,
     onConfirm: () => void,
-    onCancel?: () => void
+    onCancel?: () => void,
   ) => void;
 
   /** Wolf vote dialog */
   showWolfVoteDialog: (
     wolfName: string,
     targetIndex: number, // -1 = empty knife
-  onConfirm: () => void,
-  messageOverride?: string
+    onConfirm: () => void,
+    messageOverride?: string,
   ) => void;
 
   /** Witch save phase dialog */
@@ -56,7 +52,7 @@ export interface UseRoomActionDialogsResult {
     killedIndex: number, // -1 = no one killed
     canSave: boolean,
     onSave: () => void,
-    onSkip: () => void
+    onSkip: () => void,
   ) => void;
 
   /** Witch poison phase prompt */
@@ -66,7 +62,7 @@ export interface UseRoomActionDialogsResult {
   showWitchPoisonConfirm: (
     targetIndex: number,
     onConfirm: () => void,
-    onCancel: () => void
+    onCancel: () => void,
   ) => void;
 
   /**
@@ -76,15 +72,11 @@ export interface UseRoomActionDialogsResult {
   showWitchInfoPrompt: (
     ctx: WitchContextPayload,
     currentSchema: ActionSchema,
-    onDismiss: () => void
+    onDismiss: () => void,
   ) => void;
 
   /** Generic role action prompt (e.g., "请预言家行动") */
-  showRoleActionPrompt: (
-    roleName: string,
-    actionMessage: string,
-    onDismiss: () => void
-  ) => void;
+  showRoleActionPrompt: (roleName: string, actionMessage: string, onDismiss: () => void) => void;
 }
 
 export function useRoomActionDialogs(): UseRoomActionDialogsResult {
@@ -101,11 +93,9 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showBlockedAlert = useCallback(() => {
-    showAlert(
-      BLOCKED_UI_DEFAULTS.title,
-      BLOCKED_UI_DEFAULTS.message,
-      [{ text: BLOCKED_UI_DEFAULTS.dismissButtonText, style: 'default' }]
-    );
+    showAlert(BLOCKED_UI_DEFAULTS.title, BLOCKED_UI_DEFAULTS.message, [
+      { text: BLOCKED_UI_DEFAULTS.dismissButtonText, style: 'default' },
+    ]);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -113,37 +103,31 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showMagicianFirstAlert = useCallback((index: number) => {
-    showAlert('已选择第一位玩家', `${index + 1}号，请选择第二位玩家`, [{ text: '知道了', style: 'default' }]);
+    showAlert('已选择第一位玩家', `${index + 1}号，请选择第二位玩家`, [
+      { text: '知道了', style: 'default' },
+    ]);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Reveal dialog (seer/psychic)
   // ─────────────────────────────────────────────────────────────────────────
 
-  const showRevealDialog = useCallback(
-    (title: string, message: string, onConfirm: () => void) => {
-      showAlert(title, message, [{ text: '知道了', onPress: onConfirm }]);
-    },
-    []
-  );
+  const showRevealDialog = useCallback((title: string, message: string, onConfirm: () => void) => {
+    showAlert(title, message, [{ text: '知道了', onPress: onConfirm }]);
+  }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Generic confirm dialog
   // ─────────────────────────────────────────────────────────────────────────
 
   const showConfirmDialog = useCallback(
-    (
-      title: string,
-      message: string,
-      onConfirm: () => void,
-      onCancel?: () => void
-    ) => {
+    (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
       showAlert(title, message, [
         { text: '确定', onPress: onConfirm },
         { text: '取消', style: 'cancel', onPress: onCancel },
       ]);
     },
-    []
+    [],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -151,12 +135,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showWolfVoteDialog = useCallback(
-    (
-      wolfName: string,
-      targetIndex: number,
-      onConfirm: () => void,
-      messageOverride?: string
-    ) => {
+    (wolfName: string, targetIndex: number, onConfirm: () => void, messageOverride?: string) => {
       const msg =
         messageOverride ||
         (targetIndex === -1
@@ -168,7 +147,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
         { text: '取消', style: 'cancel' },
       ]);
     },
-    []
+    [],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -176,12 +155,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showWitchSaveDialog = useCallback(
-    (
-      killedIndex: number,
-      canSave: boolean,
-      onSave: () => void,
-      onSkip: () => void
-    ) => {
+    (killedIndex: number, canSave: boolean, onSave: () => void, onSkip: () => void) => {
       if (killedIndex === -1) {
         // No one killed - info prompt
         showAlert('昨夜无人倒台', '', [{ text: '知道了', onPress: onSkip }]);
@@ -190,11 +164,9 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
       if (!canSave) {
         // Cannot save (self killed) - info prompt
-        showAlert(
-          `昨夜倒台玩家为${killedIndex + 1}号（你自己）`,
-          '女巫无法自救',
-          [{ text: '知道了', onPress: onSkip }]
-        );
+        showAlert(`昨夜倒台玩家为${killedIndex + 1}号（你自己）`, '女巫无法自救', [
+          { text: '知道了', onPress: onSkip },
+        ]);
         return;
       }
 
@@ -204,7 +176,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
         { text: '取消', style: 'cancel', onPress: onSkip },
       ]);
     },
-    []
+    [],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -215,7 +187,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
     showAlert(
       '请选择是否使用毒药',
       '点击玩家头像使用毒药，如不使用毒药，请点击下方「不使用技能」',
-      [{ text: '知道了', style: 'default', onPress: onDismiss }]
+      [{ text: '知道了', style: 'default', onPress: onDismiss }],
     );
   }, []);
 
@@ -230,7 +202,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
         { text: '取消', style: 'cancel', onPress: onCancel },
       ]);
     },
-    []
+    [],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -253,7 +225,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
       const title = ctx.killedIndex >= 0 ? `昨夜${ctx.killedIndex + 1}号玩家死亡` : '昨夜无人倒台';
       showAlert(title, hint, [{ text: '知道了', style: 'default', onPress: onDismiss }]);
     },
-    []
+    [],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -262,11 +234,9 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
   const showRoleActionPrompt = useCallback(
     (title: string, actionMessage: string, onDismiss: () => void) => {
-      showAlert(title, actionMessage, [
-        { text: '知道了', style: 'default', onPress: onDismiss },
-      ]);
+      showAlert(title, actionMessage, [{ text: '知道了', style: 'default', onPress: onDismiss }]);
     },
-    []
+    [],
   );
 
   return {
@@ -279,7 +249,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
     showWitchSaveDialog,
     showWitchPoisonPrompt,
     showWitchPoisonConfirm,
-  showWitchInfoPrompt,
+    showWitchInfoPrompt,
     showRoleActionPrompt,
   };
 }

@@ -80,6 +80,7 @@ supabase db push
 ```
 
 这会创建：
+
 - `rooms` 表（房间数据）
 - RLS 安全策略
 - Realtime 订阅配置
@@ -106,6 +107,7 @@ supabase projects api-keys --project-ref <your-project-ref>
 ```
 
 或从 Dashboard 获取：
+
 1. 打开 **Settings > API**
 2. 复制 **Project URL** 和 **anon public** key
 
@@ -115,10 +117,10 @@ supabase projects api-keys --project-ref <your-project-ref>
 
 项目使用两套环境配置，自动切换：
 
-| 文件 | 用途 | Supabase URL |
-|------|------|--------------|
-| `.env` | 生产环境 | `https://xxx.supabase.co` |
-| `.env.local` | 本地开发 | `http://127.0.0.1:54321` |
+| 文件         | 用途     | Supabase URL              |
+| ------------ | -------- | ------------------------- |
+| `.env`       | 生产环境 | `https://xxx.supabase.co` |
+| `.env.local` | 本地开发 | `http://127.0.0.1:54321`  |
 
 > ⚠️ `.env.local` 优先级高于 `.env`。两个文件都不会被 Git 追踪。
 
@@ -131,6 +133,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=<local-anon-key>
 ```
 
 启动本地 Supabase：
+
 ```bash
 supabase start
 # 会输出本地的 URL 和 Key
@@ -155,6 +158,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
 脚本会自动：
+
 1. 备份本地开发配置 (`.env.local`)
 2. 切换到生产配置
 3. 清除缓存并构建
@@ -179,6 +183,7 @@ npx expo export --platform web --clear
 ```
 
 验证构建使用了正确的 URL：
+
 ```bash
 grep -o "supabase.co\|127.0.0.1" dist/_expo/static/js/web/*.js
 # 应该输出 supabase.co，而不是 127.0.0.1
@@ -211,6 +216,7 @@ cd ..
 ### 1. 检查 Supabase 连接
 
 访问 https://werewolf-judge.vercel.app：
+
 - 点击「创建房间」
 - 如果成功创建房间，说明数据库连接正常
 
@@ -234,6 +240,7 @@ cd ..
 **原因**: 可能是网络问题或未 link 项目
 
 **解决**:
+
 ```bash
 # 重新 link
 supabase link --project-ref <your-project-ref>
@@ -247,6 +254,7 @@ supabase db push
 **原因**: 构建时使用了本地开发的环境变量（`127.0.0.1`），手机无法访问
 
 **解决**:
+
 ```bash
 # 检查构建中使用的 URL
 grep -o "supabase.co\|127.0.0.1" dist/_expo/static/js/web/*.js
@@ -263,6 +271,7 @@ cd dist && vercel --prod --yes
 ```
 
 或直接使用部署脚本：
+
 ```bash
 ./scripts/deploy.sh
 ```
@@ -272,6 +281,7 @@ cd dist && vercel --prod --yes
 **原因**: Supabase Realtime 未启用
 
 **解决**:
+
 1. 打开 Supabase Dashboard > Database > Replication
 2. 确保 `rooms` 表的 Realtime 已启用
 
@@ -298,24 +308,24 @@ vercel alias set <old-deployment-url> werewolf-judge.vercel.app
 
 ## 快速参考
 
-| 操作 | 命令 |
-|------|------|
-| **本地开发** | |
-| 启动本地 Supabase | `supabase start` |
-| 停止本地 Supabase | `supabase stop` |
-| 启动开发服务器 | `npm start` |
-| **生产部署** | |
-| 一键部署 | `./scripts/deploy.sh` |
-| 推送数据库迁移 | `supabase db push` |
-| 获取 API Keys | `supabase projects api-keys --project-ref <ref>` |
-| 查看部署别名 | `vercel alias ls` |
-| 回滚部署 | `vercel alias set <old-url> werewolf-judge.vercel.app` |
+| 操作              | 命令                                                   |
+| ----------------- | ------------------------------------------------------ |
+| **本地开发**      |                                                        |
+| 启动本地 Supabase | `supabase start`                                       |
+| 停止本地 Supabase | `supabase stop`                                        |
+| 启动开发服务器    | `npm start`                                            |
+| **生产部署**      |                                                        |
+| 一键部署          | `./scripts/deploy.sh`                                  |
+| 推送数据库迁移    | `supabase db push`                                     |
+| 获取 API Keys     | `supabase projects api-keys --project-ref <ref>`       |
+| 查看部署别名      | `vercel alias ls`                                      |
+| 回滚部署          | `vercel alias set <old-url> werewolf-judge.vercel.app` |
 
 ---
 
 ## 当前生产环境
 
-| 服务 | URL |
-|------|-----|
-| **前端** | https://werewolf-judge.vercel.app |
+| 服务     | URL                                      |
+| -------- | ---------------------------------------- |
+| **前端** | https://werewolf-judge.vercel.app        |
 | **后端** | https://abmzjezdvpzyeooqhhsn.supabase.co |

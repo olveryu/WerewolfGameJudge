@@ -48,12 +48,12 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        dreamcatcher: 0,  // 摄梦人选择 0 号为梦游者
+        dreamcatcher: 0, // 摄梦人选择 0 号为梦游者
         darkWolfKing: null, // 黑狼王确认状态
-        wolf: 1,          // 狼人杀 1 号村民
-        witch: null,      // 女巫不救不毒
-        seer: 4,          // 预言家查 4 号狼人
-        hunter: null,     // 猎人确认状态
+        wolf: 1, // 狼人杀 1 号村民
+        witch: null, // 女巫不救不毒
+        seer: 4, // 预言家查 4 号狼人
+        hunter: null, // 猎人确认状态
       });
 
       expect(result.completed).toBe(true);
@@ -68,8 +68,8 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
         dreamcatcher: 2,
         darkWolfKing: null,
         wolf: 0,
-        witch: 0,         // 女巫救 0 号
-        seer: 7,          // 预言家查黑狼王
+        witch: 0, // 女巫救 0 号
+        seer: 7, // 预言家查黑狼王
         hunter: null,
       });
 
@@ -86,7 +86,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const { NIGHT_STEPS } = require('../../../models/roles/spec');
       const dreamcatcherStep = NIGHT_STEPS.find(
-        (s: { roleId: string }) => s.roleId === 'dreamcatcher'
+        (s: { roleId: string }) => s.roleId === 'dreamcatcher',
       );
       expect(dreamcatcherStep).toBeDefined();
       expect(dreamcatcherStep?.id).toBe('dreamcatcherDream');
@@ -97,9 +97,9 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       // 摄梦人选择 0 号为梦游者，狼人杀 0 号
       const result = await ctx.runNight({
-        dreamcatcher: 0,  // 0 号成为梦游者
+        dreamcatcher: 0, // 0 号成为梦游者
         darkWolfKing: null,
-        wolf: 0,          // 狼人杀梦游者
+        wolf: 0, // 狼人杀梦游者
         witch: null,
         seer: 4,
         hunter: null,
@@ -125,7 +125,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const { NIGHT_STEPS } = require('../../../models/roles/spec');
       const darkWolfKingStep = NIGHT_STEPS.find(
-        (s: { roleId: string }) => s.roleId === 'darkWolfKing'
+        (s: { roleId: string }) => s.roleId === 'darkWolfKing',
       );
       expect(darkWolfKingStep).toBeDefined();
       expect(darkWolfKingStep?.id).toBe('darkWolfKingConfirm');
@@ -139,7 +139,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       const result = await ctx.runNight({
         dreamcatcher: 1,
         darkWolfKing: null,
-        wolf: null,       // 狼人空刀
+        wolf: null, // 狼人空刀
         witch: null,
         seer: 4,
         hunter: null,
@@ -154,11 +154,11 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        dreamcatcher: 0,  // 0 号成为梦游者
+        dreamcatcher: 0, // 0 号成为梦游者
         darkWolfKing: null,
-        wolf: null,       // 狼人空刀
+        wolf: null, // 狼人空刀
         witch: null,
-        witchPoison: 0,   // 女巫毒梦游者
+        witchPoison: 0, // 女巫毒梦游者
         seer: 4,
         hunter: null,
       });
@@ -173,11 +173,11 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        dreamcatcher: 0,  // 0 号成为梦游者
+        dreamcatcher: 0, // 0 号成为梦游者
         darkWolfKing: null,
-        wolf: null,       // 狼人空刀
+        wolf: null, // 狼人空刀
         witch: null,
-        witchPoison: 11,  // 女巫毒摄梦人（11号）
+        witchPoison: 11, // 女巫毒摄梦人（11号）
         seer: 4,
         hunter: null,
       });
@@ -191,9 +191,9 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        dreamcatcher: 0,  // 0 号成为梦游者
+        dreamcatcher: 0, // 0 号成为梦游者
         darkWolfKing: null,
-        wolf: 11,         // 狼人杀摄梦人（11号）
+        wolf: 11, // 狼人杀摄梦人（11号）
         witch: null,
         seer: 4,
         hunter: null,
@@ -208,10 +208,10 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        dreamcatcher: 0,  // 0 号成为梦游者
+        dreamcatcher: 0, // 0 号成为梦游者
         darkWolfKing: null,
-        wolf: 11,         // 狼人杀摄梦人（11号）
-        witch: 11,        // 女巫救摄梦人
+        wolf: 11, // 狼人杀摄梦人（11号）
+        witch: 11, // 女巫救摄梦人
         seer: 4,
         hunter: null,
       });

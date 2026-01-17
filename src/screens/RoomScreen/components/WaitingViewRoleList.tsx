@@ -13,9 +13,7 @@ export interface WaitingViewRoleListProps {
   seatIndices: number[];
 }
 
-export const WaitingViewRoleList: React.FC<WaitingViewRoleListProps> = ({
-  seatIndices,
-}) => {
+export const WaitingViewRoleList: React.FC<WaitingViewRoleListProps> = ({ seatIndices }) => {
   if (seatIndices.length === 0) {
     return null;
   }

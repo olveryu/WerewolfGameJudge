@@ -18,8 +18,6 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-audio"
-    ]
+    "plugins": ["expo-audio"]
   }
 }

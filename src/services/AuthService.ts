@@ -13,14 +13,14 @@ export class AuthService {
 
   private async autoSignIn(): Promise<void> {
     if (!this.isConfigured()) return;
-    
+
     try {
       const existingUserId = await this.initAuth();
       if (existingUserId) {
         authLog.info(' Restored session:', existingUserId);
         return;
       }
-      
+
       const userId = await this.signInAnonymously();
       authLog.info(' Auto signed in anonymously:', userId);
     } catch (error) {
@@ -34,7 +34,7 @@ export class AuthService {
       const timeoutPromise = new Promise<void>((_, reject) => {
         setTimeout(() => reject(new Error('登录超时，请重试')), 10000);
       });
-      
+
       await Promise.race([this.initPromise, timeoutPromise]);
     }
   }
@@ -73,7 +73,11 @@ export class AuthService {
     return this.currentUserId || '';
   }
 
-  async signUpWithEmail(email: string, password: string, displayName?: string): Promise<{ userId: string; user: any }> {
+  async signUpWithEmail(
+    email: string,
+    password: string,
+    displayName?: string,
+  ): Promise<{ userId: string; user: any }> {
     this.ensureConfigured();
     const { data, error } = await supabase!.auth.signUp({
       email,
@@ -87,10 +91,10 @@ export class AuthService {
     });
     if (error) throw error;
     this.currentUserId = data.user?.id || null;
-    
-    return { 
-      userId: this.currentUserId || '', 
-      user: data.user 
+
+    return {
+      userId: this.currentUserId || '',
+      user: data.user,
     };
   }
 
@@ -124,7 +128,9 @@ export class AuthService {
 
   async initAuth(): Promise<string | null> {
     if (!this.isConfigured()) return null;
-    const { data: { session } } = await supabase!.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase!.auth.getSession();
     if (session?.user) {
       this.currentUserId = session.user.id;
       return this.currentUserId;
@@ -135,29 +141,85 @@ export class AuthService {
   // Generate a random display name based on user ID hash
   generateDisplayName(uid: string): string {
     const adjectives = [
-      '快乐', '勇敢', '聪明', '神秘', '可爱', '酷炫', '狡猾', '正义',
-      '机智', '沉稳', '热血', '冷静', '傲娇', '呆萌', '腹黑', '高冷',
-      '温柔', '霸气', '淡定', '暴躁', '憨厚', '精明', '天真', '老练',
-      '迷糊', '清醒', '困倦', '亢奋', '悠闲', '忙碌', '饥饿', '满足',
-      '微醺', '元气', '慵懒', '活泼', '安静', '躁动', '专注', '发呆',
-      '优雅', '野性', '文艺', '朋克', '复古', '未来', '古典', '摇滚',
-      '甜美', '辛辣', '清新', '浓郁', '梦幻', '现实', '浪漫', '理性',
-      '超级', '无敌', '绝世', '传说', '史诗', '究极', '至尊', '王者',
+      '快乐',
+      '勇敢',
+      '聪明',
+      '神秘',
+      '可爱',
+      '酷炫',
+      '狡猾',
+      '正义',
+      '机智',
+      '沉稳',
+      '热血',
+      '冷静',
+      '傲娇',
+      '呆萌',
+      '腹黑',
+      '高冷',
+      '温柔',
+      '霸气',
+      '淡定',
+      '暴躁',
+      '憨厚',
+      '精明',
+      '天真',
+      '老练',
+      '迷糊',
+      '清醒',
+      '困倦',
+      '亢奋',
+      '悠闲',
+      '忙碌',
+      '饥饿',
+      '满足',
+      '微醺',
+      '元气',
+      '慵懒',
+      '活泼',
+      '安静',
+      '躁动',
+      '专注',
+      '发呆',
+      '优雅',
+      '野性',
+      '文艺',
+      '朋克',
+      '复古',
+      '未来',
+      '古典',
+      '摇滚',
+      '甜美',
+      '辛辣',
+      '清新',
+      '浓郁',
+      '梦幻',
+      '现实',
+      '浪漫',
+      '理性',
+      '超级',
+      '无敌',
+      '绝世',
+      '传说',
+      '史诗',
+      '究极',
+      '至尊',
+      '王者',
     ];
     const nouns = getAllRoleIds().map((id) => getRoleSpec(id).displayName);
-    
+
     const chars = uid.split('');
     const hash1 = chars.reduce((acc, char, i) => acc + (char.codePointAt(0) || 0) * (i + 1), 0);
     const hash2 = chars.reduce((acc, char, i) => acc + (char.codePointAt(0) || 0) * (i + 7), 0);
     const hash3 = chars.reduce((acc, char) => acc ^ (char.codePointAt(0) || 0), 0) * 31;
-    
+
     const idx1 = Math.abs(hash1) % adjectives.length;
     let idx2 = Math.abs(hash2) % adjectives.length;
     if (idx1 === idx2) {
       idx2 = (idx2 + 1) % adjectives.length;
     }
     const idx3 = Math.abs(hash3) % nouns.length;
-    
+
     return adjectives[idx1] + adjectives[idx2] + nouns[idx3];
   }
 
@@ -166,7 +228,7 @@ export class AuthService {
     if (!this.isConfigured()) {
       return this.generateDisplayName(this.currentUserId || 'anonymous');
     }
-    
+
     try {
       const { data } = await supabase!.auth.getUser();
       const registeredName = data.user?.user_metadata?.display_name;
@@ -176,7 +238,7 @@ export class AuthService {
     } catch {
       // Fall through to generated name
     }
-    
+
     return this.generateDisplayName(this.currentUserId || 'anonymous');
   }
 
@@ -185,7 +247,7 @@ export class AuthService {
     if (!this.isConfigured()) {
       return null;
     }
-    
+
     try {
       const { data } = await supabase!.auth.getUser();
       return data.user?.user_metadata?.avatar_url || null;

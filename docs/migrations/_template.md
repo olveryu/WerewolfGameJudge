@@ -14,17 +14,17 @@
 ## Scope / non-goals
 
 - In scope:
-  - 
+  -
 - Out of scope:
-  - 
+  -
 
 ## Temporary compatibility inventory (single source of truth)
 
 List every temporary shim/dual-write/fallback that still exists.
 
-| Item | Location (file + symbol) | Temporary behavior | Replacement | Removal criteria | Deadline |
-|------|---------------------------|-------------------|-------------|------------------|----------|
-| 1 | `path/to/file.ts` `legacyFoo()` | e.g. fallback if `nightFlow==null` | `NightFlowController` | all call-sites migrated + tests updated | YYYY-MM-DD |
+| Item | Location (file + symbol)        | Temporary behavior                 | Replacement           | Removal criteria                        | Deadline   |
+| ---- | ------------------------------- | ---------------------------------- | --------------------- | --------------------------------------- | ---------- |
+| 1    | `path/to/file.ts` `legacyFoo()` | e.g. fallback if `nightFlow==null` | `NightFlowController` | all call-sites migrated + tests updated | YYYY-MM-DD |
 
 ## Progress checklist
 

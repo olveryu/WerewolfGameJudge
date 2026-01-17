@@ -1,10 +1,10 @@
 /**
  * Unified logger using react-native-logs
- * 
+ *
  * Usage:
  *   import { log } from '../utils/logger';
  *   log.info('Host', 'Seat action', { seat: 1 });
- * 
+ *
  * Or with extensions:
  *   const hostLog = log.extend('Host');
  *   hostLog.info('Seat action', { seat: 1 });
@@ -18,7 +18,7 @@ const config = {
   transportOptions: {
     colors: {
       debug: 'white',
-      info: 'blueBright', 
+      info: 'blueBright',
       warn: 'yellowBright',
       error: 'redBright',
     } as const,

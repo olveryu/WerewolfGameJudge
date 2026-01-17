@@ -1,6 +1,6 @@
 /**
  * ActionButtons.stories.tsx - Stories for action button states
- * 
+ *
  * Shows the different bottom action button combinations based on game state.
  * This is a mock component to visualize the button patterns.
  */
@@ -22,15 +22,13 @@ interface ActionButtonsProps {
   disabled?: boolean;
 }
 
-const ActionButtons: React.FC<ActionButtonsProps> = ({ 
-  buttons, 
+const ActionButtons: React.FC<ActionButtonsProps> = ({
+  buttons,
   actionMessage,
   disabled = false,
 }) => (
   <View style={mockStyles.container}>
-    {actionMessage && (
-      <Text style={mockStyles.message}>{actionMessage}</Text>
-    )}
+    {actionMessage && <Text style={mockStyles.message}>{actionMessage}</Text>}
     <View style={mockStyles.buttonRow}>
       {buttons.map((b) => (
         <TouchableOpacity
@@ -100,9 +98,7 @@ export const SeerAction: Story = {
   name: '🔮 Seer - Can Skip',
   args: {
     actionMessage: '请选择一名玩家查验身份',
-    buttons: [
-      { key: 'skip', label: '不查验' },
-    ],
+    buttons: [{ key: 'skip', label: '不查验' }],
   },
 };
 
@@ -110,9 +106,7 @@ export const GuardAction: Story = {
   name: '🛡️ Guard - Can Skip',
   args: {
     actionMessage: '请选择一名玩家进行守护',
-    buttons: [
-      { key: 'skip', label: '不守护' },
-    ],
+    buttons: [{ key: 'skip', label: '不守护' }],
   },
 };
 
@@ -131,9 +125,7 @@ export const WitchPoisonAction: Story = {
   name: '☠️ Witch - Poison Phase',
   args: {
     actionMessage: '是否使用毒药？',
-    buttons: [
-      { key: 'skip', label: '不毒' },
-    ],
+    buttons: [{ key: 'skip', label: '不毒' }],
   },
 };
 
@@ -145,9 +137,7 @@ export const WolfVoteNotVoted: Story = {
   name: '🐺 Wolf - Not Voted Yet',
   args: {
     actionMessage: '请选择要击杀的玩家\n投票情况: 无人投票',
-    buttons: [
-      { key: 'empty', label: '投票空刀' },
-    ],
+    buttons: [{ key: 'empty', label: '投票空刀' }],
   },
 };
 
@@ -155,9 +145,7 @@ export const WolfVotePartial: Story = {
   name: '🐺 Wolf - Partial Votes',
   args: {
     actionMessage: '请选择要击杀的玩家\n投票情况: 1号→3号, 4号待定',
-    buttons: [
-      { key: 'empty', label: '投票空刀' },
-    ],
+    buttons: [{ key: 'empty', label: '投票空刀' }],
   },
 };
 
@@ -177,9 +165,7 @@ export const BlockedWolfCanVote: Story = {
   name: '😵🐺 Blocked Wolf - Can Still Vote Empty',
   args: {
     actionMessage: '你被梦魇封锁了，无法指定目标\n投票情况: 1号待定',
-    buttons: [
-      { key: 'empty', label: '投票空刀' },
-    ],
+    buttons: [{ key: 'empty', label: '投票空刀' }],
   },
 };
 
@@ -199,9 +185,7 @@ export const HunterConfirm: Story = {
   name: '🎯 Hunter - Day Confirm',
   args: {
     actionMessage: '确认带走目标？',
-    buttons: [
-      { key: 'confirm', label: '确认' },
-    ],
+    buttons: [{ key: 'confirm', label: '确认' }],
   },
 };
 
@@ -213,9 +197,7 @@ export const AudioPlaying: Story = {
   name: '🔇 Audio Playing - Disabled',
   args: {
     actionMessage: '正在播放语音提示...',
-    buttons: [
-      { key: 'skip', label: '不查验' },
-    ],
+    buttons: [{ key: 'skip', label: '不查验' }],
     disabled: true,
   },
 };
@@ -228,9 +210,7 @@ export const MagicianFirstTarget: Story = {
   name: '🎩 Magician - Select First Target',
   args: {
     actionMessage: '请选择第一个交换对象',
-    buttons: [
-      { key: 'skip', label: '不交换' },
-    ],
+    buttons: [{ key: 'skip', label: '不交换' }],
   },
 };
 
@@ -238,8 +218,6 @@ export const MagicianSecondTarget: Story = {
   name: '🎩 Magician - Select Second Target',
   args: {
     actionMessage: '已选择3号，请选择第二个交换对象',
-    buttons: [
-      { key: 'cancel', label: '取消' },
-    ],
+    buttons: [{ key: 'cancel', label: '取消' }],
   },
 };

@@ -15,23 +15,17 @@ describe('Avatar', () => {
 
   describe('Rendering', () => {
     it('should render with value and size', () => {
-      const { UNSAFE_root } = render(
-        <Avatar value="test-user" size={50} />
-      );
-      
+      const { UNSAFE_root } = render(<Avatar value="test-user" size={50} />);
+
       // Avatar renders an Image component
       expect(UNSAFE_root).toBeTruthy();
     });
 
     it('should render with custom avatar URL', () => {
       const { UNSAFE_root } = render(
-        <Avatar 
-          value="test-user" 
-          size={50} 
-          avatarUrl="https://example.com/avatar.jpg" 
-        />
+        <Avatar value="test-user" size={50} avatarUrl="https://example.com/avatar.jpg" />,
       );
-      
+
       expect(UNSAFE_root).toBeTruthy();
     });
   });
@@ -39,15 +33,9 @@ describe('Avatar', () => {
   describe('Avatar source selection', () => {
     it('should use custom avatarUrl when provided', () => {
       const { getAvatarImage, getUniqueAvatarBySeat } = require('../../utils/avatar');
-      
-      render(
-        <Avatar 
-          value="test-user" 
-          size={50} 
-          avatarUrl="https://example.com/avatar.jpg" 
-        />
-      );
-      
+
+      render(<Avatar value="test-user" size={50} avatarUrl="https://example.com/avatar.jpg" />);
+
       // When avatarUrl is provided, neither helper should be called
       expect(getAvatarImage).not.toHaveBeenCalled();
       expect(getUniqueAvatarBySeat).not.toHaveBeenCalled();
@@ -55,44 +43,26 @@ describe('Avatar', () => {
 
     it('should use getUniqueAvatarBySeat when seatNumber is provided', () => {
       const { getAvatarImage, getUniqueAvatarBySeat } = require('../../utils/avatar');
-      
-      render(
-        <Avatar 
-          value="test-user" 
-          size={50} 
-          seatNumber={3}
-        />
-      );
-      
+
+      render(<Avatar value="test-user" size={50} seatNumber={3} />);
+
       expect(getUniqueAvatarBySeat).toHaveBeenCalledWith(3, undefined);
       expect(getAvatarImage).not.toHaveBeenCalled();
     });
 
     it('should use getUniqueAvatarBySeat with roomId when both are provided', () => {
       const { getUniqueAvatarBySeat } = require('../../utils/avatar');
-      
-      render(
-        <Avatar 
-          value="test-user" 
-          size={50} 
-          seatNumber={3}
-          roomId="room-123"
-        />
-      );
-      
+
+      render(<Avatar value="test-user" size={50} seatNumber={3} roomId="room-123" />);
+
       expect(getUniqueAvatarBySeat).toHaveBeenCalledWith(3, 'room-123');
     });
 
     it('should use getAvatarImage when no seatNumber is provided', () => {
       const { getAvatarImage, getUniqueAvatarBySeat } = require('../../utils/avatar');
-      
-      render(
-        <Avatar 
-          value="test-user" 
-          size={50}
-        />
-      );
-      
+
+      render(<Avatar value="test-user" size={50} />);
+
       expect(getAvatarImage).toHaveBeenCalledWith('test-user');
       expect(getUniqueAvatarBySeat).not.toHaveBeenCalled();
     });
@@ -116,29 +86,17 @@ describe('Avatar', () => {
   describe('Null avatarUrl handling', () => {
     it('should fall back to local image when avatarUrl is null', () => {
       const { getAvatarImage } = require('../../utils/avatar');
-      
-      render(
-        <Avatar 
-          value="test-user" 
-          size={50} 
-          avatarUrl={null}
-        />
-      );
-      
+
+      render(<Avatar value="test-user" size={50} avatarUrl={null} />);
+
       expect(getAvatarImage).toHaveBeenCalledWith('test-user');
     });
 
     it('should fall back to local image when avatarUrl is undefined', () => {
       const { getAvatarImage } = require('../../utils/avatar');
-      
-      render(
-        <Avatar 
-          value="test-user" 
-          size={50} 
-          avatarUrl={undefined}
-        />
-      );
-      
+
+      render(<Avatar value="test-user" size={50} avatarUrl={undefined} />);
+
       expect(getAvatarImage).toHaveBeenCalledWith('test-user');
     });
   });

@@ -43,7 +43,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
             role: i === 0 ? 'magician' : 'villager',
             hasViewedRole: true,
           },
-        ])
+        ]),
       ),
       actions: new Map(),
       wolfVotes: new Map(),
@@ -118,7 +118,12 @@ jest.mock('../useRoomActionDialogs', () => ({
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       mockShowAlert('已选择第一位玩家', `${index + 1}号，请选择第二位玩家`, [{ text: '好' }]);
     },
-    showConfirmDialog: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
+    showConfirmDialog: (
+      title: string,
+      message: string,
+      onConfirm: () => void,
+      onCancel?: () => void,
+    ) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       mockShowAlert(title, message, [
         { text: '确定', onPress: onConfirm },
@@ -185,7 +190,7 @@ describe('RoomScreen magician swap UI (smoke)', () => {
       expect(showAlert).toHaveBeenCalledWith(
         '已选择第一位玩家',
         expect.stringContaining('3号'),
-        expect.anything()
+        expect.anything(),
       );
     });
 
@@ -196,10 +201,10 @@ describe('RoomScreen magician swap UI (smoke)', () => {
     });
 
     await waitFor(() => {
-        expect(showAlert).toHaveBeenCalledWith('确认交换', expect.any(String), expect.any(Array));
+      expect(showAlert).toHaveBeenCalledWith('确认交换', expect.any(String), expect.any(Array));
     });
 
-  const confirmCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认交换');
+    const confirmCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认交换');
     const buttons = (confirmCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
     const confirmBtn = buttons.find((b) => b.text === '确定');
 

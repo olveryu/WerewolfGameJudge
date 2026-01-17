@@ -45,7 +45,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
             role: i === 0 ? 'seer' : 'villager',
             hasViewedRole: true,
           },
-        ])
+        ]),
       ),
       actions: new Map(),
       wolfVotes: new Map(),
@@ -100,7 +100,9 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     getLastNightDeaths: jest.fn().mockReturnValue([]),
 
     // Reveal plumbing: we simulate host sending a reveal after submitAction
-    waitForSeerReveal: jest.fn().mockResolvedValue({ kind: 'SEER_REVEAL', targetSeat: 2, result: '好人' }),
+    waitForSeerReveal: jest
+      .fn()
+      .mockResolvedValue({ kind: 'SEER_REVEAL', targetSeat: 2, result: '好人' }),
     waitForPsychicReveal: jest.fn(),
     waitForGargoyleReveal: jest.fn(),
     waitForWolfRobotReveal: jest.fn(),
@@ -119,7 +121,12 @@ jest.mock('../hooks/useActionerState', () => ({
 // Keep dialogs deterministic by mapping to showAlert
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showConfirmDialog: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
+    showConfirmDialog: (
+      title: string,
+      message: string,
+      onConfirm: () => void,
+      onCancel?: () => void,
+    ) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       mockShowAlert(title, message, [
         { text: '确定', onPress: onConfirm },
@@ -188,11 +195,7 @@ describe('RoomScreen seer reveal UI (smoke)', () => {
 
     // Confirm check dialog
     await waitFor(() => {
-      expect(showAlert).toHaveBeenCalledWith(
-        '确认查验',
-        expect.any(String),
-        expect.any(Array)
-      );
+      expect(showAlert).toHaveBeenCalledWith('确认查验', expect.any(String), expect.any(Array));
     });
 
     const confirmCalls = (showAlert as jest.Mock).mock.calls.filter((c) => c[0] === '确认查验');
@@ -210,11 +213,13 @@ describe('RoomScreen seer reveal UI (smoke)', () => {
       expect(showAlert).toHaveBeenCalledWith(
         expect.stringContaining('3号是'),
         expect.any(String),
-        expect.any(Array)
+        expect.any(Array),
       );
     });
 
-    const revealCall = (showAlert as jest.Mock).mock.calls.find((c) => typeof c[0] === 'string' && (c[0] as string).includes('3号是'));
+    const revealCall = (showAlert as jest.Mock).mock.calls.find(
+      (c) => typeof c[0] === 'string' && (c[0] as string).includes('3号是'),
+    );
     expect(revealCall).toBeDefined();
 
     const revealButtons = (revealCall as any)[2] as Array<{ text: string; onPress?: () => void }>;

@@ -1,6 +1,6 @@
 /**
  * ConnectionStatusBar.stories.tsx - Stories for connection status indicator
- * 
+ *
  * Shows different connection states:
  * - Connected (live)
  * - Reconnecting
@@ -65,18 +65,12 @@ const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
       <View style={styles.left}>
         <Text style={styles.icon}>{icon}</Text>
         <Text style={styles.text}>{text}</Text>
-        {showSpinner && (
-          <ActivityIndicator size="small" color="#fff" style={styles.spinner} />
-        )}
+        {showSpinner && <ActivityIndicator size="small" color="#fff" style={styles.spinner} />}
       </View>
-      
+
       <View style={styles.right}>
-        {Boolean(roomCode) && (
-          <Text style={styles.roomCode}>房间: {roomCode}</Text>
-        )}
-        {lastSyncTime && (
-          <Text style={styles.syncTime}>上次同步: {lastSyncTime}</Text>
-        )}
+        {Boolean(roomCode) && <Text style={styles.roomCode}>房间: {roomCode}</Text>}
+        {lastSyncTime && <Text style={styles.syncTime}>上次同步: {lastSyncTime}</Text>}
         {state === 'disconnected' && onRetry && (
           <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
             <Text style={styles.retryText}>重试</Text>
@@ -93,10 +87,14 @@ const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
 
 const getStatusColor = (state: ConnectionState): string => {
   switch (state) {
-    case 'connected': return '#22C55E';
-    case 'reconnecting': return '#F59E0B';
-    case 'syncing': return '#3B82F6';
-    default: return '#EF4444';
+    case 'connected':
+      return '#22C55E';
+    case 'reconnecting':
+      return '#F59E0B';
+    case 'syncing':
+      return '#3B82F6';
+    default:
+      return '#EF4444';
   }
 };
 
@@ -150,9 +148,9 @@ const ConnectionToast: React.FC<ConnectionToastProps> = ({ type, playerName }) =
     reconnected: { icon: '🔄', text: '已重新连接', bg: '#1D4ED8' },
     kicked: { icon: '⚠️', text: '你已被踢出房间', bg: '#991B1B' },
   };
-  
+
   const { icon, text, bg } = config[type];
-  
+
   return (
     <View style={[styles.toast, { backgroundColor: bg }]}>
       <Text style={styles.toastIcon}>{icon}</Text>
@@ -307,42 +305,25 @@ export const Reconnecting: StoryObj<typeof ConnectionStatusBar> = {
 export const Disconnected: StoryObj<typeof ConnectionStatusBar> = {
   name: '🔴 已断开',
   render: () => (
-    <ConnectionStatusBar 
-      state="disconnected" 
-      roomCode="1234" 
-      onRetry={() => alert('重试连接')}
-    />
+    <ConnectionStatusBar state="disconnected" roomCode="1234" onRetry={() => alert('重试连接')} />
   ),
 };
 
 export const Syncing: StoryObj<typeof ConnectionStatusBar> = {
   name: '🔄 同步中',
-  render: () => (
-    <ConnectionStatusBar 
-      state="syncing" 
-      roomCode="1234" 
-      lastSyncTime="2秒前"
-    />
-  ),
+  render: () => <ConnectionStatusBar state="syncing" roomCode="1234" lastSyncTime="2秒前" />,
 };
 
 // Status Banner Stories
 export const BannerHost: StoryObj<typeof StatusBanner> = {
   name: '📊 Banner - 房主视角',
-  render: () => (
-    <StatusBanner 
-      state="connected"
-      roomCode="1234"
-      playerCount={8}
-      isHost={true}
-    />
-  ),
+  render: () => <StatusBanner state="connected" roomCode="1234" playerCount={8} isHost={true} />,
 };
 
 export const BannerPlayer: StoryObj<typeof StatusBanner> = {
   name: '📊 Banner - 玩家视角',
   render: () => (
-    <StatusBanner 
+    <StatusBanner
       state="connected"
       roomCode="5678"
       playerCount={6}
@@ -355,7 +336,7 @@ export const BannerPlayer: StoryObj<typeof StatusBanner> = {
 export const BannerDisconnected: StoryObj<typeof StatusBanner> = {
   name: '📊 Banner - 断开状态',
   render: () => (
-    <StatusBanner 
+    <StatusBanner
       state="disconnected"
       roomCode="1234"
       playerCount={4}

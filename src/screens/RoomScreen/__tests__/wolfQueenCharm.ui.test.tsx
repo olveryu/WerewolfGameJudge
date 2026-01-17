@@ -1,6 +1,6 @@
 /**
  * Wolf Queen UI Test
- * 
+ *
  * Tests wolfQueenCharm schema UI: prompt, seat selection, confirm dialog.
  */
 
@@ -25,15 +25,16 @@ jest.mock('react-native-safe-area-context', () => ({
 const mockShowAlert = showAlert as jest.Mock;
 const mockSubmitAction = jest.fn();
 
-const makeMock = () => makeBaseUseGameRoomReturn({
-  schemaId: 'wolfQueenCharm',
-  currentActionRole: 'wolfQueen',
-  myRole: 'wolfQueen',
-  mySeatNumber: 0,
-  overrides: {
-    submitAction: mockSubmitAction,
-  },
-});
+const makeMock = () =>
+  makeBaseUseGameRoomReturn({
+    schemaId: 'wolfQueenCharm',
+    currentActionRole: 'wolfQueen',
+    myRole: 'wolfQueen',
+    mySeatNumber: 0,
+    overrides: {
+      submitAction: mockSubmitAction,
+    },
+  });
 
 let mockUseGameRoomReturn: ReturnType<typeof makeMock>;
 
@@ -52,14 +53,14 @@ describe('Wolf Queen UI (wolfQueenCharm schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         '行动提示',
         SCHEMAS.wolfQueenCharm.ui.prompt,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -69,7 +70,7 @@ describe('Wolf Queen UI (wolfQueenCharm schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -84,7 +85,7 @@ describe('Wolf Queen UI (wolfQueenCharm schema)', () => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         SCHEMAS.wolfQueenCharm.ui.confirmTitle,
         SCHEMAS.wolfQueenCharm.ui.confirmText,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -94,7 +95,7 @@ describe('Wolf Queen UI (wolfQueenCharm schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -107,11 +108,7 @@ describe('Wolf Queen UI (wolfQueenCharm schema)', () => {
     fireEvent.press(seat0);
 
     await waitFor(() => {
-      expect(mockShowAlert).toHaveBeenCalledWith(
-        '不可选择',
-        '不能选择自己',
-        expect.any(Array)
-      );
+      expect(mockShowAlert).toHaveBeenCalledWith('不可选择', '不能选择自己', expect.any(Array));
     });
   });
 

@@ -1,9 +1,9 @@
 /**
  * GameStateService - Manages local game state (Host is authoritative)
- * 
+ *
  * This service maintains the game state entirely in memory on the Host device.
  * All state changes are broadcast to other players via BroadcastService.
- * 
+ *
  * Key Principles:
  * 1. Host device is the Single Source of Truth
  * 2. No game state is stored in Supabase database
@@ -13,9 +13,20 @@
 
 import { RoleId, isWolfRole, getWolfKillImmuneRoleIds } from '../models/roles';
 import { GameTemplate, createTemplateFromRoles, validateTemplateRoles } from '../models/Template';
-import { BroadcastService, BroadcastGameState, BroadcastPlayer, HostBroadcast, PlayerMessage } from './BroadcastService';
+import {
+  BroadcastService,
+  BroadcastGameState,
+  BroadcastPlayer,
+  HostBroadcast,
+  PlayerMessage,
+} from './BroadcastService';
 import AudioService from './AudioService';
-import { NightFlowController, NightPhase, NightEvent, InvalidNightTransitionError } from './NightFlowController';
+import {
+  NightFlowController,
+  NightPhase,
+  NightEvent,
+  InvalidNightTransitionError,
+} from './NightFlowController';
 import { shuffleArray } from '../utils/shuffle';
 import { hostLog, playerLog } from '../utils/logger';
 import { calculateDeaths, type NightActions, type RoleSeatMap } from './DeathCalculator';
@@ -28,30 +39,40 @@ import {
   makeActionMagicianSwap,
   getActionTargetSeat,
 } from '../models/actions';
-import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, buildNightPlan, getStepsByRoleStrict, BLOCKED_UI_DEFAULTS } from '../models/roles/spec';
+import {
+  isValidRoleId,
+  getRoleSpec,
+  ROLE_SPECS,
+  type SchemaId,
+  buildNightPlan,
+  getStepsByRoleStrict,
+  BLOCKED_UI_DEFAULTS,
+} from '../models/roles/spec';
 import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
-import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload, GargoyleRevealPayload, WolfRobotRevealPayload, ActionRejectedPayload, BlockedPayload, ConfirmStatusPayload } from './types/PrivateBroadcast';
+import type {
+  PrivateMessage,
+  WitchContextPayload,
+  PrivatePayload,
+  SeerRevealPayload,
+  PsychicRevealPayload,
+  GargoyleRevealPayload,
+  WolfRobotRevealPayload,
+  ActionRejectedPayload,
+  BlockedPayload,
+  ConfirmStatusPayload,
+} from './types/PrivateBroadcast';
 import { getRoleAfterSwap } from './night/resolvers/types';
 import { getConfirmRoleCanShoot } from '../models/Room';
 
 // Import types/enums needed internally
-import {
-  GameStatus,
-  LocalPlayer,
-  LocalGameState,
-} from './types/GameStateTypes';
+import { GameStatus, LocalPlayer, LocalGameState } from './types/GameStateTypes';
 
 // Import type-only imports
 import type { GameStateListener } from './types/GameStateTypes';
 
 // Re-export types for convenience
 // (consumers can import from either GameStateService or types/GameStateTypes)
-export {
-  GameStatus,
-  LocalPlayer,
-  LocalGameState,
-  GameStateListener,
-} from './types/GameStateTypes';
+export { GameStatus, LocalPlayer, LocalGameState, GameStateListener } from './types/GameStateTypes';
 
 /** Async handler wrapper to avoid unhandled promise rejection */
 const asyncHandler = <T extends (...args: any[]) => Promise<void>>(fn: T) => {
@@ -66,18 +87,18 @@ const asyncHandler = <T extends (...args: any[]) => Promise<void>>(fn: T) => {
 
 export class GameStateService {
   private static instance: GameStateService;
-  
+
   private state: LocalGameState | null = null;
   private isHost: boolean = false;
   private myUid: string | null = null;
   private mySeatNumber: number | null = null;
-  
+
   /** State revision counter (Host: incremented on each change, Player: received from Host) */
   private stateRevision: number = 0;
-  
+
   /** Last seat error for UI display (BUG-2 fix) */
   private lastSeatError: { seat: number; reason: 'seat_taken' } | null = null;
-  
+
   /** Pending seat action requests (Player: waiting for ACK) */
   private pendingSeatAction: {
     requestId: string;
@@ -88,17 +109,17 @@ export class GameStateService {
     resolve: (success: boolean) => void;
     reject: (error: Error) => void;
   } | null = null;
-  
+
   /** Pending snapshot request (Player: waiting for response) */
   private pendingSnapshotRequest: {
     requestId: string;
     timestamp: number;
     timeoutHandle: ReturnType<typeof setTimeout>;
   } | null = null;
-  
+
   /** NightFlowController: explicit state machine for night phase (Host only) */
   private nightFlow: NightFlowController | null = null;
-  
+
   /**
    * Private message inbox (Zero-Trust: only stores messages where toUid === myUid)
    * Key: `${revision}_${kind}` to prevent cross-turn contamination
@@ -109,20 +130,20 @@ export class GameStateService {
   // Tracks latest revision for each private payload kind so UI can read reliably
   // even if stateRevision advanced due to unrelated STATE_UPDATE broadcasts.
   // Key: payload kind (e.g. 'SEER_REVEAL'), Value: last seen msg.revision
-  private readonly privateInboxLatestRevisionByKind: Map<PrivatePayload['kind'], number> = new Map();
+  private readonly privateInboxLatestRevisionByKind: Map<PrivatePayload['kind'], number> =
+    new Map();
 
   /**
    * Host-only: gate advancing after a reveal action until the revealer confirms.
    * Key format: `${revision}_${role}`
    */
   private readonly pendingRevealAcks: Set<string> = new Set();
-  
+
   private readonly broadcastService: BroadcastService;
   private readonly audioService: AudioService;
 
-  
   private listeners: GameStateListener[] = [];
-  
+
   private constructor() {
     this.broadcastService = BroadcastService.getInstance();
     this.audioService = AudioService.getInstance();
@@ -176,7 +197,7 @@ export class GameStateService {
     this.listeners.push(listener);
     // Return unsubscribe function
     return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+      this.listeners = this.listeners.filter((l) => l !== listener);
     };
   }
 
@@ -185,7 +206,7 @@ export class GameStateService {
       // Create a shallow copy of state so React detects the change
       // (Map is a reference type, so we need a new object for React's shallow comparison)
       const stateCopy = { ...this.state };
-      this.listeners.forEach(listener => listener(stateCopy));
+      this.listeners.forEach((listener) => listener(stateCopy));
     }
   }
 
@@ -196,11 +217,7 @@ export class GameStateService {
   /**
    * Initialize a new game as Host
    */
-  async initializeAsHost(
-    roomCode: string,
-    hostUid: string,
-    template: GameTemplate
-  ): Promise<void> {
+  async initializeAsHost(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
     this.isHost = true;
     this.myUid = hostUid;
     this.mySeatNumber = null;
@@ -220,17 +237,17 @@ export class GameStateService {
       actions: new Map(),
       wolfVotes: new Map(),
       currentActionerIndex: 0,
-  currentStepId: undefined,
+      currentStepId: undefined,
       isAudioPlaying: false,
       lastNightDeaths: [],
     };
 
     // Join broadcast channel
     await this.broadcastService.joinRoom(roomCode, hostUid, {
-  // Host must also receive its own host broadcasts (broadcast.self=true),
-  // including PRIVATE_EFFECT messages addressed to hostUid.
-  // Otherwise, reveal roles won't work when the host is the actioner.
-  onHostBroadcast: (msg) => this.handleHostBroadcast(msg),
+      // Host must also receive its own host broadcasts (broadcast.self=true),
+      // including PRIVATE_EFFECT messages addressed to hostUid.
+      // Otherwise, reveal roles won't work when the host is the actioner.
+      onHostBroadcast: (msg) => this.handleHostBroadcast(msg),
       onPlayerMessage: asyncHandler((msg, senderId) => this.handlePlayerMessage(msg, senderId)),
       onPresenceChange: asyncHandler(async (users) => {
         hostLog.info('Users in room:', users.length);
@@ -244,7 +261,7 @@ export class GameStateService {
     // Broadcast initial state
     await this.broadcastState();
     this.notifyListeners();
-    
+
     hostLog.info('Initialized as Host for room:', roomCode);
   }
 
@@ -254,8 +271,8 @@ export class GameStateService {
   async joinAsPlayer(
     roomCode: string,
     playerUid: string,
-    displayName?: string,
-    avatarUrl?: string
+    _displayName?: string,
+    _avatarUrl?: string,
   ): Promise<void> {
     this.isHost = false;
     this.myUid = playerUid;
@@ -295,7 +312,7 @@ export class GameStateService {
     this.myUid = null;
     this.mySeatNumber = null;
     this.notifyListeners();
-    
+
     hostLog.info('Left room');
   }
 
@@ -399,7 +416,9 @@ export class GameStateService {
   }): Promise<void> {
     if (!this.state) return;
 
-    hostLog.info(` Seat action request: ${msg.action} seat ${msg.seat} from ${msg.uid.substring(0, 8)}`);
+    hostLog.info(
+      ` Seat action request: ${msg.action} seat ${msg.seat} from ${msg.uid.substring(0, 8)}`,
+    );
 
     // Use unified processSeatAction
     const result = await this.processSeatAction(
@@ -407,7 +426,7 @@ export class GameStateService {
       msg.seat,
       msg.uid,
       msg.displayName,
-      msg.avatarUrl
+      msg.avatarUrl,
     );
 
     // Send ACK to player
@@ -431,7 +450,9 @@ export class GameStateService {
   }): Promise<void> {
     if (!this.state) return;
 
-    hostLog.info(` Snapshot request from ${msg.uid.substring(0, 8)}, lastRev: ${msg.lastRevision ?? 'none'}`);
+    hostLog.info(
+      ` Snapshot request from ${msg.uid.substring(0, 8)}, lastRev: ${msg.lastRevision ?? 'none'}`,
+    );
 
     const broadcastState = this.toBroadcastState();
     await this.broadcastService.broadcastAsHost({
@@ -460,7 +481,7 @@ export class GameStateService {
     seat: number,
     uid: string,
     displayName?: string,
-    avatarUrl?: string
+    avatarUrl?: string,
   ): Promise<void> {
     if (!this.state) return;
 
@@ -491,7 +512,7 @@ export class GameStateService {
     this.state.players.set(seat, player);
 
     // Check if all seats are filled
-    const allSeated = Array.from(this.state.players.values()).every(p => p !== null);
+    const allSeated = Array.from(this.state.players.values()).every((p) => p !== null);
     if (allSeated && this.state.status === GameStatus.unseated) {
       this.state.status = GameStatus.seated;
     }
@@ -521,7 +542,7 @@ export class GameStateService {
     seat: number,
     role: RoleId,
     target: number | null,
-    extra?: any
+    extra?: any,
   ): Promise<void> {
     if (!this.state || this.state.status !== GameStatus.ongoing) return;
 
@@ -529,7 +550,10 @@ export class GameStateService {
     if (!this.nightFlow) {
       hostLog.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: handlePlayerAction() called but nightFlow is null.',
-        'seat:', seat, 'role:', role
+        'seat:',
+        seat,
+        'role:',
+        role,
       );
       throw new Error('handlePlayerAction: nightFlow is null - strict invariant violation');
     }
@@ -556,7 +580,16 @@ export class GameStateService {
     const nightmareAction = this.state.actions.get('nightmare');
     if (nightmareAction?.kind === 'target' && nightmareAction.targetSeat === seat) {
       if (target !== null || extra !== undefined) {
-        hostLog.info('Rejecting non-skip action from nightmare-blocked seat:', seat, 'role:', role, 'target:', target, 'extra:', extra);
+        hostLog.info(
+          'Rejecting non-skip action from nightmare-blocked seat:',
+          seat,
+          'role:',
+          role,
+          'target:',
+          target,
+          'extra:',
+          extra,
+        );
         // Send ACTION_REJECTED private message to player
         const playerUid = this.state.players.get(seat)?.uid;
         if (playerUid) {
@@ -586,21 +619,21 @@ export class GameStateService {
         // Fail-fast for unrecognized shapes to avoid silently doing the wrong action.
         if (typeof extra !== 'object' || extra === null) {
           throw new Error(
-            '[GameStateService] Invalid witch extra payload (expected {poison:true} or {save:true}).'
+            '[GameStateService] Invalid witch extra payload (expected {poison:true} or {save:true}).',
           );
         }
 
         if ('poison' in extra) {
           if (extra.poison !== true) {
             throw new Error(
-              '[GameStateService] Invalid witch extra payload (poison must be true when provided).'
+              '[GameStateService] Invalid witch extra payload (poison must be true when provided).',
             );
           }
           this.state.actions.set(role, makeActionWitch(makeWitchPoison(target)));
         } else if ('save' in extra) {
           if (extra.save !== true) {
             throw new Error(
-              '[GameStateService] Invalid witch extra payload (save must be true when provided).'
+              '[GameStateService] Invalid witch extra payload (save must be true when provided).',
             );
           }
           this.state.actions.set(role, makeActionWitch(makeWitchSave(target)));
@@ -614,8 +647,11 @@ export class GameStateService {
         if (target < 100) {
           hostLog.error(
             '[GameStateService] Magician protocol error: encoded target < 100.',
-            'target:', target, 'seat:', seat,
-            'Protocol requires secondSeat >= 1 (target >= 100).'
+            'target:',
+            target,
+            'seat:',
+            seat,
+            'Protocol requires secondSeat >= 1 (target >= 100).',
           );
           return; // FAIL-FAST: reject malformed magician action
         }
@@ -625,7 +661,10 @@ export class GameStateService {
         if (secondSeat > 11 || firstSeat > 11 || firstSeat < 0) {
           hostLog.error(
             '[GameStateService] Magician protocol error: seat out of range.',
-            'firstSeat:', firstSeat, 'secondSeat:', secondSeat
+            'firstSeat:',
+            firstSeat,
+            'secondSeat:',
+            secondSeat,
           );
           return; // FAIL-FAST: reject invalid seat numbers
         }
@@ -687,7 +726,8 @@ export class GameStateService {
     if (!this.nightFlow) {
       hostLog.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: handleWolfVote() called but nightFlow is null.',
-        'seat:', seat
+        'seat:',
+        seat,
       );
       throw new Error('handleWolfVote: nightFlow is null - strict invariant violation');
     }
@@ -745,20 +785,22 @@ export class GameStateService {
 
     // Check if all wolves have voted
     const allWolfSeats = this.getAllWolfSeats();
-    const allVoted = allWolfSeats.every(s => this.state!.wolfVotes.has(s));
+    const allVoted = allWolfSeats.every((s) => this.state!.wolfVotes.has(s));
 
     if (allVoted) {
       // ONCE-GUARD: If wolf action already recorded, this is a duplicate finalize - skip
       if (this.state.actions.has('wolf')) {
         hostLog.debug(
           '[GameStateService] handleWolfVote finalize skipped (once-guard): wolf action already recorded.',
-          'phase:', this.nightFlow.phase,
-          'currentActionerIndex:', this.state.currentActionerIndex
+          'phase:',
+          this.nightFlow.phase,
+          'currentActionerIndex:',
+          this.state.currentActionerIndex,
         );
         return;
       }
 
-  // [Bridge: WolfVoteResolver] Resolve final kill target from wolf votes
+      // [Bridge: WolfVoteResolver] Resolve final kill target from wolf votes
       const finalTarget = resolveWolfVotes(this.state.wolfVotes);
       if (finalTarget !== null) {
         this.state.actions.set('wolf', makeActionTarget(finalTarget));
@@ -769,7 +811,8 @@ export class GameStateService {
           hostLog.debug(
             '[GameStateService] NightFlow recordAction (wolf) failed:',
             err,
-            'phase:', this.nightFlow.phase
+            'phase:',
+            this.nightFlow.phase,
           );
         }
       }
@@ -783,8 +826,9 @@ export class GameStateService {
           // If it does, it indicates a bug in the call chain
           hostLog.debug(
             '[GameStateService] NightFlow ActionSubmitted (wolf) rejected:',
-            'phase:', this.nightFlow.phase,
-            '(expected WaitingForAction). This may indicate a call chain bug.'
+            'phase:',
+            this.nightFlow.phase,
+            '(expected WaitingForAction). This may indicate a call chain bug.',
           );
         } else {
           throw err;
@@ -810,7 +854,7 @@ export class GameStateService {
     // Check if all players have viewed
     const allViewed = Array.from(this.state.players.values())
       .filter((p): p is LocalPlayer => p !== null)
-      .every(p => p.hasViewedRole);
+      .every((p) => p.hasViewedRole);
 
     if (allViewed) {
       this.state.status = GameStatus.ready;
@@ -901,7 +945,7 @@ export class GameStateService {
   /**
    * Handle private messages (ANTI-CHEAT: Zero-Trust filtering)
    * Only stores messages where toUid === myUid
-   * 
+   *
    * @see docs/phase4-final-migration.md
    */
   private handlePrivateMessage(msg: PrivateMessage): void {
@@ -913,37 +957,42 @@ export class GameStateService {
 
     hostLog.info('Received private message:', msg.payload.kind);
 
-  // Store in inbox with revision-bound key (MUST use msg.revision; stateRevision may race)
-  const key = `${msg.revision}_${msg.payload.kind}`;
-  this.privateInboxLatestRevisionByKind.set(msg.payload.kind, msg.revision);
-    
+    // Store in inbox with revision-bound key (MUST use msg.revision; stateRevision may race)
+    const key = `${msg.revision}_${msg.payload.kind}`;
+    this.privateInboxLatestRevisionByKind.set(msg.payload.kind, msg.revision);
+
     switch (msg.payload.kind) {
       case 'WITCH_CONTEXT':
         this.privateInbox.set(key, msg.payload);
-        hostLog.info('Stored WITCH_CONTEXT:', msg.payload.killedIndex, 'canSave:', msg.payload.canSave);
+        hostLog.info(
+          'Stored WITCH_CONTEXT:',
+          msg.payload.killedIndex,
+          'canSave:',
+          msg.payload.canSave,
+        );
         // Notify listeners so UI can update
         this.notifyListeners();
         break;
       case 'SEER_REVEAL': {
-  this.privateInbox.set(key, msg.payload);
+        this.privateInbox.set(key, msg.payload);
         hostLog.info('Stored SEER_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
         this.notifyListeners();
         break;
       }
       case 'PSYCHIC_REVEAL': {
-  this.privateInbox.set(key, msg.payload);
+        this.privateInbox.set(key, msg.payload);
         hostLog.info('Stored PSYCHIC_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
         this.notifyListeners();
         break;
       }
       case 'GARGOYLE_REVEAL': {
-  this.privateInbox.set(key, msg.payload);
+        this.privateInbox.set(key, msg.payload);
         hostLog.info('Stored GARGOYLE_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
         this.notifyListeners();
         break;
       }
       case 'WOLF_ROBOT_REVEAL': {
-  this.privateInbox.set(key, msg.payload);
+        this.privateInbox.set(key, msg.payload);
         hostLog.info('Stored WOLF_ROBOT_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
         this.notifyListeners();
         break;
@@ -956,7 +1005,7 @@ export class GameStateService {
         hostLog.info('BLOCKED received (not stored - by design):', msg.payload.reason);
         break;
       case 'ACTION_REJECTED': {
-  this.privateInbox.set(key, msg.payload);
+        this.privateInbox.set(key, msg.payload);
         hostLog.info('Stored ACTION_REJECTED:', msg.payload.action, 'reason:', msg.payload.reason);
         this.notifyListeners();
         break;
@@ -965,41 +1014,39 @@ export class GameStateService {
   }
 
   private getLatestPrivatePayloadByKind<T extends PrivatePayload['kind']>(
-    kind: T
+    kind: T,
   ): Extract<PrivatePayload, { kind: T }> | null {
     const rev = this.privateInboxLatestRevisionByKind.get(kind);
     if (rev === undefined) return null;
     const payload = this.privateInbox.get(`${rev}_${kind}`);
-    return payload?.kind === kind
-      ? (payload as Extract<PrivatePayload, { kind: T }>)
-      : null;
+    return payload?.kind === kind ? (payload as Extract<PrivatePayload, { kind: T }>) : null;
   }
 
   /**
    * Get witch context from private inbox (for current revision only)
    * Returns null if no WITCH_CONTEXT message received for current revision.
-   * 
+   *
    * ANTI-CHEAT: Only returns data sent privately to this player.
    * @see docs/phase4-final-migration.md
    */
   getWitchContext(): WitchContextPayload | null {
-  return this.getLatestPrivatePayloadByKind('WITCH_CONTEXT');
+    return this.getLatestPrivatePayloadByKind('WITCH_CONTEXT');
   }
 
   /**
    * Get seer reveal from private inbox (for current revision only)
    * Returns null if no SEER_REVEAL message received for current revision.
-   * 
+   *
    * ANTI-CHEAT: Only returns data sent privately to this player.
    */
   getSeerReveal(): SeerRevealPayload | null {
-  return this.getLatestPrivatePayloadByKind('SEER_REVEAL');
+    return this.getLatestPrivatePayloadByKind('SEER_REVEAL');
   }
 
   /**
    * Get confirm status from private inbox (for current revision only)
    * Returns null if no CONFIRM_STATUS message received for current revision.
-   * 
+   *
    * Used by hunter/darkWolfKing to know if they can use their skill.
    * ANTI-CHEAT: Client cannot compute this because actions Map is not broadcast.
    */
@@ -1010,32 +1057,32 @@ export class GameStateService {
   /**
    * Get psychic reveal from private inbox (for current revision only)
    * Returns null if no PSYCHIC_REVEAL message received for current revision.
-   * 
+   *
    * ANTI-CHEAT: Only returns data sent privately to this player.
    */
   getPsychicReveal(): PsychicRevealPayload | null {
-  return this.getLatestPrivatePayloadByKind('PSYCHIC_REVEAL');
+    return this.getLatestPrivatePayloadByKind('PSYCHIC_REVEAL');
   }
 
   /**
    * Wait for seer reveal to arrive in inbox (with timeout).
    * Used after submitting action to ensure Host's private message has arrived.
-   * 
+   *
    * @param timeoutMs - Maximum time to wait (default: 3000ms)
    * @returns SeerRevealPayload if received, null if timeout
    */
   async waitForSeerReveal(timeoutMs: number = 3000): Promise<SeerRevealPayload | null> {
     const pollIntervalMs = 50;
     const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
-    
+
     for (let i = 0; i < maxAttempts; i++) {
       const reveal = this.getSeerReveal();
       if (reveal) {
         return reveal;
       }
-      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
-    
+
     hostLog.warn('waitForSeerReveal timeout after', timeoutMs, 'ms');
     return null;
   }
@@ -1043,22 +1090,22 @@ export class GameStateService {
   /**
    * Wait for psychic reveal to arrive in inbox (with timeout).
    * Used after submitting action to ensure Host's private message has arrived.
-   * 
+   *
    * @param timeoutMs - Maximum time to wait (default: 3000ms)
    * @returns PsychicRevealPayload if received, null if timeout
    */
   async waitForPsychicReveal(timeoutMs: number = 3000): Promise<PsychicRevealPayload | null> {
     const pollIntervalMs = 50;
     const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
-    
+
     for (let i = 0; i < maxAttempts; i++) {
       const reveal = this.getPsychicReveal();
       if (reveal) {
         return reveal;
       }
-      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
-    
+
     hostLog.warn('waitForPsychicReveal timeout after', timeoutMs, 'ms');
     return null;
   }
@@ -1066,32 +1113,32 @@ export class GameStateService {
   /**
    * Get gargoyle reveal from private inbox (for current revision only)
    * Returns null if no GARGOYLE_REVEAL message received for current revision.
-   * 
+   *
    * ANTI-CHEAT: Only returns data sent privately to this player.
    */
   getGargoyleReveal(): GargoyleRevealPayload | null {
-  return this.getLatestPrivatePayloadByKind('GARGOYLE_REVEAL');
+    return this.getLatestPrivatePayloadByKind('GARGOYLE_REVEAL');
   }
 
   /**
    * Wait for gargoyle reveal to arrive in inbox (with timeout).
    * Used after submitting action to ensure Host's private message has arrived.
-   * 
+   *
    * @param timeoutMs - Maximum time to wait (default: 3000ms)
    * @returns GargoyleRevealPayload if received, null if timeout
    */
   async waitForGargoyleReveal(timeoutMs: number = 3000): Promise<GargoyleRevealPayload | null> {
     const pollIntervalMs = 50;
     const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
-    
+
     for (let i = 0; i < maxAttempts; i++) {
       const reveal = this.getGargoyleReveal();
       if (reveal) {
         return reveal;
       }
-      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
-    
+
     hostLog.warn('waitForGargoyleReveal timeout after', timeoutMs, 'ms');
     return null;
   }
@@ -1099,32 +1146,32 @@ export class GameStateService {
   /**
    * Get wolf robot reveal from private inbox (for current revision only)
    * Returns null if no WOLF_ROBOT_REVEAL message received for current revision.
-   * 
+   *
    * ANTI-CHEAT: Only returns data sent privately to this player.
    */
   getWolfRobotReveal(): WolfRobotRevealPayload | null {
-  return this.getLatestPrivatePayloadByKind('WOLF_ROBOT_REVEAL');
+    return this.getLatestPrivatePayloadByKind('WOLF_ROBOT_REVEAL');
   }
 
   /**
    * Wait for wolf robot reveal to arrive in inbox (with timeout).
    * Used after submitting action to ensure Host's private message has arrived.
-   * 
+   *
    * @param timeoutMs - Maximum time to wait (default: 3000ms)
    * @returns WolfRobotRevealPayload if received, null if timeout
    */
   async waitForWolfRobotReveal(timeoutMs: number = 3000): Promise<WolfRobotRevealPayload | null> {
     const pollIntervalMs = 50;
     const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
-    
+
     for (let i = 0; i < maxAttempts; i++) {
       const reveal = this.getWolfRobotReveal();
       if (reveal) {
         return reveal;
       }
-      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
-    
+
     hostLog.warn('waitForWolfRobotReveal timeout after', timeoutMs, 'ms');
     return null;
   }
@@ -1132,36 +1179,36 @@ export class GameStateService {
   /**
    * Get action rejected from private inbox (for current revision only)
    * Returns null if no ACTION_REJECTED message received for current revision.
-   * 
+   *
    * @see docs/architecture/unified-host-reject-and-wolf-rules.zh-CN.md
    */
   getActionRejected(): ActionRejectedPayload | null {
-  return this.getLatestPrivatePayloadByKind('ACTION_REJECTED');
+    return this.getLatestPrivatePayloadByKind('ACTION_REJECTED');
   }
 
   /**
    * Wait for action rejected from Host.
    * Used by UI to detect if action was rejected before waiting for reveal.
-   * 
+   *
    * NOTE: Uses short timeout (default 800ms) since reject should arrive quickly.
-   * 
+   *
    * @param timeoutMs - Maximum time to wait for reject
    * @returns ActionRejectedPayload if received, null if timeout (action was accepted)
-   * 
+   *
    * @see docs/architecture/unified-host-reject-and-wolf-rules.zh-CN.md
    */
   async waitForActionRejected(timeoutMs: number = 800): Promise<ActionRejectedPayload | null> {
     const pollIntervalMs = 50;
     const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
-    
+
     for (let i = 0; i < maxAttempts; i++) {
       const rejected = this.getActionRejected();
       if (rejected) {
         return rejected;
       }
-      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
-    
+
     // No rejection received = action was accepted
     return null;
   }
@@ -1171,7 +1218,7 @@ export class GameStateService {
    */
   private clearPrivateInbox(): void {
     this.privateInbox.clear();
-  this.privateInboxLatestRevisionByKind.clear();
+    this.privateInboxLatestRevisionByKind.clear();
   }
 
   /**
@@ -1244,10 +1291,10 @@ export class GameStateService {
     // Clear timeout
     clearTimeout(this.pendingSnapshotRequest.timeoutHandle);
     this.pendingSnapshotRequest = null;
-    
+
     // Apply state unconditionally (snapshot is always authoritative)
     this.applyStateUpdate(msg.state, msg.revision);
-    
+
     // Mark connection as live
     this.broadcastService.markAsLive();
   }
@@ -1262,12 +1309,12 @@ export class GameStateService {
       }
       this.stateRevision = revision;
     }
-    
+
     // Mark connection as live after receiving state
     this.broadcastService.markAsLive();
     // Create or update local state from broadcast
     const template = createTemplateFromRoles(broadcastState.templateRoles);
-    
+
     const players = new Map<number, LocalPlayer | null>();
     Object.entries(broadcastState.players).forEach(([seatStr, bp]) => {
       const seat = Number.parseInt(seatStr);
@@ -1295,7 +1342,7 @@ export class GameStateService {
       status: broadcastState.status as GameStatus,
       template,
       players,
-      actions: new Map(),  // Players don't see actions
+      actions: new Map(), // Players don't see actions
       wolfVotes: new Map(),
       currentActionerIndex: broadcastState.currentActionerIndex,
       isAudioPlaying: broadcastState.isAudioPlaying,
@@ -1319,7 +1366,7 @@ export class GameStateService {
     seat: number,
     uid: string,
     displayName?: string,
-    avatarUrl?: string
+    avatarUrl?: string,
   ): Promise<{ success: boolean; reason?: string }> {
     if (!this.state) return { success: false, reason: 'no_state' };
 
@@ -1349,7 +1396,7 @@ export class GameStateService {
       }
 
       // Update status if all seated
-      const allSeated = Array.from(this.state.players.values()).every(p => p !== null);
+      const allSeated = Array.from(this.state.players.values()).every((p) => p !== null);
       if (allSeated && this.state.status === GameStatus.unseated) {
         this.state.status = GameStatus.seated;
       }
@@ -1357,7 +1404,6 @@ export class GameStateService {
       await this.broadcastState();
       this.notifyListeners();
       return { success: true };
-
     } else if (action === 'standup') {
       // Verify player is in this seat
       const player = this.state.players.get(seat);
@@ -1434,7 +1480,7 @@ export class GameStateService {
 
     // Assign to players
     let i = 0;
-    this.state.players.forEach((player, seat) => {
+    this.state.players.forEach((player, _seat) => {
       if (player) {
         player.role = shuffledRoles[i];
         player.hasViewedRole = false;
@@ -1446,7 +1492,7 @@ export class GameStateService {
 
     await this.broadcastState();
     this.notifyListeners();
-    
+
     hostLog.info('Roles assigned');
   }
 
@@ -1459,11 +1505,11 @@ export class GameStateService {
 
     // [Bridge: NightFlowController] Build NightPlan from template roles (table-driven)
     const nightPlan = buildNightPlan(this.state.template.roles);
-    
+
     // [Bridge: NightFlowController] Initialize night-phase state machine with NightPlan
     this.nightFlow = new NightFlowController(nightPlan);
-    
-  // [Bridge: NightFlowController] Dispatch StartNight event (STRICT: fail-fast on error)
+
+    // [Bridge: NightFlowController] Dispatch StartNight event (STRICT: fail-fast on error)
     try {
       this.nightFlow.dispatch(NightEvent.StartNight);
     } catch (err) {
@@ -1487,9 +1533,9 @@ export class GameStateService {
     await this.audioService.playNightBeginAudio();
 
     // Wait 5 seconds
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
-  // [Bridge: NightFlowController] Night begin audio done - dispatch transition event (STRICT)
+    // [Bridge: NightFlowController] Night begin audio done - dispatch transition event (STRICT)
     try {
       this.nightFlow?.dispatch(NightEvent.NightBeginAudioDone);
       // Sync currentActionerIndex from nightFlow
@@ -1508,7 +1554,7 @@ export class GameStateService {
 
     // Set status to ongoing
     this.state.status = GameStatus.ongoing;
-    
+
     await this.broadcastState();
     this.notifyListeners();
 
@@ -1519,7 +1565,7 @@ export class GameStateService {
   /**
    * Host: Restart game with same template.
    * Clears roles and resets to seated status.
-   * 
+   *
    * @returns true if restart succeeded, false if preconditions not met
    */
   async restartGame(): Promise<boolean> {
@@ -1569,7 +1615,7 @@ export class GameStateService {
     await this.broadcastService.broadcastAsHost({ type: 'GAME_RESTARTED' });
     await this.broadcastState();
     this.notifyListeners();
-    
+
     hostLog.info('Game restarted');
     return true;
   }
@@ -1607,12 +1653,12 @@ export class GameStateService {
     }
 
     // Recalculate status based on seating
-    const allSeated = Array.from(this.state.players.values()).every(p => p !== null);
+    const allSeated = Array.from(this.state.players.values()).every((p) => p !== null);
     this.state.status = allSeated ? GameStatus.seated : GameStatus.unseated;
 
     await this.broadcastState();
     this.notifyListeners();
-    
+
     hostLog.info('Template updated:', newTemplate.name);
   }
 
@@ -1633,7 +1679,7 @@ export class GameStateService {
     if (!this.isHost || !this.state) return;
 
     const currentRole = this.getCurrentActionRole();
-    
+
     if (!currentRole) {
       // Night has ended
       await this.endNight();
@@ -1665,17 +1711,17 @@ export class GameStateService {
 
     // Get pending seats for this role
     const pendingSeats = this.getSeatsForRole(currentRole);
-    
-  // Get stepId from NIGHT_STEPS (fail-safe: only if valid roleId)
+
+    // Get stepId from NIGHT_STEPS (fail-safe: only if valid roleId)
     let stepId: SchemaId | undefined;
     if (isValidRoleId(currentRole)) {
       const spec = getRoleSpec(currentRole);
       // stepId only exists when hasAction is true
       if (spec.night1.hasAction) {
-    // M3: stepId is derived from NIGHT_STEPS single source of truth.
-    // Current assumption (locked by contract tests): each role has at most one NightStep.
-    const [step] = getStepsByRoleStrict(currentRole);
-    stepId = step?.id;  // step.id is the stepId (= schemaId)
+        // M3: stepId is derived from NIGHT_STEPS single source of truth.
+        // Current assumption (locked by contract tests): each role has at most one NightStep.
+        const [step] = getStepsByRoleStrict(currentRole);
+        stepId = step?.id; // step.id is the stepId (= schemaId)
       }
     } else {
       hostLog.warn(` ROLE_TURN: Invalid roleId "${currentRole}", stepId not sent`);
@@ -1686,8 +1732,9 @@ export class GameStateService {
     if (currentRole === 'witch') {
       const witchSeat = this.getPlayerSeatByRole('witch');
       const nightmareAction = this.state.actions.get('nightmare');
-      const isWitchBlocked = nightmareAction?.kind === 'target' && nightmareAction.targetSeat === witchSeat;
-      
+      const isWitchBlocked =
+        nightmareAction?.kind === 'target' && nightmareAction.targetSeat === witchSeat;
+
       if (isWitchBlocked) {
         // Witch is blocked by nightmare - send BLOCKED, not WITCH_CONTEXT
         const witchUid = this.getPlayerUidByRole('witch');
@@ -1739,7 +1786,8 @@ export class GameStateService {
     if (this.state.status === GameStatus.ongoing && !this.nightFlow) {
       hostLog.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: advanceToNextAction() called but nightFlow is null.',
-        'status:', this.state.status
+        'status:',
+        this.state.status,
       );
       throw new Error('advanceToNextAction: nightFlow is null - strict invariant violation');
     }
@@ -1750,7 +1798,7 @@ export class GameStateService {
     }
 
     const currentRole = this.getCurrentActionRole();
-    
+
     // Play role ending audio if available
     if (currentRole) {
       // Set audio playing state during ending audio
@@ -1765,7 +1813,7 @@ export class GameStateService {
       this.state.isAudioPlaying = false;
     }
 
-  // [Bridge: NightFlowController] Dispatch RoleEndAudioDone to advance state machine
+    // [Bridge: NightFlowController] Dispatch RoleEndAudioDone to advance state machine
     // STRICT: Only dispatch if nightFlow is in RoleEndAudio phase
     // If phase mismatch, this is a duplicate/stale callback - ignore (idempotent)
     // NO FALLBACK: We never manually advance index; NightFlowController is the single source of truth
@@ -1778,13 +1826,13 @@ export class GameStateService {
       hostLog.debug(
         '[GameStateService] RoleEndAudioDone ignored (idempotent): phase is',
         this.nightFlow.phase,
-        '- not RoleEndAudio'
+        '- not RoleEndAudio',
       );
       // DO NOT advance index manually - that would violate state machine authority
       return; // Early return: don't proceed to playCurrentRoleAudio again
     }
 
-    this.state.wolfVotes = new Map();  // Clear wolf votes for next role
+    this.state.wolfVotes = new Map(); // Clear wolf votes for next role
 
     // Play next role's audio
     await this.playCurrentRoleAudio();
@@ -1798,7 +1846,8 @@ export class GameStateService {
     if (this.state.status === GameStatus.ongoing && !this.nightFlow) {
       hostLog.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: endNight() called but nightFlow is null.',
-        'status:', this.state.status
+        'status:',
+        this.state.status,
       );
       throw new Error('endNight: nightFlow is null - strict invariant violation');
     }
@@ -1812,7 +1861,7 @@ export class GameStateService {
     hostLog.info('Playing night end audio...');
     await this.audioService.playNightEndAudio();
 
-  // [Bridge: NightFlowController] Dispatch NightEndAudioDone to complete state machine
+    // [Bridge: NightFlowController] Dispatch NightEndAudioDone to complete state machine
     // STRICT: Only dispatch if nightFlow is in NightEndAudio phase
     // If phase mismatch, this is a duplicate/stale callback - STRICT no-op (no death calc, no broadcast)
     if (this.nightFlow.phase === NightPhase.NightEndAudio) {
@@ -1824,12 +1873,12 @@ export class GameStateService {
       hostLog.debug(
         '[GameStateService] endNight() ignored (strict no-op): phase is',
         this.nightFlow.phase,
-        '- not NightEndAudio. No death calc, no status change.'
+        '- not NightEndAudio. No death calc, no status change.',
       );
       return; // STRICT: early return, no side effects
     }
 
-  // [Bridge: DeathCalculator] Calculate deaths via extracted pure function
+    // [Bridge: DeathCalculator] Calculate deaths via extracted pure function
     const deaths = this.doCalculateDeaths();
     this.state.lastNightDeaths = deaths;
     this.state.status = GameStatus.ended;
@@ -1842,7 +1891,7 @@ export class GameStateService {
 
     await this.broadcastState();
     this.notifyListeners();
-    
+
     hostLog.info('Night ended. Deaths:', deaths);
   }
 
@@ -1865,7 +1914,7 @@ export class GameStateService {
     seat: number,
     displayName?: string,
     avatarUrl?: string,
-    timeoutMs: number = 5000
+    timeoutMs: number = 5000,
   ): Promise<{ success: boolean; reason?: string }> {
     if (!this.myUid) {
       return { success: false, reason: 'not_authenticated' };
@@ -1876,7 +1925,13 @@ export class GameStateService {
       return result;
     }
 
-    const success = await this.sendSeatActionWithAck('sit', seat, displayName, avatarUrl, timeoutMs);
+    const success = await this.sendSeatActionWithAck(
+      'sit',
+      seat,
+      displayName,
+      avatarUrl,
+      timeoutMs,
+    );
     if (!success) {
       const reason = this.lastSeatError?.reason;
       return { success: false, reason: reason ?? 'unknown' };
@@ -1898,7 +1953,13 @@ export class GameStateService {
       return result;
     }
 
-    const success = await this.sendSeatActionWithAck('standup', this.mySeatNumber, undefined, undefined, timeoutMs);
+    const success = await this.sendSeatActionWithAck(
+      'standup',
+      this.mySeatNumber,
+      undefined,
+      undefined,
+      timeoutMs,
+    );
     return { success, reason: success ? undefined : 'timeout_or_rejected' };
   }
 
@@ -1910,7 +1971,7 @@ export class GameStateService {
     seat: number,
     displayName?: string,
     avatarUrl?: string,
-    timeoutMs: number = 5000
+    timeoutMs: number = 5000,
   ): Promise<boolean> {
     if (!this.myUid) return false;
 
@@ -1922,7 +1983,7 @@ export class GameStateService {
     }
 
     const requestId = this.generateRequestId();
-    
+
     return new Promise<boolean>((resolve, reject) => {
       // Set up timeout first
       const timeoutHandle = setTimeout(() => {
@@ -1946,21 +2007,23 @@ export class GameStateService {
       };
 
       // Send request
-      this.broadcastService.sendToHost({
-        type: 'SEAT_ACTION_REQUEST',
-        requestId,
-        action,
-        seat,
-        uid: this.myUid!,
-        displayName,
-        avatarUrl,
-      }).catch(err => {
-        if (this.pendingSeatAction?.requestId === requestId) {
-          clearTimeout(this.pendingSeatAction.timeoutHandle);
-          this.pendingSeatAction = null;
-          reject(err);
-        }
-      });
+      this.broadcastService
+        .sendToHost({
+          type: 'SEAT_ACTION_REQUEST',
+          requestId,
+          action,
+          seat,
+          uid: this.myUid!,
+          displayName,
+          avatarUrl,
+        })
+        .catch((err) => {
+          if (this.pendingSeatAction?.requestId === requestId) {
+            clearTimeout(this.pendingSeatAction.timeoutHandle);
+            this.pendingSeatAction = null;
+            reject(err);
+          }
+        });
 
       // Note: resolve/reject will be called by handleSeatActionAck or timeout
     });
@@ -1989,7 +2052,7 @@ export class GameStateService {
     this.broadcastService.markAsSyncing();
 
     const requestId = this.generateRequestId();
-    
+
     playerLog.info(` Requesting snapshot, lastRev: ${this.stateRevision}`);
 
     // Set up timeout
@@ -2009,7 +2072,7 @@ export class GameStateService {
       timestamp: Date.now(),
       timeoutHandle,
     };
-    
+
     try {
       await this.broadcastService.sendToHost({
         type: 'SNAPSHOT_REQUEST',
@@ -2130,7 +2193,7 @@ export class GameStateService {
 
   private getSeatsForRole(role: RoleId): number[] {
     if (!this.state) return [];
-    
+
     const seats: number[] = [];
     this.state.players.forEach((player, seat) => {
       if (player?.role === role) {
@@ -2148,7 +2211,7 @@ export class GameStateService {
 
   private getAllWolfSeats(): number[] {
     if (!this.state) return [];
-    
+
     const seats: number[] = [];
     this.state.players.forEach((player, seat) => {
       if (player?.role && isWolfRole(player.role)) {
@@ -2193,7 +2256,7 @@ export class GameStateService {
   /**
    * Send WITCH_CONTEXT to the witch player.
    * Contains sensitive info: killedIndex, canSave.
-   * 
+   *
    * @see docs/phase4-final-migration.md for anti-cheat architecture
    */
   private async sendWitchContext(killedIndex: number): Promise<void> {
@@ -2205,7 +2268,7 @@ export class GameStateService {
 
     const witchSeat = this.getPlayerSeatByRole('witch');
     // canSave: Host determines if witch can save (not self, has antidote)
-  // Night-1-only: witch always has antidote, and self-save is not allowed per schema constraints
+    // Night-1-only: witch always has antidote, and self-save is not allowed per schema constraints
     const canSave = killedIndex !== -1 && killedIndex !== witchSeat;
 
     const privateMessage: PrivateMessage = {
@@ -2216,18 +2279,25 @@ export class GameStateService {
         kind: 'WITCH_CONTEXT',
         killedIndex,
         canSave,
-        canPoison: true,  // Night-1: always has poison
+        canPoison: true, // Night-1: always has poison
       } as WitchContextPayload,
     };
 
-    hostLog.info('Sending WITCH_CONTEXT to witch:', witchUid.substring(0, 8), 'killedIndex:', killedIndex, 'canSave:', canSave);
+    hostLog.info(
+      'Sending WITCH_CONTEXT to witch:',
+      witchUid.substring(0, 8),
+      'killedIndex:',
+      killedIndex,
+      'canSave:',
+      canSave,
+    );
     await this.broadcastService.sendPrivate(privateMessage);
   }
 
   /**
    * Send CONFIRM_STATUS to hunter or darkWolfKing.
    * Tells them if they can use their skill (not poisoned by witch).
-   * 
+   *
    * ANTI-CHEAT: Client cannot compute this because actions Map is not broadcast.
    * Host computes and sends via private message.
    */
@@ -2253,14 +2323,19 @@ export class GameStateService {
       } as ConfirmStatusPayload,
     };
 
-    hostLog.info(` Sending CONFIRM_STATUS to ${role}:`, roleUid.substring(0, 8), 'canShoot:', canShoot);
+    hostLog.info(
+      ` Sending CONFIRM_STATUS to ${role}:`,
+      roleUid.substring(0, 8),
+      'canShoot:',
+      canShoot,
+    );
     await this.broadcastService.sendPrivate(privateMessage);
   }
 
   /**
    * Send SEER_REVEAL to the seer player after they check a target.
    * Contains sensitive info: target's alignment (好人/狼人).
-   * 
+   *
    * @see docs/phase4-final-migration.md for anti-cheat architecture
    */
   private async sendSeerReveal(seerSeat: number, targetSeat: number): Promise<void> {
@@ -2273,7 +2348,7 @@ export class GameStateService {
     // Build role map and get swapped seats for identity check
     const roleMap = this.buildRoleMap();
     const swappedSeats = this.getMagicianSwappedSeats();
-    
+
     // Get target's role AFTER magician swap (identity swap)
     const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
     if (!effectiveRoleId) {
@@ -2295,14 +2370,21 @@ export class GameStateService {
       } as SeerRevealPayload,
     };
 
-    hostLog.info('Sending SEER_REVEAL to seer:', seerUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
+    hostLog.info(
+      'Sending SEER_REVEAL to seer:',
+      seerUid.substring(0, 8),
+      'target:',
+      targetSeat,
+      'result:',
+      result,
+    );
     await this.broadcastService.sendPrivate(privateMessage);
   }
 
   /**
    * Send PSYCHIC_REVEAL to the psychic player after they check a target.
    * Contains sensitive info: target's exact role name.
-   * 
+   *
    * @see docs/phase4-final-migration.md for anti-cheat architecture
    */
   private async sendPsychicReveal(psychicSeat: number, targetSeat: number): Promise<void> {
@@ -2315,7 +2397,7 @@ export class GameStateService {
     // Build role map and get swapped seats for identity check
     const roleMap = this.buildRoleMap();
     const swappedSeats = this.getMagicianSwappedSeats();
-    
+
     // Get target's role AFTER magician swap (identity swap)
     const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
     if (!effectiveRoleId) {
@@ -2337,14 +2419,21 @@ export class GameStateService {
       } as PsychicRevealPayload,
     };
 
-    hostLog.info('Sending PSYCHIC_REVEAL to psychic:', psychicUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
+    hostLog.info(
+      'Sending PSYCHIC_REVEAL to psychic:',
+      psychicUid.substring(0, 8),
+      'target:',
+      targetSeat,
+      'result:',
+      result,
+    );
     await this.broadcastService.sendPrivate(privateMessage);
   }
 
   /**
    * Send GARGOYLE_REVEAL to the gargoyle player after they check a target.
    * Contains sensitive info: target's exact role name.
-   * 
+   *
    * @see docs/phase4-final-migration.md for anti-cheat architecture
    */
   private async sendGargoyleReveal(gargoyleSeat: number, targetSeat: number): Promise<void> {
@@ -2357,7 +2446,7 @@ export class GameStateService {
     // Build role map and get swapped seats for identity check
     const roleMap = this.buildRoleMap();
     const swappedSeats = this.getMagicianSwappedSeats();
-    
+
     // Get target's role AFTER magician swap (identity swap)
     const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
     if (!effectiveRoleId) {
@@ -2379,14 +2468,21 @@ export class GameStateService {
       } as GargoyleRevealPayload,
     };
 
-    hostLog.info('Sending GARGOYLE_REVEAL to gargoyle:', gargoyleUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
+    hostLog.info(
+      'Sending GARGOYLE_REVEAL to gargoyle:',
+      gargoyleUid.substring(0, 8),
+      'target:',
+      targetSeat,
+      'result:',
+      result,
+    );
     await this.broadcastService.sendPrivate(privateMessage);
   }
 
   /**
    * Send WOLF_ROBOT_REVEAL to the wolf robot player after they learn a target's identity.
    * Contains sensitive info: target's exact role name.
-   * 
+   *
    * @see docs/phase4-final-migration.md for anti-cheat architecture
    */
   private async sendWolfRobotReveal(robotSeat: number, targetSeat: number): Promise<void> {
@@ -2399,7 +2495,7 @@ export class GameStateService {
     // Build role map and get swapped seats for identity check
     const roleMap = this.buildRoleMap();
     const swappedSeats = this.getMagicianSwappedSeats();
-    
+
     // Get target's role AFTER magician swap (identity swap)
     const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
     if (!effectiveRoleId) {
@@ -2421,7 +2517,14 @@ export class GameStateService {
       } as WolfRobotRevealPayload,
     };
 
-    hostLog.info('Sending WOLF_ROBOT_REVEAL to wolfRobot:', robotUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
+    hostLog.info(
+      'Sending WOLF_ROBOT_REVEAL to wolfRobot:',
+      robotUid.substring(0, 8),
+      'target:',
+      targetSeat,
+      'result:',
+      result,
+    );
     await this.broadcastService.sendPrivate(privateMessage);
   }
 
@@ -2506,8 +2609,8 @@ export class GameStateService {
   private buildRoleSeatMap(): RoleSeatMap {
     return {
       witcher: this.findSeatByRole('witcher'),
-  wolfQueen: this.findSeatByRole('wolfQueen'),
-  dreamcatcher: this.findSeatByRole('dreamcatcher'),
+      wolfQueen: this.findSeatByRole('wolfQueen'),
+      dreamcatcher: this.findSeatByRole('dreamcatcher'),
       spiritKnight: this.findSeatByRole('spiritKnight'),
       seer: this.findSeatByRole('seer'),
       witch: this.findSeatByRole('witch'),
@@ -2521,7 +2624,7 @@ export class GameStateService {
    */
   private buildRoleMap(): ReadonlyMap<number, RoleId> {
     if (!this.state) return new Map();
-    
+
     const roleMap = new Map<number, RoleId>();
     for (const [seat, player] of this.state.players) {
       if (player?.role && isValidRoleId(player.role)) {
@@ -2537,7 +2640,7 @@ export class GameStateService {
    */
   private getMagicianSwappedSeats(): readonly [number, number] | undefined {
     if (!this.state) return undefined;
-    
+
     const magicianAction = this.state.actions.get('magician');
     if (magicianAction?.kind === 'magicianSwap') {
       return [magicianAction.firstSeat, magicianAction.secondSeat];
@@ -2554,13 +2657,13 @@ export class GameStateService {
     const nightActions = this.buildNightActions();
     const roleSeatMap = this.buildRoleSeatMap();
 
-  // [Bridge: DeathCalculator] Invoke extracted pure function
+    // [Bridge: DeathCalculator] Invoke extracted pure function
     return calculateDeaths(nightActions, roleSeatMap);
   }
 
   private findSeatByRole(role: RoleId): number {
     if (!this.state) return -1;
-    
+
     for (const [seat, player] of this.state.players) {
       if (player?.role === role) return seat;
     }
@@ -2578,7 +2681,7 @@ export class GameStateService {
       return '昨天晚上是平安夜。';
     }
 
-    const deathNumbers = deaths.map(d => `${d + 1}号`).join(', ');
+    const deathNumbers = deaths.map((d) => `${d + 1}号`).join(', ');
     return `昨天晚上${deathNumbers}玩家死亡。`;
   }
 
@@ -2587,7 +2690,7 @@ export class GameStateService {
 
     // Increment revision on each broadcast
     this.stateRevision++;
-    
+
     const broadcastState = this.toBroadcastState();
     await this.broadcastService.broadcastAsHost({
       type: 'STATE_UPDATE',
@@ -2609,7 +2712,7 @@ export class GameStateService {
           seatNumber: p.seatNumber,
           displayName: p.displayName,
           avatarUrl: p.avatarUrl,
-          role: p.role,  // Include role - client decides what to show
+          role: p.role, // Include role - client decides what to show
           hasViewedRole: p.hasViewedRole,
         };
       } else {
@@ -2619,15 +2722,14 @@ export class GameStateService {
 
     // Wolf vote status
     const wolfVoteStatus: Record<number, boolean> = {};
-    this.getAllWolfSeats().forEach(seat => {
+    this.getAllWolfSeats().forEach((seat) => {
       wolfVoteStatus[seat] = this.state!.wolfVotes.has(seat);
     });
 
     // Get nightmare blocked seat from actions
     const nightmareAction = this.state.actions.get('nightmare');
-    const nightmareBlockedSeat = nightmareAction?.kind === 'target' 
-      ? nightmareAction.targetSeat 
-      : undefined;
+    const nightmareBlockedSeat =
+      nightmareAction?.kind === 'target' ? nightmareAction.targetSeat : undefined;
 
     return {
       roomCode: this.state.roomCode,

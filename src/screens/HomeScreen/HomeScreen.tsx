@@ -36,12 +36,7 @@ interface MenuItemProps {
 }
 
 const MenuItem: React.FC<MenuItemProps> = ({ icon, title, subtitle, onPress, testID }) => (
-  <TouchableOpacity
-    testID={testID}
-    style={styles.menuItem}
-    onPress={onPress}
-    activeOpacity={0.7}
-  >
+  <TouchableOpacity testID={testID} style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.menuIcon}>
       <Text style={styles.menuIconText}>{icon}</Text>
     </View>
@@ -90,7 +85,7 @@ const EmailForm: React.FC<EmailFormProps> = ({
   return (
     <>
       <Text style={styles.modalTitle}>{isSignUp ? '注册账号' : '邮箱登录'}</Text>
-      
+
       <TextInput
         style={styles.input}
         placeholder="邮箱"
@@ -100,7 +95,7 @@ const EmailForm: React.FC<EmailFormProps> = ({
         keyboardType="email-address"
         autoCapitalize="none"
       />
-      
+
       <TextInput
         style={styles.input}
         placeholder="密码"
@@ -109,7 +104,7 @@ const EmailForm: React.FC<EmailFormProps> = ({
         onChangeText={onPasswordChange}
         secureTextEntry
       />
-      
+
       {isSignUp && (
         <TextInput
           style={styles.input}
@@ -119,23 +114,23 @@ const EmailForm: React.FC<EmailFormProps> = ({
           onChangeText={onDisplayNameChange}
         />
       )}
-      
+
       {authError && <Text style={styles.errorText}>{authError}</Text>}
-      
-      <TouchableOpacity 
-        style={[styles.primaryButton, authLoading && styles.buttonDisabled]} 
+
+      <TouchableOpacity
+        style={[styles.primaryButton, authLoading && styles.buttonDisabled]}
         onPress={onSubmit}
         disabled={authLoading}
       >
         <Text style={styles.primaryButtonText}>{getButtonText()}</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.linkButton} onPress={onToggleMode}>
         <Text style={styles.linkButtonText}>
           {isSignUp ? '已有账号？去登录' : '没有账号？去注册'}
         </Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.secondaryButton} onPress={onBack}>
         <Text style={styles.secondaryButtonText}>返回</Text>
       </TouchableOpacity>
@@ -159,22 +154,20 @@ const LoginOptions: React.FC<LoginOptionsProps> = ({
   <>
     <Text style={styles.modalTitle}>登录</Text>
     <Text style={styles.modalSubtitle}>选择登录方式继续</Text>
-    
+
     <TouchableOpacity style={styles.primaryButton} onPress={onEmailLogin}>
       <Text style={styles.primaryButtonText}>📧 邮箱登录/注册</Text>
     </TouchableOpacity>
-    
-    <TouchableOpacity 
-      style={[styles.outlineButton, authLoading && styles.buttonDisabled]} 
+
+    <TouchableOpacity
+      style={[styles.outlineButton, authLoading && styles.buttonDisabled]}
       onPress={onAnonymousLogin}
       disabled={authLoading}
       testID={TESTIDS.homeAnonLoginButton}
     >
-      <Text style={styles.outlineButtonText}>
-        {authLoading ? '处理中...' : '👤 匿名登录'}
-      </Text>
+      <Text style={styles.outlineButtonText}>{authLoading ? '处理中...' : '👤 匿名登录'}</Text>
     </TouchableOpacity>
-    
+
     <TouchableOpacity style={styles.secondaryButton} onPress={onCancel}>
       <Text style={styles.secondaryButtonText}>取消</Text>
     </TouchableOpacity>
@@ -205,7 +198,7 @@ const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
       <View style={styles.modalContent}>
         <Text style={styles.modalTitle}>加入房间</Text>
         <Text style={styles.modalSubtitle}>输入4位房间号码</Text>
-        
+
         <TextInput
           style={styles.codeInput}
           value={roomCode}
@@ -217,25 +210,23 @@ const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
           autoFocus
           editable={!isLoading}
         />
-        
+
         {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
-        
+
         <View style={styles.modalButtons}>
-          <TouchableOpacity 
-            style={[styles.secondaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]} 
+          <TouchableOpacity
+            style={[styles.secondaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]}
             onPress={onCancel}
             disabled={isLoading}
           >
             <Text style={styles.secondaryButtonText}>取消</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.primaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]} 
+          <TouchableOpacity
+            style={[styles.primaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]}
             onPress={onJoin}
             disabled={isLoading}
           >
-            <Text style={styles.primaryButtonText}>
-              {isLoading ? '加入中...' : '加入'}
-            </Text>
+            <Text style={styles.primaryButtonText}>{isLoading ? '加入中...' : '加入'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -249,12 +240,20 @@ const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { user, signInAnonymously, signUpWithEmail, signInWithEmail, signOut, loading: authLoading, error: authError } = useAuth();
+  const {
+    user,
+    signInAnonymously,
+    signUpWithEmail,
+    signInWithEmail,
+    signOut,
+    loading: authLoading,
+    error: authError,
+  } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [lastRoomNumber, setLastRoomNumber] = useState<string | null>(null);
-  
+
   // Loading states for actions
   const [isJoining, setIsJoining] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -263,8 +262,9 @@ export const HomeScreen: React.FC = () => {
   // Prevent transient UI states (e.g. "创建中...") from getting stuck if we navigate away
   // and then come back via back actions (common during e2e recovery flows).
   useEffect(() => {
-    const addListener = (navigation as unknown as { addListener?: (event: string, cb: () => void) => () => void })
-      .addListener;
+    const addListener = (
+      navigation as unknown as { addListener?: (event: string, cb: () => void) => () => void }
+    ).addListener;
 
     if (!addListener) {
       // Jest tests may mock navigation without addListener; don't crash.
@@ -277,28 +277,28 @@ export const HomeScreen: React.FC = () => {
     });
     return unsubscribe;
   }, [navigation]);
-  
+
   // Email auth form state
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  
+
   // Load last room number
   useEffect(() => {
     AsyncStorage.getItem('lastRoomNumber').then((value) => {
       if (value) setLastRoomNumber(value);
     });
   }, []);
-  
+
   // Get user display name
   const userName = useMemo(() => {
     if (!user) return '';
     // Anonymous users should show "匿名用户"
     if (user.isAnonymous) return '匿名用户';
     if (user.displayName) return user.displayName;
-    
+
     // Fallback for logged-in users without displayName: use email prefix
     if (user.email) {
       return user.email.split('@')[0];
@@ -306,16 +306,19 @@ export const HomeScreen: React.FC = () => {
     return '用户';
   }, [user]);
 
-  const requireAuth = useCallback((action: () => void) => {
-    if (!user) {
-      showAlert('需要登录', '请先登录后继续', [
-        { text: '登录', onPress: () => setShowLoginModal(true) },
-        { text: '取消', style: 'cancel' },
-      ]);
-      return;
-    }
-    action();
-  }, [user]);
+  const requireAuth = useCallback(
+    (action: () => void) => {
+      if (!user) {
+        showAlert('需要登录', '请先登录后继续', [
+          { text: '登录', onPress: () => setShowLoginModal(true) },
+          { text: '取消', style: 'cancel' },
+        ]);
+        return;
+      }
+      action();
+    },
+    [user],
+  );
 
   const handleAnonymousLogin = useCallback(async () => {
     try {
@@ -334,7 +337,7 @@ export const HomeScreen: React.FC = () => {
       showAlert('请输入邮箱和密码');
       return;
     }
-    
+
     try {
       if (isSignUp) {
         await signUpWithEmail(email, password, displayName || undefined);
@@ -367,16 +370,16 @@ export const HomeScreen: React.FC = () => {
       setJoinError('请输入4位房间号');
       return;
     }
-    
+
     setJoinError(null);
     setIsJoining(true);
-    
+
     try {
       // Set timeout for slow network
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('timeout')), 10000);
       });
-      
+
       // Navigate with timeout protection
       await Promise.race([
         (async () => {
@@ -423,7 +426,7 @@ export const HomeScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.homeScreenRoot}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -439,14 +442,16 @@ export const HomeScreen: React.FC = () => {
           onPress={() => {
             if (user) {
               // Show user menu with logout option
-              showAlert(
-                userName,
-                user.isAnonymous ? '匿名登录用户' : (user.email || '已登录'),
-                [
-                  { text: '退出登录', style: 'destructive', onPress: () => { signOut(); } },
-                  { text: '取消', style: 'cancel' },
-                ]
-              );
+              showAlert(userName, user.isAnonymous ? '匿名登录用户' : user.email || '已登录', [
+                {
+                  text: '退出登录',
+                  style: 'destructive',
+                  onPress: () => {
+                    signOut();
+                  },
+                },
+                { text: '取消', style: 'cancel' },
+              ]);
             } else {
               setShowLoginModal(true);
             }
@@ -456,38 +461,44 @@ export const HomeScreen: React.FC = () => {
           {!user && (
             <>
               <Text style={styles.userAvatar}>👤</Text>
-              <Text style={styles.userNameText} testID={TESTIDS.homeLoginButton}>点击登录</Text>
+              <Text style={styles.userNameText} testID={TESTIDS.homeLoginButton}>
+                点击登录
+              </Text>
             </>
           )}
           {user && user.isAnonymous && (
             <>
               <Text style={styles.userAvatar}>👤</Text>
-              <Text style={styles.userNameText} testID={TESTIDS.homeUserName}>{userName}</Text>
+              <Text style={styles.userNameText} testID={TESTIDS.homeUserName}>
+                {userName}
+              </Text>
             </>
           )}
           {user && !user.isAnonymous && (
             <>
               <Avatar value={user.uid} size={36} avatarUrl={user.avatarUrl} />
-              <Text style={styles.userNameText} testID={TESTIDS.homeUserName}>{userName}</Text>
+              <Text style={styles.userNameText} testID={TESTIDS.homeUserName}>
+                {userName}
+              </Text>
             </>
           )}
         </TouchableOpacity>
 
         {/* Menu */}
-  <View style={styles.menu}>
+        <View style={styles.menu}>
           <MenuItem
             icon="🚪"
             title={isJoining ? '进入中...' : '进入房间'}
             subtitle="输入房间号进入游戏"
             onPress={() => requireAuth(() => setShowJoinModal(true))}
-              testID={TESTIDS.homeEnterRoomButton}
+            testID={TESTIDS.homeEnterRoomButton}
           />
           <MenuItem
             icon="➕"
             title={isCreating ? '创建中...' : '创建房间'}
             subtitle="开始新的一局游戏"
             onPress={() => requireAuth(handleCreateRoom)}
-              testID={TESTIDS.homeCreateRoomButton}
+            testID={TESTIDS.homeCreateRoomButton}
           />
           <View style={styles.divider} />
           <MenuItem
@@ -495,7 +506,7 @@ export const HomeScreen: React.FC = () => {
             title="返回上局"
             subtitle={lastRoomNumber ? `房间 ${lastRoomNumber}` : '没有上局记录'}
             onPress={() => requireAuth(handleReturnToLastGame)}
-              testID={TESTIDS.homeReturnLastGameButton}
+            testID={TESTIDS.homeReturnLastGameButton}
           />
           <MenuItem
             icon="⚙️"

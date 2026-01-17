@@ -32,21 +32,34 @@ describe('buildNightPlan', () => {
       expect(plan.steps.map((s: NightPlanStep) => s.roleId)).toEqual(['guard', 'witch', 'seer']);
     });
 
-  it('should handle magician before seer when both present', () => {
+    it('should handle magician before seer when both present', () => {
       const plan = buildNightPlan(['seer', 'magician']);
       expect(plan.steps[0].roleId).toBe('magician');
     });
 
-  it('should handle slacker after magician when both present', () => {
+    it('should handle slacker after magician when both present', () => {
       const plan = buildNightPlan(['magician', 'slacker', 'seer']);
-      expect(plan.steps.map((s: NightPlanStep) => s.roleId)).toEqual(['magician', 'slacker', 'seer']);
+      expect(plan.steps.map((s: NightPlanStep) => s.roleId)).toEqual([
+        'magician',
+        'slacker',
+        'seer',
+      ]);
     });
 
     it('should produce correct order for full standard 12-player game', () => {
       const roles: RoleId[] = [
-        'seer', 'witch', 'hunter', 'guard',
-        'wolf', 'wolf', 'wolf', 'wolfQueen',
-        'villager', 'villager', 'villager', 'villager',
+        'seer',
+        'witch',
+        'hunter',
+        'guard',
+        'wolf',
+        'wolf',
+        'wolf',
+        'wolfQueen',
+        'villager',
+        'villager',
+        'villager',
+        'villager',
       ];
       const plan = buildNightPlan(roles);
 
@@ -78,14 +91,12 @@ describe('buildNightPlan', () => {
   describe('fail-fast validation', () => {
     it('should throw on invalid roleId', () => {
       expect(() => buildNightPlan(['seer', 'invalidRole' as RoleId])).toThrow(
-        /Invalid roleIds.*invalidRole/
+        /Invalid roleIds.*invalidRole/,
       );
     });
 
     it('should throw on celebrity (which is not a valid roleId)', () => {
-      expect(() => buildNightPlan(['celebrity' as RoleId])).toThrow(
-        /Invalid roleIds.*celebrity/
-      );
+      expect(() => buildNightPlan(['celebrity' as RoleId])).toThrow(/Invalid roleIds.*celebrity/);
     });
   });
 
@@ -102,7 +113,7 @@ describe('buildNightPlan', () => {
 
     it('order should be a contiguous 0..n-1 sequence (plan-local index semantics)', () => {
       const plan = buildNightPlan(['seer', 'witch', 'guard']);
-      expect(plan.steps.map(s => s.order)).toEqual([0, 1, 2]);
+      expect(plan.steps.map((s) => s.order)).toEqual([0, 1, 2]);
     });
 
     it('seer step should have correct properties', () => {
@@ -110,7 +121,7 @@ describe('buildNightPlan', () => {
       const seerStep = plan.steps[0];
       expect(seerStep.roleId).toBe('seer');
       expect(seerStep.stepId).toBe('seerCheck');
-  expect(seerStep.order).toBe(0);
+      expect(seerStep.order).toBe(0);
     });
   });
 
@@ -131,8 +142,8 @@ describe('buildNightPlan', () => {
   describe('NIGHT_STEPS alignment', () => {
     it('orders steps based on table index for a full plan input', () => {
       const plan = buildNightPlan(Object.keys(ROLE_SPECS));
-      expect(plan.steps.map(s => s.roleId)).toEqual(NIGHT_STEPS.map(s => s.roleId));
-      expect(plan.steps.map(s => s.stepId)).toEqual(NIGHT_STEPS.map(s => s.id));
+      expect(plan.steps.map((s) => s.roleId)).toEqual(NIGHT_STEPS.map((s) => s.roleId));
+      expect(plan.steps.map((s) => s.stepId)).toEqual(NIGHT_STEPS.map((s) => s.id));
     });
   });
 
@@ -140,7 +151,7 @@ describe('buildNightPlan', () => {
     // BUG: When template has only skill wolves (darkWolfKing, nightmare, etc.) but no 'wolf',
     // wolfKill step was skipped because its roleId is 'wolf'.
     // FIX: Include wolfKill step if ANY wolf with participatesInWolfVote=true is present.
-    
+
     it('should include wolfKill step when only darkWolfKing is present (no basic wolf)', () => {
       const plan = buildNightPlan(['darkWolfKing', 'seer', 'villager', 'villager']);
       const wolfKillStep = plan.steps.find((s: NightPlanStep) => s.stepId === 'wolfKill');

@@ -8,7 +8,12 @@
  * - guard 守护一个人（被守护者今夜免刀）
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './hostGameFactory';
+import {
+  createHostGame,
+  cleanupHostGame,
+  HostGameContext,
+  mockSendPrivate,
+} from './hostGameFactory';
 import { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '机械狼通灵师12人';
@@ -49,11 +54,11 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        guard: 8,         // 守卫守 8 号通灵师
+        guard: 8, // 守卫守 8 号通灵师
         wolfRobot: null,
-        wolf: 0,          // 狼人杀 0 号村民
+        wolf: 0, // 狼人杀 0 号村民
         witch: null,
-        psychic: null,    // 通灵师第一夜没人死，无行动
+        psychic: null, // 通灵师第一夜没人死，无行动
         hunter: null,
       });
 
@@ -66,9 +71,9 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        guard: 0,         // 守卫守 0 号
+        guard: 0, // 守卫守 0 号
         wolfRobot: null,
-        wolf: 0,          // 狼人杀 0 号
+        wolf: 0, // 狼人杀 0 号
         witch: null,
         psychic: null,
         hunter: null,
@@ -102,9 +107,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       expect(ROLE_SPECS.psychic.night1.hasAction).toBe(true);
 
       const { NIGHT_STEPS } = require('../../../models/roles/spec');
-      const psychicStep = NIGHT_STEPS.find(
-        (s: { roleId: string }) => s.roleId === 'psychic'
-      );
+      const psychicStep = NIGHT_STEPS.find((s: { roleId: string }) => s.roleId === 'psychic');
       expect(psychicStep).toBeDefined();
       expect(psychicStep?.id).toBe('psychicCheck');
     });
@@ -124,23 +127,17 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       expect(ROLE_SPECS.guard.night1.hasAction).toBe(true);
 
       const { NIGHT_STEPS } = require('../../../models/roles/spec');
-      const guardStep = NIGHT_STEPS.find(
-        (s: { roleId: string }) => s.roleId === 'guard'
-      );
+      const guardStep = NIGHT_STEPS.find((s: { roleId: string }) => s.roleId === 'guard');
       expect(guardStep).toBeDefined();
       expect(guardStep?.id).toBe('guardProtect');
     });
 
     it('守卫排在狼人之前', async () => {
       const { NIGHT_STEPS } = require('../../../models/roles/spec');
-      
-      const guardIndex = NIGHT_STEPS.findIndex(
-        (s: { roleId: string }) => s.roleId === 'guard'
-      );
-      const wolfIndex = NIGHT_STEPS.findIndex(
-        (s: { roleId: string }) => s.roleId === 'wolf'
-      );
-      
+
+      const guardIndex = NIGHT_STEPS.findIndex((s: { roleId: string }) => s.roleId === 'guard');
+      const wolfIndex = NIGHT_STEPS.findIndex((s: { roleId: string }) => s.roleId === 'wolf');
+
       expect(guardIndex).toBeLessThan(wolfIndex);
     });
   });
@@ -152,7 +149,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       const result = await ctx.runNight({
         guard: 1,
         wolfRobot: null,
-        wolf: null,       // 狼人空刀
+        wolf: null, // 狼人空刀
         witch: null,
         psychic: null,
         hunter: null,
@@ -167,10 +164,10 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        guard: 1,         // 守卫守 1 号
+        guard: 1, // 守卫守 1 号
         wolfRobot: null,
-        wolf: 0,          // 狼人杀 0 号
-        witch: 0,         // 女巫救 0 号
+        wolf: 0, // 狼人杀 0 号
+        witch: 0, // 女巫救 0 号
         psychic: null,
         hunter: null,
       });
@@ -188,7 +185,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
         wolfRobot: null,
         wolf: null,
         witch: null,
-        witchPoison: 2,   // 女巫毒 2 号
+        witchPoison: 2, // 女巫毒 2 号
         psychic: null,
         hunter: null,
       });
@@ -204,7 +201,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       const result = await ctx.runNight({
         guard: 0,
         wolfRobot: null,
-        wolf: 7,          // 狼人刀机械狼（非参会狼不互知）
+        wolf: 7, // 狼人刀机械狼（非参会狼不互知）
         witch: null,
         psychic: null,
         hunter: null,
@@ -218,9 +215,9 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        guard: 7,         // 守卫守机械狼
+        guard: 7, // 守卫守机械狼
         wolfRobot: null,
-        wolf: 7,          // 狼人刀机械狼
+        wolf: 7, // 狼人刀机械狼
         witch: null,
         psychic: null,
         hunter: null,
@@ -235,10 +232,10 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        guard: 0,         // 守卫守 0 号
+        guard: 0, // 守卫守 0 号
         wolfRobot: null,
-        wolf: 0,          // 狼人杀 0 号
-        witch: 0,         // 女巫救 0 号
+        wolf: 0, // 狼人杀 0 号
+        witch: 0, // 女巫救 0 号
         psychic: null,
         hunter: null,
       });
@@ -254,7 +251,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       const result = await ctx.runNight({
         guard: 0,
         wolfRobot: null,
-        wolf: 8,          // 狼人杀通灵师
+        wolf: 8, // 狼人杀通灵师
         witch: null,
         psychic: null,
         hunter: null,
@@ -268,11 +265,11 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        guard: 0,         // 守卫守 0 号
+        guard: 0, // 守卫守 0 号
         wolfRobot: null,
-        wolf: 0,          // 狼人杀 0 号
+        wolf: 0, // 狼人杀 0 号
         witch: null,
-        witchPoison: 11,  // 女巫毒守卫
+        witchPoison: 11, // 女巫毒守卫
         psychic: null,
         hunter: null,
       });
@@ -289,7 +286,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       await ctx.runNight({
         guard: 0,
-        wolfRobot: 2,     // 机械狼查 2 号（村民）
+        wolfRobot: 2, // 机械狼查 2 号（村民）
         wolf: 0,
         witch: null,
         psychic: null,
@@ -298,9 +295,9 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       // 验证 WOLF_ROBOT_REVEAL 私信被发送
       const wolfRobotRevealCalls = mockSendPrivate.mock.calls.filter(
-        (call: unknown[]) => 
+        (call: unknown[]) =>
           (call[0] as { type: string }).type === 'PRIVATE_EFFECT' &&
-          ((call[0] as { payload?: { kind: string } }).payload?.kind === 'WOLF_ROBOT_REVEAL')
+          (call[0] as { payload?: { kind: string } }).payload?.kind === 'WOLF_ROBOT_REVEAL',
       );
       expect(wolfRobotRevealCalls.length).toBe(1);
       expect(wolfRobotRevealCalls[0][0]).toMatchObject({
@@ -319,19 +316,19 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       await ctx.runNight({
-        guard: 8,         // 守卫守通灵师
+        guard: 8, // 守卫守通灵师
         wolfRobot: null,
-        wolf: 0,          // 狼人杀 0 号（村民）
+        wolf: 0, // 狼人杀 0 号（村民）
         witch: null,
-        psychic: 0,       // 通灵师查 0 号（本夜被杀的村民）
+        psychic: 0, // 通灵师查 0 号（本夜被杀的村民）
         hunter: null,
       });
 
       // 验证 PSYCHIC_REVEAL 私信被发送
       const psychicRevealCalls = mockSendPrivate.mock.calls.filter(
-        (call: unknown[]) => 
+        (call: unknown[]) =>
           (call[0] as { type: string }).type === 'PRIVATE_EFFECT' &&
-          ((call[0] as { payload?: { kind: string } }).payload?.kind === 'PSYCHIC_REVEAL')
+          (call[0] as { payload?: { kind: string } }).payload?.kind === 'PSYCHIC_REVEAL',
       );
       expect(psychicRevealCalls.length).toBe(1);
       expect(psychicRevealCalls[0][0]).toMatchObject({
@@ -339,7 +336,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
         payload: {
           kind: 'PSYCHIC_REVEAL',
           targetSeat: 0,
-          result: '普通村民',  // 查验到村民（displayName）
+          result: '普通村民', // 查验到村民（displayName）
         },
       });
     });

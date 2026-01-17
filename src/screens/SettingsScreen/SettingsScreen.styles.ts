@@ -133,7 +133,7 @@ export const styles = StyleSheet.create({
     fontSize: typography.sm,
     color: colors.text,
   },
-  
+
   // Profile section
   profileSection: {
     alignItems: 'center',
@@ -226,7 +226,7 @@ export const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: typography.sm,
   },
-  
+
   // Auth form
   authForm: {
     paddingVertical: spacing.md,
@@ -287,7 +287,7 @@ export const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: typography.sm,
   },
-  
+
   // Auth options (not logged in)
   authOptions: {
     gap: spacing.md,

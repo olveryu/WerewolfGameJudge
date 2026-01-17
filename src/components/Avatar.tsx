@@ -16,7 +16,7 @@ interface AvatarProps {
 /**
  * Avatar component that displays either a custom uploaded avatar
  * or uses a local avatar image from assets/avatars
- * 
+ *
  * If seatNumber is provided, uses seat-based unique avatar assignment
  * Otherwise falls back to hash-based avatar selection using value
  */
@@ -30,13 +30,13 @@ export const Avatar: React.FC<AvatarProps> = ({ value, size, avatarUrl, seatNumb
       />
     );
   }
-  
+
   // Use seat-based unique avatar if seat number is provided
   // Otherwise fall back to hash-based avatar
-  const imageSource = seatNumber 
+  const imageSource = seatNumber
     ? getUniqueAvatarBySeat(seatNumber, roomId)
     : getAvatarImage(value);
-  
+
   return (
     <Image
       source={imageSource as ImageSourcePropType}

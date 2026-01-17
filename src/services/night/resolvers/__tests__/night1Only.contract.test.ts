@@ -130,10 +130,10 @@ describe('Night-1-only resolvers contract', () => {
 
   it('wolfKill: can kill anyone including self and wolf teammates (neutral judge)', () => {
     // kill self
-    const selfRes = wolfKillResolver(
-      makeContext({ actorSeat: 0, actorRoleId: 'wolf' as any }),
-      { schemaId: 'wolfKill' as any, target: 0 },
-    );
+    const selfRes = wolfKillResolver(makeContext({ actorSeat: 0, actorRoleId: 'wolf' as any }), {
+      schemaId: 'wolfKill' as any,
+      target: 0,
+    });
     expect(selfRes.valid).toBe(true);
 
     // kill another wolf teammate

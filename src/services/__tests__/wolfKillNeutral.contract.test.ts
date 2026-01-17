@@ -1,9 +1,9 @@
 /**
  * Wolf Kill Neutral Judge Contract Test
- * 
+ *
  * RED LINE: wolfKill must stay neutral - can target ANY seat.
  * This test exists to prevent anyone from accidentally adding restrictions to wolfKill.
- * 
+ *
  * Wolf meeting vote restrictions are defined via flags.immuneToWolfKill in ROLE_SPECS.
  */
 
@@ -14,10 +14,10 @@ import { getWolfKillImmuneRoleIds } from '../../models/roles';
 describe('wolfKill Neutral Judge Contract', () => {
   it('wolfKill schema must NOT have forbiddenTargetRoleIds (RED LINE)', () => {
     const wolfKillSchema = SCHEMAS.wolfKill;
-    
+
     // RED LINE: wolfKill must stay neutral - no forbidden targets
     expect(wolfKillSchema).not.toHaveProperty('forbiddenTargetRoleIds');
-    
+
     // Also verify constraints is empty (neutral judge)
     expect(wolfKillSchema.constraints).toEqual([]);
   });
@@ -39,7 +39,7 @@ describe('wolfKill Neutral Judge Contract', () => {
   it('immuneToWolfKill is a spec flag, not a schema constraint', () => {
     // wolfKill schema should not have any target restrictions
     expect(SCHEMAS.wolfKill.constraints).toEqual([]);
-    
+
     // The restriction is on the role spec level, not schema level
     // This preserves "neutral judge" for wolfKill while restricting meeting vote
   });

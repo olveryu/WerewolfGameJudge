@@ -1,6 +1,6 @@
 /**
  * WitchDialog.stories.tsx - Stories for witch action dialogs
- * 
+ *
  * Shows the different witch interaction states:
  * - Save phase (someone was killed)
  * - Poison phase (choosing to poison)
@@ -31,28 +31,26 @@ const WitchSaveDialog: React.FC<WitchSaveDialogProps> = ({
   onSkip,
 }) => {
   const canSave = hasSavePotion && !isSelfKilled;
-  
+
   return (
     <View style={styles.dialog}>
       <Text style={styles.title}>🧪 女巫 - 解药</Text>
       <View style={styles.divider} />
-      
+
       <View style={styles.infoBox}>
         <Text style={styles.infoText}>
           今晚 <Text style={styles.highlight}>{killedSeat}号</Text> 玩家被杀
         </Text>
-        {isSelfKilled && (
-          <Text style={styles.warningText}>（就是你自己）</Text>
-        )}
+        {isSelfKilled && <Text style={styles.warningText}>（就是你自己）</Text>}
       </View>
-      
+
       <View style={styles.statusRow}>
         <Text style={styles.statusLabel}>解药状态：</Text>
         <Text style={[styles.statusValue, !hasSavePotion && styles.used]}>
           {hasSavePotion ? '✅ 可用' : '❌ 已用'}
         </Text>
       </View>
-      
+
       <View style={styles.buttonRow}>
         {canSave && (
           <TouchableOpacity style={styles.saveButton} onPress={onSave}>
@@ -63,11 +61,9 @@ const WitchSaveDialog: React.FC<WitchSaveDialogProps> = ({
           <Text style={styles.buttonText}>不救</Text>
         </TouchableOpacity>
       </View>
-      
+
       {isSelfKilled && hasSavePotion && (
-        <Text style={styles.noteText}>
-          注：自救规则由房主设定，此处展示不可自救
-        </Text>
+        <Text style={styles.noteText}>注：自救规则由房主设定，此处展示不可自救</Text>
       )}
     </View>
   );
@@ -85,31 +81,26 @@ interface WitchPoisonDialogProps {
 
 const WitchPoisonDialog: React.FC<WitchPoisonDialogProps> = ({
   hasPoisonPotion,
-  onSelectTarget,
+  onSelectTarget: _onSelectTarget,
   onSkip,
 }) => (
   <View style={styles.dialog}>
     <Text style={styles.title}>☠️ 女巫 - 毒药</Text>
     <View style={styles.divider} />
-    
+
     <View style={styles.statusRow}>
       <Text style={styles.statusLabel}>毒药状态：</Text>
       <Text style={[styles.statusValue, !hasPoisonPotion && styles.used]}>
         {hasPoisonPotion ? '✅ 可用' : '❌ 已用'}
       </Text>
     </View>
-    
+
     <Text style={styles.promptText}>
-      {hasPoisonPotion 
-        ? '是否使用毒药？点击座位选择目标'
-        : '毒药已使用'}
+      {hasPoisonPotion ? '是否使用毒药？点击座位选择目标' : '毒药已使用'}
     </Text>
-    
+
     <View style={styles.buttonRow}>
-      <TouchableOpacity 
-        style={[styles.skipButton, { flex: 1 }]} 
-        onPress={onSkip}
-      >
+      <TouchableOpacity style={[styles.skipButton, { flex: 1 }]} onPress={onSkip}>
         <Text style={styles.buttonText}>不毒</Text>
       </TouchableOpacity>
     </View>
@@ -134,11 +125,11 @@ const WitchPoisonConfirm: React.FC<WitchPoisonConfirmProps> = ({
   <View style={styles.dialog}>
     <Text style={styles.title}>☠️ 确认毒杀</Text>
     <View style={styles.divider} />
-    
+
     <Text style={styles.confirmText}>
       确定要毒死 <Text style={styles.highlight}>{targetSeat}号</Text> 玩家吗？
     </Text>
-    
+
     <View style={styles.buttonRow}>
       <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
         <Text style={styles.buttonText}>取消</Text>
@@ -170,9 +161,9 @@ const WitchInfoDialog: React.FC<WitchInfoDialogProps> = ({
   <View style={styles.dialog}>
     <Text style={styles.title}>🧪 女巫</Text>
     <View style={styles.divider} />
-    
+
     <Text style={styles.infoText}>{message}</Text>
-    
+
     <View style={styles.potionStatus}>
       <Text style={styles.statusLabel}>药水状态：</Text>
       <View style={styles.potionRow}>
@@ -184,7 +175,7 @@ const WitchInfoDialog: React.FC<WitchInfoDialogProps> = ({
         </Text>
       </View>
     </View>
-    
+
     <TouchableOpacity style={styles.dismissButton} onPress={onDismiss}>
       <Text style={styles.buttonText}>知道了</Text>
     </TouchableOpacity>
@@ -357,9 +348,9 @@ export default meta;
 export const SavePhaseCanSave: StoryObj<typeof WitchSaveDialog> = {
   name: '💊 Save - 可以救人',
   render: () => (
-    <WitchSaveDialog 
-      killedSeat={3} 
-      hasSavePotion={true} 
+    <WitchSaveDialog
+      killedSeat={3}
+      hasSavePotion={true}
       isSelfKilled={false}
       onSave={() => alert('救人')}
       onSkip={() => alert('不救')}
@@ -370,9 +361,9 @@ export const SavePhaseCanSave: StoryObj<typeof WitchSaveDialog> = {
 export const SavePhaseSelfKilled: StoryObj<typeof WitchSaveDialog> = {
   name: '💊 Save - 自刀（不可自救）',
   render: () => (
-    <WitchSaveDialog 
-      killedSeat={5} 
-      hasSavePotion={true} 
+    <WitchSaveDialog
+      killedSeat={5}
+      hasSavePotion={true}
       isSelfKilled={true}
       onSkip={() => alert('不救')}
     />
@@ -382,9 +373,9 @@ export const SavePhaseSelfKilled: StoryObj<typeof WitchSaveDialog> = {
 export const SavePhaseNoPotion: StoryObj<typeof WitchSaveDialog> = {
   name: '💊 Save - 解药已用',
   render: () => (
-    <WitchSaveDialog 
-      killedSeat={7} 
-      hasSavePotion={false} 
+    <WitchSaveDialog
+      killedSeat={7}
+      hasSavePotion={false}
       isSelfKilled={false}
       onSkip={() => alert('不救')}
     />
@@ -395,7 +386,7 @@ export const SavePhaseNoPotion: StoryObj<typeof WitchSaveDialog> = {
 export const PoisonPhaseCanPoison: StoryObj<typeof WitchPoisonDialog> = {
   name: '☠️ Poison - 可以用毒',
   render: () => (
-    <WitchPoisonDialog 
+    <WitchPoisonDialog
       hasPoisonPotion={true}
       onSelectTarget={() => alert('选择目标')}
       onSkip={() => alert('不毒')}
@@ -405,19 +396,14 @@ export const PoisonPhaseCanPoison: StoryObj<typeof WitchPoisonDialog> = {
 
 export const PoisonPhaseNoPotion: StoryObj<typeof WitchPoisonDialog> = {
   name: '☠️ Poison - 毒药已用',
-  render: () => (
-    <WitchPoisonDialog 
-      hasPoisonPotion={false}
-      onSkip={() => alert('不毒')}
-    />
-  ),
+  render: () => <WitchPoisonDialog hasPoisonPotion={false} onSkip={() => alert('不毒')} />,
 };
 
 // Poison Confirm
 export const PoisonConfirm: StoryObj<typeof WitchPoisonConfirm> = {
   name: '☠️ Poison Confirm - 确认毒杀',
   render: () => (
-    <WitchPoisonConfirm 
+    <WitchPoisonConfirm
       targetSeat={4}
       onConfirm={() => alert('确认')}
       onCancel={() => alert('取消')}
@@ -429,7 +415,7 @@ export const PoisonConfirm: StoryObj<typeof WitchPoisonConfirm> = {
 export const InfoPeacefulNight: StoryObj<typeof WitchInfoDialog> = {
   name: 'ℹ️ Info - 平安夜',
   render: () => (
-    <WitchInfoDialog 
+    <WitchInfoDialog
       message="今晚是平安夜，没有人被杀"
       hasSavePotion={true}
       hasPoisonPotion={true}
@@ -441,7 +427,7 @@ export const InfoPeacefulNight: StoryObj<typeof WitchInfoDialog> = {
 export const InfoNoPotions: StoryObj<typeof WitchInfoDialog> = {
   name: 'ℹ️ Info - 两药皆空',
   render: () => (
-    <WitchInfoDialog 
+    <WitchInfoDialog
       message="你已经没有药水了"
       hasSavePotion={false}
       hasPoisonPotion={false}

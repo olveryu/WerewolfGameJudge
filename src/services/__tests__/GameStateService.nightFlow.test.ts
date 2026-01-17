@@ -1,12 +1,12 @@
 /**
  * GameStateService NightFlowController Integration Tests
- * 
+ *
  * Tests only the NightFlowController integration points:
  * - startGame() initializes nightFlow
  * - restartGame() resets nightFlow
  * - handlePlayerAction() guard logic
  * - dispatch() error recovery
- * 
+ *
  * Does NOT test:
  * - Wolf voting logic
  * - Death calculation
@@ -64,7 +64,7 @@ function createTestTemplate(roles: RoleId[]): GameTemplate {
   while (paddedRoles.length < 6) {
     paddedRoles.push('villager');
   }
-  
+
   return {
     name: 'Test Template',
     roles: paddedRoles,
@@ -86,13 +86,13 @@ function resetGameStateService(): GameStateService {
  */
 async function setupReadyState(
   service: GameStateService,
-  actionOrder: RoleId[] = ['wolf', 'witch', 'seer']
+  actionOrder: RoleId[] = ['wolf', 'witch', 'seer'],
 ): Promise<void> {
   const template = createTestTemplate(actionOrder);
-  
+
   // Initialize as host
   await service.initializeAsHost('TEST01', 'host-uid', template);
-  
+
   // Fill all seats with players (directly set state for testing - unique UIDs per seat)
   const state = service.getState()!;
   for (let i = 0; i < template.numberOfPlayers; i++) {
@@ -106,10 +106,10 @@ async function setupReadyState(
     });
   }
   state.status = GameStatus.seated;
-  
+
   // Assign roles
   await service.assignRoles();
-  
+
   // Mark all as viewed (simulate all players viewed roles)
   state.players.forEach((player) => {
     if (player) {
@@ -160,12 +160,12 @@ describe('GameStateService NightFlowController Integration', () => {
     it('should create nightFlow when startGame is called', async () => {
       // Given: Host in ready state
       await setupReadyState(service, ['wolf', 'witch', 'seer']);
-      
+
       // When: Start game (run all timers to complete async flow)
       const startPromise = service.startGame();
       await jest.runAllTimersAsync();
       await startPromise;
-      
+
       // Then: nightFlow should be created
       const nightFlow = getNightFlow(service);
       expect(nightFlow).not.toBeNull();
@@ -175,12 +175,12 @@ describe('GameStateService NightFlowController Integration', () => {
       // Given: Host in ready state with specific roles
       const roles: RoleId[] = ['wolf', 'witch', 'seer'];
       await setupReadyState(service, roles);
-      
+
       // When: Start game
       const startPromise = service.startGame();
       await jest.runAllTimersAsync();
       await startPromise;
-      
+
       // Then: nightFlow should have currentStep with correct roleId
       const nightFlow = getNightFlow(service);
       // NIGHT_STEPS order: ... -> wolfKill -> wolfQueenCharm -> witchAction -> seerCheck -> ...
@@ -193,12 +193,12 @@ describe('GameStateService NightFlowController Integration', () => {
     it('should sync currentActionerIndex to 0 after startGame', async () => {
       // Given: Host in ready state
       await setupReadyState(service, ['wolf', 'witch', 'seer']);
-      
+
       // When: Start game
       const startPromise = service.startGame();
       await jest.runAllTimersAsync();
       await startPromise;
-      
+
       // Then: Both state and nightFlow should have index 0
       const nightFlow = getNightFlow(service);
       const state = getState(service);
@@ -219,10 +219,10 @@ describe('GameStateService NightFlowController Integration', () => {
       await jest.runAllTimersAsync();
       await startPromise;
       expect(getNightFlow(service)).not.toBeNull();
-      
+
       // When: Restart game
       await service.restartGame();
-      
+
       // Then: nightFlow should be null
       expect(getNightFlow(service)).toBeNull();
     });
@@ -234,7 +234,7 @@ describe('GameStateService NightFlowController Integration', () => {
       await jest.runAllTimersAsync();
       await startPromise1;
       await service.restartGame();
-      
+
       // When: Setup and start new game
       await service.assignRoles();
       const state = getState(service);
@@ -242,11 +242,11 @@ describe('GameStateService NightFlowController Integration', () => {
         if (player) player.hasViewedRole = true;
       });
       state.status = GameStatus.ready;
-      
+
       const startPromise2 = service.startGame();
       await jest.runAllTimersAsync();
       await startPromise2;
-      
+
       // Then: New nightFlow should be created
       const nightFlow = getNightFlow(service);
       expect(nightFlow).not.toBeNull();
@@ -266,22 +266,22 @@ describe('GameStateService NightFlowController Integration', () => {
       const startPromise = service.startGame();
       await jest.runAllTimersAsync();
       await startPromise;
-      
+
       const nightFlow = getNightFlow(service);
       const state = getState(service);
       state.status = GameStatus.ongoing;
-      
+
       // Force nightFlow to RoleBeginAudio phase (not WaitingForAction)
       // Reset and dispatch to get to a known state
       nightFlow.dispatch(NightEvent.Reset);
       nightFlow.dispatch(NightEvent.StartNight);
       // Now phase is NightBeginAudio, not WaitingForAction
       expect(nightFlow.phase).toBe(NightPhase.NightBeginAudio);
-      
+
       // When: Try to submit action
       const handlePlayerAction = (service as any).handlePlayerAction.bind(service);
       await handlePlayerAction(0, 'wolf', 3);
-      
+
       // Then: Action should NOT be recorded
       expect(state.actions.has('wolf')).toBe(false);
     });
@@ -292,11 +292,11 @@ describe('GameStateService NightFlowController Integration', () => {
       const startPromise = service.startGame();
       await jest.runAllTimersAsync();
       await startPromise;
-      
+
       const nightFlow = getNightFlow(service);
       const state = getState(service);
       state.status = GameStatus.ongoing;
-      
+
       // Manually set nightFlow to WaitingForAction for wolf
       nightFlow.dispatch(NightEvent.Reset);
       nightFlow.dispatch(NightEvent.StartNight);
@@ -304,11 +304,11 @@ describe('GameStateService NightFlowController Integration', () => {
       nightFlow.dispatch(NightEvent.RoleBeginAudioDone);
       expect(nightFlow.phase).toBe(NightPhase.WaitingForAction);
       expect(nightFlow.currentRole).toBe('wolf');
-      
+
       // When: Try to submit action for wrong role (witch instead of wolf)
       const handlePlayerAction = (service as any).handlePlayerAction.bind(service);
       await handlePlayerAction(0, 'witch', 3);
-      
+
       // Then: Action should NOT be recorded
       expect(state.actions.has('witch')).toBe(false);
     });
@@ -319,11 +319,11 @@ describe('GameStateService NightFlowController Integration', () => {
       const startPromise = service.startGame();
       await jest.runAllTimersAsync();
       await startPromise;
-      
+
       const nightFlow = getNightFlow(service);
       const state = getState(service);
       state.status = GameStatus.ongoing;
-      
+
       // Manually set nightFlow to WaitingForAction for wolf
       nightFlow.dispatch(NightEvent.Reset);
       nightFlow.dispatch(NightEvent.StartNight);
@@ -331,11 +331,11 @@ describe('GameStateService NightFlowController Integration', () => {
       nightFlow.dispatch(NightEvent.RoleBeginAudioDone);
       expect(nightFlow.phase).toBe(NightPhase.WaitingForAction);
       expect(nightFlow.currentRole).toBe('wolf');
-      
+
       // When: Submit correct action
       const handlePlayerAction = (service as any).handlePlayerAction.bind(service);
       await handlePlayerAction(0, 'wolf', 3);
-      
+
       // Then: Action should be recorded
       const wolfAction = state.actions.get('wolf');
       expect(wolfAction).toBeDefined();
@@ -355,18 +355,18 @@ describe('GameStateService NightFlowController Integration', () => {
       const startPromise = service.startGame();
       await jest.runAllTimersAsync();
       await startPromise;
-      
+
       const nightFlow = getNightFlow(service);
       const state = getState(service);
       state.status = GameStatus.ongoing;
-      
+
       // Force nightFlow to Ended state (terminal) - wrong phase for RoleEndAudioDone
       (nightFlow as any)._phase = NightPhase.Ended;
-      
+
       // When: Call advanceToNextAction which will try to dispatch RoleEndAudioDone
       // This should be ignored (idempotent) with debug log, not error
       const advanceToNextAction = (service as any).advanceToNextAction.bind(service);
-      
+
       // Then: Should not throw
       await expect(advanceToNextAction()).resolves.not.toThrow();
       // Note: With strict semantics, we use debug not error
@@ -378,19 +378,19 @@ describe('GameStateService NightFlowController Integration', () => {
       const startPromise = service.startGame();
       await jest.runAllTimersAsync();
       await startPromise;
-      
+
       const nightFlow = getNightFlow(service);
       const state = getState(service);
       state.status = GameStatus.ongoing;
       state.currentActionerIndex = 0;
-      
+
       // Force nightFlow to a phase where RoleEndAudioDone will be ignored
       (nightFlow as any)._phase = NightPhase.Ended;
-      
+
       // When: Call advanceToNextAction
       const advanceToNextAction = (service as any).advanceToNextAction.bind(service);
       await advanceToNextAction();
-      
+
       // Then: currentActionerIndex should NOT be incremented (strict: no fallback)
       // This is the key semantic change: GameStateService respects NightFlowController authority
       expect(state.currentActionerIndex).toBe(0);

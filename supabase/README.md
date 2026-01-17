@@ -5,23 +5,27 @@ This project uses Supabase as the backend.
 ## Quick Setup with CLI
 
 ### 1. Install & Login
+
 ```bash
 brew install supabase/tap/supabase
 supabase login
 ```
 
 ### 2. Link to your project
+
 ```bash
 # Get project ref from: https://supabase.com/dashboard/project/_/settings/general
 supabase link --project-ref YOUR_PROJECT_REF
 ```
 
 ### 3. Apply migrations
+
 ```bash
 supabase db push
 ```
 
 This will create:
+
 - `rooms` table with RLS policies
 - `avatars` storage bucket with upload policies
 - Auto-cleanup functions for inactive rooms
@@ -32,6 +36,7 @@ This will create:
 Some auth settings must be configured manually in the Dashboard:
 
 ### Enable Auth Providers
+
 1. Go to **Authentication > Providers**
 2. Enable **Email** provider:
    - ✅ Enable Email Signup
@@ -41,7 +46,9 @@ Some auth settings must be configured manually in the Dashboard:
    - ✅ Enable anonymous sign-ins
 
 ### (Optional) Configure Email Templates
+
 Go to **Authentication > Email Templates** to customize:
+
 - Confirmation email
 - Password reset email
 
@@ -58,9 +65,9 @@ Get these values from **Settings > API** in your Supabase dashboard.
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `config.toml` | Supabase CLI configuration |
+| File          | Purpose                                        |
+| ------------- | ---------------------------------------------- |
+| `config.toml` | Supabase CLI configuration                     |
 | `migrations/` | Database migrations (versioned schema changes) |
 
 ## Creating New Migrations

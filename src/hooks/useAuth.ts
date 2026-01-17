@@ -53,21 +53,21 @@ export const useAuth = () => {
         setLoading(false);
       }
     };
-    
+
     loadUser();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        authLog.info('Auth state changed:', event);
-        if (session?.user) {
-          setUser(toUser(session.user));
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      authLog.info('Auth state changed:', event);
+      if (session?.user) {
+        setUser(toUser(session.user));
+      } else {
+        setUser(null);
       }
-    );
+      setLoading(false);
+    });
 
     return () => {
       subscription?.unsubscribe();

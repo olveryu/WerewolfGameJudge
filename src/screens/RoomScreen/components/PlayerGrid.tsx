@@ -37,14 +37,10 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
     <View style={styles.gridContainer}>
       {seats.map((seat) => {
         const seatKey = `seat-${seat.index}-${seat.role}`;
-  const isDisabled = disabled || !!seat.disabledReason;
+        const isDisabled = disabled || !!seat.disabledReason;
 
         return (
-          <View
-            key={seatKey}
-            style={styles.tileWrapper}
-            testID={TESTIDS.seatTile(seat.index)}
-          >
+          <View key={seatKey} style={styles.tileWrapper} testID={TESTIDS.seatTile(seat.index)}>
             <TouchableOpacity
               testID={TESTIDS.seatTilePressable(seat.index)}
               accessibilityLabel={TESTIDS.seatTilePressable(seat.index)}
@@ -94,9 +90,7 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
 
               {!seat.player && <Text style={styles.emptyIndicator}>空</Text>}
 
-              {seat.isMySpot && seat.player && (
-                <Text style={styles.mySeatBadge}>我</Text>
-              )}
+              {seat.isMySpot && seat.player && <Text style={styles.mySeatBadge}>我</Text>}
             </TouchableOpacity>
 
             {seat.player && (

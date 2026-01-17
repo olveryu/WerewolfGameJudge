@@ -16,7 +16,11 @@
  * - Modifying any UI
  */
 
-import { WitchAction, getWitchSaveTarget, getWitchPoisonTarget } from '../models/actions/WitchAction';
+import {
+  WitchAction,
+  getWitchSaveTarget,
+  getWitchPoisonTarget,
+} from '../models/actions/WitchAction';
 
 // =============================================================================
 // Types
@@ -114,7 +118,7 @@ export const DEFAULT_ROLE_SEAT_MAP: RoleSeatMap = {
  */
 export function calculateDeaths(
   actions: NightActions,
-  roleSeatMap: RoleSeatMap = DEFAULT_ROLE_SEAT_MAP
+  roleSeatMap: RoleSeatMap = DEFAULT_ROLE_SEAT_MAP,
 ): number[] {
   const deaths = new Set<number>();
 
@@ -160,7 +164,7 @@ export function calculateDeaths(
 function processWolfKill(
   actions: NightActions,
   roleSeatMap: RoleSeatMap,
-  deaths: Set<number>
+  deaths: Set<number>,
 ): void {
   const { wolfKill, guardProtect, witchAction, nightmareBlock, nightmareBlockedWolf } = actions;
   const { guard: guardSeat, witch: witchSeat } = roleSeatMap;
@@ -172,12 +176,14 @@ function processWolfKill(
   if (wolfKill === undefined) return;
 
   // Check if guard protection is effective (not blocked by nightmare)
-  const isGuardBlocked = nightmareBlock !== undefined && guardSeat !== -1 && nightmareBlock === guardSeat;
+  const isGuardBlocked =
+    nightmareBlock !== undefined && guardSeat !== -1 && nightmareBlock === guardSeat;
   const effectiveGuardProtect = isGuardBlocked ? undefined : guardProtect;
   const isGuarded = effectiveGuardProtect === wolfKill;
 
   // Check if witch save is effective (not blocked by nightmare)
-  const isWitchBlocked = nightmareBlock !== undefined && witchSeat !== -1 && nightmareBlock === witchSeat;
+  const isWitchBlocked =
+    nightmareBlock !== undefined && witchSeat !== -1 && nightmareBlock === witchSeat;
   const witchSaveTarget = getWitchSaveTarget(witchAction);
   const effectiveWitchSave = isWitchBlocked ? undefined : witchSaveTarget;
   const isSaved = effectiveWitchSave === wolfKill;
@@ -202,13 +208,14 @@ function processWolfKill(
 function processWitchPoison(
   actions: NightActions,
   roleSeatMap: RoleSeatMap,
-  deaths: Set<number>
+  deaths: Set<number>,
 ): void {
   const { nightmareBlock } = actions;
   const { witcher: witcherSeat, witch: witchSeat } = roleSeatMap;
 
   // If witch is blocked by nightmare, poison has no effect
-  const isWitchBlocked = nightmareBlock !== undefined && witchSeat !== -1 && nightmareBlock === witchSeat;
+  const isWitchBlocked =
+    nightmareBlock !== undefined && witchSeat !== -1 && nightmareBlock === witchSeat;
   if (isWitchBlocked) return;
 
   const witchPoisonTarget = getWitchPoisonTarget(actions.witchAction);
@@ -232,7 +239,7 @@ function processWitchPoison(
 function processWolfQueenLink(
   actions: NightActions,
   roleSeatMap: RoleSeatMap,
-  deaths: Set<number>
+  deaths: Set<number>,
 ): void {
   const { wolfQueenCharm } = actions;
   const { wolfQueen: queenSeat } = roleSeatMap;
@@ -256,7 +263,7 @@ function processWolfQueenLink(
 function processDreamcatcherEffect(
   actions: NightActions,
   roleSeatMap: RoleSeatMap,
-  deaths: Set<number>
+  deaths: Set<number>,
 ): void {
   const { dreamcatcherDream } = actions;
   const { dreamcatcher: dreamcatcherSeat } = roleSeatMap;
@@ -283,7 +290,7 @@ function processDreamcatcherEffect(
 function processSpiritKnightReflection(
   actions: NightActions,
   roleSeatMap: RoleSeatMap,
-  deaths: Set<number>
+  deaths: Set<number>,
 ): void {
   const { wolfKill, seerCheck, witchAction } = actions;
   const witchPoisonTarget = getWitchPoisonTarget(witchAction);

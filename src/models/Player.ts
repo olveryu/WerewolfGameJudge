@@ -13,10 +13,10 @@ export enum SkillStatus {
 export interface Player {
   uid: string;
   seatNumber: number;
-  role: RoleId | null;  // null before roles are assigned (before "准备看牌")
+  role: RoleId | null; // null before roles are assigned (before "准备看牌")
   status: PlayerStatus;
   skillStatus: SkillStatus;
-  hasViewedRole: boolean;  // 是否已查看身份
+  hasViewedRole: boolean; // 是否已查看身份
   displayName?: string;
   avatarUrl?: string | null;
 }
@@ -37,7 +37,7 @@ export const PLAYER_KEYS = {
 export const createPlayer = (
   uid: string,
   seatNumber: number,
-  role: RoleId | null = null
+  role: RoleId | null = null,
 ): Player => ({
   uid,
   seatNumber,
@@ -50,7 +50,7 @@ export const createPlayer = (
 export const playerToMap = (player: Player): Record<string, any> => ({
   [PLAYER_KEYS.uid]: player.uid,
   [PLAYER_KEYS.seatNumber]: player.seatNumber,
-  [PLAYER_KEYS.role]: player.role,  // Store role name directly
+  [PLAYER_KEYS.role]: player.role, // Store role name directly
   [PLAYER_KEYS.status]: player.status,
   [PLAYER_KEYS.skillStatus]: player.skillStatus,
   [PLAYER_KEYS.hasViewedRole]: player.hasViewedRole,
@@ -61,7 +61,7 @@ export const playerToMap = (player: Player): Record<string, any> => ({
 export const playerFromMap = (map: Record<string, any>): Player => ({
   uid: map[PLAYER_KEYS.uid],
   seatNumber: map[PLAYER_KEYS.seatNumber],
-  role: map[PLAYER_KEYS.role] as RoleId | null,  // Can be null before roles assigned
+  role: map[PLAYER_KEYS.role] as RoleId | null, // Can be null before roles assigned
   status: map[PLAYER_KEYS.status] ?? PlayerStatus.alive,
   skillStatus: map[PLAYER_KEYS.skillStatus] ?? SkillStatus.available,
   hasViewedRole: map[PLAYER_KEYS.hasViewedRole] ?? false,
@@ -69,8 +69,7 @@ export const playerFromMap = (map: Record<string, any>): Player => ({
   avatarUrl: map[PLAYER_KEYS.avatarUrl],
 });
 
-export const isPlayerAlive = (player: Player): boolean =>
-  player.status === PlayerStatus.alive;
+export const isPlayerAlive = (player: Player): boolean => player.status === PlayerStatus.alive;
 
 export const isPlayerSkillAvailable = (player: Player): boolean =>
   player.skillStatus === SkillStatus.available;

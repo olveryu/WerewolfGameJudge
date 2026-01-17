@@ -1,12 +1,12 @@
 /**
  * NightFlowController - Explicit State Machine for Night Phase Flow
- * 
+ *
  * This controller manages the night phase state transitions independently
  * of GameStateService. It is designed to be:
  * - Pure: No side effects (no audio, no broadcast, no DB)
  * - Testable: All state transitions are synchronous and deterministic
  * - Explicit: State machine with clear phase definitions
- * 
+ *
  * Integration with GameStateService will be done in a separate step.
  */
 
@@ -89,7 +89,7 @@ export class InvalidNightTransitionError extends Error {
 
 /**
  * NightFlowController - Manages night phase state machine
- * 
+ *
  * Usage:
  * ```typescript
  * const controller = new NightFlowController(['wolf', 'witch', 'seer']);
@@ -247,7 +247,10 @@ export class NightFlowController {
       throw new InvalidNightTransitionError(this._phase, NightEvent.RoleBeginAudioDone);
     }
     this._phase = NightPhase.WaitingForAction;
-    nightFlowLog.debug('Waiting for action', { role: this.currentRole, index: this._currentActionIndex });
+    nightFlowLog.debug('Waiting for action', {
+      role: this.currentRole,
+      index: this._currentActionIndex,
+    });
   }
 
   private handleActionSubmitted(): void {

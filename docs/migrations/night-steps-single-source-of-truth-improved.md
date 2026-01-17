@@ -1,4 +1,3 @@
-
 # Night-1 编排单一真相（改良版）迁移方案
 
 > 目标：在 **Host 权威**（Host as Authority）、**Night-1-only**、**anti-cheat** 的架构红线下，把 Night-1 的“顺序 + stepI### M3c（改良点）：保留 `night1.hasAction` 语义标签，但用契约测试锁一致 ✅ 已完成
@@ -96,12 +95,12 @@
 
 **改动**：
 
-1) `src/models/roles/spec/nightSteps.types.ts`
-	- 删除 `schemaId: SchemaId`
-2) `src/models/roles/spec/nightSteps.ts`
-	- 每个 step 对象删除 `schemaId: 'xxx'`
-3) 全 repo：`step.schemaId` → `step.id`
-4) 契约测试：删除/更新“stepId === schemaId”的断言（因为 schemaId 字段消失）
+1. `src/models/roles/spec/nightSteps.types.ts`
+   - 删除 `schemaId: SchemaId`
+2. `src/models/roles/spec/nightSteps.ts`
+   - 每个 step 对象删除 `schemaId: 'xxx'`
+3. 全 repo：`step.schemaId` → `step.id`
+4. 契约测试：删除/更新“stepId === schemaId”的断言（因为 schemaId 字段消失）
 
 **验收标准**：
 
@@ -114,13 +113,13 @@
 
 **改动**：
 
-1) `src/models/roles/spec/spec.types.ts`
-	- 从 `RoleUx` / `UxConfig` 删除 `audioKey`
-2) `src/models/roles/spec/specs.ts`
-	- 删除所有 `ux.audioKey`
-3) 迁移消费方（全 repo 搜索 `ux.audioKey`）：
-	- Night-1 流程需要音频：使用 `NightPlanStep.audioKey` 或 `getStepSpec(stepId).audioKey`
-	- 如存在“非 Night-1 的角色介绍音效”需求：新增 `ux.introAudioKey?`（仅在明确需求时引入；默认不要为了迁移而新加字段）
+1. `src/models/roles/spec/spec.types.ts`
+   - 从 `RoleUx` / `UxConfig` 删除 `audioKey`
+2. `src/models/roles/spec/specs.ts`
+   - 删除所有 `ux.audioKey`
+3. 迁移消费方（全 repo 搜索 `ux.audioKey`）：
+   - Night-1 流程需要音频：使用 `NightPlanStep.audioKey` 或 `getStepSpec(stepId).audioKey`
+   - 如存在“非 Night-1 的角色介绍音效”需求：新增 `ux.introAudioKey?`（仅在明确需求时引入；默认不要为了迁移而新加字段）
 
 **验收标准**：
 
@@ -133,12 +132,12 @@
 
 **改动**：
 
-1) `RoleSpec.night1` 仅允许：`{ hasAction: boolean }`
-2) 增加/更新契约测试（建议放在 `src/models/roles/spec/__tests__/specs.contract.test.ts` 或新增专门的 contract）：
-	- 对每个 `RoleId`：
-	  - `spec.night1.hasAction === (getStepsByRole(roleId).length > 0)`
-	- 严禁 legacy：
-	  - `spec.night1` 不得出现 `order/schemaId/actsSolo`
+1. `RoleSpec.night1` 仅允许：`{ hasAction: boolean }`
+2. 增加/更新契约测试（建议放在 `src/models/roles/spec/__tests__/specs.contract.test.ts` 或新增专门的 contract）：
+   - 对每个 `RoleId`：
+     - `spec.night1.hasAction === (getStepsByRole(roleId).length > 0)`
+   - 严禁 legacy：
+     - `spec.night1` 不得出现 `order/schemaId/actsSolo`
 
 **验收标准**：
 
@@ -190,4 +189,3 @@
 - 想判断某角色 Night-1 是否行动：
   - 业务代码推荐：`getStepsByRole(roleId).length > 0`
   - 审计/阅读：`ROLE_SPECS[roleId].night1.hasAction`（由契约锁一致）
-

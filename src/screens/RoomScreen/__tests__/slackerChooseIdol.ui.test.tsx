@@ -1,6 +1,6 @@
 /**
  * Slacker (懒汉) UI Test
- * 
+ *
  * Tests slackerChooseIdol schema UI: prompt, seat selection, confirm dialog.
  * Special: canSkip = false (slacker MUST choose an idol).
  */
@@ -26,15 +26,16 @@ jest.mock('react-native-safe-area-context', () => ({
 const mockShowAlert = showAlert as jest.Mock;
 const mockSubmitAction = jest.fn();
 
-const makeMock = () => makeBaseUseGameRoomReturn({
-  schemaId: 'slackerChooseIdol',
-  currentActionRole: 'slacker',
-  myRole: 'slacker',
-  mySeatNumber: 0,
-  overrides: {
-    submitAction: mockSubmitAction,
-  },
-});
+const makeMock = () =>
+  makeBaseUseGameRoomReturn({
+    schemaId: 'slackerChooseIdol',
+    currentActionRole: 'slacker',
+    myRole: 'slacker',
+    mySeatNumber: 0,
+    overrides: {
+      submitAction: mockSubmitAction,
+    },
+  });
 
 let mockUseGameRoomReturn: ReturnType<typeof makeMock>;
 
@@ -53,14 +54,14 @@ describe('Slacker UI (slackerChooseIdol schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         '行动提示',
         SCHEMAS.slackerChooseIdol.ui.prompt,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -70,7 +71,7 @@ describe('Slacker UI (slackerChooseIdol schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -85,7 +86,7 @@ describe('Slacker UI (slackerChooseIdol schema)', () => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         SCHEMAS.slackerChooseIdol.ui.confirmTitle,
         SCHEMAS.slackerChooseIdol.ui.confirmText,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -99,7 +100,7 @@ describe('Slacker UI (slackerChooseIdol schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -112,11 +113,7 @@ describe('Slacker UI (slackerChooseIdol schema)', () => {
     fireEvent.press(seat0);
 
     await waitFor(() => {
-      expect(mockShowAlert).toHaveBeenCalledWith(
-        '不可选择',
-        '不能选择自己',
-        expect.any(Array)
-      );
+      expect(mockShowAlert).toHaveBeenCalledWith('不可选择', '不能选择自己', expect.any(Array));
     });
   });
 

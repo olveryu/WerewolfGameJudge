@@ -1,6 +1,6 @@
 /**
  * Action Schemas Registry
- * 
+ *
  * Single source of truth for all action input protocols.
  */
 
@@ -12,7 +12,7 @@ export const SCHEMAS = {
     id: 'seerCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: [],  // Can check self (neutral judge)
+    constraints: [], // Can check self (neutral judge)
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -34,8 +34,8 @@ export const SCHEMAS = {
       {
         key: 'save',
         displayName: '救人',
-        kind: 'confirmTarget',  // Target is fixed (WITCH_CONTEXT.killedIndex), user only confirms
-        constraints: ['notSelf'],  // Cannot save self (enforced by Host via canSave)
+        kind: 'confirmTarget', // Target is fixed (WITCH_CONTEXT.killedIndex), user only confirms
+        constraints: ['notSelf'], // Cannot save self (enforced by Host via canSave)
         canSkip: true,
         ui: {
           confirmTitle: '确认行动',
@@ -48,7 +48,7 @@ export const SCHEMAS = {
       {
         key: 'poison',
         displayName: '毒人',
-        kind: 'chooseSeat',  // User selects any target seat
+        kind: 'chooseSeat', // User selects any target seat
         constraints: [],
         canSkip: true,
         ui: {
@@ -79,7 +79,7 @@ export const SCHEMAS = {
     id: 'psychicCheck',
     displayName: '通灵',
     kind: 'chooseSeat',
-    constraints: [],  // Can check self (neutral judge)
+    constraints: [], // Can check self (neutral judge)
     canSkip: true,
     ui: {
       confirmTitle: '确认通灵',
@@ -135,7 +135,7 @@ export const SCHEMAS = {
     id: 'wolfKill',
     displayName: '狼刀',
     kind: 'wolfVote',
-    constraints: [],  // Neutral judge: wolves can target ANY seat
+    constraints: [], // Neutral judge: wolves can target ANY seat
     ui: {
       prompt: '请选择要猎杀的玩家',
       confirmText: '确定要猎杀该玩家吗？',
@@ -175,7 +175,7 @@ export const SCHEMAS = {
     id: 'gargoyleCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: [],  // Can check self (neutral judge)
+    constraints: [], // Can check self (neutral judge)
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -190,7 +190,7 @@ export const SCHEMAS = {
     id: 'wolfRobotLearn',
     displayName: '学习',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],  // Cannot learn self
+    constraints: ['notSelf'], // Cannot learn self
     canSkip: true,
     ui: {
       confirmTitle: '确认学习',
@@ -249,12 +249,15 @@ export function getAllSchemaIds(): SchemaId[] {
 
 /**
  * Get a sub-step schema from a compound action.
- * 
+ *
  * @param schemaId - The compound schema ID (e.g., 'witchAction')
  * @param stepIndex - Index of the sub-step (0 = save, 1 = poison for witch)
  * @returns The inline sub-step schema, or undefined if not found
  */
-export function getSubStepSchema(schemaId: SchemaId, stepIndex: number): InlineSubStepSchema | undefined {
+export function getSubStepSchema(
+  schemaId: SchemaId,
+  stepIndex: number,
+): InlineSubStepSchema | undefined {
   const schema = SCHEMAS[schemaId];
   if (schema.kind !== 'compound') return undefined;
   return (schema as CompoundSchema).steps[stepIndex];
@@ -262,15 +265,18 @@ export function getSubStepSchema(schemaId: SchemaId, stepIndex: number): InlineS
 
 /**
  * Get a sub-step schema by key from a compound action.
- * 
+ *
  * @param schemaId - The compound schema ID (e.g., 'witchAction')
  * @param stepKey - Key of the sub-step (e.g., 'save', 'poison')
  * @returns The inline sub-step schema, or undefined if not found
  */
-export function getSubStepSchemaByKey(schemaId: SchemaId, stepKey: string): InlineSubStepSchema | undefined {
+export function getSubStepSchemaByKey(
+  schemaId: SchemaId,
+  stepKey: string,
+): InlineSubStepSchema | undefined {
   const schema = SCHEMAS[schemaId];
   if (schema.kind !== 'compound') return undefined;
-  return (schema as CompoundSchema).steps.find(s => s.key === stepKey);
+  return (schema as CompoundSchema).steps.find((s) => s.key === stepKey);
 }
 
 // Re-export types

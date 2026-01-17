@@ -11,11 +11,7 @@
 // - Defang NativeAnimatedHelper warnings/noise.
 // - Make TouchableOpacity deterministic to avoid animation side effects.
 
-jest.mock(
-  'react-native/Libraries/Animated/NativeAnimatedHelper',
-  () => ({}),
-  { virtual: true }
-);
+jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => ({}), { virtual: true });
 
 // Provide a stable TouchableOpacity implementation without pulling in the full
 // `react-native` entrypoint (which can require unavailable native TurboModules
@@ -30,13 +26,13 @@ jest.mock(
       return React.createElement(
         'TouchableOpacity',
         { onPress, disabled, accessibilityRole: 'button', ...rest },
-        children
+        children,
       );
     }
 
     return TouchableOpacityShim;
   },
-  { virtual: true }
+  { virtual: true },
 );
 
 // Mock Supabase client
@@ -44,9 +40,13 @@ jest.mock('./src/config/supabase', () => ({
   supabase: {
     auth: {
       getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
-      signInAnonymously: jest.fn().mockResolvedValue({ data: { user: { id: 'test-user-id' } }, error: null }),
+      signInAnonymously: jest
+        .fn()
+        .mockResolvedValue({ data: { user: { id: 'test-user-id' } }, error: null }),
       signOut: jest.fn().mockResolvedValue({ error: null }),
-      onAuthStateChange: jest.fn().mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
+      onAuthStateChange: jest
+        .fn()
+        .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
     },
     channel: jest.fn().mockReturnValue({
       on: jest.fn().mockReturnThis(),

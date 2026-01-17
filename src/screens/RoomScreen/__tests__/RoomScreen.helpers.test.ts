@@ -21,13 +21,13 @@ import { NIGHT_STEPS } from '../../../models/roles/spec/nightSteps';
 describe('determineActionerState', () => {
   it('should return imActioner=true when my role matches current action role', () => {
     const result = determineActionerState(
-      'seer',           // myRole
-      'seer',           // currentActionRole
-      0,                // mySeatNumber
-      new Map(),        // wolfVotes
-  false,            // isHost
-  new Map(),        // actions
-  NIGHT_STEPS.find(s => s.id === 'seerCheck')?.visibility
+      'seer', // myRole
+      'seer', // currentActionRole
+      0, // mySeatNumber
+      new Map(), // wolfVotes
+      false, // isHost
+      new Map(), // actions
+      NIGHT_STEPS.find((s) => s.id === 'seerCheck')?.visibility,
     );
 
     expect(result.imActioner).toBe(true);
@@ -39,13 +39,13 @@ describe('determineActionerState', () => {
     wolfVotes.set(1, 0); // seat 1 voted for seat 0
 
     const result = determineActionerState(
-      'wolf',           // myRole
-      'wolf',           // currentActionRole
-      1,                // mySeatNumber (same as voted seat)
+      'wolf', // myRole
+      'wolf', // currentActionRole
+      1, // mySeatNumber (same as voted seat)
       wolfVotes,
-  false,
-  new Map(),
-  NIGHT_STEPS.find(s => s.id === 'wolfKill')?.visibility
+      false,
+      new Map(),
+      NIGHT_STEPS.find((s) => s.id === 'wolfKill')?.visibility,
     );
 
     expect(result.imActioner).toBe(false);
@@ -54,13 +54,13 @@ describe('determineActionerState', () => {
 
   it('should return showWolves=true for wolf team during wolf turn (not yet voted)', () => {
     const result = determineActionerState(
-      'darkWolfKing',   // myRole (a wolf role)
-      'wolf',           // currentActionRole
-      2,                // mySeatNumber
-      new Map(),        // wolfVotes (empty, not voted)
-  false,
-  new Map(),
-  NIGHT_STEPS.find(s => s.id === 'wolfKill')?.visibility
+      'darkWolfKing', // myRole (a wolf role)
+      'wolf', // currentActionRole
+      2, // mySeatNumber
+      new Map(), // wolfVotes (empty, not voted)
+      false,
+      new Map(),
+      NIGHT_STEPS.find((s) => s.id === 'wolfKill')?.visibility,
     );
 
     expect(result.imActioner).toBe(true);
@@ -70,12 +70,12 @@ describe('determineActionerState', () => {
   it('should return imActioner=false when no current action role', () => {
     const result = determineActionerState(
       'seer',
-      null,             // no current action
+      null, // no current action
       0,
       new Map(),
-  false,
-  new Map(),
-  undefined
+      false,
+      new Map(),
+      undefined,
     );
 
     expect(result.imActioner).toBe(false);
@@ -91,7 +91,7 @@ describe('determineActionerState', () => {
       new Map(),
       false,
       new Map(),
-      NIGHT_STEPS.find(s => s.id === 'nightmareBlock')?.visibility
+      NIGHT_STEPS.find((s) => s.id === 'nightmareBlock')?.visibility,
     );
     expect(nightmareFear.showWolves).toBe(false);
 
@@ -103,7 +103,7 @@ describe('determineActionerState', () => {
       new Map(),
       false,
       new Map(),
-      NIGHT_STEPS.find(s => s.id === 'gargoyleCheck')?.visibility
+      NIGHT_STEPS.find((s) => s.id === 'gargoyleCheck')?.visibility,
     );
     expect(gargoyleSelfStep.showWolves).toBe(false);
 
@@ -114,7 +114,7 @@ describe('determineActionerState', () => {
       new Map(),
       false,
       new Map(),
-      NIGHT_STEPS.find(s => s.id === 'wolfRobotLearn')?.visibility
+      NIGHT_STEPS.find((s) => s.id === 'wolfRobotLearn')?.visibility,
     );
     expect(wolfRobotSelfStep.showWolves).toBe(false);
 
@@ -128,7 +128,7 @@ describe('determineActionerState', () => {
       new Map(),
       // Visibility is now step-authoritative; if the current schema doesn't define visibility,
       // we default to conservative "don't show wolves".
-      undefined
+      undefined,
     );
     expect(spiritKnightSelf.showWolves).toBe(false);
 
@@ -140,7 +140,7 @@ describe('determineActionerState', () => {
       new Map(),
       false,
       new Map(),
-      NIGHT_STEPS.find(s => s.id === 'wolfKill')?.visibility
+      NIGHT_STEPS.find((s) => s.id === 'wolfKill')?.visibility,
     );
     expect(nightmareWolfTurn.showWolves).toBe(true);
     const spiritKnightWolfTurn = determineActionerState(
@@ -150,7 +150,7 @@ describe('determineActionerState', () => {
       new Map(),
       false,
       new Map(),
-      NIGHT_STEPS.find(s => s.id === 'wolfKill')?.visibility
+      NIGHT_STEPS.find((s) => s.id === 'wolfKill')?.visibility,
     );
     expect(spiritKnightWolfTurn.showWolves).toBe(true);
 
@@ -162,7 +162,7 @@ describe('determineActionerState', () => {
       new Map(),
       false,
       new Map(),
-      NIGHT_STEPS.find(s => s.id === 'wolfKill')?.visibility
+      NIGHT_STEPS.find((s) => s.id === 'wolfKill')?.visibility,
     );
     expect(gargoyleWolfTurn.showWolves).toBe(false);
     const wolfRobotWolfTurn = determineActionerState(
@@ -172,7 +172,7 @@ describe('determineActionerState', () => {
       new Map(),
       false,
       new Map(),
-      NIGHT_STEPS.find(s => s.id === 'wolfKill')?.visibility
+      NIGHT_STEPS.find((s) => s.id === 'wolfKill')?.visibility,
     );
     expect(wolfRobotWolfTurn.showWolves).toBe(false);
   });
@@ -189,7 +189,7 @@ describe('determineActionerState', () => {
       new Map(),
       false,
       new Map(),
-      nonSoloVisibility
+      nonSoloVisibility,
     );
     expect(wolfRobot.imActioner).toBe(true);
     expect(wolfRobot.showWolves).toBe(false);
@@ -201,7 +201,7 @@ describe('determineActionerState', () => {
       new Map(),
       false,
       new Map(),
-      nonSoloVisibility
+      nonSoloVisibility,
     );
     expect(gargoyle.imActioner).toBe(true);
     expect(gargoyle.showWolves).toBe(false);
@@ -213,12 +213,12 @@ describe('determineActionerState', () => {
     actions.set('seer', { type: 'seerCheck', target: 2 });
 
     const result = determineActionerState(
-      'seer',           // myRole
-      'seer',           // currentActionRole
-      0,                // mySeatNumber
-      new Map(),        // wolfVotes
-      false,            // isHost
-      actions as Map<RoleId, import('../../../models/actions/RoleAction').RoleAction>
+      'seer', // myRole
+      'seer', // currentActionRole
+      0, // mySeatNumber
+      new Map(), // wolfVotes
+      false, // isHost
+      actions as Map<RoleId, import('../../../models/actions/RoleAction').RoleAction>,
     );
 
     expect(result.imActioner).toBe(false);
@@ -228,12 +228,12 @@ describe('determineActionerState', () => {
   it('should return imActioner=true when non-wolf role has NOT submitted action', () => {
     // Empty actions = no action submitted yet
     const result = determineActionerState(
-      'witch',          // myRole
-      'witch',          // currentActionRole
-      1,                // mySeatNumber
-      new Map(),        // wolfVotes
-      false,            // isHost
-      new Map()         // actions (empty)
+      'witch', // myRole
+      'witch', // currentActionRole
+      1, // mySeatNumber
+      new Map(), // wolfVotes
+      false, // isHost
+      new Map(), // actions (empty)
     );
 
     expect(result.imActioner).toBe(true);
@@ -247,9 +247,18 @@ describe('determineActionerState', () => {
 describe('getRoleStats', () => {
   it('should correctly count roles in standard 12-player board', () => {
     const roles: RoleId[] = [
-      'villager', 'villager', 'villager', 'villager',
-      'wolf', 'wolf', 'wolf', 'wolf',
-      'seer', 'witch', 'hunter', 'idiot',
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'wolf',
+      'seer',
+      'witch',
+      'hunter',
+      'idiot',
     ];
 
     const stats = getRoleStats(roles);
@@ -264,9 +273,14 @@ describe('getRoleStats', () => {
 
   it('should handle mixed board with special wolves', () => {
     const roles: RoleId[] = [
-      'villager', 'villager',
-      'wolf', 'wolf', 'darkWolfKing',
-      'seer', 'witch', 'guard',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'darkWolfKing',
+      'seer',
+      'witch',
+      'guard',
     ];
 
     const stats = getRoleStats(roles);
@@ -284,12 +298,12 @@ describe('getRoleStats', () => {
 
 describe('formatRoleList', () => {
   it('should format single roles without count', () => {
-    const result = formatRoleList(['预言家', '女巫'], { '预言家': 1, '女巫': 1 });
+    const result = formatRoleList(['预言家', '女巫'], { 预言家: 1, 女巫: 1 });
     expect(result).toBe('预言家、女巫');
   });
 
   it('should format roles with count when > 1', () => {
-    const result = formatRoleList(['狼人', '村民'], { '狼人': 4, '村民': 1 });
+    const result = formatRoleList(['狼人', '村民'], { 狼人: 4, 村民: 1 });
     expect(result).toBe('狼人×4、村民');
   });
 
@@ -347,8 +361,26 @@ describe('buildSeatViewModels', () => {
         roles: ['villager', 'wolf', 'seer'] as RoleId[],
       },
       players: new Map([
-        [0, { uid: 'p1', seatNumber: 0, displayName: 'Player1', role: 'villager' as RoleId, hasViewedRole: true }],
-        [1, { uid: 'p2', seatNumber: 1, displayName: 'Player2', role: 'wolf' as RoleId, hasViewedRole: true }],
+        [
+          0,
+          {
+            uid: 'p1',
+            seatNumber: 0,
+            displayName: 'Player1',
+            role: 'villager' as RoleId,
+            hasViewedRole: true,
+          },
+        ],
+        [
+          1,
+          {
+            uid: 'p2',
+            seatNumber: 1,
+            displayName: 'Player2',
+            role: 'wolf' as RoleId,
+            hasViewedRole: true,
+          },
+        ],
         [2, null],
       ]),
       actions: new Map(),
@@ -362,17 +394,17 @@ describe('buildSeatViewModels', () => {
     const seats = buildSeatViewModels(mockState, 0, true, 1);
 
     expect(seats).toHaveLength(3);
-    
+
     // Seat 0: my spot, not wolf
     expect(seats[0].index).toBe(0);
     expect(seats[0].isMySpot).toBe(true);
     expect(seats[0].isWolf).toBe(false);
     expect(seats[0].player?.displayName).toBe('Player1');
-    
+
     // Seat 1: wolf, selected
     expect(seats[1].isWolf).toBe(true);
     expect(seats[1].isSelected).toBe(true);
-    
+
     // Seat 2: empty
     expect(seats[2].player).toBeNull();
   });
@@ -387,10 +419,46 @@ describe('buildSeatViewModels', () => {
         roles: ['wolf', 'gargoyle', 'wolfRobot', 'seer'] as RoleId[],
       },
       players: new Map([
-        [0, { uid: 'p1', seatNumber: 0, displayName: 'Wolf', role: 'wolf' as RoleId, hasViewedRole: true }],
-        [1, { uid: 'p2', seatNumber: 1, displayName: 'Gargoyle', role: 'gargoyle' as RoleId, hasViewedRole: true }],
-        [2, { uid: 'p3', seatNumber: 2, displayName: 'Robot', role: 'wolfRobot' as RoleId, hasViewedRole: true }],
-        [3, { uid: 'p4', seatNumber: 3, displayName: 'Seer', role: 'seer' as RoleId, hasViewedRole: true }],
+        [
+          0,
+          {
+            uid: 'p1',
+            seatNumber: 0,
+            displayName: 'Wolf',
+            role: 'wolf' as RoleId,
+            hasViewedRole: true,
+          },
+        ],
+        [
+          1,
+          {
+            uid: 'p2',
+            seatNumber: 1,
+            displayName: 'Gargoyle',
+            role: 'gargoyle' as RoleId,
+            hasViewedRole: true,
+          },
+        ],
+        [
+          2,
+          {
+            uid: 'p3',
+            seatNumber: 2,
+            displayName: 'Robot',
+            role: 'wolfRobot' as RoleId,
+            hasViewedRole: true,
+          },
+        ],
+        [
+          3,
+          {
+            uid: 'p4',
+            seatNumber: 3,
+            displayName: 'Seer',
+            role: 'seer' as RoleId,
+            hasViewedRole: true,
+          },
+        ],
       ]),
       actions: new Map(),
       wolfVotes: new Map(),
@@ -420,8 +488,26 @@ describe('buildSeatViewModels', () => {
       },
       // Seat 1 is the wolf, but template says seat 0 is wolf.
       players: new Map([
-        [0, { uid: 'p1', seatNumber: 0, displayName: 'P1', role: 'villager' as RoleId, hasViewedRole: true }],
-        [1, { uid: 'p2', seatNumber: 1, displayName: 'P2', role: 'wolf' as RoleId, hasViewedRole: true }],
+        [
+          0,
+          {
+            uid: 'p1',
+            seatNumber: 0,
+            displayName: 'P1',
+            role: 'villager' as RoleId,
+            hasViewedRole: true,
+          },
+        ],
+        [
+          1,
+          {
+            uid: 'p2',
+            seatNumber: 1,
+            displayName: 'P2',
+            role: 'wolf' as RoleId,
+            hasViewedRole: true,
+          },
+        ],
       ]),
       actions: new Map(),
       wolfVotes: new Map(),
@@ -447,9 +533,36 @@ describe('buildSeatViewModels', () => {
           roles: ['seer', 'villager', 'wolf'] as RoleId[],
         },
         players: new Map([
-          [0, { uid: 'p1', seatNumber: 0, displayName: 'Seer', role: 'seer' as RoleId, hasViewedRole: true }],
-          [1, { uid: 'p2', seatNumber: 1, displayName: 'P2', role: 'villager' as RoleId, hasViewedRole: true }],
-          [2, { uid: 'p3', seatNumber: 2, displayName: 'P3', role: 'wolf' as RoleId, hasViewedRole: true }],
+          [
+            0,
+            {
+              uid: 'p1',
+              seatNumber: 0,
+              displayName: 'Seer',
+              role: 'seer' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            1,
+            {
+              uid: 'p2',
+              seatNumber: 1,
+              displayName: 'P2',
+              role: 'villager' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            2,
+            {
+              uid: 'p3',
+              seatNumber: 2,
+              displayName: 'P3',
+              role: 'wolf' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
         ]),
         actions: new Map(),
         wolfVotes: new Map(),
@@ -481,9 +594,36 @@ describe('buildSeatViewModels', () => {
           roles: ['seer', 'villager', 'wolf'] as RoleId[],
         },
         players: new Map([
-          [0, { uid: 'p1', seatNumber: 0, displayName: 'Seer', role: 'seer' as RoleId, hasViewedRole: true }],
-          [1, { uid: 'p2', seatNumber: 1, displayName: 'P2', role: 'villager' as RoleId, hasViewedRole: true }],
-          [2, { uid: 'p3', seatNumber: 2, displayName: 'P3', role: 'wolf' as RoleId, hasViewedRole: true }],
+          [
+            0,
+            {
+              uid: 'p1',
+              seatNumber: 0,
+              displayName: 'Seer',
+              role: 'seer' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            1,
+            {
+              uid: 'p2',
+              seatNumber: 1,
+              displayName: 'P2',
+              role: 'villager' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            2,
+            {
+              uid: 'p3',
+              seatNumber: 2,
+              displayName: 'P3',
+              role: 'wolf' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
         ]),
         actions: new Map(),
         wolfVotes: new Map(),
@@ -516,11 +656,56 @@ describe('buildSeatViewModels', () => {
           roles: ['wolf', 'villager', 'spiritKnight', 'wolfQueen', 'seer'] as RoleId[],
         },
         players: new Map([
-          [0, { uid: 'p1', seatNumber: 0, displayName: 'Wolf', role: 'wolf' as RoleId, hasViewedRole: true }],
-          [1, { uid: 'p2', seatNumber: 1, displayName: 'V', role: 'villager' as RoleId, hasViewedRole: true }],
-          [2, { uid: 'p3', seatNumber: 2, displayName: 'SK', role: 'spiritKnight' as RoleId, hasViewedRole: true }],
-          [3, { uid: 'p4', seatNumber: 3, displayName: 'WQ', role: 'wolfQueen' as RoleId, hasViewedRole: true }],
-          [4, { uid: 'p5', seatNumber: 4, displayName: 'Seer', role: 'seer' as RoleId, hasViewedRole: true }],
+          [
+            0,
+            {
+              uid: 'p1',
+              seatNumber: 0,
+              displayName: 'Wolf',
+              role: 'wolf' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            1,
+            {
+              uid: 'p2',
+              seatNumber: 1,
+              displayName: 'V',
+              role: 'villager' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            2,
+            {
+              uid: 'p3',
+              seatNumber: 2,
+              displayName: 'SK',
+              role: 'spiritKnight' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            3,
+            {
+              uid: 'p4',
+              seatNumber: 3,
+              displayName: 'WQ',
+              role: 'wolfQueen' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            4,
+            {
+              uid: 'p5',
+              seatNumber: 4,
+              displayName: 'Seer',
+              role: 'seer' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
         ]),
         actions: new Map(),
         wolfVotes: new Map(),
@@ -556,10 +741,46 @@ describe('buildSeatViewModels', () => {
           roles: ['spiritKnight', 'wolf', 'villager', 'villager'] as RoleId[],
         },
         players: new Map([
-          [0, { uid: 'p1', seatNumber: 0, displayName: 'SK', role: 'spiritKnight' as RoleId, hasViewedRole: true }],
-          [1, { uid: 'p2', seatNumber: 1, displayName: 'Wolf', role: 'wolf' as RoleId, hasViewedRole: true }],
-          [2, { uid: 'p3', seatNumber: 2, displayName: 'V1', role: 'villager' as RoleId, hasViewedRole: true }],
-          [3, { uid: 'p4', seatNumber: 3, displayName: 'V2', role: 'villager' as RoleId, hasViewedRole: true }],
+          [
+            0,
+            {
+              uid: 'p1',
+              seatNumber: 0,
+              displayName: 'SK',
+              role: 'spiritKnight' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            1,
+            {
+              uid: 'p2',
+              seatNumber: 1,
+              displayName: 'Wolf',
+              role: 'wolf' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            2,
+            {
+              uid: 'p3',
+              seatNumber: 2,
+              displayName: 'V1',
+              role: 'villager' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            3,
+            {
+              uid: 'p4',
+              seatNumber: 3,
+              displayName: 'V2',
+              role: 'villager' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
         ]),
         actions: new Map(),
         wolfVotes: new Map(),
@@ -592,10 +813,46 @@ describe('buildSeatViewModels', () => {
           roles: ['wolfQueen', 'wolf', 'villager', 'villager'] as RoleId[],
         },
         players: new Map([
-          [0, { uid: 'p1', seatNumber: 0, displayName: 'WQ', role: 'wolfQueen' as RoleId, hasViewedRole: true }],
-          [1, { uid: 'p2', seatNumber: 1, displayName: 'Wolf', role: 'wolf' as RoleId, hasViewedRole: true }],
-          [2, { uid: 'p3', seatNumber: 2, displayName: 'V1', role: 'villager' as RoleId, hasViewedRole: true }],
-          [3, { uid: 'p4', seatNumber: 3, displayName: 'V2', role: 'villager' as RoleId, hasViewedRole: true }],
+          [
+            0,
+            {
+              uid: 'p1',
+              seatNumber: 0,
+              displayName: 'WQ',
+              role: 'wolfQueen' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            1,
+            {
+              uid: 'p2',
+              seatNumber: 1,
+              displayName: 'Wolf',
+              role: 'wolf' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            2,
+            {
+              uid: 'p3',
+              seatNumber: 2,
+              displayName: 'V1',
+              role: 'villager' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            3,
+            {
+              uid: 'p4',
+              seatNumber: 3,
+              displayName: 'V2',
+              role: 'villager' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
         ]),
         actions: new Map(),
         wolfVotes: new Map(),
@@ -628,10 +885,46 @@ describe('buildSeatViewModels', () => {
           roles: ['wolf', 'spiritKnight', 'wolfQueen', 'villager'] as RoleId[],
         },
         players: new Map([
-          [0, { uid: 'p1', seatNumber: 0, displayName: 'Wolf', role: 'wolf' as RoleId, hasViewedRole: true }],
-          [1, { uid: 'p2', seatNumber: 1, displayName: 'SK', role: 'spiritKnight' as RoleId, hasViewedRole: true }],
-          [2, { uid: 'p3', seatNumber: 2, displayName: 'WQ', role: 'wolfQueen' as RoleId, hasViewedRole: true }],
-          [3, { uid: 'p4', seatNumber: 3, displayName: 'V', role: 'villager' as RoleId, hasViewedRole: true }],
+          [
+            0,
+            {
+              uid: 'p1',
+              seatNumber: 0,
+              displayName: 'Wolf',
+              role: 'wolf' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            1,
+            {
+              uid: 'p2',
+              seatNumber: 1,
+              displayName: 'SK',
+              role: 'spiritKnight' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            2,
+            {
+              uid: 'p3',
+              seatNumber: 2,
+              displayName: 'WQ',
+              role: 'wolfQueen' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            3,
+            {
+              uid: 'p4',
+              seatNumber: 3,
+              displayName: 'V',
+              role: 'villager' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
         ]),
         actions: new Map(),
         wolfVotes: new Map(),

@@ -44,7 +44,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
             role: i === 0 ? 'psychic' : 'villager',
             hasViewedRole: true,
           },
-        ])
+        ]),
       ),
       actions: new Map(),
       wolfVotes: new Map(),
@@ -100,7 +100,9 @@ jest.mock('../../../hooks/useGameRoom', () => ({
 
     // Reveal plumbing
     waitForSeerReveal: jest.fn(),
-    waitForPsychicReveal: jest.fn().mockResolvedValue({ kind: 'PSYCHIC_REVEAL', targetSeat: 2, result: '好人' }),
+    waitForPsychicReveal: jest
+      .fn()
+      .mockResolvedValue({ kind: 'PSYCHIC_REVEAL', targetSeat: 2, result: '好人' }),
     waitForGargoyleReveal: jest.fn(),
     waitForWolfRobotReveal: jest.fn(),
     submitRevealAck: mockSubmitRevealAck,
@@ -116,7 +118,12 @@ jest.mock('../hooks/useActionerState', () => ({
 
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showConfirmDialog: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
+    showConfirmDialog: (
+      title: string,
+      message: string,
+      onConfirm: () => void,
+      onCancel?: () => void,
+    ) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       mockShowAlert(title, message, [
         { text: '确定', onPress: onConfirm },
@@ -200,11 +207,15 @@ describe('RoomScreen psychic reveal UI (smoke)', () => {
 
     // Reveal dialog
     await waitFor(() => {
-      expect(showAlert).toHaveBeenCalledWith(expect.stringContaining('3号是'), expect.any(String), expect.any(Array));
+      expect(showAlert).toHaveBeenCalledWith(
+        expect.stringContaining('3号是'),
+        expect.any(String),
+        expect.any(Array),
+      );
     });
 
     const revealCall = (showAlert as jest.Mock).mock.calls.find(
-      (c) => typeof c[0] === 'string' && (c[0] as string).includes('3号是')
+      (c) => typeof c[0] === 'string' && (c[0] as string).includes('3号是'),
     );
     expect(revealCall).toBeDefined();
 

@@ -45,7 +45,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
             role: i === 0 ? 'witch' : 'villager',
             hasViewedRole: true,
           },
-        ])
+        ]),
       ),
       actions: new Map(),
       wolfVotes: new Map(),
@@ -95,7 +95,9 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     waitForActionRejected: jest.fn().mockResolvedValue(null),
 
     // NOTE(phase removed): phase no longer exists; seat taps always mean poison.
-    getWitchContext: jest.fn().mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: -1, canSave: false, canPoison: true }),
+    getWitchContext: jest
+      .fn()
+      .mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: -1, canSave: false, canPoison: true }),
     getLastNightInfo: jest.fn().mockReturnValue(''),
     getLastNightDeaths: jest.fn().mockReturnValue([]),
 
@@ -116,7 +118,12 @@ jest.mock('../hooks/useActionerState', () => ({
 
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showConfirmDialog: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
+    showConfirmDialog: (
+      title: string,
+      message: string,
+      onConfirm: () => void,
+      onCancel?: () => void,
+    ) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       mockShowAlert(title, message, [
         { text: '确定', onPress: onConfirm },
@@ -184,14 +191,10 @@ describe('RoomScreen witch poison UI (smoke)', () => {
     });
 
     await waitFor(() => {
-      expect(showAlert).toHaveBeenCalledWith(
-    '确认行动',
-    expect.any(String),
-        expect.any(Array)
-      );
+      expect(showAlert).toHaveBeenCalledWith('确认行动', expect.any(String), expect.any(Array));
     });
 
-  const poisonCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
+    const poisonCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
     expect(poisonCall).toBeDefined();
 
     const buttons = (poisonCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
@@ -206,7 +209,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
 
   // Regression guard: seat-tap poison must NOT be driven by any save-related context.
   // (phase field removed; seat taps always mean poison under new UX.)
-  it("canSave=true still tap seat -> poison confirm -> submitAction(target, {poison:true})", async () => {
+  it('canSave=true still tap seat -> poison confirm -> submitAction(target, {poison:true})', async () => {
     const { useGameRoom } = require('../../../hooks/useGameRoom');
     const room = useGameRoom();
     room.getWitchContext.mockReturnValue({
@@ -241,8 +244,8 @@ describe('RoomScreen witch poison UI (smoke)', () => {
     const confirmCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
     expect(confirmCall).toBeDefined();
 
-  const buttons = (confirmCall as any)[2];
-  const confirmBtn = (buttons as any[]).find((b: any) => b.text === '确定');
+    const buttons = (confirmCall as any)[2];
+    const confirmBtn = (buttons as any[]).find((b: any) => b.text === '确定');
     await act(async () => {
       confirmBtn?.onPress?.();
     });

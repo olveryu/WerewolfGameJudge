@@ -63,13 +63,7 @@ describe('Import Boundary Enforcement', () => {
     ];
 
     // UI directories that should NOT import resolvers
-    const uiDirs = [
-      'components',
-      'screens',
-      'navigation',
-      'contexts',
-      'hooks',
-    ];
+    const uiDirs = ['components', 'screens', 'navigation', 'contexts', 'hooks'];
 
     for (const uiDir of uiDirs) {
       it(`src/${uiDir}/** should not import from services/night/resolvers`, () => {

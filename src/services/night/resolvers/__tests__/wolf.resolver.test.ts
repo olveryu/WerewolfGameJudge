@@ -1,8 +1,8 @@
 /**
  * Wolf Kill Resolver Unit Tests
- * 
+ *
  * Tests for wolfKillResolver validation and resolution logic.
- * 
+ *
  * IMPORTANT: Wolf kill is NEUTRAL JUDGE - wolves can target ANY seat
  * including self or wolf teammates.
  */

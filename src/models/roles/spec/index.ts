@@ -1,12 +1,12 @@
 /**
  * Role Spec Module - Public API
- * 
+ *
  * This module exports the declarative role specification system:
  * - Types: Faction, Team, RoleSpec, ActionSchema, NightPlan
  * - Registries: ROLE_SPECS, SCHEMAS
  * - Builders: buildNightPlan
  * - Utils: isValidRoleId, isValidSchemaId, getSeerCheckResultForTeam
- * 
+ *
  * IMPORTANT: This module does NOT export resolvers.
  * Resolvers are HOST-ONLY and located in src/services/night/resolvers.
  */

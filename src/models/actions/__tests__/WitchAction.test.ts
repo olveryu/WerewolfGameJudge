@@ -86,11 +86,7 @@ describe('WitchAction', () => {
 
   describe('Type Safety', () => {
     it('discriminated union allows type narrowing', () => {
-      const actions: WitchAction[] = [
-        makeWitchNone(),
-        makeWitchSave(5),
-        makeWitchPoison(3),
-      ];
+      const actions: WitchAction[] = [makeWitchNone(), makeWitchSave(5), makeWitchPoison(3)];
 
       for (const action of actions) {
         if (action.kind === 'save') {

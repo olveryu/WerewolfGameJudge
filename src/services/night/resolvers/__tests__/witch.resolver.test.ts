@@ -1,6 +1,6 @@
 /**
  * Witch Resolver Unit Tests
- * 
+ *
  * Tests for witchActionResolver validation and resolution logic.
  */
 

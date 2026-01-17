@@ -32,8 +32,8 @@
 
 现状存在两类“不可观测”问题：
 
-1) Host 入口静默丢弃：`GameStateService` 在大量非法输入时直接 `return/ignore`。
-2) resolver 静默 no-op：部分 resolver 遇到封锁/禁用条件时返回 `valid: true, result: {}`。
+1. Host 入口静默丢弃：`GameStateService` 在大量非法输入时直接 `return/ignore`。
+2. resolver 静默 no-op：部分 resolver 遇到封锁/禁用条件时返回 `valid: true, result: {}`。
 
 两者都会导致：
 
@@ -167,10 +167,10 @@
 
 在 `RoomScreen.tsx`：
 
-1) 提交 action / vote
-2) **先等待 `ACTION_REJECTED`（短 timeout，例如 800ms）**
+1. 提交 action / vote
+2. **先等待 `ACTION_REJECTED`（短 timeout，例如 800ms）**
    - 收到则弹窗 + return
-3) 再等待对应 reveal（seer/psychic 等）
+3. 再等待对应 reveal（seer/psychic 等）
 
 理由：避免“已拒绝但仍 waitForReveal 卡住”的 UX bug。
 

@@ -1,10 +1,6 @@
 import type { RevealKind } from '../../../models/roles/spec';
 import type { RevealExecutor } from '../revealExecutors';
-import {
-  createRevealExecutors,
-  REVEAL_KIND_ORDER,
-  revealExecutorsKeys,
-} from '../revealExecutors';
+import { createRevealExecutors, REVEAL_KIND_ORDER, revealExecutorsKeys } from '../revealExecutors';
 
 // Contract: RoomScreen reveal execution is table-driven.
 // If we add/remove a RevealKind, we must update the executor table accordingly,

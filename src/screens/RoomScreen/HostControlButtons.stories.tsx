@@ -12,9 +12,7 @@ import { HostControlButtons } from './HostControlButtons';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ButtonWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <View style={wrapperStyles.container}>
-    {children}
-  </View>
+  <View style={wrapperStyles.container}>{children}</View>
 );
 
 const wrapperStyles = StyleSheet.create({
