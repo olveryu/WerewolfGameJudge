@@ -52,3 +52,6 @@ env/e2e.remote.json
 playwright-report/
 test-results/
 src/screens/RoomScreen/WerewolfGameJudge.code-workspace
+
+*storybook.log
+storybook-static

@@ -15,7 +15,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Modal,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -38,6 +37,11 @@ import { useRoomHostDialogs } from './useRoomHostDialogs';
 import { useRoomActionDialogs } from './useRoomActionDialogs';
 import { useRoomSeatDialogs } from './useRoomSeatDialogs';
 import { PlayerGrid } from './components/PlayerGrid';
+import { BoardInfoCard } from './components/BoardInfoCard';
+import { ActionMessage } from './components/ActionMessage';
+import { WaitingViewRoleList } from './components/WaitingViewRoleList';
+import { ActionButton } from './components/ActionButton';
+import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { 
   toGameRoomLike, 
   getRoleStats, 
@@ -48,6 +52,7 @@ import { TESTIDS } from '../../testids';
 import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
 import { getStepSpec } from '../../models/roles/spec/nightSteps';
+import { ConnectionStatusBar } from './components/ConnectionStatusBar';
 import type { ActionSchema, CompoundSchema, RevealKind, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
 import { SCHEMAS, isValidSchemaId } from '../../models/roles/spec';
 import { createRevealExecutors } from './revealExecutors';
@@ -750,67 +755,21 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* Connection Status Bar */}
       {!isHost && (
-        <View style={[
-          styles.connectionStatusBar,
-          connectionStatus === 'live' && styles.connectionStatusLive,
-          connectionStatus === 'syncing' && styles.connectionStatusSyncing,
-          connectionStatus === 'connecting' && styles.connectionStatusConnecting,
-          connectionStatus === 'disconnected' && styles.connectionStatusDisconnected,
-  ]} testID={TESTIDS.connectionStatusContainer}>
-          <Text style={styles.connectionStatusText}>
-            {connectionStatus === 'live' && '🟢 已连接'}
-            {connectionStatus === 'syncing' && '🔄 同步中...'}
-            {connectionStatus === 'connecting' && '⏳ 连接中...'}
-            {connectionStatus === 'disconnected' && '🔴 连接断开'}
-          </Text>
-          {(connectionStatus === 'disconnected' || connectionStatus === 'syncing') && (
-            <TouchableOpacity 
-              onPress={() => requestSnapshot()} 
-              style={styles.forceSyncButton}
-              disabled={connectionStatus === 'syncing'}
-              testID={TESTIDS.forceSyncButton}
-            >
-              <Text style={styles.forceSyncButtonText}>
-                {connectionStatus === 'syncing' ? '同步中' : '强制同步'}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <ConnectionStatusBar
+          status={connectionStatus}
+          onForceSync={() => requestSnapshot()}
+        />
       )}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Board Info */}
-        <View style={styles.boardInfoContainer}>
-          <Text style={styles.boardInfoTitle}>板子配置 ({gameState.template.roles.length}人局)</Text>
-          <View style={styles.boardInfoContent}>
-            <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>🐺 狼人：</Text>
-              <Text style={styles.roleCategoryText}>
-                {formatRoleList(wolfRoles, roleCounts)}
-              </Text>
-            </View>
-            <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>✨ 神职：</Text>
-              <Text style={styles.roleCategoryText}>
-                {formatRoleList(godRoles, roleCounts)}
-              </Text>
-            </View>
-            {specialRoles.length > 0 && (
-              <View style={styles.roleCategory}>
-                <Text style={styles.roleCategoryLabel}>🎭 特殊：</Text>
-                <Text style={styles.roleCategoryText}>
-                  {formatRoleList(specialRoles, roleCounts)}
-                </Text>
-              </View>
-            )}
-            {villagerCount > 0 && (
-              <View style={styles.roleCategory}>
-                <Text style={styles.roleCategoryLabel}>👤 村民：</Text>
-                <Text style={styles.roleCategoryText}>{villagerCount}人</Text>
-              </View>
-            )}
-          </View>
-        </View>
+        <BoardInfoCard
+          playerCount={gameState.template.roles.length}
+          wolfRolesText={formatRoleList(wolfRoles, roleCounts)}
+          godRolesText={formatRoleList(godRoles, roleCounts)}
+          specialRolesText={specialRoles.length > 0 ? formatRoleList(specialRoles, roleCounts) : undefined}
+          villagerCount={villagerCount}
+        />
 
         {/* Player Grid */}
         <PlayerGrid
@@ -822,27 +781,20 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         
         {/* Action Message - only show after audio finishes */}
         {imActioner && !isAudioPlaying && (
-          <Text style={styles.actionMessage}>{actionMessage}</Text>
+          <ActionMessage message={actionMessage} />
         )}
 
         {/* Commit 6 (UI-only): show which audioKey is currently playing */}
         {roomStatus === RoomStatus.ongoing && isAudioPlaying && currentAudioKeyForUi && (
-          <Text style={styles.actionMessage}>正在播放：{currentAudioKeyForUi}</Text>
+          <ActionMessage message={`正在播放：${currentAudioKeyForUi}`} />
         )}
         
         {/* Show players who haven't viewed their roles yet */}
-        {isHost && roomStatus === RoomStatus.assigned && (() => {
-          const notViewed = getPlayersNotViewedRole(toGameRoomLike(gameState));
-          if (notViewed.length === 0) return null;
-          return (
-            <View style={styles.actionLogContainer}>
-              <Text style={styles.actionLogTitle}>⏳ 等待查看身份</Text>
-              <Text style={styles.actionLogItem}>
-                {notViewed.map(s => `${s + 1}号`).join(', ')}
-              </Text>
-            </View>
-          );
-        })()}
+        {isHost && roomStatus === RoomStatus.assigned && (
+          <WaitingViewRoleList 
+            seatIndices={getPlayersNotViewedRole(toGameRoomLike(gameState))} 
+          />
+        )}
       </ScrollView>
       
       {/* Bottom Buttons */}
@@ -869,69 +821,37 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           const bottom = getBottomAction();
           if (!bottom.buttons.length) return null;
           return bottom.buttons.map((b) => (
-            <TouchableOpacity
+            <ActionButton
               key={b.key}
-              style={styles.actionButton}
+              label={b.label}
               onPress={() => handleActionIntent(b.intent)}
-            >
-              <Text style={styles.buttonText}>{b.label}</Text>
-            </TouchableOpacity>
+            />
           ));
         })()}
         
         {/* View Role Card */}
         {(roomStatus === RoomStatus.assigned || roomStatus === RoomStatus.ready || roomStatus === RoomStatus.ongoing || roomStatus === RoomStatus.ended) && mySeatNumber !== null && (
-          <TouchableOpacity style={styles.actionButton} onPress={showRoleCardDialog}>
-            <Text style={styles.buttonText}>查看身份</Text>
-          </TouchableOpacity>
+          <ActionButton label="查看身份" onPress={showRoleCardDialog} />
         )}
         
         {/* Greyed View Role (waiting for host) */}
         {(roomStatus === RoomStatus.unseated || roomStatus === RoomStatus.seated) && mySeatNumber !== null && (
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.disabledButton]}
+          <ActionButton 
+            label="查看身份" 
+            disabled
             onPress={() => showAlert('等待房主点击"准备看牌"分配角色')}
-          >
-            <Text style={styles.buttonText}>查看身份</Text>
-          </TouchableOpacity>
+          />
         )}
       </View>
       
       {/* Seat Confirmation Modal */}
-      <Modal
+      <SeatConfirmModal
         visible={seatModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={handleCancelSeat}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {modalType === 'enter' ? '入座' : '站起'}
-            </Text>
-            <Text style={styles.modalMessage}>
-              {modalType === 'enter' 
-                ? `确定在${(pendingSeatIndex ?? 0) + 1}号位入座?`
-                : `确定从${(pendingSeatIndex ?? 0) + 1}号位站起?`
-              }
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.modalCancelButton]}
-                onPress={handleCancelSeat}
-              >
-                <Text style={styles.modalCancelText}>取消</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.modalConfirmButton]}
-                onPress={modalType === 'enter' ? handleConfirmSeat : handleConfirmLeave}
-              >
-                <Text style={styles.modalConfirmText}>确定</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        modalType={modalType}
+        seatNumber={(pendingSeatIndex ?? 0) + 1}
+        onConfirm={modalType === 'enter' ? handleConfirmSeat : handleConfirmLeave}
+        onCancel={handleCancelSeat}
+      />
     </View>
   );
 };
