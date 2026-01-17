@@ -9,11 +9,10 @@
  */
 
 import type { RoleId } from '../../models/roles';
-import { canRoleSeeWolves, doesRoleParticipateInWolfVote, isWolfRole, getRoleSpec, isValidRoleId } from '../../models/roles';
+import { canRoleSeeWolves, doesRoleParticipateInWolfVote, isWolfRole, getRoleSpec, isValidRoleId, getWolfKillImmuneRoleIds } from '../../models/roles';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
 import type { GameRoomLike } from '../../models/Room';
 import type { RoleAction } from '../../models/actions/RoleAction';
-import { WOLF_MEETING_VOTE_CONFIG } from '../../models/roles/spec/wolfMeetingVoteConfig';
 import type { TargetConstraint } from '../../models/roles/spec';
 
 // =============================================================================
@@ -272,14 +271,12 @@ export function buildSeatViewModels(
       disabledReason = '不能选择自己';
     }
 
-    // Commit 5 (UX-only): disable forbidden wolf meeting vote target roles.
+    // UX-only: disable wolf kill immune roles during wolf meeting vote.
+    // These roles have flags.immuneToWolfKill=true in their spec.
     if (!disabledReason && options?.enableWolfVoteRestrictions) {
-      const forbidden: readonly RoleId[] = WOLF_MEETING_VOTE_CONFIG.forbiddenTargetRoleIds;
-      // Use the same "effective role" used elsewhere in this function.
-      // In tests and early game screens, player.role is often filled even if the UI wouldn't
-      // normally know it; in other contexts it may still be null and we should fall back.
+      const immuneRoleIds = getWolfKillImmuneRoleIds();
       const targetRole = effectiveRole;
-      if (isValidRoleId(targetRole) && forbidden.includes(targetRole)) {
+      if (isValidRoleId(targetRole) && immuneRoleIds.includes(targetRole)) {
         const spec = getRoleSpec(targetRole);
         const name = spec?.displayName ?? targetRole;
         disabledReason = `不能投${name}`;

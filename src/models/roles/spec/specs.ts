@@ -153,6 +153,7 @@ export const ROLE_SPECS = {
     description: '每晚参与袭击后可魅惑一名玩家，狼美人白天出局时被魅惑者随之殉情出局。被魅惑者不知情',
   night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
+    flags: { immuneToWolfKill: true },
   },
 
   wolfKing: {
@@ -231,7 +232,7 @@ export const ROLE_SPECS = {
     night1: { hasAction: false },
     // 互知+参刀
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
-    flags: { immuneToNightDamage: true, reflectsDamage: true },
+    flags: { immuneToNightDamage: true, reflectsDamage: true, immuneToWolfKill: true },
   },
 
   // ===================================================================
