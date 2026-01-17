@@ -6,7 +6,6 @@
  */
 
 import type { TargetConstraint } from '../../../models/roles/spec/schema.types';
-import { log } from '../../../utils/logger';
 
 export interface ConstraintValidationContext {
   /** Current actor's seat */
@@ -44,8 +43,8 @@ export function validateConstraints(
       // case 'notWolf': ...
       // case 'notDead': ...
       default:
-        // Unknown constraint - treat as valid (fail-open for forward compat)
-        log.extend('Constraint').warn(`Unknown constraint: ${constraint}`);
+        // FAIL-FAST: Unknown constraint must throw error
+        throw new Error(`[FAIL-FAST] Unknown constraint: ${constraint}. Add handler in constraintValidator.ts or remove from schema.`);
     }
   }
   

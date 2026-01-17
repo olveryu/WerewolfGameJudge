@@ -4,9 +4,9 @@
  * Builds night action sequence from template roles.
  * Single source of truth for action order.
  *
- * NOTE (M2):
+ * NOTE:
  * - This builder derives steps from `NIGHT_STEPS` (array order = authority).
- * - `NightPlanStep.order` is derived from the table index (consumer-facing field kept for backward compatibility).
+ * - `NightPlanStep.order` is derived from the table index.
  * - RoleSpec no longer carries night-1 ordering or schemaId. Treat `NIGHT_STEPS` as authoritative.
  */
 
@@ -79,13 +79,6 @@ export function buildNightPlan(templateRoles: readonly string[]): NightPlan {
     steps,
     length: steps.length,
   };
-}
-
-/**
- * Get action order from night plan (for backward compatibility)
- */
-export function getActionOrderFromPlan(plan: NightPlan): RoleId[] {
-  return plan.steps.map(step => step.roleId);
 }
 
 // Re-export types

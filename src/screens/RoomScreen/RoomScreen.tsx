@@ -568,9 +568,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               () => {}
             );
           } else {
+            // FAIL-FAST: schema.ui.prompt must exist for confirm schema
+            if (!currentSchema.ui?.prompt) {
+              throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for confirm schema: ${currentActionRole}`);
+            }
             actionDialogs.showRoleActionPrompt(
               '行动提示',
-              currentSchema?.ui?.prompt || '请点击下方按钮查看技能发动状态',
+              currentSchema.ui.prompt,
               () => {}
             );
           }
@@ -578,9 +582,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         }
 
         // Generic action prompt for all other roles (dismiss → wait for seat tap)
-        // Schema-first: prompt copy must come from schema ui.
-        // Keep a generic fallback (no role-specific copy) to avoid blank UI in dev if schema is incomplete.
-        actionDialogs.showRoleActionPrompt('行动提示', currentSchema?.ui?.prompt || '请选择目标', () => {
+        // FAIL-FAST: schema.ui.prompt must exist for all action schemas
+        if (!currentSchema?.ui?.prompt) {
+          throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
+        }
+        actionDialogs.showRoleActionPrompt('行动提示', currentSchema.ui.prompt, () => {
           // dismiss → do nothing, wait for user to tap seat
         });
         break;
@@ -786,9 +792,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const getActionMessage = () => {
     if (!currentActionRole) return '';
 
-  // Schema-first: prompt copy must come from schema ui.
-  // Keep a generic fallback (no role-specific copy) to avoid blank UI in dev if schema is incomplete.
-  const baseMessage = currentSchema?.ui?.prompt || '请选择目标';
+    // FAIL-FAST: schema.ui.prompt must exist
+    if (!currentSchema?.ui?.prompt) {
+      throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
+    }
+    const baseMessage = currentSchema.ui.prompt;
     
     const wolfStatusLine = getWolfStatusLine();
     if (wolfStatusLine) {

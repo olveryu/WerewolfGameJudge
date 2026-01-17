@@ -7,7 +7,7 @@
  * Rules:
  * - Only extract EXISTING testIDs from code/tests
  * - New testIDs must have corresponding test coverage
- * - Maintain backward compatibility (don't rename without migration)
+ * - Do not rename testIDs without updating all E2E/unit tests
  */
 
 export const TESTIDS = {
