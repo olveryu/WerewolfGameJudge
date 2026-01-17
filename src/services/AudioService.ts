@@ -1,5 +1,6 @@
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer, AudioStatus } from 'expo-audio';
 import { RoleId } from '../models/roles';
+import { audioLog } from '../utils/logger';
 
 /**
  * Maximum time to wait for audio playback completion before auto-resolving.
@@ -76,7 +77,7 @@ class AudioService {
         interruptionMode: 'duckOthers',
       });
     } catch (error) {
-      console.error('Failed to initialize audio:', error);
+      audioLog.error('Failed to initialize audio:', error);
     }
   }
 
@@ -133,9 +134,9 @@ class AudioService {
           // In Jest we frequently don't get a real "didJustFinish" event from mocks.
           // Keep the fallback, but avoid noisy test output.
           if (isJest) {
-            console.debug('[AudioService] Playback timeout - proceeding without waiting for completion');
+            audioLog.debug(' Playback timeout - proceeding without waiting for completion');
           } else {
-            console.warn('[AudioService] Playback timeout - proceeding without waiting for completion');
+            audioLog.warn(' Playback timeout - proceeding without waiting for completion');
           }
           cleanup();
         }, AUDIO_TIMEOUT_MS);
@@ -144,7 +145,7 @@ class AudioService {
           try {
             // Warn if duration is 0 (possible invalid audio), but let timeout handle it
             if (status.isLoaded && status.duration === 0) {
-              console.warn('[AudioService] Audio duration is 0 - may be invalid, waiting for timeout fallback');
+              audioLog.warn(' Audio duration is 0 - may be invalid, waiting for timeout fallback');
             }
             if (status.didJustFinish) {
               clearTimeout(timeoutId);
@@ -152,7 +153,7 @@ class AudioService {
             }
           } catch {
             // Listener callback error - cleanup and resolve
-            console.warn('[AudioService] Error in playback status listener - resolving');
+            audioLog.warn(' Error in playback status listener - resolving');
             clearTimeout(timeoutId);
             cleanup();
           }
@@ -162,7 +163,7 @@ class AudioService {
       });
     } catch (error) {
       // Catch any error from createAudioPlayer, addListener, play, etc.
-      console.warn('[AudioService] Audio playback failed, resolving anyway:', error);
+      audioLog.warn(' Audio playback failed, resolving anyway:', error);
       this.isPlaying = false;
       // Explicitly resolve - do not throw (return from async function resolves)
       return;

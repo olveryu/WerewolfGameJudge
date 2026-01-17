@@ -17,6 +17,7 @@ import { BroadcastService, BroadcastGameState, BroadcastPlayer, HostBroadcast, P
 import AudioService from './AudioService';
 import { NightFlowController, NightPhase, NightEvent, InvalidNightTransitionError } from './NightFlowController';
 import { shuffleArray } from '../utils/shuffle';
+import { hostLog, playerLog } from '../utils/logger';
 import { calculateDeaths, type NightActions, type RoleSeatMap } from './DeathCalculator';
 import { resolveWolfVotes } from './WolfVoteResolver';
 import {
@@ -56,7 +57,7 @@ export {
 /** Async handler wrapper to avoid unhandled promise rejection */
 const asyncHandler = <T extends (...args: any[]) => Promise<void>>(fn: T) => {
   return (...args: Parameters<T>): void => {
-    fn(...args).catch(console.error);
+    fn(...args).catch((err) => hostLog.error('Async handler error', err));
   };
 };
 
@@ -233,7 +234,7 @@ export class GameStateService {
   onHostBroadcast: (msg) => this.handleHostBroadcast(msg),
       onPlayerMessage: asyncHandler((msg, senderId) => this.handlePlayerMessage(msg, senderId)),
       onPresenceChange: asyncHandler(async (users) => {
-        console.log('[GameState] Users in room:', users.length);
+        hostLog.info('Users in room:', users.length);
         // Broadcast state when new users join so they receive current state
         if (this.state) {
           await this.broadcastState();
@@ -245,7 +246,7 @@ export class GameStateService {
     await this.broadcastState();
     this.notifyListeners();
     
-    console.log('[GameStateService] Initialized as Host for room:', roomCode);
+    hostLog.info('Initialized as Host for room:', roomCode);
   }
 
   /**
@@ -264,7 +265,7 @@ export class GameStateService {
     // Join broadcast channel
     await this.broadcastService.joinRoom(roomCode, playerUid, {
       onHostBroadcast: (msg) => this.handleHostBroadcast(msg),
-      onPresenceChange: (users) => console.log('[GameState] Users in room:', users.length),
+      onPresenceChange: (users) => hostLog.info('Users in room:', users.length),
     });
 
     // Request current state from host
@@ -273,7 +274,7 @@ export class GameStateService {
       uid: playerUid,
     });
 
-    console.log('[GameStateService] Joined as Player for room:', roomCode);
+    hostLog.info('Joined as Player for room:', roomCode);
   }
 
   /**
@@ -296,7 +297,7 @@ export class GameStateService {
     this.mySeatNumber = null;
     this.notifyListeners();
     
-    console.log('[GameStateService] Left room');
+    hostLog.info('Left room');
   }
 
   // ===========================================================================
@@ -306,12 +307,12 @@ export class GameStateService {
   private async handlePlayerMessage(msg: PlayerMessage, _senderId: string): Promise<void> {
     if (!this.isHost || !this.state) return;
 
-    console.log('[GameState Host] Received player message:', msg.type);
+    hostLog.info('Received player message:', msg.type);
 
     switch (msg.type) {
       case 'REQUEST_STATE':
         // Player requesting current state - broadcast it
-        console.log('[GameState Host] Broadcasting state for new player:', msg.uid);
+        hostLog.info('Broadcasting state for new player:', msg.uid);
         await this.broadcastState();
         break;
       case 'JOIN':
@@ -376,7 +377,7 @@ export class GameStateService {
       this.nightFlow.dispatch(NightEvent.ActionSubmitted);
     } catch (err) {
       if (err instanceof InvalidNightTransitionError) {
-        console.debug('[GameStateService] REVEAL_ACK ignored (phase mismatch):', err.message);
+        hostLog.debug('REVEAL_ACK ignored (phase mismatch):', err.message);
         return;
       }
       throw err;
@@ -399,7 +400,7 @@ export class GameStateService {
   }): Promise<void> {
     if (!this.state) return;
 
-    console.log(`[GameState Host] Seat action request: ${msg.action} seat ${msg.seat} from ${msg.uid.substring(0, 8)}`);
+    hostLog.info(` Seat action request: ${msg.action} seat ${msg.seat} from ${msg.uid.substring(0, 8)}`);
 
     // Use unified processSeatAction
     const result = await this.processSeatAction(
@@ -431,7 +432,7 @@ export class GameStateService {
   }): Promise<void> {
     if (!this.state) return;
 
-    console.log(`[GameState Host] Snapshot request from ${msg.uid.substring(0, 8)}, lastRev: ${msg.lastRevision ?? 'none'}`);
+    hostLog.info(` Snapshot request from ${msg.uid.substring(0, 8)}, lastRev: ${msg.lastRevision ?? 'none'}`);
 
     const broadcastState = this.toBroadcastState();
     await this.broadcastService.broadcastAsHost({
@@ -466,7 +467,7 @@ export class GameStateService {
 
     // Check if seat is available
     if (this.state.players.get(seat) !== null) {
-      console.log('[GameState Host] Seat', seat, 'already taken, sending SEAT_REJECTED');
+      hostLog.info('Seat', seat, 'already taken, sending SEAT_REJECTED');
       await this.broadcastService.broadcastAsHost({
         type: 'SEAT_REJECTED',
         seat,
@@ -527,7 +528,7 @@ export class GameStateService {
 
     // STRICT INVARIANT: nightFlow must exist when status === ongoing
     if (!this.nightFlow) {
-      console.error(
+      hostLog.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: handlePlayerAction() called but nightFlow is null.',
         'seat:', seat, 'role:', role
       );
@@ -537,17 +538,17 @@ export class GameStateService {
     // Verify this is the correct role's turn
     const currentRole = this.getCurrentActionRole();
     if (currentRole !== role) {
-      console.log('[GameState Host] Wrong role acting:', role, 'expected:', currentRole);
+      hostLog.info('Wrong role acting:', role, 'expected:', currentRole);
       return;
     }
 
     // NightFlow guard: only allow action in WaitingForAction phase and matching role
     if (this.nightFlow.phase !== NightPhase.WaitingForAction) {
-      console.log('[GameState Host] NightFlow not in WaitingForAction phase, ignoring action');
+      hostLog.info('NightFlow not in WaitingForAction phase, ignoring action');
       return;
     }
     if (this.nightFlow.currentRole !== role) {
-      console.log('[GameState Host] NightFlow role mismatch:', role, 'expected:', this.nightFlow.currentRole);
+      hostLog.info('NightFlow role mismatch:', role, 'expected:', this.nightFlow.currentRole);
       return;
     }
 
@@ -556,7 +557,7 @@ export class GameStateService {
     const nightmareAction = this.state.actions.get('nightmare');
     if (nightmareAction?.kind === 'target' && nightmareAction.targetSeat === seat) {
       if (target !== null || extra !== undefined) {
-        console.log('[GameState Host] Rejecting non-skip action from nightmare-blocked seat:', seat, 'role:', role, 'target:', target, 'extra:', extra);
+        hostLog.info('Rejecting non-skip action from nightmare-blocked seat:', seat, 'role:', role, 'target:', target, 'extra:', extra);
         // Send ACTION_REJECTED private message to player
         const playerUid = this.state.players.get(seat)?.uid;
         if (playerUid) {
@@ -612,7 +613,7 @@ export class GameStateService {
         // Constraint: secondSeat must be >= 1 to ensure target >= 100 (protocol invariant)
         // If target < 100, it's a protocol error (cannot distinguish from skip or single-seat action)
         if (target < 100) {
-          console.error(
+          hostLog.error(
             '[GameStateService] Magician protocol error: encoded target < 100.',
             'target:', target, 'seat:', seat,
             'Protocol requires secondSeat >= 1 (target >= 100).'
@@ -623,7 +624,7 @@ export class GameStateService {
         const secondSeat = Math.floor(target / 100);
         // Validate seat range [0..11] for 12-player games
         if (secondSeat > 11 || firstSeat > 11 || firstSeat < 0) {
-          console.error(
+          hostLog.error(
             '[GameStateService] Magician protocol error: seat out of range.',
             'firstSeat:', firstSeat, 'secondSeat:', secondSeat
           );
@@ -638,7 +639,7 @@ export class GameStateService {
       try {
         this.nightFlow.recordAction(role, target);
       } catch (err) {
-        console.error('[GameStateService] NightFlow recordAction failed:', err);
+        hostLog.error('NightFlow recordAction failed:', err);
         throw err; // STRICT: propagate error, don't continue
       }
 
@@ -667,7 +668,7 @@ export class GameStateService {
       this.nightFlow.dispatch(NightEvent.ActionSubmitted);
     } catch (err) {
       if (err instanceof InvalidNightTransitionError) {
-        console.error('[GameStateService] NightFlow ActionSubmitted failed:', err.message);
+        hostLog.error('NightFlow ActionSubmitted failed:', err.message);
         throw err; // STRICT: propagate error
       } else {
         throw err;
@@ -679,13 +680,13 @@ export class GameStateService {
 
   private async handleWolfVote(seat: number, target: number): Promise<void> {
     if (!this.state || this.state.status !== GameStatus.ongoing) {
-      console.debug('[GameStateService] handleWolfVote: early return - status not ongoing or no state');
+      hostLog.debug('handleWolfVote: early return - status not ongoing or no state');
       return;
     }
 
     // STRICT INVARIANT: nightFlow must exist when status === ongoing
     if (!this.nightFlow) {
-      console.error(
+      hostLog.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: handleWolfVote() called but nightFlow is null.',
         'seat:', seat
       );
@@ -693,7 +694,7 @@ export class GameStateService {
     }
 
     const currentRole = this.getCurrentActionRole();
-    console.debug('[GameStateService] handleWolfVote:', {
+    hostLog.debug('handleWolfVote:', {
       seat,
       target,
       currentRole,
@@ -701,7 +702,7 @@ export class GameStateService {
       nightFlowPhase: this.nightFlow.phase,
     });
     if (currentRole !== 'wolf') {
-      console.debug('[GameStateService] handleWolfVote: rejected - currentRole is not wolf:', currentRole);
+      hostLog.debug('handleWolfVote: rejected - currentRole is not wolf:', currentRole);
       return;
     }
 
@@ -770,7 +771,7 @@ export class GameStateService {
     if (allVoted) {
       // ONCE-GUARD: If wolf action already recorded, this is a duplicate finalize - skip
       if (this.state.actions.has('wolf')) {
-        console.debug(
+        hostLog.debug(
           '[GameStateService] handleWolfVote finalize skipped (once-guard): wolf action already recorded.',
           'phase:', this.nightFlow.phase,
           'currentActionerIndex:', this.state.currentActionerIndex
@@ -786,7 +787,7 @@ export class GameStateService {
         try {
           this.nightFlow.recordAction('wolf', finalTarget);
         } catch (err) {
-          console.debug(
+          hostLog.debug(
             '[GameStateService] NightFlow recordAction (wolf) failed:',
             err,
             'phase:', this.nightFlow.phase
@@ -801,7 +802,7 @@ export class GameStateService {
         if (err instanceof InvalidNightTransitionError) {
           // This should NOT happen with proper once-guard above
           // If it does, it indicates a bug in the call chain
-          console.debug(
+          hostLog.debug(
             '[GameStateService] NightFlow ActionSubmitted (wolf) rejected:',
             'phase:', this.nightFlow.phase,
             '(expected WaitingForAction). This may indicate a call chain bug.'
@@ -851,13 +852,13 @@ export class GameStateService {
       return;
     }
 
-    console.log('[GameState Player] Received host broadcast:', msg.type);
+    playerLog.info('Received host broadcast:', msg.type);
 
     switch (msg.type) {
       case 'STATE_UPDATE':
         // Host is authoritative - should not overwrite local state from broadcast
         if (this.isHost) {
-          console.log('[GameState Host] Ignoring own STATE_UPDATE broadcast');
+          hostLog.info('Ignoring own STATE_UPDATE broadcast');
           return;
         }
         this.applyStateUpdate(msg.state, msg.revision);
@@ -881,7 +882,7 @@ export class GameStateService {
       case 'SEAT_REJECTED':
         // Only the player who requested the seat should handle this
         if (msg.requestUid === this.myUid) {
-          console.log('[GameState Player] My seat request rejected:', msg.seat, msg.reason);
+          playerLog.info('My seat request rejected:', msg.seat, msg.reason);
           this.lastSeatError = { seat: msg.seat, reason: msg.reason };
           this.notifyListeners();
         }
@@ -927,11 +928,11 @@ export class GameStateService {
   private handlePrivateMessage(msg: PrivateMessage): void {
     // ZERO-TRUST: Only accept messages addressed to me
     if (msg.toUid !== this.myUid) {
-      console.debug('[GameState] Ignoring private message not for me');
+      hostLog.debug('Ignoring private message not for me');
       return;
     }
 
-    console.log('[GameState] Received private message:', msg.payload.kind);
+    hostLog.info('Received private message:', msg.payload.kind);
 
   // Store in inbox with revision-bound key (MUST use msg.revision; stateRevision may race)
   const key = `${msg.revision}_${msg.payload.kind}`;
@@ -940,41 +941,41 @@ export class GameStateService {
     switch (msg.payload.kind) {
       case 'WITCH_CONTEXT':
         this.privateInbox.set(key, msg.payload);
-        console.log('[GameState] Stored WITCH_CONTEXT:', msg.payload.killedIndex, 'canSave:', msg.payload.canSave);
+        hostLog.info('Stored WITCH_CONTEXT:', msg.payload.killedIndex, 'canSave:', msg.payload.canSave);
         // Notify listeners so UI can update
         this.notifyListeners();
         break;
       case 'SEER_REVEAL': {
   this.privateInbox.set(key, msg.payload);
-        console.log('[GameState] Stored SEER_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
+        hostLog.info('Stored SEER_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
         this.notifyListeners();
         break;
       }
       case 'PSYCHIC_REVEAL': {
   this.privateInbox.set(key, msg.payload);
-        console.log('[GameState] Stored PSYCHIC_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
+        hostLog.info('Stored PSYCHIC_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
         this.notifyListeners();
         break;
       }
       case 'GARGOYLE_REVEAL': {
   this.privateInbox.set(key, msg.payload);
-        console.log('[GameState] Stored GARGOYLE_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
+        hostLog.info('Stored GARGOYLE_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
         this.notifyListeners();
         break;
       }
       case 'WOLF_ROBOT_REVEAL': {
   this.privateInbox.set(key, msg.payload);
-        console.log('[GameState] Stored WOLF_ROBOT_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
+        hostLog.info('Stored WOLF_ROBOT_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
         this.notifyListeners();
         break;
       }
       case 'BLOCKED':
         // TODO: Handle blocked message in future commit
-        console.log('[GameState] Private message type not yet handled:', msg.payload.kind);
+        hostLog.info('Private message type not yet handled:', msg.payload.kind);
         break;
       case 'ACTION_REJECTED': {
   this.privateInbox.set(key, msg.payload);
-        console.log('[GameState] Stored ACTION_REJECTED:', msg.payload.action, 'reason:', msg.payload.reason);
+        hostLog.info('Stored ACTION_REJECTED:', msg.payload.action, 'reason:', msg.payload.reason);
         this.notifyListeners();
         break;
       }
@@ -1053,7 +1054,7 @@ export class GameStateService {
       await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
     }
     
-    console.warn('[GameStateService] waitForSeerReveal timeout after', timeoutMs, 'ms');
+    hostLog.warn('waitForSeerReveal timeout after', timeoutMs, 'ms');
     return null;
   }
 
@@ -1076,7 +1077,7 @@ export class GameStateService {
       await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
     }
     
-    console.warn('[GameStateService] waitForPsychicReveal timeout after', timeoutMs, 'ms');
+    hostLog.warn('waitForPsychicReveal timeout after', timeoutMs, 'ms');
     return null;
   }
 
@@ -1109,7 +1110,7 @@ export class GameStateService {
       await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
     }
     
-    console.warn('[GameStateService] waitForGargoyleReveal timeout after', timeoutMs, 'ms');
+    hostLog.warn('waitForGargoyleReveal timeout after', timeoutMs, 'ms');
     return null;
   }
 
@@ -1142,7 +1143,7 @@ export class GameStateService {
       await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
     }
     
-    console.warn('[GameStateService] waitForWolfRobotReveal timeout after', timeoutMs, 'ms');
+    hostLog.warn('waitForWolfRobotReveal timeout after', timeoutMs, 'ms');
     return null;
   }
 
@@ -1211,7 +1212,7 @@ export class GameStateService {
       return;
     }
 
-    console.log(`[GameState Player] Seat action ACK: ${msg.success ? 'success' : 'failed'} for seat ${msg.seat}`);
+    playerLog.info(` Seat action ACK: ${msg.success ? 'success' : 'failed'} for seat ${msg.seat}`);
 
     // Clear timeout first
     clearTimeout(this.pendingSeatAction.timeoutHandle);
@@ -1252,11 +1253,11 @@ export class GameStateService {
 
     // Only handle if we have a pending request with matching ID
     if (!this.pendingSnapshotRequest || this.pendingSnapshotRequest.requestId !== msg.requestId) {
-      console.log(`[GameState Player] Ignoring snapshot - no matching pending request`);
+      playerLog.info(` Ignoring snapshot - no matching pending request`);
       return;
     }
 
-    console.log(`[GameState Player] Snapshot received, revision: ${msg.revision}`);
+    playerLog.info(` Snapshot received, revision: ${msg.revision}`);
 
     // Clear timeout
     clearTimeout(this.pendingSnapshotRequest.timeoutHandle);
@@ -1274,7 +1275,7 @@ export class GameStateService {
     if (revision !== undefined) {
       // Skip if we've already seen a newer revision
       if (revision <= this.stateRevision) {
-        console.log(`[GameState Player] Skipping stale update (rev ${revision} <= ${this.stateRevision})`);
+        playerLog.info(` Skipping stale update (rev ${revision} <= ${this.stateRevision})`);
         return;
       }
       this.stateRevision = revision;
@@ -1464,7 +1465,7 @@ export class GameStateService {
     await this.broadcastState();
     this.notifyListeners();
     
-    console.log('[GameStateService] Roles assigned');
+    hostLog.info('Roles assigned');
   }
 
   /**
@@ -1485,7 +1486,7 @@ export class GameStateService {
       this.nightFlow.dispatch(NightEvent.StartNight);
     } catch (err) {
       if (err instanceof InvalidNightTransitionError) {
-        console.error('[GameStateService] NightFlow StartNight failed:', err.message);
+        hostLog.error('NightFlow StartNight failed:', err.message);
         // STRICT: fail-fast, no legacy fallback
         throw new Error(`[NightFlow] startGame failed: ${err.message}`);
       } else {
@@ -1500,7 +1501,7 @@ export class GameStateService {
     this.state.isAudioPlaying = true;
 
     // Play night begin audio
-    console.log('[GameStateService] Playing night begin audio...');
+    hostLog.info('Playing night begin audio...');
     await this.audioService.playNightBeginAudio();
 
     // Wait 5 seconds
@@ -1515,7 +1516,7 @@ export class GameStateService {
       }
     } catch (err) {
       if (err instanceof InvalidNightTransitionError) {
-        console.error('[GameStateService] NightFlow NightBeginAudioDone failed:', err.message);
+        hostLog.error('NightFlow NightBeginAudioDone failed:', err.message);
         // STRICT: fail-fast, no legacy fallback
         throw new Error(`[NightFlow] NightBeginAudioDone failed: ${err.message}`);
       } else {
@@ -1542,18 +1543,18 @@ export class GameStateService {
   async restartGame(): Promise<boolean> {
     // Preconditions
     if (!this.isHost) {
-      console.warn('[GameStateService] restartGame: not host');
+      hostLog.warn('restartGame: not host');
       return false;
     }
 
     if (!this.state) {
-      console.warn('[GameStateService] restartGame: no state');
+      hostLog.warn('restartGame: no state');
       return false;
     }
 
     // Cannot restart if no one is seated
     if (this.state.status === GameStatus.unseated) {
-      console.warn('[GameStateService] restartGame: cannot restart in unseated status');
+      hostLog.warn('restartGame: cannot restart in unseated status');
       return false;
     }
 
@@ -1562,7 +1563,7 @@ export class GameStateService {
       try {
         this.nightFlow.dispatch(NightEvent.Reset);
       } catch (err) {
-        console.warn('[GameStateService] restartGame: NightFlow Reset failed:', err);
+        hostLog.warn('restartGame: NightFlow Reset failed:', err);
       }
       this.nightFlow = null;
     }
@@ -1587,7 +1588,7 @@ export class GameStateService {
     await this.broadcastState();
     this.notifyListeners();
     
-    console.log('[GameStateService] Game restarted');
+    hostLog.info('Game restarted');
     return true;
   }
 
@@ -1600,14 +1601,14 @@ export class GameStateService {
 
     // Only allow template changes before game starts
     if (this.state.status !== GameStatus.unseated && this.state.status !== GameStatus.seated) {
-      console.warn('[GameStateService] Cannot update template after game starts');
+      hostLog.warn('Cannot update template after game starts');
       return;
     }
 
     // Host-side defensive validation: reject clearly invalid templates
     const validationError = validateTemplateRoles(newTemplate.roles);
     if (validationError) {
-      console.warn('[GameStateService] updateTemplate rejected: invalid roles -', validationError);
+      hostLog.warn('updateTemplate rejected: invalid roles -', validationError);
       return;
     }
 
@@ -1630,7 +1631,7 @@ export class GameStateService {
     await this.broadcastState();
     this.notifyListeners();
     
-    console.log('[GameStateService] Template updated:', newTemplate.name);
+    hostLog.info('Template updated:', newTemplate.name);
   }
 
   // ===========================================================================
@@ -1662,7 +1663,7 @@ export class GameStateService {
     this.notifyListeners();
 
     // Play role audio
-    console.log('[GameStateService] Playing audio for role:', currentRole);
+    hostLog.info('Playing audio for role:', currentRole);
     await this.audioService.playRoleBeginningAudio(currentRole);
 
     // Audio finished - dispatch RoleBeginAudioDone (STRICT)
@@ -1670,7 +1671,7 @@ export class GameStateService {
       this.nightFlow?.dispatch(NightEvent.RoleBeginAudioDone);
     } catch (err) {
       if (err instanceof InvalidNightTransitionError) {
-        console.error('[GameStateService] NightFlow RoleBeginAudioDone failed:', err.message);
+        hostLog.error('NightFlow RoleBeginAudioDone failed:', err.message);
         // STRICT: fail-fast, no legacy fallback
         throw new Error(`[NightFlow] RoleBeginAudioDone failed: ${err.message}`);
       } else {
@@ -1695,7 +1696,7 @@ export class GameStateService {
     stepId = step?.id;  // step.id is the stepId (= schemaId)
       }
     } else {
-      console.warn(`[GameStateService] ROLE_TURN: Invalid roleId "${currentRole}", stepId not sent`);
+      hostLog.warn(` ROLE_TURN: Invalid roleId "${currentRole}", stepId not sent`);
     }
 
     // ANTI-CHEAT: For witch, send killedIndex via private message, NOT public broadcast
@@ -1719,7 +1720,7 @@ export class GameStateService {
             revision: this.stateRevision,
             payload: blockedPayload,
           };
-          console.log('[GameStateService] Sending BLOCKED to nightmare-blocked witch');
+          hostLog.info('Sending BLOCKED to nightmare-blocked witch');
           await this.broadcastService.sendPrivate(privateMessage);
         }
       } else {
@@ -1754,7 +1755,7 @@ export class GameStateService {
     // STRICT INVARIANT: nightFlow must exist when status === ongoing
     // Only enforce this invariant during active night phase
     if (this.state.status === GameStatus.ongoing && !this.nightFlow) {
-      console.error(
+      hostLog.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: advanceToNextAction() called but nightFlow is null.',
         'status:', this.state.status
       );
@@ -1792,7 +1793,7 @@ export class GameStateService {
       this.state.currentActionerIndex = this.nightFlow.currentActionIndex;
     } else {
       // Phase mismatch - duplicate/stale callback, ignore silently (idempotent)
-      console.debug(
+      hostLog.debug(
         '[GameStateService] RoleEndAudioDone ignored (idempotent): phase is',
         this.nightFlow.phase,
         '- not RoleEndAudio'
@@ -1813,7 +1814,7 @@ export class GameStateService {
     // STRICT INVARIANT: nightFlow must exist when status === ongoing
     // Only enforce this invariant during active night phase
     if (this.state.status === GameStatus.ongoing && !this.nightFlow) {
-      console.error(
+      hostLog.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: endNight() called but nightFlow is null.',
         'status:', this.state.status
       );
@@ -1826,7 +1827,7 @@ export class GameStateService {
     }
 
     // Play night end audio
-    console.log('[GameStateService] Playing night end audio...');
+    hostLog.info('Playing night end audio...');
     await this.audioService.playNightEndAudio();
 
   // [Bridge: NightFlowController] Dispatch NightEndAudioDone to complete state machine
@@ -1838,7 +1839,7 @@ export class GameStateService {
       // Phase mismatch - duplicate/stale callback
       // STRICT: Do NOT proceed to death calculation - that would be越权推进
       // NightFlowController hasn't ended, so GameStateService must not end either
-      console.debug(
+      hostLog.debug(
         '[GameStateService] endNight() ignored (strict no-op): phase is',
         this.nightFlow.phase,
         '- not NightEndAudio. No death calc, no status change.'
@@ -1860,7 +1861,7 @@ export class GameStateService {
     await this.broadcastState();
     this.notifyListeners();
     
-    console.log('[GameStateService] Night ended. Deaths:', deaths);
+    hostLog.info('Night ended. Deaths:', deaths);
   }
 
   // ===========================================================================
@@ -1944,7 +1945,7 @@ export class GameStateService {
       // Set up timeout first
       const timeoutHandle = setTimeout(() => {
         if (this.pendingSeatAction?.requestId === requestId) {
-          console.log(`[GameState Player] Seat action timeout for ${action} seat ${seat}`);
+          playerLog.info(` Seat action timeout for ${action} seat ${seat}`);
           this.pendingSeatAction = null;
           this.notifyListeners();
           resolve(false);
@@ -2007,12 +2008,12 @@ export class GameStateService {
 
     const requestId = this.generateRequestId();
     
-    console.log(`[GameState Player] Requesting snapshot, lastRev: ${this.stateRevision}`);
+    playerLog.info(` Requesting snapshot, lastRev: ${this.stateRevision}`);
 
     // Set up timeout
     const timeoutHandle = setTimeout(() => {
       if (this.pendingSnapshotRequest?.requestId === requestId) {
-        console.log(`[GameState Player] Snapshot request timeout`);
+        playerLog.info(` Snapshot request timeout`);
         this.pendingSnapshotRequest = null;
         // Mark as disconnected on timeout
         this.broadcastService.setConnectionStatus('disconnected');
@@ -2037,7 +2038,7 @@ export class GameStateService {
     } catch (err) {
       // sendToHost failed - rollback pending state immediately
       if (this.pendingSnapshotRequest?.requestId === requestId) {
-        console.log(`[GameState Player] Snapshot request send failed:`, err);
+        playerLog.info(` Snapshot request send failed:`, err);
         clearTimeout(this.pendingSnapshotRequest.timeoutHandle);
         this.pendingSnapshotRequest = null;
         this.broadcastService.setConnectionStatus('disconnected');
@@ -2216,7 +2217,7 @@ export class GameStateService {
   private async sendWitchContext(killedIndex: number): Promise<void> {
     const witchUid = this.getPlayerUidByRole('witch');
     if (!witchUid) {
-      console.warn('[GameStateService] sendWitchContext: witch not found in game');
+      hostLog.warn('sendWitchContext: witch not found in game');
       return;
     }
 
@@ -2237,7 +2238,7 @@ export class GameStateService {
       } as WitchContextPayload,
     };
 
-    console.log('[GameStateService] Sending WITCH_CONTEXT to witch:', witchUid.substring(0, 8), 'killedIndex:', killedIndex, 'canSave:', canSave);
+    hostLog.info('Sending WITCH_CONTEXT to witch:', witchUid.substring(0, 8), 'killedIndex:', killedIndex, 'canSave:', canSave);
     await this.broadcastService.sendPrivate(privateMessage);
   }
 
@@ -2251,7 +2252,7 @@ export class GameStateService {
   private async sendConfirmStatus(role: 'hunter' | 'darkWolfKing'): Promise<void> {
     const roleUid = this.getPlayerUidByRole(role);
     if (!roleUid || !this.state) {
-      console.warn(`[GameStateService] sendConfirmStatus: ${role} not found or no state`);
+      hostLog.warn(` sendConfirmStatus: ${role} not found or no state`);
       return;
     }
 
@@ -2270,7 +2271,7 @@ export class GameStateService {
       } as ConfirmStatusPayload,
     };
 
-    console.log(`[GameStateService] Sending CONFIRM_STATUS to ${role}:`, roleUid.substring(0, 8), 'canShoot:', canShoot);
+    hostLog.info(` Sending CONFIRM_STATUS to ${role}:`, roleUid.substring(0, 8), 'canShoot:', canShoot);
     await this.broadcastService.sendPrivate(privateMessage);
   }
 
@@ -2283,7 +2284,7 @@ export class GameStateService {
   private async sendSeerReveal(seerSeat: number, targetSeat: number): Promise<void> {
     const seerUid = this.getPlayerUidByRole('seer');
     if (!seerUid || !this.state) {
-      console.warn('[GameStateService] sendSeerReveal: seer not found or no state');
+      hostLog.warn('sendSeerReveal: seer not found or no state');
       return;
     }
 
@@ -2294,7 +2295,7 @@ export class GameStateService {
     // Get target's role AFTER magician swap (identity swap)
     const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
     if (!effectiveRoleId) {
-      console.warn('[GameStateService] sendSeerReveal: target not found at seat', targetSeat);
+      hostLog.warn('sendSeerReveal: target not found at seat', targetSeat);
       return;
     }
 
@@ -2312,7 +2313,7 @@ export class GameStateService {
       } as SeerRevealPayload,
     };
 
-    console.log('[GameStateService] Sending SEER_REVEAL to seer:', seerUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
+    hostLog.info('Sending SEER_REVEAL to seer:', seerUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
     await this.broadcastService.sendPrivate(privateMessage);
   }
 
@@ -2325,7 +2326,7 @@ export class GameStateService {
   private async sendPsychicReveal(psychicSeat: number, targetSeat: number): Promise<void> {
     const psychicUid = this.getPlayerUidByRole('psychic');
     if (!psychicUid || !this.state) {
-      console.warn('[GameStateService] sendPsychicReveal: psychic not found or no state');
+      hostLog.warn('sendPsychicReveal: psychic not found or no state');
       return;
     }
 
@@ -2336,7 +2337,7 @@ export class GameStateService {
     // Get target's role AFTER magician swap (identity swap)
     const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
     if (!effectiveRoleId) {
-      console.warn('[GameStateService] sendPsychicReveal: target not found at seat', targetSeat);
+      hostLog.warn('sendPsychicReveal: target not found at seat', targetSeat);
       return;
     }
 
@@ -2354,7 +2355,7 @@ export class GameStateService {
       } as PsychicRevealPayload,
     };
 
-    console.log('[GameStateService] Sending PSYCHIC_REVEAL to psychic:', psychicUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
+    hostLog.info('Sending PSYCHIC_REVEAL to psychic:', psychicUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
     await this.broadcastService.sendPrivate(privateMessage);
   }
 
@@ -2367,7 +2368,7 @@ export class GameStateService {
   private async sendGargoyleReveal(gargoyleSeat: number, targetSeat: number): Promise<void> {
     const gargoyleUid = this.getPlayerUidByRole('gargoyle');
     if (!gargoyleUid || !this.state) {
-      console.warn('[GameStateService] sendGargoyleReveal: gargoyle not found or no state');
+      hostLog.warn('sendGargoyleReveal: gargoyle not found or no state');
       return;
     }
 
@@ -2378,7 +2379,7 @@ export class GameStateService {
     // Get target's role AFTER magician swap (identity swap)
     const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
     if (!effectiveRoleId) {
-      console.warn('[GameStateService] sendGargoyleReveal: target not found at seat', targetSeat);
+      hostLog.warn('sendGargoyleReveal: target not found at seat', targetSeat);
       return;
     }
 
@@ -2396,7 +2397,7 @@ export class GameStateService {
       } as GargoyleRevealPayload,
     };
 
-    console.log('[GameStateService] Sending GARGOYLE_REVEAL to gargoyle:', gargoyleUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
+    hostLog.info('Sending GARGOYLE_REVEAL to gargoyle:', gargoyleUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
     await this.broadcastService.sendPrivate(privateMessage);
   }
 
@@ -2409,7 +2410,7 @@ export class GameStateService {
   private async sendWolfRobotReveal(robotSeat: number, targetSeat: number): Promise<void> {
     const robotUid = this.getPlayerUidByRole('wolfRobot');
     if (!robotUid || !this.state) {
-      console.warn('[GameStateService] sendWolfRobotReveal: wolfRobot not found or no state');
+      hostLog.warn('sendWolfRobotReveal: wolfRobot not found or no state');
       return;
     }
 
@@ -2420,7 +2421,7 @@ export class GameStateService {
     // Get target's role AFTER magician swap (identity swap)
     const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
     if (!effectiveRoleId) {
-      console.warn('[GameStateService] sendWolfRobotReveal: target not found at seat', targetSeat);
+      hostLog.warn('sendWolfRobotReveal: target not found at seat', targetSeat);
       return;
     }
 
@@ -2438,7 +2439,7 @@ export class GameStateService {
       } as WolfRobotRevealPayload,
     };
 
-    console.log('[GameStateService] Sending WOLF_ROBOT_REVEAL to wolfRobot:', robotUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
+    hostLog.info('Sending WOLF_ROBOT_REVEAL to wolfRobot:', robotUid.substring(0, 8), 'target:', targetSeat, 'result:', result);
     await this.broadcastService.sendPrivate(privateMessage);
   }
 

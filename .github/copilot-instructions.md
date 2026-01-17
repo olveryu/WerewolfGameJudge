@@ -7,6 +7,17 @@
 - **Night-1-only scope.** Do NOT add cross-night state/rules.
 - **Anti-cheat.** Sensitive info goes via toUid private messages; keep `BroadcastGameState` as room-public view-model only. Client `actions` Map is always empty for non-Host players.
 - **Single source of truth.** No parallel ordering maps/arrays/dual-write drift.
+- **Prefer libraries over custom code.** When adding new capabilities (logging, validation, etc.), search for established npm libraries first. Only write custom code if no suitable library exists or the library is overkill for the use case.
+
+If something is unclear, ask before coding. Don't invent repo facts.GameJudge Copilot Instructions (short)
+
+### 0) Non-negotiables (read first)
+
+- **Host is the ONLY authority for game logic.** Supabase is transport/discovery/identity only.
+- **Offline local play.** This is a local/offline game assistant. Host device is also a player, not a separate referee device.
+- **Night-1-only scope.** Do NOT add cross-night state/rules.
+- **Anti-cheat.** Sensitive info goes via toUid private messages; keep `BroadcastGameState` as room-public view-model only. Client `actions` Map is always empty for non-Host players.
+- **Single source of truth.** No parallel ordering maps/arrays/dual-write drift.
 
 If something is unclear, ask before coding. Don’t invent repo facts.
 

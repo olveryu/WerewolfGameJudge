@@ -53,6 +53,7 @@ import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
 import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import { ConnectionStatusBar } from './components/ConnectionStatusBar';
+import { roomScreenLog } from '../../utils/logger';
 import type { ActionSchema, CompoundSchema, RevealKind, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
 import { SCHEMAS, isValidSchemaId } from '../../models/roles/spec';
 import { createRevealExecutors } from './revealExecutors';
@@ -444,7 +445,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       case 'reveal': {
         if (!gameState) return;
         if (!intent.revealKind) {
-          console.warn('[RoomScreen] reveal intent missing revealKind');
+          roomScreenLog.warn(' reveal intent missing revealKind');
           return;
         }
 
@@ -479,7 +480,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               exec.ack();
             });
           } else {
-            console.warn(`[RoomScreen] ${exec.timeoutLog} timeout - no reveal received`);
+            roomScreenLog.warn(` ${exec.timeoutLog} timeout - no reveal received`);
           }
         });
         break;
@@ -650,7 +651,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // Guard: reset key when not in ongoing state or night ended
     if (roomStatus !== GameStatus.ongoing || !currentActionRole) {
       if (lastAutoIntentKeyRef.current !== null) {
-        console.log('[AutoIntent] Clearing key (not ongoing or night ended)');
+        roomScreenLog.debug(' Clearing key (not ongoing or night ended)');
         lastAutoIntentKeyRef.current = null;
       }
       return;
@@ -675,11 +676,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
     // Skip if same key (idempotent - already triggered this exact intent)
     if (key === lastAutoIntentKeyRef.current) {
-      console.log(`[AutoIntent] Skipping duplicate: key=${key}`);
+      roomScreenLog.debug(` Skipping duplicate: key=${key}`);
       return;
     }
 
-    console.log(`[AutoIntent] Triggering: key=${key}, intent=${autoIntent.type}`);
+    roomScreenLog.debug(` Triggering: key=${key}, intent=${autoIntent.type}`);
     lastAutoIntentKeyRef.current = key;
     handleActionIntent(autoIntent);
   }, [imActioner, isAudioPlaying, myRole, anotherIndex, roomStatus, currentActionRole, gameState?.currentActionerIndex, getAutoTriggerIntent, handleActionIntent]);

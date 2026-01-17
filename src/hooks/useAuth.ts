@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AuthService } from '../services/AuthService';
 import { AvatarUploadService } from '../services/AvatarUploadService';
 import { supabase, isSupabaseConfigured } from '../config/supabase';
+import { authLog } from '../utils/logger';
 
 export interface User {
   uid: string;
@@ -46,7 +47,7 @@ export const useAuth = () => {
         }
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
-        console.error('[useAuth] Failed to load user:', message, e);
+        authLog.error(' Failed to load user:', message, e);
         setError(message);
       } finally {
         setLoading(false);
@@ -58,7 +59,7 @@ export const useAuth = () => {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event);
+        authLog.info('Auth state changed:', event);
         if (session?.user) {
           setUser(toUser(session.user));
         } else {

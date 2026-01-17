@@ -18,6 +18,7 @@ import { colors, spacing } from '../../constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Avatar from '../../components/Avatar';
 import { styles } from './HomeScreen.styles';
+import { homeLog } from '../../utils/logger';
 import { TESTIDS } from '../../testids';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -323,7 +324,7 @@ export const HomeScreen: React.FC = () => {
       setShowEmailForm(false);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      console.error('[handleAnonymousLogin] Error:', e);
+      homeLog.error(' Error:', e);
       showAlert('登录失败', message || '请稍后重试');
     }
   }, [signInAnonymously]);

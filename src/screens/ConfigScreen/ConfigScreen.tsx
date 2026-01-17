@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { spacing } from '../../constants/theme';
 import { styles } from './ConfigScreen.styles';
 import { TESTIDS } from '../../testids';
+import { configLog } from '../../utils/logger';
 
 // ============================================
 // Sub-components (extracted to avoid nested component definitions)
@@ -115,25 +116,25 @@ export const ConfigScreen: React.FC = () => {
 
   // Load current room's roles when in edit mode
   useEffect(() => {
-    console.log('[ConfigScreen] useEffect triggered, isEditMode:', isEditMode, 'existingRoomNumber:', existingRoomNumber);
+    configLog.debug(' useEffect triggered, isEditMode:', isEditMode, 'existingRoomNumber:', existingRoomNumber);
     if (!isEditMode || !existingRoomNumber) {
-      console.log('[ConfigScreen] Skipping load - not in edit mode or no room number');
+      configLog.debug(' Skipping load - not in edit mode or no room number');
       return;
     }
     
     const loadCurrentRoles = () => {
-      console.log('[ConfigScreen] Loading room:', existingRoomNumber);
+      configLog.debug(' Loading room:', existingRoomNumber);
       try {
         // Get template from GameStateService (local state)
         const state = gameStateService.getState();
-        console.log('[ConfigScreen] State loaded:', state ? 'success' : 'not found');
+        configLog.debug(' State loaded:', state ? 'success' : 'not found');
         if (state?.template) {
           setSelection(applyPreset(state.template.roles));
         }
       } catch (error) {
-        console.error('[ConfigScreen] Failed to load room:', error);
+        configLog.error(' Failed to load room:', error);
       } finally {
-        console.log('[ConfigScreen] Setting isLoading=false');
+        configLog.debug(' Setting isLoading=false');
         setIsLoading(false);
       }
     };
