@@ -18,7 +18,6 @@ jest.mock('../AudioService', () => ({
   __esModule: true,
   default: {
     getInstance: () => ({
-      stop: jest.fn(),
       playNightBeginAudio: jest.fn().mockResolvedValue(undefined),
       playNightEndAudio: jest.fn().mockResolvedValue(undefined),
       playRoleBeginningAudio: jest.fn().mockResolvedValue(undefined),
