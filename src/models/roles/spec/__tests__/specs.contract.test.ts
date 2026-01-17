@@ -35,15 +35,22 @@ describe('ROLE_SPECS contract', () => {
   });
 
   describe('witch spec', () => {
-    it('witch save action should have notSelf constraint in schema', () => {
+    it('witch save action should have notSelf constraint and confirmTarget kind in schema', () => {
       // Night-1-only: 女巫不能自救规则定义在 witchAction.steps[0].constraints
-      // 不再使用 flags.canSaveSelf，避免双写
+      // save 是 confirmTarget 类型：目标是固定的（被杀的人），用户只需确认
       const witchSchema = SCHEMAS.witchAction;
       expect(witchSchema.kind).toBe('compound');
       const saveStep = witchSchema.steps.find(s => s.key === 'save');
       expect(saveStep).toBeDefined();
-      expect(saveStep!.kind).toBe('chooseSeat');
+      expect(saveStep!.kind).toBe('confirmTarget');  // Fixed target, user confirms
       expect(saveStep!.constraints).toContain('notSelf');
+    });
+
+    it('witch poison action should have chooseSeat kind', () => {
+      const witchSchema = SCHEMAS.witchAction;
+      const poisonStep = witchSchema.steps.find(s => s.key === 'poison');
+      expect(poisonStep).toBeDefined();
+      expect(poisonStep!.kind).toBe('chooseSeat');  // User selects target
     });
   });
 

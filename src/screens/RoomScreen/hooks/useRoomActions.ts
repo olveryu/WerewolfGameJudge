@@ -38,6 +38,7 @@ export type ActionIntentType =
   | 'wolfVote'             // Wolf vote
   | 'actionConfirm'        // Normal action confirm
   | 'skip'                 // Skip action
+  | 'confirmTrigger'       // Hunter/DarkWolfKing: trigger status check via bottom button
   
   // Auto-trigger prompt (dismiss → wait for seat tap)
   | 'actionPrompt';        // Generic action prompt for all roles
@@ -205,9 +206,23 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
 
   switch (schemaKind) {
     case 'confirm':
-      return deriveConfirmIntent(ctx);
+      // confirm schema (hunter/darkWolfKing): seat tap has no effect
+      // Action is triggered via bottom button only
+      return null;
     case 'swap':
-      return anotherIndex === null ? { type: 'magicianFirst', targetIndex: index } : null;
+      // swap (magician): two-step selection
+      // - anotherIndex === null → first seat selection (magicianFirst)
+      // - anotherIndex !== null → second seat selection (actionConfirm for swap)
+      if (anotherIndex === null) {
+        return { type: 'magicianFirst', targetIndex: index };
+      } else {
+        // Second seat: confirm the swap
+        return {
+          type: 'actionConfirm',
+          targetIndex: index,
+          message: ctx.buildMessage?.(index),
+        };
+      }
     case 'compound':
       // Compound (witchAction): UX rule: seat tap is ALWAYS poison selection.
       // Save is only triggered via the dedicated bottom button.
@@ -412,18 +427,22 @@ export function useRoomActions(
     }
 
     // compound (witchAction): return two buttons (save + skip)
+    // Schema-driven: save step is 'confirmTarget' (fixed target from WITCH_CONTEXT),
+    //                poison step is 'chooseSeat' (user taps seat).
     // NOTE: Sensitive info is from WitchContextPayload only.
     if (currentSchema.kind === 'compound' && currentSchema.id === 'witchAction' && currentSchema.steps?.length) {
       const witchCtx = getWitchContext();
       if (!witchCtx) return { buttons: [] };
 
-      const saveStep = currentSchema.steps.find((s) => s.key === 'save');
-      const poisonStep = currentSchema.steps.find((s) => s.key === 'poison');
+      // Schema-driven: save is confirmTarget (target = killedIndex), poison is chooseSeat
+      const saveStep = currentSchema.steps.find((s) => s.key === 'save' && s.kind === 'confirmTarget');
+      const poisonStep = currentSchema.steps.find((s) => s.key === 'poison' && s.kind === 'chooseSeat');
 
       const buttons: BottomButton[] = [];
 
-      // 1) Save button: only show when kill exists and canSave.
-      if (witchCtx.killedIndex >= 0 && witchCtx.canSave) {
+      // 1) Save button (confirmTarget): only show when kill exists and canSave.
+      //    Target is fixed (witchCtx.killedIndex), user only confirms.
+      if (saveStep && witchCtx.killedIndex >= 0 && witchCtx.canSave) {
         const label = `对${witchCtx.killedIndex + 1}号用解药`;
         buttons.push({
           key: 'save',
@@ -431,7 +450,7 @@ export function useRoomActions(
           intent: {
             type: 'actionConfirm',
             targetIndex: witchCtx.killedIndex,
-            message: saveStep?.ui?.confirmText,
+            message: saveStep.ui?.confirmText,
             stepKey: 'save',
           },
         });
@@ -450,7 +469,20 @@ export function useRoomActions(
       return { buttons };
     }
 
-    // confirm/skip: no generic bottom action
+    // confirm schema (hunterConfirm/darkWolfKingConfirm): show bottom button to trigger status check
+    if (currentSchema.kind === 'confirm') {
+      return {
+        buttons: [
+          {
+            key: 'confirm',
+            label: currentSchema.ui?.bottomActionText || '查看发动状态',
+            intent: { type: 'confirmTrigger', targetIndex: -1 },
+          },
+        ],
+      };
+    }
+
+    // skip: no generic bottom action
     return { buttons: [] };
   }, [
     findVotingWolfSeat,
@@ -523,11 +555,14 @@ export function useRoomActions(
       buildMessage: (idx) => buildActionMessage(idx),
     });
 
-    if (schemaIntent) return schemaIntent;
-
-    // Default fallback: normal action confirm
-  const message = buildActionMessage(index);
-    return { type: 'actionConfirm', targetIndex: index, message };
+    // Schema-driven intent is the single source of truth for seat taps.
+    // - chooseSeat → actionConfirm/revealIntent
+    // - compound (witch) → actionConfirm for poison
+    // - wolfVote → wolfVote intent
+    // - swap (magician) → magicianFirst
+    // - confirm (hunter/darkWolfKing) → null (action via bottom button only)
+    // - default/unknown → null (no seat tap effect)
+    return schemaIntent;
   }, [
     myRole,
     currentSchema,

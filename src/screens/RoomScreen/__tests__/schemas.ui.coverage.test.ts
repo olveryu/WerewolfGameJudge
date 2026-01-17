@@ -27,7 +27,8 @@ describe('RoomScreen schema ui coverage (contract)', () => {
           // Ensure each sub-step has required fields (key, kind, ui).
           expect(typeof step.key).toBe('string');
           expect(step.key.length).toBeGreaterThan(0);
-          expect(step.kind).toBe('chooseSeat');
+          // Sub-step kind can be 'chooseSeat' (user selects target) or 'confirmTarget' (fixed target)
+          expect(['chooseSeat', 'confirmTarget']).toContain(step.kind);
           expect(step.ui).toBeDefined();
           expect(typeof step.ui?.prompt).toBe('string');
         }

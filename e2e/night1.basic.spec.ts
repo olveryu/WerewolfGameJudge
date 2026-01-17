@@ -284,7 +284,8 @@ const ROLE_TURN_KEYWORDS = [
  * Buttons to dismiss role dialogs / advance night flow
  */
 // Dialog buttons that can advance night flow (unified: info="知道了", choice="确定"/"取消")
-const ADVANCE_BUTTONS = ['知道了', '确定', '不使用技能', '投票空刀'];
+// "查看发动状态" is for hunter/darkWolfKing confirm schema
+const ADVANCE_BUTTONS = ['知道了', '确定', '不使用技能', '投票空刀', '查看发动状态'];
 
 /**
  * Check if any night end indicator is visible

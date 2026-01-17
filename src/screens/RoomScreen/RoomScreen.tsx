@@ -22,6 +22,8 @@ import {
   RoomStatus, 
   getWolfVoteSummary,
   getPlayersNotViewedRole,
+  getHunterStatus,
+  getDarkWolfKingStatus,
 } from '../../models/Room';
 import { 
   getRoleDisplayInfo,
@@ -557,6 +559,24 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           break;
         }
 
+        // confirm schema (hunter/darkWolfKing): show different prompt based on blocked status
+        if (currentSchema?.kind === 'confirm') {
+          if (isBlockedByNightmare) {
+            actionDialogs.showRoleActionPrompt(
+              '技能被封锁',
+              '你被梦魇封锁了，请点击下方按钮跳过',
+              () => {}
+            );
+          } else {
+            actionDialogs.showRoleActionPrompt(
+              '行动提示',
+              currentSchema?.ui?.prompt || '请点击下方按钮查看技能发动状态',
+              () => {}
+            );
+          }
+          break;
+        }
+
         // Generic action prompt for all other roles (dismiss → wait for seat tap)
         // Schema-first: prompt copy must come from schema ui.
         // Keep a generic fallback (no role-specific copy) to avoid blank UI in dev if schema is incomplete.
@@ -565,10 +585,41 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         });
         break;
       }
+
+      case 'confirmTrigger': {
+        // Hunter/DarkWolfKing: show status dialog (can shoot or not), then submit action
+        if (!gameState) break;
+        
+        const roomLike = toGameRoomLike(gameState);
+        let canShoot = true;
+        let roleDisplayName = '';
+        
+        if (myRole === 'hunter') {
+          canShoot = getHunterStatus(roomLike);
+          roleDisplayName = '猎人';
+        } else if (myRole === 'darkWolfKing') {
+          canShoot = getDarkWolfKingStatus(roomLike);
+          roleDisplayName = '黑狼王';
+        }
+        
+        const statusMessage = canShoot
+          ? `${roleDisplayName}可以发动技能`
+          : `${roleDisplayName}不能发动技能`;
+        
+        // Show info dialog with status, then submit action when user acknowledges
+        actionDialogs.showRoleActionPrompt(
+          '技能状态',
+          statusMessage,
+          () => void proceedWithActionTyped(mySeatNumber ?? 0)
+        );
+        break;
+      }
     }
   }, [
     gameState,
     myRole,
+    mySeatNumber,
+    isBlockedByNightmare,
     anotherIndex,
     actionDialogs,
     buildWitchExtra,
