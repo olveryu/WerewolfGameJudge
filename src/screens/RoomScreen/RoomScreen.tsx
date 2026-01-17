@@ -25,6 +25,7 @@ import {
 } from '../../models/Room';
 import { 
   getRoleSpec,
+  getRoleDisplayName,
   RoleId,
   isWolfRole,
 } from '../../models/roles';
@@ -539,9 +540,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           skipExtra = buildWitchExtra({ poison: false });
         }
 
+        // FAIL-FAST: skip confirmText must come from schema or intent
+        const skipConfirmText = skipStepSchema?.ui?.confirmText || intent.message;
+        if (!skipConfirmText) {
+          throw new Error(`[FAIL-FAST] Missing confirmText for skip action: ${intent.stepKey}`);
+        }
+
         actionDialogs.showConfirmDialog(
           '确认跳过',
-          (skipStepSchema?.ui?.confirmText || intent.message || '确定不发动技能吗？'),
+          skipConfirmText,
           () => void proceedWithActionTyped(null, skipExtra)
         );
         break;
@@ -601,19 +608,19 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         const confirmStatus = getConfirmStatus();
         
         let canShoot = true; // Default if no private message (shouldn't happen in normal flow)
-        let roleDisplayName = '';
         
         if (myRole === 'hunter') {
-          roleDisplayName = '猎人';
-          if (confirmStatus && confirmStatus.role === 'hunter') {
+          if (confirmStatus?.role === 'hunter') {
             canShoot = confirmStatus.canShoot;
           }
         } else if (myRole === 'darkWolfKing') {
-          roleDisplayName = '黑狼王';
-          if (confirmStatus && confirmStatus.role === 'darkWolfKing') {
+          if (confirmStatus?.role === 'darkWolfKing') {
             canShoot = confirmStatus.canShoot;
           }
         }
+        
+        // Schema-driven: get displayName from ROLE_SPECS
+        const roleDisplayName = getRoleDisplayName(myRole ?? '');
         
         const statusMessage = canShoot
           ? `${roleDisplayName}可以发动技能`
