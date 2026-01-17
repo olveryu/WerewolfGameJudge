@@ -45,8 +45,8 @@ import {
 // Import type-only imports
 import type { GameStateListener } from './types/GameStateTypes';
 
-// Re-export types for backward compatibility
-// (consumers can still import from GameStateService)
+// Re-export types for convenience
+// (consumers can import from either GameStateService or types/GameStateTypes)
 export {
   GameStatus,
   LocalPlayer,

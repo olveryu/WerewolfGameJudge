@@ -337,13 +337,6 @@ export const getConfirmRoleCanShoot = (room: GameRoomLike, role: 'hunter' | 'dar
   return true;
 };
 
-// Convenience wrappers for backward compatibility
-export const getHunterStatus = (room: GameRoomLike): boolean => 
-  getConfirmRoleCanShoot(room, 'hunter');
-
-export const getDarkWolfKingStatus = (room: GameRoomLike): boolean => 
-  getConfirmRoleCanShoot(room, 'darkWolfKing');
-
 // Check if current actioner's skill is blocked by nightmare
 export const isCurrentActionerSkillBlocked = (room: GameRoomLike): boolean => {
   if (!room.template.roles.includes('nightmare')) return false;
