@@ -601,9 +601,8 @@ export async function joinRoom(page: Page, roomCode: string): Promise<void> {
   // Wait for join dialog
   await expect(page.getByText('加入房间')).toBeVisible({ timeout: 5000 });
 
-  // Enter room code
-  const input = page.locator('input[placeholder*="房间号"]').or(page.locator('input').first());
-  await input.fill(roomCode);
+  // Enter room code via NumPad
+  await enterRoomCodeViaNumPad(page, roomCode);
 
   // Click 加入
   await page.getByText('加入', { exact: true }).click();
@@ -613,4 +612,28 @@ export async function joinRoom(page: Page, roomCode: string): Promise<void> {
   await waitForRoomScreenReady(page, { role: 'joiner' });
 
   console.log(`[joinRoom] Joined room ${roomCode}`);
+}
+
+/**
+ * Enter a room code using the NumPad component.
+ * Call this after the join room dialog is visible.
+ *
+ * @param page - Playwright Page
+ * @param roomCode - 4-digit room code string
+ */
+export async function enterRoomCodeViaNumPad(page: Page, roomCode: string): Promise<void> {
+  // Clear any existing input first
+  const clearBtn = page.locator('[data-testid="numpad-clear"]');
+  if (await clearBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+    await clearBtn.click();
+  }
+
+  // Press each digit
+  for (const digit of roomCode) {
+    const btn = page.locator(`[data-testid="numpad-${digit}"]`);
+    await expect(btn).toBeVisible({ timeout: 2000 });
+    await btn.click();
+    // Small delay to ensure state updates
+    await page.waitForTimeout(50);
+  }
 }

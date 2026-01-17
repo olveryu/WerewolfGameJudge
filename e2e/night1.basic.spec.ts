@@ -1,7 +1,12 @@
 import { test, expect, Page, TestInfo, BrowserContext } from '@playwright/test';
 import { waitForRoomScreenReady } from './helpers/waits';
 import { getVisibleText, gotoWithRetry } from './helpers/ui';
-import { waitForAppReady, ensureAnonLogin, extractRoomNumber } from './helpers/home';
+import {
+  waitForAppReady,
+  ensureAnonLogin,
+  extractRoomNumber,
+  enterRoomCodeViaNumPad,
+} from './helpers/home';
 
 /**
  * Night 1 Smoke E2E Tests
@@ -757,8 +762,7 @@ test.describe('Night 1 Happy Path', () => {
       await getVisibleText(pageB, '进入房间').first().click();
       await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
 
-      const input = pageB.locator('input').first();
-      await input.fill(roomNumber);
+      await enterRoomCodeViaNumPad(pageB, roomNumber);
       await pageB.getByText('加入', { exact: true }).click();
 
       await waitForRoomScreenReady(pageB, { role: 'joiner' });
@@ -1025,8 +1029,7 @@ test.describe('Night 1 Happy Path', () => {
         await getVisibleText(joinerPage, '进入房间').first().click();
         await expect(joinerPage.getByText('加入房间')).toBeVisible({ timeout: 5000 });
 
-        const input = joinerPage.locator('input').first();
-        await input.fill(roomNumber);
+        await enterRoomCodeViaNumPad(joinerPage, roomNumber);
         await joinerPage.getByText('加入', { exact: true }).click();
 
         await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
@@ -1239,7 +1242,7 @@ test.describe('Night 1 Happy Path', () => {
       await ensureAnonLogin(pageB);
       await getVisibleText(pageB, '进入房间').first().click();
       await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-      await pageB.locator('input').first().fill(roomNumber);
+      await enterRoomCodeViaNumPad(pageB, roomNumber);
       await pageB.getByText('加入', { exact: true }).click();
       await waitForRoomScreenReady(pageB, { role: 'joiner' });
 
