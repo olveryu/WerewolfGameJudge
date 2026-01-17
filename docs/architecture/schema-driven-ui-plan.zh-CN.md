@@ -14,7 +14,7 @@
 | Commit 2 | ✅ 完成 | 底部按钮 schema-driven（覆盖 B.4/B.5 + canSkip） |
 | Commit 3 | ✅ 完成 | Witch compound steps-driven（移除 witchPhase 依赖） |
 | Commit 4 | ✅ 完成 | NIGHT_STEPS.visibility 作为 showWolves 单一来源 |
-| Commit 5 | ⏭️ 可选 | wolfVote forbiddenTargetRoleIds UI 消费（纯 UX） |
+| Commit 5 | ⏭️ 可选 | wolfVote immuneToWolfKill (ROLE_SPECS.flags) UI 消费（纯 UX） |
 | Commit 6 | ⏭️ 可选 | audioKey UI 显示（纯展示） |
 | Commit 7 | ✅ 完成 | 清理 legacy fields（RoleDisplayInfo.actionMessage 等） |
 
@@ -83,7 +83,7 @@
 |---|---|------|
 | `kind` | ✅ | ✅ |  |
 | `constraints` | ⚠️ 同 chooseSeat | ⚠️ 同 chooseSeat（仅 UX hint） |  |
-| `forbiddenTargetRoleIds?` | ✅（UX-only：seat 禁点 + 提示） | ✅ 保持（仅 UX hint，Host 仍裁判） | **禁止**改 `SCHEMAS.wolfKill`；该字段只用于 meeting vote gate（Host 拒绝 + 回执） |
+| `immuneToWolfKill (ROLE_SPECS.flags)?` | ✅（UX-only：seat 禁点 + 提示） | ✅ 保持（仅 UX hint，Host 仍裁判） | **禁止**改 `SCHEMAS.wolfKill`；该字段只用于 meeting vote gate（Host 拒绝 + 回执） |
 
 #### A.4 CompoundSchema / CompoundStep（witch）
 
@@ -329,7 +329,7 @@ RoomScreen 的渲染逻辑保持简单：
 
 ### C) ❌ schema 字段存在但 UI 未消费（可选择性迁移，不踩红线）
 
-#### C.1 `WolfVoteSchema.forbiddenTargetRoleIds?`（仅 UX 增强，Host 仍裁判）
+#### C.1 `ROLE_SPECS.flags.immuneToWolfKill?`（仅 UX 增强，Host 仍裁判）
 
 - 现状位置：`src/models/roles/spec/schema.types.ts` 存在字段；RoomScreen 未消费
 - 收口方式：PR2（turnVM 生成 disabledSeatIds + 提示文案）；或在 PlayerGrid 上做 disabled 状态
@@ -493,7 +493,7 @@ RoomScreen 目标：
 
 > 注：这个 commit 不改变“谁能看见谁”的规则，只是把 UI 的分散推导变成单点 view-model（仍然 Host 权威）。
 
-### Commit 5（可选）：把 `WolfVoteSchema.forbiddenTargetRoleIds` 做成 UI 禁点/提示（覆盖 C.1，纯 UX）
+### Commit 5（可选）：把 `ROLE_SPECS.flags.immuneToWolfKill` 做成 UI 禁点/提示（覆盖 C.1，纯 UX）
 
 > 这是纯 UX 提升：就算 UI 不做禁点，Host 也必须拒绝非法 vote 并回执（Anti-cheat+Host 权威）。
 
@@ -539,7 +539,7 @@ RoomScreen 目标：
 - B.4（底部按钮混 legacy/特例）→ Commit 2
 - B.5（swap.canSkip 未严格消费）→ Commit 2
 
-- C.1（wolfVote forbiddenTargetRoleIds UI 未消费）→ Commit 5（可选）
+- C.1（wolfVote immuneToWolfKill (ROLE_SPECS.flags) UI 未消费）→ Commit 5（可选）
 - C.2（witch steps 未驱动 UI）→ Commit 3
 - C.3（nightSteps.visibility 未作为 UI 单一来源）→ Commit 4
 - C.4（audioKey/audioEndKey UI 不展示）→ Commit 6（可选）
@@ -550,7 +550,7 @@ RoomScreen 目标：
 - `ChooseSeatSchema.canSkip`（已双保险）→ Commit 2 里纳入“统一底部按钮策略”回归测试（防退化）
 - `SwapSchema.canSkip` → Commit 2
 - `CompoundSchema.steps/CompoundStep.*` → Commit 3
-- `WolfVoteSchema.forbiddenTargetRoleIds` → Commit 5（可选，纯 UX）
+- `ROLE_SPECS.flags.immuneToWolfKill` → Commit 5（可选，纯 UX）
 - `NIGHT_STEPS.visibility.*` → Commit 4
 - `NIGHT_STEPS.audioKey/audioEndKey` → Commit 6（可选，纯展示）
 - “旧的/不对的/没用的删掉” → Commit 7（必须做，收口清理）
@@ -605,7 +605,7 @@ npm test --silent -- src/services/night/resolvers --runInBand
 
 - **最大收益**：减少 RoomScreen role 分支，降低未来加角色/加 step 的回归成本。
 - **最大风险点**：女巫 compound steps 重构（PR3）。
-- **可选增强**：wolfVote forbiddenTargetRoleIds 的 UI 禁点提示（只是 UX，Host 仍裁判）。
+- **可选增强**：wolfVote immuneToWolfKill (ROLE_SPECS.flags) 的 UI 禁点提示（只是 UX，Host 仍裁判）。
 
 ---
 
