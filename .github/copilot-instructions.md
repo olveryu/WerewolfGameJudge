@@ -3,8 +3,9 @@
 ### 0) Non-negotiables (read first)
 
 - **Host is the ONLY authority for game logic.** Supabase is transport/discovery/identity only.
+- **Offline local play.** This is a local/offline game assistant. Host device is also a player, not a separate referee device.
 - **Night-1-only scope.** Do NOT add cross-night state/rules.
-- **Anti-cheat.** Sensitive info goes via toUid private messages; keep `BroadcastGameState` as room-public view-model only.
+- **Anti-cheat.** Sensitive info goes via toUid private messages; keep `BroadcastGameState` as room-public view-model only. Client `actions` Map is always empty for non-Host players.
 - **Single source of truth.** No parallel ordering maps/arrays/dual-write drift.
 
 If something is unclear, ask before coding. Don’t invent repo facts.
@@ -89,6 +90,37 @@ If something is unclear, ask before coding. Don’t invent repo facts.
 
 ---
 
+## Night action role checklist (MUST follow for every role)
+
+When implementing or modifying a night-action role:
+
+1. **Nightmare block logic**
+   - Every night-action role MUST handle being blocked by nightmare
+   - Check `currentNightResults.blockedSeat === actorSeat` in resolver
+   - If blocked: return `{ valid: true, result: {} }` (no effect, but valid)
+   - Host should send `BLOCKED` private message to blocked player
+
+2. **Private message sending (Host → Player)**
+   - Roles that need context MUST receive private message at turn start:
+     - `witch` → `WITCH_CONTEXT` (killedIndex, canSave, canPoison)
+     - `hunter` → `CONFIRM_STATUS` (canShoot: boolean)
+     - `darkWolfKing` → `CONFIRM_STATUS` (canShoot: boolean)
+   - Roles that reveal info MUST receive private message after action:
+     - `seer` → `SEER_REVEAL` (result: 好人/狼人)
+     - `psychic` → `PSYCHIC_REVEAL` (result: role name)
+     - `gargoyle` → `GARGOYLE_REVEAL` (result: role name)
+     - `wolfRobot` → `WOLF_ROBOT_REVEAL` (result: role name)
+
+3. **Private message receiving (Player reads)**
+   - Client MUST use `getXxxContext()` / `getXxxReveal()` from GameStateService
+   - Client MUST NOT compute sensitive info from local state (actions Map is empty for non-Host)
+
+4. **Schema alignment**
+   - Resolver validation MUST match schema constraints
+   - If schema says `notSelf`, resolver MUST reject self-target
+
+---
+
 ## Tests & quality gates
 
 ### Jest contract tests (required for table-driven night)
@@ -124,7 +156,28 @@ Maintain/update contract tests to guarantee:
    - add/extend `SCHEMAS` (`src/models/roles/spec/schemas.ts`) with schema-first constraints
    - add a step to `NIGHT_STEPS` (`src/models/roles/spec/nightSteps.ts`) with `id: SchemaId`, `audioKey`, `visibility`
    - implement/update resolver under `src/services/night/resolvers/**` (schema-aligned)
+   - **if blockable by nightmare:** add block check in resolver (`currentNightResults.blockedSeat === actorSeat`)
+   - **if needs context at turn start:** add private message type + Host sends + Client reads (see "Night action role checklist")
+   - **if reveals info after action:** add private message type for result reveal
    - update contract tests (order snapshot + validity + red lines)
+
+---
+
+## Fix strategy
+
+### Prefer big fixes over small patches
+
+- When fixing a bug, prefer a **single, complete root-cause fix** over multiple small / band-aid patches.
+- If the fix requires touching multiple files or layers, that's acceptable—holistic fixes are better than scattered workarounds.
+- Do NOT add "temporary" or "partial" fixes unless the complete fix is blocked by an external dependency or explicitly agreed with the user.
+
+### Revert obsolete / wrong fixes after finding root cause
+
+- Once the **true root cause** is identified and fixed:
+   1. Audit any prior patches made under a wrong hypothesis.
+   2. **Revert** those obsolete patches entirely (don't leave dead / misleading code).
+   3. Document in the commit message which earlier commits were reverted and why.
+- A single clean fix + revert is better than accumulating layers of "just-in-case" code.
 
 ---
 
