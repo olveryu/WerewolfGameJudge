@@ -33,21 +33,18 @@ export const SeatConfirmModal: React.FC<SeatConfirmModalProps> = ({
 }) => {
   const title = modalType === 'enter' ? '入座' : '站起';
   const message =
-    modalType === 'enter'
-      ? `确定在${seatNumber}号位入座?`
-      : `确定从${seatNumber}号位站起?`;
+    modalType === 'enter' ? `确定在${seatNumber}号位入座?` : `确定从${seatNumber}号位站起?`;
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onCancel}
-    >
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onCancel}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent} testID={TESTIDS.seatConfirmModal}>
-          <Text style={styles.modalTitle} testID={TESTIDS.seatConfirmTitle}>{title}</Text>
-          <Text style={styles.modalMessage} testID={TESTIDS.seatConfirmMessage}>{message}</Text>
+          <Text style={styles.modalTitle} testID={TESTIDS.seatConfirmTitle}>
+            {title}
+          </Text>
+          <Text style={styles.modalMessage} testID={TESTIDS.seatConfirmMessage}>
+            {message}
+          </Text>
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={[styles.modalButton, styles.modalCancelButton]}

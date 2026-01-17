@@ -21,25 +21,20 @@ export function useNetworkAction() {
    * @param actionName - A user-friendly name for the action (e.g., "查看身份")
    * @returns The result of the action, or null if cancelled
    */
-  const execute = useCallback(async <T>(
-    action: () => Promise<T>,
-    actionName: string = '操作'
-  ): Promise<T | null> => {
-    setIsLoading(true);
-    
-    try {
-      const result = await action();
-      setIsLoading(false);
-      return result;
-    } catch (error) {
-      setIsLoading(false);
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
+  const execute = useCallback(
+    async <T>(action: () => Promise<T>, actionName: string = '操作'): Promise<T | null> => {
+      setIsLoading(true);
 
-      return new Promise((resolve) => {
-        showAlert(
-          '网络错误',
-          `${actionName}失败：${errorMessage}`,
-          [
+      try {
+        const result = await action();
+        setIsLoading(false);
+        return result;
+      } catch (error) {
+        setIsLoading(false);
+        const errorMessage = error instanceof Error ? error.message : '未知错误';
+
+        return new Promise((resolve) => {
+          showAlert('网络错误', `${actionName}失败：${errorMessage}`, [
             {
               text: '重试',
               onPress: () => {
@@ -52,11 +47,12 @@ export function useNetworkAction() {
               style: 'cancel',
               onPress: () => resolve(null),
             },
-          ]
-        );
-      });
-    }
-  }, []);
+          ]);
+        });
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     executeRef.current = execute;
@@ -71,31 +67,27 @@ export function useNetworkAction() {
  */
 export async function executeWithRetry<T>(
   action: () => Promise<T>,
-  actionName: string = '操作'
+  actionName: string = '操作',
 ): Promise<T | null> {
   try {
     return await action();
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '未知错误';
-    
+
     return new Promise((resolve) => {
-      showAlert(
-        '网络错误',
-        `${actionName}失败：${errorMessage}`,
-        [
-          {
-            text: '重试',
-            onPress: () => {
-              executeWithRetry(action, actionName).then(resolve);
-            },
+      showAlert('网络错误', `${actionName}失败：${errorMessage}`, [
+        {
+          text: '重试',
+          onPress: () => {
+            executeWithRetry(action, actionName).then(resolve);
           },
-          {
-            text: '取消',
-            style: 'cancel',
-            onPress: () => resolve(null),
-          },
-        ]
-      );
+        },
+        {
+          text: '取消',
+          style: 'cancel',
+          onPress: () => resolve(null),
+        },
+      ]);
     });
   }
 }

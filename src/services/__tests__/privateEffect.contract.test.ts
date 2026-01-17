@@ -1,14 +1,19 @@
 /**
  * privateEffect.contract.test.ts - Private message sending contract tests
- * 
+ *
  * These tests verify that:
  * 1. Sensitive info (killedIndex, etc.) is sent via sendPrivate with toUid
  * 2. Private messages have correct structure (type, toUid, revision, payload)
- * 
+ *
  * @see docs/phase4-final-migration.md
  */
 
-import type { PrivateMessage, WitchContextPayload, SeerRevealPayload, BlockedPayload } from '../types';
+import type {
+  PrivateMessage,
+  WitchContextPayload,
+  SeerRevealPayload,
+  BlockedPayload,
+} from '../types';
 import { makeInboxKey } from '../types/PrivateBroadcast';
 
 describe('Private Effect Contract', () => {
@@ -83,8 +88,8 @@ describe('Private Effect Contract', () => {
       expect(selfKill.canSave).toBe(false);
     });
 
-  // NOTE(phase removed): WitchContextPayload no longer carries “save/poison phase”.
-  // UX is now schema-driven and seat taps always mean poison selection.
+    // NOTE(phase removed): WitchContextPayload no longer carries “save/poison phase”.
+    // UX is now schema-driven and seat taps always mean poison selection.
   });
 
   describe('SeerRevealPayload contract', () => {

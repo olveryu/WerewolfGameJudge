@@ -9,7 +9,13 @@ module.exports = {
     },
   },
   plugins: ['@typescript-eslint', 'react', 'react-hooks'],
-  extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'plugin:react/recommended', 'plugin:react-hooks/recommended', 'plugin:storybook/recommended'],
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:react/recommended',
+    'plugin:react-hooks/recommended',
+    'plugin:storybook/recommended',
+  ],
   settings: {
     react: {
       version: 'detect',
@@ -23,16 +29,18 @@ module.exports = {
   rules: {
     // Disable some rules that are too strict
     '@typescript-eslint/no-explicit-any': 'off',
-    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     '@typescript-eslint/no-require-imports': 'off', // Expo assets require require()
     'react/react-in-jsx-scope': 'off', // Not needed in React 17+
     'react/prop-types': 'off', // Using TypeScript
     '@typescript-eslint/no-empty-object-type': 'off',
     'react-hooks/static-components': 'off', // Allow inline components for simple cases
-  // This repo isn't using React Compiler as a hard gate; these rules are too noisy and
-  // flag common state-sync patterns that are acceptable for this app.
-  'react-hooks/set-state-in-effect': 'off',
-  'react-hooks/preserve-manual-memoization': 'off',
+    // This repo isn't using React Compiler as a hard gate; these rules are too noisy and
+    // flag common state-sync patterns that are acceptable for this app.
+    'react-hooks/set-state-in-effect': 'off',
+    'react-hooks/preserve-manual-memoization': 'off',
+    // Storybook 10 uses @storybook/react-vite but the rule expects direct framework import
+    'storybook/no-renderer-packages': 'off',
   },
   ignorePatterns: [
     'node_modules/',

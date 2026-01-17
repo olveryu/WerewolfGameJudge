@@ -1,10 +1,15 @@
 /**
  * GameStateService Reveal Tests
- * 
+ *
  * Tests for SEER_REVEAL, PSYCHIC_REVEAL, GARGOYLE_REVEAL, WITCH_CONTEXT private message sending.
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './boards/hostGameFactory';
+import {
+  createHostGame,
+  cleanupHostGame,
+  HostGameContext,
+  mockSendPrivate,
+} from './boards/hostGameFactory';
 import { RoleId } from '../../models/roles';
 
 // =============================================================================
@@ -93,7 +98,7 @@ describe('GameStateService Reveal', () => {
 
       // Find the SEER_REVEAL call
       const seerRevealCalls = mockSendPrivate.mock.calls.filter(
-        (call) => call[0]?.payload?.kind === 'SEER_REVEAL'
+        (call) => call[0]?.payload?.kind === 'SEER_REVEAL',
       );
 
       expect(seerRevealCalls.length).toBeGreaterThan(0);
@@ -116,7 +121,7 @@ describe('GameStateService Reveal', () => {
       });
 
       const seerRevealCalls = mockSendPrivate.mock.calls.filter(
-        (call) => call[0]?.payload?.kind === 'SEER_REVEAL'
+        (call) => call[0]?.payload?.kind === 'SEER_REVEAL',
       );
 
       expect(seerRevealCalls.length).toBeGreaterThan(0);
@@ -139,7 +144,7 @@ describe('GameStateService Reveal', () => {
       });
 
       const seerRevealCalls = mockSendPrivate.mock.calls.filter(
-        (call) => call[0]?.payload?.kind === 'SEER_REVEAL'
+        (call) => call[0]?.payload?.kind === 'SEER_REVEAL',
       );
 
       // Seer was blocked, no reveal should be sent
@@ -162,7 +167,7 @@ describe('GameStateService Reveal', () => {
       });
 
       const witchContextCalls = mockSendPrivate.mock.calls.filter(
-        (call) => call[0]?.payload?.kind === 'WITCH_CONTEXT'
+        (call) => call[0]?.payload?.kind === 'WITCH_CONTEXT',
       );
 
       expect(witchContextCalls.length).toBeGreaterThan(0);
@@ -178,14 +183,14 @@ describe('GameStateService Reveal', () => {
       await ctx.runNight({
         nightmare: 0,
         guard: 2, // guard protects seat 2
-        wolf: 2,  // wolf kills seat 2 (but guarded)
+        wolf: 2, // wolf kills seat 2 (but guarded)
         witch: null,
         seer: 4,
         hunter: null,
       });
 
       const witchContextCalls = mockSendPrivate.mock.calls.filter(
-        (call) => call[0]?.payload?.kind === 'WITCH_CONTEXT'
+        (call) => call[0]?.payload?.kind === 'WITCH_CONTEXT',
       );
 
       expect(witchContextCalls.length).toBeGreaterThan(0);
@@ -204,8 +209,8 @@ describe('GameStateService Reveal', () => {
       // Wolf at seat 4 tries to vote for wolfKing - this would be rejected if wolf vote restriction is on
       // For this test, we need to trigger a rejection scenario
       // Using sendWolfVote to simulate the rejection
-      const wolfSeat = ctx.findSeatByRole('wolf');
-      
+      const _wolfSeat = ctx.findSeatByRole('wolf');
+
       // Try to vote for nightmare (seat 7) - this is valid, no rejection expected
       // To test rejection, we'd need to vote for a forbidden target which depends on config
     });
@@ -226,7 +231,7 @@ describe('GameStateService Reveal', () => {
       });
 
       const psychicRevealCalls = mockSendPrivate.mock.calls.filter(
-        (call) => call[0]?.payload?.kind === 'PSYCHIC_REVEAL'
+        (call) => call[0]?.payload?.kind === 'PSYCHIC_REVEAL',
       );
 
       expect(psychicRevealCalls.length).toBeGreaterThan(0);
@@ -250,7 +255,7 @@ describe('GameStateService Reveal', () => {
       });
 
       const psychicRevealCalls = mockSendPrivate.mock.calls.filter(
-        (call) => call[0]?.payload?.kind === 'PSYCHIC_REVEAL'
+        (call) => call[0]?.payload?.kind === 'PSYCHIC_REVEAL',
       );
 
       expect(psychicRevealCalls.length).toBeGreaterThan(0);
@@ -274,7 +279,7 @@ describe('GameStateService Reveal', () => {
       });
 
       const gargoyleRevealCalls = mockSendPrivate.mock.calls.filter(
-        (call) => call[0]?.payload?.kind === 'GARGOYLE_REVEAL'
+        (call) => call[0]?.payload?.kind === 'GARGOYLE_REVEAL',
       );
 
       expect(gargoyleRevealCalls.length).toBeGreaterThan(0);
@@ -297,7 +302,7 @@ describe('GameStateService Reveal', () => {
       });
 
       const gargoyleRevealCalls = mockSendPrivate.mock.calls.filter(
-        (call) => call[0]?.payload?.kind === 'GARGOYLE_REVEAL'
+        (call) => call[0]?.payload?.kind === 'GARGOYLE_REVEAL',
       );
 
       expect(gargoyleRevealCalls.length).toBeGreaterThan(0);

@@ -45,7 +45,7 @@ export const getAvatarImage = (seed: string): number => {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
     const char = seed.codePointAt(i) || 0;
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   const index = Math.abs(hash) % AVATAR_IMAGES.length;
@@ -67,6 +67,6 @@ export const getUniqueAvatarBySeat = (seatNumber: number, roomId?: string): numb
     }
   }
   // Seat number is 1-based, convert to 0-based index with room offset
-  const index = ((seatNumber - 1) + roomOffset) % AVATAR_IMAGES.length;
+  const index = (seatNumber - 1 + roomOffset) % AVATAR_IMAGES.length;
   return AVATAR_IMAGES[index];
 };

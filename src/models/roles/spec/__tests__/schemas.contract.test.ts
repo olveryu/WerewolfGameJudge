@@ -4,7 +4,13 @@
  * Validates the SCHEMAS registry for consistency.
  */
 
-import { SCHEMAS, type SchemaId, getAllSchemaIds, isValidSchemaId, BLOCKED_UI_DEFAULTS } from '../index';
+import {
+  SCHEMAS,
+  type SchemaId,
+  getAllSchemaIds,
+  isValidSchemaId,
+  BLOCKED_UI_DEFAULTS,
+} from '../index';
 import { NIGHT_STEPS } from '../index';
 import type { CompoundSchema } from '../schema.types';
 
@@ -23,7 +29,10 @@ describe('SCHEMAS contract', () => {
   });
 
   it('every schema should have required fields', () => {
-    for (const [id, schema] of Object.entries(SCHEMAS) as [SchemaId, (typeof SCHEMAS)[SchemaId]][]) {
+    for (const [id, schema] of Object.entries(SCHEMAS) as [
+      SchemaId,
+      (typeof SCHEMAS)[SchemaId],
+    ][]) {
       expect(schema.id).toBe(id);
       expect(schema.kind).toMatch(/^(chooseSeat|confirm|compound|swap|wolfVote)$/);
     }
@@ -116,7 +125,8 @@ describe('SCHEMAS contract', () => {
     it('chooseSeat/swap/confirm schemas should provide schema.ui.confirmTitle', () => {
       const missing: string[] = [];
       for (const schema of Object.values(SCHEMAS)) {
-        if (schema.kind !== 'chooseSeat' && schema.kind !== 'swap' && schema.kind !== 'confirm') continue;
+        if (schema.kind !== 'chooseSeat' && schema.kind !== 'swap' && schema.kind !== 'confirm')
+          continue;
         if (!schema.ui?.confirmTitle || typeof schema.ui.confirmTitle !== 'string') {
           missing.push(schema.id);
         }
@@ -144,10 +154,10 @@ describe('SCHEMAS contract', () => {
       const missingConfirmText: string[] = [];
 
       for (const schema of Object.values(SCHEMAS)) {
-  if (!schema.ui) continue;
-  if (!('revealKind' in schema.ui)) continue;
+        if (!schema.ui) continue;
+        if (!('revealKind' in schema.ui)) continue;
 
-  const revealKind = schema.ui.revealKind;
+        const revealKind = schema.ui.revealKind;
         if (!revealKind) continue;
 
         if (schema.kind !== 'chooseSeat') {
@@ -211,7 +221,12 @@ describe('SCHEMAS contract', () => {
 
       // This snapshot-like list is intentionally explicit: reveal flow is sensitive.
       // If this changes, reviewers should inspect the UI/reveal ack flow carefully.
-      expect(revealSchemaIds).toEqual(['gargoyleCheck', 'psychicCheck', 'seerCheck', 'wolfRobotLearn']);
+      expect(revealSchemaIds).toEqual([
+        'gargoyleCheck',
+        'psychicCheck',
+        'seerCheck',
+        'wolfRobotLearn',
+      ]);
     });
 
     it('reveal-style chooseSeat schemas (schema.ui.revealKind) must be skippable (canSkip=true)', () => {
@@ -222,11 +237,11 @@ describe('SCHEMAS contract', () => {
         if (!('revealKind' in schema.ui)) continue;
         if (!schema.ui.revealKind) continue;
 
-  if (schema.kind !== 'chooseSeat') continue; // enforced elsewhere
+        if (schema.kind !== 'chooseSeat') continue; // enforced elsewhere
 
-  // chooseSeat schemas should always carry canSkip; treat missing/false as not skippable
-  const canSkip = (schema as { canSkip?: boolean }).canSkip;
-  if (!canSkip) notSkippable.push(schema.id);
+        // chooseSeat schemas should always carry canSkip; treat missing/false as not skippable
+        const canSkip = (schema as { canSkip?: boolean }).canSkip;
+        if (!canSkip) notSkippable.push(schema.id);
       }
 
       notSkippable.sort();
@@ -295,13 +310,13 @@ describe('SCHEMAS contract', () => {
     it('should have all required fields with non-empty string values', () => {
       expect(typeof BLOCKED_UI_DEFAULTS.title).toBe('string');
       expect(BLOCKED_UI_DEFAULTS.title.length).toBeGreaterThan(0);
-      
+
       expect(typeof BLOCKED_UI_DEFAULTS.message).toBe('string');
       expect(BLOCKED_UI_DEFAULTS.message.length).toBeGreaterThan(0);
-      
+
       expect(typeof BLOCKED_UI_DEFAULTS.skipButtonText).toBe('string');
       expect(BLOCKED_UI_DEFAULTS.skipButtonText.length).toBeGreaterThan(0);
-      
+
       expect(typeof BLOCKED_UI_DEFAULTS.dismissButtonText).toBe('string');
       expect(BLOCKED_UI_DEFAULTS.dismissButtonText.length).toBeGreaterThan(0);
     });
@@ -331,7 +346,7 @@ describe('SCHEMAS contract', () => {
     it('witchAction save step should have promptTemplate with {seat} placeholder', () => {
       const witchSchema = SCHEMAS.witchAction as CompoundSchema;
       expect(witchSchema.kind).toBe('compound');
-      
+
       const saveStep = witchSchema.steps[0];
       expect(saveStep.key).toBe('save');
       expect(saveStep.ui?.promptTemplate).toBeDefined();

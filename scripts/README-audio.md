@@ -26,6 +26,7 @@ python3 scripts/generate_audio_edge_tts.py --list-voices
 ```
 
 Notes:
+
 - Generating requires internet access.
 - Playback in-app is offline (assets are bundled).
 

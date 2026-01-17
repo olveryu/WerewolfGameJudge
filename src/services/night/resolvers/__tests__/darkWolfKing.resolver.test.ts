@@ -1,6 +1,6 @@
 /**
  * Dark Wolf King Resolver Unit Tests
- * 
+ *
  * Tests for darkWolfKingConfirmResolver validation logic.
  */
 

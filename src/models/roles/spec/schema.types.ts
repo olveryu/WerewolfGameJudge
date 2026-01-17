@@ -1,13 +1,13 @@
 /**
  * Action Schema Types
- * 
+ *
  * Declarative descriptions of role action inputs.
  * Pure data - no functions, no flow control.
  */
 
 /**
  * Default UI text for nightmare-blocked actions.
- * 
+ *
  * All roles share the same blocked UX by default.
  * Individual schemas can override via SchemaUi.blocked* fields.
  */
@@ -19,8 +19,7 @@ export const BLOCKED_UI_DEFAULTS = {
 } as const;
 
 /** Constraint types for target selection */
-export type TargetConstraint =
-  | 'notSelf';           // 不能选自己
+export type TargetConstraint = 'notSelf'; // 不能选自己
 
 export type RevealKind = 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot';
 
@@ -44,7 +43,7 @@ export interface SchemaUi {
   readonly bottomActionText?: string;
   /** Wolf vote "empty knife" button text (wolfVote only). */
   readonly emptyVoteText?: string;
-  
+
   // === Nightmare block overrides (optional, defaults from BLOCKED_UI_DEFAULTS) ===
   /** Override blocked dialog title. */
   readonly blockedTitle?: string;
@@ -52,9 +51,9 @@ export interface SchemaUi {
   readonly blockedMessage?: string;
   /** Override blocked skip button text. */
   readonly blockedSkipButtonText?: string;
-  
+
   // === Template support for dynamic prompts ===
-  /** 
+  /**
    * Template string with {seat} placeholder for dynamic prompts.
    * Used when prompt needs runtime context (e.g., witch save showing killed seat).
    * Example: "{seat}号被狼人杀了，是否使用解药？"
@@ -73,7 +72,7 @@ interface BaseActionSchema {
 export interface ChooseSeatSchema extends BaseActionSchema {
   readonly kind: 'chooseSeat';
   readonly constraints: readonly TargetConstraint[];
-  readonly canSkip: boolean;  // 是否可以不选
+  readonly canSkip: boolean; // 是否可以不选
 }
 
 /** Wolf vote - special handling for wolf pack */
@@ -86,10 +85,10 @@ export interface WolfVoteSchema extends BaseActionSchema {
 
 /**
  * Inline sub-step schema for compound actions.
- * 
+ *
  * This is a self-contained schema embedded within a compound action.
  * Not a top-level SchemaId - only exists inside CompoundSchema.steps.
- * 
+ *
  * Supports:
  * - 'chooseSeat': user selects a target seat (e.g., witch poison)
  * - 'confirmTarget': target is pre-determined, user only confirms (e.g., witch save)
@@ -128,9 +127,9 @@ export interface ConfirmSchema extends BaseActionSchema {
   readonly kind: 'confirm';
 }
 
-/** 
+/**
  * Confirm with fixed target (witch save - target is pre-determined by context)
- * 
+ *
  * Unlike chooseSeat, the target is not selected by user but provided by context
  * (e.g., WITCH_CONTEXT.killedIndex). User only confirms whether to act on that target.
  */

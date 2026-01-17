@@ -1,11 +1,11 @@
 /**
  * Contract test: Hunter/DarkWolfKing confirm schema design
- * 
+ *
  * This test locks the schema-driven design for confirm-type actions:
  * - kind='confirm' means: no target selection, user only confirms status
  * - Target is determined by context (the player themselves)
  * - UI shows status (can shoot / cannot shoot) via bottom button
- * 
+ *
  * Behavior:
  * - Seat tap has NO effect (action is via bottom button only)
  * - Bottom button triggers status check dialog
@@ -83,10 +83,10 @@ describe('confirm schema contract (hunter/darkWolfKing)', () => {
     it('hunter and darkWolfKing should have identical schema structure', () => {
       // Both are confirm kind
       expect(SCHEMAS.hunterConfirm.kind).toBe(SCHEMAS.darkWolfKingConfirm.kind);
-      
+
       // Both have the same displayName pattern
       expect(SCHEMAS.hunterConfirm.displayName).toBe(SCHEMAS.darkWolfKingConfirm.displayName);
-      
+
       // Both have bottomActionText
       expect(SCHEMAS.hunterConfirm.ui?.bottomActionText).toBeDefined();
       expect(SCHEMAS.darkWolfKingConfirm.ui?.bottomActionText).toBeDefined();
@@ -95,7 +95,7 @@ describe('confirm schema contract (hunter/darkWolfKing)', () => {
     it('both should use the same bottom button text', () => {
       // They should have identical button text for consistency
       expect(SCHEMAS.hunterConfirm.ui?.bottomActionText).toBe(
-        SCHEMAS.darkWolfKingConfirm.ui?.bottomActionText
+        SCHEMAS.darkWolfKingConfirm.ui?.bottomActionText,
       );
     });
   });
@@ -104,9 +104,12 @@ describe('confirm schema contract (hunter/darkWolfKing)', () => {
     const createMockRoom = (
       role: 'hunter' | 'darkWolfKing',
       roleSeat: number,
-      poisonedSeat: number | null
+      poisonedSeat: number | null,
     ): GameRoomLike => {
-      const players = new Map<number, { uid: string; seatNumber: number; role: RoleId | null; hasViewedRole: boolean }>();
+      const players = new Map<
+        number,
+        { uid: string; seatNumber: number; role: RoleId | null; hasViewedRole: boolean }
+      >();
       for (let i = 0; i < 12; i++) {
         players.set(i, {
           uid: `p${i}`,

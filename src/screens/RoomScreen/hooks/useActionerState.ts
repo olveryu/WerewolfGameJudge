@@ -49,6 +49,14 @@ export function useActionerState({
       ? NIGHT_STEPS.find((s) => s.id === currentSchema.id)?.visibility
       : undefined;
 
-    return determineActionerState(myRole, currentActionRole, mySeatNumber, wolfVotes, isHost, actions, visibility);
+    return determineActionerState(
+      myRole,
+      currentActionRole,
+      mySeatNumber,
+      wolfVotes,
+      isHost,
+      actions,
+      visibility,
+    );
   }, [myRole, currentActionRole, currentSchema, mySeatNumber, wolfVotes, isHost, actions]);
 }

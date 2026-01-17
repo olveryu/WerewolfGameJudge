@@ -7,7 +7,12 @@
  * - darkWolfKing 参与狼人会议，被刀杀时可开枪
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './hostGameFactory';
+import {
+  createHostGame,
+  cleanupHostGame,
+  HostGameContext,
+  mockSendPrivate,
+} from './hostGameFactory';
 import { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '狼王魔术师12人';
@@ -48,11 +53,11 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        magician: null,   // 魔术师不交换
+        magician: null, // 魔术师不交换
         darkWolfKing: null,
-        wolf: 0,          // 狼人杀 0 号村民
+        wolf: 0, // 狼人杀 0 号村民
         witch: null,
-        seer: 4,          // 预言家查 4 号狼人
+        seer: 4, // 预言家查 4 号狼人
         hunter: null,
       });
 
@@ -68,7 +73,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
         magician: null,
         darkWolfKing: null,
         wolf: 0,
-        witch: 0,         // 女巫救 0 号
+        witch: 0, // 女巫救 0 号
         seer: 7,
         hunter: null,
       });
@@ -85,27 +90,21 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       expect(ROLE_SPECS.magician.night1.hasAction).toBe(true);
 
       const { NIGHT_STEPS } = require('../../../models/roles/spec');
-      const magicianStep = NIGHT_STEPS.find(
-        (s: { roleId: string }) => s.roleId === 'magician'
-      );
+      const magicianStep = NIGHT_STEPS.find((s: { roleId: string }) => s.roleId === 'magician');
       expect(magicianStep).toBeDefined();
       expect(magicianStep?.id).toBe('magicianSwap');
     });
 
     it('魔术师排在最前面（所有人之前行动）', async () => {
       const { NIGHT_STEPS } = require('../../../models/roles/spec');
-      
+
       // magician 应该是第一个或非常靠前的步骤
       const magicianIndex = NIGHT_STEPS.findIndex(
-        (s: { roleId: string }) => s.roleId === 'magician'
+        (s: { roleId: string }) => s.roleId === 'magician',
       );
-      const wolfIndex = NIGHT_STEPS.findIndex(
-        (s: { roleId: string }) => s.roleId === 'wolf'
-      );
-      const seerIndex = NIGHT_STEPS.findIndex(
-        (s: { roleId: string }) => s.roleId === 'seer'
-      );
-      
+      const wolfIndex = NIGHT_STEPS.findIndex((s: { roleId: string }) => s.roleId === 'wolf');
+      const seerIndex = NIGHT_STEPS.findIndex((s: { roleId: string }) => s.roleId === 'seer');
+
       expect(magicianIndex).toBeLessThan(wolfIndex);
       expect(magicianIndex).toBeLessThan(seerIndex);
     });
@@ -114,7 +113,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        magician: null,   // 不交换
+        magician: null, // 不交换
         darkWolfKing: null,
         wolf: 1,
         witch: null,
@@ -134,9 +133,9 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        magician: { firstSeat: 0, secondSeat: 1 },  // 交换 0 号和 1 号身份
+        magician: { firstSeat: 0, secondSeat: 1 }, // 交换 0 号和 1 号身份
         darkWolfKing: null,
-        wolf: 0,          // 狼人刀 0 号（原村民，现在身份是 1 号村民）
+        wolf: 0, // 狼人刀 0 号（原村民，现在身份是 1 号村民）
         witch: null,
         seer: 4,
         hunter: null,
@@ -155,19 +154,20 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        magician: { firstSeat: 0, secondSeat: 4 },  // 交换村民和狼人身份
+        magician: { firstSeat: 0, secondSeat: 4 }, // 交换村民和狼人身份
         darkWolfKing: null,
-        wolf: 0,          // 狼人刀 0 号
+        wolf: 0, // 狼人刀 0 号
         witch: null,
-        seer: 4,          // 预言家查 4 号（原狼人，现在身份是村民）
+        seer: 4, // 预言家查 4 号（原狼人，现在身份是村民）
         hunter: null,
       });
 
       expect(result.completed).toBe(true);
       // 验证 seer reveal 私信发送
       const seerRevealCalls = mockSendPrivate.mock.calls.filter(
-        (call: unknown[]) => (call[0] as { type: string }).type === 'PRIVATE_EFFECT' &&
-          ((call[0] as { payload?: { kind: string } }).payload?.kind === 'SEER_REVEAL')
+        (call: unknown[]) =>
+          (call[0] as { type: string }).type === 'PRIVATE_EFFECT' &&
+          (call[0] as { payload?: { kind: string } }).payload?.kind === 'SEER_REVEAL',
       );
       expect(seerRevealCalls.length).toBe(1);
       // 预言家查 4 号，由于身份交换，应该显示好人
@@ -176,7 +176,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
         payload: {
           kind: 'SEER_REVEAL',
           targetSeat: 4,
-          result: '好人',  // 身份已交换为村民
+          result: '好人', // 身份已交换为村民
         },
       });
     });
@@ -197,7 +197,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       const result = await ctx.runNight({
         magician: null,
         darkWolfKing: null,
-        wolf: null,       // 狼人空刀
+        wolf: null, // 狼人空刀
         witch: null,
         seer: 4,
         hunter: null,
@@ -216,7 +216,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
         darkWolfKing: null,
         wolf: null,
         witch: null,
-        witchPoison: 2,   // 女巫毒 2 号
+        witchPoison: 2, // 女巫毒 2 号
         seer: 4,
         hunter: null,
       });
@@ -232,7 +232,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       const result = await ctx.runNight({
         magician: null,
         darkWolfKing: null,
-        wolf: 7,          // 狼人刀黑狼王
+        wolf: 7, // 狼人刀黑狼王
         witch: null,
         seer: 4,
         hunter: null,
@@ -251,14 +251,14 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
         darkWolfKing: null,
         wolf: 0,
         witch: null,
-        witchPoison: 7,   // 女巫毒黑狼王
+        witchPoison: 7, // 女巫毒黑狼王
         seer: 4,
         hunter: null,
       });
 
       expect(result.completed).toBe(true);
-      expect(result.deaths).toContain(0);   // 狼刀目标
-      expect(result.deaths).toContain(7);   // 黑狼王被毒
+      expect(result.deaths).toContain(0); // 狼刀目标
+      expect(result.deaths).toContain(7); // 黑狼王被毒
       // 黑狼王被毒不可开枪
     });
 
@@ -268,16 +268,16 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       const result = await ctx.runNight({
         magician: null,
         darkWolfKing: null,
-        wolf: 8,          // 狼人杀预言家
+        wolf: 8, // 狼人杀预言家
         witch: null,
-        witchPoison: 10,  // 女巫毒猎人
+        witchPoison: 10, // 女巫毒猎人
         seer: 4,
         hunter: null,
       });
 
       expect(result.completed).toBe(true);
-      expect(result.deaths).toContain(8);   // 预言家死
-      expect(result.deaths).toContain(10);  // 猎人死（被毒不可开枪）
+      expect(result.deaths).toContain(8); // 预言家死
+      expect(result.deaths).toContain(10); // 猎人死（被毒不可开枪）
     });
 
     it('狼人刀女巫，无人救 → 女巫死亡', async () => {
@@ -286,8 +286,8 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       const result = await ctx.runNight({
         magician: null,
         darkWolfKing: null,
-        wolf: 9,          // 狼人杀女巫
-        witch: null,      // 女巫不行动（第一夜不可自救）
+        wolf: 9, // 狼人杀女巫
+        witch: null, // 女巫不行动（第一夜不可自救）
         seer: 4,
         hunter: null,
       });
@@ -302,7 +302,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       const result = await ctx.runNight({
         magician: null,
         darkWolfKing: null,
-        wolf: 11,         // 狼人杀魔术师
+        wolf: 11, // 狼人杀魔术师
         witch: null,
         seer: 4,
         hunter: null,

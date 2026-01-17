@@ -1,11 +1,11 @@
 /**
  * Night Steps Registry
- * 
+ *
  * 夜晚步骤的单一真相。
- * 
+ *
  * 数组顺序 = 权威顺序（无 order 字段）
  * step.id 即 schemaId（无需双字段）
- * 
+ *
  * 策划维护：调顺序只需移动数组元素
  */
 
@@ -13,7 +13,7 @@ import type { StepSpec } from './nightSteps.types';
 
 /**
  * NIGHT_STEPS - 夜晚步骤表
- * 
+ *
  * 每个步骤代表一个角色在 Night-1 的行动。
  * 数组顺序即夜晚行动顺序。
  */
@@ -37,7 +37,7 @@ const NIGHT_STEPS_INTERNAL = [
     id: 'wolfRobotLearn',
     roleId: 'wolfRobot',
     audioKey: 'wolf_robot',
-    visibility: { actsSolo: true },  // 机器狼不知道狼队友
+    visibility: { actsSolo: true }, // 机器狼不知道狼队友
   },
   {
     id: 'dreamcatcherDream',
@@ -49,13 +49,13 @@ const NIGHT_STEPS_INTERNAL = [
     id: 'gargoyleCheck',
     roleId: 'gargoyle',
     audioKey: 'gargoyle',
-    visibility: { actsSolo: true },  // 石像鬼不知道狼队友
+    visibility: { actsSolo: true }, // 石像鬼不知道狼队友
   },
   {
     id: 'nightmareBlock',
     roleId: 'nightmare',
     audioKey: 'nightmare',
-    visibility: { actsSolo: true },  // 梦魇恐惧阶段独立行动
+    visibility: { actsSolo: true }, // 梦魇恐惧阶段独立行动
   },
   {
     id: 'guardProtect',
@@ -125,7 +125,7 @@ export type NightStepId = (typeof NIGHT_STEPS_INTERNAL)[number]['id'];
 
 /** 通过 stepId 获取 StepSpec */
 export function getStepSpec(stepId: string): StepSpec | undefined {
-  return NIGHT_STEPS.find(s => s.id === stepId);
+  return NIGHT_STEPS.find((s) => s.id === stepId);
 }
 
 /** 强类型版本：调用方传错 stepId 会在编译期报错 */
@@ -140,12 +140,12 @@ export function getStepSpecStrict(stepId: NightStepId): StepSpec {
 
 /** 获取所有 stepId（按顺序） */
 export function getAllStepIds(): NightStepId[] {
-  return NIGHT_STEPS.map(s => s.id);
+  return NIGHT_STEPS.map((s) => s.id);
 }
 
 /** 通过 roleId 获取该角色的步骤 */
 export function getStepsByRole(roleId: string): StepSpec[] {
-  return NIGHT_STEPS.filter(s => s.roleId === roleId);
+  return NIGHT_STEPS.filter((s) => s.roleId === roleId);
 }
 
 /** 强类型版本：调用方传错 roleId 会在编译期报错 */

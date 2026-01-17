@@ -22,7 +22,9 @@ export interface WaitForRoomScreenReadyOptions {
 async function waitForRoomHeaderOrRetry(page: Page, maxRetries: number): Promise<void> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      await expect(page.locator(`[data-testid="${TESTIDS.roomHeader}"]`)).toBeVisible({ timeout: 10000 });
+      await expect(page.locator(`[data-testid="${TESTIDS.roomHeader}"]`)).toBeVisible({
+        timeout: 10000,
+      });
       return;
     } catch {
       const retryBtn = page.getByText('重试');
@@ -32,7 +34,9 @@ async function waitForRoomHeaderOrRetry(page: Page, maxRetries: number): Promise
         continue;
       }
       if (attempt === maxRetries - 1) {
-        throw new Error(`[waitForRoomScreenReady] Room screen not ready after ${maxRetries} attempts`);
+        throw new Error(
+          `[waitForRoomScreenReady] Room screen not ready after ${maxRetries} attempts`,
+        );
       }
     }
   }
@@ -67,17 +71,17 @@ async function waitForJoinerLive(page: Page, liveTimeoutMs: number): Promise<voi
 
 /**
  * Wait for RoomScreen to be ready.
- * 
+ *
  * For host: Just waits for room header "房间 XXXX" to be visible.
  * For joiner: Also waits for connection status to be "🟢 已连接",
  *             with automatic retry via "强制同步" if disconnected.
- * 
+ *
  * @param page - Playwright page
  * @param opts - Options for role, retries, and timeouts
  */
 export async function waitForRoomScreenReady(
   page: Page,
-  opts: WaitForRoomScreenReadyOptions = {}
+  opts: WaitForRoomScreenReadyOptions = {},
 ): Promise<void> {
   const { role = 'host', maxRetries = 3, liveTimeoutMs = 20000 } = opts;
 

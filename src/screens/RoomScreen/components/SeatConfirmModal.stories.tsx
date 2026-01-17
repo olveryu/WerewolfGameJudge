@@ -1,6 +1,6 @@
 /**
  * SeatConfirmModal.stories.tsx - Stories for seat confirmation modal with interaction tests
- * 
+ *
  * NOTE: React Native Modal renders to document.body (portal), not the Storybook canvas.
  * We use `screen` instead of `within(canvasElement)` to find modal elements.
  */

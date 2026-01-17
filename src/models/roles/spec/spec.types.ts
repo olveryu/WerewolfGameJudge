@@ -1,6 +1,6 @@
 /**
  * Role Spec Types
- * 
+ *
  * Declarative role definitions.
  * Pure data - no functions, no side effects.
  */
@@ -17,7 +17,7 @@ export interface Night1Config {
 export interface WolfMeetingConfig {
   /** Whether this wolf can see other wolves' identities during wolf kill phase */
   readonly canSeeWolves: boolean;
-  
+
   /** Whether this wolf participates in the kill vote */
   readonly participatesInWolfVote: boolean;
 }
@@ -26,63 +26,61 @@ export interface WolfMeetingConfig {
 export interface RoleFlags {
   /** Nightmare: blocks player skill for the night */
   readonly blocksSkill?: boolean;
-  
+
   /** SpiritKnight: immune to night damage, reflects damage */
   readonly immuneToNightDamage?: boolean;
   readonly reflectsDamage?: boolean;
-  
+
   /** Cannot be targeted by wolf kill (spiritKnight, wolfQueen) */
   readonly immuneToWolfKill?: boolean;
 }
 
-
 /**
  * Complete Role Specification
- * 
+ *
  * IMPORTANT NOTES:
- * 
+ *
  * 1. Seer Check Rule (team field):
  *    - team='wolf' → seer sees "狼人"
  *    - team='good' OR team='third' → seer sees "好人"
  *    - The 'third' value is for UI display only; seer check is strictly binary.
- * 
+ *
  * 2. actsSolo (nightmare fear phase):
  *    - actsSolo=true means no wolf teammate visibility, but player CAN see self.
  */
 export interface RoleSpec {
   /** Unique role identifier (canonical) */
   readonly id: string;
-  
+
   /** Display name in Chinese */
   readonly displayName: string;
-  
+
   /** English name (optional) */
   readonly englishName?: string;
-  
+
   /** Role faction */
   readonly faction: Faction;
-  
+
   /**
    * Team for seer check / camp display.
-   * 
+   *
    * SEER CHECK RULE (strictly binary):
    * - team='wolf' → "狼人"
    * - team='good' OR team='third' → "好人"
-   * 
+   *
    * The 'third' value is kept for UI/display purposes only.
    */
   readonly team: Team;
-  
+
   /** Role description */
   readonly description: string;
-  
+
   /** Night-1 action configuration */
   readonly night1: Night1Config;
-  
+
   /** Wolf meeting configuration (only for wolf faction, applies to wolf kill phase) */
   readonly wolfMeeting?: WolfMeetingConfig;
-  
+
   /** Role-specific flags */
   readonly flags?: RoleFlags;
-  
 }

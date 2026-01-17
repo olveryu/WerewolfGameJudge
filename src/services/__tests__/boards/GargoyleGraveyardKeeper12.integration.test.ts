@@ -8,7 +8,12 @@
  * - graveyardKeeper 在 Night-1 无动作（需要上一个白天有人被放逐）
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './hostGameFactory';
+import {
+  createHostGame,
+  cleanupHostGame,
+  HostGameContext,
+  mockSendPrivate,
+} from './hostGameFactory';
 import { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '石像鬼守墓人12人';
@@ -49,11 +54,11 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        gargoyle: 8,    // 石像鬼查验预言家
-        wolf: 0,        // 狼人杀 0 号村民
-        witch: null,    // 女巫不救不毒
-        seer: 4,        // 预言家查 4 号狼人
-        hunter: null,   // 猎人确认状态
+        gargoyle: 8, // 石像鬼查验预言家
+        wolf: 0, // 狼人杀 0 号村民
+        witch: null, // 女巫不救不毒
+        seer: 4, // 预言家查 4 号狼人
+        hunter: null, // 猎人确认状态
       });
 
       expect(result.completed).toBe(true);
@@ -65,10 +70,10 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        gargoyle: 0,    // 石像鬼查验村民
-        wolf: 0,        // 狼人杀 0 号
-        witch: 0,       // 女巫救 0 号（save，非 poison）
-        seer: 7,        // 预言家查石像鬼
+        gargoyle: 0, // 石像鬼查验村民
+        wolf: 0, // 狼人杀 0 号
+        witch: 0, // 女巫救 0 号（save，非 poison）
+        seer: 7, // 预言家查石像鬼
         hunter: null,
       });
 
@@ -90,7 +95,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
     it('石像鬼查验在 Night-1 有行动', async () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
-      
+
       // 验证 gargoyle 在 NIGHT_STEPS 中存在
       const { NIGHT_STEPS } = require('../../../models/roles/spec');
       const gargoyleStep = NIGHT_STEPS.find((s: { roleId: string }) => s.roleId === 'gargoyle');
@@ -103,7 +108,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        gargoyle: 8,    // 石像鬼查验预言家（seat 8）
+        gargoyle: 8, // 石像鬼查验预言家（seat 8）
         wolf: 0,
         witch: null,
         seer: 4,
@@ -111,13 +116,13 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       });
 
       expect(result.completed).toBe(true);
-      
+
       // 验证 GARGOYLE_REVEAL 私信被发送
       const gargoyleRevealCalls = mockSendPrivate.mock.calls.filter(
-        (call: any[]) => call[0]?.payload?.kind === 'GARGOYLE_REVEAL'
+        (call: any[]) => call[0]?.payload?.kind === 'GARGOYLE_REVEAL',
       );
       expect(gargoyleRevealCalls.length).toBe(1);
-      
+
       const revealPayload = gargoyleRevealCalls[0][0].payload;
       expect(revealPayload.targetSeat).toBe(8);
       expect(revealPayload.result).toBe('预言家'); // seat 8 是预言家
@@ -133,7 +138,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       // 验证 graveyardKeeper 不在 NIGHT_STEPS 中
       const { NIGHT_STEPS } = require('../../../models/roles/spec');
       const graveyardKeeperStep = NIGHT_STEPS.find(
-        (s: { roleId: string }) => s.roleId === 'graveyardKeeper'
+        (s: { roleId: string }) => s.roleId === 'graveyardKeeper',
       );
       expect(graveyardKeeperStep).toBeUndefined();
     });
@@ -145,7 +150,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         gargoyle: 0,
-        wolf: null,     // 狼人空刀
+        wolf: null, // 狼人空刀
         witch: null,
         seer: 4,
         hunter: null,
@@ -161,9 +166,9 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         gargoyle: 0,
-        wolf: null,         // 狼人空刀
+        wolf: null, // 狼人空刀
         witch: null,
-        witchPoison: 1,     // 女巫毒 1 号
+        witchPoison: 1, // 女巫毒 1 号
         seer: 4,
         hunter: null,
       });
@@ -178,7 +183,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         gargoyle: 8,
-        wolf: 7,            // 狼人刀石像鬼（自刀队友）
+        wolf: 7, // 狼人刀石像鬼（自刀队友）
         witch: null,
         seer: 4,
         hunter: null,
@@ -193,26 +198,26 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         gargoyle: 0,
-        wolf: 8,            // 狼人杀预言家
+        wolf: 8, // 狼人杀预言家
         witch: null,
-        witchPoison: 7,     // 女巫毒石像鬼
-        seer: 4,            // 预言家查狼
+        witchPoison: 7, // 女巫毒石像鬼
+        seer: 4, // 预言家查狼
         hunter: null,
       });
 
       expect(result.completed).toBe(true);
-      expect(result.deaths).toContain(8);   // 预言家死
-      expect(result.deaths).toContain(7);   // 石像鬼死
+      expect(result.deaths).toContain(8); // 预言家死
+      expect(result.deaths).toContain(7); // 石像鬼死
     });
 
     it('石像鬼查验狼人队友：获得狼人身份', async () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        gargoyle: 4,        // 石像鬼查验狼人队友
+        gargoyle: 4, // 石像鬼查验狼人队友
         wolf: 0,
         witch: null,
-        seer: 5,            // 预言家查另一个狼
+        seer: 5, // 预言家查另一个狼
         hunter: null,
       });
 
@@ -225,8 +230,8 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         gargoyle: 0,
-        wolf: 9,            // 狼人杀女巫
-        witch: null,        // 女巫不行动（第一夜不可自救）
+        wolf: 9, // 狼人杀女巫
+        witch: null, // 女巫不行动（第一夜不可自救）
         seer: 4,
         hunter: null,
       });
@@ -240,7 +245,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         gargoyle: 0,
-        wolf: 10,           // 狼人杀猎人
+        wolf: 10, // 狼人杀猎人
         witch: null,
         seer: 4,
         hunter: null,

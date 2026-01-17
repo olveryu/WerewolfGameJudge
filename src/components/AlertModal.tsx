@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 
 export interface AlertButton {
   text: string;
@@ -41,17 +34,18 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay} testID="alert-modal-overlay">
         <View style={styles.alertBox} testID="alert-modal">
-          <Text style={styles.title} testID="alert-title">{title}</Text>
-          {message ? <Text style={styles.message} testID="alert-message">{message}</Text> : null}
-          
+          <Text style={styles.title} testID="alert-title">
+            {title}
+          </Text>
+          {message ? (
+            <Text style={styles.message} testID="alert-message">
+              {message}
+            </Text>
+          ) : null}
+
           <View style={styles.buttonContainer}>
             {buttons.map((button, index) => (
               <TouchableOpacity

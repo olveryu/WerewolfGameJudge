@@ -34,7 +34,7 @@ export const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   errorBackButtonText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: typography.base,
     fontWeight: '600',
   },
@@ -124,11 +124,11 @@ export const styles = StyleSheet.create({
     left: 12,
   },
   seatedSeatNumber: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
   },
   playerIndicator: {
     fontSize: 24,
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   playerAvatar: {
@@ -204,7 +204,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.textMuted,
   },
   buttonText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: typography.sm,
     fontWeight: '600',
   },
@@ -216,7 +216,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
     borderRadius: borderRadius.xl,
     padding: spacing.xl,
     minWidth: 300,
@@ -259,7 +259,7 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   modalConfirmText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: typography.base,
     fontWeight: '600',
   },

@@ -10,13 +10,13 @@
 
 ## ✅ 执行结果
 
-| # | 任务 | 状态 | 改动 |
-|---|------|------|------|
-| 1 | RoomScreen.tsx UI prompt fail-fast | ✅ 完成 | 删除 fallback `\|\|`，改用 throw Error |
-| 2 | constraintValidator.ts fail-fast | ✅ 完成 | Unknown constraint throw Error |
-| 3 | 删除 getActionOrderFromPlan | ✅ 完成 | 无调用者，已删除 |
-| 4 | 删除 Room.ts getHunterStatus/getDarkWolfKingStatus | ✅ 完成 | 无调用者，已删除 |
-| 5 | 清理 backward compatibility 注释 | ✅ 完成 | plan.ts, GameStateService.ts, testids.ts |
+| #   | 任务                                               | 状态    | 改动                                     |
+| --- | -------------------------------------------------- | ------- | ---------------------------------------- |
+| 1   | RoomScreen.tsx UI prompt fail-fast                 | ✅ 完成 | 删除 fallback `\|\|`，改用 throw Error   |
+| 2   | constraintValidator.ts fail-fast                   | ✅ 完成 | Unknown constraint throw Error           |
+| 3   | 删除 getActionOrderFromPlan                        | ✅ 完成 | 无调用者，已删除                         |
+| 4   | 删除 Room.ts getHunterStatus/getDarkWolfKingStatus | ✅ 完成 | 无调用者，已删除                         |
+| 5   | 清理 backward compatibility 注释                   | ✅ 完成 | plan.ts, GameStateService.ts, testids.ts |
 
 ### 验证
 
@@ -30,14 +30,14 @@
 
 ### ✅ 已完成清理（可忽略）
 
-| 项目 | 状态 | 说明 |
-|------|------|------|
-| `Template.actionOrder` | ✅ 已删除 | Phase 5 已完成，`GameTemplate` 不再有 `actionOrder` |
-| `RoleName` type alias | ✅ 已删除 | 已统一使用 `RoleId` |
-| `ROLES` record | ✅ 已删除 | 不再存在 `getRoleDisplayInfo()` 或 `ROLES` |
-| `gameStatusToRoomStatus()` | ✅ 已删除 | 已删除 numeric RoomStatus 映射 |
-| `@deprecated` 标注 | ✅ 无残留 | `src/**` 内无 `@deprecated` 标注 |
-| `TODO(remove by ...)` | ✅ 无残留 | `src/**` 内无遗留的待删除标注 |
+| 项目                       | 状态      | 说明                                                |
+| -------------------------- | --------- | --------------------------------------------------- |
+| `Template.actionOrder`     | ✅ 已删除 | Phase 5 已完成，`GameTemplate` 不再有 `actionOrder` |
+| `RoleName` type alias      | ✅ 已删除 | 已统一使用 `RoleId`                                 |
+| `ROLES` record             | ✅ 已删除 | 不再存在 `getRoleDisplayInfo()` 或 `ROLES`          |
+| `gameStatusToRoomStatus()` | ✅ 已删除 | 已删除 numeric RoomStatus 映射                      |
+| `@deprecated` 标注         | ✅ 无残留 | `src/**` 内无 `@deprecated` 标注                    |
+| `TODO(remove by ...)`      | ✅ 无残留 | `src/**` 内无遗留的待删除标注                       |
 
 ### ⚠️ 仍存在的问题（需处理）
 
@@ -48,9 +48,10 @@
 **位置**：`src/screens/RoomScreen/RoomScreen.tsx`
 
 **问题**：
+
 ```tsx
 // Line 582
-currentSchema?.ui?.prompt || '请选择目标'
+currentSchema?.ui?.prompt || '请选择目标';
 
 // Line 790-791
 const baseMessage = currentSchema?.ui?.prompt || '请选择目标';
@@ -59,6 +60,7 @@ const baseMessage = currentSchema?.ui?.prompt || '请选择目标';
 **你的要求**：fail-fast，不要 fallback
 
 **方案 A（推荐）**：如果 `currentSchema?.ui?.prompt` 为空，抛出 Error 或显示 Error UI
+
 ```tsx
 if (!currentSchema?.ui?.prompt) {
   throw new Error(`Missing schema.ui.prompt for current action`);
@@ -67,11 +69,13 @@ const baseMessage = currentSchema.ui.prompt;
 ```
 
 **方案 B**：静默显示 "schema 未配置" 而非空白
+
 ```tsx
 const baseMessage = currentSchema?.ui?.prompt ?? '[ERROR: schema.ui.prompt missing]';
 ```
 
 **影响文件**：
+
 - `src/screens/RoomScreen/RoomScreen.tsx` (2 处)
 - 可能需要更新 contract test `schemas.ui.coverage.test.ts`（已存在，验证 schema 完整性）
 
@@ -82,6 +86,7 @@ const baseMessage = currentSchema?.ui?.prompt ?? '[ERROR: schema.ui.prompt missi
 **位置**：`src/services/night/resolvers/constraintValidator.ts:47`
 
 **问题**：
+
 ```typescript
 default:
   // Unknown constraint - treat as valid (fail-open for forward compat)
@@ -91,6 +96,7 @@ default:
 **你的要求**：fail-fast
 
 **方案**：Unknown constraint 应该抛出 Error
+
 ```typescript
 default:
   throw new Error(`Unknown constraint: ${constraint}. Add handler or remove from schema.`);
@@ -105,6 +111,7 @@ default:
 **位置**：`src/screens/HomeScreen/HomeScreen.tsx:302-305`
 
 **问题**：
+
 ```tsx
 // Fallback for logged-in users without displayName: use email prefix
 if (user.email) {
@@ -124,6 +131,7 @@ return '用户';
 **位置**：`src/services/AudioService.ts:132-135`
 
 **问题**：
+
 ```typescript
 // Timeout fallback - resolve after max time even if audio didn't finish
 setTimeout(() => {
@@ -142,6 +150,7 @@ setTimeout(() => {
 **位置**：`src/utils/alert.ts:40`
 
 **问题**：
+
 ```typescript
 // Fallback to native alert
 ```
@@ -185,7 +194,7 @@ setTimeout(() => {
  * Get action order from night plan (for backward compatibility)
  */
 export function getActionOrderFromPlan(plan: NightPlan): RoleId[] {
-  return plan.steps.map(step => step.roleId);
+  return plan.steps.map((step) => step.roleId);
 }
 ```
 
@@ -250,28 +259,28 @@ const actionOrder: RoleId[] = ['seer', 'witch'];
 
 ### 必须做（符合 fail-fast 要求）
 
-| # | 任务 | 文件 | 预估改动 |
-|---|------|------|----------|
-| 1 | UI prompt fail-fast | `RoomScreen.tsx` | ~10 行 |
-| 2 | constraintValidator fail-fast | `constraintValidator.ts` | ~3 行 |
+| #   | 任务                          | 文件                     | 预估改动 |
+| --- | ----------------------------- | ------------------------ | -------- |
+| 1   | UI prompt fail-fast           | `RoomScreen.tsx`         | ~10 行   |
+| 2   | constraintValidator fail-fast | `constraintValidator.ts` | ~3 行    |
 
 ### 可选做（清理注释/死代码）
 
-| # | 任务 | 文件 | 预估改动 |
-|---|------|------|----------|
-| 3 | 检查并删除 getActionOrderFromPlan | `plan.ts` + 调用者 | ~5 行 |
-| 4 | 检查并删除 Room.ts wrapper | `Room.ts` | ~10 行 |
-| 5 | 删除 backward compatibility 注释 | 多处 | 注释清理 |
+| #   | 任务                              | 文件               | 预估改动 |
+| --- | --------------------------------- | ------------------ | -------- |
+| 3   | 检查并删除 getActionOrderFromPlan | `plan.ts` + 调用者 | ~5 行    |
+| 4   | 检查并删除 Room.ts wrapper        | `Room.ts`          | ~10 行   |
+| 5   | 删除 backward compatibility 注释  | 多处               | 注释清理 |
 
 ### 不需要做
 
-| # | 理由 |
-|---|------|
-| HomeScreen displayName fallback | 合理的 UI 默认值 |
-| AudioService timeout | 必要的 robustness |
-| alert.ts web fallback | 平台适配 |
-| testids contract test | E2E 稳定性保证 |
-| `??` nullish coalescing | 正常 TypeScript |
+| #                               | 理由              |
+| ------------------------------- | ----------------- |
+| HomeScreen displayName fallback | 合理的 UI 默认值  |
+| AudioService timeout            | 必要的 robustness |
+| alert.ts web fallback           | 平台适配          |
+| testids contract test           | E2E 稳定性保证    |
+| `??` nullish coalescing         | 正常 TypeScript   |
 
 ---
 

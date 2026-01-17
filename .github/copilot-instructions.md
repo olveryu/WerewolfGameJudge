@@ -3,17 +3,17 @@
 ### 0) Non-negotiables (read first)
 
 - **Host is the ONLY authority for game logic.** Supabase is transport/discovery/identity only.
-- **Offl---
+- \*\*Offl---
 
 ## Reporting discipline
 
 - Don't claim changes without evidence.
 - For non-trivial work, report:
-   - commit hash (or "not committed yet")
-   - files changed
-   - key symbols changed
-   - logical behavior changes
-   - verification run (typecheck/Jest/e2e) + outcome
+  - commit hash (or "not committed yet")
+  - files changed
+  - key symbols changed
+  - logical behavior changes
+  - verification run (typecheck/Jest/e2e) + outcome
 
 ---
 
@@ -21,7 +21,7 @@
 
 - **No `| head` or `| tail` piping.** Run commands without output truncation so you can see the full result.
 - If output is very long, use `grep` to filter relevant lines instead of head/tail.lay.
-- ** This is a local/offline game assistant. Host device is also a player, not a separate referee device.
+- \*\* This is a local/offline game assistant. Host device is also a player, not a separate referee device.
 - **Night-1-only scope.** Do NOT add cross-night state/rules.
 - **Anti-cheat.** Sensitive info goes via toUid private messages; keep `BroadcastGameState` as room-public view-model only. Client `actions` Map is always empty for non-Host players.
 - **Single source of truth.** No parallel ordering maps/arrays/dual-write drift.
@@ -70,9 +70,9 @@ If something is unclear, ask before coding. Don’t invent repo facts.
 
 - Night-1 progression MUST come from a single table-driven plan.
 - **Authoritative table (Night-1):** `NIGHT_STEPS` in `src/models/roles/spec/nightSteps.ts`.
-   - Array order is the authority order.
-   - Step id MUST be a stable `SchemaId`.
-   - Do NOT reintroduce `night1.order` or any parallel `ACTION_ORDER`.
+  - Array order is the authority order.
+  - Step id MUST be a stable `SchemaId`.
+  - Do NOT reintroduce `night1.order` or any parallel `ACTION_ORDER`.
 - Plan builder MUST fail-fast on invalid `roleId` / `schemaId`.
 - Do NOT use UI copy as logic keys; tests must assert stable identifiers.
 
@@ -84,8 +84,8 @@ If something is unclear, ask before coding. Don’t invent repo facts.
 ### StepSpec id/schemaId de-dupe (migration rule)
 
 - If `StepSpec` has both `id` and `schemaId`, it’s migration-only.
-   - `schemaId` must be `@deprecated` + `TODO(remove by YYYY-MM-DD)`.
-   - Keep a contract test enforcing `step.id === step.schemaId`.
+  - `schemaId` must be `@deprecated` + `TODO(remove by YYYY-MM-DD)`.
+  - Keep a contract test enforcing `step.id === step.schemaId`.
 - End-state: only `id: SchemaId`.
 
 ---
@@ -96,8 +96,8 @@ If something is unclear, ask before coding. Don’t invent repo facts.
 
 - Input legality belongs in `SCHEMAS[*].constraints` (schema-first).
 - Host resolvers MUST align with schema constraints.
-   - If schema says `notSelf`, resolver must reject self-target.
-   - If schema allows self-target, resolver must not reject it unless documented + tested.
+  - If schema says `notSelf`, resolver must reject self-target.
+  - If schema allows self-target, resolver must not reject it unless documented + tested.
 
 ### Night-1-only bans
 
@@ -152,6 +152,17 @@ When implementing or modifying a night-action role:
 
 ## Tests & quality gates
 
+### Linting (ESLint + Prettier)
+
+- **After any code change**, run `npm run lint:fix` and `npm run format:write` to ensure zero errors/warnings.
+- **Unused variables**: prefix with `_` (e.g., `_unusedParam`) to satisfy `@typescript-eslint/no-unused-vars`.
+- **React hooks exhaustive-deps**: 
+  - If a dependency is intentionally omitted, add `// eslint-disable-next-line react-hooks/exhaustive-deps` with a comment explaining why.
+  - If a dependency is missing, add it to the dependency array.
+  - If a dependency is unnecessary, remove it.
+- **Do NOT disable linting rules globally** without explicit approval. Prefer per-line disable comments with justification.
+- **Prettier**: use default config. Run `npm run format:write` before committing.
+
 ### Jest contract tests (required for table-driven night)
 
 Maintain/update contract tests to guarantee:
@@ -182,13 +193,13 @@ Maintain/update contract tests to guarantee:
 
 - Add role to `ROLE_SPECS` (`src/models/roles/spec/specs.ts`) and keep `RoleId` derived from registry keys.
 - If it acts on Night-1:
-   - add/extend `SCHEMAS` (`src/models/roles/spec/schemas.ts`) with schema-first constraints
-   - add a step to `NIGHT_STEPS` (`src/models/roles/spec/nightSteps.ts`) with `id: SchemaId`, `audioKey`, `visibility`
-   - implement/update resolver under `src/services/night/resolvers/**` (schema-aligned)
-   - **if blockable by nightmare:** add block check in resolver (`currentNightResults.blockedSeat === actorSeat`)
-   - **if needs context at turn start:** add private message type + Host sends + Client reads (see "Night action role checklist")
-   - **if reveals info after action:** add private message type for result reveal
-   - update contract tests (order snapshot + validity + red lines)
+  - add/extend `SCHEMAS` (`src/models/roles/spec/schemas.ts`) with schema-first constraints
+  - add a step to `NIGHT_STEPS` (`src/models/roles/spec/nightSteps.ts`) with `id: SchemaId`, `audioKey`, `visibility`
+  - implement/update resolver under `src/services/night/resolvers/**` (schema-aligned)
+  - **if blockable by nightmare:** add block check in resolver (`currentNightResults.blockedSeat === actorSeat`)
+  - **if needs context at turn start:** add private message type + Host sends + Client reads (see "Night action role checklist")
+  - **if reveals info after action:** add private message type for result reveal
+  - update contract tests (order snapshot + validity + red lines)
 
 ---
 
@@ -203,9 +214,9 @@ Maintain/update contract tests to guarantee:
 ### Revert obsolete / wrong fixes after finding root cause
 
 - Once the **true root cause** is identified and fixed:
-   1. Audit any prior patches made under a wrong hypothesis.
-   2. **Revert** those obsolete patches entirely (don't leave dead / misleading code).
-   3. Document in the commit message which earlier commits were reverted and why.
+  1.  Audit any prior patches made under a wrong hypothesis.
+  2.  **Revert** those obsolete patches entirely (don't leave dead / misleading code).
+  3.  Document in the commit message which earlier commits were reverted and why.
 - A single clean fix + revert is better than accumulating layers of "just-in-case" code.
 
 ---
@@ -214,8 +225,8 @@ Maintain/update contract tests to guarantee:
 
 - Don’t claim changes without evidence.
 - For non-trivial work, report:
-   - commit hash (or “not committed yet”)
-   - files changed
-   - key symbols changed
-   - logical behavior changes
-   - verification run (typecheck/Jest/e2e) + outcome
+  - commit hash (or “not committed yet”)
+  - files changed
+  - key symbols changed
+  - logical behavior changes
+  - verification run (typecheck/Jest/e2e) + outcome

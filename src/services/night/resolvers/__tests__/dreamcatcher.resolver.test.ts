@@ -1,6 +1,6 @@
 /**
  * Dreamcatcher Resolver Unit Tests
- * 
+ *
  * Tests for dreamcatcherDreamResolver validation and resolution logic.
  */
 

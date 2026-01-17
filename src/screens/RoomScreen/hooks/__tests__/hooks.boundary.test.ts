@@ -16,7 +16,7 @@ const HOOKS_DIR = path.join(__dirname, '..');
 function containsForbiddenImport(content: string, forbidden: string): boolean {
   const importPattern = new RegExp(
     String.raw`import\s+.*\b` + forbidden + String.raw`\b.*from`,
-    'g'
+    'g',
   );
   const requirePattern = new RegExp(String.raw`require\(.*` + forbidden, 'g');
   return importPattern.test(content) || requirePattern.test(content);
@@ -42,11 +42,7 @@ function checkForbiddenImports(file: string): boolean {
 }
 
 describe('RoomScreen hooks boundary constraints', () => {
-  const hookFiles = [
-    'useActionerState.ts',
-    'useRoomInit.ts',
-    'useRoomActions.ts',
-  ];
+  const hookFiles = ['useActionerState.ts', 'useRoomInit.ts', 'useRoomActions.ts'];
 
   describe('No service singleton imports', () => {
     it.each(hookFiles)('%s does not import forbidden service singletons', (file) => {

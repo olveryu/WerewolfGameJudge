@@ -1,6 +1,6 @@
 /**
  * Seer Resolver Unit Tests
- * 
+ *
  * Tests for seerCheckResolver validation and resolution logic.
  */
 

@@ -43,7 +43,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
             role: i === 0 ? 'darkWolfKing' : 'villager',
             hasViewedRole: true,
           },
-        ])
+        ]),
       ),
       actions: new Map(),
       wolfVotes: new Map(),
@@ -113,7 +113,12 @@ jest.mock('../hooks/useActionerState', () => ({
 
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showConfirmDialog: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
+    showConfirmDialog: (
+      title: string,
+      message: string,
+      onConfirm: () => void,
+      onCancel?: () => void,
+    ) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       mockShowAlert(title, message, [
         { text: '取消', onPress: onCancel },

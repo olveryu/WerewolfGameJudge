@@ -1,6 +1,6 @@
 /**
  * Guard UI Test
- * 
+ *
  * Tests guardProtect schema UI: prompt, seat selection, confirm dialog.
  */
 
@@ -25,15 +25,16 @@ jest.mock('react-native-safe-area-context', () => ({
 const mockShowAlert = showAlert as jest.Mock;
 const mockSubmitAction = jest.fn();
 
-const makeMock = () => makeBaseUseGameRoomReturn({
-  schemaId: 'guardProtect',
-  currentActionRole: 'guard',
-  myRole: 'guard',
-  mySeatNumber: 0,
-  overrides: {
-    submitAction: mockSubmitAction,
-  },
-});
+const makeMock = () =>
+  makeBaseUseGameRoomReturn({
+    schemaId: 'guardProtect',
+    currentActionRole: 'guard',
+    myRole: 'guard',
+    mySeatNumber: 0,
+    overrides: {
+      submitAction: mockSubmitAction,
+    },
+  });
 
 let mockUseGameRoomReturn: ReturnType<typeof makeMock>;
 
@@ -52,14 +53,14 @@ describe('Guard UI (guardProtect schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         '行动提示',
         SCHEMAS.guardProtect.ui.prompt,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -69,7 +70,7 @@ describe('Guard UI (guardProtect schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -84,7 +85,7 @@ describe('Guard UI (guardProtect schema)', () => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         SCHEMAS.guardProtect.ui.confirmTitle,
         SCHEMAS.guardProtect.ui.confirmText,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -94,7 +95,7 @@ describe('Guard UI (guardProtect schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -110,7 +111,7 @@ describe('Guard UI (guardProtect schema)', () => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         SCHEMAS.guardProtect.ui.confirmTitle,
         SCHEMAS.guardProtect.ui.confirmText,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });

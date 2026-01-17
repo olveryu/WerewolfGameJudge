@@ -1,6 +1,6 @@
 /**
  * Constraint Validator
- * 
+ *
  * Single source of truth for validating schema constraints in resolvers.
  * Resolvers should call validateConstraints() instead of hard-coding checks.
  */
@@ -21,17 +21,17 @@ export interface ConstraintValidationResult {
 
 /**
  * Validate a target against a list of constraints.
- * 
+ *
  * @param constraints - Array of constraint types from schema
  * @param context - Validation context (actorSeat, target)
  * @returns Validation result with reason if invalid
  */
 export function validateConstraints(
   constraints: readonly TargetConstraint[],
-  context: ConstraintValidationContext
+  context: ConstraintValidationContext,
 ): ConstraintValidationResult {
   const { actorSeat, target } = context;
-  
+
   for (const constraint of constraints) {
     switch (constraint) {
       case 'notSelf':
@@ -44,9 +44,11 @@ export function validateConstraints(
       // case 'notDead': ...
       default:
         // FAIL-FAST: Unknown constraint must throw error
-        throw new Error(`[FAIL-FAST] Unknown constraint: ${constraint}. Add handler in constraintValidator.ts or remove from schema.`);
+        throw new Error(
+          `[FAIL-FAST] Unknown constraint: ${constraint}. Add handler in constraintValidator.ts or remove from schema.`,
+        );
     }
   }
-  
+
   return { valid: true };
 }

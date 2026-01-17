@@ -1,6 +1,6 @@
 /**
  * useGameRoom - Hook for managing game room with new Broadcast architecture
- * 
+ *
  * This hook combines SimplifiedRoomService (for DB) and GameStateService (for state).
  * Host device is the Single Source of Truth for all game state.
  */
@@ -13,93 +13,116 @@ import { BroadcastService, type ConnectionStatus } from '../services/BroadcastSe
 import { AuthService } from '../services/AuthService';
 import { GameTemplate } from '../models/Template';
 import { RoleId, isWolfRole, buildNightPlan } from '../models/roles';
-import { isValidRoleId, getRoleSpec, getSchema, type ActionSchema, type SchemaId, getStepsByRoleStrict } from '../models/roles/spec';
+import {
+  isValidRoleId,
+  getRoleSpec,
+  getSchema,
+  type ActionSchema,
+  type SchemaId,
+  getStepsByRoleStrict,
+} from '../models/roles/spec';
 import { gameRoomLog } from '../utils/logger';
 
 export interface UseGameRoomResult {
   // Room info
   roomRecord: RoomRecord | null;
-  
+
   // Game state (from GameStateService)
   gameState: LocalGameState | null;
-  
+
   // Player info
   isHost: boolean;
   myUid: string | null;
   mySeatNumber: number | null;
   myRole: RoleId | null;
-  
+
   // Computed values
   roomStatus: GameStatus;
   currentActionRole: RoleId | null;
   isAudioPlaying: boolean;
-  
+
   // Schema-driven UI (Phase 3)
-  currentSchemaId: SchemaId | null;        // schemaId for current action role (null if no action)
-  currentSchema: ActionSchema | null;       // Full schema (derived from schemaId, null if no schema)
+  currentSchemaId: SchemaId | null; // schemaId for current action role (null if no action)
+  currentSchema: ActionSchema | null; // Full schema (derived from schemaId, null if no schema)
 
   // Schema-driven UI (Phase 3.5): authoritative current stepId from Host ROLE_TURN
   currentStepId: SchemaId | null;
-  
+
   // Connection status
   connectionStatus: ConnectionStatus;
   stateRevision: number;
-  
+
   // Status
   loading: boolean;
   error: string | null;
-  
+
   // Actions
   createRoom: (template: GameTemplate, roomNumber?: string) => Promise<string | null>;
   joinRoom: (roomNumber: string) => Promise<boolean>;
   leaveRoom: () => Promise<void>;
-  
+
   // Seat actions
   takeSeat: (seatNumber: number) => Promise<boolean>;
   takeSeatWithAck: (seatNumber: number) => Promise<{ success: boolean; reason?: string }>;
   leaveSeat: () => Promise<void>;
   leaveSeatWithAck: () => Promise<{ success: boolean; reason?: string }>;
-  
+
   // Host game control
   updateTemplate: (template: GameTemplate) => Promise<void>;
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
-  
+
   // Player actions
   viewedRole: () => Promise<void>;
   submitAction: (target: number | null, extra?: any) => Promise<void>;
   submitWolfVote: (target: number) => Promise<void>;
   submitRevealAck: (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => Promise<void>;
-  
+
   // Sync actions
   requestSnapshot: () => Promise<boolean>;
-  
+
   // Info
   getLastNightInfo: () => string;
-  
+
   // Seat error (BUG-2 fix)
   lastSeatError: { seat: number; reason: 'seat_taken' } | null;
   clearLastSeatError: () => void;
-  
+
   // Utility
   hasWolfVoted: (seatNumber: number) => boolean;
   getAllWolfSeats: () => number[];
-  
+
   // Private inbox (anti-cheat: Zero-Trust)
   getWitchContext: () => import('../services/types/PrivateBroadcast').WitchContextPayload | null;
   getSeerReveal: () => import('../services/types/PrivateBroadcast').SeerRevealPayload | null;
   getPsychicReveal: () => import('../services/types/PrivateBroadcast').PsychicRevealPayload | null;
-  getGargoyleReveal: () => import('../services/types/PrivateBroadcast').GargoyleRevealPayload | null;
-  getWolfRobotReveal: () => import('../services/types/PrivateBroadcast').WolfRobotRevealPayload | null;
+  getGargoyleReveal: () =>
+    | import('../services/types/PrivateBroadcast').GargoyleRevealPayload
+    | null;
+  getWolfRobotReveal: () =>
+    | import('../services/types/PrivateBroadcast').WolfRobotRevealPayload
+    | null;
   getConfirmStatus: () => import('../services/types/PrivateBroadcast').ConfirmStatusPayload | null;
-  getActionRejected: () => import('../services/types/PrivateBroadcast').ActionRejectedPayload | null;
+  getActionRejected: () =>
+    | import('../services/types/PrivateBroadcast').ActionRejectedPayload
+    | null;
   // Async wait methods (handle network latency)
-  waitForSeerReveal: (timeoutMs?: number) => Promise<import('../services/types/PrivateBroadcast').SeerRevealPayload | null>;
-  waitForPsychicReveal: (timeoutMs?: number) => Promise<import('../services/types/PrivateBroadcast').PsychicRevealPayload | null>;
-  waitForGargoyleReveal: (timeoutMs?: number) => Promise<import('../services/types/PrivateBroadcast').GargoyleRevealPayload | null>;
-  waitForWolfRobotReveal: (timeoutMs?: number) => Promise<import('../services/types/PrivateBroadcast').WolfRobotRevealPayload | null>;
-  waitForActionRejected: (timeoutMs?: number) => Promise<import('../services/types/PrivateBroadcast').ActionRejectedPayload | null>;
+  waitForSeerReveal: (
+    timeoutMs?: number,
+  ) => Promise<import('../services/types/PrivateBroadcast').SeerRevealPayload | null>;
+  waitForPsychicReveal: (
+    timeoutMs?: number,
+  ) => Promise<import('../services/types/PrivateBroadcast').PsychicRevealPayload | null>;
+  waitForGargoyleReveal: (
+    timeoutMs?: number,
+  ) => Promise<import('../services/types/PrivateBroadcast').GargoyleRevealPayload | null>;
+  waitForWolfRobotReveal: (
+    timeoutMs?: number,
+  ) => Promise<import('../services/types/PrivateBroadcast').WolfRobotRevealPayload | null>;
+  waitForActionRejected: (
+    timeoutMs?: number,
+  ) => Promise<import('../services/types/PrivateBroadcast').ActionRejectedPayload | null>;
 }
 
 export const useGameRoom = (): UseGameRoomResult => {
@@ -107,13 +130,15 @@ export const useGameRoom = (): UseGameRoomResult => {
   const [gameState, setGameState] = useState<LocalGameState | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Track these in state so they trigger re-renders
   const [isHost, setIsHost] = useState(false);
   const [myUid, setMyUid] = useState<string | null>(null);
   const [mySeatNumber, setMySeatNumber] = useState<number | null>(null);
-  const [lastSeatError, setLastSeatError] = useState<{ seat: number; reason: 'seat_taken' } | null>(null);
-  
+  const [lastSeatError, setLastSeatError] = useState<{ seat: number; reason: 'seat_taken' } | null>(
+    null,
+  );
+
   // Connection status
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [stateRevision, setStateRevision] = useState(0);
@@ -149,14 +174,15 @@ export const useGameRoom = (): UseGameRoomResult => {
 
   const myRole = useMemo(() => {
     return gameStateService.current.getMyRole();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- gameState triggers re-compute intentionally
   }, [gameState]);
-  
+
   // GameStatus is now an alias for GameStatus (Phase 5)
   const roomStatus = useMemo((): GameStatus => {
     if (!gameState) return GameStatus.unseated;
     return gameState.status;
   }, [gameState]);
-  
+
   // Current action role - only valid when game is ongoing (night phase)
   // Phase 5: actionOrder removed from template, now derived from NightPlan
   const currentActionRole = useMemo((): RoleId | null => {
@@ -176,10 +202,10 @@ export const useGameRoom = (): UseGameRoomResult => {
     if (!isValidRoleId(currentActionRole)) return null;
     const spec = getRoleSpec(currentActionRole);
     if (!spec.night1.hasAction) return null;
-  // M3: schemaId is derived from NIGHT_STEPS single source of truth.
-  // Current assumption (locked by contract tests): each role has at most one NightStep.
-  const [step] = getStepsByRoleStrict(currentActionRole);
-  return step?.id ?? null;  // step.id is the schemaId
+    // M3: schemaId is derived from NIGHT_STEPS single source of truth.
+    // Current assumption (locked by contract tests): each role has at most one NightStep.
+    const [step] = getStepsByRoleStrict(currentActionRole);
+    return step?.id ?? null; // step.id is the schemaId
   }, [currentActionRole]);
 
   // Schema-driven UI (Phase 3): derive full schema from schemaId
@@ -192,43 +218,46 @@ export const useGameRoom = (): UseGameRoomResult => {
   const currentStepId = useMemo((): SchemaId | null => {
     return gameState?.currentStepId ?? null;
   }, [gameState]);
-  
+
   // Check if audio is currently playing
   const isAudioPlaying = useMemo((): boolean => {
     return gameState?.isAudioPlaying ?? false;
   }, [gameState]);
 
   // Create a new room as host
-  const createRoom = useCallback(async (template: GameTemplate, providedRoomNumber?: string): Promise<string | null> => {
-    setLoading(true);
-    setError(null);
+  const createRoom = useCallback(
+    async (template: GameTemplate, providedRoomNumber?: string): Promise<string | null> => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      await authService.current.waitForInit();
-      const hostUid = authService.current.getCurrentUserId();
-      if (!hostUid) {
-        throw new Error('User not authenticated');
+      try {
+        await authService.current.waitForInit();
+        const hostUid = authService.current.getCurrentUserId();
+        if (!hostUid) {
+          throw new Error('User not authenticated');
+        }
+
+        // Use provided room number or generate a new one
+        const roomNumber = providedRoomNumber || (await roomService.current.generateRoomNumber());
+
+        // Create room record in Supabase
+        const record = await roomService.current.createRoom(roomNumber, hostUid);
+        setRoomRecord(record);
+
+        // Initialize game state as host
+        await gameStateService.current.initializeAsHost(roomNumber, hostUid, template);
+
+        return roomNumber;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to create room';
+        setError(message);
+        return null;
+      } finally {
+        setLoading(false);
       }
-
-      // Use provided room number or generate a new one
-      const roomNumber = providedRoomNumber || await roomService.current.generateRoomNumber();
-
-      // Create room record in Supabase
-      const record = await roomService.current.createRoom(roomNumber, hostUid);
-      setRoomRecord(record);
-
-      // Initialize game state as host
-      await gameStateService.current.initializeAsHost(roomNumber, hostUid, template);
-
-      return roomNumber;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create room';
-      setError(message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   // Join an existing room as player
   const joinRoom = useCallback(async (roomNumber: string): Promise<boolean> => {
@@ -266,7 +295,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         roomNumber,
         playerUid,
         displayName ?? undefined,
-        avatarUrl ?? undefined
+        avatarUrl ?? undefined,
       );
 
       return true;
@@ -286,7 +315,7 @@ export const useGameRoom = (): UseGameRoomResult => {
       if (isHost && roomRecord) {
         await roomService.current.deleteRoom(roomRecord.roomNumber);
       }
-      
+
       await gameStateService.current.leaveRoom();
       setRoomRecord(null);
       setGameState(null);
@@ -300,11 +329,11 @@ export const useGameRoom = (): UseGameRoomResult => {
     try {
       const displayName = await authService.current.getCurrentDisplayName();
       const avatarUrl = await authService.current.getCurrentAvatarUrl();
-      
+
       return await gameStateService.current.takeSeat(
         seatNumber,
         displayName ?? undefined,
-        avatarUrl ?? undefined
+        avatarUrl ?? undefined,
       );
     } catch (err) {
       gameRoomLog.error(' Error taking seat:', err);
@@ -322,21 +351,24 @@ export const useGameRoom = (): UseGameRoomResult => {
   }, []);
 
   // Take seat with ack (unified API)
-  const takeSeatWithAck = useCallback(async (seatNumber: number): Promise<{ success: boolean; reason?: string }> => {
-    try {
-      const displayName = await authService.current.getCurrentDisplayName();
-      const avatarUrl = await authService.current.getCurrentAvatarUrl();
-      
-      return await gameStateService.current.takeSeatWithAck(
-        seatNumber,
-        displayName ?? undefined,
-        avatarUrl ?? undefined
-      );
-    } catch (err) {
-      gameRoomLog.error(' Error taking seat with ack:', err);
-      return { success: false, reason: String(err) };
-    }
-  }, []);
+  const takeSeatWithAck = useCallback(
+    async (seatNumber: number): Promise<{ success: boolean; reason?: string }> => {
+      try {
+        const displayName = await authService.current.getCurrentDisplayName();
+        const avatarUrl = await authService.current.getCurrentAvatarUrl();
+
+        return await gameStateService.current.takeSeatWithAck(
+          seatNumber,
+          displayName ?? undefined,
+          avatarUrl ?? undefined,
+        );
+      } catch (err) {
+        gameRoomLog.error(' Error taking seat with ack:', err);
+        return { success: false, reason: String(err) };
+      }
+    },
+    [],
+  );
 
   // Leave seat with ack (unified API)
   const leaveSeatWithAck = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
@@ -367,10 +399,13 @@ export const useGameRoom = (): UseGameRoomResult => {
   }, []);
 
   // Update template (host only)
-  const updateTemplate = useCallback(async (template: GameTemplate): Promise<void> => {
-    if (!isHost) return;
-    await gameStateService.current.updateTemplate(template);
-  }, [isHost]);
+  const updateTemplate = useCallback(
+    async (template: GameTemplate): Promise<void> => {
+      if (!isHost) return;
+      await gameStateService.current.updateTemplate(template);
+    },
+    [isHost],
+  );
 
   // Assign roles (host only)
   const assignRoles = useCallback(async (): Promise<void> => {
@@ -406,21 +441,27 @@ export const useGameRoom = (): UseGameRoomResult => {
   }, []);
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
-  const submitRevealAck = useCallback(async (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot'): Promise<void> => {
-    await gameStateService.current.submitRevealAck(role);
-  }, []);
+  const submitRevealAck = useCallback(
+    async (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot'): Promise<void> => {
+      await gameStateService.current.submitRevealAck(role);
+    },
+    [],
+  );
 
   // Get last night info
   const getLastNightInfo = useCallback((): string => {
     return gameStateService.current.getLastNightInfo();
   }, []);
-  
+
   // Check if a wolf has voted
-  const hasWolfVotedFn = useCallback((seatNumber: number): boolean => {
-    if (!gameState) return false;
-    return gameState.wolfVotes.has(seatNumber);
-  }, [gameState]);
-  
+  const hasWolfVotedFn = useCallback(
+    (seatNumber: number): boolean => {
+      if (!gameState) return false;
+      return gameState.wolfVotes.has(seatNumber);
+    },
+    [gameState],
+  );
+
   // Get all wolf seats
   const getAllWolfSeatsFn = useCallback((): number[] => {
     if (!gameState) return [];
@@ -449,9 +490,9 @@ export const useGameRoom = (): UseGameRoomResult => {
     roomStatus,
     currentActionRole,
     isAudioPlaying,
-  currentSchemaId,
-  currentSchema,
-  currentStepId,
+    currentSchemaId,
+    currentSchema,
+    currentStepId,
     loading,
     error,
     connectionStatus,
@@ -471,7 +512,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     viewedRole,
     submitAction,
     submitWolfVote,
-  submitRevealAck,
+    submitRevealAck,
     getLastNightInfo,
     lastSeatError,
     clearLastSeatError,
@@ -484,11 +525,16 @@ export const useGameRoom = (): UseGameRoomResult => {
     getWolfRobotReveal: () => gameStateService.current.getWolfRobotReveal(),
     getConfirmStatus: () => gameStateService.current.getConfirmStatus(),
     getActionRejected: () => gameStateService.current.getActionRejected(),
-    waitForSeerReveal: (timeoutMs?: number) => gameStateService.current.waitForSeerReveal(timeoutMs),
-    waitForPsychicReveal: (timeoutMs?: number) => gameStateService.current.waitForPsychicReveal(timeoutMs),
-    waitForGargoyleReveal: (timeoutMs?: number) => gameStateService.current.waitForGargoyleReveal(timeoutMs),
-    waitForWolfRobotReveal: (timeoutMs?: number) => gameStateService.current.waitForWolfRobotReveal(timeoutMs),
-    waitForActionRejected: (timeoutMs?: number) => gameStateService.current.waitForActionRejected(timeoutMs),
+    waitForSeerReveal: (timeoutMs?: number) =>
+      gameStateService.current.waitForSeerReveal(timeoutMs),
+    waitForPsychicReveal: (timeoutMs?: number) =>
+      gameStateService.current.waitForPsychicReveal(timeoutMs),
+    waitForGargoyleReveal: (timeoutMs?: number) =>
+      gameStateService.current.waitForGargoyleReveal(timeoutMs),
+    waitForWolfRobotReveal: (timeoutMs?: number) =>
+      gameStateService.current.waitForWolfRobotReveal(timeoutMs),
+    waitForActionRejected: (timeoutMs?: number) =>
+      gameStateService.current.waitForActionRejected(timeoutMs),
   };
 };
 

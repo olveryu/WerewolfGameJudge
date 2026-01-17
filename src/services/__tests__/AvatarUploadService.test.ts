@@ -29,7 +29,7 @@ describe('AvatarUploadService - Singleton', () => {
   it('should return same instance', () => {
     const instance1 = AvatarUploadService.getInstance();
     const instance2 = AvatarUploadService.getInstance();
-    
+
     expect(instance1).toBe(instance2);
   });
 
@@ -49,12 +49,13 @@ describe('AvatarUploadService - Unconfigured state', () => {
   });
 
   it('uploadAvatar should throw when not configured', async () => {
-    await expect(avatarService.uploadAvatar('file:///path/to/image.jpg'))
-      .rejects.toThrow('Supabase is not configured');
+    await expect(avatarService.uploadAvatar('file:///path/to/image.jpg')).rejects.toThrow(
+      'Supabase is not configured',
+    );
   });
 });
 
-// Note: Testing "configured but not authenticated" state would require 
+// Note: Testing "configured but not authenticated" state would require
 // complex module mocking before import. The service checks configuration
 // before checking authentication, so with the current mock setup that
 // tests unconfigured state, we get full coverage of the error paths.
@@ -87,9 +88,9 @@ describe('AvatarUploadService - Service dependencies', () => {
 
   it('should initialize AuthService dependency', () => {
     const { AuthService } = require('../AuthService');
-    
+
     AvatarUploadService.getInstance();
-    
+
     expect(AuthService.getInstance).toHaveBeenCalled();
   });
 });
@@ -99,7 +100,7 @@ describe('AvatarUploadService - Upload flow (mocked)', () => {
   beforeEach(() => {
     (AvatarUploadService as any).instance = null;
     jest.clearAllMocks();
-    
+
     // This would be more complex to set up properly
     // as it requires mocking the storage bucket chain
   });
@@ -112,7 +113,7 @@ describe('AvatarUploadService - Upload flow (mocked)', () => {
     // 3. Public URL is retrieved
     // 4. User profile is updated with avatar URL
     // 5. The public URL is returned
-    
+
     expect(true).toBe(true);
   });
 });

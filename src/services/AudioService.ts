@@ -98,7 +98,7 @@ class AudioService {
    * Safe wrapper for audio playback that guarantees resolution.
    * This is the outermost fallback layer - it catches all possible errors
    * from player creation, loading, playback, and listener callbacks.
-   * 
+   *
    * Guarantees:
    * - Always returns a Promise that resolves (never rejects)
    * - Resolves on: normal completion, timeout, or any error
@@ -189,7 +189,7 @@ class AudioService {
   async playRoleBeginningAudio(role: RoleId): Promise<void> {
     const audioFile = AUDIO_FILES[role];
     if (!audioFile) {
-  // Normal case: some roles (e.g. villager) intentionally have no narration.
+      // Normal case: some roles (e.g. villager) intentionally have no narration.
       return;
     }
     return this.safePlayAudioFile(audioFile);
@@ -199,7 +199,7 @@ class AudioService {
   async playRoleEndingAudio(role: RoleId): Promise<void> {
     const audioFile = AUDIO_END_FILES[role];
     if (!audioFile) {
-  // Normal case: some roles (e.g. villager) intentionally have no narration.
+      // Normal case: some roles (e.g. villager) intentionally have no narration.
       return;
     }
     return this.safePlayAudioFile(audioFile);

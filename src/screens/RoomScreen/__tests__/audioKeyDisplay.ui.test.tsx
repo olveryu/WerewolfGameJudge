@@ -119,15 +119,17 @@ describe('RoomScreen (Commit 6): audioKey display', () => {
   it('shows current audioKey while audio is playing (UI-only)', async () => {
     render(
       <RoomScreen
-        route={{
-          key: 'Room',
-          name: 'Room',
-          params: { roomNumber: '0000', isHost: false, template: null },
-        } as any}
+        route={
+          {
+            key: 'Room',
+            name: 'Room',
+            params: { roomNumber: '0000', isHost: false, template: null },
+          } as any
+        }
         navigation={{} as any}
-      />
+      />,
     );
 
-  expect(await screen.findByText('正在播放：seer')).toBeTruthy();
+    expect(await screen.findByText('正在播放：seer')).toBeTruthy();
   });
 });

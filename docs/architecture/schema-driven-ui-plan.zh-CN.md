@@ -8,15 +8,15 @@
 
 ## ✅ 实施进度（2025-01）
 
-| Commit | 状态 | 描述 |
-|--------|------|------|
-| Commit 1 | ✅ 完成 | UI 文案主源从 RoleUx 收敛到 Schema/TurnVM |
-| Commit 2 | ✅ 完成 | 底部按钮 schema-driven（覆盖 B.4/B.5 + canSkip） |
-| Commit 3 | ✅ 完成 | Witch compound steps-driven（移除 witchPhase 依赖） |
-| Commit 4 | ✅ 完成 | NIGHT_STEPS.visibility 作为 showWolves 单一来源 |
+| Commit   | 状态    | 描述                                                          |
+| -------- | ------- | ------------------------------------------------------------- |
+| Commit 1 | ✅ 完成 | UI 文案主源从 RoleUx 收敛到 Schema/TurnVM                     |
+| Commit 2 | ✅ 完成 | 底部按钮 schema-driven（覆盖 B.4/B.5 + canSkip）              |
+| Commit 3 | ✅ 完成 | Witch compound steps-driven（移除 witchPhase 依赖）           |
+| Commit 4 | ✅ 完成 | NIGHT_STEPS.visibility 作为 showWolves 单一来源               |
 | Commit 5 | ⏭️ 可选 | wolfVote immuneToWolfKill (ROLE_SPECS.flags) UI 消费（纯 UX） |
-| Commit 6 | ⏭️ 可选 | audioKey UI 显示（纯展示） |
-| Commit 7 | ✅ 完成 | 清理 legacy fields（RoleDisplayInfo.actionMessage 等） |
+| Commit 6 | ⏭️ 可选 | audioKey UI 显示（纯展示）                                    |
+| Commit 7 | ✅ 完成 | 清理 legacy fields（RoleDisplayInfo.actionMessage 等）        |
 
 ---
 
@@ -45,9 +45,9 @@
 
 本文的方案设计核心是：
 
-1) **UI 只做 view-model 渲染与交互引导**（可做禁用/提示，但不能当裁判）；
-2) **Host gate/resolve 是唯一判定**（非法输入 → ACTION_REJECTED 私信回执）；
-3) **同一处字段只允许一个权威来源**（避免 role/step/schema 多处写同一规则）。
+1. **UI 只做 view-model 渲染与交互引导**（可做禁用/提示，但不能当裁判）；
+2. **Host gate/resolve 是唯一判定**（非法输入 → ACTION_REJECTED 私信回执）；
+3. **同一处字段只允许一个权威来源**（避免 role/step/schema 多处写同一规则）。
 
 ---
 
@@ -56,6 +56,7 @@
 > 你之前要的“schema/specs/nightSteps 里所有字段是否 reflect 到 UI”的逐字段清单，这里补全并把它**直接转成迁移 checklist**。
 >
 > 约定：
+>
 > - ✅ = RoomScreen 体系已经直接消费；
 > - ⚠️ = 只间接影响（多为 Host 侧/测试/仅 fallback）或 UI 仍有 role/legacy 分支；
 > - ❌ = RoomScreen 未消费（可能应当补齐，也可能属于红线/不应该消费）。
@@ -64,48 +65,48 @@
 
 #### A.1 BaseActionSchema（所有 schema 共有）
 
-| 字段 | As-is（RoomScreen） | To-be（迁移动作） | 红线/备注 |
-|---|---|---|---|
-| `id` | ⚠️ 不渲染；多数分支依赖 `kind` + role | ✅ 作为 turn VM 的 `schemaId` 暴露给 UI（调试/埋点/测试稳定键） | `SchemaId` 必须来自 `SCHEMAS`（contract 已保障） |
-| `displayName` | ⚠️ UI 文案主要来自 role.ux；schema.displayName 不稳定 | ✅ 作为 fallback 或用于 turn VM 的默认 prompt 生成 | 不应包含敏感信息；只是“动作名”（查验/守护/学习） |
+| 字段          | As-is（RoomScreen）                                   | To-be（迁移动作）                                               | 红线/备注                                        |
+| ------------- | ----------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------ |
+| `id`          | ⚠️ 不渲染；多数分支依赖 `kind` + role                 | ✅ 作为 turn VM 的 `schemaId` 暴露给 UI（调试/埋点/测试稳定键） | `SchemaId` 必须来自 `SCHEMAS`（contract 已保障） |
+| `displayName` | ⚠️ UI 文案主要来自 role.ux；schema.displayName 不稳定 | ✅ 作为 fallback 或用于 turn VM 的默认 prompt 生成              | 不应包含敏感信息；只是“动作名”（查验/守护/学习） |
 
 #### A.2 ChooseSeatSchema（`kind:'chooseSeat'`）
 
-| 字段 | As-is（RoomScreen） | To-be（迁移动作） | 红线/备注 |
-|---|---|---|---|
-| `kind` | ✅ intent 分流主入口 | ✅ 保持 | 这是 schema-driven 的核心 |
-| `constraints` | ⚠️ UI 不做裁判；Host reject | ⚠️ UI 可选做“禁点/提示”（UX），但必须保留 Host reject | Host 才是裁判；禁止把约束当成“不会被点”的安全假设 |
-| `canSkip` | ✅ 已双保险（按钮展示 + intent 生成） | ✅ 保持，并把其他 kind 的 skip 也收敛到 schema/turnVM | chooseSeat 的 canSkip 是典型 schema-driven 字段 |
+| 字段          | As-is（RoomScreen）                   | To-be（迁移动作）                                     | 红线/备注                                         |
+| ------------- | ------------------------------------- | ----------------------------------------------------- | ------------------------------------------------- |
+| `kind`        | ✅ intent 分流主入口                  | ✅ 保持                                               | 这是 schema-driven 的核心                         |
+| `constraints` | ⚠️ UI 不做裁判；Host reject           | ⚠️ UI 可选做“禁点/提示”（UX），但必须保留 Host reject | Host 才是裁判；禁止把约束当成“不会被点”的安全假设 |
+| `canSkip`     | ✅ 已双保险（按钮展示 + intent 生成） | ✅ 保持，并把其他 kind 的 skip 也收敛到 schema/turnVM | chooseSeat 的 canSkip 是典型 schema-driven 字段   |
 
 #### A.3 WolfVoteSchema（`kind:'wolfVote'`）
 
-| 字段 | As-is（RoomScreen） | To-be（迁移动作） | 红线/备注 |
-|---|---|------|
-| `kind` | ✅ | ✅ |  |
-| `constraints` | ⚠️ 同 chooseSeat | ⚠️ 同 chooseSeat（仅 UX hint） |  |
+| 字段                                   | As-is（RoomScreen）             | To-be（迁移动作）                  | 红线/备注                                                                         |
+| -------------------------------------- | ------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------- |
+| `kind`                                 | ✅                              | ✅                                 |                                                                                   |
+| `constraints`                          | ⚠️ 同 chooseSeat                | ⚠️ 同 chooseSeat（仅 UX hint）     |                                                                                   |
 | `immuneToWolfKill (ROLE_SPECS.flags)?` | ✅（UX-only：seat 禁点 + 提示） | ✅ 保持（仅 UX hint，Host 仍裁判） | **禁止**改 `SCHEMAS.wolfKill`；该字段只用于 meeting vote gate（Host 拒绝 + 回执） |
 
 #### A.4 CompoundSchema / CompoundStep（witch）
 
-| 字段 | As-is（RoomScreen） | To-be（迁移动作） | 红线/备注 |
-|---|---|---|---|
-| `kind:'compound'` | ✅ 用于 auto-trigger 分流 | ✅ 保持 |  |
+| 字段                                                         | As-is（RoomScreen）                                | To-be（迁移动作）               | 红线/备注                                              |
+| ------------------------------------------------------------ | -------------------------------------------------- | ------------------------------- | ------------------------------------------------------ |
+| `kind:'compound'`                                            | ✅ 用于 auto-trigger 分流                          | ✅ 保持                         |                                                        |
 | `steps[*]`（含 stepId/displayName/kind/constraints/canSkip） | ⚠️ 已部分消费（payload 推导不依赖本地 witchPhase） | ✅ 迁移为完整 steps 驱动（PR3） | 私信 `WITCH_CONTEXT` 仍必须是 Host 发送，UI 只消费展示 |
 
 #### A.5 SwapSchema（magician）
 
-| 字段 | As-is（RoomScreen） | To-be（迁移动作） | 红线/备注 |
-|---|---|---|---|
-| `kind:'swap'` | ✅ | ✅ |  |
-| `constraints` | ⚠️ UI 不裁判 | ⚠️ 可做 UX hint |  |
-| `canSkip` | ⚠️ 底部 skip 对非 chooseSeat 仍混有 legacy | ✅ 把 swap 的 skip 完整纳入 schema/turnVM 的 bottomAction | 需要你确认魔术师是否允许 skip（规则层决定） |
+| 字段          | As-is（RoomScreen）                        | To-be（迁移动作）                                         | 红线/备注                                   |
+| ------------- | ------------------------------------------ | --------------------------------------------------------- | ------------------------------------------- |
+| `kind:'swap'` | ✅                                         | ✅                                                        |                                             |
+| `constraints` | ⚠️ UI 不裁判                               | ⚠️ 可做 UX hint                                           |                                             |
+| `canSkip`     | ⚠️ 底部 skip 对非 chooseSeat 仍混有 legacy | ✅ 把 swap 的 skip 完整纳入 schema/turnVM 的 bottomAction | 需要你确认魔术师是否允许 skip（规则层决定） |
 
 #### A.6 ConfirmSchema / SkipSchema
 
-| 字段 | As-is（RoomScreen） | To-be（迁移动作） | 红线/备注 |
-|---|---|---|---|
-| `confirm.kind` | ✅（auto-trigger） | ✅ |  |
-| `skip.kind` | ❌ 基本不用 | 视情况；如未来有纯 skip step，再由 schema 驱动 |  |
+| 字段           | As-is（RoomScreen） | To-be（迁移动作）                              | 红线/备注 |
+| -------------- | ------------------- | ---------------------------------------------- | --------- |
+| `confirm.kind` | ✅（auto-trigger）  | ✅                                             |           |
+| `skip.kind`    | ❌ 基本不用         | 视情况；如未来有纯 skip step，再由 schema 驱动 |           |
 
 ---
 
@@ -115,34 +116,34 @@
 
 #### B.1 基础身份/展示字段
 
-| 字段 | As-is（RoomScreen） | To-be（迁移动作） | 红线/备注 |
-|---|---|---|---|
-| `id` | ✅（myRole/currentActionRole） | ✅ 保持 |  |
-| `displayName` | ✅（显示/统计/文案 fallback） | ✅ 保持 |  |
-| `englishName?` | ❌ | 可选：如要双语显示再接入 |  |
-| `description` | ❌（RoomScreen 不展示） | 不建议在 RoomScreen 展示；可在角色介绍页使用 |  |
-| `faction` / `team` | ⚠️/❌（RoomScreen 不直接用） | ❌ 不建议直接驱动 RoomScreen 分支 | `team`/结果推断容易触碰 anti-cheat 边界 |
+| 字段               | As-is（RoomScreen）            | To-be（迁移动作）                            | 红线/备注                               |
+| ------------------ | ------------------------------ | -------------------------------------------- | --------------------------------------- |
+| `id`               | ✅（myRole/currentActionRole） | ✅ 保持                                      |                                         |
+| `displayName`      | ✅（显示/统计/文案 fallback）  | ✅ 保持                                      |                                         |
+| `englishName?`     | ❌                             | 可选：如要双语显示再接入                     |                                         |
+| `description`      | ❌（RoomScreen 不展示）        | 不建议在 RoomScreen 展示；可在角色介绍页使用 |                                         |
+| `faction` / `team` | ⚠️/❌（RoomScreen 不直接用）   | ❌ 不建议直接驱动 RoomScreen 分支            | `team`/结果推断容易触碰 anti-cheat 边界 |
 
 #### B.2 行动/会议/flags/ux
 
-| 字段 | As-is（RoomScreen） | To-be（迁移动作） | 红线/备注 |
-|---|---|---|---|
-| `night1.hasAction` | ⚠️（由 NIGHT_STEPS contract 保证一致性） | ✅ 保持作表一致性；UI 不必直接读 | UI 以当前回合 turnVM/schema 为准 |
-| `wolfMeeting.*` | ⚠️ UI 不直接读；靠 useActionerState/Host 状态 | ✅ 把“是否显示狼队友”收敛为 turnVM 的 `showWolves`（PR4） | 同步遵守 anti-cheat：只能在 wolfMeetingPhase 相关回合展示 |
-| `flags.blocksSkill` | ⚠️ 只作为 UX hint；Host 才裁判 | ✅ turnVM 可提供 `bottomAction` 文案（如“技能被封锁，只能跳过”） | 不能让 UI 代替 Host reject |
-| `flags.immuneToNightDamage/reflectsDamage` | ❌（且不应在公屏透出） | ❌ 保持不进 UI（只在结算层） | anti-cheat + 规则边界 |
-| `flags.canSaveSelf?`（deprecated） | ❌ | ✅ 删除方向不在 UI；规则迁移到 schema.constraints | 独立迁移事项 |
-| `ux.actionMessage/actionConfirmMessage` | ⚠️（hardcore A 后不再作为 fallback） | ✅ 仅保留作历史字段；RoomScreen 文案必须来自 schema/turnVM，缺失则 fail-fast | 单一真相：避免 role/step/schema 多处写同一文案 |
+| 字段                                       | As-is（RoomScreen）                           | To-be（迁移动作）                                                            | 红线/备注                                                 |
+| ------------------------------------------ | --------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `night1.hasAction`                         | ⚠️（由 NIGHT_STEPS contract 保证一致性）      | ✅ 保持作表一致性；UI 不必直接读                                             | UI 以当前回合 turnVM/schema 为准                          |
+| `wolfMeeting.*`                            | ⚠️ UI 不直接读；靠 useActionerState/Host 状态 | ✅ 把“是否显示狼队友”收敛为 turnVM 的 `showWolves`（PR4）                    | 同步遵守 anti-cheat：只能在 wolfMeetingPhase 相关回合展示 |
+| `flags.blocksSkill`                        | ⚠️ 只作为 UX hint；Host 才裁判                | ✅ turnVM 可提供 `bottomAction` 文案（如“技能被封锁，只能跳过”）             | 不能让 UI 代替 Host reject                                |
+| `flags.immuneToNightDamage/reflectsDamage` | ❌（且不应在公屏透出）                        | ❌ 保持不进 UI（只在结算层）                                                 | anti-cheat + 规则边界                                     |
+| `flags.canSaveSelf?`（deprecated）         | ❌                                            | ✅ 删除方向不在 UI；规则迁移到 schema.constraints                            | 独立迁移事项                                              |
+| `ux.actionMessage/actionConfirmMessage`    | ⚠️（hardcore A 后不再作为 fallback）          | ✅ 仅保留作历史字段；RoomScreen 文案必须来自 schema/turnVM，缺失则 fail-fast | 单一真相：避免 role/step/schema 多处写同一文案            |
 
 ---
 
 ### C) `NIGHT_STEPS` / `nightSteps.types.ts` 字段
 
-| 字段 | As-is（RoomScreen） | To-be（迁移动作） | 红线/备注 |
-|---|---|---|---|
-| `id`（SchemaId） | ✅（经由 Host 派发 currentSchema/turn） | ✅ 保持，并用于 turnVM.schemaId | 单一真相 |
-| `roleId` | ✅（currentActionRole） | ✅ 保持 |  |
-| `audioKey/audioEndKey` | ✅（UI-only：显示当前 step 的 audioKey） | ✅ 保持（仅展示，不参与逻辑） | 不应影响逻辑，只显示 |
+| 字段                                   | As-is（RoomScreen）                                       | To-be（迁移动作）                               | 红线/备注                                          |
+| -------------------------------------- | --------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------- |
+| `id`（SchemaId）                       | ✅（经由 Host 派发 currentSchema/turn）                   | ✅ 保持，并用于 turnVM.schemaId                 | 单一真相                                           |
+| `roleId`                               | ✅（currentActionRole）                                   | ✅ 保持                                         |                                                    |
+| `audioKey/audioEndKey`                 | ✅（UI-only：显示当前 step 的 audioKey）                  | ✅ 保持（仅展示，不参与逻辑）                   | 不应影响逻辑，只显示                               |
 | `visibility.actsSolo/wolfMeetingPhase` | ✅（UI 本地从 `NIGHT_STEPS` 消费，用于推导 `showWolves`） | ✅ 保持（PR4 已落地：step visibility 单一真相） | 不能把敏感信息塞进 public；actsSolo 只是“显示规则” |
 
 > 更新（2026-01-16）：
@@ -160,12 +161,17 @@
 
 ## 0.6 本方案明确“不会迁移”的字段（不应该 reflect 到 RoomScreen）
 
-1) 所有 reveal 结果（seer/psychic/gargoyle/wolfRobot）
-  - 必须走 `PrivateBroadcast`（toUid 私信），不能由 schema/steps/public state 推导。
-2) 结算规则（免死/反伤/毒无效等）
-  - 属于 resolver/DeathCalculator，UI 只能展示 Host 给出的结果。
-3) 任何跨夜字段
-  - Night-1-only 红线。
+1. 所有 reveal 结果（seer/psychic/gargoyle/wolfRobot）
+
+- 必须走 `PrivateBroadcast`（toUid 私信），不能由 schema/steps/public state 推导。
+
+2. 结算规则（免死/反伤/毒无效等）
+
+- 属于 resolver/DeathCalculator，UI 只能展示 Host 给出的结果。
+
+3. 任何跨夜字段
+
+- Night-1-only 红线。
 
 ---
 
@@ -190,6 +196,7 @@
 ### 2.1 输入与输出
 
 **输入（UI 可依赖）**
+
 - `currentSchema: ActionSchema | null`（来自 `useGameRoom`）
 - `currentActionRole: RoleName | null`（显示/统计用；不是分支 key）
 - `imActioner / isAudioPlaying / roomStatus`（可操作性 gating）
@@ -227,6 +234,7 @@ type SchemaUi = {
 - UI 可用 `ui.*` 做 UX 禁点/提示，但 Host 仍必须 reject 非法输入并发送 `ACTION_REJECTED` 私信回执。
 
 **输出（UI 只能做的事）**
+
 - 渲染 prompt / button / seat selectable/disabled
 - 触发交互：`submitAction(target|null)` / `submitWolfVote(target|-1)` / `submitRevealAck(role)`
 - 消费 Host 回执：`ACTION_REJECTED`（弹窗提示）
@@ -372,18 +380,21 @@ RoomScreen 的渲染逻辑保持简单：
 
 为了避免“删了 fallback 但 schema 没补齐”导致运行时空文案/空按钮/无法操作，最终清理 commit 之前，必须满足：
 
-1) **Contract tests 已覆盖并且全绿**（防 drift）
-  - `NIGHT_STEPS[*].id` 必须全部是有效 `SchemaId`（已存在）。
-  - schema-driven UI 所需要的 `schema.ui.*` 必填字段必须有 contract tests（例如：
-    - `NIGHT_STEPS` 引用的 schema 必须提供非空 `ui.actionMessage`（或等价字段）
-    - chooseSeat/swap/confirm 等 kind 的 confirm 元数据必须齐全）
+1. **Contract tests 已覆盖并且全绿**（防 drift）
 
-2) **RoomScreen smoke tests 全绿**（防交互回归）
-  - 至少覆盖：seat tap → intent → 触发 `submitAction/submitWolfVote/submitRevealAck`。
-  - 断言使用稳定标识（schemaId/testID/intent type），不依赖 UI copy。
+- `NIGHT_STEPS[*].id` 必须全部是有效 `SchemaId`（已存在）。
+- schema-driven UI 所需要的 `schema.ui.*` 必填字段必须有 contract tests（例如：
+  - `NIGHT_STEPS` 引用的 schema 必须提供非空 `ui.actionMessage`（或等价字段）
+  - chooseSeat/swap/confirm 等 kind 的 confirm 元数据必须齐全）
 
-3) **全仓 Jest 全绿**
-  - 最终清理 commit 必须跑完整测试回归并通过（尤其是 services/night/resolvers + RoomScreen）。
+2. **RoomScreen smoke tests 全绿**（防交互回归）
+
+- 至少覆盖：seat tap → intent → 触发 `submitAction/submitWolfVote/submitRevealAck`。
+- 断言使用稳定标识（schemaId/testID/intent type），不依赖 UI copy。
+
+3. **全仓 Jest 全绿**
+
+- 最终清理 commit 必须跑完整测试回归并通过（尤其是 services/night/resolvers + RoomScreen）。
 
 ### 9.4 最终清理 commit 会删哪些代码形态
 
@@ -433,31 +444,37 @@ RoomScreen 目标：
 ### Commit 1：把 UI 文案主源从 RoleUx 收敛到 Schema/TurnVM（覆盖 B.1/B.2 + A.displayName）
 
 **目标**
+
 - Prompt / confirm 文案不再依赖 `getRoleDisplayInfo(...).ux` 作为主路径。
 
 **做法**
+
 - 为每个 schema 增加可选字段（不改变 SchemaId）：
   - `prompt?: string`
   - `confirmText?: string`
   - （wolfVote 另有 `emptyVoteText?: string`）
 - RoomScreen 使用顺序：
-  1) schema.prompt/confirmText
-  2) role.ux.actionMessage/actionConfirmMessage
-  3) fallback 默认
+  1. schema.prompt/confirmText
+  2. role.ux.actionMessage/actionConfirmMessage
+  3. fallback 默认
 
 **红线检查**
+
 - 文案不包含敏感结果。
 
 **测试**
+
 - contract：所有 `NIGHT_STEPS` 引用的 schema 必须提供 prompt（或明确允许 fallback）
 - UI smoke：现有 RoomScreen smoke 不应改变行为，只是文案更统一（可不 assert 文案）。
 
 ### Commit 2：把“底部按钮策略 / skip/空刀/封锁提示”完全 schema-driven（覆盖 B.4/B.5 + A.canSkip + wolfVote 空刀）
 
 **目标**
+
 - RoomScreen 底部按钮显示/文案不再 role-specific。
 
 **做法**
+
 - 在 schema 层加入 `bottomAction` 描述（或在 turnVM 生成）
 - 规则：
   - chooseSeat：由 `canSkip` 决定是否出现 skip
@@ -466,30 +483,36 @@ RoomScreen 目标：
   - compound：由步骤驱动（见 PR3）
 
 **红线检查**
+
 - wolfVote 的空刀仍是投票选项，不是“skip action”。
 
 **测试**
+
 - 扩展 `skipAction.ui.test.tsx`：覆盖 swap / wolfVote bottom action 文案与行为
 
 ### Commit 3：女巫 UI 改成真正消费 `CompoundSchema.steps`（覆盖 C.2 + A.compound.steps）
 
 **目标**
+
 - RoomScreen 对女巫不再有专用两阶段状态机（或至少由 schema.steps 驱动）。
 
 **做法**
+
 - 把 witchPhase 从“UI 自己维护”变为“由 compound step index 驱动”：
   - step0: save（chooseSeat + canSkip）
   - step1: poison（chooseSeat + canSkip）
 - Host 仍然通过 PrivateBroadcast 提供 `WITCH_CONTEXT`（killedIndex/canSave），UI 只消费它来渲染 step0 的可选提示。
 
 **红线检查**
+
 - 私信内容不进入 public。
 - UI 不在本地判断 canSave（Host 算）。
 
 **测试**
+
 - 现有 `witchSave.ui.test.tsx` / `witchPoison.ui.test.tsx` 重写为“按 schema.steps 走完”。
 
-### Commit 4：把 `NIGHT_STEPS.visibility` 收敛为 UI 显示狼队友的唯一来源（覆盖 C.3 + B.wolfMeeting.* 的 UI 分支消隐）
+### Commit 4：把 `NIGHT_STEPS.visibility` 收敛为 UI 显示狼队友的唯一来源（覆盖 C.3 + B.wolfMeeting.\* 的 UI 分支消隐）
 
 > 注：这个 commit 不改变“谁能看见谁”的规则，只是把 UI 的分散推导变成单点 view-model（仍然 Host 权威）。
 
@@ -505,16 +528,18 @@ RoomScreen 目标：
 
 > 你提的这个点很关键：当 Commit 1~6 把 UI 真正收敛到 schema-driven 之后，必须再做一次“删旧代码”提交，避免：
 >
->- 以后维护者误以为两套逻辑都要改（双写 drift）
->- 测试继续为旧分支兜底，导致新逻辑回退也不报错
+> - 以后维护者误以为两套逻辑都要改（双写 drift）
+> - 测试继续为旧分支兜底，导致新逻辑回退也不报错
 >
-**清理目标（按本方案范围）**
+> **清理目标（按本方案范围）**
 
-1) RoomScreen / hooks 里所有“已被 schema.ui.* 替代”的 role/legacy 分支
-  - 例如：以 `myRole/currentActionRole` 决定 prompt/confirm 文案、reveal intent 的 switch 分支
-2) 不再被使用的 fallback/compat helper（如果只剩 0~1 处使用，也应内联或删除）
-3) 过期的注释/文档段落（与新 schema-driven contract 冲突的说明）
-4) 测试里对 legacy 行为的兜底断言（改为断言 schema-driven 行为，或删除不再需要的 staging compat tests）
+1. RoomScreen / hooks 里所有“已被 schema.ui.\* 替代”的 role/legacy 分支
+
+- 例如：以 `myRole/currentActionRole` 决定 prompt/confirm 文案、reveal intent 的 switch 分支
+
+2. 不再被使用的 fallback/compat helper（如果只剩 0~1 处使用，也应内联或删除）
+3. 过期的注释/文档段落（与新 schema-driven contract 冲突的说明）
+4. 测试里对 legacy 行为的兜底断言（改为断言 schema-driven 行为，或删除不再需要的 staging compat tests）
 
 **红线**
 
@@ -525,7 +550,7 @@ RoomScreen 目标：
 **验收**
 
 - 全套测试门禁通过（同 5.2）
-- grep 验证：RoomScreen 中不再出现已淘汰的 role-specific prompt/confirm/reveal 分支（以 schema.ui.* 为准）
+- grep 验证：RoomScreen 中不再出现已淘汰的 role-specific prompt/confirm/reveal 分支（以 schema.ui.\* 为准）
 
 ---
 
@@ -573,16 +598,20 @@ npm test --silent -- src/services/night/resolvers --runInBand
 ```
 
 **目标**
+
 - `actsSolo/wolfMeetingPhase` 不再散落在 `useActionerState` / role 判断。
 
 **做法**
+
 - turnVM 提供：`showWolves: boolean`（由 Host 基于 step.visibility + ROLE_SPECS.wolfMeeting 推导）
 - UI 只用这个布尔值做显示；不推导。
 
 **红线检查**
+
 - 这属于“非敏感 UI 状态”，可以 public。
 
 **测试**
+
 - contract：nightmare step actsSolo=true 必须导致 showWolves=false（已在 nightSteps.contract 有类似断言）
 
 ---
@@ -591,10 +620,12 @@ npm test --silent -- src/services/night/resolvers --runInBand
 
 为了保证“schema-driven”不会回退到 role-specific，建议加 2 类红线测试：
 
-1) **UI contract（静态/半静态）**
+1. **UI contract（静态/半静态）**
+
 - `RoomScreen` 底部按钮的可见性在 chooseSeat 时必须只由 `schema.canSkip` 决定。
 
-2) **Spec contract（表一致性）**
+2. **Spec contract（表一致性）**
+
 - `NIGHT_STEPS[*].id` 必须存在于 `SCHEMAS`（已存在）
 - 每个 `ChooseSeatSchema` 必须显式声明 `canSkip`（已存在）
 - wolfKill schema 不允许出现 forbidden/notSelf 等（已有 neutral red line test）

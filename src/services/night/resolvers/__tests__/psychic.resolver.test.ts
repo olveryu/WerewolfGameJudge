@@ -1,6 +1,6 @@
 /**
  * Psychic Resolver Unit Tests
- * 
+ *
  * Tests for psychicCheckResolver validation and resolution logic.
  */
 

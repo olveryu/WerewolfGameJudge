@@ -1,6 +1,6 @@
 /**
  * Night Plan Types
- * 
+ *
  * Table-driven night action sequence.
  */
 
@@ -11,14 +11,14 @@ import type { SchemaId } from './schemas';
 export interface NightPlanStep {
   /** Role performing this action */
   readonly roleId: RoleId;
-  
+
   /**
    * Step ID (= Schema ID for this action).
-   * 
+   *
    * Single source of truth: derived from NIGHT_STEPS[].id
    */
   readonly stepId: SchemaId;
-  
+
   /**
    * Step order inside THIS plan.
    *
@@ -28,20 +28,20 @@ export interface NightPlanStep {
    * Do NOT assume values like 15 means "seer". If you need stable identity, use roleId/stepId.
    */
   readonly order: number;
-  
+
   /** Display name for this step */
   readonly displayName: string;
-  
+
   /** Audio key for this step */
   readonly audioKey: string;
-  
+
   /**
    * Whether this role acts alone in this step (cannot see teammates).
-   * 
+   *
    * CONTRACT:
    * - true: Acts solo, cannot see wolf teammates, but CAN see self (seat/role).
    * - false/undefined: Normal visibility based on wolfMeeting config.
-   * 
+   *
    * Example: nightmare fear phase has actsSolo=true.
    */
   readonly actsSolo: boolean;
@@ -51,7 +51,7 @@ export interface NightPlanStep {
 export interface NightPlan {
   /** Ordered list of action steps */
   readonly steps: readonly NightPlanStep[];
-  
+
   /** Number of steps */
   readonly length: number;
 }

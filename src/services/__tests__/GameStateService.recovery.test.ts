@@ -1,6 +1,6 @@
 /**
  * GameStateService Recovery Tests
- * 
+ *
  * Tests for:
  * 1. emergencyRestartAndReshuffleRoles - emergency restart flow
  * 2. requestSnapshot / handleSnapshotResponse - reconnection/state recovery
@@ -75,12 +75,10 @@ function getState(service: GameStateService) {
   return service.getState();
 }
 
-async function initializeHostWithPlayers(
-  service: GameStateService
-): Promise<void> {
+async function initializeHostWithPlayers(service: GameStateService): Promise<void> {
   const template = createTestTemplate();
   await service.initializeAsHost('room1234', 'host_uid', template);
-  
+
   const state = getState(service)!;
   for (let i = 0; i < template.numberOfPlayers; i++) {
     state.players.set(i, {
@@ -95,12 +93,10 @@ async function initializeHostWithPlayers(
   state.status = GameStatus.seated;
 }
 
-async function assignRolesAndStartGame(
-  service: GameStateService
-): Promise<void> {
+async function assignRolesAndStartGame(service: GameStateService): Promise<void> {
   const state = getState(service)!;
   const roles = state.template.roles;
-  
+
   let idx = 0;
   state.players.forEach((player) => {
     if (player) {
@@ -108,7 +104,7 @@ async function assignRolesAndStartGame(
       player.hasViewedRole = true;
     }
   });
-  
+
   state.status = GameStatus.ongoing;
 }
 
@@ -151,9 +147,9 @@ describe('GameStateService.requestSnapshot', () => {
 
   it('returns true immediately if host (no need to request)', async () => {
     await service.initializeAsHost('room1234', 'host_uid', createTestTemplate());
-    
+
     const result = await service.requestSnapshot();
-    
+
     expect(result).toBe(true);
     expect(mockSendToHost).not.toHaveBeenCalled();
   });
@@ -161,65 +157,65 @@ describe('GameStateService.requestSnapshot', () => {
   it('returns false if no myUid', async () => {
     // Don't initialize service (no myUid)
     const result = await service.requestSnapshot();
-    
+
     expect(result).toBe(false);
   });
 
   it('sends SNAPSHOT_REQUEST to host when player', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
-    
+
     await service.requestSnapshot();
-    
+
     expect(mockSendToHost).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'SNAPSHOT_REQUEST',
         uid: 'player_uid',
-      })
+      }),
     );
   });
 
   it('marks as syncing when requesting', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
-    
+
     await service.requestSnapshot();
-    
+
     expect(mockMarkAsSyncing).toHaveBeenCalled();
   });
 
   it('marks as disconnected on timeout', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
-    
+
     await service.requestSnapshot(1000); // 1 second timeout
-    
+
     // Advance past timeout
     jest.advanceTimersByTime(1100);
-    
+
     expect(mockSetConnectionStatus).toHaveBeenCalledWith('disconnected');
   });
 
   it('marks as disconnected when sendToHost fails', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
     mockSendToHost.mockRejectedValueOnce(new Error('Network error'));
-    
+
     const result = await service.requestSnapshot();
-    
+
     expect(result).toBe(false);
     expect(mockSetConnectionStatus).toHaveBeenCalledWith('disconnected');
   });
 
   it('cancels pending request when new request is made', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
-    
+
     // Start first request
     service.requestSnapshot();
-    
+
     // Start second request immediately
     await service.requestSnapshot();
-    
+
     // Only one timeout should be active
     // Advance timers - should not mark disconnected twice
     jest.advanceTimersByTime(15000);
-    
+
     // Should only call setConnectionStatus once for the second request
     expect(mockSetConnectionStatus).toHaveBeenCalledTimes(1);
   });
@@ -244,23 +240,23 @@ describe('GameStateService snapshot response handling', () => {
 
   it('applies state from snapshot response', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
-    
+
     // Clear mocks from joinAsPlayer (which sends REQUEST_STATE)
     mockSendToHost.mockClear();
-    
+
     // Request snapshot
     await service.requestSnapshot();
-    
+
     // Get the requestId from the SNAPSHOT_REQUEST call
     const requestCall = mockSendToHost.mock.calls[0][0];
     expect(requestCall.type).toBe('SNAPSHOT_REQUEST');
     const requestId = requestCall.requestId;
-    
+
     // Simulate snapshot response by calling handleMessage
     const broadcastState = createBroadcastState({
       status: GameStatus.assigned,
     });
-    
+
     // Simulate the message being received
     (service as any).handleSnapshotResponse({
       requestId,
@@ -268,7 +264,7 @@ describe('GameStateService snapshot response handling', () => {
       state: broadcastState,
       revision: 1,
     });
-    
+
     const state = getState(service);
     expect(state?.status).toBe(GameStatus.assigned);
     expect(mockMarkAsLive).toHaveBeenCalled();
@@ -276,19 +272,19 @@ describe('GameStateService snapshot response handling', () => {
 
   it('ignores snapshot response with wrong toUid', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
-    
+
     // Clear mocks from joinAsPlayer
     mockSendToHost.mockClear();
-    
+
     await service.requestSnapshot();
-    
+
     const requestCall = mockSendToHost.mock.calls[0][0];
     const requestId = requestCall.requestId;
-    
+
     const broadcastState = createBroadcastState({
       status: GameStatus.assigned,
     });
-    
+
     // Response addressed to different player
     (service as any).handleSnapshotResponse({
       requestId,
@@ -296,7 +292,7 @@ describe('GameStateService snapshot response handling', () => {
       state: broadcastState,
       revision: 1,
     });
-    
+
     // State should not be updated
     const state = getState(service);
     expect(state?.status).not.toBe(GameStatus.assigned);
@@ -305,11 +301,11 @@ describe('GameStateService snapshot response handling', () => {
   it('ignores snapshot response with wrong requestId', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
     await service.requestSnapshot();
-    
+
     const broadcastState = createBroadcastState({
       status: GameStatus.assigned,
     });
-    
+
     // Response with wrong requestId
     (service as any).handleSnapshotResponse({
       requestId: 'wrong_id',
@@ -317,7 +313,7 @@ describe('GameStateService snapshot response handling', () => {
       state: broadcastState,
       revision: 1,
     });
-    
+
     // State should not be updated
     const state = getState(service);
     expect(state?.status).not.toBe(GameStatus.assigned);
@@ -343,35 +339,35 @@ describe('GameStateService.applyStateUpdate', () => {
 
   it('skips stale updates with older revision', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
-    
+
     // First update with revision 5
     const state1 = createBroadcastState({ status: GameStatus.seated });
     (service as any).applyStateUpdate(state1, 5);
     expect(getState(service)?.status).toBe(GameStatus.seated);
-    
+
     // Stale update with revision 3
     const state2 = createBroadcastState({ status: GameStatus.ongoing });
     (service as any).applyStateUpdate(state2, 3);
-    
+
     // Should still be seated (stale update ignored)
     expect(getState(service)?.status).toBe(GameStatus.seated);
   });
 
   it('applies updates with newer revision', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
-    
+
     const state1 = createBroadcastState({ status: GameStatus.seated });
     (service as any).applyStateUpdate(state1, 1);
-    
+
     const state2 = createBroadcastState({ status: GameStatus.ongoing });
     (service as any).applyStateUpdate(state2, 2);
-    
+
     expect(getState(service)?.status).toBe(GameStatus.ongoing);
   });
 
   it('tracks mySeatNumber from player data', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
-    
+
     const broadcastState = createBroadcastState();
     // Set player_uid at seat 3
     broadcastState.players[3] = {
@@ -380,32 +376,50 @@ describe('GameStateService.applyStateUpdate', () => {
       displayName: 'My Player',
       hasViewedRole: false,
     };
-    
+
     (service as any).applyStateUpdate(broadcastState, 1);
-    
+
     expect(service.getMySeatNumber()).toBe(3);
   });
 
   it('reconstructs template from broadcast roles', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
-    
+
     const broadcastState = createBroadcastState({
-      templateRoles: ['wolf', 'wolf', 'wolf', 'villager', 'villager', 'villager', 'seer', 'witch'] as RoleId[],
+      templateRoles: [
+        'wolf',
+        'wolf',
+        'wolf',
+        'villager',
+        'villager',
+        'villager',
+        'seer',
+        'witch',
+      ] as RoleId[],
     });
-    
+
     (service as any).applyStateUpdate(broadcastState, 1);
-    
+
     const state = getState(service);
-    expect(state?.template.roles).toEqual(['wolf', 'wolf', 'wolf', 'villager', 'villager', 'villager', 'seer', 'witch']);
+    expect(state?.template.roles).toEqual([
+      'wolf',
+      'wolf',
+      'wolf',
+      'villager',
+      'villager',
+      'villager',
+      'seer',
+      'witch',
+    ]);
     expect(state?.template.numberOfPlayers).toBe(8);
   });
 
   it('marks connection as live after applying update', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
-    
+
     const broadcastState = createBroadcastState();
     (service as any).applyStateUpdate(broadcastState, 1);
-    
+
     expect(mockMarkAsLive).toHaveBeenCalled();
   });
 });
@@ -416,12 +430,12 @@ describe('GameStateService.applyStateUpdate', () => {
 
 describe('Recovery integration scenarios', () => {
   let hostService: GameStateService;
-  let playerService: GameStateService;
+  let _playerService: GameStateService;
 
   beforeEach(() => {
     jest.useFakeTimers();
     jest.clearAllMocks();
-    
+
     // Create separate instances for host and player
     (GameStateService as any).instance = undefined;
     hostService = GameStateService.getInstance();
@@ -434,16 +448,16 @@ describe('Recovery integration scenarios', () => {
   it('host restart transitions ongoing → seated, then can reassign roles', async () => {
     await initializeHostWithPlayers(hostService);
     await assignRolesAndStartGame(hostService);
-    
+
     expect(getState(hostService)!.status).toBe(GameStatus.ongoing);
-    
+
     // Restart game
     const result = await hostService.restartGame();
     expect(result).toBe(true);
-    
+
     // Verify transition
     expect(getState(hostService)!.status).toBe(GameStatus.seated);
-    
+
     // Can now reassign roles (simulate clicking "准备看牌")
     const state = getState(hostService)!;
     const roles = state.template.roles;
@@ -454,7 +468,7 @@ describe('Recovery integration scenarios', () => {
       }
     });
     state.status = GameStatus.assigned;
-    
+
     expect(getState(hostService)!.status).toBe(GameStatus.assigned);
   });
 });

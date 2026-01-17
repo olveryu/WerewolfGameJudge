@@ -1,6 +1,6 @@
 /**
  * Types index - Broadcast type exports
- * 
+ *
  * Re-exports public and private broadcast types for easier imports.
  */
 

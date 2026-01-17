@@ -1,11 +1,11 @@
 /**
  * GameStateService NightFlow Contract Tests (Step 5)
- * 
+ *
  * Tests only observable behavior contracts:
  * - Broadcast message sequences (STATE_UPDATE, ROLE_TURN, etc.)
  * - currentActionerIndex progression
  * - state.actions write/reject
- * 
+ *
  * Does NOT test:
  * - Internal nightFlow phase
  * - Audio call order
@@ -16,7 +16,7 @@
 import { GameStateService, GameStatus } from '../GameStateService';
 import { GameTemplate } from '../../models/Template';
 import { RoleId, buildNightPlan } from '../../models/roles';
-import { isActionTarget, getActionTargetSeat, makeActionTarget } from '../../models/actions';
+import { makeActionTarget } from '../../models/actions';
 
 // =============================================================================
 // Mocks
@@ -107,7 +107,7 @@ function createTestTemplate(roles: RoleId[]): GameTemplate {
   while (paddedRoles.length < 6) {
     paddedRoles.push('villager');
   }
-  
+
   return {
     name: 'Contract Test Template',
     roles: paddedRoles,
@@ -116,11 +116,11 @@ function createTestTemplate(roles: RoleId[]): GameTemplate {
 }
 
 /**
- * Get expected action order from roles via NightPlan
+ * Get expected action order from roles via NightPlan (kept for reference)
  */
-function getExpectedActionOrder(roles: RoleId[]): RoleId[] {
+function _getExpectedActionOrder(roles: RoleId[]): RoleId[] {
   const nightPlan = buildNightPlan(roles);
-  return nightPlan.steps.map(step => step.roleId);
+  return nightPlan.steps.map((step) => step.roleId);
 }
 
 /**
@@ -139,12 +139,12 @@ function resetGameStateService(): GameStateService {
 async function setupReadyStateWithRoles(
   service: GameStateService,
   roles: RoleId[],
-  seatRoleMap: Map<number, RoleId>
+  seatRoleMap: Map<number, RoleId>,
 ): Promise<void> {
   const template = createTestTemplate(roles);
-  
+
   await service.initializeAsHost('TEST01', 'host-uid', template);
-  
+
   // Fill all seats with players (directly set state for testing - unique UIDs per seat)
   const state = service.getState()!;
   for (let i = 0; i < template.numberOfPlayers; i++) {
@@ -158,7 +158,7 @@ async function setupReadyStateWithRoles(
     });
   }
   state.status = GameStatus.seated;
-  
+
   // Manually assign roles (bypass random shuffle)
   seatRoleMap.forEach((role, seat) => {
     const player = state.players.get(seat);
@@ -167,15 +167,15 @@ async function setupReadyStateWithRoles(
       player.hasViewedRole = true;
     }
   });
-  
+
   // Fill remaining seats with villager
-  state.players.forEach((player, seat) => {
+  state.players.forEach((player, _seat) => {
     if (player && !player.role) {
       player.role = 'villager';
       player.hasViewedRole = true;
     }
   });
-  
+
   state.status = GameStatus.ready;
 }
 
@@ -187,7 +187,7 @@ async function invokeHandlePlayerAction(
   seat: number,
   role: RoleId,
   target: number | null,
-  extra?: any
+  extra?: any,
 ): Promise<void> {
   await (service as any).handlePlayerAction(seat, role, target, extra);
 }
@@ -202,10 +202,10 @@ describe('GameStateService NightFlow Contract Tests', () => {
   beforeEach(() => {
     // Clear broadcast capture
     broadcastCalls.length = 0;
-    
+
     // Reset singleton
     service = resetGameStateService();
-    
+
     // Use fake timers to skip 5s delay in startGame
     jest.useFakeTimers();
   });
@@ -218,27 +218,29 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should broadcast STATE_UPDATE with status=ongoing and currentActionerIndex=0', async () => {
       // Given: room is in ready state
       const actionOrder: RoleId[] = ['seer', 'witch'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-        [1, 'witch'],
-      ]));
-      
+      await setupReadyStateWithRoles(
+        service,
+        actionOrder,
+        new Map([
+          [0, 'seer'],
+          [1, 'witch'],
+        ]),
+      );
+
       // When: host calls startGame
       const startPromise = service.startGame();
-      
+
       // Advance past the 5s delay
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       // Then: at least one STATE_UPDATE with status=ongoing and currentActionerIndex=0
-      const stateUpdates = broadcastCalls.filter(
-        (msg) => msg.type === 'STATE_UPDATE'
-      );
-      
+      const stateUpdates = broadcastCalls.filter((msg) => msg.type === 'STATE_UPDATE');
+
       expect(stateUpdates.length).toBeGreaterThanOrEqual(1);
-      
+
       const ongoingUpdate = stateUpdates.find(
-        (msg) => msg.state?.status === GameStatus.ongoing && msg.state?.currentActionerIndex === 0
+        (msg) => msg.state?.status === GameStatus.ongoing && msg.state?.currentActionerIndex === 0,
       );
       expect(ongoingUpdate).toBeDefined();
     });
@@ -249,20 +251,24 @@ describe('GameStateService NightFlow Contract Tests', () => {
       // Given: room is in ready state with roles = [witch, seer]
       // NOTE: buildNightPlan sorts by ROLE_SPECS order: witch(10) < seer(15)
       const roles: RoleId[] = ['witch', 'seer'];
-      await setupReadyStateWithRoles(service, roles, new Map([
-        [0, 'witch'],
-        [1, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(
+        service,
+        roles,
+        new Map([
+          [0, 'witch'],
+          [1, 'seer'],
+        ]),
+      );
+
       // When: host calls startGame
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       // Then: ROLE_TURN with role=witch appears (first in NightPlan order)
       const roleTurns = broadcastCalls.filter((msg) => msg.type === 'ROLE_TURN');
       expect(roleTurns.length).toBeGreaterThanOrEqual(1);
-      
+
       const firstRoleTurn = roleTurns.find((msg) => msg.role === 'witch');
       expect(firstRoleTurn).toBeDefined();
     });
@@ -273,21 +279,25 @@ describe('GameStateService NightFlow Contract Tests', () => {
       // Given: game is ongoing, currentActionerIndex=0 (witch's turn - first in NightPlan)
       // NOTE: buildNightPlan sorts by order: witch(10) < seer(15)
       const roles: RoleId[] = ['witch', 'seer'];
-      await setupReadyStateWithRoles(service, roles, new Map([
-        [0, 'witch'],
-        [1, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(
+        service,
+        roles,
+        new Map([
+          [0, 'witch'],
+          [1, 'seer'],
+        ]),
+      );
+
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       // Clear broadcast calls to focus on action
       broadcastCalls.length = 0;
-      
+
       // When: witch submits action with target=3 (witch is first)
-  await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
-      
+      await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
+
       // Then: state.actions.get('witch') is a target action with seat 3
       const state = service.getState()!;
       const witchAction = state.actions.get('witch');
@@ -297,10 +307,14 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should record poison action when witch submits {poison:true}', async () => {
       // Given: game is ongoing, witch is current turn
       const roles: RoleId[] = ['witch', 'seer'];
-      await setupReadyStateWithRoles(service, roles, new Map([
-        [0, 'witch'],
-        [1, 'seer'],
-      ]));
+      await setupReadyStateWithRoles(
+        service,
+        roles,
+        new Map([
+          [0, 'witch'],
+          [1, 'seer'],
+        ]),
+      );
 
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
@@ -314,8 +328,8 @@ describe('GameStateService NightFlow Contract Tests', () => {
       const witchAction = state.actions.get('witch');
       expect(witchAction).toBeDefined();
       expect(witchAction?.kind).toBe('witch');
-  expect((witchAction as any).witchAction?.kind).toBe('poison');
-  expect((witchAction as any).witchAction?.targetSeat).toBe(3);
+      expect((witchAction as any).witchAction?.kind).toBe('poison');
+      expect((witchAction as any).witchAction?.targetSeat).toBe(3);
     });
   });
 
@@ -323,18 +337,22 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should not record action when role does not match current turn', async () => {
       // Given: game is ongoing, currentActionerIndex=0 (witch's turn - first in NightPlan)
       const roles: RoleId[] = ['witch', 'seer'];
-      await setupReadyStateWithRoles(service, roles, new Map([
-        [0, 'witch'],
-        [1, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(
+        service,
+        roles,
+        new Map([
+          [0, 'witch'],
+          [1, 'seer'],
+        ]),
+      );
+
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       // When: seer tries to submit action (wrong role - witch is first)
       await invokeHandlePlayerAction(service, 1, 'seer', 2);
-      
+
       // Then: state.actions.get('seer') is undefined (rejected)
       const state = service.getState()!;
       expect(state.actions.get('seer')).toBeUndefined();
@@ -345,21 +363,25 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should advance currentActionerIndex from 0 to 1 after correct action', async () => {
       // Given: game is ongoing, currentActionerIndex=0 (witch's turn - first in NightPlan)
       const roles: RoleId[] = ['witch', 'seer'];
-      await setupReadyStateWithRoles(service, roles, new Map([
-        [0, 'witch'],
-        [1, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(
+        service,
+        roles,
+        new Map([
+          [0, 'witch'],
+          [1, 'seer'],
+        ]),
+      );
+
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       const stateBefore = service.getState()!;
       expect(stateBefore.currentActionerIndex).toBe(0);
-      
+
       // When: witch submits correct action (witch is first)
-  await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
-      
+      await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
+
       // Then: currentActionerIndex is now 1
       const stateAfter = service.getState()!;
       expect(stateAfter.currentActionerIndex).toBe(1);
@@ -370,21 +392,25 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should broadcast ROLE_TURN with role=actionOrder[1] after first action', async () => {
       // Given: game is ongoing, currentActionerIndex=0 (witch's turn - first in NightPlan)
       const roles: RoleId[] = ['witch', 'seer'];
-      await setupReadyStateWithRoles(service, roles, new Map([
-        [0, 'witch'],
-        [1, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(
+        service,
+        roles,
+        new Map([
+          [0, 'witch'],
+          [1, 'seer'],
+        ]),
+      );
+
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       // Clear broadcast calls to focus on next action
       broadcastCalls.length = 0;
-      
+
       // When: witch submits correct action (witch is first)
-  await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
-      
+      await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
+
       // Then: ROLE_TURN with role=seer appears (seer is second)
       const roleTurns = broadcastCalls.filter((msg) => msg.type === 'ROLE_TURN');
       const seerTurn = roleTurns.find((msg) => msg.role === 'seer');
@@ -401,54 +427,56 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should not change currentActionerIndex when RoleEndAudioDone called in wrong phase', async () => {
       // Given: game is ongoing, currentActionerIndex=0 (seer's turn), phase=WaitingForAction
       const actionOrder: RoleId[] = ['seer', 'witch'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-        [1, 'witch'],
-      ]));
-      
+      await setupReadyStateWithRoles(
+        service,
+        actionOrder,
+        new Map([
+          [0, 'seer'],
+          [1, 'witch'],
+        ]),
+      );
+
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       const stateBefore = service.getState()!;
       const indexBefore = stateBefore.currentActionerIndex;
       expect(indexBefore).toBe(0);
-      
+
       // When: we directly call advanceToNextAction (simulating duplicate/stale callback)
       // WITHOUT first calling ActionSubmitted - phase is still WaitingForAction
       mockHostLogDebug.mockClear();
-      
+
       // Access private method via any
       await (service as any).advanceToNextAction();
-      
+
       // Then: currentActionerIndex should NOT have changed (idempotent)
       const stateAfter = service.getState()!;
       expect(stateAfter.currentActionerIndex).toBe(indexBefore);
-      
+
       // And: debug log was called (not error)
       expect(mockHostLogDebug).toHaveBeenCalledWith(
         expect.stringContaining('RoleEndAudioDone ignored (idempotent)'),
         expect.anything(),
-        expect.anything()
+        expect.anything(),
       );
     });
 
     it('should not call console.error when RoleEndAudioDone called in wrong phase', async () => {
       // Given: game is ongoing
       const actionOrder: RoleId[] = ['seer'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(service, actionOrder, new Map([[0, 'seer']]));
+
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       // When: we directly call advanceToNextAction without ActionSubmitted
       mockHostLogDebug.mockClear();
-      
+
       await (service as any).advanceToNextAction();
-      
+
       // Then: debug log should have been called (idempotent no-op)
       // and no error should be thrown
       expect(mockHostLogDebug).toHaveBeenCalled();
@@ -459,23 +487,21 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should not throw or log error when endNight called in wrong phase', async () => {
       // Given: game is ongoing, first role's turn
       const actionOrder: RoleId[] = ['seer'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(service, actionOrder, new Map([[0, 'seer']]));
+
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       // Confirm we're in WaitingForAction phase (not NightEndAudio)
       expect(service.getState()!.currentActionerIndex).toBe(0);
-      
+
       // When: we directly call endNight (simulating duplicate/stale callback)
       mockHostLogDebug.mockClear();
-      
+
       // This should NOT throw
       await expect((service as any).endNight()).resolves.not.toThrow();
-      
+
       // Then: debug log should have been called (idempotent no-op)
       expect(mockHostLogDebug).toHaveBeenCalled();
     });
@@ -483,37 +509,35 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should NOT change status or lastNightDeaths when endNight called in wrong phase (strict)', async () => {
       // Given: game is ongoing, first role's turn
       const actionOrder: RoleId[] = ['seer'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(service, actionOrder, new Map([[0, 'seer']]));
+
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       const stateBefore = service.getState()!;
       const statusBefore = stateBefore.status;
       const lastNightDeathsBefore = stateBefore.lastNightDeaths;
-      
+
       // Confirm we're in WaitingForAction phase (not NightEndAudio)
       expect(statusBefore).toBe(GameStatus.ongoing);
       expect(lastNightDeathsBefore).toEqual([]);
-      
+
       // When: we directly call endNight in wrong phase
       mockHostLogDebug.mockClear();
-      
+
       await (service as any).endNight();
-      
+
       // Then: status should NOT have changed (strict no-op)
       const stateAfter = service.getState()!;
       expect(stateAfter.status).toBe(statusBefore);
       expect(stateAfter.lastNightDeaths).toEqual(lastNightDeathsBefore);
-      
+
       // And: debug log was called with phase info
       expect(mockHostLogDebug).toHaveBeenCalledWith(
         expect.stringContaining('endNight() ignored (strict no-op)'),
         expect.anything(),
-        expect.anything()
+        expect.anything(),
       );
     });
   });
@@ -522,20 +546,24 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should successfully advance when ActionSubmitted is dispatched first', async () => {
       // Given: game is ongoing, witch's turn (first in NightPlan)
       const roles: RoleId[] = ['witch', 'seer'];
-      await setupReadyStateWithRoles(service, roles, new Map([
-        [0, 'witch'],
-        [1, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(
+        service,
+        roles,
+        new Map([
+          [0, 'witch'],
+          [1, 'seer'],
+        ]),
+      );
+
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       expect(service.getState()!.currentActionerIndex).toBe(0);
-      
+
       // When: we submit action (which dispatches ActionSubmitted + RoleEndAudioDone)
-  await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
-      
+      await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
+
       // Then: currentActionerIndex advances to 1
       expect(service.getState()!.currentActionerIndex).toBe(1);
     });
@@ -545,35 +573,39 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should skip finalize when wolf action already recorded (once-guard)', async () => {
       // Given: game is ongoing, wolf's turn (wolf order=5, witch order=10)
       const roles: RoleId[] = ['wolf', 'witch'];
-      await setupReadyStateWithRoles(service, roles, new Map([
-        [0, 'wolf'],
-        [1, 'witch'],
-      ]));
-      
+      await setupReadyStateWithRoles(
+        service,
+        roles,
+        new Map([
+          [0, 'wolf'],
+          [1, 'witch'],
+        ]),
+      );
+
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       // Manually set wolf action as if already finalized
       const state = service.getState()!;
       state.actions.set('wolf', makeActionTarget(1));
       const indexBefore = state.currentActionerIndex;
-      
+
       // When: wolf votes again (simulating duplicate finalize attempt)
       mockHostLogDebug.mockClear();
-      
+
       await (service as any).handleWolfVote(0, 1);
-      
+
       // Then: currentActionerIndex should NOT have changed (once-guard)
       expect(service.getState()!.currentActionerIndex).toBe(indexBefore);
-      
+
       // And: debug log was called indicating once-guard
       expect(mockHostLogDebug).toHaveBeenCalledWith(
         expect.stringContaining('handleWolfVote finalize skipped (once-guard)'),
         expect.anything(),
         expect.anything(),
         expect.anything(),
-        expect.anything()
+        expect.anything(),
       );
     });
   });
@@ -586,23 +618,21 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should throw strict invariant violation error', async () => {
       // Given: game is ongoing but nightFlow is forcibly set to null
       const actionOrder: RoleId[] = ['seer'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(service, actionOrder, new Map([[0, 'seer']]));
+
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       // Force nightFlow to null (simulating a bug)
       (service as any).nightFlow = null;
-      
+
       // Confirm status is ongoing
       expect(service.getState()!.status).toBe(GameStatus.ongoing);
-      
+
       // When/Then: advanceToNextAction should throw
       await expect((service as any).advanceToNextAction()).rejects.toThrow(
-        'advanceToNextAction: nightFlow is null - strict invariant violation'
+        'advanceToNextAction: nightFlow is null - strict invariant violation',
       );
     });
   });
@@ -611,25 +641,23 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should throw strict invariant violation error and not change status', async () => {
       // Given: game is ongoing but nightFlow is forcibly set to null
       const actionOrder: RoleId[] = ['seer'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(service, actionOrder, new Map([[0, 'seer']]));
+
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       const statusBefore = service.getState()!.status;
       const lastNightDeathsBefore = service.getState()!.lastNightDeaths;
-      
+
       // Force nightFlow to null
       (service as any).nightFlow = null;
-      
+
       // When/Then: endNight should throw
       await expect((service as any).endNight()).rejects.toThrow(
-        'endNight: nightFlow is null - strict invariant violation'
+        'endNight: nightFlow is null - strict invariant violation',
       );
-      
+
       // And: status should NOT have changed
       expect(service.getState()!.status).toBe(statusBefore);
       expect(service.getState()!.lastNightDeaths).toEqual(lastNightDeathsBefore);
@@ -640,25 +668,23 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should throw strict invariant violation error and not record action', async () => {
       // Given: game is ongoing but nightFlow is forcibly set to null
       const actionOrder: RoleId[] = ['seer'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(service, actionOrder, new Map([[0, 'seer']]));
+
       const startPromise = service.startGame();
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
-      
+
       const actionsBefore = new Map(service.getState()!.actions);
       const indexBefore = service.getState()!.currentActionerIndex;
-      
+
       // Force nightFlow to null
       (service as any).nightFlow = null;
-      
+
       // When/Then: handlePlayerAction should throw
       await expect((service as any).handlePlayerAction(0, 'seer', 1)).rejects.toThrow(
-        'handlePlayerAction: nightFlow is null - strict invariant violation'
+        'handlePlayerAction: nightFlow is null - strict invariant violation',
       );
-      
+
       // And: actions should NOT have been recorded, index should NOT change
       expect(service.getState()!.actions).toEqual(actionsBefore);
       expect(service.getState()!.currentActionerIndex).toBe(indexBefore);
@@ -673,16 +699,14 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('advanceToNextAction should not throw when status is ready and nightFlow is null', async () => {
       // Given: game is in ready status (not ongoing)
       const actionOrder: RoleId[] = ['seer'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(service, actionOrder, new Map([[0, 'seer']]));
+
       // Confirm status is ready (not ongoing)
       expect(service.getState()!.status).toBe(GameStatus.ready);
-      
+
       // nightFlow should be null before game starts
       expect((service as any).nightFlow).toBeNull();
-      
+
       // When/Then: advanceToNextAction should NOT throw (just return silently)
       await expect((service as any).advanceToNextAction()).resolves.not.toThrow();
     });
@@ -690,13 +714,11 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('endNight should not throw when status is ready and nightFlow is null', async () => {
       // Given: game is in ready status (not ongoing)
       const actionOrder: RoleId[] = ['seer'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(service, actionOrder, new Map([[0, 'seer']]));
+
       expect(service.getState()!.status).toBe(GameStatus.ready);
       expect((service as any).nightFlow).toBeNull();
-      
+
       // When/Then: endNight should NOT throw
       await expect((service as any).endNight()).resolves.not.toThrow();
     });
@@ -704,12 +726,10 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('handlePlayerAction should not throw when status is ready (early return before null check)', async () => {
       // Given: game is in ready status (not ongoing)
       const actionOrder: RoleId[] = ['seer'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'seer'],
-      ]));
-      
+      await setupReadyStateWithRoles(service, actionOrder, new Map([[0, 'seer']]));
+
       expect(service.getState()!.status).toBe(GameStatus.ready);
-      
+
       // When/Then: handlePlayerAction should NOT throw (returns early due to status check)
       await expect((service as any).handlePlayerAction(0, 'seer', 1)).resolves.not.toThrow();
     });
@@ -717,12 +737,10 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('handleWolfVote should not throw when status is ready (early return before null check)', async () => {
       // Given: game is in ready status (not ongoing)
       const actionOrder: RoleId[] = ['wolf'];
-      await setupReadyStateWithRoles(service, actionOrder, new Map([
-        [0, 'wolf'],
-      ]));
-      
+      await setupReadyStateWithRoles(service, actionOrder, new Map([[0, 'wolf']]));
+
       expect(service.getState()!.status).toBe(GameStatus.ready);
-      
+
       // When/Then: handleWolfVote should NOT throw (returns early due to status check)
       await expect((service as any).handleWolfVote(0, 1)).resolves.not.toThrow();
     });

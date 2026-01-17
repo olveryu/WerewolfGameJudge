@@ -42,17 +42,12 @@ export const PromptModal: React.FC<PromptModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onCancel}
-    >
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onCancel}>
       <View style={styles.overlay}>
         <View style={styles.alertBox}>
           <Text style={styles.title}>{title}</Text>
           {message ? <Text style={styles.message}>{message}</Text> : null}
-          
+
           <TextInput
             style={styles.input}
             value={value}
@@ -63,18 +58,12 @@ export const PromptModal: React.FC<PromptModalProps> = ({
             autoFocus={true}
             onSubmitEditing={handleConfirm}
           />
-          
+
           <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={onCancel}
-            >
+            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onCancel}>
               <Text style={[styles.buttonText, styles.cancelButtonText]}>取消</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleConfirm}
-            >
+            <TouchableOpacity style={styles.button} onPress={handleConfirm}>
               <Text style={styles.buttonText}>确认</Text>
             </TouchableOpacity>
           </View>

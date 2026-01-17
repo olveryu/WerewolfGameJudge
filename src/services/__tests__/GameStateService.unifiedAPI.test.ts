@@ -1,6 +1,6 @@
 /**
  * GameStateService Unified API Tests
- * 
+ *
  * These tests verify that Host and Player use the same logic paths,
  * preventing bugs like the "hostViewedRole missing status check" issue.
  */
@@ -55,16 +55,16 @@ function setupGameWithPlayers(
   service: GameStateService,
   roles: RoleId[],
   status: GameStatus,
-  options: { assignRoles?: boolean; hostSeat?: number } = {}
+  options: { assignRoles?: boolean; hostSeat?: number } = {},
 ): void {
   const { assignRoles = true, hostSeat = 0 } = options;
   const template = createTestTemplate(roles);
-  
+
   // Access private state for testing
   (service as any).isHost = true;
   (service as any).myUid = 'host-uid';
   (service as any).mySeatNumber = hostSeat;
-  
+
   const players = new Map<number, LocalPlayer | null>();
   roles.forEach((role, i) => {
     players.set(i, {
@@ -108,7 +108,7 @@ describe('GameStateService Unified API', () => {
 
     it('should only process during assigned status (not unseated)', async () => {
       setupGameWithPlayers(service, roles, GameStatus.unseated, { assignRoles: false });
-      
+
       await service.playerViewedRole();
 
       // Status should remain unseated (handler should early-return)
@@ -117,7 +117,7 @@ describe('GameStateService Unified API', () => {
 
     it('should only process during assigned status (not ongoing)', async () => {
       setupGameWithPlayers(service, roles, GameStatus.ongoing);
-      
+
       // Mark host as not viewed
       const player = service.getState()?.players.get(0);
       if (player) player.hasViewedRole = false;
@@ -131,7 +131,7 @@ describe('GameStateService Unified API', () => {
 
     it('should transition to ready when all viewed during assigned', async () => {
       setupGameWithPlayers(service, roles, GameStatus.assigned);
-      
+
       // All players except host have viewed
       service.getState()?.players.forEach((p, seat) => {
         if (p && seat !== 0) p.hasViewedRole = true;
@@ -150,13 +150,13 @@ describe('GameStateService Unified API', () => {
     it('Host should successfully take a seat', async () => {
       const roles: RoleId[] = ['seer', 'witch', 'wolf', 'villager'];
       setupGameWithPlayers(service, roles, GameStatus.unseated, { assignRoles: false });
-      
+
       // Clear seat 0 so host can take it
       service.getState()?.players.set(0, null);
       (service as any).mySeatNumber = null;
 
       const result = await service.takeSeat(0, 'Host');
-      
+
       expect(result).toBe(true);
       expect(service.getState()?.players.get(0)?.displayName).toBe('Host');
       expect(service.getState()?.players.get(0)?.uid).toBe('host-uid');
@@ -165,12 +165,12 @@ describe('GameStateService Unified API', () => {
     it('should reject if seat is already taken', async () => {
       const roles: RoleId[] = ['seer', 'witch', 'wolf', 'villager'];
       setupGameWithPlayers(service, roles, GameStatus.unseated, { assignRoles: false });
-      
+
       // Seat 1 is already taken by Player 1
       (service as any).mySeatNumber = null;
-      
+
       const result = await service.takeSeat(1, 'Host');
-      
+
       expect(result).toBe(false);
     });
   });
@@ -179,12 +179,12 @@ describe('GameStateService Unified API', () => {
     it('Host should successfully leave seat', async () => {
       const roles: RoleId[] = ['seer', 'witch', 'wolf', 'villager'];
       setupGameWithPlayers(service, roles, GameStatus.unseated, { assignRoles: false });
-      
+
       // Verify host is in seat 0
       expect(service.getState()?.players.get(0)?.uid).toBe('host-uid');
-      
+
       const result = await service.leaveSeat();
-      
+
       expect(result).toBe(true);
       expect(service.getState()?.players.get(0)).toBeNull();
     });
@@ -194,19 +194,19 @@ describe('GameStateService Unified API', () => {
     it('should update status to seated when all seats filled', async () => {
       const roles: RoleId[] = ['seer', 'wolf'];
       setupGameWithPlayers(service, roles, GameStatus.unseated, { assignRoles: false });
-      
+
       // Clear all seats
       service.getState()?.players.set(0, null);
       service.getState()?.players.set(1, null);
       (service as any).mySeatNumber = null;
-      
+
       // Host takes seat 0
       await service.takeSeat(0, 'Host');
       expect(service.getState()?.status).toBe(GameStatus.unseated);
-      
+
       // Simulate another player taking seat 1 (via processSeatAction)
       await (service as any).processSeatAction('sit', 1, 'player-1', 'Player 1');
-      
+
       // Now all seated
       expect(service.getState()?.status).toBe(GameStatus.seated);
     });
@@ -214,9 +214,9 @@ describe('GameStateService Unified API', () => {
     it('should revert status to unseated when someone leaves', async () => {
       const roles: RoleId[] = ['seer', 'wolf'];
       setupGameWithPlayers(service, roles, GameStatus.seated, { assignRoles: false });
-      
+
       await service.leaveSeat();
-      
+
       expect(service.getState()?.status).toBe(GameStatus.unseated);
     });
   });

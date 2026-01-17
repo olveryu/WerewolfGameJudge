@@ -1,11 +1,11 @@
 /**
  * PublicBroadcast.ts - Public broadcast payload types (whitelist-based)
- * 
+ *
  * ANTI-CHEAT PRINCIPLE:
  * - Only these whitelisted fields can be broadcast to all players
  * - Sensitive information (killedIndex, checkResult, etc.) MUST use PrivateBroadcast
  * - Compiler enforces type separation via broadcastPublic() API
- * 
+ *
  * @see docs/phase4-final-migration.md for full architecture
  */
 
@@ -19,7 +19,7 @@ import type { SchemaId } from '../../models/roles/spec';
 /**
  * Public broadcast payload union type.
  * broadcastPublic() ONLY accepts these types (compiler-enforced).
- * 
+ *
  * ❌ FORBIDDEN in public payloads:
  *    killedIndex, checkResult, seerResult, psychicResult, canSave,
  *    selectableSeats, blockedSeat, nightmareBlockedSeat, actions
@@ -104,7 +104,7 @@ export interface PublicSnapshotResponse {
 /**
  * Public game state - only whitelisted fields.
  * This is what all players can see.
- * 
+ *
  * ❌ FORBIDDEN fields (must use private messages):
  *    - nightmareBlockedSeat (use BLOCKED private message)
  *    - killedIndex (use WITCH_CONTEXT private message)

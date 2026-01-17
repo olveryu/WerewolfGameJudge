@@ -62,7 +62,10 @@ export function makeActionWitch(witchAction: WitchAction): RoleActionWitch {
 }
 
 /** Create a magician swap action */
-export function makeActionMagicianSwap(firstSeat: number, secondSeat: number): RoleActionMagicianSwap {
+export function makeActionMagicianSwap(
+  firstSeat: number,
+  secondSeat: number,
+): RoleActionMagicianSwap {
   return { kind: 'magicianSwap', firstSeat, secondSeat };
 }
 

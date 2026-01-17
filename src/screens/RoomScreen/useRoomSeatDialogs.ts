@@ -59,7 +59,7 @@ export function useRoomSeatDialogs({
       setModalType('enter');
       setSeatModalVisible(true);
     },
-    [setPendingSeatIndex, setModalType, setSeatModalVisible]
+    [setPendingSeatIndex, setModalType, setSeatModalVisible],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ export function useRoomSeatDialogs({
       setModalType('leave');
       setSeatModalVisible(true);
     },
-    [setPendingSeatIndex, setModalType, setSeatModalVisible]
+    [setPendingSeatIndex, setModalType, setSeatModalVisible],
   );
 
   // ─────────────────────────────────────────────────────────────────────────

@@ -1,9 +1,9 @@
 /**
  * Role Registry - Spec-based Facade
- * 
+ *
  * Single source of truth for all role definitions.
  * All role data comes from ROLE_SPECS.
- * 
+ *
  * No class hierarchy, no BaseRole - pure declarative data.
  */
 
@@ -145,7 +145,7 @@ export function doesRoleParticipateInWolfVote(roleId: string): boolean {
  * Get all wolf role IDs
  */
 export function getWolfRoleIds(): RoleId[] {
-  return getAllRoleIds().filter(id => ROLE_SPECS[id].team === 'wolf');
+  return getAllRoleIds().filter((id) => ROLE_SPECS[id].team === 'wolf');
 }
 
 /**
@@ -154,7 +154,7 @@ export function getWolfRoleIds(): RoleId[] {
  * (e.g., spiritKnight, wolfQueen)
  */
 export function getWolfKillImmuneRoleIds(): RoleId[] {
-  return getAllRoleIds().filter(id => {
+  return getAllRoleIds().filter((id) => {
     const spec = ROLE_SPECS[id] as { flags?: { immuneToWolfKill?: boolean } };
     return spec.flags?.immuneToWolfKill === true;
   });

@@ -1,6 +1,6 @@
 /**
  * Gargoyle Resolver Unit Tests
- * 
+ *
  * Tests for gargoyleCheckResolver validation and resolution logic.
  */
 

@@ -12,7 +12,7 @@ import {
 describe('Player - createPlayer', () => {
   it('should create a player with correct default values', () => {
     const player = createPlayer('user123', 0, 'wolf');
-    
+
     expect(player.uid).toBe('user123');
     expect(player.seatNumber).toBe(0);
     expect(player.role).toBe('wolf');
@@ -25,7 +25,7 @@ describe('Player - createPlayer', () => {
     const seer = createPlayer('user1', 1, 'seer');
     const witch = createPlayer('user2', 2, 'witch');
     const villager = createPlayer('user3', 3, 'villager');
-    
+
     expect(seer.role).toBe('seer');
     expect(witch.role).toBe('witch');
     expect(villager.role).toBe('villager');
@@ -35,7 +35,7 @@ describe('Player - createPlayer', () => {
     const player1 = createPlayer('user1', 0, 'wolf');
     const player2 = createPlayer('user2', 5, 'seer');
     const player3 = createPlayer('user3', 11, 'villager');
-    
+
     expect(player1.seatNumber).toBe(0);
     expect(player2.seatNumber).toBe(5);
     expect(player3.seatNumber).toBe(11);
@@ -160,7 +160,7 @@ describe('Player - Status Transitions', () => {
   it('player can transition from alive to dead', () => {
     const player = createPlayer('user1', 0, 'villager');
     expect(player.status).toBe(PlayerStatus.alive);
-    
+
     player.status = PlayerStatus.dead;
     expect(player.status).toBe(PlayerStatus.dead);
     expect(isPlayerAlive(player)).toBe(false);
@@ -169,7 +169,7 @@ describe('Player - Status Transitions', () => {
   it('player skill can become unavailable', () => {
     const player = createPlayer('user1', 0, 'witch');
     expect(player.skillStatus).toBe(SkillStatus.available);
-    
+
     player.skillStatus = SkillStatus.unavailable;
     expect(player.skillStatus).toBe(SkillStatus.unavailable);
     expect(isPlayerSkillAvailable(player)).toBe(false);
@@ -178,11 +178,11 @@ describe('Player - Status Transitions', () => {
   it('hunter skill becomes unavailable when poisoned (simulated)', () => {
     const hunter = createPlayer('hunter1', 0, 'hunter');
     expect(isPlayerSkillAvailable(hunter)).toBe(true);
-    
+
     // Simulate being poisoned - hunter can't shoot
     hunter.status = PlayerStatus.dead;
     hunter.skillStatus = SkillStatus.unavailable;
-    
+
     expect(isPlayerAlive(hunter)).toBe(false);
     expect(isPlayerSkillAvailable(hunter)).toBe(false);
   });

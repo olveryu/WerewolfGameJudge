@@ -27,7 +27,17 @@ export { GameStatus } from '../services/types/GameStateTypes';
 // =============================================================================
 export interface GameRoomLike {
   template: GameTemplate;
-  players: Map<number, { uid: string; seatNumber: number; role: RoleId | null; hasViewedRole: boolean; displayName?: string; avatarUrl?: string | null } | null>;
+  players: Map<
+    number,
+    {
+      uid: string;
+      seatNumber: number;
+      role: RoleId | null;
+      hasViewedRole: boolean;
+      displayName?: string;
+      avatarUrl?: string | null;
+    } | null
+  >;
   actions: Map<RoleId, RoleAction>;
   wolfVotes: Map<number, number>;
   currentActionerIndex: number;
@@ -61,19 +71,13 @@ export interface Room {
 }
 
 // Create a new room
-export const createRoom = (
-  hostUid: string,
-  roomNumber: string,
-  template: GameTemplate
-): Room => ({
+export const createRoom = (hostUid: string, roomNumber: string, template: GameTemplate): Room => ({
   timestamp: Date.now(),
   hostUid,
   roomNumber,
   roomStatus: GameStatus.unseated,
   template,
-  players: new Map(
-    Array.from({ length: template.numberOfPlayers }, (_, i) => [i, null])
-  ),
+  players: new Map(Array.from({ length: template.numberOfPlayers }, (_, i) => [i, null])),
   actions: new Map(),
   wolfVotes: new Map(),
   currentActionerIndex: 0,
@@ -88,7 +92,8 @@ function serializeRoleAction(action: RoleAction): Record<string, any> {
   if (isActionWitch(action)) {
     const wa = action.witchAction;
     if (wa.kind === 'none') return { kind: 'witch', witchAction: { kind: 'none' } };
-    if (wa.kind === 'save') return { kind: 'witch', witchAction: { kind: 'save', targetSeat: wa.targetSeat } };
+    if (wa.kind === 'save')
+      return { kind: 'witch', witchAction: { kind: 'save', targetSeat: wa.targetSeat } };
     return { kind: 'witch', witchAction: { kind: 'poison', targetSeat: wa.targetSeat } };
   }
   if (isActionMagicianSwap(action)) {
@@ -133,7 +138,7 @@ export const roomToDbMap = (room: Room): Record<string, any> => {
     [ROOM_KEYS.timestamp]: room.timestamp,
     [ROOM_KEYS.hostUid]: room.hostUid,
     [ROOM_KEYS.roomStatus]: room.roomStatus,
-    [ROOM_KEYS.roles]: room.template.roles,  // Store role names directly
+    [ROOM_KEYS.roles]: room.template.roles, // Store role names directly
     [ROOM_KEYS.players]: playersMap,
     [ROOM_KEYS.actions]: actionsMap,
     [ROOM_KEYS.wolfVotes]: wolfVotesMap,
@@ -143,10 +148,7 @@ export const roomToDbMap = (room: Room): Record<string, any> => {
 };
 
 // Convert database data to Room
-export const roomFromDb = (
-  roomNumber: string,
-  data: Record<string, any>
-): Room => {
+export const roomFromDb = (roomNumber: string, data: Record<string, any>): Room => {
   const roles = data[ROOM_KEYS.roles] as RoleId[];
   const template = createTemplateFromRoles(roles);
 
@@ -154,10 +156,7 @@ export const roomFromDb = (
   const playersData = data[ROOM_KEYS.players] as Record<string, any>;
   if (playersData) {
     Object.entries(playersData).forEach(([seat, playerData]) => {
-      players.set(
-        Number.parseInt(seat),
-        playerData ? playerFromMap(playerData) : null
-      );
+      players.set(Number.parseInt(seat), playerData ? playerFromMap(playerData) : null);
     });
   }
 
@@ -240,11 +239,7 @@ export const getActionWolfIndex = (room: GameRoomLike): number => {
 };
 
 // Record a wolf's vote for kill target
-export const recordWolfVote = (
-  room: Room,
-  wolfSeat: number,
-  targetSeat: number
-): Room => ({
+export const recordWolfVote = (room: Room, wolfSeat: number, targetSeat: number): Room => ({
   ...room,
   wolfVotes: new Map(room.wolfVotes).set(wolfSeat, targetSeat),
 });
@@ -253,7 +248,7 @@ export const recordWolfVote = (
 // Returns -1 (empty kill) if there's a tie
 export const calculateWolfKillTarget = (room: GameRoomLike): number => {
   const wolfSeats = getAllWolfSeats(room);
-  
+
   // Count votes for each target
   const voteCount = new Map<number, number>();
   wolfSeats.forEach((wolfSeat) => {
@@ -313,7 +308,10 @@ export const getWolfVoteSummary = (room: GameRoomLike): string => {
 
 // Check if a role can use their "confirm" skill (hunter/darkWolfKing)
 // Rule: can shoot if NOT poisoned by witch
-export const getConfirmRoleCanShoot = (room: GameRoomLike, role: 'hunter' | 'darkWolfKing'): boolean => {
+export const getConfirmRoleCanShoot = (
+  room: GameRoomLike,
+  role: 'hunter' | 'darkWolfKing',
+): boolean => {
   const witchAction = room.actions.get('witch');
 
   // Find the role's seat
@@ -356,7 +354,10 @@ export const isCurrentActionerSkillBlocked = (room: GameRoomLike): boolean => {
 
 // Calculate last night info (matching Flutter)
 // Parse witch action into killed/saved (from structured RoleAction)
-function parseWitchActionFromRoleAction(action: RoleAction | undefined): { killedByWitch: number | null; savedByWitch: number | null } {
+function parseWitchActionFromRoleAction(action: RoleAction | undefined): {
+  killedByWitch: number | null;
+  savedByWitch: number | null;
+} {
   if (!action || !isActionWitch(action)) {
     return { killedByWitch: null, savedByWitch: null };
   }
@@ -371,18 +372,28 @@ function parseWitchActionFromRoleAction(action: RoleAction | undefined): { kille
 }
 
 // Parse magician action into exchanged seats (from structured RoleAction)
-function parseMagicianActionFromRoleAction(action: RoleAction | undefined): { firstExchanged?: number; secondExchanged?: number } {
+function parseMagicianActionFromRoleAction(action: RoleAction | undefined): {
+  firstExchanged?: number;
+  secondExchanged?: number;
+} {
   if (!action || !isActionMagicianSwap(action)) {
     return {};
   }
   return {
     firstExchanged: action.firstSeat,
-    secondExchanged: action.secondSeat
+    secondExchanged: action.secondSeat,
   };
 }
 
 // Find special role seats (works with GameRoomLike)
-function findSpecialRoleSeats(room: GameRoomLike): { queenIndex?: number; dreamcatcherIndex?: number; witcherIndex?: number; spiritKnightIndex?: number; seerIndex?: number; witchIndex?: number } {
+function findSpecialRoleSeats(room: GameRoomLike): {
+  queenIndex?: number;
+  dreamcatcherIndex?: number;
+  witcherIndex?: number;
+  spiritKnightIndex?: number;
+  seerIndex?: number;
+  witchIndex?: number;
+} {
   let queenIndex: number | undefined;
   let dreamcatcherIndex: number | undefined;
   let witcherIndex: number | undefined;
@@ -403,12 +414,16 @@ function findSpecialRoleSeats(room: GameRoomLike): { queenIndex?: number; dreamc
 }
 
 // Apply magician swap to deaths
-function applyMagicianSwap(deaths: Set<number>, firstExchanged?: number, secondExchanged?: number): void {
+function applyMagicianSwap(
+  deaths: Set<number>,
+  firstExchanged?: number,
+  secondExchanged?: number,
+): void {
   if (firstExchanged === undefined || secondExchanged === undefined) return;
-  
+
   const firstDead = deaths.has(firstExchanged);
   const secondDead = deaths.has(secondExchanged);
-  
+
   if (firstDead && !secondDead) {
     deaths.delete(firstExchanged);
     deaths.add(secondExchanged);
@@ -427,13 +442,20 @@ export const getLastNightInfo = (room: GameRoomLike): string => {
   const guardProtectSeat = getActionTargetSeat(room.actions.get('guard'));
   const nightWalkerSeat = getActionTargetSeat(room.actions.get('dreamcatcher'));
   const seerCheckedSeat = getActionTargetSeat(room.actions.get('seer'));
-  const { firstExchanged, secondExchanged } = parseMagicianActionFromRoleAction(room.actions.get('magician'));
-  const { queenIndex, dreamcatcherIndex, witcherIndex, spiritKnightIndex, seerIndex, witchIndex } = findSpecialRoleSeats(room);
+  const { firstExchanged, secondExchanged } = parseMagicianActionFromRoleAction(
+    room.actions.get('magician'),
+  );
+  const { queenIndex, dreamcatcherIndex, witcherIndex, spiritKnightIndex, seerIndex, witchIndex } =
+    findSpecialRoleSeats(room);
 
   const deaths = new Set<number>();
 
   // 奶死 (saved and guarded same person)
-  if (savedByWitch !== null && guardProtectSeat !== undefined && savedByWitch === guardProtectSeat) {
+  if (
+    savedByWitch !== null &&
+    guardProtectSeat !== undefined &&
+    savedByWitch === guardProtectSeat
+  ) {
     deaths.add(savedByWitch);
   }
 
@@ -453,7 +475,11 @@ export const getLastNightInfo = (room: GameRoomLike): string => {
   // - If seer checks spiritKnight, seer dies (next day). We model it as a death in last night info.
   // - If witch poisons spiritKnight, witch dies (next day) and poison is ineffective.
   if (spiritKnightIndex !== undefined) {
-    if (seerCheckedSeat !== undefined && seerCheckedSeat === spiritKnightIndex && seerIndex !== undefined) {
+    if (
+      seerCheckedSeat !== undefined &&
+      seerCheckedSeat === spiritKnightIndex &&
+      seerIndex !== undefined
+    ) {
       deaths.add(seerIndex);
     }
 
@@ -479,7 +505,11 @@ export const getLastNightInfo = (room: GameRoomLike): string => {
   }
 
   // Dreamcatcher dies, dreamer dies too
-  if (dreamcatcherIndex !== undefined && deaths.has(dreamcatcherIndex) && nightWalkerSeat !== undefined) {
+  if (
+    dreamcatcherIndex !== undefined &&
+    deaths.has(dreamcatcherIndex) &&
+    nightWalkerSeat !== undefined
+  ) {
     deaths.add(nightWalkerSeat);
   }
 
@@ -489,7 +519,7 @@ export const getLastNightInfo = (room: GameRoomLike): string => {
   if (deaths.size === 0) {
     return '昨天晚上是平安夜。';
   }
-  
+
   const sortedDeaths = Array.from(deaths).sort((a, b) => a - b);
   const deathNumbers = sortedDeaths.map((d) => `${d + 1}号`).join(', ');
   return `昨天晚上${deathNumbers}玩家死亡。`;
@@ -516,7 +546,7 @@ export const getActionLog = (room: GameRoomLike): string[] => {
     hunter: 'hunterConfirm',
     darkWolfKing: 'darkWolfKingConfirm',
   };
-  
+
   // Go through action order to show completed actions
   // Phase 5: actionOrder removed, derive from NightPlan
   const nightPlan = buildNightPlan(room.template.roles);
@@ -524,16 +554,16 @@ export const getActionLog = (room: GameRoomLike): string[] => {
     if (i >= nightPlan.steps.length) continue;
     const roleId = nightPlan.steps[i].roleId;
     if (!roleId) continue;
-    
+
     const roleSpec = getRoleSpec(roleId);
     if (!roleSpec) continue;
-    
+
     const action = room.actions.get(roleId);
     const displayName = roleSpec.displayName;
     const schemaId = roleToActionSchemaId[roleId];
     const schema = schemaId ? getSchema(schemaId) : undefined;
     const actionVerb = schema?.displayName ?? '选择';
-    
+
     // Special handling for roles with specific action formats
     if (roleId === 'wolf') {
       const targetSeat = getActionTargetSeat(action);
@@ -556,7 +586,9 @@ export const getActionLog = (room: GameRoomLike): string[] => {
       if (magicianParsed.firstExchanged === undefined) {
         logs.push(`${displayName}: 未${actionVerb}`);
       } else {
-        logs.push(`${displayName}: ${actionVerb} ${magicianParsed.firstExchanged + 1}号 和 ${magicianParsed.secondExchanged! + 1}号`);
+        logs.push(
+          `${displayName}: ${actionVerb} ${magicianParsed.firstExchanged + 1}号 和 ${magicianParsed.secondExchanged! + 1}号`,
+        );
       }
     } else if (roleId === 'hunter' || roleId === 'darkWolfKing') {
       // Status confirmation roles - just show they confirmed
@@ -571,7 +603,7 @@ export const getActionLog = (room: GameRoomLike): string[] => {
       }
     }
   }
-  
+
   return logs;
 };
 
@@ -582,9 +614,7 @@ export const getRoomInfo = (room: GameRoomLike): string => {
 
   let info = `村民x${villagerCount}, 普狼x${wolfCount}, `;
 
-  const specialRoles = room.template.roles.filter(
-    (r) => r !== 'wolf' && r !== 'villager'
-  );
+  const specialRoles = room.template.roles.filter((r) => r !== 'wolf' && r !== 'villager');
   const uniqueSpecialRoles = [...new Set(specialRoles)];
 
   info += uniqueSpecialRoles.map((r) => getRoleSpec(r).displayName).join(', ');
@@ -593,17 +623,13 @@ export const getRoomInfo = (room: GameRoomLike): string => {
 };
 
 // Proceed to next action (matching Flutter room.proceed)
-export const proceedToNextAction = (
-  room: Room,
-  targetIndex: number | null,
-  extra?: any
-): Room => {
+export const proceedToNextAction = (room: Room, targetIndex: number | null, extra?: any): Room => {
   const currentRole = getCurrentActionRole(room);
-  
+
   if (!currentRole) return room;
 
   const newActions = new Map(room.actions);
-  
+
   // Record action using structured RoleAction
   if (targetIndex !== null) {
     if (currentRole === 'witch') {
@@ -642,7 +668,7 @@ export const startGame = (room: Room): Room => ({
 // Shuffles roles and assigns them to players, then changes status to seated
 export const assignRoles = (room: Room): Room => {
   const shuffledRoles = shuffleArray([...room.template.roles]);
-  
+
   // Assign shuffled roles to all seated players
   const updatedPlayers = new Map<number, Player | null>();
   room.players.forEach((player, seatNumber) => {
@@ -655,18 +681,18 @@ export const assignRoles = (room: Room): Room => {
       role: shuffledRoles[seatNumber],
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
-      hasViewedRole: false,  // 重置查看状态
+      hasViewedRole: false, // 重置查看状态
     };
     updatedPlayers.set(seatNumber, updatedPlayer);
   });
-  
+
   return {
     ...room,
-    roomStatus: GameStatus.assigned,  // 角色已分配
+    roomStatus: GameStatus.assigned, // 角色已分配
     players: updatedPlayers,
     template: {
       ...room.template,
-      roles: shuffledRoles,  // Store shuffled roles in template
+      roles: shuffledRoles, // Store shuffled roles in template
     },
   };
 };
@@ -683,14 +709,14 @@ export const restartRoom = (room: Room): Room => {
     }
     const updatedPlayer: Player = {
       ...player,
-      role: null,  // Clear role, will be reassigned when host clicks "准备看牌"
+      role: null, // Clear role, will be reassigned when host clicks "准备看牌"
       status: PlayerStatus.alive,
       skillStatus: SkillStatus.available,
-      hasViewedRole: false,  // 重置查看状态
+      hasViewedRole: false, // 重置查看状态
     };
     updatedPlayers.set(seatNumber, updatedPlayer);
   });
-  
+
   return {
     ...room,
     roomStatus: GameStatus.seated, // 回到已入座状态，等待host点击"准备看牌"
@@ -707,18 +733,18 @@ export const restartRoom = (room: Room): Room => {
 // This function is IDEMPOTENT - calling it multiple times has no effect
 export const markPlayerViewedRole = (room: Room, seatNumber: number): Room => {
   const player = room.players.get(seatNumber);
-  
+
   // Idempotent: return unchanged room if player doesn't exist or already viewed
   if (!player || player.hasViewedRole) {
     return room;
   }
-  
+
   const updatedPlayers = new Map(room.players);
   updatedPlayers.set(seatNumber, {
     ...player,
     hasViewedRole: true,
   });
-  
+
   // Check if all players have now viewed their roles
   let allViewed = true;
   updatedPlayers.forEach((p) => {
@@ -726,7 +752,7 @@ export const markPlayerViewedRole = (room: Room, seatNumber: number): Room => {
       allViewed = false;
     }
   });
-  
+
   return {
     ...room,
     roomStatus: allViewed ? GameStatus.ready : room.roomStatus,
@@ -759,23 +785,23 @@ export const allPlayersViewedRoles = (room: GameRoomLike): boolean => {
 export const updateRoomTemplate = (room: Room, newTemplate: GameTemplate): Room => {
   const oldPlayerCount = room.template.numberOfPlayers;
   const newPlayerCount = newTemplate.numberOfPlayers;
-  
+
   // Check if template actually changed (compare roles)
   const oldRoles = [...room.template.roles].sort((a, b) => a.localeCompare(b));
   const newRoles = [...newTemplate.roles].sort((a, b) => a.localeCompare(b));
   const rolesChanged = JSON.stringify(oldRoles) !== JSON.stringify(newRoles);
-  
+
   if (!rolesChanged) {
     // No changes, return room as-is
     return room;
   }
-  
+
   // Template changed - adjust players
   const updatedPlayers = new Map<number, Player | null>();
-  
+
   // Keep existing players (without roles), adjust seat count
   const seatsToKeep = Math.min(oldPlayerCount, newPlayerCount);
-  
+
   for (let i = 0; i < seatsToKeep; i++) {
     const player = room.players.get(i);
     if (player) {
@@ -791,18 +817,18 @@ export const updateRoomTemplate = (room: Room, newTemplate: GameTemplate): Room 
       updatedPlayers.set(i, null);
     }
   }
-  
+
   // Add new empty seats if increasing
   for (let i = oldPlayerCount; i < newPlayerCount; i++) {
     updatedPlayers.set(i, null);
   }
   // Players at seats >= newPlayerCount are removed (become unseated)
-  
+
   // Determine new room status:
   // - If all seats have players: seated
   // - If any seat is empty: unseated
-  const allSeated = Array.from(updatedPlayers.values()).every(p => p !== null);
-  
+  const allSeated = Array.from(updatedPlayers.values()).every((p) => p !== null);
+
   return {
     ...room,
     roomStatus: allSeated ? GameStatus.seated : GameStatus.unseated,
@@ -817,11 +843,11 @@ export const updateRoomTemplate = (room: Room, newTemplate: GameTemplate): Room 
 
 // Night result interface
 export interface NightResult {
-  killedByWolf: number | null;       // 被狼人杀的玩家座位
-  savedByWitch: boolean;              // 女巫是否使用解药
-  poisonedPlayer: number | null;      // 被女巫毒的玩家座位
-  protectedBySeer: number | null;     // 被预言家查验的玩家座位（仅记录）
-  deadPlayers: number[];              // 当晚死亡的玩家列表
+  killedByWolf: number | null; // 被狼人杀的玩家座位
+  savedByWitch: boolean; // 女巫是否使用解药
+  poisonedPlayer: number | null; // 被女巫毒的玩家座位
+  protectedBySeer: number | null; // 被预言家查验的玩家座位（仅记录）
+  deadPlayers: number[]; // 当晚死亡的玩家列表
 }
 
 // Calculate night result based on actions
@@ -830,28 +856,31 @@ export const getNightResult = (room: GameRoomLike): NightResult => {
   const killedByWolfSeat = getActionTargetSeat(room.actions.get('wolf')) ?? null;
   const seerCheckedSeat = getActionTargetSeat(room.actions.get('seer')) ?? null;
   const guardProtectSeat = getActionTargetSeat(room.actions.get('guard')) ?? null;
-  const { killedByWitch, savedByWitch: savedSeat } = parseWitchActionFromRoleAction(room.actions.get('witch'));
-  
+  const { killedByWitch, savedByWitch: savedSeat } = parseWitchActionFromRoleAction(
+    room.actions.get('witch'),
+  );
+
   // For role-specific rules (e.g. poison immunity)
   const { witcherIndex, spiritKnightIndex, seerIndex, witchIndex } = findSpecialRoleSeats(room);
-  
+
   // 检查守卫是否守护了被杀的人
   const protectedByGuard = killedByWolfSeat !== null && killedByWolfSeat === guardProtectSeat;
-  
+
   // 计算死亡玩家
   const deadPlayers: number[] = [];
-  
+
   if (killedByWolfSeat !== null) {
     // 同守必死：女巫救 + 守卫守同一个人 = 死亡
-    const doubleProtection = savedSeat !== null && protectedByGuard && killedByWolfSeat === savedSeat;
+    const doubleProtection =
+      savedSeat !== null && protectedByGuard && killedByWolfSeat === savedSeat;
     // 存活条件：只有女巫救或只有守卫守（不是同时）
     const survived = (savedSeat !== null || protectedByGuard) && !doubleProtection;
-    
+
     if (!survived) {
       deadPlayers.push(killedByWolfSeat);
     }
   }
-  
+
   // 被女巫毒
   if (killedByWitch !== null) {
     // Witcher is immune to poison
@@ -866,7 +895,11 @@ export const getNightResult = (room: GameRoomLike): NightResult => {
   // - If seer checks spiritKnight, seer dies
   // - If witch poisons spiritKnight, witch dies and spiritKnight doesn't die
   if (spiritKnightIndex !== undefined) {
-    if (seerCheckedSeat !== null && seerCheckedSeat === spiritKnightIndex && seerIndex !== undefined) {
+    if (
+      seerCheckedSeat !== null &&
+      seerCheckedSeat === spiritKnightIndex &&
+      seerIndex !== undefined
+    ) {
       if (!deadPlayers.includes(seerIndex)) {
         deadPlayers.push(seerIndex);
       }
@@ -882,7 +915,7 @@ export const getNightResult = (room: GameRoomLike): NightResult => {
       }
     }
   }
-  
+
   deadPlayers.sort((a, b) => a - b);
   return {
     killedByWolf: killedByWolfSeat,
@@ -892,4 +925,3 @@ export const getNightResult = (room: GameRoomLike): NightResult => {
     deadPlayers,
   };
 };
-

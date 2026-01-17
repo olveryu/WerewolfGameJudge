@@ -60,76 +60,85 @@ export const NetworkProvider: React.FC<Props> = ({ children }) => {
     }
   }, []);
 
-  const reportNetworkError = useCallback((error: Error, retryFn?: () => Promise<void>) => {
-    const errorMsg = error.message || '网络请求失败';
-    log.extend('Network').error(' Error reported:', errorMsg);
-    
-    setLastError(errorMsg);
-    if (retryFn) {
-      retryFnRef.current = retryFn;
-    }
+  const reportNetworkError = useCallback(
+    (error: Error, retryFn?: () => Promise<void>) => {
+      const errorMsg = error.message || '网络请求失败';
+      log.extend('Network').error(' Error reported:', errorMsg);
 
-    // Check if it's a timeout or network error
-    const isTimeout = errorMsg.includes('timed out') || errorMsg.includes('timeout') || errorMsg.includes('超时');
-    const isNetworkError = errorMsg.includes('network') || errorMsg.includes('Network') || errorMsg.includes('fetch') || errorMsg.includes('网络');
+      setLastError(errorMsg);
+      if (retryFn) {
+        retryFnRef.current = retryFn;
+      }
 
-    // Determine title and message
-    let title = '操作失败';
-    let message = errorMsg;
-    if (isTimeout) {
-      title = '请求超时';
-      message = '服务器响应超时，可能是网络不稳定。';
-    } else if (isNetworkError) {
-      title = '网络错误';
-      message = '网络连接不稳定，请检查网络设置。';
-    }
+      // Check if it's a timeout or network error
+      const isTimeout =
+        errorMsg.includes('timed out') || errorMsg.includes('timeout') || errorMsg.includes('超时');
+      const isNetworkError =
+        errorMsg.includes('network') ||
+        errorMsg.includes('Network') ||
+        errorMsg.includes('fetch') ||
+        errorMsg.includes('网络');
 
-    if (!retryDialogShownRef.current) {
-      retryDialogShownRef.current = true;
-      
-      showAlert(
-        title,
-        message,
-        retryFn ? [
-          { 
-            text: '重试', 
-            onPress: () => {
-              retryDialogShownRef.current = false;
-              retryLastOperation();
-            }
-          },
-          { 
-            text: '取消', 
-            style: 'cancel',
-            onPress: () => {
-              retryDialogShownRef.current = false;
-              clearError();
-            }
-          },
-        ] : [
-          { 
-            text: '确定', 
-            onPress: () => {
-              retryDialogShownRef.current = false;
-              clearError();
-            }
-          },
-        ]
-      );
-    }
-  }, [retryLastOperation, clearError]);
+      // Determine title and message
+      let title = '操作失败';
+      let message = errorMsg;
+      if (isTimeout) {
+        title = '请求超时';
+        message = '服务器响应超时，可能是网络不稳定。';
+      } else if (isNetworkError) {
+        title = '网络错误';
+        message = '网络连接不稳定，请检查网络设置。';
+      }
 
-  const contextValue = useMemo(() => ({
-    isConnecting,
-    lastError,
-    reportNetworkError,
-    retryLastOperation,
-    clearError,
-  }), [isConnecting, lastError, reportNetworkError, retryLastOperation, clearError]);
+      if (!retryDialogShownRef.current) {
+        retryDialogShownRef.current = true;
 
-  return (
-    <NetworkContext.Provider value={contextValue}>
-      {children}
-    </NetworkContext.Provider>
+        showAlert(
+          title,
+          message,
+          retryFn
+            ? [
+                {
+                  text: '重试',
+                  onPress: () => {
+                    retryDialogShownRef.current = false;
+                    retryLastOperation();
+                  },
+                },
+                {
+                  text: '取消',
+                  style: 'cancel',
+                  onPress: () => {
+                    retryDialogShownRef.current = false;
+                    clearError();
+                  },
+                },
+              ]
+            : [
+                {
+                  text: '确定',
+                  onPress: () => {
+                    retryDialogShownRef.current = false;
+                    clearError();
+                  },
+                },
+              ],
+        );
+      }
+    },
+    [retryLastOperation, clearError],
   );
+
+  const contextValue = useMemo(
+    () => ({
+      isConnecting,
+      lastError,
+      reportNetworkError,
+      retryLastOperation,
+      clearError,
+    }),
+    [isConnecting, lastError, reportNetworkError, retryLastOperation, clearError],
+  );
+
+  return <NetworkContext.Provider value={contextValue}>{children}</NetworkContext.Provider>;
 };

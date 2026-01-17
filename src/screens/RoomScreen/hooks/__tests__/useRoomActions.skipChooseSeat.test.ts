@@ -16,14 +16,14 @@ describe('deriveSkipIntentFromSchema (chooseSeat schemas)', () => {
       schema,
       () => '确定不发动技能吗？',
       false,
-      null
+      null,
     );
 
     expect(intent).toEqual(
       expect.objectContaining({
         type: 'skip',
         targetIndex: -1,
-      })
+      }),
     );
   });
 });

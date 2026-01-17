@@ -9,7 +9,7 @@ import { BLOCKED_UI_DEFAULTS } from '../../../../models/roles/spec';
 
 function makeContext(overrides: Partial<GameContext> = {}): GameContext {
   const base: GameContext = {
-    gameState: ({ template: { roles: [] } } as unknown as LocalGameState),
+    gameState: { template: { roles: [] } } as unknown as LocalGameState,
     roomStatus: GameStatus.ongoing,
     currentActionRole: null,
     currentSchema: null,
@@ -31,7 +31,7 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
         hasWolfVoted: () => false,
         getWolfVoteSummary: () => '0/0 狼人已投票',
         getWitchContext: () => null,
-      })
+      }),
     );
     expect(result.current.getBottomAction()).toEqual({
       buttons: [
@@ -52,8 +52,8 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
     const wolfVoteSchema: ActionSchema = {
       id: 'wolfVote',
       kind: 'wolfVote',
-  displayName: '狼刀',
-  constraints: [],
+      displayName: '狼刀',
+      constraints: [],
       ui: {
         prompt: 'x',
         confirmTitle: 'x',
@@ -68,7 +68,7 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
         hasWolfVoted: () => false,
         getWolfVoteSummary: () => '1/3 狼人已投票',
         getWitchContext: () => null,
-      })
+      }),
     );
 
     expect(result.current.getBottomAction()).toEqual({
@@ -89,8 +89,8 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
     const chooseSeatSchema: ActionSchema = {
       id: 'seerAction',
       kind: 'chooseSeat',
-  displayName: '查验',
-  constraints: [],
+      displayName: '查验',
+      constraints: [],
       canSkip: false,
       ui: {
         prompt: 'x',
@@ -106,10 +106,10 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
         hasWolfVoted: () => true,
         getWolfVoteSummary: () => '0/0 狼人已投票',
         getWitchContext: () => null,
-      })
+      }),
     );
 
-  expect(result.current.getBottomAction()).toEqual({ buttons: [] });
+    expect(result.current.getBottomAction()).toEqual({ buttons: [] });
   });
 
   // BUG LOCK: Blocked wolves should send wolfVote intent (not skip) to avoid skipping entire phase
@@ -139,7 +139,7 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
         hasWolfVoted: () => false,
         getWolfVoteSummary: () => '0/2 狼人已投票',
         getWitchContext: () => null,
-      })
+      }),
     );
 
     const bottomAction = result.current.getBottomAction();
@@ -169,7 +169,7 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
     };
 
     const ctx: GameContext = {
-      gameState: ({ template: { roles: [] } } as unknown as LocalGameState),
+      gameState: { template: { roles: [] } } as unknown as LocalGameState,
       roomStatus: GameStatus.ongoing,
       currentActionRole: 'seer',
       currentSchema: chooseSeatSchema,
@@ -177,7 +177,7 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
       mySeatNumber: 0,
       myRole: 'seer',
       isAudioPlaying: false,
-      isBlockedByNightmare: true,  // BLOCKED
+      isBlockedByNightmare: true, // BLOCKED
       anotherIndex: null,
     };
 
@@ -186,7 +186,7 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
         hasWolfVoted: () => false,
         getWolfVoteSummary: () => '',
         getWitchContext: () => null,
-      })
+      }),
     );
 
     const intent = result.current.getActionIntent(3);
@@ -211,7 +211,7 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
     };
 
     const ctx: GameContext = {
-      gameState: ({ template: { roles: [] } } as unknown as LocalGameState),
+      gameState: { template: { roles: [] } } as unknown as LocalGameState,
       roomStatus: GameStatus.ongoing,
       currentActionRole: 'seer',
       currentSchema: chooseSeatSchema,
@@ -219,7 +219,7 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
       mySeatNumber: 0,
       myRole: 'seer',
       isAudioPlaying: false,
-      isBlockedByNightmare: false,  // NOT blocked
+      isBlockedByNightmare: false, // NOT blocked
       anotherIndex: null,
     };
 
@@ -228,12 +228,12 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
         hasWolfVoted: () => false,
         getWolfVoteSummary: () => '',
         getWitchContext: () => null,
-      })
+      }),
     );
 
     const intent = result.current.getActionIntent(3);
     expect(intent).not.toBeNull();
-    expect(intent?.type).toBe('reveal');  // seer uses reveal intent
+    expect(intent?.type).toBe('reveal'); // seer uses reveal intent
     expect(intent?.targetIndex).toBe(3);
   });
 });

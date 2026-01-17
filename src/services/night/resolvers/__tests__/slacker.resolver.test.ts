@@ -1,6 +1,6 @@
 /**
  * Slacker Resolver Unit Tests
- * 
+ *
  * Tests for slackerChooseIdolResolver validation and resolution logic.
  */
 

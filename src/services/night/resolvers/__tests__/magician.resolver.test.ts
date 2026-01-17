@@ -1,6 +1,6 @@
 /**
  * Magician Resolver Unit Tests
- * 
+ *
  * Tests for magicianSwapResolver validation and resolution logic.
  */
 

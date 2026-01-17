@@ -120,7 +120,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         guard: 0,
-        wolf: spiritKnightSeat,  // 狼人刀恶灵骑士
+        wolf: spiritKnightSeat, // 狼人刀恶灵骑士
         witch: null,
         seer: 4,
         hunter: null,
@@ -141,15 +141,15 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         guard: 0,
-        wolf: 1,          // 狼人杀村民
+        wolf: 1, // 狼人杀村民
         witch: null,
         seer: spiritKnightSeat, // 预言家查恶灵骑士
         hunter: null,
       });
 
       expect(result.completed).toBe(true);
-      expect(result.deaths).toContain(1);   // 村民被狼刀
-      expect(result.deaths).toContain(8);   // 预言家反伤死
+      expect(result.deaths).toContain(1); // 村民被狼刀
+      expect(result.deaths).toContain(8); // 预言家反伤死
     });
 
     it('女巫毒恶灵骑士：恶灵骑士免疫 + 女巫反伤死', async () => {
@@ -157,16 +157,16 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         guard: 0,
-        wolf: 1,          // 狼人杀村民
+        wolf: 1, // 狼人杀村民
         witch: null,
-        witchPoison: 7,   // 女巫毒恶灵骑士
+        witchPoison: 7, // 女巫毒恶灵骑士
         seer: 4,
         hunter: null,
       });
 
       expect(result.completed).toBe(true);
-      expect(result.deaths).toContain(1);   // 村民死
-      expect(result.deaths).toContain(9);   // 女巫反伤死
+      expect(result.deaths).toContain(1); // 村民死
+      expect(result.deaths).toContain(9); // 女巫反伤死
       expect(result.deaths).not.toContain(7); // 恶灵骑士免疫
     });
 
@@ -177,17 +177,17 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         guard: 0,
-        wolf: 1,          // 狼人杀村民
+        wolf: 1, // 狼人杀村民
         witch: null,
         witchPoison: spiritKnightSeat, // 女巫毒恶灵骑士
-        seer: spiritKnightSeat,        // 预言家也查恶灵骑士
+        seer: spiritKnightSeat, // 预言家也查恶灵骑士
         hunter: null,
       });
 
       expect(result.completed).toBe(true);
-      expect(result.deaths).toContain(1);   // 村民死
-      expect(result.deaths).toContain(8);   // 预言家反伤死
-      expect(result.deaths).toContain(9);   // 女巫反伤死
+      expect(result.deaths).toContain(1); // 村民死
+      expect(result.deaths).toContain(8); // 预言家反伤死
+      expect(result.deaths).toContain(9); // 女巫反伤死
       expect(result.deaths).not.toContain(7); // 恶灵骑士免疫
     });
 
@@ -198,14 +198,14 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
         guard: 0,
         wolf: 1,
         witch: null,
-        witchPoison: 4,   // 女巫毒普通狼
-        seer: 0,          // 预言家查村民
+        witchPoison: 4, // 女巫毒普通狼
+        seer: 0, // 预言家查村民
         hunter: null,
       });
 
       expect(result.completed).toBe(true);
-      expect(result.deaths).toContain(1);   // 狼刀目标
-      expect(result.deaths).toContain(4);   // 狼被毒
+      expect(result.deaths).toContain(1); // 狼刀目标
+      expect(result.deaths).toContain(4); // 狼被毒
       expect(result.deaths).not.toContain(8); // 预言家无反伤
       expect(result.deaths).not.toContain(9); // 女巫无反伤
     });
@@ -215,9 +215,9 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         guard: 0,
-        wolf: 8,          // 狼人杀预言家
+        wolf: 8, // 狼人杀预言家
         witch: null,
-        seer: 4,          // 预言家查狼
+        seer: 4, // 预言家查狼
         hunter: null,
       });
 
@@ -232,8 +232,8 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       const seerSeat = ctx.findSeatByRole('seer');
 
       const result = await ctx.runNight({
-        guard: seerSeat,  // 守卫守预言家
-        wolf: seerSeat,   // 狼刀预言家（被守卫挡住）
+        guard: seerSeat, // 守卫守预言家
+        wolf: seerSeat, // 狼刀预言家（被守卫挡住）
         witch: null,
         seer: spiritKnightSeat, // 预言家查恶灵骑士
         hunter: null,

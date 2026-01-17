@@ -7,20 +7,24 @@
 ## 核心原则（不可违背）
 
 ### 1. Host is Authority for Computation and Routing, NOT Visibility
+
 - Host 是游戏逻辑权威（计算、校验、路由）
 - Host 不是可见性特权（Host 玩家也只能看到发给自己的私密消息）
 
 ### 2. Public 白名单 + Private 分流
+
 - Public 广播只允许**显式白名单字段**
 - 敏感信息**只能**通过 `sendPrivate(toUid)` 发送
 - 两套 API 类型不兼容，编译器强制分流
 
 ### 3. UI 禁用只是 UX，不是规则
+
 - UI 本地计算的 `selectable` 只用于体验优化（禁用样式）
 - Host resolver 必须兜底拒绝无效 action（幂等 no-op）
 - Nightmare 阻止等敏感信息：UI 不知道，Host 强制执行
 
 ### 4. Night-1-only 范围
+
 - 不引入死亡/出局禁选、跨夜记忆约束
 - UI 本地只判断 `notSelf` + `targetCount`，其余交给 Host reject
 
@@ -149,7 +153,7 @@ export interface PublicGameState {
   players: Record<number, PublicPlayer | null>;
   currentActionerIndex: number;
   isAudioPlaying: boolean;
-  wolfVoteStatus?: Record<number, boolean>;  // 只显示投票进度，不泄露目标
+  wolfVoteStatus?: Record<number, boolean>; // 只显示投票进度，不泄露目标
   // ❌ 禁止：nightmareBlockedSeat, killedIndex, selectableSeats, actions
 }
 
@@ -158,7 +162,7 @@ export interface PublicPlayer {
   seatNumber: number;
   displayName?: string;
   avatarUrl?: string;
-  role?: RoleName | null;  // 只发给玩家自己或狼看狼
+  role?: RoleName | null; // 只发给玩家自己或狼看狼
   hasViewedRole: boolean;
 }
 ```
@@ -174,8 +178,8 @@ export interface PublicPlayer {
  */
 export interface PrivateMessage {
   type: 'PRIVATE_EFFECT';
-  toUid: string;           // 必填：强制指定接收者
-  revision: number;        // 必填：绑定回合
+  toUid: string; // 必填：强制指定接收者
+  revision: number; // 必填：绑定回合
   payload: PrivatePayload;
 }
 
@@ -188,9 +192,9 @@ export type PrivatePayload =
 
 export interface WitchContextPayload {
   kind: 'WITCH_CONTEXT';
-  killedIndex: number;     // 被狼杀的座位（-1 = 空刀）
-  canSave: boolean;        // Host 已判断是否可救（排除自救）
-  canPoison: boolean;      // 是否有毒药
+  killedIndex: number; // 被狼杀的座位（-1 = 空刀）
+  canSave: boolean; // Host 已判断是否可救（排除自救）
+  canPoison: boolean; // 是否有毒药
   phase: 'save' | 'poison';
 }
 
@@ -203,7 +207,7 @@ export interface SeerRevealPayload {
 export interface PsychicRevealPayload {
   kind: 'PSYCHIC_REVEAL';
   targetSeat: number;
-  result: string;          // 具体角色名
+  result: string; // 具体角色名
 }
 
 export interface BlockedPayload {
@@ -290,30 +294,30 @@ export interface SeatSelectability {
 
 /**
  * 本地计算座位可选性
- * 
+ *
  * 只依赖：schema.constraints + mySeatNumber（本地已知信息）
  * 不依赖：Host 广播的任何"可选座位"信息
- * 
+ *
  * 重要：这只是 UX 优化，不是规则。Host resolver 必须兜底拒绝无效 action。
  */
 export function isSeatSelectable(
   seatIndex: number,
   mySeatNumber: number | null,
-  schema: ActionSchema | undefined
+  schema: ActionSchema | undefined,
 ): SeatSelectability {
   // Night-1-only：不做死亡/出局禁选
-  
+
   // notSelf 约束：本地已知，无泄露
   if (schema?.constraints?.includes('notSelf') && seatIndex === mySeatNumber) {
     return { selectable: false, reason: '不能选自己' };
   }
-  
+
   // targetCount 约束：本地已知
   // (实现逻辑取决于已选数量，由调用方传入)
-  
+
   // 其他约束（如 nightmare 阻止）：
   // UI 不知道，Host 会 reject
-  
+
   return { selectable: true };
 }
 
@@ -323,10 +327,11 @@ export function isSeatSelectable(
 export function getSelectableSeats(
   totalSeats: number,
   mySeatNumber: number | null,
-  schema: ActionSchema | undefined
+  schema: ActionSchema | undefined,
 ): number[] {
-  return Array.from({ length: totalSeats }, (_, i) => i)
-    .filter(seat => isSeatSelectable(seat, mySeatNumber, schema).selectable);
+  return Array.from({ length: totalSeats }, (_, i) => i).filter(
+    (seat) => isSeatSelectable(seat, mySeatNumber, schema).selectable,
+  );
 }
 ```
 
@@ -346,12 +351,12 @@ export function getActionPrompt(roleId: string, schemaId?: SchemaId): string {
   if (spec?.ux?.actionMessage) {
     return spec.ux.actionMessage;
   }
-  
+
   const schema = schemaId ? getSchema(schemaId) : undefined;
   if (schema?.displayName) {
     return `请${schema.displayName}`;
   }
-  
+
   return '请选择目标';
 }
 
@@ -383,7 +388,11 @@ export function getRoleDisplayName(roleId: string): string {
 
 import { useState, useEffect, useCallback } from 'react';
 import { BroadcastService } from '../services/BroadcastService';
-import type { PrivatePayload, WitchContextPayload, SeerRevealPayload } from '../services/types/PrivateBroadcast';
+import type {
+  PrivatePayload,
+  WitchContextPayload,
+  SeerRevealPayload,
+} from '../services/types/PrivateBroadcast';
 
 /**
  * Inbox Key：绑定 revision + kind
@@ -397,30 +406,30 @@ function makeInboxKey(revision: number, kind: string): InboxKey {
 
 export function usePrivateInbox(myUid: string | null, currentRevision: number) {
   const [inbox, setInbox] = useState<Map<InboxKey, PrivatePayload>>(new Map());
-  
+
   // 监听私密消息
   useEffect(() => {
     if (!myUid) return;
-    
+
     const broadcastService = BroadcastService.getInstance();
-    
+
     const handlePrivateEffect = (msg: PrivateMessage) => {
       // Zero-Trust：只接受发给自己的消息
       if (msg.toUid !== myUid) return;
-      
+
       const key = makeInboxKey(msg.revision, msg.payload.kind);
-      setInbox(prev => new Map(prev).set(key, msg.payload));
+      setInbox((prev) => new Map(prev).set(key, msg.payload));
     };
-    
+
     // 订阅（假设 BroadcastService 有此接口）
     const unsubscribe = broadcastService.onPrivateMessage(handlePrivateEffect);
-    
+
     return unsubscribe;
   }, [myUid]);
-  
+
   // revision 前进时清理旧 inbox
   useEffect(() => {
-    setInbox(prev => {
+    setInbox((prev) => {
       const newInbox = new Map<InboxKey, PrivatePayload>();
       for (const [key, payload] of prev) {
         const [revStr] = key.split('_');
@@ -433,30 +442,30 @@ export function usePrivateInbox(myUid: string | null, currentRevision: number) {
       return newInbox;
     });
   }, [currentRevision]);
-  
+
   // 获取女巫上下文
   const getWitchContext = useCallback((): WitchContextPayload | null => {
     const key = makeInboxKey(currentRevision, 'WITCH_CONTEXT');
     const payload = inbox.get(key);
     return payload?.kind === 'WITCH_CONTEXT' ? payload : null;
   }, [inbox, currentRevision]);
-  
+
   // 获取预言家查验结果
   const getSeerReveal = useCallback((): SeerRevealPayload | null => {
     const key = makeInboxKey(currentRevision, 'SEER_REVEAL');
     const payload = inbox.get(key);
     return payload?.kind === 'SEER_REVEAL' ? payload : null;
   }, [inbox, currentRevision]);
-  
+
   // 检查是否被阻止
   const isBlocked = useCallback((): boolean => {
     const key = makeInboxKey(currentRevision, 'BLOCKED');
     return inbox.has(key);
   }, [inbox, currentRevision]);
-  
+
   // 清空 inbox（游戏重开时）
   const clearInbox = useCallback(() => setInbox(new Map()), []);
-  
+
   return {
     inbox,
     getWitchContext,
@@ -476,12 +485,12 @@ const { getWitchContext, isBlocked } = usePrivateInbox(myUid, stateRevision);
 
 const getAutoTriggerIntent = useCallback((): ActionIntent | null => {
   if (!myRole || !imActioner || isAudioPlaying) return null;
-  
+
   // 检查是否被阻止（从私密 inbox 读取）
   if (isBlocked()) {
     return { type: 'blocked', targetIndex: -1 };
   }
-  
+
   // 女巫：从私密 inbox 读取上下文
   if (currentSchema?.kind === 'compound') {
     const witchCtx = getWitchContext();
@@ -489,7 +498,7 @@ const getAutoTriggerIntent = useCallback((): ActionIntent | null => {
       // 还没收到私密消息，显示等待状态
       return null;
     }
-    
+
     if (witchCtx.phase === 'save') {
       return {
         type: 'witchSavePhase',
@@ -502,7 +511,7 @@ const getAutoTriggerIntent = useCallback((): ActionIntent | null => {
       return { type: 'witchPoisonPhase', targetIndex: -1 };
     }
   }
-  
+
   // 其他角色
   return { type: 'actionPrompt', targetIndex: -1 };
 }, [myRole, imActioner, isAudioPlaying, currentSchema, getWitchContext, isBlocked]);
@@ -520,13 +529,13 @@ const getAutoTriggerIntent = useCallback((): ActionIntent | null => {
 private async enterWitchTurn(): Promise<void> {
   const witchUid = this.getPlayerUidByRole('witch');
   if (!witchUid) return;
-  
+
   const killedIndex = this.getWolfKillTarget();
   const witchSeat = this.getPlayerSeatByRole('witch');
-  
+
   // Host 计算 canSave（排除自救）
   const canSave = killedIndex !== -1 && killedIndex !== witchSeat;
-  
+
   // 私发给女巫（不广播）
   this.broadcastService.sendPrivate({
     type: 'PRIVATE_EFFECT',
@@ -552,7 +561,7 @@ private async handleSeerAction(seerUid: string, targetSeat: number): Promise<voi
   // Host 计算查验结果
   const targetRole = this.getPlayerRole(targetSeat);
   const result = isWolfRole(targetRole) ? '狼人' : '好人';
-  
+
   // 私发给预言家（不广播）
   this.broadcastService.sendPrivate({
     type: 'PRIVATE_EFFECT',
@@ -574,7 +583,7 @@ private async handleSeerAction(seerUid: string, targetSeat: number): Promise<voi
 
 private async handlePlayerAction(msg: PlayerActionMessage): Promise<void> {
   const { seat, role, target } = msg;
-  
+
   // Host 强制检查：被 nightmare 阻止的玩家
   if (this.isPlayerBlockedByNightmare(seat)) {
     // 幂等 no-op：不记录 action
@@ -593,7 +602,7 @@ private async handlePlayerAction(msg: PlayerActionMessage): Promise<void> {
     }
     return;  // 不处理 action
   }
-  
+
   // 正常处理 action
   // ...
 }
@@ -606,10 +615,12 @@ private async handlePlayerAction(msg: PlayerActionMessage): Promise<void> {
 ### 5.1 Room.ts 处理
 
 **保留**（移到 `src/models/roomTypes.ts`）：
+
 - `RoomStatus` enum
 - `GameRoomLike` interface（测试兼容）
 
 **删除**（规则函数）：
+
 - `performSeerAction()`
 - `performPsychicAction()`
 - `getKilledIndex()`
@@ -623,6 +634,7 @@ private async handlePlayerAction(msg: PlayerActionMessage): Promise<void> {
 - `getRoomInfo()`
 
 **保留**（Host-side 仍需要）：
+
 - `createRoom()` / `roomToDbMap()` / `roomFromDb()`（如果还用）
 - `assignRoles()` / `restartRoom()` / `markPlayerViewedRole()`
 - `getNightResult()` / `getLastNightInfo()`（移到 `DeathCalculator` 或保留）
@@ -630,10 +642,12 @@ private async handlePlayerAction(msg: PlayerActionMessage): Promise<void> {
 ### 5.2 roles/ 目录处理
 
 **保留**：
+
 - `src/models/roles/spec/`（新架构核心）
 - `src/models/roles/index.ts`（重写为 spec facade）
 
 **删除**（整个目录）：
+
 - `src/models/roles/base/`
 - `src/models/roles/wolf/`
 - `src/models/roles/god/`
@@ -642,6 +656,7 @@ private async handlePlayerAction(msg: PlayerActionMessage): Promise<void> {
 - `src/models/roles/third-party/`
 
 **删除**（index.ts 中）：
+
 - `ROLE_MODELS`
 - `getRoleModel()`
 - `BaseRole` 相关 export
@@ -649,6 +664,7 @@ private async handlePlayerAction(msg: PlayerActionMessage): Promise<void> {
 - `RoleDefinition` / `ROLES` / `buildRolesRecord()`
 
 **重写**（index.ts 中）：
+
 ```typescript
 // 新的 roles/index.ts
 export * from './spec';
@@ -673,22 +689,27 @@ export function canRoleSeeWolves(roleId: string): boolean {
 ### 5.3 测试清理
 
 **删除**：
+
 - `src/models/__tests__/ActionFlow.test.ts`（依赖旧 Room + ACTION_ORDER）
 
 **迁移**：
+
 - 相关测试逻辑迁移到 `src/services/__tests__/boards/*.integration.test.ts`
 
 **新增**：
+
 - `src/services/__tests__/visibility.contract.test.ts`
 - `src/services/__tests__/privateEffect.contract.test.ts`
 
 ### 5.4 UI 清理
 
 **删除 import**：
+
 - `from '../../models/Room'` 中的规则函数
 - `getRoleModel` / `ROLE_MODELS`
 
 **改为使用**：
+
 - `getRoleSpec()` / `getSchema()`
 - `usePrivateInbox()` 读取敏感信息
 - `isSeatSelectable()` 本地计算
@@ -714,21 +735,21 @@ describe('Visibility Contract (Anti-cheat)', () => {
     'blockedSeat',
     'nightmareBlockedSeat',
   ];
-  
+
   it('PublicGameState must NOT contain sensitive fields', () => {
     const publicStateKeys = Object.keys({} as PublicGameState);
     for (const field of SENSITIVE_FIELDS) {
       expect(publicStateKeys).not.toContain(field);
     }
   });
-  
+
   it('PublicRoleTurn must NOT contain sensitive fields', () => {
     const roleTurnKeys = Object.keys({} as PublicRoleTurn);
     for (const field of SENSITIVE_FIELDS) {
       expect(roleTurnKeys).not.toContain(field);
     }
   });
-  
+
   it('broadcastPublic() should reject PrivatePayload at compile time', () => {
     // 这个测试确保类型系统正常工作
     // 实际上编译器会阻止错误代码
@@ -747,24 +768,24 @@ describe('Private Effect Contract', () => {
     // Mock setup
     const broadcastService = BroadcastService.getInstance();
     const sendPrivateSpy = jest.spyOn(broadcastService, 'sendPrivate');
-    
+
     // Trigger witch turn
     await gameStateService.enterWitchTurn();
-    
+
     // Assert
     expect(sendPrivateSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'PRIVATE_EFFECT',
         toUid: expect.any(String),
         payload: expect.objectContaining({ kind: 'WITCH_CONTEXT' }),
-      })
+      }),
     );
   });
-  
+
   it('SEER_REVEAL must be sent via sendPrivate with toUid', async () => {
     // Similar test for seer reveal
   });
-  
+
   it('blocked player receives BLOCKED via sendPrivate', async () => {
     // Test nightmare block private notification
   });
@@ -780,11 +801,11 @@ describe('usePrivateInbox', () => {
   it('should only accept messages with matching toUid', () => {
     // Test Zero-Trust filtering
   });
-  
+
   it('should clear old messages when revision advances', () => {
     // Test revision-based cleanup
   });
-  
+
   it('should return null if no matching message for current revision', () => {
     // Test getWitchContext returns null when no message
   });
@@ -796,6 +817,7 @@ describe('usePrivateInbox', () => {
 ## 执行阶段
 
 ### Commit 1：类型层分流 + Private Effect 通道
+
 1. 新增 `src/services/types/PublicBroadcast.ts`
 2. 新增 `src/services/types/PrivateBroadcast.ts`
 3. 修改 `BroadcastService`：`broadcastPublic()` + `sendPrivate()` 分流
@@ -803,6 +825,7 @@ describe('usePrivateInbox', () => {
 5. 验证：`npm run typecheck && npm test`
 
 ### Commit 2：Host 端私发实现
+
 1. 女巫回合私发 `WITCH_CONTEXT`
 2. 预言家/通灵师行动后私发 reveal
 3. Nightmare 阻止私发 `BLOCKED`
@@ -810,6 +833,7 @@ describe('usePrivateInbox', () => {
 5. 验证：`npm test`
 
 ### Commit 3：UI 切换到 Inbox + 本地 Selectability
+
 1. 新增 `usePrivateInbox.ts`
 2. 新增 `seatSelectability.ts` + `schemaUi.ts`
 3. 修改 `useRoomActions.ts`：从 inbox 读取 witchContext
@@ -817,12 +841,14 @@ describe('usePrivateInbox', () => {
 5. 验证：`npm test && npm run e2e:core`
 
 ### Commit 4：Room.ts 拆分
+
 1. 提取 `src/models/roomTypes.ts`
 2. 删除 `Room.ts` 中的规则函数
 3. 更新所有 import
 4. 验证：`npm run typecheck && npm test`
 
 ### Commit 5：Legacy 大清理
+
 1. 删除 `roles/base/`, `roles/wolf/`, `roles/god/` 等目录
 2. 重写 `roles/index.ts` 为 spec facade
 3. 删除 `ActionFlow.test.ts`
@@ -861,14 +887,14 @@ grep -r "selectableSeats\|blockedSeat" src/services/types/PublicBroadcast.ts
 
 ## 附录：敏感字段完整清单
 
-| 字段 | 敏感原因 | 处理方式 |
-|------|----------|----------|
-| `killedIndex` | 狼杀目标 | 私发给女巫 |
-| `canSave` | 是否可救 | 私发给女巫 |
-| `seerResult` | 查验结果 | 私发给预言家 |
-| `psychicResult` | 通灵结果 | 私发给通灵师 |
-| `selectableSeats` | 可推导阻止信息 | 不广播，UI 本地算 |
-| `blockedSeat` | nightmare 阻止 | 私发给被阻止者 |
-| `nightmareBlockedSeat` | 同上 | 私发给被阻止者 |
-| `wolfKillTarget` | 狼刀目标 | 不广播 |
-| `actions` | 行动详情 | 不广播 |
+| 字段                   | 敏感原因       | 处理方式          |
+| ---------------------- | -------------- | ----------------- |
+| `killedIndex`          | 狼杀目标       | 私发给女巫        |
+| `canSave`              | 是否可救       | 私发给女巫        |
+| `seerResult`           | 查验结果       | 私发给预言家      |
+| `psychicResult`        | 通灵结果       | 私发给通灵师      |
+| `selectableSeats`      | 可推导阻止信息 | 不广播，UI 本地算 |
+| `blockedSeat`          | nightmare 阻止 | 私发给被阻止者    |
+| `nightmareBlockedSeat` | 同上           | 私发给被阻止者    |
+| `wolfKillTarget`       | 狼刀目标       | 不广播            |
+| `actions`              | 行动详情       | 不广播            |

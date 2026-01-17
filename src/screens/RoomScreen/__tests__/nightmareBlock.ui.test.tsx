@@ -1,6 +1,6 @@
 /**
  * Nightmare UI Test (Actor Perspective)
- * 
+ *
  * Tests nightmareBlock schema UI: prompt, seat selection, confirm dialog.
  * Note: This tests nightmare as the actor, not being blocked.
  */
@@ -26,15 +26,16 @@ jest.mock('react-native-safe-area-context', () => ({
 const mockShowAlert = showAlert as jest.Mock;
 const mockSubmitAction = jest.fn();
 
-const makeMock = () => makeBaseUseGameRoomReturn({
-  schemaId: 'nightmareBlock',
-  currentActionRole: 'nightmare',
-  myRole: 'nightmare',
-  mySeatNumber: 0,
-  overrides: {
-    submitAction: mockSubmitAction,
-  },
-});
+const makeMock = () =>
+  makeBaseUseGameRoomReturn({
+    schemaId: 'nightmareBlock',
+    currentActionRole: 'nightmare',
+    myRole: 'nightmare',
+    mySeatNumber: 0,
+    overrides: {
+      submitAction: mockSubmitAction,
+    },
+  });
 
 let mockUseGameRoomReturn: ReturnType<typeof makeMock>;
 
@@ -53,14 +54,14 @@ describe('Nightmare UI (nightmareBlock schema - actor perspective)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         '行动提示',
         SCHEMAS.nightmareBlock.ui.prompt,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -70,7 +71,7 @@ describe('Nightmare UI (nightmareBlock schema - actor perspective)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -85,7 +86,7 @@ describe('Nightmare UI (nightmareBlock schema - actor perspective)', () => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         SCHEMAS.nightmareBlock.ui.confirmTitle,
         SCHEMAS.nightmareBlock.ui.confirmText,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -95,7 +96,7 @@ describe('Nightmare UI (nightmareBlock schema - actor perspective)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -110,7 +111,7 @@ describe('Nightmare UI (nightmareBlock schema - actor perspective)', () => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         SCHEMAS.nightmareBlock.ui.confirmTitle,
         SCHEMAS.nightmareBlock.ui.confirmText,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });

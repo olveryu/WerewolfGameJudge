@@ -48,11 +48,11 @@ describe('useAuth hook', () => {
   describe('Initial state', () => {
     it('should start with null user when supabase is not configured', async () => {
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
       expect(result.current.error).toBeNull();
@@ -60,7 +60,7 @@ describe('useAuth hook', () => {
 
     it('should provide all auth methods', () => {
       const { result } = renderHook(() => useAuth());
-      
+
       expect(typeof result.current.signInAnonymously).toBe('function');
       expect(typeof result.current.signUpWithEmail).toBe('function');
       expect(typeof result.current.signInWithEmail).toBe('function');
@@ -73,30 +73,30 @@ describe('useAuth hook', () => {
   describe('signInAnonymously', () => {
     it('should call authService.signInAnonymously', async () => {
       mockSignInAnonymously.mockResolvedValue({});
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         await result.current.signInAnonymously();
       });
-      
+
       expect(mockSignInAnonymously).toHaveBeenCalled();
     });
 
     it('should set error when signInAnonymously fails', async () => {
       const errorMessage = 'Sign in failed';
       mockSignInAnonymously.mockRejectedValue(new Error(errorMessage));
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         try {
           await result.current.signInAnonymously();
@@ -104,7 +104,7 @@ describe('useAuth hook', () => {
           // Expected to throw
         }
       });
-      
+
       expect(result.current.error).toBe(errorMessage);
     });
   });
@@ -118,18 +118,22 @@ describe('useAuth hook', () => {
         is_anonymous: false,
       };
       mockSignUpWithEmail.mockResolvedValue({ user: mockUser });
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         await result.current.signUpWithEmail('test@example.com', 'password123', 'Test User');
       });
-      
-      expect(mockSignUpWithEmail).toHaveBeenCalledWith('test@example.com', 'password123', 'Test User');
+
+      expect(mockSignUpWithEmail).toHaveBeenCalledWith(
+        'test@example.com',
+        'password123',
+        'Test User',
+      );
     });
 
     it('should update user state after successful signup', async () => {
@@ -140,17 +144,17 @@ describe('useAuth hook', () => {
         is_anonymous: false,
       };
       mockSignUpWithEmail.mockResolvedValue({ user: mockUser });
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         await result.current.signUpWithEmail('test@example.com', 'password123');
       });
-      
+
       expect(result.current.user).toEqual({
         uid: 'user-123',
         email: 'test@example.com',
@@ -164,13 +168,13 @@ describe('useAuth hook', () => {
     it('should set error when signUpWithEmail fails', async () => {
       const errorMessage = 'Email already exists';
       mockSignUpWithEmail.mockRejectedValue(new Error(errorMessage));
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         try {
           await result.current.signUpWithEmail('test@example.com', 'password123');
@@ -178,7 +182,7 @@ describe('useAuth hook', () => {
           // Expected to throw
         }
       });
-      
+
       expect(result.current.error).toBe(errorMessage);
     });
   });
@@ -187,30 +191,30 @@ describe('useAuth hook', () => {
     it('should call authService.signInWithEmail', async () => {
       mockSignInWithEmail.mockResolvedValue({});
       mockGetCurrentUser.mockResolvedValue({ data: { user: null } });
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         await result.current.signInWithEmail('test@example.com', 'password123');
       });
-      
+
       expect(mockSignInWithEmail).toHaveBeenCalledWith('test@example.com', 'password123');
     });
 
     it('should set error when signInWithEmail fails', async () => {
       const errorMessage = 'Invalid credentials';
       mockSignInWithEmail.mockRejectedValue(new Error(errorMessage));
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         try {
           await result.current.signInWithEmail('test@example.com', 'wrongpassword');
@@ -218,7 +222,7 @@ describe('useAuth hook', () => {
           // Expected to throw
         }
       });
-      
+
       expect(result.current.error).toBe(errorMessage);
     });
   });
@@ -227,30 +231,30 @@ describe('useAuth hook', () => {
     it('should call authService.updateProfile', async () => {
       mockUpdateProfile.mockResolvedValue({});
       mockGetCurrentUser.mockResolvedValue({ data: { user: null } });
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         await result.current.updateProfile({ displayName: 'New Name' });
       });
-      
+
       expect(mockUpdateProfile).toHaveBeenCalledWith({ displayName: 'New Name' });
     });
 
     it('should set error when updateProfile fails', async () => {
       const errorMessage = 'Update failed';
       mockUpdateProfile.mockRejectedValue(new Error(errorMessage));
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         try {
           await result.current.updateProfile({ displayName: 'New Name' });
@@ -258,7 +262,7 @@ describe('useAuth hook', () => {
           // Expected to throw
         }
       });
-      
+
       expect(result.current.error).toBe(errorMessage);
     });
   });
@@ -268,18 +272,18 @@ describe('useAuth hook', () => {
       const avatarUrl = 'https://example.com/avatar.jpg';
       mockUploadAvatar.mockResolvedValue(avatarUrl);
       mockGetCurrentUser.mockResolvedValue({ data: { user: null } });
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       let returnedUrl: string = '';
       await act(async () => {
         returnedUrl = await result.current.uploadAvatar('file:///path/to/image.jpg');
       });
-      
+
       expect(mockUploadAvatar).toHaveBeenCalledWith('file:///path/to/image.jpg');
       expect(returnedUrl).toBe(avatarUrl);
     });
@@ -287,13 +291,13 @@ describe('useAuth hook', () => {
     it('should set error when uploadAvatar fails', async () => {
       const errorMessage = 'Upload failed';
       mockUploadAvatar.mockRejectedValue(new Error(errorMessage));
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         try {
           await result.current.uploadAvatar('file:///path/to/image.jpg');
@@ -301,7 +305,7 @@ describe('useAuth hook', () => {
           // Expected to throw
         }
       });
-      
+
       expect(result.current.error).toBe(errorMessage);
     });
   });
@@ -309,17 +313,17 @@ describe('useAuth hook', () => {
   describe('signOut', () => {
     it('should call authService.signOut and clear user', async () => {
       mockSignOut.mockResolvedValue({});
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         await result.current.signOut();
       });
-      
+
       expect(mockSignOut).toHaveBeenCalled();
       expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
@@ -328,17 +332,17 @@ describe('useAuth hook', () => {
     it('should set error when signOut fails', async () => {
       const errorMessage = 'Sign out failed';
       mockSignOut.mockRejectedValue(new Error(errorMessage));
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         await result.current.signOut();
       });
-      
+
       expect(result.current.error).toBe(errorMessage);
     });
   });
@@ -355,17 +359,17 @@ describe('useAuth hook', () => {
         is_anonymous: false,
       };
       mockSignUpWithEmail.mockResolvedValue({ user: mockSupabaseUser });
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         await result.current.signUpWithEmail('full@example.com', 'password123');
       });
-      
+
       expect(result.current.user).toEqual({
         uid: 'user-456',
         email: 'full@example.com',
@@ -383,17 +387,17 @@ describe('useAuth hook', () => {
         is_anonymous: true,
       };
       mockSignUpWithEmail.mockResolvedValue({ user: mockSupabaseUser });
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         await result.current.signUpWithEmail('', '');
       });
-      
+
       expect(result.current.user).toEqual({
         uid: 'anon-123',
         email: null,
@@ -410,17 +414,17 @@ describe('useAuth hook', () => {
         is_anonymous: false,
       };
       mockSignUpWithEmail.mockResolvedValue({ user: mockSupabaseUser });
-      
+
       const { result } = renderHook(() => useAuth());
-      
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      
+
       await act(async () => {
         await result.current.signUpWithEmail('test@example.com', 'password123');
       });
-      
+
       expect(result.current.user?.displayName).toBeNull();
       expect(result.current.user?.avatarUrl).toBeNull();
     });

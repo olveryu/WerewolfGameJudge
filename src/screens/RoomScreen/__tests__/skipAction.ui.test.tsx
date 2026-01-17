@@ -61,7 +61,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
             role: i === 0 ? 'seer' : 'villager',
             hasViewedRole: true,
           },
-        ])
+        ]),
       ),
       actions: new Map(),
       wolfVotes: new Map(),
@@ -80,7 +80,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     roomStatus: require('../../../models/Room').GameStatus.ongoing,
 
     currentActionRole: 'seer',
-  currentSchema: getChooseSeatSchema(mockedSchemaId),
+    currentSchema: getChooseSeatSchema(mockedSchemaId),
 
     isAudioPlaying: false,
 
@@ -151,13 +151,13 @@ jest.mock('../useRoomSeatDialogs', () => ({
 describe('RoomScreen skip action UI', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-  mockedCanSkip = true;
-  mockedSchemaId = 'seerCheck';
+    mockedCanSkip = true;
+    mockedSchemaId = 'seerCheck';
   });
 
   it('schema.canSkip=false (chooseSeat) -> does not render bottom skip button', async () => {
-  mockedCanSkip = false;
-  mockedSchemaId = 'psychicCheck';
+    mockedCanSkip = false;
+    mockedSchemaId = 'psychicCheck';
     const props: any = {
       navigation: mockNavigation,
       route: {
@@ -171,15 +171,15 @@ describe('RoomScreen skip action UI', () => {
 
     const { queryByText } = render(<RoomScreen {...props} />);
 
-  // chooseSeat + canSkip=false => no bottom skip button
+    // chooseSeat + canSkip=false => no bottom skip button
     await waitFor(() => {
       expect(queryByText('不使用技能')).toBeNull();
     });
   });
 
   it('press "不使用技能" -> confirm -> submitAction(null)', async () => {
-  mockedCanSkip = true;
-  mockedSchemaId = 'seerCheck';
+    mockedCanSkip = true;
+    mockedSchemaId = 'seerCheck';
     const props: any = {
       navigation: mockNavigation,
       route: {
@@ -204,9 +204,7 @@ describe('RoomScreen skip action UI', () => {
     });
 
     // Confirm the *skip confirm* alert (auto-intent prompts may also call showAlert)
-    const skipCall = (showAlert as jest.Mock).mock.calls.find(
-      (c) => c[0] === '确认跳过'
-    );
+    const skipCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认跳过');
     expect(skipCall).toBeDefined();
 
     const buttons = (skipCall as any)[2] as Array<{ text: string; onPress?: () => void }>;

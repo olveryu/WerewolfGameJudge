@@ -19,7 +19,7 @@ describe('testids.ts contract (stability + legacy compatibility)', () => {
       ['forceSyncButton', TESTIDS.forceSyncButton],
     ];
 
-  for (const [, value] of stableIds) {
+    for (const [, value] of stableIds) {
       expect(typeof value).toBe('string');
       expect(value.length).toBeGreaterThan(0);
       expect(value).toBe(value.trim());

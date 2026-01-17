@@ -1,6 +1,6 @@
 /**
  * useActionerState.test.ts - Unit tests for useActionerState hook
- * 
+ *
  * Tests the hook wrapper around determineActionerState.
  */
 
@@ -17,7 +17,7 @@ function createParams(overrides: Partial<UseActionerStateParams> = {}): UseActio
   return {
     myRole: null,
     currentActionRole: null,
-  currentSchema: null,
+    currentSchema: null,
     mySeatNumber: null,
     wolfVotes: new Map(),
     isHost: false,
@@ -33,9 +33,7 @@ function createParams(overrides: Partial<UseActionerStateParams> = {}): UseActio
 describe('useActionerState', () => {
   describe('基本行为', () => {
     it('无当前行动角色时 imActioner 应该为 false', () => {
-      const { result } = renderHook(() =>
-        useActionerState(createParams({ myRole: 'seer' }))
-      );
+      const { result } = renderHook(() => useActionerState(createParams({ myRole: 'seer' })));
 
       expect(result.current.imActioner).toBe(false);
       expect(result.current.showWolves).toBe(false);
@@ -48,8 +46,8 @@ describe('useActionerState', () => {
             myRole: 'seer',
             currentActionRole: 'seer',
             mySeatNumber: 0,
-          })
-        )
+          }),
+        ),
       );
 
       expect(result.current.imActioner).toBe(true);
@@ -62,8 +60,8 @@ describe('useActionerState', () => {
             myRole: 'seer',
             currentActionRole: 'witch',
             mySeatNumber: 0,
-          })
-        )
+          }),
+        ),
       );
 
       expect(result.current.imActioner).toBe(false);
@@ -80,8 +78,8 @@ describe('useActionerState', () => {
             currentSchema: require('../../../../models/roles/spec/schemas').getSchema('wolfKill'),
             mySeatNumber: 1,
             wolfVotes: new Map(),
-          })
-        )
+          }),
+        ),
       );
 
       expect(result.current.imActioner).toBe(true);
@@ -100,8 +98,8 @@ describe('useActionerState', () => {
             currentSchema: require('../../../../models/roles/spec/schemas').getSchema('wolfKill'),
             mySeatNumber: 1,
             wolfVotes,
-          })
-        )
+          }),
+        ),
       );
 
       expect(result.current.imActioner).toBe(false);
@@ -116,8 +114,8 @@ describe('useActionerState', () => {
             currentActionRole: 'wolf',
             currentSchema: require('../../../../models/roles/spec/schemas').getSchema('wolfKill'),
             mySeatNumber: 2,
-          })
-        )
+          }),
+        ),
       );
 
       expect(result.current.showWolves).toBe(true);
@@ -136,8 +134,8 @@ describe('useActionerState', () => {
             currentActionRole: 'seer',
             mySeatNumber: 0,
             actions,
-          })
-        )
+          }),
+        ),
       );
 
       expect(result.current.imActioner).toBe(false);
@@ -151,8 +149,8 @@ describe('useActionerState', () => {
             currentActionRole: 'witch',
             mySeatNumber: 1,
             actions: new Map(),
-          })
-        )
+          }),
+        ),
       );
 
       expect(result.current.imActioner).toBe(true);
@@ -166,10 +164,12 @@ describe('useActionerState', () => {
           createParams({
             myRole: 'nightmare',
             currentActionRole: 'nightmare',
-            currentSchema: require('../../../../models/roles/spec/schemas').getSchema('nightmareBlock'),
+            currentSchema: require('../../../../models/roles/spec/schemas').getSchema(
+              'nightmareBlock',
+            ),
             mySeatNumber: 0,
-          })
-        )
+          }),
+        ),
       );
 
       expect(result.current.imActioner).toBe(true);

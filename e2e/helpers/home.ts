@@ -4,13 +4,13 @@ import { TESTIDS } from '../../src/testids';
 
 /**
  * Home Screen Helpers (首页/登录稳定化层)
- * 
+ *
  * These helpers ensure stable entry to the app by handling:
  * - App hydration (React Native Web)
  * - Transient states (loading, "创建中...")
  * - Login flows (anonymous login)
  * - Error recovery (retry dialogs)
- * 
+ *
  * NOTE: Generic UI primitives (getVisibleText, gotoWithRetry, etc.) live in ui.ts.
  * Import them directly from './helpers/ui' in specs — do NOT import from here.
  */
@@ -26,11 +26,7 @@ const HOME_READY_SELECTORS = [
 ];
 
 /** Transient/loading states to wait out */
-const TRANSIENT_PATTERNS = [
-  '创建中',
-  '加载中',
-  '连接中',
-];
+const TRANSIENT_PATTERNS = ['创建中', '加载中', '连接中'];
 
 /** Modal/overlay patterns that block interaction */
 const BLOCKING_MODAL_PATTERNS = [
@@ -68,7 +64,10 @@ export async function waitForAppReady(page: Page, timeoutMs = 15000): Promise<vo
  */
 async function handleErrorRecovery(page: Page): Promise<boolean> {
   for (const pattern of ERROR_RECOVERY_PATTERNS) {
-    const hasError = await page.getByText(pattern.text).isVisible({ timeout: 300 }).catch(() => false);
+    const hasError = await page
+      .getByText(pattern.text)
+      .isVisible({ timeout: 300 })
+      .catch(() => false);
     if (hasError) {
       console.log(`[handleErrorRecovery] Found "${pattern.text}", clicking "${pattern.action}"`);
       await clickIfVisible(page, pattern.action, { timeout: 1000 });
@@ -90,17 +89,22 @@ async function waitForTransientToClear(page: Page, maxWaitMs = 10000): Promise<b
   while (Date.now() - startTime < maxWaitMs) {
     let foundTransient = false;
     for (const pattern of TRANSIENT_PATTERNS) {
-      if (await page.getByText(pattern).isVisible({ timeout: 100 }).catch(() => false)) {
+      if (
+        await page
+          .getByText(pattern)
+          .isVisible({ timeout: 100 })
+          .catch(() => false)
+      ) {
         foundTransient = true;
         sawTransient = true;
         break;
       }
     }
-    
+
     if (!foundTransient) {
       return sawTransient;
     }
-    
+
     await page.waitForTimeout(200);
   }
 
@@ -114,14 +118,20 @@ async function waitForTransientToClear(page: Page, maxWaitMs = 10000): Promise<b
  */
 async function isHomeReady(page: Page): Promise<boolean> {
   // Root must be present (stable screen gate)
-  const hasRoot = await page.locator(`[data-testid="${TESTIDS.homeScreenRoot}"]`).isVisible({ timeout: 200 }).catch(() => false);
+  const hasRoot = await page
+    .locator(`[data-testid="${TESTIDS.homeScreenRoot}"]`)
+    .isVisible({ timeout: 200 })
+    .catch(() => false);
   if (!hasRoot) {
     return false;
   }
 
   // First check no blocking modals are visible
   for (const pattern of BLOCKING_MODAL_PATTERNS) {
-    const isBlocking = await page.getByText(pattern).isVisible({ timeout: 100 }).catch(() => false);
+    const isBlocking = await page
+      .getByText(pattern)
+      .isVisible({ timeout: 100 })
+      .catch(() => false);
     if (isBlocking) {
       console.log(`[isHomeReady] Blocked by modal: "${pattern}"`);
       return false;
@@ -130,7 +140,10 @@ async function isHomeReady(page: Page): Promise<boolean> {
 
   // Check no transient states (loading indicators)
   for (const pattern of TRANSIENT_PATTERNS) {
-    const isTransient = await page.getByText(pattern).isVisible({ timeout: 100 }).catch(() => false);
+    const isTransient = await page
+      .getByText(pattern)
+      .isVisible({ timeout: 100 })
+      .catch(() => false);
     if (isTransient) {
       console.log(`[isHomeReady] Transient state: "${pattern}"`);
       return false;
@@ -139,7 +152,10 @@ async function isHomeReady(page: Page): Promise<boolean> {
 
   // Must see at least one home screen action button
   for (const selector of HOME_READY_SELECTORS) {
-    const isVisible = await page.locator(selector).isVisible({ timeout: 200 }).catch(() => false);
+    const isVisible = await page
+      .locator(selector)
+      .isVisible({ timeout: 200 })
+      .catch(() => false);
     if (isVisible) {
       return true;
     }
@@ -149,11 +165,11 @@ async function isHomeReady(page: Page): Promise<boolean> {
 
 /**
  * Complete anonymous login flow if login is required.
- * 
+ *
  * Handles:
  * - "需要登录" / "请先登录后继续" dialogs
  * - "点击登录" → "👤 匿名登录" flow
- * 
+ *
  * Returns true if login was performed.
  */
 async function completeAnonLoginIfNeeded(page: Page): Promise<boolean> {
@@ -167,7 +183,12 @@ async function completeAnonLoginIfNeeded(page: Page): Promise<boolean> {
   const loginPrompts = ['需要登录', '请先登录后继续', '请先登陆后继续'];
   let needsLogin = false;
   for (const prompt of loginPrompts) {
-    if (await page.getByText(prompt).isVisible({ timeout: 500 }).catch(() => false)) {
+    if (
+      await page
+        .getByText(prompt)
+        .isVisible({ timeout: 500 })
+        .catch(() => false)
+    ) {
       needsLogin = true;
       break;
     }
@@ -200,7 +221,12 @@ async function completeAnonLoginIfNeeded(page: Page): Promise<boolean> {
   // Dismiss any remaining login dialogs
   await page.waitForTimeout(300);
   for (const prompt of loginPrompts) {
-    if (await page.getByText(prompt).isVisible({ timeout: 300 }).catch(() => false)) {
+    if (
+      await page
+        .getByText(prompt)
+        .isVisible({ timeout: 300 })
+        .catch(() => false)
+    ) {
       await clickIfVisible(page, '取消', { exact: true, timeout: 500 });
       break;
     }
@@ -220,7 +246,12 @@ async function dismissBlockingModals(page: Page): Promise<boolean> {
   // Check if any blocking modal is visible
   let hasBlockingModal = false;
   for (const pattern of BLOCKING_MODAL_PATTERNS) {
-    if (await page.getByText(pattern).isVisible({ timeout: 100 }).catch(() => false)) {
+    if (
+      await page
+        .getByText(pattern)
+        .isVisible({ timeout: 100 })
+        .catch(() => false)
+    ) {
       hasBlockingModal = true;
       break;
     }
@@ -231,11 +262,11 @@ async function dismissBlockingModals(page: Page): Promise<boolean> {
   }
 
   // Try common dismiss buttons
-  const dismissed = 
-    await clickIfVisible(page, '取消', { exact: true, timeout: 300 }) ||
-    await clickIfVisible(page, '确定', { exact: true, timeout: 300 }) ||
-    await clickIfVisible(page, '关闭', { exact: true, timeout: 300 });
-  
+  const dismissed =
+    (await clickIfVisible(page, '取消', { exact: true, timeout: 300 })) ||
+    (await clickIfVisible(page, '确定', { exact: true, timeout: 300 })) ||
+    (await clickIfVisible(page, '关闭', { exact: true, timeout: 300 }));
+
   if (dismissed) {
     await page.waitForTimeout(300);
   }
@@ -244,22 +275,22 @@ async function dismissBlockingModals(page: Page): Promise<boolean> {
 
 /**
  * Ensure the app is on a stable home screen state.
- * 
+ *
  * This function handles:
  * 1. App hydration (React Native Web)
  * 2. Error recovery dialogs (retry buttons)
  * 3. Transient states (loading indicators)
  * 4. Blocking modals (login dialogs, etc.)
- * 
+ *
  * Stable home state = can see "创建房间" or "进入房间" buttons with no modal blocking.
- * 
+ *
  * @param page - Playwright Page
  * @param opts - Options for timeout and retry behavior
  * @throws Error if stable state cannot be reached
  */
 export async function ensureHomeReady(
   page: Page,
-  opts: { maxRetries?: number; timeoutMs?: number } = {}
+  opts: { maxRetries?: number; timeoutMs?: number } = {},
 ): Promise<void> {
   const { maxRetries = 5, timeoutMs = 30000 } = opts;
   const startTime = Date.now();
@@ -302,21 +333,23 @@ export async function ensureHomeReady(
   }
 
   await screenshotOnFail(page, 'ensureHomeReady-failed');
-  throw new Error(`[ensureHomeReady] Could not reach stable home state after ${maxRetries} attempts`);
+  throw new Error(
+    `[ensureHomeReady] Could not reach stable home state after ${maxRetries} attempts`,
+  );
 }
 
 /**
  * Ensure anonymous login is completed, then return to stable home state.
- * 
+ *
  * Strategy:
  * 1. If already logged in (user name visible), verify home is stable
  * 2. Otherwise click login button in header to trigger login
  * 3. Complete login flow
  * 4. Wait for home to be stable
- * 
- * IMPORTANT: We do NOT click "创建房间" to trigger login because that would 
+ *
+ * IMPORTANT: We do NOT click "创建房间" to trigger login because that would
  * also start a room creation flow after login completes.
- * 
+ *
  * @param page - Playwright Page
  */
 export async function ensureAnonLogin(page: Page): Promise<void> {
@@ -344,10 +377,10 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
       console.log('[ensureAnonLogin] Login button was replaced, checking if logged in...');
     }
     await page.waitForTimeout(500);
-    
+
     // Complete login flow
     await completeAnonLoginIfNeeded(page);
-    
+
     // Wait for home to be stable
     await ensureHomeReady(page);
     console.log('[ensureAnonLogin] Completed via login button');
@@ -369,11 +402,11 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
   await expect(createRoomBtn).toBeVisible({ timeout: 5000 });
   await createRoomBtn.click();
   await page.waitForTimeout(500);
-  
+
   await completeAnonLoginIfNeeded(page);
   await waitForPostLoginStable(page);
   await navigateBackToHome(page);
-  
+
   console.log('[ensureAnonLogin] Completed');
 }
 
@@ -383,21 +416,30 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
  */
 async function waitForPostLoginStable(page: Page, maxWaitMs = 15000): Promise<void> {
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < maxWaitMs) {
     // Check if we're on a stable screen using testIDs (preferred) or fallback regex
-    const onConfig = await page.locator(`[data-testid="${TESTIDS.configScreenRoot}"]`).isVisible({ timeout: 200 }).catch(() => false);
-    const onRoom = await page.locator(`[data-testid="${TESTIDS.roomScreenRoot}"]`).isVisible({ timeout: 200 }).catch(() => false);
-    const onHome = await page.locator(`[data-testid="${TESTIDS.homeScreenRoot}"]`).isVisible({ timeout: 200 }).catch(() => false);
-    
+    const onConfig = await page
+      .locator(`[data-testid="${TESTIDS.configScreenRoot}"]`)
+      .isVisible({ timeout: 200 })
+      .catch(() => false);
+    const onRoom = await page
+      .locator(`[data-testid="${TESTIDS.roomScreenRoot}"]`)
+      .isVisible({ timeout: 200 })
+      .catch(() => false);
+    const onHome = await page
+      .locator(`[data-testid="${TESTIDS.homeScreenRoot}"]`)
+      .isVisible({ timeout: 200 })
+      .catch(() => false);
+
     if (onConfig || onRoom || onHome) {
       return;
     }
-    
+
     // Still in transient state, wait
     await page.waitForTimeout(300);
   }
-  
+
   console.log('[waitForPostLoginStable] Timeout, continuing anyway');
 }
 
@@ -407,10 +449,13 @@ async function waitForPostLoginStable(page: Page, maxWaitMs = 15000): Promise<vo
  */
 async function navigateBackToHome(page: Page): Promise<void> {
   const maxAttempts = 5;
-  
+
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // Check if we're on ConfigScreen using testID
-    const onConfig = await page.locator(`[data-testid="${TESTIDS.configScreenRoot}"]`).isVisible({ timeout: 300 }).catch(() => false);
+    const onConfig = await page
+      .locator(`[data-testid="${TESTIDS.configScreenRoot}"]`)
+      .isVisible({ timeout: 300 })
+      .catch(() => false);
     if (onConfig) {
       console.log('[navigateBackToHome] On ConfigScreen, clicking back');
       const backBtn = getVisibleText(page, '←');
@@ -420,22 +465,25 @@ async function navigateBackToHome(page: Page): Promise<void> {
         continue;
       }
     }
-    
+
     // Check if we're on RoomScreen using testID
-    const onRoom = await page.locator(`[data-testid="${TESTIDS.roomScreenRoot}"]`).isVisible({ timeout: 300 }).catch(() => false);
+    const onRoom = await page
+      .locator(`[data-testid="${TESTIDS.roomScreenRoot}"]`)
+      .isVisible({ timeout: 300 })
+      .catch(() => false);
     if (onRoom) {
       console.log('[navigateBackToHome] On RoomScreen, need to leave room');
       // This is a more complex case - for now just return and let the caller handle
       // The test might need to leave the room explicitly
       return;
     }
-    
+
     // Check if home is truly ready (no transient states)
     if (await isHomeReady(page)) {
       console.log('[navigateBackToHome] Home is ready');
       return;
     }
-    
+
     // Try back button anyway
     const backBtn = getVisibleText(page, '←');
     if (await backBtn.isVisible({ timeout: 500 }).catch(() => false)) {
@@ -443,11 +491,11 @@ async function navigateBackToHome(page: Page): Promise<void> {
       await page.waitForTimeout(500);
       continue;
     }
-    
+
     // Maybe transient state - wait
     await page.waitForTimeout(500);
   }
-  
+
   // Final check - use ensureHomeReady which handles transient states
   await ensureHomeReady(page);
 }
@@ -468,10 +516,10 @@ export async function getCurrentRoomCode(page: Page): Promise<string | null> {
 
 /**
  * Ensure we're either in a room or on a stable home screen.
- * 
+ *
  * If already in room (房间 XXXX visible), returns immediately.
  * Otherwise ensures home is ready.
- * 
+ *
  * @returns Room code if in room, null if on home
  */
 export async function ensureInRoomOrHomeReady(page: Page): Promise<string | null> {
@@ -509,26 +557,28 @@ export async function extractRoomNumber(page: Page): Promise<string> {
 /**
  * Create a new room from home screen.
  * Assumes we're logged in and on home screen.
- * 
+ *
  * @param page - Playwright Page
  * @returns Room code of created room
  */
 export async function createRoom(page: Page): Promise<string> {
   console.log('[createRoom] Starting...');
-  
+
   // Click 创建房间
   await page.locator(`[data-testid="${TESTIDS.homeCreateRoomButton}"]`).click();
-  
+
   // Wait for config screen
-  await expect(page.locator(`[data-testid="${TESTIDS.configScreenRoot}"]`)).toBeVisible({ timeout: 10000 });
-  
+  await expect(page.locator(`[data-testid="${TESTIDS.configScreenRoot}"]`)).toBeVisible({
+    timeout: 10000,
+  });
+
   // Click 创建 to create the room (header right button)
   await getVisibleText(page, '创建').click();
-  
+
   // Wait for room to be created (room header visible)
   const { waitForRoomScreenReady } = await import('./waits');
   await waitForRoomScreenReady(page, { role: 'host' });
-  
+
   // Extract and return room code
   const roomCode = await extractRoomNumber(page);
   console.log(`[createRoom] Room ${roomCode} created`);
@@ -538,31 +588,29 @@ export async function createRoom(page: Page): Promise<string> {
 /**
  * Join an existing room from home screen.
  * Assumes we're logged in and on home screen.
- * 
+ *
  * @param page - Playwright Page
  * @param roomCode - 4-digit room code
  */
 export async function joinRoom(page: Page, roomCode: string): Promise<void> {
   console.log(`[joinRoom] Joining room ${roomCode}...`);
-  
+
   // Click 进入房间
   await page.locator(`[data-testid="${TESTIDS.homeEnterRoomButton}"]`).click();
-  
+
   // Wait for join dialog
   await expect(page.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-  
+
   // Enter room code
-  const input = page.locator('input[placeholder*="房间号"]').or(
-    page.locator('input').first()
-  );
+  const input = page.locator('input[placeholder*="房间号"]').or(page.locator('input').first());
   await input.fill(roomCode);
-  
+
   // Click 加入
   await page.getByText('加入', { exact: true }).click();
-  
+
   // Wait for room to load
   const { waitForRoomScreenReady } = await import('./waits');
   await waitForRoomScreenReady(page, { role: 'joiner' });
-  
+
   console.log(`[joinRoom] Joined room ${roomCode}`);
 }

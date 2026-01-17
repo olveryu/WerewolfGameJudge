@@ -26,7 +26,7 @@ export const setAlertListener = (listener: AlertListener | null) => {
  */
 export const showAlert = (title: string, message?: string, buttons?: AlertButton[]) => {
   const alertButtons = buttons || [{ text: '确定' }];
-  
+
   // Use custom modal if listener is set (preferred for consistent UI)
   if (alertListener) {
     alertListener({
@@ -36,7 +36,7 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
     });
     return;
   }
-  
+
   // Fallback to native alert
   if (Platform.OS === 'web') {
     // For web without custom modal, use prompt for multiple buttons
@@ -45,9 +45,9 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
       alertButtons[0]?.onPress?.();
     } else if (alertButtons.length === 2) {
       const confirmed = window.confirm(
-        message 
-          ? `${title}\n\n${message}\n\n点击"确定"选择: ${alertButtons[1].text}\n点击"取消"选择: ${alertButtons[0].text}` 
-          : `${title}\n\n点击"确定"选择: ${alertButtons[1].text}\n点击"取消"选择: ${alertButtons[0].text}`
+        message
+          ? `${title}\n\n${message}\n\n点击"确定"选择: ${alertButtons[1].text}\n点击"取消"选择: ${alertButtons[0].text}`
+          : `${title}\n\n点击"确定"选择: ${alertButtons[1].text}\n点击"取消"选择: ${alertButtons[0].text}`,
       );
       if (confirmed) {
         alertButtons[1]?.onPress?.();
@@ -57,10 +57,10 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
     } else {
       const optionsText = alertButtons.map((b, i) => `${i + 1}. ${b.text}`).join('\n');
       const result = window.prompt(
-        message 
+        message
           ? `${title}\n\n${message}\n\n请输入选项编号:\n${optionsText}`
           : `${title}\n\n请输入选项编号:\n${optionsText}`,
-        '1'
+        '1',
       );
       if (result !== null) {
         const index = parseInt(result, 10) - 1;
@@ -79,10 +79,10 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
  * Returns the entered value or null if cancelled
  */
 export const showPrompt = (
-  title: string, 
+  title: string,
   message?: string,
   placeholder?: string,
-  secureTextEntry = false
+  secureTextEntry = false,
 ): Promise<string | null> => {
   return new Promise((resolve) => {
     if (Platform.OS === 'web') {
@@ -99,7 +99,7 @@ export const showPrompt = (
         ],
         secureTextEntry ? 'secure-text' : 'plain-text',
         '',
-        placeholder ? 'default' : undefined
+        placeholder ? 'default' : undefined,
       );
     }
   });

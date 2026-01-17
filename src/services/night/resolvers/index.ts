@@ -1,6 +1,6 @@
 /**
  * Resolvers Registry (HOST-ONLY)
- * 
+ *
  * ⚠️ WARNING: This module MUST NOT be imported by UI code.
  * Use the import boundary test in __tests__/import-boundary.test.ts to enforce this.
  */

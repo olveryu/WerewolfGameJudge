@@ -2,7 +2,6 @@ import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { RoomScreen } from '../RoomScreen';
 import { TESTIDS } from '../../../testids';
-import { TouchableOpacity } from 'react-native';
 
 // We assert on showAlert calls (RoomScreen uses this wrapper)
 import { showAlert } from '../../../utils/alert';
@@ -33,7 +32,6 @@ const mockRequestSnapshot = jest.fn();
 type UseGameRoomReturn = any;
 let mockUseGameRoomImpl: () => UseGameRoomReturn;
 
-
 jest.mock('../../../hooks/useGameRoom', () => ({
   useGameRoom: () => mockUseGameRoomImpl(),
 }));
@@ -62,7 +60,7 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
             role: i === 0 ? 'wolfQueen' : 'villager',
             hasViewedRole: true,
           },
-        ])
+        ]),
       ),
       actions: new Map(),
       wolfVotes: new Map(),
@@ -91,7 +89,7 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
 
     // Identity
     mySeatNumber: 0,
-  myRole: 'wolfQueen',
+    myRole: 'wolfQueen',
 
     // Actions used by RoomScreen
     createRoom: jest.fn(),
@@ -119,12 +117,12 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     getLastNightInfo: jest.fn().mockReturnValue(''),
     getLastNightDeaths: jest.fn().mockReturnValue([]),
 
-  // Reveal plumbing (not used in this test, but destructured by RoomScreen)
-  waitForSeerReveal: jest.fn(),
-  waitForPsychicReveal: jest.fn(),
-  waitForGargoyleReveal: jest.fn(),
-  waitForWolfRobotReveal: jest.fn(),
-  submitRevealAck: jest.fn(),
+    // Reveal plumbing (not used in this test, but destructured by RoomScreen)
+    waitForSeerReveal: jest.fn(),
+    waitForPsychicReveal: jest.fn(),
+    waitForGargoyleReveal: jest.fn(),
+    waitForWolfRobotReveal: jest.fn(),
+    submitRevealAck: jest.fn(),
     ...overrides,
   };
 }
@@ -168,7 +166,12 @@ jest.mock('../hooks/useActionerState', () => ({
 // (seat tap -> intent -> showWolfVoteDialog).
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showWolfVoteDialog: (wolfName: string, targetIndex: number, onConfirm: () => void, messageOverride?: string) => {
+    showWolfVoteDialog: (
+      wolfName: string,
+      targetIndex: number,
+      onConfirm: () => void,
+      messageOverride?: string,
+    ) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       const msg =
         messageOverride ||
@@ -195,7 +198,7 @@ jest.mock('../useRoomActionDialogs', () => ({
 describe('RoomScreen wolf vote UI', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-  mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
+    mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
   });
 
   it('wolf vote dialog -> confirm triggers submitWolfVote', () => {
@@ -210,10 +213,13 @@ describe('RoomScreen wolf vote UI', () => {
     expect(showAlert).toHaveBeenCalledWith(
       '狼人投票',
       expect.stringContaining('确定要猎杀3号玩家吗？'),
-      expect.any(Array)
+      expect.any(Array),
     );
 
-    const buttons = (showAlert as jest.Mock).mock.calls[0][2] as Array<{ text: string; onPress?: () => void }>;
+    const buttons = (showAlert as jest.Mock).mock.calls[0][2] as Array<{
+      text: string;
+      onPress?: () => void;
+    }>;
     const confirmBtn = buttons.find((b) => b.text === '确定');
     expect(confirmBtn).toBeDefined();
     confirmBtn?.onPress?.();
@@ -230,15 +236,15 @@ describe('RoomScreen wolf vote UI', () => {
           template: '梦魇守卫12人',
         },
       },
-  };
+    };
 
-  const { findByTestId, findByText } = render(<RoomScreen {...props} />);
+    const { findByTestId, findByText } = render(<RoomScreen {...props} />);
 
-  // Ensure we're in the actionable state and the UI finished initial render
-  await findByText(/请选择要猎杀的玩家/);
+    // Ensure we're in the actionable state and the UI finished initial render
+    await findByText(/请选择要猎杀的玩家/);
 
     // Tap seat 3 (index 2)
-  const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
+    const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
     await act(async () => {
       fireEvent.press(seatPressable);
     });
@@ -246,27 +252,30 @@ describe('RoomScreen wolf vote UI', () => {
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
         '狼人投票',
-  expect.stringContaining('确定要猎杀该玩家吗？'),
-        expect.any(Array)
+        expect.stringContaining('确定要猎杀该玩家吗？'),
+        expect.any(Array),
       );
     });
 
-  const buttons = (showAlert as jest.Mock).mock.calls[0][2] as Array<{ text: string; onPress?: () => void }>;
-  const confirmBtn = buttons.find((b) => b.text === '确定');
-  expect(confirmBtn).toBeDefined();
-  confirmBtn?.onPress?.();
-  expect(mockSubmitWolfVote).toHaveBeenCalledWith(2);
+    const buttons = (showAlert as jest.Mock).mock.calls[0][2] as Array<{
+      text: string;
+      onPress?: () => void;
+    }>;
+    const confirmBtn = buttons.find((b) => b.text === '确定');
+    expect(confirmBtn).toBeDefined();
+    confirmBtn?.onPress?.();
+    expect(mockSubmitWolfVote).toHaveBeenCalledWith(2);
   });
 
   it('forbidden target role should be disabled in UI (no vote sent, show hint)', async () => {
     // Commit 5 (UX-only): wolves should not be able to vote for forbidden target roles.
     // Host already enforces this via ACTION_REJECTED; UI adds early disable/hint.
 
-  // Override just the players map: seat 3 (index 2) is spiritKnight, which is forbidden by meeting vote config.
-  mockUseGameRoomImpl = () => {
+    // Override just the players map: seat 3 (index 2) is spiritKnight, which is forbidden by meeting vote config.
+    mockUseGameRoomImpl = () => {
       const base = makeBaseUseGameRoomReturn();
       const players = new Map(base.gameState.players);
-  const target = players.get(2);
+      const target = players.get(2);
       players.set(2, {
         ...(target ?? {
           uid: 'p2',
@@ -276,7 +285,7 @@ describe('RoomScreen wolf vote UI', () => {
           role: 'villager',
           hasViewedRole: true,
         }),
-  role: 'spiritKnight',
+        role: 'spiritKnight',
       });
       return makeBaseUseGameRoomReturn({
         gameState: {
@@ -301,11 +310,11 @@ describe('RoomScreen wolf vote UI', () => {
       },
     };
 
-  const { findByTestId, findByText } = render(<RoomScreen {...props} />);
-  await findByText(/请选择要猎杀的玩家/);
+    const { findByTestId, findByText } = render(<RoomScreen {...props} />);
+    await findByText(/请选择要猎杀的玩家/);
 
-  // Ignore any alerts from initial render/auto intent.
-  (showAlert as jest.Mock).mockClear();
+    // Ignore any alerts from initial render/auto intent.
+    (showAlert as jest.Mock).mockClear();
 
     // Tap seat 3 (index 2) -> spiritKnight (forbidden target role)
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));

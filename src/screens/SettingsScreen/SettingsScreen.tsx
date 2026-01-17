@@ -29,11 +29,11 @@ interface AvatarSectionProps {
   onPickAvatar: () => void;
 }
 
-const AvatarSection: React.FC<AvatarSectionProps> = ({ 
-  isAnonymous, 
-  avatarSource, 
-  uploadingAvatar, 
-  onPickAvatar 
+const AvatarSection: React.FC<AvatarSectionProps> = ({
+  isAnonymous,
+  avatarSource,
+  uploadingAvatar,
+  onPickAvatar,
 }) => {
   if (isAnonymous) {
     return <Image source={avatarSource} style={styles.avatar} />;
@@ -147,7 +147,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
   return (
     <View style={styles.authForm}>
       <Text style={styles.authTitle}>{isSignUp ? '注册账号' : '邮箱登录'}</Text>
-      
+
       <TextInput
         style={styles.input}
         placeholder="邮箱"
@@ -157,7 +157,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
         keyboardType="email-address"
         autoCapitalize="none"
       />
-      
+
       <TextInput
         style={styles.input}
         placeholder="密码"
@@ -166,7 +166,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
         onChangeText={onPasswordChange}
         secureTextEntry
       />
-      
+
       {isSignUp && (
         <TextInput
           style={styles.input}
@@ -176,23 +176,23 @@ const AuthForm: React.FC<AuthFormProps> = ({
           onChangeText={onDisplayNameChange}
         />
       )}
-      
+
       {authError && <Text style={styles.errorText}>{authError}</Text>}
-      
-      <TouchableOpacity 
-        style={[styles.authBtn, authLoading && styles.authBtnDisabled]} 
+
+      <TouchableOpacity
+        style={[styles.authBtn, authLoading && styles.authBtnDisabled]}
         onPress={onSubmit}
         disabled={authLoading}
       >
         <Text style={styles.authBtnText}>{getButtonText()}</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.switchAuthBtn} onPress={onToggleMode}>
         <Text style={styles.switchAuthText}>
           {isSignUp ? '已有账号？去登录' : '没有账号？去注册'}
         </Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.cancelAuthBtn} onPress={onCancel}>
         <Text style={styles.cancelAuthText}>取消</Text>
       </TouchableOpacity>
@@ -212,16 +212,14 @@ const AuthOptions: React.FC<AuthOptionsProps> = ({ authLoading, onShowForm, onAn
       <Text style={styles.authOptionIcon}>📧</Text>
       <Text style={styles.authOptionText}>邮箱登录/注册</Text>
     </TouchableOpacity>
-    
-    <TouchableOpacity 
+
+    <TouchableOpacity
       style={[styles.authOptionBtn, styles.authOptionBtnSecondary]}
       onPress={onAnonymousLogin}
       disabled={authLoading}
     >
       <Text style={styles.authOptionIcon}>👤</Text>
-      <Text style={styles.authOptionTextSecondary}>
-        {authLoading ? '处理中...' : '匿名登录'}
-      </Text>
+      <Text style={styles.authOptionTextSecondary}>{authLoading ? '处理中...' : '匿名登录'}</Text>
     </TouchableOpacity>
   </View>
 );
@@ -232,26 +230,26 @@ const AuthOptions: React.FC<AuthOptionsProps> = ({ authLoading, onShowForm, onAn
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { 
-    user, 
-    signOut, 
-    isAuthenticated, 
+  const {
+    user,
+    signOut,
+    isAuthenticated,
     signInAnonymously,
-    signUpWithEmail, 
-    signInWithEmail, 
+    signUpWithEmail,
+    signInWithEmail,
     updateProfile,
     uploadAvatar,
     error: authError,
     loading: authLoading,
   } = useAuth();
-  
+
   // Auth form state
   const [showAuthForm, setShowAuthForm] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  
+
   // Edit profile state
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState('');
@@ -259,8 +257,9 @@ const SettingsScreen: React.FC = () => {
 
   // Reset transient states when screen regains focus (e.g. after back navigation)
   useEffect(() => {
-    const addListener = (navigation as unknown as { addListener?: (event: string, cb: () => void) => () => void })
-      .addListener;
+    const addListener = (
+      navigation as unknown as { addListener?: (event: string, cb: () => void) => () => void }
+    ).addListener;
 
     if (!addListener) {
       // Jest tests may mock navigation without addListener; don't crash.
@@ -327,7 +326,7 @@ const SettingsScreen: React.FC = () => {
       showAlert('请输入邮箱和密码');
       return;
     }
-    
+
     try {
       if (isSignUp) {
         await signUpWithEmail(email, password, displayName || undefined);
@@ -351,7 +350,7 @@ const SettingsScreen: React.FC = () => {
       showAlert('请输入名字');
       return;
     }
-    
+
     try {
       await updateProfile({ displayName: editName.trim() });
       setIsEditingName(false);
@@ -396,24 +395,22 @@ const SettingsScreen: React.FC = () => {
               onCancel={() => setIsEditingName(false)}
             />
           </View>
-          
+
           <View style={styles.accountRow}>
             <Text style={styles.accountLabel}>状态</Text>
             <View style={styles.statusBadge}>
               <View style={styles.statusDot} />
-              <Text style={styles.statusText}>
-                {user?.isAnonymous ? '匿名登录' : '邮箱登录'}
-              </Text>
+              <Text style={styles.statusText}>{user?.isAnonymous ? '匿名登录' : '邮箱登录'}</Text>
             </View>
           </View>
-          
+
           {user?.email && (
             <View style={styles.accountRow}>
               <Text style={styles.accountLabel}>邮箱</Text>
               <Text style={styles.accountValue}>{user.email}</Text>
             </View>
           )}
-          
+
           <View style={styles.accountRow}>
             <Text style={styles.accountLabel}>用户 ID</Text>
             <Text style={styles.accountValue}>{user?.uid.slice(0, 12)}...</Text>
@@ -463,7 +460,7 @@ const SettingsScreen: React.FC = () => {
         <Text style={styles.title}>设置</Text>
         <View style={styles.placeholder} />
       </View>
-      
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>👤 账户</Text>
@@ -472,7 +469,7 @@ const SettingsScreen: React.FC = () => {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>ℹ️ 系统信息</Text>
-          
+
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>版本</Text>
             <Text style={styles.infoValue}>1.0.0</Text>

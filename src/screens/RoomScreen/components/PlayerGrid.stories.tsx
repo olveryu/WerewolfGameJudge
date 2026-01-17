@@ -1,6 +1,6 @@
 /**
  * PlayerGrid.stories.tsx - Stories for the real PlayerGrid component
- * 
+ *
  * This file imports the ACTUAL PlayerGrid component and provides
  * different seat configurations to test various UI states.
  */
@@ -27,7 +27,7 @@ const createEmptySeat = (index: number): SeatViewModel => ({
 const createFilledSeat = (
   index: number,
   name: string,
-  options: Partial<SeatViewModel> = {}
+  options: Partial<SeatViewModel> = {},
 ): SeatViewModel => ({
   index,
   role: 'villager',
@@ -47,9 +47,7 @@ const createFilledSeat = (
 // ─────────────────────────────────────────────────────────────────────────────
 
 const GridWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <View style={wrapperStyles.container}>
-    {children}
-  </View>
+  <View style={wrapperStyles.container}>{children}</View>
 );
 
 const wrapperStyles = StyleSheet.create({
@@ -248,7 +246,7 @@ export const BlockedPlayerView: Story = {
       createFilledSeat(i, `玩家${i + 1}`, {
         isMySpot: i === 2,
         disabledReason: i === 2 ? undefined : '你已被梦魇封锁，无法行动',
-      })
+      }),
     ),
     roomNumber: '1234',
     onSeatPress: (index) => console.log('Seat pressed:', index),
@@ -259,9 +257,7 @@ export const TwelveSeats: Story = {
   name: '12人局',
   args: {
     seats: Array.from({ length: 12 }, (_, i) =>
-      i < 10
-        ? createFilledSeat(i, `玩家${i + 1}`, { isMySpot: i === 5 })
-        : createEmptySeat(i)
+      i < 10 ? createFilledSeat(i, `玩家${i + 1}`, { isMySpot: i === 5 }) : createEmptySeat(i),
     ),
     roomNumber: '5678',
     onSeatPress: (index) => console.log('Seat pressed:', index),

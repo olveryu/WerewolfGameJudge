@@ -1,6 +1,6 @@
 /**
  * Guard Resolver Unit Tests
- * 
+ *
  * Tests for guardProtectResolver validation and resolution logic.
  */
 

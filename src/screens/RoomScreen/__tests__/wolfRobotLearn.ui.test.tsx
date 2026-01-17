@@ -1,6 +1,6 @@
 /**
  * Wolf Robot UI Test
- * 
+ *
  * Tests wolfRobotLearn schema UI: prompt, seat selection, confirm dialog, reveal flow.
  */
 
@@ -25,16 +25,19 @@ jest.mock('react-native-safe-area-context', () => ({
 const mockShowAlert = showAlert as jest.Mock;
 const mockSubmitAction = jest.fn();
 
-const makeMock = () => makeBaseUseGameRoomReturn({
-  schemaId: 'wolfRobotLearn',
-  currentActionRole: 'wolfRobot',
-  myRole: 'wolfRobot',
-  mySeatNumber: 0,
-  overrides: {
-    submitAction: mockSubmitAction,
-    waitForWolfRobotReveal: jest.fn().mockResolvedValue({ kind: 'WOLF_ROBOT_REVEAL', targetSeat: 2, result: '预言家' }),
-  },
-});
+const makeMock = () =>
+  makeBaseUseGameRoomReturn({
+    schemaId: 'wolfRobotLearn',
+    currentActionRole: 'wolfRobot',
+    myRole: 'wolfRobot',
+    mySeatNumber: 0,
+    overrides: {
+      submitAction: mockSubmitAction,
+      waitForWolfRobotReveal: jest
+        .fn()
+        .mockResolvedValue({ kind: 'WOLF_ROBOT_REVEAL', targetSeat: 2, result: '预言家' }),
+    },
+  });
 
 let mockUseGameRoomReturn: ReturnType<typeof makeMock>;
 
@@ -53,14 +56,14 @@ describe('Wolf Robot UI (wolfRobotLearn schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         '行动提示',
         SCHEMAS.wolfRobotLearn.ui.prompt,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -70,7 +73,7 @@ describe('Wolf Robot UI (wolfRobotLearn schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -85,7 +88,7 @@ describe('Wolf Robot UI (wolfRobotLearn schema)', () => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         SCHEMAS.wolfRobotLearn.ui.confirmTitle,
         SCHEMAS.wolfRobotLearn.ui.confirmText,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -95,7 +98,7 @@ describe('Wolf Robot UI (wolfRobotLearn schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -108,11 +111,7 @@ describe('Wolf Robot UI (wolfRobotLearn schema)', () => {
     fireEvent.press(seat0);
 
     await waitFor(() => {
-      expect(mockShowAlert).toHaveBeenCalledWith(
-        '不可选择',
-        '不能选择自己',
-        expect.any(Array)
-      );
+      expect(mockShowAlert).toHaveBeenCalledWith('不可选择', '不能选择自己', expect.any(Array));
     });
   });
 

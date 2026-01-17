@@ -1,6 +1,6 @@
 /**
  * Nightmare Blocked UI Test
- * 
+ *
  * Tests that nightmare-blocked players see correct UI from BLOCKED_UI_DEFAULTS.
  * This is a UI-level lock test for P2 schema-driven changes.
  */
@@ -62,7 +62,7 @@ describe('Nightmare Blocked UI', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -80,7 +80,7 @@ describe('Nightmare Blocked UI', () => {
         BLOCKED_UI_DEFAULTS.message,
         expect.arrayContaining([
           expect.objectContaining({ text: BLOCKED_UI_DEFAULTS.dismissButtonText }),
-        ])
+        ]),
       );
     });
   });
@@ -102,7 +102,7 @@ describe('Nightmare Blocked UI', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     // Wait for the action prompt to trigger
@@ -111,7 +111,7 @@ describe('Nightmare Blocked UI', () => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         BLOCKED_UI_DEFAULTS.title,
         BLOCKED_UI_DEFAULTS.message,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });

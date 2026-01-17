@@ -1,15 +1,14 @@
 /**
  * visibility.contract.test.ts - Anti-cheat visibility contract tests
- * 
+ *
  * These tests verify that:
  * 1. PublicPayload/PublicGameState do NOT contain sensitive fields
  * 2. Type separation is enforced at compile time
- * 
+ *
  * @see docs/phase4-final-migration.md
  */
 
 import type {
-  PublicPayload,
   PublicGameState,
   PublicRoleTurn,
   PrivatePayload,
@@ -40,12 +39,11 @@ const SENSITIVE_FIELD_NAMES = [
 ] as const;
 
 describe('Visibility Contract (Anti-cheat)', () => {
-
   describe('PublicGameState whitelist', () => {
     it('should NOT contain any sensitive fields in its type definition', () => {
       // This test documents the whitelist contract
       // The actual enforcement is compile-time (TypeScript type checking)
-      
+
       // Create a mock PublicGameState to verify structure
       const mockState: PublicGameState = {
         roomCode: 'ABCD',
@@ -150,20 +148,24 @@ describe('Visibility Contract (Anti-cheat)', () => {
   describe('Type separation enforcement', () => {
     it('PrivatePayload discriminated union covers all sensitive payloads', () => {
       // This test documents the expected payload kinds
-      const payloadKinds = [
-        'WITCH_CONTEXT',
-        'SEER_REVEAL',
-        'PSYCHIC_REVEAL',
-        'BLOCKED',
-      ] as const;
+      const payloadKinds = ['WITCH_CONTEXT', 'SEER_REVEAL', 'PSYCHIC_REVEAL', 'BLOCKED'] as const;
 
       // Type-level test: ensure PrivatePayload is a union of the expected types
-      type ExpectedKinds = PrivatePayload['kind'];
-      
+      type _ExpectedKinds = PrivatePayload['kind'];
+
       // Runtime verification
-      const witchContext: PrivatePayload = { kind: 'WITCH_CONTEXT', killedIndex: -1, canSave: false, canPoison: true };
+      const witchContext: PrivatePayload = {
+        kind: 'WITCH_CONTEXT',
+        killedIndex: -1,
+        canSave: false,
+        canPoison: true,
+      };
       const seerReveal: PrivatePayload = { kind: 'SEER_REVEAL', targetSeat: 1, result: '好人' };
-      const psychicReveal: PrivatePayload = { kind: 'PSYCHIC_REVEAL', targetSeat: 2, result: '预言家' };
+      const psychicReveal: PrivatePayload = {
+        kind: 'PSYCHIC_REVEAL',
+        targetSeat: 2,
+        result: '预言家',
+      };
       const blocked: PrivatePayload = { kind: 'BLOCKED', reason: 'nightmare' };
 
       expect(payloadKinds).toContain(witchContext.kind);

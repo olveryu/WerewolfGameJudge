@@ -1,6 +1,6 @@
 /**
  * Tests for useGameRoom hook
- * 
+ *
  * Focus: Room number consistency - ensuring that when a roomNumber is provided,
  * createRoom uses it instead of generating a new one.
  */
@@ -18,7 +18,7 @@ jest.mock('../../services/GameStateService');
 
 // Helper to create mock template
 // Phase 5: actionOrder removed from GameTemplate
-const createMockTemplate = (): GameTemplate => ({
+const _createMockTemplate = (): GameTemplate => ({
   name: 'Test Template',
   roles: ['wolf', 'seer', 'witch', 'villager'] as RoleId[],
   numberOfPlayers: 4,
@@ -31,7 +31,7 @@ describe('useGameRoom - Room Number Consistency', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Setup mock implementations
     mockRoomService = {
       generateRoomNumber: jest.fn().mockResolvedValue('9999'),
@@ -71,19 +71,19 @@ describe('useGameRoom - Room Number Consistency', () => {
     it('should use provided roomNumber instead of generating a new one', async () => {
       // This test verifies the core fix:
       // When createRoom is called with a roomNumber, it should NOT call generateRoomNumber
-      
+
       const providedRoomNumber = '4219';
-      
+
       // Simulate what createRoom does internally:
       await mockAuthService.waitForInit();
       mockAuthService.getCurrentUserId();
-      
+
       // The fix: Use provided room number, don't generate
-      const roomNumber = providedRoomNumber ?? await mockRoomService.generateRoomNumber();
-      
+      const roomNumber = providedRoomNumber ?? (await mockRoomService.generateRoomNumber());
+
       // Assert: generateRoomNumber should NOT be called
       expect(mockRoomService.generateRoomNumber).not.toHaveBeenCalled();
-      
+
       // Assert: The roomNumber should be the provided one
       expect(roomNumber).toBe('4219');
     });
@@ -92,14 +92,14 @@ describe('useGameRoom - Room Number Consistency', () => {
       // Simulate what createRoom does when NO roomNumber is provided:
       await mockAuthService.waitForInit();
       mockAuthService.getCurrentUserId();
-      
+
       // The logic: Generate if not provided
       const providedRoomNumber: string | undefined = undefined;
-      const roomNumber = providedRoomNumber ?? await mockRoomService.generateRoomNumber();
-      
+      const roomNumber = providedRoomNumber ?? (await mockRoomService.generateRoomNumber());
+
       // Assert: generateRoomNumber SHOULD be called
       expect(mockRoomService.generateRoomNumber).toHaveBeenCalled();
-      
+
       // Assert: The roomNumber should be the generated one
       expect(roomNumber).toBe('9999');
     });
@@ -107,13 +107,13 @@ describe('useGameRoom - Room Number Consistency', () => {
     it('should pass the correct roomNumber to SimplifiedRoomService.createRoom', async () => {
       const providedRoomNumber = '4219';
       const hostUid = 'host-123';
-      
+
       // Call createRoom with the provided roomNumber
       await mockRoomService.createRoom(providedRoomNumber, hostUid);
-      
+
       // Assert: createRoom was called with the provided roomNumber
       expect(mockRoomService.createRoom).toHaveBeenCalledWith(providedRoomNumber, hostUid);
-      
+
       // Assert: The first argument is exactly the provided roomNumber
       expect(mockRoomService.createRoom.mock.calls[0][0]).toBe('4219');
     });
@@ -124,7 +124,7 @@ describe('useGameRoom - Room Number Consistency', () => {
       // Store the listener callback for later invocation
       type ListenerFn = (state: any) => void;
       let capturedListener: ListenerFn | null = null;
-      
+
       mockGameStateService.addListener = jest.fn().mockImplementation((listener: ListenerFn) => {
         capturedListener = listener;
         return jest.fn(); // unsubscribe

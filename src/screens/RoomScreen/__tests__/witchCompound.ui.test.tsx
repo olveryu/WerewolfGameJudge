@@ -43,7 +43,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
             role: i === 0 ? 'witch' : 'villager',
             hasViewedRole: true,
           },
-        ])
+        ]),
       ),
       actions: new Map(),
       wolfVotes: new Map(),
@@ -93,7 +93,9 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     waitForActionRejected: jest.fn().mockResolvedValue(null),
 
     // PR3: compound auto-trigger requires witch context (phase field removed).
-    getWitchContext: jest.fn().mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: 2, canSave: true, canPoison: true }),
+    getWitchContext: jest
+      .fn()
+      .mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: 2, canSave: true, canPoison: true }),
     getLastNightInfo: jest.fn().mockReturnValue(''),
 
     waitForSeerReveal: jest.fn(),
@@ -113,7 +115,12 @@ jest.mock('../hooks/useActionerState', () => ({
 
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showConfirmDialog: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
+    showConfirmDialog: (
+      title: string,
+      message: string,
+      onConfirm: () => void,
+      onCancel?: () => void,
+    ) => {
       const { showAlert: mockShowAlert } = require('../../../utils/alert');
       mockShowAlert(title, message, [
         { text: '确定', onPress: onConfirm },

@@ -1,6 +1,6 @@
 /**
  * Dreamcatcher UI Test
- * 
+ *
  * Tests dreamcatcherDream schema UI: prompt, seat selection, confirm dialog.
  * Note: dreamcatcher has canSkip=false.
  */
@@ -26,15 +26,16 @@ jest.mock('react-native-safe-area-context', () => ({
 const mockShowAlert = showAlert as jest.Mock;
 const mockSubmitAction = jest.fn();
 
-const makeMock = () => makeBaseUseGameRoomReturn({
-  schemaId: 'dreamcatcherDream',
-  currentActionRole: 'dreamcatcher',
-  myRole: 'dreamcatcher',
-  mySeatNumber: 0,
-  overrides: {
-    submitAction: mockSubmitAction,
-  },
-});
+const makeMock = () =>
+  makeBaseUseGameRoomReturn({
+    schemaId: 'dreamcatcherDream',
+    currentActionRole: 'dreamcatcher',
+    myRole: 'dreamcatcher',
+    mySeatNumber: 0,
+    overrides: {
+      submitAction: mockSubmitAction,
+    },
+  });
 
 let mockUseGameRoomReturn: ReturnType<typeof makeMock>;
 
@@ -53,14 +54,14 @@ describe('Dreamcatcher UI (dreamcatcherDream schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         '行动提示',
         SCHEMAS.dreamcatcherDream.ui.prompt,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -70,7 +71,7 @@ describe('Dreamcatcher UI (dreamcatcherDream schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -85,7 +86,7 @@ describe('Dreamcatcher UI (dreamcatcherDream schema)', () => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         SCHEMAS.dreamcatcherDream.ui.confirmTitle,
         SCHEMAS.dreamcatcherDream.ui.confirmText,
-        expect.any(Array)
+        expect.any(Array),
       );
     });
   });
@@ -95,7 +96,7 @@ describe('Dreamcatcher UI (dreamcatcherDream schema)', () => {
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -110,11 +111,7 @@ describe('Dreamcatcher UI (dreamcatcherDream schema)', () => {
     fireEvent.press(seat0);
 
     await waitFor(() => {
-      expect(mockShowAlert).toHaveBeenCalledWith(
-        '不可选择',
-        '不能选择自己',
-        expect.any(Array)
-      );
+      expect(mockShowAlert).toHaveBeenCalledWith('不可选择', '不能选择自己', expect.any(Array));
     });
   });
 

@@ -65,7 +65,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         guard: 0, // 守座位0
-        wolf: 0,  // 狼刀座位0
+        wolf: 0, // 狼刀座位0
         witch: null,
         seer: 4,
         hunter: null,
@@ -150,7 +150,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         guard: guardSeat, // 守卫守自己
-        wolf: guardSeat,  // 狼刀守卫
+        wolf: guardSeat, // 狼刀守卫
         witch: null,
         seer: 4,
         hunter: null,
@@ -167,7 +167,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         guard: 0, // 守座位0
-        wolf: 0,  // 狼刀座位0
+        wolf: 0, // 狼刀座位0
         witch: 0, // 救座位0
         seer: 4,
         hunter: null,
@@ -202,17 +202,17 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = await ctx.runNight({
-        guard: 0,         // 守卫守座位0
-        wolf: 1,          // 狼刀座位1
-        witchPoison: 0,   // 女巫毒座位0
+        guard: 0, // 守卫守座位0
+        wolf: 1, // 狼刀座位1
+        witchPoison: 0, // 女巫毒座位0
         seer: 4,
         hunter: null,
         darkWolfKing: null,
       });
 
       expect(result.completed).toBe(true);
-      expect(result.deaths).toContain(0);  // 守卫不防毒
-      expect(result.deaths).toContain(1);  // 狼刀目标死
+      expect(result.deaths).toContain(0); // 守卫不防毒
+      expect(result.deaths).toContain(1); // 狼刀目标死
     });
 
     it('预言家查黑狼王 → 查狼人身份', async () => {
@@ -238,16 +238,16 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         guard: null,
-        wolf: 0,          // 狼刀村民
-        witchPoison: 4,   // 女巫毒普狼
-        seer: 5,          // 预言家查另一狼
+        wolf: 0, // 狼刀村民
+        witchPoison: 4, // 女巫毒普狼
+        seer: 5, // 预言家查另一狼
         hunter: null,
         darkWolfKing: null,
       });
 
       expect(result.completed).toBe(true);
-      expect(result.deaths).toContain(0);  // 村民死
-      expect(result.deaths).toContain(4);  // 狼被毒死
+      expect(result.deaths).toContain(0); // 村民死
+      expect(result.deaths).toContain(4); // 狼被毒死
       expect(result.deaths.length).toBe(2);
     });
   });

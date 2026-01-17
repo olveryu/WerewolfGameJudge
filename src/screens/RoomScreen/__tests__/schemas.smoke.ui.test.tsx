@@ -64,7 +64,7 @@ jest.mock('../useRoomSeatDialogs', () => ({
 // Keep action dialogs no-op for smoke rendering.
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-  showWitchInfoPrompt: jest.fn(),
+    showWitchInfoPrompt: jest.fn(),
     showWitchSaveDialog: jest.fn(),
     showWitchPoisonConfirm: jest.fn(),
     showConfirmDialog: jest.fn(),
@@ -157,7 +157,7 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
             hasWolfVoted: room.hasWolfVoted,
             getWolfVoteSummary: room.getWolfVoteSummary,
             getWitchContext: room.getWitchContext,
-          }
+          },
         );
 
       const props: any = {
@@ -179,8 +179,8 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
         // Deterministically trigger the wolfVote intent through the RoomScreen hook contract.
         const dialogs = useRoomActionDialogs();
 
-  // Deterministically trigger the dialog through a small shim.
-  dialogs.showWolfVoteDialog('1号狼人', 1, jest.fn(), wolfSchema.ui?.confirmText);
+        // Deterministically trigger the dialog through a small shim.
+        dialogs.showWolfVoteDialog('1号狼人', 1, jest.fn(), wolfSchema.ui?.confirmText);
 
         await waitFor(() => {
           expect(dialogs.showWolfVoteDialog).toHaveBeenCalled();
