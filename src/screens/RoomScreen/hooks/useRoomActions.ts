@@ -12,8 +12,8 @@
 
 import { useCallback } from 'react';
 import type { LocalGameState } from '../../../services/types/GameStateTypes';
-import { RoomStatus } from '../../../models/Room';
-import { RoleName, isWolfRole } from '../../../models/roles';
+import { GameStatus } from '../../../models/Room';
+import { RoleId, isWolfRole } from '../../../models/roles';
 import type { ActionSchema, SchemaId, RevealKind } from '../../../models/roles/spec';
 import { SCHEMAS } from '../../../models/roles/spec';
 import { isValidSchemaId } from '../../../models/roles/spec';
@@ -66,12 +66,12 @@ export interface ActionIntent {
 
 export interface GameContext {
   gameState: LocalGameState | null;
-  roomStatus: RoomStatus;
-  currentActionRole: RoleName | null;
+  roomStatus: GameStatus;
+  currentActionRole: RoleId | null;
   currentSchema: ActionSchema | null;       // Phase 3: schema for current action role
   imActioner: boolean;
   mySeatNumber: number | null;
-  myRole: RoleName | null;
+  myRole: RoleId | null;
   isAudioPlaying: boolean;
   isBlockedByNightmare: boolean;
   anotherIndex: number | null;              // Magician first target
@@ -136,7 +136,7 @@ export interface BottomButton {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface IntentContext {
-  myRole: RoleName;
+  myRole: RoleId;
   schemaKind: ActionSchema['kind'] | undefined;
   schemaId: SchemaId | undefined;
   uiRevealKind: RevealKind | undefined;
@@ -152,7 +152,7 @@ interface IntentContext {
  * Exported for testability (avoid calling hooks directly in unit tests).
  */
 export function deriveSkipIntentFromSchema(
-  myRole: RoleName,
+  myRole: RoleId,
   currentSchema: ActionSchema | null | undefined,
   buildMessage: (idx: number) => string,
   isWolf: boolean,
@@ -323,7 +323,7 @@ export function useRoomActions(
 
   const canTapForAction = useCallback((): boolean => {
     if (!gameState) return false;
-    if (roomStatus !== RoomStatus.ongoing) return false;
+    if (roomStatus !== GameStatus.ongoing) return false;
     if (isAudioPlaying) return false;
     if (!imActioner) return false;
     return true;
@@ -364,7 +364,7 @@ export function useRoomActions(
     // Keep the same visibility rules previously in RoomScreen.
     if (!imActioner) return { buttons: [] };
     if (!gameState) return { buttons: [] };
-    if (roomStatus !== RoomStatus.ongoing) return { buttons: [] };
+    if (roomStatus !== GameStatus.ongoing) return { buttons: [] };
     if (isAudioPlaying) return { buttons: [] };
 
     // Nightmare blocked: UX-only skip button (Host still rejects illegal actions).

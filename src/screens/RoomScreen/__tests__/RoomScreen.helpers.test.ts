@@ -9,7 +9,7 @@ import {
   buildSeatViewModels,
   toGameRoomLike,
 } from '../RoomScreen.helpers';
-import type { RoleName } from '../../../models/roles';
+import type { RoleId } from '../../../models/roles';
 import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { GameStatus } from '../../../services/GameStateService';
 import { NIGHT_STEPS } from '../../../models/roles/spec/nightSteps';
@@ -209,7 +209,7 @@ describe('determineActionerState', () => {
 
   it('should return imActioner=false when non-wolf role has already submitted action', () => {
     // Seer has already submitted their action
-    const actions = new Map<RoleName, unknown>();
+    const actions = new Map<RoleId, unknown>();
     actions.set('seer', { type: 'seerCheck', target: 2 });
 
     const result = determineActionerState(
@@ -218,7 +218,7 @@ describe('determineActionerState', () => {
       0,                // mySeatNumber
       new Map(),        // wolfVotes
       false,            // isHost
-      actions as Map<RoleName, import('../../../models/actions/RoleAction').RoleAction>
+      actions as Map<RoleId, import('../../../models/actions/RoleAction').RoleAction>
     );
 
     expect(result.imActioner).toBe(false);
@@ -246,7 +246,7 @@ describe('determineActionerState', () => {
 
 describe('getRoleStats', () => {
   it('should correctly count roles in standard 12-player board', () => {
-    const roles: RoleName[] = [
+    const roles: RoleId[] = [
       'villager', 'villager', 'villager', 'villager',
       'wolf', 'wolf', 'wolf', 'wolf',
       'seer', 'witch', 'hunter', 'idiot',
@@ -263,7 +263,7 @@ describe('getRoleStats', () => {
   });
 
   it('should handle mixed board with special wolves', () => {
-    const roles: RoleName[] = [
+    const roles: RoleId[] = [
       'villager', 'villager',
       'wolf', 'wolf', 'darkWolfKing',
       'seer', 'witch', 'guard',
@@ -344,11 +344,11 @@ describe('buildSeatViewModels', () => {
       template: {
         name: 'Test',
         numberOfPlayers: 3,
-        roles: ['villager', 'wolf', 'seer'] as RoleName[],
+        roles: ['villager', 'wolf', 'seer'] as RoleId[],
       },
       players: new Map([
-        [0, { uid: 'p1', seatNumber: 0, displayName: 'Player1', role: 'villager' as RoleName, hasViewedRole: true }],
-        [1, { uid: 'p2', seatNumber: 1, displayName: 'Player2', role: 'wolf' as RoleName, hasViewedRole: true }],
+        [0, { uid: 'p1', seatNumber: 0, displayName: 'Player1', role: 'villager' as RoleId, hasViewedRole: true }],
+        [1, { uid: 'p2', seatNumber: 1, displayName: 'Player2', role: 'wolf' as RoleId, hasViewedRole: true }],
         [2, null],
       ]),
       actions: new Map(),
@@ -384,13 +384,13 @@ describe('buildSeatViewModels', () => {
       template: {
         name: 'Test',
         numberOfPlayers: 4,
-        roles: ['wolf', 'gargoyle', 'wolfRobot', 'seer'] as RoleName[],
+        roles: ['wolf', 'gargoyle', 'wolfRobot', 'seer'] as RoleId[],
       },
       players: new Map([
-        [0, { uid: 'p1', seatNumber: 0, displayName: 'Wolf', role: 'wolf' as RoleName, hasViewedRole: true }],
-        [1, { uid: 'p2', seatNumber: 1, displayName: 'Gargoyle', role: 'gargoyle' as RoleName, hasViewedRole: true }],
-        [2, { uid: 'p3', seatNumber: 2, displayName: 'Robot', role: 'wolfRobot' as RoleName, hasViewedRole: true }],
-        [3, { uid: 'p4', seatNumber: 3, displayName: 'Seer', role: 'seer' as RoleName, hasViewedRole: true }],
+        [0, { uid: 'p1', seatNumber: 0, displayName: 'Wolf', role: 'wolf' as RoleId, hasViewedRole: true }],
+        [1, { uid: 'p2', seatNumber: 1, displayName: 'Gargoyle', role: 'gargoyle' as RoleId, hasViewedRole: true }],
+        [2, { uid: 'p3', seatNumber: 2, displayName: 'Robot', role: 'wolfRobot' as RoleId, hasViewedRole: true }],
+        [3, { uid: 'p4', seatNumber: 3, displayName: 'Seer', role: 'seer' as RoleId, hasViewedRole: true }],
       ]),
       actions: new Map(),
       wolfVotes: new Map(),
@@ -416,12 +416,12 @@ describe('buildSeatViewModels', () => {
       template: {
         name: 'Test',
         numberOfPlayers: 2,
-        roles: ['wolf', 'villager'] as RoleName[],
+        roles: ['wolf', 'villager'] as RoleId[],
       },
       // Seat 1 is the wolf, but template says seat 0 is wolf.
       players: new Map([
-        [0, { uid: 'p1', seatNumber: 0, displayName: 'P1', role: 'villager' as RoleName, hasViewedRole: true }],
-        [1, { uid: 'p2', seatNumber: 1, displayName: 'P2', role: 'wolf' as RoleName, hasViewedRole: true }],
+        [0, { uid: 'p1', seatNumber: 0, displayName: 'P1', role: 'villager' as RoleId, hasViewedRole: true }],
+        [1, { uid: 'p2', seatNumber: 1, displayName: 'P2', role: 'wolf' as RoleId, hasViewedRole: true }],
       ]),
       actions: new Map(),
       wolfVotes: new Map(),

@@ -10,7 +10,7 @@
  */
 
 import { createHostGame, cleanupHostGame, HostGameContext } from './boards/hostGameFactory';
-import { RoleName } from '../../models/roles';
+import { RoleId } from '../../models/roles';
 import { isActionMagicianSwap } from '../../models/actions';
 
 const TEMPLATE_NAME = '狼王魔术师12人';
@@ -20,8 +20,8 @@ const TEMPLATE_NAME = '狼王魔术师12人';
  * 0-3: villager, 4-6: wolf, 7: darkWolfKing
  * 8: seer, 9: witch, 10: hunter, 11: magician
  */
-function createRoleAssignment(): Map<number, RoleName> {
-  const map = new Map<number, RoleName>();
+function createRoleAssignment(): Map<number, RoleId> {
+  const map = new Map<number, RoleId>();
   map.set(0, 'villager');
   map.set(1, 'villager');
   map.set(2, 'villager');

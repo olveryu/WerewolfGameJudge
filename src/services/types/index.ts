@@ -32,6 +32,3 @@ export type {
 } from './PrivateBroadcast';
 
 export { makeInboxKey } from './PrivateBroadcast';
-
-// Legacy GameState types (for backward compatibility during migration)
-export * from './GameStateTypes';

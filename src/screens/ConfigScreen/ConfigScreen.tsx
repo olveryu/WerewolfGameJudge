@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { RoleName } from '../../models/roles';
+import { RoleId } from '../../models/roles';
 import { PRESET_TEMPLATES, createCustomTemplate, validateTemplateRoles } from '../../models/Template';
 import { GameStateService } from '../../services/GameStateService';
 import { showAlert } from '../../utils/alert';
@@ -68,18 +68,18 @@ const getInitialSelection = (): Record<string, boolean> => ({
   tree: false, witcher: false, psychic: false,
 });
 
-const selectionToRoles = (selection: Record<string, boolean>): RoleName[] => {
-  const roles: RoleName[] = [];
+const selectionToRoles = (selection: Record<string, boolean>): RoleId[] => {
+  const roles: RoleId[] = [];
   Object.entries(selection).forEach(([key, selected]) => {
     if (selected) {
-      const roleName = key.replace(/\d+$/, '') as RoleName;
-      roles.push(roleName);
+      const roleId = key.replace(/\d+$/, '') as RoleId;
+      roles.push(roleId);
     }
   });
   return roles;
 };
 
-const applyPreset = (presetRoles: RoleName[]): Record<string, boolean> => {
+const applyPreset = (presetRoles: RoleId[]): Record<string, boolean> => {
   const selection = getInitialSelection();
   Object.keys(selection).forEach((key) => { selection[key] = false; });
   const roleCounts: Record<string, number> = {};

@@ -5,7 +5,7 @@
 import { GameStateService, GameStatus } from '../../GameStateService';
 import { NightFlowController, NightPhase, NightEvent } from '../../NightFlowController';
 import { PRESET_TEMPLATES, createTemplateFromRoles, GameTemplate } from '../../../models/Template';
-import { RoleName } from '../../../models/roles';
+import { RoleId } from '../../../models/roles';
 import { RoleAction, makeActionNone, makeActionTarget, makeActionWitch, makeWitchNone, makeWitchSave, makeWitchPoison, getActionTargetSeat } from '../../../models/actions';
 import type { PlayerMessage } from '../../BroadcastService';
 
@@ -70,8 +70,8 @@ export interface HostGameContext {
   getLastNightInfo: () => string;
   submitAction: (target: number | null, extra?: boolean) => Promise<void>;
   runNight: (actions: NightActionSequence) => Promise<NightResult>;
-  findSeatByRole: (role: RoleName) => number;
-  getRoleAtSeat: (seat: number) => RoleName | null;
+  findSeatByRole: (role: RoleId) => number;
+  getRoleAtSeat: (seat: number) => RoleId | null;
   /**
    * Send a WOLF_VOTE message from a specific seat.
    * Used for testing wolf vote rejection logic (Commit 3).
@@ -135,7 +135,7 @@ function advanceToWaitingForAction(nightFlow: NightFlowController): void {
  * NOTE: Magician is handled separately in processRoleAction using encoded target.
  * This function is NOT called for magician - see processRoleAction for wire protocol.
  */
-function buildRoleAction(role: RoleName, target: number | null, extra?: any): RoleAction {
+function buildRoleAction(role: RoleId, target: number | null, extra?: any): RoleAction {
   if (target === null) {
     if (role === 'witch') return makeActionWitch(makeWitchNone());
     return makeActionNone();
@@ -152,7 +152,7 @@ function buildRoleAction(role: RoleName, target: number | null, extra?: any): Ro
 /**
  * Find the seat number for a given role in the current game state.
  */
-function findSeatForRole(service: GameStateService, role: RoleName): number {
+function findSeatForRole(service: GameStateService, role: RoleId): number {
   const state = service.getState();
   if (!state) return 0;
   for (const [seat, player] of state.players) {
@@ -325,8 +325,8 @@ async function processRoleAction(
 // =============================================================================
 
 export async function createHostGame(
-  templateNameOrRoles: string | RoleName[],
-  roleAssignment?: Map<number, RoleName>
+  templateNameOrRoles: string | RoleId[],
+  roleAssignment?: Map<number, RoleId>
 ): Promise<HostGameContext> {
   // Reset shared state to avoid cross-test pollution
   resetSharedState();
@@ -383,7 +383,7 @@ export async function createHostGame(
   const getLastNightDeaths = (): number[] => getState()?.lastNightDeaths ?? [];
   const getLastNightInfo = (): string => service.getLastNightInfo();
 
-  const findSeatByRole = (role: RoleName): number => {
+  const findSeatByRole = (role: RoleId): number => {
     const s = getState();
     if (!s) return -1;
     for (const [seat, player] of s.players) {
@@ -392,7 +392,7 @@ export async function createHostGame(
     return -1;
   };
 
-  const getRoleAtSeat = (seat: number): RoleName | null => {
+  const getRoleAtSeat = (seat: number): RoleId | null => {
     return getState()?.players.get(seat)?.role ?? null;
   };
 

@@ -10,7 +10,7 @@
  * No runtime logic or service dependencies.
  */
 
-import { RoleName } from '../../models/roles';
+import { RoleId } from '../../models/roles';
 import { GameTemplate } from '../../models/Template';
 
 // =============================================================================
@@ -27,28 +27,6 @@ export enum GameStatus {
 }
 
 // =============================================================================
-// Status Mapping (Pure function, no side effects)
-// =============================================================================
-
-/**
- * Convert GameStatus to RoomStatus number (for backward compatibility)
- * 
- * Note: This maps to legacy numeric room status values.
- * Future consideration: reverse dependency direction if RoomStatus becomes authoritative.
- */
-export const gameStatusToRoomStatus = (status: GameStatus): number => {
-  switch (status) {
-    case GameStatus.unseated: return 0;
-    case GameStatus.seated: return 1;
-    case GameStatus.assigned: return 2;
-    case GameStatus.ready: return 3;
-    case GameStatus.ongoing: return 4;
-    case GameStatus.ended: return 5;  // Night finished, daytime
-    default: return 0;
-  }
-};
-
-// =============================================================================
 // Player Types
 // =============================================================================
 
@@ -57,7 +35,7 @@ export interface LocalPlayer {
   seatNumber: number;
   displayName?: string;
   avatarUrl?: string;
-  role: RoleName | null;
+  role: RoleId | null;
   hasViewedRole: boolean;
 }
 
@@ -73,7 +51,7 @@ export interface LocalGameState {
   status: GameStatus;
   template: GameTemplate;
   players: Map<number, LocalPlayer | null>;  // seat -> player
-  actions: Map<RoleName, RoleAction>;  // role -> structured action
+  actions: Map<RoleId, RoleAction>;  // role -> structured action
   wolfVotes: Map<number, number>;  // wolf seat -> target
   currentActionerIndex: number;
   /**

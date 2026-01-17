@@ -4,5 +4,5 @@ export { AvatarUploadService } from './AvatarUploadService';
 
 // New Broadcast Architecture (Host as Authority)
 export { BroadcastService, type HostBroadcast, type PlayerMessage, type BroadcastGameState, type BroadcastPlayer } from './BroadcastService';
-export { GameStateService, GameStatus, gameStatusToRoomStatus, type LocalGameState, type LocalPlayer } from './GameStateService';
+export { GameStateService, GameStatus, type LocalGameState, type LocalPlayer } from './GameStateService';
 export { SimplifiedRoomService, type RoomRecord } from './SimplifiedRoomService';

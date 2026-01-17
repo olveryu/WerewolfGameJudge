@@ -5,16 +5,15 @@
  * They only depend on types and the roles registry.
  *
  * ❌ Do NOT import: GameStateService, BroadcastService, Supabase, navigation, React
- * ✅ Allowed imports: types, roles registry (getRoleDisplayInfo, isWolfRole)
+ * ✅ Allowed imports: types, roles registry (getRoleSpec, isWolfRole)
  */
 
-import type { RoleName } from '../../models/roles';
-import { canRoleSeeWolves, doesRoleParticipateInWolfVote, getRoleDisplayInfo, isWolfRole } from '../../models/roles';
+import type { RoleId } from '../../models/roles';
+import { canRoleSeeWolves, doesRoleParticipateInWolfVote, isWolfRole, getRoleSpec, isValidRoleId } from '../../models/roles';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
 import type { GameRoomLike } from '../../models/Room';
 import type { RoleAction } from '../../models/actions/RoleAction';
 import { WOLF_MEETING_VOTE_CONFIG } from '../../models/roles/spec/wolfMeetingVoteConfig';
-import { getRoleSpec, isValidRoleId, type RoleId } from '../../models/roles/spec';
 
 // =============================================================================
 // Types
@@ -43,7 +42,7 @@ export interface PlayerInfoLike {
   seatNumber: number;
   displayName: string;
   avatarUrl?: string;
-  role: RoleName | null;
+  role: RoleId | null;
   hasViewedRole: boolean;
 }
 
@@ -57,7 +56,7 @@ export interface RoleStats {
 
 export interface SeatViewModel {
   index: number;
-  role: RoleName;
+  role: RoleId;
   player: {
     uid: string;
     displayName: string;
@@ -85,12 +84,12 @@ export interface SeatViewModel {
  * @param actions - Map of already submitted role actions
  */
 export function determineActionerState(
-  myRole: RoleName | null,
-  currentActionRole: RoleName | null,
+  myRole: RoleId | null,
+  currentActionRole: RoleId | null,
   mySeatNumber: number | null,
   wolfVotes: Map<number, number>,
   _isHost: boolean,
-  actions: Map<RoleName, RoleAction> = new Map(),
+  actions: Map<RoleId, RoleAction> = new Map(),
   visibility?: StepVisibilityLike
 ): ActionerState {
   if (!currentActionRole) {
@@ -123,10 +122,10 @@ export function determineActionerState(
 }
 
 function handleMatchingRole(
-  myRole: RoleName,
+  myRole: RoleId,
   mySeatNumber: number | null,
   wolfVotes: Map<number, number>,
-  actions: Map<RoleName, RoleAction>,
+  actions: Map<RoleId, RoleAction>,
   visibility?: StepVisibilityLike
 ): ActionerState {
   // For wolves, check if already voted
@@ -184,7 +183,7 @@ export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
 /**
  * Calculate role statistics for display
  */
-export function getRoleStats(roles: RoleName[]): RoleStats {
+export function getRoleStats(roles: RoleId[]): RoleStats {
   const roleCounts: Record<string, number> = {};
   const wolfRolesList: string[] = [];
   const godRolesList: string[] = [];
@@ -192,23 +191,23 @@ export function getRoleStats(roles: RoleName[]): RoleStats {
   let villagerCount = 0;
 
   roles.forEach((role) => {
-    const roleInfo = getRoleDisplayInfo(role);
-    if (!roleInfo) return;
+    const spec = getRoleSpec(role);
+    if (!spec) return;
 
-    if (roleInfo.faction === 'wolf') {
-      roleCounts[roleInfo.displayName] = (roleCounts[roleInfo.displayName] || 0) + 1;
-      if (!wolfRolesList.includes(roleInfo.displayName)) {
-        wolfRolesList.push(roleInfo.displayName);
+    if (spec.faction === 'wolf') {
+      roleCounts[spec.displayName] = (roleCounts[spec.displayName] || 0) + 1;
+      if (!wolfRolesList.includes(spec.displayName)) {
+        wolfRolesList.push(spec.displayName);
       }
-    } else if (roleInfo.faction === 'god') {
-      roleCounts[roleInfo.displayName] = (roleCounts[roleInfo.displayName] || 0) + 1;
-      if (!godRolesList.includes(roleInfo.displayName)) {
-        godRolesList.push(roleInfo.displayName);
+    } else if (spec.faction === 'god') {
+      roleCounts[spec.displayName] = (roleCounts[spec.displayName] || 0) + 1;
+      if (!godRolesList.includes(spec.displayName)) {
+        godRolesList.push(spec.displayName);
       }
-    } else if (roleInfo.faction === 'special') {
-      roleCounts[roleInfo.displayName] = (roleCounts[roleInfo.displayName] || 0) + 1;
-      if (!specialRolesList.includes(roleInfo.displayName)) {
-        specialRolesList.push(roleInfo.displayName);
+    } else if (spec.faction === 'special') {
+      roleCounts[spec.displayName] = (roleCounts[spec.displayName] || 0) + 1;
+      if (!specialRolesList.includes(spec.displayName)) {
+        specialRolesList.push(spec.displayName);
       }
     } else if (role === 'villager') {
       villagerCount++;

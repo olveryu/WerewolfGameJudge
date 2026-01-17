@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { RoomStatus } from '../../../../models/Room';
+import { GameStatus } from '../../../../models/Room';
 import type { LocalGameState } from '../../../../services/types/GameStateTypes';
 import type { GameContext } from '../../hooks/useRoomActions';
 import { useRoomActions } from '../../hooks/useRoomActions';
@@ -9,7 +9,7 @@ import type { ActionSchema } from '../../../../models/roles/spec';
 function makeContext(overrides: Partial<GameContext> = {}): GameContext {
   const base: GameContext = {
     gameState: ({ template: { roles: [] } } as unknown as LocalGameState),
-    roomStatus: RoomStatus.ongoing,
+    roomStatus: GameStatus.ongoing,
     currentActionRole: null,
     currentSchema: null,
     imActioner: true,
@@ -169,7 +169,7 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
 
     const ctx: GameContext = {
       gameState: ({ template: { roles: [] } } as unknown as LocalGameState),
-      roomStatus: RoomStatus.ongoing,
+      roomStatus: GameStatus.ongoing,
       currentActionRole: 'seer',
       currentSchema: chooseSeatSchema,
       imActioner: true,
@@ -211,7 +211,7 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
 
     const ctx: GameContext = {
       gameState: ({ template: { roles: [] } } as unknown as LocalGameState),
-      roomStatus: RoomStatus.ongoing,
+      roomStatus: GameStatus.ongoing,
       currentActionRole: 'seer',
       currentSchema: chooseSeatSchema,
       imActioner: true,

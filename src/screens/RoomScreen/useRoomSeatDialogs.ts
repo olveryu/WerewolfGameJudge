@@ -12,7 +12,7 @@ import { useCallback } from 'react';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 import { showAlert } from '../../utils/alert';
-import { RoomStatus } from '../../models/Room';
+import { GameStatus } from '../../models/Room';
 
 export interface UseRoomSeatDialogsParams {
   // Seat modal state
@@ -26,7 +26,7 @@ export interface UseRoomSeatDialogsParams {
   leaveSeat: () => Promise<void>;
 
   // Leave room
-  roomStatus: RoomStatus;
+  roomStatus: GameStatus;
   navigation: NativeStackNavigationProp<RootStackParamList, 'Room'>;
 }
 
@@ -117,7 +117,7 @@ export function useRoomSeatDialogs({
   // ─────────────────────────────────────────────────────────────────────────
 
   const handleLeaveRoom = useCallback(() => {
-    if (roomStatus === RoomStatus.ongoing || roomStatus === RoomStatus.ended) {
+    if (roomStatus === GameStatus.ongoing || roomStatus === GameStatus.ended) {
       navigation.navigate('Home');
       return;
     }

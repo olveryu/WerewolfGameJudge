@@ -6,7 +6,7 @@
 
 import { renderHook } from '@testing-library/react-native';
 import { useActionerState, UseActionerStateParams } from '../useActionerState';
-import type { RoleName } from '../../../../models/roles';
+import type { RoleId } from '../../../../models/roles';
 import type { RoleAction } from '../../../../models/actions/RoleAction';
 
 // =============================================================================
@@ -126,7 +126,7 @@ describe('useActionerState', () => {
 
   describe('行动提交检测', () => {
     it('非狼人角色已提交行动时 imActioner 应该为 false', () => {
-      const actions = new Map<RoleName, RoleAction>();
+      const actions = new Map<RoleId, RoleAction>();
       actions.set('seer', { type: 'seerCheck', target: 2 } as unknown as RoleAction);
 
       const { result } = renderHook(() =>

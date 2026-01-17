@@ -8,7 +8,7 @@
  */
 
 import { useMemo } from 'react';
-import type { RoleName } from '../../../models/roles';
+import type { RoleId } from '../../../models/roles';
 import type { RoleAction } from '../../../models/actions/RoleAction';
 import type { ActionSchema } from '../../../models/roles/spec';
 import { NIGHT_STEPS } from '../../../models/roles/spec/nightSteps';
@@ -16,9 +16,9 @@ import { determineActionerState, type ActionerState } from '../RoomScreen.helper
 
 export interface UseActionerStateParams {
   /** Current player's role */
-  myRole: RoleName | null;
+  myRole: RoleId | null;
   /** Currently acting role in night phase */
-  currentActionRole: RoleName | null;
+  currentActionRole: RoleId | null;
   /** Current action schema (Phase 3: schema-driven UI) */
   currentSchema: ActionSchema | null;
   /** Current player's seat number */
@@ -28,7 +28,7 @@ export interface UseActionerStateParams {
   /** Whether current player is host */
   isHost: boolean;
   /** Already submitted role actions */
-  actions: Map<RoleName, RoleAction>;
+  actions: Map<RoleId, RoleAction>;
 }
 
 /**

@@ -19,13 +19,13 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { 
-  RoomStatus, 
+  GameStatus, 
   getWolfVoteSummary,
   getPlayersNotViewedRole,
 } from '../../models/Room';
 import { 
-  getRoleDisplayInfo,
-  RoleName,
+  getRoleSpec,
+  RoleId,
   isWolfRole,
 } from '../../models/roles';
 import { showAlert } from '../../utils/alert';
@@ -215,7 +215,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   useEffect(() => {
     if (!gameState) return;
     
-    if (roomStatus === RoomStatus.unseated || roomStatus === RoomStatus.seated) {
+    if (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) {
       setFirstNightEnded(false);
       setIsStartingGame(false);
       setAnotherIndex(null); // Reset magician state
@@ -225,12 +225,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // NOTE: roomStatus=ready is handled by the normal non-ongoing resets.
   // Keep logic minimal here to avoid masking state-sync bugs.
     
-    if (roomStatus === RoomStatus.ongoing && !currentActionRole) {
+    if (roomStatus === GameStatus.ongoing && !currentActionRole) {
       setFirstNightEnded(true);
     }
     
     // When night ends (status becomes ended), mark firstNightEnded
-    if (roomStatus === RoomStatus.ended) {
+    if (roomStatus === GameStatus.ended) {
       setFirstNightEnded(true);
     }
   }, [gameState, roomStatus, currentActionRole]);
@@ -648,7 +648,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   useEffect(() => {
     // Guard: reset key when not in ongoing state or night ended
-    if (roomStatus !== RoomStatus.ongoing || !currentActionRole) {
+    if (roomStatus !== GameStatus.ongoing || !currentActionRole) {
       if (lastAutoIntentKeyRef.current !== null) {
         console.log('[AutoIntent] Clearing key (not ongoing or night ended)');
         lastAutoIntentKeyRef.current = null;
@@ -706,13 +706,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const onSeatTapped = useCallback((index: number) => {
     if (!gameState) return;
     
-    if (roomStatus === RoomStatus.ongoing && isAudioPlaying) {
+    if (roomStatus === GameStatus.ongoing && isAudioPlaying) {
       return;
     }
     
-    if (roomStatus === RoomStatus.unseated || roomStatus === RoomStatus.seated) {
+    if (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) {
       handleSeatingTap(index);
-    } else if (roomStatus === RoomStatus.ongoing && imActioner) {
+    } else if (roomStatus === GameStatus.ongoing && imActioner) {
       handleActionTap(index);
     }
   }, [gameState, roomStatus, isAudioPlaying, handleSeatingTap, handleActionTap, imActioner]);
@@ -738,9 +738,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const showRoleCardDialog = useCallback(async () => {
     if (!myRole) return;
     
-    const roleInfo = getRoleDisplayInfo(myRole);
-    const roleName = roleInfo?.displayName || myRole;
-    const description = roleInfo?.description || '无技能描述';
+    const spec = getRoleSpec(myRole);
+    const roleName = spec?.displayName || myRole;
+    const description = spec?.description || '无技能描述';
     
     await viewedRole();
     
@@ -833,7 +833,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           seats={seatViewModels}
           roomNumber={roomNumber}
           onSeatPress={onSeatTapped}
-          disabled={roomStatus === RoomStatus.ongoing && isAudioPlaying}
+          disabled={roomStatus === GameStatus.ongoing && isAudioPlaying}
         />
         
         {/* Action Message - only show after audio finishes */}
@@ -842,12 +842,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         )}
 
         {/* Commit 6 (UI-only): show which audioKey is currently playing */}
-        {roomStatus === RoomStatus.ongoing && isAudioPlaying && currentAudioKeyForUi && (
+        {roomStatus === GameStatus.ongoing && isAudioPlaying && currentAudioKeyForUi && (
           <ActionMessage message={`正在播放：${currentAudioKeyForUi}`} />
         )}
         
         {/* Show players who haven't viewed their roles yet */}
-        {isHost && roomStatus === RoomStatus.assigned && (
+        {isHost && roomStatus === GameStatus.assigned && (
           <WaitingViewRoleList 
             seatIndices={getPlayersNotViewedRole(toGameRoomLike(gameState))} 
           />
@@ -859,9 +859,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Host Control Buttons */}
         <HostControlButtons
           isHost={isHost}
-          showSettings={!isStartingGame && !isAudioPlaying && (roomStatus === RoomStatus.unseated || roomStatus === RoomStatus.seated || roomStatus === RoomStatus.assigned || roomStatus === RoomStatus.ready)}
-          showPrepareToFlip={roomStatus === RoomStatus.seated}
-          showStartGame={roomStatus === RoomStatus.ready && !isStartingGame}
+          showSettings={!isStartingGame && !isAudioPlaying && (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated || roomStatus === GameStatus.assigned || roomStatus === GameStatus.ready)}
+          showPrepareToFlip={roomStatus === GameStatus.seated}
+          showStartGame={roomStatus === GameStatus.ready && !isStartingGame}
           showLastNightInfo={firstNightEnded}
           showRestart={firstNightEnded}
           onSettingsPress={handleSettingsPress}
@@ -885,12 +885,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         })()}
         
         {/* View Role Card */}
-        {(roomStatus === RoomStatus.assigned || roomStatus === RoomStatus.ready || roomStatus === RoomStatus.ongoing || roomStatus === RoomStatus.ended) && mySeatNumber !== null && (
+        {(roomStatus === GameStatus.assigned || roomStatus === GameStatus.ready || roomStatus === GameStatus.ongoing || roomStatus === GameStatus.ended) && mySeatNumber !== null && (
           <ActionButton label="查看身份" onPress={showRoleCardDialog} />
         )}
         
         {/* Greyed View Role (waiting for host) */}
-        {(roomStatus === RoomStatus.unseated || roomStatus === RoomStatus.seated) && mySeatNumber !== null && (
+        {(roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) && mySeatNumber !== null && (
           <ActionButton 
             label="查看身份" 
             disabled

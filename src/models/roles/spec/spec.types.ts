@@ -24,12 +24,6 @@ export interface WolfMeetingConfig {
 
 /** Role-specific flags */
 export interface RoleFlags {
-  /**
-   * @deprecated Input validation MUST come from `SCHEMAS[*].constraints`.
-  * NOTE(remove by 2026-03-01): delete this field after all legacy call-sites are removed.
-   */
-  readonly canSaveSelf?: boolean;
-  
   /** Nightmare: blocks player skill for the night */
   readonly blocksSkill?: boolean;
   
@@ -37,15 +31,6 @@ export interface RoleFlags {
   readonly immuneToNightDamage?: boolean;
   readonly reflectsDamage?: boolean;
 }
-
-/**
- * UX configuration for display.
- *
- * Night action prompts/confirm verbs are schema-driven (SCHEMAS[*].ui.*, SCHEMAS[*].displayName).
- * @deprecated
- * This layer has been removed in favor of schema-driven UI.
- * TODO(remove by 2026-03-01): delete this comment block after downstream branches merge.
- */
 
 
 /**

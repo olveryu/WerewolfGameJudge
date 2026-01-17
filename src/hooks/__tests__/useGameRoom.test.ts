@@ -9,7 +9,7 @@ import { SimplifiedRoomService } from '../../services/SimplifiedRoomService';
 import { AuthService } from '../../services/AuthService';
 import { GameStateService } from '../../services/GameStateService';
 import { GameTemplate } from '../../models/Template';
-import { RoleName } from '../../models/roles';
+import { RoleId } from '../../models/roles';
 
 // Mock the services
 jest.mock('../../services/SimplifiedRoomService');
@@ -20,7 +20,7 @@ jest.mock('../../services/GameStateService');
 // Phase 5: actionOrder removed from GameTemplate
 const createMockTemplate = (): GameTemplate => ({
   name: 'Test Template',
-  roles: ['wolf', 'seer', 'witch', 'villager'] as RoleName[],
+  roles: ['wolf', 'seer', 'witch', 'villager'] as RoleId[],
   numberOfPlayers: 4,
 });
 

@@ -11,29 +11,28 @@
 
 import { PRESET_TEMPLATES, createTemplateFromRoles } from '../Template';
 import {
-  RoleName,
+  RoleId,
   buildNightPlan,
-  ROLES,
-  isValidRoleName,
+  getRoleSpec,
+  isValidRoleId,
   hasNightAction,
   isWolfRole,
-  Faction,
 } from '../roles';
 
 /**
  * Helper: Get action order from roles via NightPlan
  */
-function getActionOrderFromRoles(roles: RoleName[]): RoleName[] {
+function getActionOrderFromRoles(roles: RoleId[]): RoleId[] {
   const nightPlan = buildNightPlan(roles);
   return nightPlan.steps.map(step => step.roleId);
 }
 
 // Helper functions extracted to avoid nesting depth issues
-const countWolves = (roles: RoleName[]): number => roles.filter(r => isWolfRole(r)).length;
-const countVillagers = (roles: RoleName[]): number => roles.filter(r => r === 'villager').length;
-const countGods = (roles: RoleName[]): number =>
-  roles.filter(r => ROLES[r]?.type === Faction.God).length;
-const getSpecialRoles = (roles: RoleName[]): RoleName[] =>
+const countWolves = (roles: RoleId[]): number => roles.filter(r => isWolfRole(r)).length;
+const countVillagers = (roles: RoleId[]): number => roles.filter(r => r === 'villager').length;
+const countGods = (roles: RoleId[]): number =>
+  roles.filter(r => getRoleSpec(r).faction === 'god').length;
+const getSpecialRoles = (roles: RoleId[]): RoleId[] =>
   roles.filter(r => r !== 'villager' && r !== 'wolf');
 
 describe('PRESET_TEMPLATES - 数据自洽性', () => {
@@ -56,10 +55,10 @@ describe('PRESET_TEMPLATES - 数据自洽性', () => {
         expect(template.numberOfPlayers).toBe(expectedCount);
       });
 
-      it('所有 roles 都应该是合法的 RoleName', () => {
+      it('所有 roles 都应该是合法的 RoleId', () => {
         for (const role of preset.roles) {
-          expect(isValidRoleName(role)).toBe(true);
-          expect(ROLES[role]).toBeDefined();
+          expect(isValidRoleId(role)).toBe(true);
+          expect(getRoleSpec(role)).toBeDefined();
         }
       });
 
@@ -108,15 +107,15 @@ describe('PRESET_TEMPLATES - 数据自洽性', () => {
 });
 
 describe('PRESET_TEMPLATES - 角色引用完整性', () => {
-  it('所有模板引用的角色都应该在 ROLES 中定义', () => {
+  it('所有模板引用的角色都应该在 ROLE_SPECS 中定义', () => {
     const allRoles = new Set<string>();
     PRESET_TEMPLATES.forEach(preset => {
       preset.roles.forEach(role => allRoles.add(role));
     });
 
     for (const role of allRoles) {
-      const roleEntry = ROLES[role as RoleName];
-      expect(roleEntry).toBeDefined();
+      const roleSpec = getRoleSpec(role as RoleId);
+      expect(roleSpec).toBeDefined();
     }
   });
 
@@ -127,10 +126,8 @@ describe('PRESET_TEMPLATES - 角色引用完整性', () => {
     });
 
     for (const role of allRoles) {
-      const roleEntry = ROLES[role as RoleName];
-      expect(roleEntry.name).toBe(role);
-      expect(roleEntry.displayName.length).toBeGreaterThan(0);
-      expect(roleEntry.description.length).toBeGreaterThan(0);
+      const roleSpec = getRoleSpec(role as RoleId);
+      expect(roleSpec.displayName.length).toBeGreaterThan(0);
     }
   });
 });

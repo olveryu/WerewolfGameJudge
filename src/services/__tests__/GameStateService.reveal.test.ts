@@ -5,7 +5,7 @@
  */
 
 import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './boards/hostGameFactory';
-import { RoleName } from '../../models/roles';
+import { RoleId } from '../../models/roles';
 
 // =============================================================================
 // Test Fixtures
@@ -15,8 +15,8 @@ const TEMPLATE_NIGHTMARE = '梦魇守卫12人';
 const TEMPLATE_PSYCHIC = '机械狼通灵师12人';
 const TEMPLATE_GARGOYLE = '石像鬼守墓人12人';
 
-function createNightmareRoleAssignment(): Map<number, RoleName> {
-  const assignment = new Map<number, RoleName>();
+function createNightmareRoleAssignment(): Map<number, RoleId> {
+  const assignment = new Map<number, RoleId>();
   assignment.set(0, 'villager');
   assignment.set(1, 'villager');
   assignment.set(2, 'villager');
@@ -32,8 +32,8 @@ function createNightmareRoleAssignment(): Map<number, RoleName> {
   return assignment;
 }
 
-function createPsychicRoleAssignment(): Map<number, RoleName> {
-  const assignment = new Map<number, RoleName>();
+function createPsychicRoleAssignment(): Map<number, RoleId> {
+  const assignment = new Map<number, RoleId>();
   assignment.set(0, 'villager');
   assignment.set(1, 'villager');
   assignment.set(2, 'villager');
@@ -49,8 +49,8 @@ function createPsychicRoleAssignment(): Map<number, RoleName> {
   return assignment;
 }
 
-function createGargoyleRoleAssignment(): Map<number, RoleName> {
-  const assignment = new Map<number, RoleName>();
+function createGargoyleRoleAssignment(): Map<number, RoleId> {
+  const assignment = new Map<number, RoleId>();
   assignment.set(0, 'villager');
   assignment.set(1, 'villager');
   assignment.set(2, 'villager');

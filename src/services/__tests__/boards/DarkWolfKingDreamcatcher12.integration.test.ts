@@ -8,7 +8,7 @@
  */
 
 import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
-import { RoleName } from '../../../models/roles';
+import { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '狼王摄梦人12人';
 
@@ -19,8 +19,8 @@ const TEMPLATE_NAME = '狼王摄梦人12人';
  * 7: 黑狼王
  * 8: 预言家, 9: 女巫, 10: 猎人, 11: 摄梦人
  */
-function createRoleAssignment(): Map<number, RoleName> {
-  const map = new Map<number, RoleName>();
+function createRoleAssignment(): Map<number, RoleId> {
+  const map = new Map<number, RoleId>();
   map.set(0, 'villager');
   map.set(1, 'villager');
   map.set(2, 'villager');
