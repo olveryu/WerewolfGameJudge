@@ -11,7 +11,7 @@
  * 4. Death calculations happen locally on Host
  */
 
-import { RoleName, isWolfRole } from '../models/roles';
+import { RoleId, isWolfRole } from '../models/roles';
 import { GameTemplate, createTemplateFromRoles, validateTemplateRoles } from '../models/Template';
 import { BroadcastService, BroadcastGameState, BroadcastPlayer, HostBroadcast, PlayerMessage } from './BroadcastService';
 import AudioService from './AudioService';
@@ -27,7 +27,7 @@ import {
   makeActionMagicianSwap,
   getActionTargetSeat,
 } from '../models/actions';
-import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, type RoleId, buildNightPlan, getStepsByRoleStrict } from '../models/roles/spec';
+import { isValidRoleId, getRoleSpec, ROLE_SPECS, type SchemaId, buildNightPlan, getStepsByRoleStrict } from '../models/roles/spec';
 import { WOLF_MEETING_VOTE_CONFIG } from '../models/roles/spec/wolfMeetingVoteConfig';
 import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
 import type { PrivateMessage, WitchContextPayload, PrivatePayload, SeerRevealPayload, PsychicRevealPayload, GargoyleRevealPayload, WolfRobotRevealPayload, ActionRejectedPayload, BlockedPayload, ConfirmStatusPayload } from './types/PrivateBroadcast';
@@ -48,7 +48,6 @@ import type { GameStateListener } from './types/GameStateTypes';
 // (consumers can still import from GameStateService)
 export {
   GameStatus,
-  gameStatusToRoomStatus,
   LocalPlayer,
   LocalGameState,
   GameStateListener,
@@ -156,7 +155,7 @@ export class GameStateService {
     return this.mySeatNumber;
   }
 
-  getMyRole(): RoleName | null {
+  getMyRole(): RoleId | null {
     if (this.mySeatNumber === null || !this.state) return null;
     return this.state.players.get(this.mySeatNumber)?.role ?? null;
   }
@@ -342,15 +341,15 @@ export class GameStateService {
     }
   }
 
-  private isRevealRole(role: RoleName): boolean {
+  private isRevealRole(role: RoleId): boolean {
     return role === 'seer' || role === 'psychic' || role === 'gargoyle' || role === 'wolfRobot';
   }
 
-  private makeRevealAckKey(revision: number, role: RoleName): string {
+  private makeRevealAckKey(revision: number, role: RoleId): string {
     return `${revision}_${role}`;
   }
 
-  private async handleRevealAck(seat: number, role: RoleName, revision: number): Promise<void> {
+  private async handleRevealAck(seat: number, role: RoleId, revision: number): Promise<void> {
     if (!this.isHost || !this.state) return;
     if (this.state.status !== GameStatus.ongoing) return;
     if (!this.nightFlow) return;
@@ -520,7 +519,7 @@ export class GameStateService {
 
   private async handlePlayerAction(
     seat: number,
-    role: RoleName,
+    role: RoleId,
     target: number | null,
     extra?: any
   ): Promise<void> {
@@ -741,12 +740,12 @@ export class GameStateService {
       // Type guard: only compare if targetRole is a valid RoleId
       if (targetRole && isValidRoleId(targetRole) && forbiddenRoles.includes(targetRole)) {
         const targetRoleSpec = getRoleSpec(targetRole);
-        const targetRoleName = targetRoleSpec?.displayName ?? targetRole;
+        const targetRoleId = targetRoleSpec?.displayName ?? targetRole;
         if (playerUid) {
           const rejectPayload: ActionRejectedPayload = {
             kind: 'ACTION_REJECTED',
             action: 'submitWolfVote',
-            reason: `不能投${targetRoleName}`,
+            reason: `不能投${targetRoleId}`,
           };
           const privateMessage: PrivateMessage = {
             type: 'PRIVATE_EFFECT',
@@ -1638,7 +1637,7 @@ export class GameStateService {
   // Host: Night Phase Control
   // ===========================================================================
 
-  private getCurrentActionRole(): RoleName | null {
+  private getCurrentActionRole(): RoleId | null {
     if (!this.state) return null;
     const { currentActionerIndex } = this.state;
     // Phase 5: actionOrder removed from template, derive from NightPlan
@@ -2126,7 +2125,7 @@ export class GameStateService {
    * Both call the same handler: handleRevealAck
    * This lets the Host advance the night flow for reveal roles (seer/psychic/gargoyle/wolfRobot)
    */
-  async submitRevealAck(role: RoleName): Promise<void> {
+  async submitRevealAck(role: RoleId): Promise<void> {
     if (!this.state || this.mySeatNumber === null) return;
 
     if (this.isHost) {
@@ -2146,7 +2145,7 @@ export class GameStateService {
   // Helper Methods
   // ===========================================================================
 
-  private getSeatsForRole(role: RoleName): number[] {
+  private getSeatsForRole(role: RoleId): number[] {
     if (!this.state) return [];
     
     const seats: number[] = [];
@@ -2180,7 +2179,7 @@ export class GameStateService {
    * Get the UID of a player with a specific role.
    * Returns null if role not found in this game.
    */
-  private getPlayerUidByRole(role: RoleName): string | null {
+  private getPlayerUidByRole(role: RoleId): string | null {
     if (!this.state) return null;
     for (const [, player] of this.state.players) {
       if (player?.role === role) {
@@ -2194,7 +2193,7 @@ export class GameStateService {
    * Get the seat number of a player with a specific role.
    * Returns -1 if role not found.
    */
-  private getPlayerSeatByRole(role: RoleName): number {
+  private getPlayerSeatByRole(role: RoleId): number {
     if (!this.state) return -1;
     for (const [seat, player] of this.state.players) {
       if (player?.role === role) {
@@ -2576,7 +2575,7 @@ export class GameStateService {
     return calculateDeaths(nightActions, roleSeatMap);
   }
 
-  private findSeatByRole(role: RoleName): number {
+  private findSeatByRole(role: RoleId): number {
     if (!this.state) return -1;
     
     for (const [seat, player] of this.state.players) {

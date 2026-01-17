@@ -1,4 +1,4 @@
-import { RoleName } from './roles';
+import { RoleId } from './roles';
 
 export enum PlayerStatus {
   alive = 0,
@@ -13,7 +13,7 @@ export enum SkillStatus {
 export interface Player {
   uid: string;
   seatNumber: number;
-  role: RoleName | null;  // null before roles are assigned (before "准备看牌")
+  role: RoleId | null;  // null before roles are assigned (before "准备看牌")
   status: PlayerStatus;
   skillStatus: SkillStatus;
   hasViewedRole: boolean;  // 是否已查看身份
@@ -37,7 +37,7 @@ export const PLAYER_KEYS = {
 export const createPlayer = (
   uid: string,
   seatNumber: number,
-  role: RoleName | null = null
+  role: RoleId | null = null
 ): Player => ({
   uid,
   seatNumber,
@@ -61,7 +61,7 @@ export const playerToMap = (player: Player): Record<string, any> => ({
 export const playerFromMap = (map: Record<string, any>): Player => ({
   uid: map[PLAYER_KEYS.uid],
   seatNumber: map[PLAYER_KEYS.seatNumber],
-  role: map[PLAYER_KEYS.role] as RoleName | null,  // Can be null before roles assigned
+  role: map[PLAYER_KEYS.role] as RoleId | null,  // Can be null before roles assigned
   status: map[PLAYER_KEYS.status] ?? PlayerStatus.alive,
   skillStatus: map[PLAYER_KEYS.skillStatus] ?? SkillStatus.available,
   hasViewedRole: map[PLAYER_KEYS.hasViewedRole] ?? false,

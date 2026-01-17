@@ -5,20 +5,20 @@ import {
   getTemplateRoomInfo,
   PRESET_TEMPLATES,
 } from '../Template';
-import { RoleName, buildNightPlan } from '../roles';
+import { RoleId, buildNightPlan } from '../roles';
 
 /**
  * Helper: Get action order from roles via NightPlan
  * Phase 5: actionOrder is no longer stored in template, it's derived dynamically
  */
-function getActionOrderFromRoles(roles: RoleName[]): RoleName[] {
+function getActionOrderFromRoles(roles: RoleId[]): RoleId[] {
   const nightPlan = buildNightPlan(roles);
   return nightPlan.steps.map(step => step.roleId);
 }
 
 describe('Template - createTemplateFromRoles', () => {
   it('should create template with correct number of players', () => {
-    const roles: RoleName[] = ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'];
+    const roles: RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'];
     const template = createTemplateFromRoles(roles);
 
     expect(template.numberOfPlayers).toBe(6);
@@ -26,7 +26,7 @@ describe('Template - createTemplateFromRoles', () => {
   });
 
   it('should not include actionOrder in template (Phase 5)', () => {
-    const roles: RoleName[] = ['wolf', 'seer', 'witch', 'villager'];
+    const roles: RoleId[] = ['wolf', 'seer', 'witch', 'villager'];
     const template = createTemplateFromRoles(roles);
 
     // Phase 5: actionOrder is removed from template
@@ -34,7 +34,7 @@ describe('Template - createTemplateFromRoles', () => {
   });
 
   it('action order should be derived from NightPlan', () => {
-    const roles: RoleName[] = ['wolf', 'seer', 'witch', 'villager'];
+    const roles: RoleId[] = ['wolf', 'seer', 'witch', 'villager'];
     const actionOrder = getActionOrderFromRoles(roles);
 
     // Action order should only include roles with night actions
@@ -45,7 +45,7 @@ describe('Template - createTemplateFromRoles', () => {
   });
 
   it('should respect NightPlan-derived order sequence', () => {
-    const roles: RoleName[] = ['seer', 'wolf', 'witch', 'guard', 'hunter'];
+    const roles: RoleId[] = ['seer', 'wolf', 'witch', 'guard', 'hunter'];
     const actionOrder = getActionOrderFromRoles(roles);
 
     // Verify order matches NightPlan-derived order (NIGHT_STEPS)
@@ -54,7 +54,7 @@ describe('Template - createTemplateFromRoles', () => {
   });
 
   it('should handle templates with special wolves', () => {
-    const roles: RoleName[] = ['wolf', 'wolfQueen', 'seer', 'witch', 'villager', 'villager'];
+    const roles: RoleId[] = ['wolf', 'wolfQueen', 'seer', 'witch', 'villager', 'villager'];
     const actionOrder = getActionOrderFromRoles(roles);
 
     expect(actionOrder).toContain('wolf');
@@ -66,7 +66,7 @@ describe('Template - createTemplateFromRoles', () => {
   });
 
   it('should handle templates with nightmare', () => {
-    const roles: RoleName[] = ['wolf', 'nightmare', 'seer', 'witch', 'guard', 'villager'];
+    const roles: RoleId[] = ['wolf', 'nightmare', 'seer', 'witch', 'guard', 'villager'];
     const actionOrder = getActionOrderFromRoles(roles);
 
     // nightmare should act before wolf
@@ -76,7 +76,7 @@ describe('Template - createTemplateFromRoles', () => {
   });
 
   it('should handle templates with magician', () => {
-    const roles: RoleName[] = ['wolf', 'magician', 'seer', 'witch', 'villager', 'villager'];
+    const roles: RoleId[] = ['wolf', 'magician', 'seer', 'witch', 'villager', 'villager'];
     const actionOrder = getActionOrderFromRoles(roles);
 
     // magician should act first (swap numbers)
@@ -86,7 +86,7 @@ describe('Template - createTemplateFromRoles', () => {
 
 describe('Template - createCustomTemplate', () => {
   it('should keep roles in original order (shuffling happens at assignRoles)', () => {
-    const roles: RoleName[] = ['wolf', 'wolf', 'seer', 'witch', 'hunter', 'villager'];
+    const roles: RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'hunter', 'villager'];
     const template = createCustomTemplate([...roles]);
     
     // Roles should be in the same order as input
@@ -94,7 +94,7 @@ describe('Template - createCustomTemplate', () => {
   });
 
   it('should preserve all roles', () => {
-    const roles: RoleName[] = ['wolf', 'wolf', 'seer', 'witch', 'hunter', 'villager'];
+    const roles: RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'hunter', 'villager'];
     const template = createCustomTemplate(roles);
 
     // Count each role
@@ -112,7 +112,7 @@ describe('Template - createCustomTemplate', () => {
   });
 
   it('should maintain correct player count', () => {
-    const roles: RoleName[] = ['wolf', 'seer', 'witch', 'villager'];
+    const roles: RoleId[] = ['wolf', 'seer', 'witch', 'villager'];
     const template = createCustomTemplate(roles);
 
     expect(template.numberOfPlayers).toBe(4);
@@ -120,7 +120,7 @@ describe('Template - createCustomTemplate', () => {
   });
 
   it('action order derived from NightPlan should include all night-action roles', () => {
-    const roles: RoleName[] = ['wolf', 'seer', 'witch', 'guard'];
+    const roles: RoleId[] = ['wolf', 'seer', 'witch', 'guard'];
     const actionOrder = getActionOrderFromRoles(roles);
 
     // Action order should be based on role presence, not position
@@ -253,14 +253,14 @@ describe('Template - Action Order Edge Cases (NightPlan-derived)', () => {
   });
 
   it('should handle all villagers (no night actions)', () => {
-    const roles: RoleName[] = ['villager', 'villager', 'villager'];
+    const roles: RoleId[] = ['villager', 'villager', 'villager'];
     const actionOrder = getActionOrderFromRoles(roles);
     
     expect(actionOrder).toEqual([]);
   });
 
   it('should handle duplicate roles in action order', () => {
-    const roles: RoleName[] = ['wolf', 'wolf', 'wolf', 'seer', 'witch'];
+    const roles: RoleId[] = ['wolf', 'wolf', 'wolf', 'seer', 'witch'];
     const actionOrder = getActionOrderFromRoles(roles);
     
     // wolf should only appear once in action order
@@ -270,7 +270,7 @@ describe('Template - Action Order Edge Cases (NightPlan-derived)', () => {
 
   it('should handle all action roles', () => {
     // Template with many action roles
-    const roles: RoleName[] = [
+    const roles: RoleId[] = [
       'slacker', 'wolfRobot', 'magician', 'dreamcatcher',
       'gargoyle', 'nightmare', 'guard', 'wolf',
       'wolfQueen', 'witch', 'seer', 'hunter',

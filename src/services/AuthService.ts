@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../config/supabase';
-import { ROLES } from '../models/roles';
+import { getAllRoleIds, getRoleSpec } from '../models/roles';
 
 export class AuthService {
   private static instance: AuthService;
@@ -143,7 +143,7 @@ export class AuthService {
       '甜美', '辛辣', '清新', '浓郁', '梦幻', '现实', '浪漫', '理性',
       '超级', '无敌', '绝世', '传说', '史诗', '究极', '至尊', '王者',
     ];
-    const nouns = Object.values(ROLES).map((role) => role.displayName);
+    const nouns = getAllRoleIds().map((id) => getRoleSpec(id).displayName);
     
     const chars = uid.split('');
     const hash1 = chars.reduce((acc, char, i) => acc + (char.codePointAt(0) || 0) * (i + 1), 0);

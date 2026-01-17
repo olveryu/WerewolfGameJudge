@@ -9,12 +9,12 @@
  */
 
 import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
-import { RoleName } from '../../../models/roles';
+import { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '恶灵骑士12人';
 
-const createRoleAssignment = (): Map<number, RoleName> => {
-  const assignment = new Map<number, RoleName>();
+const createRoleAssignment = (): Map<number, RoleId> => {
+  const assignment = new Map<number, RoleId>();
   assignment.set(0, 'villager');
   assignment.set(1, 'villager');
   assignment.set(2, 'villager');

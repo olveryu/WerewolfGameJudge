@@ -1,4 +1,4 @@
-import { RoleName } from '../../models/roles';
+import { RoleId } from '../../models/roles';
 
 // Mock expo-audio
 const mockPlay = jest.fn();
@@ -317,7 +317,7 @@ describe('AudioService - Audio roles coverage', () => {
     audioService = AudioService.getInstance();
   });
 
-  const rolesWithAudio: RoleName[] = [
+  const rolesWithAudio: RoleId[] = [
     'slacker',
     'wolfRobot',
     'magician',
@@ -334,7 +334,7 @@ describe('AudioService - Audio roles coverage', () => {
     'darkWolfKing',
   ];
 
-  const rolesWithoutAudio: RoleName[] = [
+  const rolesWithoutAudio: RoleId[] = [
     'villager',
     'idiot',
     'knight',

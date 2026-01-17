@@ -10,7 +10,7 @@
 import { GameStateService } from '../GameStateService';
 import { GameStatus } from '../types/GameStateTypes';
 import { GameTemplate } from '../../models/Template';
-import type { RoleName } from '../../models/roles';
+import type { RoleId } from '../../models/roles';
 import type { BroadcastGameState } from '../BroadcastService';
 
 // =============================================================================
@@ -61,7 +61,7 @@ jest.mock('../AudioService', () => ({
 function createTestTemplate(): GameTemplate {
   return {
     name: 'Test Template',
-    roles: ['wolf', 'wolf', 'villager', 'villager', 'seer', 'witch'] as RoleName[],
+    roles: ['wolf', 'wolf', 'villager', 'villager', 'seer', 'witch'] as RoleId[],
     numberOfPlayers: 6,
   };
 }
@@ -117,7 +117,7 @@ function createBroadcastState(overrides: Partial<BroadcastGameState> = {}): Broa
     roomCode: 'room1234',
     hostUid: 'host_uid',
     status: GameStatus.seated,
-    templateRoles: ['wolf', 'wolf', 'villager', 'villager', 'seer', 'witch'] as RoleName[],
+    templateRoles: ['wolf', 'wolf', 'villager', 'villager', 'seer', 'witch'] as RoleId[],
     players: {
       0: { uid: 'p0', seatNumber: 0, displayName: 'P0', hasViewedRole: false },
       1: { uid: 'p1', seatNumber: 1, displayName: 'P1', hasViewedRole: false },
@@ -390,7 +390,7 @@ describe('GameStateService.applyStateUpdate', () => {
     await service.joinAsPlayer('room1234', 'player_uid');
     
     const broadcastState = createBroadcastState({
-      templateRoles: ['wolf', 'wolf', 'wolf', 'villager', 'villager', 'villager', 'seer', 'witch'] as RoleName[],
+      templateRoles: ['wolf', 'wolf', 'wolf', 'villager', 'villager', 'villager', 'seer', 'witch'] as RoleId[],
     });
     
     (service as any).applyStateUpdate(broadcastState, 1);

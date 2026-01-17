@@ -15,7 +15,7 @@
 
 import { supabase, isSupabaseConfigured } from '../config/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { RoleName } from '../models/roles';
+import { RoleId } from '../models/roles';
 import type { SchemaId } from '../models/roles/spec';
 import type { PublicPayload } from './types/PublicBroadcast';
 import type { PrivateMessage } from './types/PrivateBroadcast';
@@ -37,7 +37,7 @@ export type ConnectionStatusListener = (status: ConnectionStatus) => void;
 /** Messages broadcast by Host to all players */
 export type HostBroadcast = 
   | { type: 'STATE_UPDATE'; state: BroadcastGameState; revision: number }
-  | { type: 'ROLE_TURN'; role: RoleName; pendingSeats: number[]; killedIndex?: number; stepId?: SchemaId }
+  | { type: 'ROLE_TURN'; role: RoleId; pendingSeats: number[]; killedIndex?: number; stepId?: SchemaId }
   | { type: 'NIGHT_END'; deaths: number[] }
   | { type: 'PLAYER_JOINED'; seat: number; player: BroadcastPlayer }
   | { type: 'PLAYER_LEFT'; seat: number }
@@ -53,11 +53,11 @@ export type PlayerMessage =
   | { type: 'REQUEST_STATE'; uid: string }
   | { type: 'JOIN'; seat: number; uid: string; displayName: string; avatarUrl?: string }
   | { type: 'LEAVE'; seat: number; uid: string }
-  | { type: 'ACTION'; seat: number; role: RoleName; target: number | null; extra?: any }
+  | { type: 'ACTION'; seat: number; role: RoleId; target: number | null; extra?: any }
   | { type: 'WOLF_VOTE'; seat: number; target: number }
   | { type: 'VIEWED_ROLE'; seat: number }
   // New: reveal acknowledgement (client confirms they've read the private reveal popup)
-  | { type: 'REVEAL_ACK'; seat: number; role: RoleName; revision: number }
+  | { type: 'REVEAL_ACK'; seat: number; role: RoleId; revision: number }
   // New: Seat action request with requestId for acknowledgment
   | { type: 'SEAT_ACTION_REQUEST'; requestId: string; action: 'sit' | 'standup'; seat: number; uid: string; displayName?: string; avatarUrl?: string }
   // New: Snapshot request for state recovery
@@ -72,7 +72,7 @@ export interface BroadcastPlayer {
   seatNumber: number;
   displayName?: string;
   avatarUrl?: string;
-  role?: RoleName | null;  // Only sent to the player themselves or wolves to wolves
+  role?: RoleId | null;  // Only sent to the player themselves or wolves to wolves
   hasViewedRole: boolean;
 }
 
@@ -80,7 +80,7 @@ export interface BroadcastGameState {
   roomCode: string;
   hostUid: string;
   status: 'unseated' | 'seated' | 'assigned' | 'ready' | 'ongoing' | 'ended';
-  templateRoles: RoleName[];  // Role configuration (not assigned positions)
+  templateRoles: RoleId[];  // Role configuration (not assigned positions)
   players: Record<number, BroadcastPlayer | null>;  // seat -> player
   currentActionerIndex: number;
   isAudioPlaying: boolean;

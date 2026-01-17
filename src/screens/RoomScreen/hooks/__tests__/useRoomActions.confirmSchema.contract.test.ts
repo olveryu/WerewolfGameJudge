@@ -15,7 +15,7 @@
 import { SCHEMAS } from '../../../../models/roles/spec/schemas';
 import { getConfirmRoleCanShoot } from '../../../../models/Room';
 import type { GameRoomLike } from '../../../../models/Room';
-import type { RoleName } from '../../../../models/roles';
+import type { RoleId } from '../../../../models/roles';
 import type { RoleAction } from '../../../../models/actions';
 import { makeActionWitch, makeWitchPoison } from '../../../../models/actions';
 
@@ -106,7 +106,7 @@ describe('confirm schema contract (hunter/darkWolfKing)', () => {
       roleSeat: number,
       poisonedSeat: number | null
     ): GameRoomLike => {
-      const players = new Map<number, { uid: string; seatNumber: number; role: RoleName | null; hasViewedRole: boolean }>();
+      const players = new Map<number, { uid: string; seatNumber: number; role: RoleId | null; hasViewedRole: boolean }>();
       for (let i = 0; i < 12; i++) {
         players.set(i, {
           uid: `p${i}`,
@@ -116,7 +116,7 @@ describe('confirm schema contract (hunter/darkWolfKing)', () => {
         });
       }
 
-      const actions = new Map<RoleName, RoleAction>();
+      const actions = new Map<RoleId, RoleAction>();
       if (poisonedSeat !== null) {
         actions.set('witch', makeActionWitch(makeWitchPoison(poisonedSeat)));
       }

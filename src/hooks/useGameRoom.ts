@@ -6,14 +6,13 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { GameStateService, LocalGameState, gameStatusToRoomStatus } from '../services/GameStateService';
+import { GameStateService, LocalGameState } from '../services/GameStateService';
 import { GameStatus } from '../services/types/GameStateTypes';
 import { SimplifiedRoomService, RoomRecord } from '../services/SimplifiedRoomService';
 import { BroadcastService, type ConnectionStatus } from '../services/BroadcastService';
 import { AuthService } from '../services/AuthService';
 import { GameTemplate } from '../models/Template';
-import { RoleName, isWolfRole, buildNightPlan } from '../models/roles';
-import { RoomStatus } from '../models/Room';
+import { RoleId, isWolfRole, buildNightPlan } from '../models/roles';
 import { isValidRoleId, getRoleSpec, getSchema, type ActionSchema, type SchemaId, getStepsByRoleStrict } from '../models/roles/spec';
 
 export interface UseGameRoomResult {
@@ -27,11 +26,11 @@ export interface UseGameRoomResult {
   isHost: boolean;
   myUid: string | null;
   mySeatNumber: number | null;
-  myRole: RoleName | null;
+  myRole: RoleId | null;
   
   // Computed values
-  roomStatus: RoomStatus; // Maps GameStatus to RoomStatus for UI compatibility
-  currentActionRole: RoleName | null;
+  roomStatus: GameStatus;
+  currentActionRole: RoleId | null;
   isAudioPlaying: boolean;
   
   // Schema-driven UI (Phase 3)
@@ -151,15 +150,15 @@ export const useGameRoom = (): UseGameRoomResult => {
     return gameStateService.current.getMyRole();
   }, [gameState]);
   
-  // Map GameStatus to RoomStatus for UI compatibility
-  const roomStatus = useMemo((): RoomStatus => {
-    if (!gameState) return RoomStatus.unseated;
-    return gameStatusToRoomStatus(gameState.status);
+  // GameStatus is now an alias for GameStatus (Phase 5)
+  const roomStatus = useMemo((): GameStatus => {
+    if (!gameState) return GameStatus.unseated;
+    return gameState.status;
   }, [gameState]);
   
   // Current action role - only valid when game is ongoing (night phase)
   // Phase 5: actionOrder removed from template, now derived from NightPlan
-  const currentActionRole = useMemo((): RoleName | null => {
+  const currentActionRole = useMemo((): RoleId | null => {
     if (!gameState) return null;
     // Only return action role when game is in progress
     if (gameState.status !== GameStatus.ongoing) return null;

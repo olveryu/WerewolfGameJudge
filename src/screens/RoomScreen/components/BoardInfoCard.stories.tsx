@@ -73,7 +73,7 @@ export const NoVillagers: Story = {
 };
 
 /** Long role names - test text wrapping */
-export const LongRoleNames: Story = {
+export const LongRoleIds: Story = {
   args: {
     playerCount: 12,
     wolfRolesText: '普通狼人 x2, 狼王 x1, 白狼王 x1',

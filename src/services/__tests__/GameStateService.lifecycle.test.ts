@@ -9,7 +9,7 @@
 import { GameStateService } from '../GameStateService';
 import { GameStatus } from '../types/GameStateTypes';
 import { GameTemplate } from '../../models/Template';
-import type { RoleName } from '../../models/roles';
+import type { RoleId } from '../../models/roles';
 
 // =============================================================================
 // Mocks
@@ -47,7 +47,7 @@ jest.mock('../AudioService', () => ({
 function createTestTemplate(): GameTemplate {
   return {
     name: 'Test Template',
-    roles: ['wolf', 'wolf', 'villager', 'villager', 'seer', 'witch'] as RoleName[],
+    roles: ['wolf', 'wolf', 'villager', 'villager', 'seer', 'witch'] as RoleId[],
     numberOfPlayers: 6,
   };
 }

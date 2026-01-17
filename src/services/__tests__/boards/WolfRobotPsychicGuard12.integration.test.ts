@@ -9,7 +9,7 @@
  */
 
 import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './hostGameFactory';
-import { RoleName } from '../../../models/roles';
+import { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '机械狼通灵师12人';
 
@@ -20,8 +20,8 @@ const TEMPLATE_NAME = '机械狼通灵师12人';
  * 7: 机械狼
  * 8: 通灵师, 9: 女巫, 10: 猎人, 11: 守卫
  */
-function createRoleAssignment(): Map<number, RoleName> {
-  const map = new Map<number, RoleName>();
+function createRoleAssignment(): Map<number, RoleId> {
+  const map = new Map<number, RoleId>();
   map.set(0, 'villager');
   map.set(1, 'villager');
   map.set(2, 'villager');

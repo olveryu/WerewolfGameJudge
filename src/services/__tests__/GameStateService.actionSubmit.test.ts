@@ -5,7 +5,7 @@
  */
 
 import { createHostGame, cleanupHostGame, HostGameContext, mockSendPrivate } from './boards/hostGameFactory';
-import { RoleName } from '../../models/roles';
+import { RoleId } from '../../models/roles';
 import { NightPhase } from '../NightFlowController';
 
 // =============================================================================
@@ -14,8 +14,8 @@ import { NightPhase } from '../NightFlowController';
 
 const TEMPLATE_NAME = '梦魇守卫12人';
 
-function createRoleAssignment(): Map<number, RoleName> {
-  const assignment = new Map<number, RoleName>();
+function createRoleAssignment(): Map<number, RoleId> {
+  const assignment = new Map<number, RoleId>();
   assignment.set(0, 'villager');
   assignment.set(1, 'villager');
   assignment.set(2, 'villager');

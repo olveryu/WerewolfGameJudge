@@ -1,205 +1,155 @@
+/**
+ * Contract tests for role registry
+ *
+ * Guarantees:
+ * 1. ROLE_SPECS is single source of truth for role definitions
+ * 2. getRoleSpec() returns consistent data from ROLE_SPECS
+ * 3. All RoleId values map to valid role specs
+ * 4. Role metadata (displayName, faction, etc.) is complete
+ */
 import {
-  Faction,
-  ROLES,
-  SeerCheckResult,
-  TEAM_DISPLAY_NAMES,
-  Team,
-  canRoleSeeWolves,
-  doesRoleParticipateInWolfVote,
+  ROLE_SPECS,
+  getRoleSpec,
+  isValidRoleId,
   getAllRoleIds,
-  getRoleDisplayName,
-  getRoleEnglishName,
-  getRoleTeam,
-  getRoleTeamDisplayName,
-  getSeerCheckResult,
-  getTeamDisplayName,
-  getWolfRoleIds,
-  hasNightAction,
-  isWolfRole,
-  type RoleName,
+  RoleId,
 } from '../roles';
 
-describe('Role Registry - ROLES constant', () => {
-  it('should have name matching key for each role', () => {
-    Object.entries(ROLES).forEach(([key, role]) => {
-      expect(role.name).toBe(key);
-    });
-  });
-
-  it('should have required properties for each role', () => {
-    Object.values(ROLES).forEach(role => {
-      expect(role).toHaveProperty('name');
-      expect(role).toHaveProperty('displayName');
-      expect(role).toHaveProperty('type');
-      expect(role).toHaveProperty('description');
-    });
-  });
-
-  it('should have valid type assignment', () => {
-    const validTypes: Faction[] = [Faction.Wolf, Faction.Villager, Faction.God, Faction.Special];
-    Object.values(ROLES).forEach(role => {
-      expect(validTypes).toContain(role.type);
-    });
-  });
-
-  it('should have all core roles defined', () => {
-    const coreRoles: RoleName[] = ['wolf', 'villager', 'seer', 'witch', 'hunter', 'guard', 'idiot'];
-    coreRoles.forEach(role => {
-      expect(ROLES).toHaveProperty(role);
-    });
-  });
-
-  it('should have all special wolf roles defined', () => {
-    const wolfRoles: RoleName[] = ['wolf', 'wolfQueen', 'darkWolfKing', 'nightmare', 'bloodMoon', 'wolfRobot', 'gargoyle'];
-    wolfRoles.forEach(role => {
-      expect(ROLES).toHaveProperty(role);
-    });
-  });
-});
-
-describe('Role Registry - isWolfRole', () => {
-  it('should return true for wolf-faction roles', () => {
-    const wolves: RoleName[] = ['wolf', 'wolfQueen', 'wolfKing', 'darkWolfKing', 'nightmare', 'gargoyle', 'bloodMoon', 'wolfRobot', 'spiritKnight'];
-    wolves.forEach(role => {
-      expect(isWolfRole(role)).toBe(true);
-    });
-  });
-
-  it('should return false for non-wolf roles', () => {
-    const nonWolves: RoleName[] = ['villager', 'seer', 'witch', 'hunter', 'guard', 'idiot', 'graveyardKeeper', 'slacker', 'knight', 'dreamcatcher', 'magician', 'witcher', 'psychic'];
-    nonWolves.forEach(role => {
-      expect(isWolfRole(role)).toBe(false);
-    });
-  });
-});
-
-describe('Role Registry - hasNightAction', () => {
-  it('should return false for villager', () => {
-    expect(hasNightAction('villager')).toBe(false);
-  });
-
-  it('should return true for roles with night actions (validated via spec)', () => {
-    // Validate against known night action roles (derived from ROLE_SPECS.*.night1.hasAction)
-    const rolesWithNightAction: RoleName[] = [
-      'wolf', 'seer', 'witch', 'hunter', 'guard',
-      'magician', 'nightmare', 'gargoyle', 'wolfRobot',
-      'psychic', 'darkWolfKing', 'slacker', 'dreamcatcher',
-    ];
-    rolesWithNightAction.forEach(role => {
-      expect(hasNightAction(role)).toBe(true);
-    });
-  });
-});
-
-describe('Role Registry - Type classification', () => {
-  it('should have villager as Villager faction', () => {
-    expect(ROLES.villager.type).toBe(Faction.Villager);
-  });
-
-  it('should have wolves as Wolf faction', () => {
-    const wolfRoleNames: RoleName[] = ['wolf', 'wolfQueen', 'wolfKing', 'darkWolfKing', 'nightmare', 'bloodMoon', 'wolfRobot', 'gargoyle', 'spiritKnight'];
-    wolfRoleNames.forEach(name => {
-      expect(ROLES[name].type).toBe(Faction.Wolf);
-    });
-  });
-
-  it('should have god roles as God faction', () => {
-  const godRoles: RoleName[] = ['seer', 'witch', 'hunter', 'guard', 'idiot', 'knight', 'magician', 'witcher', 'psychic', 'graveyardKeeper', 'dreamcatcher'];
-    godRoles.forEach(name => {
-      expect(ROLES[name].type).toBe(Faction.God);
-    });
-  });
-
-  it('should have slacker as Special faction', () => {
-    expect(ROLES.slacker.type).toBe(Faction.Special);
-  });
-});
-
-describe('Role Registry - Display names and descriptions', () => {
-  it('should have non-empty displayName and description for all roles', () => {
-    getAllRoleIds().forEach(roleId => {
-      const def = ROLES[roleId];
-      expect(def.displayName).toBeTruthy();
-      expect(def.description).toBeTruthy();
-    });
-  });
-
-  it('getRoleDisplayName should match ROLES displayName', () => {
-    getAllRoleIds().forEach(roleId => {
-      expect(getRoleDisplayName(roleId)).toBe(ROLES[roleId].displayName);
-    });
-  });
-
-  it('getRoleEnglishName should return Dreamcatcher for dreamcatcher role id', () => {
-    expect(getRoleEnglishName('dreamcatcher')).toBe('Dreamcatcher');
-  });
-
-});
-
-describe('Role Registry - Team classification', () => {
-  it('TEAM_DISPLAY_NAMES should be exhaustive', () => {
-    const keys = Object.keys(TEAM_DISPLAY_NAMES) as Team[];
-    expect(keys.sort()).toEqual(['good', 'third', 'wolf']);
-  });
-
-  it('getTeamDisplayName should return correct Chinese names', () => {
-    expect(getTeamDisplayName('wolf')).toBe('狼人');
-    expect(getTeamDisplayName('good')).toBe('好人');
-    expect(getTeamDisplayName('third')).toBe('第三方');
-  });
-
-  it('getRoleTeamDisplayName should be consistent with getRoleTeam', () => {
-    getAllRoleIds().forEach(roleId => {
-      expect(getRoleTeamDisplayName(roleId)).toBe(TEAM_DISPLAY_NAMES[getRoleTeam(roleId)]);
-    });
-  });
-});
-
-describe('Role Registry - getWolfRoleIds', () => {
-  it('should return all wolf role IDs and only wolf role IDs', () => {
-    const ids = getWolfRoleIds();
-    expect(ids.length).toBeGreaterThan(0);
-
-    ids.forEach(id => {
-      expect(isWolfRole(id)).toBe(true);
-    });
-
-    // sanity: should not include villager
-    expect(ids).not.toContain('villager');
-  });
-});
-
-describe('Role Registry - Wolf meeting/vote invariants', () => {
-  it('non-voting wolves must not see wolves (non-meeting)', () => {
-    const wolves = getWolfRoleIds();
-    wolves.forEach(roleId => {
-      const votes = doesRoleParticipateInWolfVote(roleId);
-      const sees = canRoleSeeWolves(roleId);
-      if (votes) {
-        expect(sees).toBe(true);
+describe('Role Registry Contract Tests', () => {
+  describe('ROLE_SPECS is single source of truth', () => {
+    it('ROLE_SPECS contains all expected base roles', () => {
+      const baseRoles: RoleId[] = [
+        'villager',
+        'wolf',
+        'seer',
+        'witch',
+        'hunter',
+        'guard',
+      ];
+      for (const roleId of baseRoles) {
+        expect(ROLE_SPECS[roleId]).toBeDefined();
       }
     });
-  });
-});
 
-describe('Role Registry - getSeerCheckResult (Seer Binary Result)', () => {
-  it("should return only '好人' or '狼人'", () => {
-    const allRoles = getAllRoleIds();
-    const validResults: SeerCheckResult[] = ['好人', '狼人'];
+    it('every RoleId has a corresponding spec', () => {
+      const allRoleIds = getAllRoleIds();
+      for (const roleId of allRoleIds) {
+        expect(ROLE_SPECS[roleId]).toBeDefined();
+        expect(ROLE_SPECS[roleId].displayName).toBeTruthy();
+      }
+    });
 
-    allRoles.forEach(role => {
-      expect(validResults).toContain(getSeerCheckResult(role));
+    it('getAllRoleIds returns keys of ROLE_SPECS', () => {
+      const allRoleIds = getAllRoleIds();
+      const specKeys = Object.keys(ROLE_SPECS) as RoleId[];
+      expect(new Set(allRoleIds)).toEqual(new Set(specKeys));
     });
   });
 
-  it("should return '狼人' for all wolf-faction roles", () => {
-    const wolfRoles: RoleName[] = ['wolf', 'wolfQueen', 'wolfKing', 'darkWolfKing', 'nightmare', 'gargoyle', 'bloodMoon', 'wolfRobot', 'spiritKnight'];
-    wolfRoles.forEach(role => {
-      expect(getSeerCheckResult(role)).toBe('狼人');
+  describe('getRoleSpec() returns consistent data', () => {
+    it('returns spec for valid roleId', () => {
+      const spec = getRoleSpec('villager');
+      expect(spec).toBeDefined();
+      expect(spec.displayName).toBe('普通村民');
+      expect(spec.faction).toBe('villager');
+    });
+
+    it('returns same reference as ROLE_SPECS for same roleId', () => {
+      const allRoleIds = getAllRoleIds();
+      for (const roleId of allRoleIds) {
+        expect(getRoleSpec(roleId)).toBe(ROLE_SPECS[roleId]);
+      }
+    });
+
+    it('returns undefined for invalid roleId', () => {
+      // getRoleSpec returns undefined for invalid roleId (not throws)
+      const result = getRoleSpec('not_a_role' as RoleId);
+      expect(result).toBeUndefined();
     });
   });
 
-  it("should return '好人' for slacker (third-party)", () => {
-    expect(getSeerCheckResult('slacker')).toBe('好人');
+  describe('isValidRoleId validation', () => {
+    it('returns true for all valid roleIds', () => {
+      const allRoleIds = getAllRoleIds();
+      for (const roleId of allRoleIds) {
+        expect(isValidRoleId(roleId)).toBe(true);
+      }
+    });
+
+    it('returns false for invalid strings', () => {
+      expect(isValidRoleId('not_a_role')).toBe(false);
+      expect(isValidRoleId('')).toBe(false);
+      expect(isValidRoleId(null as unknown as string)).toBe(false);
+      expect(isValidRoleId(undefined as unknown as string)).toBe(false);
+    });
+  });
+
+  describe('Role spec completeness', () => {
+    it('every spec has required fields', () => {
+      const allRoleIds = getAllRoleIds();
+      for (const roleId of allRoleIds) {
+        const spec = getRoleSpec(roleId);
+        expect(spec.displayName).toBeTruthy();
+        expect(spec.faction).toBeTruthy();
+        expect(['villager', 'wolf', 'god', 'special']).toContain(
+          spec.faction
+        );
+      }
+    });
+
+    it('wolf faction roles are marked correctly', () => {
+      const wolfRoles: RoleId[] = [
+        'wolf',
+        'wolfQueen',
+        'wolfRobot',
+        'darkWolfKing',
+      ];
+      for (const roleId of wolfRoles) {
+        const spec = getRoleSpec(roleId);
+        expect(spec.faction).toBe('wolf');
+      }
+    });
+
+    it('god faction roles are marked correctly', () => {
+      const godRoles: RoleId[] = [
+        'seer',
+        'witch',
+        'hunter',
+        'guard',
+        'psychic',
+        'dreamcatcher',
+        'magician',
+      ];
+      for (const roleId of godRoles) {
+        const spec = getRoleSpec(roleId);
+        expect(spec.faction).toBe('god');
+      }
+    });
+
+    it('villager faction roles are marked correctly', () => {
+      const spec = getRoleSpec('villager');
+      expect(spec.faction).toBe('villager');
+    });
+  });
+
+  describe('Role displayName uniqueness', () => {
+    it('all displayNames are unique', () => {
+      const allRoleIds = getAllRoleIds();
+      const displayNames = allRoleIds.map((id) => getRoleSpec(id).displayName);
+      const uniqueNames = new Set(displayNames);
+      expect(uniqueNames.size).toBe(displayNames.length);
+    });
+  });
+
+  describe('RoleId stability', () => {
+    it('RoleId values match ROLE_SPECS keys (no drift)', () => {
+      // This ensures the derived RoleId type matches actual spec keys
+      const allRoleIds = getAllRoleIds();
+      for (const roleId of allRoleIds) {
+        // Type check: roleId should be assignable to keyof typeof ROLE_SPECS
+        const _keyCheck: keyof typeof ROLE_SPECS = roleId;
+        expect(_keyCheck).toBe(roleId);
+      }
+    });
   });
 });

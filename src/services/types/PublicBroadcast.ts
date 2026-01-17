@@ -9,7 +9,7 @@
  * @see docs/phase4-final-migration.md for full architecture
  */
 
-import type { RoleName } from '../../models/roles';
+import type { RoleId } from '../../models/roles';
 import type { SchemaId } from '../../models/roles/spec';
 
 // =============================================================================
@@ -47,7 +47,7 @@ export interface PublicStateUpdate {
 
 export interface PublicRoleTurn {
   type: 'ROLE_TURN';
-  role: RoleName;
+  role: RoleId;
   stepId?: SchemaId;
   pendingSeats?: number[];
   // ❌ FORBIDDEN: killedIndex, checkResult, canSave, selectableSeats
@@ -115,7 +115,7 @@ export interface PublicGameState {
   roomCode: string;
   hostUid: string;
   status: 'unseated' | 'seated' | 'assigned' | 'ready' | 'ongoing' | 'ended';
-  templateRoles: RoleName[];
+  templateRoles: RoleId[];
   players: Record<number, PublicPlayer | null>;
   currentActionerIndex: number;
   isAudioPlaying: boolean;
@@ -133,6 +133,6 @@ export interface PublicPlayer {
   displayName?: string;
   avatarUrl?: string;
   /** Only sent to the player themselves, or wolves can see wolves */
-  role?: RoleName | null;
+  role?: RoleId | null;
   hasViewedRole: boolean;
 }

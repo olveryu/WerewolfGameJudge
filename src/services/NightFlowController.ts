@@ -10,7 +10,7 @@
  * Integration with GameStateService will be done in a separate step.
  */
 
-import { RoleName } from '../models/roles';
+import { RoleId } from '../models/roles';
 import { type NightPlan, type NightPlanStep } from '../models/roles/spec/plan.types';
 
 // =============================================================================
@@ -64,7 +64,7 @@ export enum NightEvent {
 export interface NightFlowState {
   readonly phase: NightPhase;
   readonly currentActionIndex: number;
-  readonly actions: ReadonlyMap<RoleName, number>;
+  readonly actions: ReadonlyMap<RoleId, number>;
   /** Current step from NightPlan (null if no more steps) */
   readonly currentStep: NightPlanStep | null;
 }
@@ -102,7 +102,7 @@ export class NightFlowController {
   private _phase: NightPhase = NightPhase.Idle;
   private readonly _nightPlan: NightPlan;
   private _currentActionIndex: number = 0;
-  private _actions: Map<RoleName, number> = new Map();
+  private _actions: Map<RoleId, number> = new Map();
 
   /**
    * Create a new NightFlowController from a NightPlan.
@@ -128,7 +128,7 @@ export class NightFlowController {
     return this._nightPlan.steps[this._currentActionIndex];
   }
 
-  get currentRole(): RoleName | null {
+  get currentRole(): RoleId | null {
     const step = this.currentStep;
     return step ? step.roleId : null;
   }
@@ -137,7 +137,7 @@ export class NightFlowController {
     return this._currentActionIndex;
   }
 
-  get actions(): ReadonlyMap<RoleName, number> {
+  get actions(): ReadonlyMap<RoleId, number> {
     return this._actions;
   }
 
@@ -208,7 +208,7 @@ export class NightFlowController {
    * Record an action for a role
    * Can only be called in WaitingForAction phase
    */
-  recordAction(role: RoleName, target: number): void {
+  recordAction(role: RoleId, target: number): void {
     if (this._phase !== NightPhase.WaitingForAction) {
       throw new InvalidNightTransitionError(this._phase, NightEvent.ActionSubmitted);
     }

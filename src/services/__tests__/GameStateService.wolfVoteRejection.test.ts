@@ -9,7 +9,7 @@
 import { GameStateService, GameStatus } from '../GameStateService';
 import { NightPhase } from '../NightFlowController';
 import { GameTemplate } from '../../models/Template';
-import { RoleName } from '../../models/roles';
+import { RoleId } from '../../models/roles';
 
 // =============================================================================
 // Mocks
@@ -51,7 +51,7 @@ function resetGameStateService(): GameStateService {
   return GameStateService.getInstance();
 }
 
-function createTestTemplate(roles: RoleName[]): GameTemplate {
+function createTestTemplate(roles: RoleId[]): GameTemplate {
   return {
     name: 'Test Template',
     roles,
@@ -61,7 +61,7 @@ function createTestTemplate(roles: RoleName[]): GameTemplate {
 
 async function setupGameInWolfPhase(
   service: GameStateService,
-  roles: RoleName[]
+  roles: RoleId[]
 ): Promise<void> {
   const template = createTestTemplate(roles);
   
@@ -125,7 +125,7 @@ describe('GameStateService Wolf Vote Rejection', () => {
   describe('spiritKnight self-vote rejection (actor-specific)', () => {
     it('spiritKnight投自己应被拒绝并发送ACTION_REJECTED私信', async () => {
       // Setup: Board with spiritKnight as one of the wolves
-      const roles: RoleName[] = [
+      const roles: RoleId[] = [
         'villager', 'villager', 'villager', 'villager',
         'wolf', 'wolf', 'spiritKnight',  // spiritKnight at seat 6
         'seer', 'witch', 'hunter'
@@ -159,7 +159,7 @@ describe('GameStateService Wolf Vote Rejection', () => {
     });
 
     it('spiritKnight投其他人应该正常记录', async () => {
-      const roles: RoleName[] = [
+      const roles: RoleId[] = [
         'villager', 'villager', 'villager', 'villager',
         'wolf', 'wolf', 'spiritKnight',
         'seer', 'witch', 'hunter'
@@ -193,7 +193,7 @@ describe('GameStateService Wolf Vote Rejection', () => {
 
   describe('forbiddenTargetRoleIds rejection (target-based)', () => {
     it('普通狼投spiritKnight应被拒绝', async () => {
-      const roles: RoleName[] = [
+      const roles: RoleId[] = [
         'villager', 'villager', 'villager', 'villager',
         'wolf', 'wolf', 'spiritKnight',  // spiritKnight at seat 6
         'seer', 'witch', 'hunter'
@@ -229,7 +229,7 @@ describe('GameStateService Wolf Vote Rejection', () => {
     });
 
     it('普通狼投wolfQueen应被拒绝', async () => {
-      const roles: RoleName[] = [
+      const roles: RoleId[] = [
         'villager', 'villager', 'villager', 'villager',
         'wolf', 'wolf', 'wolfQueen',  // wolfQueen at seat 6
         'seer', 'witch', 'hunter'
@@ -265,7 +265,7 @@ describe('GameStateService Wolf Vote Rejection', () => {
     });
 
     it('普通狼投村民应该正常记录', async () => {
-      const roles: RoleName[] = [
+      const roles: RoleId[] = [
         'villager', 'villager', 'villager', 'villager',
         'wolf', 'wolf', 'wolfQueen',
         'seer', 'witch', 'hunter'

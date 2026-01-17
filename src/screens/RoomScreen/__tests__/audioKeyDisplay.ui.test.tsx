@@ -55,7 +55,7 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     connectionStatus: 'live',
 
     isHost: false,
-    roomStatus: require('../../../models/Room').RoomStatus.ongoing,
+    roomStatus: require('../../../models/Room').GameStatus.ongoing,
     currentActionRole: null,
     currentSchema: null,
     currentStepId: 'seerCheck',

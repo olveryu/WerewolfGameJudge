@@ -6,7 +6,7 @@
  */
 
 import { GameStateService, GameStatus, LocalPlayer } from '../GameStateService';
-import { RoleName } from '../../models/roles';
+import { RoleId } from '../../models/roles';
 
 // Mock shuffle to make tests deterministic
 jest.mock('../../utils/shuffle', () => ({
@@ -42,7 +42,7 @@ jest.mock('../BroadcastService', () => ({
 
 // Helper to create a minimal template
 // Phase 5: actionOrder removed from GameTemplate
-function createTestTemplate(roles: RoleName[]) {
+function createTestTemplate(roles: RoleId[]) {
   return {
     name: 'Test Template',
     numberOfPlayers: roles.length,
@@ -53,7 +53,7 @@ function createTestTemplate(roles: RoleName[]) {
 // Helper to setup a game state with players
 function setupGameWithPlayers(
   service: GameStateService,
-  roles: RoleName[],
+  roles: RoleId[],
   status: GameStatus,
   options: { assignRoles?: boolean; hostSeat?: number } = {}
 ): void {
@@ -104,7 +104,7 @@ describe('GameStateService Unified API', () => {
   });
 
   describe('playerViewedRole - Host path uses same logic as Player path', () => {
-    const roles: RoleName[] = ['seer', 'witch', 'wolf', 'wolf', 'villager', 'villager'];
+    const roles: RoleId[] = ['seer', 'witch', 'wolf', 'wolf', 'villager', 'villager'];
 
     it('should only process during assigned status (not unseated)', async () => {
       setupGameWithPlayers(service, roles, GameStatus.unseated, { assignRoles: false });
@@ -148,7 +148,7 @@ describe('GameStateService Unified API', () => {
 
   describe('takeSeat - unified path for Host and Player', () => {
     it('Host should successfully take a seat', async () => {
-      const roles: RoleName[] = ['seer', 'witch', 'wolf', 'villager'];
+      const roles: RoleId[] = ['seer', 'witch', 'wolf', 'villager'];
       setupGameWithPlayers(service, roles, GameStatus.unseated, { assignRoles: false });
       
       // Clear seat 0 so host can take it
@@ -163,7 +163,7 @@ describe('GameStateService Unified API', () => {
     });
 
     it('should reject if seat is already taken', async () => {
-      const roles: RoleName[] = ['seer', 'witch', 'wolf', 'villager'];
+      const roles: RoleId[] = ['seer', 'witch', 'wolf', 'villager'];
       setupGameWithPlayers(service, roles, GameStatus.unseated, { assignRoles: false });
       
       // Seat 1 is already taken by Player 1
@@ -177,7 +177,7 @@ describe('GameStateService Unified API', () => {
 
   describe('leaveSeat - unified path for Host and Player', () => {
     it('Host should successfully leave seat', async () => {
-      const roles: RoleName[] = ['seer', 'witch', 'wolf', 'villager'];
+      const roles: RoleId[] = ['seer', 'witch', 'wolf', 'villager'];
       setupGameWithPlayers(service, roles, GameStatus.unseated, { assignRoles: false });
       
       // Verify host is in seat 0
@@ -192,7 +192,7 @@ describe('GameStateService Unified API', () => {
 
   describe('processSeatAction - single source of truth', () => {
     it('should update status to seated when all seats filled', async () => {
-      const roles: RoleName[] = ['seer', 'wolf'];
+      const roles: RoleId[] = ['seer', 'wolf'];
       setupGameWithPlayers(service, roles, GameStatus.unseated, { assignRoles: false });
       
       // Clear all seats
@@ -212,7 +212,7 @@ describe('GameStateService Unified API', () => {
     });
 
     it('should revert status to unseated when someone leaves', async () => {
-      const roles: RoleName[] = ['seer', 'wolf'];
+      const roles: RoleId[] = ['seer', 'wolf'];
       setupGameWithPlayers(service, roles, GameStatus.seated, { assignRoles: false });
       
       await service.leaveSeat();

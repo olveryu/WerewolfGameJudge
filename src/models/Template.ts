@@ -1,4 +1,4 @@
-import { RoleName, isValidRoleName, getRoleSpec } from './roles';
+import { RoleId, isValidRoleId, getRoleSpec } from './roles';
 
 // ---------------------------------------------------------------------------
 // Template validation
@@ -11,15 +11,15 @@ export const MINIMUM_PLAYERS = 2;
  * Validate a list of roles for template creation.
  * Returns null if valid, otherwise a human-readable reason string.
  */
-export function validateTemplateRoles(roles: RoleName[]): string | null {
+export function validateTemplateRoles(roles: RoleId[]): string | null {
   // Rule 1: must have at least MINIMUM_PLAYERS
   if (roles.length < MINIMUM_PLAYERS) {
     return `至少需要 ${MINIMUM_PLAYERS} 名玩家`;
   }
 
-  // Rule 2: all roles must be valid RoleName (defensive, in case of external data)
+  // Rule 2: all roles must be valid RoleId (defensive, in case of external data)
   for (const r of roles) {
-    if (!isValidRoleName(r)) {
+    if (!isValidRoleId(r)) {
       return `无效角色: ${r}`;
     }
   }
@@ -38,11 +38,11 @@ export function validateTemplateRoles(roles: RoleName[]): string | null {
 export interface GameTemplate {
   name: string;
   numberOfPlayers: number;
-  roles: RoleName[];
+  roles: RoleId[];
 }
 
 // Create custom template (roles are NOT shuffled here - shuffling happens at "准备看牌")
-export const createCustomTemplate = (roles: RoleName[]): GameTemplate => {
+export const createCustomTemplate = (roles: RoleId[]): GameTemplate => {
   return {
     name: '',
     numberOfPlayers: roles.length,
@@ -51,7 +51,7 @@ export const createCustomTemplate = (roles: RoleName[]): GameTemplate => {
 };
 
 // Create template from existing roles (for loading from database)
-export const createTemplateFromRoles = (roles: RoleName[]): GameTemplate => ({
+export const createTemplateFromRoles = (roles: RoleId[]): GameTemplate => ({
   name: '',
   numberOfPlayers: roles.length,
   roles,
@@ -59,7 +59,7 @@ export const createTemplateFromRoles = (roles: RoleName[]): GameTemplate => ({
 
 // Check if template has skilled wolves
 export const templateHasSkilledWolf = (template: GameTemplate): boolean => {
-  const skilledWolves: RoleName[] = [
+  const skilledWolves: RoleId[] = [
     'wolfKing',
     'darkWolfKing',
     'wolfQueen',
@@ -70,7 +70,7 @@ export const templateHasSkilledWolf = (template: GameTemplate): boolean => {
 };
 
 // Predefined templates matching Flutter app
-export const PRESET_TEMPLATES: { name: string; roles: RoleName[] }[] = [
+export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   {
     name: '标准板12人',
     roles: [

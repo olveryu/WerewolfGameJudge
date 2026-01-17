@@ -7,7 +7,7 @@
 import { GameStateService, GameStatus } from '../GameStateService';
 import { NightPhase, NightEvent } from '../NightFlowController';
 import { GameTemplate } from '../../models/Template';
-import { RoleName } from '../../models/roles';
+import { RoleId } from '../../models/roles';
 
 // =============================================================================
 // Mocks
@@ -42,8 +42,8 @@ jest.mock('../AudioService', () => ({
 // Test Helpers
 // =============================================================================
 
-function createTestTemplate(roles: RoleName[]): GameTemplate {
-  const paddedRoles: RoleName[] = [...roles];
+function createTestTemplate(roles: RoleId[]): GameTemplate {
+  const paddedRoles: RoleId[] = [...roles];
   while (paddedRoles.length < 6) {
     paddedRoles.push('villager');
   }
@@ -62,7 +62,7 @@ function resetGameStateService(): GameStateService {
 
 async function setupReadyState(
   service: GameStateService,
-  actionOrder: RoleName[] = ['wolf', 'witch', 'seer']
+  actionOrder: RoleId[] = ['wolf', 'witch', 'seer']
 ): Promise<void> {
   const template = createTestTemplate(actionOrder);
   

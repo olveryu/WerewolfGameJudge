@@ -1,6 +1,6 @@
 import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from './Player';
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
-import { RoleName, ROLES, isWolfRole, buildNightPlan } from './roles';
+import { RoleId, isWolfRole, buildNightPlan, getRoleSpec } from './roles';
 import { getSchema, type SchemaId } from './roles/spec';
 import { shuffleArray } from '../utils/shuffle';
 import {
@@ -17,24 +17,18 @@ import {
   isWitchSave,
   isWitchPoison,
 } from './actions';
+import { GameStatus } from '../services/types/GameStateTypes';
 
-// Room status
-export enum RoomStatus {
-  unseated = 0,  // 等待入座
-  seated = 1,    // 所有人入座，等待准备看牌
-  assigned = 2,  // 角色已分配，等待所有人查看身份
-  ready = 3,     // 所有人已看身份，可以开始游戏
-  ongoing = 4,   // 游戏进行中（夜晚）
-  ended = 5,     // 夜晚结束（白天）
-}
+// Re-export GameStatus for consumers who import from Room
+export { GameStatus } from '../services/types/GameStateTypes';
 
 // =============================================================================
 // Common interface for Room-like objects (supports both Room and LocalGameState)
 // =============================================================================
 export interface GameRoomLike {
   template: GameTemplate;
-  players: Map<number, { uid: string; seatNumber: number; role: RoleName | null; hasViewedRole: boolean; displayName?: string; avatarUrl?: string | null } | null>;
-  actions: Map<RoleName, RoleAction>;
+  players: Map<number, { uid: string; seatNumber: number; role: RoleId | null; hasViewedRole: boolean; displayName?: string; avatarUrl?: string | null } | null>;
+  actions: Map<RoleId, RoleAction>;
   wolfVotes: Map<number, number>;
   currentActionerIndex: number;
 }
@@ -57,10 +51,10 @@ export interface Room {
   timestamp: number;
   hostUid: string;
   roomNumber: string;
-  roomStatus: RoomStatus;
+  roomStatus: GameStatus;
   template: GameTemplate;
   players: Map<number, Player | null>; // seatNumber -> Player
-  actions: Map<RoleName, RoleAction>; // Role -> structured action
+  actions: Map<RoleId, RoleAction>; // Role -> structured action
   wolfVotes: Map<number, number>; // Wolf seat -> target seat (for wolf voting)
   currentActionerIndex: number;
   isAudioPlaying: boolean; // Whether host is playing audio for current action
@@ -75,7 +69,7 @@ export const createRoom = (
   timestamp: Date.now(),
   hostUid,
   roomNumber,
-  roomStatus: RoomStatus.unseated,
+  roomStatus: GameStatus.unseated,
   template,
   players: new Map(
     Array.from({ length: template.numberOfPlayers }, (_, i) => [i, null])
@@ -153,7 +147,7 @@ export const roomFromDb = (
   roomNumber: string,
   data: Record<string, any>
 ): Room => {
-  const roles = data[ROOM_KEYS.roles] as RoleName[];
+  const roles = data[ROOM_KEYS.roles] as RoleId[];
   const template = createTemplateFromRoles(roles);
 
   const players = new Map<number, Player | null>();
@@ -167,11 +161,11 @@ export const roomFromDb = (
     });
   }
 
-  const actions = new Map<RoleName, RoleAction>();
+  const actions = new Map<RoleId, RoleAction>();
   const actionsData = data[ROOM_KEYS.actions] as Record<string, any>;
   if (actionsData) {
     Object.entries(actionsData).forEach(([roleName, actionData]) => {
-      actions.set(roleName as RoleName, deserializeRoleAction(actionData));
+      actions.set(roleName as RoleId, deserializeRoleAction(actionData));
     });
   }
 
@@ -187,7 +181,7 @@ export const roomFromDb = (
     timestamp: data[ROOM_KEYS.timestamp] ?? Date.now(),
     hostUid: data[ROOM_KEYS.hostUid],
     roomNumber,
-    roomStatus: data[ROOM_KEYS.roomStatus] ?? RoomStatus.unseated,
+    roomStatus: data[ROOM_KEYS.roomStatus] ?? GameStatus.unseated,
     template,
     players,
     actions,
@@ -199,7 +193,7 @@ export const roomFromDb = (
 
 // Get current actioner role
 // Phase 5: actionOrder removed, derive from NightPlan
-export const getCurrentActionRole = (room: GameRoomLike): RoleName | null => {
+export const getCurrentActionRole = (room: GameRoomLike): RoleId | null => {
   const { currentActionerIndex } = room;
   const nightPlan = buildNightPlan(room.template.roles);
 
@@ -212,7 +206,7 @@ export const getCurrentActionRole = (room: GameRoomLike): RoleName | null => {
 
 // Get last actioner role
 // Phase 5: actionOrder removed, derive from NightPlan
-export const getLastActionRole = (room: GameRoomLike): RoleName | null => {
+export const getLastActionRole = (room: GameRoomLike): RoleId | null => {
   const { currentActionerIndex } = room;
   const nightPlan = buildNightPlan(room.template.roles);
 
@@ -513,7 +507,7 @@ export const getActionLog = (room: GameRoomLike): string[] => {
   const logs: string[] = [];
 
   // Map role -> schema that best represents the action for logs (schema is the copy authority).
-  const roleToActionSchemaId: Partial<Record<RoleName, SchemaId>> = {
+  const roleToActionSchemaId: Partial<Record<RoleId, SchemaId>> = {
     seer: 'seerCheck',
     witch: 'witchAction',
     guard: 'guardProtect',
@@ -535,27 +529,27 @@ export const getActionLog = (room: GameRoomLike): string[] => {
   const nightPlan = buildNightPlan(room.template.roles);
   for (let i = 0; i < room.currentActionerIndex; i++) {
     if (i >= nightPlan.steps.length) continue;
-    const roleName = nightPlan.steps[i].roleId;
-    if (!roleName) continue;
+    const roleId = nightPlan.steps[i].roleId;
+    if (!roleId) continue;
     
-    const roleInfo = ROLES[roleName];
-    if (!roleInfo) continue;
+    const roleSpec = getRoleSpec(roleId);
+    if (!roleSpec) continue;
     
-    const action = room.actions.get(roleName);
-    const displayName = roleInfo.displayName;
-  const schemaId = roleToActionSchemaId[roleName];
-  const schema = schemaId ? getSchema(schemaId) : undefined;
-  const actionVerb = schema?.displayName ?? '选择';
+    const action = room.actions.get(roleId);
+    const displayName = roleSpec.displayName;
+    const schemaId = roleToActionSchemaId[roleId];
+    const schema = schemaId ? getSchema(schemaId) : undefined;
+    const actionVerb = schema?.displayName ?? '选择';
     
     // Special handling for roles with specific action formats
-    if (roleName === 'wolf') {
+    if (roleId === 'wolf') {
       const targetSeat = getActionTargetSeat(action);
       if (targetSeat === undefined) {
         logs.push(`${displayName}: 空刀`);
       } else {
         logs.push(`${displayName}: 猎杀 ${targetSeat + 1}号`);
       }
-    } else if (roleName === 'witch') {
+    } else if (roleId === 'witch') {
       const { killedByWitch, savedByWitch } = parseWitchActionFromRoleAction(action);
       if (savedByWitch !== null) {
         logs.push(`${displayName}: 救了 ${savedByWitch + 1}号`);
@@ -564,14 +558,14 @@ export const getActionLog = (room: GameRoomLike): string[] => {
       } else {
         logs.push(`${displayName}: 未使用技能`);
       }
-    } else if (roleName === 'magician') {
+    } else if (roleId === 'magician') {
       const magicianParsed = parseMagicianActionFromRoleAction(action);
       if (magicianParsed.firstExchanged === undefined) {
         logs.push(`${displayName}: 未${actionVerb}`);
       } else {
         logs.push(`${displayName}: ${actionVerb} ${magicianParsed.firstExchanged + 1}号 和 ${magicianParsed.secondExchanged! + 1}号`);
       }
-    } else if (roleName === 'hunter' || roleName === 'darkWolfKing') {
+    } else if (roleId === 'hunter' || roleId === 'darkWolfKing') {
       // Status confirmation roles - just show they confirmed
       logs.push(`${displayName}: ${actionVerb}`);
     } else {
@@ -600,7 +594,7 @@ export const getRoomInfo = (room: GameRoomLike): string => {
   );
   const uniqueSpecialRoles = [...new Set(specialRoles)];
 
-  info += uniqueSpecialRoles.map((r) => ROLES[r].displayName).join(', ');
+  info += uniqueSpecialRoles.map((r) => getRoleSpec(r).displayName).join(', ');
 
   return info;
 };
@@ -644,7 +638,7 @@ export const proceedToNextAction = (
 // Start the game (matching Flutter room.startGame)
 export const startGame = (room: Room): Room => ({
   ...room,
-  roomStatus: RoomStatus.ongoing,
+  roomStatus: GameStatus.ongoing,
   currentActionerIndex: 0,
   actions: new Map(),
   wolfVotes: new Map(),
@@ -675,7 +669,7 @@ export const assignRoles = (room: Room): Room => {
   
   return {
     ...room,
-    roomStatus: RoomStatus.assigned,  // 角色已分配
+    roomStatus: GameStatus.assigned,  // 角色已分配
     players: updatedPlayers,
     template: {
       ...room.template,
@@ -706,7 +700,7 @@ export const restartRoom = (room: Room): Room => {
   
   return {
     ...room,
-    roomStatus: RoomStatus.seated, // 回到已入座状态，等待host点击"准备看牌"
+    roomStatus: GameStatus.seated, // 回到已入座状态，等待host点击"准备看牌"
     currentActionerIndex: 0,
     actions: new Map(),
     wolfVotes: new Map(),
@@ -742,7 +736,7 @@ export const markPlayerViewedRole = (room: Room, seatNumber: number): Room => {
   
   return {
     ...room,
-    roomStatus: allViewed ? RoomStatus.ready : room.roomStatus,
+    roomStatus: allViewed ? GameStatus.ready : room.roomStatus,
     players: updatedPlayers,
   };
 };
@@ -818,7 +812,7 @@ export const updateRoomTemplate = (room: Room, newTemplate: GameTemplate): Room 
   
   return {
     ...room,
-    roomStatus: allSeated ? RoomStatus.seated : RoomStatus.unseated,
+    roomStatus: allSeated ? GameStatus.seated : GameStatus.unseated,
     currentActionerIndex: 0,
     actions: new Map(),
     wolfVotes: new Map(),

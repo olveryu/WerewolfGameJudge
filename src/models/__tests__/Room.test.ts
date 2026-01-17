@@ -1,6 +1,6 @@
 import {
   Room,
-  RoomStatus,
+  GameStatus,
   createRoom,
   proceedToNextAction,
   getLastNightInfo,
@@ -14,12 +14,12 @@ import {
 } from '../Room';
 import { GameTemplate } from '../Template';
 import { Player, PlayerStatus, SkillStatus } from '../Player';
-import { RoleName } from '../roles';
+import { RoleId } from '../roles';
 import { isActionTarget, getActionTargetSeat, isActionWitch, isWitchPoison } from '../actions';
 
 // Helper to create a test room with specific roles
 // Phase 5: actionOrder removed from GameTemplate
-const createTestRoom = (roles: RoleName[]): Room => {
+const createTestRoom = (roles: RoleId[]): Room => {
   const template: GameTemplate = {
     name: 'Test Template',
     roles,
@@ -41,11 +41,11 @@ const createTestRoom = (roles: RoleName[]): Room => {
     });
   });
 
-  return { ...room, players, roomStatus: RoomStatus.assigned };
+  return { ...room, players, roomStatus: GameStatus.assigned };
 };
 
 // Helper to advance action to specific role
-const advanceToRole = (room: Room, targetRole: RoleName): Room => {
+const advanceToRole = (room: Room, targetRole: RoleId): Room => {
   let current = room;
   while (getCurrentActionRole(current) !== targetRole) {
     const currentRole = getCurrentActionRole(current);
@@ -479,7 +479,7 @@ describe('Room - 白狼王 (Wolf King)', () => {
 describe('updateRoomTemplate', () => {
   it('should update template and preserve existing players when player count changes', () => {
     // Create a room with 4 players
-    const roles4: RoleName[] = ['wolf', 'seer', 'villager', 'villager'];
+    const roles4: RoleId[] = ['wolf', 'seer', 'villager', 'villager'];
     const room = createTestRoom(roles4);
     
     // Verify initial state
@@ -488,7 +488,7 @@ describe('updateRoomTemplate', () => {
     
     // Create new template with 6 players
     // Phase 5: actionOrder removed from GameTemplate
-    const newRoles: RoleName[] = ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'];
+    const newRoles: RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'];
     const newTemplate: GameTemplate = {
       name: 'New Template',
       roles: newRoles,
@@ -517,20 +517,20 @@ describe('updateRoomTemplate', () => {
     expect(updatedRoom.players.get(5)).toBeNull();
     
     // Room should be reset to unseated status (because new seats are empty)
-    expect(updatedRoom.roomStatus).toBe(RoomStatus.unseated);
+    expect(updatedRoom.roomStatus).toBe(GameStatus.unseated);
     expect(updatedRoom.currentActionerIndex).toBe(0);
     expect(updatedRoom.actions.size).toBe(0);
   });
   
   it('should preserve players when player count stays same', () => {
-    const roles: RoleName[] = ['wolf', 'seer', 'villager', 'villager'];
+    const roles: RoleId[] = ['wolf', 'seer', 'villager', 'villager'];
     const room = createTestRoom(roles);
     
     // Set status to seated (with players)
-    const seatedRoom = { ...room, roomStatus: RoomStatus.seated };
+    const seatedRoom = { ...room, roomStatus: GameStatus.seated };
     
     // New template with same number of players but different roles
-    const newRoles: RoleName[] = ['wolf', 'witch', 'guard', 'villager'];
+    const newRoles: RoleId[] = ['wolf', 'witch', 'guard', 'villager'];
     const newTemplate: GameTemplate = {
       name: 'Different Roles',
       roles: newRoles,
@@ -548,14 +548,14 @@ describe('updateRoomTemplate', () => {
     });
     
     // Status should be seated (players still there)
-    expect(updatedRoom.roomStatus).toBe(RoomStatus.seated);
+    expect(updatedRoom.roomStatus).toBe(GameStatus.seated);
   });
   
   it('should preserve room metadata (hostUid, roomNumber)', () => {
-    const roles: RoleName[] = ['wolf', 'seer', 'villager', 'villager'];
+    const roles: RoleId[] = ['wolf', 'seer', 'villager', 'villager'];
     const room = createTestRoom(roles);
     
-    const newRoles: RoleName[] = ['wolf', 'wolf', 'seer', 'witch'];
+    const newRoles: RoleId[] = ['wolf', 'wolf', 'seer', 'witch'];
     const newTemplate: GameTemplate = {
       name: 'New',
       roles: newRoles,
@@ -573,7 +573,7 @@ describe('updateRoomTemplate', () => {
 describe('Room Status Flow', () => {
   // Helper to create a basic seated room (players joined, no roles assigned)
   // Phase 5: actionOrder removed from GameTemplate
-  const createSeatedRoom = (roles: RoleName[]): Room => {
+  const createSeatedRoom = (roles: RoleId[]): Room => {
     const template: GameTemplate = {
       name: 'Test',
       roles,
@@ -595,20 +595,20 @@ describe('Room Status Flow', () => {
       });
     });
     
-    return { ...room, players, roomStatus: RoomStatus.seated };
+    return { ...room, players, roomStatus: GameStatus.seated };
   };
 
   describe('assignRoles', () => {
     it('should assign roles to all players and set status to assigned', () => {
-      const roles: RoleName[] = ['wolf', 'seer', 'villager', 'villager'];
+      const roles: RoleId[] = ['wolf', 'seer', 'villager', 'villager'];
       const room = createSeatedRoom(roles);
       
       const assignedRoom = assignRoles(room);
       
-      expect(assignedRoom.roomStatus).toBe(RoomStatus.assigned);
+      expect(assignedRoom.roomStatus).toBe(GameStatus.assigned);
       
       // All players should have roles
-      const assignedRoles: RoleName[] = [];
+      const assignedRoles: RoleId[] = [];
       assignedRoom.players.forEach((player) => {
         expect(player).not.toBeNull();
         expect(player?.role).not.toBeNull();
@@ -629,7 +629,7 @@ describe('Room Status Flow', () => {
 
   describe('markPlayerViewedRole', () => {
     it('should mark player as viewed', () => {
-      const roles: RoleName[] = ['wolf', 'seer', 'villager', 'villager'];
+      const roles: RoleId[] = ['wolf', 'seer', 'villager', 'villager'];
       const room = createSeatedRoom(roles);
       const assignedRoom = assignRoles(room);
       
@@ -640,29 +640,29 @@ describe('Room Status Flow', () => {
     });
 
     it('should auto-transition to ready when all players have viewed', () => {
-      const roles: RoleName[] = ['wolf', 'seer', 'villager'];
+      const roles: RoleId[] = ['wolf', 'seer', 'villager'];
       const room = createSeatedRoom(roles);
       const assignedRoom = assignRoles(room);
       
       // Status should be assigned
-      expect(assignedRoom.roomStatus).toBe(RoomStatus.assigned);
+      expect(assignedRoom.roomStatus).toBe(GameStatus.assigned);
       
       // Mark first two players
       let current = markPlayerViewedRole(assignedRoom, 0);
-      expect(current.roomStatus).toBe(RoomStatus.assigned);
+      expect(current.roomStatus).toBe(GameStatus.assigned);
       
       current = markPlayerViewedRole(current, 1);
-      expect(current.roomStatus).toBe(RoomStatus.assigned);
+      expect(current.roomStatus).toBe(GameStatus.assigned);
       
       // Mark last player - should transition to ready
       current = markPlayerViewedRole(current, 2);
-      expect(current.roomStatus).toBe(RoomStatus.ready);
+      expect(current.roomStatus).toBe(GameStatus.ready);
     });
   });
 
   describe('getPlayersNotViewedRole', () => {
     it('should return all players initially', () => {
-      const roles: RoleName[] = ['wolf', 'seer', 'villager'];
+      const roles: RoleId[] = ['wolf', 'seer', 'villager'];
       const room = createSeatedRoom(roles);
       const assignedRoom = assignRoles(room);
       
@@ -672,7 +672,7 @@ describe('Room Status Flow', () => {
     });
 
     it('should exclude players who have viewed', () => {
-      const roles: RoleName[] = ['wolf', 'seer', 'villager'];
+      const roles: RoleId[] = ['wolf', 'seer', 'villager'];
       const room = createSeatedRoom(roles);
       const assignedRoom = assignRoles(room);
       
@@ -684,7 +684,7 @@ describe('Room Status Flow', () => {
     });
 
     it('should return empty when all have viewed', () => {
-      const roles: RoleName[] = ['wolf', 'seer'];
+      const roles: RoleId[] = ['wolf', 'seer'];
       const room = createSeatedRoom(roles);
       const assignedRoom = assignRoles(room);
       
@@ -698,7 +698,7 @@ describe('Room Status Flow', () => {
 
   describe('startGame', () => {
     it('should set status to ongoing', () => {
-      const roles: RoleName[] = ['wolf', 'seer', 'villager'];
+      const roles: RoleId[] = ['wolf', 'seer', 'villager'];
       const room = createSeatedRoom(roles);
       const assignedRoom = assignRoles(room);
       
@@ -706,11 +706,11 @@ describe('Room Status Flow', () => {
       let current = markPlayerViewedRole(assignedRoom, 0);
       current = markPlayerViewedRole(current, 1);
       current = markPlayerViewedRole(current, 2);
-      expect(current.roomStatus).toBe(RoomStatus.ready);
+      expect(current.roomStatus).toBe(GameStatus.ready);
       
       // Start game
       const gameRoom = startGame(current);
-      expect(gameRoom.roomStatus).toBe(RoomStatus.ongoing);
+      expect(gameRoom.roomStatus).toBe(GameStatus.ongoing);
       expect(gameRoom.currentActionerIndex).toBe(0);
     });
   });
@@ -719,11 +719,11 @@ describe('Room Status Flow', () => {
     it('should reset to seated with players but no roles', () => {
       const room = createTestRoom(['wolf', 'seer', 'villager', 'villager']);
       // Simulate game in progress
-      const ongoingRoom = { ...room, roomStatus: RoomStatus.ongoing };
+      const ongoingRoom = { ...room, roomStatus: GameStatus.ongoing };
       
       const restartedRoom = restartRoom(ongoingRoom);
       
-      expect(restartedRoom.roomStatus).toBe(RoomStatus.seated);
+      expect(restartedRoom.roomStatus).toBe(GameStatus.seated);
       expect(restartedRoom.currentActionerIndex).toBe(0);
       expect(restartedRoom.actions.size).toBe(0);
       

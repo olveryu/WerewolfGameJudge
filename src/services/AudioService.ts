@@ -1,5 +1,5 @@
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer, AudioStatus } from 'expo-audio';
-import { RoleName } from '../models/roles';
+import { RoleId } from '../models/roles';
 
 /**
  * Maximum time to wait for audio playback completion before auto-resolving.
@@ -11,7 +11,7 @@ const AUDIO_TIMEOUT_MS = 15000;
 const isJest = typeof process !== 'undefined' && !!process.env?.JEST_WORKER_ID;
 
 // Audio file mappings matching Flutter's JudgeAudioProvider
-const AUDIO_FILES: Partial<Record<RoleName, any>> = {
+const AUDIO_FILES: Partial<Record<RoleId, any>> = {
   slacker: require('../../assets/audio/slacker.mp3'),
   wolfRobot: require('../../assets/audio/wolf_robot.mp3'),
   magician: require('../../assets/audio/magician.mp3'),
@@ -28,7 +28,7 @@ const AUDIO_FILES: Partial<Record<RoleName, any>> = {
   darkWolfKing: require('../../assets/audio/dark_wolf_king.mp3'),
 };
 
-const AUDIO_END_FILES: Partial<Record<RoleName, any>> = {
+const AUDIO_END_FILES: Partial<Record<RoleId, any>> = {
   slacker: require('../../assets/audio_end/slacker.mp3'),
   wolfRobot: require('../../assets/audio_end/wolf_robot.mp3'),
   magician: require('../../assets/audio_end/magician.mp3'),
@@ -169,13 +169,6 @@ class AudioService {
     }
   }
 
-  /**
-   * @deprecated Use safePlayAudioFile instead. Kept for reference.
-   */
-  private async playAudioFile(audioFile: any): Promise<void> {
-    return this.safePlayAudioFile(audioFile);
-  }
-
   // Play night start audio
   async playNightAudio(): Promise<void> {
     return this.safePlayAudioFile(NIGHT_AUDIO);
@@ -192,7 +185,7 @@ class AudioService {
   }
 
   // Play role beginning audio (when role's turn starts)
-  async playRoleBeginningAudio(role: RoleName): Promise<void> {
+  async playRoleBeginningAudio(role: RoleId): Promise<void> {
     const audioFile = AUDIO_FILES[role];
     if (!audioFile) {
   // Normal case: some roles (e.g. villager) intentionally have no narration.
@@ -202,7 +195,7 @@ class AudioService {
   }
 
   // Play role ending audio (when role's turn ends)
-  async playRoleEndingAudio(role: RoleName): Promise<void> {
+  async playRoleEndingAudio(role: RoleId): Promise<void> {
     const audioFile = AUDIO_END_FILES[role];
     if (!audioFile) {
   // Normal case: some roles (e.g. villager) intentionally have no narration.
@@ -212,12 +205,12 @@ class AudioService {
   }
 
   // Get beginning audio for role
-  getBeginningAudio(role: RoleName): number | null {
+  getBeginningAudio(role: RoleId): number | null {
     return AUDIO_FILES[role] ?? null;
   }
 
   // Get ending audio for role
-  getEndingAudio(role: RoleName): number | null {
+  getEndingAudio(role: RoleId): number | null {
     return AUDIO_END_FILES[role] ?? null;
   }
 

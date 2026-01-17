@@ -80,7 +80,7 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
 
     // Host/role/step info used by RoomScreen
     isHost: false,
-    roomStatus: require('../../../models/Room').RoomStatus.ongoing,
+    roomStatus: require('../../../models/Room').GameStatus.ongoing,
     // Make this client the current actioner so seat taps route to handleActionTap
     currentActionRole: 'wolf',
     currentSchema: (() => {

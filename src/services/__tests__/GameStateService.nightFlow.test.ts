@@ -16,7 +16,7 @@
 import { GameStateService, GameStatus } from '../GameStateService';
 import { NightPhase, NightEvent } from '../NightFlowController';
 import { GameTemplate } from '../../models/Template';
-import { RoleName } from '../../models/roles';
+import { RoleId } from '../../models/roles';
 import { isActionTarget, getActionTargetSeat } from '../../models/actions';
 
 // =============================================================================
@@ -58,7 +58,7 @@ jest.mock('../AudioService', () => ({
  * Create a minimal GameTemplate for testing
  * Phase 5: actionOrder removed, pass roles directly
  */
-function createTestTemplate(roles: RoleName[]): GameTemplate {
+function createTestTemplate(roles: RoleId[]): GameTemplate {
   // Fill remaining with villagers to make a valid template
   const paddedRoles = [...roles];
   while (paddedRoles.length < 6) {
@@ -86,7 +86,7 @@ function resetGameStateService(): GameStateService {
  */
 async function setupReadyState(
   service: GameStateService,
-  actionOrder: RoleName[] = ['wolf', 'witch', 'seer']
+  actionOrder: RoleId[] = ['wolf', 'witch', 'seer']
 ): Promise<void> {
   const template = createTestTemplate(actionOrder);
   
@@ -173,7 +173,7 @@ describe('GameStateService NightFlowController Integration', () => {
 
     it('should initialize nightFlow with correct action order from NightPlan', async () => {
       // Given: Host in ready state with specific roles
-      const roles: RoleName[] = ['wolf', 'witch', 'seer'];
+      const roles: RoleId[] = ['wolf', 'witch', 'seer'];
       await setupReadyState(service, roles);
       
       // When: Start game

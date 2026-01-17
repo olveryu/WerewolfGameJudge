@@ -15,7 +15,7 @@
 
 import { GameStateService, GameStatus } from '../GameStateService';
 import { GameTemplate } from '../../models/Template';
-import { RoleName, buildNightPlan } from '../../models/roles';
+import { RoleId, buildNightPlan } from '../../models/roles';
 import { isActionTarget, getActionTargetSeat, makeActionTarget } from '../../models/actions';
 
 // =============================================================================
@@ -73,7 +73,7 @@ jest.mock('../AudioService', () => ({
  * Phase 5: actionOrder removed from GameTemplate
  * Tests should configure roles to match expected action sequence.
  */
-function createTestTemplate(roles: RoleName[]): GameTemplate {
+function createTestTemplate(roles: RoleId[]): GameTemplate {
   // Pad with villagers if needed (villagers don't have night actions)
   const paddedRoles = [...roles];
   while (paddedRoles.length < 6) {
@@ -90,7 +90,7 @@ function createTestTemplate(roles: RoleName[]): GameTemplate {
 /**
  * Get expected action order from roles via NightPlan
  */
-function getExpectedActionOrder(roles: RoleName[]): RoleName[] {
+function getExpectedActionOrder(roles: RoleId[]): RoleId[] {
   const nightPlan = buildNightPlan(roles);
   return nightPlan.steps.map(step => step.roleId);
 }
@@ -110,8 +110,8 @@ function resetGameStateService(): GameStateService {
  */
 async function setupReadyStateWithRoles(
   service: GameStateService,
-  roles: RoleName[],
-  seatRoleMap: Map<number, RoleName>
+  roles: RoleId[],
+  seatRoleMap: Map<number, RoleId>
 ): Promise<void> {
   const template = createTestTemplate(roles);
   
@@ -157,7 +157,7 @@ async function setupReadyStateWithRoles(
 async function invokeHandlePlayerAction(
   service: GameStateService,
   seat: number,
-  role: RoleName,
+  role: RoleId,
   target: number | null,
   extra?: any
 ): Promise<void> {
@@ -189,7 +189,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
   describe('C1: startGame broadcasts STATE_UPDATE with ongoing status', () => {
     it('should broadcast STATE_UPDATE with status=ongoing and currentActionerIndex=0', async () => {
       // Given: room is in ready state
-      const actionOrder: RoleName[] = ['seer', 'witch'];
+      const actionOrder: RoleId[] = ['seer', 'witch'];
       await setupReadyStateWithRoles(service, actionOrder, new Map([
         [0, 'seer'],
         [1, 'witch'],
@@ -220,7 +220,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should broadcast ROLE_TURN with role=actionOrder[0]', async () => {
       // Given: room is in ready state with roles = [witch, seer]
       // NOTE: buildNightPlan sorts by ROLE_SPECS order: witch(10) < seer(15)
-      const roles: RoleName[] = ['witch', 'seer'];
+      const roles: RoleId[] = ['witch', 'seer'];
       await setupReadyStateWithRoles(service, roles, new Map([
         [0, 'witch'],
         [1, 'seer'],
@@ -244,7 +244,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
     it('should record action in state.actions when role matches current turn', async () => {
       // Given: game is ongoing, currentActionerIndex=0 (witch's turn - first in NightPlan)
       // NOTE: buildNightPlan sorts by order: witch(10) < seer(15)
-      const roles: RoleName[] = ['witch', 'seer'];
+      const roles: RoleId[] = ['witch', 'seer'];
       await setupReadyStateWithRoles(service, roles, new Map([
         [0, 'witch'],
         [1, 'seer'],
@@ -268,7 +268,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
     it('should record poison action when witch submits {poison:true}', async () => {
       // Given: game is ongoing, witch is current turn
-      const roles: RoleName[] = ['witch', 'seer'];
+      const roles: RoleId[] = ['witch', 'seer'];
       await setupReadyStateWithRoles(service, roles, new Map([
         [0, 'witch'],
         [1, 'seer'],
@@ -294,7 +294,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
   describe('C5: wrong role action is rejected', () => {
     it('should not record action when role does not match current turn', async () => {
       // Given: game is ongoing, currentActionerIndex=0 (witch's turn - first in NightPlan)
-      const roles: RoleName[] = ['witch', 'seer'];
+      const roles: RoleId[] = ['witch', 'seer'];
       await setupReadyStateWithRoles(service, roles, new Map([
         [0, 'witch'],
         [1, 'seer'],
@@ -316,7 +316,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
   describe('C6: correct action advances currentActionerIndex', () => {
     it('should advance currentActionerIndex from 0 to 1 after correct action', async () => {
       // Given: game is ongoing, currentActionerIndex=0 (witch's turn - first in NightPlan)
-      const roles: RoleName[] = ['witch', 'seer'];
+      const roles: RoleId[] = ['witch', 'seer'];
       await setupReadyStateWithRoles(service, roles, new Map([
         [0, 'witch'],
         [1, 'seer'],
@@ -341,7 +341,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
   describe('C7: advancing broadcasts ROLE_TURN for next role', () => {
     it('should broadcast ROLE_TURN with role=actionOrder[1] after first action', async () => {
       // Given: game is ongoing, currentActionerIndex=0 (witch's turn - first in NightPlan)
-      const roles: RoleName[] = ['witch', 'seer'];
+      const roles: RoleId[] = ['witch', 'seer'];
       await setupReadyStateWithRoles(service, roles, new Map([
         [0, 'witch'],
         [1, 'seer'],
@@ -372,7 +372,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
   describe('C8: duplicate RoleEndAudioDone is idempotent (no side effects)', () => {
     it('should not change currentActionerIndex when RoleEndAudioDone called in wrong phase', async () => {
       // Given: game is ongoing, currentActionerIndex=0 (seer's turn), phase=WaitingForAction
-      const actionOrder: RoleName[] = ['seer', 'witch'];
+      const actionOrder: RoleId[] = ['seer', 'witch'];
       await setupReadyStateWithRoles(service, actionOrder, new Map([
         [0, 'seer'],
         [1, 'witch'],
@@ -409,7 +409,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
     it('should not call console.error when RoleEndAudioDone called in wrong phase', async () => {
       // Given: game is ongoing
-      const actionOrder: RoleName[] = ['seer'];
+      const actionOrder: RoleId[] = ['seer'];
       await setupReadyStateWithRoles(service, actionOrder, new Map([
         [0, 'seer'],
       ]));
@@ -435,7 +435,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
   describe('C9: endNight() in wrong phase is strict no-op (no death calc, no status change)', () => {
     it('should not throw or log error when endNight called in wrong phase', async () => {
       // Given: game is ongoing, first role's turn
-      const actionOrder: RoleName[] = ['seer'];
+      const actionOrder: RoleId[] = ['seer'];
       await setupReadyStateWithRoles(service, actionOrder, new Map([
         [0, 'seer'],
       ]));
@@ -463,7 +463,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
     it('should NOT change status or lastNightDeaths when endNight called in wrong phase (strict)', async () => {
       // Given: game is ongoing, first role's turn
-      const actionOrder: RoleName[] = ['seer'];
+      const actionOrder: RoleId[] = ['seer'];
       await setupReadyStateWithRoles(service, actionOrder, new Map([
         [0, 'seer'],
       ]));
@@ -504,7 +504,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
   describe('C10: ActionSubmitted is required before RoleEndAudioDone', () => {
     it('should successfully advance when ActionSubmitted is dispatched first', async () => {
       // Given: game is ongoing, witch's turn (first in NightPlan)
-      const roles: RoleName[] = ['witch', 'seer'];
+      const roles: RoleId[] = ['witch', 'seer'];
       await setupReadyStateWithRoles(service, roles, new Map([
         [0, 'witch'],
         [1, 'seer'],
@@ -527,7 +527,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
   describe('C11: handleWolfVote once-guard prevents duplicate finalize', () => {
     it('should skip finalize when wolf action already recorded (once-guard)', async () => {
       // Given: game is ongoing, wolf's turn (wolf order=5, witch order=10)
-      const roles: RoleName[] = ['wolf', 'witch'];
+      const roles: RoleId[] = ['wolf', 'witch'];
       await setupReadyStateWithRoles(service, roles, new Map([
         [0, 'wolf'],
         [1, 'witch'],
@@ -570,7 +570,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
   describe('C12: advanceToNextAction throws when nightFlow is null and status is ongoing', () => {
     it('should throw strict invariant violation error', async () => {
       // Given: game is ongoing but nightFlow is forcibly set to null
-      const actionOrder: RoleName[] = ['seer'];
+      const actionOrder: RoleId[] = ['seer'];
       await setupReadyStateWithRoles(service, actionOrder, new Map([
         [0, 'seer'],
       ]));
@@ -595,7 +595,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
   describe('C13: endNight throws when nightFlow is null and status is ongoing', () => {
     it('should throw strict invariant violation error and not change status', async () => {
       // Given: game is ongoing but nightFlow is forcibly set to null
-      const actionOrder: RoleName[] = ['seer'];
+      const actionOrder: RoleId[] = ['seer'];
       await setupReadyStateWithRoles(service, actionOrder, new Map([
         [0, 'seer'],
       ]));
@@ -624,7 +624,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
   describe('C14: handlePlayerAction throws when nightFlow is null and status is ongoing', () => {
     it('should throw strict invariant violation error and not record action', async () => {
       // Given: game is ongoing but nightFlow is forcibly set to null
-      const actionOrder: RoleName[] = ['seer'];
+      const actionOrder: RoleId[] = ['seer'];
       await setupReadyStateWithRoles(service, actionOrder, new Map([
         [0, 'seer'],
       ]));
@@ -657,7 +657,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
   describe('C15: non-ongoing status with nightFlow null should NOT throw', () => {
     it('advanceToNextAction should not throw when status is ready and nightFlow is null', async () => {
       // Given: game is in ready status (not ongoing)
-      const actionOrder: RoleName[] = ['seer'];
+      const actionOrder: RoleId[] = ['seer'];
       await setupReadyStateWithRoles(service, actionOrder, new Map([
         [0, 'seer'],
       ]));
@@ -674,7 +674,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
     it('endNight should not throw when status is ready and nightFlow is null', async () => {
       // Given: game is in ready status (not ongoing)
-      const actionOrder: RoleName[] = ['seer'];
+      const actionOrder: RoleId[] = ['seer'];
       await setupReadyStateWithRoles(service, actionOrder, new Map([
         [0, 'seer'],
       ]));
@@ -688,7 +688,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
     it('handlePlayerAction should not throw when status is ready (early return before null check)', async () => {
       // Given: game is in ready status (not ongoing)
-      const actionOrder: RoleName[] = ['seer'];
+      const actionOrder: RoleId[] = ['seer'];
       await setupReadyStateWithRoles(service, actionOrder, new Map([
         [0, 'seer'],
       ]));
@@ -701,7 +701,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
     it('handleWolfVote should not throw when status is ready (early return before null check)', async () => {
       // Given: game is in ready status (not ongoing)
-      const actionOrder: RoleName[] = ['wolf'];
+      const actionOrder: RoleId[] = ['wolf'];
       await setupReadyStateWithRoles(service, actionOrder, new Map([
         [0, 'wolf'],
       ]));
