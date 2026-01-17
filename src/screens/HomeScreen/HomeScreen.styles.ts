@@ -173,6 +173,27 @@ export const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     color: colors.text,
   },
+  codeDisplay: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  codeDigitBox: {
+    width: 56,
+    height: 64,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  codeDigitText: {
+    fontSize: 32,
+    fontWeight: typography.bold,
+    color: colors.text,
+  },
   modalButtons: {
     flexDirection: 'row',
     gap: spacing.sm,

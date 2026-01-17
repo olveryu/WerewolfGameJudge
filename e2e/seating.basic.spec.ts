@@ -1,7 +1,12 @@
 import { test, expect, Page, TestInfo } from '@playwright/test';
 import { waitForRoomScreenReady } from './helpers/waits';
 import { getVisibleText, gotoWithRetry } from './helpers/ui';
-import { waitForAppReady, ensureAnonLogin, extractRoomNumber } from './helpers/home';
+import {
+  waitForAppReady,
+  ensureAnonLogin,
+  extractRoomNumber,
+  enterRoomCodeViaNumPad,
+} from './helpers/home';
 
 /**
  * Seating Diagnostic E2E Tests
@@ -412,9 +417,8 @@ test.describe('Seating Diagnostic', () => {
       await getVisibleText(pageB, '进入房间').first().click();
       await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
 
-      // Enter room code
-      const input = pageB.locator('input').first();
-      await input.fill(roomNumber);
+      // Enter room code via NumPad
+      await enterRoomCodeViaNumPad(pageB, roomNumber);
 
       await takeScreenshot(pageB, testInfo, 'B-00-before-join.png');
 
@@ -606,8 +610,7 @@ test.describe('Seating Diagnostic', () => {
       await getVisibleText(pageB, '进入房间').first().click();
       await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
 
-      const input = pageB.locator('input').first();
-      await input.fill(roomNumber);
+      await enterRoomCodeViaNumPad(pageB, roomNumber);
       await pageB.getByText('加入', { exact: true }).click();
 
       await waitForRoomScreenReady(pageB, { role: 'joiner' });
@@ -789,9 +792,8 @@ test.describe('Seating Diagnostic', () => {
       await getVisibleText(pageB, '进入房间').first().click();
       await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
 
-      // Enter room code
-      const input = pageB.locator('input').first();
-      await input.fill(diag4State.roomNumber);
+      // Enter room code via NumPad
+      await enterRoomCodeViaNumPad(pageB, diag4State.roomNumber);
       await pageB.getByText('加入', { exact: true }).click();
 
       await waitForRoomScreenReady(pageB, { role: 'joiner' });
@@ -950,8 +952,7 @@ test.describe('Seating Diagnostic', () => {
       await getVisibleText(pageB, '进入房间').first().click();
       await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
 
-      const input = pageB.locator('input').first();
-      await input.fill(roomNumber);
+      await enterRoomCodeViaNumPad(pageB, roomNumber);
       await pageB.getByText('加入', { exact: true }).click();
 
       await waitForRoomScreenReady(pageB, { role: 'joiner' });
@@ -1111,8 +1112,7 @@ test.describe('Seating Diagnostic', () => {
       await getVisibleText(pageB, '进入房间').first().click();
       await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
 
-      const input = pageB.locator('input').first();
-      await input.fill(roomNumber);
+      await enterRoomCodeViaNumPad(pageB, roomNumber);
       await pageB.getByText('加入', { exact: true }).click();
 
       await waitForRoomScreenReady(pageB, { role: 'joiner' });

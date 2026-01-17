@@ -17,6 +17,7 @@ import { showAlert } from '../../utils/alert';
 import { colors, spacing } from '../../constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Avatar from '../../components/Avatar';
+import { NumPad } from '../../components/NumPad';
 import { styles } from './HomeScreen.styles';
 import { homeLog } from '../../utils/logger';
 import { TESTIDS } from '../../testids';
@@ -199,19 +200,19 @@ const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
         <Text style={styles.modalTitle}>加入房间</Text>
         <Text style={styles.modalSubtitle}>输入4位房间号码</Text>
 
-        <TextInput
-          style={styles.codeInput}
-          value={roomCode}
-          onChangeText={onRoomCodeChange}
-          keyboardType="number-pad"
-          maxLength={4}
-          placeholder="0000"
-          placeholderTextColor={colors.textMuted}
-          autoFocus
-          editable={!isLoading}
-        />
+        {/* Room code display */}
+        <View style={styles.codeDisplay}>
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={styles.codeDigitBox}>
+              <Text style={styles.codeDigitText}>{roomCode[i] || ''}</Text>
+            </View>
+          ))}
+        </View>
 
         {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
+        {/* NumPad */}
+        <NumPad value={roomCode} onValueChange={onRoomCodeChange} maxLength={4} disabled={isLoading} />
 
         <View style={styles.modalButtons}>
           <TouchableOpacity
