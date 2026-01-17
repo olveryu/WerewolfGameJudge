@@ -107,6 +107,38 @@ npm test                    # 单元测试 (Jest)
 npm run e2e:core            # E2E 测试 (Playwright)
 ```
 
+### 切换 Supabase 环境
+
+| 环境 | 操作 |
+|-----|------|
+| **本地 Supabase** | 创建 `.env.local` 文件（见下方） |
+| **远程 Supabase** | 删除 `.env.local`，自动使用 `.env` |
+
+**使用本地 Supabase：**
+
+```bash
+# 1. 启动本地 Supabase
+supabase start
+
+# 2. 创建 .env.local（Expo 优先读取）
+cat > .env.local << 'EOF'
+EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<your-local-anon-key>
+EOF
+
+# 获取本地 anon key
+supabase status | grep anon
+```
+
+**切换回远程 Supabase：**
+
+```bash
+rm .env.local
+# 重启 Metro bundler (Ctrl+C 后 npm start)
+```
+
+> 💡 Expo 环境变量优先级：`.env.local` > `.env`
+
 ### 项目结构
 
 ```

@@ -27,6 +27,7 @@ test.setTimeout(180_000);
 
 /** Prefixes to filter from console logs */
 const LOG_PREFIXES = [
+  // Legacy prefixes (for compatibility)
   '[useGameRoom]',
   '[GameStateService]',
   '[SeatService]',
@@ -34,6 +35,18 @@ const LOG_PREFIXES = [
   '[BroadcastService]',
   '[AudioService]',
   '[NightFlowController]',
+  // react-native-logs extensions
+  'Host',
+  'Player',
+  'NightFlow',
+  'Broadcast',
+  'Audio',
+  'Auth',
+  'Room',
+  'GameRoom',
+  'Config',
+  'RoomScreen',
+  'Home',
 ];
 
 /** Collected diagnostic data */
@@ -146,9 +159,11 @@ async function getMySeatIndex(page: Page): Promise<number | null> {
 
 /**
  * Count visible seat tiles using stable testID selector.
+ * Uses regex to match exactly seat-tile-{number} (not seat-tile-pressable-*)
  */
 async function countSeatTiles(page: Page): Promise<number> {
-  const seatTiles = page.locator('[data-testid^="seat-tile-"]');
+  // Match only seat-tile-0, seat-tile-1, etc. (not seat-tile-pressable-*)
+  const seatTiles = page.locator('[data-testid^="seat-tile-"]:not([data-testid*="pressable"])');
   const count = await seatTiles.count();
   return count;
 }
@@ -165,38 +180,36 @@ async function takeScreenshot(page: Page, testInfo: TestInfo, name: string) {
  * Configure a 2-player template on ConfigScreen by deselecting extra roles
  * Keep: 1 wolf + 1 villager
  * Deselect: extra wolves, extra villagers, god roles
+ * Uses stable testID selectors for reliability
  */
 async function configure2PlayerTemplate(page: Page): Promise<void> {
   console.log('[NIGHT] Configuring 2-player template...');
   
-  // Deselect god roles
-  const godRolesToDeselect = ['预言家', '女巫', '猎人', '白痴'];
-  for (const chipText of godRolesToDeselect) {
-    const chip = page.getByText(chipText, { exact: true });
-    if (await chip.isVisible({ timeout: 500 }).catch(() => false)) {
-      console.log(`[NIGHT] Deselecting: ${chipText}`);
-      await chip.click();
-      await page.waitForTimeout(100);
+  // All roles to deselect: god roles + extra wolves + extra villagers
+  // Keep only: wolf + villager = 2 players
+  const rolesToDeselect = [
+    'seer', 'witch', 'hunter', 'idiot',        // god roles
+    'wolf1', 'wolf2', 'wolf3',                  // extra wolves
+    'villager1', 'villager2', 'villager3',      // extra villagers
+  ];
+  
+  for (const roleId of rolesToDeselect) {
+    const chip = page.locator(`[data-testid="config-role-chip-${roleId}"]`).first();
+    try {
+      // Wait for element to be attached to DOM (not necessarily visible in viewport)
+      await chip.waitFor({ state: 'attached', timeout: 2000 });
+      // Use force:true to click even if not in viewport (common for RN Web ScrollView)
+      console.log(`[NIGHT] Deselecting: ${roleId}`);
+      await chip.click({ force: true });
+      await page.waitForTimeout(50);
+    } catch {
+      console.log(`[NIGHT] Warning: ${roleId} chip not found, skipping`);
     }
   }
   
-  // Deselect extra wolves (keep only 1) - UI label is "普狼" not "狼人"
-  const wolfChips = await page.getByText('普狼', { exact: true }).all();
-  console.log(`[NIGHT] Found ${wolfChips.length} wolf chips (普狼)`);
-  for (let i = 1; i < Math.min(wolfChips.length, 4); i++) {
-    console.log(`[NIGHT] Deselecting wolf chip ${i + 1}`);
-    await wolfChips[i].click();
-    await page.waitForTimeout(100);
-  }
-  
-  // Deselect extra villagers (keep only 1)
-  const villagerChips = await page.getByText('村民', { exact: true }).all();
-  console.log(`[NIGHT] Found ${villagerChips.length} villager chips`);
-  for (let i = 1; i < Math.min(villagerChips.length, 4); i++) {
-    console.log(`[NIGHT] Deselecting villager chip ${i + 1}`);
-    await villagerChips[i].click();
-    await page.waitForTimeout(100);
-  }
+  // Debug: log final player count from header
+  const headerText = await page.getByText(/\d+ 名玩家/).first().textContent().catch(() => null);
+  console.log(`[NIGHT] After deselect, header: ${headerText}`);
 }
 
 /**

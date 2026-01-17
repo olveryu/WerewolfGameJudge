@@ -864,7 +864,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           showPrepareToFlip={roomStatus === GameStatus.seated}
           showStartGame={roomStatus === GameStatus.ready && !isStartingGame}
           showLastNightInfo={firstNightEnded}
-          showRestart={firstNightEnded}
+          showRestart={firstNightEnded || roomStatus === GameStatus.ongoing}
+          isEmergencyRestart={roomStatus === GameStatus.ongoing && !firstNightEnded}
           onSettingsPress={handleSettingsPress}
           onPrepareToFlipPress={showPrepareToFlipDialog}
           onStartGamePress={showStartGameDialog}
