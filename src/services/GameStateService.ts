@@ -949,8 +949,11 @@ export class GameStateService {
         break;
       }
       case 'BLOCKED':
-        // TODO: Handle blocked message in future commit
-        hostLog.info('Private message type not yet handled:', msg.payload.kind);
+        // BLOCKED messages are intentionally NOT stored in privateInbox.
+        // When a player is blocked by nightmare, they should NOT see any context
+        // (e.g., blocked witch should NOT know who wolf killed).
+        // The UI shows a generic "blocked" dialog based on BroadcastGameState.nightmareBlockedSeat.
+        hostLog.info('BLOCKED received (not stored - by design):', msg.payload.reason);
         break;
       case 'ACTION_REJECTED': {
   this.privateInbox.set(key, msg.payload);

@@ -73,23 +73,23 @@
 
 ---
 
-## 3. 新增规则：wolf meeting vote 禁投角色（Schema-first, Design A）
+## 3. 新增规则：wolf meeting vote 禁投角色（Spec flags, Design A）
 
 需求：在 wolf meeting vote 中，若投票目标 seat 对应的 `roleId` 属于禁投集合（例如 `spiritKnight`、`wolfQueen`），则该投票必须被 Host **refuse**；玩家必须改投其他目标或选择 skip。
 
-### 3.1 Schema-first 字段
+### 3.1 Spec flags 字段
 
 在 wolf meeting vote 对应 schema 的 constraints 中新增：
 
-- `forbiddenTargetRoleIds: RoleId[]`
+- `flags.immuneToWolfKill (in ROLE_SPECS)`
 
 语义：
 
-- 当玩家提交 wolf vote，若 `targetSeat.roleId` ∈ `forbiddenTargetRoleIds`，Host 必须 reject
+- 当玩家提交 wolf vote，若 `targetSeat.roleId` ∈ `immuneToWolfKill`，Host 必须 reject
 
 ### 3.2 Host 行为（必须回执）
 
-- 命中 `forbiddenTargetRoleIds`：
+- 命中 `immuneToWolfKill`：
   - 不写入 `wolfVotes`
   - 发送 `ACTION_REJECTED(action='submitWolfVote')` 私信
   - reason：例如“该目标不可被见面狼投票，请改投其他目标或跳过”（文案以 Host 为准）
@@ -151,7 +151,7 @@
 
 在 `GameStateService.handleWolfVote`：
 
-- 读取 wolf meeting vote schema constraints 的 `forbiddenTargetRoleIds`
+- 读取 wolf meeting vote schema constraints 的 `immuneToWolfKill`
 - 若命中 `targetSeat.roleId` → reject + `ACTION_REJECTED(action='submitWolfVote')`
 
 ---
@@ -222,10 +222,10 @@
 
 范围（规则）：
 
-- `src/models/roles/spec/schemas.ts`：wolf meeting vote schema constraints 新增 `forbiddenTargetRoleIds: RoleId[]`（至少包含 `spiritKnight`、`wolfQueen`）
+- `src/models/roles/spec/schemas.ts`：wolf meeting vote schema constraints 新增 `flags.immuneToWolfKill (in ROLE_SPECS)`（至少包含 `spiritKnight`、`wolfQueen`）
 - `src/services/GameStateService.ts`：`handleWolfVote` 同时覆盖
   - actor-specific：spiritKnight self-vote reject
-  - target-based：命中 `forbiddenTargetRoleIds` reject
+  - target-based：命中 `immuneToWolfKill` reject
 
 范围（测试）：
 

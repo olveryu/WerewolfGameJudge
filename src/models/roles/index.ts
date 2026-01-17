@@ -46,7 +46,7 @@ export {
 // Re-imports from spec/ (for internal use)
 // ============================================================
 import { ROLE_SPECS, getRoleSpec, isValidRoleId, getAllRoleIds, type RoleId } from './spec/specs';
-import type { Team } from './spec/types';
+import type { Team, SeerCheckResult } from './spec/types';
 
 // ============================================================
 // Display Name Helpers (UI-facing)
@@ -177,10 +177,8 @@ export function hasNightAction(roleId: string): boolean {
 // Seer Check
 // ============================================================
 
-/**
- * Seer check result type - strictly binary
- */
-export type SeerCheckResult = '好人' | '狼人';
+// Re-export SeerCheckResult from types.ts (single source of truth)
+export type { SeerCheckResult } from './spec/types';
 
 /**
  * Get seer check result for a role.
