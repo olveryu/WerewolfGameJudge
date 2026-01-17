@@ -283,12 +283,13 @@ export const useGameRoom = (): UseGameRoomResult => {
       const displayName = await authService.current.getCurrentDisplayName();
       const avatarUrl = await authService.current.getCurrentAvatarUrl();
 
-      // Join as player (or host if we're the host)
+      // Join as player (or rejoin as host if we're the original host)
       if (record.hostUid === playerUid) {
-        // We're the host, reinitialize
-        // Note: Template needs to come from somewhere - for now we can't rejoin as host
-        setError('Host cannot rejoin via joinRoom');
-        return false;
+        // We're the host - rejoin with recovery mode
+        // Note: Game state is lost, Host will need to restart the game
+        gameRoomLog.warn('Host rejoining room - state will be reset');
+        await gameStateService.current.rejoinAsHost(roomNumber, playerUid);
+        return true;
       }
 
       await gameStateService.current.joinAsPlayer(
