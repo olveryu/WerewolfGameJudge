@@ -63,9 +63,14 @@ import type {
 } from './types/PrivateBroadcast';
 import { getRoleAfterSwap } from './night/resolvers/types';
 import { getConfirmRoleCanShoot } from '../models/Room';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import types/enums needed internally
 import { GameStatus, LocalPlayer, LocalGameState } from './types/GameStateTypes';
+
+// Storage constants
+const STORAGE_KEY_PREFIX = 'werewolf_game_state_';
+const STATE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours (matches Supabase room cleanup)
 
 // Import type-only imports
 import type { GameStateListener } from './types/GameStateTypes';
@@ -211,6 +216,112 @@ export class GameStateService {
   }
 
   // ===========================================================================
+  // State Persistence (Host only)
+  // ===========================================================================
+
+  /**
+   * Serialize LocalGameState to JSON-compatible object
+   * Maps need special handling since JSON.stringify doesn't support them
+   */
+  private serializeState(state: LocalGameState): string {
+    const serializable = {
+      ...state,
+      players: Array.from(state.players.entries()),
+      actions: Array.from(state.actions.entries()),
+      wolfVotes: Array.from(state.wolfVotes.entries()),
+      _savedAt: Date.now(),
+    };
+    return JSON.stringify(serializable);
+  }
+
+  /**
+   * Deserialize JSON back to LocalGameState
+   */
+  private deserializeState(json: string): { state: LocalGameState; savedAt: number } | null {
+    try {
+      const parsed = JSON.parse(json);
+      const savedAt = parsed._savedAt || 0;
+      delete parsed._savedAt;
+
+      const state: LocalGameState = {
+        ...parsed,
+        players: new Map(parsed.players),
+        actions: new Map(parsed.actions),
+        wolfVotes: new Map(parsed.wolfVotes),
+      };
+      return { state, savedAt };
+    } catch (err) {
+      hostLog.error('Failed to deserialize state:', err);
+      return null;
+    }
+  }
+
+  /**
+   * Save current game state to AsyncStorage (Host only)
+   * Called at key state change points
+   */
+  private async saveStateToStorage(): Promise<void> {
+    if (!this.isHost || !this.state) return;
+
+    try {
+      const key = `${STORAGE_KEY_PREFIX}${this.state.roomCode}`;
+      const serialized = this.serializeState(this.state);
+      await AsyncStorage.setItem(key, serialized);
+      hostLog.debug('State saved to storage for room:', this.state.roomCode);
+    } catch (err) {
+      hostLog.error('Failed to save state to storage:', err);
+    }
+  }
+
+  /**
+   * Load game state from AsyncStorage (Host only)
+   * Returns null if no state found or state is expired
+   */
+  private async loadStateFromStorage(roomCode: string): Promise<LocalGameState | null> {
+    try {
+      const key = `${STORAGE_KEY_PREFIX}${roomCode}`;
+      const json = await AsyncStorage.getItem(key);
+
+      if (!json) {
+        hostLog.debug('No saved state found for room:', roomCode);
+        return null;
+      }
+
+      const result = this.deserializeState(json);
+      if (!result) return null;
+
+      const { state, savedAt } = result;
+      const age = Date.now() - savedAt;
+
+      // Check if state is expired
+      if (age > STATE_EXPIRY_MS) {
+        hostLog.warn('Saved state expired, discarding. Age:', Math.round(age / 1000 / 60), 'minutes');
+        await AsyncStorage.removeItem(key);
+        return null;
+      }
+
+      hostLog.info('Loaded state from storage. Age:', Math.round(age / 1000), 'seconds');
+      return state;
+    } catch (err) {
+      hostLog.error('Failed to load state from storage:', err);
+      return null;
+    }
+  }
+
+  /**
+   * Clear saved state for a room (called when game ends or room is deleted)
+   */
+  async clearSavedState(roomCode: string): Promise<void> {
+    try {
+      const key = `${STORAGE_KEY_PREFIX}${roomCode}`;
+      await AsyncStorage.removeItem(key);
+      hostLog.debug('Cleared saved state for room:', roomCode);
+    } catch (err) {
+      hostLog.error('Failed to clear saved state:', err);
+    }
+  }
+
+  // ===========================================================================
   // Room Initialization (Host)
   // ===========================================================================
 
@@ -218,6 +329,14 @@ export class GameStateService {
    * Initialize a new game as Host
    */
   async initializeAsHost(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
+    // If already in a room, leave it first (clean up old state)
+    if (this.state) {
+      const oldRoomCode = this.state.roomCode;
+      hostLog.info('Leaving old room before creating new one:', oldRoomCode);
+      await this.broadcastService.leaveRoom();
+      // Note: We don't clear saved state here - it can be recovered if needed
+    }
+
     this.isHost = true;
     this.myUid = hostUid;
     this.mySeatNumber = null;
@@ -266,6 +385,79 @@ export class GameStateService {
   }
 
   /**
+   * Rejoin an existing room as Host (recovery scenario)
+   *
+   * This is used when the Host app restarts and tries to rejoin via room code.
+   * First tries to recover state from AsyncStorage, otherwise creates placeholder state.
+   */
+  async rejoinAsHost(roomCode: string, hostUid: string): Promise<void> {
+    this.isHost = true;
+    this.myUid = hostUid;
+    this.mySeatNumber = null;
+
+    // Try to recover state from storage
+    const savedState = await this.loadStateFromStorage(roomCode);
+
+    if (savedState) {
+      // Recovered! Use saved state
+      this.state = savedState;
+
+      // Restore mySeatNumber if host was seated
+      for (const [seatNum, player] of savedState.players.entries()) {
+        if (player?.uid === hostUid) {
+          this.mySeatNumber = seatNum;
+          break;
+        }
+      }
+
+      hostLog.info('Host state recovered from storage for room:', roomCode);
+    } else {
+      // No saved state - create placeholder
+      this.state = {
+        roomCode,
+        hostUid,
+        status: GameStatus.unseated,
+        template: {
+          name: '恢复中...',
+          numberOfPlayers: 0,
+          roles: [],
+        },
+        players: new Map(),
+        actions: new Map(),
+        wolfVotes: new Map(),
+        currentActionerIndex: 0,
+        currentStepId: undefined,
+        isAudioPlaying: false,
+        lastNightDeaths: [],
+      };
+
+      hostLog.warn('No saved state found, created placeholder for room:', roomCode);
+    }
+
+    // Join broadcast channel as Host
+    await this.broadcastService.joinRoom(roomCode, hostUid, {
+      onHostBroadcast: (msg) => this.handleHostBroadcast(msg),
+      onPlayerMessage: asyncHandler((msg, senderId) => this.handlePlayerMessage(msg, senderId)),
+      onPresenceChange: asyncHandler(async (users) => {
+        hostLog.info('Users in room (rejoin):', users.length);
+        if (this.state) {
+          await this.broadcastState();
+        }
+      }),
+    });
+
+    // Broadcast state so players receive current state
+    await this.broadcastState();
+    this.notifyListeners();
+
+    if (savedState) {
+      hostLog.info('Rejoined as Host with recovered state:', roomCode);
+    } else {
+      hostLog.warn('Rejoined as Host (state lost, game needs restart):', roomCode);
+    }
+  }
+
+  /**
    * Join an existing game as Player
    */
   async joinAsPlayer(
@@ -297,6 +489,9 @@ export class GameStateService {
    * Leave the current room
    */
   async leaveRoom(): Promise<void> {
+    // Save roomCode before clearing state (needed for storage cleanup)
+    const roomCode = this.state?.roomCode;
+
     // If seated, notify host
     if (!this.isHost && this.mySeatNumber !== null && this.myUid) {
       await this.broadcastService.sendToHost({
@@ -304,6 +499,11 @@ export class GameStateService {
         seat: this.mySeatNumber,
         uid: this.myUid,
       });
+    }
+
+    // If host, clear saved state
+    if (this.isHost && roomCode) {
+      await this.clearSavedState(roomCode);
     }
 
     await this.broadcastService.leaveRoom();
@@ -2697,6 +2897,12 @@ export class GameStateService {
       state: broadcastState,
       revision: this.stateRevision,
     });
+
+    // Persist state to storage for recovery
+    // (async, non-blocking - don't await)
+    this.saveStateToStorage().catch((err) =>
+      hostLog.error('Failed to save state after broadcast:', err),
+    );
   }
 
   private toBroadcastState(): BroadcastGameState {

@@ -192,28 +192,6 @@ export class SimplifiedRoomService {
       roomLog.error(' Failed to delete room:', error);
     }
   }
-
-  /**
-   * Clean up old rooms (more than 2 hours old)
-   */
-  async cleanupOldRooms(): Promise<number> {
-    this.ensureConfigured();
-
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-
-    const { data, error } = await supabase!
-      .from('rooms')
-      .delete()
-      .lt('created_at', twoHoursAgo)
-      .select('code');
-
-    if (error) {
-      roomLog.error(' Cleanup error:', error);
-      return 0;
-    }
-
-    return data?.length ?? 0;
-  }
 }
 
 export default SimplifiedRoomService;
