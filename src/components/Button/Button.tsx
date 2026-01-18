@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -7,7 +7,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { COLORS } from '../../constants';
+import { useColors, spacing, borderRadius, typography, ThemeColors } from '../../theme';
 
 interface ButtonProps {
   title: string;
@@ -21,6 +21,55 @@ interface ButtonProps {
   icon?: React.ReactNode;
 }
 
+const createStyles = (colors: ThemeColors) => ({
+  variants: {
+    primary: StyleSheet.create({
+      button: { backgroundColor: colors.primary },
+      text: { color: colors.textInverse },
+    }),
+    secondary: StyleSheet.create({
+      button: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+      text: { color: colors.text },
+    }),
+    danger: StyleSheet.create({
+      button: { backgroundColor: colors.error },
+      text: { color: colors.textInverse },
+    }),
+    outline: StyleSheet.create({
+      button: {
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderColor: colors.primary,
+      },
+      text: { color: colors.primary },
+    }),
+  },
+  base: StyleSheet.create({
+    button: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: borderRadius.md,
+    },
+    text: {
+      fontWeight: '600',
+    },
+    textWithIcon: {
+      marginLeft: spacing.sm,
+    },
+    disabled: {
+      opacity: 0.5,
+    },
+    // Size styles
+    buttonSmall: { paddingVertical: spacing.xs, paddingHorizontal: spacing.md },
+    buttonMedium: { paddingVertical: spacing.sm, paddingHorizontal: spacing.lg },
+    buttonLarge: { paddingVertical: spacing.md, paddingHorizontal: spacing.xl },
+    textSmall: { fontSize: typography.sm },
+    textMedium: { fontSize: typography.base },
+    textLarge: { fontSize: typography.lg },
+  }),
+});
+
 const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
@@ -32,16 +81,40 @@ const Button: React.FC<ButtonProps> = ({
   textStyle,
   icon,
 }) => {
-  const variantStyle = VARIANT_STYLES[variant];
-  const sizeStyle = SIZE_STYLES[size];
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const variantStyle = styles.variants[variant];
+
+  const getSizeButtonStyle = () => {
+    switch (size) {
+      case 'small':
+        return styles.base.buttonSmall;
+      case 'large':
+        return styles.base.buttonLarge;
+      default:
+        return styles.base.buttonMedium;
+    }
+  };
+
+  const getSizeTextStyle = () => {
+    switch (size) {
+      case 'small':
+        return styles.base.textSmall;
+      case 'large':
+        return styles.base.textLarge;
+      default:
+        return styles.base.textMedium;
+    }
+  };
 
   return (
     <TouchableOpacity
       style={[
-        styles.button,
+        styles.base.button,
         variantStyle.button,
-        sizeStyle.button,
-        disabled && styles.disabled,
+        getSizeButtonStyle(),
+        disabled && styles.base.disabled,
         style,
       ]}
       onPress={onPress}
@@ -49,16 +122,16 @@ const Button: React.FC<ButtonProps> = ({
       activeOpacity={0.7}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' ? COLORS.primary : COLORS.text} />
+        <ActivityIndicator color={variant === 'outline' ? colors.primary : colors.textInverse} />
       ) : (
         <>
           {icon}
           <Text
             style={[
-              styles.text,
+              styles.base.text,
               variantStyle.text,
-              sizeStyle.text,
-              icon ? styles.textWithIcon : null,
+              getSizeTextStyle(),
+              icon ? styles.base.textWithIcon : null,
               textStyle,
             ]}
           >
@@ -69,61 +142,5 @@ const Button: React.FC<ButtonProps> = ({
     </TouchableOpacity>
   );
 };
-
-const VARIANT_STYLES = {
-  primary: StyleSheet.create({
-    button: { backgroundColor: COLORS.primary },
-    text: { color: COLORS.text },
-  }),
-  secondary: StyleSheet.create({
-    button: { backgroundColor: COLORS.secondary },
-    text: { color: COLORS.text },
-  }),
-  danger: StyleSheet.create({
-    button: { backgroundColor: COLORS.danger },
-    text: { color: COLORS.text },
-  }),
-  outline: StyleSheet.create({
-    button: {
-      backgroundColor: 'transparent',
-      borderWidth: 2,
-      borderColor: COLORS.primary,
-    },
-    text: { color: COLORS.primary },
-  }),
-};
-
-const SIZE_STYLES = {
-  small: StyleSheet.create({
-    button: { paddingVertical: 8, paddingHorizontal: 16 },
-    text: { fontSize: 14 },
-  }),
-  medium: StyleSheet.create({
-    button: { paddingVertical: 12, paddingHorizontal: 24 },
-    text: { fontSize: 16 },
-  }),
-  large: StyleSheet.create({
-    button: { paddingVertical: 16, paddingHorizontal: 32 },
-    text: { fontSize: 18 },
-  }),
-};
-
-const styles = StyleSheet.create({
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-  },
-  text: {
-    fontWeight: '600',
-  },
-  textWithIcon: {
-    marginLeft: 8,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-});
 
 export default Button;

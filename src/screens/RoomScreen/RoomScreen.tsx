@@ -9,13 +9,19 @@
  * All game state accessed through useGameRoom hook.
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { GameStatus, getWolfVoteSummary, getPlayersNotViewedRole } from '../../models/Room';
 import { getRoleSpec, getRoleDisplayName } from '../../models/roles';
 import { showAlert } from '../../utils/alert';
-import { styles } from './RoomScreen.styles';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
 import { HostControlButtons } from './HostControlButtons';
@@ -47,11 +53,14 @@ import type {
 } from '../../models/roles/spec';
 import { SCHEMAS, BLOCKED_UI_DEFAULTS, isValidSchemaId } from '../../models/roles/spec';
 import { createRevealExecutors } from './revealExecutors';
+import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const { roomNumber, isHost: isHostParam, template } = route.params;
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Use the new game room hook
   const {
@@ -828,15 +837,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
     return (
       <View style={styles.loadingContainer}>
-        {!isError && <ActivityIndicator size="large" color="#FF9800" />}
+        {!isError && <ActivityIndicator size="large" color={colors.primary} />}
         {isError && <Text style={styles.errorIcon}>⚠️</Text>}
         <Text style={[styles.loadingText, isError && styles.errorMessageText]}>
           {displayMessage}
         </Text>
         {showRetryButton && (
-          <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+          <View style={styles.retryButtonRow}>
             <TouchableOpacity
-              style={[styles.errorBackButton, { backgroundColor: '#FF9800' }]}
+              style={[styles.errorBackButton, { backgroundColor: colors.primary }]}
               onPress={() => {
                 setIsInitialized(false);
                 setShowRetryButton(false);
@@ -991,5 +1000,96 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     </View>
   );
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Styles factory
+// ─────────────────────────────────────────────────────────────────────────────
+
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    loadingText: {
+      marginTop: spacing.md,
+      fontSize: typography.base,
+      color: colors.textSecondary,
+    },
+    errorIcon: {
+      fontSize: 48,
+      marginBottom: spacing.md,
+    },
+    errorMessageText: {
+      color: colors.error,
+      textAlign: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    errorBackButton: {
+      marginTop: spacing.lg,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      backgroundColor: colors.primary,
+      borderRadius: borderRadius.md,
+    },
+    errorBackButtonText: {
+      color: colors.textInverse,
+      fontSize: typography.base,
+      fontWeight: '600',
+    },
+    retryButtonRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 20,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.xl,
+      paddingBottom: spacing.md,
+      backgroundColor: colors.background,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    backButton: {
+      padding: spacing.sm,
+    },
+    backButtonText: {
+      color: colors.primary,
+      fontSize: typography.base,
+      fontWeight: '600',
+    },
+    headerTitle: {
+      fontSize: typography.lg,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    headerSpacer: {
+      width: 60,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: spacing.md,
+    },
+    buttonContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.xl,
+      gap: spacing.sm,
+    },
+  });
+}
 
 export default RoomScreen;

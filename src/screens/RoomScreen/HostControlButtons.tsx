@@ -4,9 +4,9 @@
  * This component only handles button rendering based on visibility flags.
  * All business logic, dialogs, and service calls remain in RoomScreen.
  */
-import React from 'react';
-import { Text, TouchableOpacity } from 'react-native';
-import { styles } from './RoomScreen.styles';
+import React, { useMemo } from 'react';
+import { Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
 
 export interface HostControlButtonsProps {
   // Visibility flags
@@ -41,6 +41,9 @@ export const HostControlButtons: React.FC<HostControlButtonsProps> = ({
   onLastNightInfoPress,
   onRestartPress,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (!isHost) return null;
 
   return (
@@ -48,7 +51,7 @@ export const HostControlButtons: React.FC<HostControlButtonsProps> = ({
       {/* Host: Settings */}
       {showSettings && (
         <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
+          style={[styles.actionButton, { backgroundColor: colors.info }]}
           onPress={onSettingsPress}
         >
           <Text style={styles.buttonText}>⚙️ 设置</Text>
@@ -81,7 +84,7 @@ export const HostControlButtons: React.FC<HostControlButtonsProps> = ({
         <TouchableOpacity
           style={[
             styles.actionButton,
-            isEmergencyRestart && { backgroundColor: '#F59E0B' }, // Yellow for emergency restart
+            isEmergencyRestart && { backgroundColor: colors.warning },
           ]}
           onPress={onRestartPress}
         >
@@ -91,5 +94,22 @@ export const HostControlButtons: React.FC<HostControlButtonsProps> = ({
     </>
   );
 };
+
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    actionButton: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.full,
+      marginBottom: spacing.sm,
+    },
+    buttonText: {
+      color: colors.textInverse,
+      fontSize: typography.sm,
+      fontWeight: '600',
+    },
+  });
+}
 
 export default HostControlButtons;

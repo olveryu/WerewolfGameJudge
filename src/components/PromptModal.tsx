@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Modal,
   View,
@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
+import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../theme';
 
 interface PromptModalProps {
   visible: boolean;
@@ -28,6 +29,8 @@ export const PromptModal: React.FC<PromptModalProps> = ({
   onCancel,
   onConfirm,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [value, setValue] = useState('');
 
   // Reset value when modal opens
@@ -53,7 +56,7 @@ export const PromptModal: React.FC<PromptModalProps> = ({
             value={value}
             onChangeText={setValue}
             placeholder={placeholder}
-            placeholderTextColor="#888"
+            placeholderTextColor={colors.textMuted}
             secureTextEntry={secureTextEntry}
             autoFocus={true}
             onSubmitEditing={handleConfirm}
@@ -73,67 +76,69 @@ export const PromptModal: React.FC<PromptModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  alertBox: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 14,
-    padding: 20,
-    minWidth: 300,
-    maxWidth: Dimensions.get('window').width * 0.85,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  message: {
-    fontSize: 14,
-    color: '#ccc',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  input: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#444',
-    color: '#fff',
-    fontSize: 16,
-    padding: 12,
-    marginBottom: 16,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    backgroundColor: '#6366F1',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#444',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  cancelButtonText: {
-    color: '#ccc',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    alertBox: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      minWidth: 300,
+      maxWidth: Dimensions.get('window').width * 0.85,
+    },
+    title: {
+      fontSize: typography.lg,
+      fontWeight: 'bold',
+      color: colors.text,
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+    },
+    message: {
+      fontSize: typography.sm,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: spacing.md,
+    },
+    input: {
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      color: colors.text,
+      fontSize: typography.base,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+    },
+    buttonContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+    },
+    button: {
+      flex: 1,
+      backgroundColor: colors.primary,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+    },
+    cancelButton: {
+      backgroundColor: colors.surfaceHover,
+    },
+    buttonText: {
+      color: colors.textInverse,
+      fontSize: typography.base,
+      fontWeight: '600',
+    },
+    cancelButtonText: {
+      color: colors.textSecondary,
+    },
+  });
+}
 
 export default PromptModal;

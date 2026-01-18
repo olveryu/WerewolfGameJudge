@@ -6,12 +6,14 @@ import { HomeScreen } from '../screens/HomeScreen/HomeScreen';
 import { ConfigScreen } from '../screens/ConfigScreen/ConfigScreen';
 import { RoomScreen } from '../screens/RoomScreen/RoomScreen';
 import SettingsScreen from '../screens/SettingsScreen/SettingsScreen';
-import { colors } from '../constants/theme';
+import { useColors } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const AppNavigator: React.FC = () => {
   console.log('AppNavigator rendering...');
+  const colors = useColors();
+
   return (
     <NavigationContainer>
       <Stack.Navigator

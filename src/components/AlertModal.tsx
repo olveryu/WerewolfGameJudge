@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../theme';
 
 export interface AlertButton {
   text: string;
@@ -22,6 +23,9 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   buttons,
   onClose,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const handleButtonPress = (button: AlertButton) => {
     // First close the modal, then execute the callback
     // Use setTimeout to ensure modal is fully closed before callback
@@ -49,7 +53,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
           <View style={styles.buttonContainer}>
             {buttons.map((button, index) => (
               <TouchableOpacity
-                key={index}
+                key={`alert-btn-${button.text}-${index}`}
                 testID={`alert-button-${index}`}
                 style={[
                   styles.button,
@@ -76,61 +80,63 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  alertBox: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 14,
-    padding: 20,
-    minWidth: 280,
-    maxWidth: Dimensions.get('window').width * 0.85,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  message: {
-    fontSize: 14,
-    color: '#ccc',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  buttonContainer: {
-    marginTop: 10,
-  },
-  button: {
-    backgroundColor: '#4a90d9',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginVertical: 4,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#444',
-  },
-  destructiveButton: {
-    backgroundColor: '#d9534f',
-  },
-  buttonText: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  cancelButtonText: {
-    color: '#aaa',
-  },
-  destructiveButtonText: {
-    color: '#fff',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    alertBox: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      minWidth: 280,
+      maxWidth: Dimensions.get('window').width * 0.85,
+    },
+    title: {
+      fontSize: typography.lg,
+      fontWeight: 'bold',
+      color: colors.text,
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+    },
+    message: {
+      fontSize: typography.sm,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: spacing.lg,
+    },
+    buttonContainer: {
+      marginTop: spacing.sm,
+    },
+    button: {
+      backgroundColor: colors.primary,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      marginVertical: spacing.xs,
+      alignItems: 'center',
+    },
+    cancelButton: {
+      backgroundColor: colors.surfaceHover,
+    },
+    destructiveButton: {
+      backgroundColor: colors.error,
+    },
+    buttonText: {
+      fontSize: typography.base,
+      color: colors.textInverse,
+      fontWeight: '600',
+    },
+    cancelButtonText: {
+      color: colors.textSecondary,
+    },
+    destructiveButtonText: {
+      color: colors.textInverse,
+    },
+  });
+}
 
 export default AlertModal;

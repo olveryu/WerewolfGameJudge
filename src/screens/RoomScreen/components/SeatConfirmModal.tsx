@@ -1,12 +1,9 @@
 /**
  * SeatConfirmModal.tsx - Modal for confirming seat enter/leave actions
- *
- * Uses the real styles from RoomScreen.styles.ts
  */
-
-import React from 'react';
-import { Modal, View, Text, TouchableOpacity } from 'react-native';
-import { styles } from '../RoomScreen.styles';
+import React, { useMemo } from 'react';
+import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 import { TESTIDS } from '../../../testids';
 
 export type SeatModalType = 'enter' | 'leave';
@@ -31,6 +28,9 @@ export const SeatConfirmModal: React.FC<SeatConfirmModalProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const title = modalType === 'enter' ? '入座' : '站起';
   const message =
     modalType === 'enter' ? `确定在${seatNumber}号位入座?` : `确定从${seatNumber}号位站起?`;
@@ -66,5 +66,64 @@ export const SeatConfirmModal: React.FC<SeatConfirmModalProps> = ({
     </Modal>
   );
 };
+
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.xl,
+      padding: spacing.xl,
+      minWidth: 300,
+      alignItems: 'center',
+    },
+    modalTitle: {
+      fontSize: typography.xl,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: spacing.sm,
+    },
+    modalMessage: {
+      fontSize: typography.base,
+      color: colors.textSecondary,
+      marginBottom: spacing.lg,
+      textAlign: 'center',
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
+    modalButton: {
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.md,
+      minWidth: 100,
+      alignItems: 'center',
+    },
+    modalCancelButton: {
+      backgroundColor: colors.surfaceHover,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    modalConfirmButton: {
+      backgroundColor: colors.primary,
+    },
+    modalCancelText: {
+      color: colors.textSecondary,
+      fontSize: typography.base,
+      fontWeight: '600',
+    },
+    modalConfirmText: {
+      color: colors.textInverse,
+      fontSize: typography.base,
+      fontWeight: '600',
+    },
+  });
+}
 
 export default SeatConfirmModal;

@@ -3,16 +3,6 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { Text, ActivityIndicator } from 'react-native';
 import Button from '../Button/Button';
 
-// Mock COLORS constant
-jest.mock('../../constants', () => ({
-  COLORS: {
-    primary: '#4a90d9',
-    secondary: '#666',
-    danger: '#d9534f',
-    text: '#fff',
-  },
-}));
-
 describe('Button', () => {
   const defaultProps = {
     title: 'Test Button',
