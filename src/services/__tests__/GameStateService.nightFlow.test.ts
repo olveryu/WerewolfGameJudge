@@ -396,4 +396,35 @@ describe('GameStateService NightFlowController Integration', () => {
       expect(state.currentActionerIndex).toBe(0);
     });
   });
+
+  // ===========================================================================
+  // Host currentStepId for NightProgressIndicator
+  // ===========================================================================
+
+  describe('Host currentStepId for NightProgressIndicator', () => {
+    it('should set currentStepId on Host after playCurrentRoleAudio', async () => {
+      // Given: Host in ready state with roles that have night actions
+      await setupReadyState(service, ['wolf', 'witch', 'seer']);
+
+      // When: Start game (which triggers playCurrentRoleAudio)
+      const startPromise = service.startGame();
+      await jest.runAllTimersAsync();
+      await startPromise;
+
+      // Then: Host's state.currentStepId should be set (not undefined)
+      const state = getState(service);
+      expect(state.currentStepId).toBeDefined();
+      // First role with action is wolf, so stepId should be 'wolfKill'
+      expect(state.currentStepId).toBe('wolfKill');
+    });
+
+    it('should have currentStepId undefined before game starts', async () => {
+      // Given: Host in ready state (before startGame)
+      await setupReadyState(service, ['wolf', 'witch', 'seer']);
+
+      // Then: currentStepId should be undefined
+      const state = getState(service);
+      expect(state.currentStepId).toBeUndefined();
+    });
+  });
 });
