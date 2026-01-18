@@ -145,7 +145,7 @@ const createStyles = (colors: ThemeColors) =>
     avatar: {
       width: 80,
       height: 80,
-      borderRadius: 40,
+      borderRadius: 12,
       marginBottom: spacing.sm,
     },
     avatarPlaceholder: {
@@ -637,7 +637,8 @@ const SettingsScreen: React.FC = () => {
   // Get avatar source
   const getAvatarSource = () => {
     if (user?.isAnonymous) {
-      return require('../../../assets/icon.png');
+      // Default avatar for anonymous users (only shown in settings, not in room)
+      return require('../../../assets/avatars/default.png');
     }
     if (user?.avatarUrl) {
       return { uri: user.avatarUrl };
@@ -846,14 +847,6 @@ const SettingsScreen: React.FC = () => {
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>ℹ️ 系统信息</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>版本</Text>
-            <Text style={styles.infoValue}>1.0.0</Text>
           </View>
         </View>
 
