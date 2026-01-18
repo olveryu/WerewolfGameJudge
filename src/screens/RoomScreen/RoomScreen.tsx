@@ -20,7 +20,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { GameStatus, getWolfVoteSummary, getPlayersNotViewedRole } from '../../models/Room';
-import { getRoleSpec, getRoleDisplayName } from '../../models/roles';
+import { getRoleSpec, getRoleDisplayName, buildNightPlan } from '../../models/roles';
 import { showAlert } from '../../utils/alert';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
@@ -34,6 +34,7 @@ import { ActionMessage } from './components/ActionMessage';
 import { WaitingViewRoleList } from './components/WaitingViewRoleList';
 import { ActionButton } from './components/ActionButton';
 import { SeatConfirmModal } from './components/SeatConfirmModal';
+import { NightProgressIndicator } from './components/NightProgressIndicator';
 import {
   toGameRoomLike,
   getRoleStats,
@@ -105,6 +106,28 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!currentStepId) return null;
     return getStepSpec(currentStepId)?.audioKey ?? null;
   }, [currentStepId]);
+
+  // Night progress indicator: calculate current step index and total steps
+  // Uses buildNightPlan to get the actual steps based on the template roles
+  const nightProgress = useMemo(() => {
+    if (!currentStepId || !gameState || gameState.status !== 'ongoing') {
+      return null;
+    }
+
+    // Build night plan from template roles (same as Host uses)
+    const nightPlan = buildNightPlan(gameState.template.roles);
+    
+    // Find current step index in the dynamically built plan
+    const stepIndex = nightPlan.steps.findIndex((step) => step.stepId === currentStepId);
+    if (stepIndex === -1) return null;
+
+    const currentStep = nightPlan.steps[stepIndex];
+    return {
+      current: stepIndex + 1, // 1-based for display
+      total: nightPlan.length,
+      roleName: currentStep?.displayName,
+    };
+  }, [currentStepId, gameState]);
 
   const submitRevealAckSafe = useCallback(
     (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => {
@@ -918,6 +941,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Connection Status Bar */}
       {!isHost && (
         <ConnectionStatusBar status={connectionStatus} onForceSync={() => requestSnapshot()} />
+      )}
+
+      {/* Night Progress Indicator - only show during ongoing game */}
+      {nightProgress && (
+        <NightProgressIndicator
+          currentStep={nightProgress.current}
+          totalSteps={nightProgress.total}
+          currentRoleName={nightProgress.roleName}
+        />
       )}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>

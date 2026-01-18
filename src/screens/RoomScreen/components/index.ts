@@ -21,6 +21,9 @@ export type { ConnectionStatusBarProps, ConnectionState } from './ConnectionStat
 export { WaitingViewRoleList } from './WaitingViewRoleList';
 export type { WaitingViewRoleListProps } from './WaitingViewRoleList';
 
+export { NightProgressIndicator } from './NightProgressIndicator';
+export type { NightProgressIndicatorProps } from './NightProgressIndicator';
+
 // Buttons
 export { ActionButton } from './ActionButton';
 export type { ActionButtonProps } from './ActionButton';
