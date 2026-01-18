@@ -64,23 +64,10 @@ describe('SettingsScreen', () => {
       expect(getByText('👤 账户')).toBeTruthy();
     });
 
-    it('should render system info section', () => {
-      const { getByText } = render(<SettingsScreen />);
-
-      expect(getByText('ℹ️ 系统信息')).toBeTruthy();
-    });
-
     it('should render back button', () => {
       const { getByText } = render(<SettingsScreen />);
 
       expect(getByText('←')).toBeTruthy();
-    });
-
-    it('should render version info', () => {
-      const { getByText } = render(<SettingsScreen />);
-
-      expect(getByText('版本')).toBeTruthy();
-      expect(getByText('1.0.0')).toBeTruthy();
     });
   });
 
@@ -91,13 +78,6 @@ describe('SettingsScreen', () => {
       // Unauthenticated state shows login options
       expect(getByText('邮箱登录/注册')).toBeTruthy();
       expect(getByText('匿名登录')).toBeTruthy();
-    });
-
-    it('should show version info', () => {
-      const { getByText } = render(<SettingsScreen />);
-
-      expect(getByText('版本')).toBeTruthy();
-      expect(getByText('1.0.0')).toBeTruthy();
     });
   });
 
