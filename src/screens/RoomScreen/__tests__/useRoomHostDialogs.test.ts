@@ -70,7 +70,7 @@ describe('useRoomHostDialogs', () => {
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomNumber: '1234',
-        })
+        }),
       );
 
       act(() => {
@@ -93,7 +93,7 @@ describe('useRoomHostDialogs', () => {
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomNumber: '1234',
-        })
+        }),
       );
 
       act(() => {
@@ -104,7 +104,7 @@ describe('useRoomHostDialogs', () => {
       expect(mockShowAlert).toHaveBeenCalledWith(
         '发言顺序',
         expect.stringMatching(/从 \d+ 号玩家开始，(顺时针|逆时针) 发言。/),
-        [{ text: '知道了', style: 'default' }]
+        [{ text: '知道了', style: 'default' }],
       );
     });
 
@@ -122,7 +122,7 @@ describe('useRoomHostDialogs', () => {
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomNumber: '1234',
-        })
+        }),
       );
 
       // Call multiple times to test randomness stays in range
@@ -157,7 +157,7 @@ describe('useRoomHostDialogs', () => {
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomNumber: '1234',
-        })
+        }),
       );
 
       const directions = new Set<string>();
@@ -202,18 +202,16 @@ describe('useRoomHostDialogs', () => {
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomNumber: '1234',
-        })
+        }),
       );
 
       act(() => {
         result.current.showPrepareToFlipDialog();
       });
 
-      expect(mockShowAlert).toHaveBeenCalledWith(
-        '无法开始游戏',
-        '有座位尚未被占用。',
-        [{ text: '知道了', style: 'default' }]
-      );
+      expect(mockShowAlert).toHaveBeenCalledWith('无法开始游戏', '有座位尚未被占用。', [
+        { text: '知道了', style: 'default' },
+      ]);
     });
 
     it('should show confirmation when all seats are occupied', () => {
@@ -229,7 +227,7 @@ describe('useRoomHostDialogs', () => {
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomNumber: '1234',
-        })
+        }),
       );
 
       act(() => {
@@ -242,7 +240,7 @@ describe('useRoomHostDialogs', () => {
         expect.arrayContaining([
           expect.objectContaining({ text: '确定' }),
           expect.objectContaining({ text: '取消', style: 'cancel' }),
-        ])
+        ]),
       );
     });
   });
@@ -261,7 +259,7 @@ describe('useRoomHostDialogs', () => {
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomNumber: '1234',
-        })
+        }),
       );
 
       act(() => {
@@ -274,7 +272,7 @@ describe('useRoomHostDialogs', () => {
         expect.arrayContaining([
           expect.objectContaining({ text: '确定' }),
           expect.objectContaining({ text: '取消', style: 'cancel' }),
-        ])
+        ]),
       );
     });
   });
@@ -293,7 +291,7 @@ describe('useRoomHostDialogs', () => {
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomNumber: '5678',
-        })
+        }),
       );
 
       act(() => {

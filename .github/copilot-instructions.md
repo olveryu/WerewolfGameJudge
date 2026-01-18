@@ -164,7 +164,7 @@ When implementing or modifying a night-action role:
 
 - **After any code change**, run `npm run lint:fix` and `npm run format:write` to ensure zero errors/warnings.
 - **Unused variables**: prefix with `_` (e.g., `_unusedParam`) to satisfy `@typescript-eslint/no-unused-vars`.
-- **React hooks exhaustive-deps**: 
+- **React hooks exhaustive-deps**:
   - If a dependency is intentionally omitted, add `// eslint-disable-next-line react-hooks/exhaustive-deps` with a comment explaining why.
   - If a dependency is missing, add it to the dependency array.
   - If a dependency is unnecessary, remove it.

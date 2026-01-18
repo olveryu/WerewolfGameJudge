@@ -295,7 +295,11 @@ export class GameStateService {
 
       // Check if state is expired
       if (age > STATE_EXPIRY_MS) {
-        hostLog.warn('Saved state expired, discarding. Age:', Math.round(age / 1000 / 60), 'minutes');
+        hostLog.warn(
+          'Saved state expired, discarding. Age:',
+          Math.round(age / 1000 / 60),
+          'minutes',
+        );
         await AsyncStorage.removeItem(key);
         return null;
       }
