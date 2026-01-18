@@ -153,10 +153,13 @@ const createStyles = (colors: ThemeColors) =>
       width: 80,
       height: 80,
       borderRadius: 40,
-      backgroundColor: colors.primary,
+      backgroundColor: colors.border,
       justifyContent: 'center',
       alignItems: 'center',
       marginBottom: spacing.sm,
+    },
+    avatarPlaceholderIcon: {
+      fontSize: 40,
     },
     avatarEditBadge: {
       position: 'absolute',
@@ -383,7 +386,11 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   if (isAnonymous) {
-    return <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />;
+    return (
+      <View style={styles.avatarPlaceholder}>
+        <Text style={styles.avatarPlaceholderIcon}>👤</Text>
+      </View>
+    );
   }
 
   return (
@@ -643,8 +650,8 @@ const SettingsScreen: React.FC = () => {
   // Get avatar source
   const getAvatarSource = () => {
     if (user?.isAnonymous) {
-      // Default avatar for anonymous users (only shown in settings, not in room)
-      return require('../../../assets/avatars/default.png');
+      // Anonymous users show emoji avatar in AvatarSection, this won't be used
+      return getAvatarImage('anonymous');
     }
     if (user?.avatarUrl) {
       return { uri: user.avatarUrl };

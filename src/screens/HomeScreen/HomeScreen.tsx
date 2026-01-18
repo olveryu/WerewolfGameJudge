@@ -8,7 +8,6 @@ import {
   StatusBar,
   ScrollView,
   StyleSheet,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -76,6 +75,18 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: 8,
       marginRight: spacing.sm,
       overflow: 'hidden',
+    },
+    userAvatarPlaceholder: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: spacing.sm,
+    },
+    userAvatarIcon: {
+      fontSize: 20,
     },
     userNameText: {
       fontSize: typography.base,
@@ -708,11 +719,9 @@ export const HomeScreen: React.FC = () => {
         >
           {!user && (
             <>
-              <Image
-                source={require('../../../assets/avatars/default.png')}
-                style={styles.userAvatarImage}
-                resizeMode="cover"
-              />
+              <View style={styles.userAvatarPlaceholder}>
+                <Text style={styles.userAvatarIcon}>👤</Text>
+              </View>
               <Text style={styles.userNameText} testID={TESTIDS.homeLoginButton}>
                 点击登录
               </Text>
@@ -720,11 +729,9 @@ export const HomeScreen: React.FC = () => {
           )}
           {user && user.isAnonymous && (
             <>
-              <Image
-                source={require('../../../assets/avatars/default.png')}
-                style={styles.userAvatarImage}
-                resizeMode="cover"
-              />
+              <View style={styles.userAvatarPlaceholder}>
+                <Text style={styles.userAvatarIcon}>👤</Text>
+              </View>
               <Text style={styles.userNameText} testID={TESTIDS.homeUserName}>
                 {userName}
               </Text>
