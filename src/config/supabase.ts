@@ -29,10 +29,52 @@ export const isSupabaseConfigured = (): boolean => {
 // Detect if running in browser environment
 const isBrowser = globalThis?.window?.localStorage !== undefined;
 
+// Check for ?newUser=N URL parameter (dev tool for multi-user testing)
+// Each different N value gets a separate isolated session
+// Usage: ?newUser=1, ?newUser=2, ?newUser=3, etc.
+const getNewUserSlot = (): number | null => {
+  if (!isBrowser) return null;
+  try {
+    const params = new URLSearchParams(globalThis.window.location.search);
+    const value = params.get('newUser');
+    if (value) {
+      const slot = Number.parseInt(value, 10);
+      return Number.isNaN(slot) ? 1 : slot; // default to slot 1 if not a number
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+// Isolated memory stores for each newUser slot (dev testing)
+const memoryStores: Record<number, Record<string, string>> = {};
+
 // Platform-specific storage adapter
 // - Web/Browser: use localStorage (works on mobile browsers)
 // - Native: use AsyncStorage
+// - With ?newUser=N: use isolated memory storage per slot (forces new anonymous user)
 const getStorageAdapter = () => {
+  const slot = getNewUserSlot();
+
+  // Dev tool: ?newUser=N forces a fresh session in isolated memory slot
+  if (slot !== null) {
+    console.log(`[Supabase] 🔧 Dev mode: ?newUser=${slot} detected, using isolated memory storage`);
+    if (!memoryStores[slot]) {
+      memoryStores[slot] = {};
+    }
+    const memoryStore = memoryStores[slot];
+    return {
+      getItem: async (key: string): Promise<string | null> => memoryStore[key] || null,
+      setItem: async (key: string, value: string): Promise<void> => {
+        memoryStore[key] = value;
+      },
+      removeItem: async (key: string): Promise<void> => {
+        delete memoryStore[key];
+      },
+    };
+  }
+
   if (isBrowser) {
     // For web (including mobile browsers), use localStorage
     console.log('[Supabase] Using localStorage for auth storage');
