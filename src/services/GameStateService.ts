@@ -200,6 +200,11 @@ export class GameStateService {
 
   addListener(listener: GameStateListener): () => void {
     this.listeners.push(listener);
+    // Immediately call listener with current state if available
+    // This ensures React state is synced even if state was set before listener was registered
+    if (this.state) {
+      listener({ ...this.state });
+    }
     // Return unsubscribe function
     return () => {
       this.listeners = this.listeners.filter((l) => l !== listener);
@@ -473,6 +478,8 @@ export class GameStateService {
     this.isHost = false;
     this.myUid = playerUid;
     this.mySeatNumber = null;
+    // Reset state revision to accept fresh state from Host on reconnect
+    this.stateRevision = 0;
 
     // Join broadcast channel
     await this.broadcastService.joinRoom(roomCode, playerUid, {
@@ -1519,10 +1526,15 @@ export class GameStateService {
     // Create or update local state from broadcast
     const template = createTemplateFromRoles(broadcastState.templateRoles);
 
+    playerLog.info(
+      `applyStateUpdate: myUid=${this.myUid?.substring(0, 8)}, players count=${Object.keys(broadcastState.players).length}`,
+    );
+
     const players = new Map<number, LocalPlayer | null>();
     Object.entries(broadcastState.players).forEach(([seatStr, bp]) => {
       const seat = Number.parseInt(seatStr);
       if (bp) {
+        playerLog.debug(`  seat ${seat}: uid=${bp.uid?.substring(0, 8)}, match=${bp.uid === this.myUid}`);
         players.set(seat, {
           uid: bp.uid,
           seatNumber: bp.seatNumber,
@@ -1533,12 +1545,17 @@ export class GameStateService {
         });
         // Track my seat
         if (bp.uid === this.myUid) {
+          playerLog.info(`Found my seat: ${seat}, myUid: ${this.myUid?.substring(0, 8)}`);
           this.mySeatNumber = seat;
         }
       } else {
         players.set(seat, null);
       }
     });
+
+    playerLog.info(
+      `applyStateUpdate complete: mySeatNumber=${this.mySeatNumber}, myUid=${this.myUid?.substring(0, 8)}, status=${broadcastState.status}`,
+    );
 
     this.state = {
       roomCode: broadcastState.roomCode,

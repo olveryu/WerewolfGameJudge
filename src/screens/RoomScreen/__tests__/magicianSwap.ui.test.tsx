@@ -8,6 +8,9 @@ jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
+// Track showRoleActionPrompt calls to verify no duplicate actionPrompt triggers
+const mockShowRoleActionPrompt = jest.fn();
+
 const mockNavigation = {
   navigate: jest.fn(),
   replace: jest.fn(),
@@ -133,7 +136,7 @@ jest.mock('../useRoomActionDialogs', () => ({
     showWolfVoteDialog: jest.fn(),
     showActionRejectedAlert: jest.fn(),
     showRevealDialog: jest.fn(),
-    showRoleActionPrompt: jest.fn(),
+    showRoleActionPrompt: mockShowRoleActionPrompt,
     showWitchSaveDialog: jest.fn(),
     showWitchPoisonPrompt: jest.fn(),
     showWitchPoisonConfirm: jest.fn(),
@@ -205,8 +208,10 @@ describe('RoomScreen magician swap UI (smoke)', () => {
       expect(showAlert).toHaveBeenCalledWith('确认交换', expect.any(String), expect.any(Array));
     });
 
-    const confirmCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认交换');
-    const buttons = (confirmCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
+    const confirmCall = (showAlert as jest.Mock).mock.calls.find(
+      (c: unknown[]) => c[0] === '确认交换',
+    );
+    const buttons = confirmCall[2] as Array<{ text: string; onPress?: () => void }>;
     const confirmBtn = buttons.find((b) => b.text === '确定');
 
     await act(async () => {
@@ -215,5 +220,11 @@ describe('RoomScreen magician swap UI (smoke)', () => {
 
     // RoomScreen mergedTarget = anotherIndex + secondIndex*100 => 2 + 4*100 = 402
     expect(mockSubmitAction).toHaveBeenCalledWith(402, undefined);
+
+    // Regression check: actionPrompt should only trigger once at turn start,
+    // NOT re-trigger when anotherIndex changes (after selecting first seat).
+    // The initial prompt is shown once, and subsequent seat taps should not
+    // cause additional actionPrompt dialogs.
+    expect(mockShowRoleActionPrompt).toHaveBeenCalledTimes(1);
   });
 });
