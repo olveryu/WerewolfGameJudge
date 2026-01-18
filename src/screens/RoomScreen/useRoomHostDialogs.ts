@@ -10,6 +10,17 @@ import type { RootStackParamList } from '../../navigation/types';
 import { showAlert } from '../../utils/alert';
 import type { LocalGameState } from '../../services/GameStateService';
 
+/**
+ * Generate random speaking order for the start of day phase.
+ * @param playerCount - Total number of players
+ * @returns Object with starting seat number (1-indexed) and direction
+ */
+function generateSpeakOrder(playerCount: number): { startSeat: number; direction: '顺时针' | '逆时针' } {
+  const startSeat = Math.floor(Math.random() * playerCount) + 1;
+  const direction = Math.random() < 0.5 ? '顺时针' : '逆时针';
+  return { startSeat, direction };
+}
+
 export interface UseRoomHostDialogsParams {
   gameState: LocalGameState | null;
   assignRoles: () => Promise<void>;
@@ -28,6 +39,7 @@ export interface UseRoomHostDialogsResult {
   showStartGameDialog: () => void;
   showLastNightInfoDialog: () => void;
   showRestartDialog: () => void;
+  showSpeakOrderDialog: () => void;
   handleSettingsPress: () => void;
 }
 
@@ -108,6 +120,17 @@ export const useRoomHostDialogs = ({
     ]);
   }, [restartGame]);
 
+  const showSpeakOrderDialog = useCallback(() => {
+    if (!gameState) return;
+
+    const playerCount = gameState.template.roles.length;
+    const { startSeat, direction } = generateSpeakOrder(playerCount);
+
+    showAlert('发言顺序', `从 ${startSeat} 号玩家开始，${direction} 发言。`, [
+      { text: '知道了', style: 'default' },
+    ]);
+  }, [gameState]);
+
   const handleSettingsPress = useCallback(() => {
     navigation.navigate('Config', { existingRoomNumber: roomNumber });
   }, [navigation, roomNumber]);
@@ -117,6 +140,7 @@ export const useRoomHostDialogs = ({
     showStartGameDialog,
     showLastNightInfoDialog,
     showRestartDialog,
+    showSpeakOrderDialog,
     handleSettingsPress,
   };
 };
