@@ -133,7 +133,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   // Local UI state
-  const [firstNightEnded, setFirstNightEnded] = useState(false);
   const [anotherIndex, setAnotherIndex] = useState<number | null>(null); // For Magician first seat
   const [secondSeatIndex, setSecondSeatIndex] = useState<number | null>(null); // For Magician second seat (temporary highlight)
   const [isStartingGame, setIsStartingGame] = useState(false); // Hide start button after clicking
@@ -257,29 +256,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     initRoom();
   }, [isInitialized, isHostParam, template, roomNumber, createRoom, joinRoom, takeSeat]);
 
-  // Track when first night ends
+  // Reset UI state when game restarts
   useEffect(() => {
     if (!gameState) return;
 
     if (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) {
-      setFirstNightEnded(false);
       setIsStartingGame(false);
       setAnotherIndex(null); // Reset magician state
-      return;
     }
-
-    // NOTE: roomStatus=ready is handled by the normal non-ongoing resets.
-    // Keep logic minimal here to avoid masking state-sync bugs.
-
-    if (roomStatus === GameStatus.ongoing && !currentActionRole) {
-      setFirstNightEnded(true);
-    }
-
-    // When night ends (status becomes ended), mark firstNightEnded
-    if (roomStatus === GameStatus.ended) {
-      setFirstNightEnded(true);
-    }
-  }, [gameState, roomStatus, currentActionRole]);
+  }, [gameState, roomStatus]);
 
   // Loading timeout
   useEffect(() => {
@@ -868,12 +853,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const hasShownSpeakOrderRef = useRef(false);
 
   useEffect(() => {
-    // Only show once per game, only for host, only when firstNightEnded and audio finished
-    if (!isHost || !firstNightEnded || isAudioPlaying || hasShownSpeakOrderRef.current) return;
+    // Only show once per game, only for host, only when game ended and audio finished
+    if (!isHost || roomStatus !== GameStatus.ended || isAudioPlaying || hasShownSpeakOrderRef.current) return;
 
     hasShownSpeakOrderRef.current = true;
     showSpeakOrderDialog();
-  }, [isHost, firstNightEnded, isAudioPlaying, showSpeakOrderDialog]);
+  }, [isHost, roomStatus, isAudioPlaying, showSpeakOrderDialog]);
 
   // Reset speak order flag when game restarts
   useEffect(() => {
@@ -1007,14 +992,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           }
           showPrepareToFlip={roomStatus === GameStatus.seated}
           showStartGame={roomStatus === GameStatus.ready && !isStartingGame}
-          showLastNightInfo={firstNightEnded}
+          showLastNightInfo={roomStatus === GameStatus.ended}
           showRestart={
             roomStatus === GameStatus.assigned ||
             roomStatus === GameStatus.ready ||
             roomStatus === GameStatus.ongoing ||
-            firstNightEnded
+            roomStatus === GameStatus.ended
           }
-          isEmergencyRestart={roomStatus === GameStatus.ongoing && !firstNightEnded}
           onSettingsPress={handleSettingsPress}
           onPrepareToFlipPress={showPrepareToFlipDialog}
           onStartGamePress={showStartGameDialog}
