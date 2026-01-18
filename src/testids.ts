@@ -48,4 +48,7 @@ export const TESTIDS = {
   seatConfirmMessage: 'seat-confirm-message',
   seatConfirmOk: 'seat-confirm-ok',
   seatConfirmCancel: 'seat-confirm-cancel',
+
+  // NightProgressIndicator
+  nightProgressIndicator: 'night-progress-indicator',
 } as const;

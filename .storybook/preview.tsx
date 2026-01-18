@@ -12,7 +12,11 @@ const preview: Preview = {
     },
   },
   decorators: [
-    (Story) => React.createElement(ThemeProvider, null, React.createElement(Story)),
+    (Story) => (
+      <ThemeProvider>
+        <Story />
+      </ThemeProvider>
+    ),
   ],
 };
 
