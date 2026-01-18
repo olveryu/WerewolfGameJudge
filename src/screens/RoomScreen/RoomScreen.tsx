@@ -134,7 +134,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Local UI state
   const [firstNightEnded, setFirstNightEnded] = useState(false);
-  const [anotherIndex, setAnotherIndex] = useState<number | null>(null); // For Magician
+  const [anotherIndex, setAnotherIndex] = useState<number | null>(null); // For Magician first seat
+  const [secondSeatIndex, setSecondSeatIndex] = useState<number | null>(null); // For Magician second seat (temporary highlight)
   const [isStartingGame, setIsStartingGame] = useState(false); // Hide start button after clicking
   const [seatModalVisible, setSeatModalVisible] = useState(false);
   const [pendingSeatIndex, setPendingSeatIndex] = useState<number | null>(null);
@@ -187,12 +188,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         currentSchema?.kind === 'wolfVote' && currentSchema?.id === 'wolfKill',
       // Schema-driven constraints (notSelf, etc.) - UX-only early rejection
       schemaConstraints: imActioner ? currentSchemaConstraints : undefined,
+      // For magician swap: highlight the second seat being selected
+      secondSelectedIndex: secondSeatIndex,
     });
   }, [
     gameState,
     mySeatNumber,
     showWolves,
     anotherIndex,
+    secondSeatIndex,
     currentSchema?.kind,
     currentSchema?.id,
     imActioner,
@@ -566,11 +570,20 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         case 'actionConfirm':
           if (myRole === 'magician' && anotherIndex !== null) {
             const mergedTarget = getMagicianTarget(intent.targetIndex);
-            setAnotherIndex(null);
+            // Highlight both seats during confirmation dialog
+            setSecondSeatIndex(intent.targetIndex);
             actionDialogs.showConfirmDialog(
               currentSchema?.ui?.confirmTitle || '确认交换',
               intent.message || `确定交换${anotherIndex + 1}号和${intent.targetIndex + 1}号?`,
-              () => void proceedWithActionTyped(mergedTarget),
+              () => {
+                setAnotherIndex(null);
+                setSecondSeatIndex(null);
+                void proceedWithActionTyped(mergedTarget);
+              },
+              () => {
+                // User cancelled - keep first seat selected, clear second
+                setSecondSeatIndex(null);
+              },
             );
           } else {
             // Witch/compound: drive copy + payload by stepKey when provided.
@@ -990,15 +1003,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           showSettings={
             !isStartingGame &&
             !isAudioPlaying &&
-            (roomStatus === GameStatus.unseated ||
-              roomStatus === GameStatus.seated ||
-              roomStatus === GameStatus.assigned ||
-              roomStatus === GameStatus.ready)
+            (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated)
           }
           showPrepareToFlip={roomStatus === GameStatus.seated}
           showStartGame={roomStatus === GameStatus.ready && !isStartingGame}
           showLastNightInfo={firstNightEnded}
-          showRestart={firstNightEnded || roomStatus === GameStatus.ongoing}
+          showRestart={
+            roomStatus === GameStatus.assigned ||
+            roomStatus === GameStatus.ready ||
+            roomStatus === GameStatus.ongoing ||
+            firstNightEnded
+          }
           isEmergencyRestart={roomStatus === GameStatus.ongoing && !firstNightEnded}
           onSettingsPress={handleSettingsPress}
           onPrepareToFlipPress={showPrepareToFlipDialog}

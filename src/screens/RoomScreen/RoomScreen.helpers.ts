@@ -258,6 +258,11 @@ export function buildSeatViewModels(
      * UX-only early rejection - Host still validates.
      */
     schemaConstraints?: readonly TargetConstraint[];
+    /**
+     * Second selected index for swap schema (magician).
+     * Used to highlight the second seat being selected before confirmation.
+     */
+    secondSelectedIndex?: number | null;
   },
 ): SeatViewModel[] {
   return gameState.template.roles.map((role, index) => {
@@ -301,7 +306,7 @@ export function buildSeatViewModels(
         : null,
       isMySpot: mySeatNumber === index,
       isWolf,
-      isSelected: selectedIndex === index,
+      isSelected: selectedIndex === index || options?.secondSelectedIndex === index,
       disabledReason,
     };
   });
