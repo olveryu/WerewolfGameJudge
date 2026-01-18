@@ -530,9 +530,19 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       return { type: 'actionPrompt', targetIndex: -1 };
     }
 
+    // Schema-driven: swap schema (magician)
+    // When first target is already selected (anotherIndex !== null),
+    // do NOT re-trigger actionPrompt - user is selecting second target.
+    if (currentSchema?.kind === 'swap') {
+      if (anotherIndex !== null) {
+        return null; // Suppress auto-trigger while selecting second seat
+      }
+      return { type: 'actionPrompt', targetIndex: -1 };
+    }
+
     // All other schemas: show generic action prompt, dismiss → wait for seat tap
     return { type: 'actionPrompt', targetIndex: -1 };
-  }, [myRole, imActioner, isAudioPlaying, currentSchema, getWitchContext]);
+  }, [myRole, imActioner, isAudioPlaying, currentSchema, getWitchContext, anotherIndex]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Get action intent when seat is tapped
