@@ -8,6 +8,7 @@ import {
   StatusBar,
   ScrollView,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -67,6 +68,12 @@ const createStyles = (colors: ThemeColors) =>
     },
     userAvatar: {
       fontSize: 28,
+      marginRight: spacing.sm,
+    },
+    userAvatarImage: {
+      width: 36,
+      height: 36,
+      borderRadius: 8,
       marginRight: spacing.sm,
     },
     userNameText: {
@@ -232,6 +239,15 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textSecondary,
       fontSize: typography.base,
       fontWeight: '500',
+    },
+    footer: {
+      alignItems: 'center',
+      paddingVertical: spacing.xl,
+      paddingBottom: spacing.xxl,
+    },
+    footerText: {
+      fontSize: typography.xs,
+      color: colors.textMuted,
     },
   });
 
@@ -683,7 +699,10 @@ export const HomeScreen: React.FC = () => {
         >
           {!user && (
             <>
-              <Text style={styles.userAvatar}>👤</Text>
+              <Image
+                source={require('../../../assets/avatars/default.png')}
+                style={styles.userAvatarImage}
+              />
               <Text style={styles.userNameText} testID={TESTIDS.homeLoginButton}>
                 点击登录
               </Text>
@@ -691,7 +710,10 @@ export const HomeScreen: React.FC = () => {
           )}
           {user && user.isAnonymous && (
             <>
-              <Text style={styles.userAvatar}>👤</Text>
+              <Image
+                source={require('../../../assets/avatars/default.png')}
+                style={styles.userAvatarImage}
+              />
               <Text style={styles.userNameText} testID={TESTIDS.homeUserName}>
                 {userName}
               </Text>
@@ -743,7 +765,10 @@ export const HomeScreen: React.FC = () => {
           />
         </View>
 
-        <View style={{ height: spacing.xxl }} />
+        {/* Footer with author and version */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>v1.0.0 · 作者：严振宇</Text>
+        </View>
       </ScrollView>
 
       {/* Login Modal */}
