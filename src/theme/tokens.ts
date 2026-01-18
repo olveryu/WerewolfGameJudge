@@ -50,29 +50,29 @@ export const typography = {
 // ============================================
 // Shadows
 // ============================================
+import { Platform } from 'react-native';
+
+// Helper to create cross-platform shadows
+const createShadow = (offsetY: number, blurRadius: number, opacity: number, elevation: number) => {
+  if (Platform.OS === 'web') {
+    return {
+      boxShadow: `0px ${offsetY}px ${blurRadius}px rgba(0, 0, 0, ${opacity})`,
+    };
+  }
+  return {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: offsetY },
+    shadowOpacity: opacity,
+    shadowRadius: blurRadius,
+    elevation,
+  };
+};
+
 export const shadows = {
   none: {},
-  sm: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
-  },
+  sm: createShadow(1, 2, 0.05, 1),
+  md: createShadow(2, 4, 0.08, 2),
+  lg: createShadow(4, 8, 0.12, 4),
 } as const;
 
 // ============================================
