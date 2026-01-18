@@ -803,6 +803,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     showStartGameDialog,
     showLastNightInfoDialog,
     showRestartDialog,
+    showSpeakOrderDialog,
     handleSettingsPress,
   } = useRoomHostDialogs({
     gameState,
@@ -828,6 +829,26 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       { text: '确定', style: 'default' },
     ]);
   }, [myRole, viewedRole]);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Host: Show speaking order dialog when night ends (after audio finishes)
+  // ───────────────────────────────────────────────────────────────────────────
+  const hasShownSpeakOrderRef = useRef(false);
+
+  useEffect(() => {
+    // Only show once per game, only for host, only when firstNightEnded and audio finished
+    if (!isHost || !firstNightEnded || isAudioPlaying || hasShownSpeakOrderRef.current) return;
+
+    hasShownSpeakOrderRef.current = true;
+    showSpeakOrderDialog();
+  }, [isHost, firstNightEnded, isAudioPlaying, showSpeakOrderDialog]);
+
+  // Reset speak order flag when game restarts
+  useEffect(() => {
+    if (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) {
+      hasShownSpeakOrderRef.current = false;
+    }
+  }, [roomStatus]);
 
   // Loading state
   if (!isInitialized || !gameState) {
