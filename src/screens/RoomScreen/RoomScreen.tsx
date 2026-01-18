@@ -566,7 +566,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 void proceedWithActionTyped(mergedTarget);
               },
               () => {
-                // User cancelled - keep first seat selected, clear second
+                // User cancelled - reset both seats for re-selection
+                setAnotherIndex(null);
                 setSecondSeatIndex(null);
               },
             );
