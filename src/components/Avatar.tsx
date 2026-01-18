@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, StyleSheet, ImageSourcePropType } from 'react-native';
 import { getAvatarImage, getUniqueAvatarBySeat } from '../utils/avatar';
+import { useColors } from '../theme';
 
 interface AvatarProps {
   value: string;
@@ -21,12 +22,17 @@ interface AvatarProps {
  * Otherwise falls back to hash-based avatar selection using value
  */
 export const Avatar: React.FC<AvatarProps> = ({ value, size, avatarUrl, seatNumber, roomId }) => {
+  const colors = useColors();
+
   // Use custom avatar URL if provided, otherwise use local image
   if (avatarUrl) {
     return (
       <Image
         source={{ uri: avatarUrl }}
-        style={[styles.avatar, { width: size, height: size, borderRadius: size / 4 }]}
+        style={[
+          styles.avatar,
+          { width: size, height: size, borderRadius: size / 4, backgroundColor: colors.border },
+        ]}
       />
     );
   }
@@ -40,15 +46,16 @@ export const Avatar: React.FC<AvatarProps> = ({ value, size, avatarUrl, seatNumb
   return (
     <Image
       source={imageSource as ImageSourcePropType}
-      style={[styles.avatar, { width: size, height: size, borderRadius: size / 4 }]}
+      style={[
+        styles.avatar,
+        { width: size, height: size, borderRadius: size / 4, backgroundColor: colors.border },
+      ]}
     />
   );
 };
 
 const styles = StyleSheet.create({
-  avatar: {
-    backgroundColor: '#e0e0e0',
-  },
+  avatar: {},
 });
 
 export default Avatar;

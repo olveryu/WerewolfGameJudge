@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '../constants/theme';
+import { useColors, spacing, borderRadius, typography, ThemeColors } from '../theme';
 
 interface NumPadProps {
   /** Current value (max 4 digits) */
@@ -28,6 +28,42 @@ const getLabel = (key: string): string => {
   return key;
 };
 
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      width: '100%',
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    button: {
+      width: 72,
+      height: 56,
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.md,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    buttonText: {
+      fontSize: typography.xl,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    specialButton: {
+      backgroundColor: colors.surfaceHover,
+    },
+    specialButtonText: {
+      fontSize: typography.base,
+      color: colors.textSecondary,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+  });
+
 /**
  * 9-pad numeric keypad for entering room codes
  */
@@ -37,6 +73,9 @@ export const NumPad: React.FC<NumPadProps> = ({
   maxLength = 4,
   disabled = false,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const handlePress = (key: string) => {
     if (disabled) return;
 
@@ -86,40 +125,5 @@ export const NumPad: React.FC<NumPadProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  button: {
-    width: 72,
-    height: 56,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontSize: typography.xl,
-    fontWeight: typography.semibold,
-    color: colors.text,
-  },
-  specialButton: {
-    backgroundColor: colors.surfaceHover,
-  },
-  specialButtonText: {
-    fontSize: typography.base,
-    color: colors.textSecondary,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-});
 
 export default NumPad;

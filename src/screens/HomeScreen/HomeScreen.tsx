@@ -7,6 +7,7 @@ import {
   TextInput,
   StatusBar,
   ScrollView,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,15 +15,225 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAuth } from '../../hooks/useAuth';
 import { showAlert } from '../../utils/alert';
-import { colors, spacing } from '../../constants/theme';
+import { useTheme, spacing, borderRadius, typography, shadows, ThemeColors } from '../../theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Avatar from '../../components/Avatar';
 import { NumPad } from '../../components/NumPad';
-import { styles } from './HomeScreen.styles';
 import { homeLog } from '../../utils/logger';
 import { TESTIDS } from '../../testids';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+
+// ============================================
+// Styles factory
+// ============================================
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    header: {
+      alignItems: 'center',
+      paddingVertical: spacing.xl,
+    },
+    logo: {
+      fontSize: 64,
+      marginBottom: spacing.md,
+    },
+    title: {
+      fontSize: typography['3xl'],
+      fontWeight: '700',
+      color: colors.text,
+    },
+    subtitle: {
+      fontSize: typography.sm,
+      color: colors.textMuted,
+      marginTop: spacing.xs,
+      letterSpacing: 2,
+    },
+    userBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.primary,
+      marginHorizontal: spacing.md,
+      marginBottom: spacing.md,
+      padding: spacing.md,
+      borderRadius: borderRadius.lg,
+      ...shadows.md,
+    },
+    userAvatar: {
+      fontSize: 28,
+      marginRight: spacing.sm,
+    },
+    userNameText: {
+      fontSize: typography.base,
+      fontWeight: '600',
+      color: colors.textInverse,
+      marginLeft: spacing.sm,
+    },
+    menu: {
+      backgroundColor: colors.surface,
+      marginHorizontal: spacing.md,
+      borderRadius: borderRadius.lg,
+      ...shadows.md,
+    },
+    menuItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.md,
+    },
+    menuIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    menuIconText: {
+      fontSize: 20,
+    },
+    menuContent: {
+      flex: 1,
+      marginLeft: spacing.md,
+    },
+    menuTitle: {
+      fontSize: typography.base,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    menuSubtitle: {
+      fontSize: typography.sm,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    menuArrow: {
+      fontSize: 24,
+      color: colors.textMuted,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.borderLight,
+      marginHorizontal: spacing.md,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing.lg,
+    },
+    modalContent: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.xl,
+      padding: spacing.lg,
+      width: '100%',
+      maxWidth: 340,
+    },
+    modalTitle: {
+      fontSize: typography.xl,
+      fontWeight: '700',
+      color: colors.text,
+      textAlign: 'center',
+    },
+    modalSubtitle: {
+      fontSize: typography.sm,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginTop: spacing.xs,
+      marginBottom: spacing.lg,
+    },
+    codeDisplay: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    codeDigitBox: {
+      width: 56,
+      height: 64,
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.md,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: colors.border,
+    },
+    codeDigitText: {
+      fontSize: 32,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    primaryButton: {
+      backgroundColor: colors.primary,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+    },
+    primaryButtonText: {
+      color: colors.textInverse,
+      fontSize: typography.base,
+      fontWeight: '600',
+    },
+    secondaryButton: {
+      backgroundColor: colors.background,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+    },
+    secondaryButtonText: {
+      color: colors.textSecondary,
+      fontSize: typography.base,
+      fontWeight: '500',
+    },
+    input: {
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      fontSize: typography.base,
+      color: colors.text,
+      marginBottom: spacing.sm,
+    },
+    errorText: {
+      color: colors.error,
+      fontSize: typography.sm,
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    linkButton: {
+      padding: spacing.sm,
+      alignItems: 'center',
+    },
+    linkButtonText: {
+      color: colors.primary,
+      fontSize: typography.sm,
+      fontWeight: '500',
+    },
+    outlineButton: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+      marginTop: spacing.sm,
+    },
+    outlineButtonText: {
+      color: colors.textSecondary,
+      fontSize: typography.base,
+      fontWeight: '500',
+    },
+  });
 
 // ============================================
 // Sub-components
@@ -34,20 +245,24 @@ interface MenuItemProps {
   subtitle?: string;
   onPress: () => void;
   testID?: string;
+  colors: ThemeColors;
 }
 
-const MenuItem: React.FC<MenuItemProps> = ({ icon, title, subtitle, onPress, testID }) => (
-  <TouchableOpacity testID={testID} style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
-    <View style={styles.menuIcon}>
-      <Text style={styles.menuIconText}>{icon}</Text>
-    </View>
-    <View style={styles.menuContent}>
-      <Text style={styles.menuTitle}>{title}</Text>
-      {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
-    </View>
-    <Text style={styles.menuArrow}>›</Text>
-  </TouchableOpacity>
-);
+const MenuItem: React.FC<MenuItemProps> = ({ icon, title, subtitle, onPress, testID, colors }) => {
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return (
+    <TouchableOpacity testID={testID} style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.menuIcon}>
+        <Text style={styles.menuIconText}>{icon}</Text>
+      </View>
+      <View style={styles.menuContent}>
+        <Text style={styles.menuTitle}>{title}</Text>
+        {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
+      </View>
+      <Text style={styles.menuArrow}>›</Text>
+    </TouchableOpacity>
+  );
+};
 
 interface EmailFormProps {
   isSignUp: boolean;
@@ -62,6 +277,7 @@ interface EmailFormProps {
   onSubmit: () => void;
   onToggleMode: () => void;
   onBack: () => void;
+  colors: ThemeColors;
 }
 
 const EmailForm: React.FC<EmailFormProps> = ({
@@ -77,7 +293,10 @@ const EmailForm: React.FC<EmailFormProps> = ({
   onSubmit,
   onToggleMode,
   onBack,
+  colors,
 }) => {
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const getButtonText = () => {
     if (authLoading) return '处理中...';
     return isSignUp ? '注册' : '登录';
@@ -144,6 +363,7 @@ interface LoginOptionsProps {
   onEmailLogin: () => void;
   onAnonymousLogin: () => void;
   onCancel: () => void;
+  colors: ThemeColors;
 }
 
 const LoginOptions: React.FC<LoginOptionsProps> = ({
@@ -151,29 +371,33 @@ const LoginOptions: React.FC<LoginOptionsProps> = ({
   onEmailLogin,
   onAnonymousLogin,
   onCancel,
-}) => (
-  <>
-    <Text style={styles.modalTitle}>登录</Text>
-    <Text style={styles.modalSubtitle}>选择登录方式继续</Text>
+  colors,
+}) => {
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return (
+    <>
+      <Text style={styles.modalTitle}>登录</Text>
+      <Text style={styles.modalSubtitle}>选择登录方式继续</Text>
 
-    <TouchableOpacity style={styles.primaryButton} onPress={onEmailLogin}>
-      <Text style={styles.primaryButtonText}>📧 邮箱登录/注册</Text>
-    </TouchableOpacity>
+      <TouchableOpacity style={styles.primaryButton} onPress={onEmailLogin}>
+        <Text style={styles.primaryButtonText}>📧 邮箱登录/注册</Text>
+      </TouchableOpacity>
 
-    <TouchableOpacity
-      style={[styles.outlineButton, authLoading && styles.buttonDisabled]}
-      onPress={onAnonymousLogin}
-      disabled={authLoading}
-      testID={TESTIDS.homeAnonLoginButton}
-    >
-      <Text style={styles.outlineButtonText}>{authLoading ? '处理中...' : '👤 匿名登录'}</Text>
-    </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.outlineButton, authLoading && styles.buttonDisabled]}
+        onPress={onAnonymousLogin}
+        disabled={authLoading}
+        testID={TESTIDS.homeAnonLoginButton}
+      >
+        <Text style={styles.outlineButtonText}>{authLoading ? '处理中...' : '👤 匿名登录'}</Text>
+      </TouchableOpacity>
 
-    <TouchableOpacity style={styles.secondaryButton} onPress={onCancel}>
-      <Text style={styles.secondaryButtonText}>取消</Text>
-    </TouchableOpacity>
-  </>
-);
+      <TouchableOpacity style={styles.secondaryButton} onPress={onCancel}>
+        <Text style={styles.secondaryButtonText}>取消</Text>
+      </TouchableOpacity>
+    </>
+  );
+};
 
 interface JoinRoomModalProps {
   visible: boolean;
@@ -183,6 +407,7 @@ interface JoinRoomModalProps {
   onRoomCodeChange: (text: string) => void;
   onJoin: () => void;
   onCancel: () => void;
+  colors: ThemeColors;
 }
 
 const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
@@ -193,53 +418,60 @@ const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
   onRoomCodeChange,
   onJoin,
   onCancel,
-}) => (
-  <Modal visible={visible} transparent animationType="fade">
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>加入房间</Text>
-        <Text style={styles.modalSubtitle}>输入4位房间号码</Text>
+  colors,
+}) => {
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>加入房间</Text>
+          <Text style={styles.modalSubtitle}>输入4位房间号码</Text>
 
-        {/* Room code display */}
-        <View style={styles.codeDisplay}>
-          {[0, 1, 2, 3].map((i) => (
-            <View key={i} style={styles.codeDigitBox}>
-              <Text style={styles.codeDigitText}>{roomCode[i] || ''}</Text>
-            </View>
-          ))}
-        </View>
+          {/* Room code display */}
+          <View style={styles.codeDisplay}>
+            {[0, 1, 2, 3].map((i) => (
+              <View key={i} style={styles.codeDigitBox}>
+                <Text style={styles.codeDigitText}>{roomCode[i] || ''}</Text>
+              </View>
+            ))}
+          </View>
 
-        {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+          {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
 
-        {/* NumPad */}
-        <NumPad value={roomCode} onValueChange={onRoomCodeChange} maxLength={4} disabled={isLoading} />
+          {/* NumPad */}
+          <NumPad value={roomCode} onValueChange={onRoomCodeChange} maxLength={4} disabled={isLoading} />
 
-        <View style={styles.modalButtons}>
-          <TouchableOpacity
-            style={[styles.secondaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]}
-            onPress={onCancel}
-            disabled={isLoading}
-          >
-            <Text style={styles.secondaryButtonText}>取消</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.primaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]}
-            onPress={onJoin}
-            disabled={isLoading}
-          >
-            <Text style={styles.primaryButtonText}>{isLoading ? '加入中...' : '加入'}</Text>
-          </TouchableOpacity>
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.secondaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]}
+              onPress={onCancel}
+              disabled={isLoading}
+            >
+              <Text style={styles.secondaryButtonText}>取消</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.primaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]}
+              onPress={onJoin}
+              disabled={isLoading}
+            >
+              <Text style={styles.primaryButtonText}>{isLoading ? '加入中...' : '加入'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 // ============================================
 // Main Component
 // ============================================
 
 export const HomeScreen: React.FC = () => {
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const navigation = useNavigation<NavigationProp>();
   const {
     user,
@@ -260,15 +492,13 @@ export const HomeScreen: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
-  // Prevent transient UI states (e.g. "创建中...") from getting stuck if we navigate away
-  // and then come back via back actions (common during e2e recovery flows).
+  // Prevent transient UI states from getting stuck if we navigate away
   useEffect(() => {
     const addListener = (
       navigation as unknown as { addListener?: (event: string, cb: () => void) => () => void }
     ).addListener;
 
     if (!addListener) {
-      // Jest tests may mock navigation without addListener; don't crash.
       return;
     }
 
@@ -296,11 +526,8 @@ export const HomeScreen: React.FC = () => {
   // Get user display name
   const userName = useMemo(() => {
     if (!user) return '';
-    // Anonymous users should show "匿名用户"
     if (user.isAnonymous) return '匿名用户';
     if (user.displayName) return user.displayName;
-
-    // Fallback for logged-in users without displayName: use email prefix
     if (user.email) {
       return user.email.split('@')[0];
     }
@@ -376,12 +603,10 @@ export const HomeScreen: React.FC = () => {
     setIsJoining(true);
 
     try {
-      // Set timeout for slow network
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('timeout')), 10000);
       });
 
-      // Navigate with timeout protection
       await Promise.race([
         (async () => {
           await AsyncStorage.setItem('lastRoomNumber', roomCode);
@@ -419,14 +644,12 @@ export const HomeScreen: React.FC = () => {
 
   const handleCreateRoom = useCallback(() => {
     setIsCreating(true);
-    // Navigation happens immediately, HomeScreen will blur/unmount
     navigation.navigate('Config');
-    // No need to reset - component will unmount or blur
   }, [navigation]);
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.homeScreenRoot}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
@@ -442,7 +665,6 @@ export const HomeScreen: React.FC = () => {
           testID={TESTIDS.homeUserBar}
           onPress={() => {
             if (user) {
-              // Show user menu with logout option
               showAlert(userName, user.isAnonymous ? '匿名登录用户' : user.email || '已登录', [
                 {
                   text: '退出登录',
@@ -493,6 +715,7 @@ export const HomeScreen: React.FC = () => {
             subtitle="输入房间号进入游戏"
             onPress={() => requireAuth(() => setShowJoinModal(true))}
             testID={TESTIDS.homeEnterRoomButton}
+            colors={colors}
           />
           <MenuItem
             icon="➕"
@@ -500,6 +723,7 @@ export const HomeScreen: React.FC = () => {
             subtitle="开始新的一局游戏"
             onPress={() => requireAuth(handleCreateRoom)}
             testID={TESTIDS.homeCreateRoomButton}
+            colors={colors}
           />
           <View style={styles.divider} />
           <MenuItem
@@ -508,12 +732,14 @@ export const HomeScreen: React.FC = () => {
             subtitle={lastRoomNumber ? `房间 ${lastRoomNumber}` : '没有上局记录'}
             onPress={() => requireAuth(handleReturnToLastGame)}
             testID={TESTIDS.homeReturnLastGameButton}
+            colors={colors}
           />
           <MenuItem
             icon="⚙️"
             title="设置"
             subtitle="应用偏好设置"
             onPress={() => navigation.navigate('Settings')}
+            colors={colors}
           />
         </View>
 
@@ -538,6 +764,7 @@ export const HomeScreen: React.FC = () => {
                 onSubmit={handleEmailAuth}
                 onToggleMode={() => setIsSignUp(!isSignUp)}
                 onBack={() => setShowEmailForm(false)}
+                colors={colors}
               />
             ) : (
               <LoginOptions
@@ -545,6 +772,7 @@ export const HomeScreen: React.FC = () => {
                 onEmailLogin={() => setShowEmailForm(true)}
                 onAnonymousLogin={handleAnonymousLogin}
                 onCancel={resetLoginModal}
+                colors={colors}
               />
             )}
           </View>
@@ -560,6 +788,7 @@ export const HomeScreen: React.FC = () => {
         onRoomCodeChange={setRoomCode}
         onJoin={handleJoinRoom}
         onCancel={handleCancelJoin}
+        colors={colors}
       />
     </SafeAreaView>
   );

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AppNavigator } from './src/navigation';
-import { colors } from './src/constants/theme';
+import { ThemeProvider, useTheme } from './src/theme';
 import { AlertModal } from './src/components/AlertModal';
 import { setAlertListener, AlertConfig } from './src/utils/alert';
 import { NetworkProvider } from './src/contexts';
 
-export default function App() {
-  console.log('App rendering...');
+function AppContent() {
+  const { colors, isDark } = useTheme();
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
 
   // Set up global alert listener
@@ -23,8 +23,8 @@ export default function App() {
   }, []);
 
   return (
-    <NetworkProvider>
-      <StatusBar style="dark" backgroundColor={colors.background} />
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.background} />
       <AppNavigator />
       {alertConfig && (
         <AlertModal
@@ -35,6 +35,18 @@ export default function App() {
           onClose={handleAlertClose}
         />
       )}
-    </NetworkProvider>
+    </>
+  );
+}
+
+export default function App() {
+  console.log('App rendering...');
+
+  return (
+    <ThemeProvider>
+      <NetworkProvider>
+        <AppContent />
+      </NetworkProvider>
+    </ThemeProvider>
   );
 }

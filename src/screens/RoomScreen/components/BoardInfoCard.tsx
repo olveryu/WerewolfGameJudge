@@ -1,12 +1,9 @@
 /**
  * BoardInfoCard.tsx - Game board configuration display
- *
- * Uses the real styles from RoomScreen.styles.ts
  */
-
-import React from 'react';
-import { View, Text } from 'react-native';
-import { styles } from '../RoomScreen.styles';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 
 export interface BoardInfoCardProps {
   /** Total number of players */
@@ -28,6 +25,9 @@ export const BoardInfoCard: React.FC<BoardInfoCardProps> = ({
   specialRolesText,
   villagerCount,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.boardInfoContainer}>
       <Text style={styles.boardInfoTitle}>板子配置 ({playerCount}人局)</Text>
@@ -56,5 +56,43 @@ export const BoardInfoCard: React.FC<BoardInfoCardProps> = ({
     </View>
   );
 };
+
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    boardInfoContainer: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    boardInfoTitle: {
+      fontSize: typography.base,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: spacing.sm,
+    },
+    boardInfoContent: {
+      gap: spacing.xs,
+    },
+    roleCategory: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    roleCategoryLabel: {
+      fontSize: typography.sm,
+      fontWeight: '600',
+      color: colors.textSecondary,
+      width: 70,
+    },
+    roleCategoryText: {
+      flex: 1,
+      fontSize: typography.sm,
+      color: colors.text,
+      lineHeight: 20,
+    },
+  });
+}
 
 export default BoardInfoCard;

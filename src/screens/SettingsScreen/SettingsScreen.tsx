@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,18 +8,360 @@ import {
   Image,
   ActivityIndicator,
   ImageSourcePropType,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../hooks';
-import { colors } from '../../constants/theme';
-import { styles } from './SettingsScreen.styles';
+import { useTheme, spacing, borderRadius, typography, shadows, ThemeColors } from '../../theme';
 import { showAlert } from '../../utils/alert';
 import { getAvatarImage } from '../../utils/avatar';
 
 // ============================================
-// Sub-components to reduce cognitive complexity
+// Styles factory
+// ============================================
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.md,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    backBtnText: {
+      fontSize: 20,
+      color: colors.text,
+    },
+    title: {
+      flex: 1,
+      fontSize: typography.lg,
+      fontWeight: '600',
+      color: colors.text,
+      textAlign: 'center',
+    },
+    placeholder: {
+      width: 40,
+    },
+    scrollView: {
+      flex: 1,
+      padding: spacing.md,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+      ...shadows.sm,
+    },
+    cardTitle: {
+      fontSize: typography.base,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: spacing.md,
+    },
+    accountRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+    },
+    accountLabel: {
+      fontSize: typography.sm,
+      color: colors.textSecondary,
+    },
+    accountValue: {
+      fontSize: typography.sm,
+      color: colors.text,
+      fontFamily: 'monospace',
+    },
+    statusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.success + '20',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.full,
+    },
+    statusDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.success,
+      marginRight: spacing.xs,
+    },
+    statusText: {
+      fontSize: typography.xs,
+      color: colors.success,
+    },
+    logoutBtn: {
+      marginTop: spacing.md,
+      padding: spacing.md,
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+    },
+    logoutBtnText: {
+      fontSize: typography.sm,
+      color: colors.error,
+      fontWeight: '500',
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+    },
+    infoLabel: {
+      fontSize: typography.sm,
+      color: colors.textSecondary,
+    },
+    infoValue: {
+      fontSize: typography.sm,
+      color: colors.text,
+    },
+    // Profile section
+    profileSection: {
+      alignItems: 'center',
+      paddingVertical: spacing.md,
+      marginBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    avatar: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      marginBottom: spacing.sm,
+    },
+    avatarPlaceholder: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    avatarEditBadge: {
+      position: 'absolute',
+      bottom: spacing.sm,
+      right: 0,
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: colors.border,
+    },
+    avatarEditIcon: {
+      fontSize: 12,
+    },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    userName: {
+      fontSize: typography.lg,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    editIcon: {
+      fontSize: 14,
+    },
+    editNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    nameInput: {
+      flex: 1,
+      height: 40,
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.sm,
+      fontSize: typography.base,
+      color: colors.text,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    saveBtn: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+    },
+    saveBtnText: {
+      color: colors.textInverse,
+      fontSize: typography.sm,
+      fontWeight: '500',
+    },
+    cancelBtn: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.sm,
+    },
+    cancelBtnText: {
+      color: colors.textSecondary,
+      fontSize: typography.sm,
+    },
+    // Auth form
+    authForm: {
+      paddingVertical: spacing.md,
+    },
+    authTitle: {
+      fontSize: typography.lg,
+      fontWeight: '600',
+      color: colors.text,
+      textAlign: 'center',
+      marginBottom: spacing.lg,
+    },
+    input: {
+      height: 48,
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.md,
+      fontSize: typography.base,
+      color: colors.text,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: spacing.md,
+    },
+    errorText: {
+      color: colors.error,
+      fontSize: typography.sm,
+      textAlign: 'center',
+      marginBottom: spacing.md,
+    },
+    authBtn: {
+      backgroundColor: colors.primary,
+      height: 48,
+      borderRadius: borderRadius.md,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    authBtnDisabled: {
+      opacity: 0.6,
+    },
+    authBtnText: {
+      color: colors.textInverse,
+      fontSize: typography.base,
+      fontWeight: '600',
+    },
+    switchAuthBtn: {
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+    },
+    switchAuthText: {
+      color: colors.primary,
+      fontSize: typography.sm,
+    },
+    cancelAuthBtn: {
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+    },
+    cancelAuthText: {
+      color: colors.textSecondary,
+      fontSize: typography.sm,
+    },
+    // Auth options
+    authOptions: {
+      gap: spacing.md,
+      paddingVertical: spacing.md,
+    },
+    authOptionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      height: 48,
+      borderRadius: borderRadius.md,
+      gap: spacing.sm,
+    },
+    authOptionBtnSecondary: {
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    authOptionIcon: {
+      fontSize: 20,
+    },
+    authOptionText: {
+      color: colors.textInverse,
+      fontSize: typography.base,
+      fontWeight: '500',
+    },
+    authOptionTextSecondary: {
+      color: colors.text,
+      fontSize: typography.base,
+      fontWeight: '500',
+    },
+    // Theme section
+    themeSection: {
+      paddingVertical: spacing.sm,
+    },
+    themeRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+    },
+    themeLabel: {
+      fontSize: typography.base,
+      color: colors.text,
+    },
+    themeValue: {
+      fontSize: typography.sm,
+      color: colors.primary,
+      fontWeight: '500',
+    },
+    themeOptions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+    },
+    themeOption: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    themeOptionActive: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primary + '20',
+    },
+    themeOptionText: {
+      fontSize: typography.sm,
+      color: colors.text,
+    },
+    themeOptionTextActive: {
+      color: colors.primary,
+      fontWeight: '600',
+    },
+  });
+
+// ============================================
+// Sub-components
 // ============================================
 
 interface AvatarSectionProps {
@@ -27,6 +369,7 @@ interface AvatarSectionProps {
   avatarSource: ImageSourcePropType;
   uploadingAvatar: boolean;
   onPickAvatar: () => void;
+  colors: ThemeColors;
 }
 
 const AvatarSection: React.FC<AvatarSectionProps> = ({
@@ -34,7 +377,10 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
   avatarSource,
   uploadingAvatar,
   onPickAvatar,
+  colors,
 }) => {
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (isAnonymous) {
     return <Image source={avatarSource} style={styles.avatar} />;
   }
@@ -66,6 +412,7 @@ interface NameSectionProps {
   onStartEdit: () => void;
   onSave: () => void;
   onCancel: () => void;
+  colors: ThemeColors;
 }
 
 const NameSection: React.FC<NameSectionProps> = ({
@@ -77,7 +424,10 @@ const NameSection: React.FC<NameSectionProps> = ({
   onStartEdit,
   onSave,
   onCancel,
+  colors,
 }) => {
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (isAnonymous) {
     return <Text style={styles.userName}>匿名用户</Text>;
   }
@@ -123,6 +473,7 @@ interface AuthFormProps {
   onSubmit: () => void;
   onToggleMode: () => void;
   onCancel: () => void;
+  colors: ThemeColors;
 }
 
 const AuthForm: React.FC<AuthFormProps> = ({
@@ -138,7 +489,10 @@ const AuthForm: React.FC<AuthFormProps> = ({
   onSubmit,
   onToggleMode,
   onCancel,
+  colors,
 }) => {
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const getButtonText = () => {
     if (authLoading) return '处理中...';
     return isSignUp ? '注册' : '登录';
@@ -204,31 +558,39 @@ interface AuthOptionsProps {
   authLoading: boolean;
   onShowForm: () => void;
   onAnonymousLogin: () => void;
+  colors: ThemeColors;
 }
 
-const AuthOptions: React.FC<AuthOptionsProps> = ({ authLoading, onShowForm, onAnonymousLogin }) => (
-  <View style={styles.authOptions}>
-    <TouchableOpacity style={styles.authOptionBtn} onPress={onShowForm}>
-      <Text style={styles.authOptionIcon}>📧</Text>
-      <Text style={styles.authOptionText}>邮箱登录/注册</Text>
-    </TouchableOpacity>
+const AuthOptions: React.FC<AuthOptionsProps> = ({ authLoading, onShowForm, onAnonymousLogin, colors }) => {
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
-    <TouchableOpacity
-      style={[styles.authOptionBtn, styles.authOptionBtnSecondary]}
-      onPress={onAnonymousLogin}
-      disabled={authLoading}
-    >
-      <Text style={styles.authOptionIcon}>👤</Text>
-      <Text style={styles.authOptionTextSecondary}>{authLoading ? '处理中...' : '匿名登录'}</Text>
-    </TouchableOpacity>
-  </View>
-);
+  return (
+    <View style={styles.authOptions}>
+      <TouchableOpacity style={styles.authOptionBtn} onPress={onShowForm}>
+        <Text style={styles.authOptionIcon}>📧</Text>
+        <Text style={styles.authOptionText}>邮箱登录/注册</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.authOptionBtn, styles.authOptionBtnSecondary]}
+        onPress={onAnonymousLogin}
+        disabled={authLoading}
+      >
+        <Text style={styles.authOptionIcon}>👤</Text>
+        <Text style={styles.authOptionTextSecondary}>{authLoading ? '处理中...' : '匿名登录'}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 // ============================================
 // Main Component
 // ============================================
 
 const SettingsScreen: React.FC = () => {
+  const { colors, themeKey, setTheme, availableThemes } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const navigation = useNavigation();
   const {
     user,
@@ -255,14 +617,13 @@ const SettingsScreen: React.FC = () => {
   const [editName, setEditName] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  // Reset transient states when screen regains focus (e.g. after back navigation)
+  // Reset transient states when screen regains focus
   useEffect(() => {
     const addListener = (
       navigation as unknown as { addListener?: (event: string, cb: () => void) => () => void }
     ).addListener;
 
     if (!addListener) {
-      // Jest tests may mock navigation without addListener; don't crash.
       return;
     }
 
@@ -273,17 +634,14 @@ const SettingsScreen: React.FC = () => {
     return unsubscribe;
   }, [navigation]);
 
-  // Get avatar source - anonymous users get default, logged-in users get their avatar
+  // Get avatar source
   const getAvatarSource = () => {
-    // Anonymous users get default app icon
     if (user?.isAnonymous) {
       return require('../../../assets/icon.png');
     }
-    // Logged-in users with custom avatar
     if (user?.avatarUrl) {
       return { uri: user.avatarUrl };
     }
-    // Logged-in users without avatar - generate based on uid
     return getAvatarImage(user?.uid || user?.displayName || 'anonymous');
   };
   const avatarSource = getAvatarSource();
@@ -383,6 +741,7 @@ const SettingsScreen: React.FC = () => {
               avatarSource={avatarSource}
               uploadingAvatar={uploadingAvatar}
               onPickAvatar={handlePickAvatar}
+              colors={colors}
             />
             <NameSection
               isAnonymous={user?.isAnonymous ?? true}
@@ -393,6 +752,7 @@ const SettingsScreen: React.FC = () => {
               onStartEdit={handleStartEditName}
               onSave={handleUpdateName}
               onCancel={() => setIsEditingName(false)}
+              colors={colors}
             />
           </View>
 
@@ -438,6 +798,7 @@ const SettingsScreen: React.FC = () => {
           onSubmit={handleEmailAuth}
           onToggleMode={() => setIsSignUp(!isSignUp)}
           onCancel={handleCancelAuthForm}
+          colors={colors}
         />
       );
     }
@@ -447,6 +808,7 @@ const SettingsScreen: React.FC = () => {
         authLoading={authLoading}
         onShowForm={() => setShowAuthForm(true)}
         onAnonymousLogin={signInAnonymously}
+        colors={colors}
       />
     );
   };
@@ -467,9 +829,28 @@ const SettingsScreen: React.FC = () => {
           {renderAuthSection()}
         </View>
 
+        {/* Theme selector */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>🎨 主题</Text>
+          <View style={styles.themeOptions}>
+            {availableThemes.map((theme) => (
+              <TouchableOpacity
+                key={theme.key}
+                style={[styles.themeOption, themeKey === theme.key && styles.themeOptionActive]}
+                onPress={() => setTheme(theme.key)}
+              >
+                <Text
+                  style={[styles.themeOptionText, themeKey === theme.key && styles.themeOptionTextActive]}
+                >
+                  {theme.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         <View style={styles.card}>
           <Text style={styles.cardTitle}>ℹ️ 系统信息</Text>
-
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>版本</Text>
             <Text style={styles.infoValue}>1.0.0</Text>

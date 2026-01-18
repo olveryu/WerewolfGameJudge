@@ -7,14 +7,18 @@
  * ❌ Do NOT import: any Service singletons
  * ✅ Allowed: types, styles, UI components (Avatar, etc.)
  */
-
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Avatar } from '../../../components/Avatar';
-import { styles, TILE_SIZE } from '../RoomScreen.styles';
+import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 import { TESTIDS } from '../../../testids';
 import type { SeatViewModel } from '../RoomScreen.helpers';
 import { showAlert } from '../../../utils/alert';
+
+// Grid calculation - needs to be exported for Avatar sizing
+const GRID_COLUMNS = 4;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+export const TILE_SIZE = (SCREEN_WIDTH - 48) / GRID_COLUMNS;
 
 export interface PlayerGridProps {
   /** Array of seat view models (pre-computed from game state) */
@@ -33,6 +37,9 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
   onSeatPress,
   disabled = false,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.gridContainer}>
       {seats.map((seat) => {
@@ -104,5 +111,98 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
     </View>
   );
 };
+
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    gridContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'flex-start',
+    },
+    tileWrapper: {
+      width: TILE_SIZE,
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    playerTile: {
+      width: TILE_SIZE - 8,
+      height: TILE_SIZE - 8,
+      margin: 4,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: colors.border,
+    },
+    mySpotTile: {
+      borderColor: colors.success,
+      borderWidth: 3,
+    },
+    wolfTile: {
+      backgroundColor: colors.error,
+      borderColor: colors.error,
+    },
+    selectedTile: {
+      backgroundColor: colors.primaryDark,
+      borderColor: colors.primaryDark,
+    },
+    seatNumber: {
+      fontSize: typography.lg,
+      fontWeight: '700',
+      color: colors.textMuted,
+      position: 'absolute',
+      top: 8,
+      left: 12,
+    },
+    seatedSeatNumber: {
+      color: colors.textInverse,
+    },
+    avatarContainer: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(99, 102, 241, 0.3)',
+      borderRadius: borderRadius.lg,
+    },
+    wolfOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(239, 68, 68, 0.4)',
+      borderRadius: borderRadius.lg,
+    },
+    selectedOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: colors.primaryDark + '66',
+      borderRadius: borderRadius.lg,
+    },
+    mySeatBadge: {
+      position: 'absolute',
+      bottom: 6,
+      right: 6,
+      backgroundColor: colors.success,
+      color: colors.textInverse,
+      fontSize: 12,
+      fontWeight: '700',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    emptyIndicator: {
+      fontSize: typography.sm,
+      color: colors.textMuted,
+    },
+    playerName: {
+      fontSize: 13,
+      color: colors.text,
+      textAlign: 'center',
+      marginTop: 4,
+      width: TILE_SIZE - 8,
+    },
+  });
+}
 
 export default PlayerGrid;

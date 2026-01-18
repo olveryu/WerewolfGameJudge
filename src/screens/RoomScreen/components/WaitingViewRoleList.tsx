@@ -1,12 +1,9 @@
 /**
  * WaitingViewRoleList.tsx - Shows players who haven't viewed their roles
- *
- * Uses the real styles from RoomScreen.styles.ts
  */
-
-import React from 'react';
-import { View, Text } from 'react-native';
-import { styles } from '../RoomScreen.styles';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 
 export interface WaitingViewRoleListProps {
   /** Seat numbers (0-indexed) of players who haven't viewed roles */
@@ -14,6 +11,9 @@ export interface WaitingViewRoleListProps {
 }
 
 export const WaitingViewRoleList: React.FC<WaitingViewRoleListProps> = ({ seatIndices }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (seatIndices.length === 0) {
     return null;
   }
@@ -28,5 +28,30 @@ export const WaitingViewRoleList: React.FC<WaitingViewRoleListProps> = ({ seatIn
     </View>
   );
 };
+
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    actionLogContainer: {
+      marginTop: spacing.md,
+      marginHorizontal: spacing.md,
+      padding: spacing.md,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    actionLogTitle: {
+      fontSize: typography.base,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: spacing.sm,
+    },
+    actionLogItem: {
+      fontSize: typography.sm,
+      color: colors.textSecondary,
+      paddingVertical: 2,
+    },
+  });
+}
 
 export default WaitingViewRoleList;
