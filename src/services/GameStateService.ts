@@ -1978,6 +1978,11 @@ export class GameStateService {
       // ❌ killedIndex removed from public broadcast (anti-cheat)
     });
 
+    // Host also needs to update currentStepId for UI (NightProgressIndicator)
+    if (stepId && this.state) {
+      this.state.currentStepId = stepId;
+    }
+
     await this.broadcastState();
     this.notifyListeners();
   }
