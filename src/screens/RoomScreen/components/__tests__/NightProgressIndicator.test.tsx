@@ -10,16 +10,14 @@ import { TESTIDS } from '../../../../testids';
 
 describe('NightProgressIndicator', () => {
   it('should render step count correctly', () => {
-    const { getByText } = render(
-      <NightProgressIndicator currentStep={3} totalSteps={12} />
-    );
+    const { getByText } = render(<NightProgressIndicator currentStep={3} totalSteps={12} />);
 
     expect(getByText('步骤 3/12')).toBeTruthy();
   });
 
   it('should render role name when provided', () => {
     const { getByText } = render(
-      <NightProgressIndicator currentStep={5} totalSteps={10} currentRoleName="女巫" />
+      <NightProgressIndicator currentStep={5} totalSteps={10} currentRoleName="女巫" />,
     );
 
     expect(getByText('步骤 5/10')).toBeTruthy();
@@ -28,7 +26,7 @@ describe('NightProgressIndicator', () => {
 
   it('should not render role name when not provided', () => {
     const { queryByText, getByText } = render(
-      <NightProgressIndicator currentStep={1} totalSteps={8} />
+      <NightProgressIndicator currentStep={1} totalSteps={8} />,
     );
 
     expect(getByText('步骤 1/8')).toBeTruthy();
@@ -38,16 +36,14 @@ describe('NightProgressIndicator', () => {
   });
 
   it('should have correct testID', () => {
-    const { getByTestId } = render(
-      <NightProgressIndicator currentStep={1} totalSteps={5} />
-    );
+    const { getByTestId } = render(<NightProgressIndicator currentStep={1} totalSteps={5} />);
 
     expect(getByTestId(TESTIDS.nightProgressIndicator)).toBeTruthy();
   });
 
   it('should display first step correctly', () => {
     const { getByText } = render(
-      <NightProgressIndicator currentStep={1} totalSteps={12} currentRoleName="魔术师" />
+      <NightProgressIndicator currentStep={1} totalSteps={12} currentRoleName="魔术师" />,
     );
 
     expect(getByText('步骤 1/12')).toBeTruthy();
@@ -56,7 +52,7 @@ describe('NightProgressIndicator', () => {
 
   it('should display last step correctly', () => {
     const { getByText } = render(
-      <NightProgressIndicator currentStep={12} totalSteps={12} currentRoleName="黑狼王" />
+      <NightProgressIndicator currentStep={12} totalSteps={12} currentRoleName="黑狼王" />,
     );
 
     expect(getByText('步骤 12/12')).toBeTruthy();
@@ -65,7 +61,7 @@ describe('NightProgressIndicator', () => {
 
   it('should handle various total step counts', () => {
     const { getByText, rerender } = render(
-      <NightProgressIndicator currentStep={3} totalSteps={5} />
+      <NightProgressIndicator currentStep={3} totalSteps={5} />,
     );
 
     expect(getByText('步骤 3/5')).toBeTruthy();

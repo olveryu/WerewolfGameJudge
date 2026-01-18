@@ -13,10 +13,8 @@
 
 ## Scope / non-goals
 
-- In scope:
-  -
-- Out of scope:
-  -
+- ## In scope:
+- ## Out of scope:
 
 ## Temporary compatibility inventory (single source of truth)
 

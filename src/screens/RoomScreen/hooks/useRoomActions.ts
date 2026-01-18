@@ -578,7 +578,14 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       // - default/unknown → null (no seat tap effect)
       return schemaIntent;
     },
-    [myRole, currentSchema, anotherIndex, findVotingWolfSeat, buildActionMessage, isBlockedByNightmare],
+    [
+      myRole,
+      currentSchema,
+      anotherIndex,
+      findVotingWolfSeat,
+      buildActionMessage,
+      isBlockedByNightmare,
+    ],
   );
 
   // ─────────────────────────────────────────────────────────────────────────

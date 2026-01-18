@@ -26,7 +26,7 @@ jobs:
 
           # Count deleted rooms
           count=$(echo "$response" | jq 'length // 0')
-          
+
           if [ "$count" -gt 0 ]; then
             echo "✅ Deleted $count old room(s)"
             echo "$response" | jq -r '.[].code' | while read code; do

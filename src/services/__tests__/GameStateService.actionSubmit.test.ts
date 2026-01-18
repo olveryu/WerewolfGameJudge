@@ -4,11 +4,7 @@
  * Tests for player action submission flow through handlePlayerAction.
  */
 
-import {
-  createHostGame,
-  cleanupHostGame,
-  HostGameContext,
-} from './boards/hostGameFactory';
+import { createHostGame, cleanupHostGame, HostGameContext } from './boards/hostGameFactory';
 import { RoleId } from '../../models/roles';
 
 // =============================================================================

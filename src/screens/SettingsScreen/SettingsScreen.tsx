@@ -147,6 +147,7 @@ const createStyles = (colors: ThemeColors) =>
       height: 80,
       borderRadius: 12,
       marginBottom: spacing.sm,
+      overflow: 'hidden',
     },
     avatarPlaceholder: {
       width: 80,
@@ -382,7 +383,7 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   if (isAnonymous) {
-    return <Image source={avatarSource} style={styles.avatar} />;
+    return <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />;
   }
 
   return (
@@ -393,7 +394,7 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
         </View>
       ) : (
         <View>
-          <Image source={avatarSource} style={styles.avatar} />
+          <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
           <View style={styles.avatarEditBadge}>
             <Text style={styles.avatarEditIcon}>📷</Text>
           </View>
@@ -561,7 +562,12 @@ interface AuthOptionsProps {
   colors: ThemeColors;
 }
 
-const AuthOptions: React.FC<AuthOptionsProps> = ({ authLoading, onShowForm, onAnonymousLogin, colors }) => {
+const AuthOptions: React.FC<AuthOptionsProps> = ({
+  authLoading,
+  onShowForm,
+  onAnonymousLogin,
+  colors,
+}) => {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
@@ -841,7 +847,10 @@ const SettingsScreen: React.FC = () => {
                 onPress={() => setTheme(theme.key)}
               >
                 <Text
-                  style={[styles.themeOptionText, themeKey === theme.key && styles.themeOptionTextActive]}
+                  style={[
+                    styles.themeOptionText,
+                    themeKey === theme.key && styles.themeOptionTextActive,
+                  ]}
                 >
                   {theme.name}
                 </Text>

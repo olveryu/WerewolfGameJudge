@@ -75,6 +75,7 @@ const createStyles = (colors: ThemeColors) =>
       height: 36,
       borderRadius: 8,
       marginRight: spacing.sm,
+      overflow: 'hidden',
     },
     userNameText: {
       fontSize: typography.base,
@@ -456,7 +457,12 @@ const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
           {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
 
           {/* NumPad */}
-          <NumPad value={roomCode} onValueChange={onRoomCodeChange} maxLength={4} disabled={isLoading} />
+          <NumPad
+            value={roomCode}
+            onValueChange={onRoomCodeChange}
+            maxLength={4}
+            disabled={isLoading}
+          />
 
           <View style={styles.modalButtons}>
             <TouchableOpacity
@@ -665,7 +671,10 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.homeScreenRoot}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
+      />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
@@ -702,6 +711,7 @@ export const HomeScreen: React.FC = () => {
               <Image
                 source={require('../../../assets/avatars/default.png')}
                 style={styles.userAvatarImage}
+                resizeMode="cover"
               />
               <Text style={styles.userNameText} testID={TESTIDS.homeLoginButton}>
                 点击登录
@@ -713,6 +723,7 @@ export const HomeScreen: React.FC = () => {
               <Image
                 source={require('../../../assets/avatars/default.png')}
                 style={styles.userAvatarImage}
+                resizeMode="cover"
               />
               <Text style={styles.userNameText} testID={TESTIDS.homeUserName}>
                 {userName}

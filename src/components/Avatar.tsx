@@ -33,6 +33,7 @@ export const Avatar: React.FC<AvatarProps> = ({ value, size, avatarUrl, seatNumb
           styles.avatar,
           { width: size, height: size, borderRadius: size / 4, backgroundColor: colors.border },
         ]}
+        resizeMode="cover"
       />
     );
   }
@@ -50,6 +51,7 @@ export const Avatar: React.FC<AvatarProps> = ({ value, size, avatarUrl, seatNumb
         styles.avatar,
         { width: size, height: size, borderRadius: size / 4, backgroundColor: colors.border },
       ]}
+      resizeMode="cover"
     />
   );
 };

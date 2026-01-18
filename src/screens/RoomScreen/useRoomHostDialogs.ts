@@ -15,7 +15,10 @@ import type { LocalGameState } from '../../services/GameStateService';
  * @param playerCount - Total number of players
  * @returns Object with starting seat number (1-indexed) and direction
  */
-function generateSpeakOrder(playerCount: number): { startSeat: number; direction: '顺时针' | '逆时针' } {
+function generateSpeakOrder(playerCount: number): {
+  startSeat: number;
+  direction: '顺时针' | '逆时针';
+} {
   const startSeat = Math.floor(Math.random() * playerCount) + 1;
   const direction = Math.random() < 0.5 ? '顺时针' : '逆时针';
   return { startSeat, direction };

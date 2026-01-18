@@ -82,10 +82,7 @@ export const HostControlButtons: React.FC<HostControlButtonsProps> = ({
       {/* Host: Restart Game */}
       {showRestart && (
         <TouchableOpacity
-          style={[
-            styles.actionButton,
-            isEmergencyRestart && { backgroundColor: colors.warning },
-          ]}
+          style={[styles.actionButton, isEmergencyRestart && { backgroundColor: colors.warning }]}
           onPress={onRestartPress}
         >
           <Text style={styles.buttonText}>重新开始</Text>

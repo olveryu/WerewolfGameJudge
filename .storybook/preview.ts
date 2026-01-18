@@ -11,9 +11,7 @@ const preview: Preview = {
       },
     },
   },
-  decorators: [
-    (Story) => React.createElement(ThemeProvider, null, React.createElement(Story)),
-  ],
+  decorators: [(Story) => React.createElement(ThemeProvider, null, React.createElement(Story))],
 };
 
 export default preview;

@@ -47,11 +47,7 @@ import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
 import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import { ConnectionStatusBar } from './components/ConnectionStatusBar';
 import { roomScreenLog } from '../../utils/logger';
-import type {
-  ActionSchema,
-  SchemaId,
-  InlineSubStepSchema,
-} from '../../models/roles/spec';
+import type { ActionSchema, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
 import { SCHEMAS, BLOCKED_UI_DEFAULTS, isValidSchemaId } from '../../models/roles/spec';
 import { createRevealExecutors } from './revealExecutors';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
@@ -116,7 +112,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
     // Build night plan from template roles (same as Host uses)
     const nightPlan = buildNightPlan(gameState.template.roles);
-    
+
     // Find current step index in the dynamically built plan
     const stepIndex = nightPlan.steps.findIndex((step) => step.stepId === currentStepId);
     if (stepIndex === -1) return null;
