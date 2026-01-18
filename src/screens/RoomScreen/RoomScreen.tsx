@@ -557,20 +557,23 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             const mergedTarget = getMagicianTarget(intent.targetIndex);
             // Highlight both seats during confirmation dialog
             setSecondSeatIndex(intent.targetIndex);
-            actionDialogs.showConfirmDialog(
-              currentSchema?.ui?.confirmTitle || '确认交换',
-              intent.message || `确定交换${anotherIndex + 1}号和${intent.targetIndex + 1}号?`,
-              () => {
-                setAnotherIndex(null);
-                setSecondSeatIndex(null);
-                void proceedWithActionTyped(mergedTarget);
-              },
-              () => {
-                // User cancelled - reset both seats for re-selection
-                setAnotherIndex(null);
-                setSecondSeatIndex(null);
-              },
-            );
+            // Use setTimeout to allow React to re-render before showing dialog
+            setTimeout(() => {
+              actionDialogs.showConfirmDialog(
+                currentSchema?.ui?.confirmTitle || '确认交换',
+                intent.message || `确定交换${anotherIndex + 1}号和${intent.targetIndex + 1}号?`,
+                () => {
+                  setAnotherIndex(null);
+                  setSecondSeatIndex(null);
+                  void proceedWithActionTyped(mergedTarget);
+                },
+                () => {
+                  // User cancelled - reset both seats for re-selection
+                  setAnotherIndex(null);
+                  setSecondSeatIndex(null);
+                },
+              );
+            }, 0);
           } else {
             // Witch/compound: drive copy + payload by stepKey when provided.
             const stepSchema = getSubStepByKey(intent.stepKey);
