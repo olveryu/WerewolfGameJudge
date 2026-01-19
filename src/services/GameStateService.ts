@@ -11,11 +11,7 @@
  * 4. Death calculations happen locally on Host
  */
 
-import {
-  RoleId,
-  isWolfRole,
-  doesRoleParticipateInWolfVote,
-} from '../models/roles';
+import { RoleId, isWolfRole, doesRoleParticipateInWolfVote } from '../models/roles';
 import { GameTemplate, createTemplateFromRoles, validateTemplateRoles } from '../models/Template';
 import {
   BroadcastService,
@@ -2531,11 +2527,7 @@ export class GameStateService {
    * @param target - The target seat (for reveal results)
    * @param result - The resolver result
    */
-  private applyResolverResult(
-    role: RoleId,
-    target: number | null,
-    result: ResolverResult,
-  ): void {
+  private applyResolverResult(role: RoleId, target: number | null, result: ResolverResult): void {
     if (!this.state) return;
 
     // 1. Merge updates into currentNightResults

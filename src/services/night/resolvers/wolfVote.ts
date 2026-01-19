@@ -34,10 +34,7 @@ export interface WolfVoteResult {
  * 1. Target must exist
  * 2. Target must not have immuneToWolfKill flag
  */
-export function wolfVoteResolver(
-  context: WolfVoteContext,
-  input: WolfVoteInput,
-): WolfVoteResult {
+export function wolfVoteResolver(context: WolfVoteContext, input: WolfVoteInput): WolfVoteResult {
   const { targetSeat } = input;
   const { players } = context;
 
