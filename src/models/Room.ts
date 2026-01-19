@@ -1,6 +1,12 @@
 import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from './Player';
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
-import { RoleId, isWolfRole, buildNightPlan, getRoleSpec, doesRoleParticipateInWolfVote } from './roles';
+import {
+  RoleId,
+  isWolfRole,
+  buildNightPlan,
+  getRoleSpec,
+  doesRoleParticipateInWolfVote,
+} from './roles';
 import { getSchema, type SchemaId } from './roles/spec';
 import { shuffleArray } from '../utils/shuffle';
 import {

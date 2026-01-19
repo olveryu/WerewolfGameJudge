@@ -888,7 +888,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   useEffect(() => {
     // Only show once per game, only for host, only when game ended and audio finished
-    if (!isHost || roomStatus !== GameStatus.ended || isAudioPlaying || hasShownSpeakOrderRef.current) return;
+    if (
+      !isHost ||
+      roomStatus !== GameStatus.ended ||
+      isAudioPlaying ||
+      hasShownSpeakOrderRef.current
+    )
+      return;
 
     hasShownSpeakOrderRef.current = true;
     showSpeakOrderDialog();

@@ -272,8 +272,7 @@ export function buildSeatViewModels(
     // Wolf visibility is controlled by ActionerState.showWolves.
     // When true, only wolf-faction roles with canSeeWolves=true are highlighted.
     // Roles like gargoyle/wolfRobot (canSeeWolves=false) are hidden from wolf pack view.
-    const isWolf =
-      showWolves && isWolfRole(effectiveRole) && canRoleSeeWolves(effectiveRole);
+    const isWolf = showWolves && isWolfRole(effectiveRole) && canRoleSeeWolves(effectiveRole);
 
     // UX-only early rejection based on schema constraints.
     // IMPORTANT: Host remains the authority. This is just early UI guidance.
