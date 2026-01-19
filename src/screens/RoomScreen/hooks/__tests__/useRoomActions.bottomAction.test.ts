@@ -18,6 +18,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     myRole: 'seer',
     isAudioPlaying: false,
     isBlockedByNightmare: false,
+    wolfKillDisabled: false,
     anotherIndex: null,
   };
   return { ...base, ...overrides };
@@ -178,6 +179,7 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
       myRole: 'seer',
       isAudioPlaying: false,
       isBlockedByNightmare: true, // BLOCKED
+      wolfKillDisabled: false,
       anotherIndex: null,
     };
 
@@ -220,6 +222,7 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
       myRole: 'seer',
       isAudioPlaying: false,
       isBlockedByNightmare: false, // NOT blocked
+      wolfKillDisabled: false,
       anotherIndex: null,
     };
 

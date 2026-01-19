@@ -63,6 +63,11 @@ export interface LocalGameState {
   isAudioPlaying: boolean;
   lastNightDeaths: number[]; // Calculated after night ends
   nightmareBlockedSeat?: number; // Seat blocked by nightmare (skill disabled for this night)
+  /**
+   * Wolf kill disabled: true if nightmare blocked a wolf.
+   * When true, all wolves can only skip during wolf vote phase (no kill this night).
+   */
+  wolfKillDisabled?: boolean;
 }
 
 // =============================================================================

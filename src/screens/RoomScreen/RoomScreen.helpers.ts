@@ -15,6 +15,7 @@ import {
   getRoleSpec,
   isValidRoleId,
   getWolfKillImmuneRoleIds,
+  canRoleSeeWolves,
 } from '../../models/roles';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
 import type { GameRoomLike } from '../../models/Room';
@@ -269,9 +270,10 @@ export function buildSeatViewModels(
     const player = gameState.players.get(index);
     const effectiveRole = player?.role ?? role;
     // Wolf visibility is controlled by ActionerState.showWolves.
-    // When true, ALL wolf-faction roles should be highlighted consistently.
-    // (Whether a wolf participates in meeting/vote is a separate rule.)
-    const isWolf = showWolves && isWolfRole(effectiveRole);
+    // When true, only wolf-faction roles with canSeeWolves=true are highlighted.
+    // Roles like gargoyle/wolfRobot (canSeeWolves=false) are hidden from wolf pack view.
+    const isWolf =
+      showWolves && isWolfRole(effectiveRole) && canRoleSeeWolves(effectiveRole);
 
     // UX-only early rejection based on schema constraints.
     // IMPORTANT: Host remains the authority. This is just early UI guidance.

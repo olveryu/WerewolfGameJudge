@@ -11,6 +11,9 @@ import {
   restartRoom,
   markPlayerViewedRole,
   getPlayersNotViewedRole,
+  getAllWolfSeats,
+  getVotingWolfSeats,
+  getWolfVoteSummary,
 } from '../Room';
 import { GameTemplate } from '../Template';
 import { Player, PlayerStatus, SkillStatus } from '../Player';
@@ -733,6 +736,61 @@ describe('Room Status Flow', () => {
         expect(player?.role).toBeNull();
         expect(player?.hasViewedRole).toBe(false);
       });
+    });
+  });
+
+  describe('getVotingWolfSeats', () => {
+    it('should include regular wolves (participatesInWolfVote=true)', () => {
+      const room = createTestRoom(['wolf', 'nightmare', 'darkWolfKing', 'seer']);
+      // All wolves that participate in vote should be included
+      const votingSeats = getVotingWolfSeats(room);
+      expect(votingSeats).toEqual([0, 1, 2]); // wolf, nightmare, darkWolfKing
+    });
+
+    it('should exclude gargoyle (participatesInWolfVote=false)', () => {
+      const room = createTestRoom(['wolf', 'gargoyle', 'seer', 'villager']);
+      const votingSeats = getVotingWolfSeats(room);
+      // gargoyle at seat 1 should NOT be included
+      expect(votingSeats).toEqual([0]); // only wolf
+    });
+
+    it('should exclude wolfRobot (participatesInWolfVote=false)', () => {
+      const room = createTestRoom(['wolf', 'wolfRobot', 'seer', 'villager']);
+      const votingSeats = getVotingWolfSeats(room);
+      // wolfRobot at seat 1 should NOT be included
+      expect(votingSeats).toEqual([0]); // only wolf
+    });
+
+    it('should return empty when only non-voting wolves', () => {
+      const room = createTestRoom(['gargoyle', 'wolfRobot', 'seer', 'villager']);
+      const votingSeats = getVotingWolfSeats(room);
+      expect(votingSeats).toEqual([]);
+    });
+  });
+
+  describe('getAllWolfSeats', () => {
+    it('should include ALL wolf-faction roles regardless of voting status', () => {
+      const room = createTestRoom(['wolf', 'gargoyle', 'wolfRobot', 'seer']);
+      const allWolfSeats = getAllWolfSeats(room);
+      // All wolves should be included
+      expect(allWolfSeats).toEqual([0, 1, 2]);
+    });
+  });
+
+  describe('getWolfVoteSummary', () => {
+    it('should count only voting wolves in denominator', () => {
+      const room = createTestRoom(['wolf', 'gargoyle', 'seer', 'villager']);
+      // Only wolf participates in vote, gargoyle does not
+      const summary = getWolfVoteSummary(room);
+      expect(summary).toBe('0/1 狼人已投票');
+    });
+
+    it('should reflect votes from voting wolves only', () => {
+      const room = createTestRoom(['wolf', 'nightmare', 'gargoyle', 'seer']);
+      // wolf (seat 0) and nightmare (seat 1) participate, gargoyle (seat 2) does not
+      const roomWithVote = { ...room, wolfVotes: new Map([[0, 3]]) }; // wolf voted
+      const summary = getWolfVoteSummary(roomWithVote);
+      expect(summary).toBe('1/2 狼人已投票');
     });
   });
 });

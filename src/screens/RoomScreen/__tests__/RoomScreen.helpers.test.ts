@@ -409,7 +409,7 @@ describe('buildSeatViewModels', () => {
     expect(seats[2].player).toBeNull();
   });
 
-  it('should highlight all wolf-faction roles when showWolves=true', () => {
+  it('should highlight only visible wolves when showWolves=true (gargoyle/wolfRobot hidden)', () => {
     const mockState: LocalGameState = {
       roomCode: 'TEST',
       hostUid: 'host1',
@@ -470,9 +470,11 @@ describe('buildSeatViewModels', () => {
 
     const seats = buildSeatViewModels(mockState, null, true, null);
 
+    // Only wolf with canSeeWolves=true is highlighted
     expect(seats[0].isWolf).toBe(true);
-    expect(seats[1].isWolf).toBe(true);
-    expect(seats[2].isWolf).toBe(true);
+    // gargoyle and wolfRobot have canSeeWolves=false, so they are NOT highlighted
+    expect(seats[1].isWolf).toBe(false);
+    expect(seats[2].isWolf).toBe(false);
     expect(seats[3].isWolf).toBe(false);
   });
 
