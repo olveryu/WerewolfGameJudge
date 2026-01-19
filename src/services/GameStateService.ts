@@ -1476,6 +1476,17 @@ export class GameStateService {
     this.state.wolfVotes = new Map();
     this.state.currentActionerIndex = 0;
     this.state.isAudioPlaying = true;
+    // Reset nightmare block flags
+    this.state.wolfKillDisabled = undefined;
+    this.state.nightmareBlockedSeat = undefined;
+    // Reset role-specific context (these are set fresh each night)
+    this.state.witchContext = undefined;
+    this.state.seerReveal = undefined;
+    this.state.psychicReveal = undefined;
+    this.state.gargoyleReveal = undefined;
+    this.state.wolfRobotReveal = undefined;
+    this.state.confirmStatus = undefined;
+    this.state.actionRejected = undefined;
 
     // Play night begin audio
     hostLog.info('Playing night begin audio...');
