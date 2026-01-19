@@ -69,7 +69,6 @@ export function buildNightPlan(templateRoles: readonly string[]): NightPlan {
       order: idx,
       displayName: spec.displayName,
       audioKey: step.audioKey,
-      actsSolo: step.visibility.actsSolo,
     };
   });
 

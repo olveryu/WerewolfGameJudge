@@ -18,10 +18,3 @@ exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot)
   "darkWolfKingConfirm",
 ]
 `;
-
-exports[`NIGHT_STEPS contract visibility contract wolf meeting steps should be derived from NIGHT_STEPS (snapshot) 1`] = `
-[
-  "wolfKill",
-  "wolfQueenCharm",
-]
-`;

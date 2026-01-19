@@ -11,7 +11,6 @@ import { useMemo } from 'react';
 import type { RoleId } from '../../../models/roles';
 import type { RoleAction } from '../../../models/actions/RoleAction';
 import type { ActionSchema } from '../../../models/roles/spec';
-import { NIGHT_STEPS } from '../../../models/roles/spec/nightSteps';
 import { determineActionerState, type ActionerState } from '../RoomScreen.helpers';
 
 export interface UseActionerStateParams {
@@ -45,18 +44,14 @@ export function useActionerState({
   actions,
 }: UseActionerStateParams): ActionerState {
   return useMemo(() => {
-    const visibility = currentSchema
-      ? NIGHT_STEPS.find((s) => s.id === currentSchema.id)?.visibility
-      : undefined;
-
     return determineActionerState(
       myRole,
       currentActionRole,
+      currentSchema,
       mySeatNumber,
       wolfVotes,
       isHost,
       actions,
-      visibility,
     );
   }, [myRole, currentActionRole, currentSchema, mySeatNumber, wolfVotes, isHost, actions]);
 }

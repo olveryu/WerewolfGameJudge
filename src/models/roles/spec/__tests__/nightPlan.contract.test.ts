@@ -125,19 +125,8 @@ describe('buildNightPlan', () => {
     });
   });
 
-  describe('actsSolo handling', () => {
-    it('nightmare step should have actsSolo=true', () => {
-      const plan = buildNightPlan(['nightmare']);
-      const nightmareStep = plan.steps.find((s: NightPlanStep) => s.roleId === 'nightmare');
-      expect(nightmareStep?.actsSolo).toBe(true);
-    });
-
-    it('wolf step should not have actsSolo=true', () => {
-      const plan = buildNightPlan(['wolf']);
-      const wolfStep = plan.steps.find((s: NightPlanStep) => s.roleId === 'wolf');
-      expect(wolfStep?.actsSolo).toBeFalsy();
-    });
-  });
+  // NOTE: actsSolo handling tests removed as part of schema-driven refactoring.
+  // Wolf meeting visibility is now derived from schema.kind === 'wolfVote' && schema.meeting.canSeeEachOther.
 
   describe('NIGHT_STEPS alignment', () => {
     it('orders steps based on table index for a full plan input', () => {
