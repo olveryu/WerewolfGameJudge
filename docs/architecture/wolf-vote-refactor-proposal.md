@@ -10,13 +10,13 @@
 
 ### 1.1 当前架构的问题
 
-| 问题 | 说明 |
-|-----|------|
-| **双重定义冗余** | `ROLE_SPECS.wolfMeeting` (角色固有属性) 和 `NIGHT_STEPS.visibility` (步骤属性) 有重叠 |
-| **`actsSolo` 冗余** | 大部分情况可通过 `wolfMeeting.canSeeWolves` 推导，不需要独立字段 |
-| **`wolfMeetingPhase` 孤立** | 只有 `wolfKill` 和 `wolfQueenCharm` 两个步骤用到，语义不明确 |
-| **投票逻辑分散** | 投票相关代码分布在 `GameStateService`、`useRoomActions`、`RoomScreen.helpers` 多处 |
-| **不符合 Schema-Driven** | `wolfVote` schema 没有完整描述投票语义，参与者逻辑在 `ROLE_SPECS` 里 |
+| 问题                        | 说明                                                                                  |
+| --------------------------- | ------------------------------------------------------------------------------------- |
+| **双重定义冗余**            | `ROLE_SPECS.wolfMeeting` (角色固有属性) 和 `NIGHT_STEPS.visibility` (步骤属性) 有重叠 |
+| **`actsSolo` 冗余**         | 大部分情况可通过 `wolfMeeting.canSeeWolves` 推导，不需要独立字段                      |
+| **`wolfMeetingPhase` 孤立** | 只有 `wolfKill` 和 `wolfQueenCharm` 两个步骤用到，语义不明确                          |
+| **投票逻辑分散**            | 投票相关代码分布在 `GameStateService`、`useRoomActions`、`RoomScreen.helpers` 多处    |
+| **不符合 Schema-Driven**    | `wolfVote` schema 没有完整描述投票语义，参与者逻辑在 `ROLE_SPECS` 里                  |
 
 ### 1.2 当前字段关系
 
@@ -31,13 +31,14 @@ NIGHT_STEPS[step].visibility (步骤属性 - HOST-SIDE ONLY)
 ```
 
 **问题**：`actsSolo` 的逻辑可以从 `wolfMeeting` 推导：
+
 - 如果 `canSeeWolves = false` → 自然不显示队友
 - 如果 `canSeeWolves = true` 但在非 `wolfMeetingPhase` 步骤 → 也不显示
 
 ### 1.3 目标
 
 1. **消除 `visibility` 字段** - 从 `NIGHT_STEPS` 中移除
-2. **消除 `actsSolo` 字段** - 从 `NightPlanStep` 中移除  
+2. **消除 `actsSolo` 字段** - 从 `NightPlanStep` 中移除
 3. **统一到 Schema-Driven** - 投票行为完全由 schema 描述
 4. **简化 UI 逻辑** - 从 schema 直接推导 UI 行为
 
@@ -66,19 +67,19 @@ UI (从 schema 推导显示)
 ```typescript
 /** 会议配置 - 描述多人协作行动 */
 export interface MeetingConfig {
-  /** 
+  /**
    * 参与者选择器
    * - 'wolfVoters': 参与狼刀投票的狼人 (wolfMeeting.participatesInWolfVote=true)
    * - 可扩展其他类型（如未来的白天公投）
    */
   readonly participants: 'wolfVoters';
-  
+
   /** 参与者是否能看到彼此 */
   readonly canSeeEachOther: boolean;
-  
+
   /** 投票解析规则 */
   readonly resolution: 'majority' | 'unanimous' | 'first';
-  
+
   /** 允许空投票 */
   readonly allowEmptyVote: boolean;
 }
@@ -87,7 +88,7 @@ export interface MeetingConfig {
 export interface WolfVoteSchema extends BaseActionSchema {
   readonly kind: 'wolfVote';
   readonly constraints: readonly TargetConstraint[];
-  readonly meeting: MeetingConfig;  // ← 新增
+  readonly meeting: MeetingConfig; // ← 新增
 }
 ```
 
@@ -178,7 +179,7 @@ const NIGHT_STEPS_INTERNAL = [
 
 export interface NightPlanStep {
   readonly roleId: RoleId;
-  readonly stepId: SchemaId;  // 同时是 schemaId
+  readonly stepId: SchemaId; // 同时是 schemaId
   readonly order: number;
   readonly displayName: string;
   readonly audioKey: string;
@@ -196,7 +197,7 @@ import { doesRoleParticipateInWolfVote } from '../../../models/roles';
 
 /**
  * 从 schema 推导 actioner 状态
- * 
+ *
  * 核心逻辑：
  * 1. 获取当前步骤的 schema
  * 2. 如果是 wolfVote，用 meeting.canSeeEachOther 决定 showWolves
@@ -246,7 +247,7 @@ function handleWolfVoteSchema(
 
   // 检查是否已投票
   const hasVoted = mySeatNumber !== null && wolfVotes.has(mySeatNumber);
-  
+
   // 从 schema.meeting 读取 canSeeEachOther
   const showWolves = schema.meeting.canSeeEachOther;
 
@@ -270,6 +271,7 @@ export interface WolfMeetingConfig {
 ```
 
 **语义明确：**
+
 - `canSeeWolves`: 用于 UI 高亮哪些座位是狼队友（过滤 gargoyle/wolfRobot）
 - `participatesInWolfVote`: 用于 `getVotingWolfSeats()` 确定谁需要投票
 
@@ -278,22 +280,26 @@ export interface WolfMeetingConfig {
 ## 3. 实现步骤
 
 ### Phase 1: Schema 扩展
+
 1. 在 `schema.types.ts` 添加 `MeetingConfig` 接口
 2. 更新 `WolfVoteSchema` 添加 `meeting` 字段
 3. 更新 `schemas.ts` 中的 `wolfKill` schema
 
 ### Phase 2: 移除 visibility
+
 1. 从 `nightSteps.types.ts` 移除 `StepVisibility` 接口
 2. 从 `NIGHT_STEPS` 每个步骤移除 `visibility` 字段
 3. 从 `plan.ts` 移除 `actsSolo` 映射
 4. 从 `NightPlanStep` 移除 `actsSolo` 字段
 
 ### Phase 3: 重构 UI 逻辑
+
 1. 重写 `RoomScreen.helpers.ts` 中的 `getActionerState`
 2. 使用 schema 推导 `showWolves`，不再依赖 `visibility`
 3. 更新 `useRoomActions.ts` 相关逻辑
 
 ### Phase 4: 清理和测试
+
 1. 删除所有 `actsSolo` 相关测试
 2. 更新 contract tests
 3. 运行全量测试确保无回归
@@ -302,18 +308,18 @@ export interface WolfMeetingConfig {
 
 ## 4. 文件变更清单
 
-| 文件 | 变更类型 | 说明 |
-|------|---------|------|
-| `src/models/roles/spec/schema.types.ts` | 修改 | 添加 `MeetingConfig`，更新 `WolfVoteSchema` |
-| `src/models/roles/spec/schemas.ts` | 修改 | 更新 `wolfKill` schema 添加 `meeting` |
-| `src/models/roles/spec/nightSteps.types.ts` | 修改 | 移除 `StepVisibility` 接口 |
-| `src/models/roles/spec/nightSteps.ts` | 修改 | 移除所有 `visibility` 字段 |
-| `src/models/roles/spec/plan.ts` | 修改 | 移除 `actsSolo` 映射 |
-| `src/models/roles/spec/plan.types.ts` | 修改 | 移除 `actsSolo` 字段 |
-| `src/screens/RoomScreen/RoomScreen.helpers.ts` | 重写 | 重写 `getActionerState`，从 schema 推导 |
-| `src/screens/RoomScreen/hooks/useRoomActions.ts` | 修改 | 更新投票逻辑 |
-| `src/services/__tests__/NightFlowController.test.ts` | 修改 | 移除 `actsSolo` mock |
-| `src/screens/RoomScreen/__tests__/RoomScreen.helpers.test.ts` | 重写 | 更新测试用例 |
+| 文件                                                          | 变更类型 | 说明                                        |
+| ------------------------------------------------------------- | -------- | ------------------------------------------- |
+| `src/models/roles/spec/schema.types.ts`                       | 修改     | 添加 `MeetingConfig`，更新 `WolfVoteSchema` |
+| `src/models/roles/spec/schemas.ts`                            | 修改     | 更新 `wolfKill` schema 添加 `meeting`       |
+| `src/models/roles/spec/nightSteps.types.ts`                   | 修改     | 移除 `StepVisibility` 接口                  |
+| `src/models/roles/spec/nightSteps.ts`                         | 修改     | 移除所有 `visibility` 字段                  |
+| `src/models/roles/spec/plan.ts`                               | 修改     | 移除 `actsSolo` 映射                        |
+| `src/models/roles/spec/plan.types.ts`                         | 修改     | 移除 `actsSolo` 字段                        |
+| `src/screens/RoomScreen/RoomScreen.helpers.ts`                | 重写     | 重写 `getActionerState`，从 schema 推导     |
+| `src/screens/RoomScreen/hooks/useRoomActions.ts`              | 修改     | 更新投票逻辑                                |
+| `src/services/__tests__/NightFlowController.test.ts`          | 修改     | 移除 `actsSolo` mock                        |
+| `src/screens/RoomScreen/__tests__/RoomScreen.helpers.test.ts` | 重写     | 更新测试用例                                |
 
 ---
 
@@ -336,6 +342,7 @@ newWolf: {
 ```
 
 **无需修改**：
+
 - `NIGHT_STEPS`（除非有独立夜间技能需要添加步骤）
 - `SCHEMAS`（复用现有 `wolfKill` schema）
 - UI 逻辑（自动从 `wolfMeeting` 和 `schema.meeting` 推导）
@@ -399,6 +406,7 @@ newWolf: {
 **决策**：✅ 保留在 `ROLE_SPECS.wolfMeeting`
 
 **理由**：
+
 - 这是**角色固有属性**：某个狼人角色是否能看到其他狼队友
 - 与投票协议无关，用于 UI 高亮过滤
 - 例如：石像鬼/机械狼 `canSeeWolves=false`，在狼刀阶段也不会被高亮
@@ -411,11 +419,13 @@ newWolf: {
 **当前错误**：`visibility: { actsSolo: false, wolfMeetingPhase: true }` 标记错误
 
 **正确理解**：
+
 - 狼美人魅惑是**个人技能**，选一个人魅惑
 - 她能看到狼队友是因为 `canSeeWolves: true`（角色属性），不是步骤属性
 - 魅惑行动本身不需要其他狼参与
 
 **重构后**：
+
 - `wolfQueenCharm` 是 `chooseSeat` schema，不是 `wolfVote`
 - UI 不会显示狼队友（除非我们另外处理"这个角色能看到狼"的情况）
 
@@ -426,6 +436,7 @@ newWolf: {
 **决策**：✅ 简化 `wolfKillDisabled` 逻辑，移除双重计算
 
 **当前问题**：`wolfKillDisabled` 在两个地方被计算
+
 1. `nightmareBlockResolver` 返回 `updates: { wolfKillDisabled: true }`
 2. `toBroadcastState()` 再次从 `nightmareAction` 推导 `wolfKillDisabled`
 
@@ -457,6 +468,7 @@ return {
 ```
 
 **好处**：
+
 - 单一真相：只在 `nightmareBlockResolver` 计算一次
 - 代码更简洁：`toBroadcastState()` 不需要重复判断逻辑
 - 一致性：和其他 resolver updates 处理方式一致
@@ -470,15 +482,18 @@ return {
 **决策**：保持在 `ROLE_SPECS.flags.immuneToWolfKill`
 
 **理由**：
+
 - `immuneToWolfKill` 是**角色固有属性**，不是投票协议的一部分
 - 符合 "Neutral Judge" 原则：投票协议本身是中性的，限制来自角色
 - 单一真相：免疫规则只在 `ROLE_SPECS.flags` 定义一次
 
 **受影响角色**：
+
 - `wolfQueen` (狼美人) - 免疫狼刀
 - `spiritKnight` (恶灵骑士) - 免疫狼刀
 
 **数据流**：
+
 ```
 ROLE_SPECS.flags.immuneToWolfKill = true
           │
@@ -499,6 +514,7 @@ Host 验证     UI 禁用
 **范围**：纯类型/数据层修改，不影响运行时行为
 
 **文件变更**：
+
 - `src/models/roles/spec/schema.types.ts` - 添加 `MeetingConfig` 接口，更新 `WolfVoteSchema`
 - `src/models/roles/spec/schemas.ts` - 更新 `wolfKill` schema 添加 `meeting` 字段
 
@@ -521,6 +537,7 @@ feat(schema): 添加 MeetingConfig 支持多人协作投票
 **包含决策 7.2 修正**：`wolfQueenCharm` 移除错误的 `wolfMeetingPhase: true` 标记
 
 **文件变更**：
+
 - `src/models/roles/spec/nightSteps.types.ts` - 移除 `StepVisibility` 接口
 - `src/models/roles/spec/nightSteps.ts` - 移除所有 `visibility` 字段（包括 `wolfQueenCharm` 的错误标记）
 - `src/models/roles/spec/plan.ts` - 移除 `actsSolo` 映射
@@ -544,6 +561,7 @@ BREAKING CHANGE: 移除 StepSpec.visibility 和 NightPlanStep.actsSolo
 **范围**：重写 `getActionerState`，从 schema 推导 UI 行为
 
 **文件变更**：
+
 - `src/screens/RoomScreen/RoomScreen.helpers.ts` - 重写 `getActionerState`，移除 visibility 依赖
 - `src/screens/RoomScreen/hooks/useRoomActions.ts` - 更新相关逻辑（如有需要）
 
@@ -565,6 +583,7 @@ refactor(RoomScreen): 从 schema.meeting 推导 showWolves
 **范围**：移除 `toBroadcastState()` 中的双重计算（决策 7.3）
 
 **文件变更**：
+
 - `src/services/GameStateService.ts`:
   - `handlePlayerAction()` 应用 resolver 返回的 `updates.wolfKillDisabled` 到 `this.state`
   - `toBroadcastState()` 直接读取 `this.state.wolfKillDisabled`，移除重新推导逻辑
@@ -586,6 +605,7 @@ refactor(GameStateService): 简化 wolfKillDisabled 单一真相
 **范围**：修复所有因移除 `actsSolo` 和简化 `wolfKillDisabled` 导致的测试失败
 
 **文件变更**：
+
 - `src/services/__tests__/NightFlowController.test.ts` - 移除 `actsSolo` mock
 - `src/screens/RoomScreen/__tests__/RoomScreen.helpers.test.ts` - 重写测试用例
 - `src/services/__tests__/GameStateService.*.test.ts` - 更新 `wolfKillDisabled` 相关测试
@@ -609,6 +629,7 @@ test: 更新测试适配 visibility 移除和 wolfKillDisabled 简化
 **范围**：清理遗留代码，更新文档
 
 **文件变更**：
+
 - 移除任何遗留的 `actsSolo` / `visibility` / `wolfMeetingPhase` 引用
 - 更新 `copilot-instructions.md`（如需要）
 - 更新本方案文档状态为"已完成"
@@ -629,19 +650,15 @@ chore: 清理 wolf-vote 重构遗留代码
 - [ ] Commit 1: Schema 扩展
   - [ ] `npm run typecheck` 通过
   - [ ] `npm test` 通过（行为无变化）
-  
 - [ ] Commit 2: 移除 visibility
   - [ ] 确认编译错误在预期范围内
-  
 - [ ] Commit 3: 重构 UI 逻辑
   - [ ] `npm run typecheck` 通过
   - [ ] 手动验证：狼刀阶段狼人能看到队友
   - [ ] 手动验证：其他阶段看不到队友
-  
 - [ ] Commit 4: 更新测试
   - [ ] `npm test` 全部通过
   - [ ] 覆盖率无明显下降
-  
 - [ ] Commit 5: 清理
   - [ ] `npm run lint:fix` 无错误
   - [ ] `npm run format:write` 完成
@@ -660,6 +677,7 @@ git reset --hard <commit-before-refactor>
 ```
 
 建议在开始前创建备份分支：
+
 ```bash
 git branch backup/before-wolf-vote-refactor
 ```

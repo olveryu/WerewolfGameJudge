@@ -55,6 +55,11 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
       kind: 'wolfVote',
       displayName: '狼刀',
       constraints: [],
+      meeting: {
+        canSeeEachOther: true,
+        resolution: 'firstVote',
+        allowEmptyVote: true,
+      },
       ui: {
         prompt: 'x',
         confirmTitle: 'x',
@@ -123,6 +128,11 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
       kind: 'wolfVote',
       displayName: '狼刀',
       constraints: [],
+      meeting: {
+        canSeeEachOther: true,
+        resolution: 'firstVote',
+        allowEmptyVote: true,
+      },
       ui: {
         prompt: 'x',
         confirmTitle: 'x',
