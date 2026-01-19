@@ -283,6 +283,7 @@ describe('toGameRoomLike', () => {
       currentActionerIndex: 0,
       isAudioPlaying: false,
       lastNightDeaths: [],
+      currentNightResults: {},
       status: GameStatus.seated,
     };
 
@@ -338,6 +339,7 @@ describe('buildSeatViewModels', () => {
       currentActionerIndex: 0,
       isAudioPlaying: false,
       lastNightDeaths: [],
+      currentNightResults: {},
       status: GameStatus.ongoing,
     };
 
@@ -415,6 +417,7 @@ describe('buildSeatViewModels', () => {
       currentActionerIndex: 0,
       isAudioPlaying: false,
       lastNightDeaths: [],
+      currentNightResults: {},
       status: GameStatus.ongoing,
     };
 
@@ -466,6 +469,7 @@ describe('buildSeatViewModels', () => {
       currentActionerIndex: 0,
       isAudioPlaying: false,
       lastNightDeaths: [],
+      currentNightResults: {},
       status: GameStatus.ongoing,
     };
 
@@ -521,6 +525,7 @@ describe('buildSeatViewModels', () => {
         currentActionerIndex: 0,
         isAudioPlaying: false,
         lastNightDeaths: [],
+      currentNightResults: {},
         status: GameStatus.ongoing,
       };
 
@@ -582,6 +587,7 @@ describe('buildSeatViewModels', () => {
         currentActionerIndex: 0,
         isAudioPlaying: false,
         lastNightDeaths: [],
+      currentNightResults: {},
         status: GameStatus.ongoing,
       };
 
@@ -664,6 +670,7 @@ describe('buildSeatViewModels', () => {
         currentActionerIndex: 0,
         isAudioPlaying: false,
         lastNightDeaths: [],
+      currentNightResults: {},
         status: GameStatus.ongoing,
       };
 
@@ -739,6 +746,7 @@ describe('buildSeatViewModels', () => {
         currentActionerIndex: 0,
         isAudioPlaying: false,
         lastNightDeaths: [],
+      currentNightResults: {},
         status: GameStatus.ongoing,
       };
 
@@ -811,6 +819,7 @@ describe('buildSeatViewModels', () => {
         currentActionerIndex: 0,
         isAudioPlaying: false,
         lastNightDeaths: [],
+      currentNightResults: {},
         status: GameStatus.ongoing,
       };
 
@@ -883,6 +892,7 @@ describe('buildSeatViewModels', () => {
         currentActionerIndex: 0,
         isAudioPlaying: false,
         lastNightDeaths: [],
+      currentNightResults: {},
         status: GameStatus.ongoing,
       };
 

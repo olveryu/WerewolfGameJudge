@@ -50,14 +50,15 @@ function createInput(target: number | undefined): ActionInput {
 
 describe('wolfKillResolver', () => {
   describe('validation', () => {
-    it('应该拒绝缺少目标 (undefined)', () => {
+    it('应该允许空刀 (target = undefined)，与 schema allowEmptyVote 对齐', () => {
       const ctx = createContext();
       const input = createInput(undefined);
 
       const result = wolfKillResolver(ctx, input);
 
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toContain('必须选择');
+      // 空刀是允许的 (schema.meeting.allowEmptyVote: true)
+      expect(result.valid).toBe(true);
+      expect(result.result).toEqual({}); // No kill target
     });
 
     it('应该拒绝不存在的目标玩家', () => {

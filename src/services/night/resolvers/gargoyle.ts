@@ -8,6 +8,7 @@
 import { SCHEMAS } from '../../../models/roles/spec/schemas';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
+import { getRoleAfterSwap } from './types';
 
 export const gargoyleCheckResolver: ResolverFn = (context, input) => {
   const { actorSeat, players, currentNightResults } = context;
@@ -25,9 +26,9 @@ export const gargoyleCheckResolver: ResolverFn = (context, input) => {
     return { valid: false, rejectReason: constraintResult.rejectReason };
   }
 
-  // Target must exist
-  const targetRoleId = players.get(target);
-  if (!targetRoleId) {
+  // Target must exist (check original role)
+  const originalRoleId = players.get(target);
+  if (!originalRoleId) {
     return { valid: false, rejectReason: '目标玩家不存在' };
   }
 
@@ -36,9 +37,15 @@ export const gargoyleCheckResolver: ResolverFn = (context, input) => {
     return { valid: true, result: {} };
   }
 
-  // Return exact role identity
+  // Get effective role after magician swap (if any)
+  const effectiveRoleId = getRoleAfterSwap(target, players, currentNightResults.swappedSeats);
+  if (!effectiveRoleId) {
+    return { valid: false, rejectReason: '目标玩家不存在' };
+  }
+
+  // Return exact role identity (after swap)
   return {
     valid: true,
-    result: { identityResult: targetRoleId },
+    result: { identityResult: effectiveRoleId },
   };
 };

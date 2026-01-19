@@ -295,10 +295,11 @@ describe('GameStateService NightFlow Contract Tests', () => {
       // Clear broadcast calls to focus on action
       broadcastCalls.length = 0;
 
-      // When: witch submits action with target=3 (witch is first)
-      await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
+      // When: witch submits poison action with target=3
+      // NOTE: Can't use save without wolf kill, so use poison instead
+      await invokeHandlePlayerAction(service, 0, 'witch', 3, { poison: true });
 
-      // Then: state.actions.get('witch') is a target action with seat 3
+      // Then: state.actions.get('witch') is a witch action
       const state = service.getState()!;
       const witchAction = state.actions.get('witch');
       expect(witchAction).toBeDefined();
@@ -380,7 +381,8 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(stateBefore.currentActionerIndex).toBe(0);
 
       // When: witch submits correct action (witch is first)
-      await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
+      // NOTE: Can't use save without wolf kill, so use poison instead
+      await invokeHandlePlayerAction(service, 0, 'witch', 3, { poison: true });
 
       // Then: currentActionerIndex is now 1
       const stateAfter = service.getState()!;
@@ -409,7 +411,8 @@ describe('GameStateService NightFlow Contract Tests', () => {
       broadcastCalls.length = 0;
 
       // When: witch submits correct action (witch is first)
-      await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
+      // NOTE: Can't use save without wolf kill, so use poison instead
+      await invokeHandlePlayerAction(service, 0, 'witch', 3, { poison: true });
 
       // Then: ROLE_TURN with role=seer appears (seer is second)
       const roleTurns = broadcastCalls.filter((msg) => msg.type === 'ROLE_TURN');
@@ -562,7 +565,8 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(service.getState()!.currentActionerIndex).toBe(0);
 
       // When: we submit action (which dispatches ActionSubmitted + RoleEndAudioDone)
-      await invokeHandlePlayerAction(service, 0, 'witch', 3, { save: true });
+      // NOTE: Can't use save without wolf kill, so use poison instead
+      await invokeHandlePlayerAction(service, 0, 'witch', 3, { poison: true });
 
       // Then: currentActionerIndex advances to 1
       expect(service.getState()!.currentActionerIndex).toBe(1);

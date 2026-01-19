@@ -52,9 +52,14 @@ import {
   buildNightPlan,
   getStepsByRoleStrict,
   BLOCKED_UI_DEFAULTS,
+  SCHEMAS,
 } from '../models/roles/spec';
-import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
-import { getRoleAfterSwap } from './night/resolvers/types';
+import {
+  type ResolverContext,
+  type ActionInput,
+  type ResolverResult,
+} from './night/resolvers/types';
+import { RESOLVERS } from './night/resolvers';
 import { getConfirmRoleCanShoot } from '../models/Room';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -348,6 +353,7 @@ export class GameStateService {
       currentStepId: undefined,
       isAudioPlaying: false,
       lastNightDeaths: [],
+      currentNightResults: {},
     };
 
     // Join broadcast channel
@@ -418,6 +424,7 @@ export class GameStateService {
         currentStepId: undefined,
         isAudioPlaying: false,
         lastNightDeaths: [],
+        currentNightResults: {},
       };
 
       hostLog.warn('No saved state found, created placeholder for room:', roomCode);
@@ -796,6 +803,33 @@ export class GameStateService {
       // target === null && extra === undefined: allowed (skip)
     }
 
+    // =========================================================================
+    // Resolver Integration: Validate and compute action result
+    // =========================================================================
+    const schemaId = this.getCurrentSchemaId();
+    if (schemaId) {
+      const actionInput = this.buildActionInput(schemaId, target, extra);
+      const resolverResult = this.invokeResolver(schemaId, seat, role, actionInput);
+
+      if (!resolverResult.valid) {
+        // Reject action
+        const playerUid = this.state.players.get(seat)?.uid;
+        if (playerUid) {
+          this.state.actionRejected = {
+            action: 'submitAction',
+            reason: resolverResult.rejectReason ?? '行动无效',
+            targetUid: playerUid,
+          };
+          await this.broadcastState();
+        }
+        hostLog.info('Action rejected by resolver:', resolverResult.rejectReason);
+        return;
+      }
+
+      // Apply resolver result (updates + reveals)
+      this.applyResolverResult(role, target, resolverResult);
+    }
+
     // Record action using structured RoleAction
     if (target !== null) {
       if (role === 'witch') {
@@ -866,25 +900,8 @@ export class GameStateService {
         throw err; // STRICT: propagate error, don't continue
       }
 
-      // Nightmare action: set wolfKillDisabled if blocked a wolf (single source of truth)
-      if (role === 'nightmare' && target !== null) {
-        const targetPlayer = this.state.players.get(target);
-        if (targetPlayer?.role && isWolfRole(targetPlayer.role)) {
-          this.state.wolfKillDisabled = true;
-          hostLog.info('[handlePlayerAction] Nightmare blocked a wolf, wolfKillDisabled=true');
-        }
-      }
-
-      // Set reveal result in state for seer/psychic (UI filters by myRole)
-      if (role === 'seer') {
-        this.setSeerReveal(seat, target);
-      } else if (role === 'psychic') {
-        this.setPsychicReveal(seat, target);
-      } else if (role === 'gargoyle') {
-        this.setGargoyleReveal(seat, target);
-      } else if (role === 'wolfRobot') {
-        this.setWolfRobotReveal(seat, target);
-      }
+      // NOTE: Nightmare wolfKillDisabled and reveal results are now handled by
+      // invokeResolver + applyResolverResult above. The inline logic has been removed.
     }
 
     // Reveal roles require an explicit "I read it" ACK before advancing.
@@ -1292,6 +1309,8 @@ export class GameStateService {
       lastNightDeaths: this.state?.lastNightDeaths ?? [],
       nightmareBlockedSeat: broadcastState.nightmareBlockedSeat,
       wolfKillDisabled: broadcastState.wolfKillDisabled,
+      // Players don't see currentNightResults (Host-only state)
+      currentNightResults: {},
       // Role-specific context (all data is public, UI filters by myRole)
       witchContext: broadcastState.witchContext,
       seerReveal: broadcastState.seerReveal,
@@ -1482,6 +1501,8 @@ export class GameStateService {
     // Reset nightmare block flags
     this.state.wolfKillDisabled = undefined;
     this.state.nightmareBlockedSeat = undefined;
+    // Reset accumulated night results (used for resolver context passing)
+    this.state.currentNightResults = {};
     // Reset role-specific context (these are set fresh each night)
     this.state.witchContext = undefined;
     this.state.seerReveal = undefined;
@@ -2256,133 +2277,8 @@ export class GameStateService {
     hostLog.info(`Set confirmStatus for ${role}: canShoot=${canShoot}`);
   }
 
-  /**
-   * Set seer reveal in state (called after seer checks a target).
-   * Contains: target's alignment (好人/狼人).
-   */
-  private setSeerReveal(_seerSeat: number, targetSeat: number): void {
-    if (!this.state) {
-      hostLog.warn('setSeerReveal: no state');
-      return;
-    }
-
-    // Build role map and get swapped seats for identity check
-    const roleMap = this.buildRoleMap();
-    const swappedSeats = this.getMagicianSwappedSeats();
-
-    // Get target's role AFTER magician swap (identity swap)
-    const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
-    if (!effectiveRoleId) {
-      hostLog.warn('setSeerReveal: target not found at seat', targetSeat);
-      return;
-    }
-
-    const targetSpec = ROLE_SPECS[effectiveRoleId];
-    const result = getSeerCheckResultForTeam(targetSpec.team);
-
-    this.state.seerReveal = {
-      targetSeat,
-      result,
-    };
-
-    hostLog.info('Set seerReveal: target:', targetSeat, 'result:', result);
-  }
-
-  /**
-   * Set psychic reveal in state (called after psychic checks a target).
-   * Contains: target's exact role name.
-   */
-  private setPsychicReveal(_psychicSeat: number, targetSeat: number): void {
-    if (!this.state) {
-      hostLog.warn('setPsychicReveal: no state');
-      return;
-    }
-
-    // Build role map and get swapped seats for identity check
-    const roleMap = this.buildRoleMap();
-    const swappedSeats = this.getMagicianSwappedSeats();
-
-    // Get target's role AFTER magician swap (identity swap)
-    const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
-    if (!effectiveRoleId) {
-      hostLog.warn('setPsychicReveal: target not found at seat', targetSeat);
-      return;
-    }
-
-    const targetSpec = ROLE_SPECS[effectiveRoleId];
-    const result = targetSpec.displayName;
-
-    this.state.psychicReveal = {
-      targetSeat,
-      result,
-    };
-
-    hostLog.info('Set psychicReveal: target:', targetSeat, 'result:', result);
-  }
-
-  /**
-   * Set gargoyle reveal in state (called after gargoyle checks a target).
-   * Contains: target's exact role name.
-   */
-  private setGargoyleReveal(_gargoyleSeat: number, targetSeat: number): void {
-    if (!this.state) {
-      hostLog.warn('setGargoyleReveal: no state');
-      return;
-    }
-
-    // Build role map and get swapped seats for identity check
-    const roleMap = this.buildRoleMap();
-    const swappedSeats = this.getMagicianSwappedSeats();
-
-    // Get target's role AFTER magician swap (identity swap)
-    const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
-    if (!effectiveRoleId) {
-      hostLog.warn('setGargoyleReveal: target not found at seat', targetSeat);
-      return;
-    }
-
-    const targetSpec = ROLE_SPECS[effectiveRoleId];
-    const result = targetSpec.displayName;
-
-    this.state.gargoyleReveal = {
-      targetSeat,
-      result,
-    };
-
-    hostLog.info('Set gargoyleReveal: target:', targetSeat, 'result:', result);
-  }
-
-  /**
-   * Set wolf robot reveal in state (called after wolf robot learns a target's identity).
-   * Contains: target's exact role name.
-   */
-  private setWolfRobotReveal(_robotSeat: number, targetSeat: number): void {
-    if (!this.state) {
-      hostLog.warn('setWolfRobotReveal: no state');
-      return;
-    }
-
-    // Build role map and get swapped seats for identity check
-    const roleMap = this.buildRoleMap();
-    const swappedSeats = this.getMagicianSwappedSeats();
-
-    // Get target's role AFTER magician swap (identity swap)
-    const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
-    if (!effectiveRoleId) {
-      hostLog.warn('setWolfRobotReveal: target not found at seat', targetSeat);
-      return;
-    }
-
-    const targetSpec = ROLE_SPECS[effectiveRoleId];
-    const result = targetSpec.displayName;
-
-    this.state.wolfRobotReveal = {
-      targetSeat,
-      result,
-    };
-
-    hostLog.info('Set wolfRobotReveal: target:', targetSeat, 'result:', result);
-  }
+  // NOTE: setSeerReveal, setPsychicReveal, setGargoyleReveal, setWolfRobotReveal
+  // have been removed. Reveal logic is now handled by invokeResolver + applyRevealFromResolver.
 
   /**
    * Clear role-specific reveal state (called when advancing to next turn).
@@ -2515,6 +2411,184 @@ export class GameStateService {
       return [magicianAction.firstSeat, magicianAction.secondSeat];
     }
     return undefined;
+  }
+
+  // ===========================================================================
+  // Resolver Integration (Phase 1: Infrastructure)
+  // ===========================================================================
+
+  /**
+   * Get current step's schemaId from nightFlow.
+   */
+  private getCurrentSchemaId(): SchemaId | null {
+    if (!this.nightFlow || !this.state) return null;
+    const nightPlan = buildNightPlan(this.state.template.roles);
+    const step = nightPlan.steps[this.nightFlow.currentActionIndex];
+    return step?.stepId ?? null;
+  }
+
+  /**
+   * Invoke a resolver for the given schemaId.
+   * Returns validation + computed result.
+   *
+   * @param schemaId - The current step's schema ID
+   * @param actorSeat - The seat of the player performing the action
+   * @param actorRoleId - The role of the player
+   * @param input - The action input
+   * @returns ResolverResult with valid/rejectReason/updates/result
+   */
+  private invokeResolver(
+    schemaId: SchemaId,
+    actorSeat: number,
+    actorRoleId: RoleId,
+    input: ActionInput,
+  ): ResolverResult {
+    const resolver = RESOLVERS[schemaId];
+
+    // Some schemas don't have resolvers (e.g., hunterConfirm is just an ACK)
+    if (!resolver) {
+      return { valid: true };
+    }
+
+    const context: ResolverContext = {
+      actorSeat,
+      actorRoleId,
+      players: this.buildRoleMap(),
+      currentNightResults: this.state?.currentNightResults ?? {},
+      gameState: {
+        witchHasAntidote: this.state?.witchContext?.canSave ?? true,
+        witchHasPoison: this.state?.witchContext?.canPoison ?? true,
+        isNight1: true, // Night-1-only scope
+      },
+    };
+
+    return resolver(context, input);
+  }
+
+  /**
+   * Build ActionInput from wire protocol.
+   *
+   * @param schemaId - The schema ID to determine input shape
+   * @param target - The target seat (or encoded value for magician)
+   * @param extra - Extra payload (e.g., { poison: true } for witch)
+   * @returns ActionInput for resolver
+   */
+  private buildActionInput(
+    schemaId: SchemaId,
+    target: number | null,
+    extra?: unknown,
+  ): ActionInput {
+    const input: ActionInput = { schemaId };
+    const schema = SCHEMAS[schemaId];
+    if (!schema) return input;
+
+    switch (schema.kind) {
+      case 'chooseSeat':
+        return { ...input, target: target ?? undefined };
+
+      case 'wolfVote':
+        return { ...input, target: target ?? undefined };
+
+      case 'compound':
+        // Witch: { save: true, target } or { poison: true, target } or skip
+        if (extra && typeof extra === 'object') {
+          if ('save' in extra) {
+            return { ...input, stepResults: { save: target } };
+          } else if ('poison' in extra) {
+            return { ...input, stepResults: { poison: target } };
+          }
+        }
+        // Skip case: provide empty stepResults so resolver doesn't reject
+        return { ...input, stepResults: {} };
+
+      case 'swap':
+        // Magician: encoded target = firstSeat + secondSeat * 100
+        if (target !== null && target >= 100) {
+          const firstSeat = target % 100;
+          const secondSeat = Math.floor(target / 100);
+          return { ...input, targets: [firstSeat, secondSeat] };
+        }
+        return input;
+
+      case 'confirm':
+        return { ...input, confirmed: true };
+
+      default:
+        return input;
+    }
+  }
+
+  /**
+   * Apply resolver result to state.
+   * Merges updates into currentNightResults and sets reveal results.
+   *
+   * @param role - The role performing the action
+   * @param target - The target seat (for reveal results)
+   * @param result - The resolver result
+   */
+  private applyResolverResult(
+    role: RoleId,
+    target: number | null,
+    result: ResolverResult,
+  ): void {
+    if (!this.state) return;
+
+    // 1. Merge updates into currentNightResults
+    if (result.updates) {
+      this.state.currentNightResults = {
+        ...this.state.currentNightResults,
+        ...result.updates,
+      };
+
+      // Sync fields that need to be broadcast
+      if (result.updates.blockedSeat !== undefined) {
+        this.state.nightmareBlockedSeat = result.updates.blockedSeat;
+      }
+      if (result.updates.wolfKillDisabled !== undefined) {
+        this.state.wolfKillDisabled = result.updates.wolfKillDisabled;
+      }
+    }
+
+    // 2. Apply reveal results (from resolver, not re-computed)
+    if (result.result && target !== null) {
+      this.applyRevealFromResolver(role, target, result.result);
+    }
+  }
+
+  /**
+   * Apply reveal result from resolver to state.
+   * This replaces the old setSeerReveal/setPsychicReveal/etc methods.
+   */
+  private applyRevealFromResolver(
+    role: RoleId,
+    target: number,
+    resolverResult: NonNullable<ResolverResult['result']>,
+  ): void {
+    if (!this.state) return;
+
+    // Seer: faction check result
+    if (resolverResult.checkResult) {
+      this.state.seerReveal = {
+        targetSeat: target,
+        result: resolverResult.checkResult,
+      };
+      hostLog.info('Set seerReveal from resolver:', target, resolverResult.checkResult);
+    }
+
+    // Psychic/Gargoyle/WolfRobot: identity result
+    if (resolverResult.identityResult) {
+      const displayName = ROLE_SPECS[resolverResult.identityResult].displayName;
+
+      if (role === 'psychic') {
+        this.state.psychicReveal = { targetSeat: target, result: displayName };
+      } else if (role === 'gargoyle') {
+        this.state.gargoyleReveal = { targetSeat: target, result: displayName };
+      } else if (role === 'wolfRobot') {
+        this.state.wolfRobotReveal = { targetSeat: target, result: displayName };
+      }
+
+      hostLog.info(`Set ${role}Reveal from resolver:`, target, displayName);
+    }
   }
 
   /**

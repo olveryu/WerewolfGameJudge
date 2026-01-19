@@ -45,24 +45,24 @@ function createInput(target: number | null | undefined): ActionInput {
 
 describe('psychicCheckResolver', () => {
   describe('validate', () => {
-    it('应该拒绝 null 目标', () => {
+    it('应该允许 null 目标 (schema.canSkip: true)', () => {
       const ctx = createContext();
       const input = createInput(null);
 
       const result = psychicCheckResolver(ctx, input);
 
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toContain('选择');
+      expect(result.valid).toBe(true);
+      expect(result.result).toEqual({});
     });
 
-    it('应该拒绝 undefined 目标', () => {
+    it('应该允许 undefined 目标 (schema.canSkip: true)', () => {
       const ctx = createContext();
       const input = createInput(undefined);
 
       const result = psychicCheckResolver(ctx, input);
 
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toContain('选择');
+      expect(result.valid).toBe(true);
+      expect(result.result).toEqual({});
     });
 
     it('应该允许通灵自己 (no notSelf constraint - neutral judge)', () => {
