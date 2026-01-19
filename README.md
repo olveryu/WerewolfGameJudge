@@ -144,6 +144,9 @@ rm .env.local
 ```
 src/
 ├── models/roles/spec/     # 角色定义 (声明式)
+│   ├── specs.ts           # ROLE_SPECS - 角色固有属性
+│   ├── schemas.ts         # SCHEMAS - 行动输入协议 (UI/约束)
+│   └── nightSteps.ts      # NIGHT_STEPS - 步骤序列 (顺序/音频)
 ├── services/
 │   ├── GameStateService.ts    # Host 游戏状态机 (核心)
 │   ├── night/resolvers/       # 夜晚行动解析器
@@ -151,6 +154,12 @@ src/
 ├── screens/               # 页面组件
 └── hooks/                 # React Hooks
 ```
+
+**三层架构：** `ROLE_SPECS` → `SCHEMAS` → `NIGHT_STEPS`
+
+- `ROLE_SPECS`: 角色固有属性 (阵营、能力标志)
+- `SCHEMAS`: 行动输入协议 (UI 提示、约束、会议配置)
+- `NIGHT_STEPS`: 步骤序列 (顺序、音频键)
 
 ---
 
