@@ -84,13 +84,14 @@ export interface ActionDeps {
   /** UI-only: precomputed wolf-vote summary string (e.g. "1/3 狼人已投票"). */
   getWolfVoteSummary: () => string;
   /**
-   * Get witch context from private inbox (ANTI-CHEAT: Zero-Trust)
-   * Returns null if no WITCH_CONTEXT received for current turn
-   * @see docs/phase4-final-migration.md
+   * Get witch context from gameState (UI filters by myRole)
+   * Returns null if no witchContext in current state
    */
-  getWitchContext: () =>
-    | import('../../../services/types/PrivateBroadcast').WitchContextPayload
-    | null;
+  getWitchContext: () => {
+    killedIndex: number;
+    canSave: boolean;
+    canPoison: boolean;
+  } | null;
 }
 
 export interface UseRoomActionsResult {

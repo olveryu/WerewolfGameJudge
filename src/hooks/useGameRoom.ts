@@ -92,36 +92,14 @@ export interface UseGameRoomResult {
   // Utility
   hasWolfVoted: (seatNumber: number) => boolean;
 
-  // Private inbox (anti-cheat: Zero-Trust)
-  getWitchContext: () => import('../services/types/PrivateBroadcast').WitchContextPayload | null;
-  getSeerReveal: () => import('../services/types/PrivateBroadcast').SeerRevealPayload | null;
-  getPsychicReveal: () => import('../services/types/PrivateBroadcast').PsychicRevealPayload | null;
-  getGargoyleReveal: () =>
-    | import('../services/types/PrivateBroadcast').GargoyleRevealPayload
-    | null;
-  getWolfRobotReveal: () =>
-    | import('../services/types/PrivateBroadcast').WolfRobotRevealPayload
-    | null;
-  getConfirmStatus: () => import('../services/types/PrivateBroadcast').ConfirmStatusPayload | null;
-  getActionRejected: () =>
-    | import('../services/types/PrivateBroadcast').ActionRejectedPayload
-    | null;
-  // Async wait methods (handle network latency)
-  waitForSeerReveal: (
-    timeoutMs?: number,
-  ) => Promise<import('../services/types/PrivateBroadcast').SeerRevealPayload | null>;
-  waitForPsychicReveal: (
-    timeoutMs?: number,
-  ) => Promise<import('../services/types/PrivateBroadcast').PsychicRevealPayload | null>;
-  waitForGargoyleReveal: (
-    timeoutMs?: number,
-  ) => Promise<import('../services/types/PrivateBroadcast').GargoyleRevealPayload | null>;
-  waitForWolfRobotReveal: (
-    timeoutMs?: number,
-  ) => Promise<import('../services/types/PrivateBroadcast').WolfRobotRevealPayload | null>;
-  waitForActionRejected: (
-    timeoutMs?: number,
-  ) => Promise<import('../services/types/PrivateBroadcast').ActionRejectedPayload | null>;
+  // Role-specific context is now read directly from gameState:
+  // - gameState.witchContext (only display to witch)
+  // - gameState.seerReveal (only display to seer)
+  // - gameState.psychicReveal (only display to psychic)
+  // - gameState.gargoyleReveal (only display to gargoyle)
+  // - gameState.wolfRobotReveal (only display to wolfRobot)
+  // - gameState.confirmStatus (only display to hunter/darkWolfKing)
+  // - gameState.actionRejected (only display to targetUid)
 }
 
 export const useGameRoom = (): UseGameRoomResult => {
@@ -505,23 +483,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     lastSeatError,
     clearLastSeatError,
     hasWolfVoted: hasWolfVotedFn,
-    getWitchContext: () => gameStateService.current.getWitchContext(),
-    getSeerReveal: () => gameStateService.current.getSeerReveal(),
-    getPsychicReveal: () => gameStateService.current.getPsychicReveal(),
-    getGargoyleReveal: () => gameStateService.current.getGargoyleReveal(),
-    getWolfRobotReveal: () => gameStateService.current.getWolfRobotReveal(),
-    getConfirmStatus: () => gameStateService.current.getConfirmStatus(),
-    getActionRejected: () => gameStateService.current.getActionRejected(),
-    waitForSeerReveal: (timeoutMs?: number) =>
-      gameStateService.current.waitForSeerReveal(timeoutMs),
-    waitForPsychicReveal: (timeoutMs?: number) =>
-      gameStateService.current.waitForPsychicReveal(timeoutMs),
-    waitForGargoyleReveal: (timeoutMs?: number) =>
-      gameStateService.current.waitForGargoyleReveal(timeoutMs),
-    waitForWolfRobotReveal: (timeoutMs?: number) =>
-      gameStateService.current.waitForWolfRobotReveal(timeoutMs),
-    waitForActionRejected: (timeoutMs?: number) =>
-      gameStateService.current.waitForActionRejected(timeoutMs),
+    // Role-specific context is now read directly from gameState
   };
 };
 

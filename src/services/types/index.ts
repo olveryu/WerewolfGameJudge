@@ -1,7 +1,8 @@
 /**
  * Types index - Broadcast type exports
  *
- * Re-exports public and private broadcast types for easier imports.
+ * Re-exports public broadcast types for easier imports.
+ * NOTE: Private broadcast types have been removed - all game state is now public.
  */
 
 // Public broadcast types (whitelist)
@@ -19,16 +20,3 @@ export type {
   PublicGameState,
   PublicPlayer,
 } from './PublicBroadcast';
-
-// Private broadcast types (sensitive)
-export type {
-  PrivateMessage,
-  PrivatePayload,
-  WitchContextPayload,
-  SeerRevealPayload,
-  PsychicRevealPayload,
-  BlockedPayload,
-  InboxKey,
-} from './PrivateBroadcast';
-
-export { makeInboxKey } from './PrivateBroadcast';
