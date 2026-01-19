@@ -8,14 +8,15 @@
 import { SCHEMAS } from '../../../models/roles/spec/schemas';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
+import { getRoleAfterSwap } from './types';
 
 export const wolfRobotLearnResolver: ResolverFn = (context, input) => {
   const { actorSeat, players, currentNightResults } = context;
   const target = input.target;
 
-  // Validate target exists
+  // Allow skip (schema.canSkip: true)
   if (target === undefined || target === null) {
-    return { valid: false, rejectReason: '必须选择学习对象' };
+    return { valid: true, result: {} };
   }
 
   // Validate constraints from schema
@@ -25,9 +26,9 @@ export const wolfRobotLearnResolver: ResolverFn = (context, input) => {
     return { valid: false, rejectReason: constraintResult.rejectReason };
   }
 
-  // Target must exist
-  const targetRoleId = players.get(target);
-  if (!targetRoleId) {
+  // Target must exist (check original role)
+  const originalRoleId = players.get(target);
+  if (!originalRoleId) {
     return { valid: false, rejectReason: '目标玩家不存在' };
   }
 
@@ -36,12 +37,18 @@ export const wolfRobotLearnResolver: ResolverFn = (context, input) => {
     return { valid: true, result: {} };
   }
 
-  // Return learned role identity
+  // Get effective role after magician swap (if any)
+  const effectiveRoleId = getRoleAfterSwap(target, players, currentNightResults.swappedSeats);
+  if (!effectiveRoleId) {
+    return { valid: false, rejectReason: '目标玩家不存在' };
+  }
+
+  // Return learned role identity (after swap)
   return {
     valid: true,
     result: {
       learnTarget: target,
-      identityResult: targetRoleId,
+      identityResult: effectiveRoleId,
     },
   };
 };

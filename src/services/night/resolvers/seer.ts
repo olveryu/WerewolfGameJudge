@@ -9,6 +9,7 @@ import { getSeerCheckResultForTeam } from '../../../models/roles/spec/types';
 import { SCHEMAS } from '../../../models/roles/spec/schemas';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
+import { getRoleAfterSwap } from './types';
 
 export const seerCheckResolver: ResolverFn = (context, input) => {
   const { actorSeat, players, currentNightResults } = context;
@@ -26,9 +27,9 @@ export const seerCheckResolver: ResolverFn = (context, input) => {
     return { valid: false, rejectReason: constraintResult.rejectReason };
   }
 
-  // Target must exist
-  const targetRoleId = players.get(target);
-  if (!targetRoleId) {
+  // Target must exist (check original role)
+  const originalRoleId = players.get(target);
+  if (!originalRoleId) {
     return { valid: false, rejectReason: '目标玩家不存在' };
   }
 
@@ -40,8 +41,14 @@ export const seerCheckResolver: ResolverFn = (context, input) => {
     };
   }
 
+  // Get effective role after magician swap (if any)
+  const effectiveRoleId = getRoleAfterSwap(target, players, currentNightResults.swappedSeats);
+  if (!effectiveRoleId) {
+    return { valid: false, rejectReason: '目标玩家不存在' };
+  }
+
   // Compute result: wolf team = '狼人', others = '好人'
-  const targetSpec = ROLE_SPECS[targetRoleId];
+  const targetSpec = ROLE_SPECS[effectiveRoleId];
   const checkResult = getSeerCheckResultForTeam(targetSpec.team);
 
   return {

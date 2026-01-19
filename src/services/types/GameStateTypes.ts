@@ -11,6 +11,7 @@
  */
 
 import { RoleId } from '../../models/roles';
+import type { CurrentNightResults } from '../night/resolvers/types';
 import { GameTemplate } from '../../models/Template';
 
 // =============================================================================
@@ -68,6 +69,13 @@ export interface LocalGameState {
    * When true, all wolves can only skip during wolf vote phase (no kill this night).
    */
   wolfKillDisabled?: boolean;
+
+  /**
+   * Current night's accumulated resolver results.
+   * Used to pass resolved results between steps (e.g., nightmare block → wolf kill disabled).
+   * Reset at the start of each night.
+   */
+  currentNightResults: CurrentNightResults;
 
   // =========================================================================
   // Role-specific context (previously sent via PRIVATE_EFFECT, now public)

@@ -50,6 +50,7 @@ const createMockGameState = (playerCount: number): LocalGameState => {
     currentActionerIndex: 0,
     isAudioPlaying: false,
     lastNightDeaths: [],
+    currentNightResults: {},
   };
 };
 

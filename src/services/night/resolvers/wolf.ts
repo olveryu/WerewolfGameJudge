@@ -18,9 +18,12 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
     };
   }
 
-  // Validate target exists
+  // 空刀 (empty knife): schema allows this via allowEmptyVote: true
   if (target === undefined || target === null) {
-    return { valid: false, rejectReason: '必须选择猎杀对象' };
+    return {
+      valid: true,
+      result: {}, // No kill target
+    };
   }
 
   // Target must exist
