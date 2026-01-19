@@ -11,7 +11,12 @@
  * 4. Death calculations happen locally on Host
  */
 
-import { RoleId, isWolfRole, getWolfKillImmuneRoleIds, doesRoleParticipateInWolfVote } from '../models/roles';
+import {
+  RoleId,
+  isWolfRole,
+  getWolfKillImmuneRoleIds,
+  doesRoleParticipateInWolfVote,
+} from '../models/roles';
 import { GameTemplate, createTemplateFromRoles, validateTemplateRoles } from '../models/Template';
 import {
   BroadcastService,
@@ -1225,7 +1230,9 @@ export class GameStateService {
     Object.entries(broadcastState.players).forEach(([seatStr, bp]) => {
       const seat = Number.parseInt(seatStr);
       if (bp) {
-        playerLog.debug(`  seat ${seat}: uid=${bp.uid?.substring(0, 8)}, match=${bp.uid === this.myUid}`);
+        playerLog.debug(
+          `  seat ${seat}: uid=${bp.uid?.substring(0, 8)}, match=${bp.uid === this.myUid}`,
+        );
         players.set(seat, {
           uid: bp.uid,
           seatNumber: bp.seatNumber,
@@ -2202,13 +2209,7 @@ export class GameStateService {
       canPoison: true, // Night-1: always has poison
     };
 
-    hostLog.info(
-      'Set witchContext:',
-      'killedIndex:',
-      killedIndex,
-      'canSave:',
-      canSave,
-    );
+    hostLog.info('Set witchContext:', 'killedIndex:', killedIndex, 'canSave:', canSave);
   }
 
   /**
