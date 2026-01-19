@@ -11,6 +11,7 @@
 ## 0. 完成摘要
 
 ### 已完成:
+
 - ✅ Phase 1: 基础设施 (`currentNightResults` 状态字段)
 - ✅ Phase 2: Nightmare Resolver 迁移 (移除内联 wolfKillDisabled 计算)
 - ✅ Phase 3: Reveal 类 Resolver 迁移 (seer, psychic, gargoyle, wolfRobot)
@@ -20,6 +21,7 @@
 - ✅ 所有 1110 测试通过
 
 ### 待优化 (低优先级):
+
 - ⏳ Phase 4: wolfVote resolver 迁移 (handleWolfVote 内联验证)
 
 ---
@@ -46,7 +48,7 @@
 │  Player Action  │ ──▶ │   Host 内联  │  ← 完全绕过 Resolver
 └─────────────────┘     │   重复计算   │
                         └──────────────┘
-                        
+
                         ┌──────────────┐
                         │   Resolver   │  ← 从未被调用，只有测试
                         │   (孤岛)     │
@@ -56,6 +58,7 @@
 ### 1.3 证据
 
 1. **`GameStateService.ts` 不导入任何 resolver**
+
    ```typescript
    // 只导入了工具函数，没有导入 RESOLVERS
    import { getRoleAfterSwap } from './night/resolvers/types';
@@ -63,14 +66,14 @@
 
 2. **双写逻辑对比表**
 
-   | 功能 | Resolver (纯函数) | GameStateService (内联) |
-   |------|-------------------|------------------------|
-   | Nightmare → wolfKillDisabled | `nightmare.ts:41` 返回 `updates.wolfKillDisabled` | `handlePlayerAction:869-875` 手动 `isWolfRole()` |
-   | Seer 查验结果 | `seer.ts:44` 返回 `result.checkResult` | `setSeerReveal:2260-2289` 重新计算 |
-   | Psychic 查验结果 | `psychic.ts:40` 返回 `result.identityResult` | `setPsychicReveal:2292-2322` 重新计算 |
-   | Guard 守护 | `guard.ts:27` 返回 `updates.guardedSeat` | 直接 `actions.set('guard', ...)` |
-   | Witch 用药 | `witch.ts:83` 返回 `updates.savedSeat/poisonedSeat` | 直接 `actions.set('witch', ...)` |
-   | **Wolf 投票 immuneToWolfKill** | **新建 `wolfVote.ts`** | `handleWolfVote:951-972` `getWolfKillImmuneRoleIds()` |
+   | 功能                           | Resolver (纯函数)                                   | GameStateService (内联)                               |
+   | ------------------------------ | --------------------------------------------------- | ----------------------------------------------------- |
+   | Nightmare → wolfKillDisabled   | `nightmare.ts:41` 返回 `updates.wolfKillDisabled`   | `handlePlayerAction:869-875` 手动 `isWolfRole()`      |
+   | Seer 查验结果                  | `seer.ts:44` 返回 `result.checkResult`              | `setSeerReveal:2260-2289` 重新计算                    |
+   | Psychic 查验结果               | `psychic.ts:40` 返回 `result.identityResult`        | `setPsychicReveal:2292-2322` 重新计算                 |
+   | Guard 守护                     | `guard.ts:27` 返回 `updates.guardedSeat`            | 直接 `actions.set('guard', ...)`                      |
+   | Witch 用药                     | `witch.ts:83` 返回 `updates.savedSeat/poisonedSeat` | 直接 `actions.set('witch', ...)`                      |
+   | **Wolf 投票 immuneToWolfKill** | **新建 `wolfVote.ts`**                              | `handleWolfVote:951-972` `getWolfKillImmuneRoleIds()` |
 
 3. **导致的问题**
    - 逻辑重复，难以维护
@@ -125,7 +128,7 @@ advanceToNextAction()
 // src/services/types/GameStateTypes.ts
 interface GameState {
   // ... 现有字段 ...
-  
+
   /**
    * 当前夜晚累积的 resolver 结果。
    * 用于在步骤间传递信息 (如 nightmare block → wolf kill disabled)。
@@ -145,7 +148,7 @@ import type { ResolverContext, ActionInput, ResolverResult, CurrentNightResults 
 
 /**
  * 调用 Resolver 进行验证和计算。
- * 
+ *
  * @param schemaId - 当前步骤的 schema ID
  * @param actorSeat - 行动者座位号
  * @param actorRoleId - 行动者角色
@@ -159,7 +162,7 @@ private invokeResolver(
   input: ActionInput,
 ): ResolverResult {
   const resolver = RESOLVERS[schemaId];
-  
+
   // 部分 schema 没有 resolver (如 hunterConfirm 只是 ACK)
   if (!resolver) {
     return { valid: true };
@@ -202,11 +205,11 @@ private buildActionInput(
     case 'chooseSeat':
       input.target = target ?? undefined;
       break;
-      
+
     case 'wolfVote':
       input.target = target ?? undefined;
       break;
-      
+
     case 'compound':
       // Witch: { save: true, target } or { poison: true, target }
       if (extra && typeof extra === 'object') {
@@ -217,7 +220,7 @@ private buildActionInput(
         }
       }
       break;
-      
+
     case 'swap':
       // Magician: encoded target = firstSeat + secondSeat * 100
       if (target !== null && target >= 100) {
@@ -226,7 +229,7 @@ private buildActionInput(
         input.targets = [firstSeat, secondSeat];
       }
       break;
-      
+
     case 'confirm':
       input.confirmed = true;
       break;
@@ -256,7 +259,7 @@ private applyResolverResult(
       ...this.state.currentNightResults,
       ...result.updates,
     };
-    
+
     // 同步需要广播的字段
     if (result.updates.blockedSeat !== undefined) {
       this.state.nightmareBlockedSeat = result.updates.blockedSeat;
@@ -306,7 +309,7 @@ private applyRevealResult(
   // Psychic/Gargoyle/WolfRobot: 查验身份
   if (result.identityResult) {
     const displayName = ROLE_SPECS[result.identityResult].displayName;
-    
+
     if (role === 'psychic') {
       this.state.psychicReveal = { targetSeat: target, result: displayName };
     } else if (role === 'gargoyle') {
@@ -314,7 +317,7 @@ private applyRevealResult(
     } else if (role === 'wolfRobot') {
       this.state.wolfRobotReveal = { targetSeat: target, result: displayName };
     }
-    
+
     hostLog.info(`Set ${role}Reveal from resolver:`, target, displayName);
   }
 }
@@ -382,7 +385,7 @@ startGame(): void {
 
   // 重置夜晚累积结果
   this.state.currentNightResults = {};
-  
+
   // ... 现有的其他重置逻辑 ...
 }
 ```
@@ -393,17 +396,17 @@ startGame(): void {
 
 重构完成后，以下内联逻辑应该删除：
 
-| 文件 | 位置 | 内容 | 替代方案 |
-|------|------|------|----------|
-| `GameStateService.ts` | L869-875 | `if (role === 'nightmare') ... wolfKillDisabled = true` | 由 `applyResolverResult` 处理 |
-| `GameStateService.ts` | L880 | `this.setSeerReveal(seat, target)` | 由 `applyRevealResult` 处理 |
-| `GameStateService.ts` | L882 | `this.setPsychicReveal(seat, target)` | 由 `applyRevealResult` 处理 |
-| `GameStateService.ts` | L884 | `this.setGargoyleReveal(seat, target)` | 由 `applyRevealResult` 处理 |
-| `GameStateService.ts` | L886 | `this.setWolfRobotReveal(seat, target)` | 由 `applyRevealResult` 处理 |
-| `GameStateService.ts` | L2260-2289 | `setSeerReveal()` 方法 | 删除 |
-| `GameStateService.ts` | L2292-2322 | `setPsychicReveal()` 方法 | 删除 |
-| `GameStateService.ts` | L2324-2354 | `setGargoyleReveal()` 方法 | 删除 |
-| `GameStateService.ts` | L2356-2386 | `setWolfRobotReveal()` 方法 | 删除 |
+| 文件                  | 位置       | 内容                                                    | 替代方案                      |
+| --------------------- | ---------- | ------------------------------------------------------- | ----------------------------- |
+| `GameStateService.ts` | L869-875   | `if (role === 'nightmare') ... wolfKillDisabled = true` | 由 `applyResolverResult` 处理 |
+| `GameStateService.ts` | L880       | `this.setSeerReveal(seat, target)`                      | 由 `applyRevealResult` 处理   |
+| `GameStateService.ts` | L882       | `this.setPsychicReveal(seat, target)`                   | 由 `applyRevealResult` 处理   |
+| `GameStateService.ts` | L884       | `this.setGargoyleReveal(seat, target)`                  | 由 `applyRevealResult` 处理   |
+| `GameStateService.ts` | L886       | `this.setWolfRobotReveal(seat, target)`                 | 由 `applyRevealResult` 处理   |
+| `GameStateService.ts` | L2260-2289 | `setSeerReveal()` 方法                                  | 删除                          |
+| `GameStateService.ts` | L2292-2322 | `setPsychicReveal()` 方法                               | 删除                          |
+| `GameStateService.ts` | L2324-2354 | `setGargoyleReveal()` 方法                              | 删除                          |
+| `GameStateService.ts` | L2356-2386 | `setWolfRobotReveal()` 方法                             | 删除                          |
 
 ---
 
@@ -414,6 +417,7 @@ startGame(): void {
 **问题:** Seer/Psychic 查验需要考虑 magician swap，但 swap 在他们之后执行。
 
 **当前夜晚顺序 (NIGHT_STEPS):**
+
 1. nightmare
 2. wolf
 3. witch
@@ -423,6 +427,7 @@ startGame(): void {
 7. magician (靠后)
 
 **解决方案:** 查验类角色不需要考虑 magician swap，因为：
+
 - Magician 在查验之后行动
 - 查验结果基于行动时的身份
 - 如果需要 "交换后身份"，那是死亡计算时的逻辑 (DeathCalculator)
@@ -431,22 +436,22 @@ startGame(): void {
 
 ### 5.2 各 Resolver 完整性检查
 
-| Resolver | 验证逻辑 | 计算逻辑 | Nightmare Block | 状态 |
-|----------|----------|----------|-----------------|------|
-| `seer.ts` | ✅ constraints | ✅ checkResult | ✅ 处理 | 完整 |
-| `psychic.ts` | ✅ constraints | ✅ identityResult | ✅ 处理 | 完整 |
-| `witch.ts` | ✅ save/poison 规则 | ✅ savedSeat/poisonedSeat | ✅ 处理 | 完整 |
-| `guard.ts` | ✅ 可跳过 | ✅ guardedSeat | ✅ 处理 | 完整 |
-| `nightmare.ts` | ✅ 目标存在 | ✅ blockedSeat/wolfKillDisabled | N/A | 完整 |
-| `wolf.ts` | ✅ 目标存在 | ✅ wolfKillTarget | ✅ wolfKillDisabled | 完整 |
-| `magician.ts` | ✅ 两个目标 | ✅ swappedSeats | ✅ 处理 | 完整 |
-| `dreamcatcher.ts` | ✅ constraints | ✅ dreamingSeat | ✅ 处理 | 完整 |
-| `gargoyle.ts` | 需检查 | 需检查 | 需检查 | 待验证 |
-| `wolfRobot.ts` | 需检查 | 需检查 | 需检查 | 待验证 |
-| `wolfQueen.ts` | 需检查 | 需检查 | 需检查 | 待验证 |
-| `slacker.ts` | 需检查 | 需检查 | 需检查 | 待验证 |
-| `hunter.ts` | ✅ 仅 ACK | N/A | N/A | 完整 |
-| `darkWolfKing.ts` | ✅ 仅 ACK | N/A | N/A | 完整 |
+| Resolver          | 验证逻辑            | 计算逻辑                        | Nightmare Block     | 状态   |
+| ----------------- | ------------------- | ------------------------------- | ------------------- | ------ |
+| `seer.ts`         | ✅ constraints      | ✅ checkResult                  | ✅ 处理             | 完整   |
+| `psychic.ts`      | ✅ constraints      | ✅ identityResult               | ✅ 处理             | 完整   |
+| `witch.ts`        | ✅ save/poison 规则 | ✅ savedSeat/poisonedSeat       | ✅ 处理             | 完整   |
+| `guard.ts`        | ✅ 可跳过           | ✅ guardedSeat                  | ✅ 处理             | 完整   |
+| `nightmare.ts`    | ✅ 目标存在         | ✅ blockedSeat/wolfKillDisabled | N/A                 | 完整   |
+| `wolf.ts`         | ✅ 目标存在         | ✅ wolfKillTarget               | ✅ wolfKillDisabled | 完整   |
+| `magician.ts`     | ✅ 两个目标         | ✅ swappedSeats                 | ✅ 处理             | 完整   |
+| `dreamcatcher.ts` | ✅ constraints      | ✅ dreamingSeat                 | ✅ 处理             | 完整   |
+| `gargoyle.ts`     | 需检查              | 需检查                          | 需检查              | 待验证 |
+| `wolfRobot.ts`    | 需检查              | 需检查                          | 需检查              | 待验证 |
+| `wolfQueen.ts`    | 需检查              | 需检查                          | 需检查              | 待验证 |
+| `slacker.ts`      | 需检查              | 需检查                          | 需检查              | 待验证 |
+| `hunter.ts`       | ✅ 仅 ACK           | N/A                             | N/A                 | 完整   |
+| `darkWolfKing.ts` | ✅ 仅 ACK           | N/A                             | N/A                 | 完整   |
 
 ### 5.3 新增 wolfVote Resolver (投票阶段验证)
 
@@ -455,18 +460,18 @@ startGame(): void {
 
 **职责划分:**
 
-| 层级 | 职责 |
-|------|------|
+| 层级                         | 职责                         |
+| ---------------------------- | ---------------------------- |
 | UI (`RoomScreen.helpers.ts`) | 禁用座位 + 显示提示（纯 UX） |
-| wolfVote Resolver | 验证投票目标是否合法（权威） |
-| Host (`handleWolfVote`) | 调用 resolver，应用/拒绝结果 |
+| wolfVote Resolver            | 验证投票目标是否合法（权威） |
+| Host (`handleWolfVote`)      | 调用 resolver，应用/拒绝结果 |
 
 **新建文件:** `src/services/night/resolvers/wolfVote.ts`
 
 ```typescript
 /**
  * Wolf Meeting Vote Resolver
- * 
+ *
  * 验证狼人会议中的单次投票是否合法。
  * 注意：这不是 night action step，而是 meeting 投票验证。
  */
@@ -488,10 +493,7 @@ export interface WolfVoteResult {
   rejectReason?: string;
 }
 
-export function wolfVoteResolver(
-  context: WolfVoteContext,
-  input: WolfVoteInput,
-): WolfVoteResult {
+export function wolfVoteResolver(context: WolfVoteContext, input: WolfVoteInput): WolfVoteResult {
   const { targetSeat } = input;
   const { players } = context;
 
@@ -539,8 +541,8 @@ async handleWolfVote(voterSeat: number, targetSeat: number): Promise<{ success: 
 
 **删除内联代码:**
 
-| 文件 | 位置 | 内容 |
-|------|------|------|
+| 文件                  | 位置     | 内容                              |
+| --------------------- | -------- | --------------------------------- |
 | `GameStateService.ts` | L951-972 | `getWolfKillImmuneRoleIds()` 检查 |
 
 ---
@@ -616,12 +618,12 @@ async handleWolfVote(voterSeat: number, targetSeat: number): Promise<{ success: 
 
 ## 8. 风险评估
 
-| 风险 | 影响 | 概率 | 缓解措施 |
-|------|------|------|----------|
-| 行为变化 | 高 | 中 | 逐步迁移，每步验证 |
-| Wire protocol 不兼容 | 高 | 低 | 保持 input/output 格式不变 |
-| Resolver 逻辑与内联逻辑不一致 | 中 | 中 | 对比测试，确保结果一致 |
-| 测试覆盖不足 | 中 | 低 | 补充集成测试 |
+| 风险                          | 影响 | 概率 | 缓解措施                   |
+| ----------------------------- | ---- | ---- | -------------------------- |
+| 行为变化                      | 高   | 中   | 逐步迁移，每步验证         |
+| Wire protocol 不兼容          | 高   | 低   | 保持 input/output 格式不变 |
+| Resolver 逻辑与内联逻辑不一致 | 中   | 中   | 对比测试，确保结果一致     |
+| 测试覆盖不足                  | 中   | 低   | 补充集成测试               |
 
 ---
 

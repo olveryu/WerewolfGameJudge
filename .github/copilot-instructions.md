@@ -53,6 +53,7 @@ advanceToNextAction()
 ```
 
 **关键原则:**
+
 - **Resolver 是唯一的验证和计算逻辑来源** - Host 不做业务逻辑计算
 - **currentNightResults 在步骤间传递累积结果** (如 nightmare block → wolfKillDisabled)
 - **reveal 结果从 resolver 读取** - 不在 Host 中重新计算
