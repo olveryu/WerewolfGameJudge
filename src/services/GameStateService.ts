@@ -866,6 +866,15 @@ export class GameStateService {
         throw err; // STRICT: propagate error, don't continue
       }
 
+      // Nightmare action: set wolfKillDisabled if blocked a wolf (single source of truth)
+      if (role === 'nightmare' && target !== null) {
+        const targetPlayer = this.state.players.get(target);
+        if (targetPlayer?.role && isWolfRole(targetPlayer.role)) {
+          this.state.wolfKillDisabled = true;
+          hostLog.info('[handlePlayerAction] Nightmare blocked a wolf, wolfKillDisabled=true');
+        }
+      }
+
       // Set reveal result in state for seer/psychic (UI filters by myRole)
       if (role === 'seer') {
         this.setSeerReveal(seat, target);
@@ -2599,24 +2608,7 @@ export class GameStateService {
     const nightmareBlockedSeat =
       nightmareAction?.kind === 'target' ? nightmareAction.targetSeat : undefined;
 
-    // Check if wolf kill is disabled (nightmare blocked a wolf)
-    let wolfKillDisabled: boolean | undefined;
-    if (nightmareBlockedSeat !== undefined) {
-      const blockedPlayer = this.state.players.get(nightmareBlockedSeat);
-      hostLog.debug(
-        '[toBroadcastState] wolfKillDisabled check:',
-        'nightmareBlockedSeat=',
-        nightmareBlockedSeat,
-        'blockedPlayer.role=',
-        blockedPlayer?.role,
-        'isWolfRole=',
-        blockedPlayer?.role ? isWolfRole(blockedPlayer.role) : false,
-      );
-      if (blockedPlayer?.role && isWolfRole(blockedPlayer.role)) {
-        wolfKillDisabled = true;
-        hostLog.info('[toBroadcastState] wolfKillDisabled set to TRUE');
-      }
-    }
+    // wolfKillDisabled is single-source-of-truth from this.state (set by handlePlayerAction)
 
     return {
       roomCode: this.state.roomCode,
@@ -2628,7 +2620,7 @@ export class GameStateService {
       isAudioPlaying: this.state.isAudioPlaying,
       wolfVoteStatus,
       nightmareBlockedSeat,
-      wolfKillDisabled,
+      wolfKillDisabled: this.state.wolfKillDisabled,
       // Role-specific context (all data is public, UI filters by myRole)
       witchContext: this.state.witchContext,
       seerReveal: this.state.seerReveal,
