@@ -80,6 +80,7 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
           intent: {
             type: 'wolfVote',
             targetIndex: -1,
+            wolfSeat: 0,
           },
         },
       ],
