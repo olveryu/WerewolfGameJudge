@@ -91,6 +91,16 @@ describe('SCHEMAS contract', () => {
     it('wolfKill should have kind=wolfVote', () => {
       expect(SCHEMAS.wolfKill.kind).toBe('wolfVote');
     });
+
+    it('wolfKill.meeting should have correct MeetingConfig (schema-driven wolf visibility)', () => {
+      // Contract: UI derives showWolves from schema.meeting.canSeeEachOther
+      // This test ensures the meeting config exists and has correct values
+      const wolfKill = SCHEMAS.wolfKill;
+      expect(wolfKill.meeting).toBeDefined();
+      expect(wolfKill.meeting.canSeeEachOther).toBe(true);
+      expect(wolfKill.meeting.resolution).toBe('firstVote');
+      expect(wolfKill.meeting.allowEmptyVote).toBe(true);
+    });
   });
 
   describe('schema references in specs', () => {
