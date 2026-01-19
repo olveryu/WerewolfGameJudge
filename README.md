@@ -63,17 +63,17 @@
 
 - ✅ Host 本地内存控制所有游戏逻辑
 - ✅ Supabase 只做传输/发现/身份
-- ✅ 敏感信息通过私信发送，不公开广播
+- ✅ 所有状态通过 `BroadcastGameState` 公开广播，UI 层过滤显示
 
 ```
 Host 设备 (GameStateService)
     │
-    │ Realtime Broadcast
+    │ Realtime Broadcast (BroadcastGameState)
     ▼
 Supabase (传输层)
     │
     ▼
-玩家设备 (N个)
+玩家设备 (N个) - UI 根据 myRole 过滤显示
 ```
 
 ---

@@ -1,43 +1,15 @@
-## WerewolfGameJudge Copilot Instructions (short)
-
-### 0) Non-negotiables (read first)
-
-- **Host is the ONLY authority for game logic.** Supabase is transport/discovery/identity only.
-- \*\*Offl---
-
-## Reporting discipline
-
-- Don't claim changes without evidence.
-- For non-trivial work, report:
-  - commit hash (or "not committed yet")
-  - files changed
-  - key symbols changed
-  - logical behavior changes
-  - verification run (typecheck/Jest/e2e) + outcome
-
----
-
-## Terminal command rules
-
-- **No `| head` or `| tail` piping.** Run commands without output truncation so you can see the full result.
-- If output is very long, use `grep` to filter relevant lines instead of head/tail.lay.
-- \*\* This is a local/offline game assistant. Host device is also a player, not a separate referee device.
-- **Night-1-only scope.** Do NOT add cross-night state/rules.
-- **Anti-cheat.** Sensitive info goes via toUid private messages; keep `BroadcastGameState` as room-public view-model only. Client `actions` Map is always empty for non-Host players.
-- **Single source of truth.** No parallel ordering maps/arrays/dual-write drift.
-- **Prefer libraries over custom code.** When adding new capabilities (logging, validation, etc.), search for established npm libraries first. Only write custom code if no suitable library exists or the library is overkill for the use case.
-
-If something is unclear, ask before coding. Don't invent repo facts.GameJudge Copilot Instructions (short)
+## WerewolfGameJudge Copilot Instructions
 
 ### 0) Non-negotiables (read first)
 
 - **Host is the ONLY authority for game logic.** Supabase is transport/discovery/identity only.
 - **Offline local play.** This is a local/offline game assistant. Host device is also a player, not a separate referee device.
 - **Night-1-only scope.** Do NOT add cross-night state/rules.
-- **Anti-cheat.** Sensitive info goes via toUid private messages; keep `BroadcastGameState` as room-public view-model only. Client `actions` Map is always empty for non-Host players.
+- **All state via BroadcastGameState.** All game information (including role-specific context like witch's killedIndex, seer's reveal result) is broadcast publicly via `BroadcastGameState`. UI filters what to display based on the player's role. This simplifies the architecture and eliminates Host/Player state sync issues.
 - **Single source of truth.** No parallel ordering maps/arrays/dual-write drift.
+- **Prefer libraries over custom code.** When adding new capabilities (logging, validation, etc.), search for established npm libraries first. Only write custom code if no suitable library exists or the library is overkill for the use case.
 
-If something is unclear, ask before coding. Don’t invent repo facts.
+If something is unclear, ask before coding. Don't invent repo facts.
 
 ---
 
@@ -61,7 +33,6 @@ If something is unclear, ask before coding. Don’t invent repo facts.
 - **Add logs for key events**: state transitions, action submissions, errors, and decision branches.
 - **Log format**: Include context (e.g., `[RoomScreen]`, `[GameStateService]`) and relevant data.
 - **Debug vs Error**: Use `.debug()` for normal flow tracing, `.warn()` for recoverable issues, `.error()` for failures.
-- **Do NOT log sensitive data** (player roles, private reveals) in production builds.
 
 ---
 
@@ -91,7 +62,7 @@ If something is unclear, ask before coding. Don’t invent repo facts.
 
 ### StepSpec id/schemaId de-dupe (migration rule)
 
-- If `StepSpec` has both `id` and `schemaId`, it’s migration-only.
+- If `StepSpec` has both `id` and `schemaId`, it's migration-only.
   - `schemaId` must be `@deprecated` + `TODO(remove by YYYY-MM-DD)`.
   - Keep a contract test enforcing `step.id === step.schemaId`.
 - End-state: only `id: SchemaId`.
@@ -109,21 +80,25 @@ If something is unclear, ask before coding. Don’t invent repo facts.
 
 ### Night-1-only bans
 
-- Ban cross-night memory: no `previousActions`, `lastNightTarget`, “连续两晚/第二晚开始” constraints, etc.
+- Ban cross-night memory: no `previousActions`, `lastNightTarget`, "连续两晚/第二晚开始" constraints, etc.
 - Resolver contexts/types must not carry cross-night fields.
 
 ### Neutral judge rule (wolves)
 
 - Wolf kill is neutral in this app: can target ANY seat (including self/wolf teammates).
-- Don’t add `notSelf`/`notWolf` constraints for wolf kill.
+- Don't add `notSelf`/`notWolf` constraints for wolf kill.
 
 ---
 
-## Anti-cheat & broadcast rules
+## Broadcast architecture (no private messages)
 
-- `BroadcastGameState` is room-public view-model only.
-- Sensitive results (seer/psychic reveals, per-player prompts/results) MUST be toUid private messages.
-- Any step visibility helpers (e.g. `actsSolo`) must NOT leak into public broadcasts.
+- **All game state is public.** `BroadcastGameState` contains all information including role-specific data.
+- **UI-level filtering.** Client UI decides what to display based on `myRole`:
+  - Witch sees `witchContext.killedIndex` only if `myRole === 'witch'`
+  - Seer sees `seerReveal.result` only if `myRole === 'seer'`
+  - Wolves see `wolfVoteStatus` only if `isWolfRole(myRole)`
+- **No PRIVATE_EFFECT.** All private message infrastructure has been removed for simplicity.
+- **Host and Player read from same state.** No sync issues between Host local state and broadcast state.
 
 ---
 
@@ -135,22 +110,19 @@ When implementing or modifying a night-action role:
    - Every night-action role MUST handle being blocked by nightmare
    - Check `currentNightResults.blockedSeat === actorSeat` in resolver
    - If blocked: return `{ valid: true, result: {} }` (no effect, but valid)
-   - Host should send `BLOCKED` private message to blocked player
 
-2. **Private message sending (Host → Player)**
-   - Roles that need context MUST receive private message at turn start:
-     - `witch` → `WITCH_CONTEXT` (killedIndex, canSave, canPoison)
-     - `hunter` → `CONFIRM_STATUS` (canShoot: boolean)
-     - `darkWolfKing` → `CONFIRM_STATUS` (canShoot: boolean)
-   - Roles that reveal info MUST receive private message after action:
-     - `seer` → `SEER_REVEAL` (result: 好人/狼人)
-     - `psychic` → `PSYCHIC_REVEAL` (result: role name)
-     - `gargoyle` → `GARGOYLE_REVEAL` (result: role name)
-     - `wolfRobot` → `WOLF_ROBOT_REVEAL` (result: role name)
+2. **Context in BroadcastGameState**
+   - Roles that need context MUST have it in `BroadcastGameState`:
+     - `witch` → `witchContext: { killedIndex, canSave, canPoison }`
+     - `hunter` / `darkWolfKing` → `confirmStatus: { role, canShoot }`
+   - Roles that reveal info MUST have result in `BroadcastGameState`:
+     - `seer` → `seerReveal: { targetSeat, result }`
+     - `psychic` → `psychicReveal: { targetSeat, result }`
+     - etc.
 
-3. **Private message receiving (Player reads)**
-   - Client MUST use `getXxxContext()` / `getXxxReveal()` from GameStateService
-   - Client MUST NOT compute sensitive info from local state (actions Map is empty for non-Host)
+3. **UI reads from gameState**
+   - Client reads from `gameState.witchContext`, `gameState.seerReveal`, etc.
+   - UI filters by `myRole` to decide what to display
 
 4. **Schema alignment**
    - Resolver validation MUST match schema constraints
@@ -180,17 +152,16 @@ Maintain/update contract tests to guarantee:
 - uniqueness (step ids)
 - Night-1-only red lines
 - audioKey non-empty
-- anti-cheat boundary (no sensitive fields in public broadcasts)
 
 ### E2E rules (Playwright)
 
 - E2E is smoke-only. Never use it as the rule referee.
 - Run core e2e with workers=1. Never run multiple e2e processes in parallel.
-- Room readiness must use `waitForRoomScreenReady()` (joiner must reach `🟢 已连接` or finish “强制同步”).
+- Room readiness must use `waitForRoomScreenReady()` (joiner must reach `🟢 已连接` or finish "强制同步").
 
 ### UI test stability (Jest + RNTL)
 
-- Prefer `getByTestId`/`findByTestId`. Don’t add new `UNSAFE_*`.
+- Prefer `getByTestId`/`findByTestId`. Don't add new `UNSAFE_*`.
 - Keep testIDs centralized in `src/testids.ts` and preserve legacy IDs via compatibility mapping.
 
 ---
@@ -205,8 +176,8 @@ Maintain/update contract tests to guarantee:
   - add a step to `NIGHT_STEPS` (`src/models/roles/spec/nightSteps.ts`) with `id: SchemaId`, `audioKey`, `visibility`
   - implement/update resolver under `src/services/night/resolvers/**` (schema-aligned)
   - **if blockable by nightmare:** add block check in resolver (`currentNightResults.blockedSeat === actorSeat`)
-  - **if needs context at turn start:** add private message type + Host sends + Client reads (see "Night action role checklist")
-  - **if reveals info after action:** add private message type for result reveal
+  - **if needs context at turn start:** add field to `BroadcastGameState` + Host sets it + UI reads it
+  - **if reveals info after action:** add field to `BroadcastGameState` for result
   - update contract tests (order snapshot + validity + red lines)
 
 ---
@@ -231,10 +202,17 @@ Maintain/update contract tests to guarantee:
 
 ## Reporting discipline
 
-- Don’t claim changes without evidence.
+- Don't claim changes without evidence.
 - For non-trivial work, report:
-  - commit hash (or “not committed yet”)
+  - commit hash (or "not committed yet")
   - files changed
   - key symbols changed
   - logical behavior changes
   - verification run (typecheck/Jest/e2e) + outcome
+
+---
+
+## Terminal command rules
+
+- **No `| head` or `| tail` piping.** Run commands without output truncation so you can see the full result.
+- If output is very long, use `grep` to filter relevant lines instead of head/tail.
