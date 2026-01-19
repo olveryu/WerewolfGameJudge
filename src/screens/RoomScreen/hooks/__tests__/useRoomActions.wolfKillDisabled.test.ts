@@ -7,7 +7,7 @@
 import { renderHook } from '@testing-library/react-native';
 
 import { GameStatus } from '../../../../models/Room';
-import { getSchema } from '../../../../models/roles/spec/schemas';
+import { getSchema, BLOCKED_UI_DEFAULTS } from '../../../../models/roles/spec';
 import type { LocalGameState } from '../../../../services/types/GameStateTypes';
 import type { GameContext } from '../../hooks/useRoomActions';
 import { useRoomActions } from '../../hooks/useRoomActions';
@@ -87,7 +87,7 @@ describe('useRoomActions with wolfKillDisabled', () => {
       const bottomAction = result.current.getBottomAction();
       expect(bottomAction.buttons).toHaveLength(1);
       expect(bottomAction.buttons[0].key).toBe('wolfEmpty');
-      expect(bottomAction.buttons[0].label).toBe('今晚被封锁，只能空刀');
+      expect(bottomAction.buttons[0].label).toBe(BLOCKED_UI_DEFAULTS.skipButtonText);
       expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
       expect(bottomAction.buttons[0].intent.targetIndex).toBe(-1);
     });

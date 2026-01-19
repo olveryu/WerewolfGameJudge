@@ -141,8 +141,13 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
       },
     };
 
+    // When nightmare blocks a wolf, Host sets BOTH:
+    // - nightmareBlockedSeat (for the blocked player) → isBlockedByNightmare = true
+    // - wolfKillDisabled = true (for ALL wolves)
+    // So we must set both to reflect reality.
     const ctx = makeContext({
       isBlockedByNightmare: true,
+      wolfKillDisabled: true,
       currentSchema: wolfVoteSchema,
       myRole: 'wolf',
     });
