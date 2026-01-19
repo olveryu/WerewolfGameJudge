@@ -186,12 +186,6 @@ export function deriveSkipIntentFromSchema(
   return { type: 'skip', targetIndex: -1, message: buildMessage(-1) };
 }
 
-/** confirm schema: hunterConfirm/darkWolfKingConfirm (kept for future use) */
-function _deriveConfirmIntent(ctx: IntentContext): ActionIntent {
-  const { index, buildMessage } = ctx;
-  return { type: 'actionConfirm', targetIndex: index, message: buildMessage(index) };
-}
-
 /** chooseSeat schema: seer/psychic/gargoyle/wolfRobot reveal, or normal action */
 function deriveChooseSeatIntent(ctx: IntentContext): ActionIntent {
   const { uiRevealKind, index, buildMessage } = ctx;
@@ -233,7 +227,6 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
       // Save is only triggered via the dedicated bottom button.
       if (!ctx.schemaId) return null;
       if (ctx.schemaId !== 'witchAction') return null;
-      if (!isValidSchemaId(ctx.schemaId)) return null;
 
       {
         const compound = (SCHEMAS as Record<string, ActionSchema>)[ctx.schemaId];
@@ -311,7 +304,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   // ─────────────────────────────────────────────────────────────────────────
 
   const buildActionMessage = useCallback(
-    (index: number): string => {
+    (_index: number): string => {
       const confirmText = currentSchema?.ui?.confirmText;
 
       // Hardcore schema-driven UI contract:
@@ -326,12 +319,11 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
         }
       }
 
-      // Keep dependencies explicit; index/anotherIndex affect action payload, not copy.
-      void index;
-      void anotherIndex;
+      // NOTE: index/anotherIndex are not used in the confirm copy (schema-driven).
+      // They're kept in the signature for interface compatibility.
       return confirmText || '';
     },
-    [anotherIndex, currentSchema],
+    [currentSchema],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
