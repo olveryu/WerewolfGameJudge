@@ -49,18 +49,6 @@ import {
   BLOCKED_UI_DEFAULTS,
 } from '../models/roles/spec';
 import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
-import type {
-  PrivateMessage,
-  WitchContextPayload,
-  PrivatePayload,
-  SeerRevealPayload,
-  PsychicRevealPayload,
-  GargoyleRevealPayload,
-  WolfRobotRevealPayload,
-  ActionRejectedPayload,
-  BlockedPayload,
-  ConfirmStatusPayload,
-} from './types/PrivateBroadcast';
 import { getRoleAfterSwap } from './night/resolvers/types';
 import { getConfirmRoleCanShoot } from '../models/Room';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -124,19 +112,6 @@ export class GameStateService {
 
   /** NightFlowController: explicit state machine for night phase (Host only) */
   private nightFlow: NightFlowController | null = null;
-
-  /**
-   * Private message inbox (Zero-Trust: only stores messages where toUid === myUid)
-   * Key: `${revision}_${kind}` to prevent cross-turn contamination
-   * @see docs/phase4-final-migration.md
-   */
-  private readonly privateInbox: Map<string, PrivatePayload> = new Map();
-
-  // Tracks latest revision for each private payload kind so UI can read reliably
-  // even if stateRevision advanced due to unrelated STATE_UPDATE broadcasts.
-  // Key: payload kind (e.g. 'SEER_REVEAL'), Value: last seen msg.revision
-  private readonly privateInboxLatestRevisionByKind: Map<PrivatePayload['kind'], number> =
-    new Map();
 
   /**
    * Host-only: gate advancing after a reveal action until the revealer confirms.
@@ -801,21 +776,15 @@ export class GameStateService {
           'extra:',
           extra,
         );
-        // Send ACTION_REJECTED private message to player
+        // Set actionRejected in state for the blocked player
         const playerUid = this.state.players.get(seat)?.uid;
         if (playerUid) {
-          const rejectPayload: ActionRejectedPayload = {
-            kind: 'ACTION_REJECTED',
+          this.state.actionRejected = {
             action: 'submitAction',
             reason: BLOCKED_UI_DEFAULTS.message,
+            targetUid: playerUid,
           };
-          const privateMessage: PrivateMessage = {
-            type: 'PRIVATE_EFFECT',
-            toUid: playerUid,
-            revision: this.stateRevision,
-            payload: rejectPayload,
-          };
-          await this.broadcastService.sendPrivate(privateMessage);
+          await this.broadcastState();
         }
         return;
       }
@@ -892,15 +861,15 @@ export class GameStateService {
         throw err; // STRICT: propagate error, don't continue
       }
 
-      // Send private reveal for seer/psychic (anti-cheat: Host computes result)
+      // Set reveal result in state for seer/psychic (UI filters by myRole)
       if (role === 'seer') {
-        await this.sendSeerReveal(seat, target);
+        this.setSeerReveal(seat, target);
       } else if (role === 'psychic') {
-        await this.sendPsychicReveal(seat, target);
+        this.setPsychicReveal(seat, target);
       } else if (role === 'gargoyle') {
-        await this.sendGargoyleReveal(seat, target);
+        this.setGargoyleReveal(seat, target);
       } else if (role === 'wolfRobot') {
-        await this.sendWolfRobotReveal(seat, target);
+        this.setWolfRobotReveal(seat, target);
       }
     }
 
@@ -973,18 +942,12 @@ export class GameStateService {
         const targetRoleSpec = getRoleSpec(targetRole);
         const targetRoleName = targetRoleSpec?.displayName ?? targetRole;
         if (playerUid) {
-          const rejectPayload: ActionRejectedPayload = {
-            kind: 'ACTION_REJECTED',
+          this.state.actionRejected = {
             action: 'submitWolfVote',
             reason: `不能投${targetRoleName}`,
+            targetUid: playerUid,
           };
-          const privateMessage: PrivateMessage = {
-            type: 'PRIVATE_EFFECT',
-            toUid: playerUid,
-            revision: this.stateRevision,
-            payload: rejectPayload,
-          };
-          await this.broadcastService.sendPrivate(privateMessage);
+          await this.broadcastState();
         }
         return;
       }
@@ -1079,10 +1042,11 @@ export class GameStateService {
   // Player: Handle Host Broadcasts
   // ===========================================================================
 
-  private handleHostBroadcast(msg: HostBroadcast | PrivateMessage): void {
-    // Handle private messages (ANTI-CHEAT: Zero-Trust filtering)
-    if (msg.type === 'PRIVATE_EFFECT') {
-      this.handlePrivateMessage(msg);
+  private handleHostBroadcast(msg: HostBroadcast): void {
+    // Legacy PRIVATE_EFFECT messages are no longer used (removed in refactor)
+    // Type guard for any unexpected message types
+    if ((msg as { type: string }).type === 'PRIVATE_EFFECT') {
+      playerLog.debug('Ignoring legacy PRIVATE_EFFECT message');
       return;
     }
 
@@ -1138,6 +1102,14 @@ export class GameStateService {
           this.state.currentActionerIndex = 0;
           this.state.lastNightDeaths = [];
           this.state.currentStepId = undefined;
+          // Clear role-specific context on game restart
+          this.state.witchContext = undefined;
+          this.state.seerReveal = undefined;
+          this.state.psychicReveal = undefined;
+          this.state.gargoyleReveal = undefined;
+          this.state.wolfRobotReveal = undefined;
+          this.state.confirmStatus = undefined;
+          this.state.actionRejected = undefined;
           // Clear roles
           this.state.players.forEach((p, _seat) => {
             if (p) {
@@ -1145,291 +1117,10 @@ export class GameStateService {
               p.hasViewedRole = false;
             }
           });
-          // Clear private inbox on game restart
-          this.clearPrivateInbox();
           this.notifyListeners();
         }
         break;
     }
-  }
-
-  /**
-   * Handle private messages (ANTI-CHEAT: Zero-Trust filtering)
-   * Only stores messages where toUid === myUid
-   *
-   * @see docs/phase4-final-migration.md
-   */
-  private handlePrivateMessage(msg: PrivateMessage): void {
-    // ZERO-TRUST: Only accept messages addressed to me
-    if (msg.toUid !== this.myUid) {
-      hostLog.debug('Ignoring private message not for me');
-      return;
-    }
-
-    hostLog.info('Received private message:', msg.payload.kind);
-
-    // Store in inbox with revision-bound key (MUST use msg.revision; stateRevision may race)
-    const key = `${msg.revision}_${msg.payload.kind}`;
-    this.privateInboxLatestRevisionByKind.set(msg.payload.kind, msg.revision);
-
-    switch (msg.payload.kind) {
-      case 'WITCH_CONTEXT':
-        this.privateInbox.set(key, msg.payload);
-        hostLog.info(
-          'Stored WITCH_CONTEXT:',
-          msg.payload.killedIndex,
-          'canSave:',
-          msg.payload.canSave,
-        );
-        // Notify listeners so UI can update
-        this.notifyListeners();
-        break;
-      case 'SEER_REVEAL': {
-        this.privateInbox.set(key, msg.payload);
-        hostLog.info('Stored SEER_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
-        this.notifyListeners();
-        break;
-      }
-      case 'PSYCHIC_REVEAL': {
-        this.privateInbox.set(key, msg.payload);
-        hostLog.info('Stored PSYCHIC_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
-        this.notifyListeners();
-        break;
-      }
-      case 'GARGOYLE_REVEAL': {
-        this.privateInbox.set(key, msg.payload);
-        hostLog.info('Stored GARGOYLE_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
-        this.notifyListeners();
-        break;
-      }
-      case 'WOLF_ROBOT_REVEAL': {
-        this.privateInbox.set(key, msg.payload);
-        hostLog.info('Stored WOLF_ROBOT_REVEAL:', msg.payload.targetSeat, '=', msg.payload.result);
-        this.notifyListeners();
-        break;
-      }
-      case 'BLOCKED':
-        // BLOCKED messages are intentionally NOT stored in privateInbox.
-        // When a player is blocked by nightmare, they should NOT see any context
-        // (e.g., blocked witch should NOT know who wolf killed).
-        // The UI shows a generic "blocked" dialog based on BroadcastGameState.nightmareBlockedSeat.
-        hostLog.info('BLOCKED received (not stored - by design):', msg.payload.reason);
-        break;
-      case 'ACTION_REJECTED': {
-        this.privateInbox.set(key, msg.payload);
-        hostLog.info('Stored ACTION_REJECTED:', msg.payload.action, 'reason:', msg.payload.reason);
-        this.notifyListeners();
-        break;
-      }
-    }
-  }
-
-  private getLatestPrivatePayloadByKind<T extends PrivatePayload['kind']>(
-    kind: T,
-  ): Extract<PrivatePayload, { kind: T }> | null {
-    const rev = this.privateInboxLatestRevisionByKind.get(kind);
-    if (rev === undefined) return null;
-    const payload = this.privateInbox.get(`${rev}_${kind}`);
-    return payload?.kind === kind ? (payload as Extract<PrivatePayload, { kind: T }>) : null;
-  }
-
-  /**
-   * Get witch context from private inbox (for current revision only)
-   * Returns null if no WITCH_CONTEXT message received for current revision.
-   *
-   * ANTI-CHEAT: Only returns data sent privately to this player.
-   * @see docs/phase4-final-migration.md
-   */
-  getWitchContext(): WitchContextPayload | null {
-    return this.getLatestPrivatePayloadByKind('WITCH_CONTEXT');
-  }
-
-  /**
-   * Get seer reveal from private inbox (for current revision only)
-   * Returns null if no SEER_REVEAL message received for current revision.
-   *
-   * ANTI-CHEAT: Only returns data sent privately to this player.
-   */
-  getSeerReveal(): SeerRevealPayload | null {
-    return this.getLatestPrivatePayloadByKind('SEER_REVEAL');
-  }
-
-  /**
-   * Get confirm status from private inbox (for current revision only)
-   * Returns null if no CONFIRM_STATUS message received for current revision.
-   *
-   * Used by hunter/darkWolfKing to know if they can use their skill.
-   * ANTI-CHEAT: Client cannot compute this because actions Map is not broadcast.
-   */
-  getConfirmStatus(): ConfirmStatusPayload | null {
-    return this.getLatestPrivatePayloadByKind('CONFIRM_STATUS');
-  }
-
-  /**
-   * Get psychic reveal from private inbox (for current revision only)
-   * Returns null if no PSYCHIC_REVEAL message received for current revision.
-   *
-   * ANTI-CHEAT: Only returns data sent privately to this player.
-   */
-  getPsychicReveal(): PsychicRevealPayload | null {
-    return this.getLatestPrivatePayloadByKind('PSYCHIC_REVEAL');
-  }
-
-  /**
-   * Wait for seer reveal to arrive in inbox (with timeout).
-   * Used after submitting action to ensure Host's private message has arrived.
-   *
-   * @param timeoutMs - Maximum time to wait (default: 3000ms)
-   * @returns SeerRevealPayload if received, null if timeout
-   */
-  async waitForSeerReveal(timeoutMs: number = 3000): Promise<SeerRevealPayload | null> {
-    const pollIntervalMs = 50;
-    const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
-
-    for (let i = 0; i < maxAttempts; i++) {
-      const reveal = this.getSeerReveal();
-      if (reveal) {
-        return reveal;
-      }
-      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-    }
-
-    hostLog.warn('waitForSeerReveal timeout after', timeoutMs, 'ms');
-    return null;
-  }
-
-  /**
-   * Wait for psychic reveal to arrive in inbox (with timeout).
-   * Used after submitting action to ensure Host's private message has arrived.
-   *
-   * @param timeoutMs - Maximum time to wait (default: 3000ms)
-   * @returns PsychicRevealPayload if received, null if timeout
-   */
-  async waitForPsychicReveal(timeoutMs: number = 3000): Promise<PsychicRevealPayload | null> {
-    const pollIntervalMs = 50;
-    const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
-
-    for (let i = 0; i < maxAttempts; i++) {
-      const reveal = this.getPsychicReveal();
-      if (reveal) {
-        return reveal;
-      }
-      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-    }
-
-    hostLog.warn('waitForPsychicReveal timeout after', timeoutMs, 'ms');
-    return null;
-  }
-
-  /**
-   * Get gargoyle reveal from private inbox (for current revision only)
-   * Returns null if no GARGOYLE_REVEAL message received for current revision.
-   *
-   * ANTI-CHEAT: Only returns data sent privately to this player.
-   */
-  getGargoyleReveal(): GargoyleRevealPayload | null {
-    return this.getLatestPrivatePayloadByKind('GARGOYLE_REVEAL');
-  }
-
-  /**
-   * Wait for gargoyle reveal to arrive in inbox (with timeout).
-   * Used after submitting action to ensure Host's private message has arrived.
-   *
-   * @param timeoutMs - Maximum time to wait (default: 3000ms)
-   * @returns GargoyleRevealPayload if received, null if timeout
-   */
-  async waitForGargoyleReveal(timeoutMs: number = 3000): Promise<GargoyleRevealPayload | null> {
-    const pollIntervalMs = 50;
-    const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
-
-    for (let i = 0; i < maxAttempts; i++) {
-      const reveal = this.getGargoyleReveal();
-      if (reveal) {
-        return reveal;
-      }
-      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-    }
-
-    hostLog.warn('waitForGargoyleReveal timeout after', timeoutMs, 'ms');
-    return null;
-  }
-
-  /**
-   * Get wolf robot reveal from private inbox (for current revision only)
-   * Returns null if no WOLF_ROBOT_REVEAL message received for current revision.
-   *
-   * ANTI-CHEAT: Only returns data sent privately to this player.
-   */
-  getWolfRobotReveal(): WolfRobotRevealPayload | null {
-    return this.getLatestPrivatePayloadByKind('WOLF_ROBOT_REVEAL');
-  }
-
-  /**
-   * Wait for wolf robot reveal to arrive in inbox (with timeout).
-   * Used after submitting action to ensure Host's private message has arrived.
-   *
-   * @param timeoutMs - Maximum time to wait (default: 3000ms)
-   * @returns WolfRobotRevealPayload if received, null if timeout
-   */
-  async waitForWolfRobotReveal(timeoutMs: number = 3000): Promise<WolfRobotRevealPayload | null> {
-    const pollIntervalMs = 50;
-    const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
-
-    for (let i = 0; i < maxAttempts; i++) {
-      const reveal = this.getWolfRobotReveal();
-      if (reveal) {
-        return reveal;
-      }
-      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-    }
-
-    hostLog.warn('waitForWolfRobotReveal timeout after', timeoutMs, 'ms');
-    return null;
-  }
-
-  /**
-   * Get action rejected from private inbox (for current revision only)
-   * Returns null if no ACTION_REJECTED message received for current revision.
-   *
-   * @see docs/architecture/unified-host-reject-and-wolf-rules.zh-CN.md
-   */
-  getActionRejected(): ActionRejectedPayload | null {
-    return this.getLatestPrivatePayloadByKind('ACTION_REJECTED');
-  }
-
-  /**
-   * Wait for action rejected from Host.
-   * Used by UI to detect if action was rejected before waiting for reveal.
-   *
-   * NOTE: Uses short timeout (default 800ms) since reject should arrive quickly.
-   *
-   * @param timeoutMs - Maximum time to wait for reject
-   * @returns ActionRejectedPayload if received, null if timeout (action was accepted)
-   *
-   * @see docs/architecture/unified-host-reject-and-wolf-rules.zh-CN.md
-   */
-  async waitForActionRejected(timeoutMs: number = 800): Promise<ActionRejectedPayload | null> {
-    const pollIntervalMs = 50;
-    const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
-
-    for (let i = 0; i < maxAttempts; i++) {
-      const rejected = this.getActionRejected();
-      if (rejected) {
-        return rejected;
-      }
-      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-    }
-
-    // No rejection received = action was accepted
-    return null;
-  }
-
-  /**
-   * Clear private inbox (called on game restart or revision rollback)
-   */
-  private clearPrivateInbox(): void {
-    this.privateInbox.clear();
-    this.privateInboxLatestRevisionByKind.clear();
   }
 
   /**
@@ -1582,6 +1273,14 @@ export class GameStateService {
       lastNightDeaths: this.state?.lastNightDeaths ?? [],
       nightmareBlockedSeat: broadcastState.nightmareBlockedSeat,
       wolfKillDisabled: broadcastState.wolfKillDisabled,
+      // Role-specific context (all data is public, UI filters by myRole)
+      witchContext: broadcastState.witchContext,
+      seerReveal: broadcastState.seerReveal,
+      psychicReveal: broadcastState.psychicReveal,
+      gargoyleReveal: broadcastState.gargoyleReveal,
+      wolfRobotReveal: broadcastState.wolfRobotReveal,
+      confirmStatus: broadcastState.confirmStatus,
+      actionRejected: broadcastState.actionRejected,
     };
 
     this.notifyListeners();
@@ -1961,8 +1660,8 @@ export class GameStateService {
       hostLog.warn(` ROLE_TURN: Invalid roleId "${currentRole}", stepId not sent`);
     }
 
-    // ANTI-CHEAT: For witch, send killedIndex via private message, NOT public broadcast
-    // Exception: if witch is blocked by nightmare, send BLOCKED instead of WITCH_CONTEXT
+    // For witch, set killedIndex in state (UI filters by myRole)
+    // Exception: if witch is blocked by nightmare, don't set witchContext (blocked via nightmareBlockedSeat)
     if (currentRole === 'witch') {
       const witchSeat = this.getPlayerSeatByRole('witch');
       const nightmareAction = this.state.actions.get('nightmare');
@@ -1970,42 +1669,27 @@ export class GameStateService {
         nightmareAction?.kind === 'target' && nightmareAction.targetSeat === witchSeat;
 
       if (isWitchBlocked) {
-        // Witch is blocked by nightmare - send BLOCKED, not WITCH_CONTEXT
-        const witchUid = this.getPlayerUidByRole('witch');
-        if (witchUid) {
-          const blockedPayload: BlockedPayload = {
-            kind: 'BLOCKED',
-            reason: 'nightmare',
-          };
-          const privateMessage: PrivateMessage = {
-            type: 'PRIVATE_EFFECT',
-            toUid: witchUid,
-            revision: this.stateRevision,
-            payload: blockedPayload,
-          };
-          hostLog.info('Sending BLOCKED to nightmare-blocked witch');
-          await this.broadcastService.sendPrivate(privateMessage);
-        }
+        // Witch is blocked - don't set witchContext
+        // UI will check nightmareBlockedSeat to show blocked dialog
+        hostLog.info('Witch is blocked by nightmare, not setting witchContext');
       } else {
         const wolfAction = this.state.actions.get('wolf');
         const killedIndex = getActionTargetSeat(wolfAction) ?? -1;
-        await this.sendWitchContext(killedIndex);
+        this.setWitchContext(killedIndex);
       }
     }
 
-    // ANTI-CHEAT: For hunter/darkWolfKing, send canShoot status via private message
-    // Client cannot compute this because actions Map is not broadcast
+    // For hunter/darkWolfKing, set canShoot status in state
     if (currentRole === 'hunter' || currentRole === 'darkWolfKing') {
-      await this.sendConfirmStatus(currentRole);
+      this.setConfirmStatus(currentRole);
     }
 
-    // Broadcast role turn (PUBLIC - no killedIndex)
+    // Broadcast role turn (PUBLIC)
     await this.broadcastService.broadcastAsHost({
       type: 'ROLE_TURN',
       role: currentRole,
       pendingSeats,
       stepId,
-      // ❌ killedIndex removed from public broadcast (anti-cheat)
     });
 
     // Host also needs to update currentStepId for UI (NightProgressIndicator)
@@ -2492,19 +2176,18 @@ export class GameStateService {
   }
 
   // ===========================================================================
-  // Private Effect Sending (Anti-cheat: toUid targeted messages)
+  // Role-specific Context Setters (was PRIVATE_EFFECT, now direct state)
+  // All data is set in this.state and broadcast publicly via STATE_UPDATE.
+  // UI filters what to display based on myRole.
   // ===========================================================================
 
   /**
-   * Send WITCH_CONTEXT to the witch player.
-   * Contains sensitive info: killedIndex, canSave.
-   *
-   * @see docs/phase4-final-migration.md for anti-cheat architecture
+   * Set witch context in state (called when witch turn starts).
+   * Contains: killedIndex, canSave, canPoison.
    */
-  private async sendWitchContext(killedIndex: number): Promise<void> {
-    const witchUid = this.getPlayerUidByRole('witch');
-    if (!witchUid) {
-      hostLog.warn('sendWitchContext: witch not found in game');
+  private setWitchContext(killedIndex: number): void {
+    if (!this.state) {
+      hostLog.warn('setWitchContext: no state');
       return;
     }
 
@@ -2513,77 +2196,49 @@ export class GameStateService {
     // Night-1-only: witch always has antidote, and self-save is not allowed per schema constraints
     const canSave = killedIndex !== -1 && killedIndex !== witchSeat;
 
-    const privateMessage: PrivateMessage = {
-      type: 'PRIVATE_EFFECT',
-      toUid: witchUid,
-      revision: this.stateRevision,
-      payload: {
-        kind: 'WITCH_CONTEXT',
-        killedIndex,
-        canSave,
-        canPoison: true, // Night-1: always has poison
-      } as WitchContextPayload,
+    this.state.witchContext = {
+      killedIndex,
+      canSave,
+      canPoison: true, // Night-1: always has poison
     };
 
     hostLog.info(
-      'Sending WITCH_CONTEXT to witch:',
-      witchUid.substring(0, 8),
+      'Set witchContext:',
       'killedIndex:',
       killedIndex,
       'canSave:',
       canSave,
     );
-    await this.broadcastService.sendPrivate(privateMessage);
   }
 
   /**
-   * Send CONFIRM_STATUS to hunter or darkWolfKing.
+   * Set confirm status in state (called when hunter/darkWolfKing confirm turn starts).
    * Tells them if they can use their skill (not poisoned by witch).
-   *
-   * ANTI-CHEAT: Client cannot compute this because actions Map is not broadcast.
-   * Host computes and sends via private message.
    */
-  private async sendConfirmStatus(role: 'hunter' | 'darkWolfKing'): Promise<void> {
-    const roleUid = this.getPlayerUidByRole(role);
-    if (!roleUid || !this.state) {
-      hostLog.warn(` sendConfirmStatus: ${role} not found or no state`);
+  private setConfirmStatus(role: 'hunter' | 'darkWolfKing'): void {
+    if (!this.state) {
+      hostLog.warn(`setConfirmStatus: ${role} - no state`);
       return;
     }
 
     // Use the same logic as getConfirmRoleCanShoot
-    // LocalGameState is compatible with GameRoomLike
     const canShoot = getConfirmRoleCanShoot(this.state, role);
 
-    const privateMessage: PrivateMessage = {
-      type: 'PRIVATE_EFFECT',
-      toUid: roleUid,
-      revision: this.stateRevision,
-      payload: {
-        kind: 'CONFIRM_STATUS',
-        role,
-        canShoot,
-      } as ConfirmStatusPayload,
+    this.state.confirmStatus = {
+      role,
+      canShoot,
     };
 
-    hostLog.info(
-      ` Sending CONFIRM_STATUS to ${role}:`,
-      roleUid.substring(0, 8),
-      'canShoot:',
-      canShoot,
-    );
-    await this.broadcastService.sendPrivate(privateMessage);
+    hostLog.info(`Set confirmStatus for ${role}: canShoot=${canShoot}`);
   }
 
   /**
-   * Send SEER_REVEAL to the seer player after they check a target.
-   * Contains sensitive info: target's alignment (好人/狼人).
-   *
-   * @see docs/phase4-final-migration.md for anti-cheat architecture
+   * Set seer reveal in state (called after seer checks a target).
+   * Contains: target's alignment (好人/狼人).
    */
-  private async sendSeerReveal(seerSeat: number, targetSeat: number): Promise<void> {
-    const seerUid = this.getPlayerUidByRole('seer');
-    if (!seerUid || !this.state) {
-      hostLog.warn('sendSeerReveal: seer not found or no state');
+  private setSeerReveal(_seerSeat: number, targetSeat: number): void {
+    if (!this.state) {
+      hostLog.warn('setSeerReveal: no state');
       return;
     }
 
@@ -2594,45 +2249,28 @@ export class GameStateService {
     // Get target's role AFTER magician swap (identity swap)
     const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
     if (!effectiveRoleId) {
-      hostLog.warn('sendSeerReveal: target not found at seat', targetSeat);
+      hostLog.warn('setSeerReveal: target not found at seat', targetSeat);
       return;
     }
 
     const targetSpec = ROLE_SPECS[effectiveRoleId];
     const result = getSeerCheckResultForTeam(targetSpec.team);
 
-    const privateMessage: PrivateMessage = {
-      type: 'PRIVATE_EFFECT',
-      toUid: seerUid,
-      revision: this.stateRevision,
-      payload: {
-        kind: 'SEER_REVEAL',
-        targetSeat,
-        result,
-      } as SeerRevealPayload,
+    this.state.seerReveal = {
+      targetSeat,
+      result,
     };
 
-    hostLog.info(
-      'Sending SEER_REVEAL to seer:',
-      seerUid.substring(0, 8),
-      'target:',
-      targetSeat,
-      'result:',
-      result,
-    );
-    await this.broadcastService.sendPrivate(privateMessage);
+    hostLog.info('Set seerReveal: target:', targetSeat, 'result:', result);
   }
 
   /**
-   * Send PSYCHIC_REVEAL to the psychic player after they check a target.
-   * Contains sensitive info: target's exact role name.
-   *
-   * @see docs/phase4-final-migration.md for anti-cheat architecture
+   * Set psychic reveal in state (called after psychic checks a target).
+   * Contains: target's exact role name.
    */
-  private async sendPsychicReveal(psychicSeat: number, targetSeat: number): Promise<void> {
-    const psychicUid = this.getPlayerUidByRole('psychic');
-    if (!psychicUid || !this.state) {
-      hostLog.warn('sendPsychicReveal: psychic not found or no state');
+  private setPsychicReveal(_psychicSeat: number, targetSeat: number): void {
+    if (!this.state) {
+      hostLog.warn('setPsychicReveal: no state');
       return;
     }
 
@@ -2643,45 +2281,28 @@ export class GameStateService {
     // Get target's role AFTER magician swap (identity swap)
     const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
     if (!effectiveRoleId) {
-      hostLog.warn('sendPsychicReveal: target not found at seat', targetSeat);
+      hostLog.warn('setPsychicReveal: target not found at seat', targetSeat);
       return;
     }
 
     const targetSpec = ROLE_SPECS[effectiveRoleId];
     const result = targetSpec.displayName;
 
-    const privateMessage: PrivateMessage = {
-      type: 'PRIVATE_EFFECT',
-      toUid: psychicUid,
-      revision: this.stateRevision,
-      payload: {
-        kind: 'PSYCHIC_REVEAL',
-        targetSeat,
-        result,
-      } as PsychicRevealPayload,
+    this.state.psychicReveal = {
+      targetSeat,
+      result,
     };
 
-    hostLog.info(
-      'Sending PSYCHIC_REVEAL to psychic:',
-      psychicUid.substring(0, 8),
-      'target:',
-      targetSeat,
-      'result:',
-      result,
-    );
-    await this.broadcastService.sendPrivate(privateMessage);
+    hostLog.info('Set psychicReveal: target:', targetSeat, 'result:', result);
   }
 
   /**
-   * Send GARGOYLE_REVEAL to the gargoyle player after they check a target.
-   * Contains sensitive info: target's exact role name.
-   *
-   * @see docs/phase4-final-migration.md for anti-cheat architecture
+   * Set gargoyle reveal in state (called after gargoyle checks a target).
+   * Contains: target's exact role name.
    */
-  private async sendGargoyleReveal(gargoyleSeat: number, targetSeat: number): Promise<void> {
-    const gargoyleUid = this.getPlayerUidByRole('gargoyle');
-    if (!gargoyleUid || !this.state) {
-      hostLog.warn('sendGargoyleReveal: gargoyle not found or no state');
+  private setGargoyleReveal(_gargoyleSeat: number, targetSeat: number): void {
+    if (!this.state) {
+      hostLog.warn('setGargoyleReveal: no state');
       return;
     }
 
@@ -2692,45 +2313,28 @@ export class GameStateService {
     // Get target's role AFTER magician swap (identity swap)
     const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
     if (!effectiveRoleId) {
-      hostLog.warn('sendGargoyleReveal: target not found at seat', targetSeat);
+      hostLog.warn('setGargoyleReveal: target not found at seat', targetSeat);
       return;
     }
 
     const targetSpec = ROLE_SPECS[effectiveRoleId];
     const result = targetSpec.displayName;
 
-    const privateMessage: PrivateMessage = {
-      type: 'PRIVATE_EFFECT',
-      toUid: gargoyleUid,
-      revision: this.stateRevision,
-      payload: {
-        kind: 'GARGOYLE_REVEAL',
-        targetSeat,
-        result,
-      } as GargoyleRevealPayload,
+    this.state.gargoyleReveal = {
+      targetSeat,
+      result,
     };
 
-    hostLog.info(
-      'Sending GARGOYLE_REVEAL to gargoyle:',
-      gargoyleUid.substring(0, 8),
-      'target:',
-      targetSeat,
-      'result:',
-      result,
-    );
-    await this.broadcastService.sendPrivate(privateMessage);
+    hostLog.info('Set gargoyleReveal: target:', targetSeat, 'result:', result);
   }
 
   /**
-   * Send WOLF_ROBOT_REVEAL to the wolf robot player after they learn a target's identity.
-   * Contains sensitive info: target's exact role name.
-   *
-   * @see docs/phase4-final-migration.md for anti-cheat architecture
+   * Set wolf robot reveal in state (called after wolf robot learns a target's identity).
+   * Contains: target's exact role name.
    */
-  private async sendWolfRobotReveal(robotSeat: number, targetSeat: number): Promise<void> {
-    const robotUid = this.getPlayerUidByRole('wolfRobot');
-    if (!robotUid || !this.state) {
-      hostLog.warn('sendWolfRobotReveal: wolfRobot not found or no state');
+  private setWolfRobotReveal(_robotSeat: number, targetSeat: number): void {
+    if (!this.state) {
+      hostLog.warn('setWolfRobotReveal: no state');
       return;
     }
 
@@ -2741,33 +2345,32 @@ export class GameStateService {
     // Get target's role AFTER magician swap (identity swap)
     const effectiveRoleId = getRoleAfterSwap(targetSeat, roleMap, swappedSeats);
     if (!effectiveRoleId) {
-      hostLog.warn('sendWolfRobotReveal: target not found at seat', targetSeat);
+      hostLog.warn('setWolfRobotReveal: target not found at seat', targetSeat);
       return;
     }
 
     const targetSpec = ROLE_SPECS[effectiveRoleId];
     const result = targetSpec.displayName;
 
-    const privateMessage: PrivateMessage = {
-      type: 'PRIVATE_EFFECT',
-      toUid: robotUid,
-      revision: this.stateRevision,
-      payload: {
-        kind: 'WOLF_ROBOT_REVEAL',
-        targetSeat,
-        result,
-      } as WolfRobotRevealPayload,
+    this.state.wolfRobotReveal = {
+      targetSeat,
+      result,
     };
 
-    hostLog.info(
-      'Sending WOLF_ROBOT_REVEAL to wolfRobot:',
-      robotUid.substring(0, 8),
-      'target:',
-      targetSeat,
-      'result:',
-      result,
-    );
-    await this.broadcastService.sendPrivate(privateMessage);
+    hostLog.info('Set wolfRobotReveal: target:', targetSeat, 'result:', result);
+  }
+
+  /**
+   * Clear role-specific reveal state (called when advancing to next turn).
+   * Keeps witchContext and confirmStatus which persist during multi-step turns.
+   */
+  private clearRevealState(): void {
+    if (!this.state) return;
+    this.state.seerReveal = undefined;
+    this.state.psychicReveal = undefined;
+    this.state.gargoyleReveal = undefined;
+    this.state.wolfRobotReveal = undefined;
+    this.state.actionRejected = undefined;
   }
 
   // ===========================================================================
@@ -3025,6 +2628,14 @@ export class GameStateService {
       wolfVoteStatus,
       nightmareBlockedSeat,
       wolfKillDisabled,
+      // Role-specific context (all data is public, UI filters by myRole)
+      witchContext: this.state.witchContext,
+      seerReveal: this.state.seerReveal,
+      psychicReveal: this.state.psychicReveal,
+      gargoyleReveal: this.state.gargoyleReveal,
+      wolfRobotReveal: this.state.wolfRobotReveal,
+      confirmStatus: this.state.confirmStatus,
+      actionRejected: this.state.actionRejected,
     };
   }
 }

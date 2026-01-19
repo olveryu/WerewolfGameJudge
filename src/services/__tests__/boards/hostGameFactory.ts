@@ -22,9 +22,6 @@ import type { PlayerMessage } from '../../BroadcastService';
 // Mocks
 // =============================================================================
 
-// Track sendPrivate calls for testing
-export const mockSendPrivate = jest.fn().mockResolvedValue(undefined);
-
 // Captured onPlayerMessage callback from joinRoom - allows simulating player→host messages
 let capturedOnPlayerMessage:
   | ((msg: PlayerMessage, senderId: string) => void | Promise<void>)
@@ -36,7 +33,6 @@ let capturedOnPlayerMessage:
  */
 function resetSharedState(): void {
   capturedOnPlayerMessage = null;
-  mockSendPrivate.mockClear();
 }
 
 jest.mock('../../BroadcastService', () => ({
@@ -59,7 +55,6 @@ jest.mock('../../BroadcastService', () => ({
       leaveRoom: jest.fn().mockResolvedValue(undefined),
       broadcastAsHost: jest.fn().mockResolvedValue(undefined),
       sendToHost: jest.fn().mockResolvedValue(undefined),
-      sendPrivate: mockSendPrivate,
     })),
   },
 }));

@@ -13,7 +13,19 @@ import { useCallback } from 'react';
 import { showAlert } from '../../utils/alert';
 import type { ActionSchema } from '../../models/roles/spec';
 import { BLOCKED_UI_DEFAULTS } from '../../models/roles/spec';
-import type { WitchContextPayload } from '../../services/types/PrivateBroadcast';
+
+/**
+ * Witch context for UI display (simplified from WitchContextPayload).
+ * Does not require 'kind' discriminator since it's read from gameState.
+ */
+export interface WitchContext {
+  /** Seat killed by wolves (-1 = empty kill) */
+  killedIndex: number;
+  /** Whether witch can save (Host already checked: not self, has antidote) */
+  canSave: boolean;
+  /** Whether witch has poison available */
+  canPoison: boolean;
+}
 
 export interface UseRoomActionDialogsResult {
   /**
@@ -66,11 +78,11 @@ export interface UseRoomActionDialogsResult {
   ) => void;
 
   /**
-   * Witch info prompt (schema-driven): dynamic info comes from WitchContextPayload;
+   * Witch info prompt (schema-driven): dynamic info comes from WitchContext;
    * template copy comes from currentSchema.
    */
   showWitchInfoPrompt: (
-    ctx: WitchContextPayload,
+    ctx: WitchContext,
     currentSchema: ActionSchema,
     onDismiss: () => void,
   ) => void;
@@ -210,7 +222,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showWitchInfoPrompt = useCallback(
-    (ctx: WitchContextPayload, currentSchema: ActionSchema, onDismiss: () => void) => {
+    (ctx: WitchContext, currentSchema: ActionSchema, onDismiss: () => void) => {
       // Static template copy must come from schema.
       const rolePrompt = currentSchema.ui?.prompt || '女巫请行动';
 

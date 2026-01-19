@@ -68,6 +68,55 @@ export interface LocalGameState {
    * When true, all wolves can only skip during wolf vote phase (no kill this night).
    */
   wolfKillDisabled?: boolean;
+
+  // =========================================================================
+  // Role-specific context (previously sent via PRIVATE_EFFECT, now public)
+  // UI filters what to display based on myRole.
+  // =========================================================================
+
+  /** Witch turn context - only display to witch via UI filter */
+  witchContext?: {
+    killedIndex: number; // seat killed by wolves (-1 = empty kill)
+    canSave: boolean;
+    canPoison: boolean;
+  };
+
+  /** Seer reveal result - only display to seer via UI filter */
+  seerReveal?: {
+    targetSeat: number;
+    result: '好人' | '狼人';
+  };
+
+  /** Psychic reveal result - only display to psychic via UI filter */
+  psychicReveal?: {
+    targetSeat: number;
+    result: string; // specific role name
+  };
+
+  /** Gargoyle reveal result - only display to gargoyle via UI filter */
+  gargoyleReveal?: {
+    targetSeat: number;
+    result: string;
+  };
+
+  /** Wolf Robot reveal result - only display to wolf robot via UI filter */
+  wolfRobotReveal?: {
+    targetSeat: number;
+    result: string;
+  };
+
+  /** Confirm status for hunter/darkWolfKing - only display to that role via UI filter */
+  confirmStatus?: {
+    role: 'hunter' | 'darkWolfKing';
+    canShoot: boolean;
+  };
+
+  /** Action rejected feedback - only display to the rejected player via UI filter */
+  actionRejected?: {
+    action: string;
+    reason: string;
+    targetUid: string; // which player was rejected
+  };
 }
 
 // =============================================================================

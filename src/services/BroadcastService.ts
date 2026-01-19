@@ -19,7 +19,6 @@ import { RoleId } from '../models/roles';
 import type { SchemaId } from '../models/roles/spec';
 import type { PublicPayload } from './types/PublicBroadcast';
 import { broadcastLog } from '../utils/logger';
-import type { PrivateMessage } from './types/PrivateBroadcast';
 
 // =============================================================================
 // Connection Status
@@ -118,6 +117,54 @@ export interface BroadcastGameState {
   nightmareBlockedSeat?: number;
   // Wolf kill disabled: true if nightmare blocked a wolf (all wolves can only skip)
   wolfKillDisabled?: boolean;
+
+  // =========================================================================
+  // Role-specific context (all data is public, UI filters by myRole)
+  // =========================================================================
+
+  /** Witch turn context - only display to witch via UI filter */
+  witchContext?: {
+    killedIndex: number; // seat killed by wolves (-1 = empty kill)
+    canSave: boolean;
+    canPoison: boolean;
+  };
+
+  /** Seer reveal result - only display to seer via UI filter */
+  seerReveal?: {
+    targetSeat: number;
+    result: '好人' | '狼人';
+  };
+
+  /** Psychic reveal result - only display to psychic via UI filter */
+  psychicReveal?: {
+    targetSeat: number;
+    result: string; // specific role name
+  };
+
+  /** Gargoyle reveal result - only display to gargoyle via UI filter */
+  gargoyleReveal?: {
+    targetSeat: number;
+    result: string;
+  };
+
+  /** Wolf Robot reveal result - only display to wolf robot via UI filter */
+  wolfRobotReveal?: {
+    targetSeat: number;
+    result: string;
+  };
+
+  /** Confirm status for hunter/darkWolfKing - only display to that role via UI filter */
+  confirmStatus?: {
+    role: 'hunter' | 'darkWolfKing';
+    canShoot: boolean;
+  };
+
+  /** Action rejected feedback - only display to the rejected player via UI filter */
+  actionRejected?: {
+    action: string;
+    reason: string;
+    targetUid: string; // which player was rejected
+  };
 }
 
 // =============================================================================
@@ -134,9 +181,8 @@ export class BroadcastService {
   private readonly statusListeners: Set<ConnectionStatusListener> = new Set();
 
   // Callbacks for received messages
-  // Host broadcasts include both room-public state and toUid-scoped PRIVATE_EFFECT.
-  // IMPORTANT: do NOT cast away PRIVATE_EFFECT here; GameStateService needs it.
-  private onHostBroadcast: ((message: HostBroadcast | PrivateMessage) => void) | null = null;
+  // Host broadcasts include room-public state messages only (PRIVATE_EFFECT has been removed).
+  private onHostBroadcast: ((message: HostBroadcast) => void) | null = null;
   private onPlayerMessage: ((message: PlayerMessage, senderId: string) => void) | null = null;
   private onPresenceChange: ((users: string[]) => void) | null = null;
 
@@ -188,7 +234,7 @@ export class BroadcastService {
     roomCode: string,
     userId: string,
     callbacks: {
-      onHostBroadcast?: (message: HostBroadcast | PrivateMessage) => void;
+      onHostBroadcast?: (message: HostBroadcast) => void;
       onPlayerMessage?: (message: PlayerMessage, senderId: string) => void;
       onPresenceChange?: (users: string[]) => void;
     },
@@ -223,8 +269,8 @@ export class BroadcastService {
     this.channel.on('broadcast', { event: 'host' }, (payload) => {
       broadcastLog.info(' Received host broadcast:', payload.payload?.type);
       if (this.onHostBroadcast && payload.payload) {
-        // payload.payload is either HostBroadcast (public) or PrivateMessage (PRIVATE_EFFECT)
-        this.onHostBroadcast(payload.payload as HostBroadcast | PrivateMessage);
+        // payload.payload is HostBroadcast (public state messages only)
+        this.onHostBroadcast(payload.payload as HostBroadcast);
       }
     });
 
@@ -351,34 +397,6 @@ export class BroadcastService {
   }
 
   /**
-   * Host: Send a PRIVATE message to a specific player (type-safe, sensitive info)
-   *
-   * ANTI-CHEAT:
-   * - Only the recipient (toUid) should process this message
-   * - UI must filter: only accept if toUid === myUid
-   * - Host player has NO visibility privilege (also filtered by toUid)
-   *
-   * @see docs/phase4-final-migration.md for anti-cheat architecture
-   */
-  async sendPrivate(message: PrivateMessage): Promise<void> {
-    if (!this.channel) {
-      broadcastLog.warn(' Not connected to any room');
-      return;
-    }
-
-    broadcastLog.info(
-      ' Sending private to:',
-      message.toUid.substring(0, 8),
-      'kind:',
-      message.payload.kind,
-    );
-    await this.channel.send({
-      type: 'broadcast',
-      event: 'host',
-      payload: message,
-    });
-  }
-
   /**
    * Player: Send a message to Host
    */

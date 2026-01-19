@@ -49,7 +49,6 @@ import { ConnectionStatusBar } from './components/ConnectionStatusBar';
 import { roomScreenLog } from '../../utils/logger';
 import type { ActionSchema, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
 import { SCHEMAS, BLOCKED_UI_DEFAULTS, isValidSchemaId } from '../../models/roles/spec';
-import { createRevealExecutors } from './revealExecutors';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -65,6 +64,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     isHost,
     mySeatNumber,
     myRole,
+    myUid,
     roomStatus,
     currentActionRole,
     currentSchema,
@@ -87,13 +87,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     lastSeatError,
     clearLastSeatError,
     requestSnapshot,
-    getWitchContext,
-    getConfirmStatus,
-    waitForSeerReveal,
-    waitForPsychicReveal,
-    waitForGargoyleReveal,
-    waitForWolfRobotReveal,
-    waitForActionRejected,
     submitRevealAck,
   } = useGameRoom();
 
@@ -348,9 +341,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       hasWolfVoted,
       getWolfVoteSummary: () =>
         gameState ? getWolfVoteSummary(toGameRoomLike(gameState)) : '0/0 狼人已投票',
-      getWitchContext,
+      getWitchContext: () => gameState?.witchContext ?? null,
     }),
-    [gameState, hasWolfVoted, getWitchContext],
+    [gameState, hasWolfVoted],
   );
 
   const {
@@ -390,17 +383,19 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ───────────────────────────────────────────────────────────────────────────
   // Execution Layer: proceedWithAction
-  // Implements "reject-first" pattern: wait for ACTION_REJECTED before proceeding.
-  // @see docs/architecture/unified-host-reject-and-wolf-rules.zh-CN.md
+  // Action rejection is now checked via gameState.actionRejected after state update.
   // ───────────────────────────────────────────────────────────────────────────
 
   const proceedWithAction = useCallback(
     async (targetIndex: number | null, extra?: any): Promise<boolean> => {
       await submitAction(targetIndex, extra);
 
-      // Wait for potential rejection first (short timeout: 800ms)
-      const rejected = await waitForActionRejected();
-      if (rejected) {
+      // Give a brief moment for state to update (Host broadcasts state with rejection)
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Check if action was rejected (via gameState.actionRejected targeting our uid)
+      const rejected = gameState?.actionRejected;
+      if (rejected && rejected.targetUid === myUid) {
         // Show rejection alert with reason from Host
         actionDialogs.showActionRejectedAlert(rejected.reason);
         return false; // Action was rejected
@@ -408,7 +403,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       return true; // Action was accepted
     },
-    [submitAction, waitForActionRejected, actionDialogs],
+    [submitAction, gameState?.actionRejected, myUid, actionDialogs],
   );
 
   // ---------------------------------------------------------------------------------
@@ -517,42 +512,41 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             return;
           }
 
-          const revealExecutors = createRevealExecutors({
-            seer: {
-              wait: waitForSeerReveal,
-              ack: () => submitRevealAckSafe('seer'),
-              timeoutLog: 'seerReveal',
-            },
-            psychic: {
-              wait: waitForPsychicReveal,
-              ack: () => submitRevealAckSafe('psychic'),
-              timeoutLog: 'psychicReveal',
-            },
-            gargoyle: {
-              wait: waitForGargoyleReveal,
-              ack: () => submitRevealAckSafe('gargoyle'),
-              timeoutLog: 'gargoyleReveal',
-            },
-            wolfRobot: {
-              wait: waitForWolfRobotReveal,
-              ack: () => submitRevealAckSafe('wolfRobot'),
-              timeoutLog: 'wolfRobotReveal',
-            },
-          });
+          const revealKind = intent.revealKind;
 
-          const exec = revealExecutors[intent.revealKind];
+          // Get reveal data from gameState after action is processed
+          const getRevealData = (): { targetSeat: number; result: string } | undefined => {
+            const state = gameStateRef.current;
+            if (!state) return undefined;
+            switch (revealKind) {
+              case 'seer':
+                return state.seerReveal;
+              case 'psychic':
+                return state.psychicReveal;
+              case 'gargoyle':
+                return state.gargoyleReveal;
+              case 'wolfRobot':
+                return state.wolfRobotReveal;
+              default:
+                return undefined;
+            }
+          };
+
           confirmThenAct(intent.targetIndex, async () => {
-            const reveal = await exec.wait();
+            // Wait for state to propagate (Host sets reveal data after processing action)
+            await new Promise((resolve) => setTimeout(resolve, 150));
+
+            const reveal = getRevealData();
             if (reveal) {
               actionDialogs.showRevealDialog(
                 `${reveal.targetSeat + 1}号是${reveal.result}`,
                 '',
                 () => {
-                  exec.ack();
+                  submitRevealAckSafe(revealKind);
                 },
               );
             } else {
-              roomScreenLog.warn(` ${exec.timeoutLog} timeout - no reveal received`);
+              roomScreenLog.warn(` ${revealKind}Reveal timeout - no reveal received`);
             }
           });
           break;
@@ -661,9 +655,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
         case 'actionPrompt': {
           // Schema-driven prompt.
-          // WitchAction uses private WitchContext for dynamic info; template copy comes from schema.
+          // WitchAction uses witchContext from gameState for dynamic info; template copy comes from schema.
           if (currentSchema?.kind === 'compound' && currentSchema.id === 'witchAction') {
-            const witchCtx = getWitchContext();
+            const witchCtx = gameState?.witchContext;
             if (!witchCtx) return;
             actionDialogs.showWitchInfoPrompt(witchCtx, currentSchema, () => {
               // dismiss → do nothing, wait for user to tap seat / use bottom buttons
@@ -704,13 +698,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
         case 'confirmTrigger': {
           // Hunter/DarkWolfKing: show status dialog (can shoot or not), then submit action
-          // ANTI-CHEAT: Status comes from Host via private message (CONFIRM_STATUS)
+          // Status comes from gameState.confirmStatus (Host computed and broadcast)
           if (!gameState) break;
 
-          // Get status from private message (Host computed)
-          const confirmStatus = getConfirmStatus();
+          // Get status from gameState (Host computed)
+          const confirmStatus = gameState.confirmStatus;
 
-          let canShoot = true; // Default if no private message (shouldn't happen in normal flow)
+          let canShoot = true; // Default if no status (shouldn't happen in normal flow)
 
           if (myRole === 'hunter') {
             if (confirmStatus?.role === 'hunter') {
@@ -751,17 +745,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       currentSchema,
       currentActionRole,
       findVotingWolfSeat,
-      getConfirmStatus,
       getMagicianTarget,
       getSubStepByKey,
-      getWitchContext,
+      hasWolfVoted,
       proceedWithActionTyped,
       submitRevealAckSafe,
       submitWolfVote,
-      waitForGargoyleReveal,
-      waitForPsychicReveal,
-      waitForSeerReveal,
-      waitForWolfRobotReveal,
     ],
   );
 
