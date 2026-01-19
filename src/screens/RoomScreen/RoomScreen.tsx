@@ -294,8 +294,21 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Wolf kill disabled: true if nightmare blocked a wolf (all wolves can only skip)
   const wolfKillDisabled = useMemo(() => {
-    return gameState?.wolfKillDisabled ?? false;
-  }, [gameState]);
+    const value = gameState?.wolfKillDisabled ?? false;
+    // Debug log for wolf kill disabled
+    if (gameState && currentActionRole === 'wolf') {
+      console.log(
+        '[RoomScreen] wolfKillDisabled check:',
+        'gameState.wolfKillDisabled=',
+        gameState.wolfKillDisabled,
+        'computed=',
+        value,
+        'nightmareBlockedSeat=',
+        gameState.nightmareBlockedSeat,
+      );
+    }
+    return value;
+  }, [gameState, currentActionRole]);
 
   // ───────────────────────────────────────────────────────────────────────────
   // Intent Layer: useRoomActions
@@ -548,7 +561,28 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         case 'wolfVote':
           {
             const seat = intent.wolfSeat ?? findVotingWolfSeat();
-            if (seat === null) return;
+            roomScreenLog.info(
+              '[handleActionIntent] wolfVote:',
+              'intent.wolfSeat=',
+              intent.wolfSeat,
+              'findVotingWolfSeat()=',
+              findVotingWolfSeat(),
+              'seat=',
+              seat,
+              'targetIndex=',
+              intent.targetIndex,
+            );
+            if (seat === null) {
+              roomScreenLog.warn(
+                '[handleActionIntent] wolfVote: seat is null, returning early. myRole=',
+                myRole,
+                'mySeatNumber=',
+                mySeatNumber,
+                'hasWolfVoted=',
+                mySeatNumber !== null ? hasWolfVoted(mySeatNumber) : 'N/A',
+              );
+              return;
+            }
             actionDialogs.showWolfVoteDialog(
               `${seat + 1}号狼人`,
               intent.targetIndex,

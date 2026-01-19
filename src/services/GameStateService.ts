@@ -1557,6 +1557,18 @@ export class GameStateService {
       `applyStateUpdate complete: mySeatNumber=${this.mySeatNumber}, myUid=${this.myUid?.substring(0, 8)}, status=${broadcastState.status}`,
     );
 
+    // Rebuild wolfVotes from wolfVoteStatus (anti-cheat: only track who voted, not targets)
+    // Players need to know who has voted to update imActioner state.
+    const wolfVotes = new Map<number, number>();
+    if (broadcastState.wolfVoteStatus) {
+      for (const [seatStr, hasVoted] of Object.entries(broadcastState.wolfVoteStatus)) {
+        if (hasVoted) {
+          // Use -999 as placeholder target (players don't see actual targets)
+          wolfVotes.set(Number.parseInt(seatStr, 10), -999);
+        }
+      }
+    }
+
     this.state = {
       roomCode: broadcastState.roomCode,
       hostUid: broadcastState.hostUid,
@@ -1564,7 +1576,7 @@ export class GameStateService {
       template,
       players,
       actions: new Map(), // Players don't see actions
-      wolfVotes: new Map(),
+      wolfVotes,
       currentActionerIndex: broadcastState.currentActionerIndex,
       isAudioPlaying: broadcastState.isAudioPlaying,
       lastNightDeaths: this.state?.lastNightDeaths ?? [],
@@ -2922,6 +2934,22 @@ export class GameStateService {
     this.stateRevision++;
 
     const broadcastState = this.toBroadcastState();
+
+    // Sync computed fields to Host's local state so Host UI sees them too.
+    // These values are computed in toBroadcastState() for broadcast, but Host reads this.state directly.
+    // Without this sync, Host UI would see undefined for these fields.
+    if (
+      this.state.nightmareBlockedSeat !== broadcastState.nightmareBlockedSeat ||
+      this.state.wolfKillDisabled !== broadcastState.wolfKillDisabled
+    ) {
+      this.state = {
+        ...this.state,
+        nightmareBlockedSeat: broadcastState.nightmareBlockedSeat,
+        wolfKillDisabled: broadcastState.wolfKillDisabled,
+      };
+      this.notifyListeners();
+    }
+
     await this.broadcastService.broadcastAsHost({
       type: 'STATE_UPDATE',
       state: broadcastState,
@@ -2971,8 +2999,18 @@ export class GameStateService {
     let wolfKillDisabled: boolean | undefined;
     if (nightmareBlockedSeat !== undefined) {
       const blockedPlayer = this.state.players.get(nightmareBlockedSeat);
+      hostLog.debug(
+        '[toBroadcastState] wolfKillDisabled check:',
+        'nightmareBlockedSeat=',
+        nightmareBlockedSeat,
+        'blockedPlayer.role=',
+        blockedPlayer?.role,
+        'isWolfRole=',
+        blockedPlayer?.role ? isWolfRole(blockedPlayer.role) : false,
+      );
       if (blockedPlayer?.role && isWolfRole(blockedPlayer.role)) {
         wolfKillDisabled = true;
+        hostLog.info('[toBroadcastState] wolfKillDisabled set to TRUE');
       }
     }
 

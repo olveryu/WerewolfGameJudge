@@ -397,7 +397,11 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
             {
               key: 'wolfEmpty',
               label: BLOCKED_UI_DEFAULTS.skipButtonText,
-              intent: { type: 'wolfVote', targetIndex: -1 },
+              intent: {
+                type: 'wolfVote',
+                targetIndex: -1,
+                wolfSeat: mySeatNumber ?? undefined,
+              },
             },
           ],
         };
@@ -421,7 +425,11 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
           {
             key: 'wolfEmpty',
             label: '今晚被封锁，只能空刀',
-            intent: { type: 'wolfVote', targetIndex: -1 },
+            intent: {
+              type: 'wolfVote',
+              targetIndex: -1,
+              wolfSeat: mySeatNumber ?? undefined,
+            },
           },
         ],
       };
@@ -437,8 +445,11 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
           {
             key: 'wolfEmpty',
             label: currentSchema.ui?.emptyVoteText || '投票空刀',
-            // NOTE: wolfSeat is derived by RoomScreen on intent handling; omit here.
-            intent: { type: 'wolfVote', targetIndex: -1 },
+            intent: {
+              type: 'wolfVote',
+              targetIndex: -1,
+              wolfSeat: mySeatNumber ?? undefined,
+            },
           },
         ],
       };
@@ -539,6 +550,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     wolfKillDisabled,
     currentSchema,
     roomStatus,
+    mySeatNumber,
   ]);
 
   // ─────────────────────────────────────────────────────────────────────────
