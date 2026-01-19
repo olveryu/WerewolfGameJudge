@@ -12,22 +12,28 @@ import {
 import type { RoleId } from '../../../models/roles';
 import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { GameStatus } from '../../../services/GameStateService';
-import { NIGHT_STEPS } from '../../../models/roles/spec/nightSteps';
+import { SCHEMAS } from '../../../models/roles/spec/schemas';
 
 // =============================================================================
 // determineActionerState
 // =============================================================================
 
 describe('determineActionerState', () => {
+  // Helper to get wolfKill schema (has meeting config)
+  const wolfKillSchema = SCHEMAS.wolfKill;
+  // Helper to get a non-wolfVote schema
+  const seerCheckSchema = SCHEMAS.seerCheck;
+  const nightmareBlockSchema = SCHEMAS.nightmareBlock;
+
   it('should return imActioner=true when my role matches current action role', () => {
     const result = determineActionerState(
       'seer', // myRole
       'seer', // currentActionRole
+      seerCheckSchema, // currentSchema
       0, // mySeatNumber
       new Map(), // wolfVotes
       false, // isHost
       new Map(), // actions
-      NIGHT_STEPS.find((s) => s.id === 'seerCheck')?.visibility,
     );
 
     expect(result.imActioner).toBe(true);
@@ -41,26 +47,26 @@ describe('determineActionerState', () => {
     const result = determineActionerState(
       'wolf', // myRole
       'wolf', // currentActionRole
+      wolfKillSchema, // currentSchema
       1, // mySeatNumber (same as voted seat)
       wolfVotes,
       false,
       new Map(),
-      NIGHT_STEPS.find((s) => s.id === 'wolfKill')?.visibility,
     );
 
     expect(result.imActioner).toBe(false);
-    expect(result.showWolves).toBe(true);
+    expect(result.showWolves).toBe(true); // Still sees wolves during wolf meeting
   });
 
   it('should return showWolves=true for wolf team during wolf turn (not yet voted)', () => {
     const result = determineActionerState(
-      'darkWolfKing', // myRole (a wolf role)
+      'darkWolfKing', // myRole (a wolf role that participates in vote)
       'wolf', // currentActionRole
+      wolfKillSchema, // currentSchema
       2, // mySeatNumber
       new Map(), // wolfVotes (empty, not voted)
       false,
       new Map(),
-      NIGHT_STEPS.find((s) => s.id === 'wolfKill')?.visibility,
     );
 
     expect(result.imActioner).toBe(true);
@@ -71,140 +77,82 @@ describe('determineActionerState', () => {
     const result = determineActionerState(
       'seer',
       null, // no current action
+      null, // no schema
       0,
       new Map(),
       false,
       new Map(),
-      undefined,
     );
 
     expect(result.imActioner).toBe(false);
     expect(result.showWolves).toBe(false);
   });
 
-  it('should apply wolf visibility rules (phase-based for nightmare, meeting wolves for pack)', () => {
-    // Nightmare fear step: solo, does NOT see wolves
-    const nightmareFear = determineActionerState(
+  it('should NOT show wolves during nightmare fear phase (chooseSeat schema)', () => {
+    // Nightmare fear step uses chooseSeat schema, not wolfVote
+    // So nightmare does NOT see wolves during their own action
+    const result = determineActionerState(
       'nightmare',
       'nightmare',
+      nightmareBlockSchema,
       0,
       new Map(),
       false,
       new Map(),
-      NIGHT_STEPS.find((s) => s.id === 'nightmareBlock')?.visibility,
     );
-    expect(nightmareFear.showWolves).toBe(false);
+    expect(result.imActioner).toBe(true);
+    expect(result.showWolves).toBe(false);
+  });
 
-    // WolfRobot/Gargoyle are non-meeting wolves: their own step shouldn't show wolves
-    const gargoyleSelfStep = determineActionerState(
+  it('should NOT show wolves for non-voting wolves (gargoyle, wolfRobot) during wolf turn', () => {
+    // Gargoyle and wolfRobot do NOT participate in wolf vote
+    const gargoyleResult = determineActionerState(
       'gargoyle',
-      'gargoyle',
+      'wolf',
+      wolfKillSchema,
       0,
       new Map(),
       false,
       new Map(),
-      NIGHT_STEPS.find((s) => s.id === 'gargoyleCheck')?.visibility,
     );
-    expect(gargoyleSelfStep.showWolves).toBe(false);
+    expect(gargoyleResult.showWolves).toBe(false);
 
-    const wolfRobotSelfStep = determineActionerState(
+    const wolfRobotResult = determineActionerState(
       'wolfRobot',
-      'wolfRobot',
+      'wolf',
+      wolfKillSchema,
       0,
       new Map(),
       false,
       new Map(),
-      NIGHT_STEPS.find((s) => s.id === 'wolfRobotLearn')?.visibility,
     );
-    expect(wolfRobotSelfStep.showWolves).toBe(false);
+    expect(wolfRobotResult.showWolves).toBe(false);
+  });
 
-    // SpiritKnight is a meeting wolf: should see wolves when it's their turn (if any)
-    const spiritKnightSelf = determineActionerState(
-      'spiritKnight',
-      'spiritKnight',
-      0,
-      new Map(),
-      false,
-      new Map(),
-      // Visibility is now step-authoritative; if the current schema doesn't define visibility,
-      // we default to conservative "don't show wolves".
-      undefined,
-    );
-    expect(spiritKnightSelf.showWolves).toBe(false);
-
-    // Wolf turn: participating wolves see pack list
+  it('should show wolves for participating wolves during wolf turn', () => {
+    // Nightmare participates in wolf vote
     const nightmareWolfTurn = determineActionerState(
       'nightmare',
       'wolf',
+      wolfKillSchema,
       0,
       new Map(),
       false,
       new Map(),
-      NIGHT_STEPS.find((s) => s.id === 'wolfKill')?.visibility,
     );
     expect(nightmareWolfTurn.showWolves).toBe(true);
+
+    // SpiritKnight participates in wolf vote
     const spiritKnightWolfTurn = determineActionerState(
       'spiritKnight',
       'wolf',
+      wolfKillSchema,
       0,
       new Map(),
       false,
       new Map(),
-      NIGHT_STEPS.find((s) => s.id === 'wolfKill')?.visibility,
     );
     expect(spiritKnightWolfTurn.showWolves).toBe(true);
-
-    // Wolf turn: non-voting wolves do NOT see pack list
-    const gargoyleWolfTurn = determineActionerState(
-      'gargoyle',
-      'wolf',
-      0,
-      new Map(),
-      false,
-      new Map(),
-      NIGHT_STEPS.find((s) => s.id === 'wolfKill')?.visibility,
-    );
-    expect(gargoyleWolfTurn.showWolves).toBe(false);
-    const wolfRobotWolfTurn = determineActionerState(
-      'wolfRobot',
-      'wolf',
-      0,
-      new Map(),
-      false,
-      new Map(),
-      NIGHT_STEPS.find((s) => s.id === 'wolfKill')?.visibility,
-    );
-    expect(wolfRobotWolfTurn.showWolves).toBe(false);
-  });
-
-  it('should not show wolves for non-meeting wolves even on their own (non-solo) step', () => {
-    // Assert the new rule surface: when a step is explicitly non-solo,
-    // only meeting wolves (participating in vote) can see the pack list.
-    const nonSoloVisibility = { actsSolo: false };
-
-    const wolfRobot = determineActionerState(
-      'wolfRobot',
-      'wolfRobot',
-      0,
-      new Map(),
-      false,
-      new Map(),
-      nonSoloVisibility,
-    );
-    expect(wolfRobot.imActioner).toBe(true);
-    expect(wolfRobot.showWolves).toBe(false);
-
-    const gargoyle = determineActionerState(
-      'gargoyle',
-      'gargoyle',
-      0,
-      new Map(),
-      false,
-      new Map(),
-      nonSoloVisibility,
-    );
-    expect(gargoyle.imActioner).toBe(true);
-    expect(gargoyle.showWolves).toBe(false);
   });
 
   it('should return imActioner=false when non-wolf role has already submitted action', () => {
@@ -215,6 +163,7 @@ describe('determineActionerState', () => {
     const result = determineActionerState(
       'seer', // myRole
       'seer', // currentActionRole
+      seerCheckSchema,
       0, // mySeatNumber
       new Map(), // wolfVotes
       false, // isHost
@@ -230,6 +179,7 @@ describe('determineActionerState', () => {
     const result = determineActionerState(
       'witch', // myRole
       'witch', // currentActionRole
+      SCHEMAS.witchAction,
       1, // mySeatNumber
       new Map(), // wolfVotes
       false, // isHost

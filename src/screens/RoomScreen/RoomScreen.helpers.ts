@@ -20,7 +20,7 @@ import {
 import type { LocalGameState } from '../../services/types/GameStateTypes';
 import type { GameRoomLike } from '../../models/Room';
 import type { RoleAction } from '../../models/actions/RoleAction';
-import type { TargetConstraint } from '../../models/roles/spec';
+import type { ActionSchema, TargetConstraint } from '../../models/roles/spec';
 
 // =============================================================================
 // Types
@@ -29,16 +29,6 @@ import type { TargetConstraint } from '../../models/roles/spec';
 export interface ActionerState {
   imActioner: boolean;
   showWolves: boolean;
-}
-
-export interface StepVisibilityLike {
-  /**
-   * Whether this step is a "solo" action where even wolves shouldn't see the pack list.
-   * NOTE: When present, this is the single source of truth.
-   */
-  actsSolo?: boolean;
-  /** True when the night flow is in a wolf-meeting phase where pack list can be shown. */
-  wolfMeetingPhase?: boolean;
 }
 
 // Re-export GameRoomLike for convenience
@@ -83,8 +73,14 @@ export interface SeatViewModel {
 /**
  * Determine if the current player is the actioner and whether to show wolves
  *
+ * Schema-driven logic:
+ * - showWolves = true only when:
+ *   1. schema.kind === 'wolfVote' AND schema.meeting.canSeeEachOther === true
+ *   2. myRole is a wolf that participates in wolf vote
+ *
  * @param myRole - Current player's role
  * @param currentActionRole - The role that should act now
+ * @param currentSchema - Current action schema (schema-driven UI)
  * @param mySeatNumber - Current player's seat number
  * @param wolfVotes - Map of wolf votes (seat -> target)
  * @param isHost - Whether current player is host (unused but kept for future)
@@ -93,33 +89,29 @@ export interface SeatViewModel {
 export function determineActionerState(
   myRole: RoleId | null,
   currentActionRole: RoleId | null,
+  currentSchema: ActionSchema | null,
   mySeatNumber: number | null,
   wolfVotes: Map<number, number>,
   _isHost: boolean,
   actions: Map<RoleId, RoleAction> = new Map(),
-  visibility?: StepVisibilityLike,
 ): ActionerState {
   if (!currentActionRole) {
     return { imActioner: false, showWolves: false };
   }
 
-  // Step visibility is the single source of truth.
-  // When actsSolo=true, the actioner cannot see wolves (anti-cheat).
-  if (myRole === currentActionRole && visibility?.actsSolo === true) {
-    // Still an actioner (unless already acted), but never show wolves.
-    const state = handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions, visibility);
-    return { ...state, showWolves: false };
-  }
+  // Schema-driven: determine if this is a wolf meeting phase
+  const isWolfMeetingSchema =
+    currentSchema?.kind === 'wolfVote' && currentSchema.meeting?.canSeeEachOther === true;
 
   // My role matches current action
   if (myRole === currentActionRole) {
-    return handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions, visibility);
+    return handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions, isWolfMeetingSchema);
   }
 
-  // Wolf meeting phase: participating wolves can see pack list.
-  // NOTE: visibility.wolfMeetingPhase is the single source of truth for when the pack list is shown.
-  if (visibility?.wolfMeetingPhase === true && myRole && isWolfRole(myRole)) {
+  // Wolf meeting phase: participating wolves can see pack list and act
+  if (isWolfMeetingSchema && myRole && isWolfRole(myRole)) {
     if (!doesRoleParticipateInWolfVote(myRole)) {
+      // Non-voting wolves (e.g., wolfRobot) cannot see the pack
       return { imActioner: false, showWolves: false };
     }
     return handleWolfTeamTurn(mySeatNumber, wolfVotes);
@@ -133,11 +125,11 @@ function handleMatchingRole(
   mySeatNumber: number | null,
   wolfVotes: Map<number, number>,
   actions: Map<RoleId, RoleAction>,
-  visibility?: StepVisibilityLike,
+  isWolfMeetingSchema: boolean,
 ): ActionerState {
   // For wolves, check if already voted
   if (myRole === 'wolf' && mySeatNumber !== null && wolfVotes.has(mySeatNumber)) {
-    return { imActioner: false, showWolves: true };
+    return { imActioner: false, showWolves: isWolfMeetingSchema };
   }
 
   // For non-wolf roles, check if action already submitted
@@ -146,18 +138,9 @@ function handleMatchingRole(
     return { imActioner: false, showWolves: false };
   }
 
-  // PR4: Prefer step visibility for wolf pack display.
-  // - actsSolo=true   => never show wolves
-  // - actsSolo=false  => show wolves for meeting wolves (participate in vote)
-  // - actsSolo=undef  => conservative default (anti-cheat): do not show wolves
-  let showWolves: boolean;
-  if (visibility?.actsSolo === true) {
-    showWolves = false;
-  } else if (visibility?.actsSolo === false) {
-    showWolves = isWolfRole(myRole) && doesRoleParticipateInWolfVote(myRole);
-  } else {
-    showWolves = false;
-  }
+  // Schema-driven: show wolves only during wolf meeting with canSeeEachOther
+  const showWolves =
+    isWolfMeetingSchema && isWolfRole(myRole) && doesRoleParticipateInWolfVote(myRole);
 
   return { imActioner: true, showWolves };
 }

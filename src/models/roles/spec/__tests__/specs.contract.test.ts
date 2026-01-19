@@ -96,10 +96,8 @@ describe('ROLE_SPECS contract', () => {
   });
 
   describe('nightmare spec', () => {
-    it('nightmare step should have actsSolo=true (from NIGHT_STEPS visibility)', () => {
-      const step = NIGHT_STEPS.find((s) => s.roleId === 'nightmare');
-      expect(step?.visibility.actsSolo).toBe(true);
-    });
+    // NOTE: actsSolo test removed - visibility is now derived from schema.meeting
+    // Nightmare acts solo because nightmareBlock is kind='chooseSeat', not 'wolfVote'
 
     it('should participate in wolf meeting (canSeeWolves=true, participatesInWolfVote=true)', () => {
       expect(ROLE_SPECS.nightmare.wolfMeeting?.canSeeWolves).toBe(true);

@@ -34,17 +34,6 @@ export interface NightPlanStep {
 
   /** Audio key for this step */
   readonly audioKey: string;
-
-  /**
-   * Whether this role acts alone in this step (cannot see teammates).
-   *
-   * CONTRACT:
-   * - true: Acts solo, cannot see wolf teammates, but CAN see self (seat/role).
-   * - false/undefined: Normal visibility based on wolfMeeting config.
-   *
-   * Example: nightmare fear phase has actsSolo=true.
-   */
-  readonly actsSolo: boolean;
 }
 
 /** Complete night plan for a game */

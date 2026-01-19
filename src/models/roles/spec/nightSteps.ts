@@ -16,6 +16,8 @@ import type { StepSpec } from './nightSteps.types';
  *
  * 每个步骤代表一个角色在 Night-1 的行动。
  * 数组顺序即夜晚行动顺序。
+ *
+ * NOTE: 步骤可见性现由 schema.meeting 推导，不再在此定义。
  */
 const NIGHT_STEPS_INTERNAL = [
   // === 特殊角色（最先行动）===
@@ -23,13 +25,11 @@ const NIGHT_STEPS_INTERNAL = [
     id: 'magicianSwap',
     roleId: 'magician',
     audioKey: 'magician',
-    visibility: { actsSolo: true },
   },
   {
     id: 'slackerChooseIdol',
     roleId: 'slacker',
     audioKey: 'slacker',
-    visibility: { actsSolo: true },
   },
 
   // === 守护/查验类（狼刀前）===
@@ -37,31 +37,26 @@ const NIGHT_STEPS_INTERNAL = [
     id: 'wolfRobotLearn',
     roleId: 'wolfRobot',
     audioKey: 'wolf_robot',
-    visibility: { actsSolo: true }, // 机器狼不知道狼队友
   },
   {
     id: 'dreamcatcherDream',
     roleId: 'dreamcatcher',
     audioKey: 'dreamcatcher',
-    visibility: { actsSolo: true },
   },
   {
     id: 'gargoyleCheck',
     roleId: 'gargoyle',
     audioKey: 'gargoyle',
-    visibility: { actsSolo: true }, // 石像鬼不知道狼队友
   },
   {
     id: 'nightmareBlock',
     roleId: 'nightmare',
     audioKey: 'nightmare',
-    visibility: { actsSolo: true }, // 梦魇恐惧阶段独立行动
   },
   {
     id: 'guardProtect',
     roleId: 'guard',
     audioKey: 'guard',
-    visibility: { actsSolo: true },
   },
 
   // === 狼人会议阶段 ===
@@ -69,13 +64,12 @@ const NIGHT_STEPS_INTERNAL = [
     id: 'wolfKill',
     roleId: 'wolf',
     audioKey: 'wolf',
-    visibility: { actsSolo: false, wolfMeetingPhase: true },
   },
+  // 狼美人魅惑是个人行动（不是狼人会议），但在狼刀后执行
   {
     id: 'wolfQueenCharm',
     roleId: 'wolfQueen',
     audioKey: 'wolf_queen',
-    visibility: { actsSolo: false, wolfMeetingPhase: true },
   },
 
   // === 女巫 ===
@@ -83,7 +77,6 @@ const NIGHT_STEPS_INTERNAL = [
     id: 'witchAction',
     roleId: 'witch',
     audioKey: 'witch',
-    visibility: { actsSolo: true },
   },
 
   // === 查验类 ===
@@ -91,13 +84,11 @@ const NIGHT_STEPS_INTERNAL = [
     id: 'seerCheck',
     roleId: 'seer',
     audioKey: 'seer',
-    visibility: { actsSolo: true },
   },
   {
     id: 'psychicCheck',
     roleId: 'psychic',
     audioKey: 'psychic',
-    visibility: { actsSolo: true },
   },
 
   // === 确认类 ===
@@ -105,13 +96,11 @@ const NIGHT_STEPS_INTERNAL = [
     id: 'hunterConfirm',
     roleId: 'hunter',
     audioKey: 'hunter',
-    visibility: { actsSolo: true },
   },
   {
     id: 'darkWolfKingConfirm',
     roleId: 'darkWolfKing',
     audioKey: 'dark_wolf_king',
-    visibility: { actsSolo: true },
   },
 ] as const satisfies readonly StepSpec[];
 
