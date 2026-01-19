@@ -1587,4 +1587,174 @@ git commit -m "Revert: GameStateService refactor"
 
 ---
 
+## 附录 A：全局 SRP 违规清单
+
+> 本附录列出整个代码库中违反单一职责原则 (SRP) 的文件，按严重程度排序。
+> **规则**：每个 class/module 不应超过 ~400 行或处理多个不相关的职责。
+
+### A.1 严重违规（>600 行，必须重构）
+
+| 文件 | 行数 | 问题 | 建议拆分 |
+|------|------|------|----------|
+| `src/services/GameStateService.ts` | 2652 | God Class，7 个职责混合 | 见本文档 Phase 1-8 |
+| `src/screens/RoomScreen/RoomScreen.tsx` | 1183 | UI + 状态协调 + 多个 dialogs | 见 A.2 建议 |
+| `src/models/Room.ts` | 939 | 模型定义 + 序列化 + 工具函数 + 游戏逻辑 | 见 A.2 建议 |
+| `src/screens/SettingsScreen/SettingsScreen.tsx` | 875 | UI + 样式 + 多个独立功能区 | 提取子组件 |
+| `src/screens/HomeScreen/HomeScreen.tsx` | 840 | UI + 样式 + 多个 modals | 提取子组件 |
+| `src/screens/ConfigScreen/ConfigScreen.tsx` | 662 | UI + 样式 + 模板验证逻辑 | 提取子组件 |
+| `src/screens/RoomScreen/hooks/useRoomActions.ts` | 655 | 多种 action intent 逻辑 | 按 schema kind 拆分 |
+
+### A.2 中等违规（400-600 行，应当重构）
+
+| 文件 | 行数 | 问题 | 建议拆分 |
+|------|------|------|----------|
+| `src/hooks/useGameRoom.ts` | 490 | 多个关注点：房间管理 + 座位 + 行动 + 连接 | 提取子 hooks |
+| `src/services/BroadcastService.ts` | 432 | 类型定义 + 连接管理 + 消息处理 | 分离类型文件 |
+
+### A.3 建议的重构方案
+
+#### A.3.1 RoomScreen.tsx (1183 行)
+
+**当前职责混合**：
+1. 屏幕布局和导航
+2. 状态读取和转换
+3. 多个 dialog 的状态管理
+4. Host/Player 分支逻辑
+5. 夜晚进度显示
+
+**建议拆分**：
+
+```
+src/screens/RoomScreen/
+├── RoomScreen.tsx              # 只负责布局协调 (~200 行)
+├── RoomScreen.helpers.ts       # ✅ 已存在，纯函数
+├── hooks/
+│   ├── useRoomInit.ts          # 初始化逻辑
+│   ├── useRoomActions.ts       # ✅ 已存在，但需拆分
+│   ├── useActionerState.ts     # ✅ 已存在
+│   └── useRoomDialogs.ts       # 合并所有 dialog 状态 (新增)
+├── components/
+│   ├── RoomHeader.tsx          # 顶部导航 (新增)
+│   ├── HostControlPanel.tsx    # Host 控制区 (新增)
+│   ├── PlayerControlPanel.tsx  # Player 控制区 (新增)
+│   └── ...existing components
+└── dialogs/
+    ├── ActionDialog.tsx        # 通用行动确认 (新增)
+    ├── WolfVoteDialog.tsx      # 狼人投票 (新增)
+    └── RevealDialog.tsx        # 查验结果 (新增)
+```
+
+#### A.3.2 Room.ts (939 行)
+
+**当前职责混合**：
+1. `Room` 接口定义
+2. `GameRoomLike` 接口 (兼容层)
+3. 序列化/反序列化
+4. 游戏逻辑函数 (getWolfVoteSummary, getPlayersNotViewedRole 等)
+5. 验证函数
+
+**建议拆分**：
+
+```
+src/models/
+├── Room.ts                     # 只保留 Room 接口 + createRoom (~150 行)
+├── Room.types.ts               # 类型定义 (新增 ~100 行)
+├── Room.serialization.ts       # 序列化/反序列化 (新增 ~200 行)
+├── Room.queries.ts             # 查询函数 (新增 ~200 行)
+│   ├── getWolfVoteSummary()
+│   ├── getPlayersNotViewedRole()
+│   ├── getCurrentActionerRole()
+│   └── ...
+└── Room.validation.ts          # 验证函数 (新增 ~100 行)
+```
+
+#### A.3.3 useRoomActions.ts (655 行)
+
+**当前职责混合**：
+1. ActionIntent 类型定义
+2. Wolf vote 逻辑
+3. Witch 逻辑
+4. Seer/Psychic 逻辑
+5. 其他角色逻辑
+6. Bottom button 逻辑
+
+**建议拆分**：
+
+```
+src/screens/RoomScreen/hooks/
+├── useRoomActions.ts           # 协调器 (~150 行)
+├── actions/
+│   ├── types.ts                # ActionIntent 类型 (~50 行)
+│   ├── wolfVote.ts             # 狼人投票逻辑 (~100 行)
+│   ├── witch.ts                # 女巫逻辑 (~100 行)
+│   ├── targetAction.ts         # 通用 target 逻辑 (~100 行)
+│   ├── confirmAction.ts        # 确认类行动逻辑 (~100 行)
+│   └── bottomButton.ts         # 底部按钮逻辑 (~100 行)
+└── index.ts
+```
+
+#### A.3.4 useGameRoom.ts (490 行)
+
+**建议拆分**：
+
+```
+src/hooks/
+├── useGameRoom.ts              # 协调器 (~100 行)
+├── useGameRoomConnection.ts    # 连接状态管理 (~100 行)
+├── useGameRoomSeat.ts          # 座位操作 (~100 行)
+├── useGameRoomActions.ts       # 游戏行动 (~150 行)
+└── index.ts
+```
+
+#### A.3.5 Screen 组件通用模式
+
+对于 `SettingsScreen`, `HomeScreen`, `ConfigScreen` 等超长 Screen 组件：
+
+**问题模式**：
+- 样式定义与组件混在一起
+- 多个功能区块在同一文件
+- Modal 状态和逻辑散落
+
+**通用解决方案**：
+
+```
+src/screens/XxxScreen/
+├── XxxScreen.tsx               # 主屏幕组件 (~200-300 行)
+├── XxxScreen.styles.ts         # 样式定义 (提取)
+├── components/
+│   ├── XxxHeader.tsx           # 头部组件
+│   ├── XxxSection1.tsx         # 功能区块 1
+│   ├── XxxSection2.tsx         # 功能区块 2
+│   └── ...
+└── hooks/
+    └── useXxxState.ts          # 状态逻辑
+```
+
+### A.4 重构优先级
+
+| 优先级 | 文件 | 原因 |
+|--------|------|------|
+| P0 | `GameStateService.ts` | 核心问题，本文档主题 |
+| P1 | `Room.ts` | 模型层基础，影响多处 |
+| P1 | `useRoomActions.ts` | 行动逻辑复杂，易出 bug |
+| P2 | `RoomScreen.tsx` | 已部分模块化，继续推进 |
+| P2 | `useGameRoom.ts` | Hook 拆分相对简单 |
+| P3 | `HomeScreen.tsx` | UI 组件，影响较小 |
+| P3 | `SettingsScreen.tsx` | UI 组件，影响较小 |
+| P3 | `ConfigScreen.tsx` | UI 组件，影响较小 |
+
+### A.5 重构工作量估算（总计）
+
+| 阶段 | 内容 | 工作量 |
+|------|------|--------|
+| 本文档 Phase 1-8 | GameStateService 重构 | 25h |
+| A.3.2 | Room.ts 拆分 | 4h |
+| A.3.3 | useRoomActions.ts 拆分 | 3h |
+| A.3.1 | RoomScreen.tsx 组件化 | 6h |
+| A.3.4 | useGameRoom.ts 拆分 | 2h |
+| A.3.5 | Screen 组件样式提取 | 4h |
+| **总计** | | **~44h** |
+
+---
+
 **等待用户确认 "开始" 后执行。**
