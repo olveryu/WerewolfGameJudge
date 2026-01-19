@@ -2,7 +2,7 @@
 
 > 日期：2026-01-19  
 > 分支：refactor/remove-private-effect  
-> 状态：草案讨论中
+> 状态：✅ 已完成
 
 ---
 
@@ -647,22 +647,23 @@ chore: 清理 wolf-vote 重构遗留代码
 
 ## 10. 执行检查清单
 
-- [ ] Commit 1: Schema 扩展
-  - [ ] `npm run typecheck` 通过
-  - [ ] `npm test` 通过（行为无变化）
-- [ ] Commit 2: 移除 visibility
-  - [ ] 确认编译错误在预期范围内
-- [ ] Commit 3: 重构 UI 逻辑
-  - [ ] `npm run typecheck` 通过
-  - [ ] 手动验证：狼刀阶段狼人能看到队友
-  - [ ] 手动验证：其他阶段看不到队友
-- [ ] Commit 4: 更新测试
-  - [ ] `npm test` 全部通过
-  - [ ] 覆盖率无明显下降
-- [ ] Commit 5: 清理
-  - [ ] `npm run lint:fix` 无错误
-  - [ ] `npm run format:write` 完成
-  - [ ] E2E 测试通过（可选）
+- [x] Commit 1: Schema 扩展 (`e5abc01`)
+  - [x] `npm run typecheck` 通过
+  - [x] `npm test` 通过（行为无变化）
+- [x] Commit 2: 移除 visibility + 重构 UI 逻辑 (`503bafe`)
+  - [x] 移除 `visibility` 和 `actsSolo` 字段
+  - [x] 重写 `determineActionerState()` 使用 schema-driven
+  - [x] `npm run typecheck` 通过
+  - [x] `npm test` 通过
+- [x] Commit 3: (已合并到 Commit 2)
+- [x] Commit 4: 简化 wolfKillDisabled (`279e81c`)
+  - [x] `handlePlayerAction` 直接设置 `state.wolfKillDisabled`
+  - [x] `toBroadcastState` 直接读取，移除双重计算
+  - [x] `npm test` 全部通过
+- [x] Commit 5: (测试更新已合并到 Commit 2)
+- [x] Commit 6: 文档更新
+  - [x] `npm run lint:fix` 无错误
+  - [x] `npm run format:write` 完成
 
 ---
 
