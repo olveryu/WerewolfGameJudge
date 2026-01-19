@@ -136,6 +136,11 @@ export const SCHEMAS = {
     displayName: '狼刀',
     kind: 'wolfVote',
     constraints: [], // Neutral judge: wolves can target ANY seat
+    meeting: {
+      canSeeEachOther: true,
+      resolution: 'firstVote',
+      allowEmptyVote: true,
+    },
     ui: {
       prompt: '请选择要猎杀的玩家',
       confirmText: '确定要猎杀该玩家吗？',

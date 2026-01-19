@@ -79,8 +79,39 @@ export interface ChooseSeatSchema extends BaseActionSchema {
 export interface WolfVoteSchema extends BaseActionSchema {
   readonly kind: 'wolfVote';
   readonly constraints: readonly TargetConstraint[];
+  /** Meeting configuration for multi-player collaborative voting */
+  readonly meeting: MeetingConfig;
   // NOTE: Wolf vote target restrictions (immuneToWolfKill) are defined in
   // ROLE_SPECS.flags.immuneToWolfKill, not here. This keeps wolfKill schema neutral.
+}
+
+/**
+ * Meeting configuration for multi-player collaborative actions.
+ *
+ * Defines how a group of players coordinate on a single action (e.g., wolf kill).
+ * This is schema-level metadata; actual participant list comes from ROLE_SPECS.wolfMeeting.
+ */
+export interface MeetingConfig {
+  /**
+   * Whether participants can see each other's identities during the meeting.
+   * - true: participants see each other (e.g., wolf pack sees teammates)
+   * - false: participants act blindly (not used in current game rules)
+   */
+  readonly canSeeEachOther: boolean;
+
+  /**
+   * How the final target is determined from individual votes.
+   * - 'majority': most voted target wins (ties may result in no action)
+   * - 'firstVote': first vote wins (used for wolf kill in this app)
+   */
+  readonly resolution: 'majority' | 'firstVote';
+
+  /**
+   * Whether an empty vote (no target) is allowed.
+   * - true: wolves can choose to "空刀"
+   * - false: must select a target
+   */
+  readonly allowEmptyVote: boolean;
 }
 
 /**
