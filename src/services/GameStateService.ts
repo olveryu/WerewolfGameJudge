@@ -890,6 +890,9 @@ export class GameStateService {
     // Reveal roles require an explicit "I read it" ACK before advancing.
     // This prevents the next narration ("闭眼") from cutting off the popup.
     if (this.isRevealRole(role) && target !== null) {
+      // Broadcast the reveal result to UI before waiting for ACK
+      // NOTE: broadcastState() increments stateRevision, so we must add the ACK key AFTER broadcast
+      await this.broadcastState();
       this.pendingRevealAcks.add(this.makeRevealAckKey(this.stateRevision, role));
       // Stay in WaitingForAction until REVEAL_ACK arrives.
       return;
