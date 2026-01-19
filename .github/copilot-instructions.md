@@ -28,6 +28,35 @@ If something is unclear, ask before coding. Don't invent repo facts.
 - `src/services/night/resolvers/**`: host-only pure resolution + validation.
 - `src/screens/RoomScreen/components/**`: UI-only, no service imports.
 
+### Resolver Integration Architecture
+
+```
+ACTION (UI submit)
+    │
+    ▼
+GameStateService.handlePlayerAction()
+    │
+    ├─ 1. buildActionInput() - 从 wire protocol 构建 ActionInput
+    │
+    ├─ 2. invokeResolver() - 调用 Resolver 纯函数
+    │      └─▶ 返回 { valid, rejectReason?, updates?, result? }
+    │
+    ├─ 3. 如果 !valid → 拒绝，广播 actionRejected
+    │
+    └─ 4. 如果 valid → applyResolverResult()
+           ├─ 合并 updates → state.currentNightResults
+           ├─ 设置 reveal 结果 (seerReveal, psychicReveal, etc.)
+           └─ 记录 action → state.actions
+    │
+    ▼
+advanceToNextAction()
+```
+
+**关键原则:**
+- **Resolver 是唯一的验证和计算逻辑来源** - Host 不做业务逻辑计算
+- **currentNightResults 在步骤间传递累积结果** (如 nightmare block → wolfKillDisabled)
+- **reveal 结果从 resolver 读取** - 不在 Host 中重新计算
+
 ### Role/Schema/Step 三层架构
 
 ```
