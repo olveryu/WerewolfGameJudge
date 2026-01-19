@@ -387,50 +387,34 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     if (roomStatus !== GameStatus.ongoing) return { buttons: [] };
     if (isAudioPlaying) return { buttons: [] };
 
-    // Nightmare blocked: UX-only skip button (Host still rejects illegal actions).
-    // EXCEPTION: Blocked wolves during wolfVote should still use wolfVote intent (target=-1)
-    // so that only their vote is recorded, not advancing the entire phase.
-    if (isBlockedByNightmare) {
-      if (currentSchema?.kind === 'wolfVote') {
-        // Blocked wolf: send wolfVote with -1 (empty vote), not skip
-        return {
-          buttons: [
-            {
-              key: 'wolfEmpty',
-              label: BLOCKED_UI_DEFAULTS.skipButtonText,
-              intent: {
-                type: 'wolfVote',
-                targetIndex: -1,
-                wolfSeat: mySeatNumber ?? undefined,
-              },
+    // Wolf kill disabled: when nightmare blocked a wolf, ALL wolves can only empty vote.
+    // This includes both the blocked wolf themselves AND their teammates.
+    // NOTE: When a wolf is blocked, Host sets wolfKillDisabled=true, so checking
+    // wolfKillDisabled alone is sufficient (no need to also check isBlockedByNightmare).
+    if (wolfKillDisabled && currentSchema?.kind === 'wolfVote') {
+      return {
+        buttons: [
+          {
+            key: 'wolfEmpty',
+            label: BLOCKED_UI_DEFAULTS.skipButtonText,
+            intent: {
+              type: 'wolfVote',
+              targetIndex: -1,
+              wolfSeat: mySeatNumber ?? undefined,
             },
-          ],
-        };
-      }
+          },
+        ],
+      };
+    }
+
+    // Non-wolf blocked: generic skip button
+    if (isBlockedByNightmare) {
       return {
         buttons: [
           {
             key: 'skip',
             label: BLOCKED_UI_DEFAULTS.skipButtonText,
             intent: { type: 'skip', targetIndex: -1, message: BLOCKED_UI_DEFAULTS.skipButtonText },
-          },
-        ],
-      };
-    }
-
-    // Wolf kill disabled: when nightmare blocked a wolf, ALL wolves can only skip (empty vote).
-    // This is different from isBlockedByNightmare which only affects the blocked player.
-    if (wolfKillDisabled && currentSchema?.kind === 'wolfVote') {
-      return {
-        buttons: [
-          {
-            key: 'wolfEmpty',
-            label: '今晚被封锁，只能空刀',
-            intent: {
-              type: 'wolfVote',
-              targetIndex: -1,
-              wolfSeat: mySeatNumber ?? undefined,
-            },
           },
         ],
       };
