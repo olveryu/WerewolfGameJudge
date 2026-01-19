@@ -173,12 +173,18 @@ Maintain/update contract tests to guarantee:
 - Add role to `ROLE_SPECS` (`src/models/roles/spec/specs.ts`) and keep `RoleId` derived from registry keys.
 - If it acts on Night-1:
   - add/extend `SCHEMAS` (`src/models/roles/spec/schemas.ts`) with schema-first constraints
-  - add a step to `NIGHT_STEPS` (`src/models/roles/spec/nightSteps.ts`) with `id: SchemaId`, `audioKey`, `visibility`
+  - add a step to `NIGHT_STEPS` (`src/models/roles/spec/nightSteps.ts`) with `id: SchemaId`, `audioKey`
   - implement/update resolver under `src/services/night/resolvers/**` (schema-aligned)
   - **if blockable by nightmare:** add block check in resolver (`currentNightResults.blockedSeat === actorSeat`)
   - **if needs context at turn start:** add field to `BroadcastGameState` + Host sets it + UI reads it
   - **if reveals info after action:** add field to `BroadcastGameState` for result
   - update contract tests (order snapshot + validity + red lines)
+
+### Schema-driven UI for wolf voting
+
+- **UI derives `showWolves` from schema:** `schema?.kind === 'wolfVote' && schema.meeting.canSeeEachOther`
+- **Do NOT use step-level visibility fields.** All visibility logic comes from schema.
+- **`wolfKillDisabled` single source:** Set in `handlePlayerAction` when nightmare blocks wolf, read directly in `toBroadcastState`.
 
 ---
 
