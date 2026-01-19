@@ -1,6 +1,6 @@
 import { Player, playerFromMap, playerToMap, PlayerStatus, SkillStatus } from './Player';
 import { GameTemplate, templateHasSkilledWolf, createTemplateFromRoles } from './Template';
-import { RoleId, isWolfRole, buildNightPlan, getRoleSpec } from './roles';
+import { RoleId, isWolfRole, buildNightPlan, getRoleSpec, doesRoleParticipateInWolfVote } from './roles';
 import { getSchema, type SchemaId } from './roles/spec';
 import { shuffleArray } from '../utils/shuffle';
 import {
@@ -232,10 +232,16 @@ export const getAllWolfSeats = (room: GameRoomLike): number[] => {
   return wolfSeats;
 };
 
-// Get the wolf player index that should act (smallest seat number among all wolves)
-export const getActionWolfIndex = (room: GameRoomLike): number => {
-  const wolfSeats = getAllWolfSeats(room);
-  return wolfSeats.length > 0 ? wolfSeats[0] : -1;
+// Get wolf seats that participate in wolf vote (excludes gargoyle, wolfRobot, etc.)
+export const getVotingWolfSeats = (room: GameRoomLike): number[] => {
+  const wolfSeats: number[] = [];
+  room.players.forEach((player, seat) => {
+    if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
+      wolfSeats.push(seat);
+    }
+  });
+  wolfSeats.sort((a, b) => a - b);
+  return wolfSeats;
 };
 
 // Record a wolf's vote for kill target
@@ -247,7 +253,7 @@ export const recordWolfVote = (room: Room, wolfSeat: number, targetSeat: number)
 // Calculate the final wolf kill target based on votes
 // Returns -1 (empty kill) if there's a tie
 export const calculateWolfKillTarget = (room: GameRoomLike): number => {
-  const wolfSeats = getAllWolfSeats(room);
+  const wolfSeats = getVotingWolfSeats(room);
 
   // Count votes for each target
   const voteCount = new Map<number, number>();
@@ -284,7 +290,7 @@ export const calculateWolfKillTarget = (room: GameRoomLike): number => {
 
 // Check if all wolves have voted
 export const allWolvesVoted = (room: GameRoomLike): boolean => {
-  const wolfSeats = getAllWolfSeats(room);
+  const wolfSeats = getVotingWolfSeats(room);
   return wolfSeats.every((seat) => room.wolfVotes.has(seat));
 };
 
@@ -295,13 +301,13 @@ export const hasWolfVoted = (room: GameRoomLike, seatNumber: number): boolean =>
 
 // Get wolves who haven't voted yet
 export const getWolvesNotVoted = (room: GameRoomLike): number[] => {
-  const wolfSeats = getAllWolfSeats(room);
+  const wolfSeats = getVotingWolfSeats(room);
   return wolfSeats.filter((seat) => !room.wolfVotes.has(seat));
 };
 
 // Get wolf vote summary for display
 export const getWolfVoteSummary = (room: GameRoomLike): string => {
-  const wolfSeats = getAllWolfSeats(room);
+  const wolfSeats = getVotingWolfSeats(room);
   const voted = wolfSeats.filter((seat) => room.wolfVotes.has(seat));
   return `${voted.length}/${wolfSeats.length} 狼人已投票`;
 };

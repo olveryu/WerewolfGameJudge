@@ -11,7 +11,7 @@
  * 4. Death calculations happen locally on Host
  */
 
-import { RoleId, isWolfRole, getWolfKillImmuneRoleIds } from '../models/roles';
+import { RoleId, isWolfRole, getWolfKillImmuneRoleIds, doesRoleParticipateInWolfVote } from '../models/roles';
 import { GameTemplate, createTemplateFromRoles, validateTemplateRoles } from '../models/Template';
 import {
   BroadcastService,
@@ -994,9 +994,9 @@ export class GameStateService {
     // Record vote
     this.state.wolfVotes.set(seat, target);
 
-    // Check if all wolves have voted
-    const allWolfSeats = this.getAllWolfSeats();
-    const allVoted = allWolfSeats.every((s) => this.state!.wolfVotes.has(s));
+    // Check if all voting wolves have voted (excludes gargoyle, wolfRobot, etc.)
+    const allVotingWolfSeats = this.getVotingWolfSeats();
+    const allVoted = allVotingWolfSeats.every((s) => this.state!.wolfVotes.has(s));
 
     if (allVoted) {
       // ONCE-GUARD: If wolf action already recorded, this is a duplicate finalize - skip
@@ -1569,6 +1569,7 @@ export class GameStateService {
       isAudioPlaying: broadcastState.isAudioPlaying,
       lastNightDeaths: this.state?.lastNightDeaths ?? [],
       nightmareBlockedSeat: broadcastState.nightmareBlockedSeat,
+      wolfKillDisabled: broadcastState.wolfKillDisabled,
     };
 
     this.notifyListeners();
@@ -2435,12 +2436,15 @@ export class GameStateService {
     return seats.sort((a, b) => a - b);
   }
 
-  private getAllWolfSeats(): number[] {
+  /**
+   * Get wolf seats that participate in wolf vote (excludes gargoyle, wolfRobot, etc.)
+   */
+  private getVotingWolfSeats(): number[] {
     if (!this.state) return [];
 
     const seats: number[] = [];
     this.state.players.forEach((player, seat) => {
-      if (player?.role && isWolfRole(player.role)) {
+      if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
         seats.push(seat);
       }
     });
@@ -2952,9 +2956,9 @@ export class GameStateService {
       }
     });
 
-    // Wolf vote status
+    // Wolf vote status (only wolves that participate in vote)
     const wolfVoteStatus: Record<number, boolean> = {};
-    this.getAllWolfSeats().forEach((seat) => {
+    this.getVotingWolfSeats().forEach((seat) => {
       wolfVoteStatus[seat] = this.state!.wolfVotes.has(seat);
     });
 
@@ -2962,6 +2966,15 @@ export class GameStateService {
     const nightmareAction = this.state.actions.get('nightmare');
     const nightmareBlockedSeat =
       nightmareAction?.kind === 'target' ? nightmareAction.targetSeat : undefined;
+
+    // Check if wolf kill is disabled (nightmare blocked a wolf)
+    let wolfKillDisabled: boolean | undefined;
+    if (nightmareBlockedSeat !== undefined) {
+      const blockedPlayer = this.state.players.get(nightmareBlockedSeat);
+      if (blockedPlayer?.role && isWolfRole(blockedPlayer.role)) {
+        wolfKillDisabled = true;
+      }
+    }
 
     return {
       roomCode: this.state.roomCode,
@@ -2973,6 +2986,7 @@ export class GameStateService {
       isAudioPlaying: this.state.isAudioPlaying,
       wolfVoteStatus,
       nightmareBlockedSeat,
+      wolfKillDisabled,
     };
   }
 }

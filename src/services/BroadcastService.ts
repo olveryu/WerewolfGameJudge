@@ -116,6 +116,8 @@ export interface BroadcastGameState {
   wolfVoteStatus?: Record<number, boolean>; // seat -> hasVoted
   // Nightmare block: the seat whose skill is disabled this night
   nightmareBlockedSeat?: number;
+  // Wolf kill disabled: true if nightmare blocked a wolf (all wolves can only skip)
+  wolfKillDisabled?: boolean;
 }
 
 // =============================================================================

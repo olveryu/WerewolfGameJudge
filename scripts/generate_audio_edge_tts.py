@@ -55,7 +55,7 @@ BEGIN_TEXT: dict[str, str] = {
 
 END_TEXT: dict[str, str] = {
     "wolf": "狼人请闭眼。",
-    "wolf_queen": "狼后请闭眼。",
+    "wolf_queen": "狼美人请闭眼。",
     "dark_wolf_king": "黑狼王请闭眼。",
     "nightmare": "梦魇请闭眼。",
     "gargoyle": "石像鬼请闭眼。",
@@ -66,7 +66,7 @@ END_TEXT: dict[str, str] = {
     "seer": "预言家请闭眼。",
     "magician": "魔术师请闭眼。",
     "psychic": "通灵师请闭眼。",
-    "slacker": "懒人请闭眼。",
+    "slacker": "混子请闭眼。",
     "dreamcatcher": "摄梦人请闭眼。",
 }
 

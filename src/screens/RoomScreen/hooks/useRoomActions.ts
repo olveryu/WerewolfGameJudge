@@ -13,7 +13,7 @@
 import { useCallback } from 'react';
 import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { GameStatus } from '../../../models/Room';
-import { RoleId, isWolfRole } from '../../../models/roles';
+import { RoleId, isWolfRole, doesRoleParticipateInWolfVote } from '../../../models/roles';
 import type { ActionSchema, SchemaId, RevealKind } from '../../../models/roles/spec';
 import { SCHEMAS, BLOCKED_UI_DEFAULTS, isValidSchemaId } from '../../../models/roles/spec';
 
@@ -72,6 +72,8 @@ export interface GameContext {
   myRole: RoleId | null;
   isAudioPlaying: boolean;
   isBlockedByNightmare: boolean;
+  /** When true, wolves cannot kill this night (nightmare blocked a wolf). All wolves can only skip. */
+  wolfKillDisabled: boolean;
   anotherIndex: number | null; // Magician first target
 }
 
@@ -144,6 +146,8 @@ interface IntentContext {
   anotherIndex: number | null;
   isWolf: boolean;
   wolfSeat: number | null;
+  /** When true, wolves cannot kill this night (nightmare blocked a wolf). */
+  wolfKillDisabled: boolean;
   buildMessage: (idx: number) => string;
 }
 
@@ -245,6 +249,11 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
         };
       }
     case 'wolfVote':
+      // When wolf kill is disabled (nightmare blocked a wolf), return null to block seat selection.
+      // All wolves can only use the bottom "空刀" button.
+      if (ctx.wolfKillDisabled) {
+        return null;
+      }
       return isWolf && wolfSeat !== null
         ? { type: 'wolfVote', targetIndex: index, wolfSeat }
         : null;
@@ -271,6 +280,8 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     // NOTE: isBlockedByNightmare is no longer used for intent derivation.
     // Nightmare block is handled by Host (ACTION_REJECTED). Kept in GameContext for UX hints only.
     isBlockedByNightmare,
+    // When true, wolves cannot kill this night (nightmare blocked a wolf). All wolves can only skip.
+    wolfKillDisabled,
     anotherIndex,
   } = gameContext;
 
@@ -282,7 +293,13 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
   const findVotingWolfSeat = useCallback((): number | null => {
     if (!gameState) return null;
-    if (mySeatNumber !== null && myRole && isWolfRole(myRole) && !hasWolfVoted(mySeatNumber)) {
+    // Only wolves that participate in wolf vote can vote (excludes gargoyle, wolfRobot, etc.)
+    if (
+      mySeatNumber !== null &&
+      myRole &&
+      doesRoleParticipateInWolfVote(myRole) &&
+      !hasWolfVoted(mySeatNumber)
+    ) {
       return mySeatNumber;
     }
     return null;
@@ -391,6 +408,20 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
             key: 'skip',
             label: BLOCKED_UI_DEFAULTS.skipButtonText,
             intent: { type: 'skip', targetIndex: -1, message: BLOCKED_UI_DEFAULTS.skipButtonText },
+          },
+        ],
+      };
+    }
+
+    // Wolf kill disabled: when nightmare blocked a wolf, ALL wolves can only skip (empty vote).
+    // This is different from isBlockedByNightmare which only affects the blocked player.
+    if (wolfKillDisabled && currentSchema?.kind === 'wolfVote') {
+      return {
+        buttons: [
+          {
+            key: 'wolfEmpty',
+            label: '今晚被封锁，只能空刀',
+            intent: { type: 'wolfVote', targetIndex: -1 },
           },
         ],
       };
@@ -505,6 +536,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     imActioner,
     isAudioPlaying,
     isBlockedByNightmare,
+    wolfKillDisabled,
     currentSchema,
     roomStatus,
   ]);
@@ -565,6 +597,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       }
 
       // Delegate to pure helper for schema-driven intent derivation
+      // Note: wolfKillDisabled is passed to deriveIntentFromSchema for schema-driven handling
       const schemaIntent = deriveIntentFromSchema({
         myRole,
         schemaKind: currentSchema?.kind,
@@ -576,6 +609,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
         anotherIndex,
         isWolf: isWolfRole(myRole),
         wolfSeat: findVotingWolfSeat(),
+        wolfKillDisabled,
         buildMessage: (idx) => buildActionMessage(idx),
       });
 
@@ -595,6 +629,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       findVotingWolfSeat,
       buildActionMessage,
       isBlockedByNightmare,
+      wolfKillDisabled,
     ],
   );
 

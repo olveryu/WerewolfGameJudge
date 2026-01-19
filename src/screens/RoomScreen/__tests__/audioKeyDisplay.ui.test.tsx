@@ -78,7 +78,6 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     submitWolfVote: jest.fn(),
     submitRevealAck: jest.fn(),
     hasWolfVoted: () => false,
-    getAllWolfSeats: () => [],
     requestSnapshot: jest.fn(),
     viewedRole: jest.fn(),
 

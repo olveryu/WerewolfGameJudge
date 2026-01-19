@@ -12,7 +12,7 @@ import { SimplifiedRoomService, RoomRecord } from '../services/SimplifiedRoomSer
 import { BroadcastService, type ConnectionStatus } from '../services/BroadcastService';
 import { AuthService } from '../services/AuthService';
 import { GameTemplate } from '../models/Template';
-import { RoleId, isWolfRole, buildNightPlan } from '../models/roles';
+import { RoleId, buildNightPlan } from '../models/roles';
 import {
   isValidRoleId,
   getRoleSpec,
@@ -91,7 +91,6 @@ export interface UseGameRoomResult {
 
   // Utility
   hasWolfVoted: (seatNumber: number) => boolean;
-  getAllWolfSeats: () => number[];
 
   // Private inbox (anti-cheat: Zero-Trust)
   getWitchContext: () => import('../services/types/PrivateBroadcast').WitchContextPayload | null;
@@ -463,18 +462,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     [gameState],
   );
 
-  // Get all wolf seats
-  const getAllWolfSeatsFn = useCallback((): number[] => {
-    if (!gameState) return [];
-    const wolfSeats: number[] = [];
-    gameState.players.forEach((player, seat) => {
-      if (player?.role && isWolfRole(player.role)) {
-        wolfSeats.push(seat);
-      }
-    });
-    return wolfSeats;
-  }, [gameState]);
-
   // Clear seat error (BUG-2 fix)
   const clearLastSeatError = useCallback(() => {
     gameStateService.current.clearLastSeatError();
@@ -518,7 +505,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     lastSeatError,
     clearLastSeatError,
     hasWolfVoted: hasWolfVotedFn,
-    getAllWolfSeats: getAllWolfSeatsFn,
     getWitchContext: () => gameStateService.current.getWitchContext(),
     getSeerReveal: () => gameStateService.current.getSeerReveal(),
     getPsychicReveal: () => gameStateService.current.getPsychicReveal(),

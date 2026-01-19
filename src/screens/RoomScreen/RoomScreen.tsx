@@ -292,6 +292,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     return gameState.nightmareBlockedSeat === mySeatNumber;
   }, [gameState, mySeatNumber]);
 
+  // Wolf kill disabled: true if nightmare blocked a wolf (all wolves can only skip)
+  const wolfKillDisabled = useMemo(() => {
+    return gameState?.wolfKillDisabled ?? false;
+  }, [gameState]);
+
   // ───────────────────────────────────────────────────────────────────────────
   // Intent Layer: useRoomActions
   // ───────────────────────────────────────────────────────────────────────────
@@ -307,6 +312,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       myRole,
       isAudioPlaying,
       isBlockedByNightmare,
+      wolfKillDisabled,
       anotherIndex,
     }),
     [
@@ -319,6 +325,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       myRole,
       isAudioPlaying,
       isBlockedByNightmare,
+      wolfKillDisabled,
       anotherIndex,
     ],
   );
