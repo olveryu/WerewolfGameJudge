@@ -14,7 +14,6 @@
 import {
   RoleId,
   isWolfRole,
-  getWolfKillImmuneRoleIds,
   doesRoleParticipateInWolfVote,
 } from '../models/roles';
 import { GameTemplate, createTemplateFromRoles, validateTemplateRoles } from '../models/Template';
@@ -60,6 +59,11 @@ import {
   type ResolverResult,
 } from './night/resolvers/types';
 import { RESOLVERS } from './night/resolvers';
+import {
+  wolfVoteResolver,
+  type WolfVoteContext,
+  type WolfVoteInput,
+} from './night/resolvers/wolfVote';
 import { getConfirmRoleCanShoot } from '../models/Room';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -965,28 +969,29 @@ export class GameStateService {
 
     const playerUid = player.uid;
 
-    // Target-based: immuneToWolfKill flag check (from ROLE_SPECS.flags)
-    // RED LINE: wolfKill stays neutral (can target ANY seat); restrictions are on meeting vote only
-    const immuneRoleIds = getWolfKillImmuneRoleIds();
-    if (immuneRoleIds.length > 0) {
-      const targetPlayer = this.state.players.get(target);
-      const targetRole = targetPlayer?.role;
-      // Type guard: only compare if targetRole is a valid RoleId
-      if (targetRole && isValidRoleId(targetRole) && immuneRoleIds.includes(targetRole)) {
-        const targetRoleSpec = getRoleSpec(targetRole);
-        const targetRoleName = targetRoleSpec?.displayName ?? targetRole;
-        if (playerUid) {
-          this.state.actionRejected = {
-            action: 'submitWolfVote',
-            reason: `不能投${targetRoleName}`,
-            targetUid: playerUid,
-          };
-          await this.broadcastState();
-        }
-        return;
+    // === Delegate to wolfVoteValidator for immuneToWolfKill check ===
+    const resolverContext: WolfVoteContext = {
+      players: new Map(
+        Array.from(this.state.players.entries())
+          .filter(([, p]) => p?.role)
+          .map(([s, p]) => [s, p!.role as RoleId]),
+      ),
+    };
+    const resolverInput: WolfVoteInput = { targetSeat: target };
+    const resolverResult = wolfVoteResolver(resolverContext, resolverInput);
+
+    if (!resolverResult.valid) {
+      if (playerUid) {
+        this.state.actionRejected = {
+          action: 'submitWolfVote',
+          reason: resolverResult.rejectReason ?? '无效目标',
+          targetUid: playerUid,
+        };
+        await this.broadcastState();
       }
+      return;
     }
-    // === End immuneToWolfKill checks ===
+    // === End wolfVoteValidator check ===
 
     // Record vote
     this.state.wolfVotes.set(seat, target);
