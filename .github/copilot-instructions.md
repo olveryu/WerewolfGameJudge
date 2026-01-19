@@ -27,6 +27,43 @@ If something is unclear, ask before coding. Don't invent repo facts.
 - `src/services/night/resolvers/**`: host-only pure resolution + validation.
 - `src/screens/RoomScreen/components/**`: UI-only, no service imports.
 
+### Role/Schema/Step 三层架构
+
+```
+ROLE_SPECS (角色固有属性)
+    │ 定义：displayName, faction, wolfMeeting, flags
+    │ 文件：src/models/roles/spec/specs.ts
+    │
+    ▼
+SCHEMAS (行动输入协议)    ← 单一真相
+    │ 定义：kind, constraints, ui.prompt, meeting (for wolfVote)
+    │ 文件：src/models/roles/spec/schemas.ts
+    │ UI 从 schema 推导行为 (e.g., showWolves = schema.meeting.canSeeEachOther)
+    │
+    ▼
+NIGHT_STEPS (步骤序列)    ← 只管顺序和音频
+    │ 定义：id (= SchemaId), roleId, audioKey
+    │ 文件：src/models/roles/spec/nightSteps.ts
+    │
+    ▼
+GameStateService / Resolvers (Host 执行)
+    │
+    ▼
+UI (从 schema + gameState 推导显示)
+```
+
+**职责划分：**
+| 层级 | 职责 | 示例 |
+|------|------|------|
+| `ROLE_SPECS` | 角色固有属性，不随步骤变化 | `wolfMeeting.canSeeWolves` = 这个角色能否被狼队友看到 |
+| `SCHEMAS` | 行动输入协议，描述 UI 交互和约束 | `meeting.canSeeEachOther` = 会议中能否互相看到 |
+| `NIGHT_STEPS` | 步骤序列，只管顺序和音频 | `audioKey` = 播放哪个音频 |
+
+**不是双写：**
+
+- `schema.meeting.canSeeEachOther` 控制 "何时" 显示队友 (开关)
+- `ROLE_SPECS[role].wolfMeeting.canSeeWolves` 控制 "谁" 被高亮 (过滤)
+
 ### Logging
 
 - **Use structured loggers** from `src/utils/logger.ts` (e.g., `gameRoomLog`, `roomScreenLog`, `gameStateLog`).
