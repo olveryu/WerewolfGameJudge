@@ -2574,8 +2574,10 @@ export class GameStateService {
         nightmareBlockedSeat: broadcastState.nightmareBlockedSeat,
         wolfKillDisabled: broadcastState.wolfKillDisabled,
       };
-      this.notifyListeners();
     }
+
+    // Always notify listeners so Host UI sees updated state (seerReveal, etc.)
+    this.notifyListeners();
 
     await this.broadcastService.broadcastAsHost({
       type: 'STATE_UPDATE',

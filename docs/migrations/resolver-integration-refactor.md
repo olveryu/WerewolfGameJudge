@@ -53,6 +53,7 @@
    | Psychic 查验结果 | `psychic.ts:40` 返回 `result.identityResult` | `setPsychicReveal:2292-2322` 重新计算 |
    | Guard 守护 | `guard.ts:27` 返回 `updates.guardedSeat` | 直接 `actions.set('guard', ...)` |
    | Witch 用药 | `witch.ts:83` 返回 `updates.savedSeat/poisonedSeat` | 直接 `actions.set('witch', ...)` |
+   | **Wolf 投票 immuneToWolfKill** | **新建 `wolfVote.ts`** | `handleWolfVote:951-972` `getWolfKillImmuneRoleIds()` |
 
 3. **导致的问题**
    - 逻辑重复，难以维护
@@ -95,7 +96,7 @@ advanceToNextAction()
 1. **Resolver 是唯一的验证和计算逻辑来源**
 2. **Host 只负责应用结果，不做业务逻辑计算**
 3. **currentNightResults 在步骤间传递累积结果**
-4. **保持 wire protocol 不变，对外兼容**
+4. **直接重构，不建兼容层** (wire protocol 可以一起改)
 
 ---
 
@@ -430,6 +431,101 @@ startGame(): void {
 | `hunter.ts` | ✅ 仅 ACK | N/A | N/A | 完整 |
 | `darkWolfKing.ts` | ✅ 仅 ACK | N/A | N/A | 完整 |
 
+### 5.3 新增 wolfVote Resolver (投票阶段验证)
+
+**背景:** 狼人会议投票 (`handleWolfVote`) 需要验证 `immuneToWolfKill` 约束（如狼美人、恶灵骑士不能被投）。
+目前这个验证逻辑在 `GameStateService.handleWolfVote` 中内联实现，应该迁移到 resolver 以保持一致性。
+
+**职责划分:**
+
+| 层级 | 职责 |
+|------|------|
+| UI (`RoomScreen.helpers.ts`) | 禁用座位 + 显示提示（纯 UX） |
+| wolfVote Resolver | 验证投票目标是否合法（权威） |
+| Host (`handleWolfVote`) | 调用 resolver，应用/拒绝结果 |
+
+**新建文件:** `src/services/night/resolvers/wolfVote.ts`
+
+```typescript
+/**
+ * Wolf Meeting Vote Resolver
+ * 
+ * 验证狼人会议中的单次投票是否合法。
+ * 注意：这不是 night action step，而是 meeting 投票验证。
+ */
+import { getWolfKillImmuneRoleIds } from '../../../models/roles';
+import type { RoleId } from '../../../models/roles/spec/types';
+
+export interface WolfVoteInput {
+  targetSeat: number;
+}
+
+export interface WolfVoteContext {
+  actorSeat: number;
+  actorRole: RoleId;
+  players: Map<number, { role: RoleId }>;
+}
+
+export interface WolfVoteResult {
+  valid: boolean;
+  rejectReason?: string;
+}
+
+export function wolfVoteResolver(
+  context: WolfVoteContext,
+  input: WolfVoteInput,
+): WolfVoteResult {
+  const { targetSeat } = input;
+  const { players } = context;
+
+  // 检查目标是否存在
+  const targetPlayer = players.get(targetSeat);
+  if (!targetPlayer) {
+    return { valid: false, rejectReason: '无效的目标' };
+  }
+
+  // 检查 immuneToWolfKill
+  const immuneRoleIds = getWolfKillImmuneRoleIds();
+  if (immuneRoleIds.includes(targetPlayer.role)) {
+    return { valid: false, rejectReason: '无法投票该玩家' };
+  }
+
+  return { valid: true };
+}
+```
+
+**迁移 `handleWolfVote`:**
+
+```typescript
+// 修改前 (内联验证)
+async handleWolfVote(voterSeat: number, targetSeat: number): Promise<{ success: boolean }> {
+  const immuneRoleIds = getWolfKillImmuneRoleIds();
+  const targetRole = this.state.players.get(targetSeat)?.role;
+  if (targetRole && immuneRoleIds.includes(targetRole)) {
+    return { success: false };
+  }
+  // ... 其余逻辑
+}
+
+// 修改后 (调用 resolver)
+async handleWolfVote(voterSeat: number, targetSeat: number): Promise<{ success: boolean }> {
+  const result = wolfVoteResolver(
+    { actorSeat: voterSeat, actorRole: voterRole, players: this.buildRoleMap() },
+    { targetSeat }
+  );
+  if (!result.valid) {
+    return { success: false };
+  }
+  // ... 其余逻辑
+}
+```
+
+**删除内联代码:**
+
+| 文件 | 位置 | 内容 |
+|------|------|------|
+| `GameStateService.ts` | L951-972 | `getWolfKillImmuneRoleIds()` 检查 |
+
 ---
 
 ## 6. 迁移计划
@@ -465,6 +561,7 @@ startGame(): void {
 4. 迁移 magician
 5. 迁移 dreamcatcher
 6. 迁移其余角色
+7. **新增 wolfVote resolver** → 删除 `handleWolfVote` 内联验证
 
 ### Phase 5: 清理和验证
 
