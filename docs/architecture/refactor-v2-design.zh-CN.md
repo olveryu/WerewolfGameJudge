@@ -1,6 +1,6 @@
 # GameStateService 重構 V2 - 最終架構設計
 
-> **狀態**：Phase 8a/8b 完成，Phase 8c 進行中  
+> **狀態**：Phase 8a/8b/9 完成，Phase 8c 暫緩  
 > **創建日期**：2026-01-20  
 > **更新日期**：2026-01-20  
 > **基於**：Phase 1-7 完成後的經驗總結  
@@ -10,7 +10,31 @@
 
 - ✅ Phase 8a：HostCoordinator 創建完成 (891 行)
 - ✅ Phase 8b：PlayerCoordinator 創建完成 (469 行)
-- ⏳ Phase 8c：整合到 GameStateService（進行中）
+- ⏸️ Phase 8c：整合到 GameStateService（暫緩 - 需要更多規劃）
+- ✅ Phase 9：刪除未使用的 GameCoordinator.ts
+
+### 當前架構
+
+```
+GameStateService (1664 行) - 現有主入口，繼續工作
+    │
+    ├── StateManager (800 行)
+    ├── BroadcastCoordinator (559 行)
+    ├── SeatManager (583 行)
+    ├── ActionProcessor (533 行)
+    ├── NightFlowService (564 行)
+    └── StatePersistence (264 行)
+
+新創建但尚未整合：
+    ├── HostCoordinator (891 行) - Host-only 邏輯（獨立可用）
+    └── PlayerCoordinator (469 行) - Player-only 邏輯（獨立可用）
+```
+
+### 下一步計劃
+
+1. 在 GameStateService 中逐步委託方法給 HostCoordinator/PlayerCoordinator
+2. 每委託一個方法後運行測試確認
+3. 最終將 GameStateService 重命名為 GameFacade
 
 ---
 
