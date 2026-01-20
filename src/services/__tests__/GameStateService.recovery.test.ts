@@ -252,13 +252,14 @@ describe('GameStateService snapshot response handling', () => {
     expect(requestCall.type).toBe('SNAPSHOT_REQUEST');
     const requestId = requestCall.requestId;
 
-    // Simulate snapshot response by calling handleMessage
+    // Simulate snapshot response via handleHostBroadcast
     const broadcastState = createBroadcastState({
       status: GameStatus.assigned,
     });
 
-    // Simulate the message being received
-    (service as any).handleSnapshotResponse({
+    // Simulate the message being received through the public API
+    (service as any).handleHostBroadcast({
+      type: 'SNAPSHOT_RESPONSE',
       requestId,
       toUid: 'player_uid',
       state: broadcastState,
@@ -285,8 +286,9 @@ describe('GameStateService snapshot response handling', () => {
       status: GameStatus.assigned,
     });
 
-    // Response addressed to different player
-    (service as any).handleSnapshotResponse({
+    // Response addressed to different player via handleHostBroadcast
+    (service as any).handleHostBroadcast({
+      type: 'SNAPSHOT_RESPONSE',
       requestId,
       toUid: 'other_player',
       state: broadcastState,
@@ -306,8 +308,9 @@ describe('GameStateService snapshot response handling', () => {
       status: GameStatus.assigned,
     });
 
-    // Response with wrong requestId
-    (service as any).handleSnapshotResponse({
+    // Response with wrong requestId via handleHostBroadcast
+    (service as any).handleHostBroadcast({
+      type: 'SNAPSHOT_RESPONSE',
       requestId: 'wrong_id',
       toUid: 'player_uid',
       state: broadcastState,
@@ -321,7 +324,7 @@ describe('GameStateService snapshot response handling', () => {
 });
 
 // =============================================================================
-// applyStateUpdate Tests
+// applyStateUpdate Tests (via STATE_BROADCAST message processing)
 // =============================================================================
 
 describe('GameStateService.applyStateUpdate', () => {
@@ -337,17 +340,30 @@ describe('GameStateService.applyStateUpdate', () => {
     jest.useRealTimers();
   });
 
+  // Helper to send STATE_UPDATE via handleHostBroadcast
+  function sendStateUpdate(
+    svc: GameStateService,
+    state: BroadcastGameState,
+    revision: number,
+  ): void {
+    (svc as any).handleHostBroadcast({
+      type: 'STATE_UPDATE',
+      state,
+      revision,
+    });
+  }
+
   it('skips stale updates with older revision', async () => {
     await service.joinAsPlayer('room1234', 'player_uid');
 
     // First update with revision 5
     const state1 = createBroadcastState({ status: GameStatus.seated });
-    (service as any).applyStateUpdate(state1, 5);
+    sendStateUpdate(service, state1, 5);
     expect(getState(service)?.status).toBe(GameStatus.seated);
 
     // Stale update with revision 3
     const state2 = createBroadcastState({ status: GameStatus.ongoing });
-    (service as any).applyStateUpdate(state2, 3);
+    sendStateUpdate(service, state2, 3);
 
     // Should still be seated (stale update ignored)
     expect(getState(service)?.status).toBe(GameStatus.seated);
@@ -357,10 +373,10 @@ describe('GameStateService.applyStateUpdate', () => {
     await service.joinAsPlayer('room1234', 'player_uid');
 
     const state1 = createBroadcastState({ status: GameStatus.seated });
-    (service as any).applyStateUpdate(state1, 1);
+    sendStateUpdate(service, state1, 1);
 
     const state2 = createBroadcastState({ status: GameStatus.ongoing });
-    (service as any).applyStateUpdate(state2, 2);
+    sendStateUpdate(service, state2, 2);
 
     expect(getState(service)?.status).toBe(GameStatus.ongoing);
   });
@@ -377,7 +393,7 @@ describe('GameStateService.applyStateUpdate', () => {
       hasViewedRole: false,
     };
 
-    (service as any).applyStateUpdate(broadcastState, 1);
+    sendStateUpdate(service, broadcastState, 1);
 
     expect(service.getMySeatNumber()).toBe(3);
   });
@@ -398,7 +414,7 @@ describe('GameStateService.applyStateUpdate', () => {
       ] as RoleId[],
     });
 
-    (service as any).applyStateUpdate(broadcastState, 1);
+    sendStateUpdate(service, broadcastState, 1);
 
     const state = getState(service);
     expect(state?.template.roles).toEqual([
@@ -418,7 +434,7 @@ describe('GameStateService.applyStateUpdate', () => {
     await service.joinAsPlayer('room1234', 'player_uid');
 
     const broadcastState = createBroadcastState();
-    (service as any).applyStateUpdate(broadcastState, 1);
+    sendStateUpdate(service, broadcastState, 1);
 
     expect(mockMarkAsLive).toHaveBeenCalled();
   });
