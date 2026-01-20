@@ -508,6 +508,84 @@ export class SeatManager {
   }
 
   // ===========================================================================
+  // Host: Remote Player Join/Leave (Legacy JOIN/LEAVE messages)
+  // ===========================================================================
+
+  /**
+   * Handle remote player joining a seat (Host only).
+   * Called when receiving legacy JOIN message from remote player.
+   *
+   * @param seat - Seat number to join
+   * @param uid - Player's UID
+   * @param displayName - Player's display name
+   * @param avatarUrl - Player's avatar URL
+   */
+  async handlePlayerJoin(
+    seat: number,
+    uid: string,
+    displayName?: string,
+    avatarUrl?: string,
+  ): Promise<void> {
+    const state = this.config.getState();
+    if (!state) return;
+
+    // Check if seat is available
+    if (state.players.get(seat) !== null) {
+      seatManagerLog.info('Seat', seat, 'already taken, sending SEAT_REJECTED');
+      await this.config.broadcastCoordinator.broadcastSeatRejected(seat, uid, 'seat_taken');
+      return;
+    }
+
+    // Clear ALL old seats if player is switching (defensive: no break, handles dirty data)
+    this.clearSeatsByUid(uid, seat);
+
+    const player: LocalPlayer = {
+      uid,
+      seatNumber: seat,
+      displayName,
+      avatarUrl,
+      role: null,
+      hasViewedRole: false,
+    };
+
+    state.players.set(seat, player);
+
+    // Check if all seats are filled
+    const allSeated = Array.from(state.players.values()).every((p) => p !== null);
+    if (allSeated && state.status === GameStatus.unseated) {
+      state.status = GameStatus.seated;
+    }
+
+    await this.config.broadcastState();
+    this.config.notifyListeners();
+  }
+
+  /**
+   * Handle remote player leaving a seat (Host only).
+   * Called when receiving legacy LEAVE message from remote player.
+   *
+   * @param seat - Seat number to leave
+   * @param uid - Player's UID
+   */
+  async handlePlayerLeave(seat: number, uid: string): Promise<void> {
+    const state = this.config.getState();
+    if (!state) return;
+
+    const player = state.players.get(seat);
+    if (player?.uid !== uid) return;
+
+    state.players.set(seat, null);
+
+    // Revert status if needed
+    if (state.status === GameStatus.seated) {
+      state.status = GameStatus.unseated;
+    }
+
+    await this.config.broadcastState();
+    this.config.notifyListeners();
+  }
+
+  // ===========================================================================
   // Cleanup
   // ===========================================================================
 

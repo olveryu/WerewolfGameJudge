@@ -204,8 +204,8 @@ describe('GameStateService Unified API', () => {
       await service.takeSeat(0, 'Host');
       expect(service.getState()?.status).toBe(GameStatus.unseated);
 
-      // Simulate another player taking seat 1 (via processSeatAction)
-      await (service as any).processSeatAction('sit', 1, 'player-1', 'Player 1');
+      // Simulate another player taking seat 1 (via SeatManager.processSeatAction)
+      await (service as any).seatManager.processSeatAction('sit', 1, 'player-1', 'Player 1');
 
       // Now all seated
       expect(service.getState()?.status).toBe(GameStatus.seated);

@@ -123,20 +123,6 @@ export class GameStateService {
   /** State revision counter (Host: incremented on each change, Player: received from Host) */
   private stateRevision: number = 0;
 
-  /** Last seat error for UI display (BUG-2 fix) */
-  private lastSeatError: { seat: number; reason: 'seat_taken' } | null = null;
-
-  /** Pending seat action requests (Player: waiting for ACK) */
-  private pendingSeatAction: {
-    requestId: string;
-    action: 'sit' | 'standup';
-    seat: number;
-    timestamp: number;
-    timeoutHandle: ReturnType<typeof setTimeout>;
-    resolve: (success: boolean) => void;
-    reject: (error: Error) => void;
-  } | null = null;
-
   /** Pending snapshot request (Player: waiting for response) */
   private pendingSnapshotRequest: {
     requestId: string;
@@ -158,7 +144,7 @@ export class GameStateService {
 
   private readonly audioService: AudioService;
 
-  private listeners: GameStateListener[] = [];
+  // NOTE: listeners moved to StateManager (Phase 8 migration)
 
   private constructor() {
     this.stateManager = new StateManager();
@@ -241,37 +227,51 @@ export class GameStateService {
   }
 
   getLastSeatError(): { seat: number; reason: 'seat_taken' } | null {
-    return this.lastSeatError;
+    return this.seatManager.getLastSeatError();
   }
 
   clearLastSeatError(): void {
-    this.lastSeatError = null;
+    this.seatManager.clearLastSeatError();
   }
 
   // ===========================================================================
-  // State Listeners
+  // State Listeners (delegated to StateManager for Phase 8 migration)
   // ===========================================================================
 
   addListener(listener: GameStateListener): () => void {
-    this.listeners.push(listener);
-    // Immediately call listener with current state if available
-    // This ensures React state is synced even if state was set before listener was registered
-    if (this.state) {
-      listener({ ...this.state });
+    // Delegate to StateManager, but handle the case where state is in GameStateService
+    // TODO(Phase 8): After full migration, this becomes just stateManager.subscribe(listener)
+    
+    // For now, we need to sync StateManager's state with our state before subscribing
+    if (this.state && !this.stateManager.hasState()) {
+      this.stateManager.initialize(this.state);
     }
-    // Return unsubscribe function
-    return () => {
-      this.listeners = this.listeners.filter((l) => l !== listener);
-    };
+    
+    return this.stateManager.subscribe(listener);
   }
 
   private notifyListeners(): void {
+    // Sync state to StateManager before notifying
+    // TODO(Phase 8): After full migration, remove this - StateManager auto-notifies on updateState
     if (this.state) {
-      // Create a shallow copy of state so React detects the change
-      // (Map is a reference type, so we need a new object for React's shallow comparison)
-      const stateCopy = { ...this.state };
-      this.listeners.forEach((listener) => listener(stateCopy));
+      if (!this.stateManager.hasState()) {
+        this.stateManager.initialize(this.state);
+      } else {
+        // Force StateManager to use our state reference and notify
+        // This is a migration workaround - eventually all state updates go through StateManager
+        this.syncStateToManager();
+      }
     }
+  }
+
+  /**
+   * Migration helper: sync GameStateService's state to StateManager
+   * TODO(Phase 8): Remove after full migration to StateManager.updateState()
+   */
+  private syncStateToManager(): void {
+    if (!this.state) return;
+    // Use batchUpdate with full state to sync and notify listeners
+    this.stateManager.batchUpdate({ ...this.state });
   }
 
   // ===========================================================================
@@ -564,7 +564,7 @@ export class GameStateService {
 
   /**
    * Host: Handle seat action request with ACK
-   * Uses processSeatAction for unified logic
+   * Delegated to SeatManager (Phase 8 migration)
    */
   private async handleSeatActionRequest(msg: {
     requestId: string;
@@ -574,28 +574,10 @@ export class GameStateService {
     displayName?: string;
     avatarUrl?: string;
   }): Promise<void> {
-    if (!this.state) return;
-
-    hostLog.info(
-      ` Seat action request: ${msg.action} seat ${msg.seat} from ${msg.uid.substring(0, 8)}`,
-    );
-
-    // Use unified processSeatAction
-    const result = await this.processSeatAction(
-      msg.action,
-      msg.seat,
-      msg.uid,
-      msg.displayName,
-      msg.avatarUrl,
-    );
-
-    // Send ACK to player
-    await this.broadcastCoordinator.broadcastSeatActionAck({
-      requestId: msg.requestId,
-      toUid: msg.uid,
-      success: result.success,
-      seat: msg.seat,
-      reason: result.reason,
+    // Delegate to SeatManager
+    await this.seatManager.handleSeatActionRequest({
+      type: 'SEAT_ACTION_REQUEST',
+      ...msg,
     });
   }
 
@@ -622,73 +604,17 @@ export class GameStateService {
     });
   }
 
-  /**
-   * Clear ALL seats occupied by a given uid (defensive: handles dirty data).
-   * Optionally skip a specific seat (used when that seat is the new target).
-   */
-  private clearSeatsByUid(uid: string, skipSeat?: number): void {
-    if (!this.state) return;
-    for (const [seat, player] of this.state.players.entries()) {
-      if (player?.uid === uid && seat !== skipSeat) {
-        this.state.players.set(seat, null);
-      }
-    }
-  }
-
   private async handlePlayerJoin(
     seat: number,
     uid: string,
     displayName?: string,
     avatarUrl?: string,
   ): Promise<void> {
-    if (!this.state) return;
-
-    // Check if seat is available
-    if (this.state.players.get(seat) !== null) {
-      hostLog.info('Seat', seat, 'already taken, sending SEAT_REJECTED');
-      await this.broadcastCoordinator.broadcastSeatRejected(seat, uid, 'seat_taken');
-      return;
-    }
-
-    // Clear ALL old seats if player is switching (defensive: no break, handles dirty data)
-    this.clearSeatsByUid(uid, seat);
-
-    const player: LocalPlayer = {
-      uid,
-      seatNumber: seat,
-      displayName,
-      avatarUrl,
-      role: null,
-      hasViewedRole: false,
-    };
-
-    this.state.players.set(seat, player);
-
-    // Check if all seats are filled
-    const allSeated = Array.from(this.state.players.values()).every((p) => p !== null);
-    if (allSeated && this.state.status === GameStatus.unseated) {
-      this.state.status = GameStatus.seated;
-    }
-
-    await this.broadcastState();
-    this.notifyListeners();
+    return this.seatManager.handlePlayerJoin(seat, uid, displayName, avatarUrl);
   }
 
   private async handlePlayerLeave(seat: number, uid: string): Promise<void> {
-    if (!this.state) return;
-
-    const player = this.state.players.get(seat);
-    if (player?.uid !== uid) return;
-
-    this.state.players.set(seat, null);
-
-    // Revert status if needed
-    if (this.state.status === GameStatus.seated) {
-      this.state.status = GameStatus.unseated;
-    }
-
-    await this.broadcastState();
-    this.notifyListeners();
+    return this.seatManager.handlePlayerLeave(seat, uid);
   }
 
   private async handlePlayerAction(
@@ -1073,7 +999,7 @@ export class GameStateService {
         // Only the player who requested the seat should handle this
         if (msg.requestUid === this.myUid) {
           playerLog.info('My seat request rejected:', msg.seat, msg.reason);
-          this.lastSeatError = { seat: msg.seat, reason: msg.reason };
+          this.seatManager.setLastSeatError({ seat: msg.seat, reason: msg.reason });
           this.notifyListeners();
         }
         break;
@@ -1117,6 +1043,7 @@ export class GameStateService {
 
   /**
    * Player: Handle seat action ACK from Host
+   * Delegated to SeatManager (Phase 8 migration)
    */
   private handleSeatActionAck(msg: {
     requestId: string;
@@ -1125,39 +1052,10 @@ export class GameStateService {
     toUid: string;
     reason?: string;
   }): void {
-    // Only handle if addressed to us
-    if (msg.toUid !== this.myUid) {
-      return;
-    }
-
-    // Only handle if we have a pending request with matching ID
-    if (!this.pendingSeatAction || this.pendingSeatAction.requestId !== msg.requestId) {
-      return;
-    }
-
-    playerLog.info(` Seat action ACK: ${msg.success ? 'success' : 'failed'} for seat ${msg.seat}`);
-
-    // Clear timeout first
-    clearTimeout(this.pendingSeatAction.timeoutHandle);
-
-    if (msg.success) {
-      // Update local state based on action
-      if (this.pendingSeatAction.action === 'sit') {
-        this.mySeatNumber = msg.seat;
-      } else {
-        this.mySeatNumber = null;
-      }
-      this.pendingSeatAction.resolve(true);
-    } else {
-      // Action failed
-      if (msg.reason === 'seat_taken') {
-        this.lastSeatError = { seat: msg.seat, reason: 'seat_taken' };
-      }
-      this.pendingSeatAction.resolve(false);
-    }
-
-    this.pendingSeatAction = null;
-    this.notifyListeners();
+    this.seatManager.handleSeatActionAck({
+      type: 'SEAT_ACTION_ACK',
+      ...msg,
+    });
   }
 
   /**
@@ -1286,115 +1184,22 @@ export class GameStateService {
   // Host: Game Flow Control
   // ===========================================================================
 
-  /**
-   * Internal: Process seat action (unified logic for Host and Player)
-   * This is the single source of truth for seat operations.
-   */
-  private async processSeatAction(
-    action: 'sit' | 'standup',
-    seat: number,
-    uid: string,
-    displayName?: string,
-    avatarUrl?: string,
-  ): Promise<{ success: boolean; reason?: string }> {
-    if (!this.state) return { success: false, reason: 'no_state' };
-
-    if (action === 'sit') {
-      // Check if seat is available
-      if (this.state.players.get(seat) !== null) {
-        return { success: false, reason: 'seat_taken' };
-      }
-
-      // Clear any old seats for this player
-      this.clearSeatsByUid(uid, seat);
-
-      // Assign seat
-      const player: LocalPlayer = {
-        uid,
-        seatNumber: seat,
-        displayName,
-        avatarUrl,
-        role: null,
-        hasViewedRole: false,
-      };
-      this.state.players.set(seat, player);
-
-      // Track my seat if this is me
-      if (uid === this.myUid) {
-        this.mySeatNumber = seat;
-      }
-
-      // Update status if all seated
-      const allSeated = Array.from(this.state.players.values()).every((p) => p !== null);
-      if (allSeated && this.state.status === GameStatus.unseated) {
-        this.state.status = GameStatus.seated;
-      }
-
-      await this.broadcastState();
-      this.notifyListeners();
-      return { success: true };
-    } else if (action === 'standup') {
-      // Verify player is in this seat
-      const player = this.state.players.get(seat);
-      if (player?.uid !== uid) {
-        return { success: false, reason: 'not_seated' };
-      }
-
-      // Clear seat
-      this.state.players.set(seat, null);
-
-      // Track my seat if this is me
-      if (uid === this.myUid) {
-        this.mySeatNumber = null;
-      }
-
-      // Revert status if needed
-      if (this.state.status === GameStatus.seated) {
-        this.state.status = GameStatus.unseated;
-      }
-
-      await this.broadcastState();
-      this.notifyListeners();
-      return { success: true };
-    }
-
-    return { success: false, reason: 'unknown_action' };
-  }
+  // NOTE: processSeatAction removed - delegated to SeatManager (Phase 8)
 
   /**
    * Take a seat (unified path for Host and Player)
-   * Both use the same core logic: processSeatAction
+   * Delegated to SeatManager (Phase 8 migration)
    */
   async takeSeat(seat: number, displayName?: string, avatarUrl?: string): Promise<boolean> {
-    if (!this.myUid) return false;
-
-    if (this.isHost) {
-      // Host processes directly
-      const result = await this.processSeatAction('sit', seat, this.myUid, displayName, avatarUrl);
-      return result.success;
-    }
-
-    // Player uses ACK-based protocol
-    const success = await this.sendSeatActionWithAck('sit', seat, displayName, avatarUrl);
-    return success;
+    return this.seatManager.takeSeat(seat, displayName, avatarUrl);
   }
 
   /**
    * Leave seat (unified path for Host and Player)
-   * Both use the same core logic: processSeatAction
+   * Delegated to SeatManager (Phase 8 migration)
    */
   async leaveSeat(): Promise<boolean> {
-    if (!this.myUid || this.mySeatNumber === null) return false;
-
-    if (this.isHost) {
-      // Host processes directly
-      const result = await this.processSeatAction('standup', this.mySeatNumber, this.myUid);
-      return result.success;
-    }
-
-    // Player uses ACK-based protocol
-    const success = await this.sendSeatActionWithAck('standup', this.mySeatNumber);
-    return success;
+    return this.seatManager.leaveSeat();
   }
 
   /**
@@ -1714,7 +1519,7 @@ export class GameStateService {
 
   /**
    * Take a seat with ACK (unified path)
-   * Returns { success, reason } for detailed error handling
+   * Delegated to SeatManager (Phase 8 migration)
    */
   async takeSeatWithAck(
     seat: number,
@@ -1722,117 +1527,18 @@ export class GameStateService {
     avatarUrl?: string,
     timeoutMs: number = 5000,
   ): Promise<{ success: boolean; reason?: string }> {
-    if (!this.myUid) {
-      return { success: false, reason: 'not_authenticated' };
-    }
-
-    if (this.isHost) {
-      const result = await this.processSeatAction('sit', seat, this.myUid, displayName, avatarUrl);
-      return result;
-    }
-
-    const success = await this.sendSeatActionWithAck(
-      'sit',
-      seat,
-      displayName,
-      avatarUrl,
-      timeoutMs,
-    );
-    if (!success) {
-      const reason = this.lastSeatError?.reason;
-      return { success: false, reason: reason ?? 'unknown' };
-    }
-    return { success: true };
+    return this.seatManager.takeSeatWithAck(seat, displayName, avatarUrl, timeoutMs);
   }
 
   /**
    * Leave seat with ACK (unified path)
-   * Returns { success, reason } for detailed error handling
+   * Delegated to SeatManager (Phase 8 migration)
    */
   async leaveSeatWithAck(timeoutMs: number = 5000): Promise<{ success: boolean; reason?: string }> {
-    if (!this.myUid || this.mySeatNumber === null) {
-      return { success: false, reason: 'not_seated' };
-    }
-
-    if (this.isHost) {
-      const result = await this.processSeatAction('standup', this.mySeatNumber, this.myUid);
-      return result;
-    }
-
-    const success = await this.sendSeatActionWithAck(
-      'standup',
-      this.mySeatNumber,
-      undefined,
-      undefined,
-      timeoutMs,
-    );
-    return { success, reason: success ? undefined : 'timeout_or_rejected' };
+    return this.seatManager.leaveSeatWithAck(timeoutMs);
   }
 
-  /**
-   * Internal: Send seat action and wait for ACK
-   */
-  private async sendSeatActionWithAck(
-    action: 'sit' | 'standup',
-    seat: number,
-    displayName?: string,
-    avatarUrl?: string,
-    timeoutMs: number = 5000,
-  ): Promise<boolean> {
-    if (!this.myUid) return false;
-
-    // Cancel any pending action (clear timeout first)
-    if (this.pendingSeatAction) {
-      clearTimeout(this.pendingSeatAction.timeoutHandle);
-      this.pendingSeatAction.reject(new Error('Cancelled by new action'));
-      this.pendingSeatAction = null;
-    }
-
-    const requestId = this.generateRequestId();
-
-    return new Promise<boolean>((resolve, reject) => {
-      // Set up timeout first
-      const timeoutHandle = setTimeout(() => {
-        if (this.pendingSeatAction?.requestId === requestId) {
-          playerLog.info(` Seat action timeout for ${action} seat ${seat}`);
-          this.pendingSeatAction = null;
-          this.notifyListeners();
-          resolve(false);
-        }
-      }, timeoutMs);
-
-      // Set up pending action with timeout handle
-      this.pendingSeatAction = {
-        requestId,
-        action,
-        seat,
-        timestamp: Date.now(),
-        timeoutHandle,
-        resolve,
-        reject,
-      };
-
-      // Send request
-      this.broadcastCoordinator
-        .sendSeatActionRequest({
-          requestId,
-          action,
-          seat,
-          uid: this.myUid!,
-          displayName,
-          avatarUrl,
-        })
-        .catch((err: Error) => {
-          if (this.pendingSeatAction?.requestId === requestId) {
-            clearTimeout(this.pendingSeatAction.timeoutHandle);
-            this.pendingSeatAction = null;
-            reject(err);
-          }
-        });
-
-      // Note: resolve/reject will be called by handleSeatActionAck or timeout
-    });
-  }
+  // NOTE: sendSeatActionWithAck removed - delegated to SeatManager (Phase 8)
 
   /**
    * Player: Request full state snapshot from Host (for recovery)
