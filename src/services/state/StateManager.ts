@@ -17,6 +17,7 @@
  */
 
 import { createTemplateFromRoles } from '../../models/Template';
+import { type RoleId, isWolfRole } from '../../models/roles';
 import { hostLog, playerLog } from '../../utils/logger';
 
 import type {
@@ -404,5 +405,59 @@ export class StateManager {
         hostLog.error('[StateManager] Listener error:', err);
       }
     });
+  }
+
+  // ===========================================================================
+  // Seat/Role Query Helpers
+  // ===========================================================================
+
+  /**
+   * Find the seat number for a specific role.
+   * Returns -1 if role not found.
+   */
+  findSeatByRole(role: RoleId): number {
+    if (!this.state) return -1;
+
+    for (const [seat, player] of this.state.players) {
+      if (player?.role === role) return seat;
+    }
+    return -1;
+  }
+
+  /**
+   * Get all seats for a specific role.
+   * For 'wolf', includes all wolf-type roles.
+   */
+  getSeatsForRole(role: RoleId): number[] {
+    if (!this.state) return [];
+
+    const seats: number[] = [];
+    this.state.players.forEach((player, seat) => {
+      if (player?.role === role) {
+        seats.push(seat);
+      }
+      // For wolf role, include all wolves
+      if (role === 'wolf' && player?.role && isWolfRole(player.role)) {
+        if (!seats.includes(seat)) {
+          seats.push(seat);
+        }
+      }
+    });
+    return seats.sort((a, b) => a - b);
+  }
+
+  /**
+   * Build a seat -> roleId map for resolver context.
+   */
+  buildRoleMap(): ReadonlyMap<number, RoleId> {
+    if (!this.state) return new Map();
+
+    const roleMap = new Map<number, RoleId>();
+    this.state.players.forEach((player, seat) => {
+      if (player?.role) {
+        roleMap.set(seat, player.role);
+      }
+    });
+    return roleMap;
   }
 }

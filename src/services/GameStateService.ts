@@ -26,7 +26,6 @@ import { hostLog, playerLog } from '../utils/logger';
 import { calculateDeaths, type RoleSeatMap } from './DeathCalculator';
 import { makeActionTarget, getActionTargetSeat } from '../models/actions';
 import {
-  isValidRoleId,
   ROLE_SPECS,
   type SchemaId,
   buildNightPlan,
@@ -166,7 +165,7 @@ export class GameStateService {
           Object.assign(this.state, updates);
         }
       },
-      getSeatsForRole: (role) => this.getSeatsForRole(role),
+      getSeatsForRole: (role) => this.stateManager.getSeatsForRole(role),
       // Callback: NightFlowService notifies us when a role's turn starts
       onRoleTurnStart: async (role, pendingSeats, stepId) => {
         await this.handleRoleTurnStart(role, pendingSeats, stepId);
@@ -1242,7 +1241,7 @@ export class GameStateService {
     // For witch, set killedIndex in state (UI filters by myRole)
     // Exception: if witch is blocked by nightmare, don't set witchContext
     if (role === 'witch') {
-      const witchSeat = this.findSeatByRole('witch');
+      const witchSeat = this.stateManager.findSeatByRole('witch');
       const nightmareAction = this.state.actions.get('nightmare');
       const isWitchBlocked =
         nightmareAction?.kind === 'target' && nightmareAction.targetSeat === witchSeat;
@@ -1535,24 +1534,6 @@ export class GameStateService {
   // Helper Methods
   // ===========================================================================
 
-  private getSeatsForRole(role: RoleId): number[] {
-    if (!this.state) return [];
-
-    const seats: number[] = [];
-    this.state.players.forEach((player, seat) => {
-      if (player?.role === role) {
-        seats.push(seat);
-      }
-      // For wolf role, include all wolves
-      if (role === 'wolf' && player?.role && isWolfRole(player.role)) {
-        if (!seats.includes(seat)) {
-          seats.push(seat);
-        }
-      }
-    });
-    return seats.sort((a, b) => a - b);
-  }
-
   /**
    * Get wolf seats that participate in wolf vote (excludes gargoyle, wolfRobot, etc.)
    */
@@ -1598,7 +1579,7 @@ export class GameStateService {
       return;
     }
 
-    const witchSeat = this.findSeatByRole('witch');
+    const witchSeat = this.stateManager.findSeatByRole('witch');
     // canSave: Host determines if witch can save (not self, has antidote)
     // Night-1-only: witch always has antidote, and self-save is not allowed per schema constraints
     const canSave = killedIndex !== -1 && killedIndex !== witchSeat;
@@ -1658,30 +1639,23 @@ export class GameStateService {
    */
   private buildRoleSeatMap(): RoleSeatMap {
     return {
-      witcher: this.findSeatByRole('witcher'),
-      wolfQueen: this.findSeatByRole('wolfQueen'),
-      dreamcatcher: this.findSeatByRole('dreamcatcher'),
-      spiritKnight: this.findSeatByRole('spiritKnight'),
-      seer: this.findSeatByRole('seer'),
-      witch: this.findSeatByRole('witch'),
-      guard: this.findSeatByRole('guard'),
+      witcher: this.stateManager.findSeatByRole('witcher'),
+      wolfQueen: this.stateManager.findSeatByRole('wolfQueen'),
+      dreamcatcher: this.stateManager.findSeatByRole('dreamcatcher'),
+      spiritKnight: this.stateManager.findSeatByRole('spiritKnight'),
+      seer: this.stateManager.findSeatByRole('seer'),
+      witch: this.stateManager.findSeatByRole('witch'),
+      guard: this.stateManager.findSeatByRole('guard'),
     };
   }
 
   /**
    * Build a seat -> roleId map for resolver context.
    * Used for identity checks (seer, psychic, gargoyle).
+   * Delegated to StateManager.
    */
   private buildRoleMap(): ReadonlyMap<number, RoleId> {
-    if (!this.state) return new Map();
-
-    const roleMap = new Map<number, RoleId>();
-    for (const [seat, player] of this.state.players) {
-      if (player?.role && isValidRoleId(player.role)) {
-        roleMap.set(seat, player.role);
-      }
-    }
-    return roleMap;
+    return this.stateManager.buildRoleMap();
   }
 
   /**
@@ -1885,15 +1859,6 @@ export class GameStateService {
 
     // [Bridge: DeathCalculator] Invoke extracted pure function
     return calculateDeaths(nightActions, roleSeatMap);
-  }
-
-  private findSeatByRole(role: RoleId): number {
-    if (!this.state) return -1;
-
-    for (const [seat, player] of this.state.players) {
-      if (player?.role === role) return seat;
-    }
-    return -1;
   }
 
   /**
