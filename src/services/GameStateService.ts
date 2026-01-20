@@ -62,6 +62,8 @@ import {
 } from './night/resolvers/wolfVote';
 import { getConfirmRoleCanShoot } from '../models/Room';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StateManager } from './state';
+import { StatePersistence } from './persistence';
 
 // Import types/enums needed internally
 import { GameStatus, LocalPlayer, LocalGameState } from './types/GameStateTypes';
@@ -90,6 +92,21 @@ const asyncHandler = <T extends (...args: any[]) => Promise<void>>(fn: T) => {
 
 export class GameStateService {
   private static instance: GameStateService;
+
+  /**
+   * StateManager: Pure state management module (Phase 1 extraction)
+   * Currently used for state conversion only, will gradually take over
+   * state storage and listener management.
+   */
+  private readonly stateManager: StateManager;
+
+  /**
+   * StatePersistence: State persistence module (Phase 2 extraction)
+   * Handles saving/loading state to/from AsyncStorage.
+   * TODO(Phase 2 migration): Gradually replace direct AsyncStorage calls
+   * with this.statePersistence methods.
+   */
+  private readonly statePersistence: StatePersistence;
 
   private state: LocalGameState | null = null;
   private isHost: boolean = false;
@@ -135,6 +152,8 @@ export class GameStateService {
   private listeners: GameStateListener[] = [];
 
   private constructor() {
+    this.stateManager = new StateManager();
+    this.statePersistence = new StatePersistence();
     this.broadcastService = BroadcastService.getInstance();
     this.audioService = AudioService.getInstance();
   }
