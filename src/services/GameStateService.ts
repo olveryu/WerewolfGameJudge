@@ -1585,7 +1585,7 @@ export class GameStateService {
     // For witch, set killedIndex in state (UI filters by myRole)
     // Exception: if witch is blocked by nightmare, don't set witchContext
     if (role === 'witch') {
-      const witchSeat = this.getPlayerSeatByRole('witch');
+      const witchSeat = this.findSeatByRole('witch');
       const nightmareAction = this.state.actions.get('nightmare');
       const isWitchBlocked =
         nightmareAction?.kind === 'target' && nightmareAction.targetSeat === witchSeat;
@@ -2024,20 +2024,6 @@ export class GameStateService {
     return null;
   }
 
-  /**
-   * Get the seat number of a player with a specific role.
-   * Returns -1 if role not found.
-   */
-  private getPlayerSeatByRole(role: RoleId): number {
-    if (!this.state) return -1;
-    for (const [seat, player] of this.state.players) {
-      if (player?.role === role) {
-        return seat;
-      }
-    }
-    return -1;
-  }
-
   // ===========================================================================
   // Role-specific Context Setters (was PRIVATE_EFFECT, now direct state)
   // All data is set in this.state and broadcast publicly via STATE_UPDATE.
@@ -2054,7 +2040,7 @@ export class GameStateService {
       return;
     }
 
-    const witchSeat = this.getPlayerSeatByRole('witch');
+    const witchSeat = this.findSeatByRole('witch');
     // canSave: Host determines if witch can save (not self, has antidote)
     // Night-1-only: witch always has antidote, and self-save is not allowed per schema constraints
     const canSave = killedIndex !== -1 && killedIndex !== witchSeat;
