@@ -25,13 +25,7 @@ import { shuffleArray } from '../utils/shuffle';
 import { hostLog, playerLog } from '../utils/logger';
 import { calculateDeaths, type RoleSeatMap } from './DeathCalculator';
 import { makeActionTarget, getActionTargetSeat } from '../models/actions';
-import {
-  ROLE_SPECS,
-  type SchemaId,
-  buildNightPlan,
-  BLOCKED_UI_DEFAULTS,
-} from '../models/roles/spec';
-import { type ActionInput, type ResolverResult } from './night/resolvers/types';
+import { type SchemaId, BLOCKED_UI_DEFAULTS } from '../models/roles/spec';
 import { getConfirmRoleCanShoot } from '../models/Room';
 import { StateManager } from './state';
 import { StatePersistence } from './persistence';
@@ -666,7 +660,7 @@ export class GameStateService {
     }
 
     // Verify this is the correct role's turn
-    const currentRole = this.getCurrentActionRole();
+    const currentRole = this.nightFlowService.getCurrentActionRole();
     if (currentRole !== role) {
       hostLog.info('Wrong role acting:', role, 'expected:', currentRole);
       return;
@@ -691,7 +685,7 @@ export class GameStateService {
     // =========================================================================
     // Action Processing via ActionProcessor
     // =========================================================================
-    const schemaId = this.getCurrentSchemaId();
+    const schemaId = this.nightFlowService.getCurrentStepInfo()?.stepId;
     if (schemaId) {
       const context = this.buildActionContext();
       const result = this.actionProcessor.processAction(
@@ -795,7 +789,7 @@ export class GameStateService {
       throw new Error('handleWolfVote: nightFlow is null - strict invariant violation');
     }
 
-    const currentRole = this.getCurrentActionRole();
+    const currentRole = this.nightFlowService.getCurrentActionRole();
     hostLog.debug('handleWolfVote:', {
       seat,
       target,
@@ -1228,15 +1222,6 @@ export class GameStateService {
   // Host: Night Phase Control
   // ===========================================================================
 
-  private getCurrentActionRole(): RoleId | null {
-    if (!this.state) return null;
-    const { currentActionerIndex } = this.state;
-    // Phase 5: actionOrder removed from template, derive from NightPlan
-    const nightPlan = buildNightPlan(this.state.template.roles);
-    if (currentActionerIndex >= nightPlan.steps.length) return null;
-    return nightPlan.steps[currentActionerIndex].roleId;
-  }
-
   /**
    * Handle role turn start callback from NightFlowService
    *
@@ -1642,31 +1627,6 @@ export class GameStateService {
   }
 
   /**
-   * Build a seat -> roleId map for resolver context.
-   * Used for identity checks (seer, psychic, gargoyle).
-   * Delegated to StateManager.
-   */
-  private buildRoleMap(): ReadonlyMap<number, RoleId> {
-    return this.stateManager.buildRoleMap();
-  }
-
-  // ===========================================================================
-  // Resolver Integration (Phase 1: Infrastructure)
-  // Delegated to ActionProcessor module.
-  // ===========================================================================
-
-  /**
-   * Get current step's schemaId from nightFlow.
-   */
-  private getCurrentSchemaId(): SchemaId | null {
-    if (!this.nightFlowService.isActive() || !this.state) return null;
-    const nightPlan = buildNightPlan(this.state.template.roles);
-    const nightFlow = this.nightFlowService.getNightFlow();
-    const step = nightPlan.steps[nightFlow?.currentActionIndex ?? 0];
-    return step?.stepId ?? null;
-  }
-
-  /**
    * Build ActionContext for ActionProcessor.
    */
   private buildActionContext(): import('./action').ActionContext {
@@ -1680,71 +1640,12 @@ export class GameStateService {
       };
     }
     return {
-      players: this.buildRoleMap(),
+      players: this.stateManager.buildRoleMap(),
       currentNightResults: (this.state.currentNightResults ?? {}) as Record<string, unknown>,
       witchContext: this.state.witchContext,
       actions: this.state.actions,
       wolfVotes: this.state.wolfVotes,
     };
-  }
-
-  /**
-   * Invoke a resolver for the given schemaId.
-   * Delegates to ActionProcessor.
-   */
-  private invokeResolver(
-    schemaId: SchemaId,
-    actorSeat: number,
-    actorRoleId: RoleId,
-    input: ActionInput,
-  ): ResolverResult {
-    const context = this.buildActionContext();
-    return this.actionProcessor.invokeResolver(schemaId, actorSeat, actorRoleId, input, context);
-  }
-
-  /**
-   * Build ActionInput from wire protocol.
-   * Delegates to ActionProcessor.
-   */
-  private buildActionInput(
-    schemaId: SchemaId,
-    target: number | null,
-    extra?: unknown,
-  ): ActionInput {
-    return this.actionProcessor.buildActionInput(schemaId, target, extra);
-  }
-
-  /**
-   * Apply resolver result to state.
-   * Merges updates into currentNightResults and sets reveal results.
-   *
-   * @param role - The role performing the action
-   * @param target - The target seat (for reveal results)
-   * @param result - The resolver result
-   */
-  private applyResolverResult(role: RoleId, target: number | null, result: ResolverResult): void {
-    if (!this.state) return;
-
-    // 1. Merge updates into currentNightResults
-    if (result.updates) {
-      this.state.currentNightResults = {
-        ...this.state.currentNightResults,
-        ...result.updates,
-      };
-
-      // Sync fields that need to be broadcast
-      if (result.updates.blockedSeat !== undefined) {
-        this.state.nightmareBlockedSeat = result.updates.blockedSeat;
-      }
-      if (result.updates.wolfKillDisabled !== undefined) {
-        this.state.wolfKillDisabled = result.updates.wolfKillDisabled;
-      }
-    }
-
-    // 2. Apply reveal results (from resolver, not re-computed)
-    if (result.result && target !== null) {
-      this.applyRevealFromResolver(role, target, result.result);
-    }
   }
 
   /**
@@ -1785,42 +1686,6 @@ export class GameStateService {
         break;
     }
     hostLog.info(`Set ${reveal.type}Reveal from processAction:`, reveal.targetSeat, reveal.result);
-  }
-
-  /**
-   * Apply reveal result from resolver to state.
-   * This replaces the old setSeerReveal/setPsychicReveal/etc methods.
-   */
-  private applyRevealFromResolver(
-    role: RoleId,
-    target: number,
-    resolverResult: NonNullable<ResolverResult['result']>,
-  ): void {
-    if (!this.state) return;
-
-    // Seer: faction check result
-    if (resolverResult.checkResult) {
-      this.state.seerReveal = {
-        targetSeat: target,
-        result: resolverResult.checkResult,
-      };
-      hostLog.info('Set seerReveal from resolver:', target, resolverResult.checkResult);
-    }
-
-    // Psychic/Gargoyle/WolfRobot: identity result
-    if (resolverResult.identityResult) {
-      const displayName = ROLE_SPECS[resolverResult.identityResult].displayName;
-
-      if (role === 'psychic') {
-        this.state.psychicReveal = { targetSeat: target, result: displayName };
-      } else if (role === 'gargoyle') {
-        this.state.gargoyleReveal = { targetSeat: target, result: displayName };
-      } else if (role === 'wolfRobot') {
-        this.state.wolfRobotReveal = { targetSeat: target, result: displayName };
-      }
-
-      hostLog.info(`Set ${role}Reveal from resolver:`, target, displayName);
-    }
   }
 
   /**

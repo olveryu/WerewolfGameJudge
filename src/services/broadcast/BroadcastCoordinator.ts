@@ -23,6 +23,7 @@
 import type { BroadcastGameState, HostBroadcast, PlayerMessage } from '../BroadcastService';
 import { BroadcastService } from '../BroadcastService';
 import { hostLog, playerLog } from '../../utils/logger';
+import type { SeatActionRequest, SeatActionAck } from '../seat/SeatManager';
 
 // ===========================================================================
 // Types
@@ -48,14 +49,7 @@ export interface HostMessageHandlers {
   /** Player viewed their role */
   onViewedRole: (seat: number) => Promise<void>;
   /** Player seat action request (sit/standup) */
-  onSeatActionRequest: (msg: {
-    requestId: string;
-    action: 'sit' | 'standup';
-    seat: number;
-    uid: string;
-    displayName?: string;
-    avatarUrl?: string;
-  }) => Promise<void>;
+  onSeatActionRequest: (msg: SeatActionRequest) => Promise<void>;
   /** Player requesting state snapshot */
   onSnapshotRequest: (msg: {
     requestId: string;
@@ -78,13 +72,7 @@ export interface PlayerMessageHandlers {
   /** Seat rejected notification */
   onSeatRejected: (seat: number, requestUid: string, reason: 'seat_taken') => void;
   /** Seat action acknowledgment */
-  onSeatActionAck: (msg: {
-    requestId: string;
-    toUid: string;
-    success: boolean;
-    seat: number;
-    reason?: string;
-  }) => void;
+  onSeatActionAck: (msg: SeatActionAck) => void;
   /** Snapshot response */
   onSnapshotResponse: (msg: {
     requestId: string;
@@ -408,6 +396,7 @@ export class BroadcastCoordinator {
         break;
       case 'SEAT_ACTION_ACK':
         this.playerHandlers.onSeatActionAck({
+          type: 'SEAT_ACTION_ACK',
           requestId: msg.requestId,
           toUid: msg.toUid,
           success: msg.success,
@@ -466,6 +455,7 @@ export class BroadcastCoordinator {
         break;
       case 'SEAT_ACTION_REQUEST':
         await this.hostHandlers.onSeatActionRequest({
+          type: 'SEAT_ACTION_REQUEST',
           requestId: msg.requestId,
           action: msg.action,
           seat: msg.seat,

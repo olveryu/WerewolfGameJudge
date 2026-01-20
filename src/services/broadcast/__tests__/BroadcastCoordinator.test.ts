@@ -394,10 +394,12 @@ describe('BroadcastCoordinator', () => {
       });
 
       expect(handlers.onSeatActionAck).toHaveBeenCalledWith({
+        type: 'SEAT_ACTION_ACK',
         requestId: 'req-1',
         toUid: 'user-123',
         success: true,
         seat: 3,
+        reason: undefined,
       });
     });
 
@@ -557,11 +559,13 @@ describe('BroadcastCoordinator', () => {
       );
 
       expect(handlers.onSeatActionRequest).toHaveBeenCalledWith({
+        type: 'SEAT_ACTION_REQUEST',
         requestId: 'req-1',
         action: 'sit',
         seat: 3,
         uid: 'user-123',
         displayName: 'Player 1',
+        avatarUrl: undefined,
       });
     });
 
