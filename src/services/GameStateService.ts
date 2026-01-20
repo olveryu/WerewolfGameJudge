@@ -21,7 +21,7 @@ import {
 import AudioService from './AudioService';
 import { NightPhase, NightEvent, InvalidNightTransitionError } from './NightFlowController';
 import { shuffleArray } from '../utils/shuffle';
-import { hostLog, playerLog } from '../utils/logger';
+import { hostLog } from '../utils/logger';
 import { calculateDeaths, type RoleSeatMap } from './DeathCalculator';
 import { makeActionTarget, getActionTargetSeat } from '../models/actions';
 import { type SchemaId, BLOCKED_UI_DEFAULTS } from '../models/roles/spec';
@@ -107,12 +107,7 @@ export class GameStateService {
   /** State revision counter (Host: incremented on each change, Player: received from Host) */
   private stateRevision: number = 0;
 
-  /** Pending snapshot request (Player: waiting for response) */
-  private pendingSnapshotRequest: {
-    requestId: string;
-    timestamp: number;
-    timeoutHandle: ReturnType<typeof setTimeout>;
-  } | null = null;
+  // NOTE: pendingSnapshotRequest removed - delegated to PlayerCoordinator (Phase 8c)
 
   /**
    * NightFlowService: manages night flow control and audio playback (Host only)
@@ -1332,12 +1327,7 @@ export class GameStateService {
   // Player: Actions
   // ===========================================================================
 
-  /**
-   * Generate unique request ID
-   */
-  private generateRequestId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  }
+  // NOTE: generateRequestId removed - delegated to PlayerCoordinator (Phase 8c)
 
   /**
    * Take a seat with ACK (unified path)
@@ -1364,65 +1354,10 @@ export class GameStateService {
 
   /**
    * Player: Request full state snapshot from Host (for recovery)
-   * Returns true if request was sent, false if failed
-   * Timeout after 10s will mark connection as disconnected
+   * Delegated to PlayerCoordinator (Phase 8c migration)
    */
   async requestSnapshot(timeoutMs: number = 10000): Promise<boolean> {
-    if (this.isHost) {
-      // Host is authoritative, no need to request
-      return true;
-    }
-
-    if (!this.myUid) return false;
-
-    // Cancel any pending snapshot request
-    if (this.pendingSnapshotRequest) {
-      clearTimeout(this.pendingSnapshotRequest.timeoutHandle);
-      this.pendingSnapshotRequest = null;
-    }
-
-    // Mark as syncing
-    this.broadcastCoordinator.markAsSyncing();
-
-    const requestId = this.generateRequestId();
-
-    playerLog.info(` Requesting snapshot, lastRev: ${this.stateRevision}`);
-
-    // Set up timeout
-    const timeoutHandle = setTimeout(() => {
-      if (this.pendingSnapshotRequest?.requestId === requestId) {
-        playerLog.info(` Snapshot request timeout`);
-        this.pendingSnapshotRequest = null;
-        // Mark as disconnected on timeout
-        this.broadcastCoordinator.setConnectionStatus('disconnected');
-        this.notifyListeners();
-      }
-    }, timeoutMs);
-
-    // Store pending request
-    this.pendingSnapshotRequest = {
-      requestId,
-      timestamp: Date.now(),
-      timeoutHandle,
-    };
-
-    try {
-      await this.broadcastCoordinator.requestSnapshot(requestId, this.myUid, this.stateRevision);
-    } catch (err) {
-      // sendToHost failed - rollback pending state immediately
-      if (this.pendingSnapshotRequest?.requestId === requestId) {
-        playerLog.info(` Snapshot request send failed:`, err);
-        clearTimeout(this.pendingSnapshotRequest.timeoutHandle);
-        this.pendingSnapshotRequest = null;
-        this.broadcastCoordinator.setConnectionStatus('disconnected');
-        this.notifyListeners();
-      }
-      return false;
-    }
-
-    // Response will be handled by handleSnapshotResponse
-    // Timeout will mark as disconnected if no response
-    return true;
+    return this.playerCoordinator.requestSnapshot(timeoutMs);
   }
 
   /**
