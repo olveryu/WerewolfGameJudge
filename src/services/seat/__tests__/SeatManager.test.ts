@@ -68,6 +68,31 @@ function createMockConfig(
     broadcastState: jest.fn().mockResolvedValue(undefined),
     notifyListeners: jest.fn(),
     broadcastCoordinator: mockBroadcastCoordinator,
+    // StateManager callbacks
+    setSeatPlayer: jest.fn((seat, player) => {
+      state?.players.set(seat, player);
+    }),
+    clearSeat: jest.fn((seat) => {
+      state?.players.set(seat, null);
+    }),
+    clearSeatsByUid: jest.fn((uid, skipSeat) => {
+      if (!state) return;
+      for (const [seat, player] of state.players.entries()) {
+        if (player?.uid === uid && seat !== skipSeat) {
+          state.players.set(seat, null);
+        }
+      }
+    }),
+    updateSeatStatus: jest.fn(() => {
+      if (!state) return;
+      const allSeated = Array.from(state.players.values()).every((p) => p !== null);
+      const anyEmpty = Array.from(state.players.values()).includes(null);
+      if (allSeated && state.status === GameStatus.unseated) {
+        state.status = GameStatus.seated;
+      } else if (anyEmpty && state.status === GameStatus.seated) {
+        state.status = GameStatus.unseated;
+      }
+    }),
     ...overrides,
   };
 }

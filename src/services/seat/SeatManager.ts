@@ -12,7 +12,6 @@
 
 import type { BroadcastCoordinator } from '../broadcast/BroadcastCoordinator';
 import type { LocalGameState, LocalPlayer } from '../types/GameStateTypes';
-import { GameStatus } from '../types/GameStateTypes';
 import { seatManagerLog } from '../../utils/logger';
 
 // =============================================================================
@@ -79,7 +78,7 @@ export interface SeatManagerConfig {
   isHost: () => boolean;
   /** Get current user's UID */
   getMyUid: () => string | null;
-  /** Get current game state */
+  /** Get current game state (read-only) */
   getState: () => LocalGameState | null;
   /** Update my seat number tracking */
   setMySeatNumber: (seat: number | null) => void;
@@ -91,6 +90,16 @@ export interface SeatManagerConfig {
   notifyListeners: () => void;
   /** BroadcastCoordinator for Player → Host communication */
   broadcastCoordinator: BroadcastCoordinator;
+
+  // StateManager callbacks for seat operations
+  /** Set a player in a seat (via StateManager) */
+  setSeatPlayer: (seat: number, player: LocalPlayer) => void;
+  /** Clear a seat (via StateManager) */
+  clearSeat: (seat: number) => void;
+  /** Clear all seats by UID (via StateManager) */
+  clearSeatsByUid: (uid: string, skipSeat?: number) => void;
+  /** Update seat status after changes (via StateManager) */
+  updateSeatStatus: () => void;
 }
 
 // =============================================================================
@@ -276,10 +285,10 @@ export class SeatManager {
       return { success: false, reason: 'seat_taken' };
     }
 
-    // Clear any old seats for this player
-    this.clearSeatsByUid(uid, seat);
+    // Clear any old seats for this player (via StateManager)
+    this.config.clearSeatsByUid(uid, seat);
 
-    // Assign seat
+    // Assign seat (via StateManager)
     const player: LocalPlayer = {
       uid,
       seatNumber: seat,
@@ -288,29 +297,19 @@ export class SeatManager {
       role: null,
       hasViewedRole: false,
     };
-    state.players.set(seat, player);
+    this.config.setSeatPlayer(seat, player);
 
     // Track my seat if this is me
     if (uid === this.config.getMyUid()) {
       this.config.setMySeatNumber(seat);
     }
 
-    // Update status if all seated
-    this.updateStatusAfterSit(state);
+    // Update status if all seated (via StateManager)
+    this.config.updateSeatStatus();
 
     await this.config.broadcastState();
     this.config.notifyListeners();
     return { success: true };
-  }
-
-  /**
-   * Host: Update game status after a player sits
-   */
-  private updateStatusAfterSit(state: LocalGameState): void {
-    const allSeated = Array.from(state.players.values()).every((p) => p !== null);
-    if (allSeated && state.status === GameStatus.unseated) {
-      state.status = GameStatus.seated;
-    }
   }
 
   /**
@@ -327,18 +326,16 @@ export class SeatManager {
       return { success: false, reason: 'not_seated' };
     }
 
-    // Clear seat
-    state.players.set(seat, null);
+    // Clear seat (via StateManager)
+    this.config.clearSeat(seat);
 
     // Track my seat if this is me
     if (uid === this.config.getMyUid()) {
       this.config.setMySeatNumber(null);
     }
 
-    // Revert status if needed
-    if (state.status === GameStatus.seated) {
-      state.status = GameStatus.unseated;
-    }
+    // Revert status if needed (via StateManager)
+    this.config.updateSeatStatus();
 
     await this.config.broadcastState();
     this.config.notifyListeners();
@@ -419,20 +416,6 @@ export class SeatManager {
   // ===========================================================================
   // Private: Helpers
   // ===========================================================================
-
-  /**
-   * Clear ALL seats occupied by a given uid (defensive: handles dirty data)
-   * Optionally skip a specific seat (used when that seat is the new target)
-   */
-  private clearSeatsByUid(uid: string, skipSeat?: number): void {
-    const state = this.config.getState();
-    if (!state) return;
-    for (const [seat, player] of state.players.entries()) {
-      if (player?.uid === uid && seat !== skipSeat) {
-        state.players.set(seat, null);
-      }
-    }
-  }
 
   /**
    * Generate unique request ID
@@ -536,8 +519,8 @@ export class SeatManager {
       return;
     }
 
-    // Clear ALL old seats if player is switching (defensive: no break, handles dirty data)
-    this.clearSeatsByUid(uid, seat);
+    // Clear ALL old seats if player is switching (via StateManager)
+    this.config.clearSeatsByUid(uid, seat);
 
     const player: LocalPlayer = {
       uid,
@@ -548,13 +531,11 @@ export class SeatManager {
       hasViewedRole: false,
     };
 
-    state.players.set(seat, player);
+    // Set seat (via StateManager)
+    this.config.setSeatPlayer(seat, player);
 
-    // Check if all seats are filled
-    const allSeated = Array.from(state.players.values()).every((p) => p !== null);
-    if (allSeated && state.status === GameStatus.unseated) {
-      state.status = GameStatus.seated;
-    }
+    // Update status if all seated (via StateManager)
+    this.config.updateSeatStatus();
 
     await this.config.broadcastState();
     this.config.notifyListeners();
@@ -574,12 +555,11 @@ export class SeatManager {
     const player = state.players.get(seat);
     if (player?.uid !== uid) return;
 
-    state.players.set(seat, null);
+    // Clear seat (via StateManager)
+    this.config.clearSeat(seat);
 
-    // Revert status if needed
-    if (state.status === GameStatus.seated) {
-      state.status = GameStatus.unseated;
-    }
+    // Revert status if needed (via StateManager)
+    this.config.updateSeatStatus();
 
     await this.config.broadcastState();
     this.config.notifyListeners();

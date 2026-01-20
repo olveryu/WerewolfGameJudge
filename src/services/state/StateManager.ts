@@ -714,4 +714,91 @@ export class StateManager {
 
     hostLog.info(`Set ${reveal.type}Reveal:`, reveal.targetSeat, reveal.result);
   }
+
+  /**
+   * Apply night result updates from ActionProcessor.
+   * Handles merging updates into currentNightResults and syncing broadcast fields.
+   *
+   * @param updates - The updates from ActionProcessor result
+   */
+  applyNightResultUpdates(updates: Record<string, unknown>): void {
+    if (!this.state) {
+      throw new Error('[StateManager] Cannot apply updates: state not initialized');
+    }
+
+    const updatePayload: Partial<LocalGameState> = {
+      currentNightResults: {
+        ...this.state.currentNightResults,
+        ...updates,
+      },
+    };
+
+    // Sync fields that need to be broadcast
+    if (updates.blockedSeat !== undefined) {
+      updatePayload.nightmareBlockedSeat = updates.blockedSeat as number;
+    }
+    if (updates.wolfKillDisabled !== undefined) {
+      updatePayload.wolfKillDisabled = updates.wolfKillDisabled as boolean;
+    }
+
+    this.batchUpdate(updatePayload);
+  }
+
+  // ===========================================================================
+  // Seat Management
+  // ===========================================================================
+
+  /**
+   * Set a player in a seat.
+   * Used by SeatManager to assign players to seats.
+   */
+  setSeatPlayer(seat: number, player: LocalPlayer): void {
+    if (!this.state) {
+      throw new Error('[StateManager] Cannot set seat: state not initialized');
+    }
+    this.state.players.set(seat, player);
+    this.notifyListeners();
+  }
+
+  /**
+   * Clear a seat (set to null).
+   * Used by SeatManager when a player leaves.
+   */
+  clearSeat(seat: number): void {
+    if (!this.state) {
+      throw new Error('[StateManager] Cannot clear seat: state not initialized');
+    }
+    this.state.players.set(seat, null);
+    this.notifyListeners();
+  }
+
+  /**
+   * Clear all seats occupied by a given UID.
+   * Optionally skip a specific seat (used when that seat is the new target).
+   */
+  clearSeatsByUid(uid: string, skipSeat?: number): void {
+    if (!this.state) return;
+    for (const [seat, player] of this.state.players.entries()) {
+      if (player?.uid === uid && seat !== skipSeat) {
+        this.state.players.set(seat, null);
+      }
+    }
+  }
+
+  /**
+   * Update game status after seating changes.
+   * Transitions: unseated -> seated when all filled, seated -> unseated when any empty.
+   */
+  updateSeatStatus(): void {
+    if (!this.state) return;
+
+    const allSeated = Array.from(this.state.players.values()).every((p) => p !== null);
+    const anyEmpty = Array.from(this.state.players.values()).includes(null);
+
+    if (allSeated && this.state.status === GameStatus.unseated) {
+      this.batchUpdate({ status: GameStatus.seated });
+    } else if (anyEmpty && this.state.status === GameStatus.seated) {
+      this.batchUpdate({ status: GameStatus.unseated });
+    }
+  }
 }

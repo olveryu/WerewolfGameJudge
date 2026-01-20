@@ -80,6 +80,11 @@ export class GameCoordinator {
       broadcastState: () => this.broadcastState(),
       notifyListeners: () => {}, // StateManager handles this now
       broadcastCoordinator: this.broadcastCoordinator,
+      // StateManager callbacks for seat operations
+      setSeatPlayer: (seat, player) => this.stateManager.setSeatPlayer(seat, player),
+      clearSeat: (seat) => this.stateManager.clearSeat(seat),
+      clearSeatsByUid: (uid, skipSeat) => this.stateManager.clearSeatsByUid(uid, skipSeat),
+      updateSeatStatus: () => this.stateManager.updateSeatStatus(),
     });
 
     this.nightFlowService = new NightFlowService({

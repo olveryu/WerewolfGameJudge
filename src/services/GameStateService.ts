@@ -154,6 +154,11 @@ export class GameStateService {
       broadcastState: () => this.broadcastState(),
       notifyListeners: () => this.notifyListeners(),
       broadcastCoordinator: this.broadcastCoordinator,
+      // StateManager callbacks for seat operations
+      setSeatPlayer: (seat, player) => this.stateManager.setSeatPlayer(seat, player),
+      clearSeat: (seat) => this.stateManager.clearSeat(seat),
+      clearSeatsByUid: (uid, skipSeat) => this.stateManager.clearSeatsByUid(uid, skipSeat),
+      updateSeatStatus: () => this.stateManager.updateSeatStatus(),
     });
 
     // Initialize NightFlowService with config callbacks
@@ -657,6 +662,62 @@ export class GameStateService {
     return 'blocked';
   }
 
+  /**
+   * Reject an action and broadcast the rejection to the player.
+   * @returns true if rejection was broadcast, false if no playerUid
+   */
+  private async rejectAction(
+    seat: number,
+    action: 'submitAction' | 'submitWolfVote',
+    reason: string,
+  ): Promise<boolean> {
+    const playerUid = this.state?.players.get(seat)?.uid;
+    if (!playerUid) return false;
+
+    this.stateManager.batchUpdate({
+      actionRejected: {
+        action,
+        reason,
+        targetUid: playerUid,
+      },
+    });
+    await this.broadcastState();
+    return true;
+  }
+
+  /**
+   * Apply valid action result to state and record the action.
+   * Extracts the common logic from handlePlayerAction.
+   */
+  private applyActionResult(
+    role: RoleId,
+    target: number | null,
+    result: { updates?: Record<string, unknown>; reveal?: any; actionToRecord?: any },
+  ): void {
+    // Apply updates to currentNightResults via StateManager
+    if (result.updates) {
+      this.stateManager.applyNightResultUpdates(result.updates);
+    }
+
+    // Apply reveal result
+    if (result.reveal && target !== null) {
+      this.stateManager.applyReveal(result.reveal);
+    }
+
+    // Record action using actionToRecord from processor
+    if (result.actionToRecord && target !== null) {
+      this.stateManager.recordAction(role, result.actionToRecord);
+
+      // Record action in nightFlow (raw target only for logging/debug)
+      try {
+        this.nightFlowService.recordAction(role, target);
+      } catch (err) {
+        hostLog.error('NightFlow recordAction failed:', err);
+        throw err; // STRICT: propagate error, don't continue
+      }
+    }
+  }
+
   private async handlePlayerAction(
     seat: number,
     role: RoleId,
@@ -688,10 +749,10 @@ export class GameStateService {
     if (!this.nightFlowService.canAcceptAction(role)) {
       const phase = this.nightFlowService.getCurrentPhase();
       const currentNightRole = this.nightFlowService.getNightFlow()?.currentRole;
-      if (phase !== NightPhase.WaitingForAction) {
-        hostLog.info('NightFlow not in WaitingForAction phase, ignoring action');
-      } else {
+      if (phase === NightPhase.WaitingForAction) {
         hostLog.info('NightFlow role mismatch:', role, 'expected:', currentNightRole);
+      } else {
+        hostLog.info('NightFlow not in WaitingForAction phase, ignoring action');
       }
       return;
     }
@@ -716,59 +777,13 @@ export class GameStateService {
       );
 
       if (!result.valid) {
-        // Reject action
-        const playerUid = this.state.players.get(seat)?.uid;
-        if (playerUid) {
-          this.stateManager.batchUpdate({
-            actionRejected: {
-              action: 'submitAction',
-              reason: result.rejectReason ?? '行动无效',
-              targetUid: playerUid,
-            },
-          });
-          await this.broadcastState();
-        }
+        await this.rejectAction(seat, 'submitAction', result.rejectReason ?? '行动无效');
         hostLog.info('Action rejected by resolver:', result.rejectReason);
         return;
       }
 
-      // Apply updates to currentNightResults
-      if (result.updates) {
-        const updatePayload: Partial<LocalGameState> = {
-          currentNightResults: {
-            ...this.state.currentNightResults,
-            ...result.updates,
-          },
-        };
-
-        // Sync fields that need to be broadcast
-        if (result.updates.blockedSeat !== undefined) {
-          updatePayload.nightmareBlockedSeat = result.updates.blockedSeat as number;
-        }
-        if (result.updates.wolfKillDisabled !== undefined) {
-          updatePayload.wolfKillDisabled = result.updates.wolfKillDisabled as boolean;
-        }
-
-        this.stateManager.batchUpdate(updatePayload);
-      }
-
-      // Apply reveal result
-      if (result.reveal && target !== null) {
-        this.stateManager.applyReveal(result.reveal);
-      }
-
-      // Record action using actionToRecord from processor
-      if (result.actionToRecord && target !== null) {
-        this.stateManager.recordAction(role, result.actionToRecord);
-
-        // Record action in nightFlow (raw target only for logging/debug)
-        try {
-          this.nightFlowService.recordAction(role, target);
-        } catch (err) {
-          hostLog.error('NightFlow recordAction failed:', err);
-          throw err; // STRICT: propagate error, don't continue
-        }
-      }
+      // Apply valid result
+      this.applyActionResult(role, target, result);
     }
 
     // Reveal roles require an explicit "I read it" ACK before advancing.
@@ -783,15 +798,22 @@ export class GameStateService {
     }
 
     // Non-reveal roles proceed immediately
+    await this.dispatchActionSubmittedAndAdvance();
+  }
+
+  /**
+   * Dispatch ActionSubmitted event and advance to next action.
+   * Common logic for completing an action.
+   */
+  private async dispatchActionSubmittedAndAdvance(): Promise<void> {
     try {
       this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted);
     } catch (err) {
       if (err instanceof InvalidNightTransitionError) {
         hostLog.error('NightFlow ActionSubmitted failed:', err.message);
         throw err; // STRICT: propagate error
-      } else {
-        throw err;
       }
+      throw err;
     }
 
     await this.advanceToNextAction();
@@ -830,23 +852,12 @@ export class GameStateService {
     const player = this.state.players.get(seat);
     if (!player?.role || !isWolfRole(player.role)) return;
 
-    const playerUid = player.uid;
-
     // Validate target via ActionProcessor
     const context = this.buildActionContext();
     const validation = this.actionProcessor.validateWolfVote(target, context);
 
     if (!validation.valid) {
-      if (playerUid) {
-        this.stateManager.batchUpdate({
-          actionRejected: {
-            action: 'submitWolfVote',
-            reason: validation.rejectReason ?? '无效目标',
-            targetUid: playerUid,
-          },
-        });
-        await this.broadcastState();
-      }
+      await this.rejectAction(seat, 'submitWolfVote', validation.rejectReason ?? '无效目标');
       return;
     }
 
@@ -858,57 +869,67 @@ export class GameStateService {
     const allVoted = allVotingWolfSeats.every((s) => this.state!.wolfVotes.has(s));
 
     if (allVoted) {
-      // ONCE-GUARD: If wolf action already recorded, this is a duplicate finalize - skip
-      if (this.stateManager.hasAction('wolf')) {
-        hostLog.debug(
-          '[GameStateService] handleWolfVote finalize skipped (once-guard): wolf action already recorded.',
-          'phase:',
-          this.nightFlowService.getCurrentPhase(),
-          'currentActionerIndex:',
-          this.state.currentActionerIndex,
-        );
-        return;
-      }
-
-      // Resolve final kill target via ActionProcessor
-      const finalTarget = this.actionProcessor.resolveWolfVotes(this.state.wolfVotes);
-      if (finalTarget !== null) {
-        this.stateManager.recordAction('wolf', makeActionTarget(finalTarget));
-        // Record action in nightFlow
-        try {
-          this.nightFlowService.recordAction('wolf', finalTarget);
-        } catch (err) {
-          hostLog.debug(
-            '[GameStateService] NightFlow recordAction (wolf) failed:',
-            err,
-            'phase:',
-            this.nightFlowService.getCurrentPhase(),
-          );
-        }
-      }
-
-      // Dispatch ActionSubmitted to nightFlow (required before advanceToNextAction)
-      try {
-        this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted);
-      } catch (err) {
-        if (err instanceof InvalidNightTransitionError) {
-          hostLog.debug(
-            '[GameStateService] NightFlow ActionSubmitted (wolf) rejected:',
-            'phase:',
-            this.nightFlowService.getCurrentPhase(),
-            '(expected WaitingForAction). This may indicate a call chain bug.',
-          );
-        } else {
-          throw err;
-        }
-      }
-
-      await this.advanceToNextAction();
+      await this.finalizeWolfVote();
     } else {
       // Broadcast vote status update
       await this.broadcastState();
       this.notifyListeners();
     }
+  }
+
+  /**
+   * Finalize wolf vote when all wolves have voted.
+   * Resolves the final target and advances to next action.
+   */
+  private async finalizeWolfVote(): Promise<void> {
+    if (!this.state) return;
+
+    // ONCE-GUARD: If wolf action already recorded, this is a duplicate finalize - skip
+    if (this.stateManager.hasAction('wolf')) {
+      hostLog.debug(
+        '[GameStateService] handleWolfVote finalize skipped (once-guard): wolf action already recorded.',
+        'phase:',
+        this.nightFlowService.getCurrentPhase(),
+        'currentActionerIndex:',
+        this.state.currentActionerIndex,
+      );
+      return;
+    }
+
+    // Resolve final kill target via ActionProcessor
+    const finalTarget = this.actionProcessor.resolveWolfVotes(this.state.wolfVotes);
+    if (finalTarget !== null) {
+      this.stateManager.recordAction('wolf', makeActionTarget(finalTarget));
+      // Record action in nightFlow
+      try {
+        this.nightFlowService.recordAction('wolf', finalTarget);
+      } catch (err) {
+        hostLog.debug(
+          '[GameStateService] NightFlow recordAction (wolf) failed:',
+          err,
+          'phase:',
+          this.nightFlowService.getCurrentPhase(),
+        );
+      }
+    }
+
+    // Dispatch ActionSubmitted and advance
+    try {
+      this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted);
+    } catch (err) {
+      if (err instanceof InvalidNightTransitionError) {
+        hostLog.debug(
+          '[GameStateService] NightFlow ActionSubmitted (wolf) rejected:',
+          'phase:',
+          this.nightFlowService.getCurrentPhase(),
+          '(expected WaitingForAction). This may indicate a call chain bug.',
+        );
+      } else {
+        throw err;
+      }
+    }
+
+    await this.advanceToNextAction();
   }
 
   private async handlePlayerViewedRole(seat: number): Promise<void> {
