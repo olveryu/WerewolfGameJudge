@@ -120,10 +120,11 @@ async function setupReadyState(
 }
 
 /**
- * Get private nightFlow from service
+ * Get nightFlow from service via nightFlowService
+ * (nightFlow member was removed from GameStateService, now accessed via nightFlowService)
  */
 function getNightFlow(service: GameStateService): any {
-  return (service as any).nightFlow;
+  return (service as any).nightFlowService?.getNightFlow() ?? null;
 }
 
 /**
@@ -346,54 +347,53 @@ describe('GameStateService NightFlowController Integration', () => {
 
   // ===========================================================================
   // 4. dispatch() idempotent handling (strict state machine authority)
+  // Note: These tests verify that the state machine handles edge cases gracefully.
+  // Since nightFlow is now managed by NightFlowService, we test via the service methods.
   // ===========================================================================
 
   describe('dispatch() idempotent handling', () => {
-    it('should not throw when advanceToNextAction called in wrong phase', async () => {
-      // Given: Game started
+    it('should throw when advanceToNextAction called with null nightFlow and ongoing status', async () => {
+      // Given: Game started and then nightFlow is reset (simulating a bug)
       await setupReadyState(service, ['wolf', 'witch', 'seer']);
       const startPromise = service.startGame();
-      await jest.runAllTimersAsync();
+      await jest.advanceTimersByTimeAsync(5000); // Advance to get nightFlow initialized
       await startPromise;
 
-      const nightFlow = getNightFlow(service);
-      const state = getState(service);
-      state.status = GameStatus.ongoing;
+      // Confirm game is ongoing
+      expect(getState(service).status).toBe(GameStatus.ongoing);
 
-      // Force nightFlow to Ended state (terminal) - wrong phase for RoleEndAudioDone
-      (nightFlow as any)._phase = NightPhase.Ended;
-
-      // When: Call advanceToNextAction which will try to dispatch RoleEndAudioDone
-      // This should be ignored (idempotent) with debug log, not error
-      const advanceToNextAction = (service as any).advanceToNextAction.bind(service);
-
-      // Then: Should not throw
-      await expect(advanceToNextAction()).resolves.not.toThrow();
-      // Note: With strict semantics, we use debug not error
-    });
-
-    it('should NOT advance index when RoleEndAudioDone called in wrong phase (strict)', async () => {
-      // Given: Game started with action order
-      await setupReadyState(service, ['wolf', 'witch', 'seer']);
-      const startPromise = service.startGame();
-      await jest.runAllTimersAsync();
-      await startPromise;
-
-      const nightFlow = getNightFlow(service);
-      const state = getState(service);
-      state.status = GameStatus.ongoing;
-      state.currentActionerIndex = 0;
-
-      // Force nightFlow to a phase where RoleEndAudioDone will be ignored
-      (nightFlow as any)._phase = NightPhase.Ended;
+      // Force nightFlow to null via nightFlowService.reset() (simulating a bug)
+      (service as any).nightFlowService.reset();
 
       // When: Call advanceToNextAction
       const advanceToNextAction = (service as any).advanceToNextAction.bind(service);
-      await advanceToNextAction();
 
-      // Then: currentActionerIndex should NOT be incremented (strict: no fallback)
-      // This is the key semantic change: GameStateService respects NightFlowController authority
-      expect(state.currentActionerIndex).toBe(0);
+      // Then: Should throw because ongoing + null nightFlow is a strict invariant violation
+      await expect(advanceToNextAction()).rejects.toThrow(
+        'advanceToNextAction: nightFlow is null - strict invariant violation',
+      );
+    });
+
+    it('should NOT advance index when nightFlow is reset during ongoing game', async () => {
+      // Given: Game started
+      await setupReadyState(service, ['wolf', 'witch', 'seer']);
+      const startPromise = service.startGame();
+      await jest.advanceTimersByTimeAsync(5000);
+      await startPromise;
+
+      const state = getState(service);
+      state.status = GameStatus.ongoing;
+      const indexBefore = state.currentActionerIndex;
+
+      // Force nightFlow to null via nightFlowService.reset() (simulating a bug)
+      (service as any).nightFlowService.reset();
+
+      // When: Call advanceToNextAction - it should throw, so index stays the same
+      const advanceToNextAction = (service as any).advanceToNextAction.bind(service);
+      await expect(advanceToNextAction()).rejects.toThrow();
+
+      // Then: currentActionerIndex should NOT have changed
+      expect(state.currentActionerIndex).toBe(indexBefore);
     });
   });
 

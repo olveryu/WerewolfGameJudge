@@ -397,7 +397,9 @@ export async function createHostGame(
   await startPromise;
 
   const getState = () => service.getState();
-  const getNightFlow = (): NightFlowController | null => (service as any).nightFlow;
+  // Access nightFlow via nightFlowService (nightFlow member removed from GameStateService)
+  const getNightFlow = (): NightFlowController | null =>
+    (service as any).nightFlowService?.getNightFlow() ?? null;
   const getLastNightDeaths = (): number[] => getState()?.lastNightDeaths ?? [];
   const getLastNightInfo = (): string => service.getLastNightInfo();
 

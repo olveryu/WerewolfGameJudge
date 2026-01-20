@@ -32,6 +32,7 @@ const privateCalls: Array<{ type: string; toUid: string; payload: any }> = [];
 // Note: Cannot use variables like mockHostLogDebug before jest.mock due to hoisting.
 // Instead, we export named mocks from the mock factory.
 const mockHostLogDebug = jest.fn();
+const mockNightFlowLogDebug = jest.fn();
 
 jest.mock('../../utils/logger', () => {
   return {
@@ -48,7 +49,7 @@ jest.mock('../../utils/logger', () => {
       error: jest.fn(),
     },
     nightFlowLog: {
-      debug: jest.fn(),
+      debug: (...args: unknown[]) => mockNightFlowLogDebug(...args),
       info: jest.fn(),
       warn: jest.fn(),
       error: jest.fn(),
@@ -449,7 +450,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
       // When: we directly call advanceToNextAction (simulating duplicate/stale callback)
       // WITHOUT first calling ActionSubmitted - phase is still WaitingForAction
-      mockHostLogDebug.mockClear();
+      mockNightFlowLogDebug.mockClear();
 
       // Access private method via any
       await (service as any).advanceToNextAction();
@@ -458,8 +459,8 @@ describe('GameStateService NightFlow Contract Tests', () => {
       const stateAfter = service.getState()!;
       expect(stateAfter.currentActionerIndex).toBe(indexBefore);
 
-      // And: debug log was called (not error)
-      expect(mockHostLogDebug).toHaveBeenCalledWith(
+      // And: debug log was called (not error) - now in NightFlowService
+      expect(mockNightFlowLogDebug).toHaveBeenCalledWith(
         expect.stringContaining('RoleEndAudioDone ignored (idempotent)'),
         expect.anything(),
         expect.anything(),
@@ -476,13 +477,13 @@ describe('GameStateService NightFlow Contract Tests', () => {
       await startPromise;
 
       // When: we directly call advanceToNextAction without ActionSubmitted
-      mockHostLogDebug.mockClear();
+      mockNightFlowLogDebug.mockClear();
 
       await (service as any).advanceToNextAction();
 
-      // Then: debug log should have been called (idempotent no-op)
+      // Then: debug log should have been called (idempotent no-op) - now in NightFlowService
       // and no error should be thrown
-      expect(mockHostLogDebug).toHaveBeenCalled();
+      expect(mockNightFlowLogDebug).toHaveBeenCalled();
     });
   });
 
@@ -616,6 +617,8 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
   // ===========================================================================
   // C12-C14: Strict Invariant Violation Tests (nightFlow === null when ongoing)
+  // Note: nightFlow is now managed by nightFlowService, not directly on GameStateService.
+  // These tests use nightFlowService.reset() to simulate the bug condition.
   // ===========================================================================
 
   describe('C12: advanceToNextAction throws when nightFlow is null and status is ongoing', () => {
@@ -628,8 +631,8 @@ describe('GameStateService NightFlow Contract Tests', () => {
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
 
-      // Force nightFlow to null (simulating a bug)
-      (service as any).nightFlow = null;
+      // Force nightFlow to null via nightFlowService.reset() (simulating a bug)
+      (service as any).nightFlowService.reset();
 
       // Confirm status is ongoing
       expect(service.getState()!.status).toBe(GameStatus.ongoing);
@@ -654,8 +657,8 @@ describe('GameStateService NightFlow Contract Tests', () => {
       const statusBefore = service.getState()!.status;
       const lastNightDeathsBefore = service.getState()!.lastNightDeaths;
 
-      // Force nightFlow to null
-      (service as any).nightFlow = null;
+      // Force nightFlow to null via nightFlowService.reset()
+      (service as any).nightFlowService.reset();
 
       // When/Then: endNight should throw
       await expect((service as any).endNight()).rejects.toThrow(
@@ -681,8 +684,8 @@ describe('GameStateService NightFlow Contract Tests', () => {
       const actionsBefore = new Map(service.getState()!.actions);
       const indexBefore = service.getState()!.currentActionerIndex;
 
-      // Force nightFlow to null
-      (service as any).nightFlow = null;
+      // Force nightFlow to null via nightFlowService.reset()
+      (service as any).nightFlowService.reset();
 
       // When/Then: handlePlayerAction should throw
       await expect((service as any).handlePlayerAction(0, 'seer', 1)).rejects.toThrow(
@@ -708,8 +711,8 @@ describe('GameStateService NightFlow Contract Tests', () => {
       // Confirm status is ready (not ongoing)
       expect(service.getState()!.status).toBe(GameStatus.ready);
 
-      // nightFlow should be null before game starts
-      expect((service as any).nightFlow).toBeNull();
+      // nightFlow should be null before game starts (accessed via nightFlowService)
+      expect((service as any).nightFlowService.getNightFlow()).toBeNull();
 
       // When/Then: advanceToNextAction should NOT throw (just return silently)
       await expect((service as any).advanceToNextAction()).resolves.not.toThrow();
@@ -721,7 +724,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       await setupReadyStateWithRoles(service, actionOrder, new Map([[0, 'seer']]));
 
       expect(service.getState()!.status).toBe(GameStatus.ready);
-      expect((service as any).nightFlow).toBeNull();
+      expect((service as any).nightFlowService.getNightFlow()).toBeNull();
 
       // When/Then: endNight should NOT throw
       await expect((service as any).endNight()).resolves.not.toThrow();

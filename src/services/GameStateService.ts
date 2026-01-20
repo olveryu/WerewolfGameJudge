@@ -21,12 +21,7 @@ import {
   PlayerMessage,
 } from './BroadcastService';
 import AudioService from './AudioService';
-import {
-  NightFlowController,
-  NightPhase,
-  NightEvent,
-  InvalidNightTransitionError,
-} from './NightFlowController';
+import { NightPhase, NightEvent, InvalidNightTransitionError } from './NightFlowController';
 import { shuffleArray } from '../utils/shuffle';
 import { hostLog, playerLog } from '../utils/logger';
 import { calculateDeaths, type NightActions, type RoleSeatMap } from './DeathCalculator';
@@ -41,11 +36,9 @@ import {
 } from '../models/actions';
 import {
   isValidRoleId,
-  getRoleSpec,
   ROLE_SPECS,
   type SchemaId,
   buildNightPlan,
-  getStepsByRoleStrict,
   BLOCKED_UI_DEFAULTS,
   SCHEMAS,
 } from '../models/roles/spec';
@@ -157,12 +150,9 @@ export class GameStateService {
     timeoutHandle: ReturnType<typeof setTimeout>;
   } | null = null;
 
-  /** NightFlowController: explicit state machine for night phase (Host only) */
-  private nightFlow: NightFlowController | null = null;
-
   /**
    * NightFlowService: manages night flow control and audio playback (Host only)
-   * TODO(Phase 6 migration): Gradually migrate to use this service instead of direct nightFlow
+   * ✅ Phase 6 migration complete - all nightFlow access now via this service.
    */
   private readonly nightFlowService: NightFlowService;
 
@@ -215,6 +205,14 @@ export class GameStateService {
         }
       },
       getSeatsForRole: (role) => this.getSeatsForRole(role),
+      // Callback: NightFlowService notifies us when a role's turn starts
+      onRoleTurnStart: async (role, pendingSeats, stepId) => {
+        await this.handleRoleTurnStart(role, pendingSeats, stepId);
+      },
+      // Callback: NightFlowService notifies us when night ends
+      onNightEnd: async () => {
+        await this.endNight();
+      },
     });
   }
 
@@ -1458,14 +1456,19 @@ export class GameStateService {
     if (this.state.status !== GameStatus.ready) return;
 
     // Delegate to NightFlowService for night flow initialization and audio
+    // NightFlowService.startNight() will:
+    //   1. Build night plan and initialize state machine
+    //   2. Play night begin audio
+    //   3. Play first role's audio
+    //   4. Call onRoleTurnStart callback (which broadcasts ROLE_TURN)
     const result = await this.nightFlowService.startNight(this.state.template.roles);
     if (!result.success) {
       hostLog.error('NightFlowService.startNight failed:', result.error);
       throw new Error(`[NightFlow] startGame failed: ${result.error}`);
     }
 
-    // Set status to ongoing (NightFlowService already updated other state fields)
-    this.state.status = GameStatus.ongoing;
+    // Note: status is already set to ongoing by nightFlowService.startNight()
+    // Note: ROLE_TURN broadcast is handled by onRoleTurnStart callback
 
     await this.broadcastState();
     this.notifyListeners();
@@ -1577,69 +1580,35 @@ export class GameStateService {
     return nightPlan.steps[currentActionerIndex].roleId;
   }
 
-  private async playCurrentRoleAudio(): Promise<void> {
+  /**
+   * Handle role turn start callback from NightFlowService
+   *
+   * This is called by NightFlowService.playCurrentRoleAudio after audio finishes.
+   * Responsibilities:
+   * - Set role-specific context (witchContext, confirmStatus, etc.)
+   * - Broadcast ROLE_TURN
+   * - Update UI state
+   *
+   * @param role - The role whose turn is starting
+   * @param pendingSeats - Seats that need to act
+   * @param stepId - The schema step ID for UI
+   */
+  private async handleRoleTurnStart(
+    role: RoleId,
+    pendingSeats: number[],
+    stepId?: SchemaId,
+  ): Promise<void> {
     if (!this.isHost || !this.state) return;
 
-    const currentRole = this.getCurrentActionRole();
-
-    if (!currentRole) {
-      // Night has ended
-      await this.endNight();
-      return;
-    }
-
-    this.state.isAudioPlaying = true;
-    await this.broadcastState();
-    this.notifyListeners();
-
-    // Play role audio
-    hostLog.info('Playing audio for role:', currentRole);
-    await this.audioService.playRoleBeginningAudio(currentRole);
-
-    // Audio finished - dispatch RoleBeginAudioDone (STRICT)
-    try {
-      this.nightFlowService.dispatchEvent(NightEvent.RoleBeginAudioDone);
-    } catch (err) {
-      if (err instanceof InvalidNightTransitionError) {
-        hostLog.error('NightFlow RoleBeginAudioDone failed:', err.message);
-        // STRICT: fail-fast, no legacy fallback
-        throw new Error(`[NightFlow] RoleBeginAudioDone failed: ${err.message}`);
-      } else {
-        throw err;
-      }
-    }
-
-    this.state.isAudioPlaying = false;
-
-    // Get pending seats for this role
-    const pendingSeats = this.getSeatsForRole(currentRole);
-
-    // Get stepId from NIGHT_STEPS (fail-safe: only if valid roleId)
-    let stepId: SchemaId | undefined;
-    if (isValidRoleId(currentRole)) {
-      const spec = getRoleSpec(currentRole);
-      // stepId only exists when hasAction is true
-      if (spec.night1.hasAction) {
-        // M3: stepId is derived from NIGHT_STEPS single source of truth.
-        // Current assumption (locked by contract tests): each role has at most one NightStep.
-        const [step] = getStepsByRoleStrict(currentRole);
-        stepId = step?.id; // step.id is the stepId (= schemaId)
-      }
-    } else {
-      hostLog.warn(` ROLE_TURN: Invalid roleId "${currentRole}", stepId not sent`);
-    }
-
     // For witch, set killedIndex in state (UI filters by myRole)
-    // Exception: if witch is blocked by nightmare, don't set witchContext (blocked via nightmareBlockedSeat)
-    if (currentRole === 'witch') {
+    // Exception: if witch is blocked by nightmare, don't set witchContext
+    if (role === 'witch') {
       const witchSeat = this.getPlayerSeatByRole('witch');
       const nightmareAction = this.state.actions.get('nightmare');
       const isWitchBlocked =
         nightmareAction?.kind === 'target' && nightmareAction.targetSeat === witchSeat;
 
       if (isWitchBlocked) {
-        // Witch is blocked - don't set witchContext
-        // UI will check nightmareBlockedSeat to show blocked dialog
         hostLog.info('Witch is blocked by nightmare, not setting witchContext');
       } else {
         const wolfAction = this.state.actions.get('wolf');
@@ -1649,20 +1618,20 @@ export class GameStateService {
     }
 
     // For hunter/darkWolfKing, set canShoot status in state
-    if (currentRole === 'hunter' || currentRole === 'darkWolfKing') {
-      this.setConfirmStatus(currentRole);
+    if (role === 'hunter' || role === 'darkWolfKing') {
+      this.setConfirmStatus(role);
     }
 
     // Broadcast role turn (PUBLIC)
     await this.broadcastService.broadcastAsHost({
       type: 'ROLE_TURN',
-      role: currentRole,
+      role,
       pendingSeats,
       stepId,
     });
 
-    // Host also needs to update currentStepId for UI (NightProgressIndicator)
-    if (stepId && this.state) {
+    // Update currentStepId for Host UI (NightProgressIndicator)
+    if (stepId) {
       this.state.currentStepId = stepId;
     }
 
@@ -1675,7 +1644,7 @@ export class GameStateService {
 
     // STRICT INVARIANT: nightFlow must exist when status === ongoing
     // Only enforce this invariant during active night phase
-    if (this.state.status === GameStatus.ongoing && !this.nightFlow) {
+    if (this.state.status === GameStatus.ongoing && !this.nightFlowService.isActive()) {
       hostLog.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: advanceToNextAction() called but nightFlow is null.',
         'status:',
@@ -1685,49 +1654,24 @@ export class GameStateService {
     }
 
     // If not ongoing (e.g., ended, ready), just return silently - not an error
-    if (!this.nightFlow) {
+    if (!this.nightFlowService.isActive()) {
       return;
     }
 
-    const currentRole = this.getCurrentActionRole();
+    // Delegate to NightFlowService
+    // NightFlowService.advanceToNextAction() will:
+    //   1. Play role ending audio
+    //   2. Dispatch RoleEndAudioDone event
+    //   3. Clear wolf votes internally (we also clear locally)
+    //   4. Play next role's audio (or call onNightEnd callback)
+    //   5. Call onRoleTurnStart callback (which broadcasts ROLE_TURN)
+    await this.nightFlowService.advanceToNextAction();
 
-    // Play role ending audio if available
-    if (currentRole) {
-      // Set audio playing state during ending audio
-      this.state.isAudioPlaying = true;
-      await this.broadcastState();
-      this.notifyListeners();
+    // Clear wolf votes for next role (local state)
+    this.state.wolfVotes = new Map();
 
-      // Ending audio is optional, ignore errors
-      await this.audioService.playRoleEndingAudio(currentRole).catch(() => {});
-
-      // Audio done - clear flag
-      this.state.isAudioPlaying = false;
-    }
-
-    // [Bridge: NightFlowController] Dispatch RoleEndAudioDone to advance state machine
-    // STRICT: Only dispatch if nightFlow is in RoleEndAudio phase
-    // If phase mismatch, this is a duplicate/stale callback - ignore (idempotent)
-    // NO FALLBACK: We never manually advance index; NightFlowController is the single source of truth
-    if (this.nightFlow.phase === NightPhase.RoleEndAudio) {
-      this.nightFlow.dispatch(NightEvent.RoleEndAudioDone);
-      // Sync currentActionerIndex from nightFlow (the ONLY place this should be updated)
-      this.state.currentActionerIndex = this.nightFlow.currentActionIndex;
-    } else {
-      // Phase mismatch - duplicate/stale callback, ignore silently (idempotent)
-      hostLog.debug(
-        '[GameStateService] RoleEndAudioDone ignored (idempotent): phase is',
-        this.nightFlow.phase,
-        '- not RoleEndAudio',
-      );
-      // DO NOT advance index manually - that would violate state machine authority
-      return; // Early return: don't proceed to playCurrentRoleAudio again
-    }
-
-    this.state.wolfVotes = new Map(); // Clear wolf votes for next role
-
-    // Play next role's audio
-    await this.playCurrentRoleAudio();
+    // Note: ROLE_TURN broadcast is handled by onRoleTurnStart callback
+    // Note: night end is handled by onNightEnd callback
   }
 
   private async endNight(): Promise<void> {
@@ -1735,7 +1679,7 @@ export class GameStateService {
 
     // STRICT INVARIANT: nightFlow must exist when status === ongoing
     // Only enforce this invariant during active night phase
-    if (this.state.status === GameStatus.ongoing && !this.nightFlow) {
+    if (this.state.status === GameStatus.ongoing && !this.nightFlowService.isActive()) {
       hostLog.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: endNight() called but nightFlow is null.',
         'status:',
@@ -1745,7 +1689,7 @@ export class GameStateService {
     }
 
     // If not ongoing (e.g., ended, ready), just return silently - not an error
-    if (!this.nightFlow) {
+    if (!this.nightFlowService.isActive()) {
       return;
     }
 
@@ -1756,15 +1700,15 @@ export class GameStateService {
     // [Bridge: NightFlowController] Dispatch NightEndAudioDone to complete state machine
     // STRICT: Only dispatch if nightFlow is in NightEndAudio phase
     // If phase mismatch, this is a duplicate/stale callback - STRICT no-op (no death calc, no broadcast)
-    if (this.nightFlow.phase === NightPhase.NightEndAudio) {
-      this.nightFlow.dispatch(NightEvent.NightEndAudioDone);
+    if (this.nightFlowService.getCurrentPhase() === NightPhase.NightEndAudio) {
+      this.nightFlowService.dispatchEvent(NightEvent.NightEndAudioDone);
     } else {
       // Phase mismatch - duplicate/stale callback
       // STRICT: Do NOT proceed to death calculation - that would be越权推进
       // NightFlowController hasn't ended, so GameStateService must not end either
       hostLog.debug(
         '[GameStateService] endNight() ignored (strict no-op): phase is',
-        this.nightFlow.phase,
+        this.nightFlowService.getCurrentPhase(),
         '- not NightEndAudio. No death calc, no status change.',
       );
       return; // STRICT: early return, no side effects
@@ -2339,9 +2283,10 @@ export class GameStateService {
    * Get current step's schemaId from nightFlow.
    */
   private getCurrentSchemaId(): SchemaId | null {
-    if (!this.nightFlow || !this.state) return null;
+    if (!this.nightFlowService.isActive() || !this.state) return null;
     const nightPlan = buildNightPlan(this.state.template.roles);
-    const step = nightPlan.steps[this.nightFlow.currentActionIndex];
+    const nightFlow = this.nightFlowService.getNightFlow();
+    const step = nightPlan.steps[nightFlow?.currentActionIndex ?? 0];
     return step?.stepId ?? null;
   }
 
@@ -2576,9 +2521,9 @@ export class GameStateService {
     // Persist state to storage for recovery
     // (async, non-blocking - don't await)
     if (this.isHost && this.state) {
-      this.statePersistence.saveState(this.state.roomCode, this.state).catch((err) =>
-        hostLog.error('Failed to save state after broadcast:', err),
-      );
+      this.statePersistence
+        .saveState(this.state.roomCode, this.state)
+        .catch((err) => hostLog.error('Failed to save state after broadcast:', err));
     }
   }
 

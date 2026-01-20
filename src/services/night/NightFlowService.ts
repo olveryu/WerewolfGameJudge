@@ -47,6 +47,26 @@ export interface NightFlowServiceDeps {
   updateState: (updates: Partial<LocalGameState>) => void;
   /** Get seats for a specific role */
   getSeatsForRole: (role: RoleId) => number[];
+
+  // ===========================================================================
+  // Callbacks - NightFlowService notifies the caller (GameStateService) of events
+  // This keeps NightFlowService focused on flow control, not broadcasting
+  // ===========================================================================
+
+  /**
+   * Called when a role's turn starts
+   * The caller should broadcast ROLE_TURN and set role-specific context
+   * @param role - The role whose turn is starting
+   * @param pendingSeats - Seats that need to act
+   * @param stepId - The schema step ID for UI
+   */
+  onRoleTurnStart?: (role: RoleId, pendingSeats: number[], stepId?: SchemaId) => Promise<void>;
+
+  /**
+   * Called when night ends
+   * The caller should calculate deaths and broadcast NIGHT_END
+   */
+  onNightEnd?: () => Promise<void>;
 }
 
 /**
@@ -276,7 +296,7 @@ export class NightFlowService {
       status: GameStatus.ongoing,
     });
 
-    // Start first role's turn
+    // Start first role's turn (uses onRoleTurnStart callback for ROLE_TURN broadcast)
     await this.playCurrentRoleAudio();
 
     return { success: true };
@@ -472,14 +492,15 @@ export class NightFlowService {
   // ===========================================================================
 
   /**
-   * Play current role's beginning audio
+   * Play current role's beginning audio and notify callback
    *
    * This method:
    * 1. Gets current action role
-   * 2. If no role, ends night
+   * 2. If no role, ends night (via callback)
    * 3. Plays role beginning audio
    * 4. Dispatches RoleBeginAudioDone event
-   * 5. Updates state
+   * 5. Notifies onRoleTurnStart callback (for broadcasting ROLE_TURN)
+   * 6. Updates state
    */
   async playCurrentRoleAudio(): Promise<void> {
     const state = this.deps.getState();
@@ -488,8 +509,13 @@ export class NightFlowService {
     const currentRole = this.getCurrentActionRole();
 
     if (!currentRole) {
-      // Night has ended - call endNight
-      await this.endNight();
+      // Night has ended - notify via callback
+      if (this.deps.onNightEnd) {
+        await this.deps.onNightEnd();
+      } else {
+        // Fallback: call internal endNight (for backwards compatibility in tests)
+        await this.endNight();
+      }
       return;
     }
 
@@ -512,7 +538,8 @@ export class NightFlowService {
 
     this.deps.updateState({ isAudioPlaying: false });
 
-    // Get stepId for UI
+    // Get pending seats and stepId for callback
+    const pendingSeats = this.deps.getSeatsForRole(currentRole);
     let stepId: SchemaId | undefined;
     if (isValidRoleId(currentRole)) {
       const spec = getRoleSpec(currentRole);
@@ -522,7 +549,12 @@ export class NightFlowService {
       }
     }
 
-    // Update currentStepId for UI
+    // Notify callback (GameStateService handles ROLE_TURN broadcast and context setup)
+    if (this.deps.onRoleTurnStart) {
+      await this.deps.onRoleTurnStart(currentRole, pendingSeats, stepId);
+    }
+
+    // Update currentStepId for UI (also done via callback, but keep for internal consistency)
     if (stepId) {
       this.deps.updateState({ currentStepId: stepId });
     }

@@ -10,22 +10,23 @@
 
 ## 当前进度
 
-| Phase | 模块 | 状态 | 行数 | 测试 | 提交 |
-|-------|------|------|------|------|------|
-| 1 | StateManager | ✅ 完成 | ~370 | 28 | `f0df22a` |
-| 2 | StatePersistence | ✅ 完成+集成 | ~265 | 21 | `3a06eff`, `bbbf986` |
-| 3 | BroadcastCoordinator | ✅ 完成 | ~500 | 37 | `838ac0b` |
-| 4 | SeatManager | ✅ 完成 | ~400 | 31 | `1372fd9` |
-| 5 | ActionProcessor | ✅ 完成 | ~500 | 53 | `77db153` |
-| 6 | NightFlowService | ✅ 完成 | ~540 | 37 | `795b3d7` |
-| 7 | 模块集成 | 🔄 进行中 | - | - | - |
-| 8 | 清理 GameStateService | ⏳ 待开始 | - | - | - |
+| Phase | 模块                  | 状态         | 行数 | 测试 | 提交                 |
+| ----- | --------------------- | ------------ | ---- | ---- | -------------------- |
+| 1     | StateManager          | ✅ 完成      | ~370 | 28   | `f0df22a`            |
+| 2     | StatePersistence      | ✅ 完成+集成 | ~265 | 21   | `3a06eff`, `bbbf986` |
+| 3     | BroadcastCoordinator  | ✅ 完成      | ~500 | 37   | `838ac0b`            |
+| 4     | SeatManager           | ✅ 完成      | ~400 | 31   | `1372fd9`            |
+| 5     | ActionProcessor       | ✅ 完成      | ~500 | 53   | `77db153`            |
+| 6     | NightFlowService      | ✅ 完成      | ~540 | 37   | `795b3d7`            |
+| 7     | 模块集成              | 🔄 进行中    | -    | -    | -                    |
+| 8     | 清理 GameStateService | ⏳ 待开始    | -    | -    | -                    |
 
 **测试状态**：1317 tests passing
 
 **GameStateService 当前**：~2705 行（起始: 2808 行，目标: ~200 行）
 
 **模块集成状态**：
+
 - ✅ StateManager - 已集成并使用
 - ✅ StatePersistence - 已完成集成 (`bbbf986`)
 - ✅ BroadcastCoordinator - 已集成并使用
@@ -84,7 +85,7 @@
 6. **`handleNightBeginAudioDone()`** (约 1500 行)
    - [ ] `this.nightFlow?.dispatch(NightEvent.NightBeginAudioDone)` → `this.nightFlowService.dispatchEvent(NightEvent.NightBeginAudioDone)`
 
-7. **`handleRoleAudioDone()`** / `handleRoleEndAudioDone()`**
+7. **`handleRoleAudioDone()`** / `handleRoleEndAudioDone()`\*\*
    - [ ] 所有 `this.nightFlow` 访问替换为 nightFlowService 方法
 
 8. **`advanceToNextAction()`** (约 1620 行)
@@ -106,6 +107,7 @@
 **目标**：将所有直接使用 `this.broadcastService` 的代码迁移到使用 `this.broadcastCoordinator` 的方法。
 
 **BroadcastCoordinator 已提供的方法**：
+
 - `joinRoom(roomCode, uid, options)` - 加入房间
 - `leaveRoom()` - 离开房间
 - `broadcastState(state, revision)` - 广播游戏状态

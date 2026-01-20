@@ -91,8 +91,12 @@ async function setupReadyState(
   state.status = GameStatus.ready;
 }
 
+/**
+ * Get nightFlow from service via nightFlowService
+ * (nightFlow member was removed from GameStateService, now accessed via nightFlowService)
+ */
 function getNightFlow(service: GameStateService): any {
-  return (service as any).nightFlow;
+  return (service as any).nightFlowService?.getNightFlow() ?? null;
 }
 
 // =============================================================================

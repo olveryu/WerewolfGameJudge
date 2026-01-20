@@ -250,7 +250,8 @@ describe('GameStateService Lifecycle', () => {
       await jest.runAllTimersAsync();
       await startPromise;
 
-      const nightFlow = (service as any).nightFlow;
+      // Access nightFlow via nightFlowService (nightFlow member removed from GameStateService)
+      const nightFlow = (service as any).nightFlowService?.getNightFlow() ?? null;
       expect(nightFlow).not.toBeNull();
     });
 
@@ -325,7 +326,8 @@ describe('GameStateService Lifecycle', () => {
 
       await service.restartGame();
 
-      const nightFlow = (service as any).nightFlow;
+      // Access nightFlow via nightFlowService (nightFlow member removed from GameStateService)
+      const nightFlow = (service as any).nightFlowService?.getNightFlow() ?? null;
       expect(nightFlow).toBeNull();
     });
 
