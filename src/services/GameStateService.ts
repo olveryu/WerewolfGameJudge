@@ -24,7 +24,6 @@ import { NightPhase, NightEvent, InvalidNightTransitionError } from './NightFlow
 import { shuffleArray } from '../utils/shuffle';
 import { hostLog, playerLog } from '../utils/logger';
 import { calculateDeaths, type RoleSeatMap } from './DeathCalculator';
-import { resolveWolfVotes } from './WolfVoteResolver';
 import { makeActionTarget, getActionTargetSeat } from '../models/actions';
 import {
   isValidRoleId,
@@ -33,15 +32,7 @@ import {
   buildNightPlan,
   BLOCKED_UI_DEFAULTS,
 } from '../models/roles/spec';
-import {
-  type ActionInput,
-  type ResolverResult,
-} from './night/resolvers/types';
-import {
-  wolfVoteResolver,
-  type WolfVoteContext,
-  type WolfVoteInput,
-} from './night/resolvers/wolfVote';
+import { type ActionInput, type ResolverResult } from './night/resolvers/types';
 import { getConfirmRoleCanShoot } from '../models/Room';
 import { StateManager } from './state';
 import { StatePersistence } from './persistence';
@@ -805,29 +796,21 @@ export class GameStateService {
 
     const playerUid = player.uid;
 
-    // === Delegate to wolfVoteValidator for immuneToWolfKill check ===
-    const resolverContext: WolfVoteContext = {
-      players: new Map(
-        Array.from(this.state.players.entries())
-          .filter(([, p]) => p?.role)
-          .map(([s, p]) => [s, p!.role as RoleId]),
-      ),
-    };
-    const resolverInput: WolfVoteInput = { targetSeat: target };
-    const resolverResult = wolfVoteResolver(resolverContext, resolverInput);
+    // Validate target via ActionProcessor
+    const context = this.buildActionContext();
+    const validation = this.actionProcessor.validateWolfVote(target, context);
 
-    if (!resolverResult.valid) {
+    if (!validation.valid) {
       if (playerUid) {
         this.state.actionRejected = {
           action: 'submitWolfVote',
-          reason: resolverResult.rejectReason ?? '无效目标',
+          reason: validation.rejectReason ?? '无效目标',
           targetUid: playerUid,
         };
         await this.broadcastState();
       }
       return;
     }
-    // === End wolfVoteValidator check ===
 
     // Record vote
     this.state.wolfVotes.set(seat, target);
@@ -849,8 +832,8 @@ export class GameStateService {
         return;
       }
 
-      // [Bridge: WolfVoteResolver] Resolve final kill target from wolf votes
-      const finalTarget = resolveWolfVotes(this.state.wolfVotes);
+      // Resolve final kill target via ActionProcessor
+      const finalTarget = this.actionProcessor.resolveWolfVotes(this.state.wolfVotes);
       if (finalTarget !== null) {
         this.state.actions.set('wolf', makeActionTarget(finalTarget));
         // Record action in nightFlow
@@ -871,8 +854,6 @@ export class GameStateService {
         this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted);
       } catch (err) {
         if (err instanceof InvalidNightTransitionError) {
-          // This should NOT happen with proper once-guard above
-          // If it does, it indicates a bug in the call chain
           hostLog.debug(
             '[GameStateService] NightFlow ActionSubmitted (wolf) rejected:',
             'phase:',
