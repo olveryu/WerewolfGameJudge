@@ -12,7 +12,7 @@
  */
 
 import { RoleId, isWolfRole, doesRoleParticipateInWolfVote } from '../models/roles';
-import { GameTemplate, createTemplateFromRoles, validateTemplateRoles } from '../models/Template';
+import { GameTemplate, validateTemplateRoles } from '../models/Template';
 import {
   BroadcastGameState,
   BroadcastPlayer,
@@ -1049,92 +1049,33 @@ export class GameStateService {
   }
 
   private applyStateUpdate(broadcastState: BroadcastGameState, revision?: number): void {
-    // Update revision if provided
-    if (revision !== undefined) {
-      // Skip if we've already seen a newer revision
-      if (revision <= this.stateRevision) {
-        playerLog.info(` Skipping stale update (rev ${revision} <= ${this.stateRevision})`);
-        return;
-      }
-      this.stateRevision = revision;
-    }
-
     // Mark connection as live after receiving state
     this.broadcastCoordinator.markAsLive();
-    // Create or update local state from broadcast
-    const template = createTemplateFromRoles(broadcastState.templateRoles);
 
-    playerLog.info(
-      `applyStateUpdate: myUid=${this.myUid?.substring(0, 8)}, players count=${Object.keys(broadcastState.players).length}`,
+    // Delegate to StateManager for state conversion
+    const effectiveRevision = revision ?? this.stateRevision + 1;
+    const result = this.stateManager.applyBroadcastState(
+      broadcastState,
+      effectiveRevision,
+      this.myUid,
     );
 
-    const players = new Map<number, LocalPlayer | null>();
-    Object.entries(broadcastState.players).forEach(([seatStr, bp]) => {
-      const seat = Number.parseInt(seatStr);
-      if (bp) {
-        playerLog.debug(
-          `  seat ${seat}: uid=${bp.uid?.substring(0, 8)}, match=${bp.uid === this.myUid}`,
-        );
-        players.set(seat, {
-          uid: bp.uid,
-          seatNumber: bp.seatNumber,
-          displayName: bp.displayName,
-          avatarUrl: bp.avatarUrl,
-          role: bp.role ?? null,
-          hasViewedRole: bp.hasViewedRole,
-        });
-        // Track my seat
-        if (bp.uid === this.myUid) {
-          playerLog.info(`Found my seat: ${seat}, myUid: ${this.myUid?.substring(0, 8)}`);
-          this.mySeatNumber = seat;
-        }
-      } else {
-        players.set(seat, null);
-      }
-    });
-
-    playerLog.info(
-      `applyStateUpdate complete: mySeatNumber=${this.mySeatNumber}, myUid=${this.myUid?.substring(0, 8)}, status=${broadcastState.status}`,
-    );
-
-    // Rebuild wolfVotes from wolfVoteStatus (anti-cheat: only track who voted, not targets)
-    // Players need to know who has voted to update imActioner state.
-    const wolfVotes = new Map<number, number>();
-    if (broadcastState.wolfVoteStatus) {
-      for (const [seatStr, hasVoted] of Object.entries(broadcastState.wolfVoteStatus)) {
-        if (hasVoted) {
-          // Use -999 as placeholder target (players don't see actual targets)
-          wolfVotes.set(Number.parseInt(seatStr, 10), -999);
-        }
-      }
+    if (!result.applied) {
+      playerLog.info(`Skipping stale update (rev ${effectiveRevision})`);
+      return;
     }
 
-    this.state = {
-      roomCode: broadcastState.roomCode,
-      hostUid: broadcastState.hostUid,
-      status: broadcastState.status as GameStatus,
-      template,
-      players,
-      actions: new Map(), // Players don't see actions
-      wolfVotes,
-      currentActionerIndex: broadcastState.currentActionerIndex,
-      isAudioPlaying: broadcastState.isAudioPlaying,
-      lastNightDeaths: this.state?.lastNightDeaths ?? [],
-      nightmareBlockedSeat: broadcastState.nightmareBlockedSeat,
-      wolfKillDisabled: broadcastState.wolfKillDisabled,
-      // Players don't see currentNightResults (Host-only state)
-      currentNightResults: {},
-      // Role-specific context (all data is public, UI filters by myRole)
-      witchContext: broadcastState.witchContext,
-      seerReveal: broadcastState.seerReveal,
-      psychicReveal: broadcastState.psychicReveal,
-      gargoyleReveal: broadcastState.gargoyleReveal,
-      wolfRobotReveal: broadcastState.wolfRobotReveal,
-      confirmStatus: broadcastState.confirmStatus,
-      actionRejected: broadcastState.actionRejected,
-    };
+    // Update local tracking
+    if (result.mySeat !== null) {
+      this.mySeatNumber = result.mySeat;
+    }
+    this.stateRevision = effectiveRevision;
 
-    this.notifyListeners();
+    // Sync state reference from StateManager
+    this.state = this.stateManager.getState() ?? null;
+
+    // Note: StateManager.applyBroadcastState already notifies listeners,
+    // so we don't call notifyListeners() here to avoid incrementing revision
   }
 
   // ===========================================================================
