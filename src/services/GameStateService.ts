@@ -162,9 +162,7 @@ export class GameStateService {
     this.nightFlowService = new NightFlowService({
       getState: () => this.state,
       updateState: (updates) => {
-        if (this.state) {
-          Object.assign(this.state, updates);
-        }
+        this.stateManager.batchUpdate(updates);
       },
       getSeatsForRole: (role) => this.stateManager.getSeatsForRole(role),
       // Callback: NightFlowService notifies us when a role's turn starts
@@ -1693,13 +1691,14 @@ export class GameStateService {
     // Sync computed fields to Host's local state so Host UI sees them too.
     // These values are computed in toBroadcastState() for broadcast, but Host reads this.state directly.
     // Without this sync, Host UI would see undefined for these fields.
-    // NOTE: Use direct property assignment instead of spread to preserve StateManager reference
     if (
       this.state.nightmareBlockedSeat !== broadcastState.nightmareBlockedSeat ||
       this.state.wolfKillDisabled !== broadcastState.wolfKillDisabled
     ) {
-      this.state.nightmareBlockedSeat = broadcastState.nightmareBlockedSeat;
-      this.state.wolfKillDisabled = broadcastState.wolfKillDisabled;
+      this.stateManager.batchUpdate({
+        nightmareBlockedSeat: broadcastState.nightmareBlockedSeat,
+        wolfKillDisabled: broadcastState.wolfKillDisabled,
+      });
     }
 
     // Always notify listeners so Host UI sees updated state (seerReveal, etc.)
