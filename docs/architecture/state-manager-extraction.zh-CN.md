@@ -94,9 +94,22 @@
 
 ---
 
-## Phase 8: 进一步清理 GameStateService（待开始）
+## Phase 8: 进一步清理 GameStateService（进行中）
 
 **目标**：将 GameStateService 减少到 ~200 行，仅作为 facade/coordinator
+
+**当前状态**：GameStateService 已从 2808 行减少到 **2405 行**
+
+**已完成工作**：
+
+1. **ActionProcessor 委托**：
+   - ✅ `invokeResolver()` 委托到 ActionProcessor
+   - ✅ `buildActionInput()` 委托到 ActionProcessor
+   - ✅ `buildNightActions()` 委托到 ActionProcessor
+   - ✅ `isRevealRole()` 委托到 ActionProcessor
+
+2. **重复代码删除**：
+   - ✅ 合并 `getPlayerSeatByRole` 到 `findSeatByRole` (-14 行)
 
 **剩余工作**：
 
@@ -105,13 +118,9 @@
    - 将 `this.listeners` 管理移入 StateManager
    - 将 `notifyListeners()` 移入 StateManager
 
-2. **ActionProcessor 完全集成**：
-   - 将 `handlePlayerAction()` 逻辑移入 ActionProcessor
-   - 将 resolver 调用逻辑移入 ActionProcessor
-
-3. **移除重复代码**：
-   - 识别并删除死代码
-   - 合并重复逻辑
+2. **进一步提取**：
+   - `toBroadcastState()` 可以考虑移至 StateManager
+   - `buildRoleSeatMap()` / `buildRoleMap()` 可以考虑移至辅助模块
 
 ---
 
