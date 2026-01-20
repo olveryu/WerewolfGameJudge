@@ -66,6 +66,7 @@ import { StateManager } from './state';
 import { StatePersistence } from './persistence';
 import { BroadcastCoordinator } from './broadcast';
 import { SeatManager } from './seat';
+import { ActionProcessor } from './action';
 
 // Import types/enums needed internally
 import { GameStatus, LocalPlayer, LocalGameState } from './types/GameStateTypes';
@@ -126,6 +127,12 @@ export class GameStateService {
    */
   private readonly seatManager: SeatManager;
 
+  /**
+   * ActionProcessor: Action processing module (Phase 5 extraction)
+   * Handles night action validation, resolver invocation, and death calculation.
+   */
+  private readonly actionProcessor: ActionProcessor;
+
   private state: LocalGameState | null = null;
   private isHost: boolean = false;
   private myUid: string | null = null;
@@ -172,6 +179,7 @@ export class GameStateService {
   private constructor() {
     this.stateManager = new StateManager();
     this.statePersistence = new StatePersistence();
+    this.actionProcessor = new ActionProcessor();
     this.broadcastService = BroadcastService.getInstance();
     this.audioService = AudioService.getInstance();
 
