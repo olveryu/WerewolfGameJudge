@@ -556,11 +556,13 @@ export class HostCoordinator {
    */
   async assignRoles(): Promise<void> {
     if (!this.state) return;
+    if (this.state.status !== GameStatus.seated) return;
 
     const shuffledRoles = shuffleArray([...this.state.template.roles]);
     this.stateManager.assignRolesToPlayers(shuffledRoles);
 
     await this.broadcastState();
+    hostLog.info('Roles assigned');
   }
 
   /**

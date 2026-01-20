@@ -12,7 +12,7 @@
  */
 
 import { RoleId, isWolfRole } from '../models/roles';
-import { GameTemplate, validateTemplateRoles } from '../models/Template';
+import { GameTemplate } from '../models/Template';
 import { getConfirmRoleCanShoot } from '../models/Room';
 import {
   HostBroadcast,
@@ -20,7 +20,7 @@ import {
 } from './BroadcastService';
 import AudioService from './AudioService';
 import { NightPhase, NightEvent, InvalidNightTransitionError } from './NightFlowController';
-import { shuffleArray } from '../utils/shuffle';
+// shuffleArray moved to HostCoordinator
 import { hostLog } from '../utils/logger';
 import { calculateDeaths, type RoleSeatMap } from './DeathCalculator';
 import { makeActionTarget, getActionTargetSeat } from '../models/actions';
@@ -1054,115 +1054,44 @@ export class GameStateService {
 
   /**
    * Host: Assign roles to all players
+   * Delegated to HostCoordinator (Phase 8c migration)
    */
   async assignRoles(): Promise<void> {
-    if (!this.isHost || !this.state) return;
-    if (this.state.status !== GameStatus.seated) return;
-
-    // Shuffle roles
-    const shuffledRoles = shuffleArray([...this.state.template.roles]);
-
-    // Assign via StateManager (single source of truth)
-    this.stateManager.assignRolesToPlayers(shuffledRoles);
-
-    await this.broadcastState();
-    // Note: stateManager.assignRolesToPlayers() already calls notifyListeners()
-
-    hostLog.info('Roles assigned');
+    if (!this.isHost) return;
+    return this.hostCoordinator.assignRoles();
   }
 
   /**
    * Host: Start the game (begin first night)
-   * Delegates to NightFlowService for night flow management.
+   * Delegated to HostCoordinator (Phase 8c migration)
    */
   async startGame(): Promise<void> {
-    if (!this.isHost || !this.state) return;
-    if (this.state.status !== GameStatus.ready) return;
-
-    // Delegate to NightFlowService for night flow initialization and audio
-    // NightFlowService.startNight() will:
-    //   1. Build night plan and initialize state machine
-    //   2. Play night begin audio
-    //   3. Play first role's audio
-    //   4. Call onRoleTurnStart callback (which broadcasts ROLE_TURN)
-    const result = await this.nightFlowService.startNight(this.state.template.roles);
-    if (!result.success) {
-      hostLog.error('NightFlowService.startNight failed:', result.error);
-      throw new Error(`[NightFlow] startGame failed: ${result.error}`);
-    }
-
-    // Note: status is already set to ongoing by nightFlowService.startNight()
-    // Note: ROLE_TURN broadcast is handled by onRoleTurnStart callback
-
-    await this.broadcastState();
-    this.notifyListeners();
+    if (!this.isHost) return;
+    return this.hostCoordinator.startGame();
   }
 
   /**
    * Host: Restart game with same template.
    * Clears roles and resets to seated status.
+   * Delegated to HostCoordinator (Phase 8c migration)
    *
    * @returns true if restart succeeded, false if preconditions not met
    */
   async restartGame(): Promise<boolean> {
-    // Preconditions
     if (!this.isHost) {
       hostLog.warn('restartGame: not host');
       return false;
     }
-
-    if (!this.state) {
-      hostLog.warn('restartGame: no state');
-      return false;
-    }
-
-    // Cannot restart if no one is seated
-    if (this.state.status === GameStatus.unseated) {
-      hostLog.warn('restartGame: cannot restart in unseated status');
-      return false;
-    }
-
-    // Reset nightFlow via NightFlowService
-    this.nightFlowService.reset();
-
-    // Reset state via StateManager (single source of truth)
-    this.stateManager.resetForGameRestart();
-
-    await this.broadcastCoordinator.broadcastGameRestarted();
-    await this.broadcastState();
-    // Note: stateManager.resetForGameRestart() already calls notifyListeners()
-
-    hostLog.info('Game restarted');
-    return true;
+    return this.hostCoordinator.restartGame();
   }
 
   /**
    * Host: Update template (before game starts)
-   * Can only be done in unseated or seated status
+   * Delegated to HostCoordinator (Phase 8c migration)
    */
   async updateTemplate(newTemplate: GameTemplate): Promise<void> {
-    if (!this.isHost || !this.state) return;
-
-    // Only allow template changes before game starts
-    if (this.state.status !== GameStatus.unseated && this.state.status !== GameStatus.seated) {
-      hostLog.warn('Cannot update template after game starts');
-      return;
-    }
-
-    // Host-side defensive validation: reject clearly invalid templates
-    const validationError = validateTemplateRoles(newTemplate.roles);
-    if (validationError) {
-      hostLog.warn('updateTemplate rejected: invalid roles -', validationError);
-      return;
-    }
-
-    // Use StateManager (single source of truth)
-    this.stateManager.updateTemplate(newTemplate);
-
-    await this.broadcastState();
-    // Note: stateManager.updateTemplate() already calls notifyListeners()
-
-    hostLog.info('Template updated:', newTemplate.name);
+    if (!this.isHost) return;
+    return this.hostCoordinator.updateTemplate(newTemplate);
   }
 
   // ===========================================================================
