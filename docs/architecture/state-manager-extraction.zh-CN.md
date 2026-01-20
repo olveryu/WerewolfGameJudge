@@ -32,73 +32,30 @@
 - ✅ BroadcastCoordinator - 已集成并使用
 - ✅ SeatManager - 已集成并使用
 - ✅ ActionProcessor - 已集成并使用
-- ⚠️ NightFlowService - 已创建，未完全集成（直接使用 NightFlowController）
+- ✅ NightFlowService - 已创建，回调模式集成完成 (commit c428a47)
 
 ---
 
 ## Phase 7 详细迁移任务清单
 
-### 7.1 NightFlowService 集成（约 40 处 `this.nightFlow` 使用）
+### 7.1 NightFlowService 集成（约 40 处 `this.nightFlow` 使用）✅ 已完成
 
-**目标**：将所有直接使用 `this.nightFlow` (NightFlowController) 的代码迁移到使用 `this.nightFlowService` 的方法。
+**完成内容**：
+- ✅ 添加 `onRoleTurnStart` 和 `onNightEnd` 回调到 NightFlowServiceDeps
+- ✅ NightFlowService.playCurrentRoleAudio() 通过回调通知 GameStateService
+- ✅ GameStateService.handleRoleTurnStart() 处理 ROLE_TURN 广播
+- ✅ startGame() 和 advanceToNextAction() 完全委托给 NightFlowService
+- ✅ 删除 GameStateService 中重复的 playCurrentRoleAudio() (~90 行)
+- ✅ 删除 `private nightFlow: NightFlowController | null = null;` 声明
+- ✅ 更新测试使用 nightFlowService 访问模式
 
-**NightFlowService 已提供的替代方法**：
-| 原始用法 | 替换为 |
-|----------|--------|
-| `this.nightFlow` 存在检查 | `this.nightFlowService.isActive()` |
-| `this.nightFlow.phase` | `this.nightFlowService.getCurrentPhase()` |
-| `this.nightFlow.currentRole` | `this.nightFlowService.getCurrentActionRole()` |
-| `this.nightFlow.dispatch(event)` | `this.nightFlowService.dispatchEvent(event)` |
-| `this.nightFlow.recordAction(role, target)` | `this.nightFlowService.recordAction(role, target)` |
-| phase + role 检查 | `this.nightFlowService.canAcceptAction(role)` |
-| 创建 NightFlowController | `this.nightFlowService.startNight()` |
+**架构改进**：
+- NightFlowService 负责：音频、状态机、步骤推进
+- GameStateService 负责：广播、角色上下文(witch/hunter)、状态同步
+- 通过回调模式实现 SRP 分离
 
-**需要迁移的方法和行号**：
-
-1. **`handleSkipAction()`** (约 550 行)
-   - [ ] `if (!this.nightFlow) return;` → `if (!this.nightFlowService.isActive()) return;`
-   - [ ] `this.nightFlow.phase !== NightPhase.WaitingForAction` → `this.nightFlowService.getCurrentPhase() !== NightPhase.WaitingForAction`
-   - [ ] `this.nightFlow.currentRole !== role` → `this.nightFlowService.getCurrentActionRole() !== role`
-   - [ ] `this.nightFlow.dispatch(NightEvent.ActionSubmitted)` → `this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted)`
-
-2. **`handlePlayerAction()`** (约 720 行)
-   - [ ] `if (!this.nightFlow)` → `if (!this.nightFlowService.isActive())`
-   - [ ] `this.nightFlow.phase !== NightPhase.WaitingForAction` → 使用 `canAcceptAction(role)`
-   - [ ] `this.nightFlow.currentRole !== role` → 已包含在 `canAcceptAction(role)`
-   - [ ] `this.nightFlow.recordAction(role, target)` → `this.nightFlowService.recordAction(role, target)`
-   - [ ] `this.nightFlow.dispatch(NightEvent.ActionSubmitted)` → `this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted)`
-
-3. **`handleWolfVote()`** (约 920 行)
-   - [ ] `if (!this.nightFlow)` → `if (!this.nightFlowService.isActive())`
-   - [ ] `this.nightFlow.phase` 日志 → `this.nightFlowService.getCurrentPhase()`
-   - [ ] `this.nightFlow.recordAction('wolf', finalTarget)` → `this.nightFlowService.recordAction('wolf', finalTarget)`
-   - [ ] `this.nightFlow.dispatch(NightEvent.ActionSubmitted)` → `this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted)`
-
-4. **`startGame()` / `startNight()`** (约 1460 行)
-   - [ ] 整个 nightPlan 构建和 NightFlowController 创建 → `await this.nightFlowService.startNight()`
-   - [ ] `this.nightFlow = new NightFlowController(nightPlan)` → 删除，由 nightFlowService 管理
-   - [ ] `this.nightFlow.dispatch(NightEvent.StartNight)` → 由 `startNight()` 内部处理
-
-5. **`restartGame()`** (约 1560 行)
-   - [ ] `this.nightFlow = null` → `this.nightFlowService.reset()`
-
-6. **`handleNightBeginAudioDone()`** (约 1500 行)
-   - [ ] `this.nightFlow?.dispatch(NightEvent.NightBeginAudioDone)` → `this.nightFlowService.dispatchEvent(NightEvent.NightBeginAudioDone)`
-
-7. **`handleRoleAudioDone()`** / `handleRoleEndAudioDone()`\*\*
-   - [ ] 所有 `this.nightFlow` 访问替换为 nightFlowService 方法
-
-8. **`advanceToNextAction()`** (约 1620 行)
-   - [ ] 整个方法可能可以委托给 `this.nightFlowService.advanceToNextAction()`
-
-9. **`playCurrentRoleAudio()`** (约 1650 行)
-   - [ ] 可以委托给 `this.nightFlowService.playCurrentRoleAudio()`
-
-10. **`toBroadcastState()`** (约 2650 行)
-    - [ ] `this.nightFlow?.phase` → `this.nightFlowService.getCurrentPhase()`
-    - [ ] `this.nightFlow?.currentRole` → `this.nightFlowService.getCurrentActionRole()`
-
-**最终目标**：删除 `private nightFlow: NightFlowController | null = null;` 声明
+**提交历史**：
+- commit c428a47: refactor(NightFlowService): complete callback pattern integration
 
 ---
 
