@@ -1,9 +1,37 @@
 # 方案 D：GameStateService 职责分离重构 — 详细设计文档
 
-> **状态**：待审批  
+> **状态**：进行中（Phase 1-6 已完成）  
 > **创建日期**：2026-01-19  
-> **适用分支**：`refactor/remove-private-effect`  
+> **更新日期**：2026-01-19  
+> **适用分支**：`refactor/state-manager-extraction`  
 > **重构策略**：完全重构，不追求向后兼容，如过程中发现问题将及时修复，有抉择时询问我。
+
+---
+
+## 当前进度
+
+| Phase | 模块 | 状态 | 行数 | 测试 | 提交 |
+|-------|------|------|------|------|------|
+| 1 | StateManager | ✅ 完成 | ~370 | 28 | `f0df22a` |
+| 2 | StatePersistence | ✅ 完成 | ~265 | 21 | `3a06eff` |
+| 3 | BroadcastCoordinator | ✅ 完成 | ~500 | 37 | `838ac0b` |
+| 4 | SeatManager | ✅ 完成 | ~400 | 31 | `1372fd9` |
+| 5 | ActionProcessor | ✅ 完成 | ~500 | 53 | `77db153` |
+| 6 | NightFlowService | ✅ 完成 | ~540 | 37 | `795b3d7` |
+| 7 | GameCoordinator | ⏳ 待开始 | ~200 | - | - |
+| 8 | 清理 GameStateService | ⏳ 待开始 | - | - | - |
+
+**测试状态**：1317 tests passing
+
+**GameStateService 当前**：~2808 行（目标: ~200 行）
+
+**模块集成状态**：
+- ✅ StateManager - 已集成并使用
+- ⚠️ StatePersistence - 已创建，部分使用
+- ✅ BroadcastCoordinator - 已集成并使用
+- ✅ SeatManager - 已集成并使用
+- ✅ ActionProcessor - 已集成并使用
+- ⚠️ NightFlowService - 已创建，部分使用
 
 ---
 
