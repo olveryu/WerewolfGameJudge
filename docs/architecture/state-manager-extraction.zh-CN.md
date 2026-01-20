@@ -1,8 +1,8 @@
 # 方案 D：GameStateService 职责分离重构 — 详细设计文档
 
-> **状态**：进行中（Phase 1-7 已完成）  
+> **状态**：进行中（Phase 1-7 已完成，Phase 8 进行中）  
 > **创建日期**：2026-01-19  
-> **更新日期**：2026-01-20  
+> **更新日期**：2026-01-21  
 > **适用分支**：`refactor/state-manager-extraction`  
 > **重构策略**：完全重构，不追求向后兼容，如过程中发现问题将及时修复，有抉择时询问我。
 
@@ -12,25 +12,25 @@
 
 | Phase | 模块                  | 状态         | 行数 | 测试 | 提交                 |
 | ----- | --------------------- | ------------ | ---- | ---- | -------------------- |
-| 1     | StateManager          | ✅ 完成      | ~370 | 28   | `f0df22a`            |
+| 1     | StateManager          | ✅ 完成      | ~375 | 28   | `f0df22a`            |
 | 2     | StatePersistence      | ✅ 完成+集成 | ~265 | 21   | `3a06eff`, `bbbf986` |
-| 3     | BroadcastCoordinator  | ✅ 完成+集成 | ~570 | 37   | `838ac0b`, `b90e174` |
-| 4     | SeatManager           | ✅ 完成+集成 | ~400 | 31   | `1372fd9`, `b90e174` |
-| 5     | ActionProcessor       | ✅ 完成      | ~500 | 53   | `77db153`            |
-| 6     | NightFlowService      | ✅ 完成+集成 | ~540 | 37   | `795b3d7`, `c428a47` |
+| 3     | BroadcastCoordinator  | ✅ 完成+集成 | ~569 | 37   | `838ac0b`, `b90e174` |
+| 4     | SeatManager           | ✅ 完成+集成 | ~603 | 31   | `1372fd9`, `b90e174` |
+| 5     | ActionProcessor       | ✅ 完成      | ~533 | 53   | `77db153`            |
+| 6     | NightFlowService      | ✅ 完成+集成 | ~564 | 37   | `795b3d7`, `c428a47` |
 | 7     | 模块集成              | ✅ 完成      | -    | -    | `c428a47`, `b90e174` |
-| 8     | 清理 GameStateService | ⏳ 待开始    | -    | -    | -                    |
+| 8     | 清理 GameStateService | ⏳ 进行中    | -    | -    | `8d903e3`            |
 
 **测试状态**：1317 tests passing
 
-**GameStateService 当前**：~2536 行（起始: 2808 行，目标: ~200 行）
+**GameStateService 当前**：~2049 行（起始: 2808 行，目标: ~200 行）
 
 **模块集成状态**：
 
-- ✅ StateManager - 已创建，待进一步集成
+- ✅ StateManager - 已创建并集成 (applyBroadcastState 委托)
 - ✅ StatePersistence - 已完成集成 (`bbbf986`)
 - ✅ BroadcastCoordinator - 已完成集成，移除 broadcastService 依赖 (`b90e174`)
-- ✅ SeatManager - 已完成集成，使用 broadcastCoordinator (`b90e174`)
+- ✅ SeatManager - 已完成集成，handlePlayerJoin/Leave 委托 (`1b5aabb`)
 - ✅ ActionProcessor - 已集成并使用
 - ✅ NightFlowService - 已完成集成，回调模式 (`c428a47`)
 
@@ -98,7 +98,7 @@
 
 **目标**：将 GameStateService 减少到 ~200 行，仅作为 facade/coordinator
 
-**当前状态**：GameStateService 已从 2808 行减少到 **2405 行**
+**当前状态**：GameStateService 已从 2808 行减少到 **2049 行** (减少 759 行)
 
 **已完成工作**：
 
@@ -107,20 +107,37 @@
    - ✅ `buildActionInput()` 委托到 ActionProcessor
    - ✅ `buildNightActions()` 委托到 ActionProcessor
    - ✅ `isRevealRole()` 委托到 ActionProcessor
+   - ✅ `processAction()` 使用替换手动构建 RoleAction
 
-2. **重复代码删除**：
-   - ✅ 合并 `getPlayerSeatByRole` 到 `findSeatByRole` (-14 行)
+2. **SeatManager 委托**：
+   - ✅ `handlePlayerJoin()` 委托到 SeatManager
+   - ✅ `handlePlayerLeave()` 委托到 SeatManager
+   - ✅ `lastSeatError` 成员变量删除
+   - ✅ `pendingSeatAction` 成员变量删除
+   - ✅ `clearSeatsByUid()` 辅助方法删除
+
+3. **StateManager 委托**：
+   - ✅ `applyStateUpdate()` 委托到 StateManager.applyBroadcastState()
+   - ✅ 删除重复的状态转换代码 (~60 行)
+
+4. **清理工作**：
+   - ✅ 删除未使用的 import (makeActionWitch, makeWitchSave, etc.)
+   - ✅ 删除 createTemplateFromRoles import (已在 StateManager 中使用)
+   - ✅ 添加 applyRevealFromProcessResult 辅助方法
 
 **剩余工作**：
 
-1. **StateManager 完全集成**：
-   - 将 `this.state` 管理移入 StateManager
-   - 将 `this.listeners` 管理移入 StateManager
-   - 将 `notifyListeners()` 移入 StateManager
+1. **进一步 StateManager 集成**：
+   - [ ] `toBroadcastState()` 可以移至 StateManager
+   - [ ] `buildRoleSeatMap()` / `buildRoleMap()` 可以移至辅助模块
 
-2. **进一步提取**：
-   - `toBroadcastState()` 可以考虑移至 StateManager
-   - `buildRoleSeatMap()` / `buildRoleMap()` 可以考虑移至辅助模块
+2. **handleWolfVote 简化** (~120 行)：
+   - [ ] 使用 ActionProcessor.validateWolfVote()
+   - [ ] 使用 ActionProcessor.resolveWolfVotes()
+
+3. **最终阶段**：
+   - [ ] 创建 GameCoordinator 作为 thin facade
+   - [ ] 将 GameStateService 替换为 GameCoordinator
 
 ---
 
