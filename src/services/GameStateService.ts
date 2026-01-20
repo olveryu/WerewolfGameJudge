@@ -600,6 +600,51 @@ export class GameStateService {
     return this.seatManager.handlePlayerLeave(seat, uid);
   }
 
+  /**
+   * Check if player is blocked by nightmare.
+   * Returns 'blocked' if action should be rejected, 'allowed' otherwise.
+   */
+  private async checkNightmareBlock(
+    seat: number,
+    role: RoleId,
+    target: number | null,
+    extra?: unknown,
+  ): Promise<'blocked' | 'allowed'> {
+    if (!this.state) return 'allowed';
+
+    const nightmareAction = this.state.actions.get('nightmare');
+    if (nightmareAction?.kind !== 'target' || nightmareAction.targetSeat !== seat) {
+      return 'allowed';
+    }
+
+    // Blocked player can only skip (target=null, extra=undefined)
+    if (target === null && extra === undefined) {
+      return 'allowed';
+    }
+
+    hostLog.info(
+      'Rejecting non-skip action from nightmare-blocked seat:',
+      seat,
+      'role:',
+      role,
+      'target:',
+      target,
+      'extra:',
+      extra,
+    );
+
+    const playerUid = this.state.players.get(seat)?.uid;
+    if (playerUid) {
+      this.state.actionRejected = {
+        action: 'submitAction',
+        reason: BLOCKED_UI_DEFAULTS.message,
+        targetUid: playerUid,
+      };
+      await this.broadcastState();
+    }
+    return 'blocked';
+  }
+
   private async handlePlayerAction(
     seat: number,
     role: RoleId,
@@ -639,35 +684,9 @@ export class GameStateService {
       return;
     }
 
-    // Authoritative gate: reject action if player is blocked by nightmare
-    // Blocked players can ONLY skip (target=null, extra=undefined). Any other action is rejected.
-    const nightmareAction = this.state.actions.get('nightmare');
-    if (nightmareAction?.kind === 'target' && nightmareAction.targetSeat === seat) {
-      if (target !== null || extra !== undefined) {
-        hostLog.info(
-          'Rejecting non-skip action from nightmare-blocked seat:',
-          seat,
-          'role:',
-          role,
-          'target:',
-          target,
-          'extra:',
-          extra,
-        );
-        // Set actionRejected in state for the blocked player
-        const playerUid = this.state.players.get(seat)?.uid;
-        if (playerUid) {
-          this.state.actionRejected = {
-            action: 'submitAction',
-            reason: BLOCKED_UI_DEFAULTS.message,
-            targetUid: playerUid,
-          };
-          await this.broadcastState();
-        }
-        return;
-      }
-      // target === null && extra === undefined: allowed (skip)
-    }
+    // Check nightmare block - only skip action allowed for blocked players
+    const blockResult = await this.checkNightmareBlock(seat, role, target, extra);
+    if (blockResult === 'blocked') return;
 
     // =========================================================================
     // Action Processing via ActionProcessor
