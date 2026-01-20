@@ -1,8 +1,8 @@
 # 方案 D：GameStateService 职责分离重构 — 详细设计文档
 
-> **状态**：进行中（Phase 1-6 已完成）  
+> **状态**：进行中（Phase 1-7 已完成）  
 > **创建日期**：2026-01-19  
-> **更新日期**：2026-01-19  
+> **更新日期**：2026-01-20  
 > **适用分支**：`refactor/state-manager-extraction`  
 > **重构策略**：完全重构，不追求向后兼容，如过程中发现问题将及时修复，有抉择时询问我。
 
@@ -14,25 +14,25 @@
 | ----- | --------------------- | ------------ | ---- | ---- | -------------------- |
 | 1     | StateManager          | ✅ 完成      | ~370 | 28   | `f0df22a`            |
 | 2     | StatePersistence      | ✅ 完成+集成 | ~265 | 21   | `3a06eff`, `bbbf986` |
-| 3     | BroadcastCoordinator  | ✅ 完成      | ~500 | 37   | `838ac0b`            |
-| 4     | SeatManager           | ✅ 完成      | ~400 | 31   | `1372fd9`            |
+| 3     | BroadcastCoordinator  | ✅ 完成+集成 | ~570 | 37   | `838ac0b`, `b90e174` |
+| 4     | SeatManager           | ✅ 完成+集成 | ~400 | 31   | `1372fd9`, `b90e174` |
 | 5     | ActionProcessor       | ✅ 完成      | ~500 | 53   | `77db153`            |
-| 6     | NightFlowService      | ✅ 完成      | ~540 | 37   | `795b3d7`            |
-| 7     | 模块集成              | 🔄 进行中    | -    | -    | -                    |
+| 6     | NightFlowService      | ✅ 完成+集成 | ~540 | 37   | `795b3d7`, `c428a47` |
+| 7     | 模块集成              | ✅ 完成      | -    | -    | `c428a47`, `b90e174` |
 | 8     | 清理 GameStateService | ⏳ 待开始    | -    | -    | -                    |
 
 **测试状态**：1317 tests passing
 
-**GameStateService 当前**：~2705 行（起始: 2808 行，目标: ~200 行）
+**GameStateService 当前**：~2536 行（起始: 2808 行，目标: ~200 行）
 
 **模块集成状态**：
 
-- ✅ StateManager - 已集成并使用
+- ✅ StateManager - 已创建，待进一步集成
 - ✅ StatePersistence - 已完成集成 (`bbbf986`)
-- ✅ BroadcastCoordinator - 已集成并使用
-- ✅ SeatManager - 已集成并使用
+- ✅ BroadcastCoordinator - 已完成集成，移除 broadcastService 依赖 (`b90e174`)
+- ✅ SeatManager - 已完成集成，使用 broadcastCoordinator (`b90e174`)
 - ✅ ActionProcessor - 已集成并使用
-- ✅ NightFlowService - 已创建，回调模式集成完成 (commit c428a47)
+- ✅ NightFlowService - 已完成集成，回调模式 (`c428a47`)
 
 ---
 
@@ -59,58 +59,59 @@
 
 ---
 
-### 7.2 BroadcastCoordinator 集成（约 24 处 `this.broadcastService` 使用）
+### 7.2 BroadcastCoordinator 集成 ✅ 已完成
 
-**目标**：将所有直接使用 `this.broadcastService` 的代码迁移到使用 `this.broadcastCoordinator` 的方法。
+**完成内容**：
+- ✅ 扩展 BroadcastCoordinator，添加缺失方法：
+  - `joinRoom()`, `leaveRoom()` - 房间生命周期
+  - `markAsSyncing()`, `setConnectionStatus()` - 连接状态管理
+  - `broadcastAsHost()` - 临时 passthrough（迁移用）
+- ✅ 迁移所有 `this.broadcastService` 调用（20+ 处）到 `this.broadcastCoordinator`
+- ✅ 移除 `private readonly broadcastService: BroadcastService;` 声明
+- ✅ 移除未使用的 `BroadcastService` import
+- ✅ 更新 SeatManager 依赖：`broadcastService` → `broadcastCoordinator`
+- ✅ 更新 SeatManager 测试 mock
 
-**BroadcastCoordinator 已提供的方法**：
-
-- `joinRoom(roomCode, uid, options)` - 加入房间
-- `leaveRoom()` - 离开房间
-- `broadcastState(state, revision)` - 广播游戏状态
-- `broadcastMessage(message)` - 广播消息
-- `sendToHost(message)` - 发送给 Host
-- `markAsLive()` / `markAsSyncing()` - 设置连接状态
-- `setConnectionStatus(status)` - 设置连接状态
-
-**需要迁移的位置**：
-
-1. **房间加入/离开** (约 310, 340, 414, 452, 487 行)
-   - [ ] `this.broadcastService.joinRoom()` → `this.broadcastCoordinator.joinRoom()`
-   - [ ] `this.broadcastService.leaveRoom()` → `this.broadcastCoordinator.leaveRoom()`
-
-2. **状态广播** (约 611, 636, 669, 1580, 1720, 1842, 2633 行)
-   - [ ] `this.broadcastService.broadcastAsHost()` → `this.broadcastCoordinator.broadcastMessage()`
-
-3. **发送给 Host** (约 458, 475, 2032, 2075, 2096, 2117, 2137 行)
-   - [ ] `this.broadcastService.sendToHost()` → `this.broadcastCoordinator.sendToHost()`
-
-4. **连接状态** (约 1216, 1231, 2007, 2019, 2044 行)
-   - [ ] `this.broadcastService.markAsLive()` → `this.broadcastCoordinator.markAsLive()`
-   - [ ] `this.broadcastService.markAsSyncing()` → `this.broadcastCoordinator.markAsSyncing()`
-   - [ ] `this.broadcastService.setConnectionStatus()` → `this.broadcastCoordinator.setConnectionStatus()`
-
-**最终目标**：删除 `private readonly broadcastService: BroadcastService;` 声明
+**提交历史**：
+- commit b90e174: refactor(BroadcastCoordinator): complete Phase 3 migration
 
 ---
 
 ### 7.3 迁移完成后的清理任务
 
 1. **删除未使用的成员变量**：
-   - [ ] `private nightFlow: NightFlowController | null = null;`
+   - ✅ `private readonly broadcastService: BroadcastService;` - 已删除
+   - ✅ `private nightFlow: NightFlowController | null = null;` - 已删除（Phase 6）
    - [ ] `private readonly broadcastService: BroadcastService;`
 
 2. **删除未使用的 import**：
-   - [ ] `NightFlowController`, `NightPhase`, `NightEvent` (如果全部通过 service 访问)
-   - [ ] `BroadcastService`
+   - ✅ `BroadcastService` - 已删除
 
-3. **更新 TODO 注释**：
-   - [ ] 将 Phase 3, 4, 6 的 TODO 标记为已完成
+3. **验证**：
+   - ✅ 运行完整测试套件：`npm test` - 1317 tests passing
+   - ✅ TypeScript 编译检查：`npx tsc --noEmit` - 通过
+   - ✅ ESLint 检查：`npm run lint` - 通过
 
-4. **验证**：
-   - [ ] 运行完整测试套件：`npm test`
-   - [ ] TypeScript 编译检查：`npx tsc --noEmit`
-   - [ ] ESLint 检查：`npm run lint`
+---
+
+## Phase 8: 进一步清理 GameStateService（待开始）
+
+**目标**：将 GameStateService 减少到 ~200 行，仅作为 facade/coordinator
+
+**剩余工作**：
+
+1. **StateManager 完全集成**：
+   - 将 `this.state` 管理移入 StateManager
+   - 将 `this.listeners` 管理移入 StateManager
+   - 将 `notifyListeners()` 移入 StateManager
+
+2. **ActionProcessor 完全集成**：
+   - 将 `handlePlayerAction()` 逻辑移入 ActionProcessor
+   - 将 resolver 调用逻辑移入 ActionProcessor
+
+3. **移除重复代码**：
+   - 识别并删除死代码
+   - 合并重复逻辑
 
 ---
 
