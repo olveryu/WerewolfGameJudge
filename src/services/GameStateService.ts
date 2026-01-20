@@ -23,7 +23,7 @@ import AudioService from './AudioService';
 import { NightPhase, NightEvent, InvalidNightTransitionError } from './NightFlowController';
 import { shuffleArray } from '../utils/shuffle';
 import { hostLog, playerLog } from '../utils/logger';
-import { calculateDeaths, type NightActions, type RoleSeatMap } from './DeathCalculator';
+import { calculateDeaths, type RoleSeatMap } from './DeathCalculator';
 import { resolveWolfVotes } from './WolfVoteResolver';
 import {
   makeActionTarget,
@@ -523,10 +523,6 @@ export class GameStateService {
     }
   }
 
-  private isRevealRole(role: RoleId): boolean {
-    return role === 'seer' || role === 'psychic' || role === 'gargoyle' || role === 'wolfRobot';
-  }
-
   private makeRevealAckKey(revision: number, role: RoleId): string {
     return `${revision}_${role}`;
   }
@@ -537,7 +533,7 @@ export class GameStateService {
     if (!this.nightFlowService.isActive()) return;
 
     // Only relevant for reveal roles
-    if (!this.isRevealRole(role)) return;
+    if (!this.actionProcessor.isRevealRole(role)) return;
 
     const player = this.state.players.get(seat);
     if (!player) return;
@@ -867,7 +863,7 @@ export class GameStateService {
 
     // Reveal roles require an explicit "I read it" ACK before advancing.
     // This prevents the next narration ("闭眼") from cutting off the popup.
-    if (this.isRevealRole(role) && target !== null) {
+    if (this.actionProcessor.isRevealRole(role) && target !== null) {
       // Broadcast the reveal result to UI before waiting for ACK
       // NOTE: broadcastState() increments stateRevision, so we must add the ACK key AFTER broadcast
       await this.broadcastState();
@@ -2096,77 +2092,6 @@ export class GameStateService {
   // ===========================================================================
 
   /**
-   * Build NightActions from structured actions Map
-   */
-  private buildNightActions(): NightActions {
-    if (!this.state) return {};
-
-    const actions = this.state.actions;
-    const nightActions: NightActions = {};
-
-    // Wolf kill
-    const wolfAction = actions.get('wolf');
-    if (wolfAction && wolfAction.kind === 'target') {
-      nightActions.wolfKill = wolfAction.targetSeat;
-    }
-
-    // Guard protect
-    const guardAction = actions.get('guard');
-    if (guardAction && guardAction.kind === 'target') {
-      nightActions.guardProtect = guardAction.targetSeat;
-    }
-
-    // Witch action (structured)
-    const witchRoleAction = actions.get('witch');
-    if (witchRoleAction && witchRoleAction.kind === 'witch') {
-      nightActions.witchAction = witchRoleAction.witchAction;
-    }
-
-    // Wolf Queen charm
-    const wolfQueenAction = actions.get('wolfQueen');
-    if (wolfQueenAction && wolfQueenAction.kind === 'target') {
-      nightActions.wolfQueenCharm = wolfQueenAction.targetSeat;
-    }
-
-    // Dreamcatcher dream
-    const dreamcatcherAction = actions.get('dreamcatcher');
-    if (dreamcatcherAction && dreamcatcherAction.kind === 'target') {
-      nightActions.dreamcatcherDream = dreamcatcherAction.targetSeat;
-    }
-
-    // Magician swap
-    const magicianAction = actions.get('magician');
-    if (magicianAction && magicianAction.kind === 'magicianSwap') {
-      nightActions.magicianSwap = {
-        first: magicianAction.firstSeat,
-        second: magicianAction.secondSeat,
-      };
-    }
-
-    // Seer check (for spirit knight reflection)
-    const seerAction = actions.get('seer');
-    if (seerAction && seerAction.kind === 'target') {
-      nightActions.seerCheck = seerAction.targetSeat;
-    }
-
-    // Nightmare block
-    const nightmareAction = actions.get('nightmare');
-    if (nightmareAction?.kind === 'target') {
-      nightActions.nightmareBlock = nightmareAction.targetSeat;
-
-      // Check if nightmare blocked a wolf player on night 1
-      // If so, wolves cannot kill this night
-      const blockedSeat = nightmareAction.targetSeat;
-      const blockedPlayer = this.state.players.get(blockedSeat);
-      if (blockedPlayer?.role && isWolfRole(blockedPlayer.role)) {
-        nightActions.nightmareBlockedWolf = true;
-      }
-    }
-
-    return nightActions;
-  }
-
-  /**
    * Build RoleSeatMap for death calculation context
    */
   private buildRoleSeatMap(): RoleSeatMap {
@@ -2350,7 +2275,10 @@ export class GameStateService {
   private doCalculateDeaths(): number[] {
     if (!this.state) return [];
 
-    const nightActions = this.buildNightActions();
+    const nightActions = this.actionProcessor.buildNightActions(
+      this.state.actions,
+      this.state.players,
+    );
     const roleSeatMap = this.buildRoleSeatMap();
 
     // [Bridge: DeathCalculator] Invoke extracted pure function

@@ -23,7 +23,7 @@
  * @module ActionProcessor
  */
 
-import { RoleId, ROLE_SPECS } from '../../models/roles';
+import { RoleId, ROLE_SPECS, isWolfRole } from '../../models/roles';
 import { type SchemaId, SCHEMAS } from '../../models/roles/spec';
 import {
   type ResolverContext,
@@ -432,9 +432,13 @@ export class ActionProcessor {
    * Build NightActions from recorded actions.
    *
    * @param actions - Map of role → RoleAction
+   * @param players - Optional players map (needed for nightmareBlockedWolf check)
    * @returns NightActions for death calculator
    */
-  buildNightActions(actions: ReadonlyMap<string, RoleAction>): NightActions {
+  buildNightActions(
+    actions: ReadonlyMap<string, RoleAction>,
+    players?: ReadonlyMap<number, { role?: RoleId | null } | null>,
+  ): NightActions {
     const nightActions: NightActions = {};
 
     // Wolf kill
@@ -480,6 +484,22 @@ export class ActionProcessor {
     const seerAction = actions.get('seer');
     if (seerAction?.kind === 'target') {
       nightActions.seerCheck = seerAction.targetSeat;
+    }
+
+    // Nightmare block
+    const nightmareAction = actions.get('nightmare');
+    if (nightmareAction?.kind === 'target') {
+      nightActions.nightmareBlock = nightmareAction.targetSeat;
+
+      // Check if nightmare blocked a wolf player on night 1
+      // If so, wolves cannot kill this night
+      if (players) {
+        const blockedSeat = nightmareAction.targetSeat;
+        const blockedPlayer = players.get(blockedSeat);
+        if (blockedPlayer?.role && isWolfRole(blockedPlayer.role)) {
+          nightActions.nightmareBlockedWolf = true;
+        }
+      }
     }
 
     return nightActions;
