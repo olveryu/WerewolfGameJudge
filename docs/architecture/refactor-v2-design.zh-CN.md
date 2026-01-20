@@ -36,6 +36,49 @@ GameStateService (1664 行) - 現有主入口，繼續工作
 2. 每委託一個方法後運行測試確認
 3. 最終將 GameStateService 重命名為 GameFacade
 
+### 代碼行數統計
+
+| 模組 | 行數 | 狀態 |
+|------|------|------|
+| GameStateService.ts | 1663 | 主入口（待精簡） |
+| StateManager.ts | 794 | ✅ 完成 |
+| BroadcastCoordinator.ts | 559 | ✅ 完成 |
+| SeatManager.ts | 583 | ✅ 完成 |
+| ActionProcessor.ts | 533 | ✅ 完成 |
+| NightFlowService.ts | 564 | ✅ 完成 |
+| StatePersistence.ts | 264 | ✅ 完成 |
+| HostCoordinator.ts | 890 | ✅ 新建（未整合） |
+| PlayerCoordinator.ts | 458 | ✅ 新建（未整合） |
+| **總計** | 6308 | |
+
+### Phase 8c 整合清單 (TODO)
+
+**步驟 1：添加 Coordinator 成員**
+- [ ] 在 GameStateService 中添加 `hostCoordinator: HostCoordinator`
+- [ ] 在 GameStateService 中添加 `playerCoordinator: PlayerCoordinator`
+- [ ] 在 constructor 中初始化並配置
+
+**步驟 2：委託 Player 方法**
+- [ ] `handleHostBroadcast` → `playerCoordinator.handleHostBroadcast`
+- [ ] `requestSnapshot` → `playerCoordinator.requestSnapshot`
+- [ ] `submitAction` → `playerCoordinator.submitAction`
+- [ ] `submitWolfVote` → `playerCoordinator.submitWolfVote`
+- [ ] `submitRevealAck` → `playerCoordinator.submitRevealAck`
+- [ ] `playerViewedRole` → `playerCoordinator.playerViewedRole`
+
+**步驟 3：委託 Host 方法**
+- [ ] `initializeAsHost` → `hostCoordinator.initialize`
+- [ ] `rejoinAsHost` → `hostCoordinator.rejoin`
+- [ ] `handlePlayerMessage` → `hostCoordinator.handlePlayerMessage`
+- [ ] `startGame` → `hostCoordinator.startGame`
+- [ ] `restartGame` → `hostCoordinator.restartGame`
+- [ ] `updateTemplate` → `hostCoordinator.updateTemplate`
+- [ ] `assignRoles` → `hostCoordinator.assignRoles`
+
+**步驟 4：刪除重複代碼**
+- [ ] 從 GameStateService 刪除已委託的方法實現
+- [ ] 重命名 GameStateService → GameFacade
+
 ---
 
 ## 1. 問題診斷
