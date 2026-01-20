@@ -15,7 +15,6 @@ import { RoleId, isWolfRole } from '../models/roles';
 import { GameTemplate, validateTemplateRoles } from '../models/Template';
 import { getConfirmRoleCanShoot } from '../models/Room';
 import {
-  BroadcastGameState,
   HostBroadcast,
   PlayerMessage,
 } from './BroadcastService';
@@ -1032,82 +1031,9 @@ export class GameStateService {
     this.playerCoordinator.handleHostBroadcast(msg);
   }
 
-  /**
-   * Player: Handle seat action ACK from Host
-   * Delegated to SeatManager (Phase 8 migration)
-   */
-  private handleSeatActionAck(msg: {
-    requestId: string;
-    success: boolean;
-    seat: number;
-    toUid: string;
-    reason?: string;
-  }): void {
-    this.seatManager.handleSeatActionAck({
-      type: 'SEAT_ACTION_ACK',
-      ...msg,
-    });
-  }
-
-  /**
-   * Player: Handle snapshot response from Host
-   */
-  private handleSnapshotResponse(msg: {
-    requestId: string;
-    toUid: string;
-    state: BroadcastGameState;
-    revision: number;
-  }): void {
-    // Only handle if addressed to us
-    if (msg.toUid !== this.myUid) {
-      return;
-    }
-
-    // Only handle if we have a pending request with matching ID
-    if (!this.pendingSnapshotRequest || this.pendingSnapshotRequest.requestId !== msg.requestId) {
-      playerLog.info(` Ignoring snapshot - no matching pending request`);
-      return;
-    }
-
-    playerLog.info(` Snapshot received, revision: ${msg.revision}`);
-
-    // Clear timeout
-    clearTimeout(this.pendingSnapshotRequest.timeoutHandle);
-    this.pendingSnapshotRequest = null;
-
-    // Apply state unconditionally (snapshot is always authoritative)
-    this.applyStateUpdate(msg.state, msg.revision);
-
-    // Mark connection as live
-    this.broadcastCoordinator.markAsLive();
-  }
-
-  private applyStateUpdate(broadcastState: BroadcastGameState, revision?: number): void {
-    // Mark connection as live after receiving state
-    this.broadcastCoordinator.markAsLive();
-
-    // Delegate to StateManager for state conversion
-    const effectiveRevision = revision ?? this.stateRevision + 1;
-    const result = this.stateManager.applyBroadcastState(
-      broadcastState,
-      effectiveRevision,
-      this.myUid,
-    );
-
-    if (!result.applied) {
-      playerLog.info(`Skipping stale update (rev ${effectiveRevision})`);
-      return;
-    }
-
-    // Update local tracking
-    if (result.mySeat !== null) {
-      this.mySeatNumber = result.mySeat;
-    }
-    this.stateRevision = effectiveRevision;
-
-    // Note: StateManager.applyBroadcastState already notifies listeners,
-    // and this.state getter now delegates to StateManager, so no sync needed.
-  }
+  // NOTE: handleSeatActionAck removed - delegated to PlayerCoordinator (Phase 8c)
+  // NOTE: handleSnapshotResponse removed - delegated to PlayerCoordinator (Phase 8c)
+  // NOTE: applyStateUpdate removed - delegated to PlayerCoordinator (Phase 8c)
 
   // ===========================================================================
   // Host: Game Flow Control
