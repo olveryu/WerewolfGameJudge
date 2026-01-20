@@ -19,7 +19,6 @@
 import { createTemplateFromRoles, type GameTemplate } from '../../models/Template';
 import { type RoleId, isWolfRole, doesRoleParticipateInWolfVote } from '../../models/roles';
 import { type RoleAction } from '../../models/actions/RoleAction';
-import { getConfirmRoleCanShoot } from '../../models/Room';
 import { hostLog, playerLog } from '../../utils/logger';
 
 import type {
@@ -622,50 +621,41 @@ export class StateManager {
   /**
    * Set witch context in state (called when witch turn starts).
    * Contains: killedIndex, canSave, canPoison.
+   *
+   * Note: Caller is responsible for calculating canSave (business logic).
+   * StateManager only stores the provided context.
    */
-  setWitchContext(killedIndex: number): void {
+  setWitchContext(context: { killedIndex: number; canSave: boolean; canPoison: boolean }): void {
     if (!this.state) {
       hostLog.warn('setWitchContext: no state');
       return;
     }
 
-    const witchSeat = this.findSeatByRole('witch');
-    // canSave: Host determines if witch can save (not self, has antidote)
-    // Night-1-only: witch always has antidote, and self-save is not allowed per schema constraints
-    const canSave = killedIndex !== -1 && killedIndex !== witchSeat;
-
     this.batchUpdate({
-      witchContext: {
-        killedIndex,
-        canSave,
-        canPoison: true, // Night-1: always has poison
-      },
+      witchContext: context,
     });
 
-    hostLog.info('Set witchContext:', 'killedIndex:', killedIndex, 'canSave:', canSave);
+    hostLog.info('Set witchContext:', 'killedIndex:', context.killedIndex, 'canSave:', context.canSave);
   }
 
   /**
    * Set confirm status in state (called when hunter/darkWolfKing confirm turn starts).
    * Tells them if they can use their skill (not poisoned by witch).
+   *
+   * Note: Caller is responsible for calculating canShoot (business logic).
+   * StateManager only stores the provided status.
    */
-  setConfirmStatus(role: 'hunter' | 'darkWolfKing'): void {
+  setConfirmStatus(status: { role: 'hunter' | 'darkWolfKing'; canShoot: boolean }): void {
     if (!this.state) {
-      hostLog.warn(`setConfirmStatus: ${role} - no state`);
+      hostLog.warn(`setConfirmStatus: ${status.role} - no state`);
       return;
     }
 
-    // Use the same logic as getConfirmRoleCanShoot
-    const canShoot = getConfirmRoleCanShoot(this.state, role);
-
     this.batchUpdate({
-      confirmStatus: {
-        role,
-        canShoot,
-      },
+      confirmStatus: status,
     });
 
-    hostLog.info(`Set confirmStatus for ${role}: canShoot=${canShoot}`);
+    hostLog.info(`Set confirmStatus for ${status.role}: canShoot=${status.canShoot}`);
   }
 
   /**

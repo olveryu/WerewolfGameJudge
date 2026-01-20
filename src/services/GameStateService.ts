@@ -13,6 +13,7 @@
 
 import { RoleId, isWolfRole } from '../models/roles';
 import { GameTemplate, validateTemplateRoles } from '../models/Template';
+import { getConfirmRoleCanShoot } from '../models/Room';
 import {
   BroadcastGameState,
   HostBroadcast,
@@ -1257,13 +1258,22 @@ export class GameStateService {
       } else {
         const wolfAction = this.state.actions.get('wolf');
         const killedIndex = getActionTargetSeat(wolfAction) ?? -1;
-        this.stateManager.setWitchContext(killedIndex);
+        // Business logic: calculate canSave here (not in StateManager)
+        // Night-1-only: witch always has antidote, and self-save is not allowed per schema
+        const canSave = killedIndex !== -1 && killedIndex !== witchSeat;
+        this.stateManager.setWitchContext({
+          killedIndex,
+          canSave,
+          canPoison: true, // Night-1: always has poison
+        });
       }
     }
 
     // For hunter/darkWolfKing, set canShoot status in state
     if (role === 'hunter' || role === 'darkWolfKing') {
-      this.stateManager.setConfirmStatus(role);
+      // Business logic: calculate canShoot here (not in StateManager)
+      const canShoot = getConfirmRoleCanShoot(this.state, role);
+      this.stateManager.setConfirmStatus({ role, canShoot });
     }
 
     // Broadcast role turn (PUBLIC)
