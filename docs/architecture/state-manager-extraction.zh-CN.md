@@ -13,25 +13,25 @@
 | Phase | 模块 | 状态 | 行数 | 测试 | 提交 |
 |-------|------|------|------|------|------|
 | 1 | StateManager | ✅ 完成 | ~370 | 28 | `f0df22a` |
-| 2 | StatePersistence | ✅ 完成 | ~265 | 21 | `3a06eff` |
+| 2 | StatePersistence | ✅ 完成+集成 | ~265 | 21 | `3a06eff`, `bbbf986` |
 | 3 | BroadcastCoordinator | ✅ 完成 | ~500 | 37 | `838ac0b` |
 | 4 | SeatManager | ✅ 完成 | ~400 | 31 | `1372fd9` |
 | 5 | ActionProcessor | ✅ 完成 | ~500 | 53 | `77db153` |
 | 6 | NightFlowService | ✅ 完成 | ~540 | 37 | `795b3d7` |
-| 7 | GameCoordinator | ⏳ 待开始 | ~200 | - | - |
+| 7 | 模块集成 | 🔄 进行中 | - | - | - |
 | 8 | 清理 GameStateService | ⏳ 待开始 | - | - | - |
 
 **测试状态**：1317 tests passing
 
-**GameStateService 当前**：~2808 行（目标: ~200 行）
+**GameStateService 当前**：~2705 行（起始: 2808 行，目标: ~200 行）
 
 **模块集成状态**：
 - ✅ StateManager - 已集成并使用
-- ⚠️ StatePersistence - 已创建，部分使用
+- ✅ StatePersistence - 已完成集成 (`bbbf986`)
 - ✅ BroadcastCoordinator - 已集成并使用
 - ✅ SeatManager - 已集成并使用
 - ✅ ActionProcessor - 已集成并使用
-- ⚠️ NightFlowService - 已创建，部分使用
+- ⚠️ NightFlowService - 已创建，未完全集成（直接使用 NightFlowController）
 
 ---
 
