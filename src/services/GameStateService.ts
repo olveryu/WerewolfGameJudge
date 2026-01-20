@@ -11,7 +11,7 @@
  * 4. Death calculations happen locally on Host
  */
 
-import { RoleId, isWolfRole, doesRoleParticipateInWolfVote } from '../models/roles';
+import { RoleId, isWolfRole } from '../models/roles';
 import { GameTemplate, validateTemplateRoles } from '../models/Template';
 import {
   BroadcastGameState,
@@ -26,7 +26,6 @@ import { hostLog, playerLog } from '../utils/logger';
 import { calculateDeaths, type RoleSeatMap } from './DeathCalculator';
 import { makeActionTarget, getActionTargetSeat } from '../models/actions';
 import { type SchemaId, BLOCKED_UI_DEFAULTS } from '../models/roles/spec';
-import { getConfirmRoleCanShoot } from '../models/Room';
 import { StateManager } from './state';
 import { StatePersistence } from './persistence';
 import { BroadcastCoordinator } from './broadcast';
@@ -756,7 +755,7 @@ export class GameStateService {
 
       // Apply reveal result
       if (result.reveal && target !== null) {
-        this.applyRevealFromProcessResult(result.reveal);
+        this.stateManager.applyReveal(result.reveal);
       }
 
       // Record action using actionToRecord from processor
@@ -856,7 +855,7 @@ export class GameStateService {
     this.stateManager.recordWolfVote(seat, target);
 
     // Check if all voting wolves have voted (excludes gargoyle, wolfRobot, etc.)
-    const allVotingWolfSeats = this.getVotingWolfSeats();
+    const allVotingWolfSeats = this.stateManager.getVotingWolfSeats();
     const allVoted = allVotingWolfSeats.every((s) => this.state!.wolfVotes.has(s));
 
     if (allVoted) {
@@ -1238,13 +1237,13 @@ export class GameStateService {
       } else {
         const wolfAction = this.state.actions.get('wolf');
         const killedIndex = getActionTargetSeat(wolfAction) ?? -1;
-        this.setWitchContext(killedIndex);
+        this.stateManager.setWitchContext(killedIndex);
       }
     }
 
     // For hunter/darkWolfKing, set canShoot status in state
     if (role === 'hunter' || role === 'darkWolfKing') {
-      this.setConfirmStatus(role);
+      this.stateManager.setConfirmStatus(role);
     }
 
     // Broadcast role turn (PUBLIC)
@@ -1523,79 +1522,6 @@ export class GameStateService {
   // Helper Methods
   // ===========================================================================
 
-  /**
-   * Get wolf seats that participate in wolf vote (excludes gargoyle, wolfRobot, etc.)
-   */
-  private getVotingWolfSeats(): number[] {
-    if (!this.state) return [];
-
-    const seats: number[] = [];
-    this.state.players.forEach((player, seat) => {
-      if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
-        seats.push(seat);
-      }
-    });
-    return seats.sort((a, b) => a - b);
-  }
-
-  // ===========================================================================
-  // Role-specific Context Setters (was PRIVATE_EFFECT, now direct state)
-  // All data is set in this.state and broadcast publicly via STATE_UPDATE.
-  // UI filters what to display based on myRole.
-  // ===========================================================================
-
-  /**
-   * Set witch context in state (called when witch turn starts).
-   * Contains: killedIndex, canSave, canPoison.
-   */
-  private setWitchContext(killedIndex: number): void {
-    if (!this.state) {
-      hostLog.warn('setWitchContext: no state');
-      return;
-    }
-
-    const witchSeat = this.stateManager.findSeatByRole('witch');
-    // canSave: Host determines if witch can save (not self, has antidote)
-    // Night-1-only: witch always has antidote, and self-save is not allowed per schema constraints
-    const canSave = killedIndex !== -1 && killedIndex !== witchSeat;
-
-    this.stateManager.batchUpdate({
-      witchContext: {
-        killedIndex,
-        canSave,
-        canPoison: true, // Night-1: always has poison
-      },
-    });
-
-    hostLog.info('Set witchContext:', 'killedIndex:', killedIndex, 'canSave:', canSave);
-  }
-
-  /**
-   * Set confirm status in state (called when hunter/darkWolfKing confirm turn starts).
-   * Tells them if they can use their skill (not poisoned by witch).
-   */
-  private setConfirmStatus(role: 'hunter' | 'darkWolfKing'): void {
-    if (!this.state) {
-      hostLog.warn(`setConfirmStatus: ${role} - no state`);
-      return;
-    }
-
-    // Use the same logic as getConfirmRoleCanShoot
-    const canShoot = getConfirmRoleCanShoot(this.state, role);
-
-    this.stateManager.batchUpdate({
-      confirmStatus: {
-        role,
-        canShoot,
-      },
-    });
-
-    hostLog.info(`Set confirmStatus for ${role}: canShoot=${canShoot}`);
-  }
-
-  // NOTE: setSeerReveal, setPsychicReveal, setGargoyleReveal, setWolfRobotReveal
-  // have been removed. Reveal logic is now handled by invokeResolver + applyRevealFromResolver.
-
   // ===========================================================================
   // Death Calculation Bridge (DeathCalculator)
   // ===========================================================================
@@ -1635,54 +1561,6 @@ export class GameStateService {
       actions: this.state.actions,
       wolfVotes: this.state.wolfVotes,
     };
-  }
-
-  /**
-   * Apply reveal result from ActionProcessor.processAction result.
-   * Maps the simplified reveal type to the appropriate state field.
-   */
-  private applyRevealFromProcessResult(reveal: {
-    type: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot';
-    targetSeat: number;
-    result: string;
-  }): void {
-    if (!this.state) return;
-
-    switch (reveal.type) {
-      case 'seer':
-        this.stateManager.batchUpdate({
-          seerReveal: {
-            targetSeat: reveal.targetSeat,
-            result: reveal.result as '好人' | '狼人',
-          },
-        });
-        break;
-      case 'psychic':
-        this.stateManager.batchUpdate({
-          psychicReveal: {
-            targetSeat: reveal.targetSeat,
-            result: reveal.result,
-          },
-        });
-        break;
-      case 'gargoyle':
-        this.stateManager.batchUpdate({
-          gargoyleReveal: {
-            targetSeat: reveal.targetSeat,
-            result: reveal.result,
-          },
-        });
-        break;
-      case 'wolfRobot':
-        this.stateManager.batchUpdate({
-          wolfRobotReveal: {
-            targetSeat: reveal.targetSeat,
-            result: reveal.result,
-          },
-        });
-        break;
-    }
-    hostLog.info(`Set ${reveal.type}Reveal from processAction:`, reveal.targetSeat, reveal.result);
   }
 
   /**
@@ -1774,7 +1652,7 @@ export class GameStateService {
 
     // Wolf vote status (only wolves that participate in vote)
     const wolfVoteStatus: Record<number, boolean> = {};
-    this.getVotingWolfSeats().forEach((seat) => {
+    this.stateManager.getVotingWolfSeats().forEach((seat) => {
       wolfVoteStatus[seat] = this.state!.wolfVotes.has(seat);
     });
 

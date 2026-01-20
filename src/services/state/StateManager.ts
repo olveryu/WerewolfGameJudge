@@ -17,8 +17,9 @@
  */
 
 import { createTemplateFromRoles, type GameTemplate } from '../../models/Template';
-import { type RoleId, isWolfRole } from '../../models/roles';
+import { type RoleId, isWolfRole, doesRoleParticipateInWolfVote } from '../../models/roles';
 import { type RoleAction } from '../../models/actions/RoleAction';
+import { getConfirmRoleCanShoot } from '../../models/Room';
 import { hostLog, playerLog } from '../../utils/logger';
 
 import type {
@@ -603,5 +604,120 @@ export class StateManager {
     if (!this.state) return;
     this.state.wolfVotes = new Map();
     this.notifyListeners();
+  }
+
+  // ===========================================================================
+  // Role-specific Context Setters
+  // ===========================================================================
+
+  /**
+   * Get wolf seats that participate in wolf vote (excludes gargoyle, wolfRobot, etc.)
+   */
+  getVotingWolfSeats(): number[] {
+    if (!this.state) return [];
+
+    const seats: number[] = [];
+    this.state.players.forEach((player, seat) => {
+      if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
+        seats.push(seat);
+      }
+    });
+    return seats.sort((a, b) => a - b);
+  }
+
+  /**
+   * Set witch context in state (called when witch turn starts).
+   * Contains: killedIndex, canSave, canPoison.
+   */
+  setWitchContext(killedIndex: number): void {
+    if (!this.state) {
+      hostLog.warn('setWitchContext: no state');
+      return;
+    }
+
+    const witchSeat = this.findSeatByRole('witch');
+    // canSave: Host determines if witch can save (not self, has antidote)
+    // Night-1-only: witch always has antidote, and self-save is not allowed per schema constraints
+    const canSave = killedIndex !== -1 && killedIndex !== witchSeat;
+
+    this.batchUpdate({
+      witchContext: {
+        killedIndex,
+        canSave,
+        canPoison: true, // Night-1: always has poison
+      },
+    });
+
+    hostLog.info('Set witchContext:', 'killedIndex:', killedIndex, 'canSave:', canSave);
+  }
+
+  /**
+   * Set confirm status in state (called when hunter/darkWolfKing confirm turn starts).
+   * Tells them if they can use their skill (not poisoned by witch).
+   */
+  setConfirmStatus(role: 'hunter' | 'darkWolfKing'): void {
+    if (!this.state) {
+      hostLog.warn(`setConfirmStatus: ${role} - no state`);
+      return;
+    }
+
+    // Use the same logic as getConfirmRoleCanShoot
+    const canShoot = getConfirmRoleCanShoot(this.state, role);
+
+    this.batchUpdate({
+      confirmStatus: {
+        role,
+        canShoot,
+      },
+    });
+
+    hostLog.info(`Set confirmStatus for ${role}: canShoot=${canShoot}`);
+  }
+
+  /**
+   * Apply reveal result from ActionProcessor.processAction result.
+   * Maps the simplified reveal type to the appropriate state field.
+   */
+  applyReveal(reveal: {
+    type: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot';
+    targetSeat: number;
+    result: string;
+  }): void {
+    switch (reveal.type) {
+      case 'seer':
+        this.batchUpdate({
+          seerReveal: {
+            targetSeat: reveal.targetSeat,
+            result: reveal.result as '好人' | '狼人',
+          },
+        });
+        break;
+      case 'psychic':
+        this.batchUpdate({
+          psychicReveal: {
+            targetSeat: reveal.targetSeat,
+            result: reveal.result,
+          },
+        });
+        break;
+      case 'gargoyle':
+        this.batchUpdate({
+          gargoyleReveal: {
+            targetSeat: reveal.targetSeat,
+            result: reveal.result,
+          },
+        });
+        break;
+      case 'wolfRobot':
+        this.batchUpdate({
+          wolfRobotReveal: {
+            targetSeat: reveal.targetSeat,
+            result: reveal.result,
+          },
+        });
+        break;
+    }
+
+    hostLog.info(`Set ${reveal.type}Reveal:`, reveal.targetSeat, reveal.result);
   }
 }
