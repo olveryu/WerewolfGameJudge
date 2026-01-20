@@ -61,7 +61,6 @@ import {
   type WolfVoteInput,
 } from './night/resolvers/wolfVote';
 import { getConfirmRoleCanShoot } from '../models/Room';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StateManager } from './state';
 import { StatePersistence } from './persistence';
 import { BroadcastCoordinator } from './broadcast';
@@ -71,10 +70,6 @@ import { NightFlowService } from './night';
 
 // Import types/enums needed internally
 import { GameStatus, LocalPlayer, LocalGameState } from './types/GameStateTypes';
-
-// Storage constants
-const STORAGE_KEY_PREFIX = 'werewolf_game_state_';
-const STATE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours (matches Supabase room cleanup)
 
 // Import type-only imports
 import type { GameStateListener } from './types/GameStateTypes';
@@ -107,8 +102,7 @@ export class GameStateService {
   /**
    * StatePersistence: State persistence module (Phase 2 extraction)
    * Handles saving/loading state to/from AsyncStorage.
-   * TODO(Phase 2 migration): Gradually replace direct AsyncStorage calls
-   * with this.statePersistence methods.
+   * ✅ Phase 2 migration complete - all persistence delegated to this module.
    */
   private readonly statePersistence: StatePersistence;
 
@@ -291,113 +285,14 @@ export class GameStateService {
   }
 
   // ===========================================================================
-  // State Persistence (Host only)
+  // State Persistence (Host only) - delegated to StatePersistence module
   // ===========================================================================
-
-  /**
-   * Serialize LocalGameState to JSON-compatible object
-   * Maps need special handling since JSON.stringify doesn't support them
-   */
-  private serializeState(state: LocalGameState): string {
-    const serializable = {
-      ...state,
-      players: Array.from(state.players.entries()),
-      actions: Array.from(state.actions.entries()),
-      wolfVotes: Array.from(state.wolfVotes.entries()),
-      _savedAt: Date.now(),
-    };
-    return JSON.stringify(serializable);
-  }
-
-  /**
-   * Deserialize JSON back to LocalGameState
-   */
-  private deserializeState(json: string): { state: LocalGameState; savedAt: number } | null {
-    try {
-      const parsed = JSON.parse(json);
-      const savedAt = parsed._savedAt || 0;
-      delete parsed._savedAt;
-
-      const state: LocalGameState = {
-        ...parsed,
-        players: new Map(parsed.players),
-        actions: new Map(parsed.actions),
-        wolfVotes: new Map(parsed.wolfVotes),
-      };
-      return { state, savedAt };
-    } catch (err) {
-      hostLog.error('Failed to deserialize state:', err);
-      return null;
-    }
-  }
-
-  /**
-   * Save current game state to AsyncStorage (Host only)
-   * Called at key state change points
-   */
-  private async saveStateToStorage(): Promise<void> {
-    if (!this.isHost || !this.state) return;
-
-    try {
-      const key = `${STORAGE_KEY_PREFIX}${this.state.roomCode}`;
-      const serialized = this.serializeState(this.state);
-      await AsyncStorage.setItem(key, serialized);
-      hostLog.debug('State saved to storage for room:', this.state.roomCode);
-    } catch (err) {
-      hostLog.error('Failed to save state to storage:', err);
-    }
-  }
-
-  /**
-   * Load game state from AsyncStorage (Host only)
-   * Returns null if no state found or state is expired
-   */
-  private async loadStateFromStorage(roomCode: string): Promise<LocalGameState | null> {
-    try {
-      const key = `${STORAGE_KEY_PREFIX}${roomCode}`;
-      const json = await AsyncStorage.getItem(key);
-
-      if (!json) {
-        hostLog.debug('No saved state found for room:', roomCode);
-        return null;
-      }
-
-      const result = this.deserializeState(json);
-      if (!result) return null;
-
-      const { state, savedAt } = result;
-      const age = Date.now() - savedAt;
-
-      // Check if state is expired
-      if (age > STATE_EXPIRY_MS) {
-        hostLog.warn(
-          'Saved state expired, discarding. Age:',
-          Math.round(age / 1000 / 60),
-          'minutes',
-        );
-        await AsyncStorage.removeItem(key);
-        return null;
-      }
-
-      hostLog.info('Loaded state from storage. Age:', Math.round(age / 1000), 'seconds');
-      return state;
-    } catch (err) {
-      hostLog.error('Failed to load state from storage:', err);
-      return null;
-    }
-  }
 
   /**
    * Clear saved state for a room (called when game ends or room is deleted)
    */
   async clearSavedState(roomCode: string): Promise<void> {
-    try {
-      const key = `${STORAGE_KEY_PREFIX}${roomCode}`;
-      await AsyncStorage.removeItem(key);
-      hostLog.debug('Cleared saved state for room:', roomCode);
-    } catch (err) {
-      hostLog.error('Failed to clear saved state:', err);
-    }
+    await this.statePersistence.clearState(roomCode);
   }
 
   // ===========================================================================
@@ -476,7 +371,7 @@ export class GameStateService {
     this.mySeatNumber = null;
 
     // Try to recover state from storage
-    const savedState = await this.loadStateFromStorage(roomCode);
+    const savedState = await this.statePersistence.loadState(roomCode);
 
     if (savedState) {
       // Recovered! Use saved state
@@ -2743,9 +2638,11 @@ export class GameStateService {
 
     // Persist state to storage for recovery
     // (async, non-blocking - don't await)
-    this.saveStateToStorage().catch((err) =>
-      hostLog.error('Failed to save state after broadcast:', err),
-    );
+    if (this.isHost && this.state) {
+      this.statePersistence.saveState(this.state.roomCode, this.state).catch((err) =>
+        hostLog.error('Failed to save state after broadcast:', err),
+      );
+    }
   }
 
   private toBroadcastState(): BroadcastGameState {

@@ -15,6 +15,8 @@ import { GameTemplate } from '../../models/Template';
 import type { RoleId } from '../../models/roles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { StatePersistence } from '../persistence';
+
 // =============================================================================
 // Mocks
 // =============================================================================
@@ -92,8 +94,9 @@ async function initializeHostWithPlayers(
   }
   state.status = GameStatus.seated;
 
-  // Manually trigger save since we modified state directly
-  await (service as any).saveStateToStorage();
+  // Manually trigger save using StatePersistence module
+  const statePersistence = new StatePersistence();
+  await statePersistence.saveState(roomCode, state);
 }
 
 // =============================================================================
@@ -211,8 +214,9 @@ describe('GameStateService Persistence', () => {
         hasViewedRole: false,
       });
 
-      // Force save
-      await (service as any).saveStateToStorage();
+      // Force save using StatePersistence module
+      const statePersistence = new StatePersistence();
+      await statePersistence.saveState('TEST06', state);
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       service = resetGameStateService();
