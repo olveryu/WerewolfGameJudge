@@ -251,7 +251,7 @@ describe('GameStateService Lifecycle', () => {
       await startPromise;
 
       // Access nightFlow via nightFlowService (nightFlow member removed from GameStateService)
-      const nightFlow = (service as any).nightFlowService?.getNightFlow() ?? null;
+      const nightFlow = service.__testGetNightFlowService()?.getNightFlow() ?? null;
       expect(nightFlow).not.toBeNull();
     });
 
@@ -327,7 +327,7 @@ describe('GameStateService Lifecycle', () => {
       await service.restartGame();
 
       // Access nightFlow via nightFlowService (nightFlow member removed from GameStateService)
-      const nightFlow = (service as any).nightFlowService?.getNightFlow() ?? null;
+      const nightFlow = service.__testGetNightFlowService()?.getNightFlow() ?? null;
       expect(nightFlow).toBeNull();
     });
 

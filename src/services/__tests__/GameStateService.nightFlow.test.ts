@@ -120,18 +120,17 @@ async function setupReadyState(
 }
 
 /**
- * Get nightFlow from service via nightFlowService
- * (nightFlow member was removed from GameStateService, now accessed via nightFlowService)
+ * Get nightFlow from service via test hook
  */
 function getNightFlow(service: GameStateService): any {
-  return (service as any).nightFlowService?.getNightFlow() ?? null;
+  return service.__testGetNightFlowService()?.getNightFlow() ?? null;
 }
 
 /**
- * Get private state from service
+ * Get state from service via public API
  */
 function getState(service: GameStateService): any {
-  return (service as any).state;
+  return service.getState();
 }
 
 // =============================================================================
@@ -362,10 +361,10 @@ describe('GameStateService NightFlowController Integration', () => {
       // Confirm game is ongoing
       expect(getState(service).status).toBe(GameStatus.ongoing);
 
-      // Force nightFlow to null via nightFlowService.reset() (simulating a bug)
-      (service as any).nightFlowService.reset();
+      // Force nightFlow to null via test hook (simulating a bug)
+      service.__testGetNightFlowService().reset();
 
-      // When: Call advanceToNextAction
+      // When: Call advanceToNextAction (private method - still needs as any)
       const advanceToNextAction = (service as any).advanceToNextAction.bind(service);
 
       // Then: Should throw because ongoing + null nightFlow is a strict invariant violation
@@ -385,10 +384,10 @@ describe('GameStateService NightFlowController Integration', () => {
       state.status = GameStatus.ongoing;
       const indexBefore = state.currentActionerIndex;
 
-      // Force nightFlow to null via nightFlowService.reset() (simulating a bug)
-      (service as any).nightFlowService.reset();
+      // Force nightFlow to null via test hook (simulating a bug)
+      service.__testGetNightFlowService().reset();
 
-      // When: Call advanceToNextAction - it should throw, so index stays the same
+      // When: Call advanceToNextAction - it should throw, so index stays the same (private method - still needs as any)
       const advanceToNextAction = (service as any).advanceToNextAction.bind(service);
       await expect(advanceToNextAction()).rejects.toThrow();
 

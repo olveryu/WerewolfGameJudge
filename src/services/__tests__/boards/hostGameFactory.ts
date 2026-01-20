@@ -397,9 +397,9 @@ export async function createHostGame(
   await startPromise;
 
   const getState = () => service.getState();
-  // Access nightFlow via nightFlowService (nightFlow member removed from GameStateService)
+  // Access nightFlow via test hook (instead of as any)
   const getNightFlow = (): NightFlowController | null =>
-    (service as any).nightFlowService?.getNightFlow() ?? null;
+    service.__testGetNightFlowService()?.getNightFlow() ?? null;
   const getLastNightDeaths = (): number[] => getState()?.lastNightDeaths ?? [];
   const getLastNightInfo = (): string => service.getLastNightInfo();
 
@@ -457,7 +457,8 @@ export async function createHostGame(
       nightFlow.dispatch(NightEvent.NightEndAudioDone);
     }
 
-    const deaths = (service as any).doCalculateDeaths() as number[];
+    // Calculate deaths via test hook (instead of as any)
+    const deaths = service.__testCalculateDeaths();
     s.lastNightDeaths = deaths;
 
     return {

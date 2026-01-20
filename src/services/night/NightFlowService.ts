@@ -111,7 +111,7 @@ export interface NightEndInfo {
  * ```typescript
  * const nightFlowService = new NightFlowService({
  *   getState: () => this.state,
- *   updateState: (updates) => Object.assign(this.state, updates),
+ *   updateState: (updates) => this.stateManager.batchUpdate(updates),
  *   getSeatsForRole: (role) => this.getSeatsForRole(role),
  * });
  *

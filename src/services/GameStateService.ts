@@ -217,6 +217,42 @@ export class GameStateService {
   }
 
   // ===========================================================================
+  // Test Hooks (ONLY for unit tests - do not use in production code)
+  // ===========================================================================
+
+  /**
+   * @internal Test hook: Access StateManager for test setup
+   * Do NOT use in production code - use proper public APIs instead.
+   */
+  __testGetStateManager(): StateManager {
+    return this.stateManager;
+  }
+
+  /**
+   * @internal Test hook: Access NightFlowService for test assertions
+   * Do NOT use in production code - use proper public APIs instead.
+   */
+  __testGetNightFlowService(): NightFlowService {
+    return this.nightFlowService;
+  }
+
+  /**
+   * @internal Test hook: Access SeatManager for test setup
+   * Do NOT use in production code - use proper public APIs instead.
+   */
+  __testGetSeatManager(): SeatManager {
+    return this.seatManager;
+  }
+
+  /**
+   * @internal Test hook: Calculate deaths for test verification
+   * Do NOT use in production code - night end logic handles this internally.
+   */
+  __testCalculateDeaths(): number[] {
+    return this.doCalculateDeaths();
+  }
+
+  // ===========================================================================
   // State Listeners (delegated to StateManager)
   // ===========================================================================
 

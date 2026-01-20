@@ -632,7 +632,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       await startPromise;
 
       // Force nightFlow to null via nightFlowService.reset() (simulating a bug)
-      (service as any).nightFlowService.reset();
+      service.__testGetNightFlowService().reset();
 
       // Confirm status is ongoing
       expect(service.getState()!.status).toBe(GameStatus.ongoing);
@@ -658,7 +658,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       const lastNightDeathsBefore = service.getState()!.lastNightDeaths;
 
       // Force nightFlow to null via nightFlowService.reset()
-      (service as any).nightFlowService.reset();
+      service.__testGetNightFlowService().reset();
 
       // When/Then: endNight should throw
       await expect((service as any).endNight()).rejects.toThrow(
@@ -685,7 +685,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       const indexBefore = service.getState()!.currentActionerIndex;
 
       // Force nightFlow to null via nightFlowService.reset()
-      (service as any).nightFlowService.reset();
+      service.__testGetNightFlowService().reset();
 
       // When/Then: handlePlayerAction should throw
       await expect((service as any).handlePlayerAction(0, 'seer', 1)).rejects.toThrow(
@@ -712,7 +712,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(service.getState()!.status).toBe(GameStatus.ready);
 
       // nightFlow should be null before game starts (accessed via nightFlowService)
-      expect((service as any).nightFlowService.getNightFlow()).toBeNull();
+      expect(service.__testGetNightFlowService().getNightFlow()).toBeNull();
 
       // When/Then: advanceToNextAction should NOT throw (just return silently)
       await expect((service as any).advanceToNextAction()).resolves.not.toThrow();
@@ -724,7 +724,7 @@ describe('GameStateService NightFlow Contract Tests', () => {
       await setupReadyStateWithRoles(service, actionOrder, new Map([[0, 'seer']]));
 
       expect(service.getState()!.status).toBe(GameStatus.ready);
-      expect((service as any).nightFlowService.getNightFlow()).toBeNull();
+      expect(service.__testGetNightFlowService().getNightFlow()).toBeNull();
 
       // When/Then: endNight should NOT throw
       await expect((service as any).endNight()).resolves.not.toThrow();

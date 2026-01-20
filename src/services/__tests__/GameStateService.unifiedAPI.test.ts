@@ -60,7 +60,7 @@ function setupGameWithPlayers(
   const { assignRoles = true, hostSeat = 0 } = options;
   const template = createTestTemplate(roles);
 
-  // Access private state for testing
+  // Access private state for testing (isHost, myUid, mySeatNumber still need as any)
   (service as any).isHost = true;
   (service as any).myUid = 'host-uid';
   (service as any).mySeatNumber = hostSeat;
@@ -91,8 +91,8 @@ function setupGameWithPlayers(
     currentNightResults: {},
   };
 
-  // Initialize StateManager - GameStateService.state getter will read from here
-  (service as any).stateManager.initialize(state);
+  // Initialize StateManager via test hook (instead of as any)
+  service.__testGetStateManager().initialize(state);
 }
 
 describe('GameStateService Unified API', () => {
@@ -209,8 +209,8 @@ describe('GameStateService Unified API', () => {
       await service.takeSeat(0, 'Host');
       expect(service.getState()?.status).toBe(GameStatus.unseated);
 
-      // Simulate another player taking seat 1 (via SeatManager.processSeatAction)
-      await (service as any).seatManager.processSeatAction('sit', 1, 'player-1', 'Player 1');
+      // Simulate another player taking seat 1 (via SeatManager test hook)
+      await service.__testGetSeatManager().processSeatAction('sit', 1, 'player-1', 'Player 1');
 
       // Now all seated
       expect(service.getState()?.status).toBe(GameStatus.seated);
