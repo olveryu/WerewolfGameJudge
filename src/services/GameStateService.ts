@@ -547,7 +547,7 @@ export class GameStateService {
   private async handleRevealAck(seat: number, role: RoleId, revision: number): Promise<void> {
     if (!this.isHost || !this.state) return;
     if (this.state.status !== GameStatus.ongoing) return;
-    if (!this.nightFlow) return;
+    if (!this.nightFlowService.isActive()) return;
 
     // Only relevant for reveal roles
     if (!this.isRevealRole(role)) return;
@@ -558,8 +558,7 @@ export class GameStateService {
     // Must match role and revision; otherwise ignore (idempotent/no-op)
     if (player.role !== role) return;
     if (revision !== this.stateRevision) return;
-    if (this.nightFlow.phase !== NightPhase.WaitingForAction) return;
-    if (this.nightFlow.currentRole !== role) return;
+    if (!this.nightFlowService.canAcceptAction(role)) return;
 
     const key = this.makeRevealAckKey(revision, role);
     if (!this.pendingRevealAcks.has(key)) return;
@@ -568,7 +567,7 @@ export class GameStateService {
 
     // Now we can finish the step just like a normal action-submitted flow.
     try {
-      this.nightFlow.dispatch(NightEvent.ActionSubmitted);
+      this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted);
     } catch (err) {
       if (err instanceof InvalidNightTransitionError) {
         hostLog.debug('REVEAL_ACK ignored (phase mismatch):', err.message);
@@ -725,7 +724,7 @@ export class GameStateService {
     if (!this.state || this.state.status !== GameStatus.ongoing) return;
 
     // STRICT INVARIANT: nightFlow must exist when status === ongoing
-    if (!this.nightFlow) {
+    if (!this.nightFlowService.isActive()) {
       hostLog.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: handlePlayerAction() called but nightFlow is null.',
         'seat:',
@@ -744,12 +743,14 @@ export class GameStateService {
     }
 
     // NightFlow guard: only allow action in WaitingForAction phase and matching role
-    if (this.nightFlow.phase !== NightPhase.WaitingForAction) {
-      hostLog.info('NightFlow not in WaitingForAction phase, ignoring action');
-      return;
-    }
-    if (this.nightFlow.currentRole !== role) {
-      hostLog.info('NightFlow role mismatch:', role, 'expected:', this.nightFlow.currentRole);
+    if (!this.nightFlowService.canAcceptAction(role)) {
+      const phase = this.nightFlowService.getCurrentPhase();
+      const currentNightRole = this.nightFlowService.getNightFlow()?.currentRole;
+      if (phase !== NightPhase.WaitingForAction) {
+        hostLog.info('NightFlow not in WaitingForAction phase, ignoring action');
+      } else {
+        hostLog.info('NightFlow role mismatch:', role, 'expected:', currentNightRole);
+      }
       return;
     }
 
@@ -874,7 +875,7 @@ export class GameStateService {
 
       // Record action in nightFlow (raw target only for logging/debug)
       try {
-        this.nightFlow.recordAction(role, target);
+        this.nightFlowService.recordAction(role, target);
       } catch (err) {
         hostLog.error('NightFlow recordAction failed:', err);
         throw err; // STRICT: propagate error, don't continue
@@ -897,7 +898,7 @@ export class GameStateService {
 
     // Non-reveal roles proceed immediately
     try {
-      this.nightFlow.dispatch(NightEvent.ActionSubmitted);
+      this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted);
     } catch (err) {
       if (err instanceof InvalidNightTransitionError) {
         hostLog.error('NightFlow ActionSubmitted failed:', err.message);
@@ -917,7 +918,7 @@ export class GameStateService {
     }
 
     // STRICT INVARIANT: nightFlow must exist when status === ongoing
-    if (!this.nightFlow) {
+    if (!this.nightFlowService.isActive()) {
       hostLog.error(
         '[GameStateService] STRICT INVARIANT VIOLATION: handleWolfVote() called but nightFlow is null.',
         'seat:',
@@ -932,7 +933,7 @@ export class GameStateService {
       target,
       currentRole,
       currentActionerIndex: this.state.currentActionerIndex,
-      nightFlowPhase: this.nightFlow.phase,
+      nightFlowPhase: this.nightFlowService.getCurrentPhase(),
     });
     if (currentRole !== 'wolf') {
       hostLog.debug('handleWolfVote: rejected - currentRole is not wolf:', currentRole);
@@ -982,7 +983,7 @@ export class GameStateService {
         hostLog.debug(
           '[GameStateService] handleWolfVote finalize skipped (once-guard): wolf action already recorded.',
           'phase:',
-          this.nightFlow.phase,
+          this.nightFlowService.getCurrentPhase(),
           'currentActionerIndex:',
           this.state.currentActionerIndex,
         );
@@ -995,20 +996,20 @@ export class GameStateService {
         this.state.actions.set('wolf', makeActionTarget(finalTarget));
         // Record action in nightFlow
         try {
-          this.nightFlow.recordAction('wolf', finalTarget);
+          this.nightFlowService.recordAction('wolf', finalTarget);
         } catch (err) {
           hostLog.debug(
             '[GameStateService] NightFlow recordAction (wolf) failed:',
             err,
             'phase:',
-            this.nightFlow.phase,
+            this.nightFlowService.getCurrentPhase(),
           );
         }
       }
 
       // Dispatch ActionSubmitted to nightFlow (required before advanceToNextAction)
       try {
-        this.nightFlow.dispatch(NightEvent.ActionSubmitted);
+        this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted);
       } catch (err) {
         if (err instanceof InvalidNightTransitionError) {
           // This should NOT happen with proper once-guard above
@@ -1016,7 +1017,7 @@ export class GameStateService {
           hostLog.debug(
             '[GameStateService] NightFlow ActionSubmitted (wolf) rejected:',
             'phase:',
-            this.nightFlow.phase,
+            this.nightFlowService.getCurrentPhase(),
             '(expected WaitingForAction). This may indicate a call chain bug.',
           );
         } else {
@@ -1450,81 +1451,24 @@ export class GameStateService {
 
   /**
    * Host: Start the game (begin first night)
+   * Delegates to NightFlowService for night flow management.
    */
   async startGame(): Promise<void> {
     if (!this.isHost || !this.state) return;
     if (this.state.status !== GameStatus.ready) return;
 
-    // [Bridge: NightFlowController] Build NightPlan from template roles (table-driven)
-    const nightPlan = buildNightPlan(this.state.template.roles);
-
-    // [Bridge: NightFlowController] Initialize night-phase state machine with NightPlan
-    this.nightFlow = new NightFlowController(nightPlan);
-
-    // [Bridge: NightFlowController] Dispatch StartNight event (STRICT: fail-fast on error)
-    try {
-      this.nightFlow.dispatch(NightEvent.StartNight);
-    } catch (err) {
-      if (err instanceof InvalidNightTransitionError) {
-        hostLog.error('NightFlow StartNight failed:', err.message);
-        // STRICT: fail-fast, no legacy fallback
-        throw new Error(`[NightFlow] startGame failed: ${err.message}`);
-      } else {
-        throw err;
-      }
+    // Delegate to NightFlowService for night flow initialization and audio
+    const result = await this.nightFlowService.startNight(this.state.template.roles);
+    if (!result.success) {
+      hostLog.error('NightFlowService.startNight failed:', result.error);
+      throw new Error(`[NightFlow] startGame failed: ${result.error}`);
     }
 
-    // Reset night state
-    this.state.actions = new Map();
-    this.state.wolfVotes = new Map();
-    this.state.currentActionerIndex = 0;
-    this.state.isAudioPlaying = true;
-    // Reset nightmare block flags
-    this.state.wolfKillDisabled = undefined;
-    this.state.nightmareBlockedSeat = undefined;
-    // Reset accumulated night results (used for resolver context passing)
-    this.state.currentNightResults = {};
-    // Reset role-specific context (these are set fresh each night)
-    this.state.witchContext = undefined;
-    this.state.seerReveal = undefined;
-    this.state.psychicReveal = undefined;
-    this.state.gargoyleReveal = undefined;
-    this.state.wolfRobotReveal = undefined;
-    this.state.confirmStatus = undefined;
-    this.state.actionRejected = undefined;
-
-    // Play night begin audio
-    hostLog.info('Playing night begin audio...');
-    await this.audioService.playNightBeginAudio();
-
-    // Wait 5 seconds
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    // [Bridge: NightFlowController] Night begin audio done - dispatch transition event (STRICT)
-    try {
-      this.nightFlow?.dispatch(NightEvent.NightBeginAudioDone);
-      // Sync currentActionerIndex from nightFlow
-      if (this.nightFlow) {
-        this.state.currentActionerIndex = this.nightFlow.currentActionIndex;
-      }
-    } catch (err) {
-      if (err instanceof InvalidNightTransitionError) {
-        hostLog.error('NightFlow NightBeginAudioDone failed:', err.message);
-        // STRICT: fail-fast, no legacy fallback
-        throw new Error(`[NightFlow] NightBeginAudioDone failed: ${err.message}`);
-      } else {
-        throw err;
-      }
-    }
-
-    // Set status to ongoing
+    // Set status to ongoing (NightFlowService already updated other state fields)
     this.state.status = GameStatus.ongoing;
 
     await this.broadcastState();
     this.notifyListeners();
-
-    // Start first role's turn
-    await this.playCurrentRoleAudio();
   }
 
   /**
@@ -1551,15 +1495,8 @@ export class GameStateService {
       return false;
     }
 
-    // Reset nightFlow
-    if (this.nightFlow) {
-      try {
-        this.nightFlow.dispatch(NightEvent.Reset);
-      } catch (err) {
-        hostLog.warn('restartGame: NightFlow Reset failed:', err);
-      }
-      this.nightFlow = null;
-    }
+    // Reset nightFlow via NightFlowService
+    this.nightFlowService.reset();
 
     // Reset state
     this.state.status = GameStatus.seated;
@@ -1661,7 +1598,7 @@ export class GameStateService {
 
     // Audio finished - dispatch RoleBeginAudioDone (STRICT)
     try {
-      this.nightFlow?.dispatch(NightEvent.RoleBeginAudioDone);
+      this.nightFlowService.dispatchEvent(NightEvent.RoleBeginAudioDone);
     } catch (err) {
       if (err instanceof InvalidNightTransitionError) {
         hostLog.error('NightFlow RoleBeginAudioDone failed:', err.message);

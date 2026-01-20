@@ -35,6 +35,126 @@
 
 ---
 
+## Phase 7 详细迁移任务清单
+
+### 7.1 NightFlowService 集成（约 40 处 `this.nightFlow` 使用）
+
+**目标**：将所有直接使用 `this.nightFlow` (NightFlowController) 的代码迁移到使用 `this.nightFlowService` 的方法。
+
+**NightFlowService 已提供的替代方法**：
+| 原始用法 | 替换为 |
+|----------|--------|
+| `this.nightFlow` 存在检查 | `this.nightFlowService.isActive()` |
+| `this.nightFlow.phase` | `this.nightFlowService.getCurrentPhase()` |
+| `this.nightFlow.currentRole` | `this.nightFlowService.getCurrentActionRole()` |
+| `this.nightFlow.dispatch(event)` | `this.nightFlowService.dispatchEvent(event)` |
+| `this.nightFlow.recordAction(role, target)` | `this.nightFlowService.recordAction(role, target)` |
+| phase + role 检查 | `this.nightFlowService.canAcceptAction(role)` |
+| 创建 NightFlowController | `this.nightFlowService.startNight()` |
+
+**需要迁移的方法和行号**：
+
+1. **`handleSkipAction()`** (约 550 行)
+   - [ ] `if (!this.nightFlow) return;` → `if (!this.nightFlowService.isActive()) return;`
+   - [ ] `this.nightFlow.phase !== NightPhase.WaitingForAction` → `this.nightFlowService.getCurrentPhase() !== NightPhase.WaitingForAction`
+   - [ ] `this.nightFlow.currentRole !== role` → `this.nightFlowService.getCurrentActionRole() !== role`
+   - [ ] `this.nightFlow.dispatch(NightEvent.ActionSubmitted)` → `this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted)`
+
+2. **`handlePlayerAction()`** (约 720 行)
+   - [ ] `if (!this.nightFlow)` → `if (!this.nightFlowService.isActive())`
+   - [ ] `this.nightFlow.phase !== NightPhase.WaitingForAction` → 使用 `canAcceptAction(role)`
+   - [ ] `this.nightFlow.currentRole !== role` → 已包含在 `canAcceptAction(role)`
+   - [ ] `this.nightFlow.recordAction(role, target)` → `this.nightFlowService.recordAction(role, target)`
+   - [ ] `this.nightFlow.dispatch(NightEvent.ActionSubmitted)` → `this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted)`
+
+3. **`handleWolfVote()`** (约 920 行)
+   - [ ] `if (!this.nightFlow)` → `if (!this.nightFlowService.isActive())`
+   - [ ] `this.nightFlow.phase` 日志 → `this.nightFlowService.getCurrentPhase()`
+   - [ ] `this.nightFlow.recordAction('wolf', finalTarget)` → `this.nightFlowService.recordAction('wolf', finalTarget)`
+   - [ ] `this.nightFlow.dispatch(NightEvent.ActionSubmitted)` → `this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted)`
+
+4. **`startGame()` / `startNight()`** (约 1460 行)
+   - [ ] 整个 nightPlan 构建和 NightFlowController 创建 → `await this.nightFlowService.startNight()`
+   - [ ] `this.nightFlow = new NightFlowController(nightPlan)` → 删除，由 nightFlowService 管理
+   - [ ] `this.nightFlow.dispatch(NightEvent.StartNight)` → 由 `startNight()` 内部处理
+
+5. **`restartGame()`** (约 1560 行)
+   - [ ] `this.nightFlow = null` → `this.nightFlowService.reset()`
+
+6. **`handleNightBeginAudioDone()`** (约 1500 行)
+   - [ ] `this.nightFlow?.dispatch(NightEvent.NightBeginAudioDone)` → `this.nightFlowService.dispatchEvent(NightEvent.NightBeginAudioDone)`
+
+7. **`handleRoleAudioDone()`** / `handleRoleEndAudioDone()`**
+   - [ ] 所有 `this.nightFlow` 访问替换为 nightFlowService 方法
+
+8. **`advanceToNextAction()`** (约 1620 行)
+   - [ ] 整个方法可能可以委托给 `this.nightFlowService.advanceToNextAction()`
+
+9. **`playCurrentRoleAudio()`** (约 1650 行)
+   - [ ] 可以委托给 `this.nightFlowService.playCurrentRoleAudio()`
+
+10. **`toBroadcastState()`** (约 2650 行)
+    - [ ] `this.nightFlow?.phase` → `this.nightFlowService.getCurrentPhase()`
+    - [ ] `this.nightFlow?.currentRole` → `this.nightFlowService.getCurrentActionRole()`
+
+**最终目标**：删除 `private nightFlow: NightFlowController | null = null;` 声明
+
+---
+
+### 7.2 BroadcastCoordinator 集成（约 24 处 `this.broadcastService` 使用）
+
+**目标**：将所有直接使用 `this.broadcastService` 的代码迁移到使用 `this.broadcastCoordinator` 的方法。
+
+**BroadcastCoordinator 已提供的方法**：
+- `joinRoom(roomCode, uid, options)` - 加入房间
+- `leaveRoom()` - 离开房间
+- `broadcastState(state, revision)` - 广播游戏状态
+- `broadcastMessage(message)` - 广播消息
+- `sendToHost(message)` - 发送给 Host
+- `markAsLive()` / `markAsSyncing()` - 设置连接状态
+- `setConnectionStatus(status)` - 设置连接状态
+
+**需要迁移的位置**：
+
+1. **房间加入/离开** (约 310, 340, 414, 452, 487 行)
+   - [ ] `this.broadcastService.joinRoom()` → `this.broadcastCoordinator.joinRoom()`
+   - [ ] `this.broadcastService.leaveRoom()` → `this.broadcastCoordinator.leaveRoom()`
+
+2. **状态广播** (约 611, 636, 669, 1580, 1720, 1842, 2633 行)
+   - [ ] `this.broadcastService.broadcastAsHost()` → `this.broadcastCoordinator.broadcastMessage()`
+
+3. **发送给 Host** (约 458, 475, 2032, 2075, 2096, 2117, 2137 行)
+   - [ ] `this.broadcastService.sendToHost()` → `this.broadcastCoordinator.sendToHost()`
+
+4. **连接状态** (约 1216, 1231, 2007, 2019, 2044 行)
+   - [ ] `this.broadcastService.markAsLive()` → `this.broadcastCoordinator.markAsLive()`
+   - [ ] `this.broadcastService.markAsSyncing()` → `this.broadcastCoordinator.markAsSyncing()`
+   - [ ] `this.broadcastService.setConnectionStatus()` → `this.broadcastCoordinator.setConnectionStatus()`
+
+**最终目标**：删除 `private readonly broadcastService: BroadcastService;` 声明
+
+---
+
+### 7.3 迁移完成后的清理任务
+
+1. **删除未使用的成员变量**：
+   - [ ] `private nightFlow: NightFlowController | null = null;`
+   - [ ] `private readonly broadcastService: BroadcastService;`
+
+2. **删除未使用的 import**：
+   - [ ] `NightFlowController`, `NightPhase`, `NightEvent` (如果全部通过 service 访问)
+   - [ ] `BroadcastService`
+
+3. **更新 TODO 注释**：
+   - [ ] 将 Phase 3, 4, 6 的 TODO 标记为已完成
+
+4. **验证**：
+   - [ ] 运行完整测试套件：`npm test`
+   - [ ] TypeScript 编译检查：`npx tsc --noEmit`
+   - [ ] ESLint 检查：`npm run lint`
+
+---
+
 ## 1. 问题背景
 
 ### 1.1 当前架构问题：God Class
