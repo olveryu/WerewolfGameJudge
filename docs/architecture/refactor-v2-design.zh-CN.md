@@ -1,9 +1,16 @@
 # GameStateService 重構 V2 - 最終架構設計
 
-> **狀態**：設計中  
+> **狀態**：Phase 8a/8b 完成，Phase 8c 進行中  
 > **創建日期**：2026-01-20  
+> **更新日期**：2026-01-20  
 > **基於**：Phase 1-7 完成後的經驗總結  
 > **目標**：將 GameStateService (1664 行) 減少到 ~150 行薄 Facade
+
+## 進度更新
+
+- ✅ Phase 8a：HostCoordinator 創建完成 (891 行)
+- ✅ Phase 8b：PlayerCoordinator 創建完成 (469 行)
+- ⏳ Phase 8c：整合到 GameStateService（進行中）
 
 ---
 
