@@ -16,8 +16,9 @@
  * - Persistence (handled by StatePersistence)
  */
 
-import { createTemplateFromRoles } from '../../models/Template';
+import { createTemplateFromRoles, type GameTemplate } from '../../models/Template';
 import { type RoleId, isWolfRole } from '../../models/roles';
+import { type RoleAction } from '../../models/actions/RoleAction';
 import { hostLog, playerLog } from '../../utils/logger';
 
 import type {
@@ -106,6 +107,8 @@ export class StateManager {
     }
 
     const updates = updater(this.state);
+    // Immutable update: create new state object
+    // GameStateService.state getter delegates to getState(), so this works correctly
     this.state = { ...this.state, ...updates };
     this.revision++;
 
@@ -160,6 +163,7 @@ export class StateManager {
     this.state.actions = new Map();
     this.state.wolfVotes = new Map();
     this.state.currentActionerIndex = 0;
+    this.state.isAudioPlaying = false;
     this.state.lastNightDeaths = [];
     this.state.currentStepId = undefined;
     // Clear role-specific context
@@ -390,10 +394,15 @@ export class StateManager {
   }
 
   // ===========================================================================
-  // Private Helpers
+  // Listener Notification
   // ===========================================================================
 
-  private notifyListeners(): void {
+  /**
+   * Notify all listeners of state change.
+   * Called internally by update methods, but also exposed for external callers
+   * (e.g., GameStateService during migration).
+   */
+  notifyListeners(): void {
     if (!this.state) return;
 
     // Create a shallow copy so React detects the change
@@ -459,5 +468,140 @@ export class StateManager {
       }
     });
     return roleMap;
+  }
+
+  // ===========================================================================
+  // Player State Updates
+  // ===========================================================================
+
+  /**
+   * Assign shuffled roles to all seated players.
+   * Updates status to 'assigned' after assignment.
+   */
+  assignRolesToPlayers(shuffledRoles: RoleId[]): void {
+    if (!this.state) return;
+
+    let i = 0;
+    this.state.players.forEach((player, _seat) => {
+      if (player) {
+        player.role = shuffledRoles[i];
+        player.hasViewedRole = false;
+        i++;
+      }
+    });
+
+    this.state.status = GameStatus.assigned;
+    this.notifyListeners();
+  }
+
+  /**
+   * Mark a player as having viewed their role.
+   * If all players have viewed, status changes to 'ready'.
+   *
+   * @returns true if all players have now viewed their roles
+   */
+  markPlayerViewedRole(seat: number): boolean {
+    if (!this.state) return false;
+
+    const player = this.state.players.get(seat);
+    if (!player) return false;
+
+    player.hasViewedRole = true;
+
+    // Check if all players have viewed
+    const allViewed = Array.from(this.state.players.values())
+      .filter((p): p is LocalPlayer => p !== null)
+      .every((p) => p.hasViewedRole);
+
+    if (allViewed) {
+      this.state.status = GameStatus.ready;
+    }
+
+    this.notifyListeners();
+    return allViewed;
+  }
+
+  /**
+   * Update a player's seat info (for join/leave operations).
+   */
+  setPlayerAtSeat(seat: number, player: LocalPlayer | null): void {
+    if (!this.state) return;
+    this.state.players.set(seat, player);
+    this.notifyListeners();
+  }
+
+  /**
+   * Update seating status based on whether all seats are filled.
+   */
+  updateSeatingStatus(): void {
+    if (!this.state) return;
+
+    const allSeated = Array.from(this.state.players.values()).every((p) => p !== null);
+    this.state.status = allSeated ? GameStatus.seated : GameStatus.unseated;
+    this.notifyListeners();
+  }
+
+  /**
+   * Update template and resize players map accordingly.
+   * Keeps existing players if their seats still exist.
+   */
+  updateTemplate(newTemplate: GameTemplate): void {
+    if (!this.state) return;
+
+    // Reset players map to match new template size
+    const oldPlayers = this.state.players;
+    const newPlayers = new Map<number, LocalPlayer | null>();
+    for (let i = 0; i < newTemplate.numberOfPlayers; i++) {
+      // Keep existing players if seat still exists
+      const existingPlayer = oldPlayers.get(i);
+      newPlayers.set(i, existingPlayer ?? null);
+    }
+
+    this.state.template = newTemplate;
+    this.state.players = newPlayers;
+
+    // Recalculate status based on seating
+    const allSeated = Array.from(this.state.players.values()).every((p) => p !== null);
+    this.state.status = allSeated ? GameStatus.seated : GameStatus.unseated;
+
+    this.notifyListeners();
+  }
+
+  // ===========================================================================
+  // Map Operations (actions, wolfVotes)
+  // ===========================================================================
+
+  /**
+   * Record an action for a role.
+   */
+  recordAction(role: RoleId, action: RoleAction): void {
+    if (!this.state) return;
+    this.state.actions.set(role, action);
+    this.notifyListeners();
+  }
+
+  /**
+   * Check if an action has been recorded for a role.
+   */
+  hasAction(role: RoleId): boolean {
+    return this.state?.actions.has(role) ?? false;
+  }
+
+  /**
+   * Record a wolf vote.
+   */
+  recordWolfVote(seat: number, target: number): void {
+    if (!this.state) return;
+    this.state.wolfVotes.set(seat, target);
+    this.notifyListeners();
+  }
+
+  /**
+   * Clear all wolf votes (between roles or at night end).
+   */
+  clearWolfVotes(): void {
+    if (!this.state) return;
+    this.state.wolfVotes = new Map();
+    this.notifyListeners();
   }
 }

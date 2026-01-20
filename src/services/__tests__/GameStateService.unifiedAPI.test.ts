@@ -76,7 +76,8 @@ function setupGameWithPlayers(
     });
   });
 
-  (service as any).state = {
+  // Create state object and initialize via StateManager (single source of truth)
+  const state = {
     roomCode: 'TEST01',
     hostUid: 'host-uid',
     status,
@@ -87,7 +88,11 @@ function setupGameWithPlayers(
     currentActionerIndex: 0,
     isAudioPlaying: false,
     lastNightDeaths: [],
+    currentNightResults: {},
   };
+
+  // Initialize StateManager - GameStateService.state getter will read from here
+  (service as any).stateManager.initialize(state);
 }
 
 describe('GameStateService Unified API', () => {

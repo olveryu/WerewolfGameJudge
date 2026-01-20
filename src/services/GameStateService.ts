@@ -92,7 +92,14 @@ export class GameStateService {
    */
   private readonly actionProcessor: ActionProcessor;
 
-  private state: LocalGameState | null = null;
+  /**
+   * State access via getter - delegates to StateManager (single source of truth).
+   * This ensures all state reads go through StateManager, enabling immutable updates.
+   */
+  private get state(): LocalGameState | null {
+    return this.stateManager.getState();
+  }
+
   private isHost: boolean = false;
   private myUid: string | null = null;
   private mySeatNumber: number | null = null;
@@ -212,43 +219,19 @@ export class GameStateService {
   }
 
   // ===========================================================================
-  // State Listeners (delegated to StateManager for Phase 8 migration)
+  // State Listeners (delegated to StateManager)
   // ===========================================================================
 
   addListener(listener: GameStateListener): () => void {
-    // Delegate to StateManager, but handle the case where state is in GameStateService
-    // TODO(Phase 8): After full migration, this becomes just stateManager.subscribe(listener)
-    
-    // For now, we need to sync StateManager's state with our state before subscribing
-    if (this.state && !this.stateManager.hasState()) {
-      this.stateManager.initialize(this.state);
-    }
-    
+    // Now that this.state is a getter delegating to StateManager,
+    // we can directly use StateManager's subscription
     return this.stateManager.subscribe(listener);
   }
 
   private notifyListeners(): void {
-    // Sync state to StateManager before notifying
-    // TODO(Phase 8): After full migration, remove this - StateManager auto-notifies on updateState
-    if (this.state) {
-      if (!this.stateManager.hasState()) {
-        this.stateManager.initialize(this.state);
-      } else {
-        // Force StateManager to use our state reference and notify
-        // This is a migration workaround - eventually all state updates go through StateManager
-        this.syncStateToManager();
-      }
-    }
-  }
-
-  /**
-   * Migration helper: sync GameStateService's state to StateManager
-   * TODO(Phase 8): Remove after full migration to StateManager.updateState()
-   */
-  private syncStateToManager(): void {
-    if (!this.state) return;
-    // Use batchUpdate with full state to sync and notify listeners
-    this.stateManager.batchUpdate({ ...this.state });
+    // StateManager is the single source of truth.
+    // Just trigger notification - no sync needed since this.state is a getter.
+    this.stateManager.notifyListeners();
   }
 
   // ===========================================================================
@@ -288,7 +271,8 @@ export class GameStateService {
       players.set(i, null);
     }
 
-    this.state = {
+    // Initialize state via StateManager (single source of truth)
+    this.stateManager.initialize({
       roomCode,
       hostUid,
       status: GameStatus.unseated,
@@ -301,7 +285,7 @@ export class GameStateService {
       isAudioPlaying: false,
       lastNightDeaths: [],
       currentNightResults: {},
-    };
+    });
 
     // Join broadcast channel
     await this.broadcastCoordinator.joinRoom(roomCode, hostUid, {
@@ -341,8 +325,8 @@ export class GameStateService {
     const savedState = await this.statePersistence.loadState(roomCode);
 
     if (savedState) {
-      // Recovered! Use saved state
-      this.state = savedState;
+      // Recovered! Use saved state via StateManager
+      this.stateManager.initialize(savedState);
 
       // Restore mySeatNumber if host was seated
       for (const [seatNum, player] of savedState.players.entries()) {
@@ -354,8 +338,8 @@ export class GameStateService {
 
       hostLog.info('Host state recovered from storage for room:', roomCode);
     } else {
-      // No saved state - create placeholder
-      this.state = {
+      // No saved state - create placeholder via StateManager
+      this.stateManager.initialize({
         roomCode,
         hostUid,
         status: GameStatus.unseated,
@@ -372,7 +356,7 @@ export class GameStateService {
         isAudioPlaying: false,
         lastNightDeaths: [],
         currentNightResults: {},
-      };
+      });
 
       hostLog.warn('No saved state found, created placeholder for room:', roomCode);
     }
@@ -449,7 +433,7 @@ export class GameStateService {
     }
 
     await this.broadcastCoordinator.leaveRoom();
-    this.state = null;
+    this.stateManager.reset();
     this.isHost = false;
     this.myUid = null;
     this.mySeatNumber = null;
@@ -629,11 +613,13 @@ export class GameStateService {
 
     const playerUid = this.state.players.get(seat)?.uid;
     if (playerUid) {
-      this.state.actionRejected = {
-        action: 'submitAction',
-        reason: BLOCKED_UI_DEFAULTS.message,
-        targetUid: playerUid,
-      };
+      this.stateManager.batchUpdate({
+        actionRejected: {
+          action: 'submitAction',
+          reason: BLOCKED_UI_DEFAULTS.message,
+          targetUid: playerUid,
+        },
+      });
       await this.broadcastState();
     }
     return 'blocked';
@@ -701,11 +687,13 @@ export class GameStateService {
         // Reject action
         const playerUid = this.state.players.get(seat)?.uid;
         if (playerUid) {
-          this.state.actionRejected = {
-            action: 'submitAction',
-            reason: result.rejectReason ?? '行动无效',
-            targetUid: playerUid,
-          };
+          this.stateManager.batchUpdate({
+            actionRejected: {
+              action: 'submitAction',
+              reason: result.rejectReason ?? '行动无效',
+              targetUid: playerUid,
+            },
+          });
           await this.broadcastState();
         }
         hostLog.info('Action rejected by resolver:', result.rejectReason);
@@ -714,18 +702,22 @@ export class GameStateService {
 
       // Apply updates to currentNightResults
       if (result.updates) {
-        this.state.currentNightResults = {
-          ...this.state.currentNightResults,
-          ...result.updates,
+        const updatePayload: Partial<LocalGameState> = {
+          currentNightResults: {
+            ...this.state.currentNightResults,
+            ...result.updates,
+          },
         };
 
         // Sync fields that need to be broadcast
         if (result.updates.blockedSeat !== undefined) {
-          this.state.nightmareBlockedSeat = result.updates.blockedSeat as number;
+          updatePayload.nightmareBlockedSeat = result.updates.blockedSeat as number;
         }
         if (result.updates.wolfKillDisabled !== undefined) {
-          this.state.wolfKillDisabled = result.updates.wolfKillDisabled as boolean;
+          updatePayload.wolfKillDisabled = result.updates.wolfKillDisabled as boolean;
         }
+
+        this.stateManager.batchUpdate(updatePayload);
       }
 
       // Apply reveal result
@@ -735,7 +727,7 @@ export class GameStateService {
 
       // Record action using actionToRecord from processor
       if (result.actionToRecord && target !== null) {
-        this.state.actions.set(role, result.actionToRecord);
+        this.stateManager.recordAction(role, result.actionToRecord);
 
         // Record action in nightFlow (raw target only for logging/debug)
         try {
@@ -814,18 +806,20 @@ export class GameStateService {
 
     if (!validation.valid) {
       if (playerUid) {
-        this.state.actionRejected = {
-          action: 'submitWolfVote',
-          reason: validation.rejectReason ?? '无效目标',
-          targetUid: playerUid,
-        };
+        this.stateManager.batchUpdate({
+          actionRejected: {
+            action: 'submitWolfVote',
+            reason: validation.rejectReason ?? '无效目标',
+            targetUid: playerUid,
+          },
+        });
         await this.broadcastState();
       }
       return;
     }
 
-    // Record vote
-    this.state.wolfVotes.set(seat, target);
+    // Record vote via StateManager
+    this.stateManager.recordWolfVote(seat, target);
 
     // Check if all voting wolves have voted (excludes gargoyle, wolfRobot, etc.)
     const allVotingWolfSeats = this.getVotingWolfSeats();
@@ -833,7 +827,7 @@ export class GameStateService {
 
     if (allVoted) {
       // ONCE-GUARD: If wolf action already recorded, this is a duplicate finalize - skip
-      if (this.state.actions.has('wolf')) {
+      if (this.stateManager.hasAction('wolf')) {
         hostLog.debug(
           '[GameStateService] handleWolfVote finalize skipped (once-guard): wolf action already recorded.',
           'phase:',
@@ -847,7 +841,7 @@ export class GameStateService {
       // Resolve final kill target via ActionProcessor
       const finalTarget = this.actionProcessor.resolveWolfVotes(this.state.wolfVotes);
       if (finalTarget !== null) {
-        this.state.actions.set('wolf', makeActionTarget(finalTarget));
+        this.stateManager.recordAction('wolf', makeActionTarget(finalTarget));
         // Record action in nightFlow
         try {
           this.nightFlowService.recordAction('wolf', finalTarget);
@@ -891,19 +885,12 @@ export class GameStateService {
     const player = this.state.players.get(seat);
     if (!player) return;
 
-    player.hasViewedRole = true;
-
-    // Check if all players have viewed
-    const allViewed = Array.from(this.state.players.values())
-      .filter((p): p is LocalPlayer => p !== null)
-      .every((p) => p.hasViewedRole);
-
-    if (allViewed) {
-      this.state.status = GameStatus.ready;
-    }
+    // Use StateManager (single source of truth)
+    // markPlayerViewedRole handles setting hasViewedRole and transitioning to 'ready' if all viewed
+    this.stateManager.markPlayerViewedRole(seat);
 
     await this.broadcastState();
-    this.notifyListeners();
+    // Note: stateManager.markPlayerViewedRole() already calls notifyListeners()
   }
 
   // ===========================================================================
@@ -933,16 +920,16 @@ export class GameStateService {
         // UI-only: stash current stepId for schema-driven UI mapping.
         // Logic continues to come from STATE_UPDATE (Host is authoritative).
         if (!this.isHost && this.state) {
-          this.state.currentStepId = msg.stepId;
-          this.notifyListeners();
+          this.stateManager.batchUpdate({ currentStepId: msg.stepId });
         }
         break;
       case 'NIGHT_END':
         // Update local deaths
         if (this.state) {
-          this.state.lastNightDeaths = msg.deaths;
-          this.state.status = GameStatus.ended;
-          this.notifyListeners();
+          this.stateManager.batchUpdate({
+            lastNightDeaths: msg.deaths,
+            status: GameStatus.ended,
+          });
         }
         break;
       case 'SEAT_REJECTED':
@@ -1041,11 +1028,8 @@ export class GameStateService {
     }
     this.stateRevision = effectiveRevision;
 
-    // Sync state reference from StateManager
-    this.state = this.stateManager.getState() ?? null;
-
     // Note: StateManager.applyBroadcastState already notifies listeners,
-    // so we don't call notifyListeners() here to avoid incrementing revision
+    // and this.state getter now delegates to StateManager, so no sync needed.
   }
 
   // ===========================================================================
@@ -1080,20 +1064,11 @@ export class GameStateService {
     // Shuffle roles
     const shuffledRoles = shuffleArray([...this.state.template.roles]);
 
-    // Assign to players
-    let i = 0;
-    this.state.players.forEach((player, _seat) => {
-      if (player) {
-        player.role = shuffledRoles[i];
-        player.hasViewedRole = false;
-        i++;
-      }
-    });
-
-    this.state.status = GameStatus.assigned;
+    // Assign via StateManager (single source of truth)
+    this.stateManager.assignRolesToPlayers(shuffledRoles);
 
     await this.broadcastState();
-    this.notifyListeners();
+    // Note: stateManager.assignRolesToPlayers() already calls notifyListeners()
 
     hostLog.info('Roles assigned');
   }
@@ -1152,25 +1127,12 @@ export class GameStateService {
     // Reset nightFlow via NightFlowService
     this.nightFlowService.reset();
 
-    // Reset state
-    this.state.status = GameStatus.seated;
-    this.state.actions = new Map();
-    this.state.wolfVotes = new Map();
-    this.state.currentActionerIndex = 0;
-    this.state.isAudioPlaying = false;
-    this.state.lastNightDeaths = [];
-
-    // Clear roles but keep players
-    this.state.players.forEach((player) => {
-      if (player) {
-        player.role = null;
-        player.hasViewedRole = false;
-      }
-    });
+    // Reset state via StateManager (single source of truth)
+    this.stateManager.resetForGameRestart();
 
     await this.broadcastCoordinator.broadcastGameRestarted();
     await this.broadcastState();
-    this.notifyListeners();
+    // Note: stateManager.resetForGameRestart() already calls notifyListeners()
 
     hostLog.info('Game restarted');
     return true;
@@ -1196,24 +1158,11 @@ export class GameStateService {
       return;
     }
 
-    // Update template
-    this.state.template = newTemplate;
-
-    // Reset players map to match new template size
-    const oldPlayers = this.state.players;
-    this.state.players = new Map();
-    for (let i = 0; i < newTemplate.numberOfPlayers; i++) {
-      // Keep existing players if seat still exists
-      const existingPlayer = oldPlayers.get(i);
-      this.state.players.set(i, existingPlayer ?? null);
-    }
-
-    // Recalculate status based on seating
-    const allSeated = Array.from(this.state.players.values()).every((p) => p !== null);
-    this.state.status = allSeated ? GameStatus.seated : GameStatus.unseated;
+    // Use StateManager (single source of truth)
+    this.stateManager.updateTemplate(newTemplate);
 
     await this.broadcastState();
-    this.notifyListeners();
+    // Note: stateManager.updateTemplate() already calls notifyListeners()
 
     hostLog.info('Template updated:', newTemplate.name);
   }
@@ -1269,11 +1218,11 @@ export class GameStateService {
 
     // Update currentStepId for Host UI (NightProgressIndicator)
     if (stepId) {
-      this.state.currentStepId = stepId;
+      this.stateManager.batchUpdate({ currentStepId: stepId });
     }
 
     await this.broadcastState();
-    this.notifyListeners();
+    // Note: batchUpdate already calls notifyListeners()
   }
 
   private async advanceToNextAction(): Promise<void> {
@@ -1304,8 +1253,8 @@ export class GameStateService {
     //   5. Call onRoleTurnStart callback (which broadcasts ROLE_TURN)
     await this.nightFlowService.advanceToNextAction();
 
-    // Clear wolf votes for next role (local state)
-    this.state.wolfVotes = new Map();
+    // Clear wolf votes for next role (local state) via StateManager
+    this.stateManager.clearWolfVotes();
 
     // Note: ROLE_TURN broadcast is handled by onRoleTurnStart callback
     // Note: night end is handled by onNightEnd callback
@@ -1353,8 +1302,10 @@ export class GameStateService {
 
     // [Bridge: DeathCalculator] Calculate deaths via extracted pure function
     const deaths = this.doCalculateDeaths();
-    this.state.lastNightDeaths = deaths;
-    this.state.status = GameStatus.ended;
+    this.stateManager.batchUpdate({
+      lastNightDeaths: deaths,
+      status: GameStatus.ended,
+    });
 
     // Broadcast night end
     await this.broadcastCoordinator.broadcastNightEnd(deaths);
@@ -1574,11 +1525,13 @@ export class GameStateService {
     // Night-1-only: witch always has antidote, and self-save is not allowed per schema constraints
     const canSave = killedIndex !== -1 && killedIndex !== witchSeat;
 
-    this.state.witchContext = {
-      killedIndex,
-      canSave,
-      canPoison: true, // Night-1: always has poison
-    };
+    this.stateManager.batchUpdate({
+      witchContext: {
+        killedIndex,
+        canSave,
+        canPoison: true, // Night-1: always has poison
+      },
+    });
 
     hostLog.info('Set witchContext:', 'killedIndex:', killedIndex, 'canSave:', canSave);
   }
@@ -1596,10 +1549,12 @@ export class GameStateService {
     // Use the same logic as getConfirmRoleCanShoot
     const canShoot = getConfirmRoleCanShoot(this.state, role);
 
-    this.state.confirmStatus = {
-      role,
-      canShoot,
-    };
+    this.stateManager.batchUpdate({
+      confirmStatus: {
+        role,
+        canShoot,
+      },
+    });
 
     hostLog.info(`Set confirmStatus for ${role}: canShoot=${canShoot}`);
   }
@@ -1661,28 +1616,36 @@ export class GameStateService {
 
     switch (reveal.type) {
       case 'seer':
-        this.state.seerReveal = {
-          targetSeat: reveal.targetSeat,
-          result: reveal.result as '好人' | '狼人',
-        };
+        this.stateManager.batchUpdate({
+          seerReveal: {
+            targetSeat: reveal.targetSeat,
+            result: reveal.result as '好人' | '狼人',
+          },
+        });
         break;
       case 'psychic':
-        this.state.psychicReveal = {
-          targetSeat: reveal.targetSeat,
-          result: reveal.result,
-        };
+        this.stateManager.batchUpdate({
+          psychicReveal: {
+            targetSeat: reveal.targetSeat,
+            result: reveal.result,
+          },
+        });
         break;
       case 'gargoyle':
-        this.state.gargoyleReveal = {
-          targetSeat: reveal.targetSeat,
-          result: reveal.result,
-        };
+        this.stateManager.batchUpdate({
+          gargoyleReveal: {
+            targetSeat: reveal.targetSeat,
+            result: reveal.result,
+          },
+        });
         break;
       case 'wolfRobot':
-        this.state.wolfRobotReveal = {
-          targetSeat: reveal.targetSeat,
-          result: reveal.result,
-        };
+        this.stateManager.batchUpdate({
+          wolfRobotReveal: {
+            targetSeat: reveal.targetSeat,
+            result: reveal.result,
+          },
+        });
         break;
     }
     hostLog.info(`Set ${reveal.type}Reveal from processAction:`, reveal.targetSeat, reveal.result);
@@ -1730,15 +1693,13 @@ export class GameStateService {
     // Sync computed fields to Host's local state so Host UI sees them too.
     // These values are computed in toBroadcastState() for broadcast, but Host reads this.state directly.
     // Without this sync, Host UI would see undefined for these fields.
+    // NOTE: Use direct property assignment instead of spread to preserve StateManager reference
     if (
       this.state.nightmareBlockedSeat !== broadcastState.nightmareBlockedSeat ||
       this.state.wolfKillDisabled !== broadcastState.wolfKillDisabled
     ) {
-      this.state = {
-        ...this.state,
-        nightmareBlockedSeat: broadcastState.nightmareBlockedSeat,
-        wolfKillDisabled: broadcastState.wolfKillDisabled,
-      };
+      this.state.nightmareBlockedSeat = broadcastState.nightmareBlockedSeat;
+      this.state.wolfKillDisabled = broadcastState.wolfKillDisabled;
     }
 
     // Always notify listeners so Host UI sees updated state (seerReveal, etc.)
