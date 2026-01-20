@@ -32,6 +32,8 @@ import { BroadcastCoordinator } from './broadcast';
 import { SeatManager } from './seat';
 import { ActionProcessor } from './action';
 import { NightFlowService } from './night';
+import { HostCoordinator } from './host';
+import { PlayerCoordinator } from './player';
 
 // Import types/enums needed internally
 import { GameStatus, LocalPlayer, LocalGameState } from './types/GameStateTypes';
@@ -127,6 +129,20 @@ export class GameStateService {
 
   private readonly audioService: AudioService;
 
+  /**
+   * HostCoordinator: Host-only game logic coordinator (Phase 8a extraction)
+   * Handles player messages, game flow, and night phase control.
+   * ⏳ Phase 8c: Pending integration - currently unused.
+   */
+  private readonly hostCoordinator: HostCoordinator;
+
+  /**
+   * PlayerCoordinator: Player-only game logic coordinator (Phase 8b extraction)
+   * Handles host broadcasts, player actions, and state sync.
+   * ⏳ Phase 8c: Pending integration - currently unused.
+   */
+  private readonly playerCoordinator: PlayerCoordinator;
+
   // NOTE: listeners moved to StateManager (Phase 8 migration)
 
   private constructor() {
@@ -178,6 +194,63 @@ export class GameStateService {
         await this.endNight();
       },
     });
+
+    // Initialize HostCoordinator (Phase 8a - pending integration)
+    this.hostCoordinator = new HostCoordinator({
+      stateManager: this.stateManager,
+      statePersistence: this.statePersistence,
+      broadcastCoordinator: this.broadcastCoordinator,
+      seatManager: this.seatManager,
+      actionProcessor: this.actionProcessor,
+      nightFlowService: this.nightFlowService,
+      audioService: this.audioService,
+      getState: () => this.state,
+      getStateRevision: () => this.stateRevision,
+      setStateRevision: (rev) => {
+        this.stateRevision = rev;
+      },
+      incrementStateRevision: () => ++this.stateRevision,
+      setIsHost: (isHost) => {
+        this.isHost = isHost;
+      },
+      setMyUid: (uid) => {
+        this.myUid = uid;
+      },
+      setMySeatNumber: (seat) => {
+        this.mySeatNumber = seat;
+      },
+      getMySeatNumber: () => this.mySeatNumber,
+      notifyListeners: () => this.notifyListeners(),
+    });
+
+    // Initialize PlayerCoordinator (Phase 8b - pending integration)
+    this.playerCoordinator = new PlayerCoordinator(
+      this.stateManager,
+      this.broadcastCoordinator,
+      this.seatManager,
+      {
+        getState: () => this.state,
+        getMyUid: () => this.myUid,
+        getMySeatNumber: () => this.mySeatNumber,
+        getMyRole: () => this.getMyRole(),
+        getStateRevision: () => this.stateRevision,
+        setStateRevision: (rev) => {
+          this.stateRevision = rev;
+        },
+        setMySeatNumber: (seat) => {
+          this.mySeatNumber = seat;
+        },
+        isHost: () => this.isHost,
+        onNotifyListeners: () => this.notifyListeners(),
+        // Host-side callbacks for when player IS the host
+        onPlayerViewedRole: async (seat) => this.handlePlayerViewedRole(seat),
+        onPlayerAction: async (seat, role, target, extra) =>
+          this.handlePlayerAction(seat, role, target, extra),
+        onWolfVote: async (seat, target) => this.handleWolfVote(seat, target),
+        onRevealAck: async (seat, role, revision) =>
+          this.handleRevealAck(seat, role, revision),
+      },
+    );
   }
 
   static getInstance(): GameStateService {
