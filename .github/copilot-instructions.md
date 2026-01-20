@@ -9,6 +9,7 @@
 - **Single source of truth.** No parallel ordering maps/arrays/dual-write drift.
 - **Prefer libraries over custom code.** When adding new capabilities (logging, validation, etc.), search for established npm libraries first. Only write custom code if no suitable library exists or the library is overkill for the use case.
 - **Single Responsibility Principle (SRP).** Every class/module MUST have exactly ONE responsibility. Do NOT create God Classes (classes with multiple unrelated responsibilities). If a class exceeds ~400 lines or handles multiple concerns, split it into smaller focused modules.
+- **Prefer proper architecture over quick fixes.** Always use the "complex" but architecturally correct approach (e.g., callback patterns, proper dependency injection, event-driven design). NEVER use shortcuts or "simple" workarounds that violate SRP or create tight coupling. Long-term maintainability > short-term convenience.
 
 If something is unclear, ask before coding. Don't invent repo facts.
 
