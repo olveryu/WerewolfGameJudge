@@ -324,7 +324,7 @@ describe('GameStateService snapshot response handling', () => {
 });
 
 // =============================================================================
-// applyStateUpdate Tests (via STATE_BROADCAST message processing)
+// applyStateUpdate Tests (via STATE_UPDATE message processing)
 // =============================================================================
 
 describe('GameStateService.applyStateUpdate', () => {
