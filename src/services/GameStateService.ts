@@ -25,14 +25,7 @@ import { shuffleArray } from '../utils/shuffle';
 import { hostLog, playerLog } from '../utils/logger';
 import { calculateDeaths, type RoleSeatMap } from './DeathCalculator';
 import { resolveWolfVotes } from './WolfVoteResolver';
-import {
-  makeActionTarget,
-  makeActionWitch,
-  makeWitchSave,
-  makeWitchPoison,
-  makeActionMagicianSwap,
-  getActionTargetSeat,
-} from '../models/actions';
+import { makeActionTarget, getActionTargetSeat } from '../models/actions';
 import {
   isValidRoleId,
   ROLE_SPECS,
@@ -687,104 +680,68 @@ export class GameStateService {
     }
 
     // =========================================================================
-    // Resolver Integration: Validate and compute action result
+    // Action Processing via ActionProcessor
     // =========================================================================
     const schemaId = this.getCurrentSchemaId();
     if (schemaId) {
-      const actionInput = this.buildActionInput(schemaId, target, extra);
-      const resolverResult = this.invokeResolver(schemaId, seat, role, actionInput);
+      const context = this.buildActionContext();
+      const result = this.actionProcessor.processAction(
+        schemaId,
+        seat,
+        role,
+        target,
+        extra,
+        context,
+      );
 
-      if (!resolverResult.valid) {
+      if (!result.valid) {
         // Reject action
         const playerUid = this.state.players.get(seat)?.uid;
         if (playerUid) {
           this.state.actionRejected = {
             action: 'submitAction',
-            reason: resolverResult.rejectReason ?? '行动无效',
+            reason: result.rejectReason ?? '行动无效',
             targetUid: playerUid,
           };
           await this.broadcastState();
         }
-        hostLog.info('Action rejected by resolver:', resolverResult.rejectReason);
+        hostLog.info('Action rejected by resolver:', result.rejectReason);
         return;
       }
 
-      // Apply resolver result (updates + reveals)
-      this.applyResolverResult(role, target, resolverResult);
-    }
+      // Apply updates to currentNightResults
+      if (result.updates) {
+        this.state.currentNightResults = {
+          ...this.state.currentNightResults,
+          ...result.updates,
+        };
 
-    // Record action using structured RoleAction
-    if (target !== null) {
-      if (role === 'witch') {
-        // Witch wire protocol:
-        // - NEW (schema-driven): extra is an object: { poison: boolean } | { save: boolean }
-        // Fail-fast for unrecognized shapes to avoid silently doing the wrong action.
-        if (typeof extra !== 'object' || extra === null) {
-          throw new Error(
-            '[GameStateService] Invalid witch extra payload (expected {poison:true} or {save:true}).',
-          );
+        // Sync fields that need to be broadcast
+        if (result.updates.blockedSeat !== undefined) {
+          this.state.nightmareBlockedSeat = result.updates.blockedSeat as number;
         }
-
-        if ('poison' in extra) {
-          if (extra.poison !== true) {
-            throw new Error(
-              '[GameStateService] Invalid witch extra payload (poison must be true when provided).',
-            );
-          }
-          this.state.actions.set(role, makeActionWitch(makeWitchPoison(target)));
-        } else if ('save' in extra) {
-          if (extra.save !== true) {
-            throw new Error(
-              '[GameStateService] Invalid witch extra payload (save must be true when provided).',
-            );
-          }
-          this.state.actions.set(role, makeActionWitch(makeWitchSave(target)));
-        } else {
-          throw new Error('[GameStateService] Invalid witch extra payload (missing save/poison)');
+        if (result.updates.wolfKillDisabled !== undefined) {
+          this.state.wolfKillDisabled = result.updates.wolfKillDisabled as boolean;
         }
-      } else if (role === 'magician') {
-        // Magician Wire Protocol: encoded target = firstSeat + secondSeat * 100
-        // Constraint: secondSeat must be >= 1 to ensure target >= 100 (protocol invariant)
-        // If target < 100, it's a protocol error (cannot distinguish from skip or single-seat action)
-        if (target < 100) {
-          hostLog.error(
-            '[GameStateService] Magician protocol error: encoded target < 100.',
-            'target:',
-            target,
-            'seat:',
-            seat,
-            'Protocol requires secondSeat >= 1 (target >= 100).',
-          );
-          return; // FAIL-FAST: reject malformed magician action
-        }
-        const firstSeat = target % 100;
-        const secondSeat = Math.floor(target / 100);
-        // Validate seat range [0..11] for 12-player games
-        if (secondSeat > 11 || firstSeat > 11 || firstSeat < 0) {
-          hostLog.error(
-            '[GameStateService] Magician protocol error: seat out of range.',
-            'firstSeat:',
-            firstSeat,
-            'secondSeat:',
-            secondSeat,
-          );
-          return; // FAIL-FAST: reject invalid seat numbers
-        }
-        this.state.actions.set(role, makeActionMagicianSwap(firstSeat, secondSeat));
-      } else {
-        this.state.actions.set(role, makeActionTarget(target));
       }
 
-      // Record action in nightFlow (raw target only for logging/debug)
-      try {
-        this.nightFlowService.recordAction(role, target);
-      } catch (err) {
-        hostLog.error('NightFlow recordAction failed:', err);
-        throw err; // STRICT: propagate error, don't continue
+      // Apply reveal result
+      if (result.reveal && target !== null) {
+        this.applyRevealFromProcessResult(result.reveal);
       }
 
-      // NOTE: Nightmare wolfKillDisabled and reveal results are now handled by
-      // invokeResolver + applyResolverResult above. The inline logic has been removed.
+      // Record action using actionToRecord from processor
+      if (result.actionToRecord && target !== null) {
+        this.state.actions.set(role, result.actionToRecord);
+
+        // Record action in nightFlow (raw target only for logging/debug)
+        try {
+          this.nightFlowService.recordAction(role, target);
+        } catch (err) {
+          hostLog.error('NightFlow recordAction failed:', err);
+          throw err; // STRICT: propagate error, don't continue
+        }
+      }
     }
 
     // Reveal roles require an explicit "I read it" ACK before advancing.
@@ -1937,6 +1894,46 @@ export class GameStateService {
     if (result.result && target !== null) {
       this.applyRevealFromResolver(role, target, result.result);
     }
+  }
+
+  /**
+   * Apply reveal result from ActionProcessor.processAction result.
+   * Maps the simplified reveal type to the appropriate state field.
+   */
+  private applyRevealFromProcessResult(reveal: {
+    type: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot';
+    targetSeat: number;
+    result: string;
+  }): void {
+    if (!this.state) return;
+
+    switch (reveal.type) {
+      case 'seer':
+        this.state.seerReveal = {
+          targetSeat: reveal.targetSeat,
+          result: reveal.result as '好人' | '狼人',
+        };
+        break;
+      case 'psychic':
+        this.state.psychicReveal = {
+          targetSeat: reveal.targetSeat,
+          result: reveal.result,
+        };
+        break;
+      case 'gargoyle':
+        this.state.gargoyleReveal = {
+          targetSeat: reveal.targetSeat,
+          result: reveal.result,
+        };
+        break;
+      case 'wolfRobot':
+        this.state.wolfRobotReveal = {
+          targetSeat: reveal.targetSeat,
+          result: reveal.result,
+        };
+        break;
+    }
+    hostLog.info(`Set ${reveal.type}Reveal from processAction:`, reveal.targetSeat, reveal.result);
   }
 
   /**
