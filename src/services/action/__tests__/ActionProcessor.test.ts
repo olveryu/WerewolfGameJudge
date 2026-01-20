@@ -328,10 +328,7 @@ describe('ActionProcessor', () => {
 
     it('should build night actions with magician swap', () => {
       const actions = new Map([
-        [
-          'magician',
-          { kind: 'magicianSwap' as const, firstSeat: 1, secondSeat: 4 },
-        ],
+        ['magician', { kind: 'magicianSwap' as const, firstSeat: 1, secondSeat: 4 }],
       ]);
       const nightActions = processor.buildNightActions(actions);
       expect(nightActions.magicianSwap).toEqual({ first: 1, second: 4 });
@@ -403,10 +400,12 @@ describe('ActionProcessor', () => {
     });
 
     it('should save wolf victim with witch save', () => {
-      const actions = new Map<string, ReturnType<typeof makeActionTarget | typeof makeActionWitch>>([
-        ['wolf', makeActionTarget(5)],
-        ['witch', makeActionWitch(makeWitchSave(5))],
-      ]);
+      const actions = new Map<string, ReturnType<typeof makeActionTarget | typeof makeActionWitch>>(
+        [
+          ['wolf', makeActionTarget(5)],
+          ['witch', makeActionWitch(makeWitchSave(5))],
+        ],
+      );
       const deaths = processor.calculateDeaths({
         actions,
         roleSeatMap: baseRoleSeatMap,

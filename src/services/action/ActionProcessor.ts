@@ -24,10 +24,7 @@
  */
 
 import { RoleId, ROLE_SPECS } from '../../models/roles';
-import {
-  type SchemaId,
-  SCHEMAS,
-} from '../../models/roles/spec';
+import { type SchemaId, SCHEMAS } from '../../models/roles/spec';
 import {
   type ResolverContext,
   type ActionInput,
@@ -247,7 +244,11 @@ export class ActionProcessor {
    */
   private buildMagicianAction(encodedTarget: number): RoleAction | null {
     if (encodedTarget < 100) {
-      actionProcessorLog.error('Magician protocol error: encoded target < 100.', 'target:', encodedTarget);
+      actionProcessorLog.error(
+        'Magician protocol error: encoded target < 100.',
+        'target:',
+        encodedTarget,
+      );
       return null;
     }
     const firstSeat = encodedTarget % 100;
@@ -395,7 +396,10 @@ export class ActionProcessor {
    * @param context - Game state context (for player roles)
    * @returns Validation result
    */
-  validateWolfVote(targetSeat: number, context: ActionContext): { valid: boolean; rejectReason?: string } {
+  validateWolfVote(
+    targetSeat: number,
+    context: ActionContext,
+  ): { valid: boolean; rejectReason?: string } {
     const resolverContext: WolfVoteContext = {
       players: context.players,
     };
@@ -466,7 +470,10 @@ export class ActionProcessor {
     // Magician swap
     const magicianAction = actions.get('magician');
     if (magicianAction?.kind === 'magicianSwap') {
-      nightActions.magicianSwap = { first: magicianAction.firstSeat, second: magicianAction.secondSeat };
+      nightActions.magicianSwap = {
+        first: magicianAction.firstSeat,
+        second: magicianAction.secondSeat,
+      };
     }
 
     // Seer check (for death calc context)

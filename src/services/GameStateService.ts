@@ -67,6 +67,7 @@ import { StatePersistence } from './persistence';
 import { BroadcastCoordinator } from './broadcast';
 import { SeatManager } from './seat';
 import { ActionProcessor } from './action';
+import { NightFlowService } from './night';
 
 // Import types/enums needed internally
 import { GameStatus, LocalPlayer, LocalGameState } from './types/GameStateTypes';
@@ -166,6 +167,12 @@ export class GameStateService {
   private nightFlow: NightFlowController | null = null;
 
   /**
+   * NightFlowService: manages night flow control and audio playback (Host only)
+   * TODO(Phase 6 migration): Gradually migrate to use this service instead of direct nightFlow
+   */
+  private readonly nightFlowService: NightFlowService;
+
+  /**
    * Host-only: gate advancing after a reveal action until the revealer confirms.
    * Key format: `${revision}_${role}`
    */
@@ -203,6 +210,17 @@ export class GameStateService {
       broadcastState: () => this.broadcastState(),
       notifyListeners: () => this.notifyListeners(),
       broadcastService: this.broadcastService,
+    });
+
+    // Initialize NightFlowService with config callbacks
+    this.nightFlowService = new NightFlowService({
+      getState: () => this.state,
+      updateState: (updates) => {
+        if (this.state) {
+          Object.assign(this.state, updates);
+        }
+      },
+      getSeatsForRole: (role) => this.getSeatsForRole(role),
     });
   }
 
