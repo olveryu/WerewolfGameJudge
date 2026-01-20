@@ -950,31 +950,8 @@ export class GameStateService {
         this.handleSnapshotResponse(msg);
         break;
       case 'GAME_RESTARTED':
-        // Reset local state
-        if (this.state) {
-          this.state.status = GameStatus.seated;
-          this.state.actions = new Map();
-          this.state.wolfVotes = new Map();
-          this.state.currentActionerIndex = 0;
-          this.state.lastNightDeaths = [];
-          this.state.currentStepId = undefined;
-          // Clear role-specific context on game restart
-          this.state.witchContext = undefined;
-          this.state.seerReveal = undefined;
-          this.state.psychicReveal = undefined;
-          this.state.gargoyleReveal = undefined;
-          this.state.wolfRobotReveal = undefined;
-          this.state.confirmStatus = undefined;
-          this.state.actionRejected = undefined;
-          // Clear roles
-          this.state.players.forEach((p, _seat) => {
-            if (p) {
-              p.role = null;
-              p.hasViewedRole = false;
-            }
-          });
-          this.notifyListeners();
-        }
+        // Delegate to StateManager
+        this.stateManager.resetForGameRestart();
         break;
     }
   }

@@ -23,8 +23,8 @@ import type {
   LocalGameState,
   LocalPlayer,
   GameStateListener,
-  GameStatus,
 } from '../types/GameStateTypes';
+import { GameStatus } from '../types/GameStateTypes';
 
 import type { BroadcastGameState, BroadcastPlayer } from '../BroadcastService';
 
@@ -146,6 +146,39 @@ export class StateManager {
     this.listeners.clear();
 
     hostLog.debug('[StateManager] State reset');
+  }
+
+  /**
+   * Reset state for game restart (keeps players but clears game data).
+   * Used by Players when receiving GAME_RESTARTED broadcast.
+   */
+  resetForGameRestart(): void {
+    if (!this.state) return;
+
+    this.state.status = GameStatus.seated;
+    this.state.actions = new Map();
+    this.state.wolfVotes = new Map();
+    this.state.currentActionerIndex = 0;
+    this.state.lastNightDeaths = [];
+    this.state.currentStepId = undefined;
+    // Clear role-specific context
+    this.state.witchContext = undefined;
+    this.state.seerReveal = undefined;
+    this.state.psychicReveal = undefined;
+    this.state.gargoyleReveal = undefined;
+    this.state.wolfRobotReveal = undefined;
+    this.state.confirmStatus = undefined;
+    this.state.actionRejected = undefined;
+    // Clear roles
+    this.state.players.forEach((p) => {
+      if (p) {
+        p.role = null;
+        p.hasViewedRole = false;
+      }
+    });
+
+    this.notifyListeners();
+    hostLog.debug('[StateManager] State reset for game restart');
   }
 
   // ===========================================================================
