@@ -39,14 +39,11 @@ import {
   type SchemaId,
   buildNightPlan,
   BLOCKED_UI_DEFAULTS,
-  SCHEMAS,
 } from '../models/roles/spec';
 import {
-  type ResolverContext,
   type ActionInput,
   type ResolverResult,
 } from './night/resolvers/types';
-import { RESOLVERS } from './night/resolvers';
 import {
   wolfVoteResolver,
   type WolfVoteContext,
@@ -2230,6 +2227,7 @@ export class GameStateService {
 
   // ===========================================================================
   // Resolver Integration (Phase 1: Infrastructure)
+  // Delegated to ActionProcessor module.
   // ===========================================================================
 
   /**
@@ -2244,14 +2242,30 @@ export class GameStateService {
   }
 
   /**
+   * Build ActionContext for ActionProcessor.
+   */
+  private buildActionContext(): import('./action').ActionContext {
+    if (!this.state) {
+      // Return minimal context if no state
+      return {
+        players: new Map(),
+        currentNightResults: {},
+        actions: new Map(),
+        wolfVotes: new Map(),
+      };
+    }
+    return {
+      players: this.buildRoleMap(),
+      currentNightResults: (this.state.currentNightResults ?? {}) as Record<string, unknown>,
+      witchContext: this.state.witchContext,
+      actions: this.state.actions,
+      wolfVotes: this.state.wolfVotes,
+    };
+  }
+
+  /**
    * Invoke a resolver for the given schemaId.
-   * Returns validation + computed result.
-   *
-   * @param schemaId - The current step's schema ID
-   * @param actorSeat - The seat of the player performing the action
-   * @param actorRoleId - The role of the player
-   * @param input - The action input
-   * @returns ResolverResult with valid/rejectReason/updates/result
+   * Delegates to ActionProcessor.
    */
   private invokeResolver(
     schemaId: SchemaId,
@@ -2259,79 +2273,20 @@ export class GameStateService {
     actorRoleId: RoleId,
     input: ActionInput,
   ): ResolverResult {
-    const resolver = RESOLVERS[schemaId];
-
-    // Some schemas don't have resolvers (e.g., hunterConfirm is just an ACK)
-    if (!resolver) {
-      return { valid: true };
-    }
-
-    const context: ResolverContext = {
-      actorSeat,
-      actorRoleId,
-      players: this.buildRoleMap(),
-      currentNightResults: this.state?.currentNightResults ?? {},
-      gameState: {
-        witchHasAntidote: this.state?.witchContext?.canSave ?? true,
-        witchHasPoison: this.state?.witchContext?.canPoison ?? true,
-        isNight1: true, // Night-1-only scope
-      },
-    };
-
-    return resolver(context, input);
+    const context = this.buildActionContext();
+    return this.actionProcessor.invokeResolver(schemaId, actorSeat, actorRoleId, input, context);
   }
 
   /**
    * Build ActionInput from wire protocol.
-   *
-   * @param schemaId - The schema ID to determine input shape
-   * @param target - The target seat (or encoded value for magician)
-   * @param extra - Extra payload (e.g., { poison: true } for witch)
-   * @returns ActionInput for resolver
+   * Delegates to ActionProcessor.
    */
   private buildActionInput(
     schemaId: SchemaId,
     target: number | null,
     extra?: unknown,
   ): ActionInput {
-    const input: ActionInput = { schemaId };
-    const schema = SCHEMAS[schemaId];
-    if (!schema) return input;
-
-    switch (schema.kind) {
-      case 'chooseSeat':
-        return { ...input, target: target ?? undefined };
-
-      case 'wolfVote':
-        return { ...input, target: target ?? undefined };
-
-      case 'compound':
-        // Witch: { save: true, target } or { poison: true, target } or skip
-        if (extra && typeof extra === 'object') {
-          if ('save' in extra) {
-            return { ...input, stepResults: { save: target } };
-          } else if ('poison' in extra) {
-            return { ...input, stepResults: { poison: target } };
-          }
-        }
-        // Skip case: provide empty stepResults so resolver doesn't reject
-        return { ...input, stepResults: {} };
-
-      case 'swap':
-        // Magician: encoded target = firstSeat + secondSeat * 100
-        if (target !== null && target >= 100) {
-          const firstSeat = target % 100;
-          const secondSeat = Math.floor(target / 100);
-          return { ...input, targets: [firstSeat, secondSeat] };
-        }
-        return input;
-
-      case 'confirm':
-        return { ...input, confirmed: true };
-
-      default:
-        return input;
-    }
+    return this.actionProcessor.buildActionInput(schemaId, target, extra);
   }
 
   /**
