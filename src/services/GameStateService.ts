@@ -1024,62 +1024,12 @@ export class GameStateService {
   // Player: Handle Host Broadcasts
   // ===========================================================================
 
+  /**
+   * Handle incoming host broadcast messages
+   * Delegated to PlayerCoordinator (Phase 8c migration)
+   */
   private handleHostBroadcast(msg: HostBroadcast): void {
-    // Legacy PRIVATE_EFFECT messages are no longer used (removed in refactor)
-    // Type guard for any unexpected message types
-    if ((msg as { type: string }).type === 'PRIVATE_EFFECT') {
-      playerLog.debug('Ignoring legacy PRIVATE_EFFECT message');
-      return;
-    }
-
-    playerLog.info('Received host broadcast:', msg.type);
-
-    switch (msg.type) {
-      case 'STATE_UPDATE':
-        // Host is authoritative - should not overwrite local state from broadcast
-        if (this.isHost) {
-          hostLog.info('Ignoring own STATE_UPDATE broadcast');
-          return;
-        }
-        this.applyStateUpdate(msg.state, msg.revision);
-        break;
-      case 'ROLE_TURN':
-        // UI-only: stash current stepId for schema-driven UI mapping.
-        // Logic continues to come from STATE_UPDATE (Host is authoritative).
-        if (!this.isHost && this.state) {
-          this.stateManager.batchUpdate({ currentStepId: msg.stepId });
-        }
-        break;
-      case 'NIGHT_END':
-        // Update local deaths
-        if (this.state) {
-          this.stateManager.batchUpdate({
-            lastNightDeaths: msg.deaths,
-            status: GameStatus.ended,
-          });
-        }
-        break;
-      case 'SEAT_REJECTED':
-        // Only the player who requested the seat should handle this
-        if (msg.requestUid === this.myUid) {
-          playerLog.info('My seat request rejected:', msg.seat, msg.reason);
-          this.seatManager.setLastSeatError({ seat: msg.seat, reason: msg.reason });
-          this.notifyListeners();
-        }
-        break;
-      case 'SEAT_ACTION_ACK':
-        // Handle ACK for pending seat action
-        this.handleSeatActionAck(msg);
-        break;
-      case 'SNAPSHOT_RESPONSE':
-        // Handle snapshot response (only if we requested it)
-        this.handleSnapshotResponse(msg);
-        break;
-      case 'GAME_RESTARTED':
-        // Delegate to StateManager
-        this.stateManager.resetForGameRestart();
-        break;
-    }
+    this.playerCoordinator.handleHostBroadcast(msg);
   }
 
   /**
@@ -1558,67 +1508,34 @@ export class GameStateService {
 
   /**
    * Player: Mark role as viewed
-   * Unified path: Both Host and Player call the same handler
+   * Delegated to PlayerCoordinator (Phase 8c migration)
    */
   async playerViewedRole(): Promise<void> {
-    if (this.mySeatNumber === null) return;
-
-    if (this.isHost) {
-      // Host processes directly (same logic as handlePlayerViewedRole)
-      await this.handlePlayerViewedRole(this.mySeatNumber);
-      return;
-    }
-
-    await this.broadcastCoordinator.sendViewedRole(this.mySeatNumber);
+    await this.playerCoordinator.playerViewedRole();
   }
 
   /**
    * Submit action (unified path for Host and Player)
-   * Both call the same handler: handlePlayerAction
+   * Delegated to PlayerCoordinator (Phase 8c migration)
    */
   async submitAction(target: number | null, extra?: any): Promise<void> {
-    if (this.mySeatNumber === null || !this.state) return;
-
-    const myRole = this.getMyRole();
-    if (!myRole) return;
-
-    if (this.isHost) {
-      await this.handlePlayerAction(this.mySeatNumber, myRole, target, extra);
-      return;
-    }
-
-    await this.broadcastCoordinator.sendAction(this.mySeatNumber, myRole, target, extra);
+    await this.playerCoordinator.submitAction(target, extra);
   }
 
   /**
    * Submit wolf vote (unified path for Host and Player)
-   * Both call the same handler: handleWolfVote
+   * Delegated to PlayerCoordinator (Phase 8c migration)
    */
   async submitWolfVote(target: number): Promise<void> {
-    if (this.mySeatNumber === null) return;
-
-    if (this.isHost) {
-      await this.handleWolfVote(this.mySeatNumber, target);
-      return;
-    }
-
-    await this.broadcastCoordinator.sendWolfVote(this.mySeatNumber, target);
+    await this.playerCoordinator.submitWolfVote(target);
   }
 
   /**
    * Submit reveal acknowledgement (unified path for Host and Player)
-   * Both call the same handler: handleRevealAck
-   * This lets the Host advance the night flow for reveal roles (seer/psychic/gargoyle/wolfRobot)
+   * Delegated to PlayerCoordinator (Phase 8c migration)
    */
   async submitRevealAck(role: RoleId): Promise<void> {
-    if (!this.state || this.mySeatNumber === null) return;
-
-    if (this.isHost) {
-      await this.handleRevealAck(this.mySeatNumber, role, this.stateRevision);
-      return;
-    }
-
-    await this.broadcastCoordinator.sendRevealAck(this.mySeatNumber, role, this.stateRevision);
+    await this.playerCoordinator.submitRevealAck(role);
   }
 
   // ===========================================================================
