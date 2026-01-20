@@ -15,7 +15,6 @@ import { RoleId, isWolfRole } from '../models/roles';
 import { GameTemplate, validateTemplateRoles } from '../models/Template';
 import {
   BroadcastGameState,
-  BroadcastPlayer,
   HostBroadcast,
   PlayerMessage,
 } from './BroadcastService';
@@ -140,7 +139,7 @@ export class GameStateService {
       isHost: () => this.isHost,
       getMyUid: () => this.myUid,
       getRevision: () => this.stateRevision,
-      toBroadcastState: () => (this.state ? this.toBroadcastState() : null),
+      toBroadcastState: () => (this.state ? this.stateManager.toBroadcastState() : null),
     });
 
     // Initialize SeatManager with config callbacks
@@ -589,7 +588,7 @@ export class GameStateService {
       ` Snapshot request from ${msg.uid.substring(0, 8)}, lastRev: ${msg.lastRevision ?? 'none'}`,
     );
 
-    const broadcastState = this.toBroadcastState();
+    const broadcastState = this.stateManager.toBroadcastState();
     await this.broadcastCoordinator.broadcastSnapshotResponse({
       requestId: msg.requestId,
       toUid: msg.uid,
@@ -1600,7 +1599,7 @@ export class GameStateService {
     // Increment revision on each broadcast
     this.stateRevision++;
 
-    const broadcastState = this.toBroadcastState();
+    const broadcastState = this.stateManager.toBroadcastState();
 
     // Sync computed fields to Host's local state so Host UI sees them too.
     // These values are computed in toBroadcastState() for broadcast, but Host reads this.state directly.
@@ -1627,62 +1626,6 @@ export class GameStateService {
         .saveState(this.state.roomCode, this.state)
         .catch((err) => hostLog.error('Failed to save state after broadcast:', err));
     }
-  }
-
-  private toBroadcastState(): BroadcastGameState {
-    if (!this.state) throw new Error('No state');
-
-    const players: Record<number, BroadcastPlayer | null> = {};
-    this.state.players.forEach((p, seat) => {
-      if (p) {
-        // Only include role for the player themselves
-        // Wolves can see each other (handled on client side)
-        players[seat] = {
-          uid: p.uid,
-          seatNumber: p.seatNumber,
-          displayName: p.displayName,
-          avatarUrl: p.avatarUrl,
-          role: p.role, // Include role - client decides what to show
-          hasViewedRole: p.hasViewedRole,
-        };
-      } else {
-        players[seat] = null;
-      }
-    });
-
-    // Wolf vote status (only wolves that participate in vote)
-    const wolfVoteStatus: Record<number, boolean> = {};
-    this.stateManager.getVotingWolfSeats().forEach((seat) => {
-      wolfVoteStatus[seat] = this.state!.wolfVotes.has(seat);
-    });
-
-    // Get nightmare blocked seat from actions
-    const nightmareAction = this.state.actions.get('nightmare');
-    const nightmareBlockedSeat =
-      nightmareAction?.kind === 'target' ? nightmareAction.targetSeat : undefined;
-
-    // wolfKillDisabled is single-source-of-truth from this.state (set by handlePlayerAction)
-
-    return {
-      roomCode: this.state.roomCode,
-      hostUid: this.state.hostUid,
-      status: this.state.status,
-      templateRoles: this.state.template.roles,
-      players,
-      currentActionerIndex: this.state.currentActionerIndex,
-      isAudioPlaying: this.state.isAudioPlaying,
-      wolfVoteStatus,
-      nightmareBlockedSeat,
-      wolfKillDisabled: this.state.wolfKillDisabled,
-      // Role-specific context (all data is public, UI filters by myRole)
-      witchContext: this.state.witchContext,
-      seerReveal: this.state.seerReveal,
-      psychicReveal: this.state.psychicReveal,
-      gargoyleReveal: this.state.gargoyleReveal,
-      wolfRobotReveal: this.state.wolfRobotReveal,
-      confirmStatus: this.state.confirmStatus,
-      actionRejected: this.state.actionRejected,
-    };
   }
 }
 

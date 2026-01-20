@@ -279,16 +279,10 @@ export class StateManager {
       }
     });
 
-    // Build wolf vote status (only wolves that have voted)
-    // TODO(Phase 1.5): GameStateService.toBroadcastState uses getVotingWolfSeats() to show
-    // all wolves that should vote (with true/false for each). This simpler implementation
-    // only shows wolves that have already voted (all true). After full migration, unify
-    // the logic by either:
-    // 1. Moving getVotingWolfSeats() logic here, or
-    // 2. Accepting this simpler approach if UI doesn't need to show "not yet voted" wolves
+    // Build wolf vote status (all voting wolves with true/false for each)
     const wolfVoteStatus: Record<number, boolean> = {};
-    this.state.wolfVotes.forEach((_, seat) => {
-      wolfVoteStatus[seat] = true;
+    this.getVotingWolfSeats().forEach((seat) => {
+      wolfVoteStatus[seat] = this.state!.wolfVotes.has(seat);
     });
 
     // Get nightmare blocked seat from actions

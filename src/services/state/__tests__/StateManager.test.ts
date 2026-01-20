@@ -356,7 +356,12 @@ describe('StateManager', () => {
     });
 
     it('should include wolf vote status', () => {
+      // Assign wolf roles to seats 0 and 1 so getVotingWolfSeats() returns them
       manager.updateState((state) => {
+        const player0 = state.players.get(0);
+        const player1 = state.players.get(1);
+        if (player0) state.players.set(0, { ...player0, role: 'wolf' });
+        if (player1) state.players.set(1, { ...player1, role: 'wolf' });
         state.wolfVotes.set(0, 2);
         state.wolfVotes.set(1, 2);
         return {};
