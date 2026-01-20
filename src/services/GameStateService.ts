@@ -64,6 +64,7 @@ import { getConfirmRoleCanShoot } from '../models/Room';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StateManager } from './state';
 import { StatePersistence } from './persistence';
+import { BroadcastCoordinator } from './broadcast';
 
 // Import types/enums needed internally
 import { GameStatus, LocalPlayer, LocalGameState } from './types/GameStateTypes';
@@ -107,6 +108,14 @@ export class GameStateService {
    * with this.statePersistence methods.
    */
   private readonly statePersistence: StatePersistence;
+
+  /**
+   * BroadcastCoordinator: Broadcast communication module (Phase 3 extraction)
+   * Handles sending/receiving messages via BroadcastService.
+   * TODO(Phase 3 migration): Gradually replace direct broadcastService calls
+   * and move message handlers to use BroadcastCoordinator.
+   */
+  private readonly broadcastCoordinator: BroadcastCoordinator;
 
   private state: LocalGameState | null = null;
   private isHost: boolean = false;
@@ -156,6 +165,14 @@ export class GameStateService {
     this.statePersistence = new StatePersistence();
     this.broadcastService = BroadcastService.getInstance();
     this.audioService = AudioService.getInstance();
+
+    // Initialize BroadcastCoordinator with config callbacks
+    this.broadcastCoordinator = new BroadcastCoordinator({
+      isHost: () => this.isHost,
+      getMyUid: () => this.myUid,
+      getRevision: () => this.stateRevision,
+      toBroadcastState: () => (this.state ? this.toBroadcastState() : null),
+    });
   }
 
   static getInstance(): GameStateService {
