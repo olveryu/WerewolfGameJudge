@@ -1549,20 +1549,6 @@ export class GameStateService {
     return seats.sort((a, b) => a - b);
   }
 
-  /**
-   * Get the UID of a player with a specific role.
-   * Returns null if role not found in this game.
-   */
-  private getPlayerUidByRole(role: RoleId): string | null {
-    if (!this.state) return null;
-    for (const [, player] of this.state.players) {
-      if (player?.role === role) {
-        return player.uid;
-      }
-    }
-    return null;
-  }
-
   // ===========================================================================
   // Role-specific Context Setters (was PRIVATE_EFFECT, now direct state)
   // All data is set in this.state and broadcast publicly via STATE_UPDATE.
@@ -1617,19 +1603,6 @@ export class GameStateService {
   // NOTE: setSeerReveal, setPsychicReveal, setGargoyleReveal, setWolfRobotReveal
   // have been removed. Reveal logic is now handled by invokeResolver + applyRevealFromResolver.
 
-  /**
-   * Clear role-specific reveal state (called when advancing to next turn).
-   * Keeps witchContext and confirmStatus which persist during multi-step turns.
-   */
-  private clearRevealState(): void {
-    if (!this.state) return;
-    this.state.seerReveal = undefined;
-    this.state.psychicReveal = undefined;
-    this.state.gargoyleReveal = undefined;
-    this.state.wolfRobotReveal = undefined;
-    this.state.actionRejected = undefined;
-  }
-
   // ===========================================================================
   // Death Calculation Bridge (DeathCalculator)
   // ===========================================================================
@@ -1656,20 +1629,6 @@ export class GameStateService {
    */
   private buildRoleMap(): ReadonlyMap<number, RoleId> {
     return this.stateManager.buildRoleMap();
-  }
-
-  /**
-   * Get magician swapped seats from current night actions.
-   * Returns undefined if no swap happened.
-   */
-  private getMagicianSwappedSeats(): readonly [number, number] | undefined {
-    if (!this.state) return undefined;
-
-    const magicianAction = this.state.actions.get('magician');
-    if (magicianAction?.kind === 'magicianSwap') {
-      return [magicianAction.firstSeat, magicianAction.secondSeat];
-    }
-    return undefined;
   }
 
   // ===========================================================================
