@@ -1,0 +1,369 @@
+/**
+ * StateManager - Pure state management module
+ *
+ * This is the Single Source of Truth for game state.
+ * Extracted from GameStateService as part of the God Class refactoring.
+ *
+ * Responsibilities:
+ * - Maintain LocalGameState
+ * - Manage state revision counter
+ * - Notify listeners on state changes
+ * - Convert between LocalGameState and BroadcastGameState
+ *
+ * NOT responsible for:
+ * - Broadcasting (handled by BroadcastCoordinator)
+ * - Game logic (handled by ActionProcessor, NightFlowService)
+ * - Persistence (handled by StatePersistence)
+ */
+
+import { createTemplateFromRoles } from '../../models/Template';
+import { hostLog, playerLog } from '../../utils/logger';
+
+import type {
+  LocalGameState,
+  LocalPlayer,
+  GameStateListener,
+  GameStatus,
+} from '../types/GameStateTypes';
+
+import type { BroadcastGameState, BroadcastPlayer } from '../BroadcastService';
+
+// =============================================================================
+// Configuration
+// =============================================================================
+
+export interface StateManagerConfig {
+  /**
+   * Host only: callback triggered after each state update.
+   * Used by GameCoordinator to trigger broadcast and persistence.
+   */
+  onStateChange?: (state: BroadcastGameState, revision: number) => void;
+
+  /**
+   * Log prefix for debugging
+   */
+  logPrefix?: string;
+}
+
+// =============================================================================
+// StateManager Implementation
+// =============================================================================
+
+export class StateManager {
+  private state: LocalGameState | null = null;
+  private listeners: Set<GameStateListener> = new Set();
+  private revision: number = 0;
+  private readonly config: StateManagerConfig;
+
+  constructor(config: StateManagerConfig = {}) {
+    this.config = config;
+  }
+
+  // ===========================================================================
+  // Read Operations
+  // ===========================================================================
+
+  /**
+   * Get current state (read-only reference)
+   */
+  getState(): LocalGameState | null {
+    return this.state;
+  }
+
+  /**
+   * Get current state revision
+   */
+  getRevision(): number {
+    return this.revision;
+  }
+
+  /**
+   * Check if state is initialized
+   */
+  hasState(): boolean {
+    return this.state !== null;
+  }
+
+  // ===========================================================================
+  // Host: State Updates (Single Entry Point)
+  // ===========================================================================
+
+  /**
+   * Update state using an updater function.
+   * This is the ONLY way to modify state for Host.
+   *
+   * Automatically:
+   * 1. Increments revision
+   * 2. Notifies all listeners
+   * 3. Triggers onStateChange callback (for broadcast)
+   *
+   * @param updater - Function that receives current state and returns partial updates
+   */
+  updateState(updater: (current: LocalGameState) => Partial<LocalGameState>): void {
+    if (!this.state) {
+      throw new Error('[StateManager] Cannot update: state not initialized');
+    }
+
+    const updates = updater(this.state);
+    this.state = { ...this.state, ...updates };
+    this.revision++;
+
+    this.notifyListeners();
+
+    // Trigger broadcast callback if configured
+    if (this.config.onStateChange) {
+      const broadcastState = this.toBroadcastState();
+      this.config.onStateChange(broadcastState, this.revision);
+    }
+  }
+
+  /**
+   * Batch update multiple fields at once.
+   * Convenience wrapper around updateState.
+   */
+  batchUpdate(updates: Partial<LocalGameState>): void {
+    this.updateState(() => updates);
+  }
+
+  /**
+   * Initialize state (called once when creating/joining room)
+   * Does NOT increment revision (this is the baseline)
+   */
+  initialize(state: LocalGameState): void {
+    this.state = state;
+    this.revision = 0;
+    this.notifyListeners();
+
+    hostLog.debug('[StateManager] State initialized');
+  }
+
+  /**
+   * Reset state (called when leaving room)
+   */
+  reset(): void {
+    this.state = null;
+    this.revision = 0;
+    this.listeners.clear();
+
+    hostLog.debug('[StateManager] State reset');
+  }
+
+  // ===========================================================================
+  // Player: Apply Broadcast State
+  // ===========================================================================
+
+  /**
+   * Apply state received from Host broadcast.
+   * Used by Players to sync their local state.
+   *
+   * @param broadcast - BroadcastGameState from Host
+   * @param revision - State revision from Host
+   * @param myUid - Current player's UID (for tracking seat)
+   * @returns { applied, mySeat } - Whether update was applied and player's seat
+   */
+  applyBroadcastState(
+    broadcast: BroadcastGameState,
+    revision: number,
+    myUid: string | null,
+  ): { applied: boolean; mySeat: number | null } {
+    // Skip stale updates
+    if (revision <= this.revision) {
+      playerLog.debug(`[StateManager] Skipping stale update (rev ${revision} <= ${this.revision})`);
+      return { applied: false, mySeat: null };
+    }
+
+    this.revision = revision;
+    const { state, mySeat } = this.broadcastToLocal(broadcast, myUid);
+    this.state = state;
+    this.notifyListeners();
+
+    playerLog.debug(`[StateManager] Applied broadcast state, rev=${revision}, mySeat=${mySeat}`);
+    return { applied: true, mySeat };
+  }
+
+  // ===========================================================================
+  // Subscription
+  // ===========================================================================
+
+  /**
+   * Subscribe to state changes.
+   * Listener is called immediately with current state if available.
+   *
+   * @param listener - Callback function
+   * @returns Unsubscribe function
+   */
+  subscribe(listener: GameStateListener): () => void {
+    this.listeners.add(listener);
+
+    // Immediately call listener with current state if available
+    if (this.state) {
+      try {
+        listener({ ...this.state });
+      } catch (err) {
+        hostLog.error('[StateManager] Listener error during subscribe:', err);
+      }
+    }
+
+    // Return unsubscribe function
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  // ===========================================================================
+  // State Conversion
+  // ===========================================================================
+
+  /**
+   * Convert LocalGameState to BroadcastGameState for network transmission.
+   * Used by Host to broadcast state to Players.
+   */
+  toBroadcastState(): BroadcastGameState {
+    if (!this.state) {
+      throw new Error('[StateManager] Cannot convert: state not initialized');
+    }
+
+    // Convert players Map to Record
+    const players: Record<number, BroadcastPlayer | null> = {};
+    this.state.players.forEach((p, seat) => {
+      if (p) {
+        players[seat] = {
+          uid: p.uid,
+          seatNumber: p.seatNumber,
+          displayName: p.displayName,
+          avatarUrl: p.avatarUrl,
+          role: p.role, // Include role - client decides what to show
+          hasViewedRole: p.hasViewedRole,
+        };
+      } else {
+        players[seat] = null;
+      }
+    });
+
+    // Build wolf vote status (only wolves that participate in vote)
+    const wolfVoteStatus: Record<number, boolean> = {};
+    this.state.wolfVotes.forEach((_, seat) => {
+      wolfVoteStatus[seat] = true;
+    });
+
+    // Get nightmare blocked seat from actions
+    const nightmareAction = this.state.actions.get('nightmare');
+    const nightmareBlockedSeat =
+      nightmareAction?.kind === 'target' ? nightmareAction.targetSeat : undefined;
+
+    return {
+      roomCode: this.state.roomCode,
+      hostUid: this.state.hostUid,
+      status: this.state.status,
+      templateRoles: this.state.template.roles,
+      players,
+      currentActionerIndex: this.state.currentActionerIndex,
+      isAudioPlaying: this.state.isAudioPlaying,
+      wolfVoteStatus,
+      nightmareBlockedSeat,
+      wolfKillDisabled: this.state.wolfKillDisabled,
+      // Role-specific context (all data is public, UI filters by myRole)
+      witchContext: this.state.witchContext,
+      seerReveal: this.state.seerReveal,
+      psychicReveal: this.state.psychicReveal,
+      gargoyleReveal: this.state.gargoyleReveal,
+      wolfRobotReveal: this.state.wolfRobotReveal,
+      confirmStatus: this.state.confirmStatus,
+      actionRejected: this.state.actionRejected,
+    };
+  }
+
+  /**
+   * Convert BroadcastGameState to LocalGameState.
+   * Used by Players when receiving state from Host.
+   *
+   * @param broadcast - BroadcastGameState from Host
+   * @param myUid - Current player's UID (for tracking seat)
+   * @returns { state, mySeat }
+   */
+  private broadcastToLocal(
+    broadcast: BroadcastGameState,
+    myUid: string | null,
+  ): { state: LocalGameState; mySeat: number | null } {
+    const template = createTemplateFromRoles(broadcast.templateRoles);
+    let mySeat: number | null = null;
+
+    // Convert players Record to Map
+    const players = new Map<number, LocalPlayer | null>();
+    Object.entries(broadcast.players).forEach(([seatStr, bp]) => {
+      const seat = Number.parseInt(seatStr, 10);
+      if (bp) {
+        players.set(seat, {
+          uid: bp.uid,
+          seatNumber: bp.seatNumber,
+          displayName: bp.displayName,
+          avatarUrl: bp.avatarUrl,
+          role: bp.role ?? null,
+          hasViewedRole: bp.hasViewedRole,
+        });
+        // Track my seat
+        if (bp.uid === myUid) {
+          mySeat = seat;
+        }
+      } else {
+        players.set(seat, null);
+      }
+    });
+
+    // Rebuild wolfVotes from wolfVoteStatus
+    // Players need to know who has voted to update imActioner state
+    // Use -999 as placeholder target (players don't see actual targets)
+    const wolfVotes = new Map<number, number>();
+    if (broadcast.wolfVoteStatus) {
+      for (const [seatStr, hasVoted] of Object.entries(broadcast.wolfVoteStatus)) {
+        if (hasVoted) {
+          wolfVotes.set(Number.parseInt(seatStr, 10), -999);
+        }
+      }
+    }
+
+    const state: LocalGameState = {
+      roomCode: broadcast.roomCode,
+      hostUid: broadcast.hostUid,
+      status: broadcast.status as GameStatus,
+      template,
+      players,
+      actions: new Map(), // Players don't see actions
+      wolfVotes,
+      currentActionerIndex: broadcast.currentActionerIndex,
+      isAudioPlaying: broadcast.isAudioPlaying,
+      lastNightDeaths: [], // Will be set by NIGHT_END message
+      nightmareBlockedSeat: broadcast.nightmareBlockedSeat,
+      wolfKillDisabled: broadcast.wolfKillDisabled,
+      currentNightResults: {}, // Players don't see currentNightResults (Host-only state)
+      // Role-specific context
+      witchContext: broadcast.witchContext,
+      seerReveal: broadcast.seerReveal,
+      psychicReveal: broadcast.psychicReveal,
+      gargoyleReveal: broadcast.gargoyleReveal,
+      wolfRobotReveal: broadcast.wolfRobotReveal,
+      confirmStatus: broadcast.confirmStatus,
+      actionRejected: broadcast.actionRejected,
+    };
+
+    return { state, mySeat };
+  }
+
+  // ===========================================================================
+  // Private Helpers
+  // ===========================================================================
+
+  private notifyListeners(): void {
+    if (!this.state) return;
+
+    // Create a shallow copy so React detects the change
+    const stateCopy = { ...this.state };
+    this.listeners.forEach((listener) => {
+      try {
+        listener(stateCopy);
+      } catch (err) {
+        hostLog.error('[StateManager] Listener error:', err);
+      }
+    });
+  }
+}
