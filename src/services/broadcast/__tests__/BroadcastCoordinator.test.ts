@@ -38,7 +38,9 @@ function createMockBroadcastService(): jest.Mocked<Partial<BroadcastService>> {
   };
 }
 
-function createMockConfig(overrides: Partial<BroadcastCoordinatorConfig> = {}): BroadcastCoordinatorConfig {
+function createMockConfig(
+  overrides: Partial<BroadcastCoordinatorConfig> = {},
+): BroadcastCoordinatorConfig {
   return {
     isHost: jest.fn().mockReturnValue(false),
     getMyUid: jest.fn().mockReturnValue('user-123'),
@@ -474,10 +476,7 @@ describe('BroadcastCoordinator', () => {
     });
 
     it('should handle REQUEST_STATE', async () => {
-      await playerMessageHandler(
-        { type: 'REQUEST_STATE', uid: 'user-123' },
-        'sender-1',
-      );
+      await playerMessageHandler({ type: 'REQUEST_STATE', uid: 'user-123' }, 'sender-1');
 
       expect(handlers.onRequestState).toHaveBeenCalledWith('user-123');
     });
@@ -503,10 +502,7 @@ describe('BroadcastCoordinator', () => {
     });
 
     it('should handle LEAVE', async () => {
-      await playerMessageHandler(
-        { type: 'LEAVE', seat: 3, uid: 'user-123' },
-        'sender-1',
-      );
+      await playerMessageHandler({ type: 'LEAVE', seat: 3, uid: 'user-123' }, 'sender-1');
 
       expect(handlers.onLeave).toHaveBeenCalledWith(3, 'user-123');
     });
@@ -536,19 +532,13 @@ describe('BroadcastCoordinator', () => {
     });
 
     it('should handle WOLF_VOTE', async () => {
-      await playerMessageHandler(
-        { type: 'WOLF_VOTE', seat: 2, target: 5 },
-        'sender-1',
-      );
+      await playerMessageHandler({ type: 'WOLF_VOTE', seat: 2, target: 5 }, 'sender-1');
 
       expect(handlers.onWolfVote).toHaveBeenCalledWith(2, 5);
     });
 
     it('should handle VIEWED_ROLE', async () => {
-      await playerMessageHandler(
-        { type: 'VIEWED_ROLE', seat: 3 },
-        'sender-1',
-      );
+      await playerMessageHandler({ type: 'VIEWED_ROLE', seat: 3 }, 'sender-1');
 
       expect(handlers.onViewedRole).toHaveBeenCalledWith(3);
     });
@@ -596,10 +586,7 @@ describe('BroadcastCoordinator', () => {
     it('should ignore messages if not Host', async () => {
       (mockConfig.isHost as jest.Mock).mockReturnValue(false);
 
-      await playerMessageHandler(
-        { type: 'REQUEST_STATE', uid: 'user-123' },
-        'sender-1',
-      );
+      await playerMessageHandler({ type: 'REQUEST_STATE', uid: 'user-123' }, 'sender-1');
 
       expect(handlers.onRequestState).not.toHaveBeenCalled();
     });

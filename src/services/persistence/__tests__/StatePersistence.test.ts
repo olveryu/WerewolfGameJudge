@@ -40,15 +40,29 @@ function createMockState(overrides: Partial<LocalGameState> = {}): LocalGameStat
       godCount: 1,
     },
     players: new Map([
-      [1, { uid: 'player1', displayName: 'Player 1', seatNumber: 1, role: 'villager', hasViewedRole: false }],
-      [2, { uid: 'player2', displayName: 'Player 2', seatNumber: 2, role: 'wolf', hasViewedRole: true }],
+      [
+        1,
+        {
+          uid: 'player1',
+          displayName: 'Player 1',
+          seatNumber: 1,
+          role: 'villager',
+          hasViewedRole: false,
+        },
+      ],
+      [
+        2,
+        {
+          uid: 'player2',
+          displayName: 'Player 2',
+          seatNumber: 2,
+          role: 'wolf',
+          hasViewedRole: true,
+        },
+      ],
     ]),
-    actions: new Map([
-      ['seer', { kind: 'singleTarget', targetSeat: 2 }],
-    ]),
-    wolfVotes: new Map([
-      [2, 1],
-    ]),
+    actions: new Map([['seer', { kind: 'singleTarget', targetSeat: 2 }]]),
+    wolfVotes: new Map([[2, 1]]),
     currentActionerIndex: 0,
     isAudioPlaying: false,
     lastNightDeaths: [],
@@ -180,7 +194,7 @@ describe('StatePersistence', () => {
     });
 
     it('should return null and clear if state is expired', async () => {
-      const expiredTime = Date.now() - (25 * 60 * 60 * 1000); // 25 hours ago
+      const expiredTime = Date.now() - 25 * 60 * 60 * 1000; // 25 hours ago
       const originalState = createMockState();
       const serialized = JSON.stringify({
         ...originalState,
@@ -199,7 +213,7 @@ describe('StatePersistence', () => {
     });
 
     it('should return state if within expiry time', async () => {
-      const recentTime = Date.now() - (1 * 60 * 60 * 1000); // 1 hour ago
+      const recentTime = Date.now() - 1 * 60 * 60 * 1000; // 1 hour ago
       const originalState = createMockState();
       const serialized = JSON.stringify({
         ...originalState,
@@ -237,7 +251,7 @@ describe('StatePersistence', () => {
       persistence = new StatePersistence({ expiryMs: 60 * 1000 });
 
       // 2 minutes ago - should be expired
-      const twoMinutesAgo = Date.now() - (2 * 60 * 1000);
+      const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
       const originalState = createMockState();
       const serialized = JSON.stringify({
         ...originalState,
@@ -312,7 +326,7 @@ describe('StatePersistence', () => {
 
   describe('getStateAge', () => {
     it('should return age in milliseconds', async () => {
-      const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+      const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
       const originalState = createMockState();
       const serialized = JSON.stringify({
         ...originalState,

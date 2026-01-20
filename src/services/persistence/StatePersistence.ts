@@ -126,11 +126,7 @@ export class StatePersistence {
 
       // Check if state is expired
       if (age > this.expiryMs) {
-        log.warn(
-          'Saved state expired, discarding. Age:',
-          Math.round(age / 1000 / 60),
-          'minutes',
-        );
+        log.warn('Saved state expired, discarding. Age:', Math.round(age / 1000 / 60), 'minutes');
         await this.clearState(roomCode);
         return null;
       }

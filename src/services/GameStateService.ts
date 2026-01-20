@@ -65,6 +65,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StateManager } from './state';
 import { StatePersistence } from './persistence';
 import { BroadcastCoordinator } from './broadcast';
+import { SeatManager } from './seat';
 
 // Import types/enums needed internally
 import { GameStatus, LocalPlayer, LocalGameState } from './types/GameStateTypes';
@@ -116,6 +117,14 @@ export class GameStateService {
    * and move message handlers to use BroadcastCoordinator.
    */
   private readonly broadcastCoordinator: BroadcastCoordinator;
+
+  /**
+   * SeatManager: Seat management module (Phase 4 extraction)
+   * Handles sit/standup operations for both Host and Player.
+   * TODO(Phase 4 migration): Gradually replace direct seat operations
+   * with this.seatManager methods.
+   */
+  private readonly seatManager: SeatManager;
 
   private state: LocalGameState | null = null;
   private isHost: boolean = false;
@@ -172,6 +181,20 @@ export class GameStateService {
       getMyUid: () => this.myUid,
       getRevision: () => this.stateRevision,
       toBroadcastState: () => (this.state ? this.toBroadcastState() : null),
+    });
+
+    // Initialize SeatManager with config callbacks
+    this.seatManager = new SeatManager({
+      isHost: () => this.isHost,
+      getMyUid: () => this.myUid,
+      getState: () => this.state,
+      setMySeatNumber: (seat) => {
+        this.mySeatNumber = seat;
+      },
+      getMySeatNumber: () => this.mySeatNumber,
+      broadcastState: () => this.broadcastState(),
+      notifyListeners: () => this.notifyListeners(),
+      broadcastService: this.broadcastService,
     });
   }
 

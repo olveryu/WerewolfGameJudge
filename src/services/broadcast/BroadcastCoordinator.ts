@@ -40,12 +40,7 @@ export interface HostMessageHandlers {
   /** Player leaving a seat */
   onLeave: (seat: number, uid: string) => Promise<void>;
   /** Player submitting an action */
-  onAction: (
-    seat: number,
-    role: string,
-    target: number | null,
-    extra?: unknown,
-  ) => Promise<void>;
+  onAction: (seat: number, role: string, target: number | null, extra?: unknown) => Promise<void>;
   /** Player acknowledging reveal */
   onRevealAck: (seat: number, role: string, revision: number) => Promise<void>;
   /** Player submitting wolf vote */
@@ -216,7 +211,11 @@ export class BroadcastCoordinator {
   /**
    * Broadcast seat rejection
    */
-  async broadcastSeatRejected(seat: number, requestUid: string, reason: 'seat_taken'): Promise<void> {
+  async broadcastSeatRejected(
+    seat: number,
+    requestUid: string,
+    reason: 'seat_taken',
+  ): Promise<void> {
     await this.broadcastService.broadcastAsHost({
       type: 'SEAT_REJECTED',
       seat,
