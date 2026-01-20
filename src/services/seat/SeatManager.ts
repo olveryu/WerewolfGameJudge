@@ -10,7 +10,7 @@
  * @module SeatManager
  */
 
-import type { BroadcastService } from '../BroadcastService';
+import type { BroadcastCoordinator } from '../broadcast/BroadcastCoordinator';
 import type { LocalGameState, LocalPlayer } from '../types/GameStateTypes';
 import { GameStatus } from '../types/GameStateTypes';
 import { seatManagerLog } from '../../utils/logger';
@@ -89,8 +89,8 @@ export interface SeatManagerConfig {
   broadcastState: () => Promise<void>;
   /** Notify UI listeners */
   notifyListeners: () => void;
-  /** BroadcastService for Player → Host communication */
-  broadcastService: BroadcastService;
+  /** BroadcastCoordinator for Player → Host communication */
+  broadcastCoordinator: BroadcastCoordinator;
 }
 
 // =============================================================================
@@ -366,8 +366,7 @@ export class SeatManager {
     );
 
     // Send ACK to player
-    await this.config.broadcastService.broadcastAsHost({
-      type: 'SEAT_ACTION_ACK',
+    await this.config.broadcastCoordinator.broadcastSeatActionAck({
       requestId: msg.requestId,
       toUid: msg.uid,
       success: result.success,
@@ -487,9 +486,8 @@ export class SeatManager {
       };
 
       // Send request
-      this.config.broadcastService
-        .sendToHost({
-          type: 'SEAT_ACTION_REQUEST',
+      this.config.broadcastCoordinator
+        .sendSeatActionRequest({
           requestId,
           action,
           seat,
@@ -497,7 +495,7 @@ export class SeatManager {
           displayName,
           avatarUrl,
         })
-        .catch((err) => {
+        .catch((err: Error) => {
           if (this.pendingSeatAction?.requestId === requestId) {
             clearTimeout(this.pendingSeatAction.timeoutHandle);
             this.pendingSeatAction = null;

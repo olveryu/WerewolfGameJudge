@@ -485,7 +485,36 @@ export class BroadcastCoordinator {
   }
 
   // ===========================================================================
-  // Utilities
+  // Room Lifecycle
+  // ===========================================================================
+
+  /**
+   * Join a room for broadcast communication
+   * @param roomCode - The room code to join
+   * @param uid - The user's UID
+   * @param options - Callback handlers for messages
+   */
+  async joinRoom(
+    roomCode: string,
+    uid: string,
+    options: {
+      onHostBroadcast?: (msg: HostBroadcast) => void;
+      onPlayerMessage?: (msg: PlayerMessage, senderId: string) => void;
+      onPresenceChange?: (users: string[]) => void;
+    },
+  ): Promise<void> {
+    await this.broadcastService.joinRoom(roomCode, uid, options);
+  }
+
+  /**
+   * Leave the current room
+   */
+  async leaveRoom(): Promise<void> {
+    await this.broadcastService.leaveRoom();
+  }
+
+  // ===========================================================================
+  // Connection Status
   // ===========================================================================
 
   /**
@@ -496,8 +525,43 @@ export class BroadcastCoordinator {
   }
 
   /**
+   * Mark connection as syncing (during reconnection)
+   */
+  markAsSyncing(): void {
+    this.broadcastService.markAsSyncing();
+  }
+
+  /**
+   * Set connection status directly
+   */
+  setConnectionStatus(status: 'live' | 'syncing' | 'disconnected'): void {
+    this.broadcastService.setConnectionStatus(status);
+  }
+
+  // ===========================================================================
+  // Raw Message Sending (for messages not covered by specific methods)
+  // ===========================================================================
+
+  /**
+   * Send a raw message to Host
+   * Use specific methods (sendAction, sendWolfVote, etc.) when available
+   */
+  async sendToHost(msg: PlayerMessage): Promise<void> {
+    await this.broadcastService.sendToHost(msg);
+  }
+
+  /**
+   * Broadcast a raw message as Host
+   * Use specific methods (broadcastState, broadcastRoleTurn, etc.) when available
+   */
+  async broadcastAsHost(msg: HostBroadcast): Promise<void> {
+    await this.broadcastService.broadcastAsHost(msg);
+  }
+
+  /**
    * Get underlying BroadcastService (for advanced use cases)
-   * TODO(Phase 3 migration): Minimize direct BroadcastService access
+   * @deprecated Use specific BroadcastCoordinator methods instead.
+   * Phase 3 migration complete - this method is kept for potential edge cases.
    */
   getBroadcastService(): BroadcastService {
     return this.broadcastService;

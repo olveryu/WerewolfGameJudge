@@ -14,7 +14,6 @@
 import { RoleId, isWolfRole, doesRoleParticipateInWolfVote } from '../models/roles';
 import { GameTemplate, createTemplateFromRoles, validateTemplateRoles } from '../models/Template';
 import {
-  BroadcastService,
   BroadcastGameState,
   BroadcastPlayer,
   HostBroadcast,
@@ -102,16 +101,14 @@ export class GameStateService {
   /**
    * BroadcastCoordinator: Broadcast communication module (Phase 3 extraction)
    * Handles sending/receiving messages via BroadcastService.
-   * TODO(Phase 3 migration): Gradually replace direct broadcastService calls
-   * and move message handlers to use BroadcastCoordinator.
+   * ✅ Phase 3 migration complete - all broadcast calls use broadcastCoordinator.
    */
   private readonly broadcastCoordinator: BroadcastCoordinator;
 
   /**
    * SeatManager: Seat management module (Phase 4 extraction)
    * Handles sit/standup operations for both Host and Player.
-   * TODO(Phase 4 migration): Gradually replace direct seat operations
-   * with this.seatManager methods.
+   * ✅ Phase 4 migration complete - SeatManager uses broadcastCoordinator.
    */
   private readonly seatManager: SeatManager;
 
@@ -162,7 +159,6 @@ export class GameStateService {
    */
   private readonly pendingRevealAcks: Set<string> = new Set();
 
-  private readonly broadcastService: BroadcastService;
   private readonly audioService: AudioService;
 
   private listeners: GameStateListener[] = [];
@@ -171,7 +167,6 @@ export class GameStateService {
     this.stateManager = new StateManager();
     this.statePersistence = new StatePersistence();
     this.actionProcessor = new ActionProcessor();
-    this.broadcastService = BroadcastService.getInstance();
     this.audioService = AudioService.getInstance();
 
     // Initialize BroadcastCoordinator with config callbacks
@@ -193,7 +188,7 @@ export class GameStateService {
       getMySeatNumber: () => this.mySeatNumber,
       broadcastState: () => this.broadcastState(),
       notifyListeners: () => this.notifyListeners(),
-      broadcastService: this.broadcastService,
+      broadcastCoordinator: this.broadcastCoordinator,
     });
 
     // Initialize NightFlowService with config callbacks
@@ -305,7 +300,7 @@ export class GameStateService {
     if (this.state) {
       const oldRoomCode = this.state.roomCode;
       hostLog.info('Leaving old room before creating new one:', oldRoomCode);
-      await this.broadcastService.leaveRoom();
+      await this.broadcastCoordinator.leaveRoom();
       // Note: We don't clear saved state here - it can be recovered if needed
     }
 
@@ -335,7 +330,7 @@ export class GameStateService {
     };
 
     // Join broadcast channel
-    await this.broadcastService.joinRoom(roomCode, hostUid, {
+    await this.broadcastCoordinator.joinRoom(roomCode, hostUid, {
       // Host must also receive its own host broadcasts (broadcast.self=true),
       // including PRIVATE_EFFECT messages addressed to hostUid.
       // Otherwise, reveal roles won't work when the host is the actioner.
@@ -409,7 +404,7 @@ export class GameStateService {
     }
 
     // Join broadcast channel as Host
-    await this.broadcastService.joinRoom(roomCode, hostUid, {
+    await this.broadcastCoordinator.joinRoom(roomCode, hostUid, {
       onHostBroadcast: (msg) => this.handleHostBroadcast(msg),
       onPlayerMessage: asyncHandler((msg, senderId) => this.handlePlayerMessage(msg, senderId)),
       onPresenceChange: asyncHandler(async (users) => {
@@ -447,16 +442,13 @@ export class GameStateService {
     this.stateRevision = 0;
 
     // Join broadcast channel
-    await this.broadcastService.joinRoom(roomCode, playerUid, {
+    await this.broadcastCoordinator.joinRoom(roomCode, playerUid, {
       onHostBroadcast: (msg) => this.handleHostBroadcast(msg),
       onPresenceChange: (users) => hostLog.info('Users in room:', users.length),
     });
 
     // Request current state from host
-    await this.broadcastService.sendToHost({
-      type: 'REQUEST_STATE',
-      uid: playerUid,
-    });
+    await this.broadcastCoordinator.requestState(playerUid);
 
     hostLog.info('Joined as Player for room:', roomCode);
   }
@@ -470,7 +462,7 @@ export class GameStateService {
 
     // If seated, notify host
     if (!this.isHost && this.mySeatNumber !== null && this.myUid) {
-      await this.broadcastService.sendToHost({
+      await this.broadcastCoordinator.sendToHost({
         type: 'LEAVE',
         seat: this.mySeatNumber,
         uid: this.myUid,
@@ -482,7 +474,7 @@ export class GameStateService {
       await this.clearSavedState(roomCode);
     }
 
-    await this.broadcastService.leaveRoom();
+    await this.broadcastCoordinator.leaveRoom();
     this.state = null;
     this.isHost = false;
     this.myUid = null;
@@ -605,8 +597,7 @@ export class GameStateService {
     );
 
     // Send ACK to player
-    await this.broadcastService.broadcastAsHost({
-      type: 'SEAT_ACTION_ACK',
+    await this.broadcastCoordinator.broadcastSeatActionAck({
       requestId: msg.requestId,
       toUid: msg.uid,
       success: result.success,
@@ -630,8 +621,7 @@ export class GameStateService {
     );
 
     const broadcastState = this.toBroadcastState();
-    await this.broadcastService.broadcastAsHost({
-      type: 'SNAPSHOT_RESPONSE',
+    await this.broadcastCoordinator.broadcastSnapshotResponse({
       requestId: msg.requestId,
       toUid: msg.uid,
       state: broadcastState,
@@ -663,12 +653,7 @@ export class GameStateService {
     // Check if seat is available
     if (this.state.players.get(seat) !== null) {
       hostLog.info('Seat', seat, 'already taken, sending SEAT_REJECTED');
-      await this.broadcastService.broadcastAsHost({
-        type: 'SEAT_REJECTED',
-        seat,
-        requestUid: uid,
-        reason: 'seat_taken',
-      });
+      await this.broadcastCoordinator.broadcastSeatRejected(seat, uid, 'seat_taken');
       return;
     }
 
@@ -1212,7 +1197,7 @@ export class GameStateService {
     this.applyStateUpdate(msg.state, msg.revision);
 
     // Mark connection as live
-    this.broadcastService.markAsLive();
+    this.broadcastCoordinator.markAsLive();
   }
 
   private applyStateUpdate(broadcastState: BroadcastGameState, revision?: number): void {
@@ -1227,7 +1212,7 @@ export class GameStateService {
     }
 
     // Mark connection as live after receiving state
-    this.broadcastService.markAsLive();
+    this.broadcastCoordinator.markAsLive();
     // Create or update local state from broadcast
     const template = createTemplateFromRoles(broadcastState.templateRoles);
 
@@ -1517,7 +1502,7 @@ export class GameStateService {
       }
     });
 
-    await this.broadcastService.broadcastAsHost({ type: 'GAME_RESTARTED' });
+    await this.broadcastCoordinator.broadcastGameRestarted();
     await this.broadcastState();
     this.notifyListeners();
 
@@ -1623,12 +1608,7 @@ export class GameStateService {
     }
 
     // Broadcast role turn (PUBLIC)
-    await this.broadcastService.broadcastAsHost({
-      type: 'ROLE_TURN',
-      role,
-      pendingSeats,
-      stepId,
-    });
+    await this.broadcastCoordinator.broadcastRoleTurn(role, pendingSeats, { stepId });
 
     // Update currentStepId for Host UI (NightProgressIndicator)
     if (stepId) {
@@ -1720,10 +1700,7 @@ export class GameStateService {
     this.state.status = GameStatus.ended;
 
     // Broadcast night end
-    await this.broadcastService.broadcastAsHost({
-      type: 'NIGHT_END',
-      deaths,
-    });
+    await this.broadcastCoordinator.broadcastNightEnd(deaths);
 
     await this.broadcastState();
     this.notifyListeners();
@@ -1843,9 +1820,8 @@ export class GameStateService {
       };
 
       // Send request
-      this.broadcastService
-        .sendToHost({
-          type: 'SEAT_ACTION_REQUEST',
+      this.broadcastCoordinator
+        .sendSeatActionRequest({
           requestId,
           action,
           seat,
@@ -1853,7 +1829,7 @@ export class GameStateService {
           displayName,
           avatarUrl,
         })
-        .catch((err) => {
+        .catch((err: Error) => {
           if (this.pendingSeatAction?.requestId === requestId) {
             clearTimeout(this.pendingSeatAction.timeoutHandle);
             this.pendingSeatAction = null;
@@ -1885,7 +1861,7 @@ export class GameStateService {
     }
 
     // Mark as syncing
-    this.broadcastService.markAsSyncing();
+    this.broadcastCoordinator.markAsSyncing();
 
     const requestId = this.generateRequestId();
 
@@ -1897,7 +1873,7 @@ export class GameStateService {
         playerLog.info(` Snapshot request timeout`);
         this.pendingSnapshotRequest = null;
         // Mark as disconnected on timeout
-        this.broadcastService.setConnectionStatus('disconnected');
+        this.broadcastCoordinator.setConnectionStatus('disconnected');
         this.notifyListeners();
       }
     }, timeoutMs);
@@ -1910,19 +1886,14 @@ export class GameStateService {
     };
 
     try {
-      await this.broadcastService.sendToHost({
-        type: 'SNAPSHOT_REQUEST',
-        requestId,
-        uid: this.myUid,
-        lastRevision: this.stateRevision,
-      });
+      await this.broadcastCoordinator.requestSnapshot(requestId, this.myUid, this.stateRevision);
     } catch (err) {
       // sendToHost failed - rollback pending state immediately
       if (this.pendingSnapshotRequest?.requestId === requestId) {
         playerLog.info(` Snapshot request send failed:`, err);
         clearTimeout(this.pendingSnapshotRequest.timeoutHandle);
         this.pendingSnapshotRequest = null;
-        this.broadcastService.setConnectionStatus('disconnected');
+        this.broadcastCoordinator.setConnectionStatus('disconnected');
         this.notifyListeners();
       }
       return false;
@@ -1953,10 +1924,7 @@ export class GameStateService {
       return;
     }
 
-    await this.broadcastService.sendToHost({
-      type: 'VIEWED_ROLE',
-      seat: this.mySeatNumber,
-    });
+    await this.broadcastCoordinator.sendViewedRole(this.mySeatNumber);
   }
 
   /**
@@ -1974,13 +1942,7 @@ export class GameStateService {
       return;
     }
 
-    await this.broadcastService.sendToHost({
-      type: 'ACTION',
-      seat: this.mySeatNumber,
-      role: myRole,
-      target,
-      extra,
-    });
+    await this.broadcastCoordinator.sendAction(this.mySeatNumber, myRole, target, extra);
   }
 
   /**
@@ -1995,11 +1957,7 @@ export class GameStateService {
       return;
     }
 
-    await this.broadcastService.sendToHost({
-      type: 'WOLF_VOTE',
-      seat: this.mySeatNumber,
-      target,
-    });
+    await this.broadcastCoordinator.sendWolfVote(this.mySeatNumber, target);
   }
 
   /**
@@ -2015,12 +1973,7 @@ export class GameStateService {
       return;
     }
 
-    await this.broadcastService.sendToHost({
-      type: 'REVEAL_ACK',
-      seat: this.mySeatNumber,
-      role,
-      revision: this.stateRevision,
-    });
+    await this.broadcastCoordinator.sendRevealAck(this.mySeatNumber, role, this.stateRevision);
   }
 
   // ===========================================================================
@@ -2512,11 +2465,7 @@ export class GameStateService {
     // Always notify listeners so Host UI sees updated state (seerReveal, etc.)
     this.notifyListeners();
 
-    await this.broadcastService.broadcastAsHost({
-      type: 'STATE_UPDATE',
-      state: broadcastState,
-      revision: this.stateRevision,
-    });
+    await this.broadcastCoordinator.broadcastState(broadcastState, this.stateRevision);
 
     // Persist state to storage for recovery
     // (async, non-blocking - don't await)

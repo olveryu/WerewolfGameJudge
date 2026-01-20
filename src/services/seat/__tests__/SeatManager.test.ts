@@ -10,7 +10,7 @@
 import { SeatManager, SeatManagerConfig, SeatActionRequest, SeatActionAck } from '../SeatManager';
 import type { LocalGameState } from '../../types/GameStateTypes';
 import { GameStatus } from '../../types/GameStateTypes';
-import type { BroadcastService } from '../../BroadcastService';
+import type { BroadcastCoordinator } from '../../broadcast/BroadcastCoordinator';
 
 // =============================================================================
 // Mock Helpers
@@ -43,11 +43,11 @@ function createMockState(
   } as LocalGameState;
 }
 
-function createMockBroadcastService(): jest.Mocked<BroadcastService> {
+function createMockBroadcastCoordinator(): jest.Mocked<BroadcastCoordinator> {
   return {
-    broadcastAsHost: jest.fn().mockResolvedValue(undefined),
-    sendToHost: jest.fn().mockResolvedValue(undefined),
-  } as unknown as jest.Mocked<BroadcastService>;
+    broadcastSeatActionAck: jest.fn().mockResolvedValue(undefined),
+    sendSeatActionRequest: jest.fn().mockResolvedValue(undefined),
+  } as unknown as jest.Mocked<BroadcastCoordinator>;
 }
 
 function createMockConfig(
@@ -55,7 +55,7 @@ function createMockConfig(
   overrides: Partial<SeatManagerConfig> = {},
 ): SeatManagerConfig {
   let mySeatNumber: number | null = null;
-  const mockBroadcastService = createMockBroadcastService();
+  const mockBroadcastCoordinator = createMockBroadcastCoordinator();
 
   return {
     isHost: () => true,
@@ -67,7 +67,7 @@ function createMockConfig(
     getMySeatNumber: () => mySeatNumber,
     broadcastState: jest.fn().mockResolvedValue(undefined),
     notifyListeners: jest.fn(),
-    broadcastService: mockBroadcastService,
+    broadcastCoordinator: mockBroadcastCoordinator,
     ...overrides,
   };
 }
@@ -358,8 +358,7 @@ describe('SeatManager', () => {
       await seatManager.handleSeatActionRequest(request);
 
       expect(state.players.get(1)?.uid).toBe('user-001');
-      expect(config.broadcastService.broadcastAsHost).toHaveBeenCalledWith({
-        type: 'SEAT_ACTION_ACK',
+      expect(config.broadcastCoordinator.broadcastSeatActionAck).toHaveBeenCalledWith({
         requestId: 'req-001',
         toUid: 'user-001',
         success: true,
@@ -393,8 +392,7 @@ describe('SeatManager', () => {
       await seatManager.handleSeatActionRequest(request);
 
       expect(state.players.get(1)?.uid).toBe('other-user');
-      expect(config.broadcastService.broadcastAsHost).toHaveBeenCalledWith({
-        type: 'SEAT_ACTION_ACK',
+      expect(config.broadcastCoordinator.broadcastSeatActionAck).toHaveBeenCalledWith({
         requestId: 'req-001',
         toUid: 'user-001',
         success: false,
@@ -418,7 +416,7 @@ describe('SeatManager', () => {
 
       await seatManager.handleSeatActionRequest(request);
 
-      expect(config.broadcastService.broadcastAsHost).not.toHaveBeenCalled();
+      expect(config.broadcastCoordinator.broadcastSeatActionAck).not.toHaveBeenCalled();
     });
   });
 
@@ -594,10 +592,10 @@ describe('SeatManager', () => {
 
     it('should send request to host and wait for ACK', async () => {
       const state = createMockState();
-      const mockBroadcastService = createMockBroadcastService();
+      const mockBroadcastCoordinator = createMockBroadcastCoordinator();
       const config = createMockConfig(state, {
         isHost: () => false,
-        broadcastService: mockBroadcastService,
+        broadcastCoordinator: mockBroadcastCoordinator,
       });
       const seatManager = new SeatManager(config);
 
@@ -608,9 +606,8 @@ describe('SeatManager', () => {
       await Promise.resolve();
 
       // Verify request was sent
-      expect(mockBroadcastService.sendToHost).toHaveBeenCalledWith(
+      expect(mockBroadcastCoordinator.sendSeatActionRequest).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'SEAT_ACTION_REQUEST',
           action: 'sit',
           seat: 1,
           displayName: 'Alice',
@@ -618,7 +615,8 @@ describe('SeatManager', () => {
       );
 
       // Simulate ACK from host
-      const requestId = (mockBroadcastService.sendToHost as jest.Mock).mock.calls[0][0].requestId;
+      const requestId = (mockBroadcastCoordinator.sendSeatActionRequest as jest.Mock).mock.calls[0][0]
+        .requestId;
       seatManager.handleSeatActionAck({
         type: 'SEAT_ACTION_ACK',
         requestId,
@@ -633,10 +631,10 @@ describe('SeatManager', () => {
 
     it('should timeout if no ACK received', async () => {
       const state = createMockState();
-      const mockBroadcastService = createMockBroadcastService();
+      const mockBroadcastCoordinator = createMockBroadcastCoordinator();
       const config = createMockConfig(state, {
         isHost: () => false,
-        broadcastService: mockBroadcastService,
+        broadcastCoordinator: mockBroadcastCoordinator,
       });
       const seatManager = new SeatManager(config);
 
@@ -655,10 +653,10 @@ describe('SeatManager', () => {
 
     it('should set lastSeatError on failed ACK with seat_taken', async () => {
       const state = createMockState();
-      const mockBroadcastService = createMockBroadcastService();
+      const mockBroadcastCoordinator = createMockBroadcastCoordinator();
       const config = createMockConfig(state, {
         isHost: () => false,
-        broadcastService: mockBroadcastService,
+        broadcastCoordinator: mockBroadcastCoordinator,
       });
       const seatManager = new SeatManager(config);
 
@@ -669,7 +667,8 @@ describe('SeatManager', () => {
       await Promise.resolve();
 
       // Simulate failed ACK
-      const requestId = (mockBroadcastService.sendToHost as jest.Mock).mock.calls[0][0].requestId;
+      const requestId = (mockBroadcastCoordinator.sendSeatActionRequest as jest.Mock).mock.calls[0][0]
+        .requestId;
       seatManager.handleSeatActionAck({
         type: 'SEAT_ACTION_ACK',
         requestId,
@@ -686,10 +685,10 @@ describe('SeatManager', () => {
 
     it('should cancel previous pending action when new action starts', async () => {
       const state = createMockState();
-      const mockBroadcastService = createMockBroadcastService();
+      const mockBroadcastCoordinator = createMockBroadcastCoordinator();
       const config = createMockConfig(state, {
         isHost: () => false,
-        broadcastService: mockBroadcastService,
+        broadcastCoordinator: mockBroadcastCoordinator,
       });
       const seatManager = new SeatManager(config);
 
@@ -705,7 +704,8 @@ describe('SeatManager', () => {
       await expect(promise1).rejects.toThrow('Cancelled by new action');
 
       // Complete second action
-      const requestId = (mockBroadcastService.sendToHost as jest.Mock).mock.calls[1][0].requestId;
+      const requestId = (mockBroadcastCoordinator.sendSeatActionRequest as jest.Mock).mock.calls[1][0]
+        .requestId;
       seatManager.handleSeatActionAck({
         type: 'SEAT_ACTION_ACK',
         requestId,
