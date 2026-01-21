@@ -1,10 +1,10 @@
 /**
  * BroadcastService - Handles Supabase Realtime Broadcast for game state synchronization
  *
- * Architecture:
+ * Architecture (IMPORTANT):
  * - Host is the Single Source of Truth for game state
- * - Host broadcasts state updates to all players in the room
- * - Players send actions to Host via broadcast
+ * - ALL game state is broadcast publicly via HostBroadcast.STATE_UPDATE (no private effects)
+ * - Players only send intents/messages to Host (PlayerMessage)
  * - No game state is stored in database (only room basic info)
  *
  * Protocol Features:
@@ -247,12 +247,12 @@ export class BroadcastService {
   }
 
   /**
-   * Host: Broadcast a PUBLIC message to all players (type-safe, whitelist-only)
+   * Host: Broadcast a PUBLIC message to all players.
    *
-   * ANTI-CHEAT: Only accepts PublicPayload types (compiler-enforced).
-   * Sensitive information MUST use sendPrivate() instead.
-   *
-   * @see docs/phase4-final-migration.md for anti-cheat architecture
+   * NOTE:
+   * - This project uses broadcast-only architecture: PRIVATE_EFFECT / private messaging is NOT used.
+   * - All state (including role-specific context) must live in BroadcastGameState and be broadcast.
+   * - UI is responsible for role-based filtering.
    */
   async broadcastPublic(payload: PublicPayload): Promise<void> {
     if (!this.channel) {

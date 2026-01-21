@@ -36,6 +36,13 @@ function deriveWolfVoteStatus(wolfVotes: Record<string, number>): Record<string,
   return result;
 }
 
+function requireField<T>(value: T | undefined, fieldName: string): T {
+  if (value === undefined) {
+    throw new Error(`normalizeState: missing required field: ${fieldName}`);
+  }
+  return value;
+}
+
 /**
  * 广播前归一化状态（normalizeState）。
  * - 填充可选字段的默认值
@@ -49,7 +56,7 @@ function deriveWolfVoteStatus(wolfVotes: Record<string, number>): Record<string,
  *   - normalizeStateForBroadcast(state: BroadcastGameState): BroadcastGameState
  *   - normalizeStateForTests(partial: Partial<BroadcastGameState>): BroadcastGameState
  */
-export function normalizeState(raw: Partial<BroadcastGameState>): BroadcastGameState {
+export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
   // 规范化 seat-map 字段（仅新增字段）
   const wolfVotes = canonicalizeSeatKeyRecord(raw.wolfVotes);
 
@@ -64,15 +71,15 @@ export function normalizeState(raw: Partial<BroadcastGameState>): BroadcastGameS
   }
 
   return {
-    // 必填字段默认值
-    roomCode: raw.roomCode ?? '',
-    hostUid: raw.hostUid ?? '',
-    status: raw.status ?? 'unseated',
-    templateRoles: raw.templateRoles ?? [],
-    // ⚠️ Phase 1: players 保持原样，不做 key 规范化
-    players: raw.players ?? {},
-    currentActionerIndex: raw.currentActionerIndex ?? -1,
-    isAudioPlaying: raw.isAudioPlaying ?? false,
+  // 必填字段（fail-fast，避免掩盖状态损坏）
+  roomCode: requireField(raw.roomCode, 'roomCode'),
+  hostUid: requireField(raw.hostUid, 'hostUid'),
+  status: requireField(raw.status, 'status'),
+  templateRoles: requireField(raw.templateRoles, 'templateRoles'),
+  // ⚠️ Phase 1: players 保持原样，不做 key 规范化
+  players: requireField(raw.players, 'players'),
+  currentActionerIndex: requireField(raw.currentActionerIndex, 'currentActionerIndex'),
+  isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
 
     // Seat-map 字段（已规范化）
     wolfVoteStatus,
@@ -95,4 +102,25 @@ export function normalizeState(raw: Partial<BroadcastGameState>): BroadcastGameS
     confirmStatus: raw.confirmStatus,
     actionRejected: raw.actionRejected,
   };
+}
+
+/**
+ * Test-only helper.
+ *
+ * Creates a valid BroadcastGameState from a Partial, then runs normalizeState.
+ * Keep normalizeState itself fail-fast in real runtime.
+ */
+export function normalizeStateForTests(
+  partial: Partial<BroadcastGameState>,
+): BroadcastGameState {
+  const base: BroadcastGameState = {
+    roomCode: 'TEST',
+    hostUid: 'HOST',
+    status: 'unseated',
+    templateRoles: [],
+    players: {},
+    currentActionerIndex: -1,
+    isAudioPlaying: false,
+  };
+  return normalizeState({ ...base, ...partial });
 }
