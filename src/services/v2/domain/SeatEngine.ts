@@ -67,9 +67,9 @@ export class SeatEngine {
       return { success: false, reason: 'game_in_progress' };
     }
 
-    // Validate: seat must be within range
+    // Validate: seat must be within range (0-indexed: 0 to totalSeats-1)
     const totalSeats = state.template.roles.length;
-    if (seat < 1 || seat > totalSeats) {
+    if (seat < 0 || seat >= totalSeats) {
       return { success: false, reason: 'seat_out_of_range' };
     }
 

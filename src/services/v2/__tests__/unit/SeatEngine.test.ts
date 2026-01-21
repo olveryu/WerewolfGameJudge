@@ -18,7 +18,8 @@ function createTestState(overrides: Partial<LocalGameState> = {}): LocalGameStat
   };
 
   const players = new Map<number, import('../../infra/StateStore').LocalPlayer | null>();
-  for (let i = 1; i <= defaultTemplate.roles.length; i++) {
+  // 0-indexed to match UI layer
+  for (let i = 0; i < defaultTemplate.roles.length; i++) {
     players.set(i, null);
   }
 
@@ -129,8 +130,8 @@ describe('SeatEngine', () => {
 
     it('should update status to seated when all seats filled', () => {
       const state = createTestState();
-      // Fill 5 seats
-      for (let i = 1; i <= 5; i++) {
+      // Fill 5 seats (0-indexed: 0-4)
+      for (let i = 0; i < 5; i++) {
         state.players.set(i, {
           uid: `player-${i}`,
           seatNumber: i,
@@ -139,10 +140,10 @@ describe('SeatEngine', () => {
         });
       }
 
-      // Sit in last seat
+      // Sit in last seat (index 5)
       const result = engine.sit(state, {
-        seat: 6,
-        uid: 'player-6',
+        seat: 5,
+        uid: 'player-5',
       });
 
       expect(result.success).toBe(true);

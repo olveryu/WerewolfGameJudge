@@ -101,9 +101,9 @@ export class HostEngine {
   async initialize(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
     const stateStore = this.config.stateStore;
 
-    // Create initial players map
+    // Create initial players map (0-indexed to match UI layer)
     const players = new Map<number, LocalPlayer | null>();
-    for (let i = 1; i <= template.numberOfPlayers; i++) {
+    for (let i = 0; i < template.numberOfPlayers; i++) {
       players.set(i, null);
     }
 
@@ -249,6 +249,61 @@ export class HostEngine {
   // Seat Management
   // ---------------------------------------------------------------------------
 
+  /**
+   * Host takes a seat directly (not via player message)
+   * This is used when the host device is also a player
+   */
+  async hostTakeSeat(
+    seat: number,
+    uid: string,
+    displayName?: string,
+    avatarUrl?: string,
+  ): Promise<boolean> {
+    const stateStore = this.config.stateStore;
+    const state = stateStore.getState();
+    if (!state) return false;
+
+    const result = this.seatEngine.sit(state, { seat, uid, displayName, avatarUrl });
+
+    if (!result.success) {
+      hostLog.debug('Host take seat rejected:', result.reason);
+      return false;
+    }
+
+    // Apply updates
+    if (result.updates) {
+      stateStore.update(() => result.updates!);
+    }
+
+    await this.broadcastState();
+    this.config.onNotifyListeners();
+    return true;
+  }
+
+  /**
+   * Host leaves seat directly (not via player message)
+   */
+  async hostLeaveSeat(seat: number, uid: string): Promise<boolean> {
+    const stateStore = this.config.stateStore;
+    const state = stateStore.getState();
+    if (!state) return false;
+
+    const result = this.seatEngine.standup(state, { seat, uid });
+
+    if (!result.success) {
+      hostLog.debug('Host leave seat rejected:', result.reason);
+      return false;
+    }
+
+    if (result.updates) {
+      stateStore.update(() => result.updates!);
+    }
+
+    await this.broadcastState();
+    this.config.onNotifyListeners();
+    return true;
+  }
+
   private async handlePlayerJoin(
     seat: number,
     uid: string,
@@ -365,6 +420,14 @@ export class HostEngine {
     }
   }
 
+  /**
+   * Host marks their own seat as having viewed role.
+   * Called by GameFacade.playerViewedRole() in Host mode.
+   */
+  async hostViewedRole(seat: number): Promise<void> {
+    await this.handleViewedRole(seat);
+  }
+
   private async handleViewedRole(seat: number): Promise<void> {
     const stateStore = this.config.stateStore;
     const state = stateStore.getState();
@@ -378,6 +441,16 @@ export class HostEngine {
       const existingPlayer = newPlayers.get(seat);
       if (existingPlayer) {
         newPlayers.set(seat, { ...existingPlayer, hasViewedRole: true });
+      }
+
+      // Check if all players have viewed their roles
+      const allViewed = Array.from(newPlayers.values())
+        .filter((p): p is LocalPlayer => p !== null)
+        .every((p) => p.hasViewedRole);
+
+      // Update status to ready if all have viewed
+      if (allViewed) {
+        return { players: newPlayers, status: GameStatus.ready };
       }
       return { players: newPlayers };
     });
@@ -518,9 +591,9 @@ export class HostEngine {
     }
 
     this.config.stateStore.update((current) => {
-      // Rebuild players map for new size
+      // Rebuild players map for new size (0-indexed to match UI layer)
       const newPlayers = new Map<number, LocalPlayer | null>();
-      for (let i = 1; i <= newTemplate.numberOfPlayers; i++) {
+      for (let i = 0; i < newTemplate.numberOfPlayers; i++) {
         newPlayers.set(i, current.players.get(i) ?? null);
       }
 

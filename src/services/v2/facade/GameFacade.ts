@@ -341,6 +341,12 @@ export class GameFacade {
   }
 
   async takeSeat(seat: number, displayName?: string, avatarUrl?: string): Promise<boolean> {
+    // Host mode: use hostEngine directly
+    if (this.mode === 'host' && this.hostEngine) {
+      return this.hostEngine.hostTakeSeat(seat, this.myUid!, displayName, avatarUrl);
+    }
+
+    // Player mode: use playerEngine
     if (!this.playerEngine) {
       facadeLog.warn('[GameFacade] takeSeat called but not in player mode');
       return false;
@@ -351,6 +357,14 @@ export class GameFacade {
   }
 
   async leaveSeat(): Promise<boolean> {
+    // Host mode: use hostEngine directly
+    if (this.mode === 'host' && this.hostEngine) {
+      const mySeat = this.getMySeatNumber();
+      if (mySeat === null) return true; // Already not seated
+      return this.hostEngine.hostLeaveSeat(mySeat, this.myUid!);
+    }
+
+    // Player mode: use playerEngine
     if (!this.playerEngine) {
       facadeLog.warn('[GameFacade] leaveSeat called but not in player mode');
       return false;
@@ -458,6 +472,18 @@ export class GameFacade {
   }
 
   async playerViewedRole(): Promise<void> {
+    // Host mode: directly call handleViewedRole on HostEngine
+    if (this.hostEngine) {
+      const seatNumber = this.getMySeatNumber();
+      if (seatNumber === null) {
+        facadeLog.warn('[GameFacade] playerViewedRole: Host not seated');
+        return;
+      }
+      await this.hostEngine.hostViewedRole(seatNumber);
+      return;
+    }
+
+    // Player mode: send message to Host
     if (!this.playerEngine) {
       facadeLog.warn('[GameFacade] playerViewedRole called but not in player mode');
       return;

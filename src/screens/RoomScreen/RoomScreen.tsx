@@ -224,7 +224,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         const createdRoomNumber = await createRoom(template, roomNumber);
 
         if (createdRoomNumber) {
-          // Host auto-takes seat 0
+          // Host auto-takes seat 0 (0-indexed)
           setLoadingMessage('正在入座...');
           await takeSeat(0);
           setIsInitialized(true);
