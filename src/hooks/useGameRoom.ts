@@ -293,13 +293,11 @@ export const useGameRoom = (): UseGameRoomResult => {
         const avatarUrl = await authService.current.getCurrentAvatarUrl();
 
         // Phase 1B: 使用 v2 facade 加入房间
-        // Host rejoin 暂不支持，后续 Phase 2 再处理
+        // Phase 1 明确不支持 Host rejoin，直接报错
         if (record.hostUid === playerUid) {
-          // We're the host - rejoin with recovery mode
-          // Note: v2 facade 暂不支持 rejoin，使用 legacy fallback
-          gameRoomLog.warn('Host rejoining room - using legacy fallback');
-          await gameStateService.current.rejoinAsHost(roomNumber, playerUid);
-          return true;
+          gameRoomLog.error('Host rejoin not supported in Phase 1');
+          setError('房主重新加入暂不支持，请重新创建房间');
+          return false;
         }
 
         await facade.joinAsPlayer(
@@ -370,36 +368,39 @@ export const useGameRoom = (): UseGameRoomResult => {
   }, [facade]);
 
   // Take seat with ack (unified API)
-  // Phase 1: 暂时保留 legacy 实现（ACK 机制 v2 暂不支持）
+  // Phase 1: 使用 v2 facade（ACK 机制已实现）
   const takeSeatWithAck = useCallback(
     async (seatNumber: number): Promise<{ success: boolean; reason?: string }> => {
       try {
         const displayName = await authService.current.getCurrentDisplayName();
         const avatarUrl = await authService.current.getCurrentAvatarUrl();
 
-        return await gameStateService.current.takeSeatWithAck(
+        const success = await facade.takeSeat(
           seatNumber,
           displayName ?? undefined,
           avatarUrl ?? undefined,
         );
+        // v2 facade 已内置 ACK 等待，success=false 意味着被拒绝
+        return { success, reason: success ? undefined : 'seat_taken' };
       } catch (err) {
         gameRoomLog.error(' Error taking seat with ack:', err);
         return { success: false, reason: String(err) };
       }
     },
-    [],
+    [facade],
   );
 
   // Leave seat with ack (unified API)
-  // Phase 1: 暂时保留 legacy 实现（ACK 机制 v2 暂不支持）
+  // Phase 1: 使用 v2 facade（ACK 机制已实现）
   const leaveSeatWithAck = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
     try {
-      return await gameStateService.current.leaveSeatWithAck();
+      const success = await facade.leaveSeat();
+      return { success, reason: success ? undefined : 'leave_failed' };
     } catch (err) {
       gameRoomLog.error(' Error leaving seat with ack:', err);
       return { success: false, reason: String(err) };
     }
-  }, []);
+  }, [facade]);
 
   // Request snapshot from host (force sync)
   const requestSnapshot = useCallback(async (): Promise<boolean> => {
