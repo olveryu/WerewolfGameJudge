@@ -1104,4 +1104,59 @@ describe('V2GameFacade', () => {
       expect(broadcastedState.currentNightResults).toEqual({});
     });
   });
+
+  // ===========================================================================
+  // PR4: submitAction tests
+  // ===========================================================================
+
+  describe('submitAction (PR4)', () => {
+    it('should fail when not host (gate: host_only)', async () => {
+      // Player 不是 Host
+      await facade.joinAsPlayer('TEST', 'player-uid', 'Player 1');
+
+      const result = await facade.submitAction(0, 'seer', 1);
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('host_only');
+    });
+
+    it('should fail when status is not ongoing (gate: invalid_status)', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      // 不开始夜晚，status 是 'seated'
+
+      const result = await facade.submitAction(2, 'seer', 0);
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+
+    it('should broadcast on rejection (reject also broadcasts)', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      // 不开始夜晚，status 是 'seated'
+
+      mockBroadcastService.broadcastAsHost.mockClear();
+
+      await facade.submitAction(2, 'seer', 0);
+
+      // 失败时也应该 broadcast
+      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'STATE_UPDATE',
+        }),
+      );
+    });
+
+    it('should return reason from handler (not facade)', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      // 不填座位，state.status 是 'unseated'
+
+      const result = await facade.submitAction(0, 'seer', 1);
+
+      // reason 必须来自 handler，不是 facade 自定义
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+  });
 });

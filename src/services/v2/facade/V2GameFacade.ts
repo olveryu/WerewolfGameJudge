@@ -19,13 +19,14 @@ import { GameStore } from '../store';
 import { gameReducer } from '../reducer';
 import { handleJoinSeat, handleLeaveMySeat } from '../handlers/seatHandler';
 import { handleAssignRoles, handleStartNight } from '../handlers/gameControlHandler';
-import { handleViewedRole } from '../handlers/actionHandler';
+import { handleViewedRole, handleSubmitAction } from '../handlers/actionHandler';
 import type {
   JoinSeatIntent,
   LeaveMySeatIntent,
   AssignRolesIntent,
   ViewedRoleIntent,
   StartNightIntent,
+  SubmitActionIntent,
 } from '../intents/types';
 import type { HandlerContext } from '../handlers/types';
 import type { StateAction } from '../reducer/types';
@@ -660,6 +661,77 @@ export class V2GameFacade implements IGameFacade {
     }
 
     v2FacadeLog.info('startNight success');
+    return { success: true };
+  }
+
+  // =========================================================================
+  // Night Action: 提交夜晚行动（PR4）
+  // =========================================================================
+
+  /**
+   * Host: 处理玩家提交的夜晚行动
+   *
+   * PR4: SUBMIT_ACTION（Night-1 only）
+   * - Resolver-first：所有业务校验由 resolver 完成
+   * - Reject 也 broadcast：防 UI pending 卡死
+   * - Gate: host_only, invalid_status, forbidden_while_audio_playing, invalid_step, not_seated
+   *
+   * @param seat - 行动者座位
+   * @param role - 行动者角色
+   * @param target - 目标座位（可为 null）
+   * @param extra - 额外参数（如 timestamp）
+   * @returns { success, reason? }
+   */
+  async submitAction(
+    seat: number,
+    role: import('../../../models/roles').RoleId,
+    target: number | null,
+    extra?: unknown,
+  ): Promise<{ success: boolean; reason?: string }> {
+    v2FacadeLog.debug('submitAction called', { seat, role, target, isHost: this.isHost });
+
+    const state = this.store.getState();
+
+    // 构造 intent
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat, role, target, extra },
+    };
+
+    // 构造 context（isHost 来自 facade 状态，让 handler 决定是否拒绝）
+    const context: HandlerContext = {
+      state,
+      isHost: this.isHost,
+      myUid: this.myUid,
+      mySeat: this.getMySeatNumber(),
+    };
+
+    // 调用 handler（所有校验在这里，包括 resolver 校验）
+    const result = handleSubmitAction(intent, context);
+
+    if (!result.success) {
+      v2FacadeLog.warn('submitAction failed', { reason: result.reason });
+      // PR4 要求：Reject 也必须 broadcast（防 UI pending 卡死）
+      // 如果 handler 返回了 actions（如 ACTION_REJECTED），应用它们
+      if (state && result.actions.length > 0) {
+        this.applyActions(state, result.actions);
+      }
+      // 无论如何都 broadcast
+      await this.broadcastCurrentState();
+      return { success: false, reason: result.reason };
+    }
+
+    // 应用 actions 到 reducer（此时 state 必不为 null）
+    if (state) {
+      this.applyActions(state, result.actions);
+    }
+
+    // 执行副作用
+    if (result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE')) {
+      await this.broadcastCurrentState();
+    }
+
+    v2FacadeLog.info('submitAction success', { seat, role, target });
     return { success: true };
   }
 
