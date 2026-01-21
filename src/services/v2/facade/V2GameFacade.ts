@@ -13,11 +13,7 @@
 
 import type { IGameFacade, StateListener } from '../../types/IGameFacade';
 import type { GameTemplate } from '../../../models/Template';
-import type {
-  BroadcastGameState,
-  PlayerMessage,
-  HostBroadcast,
-} from '../../protocol/types';
+import type { BroadcastGameState, PlayerMessage, HostBroadcast } from '../../protocol/types';
 import { BroadcastService } from '../../BroadcastService';
 import { GameStore } from '../store';
 import { gameReducer } from '../reducer';
@@ -93,11 +89,7 @@ export class V2GameFacade implements IGameFacade {
   // Room Lifecycle
   // =========================================================================
 
-  async initializeAsHost(
-    roomCode: string,
-    hostUid: string,
-    template: GameTemplate,
-  ): Promise<void> {
+  async initializeAsHost(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
     this.isHost = true;
     this.myUid = hostUid;
 
@@ -186,11 +178,7 @@ export class V2GameFacade implements IGameFacade {
   // Gate 1: 只用 SEAT_ACTION_REQUEST (sit/standup)
   // =========================================================================
 
-  async takeSeat(
-    seatNumber: number,
-    displayName?: string,
-    avatarUrl?: string,
-  ): Promise<boolean> {
+  async takeSeat(seatNumber: number, displayName?: string, avatarUrl?: string): Promise<boolean> {
     if (!this.myUid) return false;
 
     if (this.isHost) {

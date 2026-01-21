@@ -13,10 +13,7 @@ import type { RoleId } from '../../../models/roles';
 /**
  * 处理开始游戏（分配角色 + 开始夜晚）
  */
-export function handleStartGame(
-  _intent: StartGameIntent,
-  context: HandlerContext,
-): HandlerResult {
+export function handleStartGame(_intent: StartGameIntent, context: HandlerContext): HandlerResult {
   const { state, isHost } = context;
 
   // 验证：仅主机可操作
