@@ -6,7 +6,7 @@
  * 职责边界：
  * - Facade 只做编排：消息接入 → 调 handler → reducer → store → broadcast
  * - 禁止在此处写业务逻辑/校验规则
- * - 所有校验在 handler (handleJoinSeat/handleLeaveSeat)
+ * - 所有校验在 handler (handleJoinSeat/handleLeaveMySeat)
  *
  * Gate 1 选择：只用 SEAT_ACTION_REQUEST (sit/standup)，不用 JOIN/LEAVE
  */
@@ -17,8 +17,8 @@ import type { BroadcastGameState, PlayerMessage, HostBroadcast } from '../../pro
 import { BroadcastService } from '../../BroadcastService';
 import { GameStore } from '../store';
 import { gameReducer } from '../reducer';
-import { handleJoinSeat, handleLeaveSeat, handleLeaveMySeat } from '../handlers/seatHandler';
-import type { JoinSeatIntent, LeaveSeatIntent, LeaveMySeatIntent } from '../intents/types';
+import { handleJoinSeat, handleLeaveMySeat } from '../handlers/seatHandler';
+import type { JoinSeatIntent, LeaveMySeatIntent } from '../intents/types';
 import type { HandlerContext } from '../handlers/types';
 import type { StateAction } from '../reducer/types';
 import { v2FacadeLog } from '../../../utils/logger';
@@ -241,8 +241,9 @@ export class V2GameFacade implements IGameFacade {
 
     // Player: 发送 SEAT_ACTION_REQUEST (standup)，等待 ACK
     // Host 端会用 LEAVE_MY_SEAT handler 处理
-    const mySeat = this.getMySeatNumber();
-    return this.playerSendSeatActionWithAck('standup', mySeat ?? -1);
+    // 注意：standup 的 seat 字段不参与业务判断，仅用于协议兼容/日志占位
+    // 业务 seat 由 Host 端从 state 根据 uid 推导
+    return this.playerSendSeatActionWithAck('standup', 0);
   }
 
   /**
@@ -435,60 +436,10 @@ export class V2GameFacade implements IGameFacade {
   }
 
   /**
-   * Host 处理离座
+   * Host 处理离座（LEAVE_MY_SEAT）
    *
-   * Facade 不做任何校验，全部委托给 handler
-   * @param requestUid - 可能为 null，handler 会校验
-   * @returns { success, reason } - reason 来自 handler
-   */
-  private hostProcessLeaveSeat(
-    seat: number,
-    requestUid: string | null,
-  ): { success: boolean; reason?: string } {
-    v2FacadeLog.debug('hostProcessLeaveSeat', { seat, requestUid });
-
-    const state = this.store.getState();
-
-    const intent: LeaveSeatIntent = {
-      type: 'LEAVE_SEAT',
-      payload: {
-        seat,
-        uid: requestUid ?? '',
-      },
-    };
-
-    const context: HandlerContext = {
-      state,
-      isHost: true,
-      myUid: this.myUid,
-      mySeat: this.getMySeatNumber(),
-    };
-
-    const result = handleLeaveSeat(intent, context);
-
-    if (!result.success) {
-      void this.broadcastCurrentState();
-      return { success: false, reason: result.reason };
-    }
-
-    // 应用 actions 到 reducer（此时 state 必不为 null）
-    if (state) {
-      this.applyActions(state, result.actions);
-    }
-
-    if (result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE')) {
-      void this.broadcastCurrentState();
-    }
-
-    return { success: true };
-  }
-
-  /**
-   * Host 处理"我自己离座"（LEAVE_MY_SEAT）
-   *
-   * 与 hostProcessLeaveSeat 的区别：
-   * - 不需要 payload 中的 seat，从 context.mySeat 获取
-   * - 当 mySeat 为 null 时，handler 返回 not_seated（语义精确）
+   * 不需要 payload 中的 seat，从 context.mySeat（基于 uid 推导）获取
+   * 当 mySeat 为 null 时，handler 返回 not_seated（语义精确）
    *
    * @param requestUid - 请求者的 uid，可能为 null
    * @returns { success, reason } - reason 来自 handler

@@ -24,6 +24,7 @@ export type { GameIntent } from './intents';
 export {
   handleJoinSeat,
   handleLeaveSeat,
+  handleLeaveMySeat,
   handleStartGame,
   handleRestartGame,
   handleSubmitAction,

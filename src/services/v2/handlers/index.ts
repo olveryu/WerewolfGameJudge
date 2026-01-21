@@ -8,7 +8,7 @@
 export type { Handler, HandlerContext, HandlerResult } from './types';
 
 // Seat handlers
-export { handleJoinSeat, handleLeaveSeat } from './seatHandler';
+export { handleJoinSeat, handleLeaveSeat, handleLeaveMySeat } from './seatHandler';
 
 // Game control handlers
 export { handleStartGame, handleRestartGame } from './gameControlHandler';
