@@ -5,14 +5,15 @@
  * createRoom uses it instead of generating a new one.
  */
 
-import { SimplifiedRoomService, AuthService, GameStateService } from '../../services';
+import { SimplifiedRoomService, AuthService } from '../../services';
+import { GameFacade } from '../../services/v2/facade/GameFacade';
 import { GameTemplate } from '../../models/Template';
 import { RoleId } from '../../models/roles';
 
-// Mock the services (now in v2/infra/)
+// Mock the services (now in v2/)
 jest.mock('../../services/v2/infra/Room');
 jest.mock('../../services/v2/infra/Auth');
-jest.mock('../../services/core/GameStateService');
+jest.mock('../../services/v2/facade/GameFacade');
 
 // Helper to create mock template
 // Phase 5: actionOrder removed from GameTemplate
@@ -25,7 +26,7 @@ const _createMockTemplate = (): GameTemplate => ({
 describe('useGameRoom - Room Number Consistency', () => {
   let mockRoomService: jest.Mocked<SimplifiedRoomService>;
   let mockAuthService: jest.Mocked<AuthService>;
-  let mockGameStateService: jest.Mocked<GameStateService>;
+  let mockGameFacade: jest.Mocked<GameFacade>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -50,19 +51,22 @@ describe('useGameRoom - Room Number Consistency', () => {
       getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
     } as any;
 
-    mockGameStateService = {
+    mockGameFacade = {
       initializeAsHost: jest.fn().mockResolvedValue(undefined),
       addListener: jest.fn().mockReturnValue(() => {}),
+      addStatusListener: jest.fn().mockReturnValue(() => {}),
       isHostPlayer: jest.fn().mockReturnValue(true),
       getMyUid: jest.fn().mockReturnValue('host-123'),
       getMySeatNumber: jest.fn().mockReturnValue(null),
       getMyRole: jest.fn().mockReturnValue(null),
+      getLastSeatError: jest.fn().mockReturnValue(null),
+      getStateRevision: jest.fn().mockReturnValue(0),
     } as any;
 
     // Wire up getInstance mocks
     (SimplifiedRoomService.getInstance as jest.Mock).mockReturnValue(mockRoomService);
     (AuthService.getInstance as jest.Mock).mockReturnValue(mockAuthService);
-    (GameStateService.getInstance as jest.Mock).mockReturnValue(mockGameStateService);
+    (GameFacade.getInstance as jest.Mock).mockReturnValue(mockGameFacade);
   });
 
   describe('createRoom with provided roomNumber', () => {
@@ -123,26 +127,26 @@ describe('useGameRoom - Room Number Consistency', () => {
       type ListenerFn = (state: any) => void;
       let capturedListener: ListenerFn | null = null;
 
-      mockGameStateService.addListener = jest.fn().mockImplementation((listener: ListenerFn) => {
+      mockGameFacade.addListener = jest.fn().mockImplementation((listener: ListenerFn) => {
         capturedListener = listener;
         return jest.fn(); // unsubscribe
       });
 
       // First call: mySeatNumber is null
-      mockGameStateService.getMySeatNumber.mockReturnValue(null);
+      mockGameFacade.getMySeatNumber.mockReturnValue(null);
 
       // Simulate initial subscription
-      mockGameStateService.addListener(() => {});
+      mockGameFacade.addListener(() => {});
 
       // Now simulate host taking seat (getMySeatNumber returns 0)
-      mockGameStateService.getMySeatNumber.mockReturnValue(0);
+      mockGameFacade.getMySeatNumber.mockReturnValue(0);
 
       // Trigger the listener (simulating notifyListeners after hostTakeSeat)
       expect(capturedListener).not.toBeNull();
       capturedListener!({ players: new Map() });
 
       // Assert: The returned value is 0 (the seat taken)
-      expect(mockGameStateService.getMySeatNumber()).toBe(0);
+      expect(mockGameFacade.getMySeatNumber()).toBe(0);
     });
   });
 });

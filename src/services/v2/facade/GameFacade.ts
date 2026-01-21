@@ -28,6 +28,7 @@ import { PlayerEngine } from '../domain/PlayerEngine';
 // Re-export types for external consumers
 export type { LocalGameState, LocalPlayer, GameStateListener } from '../infra/StateStore';
 export { GameStatus } from '../infra/StateStore';
+export type { ConnectionStatus, ConnectionStatusListener } from '../infra/Transport';
 
 // =============================================================================
 // GameFacade Implementation
@@ -162,6 +163,20 @@ export class GameFacade {
     if (deaths.length === 0) return '昨晚是平安夜';
     const deathList = deaths.map((s: number) => s + '号').join(', ');
     return '昨晚死亡: ' + deathList;
+  }
+
+  // ===========================================================================
+  // Connection Status
+  // ===========================================================================
+
+  getConnectionStatus(): import('../infra/Transport').ConnectionStatus {
+    return this.transport.getConnectionStatus();
+  }
+
+  addStatusListener(
+    listener: import('../infra/Transport').ConnectionStatusListener,
+  ): () => void {
+    return this.transport.addStatusListener(listener);
   }
 
   // ===========================================================================

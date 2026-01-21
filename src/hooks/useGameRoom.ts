@@ -1,21 +1,24 @@
 /**
- * useGameRoom - Hook for managing game room with new Broadcast architecture
+ * useGameRoom - Hook for managing game room with v2 GameFacade
  *
- * This hook combines SimplifiedRoomService (for DB) and GameStateService (for state).
+ * This hook combines SimplifiedRoomService (for DB) and GameFacade (for state).
  * Host device is the Single Source of Truth for all game state.
+ *
+ * Phase 8 Migration: GameStateService → GameFacade
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-  GameStateService,
-  type LocalGameState,
-  GameStatus,
   SimplifiedRoomService,
   type RoomRecord,
-  BroadcastService,
-  type ConnectionStatus,
   AuthService,
 } from '../services';
+import {
+  GameFacade,
+  type LocalGameState,
+  type ConnectionStatus,
+  GameStatus,
+} from '../services/v2/facade/GameFacade';
 import { GameTemplate } from '../models/Template';
 import { RoleId, buildNightPlan } from '../models/roles';
 import {
@@ -125,37 +128,36 @@ export const useGameRoom = (): UseGameRoomResult => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [stateRevision, setStateRevision] = useState(0);
 
-  const gameStateService = useRef(GameStateService.getInstance());
+  const gameFacade = useRef(GameFacade.getInstance());
   const roomService = useRef(SimplifiedRoomService.getInstance());
   const authService = useRef(AuthService.getInstance());
-  const broadcastService = useRef(BroadcastService.getInstance());
 
   // Subscribe to game state changes
   useEffect(() => {
-    const unsubscribe = gameStateService.current.addListener((state) => {
+    const unsubscribe = gameFacade.current.addListener((state: LocalGameState | null) => {
       setGameState(state);
       // Update derived values when state changes
-      setIsHost(gameStateService.current.isHostPlayer());
-      setMyUid(gameStateService.current.getMyUid());
-      setMySeatNumber(gameStateService.current.getMySeatNumber());
+      setIsHost(gameFacade.current.isHostPlayer());
+      setMyUid(gameFacade.current.getMyUid());
+      setMySeatNumber(gameFacade.current.getMySeatNumber());
       // Update seat error (BUG-2 fix)
-      setLastSeatError(gameStateService.current.getLastSeatError());
+      setLastSeatError(gameFacade.current.getLastSeatError());
       // Update state revision
-      setStateRevision(gameStateService.current.getStateRevision());
+      setStateRevision(gameFacade.current.getStateRevision());
     });
     return unsubscribe;
   }, []);
 
   // Subscribe to connection status changes
   useEffect(() => {
-    const unsubscribe = broadcastService.current.addStatusListener((status) => {
+    const unsubscribe = gameFacade.current.addStatusListener((status: ConnectionStatus) => {
       setConnectionStatus(status);
     });
     return unsubscribe;
   }, []);
 
   const myRole = useMemo(() => {
-    return gameStateService.current.getMyRole();
+    return gameFacade.current.getMyRole();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- gameState triggers re-compute intentionally
   }, [gameState]);
 
@@ -227,7 +229,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         setRoomRecord(record);
 
         // Initialize game state as host
-        await gameStateService.current.initializeAsHost(roomNumber, hostUid, template);
+        await gameFacade.current.initializeAsHost(roomNumber, hostUid, template);
 
         return roomNumber;
       } catch (err) {
@@ -270,11 +272,11 @@ export const useGameRoom = (): UseGameRoomResult => {
         // We're the host - rejoin with recovery mode
         // Note: Game state is lost, Host will need to restart the game
         gameRoomLog.warn('Host rejoining room - state will be reset');
-        await gameStateService.current.rejoinAsHost(roomNumber, playerUid);
+        await gameFacade.current.rejoinAsHost(roomNumber, playerUid);
         return true;
       }
 
-      await gameStateService.current.joinAsPlayer(
+      await gameFacade.current.joinAsPlayer(
         roomNumber,
         playerUid,
         displayName ?? undefined,
@@ -299,7 +301,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         await roomService.current.deleteRoom(roomRecord.roomNumber);
       }
 
-      await gameStateService.current.leaveRoom();
+      await gameFacade.current.leaveRoom();
       setRoomRecord(null);
       setGameState(null);
     } catch (err) {
@@ -313,7 +315,7 @@ export const useGameRoom = (): UseGameRoomResult => {
       const displayName = await authService.current.getCurrentDisplayName();
       const avatarUrl = await authService.current.getCurrentAvatarUrl();
 
-      return await gameStateService.current.takeSeat(
+      return await gameFacade.current.takeSeat(
         seatNumber,
         displayName ?? undefined,
         avatarUrl ?? undefined,
@@ -327,7 +329,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Leave seat (unified API)
   const leaveSeat = useCallback(async (): Promise<void> => {
     try {
-      await gameStateService.current.leaveSeat();
+      await gameFacade.current.leaveSeat();
     } catch (err) {
       gameRoomLog.error(' Error leaving seat:', err);
     }
@@ -340,7 +342,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         const displayName = await authService.current.getCurrentDisplayName();
         const avatarUrl = await authService.current.getCurrentAvatarUrl();
 
-        return await gameStateService.current.takeSeatWithAck(
+        return await gameFacade.current.takeSeatWithAck(
           seatNumber,
           displayName ?? undefined,
           avatarUrl ?? undefined,
@@ -356,7 +358,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Leave seat with ack (unified API)
   const leaveSeatWithAck = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
     try {
-      return await gameStateService.current.leaveSeatWithAck();
+      return await gameFacade.current.leaveSeatWithAck();
     } catch (err) {
       gameRoomLog.error(' Error leaving seat with ack:', err);
       return { success: false, reason: String(err) };
@@ -367,7 +369,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   const requestSnapshot = useCallback(async (): Promise<boolean> => {
     try {
       setConnectionStatus('syncing');
-      const result = await gameStateService.current.requestSnapshot();
+      const result = await gameFacade.current.requestSnapshot();
       if (result) {
         setConnectionStatus('live');
       } else {
@@ -385,7 +387,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   const updateTemplate = useCallback(
     async (template: GameTemplate): Promise<void> => {
       if (!isHost) return;
-      await gameStateService.current.updateTemplate(template);
+      await gameFacade.current.updateTemplate(template);
     },
     [isHost],
   );
@@ -393,47 +395,47 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Assign roles (host only)
   const assignRoles = useCallback(async (): Promise<void> => {
     if (!isHost) return;
-    await gameStateService.current.assignRoles();
+    await gameFacade.current.assignRoles();
   }, [isHost]);
 
   // Start game (host only)
   const startGame = useCallback(async (): Promise<void> => {
     if (!isHost) return;
-    await gameStateService.current.startGame();
+    await gameFacade.current.startGame();
   }, [isHost]);
 
   // Restart game (host only)
   const restartGame = useCallback(async (): Promise<void> => {
     if (!isHost) return;
-    await gameStateService.current.restartGame();
+    await gameFacade.current.restartGame();
   }, [isHost]);
 
   // Mark role as viewed
   const viewedRole = useCallback(async (): Promise<void> => {
-    await gameStateService.current.playerViewedRole();
+    await gameFacade.current.playerViewedRole();
   }, []);
 
   // Submit action
   const submitAction = useCallback(async (target: number | null, extra?: any): Promise<void> => {
-    await gameStateService.current.submitAction(target, extra);
+    await gameFacade.current.submitAction(target, extra);
   }, []);
 
   // Submit wolf vote
   const submitWolfVote = useCallback(async (target: number): Promise<void> => {
-    await gameStateService.current.submitWolfVote(target);
+    await gameFacade.current.submitWolfVote(target);
   }, []);
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
   const submitRevealAck = useCallback(
     async (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot'): Promise<void> => {
-      await gameStateService.current.submitRevealAck(role);
+      await gameFacade.current.submitRevealAck(role);
     },
     [],
   );
 
   // Get last night info
   const getLastNightInfo = useCallback((): string => {
-    return gameStateService.current.getLastNightInfo();
+    return gameFacade.current.getLastNightInfo();
   }, []);
 
   // Check if a wolf has voted
@@ -447,7 +449,7 @@ export const useGameRoom = (): UseGameRoomResult => {
 
   // Clear seat error (BUG-2 fix)
   const clearLastSeatError = useCallback(() => {
-    gameStateService.current.clearLastSeatError();
+    gameFacade.current.clearLastSeatError();
     setLastSeatError(null);
   }, []);
 
