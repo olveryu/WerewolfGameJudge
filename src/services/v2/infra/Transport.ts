@@ -15,7 +15,7 @@
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../../../config/supabase';
 import { broadcastLog } from '../../../utils/logger';
-import type { HostBroadcast, PlayerMessage } from '../../core/BroadcastService';
+import type { HostBroadcast, PlayerMessage } from '../types/Broadcast';
 
 // =============================================================================
 // Types

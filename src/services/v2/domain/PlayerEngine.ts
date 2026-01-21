@@ -15,7 +15,7 @@
 import type { RoleId, SchemaId } from '../../../models/roles';
 import type { StateStore } from '../infra/StateStore';
 import type { Transport } from '../infra/Transport';
-import type { HostBroadcast, BroadcastGameState } from '../../core/BroadcastService';
+import type { HostBroadcast, BroadcastGameState } from '../types/Broadcast';
 import { SeatEngine } from './SeatEngine';
 import { playerLog } from '../../../utils/logger';
 

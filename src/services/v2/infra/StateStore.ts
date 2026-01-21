@@ -23,7 +23,7 @@ import { hostLog, playerLog } from '../../../utils/logger';
 
 import type { LocalGameState, LocalPlayer, GameStateListener } from '../types/GameState';
 import { GameStatus } from '../types/GameState';
-import type { BroadcastGameState, BroadcastPlayer } from '../../core/BroadcastService';
+import type { BroadcastGameState, BroadcastPlayer } from '../types/Broadcast';
 
 // =============================================================================
 // Types
@@ -366,4 +366,4 @@ export class StateStore {
 
 export { GameStatus } from '../types/GameState';
 export type { LocalGameState, LocalPlayer, GameStateListener } from '../types/GameState';
-export type { BroadcastGameState } from '../../core/BroadcastService';
+export type { BroadcastGameState } from '../types/Broadcast';

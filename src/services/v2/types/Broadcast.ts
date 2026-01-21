@@ -136,3 +136,118 @@ export interface PublicPlayer {
   role?: RoleId | null;
   hasViewedRole: boolean;
 }
+
+// =============================================================================
+// Wire Protocol Types (from legacy BroadcastService)
+// =============================================================================
+
+/** Connection status type */
+export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected';
+
+/** Status change listener */
+export type ConnectionStatusListener = (status: ConnectionStatus) => void;
+
+/** Player data in broadcast messages */
+export interface BroadcastPlayer {
+  uid: string;
+  seatNumber: number;
+  displayName?: string;
+  avatarUrl?: string;
+  role?: RoleId | null;
+  hasViewedRole: boolean;
+}
+
+/** Game state in broadcast messages */
+export interface BroadcastGameState {
+  roomCode: string;
+  hostUid: string;
+  status: 'unseated' | 'seated' | 'assigned' | 'ready' | 'ongoing' | 'ended';
+  templateRoles: RoleId[];
+  players: Record<number, BroadcastPlayer | null>;
+  currentActionerIndex: number;
+  isAudioPlaying: boolean;
+  wolfVoteStatus?: Record<number, boolean>;
+  nightmareBlockedSeat?: number;
+  wolfKillDisabled?: boolean;
+  witchContext?: {
+    killedIndex: number;
+    canSave: boolean;
+    canPoison: boolean;
+  };
+  seerReveal?: {
+    targetSeat: number;
+    result: '好人' | '狼人';
+  };
+  psychicReveal?: {
+    targetSeat: number;
+    result: string;
+  };
+  gargoyleReveal?: {
+    targetSeat: number;
+    result: string;
+  };
+  wolfRobotReveal?: {
+    targetSeat: number;
+    result: string;
+  };
+  confirmStatus?: {
+    role: 'hunter' | 'darkWolfKing';
+    canShoot: boolean;
+  };
+  actionRejected?: {
+    action: string;
+    reason: string;
+    targetUid: string;
+  };
+}
+
+/** Messages broadcast by Host to all players */
+export type HostBroadcast =
+  | { type: 'STATE_UPDATE'; state: BroadcastGameState; revision: number }
+  | {
+      type: 'ROLE_TURN';
+      role: RoleId;
+      pendingSeats: number[];
+      killedIndex?: number;
+      stepId?: SchemaId;
+    }
+  | { type: 'NIGHT_END'; deaths: number[] }
+  | { type: 'PLAYER_JOINED'; seat: number; player: BroadcastPlayer }
+  | { type: 'PLAYER_LEFT'; seat: number }
+  | { type: 'GAME_RESTARTED' }
+  | { type: 'SEAT_REJECTED'; seat: number; requestUid: string; reason: 'seat_taken' }
+  | {
+      type: 'SEAT_ACTION_ACK';
+      requestId: string;
+      toUid: string;
+      success: boolean;
+      seat: number;
+      reason?: string;
+    }
+  | {
+      type: 'SNAPSHOT_RESPONSE';
+      requestId: string;
+      toUid: string;
+      state: BroadcastGameState;
+      revision: number;
+    };
+
+/** Messages sent by players to Host */
+export type PlayerMessage =
+  | { type: 'REQUEST_STATE'; uid: string }
+  | { type: 'JOIN'; seat: number; uid: string; displayName: string; avatarUrl?: string }
+  | { type: 'LEAVE'; seat: number; uid: string }
+  | { type: 'ACTION'; seat: number; role: RoleId; target: number | null; extra?: unknown }
+  | { type: 'WOLF_VOTE'; seat: number; target: number }
+  | { type: 'VIEWED_ROLE'; seat: number }
+  | { type: 'REVEAL_ACK'; seat: number; role: RoleId; revision: number }
+  | {
+      type: 'SEAT_ACTION_REQUEST';
+      requestId: string;
+      action: 'sit' | 'standup';
+      seat: number;
+      uid: string;
+      displayName?: string;
+      avatarUrl?: string;
+    }
+  | { type: 'SNAPSHOT_REQUEST'; requestId: string; uid: string; lastRevision?: number };
