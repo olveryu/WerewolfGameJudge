@@ -4,12 +4,8 @@
  * Phase 3: Domain engines
  * - SeatEngine: Seat management (pure validation + state updates)
  * - NightEngine: Night flow state machine
- *
- * Remaining (Phase 3):
- * - HostEngine
- * - PlayerEngine
- * - DeathCalculator
- * - resolvers/
+ * - PlayerEngine: Player-side game logic
+ * - HostEngine: Host-side game orchestration
  */
 
 // SeatEngine - Seat management
@@ -25,6 +21,10 @@ export type {
 export { NightEngine, NightPhase, NightEvent } from './NightEngine';
 export type { NightFlowState, NightPlanStep, NightStepInfo } from './NightEngine';
 
-// Placeholder exports for Phase 3
-// export { HostEngine } from './HostEngine';
-// export { PlayerEngine } from './PlayerEngine';
+// PlayerEngine - Player-side game logic
+export { PlayerEngine } from './PlayerEngine';
+export type { PlayerEngineConfig, PlayerEventCallbacks } from './PlayerEngine';
+
+// HostEngine - Host-side game orchestration
+export { HostEngine } from './HostEngine';
+export type { HostEngineConfig, HostEventCallbacks } from './HostEngine';
