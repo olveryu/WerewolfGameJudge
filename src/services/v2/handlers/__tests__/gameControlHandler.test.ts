@@ -2,9 +2,19 @@
  * gameControlHandler Unit Tests
  */
 
-import { handleAssignRoles, handleStartGame, handleRestartGame } from '../gameControlHandler';
+import {
+  handleAssignRoles,
+  handleStartGame,
+  handleStartNight,
+  handleRestartGame,
+} from '../gameControlHandler';
 import type { HandlerContext } from '../types';
-import type { AssignRolesIntent, StartGameIntent, RestartGameIntent } from '../../intents/types';
+import type {
+  AssignRolesIntent,
+  StartGameIntent,
+  StartNightIntent,
+  RestartGameIntent,
+} from '../../intents/types';
 import type { GameState } from '../../store/types';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
@@ -226,6 +236,127 @@ describe('handleStartGame', () => {
     const intent: StartGameIntent = { type: 'START_GAME' };
 
     const result = handleStartGame(intent, context);
+
+    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+  });
+});
+
+// =============================================================================
+// handleStartNight tests (PR3: ready → ongoing)
+// =============================================================================
+
+describe('handleStartNight', () => {
+  const readyState = createMinimalState({
+    status: 'ready',
+    players: {
+      0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+      1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+      2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+    },
+  });
+
+  it('should succeed when host and status is ready (happy path)', () => {
+    const context = createContext(readyState);
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    const result = handleStartNight(intent, context);
+
+    expect(result.success).toBe(true);
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].type).toBe('START_NIGHT');
+  });
+
+  it('should set currentActionerIndex to 0', () => {
+    const context = createContext(readyState);
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    const result = handleStartNight(intent, context);
+
+    const startNightAction = result.actions.find((a) => a.type === 'START_NIGHT');
+    expect(startNightAction).toBeDefined();
+    if (startNightAction?.type === 'START_NIGHT') {
+      expect(startNightAction.payload.currentActionerIndex).toBe(0);
+    }
+  });
+
+  it('should fail when not host (gate: host_only)', () => {
+    const context = createContext(readyState, { isHost: false });
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    const result = handleStartNight(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('host_only');
+  });
+
+  it('should fail when state is null (gate: no_state)', () => {
+    const context: HandlerContext = {
+      state: null,
+      isHost: true,
+      myUid: 'host-1',
+      mySeat: 0,
+    };
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    const result = handleStartNight(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('no_state');
+  });
+
+  it('should fail when status is assigned (gate: invalid_status)', () => {
+    const state = createMinimalState({
+      status: 'assigned',
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
+        1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
+      },
+    });
+    const context = createContext(state);
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    const result = handleStartNight(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalid_status');
+  });
+
+  it('should fail when status is ongoing (gate: invalid_status)', () => {
+    const state = createMinimalState({
+      status: 'ongoing',
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+      },
+    });
+    const context = createContext(state);
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    const result = handleStartNight(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalid_status');
+  });
+
+  it('should fail when status is ended (gate: invalid_status)', () => {
+    const state = createMinimalState({ status: 'ended' });
+    const context = createContext(state);
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    const result = handleStartNight(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalid_status');
+  });
+
+  it('should include side effects', () => {
+    const context = createContext(readyState);
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    const result = handleStartNight(intent, context);
 
     expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });

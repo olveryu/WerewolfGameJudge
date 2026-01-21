@@ -259,9 +259,7 @@ function handlePlayerViewedRole(state: GameState, action: PlayerViewedRoleAction
   };
 
   // 检查是否所有已入座玩家都已查看角色
-  const allViewed = Object.values(newPlayers).every(
-    (p) => p === null || p.hasViewedRole === true,
-  );
+  const allViewed = Object.values(newPlayers).every((p) => p === null || p.hasViewedRole === true);
 
   // 仅当 status === 'assigned' 且 all viewed 时才推进到 'ready'
   const newStatus = state.status === 'assigned' && allViewed ? 'ready' : state.status;
