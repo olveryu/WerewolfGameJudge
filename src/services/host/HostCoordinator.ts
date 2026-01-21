@@ -473,7 +473,7 @@ export class HostCoordinator {
   /**
    * Handle player viewed role
    */
-  private async handlePlayerViewedRole(seat: number): Promise<void> {
+  async handlePlayerViewedRole(seat: number): Promise<void> {
     if (!this.state || this.state.status !== GameStatus.assigned) return;
 
     const player = this.state.players.get(seat);

@@ -11,7 +11,7 @@
  * 4. Death calculations happen locally on Host
  */
 
-import { RoleId, isWolfRole } from '../models/roles';
+import { RoleId } from '../models/roles';
 import { GameTemplate } from '../models/Template';
 import { getConfirmRoleCanShoot } from '../models/Room';
 import {
@@ -19,12 +19,12 @@ import {
   PlayerMessage,
 } from './BroadcastService';
 import AudioService from './AudioService';
-import { NightPhase, NightEvent, InvalidNightTransitionError } from './NightFlowController';
+import { NightPhase, NightEvent } from './NightFlowController';
 // shuffleArray moved to HostCoordinator
 import { hostLog } from '../utils/logger';
 import { calculateDeaths, type RoleSeatMap } from './DeathCalculator';
-import { makeActionTarget, getActionTargetSeat } from '../models/actions';
-import { type SchemaId, BLOCKED_UI_DEFAULTS } from '../models/roles/spec';
+import { getActionTargetSeat } from '../models/actions';
+import { type SchemaId } from '../models/roles/spec';
 import { StateManager } from './state';
 import { StatePersistence } from './persistence';
 import { BroadcastCoordinator } from './broadcast';
@@ -237,12 +237,13 @@ export class GameStateService {
         isHost: () => this.isHost,
         onNotifyListeners: () => this.notifyListeners(),
         // Host-side callbacks for when player IS the host
-        onPlayerViewedRole: async (seat) => this.handlePlayerViewedRole(seat),
+        // Delegated to HostCoordinator (Phase 8c migration)
+        onPlayerViewedRole: async (seat) => this.hostCoordinator.handlePlayerViewedRole(seat),
         onPlayerAction: async (seat, role, target, extra) =>
-          this.handlePlayerAction(seat, role, target, extra),
-        onWolfVote: async (seat, target) => this.handleWolfVote(seat, target),
+          this.hostCoordinator.handlePlayerAction(seat, role, target, extra),
+        onWolfVote: async (seat, target) => this.hostCoordinator.handleWolfVote(seat, target),
         onRevealAck: async (seat, role, revision) =>
-          this.handleRevealAck(seat, role, revision),
+          this.hostCoordinator.handleRevealAck(seat, role, revision),
       },
     );
   }
@@ -549,470 +550,20 @@ export class GameStateService {
 
   // ===========================================================================
   // Host: Handle Player Messages
+  // Delegated to HostCoordinator (Phase 8c migration)
   // ===========================================================================
 
-  private async handlePlayerMessage(msg: PlayerMessage, _senderId: string): Promise<void> {
-    if (!this.isHost || !this.state) return;
-
-    hostLog.info('Received player message:', msg.type);
-
-    switch (msg.type) {
-      case 'REQUEST_STATE':
-        // Player requesting current state - broadcast it
-        hostLog.info('Broadcasting state for new player:', msg.uid);
-        await this.broadcastState();
-        break;
-      case 'JOIN':
-        await this.handlePlayerJoin(msg.seat, msg.uid, msg.displayName, msg.avatarUrl);
-        break;
-      case 'LEAVE':
-        await this.handlePlayerLeave(msg.seat, msg.uid);
-        break;
-      case 'ACTION':
-        await this.handlePlayerAction(msg.seat, msg.role, msg.target, msg.extra);
-        break;
-      case 'REVEAL_ACK':
-        await this.handleRevealAck(msg.seat, msg.role, msg.revision);
-        break;
-      case 'WOLF_VOTE':
-        await this.handleWolfVote(msg.seat, msg.target);
-        break;
-      case 'VIEWED_ROLE':
-        await this.handlePlayerViewedRole(msg.seat);
-        break;
-      case 'SEAT_ACTION_REQUEST':
-        await this.handleSeatActionRequest(msg);
-        break;
-      case 'SNAPSHOT_REQUEST':
-        await this.handleSnapshotRequest(msg);
-        break;
-    }
+  private async handlePlayerMessage(msg: PlayerMessage, senderId: string): Promise<void> {
+    if (!this.isHost) return;
+    return this.hostCoordinator.handlePlayerMessage(msg, senderId);
   }
 
-  private makeRevealAckKey(revision: number, role: RoleId): string {
-    return `${revision}_${role}`;
-  }
+  // NOTE: handleRevealAck, handleSeatActionRequest, handleSnapshotRequest,
+  // handlePlayerJoin, handlePlayerLeave removed - delegated to HostCoordinator (Phase 8c)
 
-  private async handleRevealAck(seat: number, role: RoleId, revision: number): Promise<void> {
-    if (!this.isHost || !this.state) return;
-    if (this.state.status !== GameStatus.ongoing) return;
-    if (!this.nightFlowService.isActive()) return;
-
-    // Only relevant for reveal roles
-    if (!this.actionProcessor.isRevealRole(role)) return;
-
-    const player = this.state.players.get(seat);
-    if (!player) return;
-
-    // Must match role and revision; otherwise ignore (idempotent/no-op)
-    if (player.role !== role) return;
-    if (revision !== this.stateRevision) return;
-    if (!this.nightFlowService.canAcceptAction(role)) return;
-
-    const key = this.makeRevealAckKey(revision, role);
-    if (!this.pendingRevealAcks.has(key)) return;
-
-    this.pendingRevealAcks.delete(key);
-
-    // Now we can finish the step just like a normal action-submitted flow.
-    try {
-      this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted);
-    } catch (err) {
-      if (err instanceof InvalidNightTransitionError) {
-        hostLog.debug('REVEAL_ACK ignored (phase mismatch):', err.message);
-        return;
-      }
-      throw err;
-    }
-
-    await this.advanceToNextAction();
-  }
-
-  /**
-   * Host: Handle seat action request with ACK
-   * Delegated to SeatManager (Phase 8 migration)
-   */
-  private async handleSeatActionRequest(msg: {
-    requestId: string;
-    action: 'sit' | 'standup';
-    seat: number;
-    uid: string;
-    displayName?: string;
-    avatarUrl?: string;
-  }): Promise<void> {
-    // Delegate to SeatManager
-    await this.seatManager.handleSeatActionRequest({
-      type: 'SEAT_ACTION_REQUEST',
-      ...msg,
-    });
-  }
-
-  /**
-   * Host: Handle snapshot request (for reconnection/state recovery)
-   */
-  private async handleSnapshotRequest(msg: {
-    requestId: string;
-    uid: string;
-    lastRevision?: number;
-  }): Promise<void> {
-    if (!this.state) return;
-
-    hostLog.info(
-      ` Snapshot request from ${msg.uid.substring(0, 8)}, lastRev: ${msg.lastRevision ?? 'none'}`,
-    );
-
-    const broadcastState = this.stateManager.toBroadcastState();
-    await this.broadcastCoordinator.broadcastSnapshotResponse({
-      requestId: msg.requestId,
-      toUid: msg.uid,
-      state: broadcastState,
-      revision: this.stateRevision,
-    });
-  }
-
-  private async handlePlayerJoin(
-    seat: number,
-    uid: string,
-    displayName?: string,
-    avatarUrl?: string,
-  ): Promise<void> {
-    return this.seatManager.handlePlayerJoin(seat, uid, displayName, avatarUrl);
-  }
-
-  private async handlePlayerLeave(seat: number, uid: string): Promise<void> {
-    return this.seatManager.handlePlayerLeave(seat, uid);
-  }
-
-  /**
-   * Check if player is blocked by nightmare.
-   * Returns 'blocked' if action should be rejected, 'allowed' otherwise.
-   */
-  private async checkNightmareBlock(
-    seat: number,
-    role: RoleId,
-    target: number | null,
-    extra?: unknown,
-  ): Promise<'blocked' | 'allowed'> {
-    if (!this.state) return 'allowed';
-
-    const nightmareAction = this.state.actions.get('nightmare');
-    if (nightmareAction?.kind !== 'target' || nightmareAction.targetSeat !== seat) {
-      return 'allowed';
-    }
-
-    // Blocked player can only skip (target=null, extra=undefined)
-    if (target === null && extra === undefined) {
-      return 'allowed';
-    }
-
-    hostLog.info(
-      'Rejecting non-skip action from nightmare-blocked seat:',
-      seat,
-      'role:',
-      role,
-      'target:',
-      target,
-      'extra:',
-      extra,
-    );
-
-    const playerUid = this.state.players.get(seat)?.uid;
-    if (playerUid) {
-      this.stateManager.batchUpdate({
-        actionRejected: {
-          action: 'submitAction',
-          reason: BLOCKED_UI_DEFAULTS.message,
-          targetUid: playerUid,
-        },
-      });
-      await this.broadcastState();
-    }
-    return 'blocked';
-  }
-
-  /**
-   * Reject an action and broadcast the rejection to the player.
-   * @returns true if rejection was broadcast, false if no playerUid
-   */
-  private async rejectAction(
-    seat: number,
-    action: 'submitAction' | 'submitWolfVote',
-    reason: string,
-  ): Promise<boolean> {
-    const playerUid = this.state?.players.get(seat)?.uid;
-    if (!playerUid) return false;
-
-    this.stateManager.batchUpdate({
-      actionRejected: {
-        action,
-        reason,
-        targetUid: playerUid,
-      },
-    });
-    await this.broadcastState();
-    return true;
-  }
-
-  /**
-   * Apply valid action result to state and record the action.
-   * Extracts the common logic from handlePlayerAction.
-   */
-  private applyActionResult(
-    role: RoleId,
-    target: number | null,
-    result: { updates?: Record<string, unknown>; reveal?: any; actionToRecord?: any },
-  ): void {
-    // Apply updates to currentNightResults via StateManager
-    if (result.updates) {
-      this.stateManager.applyNightResultUpdates(result.updates);
-    }
-
-    // Apply reveal result
-    if (result.reveal && target !== null) {
-      this.stateManager.applyReveal(result.reveal);
-    }
-
-    // Record action using actionToRecord from processor
-    if (result.actionToRecord && target !== null) {
-      this.stateManager.recordAction(role, result.actionToRecord);
-
-      // Record action in nightFlow (raw target only for logging/debug)
-      try {
-        this.nightFlowService.recordAction(role, target);
-      } catch (err) {
-        hostLog.error('NightFlow recordAction failed:', err);
-        throw err; // STRICT: propagate error, don't continue
-      }
-    }
-  }
-
-  private async handlePlayerAction(
-    seat: number,
-    role: RoleId,
-    target: number | null,
-    extra?: any,
-  ): Promise<void> {
-    if (!this.state || this.state.status !== GameStatus.ongoing) return;
-
-    // STRICT INVARIANT: nightFlow must exist when status === ongoing
-    if (!this.nightFlowService.isActive()) {
-      hostLog.error(
-        '[GameStateService] STRICT INVARIANT VIOLATION: handlePlayerAction() called but nightFlow is null.',
-        'seat:',
-        seat,
-        'role:',
-        role,
-      );
-      throw new Error('handlePlayerAction: nightFlow is null - strict invariant violation');
-    }
-
-    // Verify this is the correct role's turn
-    const currentRole = this.nightFlowService.getCurrentActionRole();
-    if (currentRole !== role) {
-      hostLog.info('Wrong role acting:', role, 'expected:', currentRole);
-      return;
-    }
-
-    // NightFlow guard: only allow action in WaitingForAction phase and matching role
-    if (!this.nightFlowService.canAcceptAction(role)) {
-      const phase = this.nightFlowService.getCurrentPhase();
-      const currentNightRole = this.nightFlowService.getNightFlow()?.currentRole;
-      if (phase === NightPhase.WaitingForAction) {
-        hostLog.info('NightFlow role mismatch:', role, 'expected:', currentNightRole);
-      } else {
-        hostLog.info('NightFlow not in WaitingForAction phase, ignoring action');
-      }
-      return;
-    }
-
-    // Check nightmare block - only skip action allowed for blocked players
-    const blockResult = await this.checkNightmareBlock(seat, role, target, extra);
-    if (blockResult === 'blocked') return;
-
-    // =========================================================================
-    // Action Processing via ActionProcessor
-    // =========================================================================
-    const schemaId = this.nightFlowService.getCurrentStepInfo()?.stepId;
-    if (schemaId) {
-      const context = this.buildActionContext();
-      const result = this.actionProcessor.processAction(
-        schemaId,
-        seat,
-        role,
-        target,
-        extra,
-        context,
-      );
-
-      if (!result.valid) {
-        await this.rejectAction(seat, 'submitAction', result.rejectReason ?? '行动无效');
-        hostLog.info('Action rejected by resolver:', result.rejectReason);
-        return;
-      }
-
-      // Apply valid result
-      this.applyActionResult(role, target, result);
-    }
-
-    // Reveal roles require an explicit "I read it" ACK before advancing.
-    // This prevents the next narration ("闭眼") from cutting off the popup.
-    if (this.actionProcessor.isRevealRole(role) && target !== null) {
-      // Broadcast the reveal result to UI before waiting for ACK
-      // NOTE: broadcastState() increments stateRevision, so we must add the ACK key AFTER broadcast
-      await this.broadcastState();
-      this.pendingRevealAcks.add(this.makeRevealAckKey(this.stateRevision, role));
-      // Stay in WaitingForAction until REVEAL_ACK arrives.
-      return;
-    }
-
-    // Non-reveal roles proceed immediately
-    await this.dispatchActionSubmittedAndAdvance();
-  }
-
-  /**
-   * Dispatch ActionSubmitted event and advance to next action.
-   * Common logic for completing an action.
-   */
-  private async dispatchActionSubmittedAndAdvance(): Promise<void> {
-    try {
-      this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted);
-    } catch (err) {
-      if (err instanceof InvalidNightTransitionError) {
-        hostLog.error('NightFlow ActionSubmitted failed:', err.message);
-        throw err; // STRICT: propagate error
-      }
-      throw err;
-    }
-
-    await this.advanceToNextAction();
-  }
-
-  private async handleWolfVote(seat: number, target: number): Promise<void> {
-    if (!this.state || this.state.status !== GameStatus.ongoing) {
-      hostLog.debug('handleWolfVote: early return - status not ongoing or no state');
-      return;
-    }
-
-    // STRICT INVARIANT: nightFlow must exist when status === ongoing
-    if (!this.nightFlowService.isActive()) {
-      hostLog.error(
-        '[GameStateService] STRICT INVARIANT VIOLATION: handleWolfVote() called but nightFlow is null.',
-        'seat:',
-        seat,
-      );
-      throw new Error('handleWolfVote: nightFlow is null - strict invariant violation');
-    }
-
-    const currentRole = this.nightFlowService.getCurrentActionRole();
-    hostLog.debug('handleWolfVote:', {
-      seat,
-      target,
-      currentRole,
-      currentActionerIndex: this.state.currentActionerIndex,
-      nightFlowPhase: this.nightFlowService.getCurrentPhase(),
-    });
-    if (currentRole !== 'wolf') {
-      hostLog.debug('handleWolfVote: rejected - currentRole is not wolf:', currentRole);
-      return;
-    }
-
-    // Verify this is a wolf
-    const player = this.state.players.get(seat);
-    if (!player?.role || !isWolfRole(player.role)) return;
-
-    // Validate target via ActionProcessor
-    const context = this.buildActionContext();
-    const validation = this.actionProcessor.validateWolfVote(target, context);
-
-    if (!validation.valid) {
-      await this.rejectAction(seat, 'submitWolfVote', validation.rejectReason ?? '无效目标');
-      return;
-    }
-
-    // Record vote via StateManager
-    this.stateManager.recordWolfVote(seat, target);
-
-    // Check if all voting wolves have voted (excludes gargoyle, wolfRobot, etc.)
-    const allVotingWolfSeats = this.stateManager.getVotingWolfSeats();
-    const allVoted = allVotingWolfSeats.every((s) => this.state!.wolfVotes.has(s));
-
-    if (allVoted) {
-      await this.finalizeWolfVote();
-    } else {
-      // Broadcast vote status update
-      await this.broadcastState();
-      this.notifyListeners();
-    }
-  }
-
-  /**
-   * Finalize wolf vote when all wolves have voted.
-   * Resolves the final target and advances to next action.
-   */
-  private async finalizeWolfVote(): Promise<void> {
-    if (!this.state) return;
-
-    // ONCE-GUARD: If wolf action already recorded, this is a duplicate finalize - skip
-    if (this.stateManager.hasAction('wolf')) {
-      hostLog.debug(
-        '[GameStateService] handleWolfVote finalize skipped (once-guard): wolf action already recorded.',
-        'phase:',
-        this.nightFlowService.getCurrentPhase(),
-        'currentActionerIndex:',
-        this.state.currentActionerIndex,
-      );
-      return;
-    }
-
-    // Resolve final kill target via ActionProcessor
-    const finalTarget = this.actionProcessor.resolveWolfVotes(this.state.wolfVotes);
-    if (finalTarget !== null) {
-      this.stateManager.recordAction('wolf', makeActionTarget(finalTarget));
-      // Record action in nightFlow
-      try {
-        this.nightFlowService.recordAction('wolf', finalTarget);
-      } catch (err) {
-        hostLog.debug(
-          '[GameStateService] NightFlow recordAction (wolf) failed:',
-          err,
-          'phase:',
-          this.nightFlowService.getCurrentPhase(),
-        );
-      }
-    }
-
-    // Dispatch ActionSubmitted and advance
-    try {
-      this.nightFlowService.dispatchEvent(NightEvent.ActionSubmitted);
-    } catch (err) {
-      if (err instanceof InvalidNightTransitionError) {
-        hostLog.debug(
-          '[GameStateService] NightFlow ActionSubmitted (wolf) rejected:',
-          'phase:',
-          this.nightFlowService.getCurrentPhase(),
-          '(expected WaitingForAction). This may indicate a call chain bug.',
-        );
-      } else {
-        throw err;
-      }
-    }
-
-    await this.advanceToNextAction();
-  }
-
-  private async handlePlayerViewedRole(seat: number): Promise<void> {
-    if (!this.state || this.state.status !== GameStatus.assigned) return;
-
-    const player = this.state.players.get(seat);
-    if (!player) return;
-
-    // Use StateManager (single source of truth)
-    // markPlayerViewedRole handles setting hasViewedRole and transitioning to 'ready' if all viewed
-    this.stateManager.markPlayerViewedRole(seat);
-
-    await this.broadcastState();
-    // Note: stateManager.markPlayerViewedRole() already calls notifyListeners()
-  }
+  // NOTE: checkNightmareBlock, rejectAction, applyActionResult, handlePlayerAction,
+  // dispatchActionSubmittedAndAdvance, handleWolfVote, finalizeWolfVote, handlePlayerViewedRole
+  // removed - delegated to HostCoordinator (Phase 8c)
 
   // ===========================================================================
   // Player: Handle Host Broadcasts

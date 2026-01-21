@@ -278,9 +278,9 @@ describe('GameStateService NightFlowController Integration', () => {
       // Now phase is NightBeginAudio, not WaitingForAction
       expect(nightFlow.phase).toBe(NightPhase.NightBeginAudio);
 
-      // When: Try to submit action
-      const handlePlayerAction = (service as any).handlePlayerAction.bind(service);
-      await handlePlayerAction(0, 'wolf', 3);
+      // When: Try to submit action via handlePlayerMessage (Phase 8c: handlePlayerAction is now private)
+      const playerUid = state.players.get(0)?.uid ?? 'player_0';
+      await (service as any).handlePlayerMessage({ type: 'ACTION', seat: 0, role: 'wolf', target: 3 }, playerUid);
 
       // Then: Action should NOT be recorded
       expect(state.actions.has('wolf')).toBe(false);
@@ -305,9 +305,9 @@ describe('GameStateService NightFlowController Integration', () => {
       expect(nightFlow.phase).toBe(NightPhase.WaitingForAction);
       expect(nightFlow.currentRole).toBe('wolf');
 
-      // When: Try to submit action for wrong role (witch instead of wolf)
-      const handlePlayerAction = (service as any).handlePlayerAction.bind(service);
-      await handlePlayerAction(0, 'witch', 3);
+      // When: Try to submit action for wrong role (witch instead of wolf) via handlePlayerMessage
+      const playerUid = state.players.get(0)?.uid ?? 'player_0';
+      await (service as any).handlePlayerMessage({ type: 'ACTION', seat: 0, role: 'witch', target: 3 }, playerUid);
 
       // Then: Action should NOT be recorded
       expect(state.actions.has('witch')).toBe(false);
@@ -332,9 +332,9 @@ describe('GameStateService NightFlowController Integration', () => {
       expect(nightFlow.phase).toBe(NightPhase.WaitingForAction);
       expect(nightFlow.currentRole).toBe('wolf');
 
-      // When: Submit correct action
-      const handlePlayerAction = (service as any).handlePlayerAction.bind(service);
-      await handlePlayerAction(0, 'wolf', 3);
+      // When: Submit correct action via handlePlayerMessage (Phase 8c: handlePlayerAction is now private)
+      const playerUid = state.players.get(0)?.uid ?? 'player_0';
+      await (service as any).handlePlayerMessage({ type: 'ACTION', seat: 0, role: 'wolf', target: 3 }, playerUid);
 
       // Then: Action should be recorded
       const wolfAction = state.actions.get('wolf');

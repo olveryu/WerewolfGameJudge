@@ -121,8 +121,12 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       const guardActionBefore = state.actions.get('guard');
       expect(guardActionBefore).toBeUndefined();
 
-      // 4. 模拟被封锁的守卫发送非空 target 的 action
-      await (service as any).handlePlayerAction(11, 'guard', 0);
+      // 4. 模拟被封锁的守卫发送非空 target 的 action (Phase 8c: use handlePlayerMessage)
+      const guardUid = state.players.get(11)?.uid ?? 'player_11';
+      await (service as any).handlePlayerMessage(
+        { type: 'ACTION', seat: 11, role: 'guard', target: 0 },
+        guardUid,
+      );
 
       // 5. 验证：action 没有被记录（被 nightmare gate 拦截）
       const guardActionAfter = state.actions.get('guard');
@@ -158,9 +162,13 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       expect(nightFlow.currentRole).toBe('guard');
       expect(nightFlow.phase).toBe(NightPhase.WaitingForAction);
 
-      // 4. 被封锁的守卫提交 skip（通过 handlePlayerAction）
+      // 4. 被封锁的守卫提交 skip（通过 handlePlayerMessage）
       // target=null, extra=undefined 是允许的 skip
-      await (ctx.service as any).handlePlayerAction(11, 'guard', null, undefined);
+      const guardUid = state.players.get(11)?.uid ?? 'player_11';
+      await (ctx.service as any).handlePlayerMessage(
+        { type: 'ACTION', seat: 11, role: 'guard', target: null, extra: undefined },
+        guardUid,
+      );
 
       // 5. 验证：guard action 没有被记录（skip 不记录 action）
       const guardActionAfter = state.actions.get('guard');
@@ -194,8 +202,12 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       expect(nightFlow.currentRole).toBe('guard');
       expect(nightFlow.phase).toBe(NightPhase.WaitingForAction);
 
-      // 4. 模拟恶意 payload：target=null 但带 extra
-      await (ctx.service as any).handlePlayerAction(11, 'guard', null, { malicious: 'payload' });
+      // 4. 模拟恶意 payload：target=null 但带 extra (Phase 8c: use handlePlayerMessage)
+      const guardUid = state.players.get(11)?.uid ?? 'player_11';
+      await (ctx.service as any).handlePlayerMessage(
+        { type: 'ACTION', seat: 11, role: 'guard', target: null, extra: { malicious: 'payload' } },
+        guardUid,
+      );
 
       // 5. 验证：action 没有被记录
       const guardActionAfter = state.actions.get('guard');

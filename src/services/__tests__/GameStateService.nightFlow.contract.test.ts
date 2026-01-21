@@ -181,7 +181,9 @@ async function setupReadyStateWithRoles(
 }
 
 /**
- * Invoke private handlePlayerAction method
+ * Invoke handlePlayerMessage with ACTION type
+ * Phase 8c: GameStateService.handlePlayerMessage delegates to HostCoordinator
+ * We call the private method directly via (service as any) for testing
  */
 async function invokeHandlePlayerAction(
   service: GameStateService,
@@ -190,7 +192,17 @@ async function invokeHandlePlayerAction(
   target: number | null,
   extra?: any,
 ): Promise<void> {
-  await (service as any).handlePlayerAction(seat, role, target, extra);
+  const playerUid = service.getState()?.players.get(seat)?.uid ?? `player_${seat}`;
+  await (service as any).handlePlayerMessage(
+    {
+      type: 'ACTION',
+      seat,
+      role,
+      target,
+      extra,
+    },
+    playerUid,
+  );
 }
 
 // =============================================================================
@@ -599,18 +611,18 @@ describe('GameStateService NightFlow Contract Tests', () => {
       // When: wolf votes again (simulating duplicate finalize attempt)
       mockHostLogDebug.mockClear();
 
-      await (service as any).handleWolfVote(0, 1);
+      await (service as any).handlePlayerMessage(
+        { type: 'WOLF_VOTE', seat: 0, target: 1 },
+        'player_0',
+      );
 
       // Then: currentActionerIndex should NOT have changed (once-guard)
       expect(service.getState()!.currentActionerIndex).toBe(indexBefore);
 
       // And: debug log was called indicating once-guard
+      // Note: HostCoordinator logs with a single string message
       expect(mockHostLogDebug).toHaveBeenCalledWith(
-        expect.stringContaining('handleWolfVote finalize skipped (once-guard)'),
-        expect.anything(),
-        expect.anything(),
-        expect.anything(),
-        expect.anything(),
+        expect.stringContaining('handleWolfVote finalize skipped'),
       );
     });
   });
@@ -687,10 +699,10 @@ describe('GameStateService NightFlow Contract Tests', () => {
       // Force nightFlow to null via nightFlowService.reset()
       service.__testGetNightFlowService().reset();
 
-      // When/Then: handlePlayerAction should throw
-      await expect((service as any).handlePlayerAction(0, 'seer', 1)).rejects.toThrow(
-        'handlePlayerAction: nightFlow is null - strict invariant violation',
-      );
+      // When/Then: handlePlayerMessage with ACTION should throw (delegated to HostCoordinator)
+      await expect(
+        (service as any).handlePlayerMessage({ type: 'ACTION', seat: 0, role: 'seer', target: 1 }, 'player_0'),
+      ).rejects.toThrow('handlePlayerAction: nightFlow is null - strict invariant violation');
 
       // And: actions should NOT have been recorded, index should NOT change
       expect(service.getState()!.actions).toEqual(actionsBefore);
@@ -737,8 +749,10 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
       expect(service.getState()!.status).toBe(GameStatus.ready);
 
-      // When/Then: handlePlayerAction should NOT throw (returns early due to status check)
-      await expect((service as any).handlePlayerAction(0, 'seer', 1)).resolves.not.toThrow();
+      // When/Then: handlePlayerMessage with ACTION should NOT throw (returns early due to status check)
+      await expect(
+        (service as any).handlePlayerMessage({ type: 'ACTION', seat: 0, role: 'seer', target: 1 }, 'player_0'),
+      ).resolves.not.toThrow();
     });
 
     it('handleWolfVote should not throw when status is ready (early return before null check)', async () => {
@@ -748,8 +762,10 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
       expect(service.getState()!.status).toBe(GameStatus.ready);
 
-      // When/Then: handleWolfVote should NOT throw (returns early due to status check)
-      await expect((service as any).handleWolfVote(0, 1)).resolves.not.toThrow();
+      // When/Then: handlePlayerMessage with WOLF_VOTE should NOT throw (returns early due to status check)
+      await expect(
+        (service as any).handlePlayerMessage({ type: 'WOLF_VOTE', seat: 0, target: 1 }, 'player_0'),
+      ).resolves.not.toThrow();
     });
   });
 });
