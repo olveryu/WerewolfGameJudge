@@ -1,9 +1,9 @@
 # 服务层完全重写方案 (v2.0)
 
-> **文档版本**: 1.7.0
+> **文档版本**: 1.8.0
 > **创建日期**: 2026-01-20
 > **更新日期**: 2026-01-21
-> **状态**: ✅ Phase 7 完成 - v2 完全独立！
+> **状态**: 🚧 Phase 8 进行中 - 消费者迁移
 
 ---
 
@@ -18,7 +18,7 @@
 | Phase 5 | ✅ 完成 | `03fcb95` | Rename legacy → core                  |
 | Phase 6 | ✅ 完成 | `4e36b8e` | 完成 v2 目录结构整合                  |
 | Phase 7 | ✅ 完成 | `fca0a71` | v2 完全独立 (无 core/ 依赖)           |
-| Phase 8 | 🚧 进行中 | -       | 迁移消费者到 v2                       |
+| Phase 8 | 🚧 进行中 | `ae91308` | 迁移消费者到 v2                     |
 
 ### Phase 3 详细进度
 
@@ -99,16 +99,22 @@
 
 **目标**: 迁移所有消费者从 core/ 到 v2/
 
-| 任务                                                | 状态      | 说明                          |
-| --------------------------------------------------- | --------- | ----------------------------- |
-| **迁移生产代码**                                    |           |                               |
-| Migrate `ConfigScreen.tsx`                          | 🚧 进行中 | 使用 GameFacade 替代 GSS      |
-| Migrate `useAuth.ts` (AvatarUploadService)          | ⏳ 待办   | 移动 AvatarUploadService 到 v2|
-| **迁移测试代码**                                    |           |                               |
-| Migrate core/ tests to v2/ or delete                | ⏳ 待办   | 评估哪些需要保留              |
-| **清理**                                            |           |                               |
-| Delete core/ directory                              | ⏳ 待办   | 最后一步                      |
-| Update services/index.ts exports                    | ⏳ 待办   | 只从 v2/ 导出                 |
+| 任务                                                | 状态      | Commit    | 说明                          |
+| --------------------------------------------------- | --------- | --------- | ----------------------------- |
+| **迁移生产代码**                                    |           |           |                               |
+| Migrate `ConfigScreen.tsx`                          | ✅ 完成   | `c65f8b7` | GameStateService → GameFacade |
+| Migrate `useGameRoom.ts`                            | ✅ 完成   | `ae91308` | GSS+BroadcastService → GameFacade |
+| Move `AvatarUploadService` → v2/infra/              | ✅ 完成   | `c65f8b7` | 移动 + 更新导出               |
+| **GameFacade 增强**                                 |           |           |                               |
+| Add `getConnectionStatus()`                         | ✅ 完成   | `ae91308` | 暴露 Transport 连接状态       |
+| Add `addStatusListener()`                           | ✅ 完成   | `ae91308` | 订阅连接状态变化              |
+| **迁移测试代码**                                    |           |           |                               |
+| Move `AvatarUploadService.test.ts` → v2/            | ✅ 完成   | `c65f8b7` | 更新 mock 路径                |
+| Update `useGameRoom.test.ts`                        | ✅ 完成   | `ae91308` | mock GameFacade 替代 GSS      |
+| **待办**                                            |           |           |                               |
+| Migrate remaining core/ tests                       | ⏳ 待办   | -         | 评估哪些需要保留              |
+| Delete core/ directory                              | ⏳ 待办   | -         | 最后一步                      |
+| Update services/index.ts exports                    | ⏳ 待办   | -         | 移除 legacy 导出              |
 
 ---
 
