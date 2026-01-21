@@ -37,14 +37,18 @@ function createInitialState(
   hostUid: string,
   templateRoles: RoleId[],
 ): GameState {
+  const players: GameState['players'] = {};
+  // Keep seat map stable (legacy-compatible): keys 0..N-1 exist and default to null.
+  for (let seat = 0; seat < templateRoles.length; seat++) {
+    players[seat] = null;
+  }
+
   return {
     roomCode,
     hostUid,
     status: 'unseated',
     templateRoles,
-    players: {},
-    actions: [],
-    wolfVotes: {},
+    players,
     currentActionerIndex: -1,
     isAudioPlaying: false,
   };
@@ -61,7 +65,7 @@ export function createGameServices(options: CreateServicesOptions): GameServices
 
   // 创建 store
   const store = new GameStore();
-  store.setState(initialState);
+  store.initialize(initialState);
 
   // 创建 transport adapter
   const transport = new TransportAdapter(broadcastService, isHost);
