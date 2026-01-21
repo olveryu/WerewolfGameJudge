@@ -1,9 +1,9 @@
 # 服务层完全重写方案 (v2.0)
 
-> **文档版本**: 1.3.0
+> **文档版本**: 1.4.0
 > **创建日期**: 2026-01-20
 > **更新日期**: 2026-01-21
-> **状态**: IN PROGRESS - Phase 3 ✅ 完成，Phase 4 待开始
+> **状态**: IN PROGRESS - Phase 4 ✅ 完成，Phase 5 待开始
 
 ---
 
@@ -14,7 +14,8 @@
 | Phase 1 | ✅ 完成 | `6edb2d7` | 116 files → legacy 文件夹 |
 | Phase 2 | ✅ 完成 | `04d0304` | v2 骨架 + GameFacade (委托 legacy) |
 | Phase 3 | ✅ 完成 | 见下表 | 混合策略：重写 Engine + 保留 Resolver |
-| Phase 4 | ⏳ 待开始 | - | 删除 legacy |
+| Phase 4 | ✅ 完成 | `30428f5` | GameFacade 使用 v2 Engines |
+| Phase 5 | ⏳ 待开始 | - | 删除 legacy (Phase 4 → Phase 5 更名) |
 
 ### Phase 3 详细进度
 
@@ -31,7 +32,14 @@
 | PlayerEngine | ✅ 完成 | `c03988a` | ~340 | 17 |
 | HostEngine | ✅ 完成 | `c03988a` | ~700 | - |
 
-**当前测试统计**: v2 共 90 tests passing
+### Phase 4 详细进度
+
+| 模块 | 状态 | Commit | Lines | Tests |
+|------|------|--------|-------|-------|
+| GameFacade rewrite | ✅ 完成 | `30428f5` | ~547 | - |
+| api-compat.test.ts update | ✅ 完成 | `30428f5` | - | 27 |
+
+**当前测试统计**: 全项目 1406 tests passing, v2 共 89 tests passing
 
 ---
 
