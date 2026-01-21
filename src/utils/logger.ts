@@ -40,3 +40,4 @@ export const configLog = log.extend('Config');
 export const roomScreenLog = log.extend('RoomScreen');
 export const homeLog = log.extend('Home');
 export const seatManagerLog = log.extend('SeatManager');
+export const facadeLog = log.extend('GameFacade');
