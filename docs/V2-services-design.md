@@ -438,23 +438,26 @@ import { ROLE_SPECS, isWolfRole } from '../../models/roles';
 ```
 
 **被依赖者:**
-- `HostEngine.ts`
-- `PlayerClient.ts`
-- `GameFacade.ts`
+- `HostEngine.ts` (toSharedState)
+- `GameFacade.ts` (toUIState)
+
+**注意:** PlayerClient 不依赖此模块
 
 **公开接口:**
 ```typescript
 export function toSharedState(auth: AuthoritativeState): SharedState;
-export function toUIState(shared: SharedState, myUid: string, mySeat: number | null): UIState;
+export function toUIState(shared: SharedState, myUid: string): UIState;
 ```
 
 **关键实现:**
 ```typescript
 export function toUIState(
   shared: SharedState,
-  myUid: string,
-  mySeat: number | null
+  myUid: string
 ): UIState {
+  // mySeat 从 SharedState 中自动计算，不需要调用者传入
+  const mySeatIndex = shared.seats.findIndex(s => s.uid === myUid);
+  const mySeat = mySeatIndex >= 0 ? mySeatIndex : null;
   const myRole = mySeat !== null ? shared.seats[mySeat]?.role ?? null : null;
   
   return {
@@ -1080,12 +1083,13 @@ export class GameFacade {
 subscribeUIState(handler: (state: UIState) => void): () => void {
   if (this.hostEngine) {
     return this.hostEngine.subscribeStateChange((shared) => {
-      const ui = toUIState(shared, this.myUid!, this.mySeat);
+      // mySeat 从 SharedState 自动计算，不需要传入
+      const ui = toUIState(shared, this.myUid!);
       handler(ui);
     });
   } else if (this.playerClient) {
     return this.playerClient.subscribeStateChange((shared) => {
-      const ui = toUIState(shared, this.myUid!, this.mySeat);
+      const ui = toUIState(shared, this.myUid!);
       handler(ui);
     });
   }
@@ -1513,17 +1517,27 @@ Player 加入房间:
 
   HostEngine 内部状态变化
       │
-      │ toSharedState(this.state)
+      │ toSharedState(this.state)  ← HostEngine 调用 pure/StateMapper
       ▼
   SharedState (广播格式)
       │
       ├──────────────────────────────────────┐
       │                                      │
-      │ 本地通知                              │ 广播
+      │ 本地通知 (Host 设备)                  │ 广播 (网络)
       ▼                                      ▼
-  GameFacade                            PlayerClient
+  GameFacade (Host)                     PlayerClient (Player 设备)
       │                                      │
-      │ toUIState(shared, myUid, mySeat)     │ toUIState(shared, myUid, mySeat)
+      │                                      │ 存储 SharedState
+      │                                      │
+      │                                      │ 通知 GameFacade
+      │                                      ▼
+      │                                 GameFacade (Player)
+      │                                      │
+      │ toUIState(shared, myUid)             │ toUIState(shared, myUid)
+      │     ↑                                │     ↑
+      │     mySeat 从 shared 自动计算         │     mySeat 从 shared 自动计算
+      │     GameFacade 调用                   │     GameFacade 调用
+      │     (不是 HostEngine)                 │     (不是 PlayerClient)
       ▼                                      ▼
   UIState                               UIState
       │                                      │
@@ -1542,13 +1556,14 @@ Player 加入房间:
 ```typescript
 // Host (在 GameFacade 中)
 subscribeStateChange((shared) => {
-  const ui = toUIState(shared, this.myUid, this.mySeat);
+  // mySeat 从 SharedState 自动计算，不需要传入
+  const ui = toUIState(shared, this.myUid);
   handler(ui);
 });
 
-// Player (在 GameFacade 中)
+// Player (在 GameFacade 中) - 完全相同
 subscribeStateChange((shared) => {
-  const ui = toUIState(shared, this.myUid, this.mySeat);
+  const ui = toUIState(shared, this.myUid);  // mySeat 从 shared 自动计算
   handler(ui);
 });
 
@@ -1712,48 +1727,60 @@ subscribeStateChange((shared) => {
                            │
                            ▼
                     ┌──────────────┐
-                    │  GameFacade  │
-                    └──────┬───────┘
-                           │
-            ┌──────────────┼──────────────┐
-            ▼              │              ▼
-     ┌────────────┐        │       ┌─────────────┐
-     │ HostEngine │        │       │PlayerClient │
-     └─────┬──────┘        │       └──────┬──────┘
-           │               │              │
-           │               ▼              │
-           │        ┌──────────────┐      │
-           │        │ pure/*       │      │
-           │        │ StateMapper  │◄─────┘
-           │        │ VoteSettle.  │
-           │        │ DeathCalc.   │
-           │        └──────────────┘
-           │
-           ├─────────────────────────────────────┐
-           │                                     │
-           ▼                                     ▼
-    ┌──────────────┐                      ┌──────────────┐
-    │   core/*     │                      │   infra/*    │
-    │ NightFlow    │                      │ Broadcast    │
-    │ ActionProc.  │                      │ RoomRepo     │
-    │ SeatManager  │                      │ StateStorage │
-    │ RoleAssign.  │                      └──────────────┘
-    │ AudioPlayer  │
-    └──────────────┘
-           │
-           ▼
-    ┌──────────────┐
-    │night/resolvers│
-    └──────────────┘
-           │
-           ▼
-    ┌──────────────┐
-    │ models/roles │
-    │ ROLE_SPECS   │
-    │ SCHEMAS      │
-    │ NIGHT_STEPS  │
-    └──────────────┘
+                    │  GameFacade  │──────────────────┐
+                    └──────┬───────┘                  │
+                           │                          │ toUIState()
+            ┌──────────────┴──────────────┐           │
+            ▼                             ▼           │
+     ┌────────────┐                ┌─────────────┐    │
+     │ HostEngine │                │PlayerClient │    │
+     └─────┬──────┘                └──────┬──────┘    │
+           │                              │           │
+           │ toSharedState()              │           │
+           │ settleWolfVotes()            │           │
+           │ calculateDeaths()            │           │
+           ▼                              │           │
+    ┌──────────────┐                      │           │
+    │ pure/*       │◄─────────────────────┼───────────┘
+    │ StateMapper  │                      │
+    │ VoteSettle.  │                      │ (PlayerClient 不依赖 pure)
+    │ DeathCalc.   │                      │
+    └──────────────┘                      │
+           ▲                              │
+           │                              │
+    ┌──────┴───────┐                      │
+    │              │                      │
+    │              │                      ▼
+    │       ┌──────────────┐       ┌──────────────┐
+    │       │   core/*     │       │   infra/*    │
+    │       │ NightFlow    │       │ Broadcast    │◄── PlayerClient
+    │       │ ActionProc.  │       │ RoomRepo     │◄── HostEngine
+    │       │ SeatManager  │       │ StateStorage │
+    │       │ RoleAssign.  │       └──────────────┘
+    │       │ AudioPlayer  │
+    │       └──────┬───────┘
+    │              │
+    │              ▼
+    │       ┌──────────────┐
+    └───────│night/resolvers│ (ActionProcessor 依赖)
+            └──────┬───────┘
+                   │
+                   ▼
+            ┌──────────────┐
+            │ models/roles │
+            │ ROLE_SPECS   │
+            │ SCHEMAS      │
+            │ NIGHT_STEPS  │
+            └──────────────┘
 ```
+
+**依赖总结表:**
+
+| 模块 | 依赖 pure/* | 依赖 core/* | 依赖 infra/* |
+|------|-------------|-------------|--------------|
+| GameFacade | ✅ toUIState | ❌ | ❌ |
+| HostEngine | ✅ toSharedState, settleWolfVotes, calculateDeaths | ✅ 全部 | ✅ BroadcastChannel, StateStorage |
+| PlayerClient | ❌ | ❌ | ✅ BroadcastChannel |
 
 ---
 
