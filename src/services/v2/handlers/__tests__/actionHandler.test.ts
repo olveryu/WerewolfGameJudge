@@ -4,7 +4,11 @@
 
 import { handleSubmitAction, handleSubmitWolfVote, handleViewedRole } from '../actionHandler';
 import type { HandlerContext } from '../types';
-import type { SubmitActionIntent, SubmitWolfVoteIntent, ViewedRoleIntent } from '../../intents/types';
+import type {
+  SubmitActionIntent,
+  SubmitWolfVoteIntent,
+  ViewedRoleIntent,
+} from '../../intents/types';
 import type { GameState } from '../../store/types';
 import type { SchemaId } from '../../../../models/roles/spec';
 
@@ -40,12 +44,33 @@ function createContext(state: GameState, overrides?: Partial<HandlerContext>): H
 }
 
 describe('handleSubmitWolfVote', () => {
-  it('should succeed when host and game ongoing', () => {
-    const state = createMinimalState();
+  /**
+   * 创建 wolf vote 测试用的 ongoing 状态
+   * - currentStepId: 'wolfKill' (schema.kind === 'wolfVote')
+   * - 玩家 1 是 wolf，参与狼人投票
+   */
+  const createWolfVoteState = (overrides?: Partial<GameState>): GameState => {
+    return createMinimalState({
+      status: 'ongoing',
+      currentStepId: 'wolfKill' as SchemaId, // wolfVote schema
+      isAudioPlaying: false,
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+      },
+      ...overrides,
+    });
+  };
+
+  // === Happy Path ===
+
+  it('should succeed when all gates pass (wolf voter, valid target)', () => {
+    const state = createWolfVoteState();
     const context = createContext(state);
     const intent: SubmitWolfVoteIntent = {
       type: 'SUBMIT_WOLF_VOTE',
-      payload: { seat: 1, target: 0 },
+      payload: { seat: 1, target: 0 }, // wolf (seat 1) votes for villager (seat 0)
     };
 
     const result = handleSubmitWolfVote(intent, context);
@@ -53,10 +78,47 @@ describe('handleSubmitWolfVote', () => {
     expect(result.success).toBe(true);
     expect(result.actions).toHaveLength(1);
     expect(result.actions[0].type).toBe('RECORD_WOLF_VOTE');
+    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 
-  it('should fail when not host', () => {
-    const state = createMinimalState();
+  it('should allow wolf to vote self (neutral judge rule)', () => {
+    const state = createWolfVoteState();
+    const context = createContext(state);
+    const intent: SubmitWolfVoteIntent = {
+      type: 'SUBMIT_WOLF_VOTE',
+      payload: { seat: 1, target: 1 }, // wolf votes for self
+    };
+
+    const result = handleSubmitWolfVote(intent, context);
+
+    expect(result.success).toBe(true);
+    expect(result.actions[0].type).toBe('RECORD_WOLF_VOTE');
+  });
+
+  it('should allow wolf to vote teammate (neutral judge rule)', () => {
+    const state = createWolfVoteState({
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        2: { uid: 'p3', seatNumber: 2, role: 'wolf', hasViewedRole: true }, // another wolf
+      },
+    });
+    const context = createContext(state);
+    const intent: SubmitWolfVoteIntent = {
+      type: 'SUBMIT_WOLF_VOTE',
+      payload: { seat: 1, target: 2 }, // wolf votes for teammate
+    };
+
+    const result = handleSubmitWolfVote(intent, context);
+
+    expect(result.success).toBe(true);
+  });
+
+  // === Gate: host_only ===
+
+  it('should fail when not host (host_only)', () => {
+    const state = createWolfVoteState();
     const context = createContext(state, { isHost: false });
     const intent: SubmitWolfVoteIntent = {
       type: 'SUBMIT_WOLF_VOTE',
@@ -69,8 +131,30 @@ describe('handleSubmitWolfVote', () => {
     expect(result.reason).toBe('host_only');
   });
 
-  it('should fail when game not ongoing', () => {
-    const state = createMinimalState({ status: 'ended' });
+  // === Gate: no_state ===
+
+  it('should fail when state is null (no_state)', () => {
+    const context: HandlerContext = {
+      state: null as unknown as GameState,
+      isHost: true,
+      myUid: 'host-1',
+      mySeat: 0,
+    };
+    const intent: SubmitWolfVoteIntent = {
+      type: 'SUBMIT_WOLF_VOTE',
+      payload: { seat: 1, target: 0 },
+    };
+
+    const result = handleSubmitWolfVote(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('no_state');
+  });
+
+  // === Gate: invalid_status ===
+
+  it('should fail when game not ongoing (invalid_status)', () => {
+    const state = createWolfVoteState({ status: 'ended' });
     const context = createContext(state);
     const intent: SubmitWolfVoteIntent = {
       type: 'SUBMIT_WOLF_VOTE',
@@ -80,15 +164,123 @@ describe('handleSubmitWolfVote', () => {
     const result = handleSubmitWolfVote(intent, context);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('game_not_ongoing');
+    expect(result.reason).toBe('invalid_status');
   });
 
-  it('should fail when target seat invalid', () => {
-    const state = createMinimalState();
+  // === Gate: forbidden_while_audio_playing ===
+
+  it('should fail when audio is playing (forbidden_while_audio_playing)', () => {
+    const state = createWolfVoteState({ isAudioPlaying: true });
     const context = createContext(state);
     const intent: SubmitWolfVoteIntent = {
       type: 'SUBMIT_WOLF_VOTE',
-      payload: { seat: 1, target: 99 },
+      payload: { seat: 1, target: 0 },
+    };
+
+    const result = handleSubmitWolfVote(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('forbidden_while_audio_playing');
+  });
+
+  // === Gate: invalid_step ===
+
+  it('should fail when currentStepId is missing (invalid_step)', () => {
+    const state = createWolfVoteState({ currentStepId: undefined });
+    const context = createContext(state);
+    const intent: SubmitWolfVoteIntent = {
+      type: 'SUBMIT_WOLF_VOTE',
+      payload: { seat: 1, target: 0 },
+    };
+
+    const result = handleSubmitWolfVote(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalid_step');
+  });
+
+  // === Gate: step_mismatch ===
+
+  it('should fail when currentStepId is not wolfVote schema (step_mismatch)', () => {
+    const state = createWolfVoteState({ currentStepId: 'seerCheck' as SchemaId }); // not wolfVote
+    const context = createContext(state);
+    const intent: SubmitWolfVoteIntent = {
+      type: 'SUBMIT_WOLF_VOTE',
+      payload: { seat: 1, target: 0 },
+    };
+
+    const result = handleSubmitWolfVote(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('step_mismatch');
+  });
+
+  // === Gate: not_seated ===
+
+  it('should fail when voter seat is empty (not_seated)', () => {
+    const state = createWolfVoteState({
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        1: null, // voter seat is empty
+        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+      },
+    });
+    const context = createContext(state);
+    const intent: SubmitWolfVoteIntent = {
+      type: 'SUBMIT_WOLF_VOTE',
+      payload: { seat: 1, target: 0 },
+    };
+
+    const result = handleSubmitWolfVote(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('not_seated');
+  });
+
+  // === Gate: not_wolf_participant ===
+
+  it('should fail when voter role is not wolf (not_wolf_participant)', () => {
+    const state = createWolfVoteState();
+    const context = createContext(state);
+    const intent: SubmitWolfVoteIntent = {
+      type: 'SUBMIT_WOLF_VOTE',
+      payload: { seat: 0, target: 1 }, // villager (seat 0) trying to vote
+    };
+
+    const result = handleSubmitWolfVote(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('not_wolf_participant');
+  });
+
+  it('should fail when voter has no role (not_wolf_participant)', () => {
+    const state = createWolfVoteState({
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        1: { uid: 'p2', seatNumber: 1, role: undefined, hasViewedRole: true },
+        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+      },
+    });
+    const context = createContext(state);
+    const intent: SubmitWolfVoteIntent = {
+      type: 'SUBMIT_WOLF_VOTE',
+      payload: { seat: 1, target: 0 },
+    };
+
+    const result = handleSubmitWolfVote(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('not_wolf_participant');
+  });
+
+  // === Gate: invalid_target ===
+
+  it('should fail when target seat is out of range (invalid_target)', () => {
+    const state = createWolfVoteState();
+    const context = createContext(state);
+    const intent: SubmitWolfVoteIntent = {
+      type: 'SUBMIT_WOLF_VOTE',
+      payload: { seat: 1, target: 99 }, // seat 99 not in players
     };
 
     const result = handleSubmitWolfVote(intent, context);
@@ -97,8 +289,16 @@ describe('handleSubmitWolfVote', () => {
     expect(result.reason).toBe('invalid_target');
   });
 
-  it('should include BROADCAST_STATE side effect', () => {
-    const state = createMinimalState();
+  // === Gate: target_not_seated ===
+
+  it('should fail when target seat is empty (target_not_seated)', () => {
+    const state = createWolfVoteState({
+      players: {
+        0: null, // target seat is empty
+        1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+      },
+    });
     const context = createContext(state);
     const intent: SubmitWolfVoteIntent = {
       type: 'SUBMIT_WOLF_VOTE',
@@ -107,7 +307,8 @@ describe('handleSubmitWolfVote', () => {
 
     const result = handleSubmitWolfVote(intent, context);
 
-    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('target_not_seated');
   });
 });
 
