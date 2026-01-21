@@ -28,6 +28,75 @@ If something is unclear, ask before coding. Don't invent repo facts.
 - `src/services/night/resolvers/**`: host-only pure resolution + validation.
 - `src/screens/RoomScreen/components/**`: UI-only, no service imports.
 
+---
+
+## V2 Services Architecture
+
+> **设计文档:** `docs/V2-services-design.md` 是权威规格，修改代码前必须先核对/更新设计文档。
+
+### 状态分层 (State Hierarchy)
+
+```
+AuthoritativeState (Host 内部，完整状态)
+        │
+        │ toSharedState() - Host 转换
+        ▼
+SharedState (广播格式，所有人可见)
+        │
+        │ toUIState(shared, myUid) - 每个客户端转换
+        ▼
+UIState (UI 可读状态，含派生字段)
+```
+
+**关键约束:**
+- ❌ 禁止 UI 直接读取 `AuthoritativeState`
+- ❌ 禁止双写派生字段 (如 `isMyTurn`, `canAct`)
+- ✅ 所有派生字段在 `toUIState()` 计算
+- ✅ `mySeat` 从 `shared.seats.findIndex(s => s.uid === myUid)` 自动计算，不传参
+
+### 模块边界 (V2)
+
+| 旧 (V1) | 新 (V2) | 行数限制 |
+|---------|---------|----------|
+| `GameStateService.ts` (2700+ 行 God Class) | 拆分为多个模块 | - |
+| - | `core/HostEngine.ts` | ~350 行 |
+| - | `core/PlayerClient.ts` | ~150 行 |
+| - | `GameFacade.ts` | ~200 行 |
+| - | `pure/StateMapper.ts` | ~100 行 |
+| - | `pure/VoteSettlement.ts` | ~80 行 |
+| - | `pure/DeathCalculator.ts` | ~100 行 |
+| `BroadcastService.ts` | `infra/BroadcastChannel.ts` | ~120 行 |
+
+### 依赖规则
+
+```
+useGameRoom (UI Hook)
+    │
+    ▼
+GameFacade ──────────────────────────────────────┐
+    │                                            │
+    ├──▶ HostEngine ──▶ pure/* (StateMapper, etc.)
+    │         │
+    │         └──▶ infra/* (BroadcastChannel, etc.)
+    │
+    └──▶ PlayerClient ──▶ infra/BroadcastChannel (only)
+```
+
+**关键约束:**
+- ❌ `PlayerClient` 禁止 import `pure/*` (只通过 `toUIState` 在 Facade 层处理)
+- ❌ `pure/*` 禁止 import 任何有副作用的模块
+- ✅ 每个模块有依赖白名单，见设计文档第 4 节
+
+### Host/Player 统一路径
+
+```typescript
+// Host 和 Player 都通过相同方式获取 UIState
+facade.subscribeUIState((uiState) => {
+  // 完全相同的 UIState 格式
+  // 没有 if (isHost) 分支
+});
+```
+
 ### Resolver Integration Architecture
 
 ```
