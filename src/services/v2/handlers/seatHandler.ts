@@ -5,12 +5,13 @@
  * 所有校验（包括 state/uid 有效性）都在这里，Facade 不做任何校验
  */
 
-import type { JoinSeatIntent, LeaveSeatIntent } from '../intents/types';
+import type { JoinSeatIntent, LeaveSeatIntent, LeaveMySeatIntent } from '../intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type { PlayerJoinAction, PlayerLeaveAction } from '../reducer/types';
 import {
   REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
+  REASON_NOT_SEATED,
   REASON_INVALID_SEAT,
   REASON_SEAT_TAKEN,
   REASON_SEAT_EMPTY,
@@ -177,6 +178,68 @@ export function handleLeaveSeat(intent: LeaveSeatIntent, context: HandlerContext
   const action: PlayerLeaveAction = {
     type: 'PLAYER_LEAVE',
     payload: { seat },
+  };
+
+  return {
+    success: true,
+    actions: [action],
+    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+  };
+}
+
+/**
+ * 处理离开"我的座位"
+ *
+ * 与 handleLeaveSeat 不同：
+ * - 不需要 payload 中指定 seat，seat 从 context.mySeat 获取
+ * - 如果未入座 (mySeat === null)，返回 REASON_NOT_SEATED
+ */
+export function handleLeaveMySeat(
+  intent: LeaveMySeatIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const { uid } = intent.payload;
+  const { state, mySeat } = context;
+
+  // 校验：state 是否存在
+  if (!state) {
+    return {
+      success: false,
+      reason: REASON_NO_STATE,
+      actions: [],
+    };
+  }
+
+  // 校验：uid 是否有效
+  if (!uid) {
+    return {
+      success: false,
+      reason: REASON_NOT_AUTHENTICATED,
+      actions: [],
+    };
+  }
+
+  // 校验：是否已入座
+  if (mySeat === null) {
+    return {
+      success: false,
+      reason: REASON_NOT_SEATED,
+      actions: [],
+    };
+  }
+
+  // 验证：游戏状态是否允许离开
+  if (state.status === 'ongoing') {
+    return {
+      success: false,
+      reason: REASON_GAME_IN_PROGRESS,
+      actions: [],
+    };
+  }
+
+  const action: PlayerLeaveAction = {
+    type: 'PLAYER_LEAVE',
+    payload: { seat: mySeat },
   };
 
   return {

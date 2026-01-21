@@ -17,8 +17,8 @@ import type { BroadcastGameState, PlayerMessage, HostBroadcast } from '../../pro
 import { BroadcastService } from '../../BroadcastService';
 import { GameStore } from '../store';
 import { gameReducer } from '../reducer';
-import { handleJoinSeat, handleLeaveSeat } from '../handlers/seatHandler';
-import type { JoinSeatIntent, LeaveSeatIntent } from '../intents/types';
+import { handleJoinSeat, handleLeaveSeat, handleLeaveMySeat } from '../handlers/seatHandler';
+import type { JoinSeatIntent, LeaveSeatIntent, LeaveMySeatIntent } from '../intents/types';
 import type { HandlerContext } from '../handlers/types';
 import type { StateAction } from '../reducer/types';
 import { v2FacadeLog } from '../../../utils/logger';
@@ -230,18 +230,18 @@ export class V2GameFacade implements IGameFacade {
    * 离座并返回完整结果（包含 reason）
    *
    * Facade 只做编排，不校验 myUid/mySeat 有效性，全部委托给 handler
-   * 当 mySeat 为 null 时，使用 -1 让 handler 返回 invalid_seat
+   * 使用 LEAVE_MY_SEAT intent，handler 从 context.mySeat 获取座位
+   * 当 mySeat 为 null 时，handler 返回 not_seated（语义精确）
    */
   async leaveSeatWithAck(): Promise<{ success: boolean; reason?: string }> {
-    const mySeat = this.getMySeatNumber();
-
     if (this.isHost) {
-      // mySeat 为 null 时用 -1，handler 会返回 invalid_seat
-      return this.hostProcessLeaveSeat(mySeat ?? -1, this.myUid);
+      // Host: 走 handler → reducer 路径
+      return this.hostProcessLeaveMySeat(this.myUid);
     }
 
     // Player: 发送 SEAT_ACTION_REQUEST (standup)，等待 ACK
-    // mySeat 为 null 时用 -1，Host handler 会返回 invalid_seat
+    // Host 端会用 LEAVE_MY_SEAT handler 处理
+    const mySeat = this.getMySeatNumber();
     return this.playerSendSeatActionWithAck('standup', mySeat ?? -1);
   }
 
@@ -339,7 +339,9 @@ export class V2GameFacade implements IGameFacade {
     if (action === 'sit') {
       result = this.hostProcessJoinSeat(seat, uid, displayName, avatarUrl);
     } else if (action === 'standup') {
-      result = this.hostProcessLeaveSeat(seat, uid);
+      // 使用 LEAVE_MY_SEAT handler：从 context.mySeat 获取座位
+      // 忽略 msg.seat（可能是 -1），由 handler 从 store 查找 uid 对应的座位
+      result = this.hostProcessLeaveMySeat(uid);
     } else {
       result = { success: false, reason: REASON_INVALID_ACTION };
     }
@@ -479,6 +481,75 @@ export class V2GameFacade implements IGameFacade {
     }
 
     return { success: true };
+  }
+
+  /**
+   * Host 处理"我自己离座"（LEAVE_MY_SEAT）
+   *
+   * 与 hostProcessLeaveSeat 的区别：
+   * - 不需要 payload 中的 seat，从 context.mySeat 获取
+   * - 当 mySeat 为 null 时，handler 返回 not_seated（语义精确）
+   *
+   * @param requestUid - 请求者的 uid，可能为 null
+   * @returns { success, reason } - reason 来自 handler
+   */
+  private hostProcessLeaveMySeat(requestUid: string | null): { success: boolean; reason?: string } {
+    v2FacadeLog.debug('hostProcessLeaveMySeat', { requestUid });
+
+    const state = this.store.getState();
+
+    // 构造 intent（uid 可能为空字符串，handler 会拒绝）
+    const intent: LeaveMySeatIntent = {
+      type: 'LEAVE_MY_SEAT',
+      payload: {
+        uid: requestUid ?? '',
+      },
+    };
+
+    // 从 store 查找 requestUid 对应的座位
+    const requestUidSeat = this.findSeatByUid(requestUid);
+
+    // 构造 context
+    // 注意：mySeat 需要是请求者的座位，不是 Host 自己的座位
+    const context: HandlerContext = {
+      state,
+      isHost: true,
+      myUid: requestUid,
+      mySeat: requestUidSeat,
+    };
+
+    const result = handleLeaveMySeat(intent, context);
+
+    if (!result.success) {
+      void this.broadcastCurrentState();
+      return { success: false, reason: result.reason };
+    }
+
+    // 应用 actions 到 reducer（此时 state 必不为 null）
+    if (state) {
+      this.applyActions(state, result.actions);
+    }
+
+    if (result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE')) {
+      void this.broadcastCurrentState();
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * 根据 uid 查找座位号
+   */
+  private findSeatByUid(uid: string | null): number | null {
+    if (!uid) return null;
+    const state = this.store.getState();
+    if (!state) return null;
+    for (const [seatStr, player] of Object.entries(state.players)) {
+      if (player?.uid === uid) {
+        return Number.parseInt(seatStr, 10);
+      }
+    }
+    return null;
   }
 
   /**

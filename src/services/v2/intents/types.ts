@@ -29,6 +29,17 @@ export interface LeaveSeatIntent {
   };
 }
 
+/**
+ * 离开我的座位（不需要指定 seat）
+ * seat 由 handler 从 context.mySeat 获取
+ */
+export interface LeaveMySeatIntent {
+  type: 'LEAVE_MY_SEAT';
+  payload: {
+    uid: string;
+  };
+}
+
 // =============================================================================
 // 游戏生命周期 Intent
 // =============================================================================
@@ -114,6 +125,7 @@ export interface RequestSnapshotIntent {
 export type GameIntent =
   | JoinSeatIntent
   | LeaveSeatIntent
+  | LeaveMySeatIntent
   | StartGameIntent
   | RestartGameIntent
   | SubmitActionIntent
