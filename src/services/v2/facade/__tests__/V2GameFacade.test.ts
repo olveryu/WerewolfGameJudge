@@ -18,6 +18,7 @@ import {
   REASON_GAME_IN_PROGRESS,
   REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
+  REASON_NOT_SEATED,
 } from '../../protocol/reasonCodes';
 
 // Mock BroadcastService
@@ -649,10 +650,10 @@ describe('V2GameFacade', () => {
       mockBroadcastService.broadcastAsHost.mockClear();
     });
 
-    it('should return invalid_seat when not seated (seat -1)', async () => {
-      // Host not seated, leaveSeat will use -1
+    it('should return not_seated when not seated', async () => {
+      // Host not seated, LEAVE_MY_SEAT handler returns not_seated
       const result = await facade.leaveSeatWithAck();
-      expect(result).toEqual({ success: false, reason: REASON_INVALID_SEAT });
+      expect(result).toEqual({ success: false, reason: REASON_NOT_SEATED });
     });
 
     it('should succeed when leaving own seat', async () => {
