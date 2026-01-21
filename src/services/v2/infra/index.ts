@@ -1,7 +1,11 @@
 /**
  * Infrastructure Layer - External Adapters
  *
- * Phase 3: StateStore complete
+ * Phase 3: Infra layer complete
+ * - StateStore: Pure state storage with immutable updates
+ * - Transport: Supabase Realtime communication
+ * - Storage: AsyncStorage persistence
+ * - Audio: Audio playback service
  */
 
 // StateStore - State management
@@ -12,7 +16,13 @@ export type { StateStoreConfig, StateUpdater } from './StateStore';
 export { GameStatus } from './StateStore';
 export type { LocalGameState, LocalPlayer, GameStateListener, BroadcastGameState } from './StateStore';
 
-// Placeholder exports for remaining Phase 3 modules
-// export { Transport } from './Transport';
-// export { Storage } from './Storage';
-// export { Audio } from './Audio';
+// Transport - Supabase Realtime communication
+export { Transport } from './Transport';
+export type { ConnectionStatus, ConnectionStatusListener, TransportCallbacks } from './Transport';
+
+// Storage - AsyncStorage persistence
+export { Storage } from './Storage';
+export type { StorageConfig } from './Storage';
+
+// Audio - Audio playback service
+export { Audio } from './Audio';
