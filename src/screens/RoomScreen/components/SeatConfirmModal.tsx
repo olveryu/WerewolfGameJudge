@@ -1,10 +1,11 @@
 /**
  * SeatConfirmModal.tsx - Modal for confirming seat enter/leave actions
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 import { TESTIDS } from '../../../testids';
+import { blurFocusedElement } from '../../../utils/modalFocus';
 
 export type SeatModalType = 'enter' | 'leave';
 
@@ -31,12 +32,22 @@ export const SeatConfirmModal: React.FC<SeatConfirmModalProps> = ({
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
+  const handleCancel = useCallback(() => {
+    blurFocusedElement();
+    onCancel();
+  }, [onCancel]);
+
+  const handleConfirm = useCallback(() => {
+    blurFocusedElement();
+    onConfirm();
+  }, [onConfirm]);
+
   const title = modalType === 'enter' ? '入座' : '站起';
   const message =
     modalType === 'enter' ? `确定在${seatNumber}号位入座?` : `确定从${seatNumber}号位站起?`;
 
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onCancel}>
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={handleCancel}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent} testID={TESTIDS.seatConfirmModal}>
           <Text style={styles.modalTitle} testID={TESTIDS.seatConfirmTitle}>
@@ -48,14 +59,14 @@ export const SeatConfirmModal: React.FC<SeatConfirmModalProps> = ({
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={[styles.modalButton, styles.modalCancelButton]}
-              onPress={onCancel}
+              onPress={handleCancel}
               testID={TESTIDS.seatConfirmCancel}
             >
               <Text style={styles.modalCancelText}>取消</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modalButton, styles.modalConfirmButton]}
-              onPress={onConfirm}
+              onPress={handleConfirm}
               testID={TESTIDS.seatConfirmOk}
             >
               <Text style={styles.modalConfirmText}>确定</Text>

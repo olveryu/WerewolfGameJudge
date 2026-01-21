@@ -23,10 +23,12 @@ import {
   isWitchSave,
   isWitchPoison,
 } from './actions';
-import { GameStatus } from '../services';
+// Import GameStatus directly from v2 types to avoid require cycle
+// (services/index.ts → GameStateService → HostCoordinator → Room.ts → services/index.ts)
+import { GameStatus } from '../services/v2/types/GameState';
 
 // Re-export GameStatus for consumers who import from Room
-export { GameStatus } from '../services';
+export { GameStatus } from '../services/v2/types/GameState';
 
 // =============================================================================
 // Common interface for Room-like objects (supports both Room and LocalGameState)

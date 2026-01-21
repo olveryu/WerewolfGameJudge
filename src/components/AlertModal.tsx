@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../theme';
+import { blurFocusedElement } from '../utils/modalFocus';
 
 export interface AlertButton {
   text: string;
@@ -27,6 +28,8 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const handleButtonPress = (button: AlertButton) => {
+    // Blur focused element to prevent aria-hidden warning on web
+    blurFocusedElement();
     // First close the modal, then execute the callback
     // Use setTimeout to ensure modal is fully closed before callback
     onClose();
@@ -37,8 +40,13 @@ export const AlertModal: React.FC<AlertModalProps> = ({
     }
   };
 
+  const handleClose = () => {
+    blurFocusedElement();
+    onClose();
+  };
+
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={handleClose}>
       <View style={styles.overlay} testID="alert-modal-overlay">
         <View style={styles.alertBox} testID="alert-modal">
           <Text style={styles.title} testID="alert-title">

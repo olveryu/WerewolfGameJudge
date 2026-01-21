@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../theme';
+import { blurFocusedElement } from '../utils/modalFocus';
 
 interface PromptModalProps {
   visible: boolean;
@@ -41,11 +42,17 @@ export const PromptModal: React.FC<PromptModalProps> = ({
   }, [visible]);
 
   const handleConfirm = () => {
+    blurFocusedElement();
     onConfirm(value);
   };
 
+  const handleCancel = () => {
+    blurFocusedElement();
+    onCancel();
+  };
+
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onCancel}>
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={handleCancel}>
       <View style={styles.overlay}>
         <View style={styles.alertBox}>
           <Text style={styles.title}>{title}</Text>
@@ -63,7 +70,7 @@ export const PromptModal: React.FC<PromptModalProps> = ({
           />
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onCancel}>
+            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleCancel}>
               <Text style={[styles.buttonText, styles.cancelButtonText]}>取消</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.button} onPress={handleConfirm}>
