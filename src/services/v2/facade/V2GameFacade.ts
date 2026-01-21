@@ -19,7 +19,11 @@ import { GameStore } from '../store';
 import { gameReducer } from '../reducer';
 import { handleJoinSeat, handleLeaveMySeat } from '../handlers/seatHandler';
 import { handleAssignRoles, handleStartNight } from '../handlers/gameControlHandler';
-import { handleViewedRole, handleSubmitAction } from '../handlers/actionHandler';
+import {
+  handleViewedRole,
+  handleSubmitAction,
+  handleSubmitWolfVote,
+} from '../handlers/actionHandler';
 import type {
   JoinSeatIntent,
   LeaveMySeatIntent,
@@ -27,6 +31,7 @@ import type {
   ViewedRoleIntent,
   StartNightIntent,
   SubmitActionIntent,
+  SubmitWolfVoteIntent,
 } from '../intents/types';
 import type { HandlerContext } from '../handlers/types';
 import type { StateAction } from '../reducer/types';
@@ -732,6 +737,73 @@ export class V2GameFacade implements IGameFacade {
     }
 
     v2FacadeLog.info('submitAction success', { seat, role, target });
+    return { success: true };
+  }
+
+  // =========================================================================
+  // Night Action: 狼人投票（PR5）
+  // =========================================================================
+
+  /**
+   * Host: 处理狼人投票
+   *
+   * PR5: WOLF_VOTE（Night-1 only）
+   * - 累计狼人投票 → 产出 wolfKill 的 resolver 输入
+   * - Gate: host_only, no_state, invalid_status, forbidden_while_audio_playing,
+   *         invalid_step, step_mismatch, not_seated, not_wolf_participant, invalid_target, target_not_seated
+   * - 中立裁判规则：不限制自刀/队友刀
+   *
+   * @param voterSeat - 投票者座位
+   * @param targetSeat - 目标座位
+   * @returns { success, reason? }
+   */
+  async submitWolfVote(
+    voterSeat: number,
+    targetSeat: number,
+  ): Promise<{ success: boolean; reason?: string }> {
+    v2FacadeLog.debug('submitWolfVote called', { voterSeat, targetSeat, isHost: this.isHost });
+
+    const state = this.store.getState();
+
+    // 构造 intent
+    const intent: SubmitWolfVoteIntent = {
+      type: 'SUBMIT_WOLF_VOTE',
+      payload: { seat: voterSeat, target: targetSeat },
+    };
+
+    // 构造 context（isHost 来自 facade 状态，让 handler 决定是否拒绝）
+    const context: HandlerContext = {
+      state,
+      isHost: this.isHost,
+      myUid: this.myUid,
+      mySeat: this.getMySeatNumber(),
+    };
+
+    // 调用 handler（所有校验在这里）
+    const result = handleSubmitWolfVote(intent, context);
+
+    if (!result.success) {
+      v2FacadeLog.warn('submitWolfVote failed', { reason: result.reason });
+      // Reject 也必须 broadcast（防 UI pending 卡死）
+      await this.broadcastCurrentState();
+      return { success: false, reason: result.reason };
+    }
+
+    // 应用 actions 到 reducer（此时 state 必不为 null）
+    if (state) {
+      this.applyActions(state, result.actions);
+    }
+
+    // 执行副作用
+    if (result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE')) {
+      await this.broadcastCurrentState();
+    }
+    if (result.sideEffects?.some((e) => e.type === 'SAVE_STATE')) {
+      // SAVE_STATE side effect: 用于 crash recovery，暂由 log 占位
+      v2FacadeLog.debug('SAVE_STATE side effect triggered');
+    }
+
+    v2FacadeLog.info('submitWolfVote success', { voterSeat, targetSeat });
     return { success: true };
   }
 

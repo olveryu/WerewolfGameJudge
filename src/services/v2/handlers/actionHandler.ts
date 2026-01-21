@@ -20,7 +20,8 @@ import { RESOLVERS } from '../../night/resolvers';
 import { NIGHT_STEPS, SCHEMAS } from '../../../models/roles/spec';
 import type { ResolverContext, ActionInput, ResolverResult } from '../../night/resolvers/types';
 import type { RoleId } from '../../../models/roles';
-import type { ActionSchema } from '../../../models/roles/spec/schema.types';
+
+import { doesRoleParticipateInWolfVote } from '../../../models/roles';
 
 /**
  * 非 null 的 state 类型（通过 validation 后使用）
@@ -349,6 +350,20 @@ function buildSuccessResult(
 
 /**
  * 处理狼人投票
+ *
+ * PR5: WOLF_VOTE (Night-1 only)
+ * 完整 gate 链：
+ * 1. host_only
+ * 2. no_state
+ * 3. invalid_status (must be ongoing)
+ * 4. forbidden_while_audio_playing
+ * 5. invalid_step (currentStepId 必须存在且对应 wolfVote schema)
+ * 6. not_seated (voter seat 必须有玩家)
+ * 7. not_wolf_participant (voter 必须参与 wolf vote)
+ * 8. invalid_target (target 必须在 players 范围内)
+ * 9. target_not_seated (target seat 必须有玩家)
+ *
+ * 注意：不做 notSelf/notWolf 限制（中立裁判规则）
  */
 export function handleSubmitWolfVote(
   intent: SubmitWolfVoteIntent,
@@ -357,7 +372,7 @@ export function handleSubmitWolfVote(
   const { seat, target } = intent.payload;
   const { state, isHost } = context;
 
-  // 仅主机处理
+  // Gate 1: host_only
   if (!isHost) {
     return {
       success: false,
@@ -366,7 +381,7 @@ export function handleSubmitWolfVote(
     };
   }
 
-  // 验证 state 存在
+  // Gate 2: no_state
   if (!state) {
     return {
       success: false,
@@ -375,16 +390,62 @@ export function handleSubmitWolfVote(
     };
   }
 
-  // 验证游戏状态
+  // Gate 3: invalid_status (must be ongoing)
   if (state.status !== 'ongoing') {
     return {
       success: false,
-      reason: 'game_not_ongoing',
+      reason: 'invalid_status',
       actions: [],
     };
   }
 
-  // 验证目标座位有效
+  // Gate 4: forbidden_while_audio_playing
+  if (state.isAudioPlaying) {
+    return {
+      success: false,
+      reason: 'forbidden_while_audio_playing',
+      actions: [],
+    };
+  }
+
+  // Gate 5: invalid_step (currentStepId 必须存在且对应 wolfVote schema)
+  const { currentStepId } = state;
+  if (!currentStepId) {
+    return {
+      success: false,
+      reason: 'invalid_step',
+      actions: [],
+    };
+  }
+  const schema = SCHEMAS[currentStepId];
+  if (schema?.kind !== 'wolfVote') {
+    return {
+      success: false,
+      reason: 'step_mismatch',
+      actions: [],
+    };
+  }
+
+  // Gate 6: not_seated (voter seat 必须有玩家)
+  const voter = state.players[seat];
+  if (!voter) {
+    return {
+      success: false,
+      reason: 'not_seated',
+      actions: [],
+    };
+  }
+
+  // Gate 7: not_wolf_participant (voter 必须参与 wolf vote)
+  if (!voter.role || !doesRoleParticipateInWolfVote(voter.role)) {
+    return {
+      success: false,
+      reason: 'not_wolf_participant',
+      actions: [],
+    };
+  }
+
+  // Gate 8: invalid_target (target 必须在 players 范围内)
   if (!(target in state.players)) {
     return {
       success: false,
@@ -393,6 +454,17 @@ export function handleSubmitWolfVote(
     };
   }
 
+  // Gate 9: target_not_seated (target seat 必须有玩家)
+  const targetPlayer = state.players[target];
+  if (!targetPlayer) {
+    return {
+      success: false,
+      reason: 'target_not_seated',
+      actions: [],
+    };
+  }
+
+  // 成功：产生 RECORD_WOLF_VOTE
   const action: RecordWolfVoteAction = {
     type: 'RECORD_WOLF_VOTE',
     payload: {
@@ -404,7 +476,7 @@ export function handleSubmitWolfVote(
   return {
     success: true,
     actions: [action],
-    sideEffects: [{ type: 'BROADCAST_STATE' }],
+    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
   };
 }
 
