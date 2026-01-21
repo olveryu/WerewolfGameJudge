@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Modal,
   View,
@@ -9,7 +9,6 @@ import {
   Dimensions,
 } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../theme';
-import { createModalCloseHandler } from '../utils/modalFocus';
 
 interface PromptModalProps {
   visible: boolean;
@@ -41,18 +40,12 @@ export const PromptModal: React.FC<PromptModalProps> = ({
     }
   }, [visible]);
 
-  const handleConfirm = useCallback(() => {
-    const closeHandler = createModalCloseHandler(() => onConfirm(value));
-    closeHandler();
-  }, [onConfirm, value]);
-
-  const handleCancel = useCallback(
-    createModalCloseHandler(onCancel),
-    [onCancel]
-  );
+  const handleConfirm = () => {
+    onConfirm(value);
+  };
 
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={handleCancel}>
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onCancel}>
       <View style={styles.overlay}>
         <View style={styles.alertBox}>
           <Text style={styles.title}>{title}</Text>
@@ -70,7 +63,7 @@ export const PromptModal: React.FC<PromptModalProps> = ({
           />
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleCancel}>
+            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onCancel}>
               <Text style={[styles.buttonText, styles.cancelButtonText]}>取消</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.button} onPress={handleConfirm}>

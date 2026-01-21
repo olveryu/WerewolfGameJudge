@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../theme';
-import { createModalCloseHandler } from '../utils/modalFocus';
 
 export interface AlertButton {
   text: string;
@@ -28,22 +27,18 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const handleButtonPress = (button: AlertButton) => {
-    // Use createModalCloseHandler to blur focus before closing
-    const closeHandler = createModalCloseHandler(() => {
-      onClose();
-      if (button.onPress) {
-        setTimeout(() => {
-          button.onPress?.();
-        }, 0);
-      }
-    });
-    closeHandler();
+    // First close the modal, then execute the callback
+    // Use setTimeout to ensure modal is fully closed before callback
+    onClose();
+    if (button.onPress) {
+      setTimeout(() => {
+        button.onPress?.();
+      }, 0);
+    }
   };
 
-  const handleClose = createModalCloseHandler(onClose);
-
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={handleClose}>
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay} testID="alert-modal-overlay">
         <View style={styles.alertBox} testID="alert-modal">
           <Text style={styles.title} testID="alert-title">

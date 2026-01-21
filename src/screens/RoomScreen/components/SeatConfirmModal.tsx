@@ -1,11 +1,10 @@
 /**
  * SeatConfirmModal.tsx - Modal for confirming seat enter/leave actions
  */
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 import { TESTIDS } from '../../../testids';
-import { createModalCloseHandler } from '../../../utils/modalFocus';
 
 export type SeatModalType = 'enter' | 'leave';
 
@@ -32,24 +31,12 @@ export const SeatConfirmModal: React.FC<SeatConfirmModalProps> = ({
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  // Use createModalCloseHandler to blur focus before closing modal
-  // This prevents aria-hidden focus warning on web
-  const handleCancel = useCallback(
-    createModalCloseHandler(onCancel),
-    [onCancel]
-  );
-
-  const handleConfirm = useCallback(
-    createModalCloseHandler(onConfirm),
-    [onConfirm]
-  );
-
   const title = modalType === 'enter' ? '入座' : '站起';
   const message =
     modalType === 'enter' ? `确定在${seatNumber}号位入座?` : `确定从${seatNumber}号位站起?`;
 
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={handleCancel}>
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onCancel}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent} testID={TESTIDS.seatConfirmModal}>
           <Text style={styles.modalTitle} testID={TESTIDS.seatConfirmTitle}>
@@ -61,14 +48,14 @@ export const SeatConfirmModal: React.FC<SeatConfirmModalProps> = ({
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={[styles.modalButton, styles.modalCancelButton]}
-              onPress={handleCancel}
+              onPress={onCancel}
               testID={TESTIDS.seatConfirmCancel}
             >
               <Text style={styles.modalCancelText}>取消</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modalButton, styles.modalConfirmButton]}
-              onPress={handleConfirm}
+              onPress={onConfirm}
               testID={TESTIDS.seatConfirmOk}
             >
               <Text style={styles.modalConfirmText}>确定</Text>
