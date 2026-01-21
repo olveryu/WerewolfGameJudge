@@ -10,7 +10,9 @@
 
 import { V2GameFacade } from '../V2GameFacade';
 import { BroadcastService } from '../../../BroadcastService';
-import type { PlayerMessage, HostBroadcast } from '../../../protocol/types';
+import type { PlayerMessage, HostBroadcast, BroadcastPlayer } from '../../../protocol/types';
+import { gameReducer } from '../../reducer/gameReducer';
+import type { PlayerJoinAction } from '../../reducer/types';
 import {
   REASON_TIMEOUT,
   REASON_INVALID_SEAT,
@@ -754,6 +756,149 @@ describe('V2GameFacade', () => {
 
       const result = await facade.takeSeatWithAck(1, 'Player One');
       expect(result).toEqual({ success: false, reason: REASON_GAME_IN_PROGRESS });
+    });
+  });
+
+  // =========================================================================
+  // PR1: assignRoles (seated → assigned)
+  // =========================================================================
+  describe('Host: assignRoles', () => {
+    /**
+     * Helper: 通过 PLAYER_JOIN actions + reducer 填充所有座位
+     * 使用真实的 reducer 路径，不直接 mutate state
+     */
+    const fillAllSeatsViaReducer = (facadeInstance: V2GameFacade, template: typeof mockTemplate) => {
+      let state = facadeInstance['store'].getState()!;
+
+      for (let i = 0; i < template.numberOfPlayers; i++) {
+        const player: BroadcastPlayer = {
+          uid: i === 0 ? 'host-uid' : `player-${i}`,
+          seatNumber: i,
+          displayName: `Player ${i}`,
+          avatarUrl: undefined,
+          role: null, // 必须包含 role: null
+          hasViewedRole: false,
+        };
+
+        const action: PlayerJoinAction = {
+          type: 'PLAYER_JOIN',
+          payload: { seat: i, player },
+        };
+
+        state = gameReducer(state, action);
+      }
+
+      // 写回 store
+      facadeInstance['store'].setState(state);
+
+      return state;
+    };
+
+    beforeEach(async () => {
+      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      mockBroadcastService.broadcastAsHost.mockClear();
+    });
+
+    it('should reject if not host, with reason from handler (host_only)', async () => {
+      // 创建一个非 host facade（player）
+      V2GameFacade.resetInstance();
+      const playerFacade = V2GameFacade.getInstance();
+      await playerFacade.joinAsPlayer('ABCD', 'player-uid');
+
+      const result = await playerFacade.assignRoles();
+
+      // reason 必须来自 handler，不是 facade 硬编码
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('host_only');
+    });
+
+    it('should reject if status is not seated, with reason from handler', async () => {
+      // status 是 unseated（还没入座）
+      const result = await facade.assignRoles();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+
+    it('should broadcast current state when handler rejects', async () => {
+      // status 是 unseated → handler 会拒绝
+      mockBroadcastService.broadcastAsHost.mockClear();
+
+      await facade.assignRoles();
+
+      // 失败时也应该 broadcast 一次
+      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'STATE_UPDATE',
+        }),
+      );
+    });
+
+    it('should succeed when host and status is seated (via reducer path)', async () => {
+      // 通过 reducer 填充所有座位 → status 自动变为 'seated'
+      const seatedState = fillAllSeatsViaReducer(facade, mockTemplate);
+
+      // 验证 reducer 确实把 status 推到 'seated'
+      expect(seatedState.status).toBe('seated');
+
+      mockBroadcastService.broadcastAsHost.mockClear();
+
+      const result = await facade.assignRoles();
+
+      expect(result.success).toBe(true);
+      expect(result.reason).toBeUndefined();
+    });
+
+    it('should assign roles to all players and reset hasViewedRole (via reducer path)', async () => {
+      // 通过 reducer 填充所有座位
+      fillAllSeatsViaReducer(facade, mockTemplate);
+
+      mockBroadcastService.broadcastAsHost.mockClear();
+
+      await facade.assignRoles();
+
+      // 获取 broadcast 调用的 state
+      const broadcastCall = mockBroadcastService.broadcastAsHost.mock.calls.find(
+        (call) => call[0]?.type === 'STATE_UPDATE',
+      );
+      expect(broadcastCall).toBeDefined();
+
+      const broadcastedState = broadcastCall![0].state;
+
+      // 断言 status → assigned
+      expect(broadcastedState.status).toBe('assigned');
+
+      // 断言：至少一个玩家的 role 被分配（不是 null）
+      const players = broadcastedState.players as Record<number, BroadcastPlayer | null>;
+      const assignedPlayers = Object.values(players).filter(
+        (p): p is BroadcastPlayer => p !== null && p !== undefined && p.role !== null,
+      );
+      expect(assignedPlayers.length).toBeGreaterThan(0);
+
+      // 断言：所有玩家的 hasViewedRole 都被 reset 为 false
+      for (const player of Object.values(players)) {
+        if (player !== null && player !== undefined) {
+          expect(player.hasViewedRole).toBe(false);
+        }
+      }
+    });
+
+    it('should broadcast state with assigned status after successful assign', async () => {
+      // 通过 reducer 填充所有座位
+      fillAllSeatsViaReducer(facade, mockTemplate);
+
+      mockBroadcastService.broadcastAsHost.mockClear();
+
+      await facade.assignRoles();
+
+      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'STATE_UPDATE',
+          state: expect.objectContaining({
+            status: 'assigned',
+          }),
+        }),
+      );
     });
   });
 });

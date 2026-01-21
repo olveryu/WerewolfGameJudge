@@ -508,33 +508,29 @@ export class V2GameFacade implements IGameFacade {
   async assignRoles(): Promise<{ success: boolean; reason?: string }> {
     v2FacadeLog.debug('assignRoles called', { isHost: this.isHost });
 
-    // 验证：仅主机可操作
-    if (!this.isHost) {
-      return { success: false, reason: 'host_only' };
-    }
-
     const state = this.store.getState();
 
     // 构造 intent
     const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
 
-    // 构造 context
+    // 构造 context（isHost 来自 facade 状态，让 handler 决定是否拒绝）
     const context: HandlerContext = {
       state,
-      isHost: true,
+      isHost: this.isHost,
       myUid: this.myUid,
       mySeat: this.getMySeatNumber(),
     };
 
-    // 调用 handler
+    // 调用 handler（所有校验在这里）
     const result = handleAssignRoles(intent, context);
 
     if (!result.success) {
-      v2FacadeLog.warn('assignRoles failed:', result.reason);
+      v2FacadeLog.warn('assignRoles failed', { reason: result.reason });
+      void this.broadcastCurrentState();
       return { success: false, reason: result.reason };
     }
 
-    // 应用 actions 到 reducer
+    // 应用 actions 到 reducer（此时 state 必不为 null）
     if (state) {
       this.applyActions(state, result.actions);
     }
