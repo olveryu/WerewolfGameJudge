@@ -36,6 +36,15 @@ export interface LeaveMySeatIntent {
 // 游戏生命周期 Intent
 // =============================================================================
 
+/**
+ * 分配角色 Intent（Host-only）
+ * 前置条件：status === 'seated'
+ * 结果：status → 'assigned'
+ */
+export interface AssignRolesIntent {
+  type: 'ASSIGN_ROLES';
+}
+
 export interface StartGameIntent {
   type: 'START_GAME';
 }
@@ -117,6 +126,7 @@ export interface RequestSnapshotIntent {
 export type GameIntent =
   | JoinSeatIntent
   | LeaveMySeatIntent
+  | AssignRolesIntent
   | StartGameIntent
   | RestartGameIntent
   | SubmitActionIntent
