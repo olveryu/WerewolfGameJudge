@@ -114,7 +114,11 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
 }
 
 /**
- * 处理离开座位
+ * 处理离开座位（指定 seat）
+ *
+ * @deprecated TODO(remove by 2026-03-01): Gate1 standup 已统一使用 handleLeaveMySeat，
+ * 此函数仅保留用于未来可能的"指定座位离席"场景（如 Host 踢人）。
+ * 如果 2026-03-01 前没有新场景需要，请删除此函数及 LeaveSeatIntent。
  */
 export function handleLeaveSeat(intent: LeaveSeatIntent, context: HandlerContext): HandlerResult {
   const { seat, uid } = intent.payload;

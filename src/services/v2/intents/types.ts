@@ -21,6 +21,12 @@ export interface JoinSeatIntent {
   };
 }
 
+/**
+ * 离开指定座位
+ *
+ * @deprecated TODO(remove by 2026-03-01): Gate1 standup 已统一使用 LeaveMySeatIntent，
+ * 此类型仅保留用于未来可能的"指定座位离席"场景（如 Host 踢人）。
+ */
 export interface LeaveSeatIntent {
   type: 'LEAVE_SEAT';
   payload: {
