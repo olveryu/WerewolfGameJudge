@@ -2,9 +2,9 @@
  * gameControlHandler Unit Tests
  */
 
-import { handleStartGame, handleRestartGame } from '../gameControlHandler';
+import { handleAssignRoles, handleStartGame, handleRestartGame } from '../gameControlHandler';
 import type { HandlerContext } from '../types';
-import type { StartGameIntent, RestartGameIntent } from '../../intents/types';
+import type { AssignRolesIntent, StartGameIntent, RestartGameIntent } from '../../intents/types';
 import type { GameState } from '../../store/types';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
@@ -29,6 +29,120 @@ function createContext(state: GameState, overrides?: Partial<HandlerContext>): H
     ...overrides,
   };
 }
+
+// =============================================================================
+// handleAssignRoles tests (PR1)
+// =============================================================================
+
+describe('handleAssignRoles', () => {
+  const seatedState = createMinimalState({
+    status: 'seated',
+    players: {
+      0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+      1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+      2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+    },
+  });
+
+  it('should succeed when host and status is seated (happy path)', () => {
+    const context = createContext(seatedState);
+    const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
+
+    const result = handleAssignRoles(intent, context);
+
+    expect(result.success).toBe(true);
+    // PR1: 只产生 ASSIGN_ROLES，不产生 START_NIGHT
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].type).toBe('ASSIGN_ROLES');
+  });
+
+  it('should assign all template roles', () => {
+    const context = createContext(seatedState);
+    const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
+
+    const result = handleAssignRoles(intent, context);
+
+    const assignAction = result.actions.find((a) => a.type === 'ASSIGN_ROLES');
+    expect(assignAction).toBeDefined();
+    if (assignAction?.type === 'ASSIGN_ROLES') {
+      const assignedRoles = Object.values(assignAction.payload.assignments);
+      const sortedRoles = [...assignedRoles].sort((a, b) => a.localeCompare(b));
+      expect(sortedRoles).toEqual(['seer', 'villager', 'wolf']);
+    }
+  });
+
+  it('should fail when not host (edge case)', () => {
+    const context = createContext(seatedState, { isHost: false });
+    const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
+
+    const result = handleAssignRoles(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('host_only');
+  });
+
+  it('should fail when status is not seated (edge case)', () => {
+    const state = createMinimalState({ status: 'unseated' });
+    const context = createContext(state);
+    const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
+
+    const result = handleAssignRoles(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalid_status');
+  });
+
+  it('should fail when status is assigned (edge case)', () => {
+    const state = createMinimalState({
+      status: 'assigned',
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
+        1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
+      },
+    });
+    const context = createContext(state);
+    const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
+
+    const result = handleAssignRoles(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalid_status');
+  });
+
+  it('should fail when role count mismatches seat count', () => {
+    const state = createMinimalState({
+      status: 'seated',
+      templateRoles: ['villager', 'wolf'], // 2 roles but 3 seats
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+        1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+        2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+      },
+    });
+    const context = createContext(state);
+    const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
+
+    const result = handleAssignRoles(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('role_count_mismatch');
+  });
+
+  it('should include side effects', () => {
+    const context = createContext(seatedState);
+    const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
+
+    const result = handleAssignRoles(intent, context);
+
+    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+  });
+});
+
+// =============================================================================
+// handleStartGame tests (legacy, will be modified in PR3)
+// =============================================================================
 
 describe('handleStartGame', () => {
   const seatedState = createMinimalState({

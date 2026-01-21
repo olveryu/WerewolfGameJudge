@@ -18,7 +18,8 @@ import { BroadcastService } from '../../BroadcastService';
 import { GameStore } from '../store';
 import { gameReducer } from '../reducer';
 import { handleJoinSeat, handleLeaveMySeat } from '../handlers/seatHandler';
-import type { JoinSeatIntent, LeaveMySeatIntent } from '../intents/types';
+import { handleAssignRoles } from '../handlers/gameControlHandler';
+import type { JoinSeatIntent, LeaveMySeatIntent, AssignRolesIntent } from '../intents/types';
 import type { HandlerContext } from '../handlers/types';
 import type { StateAction } from '../reducer/types';
 import { v2FacadeLog } from '../../../utils/logger';
@@ -485,6 +486,65 @@ export class V2GameFacade implements IGameFacade {
       void this.broadcastCurrentState();
     }
 
+    return { success: true };
+  }
+
+  // =========================================================================
+  // Game Control: 分配角色（PR1）
+  // =========================================================================
+
+  /**
+   * Host: 分配角色
+   *
+   * Legacy 对齐：GameStateService.ts L1455-1478
+   * - 前置条件：status === 'seated' && isHost
+   * - 洗牌分配角色
+   * - 设置 hasViewedRole = false
+   * - status → 'assigned'
+   * - 广播 STATE_UPDATE
+   *
+   * @returns { success, reason? }
+   */
+  async assignRoles(): Promise<{ success: boolean; reason?: string }> {
+    v2FacadeLog.debug('assignRoles called', { isHost: this.isHost });
+
+    // 验证：仅主机可操作
+    if (!this.isHost) {
+      return { success: false, reason: 'host_only' };
+    }
+
+    const state = this.store.getState();
+
+    // 构造 intent
+    const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
+
+    // 构造 context
+    const context: HandlerContext = {
+      state,
+      isHost: true,
+      myUid: this.myUid,
+      mySeat: this.getMySeatNumber(),
+    };
+
+    // 调用 handler
+    const result = handleAssignRoles(intent, context);
+
+    if (!result.success) {
+      v2FacadeLog.warn('assignRoles failed:', result.reason);
+      return { success: false, reason: result.reason };
+    }
+
+    // 应用 actions 到 reducer
+    if (state) {
+      this.applyActions(state, result.actions);
+    }
+
+    // 执行副作用
+    if (result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE')) {
+      await this.broadcastCurrentState();
+    }
+
+    v2FacadeLog.info('assignRoles success');
     return { success: true };
   }
 

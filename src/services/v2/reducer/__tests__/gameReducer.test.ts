@@ -157,6 +157,56 @@ describe('gameReducer', () => {
 
       expect(newState.players[0]?.hasViewedRole).toBe(false);
     });
+
+    it('should set hasViewedRole to false for all assigned players', () => {
+      const state = createMinimalState({
+        status: 'seated',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: true },
+          2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: true },
+        },
+      });
+      const action: AssignRolesAction = {
+        type: 'ASSIGN_ROLES',
+        payload: { assignments: { 0: 'villager', 1: 'wolf', 2: 'seer' } },
+      };
+
+      const newState = gameReducer(state, action);
+
+      // All players should have hasViewedRole = false after ASSIGN_ROLES
+      expect(newState.players[0]?.hasViewedRole).toBe(false);
+      expect(newState.players[1]?.hasViewedRole).toBe(false);
+      expect(newState.players[2]?.hasViewedRole).toBe(false);
+    });
+
+    it('should NOT touch night-related fields (PR1 contract)', () => {
+      const state = createMinimalState({
+        status: 'seated',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+          1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+          2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+        },
+        // These should remain unchanged
+        currentActionerIndex: -1,
+        isAudioPlaying: false,
+      });
+      const action: AssignRolesAction = {
+        type: 'ASSIGN_ROLES',
+        payload: { assignments: { 0: 'villager', 1: 'wolf', 2: 'seer' } },
+      };
+
+      const newState = gameReducer(state, action);
+
+      // PR1 contract: ASSIGN_ROLES should NOT initialize night fields
+      expect(newState.status).toBe('assigned'); // NOT 'ongoing'
+      expect(newState.currentActionerIndex).toBe(-1); // NOT 0
+      expect(newState.isAudioPlaying).toBe(false);
+      expect(newState.actions).toBeUndefined();
+      expect(newState.wolfVotes).toBeUndefined();
+      expect(newState.currentNightResults).toBeUndefined();
+    });
   });
 
   describe('START_NIGHT', () => {

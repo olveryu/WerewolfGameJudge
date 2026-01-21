@@ -1,17 +1,98 @@
 /**
  * Game Control Handler - 游戏控制处理器
  *
- * 处理 START_GAME / RESTART_GAME intent（仅主机）
+ * 处理 ASSIGN_ROLES / START_GAME / RESTART_GAME intent（仅主机）
  */
 
-import type { StartGameIntent, RestartGameIntent } from '../intents/types';
+import type { AssignRolesIntent, StartGameIntent, RestartGameIntent } from '../intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type { AssignRolesAction, StartNightAction, RestartGameAction } from '../reducer/types';
 import { shuffleArray } from '../../../utils/shuffle';
 import type { RoleId } from '../../../models/roles';
 
 /**
+ * 处理分配角色（仅 seated → assigned）
+ *
+ * Legacy 对齐：GameStateService.ts L1455-1478
+ * - 前置条件：status === 'seated' && isHost
+ * - 洗牌分配角色
+ * - 设置 hasViewedRole = false
+ * - status → 'assigned'
+ * - 广播 STATE_UPDATE
+ */
+export function handleAssignRoles(
+  _intent: AssignRolesIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const { state, isHost } = context;
+
+  // 验证：仅主机可操作（Legacy L1456）
+  if (!isHost) {
+    return {
+      success: false,
+      reason: 'host_only',
+      actions: [],
+    };
+  }
+
+  // 验证：state 存在
+  if (!state) {
+    return {
+      success: false,
+      reason: 'no_state',
+      actions: [],
+    };
+  }
+
+  // 验证：游戏状态必须是 seated（Legacy L1457）
+  if (state.status !== 'seated') {
+    return {
+      success: false,
+      reason: 'invalid_status',
+      actions: [],
+    };
+  }
+
+  // 验证：模板角色数量与座位数匹配
+  const seatCount = Object.keys(state.players).length;
+  if (state.templateRoles.length !== seatCount) {
+    return {
+      success: false,
+      reason: 'role_count_mismatch',
+      actions: [],
+    };
+  }
+
+  // 随机分配角色（Legacy L1460）
+  const shuffledRoles = shuffleArray([...state.templateRoles]);
+  const assignments: Record<number, RoleId> = {};
+  const seats = Object.keys(state.players).map((s) => Number.parseInt(s, 10));
+
+  for (let i = 0; i < seats.length; i++) {
+    assignments[seats[i]] = shuffledRoles[i];
+  }
+
+  // 只产生 ASSIGN_ROLES action（不产生 START_NIGHT）
+  const assignRolesAction: AssignRolesAction = {
+    type: 'ASSIGN_ROLES',
+    payload: { assignments },
+  };
+
+  return {
+    success: true,
+    actions: [assignRolesAction],
+    sideEffects: [
+      { type: 'BROADCAST_STATE' },
+      { type: 'SAVE_STATE' },
+    ],
+  };
+}
+
+/**
  * 处理开始游戏（分配角色 + 开始夜晚）
+ *
+ * 注意：PR3 将修改此函数，使其前置条件为 status === 'ready'
+ * 当前保留原实现以便回滚
  */
 export function handleStartGame(_intent: StartGameIntent, context: HandlerContext): HandlerResult {
   const { state, isHost } = context;
@@ -21,6 +102,15 @@ export function handleStartGame(_intent: StartGameIntent, context: HandlerContex
     return {
       success: false,
       reason: 'host_only',
+      actions: [],
+    };
+  }
+
+  // 验证：state 存在
+  if (!state) {
+    return {
+      success: false,
+      reason: 'no_state',
       actions: [],
     };
   }
