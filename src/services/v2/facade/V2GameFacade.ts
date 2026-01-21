@@ -260,6 +260,26 @@ export class V2GameFacade implements IGameFacade {
   }
 
   // =========================================================================
+  // Night Flow (委托给 hostActions) - PR6
+  // =========================================================================
+
+  /**
+   * Host: 推进夜晚到下一步
+   * 音频结束后调用
+   */
+  async advanceNight(): Promise<{ success: boolean; reason?: string }> {
+    return hostActions.advanceNight(this.getHostActionsContext());
+  }
+
+  /**
+   * Host: 结束夜晚，进行死亡结算
+   * 夜晚结束音频结束后调用
+   */
+  async endNight(): Promise<{ success: boolean; reason?: string }> {
+    return hostActions.endNight(this.getHostActionsContext());
+  }
+
+  // =========================================================================
   // Context Builders (为子模块提供上下文)
   // =========================================================================
 

@@ -241,27 +241,83 @@ describe('gameReducer', () => {
   });
 
   describe('ADVANCE_TO_NEXT_ACTION', () => {
-    it('should update currentActionerIndex and clear reveal states', () => {
+    it('should update currentActionerIndex, currentStepId and clear reveal states', () => {
       const state = createMinimalState({
         status: 'ongoing',
         currentActionerIndex: 0,
+        currentStepId: 'wolfKill',
         seerReveal: { targetSeat: 1, result: '好人' },
+        psychicReveal: { targetSeat: 2, result: '狼人阵营' },
+        gargoyleReveal: { targetSeat: 3, result: '守卫' },
+        wolfRobotReveal: { targetSeat: 4, result: '预言家' },
+        confirmStatus: { role: 'hunter', canShoot: true },
+        witchContext: { killedIndex: 1, canSave: true, canPoison: true },
       });
       const action: AdvanceToNextActionAction = {
         type: 'ADVANCE_TO_NEXT_ACTION',
-        payload: { nextActionerIndex: 1 },
+        payload: { nextActionerIndex: 1, nextStepId: 'seerCheck' },
       };
 
       const newState = gameReducer(state, action);
 
+      // PR6 contract: 同时更新 index 和 stepId
       expect(newState.currentActionerIndex).toBe(1);
+      expect(newState.currentStepId).toBe('seerCheck');
+      // PR6 contract: 清空所有 reveal/context
       expect(newState.seerReveal).toBeUndefined();
+      expect(newState.psychicReveal).toBeUndefined();
+      expect(newState.gargoyleReveal).toBeUndefined();
+      expect(newState.wolfRobotReveal).toBeUndefined();
+      expect(newState.confirmStatus).toBeUndefined();
+      expect(newState.witchContext).toBeUndefined();
+    });
+
+    it('should clear wolfVotes and wolfVoteStatus on advance (PR6 contract)', () => {
+      const state = createMinimalState({
+        status: 'ongoing',
+        currentActionerIndex: 0,
+        currentStepId: 'wolfKill',
+        wolfVotes: { 1: 3, 2: 3 },
+        wolfVoteStatus: { 1: true, 2: true },
+      });
+      const action: AdvanceToNextActionAction = {
+        type: 'ADVANCE_TO_NEXT_ACTION',
+        payload: { nextActionerIndex: 1, nextStepId: 'witchAction' },
+      };
+
+      const newState = gameReducer(state, action);
+
+      // PR6 contract: 推进到下一步清空狼票
+      expect(newState.wolfVotes).toEqual({});
+      expect(newState.wolfVoteStatus).toEqual({});
+    });
+
+    it('should set currentStepId to undefined when nextStepId is null (night end)', () => {
+      const state = createMinimalState({
+        status: 'ongoing',
+        currentActionerIndex: 5,
+        currentStepId: 'hunterConfirm',
+      });
+      const action: AdvanceToNextActionAction = {
+        type: 'ADVANCE_TO_NEXT_ACTION',
+        payload: { nextActionerIndex: -1, nextStepId: null },
+      };
+
+      const newState = gameReducer(state, action);
+
+      // PR6 contract: nextStepId=null 表示夜晚结束，stepId 清空
+      expect(newState.currentActionerIndex).toBe(-1);
+      expect(newState.currentStepId).toBeUndefined();
     });
   });
 
   describe('END_NIGHT', () => {
     it('should set status to ended and record deaths', () => {
-      const state = createMinimalState({ status: 'ongoing' });
+      const state = createMinimalState({
+        status: 'ongoing',
+        currentStepId: 'hunterConfirm',
+        isAudioPlaying: true,
+      });
       const action: EndNightAction = {
         type: 'END_NIGHT',
         payload: { deaths: [1, 2] },
@@ -272,6 +328,30 @@ describe('gameReducer', () => {
       expect(newState.status).toBe('ended');
       expect(newState.lastNightDeaths).toEqual([1, 2]);
       expect(newState.currentActionerIndex).toBe(-1);
+      // PR6 contract: 清空 stepId 和 isAudioPlaying
+      expect(newState.currentStepId).toBeUndefined();
+      expect(newState.isAudioPlaying).toBe(false);
+    });
+
+    it('should clear currentStepId and isAudioPlaying (PR6 contract)', () => {
+      const state = createMinimalState({
+        status: 'ongoing',
+        currentStepId: 'witchAction',
+        isAudioPlaying: true,
+        currentActionerIndex: 3,
+      });
+      const action: EndNightAction = {
+        type: 'END_NIGHT',
+        payload: { deaths: [] },
+      };
+
+      const newState = gameReducer(state, action);
+
+      // PR6 contract: 夜晚结束必须清 stepId 和 isAudioPlaying
+      expect(newState.currentStepId).toBeUndefined();
+      expect(newState.isAudioPlaying).toBe(false);
+      expect(newState.currentActionerIndex).toBe(-1);
+      expect(newState.status).toBe('ended');
     });
   });
 

@@ -117,6 +117,26 @@ export interface PlayNextAudioIntent {
 }
 
 // =============================================================================
+// 夜晚流程 Intent（仅主机）
+// =============================================================================
+
+/**
+ * 推进夜晚到下一步
+ * Host-only：音频结束后调用，推进 currentActionerIndex + currentStepId
+ */
+export interface AdvanceNightIntent {
+  type: 'ADVANCE_NIGHT';
+}
+
+/**
+ * 结束夜晚
+ * Host-only：夜晚结束音频结束后，进行死亡结算并置 ended
+ */
+export interface EndNightIntent {
+  type: 'END_NIGHT';
+}
+
+// =============================================================================
 // 状态同步 Intent
 // =============================================================================
 
@@ -145,4 +165,6 @@ export type GameIntent =
   | RevealAckIntent
   | SkipAudioIntent
   | PlayNextAudioIntent
+  | AdvanceNightIntent
+  | EndNightIntent
   | RequestSnapshotIntent;
