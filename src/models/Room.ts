@@ -23,10 +23,10 @@ import {
   isWitchSave,
   isWitchPoison,
 } from './actions';
-import { GameStatus } from '../services/types/GameStateTypes';
+import { GameStatus } from '../services';
 
 // Re-export GameStatus for consumers who import from Room
-export { GameStatus } from '../services/types/GameStateTypes';
+export { GameStatus } from '../services';
 
 // =============================================================================
 // Common interface for Room-like objects (supports both Room and LocalGameState)

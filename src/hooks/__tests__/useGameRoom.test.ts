@@ -5,16 +5,14 @@
  * createRoom uses it instead of generating a new one.
  */
 
-import { SimplifiedRoomService } from '../../services/SimplifiedRoomService';
-import { AuthService } from '../../services/AuthService';
-import { GameStateService } from '../../services/GameStateService';
+import { SimplifiedRoomService, AuthService, GameStateService } from '../../services';
 import { GameTemplate } from '../../models/Template';
 import { RoleId } from '../../models/roles';
 
 // Mock the services
-jest.mock('../../services/SimplifiedRoomService');
-jest.mock('../../services/AuthService');
-jest.mock('../../services/GameStateService');
+jest.mock('../../services/legacy/SimplifiedRoomService');
+jest.mock('../../services/legacy/AuthService');
+jest.mock('../../services/legacy/GameStateService');
 
 // Helper to create mock template
 // Phase 5: actionOrder removed from GameTemplate

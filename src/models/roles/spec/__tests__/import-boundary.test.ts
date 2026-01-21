@@ -94,7 +94,8 @@ describe('Import Boundary Enforcement', () => {
 
   describe('Resolver imports should only come from services/night/', () => {
     it('resolvers/index.ts should exist and export RESOLVERS', () => {
-      const resolversIndexPath = path.join(srcRoot, 'services/night/resolvers/index.ts');
+      // After Phase 1 legacy migration, resolvers are in legacy folder
+      const resolversIndexPath = path.join(srcRoot, 'services/legacy/night/resolvers/index.ts');
       expect(fs.existsSync(resolversIndexPath)).toBe(true);
 
       const content = fs.readFileSync(resolversIndexPath, 'utf-8');
@@ -102,7 +103,8 @@ describe('Import Boundary Enforcement', () => {
     });
 
     it('resolvers should not import from UI directories', () => {
-      const resolversDir = path.join(srcRoot, 'services/night/resolvers');
+      // After Phase 1 legacy migration, resolvers are in legacy folder
+      const resolversDir = path.join(srcRoot, 'services/legacy/night/resolvers');
       const tsFiles = findTsFiles(resolversDir);
 
       const forbiddenPatterns = [

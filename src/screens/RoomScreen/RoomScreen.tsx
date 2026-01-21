@@ -23,7 +23,7 @@ import { GameStatus, getWolfVoteSummary, getPlayersNotViewedRole } from '../../m
 import { getRoleSpec, getRoleDisplayName, buildNightPlan } from '../../models/roles';
 import { showAlert } from '../../utils/alert';
 import { useGameRoom } from '../../hooks/useGameRoom';
-import type { LocalGameState } from '../../services/types/GameStateTypes';
+import type { LocalGameState } from '../../services';
 import { HostControlButtons } from './HostControlButtons';
 import { useRoomHostDialogs } from './useRoomHostDialogs';
 import { useRoomActionDialogs } from './useRoomActionDialogs';

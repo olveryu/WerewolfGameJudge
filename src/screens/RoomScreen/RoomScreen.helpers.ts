@@ -17,7 +17,7 @@ import {
   getWolfKillImmuneRoleIds,
   canRoleSeeWolves,
 } from '../../models/roles';
-import type { LocalGameState } from '../../services/types/GameStateTypes';
+import type { LocalGameState } from '../../services';
 import type { GameRoomLike } from '../../models/Room';
 import type { RoleAction } from '../../models/actions/RoleAction';
 import type { ActionSchema, TargetConstraint } from '../../models/roles/spec';

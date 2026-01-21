@@ -8,7 +8,7 @@ import { renderHook } from '@testing-library/react-native';
 
 import { GameStatus } from '../../../../models/Room';
 import { getSchema, BLOCKED_UI_DEFAULTS } from '../../../../models/roles/spec';
-import type { LocalGameState } from '../../../../services/types/GameStateTypes';
+import type { LocalGameState } from '../../../../services';
 import type { GameContext } from '../../hooks/useRoomActions';
 import { useRoomActions } from '../../hooks/useRoomActions';
 

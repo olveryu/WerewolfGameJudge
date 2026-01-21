@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AuthService } from '../services/AuthService';
-import { AvatarUploadService } from '../services/AvatarUploadService';
+import { AuthService, AvatarUploadService } from '../services';
 import { supabase, isSupabaseConfigured } from '../config/supabase';
 import { authLog } from '../utils/logger';
 

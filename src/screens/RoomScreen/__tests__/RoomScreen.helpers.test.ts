@@ -10,8 +10,8 @@ import {
   toGameRoomLike,
 } from '../RoomScreen.helpers';
 import type { RoleId } from '../../../models/roles';
-import type { LocalGameState } from '../../../services/types/GameStateTypes';
-import { GameStatus } from '../../../services/GameStateService';
+import type { LocalGameState } from '../../../services';
+import { GameStatus } from '../../../services';
 import { SCHEMAS } from '../../../models/roles/spec/schemas';
 
 // =============================================================================

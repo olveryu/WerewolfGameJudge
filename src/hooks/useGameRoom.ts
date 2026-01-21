@@ -6,11 +6,16 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { GameStateService, LocalGameState } from '../services/GameStateService';
-import { GameStatus } from '../services/types/GameStateTypes';
-import { SimplifiedRoomService, RoomRecord } from '../services/SimplifiedRoomService';
-import { BroadcastService, type ConnectionStatus } from '../services/BroadcastService';
-import { AuthService } from '../services/AuthService';
+import {
+  GameStateService,
+  type LocalGameState,
+  GameStatus,
+  SimplifiedRoomService,
+  type RoomRecord,
+  BroadcastService,
+  type ConnectionStatus,
+  AuthService,
+} from '../services';
 import { GameTemplate } from '../models/Template';
 import { RoleId, buildNightPlan } from '../models/roles';
 import {

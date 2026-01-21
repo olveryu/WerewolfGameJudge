@@ -17,7 +17,7 @@ import {
   createCustomTemplate,
   validateTemplateRoles,
 } from '../../models/Template';
-import { GameStateService } from '../../services/GameStateService';
+import { GameStateService } from '../../services';
 import { showAlert } from '../../utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors, spacing, borderRadius, typography, shadows, ThemeColors } from '../../theme';

@@ -1,19 +1,34 @@
-export { default as AudioService } from './AudioService';
-export { AuthService } from './AuthService';
-export { AvatarUploadService } from './AvatarUploadService';
+/**
+ * Services Index
+ *
+ * Re-exports all services from legacy module.
+ * This will be replaced by v2 architecture after Phase 2.
+ *
+ * @see /docs/architecture/SERVICE_REWRITE_PLAN.md
+ */
 
-// New Broadcast Architecture (Host as Authority)
+// All services are now in legacy folder
 export {
+  // Core Services
+  AudioService,
+  AuthService,
+  AvatarUploadService,
+
+  // Broadcast Architecture
   BroadcastService,
   type HostBroadcast,
   type PlayerMessage,
   type BroadcastGameState,
   type BroadcastPlayer,
-} from './BroadcastService';
-export {
+  type ConnectionStatus,
+
+  // Game State
   GameStateService,
   GameStatus,
   type LocalGameState,
   type LocalPlayer,
-} from './GameStateService';
-export { SimplifiedRoomService, type RoomRecord } from './SimplifiedRoomService';
+
+  // Room Service
+  SimplifiedRoomService,
+  type RoomRecord,
+} from './legacy';
