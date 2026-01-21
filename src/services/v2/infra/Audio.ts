@@ -15,7 +15,7 @@
  * until we fully migrate. The API is designed for v2 architecture.
  */
 
-import AudioService from '../../legacy/AudioService';
+import AudioService from '../../core/AudioService';
 import type { RoleId } from '../../../models/roles';
 
 // =============================================================================

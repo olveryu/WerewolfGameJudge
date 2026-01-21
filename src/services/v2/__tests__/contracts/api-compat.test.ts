@@ -11,7 +11,7 @@
  */
 
 import { GameFacade } from '../../facade/GameFacade';
-import { GameStateService } from '../../../legacy';
+import { GameStateService } from '../../../core';
 
 describe('GameFacade API Compatibility', () => {
   // Get all public methods from GameStateService instance

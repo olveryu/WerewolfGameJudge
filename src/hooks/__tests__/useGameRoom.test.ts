@@ -10,9 +10,9 @@ import { GameTemplate } from '../../models/Template';
 import { RoleId } from '../../models/roles';
 
 // Mock the services
-jest.mock('../../services/legacy/SimplifiedRoomService');
-jest.mock('../../services/legacy/AuthService');
-jest.mock('../../services/legacy/GameStateService');
+jest.mock('../../services/core/SimplifiedRoomService');
+jest.mock('../../services/core/AuthService');
+jest.mock('../../services/core/GameStateService');
 
 // Helper to create mock template
 // Phase 5: actionOrder removed from GameTemplate

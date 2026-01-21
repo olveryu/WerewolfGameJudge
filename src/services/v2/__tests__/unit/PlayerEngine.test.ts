@@ -5,7 +5,7 @@
 import { PlayerEngine, PlayerEngineConfig } from '../../domain/PlayerEngine';
 import { GameStatus, type StateStore, type LocalGameState } from '../../infra/StateStore';
 import type { Transport, ConnectionStatus } from '../../infra/Transport';
-import type { BroadcastGameState } from '../../../legacy/BroadcastService';
+import type { BroadcastGameState } from '../../../core/BroadcastService';
 
 // =============================================================================
 // Test Fixtures

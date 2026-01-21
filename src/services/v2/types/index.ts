@@ -10,9 +10,9 @@ export type {
   LocalGameState,
   LocalPlayer,
   GameStateListener,
-} from '../../legacy/types/GameStateTypes';
+} from '../../core/types/GameStateTypes';
 
-export { GameStatus } from '../../legacy/types/GameStateTypes';
+export { GameStatus } from '../../core/types/GameStateTypes';
 
 // Broadcast types
 export type {
@@ -21,4 +21,4 @@ export type {
   HostBroadcast,
   PlayerMessage,
   ConnectionStatus,
-} from '../../legacy';
+} from '../../core';

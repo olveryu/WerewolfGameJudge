@@ -20,7 +20,7 @@ import NightFlowController, {
   NightPhase,
   NightEvent,
   type NightFlowState,
-} from '../../legacy/NightFlowController';
+} from '../../core/NightFlowController';
 import { buildNightPlan } from '../../../models/roles';
 import type { RoleId } from '../../../models/roles';
 import type { NightPlan } from '../../../models/roles/spec/plan.types';
@@ -30,8 +30,8 @@ import type { LocalGameState } from '../infra/StateStore';
 // Re-export types
 // =============================================================================
 
-export { NightPhase, NightEvent } from '../../legacy/NightFlowController';
-export type { NightFlowState } from '../../legacy/NightFlowController';
+export { NightPhase, NightEvent } from '../../core/NightFlowController';
+export type { NightFlowState } from '../../core/NightFlowController';
 export type { NightPlanStep } from '../../../models/roles/spec/plan.types';
 
 // =============================================================================

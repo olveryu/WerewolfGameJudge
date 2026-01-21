@@ -25,9 +25,9 @@ import type {
   LocalGameState,
   LocalPlayer,
   GameStateListener,
-} from '../../legacy/types/GameStateTypes';
-import { GameStatus } from '../../legacy/types/GameStateTypes';
-import type { BroadcastGameState, BroadcastPlayer } from '../../legacy/BroadcastService';
+} from '../../core/types/GameStateTypes';
+import { GameStatus } from '../../core/types/GameStateTypes';
+import type { BroadcastGameState, BroadcastPlayer } from '../../core/BroadcastService';
 
 // =============================================================================
 // Types
@@ -368,10 +368,10 @@ export class StateStore {
 // Re-exports
 // =============================================================================
 
-export { GameStatus } from '../../legacy/types/GameStateTypes';
+export { GameStatus } from '../../core/types/GameStateTypes';
 export type {
   LocalGameState,
   LocalPlayer,
   GameStateListener,
-} from '../../legacy/types/GameStateTypes';
-export type { BroadcastGameState } from '../../legacy/BroadcastService';
+} from '../../core/types/GameStateTypes';
+export type { BroadcastGameState } from '../../core/BroadcastService';

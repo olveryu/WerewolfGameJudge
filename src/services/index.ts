@@ -37,7 +37,7 @@ export {
   // Room Service
   SimplifiedRoomService,
   type RoomRecord,
-} from './legacy';
+} from './core';
 
 // ============================================================
 // V2 Exports (facade skeleton - Phase 2)

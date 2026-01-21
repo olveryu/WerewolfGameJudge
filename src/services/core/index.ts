@@ -1,11 +1,15 @@
 /**
- * Legacy Services Index
+ * Core Services Index
  *
- * This module re-exports all legacy service implementations.
- * These files are scheduled for replacement by the v2 architecture.
+ * This module re-exports all core service implementations that are shared
+ * between legacy GameStateService and v2 GameFacade.
  *
- * @deprecated All exports from this module will be replaced.
- * See /docs/architecture/SERVICE_REWRITE_PLAN.md for migration plan.
+ * These modules are kept because they are:
+ * 1. Stable and well-tested (Resolvers, DeathCalculator)
+ * 2. Foundational services (AudioService, AuthService, BroadcastService)
+ * 3. Type definitions used across the codebase
+ *
+ * See /docs/architecture/SERVICE_REWRITE_PLAN.md for architecture details.
  */
 
 // ============================================================================

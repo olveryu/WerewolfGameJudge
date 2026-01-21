@@ -29,7 +29,7 @@ import type { Storage } from '../infra/Storage';
 import type { Audio } from '../infra/Audio';
 import { SeatEngine } from './SeatEngine';
 import { NightEngine } from './NightEngine';
-import type { PlayerMessage } from '../../legacy/BroadcastService';
+import type { PlayerMessage } from '../../core/BroadcastService';
 
 // =============================================================================
 // Types

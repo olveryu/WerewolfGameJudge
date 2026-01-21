@@ -15,8 +15,8 @@
  * until we fully migrate. The API is designed for v2 architecture.
  */
 
-import { StatePersistence } from '../../legacy/persistence/StatePersistence';
-import type { LocalGameState } from '../../legacy/types/GameStateTypes';
+import { StatePersistence } from '../../core/persistence/StatePersistence';
+import type { LocalGameState } from '../../core/types/GameStateTypes';
 
 // =============================================================================
 // Types
