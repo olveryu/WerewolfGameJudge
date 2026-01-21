@@ -54,6 +54,9 @@ export interface BroadcastGameState {
   currentActionerIndex: number;
   isAudioPlaying: boolean;
 
+  /** 当前夜晚步骤 ID（来自 NIGHT_STEPS 表驱动单源） */
+  currentStepId?: SchemaId;
+
   // --- Seat-map 字段 ---
   /** 狼人投票状态 */
   wolfVoteStatus?: Record<string, boolean>;

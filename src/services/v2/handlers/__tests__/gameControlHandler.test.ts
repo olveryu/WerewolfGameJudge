@@ -280,6 +280,20 @@ describe('handleStartNight', () => {
     }
   });
 
+  it('should set currentStepId from NIGHT_STEPS[0].id (table-driven single source)', () => {
+    const context = createContext(readyState);
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    const result = handleStartNight(intent, context);
+
+    const startNightAction = result.actions.find((a) => a.type === 'START_NIGHT');
+    expect(startNightAction).toBeDefined();
+    if (startNightAction?.type === 'START_NIGHT') {
+      // 首步来自 NIGHT_STEPS 表驱动单源，必须是 'magicianSwap'（当前第一个步骤）
+      expect(startNightAction.payload.currentStepId).toBe('magicianSwap');
+    }
+  });
+
   it('should fail when not host (gate: host_only)', () => {
     const context = createContext(readyState, { isHost: false });
     const intent: StartNightIntent = { type: 'START_NIGHT' };

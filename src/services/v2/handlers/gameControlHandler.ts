@@ -14,6 +14,7 @@ import type { HandlerContext, HandlerResult } from './types';
 import type { AssignRolesAction, StartNightAction, RestartGameAction } from '../reducer/types';
 import { shuffleArray } from '../../../utils/shuffle';
 import type { RoleId } from '../../../models/roles';
+import { NIGHT_STEPS } from '../../../models/roles/spec/nightSteps';
 
 /**
  * 处理分配角色（仅 seated → assigned）
@@ -150,9 +151,12 @@ export function handleStartGame(_intent: StartGameIntent, context: HandlerContex
     payload: { assignments },
   };
 
+  // 首步来自 NIGHT_STEPS 表驱动单源
+  const firstStepId = NIGHT_STEPS[0].id;
+
   const startNightAction: StartNightAction = {
     type: 'START_NIGHT',
-    payload: { currentActionerIndex: 0 },
+    payload: { currentActionerIndex: 0, currentStepId: firstStepId },
   };
 
   return {
@@ -210,10 +214,13 @@ export function handleStartNight(
     };
   }
 
+  // 首步来自 NIGHT_STEPS 表驱动单源
+  const firstStepId = NIGHT_STEPS[0].id;
+
   // Night-1 only: currentActionerIndex 从 0 开始（首个步骤）
   const startNightAction: StartNightAction = {
     type: 'START_NIGHT',
-    payload: { currentActionerIndex: 0 },
+    payload: { currentActionerIndex: 0, currentStepId: firstStepId },
   };
 
   return {
