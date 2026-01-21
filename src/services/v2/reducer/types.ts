@@ -61,6 +61,8 @@ export interface StartNightAction {
   type: 'START_NIGHT';
   payload: {
     currentActionerIndex: number;
+    /** 首步 stepId，来自 NIGHT_STEPS[0].id 表驱动单源 */
+    currentStepId: SchemaId;
   };
 }
 

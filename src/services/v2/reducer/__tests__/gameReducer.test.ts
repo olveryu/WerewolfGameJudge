@@ -214,16 +214,29 @@ describe('gameReducer', () => {
       const state = createMinimalState({ status: 'assigned' });
       const action: StartNightAction = {
         type: 'START_NIGHT',
-        payload: { currentActionerIndex: 0 },
+        payload: { currentActionerIndex: 0, currentStepId: 'magicianSwap' },
       };
 
       const newState = gameReducer(state, action);
 
       expect(newState.status).toBe('ongoing');
       expect(newState.currentActionerIndex).toBe(0);
+      expect(newState.currentStepId).toBe('magicianSwap');
       expect(newState.actions).toEqual([]);
       expect(newState.wolfVotes).toEqual({});
       expect(newState.currentNightResults).toEqual({});
+    });
+
+    it('should set currentStepId from payload (table-driven single source)', () => {
+      const state = createMinimalState({ status: 'ready' });
+      const action: StartNightAction = {
+        type: 'START_NIGHT',
+        payload: { currentActionerIndex: 0, currentStepId: 'wolfKill' },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.currentStepId).toBe('wolfKill');
     });
   });
 

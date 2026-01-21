@@ -125,11 +125,12 @@ function handleAssignRoles(state: GameState, action: AssignRolesAction): GameSta
 }
 
 function handleStartNight(state: GameState, action: StartNightAction): GameState {
-  const { currentActionerIndex } = action.payload;
+  const { currentActionerIndex, currentStepId } = action.payload;
   return {
     ...state,
     status: 'ongoing',
     currentActionerIndex,
+    currentStepId,
     actions: [],
     wolfVotes: {},
     wolfVoteStatus: {},
