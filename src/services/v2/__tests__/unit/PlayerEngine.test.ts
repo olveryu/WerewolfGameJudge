@@ -195,7 +195,7 @@ describe('PlayerEngine', () => {
     it('should send JOIN message to host when seat is available', async () => {
       const { engine, transport } = createPlayerEngine();
 
-      const result = await engine.takeSeat(1, 'Player1', 'avatar.jpg');
+      const result = await engine.takeSeat(1, 'player-uid', 'Player1', 'avatar.jpg');
 
       expect(result).toBe(true);
       expect(transport.sendToHost).toHaveBeenCalledWith({
@@ -211,7 +211,8 @@ describe('PlayerEngine', () => {
       const { engine, transport, getMyUid } = createPlayerEngine();
       getMyUid.mockReturnValue(null);
 
-      const result = await engine.takeSeat(1);
+      // PlayerActions interface requires uid, so pass empty string to test internal handling
+      const result = await engine.takeSeat(1, '');
 
       expect(result).toBe(false);
       expect(transport.sendToHost).not.toHaveBeenCalled();
@@ -238,7 +239,7 @@ describe('PlayerEngine', () => {
       const stateStore = createMockStateStore({ getState: jest.fn(() => state) });
       const { engine, transport } = createPlayerEngine({ stateStore });
 
-      const result = await engine.leaveSeat();
+      const result = await engine.leaveSeat(1, 'player-uid');
 
       expect(result).toBe(true);
       expect(transport.sendToHost).toHaveBeenCalledWith({
@@ -251,7 +252,8 @@ describe('PlayerEngine', () => {
     it('should return false when player is not seated', async () => {
       const { engine, transport } = createPlayerEngine();
 
-      const result = await engine.leaveSeat();
+      // PlayerActions interface requires seat and uid
+      const result = await engine.leaveSeat(1, 'player-uid');
 
       expect(result).toBe(false);
       expect(transport.sendToHost).not.toHaveBeenCalled();

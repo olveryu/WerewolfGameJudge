@@ -6,6 +6,7 @@
  * - 游戏流程控制 (start, restart, role assignment)
  * - 夜晚阶段管理
  * - 状态广播协调
+ * - 实现 HostPlayerHandler 接口，供 LocalPlayerAdapter 调用
  *
  * 不做的事：
  * - 状态存储（交给 StateStore）
@@ -30,6 +31,8 @@ import type { Audio } from '../infra/Audio';
 import { SeatEngine } from './SeatEngine';
 import { NightEngine } from './NightEngine';
 import type { PlayerMessage } from '../types/Broadcast';
+import { LocalPlayerAdapter, HostPlayerHandler } from './LocalPlayerAdapter';
+import type { PlayerActions } from './PlayerActions';
 
 // =============================================================================
 // Types
@@ -62,10 +65,11 @@ export interface HostEventCallbacks {
 // HostEngine Implementation
 // =============================================================================
 
-export class HostEngine {
+export class HostEngine implements HostPlayerHandler {
   private readonly config: HostEngineConfig;
   private readonly seatEngine: SeatEngine;
   private readonly nightEngine: NightEngine;
+  private readonly localPlayer: LocalPlayerAdapter;
   private callbacks: HostEventCallbacks = {};
 
   // State revision counter
@@ -75,6 +79,19 @@ export class HostEngine {
     this.config = config;
     this.seatEngine = new SeatEngine();
     this.nightEngine = new NightEngine();
+    this.localPlayer = new LocalPlayerAdapter(this);
+  }
+
+  // ---------------------------------------------------------------------------
+  // PlayerActions Access
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Get PlayerActions interface for Host's local player behavior.
+   * Called by GameFacade to get the correct implementation.
+   */
+  getPlayerActions(): PlayerActions {
+    return this.localPlayer;
   }
 
   // ---------------------------------------------------------------------------
@@ -250,10 +267,10 @@ export class HostEngine {
   // ---------------------------------------------------------------------------
 
   /**
-   * Host takes a seat directly (not via player message)
+   * Host takes a seat directly (HostPlayerHandler interface)
    * This is used when the host device is also a player
    */
-  async hostTakeSeat(
+  async handleLocalTakeSeat(
     seat: number,
     uid: string,
     displayName?: string,
@@ -281,9 +298,9 @@ export class HostEngine {
   }
 
   /**
-   * Host leaves seat directly (not via player message)
+   * Host leaves seat directly (HostPlayerHandler interface)
    */
-  async hostLeaveSeat(seat: number, uid: string): Promise<boolean> {
+  async handleLocalLeaveSeat(seat: number, uid: string): Promise<boolean> {
     const stateStore = this.config.stateStore;
     const state = stateStore.getState();
     if (!state) return false;
@@ -357,6 +374,44 @@ export class HostEngine {
   }
 
   // ---------------------------------------------------------------------------
+  // HostPlayerHandler Implementation (for LocalPlayerAdapter)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Host submits an action (HostPlayerHandler interface)
+   * When Host is also a player with an action role.
+   */
+  async handleLocalAction(
+    seat: number,
+    role: RoleId,
+    target: number | null,
+    _extra?: unknown,
+  ): Promise<void> {
+    await this.handlePlayerAction(seat, role, target);
+  }
+
+  /**
+   * Host submits a wolf vote (HostPlayerHandler interface)
+   * When Host is a wolf.
+   */
+  async handleLocalWolfVote(seat: number, target: number): Promise<void> {
+    await this.handleWolfVote(seat, target);
+  }
+
+  /**
+   * Host submits reveal acknowledgement (HostPlayerHandler interface)
+   * Currently a no-op, can be extended later.
+   */
+  async handleLocalRevealAck(
+    _seat: number,
+    _role: RoleId,
+    _revision: number,
+  ): Promise<void> {
+    // No-op for now - reveal ack handling can be added later if needed
+    hostLog.debug('Reveal ack received (no-op)');
+  }
+
+  // ---------------------------------------------------------------------------
   // Action Handling
   // ---------------------------------------------------------------------------
 
@@ -421,10 +476,9 @@ export class HostEngine {
   }
 
   /**
-   * Host marks their own seat as having viewed role.
-   * Called by GameFacade.playerViewedRole() in Host mode.
+   * Host marks their own seat as having viewed role (HostPlayerHandler interface)
    */
-  async hostViewedRole(seat: number): Promise<void> {
+  async handleLocalViewedRole(seat: number): Promise<void> {
     await this.handleViewedRole(seat);
   }
 

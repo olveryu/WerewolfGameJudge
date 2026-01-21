@@ -5,6 +5,7 @@
  * - 处理 Host 广播消息
  * - 发送玩家动作到 Host
  * - 请求状态快照恢复
+ * - 实现 PlayerActions 接口
  *
  * 不做的事：
  * - 状态存储（交给 StateStore）
@@ -18,6 +19,7 @@ import type { Transport } from '../infra/Transport';
 import type { HostBroadcast, BroadcastGameState } from '../types/Broadcast';
 import { SeatEngine } from './SeatEngine';
 import { playerLog } from '../../../utils/logger';
+import type { PlayerActions } from './PlayerActions';
 
 // =============================================================================
 // Types
@@ -72,7 +74,7 @@ interface PendingSnapshotRequest {
 // PlayerEngine Implementation
 // =============================================================================
 
-export class PlayerEngine {
+export class PlayerEngine implements PlayerActions {
   private readonly config: PlayerEngineConfig;
   private readonly seatEngine: SeatEngine;
   private callbacks: PlayerEventCallbacks = {};
@@ -201,13 +203,20 @@ export class PlayerEngine {
   }
 
   // ---------------------------------------------------------------------------
-  // Player Actions (send to Host)
+  // Player Actions (send to Host) - implements PlayerActions interface
   // ---------------------------------------------------------------------------
 
   /**
    * Request to sit in a seat
+   * Note: uid parameter is required by PlayerActions interface but ignored here
+   *       (PlayerEngine uses config.getMyUid() instead)
    */
-  async takeSeat(seat: number, displayName?: string, avatarUrl?: string): Promise<boolean> {
+  async takeSeat(
+    seat: number,
+    _uid: string,
+    displayName?: string,
+    avatarUrl?: string,
+  ): Promise<boolean> {
     const myUid = this.config.getMyUid();
     if (!myUid) return false;
 
@@ -241,8 +250,10 @@ export class PlayerEngine {
 
   /**
    * Request to leave current seat
+   * Note: seat and uid parameters are required by PlayerActions interface but ignored here
+   *       (PlayerEngine finds current seat from state using config.getMyUid())
    */
-  async leaveSeat(): Promise<boolean> {
+  async leaveSeat(_seat: number, _uid: string): Promise<boolean> {
     const myUid = this.config.getMyUid();
     if (!myUid) return false;
 

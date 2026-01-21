@@ -8,8 +8,10 @@
  * - GameFacade coordinates between HostEngine (for Host) and PlayerEngine (for Player)
  * - Uses Infra layer (StateStore, Transport, Storage, Audio) for underlying operations
  * - Exposes a unified API that hides Host/Player distinction where possible
+ * - Uses PlayerActions interface to unify player behavior across Host/Player modes
  *
  * @see /docs/architecture/SERVICE_REWRITE_PLAN.md
+ * @see /docs/architecture/PLAYER_ACTIONS_INTERFACE.md
  */
 
 import type { RoleId } from '../../../models/roles';
@@ -24,6 +26,7 @@ import { Audio } from '../infra/Audio';
 
 import { HostEngine } from '../domain/HostEngine';
 import { PlayerEngine } from '../domain/PlayerEngine';
+import type { PlayerActions } from '../domain/PlayerActions';
 
 // Re-export types for external consumers
 export type { LocalGameState, LocalPlayer, GameStateListener } from '../infra/StateStore';
@@ -200,6 +203,24 @@ export class GameFacade {
   }
 
   // ===========================================================================
+  // PlayerActions Access
+  // ===========================================================================
+
+  /**
+   * Get the PlayerActions interface for the current mode.
+   * - Host mode: returns LocalPlayerAdapter from HostEngine
+   * - Player mode: returns PlayerEngine
+   *
+   * This unifies player behavior across Host/Player modes.
+   */
+  private getPlayerActions(): PlayerActions | null {
+    if (this.hostEngine) {
+      return this.hostEngine.getPlayerActions();
+    }
+    return this.playerEngine;
+  }
+
+  // ===========================================================================
   // Host Operations
   // ===========================================================================
 
@@ -341,36 +362,39 @@ export class GameFacade {
   }
 
   async takeSeat(seat: number, displayName?: string, avatarUrl?: string): Promise<boolean> {
-    // Host mode: use hostEngine directly
-    if (this.mode === 'host' && this.hostEngine) {
-      return this.hostEngine.hostTakeSeat(seat, this.myUid!, displayName, avatarUrl);
+    const uid = this.myUid;
+    if (!uid) {
+      facadeLog.warn('[GameFacade] takeSeat: no uid');
+      return false;
     }
 
-    // Player mode: use playerEngine
-    if (!this.playerEngine) {
-      facadeLog.warn('[GameFacade] takeSeat called but not in player mode');
+    const actions = this.getPlayerActions();
+    if (!actions) {
+      facadeLog.warn('[GameFacade] takeSeat: no player actions available');
       return false;
     }
 
     this.clearLastSeatError();
-    return this.playerEngine.takeSeat(seat, displayName, avatarUrl);
+    return actions.takeSeat(seat, uid, displayName, avatarUrl);
   }
 
   async leaveSeat(): Promise<boolean> {
-    // Host mode: use hostEngine directly
-    if (this.mode === 'host' && this.hostEngine) {
-      const mySeat = this.getMySeatNumber();
-      if (mySeat === null) return true; // Already not seated
-      return this.hostEngine.hostLeaveSeat(mySeat, this.myUid!);
-    }
+    const seat = this.getMySeatNumber();
+    const uid = this.myUid;
 
-    // Player mode: use playerEngine
-    if (!this.playerEngine) {
-      facadeLog.warn('[GameFacade] leaveSeat called but not in player mode');
+    if (seat === null) return true; // Already not seated
+    if (!uid) {
+      facadeLog.warn('[GameFacade] leaveSeat: no uid');
       return false;
     }
 
-    return this.playerEngine.leaveSeat();
+    const actions = this.getPlayerActions();
+    if (!actions) {
+      facadeLog.warn('[GameFacade] leaveSeat: no player actions available');
+      return false;
+    }
+
+    return actions.leaveSeat(seat, uid);
   }
 
   async takeSeatWithAck(
@@ -379,14 +403,20 @@ export class GameFacade {
     avatarUrl?: string,
     timeoutMs: number = 5000,
   ): Promise<{ success: boolean; reason?: string }> {
-    if (!this.playerEngine) {
-      return { success: false, reason: 'not_in_player_mode' };
+    const uid = this.myUid;
+    if (!uid) {
+      return { success: false, reason: 'no_uid' };
+    }
+
+    const actions = this.getPlayerActions();
+    if (!actions) {
+      return { success: false, reason: 'no_player_actions' };
     }
 
     this.clearLastSeatError();
 
     // Try to take seat
-    const result = await this.playerEngine.takeSeat(seat, displayName, avatarUrl);
+    const result = await actions.takeSeat(seat, uid, displayName, avatarUrl);
 
     if (!result) {
       return { success: false, reason: 'local_validation_failed' };
@@ -425,16 +455,22 @@ export class GameFacade {
   }
 
   async leaveSeatWithAck(timeoutMs: number = 5000): Promise<{ success: boolean; reason?: string }> {
-    if (!this.playerEngine) {
-      return { success: false, reason: 'not_in_player_mode' };
-    }
-
     const currentSeat = this.getMySeatNumber();
     if (currentSeat === null) {
       return { success: true }; // Already not seated
     }
 
-    const result = await this.playerEngine.leaveSeat();
+    const uid = this.myUid;
+    if (!uid) {
+      return { success: false, reason: 'no_uid' };
+    }
+
+    const actions = this.getPlayerActions();
+    if (!actions) {
+      return { success: false, reason: 'no_player_actions' };
+    }
+
+    const result = await actions.leaveSeat(currentSeat, uid);
     if (!result) {
       return { success: false, reason: 'local_validation_failed' };
     }
@@ -472,30 +508,19 @@ export class GameFacade {
   }
 
   async playerViewedRole(): Promise<void> {
-    // Host mode: directly call handleViewedRole on HostEngine
-    if (this.hostEngine) {
-      const seatNumber = this.getMySeatNumber();
-      if (seatNumber === null) {
-        facadeLog.warn('[GameFacade] playerViewedRole: Host not seated');
-        return;
-      }
-      await this.hostEngine.hostViewedRole(seatNumber);
-      return;
-    }
-
-    // Player mode: send message to Host
-    if (!this.playerEngine) {
-      facadeLog.warn('[GameFacade] playerViewedRole called but not in player mode');
-      return;
-    }
-
     const seatNumber = this.getMySeatNumber();
     if (seatNumber === null) {
       facadeLog.warn('[GameFacade] playerViewedRole: not seated');
       return;
     }
 
-    await this.playerEngine.viewedRole(seatNumber);
+    const actions = this.getPlayerActions();
+    if (!actions) {
+      facadeLog.warn('[GameFacade] playerViewedRole: no player actions available');
+      return;
+    }
+
+    await actions.viewedRole(seatNumber);
   }
 
   // ===========================================================================
@@ -503,11 +528,6 @@ export class GameFacade {
   // ===========================================================================
 
   async submitAction(target: number | null, extra?: unknown): Promise<void> {
-    if (!this.playerEngine) {
-      facadeLog.warn('[GameFacade] submitAction called but not in player mode');
-      return;
-    }
-
     const seatNumber = this.getMySeatNumber();
     if (seatNumber === null) {
       facadeLog.warn('[GameFacade] submitAction: not seated');
@@ -520,38 +540,46 @@ export class GameFacade {
       return;
     }
 
-    await this.playerEngine.submitAction(seatNumber, role, target, extra);
-  }
-
-  async submitWolfVote(target: number): Promise<void> {
-    if (!this.playerEngine) {
-      facadeLog.warn('[GameFacade] submitWolfVote called but not in player mode');
+    const actions = this.getPlayerActions();
+    if (!actions) {
+      facadeLog.warn('[GameFacade] submitAction: no player actions available');
       return;
     }
 
+    await actions.submitAction(seatNumber, role, target, extra);
+  }
+
+  async submitWolfVote(target: number): Promise<void> {
     const seatNumber = this.getMySeatNumber();
     if (seatNumber === null) {
       facadeLog.warn('[GameFacade] submitWolfVote: not seated');
       return;
     }
 
-    await this.playerEngine.submitWolfVote(seatNumber, target);
-  }
-
-  async submitRevealAck(role: RoleId): Promise<void> {
-    if (!this.playerEngine) {
-      facadeLog.warn('[GameFacade] submitRevealAck called but not in player mode');
+    const actions = this.getPlayerActions();
+    if (!actions) {
+      facadeLog.warn('[GameFacade] submitWolfVote: no player actions available');
       return;
     }
 
+    await actions.submitWolfVote(seatNumber, target);
+  }
+
+  async submitRevealAck(role: RoleId): Promise<void> {
     const seatNumber = this.getMySeatNumber();
     if (seatNumber === null) {
       facadeLog.warn('[GameFacade] submitRevealAck: not seated');
       return;
     }
 
+    const actions = this.getPlayerActions();
+    if (!actions) {
+      facadeLog.warn('[GameFacade] submitRevealAck: no player actions available');
+      return;
+    }
+
     const revision = this.getStateRevision();
-    await this.playerEngine.submitRevealAck(seatNumber, role, revision);
+    await actions.submitRevealAck(seatNumber, role, revision);
   }
 
   // ===========================================================================
