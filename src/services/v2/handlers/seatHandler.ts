@@ -2,11 +2,21 @@
  * Seat Handler - 座位相关处理器
  *
  * 处理 JOIN_SEAT / LEAVE_SEAT intent
+ * 所有校验（包括 state/uid 有效性）都在这里，Facade 不做任何校验
  */
 
 import type { JoinSeatIntent, LeaveSeatIntent } from '../intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type { PlayerJoinAction, PlayerLeaveAction } from '../reducer/types';
+import {
+  REASON_NO_STATE,
+  REASON_NOT_AUTHENTICATED,
+  REASON_INVALID_SEAT,
+  REASON_SEAT_TAKEN,
+  REASON_SEAT_EMPTY,
+  REASON_NOT_YOUR_SEAT,
+  REASON_GAME_IN_PROGRESS,
+} from '../protocol/reasonCodes';
 
 /**
  * 处理加入座位
@@ -16,11 +26,29 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
   const { seat, uid, displayName, avatarUrl } = intent.payload;
   const { state } = context;
 
+  // 校验：state 是否存在
+  if (!state) {
+    return {
+      success: false,
+      reason: REASON_NO_STATE,
+      actions: [],
+    };
+  }
+
+  // 校验：uid 是否有效
+  if (!uid) {
+    return {
+      success: false,
+      reason: REASON_NOT_AUTHENTICATED,
+      actions: [],
+    };
+  }
+
   // 验证：座位是否存在
   if (!(seat in state.players)) {
     return {
       success: false,
-      reason: 'invalid_seat',
+      reason: REASON_INVALID_SEAT,
       actions: [],
     };
   }
@@ -30,7 +58,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
   if (existingPlayer !== null && existingPlayer.uid !== uid) {
     return {
       success: false,
-      reason: 'seat_taken',
+      reason: REASON_SEAT_TAKEN,
       actions: [],
     };
   }
@@ -39,7 +67,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
   if (state.status !== 'unseated' && state.status !== 'seated') {
     return {
       success: false,
-      reason: 'game_in_progress',
+      reason: REASON_GAME_IN_PROGRESS,
       actions: [],
     };
   }
@@ -91,11 +119,29 @@ export function handleLeaveSeat(intent: LeaveSeatIntent, context: HandlerContext
   const { seat, uid } = intent.payload;
   const { state } = context;
 
+  // 校验：state 是否存在
+  if (!state) {
+    return {
+      success: false,
+      reason: REASON_NO_STATE,
+      actions: [],
+    };
+  }
+
+  // 校验：uid 是否有效
+  if (!uid) {
+    return {
+      success: false,
+      reason: REASON_NOT_AUTHENTICATED,
+      actions: [],
+    };
+  }
+
   // 验证：座位是否存在
   if (!(seat in state.players)) {
     return {
       success: false,
-      reason: 'invalid_seat',
+      reason: REASON_INVALID_SEAT,
       actions: [],
     };
   }
@@ -105,7 +151,7 @@ export function handleLeaveSeat(intent: LeaveSeatIntent, context: HandlerContext
   if (player === null) {
     return {
       success: false,
-      reason: 'seat_empty',
+      reason: REASON_SEAT_EMPTY,
       actions: [],
     };
   }
@@ -114,7 +160,7 @@ export function handleLeaveSeat(intent: LeaveSeatIntent, context: HandlerContext
   if (player.uid !== uid) {
     return {
       success: false,
-      reason: 'not_your_seat',
+      reason: REASON_NOT_YOUR_SEAT,
       actions: [],
     };
   }
@@ -123,7 +169,7 @@ export function handleLeaveSeat(intent: LeaveSeatIntent, context: HandlerContext
   if (state.status === 'ongoing') {
     return {
       success: false,
-      reason: 'game_in_progress',
+      reason: REASON_GAME_IN_PROGRESS,
       actions: [],
     };
   }
