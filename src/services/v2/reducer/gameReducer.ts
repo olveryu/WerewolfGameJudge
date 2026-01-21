@@ -155,6 +155,8 @@ function handleEndNight(state: GameState, action: EndNightAction): GameState {
   const { deaths } = action.payload;
   return {
     ...state,
+  // Terminal state for this app's scope (Night-1-only): results are ready.
+  // This is NOT a winner decision; players decide outcomes offline.
     status: 'ended',
     lastNightDeaths: deaths,
     currentActionerIndex: -1,
