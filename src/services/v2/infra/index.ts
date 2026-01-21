@@ -39,3 +39,6 @@ export { AuthService } from './Auth';
 
 // Room - Room lifecycle management
 export { SimplifiedRoomService, type RoomRecord } from './Room';
+
+// AvatarUpload - Avatar upload service
+export { AvatarUploadService } from './AvatarUpload';

@@ -1,9 +1,9 @@
 # 服务层完全重写方案 (v2.0)
 
-> **文档版本**: 1.6.0
+> **文档版本**: 1.7.0
 > **创建日期**: 2026-01-20
 > **更新日期**: 2026-01-21
-> **状态**: ✅ Phase 6 完成 - 整合完成！
+> **状态**: ✅ Phase 7 完成 - v2 完全独立！
 
 ---
 
@@ -16,7 +16,9 @@
 | Phase 3 | ✅ 完成 | 见下表    | 混合策略：重写 Engine + 保留 Resolver |
 | Phase 4 | ✅ 完成 | `30428f5` | GameFacade 使用 v2 Engines            |
 | Phase 5 | ✅ 完成 | `03fcb95` | Rename legacy → core                  |
-| Phase 6 | ✅ 完成 | 见下表    | 完成 v2 目录结构整合                  |
+| Phase 6 | ✅ 完成 | `4e36b8e` | 完成 v2 目录结构整合                  |
+| Phase 7 | ✅ 完成 | `fca0a71` | v2 完全独立 (无 core/ 依赖)           |
+| Phase 8 | 🚧 进行中 | -       | 迁移消费者到 v2                       |
 
 ### Phase 3 详细进度
 
@@ -74,6 +76,39 @@
 | Run tests                                                 | ✅ 完成 | 1406 tests passing       |
 
 **最终测试统计**: 全项目 1406 tests passing, v2 共 89 tests passing
+
+### Phase 7 详细进度
+
+**目标**: v2 模块完全独立，不依赖 core/
+
+| 任务                                                | 状态    | 说明                          |
+| --------------------------------------------------- | ------- | ----------------------------- |
+| **重写 Infra 层 (非 wrapper)**                      |         |                               |
+| Rewrite `Audio.ts` (full expo-audio)                | ✅ 完成 | ~180 行，完整音频播放实现     |
+| Rewrite `Storage.ts` (full AsyncStorage)            | ✅ 完成 | ~260 行，完整序列化/持久化    |
+| **重写 Domain 层**                                  |         |                               |
+| Rewrite `NightEngine.ts` (inline state machine)     | ✅ 完成 | ~340 行，完整状态机           |
+| **移动类型到 v2/types**                             |         |                               |
+| Move `HostBroadcast`, `PlayerMessage` types         | ✅ 完成 | 从 core/BroadcastService 移出 |
+| Move `BroadcastGameState`, `BroadcastPlayer` types  | ✅ 完成 | 从 core/BroadcastService 移出 |
+| **验证**                                            |         |                               |
+| Verify v2/ has ZERO imports from core/              | ✅ 完成 | grep 确认无 core/ 依赖        |
+| Run tests                                           | ✅ 完成 | 1406 tests passing            |
+
+### Phase 8 详细进度
+
+**目标**: 迁移所有消费者从 core/ 到 v2/
+
+| 任务                                                | 状态      | 说明                          |
+| --------------------------------------------------- | --------- | ----------------------------- |
+| **迁移生产代码**                                    |           |                               |
+| Migrate `ConfigScreen.tsx`                          | 🚧 进行中 | 使用 GameFacade 替代 GSS      |
+| Migrate `useAuth.ts` (AvatarUploadService)          | ⏳ 待办   | 移动 AvatarUploadService 到 v2|
+| **迁移测试代码**                                    |           |                               |
+| Migrate core/ tests to v2/ or delete                | ⏳ 待办   | 评估哪些需要保留              |
+| **清理**                                            |           |                               |
+| Delete core/ directory                              | ⏳ 待办   | 最后一步                      |
+| Update services/index.ts exports                    | ⏳ 待办   | 只从 v2/ 导出                 |
 
 ---
 
@@ -1051,4 +1086,3 @@ git revert HEAD~<commits-in-phase-n+1>
 ---
 
 _文档结束 - 此方案不可修改，按此执行_
-                                                                                                                                                                                                                                                                                                                                                                                                    

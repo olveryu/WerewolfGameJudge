@@ -28,10 +28,10 @@ jest.mock('../../services/v2/infra/Auth', () => ({
   },
 }));
 
-// Mock AvatarUploadService
+// Mock AvatarUploadService (now in v2/infra/AvatarUpload)
 const mockUploadAvatar = jest.fn();
 
-jest.mock('../../services/core/AvatarUploadService', () => ({
+jest.mock('../../services/v2/infra/AvatarUpload', () => ({
   AvatarUploadService: {
     getInstance: jest.fn(() => ({
       uploadAvatar: mockUploadAvatar,

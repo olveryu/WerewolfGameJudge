@@ -1,45 +1,39 @@
 /**
  * Services Index
  *
- * Phase 2: Exports from both legacy (current) and v2 (facade skeleton)
+ * Phase 8: Migrating exports from core/ to v2/
  *
- * Migration path:
- *   - Phase 2: GameFacade delegates to legacy GameStateService
- *   - Phase 3: Migrate business logic from legacy to v2/domain
- *   - Phase 4: Remove legacy, GameFacade becomes the main export
+ * Migration status:
+ *   - v2/: GameFacade, AuthService, AvatarUploadService, SimplifiedRoomService
+ *   - core/: Legacy GameStateService, BroadcastService, AudioService (to be removed)
  *
  * @see /docs/architecture/SERVICE_REWRITE_PLAN.md
  */
 
 // ============================================================
-// Legacy Exports (current implementation)
-// ============================================================
-export {
-  // Core Services
-  AudioService,
-  AuthService,
-  AvatarUploadService,
-
-  // Broadcast Architecture
-  BroadcastService,
-  type HostBroadcast,
-  type PlayerMessage,
-  type BroadcastGameState,
-  type BroadcastPlayer,
-  type ConnectionStatus,
-
-  // Game State
-  GameStateService,
-  GameStatus,
-  type LocalGameState,
-  type LocalPlayer,
-
-  // Room Service
-  SimplifiedRoomService,
-  type RoomRecord,
-} from './core';
-
-// ============================================================
-// V2 Exports (facade skeleton - Phase 2)
+// V2 Exports (primary)
 // ============================================================
 export { GameFacade } from './v2';
+
+// Auth and Avatar services (from v2)
+export { AuthService, AvatarUploadService, SimplifiedRoomService } from './v2/infra';
+export type { RoomRecord } from './v2/infra';
+
+// Types (from v2)
+export type {
+  HostBroadcast,
+  PlayerMessage,
+  BroadcastGameState,
+  BroadcastPlayer,
+  ConnectionStatus,
+} from './v2/types/Broadcast';
+
+export type { LocalGameState, LocalPlayer } from './v2/types/GameState';
+export { GameStatus } from './v2/types/GameState';
+
+// ============================================================
+// Legacy Exports (deprecated - from core/)
+// ============================================================
+export { default as AudioService } from './core/AudioService';
+export { BroadcastService } from './core/BroadcastService';
+export { GameStateService } from './core/GameStateService';

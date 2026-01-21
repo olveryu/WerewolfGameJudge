@@ -17,7 +17,7 @@ import {
   createCustomTemplate,
   validateTemplateRoles,
 } from '../../models/Template';
-import { GameStateService } from '../../services';
+import { GameFacade } from '../../services';
 import { showAlert } from '../../utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors, spacing, borderRadius, typography, shadows, ThemeColors } from '../../theme';
@@ -285,7 +285,7 @@ export const ConfigScreen: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
 
-  const gameStateService = GameStateService.getInstance();
+  const gameFacade = GameFacade.getInstance();
   const selectedCount = Object.values(selection).filter(Boolean).length;
 
   // Load current room's roles when in edit mode
@@ -304,7 +304,7 @@ export const ConfigScreen: React.FC = () => {
     const loadCurrentRoles = () => {
       configLog.debug(' Loading room:', existingRoomNumber);
       try {
-        const state = gameStateService.getState();
+        const state = gameFacade.getState();
         configLog.debug(' State loaded:', state ? 'success' : 'not found');
         if (state?.template) {
           setSelection(applyPreset(state.template.roles));
@@ -318,7 +318,7 @@ export const ConfigScreen: React.FC = () => {
     };
 
     loadCurrentRoles();
-  }, [isEditMode, existingRoomNumber, gameStateService]);
+  }, [isEditMode, existingRoomNumber, gameFacade]);
 
   // Reset transient states when screen regains focus
   useEffect(() => {
@@ -363,7 +363,7 @@ export const ConfigScreen: React.FC = () => {
       const template = createCustomTemplate(roles);
 
       if (isEditMode && existingRoomNumber) {
-        await gameStateService.updateTemplate(template);
+        await gameFacade.updateTemplate(template);
         navigation.goBack();
       } else {
         const roomNumber = Math.floor(1000 + Math.random() * 9000).toString();
@@ -375,7 +375,7 @@ export const ConfigScreen: React.FC = () => {
     } finally {
       setIsCreating(false);
     }
-  }, [selection, navigation, isEditMode, existingRoomNumber, gameStateService]);
+  }, [selection, navigation, isEditMode, existingRoomNumber, gameFacade]);
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>

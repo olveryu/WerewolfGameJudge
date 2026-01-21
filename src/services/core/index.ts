@@ -8,6 +8,7 @@
  * - DeathCalculator → v2/domain/DeathCalculator
  * - Resolvers → v2/domain/resolvers/
  * - AuthService → v2/infra/Auth
+ * - AvatarUploadService → v2/infra/AvatarUpload
  * - SimplifiedRoomService → v2/infra/Room
  * - GameStateTypes → v2/types/GameState
  * - PublicBroadcast → v2/types/Broadcast
@@ -23,7 +24,7 @@
 
 export { default as AudioService } from './AudioService';
 export { AuthService } from '../v2/infra/Auth';
-export { AvatarUploadService } from './AvatarUploadService';
+export { AvatarUploadService } from '../v2/infra/AvatarUpload';
 
 // ============================================================================
 // Broadcast Architecture (Host as Authority)

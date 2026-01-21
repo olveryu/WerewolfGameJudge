@@ -1,6 +1,6 @@
-import { supabase, isSupabaseConfigured } from '../../config/supabase';
-import { log } from '../../utils/logger';
-import { AuthService } from '../v2/infra/Auth';
+import { supabase, isSupabaseConfigured } from '../../../config/supabase';
+import { log } from '../../../utils/logger';
+import { AuthService } from './Auth';
 
 export class AvatarUploadService {
   private static instance: AvatarUploadService;
