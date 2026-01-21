@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Modal,
   View,
@@ -9,7 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../theme';
-import { blurFocusedElement } from '../utils/modalFocus';
+import { createModalCloseHandler } from '../utils/modalFocus';
 
 interface PromptModalProps {
   visible: boolean;
@@ -41,15 +41,15 @@ export const PromptModal: React.FC<PromptModalProps> = ({
     }
   }, [visible]);
 
-  const handleConfirm = () => {
-    blurFocusedElement();
-    onConfirm(value);
-  };
+  const handleConfirm = useCallback(() => {
+    const closeHandler = createModalCloseHandler(() => onConfirm(value));
+    closeHandler();
+  }, [onConfirm, value]);
 
-  const handleCancel = () => {
-    blurFocusedElement();
-    onCancel();
-  };
+  const handleCancel = useCallback(
+    createModalCloseHandler(onCancel),
+    [onCancel]
+  );
 
   return (
     <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={handleCancel}>

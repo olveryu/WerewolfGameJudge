@@ -5,7 +5,7 @@ import React, { useMemo, useCallback } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 import { TESTIDS } from '../../../testids';
-import { blurFocusedElement } from '../../../utils/modalFocus';
+import { createModalCloseHandler } from '../../../utils/modalFocus';
 
 export type SeatModalType = 'enter' | 'leave';
 
@@ -32,15 +32,17 @@ export const SeatConfirmModal: React.FC<SeatConfirmModalProps> = ({
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const handleCancel = useCallback(() => {
-    blurFocusedElement();
-    onCancel();
-  }, [onCancel]);
+  // Use createModalCloseHandler to blur focus before closing modal
+  // This prevents aria-hidden focus warning on web
+  const handleCancel = useCallback(
+    createModalCloseHandler(onCancel),
+    [onCancel]
+  );
 
-  const handleConfirm = useCallback(() => {
-    blurFocusedElement();
-    onConfirm();
-  }, [onConfirm]);
+  const handleConfirm = useCallback(
+    createModalCloseHandler(onConfirm),
+    [onConfirm]
+  );
 
   const title = modalType === 'enter' ? '入座' : '站起';
   const message =

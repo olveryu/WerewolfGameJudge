@@ -16,8 +16,32 @@ import { Platform } from 'react-native';
  */
 export function blurFocusedElement(): void {
   if (Platform.OS === 'web' && typeof document !== 'undefined') {
-    (document.activeElement as HTMLElement)?.blur?.();
+    const activeElement = document.activeElement as HTMLElement;
+    if (activeElement && activeElement !== document.body) {
+      activeElement.blur();
+    }
   }
+}
+
+/**
+ * Create a wrapped callback that blurs focus before executing.
+ * Uses requestAnimationFrame to ensure blur happens before React state update.
+ */
+export function createModalCloseHandler<T extends (...args: unknown[]) => void>(
+  callback: T,
+): (...args: Parameters<T>) => void {
+  return (...args: Parameters<T>) => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const activeElement = document.activeElement as HTMLElement;
+      if (activeElement && activeElement !== document.body) {
+        activeElement.blur();
+      }
+      // Use setTimeout to allow blur to take effect before modal closes
+      setTimeout(() => callback(...args), 0);
+    } else {
+      callback(...args);
+    }
+  };
 }
 
 /**
@@ -39,15 +63,4 @@ export function restoreFocus(element: Element | null): void {
   if (Platform.OS === 'web' && element) {
     (element as HTMLElement)?.focus?.();
   }
-}
-
-/**
- * Wrap a callback to blur focus before executing.
- * Useful for Modal close/confirm handlers.
- */
-export function withBlurFocus<T extends (...args: unknown[]) => void>(callback: T): T {
-  return ((...args: unknown[]) => {
-    blurFocusedElement();
-    callback(...args);
-  }) as T;
 }
