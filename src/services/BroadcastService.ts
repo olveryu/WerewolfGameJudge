@@ -15,10 +15,19 @@
 
 import { supabase, isSupabaseConfigured } from '../config/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { RoleId } from '../models/roles';
-import type { SchemaId } from '../models/roles/spec';
 import type { PublicPayload } from './types/PublicBroadcast';
 import { broadcastLog } from '../utils/logger';
+
+// Protocol types - Import for local use
+import type { HostBroadcast, PlayerMessage } from './protocol/types';
+
+// Re-export from protocol/types.ts（单一真相，迁移期保留向后兼容）
+export type {
+  BroadcastGameState,
+  BroadcastPlayer,
+  HostBroadcast,
+  PlayerMessage,
+} from './protocol/types';
 
 // =============================================================================
 // Connection Status
@@ -29,143 +38,6 @@ export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected
 
 /** Status change listener */
 export type ConnectionStatusListener = (status: ConnectionStatus) => void;
-
-// =============================================================================
-// Message Types
-// =============================================================================
-
-/** Messages broadcast by Host to all players */
-export type HostBroadcast =
-  | { type: 'STATE_UPDATE'; state: BroadcastGameState; revision: number }
-  | {
-      type: 'ROLE_TURN';
-      role: RoleId;
-      pendingSeats: number[];
-      killedIndex?: number;
-      stepId?: SchemaId;
-    }
-  | { type: 'NIGHT_END'; deaths: number[] }
-  | { type: 'PLAYER_JOINED'; seat: number; player: BroadcastPlayer }
-  | { type: 'PLAYER_LEFT'; seat: number }
-  | { type: 'GAME_RESTARTED' }
-  | { type: 'SEAT_REJECTED'; seat: number; requestUid: string; reason: 'seat_taken' }
-  // New: Acknowledgment for seat actions (toUid for targeting specific player)
-  | {
-      type: 'SEAT_ACTION_ACK';
-      requestId: string;
-      toUid: string;
-      success: boolean;
-      seat: number;
-      reason?: string;
-    }
-  // New: Snapshot response for state recovery (toUid for targeting specific player)
-  | {
-      type: 'SNAPSHOT_RESPONSE';
-      requestId: string;
-      toUid: string;
-      state: BroadcastGameState;
-      revision: number;
-    };
-
-/** Messages sent by players to Host */
-export type PlayerMessage =
-  | { type: 'REQUEST_STATE'; uid: string }
-  | { type: 'JOIN'; seat: number; uid: string; displayName: string; avatarUrl?: string }
-  | { type: 'LEAVE'; seat: number; uid: string }
-  | { type: 'ACTION'; seat: number; role: RoleId; target: number | null; extra?: any }
-  | { type: 'WOLF_VOTE'; seat: number; target: number }
-  | { type: 'VIEWED_ROLE'; seat: number }
-  // New: reveal acknowledgement (client confirms they've read the private reveal popup)
-  | { type: 'REVEAL_ACK'; seat: number; role: RoleId; revision: number }
-  // New: Seat action request with requestId for acknowledgment
-  | {
-      type: 'SEAT_ACTION_REQUEST';
-      requestId: string;
-      action: 'sit' | 'standup';
-      seat: number;
-      uid: string;
-      displayName?: string;
-      avatarUrl?: string;
-    }
-  // New: Snapshot request for state recovery
-  | { type: 'SNAPSHOT_REQUEST'; requestId: string; uid: string; lastRevision?: number };
-
-// =============================================================================
-// Broadcast State Types (serializable for transmission)
-// =============================================================================
-
-export interface BroadcastPlayer {
-  uid: string;
-  seatNumber: number;
-  displayName?: string;
-  avatarUrl?: string;
-  role?: RoleId | null; // Only sent to the player themselves or wolves to wolves
-  hasViewedRole: boolean;
-}
-
-export interface BroadcastGameState {
-  roomCode: string;
-  hostUid: string;
-  status: 'unseated' | 'seated' | 'assigned' | 'ready' | 'ongoing' | 'ended';
-  templateRoles: RoleId[]; // Role configuration (not assigned positions)
-  players: Record<number, BroadcastPlayer | null>; // seat -> player
-  currentActionerIndex: number;
-  isAudioPlaying: boolean;
-  // Wolf-specific: which wolves have voted (for showing vote status)
-  wolfVoteStatus?: Record<number, boolean>; // seat -> hasVoted
-  // Nightmare block: the seat whose skill is disabled this night
-  nightmareBlockedSeat?: number;
-  // Wolf kill disabled: true if nightmare blocked a wolf (all wolves can only skip)
-  wolfKillDisabled?: boolean;
-
-  // =========================================================================
-  // Role-specific context (all data is public, UI filters by myRole)
-  // =========================================================================
-
-  /** Witch turn context - only display to witch via UI filter */
-  witchContext?: {
-    killedIndex: number; // seat killed by wolves (-1 = empty kill)
-    canSave: boolean;
-    canPoison: boolean;
-  };
-
-  /** Seer reveal result - only display to seer via UI filter */
-  seerReveal?: {
-    targetSeat: number;
-    result: '好人' | '狼人';
-  };
-
-  /** Psychic reveal result - only display to psychic via UI filter */
-  psychicReveal?: {
-    targetSeat: number;
-    result: string; // specific role name
-  };
-
-  /** Gargoyle reveal result - only display to gargoyle via UI filter */
-  gargoyleReveal?: {
-    targetSeat: number;
-    result: string;
-  };
-
-  /** Wolf Robot reveal result - only display to wolf robot via UI filter */
-  wolfRobotReveal?: {
-    targetSeat: number;
-    result: string;
-  };
-
-  /** Confirm status for hunter/darkWolfKing - only display to that role via UI filter */
-  confirmStatus?: {
-    role: 'hunter' | 'darkWolfKing';
-    canShoot: boolean;
-  };
-
-  /** Action rejected feedback - only display to the rejected player via UI filter */
-  actionRejected?: {
-    action: string;
-    reason: string;
-    targetUid: string; // which player was rejected
-  };
-}
 
 // =============================================================================
 // Service Implementation
