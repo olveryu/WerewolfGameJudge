@@ -132,11 +132,7 @@ export class Transport {
   /**
    * Join a room's broadcast channel
    */
-  async joinRoom(
-    roomCode: string,
-    userId: string,
-    callbacks: TransportCallbacks,
-  ): Promise<void> {
+  async joinRoom(roomCode: string, userId: string, callbacks: TransportCallbacks): Promise<void> {
     if (!this.isConfigured()) {
       broadcastLog.warn('Supabase not configured');
       return;
@@ -151,9 +147,7 @@ export class Transport {
     this.callbacks = callbacks;
 
     // Create channel
-    broadcastLog.info(
-      `Creating channel for room:${roomCode}, userId:${userId.substring(0, 8)}...`,
-    );
+    broadcastLog.info(`Creating channel for room:${roomCode}, userId:${userId.substring(0, 8)}...`);
 
     this.channel = supabase!.channel(`room:${roomCode}`, {
       config: {
@@ -174,7 +168,7 @@ export class Transport {
     this.channel.on('broadcast', { event: 'player' }, (payload) => {
       broadcastLog.info('Received player message:', payload.payload?.type);
       if (this.callbacks.onPlayerMessage && payload.payload) {
-        const senderId = (payload as Record<string, unknown>).presence_ref as string || 'unknown';
+        const senderId = ((payload as Record<string, unknown>).presence_ref as string) || 'unknown';
         this.callbacks.onPlayerMessage(payload.payload as PlayerMessage, senderId);
       }
     });

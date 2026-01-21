@@ -17,7 +17,7 @@
  */
 
 import { playerLog } from '../../../utils/logger';
-import { GameStatus, LocalGameState } from '../types/GameStateTypes';
+import { GameStatus, LocalGameState } from '../../v2/types/GameState';
 import { BroadcastGameState, HostBroadcast } from '../BroadcastService';
 import { RoleId } from '../../../models/roles';
 import { StateManager } from '../state/StateManager';

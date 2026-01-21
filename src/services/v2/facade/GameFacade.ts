@@ -188,11 +188,7 @@ export class GameFacade {
   // Host Operations
   // ===========================================================================
 
-  async initializeAsHost(
-    roomCode: string,
-    hostUid: string,
-    template: GameTemplate,
-  ): Promise<void> {
+  async initializeAsHost(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
     facadeLog.info('[GameFacade] initializeAsHost', { roomCode, hostUid });
 
     this.mode = 'host';
@@ -329,11 +325,7 @@ export class GameFacade {
     this.cleanup();
   }
 
-  async takeSeat(
-    seat: number,
-    displayName?: string,
-    avatarUrl?: string,
-  ): Promise<boolean> {
+  async takeSeat(seat: number, displayName?: string, avatarUrl?: string): Promise<boolean> {
     if (!this.playerEngine) {
       facadeLog.warn('[GameFacade] takeSeat called but not in player mode');
       return false;
@@ -403,9 +395,7 @@ export class GameFacade {
     });
   }
 
-  async leaveSeatWithAck(
-    timeoutMs: number = 5000,
-  ): Promise<{ success: boolean; reason?: string }> {
+  async leaveSeatWithAck(timeoutMs: number = 5000): Promise<{ success: boolean; reason?: string }> {
     if (!this.playerEngine) {
       return { success: false, reason: 'not_in_player_mode' };
     }

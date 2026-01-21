@@ -6,11 +6,11 @@ jest.mock('../../../config/supabase', () => ({
   isSupabaseConfigured: jest.fn(() => false),
 }));
 
-// Mock AuthService
+// Mock AuthService (now in v2/infra/Auth)
 const mockGetCurrentUserId = jest.fn();
 const mockUpdateProfile = jest.fn();
 
-jest.mock('../AuthService', () => ({
+jest.mock('../../v2/infra/Auth', () => ({
   AuthService: {
     getInstance: jest.fn(() => ({
       getCurrentUserId: mockGetCurrentUserId,
@@ -87,7 +87,7 @@ describe('AvatarUploadService - Service dependencies', () => {
   });
 
   it('should initialize AuthService dependency', () => {
-    const { AuthService } = require('../AuthService');
+    const { AuthService } = require('../../v2/infra/Auth');
 
     AvatarUploadService.getInstance();
 

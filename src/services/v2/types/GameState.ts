@@ -11,7 +11,7 @@
  */
 
 import { RoleId } from '../../../models/roles';
-import type { CurrentNightResults } from '../night/resolvers/types';
+import type { CurrentNightResults } from '../domain/resolvers/types';
 import { GameTemplate } from '../../../models/Template';
 
 // =============================================================================

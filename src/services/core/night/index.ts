@@ -12,5 +12,5 @@ export type {
   NightEndInfo,
 } from './NightFlowService';
 
-// Re-export resolvers
-export * from './resolvers';
+// Re-export resolvers from v2/domain/resolvers
+export * from '../../v2/domain/resolvers';

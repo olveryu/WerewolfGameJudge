@@ -19,8 +19,8 @@ import {
   getRoleSpec,
   type SchemaId,
 } from '../../../models/roles/spec';
-import type { LocalGameState } from '../types/GameStateTypes';
-import { GameStatus } from '../types/GameStateTypes';
+import type { LocalGameState } from '../../v2/types/GameState';
+import { GameStatus } from '../../v2/types/GameState';
 import {
   NightFlowController,
   NightPhase,

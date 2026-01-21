@@ -8,8 +8,8 @@
  */
 
 import { SeatManager, SeatManagerConfig, SeatActionRequest, SeatActionAck } from '../SeatManager';
-import type { LocalGameState } from '../../types/GameStateTypes';
-import { GameStatus } from '../../types/GameStateTypes';
+import type { LocalGameState } from '../../../v2/types/GameState';
+import { GameStatus } from '../../../v2/types/GameState';
 import type { BroadcastCoordinator } from '../../broadcast/BroadcastCoordinator';
 
 // =============================================================================
@@ -640,8 +640,8 @@ describe('SeatManager', () => {
       );
 
       // Simulate ACK from host
-      const requestId = (mockBroadcastCoordinator.sendSeatActionRequest as jest.Mock).mock.calls[0][0]
-        .requestId;
+      const requestId = (mockBroadcastCoordinator.sendSeatActionRequest as jest.Mock).mock
+        .calls[0][0].requestId;
       seatManager.handleSeatActionAck({
         type: 'SEAT_ACTION_ACK',
         requestId,
@@ -692,8 +692,8 @@ describe('SeatManager', () => {
       await Promise.resolve();
 
       // Simulate failed ACK
-      const requestId = (mockBroadcastCoordinator.sendSeatActionRequest as jest.Mock).mock.calls[0][0]
-        .requestId;
+      const requestId = (mockBroadcastCoordinator.sendSeatActionRequest as jest.Mock).mock
+        .calls[0][0].requestId;
       seatManager.handleSeatActionAck({
         type: 'SEAT_ACTION_ACK',
         requestId,
@@ -729,8 +729,8 @@ describe('SeatManager', () => {
       await expect(promise1).rejects.toThrow('Cancelled by new action');
 
       // Complete second action
-      const requestId = (mockBroadcastCoordinator.sendSeatActionRequest as jest.Mock).mock.calls[1][0]
-        .requestId;
+      const requestId = (mockBroadcastCoordinator.sendSeatActionRequest as jest.Mock).mock
+        .calls[1][0].requestId;
       seatManager.handleSeatActionAck({
         type: 'SEAT_ACTION_ACK',
         requestId,

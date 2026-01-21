@@ -11,8 +11,8 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { LocalGameState } from '../../types/GameStateTypes';
-import { GameStatus } from '../../types/GameStateTypes';
+import type { LocalGameState } from '../../../v2/types/GameState';
+import { GameStatus } from '../../../v2/types/GameState';
 import { StatePersistence } from '../StatePersistence';
 
 // Mock AsyncStorage

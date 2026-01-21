@@ -1,11 +1,11 @@
 /**
- * Types index - Broadcast type exports
+ * Types index - Re-exports from v2/types for backward compatibility
  *
- * Re-exports public broadcast types for easier imports.
- * NOTE: Private broadcast types have been removed - all game state is now public.
+ * NOTE: Types have been moved to v2/types/
+ * This file re-exports for backward compatibility.
  */
 
-// Public broadcast types (whitelist)
+// Public broadcast types (whitelist) - now in v2/types/Broadcast
 export type {
   PublicPayload,
   PublicStateUpdate,
@@ -19,4 +19,8 @@ export type {
   PublicSnapshotResponse,
   PublicGameState,
   PublicPlayer,
-} from './PublicBroadcast';
+} from '../../v2/types/Broadcast';
+
+// Game state types - now in v2/types/GameState
+export { GameStatus } from '../../v2/types/GameState';
+export type { LocalGameState, LocalPlayer, GameStateListener } from '../../v2/types/GameState';

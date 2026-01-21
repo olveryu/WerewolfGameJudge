@@ -700,7 +700,10 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
       // When/Then: handlePlayerMessage with ACTION should throw (delegated to HostCoordinator)
       await expect(
-        (service as any).handlePlayerMessage({ type: 'ACTION', seat: 0, role: 'seer', target: 1 }, 'player_0'),
+        (service as any).handlePlayerMessage(
+          { type: 'ACTION', seat: 0, role: 'seer', target: 1 },
+          'player_0',
+        ),
       ).rejects.toThrow('handlePlayerAction: nightFlow is null - strict invariant violation');
 
       // And: actions should NOT have been recorded, index should NOT change
@@ -751,7 +754,10 @@ describe('GameStateService NightFlow Contract Tests', () => {
 
       // When/Then: handlePlayerMessage with ACTION should NOT throw (returns early due to status check)
       await expect(
-        (service as any).handlePlayerMessage({ type: 'ACTION', seat: 0, role: 'seer', target: 1 }, 'player_0'),
+        (service as any).handlePlayerMessage(
+          { type: 'ACTION', seat: 0, role: 'seer', target: 1 },
+          'player_0',
+        ),
       ).resolves.not.toThrow();
     });
 

@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { hostLog } from '../../../utils/logger';
 
-import type { LocalGameState } from '../types/GameStateTypes';
+import type { LocalGameState } from '../../v2/types/GameState';
 
 const log = hostLog;
 

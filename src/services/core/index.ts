@@ -4,10 +4,15 @@
  * This module re-exports all core service implementations that are shared
  * between legacy GameStateService and v2 GameFacade.
  *
- * These modules are kept because they are:
- * 1. Stable and well-tested (Resolvers, DeathCalculator)
- * 2. Foundational services (AudioService, AuthService, BroadcastService)
- * 3. Type definitions used across the codebase
+ * NOTE: Several modules have been moved to v2/:
+ * - DeathCalculator → v2/domain/DeathCalculator
+ * - Resolvers → v2/domain/resolvers/
+ * - AuthService → v2/infra/Auth
+ * - SimplifiedRoomService → v2/infra/Room
+ * - GameStateTypes → v2/types/GameState
+ * - PublicBroadcast → v2/types/Broadcast
+ *
+ * This index re-exports from v2 for backward compatibility.
  *
  * See /docs/architecture/SERVICE_REWRITE_PLAN.md for architecture details.
  */
@@ -17,7 +22,7 @@
 // ============================================================================
 
 export { default as AudioService } from './AudioService';
-export { AuthService } from './AuthService';
+export { AuthService } from '../v2/infra/Auth';
 export { AvatarUploadService } from './AvatarUploadService';
 
 // ============================================================================
@@ -39,7 +44,7 @@ export {
   type LocalPlayer,
 } from './GameStateService';
 
-export { SimplifiedRoomService, type RoomRecord } from './SimplifiedRoomService';
+export { SimplifiedRoomService, type RoomRecord } from '../v2/infra/Room';
 
 // ============================================================================
 // Sub-module Re-exports
@@ -56,7 +61,7 @@ export { HostCoordinator } from './host';
 
 // Night flow
 export { NightFlowService } from './night';
-export * from './night/resolvers';
+export * from '../v2/domain/resolvers';
 
 // Persistence
 export { StatePersistence } from './persistence';
@@ -74,7 +79,7 @@ export { StateManager } from './state';
 // Utilities
 // ============================================================================
 
-export * from './DeathCalculator';
+export * from '../v2/domain/DeathCalculator';
 export { NightFlowController } from './NightFlowController';
 export * from './WolfVoteResolver';
 
@@ -95,7 +100,7 @@ export type {
   PublicSnapshotResponse,
   PublicGameState,
   PublicPlayer,
-} from './types';
+} from '../v2/types/Broadcast';
 
 // Connection status from BroadcastService (for external consumers)
 export type { ConnectionStatus } from './BroadcastService';

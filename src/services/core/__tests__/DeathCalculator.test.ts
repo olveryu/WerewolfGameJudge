@@ -34,7 +34,7 @@ import {
   NightActions,
   RoleSeatMap,
   DEFAULT_ROLE_SEAT_MAP,
-} from '../DeathCalculator';
+} from '../../v2/domain/DeathCalculator';
 import { makeWitchSave, makeWitchPoison } from '../../../models/actions/WitchAction';
 
 describe('DeathCalculator', () => {

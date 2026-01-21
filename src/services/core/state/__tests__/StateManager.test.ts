@@ -9,7 +9,7 @@
  */
 
 import { StateManager } from '../StateManager';
-import { GameStatus, LocalGameState, LocalPlayer } from '../../types/GameStateTypes';
+import { GameStatus, LocalGameState, LocalPlayer } from '../../../v2/types/GameState';
 import { GameTemplate } from '../../../../models/Template';
 import type { RoleId } from '../../../../models/roles';
 import type { BroadcastGameState } from '../../BroadcastService';

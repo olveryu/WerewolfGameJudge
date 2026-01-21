@@ -16,7 +16,7 @@
  */
 
 import { StatePersistence } from '../../core/persistence/StatePersistence';
-import type { LocalGameState } from '../../core/types/GameStateTypes';
+import type { LocalGameState } from '../types/GameState';
 
 // =============================================================================
 // Types

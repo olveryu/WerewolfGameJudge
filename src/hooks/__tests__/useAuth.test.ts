@@ -7,7 +7,7 @@ jest.mock('../../config/supabase', () => ({
   isSupabaseConfigured: jest.fn(() => false),
 }));
 
-// Mock AuthService
+// Mock AuthService (now in v2/infra/Auth)
 const mockSignInAnonymously = jest.fn();
 const mockSignUpWithEmail = jest.fn();
 const mockSignInWithEmail = jest.fn();
@@ -15,7 +15,7 @@ const mockUpdateProfile = jest.fn();
 const mockSignOut = jest.fn();
 const mockGetCurrentUser = jest.fn();
 
-jest.mock('../../services/core/AuthService', () => ({
+jest.mock('../../services/v2/infra/Auth', () => ({
   AuthService: {
     getInstance: jest.fn(() => ({
       signInAnonymously: mockSignInAnonymously,

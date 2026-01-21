@@ -280,7 +280,10 @@ describe('GameStateService NightFlowController Integration', () => {
 
       // When: Try to submit action via handlePlayerMessage (Phase 8c: handlePlayerAction is now private)
       const playerUid = state.players.get(0)?.uid ?? 'player_0';
-      await (service as any).handlePlayerMessage({ type: 'ACTION', seat: 0, role: 'wolf', target: 3 }, playerUid);
+      await (service as any).handlePlayerMessage(
+        { type: 'ACTION', seat: 0, role: 'wolf', target: 3 },
+        playerUid,
+      );
 
       // Then: Action should NOT be recorded
       expect(state.actions.has('wolf')).toBe(false);
@@ -307,7 +310,10 @@ describe('GameStateService NightFlowController Integration', () => {
 
       // When: Try to submit action for wrong role (witch instead of wolf) via handlePlayerMessage
       const playerUid = state.players.get(0)?.uid ?? 'player_0';
-      await (service as any).handlePlayerMessage({ type: 'ACTION', seat: 0, role: 'witch', target: 3 }, playerUid);
+      await (service as any).handlePlayerMessage(
+        { type: 'ACTION', seat: 0, role: 'witch', target: 3 },
+        playerUid,
+      );
 
       // Then: Action should NOT be recorded
       expect(state.actions.has('witch')).toBe(false);
@@ -334,7 +340,10 @@ describe('GameStateService NightFlowController Integration', () => {
 
       // When: Submit correct action via handlePlayerMessage (Phase 8c: handlePlayerAction is now private)
       const playerUid = state.players.get(0)?.uid ?? 'player_0';
-      await (service as any).handlePlayerMessage({ type: 'ACTION', seat: 0, role: 'wolf', target: 3 }, playerUid);
+      await (service as any).handlePlayerMessage(
+        { type: 'ACTION', seat: 0, role: 'wolf', target: 3 },
+        playerUid,
+      );
 
       // Then: Action should be recorded
       const wolfAction = state.actions.get('wolf');
@@ -366,12 +375,12 @@ describe('GameStateService NightFlowController Integration', () => {
 
       // When: Call HostCoordinator.advanceToNextAction (private method - still needs as any)
       const hostCoordinator = service.__testGetHostCoordinator();
-      const advanceToNextAction = (hostCoordinator as any).advanceToNextAction.bind(hostCoordinator);
+      const advanceToNextAction = (hostCoordinator as any).advanceToNextAction.bind(
+        hostCoordinator,
+      );
 
       // Then: Should throw because ongoing + null nightFlow is a strict invariant violation
-      await expect(advanceToNextAction()).rejects.toThrow(
-        'advanceToNextAction: nightFlow is null',
-      );
+      await expect(advanceToNextAction()).rejects.toThrow('advanceToNextAction: nightFlow is null');
     });
 
     it('should NOT advance index when nightFlow is reset during ongoing game', async () => {
@@ -390,7 +399,9 @@ describe('GameStateService NightFlowController Integration', () => {
 
       // When: Call HostCoordinator.advanceToNextAction - it should throw, so index stays the same
       const hostCoordinator = service.__testGetHostCoordinator();
-      const advanceToNextAction = (hostCoordinator as any).advanceToNextAction.bind(hostCoordinator);
+      const advanceToNextAction = (hostCoordinator as any).advanceToNextAction.bind(
+        hostCoordinator,
+      );
       await expect(advanceToNextAction()).rejects.toThrow();
 
       // Then: currentActionerIndex should NOT have changed

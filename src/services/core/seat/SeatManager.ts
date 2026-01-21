@@ -11,7 +11,7 @@
  */
 
 import type { BroadcastCoordinator } from '../broadcast/BroadcastCoordinator';
-import type { LocalGameState, LocalPlayer } from '../types/GameStateTypes';
+import type { LocalGameState, LocalPlayer } from '../../v2/types/GameState';
 import { seatManagerLog } from '../../../utils/logger';
 
 // =============================================================================

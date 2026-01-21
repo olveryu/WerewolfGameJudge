@@ -58,7 +58,7 @@ describe('GameFacade API Compatibility', () => {
     it.each(expectedPublicMethods)('should have method: %s', (methodName) => {
       expect(typeof (facade as unknown as Record<string, unknown>)[methodName]).toBe('function');
       expect(typeof (legacyService as unknown as Record<string, unknown>)[methodName]).toBe(
-        'function'
+        'function',
       );
     });
   });

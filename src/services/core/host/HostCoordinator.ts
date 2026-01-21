@@ -17,7 +17,7 @@ import { makeActionTarget, getActionTargetSeat } from '../../../models/actions';
 import { type SchemaId, BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
 import { shuffleArray } from '../../../utils/shuffle';
 import { hostLog } from '../../../utils/logger';
-import { calculateDeaths, type RoleSeatMap } from '../DeathCalculator';
+import { calculateDeaths, type RoleSeatMap } from '../../v2/domain/DeathCalculator';
 import { NightPhase, NightEvent, InvalidNightTransitionError } from '../NightFlowController';
 import type { PlayerMessage } from '../BroadcastService';
 
@@ -29,7 +29,7 @@ import { ActionProcessor, type ActionContext } from '../action';
 import { NightFlowService } from '../night';
 import AudioService from '../AudioService';
 
-import { GameStatus, LocalGameState, LocalPlayer } from '../types/GameStateTypes';
+import { GameStatus, LocalGameState, LocalPlayer } from '../../v2/types/GameState';
 
 // =============================================================================
 // Types
@@ -111,11 +111,7 @@ export class HostCoordinator {
   /**
    * Initialize a new game as Host
    */
-  async initialize(
-    roomCode: string,
-    hostUid: string,
-    template: GameTemplate,
-  ): Promise<void> {
+  async initialize(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
     // If already in a room, leave it first (clean up old state)
     if (this.state) {
       const oldRoomCode = this.state.roomCode;
@@ -262,12 +258,7 @@ export class HostCoordinator {
         break;
 
       case 'JOIN':
-        await this.seatManager.handlePlayerJoin(
-          msg.seat,
-          msg.uid,
-          msg.displayName,
-          msg.avatarUrl,
-        );
+        await this.seatManager.handlePlayerJoin(msg.seat, msg.uid, msg.displayName, msg.avatarUrl);
         break;
 
       case 'LEAVE':
@@ -323,7 +314,10 @@ export class HostCoordinator {
     if (!this.nightFlowService.isActive()) {
       hostLog.error(
         '[HostCoordinator] STRICT INVARIANT VIOLATION: handlePlayerAction() called but nightFlow is null.',
-        'seat:', seat, 'role:', role,
+        'seat:',
+        seat,
+        'role:',
+        role,
       );
       throw new Error('handlePlayerAction: nightFlow is null - strict invariant violation');
     }
@@ -397,7 +391,8 @@ export class HostCoordinator {
     if (!this.nightFlowService.isActive()) {
       hostLog.error(
         '[HostCoordinator] STRICT INVARIANT VIOLATION: handleWolfVote() called but nightFlow is null.',
-        'seat:', seat,
+        'seat:',
+        seat,
       );
       throw new Error('handleWolfVote: nightFlow is null - strict invariant violation');
     }
@@ -724,7 +719,9 @@ export class HostCoordinator {
     if (!this.state) return;
 
     if (this.stateManager.hasAction('wolf')) {
-      hostLog.debug('[HostCoordinator] handleWolfVote finalize skipped: wolf action already recorded.');
+      hostLog.debug(
+        '[HostCoordinator] handleWolfVote finalize skipped: wolf action already recorded.',
+      );
       return;
     }
 

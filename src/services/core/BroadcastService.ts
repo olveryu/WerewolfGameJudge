@@ -17,7 +17,7 @@ import { supabase, isSupabaseConfigured } from '../../config/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { RoleId } from '../../models/roles';
 import type { SchemaId } from '../../models/roles/spec';
-import type { PublicPayload } from './types/PublicBroadcast';
+import type { PublicPayload } from '../v2/types/Broadcast';
 import { broadcastLog } from '../../utils/logger';
 
 // =============================================================================

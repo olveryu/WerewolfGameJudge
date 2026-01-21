@@ -173,7 +173,7 @@ describe('SeatEngine', () => {
       expect(result.updates?.players?.get(1)).toBe(null);
     });
 
-    it('should reject standing up from someone else\'s seat', () => {
+    it("should reject standing up from someone else's seat", () => {
       const state = createTestState();
       state.players.set(1, {
         uid: 'player-1',

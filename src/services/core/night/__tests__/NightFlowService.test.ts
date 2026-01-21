@@ -10,7 +10,7 @@
 
 import { NightFlowService, NightFlowServiceDeps } from '../NightFlowService';
 import { NightPhase, NightEvent } from '../../NightFlowController';
-import { GameStatus, LocalGameState } from '../../types/GameStateTypes';
+import { GameStatus, LocalGameState } from '../../../v2/types/GameState';
 import AudioService from '../../AudioService';
 import type { RoleId } from '../../../../models/roles';
 

@@ -129,12 +129,12 @@ export class HostEngine {
       onHostBroadcast: () => {}, // Host ignores own broadcasts
       onPlayerMessage: (msg, senderId) => {
         this.handlePlayerMessage(msg, senderId).catch((err) =>
-          hostLog.error('Error handling player message:', err)
+          hostLog.error('Error handling player message:', err),
         );
       },
       onPresenceChange: () => {
         this.broadcastState().catch((err) =>
-          hostLog.error('Error broadcasting state on presence change:', err)
+          hostLog.error('Error broadcasting state on presence change:', err),
         );
       },
     });
@@ -182,12 +182,12 @@ export class HostEngine {
       onHostBroadcast: () => {},
       onPlayerMessage: (msg, senderId) => {
         this.handlePlayerMessage(msg, senderId).catch((err) =>
-          hostLog.error('Error handling player message:', err)
+          hostLog.error('Error handling player message:', err),
         );
       },
       onPresenceChange: () => {
         this.broadcastState().catch((err) =>
-          hostLog.error('Error broadcasting state on presence change:', err)
+          hostLog.error('Error broadcasting state on presence change:', err),
         );
       },
     });
@@ -253,7 +253,7 @@ export class HostEngine {
     seat: number,
     uid: string,
     displayName?: string,
-    avatarUrl?: string
+    avatarUrl?: string,
   ): Promise<void> {
     const stateStore = this.config.stateStore;
     const state = stateStore.getState();
@@ -308,7 +308,7 @@ export class HostEngine {
   private async handlePlayerAction(
     seat: number,
     role: RoleId,
-    target: number | null
+    target: number | null,
   ): Promise<void> {
     const stateStore = this.config.stateStore;
     const state = stateStore.getState();

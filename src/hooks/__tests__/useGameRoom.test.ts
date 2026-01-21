@@ -9,9 +9,9 @@ import { SimplifiedRoomService, AuthService, GameStateService } from '../../serv
 import { GameTemplate } from '../../models/Template';
 import { RoleId } from '../../models/roles';
 
-// Mock the services
-jest.mock('../../services/core/SimplifiedRoomService');
-jest.mock('../../services/core/AuthService');
+// Mock the services (now in v2/infra/)
+jest.mock('../../services/v2/infra/Room');
+jest.mock('../../services/v2/infra/Auth');
 jest.mock('../../services/core/GameStateService');
 
 // Helper to create mock template

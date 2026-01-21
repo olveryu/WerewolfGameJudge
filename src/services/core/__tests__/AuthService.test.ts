@@ -1,4 +1,4 @@
-import { AuthService } from '../AuthService';
+import { AuthService } from '../../v2/infra/Auth';
 
 // Mock supabase
 jest.mock('../../../config/supabase', () => ({

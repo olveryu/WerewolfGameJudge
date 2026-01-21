@@ -56,17 +56,17 @@ function checkForbiddenImports(filePath: string, forbiddenPatterns: RegExp[]): s
 
 describe('Import Boundary Enforcement', () => {
   describe('UI components should not import HOST-ONLY resolvers', () => {
-    // Forbidden import patterns
+    // Forbidden import patterns - resolvers are now in v2/domain/resolvers
     const forbiddenPatterns = [
-      /from\s+['"].*\/services\/night\/resolvers/,
-      /from\s+['"]@\/services\/night\/resolvers/,
+      /from\s+['"].*\/services\/v2\/domain\/resolvers/,
+      /from\s+['"]@\/services\/v2\/domain\/resolvers/,
     ];
 
     // UI directories that should NOT import resolvers
     const uiDirs = ['components', 'screens', 'navigation', 'contexts', 'hooks'];
 
     for (const uiDir of uiDirs) {
-      it(`src/${uiDir}/** should not import from services/night/resolvers`, () => {
+      it(`src/${uiDir}/** should not import from services/v2/domain/resolvers`, () => {
         const dirPath = path.join(srcRoot, uiDir);
         const tsFiles = findTsFiles(dirPath);
 
@@ -92,10 +92,10 @@ describe('Import Boundary Enforcement', () => {
     }
   });
 
-  describe('Resolver imports should only come from services/night/', () => {
+  describe('Resolver imports should only come from services/v2/domain/', () => {
     it('resolvers/index.ts should exist and export RESOLVERS', () => {
-      // After Phase 1 legacy migration, resolvers are in legacy folder
-      const resolversIndexPath = path.join(srcRoot, 'services/core/night/resolvers/index.ts');
+      // After Phase 6, resolvers are in v2/domain/resolvers
+      const resolversIndexPath = path.join(srcRoot, 'services/v2/domain/resolvers/index.ts');
       expect(fs.existsSync(resolversIndexPath)).toBe(true);
 
       const content = fs.readFileSync(resolversIndexPath, 'utf-8');
@@ -103,8 +103,8 @@ describe('Import Boundary Enforcement', () => {
     });
 
     it('resolvers should not import from UI directories', () => {
-      // After Phase 1 legacy migration, resolvers are in legacy folder
-      const resolversDir = path.join(srcRoot, 'services/core/night/resolvers');
+      // After Phase 6, resolvers are in v2/domain/resolvers
+      const resolversDir = path.join(srcRoot, 'services/v2/domain/resolvers');
       const tsFiles = findTsFiles(resolversDir);
 
       const forbiddenPatterns = [

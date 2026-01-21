@@ -21,12 +21,8 @@ import { isWolfRole, doesRoleParticipateInWolfVote } from '../../../models/roles
 import type { RoleId } from '../../../models/roles';
 import { hostLog, playerLog } from '../../../utils/logger';
 
-import type {
-  LocalGameState,
-  LocalPlayer,
-  GameStateListener,
-} from '../../core/types/GameStateTypes';
-import { GameStatus } from '../../core/types/GameStateTypes';
+import type { LocalGameState, LocalPlayer, GameStateListener } from '../types/GameState';
+import { GameStatus } from '../types/GameState';
 import type { BroadcastGameState, BroadcastPlayer } from '../../core/BroadcastService';
 
 // =============================================================================
@@ -368,10 +364,6 @@ export class StateStore {
 // Re-exports
 // =============================================================================
 
-export { GameStatus } from '../../core/types/GameStateTypes';
-export type {
-  LocalGameState,
-  LocalPlayer,
-  GameStateListener,
-} from '../../core/types/GameStateTypes';
+export { GameStatus } from '../types/GameState';
+export type { LocalGameState, LocalPlayer, GameStateListener } from '../types/GameState';
 export type { BroadcastGameState } from '../../core/BroadcastService';

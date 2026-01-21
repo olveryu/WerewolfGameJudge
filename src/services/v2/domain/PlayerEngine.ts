@@ -45,7 +45,7 @@ export interface PlayerEventCallbacks {
     role: RoleId,
     pendingSeats: number[],
     killedIndex?: number,
-    stepId?: SchemaId
+    stepId?: SchemaId,
   ) => void;
 
   /** Called when Host broadcasts NIGHT_END */
@@ -109,12 +109,7 @@ export class PlayerEngine {
         break;
 
       case 'ROLE_TURN':
-        this.callbacks.onRoleTurn?.(
-          msg.role,
-          msg.pendingSeats,
-          msg.killedIndex,
-          msg.stepId
-        );
+        this.callbacks.onRoleTurn?.(msg.role, msg.pendingSeats, msg.killedIndex, msg.stepId);
         break;
 
       case 'NIGHT_END':
@@ -177,7 +172,7 @@ export class PlayerEngine {
   private handleSnapshotResponse(
     requestId: string,
     state: BroadcastGameState,
-    revision: number
+    revision: number,
   ): void {
     // Verify this is the pending request
     if (this.pendingSnapshotRequest?.requestId !== requestId) {
@@ -289,7 +284,7 @@ export class PlayerEngine {
     seatNumber: number,
     role: RoleId,
     target: number | null,
-    extra?: unknown
+    extra?: unknown,
   ): Promise<void> {
     await this.config.transport.sendToHost({
       type: 'ACTION',

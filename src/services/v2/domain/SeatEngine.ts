@@ -12,11 +12,7 @@
  * - ACK 协议 (HostEngine/PlayerEngine 职责)
  */
 
-import {
-  type LocalGameState,
-  type LocalPlayer,
-  GameStatus,
-} from '../infra/StateStore';
+import { type LocalGameState, type LocalPlayer, GameStatus } from '../infra/StateStore';
 
 // =============================================================================
 // Types
@@ -31,11 +27,7 @@ export interface SeatOperationResult {
 }
 
 /** Reasons for seat operation failure */
-export type SeatFailReason =
-  | 'seat_taken'
-  | 'not_seated'
-  | 'game_in_progress'
-  | 'seat_out_of_range';
+export type SeatFailReason = 'seat_taken' | 'not_seated' | 'game_in_progress' | 'seat_out_of_range';
 
 /** Input for sit operation */
 export interface SitInput {
@@ -224,10 +216,7 @@ export class SeatEngine {
   /**
    * Compute game status based on player count
    */
-  private computeStatus(
-    players: Map<number, LocalPlayer | null>,
-    totalSeats: number,
-  ): GameStatus {
+  private computeStatus(players: Map<number, LocalPlayer | null>, totalSeats: number): GameStatus {
     let occupiedCount = 0;
     for (const player of players.values()) {
       if (player !== null) {

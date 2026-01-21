@@ -4,7 +4,11 @@
 
 import { GameStateService, GameStatus } from '../../GameStateService';
 import { NightFlowController, NightPhase, NightEvent } from '../../NightFlowController';
-import { PRESET_TEMPLATES, createTemplateFromRoles, GameTemplate } from '../../../../models/Template';
+import {
+  PRESET_TEMPLATES,
+  createTemplateFromRoles,
+  GameTemplate,
+} from '../../../../models/Template';
 import { RoleId } from '../../../../models/roles';
 import {
   RoleAction,

@@ -1,20 +1,30 @@
 /**
- * V2 Types - Re-export types from legacy for Phase 2
+ * V2 Types - Unified type exports
  *
- * Phase 2: All types come from legacy
- * Phase 3: Will gradually migrate to new type definitions
+ * Phase 6: Types now live directly in v2/types/
  */
 
-// Re-export all types from legacy
+// Game state types (from GameState.ts)
+export type { LocalGameState, LocalPlayer, GameStateListener } from './GameState';
+export { GameStatus } from './GameState';
+
+// Broadcast types (from Broadcast.ts)
 export type {
-  LocalGameState,
-  LocalPlayer,
-  GameStateListener,
-} from '../../core/types/GameStateTypes';
+  PublicPayload,
+  PublicStateUpdate,
+  PublicRoleTurn,
+  PublicNightEnd,
+  PublicPlayerJoined,
+  PublicPlayerLeft,
+  PublicGameRestarted,
+  PublicSeatActionAck,
+  PublicSeatRejected,
+  PublicSnapshotResponse,
+  PublicGameState,
+  PublicPlayer,
+} from './Broadcast';
 
-export { GameStatus } from '../../core/types/GameStateTypes';
-
-// Broadcast types
+// Re-export common types that consumers need from core (temporary, until full migration)
 export type {
   BroadcastGameState,
   BroadcastPlayer,

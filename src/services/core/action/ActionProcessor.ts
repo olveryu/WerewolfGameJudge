@@ -29,14 +29,18 @@ import {
   type ResolverContext,
   type ActionInput,
   type ResolverResult,
-} from '../night/resolvers/types';
-import { RESOLVERS } from '../night/resolvers';
+} from '../../v2/domain/resolvers/types';
+import { RESOLVERS } from '../../v2/domain/resolvers';
 import {
   wolfVoteResolver,
   type WolfVoteContext,
   type WolfVoteInput,
-} from '../night/resolvers/wolfVote';
-import { calculateDeaths, type NightActions, type RoleSeatMap } from '../DeathCalculator';
+} from '../../v2/domain/resolvers/wolfVote';
+import {
+  calculateDeaths,
+  type NightActions,
+  type RoleSeatMap,
+} from '../../v2/domain/DeathCalculator';
 import { resolveWolfVotes } from '../WolfVoteResolver';
 import {
   makeActionTarget,

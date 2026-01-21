@@ -21,12 +21,8 @@ import { type RoleId, isWolfRole, doesRoleParticipateInWolfVote } from '../../..
 import { type RoleAction } from '../../../models/actions/RoleAction';
 import { hostLog, playerLog } from '../../../utils/logger';
 
-import type {
-  LocalGameState,
-  LocalPlayer,
-  GameStateListener,
-} from '../types/GameStateTypes';
-import { GameStatus } from '../types/GameStateTypes';
+import type { LocalGameState, LocalPlayer, GameStateListener } from '../../v2/types/GameState';
+import { GameStatus } from '../../v2/types/GameState';
 
 import type { BroadcastGameState, BroadcastPlayer } from '../BroadcastService';
 
@@ -635,7 +631,13 @@ export class StateManager {
       witchContext: context,
     });
 
-    hostLog.info('Set witchContext:', 'killedIndex:', context.killedIndex, 'canSave:', context.canSave);
+    hostLog.info(
+      'Set witchContext:',
+      'killedIndex:',
+      context.killedIndex,
+      'canSave:',
+      context.canSave,
+    );
   }
 
   /**

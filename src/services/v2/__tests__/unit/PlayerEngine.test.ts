@@ -52,9 +52,7 @@ function createMockTransport(overrides: Partial<Transport> = {}): Transport {
   } as unknown as Transport;
 }
 
-function createPlayerEngine(
-  configOverrides: Partial<PlayerEngineConfig> = {},
-): {
+function createPlayerEngine(configOverrides: Partial<PlayerEngineConfig> = {}): {
   engine: PlayerEngine;
   stateStore: StateStore;
   transport: Transport;
@@ -227,7 +225,9 @@ describe('PlayerEngine', () => {
         hostUid: 'host-uid',
         status: GameStatus.unseated,
         template: { name: 'test', numberOfPlayers: 2, roles: ['wolf', 'seer'] },
-        players: new Map([[1, { uid: 'player-uid', seatNumber: 1, hasViewedRole: false, role: null }]]),
+        players: new Map([
+          [1, { uid: 'player-uid', seatNumber: 1, hasViewedRole: false, role: null }],
+        ]),
         currentActionerIndex: 0,
         isAudioPlaying: false,
         wolfVotes: new Map(),
@@ -333,7 +333,7 @@ describe('PlayerEngine', () => {
           type: 'SNAPSHOT_REQUEST',
           uid: 'player-uid',
           lastRevision: 1,
-        })
+        }),
       );
 
       // Clean up pending timeout

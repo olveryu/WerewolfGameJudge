@@ -10,7 +10,7 @@
  */
 
 import { GameStateService } from '../GameStateService';
-import { GameStatus } from '../types/GameStateTypes';
+import { GameStatus } from '../../v2/types/GameState';
 import { GameTemplate } from '../../../models/Template';
 import type { RoleId } from '../../../models/roles';
 import AsyncStorage from '@react-native-async-storage/async-storage';

@@ -13,10 +13,7 @@
 
 import { RoleId } from '../../models/roles';
 import { GameTemplate } from '../../models/Template';
-import {
-  HostBroadcast,
-  PlayerMessage,
-} from './BroadcastService';
+import { HostBroadcast, PlayerMessage } from './BroadcastService';
 import AudioService from './AudioService';
 // NightFlowController imports moved to HostCoordinator
 import { hostLog } from '../../utils/logger';
@@ -32,14 +29,14 @@ import { HostCoordinator } from './host';
 import { PlayerCoordinator } from './player';
 
 // Import types/enums needed internally
-import { GameStatus, LocalPlayer, LocalGameState } from './types/GameStateTypes';
+import { GameStatus, LocalPlayer, LocalGameState } from '../v2/types/GameState';
 
 // Import type-only imports
-import type { GameStateListener } from './types/GameStateTypes';
+import type { GameStateListener } from '../v2/types/GameState';
 
 // Re-export types for convenience
 // (consumers can import from either GameStateService or types/GameStateTypes)
-export { GameStatus, LocalPlayer, LocalGameState, GameStateListener } from './types/GameStateTypes';
+export { GameStatus, LocalPlayer, LocalGameState, GameStateListener } from '../v2/types/GameState';
 
 /** Async handler wrapper to avoid unhandled promise rejection */
 const asyncHandler = <T extends (...args: any[]) => Promise<void>>(fn: T) => {

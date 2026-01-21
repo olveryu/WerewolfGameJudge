@@ -113,7 +113,10 @@ describe('StateStore', () => {
       store.update(() => ({ status: GameStatus.ongoing }));
 
       expect(onStateChange).toHaveBeenCalledTimes(1);
-      expect(onStateChange).toHaveBeenCalledWith(expect.objectContaining({ status: GameStatus.ongoing }), 1);
+      expect(onStateChange).toHaveBeenCalledWith(
+        expect.objectContaining({ status: GameStatus.ongoing }),
+        1,
+      );
     });
   });
 
@@ -218,8 +221,22 @@ describe('StateStore', () => {
         status: GameStatus.ongoing,
         templateRoles: ['wolf', 'seer', 'villager'] as import('../../../../models/roles').RoleId[],
         players: {
-          0: { uid: 'p0', seatNumber: 0, displayName: 'P0', avatarUrl: undefined, role: 'wolf' as const, hasViewedRole: true },
-          1: { uid: 'p1', seatNumber: 1, displayName: 'P1', avatarUrl: undefined, role: 'seer' as const, hasViewedRole: false },
+          0: {
+            uid: 'p0',
+            seatNumber: 0,
+            displayName: 'P0',
+            avatarUrl: undefined,
+            role: 'wolf' as const,
+            hasViewedRole: true,
+          },
+          1: {
+            uid: 'p1',
+            seatNumber: 1,
+            displayName: 'P1',
+            avatarUrl: undefined,
+            role: 'seer' as const,
+            hasViewedRole: false,
+          },
           2: null,
         },
         currentActionerIndex: 1,
