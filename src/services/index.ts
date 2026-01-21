@@ -1,13 +1,19 @@
 /**
  * Services Index
  *
- * Re-exports all services from legacy module.
- * This will be replaced by v2 architecture after Phase 2.
+ * Phase 2: Exports from both legacy (current) and v2 (facade skeleton)
+ *
+ * Migration path:
+ *   - Phase 2: GameFacade delegates to legacy GameStateService
+ *   - Phase 3: Migrate business logic from legacy to v2/domain
+ *   - Phase 4: Remove legacy, GameFacade becomes the main export
  *
  * @see /docs/architecture/SERVICE_REWRITE_PLAN.md
  */
 
-// All services are now in legacy folder
+// ============================================================
+// Legacy Exports (current implementation)
+// ============================================================
 export {
   // Core Services
   AudioService,
@@ -32,3 +38,8 @@ export {
   SimplifiedRoomService,
   type RoomRecord,
 } from './legacy';
+
+// ============================================================
+// V2 Exports (facade skeleton - Phase 2)
+// ============================================================
+export { GameFacade } from './v2';
