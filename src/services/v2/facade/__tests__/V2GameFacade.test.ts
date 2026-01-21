@@ -338,7 +338,9 @@ describe('V2GameFacade', () => {
       expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalled();
 
       // But seat 0 should still be held by host
-      const lastBroadcast = mockBroadcastService.broadcastAsHost.mock.calls.at(-1)?.[0] as HostBroadcast;
+      const lastBroadcast = mockBroadcastService.broadcastAsHost.mock.calls.at(
+        -1,
+      )?.[0] as HostBroadcast;
       if (lastBroadcast.type === 'STATE_UPDATE') {
         expect(lastBroadcast.state.players[0]?.uid).toBe('host-uid');
       }

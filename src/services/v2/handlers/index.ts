@@ -14,8 +14,4 @@ export { handleJoinSeat, handleLeaveSeat } from './seatHandler';
 export { handleStartGame, handleRestartGame } from './gameControlHandler';
 
 // Action handlers
-export {
-  handleSubmitAction,
-  handleSubmitWolfVote,
-  handleViewedRole,
-} from './actionHandler';
+export { handleSubmitAction, handleSubmitWolfVote, handleViewedRole } from './actionHandler';

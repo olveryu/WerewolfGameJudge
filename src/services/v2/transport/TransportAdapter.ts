@@ -26,13 +26,13 @@ export interface TransportListener {
 export interface ITransport {
   /** 广播状态给所有玩家 */
   broadcastState(state: GameState, revision: number): Promise<void>;
-  
+
   /** 发送消息给 Host */
   sendToHost(message: ProtocolPlayerMessage): Promise<void>;
-  
+
   /** 订阅消息 */
   subscribe(listener: TransportListener): () => void;
-  
+
   /** 断开连接 */
   disconnect(): Promise<void>;
 }
@@ -58,13 +58,13 @@ export class TransportAdapter implements ITransport {
     if (!this.isHost) {
       throw new Error('Only host can broadcast state');
     }
-    
+
     const message: HostBroadcast = {
       type: 'STATE_UPDATE',
       state,
       revision,
     };
-    
+
     await this.broadcastService.broadcastAsHost(message);
   }
 
@@ -75,7 +75,7 @@ export class TransportAdapter implements ITransport {
     if (this.isHost) {
       throw new Error('Host cannot send to host');
     }
-    
+
     await this.broadcastService.sendToHost(message);
   }
 

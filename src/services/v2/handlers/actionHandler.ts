@@ -5,11 +5,7 @@
  * 调用 resolver 验证和计算结果
  */
 
-import type {
-  SubmitActionIntent,
-  SubmitWolfVoteIntent,
-  ViewedRoleIntent,
-} from '../intents/types';
+import type { SubmitActionIntent, SubmitWolfVoteIntent, ViewedRoleIntent } from '../intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type {
   RecordActionAction,
@@ -332,10 +328,7 @@ export function handleSubmitWolfVote(
 /**
  * 处理查看角色
  */
-export function handleViewedRole(
-  intent: ViewedRoleIntent,
-  context: HandlerContext,
-): HandlerResult {
+export function handleViewedRole(intent: ViewedRoleIntent, context: HandlerContext): HandlerResult {
   const { seat } = intent.payload;
   const { state } = context;
 

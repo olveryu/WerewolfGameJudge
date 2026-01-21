@@ -32,11 +32,7 @@ export interface CreateServicesOptions {
 /**
  * 创建初始状态
  */
-function createInitialState(
-  roomCode: string,
-  hostUid: string,
-  templateRoles: RoleId[],
-): GameState {
+function createInitialState(roomCode: string, hostUid: string, templateRoles: RoleId[]): GameState {
   const players: GameState['players'] = {};
   // Keep seat map stable (legacy-compatible): keys 0..N-1 exist and default to null.
   for (let seat = 0; seat < templateRoles.length; seat++) {

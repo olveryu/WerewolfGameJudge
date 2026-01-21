@@ -71,15 +71,15 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
   }
 
   return {
-  // 必填字段（fail-fast，避免掩盖状态损坏）
-  roomCode: requireField(raw.roomCode, 'roomCode'),
-  hostUid: requireField(raw.hostUid, 'hostUid'),
-  status: requireField(raw.status, 'status'),
-  templateRoles: requireField(raw.templateRoles, 'templateRoles'),
-  // ⚠️ Phase 1: players 保持原样，不做 key 规范化
-  players: requireField(raw.players, 'players'),
-  currentActionerIndex: requireField(raw.currentActionerIndex, 'currentActionerIndex'),
-  isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
+    // 必填字段（fail-fast，避免掩盖状态损坏）
+    roomCode: requireField(raw.roomCode, 'roomCode'),
+    hostUid: requireField(raw.hostUid, 'hostUid'),
+    status: requireField(raw.status, 'status'),
+    templateRoles: requireField(raw.templateRoles, 'templateRoles'),
+    // ⚠️ Phase 1: players 保持原样，不做 key 规范化
+    players: requireField(raw.players, 'players'),
+    currentActionerIndex: requireField(raw.currentActionerIndex, 'currentActionerIndex'),
+    isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
 
     // Seat-map 字段（已规范化）
     wolfVoteStatus,
@@ -110,9 +110,7 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
  * Creates a valid BroadcastGameState from a Partial, then runs normalizeState.
  * Keep normalizeState itself fail-fast in real runtime.
  */
-export function normalizeStateForTests(
-  partial: Partial<BroadcastGameState>,
-): BroadcastGameState {
+export function normalizeStateForTests(partial: Partial<BroadcastGameState>): BroadcastGameState {
   const base: BroadcastGameState = {
     roomCode: 'TEST',
     hostUid: 'HOST',

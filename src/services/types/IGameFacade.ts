@@ -41,11 +41,7 @@ export interface IGameFacade {
   /**
    * Host: 创建房间
    */
-  initializeAsHost(
-    roomCode: string,
-    hostUid: string,
-    template: GameTemplate,
-  ): Promise<void>;
+  initializeAsHost(roomCode: string, hostUid: string, template: GameTemplate): Promise<void>;
 
   /**
    * Player: 加入房间
@@ -68,11 +64,7 @@ export interface IGameFacade {
    * Host: 直接处理
    * Player: 发送请求，返回只表示"已发送"
    */
-  takeSeat(
-    seatNumber: number,
-    displayName?: string,
-    avatarUrl?: string,
-  ): Promise<boolean>;
+  takeSeat(seatNumber: number, displayName?: string, avatarUrl?: string): Promise<boolean>;
 
   /**
    * 离座
