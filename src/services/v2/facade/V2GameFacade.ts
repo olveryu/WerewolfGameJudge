@@ -179,10 +179,16 @@ export class V2GameFacade implements IGameFacade {
   // Phase 1: Player 等待 ACK（完整实现）
   // =========================================================================
 
+  /** Seat action result type */
+  private static readonly SEAT_ACTION_RESULT_TYPE = {
+    success: true as const,
+    reason: undefined as string | undefined,
+  };
+
   /** Pending seat action request (Player: waiting for ACK) */
   private pendingSeatAction: {
     requestId: string;
-    resolve: (success: boolean) => void;
+    resolve: (result: { success: boolean; reason?: string }) => void;
     reject: (error: Error) => void;
     timeoutHandle: ReturnType<typeof setTimeout>;
   } | null = null;
@@ -190,26 +196,50 @@ export class V2GameFacade implements IGameFacade {
   /** ACK 超时时间 */
   private static readonly ACK_TIMEOUT_MS = 5000;
 
+  /**
+   * 入座（返回 boolean，兼容旧 API）
+   */
   async takeSeat(seatNumber: number, displayName?: string, avatarUrl?: string): Promise<boolean> {
-    if (!this.myUid) return false;
+    const result = await this.takeSeatWithAck(seatNumber, displayName, avatarUrl);
+    return result.success;
+  }
+
+  /**
+   * 入座并返回完整结果（包含 reason）
+   */
+  async takeSeatWithAck(
+    seatNumber: number,
+    displayName?: string,
+    avatarUrl?: string,
+  ): Promise<{ success: boolean; reason?: string }> {
+    if (!this.myUid) return { success: false, reason: 'not_authenticated' };
 
     if (this.isHost) {
       // Host: 走 handler → reducer 路径
-      const result = this.hostProcessJoinSeat(seatNumber, this.myUid, displayName, avatarUrl);
-      return result.success;
+      return this.hostProcessJoinSeat(seatNumber, this.myUid, displayName, avatarUrl);
     }
 
     // Player: 发送 SEAT_ACTION_REQUEST，等待 ACK
     return this.playerSendSeatActionWithAck('sit', seatNumber, displayName, avatarUrl);
   }
 
+  /**
+   * 离座（返回 boolean，兼容旧 API）
+   */
   async leaveSeat(): Promise<boolean> {
+    const result = await this.leaveSeatWithAck();
+    return result.success;
+  }
+
+  /**
+   * 离座并返回完整结果（包含 reason）
+   */
+  async leaveSeatWithAck(): Promise<{ success: boolean; reason?: string }> {
     const mySeat = this.getMySeatNumber();
-    if (!this.myUid || mySeat === null) return false;
+    if (!this.myUid || mySeat === null) return { success: false, reason: 'not_seated' };
 
     if (this.isHost) {
-      const result = this.hostProcessLeaveSeat(mySeat, this.myUid);
-      return result.success;
+      return this.hostProcessLeaveSeat(mySeat, this.myUid);
     }
 
     // Player: 发送 SEAT_ACTION_REQUEST (standup)，等待 ACK
@@ -218,14 +248,15 @@ export class V2GameFacade implements IGameFacade {
 
   /**
    * Player: 发送座位请求并等待 ACK
+   * @returns { success, reason? } - reason 透传自 Host ACK
    */
   private async playerSendSeatActionWithAck(
     action: 'sit' | 'standup',
     seat: number,
     displayName?: string,
     avatarUrl?: string,
-  ): Promise<boolean> {
-    if (!this.myUid) return false;
+  ): Promise<{ success: boolean; reason?: string }> {
+    if (!this.myUid) return { success: false, reason: 'not_authenticated' };
 
     // 如果有 pending 请求，先取消
     if (this.pendingSeatAction) {
@@ -237,13 +268,13 @@ export class V2GameFacade implements IGameFacade {
     const requestId = this.generateRequestId();
     v2FacadeLog.debug('Player sending seat action:', { action, seat, requestId });
 
-    // 创建 Promise 等待 ACK
-    const ackPromise = new Promise<boolean>((resolve, _reject) => {
+    // 创建 Promise 等待 ACK（返回完整 result）
+    const ackPromise = new Promise<{ success: boolean; reason?: string }>((resolve, _reject) => {
       const timeoutHandle = setTimeout(() => {
         if (this.pendingSeatAction?.requestId === requestId) {
           v2FacadeLog.warn('Seat action ACK timeout:', requestId);
           this.pendingSeatAction = null;
-          resolve(false); // 超时视为失败
+          resolve({ success: false, reason: 'timeout' });
         }
       }, V2GameFacade.ACK_TIMEOUT_MS);
 
@@ -252,7 +283,7 @@ export class V2GameFacade implements IGameFacade {
         resolve,
         reject: (err) => {
           v2FacadeLog.warn('Pending request rejected:', err);
-          resolve(false);
+          resolve({ success: false, reason: 'cancelled' });
         },
         timeoutHandle,
       };
@@ -491,10 +522,10 @@ export class V2GameFacade implements IGameFacade {
     // 清理 timeout
     clearTimeout(this.pendingSeatAction.timeoutHandle);
 
-    // Resolve promise
+    // Resolve promise（透传 success + reason）
     const pending = this.pendingSeatAction;
     this.pendingSeatAction = null;
-    pending.resolve(msg.success);
+    pending.resolve({ success: msg.success, reason: msg.reason });
 
     v2FacadeLog.debug('playerHandleSeatActionAck', {
       requestId: msg.requestId,

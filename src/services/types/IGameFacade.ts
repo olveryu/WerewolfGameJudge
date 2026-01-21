@@ -67,9 +67,29 @@ export interface IGameFacade {
   takeSeat(seatNumber: number, displayName?: string, avatarUrl?: string): Promise<boolean>;
 
   /**
+   * 入座（带 ACK 等待）
+   * Host: 直接处理
+   * Player: 发送请求并等待 Host ACK
+   * @returns success + reason（透传 Host 拒绝原因）
+   */
+  takeSeatWithAck(
+    seatNumber: number,
+    displayName?: string,
+    avatarUrl?: string,
+  ): Promise<{ success: boolean; reason?: string }>;
+
+  /**
    * 离座
    * Host: 直接处理
    * Player: 发送请求，返回只表示"已发送"
    */
   leaveSeat(): Promise<boolean>;
+
+  /**
+   * 离座（带 ACK 等待）
+   * Host: 直接处理
+   * Player: 发送请求并等待 Host ACK
+   * @returns success + reason（透传 Host 拒绝原因）
+   */
+  leaveSeatWithAck(): Promise<{ success: boolean; reason?: string }>;
 }
