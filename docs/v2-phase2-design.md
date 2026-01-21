@@ -1,6 +1,6 @@
 # Phase2 设计方案：Night-1 迁移到 v2（对齐 Legacy）
 
-> **版本**：v1.3
+> **版本**：v1.3.1
 > **日期**：2026-01-21
 > **作者**：Copilot
 
@@ -10,6 +10,7 @@
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v1.3.1 | 2026-01-21 | 修正 Legacy 行号证据：使用 `nl -ba` 重新校准，每条增加代码片段摘录 |
 | v1.3 | 2026-01-21 | 完全重写：100% 对齐 legacy 行为，新增 Legacy 权威对照表，修正状态机流转，按 legacy 边界切 PR |
 | v1.2 | 2026-01-21 | 修复伪 API/迁移护栏/容错契约（已废弃） |
 | v1.1 | 2026-01-21 | 修订红线对齐（已废弃） |
@@ -33,30 +34,32 @@
 
 ## 1. Legacy 权威对照表
 
-> 证据来源：`src/services/legacy/GameStateService.ts`
+> **证据来源**：`src/services/legacy/GameStateService.ts`
+>
+> **行号生成方式**：`nl -ba src/services/legacy/GameStateService.ts | sed -n 'X,Yp'`（可复现）
 
 ### 1.1 Seating（Phase1 已完成，Phase2 不动）
 
-| 行为 | Legacy 证据 | v2 对齐状态 |
-|------|-------------|-------------|
-| 入座 `joinSeat()` | L700-730: 设置 player → 检查 allSeated → `unseated → seated` | ✅ Phase1 完成 |
-| 离座 `leaveSeat()` | L735-745: 清空 seat → `seated → unseated` | ✅ Phase1 完成 |
-| ACK 机制 | L1885-1950: `SEAT_ACTION_REQUEST` → `SEAT_ACTION_ACK` | ✅ Phase1 完成 |
+| 行为 | 行号范围 | 代码片段摘录 | v2 对齐状态 |
+|------|----------|--------------|-------------|
+| 入座后 allSeated 检查 | L722-725 | `const allSeated = Array.from(this.state.players.values()).every((p) => p !== null);`<br>`if (allSeated && this.state.status === GameStatus.unseated) {`<br>`  this.state.status = GameStatus.seated;`<br>`}` | ✅ Phase1 完成 |
+| 离座后 status 回退 | L740-742 | `if (this.state.status === GameStatus.seated) {`<br>`  this.state.status = GameStatus.unseated;`<br>`}` | ✅ Phase1 完成 |
+| SEAT_ACTION_REQUEST 处理 | L559-561, L616-647 | `case 'SEAT_ACTION_REQUEST':`<br>`  await this.handleSeatActionRequest(msg);`<br>...<br>`await this.broadcastService.broadcastAsHost({ type: 'SEAT_ACTION_ACK', ... });` | ✅ Phase1 完成 |
 
-**Phase2 不动 seating 逻辑。**
+**Phase2 不动 seating 逻辑，证据引用 Phase1 已锁定的测试。**
 
 ---
 
 ### 1.2 assignRoles
 
-| 条目 | Legacy 证据 | 行号 |
-|------|-------------|------|
-| **前置条件** | `if (this.state.status !== GameStatus.seated) return;` | L1457-1458 |
-| **洗牌** | `const shuffledRoles = shuffleArray([...this.state.template.roles]);` | L1461 |
-| **写入字段** | `player.role = shuffledRoles[i]; player.hasViewedRole = false;` | L1466-1467 |
-| **状态变化** | `this.state.status = GameStatus.assigned;` | L1472 |
-| **广播时机** | `await this.broadcastState();` | L1474 |
-| **Host 触发** | Host 点击"分配角色"按钮（非 PlayerMessage） | UI 层 |
+| 条目 | 行号范围 | 代码片段摘录 |
+|------|----------|--------------|
+| **方法入口** | L1455 | `async assignRoles(): Promise<void> {` |
+| **前置条件** | L1456-1457 | `if (!this.isHost \|\| !this.state) return;`<br>`if (this.state.status !== GameStatus.seated) return;` |
+| **洗牌** | L1460 | `const shuffledRoles = shuffleArray([...this.state.template.roles]);` |
+| **写入字段** | L1466-1467 | `player.role = shuffledRoles[i];`<br>`player.hasViewedRole = false;` |
+| **状态变化** | L1472 | `this.state.status = GameStatus.assigned;` |
+| **广播** | L1474 | `await this.broadcastState();` |
 
 **关键语义**：
 - `seated → assigned`（不是直接到 ongoing）
@@ -65,16 +68,16 @@
 
 ---
 
-### 1.3 viewedRole
+### 1.3 handlePlayerViewedRole
 
-| 条目 | Legacy 证据 | 行号 |
-|------|-------------|------|
-| **前置条件** | `if (!this.state \|\| this.state.status !== GameStatus.assigned) return;` | L1065 |
-| **写入字段** | `player.hasViewedRole = true;` | L1070 |
-| **allViewed 检查** | `const allViewed = Array.from(...).every((p) => p.hasViewedRole);` | L1073-1075 |
-| **状态变化** | `if (allViewed) { this.state.status = GameStatus.ready; }` | L1077-1078 |
-| **广播时机** | `await this.broadcastState();` | L1080 |
-| **PlayerMessage** | `{ type: 'VIEWED_ROLE', seat }` | protocol/types.ts |
+| 条目 | 行号范围 | 代码片段摘录 |
+|------|----------|--------------|
+| **方法入口** | L1064 | `private async handlePlayerViewedRole(seat: number): Promise<void> {` |
+| **前置条件** | L1065 | `if (!this.state \|\| this.state.status !== GameStatus.assigned) return;` |
+| **写入字段** | L1070 | `player.hasViewedRole = true;` |
+| **allViewed 检查** | L1073-1075 | `const allViewed = Array.from(this.state.players.values())`<br>`  .filter((p): p is LocalPlayer => p !== null)`<br>`  .every((p) => p.hasViewedRole);` |
+| **状态变化** | L1077-1078 | `if (allViewed) {`<br>`  this.state.status = GameStatus.ready;`<br>`}` |
+| **广播** | L1081 | `await this.broadcastState();` |
 
 **关键语义**：
 - **每个玩家**（包括 Host）必须点击"已查看角色"
@@ -85,114 +88,123 @@
 
 ### 1.4 startGame / startNight
 
-| 条目 | Legacy 证据 | 行号 |
-|------|-------------|------|
-| **前置条件** | `if (this.state.status !== GameStatus.ready) return;` | L1484 |
-| **构建 NightPlan** | `const nightPlan = buildNightPlan(this.state.template.roles);` | L1487 |
-| **创建 NightFlowController** | `this.nightFlow = new NightFlowController(nightPlan);` | L1490 |
-| **Dispatch StartNight** | `this.nightFlow.dispatch(NightEvent.StartNight);` | L1494 |
-| **初始化 night 字段** | `this.state.actions = new Map(); this.state.wolfVotes = new Map(); this.state.currentActionerIndex = 0; this.state.isAudioPlaying = true;` + 清除所有 reveal/context | L1507-1524 |
-| **播放夜晚开始音频** | `await this.audioService.playNightBeginAudio();` | L1527 |
-| **等待 5 秒** | `await new Promise((resolve) => setTimeout(resolve, 5000));` | L1530 |
-| **Dispatch NightBeginAudioDone** | `this.nightFlow?.dispatch(NightEvent.NightBeginAudioDone);` | L1534 |
-| **状态变化** | `this.state.status = GameStatus.ongoing;` | L1550 |
-| **广播** | `await this.broadcastState();` | L1552 |
-| **开始第一个角色回合** | `await this.playCurrentRoleAudio();` | L1556 |
-| **Host 触发** | Host 点击"开始游戏"按钮（非 PlayerMessage） | UI 层 |
+| 条目 | 行号范围 | 代码片段摘录 |
+|------|----------|--------------|
+| **方法入口** | L1483 | `async startGame(): Promise<void> {` |
+| **前置条件** | L1484-1485 | `if (!this.isHost \|\| !this.state) return;`<br>`if (this.state.status !== GameStatus.ready) return;` |
+| **构建 NightPlan** | L1488 | `const nightPlan = buildNightPlan(this.state.template.roles);` |
+| **创建 NightFlowController** | L1491 | `this.nightFlow = new NightFlowController(nightPlan);` |
+| **Dispatch StartNight** | L1495 | `this.nightFlow.dispatch(NightEvent.StartNight);` |
+| **初始化 night 字段** | L1507-1523 | `this.state.actions = new Map();`<br>`this.state.wolfVotes = new Map();`<br>`this.state.currentActionerIndex = 0;`<br>`this.state.isAudioPlaying = true;`<br>... (清除所有 reveal/context) |
+| **播放夜晚开始音频** | L1527 | `await this.audioService.playNightBeginAudio();` |
+| **等待 5 秒** | L1530 | `await new Promise((resolve) => setTimeout(resolve, 5000));` |
+| **Dispatch NightBeginAudioDone** | L1534 | `this.nightFlow?.dispatch(NightEvent.NightBeginAudioDone);` |
+| **sync currentActionerIndex** | L1537 | `this.state.currentActionerIndex = this.nightFlow.currentActionIndex;` |
+| **状态变化** | L1550 | `this.state.status = GameStatus.ongoing;` |
+| **广播** | L1552 | `await this.broadcastState();` |
+| **开始第一个角色回合** | L1556 | `await this.playCurrentRoleAudio();` |
 
 **关键语义**：
 - **前置条件是 `ready`**，不是 `seated` 或 `assigned`
 - `ready → ongoing`（不跳过 ready）
-- 音频时序：夜晚开始音频 → 等待 5 秒 → NightBeginAudioDone → ongoing → playCurrentRoleAudio
+- 音频时序：夜晚开始音频 → 等待 5 秒 → NightBeginAudioDone → sync index → ongoing → playCurrentRoleAudio
 
 ---
 
-### 1.5 submitAction（非狼人）
+### 1.5 playCurrentRoleAudio
 
-| 条目 | Legacy 证据 | 行号 |
-|------|-------------|------|
-| **前置条件** | `if (!this.state \|\| this.state.status !== GameStatus.ongoing) return;` | L754 |
-| **nightFlow 校验** | `if (this.nightFlow.phase !== NightPhase.WaitingForAction) return;` | L776 |
-| **role 校验** | `if (currentRole !== role) return;` | L771 |
-| **nightmare block** | `if (nightmareAction?.targetSeat === seat && (target !== null \|\| extra !== undefined)) { reject + return; }` | L788-809 |
-| **resolver 调用** | `const resolverResult = this.invokeResolver(schemaId, seat, role, actionInput);` | L820 |
-| **resolver 拒绝** | `if (!resolverResult.valid) { set actionRejected + broadcast + return; }` | L822-833 |
-| **apply result** | `this.applyResolverResult(role, target, resolverResult);` | L838 |
-| **record action** | `this.state.actions.set(role, ...)` | L842-905 |
-| **reveal role 处理** | `if (this.isRevealRole(role) && target !== null) { broadcast + pendingRevealAcks.add() + return; }` | L916-923 |
-| **advance** | `this.nightFlow.dispatch(NightEvent.ActionSubmitted); await this.advanceToNextAction();` | L926-939 |
-| **PlayerMessage** | `{ type: 'ACTION', seat, role, target, extra? }` | protocol/types.ts |
+| 条目 | 行号范围 | 代码片段摘录 |
+|------|----------|--------------|
+| **方法入口** | L1672 | `private async playCurrentRoleAudio(): Promise<void> {` |
+| **夜晚结束判断** | L1677-1680 | `if (!currentRole) {`<br>`  await this.endNight();`<br>`  return;`<br>`}` |
+| **设置 isAudioPlaying** | L1683-1685 | `this.state.isAudioPlaying = true;`<br>`await this.broadcastState();` |
+| **播放角色开始音频** | L1689 | `await this.audioService.playRoleBeginningAudio(currentRole);` |
+| **Dispatch RoleBeginAudioDone** | L1693 | `this.nightFlow?.dispatch(NightEvent.RoleBeginAudioDone);` |
+| **清除 isAudioPlaying** | L1704 | `this.state.isAudioPlaying = false;` |
+| **stepId 来源** | L1717-1718 | `const [step] = getStepsByRoleStrict(currentRole);`<br>`stepId = step?.id;` |
+| **witchContext 设置** | L1726-1739 | `if (currentRole === 'witch') {`<br>`  ...`<br>`  if (isWitchBlocked) { ... } else {`<br>`    const killedIndex = getActionTargetSeat(wolfAction) ?? -1;`<br>`    this.setWitchContext(killedIndex);`<br>`  }`<br>`}` |
+| **confirmStatus 设置** | L1744-1745 | `if (currentRole === 'hunter' \|\| currentRole === 'darkWolfKing') {`<br>`  this.setConfirmStatus(currentRole);`<br>`}` |
+| **广播 ROLE_TURN** | L1749-1754 | `await this.broadcastService.broadcastAsHost({`<br>`  type: 'ROLE_TURN',`<br>`  role: currentRole,`<br>`  pendingSeats,`<br>`  stepId,`<br>`});` |
+| **更新 currentStepId** | L1757-1758 | `if (stepId && this.state) {`<br>`  this.state.currentStepId = stepId;`<br>`}` |
 
 **关键语义**：
-- nightmare block：被封锁的座位只能 skip（target=null, extra=undefined），否则 reject
-- resolver 是唯一验证逻辑；reject 时写入 `actionRejected` 字段
-- reveal role（seer/psychic/gargoyle/wolfRobot）需要等待 `REVEAL_ACK` 才 advance
+- stepId 来源是 `getStepsByRoleStrict(currentRole)[0].id`（派生自 `NIGHT_STEPS`）
+- `ROLE_TURN` 广播在 `RoleBeginAudioDone` 之后、`isAudioPlaying = false` 之后
+- witchContext 只在非 blocked 时设置
 
 ---
 
-### 1.6 wolf vote
+### 1.6 advanceToNextAction
 
-| 条目 | Legacy 证据 | 行号 |
-|------|-------------|------|
-| **前置条件** | `if (!this.state \|\| this.state.status !== GameStatus.ongoing) return;` | L943-944 |
-| **role 校验** | `if (currentRole !== 'wolf') return;` | L965-968 |
-| **wolf 身份校验** | `if (!player?.role \|\| !isWolfRole(player.role)) return;` | L972-973 |
-| **resolver 校验** | `wolfVoteResolver(context, input)` → 检查 immuneToWolfKill | L976-999 |
-| **记录投票** | `this.state.wolfVotes.set(seat, target);` | L1004 |
-| **allVoted 检查** | `allVotingWolfSeats.every((s) => this.state!.wolfVotes.has(s))` | L1007-1008 |
-| **once-guard** | `if (this.state.actions.has('wolf')) return;` | L1011-1017 |
-| **resolve 最终目标** | `const finalTarget = resolveWolfVotes(this.state.wolfVotes);` | L1020 |
-| **record action** | `this.state.actions.set('wolf', makeActionTarget(finalTarget));` | L1021-1022 |
-| **advance** | `this.nightFlow.dispatch(NightEvent.ActionSubmitted); await this.advanceToNextAction();` | L1038-1056 |
-| **PlayerMessage** | `{ type: 'WOLF_VOTE', seat, target }` | protocol/types.ts |
-
-**Neutral judge rule**：
-- 狼人可以刀**任意座位**，包括自己或狼队友（Legacy L972-973 只校验 isWolfRole(player.role)，不限制 target）
-- wolfVoteResolver 只校验 `immuneToWolfKill`（如狼美人魅惑的目标）
-
-**wolfKillDisabled**：
-- Legacy 中由 nightmare resolver 设置（当 nightmare block 了所有狼人时）
-- 通过 `currentNightResults.wolfKillDisabled` 传递
-
----
-
-### 1.7 advance / audio sequencing
-
-| 条目 | Legacy 证据 | 行号 |
-|------|-------------|------|
-| **playCurrentRoleAudio** | L1672-1762 |
-| **音频时序** | `isAudioPlaying = true` → `playRoleBeginningAudio(role)` → `dispatch(RoleBeginAudioDone)` → `isAudioPlaying = false` → broadcast `ROLE_TURN` | L1683-1752 |
-| **设置 witchContext** | `if (currentRole === 'witch' && !isWitchBlocked) { setWitchContext(killedIndex); }` | L1726-1739 |
-| **设置 confirmStatus** | `if (currentRole === 'hunter' \|\| currentRole === 'darkWolfKing') { setConfirmStatus(); }` | L1742-1744 |
-| **advanceToNextAction** | L1765-1822 |
-| **结束音频** | `isAudioPlaying = true` → `playRoleEndingAudio(role)` → `isAudioPlaying = false` | L1788-1796 |
-| **RoleEndAudioDone** | `this.nightFlow.dispatch(NightEvent.RoleEndAudioDone);` → `currentActionerIndex = nightFlow.currentActionIndex;` | L1800-1804 |
-| **清空 wolfVotes** | `this.state.wolfVotes = new Map();` | L1818 |
-| **递归调用** | `await this.playCurrentRoleAudio();` | L1822 |
+| 条目 | 行号范围 | 代码片段摘录 |
+|------|----------|--------------|
+| **方法入口** | L1765 | `private async advanceToNextAction(): Promise<void> {` |
+| **nightFlow 存在校验** | L1770-1776 | `if (this.state.status === GameStatus.ongoing && !this.nightFlow) {`<br>`  throw new Error('advanceToNextAction: nightFlow is null - strict invariant violation');`<br>`}` |
+| **获取 currentRole** | L1784 | `const currentRole = this.getCurrentActionRole();` |
+| **播放结束音频** | L1789-1794 | `this.state.isAudioPlaying = true;`<br>`await this.broadcastState();`<br>`...`<br>`await this.audioService.playRoleEndingAudio(currentRole).catch(() => {});` |
+| **清除 isAudioPlaying** | L1797 | `this.state.isAudioPlaying = false;` |
+| **RoleEndAudioDone gating** | L1804-1816 | `if (this.nightFlow.phase === NightPhase.RoleEndAudio) {`<br>`  this.nightFlow.dispatch(NightEvent.RoleEndAudioDone);`<br>`  this.state.currentActionerIndex = this.nightFlow.currentActionIndex;`<br>`} else {`<br>`  ... // ignore silently (idempotent)`<br>`  return;`<br>`}` |
+| **清空 wolfVotes** | L1819 | `this.state.wolfVotes = new Map();` |
+| **递归调用** | L1822 | `await this.playCurrentRoleAudio();` |
 
 **关键语义**：
-- 每个角色回合：RoleBeginAudio → WaitingForAction → ActionSubmitted → RoleEndAudio → RoleEndAudioDone → 下一个角色
-- `currentActionerIndex` 由 `NightFlowController` 管理
-- `ROLE_TURN` 广播在角色音频结束后
+- **RoleEndAudioDone gating**：只有在 `phase === RoleEndAudio` 时才 dispatch，否则 idempotent 返回
+- `currentActionerIndex` 唯一写入点：L1807（从 nightFlow sync）
+- 清空 wolfVotes 在推进前执行
 
 ---
 
-### 1.8 endNight
+### 1.7 endNight
 
-| 条目 | Legacy 证据 | 行号 |
-|------|-------------|------|
-| **触发时机** | `playCurrentRoleAudio()` 中 `if (!currentRole) { await this.endNight(); return; }` | L1677-1680 |
-| **播放结束音频** | `await this.audioService.playNightEndAudio();` | L1843 |
-| **phase 校验** | `if (this.nightFlow.phase === NightPhase.NightEndAudio) { dispatch(NightEndAudioDone); }` | L1848-1858 |
-| **计算死亡** | `const deaths = this.doCalculateDeaths();` | L1862 |
-| **状态变化** | `this.state.status = GameStatus.ended;` | L1864 |
-| **广播 NIGHT_END** | `await this.broadcastService.broadcastAsHost({ type: 'NIGHT_END', deaths });` | L1867-1870 |
-| **广播 state** | `await this.broadcastState();` | L1872 |
+| 条目 | 行号范围 | 代码片段摘录 |
+|------|----------|--------------|
+| **方法入口** | L1825 | `private async endNight(): Promise<void> {` |
+| **触发条件** | L1677-1680 | `if (!currentRole) { await this.endNight(); return; }` (在 playCurrentRoleAudio 中) |
+| **nightFlow 存在校验** | L1830-1836 | `if (this.state.status === GameStatus.ongoing && !this.nightFlow) {`<br>`  throw new Error('endNight: nightFlow is null - strict invariant violation');`<br>`}` |
+| **播放结束音频** | L1846 | `await this.audioService.playNightEndAudio();` |
+| **NightEndAudio phase gating** | L1851-1862 | `if (this.nightFlow.phase === NightPhase.NightEndAudio) {`<br>`  this.nightFlow.dispatch(NightEvent.NightEndAudioDone);`<br>`} else {`<br>`  hostLog.debug('endNight() ignored (strict no-op): phase is', ...);`<br>`  return;`<br>`}` |
+| **计算死亡** | L1866 | `const deaths = this.doCalculateDeaths();` |
+| **记录死亡** | L1867 | `this.state.lastNightDeaths = deaths;` |
+| **状态变化** | L1868 | `this.state.status = GameStatus.ended;` |
+| **广播 NIGHT_END** | L1871-1874 | `await this.broadcastService.broadcastAsHost({`<br>`  type: 'NIGHT_END',`<br>`  deaths,`<br>`});` |
+| **广播 state** | L1876 | `await this.broadcastState();` |
 
 **关键语义**：
-- `status = 'ended'` 表示 "Night-1 results ready"（不是赢家判定）
-- 广播两条消息：`NIGHT_END` + `STATE_UPDATE`
-- 死亡计算由 `DeathCalculator` 纯函数完成
+- **NightEndAudio phase gating**：只有在 `phase === NightEndAudio` 时才执行死亡计算和状态变更，否则 strict no-op
+- 广播两条消息顺序：先 `NIGHT_END`，后 `STATE_UPDATE`
+- 死亡计算由 `doCalculateDeaths()` 执行（L2603 定义）
+
+---
+
+### 1.8 handlePlayerAction（非狼人 submitAction）
+
+| 条目 | 行号范围 | 代码片段摘录 |
+|------|----------|--------------|
+| **前置条件** | L754 | `if (!this.state \|\| this.state.status !== GameStatus.ongoing) return;` |
+| **nightFlow phase 校验** | L776 | `if (this.nightFlow.phase !== NightPhase.WaitingForAction) return;` |
+| **role 校验** | L771 | `if (currentRole !== role) return;` |
+| **nightmare block** | L788-809 | 被封锁的座位只能 skip，否则 reject |
+| **resolver 调用** | L820 | `const resolverResult = this.invokeResolver(schemaId, seat, role, actionInput);` |
+| **reveal role 处理** | L916-923 | 等待 `REVEAL_ACK` 后才 advance |
+| **advance** | L926-939 | `this.nightFlow.dispatch(NightEvent.ActionSubmitted); await this.advanceToNextAction();` |
+
+---
+
+### 1.9 handleWolfVote
+
+| 条目 | 行号范围 | 代码片段摘录 |
+|------|----------|--------------|
+| **前置条件** | L943-944 | `if (!this.state \|\| this.state.status !== GameStatus.ongoing)` |
+| **role 校验** | L965-968 | `if (currentRole !== 'wolf') return;` |
+| **wolf 身份校验** | L972-973 | `if (!player?.role \|\| !isWolfRole(player.role)) return;` |
+| **记录投票** | L1004 | `this.state.wolfVotes.set(seat, target);` |
+| **allVoted 检查** | L1007-1008 | `allVotingWolfSeats.every((s) => this.state!.wolfVotes.has(s))` |
+| **once-guard** | L1011-1017 | `if (this.state.actions.has('wolf')) return;` |
+| **resolve 最终目标** | L1020 | `const finalTarget = resolveWolfVotes(this.state.wolfVotes);` |
+| **record action** | L1021-1022 | `this.state.actions.set('wolf', makeActionTarget(finalTarget));` |
+| **advance** | L1038-1056 | `this.nightFlow.dispatch(NightEvent.ActionSubmitted); await this.advanceToNextAction();` |
+
+**Neutral judge rule**：狼人可以刀任意座位（包括自己或队友）。
 
 ---
 
