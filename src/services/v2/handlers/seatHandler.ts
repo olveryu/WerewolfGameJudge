@@ -1,11 +1,11 @@
 /**
  * Seat Handler - 座位相关处理器
  *
- * 处理 JOIN_SEAT / LEAVE_SEAT intent
+ * 处理 JOIN_SEAT / LEAVE_MY_SEAT intent
  * 所有校验（包括 state/uid 有效性）都在这里，Facade 不做任何校验
  */
 
-import type { JoinSeatIntent, LeaveSeatIntent, LeaveMySeatIntent } from '../intents/types';
+import type { JoinSeatIntent, LeaveMySeatIntent } from '../intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type { PlayerJoinAction, PlayerLeaveAction } from '../reducer/types';
 import {
@@ -14,8 +14,6 @@ import {
   REASON_NOT_SEATED,
   REASON_INVALID_SEAT,
   REASON_SEAT_TAKEN,
-  REASON_SEAT_EMPTY,
-  REASON_NOT_YOUR_SEAT,
   REASON_GAME_IN_PROGRESS,
 } from '../protocol/reasonCodes';
 
@@ -114,89 +112,10 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
 }
 
 /**
- * 处理离开座位（指定 seat）
- *
- * @deprecated TODO(remove by 2026-03-01): Gate1 standup 已统一使用 handleLeaveMySeat，
- * 此函数仅保留用于未来可能的"指定座位离席"场景（如 Host 踢人）。
- * 如果 2026-03-01 前没有新场景需要，请删除此函数及 LeaveSeatIntent。
- */
-export function handleLeaveSeat(intent: LeaveSeatIntent, context: HandlerContext): HandlerResult {
-  const { seat, uid } = intent.payload;
-  const { state } = context;
-
-  // 校验：state 是否存在
-  if (!state) {
-    return {
-      success: false,
-      reason: REASON_NO_STATE,
-      actions: [],
-    };
-  }
-
-  // 校验：uid 是否有效
-  if (!uid) {
-    return {
-      success: false,
-      reason: REASON_NOT_AUTHENTICATED,
-      actions: [],
-    };
-  }
-
-  // 验证：座位是否存在
-  if (!(seat in state.players)) {
-    return {
-      success: false,
-      reason: REASON_INVALID_SEAT,
-      actions: [],
-    };
-  }
-
-  // 验证：座位上是否有玩家
-  const player = state.players[seat];
-  if (player === null) {
-    return {
-      success: false,
-      reason: REASON_SEAT_EMPTY,
-      actions: [],
-    };
-  }
-
-  // 验证：是否是该玩家的座位
-  if (player.uid !== uid) {
-    return {
-      success: false,
-      reason: REASON_NOT_YOUR_SEAT,
-      actions: [],
-    };
-  }
-
-  // 验证：游戏状态是否允许离开
-  if (state.status === 'ongoing') {
-    return {
-      success: false,
-      reason: REASON_GAME_IN_PROGRESS,
-      actions: [],
-    };
-  }
-
-  const action: PlayerLeaveAction = {
-    type: 'PLAYER_LEAVE',
-    payload: { seat },
-  };
-
-  return {
-    success: true,
-    actions: [action],
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
-  };
-}
-
-/**
  * 处理离开"我的座位"
  *
- * 与 handleLeaveSeat 不同：
- * - 不需要 payload 中指定 seat，seat 从 context.mySeat 获取
- * - 如果未入座 (mySeat === null)，返回 REASON_NOT_SEATED
+ * 不需要 payload 中指定 seat，seat 从 context.mySeat 获取
+ * 如果未入座 (mySeat === null)，返回 REASON_NOT_SEATED
  */
 export function handleLeaveMySeat(
   intent: LeaveMySeatIntent,

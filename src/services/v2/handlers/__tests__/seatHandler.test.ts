@@ -2,17 +2,15 @@
  * seatHandler Unit Tests
  */
 
-import { handleJoinSeat, handleLeaveSeat, handleLeaveMySeat } from '../seatHandler';
+import { handleJoinSeat, handleLeaveMySeat } from '../seatHandler';
 import type { HandlerContext } from '../types';
-import type { JoinSeatIntent, LeaveSeatIntent, LeaveMySeatIntent } from '../../intents/types';
+import type { JoinSeatIntent, LeaveMySeatIntent } from '../../intents/types';
 import type { GameState } from '../../store/types';
 import {
   REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
   REASON_INVALID_SEAT,
   REASON_SEAT_TAKEN,
-  REASON_SEAT_EMPTY,
-  REASON_NOT_YOUR_SEAT,
   REASON_GAME_IN_PROGRESS,
   REASON_NOT_SEATED,
 } from '../../protocol/reasonCodes';
@@ -239,135 +237,6 @@ describe('handleJoinSeat', () => {
     expect(result.success).toBe(true);
     expect(result.actions).toHaveLength(1); // Only join, no leave
     expect(result.actions[0].type).toBe('PLAYER_JOIN');
-  });
-});
-
-describe('handleLeaveSeat', () => {
-  it('should succeed when leaving own seat', () => {
-    const state = createMinimalState({
-      players: {
-        0: { uid: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
-        1: null,
-        2: null,
-      },
-    });
-    const context = createContext(state, { mySeat: 0 });
-    const intent: LeaveSeatIntent = {
-      type: 'LEAVE_SEAT',
-      payload: {
-        seat: 0,
-        uid: 'player-1',
-      },
-    };
-
-    const result = handleLeaveSeat(intent, context);
-
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('PLAYER_LEAVE');
-  });
-
-  it('should fail when seat is empty', () => {
-    const state = createMinimalState();
-    const context = createContext(state);
-    const intent: LeaveSeatIntent = {
-      type: 'LEAVE_SEAT',
-      payload: {
-        seat: 0,
-        uid: 'player-1',
-      },
-    };
-
-    const result = handleLeaveSeat(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_SEAT_EMPTY);
-  });
-
-  it('should fail when trying to leave another player seat', () => {
-    const state = createMinimalState({
-      players: {
-        0: { uid: 'other-player', seatNumber: 0, role: null, hasViewedRole: false },
-        1: null,
-        2: null,
-      },
-    });
-    const context = createContext(state);
-    const intent: LeaveSeatIntent = {
-      type: 'LEAVE_SEAT',
-      payload: {
-        seat: 0,
-        uid: 'player-1',
-      },
-    };
-
-    const result = handleLeaveSeat(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_NOT_YOUR_SEAT);
-  });
-
-  it('should fail when game is ongoing', () => {
-    const state = createMinimalState({
-      status: 'ongoing',
-      players: {
-        0: { uid: 'player-1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-        1: null,
-        2: null,
-      },
-    });
-    const context = createContext(state);
-    const intent: LeaveSeatIntent = {
-      type: 'LEAVE_SEAT',
-      payload: {
-        seat: 0,
-        uid: 'player-1',
-      },
-    };
-
-    const result = handleLeaveSeat(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_GAME_IN_PROGRESS);
-  });
-
-  it('should fail when state is null (no_state)', () => {
-    const context = createContext(null);
-    const intent: LeaveSeatIntent = {
-      type: 'LEAVE_SEAT',
-      payload: {
-        seat: 0,
-        uid: 'player-1',
-      },
-    };
-
-    const result = handleLeaveSeat(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_NO_STATE);
-  });
-
-  it('should fail when uid is empty (not_authenticated)', () => {
-    const state = createMinimalState({
-      players: {
-        0: { uid: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
-        1: null,
-        2: null,
-      },
-    });
-    const context = createContext(state);
-    const intent: LeaveSeatIntent = {
-      type: 'LEAVE_SEAT',
-      payload: {
-        seat: 0,
-        uid: '', // empty uid
-      },
-    };
-
-    const result = handleLeaveSeat(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_NOT_AUTHENTICATED);
   });
 });
 

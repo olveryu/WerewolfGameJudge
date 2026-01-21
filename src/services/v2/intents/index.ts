@@ -5,7 +5,7 @@
 export type {
   GameIntent,
   JoinSeatIntent,
-  LeaveSeatIntent,
+  LeaveMySeatIntent,
   StartGameIntent,
   RestartGameIntent,
   SubmitActionIntent,
