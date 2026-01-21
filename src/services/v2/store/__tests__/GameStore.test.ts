@@ -192,13 +192,45 @@ describe('GameStore', () => {
       expect(store.getRevision()).toBe(0);
     });
 
-    it('should clear all listeners', () => {
+    it('should notify listeners with null state on reset', () => {
+      const listener = jest.fn();
+      store.subscribe(listener);
+      store.initialize(createMinimalState());
+
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      store.reset();
+
+      // reset() now notifies listeners with null state
+      expect(listener).toHaveBeenCalledTimes(2);
+      expect(listener).toHaveBeenLastCalledWith(null, 0);
+    });
+
+    it('should keep listeners after reset', () => {
       const listener = jest.fn();
       store.subscribe(listener);
       store.initialize(createMinimalState());
 
       store.reset();
-      // After reset, listeners are cleared, so initialize again shouldn't notify
+      // After reset, listeners are kept, so initialize again should notify
+      store.initialize(createMinimalState());
+
+      expect(listener).toHaveBeenCalledTimes(3); // init + reset + init again
+    });
+  });
+
+  describe('destroy()', () => {
+    it('should clear state, revision, and all listeners', () => {
+      const listener = jest.fn();
+      store.subscribe(listener);
+      store.initialize(createMinimalState());
+
+      store.destroy();
+
+      expect(store.getState()).toBeNull();
+      expect(store.getRevision()).toBe(0);
+
+      // After destroy, listeners are cleared, so initialize again shouldn't notify
       store.initialize(createMinimalState());
 
       expect(listener).toHaveBeenCalledTimes(1); // only the first initialize

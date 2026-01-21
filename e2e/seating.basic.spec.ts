@@ -7,6 +7,8 @@ import {
   extractRoomNumber,
   enterRoomCodeViaNumPad,
 } from './helpers/home';
+import type { DiagnosticData } from './helpers/diagnostics';
+import { printDiagnosticSummary, setupDiagnostics } from './helpers/diagnostics';
 
 /**
  * Seating Diagnostic E2E Tests
@@ -20,104 +22,6 @@ import {
 
 // Fail fast: stop on first failure
 test.describe.configure({ mode: 'serial' });
-
-// =============================================================================
-// Diagnostic Infrastructure
-// =============================================================================
-
-/** Prefixes to filter from console logs */
-const LOG_PREFIXES = [
-  '[useGameRoom]',
-  '[GameStateService]',
-  '[SeatService]',
-  '[RoomService]',
-  '[BroadcastService]',
-];
-
-/** Collected diagnostic data */
-interface DiagnosticData {
-  consoleLogs: string[];
-  pageErrors: string[];
-  failedRequests: string[];
-  errorResponses: string[];
-}
-
-/**
- * Setup diagnostic listeners on a page.
- * Returns a DiagnosticData object that accumulates data.
- */
-function setupDiagnostics(page: Page, label: string): DiagnosticData {
-  const data: DiagnosticData = {
-    consoleLogs: [],
-    pageErrors: [],
-    failedRequests: [],
-    errorResponses: [],
-  };
-
-  // Filter console logs by prefix
-  page.on('console', (msg) => {
-    const text = msg.text();
-    if (LOG_PREFIXES.some((p) => text.includes(p))) {
-      const logLine = `[${label}] ${text}`;
-      data.consoleLogs.push(logLine);
-      console.log('[PW console]', logLine);
-    }
-  });
-
-  // Capture page errors
-  page.on('pageerror', (err) => {
-    const errLine = `[${label}] PageError: ${err.message}`;
-    data.pageErrors.push(errLine);
-    console.error('[PW pageerror]', errLine);
-  });
-
-  // Capture failed requests
-  page.on('requestfailed', (req) => {
-    const failLine = `[${label}] RequestFailed: ${req.url()} - ${req.failure()?.errorText}`;
-    data.failedRequests.push(failLine);
-    console.error('[PW requestfailed]', failLine);
-  });
-
-  // Capture 4xx/5xx responses (only log, don't spam)
-  page.on('response', (resp) => {
-    if (resp.status() >= 400) {
-      const errLine = `[${label}] HTTP ${resp.status()}: ${resp.url()}`;
-      data.errorResponses.push(errLine);
-      console.warn('[PW response]', errLine);
-    }
-  });
-
-  return data;
-}
-
-/**
- * Print diagnostic summary
- */
-function printDiagnosticSummary(label: string, data: DiagnosticData) {
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`DIAGNOSTIC SUMMARY: ${label}`);
-  console.log('='.repeat(60));
-
-  console.log(`\n--- Console Logs (${data.consoleLogs.length}) ---`);
-  data.consoleLogs.forEach((log) => console.log(log));
-
-  if (data.pageErrors.length > 0) {
-    console.log(`\n--- Page Errors (${data.pageErrors.length}) ---`);
-    data.pageErrors.forEach((err) => console.log(err));
-  }
-
-  if (data.failedRequests.length > 0) {
-    console.log(`\n--- Failed Requests (${data.failedRequests.length}) ---`);
-    data.failedRequests.forEach((req) => console.log(req));
-  }
-
-  if (data.errorResponses.length > 0) {
-    console.log(`\n--- Error Responses (${data.errorResponses.length}) ---`);
-    data.errorResponses.forEach((resp) => console.log(resp));
-  }
-
-  console.log('='.repeat(60) + '\n');
-}
 
 // =============================================================================
 // Helpers
@@ -215,7 +119,7 @@ async function waitForChannelSubscribed(
   const pollInterval = 100;
 
   while (Date.now() - startTime < timeout) {
-    if (diag.consoleLogs.some((log) => log.includes('Channel status: SUBSCRIBED'))) {
+    if (diag.consoleLogs.some((log: string) => log.includes('Channel status: SUBSCRIBED'))) {
       console.log(`[DIAG] ${label} channel SUBSCRIBED after ${Date.now() - startTime}ms`);
       return true;
     }
@@ -224,7 +128,7 @@ async function waitForChannelSubscribed(
 
   // On timeout, log last 10 entries for debugging
   console.log(`[DIAG] ${label} channel subscription TIMEOUT (${timeout}ms). Last 10 logs:`);
-  diag.consoleLogs.slice(-10).forEach((log) => console.log(`  ${log}`));
+  diag.consoleLogs.slice(-10).forEach((log: string) => console.log(`  ${log}`));
   return false;
 }
 
@@ -656,7 +560,7 @@ test.describe('Seating Diagnostic', () => {
         .isVisible({ timeout: 3000 })
         .catch(() => false);
       const hasSeatTakenMsg = await pageB
-        .getByText('该座位已被占用')
+        .getByText('座位已被占用')
         .isVisible({ timeout: 1000 })
         .catch(() => false);
 

@@ -101,6 +101,13 @@ UI (从 schema + gameState 推导显示)
 ### 日志（Logging）
 
 - **使用结构化 logger**：统一从 `src/utils/logger.ts` 获取（例如 `gameRoomLog`、`roomScreenLog`、`gameStateLog`）。
+- **禁止在业务代码中使用 `console.*`**：除非明确属于**测试/脚本/Storybook mock/E2E 调试**，否则一律用 logger。
+  - ✅ 允许：`src/**/__tests__/**`、`e2e/**`、`scripts/**`、`*.stories.tsx` 中的 `console.*`
+  - ✅ 允许：对第三方库/运行环境不可控的 `console.*`（例如依赖内部）
+  - ❌ 禁止：`src/**` 业务/服务/组件代码里新增 `console.log/warn/error`
+  - 推荐用法：
+    - `import { log } from 'src/utils/logger'` 然后 `log.extend('Module').debug('msg', data)`
+    - 或直接用预置的 `roomScreenLog` / `broadcastLog` 等
 - **关键事件必须打日志**：状态迁移、action 提交、错误、关键分支决策。
 - **日志格式**：包含 context（例如 `[RoomScreen]`、`[GameStateService]`）与相关数据。
 - **Debug vs Error**：正常流程用 `.debug()`；可恢复问题用 `.warn()`；失败用 `.error()`。

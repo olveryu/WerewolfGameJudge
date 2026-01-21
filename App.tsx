@@ -6,6 +6,7 @@ import { AlertModal } from './src/components/AlertModal';
 import { setAlertListener, AlertConfig } from './src/utils/alert';
 import { GameFacadeProvider, NetworkProvider } from './src/contexts';
 import { V2GameFacade } from './src/services/v2/facade/V2GameFacade';
+import { log } from './src/utils/logger';
 
 function AppContent() {
   const { colors, isDark } = useTheme();
@@ -41,7 +42,7 @@ function AppContent() {
 }
 
 export default function App() {
-  console.log('App rendering...');
+  log.extend('App').debug('render');
 
   // Phase 0: 注入 v2 facade（Host/Player 模式由 facade 内部 initialize/join 决定）
   const facade = V2GameFacade.getInstance();

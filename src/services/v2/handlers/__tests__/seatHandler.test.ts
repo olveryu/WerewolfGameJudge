@@ -127,6 +127,71 @@ describe('handleJoinSeat', () => {
     expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
+
+  it('should handle seat switching (leave old seat, join new seat)', () => {
+    const state = createMinimalState({
+      players: {
+        0: {
+          uid: 'player-1',
+          seatNumber: 0,
+          role: null,
+          hasViewedRole: false,
+          displayName: 'Alice',
+        },
+        1: null,
+        2: null,
+      },
+    });
+    const context = createContext(state);
+    const intent: JoinSeatIntent = {
+      type: 'JOIN_SEAT',
+      payload: {
+        seat: 2,
+        uid: 'player-1',
+        displayName: 'Alice',
+      },
+    };
+
+    const result = handleJoinSeat(intent, context);
+
+    expect(result.success).toBe(true);
+    expect(result.actions).toHaveLength(2);
+    expect(result.actions[0].type).toBe('PLAYER_LEAVE');
+    expect((result.actions[0] as { payload: { seat: number } }).payload.seat).toBe(0);
+    expect(result.actions[1].type).toBe('PLAYER_JOIN');
+    expect((result.actions[1] as { payload: { seat: number } }).payload.seat).toBe(2);
+  });
+
+  it('should allow player to re-sit on same seat without leaving', () => {
+    const state = createMinimalState({
+      players: {
+        0: {
+          uid: 'player-1',
+          seatNumber: 0,
+          role: null,
+          hasViewedRole: false,
+          displayName: 'Alice',
+        },
+        1: null,
+        2: null,
+      },
+    });
+    const context = createContext(state);
+    const intent: JoinSeatIntent = {
+      type: 'JOIN_SEAT',
+      payload: {
+        seat: 0,
+        uid: 'player-1',
+        displayName: 'Alice',
+      },
+    };
+
+    const result = handleJoinSeat(intent, context);
+
+    expect(result.success).toBe(true);
+    expect(result.actions).toHaveLength(1); // Only join, no leave
+    expect(result.actions[0].type).toBe('PLAYER_JOIN');
+  });
 });
 
 describe('handleLeaveSeat', () => {
