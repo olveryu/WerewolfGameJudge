@@ -195,7 +195,8 @@ export class V2GameFacade implements IGameFacade {
 
     if (this.isHost) {
       // Host: 走 handler → reducer 路径
-      return this.hostProcessJoinSeat(seatNumber, this.myUid, displayName, avatarUrl);
+      const result = this.hostProcessJoinSeat(seatNumber, this.myUid, displayName, avatarUrl);
+      return result.success;
     }
 
     // Player: 发送 SEAT_ACTION_REQUEST，等待 ACK
@@ -207,7 +208,8 @@ export class V2GameFacade implements IGameFacade {
     if (!this.myUid || mySeat === null) return false;
 
     if (this.isHost) {
-      return this.hostProcessLeaveSeat(mySeat, this.myUid);
+      const result = this.hostProcessLeaveSeat(mySeat, this.myUid);
+      return result.success;
     }
 
     // Player: 发送 SEAT_ACTION_REQUEST (standup)，等待 ACK
@@ -304,23 +306,18 @@ export class V2GameFacade implements IGameFacade {
   ): void {
     const { action, seat, uid, displayName, avatarUrl, requestId } = msg;
 
-    let success = false;
-    let reason: string | undefined;
+    let result: { success: boolean; reason?: string };
 
     if (action === 'sit') {
-      success = this.hostProcessJoinSeat(seat, uid, displayName, avatarUrl);
-      if (!success) {
-        reason = '座位已被占用';
-      }
+      result = this.hostProcessJoinSeat(seat, uid, displayName, avatarUrl);
     } else if (action === 'standup') {
-      success = this.hostProcessLeaveSeat(seat, uid);
-      if (!success) {
-        reason = '离座失败';
-      }
+      result = this.hostProcessLeaveSeat(seat, uid);
+    } else {
+      result = { success: false, reason: 'invalid_action' };
     }
 
-    // 发送 ACK 给请求者
-    void this.sendSeatActionAck(requestId, uid, success, seat, reason);
+    // 发送 ACK 给请求者（reason 来自 handler，不在 Facade 写规则）
+    void this.sendSeatActionAck(requestId, uid, result.success, seat, result.reason);
   }
 
   /**
@@ -351,17 +348,18 @@ export class V2GameFacade implements IGameFacade {
   /**
    * Host 处理入座
    * 不在此写校验规则，全部委托给 handleJoinSeat
+   * @returns { success, reason } - reason 来自 handler
    */
   private hostProcessJoinSeat(
     seat: number,
     requestUid: string,
     displayName?: string,
     avatarUrl?: string,
-  ): boolean {
+  ): { success: boolean; reason?: string } {
     v2FacadeLog.debug('hostProcessJoinSeat', { seat, requestUid });
 
     const state = this.store.getState();
-    if (!state || !this.myUid) return false;
+    if (!state || !this.myUid) return { success: false, reason: 'no_state' };
 
     // 构造 intent（请求者 uid 在 payload，不在 context）
     const intent: JoinSeatIntent = {
@@ -388,7 +386,7 @@ export class V2GameFacade implements IGameFacade {
     if (!result.success) {
       // Phase 0 不做 ACK，只广播当前 state
       void this.broadcastCurrentState();
-      return false;
+      return { success: false, reason: result.reason };
     }
 
     // 应用 actions 到 reducer
@@ -399,18 +397,19 @@ export class V2GameFacade implements IGameFacade {
       void this.broadcastCurrentState();
     }
 
-    return true;
+    return { success: true };
   }
 
   /**
    * Host 处理离座
    * 不在此写校验规则，全部委托给 handleLeaveSeat
+   * @returns { success, reason } - reason 来自 handler
    */
-  private hostProcessLeaveSeat(seat: number, requestUid: string): boolean {
+  private hostProcessLeaveSeat(seat: number, requestUid: string): { success: boolean; reason?: string } {
     v2FacadeLog.debug('hostProcessLeaveSeat', { seat, requestUid });
 
     const state = this.store.getState();
-    if (!state || !this.myUid) return false;
+    if (!state || !this.myUid) return { success: false, reason: 'no_state' };
 
     const intent: LeaveSeatIntent = {
       type: 'LEAVE_SEAT',
@@ -431,7 +430,7 @@ export class V2GameFacade implements IGameFacade {
 
     if (!result.success) {
       void this.broadcastCurrentState();
-      return false;
+      return { success: false, reason: result.reason };
     }
 
     this.applyActions(state, result.actions);
@@ -440,7 +439,7 @@ export class V2GameFacade implements IGameFacade {
       void this.broadcastCurrentState();
     }
 
-    return true;
+    return { success: true };
   }
 
   /**
