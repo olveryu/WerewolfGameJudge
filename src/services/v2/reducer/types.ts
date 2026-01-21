@@ -70,6 +70,8 @@ export interface AdvanceToNextActionAction {
   type: 'ADVANCE_TO_NEXT_ACTION';
   payload: {
     nextActionerIndex: number;
+    /** 下一步 stepId（来自 NIGHT_STEPS 表驱动单源），null 表示夜晚结束 */
+    nextStepId: SchemaId | null;
   };
 }
 

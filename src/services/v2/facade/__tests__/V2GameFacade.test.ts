@@ -1214,4 +1214,102 @@ describe('V2GameFacade', () => {
       expect(result.reason).toBe('invalid_status');
     });
   });
+
+  // ===========================================================================
+  // PR6: advanceNight / endNight tests
+  // ===========================================================================
+
+  describe('advanceNight (PR6)', () => {
+    it('should fail when not host (gate: host_only)', async () => {
+      await facade.joinAsPlayer('TEST', 'player-uid', 'Player 1');
+
+      const result = await facade.advanceNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('host_only');
+    });
+
+    it('should fail when status is not ongoing (gate: invalid_status)', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      // 不开始夜晚，status 是 'seated'
+
+      const result = await facade.advanceNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+
+    it('should broadcast on rejection (reject also broadcasts)', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      // 不开始夜晚，status 是 'seated'
+
+      mockBroadcastService.broadcastAsHost.mockClear();
+
+      await facade.advanceNight();
+
+      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'STATE_UPDATE',
+        }),
+      );
+    });
+
+    it('should return reason from handler (reason passthrough)', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+
+      const result = await facade.advanceNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+  });
+
+  describe('endNight (PR6)', () => {
+    it('should fail when not host (gate: host_only)', async () => {
+      await facade.joinAsPlayer('TEST', 'player-uid', 'Player 1');
+
+      const result = await facade.endNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('host_only');
+    });
+
+    it('should fail when status is not ongoing (gate: invalid_status)', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      // 不开始夜晚，status 是 'seated'
+
+      const result = await facade.endNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+
+    it('should broadcast on rejection (reject also broadcasts)', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      // 不开始夜晚，status 是 'seated'
+
+      mockBroadcastService.broadcastAsHost.mockClear();
+
+      await facade.endNight();
+
+      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'STATE_UPDATE',
+        }),
+      );
+    });
+
+    it('should return reason from handler (reason passthrough)', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+
+      const result = await facade.endNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+  });
 });

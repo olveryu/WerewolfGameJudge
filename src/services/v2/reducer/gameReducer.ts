@@ -139,10 +139,16 @@ function handleStartNight(state: GameState, action: StartNightAction): GameState
 }
 
 function handleAdvanceToNextAction(state: GameState, action: AdvanceToNextActionAction): GameState {
-  const { nextActionerIndex } = action.payload;
+  const { nextActionerIndex, nextStepId } = action.payload;
   return {
     ...state,
     currentActionerIndex: nextActionerIndex,
+    // PR6 contract: 推进时同步更新 currentStepId（单一真相）
+    currentStepId: nextStepId ?? undefined,
+    // PR6 contract: 推进到下一步清空狼票（不残留上一 step 的投票）
+    wolfVotes: {},
+    wolfVoteStatus: {},
+    // 清空 reveal/context（role-specific state）
     seerReveal: undefined,
     psychicReveal: undefined,
     gargoyleReveal: undefined,
@@ -161,6 +167,8 @@ function handleEndNight(state: GameState, action: EndNightAction): GameState {
     status: 'ended',
     lastNightDeaths: deaths,
     currentActionerIndex: -1,
+    // PR6 contract: 夜晚结束清空 stepId 和 isAudioPlaying
+    currentStepId: undefined,
     isAudioPlaying: false,
   };
 }

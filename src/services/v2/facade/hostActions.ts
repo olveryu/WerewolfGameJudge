@@ -22,6 +22,8 @@ import type {
   StartNightIntent,
   SubmitActionIntent,
   SubmitWolfVoteIntent,
+  AdvanceNightIntent,
+  EndNightIntent,
 } from '../intents/types';
 import type { StateAction } from '../reducer/types';
 import type { RoleId } from '../../../models/roles';
@@ -32,6 +34,7 @@ import {
   handleSubmitAction,
   handleSubmitWolfVote,
 } from '../handlers/actionHandler';
+import { handleAdvanceNight, handleEndNight } from '../handlers/nightFlowHandler';
 import { gameReducer } from '../reducer';
 import { v2FacadeLog } from '../../../utils/logger';
 
@@ -241,4 +244,38 @@ export async function submitWolfVote(
     logPrefix: 'submitWolfVote',
     logData: { voterSeat, targetSeat },
   });
+}
+
+/**
+ * Host: 推进夜晚到下一步
+ *
+ * PR6: ADVANCE_NIGHT（音频结束后调用）
+ */
+export async function advanceNight(
+  ctx: HostActionsContext,
+): Promise<{ success: boolean; reason?: string }> {
+  v2FacadeLog.debug('advanceNight called', { isHost: ctx.isHost });
+
+  const intent: AdvanceNightIntent = { type: 'ADVANCE_NIGHT' };
+  const context = buildHandlerContext(ctx);
+  const result = handleAdvanceNight(intent, context);
+
+  return processHandlerResult(ctx, result, { logPrefix: 'advanceNight' });
+}
+
+/**
+ * Host: 结束夜晚，进行死亡结算
+ *
+ * PR6: END_NIGHT（夜晚结束音频结束后调用）
+ */
+export async function endNight(
+  ctx: HostActionsContext,
+): Promise<{ success: boolean; reason?: string }> {
+  v2FacadeLog.debug('endNight called', { isHost: ctx.isHost });
+
+  const intent: EndNightIntent = { type: 'END_NIGHT' };
+  const context = buildHandlerContext(ctx);
+  const result = handleEndNight(intent, context);
+
+  return processHandlerResult(ctx, result, { logPrefix: 'endNight' });
 }
