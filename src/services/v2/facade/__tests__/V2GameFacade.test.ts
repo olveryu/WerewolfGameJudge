@@ -255,7 +255,7 @@ describe('V2GameFacade', () => {
               toUid: 'player-uid',
               success: false,
               seat: 1,
-              reason: '座位已被占用',
+              reason: 'seat_taken',
             });
           }, 10);
         }
