@@ -23,7 +23,6 @@ export type { GameIntent } from './intents';
 // Handlers
 export {
   handleJoinSeat,
-  handleLeaveSeat,
   handleLeaveMySeat,
   handleStartGame,
   handleRestartGame,
