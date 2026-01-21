@@ -362,12 +362,13 @@ describe('gameReducer', () => {
   });
 
   describe('PLAYER_VIEWED_ROLE', () => {
-    it('should set hasViewedRole to true', () => {
+    it('should set hasViewedRole to true for single player', () => {
       const state = createMinimalState({
+        status: 'assigned',
         players: {
           0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
-          1: null,
-          2: null,
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+          2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
         },
       });
       const action: PlayerViewedRoleAction = {
@@ -378,10 +379,58 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       expect(newState.players[0]?.hasViewedRole).toBe(true);
+      // status 仍为 assigned（因为还有玩家没 viewed）
+      expect(newState.status).toBe('assigned');
+    });
+
+    it('should transition to ready when all players have viewed', () => {
+      const state = createMinimalState({
+        status: 'assigned',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false }, // 最后一个
+        },
+      });
+      const action: PlayerViewedRoleAction = {
+        type: 'PLAYER_VIEWED_ROLE',
+        payload: { seat: 2 }, // 标记最后一个玩家
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.players[2]?.hasViewedRole).toBe(true);
+      // 所有玩家都 viewed → status 变为 ready
+      expect(newState.status).toBe('ready');
+    });
+
+    it('should handle null seats correctly when checking all viewed', () => {
+      // 场景：只有 2 个玩家，第 3 个座位是空的
+      const state = createMinimalState({
+        status: 'assigned',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+          2: null, // 空座位应被忽略
+        },
+      });
+      const action: PlayerViewedRoleAction = {
+        type: 'PLAYER_VIEWED_ROLE',
+        payload: { seat: 1 },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.players[1]?.hasViewedRole).toBe(true);
+      // 所有非 null 玩家都 viewed → status 变为 ready
+      expect(newState.status).toBe('ready');
     });
 
     it('should return unchanged state if player not found', () => {
-      const state = createMinimalState();
+      const state = createMinimalState({
+        status: 'assigned',
+        players: { 0: null, 1: null, 2: null },
+      });
       const action: PlayerViewedRoleAction = {
         type: 'PLAYER_VIEWED_ROLE',
         payload: { seat: 0 },
@@ -390,6 +439,58 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       expect(newState).toBe(state);
+    });
+
+    it('should NOT transition if status is not assigned', () => {
+      const state = createMinimalState({
+        status: 'ongoing', // 不是 assigned
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+          2: null,
+        },
+      });
+      const action: PlayerViewedRoleAction = {
+        type: 'PLAYER_VIEWED_ROLE',
+        payload: { seat: 1 },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.players[1]?.hasViewedRole).toBe(true);
+      // status 不变，因为原始 status 不是 assigned
+      expect(newState.status).toBe('ongoing');
+    });
+
+    it('PR2 contract: should NOT touch night fields', () => {
+      const state = createMinimalState({
+        status: 'assigned',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+          2: null,
+        },
+        // 确保这些字段在 assigned 状态下是 undefined
+        actions: undefined,
+        wolfVotes: undefined,
+        currentNightResults: undefined,
+        currentActionerIndex: -1,
+      });
+      const action: PlayerViewedRoleAction = {
+        type: 'PLAYER_VIEWED_ROLE',
+        payload: { seat: 1 },
+      };
+
+      const newState = gameReducer(state, action);
+
+      // PR2 contract: 不触碰 night 字段
+      expect(newState.actions).toBeUndefined();
+      expect(newState.wolfVotes).toBeUndefined();
+      expect(newState.currentNightResults).toBeUndefined();
+      expect(newState.currentActionerIndex).toBe(-1);
+      expect(newState.wolfVoteStatus).toBeUndefined();
+      expect(newState.witchContext).toBeUndefined();
+      expect(newState.seerReveal).toBeUndefined();
     });
   });
 
