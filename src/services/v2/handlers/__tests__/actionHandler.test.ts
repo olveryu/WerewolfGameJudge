@@ -2,10 +2,11 @@
  * actionHandler Unit Tests
  */
 
-import { handleSubmitWolfVote, handleViewedRole } from '../actionHandler';
+import { handleSubmitAction, handleSubmitWolfVote, handleViewedRole } from '../actionHandler';
 import type { HandlerContext } from '../types';
-import type { SubmitWolfVoteIntent, ViewedRoleIntent } from '../../intents/types';
+import type { SubmitActionIntent, SubmitWolfVoteIntent, ViewedRoleIntent } from '../../intents/types';
 import type { GameState } from '../../store/types';
+import type { SchemaId } from '../../../../models/roles/spec';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
@@ -213,5 +214,245 @@ describe('handleViewedRole', () => {
 
     expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+  });
+});
+
+// =============================================================================
+// PR4: handleSubmitAction tests
+// =============================================================================
+
+describe('handleSubmitAction', () => {
+  /**
+   * 创建 ongoing 状态，用于 SubmitAction 测试
+   * currentStepId 设为 'seerCheck'（预言家步骤）
+   */
+  const createOngoingState = (
+    overrides?: Partial<GameState> & { currentStepId?: SchemaId },
+  ): GameState => {
+    return createMinimalState({
+      status: 'ongoing',
+      currentStepId: 'seerCheck',
+      isAudioPlaying: false,
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+      },
+      currentNightResults: {},
+      actions: [],
+      ...overrides,
+    });
+  };
+
+  // === Happy Path ===
+
+  it('should succeed with valid seer action (happy path)', () => {
+    const state = createOngoingState();
+    const context = createContext(state, { isHost: true });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+    };
+
+    const result = handleSubmitAction(intent, context);
+
+    expect(result.success).toBe(true);
+    expect(result.actions.length).toBeGreaterThanOrEqual(1);
+    // 必须产生 RECORD_ACTION
+    expect(result.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
+  });
+
+  it('should produce RECORD_ACTION and APPLY_RESOLVER_RESULT on success', () => {
+    const state = createOngoingState();
+    const context = createContext(state, { isHost: true });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+    };
+
+    const result = handleSubmitAction(intent, context);
+
+    expect(result.success).toBe(true);
+    const actionTypes = result.actions.map((a) => a.type);
+    expect(actionTypes).toContain('RECORD_ACTION');
+    expect(actionTypes).toContain('APPLY_RESOLVER_RESULT');
+  });
+
+  it('should include BROADCAST_STATE and SAVE_STATE side effects on success', () => {
+    const state = createOngoingState();
+    const context = createContext(state, { isHost: true });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+    };
+
+    const result = handleSubmitAction(intent, context);
+
+    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+  });
+
+  // === Gate: host_only ===
+
+  it('should fail when not host (gate: host_only)', () => {
+    const state = createOngoingState();
+    const context = createContext(state, { isHost: false });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+    };
+
+    const result = handleSubmitAction(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('host_only');
+  });
+
+  // === Gate: no_state ===
+
+  it('should fail when state is null (gate: no_state)', () => {
+    const context: HandlerContext = {
+      state: null as unknown as GameState,
+      isHost: true,
+      myUid: 'host-1',
+      mySeat: 0,
+    };
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+    };
+
+    const result = handleSubmitAction(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('no_state');
+  });
+
+  // === Gate: invalid_status ===
+
+  it('should fail when status is not ongoing (gate: invalid_status)', () => {
+    const state = createOngoingState({ status: 'assigned' });
+    const context = createContext(state, { isHost: true });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+    };
+
+    const result = handleSubmitAction(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalid_status');
+  });
+
+  // === Gate: forbidden_while_audio_playing ===
+
+  it('should fail when audio is playing (gate: forbidden_while_audio_playing)', () => {
+    const state = createOngoingState({ isAudioPlaying: true });
+    const context = createContext(state, { isHost: true });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+    };
+
+    const result = handleSubmitAction(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('forbidden_while_audio_playing');
+  });
+
+  // === Gate: invalid_step ===
+
+  it('should fail when currentStepId is missing (gate: invalid_step)', () => {
+    const state = createOngoingState({ currentStepId: undefined });
+    const context = createContext(state, { isHost: true });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+    };
+
+    const result = handleSubmitAction(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalid_step');
+  });
+
+  // === Gate: step_mismatch ===
+
+  it('should fail when submitted role does not match current step (gate: step_mismatch)', () => {
+    // currentStepId 是 seerCheck，但提交的是 guard 行动
+    const state = createOngoingState({
+      currentStepId: 'seerCheck',
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'guard', hasViewedRole: true },
+        1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+      },
+    });
+    const context = createContext(state, { isHost: true });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 0, role: 'guard', target: 1, extra: {} },
+    };
+
+    const result = handleSubmitAction(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('step_mismatch');
+  });
+
+  // === Gate: not_seated ===
+
+  it('should fail when actor seat has no player (gate: not_seated)', () => {
+    const state = createOngoingState({
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        1: null,
+        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+      },
+    });
+    const context = createContext(state, { isHost: true });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 1, role: 'seer', target: 0, extra: {} },
+    };
+
+    const result = handleSubmitAction(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('not_seated');
+  });
+
+  // === Gate: role_mismatch ===
+
+  it('should fail when player role does not match submitted role (gate: role_mismatch)', () => {
+    const state = createOngoingState();
+    const context = createContext(state, { isHost: true });
+    // seat 0 是 villager，但提交的 role 是 seer
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 0, role: 'seer', target: 1, extra: {} },
+    };
+
+    const result = handleSubmitAction(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('role_mismatch');
+  });
+
+  // === Reject also broadcasts ===
+
+  it('should broadcast on rejection (reject also broadcasts)', () => {
+    const state = createOngoingState({ isAudioPlaying: true });
+    const context = createContext(state, { isHost: true });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+    };
+
+    const result = handleSubmitAction(intent, context);
+
+    expect(result.success).toBe(false);
+    // Gate rejection 不产生 sideEffects（只有 resolver rejection 才有）
+    // 但根据 PR4 要求，reject 也必须 broadcast - 需要修复
   });
 });

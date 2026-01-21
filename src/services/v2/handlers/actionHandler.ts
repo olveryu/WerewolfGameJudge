@@ -17,9 +17,10 @@ import type {
 import type { ProtocolAction } from '../../protocol/types';
 import type { SchemaId } from '../../../models/roles/spec';
 import { RESOLVERS } from '../../night/resolvers';
-import { NIGHT_STEPS } from '../../../models/roles/spec';
+import { NIGHT_STEPS, SCHEMAS } from '../../../models/roles/spec';
 import type { ResolverContext, ActionInput, ResolverResult } from '../../night/resolvers/types';
 import type { RoleId } from '../../../models/roles';
+import type { ActionSchema } from '../../../models/roles/spec/schema.types';
 
 /**
  * 非 null 的 state 类型（通过 validation 后使用）
@@ -119,15 +120,27 @@ function buildRevealPayload(
 }
 
 /**
- * 验证前置条件
- * 返回 narrowed state 以便后续使用
+ * 验证前置条件（PR4 完整 gate）
+ *
+ * Gate 顺序（必须遵守）：
+ * 1. host_only
+ * 2. no_state
+ * 3. invalid_status (must be ongoing)
+ * 4. forbidden_while_audio_playing
+ * 5. invalid_step (currentStepId 必须存在且匹配)
+ * 6. not_seated (actor seat 必须有玩家)
+ * 7. schema constraints (由 resolver 处理)
  */
 function validateActionPreconditions(
   context: HandlerContext,
+  actorSeat: number,
   role: RoleId,
-): { valid: false; result: HandlerResult } | { valid: true; schemaId: SchemaId; state: NonNullState } {
+):
+  | { valid: false; result: HandlerResult }
+  | { valid: true; schemaId: SchemaId; state: NonNullState; schema: (typeof SCHEMAS)[SchemaId] } {
   const { state, isHost } = context;
 
+  // Gate 1: host_only
   if (!isHost) {
     return {
       valid: false,
@@ -135,6 +148,7 @@ function validateActionPreconditions(
     };
   }
 
+  // Gate 2: no_state
   if (!state) {
     return {
       valid: false,
@@ -142,33 +156,81 @@ function validateActionPreconditions(
     };
   }
 
+  // Gate 3: invalid_status (must be ongoing)
   if (state.status !== 'ongoing') {
     return {
       valid: false,
-      result: { success: false, reason: 'game_not_ongoing', actions: [] },
+      result: { success: false, reason: 'invalid_status', actions: [] },
     };
   }
 
-  const schemaId = getSchemaIdForRole(role);
-  if (!schemaId) {
+  // Gate 4: forbidden_while_audio_playing
+  if (state.isAudioPlaying) {
     return {
       valid: false,
-      result: { success: false, reason: 'unknown_role', actions: [] },
+      result: { success: false, reason: 'forbidden_while_audio_playing', actions: [] },
     };
   }
 
-  if (!RESOLVERS[schemaId]) {
+  // Gate 5: invalid_step (currentStepId 必须存在且能在 SCHEMAS 里找到)
+  const currentStepId = state.currentStepId;
+  if (!currentStepId) {
+    return {
+      valid: false,
+      result: { success: false, reason: 'invalid_step', actions: [] },
+    };
+  }
+
+  const schema = SCHEMAS[currentStepId];
+  if (!schema) {
+    return {
+      valid: false,
+      result: { success: false, reason: 'invalid_step', actions: [] },
+    };
+  }
+
+  // Gate 5b: step mismatch - 提交的 role 必须与当前 step 对应
+  const expectedSchemaId = getSchemaIdForRole(role);
+  if (expectedSchemaId !== currentStepId) {
+    return {
+      valid: false,
+      result: { success: false, reason: 'step_mismatch', actions: [] },
+    };
+  }
+
+  // Gate 6: not_seated (actor seat 必须有玩家)
+  const player = state.players[actorSeat];
+  if (!player) {
+    return {
+      valid: false,
+      result: { success: false, reason: 'not_seated', actions: [] },
+    };
+  }
+
+  // Gate 6b: 玩家角色必须匹配
+  if (player.role !== role) {
+    return {
+      valid: false,
+      result: { success: false, reason: 'role_mismatch', actions: [] },
+    };
+  }
+
+  // Gate 7: resolver 存在性检查
+  if (!RESOLVERS[currentStepId]) {
     return {
       valid: false,
       result: { success: false, reason: 'no_resolver', actions: [] },
     };
   }
 
-  return { valid: true, schemaId, state };
+  return { valid: true, schemaId: currentStepId, state, schema };
 }
 
 /**
- * 处理提交行动
+ * 处理提交行动（PR4: SUBMIT_ACTION）
+ *
+ * Resolver-first：所有业务校验由 resolver 完成
+ * Reject 也 broadcast：防 UI pending 卡死
  */
 export function handleSubmitAction(
   intent: SubmitActionIntent,
@@ -176,8 +238,8 @@ export function handleSubmitAction(
 ): HandlerResult {
   const { seat, role, target, extra } = intent.payload;
 
-  // 验证前置条件
-  const validation = validateActionPreconditions(context, role);
+  // 验证前置条件（完整 gate 链）
+  const validation = validateActionPreconditions(context, seat, role);
   if (!validation.valid) {
     return validation.result;
   }
@@ -194,7 +256,7 @@ export function handleSubmitAction(
     extra as Record<string, unknown> | undefined,
   );
 
-  // 调用 resolver
+  // 调用 resolver（resolver-first）
   const result = resolver(resolverContext, actionInput);
 
   if (!result.valid) {

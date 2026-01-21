@@ -19,6 +19,7 @@ const baseContext: any = {
     },
     currentActionerIndex: 0,
     isAudioPlaying: false,
+    currentStepId: 'seerCheck', // PR4: 必须设置 currentStepId
     currentNightResults: {},
   },
 };
@@ -31,6 +32,7 @@ jest.mock('../../night/resolvers', () => ({
 
 jest.mock('../../../models/roles/spec', () => ({
   NIGHT_STEPS: [{ id: 'seerCheck', roleId: 'seer' }],
+  SCHEMAS: { seerCheck: { id: 'seerCheck', kind: 'chooseSeat' } }, // PR4: 必须 mock SCHEMAS
 }));
 
 describe('v2 handleSubmitAction', () => {
