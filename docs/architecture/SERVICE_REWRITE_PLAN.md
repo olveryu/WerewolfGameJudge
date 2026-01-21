@@ -1,6 +1,6 @@
 # 服务层完全重写方案 (v2.0)
 
-> **文档版本**: 1.1.0
+> **文档版本**: 1.2.0
 > **创建日期**: 2026-01-20
 > **更新日期**: 2026-01-20
 > **状态**: IN PROGRESS - Phase 3 进行中
@@ -13,8 +13,25 @@
 |-------|------|--------|------|
 | Phase 1 | ✅ 完成 | `6edb2d7` | 116 files → legacy 文件夹 |
 | Phase 2 | ✅ 完成 | `04d0304` | v2 骨架 + GameFacade (委托 legacy) |
-| Phase 3 | 🔄 进行中 | - | 混合策略：重写 Engine + 保留 Resolver |
+| Phase 3 | 🔄 进行中 | 见下表 | 混合策略：重写 Engine + 保留 Resolver |
 | Phase 4 | ⏳ 待开始 | - | 删除 legacy |
+
+### Phase 3 详细进度
+
+| 模块 | 状态 | Commit | Lines | Tests |
+|------|------|--------|-------|-------|
+| **Infra Layer** | | | | |
+| StateStore | ✅ 完成 | `8c57be1` | ~370 | 21 |
+| Transport | ✅ 完成 | `cf5a544` | ~280 | - |
+| Storage | ✅ 完成 | `cf5a544` | ~120 | - |
+| Audio | ✅ 完成 | `cf5a544` | ~100 | - |
+| **Domain Layer** | | | | |
+| SeatEngine | ✅ 完成 | `3445fa6` | ~240 | 14 |
+| NightEngine | ✅ 完成 | `5da0ac4` | ~200 | 10 |
+| PlayerEngine | ⏳ 待开始 | - | - | - |
+| HostEngine | ⏳ 待开始 | - | - | - |
+
+**当前测试统计**: v2 共 73 tests passing
 
 ---
 
