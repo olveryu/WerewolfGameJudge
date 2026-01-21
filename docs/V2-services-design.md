@@ -43,7 +43,10 @@
 ### 硬性约束（不可违反）
 
 - ❌ 不得引入仅主机状态字段（host-only state）
-- ❌ 不得发明新的线协议（wire protocol）；复用 `PlayerMessage`（玩家消息）/ `HostBroadcast`（主机广播消息）
+- ❌ 不得发明平行的线协议（wire protocol）；一切在“线上传输”仍以 `PlayerMessage`（玩家消息）/ `HostBroadcast`（主机广播消息）作为唯一合约
+  - ✅ 允许（迁移期护栏）：在 `BroadcastGameState` 中新增字段，必须先以 `?` 可选字段落地，以降低 v1/v2/legacy 并存时的耦合风险
+    - TODO(remove by 2026-03-01): 当 **legacy 与切换开关移除**、v2 成为唯一路径后，评估将相关字段收紧为必填或移除此“迁移期可选字段”规则，并同步更新合约测试
+  - 🛑 禁止：引入 `V2PlayerMessage` / `V2HostBroadcast` / `PrivateEffect` 等平行协议，或同时维护两份 state shape
 - ❌ v2 运行时不得从 legacy 导入
 - ❌ 玩家（Player）不得执行 resolver/reducer/夜晚推进/死亡结算
 - ✅ 所有现有测试必须通过
@@ -122,51 +125,53 @@
 
 ### 决策 A：协议类型的单一真相（Single Source of Truth）
 
-| 选项 | 描述 | 结论 |
-|------|------|------|
-| A1 | 类型保留在 `BroadcastService.ts` | ❌ 拒绝：耦合传输层与协议层 |
-| **A2** | 提取到 `protocol/types.ts` | ✅ **选定**：清晰分离 |
+| 选项   | 描述                             | 结论                        |
+| ------ | -------------------------------- | --------------------------- |
+| A1     | 类型保留在 `BroadcastService.ts` | ❌ 拒绝：耦合传输层与协议层 |
+| **A2** | 提取到 `protocol/types.ts`       | ✅ **选定**：清晰分离       |
 
 **迁移规则**:
+
 1. `protocol/types.ts` 成为 `BroadcastGameState`、`HostBroadcast`、`PlayerMessage` 的**唯一权威定义**
 2. `BroadcastService.ts` **删除**本地类型定义，从 protocol 导入
 3. **所有其他文件**从 `services/protocol` 导入，禁止从 `BroadcastService` 导入这些类型
 
 ### 决策 B：ProtocolAction（协议动作记录）键策略
 
-| 选项 | 描述 | 结论 |
-|------|------|------|
-| B1 | `Record<SchemaId, ProtocolAction>` | ❌ 拒绝：同一 schemaId 可能有多个 actor |
-| B2 | `Record<string, ProtocolAction>`，key = `${schemaId}:${actorSeat}` | ⚠️ 可行但需解析复杂 key |
-| **B3** | `ProtocolAction[]` 数组 | ✅ **选定**：最稳定，无 key 冲突 |
+| 选项   | 描述                                                               | 结论                                    |
+| ------ | ------------------------------------------------------------------ | --------------------------------------- |
+| B1     | `Record<SchemaId, ProtocolAction>`                                 | ❌ 拒绝：同一 schemaId 可能有多个 actor |
+| B2     | `Record<string, ProtocolAction>`，key = `${schemaId}:${actorSeat}` | ⚠️ 可行但需解析复杂 key                 |
+| **B3** | `ProtocolAction[]` 数组                                            | ✅ **选定**：最稳定，无 key 冲突        |
 
 **理由**: 数组最稳定——无键冲突、无需解析、易于遍历。
 
 ### 决策 C：Seat-map 线协议键规范
 
-| 选项 | 描述 | 结论 |
-|------|------|------|
-| C1 | 使用 `Record<number, T>` | ❌ 拒绝：JSON 序列化后 number key 变成 string |
-| **C2** | **新增字段**使用 `Record<string, T>` | ✅ **选定**：显式，无 TS 假象 |
+| 选项   | 描述                                 | 结论                                          |
+| ------ | ------------------------------------ | --------------------------------------------- |
+| C1     | 使用 `Record<number, T>`             | ❌ 拒绝：JSON 序列化后 number key 变成 string |
+| **C2** | **新增字段**使用 `Record<string, T>` | ✅ **选定**：显式，无 TS 假象                 |
 
 **Phase 1 迁移期策略（重要）**:
 
-| 字段 | Phase 1 类型 | 说明 |
-|------|-------------|------|
-| `players` | `Record<number, BroadcastPlayer \| null>` | **保持现状不改**（现有代码/测试大量依赖） |
-| `wolfVotes` | `Record<string, number>` | **新增字段**，string key |
-| `wolfVoteStatus` | `Record<string, boolean>` | **新增/修改字段**，string key，由 `normalizeState()` 规范化 |
+| 字段             | Phase 1 类型                              | 说明                                                        |
+| ---------------- | ----------------------------------------- | ----------------------------------------------------------- |
+| `players`        | `Record<number, BroadcastPlayer \| null>` | **保持现状不改**（现有代码/测试大量依赖）                   |
+| `wolfVotes`      | `Record<string, number>`                  | **新增字段**，string key                                    |
+| `wolfVoteStatus` | `Record<string, boolean>`                 | **新增/修改字段**，string key，由 `normalizeState()` 规范化 |
 
 **后续 Phase（可选）**: 如果要把 `players` 也改成 `Record<string, ...>`，必须作为**单独 migration PR**，全量修改测试；不属于 Phase 1 范围。
 
 ### 决策 D：Resolver 目录不移动
 
-| 选项 | 描述 | 结论 |
-|------|------|------|
-| D1 | Phase 1 移动 `night/resolvers` → `core/resolvers` | ❌ 拒绝：大量测试依赖路径 |
-| **D2** | Phase 1 **不移动** resolver 目录 | ✅ **选定**：遵守 repo guardrails |
+| 选项   | 描述                                              | 结论                              |
+| ------ | ------------------------------------------------- | --------------------------------- |
+| D1     | Phase 1 移动 `night/resolvers` → `core/resolvers` | ❌ 拒绝：大量测试依赖路径         |
+| **D2** | Phase 1 **不移动** resolver 目录                  | ✅ **选定**：遵守 repo guardrails |
 
 **规则**:
+
 - `src/services/night/resolvers/**` 保持原位
 - 如果未来需要重组目录，放到 Phase 3+（可选），且必须：
   - 作为纯重构 PR，不改变行为
@@ -182,8 +187,8 @@
 // src/services/protocol/types.ts — 唯一权威定义
 
 // ⚠️ 以现有 repo 导出路径为准
-import type { RoleId } from '../../models/roles';              // 从 models/roles 导入（现有导出）
-import type { SchemaId } from '../../models/roles/spec';       // 从 models/roles/spec 导入（现有导出）
+import type { RoleId } from '../../models/roles'; // 从 models/roles 导入（现有导出）
+import type { SchemaId } from '../../models/roles/spec'; // 从 models/roles/spec 导入（现有导出）
 import type { CurrentNightResults } from '../night/resolvers/types'; // 单一真相（保持原位）
 
 // =============================================================================
@@ -192,7 +197,7 @@ import type { CurrentNightResults } from '../night/resolvers/types'; // 单一�
 
 /** 用于线传输的动作记录 */
 export interface ProtocolAction {
-  readonly schemaId: SchemaId;       // type-only import，稳定契约
+  readonly schemaId: SchemaId; // type-only import，稳定契约
   readonly actorSeat: number;
   readonly targetSeat?: number;
   readonly timestamp: number;
@@ -221,30 +226,30 @@ export interface BroadcastGameState {
   hostUid: string;
   status: 'unseated' | 'seated' | 'assigned' | 'ready' | 'ongoing' | 'ended';
   templateRoles: RoleId[];
-  
+
   // ⚠️ Phase 1: players 保持 Record<number, ...> 不改，与现有实现一致
   players: Record<number, BroadcastPlayer | null>;
-  
+
   currentActionerIndex: number;
   isAudioPlaying: boolean;
 
   // --- Seat-map 字段（新增字段使用 string key） ---
   /** 狼人投票状态（v2 使用 string key） */
   wolfVoteStatus?: Record<string, boolean>;
-  
+
   /** 狼人投票（v2 新增）- voterSeat -> targetSeat */
   wolfVotes?: Record<string, number>;
 
   // --- 执行状态（v2，可选，向后兼容） ---
   /** 第一夜动作记录 */
   actions?: ProtocolAction[];
-  
+
   /** 当前夜晚累积结果（type-only from resolver types，单一真相） */
   currentNightResults?: CurrentNightResults;
-  
+
   /** 待确认的揭示确认 */
   pendingRevealAcks?: string[];
-  
+
   /** 上一夜死亡 */
   lastNightDeaths?: number[];
 
@@ -297,14 +302,33 @@ export interface BroadcastGameState {
 
 export type HostBroadcast =
   | { type: 'STATE_UPDATE'; state: BroadcastGameState; revision: number }
-  | { type: 'ROLE_TURN'; role: RoleId; pendingSeats: number[]; killedIndex?: number; stepId?: SchemaId }
+  | {
+      type: 'ROLE_TURN';
+      role: RoleId;
+      pendingSeats: number[];
+      killedIndex?: number;
+      stepId?: SchemaId;
+    }
   | { type: 'NIGHT_END'; deaths: number[] }
   | { type: 'PLAYER_JOINED'; seat: number; player: BroadcastPlayer }
   | { type: 'PLAYER_LEFT'; seat: number }
   | { type: 'GAME_RESTARTED' }
   | { type: 'SEAT_REJECTED'; seat: number; requestUid: string; reason: 'seat_taken' }
-  | { type: 'SEAT_ACTION_ACK'; requestId: string; toUid: string; success: boolean; seat: number; reason?: string }
-  | { type: 'SNAPSHOT_RESPONSE'; requestId: string; toUid: string; state: BroadcastGameState; revision: number };
+  | {
+      type: 'SEAT_ACTION_ACK';
+      requestId: string;
+      toUid: string;
+      success: boolean;
+      seat: number;
+      reason?: string;
+    }
+  | {
+      type: 'SNAPSHOT_RESPONSE';
+      requestId: string;
+      toUid: string;
+      state: BroadcastGameState;
+      revision: number;
+    };
 
 // =============================================================================
 // 玩家消息（PlayerMessage）
@@ -318,13 +342,22 @@ export type PlayerMessage =
   | { type: 'WOLF_VOTE'; seat: number; target: number }
   | { type: 'VIEWED_ROLE'; seat: number }
   | { type: 'REVEAL_ACK'; seat: number; role: RoleId; revision: number }
-  | { type: 'SEAT_ACTION_REQUEST'; requestId: string; action: 'sit' | 'standup'; seat: number; uid: string; displayName?: string; avatarUrl?: string }
+  | {
+      type: 'SEAT_ACTION_REQUEST';
+      requestId: string;
+      action: 'sit' | 'standup';
+      seat: number;
+      uid: string;
+      displayName?: string;
+      avatarUrl?: string;
+    }
   | { type: 'SNAPSHOT_REQUEST'; requestId: string; uid: string; lastRevision?: number };
 ```
 
 ### 4.2 ProtocolAction 稳定性保证
 
 **为什么不会漂移（drift）**:
+
 1. `SchemaId` 是从 `models/roles/spec` 的 type-only import（单一真相）
 2. `ProtocolAction[]` 数组无 key 冲突问题
 3. 所有字段都是原始类型 + 稳定类型引用
@@ -352,7 +385,7 @@ import type { BroadcastGameState } from '../../protocol/types';
  * 用于任何 Record<string, T> 在运行时可能收到 number key 的场景。
  */
 export function canonicalizeSeatKeyRecord<T>(
-  record: Record<string | number, T> | undefined
+  record: Record<string | number, T> | undefined,
 ): Record<string, T> | undefined {
   if (record === undefined) return undefined;
   const result: Record<string, T> = {};
@@ -366,9 +399,7 @@ export function canonicalizeSeatKeyRecord<T>(
  * 从 wolfVotes 派生 wolfVoteStatus。
  * 仅当 wolfVotes 存在时调用。
  */
-function deriveWolfVoteStatus(
-  wolfVotes: Record<string, number>
-): Record<string, boolean> {
+function deriveWolfVoteStatus(wolfVotes: Record<string, number>): Record<string, boolean> {
   const result: Record<string, boolean> = {};
   for (const seatStr of Object.keys(wolfVotes)) {
     result[seatStr] = true;
@@ -382,12 +413,17 @@ function deriveWolfVoteStatus(
  * - 规范化 seat-map 键为 string（仅新增字段）
  * - 从 wolfVotes 派生 wolfVoteStatus（如果 wolfVotes 存在）
  */
-export function normalizeState(
-  raw: Partial<BroadcastGameState>
-): BroadcastGameState {
+export function normalizeState(raw: Partial<BroadcastGameState>): BroadcastGameState {
+  // ⚠️ 设计意图（Phase 1）
+  // - normalize 的核心职责是：形态规范化（canonicalize keys）与派生字段（wolfVotes -> wolfVoteStatus）
+  // - 对“旧的核心必填字段”（roomCode/hostUid/status 等）在真实运行中更推荐 fail-fast，避免用默认值掩盖状态损坏
+  // - 如果需要为测试工厂提供便捷默认值，建议拆分：
+  //   - normalizeStateForBroadcast(state: BroadcastGameState): BroadcastGameState
+  //   - normalizeStateForTests(partial: Partial<BroadcastGameState>): BroadcastGameState
+
   // 规范化 seat-map 字段（仅新增字段）
   const wolfVotes = canonicalizeSeatKeyRecord(raw.wolfVotes);
-  
+
   // 派生 wolfVoteStatus: 仅当 wolfVotes 存在时派生，否则保留 legacy 值
   let wolfVoteStatus: Record<string, boolean> | undefined;
   if (wolfVotes !== undefined) {
@@ -435,13 +471,16 @@ export function normalizeState(
 
 ### 5.3 不变量
 
-| 规则 | 描述 |
-|------|------|
-| **新增字段 keys 是 string** | `wolfVotes`、`wolfVoteStatus` 等新增 seat-map 字段的 key 是 string |
-| **players 保持现状** | Phase 1 不改动 `players` 的 key 类型 |
-| **wolfVotes → wolfVoteStatus** | 如果 `wolfVotes` 存在，从中派生 `wolfVoteStatus` |
-| **Legacy 保留** | 如果 `wolfVotes` 不存在但 `wolfVoteStatus` 存在，保留后者 |
-| **广播前归一化** | 主机在每次 `STATE_UPDATE` 前调用 `normalizeState(state)` |
+| 规则                           | 描述                                                               |
+| ------------------------------ | ------------------------------------------------------------------ |
+| **新增字段 keys 是 string**    | `wolfVotes`、`wolfVoteStatus` 等新增 seat-map 字段的 key 是 string |
+| **players 保持现状**           | Phase 1 不改动 `players` 的 key 类型                               |
+| **wolfVotes → wolfVoteStatus** | 如果 `wolfVotes` 存在，从中派生 `wolfVoteStatus`                   |
+| **Legacy 保留**                | 如果 `wolfVotes` 不存在但 `wolfVoteStatus` 存在，保留后者          |
+| **广播前归一化**               | 主机在每次 `STATE_UPDATE` 前调用 `normalizeState(state)`           |
+
+> 注：`normalizeState()` 不是“容错恢复器”。
+> 它的职责是“形态规范化 + 派生字段”。如果核心必填状态缺失，更推荐在主机的存储/恢复路径 fail-fast 并打日志。
 
 ---
 
@@ -449,13 +488,13 @@ export function normalizeState(
 
 ### 6.1 模块边界矩阵
 
-| 模块 | 允许的导入 | 禁止的导入 |
-|------|-----------|-----------|
-| `protocol/` | `import type` from `models/**`, `services/night/resolvers/types` | 任何运行时导入；任何 transport 导入 |
-| `core/` | `import type` from protocol；import from `models/**` | 运行时导入 transport |
-| `transport/` | 从 protocol 导入（types）；导入 supabase | 从 v2、legacy 导入 |
-| `legacy/` | 任意（迁移期豁免） | — |
-| `v2/` | 从 protocol、core 导入 | 运行时导入 legacy |
+| 模块         | 允许的导入                                                       | 禁止的导入                          |
+| ------------ | ---------------------------------------------------------------- | ----------------------------------- |
+| `protocol/`  | `import type` from `models/**`, `services/night/resolvers/types` | 任何运行时导入；任何 transport 导入 |
+| `core/`      | `import type` from protocol；import from `models/**`             | 运行时导入 transport                |
+| `transport/` | 从 protocol 导入（types）；导入 supabase                         | 从 v2、legacy 导入                  |
+| `legacy/`    | 任意（迁移期豁免）                                               | —                                   |
+| `v2/`        | 从 protocol、core 导入                                           | 运行时导入 legacy                   |
 
 ### 6.2 执法策略
 
@@ -468,7 +507,7 @@ import * as path from 'path';
 const SERVICES_DIR = path.join(__dirname, '..');
 
 // 正则模式
-const RUNTIME_IMPORT = /^import\s+(?!type\s)/;  // "import X" 但不是 "import type X"
+const RUNTIME_IMPORT = /^import\s+(?!type\s)/; // "import X" 但不是 "import type X"
 const TYPE_ONLY_IMPORT = /^import\s+type\s/;
 
 function getImports(filePath: string): { runtime: string[]; typeOnly: string[] } {
@@ -491,11 +530,11 @@ function getImports(filePath: string): { runtime: string[]; typeOnly: string[] }
 describe('模块边界契约（Module Boundary Contract）', () => {
   describe('protocol/ 层', () => {
     const protocolDir = path.join(SERVICES_DIR, 'protocol');
-    
+
     it('types.ts 无运行时导入', () => {
       const typesPath = path.join(protocolDir, 'types.ts');
       if (!fs.existsSync(typesPath)) return; // Phase 0 跳过
-      
+
       const { runtime } = getImports(typesPath);
       expect(runtime).toEqual([]);
     });
@@ -503,11 +542,16 @@ describe('模块边界契约（Module Boundary Contract）', () => {
     it('types.ts 不导出函数', () => {
       const typesPath = path.join(protocolDir, 'types.ts');
       if (!fs.existsSync(typesPath)) return;
-      
+
       const content = fs.readFileSync(typesPath, 'utf-8');
       // 不应有 "export function" 或 "export const ... = (...) =>"
       expect(content).not.toMatch(/export\s+(async\s+)?function\s/);
       expect(content).not.toMatch(/export\s+const\s+\w+\s*=\s*\([^)]*\)\s*=>/);
+
+      // protocol/ 必须是纯类型层：禁止任何 value export
+      expect(content).not.toMatch(/export\s+enum\s/);
+      // e.g. "export const X = 1" / "export const X = {}"（但不误伤 "export const X = () =>"，后者已在上一条覆盖）
+      expect(content).not.toMatch(/export\s+const\s+\w+\s*=\s*(?!\s*\()/);
     });
   });
 
@@ -515,7 +559,7 @@ describe('模块边界契约（Module Boundary Contract）', () => {
     it('core/ 不运行时导入 transport/', () => {
       const coreDir = path.join(SERVICES_DIR, 'core');
       if (!fs.existsSync(coreDir)) return;
-      
+
       const files = getAllTsFiles(coreDir);
       for (const filePath of files) {
         const { runtime } = getImports(filePath);
@@ -530,7 +574,7 @@ describe('模块边界契约（Module Boundary Contract）', () => {
     it('v2/ 不运行时导入 legacy/', () => {
       const v2Dir = path.join(SERVICES_DIR, 'v2');
       if (!fs.existsSync(v2Dir)) return;
-      
+
       const files = getAllTsFiles(v2Dir);
       for (const filePath of files) {
         const { runtime } = getImports(filePath);
@@ -564,7 +608,7 @@ describe('模块边界契约（Module Boundary Contract）', () => {
     it('protocol/types.ts 导出 BroadcastGameState', () => {
       const typesPath = path.join(SERVICES_DIR, 'protocol', 'types.ts');
       if (!fs.existsSync(typesPath)) return; // Phase 0 跳过
-      
+
       const content = fs.readFileSync(typesPath, 'utf-8');
       expect(content).toMatch(/export\s+interface\s+BroadcastGameState\b/);
     });
@@ -589,12 +633,12 @@ function getAllTsFiles(dir: string): string[] {
 
 ### 6.3 关键区分
 
-| 模式 | 含义 | 在 protocol/ 中允许？ |
-|------|------|---------------------|
-| `import type { X } from '...'` | 仅类型导入，运行时擦除 | ✅ 是 |
-| `import { X } from '...'` | 运行时导入 | ❌ 否 |
-| `export function X() {}` | 运行时导出 | ❌ 否 |
-| `export interface X {}` | 类型导出 | ✅ 是 |
+| 模式                           | 含义                   | 在 protocol/ 中允许？ |
+| ------------------------------ | ---------------------- | --------------------- |
+| `import type { X } from '...'` | 仅类型导入，运行时擦除 | ✅ 是                 |
+| `import { X } from '...'`      | 运行时导入             | ❌ 否                 |
+| `export function X() {}`       | 运行时导出             | ❌ 否                 |
+| `export interface X {}`        | 类型导出               | ✅ 是                 |
 
 ---
 
@@ -645,37 +689,37 @@ src/services/
 
 ### Phase 1A：协议提取 + 边界测试
 
-| 文件 | 动作 | 改动点 |
-|------|------|--------|
-| `src/services/protocol/types.ts` | **新建** | 定义 `BroadcastGameState`、`HostBroadcast`、`PlayerMessage`、`ProtocolAction`、`BroadcastPlayer`；import 路径以 repo 现有导出为准 |
-| `src/services/BroadcastService.ts` | **修改** | 1. 删除 `interface BroadcastPlayer`（约 96-103 行）<br>2. 删除 `interface BroadcastGameState`（约 106-167 行）<br>3. 删除 `type HostBroadcast`（约 37-63 行）<br>4. 删除 `type PlayerMessage`（约 66-85 行）<br>5. 添加 `import type { BroadcastGameState, HostBroadcast, PlayerMessage, BroadcastPlayer } from './protocol/types'` |
-| `src/services/__tests__/GameStateService.recovery.test.ts` | **修改** | `import type { BroadcastGameState } from '../BroadcastService'` → `import type { BroadcastGameState } from '../protocol/types'` |
-| `src/services/__tests__/boards/hostGameFactory.ts` | **修改** | `import type { PlayerMessage } from '../../BroadcastService'` → `import type { PlayerMessage } from '../../protocol/types'` |
-| `src/services/__tests__/boundary.contract.test.ts` | **新建** | 边界执法测试（见第 6.2 节） |
+| 文件                                                       | 动作     | 改动点                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/services/protocol/types.ts`                           | **新建** | 定义 `BroadcastGameState`、`HostBroadcast`、`PlayerMessage`、`ProtocolAction`、`BroadcastPlayer`；import 路径以 repo 现有导出为准                                                                                                                                                                                                   |
+| `src/services/BroadcastService.ts`                         | **修改** | 1. 删除 `interface BroadcastPlayer`（约 96-103 行）<br>2. 删除 `interface BroadcastGameState`（约 106-167 行）<br>3. 删除 `type HostBroadcast`（约 37-63 行）<br>4. 删除 `type PlayerMessage`（约 66-85 行）<br>5. 添加 `import type { BroadcastGameState, HostBroadcast, PlayerMessage, BroadcastPlayer } from './protocol/types'` |
+| `src/services/__tests__/GameStateService.recovery.test.ts` | **修改** | `import type { BroadcastGameState } from '../BroadcastService'` → `import type { BroadcastGameState } from '../protocol/types'`                                                                                                                                                                                                     |
+| `src/services/__tests__/boards/hostGameFactory.ts`         | **修改** | `import type { PlayerMessage } from '../../BroadcastService'` → `import type { PlayerMessage } from '../../protocol/types'`                                                                                                                                                                                                         |
+| `src/services/__tests__/boundary.contract.test.ts`         | **新建** | 边界执法测试（见第 6.2 节）                                                                                                                                                                                                                                                                                                         |
 
 ### Phase 1B：归一化层
 
-| 文件 | 动作 | 改动点 |
-|------|------|--------|
-| `src/services/core/state/normalize.ts` | **新建** | `normalizeState()`、`canonicalizeSeatKeyRecord()`、`deriveWolfVoteStatus()` |
-| `src/services/core/state/__tests__/normalize.contract.test.ts` | **新建** | 归一化测试（见第 9 节） |
-| `src/services/core/index.ts` | **新建** | 重导出 normalize 函数 |
+| 文件                                                           | 动作     | 改动点                                                                      |
+| -------------------------------------------------------------- | -------- | --------------------------------------------------------------------------- |
+| `src/services/core/state/normalize.ts`                         | **新建** | `normalizeState()`、`canonicalizeSeatKeyRecord()`、`deriveWolfVoteStatus()` |
+| `src/services/core/state/__tests__/normalize.contract.test.ts` | **新建** | 归一化测试（见第 9 节）                                                     |
+| `src/services/core/index.ts`                                   | **新建** | 重导出 normalize 函数                                                       |
 
 ### Phase 1C：Legacy 隔离
 
-| 文件 | 动作 | 改动点 |
-|------|------|--------|
-| `src/services/legacy/GameStateService.ts` | **移动** | 从 `src/services/GameStateService.ts` |
-| `src/services/GameStateService.ts` | **修改** | 改为重导出：`export * from './legacy/GameStateService'` |
+| 文件                                      | 动作     | 改动点                                                  |
+| ----------------------------------------- | -------- | ------------------------------------------------------- |
+| `src/services/legacy/GameStateService.ts` | **移动** | 从 `src/services/GameStateService.ts`                   |
+| `src/services/GameStateService.ts`        | **修改** | 改为重导出：`export * from './legacy/GameStateService'` |
 
 ### Phase 1 不做的事情
 
-| 事项 | 原因 |
-|------|------|
-| 移动 `night/resolvers/**` | Repo guardrails 明确禁止；大量测试依赖路径 |
-| 移动 `NightFlowController.ts` | Phase 1 不需要；可选 Phase 3+ |
-| 移动 `DeathCalculator.ts` | Phase 1 不需要；可选 Phase 3+ |
-| 修改 `players` 的 key 类型 | 现有代码/测试大量依赖；需单独 migration PR |
+| 事项                          | 原因                                       |
+| ----------------------------- | ------------------------------------------ |
+| 移动 `night/resolvers/**`     | Repo guardrails 明确禁止；大量测试依赖路径 |
+| 移动 `NightFlowController.ts` | Phase 1 不需要；可选 Phase 3+              |
+| 移动 `DeathCalculator.ts`     | Phase 1 不需要；可选 Phase 3+              |
+| 修改 `players` 的 key 类型    | 现有代码/测试大量依赖；需单独 migration PR |
 
 ---
 
@@ -683,22 +727,22 @@ src/services/
 
 ### 9.1 新增测试
 
-| 文件 | 测试用例 | 断言 |
-|------|---------|------|
-| `boundary.contract.test.ts` | `protocol/types.ts 无运行时导入` | Regex 扫描找不到 `import X from`（仅 `import type`） |
-| `boundary.contract.test.ts` | `protocol/types.ts 不导出函数` | 无 `export function` 或 `export const = () =>` |
-| `boundary.contract.test.ts` | `BroadcastService.ts 不导出 BroadcastGameState 接口` | Phase 1 完成后通过 |
-| `boundary.contract.test.ts` | `BroadcastService.ts 不导出 HostBroadcast 类型` | Phase 1 完成后通过 |
-| `boundary.contract.test.ts` | `BroadcastService.ts 不导出 PlayerMessage 类型` | Phase 1 完成后通过 |
-| `boundary.contract.test.ts` | `protocol/types.ts 导出 BroadcastGameState` | Regex 找到 `export interface BroadcastGameState` |
-| `boundary.contract.test.ts` | `v2/ 不运行时导入 legacy/` | 扫描所有 v2/ 文件 |
-| `boundary.contract.test.ts` | `core/ 不运行时导入 transport/` | 扫描所有 core/ 文件 |
-| `normalize.contract.test.ts` | `规范化 wolfVotes keys 为 string` | `{ 1: 3 }` → `{ '1': 3 }` |
-| `normalize.contract.test.ts` | `规范化 wolfVoteStatus keys 为 string` | `{ 1: true }` → `{ '1': true }` |
-| `normalize.contract.test.ts` | `wolfVotes 不存在时保留 legacy wolfVoteStatus` | 输入只有 `wolfVoteStatus`，输出保留 |
-| `normalize.contract.test.ts` | `wolfVotes 存在时派生 wolfVoteStatus` | 输入有 `wolfVotes`，输出有派生的 `wolfVoteStatus` |
-| `normalize.contract.test.ts` | `填充必填字段默认值` | 空输入 → 有效的 BroadcastGameState |
-| `normalize.contract.test.ts` | `players 不做 key 规范化` | Phase 1 保持 number key 不变 |
+| 文件                         | 测试用例                                             | 断言                                                 |
+| ---------------------------- | ---------------------------------------------------- | ---------------------------------------------------- |
+| `boundary.contract.test.ts`  | `protocol/types.ts 无运行时导入`                     | Regex 扫描找不到 `import X from`（仅 `import type`） |
+| `boundary.contract.test.ts`  | `protocol/types.ts 不导出函数`                       | 无 `export function` 或 `export const = () =>`       |
+| `boundary.contract.test.ts`  | `BroadcastService.ts 不导出 BroadcastGameState 接口` | Phase 1 完成后通过                                   |
+| `boundary.contract.test.ts`  | `BroadcastService.ts 不导出 HostBroadcast 类型`      | Phase 1 完成后通过                                   |
+| `boundary.contract.test.ts`  | `BroadcastService.ts 不导出 PlayerMessage 类型`      | Phase 1 完成后通过                                   |
+| `boundary.contract.test.ts`  | `protocol/types.ts 导出 BroadcastGameState`          | Regex 找到 `export interface BroadcastGameState`     |
+| `boundary.contract.test.ts`  | `v2/ 不运行时导入 legacy/`                           | 扫描所有 v2/ 文件                                    |
+| `boundary.contract.test.ts`  | `core/ 不运行时导入 transport/`                      | 扫描所有 core/ 文件                                  |
+| `normalize.contract.test.ts` | `规范化 wolfVotes keys 为 string`                    | `{ 1: 3 }` → `{ '1': 3 }`                            |
+| `normalize.contract.test.ts` | `规范化 wolfVoteStatus keys 为 string`               | `{ 1: true }` → `{ '1': true }`                      |
+| `normalize.contract.test.ts` | `wolfVotes 不存在时保留 legacy wolfVoteStatus`       | 输入只有 `wolfVoteStatus`，输出保留                  |
+| `normalize.contract.test.ts` | `wolfVotes 存在时派生 wolfVoteStatus`                | 输入有 `wolfVotes`，输出有派生的 `wolfVoteStatus`    |
+| `normalize.contract.test.ts` | `填充必填字段默认值`                                 | 空输入 → 有效的 BroadcastGameState                   |
+| `normalize.contract.test.ts` | `players 不做 key 规范化`                            | Phase 1 保持 number key 不变                         |
 
 ### 9.2 现有测试验证
 
@@ -751,55 +795,55 @@ npm test -- --testPathPattern="src/services/__tests__"
 
 ## 11. 风险登记表（Risk Registry）
 
-| # | 风险 | 可能性 | 影响 | 缓解措施 | 验证方式 |
-|---|------|--------|------|----------|----------|
-| 1 | 类型提取后导入路径断裂 | 中 | 高 | 重导出 shims + grep 验证所有导入 | `grep -r "from.*BroadcastService" --include="*.ts"` |
-| 2 | `Record<number, T>` 的 number key 残留在 fixtures | 中 | 中 | 归一化所有输入；在 normalize 中 canonicalize | `npm test -- normalize.contract` |
-| 3 | Legacy `wolfVoteStatus` 被覆盖 | 高 | 高 | 仅当 `wolfVotes` 存在时派生 | `npm test -- normalize.contract` |
-| 4 | `CurrentNightResults` 被作为运行时导入 | 低 | 高 | 边界测试扫描运行时导入 | `npm test -- boundary.contract` |
-| 5 | v2 意外导入 legacy | 低 | 严重 | ESLint 规则 + 边界测试 | `npm test -- boundary.contract` |
+| #   | 风险                                              | 可能性 | 影响 | 缓解措施                                     | 验证方式                                            |
+| --- | ------------------------------------------------- | ------ | ---- | -------------------------------------------- | --------------------------------------------------- |
+| 1   | 类型提取后导入路径断裂                            | 中     | 高   | 重导出 shims + grep 验证所有导入             | `grep -r "from.*BroadcastService" --include="*.ts"` |
+| 2   | `Record<number, T>` 的 number key 残留在 fixtures | 中     | 中   | 归一化所有输入；在 normalize 中 canonicalize | `npm test -- normalize.contract`                    |
+| 3   | Legacy `wolfVoteStatus` 被覆盖                    | 高     | 高   | 仅当 `wolfVotes` 存在时派生                  | `npm test -- normalize.contract`                    |
+| 4   | `CurrentNightResults` 被作为运行时导入            | 低     | 高   | 边界测试扫描运行时导入                       | `npm test -- boundary.contract`                     |
+| 5   | v2 意外导入 legacy                                | 低     | 严重 | ESLint 规则 + 边界测试                       | `npm test -- boundary.contract`                     |
 
 ---
 
 ## 12. 验收清单（Acceptance Checklist）
 
-| # | 标准 | 验证命令 |
-|---|------|----------|
-| 1 | `protocol/types.ts` 无运行时代码 | `npm test -- boundary.contract` |
-| 2 | `BroadcastService.ts` 不再导出协议类型 | `npm test -- boundary.contract` |
-| 3 | 新增 seat-map 字段 keys 是 string | `npm test -- normalize.contract` |
-| 4 | `players` key 类型保持 number（Phase 1） | 现有测试通过 |
-| 5 | Legacy `wolfVoteStatus` 无 `wolfVotes` 时保留 | `npm test -- normalize.contract` |
-| 6 | `CurrentNightResults` type-only 导入 | Grep + 边界测试 |
-| 7 | v2 不运行时导入 legacy | `npm test -- boundary.contract` |
-| 8 | core 不运行时导入 transport | `npm test -- boundary.contract` |
-| 9 | 主机每次广播递增 revision | 集成测试 |
-| 10 | 玩家丢弃旧 revision | 集成测试 |
-| 11 | 所有现有测试通过 | `npm test` |
+| #   | 标准                                          | 验证命令                         |
+| --- | --------------------------------------------- | -------------------------------- |
+| 1   | `protocol/types.ts` 无运行时代码              | `npm test -- boundary.contract`  |
+| 2   | `BroadcastService.ts` 不再导出协议类型        | `npm test -- boundary.contract`  |
+| 3   | 新增 seat-map 字段 keys 是 string             | `npm test -- normalize.contract` |
+| 4   | `players` key 类型保持 number（Phase 1）      | 现有测试通过                     |
+| 5   | Legacy `wolfVoteStatus` 无 `wolfVotes` 时保留 | `npm test -- normalize.contract` |
+| 6   | `CurrentNightResults` type-only 导入          | Grep + 边界测试                  |
+| 7   | v2 不运行时导入 legacy                        | `npm test -- boundary.contract`  |
+| 8   | core 不运行时导入 transport                   | `npm test -- boundary.contract`  |
+| 9   | 主机每次广播递增 revision                     | 集成测试                         |
+| 10  | 玩家丢弃旧 revision                           | 集成测试                         |
+| 11  | 所有现有测试通过                              | `npm test`                       |
 
 ---
 
 ## 13. 术语表（Glossary）
 
-| 英文术语 | 中文 | 说明 |
-|----------|------|------|
-| BroadcastGameState | 广播游戏状态 | 通过 Supabase Realtime 广播的完整游戏状态；主机和玩家持有相同形态 |
-| HostBroadcast | 主机广播消息 | 主机发送给所有玩家的消息类型联合 |
-| PlayerMessage | 玩家消息 | 玩家发送给主机的消息类型联合 |
-| ProtocolAction | 协议动作记录 | 用于线传输的动作记录，只包含线安全字段 |
-| normalizeState | 状态归一化 | 广播前处理状态：填充默认值、规范化 keys、派生字段 |
-| canonicalize | 键规范化 | 将 seat-map 的 key 统一转换为 string 类型 |
-| boundary test | 边界契约测试 | 验证模块间导入规则的自动化测试 |
-| single source of truth | 单一真相 | 某个概念/类型只在一处定义，其他地方引用 |
-| wire protocol | 线协议 | 通过网络传输的数据格式和消息定义 |
-| God Class | 上帝类 | 承担过多职责的大型类，违反单一职责原则 |
-| SRP (Single Responsibility Principle) | 单一职责原则 | 每个类/模块只应有一个职责 |
-| resolver | 解析器 | 验证和计算动作结果的纯函数 |
-| reducer | 归约器 | 纯函数：(state, action) => newState |
-| type-only import | 仅类型导入 | `import type { X }`，运行时被擦除 |
-| runtime import | 运行时导入 | `import { X }`，保留在运行时 |
-| drift | 漂移 | 多处定义导致不一致的问题 |
-| shim | 垫片 | 提供向后兼容的重导出文件 |
+| 英文术语                              | 中文         | 说明                                                              |
+| ------------------------------------- | ------------ | ----------------------------------------------------------------- |
+| BroadcastGameState                    | 广播游戏状态 | 通过 Supabase Realtime 广播的完整游戏状态；主机和玩家持有相同形态 |
+| HostBroadcast                         | 主机广播消息 | 主机发送给所有玩家的消息类型联合                                  |
+| PlayerMessage                         | 玩家消息     | 玩家发送给主机的消息类型联合                                      |
+| ProtocolAction                        | 协议动作记录 | 用于线传输的动作记录，只包含线安全字段                            |
+| normalizeState                        | 状态归一化   | 广播前处理状态：填充默认值、规范化 keys、派生字段                 |
+| canonicalize                          | 键规范化     | 将 seat-map 的 key 统一转换为 string 类型                         |
+| boundary test                         | 边界契约测试 | 验证模块间导入规则的自动化测试                                    |
+| single source of truth                | 单一真相     | 某个概念/类型只在一处定义，其他地方引用                           |
+| wire protocol                         | 线协议       | 通过网络传输的数据格式和消息定义                                  |
+| God Class                             | 上帝类       | 承担过多职责的大型类，违反单一职责原则                            |
+| SRP (Single Responsibility Principle) | 单一职责原则 | 每个类/模块只应有一个职责                                         |
+| resolver                              | 解析器       | 验证和计算动作结果的纯函数                                        |
+| reducer                               | 归约器       | 纯函数：(state, action) => newState                               |
+| type-only import                      | 仅类型导入   | `import type { X }`，运行时被擦除                                 |
+| runtime import                        | 运行时导入   | `import { X }`，保留在运行时                                      |
+| drift                                 | 漂移         | 多处定义导致不一致的问题                                          |
+| shim                                  | 垫片         | 提供向后兼容的重导出文件                                          |
 
 ---
 
@@ -837,8 +881,8 @@ const seatNumber: number = parseInt(key, 10);
 
 ### Phase 1 字段 Key 类型一览
 
-| 字段 | Phase 1 TS 类型 | 说明 |
-|------|----------------|------|
-| `players` | `Record<number, BroadcastPlayer \| null>` | 保持现状 |
-| `wolfVotes` | `Record<string, number>` | 新增，string key |
-| `wolfVoteStatus` | `Record<string, boolean>` | 修改为 string key |
+| 字段             | Phase 1 TS 类型                           | 说明              |
+| ---------------- | ----------------------------------------- | ----------------- |
+| `players`        | `Record<number, BroadcastPlayer \| null>` | 保持现状          |
+| `wolfVotes`      | `Record<string, number>`                  | 新增，string key  |
+| `wolfVoteStatus` | `Record<string, boolean>`                 | 修改为 string key |
