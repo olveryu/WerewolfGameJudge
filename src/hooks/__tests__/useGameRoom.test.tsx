@@ -259,7 +259,9 @@ describe('useGameRoom - ACK reason transparency', () => {
 
     it('should pass through game_in_progress reason from facade', async () => {
       const mockFacade = createMockFacade({
-        takeSeatWithAck: jest.fn().mockResolvedValue({ success: false, reason: 'game_in_progress' }),
+        takeSeatWithAck: jest
+          .fn()
+          .mockResolvedValue({ success: false, reason: 'game_in_progress' }),
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -318,7 +320,9 @@ describe('useGameRoom - ACK reason transparency', () => {
 
     it('should pass through game_in_progress reason from facade', async () => {
       const mockFacade = createMockFacade({
-        leaveSeatWithAck: jest.fn().mockResolvedValue({ success: false, reason: 'game_in_progress' }),
+        leaveSeatWithAck: jest
+          .fn()
+          .mockResolvedValue({ success: false, reason: 'game_in_progress' }),
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (

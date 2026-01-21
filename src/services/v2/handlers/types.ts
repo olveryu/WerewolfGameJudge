@@ -14,16 +14,18 @@ import type { GameIntent } from '../intents/types';
 /**
  * Handler 上下文
  * 提供 handler 执行所需的依赖
+ *
+ * 注意：state 和 myUid 可能为 null（Facade 不做校验，由 handler 负责）
  */
 export interface HandlerContext {
-  /** 当前状态（只读） */
-  readonly state: GameState;
+  /** 当前状态（只读，可能为 null） */
+  readonly state: GameState | null;
 
   /** 当前用户是否是主机 */
   readonly isHost: boolean;
 
-  /** 当前用户 UID */
-  readonly myUid: string;
+  /** 当前用户 UID（可能为 null） */
+  readonly myUid: string | null;
 
   /** 当前用户座位号 */
   readonly mySeat: number | null;

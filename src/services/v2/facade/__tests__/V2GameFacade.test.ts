@@ -11,6 +11,14 @@
 import { V2GameFacade } from '../V2GameFacade';
 import { BroadcastService } from '../../../BroadcastService';
 import type { PlayerMessage, HostBroadcast } from '../../../protocol/types';
+import {
+  REASON_TIMEOUT,
+  REASON_INVALID_SEAT,
+  REASON_SEAT_TAKEN,
+  REASON_GAME_IN_PROGRESS,
+  REASON_NO_STATE,
+  REASON_NOT_AUTHENTICATED,
+} from '../../protocol/reasonCodes';
 
 // Mock BroadcastService
 jest.mock('../../../BroadcastService', () => ({
@@ -589,6 +597,162 @@ describe('V2GameFacade', () => {
       expect(mockBroadcastService.leaveRoom).toHaveBeenCalled();
       expect(facade.getMyUid()).toBeNull();
       expect(facade.isHostPlayer()).toBe(false);
+    });
+  });
+
+  // =========================================================================
+  // Host-side reason source validation (all reasons from handler)
+  // =========================================================================
+  describe('Host: takeSeatWithAck reason comes from handler', () => {
+    beforeEach(async () => {
+      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      mockBroadcastService.broadcastAsHost.mockClear();
+    });
+
+    it('should return success with no reason on valid seat', async () => {
+      const result = await facade.takeSeatWithAck(0, 'Host Player');
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should return invalid_seat from handler when seat out of range', async () => {
+      const result = await facade.takeSeatWithAck(999, 'Host Player');
+      expect(result).toEqual({ success: false, reason: REASON_INVALID_SEAT });
+    });
+
+    it('should return seat_taken from handler when seat occupied by other', async () => {
+      // Get onPlayerMessage callback to simulate another player joining
+      const joinRoomCall = mockBroadcastService.joinRoom.mock.calls[0];
+      const callbacks = joinRoomCall[2];
+      const onPlayerMessage = callbacks.onPlayerMessage;
+
+      // Simulate player taking seat 0
+      const seatRequest: PlayerMessage = {
+        type: 'SEAT_ACTION_REQUEST',
+        requestId: 'req-123',
+        action: 'sit',
+        seat: 0,
+        uid: 'other-player',
+        displayName: 'Other Player',
+      };
+      onPlayerMessage(seatRequest, 'sender-id');
+      mockBroadcastService.broadcastAsHost.mockClear();
+
+      // Now Host tries to take seat 0
+      const result = await facade.takeSeatWithAck(0, 'Host Player');
+      expect(result).toEqual({ success: false, reason: REASON_SEAT_TAKEN });
+    });
+  });
+
+  describe('Host: leaveSeatWithAck reason comes from handler', () => {
+    beforeEach(async () => {
+      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      mockBroadcastService.broadcastAsHost.mockClear();
+    });
+
+    it('should return invalid_seat when not seated (seat -1)', async () => {
+      // Host not seated, leaveSeat will use -1
+      const result = await facade.leaveSeatWithAck();
+      expect(result).toEqual({ success: false, reason: REASON_INVALID_SEAT });
+    });
+
+    it('should succeed when leaving own seat', async () => {
+      await facade.takeSeatWithAck(0, 'Host Player');
+      mockBroadcastService.broadcastAsHost.mockClear();
+
+      const result = await facade.leaveSeatWithAck();
+      expect(result).toEqual({ success: true });
+    });
+  });
+
+  // =========================================================================
+  // Transport-level reason validation (timeout/cancelled use constants)
+  // =========================================================================
+  describe('Player: transport-level reasons use constants', () => {
+    let onHostBroadcast: (msg: HostBroadcast) => void;
+
+    beforeEach(async () => {
+      await facade.joinAsPlayer('ABCD', 'player-uid');
+      mockBroadcastService.sendToHost.mockClear();
+
+      // Capture onHostBroadcast callback
+      const joinRoomCall = mockBroadcastService.joinRoom.mock.calls[0];
+      const callbacks = joinRoomCall[2];
+      onHostBroadcast = callbacks.onHostBroadcast;
+    });
+
+    it('should return timeout reason using constant when ACK times out', async () => {
+      // Don't send any ACK, let it timeout
+      jest.useFakeTimers();
+
+      const resultPromise = facade.takeSeatWithAck(1, 'Player One');
+
+      // Fast-forward past timeout
+      jest.advanceTimersByTime(6000);
+
+      const result = await resultPromise;
+      expect(result).toEqual({ success: false, reason: REASON_TIMEOUT });
+
+      jest.useRealTimers();
+    });
+
+    it('should transparently pass handler reason from Host ACK (no_state)', async () => {
+      mockBroadcastService.sendToHost.mockImplementation(async (msg: PlayerMessage) => {
+        if (msg.type === 'SEAT_ACTION_REQUEST') {
+          setTimeout(() => {
+            onHostBroadcast({
+              type: 'SEAT_ACTION_ACK',
+              requestId: msg.requestId,
+              toUid: 'player-uid',
+              success: false,
+              seat: 1,
+              reason: REASON_NO_STATE,
+            });
+          }, 10);
+        }
+      });
+
+      const result = await facade.takeSeatWithAck(1, 'Player One');
+      expect(result).toEqual({ success: false, reason: REASON_NO_STATE });
+    });
+
+    it('should transparently pass handler reason from Host ACK (not_authenticated)', async () => {
+      mockBroadcastService.sendToHost.mockImplementation(async (msg: PlayerMessage) => {
+        if (msg.type === 'SEAT_ACTION_REQUEST') {
+          setTimeout(() => {
+            onHostBroadcast({
+              type: 'SEAT_ACTION_ACK',
+              requestId: msg.requestId,
+              toUid: 'player-uid',
+              success: false,
+              seat: 1,
+              reason: REASON_NOT_AUTHENTICATED,
+            });
+          }, 10);
+        }
+      });
+
+      const result = await facade.takeSeatWithAck(1, 'Player One');
+      expect(result).toEqual({ success: false, reason: REASON_NOT_AUTHENTICATED });
+    });
+
+    it('should transparently pass handler reason from Host ACK (game_in_progress)', async () => {
+      mockBroadcastService.sendToHost.mockImplementation(async (msg: PlayerMessage) => {
+        if (msg.type === 'SEAT_ACTION_REQUEST') {
+          setTimeout(() => {
+            onHostBroadcast({
+              type: 'SEAT_ACTION_ACK',
+              requestId: msg.requestId,
+              toUid: 'player-uid',
+              success: false,
+              seat: 1,
+              reason: REASON_GAME_IN_PROGRESS,
+            });
+          }, 10);
+        }
+      });
+
+      const result = await facade.takeSeatWithAck(1, 'Player One');
+      expect(result).toEqual({ success: false, reason: REASON_GAME_IN_PROGRESS });
     });
   });
 });

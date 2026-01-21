@@ -22,6 +22,7 @@ import type { JoinSeatIntent, LeaveSeatIntent } from '../intents/types';
 import type { HandlerContext } from '../handlers/types';
 import type { StateAction } from '../reducer/types';
 import { v2FacadeLog } from '../../../utils/logger';
+import { REASON_TIMEOUT, REASON_CANCELLED, REASON_INVALID_ACTION } from '../protocol/reasonCodes';
 
 export class V2GameFacade implements IGameFacade {
   private static _instance: V2GameFacade | null = null;
@@ -200,14 +201,14 @@ export class V2GameFacade implements IGameFacade {
 
   /**
    * 入座并返回完整结果（包含 reason）
+   *
+   * Facade 只做编排，不校验 myUid 有效性，全部委托给 handler
    */
   async takeSeatWithAck(
     seatNumber: number,
     displayName?: string,
     avatarUrl?: string,
   ): Promise<{ success: boolean; reason?: string }> {
-    if (!this.myUid) return { success: false, reason: 'not_authenticated' };
-
     if (this.isHost) {
       // Host: 走 handler → reducer 路径
       return this.hostProcessJoinSeat(seatNumber, this.myUid, displayName, avatarUrl);
@@ -227,17 +228,21 @@ export class V2GameFacade implements IGameFacade {
 
   /**
    * 离座并返回完整结果（包含 reason）
+   *
+   * Facade 只做编排，不校验 myUid/mySeat 有效性，全部委托给 handler
+   * 当 mySeat 为 null 时，使用 -1 让 handler 返回 invalid_seat
    */
   async leaveSeatWithAck(): Promise<{ success: boolean; reason?: string }> {
     const mySeat = this.getMySeatNumber();
-    if (!this.myUid || mySeat === null) return { success: false, reason: 'not_seated' };
 
     if (this.isHost) {
-      return this.hostProcessLeaveSeat(mySeat, this.myUid);
+      // mySeat 为 null 时用 -1，handler 会返回 invalid_seat
+      return this.hostProcessLeaveSeat(mySeat ?? -1, this.myUid);
     }
 
     // Player: 发送 SEAT_ACTION_REQUEST (standup)，等待 ACK
-    return this.playerSendSeatActionWithAck('standup', mySeat);
+    // mySeat 为 null 时用 -1，Host handler 会返回 invalid_seat
+    return this.playerSendSeatActionWithAck('standup', mySeat ?? -1);
   }
 
   /**
@@ -250,8 +255,6 @@ export class V2GameFacade implements IGameFacade {
     displayName?: string,
     avatarUrl?: string,
   ): Promise<{ success: boolean; reason?: string }> {
-    if (!this.myUid) return { success: false, reason: 'not_authenticated' };
-
     // 如果有 pending 请求，先取消
     if (this.pendingSeatAction) {
       clearTimeout(this.pendingSeatAction.timeoutHandle);
@@ -268,7 +271,7 @@ export class V2GameFacade implements IGameFacade {
         if (this.pendingSeatAction?.requestId === requestId) {
           v2FacadeLog.warn('Seat action ACK timeout:', requestId);
           this.pendingSeatAction = null;
-          resolve({ success: false, reason: 'timeout' });
+          resolve({ success: false, reason: REASON_TIMEOUT });
         }
       }, V2GameFacade.ACK_TIMEOUT_MS);
 
@@ -277,19 +280,19 @@ export class V2GameFacade implements IGameFacade {
         resolve,
         reject: (err) => {
           v2FacadeLog.warn('Pending request rejected:', err);
-          resolve({ success: false, reason: 'cancelled' });
+          resolve({ success: false, reason: REASON_CANCELLED });
         },
         timeoutHandle,
       };
     });
 
-    // 发送请求
+    // 发送请求（uid 可能为空字符串，Host handler 会拒绝）
     const msg: PlayerMessage = {
       type: 'SEAT_ACTION_REQUEST',
       requestId,
       action,
       seat,
-      uid: this.myUid,
+      uid: this.myUid ?? '',
       displayName,
       avatarUrl,
     };
@@ -338,7 +341,7 @@ export class V2GameFacade implements IGameFacade {
     } else if (action === 'standup') {
       result = this.hostProcessLeaveSeat(seat, uid);
     } else {
-      result = { success: false, reason: 'invalid_action' };
+      result = { success: false, reason: REASON_INVALID_ACTION };
     }
 
     // 发送 ACK 给请求者（reason 来自 handler，不在 Facade 写规则）
@@ -372,50 +375,54 @@ export class V2GameFacade implements IGameFacade {
 
   /**
    * Host 处理入座
-   * 不在此写校验规则，全部委托给 handleJoinSeat
+  /**
+   * Host 处理入座
+   *
+   * Facade 不做任何校验，全部委托给 handler
+   * @param requestUid - 可能为 null，handler 会校验
    * @returns { success, reason } - reason 来自 handler
    */
   private hostProcessJoinSeat(
     seat: number,
-    requestUid: string,
+    requestUid: string | null,
     displayName?: string,
     avatarUrl?: string,
   ): { success: boolean; reason?: string } {
     v2FacadeLog.debug('hostProcessJoinSeat', { seat, requestUid });
 
     const state = this.store.getState();
-    if (!state || !this.myUid) return { success: false, reason: 'no_state' };
 
-    // 构造 intent（请求者 uid 在 payload，不在 context）
+    // 构造 intent（uid 可能为空字符串，handler 会拒绝）
     const intent: JoinSeatIntent = {
       type: 'JOIN_SEAT',
       payload: {
         seat,
-        uid: requestUid,
+        uid: requestUid ?? '',
         displayName: displayName ?? '',
         avatarUrl,
       },
     };
 
-    // 构造 context（myUid = Host 的 uid）
+    // 构造 context（state 可能为 null，handler 会校验）
     const context: HandlerContext = {
       state,
       isHost: true,
-      myUid: this.myUid, // Host 自己的 uid
+      myUid: this.myUid,
       mySeat: this.getMySeatNumber(),
     };
 
-    // 调用 handler（校验在这里）
+    // 调用 handler（所有校验在这里）
     const result = handleJoinSeat(intent, context);
 
     if (!result.success) {
-      // Phase 0 不做 ACK，只广播当前 state
       void this.broadcastCurrentState();
       return { success: false, reason: result.reason };
     }
 
-    // 应用 actions 到 reducer
-    this.applyActions(state, result.actions);
+    // 应用 actions 到 reducer（此时 state 必不为 null）
+    if (state) {
+      this.applyActions(state, result.actions);
+    }
 
     // 执行副作用
     if (result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE')) {
@@ -427,20 +434,24 @@ export class V2GameFacade implements IGameFacade {
 
   /**
    * Host 处理离座
-   * 不在此写校验规则，全部委托给 handleLeaveSeat
+   *
+   * Facade 不做任何校验，全部委托给 handler
+   * @param requestUid - 可能为 null，handler 会校验
    * @returns { success, reason } - reason 来自 handler
    */
-  private hostProcessLeaveSeat(seat: number, requestUid: string): { success: boolean; reason?: string } {
+  private hostProcessLeaveSeat(
+    seat: number,
+    requestUid: string | null,
+  ): { success: boolean; reason?: string } {
     v2FacadeLog.debug('hostProcessLeaveSeat', { seat, requestUid });
 
     const state = this.store.getState();
-    if (!state || !this.myUid) return { success: false, reason: 'no_state' };
 
     const intent: LeaveSeatIntent = {
       type: 'LEAVE_SEAT',
       payload: {
         seat,
-        uid: requestUid,
+        uid: requestUid ?? '',
       },
     };
 
@@ -458,7 +469,10 @@ export class V2GameFacade implements IGameFacade {
       return { success: false, reason: result.reason };
     }
 
-    this.applyActions(state, result.actions);
+    // 应用 actions 到 reducer（此时 state 必不为 null）
+    if (state) {
+      this.applyActions(state, result.actions);
+    }
 
     if (result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE')) {
       void this.broadcastCurrentState();

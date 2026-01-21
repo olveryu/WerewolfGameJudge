@@ -6,6 +6,15 @@ import { handleJoinSeat, handleLeaveSeat } from '../seatHandler';
 import type { HandlerContext } from '../types';
 import type { JoinSeatIntent, LeaveSeatIntent } from '../../intents/types';
 import type { GameState } from '../../store/types';
+import {
+  REASON_NO_STATE,
+  REASON_NOT_AUTHENTICATED,
+  REASON_INVALID_SEAT,
+  REASON_SEAT_TAKEN,
+  REASON_SEAT_EMPTY,
+  REASON_NOT_YOUR_SEAT,
+  REASON_GAME_IN_PROGRESS,
+} from '../../protocol/reasonCodes';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
@@ -20,7 +29,10 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
   };
 }
 
-function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
+function createContext(
+  state: GameState | null,
+  overrides?: Partial<HandlerContext>,
+): HandlerContext {
   return {
     state,
     isHost: true,
@@ -71,7 +83,7 @@ describe('handleJoinSeat', () => {
     const result = handleJoinSeat(intent, context);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('seat_taken');
+    expect(result.reason).toBe(REASON_SEAT_TAKEN);
   });
 
   it('should fail when seat does not exist', () => {
@@ -89,7 +101,7 @@ describe('handleJoinSeat', () => {
     const result = handleJoinSeat(intent, context);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_seat');
+    expect(result.reason).toBe(REASON_INVALID_SEAT);
   });
 
   it('should fail when game is in progress', () => {
@@ -107,7 +119,42 @@ describe('handleJoinSeat', () => {
     const result = handleJoinSeat(intent, context);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('game_in_progress');
+    expect(result.reason).toBe(REASON_GAME_IN_PROGRESS);
+  });
+
+  it('should fail when state is null (no_state)', () => {
+    const context = createContext(null);
+    const intent: JoinSeatIntent = {
+      type: 'JOIN_SEAT',
+      payload: {
+        seat: 0,
+        uid: 'player-1',
+        displayName: 'Alice',
+      },
+    };
+
+    const result = handleJoinSeat(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe(REASON_NO_STATE);
+  });
+
+  it('should fail when uid is empty (not_authenticated)', () => {
+    const state = createMinimalState();
+    const context = createContext(state);
+    const intent: JoinSeatIntent = {
+      type: 'JOIN_SEAT',
+      payload: {
+        seat: 0,
+        uid: '', // empty uid
+        displayName: 'Alice',
+      },
+    };
+
+    const result = handleJoinSeat(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe(REASON_NOT_AUTHENTICATED);
   });
 
   it('should include BROADCAST_STATE and SAVE_STATE side effects', () => {
@@ -233,7 +280,7 @@ describe('handleLeaveSeat', () => {
     const result = handleLeaveSeat(intent, context);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('seat_empty');
+    expect(result.reason).toBe(REASON_SEAT_EMPTY);
   });
 
   it('should fail when trying to leave another player seat', () => {
@@ -256,7 +303,7 @@ describe('handleLeaveSeat', () => {
     const result = handleLeaveSeat(intent, context);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('not_your_seat');
+    expect(result.reason).toBe(REASON_NOT_YOUR_SEAT);
   });
 
   it('should fail when game is ongoing', () => {
@@ -280,6 +327,45 @@ describe('handleLeaveSeat', () => {
     const result = handleLeaveSeat(intent, context);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('game_in_progress');
+    expect(result.reason).toBe(REASON_GAME_IN_PROGRESS);
+  });
+
+  it('should fail when state is null (no_state)', () => {
+    const context = createContext(null);
+    const intent: LeaveSeatIntent = {
+      type: 'LEAVE_SEAT',
+      payload: {
+        seat: 0,
+        uid: 'player-1',
+      },
+    };
+
+    const result = handleLeaveSeat(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe(REASON_NO_STATE);
+  });
+
+  it('should fail when uid is empty (not_authenticated)', () => {
+    const state = createMinimalState({
+      players: {
+        0: { uid: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
+        1: null,
+        2: null,
+      },
+    });
+    const context = createContext(state);
+    const intent: LeaveSeatIntent = {
+      type: 'LEAVE_SEAT',
+      payload: {
+        seat: 0,
+        uid: '', // empty uid
+      },
+    };
+
+    const result = handleLeaveSeat(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe(REASON_NOT_AUTHENTICATED);
   });
 });
