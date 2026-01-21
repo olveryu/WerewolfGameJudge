@@ -71,6 +71,11 @@ function buildActionInput(
   };
 }
 
+function getActionTimestamp(extra?: Record<string, unknown>): number {
+  const maybe = extra?.timestamp;
+  return typeof maybe === 'number' ? maybe : Date.now();
+}
+
 /**
  * 根据角色获取对应的 SchemaId
  */
@@ -189,7 +194,14 @@ export function handleSubmitAction(
   }
 
   // 构建成功结果
-  return buildSuccessResult(schemaId, seat, target, role, result);
+  return buildSuccessResult(
+    schemaId,
+    seat,
+    target,
+    role,
+    result,
+    extra as Record<string, unknown> | undefined,
+  );
 }
 
 /**
@@ -227,12 +239,13 @@ function buildSuccessResult(
   target: number | null,
   role: RoleId,
   result: ResolverResult,
+  extra?: Record<string, unknown>,
 ): HandlerResult {
   const protocolAction: ProtocolAction = {
     schemaId,
     actorSeat: seat,
     targetSeat: target ?? undefined,
-    timestamp: Date.now(),
+    timestamp: getActionTimestamp(extra),
   };
 
   const recordAction: RecordActionAction = {
@@ -242,12 +255,19 @@ function buildSuccessResult(
 
   const actions: (RecordActionAction | ApplyResolverResultAction)[] = [recordAction];
 
-  if (result.updates || result.result) {
-    const applyAction: ApplyResolverResultAction = {
+  // Only attach reveal payload when we have a concrete target.
+  // (Avoid fabricating seat=0 when target is null.)
+  if (target !== null && (result.updates || result.result)) {
+    actions.push({
       type: 'APPLY_RESOLVER_RESULT',
-      payload: buildRevealPayload(result, role, target ?? 0),
-    };
-    actions.push(applyAction);
+      payload: buildRevealPayload(result, role, target),
+    });
+  } else if (result.updates) {
+    // Updates can exist without a target (e.g. skip/blocked); keep them.
+    actions.push({
+      type: 'APPLY_RESOLVER_RESULT',
+      payload: { updates: result.updates },
+    });
   }
 
   return {
