@@ -460,12 +460,12 @@ describe('GameStateService NightFlow Contract Tests', () => {
       const indexBefore = stateBefore.currentActionerIndex;
       expect(indexBefore).toBe(0);
 
-      // When: we directly call advanceToNextAction (simulating duplicate/stale callback)
+      // When: we directly call NightFlowService.advanceToNextAction (simulating duplicate/stale callback)
       // WITHOUT first calling ActionSubmitted - phase is still WaitingForAction
       mockNightFlowLogDebug.mockClear();
 
-      // Access private method via any
-      await (service as any).advanceToNextAction();
+      // Access NightFlowService via test hook
+      await service.__testGetNightFlowService().advanceToNextAction();
 
       // Then: currentActionerIndex should NOT have changed (idempotent)
       const stateAfter = service.getState()!;
@@ -488,10 +488,10 @@ describe('GameStateService NightFlow Contract Tests', () => {
       await jest.advanceTimersByTimeAsync(5000);
       await startPromise;
 
-      // When: we directly call advanceToNextAction without ActionSubmitted
+      // When: we directly call NightFlowService.advanceToNextAction without ActionSubmitted
       mockNightFlowLogDebug.mockClear();
 
-      await (service as any).advanceToNextAction();
+      await service.__testGetNightFlowService().advanceToNextAction();
 
       // Then: debug log should have been called (idempotent no-op) - now in NightFlowService
       // and no error should be thrown
@@ -512,11 +512,11 @@ describe('GameStateService NightFlow Contract Tests', () => {
       // Confirm we're in WaitingForAction phase (not NightEndAudio)
       expect(service.getState()!.currentActionerIndex).toBe(0);
 
-      // When: we directly call endNight (simulating duplicate/stale callback)
+      // When: we directly call HostCoordinator.endNight (simulating duplicate/stale callback)
       mockHostLogDebug.mockClear();
 
-      // This should NOT throw
-      await expect((service as any).endNight()).resolves.not.toThrow();
+      // This should NOT throw - access via test hook
+      await expect(service.__testGetHostCoordinator().endNight()).resolves.not.toThrow();
 
       // Then: debug log should have been called (idempotent no-op)
       expect(mockHostLogDebug).toHaveBeenCalled();
@@ -539,25 +539,23 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(statusBefore).toBe(GameStatus.ongoing);
       expect(lastNightDeathsBefore).toEqual([]);
 
-      // When: we directly call endNight in wrong phase
+      // When: we directly call HostCoordinator.endNight in wrong phase
       mockHostLogDebug.mockClear();
 
-      await (service as any).endNight();
+      await service.__testGetHostCoordinator().endNight();
 
       // Then: status should NOT have changed (strict no-op)
       const stateAfter = service.getState()!;
       expect(stateAfter.status).toBe(statusBefore);
       expect(stateAfter.lastNightDeaths).toEqual(lastNightDeathsBefore);
 
-      // And: debug log was called with phase info
+      // And: debug log was called with phase info (HostCoordinator log format)
       expect(mockHostLogDebug).toHaveBeenCalledWith(
-        expect.stringContaining('endNight() ignored (strict no-op)'),
-        expect.anything(),
+        expect.stringContaining('endNight() ignored'),
         expect.anything(),
       );
     });
   });
-
   describe('C10: ActionSubmitted is required before RoleEndAudioDone', () => {
     it('should successfully advance when ActionSubmitted is dispatched first', async () => {
       // Given: game is ongoing, witch's turn (first in NightPlan)
@@ -649,9 +647,10 @@ describe('GameStateService NightFlow Contract Tests', () => {
       // Confirm status is ongoing
       expect(service.getState()!.status).toBe(GameStatus.ongoing);
 
-      // When/Then: advanceToNextAction should throw
-      await expect((service as any).advanceToNextAction()).rejects.toThrow(
-        'advanceToNextAction: nightFlow is null - strict invariant violation',
+      // When/Then: HostCoordinator.advanceToNextAction (private) should throw
+      const hostCoordinator = service.__testGetHostCoordinator();
+      await expect((hostCoordinator as any).advanceToNextAction()).rejects.toThrow(
+        'advanceToNextAction: nightFlow is null',
       );
     });
   });
@@ -672,9 +671,9 @@ describe('GameStateService NightFlow Contract Tests', () => {
       // Force nightFlow to null via nightFlowService.reset()
       service.__testGetNightFlowService().reset();
 
-      // When/Then: endNight should throw
-      await expect((service as any).endNight()).rejects.toThrow(
-        'endNight: nightFlow is null - strict invariant violation',
+      // When/Then: HostCoordinator.endNight should throw
+      await expect(service.__testGetHostCoordinator().endNight()).rejects.toThrow(
+        'endNight: nightFlow is null',
       );
 
       // And: status should NOT have changed
@@ -726,8 +725,9 @@ describe('GameStateService NightFlow Contract Tests', () => {
       // nightFlow should be null before game starts (accessed via nightFlowService)
       expect(service.__testGetNightFlowService().getNightFlow()).toBeNull();
 
-      // When/Then: advanceToNextAction should NOT throw (just return silently)
-      await expect((service as any).advanceToNextAction()).resolves.not.toThrow();
+      // When/Then: HostCoordinator.advanceToNextAction (private) should NOT throw (just return silently)
+      const hostCoordinator = service.__testGetHostCoordinator();
+      await expect((hostCoordinator as any).advanceToNextAction()).resolves.not.toThrow();
     });
 
     it('endNight should not throw when status is ready and nightFlow is null', async () => {
@@ -738,8 +738,8 @@ describe('GameStateService NightFlow Contract Tests', () => {
       expect(service.getState()!.status).toBe(GameStatus.ready);
       expect(service.__testGetNightFlowService().getNightFlow()).toBeNull();
 
-      // When/Then: endNight should NOT throw
-      await expect((service as any).endNight()).resolves.not.toThrow();
+      // When/Then: HostCoordinator.endNight should NOT throw
+      await expect(service.__testGetHostCoordinator().endNight()).resolves.not.toThrow();
     });
 
     it('handlePlayerAction should not throw when status is ready (early return before null check)', async () => {

@@ -364,12 +364,13 @@ describe('GameStateService NightFlowController Integration', () => {
       // Force nightFlow to null via test hook (simulating a bug)
       service.__testGetNightFlowService().reset();
 
-      // When: Call advanceToNextAction (private method - still needs as any)
-      const advanceToNextAction = (service as any).advanceToNextAction.bind(service);
+      // When: Call HostCoordinator.advanceToNextAction (private method - still needs as any)
+      const hostCoordinator = service.__testGetHostCoordinator();
+      const advanceToNextAction = (hostCoordinator as any).advanceToNextAction.bind(hostCoordinator);
 
       // Then: Should throw because ongoing + null nightFlow is a strict invariant violation
       await expect(advanceToNextAction()).rejects.toThrow(
-        'advanceToNextAction: nightFlow is null - strict invariant violation',
+        'advanceToNextAction: nightFlow is null',
       );
     });
 
@@ -387,8 +388,9 @@ describe('GameStateService NightFlowController Integration', () => {
       // Force nightFlow to null via test hook (simulating a bug)
       service.__testGetNightFlowService().reset();
 
-      // When: Call advanceToNextAction - it should throw, so index stays the same (private method - still needs as any)
-      const advanceToNextAction = (service as any).advanceToNextAction.bind(service);
+      // When: Call HostCoordinator.advanceToNextAction - it should throw, so index stays the same
+      const hostCoordinator = service.__testGetHostCoordinator();
+      const advanceToNextAction = (hostCoordinator as any).advanceToNextAction.bind(hostCoordinator);
       await expect(advanceToNextAction()).rejects.toThrow();
 
       // Then: currentActionerIndex should NOT have changed
