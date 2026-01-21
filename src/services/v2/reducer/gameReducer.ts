@@ -174,7 +174,7 @@ function handleRecordAction(state: GameState, action: RecordActionAction): GameS
 function handleApplyResolverResult(state: GameState, action: ApplyResolverResultAction): GameState {
   const { updates, seerReveal, psychicReveal, gargoyleReveal, wolfRobotReveal } = action.payload;
 
-  let newState = { ...state };
+  const newState = { ...state };
 
   if (updates) {
     newState.currentNightResults = {
