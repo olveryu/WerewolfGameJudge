@@ -179,12 +179,6 @@ export class V2GameFacade implements IGameFacade {
   // Phase 1: Player 等待 ACK（完整实现）
   // =========================================================================
 
-  /** Seat action result type */
-  private static readonly SEAT_ACTION_RESULT_TYPE = {
-    success: true as const,
-    reason: undefined as string | undefined,
-  };
-
   /** Pending seat action request (Player: waiting for ACK) */
   private pendingSeatAction: {
     requestId: string;
