@@ -200,12 +200,35 @@ describe('V2GameFacade', () => {
   });
 
   describe('Player: takeSeat', () => {
+    let onHostBroadcast: (msg: HostBroadcast) => void;
+
     beforeEach(async () => {
       await facade.joinAsPlayer('ABCD', 'player-uid');
       mockBroadcastService.sendToHost.mockClear();
+
+      // Capture onHostBroadcast callback
+      const joinRoomCall = mockBroadcastService.joinRoom.mock.calls[0];
+      const callbacks = joinRoomCall[2];
+      onHostBroadcast = callbacks.onHostBroadcast;
     });
 
-    it('should send SEAT_ACTION_REQUEST and return true (request sent)', async () => {
+    it('should send SEAT_ACTION_REQUEST and resolve with ACK result', async () => {
+      // Simulate Host sending ACK after request is sent
+      mockBroadcastService.sendToHost.mockImplementation(async (msg: PlayerMessage) => {
+        if (msg.type === 'SEAT_ACTION_REQUEST') {
+          // Simulate async ACK from Host
+          setTimeout(() => {
+            onHostBroadcast({
+              type: 'SEAT_ACTION_ACK',
+              requestId: msg.requestId,
+              toUid: 'player-uid',
+              success: true,
+              seat: 1,
+            });
+          }, 10);
+        }
+      });
+
       const result = await facade.takeSeat(1, 'Player One', 'avatar.png');
 
       expect(result).toBe(true);
@@ -222,7 +245,43 @@ describe('V2GameFacade', () => {
       );
     });
 
+    it('should resolve with false when ACK indicates failure', async () => {
+      mockBroadcastService.sendToHost.mockImplementation(async (msg: PlayerMessage) => {
+        if (msg.type === 'SEAT_ACTION_REQUEST') {
+          setTimeout(() => {
+            onHostBroadcast({
+              type: 'SEAT_ACTION_ACK',
+              requestId: msg.requestId,
+              toUid: 'player-uid',
+              success: false,
+              seat: 1,
+              reason: '座位已被占用',
+            });
+          }, 10);
+        }
+      });
+
+      const result = await facade.takeSeat(1, 'Player One');
+
+      expect(result).toBe(false);
+    });
+
     it('should not update mySeat until STATE_UPDATE received', async () => {
+      // Simulate successful ACK
+      mockBroadcastService.sendToHost.mockImplementation(async (msg: PlayerMessage) => {
+        if (msg.type === 'SEAT_ACTION_REQUEST') {
+          setTimeout(() => {
+            onHostBroadcast({
+              type: 'SEAT_ACTION_ACK',
+              requestId: msg.requestId,
+              toUid: 'player-uid',
+              success: true,
+              seat: 1,
+            });
+          }, 10);
+        }
+      });
+
       await facade.takeSeat(1, 'Player One');
 
       // mySeat should still be null (no optimistic update)

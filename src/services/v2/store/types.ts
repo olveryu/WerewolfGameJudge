@@ -14,8 +14,9 @@ export type GameState = BroadcastGameState;
 
 /**
  * 状态订阅者回调
+ * state 可能为 null（reset 后）
  */
-export type StateListener = (state: GameState, revision: number) => void;
+export type StateListener = (state: GameState | null, revision: number) => void;
 
 /**
  * 状态存储接口
@@ -43,4 +44,13 @@ export interface IHostGameStore extends IGameStore {
 
   /** 增量更新状态（仅主机） */
   updateState(updater: (state: GameState) => GameState): void;
+
+  /** 初始化状态 */
+  initialize(state: GameState): void;
+
+  /** 重置 store（只清除 state，保留 listeners） */
+  reset(): void;
+
+  /** 完全销毁 store（包括 listeners，仅用于测试） */
+  destroy(): void;
 }

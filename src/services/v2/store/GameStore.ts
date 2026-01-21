@@ -11,6 +11,9 @@
 
 import type { GameState, StateListener, IHostGameStore } from './types';
 import { normalizeState } from '../../core/state/normalize';
+import { log } from '../../../utils/logger';
+
+const gameStoreLog = log.extend('GameStore');
 
 export class GameStore implements IHostGameStore {
   private state: GameState | null = null;
@@ -90,9 +93,28 @@ export class GameStore implements IHostGameStore {
   }
 
   /**
-   * 重置 store
+   * 重置 store（只清除 state，保留 listeners）
+   * 用于 leaveRoom 等场景
    */
   reset(): void {
+    this.state = null;
+    this.revision = 0;
+    // 注意：不清除 listeners，因为 React useEffect 的 listener 生命周期独立于 store
+    // 通知 listeners state 已变为 null
+    for (const listener of this.listeners) {
+      try {
+        listener(null, 0);
+      } catch (error) {
+        gameStoreLog.error('Listener error in reset', { error });
+      }
+    }
+  }
+
+  /**
+   * 完全销毁 store（包括 listeners）
+   * 仅用于测试隔离
+   */
+  destroy(): void {
     this.state = null;
     this.revision = 0;
     this.listeners.clear();
@@ -109,7 +131,7 @@ export class GameStore implements IHostGameStore {
         listener(this.state, this.revision);
       } catch (error) {
         // 防止单个 listener 错误影响其他订阅者
-        console.error('[GameStore] Listener error:', error);
+        gameStoreLog.error('Listener error', { error });
       }
     }
   }

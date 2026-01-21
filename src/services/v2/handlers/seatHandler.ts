@@ -10,6 +10,7 @@ import type { PlayerJoinAction, PlayerLeaveAction } from '../reducer/types';
 
 /**
  * 处理加入座位
+ * 支持换座：如果玩家已有座位，会先清空旧座位
  */
 export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext): HandlerResult {
   const { seat, uid, displayName, avatarUrl } = intent.payload;
@@ -24,9 +25,9 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
     };
   }
 
-  // 验证：座位是否已被占用
+  // 验证：座位是否已被占用（被其他玩家）
   const existingPlayer = state.players[seat];
-  if (existingPlayer !== null) {
+  if (existingPlayer !== null && existingPlayer.uid !== uid) {
     return {
       success: false,
       reason: 'seat_taken',
@@ -43,7 +44,24 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
     };
   }
 
-  const action: PlayerJoinAction = {
+  const actions: (PlayerJoinAction | PlayerLeaveAction)[] = [];
+
+  // 检查玩家是否已在其他座位（换座场景）
+  for (const [seatKey, player] of Object.entries(state.players)) {
+    const seatNum = Number(seatKey);
+    if (player?.uid === uid && seatNum !== seat) {
+      // 先离开旧座位
+      const leaveAction: PlayerLeaveAction = {
+        type: 'PLAYER_LEAVE',
+        payload: { seat: seatNum },
+      };
+      actions.push(leaveAction);
+      break; // 只可能有一个旧座位
+    }
+  }
+
+  // 加入新座位
+  const joinAction: PlayerJoinAction = {
     type: 'PLAYER_JOIN',
     payload: {
       seat,
@@ -57,10 +75,11 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
       },
     },
   };
+  actions.push(joinAction);
 
   return {
     success: true,
-    actions: [action],
+    actions,
     sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
   };
 }

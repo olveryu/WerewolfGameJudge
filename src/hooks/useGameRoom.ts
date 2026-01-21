@@ -1,7 +1,13 @@
 /**
  * useGameRoom - Hook for managing game room with new Broadcast architecture
  *
- * This hook combines SimplifiedRoomService (for DB) and GameStateService (for state).
+ * Phase 1: 使用 v2 facade 处理房间生命周期和座位操作
+ *
+ * This hook combines:
+ * - V2GameFacade (via useGameFacade) for room/seating
+ * - SimplifiedRoomService (for DB)
+ * - Legacy GameStateService (for Night-1, to be migrated in Phase 2)
+ *
  * Host device is the Single Source of Truth for all game state.
  */
 
@@ -22,6 +28,8 @@ import {
   getStepsByRoleStrict,
 } from '../models/roles/spec';
 import { gameRoomLog } from '../utils/logger';
+import { useGameFacade } from '../contexts';
+import { broadcastToLocalState } from './adapters/broadcastToLocalState';
 
 export interface UseGameRoomResult {
   // Room info
@@ -103,6 +111,11 @@ export interface UseGameRoomResult {
 }
 
 export const useGameRoom = (): UseGameRoomResult => {
+  // =========================================================================
+  // Phase 1: 获取 v2 facade（通过 Context 注入）
+  // =========================================================================
+  const facade = useGameFacade();
+
   const [roomRecord, setRoomRecord] = useState<RoomRecord | null>(null);
   const [gameState, setGameState] = useState<LocalGameState | null>(null);
   const [loading, setLoading] = useState(false);
@@ -125,21 +138,34 @@ export const useGameRoom = (): UseGameRoomResult => {
   const authService = useRef(AuthService.getInstance());
   const broadcastService = useRef(BroadcastService.getInstance());
 
-  // Subscribe to game state changes
+  // =========================================================================
+  // Phase 1A: 订阅 v2 facade state（转换为 LocalGameState）
+  // =========================================================================
   useEffect(() => {
-    const unsubscribe = gameStateService.current.addListener((state) => {
-      setGameState(state);
-      // Update derived values when state changes
-      setIsHost(gameStateService.current.isHostPlayer());
-      setMyUid(gameStateService.current.getMyUid());
-      setMySeatNumber(gameStateService.current.getMySeatNumber());
-      // Update seat error (BUG-2 fix)
-      setLastSeatError(gameStateService.current.getLastSeatError());
-      // Update state revision
-      setStateRevision(gameStateService.current.getStateRevision());
+    const unsubscribe = facade.addListener((broadcastState) => {
+      if (broadcastState) {
+        // Phase 1 证据：state 来源是 v2 facade
+        gameRoomLog.debug('[v2] State update from facade', {
+          roomCode: broadcastState.roomCode,
+          status: broadcastState.status,
+        });
+        const localState = broadcastToLocalState(broadcastState);
+        setGameState(localState);
+        // 从 facade 派生 identity
+        setIsHost(facade.isHostPlayer());
+        setMyUid(facade.getMyUid());
+        setMySeatNumber(facade.getMySeatNumber());
+        setStateRevision(facade.getStateRevision());
+      } else {
+        setGameState(null);
+        setIsHost(false);
+        setMyUid(null);
+        setMySeatNumber(null);
+        setStateRevision(0);
+      }
     });
     return unsubscribe;
-  }, []);
+  }, [facade]);
 
   // Subscribe to connection status changes
   useEffect(() => {
@@ -149,10 +175,11 @@ export const useGameRoom = (): UseGameRoomResult => {
     return unsubscribe;
   }, []);
 
+  // Phase 1: myRole 从 gameState 派生，不再依赖 legacy service
   const myRole = useMemo(() => {
-    return gameStateService.current.getMyRole();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- gameState triggers re-compute intentionally
-  }, [gameState]);
+    if (mySeatNumber === null || !gameState) return null;
+    return gameState.players.get(mySeatNumber)?.role ?? null;
+  }, [gameState, mySeatNumber]);
 
   // GameStatus is now an alias for GameStatus (Phase 5)
   const roomStatus = useMemo((): GameStatus => {
@@ -201,6 +228,10 @@ export const useGameRoom = (): UseGameRoomResult => {
     return gameState?.isAudioPlaying ?? false;
   }, [gameState]);
 
+  // =========================================================================
+  // Phase 1B: createRoom / joinRoom 使用 v2 facade
+  // =========================================================================
+
   // Create a new room as host
   const createRoom = useCallback(
     async (template: GameTemplate, providedRoomNumber?: string): Promise<string | null> => {
@@ -221,8 +252,8 @@ export const useGameRoom = (): UseGameRoomResult => {
         const record = await roomService.current.createRoom(roomNumber, hostUid);
         setRoomRecord(record);
 
-        // Initialize game state as host
-        await gameStateService.current.initializeAsHost(roomNumber, hostUid, template);
+        // Phase 1B: 使用 v2 facade 初始化房间
+        await facade.initializeAsHost(roomNumber, hostUid, template);
 
         return roomNumber;
       } catch (err) {
@@ -233,58 +264,62 @@ export const useGameRoom = (): UseGameRoomResult => {
         setLoading(false);
       }
     },
-    [],
+    [facade],
   );
 
   // Join an existing room as player
-  const joinRoom = useCallback(async (roomNumber: string): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
+  const joinRoom = useCallback(
+    async (roomNumber: string): Promise<boolean> => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      await authService.current.waitForInit();
-      const playerUid = authService.current.getCurrentUserId();
-      if (!playerUid) {
-        throw new Error('User not authenticated');
-      }
+      try {
+        await authService.current.waitForInit();
+        const playerUid = authService.current.getCurrentUserId();
+        if (!playerUid) {
+          throw new Error('User not authenticated');
+        }
 
-      // Check if room exists
-      const record = await roomService.current.getRoom(roomNumber);
-      if (!record) {
-        setError('房间不存在');
-        return false;
-      }
-      setRoomRecord(record);
+        // Check if room exists
+        const record = await roomService.current.getRoom(roomNumber);
+        if (!record) {
+          setError('房间不存在');
+          return false;
+        }
+        setRoomRecord(record);
 
-      // Get user info
-      const displayName = await authService.current.getCurrentDisplayName();
-      const avatarUrl = await authService.current.getCurrentAvatarUrl();
+        // Get user info
+        const displayName = await authService.current.getCurrentDisplayName();
+        const avatarUrl = await authService.current.getCurrentAvatarUrl();
 
-      // Join as player (or rejoin as host if we're the original host)
-      if (record.hostUid === playerUid) {
-        // We're the host - rejoin with recovery mode
-        // Note: Game state is lost, Host will need to restart the game
-        gameRoomLog.warn('Host rejoining room - state will be reset');
-        await gameStateService.current.rejoinAsHost(roomNumber, playerUid);
+        // Phase 1B: 使用 v2 facade 加入房间
+        // Host rejoin 暂不支持，后续 Phase 2 再处理
+        if (record.hostUid === playerUid) {
+          // We're the host - rejoin with recovery mode
+          // Note: v2 facade 暂不支持 rejoin，使用 legacy fallback
+          gameRoomLog.warn('Host rejoining room - using legacy fallback');
+          await gameStateService.current.rejoinAsHost(roomNumber, playerUid);
+          return true;
+        }
+
+        await facade.joinAsPlayer(
+          roomNumber,
+          playerUid,
+          displayName ?? undefined,
+          avatarUrl ?? undefined,
+        );
+
         return true;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to join room';
+        setError(message);
+        return false;
+      } finally {
+        setLoading(false);
       }
-
-      await gameStateService.current.joinAsPlayer(
-        roomNumber,
-        playerUid,
-        displayName ?? undefined,
-        avatarUrl ?? undefined,
-      );
-
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to join room';
-      setError(message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [facade],
+  );
 
   // Leave the current room
   const leaveRoom = useCallback(async (): Promise<void> => {
@@ -294,41 +329,48 @@ export const useGameRoom = (): UseGameRoomResult => {
         await roomService.current.deleteRoom(roomRecord.roomNumber);
       }
 
-      await gameStateService.current.leaveRoom();
+      // Phase 1B: 使用 v2 facade 离开房间
+      await facade.leaveRoom();
       setRoomRecord(null);
       setGameState(null);
     } catch (err) {
       gameRoomLog.error(' Error leaving room:', err);
     }
-  }, [isHost, roomRecord]);
+  }, [facade, isHost, roomRecord]);
+
+  // =========================================================================
+  // Phase 1B: takeSeat / leaveSeat 使用 v2 facade
+  // =========================================================================
 
   // Take a seat (unified API)
-  const takeSeat = useCallback(async (seatNumber: number): Promise<boolean> => {
-    try {
-      const displayName = await authService.current.getCurrentDisplayName();
-      const avatarUrl = await authService.current.getCurrentAvatarUrl();
+  const takeSeat = useCallback(
+    async (seatNumber: number): Promise<boolean> => {
+      try {
+        const displayName = await authService.current.getCurrentDisplayName();
+        const avatarUrl = await authService.current.getCurrentAvatarUrl();
 
-      return await gameStateService.current.takeSeat(
-        seatNumber,
-        displayName ?? undefined,
-        avatarUrl ?? undefined,
-      );
-    } catch (err) {
-      gameRoomLog.error(' Error taking seat:', err);
-      return false;
-    }
-  }, []);
+        // Phase 1B: 使用 v2 facade 入座
+        return await facade.takeSeat(seatNumber, displayName ?? undefined, avatarUrl ?? undefined);
+      } catch (err) {
+        gameRoomLog.error(' Error taking seat:', err);
+        return false;
+      }
+    },
+    [facade],
+  );
 
   // Leave seat (unified API)
   const leaveSeat = useCallback(async (): Promise<void> => {
     try {
-      await gameStateService.current.leaveSeat();
+      // Phase 1B: 使用 v2 facade 离座
+      await facade.leaveSeat();
     } catch (err) {
       gameRoomLog.error(' Error leaving seat:', err);
     }
-  }, []);
+  }, [facade]);
 
   // Take seat with ack (unified API)
+  // Phase 1: 暂时保留 legacy 实现（ACK 机制 v2 暂不支持）
   const takeSeatWithAck = useCallback(
     async (seatNumber: number): Promise<{ success: boolean; reason?: string }> => {
       try {
@@ -349,6 +391,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   );
 
   // Leave seat with ack (unified API)
+  // Phase 1: 暂时保留 legacy 实现（ACK 机制 v2 暂不支持）
   const leaveSeatWithAck = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
     try {
       return await gameStateService.current.leaveSeatWithAck();

@@ -7,6 +7,7 @@ import {
   extractRoomNumber,
   enterRoomCodeViaNumPad,
 } from './helpers/home';
+import { setupDiagnostics } from './helpers/diagnostics';
 
 /**
  * Night 1 Smoke E2E Tests
@@ -25,85 +26,6 @@ test.describe.configure({ mode: 'serial' });
 
 // Increase test timeout for multi-player flows
 test.setTimeout(180_000);
-
-// =============================================================================
-// Diagnostic Infrastructure (reused from seating.basic.spec.ts)
-// =============================================================================
-
-/** Prefixes to filter from console logs */
-const LOG_PREFIXES = [
-  // Legacy prefixes (for compatibility)
-  '[useGameRoom]',
-  '[GameStateService]',
-  '[SeatService]',
-  '[RoomService]',
-  '[BroadcastService]',
-  '[AudioService]',
-  '[NightFlowController]',
-  // react-native-logs extensions
-  'Host',
-  'Player',
-  'NightFlow',
-  'Broadcast',
-  'Audio',
-  'Auth',
-  'Room',
-  'GameRoom',
-  'Config',
-  'RoomScreen',
-  'Home',
-];
-
-/** Collected diagnostic data */
-interface DiagnosticData {
-  consoleLogs: string[];
-  pageErrors: string[];
-  failedRequests: string[];
-  errorResponses: string[];
-}
-
-/**
- * Setup diagnostic listeners on a page.
- */
-function setupDiagnostics(page: Page, label: string): DiagnosticData {
-  const data: DiagnosticData = {
-    consoleLogs: [],
-    pageErrors: [],
-    failedRequests: [],
-    errorResponses: [],
-  };
-
-  page.on('console', (msg) => {
-    const text = msg.text();
-    if (LOG_PREFIXES.some((p) => text.includes(p))) {
-      const logLine = `[${label}] ${text}`;
-      data.consoleLogs.push(logLine);
-      console.log('[PW console]', logLine);
-    }
-  });
-
-  page.on('pageerror', (err) => {
-    const errLine = `[${label}] PageError: ${err.message}`;
-    data.pageErrors.push(errLine);
-    console.error('[PW pageerror]', errLine);
-  });
-
-  page.on('requestfailed', (req) => {
-    const failLine = `[${label}] RequestFailed: ${req.url()} - ${req.failure()?.errorText}`;
-    data.failedRequests.push(failLine);
-    console.error('[PW requestfailed]', failLine);
-  });
-
-  page.on('response', (resp) => {
-    if (resp.status() >= 400) {
-      const errLine = `[${label}] HTTP ${resp.status()}: ${resp.url()}`;
-      data.errorResponses.push(errLine);
-      console.warn('[PW response]', errLine);
-    }
-  });
-
-  return data;
-}
 
 // =============================================================================
 // Helpers (Seat-specific only - shared helpers imported from home.ts)

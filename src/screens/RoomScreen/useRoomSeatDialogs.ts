@@ -86,7 +86,7 @@ export function useRoomSeatDialogs({
     setSeatModalVisible(false);
 
     if (!success) {
-      showAlert(`${pendingSeatIndex + 1}号座已被占用`, '请选择其他位置。');
+      showAlert('入座失败', `${pendingSeatIndex + 1}号座位已被占用，请选择其他位置。`);
     }
     setPendingSeatIndex(null);
   }, [pendingSeatIndex, takeSeat, setSeatModalVisible, setPendingSeatIndex]);
