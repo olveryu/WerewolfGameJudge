@@ -318,6 +318,7 @@ export function handleSubmitWolfVote(
     },
   };
 
+
   return {
     success: true,
     actions: [action],
@@ -327,16 +328,48 @@ export function handleSubmitWolfVote(
 
 /**
  * 处理查看角色
+ *
+ * PR2: VIEWED_ROLE (assigned → ready)
+ * - 前置条件：isHost、state != null、status === 'assigned'
+ * - 标记 seat 的 hasViewedRole = true
+ * - 当所有玩家都 viewed 时，reducer 会将 status → 'ready'
  */
 export function handleViewedRole(intent: ViewedRoleIntent, context: HandlerContext): HandlerResult {
   const { seat } = intent.payload;
-  const { state } = context;
+  const { state, isHost } = context;
+
+  // 验证：仅主机可操作
+  if (!isHost) {
+    return {
+      success: false,
+      reason: 'host_only',
+      actions: [],
+    };
+  }
+
+  // 验证：state 必须存在
+  if (!state) {
+    return {
+      success: false,
+      reason: 'no_state',
+      actions: [],
+    };
+  }
+
+  // 验证：status 必须是 'assigned'
+  if (state.status !== 'assigned') {
+    return {
+      success: false,
+      reason: 'invalid_status',
+      actions: [],
+    };
+  }
 
   // 验证座位有玩家
   if (!state.players[seat]) {
     return {
       success: false,
-      reason: 'invalid_seat',
+      reason: 'not_seated',
       actions: [],
     };
   }
@@ -349,6 +382,6 @@ export function handleViewedRole(intent: ViewedRoleIntent, context: HandlerConte
   return {
     success: true,
     actions: [action],
-    sideEffects: [{ type: 'BROADCAST_STATE' }],
+    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
   };
 }

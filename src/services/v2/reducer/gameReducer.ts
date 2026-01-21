@@ -252,12 +252,24 @@ function handlePlayerViewedRole(state: GameState, action: PlayerViewedRoleAction
   const player = state.players[seat];
   if (!player) return state;
 
+  // 更新当前玩家的 hasViewedRole
+  const newPlayers = {
+    ...state.players,
+    [seat]: { ...player, hasViewedRole: true },
+  };
+
+  // 检查是否所有已入座玩家都已查看角色
+  const allViewed = Object.values(newPlayers).every(
+    (p) => p === null || p.hasViewedRole === true,
+  );
+
+  // 仅当 status === 'assigned' 且 all viewed 时才推进到 'ready'
+  const newStatus = state.status === 'assigned' && allViewed ? 'ready' : state.status;
+
   return {
     ...state,
-    players: {
-      ...state.players,
-      [seat]: { ...player, hasViewedRole: true },
-    },
+    players: newPlayers,
+    status: newStatus,
   };
 }
 

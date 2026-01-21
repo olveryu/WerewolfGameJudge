@@ -19,7 +19,8 @@ import { GameStore } from '../store';
 import { gameReducer } from '../reducer';
 import { handleJoinSeat, handleLeaveMySeat } from '../handlers/seatHandler';
 import { handleAssignRoles } from '../handlers/gameControlHandler';
-import type { JoinSeatIntent, LeaveMySeatIntent, AssignRolesIntent } from '../intents/types';
+import { handleViewedRole } from '../handlers/actionHandler';
+import type { JoinSeatIntent, LeaveMySeatIntent, AssignRolesIntent, ViewedRoleIntent } from '../intents/types';
 import type { HandlerContext } from '../handlers/types';
 import type { StateAction } from '../reducer/types';
 import { v2FacadeLog } from '../../../utils/logger';
@@ -541,6 +542,64 @@ export class V2GameFacade implements IGameFacade {
     }
 
     v2FacadeLog.info('assignRoles success');
+    return { success: true };
+  }
+
+  // =========================================================================
+  // Game Control: 查看角色（PR2）
+  // =========================================================================
+
+  /**
+   * Host: 标记某座位已查看角色
+   *
+   * PR2: VIEWED_ROLE (assigned → ready)
+   * - 前置条件：status === 'assigned' && isHost
+   * - 标记 seat 的 hasViewedRole = true
+   * - 当所有玩家都 viewed 时：status → 'ready'
+   * - 广播 STATE_UPDATE
+   *
+   * @param seat - 座位号
+   * @returns { success, reason? }
+   */
+  async markViewedRole(seat: number): Promise<{ success: boolean; reason?: string }> {
+    v2FacadeLog.debug('markViewedRole called', { seat, isHost: this.isHost });
+
+    const state = this.store.getState();
+
+    // 构造 intent
+    const intent: ViewedRoleIntent = {
+      type: 'VIEWED_ROLE',
+      payload: { seat },
+    };
+
+    // 构造 context（isHost 来自 facade 状态，让 handler 决定是否拒绝）
+    const context: HandlerContext = {
+      state,
+      isHost: this.isHost,
+      myUid: this.myUid,
+      mySeat: this.getMySeatNumber(),
+    };
+
+    // 调用 handler（所有校验在这里）
+    const result = handleViewedRole(intent, context);
+
+    if (!result.success) {
+      v2FacadeLog.warn('markViewedRole failed', { reason: result.reason });
+      void this.broadcastCurrentState();
+      return { success: false, reason: result.reason };
+    }
+
+    // 应用 actions 到 reducer（此时 state 必不为 null）
+    if (state) {
+      this.applyActions(state, result.actions);
+    }
+
+    // 执行副作用
+    if (result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE')) {
+      await this.broadcastCurrentState();
+    }
+
+    v2FacadeLog.info('markViewedRole success', { seat });
     return { success: true };
   }
 

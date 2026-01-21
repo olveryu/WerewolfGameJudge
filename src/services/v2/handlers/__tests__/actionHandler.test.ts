@@ -111,9 +111,22 @@ describe('handleSubmitWolfVote', () => {
 });
 
 describe('handleViewedRole', () => {
-  it('should succeed when player exists at seat', () => {
-    const state = createMinimalState();
-    const context = createContext(state);
+  // Helper: 创建 assigned 状态用于 ViewedRole 测试
+  const createAssignedState = (overrides?: Partial<GameState>): GameState => {
+    return createMinimalState({
+      status: 'assigned',
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
+        1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
+      },
+      ...overrides,
+    });
+  };
+
+  it('should succeed when host and status is assigned', () => {
+    const state = createAssignedState();
+    const context = createContext(state, { isHost: true });
     const intent: ViewedRoleIntent = {
       type: 'VIEWED_ROLE',
       payload: { seat: 0 },
@@ -126,11 +139,9 @@ describe('handleViewedRole', () => {
     expect(result.actions[0].type).toBe('PLAYER_VIEWED_ROLE');
   });
 
-  it('should fail when seat is empty', () => {
-    const state = createMinimalState({
-      players: { 0: null, 1: null, 2: null },
-    });
-    const context = createContext(state);
+  it('should fail when not host (host_only)', () => {
+    const state = createAssignedState();
+    const context = createContext(state, { isHost: false });
     const intent: ViewedRoleIntent = {
       type: 'VIEWED_ROLE',
       payload: { seat: 0 },
@@ -139,12 +150,60 @@ describe('handleViewedRole', () => {
     const result = handleViewedRole(intent, context);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_seat');
+    expect(result.reason).toBe('host_only');
   });
 
-  it('should include BROADCAST_STATE side effect', () => {
-    const state = createMinimalState();
-    const context = createContext(state);
+  it('should fail when state is null (no_state)', () => {
+    const context: HandlerContext = {
+      state: null as unknown as GameState,
+      isHost: true,
+      myUid: 'host-1',
+      mySeat: 0,
+    };
+    const intent: ViewedRoleIntent = {
+      type: 'VIEWED_ROLE',
+      payload: { seat: 0 },
+    };
+
+    const result = handleViewedRole(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('no_state');
+  });
+
+  it('should fail when status is not assigned (invalid_status)', () => {
+    const state = createMinimalState({ status: 'ongoing' });
+    const context = createContext(state, { isHost: true });
+    const intent: ViewedRoleIntent = {
+      type: 'VIEWED_ROLE',
+      payload: { seat: 0 },
+    };
+
+    const result = handleViewedRole(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalid_status');
+  });
+
+  it('should fail when seat is empty (not_seated)', () => {
+    const state = createAssignedState({
+      players: { 0: null, 1: null, 2: null },
+    });
+    const context = createContext(state, { isHost: true });
+    const intent: ViewedRoleIntent = {
+      type: 'VIEWED_ROLE',
+      payload: { seat: 0 },
+    };
+
+    const result = handleViewedRole(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('not_seated');
+  });
+
+  it('should include BROADCAST_STATE and SAVE_STATE side effects', () => {
+    const state = createAssignedState();
+    const context = createContext(state, { isHost: true });
     const intent: ViewedRoleIntent = {
       type: 'VIEWED_ROLE',
       payload: { seat: 0 },
@@ -153,5 +212,6 @@ describe('handleViewedRole', () => {
     const result = handleViewedRole(intent, context);
 
     expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 });
