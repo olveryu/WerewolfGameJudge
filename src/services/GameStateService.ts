@@ -20,7 +20,7 @@ import {
 import AudioService from './AudioService';
 // NightFlowController imports moved to HostCoordinator
 import { hostLog } from '../utils/logger';
-import { calculateDeaths, type RoleSeatMap } from './DeathCalculator';
+// calculateDeaths, RoleSeatMap moved to HostCoordinator (Phase 8c)
 // getActionTargetSeat, getConfirmRoleCanShoot, SchemaId moved to HostCoordinator
 import { StateManager } from './state';
 import { StatePersistence } from './persistence';
@@ -326,9 +326,10 @@ export class GameStateService {
   /**
    * @internal Test hook: Calculate deaths for test verification
    * Do NOT use in production code - night end logic handles this internally.
+   * Delegates to HostCoordinator's calculateDeaths (private method).
    */
   __testCalculateDeaths(): number[] {
-    return this.doCalculateDeaths();
+    return (this.hostCoordinator as any).calculateDeaths();
   }
 
   // ===========================================================================
@@ -738,62 +739,7 @@ export class GameStateService {
   // Helper Methods
   // ===========================================================================
 
-  // ===========================================================================
-  // Death Calculation Bridge (DeathCalculator)
-  // ===========================================================================
-
-  /**
-   * Build RoleSeatMap for death calculation context
-   */
-  private buildRoleSeatMap(): RoleSeatMap {
-    return {
-      witcher: this.stateManager.findSeatByRole('witcher'),
-      wolfQueen: this.stateManager.findSeatByRole('wolfQueen'),
-      dreamcatcher: this.stateManager.findSeatByRole('dreamcatcher'),
-      spiritKnight: this.stateManager.findSeatByRole('spiritKnight'),
-      seer: this.stateManager.findSeatByRole('seer'),
-      witch: this.stateManager.findSeatByRole('witch'),
-      guard: this.stateManager.findSeatByRole('guard'),
-    };
-  }
-
-  /**
-   * Build ActionContext for ActionProcessor.
-   */
-  private buildActionContext(): import('./action').ActionContext {
-    if (!this.state) {
-      // Return minimal context if no state
-      return {
-        players: new Map(),
-        currentNightResults: {},
-        actions: new Map(),
-        wolfVotes: new Map(),
-      };
-    }
-    return {
-      players: this.stateManager.buildRoleMap(),
-      currentNightResults: (this.state.currentNightResults ?? {}) as Record<string, unknown>,
-      witchContext: this.state.witchContext,
-      actions: this.state.actions,
-      wolfVotes: this.state.wolfVotes,
-    };
-  }
-
-  /**
-   * Calculate deaths using DeathCalculator
-   */
-  private doCalculateDeaths(): number[] {
-    if (!this.state) return [];
-
-    const nightActions = this.actionProcessor.buildNightActions(
-      this.state.actions,
-      this.state.players,
-    );
-    const roleSeatMap = this.buildRoleSeatMap();
-
-    // [Bridge: DeathCalculator] Invoke extracted pure function
-    return calculateDeaths(nightActions, roleSeatMap);
-  }
+  // NOTE: buildRoleSeatMap, doCalculateDeaths removed - delegated to HostCoordinator (Phase 8c)
 
   /**
    * Get last night info string (deaths only)
