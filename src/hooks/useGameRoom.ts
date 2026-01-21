@@ -368,20 +368,19 @@ export const useGameRoom = (): UseGameRoomResult => {
   }, [facade]);
 
   // Take seat with ack (unified API)
-  // Phase 1: 使用 v2 facade（ACK 机制已实现）
+  // Phase 1: 使用 v2 facade（ACK 机制已实现，reason 透传）
   const takeSeatWithAck = useCallback(
     async (seatNumber: number): Promise<{ success: boolean; reason?: string }> => {
       try {
         const displayName = await authService.current.getCurrentDisplayName();
         const avatarUrl = await authService.current.getCurrentAvatarUrl();
 
-        const success = await facade.takeSeat(
+        // v2 facade 的 takeSeatWithAck 直接返回 {success, reason}
+        return await facade.takeSeatWithAck(
           seatNumber,
           displayName ?? undefined,
           avatarUrl ?? undefined,
         );
-        // v2 facade 已内置 ACK 等待，success=false 意味着被拒绝
-        return { success, reason: success ? undefined : 'seat_taken' };
       } catch (err) {
         gameRoomLog.error(' Error taking seat with ack:', err);
         return { success: false, reason: String(err) };
@@ -391,11 +390,11 @@ export const useGameRoom = (): UseGameRoomResult => {
   );
 
   // Leave seat with ack (unified API)
-  // Phase 1: 使用 v2 facade（ACK 机制已实现）
+  // Phase 1: 使用 v2 facade（ACK 机制已实现，reason 透传）
   const leaveSeatWithAck = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
     try {
-      const success = await facade.leaveSeat();
-      return { success, reason: success ? undefined : 'leave_failed' };
+      // v2 facade 的 leaveSeatWithAck 直接返回 {success, reason}
+      return await facade.leaveSeatWithAck();
     } catch (err) {
       gameRoomLog.error(' Error leaving seat with ack:', err);
       return { success: false, reason: String(err) };
@@ -485,8 +484,8 @@ export const useGameRoom = (): UseGameRoomResult => {
   );
 
   // Clear seat error (BUG-2 fix)
+  // Phase 1: 只更新本地状态，不再调用 legacy service
   const clearLastSeatError = useCallback(() => {
-    gameStateService.current.clearLastSeatError();
     setLastSeatError(null);
   }, []);
 

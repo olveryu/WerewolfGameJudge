@@ -16,7 +16,9 @@ function createFakeFacade(): IGameFacade {
     joinAsPlayer: async () => {},
     leaveRoom: async () => {},
     takeSeat: async () => true,
+    takeSeatWithAck: async () => ({ success: true }),
     leaveSeat: async () => true,
+    leaveSeatWithAck: async () => ({ success: true }),
   };
 }
 
