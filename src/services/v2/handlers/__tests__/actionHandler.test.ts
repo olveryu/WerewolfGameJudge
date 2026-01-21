@@ -455,4 +455,62 @@ describe('handleSubmitAction', () => {
     // Gate rejection 不产生 sideEffects（只有 resolver rejection 才有）
     // 但根据 PR4 要求，reject 也必须 broadcast - 需要修复
   });
+
+  // === Schema constraints (resolver-first) ===
+
+  describe('schema constraints (resolver-first)', () => {
+    /**
+     * 锁死：schema constraints 校验口径以 SCHEMAS[*].constraints 为准。
+     * wolfRobotLearn 有 notSelf constraint，尝试自指应被 resolver reject。
+     */
+    it('should reject self-target when schema has notSelf constraint (wolfRobotLearn)', () => {
+      const state = createOngoingState({
+        currentStepId: 'wolfRobotLearn',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          2: { uid: 'p3', seatNumber: 2, role: 'wolfRobot', hasViewedRole: true },
+        },
+      });
+      const context = createContext(state, { isHost: true });
+      // wolfRobot (seat 2) 尝试自指 (target: 2)
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: { seat: 2, role: 'wolfRobot', target: 2, extra: {} },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      // resolver 应 reject，原因来自 constraintValidator
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('不能选择自己');
+      // resolver rejection 产生 ACTION_REJECTED action
+      expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
+      // resolver rejection 必须 broadcast
+      expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    });
+
+    it('should allow other target when schema has notSelf constraint', () => {
+      const state = createOngoingState({
+        currentStepId: 'wolfRobotLearn',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          2: { uid: 'p3', seatNumber: 2, role: 'wolfRobot', hasViewedRole: true },
+        },
+      });
+      const context = createContext(state, { isHost: true });
+      // wolfRobot (seat 2) 选择 seat 0（非自己）
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: { seat: 2, role: 'wolfRobot', target: 0, extra: {} },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      // 应该成功
+      expect(result.success).toBe(true);
+      expect(result.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
+    });
+  });
 });

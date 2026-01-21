@@ -548,4 +548,97 @@ describe('gameReducer', () => {
       expect(newState.witchContext).toBeUndefined();
     });
   });
+
+  // =============================================================================
+  // ACTION_REJECTED 契约测试
+  // =============================================================================
+
+  describe('ACTION_REJECTED', () => {
+    /**
+     * 锁死：ACTION_REJECTED 只写入 actionRejected 字段。
+     * actionRejected 必须属于 BroadcastGameState（公开广播），不引入 hostOnly 字段。
+     */
+    it('should write actionRejected to state (public broadcast field)', () => {
+      const state = createMinimalState({ status: 'ongoing' });
+      const action = {
+        type: 'ACTION_REJECTED' as const,
+        payload: {
+          action: 'seerCheck',
+          reason: '不能选择自己',
+          targetUid: 'p1',
+        },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.actionRejected).toEqual({
+        action: 'seerCheck',
+        reason: '不能选择自己',
+        targetUid: 'p1',
+      });
+    });
+
+    it('should NOT introduce any hostOnly or private fields', () => {
+      const state = createMinimalState({ status: 'ongoing' });
+      const action = {
+        type: 'ACTION_REJECTED' as const,
+        payload: {
+          action: 'seerCheck',
+          reason: 'test_reason',
+          targetUid: 'p1',
+        },
+      };
+
+      const newState = gameReducer(state, action);
+
+      // 确保没有 hostOnly 或其他私有字段被引入
+      expect('hostOnly' in newState).toBe(false);
+      expect('_private' in newState).toBe(false);
+      expect('hostOnlyState' in newState).toBe(false);
+    });
+
+    it('should overwrite previous actionRejected', () => {
+      const state = createMinimalState({
+        status: 'ongoing',
+        actionRejected: {
+          action: 'oldAction',
+          reason: 'old_reason',
+          targetUid: 'old-uid',
+        },
+      });
+      const action = {
+        type: 'ACTION_REJECTED' as const,
+        payload: {
+          action: 'newAction',
+          reason: 'new_reason',
+          targetUid: 'new-uid',
+        },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.actionRejected).toEqual({
+        action: 'newAction',
+        reason: 'new_reason',
+        targetUid: 'new-uid',
+      });
+    });
+  });
+
+  describe('CLEAR_ACTION_REJECTED', () => {
+    it('should clear actionRejected field', () => {
+      const state = createMinimalState({
+        status: 'ongoing',
+        actionRejected: {
+          action: 'seerCheck',
+          reason: 'test',
+          targetUid: 'p1',
+        },
+      });
+
+      const newState = gameReducer(state, { type: 'CLEAR_ACTION_REJECTED' });
+
+      expect(newState.actionRejected).toBeUndefined();
+    });
+  });
 });
