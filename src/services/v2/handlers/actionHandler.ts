@@ -22,10 +22,15 @@ import type { ResolverContext, ActionInput, ResolverResult } from '../../night/r
 import type { RoleId } from '../../../models/roles';
 
 /**
+ * 非 null 的 state 类型（通过 validation 后使用）
+ */
+type NonNullState = NonNullable<HandlerContext['state']>;
+
+/**
  * 构建 Resolver 上下文
  */
 function buildResolverContext(
-  state: HandlerContext['state'],
+  state: NonNullState,
   actorSeat: number,
   actorRoleId: RoleId,
 ): ResolverContext {
@@ -115,17 +120,25 @@ function buildRevealPayload(
 
 /**
  * 验证前置条件
+ * 返回 narrowed state 以便后续使用
  */
 function validateActionPreconditions(
   context: HandlerContext,
   role: RoleId,
-): { valid: false; result: HandlerResult } | { valid: true; schemaId: SchemaId } {
+): { valid: false; result: HandlerResult } | { valid: true; schemaId: SchemaId; state: NonNullState } {
   const { state, isHost } = context;
 
   if (!isHost) {
     return {
       valid: false,
       result: { success: false, reason: 'host_only', actions: [] },
+    };
+  }
+
+  if (!state) {
+    return {
+      valid: false,
+      result: { success: false, reason: 'no_state', actions: [] },
     };
   }
 
@@ -151,7 +164,7 @@ function validateActionPreconditions(
     };
   }
 
-  return { valid: true, schemaId };
+  return { valid: true, schemaId, state };
 }
 
 /**
@@ -162,14 +175,13 @@ export function handleSubmitAction(
   context: HandlerContext,
 ): HandlerResult {
   const { seat, role, target, extra } = intent.payload;
-  const { state } = context;
 
   // 验证前置条件
   const validation = validateActionPreconditions(context, role);
   if (!validation.valid) {
     return validation.result;
   }
-  const { schemaId } = validation;
+  const { schemaId, state } = validation;
 
   // 获取 resolver
   const resolver = RESOLVERS[schemaId]!;
@@ -206,7 +218,7 @@ export function handleSubmitAction(
 function buildRejectionResult(
   schemaId: SchemaId,
   rejectReason: string | undefined,
-  state: HandlerContext['state'],
+  state: NonNullState,
   seat: number,
 ): HandlerResult {
   const rejectAction: ActionRejectedAction = {
@@ -292,6 +304,15 @@ export function handleSubmitWolfVote(
     };
   }
 
+  // 验证 state 存在
+  if (!state) {
+    return {
+      success: false,
+      reason: 'no_state',
+      actions: [],
+    };
+  }
+
   // 验证游戏状态
   if (state.status !== 'ongoing') {
     return {
@@ -317,7 +338,6 @@ export function handleSubmitWolfVote(
       targetSeat: target,
     },
   };
-
 
   return {
     success: true,

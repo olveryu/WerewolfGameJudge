@@ -49,6 +49,15 @@ export interface StartGameIntent {
   type: 'START_GAME';
 }
 
+/**
+ * 开始夜晚 Intent（Host-only）
+ * 前置条件：status === 'ready'
+ * 结果：status → 'ongoing'，初始化 Night-1 字段
+ */
+export interface StartNightIntent {
+  type: 'START_NIGHT';
+}
+
 export interface RestartGameIntent {
   type: 'RESTART_GAME';
 }
@@ -128,6 +137,7 @@ export type GameIntent =
   | LeaveMySeatIntent
   | AssignRolesIntent
   | StartGameIntent
+  | StartNightIntent
   | RestartGameIntent
   | SubmitActionIntent
   | SubmitWolfVoteIntent

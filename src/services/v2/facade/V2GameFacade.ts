@@ -18,9 +18,15 @@ import { BroadcastService } from '../../BroadcastService';
 import { GameStore } from '../store';
 import { gameReducer } from '../reducer';
 import { handleJoinSeat, handleLeaveMySeat } from '../handlers/seatHandler';
-import { handleAssignRoles } from '../handlers/gameControlHandler';
+import { handleAssignRoles, handleStartNight } from '../handlers/gameControlHandler';
 import { handleViewedRole } from '../handlers/actionHandler';
-import type { JoinSeatIntent, LeaveMySeatIntent, AssignRolesIntent, ViewedRoleIntent } from '../intents/types';
+import type {
+  JoinSeatIntent,
+  LeaveMySeatIntent,
+  AssignRolesIntent,
+  ViewedRoleIntent,
+  StartNightIntent,
+} from '../intents/types';
 import type { HandlerContext } from '../handlers/types';
 import type { StateAction } from '../reducer/types';
 import { v2FacadeLog } from '../../../utils/logger';
@@ -600,6 +606,60 @@ export class V2GameFacade implements IGameFacade {
     }
 
     v2FacadeLog.info('markViewedRole success', { seat });
+    return { success: true };
+  }
+
+  // =========================================================================
+  // Game Control: 开始夜晚（PR3）
+  // =========================================================================
+
+  /**
+   * Host: 开始夜晚
+   *
+   * PR3: START_NIGHT (ready → ongoing)
+   * - 前置条件：status === 'ready' && isHost
+   * - 初始化 Night-1 字段
+   * - status → 'ongoing'
+   * - 广播 STATE_UPDATE
+   *
+   * @returns { success, reason? }
+   */
+  async startNight(): Promise<{ success: boolean; reason?: string }> {
+    v2FacadeLog.debug('startNight called', { isHost: this.isHost });
+
+    const state = this.store.getState();
+
+    // 构造 intent
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    // 构造 context（isHost 来自 facade 状态，让 handler 决定是否拒绝）
+    const context: HandlerContext = {
+      state,
+      isHost: this.isHost,
+      myUid: this.myUid,
+      mySeat: this.getMySeatNumber(),
+    };
+
+    // 调用 handler（所有校验在这里）
+    const result = handleStartNight(intent, context);
+
+    if (!result.success) {
+      v2FacadeLog.warn('startNight failed', { reason: result.reason });
+      void this.broadcastCurrentState();
+      return { success: false, reason: result.reason };
+    }
+
+    // 应用 actions 到 reducer（此时 state 必不为 null）
+    if (state) {
+      this.applyActions(state, result.actions);
+    }
+
+    // 执行副作用
+    if (result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE')) {
+      await this.broadcastCurrentState();
+    }
+
+    v2FacadeLog.info('startNight success');
     return { success: true };
   }
 

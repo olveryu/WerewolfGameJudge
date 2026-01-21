@@ -72,10 +72,7 @@ describe('V2GameFacade', () => {
   // ===========================================================================
   // Shared Helper: 通过 PLAYER_JOIN actions + reducer 填充所有座位
   // ===========================================================================
-  const fillAllSeatsViaReducer = (
-    facadeInstance: V2GameFacade,
-    template: typeof mockTemplate,
-  ) => {
+  const fillAllSeatsViaReducer = (facadeInstance: V2GameFacade, template: typeof mockTemplate) => {
     let state = facadeInstance['store'].getState()!;
 
     for (let i = 0; i < template.numberOfPlayers; i++) {
@@ -911,7 +908,10 @@ describe('V2GameFacade', () => {
     /**
      * Helper: 设置 assigned 状态（通过 reducer 填充座位 + assignRoles）
      */
-    const setupAssignedState = async (facadeInstance: V2GameFacade, template: typeof mockTemplate) => {
+    const setupAssignedState = async (
+      facadeInstance: V2GameFacade,
+      template: typeof mockTemplate,
+    ) => {
       fillAllSeatsViaReducer(facadeInstance, template);
       await facadeInstance.assignRoles();
       mockBroadcastService.broadcastAsHost.mockClear();
@@ -994,6 +994,114 @@ describe('V2GameFacade', () => {
       const broadcastedState = lastCall![0].state;
 
       expect(broadcastedState.status).toBe('ready');
+    });
+  });
+
+  // =========================================================================
+  // PR3: startNight (ready → ongoing)
+  // =========================================================================
+  describe('Host: startNight', () => {
+    /**
+     * Helper: 设置 ready 状态（通过 reducer 填充座位 + assignRoles + 所有人 viewed）
+     */
+    const setupReadyState = async (facadeInstance: V2GameFacade, template: typeof mockTemplate) => {
+      fillAllSeatsViaReducer(facadeInstance, template);
+      await facadeInstance.assignRoles();
+      for (let i = 0; i < template.numberOfPlayers; i++) {
+        await facadeInstance.markViewedRole(i);
+      }
+      mockBroadcastService.broadcastAsHost.mockClear();
+    };
+
+    beforeEach(async () => {
+      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      mockBroadcastService.broadcastAsHost.mockClear();
+    });
+
+    it('should reject if not host, with reason from handler (host_only)', async () => {
+      // 创建一个非 host facade（player）
+      V2GameFacade.resetInstance();
+      const playerFacade = V2GameFacade.getInstance();
+      await playerFacade.joinAsPlayer('ABCD', 'player-uid');
+
+      const result = await playerFacade.startNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('host_only');
+    });
+
+    it('should reject if status is not ready, with reason from handler', async () => {
+      // status 是 unseated（还没分配角色）
+      const result = await facade.startNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+
+    it('should reject if status is assigned (not yet all viewed)', async () => {
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      await facade.assignRoles();
+      // 没有人 viewed，所以还是 assigned
+
+      const result = await facade.startNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+
+    it('should broadcast current state when handler rejects', async () => {
+      mockBroadcastService.broadcastAsHost.mockClear();
+
+      await facade.startNight();
+
+      // 失败时也应该 broadcast 一次
+      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'STATE_UPDATE',
+        }),
+      );
+    });
+
+    it('should succeed when host and status is ready (happy path)', async () => {
+      await setupReadyState(facade, mockTemplate);
+
+      const result = await facade.startNight();
+
+      expect(result.success).toBe(true);
+      expect(result.reason).toBeUndefined();
+    });
+
+    it('should set status to ongoing', async () => {
+      await setupReadyState(facade, mockTemplate);
+
+      await facade.startNight();
+
+      // 获取 broadcast 调用的 state
+      const broadcastCall = mockBroadcastService.broadcastAsHost.mock.calls.find(
+        (call) => call[0]?.type === 'STATE_UPDATE',
+      );
+      expect(broadcastCall).toBeDefined();
+
+      const broadcastedState = broadcastCall![0].state;
+      expect(broadcastedState.status).toBe('ongoing');
+    });
+
+    it('should initialize Night-1 fields correctly', async () => {
+      await setupReadyState(facade, mockTemplate);
+
+      await facade.startNight();
+
+      // 获取 broadcast 调用的 state
+      const broadcastCall = mockBroadcastService.broadcastAsHost.mock.calls.find(
+        (call) => call[0]?.type === 'STATE_UPDATE',
+      );
+      expect(broadcastCall).toBeDefined();
+
+      const broadcastedState = broadcastCall![0].state;
+      expect(broadcastedState.currentActionerIndex).toBe(0);
+      expect(broadcastedState.actions).toEqual([]);
+      expect(broadcastedState.wolfVotes).toEqual({});
+      expect(broadcastedState.currentNightResults).toEqual({});
     });
   });
 });

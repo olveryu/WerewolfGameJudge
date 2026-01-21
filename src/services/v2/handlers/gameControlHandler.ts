@@ -1,10 +1,15 @@
 /**
  * Game Control Handler - 游戏控制处理器
  *
- * 处理 ASSIGN_ROLES / START_GAME / RESTART_GAME intent（仅主机）
+ * 处理 ASSIGN_ROLES / START_NIGHT / RESTART_GAME intent（仅主机）
  */
 
-import type { AssignRolesIntent, StartGameIntent, RestartGameIntent } from '../intents/types';
+import type {
+  AssignRolesIntent,
+  StartGameIntent,
+  StartNightIntent,
+  RestartGameIntent,
+} from '../intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type { AssignRolesAction, StartNightAction, RestartGameAction } from '../reducer/types';
 import { shuffleArray } from '../../../utils/shuffle';
@@ -81,10 +86,7 @@ export function handleAssignRoles(
   return {
     success: true,
     actions: [assignRolesAction],
-    sideEffects: [
-      { type: 'BROADCAST_STATE' },
-      { type: 'SAVE_STATE' },
-    ],
+    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
   };
 }
 
@@ -161,6 +163,63 @@ export function handleStartGame(_intent: StartGameIntent, context: HandlerContex
       { type: 'SAVE_STATE' },
       // 音频播放由外层根据 NightFlowController 决定
     ],
+  };
+}
+
+/**
+ * 处理开始夜晚（ready → ongoing）
+ *
+ * Legacy 对齐：GameStateService.ts L1483-1556
+ * - 前置条件：status === 'ready' && isHost
+ * - 初始化 Night-1 字段
+ * - status → 'ongoing'
+ * - 广播 STATE_UPDATE
+ *
+ * PR3 范围：只做状态初始化，不做音频/advance/action 处理
+ */
+export function handleStartNight(
+  _intent: StartNightIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const { state, isHost } = context;
+
+  // Gate: 仅主机可操作
+  if (!isHost) {
+    return {
+      success: false,
+      reason: 'host_only',
+      actions: [],
+    };
+  }
+
+  // Gate: state 存在
+  if (!state) {
+    return {
+      success: false,
+      reason: 'no_state',
+      actions: [],
+    };
+  }
+
+  // Gate: 前置状态必须是 ready（Legacy L1485）
+  if (state.status !== 'ready') {
+    return {
+      success: false,
+      reason: 'invalid_status',
+      actions: [],
+    };
+  }
+
+  // Night-1 only: currentActionerIndex 从 0 开始（首个步骤）
+  const startNightAction: StartNightAction = {
+    type: 'START_NIGHT',
+    payload: { currentActionerIndex: 0 },
+  };
+
+  return {
+    success: true,
+    actions: [startNightAction],
+    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
   };
 }
 
