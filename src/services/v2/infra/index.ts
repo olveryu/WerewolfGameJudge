@@ -1,14 +1,18 @@
 /**
  * Infrastructure Layer - External Adapters
  *
- * Phase 2: Empty - all adapters in legacy
- * Phase 3: Will contain:
- *   - SupabaseAdapter
- *   - AudioAdapter
- *   - StorageAdapter
+ * Phase 3: StateStore complete
  */
 
-// Placeholder exports for Phase 3
-// export { SupabaseAdapter } from './SupabaseAdapter';
-// export { AudioAdapter } from './AudioAdapter';
-// export { StorageAdapter } from './StorageAdapter';
+// StateStore - State management
+export { StateStore } from './StateStore';
+export type { StateStoreConfig, StateUpdater } from './StateStore';
+
+// Re-export types from StateStore for convenience
+export { GameStatus } from './StateStore';
+export type { LocalGameState, LocalPlayer, GameStateListener, BroadcastGameState } from './StateStore';
+
+// Placeholder exports for remaining Phase 3 modules
+// export { Transport } from './Transport';
+// export { Storage } from './Storage';
+// export { Audio } from './Audio';
