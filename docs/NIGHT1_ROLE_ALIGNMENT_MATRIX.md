@@ -298,7 +298,7 @@
 | audioKey | 使用 `RoleId` 格式 | 使用 snake_case | **按 v2**：与 AudioService 对齐 |
 | 音频触发 | Handler 声明，Facade 执行 | UI 直接调用 | **按 v2**：架构更清晰 |
 | witchContext.canSave | 综合考虑 killedIndex、notSelf | 部分逻辑分散 | **按 v2**：schema-first |
-| guardProtect notSelf | resolver 允许自守（Night-1） | UI 层限制 | **按当前**：Night-1 可自守 |
+| guardProtect 自守 | schema `[]` + resolver 允许 | UI 层限制 | **按 v2**：schema-first 对齐 |
 
 ---
 
@@ -331,11 +331,11 @@ With Audio: 14/14 (100%)
 
 ---
 
-## 已知注意事项
+## 设计决定
 
-### guardProtect schema 与 resolver 不完全对齐
+### guardProtect 允许自守（Night-1）
 
-- **Schema**: `constraints: ['notSelf']`
-- **Resolver**: 当前 **允许** 自守（`valid: true`）
-- **原因**: Night-1 场景下守卫首夜可自守是合法策略
-- **决定**: 保持现状，测试文档化此行为
+- **Schema**: `constraints: []`（无约束）
+- **Resolver**: 允许自守（`valid: true`）
+- **设计原因**: Night-1 场景下守卫首夜可自守是合法策略（中立裁判规则）
+- **Schema-Resolver 对齐**: ✅ 完全对齐
