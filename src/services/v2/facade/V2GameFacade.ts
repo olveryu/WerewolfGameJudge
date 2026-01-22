@@ -279,6 +279,17 @@ export class V2GameFacade implements IGameFacade {
     return hostActions.endNight(this.getHostActionsContext());
   }
 
+  /**
+   * Host: 设置音频播放状态
+   *
+   * PR7: 音频时序控制
+   * - 当音频开始播放时，调用 setAudioPlaying(true)
+   * - 当音频结束（或被跳过）时，调用 setAudioPlaying(false)
+   */
+  async setAudioPlaying(isPlaying: boolean): Promise<{ success: boolean; reason?: string }> {
+    return hostActions.setAudioPlaying(this.getHostActionsContext(), isPlaying);
+  }
+
   // =========================================================================
   // Context Builders (为子模块提供上下文)
   // =========================================================================

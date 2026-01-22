@@ -15,6 +15,7 @@ import type {
   ApplyResolverResultAction,
   RecordWolfVoteAction,
   PlayerViewedRoleAction,
+  SetAudioPlayingAction,
 } from '../types';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
@@ -719,6 +720,84 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, { type: 'CLEAR_ACTION_REJECTED' });
 
       expect(newState.actionRejected).toBeUndefined();
+    });
+  });
+
+  // ==========================================================================
+  // PR7: SET_AUDIO_PLAYING Tests
+  // ==========================================================================
+  describe('SET_AUDIO_PLAYING', () => {
+    it('should set isAudioPlaying to true', () => {
+      const state = createMinimalState({
+        status: 'ongoing',
+        isAudioPlaying: false,
+      });
+      const action: SetAudioPlayingAction = {
+        type: 'SET_AUDIO_PLAYING',
+        payload: { isPlaying: true },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.isAudioPlaying).toBe(true);
+    });
+
+    it('should set isAudioPlaying to false', () => {
+      const state = createMinimalState({
+        status: 'ongoing',
+        isAudioPlaying: true,
+      });
+      const action: SetAudioPlayingAction = {
+        type: 'SET_AUDIO_PLAYING',
+        payload: { isPlaying: false },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.isAudioPlaying).toBe(false);
+    });
+
+    it('should not change other state fields', () => {
+      const state = createMinimalState({
+        status: 'ongoing',
+        currentActionerIndex: 2,
+        currentStepId: 'seerCheck',
+        isAudioPlaying: false,
+      });
+      const action: SetAudioPlayingAction = {
+        type: 'SET_AUDIO_PLAYING',
+        payload: { isPlaying: true },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.status).toBe('ongoing');
+      expect(newState.currentActionerIndex).toBe(2);
+      expect(newState.currentStepId).toBe('seerCheck');
+    });
+  });
+
+  // ==========================================================================
+  // PR7: END_NIGHT clears isAudioPlaying contract
+  // ==========================================================================
+  describe('PR7 contract: END_NIGHT forces isAudioPlaying=false', () => {
+    it('should set isAudioPlaying to false even if it was true', () => {
+      const state = createMinimalState({
+        status: 'ongoing',
+        isAudioPlaying: true, // 音频还在播放（理论上不应该发生，但 reducer 要保证）
+        currentStepId: 'hunterConfirm',
+      });
+      const action: EndNightAction = {
+        type: 'END_NIGHT',
+        payload: { deaths: [1] },
+      };
+
+      const newState = gameReducer(state, action);
+
+      // PR7 contract: END_NIGHT 必须强制 isAudioPlaying=false
+      expect(newState.isAudioPlaying).toBe(false);
+      expect(newState.status).toBe('ended');
+      expect(newState.currentStepId).toBeUndefined();
     });
   });
 });

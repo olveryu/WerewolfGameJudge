@@ -14,9 +14,9 @@
  * - 返回 StateAction 列表
  */
 
-import type { AdvanceNightIntent, EndNightIntent } from '../intents/types';
+import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../intents/types';
 import type { HandlerContext, HandlerResult } from './types';
-import type { AdvanceToNextActionAction, EndNightAction } from '../reducer/types';
+import type { AdvanceToNextActionAction, EndNightAction, SetAudioPlayingAction } from '../reducer/types';
 import type { SchemaId } from '../../../models/roles/spec';
 import type { RoleId } from '../../../models/roles';
 import type { NightActions, RoleSeatMap } from '../../DeathCalculator';
@@ -324,6 +324,87 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
   return {
     success: true,
     actions: [endNightAction],
+    sideEffects: [{ type: 'BROADCAST_STATE' }],
+  };
+}
+
+// =============================================================================
+// SET_AUDIO_PLAYING Handler (PR7)
+// =============================================================================
+
+/**
+ * 验证 SET_AUDIO_PLAYING 前置条件
+ *
+ * Gate 顺序：
+ * 1. host_only
+ * 2. no_state
+ * 3. invalid_status (must be ongoing)
+ *
+ * 注：不检查 isAudioPlaying，因为这个 handler 就是用来设置它的
+ */
+function validateSetAudioPlayingPreconditions(
+  context: HandlerContext,
+): { valid: false; result: HandlerResult } | { valid: true; state: NonNullState } {
+  const { state, isHost } = context;
+
+  // Gate 1: host_only
+  if (!isHost) {
+    return {
+      valid: false,
+      result: { success: false, reason: 'host_only', actions: [] },
+    };
+  }
+
+  // Gate 2: no_state
+  if (!state) {
+    return {
+      valid: false,
+      result: { success: false, reason: 'no_state', actions: [] },
+    };
+  }
+
+  // Gate 3: invalid_status (must be ongoing)
+  if (state.status !== 'ongoing') {
+    return {
+      valid: false,
+      result: { success: false, reason: 'invalid_status', actions: [] },
+    };
+  }
+
+  return { valid: true, state };
+}
+
+/**
+ * 设置音频播放状态
+ *
+ * PR7: 音频时序控制
+ *
+ * Gate:
+ * 1. host_only
+ * 2. no_state
+ * 3. invalid_status (must be ongoing)
+ *
+ * 逻辑:
+ * - 设置 isAudioPlaying = payload.isPlaying
+ * - broadcast 状态
+ */
+export function handleSetAudioPlaying(
+  intent: SetAudioPlayingIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const validation = validateSetAudioPlayingPreconditions(context);
+  if (!validation.valid) {
+    return validation.result;
+  }
+
+  const setAudioAction: SetAudioPlayingAction = {
+    type: 'SET_AUDIO_PLAYING',
+    payload: { isPlaying: intent.payload.isPlaying },
+  };
+
+  return {
+    success: true,
+    actions: [setAudioAction],
     sideEffects: [{ type: 'BROADCAST_STATE' }],
   };
 }
