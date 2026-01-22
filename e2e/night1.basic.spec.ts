@@ -212,13 +212,17 @@ async function configure6PlayerTemplate(page: Page): Promise<void> {
 
 /**
  * Night end keywords that indicate first night has completed
+ *
+ * PR9: 移除 '重新开始' 作为结束指标
+ * - v2 UI 在 ongoing 状态下也显示"重新开始"按钮，会导致误判
+ * - '查看昨晚信息' 只在 status=ended 时显示，是稳定的结束信号
  */
 const NIGHT_END_KEYWORDS = [
   '平安夜',
   '玩家死亡',
   '昨天晚上',
-  '查看昨晚信息', // Button visible after night ends
-  '重新开始', // Button visible after night ends
+  '查看昨晚信息', // Button visible only when status=ended
+  // NOTE: '重新开始' removed - visible during ongoing in v2
 ];
 
 /**

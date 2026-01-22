@@ -14,6 +14,8 @@
 
 import { V2GameFacade } from '../V2GameFacade';
 import { BroadcastService } from '../../../BroadcastService';
+import { gameReducer } from '../../reducer/gameReducer';
+import type { PlayerJoinAction } from '../../reducer/types';
 import type { HostBroadcast, BroadcastPlayer } from '../../../protocol/types';
 
 // Mock BroadcastService
@@ -66,15 +68,12 @@ describe('restartGame Contract', () => {
   });
 
   // ===========================================================================
-  // Helper: 初始化到 ongoing 状态
+  // Helper: 通过 reducer 填充所有座位（避免直接修改 state）
   // ===========================================================================
 
-  async function setupToOngoingState(): Promise<void> {
-    // 1. 初始化 Host
-    await facade.initializeAsHost('1234', 'host-uid', mockTemplate);
+  function fillAllSeatsViaReducer(): void {
+    let state = facade.getState()!;
 
-    // 2. 填充所有座位
-    const state = facade.getState()!;
     for (let i = 0; i < mockTemplate.numberOfPlayers; i++) {
       const player: BroadcastPlayer = {
         uid: i === 0 ? 'host-uid' : `player-${i}`,
@@ -84,9 +83,30 @@ describe('restartGame Contract', () => {
         role: null,
         hasViewedRole: false,
       };
-      state.players[i] = player;
+
+      const action: PlayerJoinAction = {
+        type: 'PLAYER_JOIN',
+        payload: { seat: i, player },
+      };
+
+      state = gameReducer(state, action);
     }
-    state.status = 'seated';
+
+    // 写回 store（test-only: 访问私有 store）
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (facade as any).store.setState(state);
+  }
+
+  // ===========================================================================
+  // Helper: 初始化到 ongoing 状态
+  // ===========================================================================
+
+  async function setupToOngoingState(): Promise<void> {
+    // 1. 初始化 Host
+    await facade.initializeAsHost('1234', 'host-uid', mockTemplate);
+
+    // 2. 通过 reducer 填充所有座位（避免直接修改 state）
+    fillAllSeatsViaReducer();
 
     // 3. 分配角色
     await facade.assignRoles();

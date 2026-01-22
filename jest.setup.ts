@@ -243,3 +243,47 @@ jest.mock('./src/config/supabase', () => ({
     }),
   },
 }));
+
+// ---------------------------------------------------------------------------
+// Logger mock for tests (silence console output)
+// ---------------------------------------------------------------------------
+jest.mock('./src/utils/logger', () => {
+  type MockLogger = {
+    debug: jest.Mock;
+    info: jest.Mock;
+    warn: jest.Mock;
+    error: jest.Mock;
+    extend: jest.Mock;
+  };
+
+  const createMockLogger = (): MockLogger => {
+    const logger: MockLogger = {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      extend: jest.fn(),
+    };
+    logger.extend.mockReturnValue(logger);
+    return logger;
+  };
+
+  const mockLogger = createMockLogger();
+
+  return {
+    log: mockLogger,
+    hostLog: mockLogger,
+    playerLog: mockLogger,
+    nightFlowLog: mockLogger,
+    broadcastLog: mockLogger,
+    audioLog: mockLogger,
+    authLog: mockLogger,
+    roomLog: mockLogger,
+    gameRoomLog: mockLogger,
+    configLog: mockLogger,
+    roomScreenLog: mockLogger,
+    homeLog: mockLogger,
+    v2FacadeLog: mockLogger,
+    gameStateLog: mockLogger,
+  };
+});
