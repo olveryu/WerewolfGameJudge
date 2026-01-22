@@ -223,3 +223,64 @@ describe('notSelf constraint completeness', () => {
     expect(untested).toEqual([]);
   });
 });
+
+// === UX-only 限制验证 ===
+
+describe('UX-only restrictions (documented exceptions)', () => {
+  /**
+   * UX-only 限制是 schema 之外的 UI 层限制。
+   * 这些限制必须：
+   * 1. 在 NIGHT1_ROLE_ALIGNMENT_MATRIX.md 中显式记录
+   * 2. 在 RoomScreen.helpers.test.ts 中有测试覆盖
+   *
+   * 当前唯一的 UX-only 限制：wolfKill 禁用 immuneToWolfKill 角色
+   */
+
+  describe('wolfKill UX-only: immuneToWolfKill roles disabled', () => {
+    it('wolfKill schema has NO notSelf constraint (neutral judge)', () => {
+      const constraints = getSchemaConstraints('wolfKill');
+      expect(constraints).not.toContain('notSelf');
+    });
+
+    it('wolfKill resolver allows any target (schema-compliant)', () => {
+      const resolver = RESOLVERS.wolfKill;
+      const actorSeat = 0;
+      const context = createContext(actorSeat, 'wolf');
+
+      // Can target self
+      expect(resolver!(context, { schemaId: 'wolfKill', target: 0 }).valid).toBe(true);
+      // Can target others
+      expect(resolver!(context, { schemaId: 'wolfKill', target: 1 }).valid).toBe(true);
+    });
+
+    it('UI has enableWolfVoteRestrictions option for UX-only filtering', () => {
+      // Verify the helper function exists and accepts the option
+      const { buildSeatViewModels } = require('../RoomScreen.helpers');
+      const fnStr = buildSeatViewModels.toString();
+
+      // The function should check for enableWolfVoteRestrictions
+      expect(fnStr).toContain('enableWolfVoteRestrictions');
+      // And should reference immuneToWolfKill logic
+      expect(fnStr).toContain('immuneRoleIds');
+    });
+
+    it('RoomScreen.helpers.test.ts covers enableWolfVoteRestrictions', () => {
+      // This is a meta-test: verify that the test file exists and covers this case
+      // The actual test is in RoomScreen.helpers.test.ts
+      // This test just documents the requirement
+
+      // Read the test file to verify coverage exists
+      const fs = require('node:fs');
+      const path = require('node:path');
+      const testFilePath = path.join(__dirname, 'RoomScreen.helpers.test.ts');
+      const testFileContent = fs.readFileSync(testFilePath, 'utf-8');
+
+      // Must have the test describe block
+      expect(testFileContent).toContain('enableWolfVoteRestrictions option (wolf meeting vote)');
+      // Must test spiritKnight disabled
+      expect(testFileContent).toContain('spiritKnight');
+      // Must test wolfQueen disabled
+      expect(testFileContent).toContain('wolfQueen');
+    });
+  });
+});
