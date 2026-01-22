@@ -311,6 +311,21 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     case 'RESTART_GAME':
       return handleRestartGame(state);
 
+    case 'UPDATE_TEMPLATE': {
+      // 更新模板（仅在 unseated 状态允许）
+      const newTemplateRoles = action.payload.templateRoles;
+      const newPlayers: GameState['players'] = {};
+      for (let i = 0; i < newTemplateRoles.length; i++) {
+        newPlayers[i] = null;
+      }
+      return {
+        ...state,
+        templateRoles: newTemplateRoles,
+        players: newPlayers,
+        status: 'unseated',
+      };
+    }
+
     case 'PLAYER_JOIN':
       return handlePlayerJoin(state, action);
 

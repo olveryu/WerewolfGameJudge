@@ -9,9 +9,10 @@ import type {
   StartGameIntent,
   StartNightIntent,
   RestartGameIntent,
+  UpdateTemplateIntent,
 } from '../intents/types';
 import type { HandlerContext, HandlerResult } from './types';
-import type { AssignRolesAction, StartNightAction, RestartGameAction } from '../reducer/types';
+import type { AssignRolesAction, StartNightAction, RestartGameAction, UpdateTemplateAction } from '../reducer/types';
 import { shuffleArray } from '../../../utils/shuffle';
 import type { RoleId } from '../../../models/roles';
 import { NIGHT_STEPS } from '../../../models/roles/spec/nightSteps';
@@ -250,6 +251,56 @@ export function handleRestartGame(
 
   const action: RestartGameAction = {
     type: 'RESTART_GAME',
+  };
+
+  return {
+    success: true,
+    actions: [action],
+    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+  };
+}
+
+/**
+ * 处理更新模板（仅 unseated 状态）
+ *
+ * Host 编辑房间配置时调用
+ */
+export function handleUpdateTemplate(
+  intent: UpdateTemplateIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const { state, isHost } = context;
+
+  // 验证：仅主机可操作
+  if (!isHost) {
+    return {
+      success: false,
+      reason: 'host_only',
+      actions: [],
+    };
+  }
+
+  // 验证：state 存在
+  if (!state) {
+    return {
+      success: false,
+      reason: 'no_state',
+      actions: [],
+    };
+  }
+
+  // 验证：游戏状态必须是 unseated
+  if (state.status !== 'unseated') {
+    return {
+      success: false,
+      reason: 'invalid_status',
+      actions: [],
+    };
+  }
+
+  const action: UpdateTemplateAction = {
+    type: 'UPDATE_TEMPLATE',
+    payload: { templateRoles: intent.payload.templateRoles },
   };
 
   return {

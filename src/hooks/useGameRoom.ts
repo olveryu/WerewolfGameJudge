@@ -1,18 +1,17 @@
 /**
- * useGameRoom - Hook for managing game room with new Broadcast architecture
+ * useGameRoom - Hook for managing game room with v2 Broadcast architecture
  *
- * Phase 1: 使用 v2 facade 处理房间生命周期和座位操作
+ * PR8: 完全切换到 v2 facade，不再依赖 legacy GameStateService
  *
  * This hook combines:
- * - V2GameFacade (via useGameFacade) for room/seating
+ * - V2GameFacade (via useGameFacade) for all game operations
  * - SimplifiedRoomService (for DB)
- * - Legacy GameStateService (for Night-1, to be migrated in Phase 2)
  *
  * Host device is the Single Source of Truth for all game state.
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { GameStateService, LocalGameState } from '../services/GameStateService';
+import type { LocalGameState } from '../services/types/GameStateTypes';
 import { GameStatus } from '../services/types/GameStateTypes';
 import { SimplifiedRoomService, RoomRecord } from '../services/SimplifiedRoomService';
 import { BroadcastService, type ConnectionStatus } from '../services/BroadcastService';
@@ -133,7 +132,6 @@ export const useGameRoom = (): UseGameRoomResult => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [stateRevision, setStateRevision] = useState(0);
 
-  const gameStateService = useRef(GameStateService.getInstance());
   const roomService = useRef(SimplifiedRoomService.getInstance());
   const authService = useRef(AuthService.getInstance());
   const broadcastService = useRef(BroadcastService.getInstance());
@@ -405,7 +403,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   const requestSnapshot = useCallback(async (): Promise<boolean> => {
     try {
       setConnectionStatus('syncing');
-      const result = await gameStateService.current.requestSnapshot();
+      const result = await facade.requestSnapshot();
       if (result) {
         setConnectionStatus('live');
       } else {
@@ -417,62 +415,80 @@ export const useGameRoom = (): UseGameRoomResult => {
       setConnectionStatus('disconnected');
       return false;
     }
-  }, []);
+  }, [facade]);
 
   // Update template (host only)
   const updateTemplate = useCallback(
     async (template: GameTemplate): Promise<void> => {
       if (!isHost) return;
-      await gameStateService.current.updateTemplate(template);
+      await facade.updateTemplate(template);
     },
-    [isHost],
+    [isHost, facade],
   );
 
   // Assign roles (host only)
   const assignRoles = useCallback(async (): Promise<void> => {
     if (!isHost) return;
-    await gameStateService.current.assignRoles();
-  }, [isHost]);
+    await facade.assignRoles();
+  }, [isHost, facade]);
 
-  // Start game (host only)
+  // Start game (host only) - now uses startNight
   const startGame = useCallback(async (): Promise<void> => {
     if (!isHost) return;
-    await gameStateService.current.startGame();
-  }, [isHost]);
+    await facade.startNight();
+  }, [isHost, facade]);
 
   // Restart game (host only)
   const restartGame = useCallback(async (): Promise<void> => {
     if (!isHost) return;
-    await gameStateService.current.restartGame();
-  }, [isHost]);
+    await facade.restartGame();
+  }, [isHost, facade]);
 
   // Mark role as viewed
   const viewedRole = useCallback(async (): Promise<void> => {
-    await gameStateService.current.playerViewedRole();
-  }, []);
+    const seat = mySeatNumber;
+    if (seat === null) return;
+    await facade.markViewedRole(seat);
+  }, [mySeatNumber, facade]);
 
   // Submit action
-  const submitAction = useCallback(async (target: number | null, extra?: any): Promise<void> => {
-    await gameStateService.current.submitAction(target, extra);
-  }, []);
+  const submitAction = useCallback(
+    async (target: number | null, extra?: unknown): Promise<void> => {
+      const seat = mySeatNumber;
+      const role = myRole;
+      if (seat === null || !role) return;
+      await facade.submitAction(seat, role, target, extra);
+    },
+    [mySeatNumber, myRole, facade],
+  );
 
   // Submit wolf vote
-  const submitWolfVote = useCallback(async (target: number): Promise<void> => {
-    await gameStateService.current.submitWolfVote(target);
-  }, []);
+  const submitWolfVote = useCallback(
+    async (target: number): Promise<void> => {
+      const seat = mySeatNumber;
+      if (seat === null) return;
+      await facade.submitWolfVote(seat, target);
+    },
+    [mySeatNumber, facade],
+  );
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
   const submitRevealAck = useCallback(
     async (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot'): Promise<void> => {
-      await gameStateService.current.submitRevealAck(role);
+      await facade.submitRevealAck(role);
     },
-    [],
+    [facade],
   );
 
-  // Get last night info
+  // Get last night info - now derived from gameState
   const getLastNightInfo = useCallback((): string => {
-    return gameStateService.current.getLastNightInfo();
-  }, []);
+    if (!gameState) return '无信息';
+    // v2: deaths field is in BroadcastGameState as optional
+    const deaths = (gameState as { deaths?: number[] }).deaths;
+    if (!deaths || deaths.length === 0) return '昨夜平安夜';
+    const deathList = deaths.map((d: number) => (d + 1).toString() + '号').join(', ');
+    return '昨夜死亡: ' + deathList;
+  }, [gameState]);
 
   // Check if a wolf has voted
   const hasWolfVotedFn = useCallback(

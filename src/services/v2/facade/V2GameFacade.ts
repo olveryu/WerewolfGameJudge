@@ -71,6 +71,10 @@ export class V2GameFacade implements IGameFacade {
     });
   }
 
+  getState(): BroadcastGameState | null {
+    return this.store.getState();
+  }
+
   // =========================================================================
   // Identity (从 store 派生，不自己维护)
   // =========================================================================
@@ -231,12 +235,20 @@ export class V2GameFacade implements IGameFacade {
     return hostActions.assignRoles(this.getHostActionsContext());
   }
 
+  async updateTemplate(template: GameTemplate): Promise<{ success: boolean; reason?: string }> {
+    return hostActions.updateTemplate(this.getHostActionsContext(), template);
+  }
+
   async markViewedRole(seat: number): Promise<{ success: boolean; reason?: string }> {
     return hostActions.markViewedRole(this.getHostActionsContext(), seat);
   }
 
   async startNight(): Promise<{ success: boolean; reason?: string }> {
     return hostActions.startNight(this.getHostActionsContext());
+  }
+
+  async restartGame(): Promise<{ success: boolean; reason?: string }> {
+    return hostActions.restartGame(this.getHostActionsContext());
   }
 
   // =========================================================================
@@ -257,6 +269,47 @@ export class V2GameFacade implements IGameFacade {
     targetSeat: number,
   ): Promise<{ success: boolean; reason?: string }> {
     return hostActions.submitWolfVote(this.getHostActionsContext(), voterSeat, targetSeat);
+  }
+
+  /**
+   * 提交 reveal 确认（seer/psychic/gargoyle/wolfRobot）
+   *
+   * PR8: 这是一个 no-op 占位符，因为 reveal ack 已在 BroadcastGameState 中处理
+   * 实际确认逻辑由 UI 层读取 state 并直接显示
+   */
+  async submitRevealAck(
+    _role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot',
+  ): Promise<{ success: boolean; reason?: string }> {
+    // Reveal ACK 是 UI 层行为，不需要 Host 处理
+    // 状态已通过 BroadcastGameState 广播
+    return { success: true };
+  }
+
+  // =========================================================================
+  // Sync
+  // =========================================================================
+
+  /**
+   * Player: 请求状态快照
+   *
+   * PR8: Player 发送 REQUEST_STATE 消息给 Host
+   */
+  async requestSnapshot(): Promise<boolean> {
+    if (this.isHost) {
+      // Host 不需要请求快照
+      return true;
+    }
+
+    const uid = this.myUid;
+    if (!uid) return false;
+
+    try {
+      const reqMsg: PlayerMessage = { type: 'REQUEST_STATE', uid };
+      await this.broadcastService.sendToHost(reqMsg);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   // =========================================================================

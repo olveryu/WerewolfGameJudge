@@ -27,6 +27,13 @@ export interface RestartGameAction {
   type: 'RESTART_GAME';
 }
 
+export interface UpdateTemplateAction {
+  type: 'UPDATE_TEMPLATE';
+  payload: {
+    templateRoles: RoleId[];
+  };
+}
+
 // =============================================================================
 // 座位管理动作
 // =============================================================================
@@ -218,6 +225,7 @@ export type StateAction =
   // 生命周期
   | InitializeGameAction
   | RestartGameAction
+  | UpdateTemplateAction
   // 座位
   | PlayerJoinAction
   | PlayerLeaveAction

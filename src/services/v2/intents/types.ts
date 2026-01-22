@@ -62,6 +62,18 @@ export interface RestartGameIntent {
   type: 'RESTART_GAME';
 }
 
+/**
+ * 更新模板 Intent（Host-only）
+ * 前置条件：status === 'unseated'
+ * 用于 Host 编辑房间配置
+ */
+export interface UpdateTemplateIntent {
+  type: 'UPDATE_TEMPLATE';
+  payload: {
+    templateRoles: RoleId[];
+  };
+}
+
 // =============================================================================
 // 夜晚行动 Intent
 // =============================================================================
@@ -178,6 +190,7 @@ export type GameIntent =
   | StartGameIntent
   | StartNightIntent
   | RestartGameIntent
+  | UpdateTemplateIntent
   | SubmitActionIntent
   | SubmitWolfVoteIntent
   | ViewedRoleIntent

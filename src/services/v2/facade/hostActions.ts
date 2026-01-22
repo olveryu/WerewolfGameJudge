@@ -25,11 +25,14 @@ import type {
   AdvanceNightIntent,
   EndNightIntent,
   SetAudioPlayingIntent,
+  RestartGameIntent,
+  UpdateTemplateIntent,
 } from '../intents/types';
 import type { StateAction } from '../reducer/types';
 import type { RoleId } from '../../../models/roles';
+import type { GameTemplate } from '../../../models/Template';
 
-import { handleAssignRoles, handleStartNight } from '../handlers/gameControlHandler';
+import { handleAssignRoles, handleStartNight, handleRestartGame, handleUpdateTemplate } from '../handlers/gameControlHandler';
 import {
   handleViewedRole,
   handleSubmitAction,
@@ -192,6 +195,44 @@ export async function startNight(
   const result = handleStartNight(intent, context);
 
   return processHandlerResult(ctx, result, { logPrefix: 'startNight' });
+}
+
+/**
+ * Host: 更新模板
+ *
+ * PR8: 仅在 unseated 状态允许
+ */
+export async function updateTemplate(
+  ctx: HostActionsContext,
+  template: GameTemplate,
+): Promise<{ success: boolean; reason?: string }> {
+  v2FacadeLog.debug('updateTemplate called', { isHost: ctx.isHost });
+
+  const intent: UpdateTemplateIntent = {
+    type: 'UPDATE_TEMPLATE',
+    payload: { templateRoles: template.roles },
+  };
+  const context = buildHandlerContext(ctx);
+  const result = handleUpdateTemplate(intent, context);
+
+  return processHandlerResult(ctx, result, { logPrefix: 'updateTemplate' });
+}
+
+/**
+ * Host: 重新开始游戏
+ *
+ * PR8: RESTART_GAME（任意状态 → unseated）
+ */
+export async function restartGame(
+  ctx: HostActionsContext,
+): Promise<{ success: boolean; reason?: string }> {
+  v2FacadeLog.debug('restartGame called', { isHost: ctx.isHost });
+
+  const intent: RestartGameIntent = { type: 'RESTART_GAME' };
+  const context = buildHandlerContext(ctx);
+  const result = handleRestartGame(intent, context);
+
+  return processHandlerResult(ctx, result, { logPrefix: 'restartGame' });
 }
 
 /**

@@ -8,7 +8,7 @@
  *    pass through the reason from facade without modification.
  */
 
-import { renderHook, act, waitFor } from '@testing-library/react-native';
+import { renderHook, act } from '@testing-library/react-native';
 import React from 'react';
 import { SimplifiedRoomService } from '../../services/SimplifiedRoomService';
 import { AuthService } from '../../services/AuthService';
@@ -173,6 +173,7 @@ describe('useGameRoom - ACK reason transparency', () => {
   // Create a mock facade for testing
   const createMockFacade = (overrides: Partial<IGameFacade> = {}): IGameFacade => ({
     addListener: jest.fn().mockReturnValue(() => {}),
+    getState: jest.fn().mockReturnValue(null),
     isHostPlayer: jest.fn().mockReturnValue(false),
     getMyUid: jest.fn().mockReturnValue('player-uid'),
     getMySeatNumber: jest.fn().mockReturnValue(null),
@@ -184,6 +185,18 @@ describe('useGameRoom - ACK reason transparency', () => {
     takeSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
     leaveSeat: jest.fn().mockResolvedValue(true),
     leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
+    assignRoles: jest.fn().mockResolvedValue({ success: true }),
+    updateTemplate: jest.fn().mockResolvedValue({ success: true }),
+    startNight: jest.fn().mockResolvedValue({ success: true }),
+    restartGame: jest.fn().mockResolvedValue({ success: true }),
+    markViewedRole: jest.fn().mockResolvedValue({ success: true }),
+    submitAction: jest.fn().mockResolvedValue({ success: true }),
+    submitWolfVote: jest.fn().mockResolvedValue({ success: true }),
+    submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
+    advanceNight: jest.fn().mockResolvedValue({ success: true }),
+    endNight: jest.fn().mockResolvedValue({ success: true }),
+    setAudioPlaying: jest.fn().mockResolvedValue({ success: true }),
+    requestSnapshot: jest.fn().mockResolvedValue(true),
     ...overrides,
   });
 
