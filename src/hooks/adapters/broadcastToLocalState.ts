@@ -15,6 +15,16 @@ import { GameStatus } from '../../services/types/GameStateTypes';
 import { createTemplateFromRoles } from '../../models/Template';
 import type { RoleId } from '../../models/roles';
 import type { RoleAction } from '../../models/actions/RoleAction';
+import {
+  makeActionMagicianSwap,
+  makeActionTarget,
+  makeActionWitch,
+} from '../../models/actions/RoleAction';
+import {
+  makeWitchNone,
+  makeWitchPoison,
+  makeWitchSave,
+} from '../../models/actions/WitchAction';
 
 /**
  * 将 BroadcastPlayer 转换为 LocalPlayer
@@ -52,11 +62,93 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
   // 2. templateRoles → template (使用 createTemplateFromRoles)
   const template = createTemplateFromRoles(broadcast.templateRoles);
 
-  // 3. actions: ProtocolAction[] → Map<RoleId, RoleAction>
-  // Phase 1 只做 seating，actions 可以为空 Map
-  // Night-1 时再完善此转换
+  // 3. actions: ProtocolAction[]  Map<RoleId, RoleAction>
+  // This is an adapter-only mapping so the existing UI can keep reading
+  // LocalGameState.actions (legacy-compatible) while the on-wire source of truth
+  // remains BroadcastGameState.actions.
+  //
+  // NOTE:
+  // - This mapping is adapter-only (UI compatibility). Game logic must NOT depend on it.
+  // - Some schemas are better represented via other broadcast fields:
+  //   - magicianSwap: uses currentNightResults.swappedSeats (authoritative resolver output)
+  //   - witchAction: uses witchContext + recorded ProtocolAction target
   const actionsMap = new Map<RoleId, RoleAction>();
-  // Note: ProtocolAction[] → Map<RoleId, RoleAction> 转换将在 Night-1 实现
+
+  const actions = broadcast.actions ?? [];
+  const findBySchemaId = (schemaId: string) => actions.find((a) => a.schemaId === schemaId);
+
+  // ---------------------------------------------------------------------------
+  // Target-based chooseSeat schemas
+  // ---------------------------------------------------------------------------
+  const schemaToRoleTarget: Array<{ schemaId: string; roleId: RoleId }> = [
+    { schemaId: 'seerCheck', roleId: 'seer' },
+    { schemaId: 'guardProtect', roleId: 'guard' },
+    { schemaId: 'psychicCheck', roleId: 'psychic' },
+    { schemaId: 'dreamcatcherDream', roleId: 'dreamcatcher' },
+    { schemaId: 'wolfQueenCharm', roleId: 'wolfQueen' },
+    { schemaId: 'nightmareBlock', roleId: 'nightmare' },
+    { schemaId: 'gargoyleCheck', roleId: 'gargoyle' },
+    { schemaId: 'wolfRobotLearn', roleId: 'wolfRobot' },
+    { schemaId: 'slackerChooseIdol', roleId: 'slacker' },
+  ];
+
+  for (const { schemaId, roleId } of schemaToRoleTarget) {
+    const a = findBySchemaId(schemaId);
+    if (typeof a?.targetSeat === 'number') {
+      actionsMap.set(roleId, makeActionTarget(a.targetSeat));
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Confirm schemas - representing as "none" is enough for most UI compatibility.
+  // (The actual effect is provided via confirmStatus broadcast fields.)
+  // ---------------------------------------------------------------------------
+  if (findBySchemaId('hunterConfirm')) {
+    actionsMap.set('hunter', { kind: 'none' });
+  }
+  if (findBySchemaId('darkWolfKingConfirm')) {
+    actionsMap.set('darkWolfKing', { kind: 'none' });
+  }
+
+  // ---------------------------------------------------------------------------
+  // magicianSwap - prefer resolver output (swappedSeats) over encoded targets.
+  // ---------------------------------------------------------------------------
+  if (Array.isArray(broadcast.currentNightResults?.swappedSeats)) {
+    const [firstSeat, secondSeat] = broadcast.currentNightResults.swappedSeats;
+    if (typeof firstSeat === 'number' && typeof secondSeat === 'number') {
+      actionsMap.set('magician', makeActionMagicianSwap(firstSeat, secondSeat));
+    }
+  } else {
+    // Fallback: if action exists but swappedSeats not present, do nothing.
+    // (We avoid fabricating swap targets in adapter.)
+  }
+
+  // ---------------------------------------------------------------------------
+  // witchAction (compound)
+  // v2 stores a single ProtocolAction with targetSeat (either save target or poison target).
+  // We need witchContext to disambiguate save vs poison.
+  // ---------------------------------------------------------------------------
+  const witchAction = findBySchemaId('witchAction');
+  if (witchAction) {
+    const ctx = broadcast.witchContext;
+    const targetSeat = witchAction.targetSeat;
+
+    if (typeof targetSeat !== 'number') {
+      actionsMap.set('witch', makeActionWitch(makeWitchNone()));
+    } else if (ctx && targetSeat === ctx.killedIndex && ctx.canSave) {
+      actionsMap.set('witch', makeActionWitch(makeWitchSave(targetSeat)));
+    } else {
+      actionsMap.set('witch', makeActionWitch(makeWitchPoison(targetSeat)));
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // wolfKill (wolfVote)
+  // UI vote status is primarily driven by broadcast.wolfVotes, so we don't
+  // force an action mapping here.
+  // ---------------------------------------------------------------------------
+  // Note: ProtocolAction[] → Map<RoleId, RoleAction> 仅在 adapter 层实现；
+  // wolfVote 相关以 wolfVotes 为准。
 
   // 4. wolfVotes: Record<string, number> → Map<number, number>
   const wolfVotesMap = new Map<number, number>();
