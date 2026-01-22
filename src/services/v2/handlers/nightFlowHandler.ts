@@ -164,11 +164,24 @@ export function handleAdvanceNight(
       killedIndex = wolfKillTarget ?? -1;
     }
 
+    // 查找女巫座位，用于 notSelf 约束
+    let witchSeat = -1;
+    for (const [seatStr, player] of Object.entries(state.players)) {
+      if (player?.role === 'witch') {
+        witchSeat = Number.parseInt(seatStr, 10);
+        break;
+      }
+    }
+
+    // Schema-first: witchAction.steps[0] (save) 有 notSelf 约束
+    // canSave 必须为 false 当：(1) 没有被杀者 或 (2) 被杀者是女巫自己
+    const canSave = killedIndex >= 0 && killedIndex !== witchSeat;
+
     const setWitchContextAction: SetWitchContextAction = {
       type: 'SET_WITCH_CONTEXT',
       payload: {
         killedIndex,
-        canSave: killedIndex >= 0, // 只有有被杀者时才能救
+        canSave,
         canPoison: true, // Night-1 总是可以毒
       },
     };
@@ -451,4 +464,157 @@ export function handleSetAudioPlaying(
     actions: [setAudioAction],
     sideEffects: [{ type: 'BROADCAST_STATE' }],
   };
+}
+
+// =============================================================================
+// Night Progression Evaluator (PR-refactor: 幂等推进决策)
+// =============================================================================
+
+/**
+ * 夜晚推进决策结果
+ */
+export type NightProgressionDecision =
+  | { action: 'none'; reason: string }
+  | { action: 'advance'; reason: string }
+  | { action: 'end_night'; reason: string };
+
+/**
+ * 幂等推进状态追踪器
+ *
+ * 用于防止重复推进：同一 {revision, currentStepId, currentActionerIndex} 组合最多推进一次。
+ */
+export interface ProgressionTracker {
+  lastProcessedKey: string | null;
+}
+
+/**
+ * 创建推进追踪器
+ */
+export function createProgressionTracker(): ProgressionTracker {
+  return { lastProcessedKey: null };
+}
+
+/**
+ * 基于 state 事实生成幂等 key
+ *
+ * 使用 {currentActionerIndex, currentStepId, actionsCount, wolfVotesCount} 组合
+ * 确保同一游戏状态最多推进一次
+ */
+function buildProgressionKey(state: NonNullState): string {
+  const actionsCount = state.actions?.length ?? 0;
+  const wolfVotesCount = state.wolfVotes ? Object.keys(state.wolfVotes).length : 0;
+  return `${state.currentActionerIndex}:${state.currentStepId ?? 'null'}:${actionsCount}:${wolfVotesCount}`;
+}
+
+/**
+ * 检查当前步骤的所有必要行动是否已完成
+ *
+ * 判断逻辑：
+ * - wolfKill: 检查所有参与投票的狼人是否都已投票
+ * - 其他步骤: 检查对应角色是否已提交行动
+ */
+function isCurrentStepComplete(state: NonNullState): boolean {
+  const currentStepId = state.currentStepId;
+
+  if (!currentStepId) {
+    // 没有当前步骤，视为"完成"（应该进入 endNight）
+    return true;
+  }
+
+  if (currentStepId === 'wolfKill') {
+    // 狼刀步骤：检查所有参与投票的狼人是否都已投票
+    const wolfVotes = state.wolfVotes ?? {};
+    const votingWolfSeats: number[] = [];
+    for (const [seatStr, player] of Object.entries(state.players)) {
+      // 使用动态 import 避免循环依赖
+      if (player?.role) {
+        const { doesRoleParticipateInWolfVote } = require('../../../models/roles');
+        if (doesRoleParticipateInWolfVote(player.role)) {
+          votingWolfSeats.push(Number.parseInt(seatStr, 10));
+        }
+      }
+    }
+
+    if (votingWolfSeats.length === 0) {
+      // 没有狼人参与投票，视为完成
+      return true;
+    }
+
+    return votingWolfSeats.every((seat) => seat.toString() in wolfVotes);
+  }
+
+  // 其他步骤：检查是否已有对应 schemaId 的 action
+  const actions = state.actions ?? [];
+  return actions.some((a) => a.schemaId === currentStepId);
+}
+
+/**
+ * 评估夜晚推进决策（Host-only, 幂等）
+ *
+ * 基于 BroadcastGameState 事实判断：
+ * 1. 如果 status !== 'ongoing'，返回 none
+ * 2. 如果 isAudioPlaying === true，返回 none
+ * 3. 如果 currentStepId === undefined 且 status === 'ongoing'，返回 end_night
+ * 4. 如果当前步骤的行动已完成，返回 advance
+ * 5. 否则返回 none
+ *
+ * 幂等保护：
+ * - 同一 {revision, currentStepId, currentActionerIndex} 最多推进一次
+ * - 重复调用返回 none + debug log
+ *
+ * @param state - 当前 BroadcastGameState
+ * @param tracker - 幂等追踪器（可选，用于防止重复推进）
+ * @param isHost - 是否为 Host
+ */
+export function evaluateNightProgression(
+  state: NonNullState | null,
+  tracker?: ProgressionTracker,
+  isHost?: boolean,
+): NightProgressionDecision {
+  // Gate: host_only
+  if (isHost === false) {
+    return { action: 'none', reason: 'not_host' };
+  }
+
+  // Gate: no_state
+  if (!state) {
+    return { action: 'none', reason: 'no_state' };
+  }
+
+  // Gate: status !== 'ongoing'
+  if (state.status !== 'ongoing') {
+    return { action: 'none', reason: 'not_ongoing' };
+  }
+
+  // Gate: audio playing
+  if (state.isAudioPlaying) {
+    return { action: 'none', reason: 'audio_playing' };
+  }
+
+  // 幂等检查
+  if (tracker) {
+    const key = buildProgressionKey(state);
+    if (tracker.lastProcessedKey === key) {
+      return { action: 'none', reason: 'already_processed' };
+    }
+  }
+
+  // 判断是否需要 endNight
+  if (state.currentStepId === undefined) {
+    // 没有下一步了，应该结束夜晚
+    if (tracker) {
+      tracker.lastProcessedKey = buildProgressionKey(state);
+    }
+    return { action: 'end_night', reason: 'no_more_steps' };
+  }
+
+  // 判断当前步骤是否完成
+  if (isCurrentStepComplete(state)) {
+    if (tracker) {
+      tracker.lastProcessedKey = buildProgressionKey(state);
+    }
+    return { action: 'advance', reason: 'step_complete' };
+  }
+
+  return { action: 'none', reason: 'step_not_complete' };
 }

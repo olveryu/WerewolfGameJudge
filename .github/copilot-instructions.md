@@ -5,11 +5,9 @@
 - **Host 是唯一的游戏逻辑权威。** Supabase 只负责 transport/discovery/identity（传输/发现/身份）。
 - **离线本地玩法。** 这是本地/离线的游戏辅助；Host 设备同时也是玩家，不是单独裁判机。
 - **仅 Night-1 范围。** 绝对不要加入跨夜状态/规则。
-- **所有状态都通过 `BroadcastGameState` 广播。** 所有游戏信息（包括角色上下文，如女巫 `killedIndex`、预言家 reveal）都必须公开广播在 `BroadcastGameState` 中；UI 根据玩家角色过滤显示。这能简化架构，并消除 Host/Player 状态不同步问题。
-- **迁移期协议扩展护栏（避免遗忘）。** 如果需要在 `BroadcastGameState` 中新增字段：
-  - 迁移期（v1/v2/legacy 并存）**必须先做成 `?` 可选字段**，并确保缺字段时不会导致崩溃（容错由读取方处理）。
-  - TODO(remove by 2026-03-01): 当 legacy 与切换开关移除、v2 成为唯一路径后，评估把这些字段收紧为必填或移除此迁移期规则，并更新合约测试。
-- **单一真相（Single source of truth）。** 禁止并行维护顺序表/map/双写字段导致 drift。
+- **`BroadcastGameState` 是唯一且完整的单一真相（Single source of truth）。**
+  - 所有游戏信息（包括角色上下文，如女巫 `killedIndex`、预言家 reveal）都必须公开广播在 `BroadcastGameState` 中；UI 再按 `myRole` 过滤显示。
+  - 禁止并行维护顺序表/map/双写字段导致 drift。
 - **优先使用成熟库而不是自研。** 新增能力（日志、校验等）先找成熟 npm 库；只有在库不合适或过度复杂时才写自定义代码。
 - **单一职责原则（SRP）。** 每个 class/module 必须且只能负责一件事。禁止 God Class（多个不相关职责揉在一起）。若单个模块超过 ~400 行或承担多个关注点，必须拆分。
 
@@ -123,6 +121,17 @@ UI (从 schema + gameState 推导显示)
 - 禁止手动推进 index（`++` 兜底策略是禁止的）。
 - phase 不匹配事件必须是幂等 no-op（仅 debug）。
 
+#### 自动推进（auto-advance）硬性护栏（MUST follow）
+
+- **禁止在 Facade / UI / submit 成功回调里做“自动推进夜晚”决策**（例如 `submitAction()` 成功后直接调用 `advanceNight()`）。
+  - 这会导致推进权威分裂、重入（double-advance）、以及 Host/Player drift。
+- 自动推进如果需要存在：
+  - **必须集中在 Host-only 的 night flow 控制器/handler**（例如 `NightFlowController` / `nightFlowHandler`），由它基于 `BroadcastGameState` 的事实判断“是否推进/推进到哪一步/是否 endNight”。
+  - **必须幂等**：同一 `{revision, currentStepId}` 组合最多推进一次；重复触发必须 safe no-op（仅 debug）。
+- Facade 允许做的事情仅限：
+  - “发起 intent / request”（transport + orchestration），例如向 Host 发送 `ADVANCE_NIGHT` intent；
+  - **不得**自行在 Facade 层计算“all wolves voted / action succeeded ⇒ should advance”。
+
 ### 表驱动 NightPlan 的单一真相（single-source-of-truth）
 
 - Night-1 的推进顺序必须来自**单一表驱动计划**。
@@ -153,12 +162,10 @@ UI (从 schema + gameState 推导显示)
   - 优先修复 Host 的 setAudioPlaying(false) 兜底链路
   - 并补 E2E/contract fail-fast，禁止靠超时隐藏问题
 
-### StepSpec 的 id/schemaId 去重（迁移规则）
+### StepSpec id 规则
 
-- 如果 `StepSpec` 同时存在 `id` 和 `schemaId`，这只能是迁移期产物。
-  - `schemaId` 必须加 `@deprecated` + `TODO(remove by YYYY-MM-DD)`。
-  - 保留合约测试强制 `step.id === step.schemaId`。
-- 最终形态：只保留 `id: SchemaId`。
+- Step id 必须是稳定的 `SchemaId`。
+- 禁止使用 UI 文案作为逻辑 key；测试必须断言稳定 identifier。
 
 ---
 
@@ -204,15 +211,13 @@ UI (从 schema + gameState 推导显示)
 - “临时” feature-flag 导出破坏模块系统
 - v2 在运行时意外依赖 legacy
 
-### `BroadcastGameState` 必须保持为完整、唯一的 state
+### 单一真相：`BroadcastGameState`
 
-- **绝对规则：** `BroadcastGameState` 是唯一且完整的单一真相。
-  - 禁止在任何 v2 state 类型中引入 `HostOnlyState`、`hostOnly` 字段或“不会广播”的字段。
-  - Host 如果执行需要某字段，那它就必须属于 `BroadcastGameState`。
-  - 隐私是 UI 层问题（按 `myRole` / `isHost` 过滤显示），不是数据模型问题。
-- **禁止双 state shape：** Host 与 Player 内存中的 state shape 必须完全一致。
-- **禁止派生字段漂移：** 计算/派生字段必须从同一份 state 计算，或只写入 `BroadcastGameState` 一次。
-  - 禁止保留 Player 没有的“Host 本地计算副本”。
+- 禁止在任何 v2 state 类型中引入 `HostOnlyState`、`hostOnly` 字段或“不会广播”的字段。
+- Host 如果执行需要某字段，那它就必须属于 `BroadcastGameState`。
+- 隐私是 UI 层问题（按 `myRole` / `isHost` 过滤显示），不是数据模型问题。
+- Host 与 Player 内存中的 state shape 必须完全一致。
+- 计算/派生字段必须从同一份 state 计算，或只写入 `BroadcastGameState` 一次（禁止双写/漂移）。
 
 ### Player 端禁止运行业务逻辑
 
@@ -253,9 +258,9 @@ UI (从 schema + gameState 推导显示)
   - `DeathCalculator`（纯计算）
 - 只允许把即将被替换的编排/胶水代码移动到 `legacy/`（例如 God service / 旧 transport wrapper / persistence glue）。
 
-### 迁移期间 wire protocol 必须稳定（Transport protocol stability）
+### wire protocol 必须稳定（Transport protocol stability）
 
-- v2 迁移期间，on-wire protocol 是稳定的，必须保持兼容：
+- on-wire protocol 是稳定的，必须保持兼容：
   - `HostBroadcast`
   - `PlayerMessage`
   - `BroadcastGameState`
@@ -264,126 +269,59 @@ UI (从 schema + gameState 推导显示)
 
 ---
 
-## 夜晚行动角色检查清单（每个角色都必须遵守）
+## 实现清单（角色 / schema / step / UI 必做）
 
-当实现或修改任意夜晚行动角色时：
+当你新增或修改任意 Night-1 行动角色（含 UI）时，必须同时检查下面这些点：
 
-1. **Nightmare 阻断逻辑**
+1) **Schema-first + Resolver 对齐**
 
-- 每个夜晚行动角色都必须处理被 nightmare 阻断的情况
-- resolver 中检查 `currentNightResults.blockedSeat === actorSeat`
-- 若被阻断：返回 `{ valid: true, result: {} }`（有效但无效果）
+- 输入合法性必须写在 `SCHEMAS[*].constraints`。
+- resolver 的校验必须与 schema constraints 完全一致：
+  - schema 写了 `notSelf` → resolver 必须拒绝自指目标。
+  - schema 允许自指 → resolver 不得擅自拒绝（除非明确文档化 + 测试覆盖）。
 
-2. **上下文必须在 `BroadcastGameState` 中**
-   - 需要上下文的角色必须在 `BroadcastGameState` 里有对应字段：
-     - `witch` → `witchContext: { killedIndex, canSave, canPoison }`
-     - `hunter` / `darkWolfKing` → `confirmStatus: { role, canShoot }`
-   - 需要 reveal 的角色必须把结果写入 `BroadcastGameState`：
-     - `seer` → `seerReveal: { targetSeat, result }`
-     - `psychic` → `psychicReveal: { targetSeat, result }`
-     - 等等
+2) **Nightmare 阻断**
 
-3. **UI 只从 gameState 读**
+- resolver 必须检查 `currentNightResults.blockedSeat === actorSeat`。
+- 若被阻断：返回 `{ valid: true, result: {} }`（有效但无效果）。
 
-- Client 从 `gameState.witchContext`、`gameState.seerReveal` 等字段读取
-- UI 根据 `myRole` 决定显示内容
+3) **上下文/结果必须写入 `BroadcastGameState`（公开广播）**
 
-4. **与 schema 对齐**
+- 需要上下文：必须加到 `BroadcastGameState`（例如 `witchContext`、`confirmStatus`）。
+- 需要 reveal：必须把结果写回 `BroadcastGameState`（例如 `seerReveal`、`psychicReveal`）。
+- UI 只从 `gameState.*` 读取，并按 `myRole` 过滤显示。
 
-- resolver 的校验必须与 schema constraints 完全一致
-- 如果 schema 写了 `notSelf`，resolver 必须拒绝自指目标
+4) **三层表驱动：角色/协议/步骤**
 
----
+- 角色加入 `ROLE_SPECS`（`src/models/roles/spec/specs.ts`）。
+- 行动协议在 `SCHEMAS`（`src/models/roles/spec/schemas.ts`）。
+- Night-1 顺序与音频在 `NIGHT_STEPS`（`src/models/roles/spec/nightSteps.ts`），step id 必须是稳定 `SchemaId`。
 
-## Tests & quality gates（测试与质量门禁）
+5) **狼人相关 UI/规则（schema 驱动）**
 
-### Linting（ESLint + Prettier）
-
-- **每次修改代码后**，运行 `npm run lint:fix` 与 `npm run format:write`，确保 0 errors / 0 warnings。
-- **未使用变量（unused variables）**：用 `_` 前缀（例如 `_unusedParam`）以满足 `@typescript-eslint/no-unused-vars`。
-- **React hooks exhaustive-deps**：
-  - 如果你刻意省略某个 dependency：添加 `// eslint-disable-next-line react-hooks/exhaustive-deps`，并写明原因。
-  - 如果缺少 dependency：把它补到依赖数组。
-  - 如果 dependency 不需要：把它从依赖数组移除。
-- **不要全局禁用 lint 规则**（除非明确批准）。优先使用带理由的单行 disable。
-- **Prettier**：使用默认配置。提交前运行 `npm run format:write`。
-
-### Jest 合约测试（表驱动 Night 必须）
-
-维护/更新合约测试以保证：
-
-- `NIGHT_STEPS` 引用有效性（`roleId` 存在；`SchemaId` 存在）
-- 顺序确定性（step ids 的 snapshot）
-- 唯一性（step ids 不重复）
-- Night-1-only 红线
-- audioKey 非空
-
-### E2E 规则（Playwright）
-
-- E2E 只做 smoke，不要把它当规则裁判。
-- 运行核心 e2e 时必须 `workers=1`；绝对不要并行跑多个 e2e 进程。
-- 房间就绪必须使用 `waitForRoomScreenReady()`（加入者必须到达 `🟢 已连接` 或完成“强制同步”）。
-
-### UI 测试稳定性（Jest + RNTL）
-
-- 优先使用 `getByTestId` / `findByTestId`。不要新增 `UNSAFE_*`。
-- 将 testIDs 集中维护在 `src/testids.ts`，并通过兼容映射保留 legacy IDs。
+- UI 从 schema 推导 `showWolves`：`schema?.kind === 'wolfVote' && schema.meeting.canSeeEachOther`。
+- 禁止使用 step-level visibility 字段。
+- `wolfKillDisabled` 单一真相：在 `handlePlayerAction` 中当 nightmare 阻断狼时设置，并在 `toBroadcastState` 中直接读取。
 
 ---
 
-## Checklists（检查清单）
+## 交付与门禁（必须执行）
 
-### 新增角色 / schema / step
+### 质量门禁（Quality gates）
 
-- 将角色加入 `ROLE_SPECS`（`src/models/roles/spec/specs.ts`），并保持 `RoleId` 从 registry keys 推导。
-- 如果该角色在 Night-1 行动：
-  - 在 `SCHEMAS`（`src/models/roles/spec/schemas.ts`）中新增/扩展 schema-first 约束
-  - 在 `NIGHT_STEPS`（`src/models/roles/spec/nightSteps.ts`）中加入 step，包含 `id: SchemaId` 与 `audioKey`
-  - 在 `src/services/night/resolvers/**` 下实现/更新 resolver（与 schema 对齐）
-  - **若可被 nightmare 阻断：**在 resolver 中加入阻断检查（`currentNightResults.blockedSeat === actorSeat`）
-  - **若回合开始需要上下文：**为 `BroadcastGameState` 增加字段 + Host 设置 + UI 读取
-  - **若行动后需要 reveal：**为 `BroadcastGameState` 增加结果字段
-  - 更新合约测试（顺序 snapshot + 引用有效性 + 红线）
+- 修改代码后，必须跑 ESLint/Prettier（以项目既有 npm scripts 为准），确保 0 errors。
+- 合约测试必须覆盖：
+  - `NIGHT_STEPS` 引用有效性（`roleId`、`SchemaId`）
+  - step ids 顺序确定性（snapshot）与唯一性
+  - Night-1-only 红线
+  - audioKey 非空
+- E2E 只做 smoke：核心 e2e 必须 `workers=1`，房间就绪必须用 `waitForRoomScreenReady()`。
 
-### 狼人投票的 schema 驱动 UI
+### 修复与审计规范
 
-- **UI 从 schema 推导 `showWolves`：** `schema?.kind === 'wolfVote' && schema.meeting.canSeeEachOther`
-- **不要使用 step-level visibility 字段。** 所有可见性逻辑都来自 schema。
-- **`wolfKillDisabled` 单一真相：**在 `handlePlayerAction` 中当 nightmare 阻断狼时设置，并在 `toBroadcastState` 中直接读取。
+- 修 bug 优先根因修复；修复后回滚基于错误假设的过时 patch，避免补丁叠补丁。
+- 禁止无证据宣称“已修复”。非 trivial 必须给：commit hash、修改文件、关键符号、行为变化、验证结果（typecheck/Jest/e2e）。
 
----
+### 终端输出规范
 
-## 修复策略（Fix strategy）
-
-### 优先根因修复，避免补丁叠补丁
-
-- 修 bug 时，优先做**单一、完整的根因修复**，不要堆多个小补丁/创可贴。
-- 如果修复需要同时改多个文件/层级，这是可以接受的——整体修复优于零散 workaround。
-- 除非被外部依赖阻塞或明确达成一致，否则不要加“临时”或“部分”修复。
-
-### 找到真正根因后，回滚过时/错误的修复
-
-- 一旦定位并修复**真正根因**：
-  1. 审计之前基于错误假设做出的 patch。
-  2. **完整回滚**这些过时 patch（不要留下死代码/误导代码）。
-  3. 在 commit message 中说明回滚了哪些提交、原因是什么。
-- 一个干净的“正确修复 + 回滚”优于层层叠加“以防万一”的代码。
-
----
-
-## 报告规范（Reporting discipline）
-
-- 不要在没有证据的情况下宣称“已经改了/已经修了”。
-- 对于非 trivial 的工作，必须报告：
-  - commit hash（或“尚未提交”）
-  - 修改的文件
-  - 关键符号（symbols）变更
-  - 行为变化
-  - 验证运行（typecheck/Jest/e2e）+ 结果
-
----
-
-## 终端命令规则（Terminal command rules）
-
-- **禁止使用 `| head` 或 `| tail` 管道截断输出。** 请直接运行命令以看到完整结果。
-- 如果输出特别长，用 `grep` 过滤关键行，而不是 head/tail。
+- 禁止使用 `| head` / `| tail` 截断输出；输出过长用 `grep` 过滤关键行。
