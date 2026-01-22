@@ -32,13 +32,6 @@ import * as hostActions from './hostActions';
 import * as seatActions from './seatActions';
 import * as messageRouter from './messageRouter';
 
-// 推进评估器（PR-refactor: 集中推进决策）
-import {
-  evaluateNightProgression,
-  createProgressionTracker,
-  type ProgressionTracker,
-} from '../handlers/nightFlowHandler';
-
 export class V2GameFacade implements IGameFacade {
   private static _instance: V2GameFacade | null = null;
 
@@ -50,13 +43,9 @@ export class V2GameFacade implements IGameFacade {
   /** Pending seat action request (Player: waiting for ACK) */
   private readonly pendingSeatAction: { current: PendingSeatAction | null } = { current: null };
 
-  /** 幂等推进追踪器（PR-refactor: 防止重复推进） */
-  private readonly progressionTracker: ProgressionTracker;
-
   private constructor() {
     this.store = new GameStore();
     this.broadcastService = BroadcastService.getInstance();
-    this.progressionTracker = createProgressionTracker();
   }
 
   static getInstance(): V2GameFacade {
@@ -242,30 +231,6 @@ export class V2GameFacade implements IGameFacade {
   // Game Control (委托给 hostActions)
   // =========================================================================
 
-  /**
-   * PR-refactor: 幂等推进评估器
-   *
-   * 基于当前 state 判断是否需要推进夜晚，并执行推进。
-   * 使用 progressionTracker 确保同一状态最多推进一次。
-   *
-   * 这是夜晚流程推进的**唯一入口点**（Single Source of Truth）。
-   */
-  private async evaluateAndExecuteProgression(): Promise<void> {
-    if (!this.isHost) return;
-
-    const state = this.store.getState();
-    const decision = evaluateNightProgression(state, this.progressionTracker, true);
-
-    if (decision.action === 'advance') {
-      await hostActions.advanceNight(this.getHostActionsContext());
-      // 递归评估：advance 后可能需要继续推进或 endNight
-      await this.evaluateAndExecuteProgression();
-    } else if (decision.action === 'end_night') {
-      await hostActions.endNight(this.getHostActionsContext());
-    }
-    // decision.action === 'none': 无需推进
-  }
-
   async assignRoles(): Promise<{ success: boolean; reason?: string }> {
     return hostActions.assignRoles(this.getHostActionsContext());
   }
@@ -322,7 +287,8 @@ export class V2GameFacade implements IGameFacade {
    * - Host: 直接调用 hostActions.submitAction
    * - Player: 发送 PlayerMessage { type: 'ACTION' } 给 Host
    *
-   * PR-refactor: 提交成功后，调用 evaluateNightProgression 判断是否推进
+   * 注：Facade 只负责 transport，不做推进决策。
+   * 推进由 hostActions.submitAction 内部的 handler 返回 sideEffect 触发。
    */
   async submitAction(
     seat: number,
@@ -332,20 +298,7 @@ export class V2GameFacade implements IGameFacade {
   ): Promise<{ success: boolean; reason?: string }> {
     // Host: 直接处理
     if (this.isHost) {
-      const result = await hostActions.submitAction(
-        this.getHostActionsContext(),
-        seat,
-        role,
-        target,
-        extra,
-      );
-
-      // PR-refactor: 成功后评估是否需要推进
-      if (result.success) {
-        await this.evaluateAndExecuteProgression();
-      }
-
-      return result;
+      return hostActions.submitAction(this.getHostActionsContext(), seat, role, target, extra);
     }
 
     // Player: 发送 PlayerMessage 给 Host
@@ -362,7 +315,8 @@ export class V2GameFacade implements IGameFacade {
    * - Host: 直接调用 hostActions.submitWolfVote
    * - Player: 发送 PlayerMessage { type: 'WOLF_VOTE' } 给 Host
    *
-   * PR-refactor: 提交成功后，调用 evaluateNightProgression 判断是否推进
+   * 注：Facade 只负责 transport，不做推进决策。
+   * 推进由 hostActions.submitWolfVote 内部的 handler 返回 sideEffect 触发。
    */
   async submitWolfVote(
     voterSeat: number,
@@ -370,18 +324,7 @@ export class V2GameFacade implements IGameFacade {
   ): Promise<{ success: boolean; reason?: string }> {
     // Host: 直接处理
     if (this.isHost) {
-      const result = await hostActions.submitWolfVote(
-        this.getHostActionsContext(),
-        voterSeat,
-        targetSeat,
-      );
-
-      // PR-refactor: 成功后评估是否需要推进
-      if (result.success) {
-        await this.evaluateAndExecuteProgression();
-      }
-
-      return result;
+      return hostActions.submitWolfVote(this.getHostActionsContext(), voterSeat, targetSeat);
     }
 
     // Player: 发送 PlayerMessage 给 Host
@@ -494,39 +437,17 @@ export class V2GameFacade implements IGameFacade {
    * MessageRouter 上下文（扩展 SeatActionsContext + action handlers）
    *
    * PR9: 接入 handleAction / handleWolfVote，支持 Player→Host 夜晚行动消息
-   * PR-refactor: 通过 Facade 方法触发推进评估，而不是直接调用 hostActions
+   * 注：Facade 只负责 transport，不做推进决策。
    */
   private getMessageRouterContext(): MessageRouterContext {
     return {
       ...this.getSeatActionsContext(),
       handleViewedRole: (seat: number) =>
         hostActions.markViewedRole(this.getHostActionsContext(), seat),
-      // PR-refactor: 通过 Facade 的 submitAction 触发推进评估
-      handleAction: async (seat: number, role: RoleId, target: number | null, extra?: unknown) => {
-        const result = await hostActions.submitAction(
-          this.getHostActionsContext(),
-          seat,
-          role,
-          target,
-          extra,
-        );
-        if (result.success) {
-          await this.evaluateAndExecuteProgression();
-        }
-        return result;
-      },
-      // PR-refactor: 通过 Facade 的 submitWolfVote 触发推进评估
-      handleWolfVote: async (voterSeat: number, targetSeat: number) => {
-        const result = await hostActions.submitWolfVote(
-          this.getHostActionsContext(),
-          voterSeat,
-          targetSeat,
-        );
-        if (result.success) {
-          await this.evaluateAndExecuteProgression();
-        }
-        return result;
-      },
+      handleAction: (seat: number, role: RoleId, target: number | null, extra?: unknown) =>
+        hostActions.submitAction(this.getHostActionsContext(), seat, role, target, extra),
+      handleWolfVote: (voterSeat: number, targetSeat: number) =>
+        hostActions.submitWolfVote(this.getHostActionsContext(), voterSeat, targetSeat),
     };
   }
 

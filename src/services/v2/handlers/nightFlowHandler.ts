@@ -31,7 +31,7 @@ import type { ProtocolAction } from '../../protocol/types';
 import { buildNightPlan } from '../../../models/roles/spec/plan';
 import { resolveWolfVotes } from '../../WolfVoteResolver';
 import { calculateDeaths } from '../../DeathCalculator';
-import { isWolfRole } from '../../../models/roles';
+import { isWolfRole, doesRoleParticipateInWolfVote } from '../../../models/roles';
 import { makeWitchSave, makeWitchPoison, makeWitchNone } from '../../../models/actions/WitchAction';
 
 /**
@@ -481,7 +481,7 @@ export type NightProgressionDecision =
 /**
  * 幂等推进状态追踪器
  *
- * 用于防止重复推进：同一 {revision, currentStepId, currentActionerIndex} 组合最多推进一次。
+ * 用于防止重复推进：同一 {revision, currentStepId} 组合最多推进一次。
  */
 export interface ProgressionTracker {
   lastProcessedKey: string | null;
@@ -497,13 +497,14 @@ export function createProgressionTracker(): ProgressionTracker {
 /**
  * 基于 state 事实生成幂等 key
  *
- * 使用 {currentActionerIndex, currentStepId, actionsCount, wolfVotesCount} 组合
- * 确保同一游戏状态最多推进一次
+ * 使用 {revision, currentStepId} 组合确保同一游戏状态最多推进一次。
+ * revision 由 GameStore 管理，每次 setState 自动递增。
+ *
+ * @param revision - 来自 GameStore.getRevision()
+ * @param currentStepId - state.currentStepId
  */
-function buildProgressionKey(state: NonNullState): string {
-  const actionsCount = state.actions?.length ?? 0;
-  const wolfVotesCount = state.wolfVotes ? Object.keys(state.wolfVotes).length : 0;
-  return `${state.currentActionerIndex}:${state.currentStepId ?? 'null'}:${actionsCount}:${wolfVotesCount}`;
+export function buildProgressionKey(revision: number, currentStepId: string | undefined): string {
+  return `${revision}:${currentStepId ?? 'null'}`;
 }
 
 /**
@@ -526,9 +527,7 @@ function isCurrentStepComplete(state: NonNullState): boolean {
     const wolfVotes = state.wolfVotes ?? {};
     const votingWolfSeats: number[] = [];
     for (const [seatStr, player] of Object.entries(state.players)) {
-      // 使用动态 import 避免循环依赖
       if (player?.role) {
-        const { doesRoleParticipateInWolfVote } = require('../../../models/roles');
         if (doesRoleParticipateInWolfVote(player.role)) {
           votingWolfSeats.push(Number.parseInt(seatStr, 10));
         }
@@ -559,15 +558,17 @@ function isCurrentStepComplete(state: NonNullState): boolean {
  * 5. 否则返回 none
  *
  * 幂等保护：
- * - 同一 {revision, currentStepId, currentActionerIndex} 最多推进一次
+ * - 同一 {revision, currentStepId} 最多推进一次
  * - 重复调用返回 none + debug log
  *
  * @param state - 当前 BroadcastGameState
+ * @param revision - 来自 GameStore.getRevision()
  * @param tracker - 幂等追踪器（可选，用于防止重复推进）
  * @param isHost - 是否为 Host
  */
 export function evaluateNightProgression(
   state: NonNullState | null,
+  revision: number,
   tracker?: ProgressionTracker,
   isHost?: boolean,
 ): NightProgressionDecision {
@@ -593,7 +594,7 @@ export function evaluateNightProgression(
 
   // 幂等检查
   if (tracker) {
-    const key = buildProgressionKey(state);
+    const key = buildProgressionKey(revision, state.currentStepId);
     if (tracker.lastProcessedKey === key) {
       return { action: 'none', reason: 'already_processed' };
     }
@@ -603,7 +604,7 @@ export function evaluateNightProgression(
   if (state.currentStepId === undefined) {
     // 没有下一步了，应该结束夜晚
     if (tracker) {
-      tracker.lastProcessedKey = buildProgressionKey(state);
+      tracker.lastProcessedKey = buildProgressionKey(revision, state.currentStepId);
     }
     return { action: 'end_night', reason: 'no_more_steps' };
   }
@@ -611,7 +612,7 @@ export function evaluateNightProgression(
   // 判断当前步骤是否完成
   if (isCurrentStepComplete(state)) {
     if (tracker) {
-      tracker.lastProcessedKey = buildProgressionKey(state);
+      tracker.lastProcessedKey = buildProgressionKey(revision, state.currentStepId);
     }
     return { action: 'advance', reason: 'step_complete' };
   }
