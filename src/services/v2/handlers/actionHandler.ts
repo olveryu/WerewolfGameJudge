@@ -22,6 +22,9 @@ import type { ResolverContext, ActionInput, ResolverResult } from '../../night/r
 import type { RoleId } from '../../../models/roles';
 
 import { doesRoleParticipateInWolfVote } from '../../../models/roles';
+import { log } from '../../../utils/logger';
+
+const actionHandlerLog = log.extend('ActionHandler');
 
 /**
  * 非 null 的 state 类型（通过 validation 后使用）
@@ -411,6 +414,14 @@ export function handleSubmitWolfVote(
   // Gate 5: invalid_step (currentStepId 必须存在且对应 wolfVote schema)
   const { currentStepId } = state;
   if (!currentStepId) {
+    // 诊断日志：帮助定位 invalid_step 根因
+    actionHandlerLog.error('WOLF_VOTE rejected: invalid_step (currentStepId is null/undefined)', {
+      status: state.status,
+      currentActionerIndex: state.currentActionerIndex,
+      templateRoles: state.templateRoles,
+      incomingSeat: seat,
+      incomingTarget: target,
+    });
     return {
       success: false,
       reason: 'invalid_step',
@@ -419,6 +430,15 @@ export function handleSubmitWolfVote(
   }
   const schema = SCHEMAS[currentStepId];
   if (schema?.kind !== 'wolfVote') {
+    // 诊断日志：帮助定位 step_mismatch 根因
+    actionHandlerLog.error('WOLF_VOTE rejected: step_mismatch', {
+      currentStepId,
+      schemaKind: schema?.kind,
+      status: state.status,
+      currentActionerIndex: state.currentActionerIndex,
+      incomingSeat: seat,
+      incomingTarget: target,
+    });
     return {
       success: false,
       reason: 'step_mismatch',

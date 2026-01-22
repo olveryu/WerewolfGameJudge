@@ -49,14 +49,16 @@ function createInput(stepResults: Record<string, number | null> | undefined): Ac
 
 describe('witchActionResolver', () => {
   describe('validate', () => {
-    it('应该拒绝缺少行动数据', () => {
+    it('应该接受 stepResults 为 undefined（不使用技能/跳过）', () => {
       const ctx = createContext();
       const input = createInput(undefined);
 
       const result = witchActionResolver(ctx, input);
 
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toContain('行动数据');
+      expect(result.valid).toBe(true);
+      // 跳过时没有 save/poison，updates 应该是空的
+      expect(result.updates?.savedSeat).toBeUndefined();
+      expect(result.updates?.poisonedSeat).toBeUndefined();
     });
 
     it('应该接受空行动（不使用技能）', () => {

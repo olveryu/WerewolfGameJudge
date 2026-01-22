@@ -75,7 +75,7 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
     actions: actionsMap,
     wolfVotes: wolfVotesMap,
     currentActionerIndex: broadcast.currentActionerIndex,
-    currentStepId: undefined, // Phase 1 不处理 stepId
+    currentStepId: broadcast.currentStepId, // PR9: 透传 currentStepId
     isAudioPlaying: broadcast.isAudioPlaying,
     lastNightDeaths: broadcast.lastNightDeaths ?? [],
     nightmareBlockedSeat: broadcast.nightmareBlockedSeat,

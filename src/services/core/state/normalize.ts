@@ -91,6 +91,9 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
     pendingRevealAcks: raw.pendingRevealAcks,
     lastNightDeaths: raw.lastNightDeaths,
 
+    // Night flow 状态（关键：currentStepId 必须透传）
+    currentStepId: raw.currentStepId,
+
     // 其他可选字段（透传）
     nightmareBlockedSeat: raw.nightmareBlockedSeat,
     wolfKillDisabled: raw.wolfKillDisabled,

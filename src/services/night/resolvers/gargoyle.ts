@@ -14,9 +14,9 @@ export const gargoyleCheckResolver: ResolverFn = (context, input) => {
   const { actorSeat, players, currentNightResults } = context;
   const target = input.target;
 
-  // Validate target exists
+  // Schema allows skip (canSkip: true)
   if (target === undefined || target === null) {
-    return { valid: false, rejectReason: '必须选择查验对象' };
+    return { valid: true, result: {} };
   }
 
   // Validate constraints from schema

@@ -13,9 +13,9 @@ export const nightmareBlockResolver: ResolverFn = (context, input) => {
   const { players } = context;
   const target = input.target;
 
-  // Validate target exists
+  // Schema allows skip (canSkip: true)
   if (target === undefined || target === null) {
-    return { valid: false, rejectReason: '必须选择恐惧对象' };
+    return { valid: true, result: {} };
   }
 
   // Cannot block self

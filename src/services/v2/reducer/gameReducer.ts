@@ -147,6 +147,7 @@ function handleStartNight(state: GameState, action: StartNightAction): GameState
     status: 'ongoing',
     currentActionerIndex,
     currentStepId,
+    // 不在 reducer 里设置 isAudioPlaying，由 Host UI 调用 SET_AUDIO_PLAYING 控制
     actions: [],
     wolfVotes: {},
     wolfVoteStatus: {},
@@ -161,6 +162,7 @@ function handleAdvanceToNextAction(state: GameState, action: AdvanceToNextAction
     currentActionerIndex: nextActionerIndex,
     // PR6 contract: 推进时同步更新 currentStepId（单一真相）
     currentStepId: nextStepId ?? undefined,
+    // 不在 reducer 里设置 isAudioPlaying，由 Host UI 调用 SET_AUDIO_PLAYING 控制
     // PR6 contract: 推进到下一步清空狼票（不残留上一 step 的投票）
     wolfVotes: {},
     wolfVoteStatus: {},

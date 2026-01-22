@@ -138,6 +138,21 @@ UI (从 schema + gameState 推导显示)
 - Night-1 的 `audioKey` / 可选的 `audioEndKey` 必须来自 `NIGHT_STEPS`。
 - 禁止在 specs/steps 双写 audio key。若确实需要临时兼容：必须 `@deprecated` + 移除日期 + 合约测试强制二者相等。
 
+### 音频 Gate（`isAudioPlaying`）硬性护栏（MUST follow）
+
+- **`isAudioPlaying` 代表“权威音频 Gate 的事实状态”，不是推导状态。**
+- **唯一允许修改 `isAudioPlaying` 的 action：`SET_AUDIO_PLAYING`。**
+  - ✅ 允许：`handleSetAudioPlaying`（Host-only）→ reducer 处理 `SET_AUDIO_PLAYING`。
+  - ❌ 禁止：在 reducer 中对 `START_NIGHT` / `ADVANCE_TO_NEXT_ACTION` / `SET_CURRENT_STEP` 等 action “顺便”把 `isAudioPlaying` 设为 `true/false`（这会把事实状态变成推导状态，导致 drift / 卡死）。
+- **Host 负责“音频时序编排”，但音频播放 IO 可以在 UI 层触发。** 允许的模式是：
+  1) Host 看到 step 切换（`currentStepId` 变化）→ 先调用 `setAudioPlaying(true)` 广播 Gate
+  2) Host 播放对应 `audioKey`
+  3) 音频结束/跳过 → Host 调用 `setAudioPlaying(false)` 解除 Gate（必须 finally/兜底）
+- **Player 端绝对不能写 Gate**：Player 不允许调用 `setAudioPlaying`（`host_only`）。
+- **Fail-fast 要求（测试门禁）**：若出现“UI 已进入可行动提示（如狼刀/技能选择）但 `isAudioPlaying===true` 持续不释放”或“提交行动持续被 `forbidden_while_audio_playing` 拒绝”，必须：
+  - 优先修复 Host 的 setAudioPlaying(false) 兜底链路
+  - 并补 E2E/contract fail-fast，禁止靠超时隐藏问题
+
 ### StepSpec 的 id/schemaId 去重（迁移规则）
 
 - 如果 `StepSpec` 同时存在 `id` 和 `schemaId`，这只能是迁移期产物。

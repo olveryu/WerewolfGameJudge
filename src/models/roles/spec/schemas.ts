@@ -95,7 +95,7 @@ export const SCHEMAS = {
     displayName: '摄梦',
     kind: 'chooseSeat',
     constraints: ['notSelf'],
-    canSkip: false,
+    canSkip: true,
     ui: {
       confirmTitle: '确认行动',
       prompt: '请选择要摄梦的玩家',

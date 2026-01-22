@@ -45,12 +45,10 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
   const { actorSeat, gameState, currentNightResults } = context;
   const stepResults = input.stepResults;
 
-  if (!stepResults) {
-    return { valid: false, rejectReason: '缺少行动数据' };
-  }
-
-  const saveTarget = stepResults.save ?? null;
-  const poisonTarget = stepResults.poison ?? null;
+  // stepResults 为 undefined 时，视为"不使用技能"（跳过）
+  // 这对应 UI 点击"不使用技能"按钮的场景
+  const saveTarget = stepResults?.save ?? null;
+  const poisonTarget = stepResults?.poison ?? null;
 
   // Check blocked by nightmare
   if (currentNightResults.blockedSeat === actorSeat) {

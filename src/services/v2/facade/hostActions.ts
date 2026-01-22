@@ -32,6 +32,7 @@ import type { StateAction } from '../reducer/types';
 import type { RoleId } from '../../../models/roles';
 import type { GameTemplate } from '../../../models/Template';
 
+import { doesRoleParticipateInWolfVote } from '../../../models/roles';
 import {
   handleAssignRoles,
   handleStartNight,
@@ -203,6 +204,18 @@ export async function startNight(
   const context = buildHandlerContext(ctx);
   const result = handleStartNight(intent, context);
 
+  // 诊断日志：确认 handler 返回的 currentStepId
+  if (result.success && result.actions.length > 0) {
+    const startNightAction = result.actions.find((a) => a.type === 'START_NIGHT');
+    if (startNightAction && 'payload' in startNightAction) {
+      v2FacadeLog.debug('startNight action payload', {
+        currentStepId: (startNightAction.payload as { currentStepId?: string }).currentStepId,
+        currentActionerIndex: (startNightAction.payload as { currentActionerIndex?: number })
+          .currentActionerIndex,
+      });
+    }
+  }
+
   return processHandlerResult(ctx, result, { logPrefix: 'startNight' });
 }
 
@@ -248,6 +261,9 @@ export async function restartGame(
  * Host: 处理玩家提交的夜晚行动
  *
  * PR4: SUBMIT_ACTION（Night-1 only）
+ *
+ * 当 action 成功提交后，自动触发 advanceNight 推进夜晚流程。
+ * 如果没有更多步骤，会自动触发 endNight。
  */
 export async function submitAction(
   ctx: HostActionsContext,
@@ -265,17 +281,28 @@ export async function submitAction(
   const context = buildHandlerContext(ctx);
   const result = handleSubmitAction(intent, context);
 
-  return processHandlerResult(ctx, result, {
+  const submitResult = await processHandlerResult(ctx, result, {
     logPrefix: 'submitAction',
     logData: { seat, role, target },
     applyActionsOnFailure: true, // PR4: ACTION_REJECTED 也需要应用
   });
+
+  // 如果 action 成功，自动推进夜晚流程
+  if (submitResult.success) {
+    v2FacadeLog.debug('Action succeeded, triggering advanceNight', { seat, role });
+    await advanceNight(ctx);
+  }
+
+  return submitResult;
 }
 
 /**
  * Host: 处理狼人投票
  *
  * PR5: WOLF_VOTE（Night-1 only）
+ *
+ * 当所有狼人都投完票后，自动触发 advanceNight 推进夜晚流程。
+ * 这对齐 legacy 行为（GameStateService.handleWolfVote L1056）。
  */
 export async function submitWolfVote(
   ctx: HostActionsContext,
@@ -291,16 +318,47 @@ export async function submitWolfVote(
   const context = buildHandlerContext(ctx);
   const result = handleSubmitWolfVote(intent, context);
 
-  return processHandlerResult(ctx, result, {
+  const submitResult = await processHandlerResult(ctx, result, {
     logPrefix: 'submitWolfVote',
     logData: { voterSeat, targetSeat },
   });
+
+  // 如果投票成功，检查是否所有狼人都投完票
+  if (submitResult.success) {
+    const state = ctx.store.getState();
+    if (state?.wolfVotes) {
+      // 获取所有参与投票的狼人座位
+      const votingWolfSeats: number[] = [];
+      for (const [seatStr, player] of Object.entries(state.players)) {
+        if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
+          votingWolfSeats.push(Number.parseInt(seatStr, 10));
+        }
+      }
+
+      // 检查是否所有狼人都已投票
+      const allVoted = votingWolfSeats.every((seat) => seat.toString() in state.wolfVotes!);
+
+      if (allVoted) {
+        v2FacadeLog.debug('All wolves voted, triggering advanceNight', {
+          votingWolfSeats,
+          wolfVotes: state.wolfVotes,
+        });
+        // 自动触发 advanceNight（对齐 legacy L1056）
+        await advanceNight(ctx);
+      }
+    }
+  }
+
+  return submitResult;
 }
 
 /**
  * Host: 推进夜晚到下一步
  *
  * PR6: ADVANCE_NIGHT（音频结束后调用）
+ *
+ * 当没有下一步时（nextStepId === null），自动触发 endNight 结束夜晚。
+ * 这对齐 legacy 的 NightFlowController 行为。
  */
 export async function advanceNight(
   ctx: HostActionsContext,
@@ -311,9 +369,23 @@ export async function advanceNight(
   const context = buildHandlerContext(ctx);
   const result = handleAdvanceNight(intent, context);
 
-  return processHandlerResult(ctx, result, { logPrefix: 'advanceNight' });
-}
+  const advanceResult = await processHandlerResult(ctx, result, { logPrefix: 'advanceNight' });
 
+  // 如果推进成功，检查是否已经没有下一步了（夜晚结束）
+  if (advanceResult.success) {
+    const state = ctx.store.getState();
+    // 如果 currentStepId 为 undefined，说明没有下一步了，应该结束夜晚
+    if (state && state.currentStepId === undefined && state.status === 'ongoing') {
+      v2FacadeLog.debug('No more steps, triggering endNight', {
+        currentActionerIndex: state.currentActionerIndex,
+      });
+      // 自动触发 endNight（对齐 legacy NightFlowController 行为）
+      await endNight(ctx);
+    }
+  }
+
+  return advanceResult;
+}
 /**
  * Host: 结束夜晚，进行死亡结算
  *

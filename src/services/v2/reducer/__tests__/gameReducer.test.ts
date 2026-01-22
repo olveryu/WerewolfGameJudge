@@ -16,6 +16,7 @@ import type {
   RecordWolfVoteAction,
   PlayerViewedRoleAction,
   SetAudioPlayingAction,
+  StateAction,
 } from '../types';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
@@ -788,6 +789,65 @@ describe('gameReducer', () => {
       expect(newState.status).toBe('ongoing');
       expect(newState.currentActionerIndex).toBe(2);
       expect(newState.currentStepId).toBe('seerCheck');
+    });
+  });
+
+  // ==========================================================================
+  // Contract: isAudioPlaying is fact-based gate and must NOT be derived
+  // ==========================================================================
+  describe('contract: only SET_AUDIO_PLAYING may change isAudioPlaying', () => {
+    it('should keep isAudioPlaying unchanged for all other actions', () => {
+      const baseState = createMinimalState({
+        status: 'ongoing',
+        isAudioPlaying: true,
+        currentActionerIndex: 0,
+        currentStepId: 'wolfKill',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+          2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
+        },
+        actions: [],
+        wolfVotes: {},
+        currentNightResults: {},
+      });
+
+      // If anyone ever "helpfully" toggles audio gate inside other reducers
+      // (e.g. START_NIGHT / ADVANCE / SET_CURRENT_STEP), this test should fail.
+      const actions: StateAction[] = [
+        {
+          type: 'ASSIGN_ROLES',
+          payload: { assignments: { 0: 'villager', 1: 'wolf', 2: 'seer' } },
+        } satisfies AssignRolesAction,
+        {
+          type: 'START_NIGHT',
+          payload: { currentActionerIndex: 0, currentStepId: 'wolfKill' },
+        } satisfies StartNightAction,
+        {
+          type: 'ADVANCE_TO_NEXT_ACTION',
+          payload: { nextActionerIndex: 1, nextStepId: 'seerCheck' },
+        } satisfies AdvanceToNextActionAction,
+        {
+          type: 'RECORD_WOLF_VOTE',
+          payload: { voterSeat: 1, targetSeat: 0 },
+        } satisfies RecordWolfVoteAction,
+        {
+          type: 'SET_CURRENT_STEP',
+          payload: { schemaId: 'seerCheck' },
+        },
+        {
+          type: 'CLEAR_REVEAL_STATE',
+        },
+        {
+          type: 'PLAYER_VIEWED_ROLE',
+          payload: { seat: 0 },
+        } satisfies PlayerViewedRoleAction,
+      ];
+
+      for (const action of actions) {
+        const newState = gameReducer(baseState, action);
+        expect(newState.isAudioPlaying).toBe(true);
+      }
     });
   });
 

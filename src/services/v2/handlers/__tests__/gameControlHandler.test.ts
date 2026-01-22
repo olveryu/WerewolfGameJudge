@@ -280,7 +280,7 @@ describe('handleStartNight', () => {
     }
   });
 
-  it('should set currentStepId from NIGHT_STEPS[0].id (table-driven single source)', () => {
+  it('should set currentStepId from buildNightPlan (table-driven single source, filtered by templateRoles)', () => {
     const context = createContext(readyState);
     const intent: StartNightIntent = { type: 'START_NIGHT' };
 
@@ -289,8 +289,9 @@ describe('handleStartNight', () => {
     const startNightAction = result.actions.find((a) => a.type === 'START_NIGHT');
     expect(startNightAction).toBeDefined();
     if (startNightAction?.type === 'START_NIGHT') {
-      // 首步来自 NIGHT_STEPS 表驱动单源，必须是 'magicianSwap'（当前第一个步骤）
-      expect(startNightAction.payload.currentStepId).toBe('magicianSwap');
+      // 首步来自 buildNightPlan 表驱动单源，按模板角色过滤
+      // readyState 有 villager/wolf/seer → 首步是 'wolfKill'（不是 magicianSwap，因为没有 magician）
+      expect(startNightAction.payload.currentStepId).toBe('wolfKill');
     }
   });
 

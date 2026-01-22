@@ -23,6 +23,8 @@ import type {
 } from '../../intents/types';
 import type { BroadcastGameState, BroadcastPlayer } from '../../../protocol/types';
 import { NIGHT_STEPS } from '../../../../models/roles/spec';
+import { buildNightPlan } from '../../../../models/roles/spec/plan';
+import type { RoleId } from '../../../../models/roles';
 
 /**
  * 创建完整的玩家对象
@@ -150,8 +152,18 @@ describe('nightFlowHandler', () => {
 
     describe('Happy path', () => {
       it('should advance to next action index and stepId', () => {
+        // 测试模板: wolf, wolf, seer, witch, villager, villager
+        // buildNightPlan 会过滤出: wolfKill → witchAction → seerCheck
+        const templateRoles: RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'];
+        const nightPlan = buildNightPlan(templateRoles);
+
         const context: HandlerContext = {
-          state: createOngoingState({ currentActionerIndex: 0 }),
+          // 从 wolfKill 推进，且模板包含 witch，应该设置 witchContext
+          state: createOngoingState({
+            currentActionerIndex: 0,
+            currentStepId: 'wolfKill',
+            templateRoles,
+          }),
           isHost: true,
           myUid: 'host-uid',
           mySeat: null,
@@ -160,25 +172,36 @@ describe('nightFlowHandler', () => {
         const result = handleAdvanceNight(intent, context);
 
         expect(result.success).toBe(true);
-        expect(result.actions).toHaveLength(1);
+        // 从 wolfKill 推进且有 witch，应该返回 2 个 actions
+        expect(result.actions).toHaveLength(2);
 
-        const action = result.actions[0];
-        expect(action.type).toBe('ADVANCE_TO_NEXT_ACTION');
-        if (action.type === 'ADVANCE_TO_NEXT_ACTION') {
-          expect(action.payload.nextActionerIndex).toBe(1);
-          expect(action.payload.nextStepId).toBe(NIGHT_STEPS[1]?.id ?? null);
+        const advanceAction = result.actions[0];
+        expect(advanceAction.type).toBe('ADVANCE_TO_NEXT_ACTION');
+        if (advanceAction.type === 'ADVANCE_TO_NEXT_ACTION') {
+          expect(advanceAction.payload.nextActionerIndex).toBe(1);
+          // 使用 buildNightPlan 过滤后的步骤（对应模板角色）
+          expect(advanceAction.payload.nextStepId).toBe(nightPlan.steps[1]?.stepId ?? null);
         }
+
+        // 从 wolfKill 推进且有 witch，应该有 SET_WITCH_CONTEXT action
+        const witchContextAction = result.actions[1];
+        expect(witchContextAction.type).toBe('SET_WITCH_CONTEXT');
 
         expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
       });
 
       it('should set nextStepId to null when no more steps', () => {
+        // 测试模板: wolf, wolf, seer, witch, villager, villager
+        // buildNightPlan 会过滤出: wolfKill → witchAction → seerCheck（共 3 步）
+        const templateRoles: RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'];
+        const nightPlan = buildNightPlan(templateRoles);
+
         // 设置 index 到最后一步
-        const lastIndex = NIGHT_STEPS.length - 1;
+        const lastIndex = nightPlan.steps.length - 1;
         const context: HandlerContext = {
           state: createOngoingState({
             currentActionerIndex: lastIndex,
-            currentStepId: NIGHT_STEPS[lastIndex]?.id,
+            currentStepId: nightPlan.steps[lastIndex]?.stepId,
           }),
           isHost: true,
           myUid: 'host-uid',

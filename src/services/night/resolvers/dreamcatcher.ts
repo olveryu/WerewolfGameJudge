@@ -12,9 +12,9 @@ export const dreamcatcherDreamResolver: ResolverFn = (context, input) => {
   const { actorSeat, currentNightResults } = context;
   const target = input.target;
 
-  // Validate target exists (dreamcatcher must choose someone)
+  // Schema allows skip (canSkip: true)
   if (target === undefined || target === null) {
-    return { valid: false, rejectReason: '必须选择摄梦对象' };
+    return { valid: true, result: {} };
   }
 
   // Validate constraints from schema
