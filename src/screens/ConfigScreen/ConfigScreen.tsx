@@ -12,7 +12,11 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { RoleId } from '../../models/roles';
-import { PRESET_TEMPLATES, createCustomTemplate, validateTemplateRoles } from '../../models/Template';
+import {
+  PRESET_TEMPLATES,
+  createCustomTemplate,
+  validateTemplateRoles,
+} from '../../models/Template';
 import { useGameFacade } from '../../contexts';
 import { showAlert } from '../../utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';

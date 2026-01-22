@@ -12,7 +12,12 @@ import type {
   UpdateTemplateIntent,
 } from '../intents/types';
 import type { HandlerContext, HandlerResult } from './types';
-import type { AssignRolesAction, StartNightAction, RestartGameAction, UpdateTemplateAction } from '../reducer/types';
+import type {
+  AssignRolesAction,
+  StartNightAction,
+  RestartGameAction,
+  UpdateTemplateAction,
+} from '../reducer/types';
 import { shuffleArray } from '../../../utils/shuffle';
 import type { RoleId } from '../../../models/roles';
 import { NIGHT_STEPS } from '../../../models/roles/spec/nightSteps';

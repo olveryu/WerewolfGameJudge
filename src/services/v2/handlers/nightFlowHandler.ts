@@ -16,7 +16,11 @@
 
 import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../intents/types';
 import type { HandlerContext, HandlerResult } from './types';
-import type { AdvanceToNextActionAction, EndNightAction, SetAudioPlayingAction } from '../reducer/types';
+import type {
+  AdvanceToNextActionAction,
+  EndNightAction,
+  SetAudioPlayingAction,
+} from '../reducer/types';
 import type { SchemaId } from '../../../models/roles/spec';
 import type { RoleId } from '../../../models/roles';
 import type { NightActions, RoleSeatMap } from '../../DeathCalculator';

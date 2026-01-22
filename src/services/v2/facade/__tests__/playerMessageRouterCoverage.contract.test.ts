@@ -5,15 +5,31 @@
  * - 任何 PlayerMessage['type'] 存在，Host messageRouter 必须明确处理
  * - 防止新增消息类型时遗漏 router case（silent drop / no-op）
  *
+ * PR9 升级：强门禁
+ * - 不允许 silent drop：每个 type 必须有显式分支行为
+ * - Legacy types 必须触发 v2FacadeLog.warn
+ * - Unimplemented types 必须触发 v2FacadeLog.warn（除非已接入 handler）
+ *
  * 验收标准：
  * 1. 覆盖性：枚举所有 PlayerMessage.type，断言 router 全覆盖
- * 2. 行为性：每个 message 构造最小合法 payload，喂给 router，不 throw 且有可观测行为
+ * 2. 行为性：每个 message 构造最小合法 payload，喂给 router，有可观测行为
  * 3. 门禁：新增 PlayerMessage.type 时测试必须 fail，逼迫补 router case
  */
 
 import type { PlayerMessage } from '../../../protocol/types';
 import type { MessageRouterContext } from '../messageRouter';
 import { hostHandlePlayerMessage } from '../messageRouter';
+import { v2FacadeLog } from '../../../../utils/logger';
+
+// Mock logger
+jest.mock('../../../../utils/logger', () => ({
+  v2FacadeLog: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+}));
 
 // =============================================================================
 // 测试辅助
@@ -60,6 +76,8 @@ function createMockContext(overrides?: Partial<MessageRouterContext>): MessageRo
     findSeatByUid: jest.fn(() => null),
     generateRequestId: jest.fn(() => 'mock-request-id'),
     handleViewedRole: jest.fn(() => Promise.resolve({ success: true })),
+    handleAction: jest.fn(() => Promise.resolve({ success: true })),
+    handleWolfVote: jest.fn(() => Promise.resolve({ success: true })),
     ...overrides,
   };
 }
@@ -151,6 +169,10 @@ describe('PlayerMessage Router Coverage Contract', () => {
    * 行为性测试：已实现的消息类型应触发对应 handler
    */
   describe('Behavior: implemented message types trigger handlers', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
     it('REQUEST_STATE should call broadcastCurrentState', () => {
       const ctx = createMockContext();
       const msg = createMinimalPayload('REQUEST_STATE');
@@ -169,51 +191,182 @@ describe('PlayerMessage Router Coverage Contract', () => {
       expect(ctx.handleViewedRole).toHaveBeenCalledWith(0);
     });
 
-    it('SEAT_ACTION_REQUEST should be handled (no throw)', () => {
+    it('SEAT_ACTION_REQUEST should send ACK via broadcastAsHost', () => {
       const ctx = createMockContext();
       const msg = createMinimalPayload('SEAT_ACTION_REQUEST');
 
-      // 不应该 throw
-      expect(() => {
-        hostHandlePlayerMessage(ctx, msg, 'sender-uid');
-      }).not.toThrow();
+      hostHandlePlayerMessage(ctx, msg, 'sender-uid');
+
+      // Should call broadcastAsHost with SEAT_ACTION_ACK
+      expect(ctx.broadcastService.broadcastAsHost).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'SEAT_ACTION_ACK' }),
+      );
+    });
+
+    it('ACTION should call handleAction when wired', () => {
+      const ctx = createMockContext();
+      const msg = createMinimalPayload('ACTION');
+
+      hostHandlePlayerMessage(ctx, msg, 'sender-uid');
+
+      expect(ctx.handleAction).toHaveBeenCalledWith(0, 'seer', 1, undefined);
+    });
+
+    it('WOLF_VOTE should call handleWolfVote when wired', () => {
+      const ctx = createMockContext();
+      const msg = createMinimalPayload('WOLF_VOTE');
+
+      hostHandlePlayerMessage(ctx, msg, 'sender-uid');
+
+      expect(ctx.handleWolfVote).toHaveBeenCalledWith(0, 1);
     });
   });
 
   /**
-   * 门禁测试：未实现的消息类型应被显式标记
+   * 强门禁：Legacy types 必须触发 v2FacadeLog.warn
    *
-   * 这些类型目前在 v2 router 中没有处理（Phase 0 范围外），
-   * 但必须在这里显式列出，以便追踪实现进度。
-   * 当实现这些类型时，应该把它们移到上面的 "implemented" 测试中。
+   * PR9 升级：禁止 silent drop
+   * - JOIN/LEAVE 是 legacy，已被 SEAT_ACTION_REQUEST 替代
+   * - 必须 warn 提示开发者使用新入口
    */
-  describe('Tracking: unimplemented message types (Phase 0 scope)', () => {
-    const UNIMPLEMENTED_TYPES: PlayerMessage['type'][] = [
-      'JOIN', // Legacy: 现在用 SEAT_ACTION_REQUEST
-      'LEAVE', // Legacy: 现在用 SEAT_ACTION_REQUEST.standup
-      'ACTION', // Tracked: 需要在 v2 router 中实现
-      'WOLF_VOTE', // Tracked: 需要在 v2 router 中实现
-      'REVEAL_ACK', // Tracked: 需要在 v2 router 中实现
-      'SNAPSHOT_REQUEST', // Tracked: 需要在 v2 router 中实现
+  describe('Strong Gate: legacy types must trigger warn', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('JOIN should trigger v2FacadeLog.warn with legacy guidance', () => {
+      const ctx = createMockContext();
+      const msg = createMinimalPayload('JOIN');
+
+      hostHandlePlayerMessage(ctx, msg, 'sender-uid');
+
+      expect(v2FacadeLog.warn).toHaveBeenCalledWith(
+        '[messageRouter] Legacy PlayerMessage type received',
+        expect.objectContaining({
+          type: 'JOIN',
+          guidance: expect.stringContaining('SEAT_ACTION_REQUEST'),
+        }),
+      );
+    });
+
+    it('LEAVE should trigger v2FacadeLog.warn with legacy guidance', () => {
+      const ctx = createMockContext();
+      const msg = createMinimalPayload('LEAVE');
+
+      hostHandlePlayerMessage(ctx, msg, 'sender-uid');
+
+      expect(v2FacadeLog.warn).toHaveBeenCalledWith(
+        '[messageRouter] Legacy PlayerMessage type received',
+        expect.objectContaining({
+          type: 'LEAVE',
+          guidance: expect.stringContaining('SEAT_ACTION_REQUEST'),
+        }),
+      );
+    });
+  });
+
+  /**
+   * 强门禁：Unimplemented types 必须触发 warn（若无 handler）
+   *
+   * PR9 升级：禁止 silent drop
+   * - 若 handler 未接入，必须 warn
+   * - 若 handler 已接入，不应 warn
+   */
+  describe('Strong Gate: unimplemented types without handler must trigger warn', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('ACTION without handleAction should trigger warn', () => {
+      const ctx = createMockContext({ handleAction: undefined });
+      const msg = createMinimalPayload('ACTION');
+
+      hostHandlePlayerMessage(ctx, msg, 'sender-uid');
+
+      expect(v2FacadeLog.warn).toHaveBeenCalledWith(
+        '[messageRouter] ACTION received but handleAction not wired',
+        expect.objectContaining({ type: 'ACTION' }),
+      );
+    });
+
+    it('WOLF_VOTE without handleWolfVote should trigger warn', () => {
+      const ctx = createMockContext({ handleWolfVote: undefined });
+      const msg = createMinimalPayload('WOLF_VOTE');
+
+      hostHandlePlayerMessage(ctx, msg, 'sender-uid');
+
+      expect(v2FacadeLog.warn).toHaveBeenCalledWith(
+        '[messageRouter] WOLF_VOTE received but handleWolfVote not wired',
+        expect.objectContaining({ type: 'WOLF_VOTE' }),
+      );
+    });
+
+    it('REVEAL_ACK should trigger warn (currently unimplemented)', () => {
+      const ctx = createMockContext();
+      const msg = createMinimalPayload('REVEAL_ACK');
+
+      hostHandlePlayerMessage(ctx, msg, 'sender-uid');
+
+      expect(v2FacadeLog.warn).toHaveBeenCalledWith(
+        '[messageRouter] Unimplemented PlayerMessage type',
+        expect.objectContaining({ type: 'REVEAL_ACK' }),
+      );
+    });
+
+    it('SNAPSHOT_REQUEST should trigger warn (currently unimplemented)', () => {
+      const ctx = createMockContext();
+      const msg = createMinimalPayload('SNAPSHOT_REQUEST');
+
+      hostHandlePlayerMessage(ctx, msg, 'sender-uid');
+
+      expect(v2FacadeLog.warn).toHaveBeenCalledWith(
+        '[messageRouter] Unimplemented PlayerMessage type',
+        expect.objectContaining({ type: 'SNAPSHOT_REQUEST' }),
+      );
+    });
+  });
+
+  /**
+   * 实现进度追踪
+   */
+  describe('Implementation Progress Tracking', () => {
+    const IMPLEMENTED_TYPES: PlayerMessage['type'][] = [
+      'REQUEST_STATE',
+      'VIEWED_ROLE',
+      'SEAT_ACTION_REQUEST',
+      'ACTION', // PR9: now wired via handleAction
+      'WOLF_VOTE', // PR9: now wired via handleWolfVote
     ];
 
-    it.each(UNIMPLEMENTED_TYPES)(
-      'message type %s is tracked as unimplemented (silent no-op for now)',
-      (type) => {
-        const ctx = createMockContext();
-        const msg = createMinimalPayload(type);
+    const LEGACY_TYPES: PlayerMessage['type'][] = [
+      'JOIN', // Legacy: 现在用 SEAT_ACTION_REQUEST.sit
+      'LEAVE', // Legacy: 现在用 SEAT_ACTION_REQUEST.standup
+    ];
 
-        // 目前这些消息会被 silent drop（no-op）
-        // 当实现时，应该把这个测试移到 "implemented" 部分
-        expect(() => {
-          hostHandlePlayerMessage(ctx, msg, 'sender-uid');
-        }).not.toThrow();
-      },
-    );
+    const UNIMPLEMENTED_TYPES: PlayerMessage['type'][] = [
+      'REVEAL_ACK', // Tracked: no-op, reveal acks in BroadcastGameState
+      'SNAPSHOT_REQUEST', // Tracked: reserved for future differential sync
+    ];
 
-    it('should have 6 unimplemented types (update when implementing)', () => {
-      // 门禁：随着实现进度，这个数字应该减少
-      expect(UNIMPLEMENTED_TYPES.length).toBe(6);
+    it('should have 5 implemented types', () => {
+      expect(IMPLEMENTED_TYPES.length).toBe(5);
+    });
+
+    it('should have 2 legacy types', () => {
+      expect(LEGACY_TYPES.length).toBe(2);
+    });
+
+    it('should have 2 unimplemented types', () => {
+      expect(UNIMPLEMENTED_TYPES.length).toBe(2);
+    });
+
+    it('all types should be accounted for', () => {
+      const allAccountedTypes = [...IMPLEMENTED_TYPES, ...LEGACY_TYPES, ...UNIMPLEMENTED_TYPES];
+      const expectedTypes = [...ALL_PLAYER_MESSAGE_TYPES];
+      // Sort alphabetically for comparison
+      allAccountedTypes.sort((a, b) => a.localeCompare(b));
+      expectedTypes.sort((a, b) => a.localeCompare(b));
+      expect(allAccountedTypes).toEqual(expectedTypes);
     });
   });
 
@@ -221,19 +374,24 @@ describe('PlayerMessage Router Coverage Contract', () => {
    * 门禁测试：非 Host 调用应该直接返回
    */
   describe('Guard: non-host should early return', () => {
-    it.each(ALL_PLAYER_MESSAGE_TYPES)(
-      'should not process message %s when isHost=false',
-      (type) => {
-        const ctx = createMockContext({ isHost: false });
-        const msg = createMinimalPayload(type);
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
 
-        hostHandlePlayerMessage(ctx, msg, 'sender-uid');
+    it.each(ALL_PLAYER_MESSAGE_TYPES)('should not process message %s when isHost=false', (type) => {
+      const ctx = createMockContext({ isHost: false });
+      const msg = createMinimalPayload(type);
 
-        // 任何 handler 都不应被调用
-        expect(ctx.broadcastCurrentState).not.toHaveBeenCalled();
-        expect(ctx.handleViewedRole).not.toHaveBeenCalled();
-      },
-    );
+      hostHandlePlayerMessage(ctx, msg, 'sender-uid');
+
+      // 任何 handler 都不应被调用
+      expect(ctx.broadcastCurrentState).not.toHaveBeenCalled();
+      expect(ctx.handleViewedRole).not.toHaveBeenCalled();
+      expect(ctx.handleAction).not.toHaveBeenCalled();
+      expect(ctx.handleWolfVote).not.toHaveBeenCalled();
+      // warn 也不应被调用（直接 early return）
+      expect(v2FacadeLog.warn).not.toHaveBeenCalled();
+    });
   });
 });
 
@@ -243,25 +401,41 @@ describe('PlayerMessage Router Coverage Contract', () => {
 
 describe('PlayerMessage Router Coverage Report', () => {
   it('prints coverage summary', () => {
-    const IMPLEMENTED = ['REQUEST_STATE', 'VIEWED_ROLE', 'SEAT_ACTION_REQUEST'];
-    const UNIMPLEMENTED = ['JOIN', 'LEAVE', 'ACTION', 'WOLF_VOTE', 'REVEAL_ACK', 'SNAPSHOT_REQUEST'];
+    const IMPLEMENTED = [
+      'REQUEST_STATE',
+      'VIEWED_ROLE',
+      'SEAT_ACTION_REQUEST',
+      'ACTION',
+      'WOLF_VOTE',
+    ];
+    const LEGACY = ['JOIN', 'LEAVE'];
+    const UNIMPLEMENTED = ['REVEAL_ACK', 'SNAPSHOT_REQUEST'];
 
     console.log('\n┌─────────────────────────────────────────────────────────────┐');
-    console.log('│          PlayerMessage Router Coverage Report               │');
+    console.log('│          PlayerMessage Router Coverage Report (PR9)         │');
     console.log('├─────────────────────────────────────────────────────────────┤');
-    console.log(`│  Total message types:     ${ALL_PLAYER_MESSAGE_TYPES.length.toString().padStart(2)}                               │`);
-    console.log(`│  Implemented in v2:       ${IMPLEMENTED.length.toString().padStart(2)}  (${IMPLEMENTED.join(', ')})│`);
-    console.log(`│  Unimplemented (tracked): ${UNIMPLEMENTED.length.toString().padStart(2)}  (Phase 0 scope)                │`);
+    console.log(
+      `│  Total message types:     ${ALL_PLAYER_MESSAGE_TYPES.length.toString().padStart(2)}                               │`,
+    );
+    console.log(
+      `│  Implemented in v2:       ${IMPLEMENTED.length.toString().padStart(2)}                               │`,
+    );
+    console.log(
+      `│  Legacy (warn only):      ${LEGACY.length.toString().padStart(2)}                               │`,
+    );
+    console.log(
+      `│  Unimplemented (warn):    ${UNIMPLEMENTED.length.toString().padStart(2)}                               │`,
+    );
     console.log('├─────────────────────────────────────────────────────────────┤');
     console.log('│  ✓ REQUEST_STATE      → broadcastCurrentState              │');
     console.log('│  ✓ VIEWED_ROLE        → handleViewedRole                   │');
     console.log('│  ✓ SEAT_ACTION_REQUEST → hostHandleSeatActionRequest       │');
-    console.log('│  ○ JOIN               → (legacy, replaced by SEAT_ACTION)  │');
-    console.log('│  ○ LEAVE              → (legacy, replaced by SEAT_ACTION)  │');
-    console.log('│  ○ ACTION             → (tracked)                          │');
-    console.log('│  ○ WOLF_VOTE          → (tracked)                          │');
-    console.log('│  ○ REVEAL_ACK         → (tracked)                          │');
-    console.log('│  ○ SNAPSHOT_REQUEST   → (tracked)                          │');
+    console.log('│  ✓ ACTION             → handleAction (PR9)                 │');
+    console.log('│  ✓ WOLF_VOTE          → handleWolfVote (PR9)               │');
+    console.log('│  ⚠ JOIN               → warn: use SEAT_ACTION_REQUEST      │');
+    console.log('│  ⚠ LEAVE              → warn: use SEAT_ACTION_REQUEST      │');
+    console.log('│  ⚠ REVEAL_ACK         → warn: no-op in v2                  │');
+    console.log('│  ⚠ SNAPSHOT_REQUEST   → warn: use REQUEST_STATE            │');
     console.log('└─────────────────────────────────────────────────────────────┘\n');
 
     expect(true).toBe(true);

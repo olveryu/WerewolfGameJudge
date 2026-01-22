@@ -16,6 +16,7 @@ import type { PlayerMessage, HostBroadcast } from '../../protocol/types';
 import type { GameStore } from '../store';
 import type { BroadcastService } from '../../BroadcastService';
 import type { SeatActionsContext, PendingSeatAction } from './seatActions';
+import type { RoleId } from '../../../models/roles';
 
 import { hostProcessJoinSeat, hostProcessLeaveMySeat } from './seatActions';
 import { v2FacadeLog } from '../../../utils/logger';
@@ -33,11 +34,36 @@ export interface MessageRouterContext {
   broadcastCurrentState: () => Promise<void>;
   findSeatByUid: (uid: string | null) => number | null;
   generateRequestId: () => string;
+
+  // ===========================================================================
+  // Host 处理 Player 消息的回调（由 V2GameFacade 注入）
+  // ===========================================================================
+
   /**
    * Host 处理 Player 发来的 VIEWED_ROLE 消息
    * 由 V2GameFacade 注入 hostActions.markViewedRole 实现
    */
   handleViewedRole?: (seat: number) => Promise<{ success: boolean; reason?: string }>;
+
+  /**
+   * Host 处理 Player 发来的 ACTION 消息
+   * 由 V2GameFacade 注入 hostActions.submitAction 实现
+   */
+  handleAction?: (
+    seat: number,
+    role: RoleId,
+    target: number | null,
+    extra?: unknown,
+  ) => Promise<{ success: boolean; reason?: string }>;
+
+  /**
+   * Host 处理 Player 发来的 WOLF_VOTE 消息
+   * 由 V2GameFacade 注入 hostActions.submitWolfVote 实现
+   */
+  handleWolfVote?: (
+    voterSeat: number,
+    targetSeat: number,
+  ) => Promise<{ success: boolean; reason?: string }>;
 }
 
 // =============================================================================
@@ -46,6 +72,11 @@ export interface MessageRouterContext {
 
 /**
  * Host 处理 PlayerMessage
+ *
+ * PR9 强制显式处理：每个 PlayerMessage['type'] 必须有 case
+ * - 禁止 default silent drop
+ * - Legacy types: warn + no-op
+ * - Unimplemented types: warn + no-op（但有明确日志）
  */
 export function hostHandlePlayerMessage(
   ctx: MessageRouterContext,
@@ -55,6 +86,9 @@ export function hostHandlePlayerMessage(
   if (!ctx.isHost) return;
 
   switch (msg.type) {
+    // =========================================================================
+    // Implemented types (v2 主路径)
+    // =========================================================================
     case 'REQUEST_STATE':
       void ctx.broadcastCurrentState();
       break;
@@ -68,6 +102,77 @@ export function hostHandlePlayerMessage(
         void ctx.handleViewedRole(msg.seat);
       }
       break;
+
+    // =========================================================================
+    // Legacy types (已被 SEAT_ACTION_REQUEST 替代)
+    // =========================================================================
+    case 'JOIN':
+      v2FacadeLog.warn('[messageRouter] Legacy PlayerMessage type received', {
+        type: msg.type,
+        guidance: 'Use SEAT_ACTION_REQUEST with action="sit" instead',
+      });
+      break;
+
+    case 'LEAVE':
+      v2FacadeLog.warn('[messageRouter] Legacy PlayerMessage type received', {
+        type: msg.type,
+        guidance: 'Use SEAT_ACTION_REQUEST with action="standup" instead',
+      });
+      break;
+
+    // =========================================================================
+    // Tracked types (需要在 v2 完整实现后接入)
+    // Host 直接处理这些行动，Player 应通过新入口发送
+    // =========================================================================
+    case 'ACTION':
+      if (ctx.handleAction) {
+        void ctx.handleAction(msg.seat, msg.role, msg.target, msg.extra);
+      } else {
+        v2FacadeLog.warn('[messageRouter] ACTION received but handleAction not wired', {
+          type: msg.type,
+          seat: msg.seat,
+          role: msg.role,
+        });
+      }
+      break;
+
+    case 'WOLF_VOTE':
+      if (ctx.handleWolfVote) {
+        void ctx.handleWolfVote(msg.seat, msg.target);
+      } else {
+        v2FacadeLog.warn('[messageRouter] WOLF_VOTE received but handleWolfVote not wired', {
+          type: msg.type,
+          seat: msg.seat,
+          target: msg.target,
+        });
+      }
+      break;
+
+    case 'REVEAL_ACK':
+      v2FacadeLog.warn('[messageRouter] Unimplemented PlayerMessage type', {
+        type: msg.type,
+        guidance:
+          'REVEAL_ACK is currently a no-op in v2; reveal acks tracked in BroadcastGameState',
+      });
+      break;
+
+    case 'SNAPSHOT_REQUEST':
+      v2FacadeLog.warn('[messageRouter] Unimplemented PlayerMessage type', {
+        type: msg.type,
+        guidance:
+          'Use REQUEST_STATE instead; SNAPSHOT_REQUEST is reserved for future differential sync',
+      });
+      break;
+
+    // =========================================================================
+    // Exhaustive check: 新增 PlayerMessage.type 时编译报错
+    // =========================================================================
+    default: {
+      const _exhaustiveCheck: never = msg;
+      v2FacadeLog.error('[messageRouter] Unknown PlayerMessage type', {
+        msg: _exhaustiveCheck,
+      });
+    }
   }
 }
 
