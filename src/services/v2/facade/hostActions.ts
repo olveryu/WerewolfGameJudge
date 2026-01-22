@@ -47,9 +47,25 @@ import {
   handleAdvanceNight,
   handleEndNight,
   handleSetAudioPlaying,
+  evaluateNightProgression,
+  createProgressionTracker,
+  buildProgressionKey,
+  type ProgressionTracker,
 } from '../handlers/nightFlowHandler';
 import { gameReducer } from '../reducer';
 import { v2FacadeLog } from '../../../utils/logger';
+
+// =============================================================================
+// 幂等自动推进追踪器（模块级单例）
+// =============================================================================
+
+/**
+ * 模块级推进追踪器
+ *
+ * 使用 {revision, currentStepId} 作为幂等 key，
+ * 确保同一游戏状态最多推进一次。
+ */
+let progressionTracker: ProgressionTracker = createProgressionTracker();
 
 /**
  * Host Actions 依赖的上下文接口
@@ -261,8 +277,7 @@ export async function restartGame(
  *
  * PR4: SUBMIT_ACTION（Night-1 only）
  *
- * 返回 success 后，调用方需要调用 evaluateNightProgression() 判断是否推进夜晚。
- * PR-refactor: 移除自动推进链路，遵循 copilot-instructions.md 规则。
+ * 成功后自动评估并执行夜晚推进（幂等，基于 revision + currentStepId）。
  */
 export async function submitAction(
   ctx: HostActionsContext,
@@ -286,8 +301,10 @@ export async function submitAction(
     applyActionsOnFailure: true, // PR4: ACTION_REJECTED 也需要应用
   });
 
-  // PR-refactor: 移除自动推进链路
-  // 调用方需要调用 evaluateNightProgression() 判断是否推进夜晚
+  // Host-only 自动推进：成功提交后评估是否需要推进夜晚
+  if (submitResult.success) {
+    await tryAdvanceNight(ctx);
+  }
 
   return submitResult;
 }
@@ -297,8 +314,7 @@ export async function submitAction(
  *
  * PR5: WOLF_VOTE（Night-1 only）
  *
- * 返回 success 后，调用方需要调用 evaluateNightProgression() 判断是否推进夜晚。
- * PR-refactor: 移除自动推进链路，遵循 copilot-instructions.md 规则。
+ * 成功后自动评估并执行夜晚推进（幂等，基于 revision + currentStepId）。
  */
 export async function submitWolfVote(
   ctx: HostActionsContext,
@@ -319,8 +335,10 @@ export async function submitWolfVote(
     logData: { voterSeat, targetSeat },
   });
 
-  // PR-refactor: 移除自动推进链路
-  // 调用方需要调用 evaluateNightProgression() 判断是否推进夜晚
+  // Host-only 自动推进：成功提交后评估是否需要推进夜晚
+  if (submitResult.success) {
+    await tryAdvanceNight(ctx);
+  }
 
   return submitResult;
 }
@@ -329,10 +347,6 @@ export async function submitWolfVote(
  * Host: 推进夜晚到下一步
  *
  * PR6: ADVANCE_NIGHT（音频结束后调用）
- *
- * 返回 success 后，调用方需要检查 state.currentStepId === undefined
- * 来判断是否需要调用 endNight()。
- * PR-refactor: 移除自动推进链路，遵循 copilot-instructions.md 规则。
  */
 export async function advanceNight(
   ctx: HostActionsContext,
@@ -343,12 +357,7 @@ export async function advanceNight(
   const context = buildHandlerContext(ctx);
   const result = handleAdvanceNight(intent, context);
 
-  const advanceResult = await processHandlerResult(ctx, result, { logPrefix: 'advanceNight' });
-
-  // PR-refactor: 移除自动推进链路
-  // 调用方需要检查 state.currentStepId === undefined 来判断是否需要 endNight
-
-  return advanceResult;
+  return processHandlerResult(ctx, result, { logPrefix: 'advanceNight' });
 }
 /**
  * Host: 结束夜晚，进行死亡结算
@@ -391,4 +400,86 @@ export async function setAudioPlaying(
     logPrefix: 'setAudioPlaying',
     logData: { isPlaying },
   });
+}
+
+// =============================================================================
+// 自动推进夜晚（Host-only 幂等执行）
+// =============================================================================
+
+/**
+ * 重置推进追踪器
+ *
+ * 在游戏开始/重启时调用，清除幂等状态。
+ */
+export function resetProgressionTracker(): void {
+  progressionTracker = createProgressionTracker();
+  v2FacadeLog.debug('progressionTracker reset');
+}
+
+/**
+ * Host: 幂等评估并执行夜晚推进
+ *
+ * 这是 Host-only 的夜晚推进决策中心。
+ *
+ * 幂等保护：
+ * - 使用 {revision, currentStepId} 作为幂等 key
+ * - 同一游戏状态最多推进一次
+ * - 重复调用安全（返回 success=false, reason='already_processed'）
+ *
+ * 调用时机：
+ * - submitAction 成功后
+ * - submitWolfVote 成功后
+ * - setAudioPlaying(false) 后
+ *
+ * @param ctx - HostActionsContext
+ * @returns 推进结果：{ advanced: boolean, decision: 'advance' | 'end_night' | 'none', reason?: string }
+ */
+export async function tryAdvanceNight(
+  ctx: HostActionsContext,
+): Promise<{
+  advanced: boolean;
+  decision: 'advance' | 'end_night' | 'none';
+  reason?: string;
+}> {
+  const state = ctx.store.getState();
+  const revision = ctx.store.getRevision();
+
+  // 评估推进决策
+  const decision = evaluateNightProgression(state, revision, progressionTracker, ctx.isHost);
+
+  v2FacadeLog.debug('tryAdvanceNight evaluated', {
+    action: decision.action,
+    reason: decision.reason,
+    currentStepId: state?.currentStepId,
+    revision,
+    idempotentKey: buildProgressionKey(revision, state?.currentStepId),
+  });
+
+  if (decision.action === 'none') {
+    return { advanced: false, decision: 'none', reason: decision.reason };
+  }
+
+  if (decision.action === 'advance') {
+    const result = await advanceNight(ctx);
+    if (!result.success) {
+      v2FacadeLog.warn('tryAdvanceNight: advanceNight failed', { reason: result.reason });
+      return { advanced: false, decision: 'advance', reason: result.reason };
+    }
+
+    // 推进成功后，递归检查是否需要继续推进（如 endNight）
+    // 注意：此时 revision 已经变化，幂等 key 不同，不会死循环
+    return tryAdvanceNight(ctx);
+  }
+
+  if (decision.action === 'end_night') {
+    const result = await endNight(ctx);
+    if (!result.success) {
+      v2FacadeLog.warn('tryAdvanceNight: endNight failed', { reason: result.reason });
+      return { advanced: false, decision: 'end_night', reason: result.reason };
+    }
+    return { advanced: true, decision: 'end_night' };
+  }
+
+  // 不应该到达这里
+  return { advanced: false, decision: 'none', reason: 'unknown_decision' };
 }

@@ -159,7 +159,7 @@ describe('witchContext.canSave notSelf alignment (PR contract)', () => {
 describe('evaluateNightProgression idempotency (PR contract)', () => {
   /**
    * 合约：evaluateNightProgression 必须是幂等的
-   * - 同一 {currentActionerIndex, currentStepId, actionsCount, wolfVotesCount} 最多推进一次
+   * - 同一 {revision, currentStepId} 最多推进一次
    * - 重复调用应该返回 action: 'none', reason: 'already_processed'
    */
 
@@ -186,12 +186,13 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
     const tracker = createProgressionTracker();
 
     // First call should return 'advance' (wolf vote complete)
-    const result1 = evaluateNightProgression(state, tracker, true);
+    // revision=1, currentStepId='wolfKill'
+    const result1 = evaluateNightProgression(state, 1, tracker, true);
     expect(result1.action).toBe('advance');
     expect(result1.reason).toBe('step_complete');
 
-    // Second call with same state should return 'none' (idempotent)
-    const result2 = evaluateNightProgression(state, tracker, true);
+    // Second call with same state and revision should return 'none' (idempotent)
+    const result2 = evaluateNightProgression(state, 1, tracker, true);
     expect(result2.action).toBe('none');
     expect(result2.reason).toBe('already_processed');
   });
@@ -215,19 +216,19 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
       templateRoles: ['wolf'],
     };
 
-    // First call
-    const result1 = evaluateNightProgression(state1, tracker, true);
+    // First call with revision=1
+    const result1 = evaluateNightProgression(state1, 1, tracker, true);
     expect(result1.action).toBe('advance');
 
-    // State changed (new step, new index)
+    // State changed (new step, revision incremented after advanceNight)
     const state2 = {
       ...state1,
       currentStepId: undefined, // No more steps
       currentActionerIndex: 1,
     };
 
-    // Should allow new progression (different key)
-    const result2 = evaluateNightProgression(state2, tracker, true);
+    // Should allow new progression (different revision)
+    const result2 = evaluateNightProgression(state2, 2, tracker, true);
     expect(result2.action).toBe('end_night');
     expect(result2.reason).toBe('no_more_steps');
   });
@@ -245,7 +246,8 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
       templateRoles: [],
     };
 
-    const result = evaluateNightProgression(state, undefined, false); // isHost = false
+    // evaluateNightProgression(state, revision, tracker, isHost)
+    const result = evaluateNightProgression(state, 1, undefined, false); // isHost = false
     expect(result.action).toBe('none');
     expect(result.reason).toBe('not_host');
   });
@@ -263,7 +265,8 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
       templateRoles: [],
     };
 
-    const result = evaluateNightProgression(state, undefined, true);
+    // evaluateNightProgression(state, revision, tracker, isHost)
+    const result = evaluateNightProgression(state, 1, undefined, true);
     expect(result.action).toBe('none');
     expect(result.reason).toBe('audio_playing');
   });
