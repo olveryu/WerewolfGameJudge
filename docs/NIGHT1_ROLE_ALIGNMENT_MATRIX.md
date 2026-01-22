@@ -160,6 +160,7 @@
 | **wolfKillDisabled** | ✅ 检查 | 梦魇封狼则无法杀人 |
 | **结果落点** | `currentNightResults.wolfKillTarget`, `wolfVotes`, `wolfVoteStatus` | |
 | **UI 目标限制** | 所有座位（含狼队友/自己）| |
+| **UX-only rule** | 狼刀阶段UI禁用免疫角色（wolfQueen, spiritKnight） | 测试覆盖在 RoomScreen.helpers.test.ts |
 | **失败原因** | `目标玩家不存在` | |
 
 ### 9. wolfQueenCharm (狼美人)
@@ -339,3 +340,111 @@ With Audio: 14/14 (100%)
 - **Resolver**: 允许自守（`valid: true`）
 - **设计原因**: Night-1 场景下守卫首夜可自守是合法策略（中立裁判规则）
 - **Schema-Resolver 对齐**: ✅ 完全对齐
+
+---
+
+## UX-only 限制说明
+
+> **原则**: UI 层不得添加 schema 未定义的业务约束。所有座位选择限制必须来自 `SCHEMAS[*].constraints`。
+
+### 当前 Night-1 无 UX-only 限制
+
+| 角色 | Schema 约束 | UI 行为 | UX-only 限制 |
+|------|------------|---------|-------------|
+| nightmare | `[]` | 可选任意座位（含自己） | ❌ 无 |
+| dreamcatcher | `['notSelf']` | 自己座位禁用 | ❌ 无（来自 schema） |
+| guard | `[]` | 可选任意座位（含自己） | ❌ 无 |
+| seer | `[]` | 可选任意座位（含自己） | ❌ 无 |
+| psychic | `[]` | 可选任意座位（含自己） | ❌ 无 |
+| gargoyle | `[]` | 可选任意座位（含自己） | ❌ 无 |
+| wolf（狼刀） | `[]` | 可选任意座位（中立裁判） | ❌ 无 |
+| witch（save/poison） | save: `['notSelf']` | 自己座位禁用 | ❌ 无（来自 schema） |
+| slacker | `['notSelf']` | 自己座位禁用 | ❌ 无（来自 schema） |
+| wolfQueen | `['notSelf']` | 自己座位禁用 | ❌ 无（来自 schema） |
+| wolfRobot | `['notSelf']` | 自己座位禁用 | ❌ 无（来自 schema） |
+
+### 验证机制
+
+UI 使用以下函数根据 schema 禁用座位：
+
+```typescript
+// buildSeatViewModels 只读 schema.constraints，无角色 hardcode
+const isDisabled = () => {
+  if (options?.schemaConstraints?.includes('notSelf') && seat === seatIndex) {
+    return true; // notSelf 来自 schema
+  }
+  // 无其他业务层禁用逻辑
+  return false;
+};
+```
+
+---
+
+## 三层对齐测试覆盖
+
+> **Schema-first 架构**: SCHEMAS 是唯一真相，Resolver 必须按 schema 校验，UI 必须从 schema 读取。
+
+### 新增测试文件
+
+| 测试文件 | 覆盖范围 |
+|----------|----------|
+| `schemaUIResolverAlignment.contract.test.ts` | **三层对齐**：Schema→Resolver→UI |
+
+### 测试内容
+
+#### 1. Schema WITH notSelf 对齐验证
+
+| SchemaId | Schema 检查 | Resolver 检查 |
+|----------|------------|--------------|
+| dreamcatcherDream | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指 |
+| wolfQueenCharm | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指 |
+| wolfRobotLearn | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指 |
+| slackerChooseIdol | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指 |
+
+#### 2. Schema WITHOUT notSelf 对齐验证
+
+| SchemaId | Schema 检查 | Resolver 检查 |
+|----------|------------|--------------|
+| seerCheck | ✅ `!constraints.includes('notSelf')` | ✅ 允许自指 |
+| psychicCheck | ✅ `!constraints.includes('notSelf')` | ✅ 允许自指 |
+| gargoyleCheck | ✅ `!constraints.includes('notSelf')` | ✅ 允许自指 |
+| nightmareBlock | ✅ `!constraints.includes('notSelf')` | ✅ 允许自指 |
+| guardProtect | ✅ `!constraints.includes('notSelf')` | ✅ 允许自指 |
+| wolfKill | ✅ `!constraints.includes('notSelf')` | ✅ 允许自指 |
+
+#### 3. witchAction 复合步骤验证
+
+| 步骤 | Schema 检查 | 说明 |
+|------|------------|------|
+| witchAction.save | ✅ `notSelf` | 女巫不能自救 |
+| witchAction.poison | ✅ 无 `notSelf` | 女巫可以毒自己 |
+
+#### 4. UI 无 Hardcode 验证
+
+| 测试项 | 验证方式 |
+|--------|---------|
+| buildSeatViewModels 无角色 hardcode | 检查源码不包含 `'nightmare'`/`'guard'` 等字符串 |
+| 所有 chooseSeat/swap schemas 已覆盖 | 完整性检查 |
+
+### 测试证据
+
+```
+PASS src/screens/RoomScreen/__tests__/schemaUIResolverAlignment.contract.test.ts
+  三层对齐 (Schema → Resolver → UI)
+    Schema WITH notSelf → Resolver 必须拒绝自指
+      ✓ dreamcatcherDream: schema has notSelf constraint
+      ✓ dreamcatcherDream: resolver rejects self-target
+      ✓ wolfQueenCharm: schema has notSelf constraint
+      ✓ wolfQueenCharm: resolver rejects self-target
+      ✓ wolfRobotLearn: schema has notSelf constraint
+      ✓ wolfRobotLearn: resolver rejects self-target
+      ✓ slackerChooseIdol: schema has notSelf constraint
+      ✓ slackerChooseIdol: resolver rejects self-target
+    Schema WITHOUT notSelf → Resolver 必须允许自指
+      ✓ seerCheck: schema has NO notSelf constraint
+      ✓ seerCheck: resolver accepts self-target
+      ...
+    UI 无 Hardcode 验证
+      ✓ buildSeatViewModels has no role-specific hardcode for notSelf
+      ✓ All chooseSeat/swap schemas are covered in this test
+```

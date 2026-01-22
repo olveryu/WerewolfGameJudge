@@ -115,4 +115,8 @@ describe('Nightmare UI (nightmareBlock schema - actor perspective)', () => {
       );
     });
   });
+
+  it('schema has NO notSelf constraint (nightmare can block self)', () => {
+    expect(SCHEMAS.nightmareBlock.constraints).not.toContain('notSelf');
+  });
 });

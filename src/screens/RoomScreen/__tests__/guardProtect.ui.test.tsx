@@ -115,4 +115,8 @@ describe('Guard UI (guardProtect schema)', () => {
       );
     });
   });
+
+  it('schema has NO notSelf constraint (guard can protect self)', () => {
+    expect(SCHEMAS.guardProtect.constraints).not.toContain('notSelf');
+  });
 });
