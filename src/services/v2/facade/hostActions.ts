@@ -32,7 +32,6 @@ import type { StateAction } from '../reducer/types';
 import type { RoleId } from '../../../models/roles';
 import type { GameTemplate } from '../../../models/Template';
 
-import { doesRoleParticipateInWolfVote } from '../../../models/roles';
 import {
   handleAssignRoles,
   handleStartNight,
@@ -262,8 +261,8 @@ export async function restartGame(
  *
  * PR4: SUBMIT_ACTION（Night-1 only）
  *
- * 当 action 成功提交后，自动触发 advanceNight 推进夜晚流程。
- * 如果没有更多步骤，会自动触发 endNight。
+ * 返回 success 后，调用方需要调用 evaluateNightProgression() 判断是否推进夜晚。
+ * PR-refactor: 移除自动推进链路，遵循 copilot-instructions.md 规则。
  */
 export async function submitAction(
   ctx: HostActionsContext,
@@ -287,11 +286,8 @@ export async function submitAction(
     applyActionsOnFailure: true, // PR4: ACTION_REJECTED 也需要应用
   });
 
-  // 如果 action 成功，自动推进夜晚流程
-  if (submitResult.success) {
-    v2FacadeLog.debug('Action succeeded, triggering advanceNight', { seat, role });
-    await advanceNight(ctx);
-  }
+  // PR-refactor: 移除自动推进链路
+  // 调用方需要调用 evaluateNightProgression() 判断是否推进夜晚
 
   return submitResult;
 }
@@ -301,8 +297,8 @@ export async function submitAction(
  *
  * PR5: WOLF_VOTE（Night-1 only）
  *
- * 当所有狼人都投完票后，自动触发 advanceNight 推进夜晚流程。
- * 这对齐 legacy 行为（GameStateService.handleWolfVote L1056）。
+ * 返回 success 后，调用方需要调用 evaluateNightProgression() 判断是否推进夜晚。
+ * PR-refactor: 移除自动推进链路，遵循 copilot-instructions.md 规则。
  */
 export async function submitWolfVote(
   ctx: HostActionsContext,
@@ -323,31 +319,8 @@ export async function submitWolfVote(
     logData: { voterSeat, targetSeat },
   });
 
-  // 如果投票成功，检查是否所有狼人都投完票
-  if (submitResult.success) {
-    const state = ctx.store.getState();
-    if (state?.wolfVotes) {
-      // 获取所有参与投票的狼人座位
-      const votingWolfSeats: number[] = [];
-      for (const [seatStr, player] of Object.entries(state.players)) {
-        if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
-          votingWolfSeats.push(Number.parseInt(seatStr, 10));
-        }
-      }
-
-      // 检查是否所有狼人都已投票
-      const allVoted = votingWolfSeats.every((seat) => seat.toString() in state.wolfVotes!);
-
-      if (allVoted) {
-        v2FacadeLog.debug('All wolves voted, triggering advanceNight', {
-          votingWolfSeats,
-          wolfVotes: state.wolfVotes,
-        });
-        // 自动触发 advanceNight（对齐 legacy L1056）
-        await advanceNight(ctx);
-      }
-    }
-  }
+  // PR-refactor: 移除自动推进链路
+  // 调用方需要调用 evaluateNightProgression() 判断是否推进夜晚
 
   return submitResult;
 }
@@ -357,8 +330,9 @@ export async function submitWolfVote(
  *
  * PR6: ADVANCE_NIGHT（音频结束后调用）
  *
- * 当没有下一步时（nextStepId === null），自动触发 endNight 结束夜晚。
- * 这对齐 legacy 的 NightFlowController 行为。
+ * 返回 success 后，调用方需要检查 state.currentStepId === undefined
+ * 来判断是否需要调用 endNight()。
+ * PR-refactor: 移除自动推进链路，遵循 copilot-instructions.md 规则。
  */
 export async function advanceNight(
   ctx: HostActionsContext,
@@ -371,18 +345,8 @@ export async function advanceNight(
 
   const advanceResult = await processHandlerResult(ctx, result, { logPrefix: 'advanceNight' });
 
-  // 如果推进成功，检查是否已经没有下一步了（夜晚结束）
-  if (advanceResult.success) {
-    const state = ctx.store.getState();
-    // 如果 currentStepId 为 undefined，说明没有下一步了，应该结束夜晚
-    if (state && state.currentStepId === undefined && state.status === 'ongoing') {
-      v2FacadeLog.debug('No more steps, triggering endNight', {
-        currentActionerIndex: state.currentActionerIndex,
-      });
-      // 自动触发 endNight（对齐 legacy NightFlowController 行为）
-      await endNight(ctx);
-    }
-  }
+  // PR-refactor: 移除自动推进链路
+  // 调用方需要检查 state.currentStepId === undefined 来判断是否需要 endNight
 
   return advanceResult;
 }

@@ -972,8 +972,8 @@ test.describe('Night 1 Happy Path', () => {
       if (hasLastNightBtn) {
         console.log('[NIGHT] Clicking 查看昨晚信息 button...');
         try {
-          // Use force:true to bypass actionability checks that might hang
-          await lastNightBtn.click({ timeout: 5000, force: true });
+          // Wait for button to be actionable, then click
+          await lastNightBtn.click({ timeout: 5000 });
           console.log('[NIGHT] Button clicked successfully');
         } catch (error_) {
           console.log(`[NIGHT] WARNING: Failed to click 查看昨晚信息: ${error_}`);

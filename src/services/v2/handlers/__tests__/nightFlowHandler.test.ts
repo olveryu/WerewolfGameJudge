@@ -579,5 +579,98 @@ describe('nightFlowHandler', () => {
         expect(result.reason).toBe('forbidden_while_audio_playing');
       });
     });
+
+    describe('PR contract: witchContext.canSave aligns with notSelf constraint', () => {
+      /**
+       * Schema 定义：witchAction.steps[0] (save) 有 notSelf 约束
+       * 合约：当被杀者是女巫自己时，canSave 必须为 false
+       *
+       * 此测试验证 handleAdvanceNight 设置的 witchContext.canSave
+       * 正确实现 schema 的 notSelf 约束。
+       */
+
+      it('should set canSave=false when wolf kills the witch (notSelf alignment)', () => {
+        // 模板: wolf, witch, villager (witch 在座位 1)
+        const templateRoles: RoleId[] = ['wolf', 'witch', 'villager'];
+
+        // players: wolf 在 0, witch 在 1
+        const players: Record<number, BroadcastPlayer> = {
+          0: createPlayer(0, 'wolf'),
+          1: createPlayer(1, 'witch'),
+          2: createPlayer(2, 'villager'),
+        };
+
+        const intent: AdvanceNightIntent = { type: 'ADVANCE_NIGHT' };
+        const context: HandlerContext = {
+          state: createOngoingState({
+            players,
+            currentActionerIndex: 0, // wolfKill 是第 0 步
+            currentStepId: 'wolfKill',
+            templateRoles,
+            // 狼杀了女巫（座位 1）
+            wolfVotes: { '0': 1 },
+          }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleAdvanceNight(intent, context);
+
+        expect(result.success).toBe(true);
+        // 应该有 2 个 actions: ADVANCE + SET_WITCH_CONTEXT
+        expect(result.actions.length).toBeGreaterThanOrEqual(2);
+
+        const witchContextAction = result.actions.find((a) => a.type === 'SET_WITCH_CONTEXT');
+        expect(witchContextAction).toBeDefined();
+
+        if (witchContextAction?.type === 'SET_WITCH_CONTEXT') {
+          // killedIndex 应该是 1（女巫座位）
+          expect(witchContextAction.payload.killedIndex).toBe(1);
+          // canSave 必须是 false（女巫不能自救，notSelf 约束）
+          expect(witchContextAction.payload.canSave).toBe(false);
+        }
+      });
+
+      it('should set canSave=true when wolf kills someone else (normal case)', () => {
+        // 模板: wolf, witch, villager (witch 在座位 1)
+        const templateRoles: RoleId[] = ['wolf', 'witch', 'villager'];
+
+        const players: Record<number, BroadcastPlayer> = {
+          0: createPlayer(0, 'wolf'),
+          1: createPlayer(1, 'witch'),
+          2: createPlayer(2, 'villager'),
+        };
+
+        const intent: AdvanceNightIntent = { type: 'ADVANCE_NIGHT' };
+        const context: HandlerContext = {
+          state: createOngoingState({
+            players,
+            currentActionerIndex: 0,
+            currentStepId: 'wolfKill',
+            templateRoles,
+            // 狼杀了村民（座位 2）
+            wolfVotes: { '0': 2 },
+          }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleAdvanceNight(intent, context);
+
+        expect(result.success).toBe(true);
+
+        const witchContextAction = result.actions.find((a) => a.type === 'SET_WITCH_CONTEXT');
+        expect(witchContextAction).toBeDefined();
+
+        if (witchContextAction?.type === 'SET_WITCH_CONTEXT') {
+          // killedIndex 应该是 2（村民座位）
+          expect(witchContextAction.payload.killedIndex).toBe(2);
+          // canSave 应该是 true（可以救别人）
+          expect(witchContextAction.payload.canSave).toBe(true);
+        }
+      });
+    });
   });
 });
