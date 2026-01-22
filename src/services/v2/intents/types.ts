@@ -108,6 +108,25 @@ export interface RevealAckIntent {
 // 音频控制 Intent（仅主机）
 // =============================================================================
 
+/**
+ * 设置音频播放状态 Intent（Host-only）
+ *
+ * PR7: 音频时序控制
+ * - 当音频开始播放时，调用 setAudioPlaying(true)
+ * - 当音频结束（或被跳过）时，调用 setAudioPlaying(false)
+ *
+ * Gate:
+ * - host_only
+ * - no_state
+ * - invalid_status（必须 ongoing）
+ */
+export interface SetAudioPlayingIntent {
+  type: 'SET_AUDIO_PLAYING';
+  payload: {
+    isPlaying: boolean;
+  };
+}
+
 export interface SkipAudioIntent {
   type: 'SKIP_AUDIO';
 }
@@ -163,6 +182,7 @@ export type GameIntent =
   | SubmitWolfVoteIntent
   | ViewedRoleIntent
   | RevealAckIntent
+  | SetAudioPlayingIntent
   | SkipAudioIntent
   | PlayNextAudioIntent
   | AdvanceNightIntent

@@ -24,6 +24,7 @@ import type {
   SubmitWolfVoteIntent,
   AdvanceNightIntent,
   EndNightIntent,
+  SetAudioPlayingIntent,
 } from '../intents/types';
 import type { StateAction } from '../reducer/types';
 import type { RoleId } from '../../../models/roles';
@@ -34,7 +35,7 @@ import {
   handleSubmitAction,
   handleSubmitWolfVote,
 } from '../handlers/actionHandler';
-import { handleAdvanceNight, handleEndNight } from '../handlers/nightFlowHandler';
+import { handleAdvanceNight, handleEndNight, handleSetAudioPlaying } from '../handlers/nightFlowHandler';
 import { gameReducer } from '../reducer';
 import { v2FacadeLog } from '../../../utils/logger';
 
@@ -278,4 +279,30 @@ export async function endNight(
   const result = handleEndNight(intent, context);
 
   return processHandlerResult(ctx, result, { logPrefix: 'endNight' });
+}
+
+/**
+ * Host: 设置音频播放状态
+ *
+ * PR7: 音频时序控制
+ * - 当音频开始播放时，调用 setAudioPlaying(true)
+ * - 当音频结束（或被跳过）时，调用 setAudioPlaying(false)
+ */
+export async function setAudioPlaying(
+  ctx: HostActionsContext,
+  isPlaying: boolean,
+): Promise<{ success: boolean; reason?: string }> {
+  v2FacadeLog.debug('setAudioPlaying called', { isPlaying, isHost: ctx.isHost });
+
+  const intent: SetAudioPlayingIntent = {
+    type: 'SET_AUDIO_PLAYING',
+    payload: { isPlaying },
+  };
+  const context = buildHandlerContext(ctx);
+  const result = handleSetAudioPlaying(intent, context);
+
+  return processHandlerResult(ctx, result, {
+    logPrefix: 'setAudioPlaying',
+    logData: { isPlaying },
+  });
 }

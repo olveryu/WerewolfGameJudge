@@ -99,6 +99,19 @@ describe('V2GameFacade', () => {
     return state;
   };
 
+  // ===========================================================================
+  // Shared Helper: 直接通过 reducer 设置 ongoing 状态（绕过 assignRoles/viewedRole 流程）
+  // ===========================================================================
+  const setOngoingViaReducer = (facadeInstance: V2GameFacade) => {
+    let state = facadeInstance['store'].getState()!;
+    state = gameReducer(state, {
+      type: 'START_NIGHT',
+      payload: { currentActionerIndex: 0, currentStepId: 'wolfKill' },
+    });
+    facadeInstance['store'].setState(state);
+    return state;
+  };
+
   describe('Host: initializeAsHost', () => {
     it('should initialize store with correct state', async () => {
       await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
@@ -1310,6 +1323,109 @@ describe('V2GameFacade', () => {
 
       expect(result.success).toBe(false);
       expect(result.reason).toBe('invalid_status');
+    });
+  });
+
+  // ===========================================================================
+  // PR7: setAudioPlaying tests
+  // ===========================================================================
+  describe('setAudioPlaying (PR7)', () => {
+    it('should set isAudioPlaying to true when called with true', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      setOngoingViaReducer(facade);
+
+      const result = await facade.setAudioPlaying(true);
+
+      expect(result.success).toBe(true);
+      const state = facade['store'].getState();
+      expect(state?.isAudioPlaying).toBe(true);
+    });
+
+    it('should set isAudioPlaying to false when called with false', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      setOngoingViaReducer(facade);
+      await facade.setAudioPlaying(true);
+
+      const result = await facade.setAudioPlaying(false);
+
+      expect(result.success).toBe(true);
+      const state = facade['store'].getState();
+      expect(state?.isAudioPlaying).toBe(false);
+    });
+
+    it('should reject when status is not ongoing', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      // status is 'seated', not 'ongoing'
+
+      const result = await facade.setAudioPlaying(true);
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+
+    it('should broadcast on rejection (reject also broadcasts)', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      mockBroadcastService.broadcastAsHost.mockClear();
+
+      await facade.setAudioPlaying(true);
+
+      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'STATE_UPDATE',
+        }),
+      );
+    });
+
+    it('should return reason from handler (reason passthrough)', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+
+      const result = await facade.setAudioPlaying(true);
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+  });
+
+  // ===========================================================================
+  // PR7: isAudioPlaying gates contract
+  // ===========================================================================
+  describe('PR7 contract: isAudioPlaying gates', () => {
+    it('advanceNight should reject when isAudioPlaying=true', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      setOngoingViaReducer(facade);
+      await facade.setAudioPlaying(true);
+
+      const result = await facade.advanceNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('forbidden_while_audio_playing');
+    });
+
+    it('endNight should reject when isAudioPlaying=true', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      setOngoingViaReducer(facade);
+      await facade.setAudioPlaying(true);
+
+      const result = await facade.endNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('forbidden_while_audio_playing');
+    });
+
+    it('advanceNight should succeed when isAudioPlaying=false', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      setOngoingViaReducer(facade);
+      // isAudioPlaying defaults to false after setOngoingViaReducer
+
+      const result = await facade.advanceNight();
+
+      expect(result.success).toBe(true);
     });
   });
 });

@@ -14,9 +14,9 @@
  * - endNight 调用 calculateDeaths 并产出正确 deaths
  */
 
-import { handleAdvanceNight, handleEndNight } from '../nightFlowHandler';
+import { handleAdvanceNight, handleEndNight, handleSetAudioPlaying } from '../nightFlowHandler';
 import type { HandlerContext } from '../types';
-import type { AdvanceNightIntent, EndNightIntent } from '../../intents/types';
+import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../../intents/types';
 import type { BroadcastGameState, BroadcastPlayer } from '../../../protocol/types';
 import { NIGHT_STEPS } from '../../../../models/roles/spec';
 
@@ -404,6 +404,152 @@ describe('nightFlowHandler', () => {
           // 被守卫保护，无死亡
           expect(action.payload.deaths).not.toContain(4);
         }
+      });
+    });
+  });
+
+  // ==========================================================================
+  // SET_AUDIO_PLAYING Handler (PR7)
+  // ==========================================================================
+  describe('handleSetAudioPlaying', () => {
+    describe('Gate: host_only', () => {
+      it('should reject when isHost is false', () => {
+        const intent: SetAudioPlayingIntent = {
+          type: 'SET_AUDIO_PLAYING',
+          payload: { isPlaying: true },
+        };
+        const context: HandlerContext = {
+          state: createOngoingState(),
+          isHost: false,
+          myUid: 'player-uid',
+          mySeat: 0,
+        };
+
+        const result = handleSetAudioPlaying(intent, context);
+
+        expect(result.success).toBe(false);
+        expect(result.reason).toBe('host_only');
+        expect(result.actions).toHaveLength(0);
+      });
+    });
+
+    describe('Gate: no_state', () => {
+      it('should reject when state is null', () => {
+        const intent: SetAudioPlayingIntent = {
+          type: 'SET_AUDIO_PLAYING',
+          payload: { isPlaying: true },
+        };
+        const context: HandlerContext = {
+          state: null,
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleSetAudioPlaying(intent, context);
+
+        expect(result.success).toBe(false);
+        expect(result.reason).toBe('no_state');
+      });
+    });
+
+    describe('Gate: invalid_status', () => {
+      it('should reject when status is not ongoing', () => {
+        const intent: SetAudioPlayingIntent = {
+          type: 'SET_AUDIO_PLAYING',
+          payload: { isPlaying: true },
+        };
+        const context: HandlerContext = {
+          state: createOngoingState({ status: 'ready' }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleSetAudioPlaying(intent, context);
+
+        expect(result.success).toBe(false);
+        expect(result.reason).toBe('invalid_status');
+      });
+    });
+
+    describe('Happy path', () => {
+      it('should set isAudioPlaying to true', () => {
+        const intent: SetAudioPlayingIntent = {
+          type: 'SET_AUDIO_PLAYING',
+          payload: { isPlaying: true },
+        };
+        const context: HandlerContext = {
+          state: createOngoingState({ isAudioPlaying: false }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleSetAudioPlaying(intent, context);
+
+        expect(result.success).toBe(true);
+        expect(result.actions).toHaveLength(1);
+        const action = result.actions[0];
+        expect(action.type).toBe('SET_AUDIO_PLAYING');
+        if (action.type === 'SET_AUDIO_PLAYING') {
+          expect(action.payload.isPlaying).toBe(true);
+        }
+        expect(result.sideEffects).toEqual([{ type: 'BROADCAST_STATE' }]);
+      });
+
+      it('should set isAudioPlaying to false', () => {
+        const intent: SetAudioPlayingIntent = {
+          type: 'SET_AUDIO_PLAYING',
+          payload: { isPlaying: false },
+        };
+        const context: HandlerContext = {
+          state: createOngoingState({ isAudioPlaying: true }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleSetAudioPlaying(intent, context);
+
+        expect(result.success).toBe(true);
+        const action = result.actions[0];
+        expect(action.type).toBe('SET_AUDIO_PLAYING');
+        if (action.type === 'SET_AUDIO_PLAYING') {
+          expect(action.payload.isPlaying).toBe(false);
+        }
+      });
+    });
+
+    describe('PR7 contract: ADVANCE_NIGHT/END_NIGHT reject when isAudioPlaying=true', () => {
+      it('ADVANCE_NIGHT should reject with forbidden_while_audio_playing when audio is playing', () => {
+        const intent: AdvanceNightIntent = { type: 'ADVANCE_NIGHT' };
+        const context: HandlerContext = {
+          state: createOngoingState({ isAudioPlaying: true }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleAdvanceNight(intent, context);
+
+        expect(result.success).toBe(false);
+        expect(result.reason).toBe('forbidden_while_audio_playing');
+      });
+
+      it('END_NIGHT should reject with forbidden_while_audio_playing when audio is playing', () => {
+        const intent: EndNightIntent = { type: 'END_NIGHT' };
+        const context: HandlerContext = {
+          state: createOngoingState({ isAudioPlaying: true }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleEndNight(intent, context);
+
+        expect(result.success).toBe(false);
+        expect(result.reason).toBe('forbidden_while_audio_playing');
       });
     });
   });
