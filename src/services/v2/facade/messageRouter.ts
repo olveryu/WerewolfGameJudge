@@ -152,7 +152,7 @@ export function hostHandlePlayerMessage(
       v2FacadeLog.warn('[messageRouter] Unimplemented PlayerMessage type', {
         type: msg.type,
         guidance:
-          'REVEAL_ACK is currently a no-op in v2; reveal acks tracked in BroadcastGameState',
+          'v2 不需要单独 ack，reveal 由 BroadcastGameState 字段（seerReveal, psychicReveal 等）驱动 UI',
       });
       break;
 
@@ -160,7 +160,7 @@ export function hostHandlePlayerMessage(
       v2FacadeLog.warn('[messageRouter] Unimplemented PlayerMessage type', {
         type: msg.type,
         guidance:
-          'Use REQUEST_STATE instead; SNAPSHOT_REQUEST is reserved for future differential sync',
+          '正确方式是发送 REQUEST_STATE；SNAPSHOT_REQUEST 保留 for future differential sync',
       });
       break;
 
