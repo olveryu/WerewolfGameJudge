@@ -30,6 +30,19 @@ jest.mock('../../../BroadcastService', () => ({
   },
 }));
 
+// P0-1: Mock AudioService
+jest.mock('../../../AudioService', () => ({
+  __esModule: true,
+  default: {
+    getInstance: jest.fn(() => ({
+      playNightAudio: jest.fn().mockResolvedValue(undefined),
+      playNightEndAudio: jest.fn().mockResolvedValue(undefined),
+      playRoleBeginningAudio: jest.fn().mockResolvedValue(undefined),
+      playRoleEndingAudio: jest.fn().mockResolvedValue(undefined),
+    })),
+  },
+}));
+
 describe('V2GameFacade', () => {
   let facade: V2GameFacade;
   let mockBroadcastService: {

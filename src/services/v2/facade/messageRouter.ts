@@ -64,6 +64,12 @@ export interface MessageRouterContext {
     voterSeat: number,
     targetSeat: number,
   ) => Promise<{ success: boolean; reason?: string }>;
+
+  /**
+   * Host 处理 Player 发来的 REVEAL_ACK 消息
+   * 由 V2GameFacade 注入 hostActions.clearRevealAcks 实现
+   */
+  handleRevealAck?: () => Promise<{ success: boolean; reason?: string }>;
 }
 
 // =============================================================================
@@ -149,11 +155,15 @@ export function hostHandlePlayerMessage(
       break;
 
     case 'REVEAL_ACK':
-      v2FacadeLog.warn('[messageRouter] Unimplemented PlayerMessage type', {
-        type: msg.type,
-        guidance:
-          'v2 不需要单独 ack，reveal 由 BroadcastGameState 字段（seerReveal, psychicReveal 等）驱动 UI',
+      // P0-FIX: Player 确认 reveal 弹窗后，Host 需要清除 pendingRevealAcks 并推进夜晚
+      v2FacadeLog.debug('[messageRouter] REVEAL_ACK received', {
+        seat: msg.seat,
+        role: msg.role,
+        revision: msg.revision,
       });
+      if (ctx.handleRevealAck) {
+        void ctx.handleRevealAck();
+      }
       break;
 
     case 'SNAPSHOT_REQUEST':

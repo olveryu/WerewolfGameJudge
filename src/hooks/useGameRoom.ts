@@ -497,8 +497,8 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Get last night info - now derived from gameState
   const getLastNightInfo = useCallback((): string => {
     if (!gameState) return '无信息';
-    // v2: deaths field is in BroadcastGameState as optional
-    const deaths = (gameState as { deaths?: number[] }).deaths;
+    // v2: deaths are stored in lastNightDeaths field
+    const deaths = gameState.lastNightDeaths;
     if (!deaths || deaths.length === 0) return '昨夜平安夜';
     const deathList = deaths.map((d: number) => (d + 1).toString() + '号').join(', ');
     return '昨夜死亡: ' + deathList;

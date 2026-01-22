@@ -301,16 +301,14 @@ describe('PlayerMessage Router Coverage Contract', () => {
       );
     });
 
-    it('REVEAL_ACK should trigger warn (currently unimplemented)', () => {
-      const ctx = createMockContext();
+    it('REVEAL_ACK should call handleRevealAck when wired', () => {
+      const mockHandleRevealAck = jest.fn().mockResolvedValue({ success: true });
+      const ctx = createMockContext({ handleRevealAck: mockHandleRevealAck });
       const msg = createMinimalPayload('REVEAL_ACK');
 
       hostHandlePlayerMessage(ctx, msg, 'sender-uid');
 
-      expect(v2FacadeLog.warn).toHaveBeenCalledWith(
-        '[messageRouter] Unimplemented PlayerMessage type',
-        expect.objectContaining({ type: 'REVEAL_ACK' }),
-      );
+      expect(mockHandleRevealAck).toHaveBeenCalled();
     });
 
     it('SNAPSHOT_REQUEST should trigger warn (currently unimplemented)', () => {
@@ -336,6 +334,7 @@ describe('PlayerMessage Router Coverage Contract', () => {
       'SEAT_ACTION_REQUEST',
       'ACTION', // PR9: now wired via handleAction
       'WOLF_VOTE', // PR9: now wired via handleWolfVote
+      'REVEAL_ACK', // P0-FIX: now wired via handleRevealAck
     ];
 
     const LEGACY_TYPES: PlayerMessage['type'][] = [
@@ -344,20 +343,19 @@ describe('PlayerMessage Router Coverage Contract', () => {
     ];
 
     const UNIMPLEMENTED_TYPES: PlayerMessage['type'][] = [
-      'REVEAL_ACK', // Tracked: no-op, reveal acks in BroadcastGameState
       'SNAPSHOT_REQUEST', // Tracked: reserved for future differential sync
     ];
 
-    it('should have 5 implemented types', () => {
-      expect(IMPLEMENTED_TYPES.length).toBe(5);
+    it('should have 6 implemented types', () => {
+      expect(IMPLEMENTED_TYPES.length).toBe(6);
     });
 
     it('should have 2 legacy types', () => {
       expect(LEGACY_TYPES.length).toBe(2);
     });
 
-    it('should have 2 unimplemented types', () => {
-      expect(UNIMPLEMENTED_TYPES.length).toBe(2);
+    it('should have 1 unimplemented types', () => {
+      expect(UNIMPLEMENTED_TYPES.length).toBe(1);
     });
 
     it('all types should be accounted for', () => {
@@ -401,15 +399,9 @@ describe('PlayerMessage Router Coverage Contract', () => {
 
 describe('PlayerMessage Router Coverage Report', () => {
   it('prints coverage summary', () => {
-    const IMPLEMENTED = [
-      'REQUEST_STATE',
-      'VIEWED_ROLE',
-      'SEAT_ACTION_REQUEST',
-      'ACTION',
-      'WOLF_VOTE',
-    ];
+    const IMPLEMENTED = ['REQUEST_STATE', 'VIEWED_ROLE', 'SEAT_ACTION_REQUEST', 'ACTION', 'WOLF_VOTE', 'REVEAL_ACK'];
     const LEGACY = ['JOIN', 'LEAVE'];
-    const UNIMPLEMENTED = ['REVEAL_ACK', 'SNAPSHOT_REQUEST'];
+    const UNIMPLEMENTED = ['SNAPSHOT_REQUEST'];
 
     console.log('\n┌─────────────────────────────────────────────────────────────┐');
     console.log('│          PlayerMessage Router Coverage Report (PR9)         │');
@@ -432,9 +424,9 @@ describe('PlayerMessage Router Coverage Report', () => {
     console.log('│  ✓ SEAT_ACTION_REQUEST → hostHandleSeatActionRequest       │');
     console.log('│  ✓ ACTION             → handleAction (PR9)                 │');
     console.log('│  ✓ WOLF_VOTE          → handleWolfVote (PR9)               │');
+    console.log('│  ✓ REVEAL_ACK         → handleRevealAck (P0-FIX)           │');
     console.log('│  ⚠ JOIN               → warn: use SEAT_ACTION_REQUEST      │');
     console.log('│  ⚠ LEAVE              → warn: use SEAT_ACTION_REQUEST      │');
-    console.log('│  ⚠ REVEAL_ACK         → warn: no-op in v2                  │');
     console.log('│  ⚠ SNAPSHOT_REQUEST   → warn: use REQUEST_STATE            │');
     console.log('└─────────────────────────────────────────────────────────────┘\n');
 

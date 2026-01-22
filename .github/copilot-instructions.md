@@ -147,6 +147,23 @@ UI (从 schema + gameState 推导显示)
 - Night-1 的 `audioKey` / 可选的 `audioEndKey` 必须来自 `NIGHT_STEPS`。
 - 禁止在 specs/steps 双写 audio key。若确实需要临时兼容：必须 `@deprecated` + 移除日期 + 合约测试强制二者相等。
 
+### 音频时序分层架构（Audio sequencing layering）
+
+- **单一音频编排来源：Handler 声明，Facade 执行，UI 只读**。避免 Facade & UI “双路径触发音频”导致竞态（两段音频重叠/重复、Gate 误释放、UI 提前可点）。
+- **Handler（Host-only 业务状态机）**：
+  - 只负责“什么时候该播什么音频”的**声明**，通过 `SideEffect: { type: 'PLAY_AUDIO', audioKey, isEndAudio? }` 返回。
+  - 禁止在 handler 里做任何音频 IO、也禁止在 handler 里碰 UI。
+- **Facade（Host-only 编排/IO 入口）**：
+  - 负责执行 `PLAY_AUDIO` 的副作用：
+    1) `setAudioPlaying(true)` 广播 Gate
+    2) 执行音频播放（`AudioService`）
+    3) `finally { setAudioPlaying(false) }` 兜底释放 Gate（无论成功/失败/跳过/中断）
+  - 只允许 Facade 触发/调用 `setAudioPlaying`；Player 端绝对禁止写 Gate。
+- **RoomScreen（UI）**：
+  - **只读 `isAudioPlaying` 并据此禁用交互**（按钮/提交/advance）。
+  - ❌ 禁止在 `useEffect` 里根据 step/status 去主动播放音频（这会引入第二条音频触发链路）。
+  - ❌ 禁止 UI 自己 toggle `setAudioPlaying(true/false)` 充当 Gate。
+
 ### 音频 Gate（`isAudioPlaying`）硬性护栏（MUST follow）
 
 - **`isAudioPlaying` 代表“权威音频 Gate 的事实状态”，不是推导状态。**

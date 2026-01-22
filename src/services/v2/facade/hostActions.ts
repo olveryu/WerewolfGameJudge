@@ -63,6 +63,17 @@ export interface HostActionsContext {
   myUid: string | null;
   getMySeatNumber: () => number | null;
   broadcastCurrentState: () => Promise<void>;
+  /**
+   * P0-1/P0-5 修复: 音频播放回调
+   * @param audioKey - 'night' | 'night_end' | RoleId
+   * @param isEndAudio - 如果为 true，使用 audio_end 目录
+   */
+  playAudio?: (audioKey: string, isEndAudio?: boolean) => Promise<void>;
+  /**
+   * 设置音频播放状态（Audio Gate）
+   * 根据 copilot-instructions.md：音频播放前设 true，结束后设 false
+   */
+  setAudioPlayingGate?: (isPlaying: boolean) => Promise<void>;
 }
 
 /**
@@ -130,13 +141,41 @@ async function processHandlerResult(
     applyActions(ctx.store, state, result.actions);
   }
 
-  // 执行副作用
+  // P0-1/P0-5 修复: 处理 PLAY_AUDIO 副作用
+  // 根据 copilot-instructions.md：
+  // 1) 先调用 setAudioPlaying(true) 广播 Gate
+  // 2) 播放音频
+  // 3) 音频结束调用 setAudioPlaying(false) 解除 Gate（必须 finally 兜底）
+  //
+  // 重要：必须在 BROADCAST_STATE 之前设置 gate，否则 UI 会在音频播放前就收到 ended 状态
+  const playAudioEffect = result.sideEffects?.find((e) => e.type === 'PLAY_AUDIO');
+  if (playAudioEffect?.type === 'PLAY_AUDIO' && ctx.playAudio) {
+    // 1) 设置 gate（在广播之前！）
+    if (ctx.setAudioPlayingGate) {
+      await ctx.setAudioPlayingGate(true);
+    }
+  }
+
+  // 执行副作用：广播状态
   if (result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE')) {
     await ctx.broadcastCurrentState();
   }
   if (result.sideEffects?.some((e) => e.type === 'SAVE_STATE')) {
     // SAVE_STATE side effect: 用于 crash recovery，暂由 log 占位
     v2FacadeLog.debug('SAVE_STATE side effect triggered');
+  }
+
+  // 播放音频（gate 已在上面设置）
+  if (playAudioEffect?.type === 'PLAY_AUDIO' && ctx.playAudio) {
+    try {
+      // 2) 播放音频
+      await ctx.playAudio(playAudioEffect.audioKey, playAudioEffect.isEndAudio);
+    } finally {
+      // 3) 解除 gate（必须 finally 兜底）
+      if (ctx.setAudioPlayingGate) {
+        await ctx.setAudioPlayingGate(false);
+      }
+    }
   }
 
   if (logPrefix) {
@@ -392,6 +431,36 @@ export async function setAudioPlaying(
     logPrefix: 'setAudioPlaying',
     logData: { isPlaying },
   });
+}
+
+// =============================================================================
+// Reveal Ack 处理
+// =============================================================================
+
+/**
+ * Host: 清除 pending reveal acks 并推进夜晚
+ *
+ * 当用户确认 reveal 弹窗后调用
+ */
+export async function clearRevealAcks(
+  ctx: HostActionsContext,
+): Promise<{ success: boolean; reason?: string }> {
+  v2FacadeLog.debug('clearRevealAcks called', { isHost: ctx.isHost });
+
+  const state = ctx.store.getState();
+  if (!state) {
+    return { success: false, reason: 'no_state' };
+  }
+
+  // 应用 CLEAR_REVEAL_ACKS action
+  const newState = gameReducer(state, { type: 'CLEAR_REVEAL_ACKS' });
+  ctx.store.setState(newState);
+  ctx.broadcastCurrentState();
+
+  // 推进夜晚流程
+  await callNightProgression(ctx);
+
+  return { success: true };
 }
 
 // =============================================================================

@@ -23,6 +23,7 @@ import type { RoleId } from '../../../models/roles';
 
 import { BroadcastService } from '../../BroadcastService';
 import { GameStore } from '../store';
+import AudioService from '../../AudioService';
 
 // 子模块
 import type { HostActionsContext } from './hostActions';
@@ -337,15 +338,38 @@ export class V2GameFacade implements IGameFacade {
   /**
    * 提交 reveal 确认（seer/psychic/gargoyle/wolfRobot）
    *
-   * PR8: 这是一个 no-op 占位符，因为 reveal ack 已在 BroadcastGameState 中处理
-   * 实际确认逻辑由 UI 层读取 state 并直接显示
+   * 当用户确认 reveal 弹窗后调用：
+   * - Host: 直接调用 clearRevealAcks
+   * - Player: 发送 REVEAL_ACK 消息给 Host
    */
   async submitRevealAck(
-    _role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot',
+    role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot',
   ): Promise<{ success: boolean; reason?: string }> {
-    // Reveal ACK 是 UI 层行为，不需要 Host 处理
-    // 状态已通过 BroadcastGameState 广播
-    return { success: true };
+    if (this.isHost) {
+      // Host 直接执行
+      return hostActions.clearRevealAcks(this.getHostActionsContext());
+    }
+
+    // Player: 发送消息给 Host
+    const seat = this.getMySeatNumber();
+    if (seat === null) {
+      return { success: false, reason: 'not_seated' };
+    }
+
+    const revision = this.store.getRevision();
+    const msg: PlayerMessage = {
+      type: 'REVEAL_ACK',
+      seat,
+      role,
+      revision,
+    };
+
+    try {
+      await this.broadcastService.sendToHost(msg);
+      return { success: true };
+    } catch {
+      return { success: false, reason: 'send_failed' };
+    }
   }
 
   // =========================================================================
@@ -417,6 +441,23 @@ export class V2GameFacade implements IGameFacade {
       myUid: this.myUid,
       getMySeatNumber: () => this.getMySeatNumber(),
       broadcastCurrentState: () => this.broadcastCurrentState(),
+      // P0-1/P0-5: 音频播放回调（只负责播放 IO）
+      playAudio: async (audioKey: string, isEndAudio?: boolean) => {
+        const audio = AudioService.getInstance();
+        if (audioKey === 'night') {
+          await audio.playNightAudio();
+        } else if (audioKey === 'night_end') {
+          await audio.playNightEndAudio();
+        } else if (isEndAudio) {
+          await audio.playRoleEndingAudio(audioKey as RoleId);
+        } else {
+          await audio.playRoleBeginningAudio(audioKey as RoleId);
+        }
+      },
+      // 设置 isAudioPlaying Gate（根据 copilot-instructions.md）
+      setAudioPlayingGate: async (isPlaying: boolean) => {
+        await this.setAudioPlaying(isPlaying);
+      },
     };
   }
 
@@ -448,6 +489,7 @@ export class V2GameFacade implements IGameFacade {
         hostActions.submitAction(this.getHostActionsContext(), seat, role, target, extra),
       handleWolfVote: (voterSeat: number, targetSeat: number) =>
         hostActions.submitWolfVote(this.getHostActionsContext(), voterSeat, targetSeat),
+      handleRevealAck: () => hostActions.clearRevealAcks(this.getHostActionsContext()),
     };
   }
 

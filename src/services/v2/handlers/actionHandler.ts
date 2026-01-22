@@ -13,6 +13,8 @@ import type {
   RecordWolfVoteAction,
   PlayerViewedRoleAction,
   ActionRejectedAction,
+  AddRevealAckAction,
+  StateAction,
 } from '../reducer/types';
 import type { ProtocolAction } from '../../protocol/types';
 import type { SchemaId } from '../../../models/roles/spec';
@@ -327,7 +329,7 @@ function buildSuccessResult(
     payload: { action: protocolAction },
   };
 
-  const actions: (RecordActionAction | ApplyResolverResultAction)[] = [recordAction];
+  const actions: StateAction[] = [recordAction];
 
   // Only attach reveal payload when we have a concrete target.
   // (Avoid fabricating seat=0 when target is null.)
@@ -336,6 +338,16 @@ function buildSuccessResult(
       type: 'APPLY_RESOLVER_RESULT',
       payload: buildRevealPayload(result, role, target),
     });
+    
+    // P0-FIX: 如果 schema 定义了 revealKind，需要弹窗确认，添加 pending ack 阻塞推进
+    const schema = SCHEMAS[schemaId];
+    const revealKind = (schema?.ui as { revealKind?: string } | undefined)?.revealKind;
+    if (revealKind) {
+      actions.push({
+        type: 'ADD_REVEAL_ACK',
+        payload: { ackKey: revealKind },
+      });
+    }
   } else if (result.updates) {
     // Updates can exist without a target (e.g. skip/blocked); keep them.
     actions.push({

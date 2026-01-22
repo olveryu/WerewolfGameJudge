@@ -29,6 +29,7 @@ import type { WitchAction } from '../../../models/actions/WitchAction';
 import type { ProtocolAction } from '../../protocol/types';
 
 import { buildNightPlan } from '../../../models/roles/spec/plan';
+import { getStepSpec } from '../../../models/roles/spec/nightSteps';
 import { resolveWolfVotes } from '../../WolfVoteResolver';
 import { calculateDeaths } from '../../DeathCalculator';
 import { isWolfRole, doesRoleParticipateInWolfVote } from '../../../models/roles';
@@ -190,10 +191,26 @@ export function handleAdvanceNight(
     actions.push(setWitchContextAction);
   }
 
+  // P0-5: 播放当前步骤的结束音频
+  // 从 NIGHT_STEPS 表驱动获取 audioEndKey（若未定义则使用 audioKey）
+  const sideEffects: HandlerResult['sideEffects'] = [{ type: 'BROADCAST_STATE' }];
+
+  if (currentStepId) {
+    const currentStep = getStepSpec(currentStepId);
+    if (currentStep) {
+      const audioEndKey = currentStep.audioEndKey ?? currentStep.audioKey;
+      sideEffects.push({
+        type: 'PLAY_AUDIO',
+        audioKey: audioEndKey,
+        isEndAudio: true, // 标记这是结束音频，走 audio_end 目录
+      });
+    }
+  }
+
   return {
     success: true,
     actions,
-    sideEffects: [{ type: 'BROADCAST_STATE' }],
+    sideEffects,
   };
 }
 
@@ -371,8 +388,19 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
   // 构建 RoleSeatMap
   const roleSeatMap = buildRoleSeatMap(state);
 
+  // DEBUG: 打印死亡计算输入
+  nightFlowLog.debug('handleEndNight: calculating deaths', {
+    wolfVotes: state.wolfVotes,
+    wolfKillDisabled: state.wolfKillDisabled,
+    nightActions,
+    roleSeatMap,
+  });
+
   // 调用 DeathCalculator（复用，不重写）
   const deaths = calculateDeaths(nightActions, roleSeatMap);
+
+  // DEBUG: 打印死亡计算结果
+  nightFlowLog.debug('handleEndNight: deaths calculated', { deaths });
 
   const endNightAction: EndNightAction = {
     type: 'END_NIGHT',
@@ -382,7 +410,11 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
   return {
     success: true,
     actions: [endNightAction],
-    sideEffects: [{ type: 'BROADCAST_STATE' }],
+    sideEffects: [
+      { type: 'BROADCAST_STATE' },
+      // P0-1: 返回夜晚结束音频播放副作用
+      { type: 'PLAY_AUDIO', audioKey: 'night_end' },
+    ],
   };
 }
 
@@ -421,8 +453,9 @@ function validateSetAudioPlayingPreconditions(
     };
   }
 
-  // Gate 3: invalid_status (must be ongoing)
-  if (state.status !== 'ongoing') {
+  // Gate 3: invalid_status (must be ongoing or ended)
+  // 允许 ended 状态是因为天亮音频在 endNight 之后播放
+  if (state.status !== 'ongoing' && state.status !== 'ended') {
     return {
       valid: false,
       result: { success: false, reason: 'invalid_status', actions: [] },
@@ -591,6 +624,11 @@ export function evaluateNightProgression(
   // Gate: audio playing
   if (state.isAudioPlaying) {
     return { action: 'none', reason: 'audio_playing' };
+  }
+
+  // Gate: pending reveal acks - 等待用户确认查验结果后再推进
+  if (state.pendingRevealAcks && state.pendingRevealAcks.length > 0) {
+    return { action: 'none', reason: 'pending_reveal_acks' };
   }
 
   // 幂等检查
