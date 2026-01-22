@@ -1392,6 +1392,14 @@ test.describe('Night 1 Happy Path', () => {
 
       await takeScreenshot(pageA, testInfo, 'restart-01-first-night-done.png');
 
+      // Dismiss the speaking order dialog if visible (shows after night ends)
+      const speakingOrderDialog = pageA.getByText('发言顺序');
+      if (await speakingOrderDialog.isVisible({ timeout: 1000 }).catch(() => false)) {
+        console.log('[RESTART] Dismissing speaking order dialog...');
+        await pageA.getByText('知道了', { exact: true }).click();
+        await pageA.waitForTimeout(300);
+      }
+
       // ===================== Restart =====================
       console.log('\n[RESTART] === Clicking 重新开始 ===');
 
