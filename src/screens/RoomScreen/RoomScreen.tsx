@@ -1218,7 +1218,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           }
           showPrepareToFlip={roomStatus === GameStatus.seated}
           showStartGame={roomStatus === GameStatus.ready && !isStartingGame}
-          showLastNightInfo={roomStatus === GameStatus.ended}
+          showLastNightInfo={roomStatus === GameStatus.ended && !isAudioPlaying}
           showRestart={
             roomStatus === GameStatus.assigned ||
             roomStatus === GameStatus.ready ||
