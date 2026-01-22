@@ -47,25 +47,11 @@ import {
   handleAdvanceNight,
   handleEndNight,
   handleSetAudioPlaying,
-  evaluateNightProgression,
-  createProgressionTracker,
-  buildProgressionKey,
-  type ProgressionTracker,
+  handleNightProgression,
+  resetProgressionTracker,
 } from '../handlers/nightFlowHandler';
 import { gameReducer } from '../reducer';
 import { v2FacadeLog } from '../../../utils/logger';
-
-// =============================================================================
-// 幂等自动推进追踪器（模块级单例）
-// =============================================================================
-
-/**
- * 模块级推进追踪器
- *
- * 使用 {revision, currentStepId} 作为幂等 key，
- * 确保同一游戏状态最多推进一次。
- */
-let progressionTracker: ProgressionTracker = createProgressionTracker();
 
 /**
  * Host Actions 依赖的上下文接口
@@ -215,6 +201,9 @@ export async function startNight(
 ): Promise<{ success: boolean; reason?: string }> {
   v2FacadeLog.debug('startNight called', { isHost: ctx.isHost });
 
+  // 重置推进追踪器（新夜晚开始）
+  resetProgressionTracker();
+
   const intent: StartNightIntent = { type: 'START_NIGHT' };
   const context = buildHandlerContext(ctx);
   const result = handleStartNight(intent, context);
@@ -265,6 +254,9 @@ export async function restartGame(
 ): Promise<{ success: boolean; reason?: string }> {
   v2FacadeLog.debug('restartGame called', { isHost: ctx.isHost });
 
+  // 重置推进追踪器（游戏重新开始）
+  resetProgressionTracker();
+
   const intent: RestartGameIntent = { type: 'RESTART_GAME' };
   const context = buildHandlerContext(ctx);
   const result = handleRestartGame(intent, context);
@@ -301,9 +293,9 @@ export async function submitAction(
     applyActionsOnFailure: true, // PR4: ACTION_REJECTED 也需要应用
   });
 
-  // Host-only 自动推进：成功提交后评估是否需要推进夜晚
+  // Host-only 自动推进：成功提交后透传调用 handler 层推进
   if (submitResult.success) {
-    await tryAdvanceNight(ctx);
+    await callNightProgression(ctx);
   }
 
   return submitResult;
@@ -335,9 +327,9 @@ export async function submitWolfVote(
     logData: { voterSeat, targetSeat },
   });
 
-  // Host-only 自动推进：成功提交后评估是否需要推进夜晚
+  // Host-only 自动推进：成功提交后透传调用 handler 层推进
   if (submitResult.success) {
-    await tryAdvanceNight(ctx);
+    await callNightProgression(ctx);
   }
 
   return submitResult;
@@ -403,83 +395,30 @@ export async function setAudioPlaying(
 }
 
 // =============================================================================
-// 自动推进夜晚（Host-only 幂等执行）
+// 夜晚推进透传（调用 handler 层的 handleNightProgression）
 // =============================================================================
 
 /**
- * 重置推进追踪器
+ * 构建夜晚推进回调
  *
- * 在游戏开始/重启时调用，清除幂等状态。
+ * 将 HostActionsContext 转换为 handler 需要的回调接口
  */
-export function resetProgressionTracker(): void {
-  progressionTracker = createProgressionTracker();
-  v2FacadeLog.debug('progressionTracker reset');
+function buildNightProgressionCallbacks(ctx: HostActionsContext) {
+  return {
+    getRevision: () => ctx.store.getRevision(),
+    getState: () => ctx.store.getState(),
+    isHost: ctx.isHost,
+    advanceNight: () => advanceNight(ctx),
+    endNight: () => endNight(ctx),
+  };
 }
 
 /**
- * Host: 幂等评估并执行夜晚推进
+ * Host: 透传调用夜晚推进
  *
- * 这是 Host-only 的夜晚推进决策中心。
- *
- * 幂等保护：
- * - 使用 {revision, currentStepId} 作为幂等 key
- * - 同一游戏状态最多推进一次
- * - 重复调用安全（返回 success=false, reason='already_processed'）
- *
- * 调用时机：
- * - submitAction 成功后
- * - submitWolfVote 成功后
- * - setAudioPlaying(false) 后
- *
- * @param ctx - HostActionsContext
- * @returns 推进结果：{ advanced: boolean, decision: 'advance' | 'end_night' | 'none', reason?: string }
+ * 这是一个透传方法，将 HostActionsContext 转换后调用 handler 层的 handleNightProgression。
  */
-export async function tryAdvanceNight(
-  ctx: HostActionsContext,
-): Promise<{
-  advanced: boolean;
-  decision: 'advance' | 'end_night' | 'none';
-  reason?: string;
-}> {
-  const state = ctx.store.getState();
-  const revision = ctx.store.getRevision();
-
-  // 评估推进决策
-  const decision = evaluateNightProgression(state, revision, progressionTracker, ctx.isHost);
-
-  v2FacadeLog.debug('tryAdvanceNight evaluated', {
-    action: decision.action,
-    reason: decision.reason,
-    currentStepId: state?.currentStepId,
-    revision,
-    idempotentKey: buildProgressionKey(revision, state?.currentStepId),
-  });
-
-  if (decision.action === 'none') {
-    return { advanced: false, decision: 'none', reason: decision.reason };
-  }
-
-  if (decision.action === 'advance') {
-    const result = await advanceNight(ctx);
-    if (!result.success) {
-      v2FacadeLog.warn('tryAdvanceNight: advanceNight failed', { reason: result.reason });
-      return { advanced: false, decision: 'advance', reason: result.reason };
-    }
-
-    // 推进成功后，递归检查是否需要继续推进（如 endNight）
-    // 注意：此时 revision 已经变化，幂等 key 不同，不会死循环
-    return tryAdvanceNight(ctx);
-  }
-
-  if (decision.action === 'end_night') {
-    const result = await endNight(ctx);
-    if (!result.success) {
-      v2FacadeLog.warn('tryAdvanceNight: endNight failed', { reason: result.reason });
-      return { advanced: false, decision: 'end_night', reason: result.reason };
-    }
-    return { advanced: true, decision: 'end_night' };
-  }
-
-  // 不应该到达这里
-  return { advanced: false, decision: 'none', reason: 'unknown_decision' };
+async function callNightProgression(ctx: HostActionsContext): Promise<void> {
+  const callbacks = buildNightProgressionCallbacks(ctx);
+  await handleNightProgression(callbacks);
 }

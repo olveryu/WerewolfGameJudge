@@ -33,6 +33,7 @@ import { resolveWolfVotes } from '../../WolfVoteResolver';
 import { calculateDeaths } from '../../DeathCalculator';
 import { isWolfRole, doesRoleParticipateInWolfVote } from '../../../models/roles';
 import { makeWitchSave, makeWitchPoison, makeWitchNone } from '../../../models/actions/WitchAction';
+import { nightFlowLog } from '../../../utils/logger';
 
 /**
  * 非 null 的 state 类型
@@ -618,4 +619,118 @@ export function evaluateNightProgression(
   }
 
   return { action: 'none', reason: 'step_not_complete' };
+}
+
+// =============================================================================
+// 夜晚推进控制器（Host-only, 幂等）
+// =============================================================================
+
+/**
+ * 模块级推进追踪器（单例）
+ *
+ * 使用 {revision, currentStepId} 作为幂等 key，
+ * 确保同一游戏状态最多推进一次。
+ */
+let progressionTracker: ProgressionTracker = createProgressionTracker();
+
+/**
+ * 重置推进追踪器
+ *
+ * 必须在游戏开始/重启时调用，清除幂等状态。
+ * 调用位置：restartGame / startNight
+ */
+export function resetProgressionTracker(): void {
+  progressionTracker = createProgressionTracker();
+  nightFlowLog.debug('progressionTracker reset');
+}
+
+/**
+ * 夜晚推进回调接口
+ *
+ * 用于 handleNightProgression 执行推进时调用 facade 层的方法
+ */
+export interface NightProgressionCallbacks {
+  /** 获取当前 revision */
+  getRevision: () => number;
+  /** 获取当前 state */
+  getState: () => NonNullState | null;
+  /** 是否为 Host */
+  isHost: boolean;
+  /** 执行 advanceNight */
+  advanceNight: () => Promise<{ success: boolean; reason?: string }>;
+  /** 执行 endNight */
+  endNight: () => Promise<{ success: boolean; reason?: string }>;
+}
+
+/**
+ * 夜晚推进结果
+ */
+export interface NightProgressionResult {
+  advanced: boolean;
+  decision: 'advance' | 'end_night' | 'none';
+  reason?: string;
+}
+
+/**
+ * Host-only: 幂等评估并执行夜晚推进
+ *
+ * 这是 Host-only 的夜晚推进决策中心。
+ *
+ * 幂等保护：
+ * - 使用 {revision, currentStepId} 作为幂等 key
+ * - 同一游戏状态最多推进一次
+ * - 重复调用安全（返回 advanced=false, reason='already_processed'）
+ *
+ * 调用时机：
+ * - submitAction 成功后
+ * - submitWolfVote 成功后
+ * - setAudioPlaying(false) 后
+ *
+ * @param callbacks - 回调接口，由 facade 层提供
+ * @returns 推进结果
+ */
+export async function handleNightProgression(
+  callbacks: NightProgressionCallbacks,
+): Promise<NightProgressionResult> {
+  const state = callbacks.getState();
+  const revision = callbacks.getRevision();
+
+  // 评估推进决策
+  const decision = evaluateNightProgression(state, revision, progressionTracker, callbacks.isHost);
+
+  nightFlowLog.debug('handleNightProgression evaluated', {
+    action: decision.action,
+    reason: decision.reason,
+    currentStepId: state?.currentStepId,
+    revision,
+    idempotentKey: buildProgressionKey(revision, state?.currentStepId),
+  });
+
+  if (decision.action === 'none') {
+    return { advanced: false, decision: 'none', reason: decision.reason };
+  }
+
+  if (decision.action === 'advance') {
+    const result = await callbacks.advanceNight();
+    if (!result.success) {
+      nightFlowLog.warn('handleNightProgression: advanceNight failed', { reason: result.reason });
+      return { advanced: false, decision: 'advance', reason: result.reason };
+    }
+
+    // 推进成功后，递归检查是否需要继续推进（如 endNight）
+    // 注意：此时 revision 已经变化，幂等 key 不同，不会死循环
+    return handleNightProgression(callbacks);
+  }
+
+  if (decision.action === 'end_night') {
+    const result = await callbacks.endNight();
+    if (!result.success) {
+      nightFlowLog.warn('handleNightProgression: endNight failed', { reason: result.reason });
+      return { advanced: false, decision: 'end_night', reason: result.reason };
+    }
+    return { advanced: true, decision: 'end_night' };
+  }
+
+  // 不应该到达这里
+  return { advanced: false, decision: 'none', reason: 'unknown_decision' };
 }
