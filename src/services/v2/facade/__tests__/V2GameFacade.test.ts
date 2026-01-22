@@ -935,7 +935,7 @@ describe('V2GameFacade', () => {
       mockBroadcastService.broadcastAsHost.mockClear();
     });
 
-    it('should reject if not host, with reason from handler (host_only)', async () => {
+    it('should send PlayerMessage to host when called by player (not host)', async () => {
       // 创建一个非 host facade（player）
       V2GameFacade.resetInstance();
       const playerFacade = V2GameFacade.getInstance();
@@ -943,8 +943,12 @@ describe('V2GameFacade', () => {
 
       const result = await playerFacade.markViewedRole(0);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('host_only');
+      // Player 发送消息给 Host，返回 success（不等待确认）
+      expect(result.success).toBe(true);
+      expect(mockBroadcastService.sendToHost).toHaveBeenCalledWith({
+        type: 'VIEWED_ROLE',
+        seat: 0,
+      });
     });
 
     it('should reject if status is not assigned, with reason from handler', async () => {

@@ -33,6 +33,11 @@ export interface MessageRouterContext {
   broadcastCurrentState: () => Promise<void>;
   findSeatByUid: (uid: string | null) => number | null;
   generateRequestId: () => string;
+  /**
+   * Host 处理 Player 发来的 VIEWED_ROLE 消息
+   * 由 V2GameFacade 注入 hostActions.markViewedRole 实现
+   */
+  handleViewedRole?: (seat: number) => Promise<{ success: boolean; reason?: string }>;
 }
 
 // =============================================================================
@@ -58,7 +63,11 @@ export function hostHandlePlayerMessage(
       hostHandleSeatActionRequest(ctx, msg);
       break;
 
-    // Phase 0 不处理其他类型
+    case 'VIEWED_ROLE':
+      if (ctx.handleViewedRole) {
+        void ctx.handleViewedRole(msg.seat);
+      }
+      break;
   }
 }
 

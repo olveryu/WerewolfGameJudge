@@ -240,7 +240,16 @@ export class V2GameFacade implements IGameFacade {
   }
 
   async markViewedRole(seat: number): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.markViewedRole(this.getHostActionsContext(), seat);
+    // Host: 直接处理
+    if (this.isHost) {
+      return hostActions.markViewedRole(this.getHostActionsContext(), seat);
+    }
+
+    // Player: 发送 PlayerMessage 给 Host
+    const msg: PlayerMessage = { type: 'VIEWED_ROLE', seat };
+    await this.broadcastService.sendToHost(msg);
+    // Player 端不等待确认，依赖 Host 广播 STATE_UPDATE
+    return { success: true };
   }
 
   async startNight(): Promise<{ success: boolean; reason?: string }> {
@@ -371,10 +380,14 @@ export class V2GameFacade implements IGameFacade {
   }
 
   /**
-   * MessageRouter 和 SeatActions 共用相同的上下文结构
+   * MessageRouter 上下文（扩展 SeatActionsContext + handleViewedRole）
    */
   private getMessageRouterContext(): MessageRouterContext {
-    return this.getSeatActionsContext();
+    return {
+      ...this.getSeatActionsContext(),
+      handleViewedRole: (seat: number) =>
+        hostActions.markViewedRole(this.getHostActionsContext(), seat),
+    };
   }
 
   // =========================================================================
