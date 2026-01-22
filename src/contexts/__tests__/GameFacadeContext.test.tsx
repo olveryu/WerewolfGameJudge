@@ -8,6 +8,7 @@ import type { IGameFacade } from '../../services/types/IGameFacade';
 function createFakeFacade(): IGameFacade {
   return {
     addListener: () => () => {},
+    getState: () => null,
     isHostPlayer: () => false,
     getMyUid: () => 'u1',
     getMySeatNumber: () => null,
@@ -19,6 +20,18 @@ function createFakeFacade(): IGameFacade {
     takeSeatWithAck: async () => ({ success: true }),
     leaveSeat: async () => true,
     leaveSeatWithAck: async () => ({ success: true }),
+    assignRoles: async () => ({ success: true }),
+    updateTemplate: async () => ({ success: true }),
+    startNight: async () => ({ success: true }),
+    restartGame: async () => ({ success: true }),
+    markViewedRole: async () => ({ success: true }),
+    submitAction: async () => ({ success: true }),
+    submitWolfVote: async () => ({ success: true }),
+    submitRevealAck: async () => ({ success: true }),
+    advanceNight: async () => ({ success: true }),
+    endNight: async () => ({ success: true }),
+    setAudioPlaying: async () => ({ success: true }),
+    requestSnapshot: async () => true,
   };
 }
 

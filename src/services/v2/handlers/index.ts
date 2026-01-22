@@ -11,7 +11,7 @@ export type { Handler, HandlerContext, HandlerResult } from './types';
 export { handleJoinSeat, handleLeaveMySeat } from './seatHandler';
 
 // Game control handlers
-export { handleStartGame, handleRestartGame } from './gameControlHandler';
+export { handleStartGame, handleRestartGame, handleUpdateTemplate } from './gameControlHandler';
 
 // Action handlers
 export { handleSubmitAction, handleSubmitWolfVote, handleViewedRole } from './actionHandler';
