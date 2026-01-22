@@ -255,7 +255,12 @@ export function handleStartNight(
   return {
     success: true,
     actions: [startNightAction],
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: [
+      { type: 'BROADCAST_STATE' },
+      { type: 'SAVE_STATE' },
+      // P0-1: 返回夜晚开始音频播放副作用
+      { type: 'PLAY_AUDIO', audioKey: 'night' },
+    ],
   };
 }
 

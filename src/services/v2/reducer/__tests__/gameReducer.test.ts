@@ -243,7 +243,7 @@ describe('gameReducer', () => {
   });
 
   describe('ADVANCE_TO_NEXT_ACTION', () => {
-    it('should update currentActionerIndex, currentStepId and clear reveal states', () => {
+    it('should update currentActionerIndex, currentStepId and clear context but preserve reveal states', () => {
       const state = createMinimalState({
         status: 'ongoing',
         currentActionerIndex: 0,
@@ -265,16 +265,17 @@ describe('gameReducer', () => {
       // PR6 contract: 同时更新 index 和 stepId
       expect(newState.currentActionerIndex).toBe(1);
       expect(newState.currentStepId).toBe('seerCheck');
-      // PR6 contract: 清空所有 reveal/context
-      expect(newState.seerReveal).toBeUndefined();
-      expect(newState.psychicReveal).toBeUndefined();
-      expect(newState.gargoyleReveal).toBeUndefined();
-      expect(newState.wolfRobotReveal).toBeUndefined();
+      // P0-FIX: reveal 状态保留到夜晚结束，给 UI 足够时间显示弹窗
+      expect(newState.seerReveal).toEqual({ targetSeat: 1, result: '好人' });
+      expect(newState.psychicReveal).toEqual({ targetSeat: 2, result: '狼人阵营' });
+      expect(newState.gargoyleReveal).toEqual({ targetSeat: 3, result: '守卫' });
+      expect(newState.wolfRobotReveal).toEqual({ targetSeat: 4, result: '预言家' });
+      // context 仍然被清空（这些是步骤特定的，不是结果）
       expect(newState.confirmStatus).toBeUndefined();
       expect(newState.witchContext).toBeUndefined();
     });
 
-    it('should clear wolfVotes and wolfVoteStatus on advance (PR6 contract)', () => {
+    it('should preserve wolfVotes and wolfVoteStatus on advance for death calculation at END_NIGHT', () => {
       const state = createMinimalState({
         status: 'ongoing',
         currentActionerIndex: 0,
@@ -289,9 +290,9 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      // PR6 contract: 推进到下一步清空狼票
-      expect(newState.wolfVotes).toEqual({});
-      expect(newState.wolfVoteStatus).toEqual({});
+      // wolfVotes 应该保留，用于 END_NIGHT 死亡结算
+      expect(newState.wolfVotes).toEqual({ 1: 3, 2: 3 });
+      expect(newState.wolfVoteStatus).toEqual({ 1: true, 2: true });
     });
 
     it('should set currentStepId to undefined when nextStepId is null (night end)', () => {

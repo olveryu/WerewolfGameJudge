@@ -121,12 +121,26 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [currentStepId, gameState]);
 
   // =========================================================================
-  // PR7: Host 音频闭环（唯一入口）
+  // PR7: Host 音频闭环
+  // 注意：音频播放由 Handler → Facade 层触发（通过 PLAY_AUDIO sideEffect）
+  // RoomScreen 只读 isAudioPlaying 用于 UI 禁用/显示，不负责触发音频
   // =========================================================================
   // 用 ref 追踪已播放过音频的 stepId，防止重复触发
   const audioPlayedStepRef = useRef<SchemaId | null>(null);
+  // 用 ref 追踪"音频正在启动中"的状态，防止 auto-trigger 在 gate 生效前触发
+  const audioStartingRef = useRef<boolean>(false);
+  // P0-FIX: 追踪"等待当前步骤音频开始播放"的状态
+  // 每次 currentStepId 变化时设置为 true，当音频播放完成后清除
+  // 使用 state + ref 双重追踪：ref 用于同步检查，state 用于触发 useEffect
+  const waitingForStepAudioRef = useRef<boolean>(false);
+  const [waitingForStepAudio, setWaitingForStepAudio] = useState<boolean>(false);
+  // P0-FIX: 用于检测 currentStepId 变化和 debounce 清除
+  const prevStepIdRef = useRef<typeof currentStepId | null>(null);
+  const clearWaitFlagTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const audioService = useRef(AudioService.getInstance());
 
+  // 角色音频：当 currentStepId 变化时播放（临时保留，直到 Handler 完全接管）
+  // TODO: 当 Handler 层完全接管角色开始音频后，删除此 useEffect
   useEffect(() => {
     // 只有 Host 在 ongoing 状态时才播放音频
     if (!isHost) return;
@@ -136,6 +150,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // 幂等检查：同一个 stepId 只触发一次
     if (audioPlayedStepRef.current === currentStepId) return;
 
+    // BUG-FIX: 如果 isAudioPlaying 已经是 true（Facade 正在播放音频），
+    // 则等待 gate 解锁后再播放角色开始音频。
+    if (isAudioPlaying) {
+      roomScreenLog.debug('[Audio] Waiting for audio gate to unlock', { currentStepId, isAudioPlaying });
+      return; // 下次 isAudioPlaying 变化时会重新触发
+    }
+
     // 获取 audioKey
     const stepSpec = getStepSpec(currentStepId);
     const audioKey = stepSpec?.audioKey;
@@ -144,7 +165,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
-    // 标记为已处理，防止重复
+    // 立即设置"音频正在启动"标记，防止 auto-trigger 在 gate 生效前触发
+    audioStartingRef.current = true;
+    // 立即标记为"正在处理"，防止重复触发
     audioPlayedStepRef.current = currentStepId;
 
     // 异步播放音频流程
@@ -155,27 +178,105 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         // 1. 设置 isAudioPlaying=true（广播 gate）
         await setAudioPlaying(true);
 
-        // 2. 播放音频
+        // 2. 解除"正在启动"标记（gate 已生效）
+        audioStartingRef.current = false;
+
+        // 3. 播放音频
         await audioService.current.playRoleBeginningAudio(stepSpec.roleId);
 
         roomScreenLog.debug('[Audio] Audio playback complete', { currentStepId });
       } catch (err) {
         roomScreenLog.error('[Audio] Error playing audio', { currentStepId, error: err });
+        audioStartingRef.current = false;
       } finally {
-        // 3. 设置 isAudioPlaying=false（广播解锁）
+        // 4. 设置 isAudioPlaying=false（广播解锁）
         await setAudioPlaying(false);
       }
     };
 
     void playAudioSequence();
-  }, [isHost, roomStatus, currentStepId, setAudioPlaying]);
+  }, [isHost, roomStatus, currentStepId, isAudioPlaying, setAudioPlaying]);
 
-  // 当夜晚结束或离开游戏时，重置 audioPlayedStepRef
+  // 当夜晚结束或离开游戏时，重置所有音频相关状态
   useEffect(() => {
     if (roomStatus !== GameStatus.ongoing) {
       audioPlayedStepRef.current = null;
+      waitingForStepAudioRef.current = false;
+      setWaitingForStepAudio(false);
+      prevStepIdRef.current = null; // 重置 prevStepId，确保下一局开始时能正确检测 step 变化
+      // 取消任何待执行的 debounce 清除操作
+      if (clearWaitFlagTimeoutRef.current) {
+        clearTimeout(clearWaitFlagTimeoutRef.current);
+        clearWaitFlagTimeoutRef.current = null;
+      }
     }
   }, [roomStatus]);
+
+  // P0-FIX: 每次 currentStepId 变化时，设置等待音频标志
+  // 这样在音频播放完成之前，Player 不会触发 actionPrompt
+  // 
+  // 音频流程有两层：
+  // 1. Facade 层：advanceNight 播放 end audio
+  // 2. RoomScreen 层：检测 currentStepId 变化后播放步骤音频
+  // 
+  // Player 需要等待两层音频都完成后才能触发 actionPrompt。
+  // 由于消息传播延迟，我们使用 debounce 机制：
+  // - 每次收到 isAudioPlaying=false 时，延迟 200ms 后清除 flag
+  // - 如果在 200ms 内又收到 isAudioPlaying=true，取消清除
+  // (注意：prevStepIdRef 和 clearWaitFlagTimeoutRef 已在文件开头定义)
+  
+  useEffect(() => {
+    // 只在 ongoing 状态时处理
+    if (roomStatus !== GameStatus.ongoing) return;
+    
+    // 检测 currentStepId 变化
+    if (prevStepIdRef.current !== currentStepId) {
+      // 取消任何待执行的清除操作
+      if (clearWaitFlagTimeoutRef.current) {
+        clearTimeout(clearWaitFlagTimeoutRef.current);
+        clearWaitFlagTimeoutRef.current = null;
+      }
+      waitingForStepAudioRef.current = true;
+      setWaitingForStepAudio(true); // 同步更新 state
+      roomScreenLog.debug('[Audio] Step changed, waiting for audio cycle', { 
+        prevStepId: prevStepIdRef.current, 
+        currentStepId 
+      });
+      prevStepIdRef.current = currentStepId;
+    }
+  }, [roomStatus, currentStepId]);
+
+  // P0-FIX: 使用 debounce 机制清除 wait flag
+  // 只有当 isAudioPlaying=false 稳定持续 200ms 后才清除
+  // 这样可以处理两层音频之间的短暂 false 状态
+  useEffect(() => {
+    if (isAudioPlaying) {
+      // 音频开始播放，取消任何待执行的清除操作
+      if (clearWaitFlagTimeoutRef.current) {
+        clearTimeout(clearWaitFlagTimeoutRef.current);
+        clearWaitFlagTimeoutRef.current = null;
+        roomScreenLog.debug('[Audio] Audio started, cancelled pending wait flag clear');
+      }
+    } else if (waitingForStepAudioRef.current) {
+      // 音频停止播放，延迟清除 flag
+      // 使用 200ms 延迟，足够让第二轮音频的 isAudioPlaying=true 消息到达
+      clearWaitFlagTimeoutRef.current = setTimeout(() => {
+        if (waitingForStepAudioRef.current && !isAudioPlaying) {
+          waitingForStepAudioRef.current = false;
+          setWaitingForStepAudio(false); // 同步更新 state，触发 auto-trigger useEffect
+          roomScreenLog.debug('[Audio] Audio cycle complete (debounced), clearing wait flag', { currentStepId });
+        }
+        clearWaitFlagTimeoutRef.current = null;
+      }, 200);
+    }
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (clearWaitFlagTimeoutRef.current) {
+        clearTimeout(clearWaitFlagTimeoutRef.current);
+      }
+    };
+  }, [isAudioPlaying, currentStepId]);
 
   const submitRevealAckSafe = useCallback(
     (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => {
@@ -200,6 +301,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Auto-trigger intent idempotency: prevent duplicate triggers in the same turn
   const lastAutoIntentKeyRef = useRef<string | null>(null);
+
+  // P0-FIX: 追踪"正在等待/显示查验结果弹窗"的状态
+  // 这样天亮弹窗（发言顺序）会等待查验结果弹窗关闭后再显示
+  const [pendingRevealDialog, setPendingRevealDialog] = useState(false);
 
   // Keep gameStateRef in sync
   useEffect(() => {
@@ -592,20 +697,35 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           };
 
           confirmThenAct(intent.targetIndex, async () => {
-            // Wait for state to propagate (Host sets reveal data after processing action)
-            await new Promise((resolve) => setTimeout(resolve, 150));
+            // P0-FIX: 用户确认后设置 pending 状态，阻止天亮弹窗在查验结果显示之前出现
+            // 必须在回调内设置，因为用户可能取消确认弹窗
+            setPendingRevealDialog(true);
 
-            const reveal = getRevealData();
+            // Wait for state to propagate with retry (React batch updates may delay ref update)
+            const maxRetries = 10;
+            const retryInterval = 50;
+            let reveal: { targetSeat: number; result: string } | undefined;
+
+            for (let i = 0; i < maxRetries; i++) {
+              await new Promise((resolve) => setTimeout(resolve, retryInterval));
+              reveal = getRevealData();
+              if (reveal) break;
+            }
+
             if (reveal) {
               actionDialogs.showRevealDialog(
                 `${reveal.targetSeat + 1}号是${reveal.result}`,
                 '',
                 () => {
                   submitRevealAckSafe(revealKind);
+                  // P0-FIX: 用户确认后清除 pending 状态，允许天亮弹窗显示
+                  setPendingRevealDialog(false);
                 },
               );
             } else {
-              roomScreenLog.warn(` ${revealKind}Reveal timeout - no reveal received`);
+              roomScreenLog.warn(` ${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`);
+              // P0-FIX: 超时也要清除 pending 状态
+              setPendingRevealDialog(false);
             }
           });
           break;
@@ -827,7 +947,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
-    if (!imActioner || isAudioPlaying) return;
+    // BUG-FIX: 如果音频正在启动中（gate 还未生效），等待 gate 生效后再触发
+    // audioStartingRef 是同步设置的，可以防止竞态条件
+    // P0-FIX: 如果正在等待步骤音频，也不要触发（防止 Player 端在步骤切换时立即触发）
+    // 同时检查 ref 和 state：ref 是同步更新的，state 用于触发 useEffect 重新执行
+    if (!imActioner || isAudioPlaying || audioStartingRef.current || waitingForStepAudio || waitingForStepAudioRef.current) return;
 
     const autoIntent = getAutoTriggerIntent();
     if (!autoIntent) return;
@@ -856,6 +980,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [
     imActioner,
     isAudioPlaying,
+    waitingForStepAudio, // P0-FIX: 添加到依赖项，当 debounce 清除 flag 后触发重新执行
     myRole,
     anotherIndex,
     roomStatus,
@@ -947,17 +1072,19 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   useEffect(() => {
     // Only show once per game, only for host, only when game ended and audio finished
+    // P0-FIX: 等待查验结果弹窗关闭后再显示发言顺序弹窗
     if (
       !isHost ||
       roomStatus !== GameStatus.ended ||
       isAudioPlaying ||
+      pendingRevealDialog ||
       hasShownSpeakOrderRef.current
     )
       return;
 
     hasShownSpeakOrderRef.current = true;
     showSpeakOrderDialog();
-  }, [isHost, roomStatus, isAudioPlaying, showSpeakOrderDialog]);
+  }, [isHost, roomStatus, isAudioPlaying, pendingRevealDialog, showSpeakOrderDialog]);
 
   // Reset speak order flag when game restarts
   useEffect(() => {

@@ -54,7 +54,7 @@ export interface HandlerResult {
  */
 export type SideEffect =
   | { type: 'BROADCAST_STATE' }
-  | { type: 'PLAY_AUDIO'; audioKey: string; audioEndKey?: string }
+  | { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean }
   | { type: 'SEND_MESSAGE'; message: unknown }
   | { type: 'SAVE_STATE' };
 

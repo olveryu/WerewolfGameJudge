@@ -163,14 +163,10 @@ function handleAdvanceToNextAction(state: GameState, action: AdvanceToNextAction
     // PR6 contract: 推进时同步更新 currentStepId（单一真相）
     currentStepId: nextStepId ?? undefined,
     // 不在 reducer 里设置 isAudioPlaying，由 Host UI 调用 SET_AUDIO_PLAYING 控制
-    // PR6 contract: 推进到下一步清空狼票（不残留上一 step 的投票）
-    wolfVotes: {},
-    wolfVoteStatus: {},
-    // 清空 reveal/context（role-specific state）
-    seerReveal: undefined,
-    psychicReveal: undefined,
-    gargoyleReveal: undefined,
-    wolfRobotReveal: undefined,
+    // 注意：wolfVotes 和 wolfVoteStatus 保留到 END_NIGHT，用于死亡结算
+    // P0-FIX: 不再清空 reveal 字段。reveal 应该保留到整个夜晚结束，
+    // 让 UI 有足够时间显示弹窗。只清空 confirmStatus 和 witchContext
+    // 因为这些是步骤特定的 context，不是 reveal 结果。
     confirmStatus: undefined,
     witchContext: undefined,
   };
