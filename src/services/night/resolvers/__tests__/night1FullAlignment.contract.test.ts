@@ -92,22 +92,24 @@ describe('audioKey === roleId Contract (PR8 alignment)', () => {
 // === 2. Schema constraints ↔ Resolver alignment ===
 
 describe('Schema constraints ↔ Resolver alignment', () => {
-  describe('notSelf constraint enforcement', () => {
+  describe('guardProtect allows self-target (Night-1 design)', () => {
     /**
-     * NOTE: guardProtect schema has notSelf in constraints, but the resolver
-     * does NOT currently enforce it. This is intentional for Night-1 scope
-     * where guard self-protect is allowed on first night.
+     * guardProtect schema has NO notSelf constraint: constraints: []
+     * This is intentional for Night-1 scope where guard self-protect is allowed.
      *
-     * This test documents the ACTUAL behavior, not the schema constraint.
-     * If schema-resolver alignment is desired, the resolver should be updated.
+     * Schema-Resolver alignment: ✅ Both allow self-target
      */
-    it('guardProtect currently ALLOWS self-target (Night-1 behavior)', () => {
+    it('guardProtect schema has NO notSelf constraint', () => {
+      const schema = SCHEMAS.guardProtect;
+      expect(schema.constraints).toEqual([]);
+    });
+
+    it('guardProtect resolver ALLOWS self-target (aligned with schema)', () => {
       const resolver = RESOLVERS.guardProtect;
       const context = createContext(6, 'guard');
 
       const result = resolver!(context, { schemaId: 'guardProtect', target: 6 });
 
-      // Documenting actual behavior: resolver accepts self-target
       expect(result.valid).toBe(true);
     });
   });
