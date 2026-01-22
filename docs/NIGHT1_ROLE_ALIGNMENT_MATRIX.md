@@ -345,9 +345,9 @@ With Audio: 14/14 (100%)
 
 ## UX-only 限制说明
 
-> **原则**: UI 层不得添加 schema 未定义的业务约束。所有座位选择限制必须来自 `SCHEMAS[*].constraints`。
+> **原则**: UI 层原则上不得添加 schema 未定义的业务约束。若确有 UX-only 限制，必须在此显式记录并有测试覆盖。
 
-### 当前 Night-1 无 UX-only 限制
+### 当前 Night-1 的 UX-only 例外（必须测试覆盖）
 
 | 角色 | Schema 约束 | UI 行为 | UX-only 限制 |
 |------|------------|---------|-------------|
@@ -357,25 +357,45 @@ With Audio: 14/14 (100%)
 | seer | `[]` | 可选任意座位（含自己） | ❌ 无 |
 | psychic | `[]` | 可选任意座位（含自己） | ❌ 无 |
 | gargoyle | `[]` | 可选任意座位（含自己） | ❌ 无 |
-| wolf（狼刀） | `[]` | 可选任意座位（中立裁判） | ❌ 无 |
+| wolf（狼刀） | `[]` | 免疫角色 UI 禁用 | ✅ 禁用 `immuneToWolfKill` 角色（wolfQueen, spiritKnight）[^1] |
 | witch（save/poison） | save: `['notSelf']` | 自己座位禁用 | ❌ 无（来自 schema） |
 | slacker | `['notSelf']` | 自己座位禁用 | ❌ 无（来自 schema） |
 | wolfQueen | `['notSelf']` | 自己座位禁用 | ❌ 无（来自 schema） |
 | wolfRobot | `['notSelf']` | 自己座位禁用 | ❌ 无（来自 schema） |
 
+[^1]: **测试覆盖**: `RoomScreen.helpers.test.ts` → `enableWolfVoteRestrictions option (wolf meeting vote)`
+
+### UX-only 限制详解
+
+#### wolfKill 免疫角色禁用
+
+- **触发条件**: `enableWolfVoteRestrictions === true`（狼刀阶段 UI 传入）
+- **禁用逻辑**: 检查 `ROLE_SPECS[targetRole].flags.immuneToWolfKill`
+- **禁用角色**: `wolfQueen`（狼美人）、`spiritKnight`（灵魂骑士）
+- **禁用提示**: `不能投${displayName}`
+- **设计原因**: 免疫狼刀的角色不应作为刀人目标（UX 友好），但 schema 保持 `[]`（中立裁判原则：不在协议层限制）
+- **代码位置**: `RoomScreen.helpers.ts` → `buildSeatViewModels()`
+- **测试位置**: `RoomScreen.helpers.test.ts` → `enableWolfVoteRestrictions option (wolf meeting vote)`
+
 ### 验证机制
 
-UI 使用以下函数根据 schema 禁用座位：
+UI 使用以下逻辑禁用座位：
 
 ```typescript
-// buildSeatViewModels 只读 schema.constraints，无角色 hardcode
-const isDisabled = () => {
-  if (options?.schemaConstraints?.includes('notSelf') && seat === seatIndex) {
-    return true; // notSelf 来自 schema
+// buildSeatViewModels - 两层禁用逻辑
+
+// 1. Schema-driven: notSelf 来自 schema.constraints
+if (options?.schemaConstraints?.includes('notSelf') && seat === seatIndex) {
+  disabledReason = '不能选择自己';
+}
+
+// 2. UX-only: wolf kill immune roles (enableWolfVoteRestrictions)
+if (!disabledReason && options?.enableWolfVoteRestrictions) {
+  const immuneRoleIds = getWolfKillImmuneRoleIds();
+  if (isValidRoleId(targetRole) && immuneRoleIds.includes(targetRole)) {
+    disabledReason = `不能投${displayName}`;
   }
-  // 无其他业务层禁用逻辑
-  return false;
-};
+}
 ```
 
 ---
