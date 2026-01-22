@@ -84,11 +84,11 @@ export interface MessageRouterContext {
  * - Legacy types: warn + no-op
  * - Unimplemented types: warn + no-op（但有明确日志）
  */
-export function hostHandlePlayerMessage(
+export async function hostHandlePlayerMessage(
   ctx: MessageRouterContext,
   msg: PlayerMessage,
   _senderId: string,
-): void {
+): Promise<void> {
   if (!ctx.isHost) return;
 
   switch (msg.type) {
@@ -96,7 +96,7 @@ export function hostHandlePlayerMessage(
     // Implemented types (v2 主路径)
     // =========================================================================
     case 'REQUEST_STATE':
-      void ctx.broadcastCurrentState();
+      await ctx.broadcastCurrentState();
       break;
 
     case 'SEAT_ACTION_REQUEST':
@@ -105,7 +105,7 @@ export function hostHandlePlayerMessage(
 
     case 'VIEWED_ROLE':
       if (ctx.handleViewedRole) {
-        void ctx.handleViewedRole(msg.seat);
+        await ctx.handleViewedRole(msg.seat);
       }
       break;
 
@@ -154,17 +154,30 @@ export function hostHandlePlayerMessage(
       }
       break;
 
-    case 'REVEAL_ACK':
-      // P0-FIX: Player 确认 reveal 弹窗后，Host 需要清除 pendingRevealAcks 并推进夜晚
+    case 'REVEAL_ACK': {
+      // Player 确认 reveal 弹窗后，Host 需要清除 pendingRevealAcks 并推进夜晚
       v2FacadeLog.debug('[messageRouter] REVEAL_ACK received', {
         seat: msg.seat,
         role: msg.role,
         revision: msg.revision,
       });
+
+      // 基本校验：revision 必须匹配当前 revision（防止过时消息）
+      const currentRevision = ctx.store.getRevision();
+      if (msg.revision !== undefined && msg.revision !== currentRevision) {
+        v2FacadeLog.warn('[messageRouter] REVEAL_ACK revision mismatch, dropping', {
+          msgRevision: msg.revision,
+          currentRevision,
+        });
+        break;
+      }
+
+      // 必须 await，确保 ack 处理完成后再处理其他消息
       if (ctx.handleRevealAck) {
-        void ctx.handleRevealAck();
+        await ctx.handleRevealAck();
       }
       break;
+    }
 
     case 'SNAPSHOT_REQUEST':
       v2FacadeLog.warn('[messageRouter] Unimplemented PlayerMessage type', {

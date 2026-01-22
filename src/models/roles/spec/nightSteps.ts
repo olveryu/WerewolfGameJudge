@@ -36,7 +36,7 @@ const NIGHT_STEPS_INTERNAL = [
   {
     id: 'wolfRobotLearn',
     roleId: 'wolfRobot',
-    audioKey: 'wolf_robot',
+    audioKey: 'wolfRobot', // 必须与 RoleId 一致，AudioService 按 RoleId 查找音频
   },
   {
     id: 'dreamcatcherDream',
@@ -69,7 +69,7 @@ const NIGHT_STEPS_INTERNAL = [
   {
     id: 'wolfQueenCharm',
     roleId: 'wolfQueen',
-    audioKey: 'wolf_queen',
+    audioKey: 'wolfQueen', // 必须与 RoleId 一致，AudioService 按 RoleId 查找音频
   },
 
   // === 女巫 ===
@@ -100,7 +100,7 @@ const NIGHT_STEPS_INTERNAL = [
   {
     id: 'darkWolfKingConfirm',
     roleId: 'darkWolfKing',
-    audioKey: 'dark_wolf_king',
+    audioKey: 'darkWolfKing', // 必须与 RoleId 一致，AudioService 按 RoleId 查找音频
   },
 ] as const satisfies readonly StepSpec[];
 

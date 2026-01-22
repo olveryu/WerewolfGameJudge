@@ -301,12 +301,24 @@ describe('PlayerMessage Router Coverage Contract', () => {
       );
     });
 
-    it('REVEAL_ACK should call handleRevealAck when wired', () => {
+    it('REVEAL_ACK should call handleRevealAck when wired', async () => {
       const mockHandleRevealAck = jest.fn().mockResolvedValue({ success: true });
-      const ctx = createMockContext({ handleRevealAck: mockHandleRevealAck });
+      // 需要让 store.getRevision() 返回 1，与 createMinimalPayload 中的 revision 匹配
+      const mockStore = {
+        getState: jest.fn(() => null),
+        getRevision: jest.fn(() => 1), // 匹配 createMinimalPayload('REVEAL_ACK').revision
+        dispatch: jest.fn(),
+        applySnapshot: jest.fn(),
+        subscribe: jest.fn(() => jest.fn()),
+        destroy: jest.fn(),
+      };
+      const ctx = createMockContext({
+        handleRevealAck: mockHandleRevealAck,
+        store: mockStore as unknown as MessageRouterContext['store'],
+      });
       const msg = createMinimalPayload('REVEAL_ACK');
 
-      hostHandlePlayerMessage(ctx, msg, 'sender-uid');
+      await hostHandlePlayerMessage(ctx, msg, 'sender-uid');
 
       expect(mockHandleRevealAck).toHaveBeenCalled();
     });
