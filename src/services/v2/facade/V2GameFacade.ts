@@ -280,20 +280,52 @@ export class V2GameFacade implements IGameFacade {
   // Night Actions (委托给 hostActions)
   // =========================================================================
 
+  /**
+   * 提交夜晚行动
+   *
+   * PR9: Player 发送 ACTION 消息给 Host（与 markViewedRole 模式一致）
+   * - Host: 直接调用 hostActions.submitAction
+   * - Player: 发送 PlayerMessage { type: 'ACTION' } 给 Host
+   */
   async submitAction(
     seat: number,
     role: RoleId,
     target: number | null,
     extra?: unknown,
   ): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.submitAction(this.getHostActionsContext(), seat, role, target, extra);
+    // Host: 直接处理
+    if (this.isHost) {
+      return hostActions.submitAction(this.getHostActionsContext(), seat, role, target, extra);
+    }
+
+    // Player: 发送 PlayerMessage 给 Host
+    const msg: PlayerMessage = { type: 'ACTION', seat, role, target, extra };
+    await this.broadcastService.sendToHost(msg);
+    // Player 端不等待确认，依赖 Host 广播 STATE_UPDATE
+    return { success: true };
   }
 
+  /**
+   * 提交狼人投票
+   *
+   * PR9: Player 发送 WOLF_VOTE 消息给 Host（与 markViewedRole 模式一致）
+   * - Host: 直接调用 hostActions.submitWolfVote
+   * - Player: 发送 PlayerMessage { type: 'WOLF_VOTE' } 给 Host
+   */
   async submitWolfVote(
     voterSeat: number,
     targetSeat: number,
   ): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.submitWolfVote(this.getHostActionsContext(), voterSeat, targetSeat);
+    // Host: 直接处理
+    if (this.isHost) {
+      return hostActions.submitWolfVote(this.getHostActionsContext(), voterSeat, targetSeat);
+    }
+
+    // Player: 发送 PlayerMessage 给 Host
+    const msg: PlayerMessage = { type: 'WOLF_VOTE', seat: voterSeat, target: targetSeat };
+    await this.broadcastService.sendToHost(msg);
+    // Player 端不等待确认，依赖 Host 广播 STATE_UPDATE
+    return { success: true };
   }
 
   /**

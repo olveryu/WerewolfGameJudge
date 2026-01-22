@@ -1127,14 +1127,23 @@ describe('V2GameFacade', () => {
   // ===========================================================================
 
   describe('submitAction (PR4)', () => {
-    it('should fail when not host (gate: host_only)', async () => {
-      // Player 不是 Host
+    it('should send PlayerMessage when not host (Player transport)', async () => {
+      // Player 发送 ACTION 消息给 Host，而不是返回 host_only 错误
       await facade.joinAsPlayer('TEST', 'player-uid', 'Player 1');
 
       const result = await facade.submitAction(0, 'seer', 1);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('host_only');
+      // Player 端返回 success: true（消息已发送）
+      expect(result.success).toBe(true);
+
+      // 验证发送了正确的 PlayerMessage
+      expect(mockBroadcastService.sendToHost).toHaveBeenCalledWith({
+        type: 'ACTION',
+        seat: 0,
+        role: 'seer',
+        target: 1,
+        extra: undefined,
+      });
     });
 
     it('should fail when status is not ongoing (gate: invalid_status)', async () => {
@@ -1182,14 +1191,21 @@ describe('V2GameFacade', () => {
   // ===========================================================================
 
   describe('submitWolfVote (PR5)', () => {
-    it('should fail when not host (gate: host_only)', async () => {
-      // Player 不是 Host
+    it('should send PlayerMessage when not host (Player transport)', async () => {
+      // Player 发送 WOLF_VOTE 消息给 Host，而不是返回 host_only 错误
       await facade.joinAsPlayer('TEST', 'player-uid', 'Player 1');
 
       const result = await facade.submitWolfVote(1, 0);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('host_only');
+      // Player 端返回 success: true（消息已发送）
+      expect(result.success).toBe(true);
+
+      // 验证发送了正确的 PlayerMessage
+      expect(mockBroadcastService.sendToHost).toHaveBeenCalledWith({
+        type: 'WOLF_VOTE',
+        seat: 1,
+        target: 0,
+      });
     });
 
     it('should fail when status is not ongoing (gate: invalid_status)', async () => {

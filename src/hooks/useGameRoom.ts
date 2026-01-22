@@ -80,6 +80,9 @@ export interface UseGameRoomResult {
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
 
+  // Host audio control (PR7: 音频时序控制)
+  setAudioPlaying: (isPlaying: boolean) => Promise<{ success: boolean; reason?: string }>;
+
   // Player actions
   viewedRole: () => Promise<void>;
   submitAction: (target: number | null, extra?: any) => Promise<void>;
@@ -444,6 +447,17 @@ export const useGameRoom = (): UseGameRoomResult => {
     await facade.restartGame();
   }, [isHost, facade]);
 
+  // Set audio playing (host only) - PR7 音频时序控制
+  const setAudioPlaying = useCallback(
+    async (isPlaying: boolean): Promise<{ success: boolean; reason?: string }> => {
+      if (!isHost) {
+        return { success: false, reason: 'host_only' };
+      }
+      return facade.setAudioPlaying(isPlaying);
+    },
+    [isHost, facade],
+  );
+
   // Mark role as viewed
   const viewedRole = useCallback(async (): Promise<void> => {
     const seat = mySeatNumber;
@@ -534,6 +548,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     assignRoles,
     startGame,
     restartGame,
+    setAudioPlaying,
     viewedRole,
     submitAction,
     submitWolfVote,

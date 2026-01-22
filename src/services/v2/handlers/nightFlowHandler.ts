@@ -20,6 +20,7 @@ import type {
   AdvanceToNextActionAction,
   EndNightAction,
   SetAudioPlayingAction,
+  SetWitchContextAction,
 } from '../reducer/types';
 import type { SchemaId } from '../../../models/roles/spec';
 import type { RoleId } from '../../../models/roles';
@@ -27,7 +28,7 @@ import type { NightActions, RoleSeatMap } from '../../DeathCalculator';
 import type { WitchAction } from '../../../models/actions/WitchAction';
 import type { ProtocolAction } from '../../protocol/types';
 
-import { NIGHT_STEPS } from '../../../models/roles/spec';
+import { buildNightPlan } from '../../../models/roles/spec/plan';
 import { resolveWolfVotes } from '../../WolfVoteResolver';
 import { calculateDeaths } from '../../DeathCalculator';
 import { isWolfRole } from '../../../models/roles';
@@ -124,9 +125,13 @@ export function handleAdvanceNight(
   // 计算下一个 index
   const nextIndex = currentIndex + 1;
 
-  // 计算下一个 stepId（若超出范围则为 null）
-  const nextStep = NIGHT_STEPS[nextIndex] ?? null;
-  const nextStepId: SchemaId | null = nextStep?.id ?? null;
+  // ⚠️ 使用 buildNightPlan 过滤后的步骤，而不是全量 NIGHT_STEPS
+  // 这样在 2-player 模板（只有 wolf + villager）中，wolfKill 之后不会有其他步骤
+  const nightPlan = buildNightPlan(state.templateRoles);
+
+  // 计算下一个 stepId（若超出范围则为 null，表示夜晚结束）
+  const nextStep = nightPlan.steps[nextIndex] ?? null;
+  const nextStepId: SchemaId | null = nextStep?.stepId ?? null;
 
   const advanceAction: AdvanceToNextActionAction = {
     type: 'ADVANCE_TO_NEXT_ACTION',
@@ -136,9 +141,44 @@ export function handleAdvanceNight(
     },
   };
 
+  // 收集所有需要返回的 actions
+  const actions: (AdvanceToNextActionAction | SetWitchContextAction)[] = [advanceAction];
+
+  // 当从 wolfKill 步骤推进出去时，如果模板包含女巫，需要设置 witchContext
+  // （女巫需要知道狼刀的结果，不管女巫在夜晚序列的哪个位置）
+  const currentStepId = state.currentStepId;
+  const hasWitch = state.templateRoles.includes('witch');
+
+  if (currentStepId === 'wolfKill' && hasWitch) {
+    // 计算狼刀目标（killedIndex）
+    const wolfVotes = state.wolfVotes ?? {};
+    const voteMap = new Map<number, number>();
+    for (const [voterSeatStr, targetSeat] of Object.entries(wolfVotes)) {
+      voteMap.set(Number.parseInt(voterSeatStr, 10), targetSeat);
+    }
+
+    // 如果 wolfKillDisabled（nightmare 封锁狼人），则没有被杀者
+    let killedIndex = -1;
+    if (!state.wolfKillDisabled) {
+      const wolfKillTarget = resolveWolfVotes(voteMap);
+      killedIndex = wolfKillTarget ?? -1;
+    }
+
+    const setWitchContextAction: SetWitchContextAction = {
+      type: 'SET_WITCH_CONTEXT',
+      payload: {
+        killedIndex,
+        canSave: killedIndex >= 0, // 只有有被杀者时才能救
+        canPoison: true, // Night-1 总是可以毒
+      },
+    };
+
+    actions.push(setWitchContextAction);
+  }
+
   return {
     success: true,
-    actions: [advanceAction],
+    actions,
     sideEffects: [{ type: 'BROADCAST_STATE' }],
   };
 }

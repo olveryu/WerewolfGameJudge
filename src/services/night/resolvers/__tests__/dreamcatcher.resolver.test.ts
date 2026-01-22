@@ -47,14 +47,14 @@ function createInput(target: number | undefined): ActionInput {
 
 describe('dreamcatcherDreamResolver', () => {
   describe('validation', () => {
-    it('应该拒绝缺少目标', () => {
+    it('应该允许跳过 (undefined 目标, schema.canSkip: true)', () => {
       const ctx = createContext();
       const input = createInput(undefined);
 
       const result = dreamcatcherDreamResolver(ctx, input);
 
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toContain('必须选择');
+      expect(result.valid).toBe(true);
+      expect(result.result).toEqual({});
     });
   });
 

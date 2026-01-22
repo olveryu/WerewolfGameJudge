@@ -50,6 +50,7 @@ import { roomScreenLog } from '../../utils/logger';
 import type { ActionSchema, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
 import { SCHEMAS, BLOCKED_UI_DEFAULTS, isValidSchemaId } from '../../models/roles/spec';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
+import AudioService from '../../services/AudioService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -79,6 +80,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     assignRoles,
     startGame,
     restartGame,
+    setAudioPlaying,
     viewedRole,
     submitAction,
     submitWolfVote,
@@ -117,6 +119,63 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       roleName: currentStep?.displayName,
     };
   }, [currentStepId, gameState]);
+
+  // =========================================================================
+  // PR7: Host 音频闭环（唯一入口）
+  // =========================================================================
+  // 用 ref 追踪已播放过音频的 stepId，防止重复触发
+  const audioPlayedStepRef = useRef<SchemaId | null>(null);
+  const audioService = useRef(AudioService.getInstance());
+
+  useEffect(() => {
+    // 只有 Host 在 ongoing 状态时才播放音频
+    if (!isHost) return;
+    if (roomStatus !== GameStatus.ongoing) return;
+    if (!currentStepId) return;
+
+    // 幂等检查：同一个 stepId 只触发一次
+    if (audioPlayedStepRef.current === currentStepId) return;
+
+    // 获取 audioKey
+    const stepSpec = getStepSpec(currentStepId);
+    const audioKey = stepSpec?.audioKey;
+    if (!audioKey) {
+      roomScreenLog.warn('[Audio] No audioKey for step', { currentStepId });
+      return;
+    }
+
+    // 标记为已处理，防止重复
+    audioPlayedStepRef.current = currentStepId;
+
+    // 异步播放音频流程
+    const playAudioSequence = async () => {
+      roomScreenLog.debug('[Audio] Starting audio sequence', { currentStepId, audioKey });
+
+      try {
+        // 1. 设置 isAudioPlaying=true（广播 gate）
+        await setAudioPlaying(true);
+
+        // 2. 播放音频
+        await audioService.current.playRoleBeginningAudio(stepSpec.roleId);
+
+        roomScreenLog.debug('[Audio] Audio playback complete', { currentStepId });
+      } catch (err) {
+        roomScreenLog.error('[Audio] Error playing audio', { currentStepId, error: err });
+      } finally {
+        // 3. 设置 isAudioPlaying=false（广播解锁）
+        await setAudioPlaying(false);
+      }
+    };
+
+    void playAudioSequence();
+  }, [isHost, roomStatus, currentStepId, setAudioPlaying]);
+
+  // 当夜晚结束或离开游戏时，重置 audioPlayedStepRef
+  useEffect(() => {
+    if (roomStatus !== GameStatus.ongoing) {
+      audioPlayedStepRef.current = null;
+    }
+  }, [roomStatus]);
 
   const submitRevealAckSafe = useCallback(
     (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => {
