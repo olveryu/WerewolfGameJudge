@@ -339,13 +339,14 @@ function buildSuccessResult(
       payload: buildRevealPayload(result, role, target),
     });
     
-    // P0-FIX: 如果 schema 定义了 revealKind，需要弹窗确认，添加 pending ack 阻塞推进
+    // 如果 schema 定义了 revealKind，需要弹窗确认，添加 pending ack 阻塞推进
+    // ackKey 使用 schemaId 作为稳定标识符（避免 revealKind 文案变更导致问题）
     const schema = SCHEMAS[schemaId];
     const revealKind = (schema?.ui as { revealKind?: string } | undefined)?.revealKind;
     if (revealKind) {
       actions.push({
         type: 'ADD_REVEAL_ACK',
-        payload: { ackKey: revealKind },
+        payload: { ackKey: schemaId }, // 使用 schemaId 而不是 revealKind 字符串
       });
     }
   } else if (result.updates) {

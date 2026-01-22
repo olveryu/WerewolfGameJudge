@@ -141,19 +141,16 @@ async function processHandlerResult(
     applyActions(ctx.store, state, result.actions);
   }
 
-  // P0-1/P0-5 修复: 处理 PLAY_AUDIO 副作用
-  // 根据 copilot-instructions.md：
-  // 1) 先调用 setAudioPlaying(true) 广播 Gate
-  // 2) 播放音频
-  // 3) 音频结束调用 setAudioPlaying(false) 解除 Gate（必须 finally 兜底）
-  //
-  // 重要：必须在 BROADCAST_STATE 之前设置 gate，否则 UI 会在音频播放前就收到 ended 状态
-  const playAudioEffect = result.sideEffects?.find((e) => e.type === 'PLAY_AUDIO');
-  if (playAudioEffect?.type === 'PLAY_AUDIO' && ctx.playAudio) {
-    // 1) 设置 gate（在广播之前！）
-    if (ctx.setAudioPlayingGate) {
-      await ctx.setAudioPlayingGate(true);
-    }
+  // 收集所有 PLAY_AUDIO 副作用（支持队列播放）
+  const audioEffects =
+    result.sideEffects?.filter((e): e is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } => 
+      e.type === 'PLAY_AUDIO'
+    ) ?? [];
+
+  // 如果有音频要播放，必须在 BROADCAST_STATE 之前设置 gate
+  // 根据 copilot-instructions.md：先 gate，再 broadcast，然后播放
+  if (audioEffects.length > 0 && ctx.playAudio && ctx.setAudioPlayingGate) {
+    await ctx.setAudioPlayingGate(true);
   }
 
   // 执行副作用：广播状态
@@ -165,13 +162,15 @@ async function processHandlerResult(
     v2FacadeLog.debug('SAVE_STATE side effect triggered');
   }
 
-  // 播放音频（gate 已在上面设置）
-  if (playAudioEffect?.type === 'PLAY_AUDIO' && ctx.playAudio) {
+  // 播放所有音频（按顺序）
+  // Gate 在上面已设置，这里逐个播放，最后 finally 释放
+  if (audioEffects.length > 0 && ctx.playAudio) {
     try {
-      // 2) 播放音频
-      await ctx.playAudio(playAudioEffect.audioKey, playAudioEffect.isEndAudio);
+      for (const effect of audioEffects) {
+        await ctx.playAudio(effect.audioKey, effect.isEndAudio);
+      }
     } finally {
-      // 3) 解除 gate（必须 finally 兜底）
+      // 无论成功/失败/中断，都必须释放 gate
       if (ctx.setAudioPlayingGate) {
         await ctx.setAudioPlayingGate(false);
       }
@@ -455,7 +454,9 @@ export async function clearRevealAcks(
   // 应用 CLEAR_REVEAL_ACKS action
   const newState = gameReducer(state, { type: 'CLEAR_REVEAL_ACKS' });
   ctx.store.setState(newState);
-  ctx.broadcastCurrentState();
+  
+  // 必须 await broadcast，确保 Player 先收到 ack 清除再推进
+  await ctx.broadcastCurrentState();
 
   // 推进夜晚流程
   await callNightProgression(ctx);

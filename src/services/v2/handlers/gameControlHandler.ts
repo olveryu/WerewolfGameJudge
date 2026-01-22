@@ -21,6 +21,7 @@ import type {
 import { shuffleArray } from '../../../utils/shuffle';
 import type { RoleId } from '../../../models/roles';
 import { buildNightPlan } from '../../../models/roles/spec/plan';
+import { getStepSpec } from '../../../models/roles/spec/nightSteps';
 
 /**
  * 处理分配角色（仅 seated → assigned）
@@ -245,6 +246,7 @@ export function handleStartNight(
   }
 
   const firstStepId = nightPlan.steps[0].stepId;
+  const firstStepSpec = getStepSpec(firstStepId);
 
   // Night-1 only: currentActionerIndex 从 0 开始（首个步骤）
   const startNightAction: StartNightAction = {
@@ -252,15 +254,27 @@ export function handleStartNight(
     payload: { currentActionerIndex: 0, currentStepId: firstStepId },
   };
 
+  // 构建 sideEffects：先广播 + 保存，然后播放夜晚开始音频 + 第一步音频
+  const sideEffects: HandlerResult['sideEffects'] = [
+    { type: 'BROADCAST_STATE' },
+    { type: 'SAVE_STATE' },
+    // 夜晚开始背景音
+    { type: 'PLAY_AUDIO', audioKey: 'night', isEndAudio: false },
+  ];
+
+  // 添加第一步（通常是狼人）的开始音频
+  if (firstStepSpec) {
+    sideEffects.push({
+      type: 'PLAY_AUDIO',
+      audioKey: firstStepSpec.audioKey,
+      isEndAudio: false,
+    });
+  }
+
   return {
     success: true,
     actions: [startNightAction],
-    sideEffects: [
-      { type: 'BROADCAST_STATE' },
-      { type: 'SAVE_STATE' },
-      // P0-1: 返回夜晚开始音频播放副作用
-      { type: 'PLAY_AUDIO', audioKey: 'night' },
-    ],
+    sideEffects,
   };
 }
 

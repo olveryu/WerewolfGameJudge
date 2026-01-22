@@ -191,10 +191,11 @@ export function handleAdvanceNight(
     actions.push(setWitchContextAction);
   }
 
-  // P0-5: 播放当前步骤的结束音频
-  // 从 NIGHT_STEPS 表驱动获取 audioEndKey（若未定义则使用 audioKey）
+  // 音频播放：当前步骤的结束音频 + 下一步的开始音频
+  // 按顺序添加到 sideEffects，Facade 会按顺序播放
   const sideEffects: HandlerResult['sideEffects'] = [{ type: 'BROADCAST_STATE' }];
 
+  // 1) 当前步骤的结束音频
   if (currentStepId) {
     const currentStep = getStepSpec(currentStepId);
     if (currentStep) {
@@ -203,6 +204,18 @@ export function handleAdvanceNight(
         type: 'PLAY_AUDIO',
         audioKey: audioEndKey,
         isEndAudio: true, // 标记这是结束音频，走 audio_end 目录
+      });
+    }
+  }
+
+  // 2) 下一步的开始音频（如果有下一步）
+  if (nextStepId) {
+    const nextStepSpec = getStepSpec(nextStepId);
+    if (nextStepSpec) {
+      sideEffects.push({
+        type: 'PLAY_AUDIO',
+        audioKey: nextStepSpec.audioKey,
+        isEndAudio: false, // 开始音频，走正常目录
       });
     }
   }
