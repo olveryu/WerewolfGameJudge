@@ -589,7 +589,12 @@ describe('gameReducer', () => {
   });
 
   describe('RESTART_GAME', () => {
-    it('should reset game state while keeping room info', () => {
+    /**
+     * PR9: 对齐 v1 行为
+     * - 状态重置到 'seated'（不是 'unseated'）
+     * - 保留玩家但清除角色和 hasViewedRole
+     */
+    it('should reset game state while keeping players (v1 alignment)', () => {
       const state = createMinimalState({
         status: 'ended',
         players: {
@@ -604,13 +609,22 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, { type: 'RESTART_GAME' });
 
-      expect(newState.status).toBe('unseated');
+      // v1 对齐：状态重置到 'seated'
+      expect(newState.status).toBe('seated');
       expect(newState.roomCode).toBe('TEST');
       expect(newState.hostUid).toBe('host-1');
-      expect(Object.values(newState.players).every((p) => p === null)).toBe(true);
+
+      // v1 对齐：保留玩家但清除角色
+      expect(newState.players[0]).not.toBeNull();
+      expect(newState.players[0]?.uid).toBe('p1');
+      expect(newState.players[0]?.role).toBeNull();
+      expect(newState.players[0]?.hasViewedRole).toBe(false);
+
+      // 夜晚状态清除
       expect(newState.actions).toBeUndefined();
       expect(newState.wolfVotes).toBeUndefined();
       expect(newState.lastNightDeaths).toBeUndefined();
+      expect(newState.currentActionerIndex).toBe(0);
     });
   });
 

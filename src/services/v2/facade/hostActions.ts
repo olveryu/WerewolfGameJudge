@@ -32,13 +32,22 @@ import type { StateAction } from '../reducer/types';
 import type { RoleId } from '../../../models/roles';
 import type { GameTemplate } from '../../../models/Template';
 
-import { handleAssignRoles, handleStartNight, handleRestartGame, handleUpdateTemplate } from '../handlers/gameControlHandler';
+import {
+  handleAssignRoles,
+  handleStartNight,
+  handleRestartGame,
+  handleUpdateTemplate,
+} from '../handlers/gameControlHandler';
 import {
   handleViewedRole,
   handleSubmitAction,
   handleSubmitWolfVote,
 } from '../handlers/actionHandler';
-import { handleAdvanceNight, handleEndNight, handleSetAudioPlaying } from '../handlers/nightFlowHandler';
+import {
+  handleAdvanceNight,
+  handleEndNight,
+  handleSetAudioPlaying,
+} from '../handlers/nightFlowHandler';
 import { gameReducer } from '../reducer';
 import { v2FacadeLog } from '../../../utils/logger';
 

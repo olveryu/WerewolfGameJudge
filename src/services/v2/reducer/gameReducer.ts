@@ -54,17 +54,33 @@ function handleInitializeGame(state: GameState, action: InitializeGameAction): G
 }
 
 function handleRestartGame(state: GameState): GameState {
-  const players: Record<number, null> = {};
+  // PR9: 对齐 v1 行为 - 保留玩家但清除角色
+  // v1: 保持 players 不变，仅清除 role/hasViewedRole
+  // v1: 状态重置到 'seated'（不是 'unseated'）
+  const players: Record<number, (typeof state.players)[number]> = {};
   const seatCount = Object.keys(state.players).length;
+
   for (let i = 0; i < seatCount; i++) {
-    players[i] = null;
+    const existingPlayer = state.players[i];
+    if (existingPlayer) {
+      // 保留玩家但清除角色
+      players[i] = {
+        ...existingPlayer,
+        role: null,
+        hasViewedRole: false,
+      };
+    } else {
+      players[i] = null;
+    }
   }
+
   return {
     ...state,
     players,
-    status: 'unseated',
-    currentActionerIndex: -1,
+    status: 'seated', // v1: 重置到 seated，不是 unseated
+    currentActionerIndex: 0, // v1: 重置到 0
     isAudioPlaying: false,
+    currentStepId: undefined, // 清除夜晚步骤
     actions: undefined,
     wolfVotes: undefined,
     wolfVoteStatus: undefined,

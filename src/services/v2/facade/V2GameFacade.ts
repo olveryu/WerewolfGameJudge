@@ -256,7 +256,23 @@ export class V2GameFacade implements IGameFacade {
     return hostActions.startNight(this.getHostActionsContext());
   }
 
+  /**
+   * Host: 重新开始游戏
+   *
+   * PR9: 对齐 v1 行为
+   * - 先广播 GAME_RESTARTED
+   * - 再执行 reducer 重置状态
+   * - 最后广播 STATE_UPDATE
+   */
   async restartGame(): Promise<{ success: boolean; reason?: string }> {
+    if (!this.isHost) {
+      return { success: false, reason: 'host_only' };
+    }
+
+    // v1 对齐：先广播 GAME_RESTARTED
+    await this.broadcastService.broadcastAsHost({ type: 'GAME_RESTARTED' });
+
+    // 执行 reducer + 广播 STATE_UPDATE
     return hostActions.restartGame(this.getHostActionsContext());
   }
 
@@ -380,13 +396,19 @@ export class V2GameFacade implements IGameFacade {
   }
 
   /**
-   * MessageRouter 上下文（扩展 SeatActionsContext + handleViewedRole）
+   * MessageRouter 上下文（扩展 SeatActionsContext + action handlers）
+   *
+   * PR9: 接入 handleAction / handleWolfVote，支持 Player→Host 夜晚行动消息
    */
   private getMessageRouterContext(): MessageRouterContext {
     return {
       ...this.getSeatActionsContext(),
       handleViewedRole: (seat: number) =>
         hostActions.markViewedRole(this.getHostActionsContext(), seat),
+      handleAction: (seat: number, role: RoleId, target: number | null, extra?: unknown) =>
+        hostActions.submitAction(this.getHostActionsContext(), seat, role, target, extra),
+      handleWolfVote: (voterSeat: number, targetSeat: number) =>
+        hostActions.submitWolfVote(this.getHostActionsContext(), voterSeat, targetSeat),
     };
   }
 
