@@ -122,6 +122,7 @@ export const SCHEMAS = {
     id: 'hunterConfirm',
     displayName: '确认发动状态',
     kind: 'confirm',
+    canSkip: true,
     ui: {
       confirmTitle: '确认行动',
       prompt: '请点击下方按钮查看技能发动状态',
@@ -210,6 +211,7 @@ export const SCHEMAS = {
     id: 'darkWolfKingConfirm',
     displayName: '确认发动状态',
     kind: 'confirm',
+    canSkip: true,
     ui: {
       confirmTitle: '确认行动',
       prompt: '请点击下方按钮查看技能发动状态',

@@ -2,8 +2,11 @@
  * Witch Resolver (HOST-ONLY)
  *
  * Validates witch action (save/poison compound) and computes result.
+ *
+ * RULE: If blocked by nightmare, non-skip actions are REJECTED (not just no-op).
  */
 
+import { BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
 import type { ResolverFn, ResolverResult } from './types';
 import { resolveWolfVotes } from '../../WolfVoteResolver';
 
@@ -65,9 +68,14 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
   const saveTarget = stepResults?.save ?? null;
   const poisonTarget = stepResults?.poison ?? null;
 
-  // Check blocked by nightmare
-  if (currentNightResults.blockedSeat === actorSeat) {
+  // Skip (no action) is always allowed
+  if (saveTarget === null && poisonTarget === null) {
     return { valid: true, result: {} };
+  }
+
+  // Check blocked by nightmare - non-skip actions are REJECTED
+  if (currentNightResults.blockedSeat === actorSeat) {
+    return { valid: false, rejectReason: BLOCKED_UI_DEFAULTS.message };
   }
 
   // Validate save action

@@ -15,16 +15,13 @@ import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { GameStatus } from '../../../models/Room';
 import { RoleId, isWolfRole, doesRoleParticipateInWolfVote } from '../../../models/roles';
 import type { ActionSchema, SchemaId, RevealKind } from '../../../models/roles/spec';
-import { SCHEMAS, BLOCKED_UI_DEFAULTS, isValidSchemaId } from '../../../models/roles/spec';
+import { SCHEMAS, isValidSchemaId, BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ActionIntent Types (must be serializable - no callbacks/refs/functions)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type ActionIntentType =
-  // Block
-  | 'blocked' // Nightmare blocked
-
   // Reveal (ANTI-CHEAT: RoomScreen only waits for private reveal + sends ack)
   | 'reveal'
 
@@ -250,11 +247,8 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
         };
       }
     case 'wolfVote':
-      // When wolf kill is disabled (nightmare blocked a wolf), return null to block seat selection.
-      // All wolves can only use the bottom "空刀" button.
-      if (ctx.wolfKillDisabled) {
-        return null;
-      }
+      // NOTE: wolfKillDisabled is now handled by Host resolver.
+      // UI no longer blocks seat taps. All votes go through submit → Host validates.
       return isWolf && wolfSeat !== null
         ? { type: 'wolfVote', targetIndex: index, wolfSeat }
         : null;
@@ -386,38 +380,9 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     if (roomStatus !== GameStatus.ongoing) return { buttons: [] };
     if (isAudioPlaying) return { buttons: [] };
 
-    // Wolf kill disabled: when nightmare blocked a wolf, ALL wolves can only empty vote.
-    // This includes both the blocked wolf themselves AND their teammates.
-    // NOTE: When a wolf is blocked, Host sets wolfKillDisabled=true, so checking
-    // wolfKillDisabled alone is sufficient (no need to also check isBlockedByNightmare).
-    if (wolfKillDisabled && currentSchema?.kind === 'wolfVote') {
-      return {
-        buttons: [
-          {
-            key: 'wolfEmpty',
-            label: BLOCKED_UI_DEFAULTS.skipButtonText,
-            intent: {
-              type: 'wolfVote',
-              targetIndex: -1,
-              wolfSeat: mySeatNumber ?? undefined,
-            },
-          },
-        ],
-      };
-    }
-
-    // Non-wolf blocked: generic skip button
-    if (isBlockedByNightmare) {
-      return {
-        buttons: [
-          {
-            key: 'skip',
-            label: BLOCKED_UI_DEFAULTS.skipButtonText,
-            intent: { type: 'skip', targetIndex: -1, message: BLOCKED_UI_DEFAULTS.skipButtonText },
-          },
-        ],
-      };
-    }
+    // NOTE: Nightmare block (isBlockedByNightmare / wolfKillDisabled) is now handled by Host resolver.
+    // UI no longer forces skip/empty vote buttons. All actions go through submit → Host validates.
+    // If blocked, Host returns ACTION_REJECTED and UI shows error from actionRejected.
 
     // Schema-driven bottom action visibility.
     if (!currentSchema) return { buttons: [] };
@@ -511,7 +476,23 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     }
 
     // confirm schema (hunterConfirm/darkWolfKingConfirm): show bottom button to trigger status check
+    // When blocked by nightmare: show skip button instead (player cannot use ability)
     if (currentSchema.kind === 'confirm') {
+      if (isBlockedByNightmare) {
+        return {
+          buttons: [
+            {
+              key: 'skip',
+              label: BLOCKED_UI_DEFAULTS.skipButtonText,
+              intent: {
+                type: 'skip',
+                targetIndex: -1,
+                message: BLOCKED_UI_DEFAULTS.skipButtonText,
+              },
+            },
+          ],
+        };
+      }
       return {
         buttons: [
           {
@@ -586,11 +567,9 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     (index: number): ActionIntent | null => {
       if (!myRole) return null;
 
-      // UX: Blocked players cannot tap seats to take action.
-      // Return 'blocked' intent so UI can show "你被封锁了" feedback.
-      if (isBlockedByNightmare) {
-        return { type: 'blocked', targetIndex: index };
-      }
+      // NOTE: Nightmare block is now handled by Host resolver.
+      // UI no longer intercepts with 'blocked' intent.
+      // All seat taps go through submit → Host validates → ACTION_REJECTED if blocked.
 
       // Delegate to pure helper for schema-driven intent derivation
       // Note: wolfKillDisabled is passed to deriveIntentFromSchema for schema-driven handling

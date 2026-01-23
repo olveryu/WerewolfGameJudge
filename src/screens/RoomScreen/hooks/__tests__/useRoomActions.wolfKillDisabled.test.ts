@@ -1,13 +1,16 @@
 /**
- * Tests for wolfKillDisabled behavior
+ * Tests for wolfKillDisabled behavior (Host-authoritative version)
  *
- * When nightmare blocks a wolf, ALL wolves should only be able to vote empty knife.
- * This is different from isBlockedByNightmare which only affects the blocked player.
+ * NEW BEHAVIOR:
+ * - UI does NOT intercept wolfKillDisabled
+ * - Wolf can still tap seats and get normal intent
+ * - Host validates and rejects via ACTION_REJECTED
+ * - UI shows normal buttons (not forced empty)
  */
 import { renderHook } from '@testing-library/react-native';
 
 import { GameStatus } from '../../../../models/Room';
-import { getSchema, BLOCKED_UI_DEFAULTS } from '../../../../models/roles/spec';
+import { getSchema } from '../../../../models/roles/spec';
 import type { LocalGameState } from '../../../../services/types/GameStateTypes';
 import type { GameContext } from '../../hooks/useRoomActions';
 import { useRoomActions } from '../../hooks/useRoomActions';
@@ -35,7 +38,7 @@ const defaultDeps = {
   getWitchContext: () => null,
 };
 
-describe('useRoomActions with wolfKillDisabled', () => {
+describe('useRoomActions with wolfKillDisabled (Host-authoritative)', () => {
   describe('getActionIntent', () => {
     it('returns wolfVote intent when wolfKillDisabled is false', () => {
       const ctx = makeContext({ wolfKillDisabled: false });
@@ -47,20 +50,22 @@ describe('useRoomActions with wolfKillDisabled', () => {
       expect(intent?.targetIndex).toBe(3);
     });
 
-    it('returns null when wolfKillDisabled is true (schema-driven block)', () => {
+    it('returns normal wolfVote intent even when wolfKillDisabled is true (no UI block)', () => {
       const ctx = makeContext({ wolfKillDisabled: true });
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
       const intent = result.current.getActionIntent(3);
-      // When wolfKillDisabled, deriveIntentFromSchema returns null for wolfVote
-      expect(intent).toBeNull();
+      // UI no longer intercepts - Host will reject
+      expect(intent).not.toBeNull();
+      expect(intent?.type).toBe('wolfVote');
+      expect(intent?.targetIndex).toBe(3);
     });
 
-    it('returns null for non-wolf even when wolfKillDisabled is true', () => {
+    it('returns null for non-wolf (not their turn)', () => {
       const ctx = makeContext({
-        wolfKillDisabled: true,
+        wolfKillDisabled: false,
         myRole: 'seer',
-        currentSchema: getSchema('wolfKill'),
+        imActioner: false,
       });
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
@@ -70,7 +75,7 @@ describe('useRoomActions with wolfKillDisabled', () => {
   });
 
   describe('getBottomAction', () => {
-    it('shows normal empty vote button when wolfKillDisabled is false', () => {
+    it('shows empty vote button when wolfKillDisabled is false', () => {
       const ctx = makeContext({ wolfKillDisabled: false });
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
@@ -80,16 +85,15 @@ describe('useRoomActions with wolfKillDisabled', () => {
       expect(bottomAction.buttons[0].label).toBe('空刀');
     });
 
-    it('shows forced empty vote button when wolfKillDisabled is true', () => {
+    it('shows normal empty vote button even when wolfKillDisabled is true (no forced skip)', () => {
       const ctx = makeContext({ wolfKillDisabled: true });
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
       const bottomAction = result.current.getBottomAction();
+      // UI no longer forces skip button - normal empty vote
       expect(bottomAction.buttons).toHaveLength(1);
       expect(bottomAction.buttons[0].key).toBe('wolfEmpty');
-      expect(bottomAction.buttons[0].label).toBe(BLOCKED_UI_DEFAULTS.skipButtonText);
-      expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
-      expect(bottomAction.buttons[0].intent.targetIndex).toBe(-1);
+      expect(bottomAction.buttons[0].label).toBe('空刀');
     });
   });
 });

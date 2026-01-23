@@ -1,8 +1,11 @@
 /**
- * Nightmare Blocked UI Test
+ * Nightmare Blocked UI Test (Host-authoritative version)
  *
- * Tests that nightmare-blocked players see correct UI from BLOCKED_UI_DEFAULTS.
- * This is a UI-level lock test for P2 schema-driven changes.
+ * NEW BEHAVIOR:
+ * - UI does NOT intercept blocked players for chooseSeat/swap schemas
+ * - UI shows skip button for confirm schemas when blocked
+ * - Host returns ACTION_REJECTED with blocked reason
+ * - UI shows error from gameState.actionRejected
  */
 
 import React from 'react';
@@ -25,7 +28,6 @@ jest.mock('react-native-safe-area-context', () => ({
 
 const mockShowAlert = showAlert as jest.Mock;
 
-// Test scenario: Seer is blocked by nightmare
 const makeBlockedPlayerMock = (overrides: Record<string, unknown> = {}) => {
   const base = makeBaseUseGameRoomReturn({
     schemaId: 'seerCheck',
@@ -33,13 +35,11 @@ const makeBlockedPlayerMock = (overrides: Record<string, unknown> = {}) => {
     myRole: 'seer',
     mySeatNumber: 0,
   });
-
-  // Override nightmareBlockedSeat to block seat 0 (mySeatNumber)
   return {
     ...base,
     gameState: {
       ...base.gameState,
-      nightmareBlockedSeat: 0, // Seer at seat 0 is blocked
+      nightmareBlockedSeat: 0,
     },
     ...overrides,
   };
@@ -51,13 +51,13 @@ jest.mock('../../../hooks/useGameRoom', () => ({
   useGameRoom: () => mockUseGameRoomReturn,
 }));
 
-describe('Nightmare Blocked UI', () => {
+describe('Nightmare Blocked UI (Host-authoritative)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseGameRoomReturn = makeBlockedPlayerMock();
   });
 
-  it('blocked player tapping a seat shows alert with BLOCKED_UI_DEFAULTS', async () => {
+  it('blocked player tapping a seat shows confirm dialog (not blocked alert)', async () => {
     const { getByTestId } = render(
       <RoomScreen
         route={{ params: { roomNumber: '1234', isHost: false } } as any}
@@ -69,34 +69,36 @@ describe('Nightmare Blocked UI', () => {
       expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
     });
 
-    // Tap on a seat (should trigger blocked alert)
+    mockShowAlert.mockClear();
+
     const seat1 = getByTestId(TESTIDS.seatTilePressable(1));
     fireEvent.press(seat1);
 
-    // Verify showAlert was called with BLOCKED_UI_DEFAULTS values
     await waitFor(() => {
-      expect(mockShowAlert).toHaveBeenCalledWith(
-        BLOCKED_UI_DEFAULTS.title,
-        BLOCKED_UI_DEFAULTS.message,
-        expect.arrayContaining([
-          expect.objectContaining({ text: BLOCKED_UI_DEFAULTS.dismissButtonText }),
-        ]),
+      expect(mockShowAlert).toHaveBeenCalled();
+      const calls = mockShowAlert.mock.calls;
+      const hasBlockedAlert = calls.some(
+        (call: unknown[]) =>
+          call[0] === BLOCKED_UI_DEFAULTS.title && call[1] === BLOCKED_UI_DEFAULTS.message,
       );
+      expect(hasBlockedAlert).toBe(false);
     });
   });
 
-  it('confirm schema (hunter) shows blocked prompt from BLOCKED_UI_DEFAULTS when blocked', async () => {
-    // Hunter blocked by nightmare
-    mockUseGameRoomReturn = makeBaseUseGameRoomReturn({
-      schemaId: 'hunterConfirm',
-      currentActionRole: 'hunter',
-      myRole: 'hunter',
-      mySeatNumber: 0,
-      overrides: {
-        getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
+  it('actionRejected with blocked reason shows rejection alert on initial render', async () => {
+    mockUseGameRoomReturn = {
+      ...makeBlockedPlayerMock(),
+      myUid: 'p0',
+      gameState: {
+        ...makeBlockedPlayerMock().gameState,
+        actionRejected: {
+          action: 'seerCheck',
+          reason: BLOCKED_UI_DEFAULTS.message,
+          targetUid: 'p0',
+          rejectionId: 'test-rejection-1',
+        },
       },
-    });
-    mockUseGameRoomReturn.gameState.nightmareBlockedSeat = 0;
+    };
 
     render(
       <RoomScreen
@@ -105,14 +107,52 @@ describe('Nightmare Blocked UI', () => {
       />,
     );
 
-    // Wait for the action prompt to trigger
     await waitFor(() => {
-      // The blocked prompt should use BLOCKED_UI_DEFAULTS
       expect(mockShowAlert).toHaveBeenCalledWith(
-        BLOCKED_UI_DEFAULTS.title,
+        '操作无效',
         BLOCKED_UI_DEFAULTS.message,
         expect.any(Array),
       );
+    });
+  });
+
+  it('confirm schema (hunter) shows skip button when blocked', async () => {
+    mockUseGameRoomReturn = {
+      ...makeBaseUseGameRoomReturn({
+        schemaId: 'hunterConfirm',
+        currentActionRole: 'hunter',
+        myRole: 'hunter',
+        mySeatNumber: 0,
+        overrides: {
+          getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
+        },
+      }),
+      gameState: {
+        ...makeBaseUseGameRoomReturn({
+          schemaId: 'hunterConfirm',
+          currentActionRole: 'hunter',
+          myRole: 'hunter',
+          mySeatNumber: 0,
+        }).gameState,
+        nightmareBlockedSeat: 0,
+      },
+    };
+
+    const { getByTestId, queryByText } = render(
+      <RoomScreen
+        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        navigation={mockNavigation as any}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
+    });
+
+    // When blocked, hunter should see skip button instead of confirm
+    await waitFor(() => {
+      const skipButton = queryByText(BLOCKED_UI_DEFAULTS.skipButtonText);
+      expect(skipButton).toBeTruthy();
     });
   });
 });

@@ -102,7 +102,7 @@ describe('guardProtectResolver', () => {
   });
 
   describe('nightmare block', () => {
-    it('被梦魇封锁时应该返回空结果', () => {
+    it('被梦魇封锁时提交非跳过行动应该被拒绝', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 5 }, // guard is blocked
       });
@@ -110,9 +110,20 @@ describe('guardProtectResolver', () => {
 
       const result = guardProtectResolver(ctx, input);
 
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toBeDefined();
+    });
+
+    it('被梦魇封锁时可以跳过', () => {
+      const ctx = createContext({
+        currentNightResults: { blockedSeat: 5 }, // guard is blocked
+      });
+      const input = createInput(undefined);
+
+      const result = guardProtectResolver(ctx, input);
+
       expect(result.valid).toBe(true);
-      expect(result.result?.guardedTarget).toBeUndefined();
-      expect(result.updates).toBeUndefined();
+      expect(result.result).toEqual({});
     });
   });
 

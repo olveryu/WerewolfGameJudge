@@ -2,11 +2,13 @@
  * Seer Resolver (HOST-ONLY)
  *
  * Validates seer check action and computes result.
+ *
+ * RULE: If blocked by nightmare, non-skip actions are REJECTED (not just no-op).
  */
 
 import { ROLE_SPECS } from '../../../models/roles/spec/specs';
 import { getSeerCheckResultForTeam } from '../../../models/roles/spec/types';
-import { SCHEMAS } from '../../../models/roles/spec/schemas';
+import { SCHEMAS, BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec/schemas';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
 import { getRoleAfterSwap } from './types';
@@ -24,6 +26,11 @@ export const seerCheckResolver: ResolverFn = (context, input) => {
     };
   }
 
+  // Check blocked by nightmare - non-skip actions are REJECTED
+  if (currentNightResults.blockedSeat === actorSeat) {
+    return { valid: false, rejectReason: BLOCKED_UI_DEFAULTS.message };
+  }
+
   // Validate constraints from schema
   const schema = SCHEMAS.seerCheck;
   const constraintResult = validateConstraints(schema.constraints, { actorSeat, target });
@@ -35,14 +42,6 @@ export const seerCheckResolver: ResolverFn = (context, input) => {
   const originalRoleId = players.get(target);
   if (!originalRoleId) {
     return { valid: false, rejectReason: '目标玩家不存在' };
-  }
-
-  // Check blocked by nightmare
-  if (currentNightResults.blockedSeat === actorSeat) {
-    return {
-      valid: true,
-      result: {}, // No result due to block
-    };
   }
 
   // Get effective role after magician swap (if any)

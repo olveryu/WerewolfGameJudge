@@ -3,7 +3,9 @@
  *
  * Validates nightmare block action and computes result.
  *
- * RULE: If nightmare blocks a wolf, wolves cannot kill that night.
+ * RULE: If nightmare blocks ANY wolf (team='wolf'), wolves cannot kill that night.
+ *       This includes all wolf-faction roles: wolf, nightmare, wolfQueen, darkWolfKing,
+ *       gargoyle, wolfRobot, spiritKnight, etc.
  */
 
 import { ROLE_SPECS } from '../../../models/roles/spec/specs';
@@ -18,9 +20,8 @@ export const nightmareBlockResolver: ResolverFn = (context, input) => {
     return { valid: true, result: {} };
   }
 
-  // Cannot block self
   // NOTE: Self-target is allowed in this app (neutral judge rule).
-  // If nightmare blocks a wolf (including themselves), wolves cannot kill this night.
+  // If nightmare blocks ANY wolf, wolves cannot kill this night.
 
   // Night-1-only scope: no cross-night restriction.
 
@@ -30,7 +31,8 @@ export const nightmareBlockResolver: ResolverFn = (context, input) => {
     return { valid: false, rejectReason: '目标玩家不存在' };
   }
 
-  // Check if target is a wolf (special rule: wolves can't kill if nightmare blocks a wolf)
+  // Check if target is ANY wolf (team='wolf')
+  // ALL wolf-faction roles trigger wolfKillDisabled (including gargoyle, wolfRobot)
   const targetSpec = ROLE_SPECS[targetRoleId];
   const blockedWolf = targetSpec.team === 'wolf';
 
