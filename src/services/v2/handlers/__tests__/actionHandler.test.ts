@@ -258,7 +258,8 @@ describe('handleSubmitWolfVote', () => {
     const result = handleSubmitWolfVote(intent, context);
 
     expect(result.success).toBe(false);
-  expect(result.reason).toBe('not_wolf_participant');
+  // Unified reason (no wolf-vote-specific mapping)
+  expect(result.reason).toBe('step_mismatch');
   });
 
   it('should fail when voter has no role (not_wolf_participant)', () => {
@@ -278,7 +279,8 @@ describe('handleSubmitWolfVote', () => {
     const result = handleSubmitWolfVote(intent, context);
 
     expect(result.success).toBe(false);
-  expect(result.reason).toBe('not_wolf_participant');
+  // Unified reason (no wolf-vote-specific mapping)
+  expect(result.reason).toBe('role_mismatch');
   });
 
   // === Gate: invalid_target ===
@@ -294,7 +296,8 @@ describe('handleSubmitWolfVote', () => {
     const result = handleSubmitWolfVote(intent, context);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_target');
+  // Unified schema-first resolver reason
+  expect(result.reason).toBe('目标玩家不存在');
   });
 
   it('should allow empty vote via target=-1 (mapped to schema target=null)', () => {
@@ -329,7 +332,8 @@ describe('handleSubmitWolfVote', () => {
     const result = handleSubmitWolfVote(intent, context);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('target_not_seated');
+  // Unified schema-first resolver reason
+  expect(result.reason).toBe('目标玩家不存在');
   });
 
   it('should reject immuneToWolfKill targets via wolfKillResolver (cannot vote that role)', () => {

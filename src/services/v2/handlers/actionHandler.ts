@@ -447,17 +447,7 @@ export function handleSubmitWolfVote(
   // *real* role must be used for role/seat alignment.
   const validation = validateActionPreconditions(context, seat, (voterRole ?? 'wolf') as RoleId);
   if (!validation.valid) {
-    // Keep wolf-vote legacy error codes stable.
-    if (validation.result.reason === 'role_mismatch') {
-      return normalizeWolfVoteRejection(validation.result, 'not_wolf_participant');
-    }
-    // If we're currently in the wolfKill step, but the actor's role isn't aligned to that step,
-    // the most useful user-facing message is still "not_wolf_participant".
-    // (Example: a non-participating wolf-team role tapping during wolfKill.)
-    if (validation.result.reason === 'step_mismatch' && context.state?.currentStepId === 'wolfKill') {
-      return normalizeWolfVoteRejection(validation.result, 'not_wolf_participant');
-    }
-    return normalizeWolfVoteRejection(validation.result);
+  return normalizeWolfVoteRejection(validation.result);
   }
 
 
@@ -471,10 +461,7 @@ export function handleSubmitWolfVote(
       voterRole: null,
       currentStepId: context.state?.currentStepId ?? null,
     });
-    return normalizeWolfVoteRejection(
-      { success: false, reason: 'not_wolf_participant', actions: [] },
-      '你不是参与狼刀投票的角色',
-    );
+  return normalizeWolfVoteRejection({ success: false, reason: 'not_wolf_participant', actions: [] });
   }
 
   if (!doesRoleParticipateInWolfVote(voterForGate.role)) {
@@ -486,12 +473,7 @@ export function handleSubmitWolfVote(
         : null,
       currentStepId: context.state?.currentStepId ?? null,
     });
-    // Keep HandlerResult.reason as the machine code, but broadcast a user-friendly
-    // reject reason for UI alerts.
-    return normalizeWolfVoteRejection(
-      { success: false, reason: 'not_wolf_participant', actions: [] },
-      '你不是参与狼刀投票的角色',
-    );
+  return normalizeWolfVoteRejection({ success: false, reason: 'not_wolf_participant', actions: [] });
   }
 
   // IMPORTANT: delegate must use the voter's *actual* role.
@@ -510,24 +492,9 @@ export function handleSubmitWolfVote(
 
   const delegated = handleSubmitAction(delegateIntent, context);
   if (!delegated.success) {
-    // role_mismatch should not happen here, but keep mapping for safety.
-    if (delegated.reason === 'role_mismatch') {
-      return normalizeWolfVoteRejection(delegated, 'not_wolf_participant');
-    }
-    // Keep legacy reason codes stable for wolf vote callers.
-    // The resolver rejection reason is user-facing strings like "目标玩家不存在";
-    // historically wolf vote returned machine codes (invalid_target/target_not_seated).
-    if (delegated.reason === '目标玩家不存在') {
-      const state = context.state;
-      // Preserve previous split:
-      // - out of range -> invalid_target
-      // - seat exists but no player -> target_not_seated
-      const mapped = state && !(target in state.players) ? 'invalid_target' : 'target_not_seated';
-      return normalizeWolfVoteRejection(delegated, mapped);
-    }
-
-    // default: normalize to always emit ACTION_REJECTED for wolf vote when possible.
-    return normalizeWolfVoteRejection(delegated);
+  // Unified reason: do not map resolver/user-facing reasons to legacy wolf-vote codes.
+  // Just broadcast whatever the unified pipeline produced.
+  return normalizeWolfVoteRejection(delegated);
   }
 
   // IMPORTANT:
