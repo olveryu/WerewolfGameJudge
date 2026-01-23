@@ -239,51 +239,104 @@ function validateActionPreconditions(
 }
 
 // =============================================================================
-// Nightmare Block Guard (Single-point guard)
+// Nightmare Block Guard (Single-point guard, schema-aware)
 // =============================================================================
 
 /**
- * 统一的 nightmare block 校验（单点 guard，避免 14 个 resolver 重复）
+ * Schema-aware skip 判断
  *
- * 规则：
- * - confirm schema (hunter/darkWolfKing):
- *   - 被 block 时只允许 skip（confirmed=false/undefined）
- *   - 未被 block 时只允许 confirmed=true（不允许 skip）
- * - 其他 schema:
- *   - 被 block 时只允许 skip（target=null）
- *   - 未被 block 时不做限制
+ * 根据 schema.kind 判断本次提交是否为 skip（无实际行动）
  *
- * @returns rejectReason if blocked, undefined if allowed
+ * @param schema - 当前步骤的 schema 定义
+ * @param actionInput - 玩家提交的 action input
+ * @returns true 表示是 skip，false 表示是实际行动
+ */
+function isSkipAction(
+  schema: (typeof SCHEMAS)[SchemaId],
+  actionInput: ActionInput,
+): boolean {
+  switch (schema.kind) {
+    case 'confirm':
+      // confirm 类型：confirmed !== true 视为 skip
+      return actionInput.confirmed !== true;
+
+    case 'chooseSeat':
+    case 'wolfVote':
+      // 选择座位类型：target == null 视为 skip
+      return actionInput.target === undefined || actionInput.target === null;
+
+    case 'swap':
+      // 交换类型：targets 为空视为 skip
+      return !actionInput.targets || actionInput.targets.length === 0;
+
+    case 'compound': {
+      // 复合类型：stepResults 为空或所有 step 都是 null 视为 skip
+      if (!actionInput.stepResults) return true;
+      const results = Object.values(actionInput.stepResults);
+      // empty array is considered skip; all-null is also skip
+      if (results.length === 0) return true;
+      return results.every((v) => v === null);
+    }
+
+    default:
+      // 未知类型：安全策略 - 统一视为 non-skip
+      // 被 block 时宁可多 reject，避免漏过非法输入
+      return false;
+  }
+}
+
+/**
+ * 统一的 nightmare block 校验（单点 guard，schema-aware）
+ *
+ * 规则（MUST follow）：
+ *
+ * 1. 被梦魇封锁 = 规则禁止输入，只能跳过
+ *    - 被 block 时：只有 skip 是 valid，任何非 skip 行动都必须 reject
+ *
+ * 2. confirm 类（hunter/darkWolfKing）的 skip 规则：
+ *    - 未被 block 时：不允许 skip（confirmed 不是 true 就是非法输入 → reject）
+ *    - 被 block 时：只允许 skip（confirmed===true 也要 reject；只有"跳过"才 valid）
+ *
+ * 3. 其他类（chooseSeat/wolfVote/swap/compound）：
+ *    - 被 block 时：只允许 skip
+ *    - 未被 block 时：不做额外限制
+ *
+ * @param seat - 行动者座位
+ * @param schema - 当前步骤的 schema 定义
+ * @param actionInput - 构建好的 ActionInput（包含所有 payload 字段）
+ * @param blockedSeat - 被梦魇封锁的座位
+ * @returns rejectReason if rejected, undefined if allowed
  */
 function checkNightmareBlockGuard(
   seat: number,
-  target: number | null | undefined,
   schema: (typeof SCHEMAS)[SchemaId],
+  actionInput: ActionInput,
   blockedSeat: number | undefined,
-  extra: Record<string, unknown> | undefined,
 ): string | undefined {
   const isBlocked = blockedSeat === seat;
+  const isSkip = isSkipAction(schema, actionInput);
 
+  // confirm 类的特殊规则：未被 block 时不允许 skip
   if (schema.kind === 'confirm') {
-    const confirmed = extra?.confirmed;
-    if (isBlocked && confirmed === true) {
-      // 被 block 但尝试 confirmed=true → reject
-      return BLOCKED_UI_DEFAULTS.message;
-    }
-    if (!isBlocked && confirmed !== true) {
-      // 未被 block 但尝试 skip → reject
+    if (!isBlocked && isSkip) {
       return '当前无法跳过，请执行行动';
+    }
+    if (isBlocked && !isSkip) {
+      return BLOCKED_UI_DEFAULTS.message;
     }
     return undefined;
   }
 
-  // 其他 schema: 被 block 时只允许 skip (target=null)
-  if (isBlocked && target !== null && target !== undefined) {
+  // 其他 schema：被 block 时只允许 skip
+  if (isBlocked && !isSkip) {
     return BLOCKED_UI_DEFAULTS.message;
   }
 
   return undefined;
 }
+
+// Export for testing
+export { isSkipAction, checkNightmareBlockGuard };
 
 /**
  * 处理提交行动（PR4: SUBMIT_ACTION）
@@ -304,13 +357,19 @@ export function handleSubmitAction(
   }
   const { schemaId, state, schema } = validation;
 
-  // Nightmare block guard (single-point guard)
+  // 构建 ActionInput（先构建，用于 nightmare guard 和 resolver）
+  const actionInput = buildActionInput(
+    schemaId,
+    target,
+    extra as Record<string, unknown> | undefined,
+  );
+
+  // Nightmare block guard (single-point guard, schema-aware)
   const blockRejectReason = checkNightmareBlockGuard(
     seat,
-    target,
     schema,
+    actionInput,
     state.currentNightResults?.blockedSeat,
-    extra as Record<string, unknown> | undefined,
   );
   if (blockRejectReason) {
     return buildRejectionResult(schemaId, blockRejectReason, state, seat);
@@ -319,13 +378,8 @@ export function handleSubmitAction(
   // 获取 resolver
   const resolver = RESOLVERS[schemaId]!;
 
-  // 构建上下文和输入
+  // 构建上下文
   const resolverContext = buildResolverContext(state, seat, role);
-  const actionInput = buildActionInput(
-    schemaId,
-    target,
-    extra as Record<string, unknown> | undefined,
-  );
 
   // 调用 resolver（resolver-first）
   const result = resolver(resolverContext, actionInput);
