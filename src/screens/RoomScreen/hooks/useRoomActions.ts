@@ -107,7 +107,10 @@ export interface UseRoomActionsResult {
   /** Check if can tap for action */
   canTapForAction: () => boolean;
 
-  /** Merge magician two-target */
+  /**
+   * @deprecated Legacy mergedTarget encoding. Use `extra.targets: [seatA, seatB]` instead.
+   * Will be removed after all call sites are updated.
+   */
   getMagicianTarget: (secondIndex: number) => number;
 
   /** UI-only: if current actor is wolf, returns vote summary + (optional) my-seat suffix. */
@@ -330,9 +333,13 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   }, [gameState, roomStatus, isAudioPlaying, imActioner]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Magician two-target merge
+  // Magician two-target merge (DEPRECATED)
   // ─────────────────────────────────────────────────────────────────────────
 
+  /**
+   * @deprecated Legacy mergedTarget encoding. Use `extra.targets: [seatA, seatB]` instead.
+   * RoomScreen now uses v2 protocol: `proceedWithActionTyped(null, { targets: [a, b] })`.
+   */
   const getMagicianTarget = useCallback(
     (secondIndex: number): number => {
       if (anotherIndex === null) {

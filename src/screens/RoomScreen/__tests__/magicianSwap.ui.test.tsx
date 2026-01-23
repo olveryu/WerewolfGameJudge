@@ -168,7 +168,7 @@ describe('RoomScreen magician swap UI (smoke)', () => {
     jest.clearAllMocks();
   });
 
-  it('tap 1st seat -> tap 2nd seat -> confirm swap -> submitAction(mergedTarget)', async () => {
+  it('tap 1st seat -> tap 2nd seat -> confirm swap -> submitAction(null, { targets: [seatA, seatB] })', async () => {
     const props: any = {
       navigation: mockNavigation,
       route: {
@@ -216,8 +216,9 @@ describe('RoomScreen magician swap UI (smoke)', () => {
       confirmBtn?.onPress?.();
     });
 
-    // RoomScreen mergedTarget = anotherIndex + secondIndex*100 => 2 + 4*100 = 402
-    expect(mockSubmitAction).toHaveBeenCalledWith(402, undefined);
+    // v2 protocol: target = null, extra.targets = [seatA, seatB]
+    // seat 3 (index 2) and seat 5 (index 4)
+    expect(mockSubmitAction).toHaveBeenCalledWith(null, { targets: [2, 4] });
 
     // Regression check: actionPrompt should only trigger once at turn start,
     // NOT re-trigger when anotherIndex changes (after selecting first seat).

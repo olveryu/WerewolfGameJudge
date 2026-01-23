@@ -417,3 +417,80 @@ describe('Swap 边界情况', () => {
     expect(deaths).toContain(0);
   });
 });
+
+// =============================================================================
+// 4. Handler → Resolver wire protocol contract
+// =============================================================================
+
+describe('Handler → Resolver wire protocol (buildActionInput)', () => {
+  /**
+   * 这些测试验证从 UI 到 Handler 的 wire protocol：
+   * - swap 必须使用 extra.targets = [seatA, seatB]
+   * - target 必须为 null
+   *
+   * 注意：这里直接测试 resolver 层对 ActionInput shape 的期望，
+   * 因为 buildActionInput 只是简单的字段提取。
+   */
+
+  const players = createPlayers([
+    [0, 'villager'],
+    [1, 'wolf'],
+    [2, 'seer'],
+    [3, 'magician'],
+  ]);
+
+  describe('v2 protocol: extra.targets = [seatA, seatB]', () => {
+    it('resolver 读取 input.targets 而非 target', () => {
+      const ctx = createContext(3, 'magician', players);
+
+      // 模拟 buildActionInput 的输出（从 extra.targets 构建）
+      const input: ActionInput = {
+        schemaId: 'magicianSwap',
+        target: undefined, // v2 protocol: target 必须为 null/undefined
+        targets: [0, 1],   // v2 protocol: extra.targets
+      };
+
+      const result = magicianSwapResolver(ctx, input);
+
+      expect(result.valid).toBe(true);
+      expect(result.updates?.swappedSeats).toEqual([0, 1]);
+    });
+
+    it('target 非 null 不会干扰 resolver（resolver 只读 targets）', () => {
+      const ctx = createContext(3, 'magician', players);
+
+      // 假设旧 UI 错误地同时传了 target 和 targets
+      // resolver 应该只读 targets
+      const input: ActionInput = {
+        schemaId: 'magicianSwap',
+        target: 999, // 无效值，不应被使用
+        targets: [0, 1],
+      };
+
+      const result = magicianSwapResolver(ctx, input);
+
+      expect(result.valid).toBe(true);
+      expect(result.updates?.swappedSeats).toEqual([0, 1]);
+    });
+  });
+
+  describe('legacy encoding 不再支持', () => {
+    it('mergedTarget 编码 (a + b*100) 不会被 resolver 解析', () => {
+      const ctx = createContext(3, 'magician', players);
+
+      // 旧的 mergedTarget 编码：2 + 4*100 = 402
+      // 这个值如果被放在 target 字段，resolver 不会解析
+      const input: ActionInput = {
+        schemaId: 'magicianSwap',
+        target: 402, // legacy mergedTarget
+        targets: undefined,
+      };
+
+      const result = magicianSwapResolver(ctx, input);
+
+      // targets undefined → 视为跳过，不是错误
+      expect(result.valid).toBe(true);
+      expect(result.updates).toBeUndefined(); // 无 swap
+    });
+  });
+});
