@@ -186,11 +186,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const seatViewModels = useMemo(() => {
     if (!gameState) return [];
     return buildSeatViewModels(gameState, mySeatNumber, showWolves, anotherIndex, {
-      // Commit 5 (UX-only): meeting vote restrictions apply during the wolf-meeting vote,
-      // and this codebase currently models that voting step as the wolfKill schema.
-      // Neutral-judge red line is enforced host-side; UI-disable here is UX-only.
-      enableWolfVoteRestrictions:
-        currentSchema?.kind === 'wolfVote' && currentSchema?.id === 'wolfKill',
       // Schema-driven constraints (notSelf, etc.) - UX-only early rejection
       schemaConstraints: imActioner ? currentSchemaConstraints : undefined,
       // For magician swap: highlight the second seat being selected
@@ -202,8 +197,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     showWolves,
     anotherIndex,
     secondSeatIndex,
-    currentSchema?.kind,
-    currentSchema?.id,
     imActioner,
     currentSchemaConstraints,
   ]);
@@ -301,18 +294,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Wolf kill disabled: true if nightmare blocked a wolf (all wolves can only skip)
   const wolfKillDisabled = useMemo(() => {
     const value = gameState?.wolfKillDisabled ?? false;
-    // Debug log for wolf kill disabled
-    if (gameState && currentActionRole === 'wolf') {
-      console.log(
-        '[RoomScreen] wolfKillDisabled check:',
-        'gameState.wolfKillDisabled=',
-        gameState.wolfKillDisabled,
-        'computed=',
-        value,
-        'nightmareBlockedSeat=',
-        gameState.nightmareBlockedSeat,
-      );
-    }
+  // (intentionally no console.* here; use logger if this needs to be observed)
     return value;
   }, [gameState, currentActionRole]);
 
@@ -403,21 +385,41 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     async (targetIndex: number | null, extra?: any): Promise<boolean> => {
       await submitAction(targetIndex, extra);
 
-      // Give a brief moment for state to update (Host broadcasts state with rejection)
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // Check if action was rejected (via gameState.actionRejected targeting our uid)
-      const rejected = gameState?.actionRejected;
-      if (rejected && rejected.targetUid === myUid) {
-        // Show rejection alert with reason from Host
-        actionDialogs.showActionRejectedAlert(rejected.reason);
-        return false; // Action was rejected
-      }
-
-      return true; // Action was accepted
+      // Submission success/failure UX is handled by the state-driven
+      // `gameState.actionRejected` effect below (covers submitAction + submitWolfVote).
+      // Return true here to keep callers progressing; Host rejection will be surfaced
+      // asynchronously via broadcast.
+      return true;
     },
-    [submitAction, gameState?.actionRejected, myUid, actionDialogs],
+    [submitAction],
   );
+
+  // ---------------------------------------------------------------------------
+  // Unified rejection UX (Host-authoritative)
+  //
+  // NOTE: Do NOT rely on submitAction-only plumbing.
+  // WOLF_VOTE is submitted via submitWolfVote(), so we surface actionRejected
+  // via a state-driven effect for ALL action types.
+  // ---------------------------------------------------------------------------
+
+  const lastRejectedKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const rejected = gameState?.actionRejected;
+    if (!rejected) {
+      lastRejectedKeyRef.current = null;
+      return;
+    }
+
+    if (!myUid || rejected.targetUid !== myUid) return;
+
+    // Deduplicate repeated broadcasts of the same rejection
+    const key = `${rejected.action}:${rejected.reason}:${rejected.targetUid}`;
+    if (key === lastRejectedKeyRef.current) return;
+    lastRejectedKeyRef.current = key;
+
+    actionDialogs.showActionRejectedAlert(rejected.reason);
+  }, [gameState?.actionRejected, myUid, actionDialogs]);
 
   // ---------------------------------------------------------------------------------
   // Action extra typing (UI -> Host wire payload)

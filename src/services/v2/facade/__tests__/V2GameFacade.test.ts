@@ -1259,6 +1259,23 @@ describe('V2GameFacade', () => {
       expect(result.success).toBe(false);
       expect(result.reason).toBe('invalid_status');
     });
+
+    it('should write actionRejected into store on rejection (regression: applyActionsOnFailure)', async () => {
+      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      fillAllSeatsViaReducer(facade, mockTemplate);
+      const result = await facade.submitWolfVote(1, 0);
+
+      expect(result.success).toBe(false);
+
+      const state = facade['store'].getState()!;
+      expect(state.actionRejected).toEqual(
+        expect.objectContaining({
+          action: 'submitWolfVote',
+          targetUid: 'player-1',
+        }),
+      );
+      expect(state.actionRejected?.reason).toEqual(expect.any(String));
+    });
   });
 
   // ===========================================================================
