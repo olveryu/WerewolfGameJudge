@@ -1,11 +1,13 @@
 /**
- * Tests for wolfKillDisabled behavior (Host-authoritative version)
+ * Tests for wolf vote behavior (Host-authoritative version)
  *
  * NEW BEHAVIOR:
- * - UI does NOT intercept wolfKillDisabled
- * - Wolf can still tap seats and get normal intent
- * - Host validates and rejects via ACTION_REJECTED
- * - UI shows normal buttons (not forced empty)
+ * - UI no longer knows about wolfKillDisabled (removed from GameContext)
+ * - Wolf can tap seats and get normal intent
+ * - Host validates and rejects via ACTION_REJECTED if needed
+ * - UI shows normal buttons
+ *
+ * This test now verifies normal wolf vote behavior without block-related fields.
  */
 import { renderHook } from '@testing-library/react-native';
 
@@ -25,8 +27,6 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     mySeatNumber: 0,
     myRole: 'wolf',
     isAudioPlaying: false,
-    isBlockedByNightmare: false,
-    wolfKillDisabled: false,
     anotherIndex: null,
   };
   return { ...base, ...overrides };
@@ -38,24 +38,13 @@ const defaultDeps = {
   getWitchContext: () => null,
 };
 
-describe('useRoomActions with wolfKillDisabled (Host-authoritative)', () => {
+describe('useRoomActions wolf vote (Host-authoritative)', () => {
   describe('getActionIntent', () => {
-    it('returns wolfVote intent when wolfKillDisabled is false', () => {
-      const ctx = makeContext({ wolfKillDisabled: false });
+    it('returns wolfVote intent for wolf actioner', () => {
+      const ctx = makeContext();
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
       const intent = result.current.getActionIntent(3);
-      expect(intent).not.toBeNull();
-      expect(intent?.type).toBe('wolfVote');
-      expect(intent?.targetIndex).toBe(3);
-    });
-
-    it('returns normal wolfVote intent even when wolfKillDisabled is true (no UI block)', () => {
-      const ctx = makeContext({ wolfKillDisabled: true });
-      const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
-
-      const intent = result.current.getActionIntent(3);
-      // UI no longer intercepts - Host will reject
       expect(intent).not.toBeNull();
       expect(intent?.type).toBe('wolfVote');
       expect(intent?.targetIndex).toBe(3);
@@ -63,7 +52,6 @@ describe('useRoomActions with wolfKillDisabled (Host-authoritative)', () => {
 
     it('returns null for non-wolf (not their turn)', () => {
       const ctx = makeContext({
-        wolfKillDisabled: false,
         myRole: 'seer',
         imActioner: false,
       });
@@ -75,8 +63,8 @@ describe('useRoomActions with wolfKillDisabled (Host-authoritative)', () => {
   });
 
   describe('getBottomAction', () => {
-    it('shows empty vote button when wolfKillDisabled is false', () => {
-      const ctx = makeContext({ wolfKillDisabled: false });
+    it('shows empty vote button for wolf', () => {
+      const ctx = makeContext();
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
       const bottomAction = result.current.getBottomAction();
@@ -84,16 +72,20 @@ describe('useRoomActions with wolfKillDisabled (Host-authoritative)', () => {
       expect(bottomAction.buttons[0].key).toBe('wolfEmpty');
       expect(bottomAction.buttons[0].label).toBe('空刀');
     });
+  });
 
-    it('shows normal empty vote button even when wolfKillDisabled is true (no forced skip)', () => {
-      const ctx = makeContext({ wolfKillDisabled: true });
-      const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
+  // Contract: verify GameContext no longer has wolfKillDisabled
+  describe('Contract: GameContext no longer has block-related fields', () => {
+    it('GameContext does not have wolfKillDisabled', () => {
+      const ctx = makeContext();
+      // @ts-expect-error - wolfKillDisabled does not exist on GameContext
+      expect(ctx.wolfKillDisabled).toBeUndefined();
+    });
 
-      const bottomAction = result.current.getBottomAction();
-      // UI no longer forces skip button - normal empty vote
-      expect(bottomAction.buttons).toHaveLength(1);
-      expect(bottomAction.buttons[0].key).toBe('wolfEmpty');
-      expect(bottomAction.buttons[0].label).toBe('空刀');
+    it('GameContext does not have isBlockedByNightmare', () => {
+      const ctx = makeContext();
+      // @ts-expect-error - isBlockedByNightmare does not exist on GameContext
+      expect(ctx.isBlockedByNightmare).toBeUndefined();
     });
   });
 });

@@ -3,10 +3,9 @@
  *
  * Validates witch action (save/poison compound) and computes result.
  *
- * RULE: If blocked by nightmare, non-skip actions are REJECTED (not just no-op).
+ * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
-import { BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
 import type { ResolverFn, ResolverResult } from './types';
 import { resolveWolfVotes } from '../../WolfVoteResolver';
 
@@ -73,10 +72,7 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
     return { valid: true, result: {} };
   }
 
-  // Check blocked by nightmare - non-skip actions are REJECTED
-  if (currentNightResults.blockedSeat === actorSeat) {
-    return { valid: false, rejectReason: BLOCKED_UI_DEFAULTS.message };
-  }
+  // Block guard is handled at actionHandler layer (single-point guard)
 
   // Validate save action
   if (saveTarget !== null) {

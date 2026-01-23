@@ -192,19 +192,11 @@ describe('witchActionResolver', () => {
   });
 
   describe('nightmare block', () => {
-    it('被梦魇封锁时提交非跳过行动应该被拒绝', () => {
-      const ctx = createContext({
-        currentNightResults: { blockedSeat: 5 }, // witch is blocked
-      });
-      const input = createInput({ save: 0, poison: null });
+    // NOTE: Nightmare block guard is now at actionHandler layer.
+    // The resolver itself does NOT reject blocked actions.
+    // These tests verify resolver behavior when invoked directly (skip returns empty result)
 
-      const result = witchActionResolver(ctx, input);
-
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toBeDefined();
-    });
-
-    it('被梦魇封锁时可以跳过', () => {
+    it('被梦魇封锁时跳过返回空结果', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 5 }, // witch is blocked
       });

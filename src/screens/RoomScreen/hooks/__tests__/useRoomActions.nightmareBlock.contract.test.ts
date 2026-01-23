@@ -2,12 +2,12 @@
  * Nightmare Block Contract Tests for useRoomActions
  *
  * NEW BEHAVIOR (Host-authoritative, UI no-interception):
- * - UI does NOT return {type:'blocked'} intent
- * - UI does NOT force skip/empty vote buttons based on blocked status
+ * - UI does NOT know about blocked status (isBlockedByNightmare/wolfKillDisabled removed from GameContext)
+ * - UI always returns normal schema-driven intents
  * - All actions go through submit → Host validates → ACTION_REJECTED if blocked
  *
- * This test file verifies that the hook layer does NOT intercept blocked players.
- * The blocked behavior is now tested at the resolver layer (resolver tests) and
+ * This test file verifies that the hook layer returns normal schema-driven intents.
+ * The blocked behavior is tested at the resolver layer (resolver tests) and
  * integration layer (integration tests that verify ACTION_REJECTED is broadcast).
  */
 
@@ -37,8 +37,6 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     mySeatNumber: 0,
     myRole: 'seer',
     isAudioPlaying: false,
-    isBlockedByNightmare: false,
-    wolfKillDisabled: false,
     anotherIndex: null,
     ...overrides,
   };
@@ -51,30 +49,27 @@ const defaultDeps: ActionDeps = {
 };
 
 // =============================================================================
-// A) Single-target block: UI does NOT intercept
+// A) Schema-driven intents: UI returns normal intents for all roles
 // =============================================================================
 
-describe('A) 单体封锁 - UI 不拦截 (isBlockedByNightmare=true)', () => {
+describe('A) Schema-driven intents - UI 总是返回 schema-driven intent', () => {
   describe('getActionIntent', () => {
-    it('被封锁玩家点击座位 → 返回正常 schema-driven intent (不是 blocked)', () => {
+    it('预言家点击座位 → 返回正常 reveal intent', () => {
       const ctx = makeContext({
-        isBlockedByNightmare: true,
         currentSchema: getSchema('seerCheck'),
         myRole: 'seer',
       });
 
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
-      // Tap should return normal reveal intent (Host will reject later)
+      // Tap should return normal reveal intent
       const intent = result.current.getActionIntent(1);
       expect(intent).not.toBeNull();
-      expect(intent?.type).toBe('reveal'); // Normal schema-driven intent
-      expect(intent?.type).not.toBe('blocked'); // NOT blocked
+      expect(intent?.type).toBe('reveal');
     });
 
-    it('被封锁的 confirm schema 玩家 (hunter) 点击座位 → 返回 null (confirm 不响应座位点击)', () => {
+    it('confirm schema 玩家 (hunter) 点击座位 → 返回 null (confirm 不响应座位点击)', () => {
       const ctx = makeContext({
-        isBlockedByNightmare: true,
         currentSchema: getSchema('hunterConfirm'),
         myRole: 'hunter',
         currentActionRole: 'hunter',
@@ -89,16 +84,15 @@ describe('A) 单体封锁 - UI 不拦截 (isBlockedByNightmare=true)', () => {
   });
 
   describe('getBottomAction', () => {
-    it('被封锁玩家底部按钮 → 正常显示 schema 定义的按钮 (不强制替换)', () => {
+    it('预言家底部按钮 → 正常显示 schema 定义的按钮', () => {
       const ctx = makeContext({
-        isBlockedByNightmare: true,
         currentSchema: getSchema('seerCheck'),
         myRole: 'seer',
       });
 
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
-      // Should show normal skip button from schema (not forced blocked skip)
+      // Should show normal skip button from schema
       const bottomAction = result.current.getBottomAction();
       expect(bottomAction.buttons).toHaveLength(1);
       expect(bottomAction.buttons[0].key).toBe('skip');
@@ -106,10 +100,8 @@ describe('A) 单体封锁 - UI 不拦截 (isBlockedByNightmare=true)', () => {
       expect(bottomAction.buttons[0].label).toBe('不使用技能');
     });
 
-    it('被封锁的 confirm schema 玩家 (hunter) 底部按钮 → 显示 skip 按钮', () => {
-      const { BLOCKED_UI_DEFAULTS } = require('../../../../models/roles/spec');
+    it('confirm schema 玩家 (hunter) 底部按钮 → 显示 confirm 和 skip 按钮', () => {
       const ctx = makeContext({
-        isBlockedByNightmare: true,
         currentSchema: getSchema('hunterConfirm'),
         myRole: 'hunter',
         currentActionRole: 'hunter',
@@ -117,24 +109,24 @@ describe('A) 单体封锁 - UI 不拦截 (isBlockedByNightmare=true)', () => {
 
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
-      // When blocked, confirm schema shows skip button instead of confirm
+      // Confirm schema shows two buttons: confirm and skip
       const bottomAction = result.current.getBottomAction();
-      expect(bottomAction.buttons).toHaveLength(1);
-      expect(bottomAction.buttons[0].key).toBe('skip');
-      expect(bottomAction.buttons[0].label).toBe(BLOCKED_UI_DEFAULTS.skipButtonText);
+      expect(bottomAction.buttons).toHaveLength(2);
+      expect(bottomAction.buttons[0].key).toBe('confirm');
+      expect(bottomAction.buttons[0].label).toBe('查看发动状态');
+      expect(bottomAction.buttons[1].key).toBe('skip');
     });
   });
 });
 
 // =============================================================================
-// B) Global wolf kill disabled: UI does NOT intercept seat taps
+// B) Wolf vote: UI returns normal wolfVote intent
 // =============================================================================
 
-describe('B) 全局禁刀 - UI 不拦截座位点击 (wolfKillDisabled=true)', () => {
+describe('B) 狼人投票 - UI 返回正常 wolfVote intent', () => {
   describe('getActionIntent', () => {
-    it('狼人点击座位 → 返回正常 wolfVote intent (不是 null)', () => {
+    it('狼人点击座位 → 返回正常 wolfVote intent', () => {
       const ctx = makeContext({
-        wolfKillDisabled: true,
         currentSchema: getSchema('wolfKill'),
         myRole: 'wolf',
         currentActionRole: 'wolf',
@@ -142,33 +134,16 @@ describe('B) 全局禁刀 - UI 不拦截座位点击 (wolfKillDisabled=true)', (
 
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
-      // Seat tap should return normal wolfVote intent (Host will reject later)
+      // Seat tap should return normal wolfVote intent
       const intent = result.current.getActionIntent(1);
       expect(intent).not.toBeNull();
       expect(intent?.type).toBe('wolfVote');
     });
-
-    it('非狼玩家不受 wolfKillDisabled 影响', () => {
-      const ctx = makeContext({
-        wolfKillDisabled: true,
-        currentSchema: getSchema('seerCheck'),
-        myRole: 'seer',
-        currentActionRole: 'seer',
-      });
-
-      const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
-
-      // Seer should still be able to act
-      const intent = result.current.getActionIntent(2);
-      expect(intent).not.toBeNull();
-      expect(intent?.type).toBe('reveal');
-    });
   });
 
   describe('getBottomAction', () => {
-    it('狼人底部按钮 → 正常显示"空刀" (不强制替换文案)', () => {
+    it('狼人底部按钮 → 正常显示"空刀"按钮', () => {
       const ctx = makeContext({
-        wolfKillDisabled: true,
         currentSchema: getSchema('wolfKill'),
         myRole: 'wolf',
         currentActionRole: 'wolf',
@@ -176,92 +151,29 @@ describe('B) 全局禁刀 - UI 不拦截座位点击 (wolfKillDisabled=true)', (
 
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
-      // Should show normal empty vote button (Host will allow empty vote)
-      const bottomAction = result.current.getBottomAction();
-      expect(bottomAction.buttons).toHaveLength(1);
-      expect(bottomAction.buttons[0].key).toBe('wolfEmpty');
-      expect(bottomAction.buttons[0].label).toBe('空刀'); // Normal label from schema
-      expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
-      expect(bottomAction.buttons[0].intent.targetIndex).toBe(-1); // empty vote
-    });
-
-    it('wolfKillDisabled=false 时正常显示"空刀"按钮', () => {
-      const ctx = makeContext({
-        wolfKillDisabled: false,
-        currentSchema: getSchema('wolfKill'),
-        myRole: 'wolf',
-        currentActionRole: 'wolf',
-      });
-
-      const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
-
+      // Should show normal empty vote button
       const bottomAction = result.current.getBottomAction();
       expect(bottomAction.buttons).toHaveLength(1);
       expect(bottomAction.buttons[0].key).toBe('wolfEmpty');
       expect(bottomAction.buttons[0].label).toBe('空刀');
+      expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
+      expect(bottomAction.buttons[0].intent.targetIndex).toBe(-1); // empty vote
     });
   });
 });
 
 // =============================================================================
-// C) Edge case: Both isBlockedByNightmare AND wolfKillDisabled
+// C) Contract: No 'blocked' intent type exists
 // =============================================================================
 
-describe('C) Edge case: 梦魇封锁自己 (既是 blocked 又是 wolfKillDisabled)', () => {
-  it('UI 不拦截 → getActionIntent 返回正常 wolfVote intent', () => {
-    const ctx = makeContext({
-      isBlockedByNightmare: true,
-      wolfKillDisabled: true,
-      currentSchema: getSchema('wolfKill'),
-      myRole: 'nightmare',
-      currentActionRole: 'wolf',
-    });
-
-    const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
-
-    // Should return normal wolfVote intent (Host will reject)
-    const intent = result.current.getActionIntent(1);
-    expect(intent).not.toBeNull();
-    expect(intent?.type).toBe('wolfVote');
-    expect(intent?.type).not.toBe('blocked');
-  });
-
-  it('getBottomAction 返回正常空刀按钮', () => {
-    const ctx = makeContext({
-      isBlockedByNightmare: true,
-      wolfKillDisabled: true,
-      currentSchema: getSchema('wolfKill'),
-      myRole: 'nightmare',
-      currentActionRole: 'wolf',
-    });
-
-    const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
-
-    const bottomAction = result.current.getBottomAction();
-    expect(bottomAction.buttons).toHaveLength(1);
-    expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
-    expect(bottomAction.buttons[0].intent.targetIndex).toBe(-1);
-    expect(bottomAction.buttons[0].label).toBe('空刀');
-  });
-});
-
-// =============================================================================
-// D) No 'blocked' intent type exists
-// =============================================================================
-
-describe('D) ActionIntent 类型不包含 blocked', () => {
+describe('C) 合约: ActionIntent 类型不包含 blocked', () => {
   it('getActionIntent 永远不返回 type=blocked', () => {
-    // Test various blocked scenarios
+    // Test various schema scenarios
     const scenarios: Partial<GameContext>[] = [
-      { isBlockedByNightmare: true, currentSchema: getSchema('seerCheck'), myRole: 'seer' },
-      { isBlockedByNightmare: true, currentSchema: getSchema('guardProtect'), myRole: 'guard' },
-      { wolfKillDisabled: true, currentSchema: getSchema('wolfKill'), myRole: 'wolf' },
-      {
-        isBlockedByNightmare: true,
-        wolfKillDisabled: true,
-        currentSchema: getSchema('wolfKill'),
-        myRole: 'nightmare',
-      },
+      { currentSchema: getSchema('seerCheck'), myRole: 'seer' },
+      { currentSchema: getSchema('guardProtect'), myRole: 'guard' },
+      { currentSchema: getSchema('wolfKill'), myRole: 'wolf', currentActionRole: 'wolf' },
+      { currentSchema: getSchema('hunterConfirm'), myRole: 'hunter', currentActionRole: 'hunter' },
     ];
 
     for (const overrides of scenarios) {
@@ -274,5 +186,24 @@ describe('D) ActionIntent 类型不包含 blocked', () => {
         expect(intent.type).not.toBe('blocked');
       }
     }
+  });
+});
+
+// =============================================================================
+// D) Contract: GameContext no longer has isBlockedByNightmare/wolfKillDisabled
+// =============================================================================
+
+describe('D) 合约: GameContext 不再包含 block 状态字段', () => {
+  it('GameContext 接口不包含 isBlockedByNightmare', () => {
+    const ctx = makeContext();
+    // This test verifies at compile time that these fields don't exist
+    // @ts-expect-error - isBlockedByNightmare does not exist on GameContext
+    expect(ctx.isBlockedByNightmare).toBeUndefined();
+  });
+
+  it('GameContext 接口不包含 wolfKillDisabled', () => {
+    const ctx = makeContext();
+    // @ts-expect-error - wolfKillDisabled does not exist on GameContext
+    expect(ctx.wolfKillDisabled).toBeUndefined();
   });
 });

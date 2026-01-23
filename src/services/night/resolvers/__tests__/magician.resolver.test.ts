@@ -148,7 +148,10 @@ describe('magicianSwapResolver', () => {
   });
 
   describe('nightmare block', () => {
-    it('被梦魇封锁时提交非跳过行动应该被拒绝', () => {
+    // NOTE: Nightmare block guard is now handled at actionHandler layer (single-point guard).
+    // Resolver no longer rejects blocked actions - it only validates business rules.
+    // Block guard tests are in actionHandler.test.ts.
+    it('被梦魇封锁时 resolver 不再拒绝（由 handler 层统一处理）', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 4 }, // magician is blocked
       });
@@ -156,8 +159,8 @@ describe('magicianSwapResolver', () => {
 
       const result = magicianSwapResolver(ctx, input);
 
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toBeDefined();
+      // Resolver returns valid; handler layer will reject
+      expect(result.valid).toBe(true);
     });
 
     it('被梦魇封锁时可以跳过', () => {

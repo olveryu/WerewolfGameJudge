@@ -3,15 +3,15 @@
  *
  * Validates dreamcatcher action and computes result.
  *
- * RULE: If blocked by nightmare, non-skip actions are REJECTED (not just no-op).
+ * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
-import { SCHEMAS, BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec/schemas';
+import { SCHEMAS } from '../../../models/roles/spec/schemas';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
 
 export const dreamcatcherDreamResolver: ResolverFn = (context, input) => {
-  const { actorSeat, currentNightResults } = context;
+  const { actorSeat } = context;
   const target = input.target;
 
   // Schema allows skip (canSkip: true)
@@ -19,10 +19,7 @@ export const dreamcatcherDreamResolver: ResolverFn = (context, input) => {
     return { valid: true, result: {} };
   }
 
-  // Check blocked by nightmare - non-skip actions are REJECTED
-  if (currentNightResults.blockedSeat === actorSeat) {
-    return { valid: false, rejectReason: BLOCKED_UI_DEFAULTS.message };
-  }
+  // Block guard is handled at actionHandler layer (single-point guard)
 
   // Validate constraints from schema
   const schema = SCHEMAS.dreamcatcherDream;

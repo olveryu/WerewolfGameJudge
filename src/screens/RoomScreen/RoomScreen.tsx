@@ -48,7 +48,7 @@ import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import { ConnectionStatusBar } from './components/ConnectionStatusBar';
 import { roomScreenLog } from '../../utils/logger';
 import type { ActionSchema, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
-import { SCHEMAS, isValidSchemaId } from '../../models/roles/spec';
+import { SCHEMAS, isValidSchemaId, BLOCKED_UI_DEFAULTS } from '../../models/roles/spec';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -293,22 +293,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [isInitialized, gameState]);
 
   // ───────────────────────────────────────────────────────────────────────────
-  // Nightmare block detection
-  // ───────────────────────────────────────────────────────────────────────────
-
-  const isBlockedByNightmare = useMemo(() => {
-    if (!gameState || mySeatNumber === null) return false;
-    return gameState.nightmareBlockedSeat === mySeatNumber;
-  }, [gameState, mySeatNumber]);
-
-  // Wolf kill disabled: true if nightmare blocked a wolf (all wolves can only skip)
-  const wolfKillDisabled = useMemo(() => {
-    const value = gameState?.wolfKillDisabled ?? false;
-  // (intentionally no console.* here; use logger if this needs to be observed)
-    return value;
-  }, [gameState, currentActionRole]);
-
-  // ───────────────────────────────────────────────────────────────────────────
   // Intent Layer: useRoomActions
   // ───────────────────────────────────────────────────────────────────────────
 
@@ -322,8 +306,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       mySeatNumber,
       myRole,
       isAudioPlaying,
-      isBlockedByNightmare,
-      wolfKillDisabled,
       anotherIndex,
     }),
     [
@@ -335,8 +317,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       mySeatNumber,
       myRole,
       isAudioPlaying,
-      isBlockedByNightmare,
-      wolfKillDisabled,
       anotherIndex,
     ],
   );
@@ -681,6 +661,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           break;
 
         case 'skip': {
+          // Special handling for confirm schema (hunter/darkWolfKing) blocked skip
+          if (currentSchema?.kind === 'confirm') {
+            actionDialogs.showConfirmDialog(
+              '确认跳过',
+              intent.message || BLOCKED_UI_DEFAULTS.skipButtonText,
+              () => void proceedWithActionTyped(null, { confirmed: false } as any),
+            );
+            break;
+          }
+
           // Witch/compound: drive copy + payload by stepKey when provided.
           const skipStepSchema = getSubStepByKey(intent.stepKey);
           let skipExtra: ReturnType<typeof buildWitchExtra> | undefined;
@@ -771,10 +761,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             : `${roleDisplayName}不能发动技能`;
 
           // Show info dialog with status, then submit action when user acknowledges
+          // IMPORTANT: Pass confirmed=true to satisfy Host block guard
           actionDialogs.showRoleActionPrompt(
             '技能状态',
             statusMessage,
-            () => void proceedWithActionTyped(mySeatNumber ?? 0),
+            () => void proceedWithActionTyped(mySeatNumber ?? 0, { confirmed: true } as any),
           );
           break;
         }
@@ -784,7 +775,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       gameState,
       myRole,
       mySeatNumber,
-      isBlockedByNightmare,
       anotherIndex,
       actionDialogs,
       buildWitchExtra,

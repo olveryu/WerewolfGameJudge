@@ -3,12 +3,12 @@
  *
  * Validates seer check action and computes result.
  *
- * RULE: If blocked by nightmare, non-skip actions are REJECTED (not just no-op).
+ * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
 import { ROLE_SPECS } from '../../../models/roles/spec/specs';
 import { getSeerCheckResultForTeam } from '../../../models/roles/spec/types';
-import { SCHEMAS, BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec/schemas';
+import { SCHEMAS } from '../../../models/roles/spec/schemas';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
 import { getRoleAfterSwap } from './types';
@@ -26,10 +26,7 @@ export const seerCheckResolver: ResolverFn = (context, input) => {
     };
   }
 
-  // Check blocked by nightmare - non-skip actions are REJECTED
-  if (currentNightResults.blockedSeat === actorSeat) {
-    return { valid: false, rejectReason: BLOCKED_UI_DEFAULTS.message };
-  }
+  // Block guard is handled at actionHandler layer (single-point guard)
 
   // Validate constraints from schema
   const schema = SCHEMAS.seerCheck;
