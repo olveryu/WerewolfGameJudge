@@ -75,6 +75,77 @@ describe('determineActionerState', () => {
     expect(result.imActioner).toBe(true);
   });
 
+  describe('wolfKill meeting visibility & participation (contract)', () => {
+    it('should NOT show wolves for lone wolves (gargoyle) during wolfKill', () => {
+      const result = determineActionerState(
+        'gargoyle',
+        'wolf',
+        wolfKillSchema,
+        3,
+        new Map(),
+        false,
+        new Map(),
+      );
+
+      expect(result.showWolves).toBe(false);
+      expect(result.imActioner).toBe(false);
+    });
+
+    it('should NOT show wolves for lone wolves (wolfRobot) during wolfKill', () => {
+      const result = determineActionerState(
+        'wolfRobot',
+        'wolf',
+        wolfKillSchema,
+        3,
+        new Map(),
+        false,
+        new Map(),
+      );
+
+      expect(result.showWolves).toBe(false);
+      expect(result.imActioner).toBe(false);
+    });
+
+    it('should show wolves for participating wolf roles during wolfKill (nightmare/wolfQueen/spiritKnight)', () => {
+      for (const role of ['nightmare', 'wolfQueen', 'spiritKnight'] as const) {
+        const result = determineActionerState(
+          role,
+          'wolf',
+          wolfKillSchema,
+          2,
+          new Map(),
+          false,
+          new Map(),
+        );
+
+        expect(result.showWolves).toBe(true);
+        expect(result.imActioner).toBe(true);
+      }
+    });
+
+    it('should set imActioner=false for participating wolf roles that already voted (vote tracked by wolfVotes map)', () => {
+      const wolfVotes = new Map<number, number>();
+      wolfVotes.set(7, 0);
+
+      for (const role of ['wolf', 'nightmare', 'wolfQueen', 'darkWolfKing', 'spiritKnight'] as const) {
+        const result = determineActionerState(
+          role,
+          // In practice wolfKill is a meeting step, currentActionRole can be any wolf-team role.
+          role,
+          wolfKillSchema,
+          7,
+          wolfVotes,
+          false,
+          new Map(),
+        );
+
+        // Regardless of currentActionRole wiring, vote-tracking should prevent double action.
+        // (If this fails for non-'wolf' roles, it indicates drift risk in determineActionerState.)
+        expect(result.imActioner).toBe(false);
+      }
+    });
+  });
+
   it('should handle mixed board with special wolves', () => {
     const roles: RoleId[] = [
       'villager',

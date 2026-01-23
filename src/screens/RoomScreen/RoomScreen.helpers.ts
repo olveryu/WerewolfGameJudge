@@ -125,9 +125,15 @@ function handleMatchingRole(
   actions: Map<RoleId, RoleAction>,
   isWolfMeetingSchema: boolean,
 ): ActionerState {
-  // For wolves, check if already voted
-  if (myRole === 'wolf' && mySeatNumber !== null && wolfVotes.has(mySeatNumber)) {
-    return { imActioner: false, showWolves: isWolfMeetingSchema };
+  // Wolf meeting phase: action eligibility is vote-based for ALL voting wolves.
+  // (Not just role === 'wolf' — special wolf roles like nightmare/wolfQueen also vote.)
+  if (
+    isWolfMeetingSchema &&
+    doesRoleParticipateInWolfVote(myRole) &&
+    mySeatNumber !== null &&
+    wolfVotes.has(mySeatNumber)
+  ) {
+    return { imActioner: false, showWolves: true };
   }
 
   // For non-wolf roles, check if action already submitted
