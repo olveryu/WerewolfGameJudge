@@ -10,12 +10,10 @@
 
 import type { RoleId } from '../../models/roles';
 import {
-  doesRoleParticipateInWolfVote,
-  isWolfRole,
-  getRoleSpec,
-  isValidRoleId,
-  getWolfKillImmuneRoleIds,
   canRoleSeeWolves,
+  doesRoleParticipateInWolfVote,
+  getRoleSpec,
+  isWolfRole,
 } from '../../models/roles';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
 import type { GameRoomLike } from '../../models/Room';
@@ -235,8 +233,6 @@ export function buildSeatViewModels(
   showWolves: boolean,
   selectedIndex: number | null,
   options?: {
-    /** When true, apply wolf meeting vote UX restrictions (Host still validates). */
-    enableWolfVoteRestrictions?: boolean;
     /**
      * Schema constraints for current action (e.g. ['notSelf']).
      * UX-only early rejection - Host still validates.
@@ -264,18 +260,6 @@ export function buildSeatViewModels(
     // Constraint: notSelf - cannot select own seat
     if (options?.schemaConstraints?.includes('notSelf') && index === mySeatNumber) {
       disabledReason = '不能选择自己';
-    }
-
-    // UX-only: disable wolf kill immune roles during wolf meeting vote.
-    // These roles have flags.immuneToWolfKill=true in their spec.
-    if (!disabledReason && options?.enableWolfVoteRestrictions) {
-      const immuneRoleIds = getWolfKillImmuneRoleIds();
-      const targetRole = effectiveRole;
-      if (isValidRoleId(targetRole) && immuneRoleIds.includes(targetRole)) {
-        const spec = getRoleSpec(targetRole);
-        const name = spec?.displayName ?? targetRole;
-        disabledReason = `不能投${name}`;
-      }
     }
 
     return {

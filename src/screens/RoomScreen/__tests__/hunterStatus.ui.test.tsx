@@ -90,8 +90,6 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     lastSeatError: null,
     clearLastSeatError: jest.fn(),
 
-    waitForActionRejected: jest.fn().mockResolvedValue(null),
-
     getWitchContext: jest.fn().mockReturnValue(null),
     getLastNightInfo: jest.fn().mockReturnValue(''),
     getLastNightDeaths: jest.fn().mockReturnValue([]),

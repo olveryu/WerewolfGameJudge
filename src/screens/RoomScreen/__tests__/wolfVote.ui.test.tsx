@@ -109,9 +109,6 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     lastSeatError: null,
     clearLastSeatError: jest.fn(),
 
-    // Reject-first plumbing
-    waitForActionRejected: jest.fn().mockResolvedValue(null),
-
     // Info getters
     getWitchContext: jest.fn().mockReturnValue(null),
     getLastNightInfo: jest.fn().mockReturnValue(''),
@@ -268,11 +265,14 @@ describe('RoomScreen wolf vote UI', () => {
     expect(mockSubmitWolfVote).toHaveBeenCalledWith(2);
   });
 
-  it('forbidden target role should be disabled in UI (no vote sent, show hint)', async () => {
-    // Commit 5 (UX-only): wolves should not be able to vote for forbidden target roles.
-    // Host already enforces this via ACTION_REJECTED; UI adds early disable/hint.
+  it('forbidden target role is NOT disabled in UI; still opens confirm dialog and submits vote intent', async () => {
+  let submitWolfVoteMock: jest.Mock | null = null;
 
-    // Override just the players map: seat 3 (index 2) is spiritKnight, which is forbidden by meeting vote config.
+    // Plan A (Host-authoritative): UI does not disable schema-external targets.
+    // If a forbidden role is tapped, we still open confirm dialog and submit.
+    // Host then broadcasts actionRejected and UI shows the unified "操作无效" alert.
+
+  // Override just the players map: seat 3 (index 2) is spiritKnight (Host will reject).
     mockUseGameRoomImpl = () => {
       const base = makeBaseUseGameRoomReturn();
       const players = new Map(base.gameState.players);
@@ -288,11 +288,15 @@ describe('RoomScreen wolf vote UI', () => {
         }),
         role: 'spiritKnight',
       });
+  const submitWolfVote = mockSubmitWolfVote;
+  submitWolfVoteMock = submitWolfVote;
+
       return makeBaseUseGameRoomReturn({
         gameState: {
           ...base.gameState,
           players,
         },
+  submitWolfVote,
         currentSchema: (() => {
           const { getSchema } = require('../../../models/roles/spec/schemas');
           return getSchema('wolfKill');
@@ -311,24 +315,43 @@ describe('RoomScreen wolf vote UI', () => {
       },
     };
 
-    const { findByTestId, findByText } = render(<RoomScreen {...props} />);
+  const rendered = render(<RoomScreen {...props} />);
+  const { findByTestId, findByText } = rendered;
     await findByText(/请选择要猎杀的玩家/);
 
     // Ignore any alerts from initial render/auto intent.
     (showAlert as jest.Mock).mockClear();
 
-    // Tap seat 3 (index 2) -> spiritKnight (forbidden target role)
+    // Tap seat 3 (index 2) -> spiritKnight (Host will reject)
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
     await act(async () => {
       fireEvent.press(seatPressable);
     });
 
-    expect(showAlert).toHaveBeenCalledWith('不可选择', expect.any(String), expect.any(Array));
+    // First: wolf vote confirm dialog should still appear
+    await waitFor(() => {
+      expect(showAlert).toHaveBeenCalledWith(
+        '狼人投票',
+        expect.stringContaining('确定要猎杀该玩家吗？'),
+        expect.any(Array),
+      );
+    });
 
-    const titles = (showAlert as jest.Mock).mock.calls.map((c) => c[0]);
-    expect(titles).not.toContain('狼人投票');
+    // Confirm vote
+    const buttons = (showAlert as jest.Mock).mock.calls[0][2] as Array<{
+      text: string;
+      onPress?: () => void;
+    }>;
+    const confirmBtn = buttons.find((b) => b.text === '确定');
+    expect(confirmBtn).toBeDefined();
 
-    // Never sends vote
-    expect(mockSubmitWolfVote).not.toHaveBeenCalled();
+    // Confirming the dialog should submit to Host.
+    await act(async () => {
+      confirmBtn?.onPress?.();
+    });
+
+    expect(submitWolfVoteMock).not.toBeNull();
+    const submitWolfVoteSpy = submitWolfVoteMock as unknown as jest.Mock;
+    expect(submitWolfVoteSpy).toHaveBeenCalledWith(2);
   });
 });

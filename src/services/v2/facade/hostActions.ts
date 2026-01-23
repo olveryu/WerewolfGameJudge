@@ -115,19 +115,19 @@ async function processHandlerResult(
   options?: {
     logPrefix?: string;
     logData?: Record<string, unknown>;
-    applyActionsOnFailure?: boolean;
   },
 ): Promise<{ success: boolean; reason?: string }> {
   const state = ctx.store.getState();
-  const { logPrefix, logData, applyActionsOnFailure = false } = options ?? {};
+  const { logPrefix, logData } = options ?? {};
 
   if (!result.success) {
     if (logPrefix) {
       v2FacadeLog.warn(`${logPrefix} failed`, { reason: result.reason, ...logData });
     }
 
-    // 某些场景需要在失败时也应用 actions（如 ACTION_REJECTED）
-    if (applyActionsOnFailure && state && result.actions.length > 0) {
+    // 失败时也需要应用 actions（如 ACTION_REJECTED），否则 UI 无法通过 STATE_UPDATE 感知拒绝。
+    // 统一放在出口层处理，避免调用点遗漏造成回归。
+    if (state && result.actions.length > 0) {
       applyActions(ctx.store, state, result.actions);
     }
 
@@ -264,7 +264,7 @@ export async function startNight(
 /**
  * Host: 更新模板
  *
- * PR8: 仅在 unseated 状态允许
+ * PR8: 仅在“准备看牌前”（unseated | seated）允许
  */
 export async function updateTemplate(
   ctx: HostActionsContext,
@@ -328,7 +328,6 @@ export async function submitAction(
   const submitResult = await processHandlerResult(ctx, result, {
     logPrefix: 'submitAction',
     logData: { seat, role, target },
-    applyActionsOnFailure: true, // PR4: ACTION_REJECTED 也需要应用
   });
 
   // Host-only 自动推进：成功提交后透传调用 handler 层推进

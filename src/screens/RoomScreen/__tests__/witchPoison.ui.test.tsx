@@ -92,8 +92,6 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     lastSeatError: null,
     clearLastSeatError: jest.fn(),
 
-    waitForActionRejected: jest.fn().mockResolvedValue(null),
-
     // NOTE(phase removed): phase no longer exists; seat taps always mean poison.
     getWitchContext: jest
       .fn()

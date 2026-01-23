@@ -7,6 +7,7 @@ import {
   handleStartGame,
   handleStartNight,
   handleRestartGame,
+  handleUpdateTemplate,
 } from '../gameControlHandler';
 import type { HandlerContext } from '../types';
 import type {
@@ -14,6 +15,7 @@ import type {
   StartGameIntent,
   StartNightIntent,
   RestartGameIntent,
+  UpdateTemplateIntent,
 } from '../../intents/types';
 import type { GameState } from '../../store/types';
 
@@ -412,4 +414,84 @@ describe('handleRestartGame', () => {
     expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
+});
+
+// =============================================================================
+// handleUpdateTemplate tests (PR?: allow before view role)
+// =============================================================================
+
+describe('handleUpdateTemplate', () => {
+  const updateIntent: UpdateTemplateIntent = {
+    type: 'UPDATE_TEMPLATE',
+    payload: { templateRoles: ['villager', 'wolf', 'seer', 'witch'] },
+  };
+
+  it('should succeed when status is unseated', () => {
+    const state = createMinimalState({ status: 'unseated' });
+    const context = createContext(state);
+
+    const result = handleUpdateTemplate(updateIntent, context);
+
+    expect(result.success).toBe(true);
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].type).toBe('UPDATE_TEMPLATE');
+    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+  });
+
+  it('should succeed when status is seated', () => {
+    const state = createMinimalState({
+      status: 'seated',
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+        1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+        2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+      },
+    });
+    const context = createContext(state);
+
+    const result = handleUpdateTemplate(updateIntent, context);
+
+    expect(result.success).toBe(true);
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].type).toBe('UPDATE_TEMPLATE');
+  });
+
+  it('should fail when not host (gate: host_only)', () => {
+    const state = createMinimalState({ status: 'unseated' });
+    const context = createContext(state, { isHost: false });
+
+    const result = handleUpdateTemplate(updateIntent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('host_only');
+  });
+
+  it('should fail when state is null (gate: no_state)', () => {
+    const context: HandlerContext = {
+      state: null,
+      isHost: true,
+      myUid: 'host-1',
+      mySeat: 0,
+    };
+
+    const result = handleUpdateTemplate(updateIntent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('no_state');
+  });
+
+  it.each(['assigned', 'ready', 'ongoing', 'ended'] as const)(
+    'should fail when status is %s (before_view_only message)',
+    (status) => {
+      const state = createMinimalState({ status });
+      const context = createContext(state);
+
+      const result = handleUpdateTemplate(updateIntent, context);
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('只能在“准备看牌”前修改设置');
+      expect(result.actions).toHaveLength(0);
+    },
+  );
 });

@@ -23,6 +23,8 @@ import { NIGHT_STEPS, SCHEMAS } from '../../../models/roles/spec';
 import type { ResolverContext, ActionInput, ResolverResult } from '../../night/resolvers/types';
 import type { RoleId } from '../../../models/roles';
 
+import { wolfVoteResolver } from '../../night/resolvers/wolfVote';
+import { isValidRoleId } from '../../../models/roles/spec/specs';
 import { doesRoleParticipateInWolfVote } from '../../../models/roles';
 import { log } from '../../../utils/logger';
 
@@ -388,6 +390,28 @@ export function handleSubmitWolfVote(
   const { seat, target } = intent.payload;
   const { state, isHost } = context;
 
+  const reject = (reason: string, targetUid?: string): HandlerResult => {
+    const actions: ActionRejectedAction[] = targetUid
+      ? [
+          {
+            type: 'ACTION_REJECTED',
+            payload: {
+              action: 'submitWolfVote',
+              reason,
+              targetUid,
+            },
+          },
+        ]
+      : [];
+
+    return {
+      success: false,
+      reason,
+      actions,
+      sideEffects: [{ type: 'BROADCAST_STATE' }],
+    };
+  };
+
   // Gate 1: host_only
   if (!isHost) {
     return {
@@ -408,20 +432,12 @@ export function handleSubmitWolfVote(
 
   // Gate 3: invalid_status (must be ongoing)
   if (state.status !== 'ongoing') {
-    return {
-      success: false,
-      reason: 'invalid_status',
-      actions: [],
-    };
+  return reject('invalid_status', state.players[seat]?.uid);
   }
 
   // Gate 4: forbidden_while_audio_playing
   if (state.isAudioPlaying) {
-    return {
-      success: false,
-      reason: 'forbidden_while_audio_playing',
-      actions: [],
-    };
+  return reject('forbidden_while_audio_playing', state.players[seat]?.uid);
   }
 
   // Gate 5: invalid_step (currentStepId 必须存在且对应 wolfVote schema)
@@ -435,11 +451,7 @@ export function handleSubmitWolfVote(
       incomingSeat: seat,
       incomingTarget: target,
     });
-    return {
-      success: false,
-      reason: 'invalid_step',
-      actions: [],
-    };
+  return reject('invalid_step', state.players[seat]?.uid);
   }
   const schema = SCHEMAS[currentStepId];
   if (schema?.kind !== 'wolfVote') {
@@ -452,49 +464,47 @@ export function handleSubmitWolfVote(
       incomingSeat: seat,
       incomingTarget: target,
     });
-    return {
-      success: false,
-      reason: 'step_mismatch',
-      actions: [],
-    };
+  return reject('step_mismatch', state.players[seat]?.uid);
   }
 
   // Gate 6: not_seated (voter seat 必须有玩家)
   const voter = state.players[seat];
   if (!voter) {
-    return {
-      success: false,
-      reason: 'not_seated',
-      actions: [],
-    };
+  return reject('not_seated');
   }
 
   // Gate 7: not_wolf_participant (voter 必须参与 wolf vote)
   if (!voter.role || !doesRoleParticipateInWolfVote(voter.role)) {
-    return {
-      success: false,
-      reason: 'not_wolf_participant',
-      actions: [],
-    };
+  return reject('not_wolf_participant', voter.uid);
   }
 
   // Gate 8: invalid_target (target 必须在 players 范围内)
   if (!(target in state.players)) {
-    return {
-      success: false,
-      reason: 'invalid_target',
-      actions: [],
-    };
+  return reject('invalid_target', voter.uid);
   }
 
   // Gate 9: target_not_seated (target seat 必须有玩家)
   const targetPlayer = state.players[target];
   if (!targetPlayer) {
-    return {
-      success: false,
-      reason: 'target_not_seated',
-      actions: [],
-    };
+  return reject('target_not_seated', voter.uid);
+  }
+
+  // Gate 10: immune_to_wolf_kill (shared resolver rule)
+  // Note: we intentionally keep UI permissive (方案A) and enforce authoritatively on host.
+  {
+  const players = new Map<number, RoleId>();
+    for (const [seatKey, p] of Object.entries(state.players)) {
+      const seatNum = Number(seatKey);
+      if (!Number.isFinite(seatNum)) continue;
+      if (p?.role && isValidRoleId(p.role)) {
+    players.set(seatNum, p.role);
+      }
+    }
+
+    const validation = wolfVoteResolver({ players }, { targetSeat: target });
+    if (!validation.valid) {
+  return reject(validation.rejectReason ?? 'invalid_action', voter.uid);
+    }
   }
 
   // 成功：产生 RECORD_WOLF_VOTE

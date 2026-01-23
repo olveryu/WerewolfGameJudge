@@ -160,7 +160,7 @@
 | **wolfKillDisabled** | ✅ 检查 | 梦魇封狼则无法杀人 |
 | **结果落点** | `currentNightResults.wolfKillTarget`, `wolfVotes`, `wolfVoteStatus` | |
 | **UI 目标限制** | 所有座位（含狼队友/自己）| |
-| **UX-only rule** | 狼刀阶段UI禁用免疫角色（wolfQueen, spiritKnight） | 测试覆盖在 RoomScreen.helpers.test.ts |
+| **Host 权威拒绝** | ✅ | 免疫狼刀目标会被 Host/Resolver 拒绝，并通过 `actionRejected` 统一弹“操作无效”提示（UI 不做禁用） |
 | **失败原因** | `目标玩家不存在` | |
 
 ### 9. wolfQueenCharm (狼美人)
@@ -357,46 +357,20 @@ With Audio: 14/14 (100%)
 | seer | `[]` | 可选任意座位（含自己） | ❌ 无 |
 | psychic | `[]` | 可选任意座位（含自己） | ❌ 无 |
 | gargoyle | `[]` | 可选任意座位（含自己） | ❌ 无 |
-| wolf（狼刀） | `[]` | 免疫角色 UI 禁用 | ✅ 禁用 `immuneToWolfKill` 角色（wolfQueen, spiritKnight）[^1] |
+| wolf（狼刀） | `[]` | UI 不禁用任何目标 | ❌ 无（改为 Host/Resolver 权威拒绝免疫目标，UI 统一用 `actionRejected` 弹提示） |
 | witch（save/poison） | save: `['notSelf']` | 自己座位禁用 | ❌ 无（来自 schema） |
 | slacker | `['notSelf']` | 自己座位禁用 | ❌ 无（来自 schema） |
 | wolfQueen | `['notSelf']` | 自己座位禁用 | ❌ 无（来自 schema） |
 | wolfRobot | `['notSelf']` | 自己座位禁用 | ❌ 无（来自 schema） |
 
-[^1]: **测试覆盖**: `RoomScreen.helpers.test.ts` → `enableWolfVoteRestrictions option (wolf meeting vote)`
+### 当前约定（替代 UX-only）：Host/Resolver 权威拒绝 + UI 统一提示
 
-### UX-only 限制详解
-
-#### wolfKill 免疫角色禁用
-
-- **触发条件**: `enableWolfVoteRestrictions === true`（狼刀阶段 UI 传入）
-- **禁用逻辑**: 检查 `ROLE_SPECS[targetRole].flags.immuneToWolfKill`
-- **禁用角色**: `wolfQueen`（狼美人）、`spiritKnight`（灵魂骑士）
-- **禁用提示**: `不能投${displayName}`
-- **设计原因**: 免疫狼刀的角色不应作为刀人目标（UX 友好），但 schema 保持 `[]`（中立裁判原则：不在协议层限制）
-- **代码位置**: `RoomScreen.helpers.ts` → `buildSeatViewModels()`
-- **测试位置**: `RoomScreen.helpers.test.ts` → `enableWolfVoteRestrictions option (wolf meeting vote)`
-
-### 验证机制
-
-UI 使用以下逻辑禁用座位：
-
-```typescript
-// buildSeatViewModels - 两层禁用逻辑
-
-// 1. Schema-driven: notSelf 来自 schema.constraints
-if (options?.schemaConstraints?.includes('notSelf') && seat === seatIndex) {
-  disabledReason = '不能选择自己';
-}
-
-// 2. UX-only: wolf kill immune roles (enableWolfVoteRestrictions)
-if (!disabledReason && options?.enableWolfVoteRestrictions) {
-  const immuneRoleIds = getWolfKillImmuneRoleIds();
-  if (isValidRoleId(targetRole) && immuneRoleIds.includes(targetRole)) {
-    disabledReason = `不能投${displayName}`;
-  }
-}
-```
+- **UI 行为**：狼刀阶段不在座位上做 `immuneToWolfKill` 的禁用/灰显（避免 UI 维护 schema 外规则导致 drift）。
+- **Host 行为**：提交免疫目标时，Host/Resolver 返回拒绝，并写入 `actionRejected` 广播。
+- **提示入口**：`RoomScreen` 监听 `gameState.actionRejected`，弹出“操作无效”（reason 为具体原因）。
+- **测试覆盖**：
+  - Host 侧：`src/services/v2/handlers/actionHandler.ts`（wolf vote gate + ACTION_REJECTED）
+  - UI 侧：`src/screens/RoomScreen/RoomScreen.tsx`（state-driven actionRejected effect）与对应 UI 测试
 
 ---
 
