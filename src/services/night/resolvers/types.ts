@@ -15,8 +15,14 @@ import type { SchemaId } from '../../../models/roles/spec/schemas';
  * Used to pass resolved results between steps (e.g., nightmare block → wolf kill).
  */
 export interface CurrentNightResults {
-  /** Target seat of wolf kill (before save/guard resolution) */
-  readonly wolfKillTarget?: number;
+  /**
+   * Wolf votes during the wolf meeting (seat -> target seat).
+   *
+   * This is the single source of truth for wolf vote tracking in v2.
+   * BroadcastGameState MUST include currentNightResults, so this data is public
+   * and UI should filter by role.
+   */
+  readonly wolfVotesBySeat?: Readonly<Record<string, number>>;
 
   /** Seat blocked by nightmare (skill is disabled) */
   readonly blockedSeat?: number;
@@ -97,7 +103,6 @@ export interface ResolverResult {
     readonly charmTarget?: number; // wolfQueen
     readonly swapTargets?: readonly [number, number]; // magician
     readonly learnTarget?: number; // wolfRobot
-    readonly wolfKillTarget?: number; // wolf pack
     readonly idolTarget?: number; // slacker
   };
 }

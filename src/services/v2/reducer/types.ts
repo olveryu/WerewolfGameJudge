@@ -22,7 +22,6 @@ export interface InitializeGameAction {
     totalSeats: number;
   };
 }
-
 export interface RestartGameAction {
   type: 'RESTART_GAME';
 }
@@ -132,18 +131,6 @@ export interface ClearRevealStateAction {
   type: 'CLEAR_REVEAL_STATE';
 }
 
-// =============================================================================
-// 狼人投票动作
-// =============================================================================
-
-export interface RecordWolfVoteAction {
-  type: 'RECORD_WOLF_VOTE';
-  payload: {
-    voterSeat: number;
-    targetSeat: number;
-  };
-}
-
 export interface SetWolfKillDisabledAction {
   type: 'SET_WOLF_KILL_DISABLED';
   payload: {
@@ -184,6 +171,11 @@ export interface ActionRejectedAction {
     action: string;
     reason: string;
     targetUid: string;
+  /**
+   * Unique id for this rejection event.
+   * Used by UI to avoid accidentally deduping distinct rejections that share the same reason.
+   */
+  rejectionId: string;
   };
 }
 
@@ -240,8 +232,7 @@ export type StateAction =
   | SetWitchContextAction
   | SetConfirmStatusAction
   | ClearRevealStateAction
-  // 狼人投票
-  | RecordWolfVoteAction
+  // 狼人相关
   | SetWolfKillDisabledAction
   // 音频
   | SetAudioPlayingAction

@@ -131,13 +131,22 @@ export function canRoleSeeWolves(roleId: string): boolean {
 
 /**
  * Check if a role participates in wolf vote
+ *
+ * IMPORTANT:
+ * - participatesInWolfVote 仅表示“是否参与 wolfKill（wolf vote）会议/投票”
+ * - canSeeWolves 仅表示“在狼队可见阶段，是否能看到/高亮狼队友”
+ *   （例如机械狼/石像鬼：不参会，因此即使是狼阵营也不应该进入投票流程；
+ *    他们各自行动的步骤也不是 wolfVote schema，自然不会触发狼队可见 UI）
  */
 export function doesRoleParticipateInWolfVote(roleId: string): boolean {
   if (!isValidRoleId(roleId)) return false;
-  const spec = getRoleSpec(roleId);
+  const spec = getRoleSpec(roleId) as { wolfMeeting?: { participatesInWolfVote?: boolean } };
   if (!spec) return false;
-  if (spec.team !== 'wolf') return false;
-  if (!spec.wolfMeeting?.canSeeWolves) return false;
+
+  // Participation is explicitly configured per role (single source of truth).
+  // We intentionally do NOT infer from team/faction here.
+  // - team/faction is for seer result / UI highlighting
+  // - wolfMeeting.participatesInWolfVote is for whether this role submits WOLF_VOTE
   return spec.wolfMeeting?.participatesInWolfVote ?? false;
 }
 

@@ -136,10 +136,9 @@ describe('GameStateService Wolf Vote Rejection (gameState.actionRejected)', () =
 
       await ctx.sendWolfVote(wolfSeat, spiritKnightSeat);
 
-      // After rejection, actionRejected should be set in gameState
       const stateAfter = ctx.getState();
       expect(stateAfter?.actionRejected).toBeDefined();
-      expect(stateAfter?.actionRejected?.action).toBe('submitWolfVote');
+      expect(stateAfter?.actionRejected?.action).toBe('wolfKill');
       expect(stateAfter?.actionRejected?.reason).toContain('恶灵骑士');
     });
 
@@ -157,9 +156,9 @@ describe('GameStateService Wolf Vote Rejection (gameState.actionRejected)', () =
       await ctx.sendWolfVote(wolfSeat, wolfQueenSeat);
 
       const stateAfter = ctx.getState();
-      expect(stateAfter?.actionRejected).toBeDefined();
-      expect(stateAfter?.actionRejected?.action).toBe('submitWolfVote');
-      expect(stateAfter?.actionRejected?.reason).toContain('狼美人');
+  expect(stateAfter?.actionRejected).toBeDefined();
+  expect(stateAfter?.actionRejected?.action).toBe('wolfKill');
+  expect(stateAfter?.actionRejected?.reason).toContain('狼美人');
     });
   });
 

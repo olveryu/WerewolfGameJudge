@@ -65,8 +65,6 @@ function createOngoingState(overrides?: Partial<BroadcastGameState>): BroadcastG
     currentStepId: NIGHT_STEPS[0]?.id,
     isAudioPlaying: false,
     actions: [],
-    wolfVotes: {},
-    wolfVoteStatus: {},
     currentNightResults: {},
     ...overrides,
   };
@@ -243,6 +241,36 @@ describe('nightFlowHandler', () => {
       });
     });
 
+    it('should resolve wolf kill from wolfVotesBySeat via resolveWolfVotes (empty + kill => kill)', () => {
+      const context: any = {
+        isHost: true,
+        state: {
+          status: 'ongoing',
+          isAudioPlaying: false,
+          templateRoles: ['wolf', 'villager'],
+          players: {
+            0: { uid: 'u0', seatNumber: 0, displayName: 'P0', role: 'wolf', hasViewedRole: true },
+            1: { uid: 'u1', seatNumber: 1, displayName: 'P1', role: 'villager', hasViewedRole: true },
+          },
+          currentActionerIndex: 0,
+          currentStepId: undefined,
+          actions: [],
+          currentNightResults: {
+            wolfVotesBySeat: { '0': -1, '1': 0 },
+          },
+          wolfKillDisabled: false,
+          pendingRevealAcks: [],
+        },
+      };
+
+      const result = handleEndNight({ type: 'END_NIGHT' } as any, context);
+      expect(result.success).toBe(true);
+  const end = (result.actions ?? []).find((a: any) => a.type === 'END_NIGHT');
+  expect(end).toBeDefined();
+  const endNightAction = end as any;
+  expect(endNightAction.payload.deaths).toEqual([0]);
+    });
+
     describe('Gate: no_state', () => {
       it('should reject when state is null', () => {
         const context: HandlerContext = {
@@ -302,7 +330,7 @@ describe('nightFlowHandler', () => {
         // 没有狼投票 = 空刀 = 无死亡
         const context: HandlerContext = {
           state: createOngoingState({
-            wolfVotes: {},
+            currentNightResults: { wolfVotesBySeat: {} },
           }),
           isHost: true,
           myUid: 'host-uid',
@@ -327,10 +355,7 @@ describe('nightFlowHandler', () => {
         // 两只狼都投给 4 号（villager）
         const context: HandlerContext = {
           state: createOngoingState({
-            wolfVotes: {
-              '0': 4, // wolf at seat 0 votes for seat 4
-              '1': 4, // wolf at seat 1 votes for seat 4
-            },
+            currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 4 } },
           }),
           isHost: true,
           myUid: 'host-uid',
@@ -351,10 +376,7 @@ describe('nightFlowHandler', () => {
         // 两只狼投不同目标 = 平票 = 空刀
         const context: HandlerContext = {
           state: createOngoingState({
-            wolfVotes: {
-              '0': 4,
-              '1': 5,
-            },
+            currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 5 } },
           }),
           isHost: true,
           myUid: 'host-uid',
@@ -376,10 +398,7 @@ describe('nightFlowHandler', () => {
         // 狼被封锁，即使投票了也无效
         const context: HandlerContext = {
           state: createOngoingState({
-            wolfVotes: {
-              '0': 4,
-              '1': 4,
-            },
+            currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 4 } },
             wolfKillDisabled: true,
           }),
           isHost: true,
@@ -409,10 +428,7 @@ describe('nightFlowHandler', () => {
               4: createPlayer(4, 'villager'),
               5: createPlayer(5, 'villager'),
             },
-            wolfVotes: {
-              '0': 4,
-              '1': 4,
-            },
+            currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 4 } },
             actions: [
               { schemaId: 'guardProtect', actorSeat: 3, targetSeat: 4, timestamp: Date.now() },
             ],
@@ -608,7 +624,7 @@ describe('nightFlowHandler', () => {
             currentStepId: 'wolfKill',
             templateRoles,
             // 狼杀了女巫（座位 1）
-            wolfVotes: { '0': 1 },
+            currentNightResults: { wolfVotesBySeat: { '0': 1 } },
           }),
           isHost: true,
           myUid: 'host-uid',
@@ -650,7 +666,7 @@ describe('nightFlowHandler', () => {
             currentStepId: 'wolfKill',
             templateRoles,
             // 狼杀了村民（座位 2）
-            wolfVotes: { '0': 2 },
+            currentNightResults: { wolfVotesBySeat: { '0': 2 } },
           }),
           isHost: true,
           myUid: 'host-uid',

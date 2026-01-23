@@ -157,13 +157,27 @@ function handleWolfTeamTurn(
  * The types are compatible - LocalPlayer matches GameRoomLike's player type
  */
 export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
+  const wolfVotes: Map<number, number> = (() => {
+    const raw =
+      gameState.currentNightResults?.wolfVotesBySeat ??
+      // legacy fallback
+      ((gameState as any).wolfVotes as Map<number, number> | undefined);
+    if (!raw) return new Map();
+    if (raw instanceof Map) return raw;
+    const map = new Map<number, number>();
+    for (const [k, v] of Object.entries(raw as Record<string, number>)) {
+      map.set(Number.parseInt(k, 10), v);
+    }
+    return map;
+  })();
+
   // Adapter object (avoid unsafe assertions like `as unknown as`).
   // Treat this as a view over LocalGameState for model-layer helpers that expect GameRoomLike.
   return {
     template: gameState.template,
     players: gameState.players,
     actions: gameState.actions,
-    wolfVotes: gameState.wolfVotes,
+    wolfVotes,
     currentActionerIndex: gameState.currentActionerIndex,
   };
 }

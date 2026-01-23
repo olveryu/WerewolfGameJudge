@@ -256,44 +256,6 @@ export const recordWolfVote = (room: Room, wolfSeat: number, targetSeat: number)
   wolfVotes: new Map(room.wolfVotes).set(wolfSeat, targetSeat),
 });
 
-// Calculate the final wolf kill target based on votes
-// Returns -1 (empty kill) if there's a tie
-export const calculateWolfKillTarget = (room: GameRoomLike): number => {
-  const wolfSeats = getVotingWolfSeats(room);
-
-  // Count votes for each target
-  const voteCount = new Map<number, number>();
-  wolfSeats.forEach((wolfSeat) => {
-    const target = room.wolfVotes.get(wolfSeat);
-    if (target !== undefined && target !== -1) {
-      voteCount.set(target, (voteCount.get(target) ?? 0) + 1);
-    }
-  });
-
-  if (voteCount.size === 0) {
-    return -1; // No votes = empty kill
-  }
-
-  // Find the maximum vote count
-  let maxVotes = 0;
-  voteCount.forEach((count) => {
-    if (count > maxVotes) maxVotes = count;
-  });
-
-  // Find all targets with maximum votes
-  const topTargets: number[] = [];
-  voteCount.forEach((count, target) => {
-    if (count === maxVotes) topTargets.push(target);
-  });
-
-  // If there's a tie, return -1 (empty kill)
-  if (topTargets.length > 1) {
-    return -1;
-  }
-
-  return topTargets[0];
-};
-
 // Check if all wolves have voted
 export const allWolvesVoted = (room: GameRoomLike): boolean => {
   const wolfSeats = getVotingWolfSeats(room);

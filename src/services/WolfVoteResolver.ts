@@ -1,8 +1,6 @@
 /**
  * WolfVoteResolver - Pure function for resolving wolf voting results
  *
- * Step 8: Extract from GameStateService.calculateWolfKillTarget()
- *
  * Rules:
  * - Unanimous: All wolves vote for same target → that target
  * - Majority: Target with most votes wins → that target

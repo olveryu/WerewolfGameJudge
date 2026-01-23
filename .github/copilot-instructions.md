@@ -213,7 +213,7 @@ UI (从 schema + gameState 推导显示)
 - **UI 层过滤显示。** Client UI 根据 `myRole` 决定显示什么：
   - 女巫仅在 `myRole === 'witch'` 时显示 `witchContext.killedIndex`
   - 预言家仅在 `myRole === 'seer'` 时显示 `seerReveal.result`
-  - 狼人仅在 `isWolfRole(myRole)` 时显示 `wolfVoteStatus`
+  - 狼人仅在 `isWolfRole(myRole)` 时显示狼队投票信息（例如 `currentNightResults.wolfVotesBySeat`）
 - **不允许 PRIVATE_EFFECT。** 为简化架构，所有私有消息基础设施已移除。
 - **Host 和 Player 读取同一份 state。** 不允许 Host 用本地状态、Player 用广播状态导致不同步。
 

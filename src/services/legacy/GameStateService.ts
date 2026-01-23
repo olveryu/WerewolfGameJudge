@@ -59,11 +59,6 @@ import {
   type ResolverResult,
 } from '../night/resolvers/types';
 import { RESOLVERS } from '../night/resolvers';
-import {
-  wolfVoteResolver,
-  type WolfVoteContext,
-  type WolfVoteInput,
-} from '../night/resolvers/wolfVote';
 import { getConfirmRoleCanShoot } from '../../models/Room';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -974,29 +969,32 @@ export class GameStateService {
 
     const playerUid = player.uid;
 
-    // === Delegate to wolfVoteValidator for immuneToWolfKill check ===
-    const resolverContext: WolfVoteContext = {
-      players: new Map(
-        Array.from(this.state.players.entries())
-          .filter(([, p]) => p?.role)
-          .map(([s, p]) => [s, p!.role as RoleId]),
-      ),
-    };
-    const resolverInput: WolfVoteInput = { targetSeat: target };
-    const resolverResult = wolfVoteResolver(resolverContext, resolverInput);
+    // Game rule: immune-to-wolf-kill roles are forbidden targets during wolf meeting (禁选).
+    // If forbidden, reject and do NOT record the vote.
+    const targetPlayer = this.state.players.get(target);
+    const targetRoleId = targetPlayer?.role;
+    const targetRoleSpec =
+      targetRoleId && isValidRoleId(targetRoleId)
+        ? (ROLE_SPECS[targetRoleId] as unknown as { flags?: { immuneToWolfKill?: boolean } })
+        : null;
+    if (targetRoleId && targetRoleSpec?.flags?.immuneToWolfKill) {
+      const spec = getRoleSpec(targetRoleId);
+      const displayName = spec?.displayName ?? targetRoleId;
 
-    if (!resolverResult.valid) {
-      if (playerUid) {
-        this.state.actionRejected = {
-          action: 'submitWolfVote',
-          reason: resolverResult.rejectReason ?? '无效目标',
-          targetUid: playerUid,
-        };
-        await this.broadcastState();
-      }
+      this.state.actionRejected = {
+        action: 'wolfKill',
+        reason: `不能投${displayName}`,
+        targetUid: playerUid,
+      };
+
+      await this.broadcastState();
+      this.notifyListeners();
       return;
     }
-    // === End wolfVoteValidator check ===
+
+  // Plan B: wolf vote target validation (including immuneToWolfKill) is enforced
+  // by the unified wolfKillResolver path (v2). Legacy wolf vote no longer runs a
+  // separate meeting validator here.
 
     // Record vote
     this.state.wolfVotes.set(seat, target);
@@ -1294,15 +1292,13 @@ export class GameStateService {
       `applyStateUpdate complete: mySeatNumber=${this.mySeatNumber}, myUid=${this.myUid?.substring(0, 8)}, status=${broadcastState.status}`,
     );
 
-    // Rebuild wolfVotes from wolfVoteStatus (anti-cheat: only track who voted, not targets)
-    // Players need to know who has voted to update imActioner state.
+    // Rebuild wolfVotes from currentNightResults.wolfVotesBySeat.
+    // Protocol is fully public: targets are broadcast; UI decides what to show.
     const wolfVotes = new Map<number, number>();
-    if (broadcastState.wolfVoteStatus) {
-      for (const [seatStr, hasVoted] of Object.entries(broadcastState.wolfVoteStatus)) {
-        if (hasVoted) {
-          // Use -999 as placeholder target (players don't see actual targets)
-          wolfVotes.set(Number.parseInt(seatStr, 10), -999);
-        }
+    const wolfVotesBySeat = broadcastState.currentNightResults?.wolfVotesBySeat;
+    if (wolfVotesBySeat) {
+      for (const [seatStr, targetSeat] of Object.entries(wolfVotesBySeat)) {
+        wolfVotes.set(Number.parseInt(seatStr, 10), targetSeat);
       }
     }
 
@@ -1319,8 +1315,7 @@ export class GameStateService {
       lastNightDeaths: this.state?.lastNightDeaths ?? [],
       nightmareBlockedSeat: broadcastState.nightmareBlockedSeat,
       wolfKillDisabled: broadcastState.wolfKillDisabled,
-      // Players don't see currentNightResults (Host-only state)
-      currentNightResults: {},
+  currentNightResults: broadcastState.currentNightResults ?? {},
       // Role-specific context (all data is public, UI filters by myRole)
       witchContext: broadcastState.witchContext,
       seerReveal: broadcastState.seerReveal,
@@ -2693,10 +2688,14 @@ export class GameStateService {
       }
     });
 
-    // Wolf vote status (only wolves that participate in vote)
-    const wolfVoteStatus: Record<number, boolean> = {};
+    // v2-style wolf vote broadcast (single source of truth):
+    // currentNightResults.wolfVotesBySeat
+    const wolfVotesBySeat: Record<string, number> = {};
     this.getVotingWolfSeats().forEach((seat) => {
-      wolfVoteStatus[seat] = this.state!.wolfVotes.has(seat);
+      const target = this.state!.wolfVotes.get(seat);
+      if (typeof target === 'number') {
+        wolfVotesBySeat[String(seat)] = target;
+      }
     });
 
     // Get nightmare blocked seat from actions
@@ -2714,7 +2713,10 @@ export class GameStateService {
       players,
       currentActionerIndex: this.state.currentActionerIndex,
       isAudioPlaying: this.state.isAudioPlaying,
-      wolfVoteStatus,
+      currentNightResults: {
+        ...(this.state.currentNightResults ?? {}),
+        wolfVotesBySeat,
+      },
       nightmareBlockedSeat,
       wolfKillDisabled: this.state.wolfKillDisabled,
       // Role-specific context (all data is public, UI filters by myRole)

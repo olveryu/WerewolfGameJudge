@@ -22,7 +22,7 @@ describe('broadcastToLocalState', () => {
   it('maps core fields and optional role contexts', () => {
     const broadcast = makeBaseBroadcastState({
       currentStepId: 'seerCheck' as any,
-      wolfVotes: { '0': 2 },
+  currentNightResults: { wolfVotesBySeat: { '0': 2 } } as any,
       witchContext: { killedIndex: 2, canSave: true, canPoison: true },
       seerReveal: { targetSeat: 0, result: '狼人' },
       actionRejected: { action: 'seerCheck', reason: 'invalid_step', targetUid: 'p2' },

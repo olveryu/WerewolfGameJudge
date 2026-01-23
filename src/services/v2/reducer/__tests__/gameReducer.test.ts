@@ -13,7 +13,6 @@ import type {
   EndNightAction,
   RecordActionAction,
   ApplyResolverResultAction,
-  RecordWolfVoteAction,
   PlayerViewedRoleAction,
   SetAudioPlayingAction,
   StateAction,
@@ -206,7 +205,6 @@ describe('gameReducer', () => {
       expect(newState.currentActionerIndex).toBe(-1); // NOT 0
       expect(newState.isAudioPlaying).toBe(false);
       expect(newState.actions).toBeUndefined();
-      expect(newState.wolfVotes).toBeUndefined();
       expect(newState.currentNightResults).toBeUndefined();
     });
   });
@@ -225,7 +223,6 @@ describe('gameReducer', () => {
       expect(newState.currentActionerIndex).toBe(0);
       expect(newState.currentStepId).toBe('magicianSwap');
       expect(newState.actions).toEqual([]);
-      expect(newState.wolfVotes).toEqual({});
       expect(newState.currentNightResults).toEqual({});
     });
 
@@ -275,13 +272,12 @@ describe('gameReducer', () => {
       expect(newState.witchContext).toBeUndefined();
     });
 
-    it('should preserve wolfVotes and wolfVoteStatus on advance for death calculation at END_NIGHT', () => {
+  it('should preserve currentNightResults on advance for death calculation at END_NIGHT', () => {
       const state = createMinimalState({
         status: 'ongoing',
         currentActionerIndex: 0,
         currentStepId: 'wolfKill',
-        wolfVotes: { 1: 3, 2: 3 },
-        wolfVoteStatus: { 1: true, 2: true },
+    currentNightResults: { wolfVotesBySeat: { '1': 3, '2': 3 } },
       });
       const action: AdvanceToNextActionAction = {
         type: 'ADVANCE_TO_NEXT_ACTION',
@@ -290,9 +286,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      // wolfVotes 应该保留，用于 END_NIGHT 死亡结算
-      expect(newState.wolfVotes).toEqual({ 1: 3, 2: 3 });
-      expect(newState.wolfVoteStatus).toEqual({ 1: true, 2: true });
+  expect(newState.currentNightResults).toEqual({ wolfVotesBySeat: { '1': 3, '2': 3 } });
     });
 
     it('should set currentStepId to undefined when nextStepId is null (night end)', () => {
@@ -411,15 +405,14 @@ describe('gameReducer', () => {
       const action: ApplyResolverResultAction = {
         type: 'APPLY_RESOLVER_RESULT',
         payload: {
-          updates: { wolfKillTarget: 1 },
+          updates: { guardedSeat: 1 },
         },
       };
 
       const newState = gameReducer(state, action);
 
       expect(newState.currentNightResults).toEqual({
-        guardedSeat: 0,
-        wolfKillTarget: 1,
+  guardedSeat: 1,
       });
     });
 
@@ -438,22 +431,24 @@ describe('gameReducer', () => {
     });
   });
 
-  describe('RECORD_WOLF_VOTE', () => {
-    it('should record vote in wolfVotes and wolfVoteStatus', () => {
+  describe('APPLY_RESOLVER_RESULT (wolfVotesBySeat)', () => {
+    it('should merge wolfVotesBySeat into currentNightResults', () => {
       const state = createMinimalState({
         status: 'ongoing',
-        wolfVotes: {},
-        wolfVoteStatus: {},
+        currentNightResults: {},
       });
-      const action: RecordWolfVoteAction = {
-        type: 'RECORD_WOLF_VOTE',
-        payload: { voterSeat: 1, targetSeat: 0 },
+
+      const action: ApplyResolverResultAction = {
+        type: 'APPLY_RESOLVER_RESULT',
+        payload: {
+          updates: {
+            wolfVotesBySeat: { '1': 0 },
+          },
+        },
       };
 
       const newState = gameReducer(state, action);
-
-      expect(newState.wolfVotes).toEqual({ '1': 0 });
-      expect(newState.wolfVoteStatus).toEqual({ '1': true });
+      expect(newState.currentNightResults).toEqual({ wolfVotesBySeat: { '1': 0 } });
     });
   });
 
@@ -568,7 +563,6 @@ describe('gameReducer', () => {
         },
         // 确保这些字段在 assigned 状态下是 undefined
         actions: undefined,
-        wolfVotes: undefined,
         currentNightResults: undefined,
         currentActionerIndex: -1,
       });
@@ -581,10 +575,8 @@ describe('gameReducer', () => {
 
       // PR2 contract: 不触碰 night 字段
       expect(newState.actions).toBeUndefined();
-      expect(newState.wolfVotes).toBeUndefined();
       expect(newState.currentNightResults).toBeUndefined();
       expect(newState.currentActionerIndex).toBe(-1);
-      expect(newState.wolfVoteStatus).toBeUndefined();
       expect(newState.witchContext).toBeUndefined();
       expect(newState.seerReveal).toBeUndefined();
     });
@@ -605,7 +597,6 @@ describe('gameReducer', () => {
           2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
         },
         actions: [{ schemaId: 'seerCheck', actorSeat: 2, targetSeat: 1, timestamp: 1000 }],
-        wolfVotes: { '1': 0 },
         lastNightDeaths: [0],
       });
 
@@ -624,7 +615,6 @@ describe('gameReducer', () => {
 
       // 夜晚状态清除
       expect(newState.actions).toBeUndefined();
-      expect(newState.wolfVotes).toBeUndefined();
       expect(newState.lastNightDeaths).toBeUndefined();
       expect(newState.currentActionerIndex).toBe(0);
     });
@@ -663,6 +653,7 @@ describe('gameReducer', () => {
           action: 'seerCheck',
           reason: '不能选择自己',
           targetUid: 'p1',
+          rejectionId: 'r1',
         },
       };
 
@@ -672,6 +663,7 @@ describe('gameReducer', () => {
         action: 'seerCheck',
         reason: '不能选择自己',
         targetUid: 'p1',
+        rejectionId: 'r1',
       });
     });
 
@@ -683,6 +675,7 @@ describe('gameReducer', () => {
           action: 'seerCheck',
           reason: 'test_reason',
           targetUid: 'p1',
+          rejectionId: 'r2',
         },
       };
 
@@ -701,6 +694,7 @@ describe('gameReducer', () => {
           action: 'oldAction',
           reason: 'old_reason',
           targetUid: 'old-uid',
+          rejectionId: 'old',
         },
       });
       const action = {
@@ -709,6 +703,7 @@ describe('gameReducer', () => {
           action: 'newAction',
           reason: 'new_reason',
           targetUid: 'new-uid',
+          rejectionId: 'r3',
         },
       };
 
@@ -718,6 +713,7 @@ describe('gameReducer', () => {
         action: 'newAction',
         reason: 'new_reason',
         targetUid: 'new-uid',
+  rejectionId: 'r3',
       });
     });
   });
@@ -730,6 +726,7 @@ describe('gameReducer', () => {
           action: 'seerCheck',
           reason: 'test',
           targetUid: 'p1',
+          rejectionId: 'r4',
         },
       });
 
@@ -809,7 +806,6 @@ describe('gameReducer', () => {
           2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
         },
         actions: [],
-        wolfVotes: {},
         currentNightResults: {},
       });
 
@@ -829,9 +825,9 @@ describe('gameReducer', () => {
           payload: { nextActionerIndex: 1, nextStepId: 'seerCheck' },
         } satisfies AdvanceToNextActionAction,
         {
-          type: 'RECORD_WOLF_VOTE',
-          payload: { voterSeat: 1, targetSeat: 0 },
-        } satisfies RecordWolfVoteAction,
+          type: 'APPLY_RESOLVER_RESULT',
+          payload: { updates: { wolfVotesBySeat: { '1': 0 } } },
+        } satisfies ApplyResolverResultAction,
         {
           type: 'SET_CURRENT_STEP',
           payload: { schemaId: 'seerCheck' },

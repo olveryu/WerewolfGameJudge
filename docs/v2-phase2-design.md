@@ -280,7 +280,6 @@
   - `currentStepId`（v2 新增）
   - `isAudioPlaying`
   - `actions`
-  - `wolfVotes` / `wolfVoteStatus`
   - `currentNightResults`
   - 各种 reveal/context 字段
 
@@ -305,7 +304,7 @@
 | **gargoyle**      | 选择查验目标                            | `ACTION { seat, role:'gargoyle', target }`                                | `SubmitActionIntent`   | `gargoyleCheck(ctx, {targetSeat})` → `{result}`                   | `actions`, `gargoyleReveal`                                                                   | valid but no-effect                                                          | `notSelf`                                   |
 | **nightmare**     | 选择封锁目标                            | `ACTION { seat, role:'nightmare', target }`                               | `SubmitActionIntent`   | `nightmareBlock(ctx, {targetSeat})`                               | `actions`, `currentNightResults.blockedSeat`, `nightmareBlockedSeat`, 可能 `wolfKillDisabled` | valid but no-effect                                                          | `notSelf`                                   |
 | **guard**         | 选择守护目标                            | `ACTION { seat, role:'guard', target }`                                   | `SubmitActionIntent`   | `guardProtect(ctx, {targetSeat})`                                 | `actions`, `currentNightResults.guardedSeat`                                                  | valid but no-effect                                                          | `notSelf`, `notConsecutive`（Night-1 无效） |
-| **wolf** (vote)   | 每个狼人选择刀人目标                    | `WOLF_VOTE { seat, target }`                                              | `SubmitWolfVoteIntent` | `wolfVoteResolver(ctx, {targetSeat})`                             | `wolfVotes`, `wolfVoteStatus`；allVoted 后 `actions`                                          | 如果当前狼被 block：投票无效（skip）；如果所有狼被 block：`wolfKillDisabled` | neutral judge（允许刀自己/队友）            |
+| **wolf** (vote)   | 每个狼人选择刀人目标                    | `WOLF_VOTE { seat, target }`                                              | `SubmitWolfVoteIntent` | `wolfVoteResolver(ctx, {targetSeat})`                             | `currentNightResults.wolfVotesBySeat`；allVoted 后写入 `actions` / `currentNightResults.wolfKillTarget` | 如果当前狼被 block：投票无效（skip）；如果所有狼被 block：`wolfKillDisabled` | neutral judge（允许刀自己/队友）            |
 | **wolfQueen**     | 选择魅惑目标                            | `ACTION { seat, role:'wolfQueen', target }`                               | `SubmitActionIntent`   | `wolfQueenCharm(ctx, {targetSeat})`                               | `actions`, `currentNightResults.charmedSeat`                                                  | valid but no-effect                                                          | `notSelf`, `notWolf`                        |
 | **witch**         | 看到被刀者；选择救/毒/跳过              | `ACTION { seat, role:'witch', target, extra:{save:true}\|{poison:true} }` | `SubmitActionIntent`   | `witchAction(ctx, {targetSeat, save?, poison?})`                  | `actions`, `currentNightResults.witchSave`/`witchPoison`                                      | valid but no-effect（看不到被刀者）                                          | `notSelf`（毒）                             |
 | **witch context** | 只有女巫看到 `witchContext.killedIndex` | -                                                                         | -                      | -                                                                 | `witchContext: {killedIndex, canSave, canPoison}`                                             | 被 block 时不设置 witchContext                                               | -                                           |
@@ -593,7 +592,7 @@ export type NightPhaseType =
 | `currentNightPhase`           | 夜晚阶段指示器      | 所有玩家（缺失视为 Idle）            |
 | `currentStepId`               | 当前步骤名称        | 所有玩家（缺失不显示）               |
 | `isAudioPlaying`              | 音频播放指示器      | 所有玩家                             |
-| `wolfVotes`/`wolfVoteStatus`  | 狼人投票进度        | `isWolfRole(myRole)`                 |
+| `currentNightResults.wolfVotesBySeat`  | 狼人投票进度（seat -> target） | `isWolfRole(myRole)`                 |
 | `witchContext`                | 女巫面板            | `myRole === 'witch'`                 |
 | `seerReveal`                  | 预言家结果          | `myRole === 'seer'`                  |
 | `psychicReveal`               | 通灵师结果          | `myRole === 'psychic'`               |

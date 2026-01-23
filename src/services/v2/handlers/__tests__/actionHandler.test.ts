@@ -26,8 +26,6 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     currentActionerIndex: 0,
     isAudioPlaying: false,
     actions: [],
-    wolfVotes: {},
-    wolfVoteStatus: {},
     currentNightResults: {},
     ...overrides,
   };
@@ -76,8 +74,11 @@ describe('handleSubmitWolfVote', () => {
     const result = handleSubmitWolfVote(intent, context);
 
     expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('RECORD_WOLF_VOTE');
+  // Unified action pipeline: record + apply resolver updates
+  expect(result.actions).toHaveLength(2);
+  expect(result.actions[0].type).toBe('RECORD_ACTION');
+  expect(result.actions[1].type).toBe('APPLY_RESOLVER_RESULT');
+  expect((result.actions[1] as any).payload.updates.wolfVotesBySeat).toEqual({ '1': 0 });
     expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
@@ -93,7 +94,10 @@ describe('handleSubmitWolfVote', () => {
     const result = handleSubmitWolfVote(intent, context);
 
     expect(result.success).toBe(true);
-    expect(result.actions[0].type).toBe('RECORD_WOLF_VOTE');
+  expect(result.actions).toHaveLength(2);
+  expect(result.actions[0].type).toBe('RECORD_ACTION');
+  expect(result.actions[1].type).toBe('APPLY_RESOLVER_RESULT');
+  expect((result.actions[1] as any).payload.updates.wolfVotesBySeat).toEqual({ '1': 1 });
   });
 
   it('should allow wolf to vote teammate (neutral judge rule)', () => {
@@ -113,6 +117,10 @@ describe('handleSubmitWolfVote', () => {
     const result = handleSubmitWolfVote(intent, context);
 
     expect(result.success).toBe(true);
+  expect(result.actions).toHaveLength(2);
+  expect(result.actions[0].type).toBe('RECORD_ACTION');
+  expect(result.actions[1].type).toBe('APPLY_RESOLVER_RESULT');
+  expect((result.actions[1] as any).payload.updates.wolfVotesBySeat).toEqual({ '1': 2 });
   });
 
   // === Gate: host_only ===
@@ -250,7 +258,7 @@ describe('handleSubmitWolfVote', () => {
     const result = handleSubmitWolfVote(intent, context);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('not_wolf_participant');
+  expect(result.reason).toBe('not_wolf_participant');
   });
 
   it('should fail when voter has no role (not_wolf_participant)', () => {
@@ -270,7 +278,7 @@ describe('handleSubmitWolfVote', () => {
     const result = handleSubmitWolfVote(intent, context);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('not_wolf_participant');
+  expect(result.reason).toBe('not_wolf_participant');
   });
 
   // === Gate: invalid_target ===
@@ -287,6 +295,19 @@ describe('handleSubmitWolfVote', () => {
 
     expect(result.success).toBe(false);
     expect(result.reason).toBe('invalid_target');
+  });
+
+  it('should allow empty vote via target=-1 (mapped to schema target=null)', () => {
+    const state = createWolfVoteState();
+    const context = createContext(state);
+    const intent: SubmitWolfVoteIntent = {
+      type: 'SUBMIT_WOLF_VOTE',
+      payload: { seat: 1, target: -1 },
+    };
+
+    const result = handleSubmitWolfVote(intent, context);
+
+    expect(result.success).toBe(true);
   });
 
   // === Gate: target_not_seated ===
@@ -309,6 +330,29 @@ describe('handleSubmitWolfVote', () => {
 
     expect(result.success).toBe(false);
     expect(result.reason).toBe('target_not_seated');
+  });
+
+  it('should reject immuneToWolfKill targets via wolfKillResolver (cannot vote that role)', () => {
+    const state = createWolfVoteState({
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'spiritKnight', hasViewedRole: true }, // immuneToWolfKill
+        1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+      },
+    });
+    const context = createContext(state);
+    const intent: SubmitWolfVoteIntent = {
+      type: 'SUBMIT_WOLF_VOTE',
+      payload: { seat: 1, target: 0 },
+    };
+
+    const result = handleSubmitWolfVote(intent, context);
+
+  expect(result.success).toBe(false);
+  // Expect user-facing copy from resolver.
+  expect(result.reason).toMatch(/^不能投/);
+  // Still must broadcast ACTION_REJECTED for UI.
+  expect(result.actions?.[0]?.type).toBe('ACTION_REJECTED');
   });
 });
 

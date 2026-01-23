@@ -160,13 +160,23 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     gameStateRef.current = gameState;
   }, [gameState]);
 
+  const wolfVotesMap = useMemo(() => {
+    const raw = gameState?.currentNightResults?.wolfVotesBySeat;
+    if (!raw) return new Map<number, number>();
+    const map = new Map<number, number>();
+    for (const [k, v] of Object.entries(raw as Record<string, number>)) {
+      map.set(Number.parseInt(k, 10), v);
+    }
+    return map;
+  }, [gameState?.currentNightResults]);
+
   // Computed values: use useActionerState hook
   const { imActioner, showWolves } = useActionerState({
     myRole,
     currentActionRole,
     currentSchema,
     mySeatNumber,
-    wolfVotes: gameState?.wolfVotes ?? new Map(),
+  wolfVotes: wolfVotesMap,
     isHost,
     actions: gameState?.actions ?? new Map(),
   });
@@ -414,7 +424,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!myUid || rejected.targetUid !== myUid) return;
 
     // Deduplicate repeated broadcasts of the same rejection
-    const key = `${rejected.action}:${rejected.reason}:${rejected.targetUid}`;
+    // Prefer a unique rejection id so repeated errors with the same reason still show.
+    const key =
+      (rejected as { rejectionId?: string }).rejectionId ??
+      `${rejected.action}:${rejected.reason}:${rejected.targetUid}`;
     if (key === lastRejectedKeyRef.current) return;
     lastRejectedKeyRef.current = key;
 
@@ -612,7 +625,18 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               intent.targetIndex,
               () => void submitWolfVote(intent.targetIndex),
               // Schema-driven copy: prefer schema.ui.confirmText (contract-enforced)
-              currentSchema?.ui?.confirmText,
+              // NOTE: target immune rule is Host-authoritative; we only add a UX hint here to avoid confusion.
+              (() => {
+                const base = currentSchema?.ui?.confirmText;
+                const targetRole = gameStateRef.current?.players?.get(intent.targetIndex)?.role;
+                if (currentSchema?.id !== 'wolfKill' || !targetRole) return base;
+                // Local import would create layering issues; use a lightweight string hint only.
+                // The real validation still happens in wolfKillResolver (Host-only).
+                const immune =
+                  targetRole === 'spiritKnight' ||
+                  targetRole === 'wolfQueen';
+                return immune ? `${base ?? ''}\n（提示：该角色免疫狼刀，Host 会拒绝）` : base;
+              })(),
             );
           }
           break;

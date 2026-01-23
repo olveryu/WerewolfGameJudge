@@ -23,7 +23,6 @@ import type {
   ApplyResolverResultAction,
   SetWitchContextAction,
   SetConfirmStatusAction,
-  RecordWolfVoteAction,
   SetWolfKillDisabledAction,
   SetAudioPlayingAction,
   PlayerViewedRoleAction,
@@ -82,8 +81,6 @@ function handleRestartGame(state: GameState): GameState {
     isAudioPlaying: false,
     currentStepId: undefined, // 清除夜晚步骤
     actions: undefined,
-    wolfVotes: undefined,
-    wolfVoteStatus: undefined,
     currentNightResults: undefined,
     lastNightDeaths: undefined,
     witchContext: undefined,
@@ -149,8 +146,6 @@ function handleStartNight(state: GameState, action: StartNightAction): GameState
     currentStepId,
     // 不在 reducer 里设置 isAudioPlaying，由 Host UI 调用 SET_AUDIO_PLAYING 控制
     actions: [],
-    wolfVotes: {},
-    wolfVoteStatus: {},
     currentNightResults: {},
   };
 }
@@ -163,7 +158,7 @@ function handleAdvanceToNextAction(state: GameState, action: AdvanceToNextAction
     // PR6 contract: 推进时同步更新 currentStepId（单一真相）
     currentStepId: nextStepId ?? undefined,
     // 不在 reducer 里设置 isAudioPlaying，由 Host UI 调用 SET_AUDIO_PLAYING 控制
-    // 注意：wolfVotes 和 wolfVoteStatus 保留到 END_NIGHT，用于死亡结算
+  // 注意：wolf 投票单一真相在 currentNightResults.wolfVotesBySeat（协议已移除 wolfVotes/wolfVoteStatus）。
     // P0-FIX: 不再清空 reveal 字段。reveal 应该保留到整个夜晚结束，
     // 让 UI 有足够时间显示弹窗。只清空 confirmStatus 和 witchContext
     // 因为这些是步骤特定的 context，不是 reveal 结果。
@@ -199,29 +194,21 @@ function handleRecordAction(state: GameState, action: RecordActionAction): GameS
 function handleApplyResolverResult(state: GameState, action: ApplyResolverResultAction): GameState {
   const { updates, seerReveal, psychicReveal, gargoyleReveal, wolfRobotReveal } = action.payload;
 
-  const newState = { ...state };
+  const currentNightResults = updates
+    ? {
+        ...state.currentNightResults,
+        ...updates,
+      }
+    : state.currentNightResults;
 
-  if (updates) {
-    newState.currentNightResults = {
-      ...state.currentNightResults,
-      ...updates,
-    };
-  }
-
-  if (seerReveal) {
-    newState.seerReveal = seerReveal;
-  }
-  if (psychicReveal) {
-    newState.psychicReveal = psychicReveal;
-  }
-  if (gargoyleReveal) {
-    newState.gargoyleReveal = gargoyleReveal;
-  }
-  if (wolfRobotReveal) {
-    newState.wolfRobotReveal = wolfRobotReveal;
-  }
-
-  return newState;
+  return {
+    ...state,
+    currentNightResults,
+    seerReveal: seerReveal ?? state.seerReveal,
+    psychicReveal: psychicReveal ?? state.psychicReveal,
+    gargoyleReveal: gargoyleReveal ?? state.gargoyleReveal,
+    wolfRobotReveal: wolfRobotReveal ?? state.wolfRobotReveal,
+  };
 }
 
 function handleSetWitchContext(state: GameState, action: SetWitchContextAction): GameState {
@@ -235,22 +222,6 @@ function handleSetConfirmStatus(state: GameState, action: SetConfirmStatusAction
   return {
     ...state,
     confirmStatus: action.payload,
-  };
-}
-
-function handleRecordWolfVote(state: GameState, action: RecordWolfVoteAction): GameState {
-  const { voterSeat, targetSeat } = action.payload;
-  const seatKey = String(voterSeat);
-  return {
-    ...state,
-    wolfVotes: {
-      ...state.wolfVotes,
-      [seatKey]: targetSeat,
-    },
-    wolfVoteStatus: {
-      ...state.wolfVoteStatus,
-      [seatKey]: true,
-    },
   };
 }
 
@@ -380,9 +351,6 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
         confirmStatus: undefined,
         witchContext: undefined,
       };
-
-    case 'RECORD_WOLF_VOTE':
-      return handleRecordWolfVote(state, action);
 
     case 'SET_WOLF_KILL_DISABLED':
       return handleSetWolfKillDisabled(state, action);

@@ -3,7 +3,6 @@
  *
  * 广播前规范化状态，确保：
  * - 新增字段的 seat-map keys 是 string
- * - wolfVoteStatus 从 wolfVotes 派生（如果存在）
  * - 可选字段正确透传
  */
 
@@ -24,18 +23,6 @@ export function canonicalizeSeatKeyRecord<T>(
   return result;
 }
 
-/**
- * 从 wolfVotes 派生 wolfVoteStatus。
- * 仅当 wolfVotes 存在时调用。
- */
-function deriveWolfVoteStatus(wolfVotes: Record<string, number>): Record<string, boolean> {
-  const result: Record<string, boolean> = {};
-  for (const seatStr of Object.keys(wolfVotes)) {
-    result[seatStr] = true;
-  }
-  return result;
-}
-
 function requireField<T>(value: T | undefined, fieldName: string): T {
   if (value === undefined) {
     throw new Error(`normalizeState: missing required field: ${fieldName}`);
@@ -47,28 +34,19 @@ function requireField<T>(value: T | undefined, fieldName: string): T {
  * 广播前归一化状态（normalizeState）。
  * - 填充可选字段的默认值
  * - 规范化 seat-map 键为 string（仅新增字段）
- * - 从 wolfVotes 派生 wolfVoteStatus（如果 wolfVotes 存在）
  *
  * ⚠️ 设计意图（Phase 1）
- * - normalize 的核心职责是：形态规范化（canonicalize keys）与派生字段（wolfVotes -> wolfVoteStatus）
+ * - normalize 的核心职责是：形态规范化（canonicalize keys）
  * - 对"旧的核心必填字段"（roomCode/hostUid/status 等）在真实运行中更推荐 fail-fast，避免用默认值掩盖状态损坏
  * - 如果需要为测试工厂提供便捷默认值，建议拆分：
  *   - normalizeStateForBroadcast(state: BroadcastGameState): BroadcastGameState
  *   - normalizeStateForTests(partial: Partial<BroadcastGameState>): BroadcastGameState
  */
 export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
-  // 规范化 seat-map 字段（仅新增字段）
-  const wolfVotes = canonicalizeSeatKeyRecord(raw.wolfVotes);
-
-  // 派生 wolfVoteStatus: 仅当 wolfVotes 存在时派生，否则保留 legacy 值
-  let wolfVoteStatus: Record<string, boolean> | undefined;
-  if (wolfVotes !== undefined) {
-    // v2 模式：从 wolfVotes 派生
-    wolfVoteStatus = deriveWolfVoteStatus(wolfVotes);
-  } else if (raw.wolfVoteStatus !== undefined) {
-    // legacy 模式：保留现有值，但规范化 keys
-    wolfVoteStatus = canonicalizeSeatKeyRecord(raw.wolfVoteStatus);
-  }
+  // v2 single source of truth: currentNightResults.wolfVotesBySeat
+  // Protocol no longer includes top-level wolfVotes/wolfVoteStatus.
+  const _wolfVotesBySeat = canonicalizeSeatKeyRecord(raw.currentNightResults?.wolfVotesBySeat);
+  void _wolfVotesBySeat;
 
   return {
     // 必填字段（fail-fast，避免掩盖状态损坏）
@@ -80,10 +58,6 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
     players: requireField(raw.players, 'players'),
     currentActionerIndex: requireField(raw.currentActionerIndex, 'currentActionerIndex'),
     isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
-
-    // Seat-map 字段（已规范化）
-    wolfVoteStatus,
-    wolfVotes,
 
     // 执行状态（可选，无需默认值）
     actions: raw.actions,
