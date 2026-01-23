@@ -334,7 +334,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const {
     getActionIntent,
     getAutoTriggerIntent,
-    getMagicianTarget,
     findVotingWolfSeat,
     getWolfStatusLine,
     getBottomAction,
@@ -421,7 +420,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // We keep it type-safe on the UI side by narrowing locally.
   // ---------------------------------------------------------------------------------
 
-  type ActionExtra = { save: boolean } | { poison: boolean };
+  type ActionExtra =
+    | { save: boolean }
+    | { poison: boolean }
+    | { targets: readonly [number, number] }; // swap protocol: [seatA, seatB]
 
   // Schema lookup helper (used internally)
   const _getSchemaById = useCallback((id: string): ActionSchema | null => {
@@ -622,7 +624,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
         case 'actionConfirm':
           if (myRole === 'magician' && anotherIndex !== null) {
-            const mergedTarget = getMagicianTarget(intent.targetIndex);
+            // v2 protocol: target = null, extra.targets = [seatA, seatB]
+            const swapTargets: [number, number] = [anotherIndex, intent.targetIndex];
             // Highlight both seats during confirmation dialog
             setSecondSeatIndex(intent.targetIndex);
             // Use setTimeout to allow React to re-render before showing dialog
@@ -633,7 +636,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 () => {
                   setAnotherIndex(null);
                   setSecondSeatIndex(null);
-                  void proceedWithActionTyped(mergedTarget);
+                  void proceedWithActionTyped(null, { targets: swapTargets });
                 },
                 () => {
                   // User cancelled - reset both seats for re-selection
@@ -782,7 +785,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       currentSchema,
       currentActionRole,
       findVotingWolfSeat,
-      getMagicianTarget,
       getSubStepByKey,
       hasWolfVoted,
       proceedWithActionTyped,
