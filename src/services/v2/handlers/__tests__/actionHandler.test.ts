@@ -762,4 +762,499 @@ describe('handleSubmitAction', () => {
       expect(result.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
     });
   });
+
+  // ==========================================================================
+  // Nightmare Block Guard Tests (single-point, schema-aware)
+  // ==========================================================================
+
+  describe('nightmare block guard (schema-aware)', () => {
+    /**
+     * 要求 1：被 block 的玩家只能 skip，任何非 skip 行动都必须 reject
+     * 要求 2：guard 必须是 schema-aware，不能只判断 target
+     */
+
+    // --- chooseSeat schema (target-based skip) ---
+
+    it('should reject blocked seer with non-skip target', () => {
+      const state = createOngoingState({
+        currentStepId: 'seerCheck',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'seer', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          2: { uid: 'p3', seatNumber: 2, role: 'villager', hasViewedRole: true },
+        },
+        currentNightResults: { blockedSeat: 0 }, // seer is blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: { seat: 0, role: 'seer', target: 1, extra: {} }, // trying to check seat 1
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('被梦魇封锁');
+      expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
+    });
+
+    it('should allow blocked seer to skip (target=null)', () => {
+      const state = createOngoingState({
+        currentStepId: 'seerCheck',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'seer', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        },
+        currentNightResults: { blockedSeat: 0 }, // seer is blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: { seat: 0, role: 'seer', target: null, extra: {} }, // skip
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should allow non-blocked seer to take action', () => {
+      const state = createOngoingState({
+        currentStepId: 'seerCheck',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'seer', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        },
+        currentNightResults: { blockedSeat: 99 }, // someone else blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: { seat: 0, role: 'seer', target: 1, extra: {} },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      expect(result.success).toBe(true);
+    });
+
+    // --- swap schema (targets-based skip) - schema-aware test ---
+
+    it('should reject blocked magician with non-skip targets', () => {
+      const state = createOngoingState({
+        currentStepId: 'magicianSwap',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'magician', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          2: { uid: 'p3', seatNumber: 2, role: 'villager', hasViewedRole: true },
+        },
+        currentNightResults: { blockedSeat: 0 }, // magician is blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: {
+          seat: 0,
+          role: 'magician',
+          target: null, // target is null but...
+          extra: { targets: [1, 2] }, // trying to swap via targets array
+        },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      // MUST reject: schema-aware guard should detect targets array
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('被梦魇封锁');
+      expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
+    });
+
+    it('should allow blocked magician to skip (empty targets)', () => {
+      const state = createOngoingState({
+        currentStepId: 'magicianSwap',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'magician', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        },
+        currentNightResults: { blockedSeat: 0 }, // magician is blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: {
+          seat: 0,
+          role: 'magician',
+          target: null,
+          extra: { targets: [] }, // skip via empty targets
+        },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      expect(result.success).toBe(true);
+    });
+
+    // --- confirm schema (hunter/darkWolfKing special rules) ---
+
+    it('should reject blocked hunter with confirmed=true', () => {
+      const state = createOngoingState({
+        currentStepId: 'hunterConfirm',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'hunter', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        },
+        currentNightResults: { blockedSeat: 0 }, // hunter is blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: {
+          seat: 0,
+          role: 'hunter',
+          target: null,
+          extra: { confirmed: true }, // trying to confirm despite being blocked
+        },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      // MUST reject: blocked hunter can only skip
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('被梦魇封锁');
+    });
+
+    it('should allow blocked hunter to skip (confirmed !== true)', () => {
+      const state = createOngoingState({
+        currentStepId: 'hunterConfirm',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'hunter', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        },
+        currentNightResults: { blockedSeat: 0 }, // hunter is blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: {
+          seat: 0,
+          role: 'hunter',
+          target: null,
+          extra: { confirmed: false }, // skip
+        },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject non-blocked hunter trying to skip (confirm requires action)', () => {
+      const state = createOngoingState({
+        currentStepId: 'hunterConfirm',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'hunter', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        },
+        currentNightResults: {}, // NOT blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: {
+          seat: 0,
+          role: 'hunter',
+          target: null,
+          extra: { confirmed: false }, // trying to skip despite not being blocked
+        },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      // MUST reject: non-blocked confirm schema cannot skip
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('当前无法跳过');
+    });
+
+    it('should allow non-blocked hunter to confirm', () => {
+      const state = createOngoingState({
+        currentStepId: 'hunterConfirm',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'hunter', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        },
+        currentNightResults: {}, // NOT blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: {
+          seat: 0,
+          role: 'hunter',
+          target: null,
+          extra: { confirmed: true }, // proper confirmation
+        },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      expect(result.success).toBe(true);
+    });
+
+    // --- darkWolfKing confirm (same rules as hunter) ---
+
+    it('should reject blocked darkWolfKing with confirmed=true', () => {
+      const state = createOngoingState({
+        currentStepId: 'darkWolfKingConfirm',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'darkWolfKing', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'villager', hasViewedRole: true },
+        },
+        currentNightResults: { blockedSeat: 0 }, // darkWolfKing is blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: {
+          seat: 0,
+          role: 'darkWolfKing',
+          target: null,
+          extra: { confirmed: true },
+        },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('被梦魇封锁');
+    });
+
+    it('should reject non-blocked darkWolfKing trying to skip', () => {
+      const state = createOngoingState({
+        currentStepId: 'darkWolfKingConfirm',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'darkWolfKing', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'villager', hasViewedRole: true },
+        },
+        currentNightResults: {}, // NOT blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: {
+          seat: 0,
+          role: 'darkWolfKing',
+          target: null,
+          extra: {}, // no confirmed field = skip
+        },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('当前无法跳过');
+    });
+
+    // --- wolfVote schema (blocked wolf) ---
+
+    it('should reject blocked wolf with non-skip target', () => {
+      const state = createOngoingState({
+        currentStepId: 'wolfKill',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'wolf', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'villager', hasViewedRole: true },
+        },
+        currentNightResults: { blockedSeat: 0 }, // wolf is blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitWolfVoteIntent = {
+        type: 'SUBMIT_WOLF_VOTE',
+        payload: { seat: 0, target: 1 }, // trying to kill
+      };
+
+      const result = handleSubmitWolfVote(intent, context);
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('被梦魇封锁');
+    });
+
+    it('should allow blocked wolf to skip (empty knife)', () => {
+      const state = createOngoingState({
+        currentStepId: 'wolfKill',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'wolf', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'villager', hasViewedRole: true },
+        },
+        currentNightResults: { blockedSeat: 0 }, // wolf is blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitWolfVoteIntent = {
+        type: 'SUBMIT_WOLF_VOTE',
+        payload: { seat: 0, target: -1 }, // empty knife
+      };
+
+      const result = handleSubmitWolfVote(intent, context);
+
+      expect(result.success).toBe(true);
+    });
+  });
+});
+
+// =============================================================================
+// isSkipAction and checkNightmareBlockGuard unit tests
+// =============================================================================
+
+describe('isSkipAction (schema-aware skip detection)', () => {
+  // Import from actionHandler (exported for testing)
+  const { isSkipAction } = require('../actionHandler');
+  const { SCHEMAS } = require('../../../../models/roles/spec');
+
+  it('should detect skip for chooseSeat schema with target=undefined', () => {
+    const result = isSkipAction(SCHEMAS.seerCheck, { schemaId: 'seerCheck', target: undefined });
+    expect(result).toBe(true);
+  });
+
+  it('should detect non-skip for chooseSeat schema with target', () => {
+    const result = isSkipAction(SCHEMAS.seerCheck, { schemaId: 'seerCheck', target: 1 });
+    expect(result).toBe(false);
+  });
+
+  it('should detect skip for swap schema with empty targets', () => {
+    const result = isSkipAction(SCHEMAS.magicianSwap, { schemaId: 'magicianSwap', targets: [] });
+    expect(result).toBe(true);
+  });
+
+  it('should detect non-skip for swap schema with targets', () => {
+    const result = isSkipAction(SCHEMAS.magicianSwap, {
+      schemaId: 'magicianSwap',
+      targets: [1, 2],
+    });
+    expect(result).toBe(false);
+  });
+
+  it('should detect skip for confirm schema with confirmed=false', () => {
+    const result = isSkipAction(SCHEMAS.hunterConfirm, {
+      schemaId: 'hunterConfirm',
+      confirmed: false,
+    });
+    expect(result).toBe(true);
+  });
+
+  it('should detect non-skip for confirm schema with confirmed=true', () => {
+    const result = isSkipAction(SCHEMAS.hunterConfirm, {
+      schemaId: 'hunterConfirm',
+      confirmed: true,
+    });
+    expect(result).toBe(false);
+  });
+
+  it('should detect skip for wolfVote schema with target=null', () => {
+    const result = isSkipAction(SCHEMAS.wolfKill, { schemaId: 'wolfKill', target: null });
+    expect(result).toBe(true);
+  });
+
+  it('should detect non-skip for wolfVote schema with target', () => {
+    const result = isSkipAction(SCHEMAS.wolfKill, { schemaId: 'wolfKill', target: 0 });
+    expect(result).toBe(false);
+  });
+});
+
+describe('checkNightmareBlockGuard (single-point guard)', () => {
+  const { checkNightmareBlockGuard } = require('../actionHandler');
+  const { SCHEMAS, BLOCKED_UI_DEFAULTS } = require('../../../../models/roles/spec');
+
+  describe('chooseSeat schema', () => {
+    it('should reject blocked player with non-skip action', () => {
+      const reason = checkNightmareBlockGuard(
+        0, // seat
+        SCHEMAS.seerCheck,
+        { schemaId: 'seerCheck', target: 1 },
+        0, // blockedSeat
+      );
+      expect(reason).toBe(BLOCKED_UI_DEFAULTS.message);
+    });
+
+    it('should allow blocked player to skip', () => {
+      const reason = checkNightmareBlockGuard(
+        0,
+        SCHEMAS.seerCheck,
+        { schemaId: 'seerCheck', target: undefined },
+        0,
+      );
+      expect(reason).toBeUndefined();
+    });
+
+    it('should allow non-blocked player to act', () => {
+      const reason = checkNightmareBlockGuard(
+        0,
+        SCHEMAS.seerCheck,
+        { schemaId: 'seerCheck', target: 1 },
+        99, // someone else blocked
+      );
+      expect(reason).toBeUndefined();
+    });
+  });
+
+  describe('swap schema', () => {
+    it('should reject blocked player with non-empty targets', () => {
+      const reason = checkNightmareBlockGuard(
+        0,
+        SCHEMAS.magicianSwap,
+        { schemaId: 'magicianSwap', targets: [1, 2] },
+        0,
+      );
+      expect(reason).toBe(BLOCKED_UI_DEFAULTS.message);
+    });
+
+    it('should allow blocked player with empty targets', () => {
+      const reason = checkNightmareBlockGuard(
+        0,
+        SCHEMAS.magicianSwap,
+        { schemaId: 'magicianSwap', targets: [] },
+        0,
+      );
+      expect(reason).toBeUndefined();
+    });
+  });
+
+  describe('confirm schema', () => {
+    it('should reject blocked player with confirmed=true', () => {
+      const reason = checkNightmareBlockGuard(
+        0,
+        SCHEMAS.hunterConfirm,
+        { schemaId: 'hunterConfirm', confirmed: true },
+        0,
+      );
+      expect(reason).toBe(BLOCKED_UI_DEFAULTS.message);
+    });
+
+    it('should allow blocked player to skip (confirmed=false)', () => {
+      const reason = checkNightmareBlockGuard(
+        0,
+        SCHEMAS.hunterConfirm,
+        { schemaId: 'hunterConfirm', confirmed: false },
+        0,
+      );
+      expect(reason).toBeUndefined();
+    });
+
+    it('should reject non-blocked player trying to skip', () => {
+      const reason = checkNightmareBlockGuard(
+        0,
+        SCHEMAS.hunterConfirm,
+        { schemaId: 'hunterConfirm', confirmed: false },
+        99, // not blocked
+      );
+      expect(reason).toBe('当前无法跳过，请执行行动');
+    });
+
+    it('should allow non-blocked player to confirm', () => {
+      const reason = checkNightmareBlockGuard(
+        0,
+        SCHEMAS.hunterConfirm,
+        { schemaId: 'hunterConfirm', confirmed: true },
+        99,
+      );
+      expect(reason).toBeUndefined();
+    });
+  });
 });
