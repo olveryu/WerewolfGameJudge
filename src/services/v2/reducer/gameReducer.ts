@@ -201,9 +201,19 @@ function handleApplyResolverResult(state: GameState, action: ApplyResolverResult
       }
     : state.currentNightResults;
 
+  // Sync nightmare block fields from updates to top-level state
+  // (These are the single source of truth for UI, not currentNightResults)
+  // Note: Use 'in' check to allow blockedSeat=0 (seat 0 is valid)
+  const nightmareBlockedSeat =
+    updates && 'blockedSeat' in updates ? updates.blockedSeat : state.nightmareBlockedSeat;
+  const wolfKillDisabled =
+    updates && 'wolfKillDisabled' in updates ? updates.wolfKillDisabled : state.wolfKillDisabled;
+
   return {
     ...state,
     currentNightResults,
+    nightmareBlockedSeat,
+    wolfKillDisabled,
     seerReveal: seerReveal ?? state.seerReveal,
     psychicReveal: psychicReveal ?? state.psychicReveal,
     gargoyleReveal: gargoyleReveal ?? state.gargoyleReveal,

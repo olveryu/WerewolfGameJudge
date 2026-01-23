@@ -115,7 +115,7 @@ describe('wolfKillResolver', () => {
   });
 
   describe('wolfKillDisabled', () => {
-    it('狼刀被禁用时应该返回空结果', () => {
+    it('狼刀被禁用时提交非空投票应该被拒绝', () => {
       const ctx = createContext({
         currentNightResults: { wolfKillDisabled: true },
       });
@@ -123,9 +123,20 @@ describe('wolfKillResolver', () => {
 
       const result = wolfKillResolver(ctx, input);
 
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toBeDefined();
+    });
+
+    it('狼刀被禁用时可以空刀', () => {
+      const ctx = createContext({
+        currentNightResults: { wolfKillDisabled: true },
+      });
+      const input = createInput(undefined);
+
+      const result = wolfKillResolver(ctx, input);
+
       expect(result.valid).toBe(true);
       expect(result.result).toEqual({});
-      expect(result.updates).toBeUndefined();
     });
   });
 

@@ -1,3 +1,12 @@
+/**
+ * useRoomActions.getBottomAction and getActionIntent tests (Host-authoritative)
+ *
+ * NEW BEHAVIOR:
+ * - UI does NOT intercept blocked players
+ * - Blocked players get normal intent (not 'blocked')
+ * - Bottom buttons show normal labels (not forced skip)
+ * - Host handles all blocking via ACTION_REJECTED
+ */
 import { renderHook } from '@testing-library/react-native';
 
 import { GameStatus } from '../../../../models/Room';
@@ -5,7 +14,6 @@ import type { LocalGameState } from '../../../../services/types/GameStateTypes';
 import type { GameContext } from '../../hooks/useRoomActions';
 import { useRoomActions } from '../../hooks/useRoomActions';
 import type { ActionSchema } from '../../../../models/roles/spec';
-import { BLOCKED_UI_DEFAULTS } from '../../../../models/roles/spec';
 
 function makeContext(overrides: Partial<GameContext> = {}): GameContext {
   const base: GameContext = {
@@ -24,9 +32,26 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
   return { ...base, ...overrides };
 }
 
-describe('useRoomActions.getBottomAction (UI-only)', () => {
-  it('shows blocked skip label when nightmare-blocked', () => {
-    const ctx = makeContext({ isBlockedByNightmare: true });
+describe('useRoomActions.getBottomAction (Host-authoritative)', () => {
+  it('shows normal skip button when nightmare-blocked (no forced label)', () => {
+    const chooseSeatSchema: ActionSchema = {
+      id: 'seerAction',
+      kind: 'chooseSeat',
+      displayName: '查验',
+      constraints: [],
+      canSkip: true,
+      ui: {
+        prompt: 'x',
+        confirmTitle: 'x',
+        confirmText: 'x',
+        bottomActionText: '不查验',
+      },
+    };
+    
+    const ctx = makeContext({ 
+      isBlockedByNightmare: true,
+      currentSchema: chooseSeatSchema,
+    });
     const { result } = renderHook(() =>
       useRoomActions(ctx, {
         hasWolfVoted: () => false,
@@ -34,22 +59,15 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
         getWitchContext: () => null,
       }),
     );
-    expect(result.current.getBottomAction()).toEqual({
-      buttons: [
-        {
-          key: 'skip',
-          label: BLOCKED_UI_DEFAULTS.skipButtonText,
-          intent: {
-            type: 'skip',
-            targetIndex: -1,
-            message: BLOCKED_UI_DEFAULTS.skipButtonText,
-          },
-        },
-      ],
-    });
+    
+    // UI no longer forces skip - shows normal schema button
+    const bottomAction = result.current.getBottomAction();
+    expect(bottomAction.buttons).toHaveLength(1);
+    expect(bottomAction.buttons[0].key).toBe('skip');
+    expect(bottomAction.buttons[0].label).toBe('不查验');
   });
 
-  it('shows wolf empty-vote label from schema.ui.emptyVoteText (fallback 投票空刀)', () => {
+  it('shows wolf empty-vote label from schema.ui.emptyVoteText', () => {
     const wolfVoteSchema: ActionSchema = {
       id: 'wolfVote',
       kind: 'wolfVote',
@@ -119,10 +137,7 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
     expect(result.current.getBottomAction()).toEqual({ buttons: [] });
   });
 
-  // BUG LOCK: Blocked wolves should send wolfVote intent (not skip) to avoid skipping entire phase
-  // Issue: When one wolf is blocked and clicks "skip", it should only record their vote (-1),
-  // not advance the entire wolfKill phase before other wolves have voted.
-  it('blocked wolf during wolfVote should use wolfVote intent (not skip)', () => {
+  it('blocked wolf during wolfVote shows normal empty vote (no forced skip)', () => {
     const wolfVoteSchema: ActionSchema = {
       id: 'wolfVote',
       kind: 'wolfVote',
@@ -141,10 +156,6 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
       },
     };
 
-    // When nightmare blocks a wolf, Host sets BOTH:
-    // - nightmareBlockedSeat (for the blocked player) → isBlockedByNightmare = true
-    // - wolfKillDisabled = true (for ALL wolves)
-    // So we must set both to reflect reality.
     const ctx = makeContext({
       isBlockedByNightmare: true,
       wolfKillDisabled: true,
@@ -160,18 +171,16 @@ describe('useRoomActions.getBottomAction (UI-only)', () => {
     );
 
     const bottomAction = result.current.getBottomAction();
-    // Must use wolfVote intent (not skip) so only this wolf's vote is recorded
+    // UI no longer forces skip - normal wolfVote button
     expect(bottomAction.buttons).toHaveLength(1);
     expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
     expect(bottomAction.buttons[0].intent.targetIndex).toBe(-1);
-    expect(bottomAction.buttons[0].label).toBe(BLOCKED_UI_DEFAULTS.skipButtonText);
+    expect(bottomAction.buttons[0].label).toBe('空刀');
   });
 });
 
-describe('useRoomActions.getActionIntent (blocked player)', () => {
-  // BUG LOCK: Blocked players tapping seats should get 'blocked' intent (not action confirm)
-  // so UI can show "你被封锁了" feedback instead of confirm dialog that does nothing.
-  it('blocked player tapping seat returns blocked intent', () => {
+describe('useRoomActions.getActionIntent (Host-authoritative)', () => {
+  it('blocked player tapping seat returns normal intent (Host validates)', () => {
     const chooseSeatSchema: ActionSchema = {
       id: 'seerAction',
       kind: 'chooseSeat',
@@ -181,7 +190,8 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
       ui: {
         prompt: 'x',
         confirmTitle: 'x',
-        confirmText: 'x',
+        confirmText: 'confirm?',
+        revealKind: 'seer',
       },
     };
 
@@ -194,7 +204,7 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
       mySeatNumber: 0,
       myRole: 'seer',
       isAudioPlaying: false,
-      isBlockedByNightmare: true, // BLOCKED
+      isBlockedByNightmare: true, // BLOCKED but UI doesn't intercept
       wolfKillDisabled: false,
       anotherIndex: null,
     };
@@ -208,8 +218,9 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
     );
 
     const intent = result.current.getActionIntent(3);
+    // UI no longer intercepts - returns normal reveal intent
     expect(intent).not.toBeNull();
-    expect(intent?.type).toBe('blocked');
+    expect(intent?.type).toBe('reveal');
     expect(intent?.targetIndex).toBe(3);
   });
 
@@ -237,7 +248,7 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
       mySeatNumber: 0,
       myRole: 'seer',
       isAudioPlaying: false,
-      isBlockedByNightmare: false, // NOT blocked
+      isBlockedByNightmare: false,
       wolfKillDisabled: false,
       anotherIndex: null,
     };
@@ -252,7 +263,7 @@ describe('useRoomActions.getActionIntent (blocked player)', () => {
 
     const intent = result.current.getActionIntent(3);
     expect(intent).not.toBeNull();
-    expect(intent?.type).toBe('reveal'); // seer uses reveal intent
+    expect(intent?.type).toBe('reveal');
     expect(intent?.targetIndex).toBe(3);
   });
 });

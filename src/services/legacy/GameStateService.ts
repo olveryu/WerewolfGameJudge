@@ -799,6 +799,7 @@ export class GameStateService {
             action: 'submitAction',
             reason: BLOCKED_UI_DEFAULTS.message,
             targetUid: playerUid,
+            rejectionId: `${Date.now()}-blocked`,
           };
           await this.broadcastState();
         }
@@ -823,6 +824,7 @@ export class GameStateService {
             action: 'submitAction',
             reason: resolverResult.rejectReason ?? '行动无效',
             targetUid: playerUid,
+            rejectionId: `${Date.now()}-resolver`,
           };
           await this.broadcastState();
         }
@@ -985,6 +987,7 @@ export class GameStateService {
         action: 'wolfKill',
         reason: `不能投${displayName}`,
         targetUid: playerUid,
+        rejectionId: `${Date.now()}-wolfvote`,
       };
 
       await this.broadcastState();
@@ -2698,12 +2701,8 @@ export class GameStateService {
       }
     });
 
-    // Get nightmare blocked seat from actions
-    const nightmareAction = this.state.actions.get('nightmare');
-    const nightmareBlockedSeat =
-      nightmareAction?.kind === 'target' ? nightmareAction.targetSeat : undefined;
-
-    // wolfKillDisabled is single-source-of-truth from this.state (set by handlePlayerAction)
+    // nightmareBlockedSeat and wolfKillDisabled are single-source-of-truth from this.state
+    // (set by applyResolverResult in handlePlayerAction)
 
     return {
       roomCode: this.state.roomCode,
@@ -2714,10 +2713,10 @@ export class GameStateService {
       currentActionerIndex: this.state.currentActionerIndex,
       isAudioPlaying: this.state.isAudioPlaying,
       currentNightResults: {
-        ...(this.state.currentNightResults ?? {}),
+        ...this.state.currentNightResults,
         wolfVotesBySeat,
       },
-      nightmareBlockedSeat,
+      nightmareBlockedSeat: this.state.nightmareBlockedSeat,
       wolfKillDisabled: this.state.wolfKillDisabled,
       // Role-specific context (all data is public, UI filters by myRole)
       witchContext: this.state.witchContext,

@@ -272,9 +272,9 @@ describe('Nightmare blocking behavior', () => {
     { schemaId: 'dreamcatcherDream' as SchemaId, roleId: 'dreamcatcher' as RoleId, actorSeat: 3 },
   ];
 
-  describe('blocked actors should have ineffective actions', () => {
+  describe('blocked actors non-skip actions are REJECTED', () => {
     it.each(blockableSchemas)(
-      '$schemaId: blocked by nightmare should return valid but empty result',
+      '$schemaId: blocked by nightmare + non-skip → valid=false',
       ({ schemaId, roleId, actorSeat }) => {
         const resolver = RESOLVERS[schemaId];
         const context = createContext(actorSeat, roleId, {
@@ -283,6 +283,23 @@ describe('Nightmare blocking behavior', () => {
 
         const result = resolver!(context, { schemaId, target: 7 }); // 选一个目标
 
+        expect(result.valid).toBe(false);
+        expect(result.rejectReason).toBeDefined();
+      },
+    );
+  });
+
+  describe('blocked actors can skip (only valid action)', () => {
+    it.each(blockableSchemas)(
+      '$schemaId: blocked by nightmare + skip → valid=true',
+      ({ schemaId, roleId, actorSeat }) => {
+        const resolver = RESOLVERS[schemaId];
+        const context = createContext(actorSeat, roleId, {
+          currentNightResults: { blockedSeat: actorSeat },
+        });
+
+        const result = resolver!(context, { schemaId, target: undefined }); // skip
+
         expect(result.valid).toBe(true);
         expect(result.result).toEqual({});
       },
@@ -290,22 +307,37 @@ describe('Nightmare blocking behavior', () => {
   });
 
   /**
-   * NOTE: Wolf kill blocking is checked via currentNightResults.wolfKillDisabled,
-   * which is set by the nightmare resolver's updates when it blocks a wolf.
-   * The blockedSeat field alone doesn't disable wolf kill - the wolfKillDisabled
-   * flag must be explicitly set by the nightmare action's updates.
+   * Wolf kill when wolfKillDisabled:
+   * - Non-empty vote (target) → REJECTED
+   * - Empty vote (空刀) → allowed
    */
-  it('wolf kill is disabled when wolfKillDisabled flag is set', () => {
-    const resolver = RESOLVERS.wolfKill;
-    const wolfSeat = 7;
-    const context = createContext(wolfSeat, 'wolf', {
-      currentNightResults: { wolfKillDisabled: true },
+  describe('wolfKillDisabled behavior', () => {
+    it('wolfKillDisabled + non-empty vote → valid=false', () => {
+      const resolver = RESOLVERS.wolfKill;
+      const wolfSeat = 7;
+      const context = createContext(wolfSeat, 'wolf', {
+        currentNightResults: { wolfKillDisabled: true },
+      });
+
+      const result = resolver!(context, { schemaId: 'wolfKill', target: 14 });
+
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toBeDefined();
     });
 
-    const result = resolver!(context, { schemaId: 'wolfKill', target: 14 });
+    it('wolfKillDisabled + empty vote (空刀) → valid=true', () => {
+      const resolver = RESOLVERS.wolfKill;
+      const wolfSeat = 7;
+      const context = createContext(wolfSeat, 'wolf', {
+        currentNightResults: { wolfKillDisabled: true },
+      });
 
-    expect(result.valid).toBe(true);
-    expect(result.result).toEqual({}); // No kill when disabled
+      const result = resolver!(context, { schemaId: 'wolfKill', target: undefined });
+
+      expect(result.valid).toBe(true);
+      // Should record the empty vote
+      expect(result.updates?.wolfVotesBySeat?.[String(wolfSeat)]).toBe(-1);
+    });
   });
 
   it('nightmare resolver sets wolfKillDisabled when blocking a wolf', () => {
@@ -368,9 +400,19 @@ describe('canSkip behavior alignment', () => {
 
   const noSkipSchemas = [
     { schemaId: 'wolfKill' as SchemaId, roleId: 'wolf' as RoleId, actorSeat: 7 },
-    { schemaId: 'hunterConfirm' as SchemaId, roleId: 'hunter' as RoleId, actorSeat: 12 },
-    { schemaId: 'darkWolfKingConfirm' as SchemaId, roleId: 'darkWolfKing' as RoleId, actorSeat: 13 },
+    // Note: slackerChooseIdol has canSkip=false but blocked slacker can skip (special case)
   ];
+
+  const confirmSchemasShouldHaveCanSkip = [
+    { schemaId: 'hunterConfirm' as SchemaId },
+    { schemaId: 'darkWolfKingConfirm' as SchemaId },
+  ];
+
+  describe('confirm schemas should have canSkip=true (blocked can skip)', () => {
+    it.each(confirmSchemasShouldHaveCanSkip)('$schemaId: should have canSkip=true', ({ schemaId }) => {
+      expect(getSchemaCanSkip(schemaId)).toBe(true);
+    });
+  });
 
   describe('schemas without canSkip', () => {
     it.each(noSkipSchemas)('$schemaId: schema should have canSkip=false or undefined', ({ schemaId }) => {

@@ -48,7 +48,7 @@ import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import { ConnectionStatusBar } from './components/ConnectionStatusBar';
 import { roomScreenLog } from '../../utils/logger';
 import type { ActionSchema, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
-import { SCHEMAS, BLOCKED_UI_DEFAULTS, isValidSchemaId } from '../../models/roles/spec';
+import { SCHEMAS, isValidSchemaId } from '../../models/roles/spec';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -523,10 +523,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleActionIntent = useCallback(
     async (intent: ActionIntent) => {
       switch (intent.type) {
-        case 'blocked':
-          // UX: Show feedback when blocked player taps a seat
-          actionDialogs.showBlockedAlert();
-          break;
+        // NOTE: 'blocked' intent type has been removed.
+        // Nightmare block is now handled by Host resolver.
+        // UI submits action → Host validates → ACTION_REJECTED if blocked.
 
         case 'magicianFirst':
           setAnotherIndex(intent.targetIndex);
@@ -719,23 +718,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             break;
           }
 
-          // confirm schema (hunter/darkWolfKing): show different prompt based on blocked status
+          // confirm schema (hunter/darkWolfKing): show standard prompt
+          // NOTE: Nightmare block is now handled by Host resolver.
+          // UI no longer shows blocked prompt here. Action goes through submit → Host validates.
           if (currentSchema?.kind === 'confirm') {
-            if (isBlockedByNightmare) {
-              actionDialogs.showRoleActionPrompt(
-                BLOCKED_UI_DEFAULTS.title,
-                BLOCKED_UI_DEFAULTS.message,
-                () => {},
+            // FAIL-FAST: schema.ui.prompt must exist for confirm schema
+            if (!currentSchema.ui?.prompt) {
+              throw new Error(
+                `[FAIL-FAST] Missing schema.ui.prompt for confirm schema: ${currentActionRole}`,
               );
-            } else {
-              // FAIL-FAST: schema.ui.prompt must exist for confirm schema
-              if (!currentSchema.ui?.prompt) {
-                throw new Error(
-                  `[FAIL-FAST] Missing schema.ui.prompt for confirm schema: ${currentActionRole}`,
-                );
-              }
-              actionDialogs.showRoleActionPrompt('行动提示', currentSchema.ui.prompt, () => {});
             }
+            actionDialogs.showRoleActionPrompt('行动提示', currentSchema.ui.prompt, () => {});
             break;
           }
 
