@@ -1130,7 +1130,6 @@ describe('V2GameFacade', () => {
       const broadcastedState = broadcastCall![0].state;
       expect(broadcastedState.currentActionerIndex).toBe(0);
       expect(broadcastedState.actions).toEqual([]);
-      expect(broadcastedState.wolfVotes).toEqual({});
       expect(broadcastedState.currentNightResults).toEqual({});
     });
   });
@@ -1270,7 +1269,7 @@ describe('V2GameFacade', () => {
       const state = facade['store'].getState()!;
       expect(state.actionRejected).toEqual(
         expect.objectContaining({
-          action: 'submitWolfVote',
+          action: 'wolfKill',
           targetUid: 'player-1',
         }),
       );

@@ -3,8 +3,8 @@
  *
  * 验证 normalizeState 的关键不变量：
  * - seat-map keys 是 string
- * - wolfVotes -> wolfVoteStatus 派生
  * - legacy 兼容
+* - v2: currentNightResults.wolfVotesBySeat 关键规范化 (number -> string)
  */
 
 import { normalizeState, normalizeStateForTests, canonicalizeSeatKeyRecord } from '../normalize';
@@ -41,47 +41,14 @@ describe('normalizeState', () => {
     });
   });
 
-  describe('wolfVotes → wolfVoteStatus 派生', () => {
-    it('从 wolfVotes 派生 wolfVoteStatus', () => {
+  describe('wolfVotesBySeat 规范化（v2 单一真相）', () => {
+    it('规范化 currentNightResults.wolfVotesBySeat 的 number keys', () => {
       const result = normalizeStateForTests({
-        wolfVotes: { '1': 3, '2': 3 },
+        currentNightResults: {
+          wolfVotesBySeat: { 1: 3, 2: 3 } as unknown as Record<string, number>,
+        },
       });
-      expect(result.wolfVotes).toEqual({ '1': 3, '2': 3 });
-      expect(result.wolfVoteStatus).toEqual({ '1': true, '2': true });
-    });
-
-    it('wolfVotes 有 number keys 时规范化', () => {
-      const result = normalizeStateForTests({
-        wolfVotes: { 1: 3, 2: 3 } as Record<string, number>,
-      });
-      expect(result.wolfVotes).toEqual({ '1': 3, '2': 3 });
-      expect(result.wolfVoteStatus).toEqual({ '1': true, '2': true });
-    });
-
-    it('wolfVotes 存在时覆盖 wolfVoteStatus', () => {
-      const result = normalizeStateForTests({
-        wolfVotes: { '1': 3 },
-        wolfVoteStatus: { '1': false, '2': true }, // 应被覆盖
-      });
-      expect(result.wolfVoteStatus).toEqual({ '1': true });
-      expect(result.wolfVoteStatus!['2']).toBeUndefined();
-    });
-  });
-
-  describe('legacy 兼容：仅 wolfVoteStatus', () => {
-    it('保留 legacy wolfVoteStatus（无 wolfVotes 时）', () => {
-      const result = normalizeStateForTests({
-        wolfVoteStatus: { '1': true, '2': false },
-      });
-      expect(result.wolfVotes).toBeUndefined();
-      expect(result.wolfVoteStatus).toEqual({ '1': true, '2': false });
-    });
-
-    it('规范化 legacy wolfVoteStatus 的 number keys', () => {
-      const result = normalizeStateForTests({
-        wolfVoteStatus: { 1: true, 2: false } as Record<string, boolean>,
-      });
-      expect(result.wolfVoteStatus).toEqual({ '1': true, '2': false });
+      expect(result.currentNightResults?.wolfVotesBySeat).toEqual({ '1': 3, '2': 3 });
     });
   });
 

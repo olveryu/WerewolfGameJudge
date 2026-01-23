@@ -119,8 +119,6 @@ export interface PublicGameState {
   players: Record<number, PublicPlayer | null>;
   currentActionerIndex: number;
   isAudioPlaying: boolean;
-  /** Wolf vote progress (seat → hasVoted), does NOT reveal targets */
-  wolfVoteStatus?: Record<number, boolean>;
 }
 
 // =============================================================================

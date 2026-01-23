@@ -195,7 +195,6 @@ describe('restartGame Contract', () => {
       const state = facade.getState()!;
       expect(state.currentStepId).toBeUndefined();
       expect(state.actions).toBeUndefined();
-      expect(state.wolfVotes).toBeUndefined();
       expect(state.currentNightResults).toBeUndefined();
       expect(state.witchContext).toBeUndefined();
       expect(state.seerReveal).toBeUndefined();

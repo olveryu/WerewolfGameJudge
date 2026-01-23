@@ -153,6 +153,13 @@ interface IntentContext {
 }
 
 /**
+ * NOTE on "wolf meeting" fields (avoid double-write/drift):
+ * - ROLE_SPECS[*].wolfMeeting.participatesInWolfVote answers "WHO can submit WOLF_VOTE".
+ * - SCHEMAS.wolfKill.meeting.* answers "HOW the wolfVote step behaves in UI/meeting" (visibility, resolution, etc).
+ * These are intentionally different responsibilities.
+ */
+
+/**
  * Pure helper used by getSkipIntent.
  * Exported for testability (avoid calling hooks directly in unit tests).
  */
@@ -596,7 +603,11 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
           currentSchema?.kind === 'chooseSeat' ? currentSchema.ui?.revealKind : undefined,
         index,
         anotherIndex,
-        isWolf: isWolfRole(myRole),
+  // Schema-driven wolf vote eligibility.
+  // Participation is defined by ROLE_SPECS[*].wolfMeeting.participatesInWolfVote.
+  // Do NOT additionally gate by isWolfRole(): the meeting participation flag is the
+  // single source for whether this role can submit WOLF_VOTE during wolfKill.
+  isWolf: doesRoleParticipateInWolfVote(myRole),
         wolfSeat: findVotingWolfSeat(),
         wolfKillDisabled,
         buildMessage: (idx) => buildActionMessage(idx),

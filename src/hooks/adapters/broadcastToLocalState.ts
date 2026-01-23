@@ -144,16 +144,12 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
 
   // ---------------------------------------------------------------------------
   // wolfKill (wolfVote)
-  // UI vote status is primarily driven by broadcast.wolfVotes, so we don't
-  // force an action mapping here.
+  // v2 single source of truth: broadcast.currentNightResults.wolfVotesBySeat
   // ---------------------------------------------------------------------------
-  // Note: ProtocolAction[] → Map<RoleId, RoleAction> 仅在 adapter 层实现；
-  // wolfVote 相关以 wolfVotes 为准。
-
-  // 4. wolfVotes: Record<string, number> → Map<number, number>
   const wolfVotesMap = new Map<number, number>();
-  if (broadcast.wolfVotes) {
-    for (const [voterStr, target] of Object.entries(broadcast.wolfVotes)) {
+  const v2WolfVotes = broadcast.currentNightResults?.wolfVotesBySeat;
+  if (v2WolfVotes) {
+    for (const [voterStr, target] of Object.entries(v2WolfVotes)) {
       wolfVotesMap.set(Number.parseInt(voterStr, 10), target);
     }
   }

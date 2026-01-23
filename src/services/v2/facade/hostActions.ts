@@ -32,6 +32,8 @@ import type { StateAction } from '../reducer/types';
 import type { RoleId } from '../../../models/roles';
 import type { GameTemplate } from '../../../models/Template';
 
+import { doesRoleParticipateInWolfVote } from '../../../models/roles';
+
 import {
   handleAssignRoles,
   handleStartNight,
@@ -363,6 +365,21 @@ export async function submitWolfVote(
     logPrefix: 'submitWolfVote',
     logData: { voterSeat, targetSeat },
   });
+
+  if (!submitResult.success) {
+    const state = ctx.store.getState();
+    const voterRole = state?.players?.[voterSeat]?.role ?? null;
+    const participatesInWolfVote = voterRole ? doesRoleParticipateInWolfVote(voterRole) : null;
+    v2FacadeLog.warn('submitWolfVote failed (context)', {
+      voterSeat,
+      targetSeat,
+      voterRole,
+      participatesInWolfVote,
+      currentStepId: state?.currentStepId ?? null,
+      status: state?.status ?? null,
+      reason: submitResult.reason,
+    });
+  }
 
   // Host-only 自动推进：成功提交后透传调用 handler 层推进
   if (submitResult.success) {

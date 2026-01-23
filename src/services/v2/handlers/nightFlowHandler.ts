@@ -30,11 +30,12 @@ import type { ProtocolAction } from '../../protocol/types';
 
 import { buildNightPlan } from '../../../models/roles/spec/plan';
 import { getStepSpec } from '../../../models/roles/spec/nightSteps';
-import { resolveWolfVotes } from '../../WolfVoteResolver';
+import { getRoleSpec } from '../../../models/roles';
 import { calculateDeaths } from '../../DeathCalculator';
 import { isWolfRole, doesRoleParticipateInWolfVote } from '../../../models/roles';
 import { makeWitchSave, makeWitchPoison, makeWitchNone } from '../../../models/actions/WitchAction';
 import { nightFlowLog } from '../../../utils/logger';
+import { resolveWolfVotes } from '../../WolfVoteResolver';
 
 /**
  * 非 null 的 state 类型
@@ -153,18 +154,22 @@ export function handleAdvanceNight(
 
   if (currentStepId === 'wolfKill' && hasWitch) {
     // 计算狼刀目标（killedIndex）
-    const wolfVotes = state.wolfVotes ?? {};
-    const voteMap = new Map<number, number>();
-    for (const [voterSeatStr, targetSeat] of Object.entries(wolfVotes)) {
-      voteMap.set(Number.parseInt(voterSeatStr, 10), targetSeat);
-    }
+      let killedIndex = -1;
 
-    // 如果 wolfKillDisabled（nightmare 封锁狼人），则没有被杀者
-    let killedIndex = -1;
-    if (!state.wolfKillDisabled) {
-      const wolfKillTarget = resolveWolfVotes(voteMap);
-      killedIndex = wolfKillTarget ?? -1;
-    }
+      // Resolve from wolfVotesBySeat (legacy-compatible)
+      if (!state.wolfKillDisabled) {
+        const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat ?? {};
+        const votes = new Map<number, number>();
+        for (const [seatStr, targetSeat] of Object.entries(wolfVotesBySeat)) {
+          const seat = Number.parseInt(seatStr, 10);
+          if (!Number.isFinite(seat) || typeof targetSeat !== 'number') continue;
+          votes.set(seat, targetSeat);
+        }
+        const resolved = resolveWolfVotes(votes);
+        if (typeof resolved === 'number') {
+          killedIndex = resolved;
+        }
+      }
 
     // 查找女巫座位，用于 notSelf 约束
     let witchSeat = -1;
@@ -304,20 +309,23 @@ function buildNightActions(state: NonNullState): NightActions {
   const actions = state.actions ?? [];
   const nightActions: NightActions = {};
 
-  // Wolf kill - 从 wolfVotes 解析
-  const wolfVotes = state.wolfVotes ?? {};
-  const voteMap = new Map<number, number>();
-  for (const [voterSeatStr, targetSeat] of Object.entries(wolfVotes)) {
-    voteMap.set(Number.parseInt(voterSeatStr, 10), targetSeat);
-  }
-
-  // 如果 wolfKillDisabled (nightmare 封锁狼人)，wolf kill 无效
+  // Wolf kill - legacy-compatible: resolve final target from wolfVotesBySeat.
+  // Single source of truth is the votes table; final target is derived.
   if (!state.wolfKillDisabled) {
-    const wolfKillTarget = resolveWolfVotes(voteMap);
-    if (wolfKillTarget !== null) {
-      nightActions.wolfKill = wolfKillTarget;
+    const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat ?? {};
+    const votes = new Map<number, number>();
+    for (const [seatStr, targetSeat] of Object.entries(wolfVotesBySeat)) {
+      const seat = Number.parseInt(seatStr, 10);
+      if (!Number.isFinite(seat) || typeof targetSeat !== 'number') continue;
+      votes.set(seat, targetSeat);
+    }
+
+    const resolved = resolveWolfVotes(votes);
+    if (typeof resolved === 'number') {
+      nightActions.wolfKill = resolved;
     }
   }
+
   // 检查 nightmare 封锁的是否是狼人
   if (state.wolfKillDisabled) {
     nightActions.nightmareBlockedWolf = true;
@@ -403,7 +411,7 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
 
   // DEBUG: 打印死亡计算输入
   nightFlowLog.debug('handleEndNight: calculating deaths', {
-    wolfVotes: state.wolfVotes,
+  wolfVotes: state.currentNightResults?.wolfVotesBySeat,
     wolfKillDisabled: state.wolfKillDisabled,
     nightActions,
     roleSeatMap,
@@ -570,23 +578,28 @@ function isCurrentStepComplete(state: NonNullState): boolean {
   }
 
   if (currentStepId === 'wolfKill') {
-    // 狼刀步骤：检查所有参与投票的狼人是否都已投票
-    const wolfVotes = state.wolfVotes ?? {};
-    const votingWolfSeats: number[] = [];
+    const wolfVotes = state.currentNightResults?.wolfVotesBySeat ?? {};
+
+    const participatingWolfSeats: number[] = [];
     for (const [seatStr, player] of Object.entries(state.players)) {
-      if (player?.role) {
-        if (doesRoleParticipateInWolfVote(player.role)) {
-          votingWolfSeats.push(Number.parseInt(seatStr, 10));
-        }
+      const seat = Number.parseInt(seatStr, 10);
+      if (!Number.isFinite(seat) || !player?.role) continue;
+
+    const spec = getRoleSpec(player.role) as unknown as { wolfMeeting?: { participatesInWolfVote?: boolean } } | undefined;
+    if (spec?.wolfMeeting?.participatesInWolfVote) {
+        participatingWolfSeats.push(seat);
       }
     }
 
-    if (votingWolfSeats.length === 0) {
-      // 没有狼人参与投票，视为完成
-      return true;
-    }
-
-    return votingWolfSeats.every((seat) => seat.toString() in wolfVotes);
+    // Completion contract:
+    // - A wolf is considered "done" only if they made a valid choice:
+    //   - target seat number (>= 0)
+    //   - empty knife (-1)
+    // - Forbidden target attempts (-2) do NOT count; player must re-vote.
+    return participatingWolfSeats.every((seat) => {
+      const v = wolfVotes[String(seat)];
+      return typeof v === 'number' && (v >= 0 || v === -1);
+    });
   }
 
   // 其他步骤：检查是否已有对应 schemaId 的 action

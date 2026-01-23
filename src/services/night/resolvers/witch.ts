@@ -5,11 +5,26 @@
  */
 
 import type { ResolverFn, ResolverResult } from './types';
+import { resolveWolfVotes } from '../../WolfVoteResolver';
+
+function resolveWolfKillSeatFromVotes(
+  wolfVotesBySeat: Readonly<Record<string, number>> | undefined,
+): number | undefined {
+  if (!wolfVotesBySeat) return undefined;
+  const votes = new Map<number, number>();
+  for (const [seatStr, targetSeat] of Object.entries(wolfVotesBySeat)) {
+    const seat = Number.parseInt(seatStr, 10);
+    if (!Number.isFinite(seat) || typeof targetSeat !== 'number') continue;
+    votes.set(seat, targetSeat);
+  }
+  const resolved = resolveWolfVotes(votes);
+  return typeof resolved === 'number' ? resolved : undefined;
+}
 
 function validateSaveAction(
   saveTarget: number,
   actorSeat: number,
-  wolfKillTarget: number | undefined,
+  wolfKillSeat: number | undefined,
   hasAntidote: boolean,
 ): string | null {
   if (!hasAntidote) {
@@ -22,7 +37,7 @@ function validateSaveAction(
     return '女巫不能自救';
   }
 
-  if (saveTarget !== wolfKillTarget) {
+  if (saveTarget !== wolfKillSeat) {
     return '只能救被狼人袭击的玩家';
   }
 
@@ -57,10 +72,11 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
 
   // Validate save action
   if (saveTarget !== null) {
+    const wolfKillSeat = resolveWolfKillSeatFromVotes(currentNightResults.wolfVotesBySeat);
     const error = validateSaveAction(
       saveTarget,
       actorSeat,
-      currentNightResults.wolfKillTarget,
+      wolfKillSeat,
       gameState?.witchHasAntidote ?? true,
     );
     if (error) {

@@ -31,7 +31,7 @@
 
 - **上帝类（God Class）**: `GameStateService.ts` 有 2724 行代码，承担 12+ 项职责
 - **主机/玩家状态分裂**: 40+ 处 `isHost` 分支导致"经常漏 host state / UI render"
-- **无快照恢复能力**: 执行状态（actions、wolfVotes）未包含在线协议（wire protocol）中
+- **无快照恢复能力**: 执行状态（actions、currentNightResults）未包含在线协议（wire protocol）中
 
 ### 解决方案
 
@@ -158,8 +158,7 @@
 | 字段             | Phase 1 类型                              | 说明                                                        |
 | ---------------- | ----------------------------------------- | ----------------------------------------------------------- |
 | `players`        | `Record<number, BroadcastPlayer \| null>` | **保持现状不改**（现有代码/测试大量依赖）                   |
-| `wolfVotes`      | `Record<string, number>`                  | **新增字段**，string key                                    |
-| `wolfVoteStatus` | `Record<string, boolean>`                 | **新增/修改字段**，string key，由 `normalizeState()` 规范化 |
+| `currentNightResults.wolfVotesBySeat` | `Record<string, number>`     | wolf 投票 seat-map（seat → target），string key             |
 
 **后续 Phase（可选）**: 如果要把 `players` 也改成 `Record<string, ...>`，必须作为**单独 migration PR**，全量修改测试；不属于 Phase 1 范围。
 
@@ -232,13 +231,6 @@ export interface BroadcastGameState {
 
   currentActionerIndex: number;
   isAudioPlaying: boolean;
-
-  // --- Seat-map 字段（新增字段使用 string key） ---
-  /** 狼人投票状态（v2 使用 string key） */
-  wolfVoteStatus?: Record<string, boolean>;
-
-  /** 狼人投票（v2 新增）- voterSeat -> targetSeat */
-  wolfVotes?: Record<string, number>;
 
   // --- 执行状态（v2，可选，向后兼容） ---
   /** 第一夜动作记录 */
@@ -396,43 +388,21 @@ export function canonicalizeSeatKeyRecord<T>(
 }
 
 /**
- * 从 wolfVotes 派生 wolfVoteStatus。
- * 仅当 wolfVotes 存在时调用。
- */
-function deriveWolfVoteStatus(wolfVotes: Record<string, number>): Record<string, boolean> {
-  const result: Record<string, boolean> = {};
-  for (const seatStr of Object.keys(wolfVotes)) {
-    result[seatStr] = true;
-  }
-  return result;
-}
-
-/**
  * 广播前归一化状态（normalizeState）。
  * - 填充可选字段的默认值
  * - 规范化 seat-map 键为 string（仅新增字段）
- * - 从 wolfVotes 派生 wolfVoteStatus（如果 wolfVotes 存在）
  */
 export function normalizeState(raw: Partial<BroadcastGameState>): BroadcastGameState {
   // ⚠️ 设计意图（Phase 1）
-  // - normalize 的核心职责是：形态规范化（canonicalize keys）与派生字段（wolfVotes -> wolfVoteStatus）
+  // - normalize 的核心职责是：形态规范化（canonicalize keys）
   // - 对“旧的核心必填字段”（roomCode/hostUid/status 等）在真实运行中更推荐 fail-fast，避免用默认值掩盖状态损坏
   // - 如果需要为测试工厂提供便捷默认值，建议拆分：
   //   - normalizeStateForBroadcast(state: BroadcastGameState): BroadcastGameState
   //   - normalizeStateForTests(partial: Partial<BroadcastGameState>): BroadcastGameState
 
   // 规范化 seat-map 字段（仅新增字段）
-  const wolfVotes = canonicalizeSeatKeyRecord(raw.wolfVotes);
-
-  // 派生 wolfVoteStatus: 仅当 wolfVotes 存在时派生，否则保留 legacy 值
-  let wolfVoteStatus: Record<string, boolean> | undefined;
-  if (wolfVotes !== undefined) {
-    // v2 模式：从 wolfVotes 派生
-    wolfVoteStatus = deriveWolfVoteStatus(wolfVotes);
-  } else if (raw.wolfVoteStatus !== undefined) {
-    // legacy 模式：保留现有值，但规范化 keys
-    wolfVoteStatus = canonicalizeSeatKeyRecord(raw.wolfVoteStatus);
-  }
+  const currentNightResults = raw.currentNightResults;
+  const wolfVotesBySeat = canonicalizeSeatKeyRecord(currentNightResults?.wolfVotesBySeat);
 
   return {
     // 必填字段默认值
@@ -445,13 +415,12 @@ export function normalizeState(raw: Partial<BroadcastGameState>): BroadcastGameS
     currentActionerIndex: raw.currentActionerIndex ?? -1,
     isAudioPlaying: raw.isAudioPlaying ?? false,
 
-    // Seat-map 字段（已规范化）
-    wolfVoteStatus,
-    wolfVotes,
-
     // 执行状态（可选，无需默认值）
     actions: raw.actions,
-    currentNightResults: raw.currentNightResults,
+    currentNightResults: {
+      ...currentNightResults,
+      wolfVotesBySeat,
+    },
     pendingRevealAcks: raw.pendingRevealAcks,
     lastNightDeaths: raw.lastNightDeaths,
 
@@ -473,10 +442,9 @@ export function normalizeState(raw: Partial<BroadcastGameState>): BroadcastGameS
 
 | 规则                           | 描述                                                               |
 | ------------------------------ | ------------------------------------------------------------------ |
-| **新增字段 keys 是 string**    | `wolfVotes`、`wolfVoteStatus` 等新增 seat-map 字段的 key 是 string |
+| **新增字段 keys 是 string**    | `currentNightResults.wolfVotesBySeat` 等 seat-map 字段的 key 是 string |
 | **players 保持现状**           | Phase 1 不改动 `players` 的 key 类型                               |
-| **wolfVotes → wolfVoteStatus** | 如果 `wolfVotes` 存在，从中派生 `wolfVoteStatus`                   |
-| **Legacy 保留**                | 如果 `wolfVotes` 不存在但 `wolfVoteStatus` 存在，保留后者          |
+| **seat-map keys 规范化**       | 对 `currentNightResults.wolfVotesBySeat` 等 seat-map 做 key canonicalization（number → string） |
 | **广播前归一化**               | 主机在每次 `STATE_UPDATE` 前调用 `normalizeState(state)`           |
 
 > 注：`normalizeState()` 不是“容错恢复器”。
@@ -701,7 +669,7 @@ src/services/
 
 | 文件                                                           | 动作     | 改动点                                                                      |
 | -------------------------------------------------------------- | -------- | --------------------------------------------------------------------------- |
-| `src/services/core/state/normalize.ts`                         | **新建** | `normalizeState()`、`canonicalizeSeatKeyRecord()`、`deriveWolfVoteStatus()` |
+| `src/services/core/state/normalize.ts`                         | **新建** | `normalizeState()`、`canonicalizeSeatKeyRecord()` |
 | `src/services/core/state/__tests__/normalize.contract.test.ts` | **新建** | 归一化测试（见第 9 节）                                                     |
 | `src/services/core/index.ts`                                   | **新建** | 重导出 normalize 函数                                                       |
 
@@ -737,10 +705,7 @@ src/services/
 | `boundary.contract.test.ts`  | `protocol/types.ts 导出 BroadcastGameState`          | Regex 找到 `export interface BroadcastGameState`     |
 | `boundary.contract.test.ts`  | `v2/ 不运行时导入 legacy/`                           | 扫描所有 v2/ 文件                                    |
 | `boundary.contract.test.ts`  | `core/ 不运行时导入 transport/`                      | 扫描所有 core/ 文件                                  |
-| `normalize.contract.test.ts` | `规范化 wolfVotes keys 为 string`                    | `{ 1: 3 }` → `{ '1': 3 }`                            |
-| `normalize.contract.test.ts` | `规范化 wolfVoteStatus keys 为 string`               | `{ 1: true }` → `{ '1': true }`                      |
-| `normalize.contract.test.ts` | `wolfVotes 不存在时保留 legacy wolfVoteStatus`       | 输入只有 `wolfVoteStatus`，输出保留                  |
-| `normalize.contract.test.ts` | `wolfVotes 存在时派生 wolfVoteStatus`                | 输入有 `wolfVotes`，输出有派生的 `wolfVoteStatus`    |
+| `normalize.contract.test.ts` | `规范化 wolfVotesBySeat keys 为 string`             | `{ 1: 3 }` → `{ '1': 3 }`                            |
 | `normalize.contract.test.ts` | `填充必填字段默认值`                                 | 空输入 → 有效的 BroadcastGameState                   |
 | `normalize.contract.test.ts` | `players 不做 key 规范化`                            | Phase 1 保持 number key 不变                         |
 
@@ -799,7 +764,7 @@ npm test -- --testPathPattern="src/services/__tests__"
 | --- | ------------------------------------------------- | ------ | ---- | -------------------------------------------- | --------------------------------------------------- |
 | 1   | 类型提取后导入路径断裂                            | 中     | 高   | 重导出 shims + grep 验证所有导入             | `grep -r "from.*BroadcastService" --include="*.ts"` |
 | 2   | `Record<number, T>` 的 number key 残留在 fixtures | 中     | 中   | 归一化所有输入；在 normalize 中 canonicalize | `npm test -- normalize.contract`                    |
-| 3   | Legacy `wolfVoteStatus` 被覆盖                    | 高     | 高   | 仅当 `wolfVotes` 存在时派生                  | `npm test -- normalize.contract`                    |
+| 3   | seat-map key 规范化错误（drift）                  | 高     | 高   | 统一走 `canonicalizeSeatKeyRecord()`          | `npm test -- normalize.contract`                    |
 | 4   | `CurrentNightResults` 被作为运行时导入            | 低     | 高   | 边界测试扫描运行时导入                       | `npm test -- boundary.contract`                     |
 | 5   | v2 意外导入 legacy                                | 低     | 严重 | ESLint 规则 + 边界测试                       | `npm test -- boundary.contract`                     |
 
@@ -813,7 +778,7 @@ npm test -- --testPathPattern="src/services/__tests__"
 | 2   | `BroadcastService.ts` 不再导出协议类型        | `npm test -- boundary.contract`  |
 | 3   | 新增 seat-map 字段 keys 是 string             | `npm test -- normalize.contract` |
 | 4   | `players` key 类型保持 number（Phase 1）      | 现有测试通过                     |
-| 5   | Legacy `wolfVoteStatus` 无 `wolfVotes` 时保留 | `npm test -- normalize.contract` |
+| 5   | 旧协议字段误用（代码/文档未清理）                | `npm test -- normalize.contract` |
 | 6   | `CurrentNightResults` type-only 导入          | Grep + 边界测试                  |
 | 7   | v2 不运行时导入 legacy                        | `npm test -- boundary.contract`  |
 | 8   | core 不运行时导入 transport                   | `npm test -- boundary.contract`  |
@@ -871,8 +836,9 @@ import { SCHEMAS } from '@/models/roles/spec';
 // 线协议（JSON 序列化后）
 {
   "players": { "0": {...}, "1": {...} },      // Phase 1: 保持 number key（TS 类型）
-  "wolfVotes": { "0": 2, "1": 2 },            // 新增字段：string key
-  "wolfVoteStatus": { "0": true, "1": true }  // 新增/修改：string key
+  "currentNightResults": {
+    "wolfVotesBySeat": { "0": 2, "1": 2 }
+  }
 }
 
 // 内部/UI（转换后使用）
@@ -884,5 +850,4 @@ const seatNumber: number = parseInt(key, 10);
 | 字段             | Phase 1 TS 类型                           | 说明              |
 | ---------------- | ----------------------------------------- | ----------------- |
 | `players`        | `Record<number, BroadcastPlayer \| null>` | 保持现状          |
-| `wolfVotes`      | `Record<string, number>`                  | 新增，string key  |
-| `wolfVoteStatus` | `Record<string, boolean>`                 | 修改为 string key |
+| `currentNightResults.wolfVotesBySeat` | `Record<string, number>`     | seat → target（string key） |

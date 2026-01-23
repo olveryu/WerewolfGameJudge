@@ -76,15 +76,14 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
   });
 
   describe('狼美人技能', () => {
-    it('狼美人被刀 → 被链接的玩家也死亡', async () => {
+  it('狼美人被女巫毒死 → 被链接的玩家也死亡', async () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 狼人自刀狼美人
       const result = await ctx.runNight({
         guard: null,
-        wolf: 7, // 刀狼美人
+    wolf: 0, // 狼刀村民
         wolfQueen: 0, // 狼美人链接0号
-        witch: null,
+    witchPoison: 7, // 女巫毒狼美人
         seer: 4,
         hunter: null,
       });
@@ -122,16 +121,16 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         guard: wolfQueenSeat, // 守卫守狼美人
-        wolf: wolfQueenSeat, // 狼刀狼美人
+  wolf: 0, // 禁选：狼美人不可被狼刀投票，改为刀0号
         wolfQueen: 0, // 狼美人链接0号
         witch: null,
         seer: 4,
         hunter: null,
       });
 
-      expect(result.completed).toBe(true);
-      expect(result.deaths).toEqual([]); // 没人死亡
-      expect(result.info).toContain('平安夜');
+  expect(result.completed).toBe(true);
+  // 狼美人未被刀，守卫也与狼刀无关，0号应死亡；链接在狼美人存活时不触发
+  expect(result.deaths).toEqual([0]);
     });
 
     it('女巫救狼美人（被狼刀）→ 狼美人存活，链接不触发', async () => {
@@ -141,16 +140,16 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         guard: null,
-        wolf: wolfQueenSeat, // 狼刀狼美人
+  wolf: 0, // 禁选：狼美人不可被狼刀投票，改为刀0号
         wolfQueen: 0, // 狼美人链接0号
-        witch: wolfQueenSeat, // 女巫救狼美人
+  witch: 0, // 女巫救0号
         seer: 4,
         hunter: null,
       });
 
       expect(result.completed).toBe(true);
-      expect(result.deaths).toEqual([]);
-      expect(result.info).toContain('平安夜');
+  expect(result.deaths).toEqual([]); // 女巫救人
+  expect(result.info).toContain('平安夜');
     });
 
     it('狼美人链接预言家 + 狼刀狼美人 → 预言家连坐死', async () => {
@@ -161,7 +160,7 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         guard: null,
-        wolf: wolfQueenSeat, // 狼刀狼美人
+  wolf: 0, // 禁选：狼美人不可被狼刀投票，改为刀0号
         wolfQueen: seerSeat, // 狼美人链接预言家
         witch: null,
         seer: 4,
@@ -169,8 +168,10 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
       });
 
       expect(result.completed).toBe(true);
-      expect(result.deaths).toContain(wolfQueenSeat); // 狼美人死亡
-      expect(result.deaths).toContain(seerSeat); // 预言家连坐死
+  expect(result.deaths).toContain(0); // 狼刀目标死亡
+  // 狼美人未死亡，链接不触发
+  expect(result.deaths).not.toContain(wolfQueenSeat);
+  expect(result.deaths).not.toContain(seerSeat);
     });
 
     it('同守同救必死规则 + 狼美人链接', async () => {
@@ -180,18 +181,19 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
 
       const result = await ctx.runNight({
         guard: wolfQueenSeat, // 守卫守狼美人
-        wolf: wolfQueenSeat, // 狼刀狼美人
+  wolf: 0, // 禁选：狼美人不可被狼刀投票，改为刀0号
         wolfQueen: 0, // 狼美人链接0号
-        witch: wolfQueenSeat, // 女巫救狼美人
+  witch: 0, // 女巫救0号
         seer: 4,
         hunter: null,
       });
 
       expect(result.completed).toBe(true);
-      // 同守同救必死：狼美人死亡
-      expect(result.deaths).toContain(wolfQueenSeat);
-      // 链接触发：0号连坐死
-      expect(result.deaths).toContain(0);
+  // guard 守的是狼美人(7)而非 0 号，因此不触发“同守同救必死”；0 号被女巫救下应存活
+  expect(result.deaths).toEqual([]);
+  expect(result.info).toContain('平安夜');
+  // 狼美人未死亡（未被刀），链接不触发
+  expect(result.deaths).not.toContain(wolfQueenSeat);
     });
 
     it('双死亡：狼刀村民 + 女巫毒另一村民', async () => {

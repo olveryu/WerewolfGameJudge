@@ -18,7 +18,6 @@ export type {
   SetWitchContextAction,
   SetConfirmStatusAction,
   ClearRevealStateAction,
-  RecordWolfVoteAction,
   SetWolfKillDisabledAction,
   SetAudioPlayingAction,
   PlayerViewedRoleAction,

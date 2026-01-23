@@ -58,11 +58,8 @@ export interface BroadcastGameState {
   currentStepId?: SchemaId;
 
   // --- Seat-map 字段 ---
-  /** 狼人投票状态 */
-  wolfVoteStatus?: Record<string, boolean>;
-
-  /** 狼人投票（v2 新增）- voterSeat -> targetSeat */
-  wolfVotes?: Record<string, number>;
+  // NOTE: v2 single source of truth for wolf vote is:
+  // currentNightResults.wolfVotesBySeat
 
   // --- 执行状态（v2，可选，向后兼容） ---
   /** 第一夜动作记录 */
@@ -124,6 +121,8 @@ export interface BroadcastGameState {
     action: string;
     reason: string;
     targetUid: string;
+  /** Unique id for this rejection event (UI uses it for dedupe). */
+  rejectionId: string;
   };
 }
 
