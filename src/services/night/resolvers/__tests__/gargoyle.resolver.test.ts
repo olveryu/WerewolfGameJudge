@@ -138,19 +138,11 @@ describe('gargoyleCheckResolver', () => {
   });
 
   describe('nightmare block', () => {
-    it('被梦魇封锁时提交非跳过行动应该被拒绝', () => {
-      const ctx = createContext({
-        currentNightResults: { blockedSeat: 4 }, // gargoyle is blocked
-      });
-      const input = createInput(2);
+    // NOTE: Nightmare block guard is now at actionHandler layer.
+    // The resolver itself does NOT reject blocked actions.
+    // These tests verify resolver behavior when invoked directly (skip allowed, target returns empty result)
 
-      const result = gargoyleCheckResolver(ctx, input);
-
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toBeDefined();
-    });
-
-    it('被梦魇封锁时可以跳过', () => {
+    it('被梦魇封锁时跳过返回空结果', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 4 }, // gargoyle is blocked
       });

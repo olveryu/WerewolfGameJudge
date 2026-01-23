@@ -68,9 +68,6 @@ export interface GameContext {
   mySeatNumber: number | null;
   myRole: RoleId | null;
   isAudioPlaying: boolean;
-  isBlockedByNightmare: boolean;
-  /** When true, wolves cannot kill this night (nightmare blocked a wolf). All wolves can only skip. */
-  wolfKillDisabled: boolean;
   anotherIndex: number | null; // Magician first target
 }
 
@@ -144,8 +141,6 @@ interface IntentContext {
   anotherIndex: number | null;
   isWolf: boolean;
   wolfSeat: number | null;
-  /** When true, wolves cannot kill this night (nightmare blocked a wolf). */
-  wolfKillDisabled: boolean;
   buildMessage: (idx: number) => string;
 }
 
@@ -272,11 +267,6 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     mySeatNumber,
     myRole,
     isAudioPlaying,
-    // NOTE: isBlockedByNightmare is no longer used for intent derivation.
-    // Nightmare block is handled by Host (ACTION_REJECTED). Kept in GameContext for UX hints only.
-    isBlockedByNightmare,
-    // When true, wolves cannot kill this night (nightmare blocked a wolf). All wolves can only skip.
-    wolfKillDisabled,
     anotherIndex,
   } = gameContext;
 
@@ -475,30 +465,27 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       return { buttons };
     }
 
-    // confirm schema (hunterConfirm/darkWolfKingConfirm): show bottom button to trigger status check
-    // When blocked by nightmare: show skip button instead (player cannot use ability)
+    // confirm schema (hunterConfirm/darkWolfKingConfirm): show both buttons
+    // NOTE: Nightmare block is handled by Host. UI always shows both buttons.
+    // - If blocked: user can click "skip" → Host accepts (confirmed=false)
+    // - If not blocked: user must click "confirm" → Host accepts (confirmed=true)
+    // Host will reject the wrong action and UI shows error from actionRejected.
     if (currentSchema.kind === 'confirm') {
-      if (isBlockedByNightmare) {
-        return {
-          buttons: [
-            {
-              key: 'skip',
-              label: BLOCKED_UI_DEFAULTS.skipButtonText,
-              intent: {
-                type: 'skip',
-                targetIndex: -1,
-                message: BLOCKED_UI_DEFAULTS.skipButtonText,
-              },
-            },
-          ],
-        };
-      }
       return {
         buttons: [
           {
             key: 'confirm',
             label: currentSchema.ui?.bottomActionText || '查看发动状态',
             intent: { type: 'confirmTrigger', targetIndex: -1 },
+          },
+          {
+            key: 'skip',
+            label: BLOCKED_UI_DEFAULTS.skipButtonText,
+            intent: {
+              type: 'skip',
+              targetIndex: -1,
+              message: BLOCKED_UI_DEFAULTS.skipButtonText,
+            },
           },
         ],
       };
@@ -511,8 +498,6 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     getWitchContext,
     imActioner,
     isAudioPlaying,
-    isBlockedByNightmare,
-    wolfKillDisabled,
     currentSchema,
     roomStatus,
     mySeatNumber,
@@ -572,7 +557,6 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       // All seat taps go through submit → Host validates → ACTION_REJECTED if blocked.
 
       // Delegate to pure helper for schema-driven intent derivation
-      // Note: wolfKillDisabled is passed to deriveIntentFromSchema for schema-driven handling
       const schemaIntent = deriveIntentFromSchema({
         myRole,
         schemaKind: currentSchema?.kind,
@@ -582,13 +566,12 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
           currentSchema?.kind === 'chooseSeat' ? currentSchema.ui?.revealKind : undefined,
         index,
         anotherIndex,
-  // Schema-driven wolf vote eligibility.
-  // Participation is defined by ROLE_SPECS[*].wolfMeeting.participatesInWolfVote.
-  // Do NOT additionally gate by isWolfRole(): the meeting participation flag is the
-  // single source for whether this role can submit WOLF_VOTE during wolfKill.
-  isWolf: doesRoleParticipateInWolfVote(myRole),
+        // Schema-driven wolf vote eligibility.
+        // Participation is defined by ROLE_SPECS[*].wolfMeeting.participatesInWolfVote.
+        // Do NOT additionally gate by isWolfRole(): the meeting participation flag is the
+        // single source for whether this role can submit WOLF_VOTE during wolfKill.
+        isWolf: doesRoleParticipateInWolfVote(myRole),
         wolfSeat: findVotingWolfSeat(),
-        wolfKillDisabled,
         buildMessage: (idx) => buildActionMessage(idx),
       });
 
@@ -601,15 +584,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       // - default/unknown → null (no seat tap effect)
       return schemaIntent;
     },
-    [
-      myRole,
-      currentSchema,
-      anotherIndex,
-      findVotingWolfSeat,
-      buildActionMessage,
-      isBlockedByNightmare,
-      wolfKillDisabled,
-    ],
+    [myRole, currentSchema, anotherIndex, findVotingWolfSeat, buildActionMessage],
   );
 
   // ─────────────────────────────────────────────────────────────────────────

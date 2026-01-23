@@ -272,26 +272,13 @@ describe('Nightmare blocking behavior', () => {
     { schemaId: 'dreamcatcherDream' as SchemaId, roleId: 'dreamcatcher' as RoleId, actorSeat: 3 },
   ];
 
-  describe('blocked actors non-skip actions are REJECTED', () => {
+  // NOTE: Nightmare block guard is now at actionHandler layer, not resolver layer.
+  // Resolvers no longer reject blocked actions directly - they return valid=true with empty result.
+  // The rejection happens in checkNightmareBlockGuard() in actionHandler.ts.
+
+  describe('blocked actors skip returns empty result', () => {
     it.each(blockableSchemas)(
-      '$schemaId: blocked by nightmare + non-skip → valid=false',
-      ({ schemaId, roleId, actorSeat }) => {
-        const resolver = RESOLVERS[schemaId];
-        const context = createContext(actorSeat, roleId, {
-          currentNightResults: { blockedSeat: actorSeat },
-        });
-
-        const result = resolver!(context, { schemaId, target: 7 }); // 选一个目标
-
-        expect(result.valid).toBe(false);
-        expect(result.rejectReason).toBeDefined();
-      },
-    );
-  });
-
-  describe('blocked actors can skip (only valid action)', () => {
-    it.each(blockableSchemas)(
-      '$schemaId: blocked by nightmare + skip → valid=true',
+      '$schemaId: blocked by nightmare + skip → valid=true with empty result',
       ({ schemaId, roleId, actorSeat }) => {
         const resolver = RESOLVERS[schemaId];
         const context = createContext(actorSeat, roleId, {
@@ -302,6 +289,25 @@ describe('Nightmare blocking behavior', () => {
 
         expect(result.valid).toBe(true);
         expect(result.result).toEqual({});
+      },
+    );
+  });
+
+  describe('blocked actors non-skip returns valid (handler does blocking)', () => {
+    // These tests verify resolvers don't reject blocked actions themselves.
+    // The actual rejection is done by checkNightmareBlockGuard() in actionHandler.ts.
+    it.each(blockableSchemas)(
+      '$schemaId: blocked by nightmare + non-skip → resolver returns valid (handler rejects)',
+      ({ schemaId, roleId, actorSeat }) => {
+        const resolver = RESOLVERS[schemaId];
+        const context = createContext(actorSeat, roleId, {
+          currentNightResults: { blockedSeat: actorSeat },
+        });
+
+        const result = resolver!(context, { schemaId, target: 7 }); // 选一个目标
+
+        // Resolver returns valid=true, handler layer does the actual rejection
+        expect(result.valid).toBe(true);
       },
     );
   });

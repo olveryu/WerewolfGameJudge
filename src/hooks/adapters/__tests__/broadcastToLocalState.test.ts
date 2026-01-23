@@ -25,7 +25,7 @@ describe('broadcastToLocalState', () => {
   currentNightResults: { wolfVotesBySeat: { '0': 2 } } as any,
       witchContext: { killedIndex: 2, canSave: true, canPoison: true },
       seerReveal: { targetSeat: 0, result: '狼人' },
-      actionRejected: { action: 'seerCheck', reason: 'invalid_step', targetUid: 'p2' },
+      actionRejected: { action: 'seerCheck', reason: 'invalid_step', targetUid: 'p2', rejectionId: 'test-1' },
     });
 
     const local = broadcastToLocalState(broadcast);
@@ -42,7 +42,7 @@ describe('broadcastToLocalState', () => {
 
     expect(local.witchContext).toEqual({ killedIndex: 2, canSave: true, canPoison: true });
     expect(local.seerReveal).toEqual({ targetSeat: 0, result: '狼人' });
-    expect(local.actionRejected).toEqual({ action: 'seerCheck', reason: 'invalid_step', targetUid: 'p2' });
+    expect(local.actionRejected).toEqual({ action: 'seerCheck', reason: 'invalid_step', targetUid: 'p2', rejectionId: 'test-1' });
   });
 
   it('maps BroadcastGameState.actions into LocalGameState.actions (all Night-1 schemas)', () => {

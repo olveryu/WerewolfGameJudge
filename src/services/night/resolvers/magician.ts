@@ -3,14 +3,13 @@
  *
  * Validates magician swap action and computes result.
  *
- * RULE: If blocked by nightmare, non-skip actions are REJECTED (not just no-op).
+ * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
-import { BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
 import type { ResolverFn } from './types';
 
 export const magicianSwapResolver: ResolverFn = (context, input) => {
-  const { actorSeat, players, currentNightResults } = context;
+  const { players } = context;
   const targets = input.targets;
 
   // Magician can skip
@@ -18,10 +17,7 @@ export const magicianSwapResolver: ResolverFn = (context, input) => {
     return { valid: true, result: {} };
   }
 
-  // Check blocked by nightmare - non-skip actions are REJECTED
-  if (currentNightResults.blockedSeat === actorSeat) {
-    return { valid: false, rejectReason: BLOCKED_UI_DEFAULTS.message };
-  }
+  // Block guard is handled at actionHandler layer (single-point guard)
 
   // Must select exactly 2 targets
   if (targets.length !== 2) {

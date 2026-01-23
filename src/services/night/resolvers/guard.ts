@@ -3,14 +3,12 @@
  *
  * Validates guard protect action and computes result.
  *
- * RULE: If blocked by nightmare, non-skip actions are REJECTED (not just no-op).
+ * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
-import { BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
 import type { ResolverFn } from './types';
 
 export const guardProtectResolver: ResolverFn = (context, input) => {
-  const { actorSeat, currentNightResults } = context;
   const target = input.target;
 
   // Guard can skip (choose not to protect anyone)
@@ -18,10 +16,7 @@ export const guardProtectResolver: ResolverFn = (context, input) => {
     return { valid: true, result: {} };
   }
 
-  // Check blocked by nightmare - non-skip actions are REJECTED
-  if (currentNightResults.blockedSeat === actorSeat) {
-    return { valid: false, rejectReason: BLOCKED_UI_DEFAULTS.message };
-  }
+  // Block guard is handled at actionHandler layer (single-point guard)
 
   // Night-1-only scope: no cross-night restriction.
 

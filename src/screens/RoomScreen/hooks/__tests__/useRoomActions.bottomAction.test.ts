@@ -25,8 +25,6 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     mySeatNumber: 0,
     myRole: 'seer',
     isAudioPlaying: false,
-    isBlockedByNightmare: false,
-    wolfKillDisabled: false,
     anotherIndex: null,
   };
   return { ...base, ...overrides };
@@ -49,7 +47,6 @@ describe('useRoomActions.getBottomAction (Host-authoritative)', () => {
     };
     
     const ctx = makeContext({ 
-      isBlockedByNightmare: true,
       currentSchema: chooseSeatSchema,
     });
     const { result } = renderHook(() =>
@@ -157,8 +154,6 @@ describe('useRoomActions.getBottomAction (Host-authoritative)', () => {
     };
 
     const ctx = makeContext({
-      isBlockedByNightmare: true,
-      wolfKillDisabled: true,
       currentSchema: wolfVoteSchema,
       myRole: 'wolf',
     });
@@ -204,8 +199,6 @@ describe('useRoomActions.getActionIntent (Host-authoritative)', () => {
       mySeatNumber: 0,
       myRole: 'seer',
       isAudioPlaying: false,
-      isBlockedByNightmare: true, // BLOCKED but UI doesn't intercept
-      wolfKillDisabled: false,
       anotherIndex: null,
     };
 
@@ -248,8 +241,6 @@ describe('useRoomActions.getActionIntent (Host-authoritative)', () => {
       mySeatNumber: 0,
       myRole: 'seer',
       isAudioPlaying: false,
-      isBlockedByNightmare: false,
-      wolfKillDisabled: false,
       anotherIndex: null,
     };
 

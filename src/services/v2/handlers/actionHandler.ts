@@ -12,13 +12,12 @@ import type {
   ApplyResolverResultAction,
   PlayerViewedRoleAction,
   ActionRejectedAction,
-  AddRevealAckAction,
   StateAction,
 } from '../reducer/types';
 import type { ProtocolAction } from '../../protocol/types';
 import type { SchemaId } from '../../../models/roles/spec';
 import { RESOLVERS } from '../../night/resolvers';
-import { NIGHT_STEPS, SCHEMAS } from '../../../models/roles/spec';
+import { NIGHT_STEPS, SCHEMAS, BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
 import type { ResolverContext, ActionInput, ResolverResult } from '../../night/resolvers/types';
 import type { RoleId } from '../../../models/roles';
 
@@ -239,6 +238,53 @@ function validateActionPreconditions(
   return { valid: true, schemaId: currentStepId, state, schema };
 }
 
+// =============================================================================
+// Nightmare Block Guard (Single-point guard)
+// =============================================================================
+
+/**
+ * 统一的 nightmare block 校验（单点 guard，避免 14 个 resolver 重复）
+ *
+ * 规则：
+ * - confirm schema (hunter/darkWolfKing):
+ *   - 被 block 时只允许 skip（confirmed=false/undefined）
+ *   - 未被 block 时只允许 confirmed=true（不允许 skip）
+ * - 其他 schema:
+ *   - 被 block 时只允许 skip（target=null）
+ *   - 未被 block 时不做限制
+ *
+ * @returns rejectReason if blocked, undefined if allowed
+ */
+function checkNightmareBlockGuard(
+  seat: number,
+  target: number | null | undefined,
+  schema: (typeof SCHEMAS)[SchemaId],
+  blockedSeat: number | undefined,
+  extra: Record<string, unknown> | undefined,
+): string | undefined {
+  const isBlocked = blockedSeat === seat;
+
+  if (schema.kind === 'confirm') {
+    const confirmed = extra?.confirmed;
+    if (isBlocked && confirmed === true) {
+      // 被 block 但尝试 confirmed=true → reject
+      return BLOCKED_UI_DEFAULTS.message;
+    }
+    if (!isBlocked && confirmed !== true) {
+      // 未被 block 但尝试 skip → reject
+      return '当前无法跳过，请执行行动';
+    }
+    return undefined;
+  }
+
+  // 其他 schema: 被 block 时只允许 skip (target=null)
+  if (isBlocked && target !== null && target !== undefined) {
+    return BLOCKED_UI_DEFAULTS.message;
+  }
+
+  return undefined;
+}
+
 /**
  * 处理提交行动（PR4: SUBMIT_ACTION）
  *
@@ -256,7 +302,19 @@ export function handleSubmitAction(
   if (!validation.valid) {
     return validation.result;
   }
-  const { schemaId, state } = validation;
+  const { schemaId, state, schema } = validation;
+
+  // Nightmare block guard (single-point guard)
+  const blockRejectReason = checkNightmareBlockGuard(
+    seat,
+    target,
+    schema,
+    state.currentNightResults?.blockedSeat,
+    extra as Record<string, unknown> | undefined,
+  );
+  if (blockRejectReason) {
+    return buildRejectionResult(schemaId, blockRejectReason, state, seat);
+  }
 
   // 获取 resolver
   const resolver = RESOLVERS[schemaId]!;
