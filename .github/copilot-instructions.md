@@ -164,6 +164,21 @@ UI (从 schema + gameState 推导显示)
   - ❌ 禁止在 `useEffect` 里根据 step/status 去主动播放音频（这会引入第二条音频触发链路）。
   - ❌ 禁止 UI 自己 toggle `setAudioPlaying(true/false)` 充当 Gate。
 
+### 音频 Gate（`isAudioPlaying`）硬性护栏（MUST follow）
+
+- **`isAudioPlaying` 代表“权威音频 Gate 的事实状态”，不是推导状态。**
+- **唯一允许修改 `isAudioPlaying` 的 action：`SET_AUDIO_PLAYING`。**
+  - ✅ 允许：`handleSetAudioPlaying`（Host-only）→ reducer 处理 `SET_AUDIO_PLAYING`。
+  - ❌ 禁止：在 reducer 中对 `START_NIGHT` / `ADVANCE_TO_NEXT_ACTION` / `SET_CURRENT_STEP` 等 action “顺便”把 `isAudioPlaying` 设为 `true/false`（这会把事实状态变成推导状态，导致 drift / 卡死）。
+- **Host 负责“音频时序编排”，但音频播放 IO 可以在 UI 层触发。** 允许的模式是：
+  1) Host 看到 step 切换（`currentStepId` 变化）→ 先调用 `setAudioPlaying(true)` 广播 Gate
+  2) Host 播放对应 `audioKey`
+  3) 音频结束/跳过 → Host 调用 `setAudioPlaying(false)` 解除 Gate（必须 finally/兜底）
+- **Player 端绝对不能写 Gate**：Player 不允许调用 `setAudioPlaying`（`host_only`）。
+- **Fail-fast 要求（测试门禁）**：若出现“UI 已进入可行动提示（如狼刀/技能选择）但 `isAudioPlaying===true` 持续不释放”或“提交行动持续被 `forbidden_while_audio_playing` 拒绝”，必须：
+  - 优先修复 Host 的 setAudioPlaying(false) 兜底链路
+  - 并补 E2E/contract fail-fast，禁止靠超时隐藏问题
+
   - ✅ 允许：`handleSetAudioPlaying`（Host-only）→ reducer 处理 `SET_AUDIO_PLAYING`。
   - ❌ 禁止：在 reducer 中对 `START_NIGHT` / `ADVANCE_TO_NEXT_ACTION` / `SET_CURRENT_STEP` 等 action “顺便”把 `isAudioPlaying` 设为 `true/false`（这会把事实状态变成推导状态，导致 drift / 卡死）。
 - **Host 负责“音频时序编排”，但音频播放 IO 可以在 UI 层触发。** 允许的模式是：
@@ -171,15 +186,20 @@ UI (从 schema + gameState 推导显示)
   - 并补 E2E/contract fail-fast，禁止靠超时隐藏问题
 
 
+### StepSpec id 规则
+
 - Step id 必须是稳定的 `SchemaId`。
 - 禁止使用 UI 文案作为逻辑 key；测试必须断言稳定 identifier。
 
+
+---
 
 ## 约束、校验与 Night-1-only 红线
 
 ### Schema-first（约束以 schema 为准）
 
 - 输入合法性必须写在 `SCHEMAS[*].constraints`（schema-first）。
+- Host resolver 的校验必须与 schema 约束保持一致。
   - 如果 schema 规定 `notSelf`，resolver 必须拒绝自指目标。
   - 如果 schema 允许自指目标，resolver 不得拒绝（除非明确文档化 + 测试覆盖）。
 
@@ -190,15 +210,18 @@ UI (从 schema + gameState 推导显示)
 ### 中立裁判规则（狼人 Neutral judge rule）
 
 - 本 app 的狼刀是中立的：可以刀**任意座位**（包括自己/狼队友）。
+- 不要为狼刀添加 `notSelf`/`notWolf` 约束。
 
 ---
 
 ## 广播架构（Broadcast architecture：无私聊/无私有消息）
 
+- **所有游戏状态都是公开的。** `BroadcastGameState` 必须包含全部信息（包括角色特定数据）。
 - **UI 层过滤显示。** Client UI 根据 `myRole` 决定显示什么：
   - 女巫仅在 `myRole === 'witch'` 时显示 `witchContext.killedIndex`
   - 预言家仅在 `myRole === 'seer'` 时显示 `seerReveal.result`
   - 狼人仅在 `isWolfRole(myRole)` 时显示狼队投票信息（例如 `currentNightResults.wolfVotesBySeat`）
+- **不允许 PRIVATE_EFFECT。** 为简化架构，所有私有消息基础设施已移除。
 - **Host 和 Player 读取同一份 state。** 不允许 Host 用本地状态、Player 用广播状态导致不同步。
 
 ---
@@ -207,6 +230,7 @@ UI (从 schema + gameState 推导显示)
 这些规则用于防止任何重构/迁移（尤其 services v2）过程中出现回归：
 - host/player 分支逻辑漂移
 - Host UI 因读取不同 state shape 而与 Player UI 不一致
+- “临时” feature-flag 导出破坏模块系统
 - v2 在运行时意外依赖 legacy
 
 ### 单一真相：`BroadcastGameState`
@@ -215,35 +239,54 @@ UI (从 schema + gameState 推导显示)
 - Host 如果执行需要某字段，那它就必须属于 `BroadcastGameState`。
 - 隐私是 UI 层问题（按 `myRole` / `isHost` 过滤显示），不是数据模型问题。
 
+- Host 与 Player 内存中的 state shape 必须完全一致。
+- 计算/派生字段必须从同一份 state 计算，或只写入 `BroadcastGameState` 一次（禁止双写/漂移）。
+
 ### Player 端禁止运行业务逻辑
 
 - Player 客户端绝对不能执行：
   - resolvers
+  - reducers/state transitions
+  - death calculation
   - night flow progression
 - Player 仅作为 transport：
   - 发送 `PlayerMessage` intent 给 Host
+  - 接收 `HostBroadcast.STATE_UPDATE`
+  - `applySnapshot(broadcastState, revision)`
 ### Feature flag：禁止运行时条件导出（no runtime conditional exports）
 
 - **禁止：** 运行时条件 re-export，例如：
+  - `if (flag) { export * from './v2' } else { export * from './legacy' }`
+  这在 TS/ESM 中是非法/不稳定的。
 
 - Feature flag 必须通过以下方式之一实现：
   - 工厂函数（推荐）：`createServices({ mode: 'legacy' | 'v2' })`
+  - 在组合根（composition root）做依赖注入（DI）
+  - 静态双导出（namespaced）+ 调用方显式选择
 ### v2 禁止在运行时 import legacy
 - `src/services/v2/**` 禁止 import `src/services/legacy/**`。
   - legacy 只能用于参考与回滚，不允许 v2 运行时依赖。
   - v2 行为对齐必须通过测试保证，而不是调用 legacy。
 
 ### “legacy” 边界（纯模块禁止移入 legacy）
+
+- 迁移期间禁止把这些内容移动到 `legacy/`：
   - `src/services/night/resolvers/**`
   - `src/models/roles/spec/**`（ROLE_SPECS / SCHEMAS / NIGHT_STEPS）
   - `NightFlowController`（纯状态机）
   - `DeathCalculator`（纯计算）
 
+- 只允许把即将被替换的编排/胶水代码移动到 `legacy/`（例如 God service / 旧 transport wrapper / persistence glue）。
+
 ### wire protocol 必须稳定（Transport protocol stability）
+
+- on-wire protocol 是稳定的，必须保持兼容：
+  - `HostBroadcast`
 
   - `PlayerMessage`
   - `BroadcastGameState`
 - v2 可以引入内部 “Intent” 类型，但必须适配到现有 protocol。
+  - 除非同时提供兼容层 + 合约测试，否则禁止发明平行的消息协议。
 
    **显式规则：** legacy 仅用于比较，v2 绝对不能保留/兼容 legacy wire 格式或行为——对齐必须通过当前架构下的测试保证。
 ---
