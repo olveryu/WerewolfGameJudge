@@ -48,6 +48,16 @@ describe('NIGHT_STEPS contract', () => {
         expect(step.audioKey).toBeTruthy();
       }
     });
+
+    it('audioKey should be a valid RoleId (AudioService uses RoleId to find audio files)', () => {
+      // AudioService.playRoleBeginningAudio/playRoleEndingAudio 使用 RoleId 查找音频
+      // 因此 audioKey 必须是有效的 RoleId，或者等于 step.roleId
+      for (const step of NIGHT_STEPS) {
+        // 验证 audioKey 必须与 roleId 一致（最严格约束）
+        // 这样可以防止 audioKey 写错导致播放失败
+        expect(step.audioKey).toBe(step.roleId);
+      }
+    });
   });
 
   describe('Night-1-only red line', () => {

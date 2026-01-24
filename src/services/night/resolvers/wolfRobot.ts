@@ -3,6 +3,8 @@
  *
  * Validates wolf robot learn action and computes result.
  * Returns exact role identity.
+ *
+ * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
 import { SCHEMAS } from '../../../models/roles/spec/schemas';
@@ -19,6 +21,8 @@ export const wolfRobotLearnResolver: ResolverFn = (context, input) => {
     return { valid: true, result: {} };
   }
 
+  // Block guard is handled at actionHandler layer (single-point guard)
+
   // Validate constraints from schema
   const schema = SCHEMAS.wolfRobotLearn;
   const constraintResult = validateConstraints(schema.constraints, { actorSeat, target });
@@ -30,11 +34,6 @@ export const wolfRobotLearnResolver: ResolverFn = (context, input) => {
   const originalRoleId = players.get(target);
   if (!originalRoleId) {
     return { valid: false, rejectReason: '目标玩家不存在' };
-  }
-
-  // Check blocked by nightmare
-  if (currentNightResults.blockedSeat === actorSeat) {
-    return { valid: true, result: {} };
   }
 
   // Get effective role after magician swap (if any)

@@ -2,12 +2,14 @@
  * Magician Resolver (HOST-ONLY)
  *
  * Validates magician swap action and computes result.
+ *
+ * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
 import type { ResolverFn } from './types';
 
 export const magicianSwapResolver: ResolverFn = (context, input) => {
-  const { actorSeat, players, currentNightResults } = context;
+  const { players } = context;
   const targets = input.targets;
 
   // Magician can skip
@@ -15,10 +17,7 @@ export const magicianSwapResolver: ResolverFn = (context, input) => {
     return { valid: true, result: {} };
   }
 
-  // Check blocked by nightmare
-  if (currentNightResults.blockedSeat === actorSeat) {
-    return { valid: true, result: {} };
-  }
+  // Block guard is handled at actionHandler layer (single-point guard)
 
   // Must select exactly 2 targets
   if (targets.length !== 2) {

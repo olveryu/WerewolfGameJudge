@@ -4,18 +4,16 @@
  * These are pure utility functions with no side effects.
  * They only depend on types and the roles registry.
  *
- * ❌ Do NOT import: GameStateService, BroadcastService, Supabase, navigation, React
+ * ❌ Do NOT import: services, Supabase, navigation, React
  * ✅ Allowed imports: types, roles registry (getRoleSpec, isWolfRole)
  */
 
 import type { RoleId } from '../../models/roles';
 import {
-  doesRoleParticipateInWolfVote,
-  isWolfRole,
-  getRoleSpec,
-  isValidRoleId,
-  getWolfKillImmuneRoleIds,
   canRoleSeeWolves,
+  doesRoleParticipateInWolfVote,
+  getRoleSpec,
+  isWolfRole,
 } from '../../models/roles';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
 import type { GameRoomLike } from '../../models/Room';
@@ -127,9 +125,15 @@ function handleMatchingRole(
   actions: Map<RoleId, RoleAction>,
   isWolfMeetingSchema: boolean,
 ): ActionerState {
-  // For wolves, check if already voted
-  if (myRole === 'wolf' && mySeatNumber !== null && wolfVotes.has(mySeatNumber)) {
-    return { imActioner: false, showWolves: isWolfMeetingSchema };
+  // Wolf meeting phase: action eligibility is vote-based for ALL voting wolves.
+  // (Not just role === 'wolf' — special wolf roles like nightmare/wolfQueen also vote.)
+  if (
+    isWolfMeetingSchema &&
+    doesRoleParticipateInWolfVote(myRole) &&
+    mySeatNumber !== null &&
+    wolfVotes.has(mySeatNumber)
+  ) {
+    return { imActioner: false, showWolves: true };
   }
 
   // For non-wolf roles, check if action already submitted
@@ -159,13 +163,27 @@ function handleWolfTeamTurn(
  * The types are compatible - LocalPlayer matches GameRoomLike's player type
  */
 export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
+  const wolfVotes: Map<number, number> = (() => {
+    const raw =
+      gameState.currentNightResults?.wolfVotesBySeat ??
+      // legacy fallback
+      ((gameState as any).wolfVotes as Map<number, number> | undefined);
+    if (!raw) return new Map();
+    if (raw instanceof Map) return raw;
+    const map = new Map<number, number>();
+    for (const [k, v] of Object.entries(raw as Record<string, number>)) {
+      map.set(Number.parseInt(k, 10), v);
+    }
+    return map;
+  })();
+
   // Adapter object (avoid unsafe assertions like `as unknown as`).
   // Treat this as a view over LocalGameState for model-layer helpers that expect GameRoomLike.
   return {
     template: gameState.template,
     players: gameState.players,
     actions: gameState.actions,
-    wolfVotes: gameState.wolfVotes,
+    wolfVotes,
     currentActionerIndex: gameState.currentActionerIndex,
   };
 }
@@ -235,8 +253,6 @@ export function buildSeatViewModels(
   showWolves: boolean,
   selectedIndex: number | null,
   options?: {
-    /** When true, apply wolf meeting vote UX restrictions (Host still validates). */
-    enableWolfVoteRestrictions?: boolean;
     /**
      * Schema constraints for current action (e.g. ['notSelf']).
      * UX-only early rejection - Host still validates.
@@ -264,18 +280,6 @@ export function buildSeatViewModels(
     // Constraint: notSelf - cannot select own seat
     if (options?.schemaConstraints?.includes('notSelf') && index === mySeatNumber) {
       disabledReason = '不能选择自己';
-    }
-
-    // UX-only: disable wolf kill immune roles during wolf meeting vote.
-    // These roles have flags.immuneToWolfKill=true in their spec.
-    if (!disabledReason && options?.enableWolfVoteRestrictions) {
-      const immuneRoleIds = getWolfKillImmuneRoleIds();
-      const targetRole = effectiveRole;
-      if (isValidRoleId(targetRole) && immuneRoleIds.includes(targetRole)) {
-        const spec = getRoleSpec(targetRole);
-        const name = spec?.displayName ?? targetRole;
-        disabledReason = `不能投${name}`;
-      }
     }
 
     return {

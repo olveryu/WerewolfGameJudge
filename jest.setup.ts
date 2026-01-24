@@ -4,6 +4,37 @@
  */
 
 // ---------------------------------------------------------------------------
+// Suppress noisy React warnings (common in async component tests)
+// These warnings are informational and don't indicate test failures.
+// ---------------------------------------------------------------------------
+
+// Save originals before any other code runs
+const _originalError = console.error.bind(console);
+const _originalWarn = console.warn.bind(console);
+
+// Override globally
+console.error = function (...args: unknown[]) {
+  const first = args[0];
+  const message = typeof first === 'string' ? first : '';
+  // Filter out React act() warnings - they're noisy but don't affect test validity
+  if (message.includes('not wrapped in act(')) {
+    return;
+  }
+  _originalError(...args);
+};
+
+console.warn = function (...args: unknown[]) {
+  // React uses format strings like "%s\n\n%s\n" with actual messages in subsequent args
+  // Check all args for the error boundary message
+  const allText = args.map((a) => (typeof a === 'string' ? a : '')).join(' ');
+  // Filter out React error boundary suggestions in tests
+  if (allText.includes('An error occurred') || allText.includes('error boundary')) {
+    return;
+  }
+  _originalWarn(...args);
+};
+
+// ---------------------------------------------------------------------------
 // Theme mock for tests
 // ---------------------------------------------------------------------------
 // Mock ThemeProvider
@@ -243,3 +274,47 @@ jest.mock('./src/config/supabase', () => ({
     }),
   },
 }));
+
+// ---------------------------------------------------------------------------
+// Logger mock for tests (silence console output)
+// ---------------------------------------------------------------------------
+jest.mock('./src/utils/logger', () => {
+  type MockLogger = {
+    debug: jest.Mock;
+    info: jest.Mock;
+    warn: jest.Mock;
+    error: jest.Mock;
+    extend: jest.Mock;
+  };
+
+  const createMockLogger = (): MockLogger => {
+    const logger: MockLogger = {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      extend: jest.fn(),
+    };
+    logger.extend.mockReturnValue(logger);
+    return logger;
+  };
+
+  const mockLogger = createMockLogger();
+
+  return {
+    log: mockLogger,
+    hostLog: mockLogger,
+    playerLog: mockLogger,
+    nightFlowLog: mockLogger,
+    broadcastLog: mockLogger,
+    audioLog: mockLogger,
+    authLog: mockLogger,
+    roomLog: mockLogger,
+    gameRoomLog: mockLogger,
+    configLog: mockLogger,
+    roomScreenLog: mockLogger,
+    homeLog: mockLogger,
+    v2FacadeLog: mockLogger,
+    gameStateLog: mockLogger,
+  };
+});

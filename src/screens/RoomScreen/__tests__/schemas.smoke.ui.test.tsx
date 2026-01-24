@@ -151,7 +151,6 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
             mySeatNumber: room.mySeatNumber,
             myRole: room.myRole,
             isAudioPlaying: false,
-            isBlockedByNightmare: false,
             anotherIndex: null,
           },
           {

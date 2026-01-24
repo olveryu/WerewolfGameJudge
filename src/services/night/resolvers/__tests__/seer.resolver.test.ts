@@ -45,24 +45,24 @@ function createInput(target: number | null | undefined): ActionInput {
 
 describe('seerCheckResolver', () => {
   describe('validate', () => {
-    it('应该拒绝 null 目标', () => {
+    it('应该允许跳过 (null 目标, schema.canSkip: true)', () => {
       const ctx = createContext();
       const input = createInput(null);
 
       const result = seerCheckResolver(ctx, input);
 
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toContain('选择');
+      expect(result.valid).toBe(true);
+      expect(result.result).toEqual({});
     });
 
-    it('应该拒绝 undefined 目标', () => {
+    it('应该允许跳过 (undefined 目标, schema.canSkip: true)', () => {
       const ctx = createContext();
       const input = createInput(undefined);
 
       const result = seerCheckResolver(ctx, input);
 
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toContain('选择');
+      expect(result.valid).toBe(true);
+      expect(result.result).toEqual({});
     });
 
     it('应该允许查验自己 (no notSelf constraint - neutral judge)', () => {
@@ -158,7 +158,10 @@ describe('seerCheckResolver', () => {
   });
 
   describe('nightmare block', () => {
-    it('被梦魇封锁时应该返回空结果', () => {
+    // NOTE: Nightmare block guard is now handled at actionHandler layer (single-point guard).
+    // Resolver no longer rejects blocked actions - it only validates business rules.
+    // Block guard tests are in actionHandler.test.ts.
+    it('被梦魇封锁时 resolver 不再拒绝（由 handler 层统一处理）', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 4 }, // seer is blocked
       });
@@ -166,8 +169,20 @@ describe('seerCheckResolver', () => {
 
       const result = seerCheckResolver(ctx, input);
 
+      // Resolver returns valid; handler layer will reject
       expect(result.valid).toBe(true);
-      expect(result.result?.checkResult).toBeUndefined();
+    });
+
+    it('被梦魇封锁时可以跳过', () => {
+      const ctx = createContext({
+        currentNightResults: { blockedSeat: 4 }, // seer is blocked
+      });
+      const input = createInput(undefined);
+
+      const result = seerCheckResolver(ctx, input);
+
+      expect(result.valid).toBe(true);
+      expect(result.result).toEqual({});
     });
 
     it('未被封锁时应该正常返回结果', () => {

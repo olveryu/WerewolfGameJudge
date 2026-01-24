@@ -1,34 +1,36 @@
-## WerewolfGameJudge Copilot Instructions
+## WerewolfGameJudge Copilot 指令（全中文）
 
-### 0) Non-negotiables (read first)
+### 0) 不可协商规则（先读）
 
-- **Host is the ONLY authority for game logic.** Supabase is transport/discovery/identity only.
-- **Offline local play.** This is a local/offline game assistant. Host device is also a player, not a separate referee device.
-- **Night-1-only scope.** Do NOT add cross-night state/rules.
-- **All state via BroadcastGameState.** All game information (including role-specific context like witch's killedIndex, seer's reveal result) is broadcast publicly via `BroadcastGameState`. UI filters what to display based on the player's role. This simplifies the architecture and eliminates Host/Player state sync issues.
-- **Single source of truth.** No parallel ordering maps/arrays/dual-write drift.
-- **Prefer libraries over custom code.** When adding new capabilities (logging, validation, etc.), search for established npm libraries first. Only write custom code if no suitable library exists or the library is overkill for the use case.
-- **Single Responsibility Principle (SRP).** Every class/module MUST have exactly ONE responsibility. Do NOT create God Classes (classes with multiple unrelated responsibilities). If a class exceeds ~400 lines or handles multiple concerns, split it into smaller focused modules.
+- **Host 是唯一的游戏逻辑权威。** Supabase 只负责 transport/discovery/identity（传输/发现/身份）。
+- **离线本地玩法。** 这是本地/离线的游戏辅助；Host 设备同时也是玩家，不是单独裁判机。
+- **仅 Night-1 范围。** 绝对不要加入跨夜状态/规则。
+- **`BroadcastGameState` 是唯一且完整的单一真相（Single source of truth）。**
+  - 所有游戏信息（包括角色上下文，如女巫 `killedIndex`、预言家 reveal）都必须公开广播在 `BroadcastGameState` 中；UI 再按 `myRole` 过滤显示。
+  - 禁止并行维护顺序表/map/双写字段导致 drift。
+- **优先使用成熟库而不是自研。** 新增能力（日志、校验等）先找成熟 npm 库；只有在库不合适或过度复杂时才写自定义代码。
+- **单一职责原则（SRP）。** 每个 class/module 必须且只能负责一件事。禁止 God Class（多个不相关职责揉在一起）。若单个模块超过 ~400 行或承担多个关注点，必须拆分。
 
-If something is unclear, ask before coding. Don't invent repo facts.
+不清楚就先问再写代码。不要臆造仓库事实。
 
 ---
 
-## Architecture boundaries
+## 架构边界（Architecture boundaries）
 
 ### Host vs Supabase
 
-- Host controls: night flow, validation, resolver execution, death calculation, audio sequencing.
-- Supabase controls: room lifecycle (4-digit code), presence, auth metadata, realtime transport.
-- Supabase must NOT store/validate any game state, actions, votes, results.
+- Host 负责：夜晚流程（night flow）、校验（validation）、resolver 执行、死亡结算（death calculation）、音频时序（audio sequencing）。
+- Supabase 负责：房间生命周期（4 位房间号）、presence、auth metadata、realtime transport。
+- Supabase **绝对不能**存储/校验任何游戏状态、行动、投票、结果。
 
-### Code ownership boundaries
+### 代码归属边界（Code ownership boundaries）
 
-- `src/models/roles/**`: declarative only (spec/schema/types). No services, no side effects.
-- `src/services/night/resolvers/**`: host-only pure resolution + validation.
-- `src/screens/RoomScreen/components/**`: UI-only, no service imports.
+- `src/models/roles/**`：只允许声明式内容（spec/schema/types）。禁止 service、禁止副作用。
+- `src/services/night/resolvers/**`：Host-only 的纯函数 resolution + validation（旧路径；允许迁移到 `src/services/engine/night/resolvers/**`，但必须保持“纯函数/无副作用/不碰 IO/UI”）。
+- `src/services/engine/night/resolvers/**`：Host-only 的纯函数 resolution + validation（新路径；与旧路径语义完全一致）。
+- `src/screens/RoomScreen/components/**`：仅 UI，禁止 import service。
 
-### Resolver Integration Architecture
+### Resolver 集成架构（Resolver Integration Architecture）
 
 ```
 ACTION (UI submit)
@@ -52,11 +54,11 @@ GameStateService.handlePlayerAction()
 advanceToNextAction()
 ```
 
-**关键原则:**
+**关键原则：**
 
-- **Resolver 是唯一的验证和计算逻辑来源** - Host 不做业务逻辑计算
-- **currentNightResults 在步骤间传递累积结果** (如 nightmare block → wolfKillDisabled)
-- **reveal 结果从 resolver 读取** - 不在 Host 中重新计算
+- **Resolver 是唯一的验证与计算逻辑来源**：Host 不允许做业务逻辑“二次计算”。
+- **`currentNightResults` 在步骤间传递并累积结果**（例如 nightmare block → `wolfKillDisabled`）。
+- **reveal 结果必须从 resolver 返回值读取**：Host 不允许自行推导/重复计算。
 
 ### Role/Schema/Step 三层架构
 
@@ -95,267 +97,254 @@ UI (从 schema + gameState 推导显示)
 - `schema.meeting.canSeeEachOther` 控制 "何时" 显示队友 (开关)
 - `ROLE_SPECS[role].wolfMeeting.canSeeWolves` 控制 "谁" 被高亮 (过滤)
 
-### Logging
+### 日志（Logging）
 
-- **Use structured loggers** from `src/utils/logger.ts` (e.g., `gameRoomLog`, `roomScreenLog`, `gameStateLog`).
-- **Add logs for key events**: state transitions, action submissions, errors, and decision branches.
-- **Log format**: Include context (e.g., `[RoomScreen]`, `[GameStateService]`) and relevant data.
-- **Debug vs Error**: Use `.debug()` for normal flow tracing, `.warn()` for recoverable issues, `.error()` for failures.
-
----
-
-## Night flow & NightPlan (host authority)
-
-### NightFlowController invariants
-
-- `NightFlowController` is the single source of truth for night progression.
-- When `isHost === true` and `state.status === ongoing`, `nightFlow` MUST be non-null (fail-fast if violated).
-- Do NOT advance indices manually (`++` fallback is banned).
-- Phase mismatch events are idempotent no-ops (debug only).
-
-### Table-driven NightPlan single-source-of-truth
-
-- Night-1 progression MUST come from a single table-driven plan.
-- **Authoritative table (Night-1):** `NIGHT_STEPS` in `src/models/roles/spec/nightSteps.ts`.
-  - Array order is the authority order.
-  - Step id MUST be a stable `SchemaId`.
-  - Do NOT reintroduce `night1.order` or any parallel `ACTION_ORDER`.
-- Plan builder MUST fail-fast on invalid `roleId` / `schemaId`.
-- Do NOT use UI copy as logic keys; tests must assert stable identifiers.
-
-### Audio sequencing single source of truth
-
-- Night-1 `audioKey` / optional `audioEndKey` MUST come from `NIGHT_STEPS`.
-- Do NOT dual-write audio keys across specs/steps. If a temporary compat is needed: `@deprecated` + removal date + contract test enforcing equality.
-
-### StepSpec id/schemaId de-dupe (migration rule)
-
-- If `StepSpec` has both `id` and `schemaId`, it's migration-only.
-  - `schemaId` must be `@deprecated` + `TODO(remove by YYYY-MM-DD)`.
-  - Keep a contract test enforcing `step.id === step.schemaId`.
-- End-state: only `id: SchemaId`.
+- **使用结构化 logger**：统一从 `src/utils/logger.ts` 获取（例如 `gameRoomLog`、`roomScreenLog`、`gameStateLog`）。
+- **禁止在业务代码中使用 `console.*`**：除非明确属于**测试/脚本/Storybook mock/E2E 调试**，否则一律用 logger。
+  - ✅ 允许：`src/**/__tests__/**`、`e2e/**`、`scripts/**`、`*.stories.tsx` 中的 `console.*`
+  - ✅ 允许：对第三方库/运行环境不可控的 `console.*`（例如依赖内部）
+  - ❌ 禁止：`src/**` 业务/服务/组件代码里新增 `console.log/warn/error`
+  - 推荐用法：
+    - `import { log } from 'src/utils/logger'` 然后 `log.extend('Module').debug('msg', data)`
+    - 或直接用预置的 `roomScreenLog` / `broadcastLog` 等
+- **关键事件必须打日志**：状态迁移、action 提交、错误、关键分支决策。
+- **日志格式**：包含 context（例如 `[RoomScreen]`、`[GameStateService]`）与相关数据。
+- **Debug vs Error**：正常流程用 `.debug()`；可恢复问题用 `.warn()`；失败用 `.error()`。
 
 ---
 
-## Constraints, validation, and Night-1-only red lines
+## 夜晚流程与 NightPlan（Host 权威）
 
-### Schema-first constraints
+### NightFlowController 不变量（invariants）
 
-- Input legality belongs in `SCHEMAS[*].constraints` (schema-first).
-- Host resolvers MUST align with schema constraints.
-  - If schema says `notSelf`, resolver must reject self-target.
-  - If schema allows self-target, resolver must not reject it unless documented + tested.
+- `NightFlowController` 是夜晚推进（night progression）的单一真相。
+- 当 `isHost === true` 且 `state.status === ongoing` 时，`nightFlow` 必须非空（违反则 fail-fast）。
+- 禁止手动推进 index（`++` 兜底策略是禁止的）。
+- phase 不匹配事件必须是幂等 no-op（仅 debug）。
 
-### Night-1-only bans
+#### 自动推进（auto-advance）硬性护栏（MUST follow）
 
-- Ban cross-night memory: no `previousActions`, `lastNightTarget`, "连续两晚/第二晚开始" constraints, etc.
-- Resolver contexts/types must not carry cross-night fields.
+- **禁止在 Facade / UI / submit 成功回调里做“自动推进夜晚”决策**（例如 `submitAction()` 成功后直接调用 `advanceNight()`）。
+  - 这会导致推进权威分裂、重入（double-advance）、以及 Host/Player drift。
+- 自动推进如果需要存在：
+  - **必须集中在 Host-only 的 night flow 控制器/handler**（例如 `NightFlowController` / `nightFlowHandler`），由它基于 `BroadcastGameState` 的事实判断“是否推进/推进到哪一步/是否 endNight”。
+  - **必须幂等**：同一 `{revision, currentStepId}` 组合最多推进一次；重复触发必须 safe no-op（仅 debug）。
+- Facade 允许做的事情仅限：
+  - “发起 intent / request”（transport + orchestration），例如向 Host 发送 `ADVANCE_NIGHT` intent；
+  - **不得**自行在 Facade 层计算“all wolves voted / action succeeded ⇒ should advance”。
 
-### Neutral judge rule (wolves)
+### 表驱动 NightPlan 的单一真相（single-source-of-truth）
 
-- Wolf kill is neutral in this app: can target ANY seat (including self/wolf teammates).
-- Don't add `notSelf`/`notWolf` constraints for wolf kill.
+- Night-1 的推进顺序必须来自**单一表驱动计划**。
+- **权威表（Night-1）：** `src/models/roles/spec/nightSteps.ts` 中的 `NIGHT_STEPS`。
+  - 数组顺序就是权威顺序。
+  - Step id 必须是稳定的 `SchemaId`。
+  - 禁止重新引入 `night1.order` 或任何平行的 `ACTION_ORDER`。
+- Plan builder 在遇到非法 `roleId` / `schemaId` 时必须 fail-fast。
+- 禁止用 UI 文案作为逻辑 key；测试必须断言稳定 identifier。
+
+### 音频时序单一真相（Audio sequencing single source of truth）
+
+- Night-1 的 `audioKey` / 可选的 `audioEndKey` 必须来自 `NIGHT_STEPS`。
+- 禁止在 specs/steps 双写 audio key。若确实需要临时兼容：必须 `@deprecated` + 移除日期 + 合约测试强制二者相等。
+
+### 音频时序分层架构（Audio sequencing layering）
+
+- **单一音频编排来源：Handler 声明，Facade 执行，UI 只读**。避免 Facade & UI “双路径触发音频”导致竞态（两段音频重叠/重复、Gate 误释放、UI 提前可点）。
+- **Handler（Host-only 业务状态机）**：
+  - 只负责“什么时候该播什么音频”的**声明**，通过 `SideEffect: { type: 'PLAY_AUDIO', audioKey, isEndAudio? }` 返回。
+  - 禁止在 handler 里做任何音频 IO、也禁止在 handler 里碰 UI。
+- **Facade（Host-only 编排/IO 入口）**：
+  - 负责执行 `PLAY_AUDIO` 的副作用：
+    1) `setAudioPlaying(true)` 广播 Gate
+    2) 执行音频播放（`AudioService`）
+    3) `finally { setAudioPlaying(false) }` 兜底释放 Gate（无论成功/失败/跳过/中断）
+  - 只允许 Facade 触发/调用 `setAudioPlaying`；Player 端绝对禁止写 Gate。
+- **RoomScreen（UI）**：
+  - **只读 `isAudioPlaying` 并据此禁用交互**（按钮/提交/advance）。
+  - ❌ 禁止在 `useEffect` 里根据 step/status 去主动播放音频（这会引入第二条音频触发链路）。
+  - ❌ 禁止 UI 自己 toggle `setAudioPlaying(true/false)` 充当 Gate。
+
+### 音频 Gate（`isAudioPlaying`）硬性护栏（MUST follow）
+
+- **`isAudioPlaying` 代表“权威音频 Gate 的事实状态”，不是推导状态。**
+- **唯一允许修改 `isAudioPlaying` 的 action：`SET_AUDIO_PLAYING`。**
+  - ✅ 允许：`handleSetAudioPlaying`（Host-only）→ reducer 处理 `SET_AUDIO_PLAYING`。
+  - ❌ 禁止：在 reducer 中对 `START_NIGHT` / `ADVANCE_TO_NEXT_ACTION` / `SET_CURRENT_STEP` 等 action “顺便”把 `isAudioPlaying` 设为 `true/false`（这会把事实状态变成推导状态，导致 drift / 卡死）。
+- **Host 负责“音频时序编排”，但音频播放 IO 可以在 UI 层触发。** 允许的模式是：
+  1) Host 看到 step 切换（`currentStepId` 变化）→ 先调用 `setAudioPlaying(true)` 广播 Gate
+  2) Host 播放对应 `audioKey`
+  3) 音频结束/跳过 → Host 调用 `setAudioPlaying(false)` 解除 Gate（必须 finally/兜底）
+- **Player 端绝对不能写 Gate**：Player 不允许调用 `setAudioPlaying`（`host_only`）。
+- **Fail-fast 要求（测试门禁）**：若出现“UI 已进入可行动提示（如狼刀/技能选择）但 `isAudioPlaying===true` 持续不释放”或“提交行动持续被 `forbidden_while_audio_playing` 拒绝”，必须：
+  - 优先修复 Host 的 setAudioPlaying(false) 兜底链路
+  - 并补 E2E/contract fail-fast，禁止靠超时隐藏问题
+
+  - ✅ 允许：`handleSetAudioPlaying`（Host-only）→ reducer 处理 `SET_AUDIO_PLAYING`。
+  - ❌ 禁止：在 reducer 中对 `START_NIGHT` / `ADVANCE_TO_NEXT_ACTION` / `SET_CURRENT_STEP` 等 action “顺便”把 `isAudioPlaying` 设为 `true/false`（这会把事实状态变成推导状态，导致 drift / 卡死）。
+- **Host 负责“音频时序编排”，但音频播放 IO 可以在 UI 层触发。** 允许的模式是：
+  - 优先修复 Host 的 setAudioPlaying(false) 兜底链路
+  - 并补 E2E/contract fail-fast，禁止靠超时隐藏问题
+
+
+### StepSpec id 规则
+
+- Step id 必须是稳定的 `SchemaId`。
+- 禁止使用 UI 文案作为逻辑 key；测试必须断言稳定 identifier。
+
 
 ---
 
-## Broadcast architecture (no private messages)
+## 约束、校验与 Night-1-only 红线
 
-- **All game state is public.** `BroadcastGameState` contains all information including role-specific data.
-- **UI-level filtering.** Client UI decides what to display based on `myRole`:
-  - Witch sees `witchContext.killedIndex` only if `myRole === 'witch'`
-  - Seer sees `seerReveal.result` only if `myRole === 'seer'`
-  - Wolves see `wolfVoteStatus` only if `isWolfRole(myRole)`
-- **No PRIVATE_EFFECT.** All private message infrastructure has been removed for simplicity.
-- **Host and Player read from same state.** No sync issues between Host local state and broadcast state.
+### Schema-first（约束以 schema 为准）
+
+- 输入合法性必须写在 `SCHEMAS[*].constraints`（schema-first）。
+- Host resolver 的校验必须与 schema 约束保持一致。
+  - 如果 schema 规定 `notSelf`，resolver 必须拒绝自指目标。
+  - 如果 schema 允许自指目标，resolver 不得拒绝（除非明确文档化 + 测试覆盖）。
+
+### Night-1-only 禁止项
+- 禁止跨夜记忆：禁止 `previousActions`、`lastNightTarget`、“连续两晚/第二晚开始”等约束。
+- Resolver context/types 不得携带跨夜字段。
+
+### 中立裁判规则（狼人 Neutral judge rule）
+
+- 本 app 的狼刀是中立的：可以刀**任意座位**（包括自己/狼队友）。
+- 不要为狼刀添加 `notSelf`/`notWolf` 约束。
 
 ---
 
-## Anti-drift guardrails (MUST follow)
+## 广播架构（Broadcast architecture：无私聊/无私有消息）
 
-These rules exist to prevent regressions during any refactor/migration (especially services v2):
+- **所有游戏状态都是公开的。** `BroadcastGameState` 必须包含全部信息（包括角色特定数据）。
+- **UI 层过滤显示。** Client UI 根据 `myRole` 决定显示什么：
+  - 女巫仅在 `myRole === 'witch'` 时显示 `witchContext.killedIndex`
+  - 预言家仅在 `myRole === 'seer'` 时显示 `seerReveal.result`
+  - 狼人仅在 `isWolfRole(myRole)` 时显示狼队投票信息（例如 `currentNightResults.wolfVotesBySeat`）
+- **不允许 PRIVATE_EFFECT。** 为简化架构，所有私有消息基础设施已移除。
+- **Host 和 Player 读取同一份 state。** 不允许 Host 用本地状态、Player 用广播状态导致不同步。
 
-- host/player split logic paths
-- Host UI diverging from player UI because Host reads a different state shape
-- “temporary” feature-flag exports that break the module system
-- v2 accidentally depending on legacy at runtime
+---
+## Anti-drift 护栏（MUST follow）
 
-### BroadcastGameState must stay the complete single state
+这些规则用于防止任何重构/迁移（尤其 services v2）过程中出现回归：
+- host/player 分支逻辑漂移
+- Host UI 因读取不同 state shape 而与 Player UI 不一致
+- “临时” feature-flag 导出破坏模块系统
+- v2 在运行时意外依赖 legacy
 
-- **ABSOLUTE RULE:** `BroadcastGameState` is the complete single source of truth.
-  - Do **NOT** introduce `HostOnlyState`, `hostOnly` fields, or “not broadcast” fields in any v2 state type.
-  - If Host needs it to execute the game, it belongs in `BroadcastGameState`.
-  - Privacy is a UI concern only (filter by `myRole` / `isHost`), not a data-model concern.
-- **No dual-state shapes:** Host and Player MUST hold the same state shape in memory.
-- **No derived drift fields:** Computed/derived fields MUST be computed from the same state and/or written into `BroadcastGameState` once.
-  - Never keep a second “Host local computed” copy that Player doesn’t have.
+### 单一真相：`BroadcastGameState`
 
-### Player must not run business logic
+- 禁止在任何 v2 state 类型中引入 `HostOnlyState`、`hostOnly` 字段或“不会广播”的字段。
+- Host 如果执行需要某字段，那它就必须属于 `BroadcastGameState`。
+- 隐私是 UI 层问题（按 `myRole` / `isHost` 过滤显示），不是数据模型问题。
 
-- Player clients MUST NOT execute:
+- Host 与 Player 内存中的 state shape 必须完全一致。
+- 计算/派生字段必须从同一份 state 计算，或只写入 `BroadcastGameState` 一次（禁止双写/漂移）。
+
+### Player 端禁止运行业务逻辑
+
+- Player 客户端绝对不能执行：
   - resolvers
   - reducers/state transitions
   - death calculation
   - night flow progression
-- Player role is transport-only:
-  - send `PlayerMessage` intents to Host
-  - receive `HostBroadcast.STATE_UPDATE`
+- Player 仅作为 transport：
+  - 发送 `PlayerMessage` intent 给 Host
+  - 接收 `HostBroadcast.STATE_UPDATE`
   - `applySnapshot(broadcastState, revision)`
+### Feature flag：禁止运行时条件导出（no runtime conditional exports）
 
-### Feature flags: no runtime conditional exports
-
-- **Forbidden:** runtime conditional re-exports like:
+- **禁止：** 运行时条件 re-export，例如：
   - `if (flag) { export * from './v2' } else { export * from './legacy' }`
+  这在 TS/ESM 中是非法/不稳定的。
 
-  This is invalid in TS/ESM and produces unstable imports.
+- Feature flag 必须通过以下方式之一实现：
+  - 工厂函数（推荐）：`createServices({ mode: 'legacy' | 'v2' })`
+  - 在组合根（composition root）做依赖注入（DI）
+  - 静态双导出（namespaced）+ 调用方显式选择
+### v2 禁止在运行时 import legacy
+- `src/services/v2/**` 禁止 import `src/services/legacy/**`。
+  - legacy 只能用于参考与回滚，不允许 v2 运行时依赖。
+  - v2 行为对齐必须通过测试保证，而不是调用 legacy。
 
-- Feature flags MUST be implemented via one of:
-  - a factory function (recommended): `createServices({ mode: 'legacy' | 'v2' })`
-  - dependency injection at composition root
-  - static dual exports (namespaced) + explicit selection in caller
+### “legacy” 边界（纯模块禁止移入 legacy）
 
-### V2 must not import legacy at runtime
+- 迁移期间禁止把这些内容移动到 `legacy/`：
+  - `src/services/night/resolvers/**`（或迁移后的 `src/services/engine/night/resolvers/**`）
+  - `src/models/roles/spec/**`（ROLE_SPECS / SCHEMAS / NIGHT_STEPS）
+  - `NightFlowController`（纯状态机）
+  - `DeathCalculator`（纯计算）
 
-- `src/services/v2/**` MUST NOT import from `src/services/legacy/**`.
-  - Legacy is reference + rollback only.
-  - v2 behavior alignment must be enforced by tests, not by calling legacy.
+- 只允许把即将被替换的编排/胶水代码移动到 `legacy/`（例如 God service / 旧 transport wrapper / persistence glue）。
 
-### “Legacy” boundaries (keep core pure modules out of legacy)
+### wire protocol 必须稳定（Transport protocol stability）
 
-- Do NOT move these into `legacy/` during migration:
-  - `src/services/night/resolvers/**`
-  - `src/models/roles/spec/**` (ROLE_SPECS / SCHEMAS / NIGHT_STEPS)
-  - `NightFlowController` (pure state machine)
-  - `DeathCalculator` (pure calculation)
-- Only move orchestration/glue that is being replaced (e.g., the God service / old transport wrappers / persistence glue).
-
-### Transport protocol stability during migration
-
-- During v2 migration, the on-wire protocol is stable and MUST remain compatible:
+- on-wire protocol 是稳定的，必须保持兼容：
   - `HostBroadcast`
+
   - `PlayerMessage`
   - `BroadcastGameState`
-- v2 may introduce internal “Intent” types, but MUST adapt them to the existing protocol.
-  - Do not invent a parallel message schema unless you also provide a compatibility layer and contract tests.
+- v2 可以引入内部 “Intent” 类型，但必须适配到现有 protocol。
+  - 除非同时提供兼容层 + 合约测试，否则禁止发明平行的消息协议。
+
+   **显式规则：** legacy 仅用于比较，v2 绝对不能保留/兼容 legacy wire 格式或行为——对齐必须通过当前架构下的测试保证。
+---
+
+## 实现清单（角色 / schema / step / UI 必做）
+
+当你新增或修改任意 Night-1 行动角色（含 UI）时，必须同时检查下面这些点：
+
+1) **Schema-first + Resolver 对齐**
+
+- 输入合法性必须写在 `SCHEMAS[*].constraints`。
+- resolver 的校验必须与 schema constraints 完全一致：
+  - schema 写了 `notSelf` → resolver 必须拒绝自指目标。
+  - schema 允许自指 → resolver 不得擅自拒绝（除非明确文档化 + 测试覆盖）。
+
+2) **Nightmare 阻断**
+
+- resolver 必须检查 `currentNightResults.blockedSeat === actorSeat`。
+- 若被阻断：返回 `{ valid: true, result: {} }`（有效但无效果）。
+
+3) **上下文/结果必须写入 `BroadcastGameState`（公开广播）**
+
+- 需要上下文：必须加到 `BroadcastGameState`（例如 `witchContext`、`confirmStatus`）。
+- 需要 reveal：必须把结果写回 `BroadcastGameState`（例如 `seerReveal`、`psychicReveal`）。
+- UI 只从 `gameState.*` 读取，并按 `myRole` 过滤显示。
+
+4) **三层表驱动：角色/协议/步骤**
+
+- 角色加入 `ROLE_SPECS`（`src/models/roles/spec/specs.ts`）。
+- 行动协议在 `SCHEMAS`（`src/models/roles/spec/schemas.ts`）。
+- Night-1 顺序与音频在 `NIGHT_STEPS`（`src/models/roles/spec/nightSteps.ts`），step id 必须是稳定 `SchemaId`。
+
+5) **狼人相关 UI/规则（schema 驱动）**
+
+- UI 从 schema 推导 `showWolves`：`schema?.kind === 'wolfVote' && schema.meeting.canSeeEachOther`。
+- 禁止使用 step-level visibility 字段。
+- `wolfKillDisabled` 单一真相：在 `handlePlayerAction` 中当 nightmare 阻断狼时设置，并在 `toBroadcastState` 中直接读取。
 
 ---
 
-## Night action role checklist (MUST follow for every role)
+## 交付与门禁（必须执行）
 
-When implementing or modifying a night-action role:
+### 质量门禁（Quality gates）
 
-1. **Nightmare block logic**
-   - Every night-action role MUST handle being blocked by nightmare
-   - Check `currentNightResults.blockedSeat === actorSeat` in resolver
-   - If blocked: return `{ valid: true, result: {} }` (no effect, but valid)
+- 修改代码后，必须跑 ESLint/Prettier（以项目既有 npm scripts 为准），确保 0 errors。
+- 合约测试必须覆盖：
+  - `NIGHT_STEPS` 引用有效性（`roleId`、`SchemaId`）
+  - step ids 顺序确定性（snapshot）与唯一性
+  - Night-1-only 红线
+  - audioKey 非空
+- E2E 只做 smoke：核心 e2e 必须 `workers=1`，房间就绪必须用 `waitForRoomScreenReady()`。
 
-2. **Context in BroadcastGameState**
-   - Roles that need context MUST have it in `BroadcastGameState`:
-     - `witch` → `witchContext: { killedIndex, canSave, canPoison }`
-     - `hunter` / `darkWolfKing` → `confirmStatus: { role, canShoot }`
-   - Roles that reveal info MUST have result in `BroadcastGameState`:
-     - `seer` → `seerReveal: { targetSeat, result }`
-     - `psychic` → `psychicReveal: { targetSeat, result }`
-     - etc.
+### 修复与审计规范
 
-3. **UI reads from gameState**
-   - Client reads from `gameState.witchContext`, `gameState.seerReveal`, etc.
-   - UI filters by `myRole` to decide what to display
+- 修 bug 优先根因修复；修复后回滚基于错误假设的过时 patch，避免补丁叠补丁。
+- 禁止无证据宣称“已修复”。非 trivial 必须给：commit hash、修改文件、关键符号、行为变化、验证结果（typecheck/Jest/e2e）。
 
-4. **Schema alignment**
-   - Resolver validation MUST match schema constraints
-   - If schema says `notSelf`, resolver MUST reject self-target
+### 终端输出规范
 
----
-
-## Tests & quality gates
-
-### Linting (ESLint + Prettier)
-
-- **After any code change**, run `npm run lint:fix` and `npm run format:write` to ensure zero errors/warnings.
-- **Unused variables**: prefix with `_` (e.g., `_unusedParam`) to satisfy `@typescript-eslint/no-unused-vars`.
-- **React hooks exhaustive-deps**:
-  - If a dependency is intentionally omitted, add `// eslint-disable-next-line react-hooks/exhaustive-deps` with a comment explaining why.
-  - If a dependency is missing, add it to the dependency array.
-  - If a dependency is unnecessary, remove it.
-- **Do NOT disable linting rules globally** without explicit approval. Prefer per-line disable comments with justification.
-- **Prettier**: use default config. Run `npm run format:write` before committing.
-
-### Jest contract tests (required for table-driven night)
-
-Maintain/update contract tests to guarantee:
-
-- `NIGHT_STEPS` reference validity (`roleId` exists; `SchemaId` exists)
-- deterministic order (snapshot of step ids)
-- uniqueness (step ids)
-- Night-1-only red lines
-- audioKey non-empty
-
-### E2E rules (Playwright)
-
-- E2E is smoke-only. Never use it as the rule referee.
-- Run core e2e with workers=1. Never run multiple e2e processes in parallel.
-- Room readiness must use `waitForRoomScreenReady()` (joiner must reach `🟢 已连接` or finish "强制同步").
-
-### UI test stability (Jest + RNTL)
-
-- Prefer `getByTestId`/`findByTestId`. Don't add new `UNSAFE_*`.
-- Keep testIDs centralized in `src/testids.ts` and preserve legacy IDs via compatibility mapping.
-
----
-
-## Checklists
-
-### Adding a new role / schema / step
-
-- Add role to `ROLE_SPECS` (`src/models/roles/spec/specs.ts`) and keep `RoleId` derived from registry keys.
-- If it acts on Night-1:
-  - add/extend `SCHEMAS` (`src/models/roles/spec/schemas.ts`) with schema-first constraints
-  - add a step to `NIGHT_STEPS` (`src/models/roles/spec/nightSteps.ts`) with `id: SchemaId`, `audioKey`
-  - implement/update resolver under `src/services/night/resolvers/**` (schema-aligned)
-  - **if blockable by nightmare:** add block check in resolver (`currentNightResults.blockedSeat === actorSeat`)
-  - **if needs context at turn start:** add field to `BroadcastGameState` + Host sets it + UI reads it
-  - **if reveals info after action:** add field to `BroadcastGameState` for result
-  - update contract tests (order snapshot + validity + red lines)
-
-### Schema-driven UI for wolf voting
-
-- **UI derives `showWolves` from schema:** `schema?.kind === 'wolfVote' && schema.meeting.canSeeEachOther`
-- **Do NOT use step-level visibility fields.** All visibility logic comes from schema.
-- **`wolfKillDisabled` single source:** Set in `handlePlayerAction` when nightmare blocks wolf, read directly in `toBroadcastState`.
-
----
-
-## Fix strategy
-
-### Prefer big fixes over small patches
-
-- When fixing a bug, prefer a **single, complete root-cause fix** over multiple small / band-aid patches.
-- If the fix requires touching multiple files or layers, that's acceptable—holistic fixes are better than scattered workarounds.
-- Do NOT add "temporary" or "partial" fixes unless the complete fix is blocked by an external dependency or explicitly agreed with the user.
-
-### Revert obsolete / wrong fixes after finding root cause
-
-- Once the **true root cause** is identified and fixed:
-  1.  Audit any prior patches made under a wrong hypothesis.
-  2.  **Revert** those obsolete patches entirely (don't leave dead / misleading code).
-  3.  Document in the commit message which earlier commits were reverted and why.
-- A single clean fix + revert is better than accumulating layers of "just-in-case" code.
-
----
-
-## Reporting discipline
-
-- Don't claim changes without evidence.
-- For non-trivial work, report:
-  - commit hash (or "not committed yet")
-  - files changed
-  - key symbols changed
-  - logical behavior changes
-  - verification run (typecheck/Jest/e2e) + outcome
-
----
-
-## Terminal command rules
-
-- **No `| head` or `| tail` piping.** Run commands without output truncation so you can see the full result.
-- If output is very long, use `grep` to filter relevant lines instead of head/tail.
+- 禁止使用 `| head` / `| tail` 截断输出；输出过长用 `grep` 过滤关键行。

@@ -138,7 +138,10 @@ describe('psychicCheckResolver', () => {
   });
 
   describe('nightmare block', () => {
-    it('被梦魇封锁时应该返回空结果', () => {
+    // NOTE: Nightmare block guard is now handled at actionHandler layer (single-point guard).
+    // Resolver no longer rejects blocked actions - it only validates business rules.
+    // Block guard tests are in actionHandler.test.ts.
+    it('被梦魇封锁时 resolver 不再拒绝（由 handler 层统一处理）', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 4 }, // psychic is blocked
       });
@@ -146,8 +149,20 @@ describe('psychicCheckResolver', () => {
 
       const result = psychicCheckResolver(ctx, input);
 
+      // Resolver returns valid; handler layer will reject
       expect(result.valid).toBe(true);
-      expect(result.result?.identityResult).toBeUndefined();
+    });
+
+    it('被梦魇封锁时可以跳过', () => {
+      const ctx = createContext({
+        currentNightResults: { blockedSeat: 4 }, // psychic is blocked
+      });
+      const input = createInput(undefined);
+
+      const result = psychicCheckResolver(ctx, input);
+
+      expect(result.valid).toBe(true);
+      expect(result.result).toEqual({});
     });
 
     it('未被封锁时应该正常返回结果', () => {

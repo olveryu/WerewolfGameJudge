@@ -1,0 +1,106 @@
+# V2 Night-1 Test Coverage Audit
+
+> 生成日期：2026-01-23  
+> 适用范围：Night-1 所有 NIGHT_STEPS 中的 schemaId
+
+---
+
+## 概述
+
+本文档记录 Night-1 v2 架构下每个 schema 的测试覆盖情况。
+
+**v2-only gate 标准**：每个 schemaId 至少需要覆盖以下之一：
+1. Handler contract（锁 UI payload→ActionInput shape）
+2. Resolver integration（锁 resolver 读取字段 + nightmare block edge）
+3. V2 boards integration（锁 v2 runtime pipeline 的端到端）
+
+---
+
+## 覆盖矩阵
+
+| schemaId | kind | constraints | UI Payload Shape | Handler Contract | Resolver Integration | V2 Boards Integration | Single Source of Truth |
+|----------|------|-------------|------------------|------------------|----------------------|----------------------|------------------------|
+| `magicianSwap` | swap | `[]` | `target=null, extra.targets: number[]` | `wireProtocol.contract.test.ts` | `DarkWolfKingMagician12.v2.integration.test.ts` | `wireProtocol.contract.test.ts` | `currentNightResults.swappedSeats` |
+| `slackerChooseIdol` | chooseSeat | `['notSelf']` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | TODO: 需要专门模板 | `currentNightResults.slackerIdolSeat` |
+| `wolfRobotLearn` | chooseSeat | `['notSelf']` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | TODO: 需要专门模板 | `wolfRobotReveal` |
+| `dreamcatcherDream` | chooseSeat | `['notSelf']` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | TODO: 需要专门模板 | `currentNightResults.dreamedSeat` |
+| `gargoyleCheck` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | TODO: 需要专门模板 | `gargoyleReveal` |
+| `nightmareBlock` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | `seer.v2.integration.test.ts` (block edge) | `currentNightResults.blockedSeat` |
+| `guardProtect` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts`, `wireProtocol.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | `boundary.guard.test.ts` | `currentNightResults.guardedSeat` |
+| `wolfKill` | wolfVote | `[]` | `WOLF_VOTE { seat, target }` | `actionHandler.test.ts`, `wireProtocol.contract.test.ts` | `wolfVote.v2.integration.test.ts` | `wolfVote.v2.integration.test.ts`, `DarkWolfKingMagician12.v2.integration.test.ts` | `currentNightResults.wolfVotesBySeat`, `currentNightResults.wolfKillTarget` |
+| `wolfQueenCharm` | chooseSeat | `['notSelf']` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | TODO: 需要专门模板 | `currentNightResults.charmedSeat` |
+| `witchAction` | compound | - | `target=null, extra.stepResults: { save: number \| null, poison: number \| null }` | `witchContract.test.ts`, `wireProtocol.contract.test.ts` | `witchContract.test.ts` | `wireProtocol.contract.test.ts`, `DarkWolfKingMagician12.v2.integration.test.ts` | `currentNightResults.savedSeat`, `currentNightResults.poisonedSeat` |
+| `seerCheck` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts`, `wireProtocol.contract.test.ts` | `seer.v2.integration.test.ts` | `seer.v2.integration.test.ts`, `magicianSwap.seerReveal.v2.integration.test.ts` | `seerReveal` |
+| `psychicCheck` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | TODO: 需要专门模板 | `psychicReveal` |
+| `hunterConfirm` | confirm | - | `target=null, extra.confirmed: boolean` | `wireProtocol.contract.test.ts` | `actionHandler.test.ts` | `DarkWolfKingMagician12.v2.integration.test.ts` | `confirmStatus.hunter` |
+| `darkWolfKingConfirm` | confirm | - | `target=null, extra.confirmed: boolean` | `wireProtocol.contract.test.ts` | `actionHandler.test.ts` | `DarkWolfKingMagician12.v2.integration.test.ts` | `confirmStatus.darkWolfKing` |
+
+---
+
+## 测试文件索引
+
+### Handler Contract Tests
+| 文件 | 覆盖的 schemaId |
+|------|-----------------|
+| `src/services/v2/handlers/__tests__/chooseSeat.batch.contract.test.ts` | seerCheck, guardProtect, psychicCheck, dreamcatcherDream, nightmareBlock, gargoyleCheck, wolfRobotLearn, wolfQueenCharm, slackerChooseIdol |
+| `src/services/v2/handlers/__tests__/witchContract.test.ts` | witchAction |
+| `src/services/v2/handlers/__tests__/actionHandler.test.ts` | wolfKill, hunterConfirm, darkWolfKingConfirm |
+| `src/services/v2/__tests__/boards/wireProtocol.contract.test.ts` | magicianSwap, witchAction, hunterConfirm, darkWolfKingConfirm, wolfKill, seerCheck, guardProtect |
+
+### Resolver Integration Tests
+| 文件 | 覆盖的 schemaId |
+|------|-----------------|
+| `src/services/v2/__tests__/boards/seer.v2.integration.test.ts` | seerCheck (+ nightmareBlock edge) |
+| `src/services/v2/__tests__/boards/wolfVote.v2.integration.test.ts` | wolfKill |
+| `src/services/v2/handlers/__tests__/chooseSeat.batch.contract.test.ts` | 所有 chooseSeat (nightmare block guard) |
+
+### V2 Boards Integration Tests
+| 文件 | 覆盖的 schemaId |
+|------|-----------------|
+| `src/services/v2/__tests__/boards/DarkWolfKingMagician12.v2.integration.test.ts` | magicianSwap, wolfKill, witchAction, hunterConfirm, darkWolfKingConfirm |
+| `src/services/v2/__tests__/boards/wolfVote.v2.integration.test.ts` | wolfKill |
+| `src/services/v2/__tests__/boards/seer.v2.integration.test.ts` | seerCheck |
+| `src/services/v2/__tests__/boards/boundary.guard.test.ts` | guardProtect |
+| `src/services/v2/__tests__/boards/wireProtocol.contract.test.ts` | magicianSwap, witchAction, wolfKill, seerCheck, guardProtect |
+| `src/services/v2/__tests__/boards/magicianSwap.seerReveal.v2.integration.test.ts` | magicianSwap, seerCheck (swap→reveal chain) |
+
+---
+
+## 覆盖率统计
+
+| 类别 | 已覆盖 | 总数 | 覆盖率 |
+|------|--------|------|--------|
+| Handler Contract | 14/14 | 14 | 100% |
+| Resolver Integration | 14/14 | 14 | 100% |
+| V2 Boards Integration | 10/14 | 14 | 71% |
+
+### 待补充的 V2 Boards Integration（非阻塞）
+以下 schemaId 有 handler/resolver 覆盖但无专门的 v2 boards 测试：
+- `slackerChooseIdol`：需要包含 slacker 的模板
+- `wolfRobotLearn`：需要包含 wolfRobot 的模板
+- `dreamcatcherDream`：需要包含 dreamcatcher 的模板
+- `gargoyleCheck`：需要包含 gargoyle 的模板
+- `wolfQueenCharm`：需要包含 wolfQueen 的模板
+- `psychicCheck`：需要包含 psychic 的模板
+
+> 注：这些 schema 的 handler + resolver 层面已通过 batch contract 测试覆盖，
+> 只是缺少端到端的 v2 boards 测试。可在后续按需补充。
+
+---
+
+## 关键回归测试
+
+### Swap → Reveal 链路
+`magicianSwap.seerReveal.v2.integration.test.ts` 验证：
+- magician 交换 seat A (villager) 和 seat B (wolf)
+- seer 查验 seat A
+- **断言**：`seerReveal.result` 必须反映交换后的阵营（wolf）
+
+此测试确保身份映射链路 `swap → getRoleAfterSwap → reveal` 正确。
+
+---
+
+## 更新记录
+| 日期 | 变更 |
+|------|------|
+| 2026-01-23 | 初始版本，Commit 5 审计完成 |

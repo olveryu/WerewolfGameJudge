@@ -26,7 +26,7 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
     actorSeat: 5,
     actorRoleId: 'witch',
     players: defaultPlayers,
-    currentNightResults: { wolfKillTarget: 0 },
+  currentNightResults: { wolfVotesBySeat: { '2': 0 } },
     gameState: {
       isNight1: true,
       witchHasAntidote: true,
@@ -49,14 +49,16 @@ function createInput(stepResults: Record<string, number | null> | undefined): Ac
 
 describe('witchActionResolver', () => {
   describe('validate', () => {
-    it('应该拒绝缺少行动数据', () => {
+    it('应该接受 stepResults 为 undefined（不使用技能/跳过）', () => {
       const ctx = createContext();
       const input = createInput(undefined);
 
       const result = witchActionResolver(ctx, input);
 
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toContain('行动数据');
+      expect(result.valid).toBe(true);
+      // 跳过时没有 save/poison，updates 应该是空的
+      expect(result.updates?.savedSeat).toBeUndefined();
+      expect(result.updates?.poisonedSeat).toBeUndefined();
     });
 
     it('应该接受空行动（不使用技能）', () => {
@@ -72,7 +74,7 @@ describe('witchActionResolver', () => {
   describe('save action', () => {
     it('应该拒绝女巫自救 (notSelf constraint)', () => {
       const ctx = createContext({
-        currentNightResults: { wolfKillTarget: 5 }, // witch is killed
+    currentNightResults: { wolfVotesBySeat: { '1': 5 } }, // witch is killed
       });
       const input = createInput({ save: 5, poison: null });
 
@@ -96,7 +98,7 @@ describe('witchActionResolver', () => {
 
     it('应该拒绝救非狼刀目标', () => {
       const ctx = createContext({
-        currentNightResults: { wolfKillTarget: 0 },
+    currentNightResults: { wolfVotesBySeat: { '1': 0 } },
       });
       const input = createInput({ save: 1, poison: null }); // seat 1 is not wolf target
 
@@ -108,7 +110,7 @@ describe('witchActionResolver', () => {
 
     it('应该接受救被狼刀目标', () => {
       const ctx = createContext({
-        currentNightResults: { wolfKillTarget: 0 },
+    currentNightResults: { wolfVotesBySeat: { '1': 0 } },
       });
       const input = createInput({ save: 0, poison: null });
 
@@ -134,7 +136,7 @@ describe('witchActionResolver', () => {
 
     it('应该拒绝同时救和毒', () => {
       const ctx = createContext({
-        currentNightResults: { wolfKillTarget: 0 },
+    currentNightResults: { wolfVotesBySeat: { '1': 0 } },
       });
       const input = createInput({ save: 0, poison: 1 });
 
@@ -168,7 +170,7 @@ describe('witchActionResolver', () => {
   describe('updates', () => {
     it('救人时应该更新 savedSeat', () => {
       const ctx = createContext({
-        currentNightResults: { wolfKillTarget: 0 },
+    currentNightResults: { wolfVotesBySeat: { '1': 0 } },
       });
       const input = createInput({ save: 0, poison: null });
 
@@ -190,17 +192,20 @@ describe('witchActionResolver', () => {
   });
 
   describe('nightmare block', () => {
-    it('被梦魇封锁时应该返回空结果', () => {
+    // NOTE: Nightmare block guard is now at actionHandler layer.
+    // The resolver itself does NOT reject blocked actions.
+    // These tests verify resolver behavior when invoked directly (skip returns empty result)
+
+    it('被梦魇封锁时跳过返回空结果', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 5 }, // witch is blocked
       });
-      const input = createInput({ save: 0, poison: null });
+      const input = createInput(undefined);
 
       const result = witchActionResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.savedTarget).toBeUndefined();
-      expect(result.result?.poisonedTarget).toBeUndefined();
+      expect(result.result).toEqual({});
     });
   });
 });

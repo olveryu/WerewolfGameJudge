@@ -92,8 +92,6 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     lastSeatError: null,
     clearLastSeatError: jest.fn(),
 
-    waitForActionRejected: jest.fn().mockResolvedValue(null),
-
     // NOTE(phase removed): phase no longer exists; seat taps always mean poison.
     getWitchContext: jest
       .fn()
@@ -205,7 +203,8 @@ describe('RoomScreen witch poison UI (smoke)', () => {
       confirmBtn?.onPress?.();
     });
 
-    expect(mockSubmitAction).toHaveBeenCalledWith(2, { poison: true });
+    // v2 protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
+    expect(mockSubmitAction).toHaveBeenCalledWith(0, { stepResults: { save: null, poison: 2 } });
   });
 
   // Regression guard: seat-tap poison must NOT be driven by any save-related context.
@@ -251,6 +250,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
       confirmBtn?.onPress?.();
     });
 
-    expect(mockSubmitAction).toHaveBeenCalledWith(2, { poison: true });
+    // v2 protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
+    expect(mockSubmitAction).toHaveBeenCalledWith(0, { stepResults: { save: null, poison: 2 } });
   });
 });

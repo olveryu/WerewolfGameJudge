@@ -40,9 +40,9 @@ describe('confirm schema contract (hunter/darkWolfKing)', () => {
       expect(typeof SCHEMAS.hunterConfirm.ui?.prompt).toBe('string');
     });
 
-    it('should NOT have canSkip (confirm has no skip concept)', () => {
-      // confirm schema doesn't have canSkip - user must confirm their status
-      expect((SCHEMAS.hunterConfirm as any).canSkip).toBeUndefined();
+    it('should have canSkip=true (for nightmare block skip button)', () => {
+      // confirm schema needs canSkip to show skip button when blocked by nightmare
+      expect(SCHEMAS.hunterConfirm.canSkip).toBe(true);
     });
 
     it('should NOT have constraints (no target selection)', () => {
@@ -70,8 +70,9 @@ describe('confirm schema contract (hunter/darkWolfKing)', () => {
       expect(typeof SCHEMAS.darkWolfKingConfirm.ui?.prompt).toBe('string');
     });
 
-    it('should NOT have canSkip (confirm has no skip concept)', () => {
-      expect((SCHEMAS.darkWolfKingConfirm as any).canSkip).toBeUndefined();
+    it('should have canSkip=true (for nightmare block skip button)', () => {
+      // confirm schema needs canSkip to show skip button when blocked by nightmare
+      expect(SCHEMAS.darkWolfKingConfirm.canSkip).toBe(true);
     });
 
     it('should NOT have constraints (no target selection)', () => {

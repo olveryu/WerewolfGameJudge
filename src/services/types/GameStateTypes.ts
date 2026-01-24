@@ -1,5 +1,5 @@
 /**
- * GameStateTypes - Pure type definitions extracted from GameStateService
+ * GameStateTypes - Pure type definitions for game state
  *
  * This file contains only:
  * - Enums
@@ -24,7 +24,13 @@ export enum GameStatus {
   assigned = 'assigned', // Roles assigned, players viewing their cards
   ready = 'ready', // All players have viewed cards, ready to start
   ongoing = 'ongoing', // Night phase in progress
-  ended = 'ended', // Game ended (first night complete)
+  /**
+   * Night-1 complete (results ready).
+   *
+   * IMPORTANT: This app does not decide winners. "ended" only means the app's
+   * Night-1 flow is complete and players can view the summary/deaths.
+   */
+  ended = 'ended',
 }
 
 // =============================================================================
@@ -124,6 +130,8 @@ export interface LocalGameState {
     action: string;
     reason: string;
     targetUid: string; // which player was rejected
+  /** Unique id for this rejection event (UI uses it for dedupe). */
+  rejectionId: string;
   };
 }
 
