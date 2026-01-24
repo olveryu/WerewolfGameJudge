@@ -23,6 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors, spacing, borderRadius, typography, shadows, ThemeColors } from '../../theme';
 import { TESTIDS } from '../../testids';
 import { configLog } from '../../utils/logger';
+import { LoadingScreen } from '../../components/LoadingScreen';
 import { generateRoomCode } from '../../utils/roomCode';
 
 // ============================================
@@ -407,10 +408,7 @@ export const ConfigScreen: React.FC = () => {
       </View>
 
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>加载中...</Text>
-        </View>
+        <LoadingScreen message="加载中..." fullScreen={false} />
       ) : (
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Presets */}
