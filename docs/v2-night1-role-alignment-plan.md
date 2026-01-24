@@ -18,8 +18,40 @@
   1) 扫描/对齐结论（写在 PR/commit message）
   2) 最少 1 个 Handler Contract Test（验证 UI payload → `buildActionInput`）
   3) 最少 1 个 Resolver Integration Test（验证 resolver 输入/输出 shape + 关键 edge case）
+  4) 最少 1 个 **V2 boards / harness integration**（必须跑在 v2-only harness 上，见 0.1）
   4) 本地跑过 Jest 全绿
 - 每个 commit 完成后 **停下来等审核**，不得一次性批量堆 10+ 角色。
+
+### 0.1 V2-only 门禁（强制，避免 legacy 假阳性）
+
+> 这部分是本方案的核心升级：**对齐的最终证据必须来自 v2 runtime pipeline**，不能再用 legacy Host 跑出“看似通过”的结果。
+
+每个涉及 Night-1 行动协议的改动（UI/handler/resolver 任一处），必须同时满足：
+
+1) **boards/integration 必须基于 v2-only harness**
+
+- 必须使用：`src/services/v2/__tests__/boards/hostGameFactory.v2.ts`（或等价 v2-only harness）。
+- ❌ 禁止：在 v2 boards 目录下 import `src/services/GameStateService*`、`src/services/legacy/**`、`NightFlowController`。
+
+2) **必须有 boundary guard（防止回退到 legacy/encoded-target）**
+
+- 必须通过：`src/services/v2/__tests__/boards/boundary.guard.test.ts`
+- guard 至少要覆盖：
+  - v2 boards harness 目录
+  - v2 core（`src/services/v2/handlers/**`、`src/services/v2/reducer/**`）
+
+3) **必须有 wire protocol contract（锁死“harness 实际发送的 payload shape”）**
+
+- 必须通过：`src/services/v2/__tests__/boards/wireProtocol.contract.test.ts`
+- contract 不只测 `SCHEMAS/NIGHT_STEPS`，还必须额外锁死：`hostGameFactory.v2.ts` 实际发送的 `PlayerMessage`（或等价测试手段）。
+  - swap（magicianSwap）：`target === null` + `extra.targets`（仅在 length>0 时存在）
+  - compound（witchAction）：`target === null` + `extra.stepResults` 且包含 `save/poison` 两个 key
+
+4) **单一真相（BroadcastGameState）强制落地到 night end / death calc**
+
+- night end / death calc 必须只读 `BroadcastGameState`（= v2 state）中的权威字段。
+- 例如：witch 的 save/poison 结果必须从 `currentNightResults.savedSeat/poisonedSeat` 读取。
+- ❌ 禁止：从 `ProtocolAction.targetSeat` 反推 witch 行为（这会导致 drift）。
 
 ---
 
@@ -47,17 +79,17 @@
 
 ### 2.1 Witch（已证实是致命 bug）
 
-- **现状证据**：UI（有测试）提交 `submitAction(actorSeat, { poison: true })` / `{ save: true }`
-- **Handler 现状**：`buildActionInput()` 只读取 `extra.stepResults`（compound 才看 stepResults）
+- **v2 目标协议（硬约束）**：witchAction 是 compound schema，UI/boards 必须提交 `extra.stepResults`
+- **Handler 目标**：`buildActionInput()` 从 `extra.stepResults` 读取并传给 resolver
 - **Resolver 期望**：`src/services/night/resolvers/witch.ts` 读取 `input.stepResults`
-- **结果**：`stepResults` 缺失会被 `isSkipAction()` 判定为 skip → 毒/救完全不生效
+- **night end / death calc 目标**：结算必须从 `BroadcastGameState.currentNightResults.savedSeat/poisonedSeat` 读取（单一真相）
 
 **修复方向（必须选其一，且不能兼容 legacy）**
 
-- ✅ 推荐：改 UI 提交为 v2 统一协议：`submitAction(actorSeat, { stepResults: { save: <seat|null>, poison: <seat|null> } })`
+- ✅ 必须：UI 提交为 v2 统一协议：`submitAction(actorSeat, { stepResults: { save: <seat|null>, poison: <seat|null> } })`
   - 这符合 schema-first（compound）输入模型
   - 同时更新 UI 测试断言
-- 或：改 handler 兼容 `{ poison: true }/{ save: true }` 并转换成 `stepResults`（不推荐，容易把“临时兼容”遗留成 drift）
+- ❌ 禁止：为了“兼容旧测试/旧 harness”在 v2 handler 中支持 `{ poison: true }/{ save: true }` 这种 legacy-ish payload。若现有测试仍依赖该形态，应先迁移测试到 v2 wire。
 
 **测试门禁（必须）**
 
@@ -168,6 +200,17 @@
 - 禁止：只断言返回 valid/reject，不看输入 shape
 
 ### 5.2 Resolver Integration Test（必须用真实 ActionInput）
+
+### 5.3 V2 boards harness integration（必须，作为最终证据）
+
+- 放在：`src/services/v2/__tests__/boards/*.v2.integration.test.ts`
+- 必须使用 `createHostGameV2()` + `ctx.runNight(...)` 驱动 Night-1 完整流程
+- 至少覆盖：
+  - 1 个 swap（magicianSwap）场景
+  - 1 个 compound（witchAction）场景
+- 断言：
+  - 广播状态（BroadcastGameState）正确更新（例如 swappedSeats / savedSeat / poisonedSeat / deaths）
+  - 流程能完整 end night（避免 legacy 推进语义导致的假死）
 
 - 放在：`src/services/night/resolvers/__tests__/<role>.integration.test.ts`
 - 断言：

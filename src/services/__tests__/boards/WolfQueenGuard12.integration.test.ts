@@ -136,7 +136,6 @@ describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
     it('女巫救狼美人（被狼刀）→ 狼美人存活，链接不触发', async () => {
       ctx = await createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const wolfQueenSeat = ctx.findSeatByRole('wolfQueen');
 
       const result = await ctx.runNight({
         guard: null,
