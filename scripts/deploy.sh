@@ -5,8 +5,16 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-echo "🔄 备份 .env.local..."
-cp .env.local .env.local.backup
+echo "� 更新版本号..."
+bash ./scripts/update-version.sh
+
+echo "�🔄 备份 .env.local（如果存在）..."
+if [ -f .env.local ]; then
+  cp .env.local .env.local.backup
+  HAS_BACKUP=true
+else
+  HAS_BACKUP=false
+fi
 
 echo "🔧 切换到生产环境配置..."
 cp .env .env.local
@@ -25,8 +33,12 @@ vercel alias "$DEPLOYMENT_URL" werewolf-judge.vercel.app
 
 echo "♻️ 恢复本地开发配置..."
 cd ..
-cp .env.local.backup .env.local
-rm .env.local.backup
+if [ "$HAS_BACKUP" = true ]; then
+  cp .env.local.backup .env.local
+  rm .env.local.backup
+else
+  rm -f .env.local
+fi
 
 echo ""
 echo "✅ 部署完成！"

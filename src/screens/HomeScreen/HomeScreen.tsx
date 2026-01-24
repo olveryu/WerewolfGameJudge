@@ -21,6 +21,7 @@ import Avatar from '../../components/Avatar';
 import { NumPad } from '../../components/NumPad';
 import { homeLog } from '../../utils/logger';
 import { TESTIDS } from '../../testids';
+import { APP_VERSION } from '../../config/version';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
