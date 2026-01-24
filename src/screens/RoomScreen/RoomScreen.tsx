@@ -14,7 +14,6 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -48,6 +47,7 @@ import { ConnectionStatusBar } from './components/ConnectionStatusBar';
 import { roomScreenLog } from '../../utils/logger';
 import type { ActionSchema, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
 import { SCHEMAS, isValidSchemaId, BLOCKED_UI_DEFAULTS } from '../../models/roles/spec';
+import { LoadingScreen } from '../../components/LoadingScreen';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -952,14 +952,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     const displayMessage = showRetryButton && gameRoomError ? gameRoomError : loadingMessage;
     const isError = showRetryButton;
 
-    return (
-      <View style={styles.loadingContainer}>
-        {!isError && <ActivityIndicator size="large" color={colors.primary} />}
-        {isError && <Text style={styles.errorIcon}>⚠️</Text>}
-        <Text style={[styles.loadingText, isError && styles.errorMessageText]}>
-          {displayMessage}
-        </Text>
-        {showRetryButton && (
+    if (isError) {
+      return (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={[styles.loadingText, styles.errorMessageText]}>{displayMessage}</Text>
           <View style={styles.retryButtonRow}>
             <TouchableOpacity
               style={[styles.errorBackButton, { backgroundColor: colors.primary }]}
@@ -975,9 +972,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               <Text style={styles.errorBackButtonText}>返回</Text>
             </TouchableOpacity>
           </View>
-        )}
-      </View>
-    );
+        </View>
+      );
+    }
+
+    return <LoadingScreen message={displayMessage} />;
   }
 
   // Get action message
