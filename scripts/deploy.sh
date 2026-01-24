@@ -58,11 +58,15 @@ cp assets/pwa/*.png dist/assets/pwa/
 # 复制 manifest 和 service worker
 cp web/manifest.json dist/
 cp web/sw.js dist/
-# 注入 PWA meta 标签到 index.html
+# 注入 PWA meta 标签和 loading 样式到 index.html
 if [ -f dist/index.html ]; then
-  # 使用 perl 注入 PWA meta 标签（比 sed/awk 更可靠处理多行）
+  # 1. 注入 body 背景色和 loading 动画样式（在 </style> 后面）
+  perl -i -pe 's|</style>|</style>\n    <style id="loading-style">\n      body { background-color: #1a1a2e; }\n      #loading-splash { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #1a1a2e; display: flex; align-items: center; justify-content: center; z-index: 9999; }\n      #loading-splash img { width: 120px; height: 120px; animation: pulse 1.5s ease-in-out infinite; }\n      \@keyframes pulse { 0%, 100% { opacity: 0.6; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1); } }\n    </style>|' dist/index.html
+  # 2. 注入 PWA meta 标签
   perl -i -pe 's|</head>|    <meta name="theme-color" content="#1a1a2e" />\n    <meta name="apple-mobile-web-app-capable" content="yes" />\n    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />\n    <meta name="apple-mobile-web-app-title" content="狼人杀电子法官" />\n    <link rel="apple-touch-icon" href="/assets/pwa/apple-touch-icon.png" />\n    <link rel="manifest" href="/manifest.json" />\n  </head>|' dist/index.html
-  echo "✅ PWA meta 标签已注入"
+  # 3. 在 #root 前插入 loading splash
+  perl -i -pe 's|<div id="root"></div>|<div id="loading-splash"><img src="/assets/pwa/icon-192.png" alt="Loading..." /></div>\n    <div id="root"></div>\n    <script>window.addEventListener("load", function() { var s = document.getElementById("loading-splash"); if(s) s.style.display = "none"; });</script>|' dist/index.html
+  echo "✅ PWA meta 标签和 loading 动画已注入"
 else
   echo "⚠️ dist/index.html 不存在，跳过 PWA 注入"
 fi
