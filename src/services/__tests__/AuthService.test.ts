@@ -239,7 +239,7 @@ describe('AuthService - waitForInit timeout', () => {
     // Fast-forward 10 seconds
     jest.advanceTimersByTime(10000);
 
-    // Should reject with timeout error
+    // Should reject with user-friendly timeout error
     await expect(waitPromise).rejects.toThrow('登录超时，请重试');
   });
 

@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../../config/supabase';
 import { authLog } from '../../utils/logger';
 import { getAllRoleIds, getRoleSpec } from '../../models/roles';
+import { withTimeout } from '../../utils/withTimeout';
 
 export class AuthService {
   private static instance: AuthService;
@@ -31,11 +32,8 @@ export class AuthService {
   async waitForInit(): Promise<void> {
     if (this.initPromise) {
       // Add timeout to prevent infinite waiting
-      const timeoutPromise = new Promise<void>((_, reject) => {
-        setTimeout(() => reject(new Error('登录超时，请重试')), 10000);
-      });
-
-      await Promise.race([this.initPromise, timeoutPromise]);
+      // 使用用户友好的错误消息，技术上下文由 withTimeout 内部 logger 记录
+      await withTimeout(this.initPromise, 10000, () => new Error('登录超时，请重试'));
     }
   }
 
