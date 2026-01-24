@@ -44,7 +44,6 @@ import {
 import { TESTIDS } from '../../testids';
 import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
-import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import { ConnectionStatusBar } from './components/ConnectionStatusBar';
 import { roomScreenLog } from '../../utils/logger';
 import type { ActionSchema, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
@@ -89,12 +88,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     requestSnapshot,
     submitRevealAck,
   } = useGameRoom();
-
-  // Commit 6 (UI-only): display the authoritative audioKey (from NIGHT_STEPS via ROLE_TURN.stepId)
-  const currentAudioKeyForUi = useMemo(() => {
-    if (!currentStepId) return null;
-    return getStepSpec(currentStepId)?.audioKey ?? null;
-  }, [currentStepId]);
 
   // Night progress indicator: calculate current step index and total steps
   // Uses buildNightPlan to get the actual steps based on the template roles
@@ -1054,11 +1047,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* Action Message - only show after audio finishes */}
         {imActioner && !isAudioPlaying && <ActionMessage message={actionMessage} />}
-
-        {/* Commit 6 (UI-only): show which audioKey is currently playing */}
-        {roomStatus === GameStatus.ongoing && isAudioPlaying && currentAudioKeyForUi && (
-          <ActionMessage message={`正在播放：${currentAudioKeyForUi}`} />
-        )}
 
         {/* Show players who haven't viewed their roles yet */}
         {isHost && roomStatus === GameStatus.assigned && (
