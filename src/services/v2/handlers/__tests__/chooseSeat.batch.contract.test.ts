@@ -16,7 +16,7 @@
  */
 
 import { handleSubmitAction } from '../actionHandler';
-import { SCHEMAS } from '../../../../models/roles/spec';
+import { SCHEMAS, BLOCKED_UI_DEFAULTS } from '../../../../models/roles/spec';
 import type { SchemaId } from '../../../../models/roles/spec';
 import type { HandlerContext } from '../types';
 import type { SubmitActionIntent } from '../../intents/types';
@@ -252,8 +252,9 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const result = handleSubmitAction(intent, context);
 
+        // 只断言失败，不断言具体文案（避免中文依赖）
         expect(result.success).toBe(false);
-        expect(result.reason).toContain('自己');
+        expect(result.reason).toBeDefined();
       },
     );
 
@@ -293,7 +294,8 @@ describe('chooseSeat Batch Handler Contract', () => {
         const result = handleSubmitAction(intent, context);
 
         expect(result.success).toBe(false);
-        expect(result.reason).toContain('梦魇');
+        // 使用常量断言，避免中文文案依赖
+        expect(result.reason).toBe(BLOCKED_UI_DEFAULTS.message);
       },
     );
 

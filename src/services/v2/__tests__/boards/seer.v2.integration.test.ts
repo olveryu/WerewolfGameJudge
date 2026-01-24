@@ -10,7 +10,11 @@
  */
 
 import { createHostGameV2 } from './hostGameFactory.v2';
+import { BLOCKED_UI_DEFAULTS } from '../../../../models/roles/spec';
 import type { RoleId } from '../../../../models/roles';
+
+/** Hard cap for step progression loops to avoid infinite loops */
+const MAX_STEP_ADVANCES = 20;
 
 describe('Seer V2 Integration', () => {
   /**
@@ -33,7 +37,7 @@ describe('Seer V2 Integration', () => {
     return map;
   }
 
-  /** 推进到 seerCheck 步骤的辅助函数 */
+  /** 推进到 seerCheck 步骤的辅助函数（带 hard cap）*/
   function advanceToSeerStep(ctx: ReturnType<typeof createHostGameV2>): boolean {
     // 第一步是 wolfKill
     if (ctx.getBroadcastState().currentStepId === 'wolfKill') {
@@ -164,25 +168,13 @@ describe('Seer V2 Integration', () => {
       return map;
     }
 
-    it('should reject blocked seer with non-skip action', () => {
-      const ctx = createHostGameV2(NIGHTMARE_SEER_TEMPLATE, createNightmareAssignment());
-
-      // 第一步是 nightmare
-      expect(ctx.getBroadcastState().currentStepId).toBe('nightmareBlock');
-
-      // nightmare 封锁 seer (seat 2)
-      ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 0,
-        role: 'nightmare',
-        target: 2,
-      });
-
-      // 验证 blockedSeat 已设置
-      expect(ctx.getBroadcastState().currentNightResults?.blockedSeat).toBe(2);
-
-      // 推进到 seer 步骤
-      while (ctx.getBroadcastState().currentStepId !== 'seerCheck') {
+    /** 推进到 seerCheck 步骤（带 hard cap） */
+    function advanceToSeerCheckWithCap(ctx: ReturnType<typeof createHostGameV2>): void {
+      for (let i = 0; i < MAX_STEP_ADVANCES; i++) {
+        if (ctx.getBroadcastState().currentStepId === 'seerCheck') {
+          return;
+        }
+        
         const currentStep = ctx.getBroadcastState().currentStepId;
         
         // 如果是 wolfKill，需要提交狼刀
@@ -203,19 +195,43 @@ describe('Seer V2 Integration', () => {
         const advanceResult = ctx.advanceNight();
         if (!advanceResult.success) break;
       }
-
-      if (ctx.getBroadcastState().currentStepId === 'seerCheck') {
-        // seer 尝试查验（应该被 reject）
-        const result = ctx.sendPlayerMessage({
-          type: 'ACTION',
-          seat: 2,
-          role: 'seer',
-          target: 1,
-        });
-
-        expect(result.success).toBe(false);
-        expect(result.reason).toContain('梦魇');
+      
+      if (ctx.getBroadcastState().currentStepId !== 'seerCheck') {
+        throw new Error(`Failed to reach seerCheck within ${MAX_STEP_ADVANCES} advances`);
       }
+    }
+
+    it('should reject blocked seer with non-skip action', () => {
+      const ctx = createHostGameV2(NIGHTMARE_SEER_TEMPLATE, createNightmareAssignment());
+
+      // 第一步是 nightmare
+      expect(ctx.getBroadcastState().currentStepId).toBe('nightmareBlock');
+
+      // nightmare 封锁 seer (seat 2)
+      ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 0,
+        role: 'nightmare',
+        target: 2,
+      });
+
+      // 验证 blockedSeat 已设置
+      expect(ctx.getBroadcastState().currentNightResults?.blockedSeat).toBe(2);
+
+      // 推进到 seer 步骤（带 hard cap）
+      advanceToSeerCheckWithCap(ctx);
+
+      // seer 尝试查验（应该被 reject）
+      const result = ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 2,
+        role: 'seer',
+        target: 1,
+      });
+
+      expect(result.success).toBe(false);
+      // 使用常量断言，避免中文文案依赖
+      expect(result.reason).toBe(BLOCKED_UI_DEFAULTS.message);
     });
 
     it('should allow blocked seer to skip', () => {
@@ -229,39 +245,18 @@ describe('Seer V2 Integration', () => {
         target: 2,
       });
 
-      // 推进到 seer 步骤
-      while (ctx.getBroadcastState().currentStepId !== 'seerCheck') {
-        const currentStep = ctx.getBroadcastState().currentStepId;
-        
-        if (currentStep === 'wolfKill') {
-          ctx.sendPlayerMessage({
-            type: 'WOLF_VOTE',
-            seat: 1,
-            target: -1,
-          });
-          ctx.sendPlayerMessage({
-            type: 'ACTION',
-            seat: 1,
-            role: 'wolf',
-            target: null,
-          });
-        }
-        
-        const advanceResult = ctx.advanceNight();
-        if (!advanceResult.success) break;
-      }
+      // 推进到 seer 步骤（带 hard cap）
+      advanceToSeerCheckWithCap(ctx);
 
-      if (ctx.getBroadcastState().currentStepId === 'seerCheck') {
-        // seer 跳过（应该成功）
-        const result = ctx.sendPlayerMessage({
-          type: 'ACTION',
-          seat: 2,
-          role: 'seer',
-          target: null,
-        });
+      // seer 跳过（应该成功）
+      const result = ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 2,
+        role: 'seer',
+        target: null,
+      });
 
-        expect(result.success).toBe(true);
-      }
+      expect(result.success).toBe(true);
     });
   });
 
