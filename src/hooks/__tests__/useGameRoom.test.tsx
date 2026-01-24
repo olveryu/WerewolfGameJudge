@@ -276,4 +276,177 @@ describe('useGameRoom - ACK reason transparency', () => {
       expect(typeof result.current.lastStateReceivedAt).toBe('number');
     });
   });
+
+  // =========================================================================
+  // Auto-recovery throttle: 同一 live session 只请求一次，避免 REQUEST_STATE spam
+  // =========================================================================
+  describe('auto-recovery throttle (fake-timers)', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should only call requestSnapshot once per live session (no spam)', async () => {
+      const requestSnapshotMock = jest.fn().mockResolvedValue(true);
+      let statusListener: ((status: 'live' | 'connecting' | 'disconnected') => void) | null = null;
+
+      const mockFacade = createMockFacade({
+        requestSnapshot: requestSnapshotMock,
+        isHostPlayer: jest.fn().mockReturnValue(false), // Player mode
+      });
+
+      mockBroadcastService.addStatusListener = jest.fn().mockImplementation((fn) => {
+        statusListener = fn;
+        return () => {};
+      });
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      );
+
+      // roomRecord 不存在时不会触发 auto-recovery，需要 mock 一个房间
+      const mockRoomService = {
+        getRoom: jest.fn().mockResolvedValue({
+          id: 'room-id',
+          room_number: 'TEST',
+          status: 'active',
+          host_uid: 'host-1',
+          created_at: new Date().toISOString(),
+        }),
+        deleteRoom: jest.fn(),
+        subscribeToRoom: jest.fn().mockReturnValue(() => {}),
+      };
+      jest.requireMock('../../services/infra/RoomService').SimplifiedRoomService = {
+        getInstance: () => mockRoomService,
+      };
+
+      const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+      // 模拟加入房间
+      await act(async () => {
+        await result.current.joinRoom('TEST');
+      });
+
+      // 第一次 live：触发 auto-recovery timer
+      act(() => {
+        statusListener?.('live');
+      });
+
+      // 快进 2 秒，触发 requestSnapshot
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+      });
+
+      expect(requestSnapshotMock).toHaveBeenCalledTimes(1);
+
+      // 模拟断线
+      act(() => {
+        statusListener?.('connecting');
+      });
+
+      // 重新连接（同一 session，因为没有收到新 STATE_UPDATE）
+      act(() => {
+        statusListener?.('live');
+      });
+
+      // 再次快进 2 秒
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+      });
+
+      // 仍然只调用一次（throttle 生效）
+      expect(requestSnapshotMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should allow new requestSnapshot after receiving state (throttle reset)', async () => {
+      const requestSnapshotMock = jest.fn().mockResolvedValue(true);
+      let statusListener: ((status: 'live' | 'connecting' | 'disconnected') => void) | null = null;
+      let stateListener: ((state: any) => void) | null = null;
+
+      const mockFacade = createMockFacade({
+        requestSnapshot: requestSnapshotMock,
+        isHostPlayer: jest.fn().mockReturnValue(false), // Player mode
+        addListener: jest.fn().mockImplementation((fn) => {
+          stateListener = fn;
+          return () => {};
+        }),
+      });
+
+      mockBroadcastService.addStatusListener = jest.fn().mockImplementation((fn) => {
+        statusListener = fn;
+        return () => {};
+      });
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      );
+
+      const mockRoomService = {
+        getRoom: jest.fn().mockResolvedValue({
+          id: 'room-id',
+          room_number: 'TEST',
+          status: 'active',
+          host_uid: 'host-1',
+          created_at: new Date().toISOString(),
+        }),
+        deleteRoom: jest.fn(),
+        subscribeToRoom: jest.fn().mockReturnValue(() => {}),
+      };
+      jest.requireMock('../../services/infra/RoomService').SimplifiedRoomService = {
+        getInstance: () => mockRoomService,
+      };
+
+      const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+      await act(async () => {
+        await result.current.joinRoom('TEST');
+      });
+
+      // 第一次 live：触发 auto-recovery
+      act(() => {
+        statusListener?.('live');
+      });
+
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+      });
+
+      expect(requestSnapshotMock).toHaveBeenCalledTimes(1);
+
+      // 收到 STATE_UPDATE（重置 throttle）
+      const mockState = {
+        roomCode: 'TEST',
+        hostUid: 'host-1',
+        status: 'unseated',
+        templateRoles: ['villager'],
+        players: {},
+        currentActionerIndex: -1,
+        isAudioPlaying: false,
+      };
+
+      await act(async () => {
+        stateListener?.(mockState);
+      });
+
+      // 模拟断线
+      act(() => {
+        statusListener?.('connecting');
+      });
+
+      // 重新连接（新 session，因为收到了 STATE_UPDATE 重置 throttle）
+      act(() => {
+        statusListener?.('live');
+      });
+
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+      });
+
+      // 现在应该调用第二次
+      expect(requestSnapshotMock).toHaveBeenCalledTimes(2);
+    });
+  });
 });

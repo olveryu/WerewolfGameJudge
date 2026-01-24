@@ -187,19 +187,13 @@ export class GameFacade implements IGameFacade {
     this.isHost = true;
     this.myUid = hostUid;
 
-    // 尝试从本地缓存恢复状态
+    // 尝试从本地缓存恢复状态（key = roomCode:hostUid）
     const hostCache = HostStateCache.getInstance();
-    const cached = await hostCache.loadState(roomCode);
+    const cached = await hostCache.loadState(roomCode, hostUid);
 
     if (cached) {
-      // Hard guard: cached hostUid must match current hostUid
-      if (cached.state.hostUid !== hostUid) {
-        this.isHost = false;
-        this.myUid = null;
-        return { success: false, reason: 'cached_state_host_mismatch' };
-      }
-
       // 有缓存：恢复状态 + revision（Host rejoin 必须恢复 revision，否则 Player 可能拒绝后续 STATE_UPDATE）
+      // 注意：loadState 已经校验了 cached.state.hostUid === hostUid
       this.store.applyHostSnapshot(cached.state, cached.revision);
     } else if (templateRoles && templateRoles.length > 0) {
       // 没有缓存但有模板：创建初始状态
@@ -590,7 +584,7 @@ export class GameFacade implements IGameFacade {
 
     // Host: 保存状态到本地缓存（用于 rejoin 恢复）
     if (this.isHost) {
-      void HostStateCache.getInstance().saveState(state.roomCode, state, revision);
+      void HostStateCache.getInstance().saveState(state.roomCode, state.hostUid, state, revision);
     }
 
     const msg: HostBroadcast = {

@@ -9,6 +9,10 @@
  * - 这不是权威存储，只是本地缓存
  * - Supabase 不存储游戏状态
  * - 仅 Host 使用，Player 不需要
+ *
+ * 防误命中策略：
+ * - cache key = roomCode:hostUid（防止 roomCode 复用）
+ * - 结构校验：缺字段 / 类型不对 → removeItem + return null
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,7 +23,12 @@ const hostCacheLog = log.extend('HostStateCache');
 
 const CACHE_KEY_PREFIX = 'host_state_cache_';
 
+/** Cache 版本号，结构变更时递增 */
+const CACHE_VERSION = 1;
+
 export interface CachedHostState {
+  /** Cache 版本号，用于结构迁移 */
+  version: number;
   state: BroadcastGameState;
   revision: number;
   cachedAt: number; // timestamp
@@ -30,6 +39,28 @@ export interface CachedHostState {
  * 默认 2 小时 - 超过此时间的缓存视为无效
  */
 const CACHE_TTL_MS = 2 * 60 * 60 * 1000;
+
+/**
+ * 结构校验：验证 cached 对象是否包含所有必需字段且类型正确
+ */
+function isValidCachedState(cached: unknown): cached is CachedHostState {
+  if (typeof cached !== 'object' || cached === null) return false;
+  const obj = cached as Record<string, unknown>;
+
+  // 必需字段类型检查
+  if (typeof obj.version !== 'number') return false;
+  if (typeof obj.revision !== 'number') return false;
+  if (typeof obj.cachedAt !== 'number') return false;
+  if (typeof obj.state !== 'object' || obj.state === null) return false;
+
+  // state 内部必需字段检查
+  const state = obj.state as Record<string, unknown>;
+  if (typeof state.roomCode !== 'string') return false;
+  if (typeof state.hostUid !== 'string') return false;
+  if (typeof state.status !== 'string') return false;
+
+  return true;
+}
 
 export class HostStateCache {
   private static instance: HostStateCache | null = null;
@@ -44,22 +75,32 @@ export class HostStateCache {
     HostStateCache.instance = null;
   }
 
-  private getCacheKey(roomCode: string): string {
-    return `${CACHE_KEY_PREFIX}${roomCode}`;
+  /**
+   * 生成 cache key：roomCode:hostUid
+   * 防止 roomCode 复用时误命中旧 Host 的缓存
+   */
+  private getCacheKey(roomCode: string, hostUid: string): string {
+    return `${CACHE_KEY_PREFIX}${roomCode}:${hostUid}`;
   }
 
   /**
    * 保存 Host 状态到本地缓存
    */
-  async saveState(roomCode: string, state: BroadcastGameState, revision: number): Promise<void> {
+  async saveState(
+    roomCode: string,
+    hostUid: string,
+    state: BroadcastGameState,
+    revision: number,
+  ): Promise<void> {
     try {
       const cached: CachedHostState = {
+        version: CACHE_VERSION,
         state,
         revision,
         cachedAt: Date.now(),
       };
-      await AsyncStorage.setItem(this.getCacheKey(roomCode), JSON.stringify(cached));
-      hostCacheLog.debug('Saved host state cache', { roomCode, revision });
+      await AsyncStorage.setItem(this.getCacheKey(roomCode, hostUid), JSON.stringify(cached));
+      hostCacheLog.debug('Saved host state cache', { roomCode, hostUid, revision });
     } catch (err) {
       hostCacheLog.error('Failed to save host state cache', err);
     }
@@ -67,30 +108,75 @@ export class HostStateCache {
 
   /**
    * 加载 Host 状态缓存
-   * 返回 null 如果：缓存不存在、已过期、或解析失败
+   * 返回 null 如果：缓存不存在、已过期、结构校验失败
    */
-  async loadState(roomCode: string): Promise<CachedHostState | null> {
+  async loadState(roomCode: string, hostUid: string): Promise<CachedHostState | null> {
+    const cacheKey = this.getCacheKey(roomCode, hostUid);
     try {
-      const raw = await AsyncStorage.getItem(this.getCacheKey(roomCode));
+      const raw = await AsyncStorage.getItem(cacheKey);
       if (!raw) {
-        hostCacheLog.debug('No host state cache found', { roomCode });
+        hostCacheLog.debug('No host state cache found', { roomCode, hostUid });
         return null;
       }
 
-      const cached: CachedHostState = JSON.parse(raw);
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        hostCacheLog.warn('Host state cache has invalid JSON, removing', { roomCode, hostUid });
+        await AsyncStorage.removeItem(cacheKey);
+        return null;
+      }
+
+      // 结构校验
+      if (!isValidCachedState(parsed)) {
+        hostCacheLog.warn('Host state cache failed structure validation, removing', {
+          roomCode,
+          hostUid,
+        });
+        await AsyncStorage.removeItem(cacheKey);
+        return null;
+      }
+
+      const cached = parsed;
+
+      // 版本检查
+      if (cached.version !== CACHE_VERSION) {
+        hostCacheLog.warn('Host state cache version mismatch, removing', {
+          roomCode,
+          hostUid,
+          cachedVersion: cached.version,
+          expectedVersion: CACHE_VERSION,
+        });
+        await AsyncStorage.removeItem(cacheKey);
+        return null;
+      }
 
       // 检查过期
       if (Date.now() - cached.cachedAt > CACHE_TTL_MS) {
         hostCacheLog.debug('Host state cache expired', {
           roomCode,
+          hostUid,
           cachedAt: cached.cachedAt,
           ttl: CACHE_TTL_MS,
         });
-        await this.clearState(roomCode);
+        await AsyncStorage.removeItem(cacheKey);
         return null;
       }
 
-      hostCacheLog.debug('Loaded host state cache', { roomCode, revision: cached.revision });
+      // 二次校验：缓存内的 roomCode/hostUid 必须匹配请求参数
+      if (cached.state.roomCode !== roomCode || cached.state.hostUid !== hostUid) {
+        hostCacheLog.warn('Host state cache roomCode/hostUid mismatch, removing', {
+          requestedRoomCode: roomCode,
+          requestedHostUid: hostUid,
+          cachedRoomCode: cached.state.roomCode,
+          cachedHostUid: cached.state.hostUid,
+        });
+        await AsyncStorage.removeItem(cacheKey);
+        return null;
+      }
+
+      hostCacheLog.debug('Loaded host state cache', { roomCode, hostUid, revision: cached.revision });
       return cached;
     } catch (err) {
       hostCacheLog.error('Failed to load host state cache', err);
@@ -101,10 +187,10 @@ export class HostStateCache {
   /**
    * 清除 Host 状态缓存
    */
-  async clearState(roomCode: string): Promise<void> {
+  async clearState(roomCode: string, hostUid: string): Promise<void> {
     try {
-      await AsyncStorage.removeItem(this.getCacheKey(roomCode));
-      hostCacheLog.debug('Cleared host state cache', { roomCode });
+      await AsyncStorage.removeItem(this.getCacheKey(roomCode, hostUid));
+      hostCacheLog.debug('Cleared host state cache', { roomCode, hostUid });
     } catch (err) {
       hostCacheLog.error('Failed to clear host state cache', err);
     }
