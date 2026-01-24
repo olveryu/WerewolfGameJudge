@@ -23,6 +23,7 @@ import { shuffleArray } from '../../../utils/shuffle';
 import type { RoleId } from '../../../models/roles';
 import { buildNightPlan } from '../../../models/roles/spec/plan';
 import { getStepSpec } from '../../../models/roles/spec/nightSteps';
+import { maybeCreateWitchContextAction } from './nightFlowHandler';
 
 /**
  * 处理分配角色（仅 seated → assigned）
@@ -257,19 +258,10 @@ export function handleStartNight(
   };
   actions.push(startNightAction);
 
-  // Case: 首步为 witchAction（无狼板子）
-  // 此时需要立即设置 witchContext，否则女巫无法看到提示弹窗
-  const hasWitch = state.templateRoles.includes('witch');
-  if (firstStepId === 'witchAction' && hasWitch) {
-    const setWitchContextAction: SetWitchContextAction = {
-      type: 'SET_WITCH_CONTEXT',
-      payload: {
-        killedIndex: -1, // 无狼杀，无人死亡
-        canSave: false, // 没有人需要救
-        canPoison: true, // Night-1 毒药可用
-      },
-    };
-    actions.push(setWitchContextAction);
+  // 使用统一函数检查是否需要设置 witchContext（无狼板子首步为 witchAction 的情况）
+  const witchContextAction = maybeCreateWitchContextAction(firstStepId, state);
+  if (witchContextAction) {
+    actions.push(witchContextAction);
   }
 
   // 构建 sideEffects：先广播 + 保存，然后播放夜晚开始音频 + 第一步音频
