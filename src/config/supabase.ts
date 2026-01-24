@@ -29,8 +29,43 @@ export const isSupabaseConfigured = (): boolean => {
   );
 };
 
-// Detect if running in browser environment
-const isBrowser = globalThis?.window?.localStorage !== undefined;
+// ============================================
+// ENVIRONMENT DETECTION (稳健探测)
+// ============================================
+
+/**
+ * 探测是否在浏览器环境中运行
+ * 考虑 SSR / RN / JSDOM / WebView 等边缘情况
+ */
+function detectBrowserEnvironment(): boolean {
+  // 检查 window 对象存在
+  if (globalThis.window === undefined) return false;
+  // 检查 localStorage API 存在
+  if (globalThis.window.localStorage === undefined) return false;
+  return true;
+}
+
+/**
+ * 测试 localStorage 是否真正可用（不仅仅存在）
+ * 某些环境（隐私模式、iframe 沙箱等）localStorage 存在但不可写
+ */
+function canUseLocalStorage(): boolean {
+  if (!detectBrowserEnvironment()) return false;
+
+  const testKey = '__supabase_storage_test__';
+  try {
+    globalThis.localStorage.setItem(testKey, 'test');
+    globalThis.localStorage.removeItem(testKey);
+    return true;
+  } catch {
+    supabaseLog.warn('localStorage exists but is not usable (private mode / sandbox?)');
+    return false;
+  }
+}
+
+// Cache the detection result (只检测一次)
+const isBrowser = detectBrowserEnvironment();
+const localStorageAvailable = canUseLocalStorage();
 
 // Check for ?newUser=N URL parameter (dev tool for multi-user testing)
 // Each different N value gets a separate isolated session
@@ -78,7 +113,7 @@ const getStorageAdapter = () => {
     };
   }
 
-  if (isBrowser) {
+  if (localStorageAvailable) {
     // For web (including mobile browsers), use localStorage
     supabaseLog.debug('Using localStorage for auth storage');
     return {
