@@ -5,14 +5,14 @@
  * 基础版本 1.000 + 每个 commit 增加 0.001
  *
  * 此文件由 scripts/update-version.sh 自动更新
- * 生成时间: 2026-01-24 10:13:21
+ * 生成时间: 2026-01-24 10:20:03
  */
 
-// 基于 450 个 commits 计算
-export const APP_VERSION = 'v1.450';
+// 基于 451 个 commits 计算
+export const APP_VERSION = 'v1.451';
 
 // commit 数量
-export const COMMIT_COUNT = 450;
+export const COMMIT_COUNT = 451;
 
 /**
  * 获取完整版本号

@@ -47,21 +47,9 @@ echo "🔧 切换到生产环境配置..."
 cp .env .env.local
 
 echo "🧹 清除缓存并构建..."
-# 保存 Vercel 项目配置（如果存在）
-if [ -d dist/.vercel ]; then
-  cp -r dist/.vercel /tmp/.vercel-backup
-  HAS_VERCEL_CONFIG=true
-else
-  HAS_VERCEL_CONFIG=false
-fi
-rm -rf dist
+# 清理旧的构建产物，但保留 .vercel 配置
+find dist -mindepth 1 -maxdepth 1 ! -name '.vercel' -exec rm -rf {} + 2>/dev/null || true
 npx expo export --platform web --clear
-
-# 恢复 Vercel 项目配置
-if [ "$HAS_VERCEL_CONFIG" = true ]; then
-  cp -r /tmp/.vercel-backup dist/.vercel
-  rm -rf /tmp/.vercel-backup
-fi
 
 echo "📱 添加 PWA 文件..."
 # 复制 PWA 图标
