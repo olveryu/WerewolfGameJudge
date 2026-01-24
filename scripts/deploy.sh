@@ -36,7 +36,12 @@ if git diff --cached --quiet; then
 else
   git commit -m "release: $VERSION"
 fi
-git push origin HEAD 2>/dev/null || echo "⚠️ 推送失败（可能是网络问题），继续部署..."
+
+if git push origin HEAD; then
+  echo "✅ 推送成功"
+else
+  echo "⚠️ 推送失败（可能是网络问题），继续部署..."
+fi
 
 echo "🔄 备份 .env.local（如果存在）..."
 if [ -f .env.local ]; then
