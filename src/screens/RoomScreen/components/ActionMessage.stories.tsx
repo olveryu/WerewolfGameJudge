@@ -76,13 +76,6 @@ export const HunterCheck: Story = {
   },
 };
 
-/** Playing audio */
-export const PlayingAudio: Story = {
-  args: {
-    message: '正在播放：seer_check',
-  },
-};
-
 /** Wolf with votes */
 export const WolfWithVotes: Story = {
   args: {

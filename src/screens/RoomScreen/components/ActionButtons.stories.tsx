@@ -196,7 +196,7 @@ export const HunterConfirm: Story = {
 export const AudioPlaying: Story = {
   name: '🔇 Audio Playing - Disabled',
   args: {
-    actionMessage: '正在播放语音提示...',
+    actionMessage: '请稍候...',
     buttons: [{ key: 'skip', label: '不查验' }],
     disabled: true,
   },
