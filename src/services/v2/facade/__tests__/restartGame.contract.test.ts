@@ -13,13 +13,13 @@
  */
 
 import { V2GameFacade } from '../V2GameFacade';
-import { BroadcastService } from '../../../BroadcastService';
+import { BroadcastService } from '../../../transport/BroadcastService';
 import { gameReducer } from '../../reducer/gameReducer';
 import type { PlayerJoinAction } from '../../reducer/types';
 import type { HostBroadcast, BroadcastPlayer } from '../../../protocol/types';
 
 // Mock BroadcastService
-jest.mock('../../../BroadcastService', () => ({
+jest.mock('../../../transport/BroadcastService', () => ({
   BroadcastService: {
     getInstance: jest.fn(),
   },

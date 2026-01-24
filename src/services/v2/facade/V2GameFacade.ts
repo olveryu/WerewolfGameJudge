@@ -21,7 +21,7 @@ import type { GameTemplate } from '../../../models/Template';
 import type { BroadcastGameState, PlayerMessage, HostBroadcast } from '../../protocol/types';
 import type { RoleId } from '../../../models/roles';
 
-import { BroadcastService } from '../../BroadcastService';
+import { BroadcastService } from '../../transport/BroadcastService';
 import { GameStore } from '../store';
 import AudioService from '../../infra/AudioService';
 

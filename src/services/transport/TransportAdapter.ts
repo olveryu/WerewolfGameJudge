@@ -4,9 +4,9 @@
  * 将 BroadcastService 适配为 v2 的 transport 接口
  */
 
-import type { BroadcastService } from '../../BroadcastService';
-import type { HostBroadcast, PlayerMessage as ProtocolPlayerMessage } from '../../protocol/types';
-import type { GameState } from '../store/types';
+import type { BroadcastService } from './BroadcastService';
+import type { HostBroadcast, PlayerMessage as ProtocolPlayerMessage } from '../protocol/types';
+import type { GameState } from '../v2/store/types';
 
 /**
  * Transport 监听器

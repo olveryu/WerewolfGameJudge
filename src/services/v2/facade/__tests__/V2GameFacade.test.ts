@@ -9,7 +9,7 @@
  */
 
 import { V2GameFacade } from '../V2GameFacade';
-import { BroadcastService } from '../../../BroadcastService';
+import { BroadcastService } from '../../../transport/BroadcastService';
 import type { PlayerMessage, HostBroadcast, BroadcastPlayer } from '../../../protocol/types';
 import { gameReducer } from '../../reducer/gameReducer';
 import type { PlayerJoinAction } from '../../reducer/types';
@@ -24,7 +24,7 @@ import {
 } from '../../protocol/reasonCodes';
 
 // Mock BroadcastService
-jest.mock('../../../BroadcastService', () => ({
+jest.mock('../../../transport/BroadcastService', () => ({
   BroadcastService: {
     getInstance: jest.fn(),
   },
