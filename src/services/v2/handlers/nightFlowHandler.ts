@@ -35,7 +35,7 @@ import { calculateDeaths } from '../../DeathCalculator';
 import { isWolfRole } from '../../../models/roles';
 import { makeWitchSave, makeWitchPoison, makeWitchNone } from '../../../models/actions/WitchAction';
 import { nightFlowLog } from '../../../utils/logger';
-import { resolveWolfVotes } from '../../WolfVoteResolver';
+import { resolveWolfVotes } from '../../resolveWolfVotes';
 
 /**
  * 非 null 的 state 类型
