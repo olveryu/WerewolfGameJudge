@@ -12,16 +12,16 @@
 import type { BroadcastGameState } from '../../../protocol/types';
 import type { RoleId } from '../../../../models/roles';
 import type { SchemaId } from '../../../../models/roles/spec';
-import type { GameState } from '../../store/types';
-import type { StateAction } from '../../reducer/types';
-import type { HandlerContext, HandlerResult } from '../../handlers/types';
+import type { GameState } from '../../../engine/store/types';
+import type { StateAction } from '../../../engine/reducer/types';
+import type { HandlerContext, HandlerResult } from '../../../engine/handlers/types';
 import type { SubmitActionIntent, SubmitWolfVoteIntent } from '../../intents/types';
 import type { NightPlan } from '../../../../models/roles/spec/plan';
 import type { PlayerMessage } from '../../../protocol/types';
 
-import { gameReducer } from '../../reducer';
-import { handleSubmitAction, handleSubmitWolfVote } from '../../handlers/actionHandler';
-import { handleAdvanceNight, handleEndNight } from '../../handlers/nightFlowHandler';
+import { gameReducer } from '../../../engine/reducer';
+import { handleSubmitAction, handleSubmitWolfVote } from '../../../engine/handlers/actionHandler';
+import { handleAdvanceNight, handleEndNight } from '../../../engine/handlers/nightFlowHandler';
 import { buildNightPlan } from '../../../../models/roles/spec/plan';
 import { SCHEMAS } from '../../../../models/roles/spec';
 import { PRESET_TEMPLATES, createTemplateFromRoles, GameTemplate } from '../../../../models/Template';

@@ -22,7 +22,7 @@ import type { BroadcastGameState, PlayerMessage, HostBroadcast } from '../../pro
 import type { RoleId } from '../../../models/roles';
 
 import { BroadcastService } from '../../transport/BroadcastService';
-import { GameStore } from '../store';
+import { GameStore } from '../../engine/store';
 import AudioService from '../../infra/AudioService';
 
 // 子模块

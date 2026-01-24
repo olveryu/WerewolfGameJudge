@@ -10,7 +10,7 @@ import type {
   StartNightIntent,
   RestartGameIntent,
   UpdateTemplateIntent,
-} from '../intents/types';
+} from '../../v2/intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type {
   AssignRolesAction,

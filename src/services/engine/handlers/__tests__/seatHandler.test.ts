@@ -4,7 +4,7 @@
 
 import { handleJoinSeat, handleLeaveMySeat } from '../seatHandler';
 import type { HandlerContext } from '../types';
-import type { JoinSeatIntent, LeaveMySeatIntent } from '../../intents/types';
+import type { JoinSeatIntent, LeaveMySeatIntent } from '../../../v2/intents/types';
 import type { GameState } from '../../store/types';
 import {
   REASON_NO_STATE,
@@ -13,7 +13,7 @@ import {
   REASON_SEAT_TAKEN,
   REASON_GAME_IN_PROGRESS,
   REASON_NOT_SEATED,
-} from '../../protocol/reasonCodes';
+} from '../../../v2/protocol/reasonCodes';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {

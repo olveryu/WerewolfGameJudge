@@ -14,7 +14,7 @@
  * - 返回 StateAction 列表
  */
 
-import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../intents/types';
+import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../../v2/intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type {
   AdvanceToNextActionAction,
