@@ -1,6 +1,9 @@
 import { supabase, isSupabaseConfigured } from '../../config/supabase';
 import { log } from '../../utils/logger';
+import { randomHex } from '../../utils/id';
 import { AuthService } from './AuthService';
+
+const avatarLog = log.extend('Avatar');
 
 export class AvatarUploadService {
   private static instance: AvatarUploadService;
@@ -36,7 +39,8 @@ export class AvatarUploadService {
     const compressedBlob = await this.compressImage(fileUri, 512, 0.85);
 
     const fileExt = 'jpg';
-    const fileName = `${userId}/${Date.now()}.${fileExt}`;
+    const randomSuffix = randomHex(8); // 8 hex chars = 4 bytes = ~4 billion combinations
+    const fileName = `${userId}/${Date.now()}-${randomSuffix}.${fileExt}`;
 
     const { data, error } = await supabase!.storage
       .from('avatars')
@@ -53,14 +57,49 @@ export class AvatarUploadService {
     // Update user profile with avatar URL
     await this.authService.updateProfile({ avatarUrl: urlData.publicUrl });
 
+    avatarLog.debug('Uploaded avatar', { fileName, size: compressedBlob.size });
+
     return urlData.publicUrl;
   }
 
-  // Compress image to reduce file size while maintaining quality
+  /**
+   * Check if DOM image compression APIs are available.
+   * Returns false in React Native native environment.
+   */
+  private isDomCompressionAvailable(): boolean {
+    return (
+      typeof Image !== 'undefined' &&
+      typeof document !== 'undefined' &&
+      typeof document.createElement === 'function'
+    );
+  }
+
+  /**
+   * Compress image to reduce file size while maintaining quality.
+   * Falls back to original image if DOM APIs are not available (RN native).
+   */
   private async compressImage(
     fileUri: string,
     maxSize: number = 512,
     quality: number = 0.85,
+  ): Promise<Blob> {
+    // Fallback: skip compression if DOM APIs not available (RN native)
+    if (!this.isDomCompressionAvailable()) {
+      avatarLog.debug('DOM compression APIs not available, fetching original image');
+      const response = await fetch(fileUri);
+      return response.blob();
+    }
+
+    return this.compressImageWithDom(fileUri, maxSize, quality);
+  }
+
+  /**
+   * DOM-based image compression (browser/web only).
+   */
+  private compressImageWithDom(
+    fileUri: string,
+    maxSize: number,
+    quality: number,
   ): Promise<Blob> {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -92,7 +131,7 @@ export class AvatarUploadService {
         canvas.toBlob(
           (blob) => {
             if (blob) {
-              log.extend('Avatar').debug(` Compressed image: ${Math.round(blob.size / 1024)}KB`);
+              avatarLog.debug(`Compressed image: ${Math.round(blob.size / 1024)}KB`);
               resolve(blob);
             } else {
               reject(new Error('Failed to compress image'));
