@@ -58,17 +58,22 @@ cp assets/pwa/*.png dist/assets/pwa/
 # 复制 manifest 和 service worker
 cp web/manifest.json dist/
 cp web/sw.js dist/
-# 注入 PWA meta 标签和 loading 样式到 index.html
+
+# 使用自定义 index.html 模板（保留 Expo 生成的 JS bundle）
 if [ -f dist/index.html ]; then
-  # 1. 注入 body 背景色和 loading 动画样式（在 </style> 后面）
-  perl -i -pe 's|</style>|</style>\n    <style id="loading-style">\n      body { background-color: #1a1a2e; }\n      #loading-splash { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #1a1a2e; display: flex; align-items: center; justify-content: center; z-index: 9999; }\n      #loading-splash img { width: 120px; height: 120px; animation: pulse 1.5s ease-in-out infinite; }\n      \@keyframes pulse { 0%, 100% { opacity: 0.6; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1); } }\n    </style>|' dist/index.html
-  # 2. 注入 PWA meta 标签
-  perl -i -pe 's|</head>|    <meta name="theme-color" content="#1a1a2e" />\n    <meta name="apple-mobile-web-app-capable" content="yes" />\n    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />\n    <meta name="apple-mobile-web-app-title" content="狼人杀电子法官" />\n    <link rel="apple-touch-icon" href="/assets/pwa/apple-touch-icon.png" />\n    <link rel="manifest" href="/manifest.json" />\n  </head>|' dist/index.html
-  # 3. 在 #root 前插入 loading splash
-  perl -i -pe 's|<div id="root"></div>|<div id="loading-splash"><img src="/assets/pwa/icon-192.png" alt="Loading..." /></div>\n    <div id="root"></div>\n    <script>window.addEventListener("load", function() { var s = document.getElementById("loading-splash"); if(s) s.style.display = "none"; });</script>|' dist/index.html
-  echo "✅ PWA meta 标签和 loading 动画已注入"
+  # 提取 Expo 生成的 JS bundle 路径
+  JS_BUNDLE=$(grep -oE '/_expo/static/js/web/[^"]+\.js' dist/index.html | head -1)
+  if [ -n "$JS_BUNDLE" ]; then
+    # 复制模板并注入 JS bundle
+    cp web/index.html dist/index.html
+    # 在 </body> 前插入 script 标签
+    perl -i -pe "s|</body>|    <script src=\"$JS_BUNDLE\" defer></script>\n  </body>|" dist/index.html
+    echo "✅ 使用自定义 index.html 模板，JS bundle: $JS_BUNDLE"
+  else
+    echo "⚠️ 未找到 JS bundle，保留原 index.html"
+  fi
 else
-  echo "⚠️ dist/index.html 不存在，跳过 PWA 注入"
+  echo "⚠️ dist/index.html 不存在"
 fi
 
 echo "🚀 部署到 Vercel..."
