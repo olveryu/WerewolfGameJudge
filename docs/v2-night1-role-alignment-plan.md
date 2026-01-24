@@ -159,6 +159,9 @@
 
 ## 4. 推荐的分 5 个 Commit 落地顺序（照做）
 
+> 本节默认你已经理解并会严格执行 **0.1 V2-only 门禁**。
+> 换句话说：下面每个 commit 都不只是“UI/handler/resolver 对齐”，还必须给出 **v2-only boards/harness 证据**（至少满足 boundary + wire contract + 相关 v2 boards 场景）。
+
 ### Commit 1：Witch 协议修复 + 双层测试
 
 - 改 UI 或 handler，使 witch 产生正确的 `ActionInput.stepResults`
@@ -168,26 +171,54 @@
   - `actionHandler` contract test（witch 专项）
   - `resolvers/witch` integration test
 
+**V2-only 证据（必须贴在 PR/评论里）**
+
+- 通过 `src/services/v2/__tests__/boards/boundary.guard.test.ts`
+- 通过 `src/services/v2/__tests__/boards/wireProtocol.contract.test.ts`（必须锁死 harness 的 witch payload shape：`target=null` + `extra.stepResults.save/poison`）
+- 至少 1 个 v2 boards 集成场景覆盖 witch（例如 `*.v2.integration.test.ts` 中包含 save 与 poison 任一条路径）
+
 ### Commit 2：Confirm 角色 contract（hunter/darkWolfKing）
 
 - 加 `confirmed` 的 contract tests
 - 覆盖 nightmare block 行为（blocked → valid but no effect）
+
+**V2-only 证据（必须）**
+
+- 更新/新增 1 个 v2 boards 场景（或扩展现有 v2 board）覆盖 confirm 行为：
+  - confirmed=true 的有效路径
+  - confirmed=false/undefined 的 skip-like 路径（按 schema 定义）
+  - blockedSeat===actorSeat 时必须是 valid but no effect（幂等 no-op）
 
 ### Commit 3：wolfVote 链路 contract（不引入新协议）
 
 - 扫描并锁定 submitWolfVote → handler/resolver → broadcast state 的路径
 - 加 1~2 个 contract tests 防回归
 
+**V2-only 证据（必须）**
+
+- 至少 1 个 v2 boards 场景覆盖 wolf vote 写入 `currentNightResults.wolfVotesBySeat`，并能 end night
+- boundary guard / wire contract 必须继续保持全绿（不允许为了 wolfVote 引回 legacy）
+
 ### Commit 4：chooseSeat 批量 contract + 最小 integration
 
 - 用 `describe.each` 为所有 chooseSeat schema 建 contract tests
 - 至少每类挑 1~2 个角色写 resolver integration（其余角色可只做 contract，后续再补齐）
+
+**V2-only 证据（必须）**
+
+- 至少 1 个 v2 boards 场景覆盖 chooseSeat（建议选 seer/guard 这种最典型的）
 
 ### Commit 5：收尾与一致性审计
 
 - audit：所有 Night-1 schema 都至少有 1 条 contract 覆盖
 - audit：任何 UI payload 变化都会失败（防 drift）
 - 去掉任何临时兼容分支（若做过）
+
+**V2-only 完成定义（必须）**
+
+- v2 boards/harness 不含任何 legacy import（由 boundary guard 证明）
+- wireProtocol 契约不只是 schema，还锁死 harness 实际发送 payload（由 wire contract 证明）
+- 至少 1 个代表性模板有完整 Night-1 v2 boards 覆盖（从 start night → actions → end night）
 
 ---
 
