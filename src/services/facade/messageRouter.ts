@@ -132,7 +132,16 @@ export async function hostHandlePlayerMessage(
     // =========================================================================
     case 'ACTION':
       if (ctx.handleAction) {
-        void ctx.handleAction(msg.seat, msg.role, msg.target, msg.extra);
+        try {
+          await ctx.handleAction(msg.seat, msg.role, msg.target, msg.extra);
+        } catch (e) {
+          const err = e as { message?: string };
+          facadeLog.error('[messageRouter] ACTION handler error', {
+            seat: msg.seat,
+            role: msg.role,
+            error: err?.message ?? String(e),
+          });
+        }
       } else {
         facadeLog.warn('[messageRouter] ACTION received but handleAction not wired', {
           type: msg.type,
@@ -144,7 +153,16 @@ export async function hostHandlePlayerMessage(
 
     case 'WOLF_VOTE':
       if (ctx.handleWolfVote) {
-        void ctx.handleWolfVote(msg.seat, msg.target);
+        try {
+          await ctx.handleWolfVote(msg.seat, msg.target);
+        } catch (e) {
+          const err = e as { message?: string };
+          facadeLog.error('[messageRouter] WOLF_VOTE handler error', {
+            seat: msg.seat,
+            target: msg.target,
+            error: err?.message ?? String(e),
+          });
+        }
       } else {
         facadeLog.warn('[messageRouter] WOLF_VOTE received but handleWolfVote not wired', {
           type: msg.type,
@@ -174,7 +192,16 @@ export async function hostHandlePlayerMessage(
 
       // 必须 await，确保 ack 处理完成后再处理其他消息
       if (ctx.handleRevealAck) {
-        await ctx.handleRevealAck();
+        try {
+          await ctx.handleRevealAck();
+        } catch (e) {
+          const err = e as { message?: string };
+          facadeLog.error('[messageRouter] REVEAL_ACK handler error', {
+            seat: msg.seat,
+            role: msg.role,
+            error: err?.message ?? String(e),
+          });
+        }
       }
       break;
     }

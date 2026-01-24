@@ -201,6 +201,18 @@ export async function playerSendSeatActionWithAck(
         facadeLog.warn('Seat action ACK timeout:', requestId);
         pendingSeatAction.current = null;
         resolve({ success: false, reason: REASON_TIMEOUT });
+
+        // 自恢复：超时后主动请求最新状态，确保 Player 最终能同步到正确状态
+        // （无论 Host 是否已成功处理）
+        if (ctx.myUid) {
+          const reqMsg: PlayerMessage = { type: 'REQUEST_STATE', uid: ctx.myUid };
+          void ctx.broadcastService.sendToHost(reqMsg).catch((e) => {
+            const err = e as { message?: string };
+            facadeLog.warn('Failed to request state after ACK timeout', {
+              error: err?.message ?? String(e),
+            });
+          });
+        }
       }
     }, ACK_TIMEOUT_MS);
 
