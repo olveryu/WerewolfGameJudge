@@ -21,7 +21,7 @@ import {
   REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
   REASON_NOT_SEATED,
-} from '../../v2/protocol/reasonCodes';
+} from '../../protocol/reasonCodes';
 
 // Mock BroadcastService
 jest.mock('../../transport/BroadcastService', () => ({

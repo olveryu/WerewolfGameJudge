@@ -15,7 +15,7 @@ import type { SchemaId } from '../../../../models/roles/spec';
 import type { GameState } from '../../../engine/store/types';
 import type { StateAction } from '../../../engine/reducer/types';
 import type { HandlerContext, HandlerResult } from '../../../engine/handlers/types';
-import type { SubmitActionIntent, SubmitWolfVoteIntent } from '../../intents/types';
+import type { SubmitActionIntent, SubmitWolfVoteIntent } from '../../../engine/intents/types';
 import type { NightPlan } from '../../../../models/roles/spec/plan';
 import type { PlayerMessage } from '../../../protocol/types';
 

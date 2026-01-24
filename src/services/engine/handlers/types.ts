@@ -9,7 +9,7 @@
 
 import type { GameState } from '../store/types';
 import type { StateAction } from '../reducer/types';
-import type { GameIntent } from '../../v2/intents/types';
+import type { GameIntent } from '../intents/types';
 
 /**
  * Handler 上下文

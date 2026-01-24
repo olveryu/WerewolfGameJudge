@@ -19,7 +19,7 @@ import { handleSubmitAction } from '../actionHandler';
 import { SCHEMAS, BLOCKED_UI_DEFAULTS } from '../../../../models/roles/spec';
 import type { SchemaId } from '../../../../models/roles/spec';
 import type { HandlerContext } from '../types';
-import type { SubmitActionIntent } from '../../../v2/intents/types';
+import type { SubmitActionIntent } from '../../intents/types';
 import type { GameState } from '../../store/types';
 import type { RoleId } from '../../../../models/roles';
 import type { ApplyResolverResultAction } from '../../reducer/types';
