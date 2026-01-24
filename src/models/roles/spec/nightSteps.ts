@@ -34,24 +34,14 @@ const NIGHT_STEPS_INTERNAL = [
 
   // === 守护/查验类（狼刀前）===
   {
-    id: 'wolfRobotLearn',
-    roleId: 'wolfRobot',
-    audioKey: 'wolfRobot', // 必须与 RoleId 一致，AudioService 按 RoleId 查找音频
+    id: 'nightmareBlock',
+    roleId: 'nightmare',
+    audioKey: 'nightmare',
   },
   {
     id: 'dreamcatcherDream',
     roleId: 'dreamcatcher',
     audioKey: 'dreamcatcher',
-  },
-  {
-    id: 'gargoyleCheck',
-    roleId: 'gargoyle',
-    audioKey: 'gargoyle',
-  },
-  {
-    id: 'nightmareBlock',
-    roleId: 'nightmare',
-    audioKey: 'nightmare',
   },
   {
     id: 'guardProtect',
@@ -79,18 +69,6 @@ const NIGHT_STEPS_INTERNAL = [
     audioKey: 'witch',
   },
 
-  // === 查验类 ===
-  {
-    id: 'seerCheck',
-    roleId: 'seer',
-    audioKey: 'seer',
-  },
-  {
-    id: 'psychicCheck',
-    roleId: 'psychic',
-    audioKey: 'psychic',
-  },
-
   // === 确认类 ===
   {
     id: 'hunterConfirm',
@@ -101,6 +79,28 @@ const NIGHT_STEPS_INTERNAL = [
     id: 'darkWolfKingConfirm',
     roleId: 'darkWolfKing',
     audioKey: 'darkWolfKing', // 必须与 RoleId 一致，AudioService 按 RoleId 查找音频
+  },
+
+  // === 最后四个角色（机械狼 → 预言家 → 石像鬼 → 通灵师）===
+  {
+    id: 'wolfRobotLearn',
+    roleId: 'wolfRobot',
+    audioKey: 'wolfRobot', // 必须与 RoleId 一致，AudioService 按 RoleId 查找音频
+  },
+  {
+    id: 'seerCheck',
+    roleId: 'seer',
+    audioKey: 'seer',
+  },
+  {
+    id: 'gargoyleCheck',
+    roleId: 'gargoyle',
+    audioKey: 'gargoyle',
+  },
+  {
+    id: 'psychicCheck',
+    roleId: 'psychic',
+    audioKey: 'psychic',
   },
 ] as const satisfies readonly StepSpec[];
 

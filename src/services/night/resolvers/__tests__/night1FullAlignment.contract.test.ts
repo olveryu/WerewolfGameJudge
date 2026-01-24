@@ -438,18 +438,18 @@ describe('NIGHT_STEPS order stability', () => {
     const expectedOrder = [
       'magicianSwap',
       'slackerChooseIdol',
-      'wolfRobotLearn',
-      'dreamcatcherDream',
-      'gargoyleCheck',
       'nightmareBlock',
+      'dreamcatcherDream',
       'guardProtect',
       'wolfKill',
       'wolfQueenCharm',
       'witchAction',
-      'seerCheck',
-      'psychicCheck',
       'hunterConfirm',
       'darkWolfKingConfirm',
+      'wolfRobotLearn',
+      'seerCheck',
+      'gargoyleCheck',
+      'psychicCheck',
     ];
 
     const actualOrder = NIGHT_STEPS.map((s) => s.id);
