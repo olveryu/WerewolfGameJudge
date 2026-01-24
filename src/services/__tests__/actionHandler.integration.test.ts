@@ -2,7 +2,7 @@
  * v2 ActionHandler Tests
  */
 
-import { handleSubmitAction } from '../../engine/handlers/actionHandler';
+import { handleSubmitAction } from '../engine/handlers/actionHandler';
 
 const baseContext: any = {
   isHost: true,
@@ -24,13 +24,13 @@ const baseContext: any = {
   },
 };
 
-jest.mock('../../night/resolvers', () => ({
+jest.mock('../night/resolvers', () => ({
   RESOLVERS: {
     seerCheck: jest.fn(() => ({ valid: true, updates: { someUpdate: true } })),
   },
 }));
 
-jest.mock('../../../models/roles/spec', () => ({
+jest.mock('../../models/roles/spec', () => ({
   NIGHT_STEPS: [{ id: 'seerCheck', roleId: 'seer' }],
   SCHEMAS: { seerCheck: { id: 'seerCheck', kind: 'chooseSeat' } }, // PR4: 必须 mock SCHEMAS
 }));

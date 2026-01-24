@@ -8,9 +8,9 @@
  * 方案 A：运行态抓包 - 捕获 harness 真实发送的 payload
  */
 
-import { SCHEMAS, NIGHT_STEPS } from '../../../../models/roles/spec';
+import { SCHEMAS, NIGHT_STEPS } from '../../../models/roles/spec';
 import { createHostGameV2 } from './hostGameFactory.v2';
-import { RoleId } from '../../../../models/roles';
+import { RoleId } from '../../../models/roles';
 
 // ACTION message 类型
 interface ActionMessage {
