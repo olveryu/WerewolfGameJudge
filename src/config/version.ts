@@ -1,18 +1,14 @@
 /**
  * 应用版本号配置
  *
- * 版本号基于 git commit 数量自动计算
- * 基础版本 1.000 + 每个 commit 增加 0.001
- *
- * 此文件由 scripts/update-version.sh 自动更新
- * 生成时间: 2026-01-24 10:57:57
+ * 版本号从 package.json 读取，遵循 SemVer 规范
+ * 使用 npm version patch/minor/major 更新版本
  */
 
-// 基于 460 个 commits 计算
-export const APP_VERSION = 'v1.460';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const packageJson = require('../../package.json');
 
-// commit 数量
-export const COMMIT_COUNT = 460;
+export const APP_VERSION = `v${packageJson.version}`;
 
 /**
  * 获取完整版本号
