@@ -23,6 +23,7 @@ import type { RoleId } from '../../../models/roles';
 
 import { doesRoleParticipateInWolfVote } from '../../../models/roles';
 import { log } from '../../../utils/logger';
+import { newRejectionId } from '../../../utils/id';
 
 const actionHandlerLog = log.extend('ActionHandler');
 
@@ -422,7 +423,7 @@ function buildRejectionResult(
       action: schemaId,
       reason: rejectReason ?? 'invalid_action',
       targetUid: state.players[seat]?.uid ?? '',
-  rejectionId: `${Date.now()}:${Math.random().toString(16).slice(2)}`,
+  rejectionId: newRejectionId(),
     },
   };
 
@@ -535,7 +536,7 @@ export function handleSubmitWolfVote(
   action: 'wolfKill',
         reason,
         targetUid: voterUid,
-  rejectionId: `${Date.now()}:${Math.random().toString(16).slice(2)}`,
+  rejectionId: newRejectionId(),
       },
     };
 

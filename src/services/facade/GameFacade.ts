@@ -33,6 +33,7 @@ import type { MessageRouterContext } from './messageRouter';
 import * as hostActions from './hostActions';
 import * as seatActions from './seatActions';
 import * as messageRouter from './messageRouter';
+import { newRequestId } from '../../utils/id';
 
 export class GameFacade implements IGameFacade {
   private static _instance: GameFacade | null = null;
@@ -596,6 +597,6 @@ export class GameFacade implements IGameFacade {
   }
 
   private generateRequestId(): string {
-    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    return newRequestId();
   }
 }

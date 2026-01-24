@@ -1,5 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { log } from '../utils/logger';
+
+const supabaseLog = log.extend('Supabase');
 
 // ============================================
 // SUPABASE CONFIGURATION
@@ -59,7 +62,7 @@ const getStorageAdapter = () => {
 
   // Dev tool: ?newUser=N forces a fresh session in isolated memory slot
   if (slot !== null) {
-    console.log(`[Supabase] 🔧 Dev mode: ?newUser=${slot} detected, using isolated memory storage`);
+    supabaseLog.debug(`Dev mode: ?newUser=${slot} detected, using isolated memory storage`);
     if (!memoryStores[slot]) {
       memoryStores[slot] = {};
     }
@@ -77,14 +80,14 @@ const getStorageAdapter = () => {
 
   if (isBrowser) {
     // For web (including mobile browsers), use localStorage
-    console.log('[Supabase] Using localStorage for auth storage');
+    supabaseLog.debug('Using localStorage for auth storage');
     return {
       getItem: async (key: string): Promise<string | null> => {
         try {
           const value = globalThis.localStorage.getItem(key);
           return value;
         } catch (e) {
-          console.warn('[Supabase] localStorage.getItem failed:', e);
+          supabaseLog.warn('localStorage.getItem failed:', e);
           return null;
         }
       },
@@ -92,20 +95,20 @@ const getStorageAdapter = () => {
         try {
           globalThis.localStorage.setItem(key, value);
         } catch (e) {
-          console.warn('[Supabase] localStorage.setItem failed:', e);
+          supabaseLog.warn('localStorage.setItem failed:', e);
         }
       },
       removeItem: async (key: string): Promise<void> => {
         try {
           globalThis.localStorage.removeItem(key);
         } catch (e) {
-          console.warn('[Supabase] localStorage.removeItem failed:', e);
+          supabaseLog.warn('localStorage.removeItem failed:', e);
         }
       },
     };
   }
   // For native platforms, use AsyncStorage
-  console.log('[Supabase] Using AsyncStorage for auth storage');
+  supabaseLog.debug('Using AsyncStorage for auth storage');
   return AsyncStorage;
 };
 
@@ -123,9 +126,9 @@ if (isSupabaseConfigured()) {
       flowType: 'pkce', // More reliable for mobile browsers
     },
   });
-  console.log('[Supabase] Client initialized, isBrowser:', isBrowser);
+  supabaseLog.debug('Client initialized, isBrowser:', isBrowser);
 } else {
-  console.log('[Supabase] Not configured - running in demo mode');
+  supabaseLog.debug('Not configured - running in demo mode');
 }
 
 export const supabase = supabaseClient;
