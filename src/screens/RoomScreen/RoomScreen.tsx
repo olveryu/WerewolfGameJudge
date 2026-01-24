@@ -439,7 +439,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   /**
-   * Build witch action extra with v2 stepResults protocol.
+   * Build witch action extra with stepResults protocol.
    * @param opts.saveTarget - seat to save (or null to skip save)
    * @param opts.poisonTarget - seat to poison (or null to skip poison)
    */
@@ -617,7 +617,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
         case 'actionConfirm':
           if (myRole === 'magician' && anotherIndex !== null) {
-            // v2 protocol: target = null, extra.targets = [seatA, seatB]
+            // protocol: target = null, extra.targets = [seatA, seatB]
             const swapTargets: [number, number] = [anotherIndex, intent.targetIndex];
             // Highlight both seats during confirmation dialog
             setSecondSeatIndex(intent.targetIndex);
@@ -640,7 +640,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             }, 0);
           } else {
             // Witch/compound: drive copy + payload by stepKey when provided.
-            // v2 protocol: seat = actorSeat (mySeatNumber), target info in stepResults
+            // protocol: seat = actorSeat (mySeatNumber), target info in stepResults
             const stepSchema = getSubStepByKey(intent.stepKey);
             let extra: ActionExtra | undefined;
             if (stepSchema?.key === 'save') {
@@ -670,7 +670,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             break;
           }
 
-          // Witch/compound: v2 protocol - skip means stepResults with all null
+          // Witch/compound: protocol - skip means stepResults with all null
           // seat = actorSeat (mySeatNumber)
           const skipStepSchema = getSubStepByKey(intent.stepKey);
           let skipExtra: ActionExtra | undefined;

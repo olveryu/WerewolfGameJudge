@@ -7,8 +7,8 @@
  *
  * PR9 升级：强门禁
  * - 不允许 silent drop：每个 type 必须有显式分支行为
- * - Legacy types 必须触发 v2FacadeLog.warn
- * - Unimplemented types 必须触发 v2FacadeLog.warn（除非已接入 handler）
+ * - Legacy types 必须触发 facadeLog.warn
+ * - Unimplemented types 必须触发 facadeLog.warn（除非已接入 handler）
  *
  * 验收标准：
  * 1. 覆盖性：枚举所有 PlayerMessage.type，断言 router 全覆盖
@@ -19,11 +19,11 @@
 import type { PlayerMessage } from '../../protocol/types';
 import type { MessageRouterContext } from '../messageRouter';
 import { hostHandlePlayerMessage } from '../messageRouter';
-import { v2FacadeLog } from '../../../utils/logger';
+import { facadeLog } from '../../../utils/logger';
 
 // Mock logger
 jest.mock('../../../utils/logger', () => ({
-  v2FacadeLog: {
+  facadeLog: {
     debug: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
@@ -223,7 +223,7 @@ describe('PlayerMessage Router Coverage Contract', () => {
   });
 
   /**
-   * 强门禁：Legacy types 必须触发 v2FacadeLog.warn
+   * 强门禁：Legacy types 必须触发 facadeLog.warn
    *
    * PR9 升级：禁止 silent drop
    * - JOIN/LEAVE 是 legacy，已被 SEAT_ACTION_REQUEST 替代
@@ -234,13 +234,13 @@ describe('PlayerMessage Router Coverage Contract', () => {
       jest.clearAllMocks();
     });
 
-    it('JOIN should trigger v2FacadeLog.warn with legacy guidance', () => {
+    it('JOIN should trigger facadeLog.warn with legacy guidance', () => {
       const ctx = createMockContext();
       const msg = createMinimalPayload('JOIN');
 
       hostHandlePlayerMessage(ctx, msg, 'sender-uid');
 
-      expect(v2FacadeLog.warn).toHaveBeenCalledWith(
+      expect(facadeLog.warn).toHaveBeenCalledWith(
         '[messageRouter] Legacy PlayerMessage type received',
         expect.objectContaining({
           type: 'JOIN',
@@ -249,13 +249,13 @@ describe('PlayerMessage Router Coverage Contract', () => {
       );
     });
 
-    it('LEAVE should trigger v2FacadeLog.warn with legacy guidance', () => {
+    it('LEAVE should trigger facadeLog.warn with legacy guidance', () => {
       const ctx = createMockContext();
       const msg = createMinimalPayload('LEAVE');
 
       hostHandlePlayerMessage(ctx, msg, 'sender-uid');
 
-      expect(v2FacadeLog.warn).toHaveBeenCalledWith(
+      expect(facadeLog.warn).toHaveBeenCalledWith(
         '[messageRouter] Legacy PlayerMessage type received',
         expect.objectContaining({
           type: 'LEAVE',
@@ -283,7 +283,7 @@ describe('PlayerMessage Router Coverage Contract', () => {
 
       hostHandlePlayerMessage(ctx, msg, 'sender-uid');
 
-      expect(v2FacadeLog.warn).toHaveBeenCalledWith(
+      expect(facadeLog.warn).toHaveBeenCalledWith(
         '[messageRouter] ACTION received but handleAction not wired',
         expect.objectContaining({ type: 'ACTION' }),
       );
@@ -295,7 +295,7 @@ describe('PlayerMessage Router Coverage Contract', () => {
 
       hostHandlePlayerMessage(ctx, msg, 'sender-uid');
 
-      expect(v2FacadeLog.warn).toHaveBeenCalledWith(
+      expect(facadeLog.warn).toHaveBeenCalledWith(
         '[messageRouter] WOLF_VOTE received but handleWolfVote not wired',
         expect.objectContaining({ type: 'WOLF_VOTE' }),
       );
@@ -329,7 +329,7 @@ describe('PlayerMessage Router Coverage Contract', () => {
 
       hostHandlePlayerMessage(ctx, msg, 'sender-uid');
 
-      expect(v2FacadeLog.warn).toHaveBeenCalledWith(
+      expect(facadeLog.warn).toHaveBeenCalledWith(
         '[messageRouter] Unimplemented PlayerMessage type',
         expect.objectContaining({ type: 'SNAPSHOT_REQUEST' }),
       );
@@ -400,7 +400,7 @@ describe('PlayerMessage Router Coverage Contract', () => {
       expect(ctx.handleAction).not.toHaveBeenCalled();
       expect(ctx.handleWolfVote).not.toHaveBeenCalled();
       // warn 也不应被调用（直接 early return）
-      expect(v2FacadeLog.warn).not.toHaveBeenCalled();
+      expect(facadeLog.warn).not.toHaveBeenCalled();
     });
   });
 });

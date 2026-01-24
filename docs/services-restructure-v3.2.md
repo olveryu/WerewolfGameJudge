@@ -1,7 +1,7 @@
 # services 目录重构设计 v3.2
 
 > **版本**：v3.2 (2026-01-24)  
-> **范围**：`src/services/` 扁平化 + v2 前缀清理  
+> **范围**：`src/services/` 扁平化 + 前缀清理  
 > **原则**：只做设计方案，不改代码
 
 ---
@@ -24,21 +24,21 @@ src/services/night/resolvers
 src/services/night/resolvers/__tests__
 src/services/protocol
 src/services/types
-src/services/v2
-src/services/v2/__tests__
-src/services/v2/__tests__/boards
-src/services/v2/facade
-src/services/v2/facade/__tests__
-src/services/v2/handlers
-src/services/v2/handlers/__tests__
-src/services/v2/intents
-src/services/v2/protocol
-src/services/v2/reducer
-src/services/v2/reducer/__tests__
-src/services/v2/store
-src/services/v2/store/__tests__
-src/services/v2/transport
-src/services/v2/transport/__tests__
+src/services/engine
+src/services/engine/__tests__
+src/services/engine/__tests__/boards
+src/services/engine/facade
+src/services/engine/facade/__tests__
+src/services/engine/handlers
+src/services/engine/handlers/__tests__
+src/services/engine/intents
+src/services/engine/protocol
+src/services/engine/reducer
+src/services/engine/reducer/__tests__
+src/services/engine/store
+src/services/engine/store/__tests__
+src/services/engine/transport
+src/services/engine/transport/__tests__
 ```
 
 ### 文件清单（87 个 .ts 文件）
@@ -99,54 +99,54 @@ src/services/types/GameStateTypes.ts
 src/services/types/IGameFacade.ts
 src/services/types/PublicBroadcast.ts
 src/services/types/index.ts
-src/services/v2/__tests__/actionHandler.test.ts
-src/services/v2/__tests__/boards/DarkWolfKingMagician12.v2.integration.test.ts
-src/services/v2/__tests__/boards/boundary.guard.test.ts
-src/services/v2/__tests__/boards/hostGameFactory.v2.ts
-src/services/v2/__tests__/boards/magicianSwap.seerReveal.v2.integration.test.ts
-src/services/v2/__tests__/boards/seer.v2.integration.test.ts
-src/services/v2/__tests__/boards/wireProtocol.contract.test.ts
-src/services/v2/__tests__/boards/wolfVote.v2.integration.test.ts
-src/services/v2/__tests__/factory.test.ts
-src/services/v2/__tests__/hardGates.test.ts
-src/services/v2/__tests__/legacyRuntimeGate.contract.test.ts
-src/services/v2/__tests__/night1RoleCoverage.contract.test.ts
-src/services/v2/facade/V2GameFacade.ts
-src/services/v2/facade/__tests__/V2GameFacade.test.ts
-src/services/v2/facade/__tests__/playerMessageRouterCoverage.contract.test.ts
-src/services/v2/facade/__tests__/restartGame.contract.test.ts
-src/services/v2/facade/hostActions.ts
-src/services/v2/facade/index.ts
-src/services/v2/facade/messageRouter.ts
-src/services/v2/facade/seatActions.ts
-src/services/v2/factory.ts
-src/services/v2/handlers/__tests__/actionHandler.test.ts
-src/services/v2/handlers/__tests__/chooseSeat.batch.contract.test.ts
-src/services/v2/handlers/__tests__/gameControlHandler.test.ts
-src/services/v2/handlers/__tests__/nightFlowHandler.test.ts
-src/services/v2/handlers/__tests__/seatHandler.test.ts
-src/services/v2/handlers/__tests__/witchContract.test.ts
-src/services/v2/handlers/actionHandler.ts
-src/services/v2/handlers/gameControlHandler.ts
-src/services/v2/handlers/index.ts
-src/services/v2/handlers/nightFlowHandler.ts
-src/services/v2/handlers/seatHandler.ts
-src/services/v2/handlers/types.ts
-src/services/v2/index.ts
-src/services/v2/intents/index.ts
-src/services/v2/intents/types.ts
-src/services/v2/protocol/reasonCodes.ts
-src/services/v2/reducer/__tests__/gameReducer.test.ts
-src/services/v2/reducer/gameReducer.ts
-src/services/v2/reducer/index.ts
-src/services/v2/reducer/types.ts
-src/services/v2/store/GameStore.ts
-src/services/v2/store/__tests__/GameStore.test.ts
-src/services/v2/store/index.ts
-src/services/v2/store/types.ts
-src/services/v2/transport/TransportAdapter.ts
-src/services/v2/transport/__tests__/TransportAdapter.test.ts
-src/services/v2/transport/index.ts
+src/services/engine/__tests__/actionHandler.test.ts
+src/services/engine/__tests__/boards/DarkWolfKingMagician12.integration.test.ts
+src/services/engine/__tests__/boards/boundary.guard.test.ts
+src/services/engine/__tests__/boards/hostGameFactory.ts
+src/services/engine/__tests__/boards/magicianSwap.seerReveal.integration.test.ts
+src/services/engine/__tests__/boards/seer.integration.test.ts
+src/services/engine/__tests__/boards/wireProtocol.contract.test.ts
+src/services/engine/__tests__/boards/wolfVote.integration.test.ts
+src/services/engine/__tests__/factory.test.ts
+src/services/engine/__tests__/hardGates.test.ts
+src/services/engine/__tests__/legacyRuntimeGate.contract.test.ts
+src/services/engine/__tests__/night1RoleCoverage.contract.test.ts
+src/services/engine/facade/GameFacade.ts
+src/services/engine/facade/__tests__/GameFacade.test.ts
+src/services/engine/facade/__tests__/playerMessageRouterCoverage.contract.test.ts
+src/services/engine/facade/__tests__/restartGame.contract.test.ts
+src/services/engine/facade/hostActions.ts
+src/services/engine/facade/index.ts
+src/services/engine/facade/messageRouter.ts
+src/services/engine/facade/seatActions.ts
+src/services/engine/factory.ts
+src/services/engine/handlers/__tests__/actionHandler.test.ts
+src/services/engine/handlers/__tests__/chooseSeat.batch.contract.test.ts
+src/services/engine/handlers/__tests__/gameControlHandler.test.ts
+src/services/engine/handlers/__tests__/nightFlowHandler.test.ts
+src/services/engine/handlers/__tests__/seatHandler.test.ts
+src/services/engine/handlers/__tests__/witchContract.test.ts
+src/services/engine/handlers/actionHandler.ts
+src/services/engine/handlers/gameControlHandler.ts
+src/services/engine/handlers/index.ts
+src/services/engine/handlers/nightFlowHandler.ts
+src/services/engine/handlers/seatHandler.ts
+src/services/engine/handlers/types.ts
+src/services/engine/index.ts
+src/services/engine/intents/index.ts
+src/services/engine/intents/types.ts
+src/services/engine/protocol/reasonCodes.ts
+src/services/engine/reducer/__tests__/gameReducer.test.ts
+src/services/engine/reducer/gameReducer.ts
+src/services/engine/reducer/index.ts
+src/services/engine/reducer/types.ts
+src/services/engine/store/GameStore.ts
+src/services/engine/store/__tests__/GameStore.test.ts
+src/services/engine/store/index.ts
+src/services/engine/store/types.ts
+src/services/engine/transport/TransportAdapter.ts
+src/services/engine/transport/__tests__/TransportAdapter.test.ts
+src/services/engine/transport/index.ts
 ```
 
 ---
@@ -174,7 +174,7 @@ src/services/v2/transport/index.ts
 src/services/
 ├── protocol/                      # 保持原位
 │   ├── types.ts
-│   └── reasonCodes.ts             # ← 来自 v2/protocol/
+│   └── reasonCodes.ts             # ← 来自 engine/protocol/
 ├── types/                         # 保持原位
 │   ├── GameStateTypes.ts
 │   ├── IGameFacade.ts
@@ -209,19 +209,19 @@ src/services/
 │   │       ├── types.ts
 │   │       ├── index.ts
 │   │       └── __tests__/ (17 个测试)
-│   ├── store/                     # 来自 v2/store
+│   ├── store/                     # 来自 engine/store
 │   │   ├── GameStore.ts
 │   │   ├── types.ts
 │   │   ├── index.ts
 │   │   └── __tests__/
 │   │       └── GameStore.test.ts
-│   ├── reducer/                   # 来自 v2/reducer
+│   ├── reducer/                   # 来自 engine/reducer
 │   │   ├── gameReducer.ts
 │   │   ├── types.ts
 │   │   ├── index.ts
 │   │   └── __tests__/
 │   │       └── gameReducer.test.ts
-│   ├── handlers/                  # 来自 v2/handlers
+│   ├── handlers/                  # 来自 engine/handlers
 │   │   ├── actionHandler.ts
 │   │   ├── gameControlHandler.ts
 │   │   ├── nightFlowHandler.ts    # ⚠️ 技术债：812 行，见 D.4
@@ -230,18 +230,18 @@ src/services/
 │   │   ├── index.ts
 │   │   └── __tests__/
 │   │       └── *.test.ts (6 个)
-│   ├── intents/                   # 来自 v2/intents
+│   ├── intents/                   # 来自 engine/intents
 │   │   ├── types.ts
 │   │   └── index.ts
 │   └── index.ts                   # 新增
 ├── facade/                        # Facade 层（编排入口）
-│   ├── GameFacade.ts              # ← V2GameFacade.ts 重命名
+│   ├── GameFacade.ts              # ← GameFacade.ts 重命名
 │   ├── hostActions.ts
 │   ├── messageRouter.ts
 │   ├── seatActions.ts
-│   ├── index.ts                   # 新增（替换原 v2/facade/index.ts）
+│   ├── index.ts                   # 新增（替换原 engine/facade/index.ts）
 │   └── __tests__/
-│       ├── GameFacade.test.ts     # ← V2GameFacade.test.ts 重命名
+│       ├── GameFacade.test.ts     # ← GameFacade.test.ts 重命名
 │       ├── playerMessageRouterCoverage.contract.test.ts
 │       └── restartGame.contract.test.ts
 ├── __tests__/                     # 合并后的测试
@@ -249,18 +249,18 @@ src/services/
 │   ├── AuthService.test.ts
 │   ├── AvatarUploadService.test.ts
 │   ├── DeathCalculator.test.ts
-│   ├── actionHandler.integration.test.ts  # ← v2/__tests__/actionHandler.test.ts 重命名
+│   ├── actionHandler.integration.test.ts  # ← engine/__tests__/actionHandler.test.ts 重命名
 │   ├── hardGates.test.ts
 │   ├── legacyRuntimeGate.contract.test.ts
 │   ├── night1RoleCoverage.contract.test.ts
 │   └── boards/
-│       ├── DarkWolfKingMagician12.v2.integration.test.ts
+│       ├── DarkWolfKingMagician12.integration.test.ts
 │       ├── boundary.guard.test.ts
-│       ├── hostGameFactory.v2.ts
-│       ├── magicianSwap.seerReveal.v2.integration.test.ts
-│       ├── seer.v2.integration.test.ts
+│       ├── hostGameFactory.ts
+│       ├── magicianSwap.seerReveal.integration.test.ts
+│       ├── seer.integration.test.ts
 │       ├── wireProtocol.contract.test.ts
-│       └── wolfVote.v2.integration.test.ts
+│       └── wolfVote.integration.test.ts
 └── index.ts                       # 重写：统一导出
 ```
 
@@ -285,14 +285,14 @@ src/services/
 |-------|------|------|------|
 | 1 | 创建骨架目录 + 新 index.ts | 创建 `infra/`, `transport/`, 新 index.ts 占位 | tsc + lint |
 | 2 | infra/ 迁移 | Audio/Auth/Avatar/Room → `infra/` | 全套门禁 |
-| 3 | transport/ 迁移 | Broadcast + TransportAdapter → `transport/`；**删除** `v2/transport/index.ts` | 全套门禁 |
+| 3 | transport/ 迁移 | Broadcast + TransportAdapter → `transport/`；**删除** `engine/transport/index.ts` | 全套门禁 |
 | 4a | engine/ 迁移 - root files | Death/NightFlow/resolveWolfVotes → `engine/` | 全套门禁 |
 | 4b | engine/ 迁移 - core/night | core/ + night/ 整体移入 `engine/` | 全套门禁 |
-| 4c | engine/ 迁移 - v2 子目录 | v2/{store,reducer,handlers,intents} → `engine/` | 全套门禁 |
-| 5 | facade/ 迁移 | v2/facade → `facade/` | 全套门禁 |
-| 6 | tests 迁移 | v2/__tests__ → `__tests__/`（含重命名） | 全套门禁 |
-| 7 | v2/protocol 合并 | v2/protocol/reasonCodes.ts → `protocol/` | 全套门禁 |
-| 8 | 删除 v2/ + factory.ts | 删除整个 v2 目录 | 全套门禁 + v2 残留检查 |
+| 4c | engine/ 迁移  | engine/{store,reducer,handlers,intents} → `engine/` | 全套门禁 |
+| 5 | facade/ 迁移 | engine/facade → `facade/` | 全套门禁 |
+| 6 | tests 迁移 | engine/__tests__ → `__tests__/`（含重命名） | 全套门禁 |
+| 7 | engine/protocol 合并 | engine/protocol/reasonCodes.ts → `protocol/` | 全套门禁 |
+| 8 | 删除 engine/ + factory.ts | 删除整个旧目录 | 全套门禁 + 残留检查 |
 | 9 | 更新根 index.ts | 重写导出 | 全套门禁 |
 
 ---
@@ -381,98 +381,98 @@ src/services/
 | 54 | `types/PublicBroadcast.ts` | `types/PublicBroadcast.ts` | 保持 | — |
 | 55 | `types/index.ts` | `types/index.ts` | 保持 | — |
 
-### C.6 v2/store/ → engine/store/
+### C.6 engine/store/ → engine/store/
 
 | # | 源路径 | 目标路径 | 操作 | Phase |
 |---|--------|----------|------|-------|
-| 56 | `v2/store/GameStore.ts` | `engine/store/GameStore.ts` | 移动 | 4c |
-| 57 | `v2/store/index.ts` | `engine/store/index.ts` | 移动 | 4c |
-| 58 | `v2/store/types.ts` | `engine/store/types.ts` | 移动 | 4c |
-| 59 | `v2/store/__tests__/GameStore.test.ts` | `engine/store/__tests__/GameStore.test.ts` | 移动 | 4c |
+| 56 | `engine/store/GameStore.ts` | `engine/store/GameStore.ts` | 移动 | 4c |
+| 57 | `engine/store/index.ts` | `engine/store/index.ts` | 移动 | 4c |
+| 58 | `engine/store/types.ts` | `engine/store/types.ts` | 移动 | 4c |
+| 59 | `engine/store/__tests__/GameStore.test.ts` | `engine/store/__tests__/GameStore.test.ts` | 移动 | 4c |
 
-### C.7 v2/reducer/ → engine/reducer/
-
-| # | 源路径 | 目标路径 | 操作 | Phase |
-|---|--------|----------|------|-------|
-| 60 | `v2/reducer/gameReducer.ts` | `engine/reducer/gameReducer.ts` | 移动 | 4c |
-| 61 | `v2/reducer/index.ts` | `engine/reducer/index.ts` | 移动 | 4c |
-| 62 | `v2/reducer/types.ts` | `engine/reducer/types.ts` | 移动 | 4c |
-| 63 | `v2/reducer/__tests__/gameReducer.test.ts` | `engine/reducer/__tests__/gameReducer.test.ts` | 移动 | 4c |
-
-### C.8 v2/handlers/ → engine/handlers/
+### C.7 engine/reducer/ → engine/reducer/
 
 | # | 源路径 | 目标路径 | 操作 | Phase |
 |---|--------|----------|------|-------|
-| 64 | `v2/handlers/actionHandler.ts` | `engine/handlers/actionHandler.ts` | 移动 | 4c |
-| 65 | `v2/handlers/gameControlHandler.ts` | `engine/handlers/gameControlHandler.ts` | 移动 | 4c |
-| 66 | `v2/handlers/index.ts` | `engine/handlers/index.ts` | 移动 | 4c |
-| 67 | `v2/handlers/nightFlowHandler.ts` | `engine/handlers/nightFlowHandler.ts` | 移动 | 4c |
-| 68 | `v2/handlers/seatHandler.ts` | `engine/handlers/seatHandler.ts` | 移动 | 4c |
-| 69 | `v2/handlers/types.ts` | `engine/handlers/types.ts` | 移动 | 4c |
-| 70 | `v2/handlers/__tests__/actionHandler.test.ts` | `engine/handlers/__tests__/actionHandler.test.ts` | 移动 | 4c |
-| 71 | `v2/handlers/__tests__/chooseSeat.batch.contract.test.ts` | `engine/handlers/__tests__/chooseSeat.batch.contract.test.ts` | 移动 | 4c |
-| 72 | `v2/handlers/__tests__/gameControlHandler.test.ts` | `engine/handlers/__tests__/gameControlHandler.test.ts` | 移动 | 4c |
-| 73 | `v2/handlers/__tests__/nightFlowHandler.test.ts` | `engine/handlers/__tests__/nightFlowHandler.test.ts` | 移动 | 4c |
-| 74 | `v2/handlers/__tests__/seatHandler.test.ts` | `engine/handlers/__tests__/seatHandler.test.ts` | 移动 | 4c |
-| 75 | `v2/handlers/__tests__/witchContract.test.ts` | `engine/handlers/__tests__/witchContract.test.ts` | 移动 | 4c |
+| 60 | `engine/reducer/gameReducer.ts` | `engine/reducer/gameReducer.ts` | 移动 | 4c |
+| 61 | `engine/reducer/index.ts` | `engine/reducer/index.ts` | 移动 | 4c |
+| 62 | `engine/reducer/types.ts` | `engine/reducer/types.ts` | 移动 | 4c |
+| 63 | `engine/reducer/__tests__/gameReducer.test.ts` | `engine/reducer/__tests__/gameReducer.test.ts` | 移动 | 4c |
 
-### C.9 v2/intents/ → engine/intents/
+### C.8 engine/handlers/ → engine/handlers/
 
 | # | 源路径 | 目标路径 | 操作 | Phase |
 |---|--------|----------|------|-------|
-| 76 | `v2/intents/index.ts` | `engine/intents/index.ts` | 移动 | 4c |
-| 77 | `v2/intents/types.ts` | `engine/intents/types.ts` | 移动 | 4c |
+| 64 | `engine/handlers/actionHandler.ts` | `engine/handlers/actionHandler.ts` | 移动 | 4c |
+| 65 | `engine/handlers/gameControlHandler.ts` | `engine/handlers/gameControlHandler.ts` | 移动 | 4c |
+| 66 | `engine/handlers/index.ts` | `engine/handlers/index.ts` | 移动 | 4c |
+| 67 | `engine/handlers/nightFlowHandler.ts` | `engine/handlers/nightFlowHandler.ts` | 移动 | 4c |
+| 68 | `engine/handlers/seatHandler.ts` | `engine/handlers/seatHandler.ts` | 移动 | 4c |
+| 69 | `engine/handlers/types.ts` | `engine/handlers/types.ts` | 移动 | 4c |
+| 70 | `engine/handlers/__tests__/actionHandler.test.ts` | `engine/handlers/__tests__/actionHandler.test.ts` | 移动 | 4c |
+| 71 | `engine/handlers/__tests__/chooseSeat.batch.contract.test.ts` | `engine/handlers/__tests__/chooseSeat.batch.contract.test.ts` | 移动 | 4c |
+| 72 | `engine/handlers/__tests__/gameControlHandler.test.ts` | `engine/handlers/__tests__/gameControlHandler.test.ts` | 移动 | 4c |
+| 73 | `engine/handlers/__tests__/nightFlowHandler.test.ts` | `engine/handlers/__tests__/nightFlowHandler.test.ts` | 移动 | 4c |
+| 74 | `engine/handlers/__tests__/seatHandler.test.ts` | `engine/handlers/__tests__/seatHandler.test.ts` | 移动 | 4c |
+| 75 | `engine/handlers/__tests__/witchContract.test.ts` | `engine/handlers/__tests__/witchContract.test.ts` | 移动 | 4c |
 
-### C.10 v2/transport/ → transport/
-
-| # | 源路径 | 目标路径 | 操作 | Phase |
-|---|--------|----------|------|-------|
-| 78 | `v2/transport/TransportAdapter.ts` | `transport/TransportAdapter.ts` | 移动 | 3 |
-| 79 | `v2/transport/index.ts` | — | **删除** | 3 |
-| 80 | `v2/transport/__tests__/TransportAdapter.test.ts` | `transport/__tests__/TransportAdapter.test.ts` | 移动 | 3 |
-
-### C.11 v2/facade/ → facade/
-
-| # | 源路径 | 目标路径 | 操作 | Phase |
-|---|--------|----------|------|-------|
-| 81 | `v2/facade/V2GameFacade.ts` | `facade/GameFacade.ts` | 移动+重命名 | 5 |
-| 82 | `v2/facade/hostActions.ts` | `facade/hostActions.ts` | 移动 | 5 |
-| 83 | `v2/facade/index.ts` | `facade/index.ts` | 移动+重写 | 5 |
-| 84 | `v2/facade/messageRouter.ts` | `facade/messageRouter.ts` | 移动 | 5 |
-| 85 | `v2/facade/seatActions.ts` | `facade/seatActions.ts` | 移动 | 5 |
-| 86 | `v2/facade/__tests__/V2GameFacade.test.ts` | `facade/__tests__/GameFacade.test.ts` | 移动+重命名 | 5 |
-| 87 | `v2/facade/__tests__/playerMessageRouterCoverage.contract.test.ts` | `facade/__tests__/playerMessageRouterCoverage.contract.test.ts` | 移动 | 5 |
-| 88 | `v2/facade/__tests__/restartGame.contract.test.ts` | `facade/__tests__/restartGame.contract.test.ts` | 移动 | 5 |
-
-### C.12 v2/__tests__/ → __tests__/
+### C.9 engine/intents/ → engine/intents/
 
 | # | 源路径 | 目标路径 | 操作 | Phase |
 |---|--------|----------|------|-------|
-| 89 | `v2/__tests__/actionHandler.test.ts` | `__tests__/actionHandler.integration.test.ts` | 移动+**重命名** | 6 |
-| 90 | `v2/__tests__/hardGates.test.ts` | `__tests__/hardGates.test.ts` | 移动 | 6 |
-| 91 | `v2/__tests__/legacyRuntimeGate.contract.test.ts` | `__tests__/legacyRuntimeGate.contract.test.ts` | 移动 | 6 |
-| 92 | `v2/__tests__/night1RoleCoverage.contract.test.ts` | `__tests__/night1RoleCoverage.contract.test.ts` | 移动 | 6 |
-| 93 | `v2/__tests__/boards/DarkWolfKingMagician12.v2.integration.test.ts` | `__tests__/boards/DarkWolfKingMagician12.v2.integration.test.ts` | 移动 | 6 |
-| 94 | `v2/__tests__/boards/boundary.guard.test.ts` | `__tests__/boards/boundary.guard.test.ts` | 移动 | 6 |
-| 95 | `v2/__tests__/boards/hostGameFactory.v2.ts` | `__tests__/boards/hostGameFactory.v2.ts` | 移动 | 6 |
-| 96 | `v2/__tests__/boards/magicianSwap.seerReveal.v2.integration.test.ts` | `__tests__/boards/magicianSwap.seerReveal.v2.integration.test.ts` | 移动 | 6 |
-| 97 | `v2/__tests__/boards/seer.v2.integration.test.ts` | `__tests__/boards/seer.v2.integration.test.ts` | 移动 | 6 |
-| 98 | `v2/__tests__/boards/wireProtocol.contract.test.ts` | `__tests__/boards/wireProtocol.contract.test.ts` | 移动 | 6 |
-| 99 | `v2/__tests__/boards/wolfVote.v2.integration.test.ts` | `__tests__/boards/wolfVote.v2.integration.test.ts` | 移动 | 6 |
+| 76 | `engine/intents/index.ts` | `engine/intents/index.ts` | 移动 | 4c |
+| 77 | `engine/intents/types.ts` | `engine/intents/types.ts` | 移动 | 4c |
 
-### C.13 v2/protocol/ → protocol/
+### C.10 engine/transport/ → transport/
 
 | # | 源路径 | 目标路径 | 操作 | Phase |
 |---|--------|----------|------|-------|
-| 100 | `v2/protocol/reasonCodes.ts` | `protocol/reasonCodes.ts` | 移动 | 7 |
+| 78 | `engine/transport/TransportAdapter.ts` | `transport/TransportAdapter.ts` | 移动 | 3 |
+| 79 | `engine/transport/index.ts` | — | **删除** | 3 |
+| 80 | `engine/transport/__tests__/TransportAdapter.test.ts` | `transport/__tests__/TransportAdapter.test.ts` | 移动 | 3 |
 
-### C.14 v2 根文件 → 删除
+### C.11 engine/facade/ → facade/
 
 | # | 源路径 | 目标路径 | 操作 | Phase |
 |---|--------|----------|------|-------|
-| 101 | `v2/index.ts` | — | 删除 | 8 |
-| 102 | `v2/factory.ts` | — | 删除（见 D.1 门禁） | 8 |
-| 103 | `v2/__tests__/factory.test.ts` | — | 删除 | 8 |
+| 81 | `engine/facade/GameFacade.ts` | `facade/GameFacade.ts` | 移动+重命名 | 5 |
+| 82 | `engine/facade/hostActions.ts` | `facade/hostActions.ts` | 移动 | 5 |
+| 83 | `engine/facade/index.ts` | `facade/index.ts` | 移动+重写 | 5 |
+| 84 | `engine/facade/messageRouter.ts` | `facade/messageRouter.ts` | 移动 | 5 |
+| 85 | `engine/facade/seatActions.ts` | `facade/seatActions.ts` | 移动 | 5 |
+| 86 | `engine/facade/__tests__/GameFacade.test.ts` | `facade/__tests__/GameFacade.test.ts` | 移动+重命名 | 5 |
+| 87 | `engine/facade/__tests__/playerMessageRouterCoverage.contract.test.ts` | `facade/__tests__/playerMessageRouterCoverage.contract.test.ts` | 移动 | 5 |
+| 88 | `engine/facade/__tests__/restartGame.contract.test.ts` | `facade/__tests__/restartGame.contract.test.ts` | 移动 | 5 |
+
+### C.12 engine/__tests__/ → __tests__/
+
+| # | 源路径 | 目标路径 | 操作 | Phase |
+|---|--------|----------|------|-------|
+| 89 | `engine/__tests__/actionHandler.test.ts` | `__tests__/actionHandler.integration.test.ts` | 移动+**重命名** | 6 |
+| 90 | `engine/__tests__/hardGates.test.ts` | `__tests__/hardGates.test.ts` | 移动 | 6 |
+| 91 | `engine/__tests__/legacyRuntimeGate.contract.test.ts` | `__tests__/legacyRuntimeGate.contract.test.ts` | 移动 | 6 |
+| 92 | `engine/__tests__/night1RoleCoverage.contract.test.ts` | `__tests__/night1RoleCoverage.contract.test.ts` | 移动 | 6 |
+| 93 | `engine/__tests__/boards/DarkWolfKingMagician12.integration.test.ts` | `__tests__/boards/DarkWolfKingMagician12.integration.test.ts` | 移动 | 6 |
+| 94 | `engine/__tests__/boards/boundary.guard.test.ts` | `__tests__/boards/boundary.guard.test.ts` | 移动 | 6 |
+| 95 | `engine/__tests__/boards/hostGameFactory.ts` | `__tests__/boards/hostGameFactory.ts` | 移动 | 6 |
+| 96 | `engine/__tests__/boards/magicianSwap.seerReveal.integration.test.ts` | `__tests__/boards/magicianSwap.seerReveal.integration.test.ts` | 移动 | 6 |
+| 97 | `engine/__tests__/boards/seer.integration.test.ts` | `__tests__/boards/seer.integration.test.ts` | 移动 | 6 |
+| 98 | `engine/__tests__/boards/wireProtocol.contract.test.ts` | `__tests__/boards/wireProtocol.contract.test.ts` | 移动 | 6 |
+| 99 | `engine/__tests__/boards/wolfVote.integration.test.ts` | `__tests__/boards/wolfVote.integration.test.ts` | 移动 | 6 |
+
+### C.13 engine/protocol/ → protocol/
+
+| # | 源路径 | 目标路径 | 操作 | Phase |
+|---|--------|----------|------|-------|
+| 100 | `engine/protocol/reasonCodes.ts` | `protocol/reasonCodes.ts` | 移动 | 7 |
+
+### C.14 engine 根文件 → 删除
+
+| # | 源路径 | 目标路径 | 操作 | Phase |
+|---|--------|----------|------|-------|
+| 101 | `engine/index.ts` | — | 删除 | 8 |
+| 102 | `engine/factory.ts` | — | 删除（见 D.1 门禁） | 8 |
+| 103 | `engine/__tests__/factory.test.ts` | — | 删除 | 8 |
 
 ---
 
@@ -492,7 +492,7 @@ src/services/
 
 ### D.1 factory.ts 删除门禁
 
-**当前状态**：`createGameServices`/`destroyGameServices` 无 runtime 调用者（仅 v2/index.ts 导出）。
+**当前状态**：`createGameServices`/`destroyGameServices` 无 runtime 调用者（仅 engine/index.ts 导出）。
 
 **Phase 8 执行前门禁**：
 ```bash
@@ -500,16 +500,16 @@ src/services/
 grep -rn "createGameServices\|destroyGameServices" src --include="*.ts" \
   | grep -v "\.test\." \
   | grep -v "__tests__" \
-  | grep -v "v2/factory" \
-  | grep -v "v2/index"
+  | grep -v "engine/factory" \
+  | grep -v "engine/index"
 ```
 
 **门禁通过 → 删除**：
-- 删除 `v2/factory.ts`
-- 删除 `v2/__tests__/factory.test.ts`
+- 删除 `engine/factory.ts`
+- 删除 `engine/__tests__/factory.test.ts`
 
 **门禁失败 → Fallback**：
-1. 迁移 `v2/factory.ts` → `facade/createGameServices.ts`
+1. 迁移 `engine/factory.ts` → `facade/createGameServices.ts`
 2. 更新调用者 import
 3. 原因：factory 创建的是 Facade 层依赖的 services，归属 facade/ 语义正确
 
@@ -518,9 +518,9 @@ grep -rn "createGameServices\|destroyGameServices" src --include="*.ts" \
 | 原名 | 新名 | Phase | 全局替换 |
 |------|------|-------|----------|
 | `SimplifiedRoomService.ts` | `RoomService.ts` | 2 | class 名 + import path |
-| `V2GameFacade.ts` | `GameFacade.ts` | 5 | class 名 + import path |
-| `V2GameFacade.test.ts` | `GameFacade.test.ts` | 5 | — |
-| `v2/__tests__/actionHandler.test.ts` | `actionHandler.integration.test.ts` | 6 | 避免与 handlers/__tests__/actionHandler.test.ts 冲突 |
+| `GameFacade.ts` | `GameFacade.ts` | 5 | class 名 + import path |
+| `GameFacade.test.ts` | `GameFacade.test.ts` | 5 | — |
+| `engine/__tests__/actionHandler.test.ts` | `actionHandler.integration.test.ts` | 6 | 避免与 handlers/__tests__/actionHandler.test.ts 冲突 |
 
 **操作步骤**（以 SimplifiedRoomService 为例）：
 ```bash
@@ -534,27 +534,27 @@ grep -rn "SimplifiedRoomService" src --include="*.ts" | cut -d: -f1 | sort -u | 
 # grep -rn "SimplifiedRoomService" src --include="*.ts" | cut -d: -f1 | sort -u | xargs sed -i 's/SimplifiedRoomService/RoomService/g'
 ```
 
-### D.3 v2 删除验证（Phase 8 完成后）
+### D.3 旧目录删除验证（Phase 8 完成后）
 
 ```bash
 # 1. 目录不存在
-ls src/services/v2 2>&1 | grep -q "No such file" && echo "✅ v2/ removed"
+ls src/services/engine 2>&1 | grep -q "No such file" && echo "✅ engine/ removed"
 
-# 2. 无 v2 import 残留
-grep -rn "from.*v2\|import.*v2" src --include="*.ts" | grep -v node_modules
-# 预期：空或只剩 .v2.integration.test.ts 文件名匹配（非 import）
+# 2. 无 engine import 残留
+grep -rn "from.*engine" src --include="*.ts" | grep -v node_modules
+# 预期：空或只剩 .integration.test.ts 文件名匹配（非 import）
 
-# 3. 无 V2GameFacade 类名残留
-grep -rn "V2GameFacade" src --include="*.ts"
+# 3. 无 GameFacade 类名残留
+grep -rn "GameFacade" src --include="*.ts"
 # 预期：空
 ```
 
 ### D.4 技术债声明：nightFlowHandler.ts
 
-**现状**：`v2/handlers/nightFlowHandler.ts` 共 812 行，超过 400 行红线。
+**现状**：`engine/handlers/nightFlowHandler.ts` 共 812 行，超过 400 行红线。
 
 **暂缓拆分原因**：
-- 本次重构范围是目录扁平化 + v2 前缀清理，不涉及逻辑重构
+- 本次重构范围是目录扁平化 + 前缀清理，不涉及逻辑重构
 - nightFlowHandler 内部职责边界尚未明确，贸然拆分可能引入 bug
 
 **后续计划**（建议在单独 PR 处理）：
@@ -601,15 +601,15 @@ git add -A && git commit -m "refactor(services): phase N - <description>"
 | core/ | 3 | 3 (#14-16) | ✅ |
 | night/resolvers/ + __tests__ | 17+17=34 | 34 (#17-50) | ✅ |
 | protocol/ + types/ | 5 | 5 (#51-55) | ✅ |
-| v2/store/ | 4 | 4 (#56-59) | ✅ |
-| v2/reducer/ | 4 | 4 (#60-63) | ✅ |
-| v2/handlers/ + __tests__ | 6+6=12 | 12 (#64-75) | ✅ |
-| v2/intents/ | 2 | 2 (#76-77) | ✅ |
-| v2/transport/ | 3 | 3 (#78-80) | ✅ |
-| v2/facade/ + __tests__ | 5+3=8 | 8 (#81-88) | ✅ |
-| v2/__tests__/ + boards/ | 4+7=11 | 11 (#89-99) | ✅ |
-| v2/protocol/ | 1 | 1 (#100) | ✅ |
-| v2 根文件 | 3 | 3 (#101-103) | ✅ |
+| engine/store/ | 4 | 4 (#56-59) | ✅ |
+| engine/reducer/ | 4 | 4 (#60-63) | ✅ |
+| engine/handlers/ + __tests__ | 6+6=12 | 12 (#64-75) | ✅ |
+| engine/intents/ | 2 | 2 (#76-77) | ✅ |
+| engine/transport/ | 3 | 3 (#78-80) | ✅ |
+| engine/facade/ + __tests__ | 5+3=8 | 8 (#81-88) | ✅ |
+| engine/__tests__/ + boards/ | 4+7=11 | 11 (#89-99) | ✅ |
+| engine/protocol/ | 1 | 1 (#100) | ✅ |
+| engine 根文件 | 3 | 3 (#101-103) | ✅ |
 | **合计** | **103 条目** | **103** | ✅ |
 | 新增文件 | 5 | C.ADD 表 | ✅ |
 

@@ -216,7 +216,7 @@ describe('RoomScreen magician swap UI (smoke)', () => {
       confirmBtn?.onPress?.();
     });
 
-    // v2 protocol: target = null, extra.targets = [seatA, seatB]
+    // protocol: target = null, extra.targets = [seatA, seatB]
     // seat 3 (index 2) and seat 5 (index 4)
     expect(mockSubmitAction).toHaveBeenCalledWith(null, { targets: [2, 4] });
 

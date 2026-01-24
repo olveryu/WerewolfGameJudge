@@ -18,7 +18,7 @@ export interface CurrentNightResults {
   /**
    * Wolf votes during the wolf meeting (seat -> target seat).
    *
-   * This is the single source of truth for wolf vote tracking in v2.
+   * This is the single source of truth for wolf vote tracking.
    * BroadcastGameState MUST include currentNightResults, so this data is public
    * and UI should filter by role.
    */

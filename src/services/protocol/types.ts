@@ -58,10 +58,10 @@ export interface BroadcastGameState {
   currentStepId?: SchemaId;
 
   // --- Seat-map 字段 ---
-  // NOTE: v2 single source of truth for wolf vote is:
+  // NOTE: single source of truth for wolf vote is:
   // currentNightResults.wolfVotesBySeat
 
-  // --- 执行状态（v2，可选，向后兼容） ---
+  // --- 执行状态（可选，向后兼容） ---
   /** 第一夜动作记录 */
   actions?: ProtocolAction[];
 

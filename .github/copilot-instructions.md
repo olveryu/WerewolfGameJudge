@@ -228,15 +228,15 @@ UI (从 schema + gameState 推导显示)
 ---
 ## Anti-drift 护栏（MUST follow）
 
-这些规则用于防止任何重构/迁移（尤其 services v2）过程中出现回归：
+这些规则用于防止任何重构/迁移过程中出现回归：
 - host/player 分支逻辑漂移
 - Host UI 因读取不同 state shape 而与 Player UI 不一致
 - “临时” feature-flag 导出破坏模块系统
-- v2 在运行时意外依赖 legacy
+
 
 ### 单一真相：`BroadcastGameState`
 
-- 禁止在任何 v2 state 类型中引入 `HostOnlyState`、`hostOnly` 字段或“不会广播”的字段。
+- 禁止在 state 类型中引入 `HostOnlyState`、`hostOnly` 字段或“不会广播”的字段。
 - Host 如果执行需要某字段，那它就必须属于 `BroadcastGameState`。
 - 隐私是 UI 层问题（按 `myRole` / `isHost` 过滤显示），不是数据模型问题。
 
@@ -254,24 +254,10 @@ UI (从 schema + gameState 推导显示)
   - 发送 `PlayerMessage` intent 给 Host
   - 接收 `HostBroadcast.STATE_UPDATE`
   - `applySnapshot(broadcastState, revision)`
-### Feature flag：禁止运行时条件导出（no runtime conditional exports）
-
-- **禁止：** 运行时条件 re-export，例如：
-  - `if (flag) { export * from './v2' } else { export * from './legacy' }`
-  这在 TS/ESM 中是非法/不稳定的。
-
-- Feature flag 必须通过以下方式之一实现：
-  - 工厂函数（推荐）：`createServices({ mode: 'legacy' | 'v2' })`
-  - 在组合根（composition root）做依赖注入（DI）
-  - 静态双导出（namespaced）+ 调用方显式选择
-### v2 禁止在运行时 import legacy
-- `src/services/v2/**` 禁止 import `src/services/legacy/**`。
-  - legacy 只能用于参考与回滚，不允许 v2 运行时依赖。
-  - v2 行为对齐必须通过测试保证，而不是调用 legacy。
 
 ### “legacy” 边界（纯模块禁止移入 legacy）
 
-- 迁移期间禁止把这些内容移动到 `legacy/`：
+- 禁止把这些内容移动到 `legacy/`：
   - `src/services/night/resolvers/**`（或迁移后的 `src/services/engine/night/resolvers/**`）
   - `src/models/roles/spec/**`（ROLE_SPECS / SCHEMAS / NIGHT_STEPS）
   - `NightFlowController`（纯状态机）
@@ -286,10 +272,10 @@ UI (从 schema + gameState 推导显示)
 
   - `PlayerMessage`
   - `BroadcastGameState`
-- v2 可以引入内部 “Intent” 类型，但必须适配到现有 protocol。
+- 可以引入内部 “Intent” 类型，但必须适配到现有 protocol。
   - 除非同时提供兼容层 + 合约测试，否则禁止发明平行的消息协议。
 
-   **显式规则：** legacy 仅用于比较，v2 绝对不能保留/兼容 legacy wire 格式或行为——对齐必须通过当前架构下的测试保证。
+   **显式规则：** legacy 仅用于比较
 ---
 
 ## 实现清单（角色 / schema / step / UI 必做）
@@ -328,80 +314,7 @@ UI (从 schema + gameState 推导显示)
 
 ---
 
-<<<<<<< HEAD
-## Anti-drift guardrails (MUST follow)
-
-These rules exist to prevent regressions during any refactor/migration (especially services v2):
-
-- host/player split logic paths
-- Host UI diverging from player UI because Host reads a different state shape
-- “temporary” feature-flag exports that break the module system
-- v2 accidentally depending on legacy at runtime
-
-### BroadcastGameState must stay the complete single state
-
-- **ABSOLUTE RULE:** `BroadcastGameState` is the complete single source of truth.
-  - Do **NOT** introduce `HostOnlyState`, `hostOnly` fields, or “not broadcast” fields in any v2 state type.
-  - If Host needs it to execute the game, it belongs in `BroadcastGameState`.
-  - Privacy is a UI concern only (filter by `myRole` / `isHost`), not a data-model concern.
-- **No dual-state shapes:** Host and Player MUST hold the same state shape in memory.
-- **No derived drift fields:** Computed/derived fields MUST be computed from the same state and/or written into `BroadcastGameState` once.
-  - Never keep a second “Host local computed” copy that Player doesn’t have.
-
-### Player must not run business logic
-
-- Player clients MUST NOT execute:
-  - resolvers
-  - reducers/state transitions
-  - death calculation
-  - night flow progression
-- Player role is transport-only:
-  - send `PlayerMessage` intents to Host
-  - receive `HostBroadcast.STATE_UPDATE`
-  - `applySnapshot(broadcastState, revision)`
-
-### Feature flags: no runtime conditional exports
-
-- **Forbidden:** runtime conditional re-exports like:
-  - `if (flag) { export * from './v2' } else { export * from './legacy' }`
-
-  This is invalid in TS/ESM and produces unstable imports.
-
-- Feature flags MUST be implemented via one of:
-  - a factory function (recommended): `createServices({ mode: 'legacy' | 'v2' })`
-  - dependency injection at composition root
-  - static dual exports (namespaced) + explicit selection in caller
-
-### V2 must not import legacy at runtime
-
-- `src/services/v2/**` MUST NOT import from `src/services/legacy/**`.
-  - Legacy is reference + rollback only.
-  - v2 behavior alignment must be enforced by tests, not by calling legacy.
-
-### “Legacy” boundaries (keep core pure modules out of legacy)
-
-- Do NOT move these into `legacy/` during migration:
-  - `src/services/night/resolvers/**`
-  - `src/models/roles/spec/**` (ROLE_SPECS / SCHEMAS / NIGHT_STEPS)
-  - `NightFlowController` (pure state machine)
-  - `DeathCalculator` (pure calculation)
-- Only move orchestration/glue that is being replaced (e.g., the God service / old transport wrappers / persistence glue).
-
-### Transport protocol stability during migration
-
-- During v2 migration, the on-wire protocol is stable and MUST remain compatible:
-  - `HostBroadcast`
-  - `PlayerMessage`
-  - `BroadcastGameState`
-- v2 may introduce internal “Intent” types, but MUST adapt them to the existing protocol.
-  - Do not invent a parallel message schema unless you also provide a compatibility layer and contract tests.
-
----
-
-## Night action role checklist (MUST follow for every role)
-=======
 ## 交付与门禁（必须执行）
->>>>>>> refactor/V2_version_2
 
 ### 质量门禁（Quality gates）
 

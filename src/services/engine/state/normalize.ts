@@ -43,7 +43,7 @@ function requireField<T>(value: T | undefined, fieldName: string): T {
  *   - normalizeStateForTests(partial: Partial<BroadcastGameState>): BroadcastGameState
  */
 export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
-  // v2 single source of truth: currentNightResults.wolfVotesBySeat
+  // single source of truth: currentNightResults.wolfVotesBySeat
   // Protocol no longer includes top-level wolfVotes/wolfVoteStatus.
   const _wolfVotesBySeat = canonicalizeSeatKeyRecord(raw.currentNightResults?.wolfVotesBySeat);
   void _wolfVotesBySeat;

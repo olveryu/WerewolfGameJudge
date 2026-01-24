@@ -1,5 +1,5 @@
 /**
- * v2 ActionHandler Tests
+ * ActionHandler Tests
  */
 
 import { handleSubmitAction } from '../engine/handlers/actionHandler';
@@ -35,7 +35,7 @@ jest.mock('../../models/roles/spec', () => ({
   SCHEMAS: { seerCheck: { id: 'seerCheck', kind: 'chooseSeat' } }, // PR4: 必须 mock SCHEMAS
 }));
 
-describe('v2 handleSubmitAction', () => {
+describe('handleSubmitAction', () => {
   it('does not fabricate targetSeat=0 when target is null', () => {
     const result = handleSubmitAction(
       {

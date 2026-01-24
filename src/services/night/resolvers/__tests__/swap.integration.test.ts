@@ -1,7 +1,7 @@
 /**
  * Swap Integration Tests
  *
- * 验证 v2 swap 协议的完整性：
+ * 验证 swap 协议的完整性：
  * 1. Handler contract: swap 输入 shape
  * 2. 查验对齐: seer/psychic 查验必须按 swap 后身份
  * 3. 死亡结算对齐: 死亡必须按 swap 规则
@@ -439,15 +439,15 @@ describe('Handler → Resolver wire protocol (buildActionInput)', () => {
     [3, 'magician'],
   ]);
 
-  describe('v2 protocol: extra.targets = [seatA, seatB]', () => {
+  describe('protocol: extra.targets = [seatA, seatB]', () => {
     it('resolver 读取 input.targets 而非 target', () => {
       const ctx = createContext(3, 'magician', players);
 
       // 模拟 buildActionInput 的输出（从 extra.targets 构建）
       const input: ActionInput = {
         schemaId: 'magicianSwap',
-        target: undefined, // v2 protocol: target 必须为 null/undefined
-        targets: [0, 1],   // v2 protocol: extra.targets
+        target: undefined, // protocol: target 必须为 null/undefined
+        targets: [0, 1],   // protocol: extra.targets
       };
 
       const result = magicianSwapResolver(ctx, input);

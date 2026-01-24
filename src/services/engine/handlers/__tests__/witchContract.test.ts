@@ -1,7 +1,7 @@
 /**
  * Witch Handler Contract Tests
  *
- * Verifies the v2 wire protocol for witch actions:
+ * Verifies the wire protocol for witch actions:
  * 1. `buildActionInput` correctly parses `extra.stepResults`
  * 2. `isSkipAction` correctly identifies skip for compound schema
  * 3. Handler produces correct `updates` (savedSeat/poisonedSeat)

@@ -1,7 +1,7 @@
 /**
  * Host Actions - Host-only 业务编排
  *
- * 拆分自 V2GameFacade.ts（纯重构 PR，无行为变更）
+ * 拆分自 GameFacade.ts（纯重构 PR，无行为变更）
  *
  * 职责：
  * - Host-only 游戏控制方法（assignRoles/markViewedRole/startNight）
@@ -53,7 +53,7 @@ import {
   resetProgressionTracker,
 } from '../engine/handlers/nightFlowHandler';
 import { gameReducer } from '../engine/reducer';
-import { v2FacadeLog } from '../../utils/logger';
+import { facadeLog } from '../../utils/logger';
 
 /**
  * Host Actions 依赖的上下文接口
@@ -124,7 +124,7 @@ async function processHandlerResult(
 
   if (!result.success) {
     if (logPrefix) {
-      v2FacadeLog.warn(`${logPrefix} failed`, { reason: result.reason, ...logData });
+      facadeLog.warn(`${logPrefix} failed`, { reason: result.reason, ...logData });
     }
 
     // 失败时也需要应用 actions（如 ACTION_REJECTED），否则 UI 无法通过 STATE_UPDATE 感知拒绝。
@@ -161,7 +161,7 @@ async function processHandlerResult(
   }
   if (result.sideEffects?.some((e) => e.type === 'SAVE_STATE')) {
     // SAVE_STATE side effect: 用于 crash recovery，暂由 log 占位
-    v2FacadeLog.debug('SAVE_STATE side effect triggered');
+    facadeLog.debug('SAVE_STATE side effect triggered');
   }
 
   // 播放所有音频（按顺序）
@@ -180,7 +180,7 @@ async function processHandlerResult(
   }
 
   if (logPrefix) {
-    v2FacadeLog.info(`${logPrefix} success`, logData);
+    facadeLog.info(`${logPrefix} success`, logData);
   }
 
   return { success: true };
@@ -198,7 +198,7 @@ async function processHandlerResult(
 export async function assignRoles(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  v2FacadeLog.debug('assignRoles called', { isHost: ctx.isHost });
+  facadeLog.debug('assignRoles called', { isHost: ctx.isHost });
 
   const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
   const context = buildHandlerContext(ctx);
@@ -216,7 +216,7 @@ export async function markViewedRole(
   ctx: HostActionsContext,
   seat: number,
 ): Promise<{ success: boolean; reason?: string }> {
-  v2FacadeLog.debug('markViewedRole called', { seat, isHost: ctx.isHost });
+  facadeLog.debug('markViewedRole called', { seat, isHost: ctx.isHost });
 
   const intent: ViewedRoleIntent = {
     type: 'VIEWED_ROLE',
@@ -239,7 +239,7 @@ export async function markViewedRole(
 export async function startNight(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  v2FacadeLog.debug('startNight called', { isHost: ctx.isHost });
+  facadeLog.debug('startNight called', { isHost: ctx.isHost });
 
   // 重置推进追踪器（新夜晚开始）
   resetProgressionTracker();
@@ -252,7 +252,7 @@ export async function startNight(
   if (result.success && result.actions.length > 0) {
     const startNightAction = result.actions.find((a) => a.type === 'START_NIGHT');
     if (startNightAction && 'payload' in startNightAction) {
-      v2FacadeLog.debug('startNight action payload', {
+      facadeLog.debug('startNight action payload', {
         currentStepId: (startNightAction.payload as { currentStepId?: string }).currentStepId,
         currentActionerIndex: (startNightAction.payload as { currentActionerIndex?: number })
           .currentActionerIndex,
@@ -272,7 +272,7 @@ export async function updateTemplate(
   ctx: HostActionsContext,
   template: GameTemplate,
 ): Promise<{ success: boolean; reason?: string }> {
-  v2FacadeLog.debug('updateTemplate called', { isHost: ctx.isHost });
+  facadeLog.debug('updateTemplate called', { isHost: ctx.isHost });
 
   const intent: UpdateTemplateIntent = {
     type: 'UPDATE_TEMPLATE',
@@ -292,7 +292,7 @@ export async function updateTemplate(
 export async function restartGame(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  v2FacadeLog.debug('restartGame called', { isHost: ctx.isHost });
+  facadeLog.debug('restartGame called', { isHost: ctx.isHost });
 
   // 重置推进追踪器（游戏重新开始）
   resetProgressionTracker();
@@ -318,7 +318,7 @@ export async function submitAction(
   target: number | null,
   extra?: unknown,
 ): Promise<{ success: boolean; reason?: string }> {
-  v2FacadeLog.debug('submitAction called', { seat, role, target, isHost: ctx.isHost });
+  facadeLog.debug('submitAction called', { seat, role, target, isHost: ctx.isHost });
 
   const intent: SubmitActionIntent = {
     type: 'SUBMIT_ACTION',
@@ -352,7 +352,7 @@ export async function submitWolfVote(
   voterSeat: number,
   targetSeat: number,
 ): Promise<{ success: boolean; reason?: string }> {
-  v2FacadeLog.debug('submitWolfVote called', { voterSeat, targetSeat, isHost: ctx.isHost });
+  facadeLog.debug('submitWolfVote called', { voterSeat, targetSeat, isHost: ctx.isHost });
 
   const intent: SubmitWolfVoteIntent = {
     type: 'SUBMIT_WOLF_VOTE',
@@ -370,7 +370,7 @@ export async function submitWolfVote(
     const state = ctx.store.getState();
     const voterRole = state?.players?.[voterSeat]?.role ?? null;
     const participatesInWolfVote = voterRole ? doesRoleParticipateInWolfVote(voterRole) : null;
-    v2FacadeLog.warn('submitWolfVote failed (context)', {
+    facadeLog.warn('submitWolfVote failed (context)', {
       voterSeat,
       targetSeat,
       voterRole,
@@ -397,7 +397,7 @@ export async function submitWolfVote(
 export async function advanceNight(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  v2FacadeLog.debug('advanceNight called', { isHost: ctx.isHost });
+  facadeLog.debug('advanceNight called', { isHost: ctx.isHost });
 
   const intent: AdvanceNightIntent = { type: 'ADVANCE_NIGHT' };
   const context = buildHandlerContext(ctx);
@@ -413,7 +413,7 @@ export async function advanceNight(
 export async function endNight(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  v2FacadeLog.debug('endNight called', { isHost: ctx.isHost });
+  facadeLog.debug('endNight called', { isHost: ctx.isHost });
 
   const intent: EndNightIntent = { type: 'END_NIGHT' };
   const context = buildHandlerContext(ctx);
@@ -433,7 +433,7 @@ export async function setAudioPlaying(
   ctx: HostActionsContext,
   isPlaying: boolean,
 ): Promise<{ success: boolean; reason?: string }> {
-  v2FacadeLog.debug('setAudioPlaying called', { isPlaying, isHost: ctx.isHost });
+  facadeLog.debug('setAudioPlaying called', { isPlaying, isHost: ctx.isHost });
 
   const intent: SetAudioPlayingIntent = {
     type: 'SET_AUDIO_PLAYING',
@@ -460,7 +460,7 @@ export async function setAudioPlaying(
 export async function clearRevealAcks(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  v2FacadeLog.debug('clearRevealAcks called', { isHost: ctx.isHost });
+  facadeLog.debug('clearRevealAcks called', { isHost: ctx.isHost });
 
   const state = ctx.store.getState();
   if (!state) {

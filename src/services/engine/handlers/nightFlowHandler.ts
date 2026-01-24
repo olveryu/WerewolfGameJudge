@@ -235,7 +235,7 @@ function findActionBySchemaId(
 /**
  * 从 currentNightResults 还原 WitchAction
  *
- * v2 wire protocol: witch 的 save/poison 结果已经写入 currentNightResults.savedSeat / poisonedSeat
+ * wire protocol: witch 的 save/poison 结果已经写入 currentNightResults.savedSeat / poisonedSeat
  * 这里直接从 currentNightResults 读取，不再依赖 ProtocolAction.targetSeat
  */
 function extractWitchAction(
@@ -258,7 +258,7 @@ function extractWitchAction(
 }
 
 /**
- * 从 v2 state 构建 NightActions（对齐 legacy buildNightActions）
+ * 从 state 构建 NightActions（对齐 legacy buildNightActions）
  */
 function buildNightActions(state: NonNullState): NightActions {
   const actions = state.actions ?? [];

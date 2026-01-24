@@ -1,5 +1,5 @@
 /**
- * V2GameFacade 单元测试
+ * GameFacade 单元测试
  *
  * Phase 0 测试范围：
  * - Host 创建房间 → store 初始化
@@ -8,7 +8,7 @@
  * - Player 收到 STATE_UPDATE → applySnapshot
  */
 
-import { V2GameFacade } from '../V2GameFacade';
+import { GameFacade } from '../GameFacade';
 import { BroadcastService } from '../../transport/BroadcastService';
 import type { PlayerMessage, HostBroadcast, BroadcastPlayer } from '../../protocol/types';
 import { gameReducer } from '../../engine/reducer/gameReducer';
@@ -43,8 +43,8 @@ jest.mock('../../infra/AudioService', () => ({
   },
 }));
 
-describe('V2GameFacade', () => {
-  let facade: V2GameFacade;
+describe('GameFacade', () => {
+  let facade: GameFacade;
   let mockBroadcastService: {
     joinRoom: jest.Mock;
     sendToHost: jest.Mock;
@@ -62,7 +62,7 @@ describe('V2GameFacade', () => {
 
   beforeEach(() => {
     // Reset singleton
-    V2GameFacade.resetInstance();
+    GameFacade.resetInstance();
 
     // Setup mock BroadcastService
     mockBroadcastService = {
@@ -75,17 +75,17 @@ describe('V2GameFacade', () => {
 
     (BroadcastService.getInstance as jest.Mock).mockReturnValue(mockBroadcastService);
 
-    facade = V2GameFacade.getInstance();
+    facade = GameFacade.getInstance();
   });
 
   afterEach(() => {
-    V2GameFacade.resetInstance();
+    GameFacade.resetInstance();
   });
 
   // ===========================================================================
   // Shared Helper: 通过 PLAYER_JOIN actions + reducer 填充所有座位
   // ===========================================================================
-  const fillAllSeatsViaReducer = (facadeInstance: V2GameFacade, template: typeof mockTemplate) => {
+  const fillAllSeatsViaReducer = (facadeInstance: GameFacade, template: typeof mockTemplate) => {
     let state = facadeInstance['store'].getState()!;
 
     for (let i = 0; i < template.numberOfPlayers; i++) {
@@ -115,7 +115,7 @@ describe('V2GameFacade', () => {
   // ===========================================================================
   // Shared Helper: 直接通过 reducer 设置 ongoing 状态（绕过 assignRoles/viewedRole 流程）
   // ===========================================================================
-  const setOngoingViaReducer = (facadeInstance: V2GameFacade) => {
+  const setOngoingViaReducer = (facadeInstance: GameFacade) => {
     let state = facadeInstance['store'].getState()!;
     state = gameReducer(state, {
       type: 'START_NIGHT',
@@ -826,8 +826,8 @@ describe('V2GameFacade', () => {
 
     it('should reject if not host, with reason from handler (host_only)', async () => {
       // 创建一个非 host facade（player）
-      V2GameFacade.resetInstance();
-      const playerFacade = V2GameFacade.getInstance();
+      GameFacade.resetInstance();
+      const playerFacade = GameFacade.getInstance();
       await playerFacade.joinAsPlayer('ABCD', 'player-uid');
 
       const result = await playerFacade.assignRoles();
@@ -935,7 +935,7 @@ describe('V2GameFacade', () => {
      * Helper: 设置 assigned 状态（通过 reducer 填充座位 + assignRoles）
      */
     const setupAssignedState = async (
-      facadeInstance: V2GameFacade,
+      facadeInstance: GameFacade,
       template: typeof mockTemplate,
     ) => {
       fillAllSeatsViaReducer(facadeInstance, template);
@@ -950,8 +950,8 @@ describe('V2GameFacade', () => {
 
     it('should send PlayerMessage to host when called by player (not host)', async () => {
       // 创建一个非 host facade（player）
-      V2GameFacade.resetInstance();
-      const playerFacade = V2GameFacade.getInstance();
+      GameFacade.resetInstance();
+      const playerFacade = GameFacade.getInstance();
       await playerFacade.joinAsPlayer('ABCD', 'player-uid');
 
       const result = await playerFacade.markViewedRole(0);
@@ -1034,7 +1034,7 @@ describe('V2GameFacade', () => {
     /**
      * Helper: 设置 ready 状态（通过 reducer 填充座位 + assignRoles + 所有人 viewed）
      */
-    const setupReadyState = async (facadeInstance: V2GameFacade, template: typeof mockTemplate) => {
+    const setupReadyState = async (facadeInstance: GameFacade, template: typeof mockTemplate) => {
       fillAllSeatsViaReducer(facadeInstance, template);
       await facadeInstance.assignRoles();
       for (let i = 0; i < template.numberOfPlayers; i++) {
@@ -1050,8 +1050,8 @@ describe('V2GameFacade', () => {
 
     it('should reject if not host, with reason from handler (host_only)', async () => {
       // 创建一个非 host facade（player）
-      V2GameFacade.resetInstance();
-      const playerFacade = V2GameFacade.getInstance();
+      GameFacade.resetInstance();
+      const playerFacade = GameFacade.getInstance();
       await playerFacade.joinAsPlayer('ABCD', 'player-uid');
 
       const result = await playerFacade.startNight();

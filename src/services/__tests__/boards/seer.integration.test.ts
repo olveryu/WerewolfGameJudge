@@ -1,22 +1,22 @@
 /**
- * Seer V2 Integration Tests
+ * Seer Integration Tests
  *
- * 验证 seer 角色在 v2 架构下的完整链路：
+ * 验证 seer 角色在 架构下的完整链路：
  * - UI → PlayerMessage(ACTION) → Handler → Resolver → APPLY_RESOLVER_RESULT
  * - seerReveal 结果正确性
  * - Nightmare block 场景
  *
- * 使用 v2 harness (createHostGameV2)
+ * 使用 harness (createHostGame)
  */
 
-import { createHostGameV2 } from './hostGameFactory';
+import { createHostGame } from './hostGameFactory';
 import { BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
 import type { RoleId } from '../../../models/roles';
 
 /** Hard cap for step progression loops to avoid infinite loops */
 const MAX_STEP_ADVANCES = 20;
 
-describe('Seer V2 Integration', () => {
+describe('Seer Integration', () => {
   /**
    * 简化模板：只包含 seer 和 wolf（最小可测试配置）
    * 
@@ -38,7 +38,7 @@ describe('Seer V2 Integration', () => {
   }
 
   /** 推进到 seerCheck 步骤的辅助函数（带 hard cap）*/
-  function advanceToSeerStep(ctx: ReturnType<typeof createHostGameV2>): boolean {
+  function advanceToSeerStep(ctx: ReturnType<typeof createHostGame>): boolean {
     // 第一步是 wolfKill
     if (ctx.getBroadcastState().currentStepId === 'wolfKill') {
       // 狼空刀
@@ -62,7 +62,7 @@ describe('Seer V2 Integration', () => {
 
   describe('seerReveal Single Source of Truth', () => {
     it('should write seerReveal to BroadcastGameState when seer checks wolf', () => {
-      const ctx = createHostGameV2(SEER_TEMPLATE, createRoleAssignment());
+      const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
 
       // 推进到 seerCheck
       expect(advanceToSeerStep(ctx)).toBe(true);
@@ -86,7 +86,7 @@ describe('Seer V2 Integration', () => {
     });
 
     it('should write seerReveal with "good" when seer checks villager', () => {
-      const ctx = createHostGameV2(SEER_TEMPLATE, createRoleAssignment());
+      const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
 
       // 推进到 seerCheck
       advanceToSeerStep(ctx);
@@ -109,7 +109,7 @@ describe('Seer V2 Integration', () => {
     });
 
     it('should allow seer to check self (neutral judge rule)', () => {
-      const ctx = createHostGameV2(SEER_TEMPLATE, createRoleAssignment());
+      const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
 
       // 推进到 seerCheck
       advanceToSeerStep(ctx);
@@ -133,7 +133,7 @@ describe('Seer V2 Integration', () => {
 
   describe('Skip Action', () => {
     it('should allow seer to skip (target=null)', () => {
-      const ctx = createHostGameV2(SEER_TEMPLATE, createRoleAssignment());
+      const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
 
       // 推进到 seerCheck
       advanceToSeerStep(ctx);
@@ -169,7 +169,7 @@ describe('Seer V2 Integration', () => {
     }
 
     /** 推进到 seerCheck 步骤（带 hard cap） */
-    function advanceToSeerCheckWithCap(ctx: ReturnType<typeof createHostGameV2>): void {
+    function advanceToSeerCheckWithCap(ctx: ReturnType<typeof createHostGame>): void {
       for (let i = 0; i < MAX_STEP_ADVANCES; i++) {
         if (ctx.getBroadcastState().currentStepId === 'seerCheck') {
           return;
@@ -202,7 +202,7 @@ describe('Seer V2 Integration', () => {
     }
 
     it('should reject blocked seer with non-skip action', () => {
-      const ctx = createHostGameV2(NIGHTMARE_SEER_TEMPLATE, createNightmareAssignment());
+      const ctx = createHostGame(NIGHTMARE_SEER_TEMPLATE, createNightmareAssignment());
 
       // 第一步是 nightmare
       expect(ctx.getBroadcastState().currentStepId).toBe('nightmareBlock');
@@ -235,7 +235,7 @@ describe('Seer V2 Integration', () => {
     });
 
     it('should allow blocked seer to skip', () => {
-      const ctx = createHostGameV2(NIGHTMARE_SEER_TEMPLATE, createNightmareAssignment());
+      const ctx = createHostGame(NIGHTMARE_SEER_TEMPLATE, createNightmareAssignment());
 
       // nightmare 封锁 seer (seat 2)
       ctx.sendPlayerMessage({
@@ -262,7 +262,7 @@ describe('Seer V2 Integration', () => {
 
   describe('Wire Protocol Contract', () => {
     it('seerCheck payload: target is single seat number (not encoded)', () => {
-      const ctx = createHostGameV2(SEER_TEMPLATE, createRoleAssignment());
+      const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
       
       // 推进到 seerCheck
       advanceToSeerStep(ctx);
@@ -288,7 +288,7 @@ describe('Seer V2 Integration', () => {
     });
 
     it('seerCheck payload: skip has target=null', () => {
-      const ctx = createHostGameV2(SEER_TEMPLATE, createRoleAssignment());
+      const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
       
       // 推进到 seerCheck
       advanceToSeerStep(ctx);

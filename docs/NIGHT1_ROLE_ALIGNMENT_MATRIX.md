@@ -1,7 +1,7 @@
 # Night-1 角色对齐矩阵
 
 > 生成日期: 2026-01-22
-> 版本: v2 (Handler→Facade→UI 架构)
+> 版本: Handler→Facade→UI 架构
 
 ## 概述
 
@@ -293,13 +293,13 @@
 
 ## 与 Legacy 的差异
 
-| 差异点 | v2 行为 | Legacy 行为 | 决定 |
+| 差异点 | 当前行为 | Legacy 行为 | 决定 |
 |--------|---------|-------------|------|
-| ackKey | 使用 `schemaId` | 使用 `revealKind` 字符串 | **按 v2**：schemaId 更稳定 |
-| audioKey | 使用 `RoleId` 格式 | 使用 snake_case | **按 v2**：与 AudioService 对齐 |
-| 音频触发 | Handler 声明，Facade 执行 | UI 直接调用 | **按 v2**：架构更清晰 |
-| witchContext.canSave | 综合考虑 killedIndex、notSelf | 部分逻辑分散 | **按 v2**：schema-first |
-| guardProtect 自守 | schema `[]` + resolver 允许 | UI 层限制 | **按 v2**：schema-first 对齐 |
+| ackKey | 使用 `schemaId` | 使用 `revealKind` 字符串 | **按当前架构**：schemaId 更稳定 |
+| audioKey | 使用 `RoleId` 格式 | 使用 snake_case | **按当前架构**：与 AudioService 对齐 |
+| 音频触发 | Handler 声明，Facade 执行 | UI 直接调用 | **按当前架构**：架构更清晰 |
+| witchContext.canSave | 综合考虑 killedIndex、notSelf | 部分逻辑分散 | **按当前架构**：schema-first |
+| guardProtect 自守 | schema `[]` + resolver 允许 | UI 层限制 | **按当前架构**：schema-first 对齐 |
 
 ---
 
@@ -369,7 +369,7 @@ With Audio: 14/14 (100%)
 - **Host 行为**：提交免疫目标时，Host/Resolver 返回拒绝，并写入 `actionRejected` 广播。
 - **提示入口**：`RoomScreen` 监听 `gameState.actionRejected`，弹出“操作无效”（reason 为具体原因）。
 - **测试覆盖**：
-  - Host 侧：`src/services/v2/handlers/actionHandler.ts`（wolf vote gate + ACTION_REJECTED）
+  - Host 侧：`src/services/engine/handlers/actionHandler.ts`（wolf vote gate + ACTION_REJECTED）
   - UI 侧：`src/screens/RoomScreen/RoomScreen.tsx`（state-driven actionRejected effect）与对应 UI 测试
 
 ---

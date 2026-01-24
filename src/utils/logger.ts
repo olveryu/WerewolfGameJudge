@@ -39,4 +39,4 @@ export const gameRoomLog = log.extend('GameRoom');
 export const configLog = log.extend('Config');
 export const roomScreenLog = log.extend('RoomScreen');
 export const homeLog = log.extend('Home');
-export const v2FacadeLog = log.extend('V2Facade');
+export const facadeLog = log.extend('Facade');

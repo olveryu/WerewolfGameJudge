@@ -214,7 +214,7 @@ async function configure6PlayerTemplate(page: Page): Promise<void> {
  * Night end keywords that indicate first night has completed
  *
  * PR9: 移除 '重新开始' 作为结束指标
- * - v2 UI 在 ongoing 状态下也显示"重新开始"按钮，会导致误判
+ * - UI 在 ongoing 状态下也显示"重新开始"按钮，会导致误判
  * - '查看昨晚信息' 只在 status=ended 时显示，是稳定的结束信号
  */
 const NIGHT_END_KEYWORDS = [
@@ -222,7 +222,7 @@ const NIGHT_END_KEYWORDS = [
   '玩家死亡',
   '昨天晚上',
   '查看昨晚信息', // Button visible only when status=ended
-  // NOTE: '重新开始' removed - visible during ongoing in v2
+  // NOTE: '重新开始' removed - visible during ongoing in current architecture
 ];
 
 /**
@@ -1018,8 +1018,8 @@ test.describe('Night 1 Happy Path', () => {
       }
 
       // ===================== Assertions =====================
-      // NOTE: hasRestartBtn is NOT a valid night-end indicator in v2
-      // (v2 UI shows "重新开始" even during ongoing state)
+      // NOTE: hasRestartBtn is NOT a valid night-end indicator in current architecture
+      // (UI shows "重新开始" even during ongoing state)
       // Only "查看昨晚信息" and result text are reliable indicators
       const nightEnded =
         hasLastNightBtn ||
@@ -1261,8 +1261,8 @@ test.describe('Night 1 Happy Path', () => {
       console.log(`[6P] 重新开始 visible: ${hasRestartBtn}`);
 
       // Night should complete (smoke test - no death assertion)
-      // NOTE: hasRestartBtn is NOT a valid night-end indicator in v2
-      // (v2 UI shows "重新开始" even during ongoing state)
+      // NOTE: hasRestartBtn is NOT a valid night-end indicator in current architecture
+      // (UI shows "重新开始" even during ongoing state)
       const nightEnded =
         hasLastNightBtn ||
         nightResult.resultText.includes('平安夜') ||

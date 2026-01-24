@@ -1,7 +1,7 @@
 /**
- * V2 Host Game Factory for Integration Tests
+ * Host Game Factory for Integration Tests
  *
- * 完全基于 v2 架构：
+ * 完全基于 架构：
  * - intents → handlers → reducer → BroadcastGameState
  * - 禁止 import legacy GameStateService / NightFlowController
  * - 禁止 encoded target 协议
@@ -41,7 +41,7 @@ export interface CapturedMessage {
   message: PlayerMessage;
 }
 
-export interface HostGameContextV2 {
+export interface HostGameContext {
   /** 获取当前 BroadcastGameState */
   getBroadcastState: () => BroadcastGameState;
   /** 获取当前 revision */
@@ -49,7 +49,7 @@ export interface HostGameContextV2 {
   /** 获取 NightPlan */
   getNightPlan: () => NightPlan;
   /** 运行完整夜晚流程 */
-  runNight: (actions: NightActionSequenceV2) => NightResultV2;
+  runNight: (actions: NightActionSequence) => NightResult;
   /** 发送 PlayerMessage（模拟 player→host intent） */
   sendPlayerMessage: (msg: PlayerMessage) => { success: boolean; reason?: string };
   /** 推进到下一个夜晚步骤 */
@@ -69,9 +69,9 @@ export interface HostGameContextV2 {
 }
 
 /**
- * Night-1 行动序列（v2 wire protocol）
+ * Night-1 行动序列（wire protocol）
  */
-export interface NightActionSequenceV2 {
+export interface NightActionSequence {
   [role: string]:
     | number
     | null
@@ -81,7 +81,7 @@ export interface NightActionSequenceV2 {
     | { confirmed: boolean };
 }
 
-export interface NightResultV2 {
+export interface NightResult {
   deaths: number[];
   completed: boolean;
   state: BroadcastGameState;
@@ -117,10 +117,10 @@ function createContext(state: GameState, isHost: boolean): HandlerContext {
 // Factory Function
 // =============================================================================
 
-export function createHostGameV2(
+export function createHostGame(
   templateNameOrRoles: string | RoleId[],
   roleAssignment?: Map<number, RoleId>,
-): HostGameContextV2 {
+): HostGameContext {
   let template: GameTemplate;
   if (typeof templateNameOrRoles === 'string') {
     const preset = PRESET_TEMPLATES.find((t) => t.name === templateNameOrRoles);
@@ -309,7 +309,7 @@ export function createHostGameV2(
     }
   };
 
-  const runNight = (actions: NightActionSequenceV2): NightResultV2 => {
+  const runNight = (actions: NightActionSequence): NightResult => {
     const plan = internal.nightPlan;
 
     for (let stepIdx = 0; stepIdx < plan.steps.length; stepIdx++) {
@@ -440,6 +440,6 @@ export function createHostGameV2(
   };
 }
 
-export function cleanupHostGameV2(): void {
-  // v2 不使用 singleton，无需清理
+export function cleanupHostGame(): void {
+  // 不使用 singleton，无需清理
 }

@@ -1,4 +1,4 @@
-# V2 服务层设计文档（仅第一夜 + 遵守 Guardrails）
+# 服务层设计文档（仅第一夜 + 遵守 Guardrails）
 
 > **版本**: v5.1（Phase 1 可落地版）
 > **状态**: 已批准，可执行 Phase 1 实现
@@ -38,16 +38,16 @@
 - **单一状态形态（Single State Shape）**: `GameState ≡ BroadcastGameState`（广播游戏状态），主机和玩家持有完全相同的类型
 - **单一职责模块（SRP Modules）**: 将上帝类拆分为 store、handlers、intents、reducer
 - **协议优先（Protocol-first）**: 所有执行状态都包含在 `BroadcastGameState` 中，支持快照恢复
-- **工厂依赖注入（Factory DI）**: 使用 `ServiceFactory` 模式切换 v1/v2 实现
+- **工厂依赖注入（Factory DI）**: 使用 `ServiceFactory` 模式切换实现
 
 ### 硬性约束（不可违反）
 
 - ❌ 不得引入仅主机状态字段（host-only state）
 - ❌ 不得发明平行的线协议（wire protocol）；一切在“线上传输”仍以 `PlayerMessage`（玩家消息）/ `HostBroadcast`（主机广播消息）作为唯一合约
-  - ✅ 允许（迁移期护栏）：在 `BroadcastGameState` 中新增字段，必须先以 `?` 可选字段落地，以降低 v1/v2/legacy 并存时的耦合风险
-    - TODO(remove by 2026-03-01): 当 **legacy 与切换开关移除**、v2 成为唯一路径后，评估将相关字段收紧为必填或移除此“迁移期可选字段”规则，并同步更新合约测试
-  - 🛑 禁止：引入 `V2PlayerMessage` / `V2HostBroadcast` / `PrivateEffect` 等平行协议，或同时维护两份 state shape
-- ❌ v2 运行时不得从 legacy 导入
+  - ✅ 允许（迁移期护栏）：在 `BroadcastGameState` 中新增字段，必须先以 `?` 可选字段落地，以降低 多版本并存时的耦合风险
+    - TODO(remove by 2026-03-01): 当 **legacy 与切换开关移除**、新架构成为唯一路径后，评估将相关字段收紧为必填或移除此“迁移期可选字段”规则，并同步更新合约测试
+  - 🛑 禁止：引入 `NewPlayerMessage` / `NewHostBroadcast` / `PrivateEffect` 等平行协议，或同时维护两份 state shape
+- ❌ 运行时不得从 legacy 导入
 - ❌ 玩家（Player）不得执行 resolver/reducer/夜晚推进/死亡结算
 - ✅ 所有现有测试必须通过
 
@@ -232,7 +232,7 @@ export interface BroadcastGameState {
   currentActionerIndex: number;
   isAudioPlaying: boolean;
 
-  // --- 执行状态（v2，可选，向后兼容） ---
+  // --- 执行状态（可选，向后兼容） ---
   /** 第一夜动作记录 */
   actions?: ProtocolAction[];
 
@@ -460,9 +460,9 @@ export function normalizeState(raw: Partial<BroadcastGameState>): BroadcastGameS
 | ------------ | ---------------------------------------------------------------- | ----------------------------------- |
 | `protocol/`  | `import type` from `models/**`, `services/night/resolvers/types` | 任何运行时导入；任何 transport 导入 |
 | `core/`      | `import type` from protocol；import from `models/**`             | 运行时导入 transport                |
-| `transport/` | 从 protocol 导入（types）；导入 supabase                         | 从 v2、legacy 导入                  |
+| `transport/` | 从 protocol 导入（types）；导入 supabase                         | 从 engine、legacy 导入                  |
 | `legacy/`    | 任意（迁移期豁免）                                               | —                                   |
-| `v2/`        | 从 protocol、core 导入                                           | 运行时导入 legacy                   |
+| `engine/        | 从 protocol、core 导入                                           | 运行时导入 legacy                   |
 
 ### 6.2 执法策略
 
@@ -538,12 +538,12 @@ describe('模块边界契约（Module Boundary Contract）', () => {
     });
   });
 
-  describe('v2/ 层', () => {
-    it('v2/ 不运行时导入 legacy/', () => {
-      const v2Dir = path.join(SERVICES_DIR, 'v2');
-      if (!fs.existsSync(v2Dir)) return;
+  describe('engine/ 层', () => {
+    it('engine/ 不运行时导入 legacy/', () => {
+      const engineDir = path.join(SERVICES_DIR, 'engine');
+      if (!fs.existsSync(engineDir)) return;
 
-      const files = getAllTsFiles(v2Dir);
+      const files = getAllTsFiles(engineDir);
       for (const filePath of files) {
         const { runtime } = getImports(filePath);
         for (const imp of runtime) {
@@ -635,7 +635,7 @@ src/services/
 ├── legacy/                            # 仅旧 God Service（迁移期）
 │   └── GameStateService.ts            # 从现有位置移入
 │
-├── v2/                                # 新实现（Phase 5）
+├── engine/                                # 新实现（Phase 5）
 │   ├── store/
 │   ├── handlers/
 │   ├── intents/
@@ -703,7 +703,7 @@ src/services/
 | `boundary.contract.test.ts`  | `BroadcastService.ts 不导出 HostBroadcast 类型`      | Phase 1 完成后通过                                   |
 | `boundary.contract.test.ts`  | `BroadcastService.ts 不导出 PlayerMessage 类型`      | Phase 1 完成后通过                                   |
 | `boundary.contract.test.ts`  | `protocol/types.ts 导出 BroadcastGameState`          | Regex 找到 `export interface BroadcastGameState`     |
-| `boundary.contract.test.ts`  | `v2/ 不运行时导入 legacy/`                           | 扫描所有 v2/ 文件                                    |
+| `boundary.contract.test.ts`  | `engine/ 不运行时导入 legacy/`                           | 扫描所有 engine/ 文件                                    |
 | `boundary.contract.test.ts`  | `core/ 不运行时导入 transport/`                      | 扫描所有 core/ 文件                                  |
 | `normalize.contract.test.ts` | `规范化 wolfVotesBySeat keys 为 string`             | `{ 1: 3 }` → `{ '1': 3 }`                            |
 | `normalize.contract.test.ts` | `填充必填字段默认值`                                 | 空输入 → 有效的 BroadcastGameState                   |
@@ -742,11 +742,11 @@ npm test -- --testPathPattern="src/services/__tests__"
 2. 添加重导出 shim
 3. **门槛**: 所有现有测试通过
 
-### Phase 4：V2-only Cutover & Legacy Removal ✅
+### Phase 4：Cutover & Legacy Removal ✅
 
 > **状态**: 已完成（2026-01-24）
 
-目标：运行时只剩 v2 路径，删除所有 legacy runtime 代码与测试。
+目标：运行时只剩当前路径，删除所有 legacy runtime 代码与测试。
 
 **Batch 1+2**: 删除 legacy boards integration + 旧 runtime tests
 - **Commit**: `e2463f5`
@@ -763,9 +763,9 @@ npm test -- --testPathPattern="src/services/__tests__"
 - `ls src/services/legacy/` → Directory does not exist
 - `ls src/services/__tests__/boards/` → Directory does not exist
 - `npm test` → 95 suites, 1543 tests PASS
-- v2-only gate → 3 suites, 28 tests PASS
+- 集成测试门禁 → 3 suites, 28 tests PASS
 
-**门槛**: legacy 目录不存在 + 全量测试通过 + v2-only gate 通过
+**门槛**: legacy 目录不存在 + 全量测试通过 + 集成测试门禁 通过
 
 ### Phase 5：Core 整合（可选，第 3 周+）
 
@@ -774,11 +774,11 @@ npm test -- --testPathPattern="src/services/__tests__"
 3. 添加重导出 shims
 4. **门槛**: 所有现有测试通过
 
-### Phase 6：V2 实现完善（第 3-4 周）
+### Phase 6：实现完善（第 3-4 周）
 
 1. 实现 `GameStore`、`Reducer`、`Handlers`
 2. 实现 `ServiceFactory`
-3. 添加 v2 专用测试
+3. 添加专用测试
 4. **门槛**: 所有测试通过，feature-flag 生效
 
 ---
@@ -791,7 +791,7 @@ npm test -- --testPathPattern="src/services/__tests__"
 | 2   | `Record<number, T>` 的 number key 残留在 fixtures | 中     | 中   | 归一化所有输入；在 normalize 中 canonicalize | `npm test -- normalize.contract`                    |
 | 3   | seat-map key 规范化错误（drift）                  | 高     | 高   | 统一走 `canonicalizeSeatKeyRecord()`          | `npm test -- normalize.contract`                    |
 | 4   | `CurrentNightResults` 被作为运行时导入            | 低     | 高   | 边界测试扫描运行时导入                       | `npm test -- boundary.contract`                     |
-| 5   | v2 意外导入 legacy                                | 低     | 严重 | ESLint 规则 + 边界测试                       | `npm test -- boundary.contract`                     |
+| 5   | 意外导入 legacy                                | 低     | 严重 | ESLint 规则 + 边界测试                       | `npm test -- boundary.contract`                     |
 
 ---
 
@@ -805,7 +805,7 @@ npm test -- --testPathPattern="src/services/__tests__"
 | 4   | `players` key 类型保持 number（Phase 1）      | 现有测试通过                     |
 | 5   | 旧协议字段误用（代码/文档未清理）                | `npm test -- normalize.contract` |
 | 6   | `CurrentNightResults` type-only 导入          | Grep + 边界测试                  |
-| 7   | v2 不运行时导入 legacy                        | `npm test -- boundary.contract`  |
+| 7   | 不运行时导入 legacy                        | `npm test -- boundary.contract`  |
 | 8   | core 不运行时导入 transport                   | `npm test -- boundary.contract`  |
 | 9   | 主机每次广播递增 revision                     | 集成测试                         |
 | 10  | 玩家丢弃旧 revision                           | 集成测试                         |

@@ -7,7 +7,7 @@
  * - Testable: All state transitions are synchronous and deterministic
  * - Explicit: State machine with clear phase definitions
  *
- * Used by V2GameFacade for night flow orchestration.
+ * Used by GameFacade for night flow orchestration.
  */
 
 import { RoleId } from '../models/roles';

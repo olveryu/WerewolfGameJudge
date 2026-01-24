@@ -1,4 +1,4 @@
-# Phase2 设计方案：Night-1 迁移到 v2（对齐 Legacy）
+# Phase2 设计方案：Night-1 迁移（对齐 Legacy）
 
 > **版本**：v1.3.1
 > **日期**：2026-01-21
@@ -20,7 +20,7 @@
 
 ## 0. 总原则（Non-negotiable）
 
-1. **行为对齐 legacy**：v2 Phase2 的目标不是"合理"，而是"与 legacy 体验/规则一致"（Night-1 only 范围内）。任何行为差异都视为 bug。
+1. **行为对齐 legacy**：Phase2 的目标不是"合理"，而是"与 legacy 体验/规则一致"（Night-1 only 范围内）。任何行为差异都视为 bug。
 
 2. **Host 是权威，但 Host 设备也是 player**：Host UI 交互必须与 Player 交互一致（只是多了 host-only 的按钮/入口）。Host 和 Player 读取同一份 `BroadcastGameState`。
 
@@ -28,7 +28,7 @@
 
 4. **Resolver-first**：行动合法性与计算只能来自 resolver（与 schema constraints 对齐），handler 不得二次推导。
 
-5. **v2 运行时禁止 import legacy**：设计里允许"引用 legacy 作为对照证据"，但实现里不得依赖 legacy。
+5. **运行时禁止 import legacy**：设计里允许"引用 legacy 作为对照证据"，但实现里不得依赖 legacy。
 
 ---
 
@@ -40,7 +40,7 @@
 
 ### 1.1 Seating（Phase1 已完成，Phase2 不动）
 
-| 行为                     | 行号范围           | 代码片段摘录                                                                                                                                                                                                  | v2 对齐状态    |
+| 行为                     | 行号范围           | 代码片段摘录                                                                                                                                                                                                  | 对齐状态    |
 | ------------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
 | 入座后 allSeated 检查    | L722-725           | `const allSeated = Array.from(this.state.players.values()).every((p) => p !== null);`<br>`if (allSeated && this.state.status === GameStatus.unseated) {`<br>`  this.state.status = GameStatus.seated;`<br>`}` | ✅ Phase1 完成 |
 | 离座后 status 回退       | L740-742           | `if (this.state.status === GameStatus.seated) {`<br>`  this.state.status = GameStatus.unseated;`<br>`}`                                                                                                       | ✅ Phase1 完成 |
@@ -214,7 +214,7 @@
 
 ---
 
-## 2. v2 状态机（对齐版）
+## 2. 状态机（对齐版）
 
 ### 2.1 Status 流转图
 
@@ -276,8 +276,8 @@
 - **Host-only**：无（夜晚推进由系统自动完成）
 - **写入 `BroadcastGameState`**：
   - `currentActionerIndex`
-  - `currentNightPhase`（v2 新增）
-  - `currentStepId`（v2 新增）
+  - `currentNightPhase`（新增）
+  - `currentStepId`（新增）
   - `isAudioPlaying`
   - `actions`
   - `currentNightResults`
@@ -322,7 +322,7 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 3. **不 advance**，等待 `REVEAL_ACK`
 4. 收到 `REVEAL_ACK` 后：移除 pending → `dispatch(ActionSubmitted)` → `advanceToNextAction()`
 
-**v2 必须对齐此行为**：reveal 后不立即 advance，等待 ACK。
+**必须对齐此行为**：reveal 后不立即 advance，等待 ACK。
 
 ---
 
@@ -336,9 +336,9 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 | 文件路径                                         | 改动符号              | 说明                                                                     |
 | ------------------------------------------------ | --------------------- | ------------------------------------------------------------------------ |
-| `src/services/v2/facade/V2GameFacade.ts`         | `assignRoles()`       | 新增方法：构造 intent → 调 handler → apply actions → broadcast           |
-| `src/services/v2/handlers/gameControlHandler.ts` | `handleAssignRoles()` | 新增（或拆分原 handleStartGame）：校验 seated → 生成 ASSIGN_ROLES action |
-| `src/services/v2/intents/types.ts`               | `AssignRolesIntent`   | 新增 intent 类型                                                         |
+| `src/services/facade/GameFacade.ts`         | `assignRoles()`       | 新增方法：构造 intent → 调 handler → apply actions → broadcast           |
+| `src/services/engine/handlers/gameControlHandler.ts` | `handleAssignRoles()` | 新增（或拆分原 handleStartGame）：校验 seated → 生成 ASSIGN_ROLES action |
+| `src/services/engine/intents/types.ts`               | `AssignRolesIntent`   | 新增 intent 类型                                                         |
 
 **新增/修改 `BroadcastGameState` 字段**：无（`players[seat].role` 已存在）
 
@@ -362,10 +362,10 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 | 文件路径                                    | 改动符号                    | 说明                                                             |
 | ------------------------------------------- | --------------------------- | ---------------------------------------------------------------- |
-| `src/services/v2/facade/V2GameFacade.ts`    | `viewedRole()`              | 新增方法（Player 端发 PlayerMessage）                            |
-| `src/services/v2/facade/V2GameFacade.ts`    | `hostHandlePlayerMessage()` | 新增 case `'VIEWED_ROLE'`                                        |
-| `src/services/v2/handlers/actionHandler.ts` | `handleViewedRole()`        | 校验 assigned → 设置 hasViewedRole → 检查 allViewed → 可能 ready |
-| `src/services/v2/reducer/gameReducer.ts`    | `handlePlayerViewedRole()`  | 已存在，需确保 allViewed → ready 逻辑                            |
+| `src/services/facade/GameFacade.ts`    | `viewedRole()`              | 新增方法（Player 端发 PlayerMessage）                            |
+| `src/services/facade/GameFacade.ts`    | `hostHandlePlayerMessage()` | 新增 case `'VIEWED_ROLE'`                                        |
+| `src/services/engine/handlers/actionHandler.ts` | `handleViewedRole()`        | 校验 assigned → 设置 hasViewedRole → 检查 allViewed → 可能 ready |
+| `src/services/engine/reducer/gameReducer.ts`    | `handlePlayerViewedRole()`  | 已存在，需确保 allViewed → ready 逻辑                            |
 
 **新增/修改 `BroadcastGameState` 字段**：无
 
@@ -389,11 +389,11 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 | 文件路径                                         | 改动符号             | 说明                                                                   |
 | ------------------------------------------------ | -------------------- | ---------------------------------------------------------------------- |
-| `src/services/v2/facade/V2GameFacade.ts`         | `startGame()`        | 新增方法：校验 ready → 调 handler → apply → broadcast → 播放音频       |
-| `src/services/v2/handlers/gameControlHandler.ts` | `handleStartGame()`  | 修改：前置条件改为 `ready`（不是 seated）；生成 START_NIGHT action     |
-| `src/services/v2/reducer/gameReducer.ts`         | `handleStartNight()` | 修改：设置 `currentNightPhase` / `currentStepId`                       |
+| `src/services/facade/GameFacade.ts`         | `startGame()`        | 新增方法：校验 ready → 调 handler → apply → broadcast → 播放音频       |
+| `src/services/engine/handlers/gameControlHandler.ts` | `handleStartGame()`  | 修改：前置条件改为 `ready`（不是 seated）；生成 START_NIGHT action     |
+| `src/services/engine/reducer/gameReducer.ts`         | `handleStartNight()` | 修改：设置 `currentNightPhase` / `currentStepId`                       |
 | `src/services/protocol/types.ts`                 | `BroadcastGameState` | 新增 `currentNightPhase?: NightPhaseType` / `currentStepId?: SchemaId` |
-| `src/services/v2/reducer/types.ts`               | `StartNightAction`   | payload 新增 `currentNightPhase` / `currentStepId`                     |
+| `src/services/engine/reducer/types.ts`               | `StartNightAction`   | payload 新增 `currentNightPhase` / `currentStepId`                     |
 
 **新增 `BroadcastGameState` 字段**：
 
@@ -423,9 +423,9 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 | 文件路径                                    | 改动符号                    | 说明                                         |
 | ------------------------------------------- | --------------------------- | -------------------------------------------- |
-| `src/services/v2/facade/V2GameFacade.ts`    | `submitAction()`            | 新增方法（Player 端发 PlayerMessage）        |
-| `src/services/v2/facade/V2GameFacade.ts`    | `hostHandlePlayerMessage()` | 新增 case `'ACTION'`                         |
-| `src/services/v2/handlers/actionHandler.ts` | `handleSubmitAction()`      | 校验 phase/role → 调 resolver → apply result |
+| `src/services/facade/GameFacade.ts`    | `submitAction()`            | 新增方法（Player 端发 PlayerMessage）        |
+| `src/services/facade/GameFacade.ts`    | `hostHandlePlayerMessage()` | 新增 case `'ACTION'`                         |
+| `src/services/engine/handlers/actionHandler.ts` | `handleSubmitAction()`      | 校验 phase/role → 调 resolver → apply result |
 
 **新增/修改 `BroadcastGameState` 字段**：无（reveal 字段已存在）
 
@@ -449,9 +449,9 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 | 文件路径                                    | 改动符号                    | 说明                                                      |
 | ------------------------------------------- | --------------------------- | --------------------------------------------------------- |
-| `src/services/v2/facade/V2GameFacade.ts`    | `submitWolfVote()`          | 新增方法                                                  |
-| `src/services/v2/facade/V2GameFacade.ts`    | `hostHandlePlayerMessage()` | 新增 case `'WOLF_VOTE'`                                   |
-| `src/services/v2/handlers/actionHandler.ts` | `handleSubmitWolfVote()`    | 新增：校验 wolf role → 记录投票 → 检查 allVoted → resolve |
+| `src/services/facade/GameFacade.ts`    | `submitWolfVote()`          | 新增方法                                                  |
+| `src/services/facade/GameFacade.ts`    | `hostHandlePlayerMessage()` | 新增 case `'WOLF_VOTE'`                                   |
+| `src/services/engine/handlers/actionHandler.ts` | `handleSubmitWolfVote()`    | 新增：校验 wolf role → 记录投票 → 检查 allVoted → resolve |
 
 **新增/修改 `BroadcastGameState` 字段**：无
 
@@ -475,11 +475,11 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 | 文件路径                                 | 改动符号                      | 说明                                   |
 | ---------------------------------------- | ----------------------------- | -------------------------------------- |
-| `src/services/v2/facade/V2GameFacade.ts` | `advanceToNextAction()`       | 新增：推进步骤 + 播放音频              |
-| `src/services/v2/facade/V2GameFacade.ts` | `endNight()`                  | 新增：计算死亡 + 广播                  |
-| `src/services/v2/facade/V2GameFacade.ts` | `playCurrentRoleAudio()`      | 新增：根据 step 播放音频               |
-| `src/services/v2/reducer/gameReducer.ts` | `handleAdvanceToNextAction()` | 更新 phase/stepId/currentActionerIndex |
-| `src/services/v2/reducer/gameReducer.ts` | `handleEndNight()`            | 已存在                                 |
+| `src/services/facade/GameFacade.ts` | `advanceToNextAction()`       | 新增：推进步骤 + 播放音频              |
+| `src/services/facade/GameFacade.ts` | `endNight()`                  | 新增：计算死亡 + 广播                  |
+| `src/services/facade/GameFacade.ts` | `playCurrentRoleAudio()`      | 新增：根据 step 播放音频               |
+| `src/services/engine/reducer/gameReducer.ts` | `handleAdvanceToNextAction()` | 更新 phase/stepId/currentActionerIndex |
+| `src/services/engine/reducer/gameReducer.ts` | `handleEndNight()`            | 已存在                                 |
 
 **新增/修改 `BroadcastGameState` 字段**：无（PR3 已加）
 
@@ -487,7 +487,7 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 | 测试文件                         | 测试用例                                          | 类型                   |
 | -------------------------------- | ------------------------------------------------- | ---------------------- |
-| `V2GameFacade.nightFlow.test.ts` | 完整 Night-1 流程                                 | Jest                   |
+| `GameFacade.nightFlow.test.ts` | 完整 Night-1 流程                                 | Jest                   |
 | `e2e/night1.basic.spec.ts`       | 创建 → 入座 → 分配 → 查看 → 开始 → action → ended | Playwright (workers=1) |
 
 **回滚策略**：`git revert` 整个 PR
@@ -521,9 +521,9 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 | 扫描项                        | 方法                                        |
 | ----------------------------- | ------------------------------------------- |
-| v2 runtime 不得 import legacy | `grep -r "from '.*legacy" src/services/v2/` |
+| runtime 不得 import legacy | `grep -r "from '.*legacy" src/services/` |
 | 无 hostOnly state             | `grep -r "hostOnly\|HostOnlyState" src/`    |
-| 无 runtime feature flag       | `grep -r "useV2Night\|ENABLE_V2" src/`      |
+| 无 runtime feature flag       | `grep -r "ENABLE_" src/`      |
 
 ### 5.4 E2E（可选）
 
@@ -537,7 +537,7 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 | 禁止项                                | 说明                                                                |
 | ------------------------------------- | ------------------------------------------------------------------- |
-| runtime feature flag / fallback       | 不允许 `if (useV2) { ... } else { legacy }`                         |
+| runtime feature flag / fallback       | 不允许 `if (useNew) { ... } else { legacy }`                         |
 | hostOnly state / HostLocalState       | 所有状态必须进 `BroadcastGameState`                                 |
 | 伪 API                                | 不允许使用 repo 中不存在的函数签名（如自造的 `restoreFromState()`） |
 | UI 文案作为逻辑 key                   | 必须使用稳定 id：`SchemaId` / `RoleId`                              |
@@ -562,7 +562,7 @@ export enum NightPhase {
 }
 ```
 
-v2 `BroadcastGameState.currentNightPhase` 类型定义：
+`BroadcastGameState.currentNightPhase` 类型定义：
 
 ```typescript
 export type NightPhaseType =

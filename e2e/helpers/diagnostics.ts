@@ -16,9 +16,9 @@ export const LOG_PREFIXES = [
   '[BroadcastService]',
   '[AudioService]',
   '[NightFlowController]',
-  // V2 legacy-style prefixes (some code still prints bracketed tags)
-  '[V2GameFacade]',
-  '[v2]',
+  // legacy-style prefixes (some code still prints bracketed tags)
+  '[GameFacade]',
+  '[facade]',
   // react-native-logs extensions
   'Host',
   'Player',
@@ -31,7 +31,7 @@ export const LOG_PREFIXES = [
   'Config',
   'RoomScreen',
   'Home',
-  'V2Facade',
+  'Facade',
   'GameStore',
 ] as const;
 

@@ -1,5 +1,5 @@
 /**
- * V2 Store Types - 状态存储类型定义
+ * Store Types - 状态存储类型定义
  *
  * GameState ≡ BroadcastGameState（单一状态形态）
  */

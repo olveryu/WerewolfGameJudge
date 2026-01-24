@@ -338,7 +338,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
   /**
    * @deprecated Legacy mergedTarget encoding. Use `extra.targets: [seatA, seatB]` instead.
-   * RoomScreen now uses v2 protocol: `proceedWithActionTyped(null, { targets: [a, b] })`.
+   * RoomScreen now uses protocol: `proceedWithActionTyped(null, { targets: [a, b] })`.
    */
   const getMagicianTarget = useCallback(
     (secondIndex: number): number => {

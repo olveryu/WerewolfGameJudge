@@ -12,7 +12,7 @@
  * 3. 权限检查：仅 Host 可调用
  */
 
-import { V2GameFacade } from '../V2GameFacade';
+import { GameFacade } from '../GameFacade';
 import { BroadcastService } from '../../transport/BroadcastService';
 import { gameReducer } from '../../engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '../../engine/reducer/types';
@@ -39,7 +39,7 @@ jest.mock('../../infra/AudioService', () => ({
 }));
 
 describe('restartGame Contract', () => {
-  let facade: V2GameFacade;
+  let facade: GameFacade;
   let mockBroadcastService: {
     joinRoom: jest.Mock;
     broadcastAsHost: jest.Mock;
@@ -57,7 +57,7 @@ describe('restartGame Contract', () => {
   };
 
   beforeEach(() => {
-    V2GameFacade.resetInstance();
+    GameFacade.resetInstance();
     broadcastCalls = [];
 
     mockBroadcastService = {
@@ -73,11 +73,11 @@ describe('restartGame Contract', () => {
 
     (BroadcastService.getInstance as jest.Mock).mockReturnValue(mockBroadcastService);
 
-    facade = V2GameFacade.getInstance();
+    facade = GameFacade.getInstance();
   });
 
   afterEach(() => {
-    V2GameFacade.resetInstance();
+    GameFacade.resetInstance();
   });
 
   // ===========================================================================

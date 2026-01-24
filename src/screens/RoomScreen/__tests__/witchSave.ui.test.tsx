@@ -5,7 +5,7 @@
  * - save step is confirmTarget (no seat tapping to select target)
  * - save action uses killedIndex from witchContext
  * - when canSave=false, save should not submit
- * - v2 protocol: submitAction(actorSeat, { stepResults: { save, poison } })
+ * - protocol: submitAction(actorSeat, { stepResults: { save, poison } })
  */
 
 import React from 'react';
@@ -167,7 +167,7 @@ describe('RoomScreen witch save UI (contract)', () => {
       confirmBtn?.onPress?.();
     });
 
-    // v2 protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
+    // protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
     expect(mockSubmitAction).toHaveBeenCalledWith(0, {
       stepResults: { save: 2, poison: null },
     });

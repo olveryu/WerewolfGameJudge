@@ -1,14 +1,14 @@
 /**
- * V2 Boundary Guard Tests
+ * Boundary Guard Tests
  *
- * 确保 v2 harness 不会 import legacy 代码
+ * 确保 harness 不会 import legacy 代码
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 
-const V2_BOARDS_DIR = path.resolve(__dirname, '.');
-const V2_ROOT_DIR = path.resolve(__dirname, '../..');
+const BOARDS_DIR = path.resolve(__dirname, '.');
+const ROOT_DIR = path.resolve(__dirname, '../..');
 
 function getAllTsFiles(dir: string): string[] {
   const files: string[] = [];
@@ -39,10 +39,10 @@ function checkForbiddenImports(
   return { file: filePath, violations };
 }
 
-describe('V2 Boundary Guard', () => {
-  describe('v2 boards harness 禁止 import legacy', () => {
-    it('hostGameFactory.v2.ts 不应 import legacy 代码', () => {
-      const harnessPath = path.join(V2_BOARDS_DIR, 'hostGameFactory.v2.ts');
+describe('Boundary Guard', () => {
+  describe('boards harness 禁止 import legacy', () => {
+    it('hostGameFactory.ts 不应 import legacy 代码', () => {
+      const harnessPath = path.join(BOARDS_DIR, 'hostGameFactory.ts');
       const content = fs.readFileSync(harnessPath, 'utf-8');
 
       const forbiddenPatterns = [
@@ -65,8 +65,8 @@ describe('V2 Boundary Guard', () => {
       expect(violations).toEqual([]);
     });
 
-    it('v2/__tests__/boards 目录下所有文件不应 import legacy', () => {
-      const files = getAllTsFiles(V2_BOARDS_DIR);
+    it('__tests__/boards 目录下所有文件不应 import legacy', () => {
+      const files = getAllTsFiles(BOARDS_DIR);
 
       const forbiddenPatterns = [
         /import\s+.*\s+from\s+['"].*GameStateService['"]/g,
@@ -87,14 +87,14 @@ describe('V2 Boundary Guard', () => {
         const errorMsg = allViolations
           .map((v) => `${v.file}:\n  ${v.violations.join('\n  ')}`)
           .join('\n\n');
-        fail(`Legacy imports found in v2 boards:\n${errorMsg}`);
+        fail(`Legacy imports found in boards:\n${errorMsg}`);
       }
     });
   });
 
-  describe('v2 核心目录禁止 import legacy', () => {
-    it('v2/handlers 不应 import legacy', () => {
-      const handlersDir = path.join(V2_ROOT_DIR, 'handlers');
+  describe('核心目录禁止 import legacy', () => {
+    it('handlers 不应 import legacy', () => {
+      const handlersDir = path.join(ROOT_DIR, 'handlers');
       if (!fs.existsSync(handlersDir)) {
         return;
       }
@@ -111,8 +111,8 @@ describe('V2 Boundary Guard', () => {
       expect(allViolations).toEqual([]);
     });
 
-    it('v2/reducer 不应 import legacy', () => {
-      const reducerDir = path.join(V2_ROOT_DIR, 'reducer');
+    it('reducer 不应 import legacy', () => {
+      const reducerDir = path.join(ROOT_DIR, 'reducer');
       if (!fs.existsSync(reducerDir)) {
         return;
       }
