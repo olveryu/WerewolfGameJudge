@@ -24,6 +24,7 @@ import type { RoleId } from '../../models/roles';
 import { BroadcastService } from '../transport/BroadcastService';
 import { GameStore } from '../engine/store';
 import AudioService from '../infra/AudioService';
+import { HostStateCache } from '../infra/HostStateCache';
 
 // 子模块
 import type { HostActionsContext } from './hostActions';
@@ -168,6 +169,78 @@ export class GameFacade implements IGameFacade {
     // 请求当前状态
     const reqMsg: PlayerMessage = { type: 'REQUEST_STATE', uid: playerUid };
     await this.broadcastService.sendToHost(reqMsg);
+  }
+
+  /**
+   * Host rejoin: 房主断线重连后重新加入房间
+   *
+   * 策略：
+   * 1. 尝试从本地缓存恢复状态
+   * 2. 如果有缓存，恢复并立即广播 STATE_UPDATE
+   * 3. 如果没有缓存，返回 false（调用方需提示用户）
+   */
+  async joinAsHost(
+    roomCode: string,
+    hostUid: string,
+    templateRoles?: RoleId[],
+  ): Promise<{ success: boolean; reason?: string }> {
+    this.isHost = true;
+    this.myUid = hostUid;
+
+    // 尝试从本地缓存恢复状态
+    const hostCache = HostStateCache.getInstance();
+    const cached = await hostCache.loadState(roomCode);
+
+    if (cached) {
+      // Hard guard: cached hostUid must match current hostUid
+      if (cached.state.hostUid !== hostUid) {
+        this.isHost = false;
+        this.myUid = null;
+        return { success: false, reason: 'cached_state_host_mismatch' };
+      }
+
+      // 有缓存：恢复状态 + revision（Host rejoin 必须恢复 revision，否则 Player 可能拒绝后续 STATE_UPDATE）
+      this.store.applyHostSnapshot(cached.state, cached.revision);
+    } else if (templateRoles && templateRoles.length > 0) {
+      // 没有缓存但有模板：创建初始状态
+      const players: BroadcastGameState['players'] = {};
+      for (let i = 0; i < templateRoles.length; i++) {
+        players[i] = null;
+      }
+
+      const initialState: BroadcastGameState = {
+        roomCode,
+        hostUid,
+        status: 'unseated',
+        templateRoles,
+        players,
+        currentActionerIndex: -1,
+        isAudioPlaying: false,
+      };
+
+      this.store.initialize(initialState);
+    } else {
+      // 没有缓存且没有模板：无法恢复
+      this.isHost = false;
+      this.myUid = null;
+      return { success: false, reason: 'no_cached_state' };
+    }
+
+    // 加入频道（作为 Host）
+    await this.broadcastService.joinRoom(roomCode, hostUid, {
+      onHostBroadcast: undefined,
+      onPlayerMessage: (msg: PlayerMessage, senderId: string) => {
+        messageRouter.hostHandlePlayerMessage(this.getMessageRouterContext(), msg, senderId);
+      },
+      onPresenceChange: (_users: string[]) => {
+        void this.broadcastCurrentState();
+      },
+    });
+
+    // 立即广播当前状态，让所有 Player 同步
+    await this.broadcastCurrentState();
+
+    return { success: true };
   }
 
   async leaveRoom(): Promise<void> {
@@ -513,10 +586,17 @@ export class GameFacade implements IGameFacade {
     const state = this.store.getState();
     if (!state) return;
 
+    const revision = this.store.getRevision();
+
+    // Host: 保存状态到本地缓存（用于 rejoin 恢复）
+    if (this.isHost) {
+      void HostStateCache.getInstance().saveState(state.roomCode, state, revision);
+    }
+
     const msg: HostBroadcast = {
       type: 'STATE_UPDATE',
       state,
-      revision: this.store.getRevision(),
+      revision,
     };
     await this.broadcastService.broadcastAsHost(msg);
   }

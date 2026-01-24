@@ -137,6 +137,45 @@ describe('GameStore', () => {
 
       expect(store.getState()?.status).toBe('seated');
     });
+
+    it('should normalize snapshot to ensure Host/Player shape consistency (anti-drift)', () => {
+      // Simulate reconnect scenario: incoming snapshot has mixed number/string keys
+      // (e.g., from JSON serialization or old client)
+      const incomingSnapshot = createMinimalState({
+        status: 'ongoing',
+        currentNightResults: {
+          // Deliberately use number keys (simulates pre-normalize/JSON parse scenario)
+          wolfVotesBySeat: { 1: 3, 2: 3, 3: 5 } as unknown as Record<string, number>,
+        },
+      });
+
+      store.applySnapshot(incomingSnapshot, 5);
+
+      // After applySnapshot, wolfVotesBySeat keys should be normalized to strings
+      const result = store.getState()!;
+      expect(result.currentNightResults).toBeDefined();
+
+      const wolfVotes = result.currentNightResults!.wolfVotesBySeat!;
+      const keys = Object.keys(wolfVotes);
+
+      // All keys must be strings (not number-like objects)
+      expect(keys).toEqual(['1', '2', '3']);
+      // Values preserved
+      expect(wolfVotes['1']).toBe(3);
+      expect(wolfVotes['2']).toBe(3);
+      expect(wolfVotes['3']).toBe(5);
+    });
+  });
+
+  describe('applyHostSnapshot() (Host-only)', () => {
+    it('should set state and preserve the provided revision', () => {
+      const state = createMinimalState({ status: 'ongoing' });
+
+      store.applyHostSnapshot(state, 42);
+
+      expect(store.getState()).toEqual(state);
+      expect(store.getRevision()).toBe(42);
+    });
   });
 
   describe('subscribe()', () => {

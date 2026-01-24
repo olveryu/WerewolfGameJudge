@@ -60,6 +60,20 @@ export interface IGameFacade {
   ): Promise<void>;
 
   /**
+   * Host rejoin: 房主断线重连后重新加入房间
+   *
+   * 策略：
+   * 1. 尝试从本地缓存恢复状态
+   * 2. 如果有缓存，恢复并立即广播 STATE_UPDATE
+   * 3. 如果没有缓存且没有 templateRoles，返回 false
+   */
+  joinAsHost(
+    roomCode: string,
+    hostUid: string,
+    templateRoles?: RoleId[],
+  ): Promise<{ success: boolean; reason?: string }>;
+
+  /**
    * 离开房间
    */
   leaveRoom(): Promise<void>;

@@ -40,6 +40,7 @@ describe('useGameRoom - ACK reason transparency', () => {
     getStateRevision: jest.fn().mockReturnValue(0),
     initializeAsHost: jest.fn().mockResolvedValue(undefined),
     joinAsPlayer: jest.fn().mockResolvedValue(undefined),
+    joinAsHost: jest.fn().mockResolvedValue({ success: true }),
     leaveRoom: jest.fn().mockResolvedValue(undefined),
     takeSeat: jest.fn().mockResolvedValue(true),
     takeSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
@@ -218,6 +219,61 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       expect(ackResult).toEqual({ success: false, reason: 'not_seated' });
+    });
+  });
+
+  describe('Player auto-recovery', () => {
+    it('should expose lastStateReceivedAt and isStateStale', () => {
+      const mockFacade = createMockFacade();
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      );
+
+      const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+      // Initially null and stale (no state received)
+      expect(result.current.lastStateReceivedAt).toBeNull();
+      expect(result.current.isStateStale).toBe(true);
+    });
+
+    it('should update lastStateReceivedAt when state is received', async () => {
+      let stateListener: ((state: any) => void) | null = null;
+
+      const mockFacade = createMockFacade({
+        addListener: jest.fn().mockImplementation((fn) => {
+          stateListener = fn;
+          return () => {};
+        }),
+      });
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      );
+
+      const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+      // Initially null
+      expect(result.current.lastStateReceivedAt).toBeNull();
+
+      // Simulate receiving state
+      const mockState = {
+        roomCode: 'TEST',
+        hostUid: 'host-1',
+        status: 'unseated',
+        templateRoles: ['villager', 'wolf', 'seer'],
+        players: {},
+        currentActionerIndex: -1,
+        isAudioPlaying: false,
+      };
+
+      await act(async () => {
+        stateListener?.(mockState);
+      });
+
+      // Now should have timestamp
+      expect(result.current.lastStateReceivedAt).not.toBeNull();
+      expect(typeof result.current.lastStateReceivedAt).toBe('number');
     });
   });
 });
