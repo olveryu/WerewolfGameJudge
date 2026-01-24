@@ -8,7 +8,7 @@ import type {
   SubmitActionIntent,
   SubmitWolfVoteIntent,
   ViewedRoleIntent,
-} from '../../../v2/intents/types';
+} from '../../intents/types';
 import type { GameState } from '../../store/types';
 import type { SchemaId } from '../../../../models/roles/spec';
 

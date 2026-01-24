@@ -5,7 +5,7 @@
  * 所有校验（包括 state/uid 有效性）都在这里，Facade 不做任何校验
  */
 
-import type { JoinSeatIntent, LeaveMySeatIntent } from '../../v2/intents/types';
+import type { JoinSeatIntent, LeaveMySeatIntent } from '../intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type { PlayerJoinAction, PlayerLeaveAction } from '../reducer/types';
 import {
@@ -15,7 +15,7 @@ import {
   REASON_INVALID_SEAT,
   REASON_SEAT_TAKEN,
   REASON_GAME_IN_PROGRESS,
-} from '../../v2/protocol/reasonCodes';
+} from '../../protocol/reasonCodes';
 
 /**
  * 处理加入座位

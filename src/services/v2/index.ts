@@ -18,7 +18,7 @@ export { gameReducer } from '../engine/reducer';
 export type { StateAction } from '../engine/reducer/types';
 
 // Intents
-export type { GameIntent } from './intents';
+export type { GameIntent } from '../engine/intents';
 
 // Handlers
 export {

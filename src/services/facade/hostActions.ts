@@ -27,7 +27,7 @@ import type {
   SetAudioPlayingIntent,
   RestartGameIntent,
   UpdateTemplateIntent,
-} from '../v2/intents/types';
+} from '../engine/intents/types';
 import type { StateAction } from '../engine/reducer/types';
 import type { RoleId } from '../../models/roles';
 import type { GameTemplate } from '../../models/Template';

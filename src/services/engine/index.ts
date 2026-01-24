@@ -5,6 +5,9 @@
 // Handlers
 export * from './handlers';
 
+// Intents
+export * from './intents';
+
 // Reducer
 export * from './reducer';
 

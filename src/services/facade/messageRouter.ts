@@ -20,7 +20,7 @@ import type { RoleId } from '../../models/roles';
 
 import { hostProcessJoinSeat, hostProcessLeaveMySeat } from './seatActions';
 import { v2FacadeLog } from '../../utils/logger';
-import { REASON_INVALID_ACTION } from '../v2/protocol/reasonCodes';
+import { REASON_INVALID_ACTION } from '../protocol/reasonCodes';
 
 /**
  * Message Router 依赖的上下文接口
