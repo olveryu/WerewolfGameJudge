@@ -275,4 +275,55 @@ describe('GameStore', () => {
       expect(listener).toHaveBeenCalledTimes(1); // only the first initialize
     });
   });
+
+  describe('getListenerCount()', () => {
+    it('should return 0 initially', () => {
+      expect(store.getListenerCount()).toBe(0);
+    });
+
+    it('should return correct count after subscribing', () => {
+      store.subscribe(() => {});
+      store.subscribe(() => {});
+      store.subscribe(() => {});
+
+      expect(store.getListenerCount()).toBe(3);
+    });
+
+    it('should decrement count when unsubscribing', () => {
+      const unsub1 = store.subscribe(() => {});
+      const unsub2 = store.subscribe(() => {});
+      store.subscribe(() => {});
+
+      expect(store.getListenerCount()).toBe(3);
+
+      unsub1();
+      expect(store.getListenerCount()).toBe(2);
+
+      unsub2();
+      expect(store.getListenerCount()).toBe(1);
+    });
+
+    it('should return 0 after destroy', () => {
+      store.subscribe(() => {});
+      store.subscribe(() => {});
+
+      expect(store.getListenerCount()).toBe(2);
+
+      store.destroy();
+
+      expect(store.getListenerCount()).toBe(0);
+    });
+
+    it('should preserve count after reset (listeners not cleared)', () => {
+      store.subscribe(() => {});
+      store.subscribe(() => {});
+
+      expect(store.getListenerCount()).toBe(2);
+
+      store.reset();
+
+      // reset() does NOT clear listeners
+      expect(store.getListenerCount()).toBe(2);
+    });
+  });
 });

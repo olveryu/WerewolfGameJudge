@@ -105,6 +105,13 @@ export class GameFacade implements IGameFacade {
     return this.store.getRevision();
   }
 
+  /**
+   * 获取当前 listener 数量（仅用于测试/调试）
+   */
+  getListenerCount(): number {
+    return this.store.getListenerCount();
+  }
+
   // =========================================================================
   // Room Lifecycle
   // =========================================================================
