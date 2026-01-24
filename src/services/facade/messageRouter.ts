@@ -12,15 +12,15 @@
  * - 直接修改 state
  */
 
-import type { PlayerMessage, HostBroadcast } from '../../protocol/types';
-import type { GameStore } from '../../engine/store';
-import type { BroadcastService } from '../../transport/BroadcastService';
+import type { PlayerMessage, HostBroadcast } from '../protocol/types';
+import type { GameStore } from '../engine/store';
+import type { BroadcastService } from '../transport/BroadcastService';
 import type { SeatActionsContext, PendingSeatAction } from './seatActions';
-import type { RoleId } from '../../../models/roles';
+import type { RoleId } from '../../models/roles';
 
 import { hostProcessJoinSeat, hostProcessLeaveMySeat } from './seatActions';
-import { v2FacadeLog } from '../../../utils/logger';
-import { REASON_INVALID_ACTION } from '../protocol/reasonCodes';
+import { v2FacadeLog } from '../../utils/logger';
+import { REASON_INVALID_ACTION } from '../v2/protocol/reasonCodes';
 
 /**
  * Message Router 依赖的上下文接口

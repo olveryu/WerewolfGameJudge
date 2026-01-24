@@ -13,9 +13,9 @@
  * - 直接修改 state（全部在 reducer）
  */
 
-import type { BroadcastGameState } from '../../protocol/types';
-import type { GameStore } from '../../engine/store';
-import type { HandlerContext, HandlerResult } from '../../engine/handlers/types';
+import type { BroadcastGameState } from '../protocol/types';
+import type { GameStore } from '../engine/store';
+import type { HandlerContext, HandlerResult } from '../engine/handlers/types';
 import type {
   AssignRolesIntent,
   ViewedRoleIntent,
@@ -27,33 +27,33 @@ import type {
   SetAudioPlayingIntent,
   RestartGameIntent,
   UpdateTemplateIntent,
-} from '../intents/types';
-import type { StateAction } from '../../engine/reducer/types';
-import type { RoleId } from '../../../models/roles';
-import type { GameTemplate } from '../../../models/Template';
+} from '../v2/intents/types';
+import type { StateAction } from '../engine/reducer/types';
+import type { RoleId } from '../../models/roles';
+import type { GameTemplate } from '../../models/Template';
 
-import { doesRoleParticipateInWolfVote } from '../../../models/roles';
+import { doesRoleParticipateInWolfVote } from '../../models/roles';
 
 import {
   handleAssignRoles,
   handleStartNight,
   handleRestartGame,
   handleUpdateTemplate,
-} from '../../engine/handlers/gameControlHandler';
+} from '../engine/handlers/gameControlHandler';
 import {
   handleViewedRole,
   handleSubmitAction,
   handleSubmitWolfVote,
-} from '../../engine/handlers/actionHandler';
+} from '../engine/handlers/actionHandler';
 import {
   handleAdvanceNight,
   handleEndNight,
   handleSetAudioPlaying,
   handleNightProgression,
   resetProgressionTracker,
-} from '../../engine/handlers/nightFlowHandler';
-import { gameReducer } from '../../engine/reducer';
-import { v2FacadeLog } from '../../../utils/logger';
+} from '../engine/handlers/nightFlowHandler';
+import { gameReducer } from '../engine/reducer';
+import { v2FacadeLog } from '../../utils/logger';
 
 /**
  * Host Actions 依赖的上下文接口
