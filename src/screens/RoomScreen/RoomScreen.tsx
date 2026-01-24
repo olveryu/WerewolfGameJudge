@@ -92,7 +92,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Night progress indicator: calculate current step index and total steps
   // Uses buildNightPlan to get the actual steps based on the template roles
   const nightProgress = useMemo(() => {
-    if (!currentStepId || !gameState || gameState.status !== 'ongoing') {
+    if (!currentStepId || gameState?.status !== 'ongoing') {
       return null;
     }
 
@@ -590,7 +590,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 'mySeatNumber=',
                 mySeatNumber,
                 'hasWolfVoted=',
-                mySeatNumber !== null ? hasWolfVoted(mySeatNumber) : 'N/A',
+                mySeatNumber === null ? 'N/A' : hasWolfVoted(mySeatNumber),
               );
               return;
             }
