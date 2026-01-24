@@ -56,10 +56,6 @@ export function computeWitchContext(state: NonNullState): {
   }
 
   // 2. 查找女巫座位，用于 notSelf 约束
-  // 防御：若 hasWitch=true 但 players 中找不到 witch（中间态），witchSeat=-1
-  // 此时 canSave 会因 killedIndex !== witchSeat 而可能为 true，
-  // 但由于 killedIndex >= 0 条件限制，只有真正有被杀者时才 canSave=true
-  // 且此场景下女巫自己不可能是被杀者（她存在于 templateRoles 但还未分配）
   let witchSeat = -1;
   for (const [seatStr, player] of Object.entries(state.players)) {
     if (player?.role === 'witch') {
@@ -69,8 +65,11 @@ export function computeWitchContext(state: NonNullState): {
   }
 
   // 3. Schema-first: witchAction.steps[0] (save) 有 notSelf 约束
-  // canSave 必须为 false 当：(1) 没有被杀者 或 (2) 被杀者是女巫自己
-  const canSave = killedIndex >= 0 && killedIndex !== witchSeat;
+  // canSave 必须为 false 当：
+  //   (1) 没有被杀者（killedIndex < 0）
+  //   (2) 被杀者是女巫自己（killedIndex === witchSeat）
+  //   (3) 女巫座位未找到（witchSeat === -1，防御性：禁止救人避免异常态误操作）
+  const canSave = killedIndex >= 0 && witchSeat >= 0 && killedIndex !== witchSeat;
 
   // Night-1 only（项目规则）: 毒药总是可用
   // 若未来支持多夜，需改为从 state 读取女巫是否已用毒
