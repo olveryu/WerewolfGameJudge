@@ -16,7 +16,7 @@ import * as ExpoCrypto from 'expo-crypto';
  * 优先使用 Web Crypto API，降级到 expo-crypto
  * 全链路不使用 Math.random()
  */
-function randomHex(length: number): string {
+export function randomHex(length: number): string {
   if (typeof globalThis.crypto?.getRandomValues === 'function') {
     const bytes = new Uint8Array(Math.ceil(length / 2));
     globalThis.crypto.getRandomValues(bytes);

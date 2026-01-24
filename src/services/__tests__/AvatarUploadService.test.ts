@@ -78,6 +78,14 @@ describe('AvatarUploadService - Image compression', () => {
     expect((avatarService as any).compressImage).toBeDefined();
     expect(typeof (avatarService as any).compressImage).toBe('function');
   });
+
+  it('should have isDomCompressionAvailable capability check', () => {
+    // Verify the capability check method exists
+    expect((avatarService as any).isDomCompressionAvailable).toBeDefined();
+    expect(typeof (avatarService as any).isDomCompressionAvailable).toBe('function');
+    // In Node.js test environment, DOM APIs are not available
+    expect((avatarService as any).isDomCompressionAvailable()).toBe(false);
+  });
 });
 
 describe('AvatarUploadService - Service dependencies', () => {
