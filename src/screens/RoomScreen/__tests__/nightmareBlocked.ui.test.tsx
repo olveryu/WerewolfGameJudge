@@ -232,4 +232,47 @@ describe('Nightmare Blocked UI (Host-authoritative)', () => {
       expect(skipButton).toBeNull();
     });
   });
+
+  it('confirm schema (darkWolfKing) shows skip button when blocked', async () => {
+    mockUseGameRoomReturn = {
+      ...makeBaseUseGameRoomReturn({
+        schemaId: 'darkWolfKingConfirm',
+        currentActionRole: 'darkWolfKing',
+        myRole: 'darkWolfKing',
+        mySeatNumber: 0,
+        overrides: {
+          getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
+        },
+      }),
+      gameState: {
+        ...makeBaseUseGameRoomReturn({
+          schemaId: 'darkWolfKingConfirm',
+          currentActionRole: 'darkWolfKing',
+          myRole: 'darkWolfKing',
+          mySeatNumber: 0,
+        }).gameState,
+        nightmareBlockedSeat: 0,
+        currentNightResults: {
+          blockedSeat: 0,
+        },
+      },
+    };
+
+    const { getByTestId, queryByText } = render(
+      <RoomScreen
+        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        navigation={mockNavigation as any}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
+    });
+
+    // When blocked, darkWolfKing should see skip button
+    await waitFor(() => {
+      const skipButton = queryByText(BLOCKED_UI_DEFAULTS.skipButtonText);
+      expect(skipButton).toBeTruthy();
+    });
+  });
 });
