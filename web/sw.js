@@ -1,5 +1,5 @@
 // Service Worker for PWA offline support
-const CACHE_NAME = 'werewolf-judge-v1';
+const CACHE_NAME = 'werewolf-judge-v2';
 
 // 需要缓存的资源
 const STATIC_ASSETS = [
