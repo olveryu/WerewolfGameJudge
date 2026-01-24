@@ -256,7 +256,7 @@ export function createHostGameV2(
   const sendPlayerMessage = (msg: PlayerMessage): { success: boolean; reason?: string } => {
     // 捕获消息用于 wire protocol 合约测试
     internal.capturedMessages.push({
-      stepId: internal.state.currentStepId,
+      stepId: internal.state.currentStepId ?? null,
       message: msg,
     });
 
