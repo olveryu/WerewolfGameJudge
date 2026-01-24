@@ -47,8 +47,21 @@ echo "🔧 切换到生产环境配置..."
 cp .env .env.local
 
 echo "🧹 清除缓存并构建..."
+# 保存 Vercel 项目配置（如果存在）
+if [ -d dist/.vercel ]; then
+  cp -r dist/.vercel /tmp/.vercel-backup
+  HAS_VERCEL_CONFIG=true
+else
+  HAS_VERCEL_CONFIG=false
+fi
 rm -rf dist
 npx expo export --platform web --clear
+
+# 恢复 Vercel 项目配置
+if [ "$HAS_VERCEL_CONFIG" = true ]; then
+  cp -r /tmp/.vercel-backup dist/.vercel
+  rm -rf /tmp/.vercel-backup
+fi
 
 echo "📱 添加 PWA 文件..."
 # 复制 PWA 图标
@@ -59,17 +72,8 @@ cp web/manifest.json dist/
 cp web/sw.js dist/
 # 注入 PWA meta 标签到 index.html
 if [ -f dist/index.html ]; then
-  # 创建临时文件用于 sed 替换
-  PWA_TAGS='    <meta name="theme-color" content="#1a1a2e" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="狼人杀电子法官" />
-    <link rel="apple-touch-icon" href="/assets/pwa/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.json" />
-  </head>'
-  # 使用 awk 替换（比 sed 更可靠处理多行）
-  awk -v tags="$PWA_TAGS" '{gsub(/<\/head>/, tags)}1' dist/index.html > dist/index.html.tmp
-  mv dist/index.html.tmp dist/index.html
+  # 使用 perl 注入 PWA meta 标签（比 sed/awk 更可靠处理多行）
+  perl -i -pe 's|</head>|    <meta name="theme-color" content="#1a1a2e" />\n    <meta name="apple-mobile-web-app-capable" content="yes" />\n    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />\n    <meta name="apple-mobile-web-app-title" content="狼人杀电子法官" />\n    <link rel="apple-touch-icon" href="/assets/pwa/apple-touch-icon.png" />\n    <link rel="manifest" href="/manifest.json" />\n  </head>|' dist/index.html
   echo "✅ PWA meta 标签已注入"
 else
   echo "⚠️ dist/index.html 不存在，跳过 PWA 注入"
