@@ -9,18 +9,23 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 import { showAlert } from '../../utils/alert';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
+import { randomIntInclusive, randomBool, Rng } from '../../utils/random';
 
 /**
  * Generate random speaking order for the start of day phase.
  * @param playerCount - Total number of players
+ * @param rng - Optional random number generator for testing
  * @returns Object with starting seat number (1-indexed) and direction
  */
-function generateSpeakOrder(playerCount: number): {
+export function generateSpeakOrder(
+  playerCount: number,
+  rng?: Rng,
+): {
   startSeat: number;
   direction: '顺时针' | '逆时针';
 } {
-  const startSeat = Math.floor(Math.random() * playerCount) + 1;
-  const direction = Math.random() < 0.5 ? '顺时针' : '逆时针';
+  const startSeat = randomIntInclusive(1, playerCount, rng);
+  const direction = randomBool(rng) ? '顺时针' : '逆时针';
   return { startSeat, direction };
 }
 
