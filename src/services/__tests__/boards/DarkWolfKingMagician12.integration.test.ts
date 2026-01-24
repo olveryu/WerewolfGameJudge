@@ -10,7 +10,7 @@ import {
   createHostGameV2,
   cleanupHostGameV2,
   HostGameContextV2,
-} from './hostGameFactory.v2';
+} from './hostGameFactory';
 import { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '狼王魔术师12人';

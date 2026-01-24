@@ -9,7 +9,7 @@
  */
 
 import { SCHEMAS, NIGHT_STEPS } from '../../../models/roles/spec';
-import { createHostGameV2 } from './hostGameFactory.v2';
+import { createHostGameV2 } from './hostGameFactory';
 import { RoleId } from '../../../models/roles';
 
 // ACTION message 类型
