@@ -420,9 +420,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // We keep it type-safe on the UI side by narrowing locally.
   // ---------------------------------------------------------------------------------
 
+  type WitchStepResults = { save: number | null; poison: number | null };
   type ActionExtra =
-    | { save: boolean }
-    | { poison: boolean }
+    | { stepResults: WitchStepResults }
     | { targets: readonly [number, number] }; // swap protocol: [seatA, seatB]
 
   // Schema lookup helper (used internally)
@@ -445,16 +445,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     [currentSchema],
   );
 
-  const buildWitchExtra = useCallback(
-    (opts: { save?: boolean; poison?: boolean }): ActionExtra | undefined => {
-      // For compound schema (witch), just pass through the save/poison option as ActionExtra
-      if (currentSchema?.kind === 'compound') {
-        if (typeof opts.save === 'boolean') return { save: opts.save };
-        if (typeof opts.poison === 'boolean') return { poison: opts.poison };
-      }
-      return undefined;
+  /**
+   * Build witch action extra with v2 stepResults protocol.
+   * @param opts.saveTarget - seat to save (or null to skip save)
+   * @param opts.poisonTarget - seat to poison (or null to skip poison)
+   */
+  const buildWitchStepResults = useCallback(
+    (opts: { saveTarget: number | null; poisonTarget: number | null }): ActionExtra => {
+      return { stepResults: { save: opts.saveTarget, poison: opts.poisonTarget } };
     },
-    [currentSchema],
+    [],
   );
 
   const proceedWithActionTyped = useCallback(
@@ -647,18 +647,21 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             }, 0);
           } else {
             // Witch/compound: drive copy + payload by stepKey when provided.
+            // v2 protocol: seat = actorSeat (mySeatNumber), target info in stepResults
             const stepSchema = getSubStepByKey(intent.stepKey);
-            let extra: ReturnType<typeof buildWitchExtra> | undefined;
+            let extra: ActionExtra | undefined;
             if (stepSchema?.key === 'save') {
-              extra = buildWitchExtra({ save: true });
+              // save: target is intent.targetIndex (killedIndex from witchContext)
+              extra = buildWitchStepResults({ saveTarget: intent.targetIndex, poisonTarget: null });
             } else if (stepSchema?.key === 'poison') {
-              extra = buildWitchExtra({ poison: true });
+              // poison: target is intent.targetIndex (user-selected seat)
+              extra = buildWitchStepResults({ saveTarget: null, poisonTarget: intent.targetIndex });
             }
 
             actionDialogs.showConfirmDialog(
               stepSchema?.ui?.confirmTitle || currentSchema?.ui?.confirmTitle || '确认行动',
               stepSchema?.ui?.confirmText || intent.message || '',
-              () => void proceedWithActionTyped(intent.targetIndex, extra),
+              () => void proceedWithActionTyped(mySeatNumber ?? 0, extra),
             );
           }
           break;
@@ -674,15 +677,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             break;
           }
 
-          // Witch/compound: drive copy + payload by stepKey when provided.
+          // Witch/compound: v2 protocol - skip means stepResults with all null
+          // seat = actorSeat (mySeatNumber)
           const skipStepSchema = getSubStepByKey(intent.stepKey);
-          let skipExtra: ReturnType<typeof buildWitchExtra> | undefined;
-          if (intent.stepKey === 'skipAll') {
-            skipExtra = buildWitchExtra({ save: false, poison: false });
-          } else if (skipStepSchema?.key === 'save') {
-            skipExtra = buildWitchExtra({ save: false });
-          } else if (skipStepSchema?.key === 'poison') {
-            skipExtra = buildWitchExtra({ poison: false });
+          let skipExtra: ActionExtra | undefined;
+          let skipSeat: number | null = null; // default for chooseSeat: null
+
+          if (intent.stepKey === 'skipAll' || currentSchema?.kind === 'compound') {
+            // Compound schema: skip uses actorSeat + stepResults with all null
+            skipExtra = buildWitchStepResults({ saveTarget: null, poisonTarget: null });
+            skipSeat = mySeatNumber ?? 0;
           }
 
           // FAIL-FAST: skip confirmText must come from schema or intent
@@ -694,7 +698,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           actionDialogs.showConfirmDialog(
             '确认跳过',
             skipConfirmText,
-            () => void proceedWithActionTyped(null, skipExtra),
+            () => void proceedWithActionTyped(skipSeat, skipExtra),
           );
           break;
         }
@@ -780,7 +784,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       mySeatNumber,
       anotherIndex,
       actionDialogs,
-      buildWitchExtra,
+      buildWitchStepResults,
       confirmThenAct,
       currentSchema,
       currentActionRole,
