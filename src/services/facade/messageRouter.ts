@@ -1,7 +1,7 @@
 /**
  * Message Router - PlayerMessage/HostBroadcast 路由分发
  *
- * 拆分自 V2GameFacade.ts（纯重构 PR，无行为变更）
+ * 拆分自 GameFacade.ts（纯重构 PR，无行为变更）
  *
  * 职责：
  * - Host: 处理 PlayerMessage（REQUEST_STATE / SEAT_ACTION_REQUEST）
@@ -19,7 +19,7 @@ import type { SeatActionsContext, PendingSeatAction } from './seatActions';
 import type { RoleId } from '../../models/roles';
 
 import { hostProcessJoinSeat, hostProcessLeaveMySeat } from './seatActions';
-import { v2FacadeLog } from '../../utils/logger';
+import { facadeLog } from '../../utils/logger';
 import { REASON_INVALID_ACTION } from '../protocol/reasonCodes';
 
 /**
@@ -36,18 +36,18 @@ export interface MessageRouterContext {
   generateRequestId: () => string;
 
   // ===========================================================================
-  // Host 处理 Player 消息的回调（由 V2GameFacade 注入）
+  // Host 处理 Player 消息的回调（由 GameFacade 注入）
   // ===========================================================================
 
   /**
    * Host 处理 Player 发来的 VIEWED_ROLE 消息
-   * 由 V2GameFacade 注入 hostActions.markViewedRole 实现
+   * 由 GameFacade 注入 hostActions.markViewedRole 实现
    */
   handleViewedRole?: (seat: number) => Promise<{ success: boolean; reason?: string }>;
 
   /**
    * Host 处理 Player 发来的 ACTION 消息
-   * 由 V2GameFacade 注入 hostActions.submitAction 实现
+   * 由 GameFacade 注入 hostActions.submitAction 实现
    */
   handleAction?: (
     seat: number,
@@ -58,7 +58,7 @@ export interface MessageRouterContext {
 
   /**
    * Host 处理 Player 发来的 WOLF_VOTE 消息
-   * 由 V2GameFacade 注入 hostActions.submitWolfVote 实现
+   * 由 GameFacade 注入 hostActions.submitWolfVote 实现
    */
   handleWolfVote?: (
     voterSeat: number,
@@ -67,7 +67,7 @@ export interface MessageRouterContext {
 
   /**
    * Host 处理 Player 发来的 REVEAL_ACK 消息
-   * 由 V2GameFacade 注入 hostActions.clearRevealAcks 实现
+   * 由 GameFacade 注入 hostActions.clearRevealAcks 实现
    */
   handleRevealAck?: () => Promise<{ success: boolean; reason?: string }>;
 }
@@ -93,7 +93,7 @@ export async function hostHandlePlayerMessage(
 
   switch (msg.type) {
     // =========================================================================
-    // Implemented types (v2 主路径)
+    // Implemented types (主路径)
     // =========================================================================
     case 'REQUEST_STATE':
       await ctx.broadcastCurrentState();
@@ -113,28 +113,28 @@ export async function hostHandlePlayerMessage(
     // Legacy types (已被 SEAT_ACTION_REQUEST 替代)
     // =========================================================================
     case 'JOIN':
-      v2FacadeLog.warn('[messageRouter] Legacy PlayerMessage type received', {
+      facadeLog.warn('[messageRouter] Legacy PlayerMessage type received', {
         type: msg.type,
         guidance: 'Use SEAT_ACTION_REQUEST with action="sit" instead',
       });
       break;
 
     case 'LEAVE':
-      v2FacadeLog.warn('[messageRouter] Legacy PlayerMessage type received', {
+      facadeLog.warn('[messageRouter] Legacy PlayerMessage type received', {
         type: msg.type,
         guidance: 'Use SEAT_ACTION_REQUEST with action="standup" instead',
       });
       break;
 
     // =========================================================================
-    // Tracked types (需要在 v2 完整实现后接入)
+    // Tracked types (需要完整实现后接入)
     // Host 直接处理这些行动，Player 应通过新入口发送
     // =========================================================================
     case 'ACTION':
       if (ctx.handleAction) {
         void ctx.handleAction(msg.seat, msg.role, msg.target, msg.extra);
       } else {
-        v2FacadeLog.warn('[messageRouter] ACTION received but handleAction not wired', {
+        facadeLog.warn('[messageRouter] ACTION received but handleAction not wired', {
           type: msg.type,
           seat: msg.seat,
           role: msg.role,
@@ -146,7 +146,7 @@ export async function hostHandlePlayerMessage(
       if (ctx.handleWolfVote) {
         void ctx.handleWolfVote(msg.seat, msg.target);
       } else {
-        v2FacadeLog.warn('[messageRouter] WOLF_VOTE received but handleWolfVote not wired', {
+        facadeLog.warn('[messageRouter] WOLF_VOTE received but handleWolfVote not wired', {
           type: msg.type,
           seat: msg.seat,
           target: msg.target,
@@ -156,7 +156,7 @@ export async function hostHandlePlayerMessage(
 
     case 'REVEAL_ACK': {
       // Player 确认 reveal 弹窗后，Host 需要清除 pendingRevealAcks 并推进夜晚
-      v2FacadeLog.debug('[messageRouter] REVEAL_ACK received', {
+      facadeLog.debug('[messageRouter] REVEAL_ACK received', {
         seat: msg.seat,
         role: msg.role,
         revision: msg.revision,
@@ -165,7 +165,7 @@ export async function hostHandlePlayerMessage(
       // 基本校验：revision 必须匹配当前 revision（防止过时消息）
       const currentRevision = ctx.store.getRevision();
       if (msg.revision !== undefined && msg.revision !== currentRevision) {
-        v2FacadeLog.warn('[messageRouter] REVEAL_ACK revision mismatch, dropping', {
+        facadeLog.warn('[messageRouter] REVEAL_ACK revision mismatch, dropping', {
           msgRevision: msg.revision,
           currentRevision,
         });
@@ -180,7 +180,7 @@ export async function hostHandlePlayerMessage(
     }
 
     case 'SNAPSHOT_REQUEST':
-      v2FacadeLog.warn('[messageRouter] Unimplemented PlayerMessage type', {
+      facadeLog.warn('[messageRouter] Unimplemented PlayerMessage type', {
         type: msg.type,
         guidance:
           '正确方式是发送 REQUEST_STATE；SNAPSHOT_REQUEST 保留 for future differential sync',
@@ -192,7 +192,7 @@ export async function hostHandlePlayerMessage(
     // =========================================================================
     default: {
       const _exhaustiveCheck: never = msg;
-      v2FacadeLog.error('[messageRouter] Unknown PlayerMessage type', {
+      facadeLog.error('[messageRouter] Unknown PlayerMessage type', {
         msg: _exhaustiveCheck,
       });
     }
@@ -295,7 +295,7 @@ function playerHandleSeatActionAck(
 
   // 检查 requestId 是否匹配
   if (!pendingSeatAction.current || pendingSeatAction.current.requestId !== msg.requestId) {
-    v2FacadeLog.warn('Received ACK for unknown request', { requestId: msg.requestId });
+    facadeLog.warn('Received ACK for unknown request', { requestId: msg.requestId });
     return;
   }
 
@@ -307,7 +307,7 @@ function playerHandleSeatActionAck(
   pendingSeatAction.current = null;
   pending.resolve({ success: msg.success, reason: msg.reason });
 
-  v2FacadeLog.debug('playerHandleSeatActionAck', {
+  facadeLog.debug('playerHandleSeatActionAck', {
     requestId: msg.requestId,
     success: msg.success,
     reason: msg.reason,

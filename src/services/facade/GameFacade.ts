@@ -1,5 +1,5 @@
 /**
- * V2GameFacade - UI Facade 实现（重构后）
+ * GameFacade - UI Facade 实现（重构后）
  *
  * 职责：
  * - 组合 hostActions / seatActions / messageRouter 子模块
@@ -33,8 +33,8 @@ import * as hostActions from './hostActions';
 import * as seatActions from './seatActions';
 import * as messageRouter from './messageRouter';
 
-export class V2GameFacade implements IGameFacade {
-  private static _instance: V2GameFacade | null = null;
+export class GameFacade implements IGameFacade {
+  private static _instance: GameFacade | null = null;
 
   private readonly store: GameStore;
   private readonly broadcastService: BroadcastService;
@@ -49,17 +49,17 @@ export class V2GameFacade implements IGameFacade {
     this.broadcastService = BroadcastService.getInstance();
   }
 
-  static getInstance(): V2GameFacade {
-    V2GameFacade._instance ??= new V2GameFacade();
-    return V2GameFacade._instance;
+  static getInstance(): GameFacade {
+    GameFacade._instance ??= new GameFacade();
+    return GameFacade._instance;
   }
 
   /** 测试隔离：完全销毁 instance 包括 listeners */
   static resetInstance(): void {
-    if (V2GameFacade._instance) {
-      V2GameFacade._instance.store.destroy();
+    if (GameFacade._instance) {
+      GameFacade._instance.store.destroy();
     }
-    V2GameFacade._instance = null;
+    GameFacade._instance = null;
   }
 
   // =========================================================================

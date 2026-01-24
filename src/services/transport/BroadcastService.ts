@@ -89,7 +89,7 @@ export class BroadcastService {
   }
 
   /**
-   * Set connection status (public for V2GameFacade to use on timeout)
+   * Set connection status (public for GameFacade to use on timeout)
    */
   setConnectionStatus(status: ConnectionStatus): void {
     if (this.connectionStatus !== status) {

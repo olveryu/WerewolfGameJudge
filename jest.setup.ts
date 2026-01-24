@@ -314,7 +314,7 @@ jest.mock('./src/utils/logger', () => {
     configLog: mockLogger,
     roomScreenLog: mockLogger,
     homeLog: mockLogger,
-    v2FacadeLog: mockLogger,
+    facadeLog: mockLogger,
     gameStateLog: mockLogger,
   };
 });

@@ -5,7 +5,7 @@
  * - infra/: 基础设施服务 (Audio/Auth/Avatar/Room)
  * - transport/: 网络传输 (BroadcastService + TransportAdapter)
  * - engine/: 纯游戏逻辑 (handlers/reducer/store/intents)
- * - facade/: 高层 API (V2GameFacade)
+ * - facade/: 高层 API (GameFacade)
  * - protocol/: 协议类型定义
  * - types/: 共享类型
  */
@@ -61,7 +61,7 @@ export {
 // =============================================================================
 // Facade: 高层 API
 // =============================================================================
-export { V2GameFacade } from './facade';
+export { GameFacade } from './facade';
 
 // =============================================================================
 // Protocol: 协议类型

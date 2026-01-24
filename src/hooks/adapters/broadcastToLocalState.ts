@@ -1,7 +1,7 @@
 /**
- * broadcastToLocalState - 将 v2 BroadcastGameState 转换为 UI 期望的 LocalGameState
+ * broadcastToLocalState - 将 BroadcastGameState 转换为 UI 期望的 LocalGameState
  *
- * Phase 1: 适配层，让 UI 可以消费 v2 facade 的状态
+ * Phase 1: 适配层，让 UI 可以消费 facade 的状态
  *
  * 职责：
  * - 只做数据格式转换（Record → Map，templateRoles → template）
@@ -125,7 +125,7 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
 
   // ---------------------------------------------------------------------------
   // witchAction (compound)
-  // v2 stores a single ProtocolAction with targetSeat (either save target or poison target).
+  // stores a single ProtocolAction with targetSeat (either save target or poison target).
   // We need witchContext to disambiguate save vs poison.
   // ---------------------------------------------------------------------------
   const witchAction = findBySchemaId('witchAction');
@@ -144,12 +144,12 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
 
   // ---------------------------------------------------------------------------
   // wolfKill (wolfVote)
-  // v2 single source of truth: broadcast.currentNightResults.wolfVotesBySeat
+  // single source of truth: broadcast.currentNightResults.wolfVotesBySeat
   // ---------------------------------------------------------------------------
   const wolfVotesMap = new Map<number, number>();
-  const v2WolfVotes = broadcast.currentNightResults?.wolfVotesBySeat;
-  if (v2WolfVotes) {
-    for (const [voterStr, target] of Object.entries(v2WolfVotes)) {
+  const wolfVotes = broadcast.currentNightResults?.wolfVotesBySeat;
+  if (wolfVotes) {
+    for (const [voterStr, target] of Object.entries(wolfVotes)) {
       wolfVotesMap.set(Number.parseInt(voterStr, 10), target);
     }
   }

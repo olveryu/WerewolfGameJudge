@@ -2,7 +2,7 @@
  * SimplifiedRoomService - Minimal Supabase room storage
  *
  * This service ONLY handles basic room record in Supabase.
- * All game state is managed by V2GameFacade (in-memory on Host).
+ * All game state is managed by GameFacade (in-memory on Host).
  *
  * Supabase rooms table schema (simplified):
  * - id: uuid (primary key)

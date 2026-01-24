@@ -13,7 +13,7 @@
  * - magician swap: target=null + extra.targets=[seatA, seatB]
  */
 
-import { createHostGameV2 } from './hostGameFactory';
+import { createHostGame } from './hostGameFactory';
 import type { RoleId } from '../../../models/roles';
 
 /** Hard cap for step progression loops to avoid infinite loops */
@@ -43,7 +43,7 @@ describe('Magician Swap → Seer Reveal Regression', () => {
 
   /** 推进到指定步骤的辅助函数（带 hard cap） */
   function advanceToStep(
-    ctx: ReturnType<typeof createHostGameV2>,
+    ctx: ReturnType<typeof createHostGame>,
     targetStepId: string,
     handleStep?: (stepId: string) => void,
   ): void {
@@ -72,7 +72,7 @@ describe('Magician Swap → Seer Reveal Regression', () => {
 
   describe('Seer should use post-swap identity', () => {
     it('seer checks swapped seat 0 → should see wolf (original wolf was swapped to seat 0)', () => {
-      const ctx = createHostGameV2(SWAP_TEMPLATE, createSwapAssignment());
+      const ctx = createHostGame(SWAP_TEMPLATE, createSwapAssignment());
 
       // 第一步应该是 magicianSwap
       expect(ctx.getBroadcastState().currentStepId).toBe('magicianSwap');
@@ -127,7 +127,7 @@ describe('Magician Swap → Seer Reveal Regression', () => {
     });
 
     it('seer checks swapped seat 1 → should see good (original magician was swapped to seat 1)', () => {
-      const ctx = createHostGameV2(SWAP_TEMPLATE, createSwapAssignment());
+      const ctx = createHostGame(SWAP_TEMPLATE, createSwapAssignment());
 
       // 魔术师交换 seat 0 (magician) 与 seat 1 (wolf)
       const swapResult = ctx.sendPlayerMessage({
@@ -176,7 +176,7 @@ describe('Magician Swap → Seer Reveal Regression', () => {
     });
 
     it('no swap (skip) → seer should use original identity', () => {
-      const ctx = createHostGameV2(SWAP_TEMPLATE, createSwapAssignment());
+      const ctx = createHostGame(SWAP_TEMPLATE, createSwapAssignment());
 
       // 魔术师跳过（不交换）
       const skipResult = ctx.sendPlayerMessage({

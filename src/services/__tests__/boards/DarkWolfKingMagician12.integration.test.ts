@@ -1,15 +1,15 @@
 /**
- * 狼王魔术师12人 - V2 Host Runtime Integration Test
+ * 狼王魔术师12人 - Host Runtime Integration Test
  *
- * 使用 v2 架构：
+ * 使用 架构：
  * - intents → handlers → reducer → BroadcastGameState
- * - v2 wire protocol（无 encoded target）
+ * - wire protocol（无 encoded target）
  */
 
 import {
-  createHostGameV2,
-  cleanupHostGameV2,
-  HostGameContextV2,
+  createHostGame,
+  cleanupHostGame,
+  HostGameContext,
 } from './hostGameFactory';
 import { RoleId } from '../../../models/roles';
 
@@ -32,16 +32,16 @@ function createRoleAssignment(): Map<number, RoleId> {
   return map;
 }
 
-describe(`${TEMPLATE_NAME} - V2 Host Runtime Integration`, () => {
-  let ctx: HostGameContextV2;
+describe(`${TEMPLATE_NAME} - Host Runtime Integration`, () => {
+  let ctx: HostGameContext;
 
   afterEach(() => {
-    cleanupHostGameV2();
+    cleanupHostGame();
   });
 
   describe('Happy Path: 标准夜晚', () => {
     it('应该完整走完夜晚，狼人杀村民', () => {
-      ctx = createHostGameV2(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = ctx.runNight({
         magician: null,
@@ -57,7 +57,7 @@ describe(`${TEMPLATE_NAME} - V2 Host Runtime Integration`, () => {
     });
 
     it('女巫救人：狼刀目标不死', () => {
-      ctx = createHostGameV2(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = ctx.runNight({
         magician: null,
@@ -73,9 +73,9 @@ describe(`${TEMPLATE_NAME} - V2 Host Runtime Integration`, () => {
     });
   });
 
-  describe('Magician 特性（v2 wire protocol）', () => {
+  describe('Magician 特性（wire protocol）', () => {
     it('魔术师不交换：流程正常完成', () => {
-      ctx = createHostGameV2(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = ctx.runNight({
         magician: { targets: [] },
@@ -90,8 +90,8 @@ describe(`${TEMPLATE_NAME} - V2 Host Runtime Integration`, () => {
       expect(result.deaths).toEqual([1]);
     });
 
-    it('魔术师交换身份：v2 wire { targets: [a, b] }', () => {
-      ctx = createHostGameV2(TEMPLATE_NAME, createRoleAssignment());
+    it('魔术师交换身份：wire { targets: [a, b] }', () => {
+      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = ctx.runNight({
         magician: { targets: [0, 1] },
@@ -107,9 +107,9 @@ describe(`${TEMPLATE_NAME} - V2 Host Runtime Integration`, () => {
     });
   });
 
-  describe('Witch v2 wire protocol', () => {
+  describe('Witch wire protocol', () => {
     it('女巫毒人：使用 stepResults', () => {
-      ctx = createHostGameV2(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = ctx.runNight({
         magician: null,
@@ -127,7 +127,7 @@ describe(`${TEMPLATE_NAME} - V2 Host Runtime Integration`, () => {
 
   describe('Edge Cases', () => {
     it('狼空刀：平安夜', () => {
-      ctx = createHostGameV2(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = ctx.runNight({
         magician: null,
@@ -143,7 +143,7 @@ describe(`${TEMPLATE_NAME} - V2 Host Runtime Integration`, () => {
     });
 
     it('狼人刀黑狼王：黑狼王死亡', () => {
-      ctx = createHostGameV2(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = ctx.runNight({
         magician: null,
@@ -161,7 +161,7 @@ describe(`${TEMPLATE_NAME} - V2 Host Runtime Integration`, () => {
 
   describe('Confirm 角色（hunter/darkWolfKing）', () => {
     it('hunter confirmed=true：流程正常完成', () => {
-      ctx = createHostGameV2(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = ctx.runNight({
         magician: null,
@@ -177,7 +177,7 @@ describe(`${TEMPLATE_NAME} - V2 Host Runtime Integration`, () => {
     });
 
     it('darkWolfKing confirmed=true：流程正常完成', () => {
-      ctx = createHostGameV2(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = ctx.runNight({
         magician: null,

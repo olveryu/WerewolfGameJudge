@@ -1,7 +1,7 @@
 /**
  * Seat Actions - 座位操作编排
  *
- * 拆分自 V2GameFacade.ts（纯重构 PR，无行为变更）
+ * 拆分自 GameFacade.ts（纯重构 PR，无行为变更）
  *
  * 职责：
  * - 座位操作方法（takeSeat/leaveSeat）
@@ -22,7 +22,7 @@ import type { BroadcastService } from '../transport/BroadcastService';
 
 import { handleJoinSeat, handleLeaveMySeat } from '../engine/handlers/seatHandler';
 import { gameReducer } from '../engine/reducer';
-import { v2FacadeLog } from '../../utils/logger';
+import { facadeLog } from '../../utils/logger';
 import { REASON_TIMEOUT, REASON_CANCELLED } from '../protocol/reasonCodes';
 
 /**
@@ -83,7 +83,7 @@ export function hostProcessJoinSeat(
   displayName?: string,
   avatarUrl?: string,
 ): { success: boolean; reason?: string } {
-  v2FacadeLog.debug('hostProcessJoinSeat', { seat, requestUid });
+  facadeLog.debug('hostProcessJoinSeat', { seat, requestUid });
 
   const state = ctx.store.getState();
 
@@ -131,7 +131,7 @@ export function hostProcessLeaveMySeat(
   ctx: SeatActionsContext,
   requestUid: string | null,
 ): { success: boolean; reason?: string } {
-  v2FacadeLog.debug('hostProcessLeaveMySeat', { requestUid });
+  facadeLog.debug('hostProcessLeaveMySeat', { requestUid });
 
   const state = ctx.store.getState();
 
@@ -192,13 +192,13 @@ export async function playerSendSeatActionWithAck(
   }
 
   const requestId = ctx.generateRequestId();
-  v2FacadeLog.debug('Player sending seat action:', { action, seat, requestId });
+  facadeLog.debug('Player sending seat action:', { action, seat, requestId });
 
   // 创建 Promise 等待 ACK
   const ackPromise = new Promise<{ success: boolean; reason?: string }>((resolve, _reject) => {
     const timeoutHandle = setTimeout(() => {
       if (pendingSeatAction.current?.requestId === requestId) {
-        v2FacadeLog.warn('Seat action ACK timeout:', requestId);
+        facadeLog.warn('Seat action ACK timeout:', requestId);
         pendingSeatAction.current = null;
         resolve({ success: false, reason: REASON_TIMEOUT });
       }
@@ -208,7 +208,7 @@ export async function playerSendSeatActionWithAck(
       requestId,
       resolve,
       reject: (err) => {
-        v2FacadeLog.warn('Pending request rejected:', err);
+        facadeLog.warn('Pending request rejected:', err);
         resolve({ success: false, reason: REASON_CANCELLED });
       },
       timeoutHandle,
@@ -229,7 +229,7 @@ export async function playerSendSeatActionWithAck(
 
   // 等待 ACK
   const result = await ackPromise;
-  v2FacadeLog.debug('Player seat action result:', { action, seat, requestId, result });
+  facadeLog.debug('Player seat action result:', { action, seat, requestId, result });
   return result;
 }
 

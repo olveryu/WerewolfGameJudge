@@ -203,7 +203,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
       confirmBtn?.onPress?.();
     });
 
-    // v2 protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
+    // protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
     expect(mockSubmitAction).toHaveBeenCalledWith(0, { stepResults: { save: null, poison: 2 } });
   });
 
@@ -250,7 +250,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
       confirmBtn?.onPress?.();
     });
 
-    // v2 protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
+    // protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
     expect(mockSubmitAction).toHaveBeenCalledWith(0, { stepResults: { save: null, poison: 2 } });
   });
 });

@@ -79,21 +79,6 @@ describe('Legacy Runtime=0 Gate', () => {
     expect(violations).toEqual([]);
   });
 
-  test('src/services/v2 should not import from src/services/legacy', () => {
-    const v2Dir = path.join(WORKSPACE_ROOT, 'src/services/v2');
-    const files = collectTsFiles(v2Dir);
-
-    const violations: string[] = [];
-    for (const file of files) {
-      const content = fs.readFileSync(file, 'utf-8');
-      if (/from\s+['"].*\/legacy\//.test(content)) {
-        violations.push(path.relative(WORKSPACE_ROOT, file));
-      }
-    }
-
-    expect(violations).toEqual([]);
-  });
-
   test('App.tsx should not import legacy GameStateService', () => {
     const appPath = path.join(WORKSPACE_ROOT, 'App.tsx');
     if (!fs.existsSync(appPath)) return;

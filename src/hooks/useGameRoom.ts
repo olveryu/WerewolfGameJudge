@@ -1,8 +1,8 @@
 /**
- * useGameRoom - Hook for managing game room with v2 Broadcast architecture
+ * useGameRoom - Hook for managing game room with Broadcast architecture
  *
  * This hook combines:
- * - V2GameFacade (via useGameFacade) for all game operations
+ * - GameFacade (via useGameFacade) for all game operations
  * - SimplifiedRoomService (for DB)
  *
  * Host device is the Single Source of Truth for all game state.
@@ -32,7 +32,7 @@ export interface UseGameRoomResult {
   // Room info
   roomRecord: RoomRecord | null;
 
-  // Game state (from V2GameFacade)
+  // Game state (from GameFacade)
   gameState: LocalGameState | null;
 
   // Player info
@@ -112,7 +112,7 @@ export interface UseGameRoomResult {
 
 export const useGameRoom = (): UseGameRoomResult => {
   // =========================================================================
-  // Phase 1: 获取 v2 facade（通过 Context 注入）
+  // Phase 1: 获取 facade（通过 Context 注入）
   // =========================================================================
   const facade = useGameFacade();
 
@@ -138,13 +138,13 @@ export const useGameRoom = (): UseGameRoomResult => {
   const broadcastService = useRef(BroadcastService.getInstance());
 
   // =========================================================================
-  // Phase 1A: 订阅 v2 facade state（转换为 LocalGameState）
+  // Phase 1A: 订阅 facade state（转换为 LocalGameState）
   // =========================================================================
   useEffect(() => {
     const unsubscribe = facade.addListener((broadcastState) => {
       if (broadcastState) {
-        // Phase 1 证据：state 来源是 v2 facade
-        gameRoomLog.debug('[v2] State update from facade', {
+        // Phase 1 证据：state 来源是 facade
+        gameRoomLog.debug('[facade] State update from facade', {
           roomCode: broadcastState.roomCode,
           status: broadcastState.status,
         });
@@ -228,7 +228,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   }, [gameState]);
 
   // =========================================================================
-  // Phase 1B: createRoom / joinRoom 使用 v2 facade
+  // Phase 1B: createRoom / joinRoom 使用 facade
   // =========================================================================
 
   // Create a new room as host
@@ -251,7 +251,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         const record = await roomService.current.createRoom(roomNumber, hostUid);
         setRoomRecord(record);
 
-        // Phase 1B: 使用 v2 facade 初始化房间
+        // Phase 1B: 使用 facade 初始化房间
         await facade.initializeAsHost(roomNumber, hostUid, template);
 
         return roomNumber;
@@ -291,7 +291,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         const displayName = await authService.current.getCurrentDisplayName();
         const avatarUrl = await authService.current.getCurrentAvatarUrl();
 
-        // Phase 1B: 使用 v2 facade 加入房间
+        // Phase 1B: 使用 facade 加入房间
         // Phase 1 明确不支持 Host rejoin，直接报错
         if (record.hostUid === playerUid) {
           gameRoomLog.error('Host rejoin not supported in Phase 1');
@@ -326,7 +326,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         await roomService.current.deleteRoom(roomRecord.roomNumber);
       }
 
-      // Phase 1B: 使用 v2 facade 离开房间
+      // Phase 1B: 使用 facade 离开房间
       await facade.leaveRoom();
       setRoomRecord(null);
       setGameState(null);
@@ -336,7 +336,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   }, [facade, isHost, roomRecord]);
 
   // =========================================================================
-  // Phase 1B: takeSeat / leaveSeat 使用 v2 facade
+  // Phase 1B: takeSeat / leaveSeat 使用 facade
   // =========================================================================
 
   // Take a seat (unified API)
@@ -346,7 +346,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         const displayName = await authService.current.getCurrentDisplayName();
         const avatarUrl = await authService.current.getCurrentAvatarUrl();
 
-        // Phase 1B: 使用 v2 facade 入座
+        // Phase 1B: 使用 facade 入座
         return await facade.takeSeat(seatNumber, displayName ?? undefined, avatarUrl ?? undefined);
       } catch (err) {
         gameRoomLog.error(' Error taking seat:', err);
@@ -359,7 +359,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Leave seat (unified API)
   const leaveSeat = useCallback(async (): Promise<void> => {
     try {
-      // Phase 1B: 使用 v2 facade 离座
+      // Phase 1B: 使用 facade 离座
       await facade.leaveSeat();
     } catch (err) {
       gameRoomLog.error(' Error leaving seat:', err);
@@ -367,14 +367,14 @@ export const useGameRoom = (): UseGameRoomResult => {
   }, [facade]);
 
   // Take seat with ack (unified API)
-  // Phase 1: 使用 v2 facade（ACK 机制已实现，reason 透传）
+  // Phase 1: 使用 facade（ACK 机制已实现，reason 透传）
   const takeSeatWithAck = useCallback(
     async (seatNumber: number): Promise<{ success: boolean; reason?: string }> => {
       try {
         const displayName = await authService.current.getCurrentDisplayName();
         const avatarUrl = await authService.current.getCurrentAvatarUrl();
 
-        // v2 facade 的 takeSeatWithAck 直接返回 {success, reason}
+        // facade 的 takeSeatWithAck 直接返回 {success, reason}
         return await facade.takeSeatWithAck(
           seatNumber,
           displayName ?? undefined,
@@ -389,10 +389,10 @@ export const useGameRoom = (): UseGameRoomResult => {
   );
 
   // Leave seat with ack (unified API)
-  // Phase 1: 使用 v2 facade（ACK 机制已实现，reason 透传）
+  // Phase 1: 使用 facade（ACK 机制已实现，reason 透传）
   const leaveSeatWithAck = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
     try {
-      // v2 facade 的 leaveSeatWithAck 直接返回 {success, reason}
+      // facade 的 leaveSeatWithAck 直接返回 {success, reason}
       return await facade.leaveSeatWithAck();
     } catch (err) {
       gameRoomLog.error(' Error leaving seat with ack:', err);
@@ -495,7 +495,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Get last night info - now derived from gameState
   const getLastNightInfo = useCallback((): string => {
     if (!gameState) return '无信息';
-    // v2: deaths are stored in lastNightDeaths field
+    // deaths are stored in lastNightDeaths field
     const deaths = gameState.lastNightDeaths;
     if (!deaths || deaths.length === 0) return '昨夜平安夜';
     const deathList = deaths.map((d: number) => (d + 1).toString() + '号').join(', ');

@@ -1,7 +1,7 @@
 /**
- * V2 Wire Protocol Contract Tests
+ * Wire Protocol Contract Tests
  *
- * 验证 v2 wire protocol 正确性：
+ * 验证 wire protocol 正确性：
  * - magician swap: target=null + extra.targets
  * - witch: target=null + extra.stepResults
  *
@@ -9,7 +9,7 @@
  */
 
 import { SCHEMAS, NIGHT_STEPS } from '../../../models/roles/spec';
-import { createHostGameV2 } from './hostGameFactory';
+import { createHostGame } from './hostGameFactory';
 import { RoleId } from '../../../models/roles';
 
 // ACTION message 类型
@@ -21,7 +21,7 @@ interface ActionMessage {
   extra?: { targets?: number[]; stepResults?: unknown; confirmed?: boolean };
 }
 
-describe('V2 Wire Protocol Contract', () => {
+describe('Wire Protocol Contract', () => {
   describe('Schema Kind Validation', () => {
     it('magicianSwap schema 应该是 swap 类型', () => {
       const schema = SCHEMAS['magicianSwap'];
@@ -92,7 +92,7 @@ describe('V2 Wire Protocol Contract', () => {
     }
 
     function findActionMessage(
-      captured: ReturnType<ReturnType<typeof createHostGameV2>['getCapturedMessages']>,
+      captured: ReturnType<ReturnType<typeof createHostGame>['getCapturedMessages']>,
       stepId: string
     ): ActionMessage | undefined {
       const found = captured.find(
@@ -109,7 +109,7 @@ describe('V2 Wire Protocol Contract', () => {
      * wolfVote 使用 WOLF_VOTE message type（不是 ACTION）
      */
     function findWolfVoteMessages(
-      captured: ReturnType<ReturnType<typeof createHostGameV2>['getCapturedMessages']>,
+      captured: ReturnType<ReturnType<typeof createHostGame>['getCapturedMessages']>,
       stepId: string
     ): Array<{ seat: number; target: number }> {
       return captured
@@ -121,7 +121,7 @@ describe('V2 Wire Protocol Contract', () => {
     }
 
     it('magicianSwap payload: target === null, extra.targets 存在且为数组', () => {
-      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
       // 运行夜晚：magician 交换 seat 0 和 seat 1
@@ -143,7 +143,7 @@ describe('V2 Wire Protocol Contract', () => {
     });
 
     it('magicianSwap payload: 空交换时 extra.targets 可以是 undefined 或空', () => {
-      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
       // 运行夜晚：magician 不交换
@@ -171,7 +171,7 @@ describe('V2 Wire Protocol Contract', () => {
     });
 
     it('witchAction payload: target === null, extra.stepResults 含 save 和 poison', () => {
-      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
       // 运行夜晚：witch 救人
@@ -200,7 +200,7 @@ describe('V2 Wire Protocol Contract', () => {
     });
 
     it('witchAction payload: poison 场景', () => {
-      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
       // 运行夜晚：witch 毒人
@@ -228,7 +228,7 @@ describe('V2 Wire Protocol Contract', () => {
     });
 
     it('witchAction payload: 不使用技能时 stepResults 仍需包含 save 和 poison', () => {
-      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
       // 运行夜晚：witch 不使用技能
@@ -255,7 +255,7 @@ describe('V2 Wire Protocol Contract', () => {
     });
 
     it('hunterConfirm payload: target === null, extra.confirmed === true', () => {
-      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
       ctx.runNight({
@@ -276,7 +276,7 @@ describe('V2 Wire Protocol Contract', () => {
     });
 
     it('hunterConfirm payload: skip 时 confirmed === false', () => {
-      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
       ctx.runNight({
@@ -297,7 +297,7 @@ describe('V2 Wire Protocol Contract', () => {
     });
 
     it('darkWolfKingConfirm payload: target === null, extra.confirmed', () => {
-      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
       ctx.runNight({
@@ -319,7 +319,7 @@ describe('V2 Wire Protocol Contract', () => {
     });
 
     it('wolfKill 步骤：所有参与狼发送 WOLF_VOTE 消息，target 是单一座位号', () => {
-      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
       // 运行夜晚：狼刀座位 2
@@ -352,7 +352,7 @@ describe('V2 Wire Protocol Contract', () => {
     });
 
     it('wolfKill 步骤：空刀时 target === null（或不发 WOLF_VOTE）', () => {
-      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
       // 运行夜晚：狼空刀（target 为 null）
@@ -388,7 +388,7 @@ describe('V2 Wire Protocol Contract', () => {
       const assignment = new Map<number, RoleId>();
       TEMPLATE_ROLES.forEach((role, idx) => assignment.set(idx, role));
 
-      const ctx = createHostGameV2(TEMPLATE_ROLES, assignment);
+      const ctx = createHostGame(TEMPLATE_ROLES, assignment);
       ctx.clearCapturedMessages();
 
       ctx.runNight({
@@ -425,7 +425,7 @@ describe('V2 Wire Protocol Contract', () => {
     const SEER_TEMPLATE: RoleId[] = ['seer', 'wolf', 'villager', 'villager'];
 
     /** 辅助函数：推进到 seerCheck 步骤 */
-    function advanceToSeerCheck(ctx: ReturnType<typeof createHostGameV2>): void {
+    function advanceToSeerCheck(ctx: ReturnType<typeof createHostGame>): void {
       // 第一步是 wolfKill
       if (ctx.getBroadcastState().currentStepId === 'wolfKill') {
         // 狼空刀
@@ -448,7 +448,7 @@ describe('V2 Wire Protocol Contract', () => {
       const assignment = new Map<number, RoleId>();
       SEER_TEMPLATE.forEach((role, idx) => assignment.set(idx, role));
 
-      const ctx = createHostGameV2(SEER_TEMPLATE, assignment);
+      const ctx = createHostGame(SEER_TEMPLATE, assignment);
       
       // 推进到 seerCheck
       advanceToSeerCheck(ctx);
@@ -481,7 +481,7 @@ describe('V2 Wire Protocol Contract', () => {
       const assignment = new Map<number, RoleId>();
       SEER_TEMPLATE.forEach((role, idx) => assignment.set(idx, role));
 
-      const ctx = createHostGameV2(SEER_TEMPLATE, assignment);
+      const ctx = createHostGame(SEER_TEMPLATE, assignment);
       
       // 推进到 seerCheck
       advanceToSeerCheck(ctx);
@@ -511,7 +511,7 @@ describe('V2 Wire Protocol Contract', () => {
       const assignment = new Map<number, RoleId>();
       GUARD_TEMPLATE.forEach((role, idx) => assignment.set(idx, role));
 
-      const ctx = createHostGameV2(GUARD_TEMPLATE, assignment);
+      const ctx = createHostGame(GUARD_TEMPLATE, assignment);
 
       // 找到 guardProtect 步骤
       while (ctx.getBroadcastState().currentStepId !== 'guardProtect') {
@@ -546,7 +546,7 @@ describe('V2 Wire Protocol Contract', () => {
       const assignment = new Map<number, RoleId>();
       SEER_TEMPLATE.forEach((role, idx) => assignment.set(idx, role));
 
-      const ctx = createHostGameV2(SEER_TEMPLATE, assignment);
+      const ctx = createHostGame(SEER_TEMPLATE, assignment);
       ctx.clearCapturedMessages();
 
       ctx.runNight({ seer: 2, wolf: null });
