@@ -549,12 +549,12 @@ export const HomeScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
 
-  // Load last room number
+  // Load last room number (重新加载当 user 变化时，因为退出登录会清除)
   useEffect(() => {
     AsyncStorage.getItem('lastRoomNumber').then((value) => {
-      if (value) setLastRoomNumber(value);
+      setLastRoomNumber(value);
     });
-  }, []);
+  }, [user]);
 
   // Get user display name
   const userName = useMemo(() => {
