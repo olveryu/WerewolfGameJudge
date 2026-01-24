@@ -26,7 +26,8 @@
 ### 代码归属边界（Code ownership boundaries）
 
 - `src/models/roles/**`：只允许声明式内容（spec/schema/types）。禁止 service、禁止副作用。
-- `src/services/night/resolvers/**`：Host-only 的纯函数 resolution + validation。
+- `src/services/night/resolvers/**`：Host-only 的纯函数 resolution + validation（旧路径；允许迁移到 `src/services/engine/night/resolvers/**`，但必须保持“纯函数/无副作用/不碰 IO/UI”）。
+- `src/services/engine/night/resolvers/**`：Host-only 的纯函数 resolution + validation（新路径；与旧路径语义完全一致）。
 - `src/screens/RoomScreen/components/**`：仅 UI，禁止 import service。
 
 ### Resolver 集成架构（Resolver Integration Architecture）
@@ -271,7 +272,7 @@ UI (从 schema + gameState 推导显示)
 ### “legacy” 边界（纯模块禁止移入 legacy）
 
 - 迁移期间禁止把这些内容移动到 `legacy/`：
-  - `src/services/night/resolvers/**`
+  - `src/services/night/resolvers/**`（或迁移后的 `src/services/engine/night/resolvers/**`）
   - `src/models/roles/spec/**`（ROLE_SPECS / SCHEMAS / NIGHT_STEPS）
   - `NightFlowController`（纯状态机）
   - `DeathCalculator`（纯计算）
