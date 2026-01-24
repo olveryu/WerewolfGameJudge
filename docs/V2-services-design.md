@@ -742,14 +742,39 @@ npm test -- --testPathPattern="src/services/__tests__"
 2. 添加重导出 shim
 3. **门槛**: 所有现有测试通过
 
-### Phase 4（可选）：Core 整合（第 3 周+）
+### Phase 4：V2-only Cutover & Legacy Removal ✅
+
+> **状态**: 已完成（2026-01-24）
+
+目标：运行时只剩 v2 路径，删除所有 legacy runtime 代码与测试。
+
+**Batch 1+2**: 删除 legacy boards integration + 旧 runtime tests
+- **Commit**: `e2463f5`
+- **删除内容**: `src/services/__tests__/boards/**` (10 integration tests + hostGameFactory.ts)、`GameStateService.*.test.ts` (11 files)、`NightFlowController.test.ts`、`WolfVoteResolver.test.ts`、`boundary.contract.test.ts`、`wolfKillNeutral.contract.test.ts`
+- **diff stat**: 27 files changed, 7125 deletions
+
+**Batch 3**: 删除 legacy GameStateService 代码
+- **Commit**: `487bb33`
+- **删除内容**: `src/services/legacy/GameStateService.ts` (2733 lines)、`src/services/GameStateService.ts` (re-export)
+- **diff stat**: 6 files changed, 2902 deletions
+
+**门禁验证**:
+- `grep -rn "services/legacy" src App.tsx` → 0 matches（仅 legacyRuntimeGate.contract.test.ts 断言）
+- `ls src/services/legacy/` → Directory does not exist
+- `ls src/services/__tests__/boards/` → Directory does not exist
+- `npm test` → 95 suites, 1543 tests PASS
+- v2-only gate → 3 suites, 28 tests PASS
+
+**门槛**: legacy 目录不存在 + 全量测试通过 + v2-only gate 通过
+
+### Phase 5：Core 整合（可选，第 3 周+）
 
 1. 移动 `NightFlowController.ts` → `core/`
 2. 移动 `DeathCalculator.ts` → `core/`
 3. 添加重导出 shims
 4. **门槛**: 所有现有测试通过
 
-### Phase 5：V2 实现（第 3-4 周）
+### Phase 6：V2 实现完善（第 3-4 周）
 
 1. 实现 `GameStore`、`Reducer`、`Handlers`
 2. 实现 `ServiceFactory`

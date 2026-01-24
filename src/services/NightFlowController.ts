@@ -1,13 +1,13 @@
 /**
  * NightFlowController - Explicit State Machine for Night Phase Flow
  *
- * This controller manages the night phase state transitions independently
- * of GameStateService. It is designed to be:
+ * This controller manages the night phase state transitions independently.
+ * It is designed to be:
  * - Pure: No side effects (no audio, no broadcast, no DB)
  * - Testable: All state transitions are synchronous and deterministic
  * - Explicit: State machine with clear phase definitions
  *
- * Integration with GameStateService will be done in a separate step.
+ * Used by V2GameFacade for night flow orchestration.
  */
 
 import { RoleId } from '../models/roles';

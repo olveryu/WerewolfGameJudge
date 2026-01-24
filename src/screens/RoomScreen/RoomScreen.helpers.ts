@@ -4,7 +4,7 @@
  * These are pure utility functions with no side effects.
  * They only depend on types and the roles registry.
  *
- * ❌ Do NOT import: GameStateService, BroadcastService, Supabase, navigation, React
+ * ❌ Do NOT import: services, Supabase, navigation, React
  * ✅ Allowed imports: types, roles registry (getRoleSpec, isWolfRole)
  */
 

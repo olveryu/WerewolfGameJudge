@@ -83,7 +83,7 @@ export class TransportAdapter implements ITransport {
    * 订阅消息
    *
    * 注意：实际的事件订阅是在 joinRoom 时通过 callbacks 完成的。
-   * 这里只管理本地 listeners，由外部（如 GameStateServiceV2）
+   * 这里只管理本地 listeners，由外部（如 V2GameFacade）
    * 将 BroadcastService 的 callbacks 桥接到这些 listeners。
    */
   subscribe(listener: TransportListener): () => void {
