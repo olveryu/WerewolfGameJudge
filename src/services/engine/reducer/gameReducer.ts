@@ -310,17 +310,37 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleRestartGame(state);
 
     case 'UPDATE_TEMPLATE': {
-      // 更新模板（仅在 unseated 状态允许）
+      // 更新模板：保留现有座位玩家，智能扩缩容
       const newTemplateRoles = action.payload.templateRoles;
+      const newCount = newTemplateRoles.length;
+      const oldPlayers = state.players;
+
       const newPlayers: GameState['players'] = {};
-      for (let i = 0; i < newTemplateRoles.length; i++) {
-        newPlayers[i] = null;
+
+      for (let i = 0; i < newCount; i++) {
+        const existingPlayer = oldPlayers[i];
+        if (existingPlayer) {
+          // 保留玩家，但清除 role（安全兜底，理论上此时不应有 role）
+          newPlayers[i] = {
+            ...existingPlayer,
+            role: null,
+            hasViewedRole: false,
+          };
+        } else {
+          // 空座位或扩容新增的座位
+          newPlayers[i] = null;
+        }
       }
+      // 注意：超出 newCount 的座位（缩容）自动不复制，即被踢掉
+
+      // 判断是否全部入座
+      const allSeated = Object.values(newPlayers).every((p) => p !== null);
+
       return {
         ...state,
         templateRoles: newTemplateRoles,
         players: newPlayers,
-        status: 'unseated',
+        status: allSeated ? 'seated' : 'unseated',
       };
     }
 
