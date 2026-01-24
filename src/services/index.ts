@@ -11,9 +11,8 @@ export {
   type BroadcastPlayer,
 } from './BroadcastService';
 export {
-  GameStateService,
   GameStatus,
   type LocalGameState,
   type LocalPlayer,
-} from './GameStateService';
+} from './types/GameStateTypes';
 export { SimplifiedRoomService, type RoomRecord } from './SimplifiedRoomService';
