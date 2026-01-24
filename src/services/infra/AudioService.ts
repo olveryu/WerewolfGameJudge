@@ -1,6 +1,6 @@
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer, AudioStatus } from 'expo-audio';
-import { RoleId } from '../models/roles';
-import { audioLog } from '../utils/logger';
+import { RoleId } from '../../models/roles';
+import { audioLog } from '../../utils/logger';
 
 /**
  * Maximum time to wait for audio playback completion before auto-resolving.
@@ -13,42 +13,42 @@ const isJest = typeof process !== 'undefined' && !!process.env?.JEST_WORKER_ID;
 
 // Audio file mappings matching Flutter's JudgeAudioProvider
 const AUDIO_FILES: Partial<Record<RoleId, any>> = {
-  slacker: require('../../assets/audio/slacker.mp3'),
-  wolfRobot: require('../../assets/audio/wolf_robot.mp3'),
-  magician: require('../../assets/audio/magician.mp3'),
-  dreamcatcher: require('../../assets/audio/dreamcatcher.mp3'),
-  gargoyle: require('../../assets/audio/gargoyle.mp3'),
-  nightmare: require('../../assets/audio/nightmare.mp3'),
-  guard: require('../../assets/audio/guard.mp3'),
-  wolf: require('../../assets/audio/wolf.mp3'),
-  wolfQueen: require('../../assets/audio/wolf_queen.mp3'),
-  witch: require('../../assets/audio/witch.mp3'),
-  seer: require('../../assets/audio/seer.mp3'),
-  psychic: require('../../assets/audio/psychic.mp3'),
-  hunter: require('../../assets/audio/hunter.mp3'),
-  darkWolfKing: require('../../assets/audio/dark_wolf_king.mp3'),
+  slacker: require('../../../assets/audio/slacker.mp3'),
+  wolfRobot: require('../../../assets/audio/wolf_robot.mp3'),
+  magician: require('../../../assets/audio/magician.mp3'),
+  dreamcatcher: require('../../../assets/audio/dreamcatcher.mp3'),
+  gargoyle: require('../../../assets/audio/gargoyle.mp3'),
+  nightmare: require('../../../assets/audio/nightmare.mp3'),
+  guard: require('../../../assets/audio/guard.mp3'),
+  wolf: require('../../../assets/audio/wolf.mp3'),
+  wolfQueen: require('../../../assets/audio/wolf_queen.mp3'),
+  witch: require('../../../assets/audio/witch.mp3'),
+  seer: require('../../../assets/audio/seer.mp3'),
+  psychic: require('../../../assets/audio/psychic.mp3'),
+  hunter: require('../../../assets/audio/hunter.mp3'),
+  darkWolfKing: require('../../../assets/audio/dark_wolf_king.mp3'),
 };
 
 const AUDIO_END_FILES: Partial<Record<RoleId, any>> = {
-  slacker: require('../../assets/audio_end/slacker.mp3'),
-  wolfRobot: require('../../assets/audio_end/wolf_robot.mp3'),
-  magician: require('../../assets/audio_end/magician.mp3'),
-  dreamcatcher: require('../../assets/audio_end/dreamcatcher.mp3'),
-  gargoyle: require('../../assets/audio_end/gargoyle.mp3'),
-  nightmare: require('../../assets/audio_end/nightmare.mp3'),
-  guard: require('../../assets/audio_end/guard.mp3'),
-  wolf: require('../../assets/audio_end/wolf.mp3'),
-  wolfQueen: require('../../assets/audio_end/wolf_queen.mp3'),
-  witch: require('../../assets/audio_end/witch.mp3'),
-  seer: require('../../assets/audio_end/seer.mp3'),
-  psychic: require('../../assets/audio_end/psychic.mp3'),
-  hunter: require('../../assets/audio_end/hunter.mp3'),
-  darkWolfKing: require('../../assets/audio_end/dark_wolf_king.mp3'),
+  slacker: require('../../../assets/audio_end/slacker.mp3'),
+  wolfRobot: require('../../../assets/audio_end/wolf_robot.mp3'),
+  magician: require('../../../assets/audio_end/magician.mp3'),
+  dreamcatcher: require('../../../assets/audio_end/dreamcatcher.mp3'),
+  gargoyle: require('../../../assets/audio_end/gargoyle.mp3'),
+  nightmare: require('../../../assets/audio_end/nightmare.mp3'),
+  guard: require('../../../assets/audio_end/guard.mp3'),
+  wolf: require('../../../assets/audio_end/wolf.mp3'),
+  wolfQueen: require('../../../assets/audio_end/wolf_queen.mp3'),
+  witch: require('../../../assets/audio_end/witch.mp3'),
+  seer: require('../../../assets/audio_end/seer.mp3'),
+  psychic: require('../../../assets/audio_end/psychic.mp3'),
+  hunter: require('../../../assets/audio_end/hunter.mp3'),
+  darkWolfKing: require('../../../assets/audio_end/dark_wolf_king.mp3'),
 };
 
 // Night audio
-const NIGHT_AUDIO = require('../../assets/audio/night.mp3');
-const NIGHT_END_AUDIO = require('../../assets/audio/night_end.mp3');
+const NIGHT_AUDIO = require('../../../assets/audio/night.mp3');
+const NIGHT_END_AUDIO = require('../../../assets/audio/night_end.mp3');
 
 class AudioService {
   private static instance: AudioService;

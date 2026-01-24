@@ -1,6 +1,6 @@
-export { default as AudioService } from './AudioService';
-export { AuthService } from './AuthService';
-export { AvatarUploadService } from './AvatarUploadService';
+export { default as AudioService } from './infra/AudioService';
+export { AuthService } from './infra/AuthService';
+export { AvatarUploadService } from './infra/AvatarUploadService';
 
 // New Broadcast Architecture (Host as Authority)
 export {
@@ -15,4 +15,4 @@ export {
   type LocalGameState,
   type LocalPlayer,
 } from './types/GameStateTypes';
-export { SimplifiedRoomService, type RoomRecord } from './SimplifiedRoomService';
+export { SimplifiedRoomService, type RoomRecord } from './infra/RoomService';

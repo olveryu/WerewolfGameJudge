@@ -1,6 +1,6 @@
-import { supabase, isSupabaseConfigured } from '../config/supabase';
-import { authLog } from '../utils/logger';
-import { getAllRoleIds, getRoleSpec } from '../models/roles';
+import { supabase, isSupabaseConfigured } from '../../config/supabase';
+import { authLog } from '../../utils/logger';
+import { getAllRoleIds, getRoleSpec } from '../../models/roles';
 
 export class AuthService {
   private static instance: AuthService;

@@ -2,5 +2,7 @@
  * Infrastructure layer - basic services without game logic
  */
 
-// Placeholder - will be populated in Phase 2
-export const __placeholder = true;
+export { default as AudioService } from './AudioService';
+export { AuthService } from './AuthService';
+export { AvatarUploadService } from './AvatarUploadService';
+export { SimplifiedRoomService, type RoomRecord } from './RoomService';

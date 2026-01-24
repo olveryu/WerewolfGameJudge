@@ -23,7 +23,7 @@ import type { RoleId } from '../../../models/roles';
 
 import { BroadcastService } from '../../BroadcastService';
 import { GameStore } from '../store';
-import AudioService from '../../AudioService';
+import AudioService from '../../infra/AudioService';
 
 // 子模块
 import type { HostActionsContext } from './hostActions';
