@@ -56,3 +56,4 @@ src/screens/RoomScreen/WerewolfGameJudge.code-workspace
 
 *storybook.log
 storybook-static
+.vercel
