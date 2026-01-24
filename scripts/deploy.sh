@@ -50,7 +50,7 @@ echo "🧹 清除缓存并构建..."
 rm -rf dist
 npx expo export --platform web --clear
 
-echo "� 添加 PWA 文件..."
+echo "📱 添加 PWA 文件..."
 # 复制 PWA 图标
 mkdir -p dist/assets/pwa
 cp assets/pwa/*.png dist/assets/pwa/
@@ -58,14 +58,24 @@ cp assets/pwa/*.png dist/assets/pwa/
 cp web/manifest.json dist/
 cp web/sw.js dist/
 # 注入 PWA meta 标签到 index.html
-if [ -f web/index.html ]; then
-  # 提取 head 部分的 meta 标签并注入到 Expo 生成的 index.html
-  # 在 </head> 前插入 PWA meta 标签
-  sed -i '' 's|</head>|<meta name="theme-color" content="#1a1a2e" /><meta name="apple-mobile-web-app-capable" content="yes" /><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" /><meta name="apple-mobile-web-app-title" content="狼人杀裁判" /><link rel="apple-touch-icon" href="/assets/pwa/apple-touch-icon.png" /><link rel="manifest" href="/manifest.json" /></head>|' dist/index.html
+if [ -f dist/index.html ]; then
+  # 创建临时文件用于 sed 替换
+  PWA_TAGS='    <meta name="theme-color" content="#1a1a2e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="狼人杀电子法官" />
+    <link rel="apple-touch-icon" href="/assets/pwa/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+  </head>'
+  # 使用 awk 替换（比 sed 更可靠处理多行）
+  awk -v tags="$PWA_TAGS" '{gsub(/<\/head>/, tags)}1' dist/index.html > dist/index.html.tmp
+  mv dist/index.html.tmp dist/index.html
   echo "✅ PWA meta 标签已注入"
+else
+  echo "⚠️ dist/index.html 不存在，跳过 PWA 注入"
 fi
 
-echo "�🚀 部署到 Vercel..."
+echo "🚀 部署到 Vercel..."
 cd dist
 DEPLOYMENT_URL=$(vercel --prod --yes 2>&1 | grep -oE 'https://[^ ]+\.vercel\.app' | head -1)
 echo "部署完成: $DEPLOYMENT_URL"

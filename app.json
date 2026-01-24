@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "狼人杀裁判",
+    "name": "狼人杀电子法官",
     "slug": "WerewolfGameJudge",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -23,8 +23,8 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "name": "狼人杀裁判",
-      "shortName": "狼人杀",
+      "name": "狼人杀电子法官",
+      "shortName": "狼人杀电子法官",
       "description": "本地/离线狼人杀游戏辅助工具，支持多人联机",
       "lang": "zh-CN",
       "themeColor": "#1a1a2e",

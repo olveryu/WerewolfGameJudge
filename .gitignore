@@ -36,6 +36,7 @@ yarn-error.*
 # local env files
 .env
 .env*.local
+.env.local.backup
 
 # E2E env configs (may contain keys)
 env/e2e.local.json
