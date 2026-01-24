@@ -5,6 +5,7 @@
  * - save step is confirmTarget (no seat tapping to select target)
  * - save action uses killedIndex from witchContext
  * - when canSave=false, save should not submit
+ * - v2 protocol: submitAction(actorSeat, { stepResults: { save, poison } })
  */
 
 import React from 'react';
@@ -25,6 +26,13 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+jest.mock('../hooks/useActionerState', () => ({
+  useActionerState: () => ({
+    imActioner: true,
+    showWolves: false,
+  }),
+}));
+
 const mockShowAlert = showAlert as jest.Mock;
 const mockSubmitAction = jest.fn();
 
@@ -42,6 +50,14 @@ const makeMock = (overrides?: { canSave?: boolean; killedIndex?: number }) =>
         canSave: overrides?.canSave ?? true,
         canPoison: true,
       }),
+    },
+    // gameState.witchContext is read by RoomScreen actionDeps
+    gameStateOverrides: {
+      witchContext: {
+        killedIndex: overrides?.killedIndex ?? 2,
+        canSave: overrides?.canSave ?? true,
+        canPoison: true,
+      },
     },
   });
 
@@ -107,5 +123,53 @@ describe('RoomScreen witch save UI (contract)', () => {
     // There is no seat-driven save; ensure we still didn't submit mistakenly.
     fireEvent.press(getByTestId(TESTIDS.seatTilePressable(2)));
     expect(mockSubmitAction).not.toHaveBeenCalled();
+  });
+
+  it('save button -> confirm -> submitAction(actorSeat, { stepResults: { save: killedIndex, poison: null } })', async () => {
+    // killedIndex = 2, mySeatNumber = 0
+    mockUseGameRoomReturn = makeMock({ canSave: true, killedIndex: 2 });
+
+    const { getByTestId, getByText } = render(
+      <RoomScreen
+        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        navigation={mockNavigation as any}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
+    });
+
+    // Find and click the save button (bottom action button with text "对3号用解药")
+    const saveButton = getByText('对3号用解药');
+    await act(async () => {
+      fireEvent.press(saveButton);
+    });
+
+    // Confirm dialog should appear
+    await waitFor(() => {
+      expect(mockShowAlert).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        expect.any(Array),
+      );
+    });
+
+    // Find confirm button in the alert and press it
+    const alertCall = mockShowAlert.mock.calls.find(
+      (c) => c[0] === '确认行动' || c[2]?.some((b: any) => b.text === '确定'),
+    );
+    expect(alertCall).toBeDefined();
+    const buttons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
+    const confirmBtn = buttons.find((b) => b.text === '确定');
+
+    await act(async () => {
+      confirmBtn?.onPress?.();
+    });
+
+    // v2 protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
+    expect(mockSubmitAction).toHaveBeenCalledWith(0, {
+      stepResults: { save: 2, poison: null },
+    });
   });
 });

@@ -203,7 +203,8 @@ describe('RoomScreen witch poison UI (smoke)', () => {
       confirmBtn?.onPress?.();
     });
 
-    expect(mockSubmitAction).toHaveBeenCalledWith(2, { poison: true });
+    // v2 protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
+    expect(mockSubmitAction).toHaveBeenCalledWith(0, { stepResults: { save: null, poison: 2 } });
   });
 
   // Regression guard: seat-tap poison must NOT be driven by any save-related context.
@@ -249,6 +250,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
       confirmBtn?.onPress?.();
     });
 
-    expect(mockSubmitAction).toHaveBeenCalledWith(2, { poison: true });
+    // v2 protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
+    expect(mockSubmitAction).toHaveBeenCalledWith(0, { stepResults: { save: null, poison: 2 } });
   });
 });

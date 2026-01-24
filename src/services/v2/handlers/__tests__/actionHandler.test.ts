@@ -894,6 +894,122 @@ describe('handleSubmitAction', () => {
       expect(result.success).toBe(true);
     });
 
+    // --- compound schema (witch) - stepResults-based skip ---
+
+    it('should reject blocked witch with non-skip stepResults (save)', () => {
+      const state = createOngoingState({
+        currentStepId: 'witchAction',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          3: { uid: 'p3', seatNumber: 3, role: 'witch', hasViewedRole: true },
+        },
+        currentNightResults: {
+          blockedSeat: 3, // witch is blocked
+          wolfVotesBySeat: { '1': 0 }, // wolf killed seat 0
+        },
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: {
+          seat: 3,
+          role: 'witch',
+          target: null,
+          extra: { stepResults: { save: 0, poison: null } }, // trying to save despite blocked
+        },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('被梦魇封锁');
+      expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
+    });
+
+    it('should reject blocked witch with non-skip stepResults (poison)', () => {
+      const state = createOngoingState({
+        currentStepId: 'witchAction',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          3: { uid: 'p3', seatNumber: 3, role: 'witch', hasViewedRole: true },
+        },
+        currentNightResults: { blockedSeat: 3 }, // witch is blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: {
+          seat: 3,
+          role: 'witch',
+          target: null,
+          extra: { stepResults: { save: null, poison: 0 } }, // trying to poison despite blocked
+        },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('被梦魇封锁');
+      expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
+    });
+
+    it('should allow blocked witch to skip (stepResults all null)', () => {
+      const state = createOngoingState({
+        currentStepId: 'witchAction',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          3: { uid: 'p3', seatNumber: 3, role: 'witch', hasViewedRole: true },
+        },
+        currentNightResults: { blockedSeat: 3 }, // witch is blocked
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: {
+          seat: 3,
+          role: 'witch',
+          target: null,
+          extra: { stepResults: { save: null, poison: null } }, // skip
+        },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should allow non-blocked witch to use abilities', () => {
+      const state = createOngoingState({
+        currentStepId: 'witchAction',
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          3: { uid: 'p3', seatNumber: 3, role: 'witch', hasViewedRole: true },
+        },
+        currentNightResults: {
+          blockedSeat: 99, // someone else blocked
+          wolfVotesBySeat: { '1': 0 },
+        },
+      });
+      const context = createContext(state, { isHost: true });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: {
+          seat: 3,
+          role: 'witch',
+          target: null,
+          extra: { stepResults: { save: 0, poison: null } },
+        },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      expect(result.success).toBe(true);
+    });
+
     // --- confirm schema (hunter/darkWolfKing special rules) ---
 
     it('should reject blocked hunter with confirmed=true', () => {
