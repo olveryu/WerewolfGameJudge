@@ -1,5 +1,7 @@
 /**
  * HostStateCache Unit Tests
+ *
+ * 测试结构校验、版本检查、过期清理、roomCode:hostUid 误命中防护
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,14 +18,18 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 describe('HostStateCache', () => {
   const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
 
+  const ROOM_CODE = '1234';
+  const HOST_UID = 'host-1';
+  const CACHE_KEY = `host_state_cache_${ROOM_CODE}:${HOST_UID}`;
+
   beforeEach(() => {
     jest.clearAllMocks();
     HostStateCache.resetInstance();
   });
 
   const createMinimalState = (overrides?: Partial<BroadcastGameState>): BroadcastGameState => ({
-    roomCode: 'TEST',
-    hostUid: 'host-1',
+    roomCode: ROOM_CODE,
+    hostUid: HOST_UID,
     status: 'unseated',
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
@@ -32,158 +38,249 @@ describe('HostStateCache', () => {
     ...overrides,
   });
 
+  const createValidCached = (overrides?: Partial<CachedHostState>): CachedHostState => ({
+    version: 1,
+    state: createMinimalState(),
+    revision: 10,
+    cachedAt: Date.now(),
+    ...overrides,
+  });
+
+  // =========================================================================
+  // saveState
+  // =========================================================================
   describe('saveState', () => {
-    it('should save state to AsyncStorage with correct key', async () => {
+    it('should save state with key = roomCode:hostUid', async () => {
       const cache = HostStateCache.getInstance();
       const state = createMinimalState();
 
-      await cache.saveState('1234', state, 5);
+      await cache.saveState(ROOM_CODE, HOST_UID, state, 5);
 
-      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
-        'host_state_cache_1234',
-        expect.any(String),
-      );
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(CACHE_KEY, expect.any(String));
 
-      // Verify the saved data structure
       const savedData = JSON.parse(mockAsyncStorage.setItem.mock.calls[0][1]);
+      expect(savedData.version).toBe(1);
       expect(savedData.state).toEqual(state);
       expect(savedData.revision).toBe(5);
-      expect(savedData.cachedAt).toBeDefined();
+      expect(typeof savedData.cachedAt).toBe('number');
     });
   });
 
-  describe('loadState', () => {
+  // =========================================================================
+  // loadState - happy path
+  // =========================================================================
+  describe('loadState (happy path)', () => {
     it('should return null if no cache exists', async () => {
       mockAsyncStorage.getItem.mockResolvedValue(null);
 
       const cache = HostStateCache.getInstance();
-      const result = await cache.loadState('1234');
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
+      expect(mockAsyncStorage.removeItem).not.toHaveBeenCalled();
     });
 
     it('should return cached state if valid', async () => {
-      const state = createMinimalState();
-      const cached: CachedHostState = {
-        state,
-        revision: 10,
-        cachedAt: Date.now(),
-      };
+      const cached = createValidCached();
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
 
       const cache = HostStateCache.getInstance();
-      const result = await cache.loadState('1234');
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).not.toBeNull();
-      expect(result!.state).toEqual(state);
+      expect(result!.state.roomCode).toBe(ROOM_CODE);
+      expect(result!.state.hostUid).toBe(HOST_UID);
       expect(result!.revision).toBe(10);
-    });
-
-    it('should return null and clear cache if expired', async () => {
-      const state = createMinimalState();
-      const cached: CachedHostState = {
-        state,
-        revision: 10,
-        cachedAt: Date.now() - 3 * 60 * 60 * 1000, // 3 hours ago (expired)
-      };
-      mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
-
-      const cache = HostStateCache.getInstance();
-      const result = await cache.loadState('1234');
-
-      expect(result).toBeNull();
-      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith('host_state_cache_1234');
-    });
-  });
-
-  describe('clearState', () => {
-    it('should remove cache from AsyncStorage', async () => {
-      const cache = HostStateCache.getInstance();
-
-      await cache.clearState('1234');
-
-      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith('host_state_cache_1234');
+      expect(mockAsyncStorage.removeItem).not.toHaveBeenCalled();
     });
   });
 
   // =========================================================================
-  // Boundary tests (hardening): invalid JSON, missing fields, expired auto-remove
+  // loadState - structure validation (strict: removeItem + return null)
   // =========================================================================
-  describe('loadState boundary tests', () => {
-    it('should return null when cached data is invalid JSON', async () => {
+  describe('loadState structure validation', () => {
+    it('should return null and removeItem when JSON is invalid', async () => {
       mockAsyncStorage.getItem.mockResolvedValue('{ invalid json !!!');
 
       const cache = HostStateCache.getInstance();
-      const result = await cache.loadState('1234');
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(CACHE_KEY);
     });
 
-    it('should return null when cached data is missing required fields (state)', async () => {
-      // Missing 'state' field
+    it('should return null and removeItem when version field is missing', async () => {
       const incompleteData = {
+        // missing version
+        state: createMinimalState(),
         revision: 10,
         cachedAt: Date.now(),
       };
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(incompleteData));
 
       const cache = HostStateCache.getInstance();
-      const result = await cache.loadState('1234');
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
-      // JSON.parse succeeds but structure validation should fail
-      // Current implementation doesn't validate structure - this documents behavior
-      // If state is undefined, the caller (joinAsHost) will fail on access
-      expect(result).not.toBeNull();
-      expect(result!.state).toBeUndefined();
+      expect(result).toBeNull();
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(CACHE_KEY);
     });
 
-    it('should return null when cached data is missing required fields (revision)', async () => {
-      const state = createMinimalState();
+    it('should return null and removeItem when state field is missing', async () => {
       const incompleteData = {
-        state,
+        version: 1,
+        // missing state
+        revision: 10,
         cachedAt: Date.now(),
-        // missing revision
       };
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(incompleteData));
 
       const cache = HostStateCache.getInstance();
-      const result = await cache.loadState('1234');
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
-      expect(result).not.toBeNull();
-      expect(result!.revision).toBeUndefined();
+      expect(result).toBeNull();
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(CACHE_KEY);
     });
 
-    it('should return null when cached data is missing required fields (cachedAt)', async () => {
-      const state = createMinimalState();
+    it('should return null and removeItem when revision field is missing', async () => {
       const incompleteData = {
-        state,
+        version: 1,
+        state: createMinimalState(),
+        // missing revision
+        cachedAt: Date.now(),
+      };
+      mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(incompleteData));
+
+      const cache = HostStateCache.getInstance();
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
+
+      expect(result).toBeNull();
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(CACHE_KEY);
+    });
+
+    it('should return null and removeItem when cachedAt field is missing', async () => {
+      const incompleteData = {
+        version: 1,
+        state: createMinimalState(),
         revision: 10,
         // missing cachedAt
       };
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(incompleteData));
 
       const cache = HostStateCache.getInstance();
-      const result = await cache.loadState('1234');
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
-      // cachedAt undefined: Date.now() - undefined = NaN, NaN > TTL = false
-      // So it won't trigger expiry, but caller should handle this case
-      expect(result).not.toBeNull();
+      expect(result).toBeNull();
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(CACHE_KEY);
     });
 
-    it('should call removeItem when cache is expired (expiry auto-remove)', async () => {
-      const state = createMinimalState();
-      const cached = {
-        state,
-        revision: 10,
-        cachedAt: Date.now() - 3 * 60 * 60 * 1000, // 3 hours ago
-      };
+    it('should return null and removeItem when state.roomCode is missing', async () => {
+      const badState = { hostUid: HOST_UID, status: 'unseated' } as BroadcastGameState;
+      const cached = { version: 1, state: badState, revision: 10, cachedAt: Date.now() };
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
 
       const cache = HostStateCache.getInstance();
-      await cache.loadState('1234');
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
-      // Verify that removeItem was called to clean up expired cache
-      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith('host_state_cache_1234');
+      expect(result).toBeNull();
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(CACHE_KEY);
+    });
+
+    it('should return null and removeItem when state.hostUid is missing', async () => {
+      const badState = { roomCode: ROOM_CODE, status: 'unseated' } as BroadcastGameState;
+      const cached = { version: 1, state: badState, revision: 10, cachedAt: Date.now() };
+      mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
+
+      const cache = HostStateCache.getInstance();
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
+
+      expect(result).toBeNull();
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(CACHE_KEY);
+    });
+
+    it('should return null and removeItem when version mismatch', async () => {
+      const cached = createValidCached({ version: 999 });
+      mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
+
+      const cache = HostStateCache.getInstance();
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
+
+      expect(result).toBeNull();
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(CACHE_KEY);
+    });
+  });
+
+  // =========================================================================
+  // loadState - expiry
+  // =========================================================================
+  describe('loadState expiry', () => {
+    it('should return null and removeItem when cache is expired (> 2 hours)', async () => {
+      const cached = createValidCached({
+        cachedAt: Date.now() - 3 * 60 * 60 * 1000, // 3 hours ago
+      });
+      mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
+
+      const cache = HostStateCache.getInstance();
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
+
+      expect(result).toBeNull();
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(CACHE_KEY);
+    });
+
+    it('should return cached state if not expired (< 2 hours)', async () => {
+      const cached = createValidCached({
+        cachedAt: Date.now() - 1 * 60 * 60 * 1000, // 1 hour ago
+      });
+      mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
+
+      const cache = HostStateCache.getInstance();
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
+
+      expect(result).not.toBeNull();
+      expect(mockAsyncStorage.removeItem).not.toHaveBeenCalled();
+    });
+  });
+
+  // =========================================================================
+  // loadState - roomCode/hostUid mismatch (防 roomCode 复用误命中)
+  // =========================================================================
+  describe('loadState roomCode/hostUid mismatch guard', () => {
+    it('should return null and removeItem when cached state.roomCode mismatches request', async () => {
+      const cached = createValidCached({
+        state: createMinimalState({ roomCode: 'DIFFERENT' }),
+      });
+      mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
+
+      const cache = HostStateCache.getInstance();
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
+
+      expect(result).toBeNull();
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(CACHE_KEY);
+    });
+
+    it('should return null and removeItem when cached state.hostUid mismatches request', async () => {
+      const cached = createValidCached({
+        state: createMinimalState({ hostUid: 'different-host' }),
+      });
+      mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
+
+      const cache = HostStateCache.getInstance();
+      const result = await cache.loadState(ROOM_CODE, HOST_UID);
+
+      expect(result).toBeNull();
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(CACHE_KEY);
+    });
+  });
+
+  // =========================================================================
+  // clearState
+  // =========================================================================
+  describe('clearState', () => {
+    it('should remove cache from AsyncStorage with correct key', async () => {
+      const cache = HostStateCache.getInstance();
+
+      await cache.clearState(ROOM_CODE, HOST_UID);
+
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(CACHE_KEY);
     });
   });
 });

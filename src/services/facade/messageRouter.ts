@@ -271,10 +271,20 @@ export function playerHandleHostBroadcast(
   if (ctx.isHost) return;
 
   switch (msg.type) {
-    case 'STATE_UPDATE':
+    case 'STATE_UPDATE': {
+      // 双 Host 检测：如果收到的 hostUid 与已知的不同，发出告警
+      const currentState = ctx.store.getState();
+      if (currentState && currentState.hostUid !== msg.state.hostUid) {
+        facadeLog.warn('[DUAL_HOST_DETECTED] Received STATE_UPDATE from different hostUid', {
+          knownHostUid: currentState.hostUid,
+          receivedHostUid: msg.state.hostUid,
+          revision: msg.revision,
+        });
+      }
       ctx.store.applySnapshot(msg.state, msg.revision);
       ctx.broadcastService.markAsLive();
       break;
+    }
 
     case 'SEAT_ACTION_ACK':
       playerHandleSeatActionAck(ctx, msg, pendingSeatAction);
