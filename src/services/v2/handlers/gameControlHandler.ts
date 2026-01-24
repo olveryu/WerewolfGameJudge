@@ -26,7 +26,6 @@ import { getStepSpec } from '../../../models/roles/spec/nightSteps';
 /**
  * 处理分配角色（仅 seated → assigned）
  *
- * Legacy 对齐：GameStateService.ts L1455-1478
  * - 前置条件：status === 'seated' && isHost
  * - 洗牌分配角色
  * - 设置 hasViewedRole = false
@@ -191,7 +190,6 @@ export function handleStartGame(_intent: StartGameIntent, context: HandlerContex
 /**
  * 处理开始夜晚（ready → ongoing）
  *
- * Legacy 对齐：GameStateService.ts L1483-1556
  * - 前置条件：status === 'ready' && isHost
  * - 初始化 Night-1 字段
  * - status → 'ongoing'

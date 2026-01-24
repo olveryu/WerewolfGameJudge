@@ -1,5 +1,5 @@
 /**
- * GameStateTypes - Pure type definitions extracted from GameStateService
+ * GameStateTypes - Pure type definitions for game state
  *
  * This file contains only:
  * - Enums

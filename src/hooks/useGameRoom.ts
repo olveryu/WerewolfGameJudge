@@ -1,8 +1,6 @@
 /**
  * useGameRoom - Hook for managing game room with v2 Broadcast architecture
  *
- * PR8: 完全切换到 v2 facade，不再依赖 legacy GameStateService
- *
  * This hook combines:
  * - V2GameFacade (via useGameFacade) for all game operations
  * - SimplifiedRoomService (for DB)
@@ -34,7 +32,7 @@ export interface UseGameRoomResult {
   // Room info
   roomRecord: RoomRecord | null;
 
-  // Game state (from GameStateService)
+  // Game state (from V2GameFacade)
   gameState: LocalGameState | null;
 
   // Player info
