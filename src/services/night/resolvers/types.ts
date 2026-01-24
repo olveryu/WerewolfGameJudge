@@ -63,6 +63,9 @@ export interface ResolverContext {
   /** Current night's resolved results so far */
   readonly currentNightResults: CurrentNightResults;
 
+  /** WolfRobot disguise context (if wolfRobot has learned) */
+  readonly wolfRobotContext?: WolfRobotContext;
+
   /** Game state flags */
   readonly gameState?: {
     readonly witchHasAntidote?: boolean;
@@ -94,7 +97,7 @@ export interface ResolverResult {
   /** Computed results (role-specific, for feedback to Host/UI) */
   readonly result?: {
     readonly checkResult?: '好人' | '狼人'; // seer
-    readonly identityResult?: RoleId; // psychic, gargoyle, wolfRobot
+    readonly identityResult?: RoleId; // psychic, gargoyle (display only)
     readonly savedTarget?: number; // witch save
     readonly poisonedTarget?: number; // witch poison
     readonly guardedTarget?: number; // guard
@@ -102,7 +105,8 @@ export interface ResolverResult {
     readonly dreamTarget?: number; // dreamcatcher
     readonly charmTarget?: number; // wolfQueen
     readonly swapTargets?: readonly [number, number]; // magician
-    readonly learnTarget?: number; // wolfRobot
+    readonly learnTarget?: number; // wolfRobot - target seat
+    readonly learnedRoleId?: RoleId; // wolfRobot - learned role (strict RoleId for disguise)
     readonly idolTarget?: number; // slacker
   };
 }
@@ -147,4 +151,59 @@ export function getRoleAfterSwap(
     return players.get(a);
   }
   return players.get(seat);
+}
+
+// =============================================================================
+// WolfRobot Disguise Context (for resolveRoleForChecks)
+// =============================================================================
+
+/**
+ * WolfRobot disguise context from BroadcastGameState.
+ * Passed to resolvers for disguise-aware identity checks.
+ */
+export interface WolfRobotContext {
+  readonly learnedSeat: number;
+  readonly disguisedRole: RoleId;
+}
+
+// =============================================================================
+// Unified Role Resolution for Checks (HOST-ONLY, Single Source of Truth)
+// =============================================================================
+
+/**
+ * Resolve the effective role at a seat for check/reveal actions.
+ *
+ * This is the SINGLE SOURCE OF TRUTH for identity resolution during checks.
+ * All resolvers (seer, psychic, gargoyle) MUST use this function.
+ *
+ * Resolution order:
+ * 1. Apply magician swap (if any)
+ * 2. If the effective role is 'wolfRobot' AND wolfRobotContext.disguisedRole exists,
+ *    return the disguised role instead.
+ * 3. Otherwise return the effective role.
+ *
+ * @param context - The resolver context (contains players, currentNightResults, wolfRobotContext)
+ * @param seat - The seat to check
+ * @returns The role to use for checks (after swap and disguise)
+ */
+export function resolveRoleForChecks(
+  context: ResolverContext,
+  seat: number,
+): RoleId | undefined {
+  const { players, currentNightResults, wolfRobotContext } = context;
+
+  // Step 1: Get role after magician swap
+  const effectiveRole = getRoleAfterSwap(seat, players, currentNightResults.swappedSeats);
+  if (!effectiveRole) {
+    return undefined;
+  }
+
+  // Step 2: Apply wolfRobot disguise if applicable
+  // If the effective role at this seat is wolfRobot and has learned a role, return disguised role
+  if (wolfRobotContext && effectiveRole === 'wolfRobot') {
+    // WolfRobot at this seat should appear as disguised role
+    return wolfRobotContext.disguisedRole;
+  }
+
+  return effectiveRole;
 }

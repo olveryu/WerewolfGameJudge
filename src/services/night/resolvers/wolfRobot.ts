@@ -47,7 +47,8 @@ export const wolfRobotLearnResolver: ResolverFn = (context, input) => {
     valid: true,
     result: {
       learnTarget: target,
-      identityResult: effectiveRoleId,
+      learnedRoleId: effectiveRoleId, // strict RoleId for disguise
+      identityResult: effectiveRoleId, // for UI display
     },
   };
 };
