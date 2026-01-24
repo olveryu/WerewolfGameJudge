@@ -80,7 +80,7 @@ describe('wolfKillResolver', () => {
       const result = wolfKillResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.wolfKillTarget).toBe(0);
+  expect(result.updates?.wolfVotesBySeat?.['2']).toBe(0);
     });
 
     it('应该接受刀神职 (预言家)', () => {
@@ -90,7 +90,7 @@ describe('wolfKillResolver', () => {
       const result = wolfKillResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.wolfKillTarget).toBe(4);
+  expect(result.updates?.wolfVotesBySeat?.['2']).toBe(4);
     });
 
     it('狼人可以刀自己（neutral judge: 不限制 self）', () => {
@@ -100,7 +100,7 @@ describe('wolfKillResolver', () => {
       const result = wolfKillResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.wolfKillTarget).toBe(2);
+  expect(result.updates?.wolfVotesBySeat?.['2']).toBe(2);
     });
 
     it('狼人可以刀狼队友（neutral judge: 不限制 team）', () => {
@@ -110,12 +110,12 @@ describe('wolfKillResolver', () => {
       const result = wolfKillResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.wolfKillTarget).toBe(3);
+  expect(result.updates?.wolfVotesBySeat?.['2']).toBe(3);
     });
   });
 
   describe('wolfKillDisabled', () => {
-    it('狼刀被禁用时应该返回空结果', () => {
+    it('狼刀被禁用时提交非空投票应该被拒绝', () => {
       const ctx = createContext({
         currentNightResults: { wolfKillDisabled: true },
       });
@@ -123,21 +123,32 @@ describe('wolfKillResolver', () => {
 
       const result = wolfKillResolver(ctx, input);
 
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toBeDefined();
+    });
+
+    it('狼刀被禁用时可以空刀', () => {
+      const ctx = createContext({
+        currentNightResults: { wolfKillDisabled: true },
+      });
+      const input = createInput(undefined);
+
+      const result = wolfKillResolver(ctx, input);
+
       expect(result.valid).toBe(true);
       expect(result.result).toEqual({});
-      expect(result.updates).toBeUndefined();
     });
   });
 
   describe('updates', () => {
-    it('刀人时应该更新 wolfKillTarget', () => {
+  it('刀人时应该更新 wolfVotesBySeat', () => {
       const ctx = createContext();
       const input = createInput(0);
 
       const result = wolfKillResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.updates?.wolfKillTarget).toBe(0);
+  expect(result.updates?.wolfVotesBySeat?.['2']).toBe(0);
     });
   });
 });

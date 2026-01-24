@@ -47,14 +47,14 @@ function createInput(target: number | undefined): ActionInput {
 
 describe('dreamcatcherDreamResolver', () => {
   describe('validation', () => {
-    it('应该拒绝缺少目标', () => {
+    it('应该允许跳过 (undefined 目标, schema.canSkip: true)', () => {
       const ctx = createContext();
       const input = createInput(undefined);
 
       const result = dreamcatcherDreamResolver(ctx, input);
 
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toContain('必须选择');
+      expect(result.valid).toBe(true);
+      expect(result.result).toEqual({});
     });
   });
 
@@ -94,17 +94,20 @@ describe('dreamcatcherDreamResolver', () => {
   });
 
   describe('nightmare block', () => {
-    it('被梦魇封锁时应该返回空结果', () => {
+    // NOTE: Nightmare block guard is now at actionHandler layer.
+    // The resolver itself does NOT reject blocked actions.
+    // These tests verify resolver behavior when invoked directly (skip returns empty result)
+
+    it('被梦魇封锁时跳过返回空结果', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 5 },
       });
-      const input = createInput(0);
+      const input = createInput(undefined);
 
       const result = dreamcatcherDreamResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.dreamTarget).toBeUndefined();
-      expect(result.updates).toBeUndefined();
+      expect(result.result).toEqual({});
     });
   });
 });

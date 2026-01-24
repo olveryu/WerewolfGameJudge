@@ -113,7 +113,9 @@ describe('slackerChooseIdolResolver', () => {
   });
 
   describe('nightmare block', () => {
-    it('被梦魇封锁时应该返回空结果', () => {
+    // NOTE: Nightmare block guard for non-skip actions is now handled at actionHandler layer.
+    // Slacker resolver only handles the special case: blocked + skip is allowed (even though canSkip=false).
+    it('被梦魇封锁时 resolver 不再拒绝非跳过行动（由 handler 层统一处理）', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 5 },
       });
@@ -121,8 +123,20 @@ describe('slackerChooseIdolResolver', () => {
 
       const result = slackerChooseIdolResolver(ctx, input);
 
+      // Resolver returns valid; handler layer will reject
       expect(result.valid).toBe(true);
-      expect(result.result?.idolTarget).toBeUndefined();
+    });
+
+    it('被梦魇封锁时可以跳过（特殊规则：虽然 canSkip=false，但被 block 时允许 skip）', () => {
+      const ctx = createContext({
+        currentNightResults: { blockedSeat: 5 },
+      });
+      const input = createInput(undefined);
+
+      const result = slackerChooseIdolResolver(ctx, input);
+
+      expect(result.valid).toBe(true);
+      expect(result.result).toEqual({});
     });
   });
 });

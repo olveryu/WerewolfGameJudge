@@ -44,11 +44,10 @@ import {
 import { TESTIDS } from '../../testids';
 import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
-import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import { ConnectionStatusBar } from './components/ConnectionStatusBar';
 import { roomScreenLog } from '../../utils/logger';
 import type { ActionSchema, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
-import { SCHEMAS, BLOCKED_UI_DEFAULTS, isValidSchemaId } from '../../models/roles/spec';
+import { SCHEMAS, isValidSchemaId, BLOCKED_UI_DEFAULTS } from '../../models/roles/spec';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -90,16 +89,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     submitRevealAck,
   } = useGameRoom();
 
-  // Commit 6 (UI-only): display the authoritative audioKey (from NIGHT_STEPS via ROLE_TURN.stepId)
-  const currentAudioKeyForUi = useMemo(() => {
-    if (!currentStepId) return null;
-    return getStepSpec(currentStepId)?.audioKey ?? null;
-  }, [currentStepId]);
-
   // Night progress indicator: calculate current step index and total steps
   // Uses buildNightPlan to get the actual steps based on the template roles
   const nightProgress = useMemo(() => {
-    if (!currentStepId || !gameState || gameState.status !== 'ongoing') {
+    if (!currentStepId || gameState?.status !== 'ongoing') {
       return null;
     }
 
@@ -117,6 +110,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       roleName: currentStep?.displayName,
     };
   }, [currentStepId, gameState]);
+
+  // =========================================================================
+  // PR7: 音频架构 - UI 只读 isAudioPlaying
+  // 根据 copilot-instructions.md：
+  // - Handler 声明音频 (PLAY_AUDIO sideEffect)
+  // - Facade 执行音频 + gate
+  // - UI 只读 gate，用于禁用交互
+  // RoomScreen 不触发音频，不写 isAudioPlaying
+  // =========================================================================
 
   const submitRevealAckSafe = useCallback(
     (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => {
@@ -142,10 +144,24 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Auto-trigger intent idempotency: prevent duplicate triggers in the same turn
   const lastAutoIntentKeyRef = useRef<string | null>(null);
 
+  // P0-FIX: 追踪"正在等待/显示查验结果弹窗"的状态
+  // 这样天亮弹窗（发言顺序）会等待查验结果弹窗关闭后再显示
+  const [pendingRevealDialog, setPendingRevealDialog] = useState(false);
+
   // Keep gameStateRef in sync
   useEffect(() => {
     gameStateRef.current = gameState;
   }, [gameState]);
+
+  const wolfVotesMap = useMemo(() => {
+    const raw = gameState?.currentNightResults?.wolfVotesBySeat;
+    if (!raw) return new Map<number, number>();
+    const map = new Map<number, number>();
+    for (const [k, v] of Object.entries(raw as Record<string, number>)) {
+      map.set(Number.parseInt(k, 10), v);
+    }
+    return map;
+  }, [gameState?.currentNightResults]);
 
   // Computed values: use useActionerState hook
   const { imActioner, showWolves } = useActionerState({
@@ -153,7 +169,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     currentActionRole,
     currentSchema,
     mySeatNumber,
-    wolfVotes: gameState?.wolfVotes ?? new Map(),
+  wolfVotes: wolfVotesMap,
     isHost,
     actions: gameState?.actions ?? new Map(),
   });
@@ -173,11 +189,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const seatViewModels = useMemo(() => {
     if (!gameState) return [];
     return buildSeatViewModels(gameState, mySeatNumber, showWolves, anotherIndex, {
-      // Commit 5 (UX-only): meeting vote restrictions apply during the wolf-meeting vote,
-      // and this codebase currently models that voting step as the wolfKill schema.
-      // Neutral-judge red line is enforced host-side; UI-disable here is UX-only.
-      enableWolfVoteRestrictions:
-        currentSchema?.kind === 'wolfVote' && currentSchema?.id === 'wolfKill',
       // Schema-driven constraints (notSelf, etc.) - UX-only early rejection
       schemaConstraints: imActioner ? currentSchemaConstraints : undefined,
       // For magician swap: highlight the second seat being selected
@@ -189,8 +200,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     showWolves,
     anotherIndex,
     secondSeatIndex,
-    currentSchema?.kind,
-    currentSchema?.id,
     imActioner,
     currentSchemaConstraints,
   ]);
@@ -277,33 +286,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [isInitialized, gameState]);
 
   // ───────────────────────────────────────────────────────────────────────────
-  // Nightmare block detection
-  // ───────────────────────────────────────────────────────────────────────────
-
-  const isBlockedByNightmare = useMemo(() => {
-    if (!gameState || mySeatNumber === null) return false;
-    return gameState.nightmareBlockedSeat === mySeatNumber;
-  }, [gameState, mySeatNumber]);
-
-  // Wolf kill disabled: true if nightmare blocked a wolf (all wolves can only skip)
-  const wolfKillDisabled = useMemo(() => {
-    const value = gameState?.wolfKillDisabled ?? false;
-    // Debug log for wolf kill disabled
-    if (gameState && currentActionRole === 'wolf') {
-      console.log(
-        '[RoomScreen] wolfKillDisabled check:',
-        'gameState.wolfKillDisabled=',
-        gameState.wolfKillDisabled,
-        'computed=',
-        value,
-        'nightmareBlockedSeat=',
-        gameState.nightmareBlockedSeat,
-      );
-    }
-    return value;
-  }, [gameState, currentActionRole]);
-
-  // ───────────────────────────────────────────────────────────────────────────
   // Intent Layer: useRoomActions
   // ───────────────────────────────────────────────────────────────────────────
 
@@ -317,8 +299,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       mySeatNumber,
       myRole,
       isAudioPlaying,
-      isBlockedByNightmare,
-      wolfKillDisabled,
       anotherIndex,
     }),
     [
@@ -330,8 +310,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       mySeatNumber,
       myRole,
       isAudioPlaying,
-      isBlockedByNightmare,
-      wolfKillDisabled,
       anotherIndex,
     ],
   );
@@ -349,7 +327,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const {
     getActionIntent,
     getAutoTriggerIntent,
-    getMagicianTarget,
     findVotingWolfSeat,
     getWolfStatusLine,
     getBottomAction,
@@ -390,21 +367,44 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     async (targetIndex: number | null, extra?: any): Promise<boolean> => {
       await submitAction(targetIndex, extra);
 
-      // Give a brief moment for state to update (Host broadcasts state with rejection)
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // Check if action was rejected (via gameState.actionRejected targeting our uid)
-      const rejected = gameState?.actionRejected;
-      if (rejected && rejected.targetUid === myUid) {
-        // Show rejection alert with reason from Host
-        actionDialogs.showActionRejectedAlert(rejected.reason);
-        return false; // Action was rejected
-      }
-
-      return true; // Action was accepted
+      // Submission success/failure UX is handled by the state-driven
+      // `gameState.actionRejected` effect below (covers submitAction + submitWolfVote).
+      // Return true here to keep callers progressing; Host rejection will be surfaced
+      // asynchronously via broadcast.
+      return true;
     },
-    [submitAction, gameState?.actionRejected, myUid, actionDialogs],
+    [submitAction],
   );
+
+  // ---------------------------------------------------------------------------
+  // Unified rejection UX (Host-authoritative)
+  //
+  // NOTE: Do NOT rely on submitAction-only plumbing.
+  // WOLF_VOTE is submitted via submitWolfVote(), so we surface actionRejected
+  // via a state-driven effect for ALL action types.
+  // ---------------------------------------------------------------------------
+
+  const lastRejectedKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const rejected = gameState?.actionRejected;
+    if (!rejected) {
+      lastRejectedKeyRef.current = null;
+      return;
+    }
+
+    if (!myUid || rejected.targetUid !== myUid) return;
+
+    // Deduplicate repeated broadcasts of the same rejection
+    // Prefer a unique rejection id so repeated errors with the same reason still show.
+    const key =
+      (rejected as { rejectionId?: string }).rejectionId ??
+      `${rejected.action}:${rejected.reason}:${rejected.targetUid}`;
+    if (key === lastRejectedKeyRef.current) return;
+    lastRejectedKeyRef.current = key;
+
+    actionDialogs.showActionRejectedAlert(rejected.reason);
+  }, [gameState?.actionRejected, myUid, actionDialogs]);
 
   // ---------------------------------------------------------------------------------
   // Action extra typing (UI -> Host wire payload)
@@ -413,7 +413,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // We keep it type-safe on the UI side by narrowing locally.
   // ---------------------------------------------------------------------------------
 
-  type ActionExtra = { save: boolean } | { poison: boolean };
+  type WitchStepResults = { save: number | null; poison: number | null };
+  type ActionExtra =
+    | { stepResults: WitchStepResults }
+    | { targets: readonly [number, number] }; // swap protocol: [seatA, seatB]
 
   // Schema lookup helper (used internally)
   const _getSchemaById = useCallback((id: string): ActionSchema | null => {
@@ -435,16 +438,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     [currentSchema],
   );
 
-  const buildWitchExtra = useCallback(
-    (opts: { save?: boolean; poison?: boolean }): ActionExtra | undefined => {
-      // For compound schema (witch), just pass through the save/poison option as ActionExtra
-      if (currentSchema?.kind === 'compound') {
-        if (typeof opts.save === 'boolean') return { save: opts.save };
-        if (typeof opts.poison === 'boolean') return { poison: opts.poison };
-      }
-      return undefined;
+  /**
+   * Build witch action extra with v2 stepResults protocol.
+   * @param opts.saveTarget - seat to save (or null to skip save)
+   * @param opts.poisonTarget - seat to poison (or null to skip poison)
+   */
+  const buildWitchStepResults = useCallback(
+    (opts: { saveTarget: number | null; poisonTarget: number | null }): ActionExtra => {
+      return { stepResults: { save: opts.saveTarget, poison: opts.poisonTarget } };
     },
-    [currentSchema],
+    [],
   );
 
   const proceedWithActionTyped = useCallback(
@@ -495,10 +498,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleActionIntent = useCallback(
     async (intent: ActionIntent) => {
       switch (intent.type) {
-        case 'blocked':
-          // UX: Show feedback when blocked player taps a seat
-          actionDialogs.showBlockedAlert();
-          break;
+        // NOTE: 'blocked' intent type has been removed.
+        // Nightmare block is now handled by Host resolver.
+        // UI submits action → Host validates → ACTION_REJECTED if blocked.
 
         case 'magicianFirst':
           setAnotherIndex(intent.targetIndex);
@@ -533,20 +535,35 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           };
 
           confirmThenAct(intent.targetIndex, async () => {
-            // Wait for state to propagate (Host sets reveal data after processing action)
-            await new Promise((resolve) => setTimeout(resolve, 150));
+            // P0-FIX: 用户确认后设置 pending 状态，阻止天亮弹窗在查验结果显示之前出现
+            // 必须在回调内设置，因为用户可能取消确认弹窗
+            setPendingRevealDialog(true);
 
-            const reveal = getRevealData();
+            // Wait for state to propagate with retry (React batch updates may delay ref update)
+            const maxRetries = 10;
+            const retryInterval = 50;
+            let reveal: { targetSeat: number; result: string } | undefined;
+
+            for (let i = 0; i < maxRetries; i++) {
+              await new Promise((resolve) => setTimeout(resolve, retryInterval));
+              reveal = getRevealData();
+              if (reveal) break;
+            }
+
             if (reveal) {
               actionDialogs.showRevealDialog(
                 `${reveal.targetSeat + 1}号是${reveal.result}`,
                 '',
                 () => {
                   submitRevealAckSafe(revealKind);
+                  // P0-FIX: 用户确认后清除 pending 状态，允许天亮弹窗显示
+                  setPendingRevealDialog(false);
                 },
               );
             } else {
-              roomScreenLog.warn(` ${revealKind}Reveal timeout - no reveal received`);
+              roomScreenLog.warn(` ${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`);
+              // P0-FIX: 超时也要清除 pending 状态
+              setPendingRevealDialog(false);
             }
           });
           break;
@@ -573,7 +590,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 'mySeatNumber=',
                 mySeatNumber,
                 'hasWolfVoted=',
-                mySeatNumber !== null ? hasWolfVoted(mySeatNumber) : 'N/A',
+                mySeatNumber === null ? 'N/A' : hasWolfVoted(mySeatNumber),
               );
               return;
             }
@@ -582,14 +599,26 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               intent.targetIndex,
               () => void submitWolfVote(intent.targetIndex),
               // Schema-driven copy: prefer schema.ui.confirmText (contract-enforced)
-              currentSchema?.ui?.confirmText,
+              // NOTE: target immune rule is Host-authoritative; we only add a UX hint here to avoid confusion.
+              (() => {
+                const base = currentSchema?.ui?.confirmText;
+                const targetRole = gameStateRef.current?.players?.get(intent.targetIndex)?.role;
+                if (currentSchema?.id !== 'wolfKill' || !targetRole) return base;
+                // Local import would create layering issues; use a lightweight string hint only.
+                // The real validation still happens in wolfKillResolver (Host-only).
+                const immune =
+                  targetRole === 'spiritKnight' ||
+                  targetRole === 'wolfQueen';
+                return immune ? `${base ?? ''}\n（提示：该角色免疫狼刀，Host 会拒绝）` : base;
+              })(),
             );
           }
           break;
 
         case 'actionConfirm':
           if (myRole === 'magician' && anotherIndex !== null) {
-            const mergedTarget = getMagicianTarget(intent.targetIndex);
+            // v2 protocol: target = null, extra.targets = [seatA, seatB]
+            const swapTargets: [number, number] = [anotherIndex, intent.targetIndex];
             // Highlight both seats during confirmation dialog
             setSecondSeatIndex(intent.targetIndex);
             // Use setTimeout to allow React to re-render before showing dialog
@@ -600,7 +629,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 () => {
                   setAnotherIndex(null);
                   setSecondSeatIndex(null);
-                  void proceedWithActionTyped(mergedTarget);
+                  void proceedWithActionTyped(null, { targets: swapTargets });
                 },
                 () => {
                   // User cancelled - reset both seats for re-selection
@@ -611,32 +640,46 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             }, 0);
           } else {
             // Witch/compound: drive copy + payload by stepKey when provided.
+            // v2 protocol: seat = actorSeat (mySeatNumber), target info in stepResults
             const stepSchema = getSubStepByKey(intent.stepKey);
-            let extra: ReturnType<typeof buildWitchExtra> | undefined;
+            let extra: ActionExtra | undefined;
             if (stepSchema?.key === 'save') {
-              extra = buildWitchExtra({ save: true });
+              // save: target is intent.targetIndex (killedIndex from witchContext)
+              extra = buildWitchStepResults({ saveTarget: intent.targetIndex, poisonTarget: null });
             } else if (stepSchema?.key === 'poison') {
-              extra = buildWitchExtra({ poison: true });
+              // poison: target is intent.targetIndex (user-selected seat)
+              extra = buildWitchStepResults({ saveTarget: null, poisonTarget: intent.targetIndex });
             }
 
             actionDialogs.showConfirmDialog(
               stepSchema?.ui?.confirmTitle || currentSchema?.ui?.confirmTitle || '确认行动',
               stepSchema?.ui?.confirmText || intent.message || '',
-              () => void proceedWithActionTyped(intent.targetIndex, extra),
+              () => void proceedWithActionTyped(mySeatNumber ?? 0, extra),
             );
           }
           break;
 
         case 'skip': {
-          // Witch/compound: drive copy + payload by stepKey when provided.
+          // Special handling for confirm schema (hunter/darkWolfKing) blocked skip
+          if (currentSchema?.kind === 'confirm') {
+            actionDialogs.showConfirmDialog(
+              '确认跳过',
+              intent.message || BLOCKED_UI_DEFAULTS.skipButtonText,
+              () => void proceedWithActionTyped(null, { confirmed: false } as any),
+            );
+            break;
+          }
+
+          // Witch/compound: v2 protocol - skip means stepResults with all null
+          // seat = actorSeat (mySeatNumber)
           const skipStepSchema = getSubStepByKey(intent.stepKey);
-          let skipExtra: ReturnType<typeof buildWitchExtra> | undefined;
-          if (intent.stepKey === 'skipAll') {
-            skipExtra = buildWitchExtra({ save: false, poison: false });
-          } else if (skipStepSchema?.key === 'save') {
-            skipExtra = buildWitchExtra({ save: false });
-          } else if (skipStepSchema?.key === 'poison') {
-            skipExtra = buildWitchExtra({ poison: false });
+          let skipExtra: ActionExtra | undefined;
+          let skipSeat: number | null = null; // default for chooseSeat: null
+
+          if (intent.stepKey === 'skipAll' || currentSchema?.kind === 'compound') {
+            // Compound schema: skip uses actorSeat + stepResults with all null
+            skipExtra = buildWitchStepResults({ saveTarget: null, poisonTarget: null });
+            skipSeat = mySeatNumber ?? 0;
           }
 
           // FAIL-FAST: skip confirmText must come from schema or intent
@@ -648,7 +691,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           actionDialogs.showConfirmDialog(
             '确认跳过',
             skipConfirmText,
-            () => void proceedWithActionTyped(null, skipExtra),
+            () => void proceedWithActionTyped(skipSeat, skipExtra),
           );
           break;
         }
@@ -665,23 +708,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             break;
           }
 
-          // confirm schema (hunter/darkWolfKing): show different prompt based on blocked status
+          // confirm schema (hunter/darkWolfKing): show standard prompt
+          // NOTE: Nightmare block is now handled by Host resolver.
+          // UI no longer shows blocked prompt here. Action goes through submit → Host validates.
           if (currentSchema?.kind === 'confirm') {
-            if (isBlockedByNightmare) {
-              actionDialogs.showRoleActionPrompt(
-                BLOCKED_UI_DEFAULTS.title,
-                BLOCKED_UI_DEFAULTS.message,
-                () => {},
+            // FAIL-FAST: schema.ui.prompt must exist for confirm schema
+            if (!currentSchema.ui?.prompt) {
+              throw new Error(
+                `[FAIL-FAST] Missing schema.ui.prompt for confirm schema: ${currentActionRole}`,
               );
-            } else {
-              // FAIL-FAST: schema.ui.prompt must exist for confirm schema
-              if (!currentSchema.ui?.prompt) {
-                throw new Error(
-                  `[FAIL-FAST] Missing schema.ui.prompt for confirm schema: ${currentActionRole}`,
-                );
-              }
-              actionDialogs.showRoleActionPrompt('行动提示', currentSchema.ui.prompt, () => {});
             }
+            actionDialogs.showRoleActionPrompt('行动提示', currentSchema.ui.prompt, () => {});
             break;
           }
 
@@ -724,10 +761,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             : `${roleDisplayName}不能发动技能`;
 
           // Show info dialog with status, then submit action when user acknowledges
+          // IMPORTANT: Pass confirmed=true to satisfy Host block guard
           actionDialogs.showRoleActionPrompt(
             '技能状态',
             statusMessage,
-            () => void proceedWithActionTyped(mySeatNumber ?? 0),
+            () => void proceedWithActionTyped(mySeatNumber ?? 0, { confirmed: true } as any),
           );
           break;
         }
@@ -737,15 +775,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       gameState,
       myRole,
       mySeatNumber,
-      isBlockedByNightmare,
       anotherIndex,
       actionDialogs,
-      buildWitchExtra,
+      buildWitchStepResults,
       confirmThenAct,
       currentSchema,
       currentActionRole,
       findVotingWolfSeat,
-      getMagicianTarget,
       getSubStepByKey,
       hasWolfVoted,
       proceedWithActionTyped,
@@ -768,6 +804,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
+    // 音频播放中禁止自动触发 intent（gate 由 Facade 层管理）
     if (!imActioner || isAudioPlaying) return;
 
     const autoIntent = getAutoTriggerIntent();
@@ -888,17 +925,19 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   useEffect(() => {
     // Only show once per game, only for host, only when game ended and audio finished
+    // P0-FIX: 等待查验结果弹窗关闭后再显示发言顺序弹窗
     if (
       !isHost ||
       roomStatus !== GameStatus.ended ||
       isAudioPlaying ||
+      pendingRevealDialog ||
       hasShownSpeakOrderRef.current
     )
       return;
 
     hasShownSpeakOrderRef.current = true;
     showSpeakOrderDialog();
-  }, [isHost, roomStatus, isAudioPlaying, showSpeakOrderDialog]);
+  }, [isHost, roomStatus, isAudioPlaying, pendingRevealDialog, showSpeakOrderDialog]);
 
   // Reset speak order flag when game restarts
   useEffect(() => {
@@ -1009,11 +1048,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Action Message - only show after audio finishes */}
         {imActioner && !isAudioPlaying && <ActionMessage message={actionMessage} />}
 
-        {/* Commit 6 (UI-only): show which audioKey is currently playing */}
-        {roomStatus === GameStatus.ongoing && isAudioPlaying && currentAudioKeyForUi && (
-          <ActionMessage message={`正在播放：${currentAudioKeyForUi}`} />
-        )}
-
         {/* Show players who haven't viewed their roles yet */}
         {isHost && roomStatus === GameStatus.assigned && (
           <WaitingViewRoleList seatIndices={getPlayersNotViewedRole(toGameRoomLike(gameState))} />
@@ -1032,7 +1066,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           }
           showPrepareToFlip={roomStatus === GameStatus.seated}
           showStartGame={roomStatus === GameStatus.ready && !isStartingGame}
-          showLastNightInfo={roomStatus === GameStatus.ended}
+          showLastNightInfo={roomStatus === GameStatus.ended && !isAudioPlaying}
           showRestart={
             roomStatus === GameStatus.assigned ||
             roomStatus === GameStatus.ready ||

@@ -2,6 +2,8 @@
  * Wolf Queen Resolver (HOST-ONLY)
  *
  * Validates wolf queen charm action and computes result.
+ *
+ * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
 import { SCHEMAS } from '../../../models/roles/spec/schemas';
@@ -9,7 +11,7 @@ import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
 
 export const wolfQueenCharmResolver: ResolverFn = (context, input) => {
-  const { actorSeat, players, currentNightResults } = context;
+  const { actorSeat, players } = context;
   const target = input.target;
 
   // Wolf queen can skip (choose not to charm anyone)
@@ -17,10 +19,7 @@ export const wolfQueenCharmResolver: ResolverFn = (context, input) => {
     return { valid: true, result: {} };
   }
 
-  // Check blocked by nightmare
-  if (currentNightResults.blockedSeat === actorSeat) {
-    return { valid: true, result: {} };
-  }
+  // Block guard is handled at actionHandler layer (single-point guard)
 
   // Validate constraints from schema
   const schema = SCHEMAS.wolfQueenCharm;

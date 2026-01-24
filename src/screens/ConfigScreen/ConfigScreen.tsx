@@ -17,7 +17,7 @@ import {
   createCustomTemplate,
   validateTemplateRoles,
 } from '../../models/Template';
-import { GameStateService } from '../../services/GameStateService';
+import { useGameFacade } from '../../contexts';
 import { showAlert } from '../../utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors, spacing, borderRadius, typography, shadows, ThemeColors } from '../../theme';
@@ -285,7 +285,7 @@ export const ConfigScreen: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
 
-  const gameStateService = GameStateService.getInstance();
+  const facade = useGameFacade();
   const selectedCount = Object.values(selection).filter(Boolean).length;
 
   // Load current room's roles when in edit mode
@@ -304,10 +304,10 @@ export const ConfigScreen: React.FC = () => {
     const loadCurrentRoles = () => {
       configLog.debug(' Loading room:', existingRoomNumber);
       try {
-        const state = gameStateService.getState();
+        const state = facade.getState();
         configLog.debug(' State loaded:', state ? 'success' : 'not found');
-        if (state?.template) {
-          setSelection(applyPreset(state.template.roles));
+        if (state?.templateRoles && state.templateRoles.length > 0) {
+          setSelection(applyPreset(state.templateRoles));
         }
       } catch (error) {
         configLog.error(' Failed to load room:', error);
@@ -318,7 +318,7 @@ export const ConfigScreen: React.FC = () => {
     };
 
     loadCurrentRoles();
-  }, [isEditMode, existingRoomNumber, gameStateService]);
+  }, [isEditMode, existingRoomNumber, facade]);
 
   // Reset transient states when screen regains focus
   useEffect(() => {
@@ -363,7 +363,11 @@ export const ConfigScreen: React.FC = () => {
       const template = createCustomTemplate(roles);
 
       if (isEditMode && existingRoomNumber) {
-        await gameStateService.updateTemplate(template);
+        const result = await facade.updateTemplate(template);
+        if (!result.success) {
+          showAlert('错误', result.reason ?? '更新房间失败');
+          return;
+        }
         navigation.goBack();
       } else {
         const roomNumber = Math.floor(1000 + Math.random() * 9000).toString();
@@ -375,7 +379,7 @@ export const ConfigScreen: React.FC = () => {
     } finally {
       setIsCreating(false);
     }
-  }, [selection, navigation, isEditMode, existingRoomNumber, gameStateService]);
+  }, [selection, navigation, isEditMode, existingRoomNumber, facade]);
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>

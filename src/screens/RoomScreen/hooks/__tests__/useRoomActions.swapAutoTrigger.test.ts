@@ -22,8 +22,6 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     mySeatNumber: 0,
     myRole: 'magician',
     isAudioPlaying: false,
-    isBlockedByNightmare: false,
-    wolfKillDisabled: false,
     anotherIndex: null,
   };
   return { ...base, ...overrides };

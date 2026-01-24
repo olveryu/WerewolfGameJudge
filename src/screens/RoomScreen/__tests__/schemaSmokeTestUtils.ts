@@ -12,6 +12,8 @@ type MakeUseGameRoomArgs = {
   numberOfPlayers?: number;
   /** Optional per-test override for hook return */
   overrides?: Partial<UseGameRoomReturn>;
+  /** Optional override for gameState fields (merged into gameState) */
+  gameStateOverrides?: Record<string, any>;
 };
 
 export const mockNavigation = {
@@ -28,6 +30,7 @@ export function makeBaseUseGameRoomReturn({
   mySeatNumber = 0,
   numberOfPlayers = 12,
   overrides,
+  gameStateOverrides,
 }: MakeUseGameRoomArgs): UseGameRoomReturn {
   const { getSchema } = require('../../../models/roles/spec/schemas');
 
@@ -63,6 +66,7 @@ export function makeBaseUseGameRoomReturn({
       templateRoles: [],
       hostUid: 'host',
       roomCode: '1234',
+      ...(gameStateOverrides ?? {}),
     },
 
     connectionStatus: 'live',
@@ -94,8 +98,6 @@ export function makeBaseUseGameRoomReturn({
 
     lastSeatError: null,
     clearLastSeatError: jest.fn(),
-
-    waitForActionRejected: jest.fn().mockResolvedValue(null),
 
     getWitchContext: jest.fn().mockReturnValue(null),
     getLastNightInfo: jest.fn().mockReturnValue(''),

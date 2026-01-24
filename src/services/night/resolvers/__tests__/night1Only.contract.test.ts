@@ -136,11 +136,19 @@ describe('Night-1-only resolvers contract', () => {
     });
     expect(selfRes.valid).toBe(true);
 
-    // kill another wolf teammate
+    // kill another wolf teammate (non-immune)
+    // (Plan B: immuneToWolfKill targets are rejected by wolfKillResolver)
     const teammateRes = wolfKillResolver(
-      makeContext({ actorSeat: 0, actorRoleId: 'wolf' as any }),
+      makeContext({
+        actorSeat: 0,
+        actorRoleId: 'wolf' as any,
+        players: new Map([
+          [0, 'wolf' as any],
+          [2, 'wolf' as any], // non-immune teammate
+        ]),
+      }),
       { schemaId: 'wolfKill' as any, target: 2 },
     );
-    expect(teammateRes.valid).toBe(true);
+  expect(teammateRes.valid).toBe(true);
   });
 });

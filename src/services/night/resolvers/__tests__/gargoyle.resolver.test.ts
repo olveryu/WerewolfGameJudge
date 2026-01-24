@@ -45,24 +45,24 @@ function createInput(target: number | null | undefined): ActionInput {
 
 describe('gargoyleCheckResolver', () => {
   describe('validate', () => {
-    it('应该拒绝 null 目标', () => {
+    it('应该允许跳过 (null 目标, schema.canSkip: true)', () => {
       const ctx = createContext();
       const input = createInput(null);
 
       const result = gargoyleCheckResolver(ctx, input);
 
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toContain('选择');
+      expect(result.valid).toBe(true);
+      expect(result.result).toEqual({});
     });
 
-    it('应该拒绝 undefined 目标', () => {
+    it('应该允许跳过 (undefined 目标, schema.canSkip: true)', () => {
       const ctx = createContext();
       const input = createInput(undefined);
 
       const result = gargoyleCheckResolver(ctx, input);
 
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toContain('选择');
+      expect(result.valid).toBe(true);
+      expect(result.result).toEqual({});
     });
 
     it('应该允许查验自己 (no notSelf constraint - neutral judge)', () => {
@@ -138,16 +138,20 @@ describe('gargoyleCheckResolver', () => {
   });
 
   describe('nightmare block', () => {
-    it('被梦魇封锁时应该返回空结果', () => {
+    // NOTE: Nightmare block guard is now at actionHandler layer.
+    // The resolver itself does NOT reject blocked actions.
+    // These tests verify resolver behavior when invoked directly (skip allowed, target returns empty result)
+
+    it('被梦魇封锁时跳过返回空结果', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 4 }, // gargoyle is blocked
       });
-      const input = createInput(2);
+      const input = createInput(undefined);
 
       const result = gargoyleCheckResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.identityResult).toBeUndefined();
+      expect(result.result).toEqual({});
     });
 
     it('未被封锁时应该正常返回结果', () => {

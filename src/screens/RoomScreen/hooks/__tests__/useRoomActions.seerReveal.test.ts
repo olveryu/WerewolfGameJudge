@@ -54,8 +54,6 @@ describe('useRoomActions seer reveal', () => {
           mySeatNumber: 0,
           myRole: 'seer',
           isAudioPlaying: false,
-          isBlockedByNightmare: false,
-          wolfKillDisabled: false,
           anotherIndex: null,
         },
         deps,
@@ -71,7 +69,7 @@ describe('useRoomActions seer reveal', () => {
     expect(intent?.targetIndex).toBe(2);
   });
 
-  it('returns blocked intent when seer is blocked by nightmare', () => {
+  it('returns normal reveal intent when seer is blocked (Host validates)', () => {
     const gameState = makeGameState();
     const schema = makeSeerSchema();
 
@@ -86,19 +84,19 @@ describe('useRoomActions seer reveal', () => {
           mySeatNumber: 0,
           myRole: 'seer',
           isAudioPlaying: false,
-          isBlockedByNightmare: true, // Blocked!
-          wolfKillDisabled: false,
           anotherIndex: null,
         },
         deps,
       ),
     );
 
-    // Seer taps seat 2
+    // Seer taps seat 2 - UI returns normal intent, Host will reject
     const intent = result.current.getActionIntent(2);
 
     expect(intent).not.toBeNull();
-    expect(intent?.type).toBe('blocked');
+    expect(intent?.type).toBe('reveal'); // Normal intent, not 'blocked'
+    expect(intent?.revealKind).toBe('seer');
+    expect(intent?.targetIndex).toBe(2);
   });
 
   it('returns null when myRole is null', () => {
@@ -116,8 +114,6 @@ describe('useRoomActions seer reveal', () => {
           mySeatNumber: 0,
           myRole: null, // No role
           isAudioPlaying: false,
-          isBlockedByNightmare: false,
-          wolfKillDisabled: false,
           anotherIndex: null,
         },
         deps,
@@ -142,8 +138,6 @@ describe('useRoomActions seer reveal', () => {
           mySeatNumber: 0,
           myRole: 'seer',
           isAudioPlaying: false,
-          isBlockedByNightmare: false,
-          wolfKillDisabled: false,
           anotherIndex: null,
         },
         deps,

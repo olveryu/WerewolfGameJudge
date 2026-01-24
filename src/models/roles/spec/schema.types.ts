@@ -156,6 +156,7 @@ export interface SkipSchema extends BaseActionSchema {
 /** Confirm action (hunter/darkWolfKing - no target selection, just confirm status) */
 export interface ConfirmSchema extends BaseActionSchema {
   readonly kind: 'confirm';
+  readonly canSkip: boolean;
 }
 
 /**

@@ -15,8 +15,6 @@ function makeContext(partial: Partial<GameContext>): GameContext {
     mySeatNumber: null,
     myRole: null,
     isAudioPlaying: false,
-    isBlockedByNightmare: false,
-    wolfKillDisabled: false,
     anotherIndex: null,
     ...partial,
   };

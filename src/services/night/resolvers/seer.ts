@@ -2,6 +2,8 @@
  * Seer Resolver (HOST-ONLY)
  *
  * Validates seer check action and computes result.
+ *
+ * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
 import { ROLE_SPECS } from '../../../models/roles/spec/specs';
@@ -15,10 +17,16 @@ export const seerCheckResolver: ResolverFn = (context, input) => {
   const { actorSeat, players, currentNightResults } = context;
   const target = input.target;
 
-  // Validate target exists
+  // Schema allows skip (canSkip: true)
+  // If target is null/undefined, treat as skip
   if (target === undefined || target === null) {
-    return { valid: false, rejectReason: '必须选择查验对象' };
+    return {
+      valid: true,
+      result: {}, // No check result (skipped)
+    };
   }
+
+  // Block guard is handled at actionHandler layer (single-point guard)
 
   // Validate constraints from schema
   const schema = SCHEMAS.seerCheck;
@@ -31,14 +39,6 @@ export const seerCheckResolver: ResolverFn = (context, input) => {
   const originalRoleId = players.get(target);
   if (!originalRoleId) {
     return { valid: false, rejectReason: '目标玩家不存在' };
-  }
-
-  // Check blocked by nightmare
-  if (currentNightResults.blockedSeat === actorSeat) {
-    return {
-      valid: true,
-      result: {}, // No result due to block
-    };
   }
 
   // Get effective role after magician swap (if any)

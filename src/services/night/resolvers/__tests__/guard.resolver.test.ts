@@ -102,7 +102,10 @@ describe('guardProtectResolver', () => {
   });
 
   describe('nightmare block', () => {
-    it('被梦魇封锁时应该返回空结果', () => {
+    // NOTE: Nightmare block guard is now handled at actionHandler layer (single-point guard).
+    // Resolver no longer rejects blocked actions - it only validates business rules.
+    // Block guard tests are in actionHandler.test.ts.
+    it('被梦魇封锁时 resolver 不再拒绝（由 handler 层统一处理）', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 5 }, // guard is blocked
       });
@@ -110,9 +113,20 @@ describe('guardProtectResolver', () => {
 
       const result = guardProtectResolver(ctx, input);
 
+      // Resolver returns valid; handler layer will reject
       expect(result.valid).toBe(true);
-      expect(result.result?.guardedTarget).toBeUndefined();
-      expect(result.updates).toBeUndefined();
+    });
+
+    it('被梦魇封锁时可以跳过', () => {
+      const ctx = createContext({
+        currentNightResults: { blockedSeat: 5 }, // guard is blocked
+      });
+      const input = createInput(undefined);
+
+      const result = guardProtectResolver(ctx, input);
+
+      expect(result.valid).toBe(true);
+      expect(result.result).toEqual({});
     });
   });
 

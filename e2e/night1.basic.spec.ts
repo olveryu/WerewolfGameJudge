@@ -7,6 +7,7 @@ import {
   extractRoomNumber,
   enterRoomCodeViaNumPad,
 } from './helpers/home';
+import { setupDiagnostics } from './helpers/diagnostics';
 
 /**
  * Night 1 Smoke E2E Tests
@@ -25,85 +26,6 @@ test.describe.configure({ mode: 'serial' });
 
 // Increase test timeout for multi-player flows
 test.setTimeout(180_000);
-
-// =============================================================================
-// Diagnostic Infrastructure (reused from seating.basic.spec.ts)
-// =============================================================================
-
-/** Prefixes to filter from console logs */
-const LOG_PREFIXES = [
-  // Legacy prefixes (for compatibility)
-  '[useGameRoom]',
-  '[GameStateService]',
-  '[SeatService]',
-  '[RoomService]',
-  '[BroadcastService]',
-  '[AudioService]',
-  '[NightFlowController]',
-  // react-native-logs extensions
-  'Host',
-  'Player',
-  'NightFlow',
-  'Broadcast',
-  'Audio',
-  'Auth',
-  'Room',
-  'GameRoom',
-  'Config',
-  'RoomScreen',
-  'Home',
-];
-
-/** Collected diagnostic data */
-interface DiagnosticData {
-  consoleLogs: string[];
-  pageErrors: string[];
-  failedRequests: string[];
-  errorResponses: string[];
-}
-
-/**
- * Setup diagnostic listeners on a page.
- */
-function setupDiagnostics(page: Page, label: string): DiagnosticData {
-  const data: DiagnosticData = {
-    consoleLogs: [],
-    pageErrors: [],
-    failedRequests: [],
-    errorResponses: [],
-  };
-
-  page.on('console', (msg) => {
-    const text = msg.text();
-    if (LOG_PREFIXES.some((p) => text.includes(p))) {
-      const logLine = `[${label}] ${text}`;
-      data.consoleLogs.push(logLine);
-      console.log('[PW console]', logLine);
-    }
-  });
-
-  page.on('pageerror', (err) => {
-    const errLine = `[${label}] PageError: ${err.message}`;
-    data.pageErrors.push(errLine);
-    console.error('[PW pageerror]', errLine);
-  });
-
-  page.on('requestfailed', (req) => {
-    const failLine = `[${label}] RequestFailed: ${req.url()} - ${req.failure()?.errorText}`;
-    data.failedRequests.push(failLine);
-    console.error('[PW requestfailed]', failLine);
-  });
-
-  page.on('response', (resp) => {
-    if (resp.status() >= 400) {
-      const errLine = `[${label}] HTTP ${resp.status()}: ${resp.url()}`;
-      data.errorResponses.push(errLine);
-      console.warn('[PW response]', errLine);
-    }
-  });
-
-  return data;
-}
 
 // =============================================================================
 // Helpers (Seat-specific only - shared helpers imported from home.ts)
@@ -290,13 +212,17 @@ async function configure6PlayerTemplate(page: Page): Promise<void> {
 
 /**
  * Night end keywords that indicate first night has completed
+ *
+ * PR9: 移除 '重新开始' 作为结束指标
+ * - v2 UI 在 ongoing 状态下也显示"重新开始"按钮，会导致误判
+ * - '查看昨晚信息' 只在 status=ended 时显示，是稳定的结束信号
  */
 const NIGHT_END_KEYWORDS = [
   '平安夜',
   '玩家死亡',
   '昨天晚上',
-  '查看昨晚信息', // Button visible after night ends
-  '重新开始', // Button visible after night ends
+  '查看昨晚信息', // Button visible only when status=ended
+  // NOTE: '重新开始' removed - visible during ongoing in v2
 ];
 
 /**
@@ -416,6 +342,14 @@ interface NightFlowState {
   wolfVotedPages: Set<string>;
   /** Total number of wolves expected (parsed from "X/Y 狼人已投票") */
   expectedWolfCount: number;
+  /** Fail-fast: track consecutive iterations where wolf vote count is stuck at 0 */
+  wolfVoteStuckIterations: number;
+  /** Fail-fast: last observed wolf vote count for stuck detection */
+  lastWolfVoteCount: number;
+  /** Fail-fast: track consecutive iterations with no progress (no action taken) */
+  noProgressIterations: number;
+  /** Fail-fast: last action message for stuck detection */
+  lastActionMessage: string;
 }
 
 /**
@@ -669,7 +603,15 @@ async function runNightFlowLoop(
   const state: NightFlowState = {
     wolfVotedPages: new Set(),
     expectedWolfCount: 0,
+    wolfVoteStuckIterations: 0,
+    lastWolfVoteCount: -1, // -1 means not yet observed
+    noProgressIterations: 0,
+    lastActionMessage: '',
   };
+
+  // Fail-fast thresholds
+  const WOLF_VOTE_STUCK_THRESHOLD = 8;
+  const NO_PROGRESS_THRESHOLD = 15; // If no progress for 15 iterations, fail
 
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
     // Check if night has ended (on primary page)
@@ -678,6 +620,43 @@ async function runNightFlowLoop(
       const resultText = await captureNightResult(primaryPage);
       return { resultText, turnLog };
     }
+
+    // =========================================================================
+    // FAIL-FAST: Detect wolf vote stuck (vote count not advancing)
+    // =========================================================================
+    const wolfVoteCount = await parseWolfVoteCount(primaryPage);
+    if (wolfVoteCount === null) {
+      // Not in wolf vote phase, reset tracking
+      state.wolfVoteStuckIterations = 0;
+      state.lastWolfVoteCount = -1;
+    } else if (state.lastWolfVoteCount === wolfVoteCount.current) {
+      // Vote count hasn't changed
+      state.wolfVoteStuckIterations++;
+      if (state.wolfVoteStuckIterations >= WOLF_VOTE_STUCK_THRESHOLD) {
+        // Fail-fast: wolf vote is stuck
+        console.error(
+          `[FAIL-FAST] Wolf vote stuck at ${wolfVoteCount.current}/${wolfVoteCount.total} ` +
+            `for ${state.wolfVoteStuckIterations} iterations`,
+        );
+
+        // Capture diagnostic info
+        const diagnostics = await captureWolfVoteDiagnostics(primaryPage, state);
+        console.error('[FAIL-FAST] Diagnostics:', JSON.stringify(diagnostics, null, 2));
+
+        // Take screenshot
+        await takeScreenshot(primaryPage, testInfo, `fail-fast-wolf-vote-stuck.png`);
+
+        throw new Error(
+          `FAIL-FAST: Wolf vote stuck at ${wolfVoteCount.current}/${wolfVoteCount.total}. ` +
+            `Diagnostics: ${JSON.stringify(diagnostics)}`,
+        );
+      }
+    } else {
+      // Vote count changed, reset stuck counter
+      state.wolfVoteStuckIterations = 0;
+      state.lastWolfVoteCount = wolfVoteCount.current;
+    }
+    // =========================================================================
 
     // Periodic screenshot
     if (iteration % screenshotInterval === 0) {
@@ -696,11 +675,113 @@ async function runNightFlowLoop(
       }
     }
 
+    // =========================================================================
+    // FAIL-FAST: Detect global stuck (no progress for too many iterations)
+    // =========================================================================
+    // Get current action message for comparison
+    const actionMsgLocator = primaryPage.locator('[data-testid="action-message"]');
+    const currentActionMsg =
+      (await actionMsgLocator
+        .textContent({ timeout: 100 })
+        .catch(() => '')) ?? '';
+
+    if (advanced) {
+      // Action was taken, reset no-progress counter
+      state.noProgressIterations = 0;
+      state.lastActionMessage = currentActionMsg;
+    } else {
+      // No action was taken this iteration
+      if (currentActionMsg === state.lastActionMessage) {
+        state.noProgressIterations++;
+      } else {
+        // Action message changed but no action taken - reset counter but update message
+        state.noProgressIterations = 0;
+        state.lastActionMessage = currentActionMsg;
+      }
+
+      if (state.noProgressIterations >= NO_PROGRESS_THRESHOLD) {
+        console.error(
+          `[FAIL-FAST] No progress for ${state.noProgressIterations} iterations. ` +
+            `Stuck on: "${currentActionMsg}"`,
+        );
+
+        const diagnostics = await captureWolfVoteDiagnostics(primaryPage, state);
+        diagnostics.stuckActionMessage = currentActionMsg;
+        console.error('[FAIL-FAST] Diagnostics:', JSON.stringify(diagnostics, null, 2));
+
+        await takeScreenshot(primaryPage, testInfo, `fail-fast-no-progress.png`);
+
+        throw new Error(
+          `FAIL-FAST: No progress for ${state.noProgressIterations} iterations. ` +
+            `Stuck on: "${currentActionMsg}". Diagnostics: ${JSON.stringify(diagnostics)}`,
+        );
+      }
+    }
+    // =========================================================================
+
     await primaryPage.waitForTimeout(advanced ? 200 : 500);
   }
 
-  console.log(`[Night] Max iterations (${maxIterations}) reached without night end`);
-  return { resultText: 'TIMEOUT: Night did not complete', turnLog };
+  // FAIL-FAST: Max iterations reached without night end
+  console.error(`[FAIL-FAST] Max iterations (${maxIterations}) reached without night end`);
+
+  // Capture final diagnostics
+  const diagnostics = await captureWolfVoteDiagnostics(primaryPage, state);
+  console.error('[FAIL-FAST] Final diagnostics:', JSON.stringify(diagnostics, null, 2));
+
+  await takeScreenshot(primaryPage, testInfo, `fail-fast-max-iterations.png`);
+
+  throw new Error(
+    `FAIL-FAST: Night flow did not complete after ${maxIterations} iterations. ` +
+      `Diagnostics: ${JSON.stringify(diagnostics)}`,
+  );
+}
+
+/**
+ * Capture diagnostic information for wolf vote stuck failure.
+ * Extracts visible UI state to help debug why wolf vote is not advancing.
+ */
+async function captureWolfVoteDiagnostics(
+  page: Page,
+  state: NightFlowState,
+): Promise<Record<string, unknown>> {
+  const diagnostics: Record<string, unknown> = {
+    wolfVotedPages: Array.from(state.wolfVotedPages),
+    expectedWolfCount: state.expectedWolfCount,
+    stuckIterations: state.wolfVoteStuckIterations,
+  };
+
+  // Try to get action message
+  const actionMsgLocator = page.locator('[data-testid="action-message"]');
+  if (await actionMsgLocator.isVisible({ timeout: 100 }).catch(() => false)) {
+    diagnostics.actionMessage = await actionMsgLocator.textContent().catch(() => null);
+  }
+
+  // Try to get any error messages or rejection reasons from the UI
+  const errorLocators = [
+    page.locator('[data-testid*="error"]'),
+    page.locator('[data-testid*="reject"]'),
+    page.getByText(/invalid_step|step_mismatch|no_resolver/i),
+  ];
+
+  for (const locator of errorLocators) {
+    const isVisible = await locator
+      .first()
+      .isVisible({ timeout: 100 })
+      .catch(() => false);
+    if (isVisible) {
+      diagnostics.visibleError = await locator
+        .first()
+        .textContent()
+        .catch(() => null);
+      break;
+    }
+  }
+
+  // Get page URL and any visible status
+  diagnostics.pageUrl = page.url();
+
+  return diagnostics;
 }
 
 // =============================================================================
@@ -889,41 +970,63 @@ test.describe('Night 1 Happy Path', () => {
 
       // If last night button is visible, click it to get the result
       if (hasLastNightBtn) {
-        await lastNightBtn.click();
-
-        // Wait for confirmation dialog
-        await expect(pageA.getByText('确定查看昨夜信息？')).toBeVisible({ timeout: 3000 });
-        await pageA.getByText('确定', { exact: true }).click();
-        await pageA.waitForTimeout(500);
-
-        await takeScreenshot(pageA, testInfo, '07-last-night-info.png');
-
-        // Capture the result text from alert
-        const alertText = await pageA
-          .locator('text=/平安夜|玩家死亡/')
-          .first()
-          .textContent()
-          .catch(() => null);
-        if (alertText) {
-          nightResult.resultText = alertText;
-          console.log(`[NIGHT] Last night info: ${alertText}`);
+        console.log('[NIGHT] Clicking 查看昨晚信息 button...');
+        try {
+          // Wait for button to be actionable, then click
+          await lastNightBtn.click({ timeout: 5000 });
+          console.log('[NIGHT] Button clicked successfully');
+        } catch (error_) {
+          console.log(`[NIGHT] WARNING: Failed to click 查看昨晚信息: ${error_}`);
+          // Take screenshot for debugging
+          await takeScreenshot(pageA, testInfo, '07-click-failed.png');
         }
 
-        // Dismiss alert
-        const dismissBtn = pageA.getByText('确定', { exact: true });
-        if (await dismissBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-          await dismissBtn.click();
+        // Wait for confirmation dialog with fail-fast
+        console.log('[NIGHT] Waiting for confirmation dialog...');
+        const confirmDialogVisible = await pageA
+          .getByText('确定查看昨夜信息？')
+          .isVisible({ timeout: 3000 })
+          .catch(() => false);
+
+        if (confirmDialogVisible) {
+          console.log('[NIGHT] Clicking 确定...');
+          await pageA.getByText('确定', { exact: true }).click();
+          await pageA.waitForTimeout(500);
+
+          await takeScreenshot(pageA, testInfo, '07-last-night-info.png');
+
+          // Capture the result text from alert
+          const alertText = await pageA
+            .locator('text=/平安夜|玩家死亡/')
+            .first()
+            .textContent({ timeout: 2000 })
+            .catch(() => null);
+          if (alertText) {
+            nightResult.resultText = alertText;
+            console.log(`[NIGHT] Last night info: ${alertText}`);
+          }
+
+          // Dismiss alert
+          const dismissBtn = pageA.getByText('知道了', { exact: true });
+          if (await dismissBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+            console.log('[NIGHT] Dismissing alert with 知道了...');
+            await dismissBtn.click();
+          }
+        } else {
+          console.log('[NIGHT] WARNING: Confirmation dialog not visible, skipping last night info capture');
         }
       }
 
       // ===================== Assertions =====================
+      // NOTE: hasRestartBtn is NOT a valid night-end indicator in v2
+      // (v2 UI shows "重新开始" even during ongoing state)
+      // Only "查看昨晚信息" and result text are reliable indicators
       const nightEnded =
         hasLastNightBtn ||
-        hasRestartBtn ||
         nightResult.resultText.includes('平安夜') ||
         nightResult.resultText.includes('死亡');
 
-      expect(nightEnded, 'First night should complete with result').toBe(true);
+      expect(nightEnded, 'First night should complete with result (查看昨晚信息 visible or death/peace result)').toBe(true);
 
       // Attach diagnostic report
       await testInfo.attach('night1.txt', {
@@ -1158,13 +1261,14 @@ test.describe('Night 1 Happy Path', () => {
       console.log(`[6P] 重新开始 visible: ${hasRestartBtn}`);
 
       // Night should complete (smoke test - no death assertion)
+      // NOTE: hasRestartBtn is NOT a valid night-end indicator in v2
+      // (v2 UI shows "重新开始" even during ongoing state)
       const nightEnded =
         hasLastNightBtn ||
-        hasRestartBtn ||
         nightResult.resultText.includes('平安夜') ||
         nightResult.resultText.includes('死亡');
 
-      expect(nightEnded, '6-player first night should complete').toBe(true);
+      expect(nightEnded, '6-player first night should complete (查看昨晚信息 visible or death/peace result)').toBe(true);
 
       // Attach diagnostic report
       await testInfo.attach('6player-night.txt', {
@@ -1287,6 +1391,14 @@ test.describe('Night 1 Happy Path', () => {
       console.log(`[RESTART] First night result: ${firstNight.resultText}`);
 
       await takeScreenshot(pageA, testInfo, 'restart-01-first-night-done.png');
+
+      // Dismiss the speaking order dialog if visible (shows after night ends)
+      const speakingOrderDialog = pageA.getByText('发言顺序');
+      if (await speakingOrderDialog.isVisible({ timeout: 1000 }).catch(() => false)) {
+        console.log('[RESTART] Dismissing speaking order dialog...');
+        await pageA.getByText('知道了', { exact: true }).click();
+        await pageA.waitForTimeout(300);
+      }
 
       // ===================== Restart =====================
       console.log('\n[RESTART] === Clicking 重新开始 ===');

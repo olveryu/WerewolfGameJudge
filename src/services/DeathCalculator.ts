@@ -1,7 +1,7 @@
 /**
  * DeathCalculator - Pure function module for calculating night deaths
  *
- * This module contains all death calculation logic extracted from GameStateService.
+ * This module contains all death calculation logic.
  * It is a pure function with no side effects, no state access, and no external dependencies.
  *
  * Responsibilities:
@@ -10,7 +10,7 @@
  * - Return list of dead seats
  *
  * NOT responsible for:
- * - Accessing GameStateService internal state
+ * - Accessing internal game state
  * - Calling Supabase / Broadcast
  * - Playing audio
  * - Modifying any UI
