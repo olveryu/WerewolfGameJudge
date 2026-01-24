@@ -13,7 +13,7 @@
  */
 
 import type { PlayerMessage, HostBroadcast } from '../../protocol/types';
-import type { GameStore } from '../store';
+import type { GameStore } from '../../engine/store';
 import type { BroadcastService } from '../../transport/BroadcastService';
 import type { SeatActionsContext, PendingSeatAction } from './seatActions';
 import type { RoleId } from '../../../models/roles';

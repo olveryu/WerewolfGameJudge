@@ -20,7 +20,7 @@ import type {
   AdvanceNightIntent,
   EndNightIntent,
   SetAudioPlayingIntent,
-} from '../../intents/types';
+} from '../../../v2/intents/types';
 import type { BroadcastGameState, BroadcastPlayer } from '../../../protocol/types';
 import { NIGHT_STEPS } from '../../../../models/roles/spec';
 import { buildNightPlan } from '../../../../models/roles/spec/plan';

@@ -14,8 +14,8 @@
 
 import { V2GameFacade } from '../V2GameFacade';
 import { BroadcastService } from '../../../transport/BroadcastService';
-import { gameReducer } from '../../reducer/gameReducer';
-import type { PlayerJoinAction } from '../../reducer/types';
+import { gameReducer } from '../../../engine/reducer/gameReducer';
+import type { PlayerJoinAction } from '../../../engine/reducer/types';
 import type { HostBroadcast, BroadcastPlayer } from '../../../protocol/types';
 
 // Mock BroadcastService

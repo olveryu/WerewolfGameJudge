@@ -14,8 +14,8 @@
  */
 
 import type { BroadcastGameState } from '../../protocol/types';
-import type { GameStore } from '../store';
-import type { HandlerContext, HandlerResult } from '../handlers/types';
+import type { GameStore } from '../../engine/store';
+import type { HandlerContext, HandlerResult } from '../../engine/handlers/types';
 import type {
   AssignRolesIntent,
   ViewedRoleIntent,
@@ -28,7 +28,7 @@ import type {
   RestartGameIntent,
   UpdateTemplateIntent,
 } from '../intents/types';
-import type { StateAction } from '../reducer/types';
+import type { StateAction } from '../../engine/reducer/types';
 import type { RoleId } from '../../../models/roles';
 import type { GameTemplate } from '../../../models/Template';
 
@@ -39,20 +39,20 @@ import {
   handleStartNight,
   handleRestartGame,
   handleUpdateTemplate,
-} from '../handlers/gameControlHandler';
+} from '../../engine/handlers/gameControlHandler';
 import {
   handleViewedRole,
   handleSubmitAction,
   handleSubmitWolfVote,
-} from '../handlers/actionHandler';
+} from '../../engine/handlers/actionHandler';
 import {
   handleAdvanceNight,
   handleEndNight,
   handleSetAudioPlaying,
   handleNightProgression,
   resetProgressionTracker,
-} from '../handlers/nightFlowHandler';
-import { gameReducer } from '../reducer';
+} from '../../engine/handlers/nightFlowHandler';
+import { gameReducer } from '../../engine/reducer';
 import { v2FacadeLog } from '../../../utils/logger';
 
 /**

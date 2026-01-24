@@ -5,7 +5,7 @@
 import { TransportAdapter } from '../TransportAdapter';
 import type { TransportListener } from '../TransportAdapter';
 import type { BroadcastService } from '../BroadcastService';
-import type { GameState } from '../../v2/store/types';
+import type { GameState } from '../../engine/store/types';
 
 function createMockBroadcastService(): jest.Mocked<BroadcastService> {
   return {

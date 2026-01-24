@@ -2,7 +2,7 @@
  * v2 ActionHandler Tests
  */
 
-import { handleSubmitAction } from '../handlers/actionHandler';
+import { handleSubmitAction } from '../../engine/handlers/actionHandler';
 
 const baseContext: any = {
   isHost: true,

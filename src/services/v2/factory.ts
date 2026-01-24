@@ -4,11 +4,11 @@
  * 创建并组装 v2 服务层组件
  */
 
-import { GameStore } from './store';
+import { GameStore } from '../engine/store';
 import { TransportAdapter } from '../transport';
 import type { BroadcastService } from '../transport/BroadcastService';
 import type { RoleId } from '../../models/roles';
-import type { GameState } from './store/types';
+import type { GameState } from '../engine/store/types';
 
 /**
  * 服务实例

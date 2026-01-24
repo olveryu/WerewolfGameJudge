@@ -10,12 +10,12 @@
  */
 
 // Store
-export { GameStore } from './store';
-export type { GameState, StateListener, IGameStore, IHostGameStore } from './store/types';
+export { GameStore } from '../engine/store';
+export type { GameState, StateListener, IGameStore, IHostGameStore } from '../engine/store/types';
 
 // Reducer
-export { gameReducer } from './reducer';
-export type { StateAction } from './reducer/types';
+export { gameReducer } from '../engine/reducer';
+export type { StateAction } from '../engine/reducer/types';
 
 // Intents
 export type { GameIntent } from './intents';
@@ -29,8 +29,8 @@ export {
   handleSubmitAction,
   handleSubmitWolfVote,
   handleViewedRole,
-} from './handlers';
-export type { Handler, HandlerContext, HandlerResult } from './handlers/types';
+} from '../engine/handlers';
+export type { Handler, HandlerContext, HandlerResult } from '../engine/handlers/types';
 
 // Transport
 export { TransportAdapter } from '../transport';

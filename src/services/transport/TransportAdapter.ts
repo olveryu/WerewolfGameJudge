@@ -6,7 +6,7 @@
 
 import type { BroadcastService } from './BroadcastService';
 import type { HostBroadcast, PlayerMessage as ProtocolPlayerMessage } from '../protocol/types';
-import type { GameState } from '../v2/store/types';
+import type { GameState } from '../engine/store/types';
 
 /**
  * Transport 监听器
