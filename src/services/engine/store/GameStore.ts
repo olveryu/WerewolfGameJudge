@@ -21,6 +21,19 @@ export class GameStore implements IHostGameStore {
   private readonly listeners: Set<StateListener> = new Set();
 
   /**
+   * Host-only: apply an existing snapshot as the current state, preserving the given revision.
+   *
+   * Rationale: Host rejoin needs to restore its last authoritative BroadcastGameState + revision
+   * so that connected Players (who may already be at a higher revision) will accept subsequent
+   * STATE_UPDATE broadcasts.
+   */
+  applyHostSnapshot(state: GameState, revision: number): void {
+    this.state = normalizeState(state);
+    this.revision = revision;
+    this.notifyListeners();
+  }
+
+  /**
    * 获取当前状态
    */
   getState(): GameState | null {
@@ -48,6 +61,7 @@ export class GameStore implements IHostGameStore {
   /**
    * 应用快照（玩家端）
    * 仅当 incoming revision > local revision 时应用
+   * 应用 normalizeState 确保 Host/Player shape 一致（anti-drift）
    */
   applySnapshot(state: GameState, revision: number): void {
     if (revision <= this.revision) {
@@ -55,7 +69,7 @@ export class GameStore implements IHostGameStore {
       return;
     }
 
-    this.state = state;
+    this.state = normalizeState(state);
     this.revision = revision;
     this.notifyListeners();
   }

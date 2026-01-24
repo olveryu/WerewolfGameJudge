@@ -100,6 +100,10 @@ export interface UseGameRoomResult {
   // Utility
   hasWolfVoted: (seatNumber: number) => boolean;
 
+  // Sync status (Player reconnection)
+  lastStateReceivedAt: number | null; // timestamp of last STATE_UPDATE
+  isStateStale: boolean; // true if connection not live or state possibly outdated
+
   // Role-specific context is now read directly from gameState:
   // - gameState.witchContext (only display to witch)
   // - gameState.seerReveal (only display to seer)
@@ -133,6 +137,12 @@ export const useGameRoom = (): UseGameRoomResult => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [stateRevision, setStateRevision] = useState(0);
 
+  // Sync status for Player reconnection
+  const [lastStateReceivedAt, setLastStateReceivedAt] = useState<number | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Throttle: only request once per live session (reset when state is received)
+  const hasRequestedInSessionRef = useRef<boolean>(false);
+
   const roomService = useRef(SimplifiedRoomService.getInstance());
   const authService = useRef(AuthService.getInstance());
   const broadcastService = useRef(BroadcastService.getInstance());
@@ -155,12 +165,22 @@ export const useGameRoom = (): UseGameRoomResult => {
         setMyUid(facade.getMyUid());
         setMySeatNumber(facade.getMySeatNumber());
         setStateRevision(facade.getStateRevision());
+        // 更新 lastStateReceivedAt（Player 同步状态追踪）
+        setLastStateReceivedAt(Date.now());
+        // 重置 throttle flag（收到状态后允许下次 auto-recovery）
+        hasRequestedInSessionRef.current = false;
+        // 清除 reconnect timer（收到新状态说明同步成功）
+        if (reconnectTimerRef.current) {
+          clearTimeout(reconnectTimerRef.current);
+          reconnectTimerRef.current = null;
+        }
       } else {
         setGameState(null);
         setIsHost(false);
         setMyUid(null);
         setMySeatNumber(null);
         setStateRevision(0);
+        setLastStateReceivedAt(null);
       }
     });
     return unsubscribe;
@@ -173,6 +193,37 @@ export const useGameRoom = (): UseGameRoomResult => {
     });
     return unsubscribe;
   }, []);
+
+  // Player 自动恢复：断线重连后自动请求状态
+  // Throttle: 只在同一 live session 中请求一次（收到 STATE_UPDATE 后重置）
+  useEffect(() => {
+    // 只有 Player 需要自动恢复（Host 是权威）
+    if (isHost) return;
+    // 只在连接恢复时触发
+    if (connectionStatus !== 'live') return;
+    // 如果没有 roomRecord，说明还没加入房间
+    if (!roomRecord) return;
+    // Throttle: 已经请求过，跳过（避免 REQUEST_STATE spam）
+    if (hasRequestedInSessionRef.current) {
+      gameRoomLog.debug('Player auto-recovery: already requested in this session, skipping');
+      return;
+    }
+
+    // 启动定时器：如果 2 秒内没有收到 STATE_UPDATE，主动请求
+    reconnectTimerRef.current = setTimeout(() => {
+      if (hasRequestedInSessionRef.current) return; // 双重保险
+      hasRequestedInSessionRef.current = true;
+      gameRoomLog.debug('Player auto-recovery: requesting state after reconnect');
+      void facade.requestSnapshot();
+    }, 2000);
+
+    return () => {
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+    };
+  }, [connectionStatus, isHost, roomRecord, facade]);
 
   // Phase 1: myRole 从 gameState 派生，不再依赖 legacy service
   const myRole = useMemo(() => {
@@ -292,12 +343,20 @@ export const useGameRoom = (): UseGameRoomResult => {
         const avatarUrl = await authService.current.getCurrentAvatarUrl();
 
         // Phase 1B: 使用 facade 加入房间
-        // Phase 1 明确不支持 Host rejoin，直接报错
+        // Host rejoin: 使用 joinAsHost 恢复
         if (record.hostUid === playerUid) {
-          gameRoomLog.error('Host rejoin not supported in Phase 1');
-          setError('房主重新加入暂不支持，请重新创建房间');
-          return false;
+          gameRoomLog.debug('Host rejoin detected, attempting recovery');
+          const result = await facade.joinAsHost(roomNumber, playerUid);
+          if (!result.success) {
+            gameRoomLog.error('Host rejoin failed', { reason: result.reason });
+            setError('房间状态已丢失，请重新创建房间');
+            return false;
+          }
+          gameRoomLog.debug('Host rejoin successful');
+          return true;
         }
+
+        // Player: 正常加入
 
         await facade.joinAsPlayer(
           roomNumber,
@@ -517,6 +576,16 @@ export const useGameRoom = (): UseGameRoomResult => {
     setLastSeatError(null);
   }, []);
 
+  // 一致性提示：状态是否可能过时
+  // - connectionStatus 不是 'live' 时可能过时
+  // - 超过 30 秒没收到状态更新时可能过时
+  const STALE_THRESHOLD_MS = 30000;
+  const isStateStale = useMemo(() => {
+    if (connectionStatus !== 'live') return true;
+    if (!lastStateReceivedAt) return true;
+    return Date.now() - lastStateReceivedAt > STALE_THRESHOLD_MS;
+  }, [connectionStatus, lastStateReceivedAt]);
+
   return {
     roomRecord,
     gameState,
@@ -534,6 +603,8 @@ export const useGameRoom = (): UseGameRoomResult => {
     error,
     connectionStatus,
     stateRevision,
+    lastStateReceivedAt,
+    isStateStale,
     createRoom,
     joinRoom,
     leaveRoom,
