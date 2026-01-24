@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthService } from '../services/infra/AuthService';
 import { AvatarUploadService } from '../services/infra/AvatarUploadService';
 import { supabase, isSupabaseConfigured } from '../config/supabase';
@@ -157,6 +158,8 @@ export const useAuth = () => {
     setLoading(true);
     try {
       await authService.signOut();
+      // 清除上次房间记录（匿名用户退出后无法返回之前的房间）
+      await AsyncStorage.removeItem('lastRoomNumber');
       setUser(null);
     } catch (e: any) {
       setError(e.message);
