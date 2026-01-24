@@ -16,3 +16,6 @@ export {
   type LocalPlayer,
 } from './types/GameStateTypes';
 export { SimplifiedRoomService, type RoomRecord } from './infra/RoomService';
+
+// Facade
+export { V2GameFacade } from './facade';

@@ -16,14 +16,14 @@
  * - messageRouter.ts: PlayerMessage/HostBroadcast 路由分发
  */
 
-import type { IGameFacade, StateListener } from '../../types/IGameFacade';
-import type { GameTemplate } from '../../../models/Template';
-import type { BroadcastGameState, PlayerMessage, HostBroadcast } from '../../protocol/types';
-import type { RoleId } from '../../../models/roles';
+import type { IGameFacade, StateListener } from '../types/IGameFacade';
+import type { GameTemplate } from '../../models/Template';
+import type { BroadcastGameState, PlayerMessage, HostBroadcast } from '../protocol/types';
+import type { RoleId } from '../../models/roles';
 
-import { BroadcastService } from '../../transport/BroadcastService';
-import { GameStore } from '../../engine/store';
-import AudioService from '../../infra/AudioService';
+import { BroadcastService } from '../transport/BroadcastService';
+import { GameStore } from '../engine/store';
+import AudioService from '../infra/AudioService';
 
 // 子模块
 import type { HostActionsContext } from './hostActions';

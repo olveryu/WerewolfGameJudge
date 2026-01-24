@@ -16,13 +16,13 @@
  * 3. 门禁：新增 PlayerMessage.type 时测试必须 fail，逼迫补 router case
  */
 
-import type { PlayerMessage } from '../../../protocol/types';
+import type { PlayerMessage } from '../../protocol/types';
 import type { MessageRouterContext } from '../messageRouter';
 import { hostHandlePlayerMessage } from '../messageRouter';
-import { v2FacadeLog } from '../../../../utils/logger';
+import { v2FacadeLog } from '../../../utils/logger';
 
 // Mock logger
-jest.mock('../../../../utils/logger', () => ({
+jest.mock('../../../utils/logger', () => ({
   v2FacadeLog: {
     debug: jest.fn(),
     info: jest.fn(),

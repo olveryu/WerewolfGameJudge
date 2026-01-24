@@ -13,17 +13,17 @@
  * - 直接修改 state（全部在 reducer）
  */
 
-import type { BroadcastGameState, PlayerMessage } from '../../protocol/types';
-import type { GameStore } from '../../engine/store';
-import type { HandlerContext } from '../../engine/handlers/types';
-import type { JoinSeatIntent, LeaveMySeatIntent } from '../intents/types';
-import type { StateAction } from '../../engine/reducer/types';
-import type { BroadcastService } from '../../transport/BroadcastService';
+import type { BroadcastGameState, PlayerMessage } from '../protocol/types';
+import type { GameStore } from '../engine/store';
+import type { HandlerContext } from '../engine/handlers/types';
+import type { JoinSeatIntent, LeaveMySeatIntent } from '../v2/intents/types';
+import type { StateAction } from '../engine/reducer/types';
+import type { BroadcastService } from '../transport/BroadcastService';
 
-import { handleJoinSeat, handleLeaveMySeat } from '../../engine/handlers/seatHandler';
-import { gameReducer } from '../../engine/reducer';
-import { v2FacadeLog } from '../../../utils/logger';
-import { REASON_TIMEOUT, REASON_CANCELLED } from '../protocol/reasonCodes';
+import { handleJoinSeat, handleLeaveMySeat } from '../engine/handlers/seatHandler';
+import { gameReducer } from '../engine/reducer';
+import { v2FacadeLog } from '../../utils/logger';
+import { REASON_TIMEOUT, REASON_CANCELLED } from '../v2/protocol/reasonCodes';
 
 /**
  * Seat Actions 依赖的上下文接口

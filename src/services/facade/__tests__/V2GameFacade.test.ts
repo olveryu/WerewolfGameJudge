@@ -9,10 +9,10 @@
  */
 
 import { V2GameFacade } from '../V2GameFacade';
-import { BroadcastService } from '../../../transport/BroadcastService';
-import type { PlayerMessage, HostBroadcast, BroadcastPlayer } from '../../../protocol/types';
-import { gameReducer } from '../../../engine/reducer/gameReducer';
-import type { PlayerJoinAction } from '../../../engine/reducer/types';
+import { BroadcastService } from '../../transport/BroadcastService';
+import type { PlayerMessage, HostBroadcast, BroadcastPlayer } from '../../protocol/types';
+import { gameReducer } from '../../engine/reducer/gameReducer';
+import type { PlayerJoinAction } from '../../engine/reducer/types';
 import {
   REASON_TIMEOUT,
   REASON_INVALID_SEAT,
@@ -21,17 +21,17 @@ import {
   REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
   REASON_NOT_SEATED,
-} from '../../protocol/reasonCodes';
+} from '../../v2/protocol/reasonCodes';
 
 // Mock BroadcastService
-jest.mock('../../../transport/BroadcastService', () => ({
+jest.mock('../../transport/BroadcastService', () => ({
   BroadcastService: {
     getInstance: jest.fn(),
   },
 }));
 
 // P0-1: Mock AudioService
-jest.mock('../../../infra/AudioService', () => ({
+jest.mock('../../infra/AudioService', () => ({
   __esModule: true,
   default: {
     getInstance: jest.fn(() => ({

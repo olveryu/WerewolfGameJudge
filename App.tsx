@@ -5,7 +5,7 @@ import { ThemeProvider, useTheme } from './src/theme';
 import { AlertModal } from './src/components/AlertModal';
 import { setAlertListener, AlertConfig } from './src/utils/alert';
 import { GameFacadeProvider, NetworkProvider } from './src/contexts';
-import { V2GameFacade } from './src/services/v2/facade/V2GameFacade';
+import { V2GameFacade } from './src/services/facade/V2GameFacade';
 import { log } from './src/utils/logger';
 
 function AppContent() {

@@ -43,7 +43,7 @@ function scanDirForNeedle(dir: string, needle: string): Match[] {
 describe('hard gates (contract)', () => {
   const repoRoot = path.resolve(__dirname, '../../../..');
   const v2Root = path.join(repoRoot, 'src/services/v2');
-  const v2FacadeRoot = path.join(v2Root, 'facade');
+  const v2FacadeRoot = path.join(repoRoot, 'src/services/facade');
 
   it('forbids dynamic require() in src/services/v2/** (non-tests)', () => {
     const matches = scanDirForNeedle(v2Root, 'require(').filter(
