@@ -69,8 +69,8 @@ describe('buildNightPlan', () => {
         'wolf',
         'wolfQueen',
         'witch',
-        'seer',
         'hunter',
+        'seer',
       ]);
     });
   });

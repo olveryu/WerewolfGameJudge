@@ -49,8 +49,8 @@ describe('Template - createTemplateFromRoles', () => {
     const actionOrder = getActionOrderFromRoles(roles);
 
     // Verify order matches NightPlan-derived order (NIGHT_STEPS)
-    // NIGHT_STEPS order: guardProtect -> wolfKill -> witchAction -> seerCheck -> hunterConfirm
-    expect(actionOrder).toEqual(['guard', 'wolf', 'witch', 'seer', 'hunter']);
+    // NIGHT_STEPS order: guardProtect -> wolfKill -> witchAction -> hunterConfirm -> seerCheck
+    expect(actionOrder).toEqual(['guard', 'wolf', 'witch', 'hunter', 'seer']);
   });
 
   it('should handle templates with special wolves', () => {

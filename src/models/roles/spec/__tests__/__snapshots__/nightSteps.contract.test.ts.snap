@@ -4,17 +4,17 @@ exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot)
 [
   "magicianSwap",
   "slackerChooseIdol",
-  "wolfRobotLearn",
-  "dreamcatcherDream",
-  "gargoyleCheck",
   "nightmareBlock",
+  "dreamcatcherDream",
   "guardProtect",
   "wolfKill",
   "wolfQueenCharm",
   "witchAction",
-  "seerCheck",
-  "psychicCheck",
   "hunterConfirm",
   "darkWolfKingConfirm",
+  "wolfRobotLearn",
+  "seerCheck",
+  "gargoyleCheck",
+  "psychicCheck",
 ]
 `;
