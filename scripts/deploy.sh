@@ -24,10 +24,11 @@ for arg in "$@"; do
 done
 
 echo "📦 更新版本号..."
-bash ./scripts/update-version.sh
+# 自动递增 patch 版本 (1.0.0 → 1.0.1)
+npm version patch --no-git-tag-version
 
 # 获取版本号用于 commit message
-VERSION=$(grep "APP_VERSION" src/config/version.ts | sed "s/.*'\(.*\)'.*/\1/")
+VERSION="v$(node -p "require('./package.json').version")"
 
 echo "📝 提交并推送更改..."
 git add -A
@@ -35,9 +36,10 @@ if git diff --cached --quiet; then
   echo "没有需要提交的更改"
 else
   git commit -m "release: $VERSION"
+  git tag "$VERSION"
 fi
 
-if git push origin HEAD; then
+if git push origin HEAD --tags; then
   echo "✅ 推送成功"
 else
   echo "⚠️ 推送失败（可能是网络问题），继续部署..."
