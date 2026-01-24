@@ -14,6 +14,7 @@
 
 import { supabase, isSupabaseConfigured } from '../../config/supabase';
 import { roomLog } from '../../utils/logger';
+import { generateRoomCode } from '../../utils/roomCode';
 
 // Minimal room record stored in Supabase
 export interface RoomRecord {
@@ -61,7 +62,7 @@ export class SimplifiedRoomService {
 
     const maxAttempts = 10;
     for (let i = 0; i < maxAttempts; i++) {
-      const roomNumber = Math.floor(1000 + Math.random() * 9000).toString();
+      const roomNumber = generateRoomCode();
 
       // Check if room exists (use maybeSingle to avoid 406 on no match)
       const { data, error } = await supabase!

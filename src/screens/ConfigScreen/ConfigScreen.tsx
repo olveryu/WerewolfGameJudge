@@ -23,6 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors, spacing, borderRadius, typography, shadows, ThemeColors } from '../../theme';
 import { TESTIDS } from '../../testids';
 import { configLog } from '../../utils/logger';
+import { generateRoomCode } from '../../utils/roomCode';
 
 // ============================================
 // Styles factory
@@ -370,7 +371,7 @@ export const ConfigScreen: React.FC = () => {
         }
         navigation.goBack();
       } else {
-        const roomNumber = Math.floor(1000 + Math.random() * 9000).toString();
+        const roomNumber = generateRoomCode();
         await AsyncStorage.setItem('lastRoomNumber', roomNumber);
         navigation.navigate('Room', { roomNumber, isHost: true, template });
       }
