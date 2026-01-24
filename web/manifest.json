@@ -1,6 +1,6 @@
 {
-  "name": "狼人杀裁判",
-  "short_name": "狼人杀",
+  "name": "狼人杀电子法官",
+  "short_name": "狼人杀电子法官",
   "description": "本地/离线狼人杀游戏辅助工具，支持多人联机",
   "start_url": "/",
   "scope": "/",
