@@ -10,7 +10,7 @@
 import { renderHook, act } from '@testing-library/react-native';
 import React from 'react';
 import { AuthService } from '../../services/infra/AuthService';
-import { BroadcastService } from '../../services/BroadcastService';
+import { BroadcastService } from '../../services/transport/BroadcastService';
 import { useGameRoom } from '../useGameRoom';
 import { GameFacadeProvider } from '../../contexts';
 import type { IGameFacade } from '../../services/types/IGameFacade';
@@ -18,7 +18,7 @@ import type { IGameFacade } from '../../services/types/IGameFacade';
 // Mock the services (only those actually needed)
 jest.mock('../../services/infra/RoomService');
 jest.mock('../../services/infra/AuthService');
-jest.mock('../../services/BroadcastService');
+jest.mock('../../services/transport/BroadcastService');
 
 /**
  * Tests for useGameRoom ACK reason transparency

@@ -33,8 +33,8 @@ export {
 export type { Handler, HandlerContext, HandlerResult } from './handlers/types';
 
 // Transport
-export { TransportAdapter } from './transport';
-export type { ITransport, TransportListener } from './transport';
+export { TransportAdapter } from '../transport';
+export type { TransportListener } from '../transport';
 
 // Factory
 export { createGameServices, destroyGameServices } from './factory';

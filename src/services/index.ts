@@ -9,7 +9,7 @@ export {
   type PlayerMessage,
   type BroadcastGameState,
   type BroadcastPlayer,
-} from './BroadcastService';
+} from './transport/BroadcastService';
 export {
   GameStatus,
   type LocalGameState,

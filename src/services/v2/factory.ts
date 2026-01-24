@@ -5,8 +5,8 @@
  */
 
 import { GameStore } from './store';
-import { TransportAdapter } from './transport';
-import type { BroadcastService } from '../BroadcastService';
+import { TransportAdapter } from '../transport';
+import type { BroadcastService } from '../transport/BroadcastService';
 import type { RoleId } from '../../models/roles';
 import type { GameState } from './store/types';
 

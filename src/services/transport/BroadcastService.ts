@@ -13,13 +13,13 @@
  * - SNAPSHOT_REQUEST/RESPONSE: State recovery for reconnection/packet loss
  */
 
-import { supabase, isSupabaseConfigured } from '../config/supabase';
+import { supabase, isSupabaseConfigured } from '../../config/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
-import type { PublicPayload } from './types/PublicBroadcast';
-import { broadcastLog } from '../utils/logger';
+import type { PublicPayload } from '../types/PublicBroadcast';
+import { broadcastLog } from '../../utils/logger';
 
 // Protocol types - Import for local use
-import type { HostBroadcast, PlayerMessage } from './protocol/types';
+import type { HostBroadcast, PlayerMessage } from '../protocol/types';
 
 // Re-export from protocol/types.ts（单一真相，迁移期保留向后兼容）
 export type {
@@ -27,7 +27,7 @@ export type {
   BroadcastPlayer,
   HostBroadcast,
   PlayerMessage,
-} from './protocol/types';
+} from '../protocol/types';
 
 // =============================================================================
 // Connection Status

@@ -18,7 +18,7 @@ import type { GameStore } from '../store';
 import type { HandlerContext } from '../handlers/types';
 import type { JoinSeatIntent, LeaveMySeatIntent } from '../intents/types';
 import type { StateAction } from '../reducer/types';
-import type { BroadcastService } from '../../BroadcastService';
+import type { BroadcastService } from '../../transport/BroadcastService';
 
 import { handleJoinSeat, handleLeaveMySeat } from '../handlers/seatHandler';
 import { gameReducer } from '../reducer';
