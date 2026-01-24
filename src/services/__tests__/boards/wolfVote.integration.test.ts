@@ -11,7 +11,7 @@
  */
 
 import type { RoleId } from '../../../models/roles';
-import { createHostGameV2 } from './hostGameFactory.v2';
+import { createHostGameV2 } from './hostGameFactory';
 
 describe('WolfVote v2 Integration Tests', () => {
   // 12人板子：含 4 个狼角色

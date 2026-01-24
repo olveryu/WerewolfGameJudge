@@ -9,7 +9,7 @@
  * 使用 v2 harness (createHostGameV2)
  */
 
-import { createHostGameV2 } from './hostGameFactory.v2';
+import { createHostGameV2 } from './hostGameFactory';
 import { BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
 import type { RoleId } from '../../../models/roles';
 
