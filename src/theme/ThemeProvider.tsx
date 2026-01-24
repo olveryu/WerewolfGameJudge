@@ -18,6 +18,9 @@ import React, {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { themes, defaultTheme, Theme, ThemeKey, ThemeColors } from './themes';
 import { spacing, borderRadius, typography, shadows, layout } from './tokens';
+import { log } from '../utils/logger';
+
+const themeLog = log.extend('Theme');
 
 // ============================================
 // Types
@@ -81,7 +84,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
           setThemeKey(saved as ThemeKey);
         }
       } catch (error) {
-        console.warn('[Theme] Failed to load saved theme:', error);
+        const e = error as { message?: string; name?: string; code?: string };
+        themeLog.warn('Failed to load saved theme', {
+          message: e?.message ?? String(error),
+          name: e?.name,
+          code: e?.code,
+        });
       }
     };
     loadTheme();
@@ -91,7 +99,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   const setTheme = useCallback((key: ThemeKey) => {
     setThemeKey(key);
     AsyncStorage.setItem(STORAGE_KEY, key).catch((error) => {
-      console.warn('[Theme] Failed to save theme:', error);
+      const e = error as { message?: string; name?: string; code?: string };
+      themeLog.warn('Failed to save theme', {
+        message: e?.message ?? String(error),
+        name: e?.name,
+        code: e?.code,
+      });
     });
   }, []);
 
