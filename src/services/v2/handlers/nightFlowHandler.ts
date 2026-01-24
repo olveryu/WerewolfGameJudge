@@ -32,7 +32,7 @@ import { buildNightPlan } from '../../../models/roles/spec/plan';
 import { getStepSpec } from '../../../models/roles/spec/nightSteps';
 import { getRoleSpec } from '../../../models/roles';
 import { calculateDeaths } from '../../DeathCalculator';
-import { isWolfRole, doesRoleParticipateInWolfVote } from '../../../models/roles';
+import { isWolfRole } from '../../../models/roles';
 import { makeWitchSave, makeWitchPoison, makeWitchNone } from '../../../models/actions/WitchAction';
 import { nightFlowLog } from '../../../utils/logger';
 import { resolveWolfVotes } from '../../WolfVoteResolver';
@@ -290,34 +290,27 @@ function findActionBySchemaId(
 }
 
 /**
- * 从 state.actions 还原 WitchAction
- * witchAction 是 compound schema，v2 存储为 targetSeat（save 或 poison）
- * 需要根据 witchContext 判断是 save 还是 poison
+ * 从 currentNightResults 还原 WitchAction
+ *
+ * v2 wire protocol: witch 的 save/poison 结果已经写入 currentNightResults.savedSeat / poisonedSeat
+ * 这里直接从 currentNightResults 读取，不再依赖 ProtocolAction.targetSeat
  */
 function extractWitchAction(
-  actions: readonly ProtocolAction[],
-  witchContext?: { killedIndex: number; canSave: boolean; canPoison: boolean },
+  currentNightResults?: { savedSeat?: number; poisonedSeat?: number },
 ): WitchAction | undefined {
-  const witchAction = findActionBySchemaId(actions, 'witchAction');
-  if (!witchAction) {
-    return undefined;
+  const savedSeat = currentNightResults?.savedSeat;
+  const poisonedSeat = currentNightResults?.poisonedSeat;
+
+  // 优先判断 save（因为 save 和 poison 不会同时有效）
+  if (savedSeat !== undefined) {
+    return makeWitchSave(savedSeat);
   }
 
-  // 如果有 target，需要判断是 save 还是 poison
-  if (witchAction.targetSeat !== undefined) {
-    // 如果 target 等于被杀者且 canSave 为 true，则是 save
-    if (
-      witchContext &&
-      witchAction.targetSeat === witchContext.killedIndex &&
-      witchContext.canSave
-    ) {
-      return makeWitchSave(witchAction.targetSeat);
-    }
-    // 否则是 poison
-    return makeWitchPoison(witchAction.targetSeat);
+  if (poisonedSeat !== undefined) {
+    return makeWitchPoison(poisonedSeat);
   }
 
-  // 没有 target 表示没有使用技能
+  // 没有使用技能
   return makeWitchNone();
 }
 
@@ -356,8 +349,8 @@ function buildNightActions(state: NonNullState): NightActions {
     nightActions.guardProtect = guardAction.targetSeat;
   }
 
-  // Witch action
-  nightActions.witchAction = extractWitchAction(actions, state.witchContext);
+  // Witch action - 从 currentNightResults.savedSeat / poisonedSeat 读取
+  nightActions.witchAction = extractWitchAction(state.currentNightResults);
 
   // Wolf Queen charm
   const wolfQueenAction = findActionBySchemaId(actions, 'wolfQueenCharm');

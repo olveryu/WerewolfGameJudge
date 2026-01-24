@@ -23,7 +23,7 @@ describe('determineActionerState', () => {
   const wolfKillSchema = SCHEMAS.wolfKill;
   // Helper to get a non-wolfVote schema
   const seerCheckSchema = SCHEMAS.seerCheck;
-  const nightmareBlockSchema = SCHEMAS.nightmareBlock;
+  const _nightmareBlockSchema = SCHEMAS.nightmareBlock;
 
   it('should return imActioner=true when my role matches current action role', () => {
     const result = determineActionerState(

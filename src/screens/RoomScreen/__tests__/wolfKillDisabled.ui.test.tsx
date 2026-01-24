@@ -11,7 +11,7 @@
 import React from 'react';
 import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import { RoomScreen } from '../RoomScreen';
-import { showAlert } from '../../../utils/alert';
+import { _showAlert } from '../../../utils/alert';
 import { makeBaseUseGameRoomReturn, mockNavigation } from './schemaSmokeTestUtils';
 import { TESTIDS } from '../../../testids';
 
