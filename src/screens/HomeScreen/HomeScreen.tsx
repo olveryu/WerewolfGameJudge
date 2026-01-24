@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  StatusBar,
   ScrollView,
   StyleSheet,
 } from 'react-native';
@@ -503,7 +502,7 @@ const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
 // ============================================
 
 export const HomeScreen: React.FC = () => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const navigation = useNavigation<NavigationProp>();
@@ -683,11 +682,6 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.homeScreenRoot}>
-      <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={colors.background}
-      />
-
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>

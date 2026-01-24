@@ -15,6 +15,7 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
+import { Platform, StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { themes, defaultTheme, Theme, ThemeKey, ThemeColors } from './themes';
 import { spacing, borderRadius, typography, shadows, layout } from './tokens';
@@ -94,6 +95,35 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     };
     loadTheme();
   }, []);
+
+  // Update status bar / theme-color when theme changes
+  useEffect(() => {
+    const theme = themes[themeKey];
+
+    // Native: Update StatusBar
+    if (Platform.OS !== 'web') {
+      StatusBar.setBarStyle(theme.isDark ? 'light-content' : 'dark-content', true);
+      // Android only: set background color
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(theme.colors.background, true);
+      }
+    }
+
+    // Web: Update meta tags
+    if (typeof document !== 'undefined') {
+      const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+      if (themeColorMeta) {
+        themeColorMeta.setAttribute('content', theme.colors.primary);
+      }
+
+      const bgColorMeta = document.querySelector('meta[name="background-color"]');
+      if (bgColorMeta) {
+        bgColorMeta.setAttribute('content', theme.colors.background);
+      }
+
+      document.body.style.backgroundColor = theme.colors.background;
+    }
+  }, [themeKey]);
 
   // Set theme and persist
   const setTheme = useCallback((key: ThemeKey) => {

@@ -26,12 +26,15 @@ done
 echo "📦 更新版本号..."
 bash ./scripts/update-version.sh
 
+# 获取版本号用于 commit message
+VERSION=$(grep "APP_VERSION" src/config/version.ts | sed "s/.*'\(.*\)'.*/\1/")
+
 echo "📝 提交并推送更改..."
 git add -A
 if git diff --cached --quiet; then
   echo "没有需要提交的更改"
 else
-  git commit -m "chore: update version for deploy"
+  git commit -m "release: $VERSION"
 fi
 git push origin HEAD 2>/dev/null || echo "⚠️ 推送失败（可能是网络问题），继续部署..."
 
