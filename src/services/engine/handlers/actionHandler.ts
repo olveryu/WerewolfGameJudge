@@ -52,6 +52,7 @@ function buildResolverContext(
     actorRoleId,
     players,
     currentNightResults: state.currentNightResults ?? {},
+    wolfRobotContext: state.wolfRobotContext,
     gameState: {
       witchHasAntidote: state.witchContext?.canSave,
       witchHasPoison: state.witchContext?.canPoison,
@@ -117,6 +118,13 @@ function buildRevealPayload(
       payload.gargoyleReveal = { targetSeat, result: result.result.identityResult };
     } else if (role === 'wolfRobot') {
       payload.wolfRobotReveal = { targetSeat, result: result.result.identityResult };
+      // Write wolfRobotContext for disguise during subsequent checks
+      if (result.result.learnTarget !== undefined && result.result.learnedRoleId) {
+        payload.wolfRobotContext = {
+          learnedSeat: result.result.learnTarget,
+          disguisedRole: result.result.learnedRoleId, // strict RoleId
+        };
+      }
     }
   }
 

@@ -88,6 +88,7 @@ function handleRestartGame(state: GameState): GameState {
     psychicReveal: undefined,
     gargoyleReveal: undefined,
     wolfRobotReveal: undefined,
+    wolfRobotContext: undefined,
     confirmStatus: undefined,
     actionRejected: undefined,
     nightmareBlockedSeat: undefined,
@@ -192,7 +193,8 @@ function handleRecordAction(state: GameState, action: RecordActionAction): GameS
 }
 
 function handleApplyResolverResult(state: GameState, action: ApplyResolverResultAction): GameState {
-  const { updates, seerReveal, psychicReveal, gargoyleReveal, wolfRobotReveal } = action.payload;
+  const { updates, seerReveal, psychicReveal, gargoyleReveal, wolfRobotReveal, wolfRobotContext } =
+    action.payload;
 
   const currentNightResults = updates
     ? {
@@ -218,6 +220,7 @@ function handleApplyResolverResult(state: GameState, action: ApplyResolverResult
     psychicReveal: psychicReveal ?? state.psychicReveal,
     gargoyleReveal: gargoyleReveal ?? state.gargoyleReveal,
     wolfRobotReveal: wolfRobotReveal ?? state.wolfRobotReveal,
+    wolfRobotContext: wolfRobotContext ?? state.wolfRobotContext,
   };
 }
 

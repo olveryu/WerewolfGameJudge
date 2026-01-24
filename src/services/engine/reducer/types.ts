@@ -107,6 +107,8 @@ export interface ApplyResolverResultAction {
     psychicReveal?: { targetSeat: number; result: string };
     gargoyleReveal?: { targetSeat: number; result: string };
     wolfRobotReveal?: { targetSeat: number; result: string };
+    /** Wolf Robot disguise context - written when wolfRobot learns a target */
+    wolfRobotContext?: { learnedSeat: number; disguisedRole: RoleId };
   };
 }
 

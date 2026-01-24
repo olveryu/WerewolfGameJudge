@@ -5,15 +5,16 @@
  * Returns exact role identity (like psychic).
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
+ * NOTE: Uses resolveRoleForChecks for unified role resolution (magician swap + wolfRobot disguise).
  */
 
 import { SCHEMAS } from '../../../models/roles/spec/schemas';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
-import { getRoleAfterSwap } from './types';
+import { resolveRoleForChecks } from './types';
 
 export const gargoyleCheckResolver: ResolverFn = (context, input) => {
-  const { actorSeat, players, currentNightResults } = context;
+  const { actorSeat, players } = context;
   const target = input.target;
 
   // Schema allows skip (canSkip: true)
@@ -36,13 +37,13 @@ export const gargoyleCheckResolver: ResolverFn = (context, input) => {
     return { valid: false, rejectReason: '目标玩家不存在' };
   }
 
-  // Get effective role after magician swap (if any)
-  const effectiveRoleId = getRoleAfterSwap(target, players, currentNightResults.swappedSeats);
+  // Get effective role using unified resolution (magician swap + wolfRobot disguise)
+  const effectiveRoleId = resolveRoleForChecks(context, target);
   if (!effectiveRoleId) {
     return { valid: false, rejectReason: '目标玩家不存在' };
   }
 
-  // Return exact role identity (after swap)
+  // Return exact role identity (after swap and disguise)
   return {
     valid: true,
     result: { identityResult: effectiveRoleId },

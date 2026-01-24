@@ -78,6 +78,15 @@ export interface BroadcastGameState {
   nightmareBlockedSeat?: number;
   wolfKillDisabled?: boolean;
 
+  // --- 机械狼伪装上下文 ---
+  /** Wolf Robot learned role context - for disguise during checks */
+  wolfRobotContext?: {
+    /** The seat wolfRobot learned from */
+    learnedSeat: number;
+    /** The role wolfRobot is disguised as (learned target's role) */
+    disguisedRole: RoleId;
+  };
+
   // --- 角色特定上下文（全部公开，UI 按 myRole 过滤） ---
   /** Witch turn context - only display to witch via UI filter */
   witchContext?: {
