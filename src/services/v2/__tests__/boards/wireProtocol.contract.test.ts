@@ -90,6 +90,22 @@ describe('V2 Wire Protocol Contract', () => {
       return undefined;
     }
 
+    /**
+     * 查找 WOLF_VOTE 消息
+     * wolfVote 使用 WOLF_VOTE message type（不是 ACTION）
+     */
+    function findWolfVoteMessages(
+      captured: ReturnType<ReturnType<typeof createHostGameV2>['getCapturedMessages']>,
+      stepId: string
+    ): Array<{ seat: number; target: number }> {
+      return captured
+        .filter((c) => c.stepId === stepId && c.message.type === 'WOLF_VOTE')
+        .map((c) => ({
+          seat: (c.message as { seat: number }).seat,
+          target: (c.message as { target: number }).target,
+        }));
+    }
+
     it('magicianSwap payload: target === null, extra.targets 存在且为数组', () => {
       const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
@@ -286,6 +302,65 @@ describe('V2 Wire Protocol Contract', () => {
       expect(darkWolfKingMsg!.target).toBeNull();
       expect(darkWolfKingMsg!.extra).toBeDefined();
       expect(darkWolfKingMsg!.extra!.confirmed).toBe(true);
+    });
+
+    it('wolfKill 步骤：所有参与狼发送 WOLF_VOTE 消息，target 是单一座位号', () => {
+      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      ctx.clearCapturedMessages();
+
+      // 运行夜晚：狼刀座位 2
+      ctx.runNight({
+        wolf: 2,
+        seer: 4,
+        witch: { stepResults: { save: null, poison: null } },
+        hunter: { confirmed: true },
+        magician: { targets: [] },
+      });
+
+      const captured = ctx.getCapturedMessages();
+      const wolfVotes = findWolfVoteMessages(captured, 'wolfKill');
+
+      // 应该有 4 个狼（wolf x3 + darkWolfKing）发送 WOLF_VOTE
+      expect(wolfVotes.length).toBe(4);
+
+      // 所有 WOLF_VOTE 的 target 都应该是 2
+      for (const vote of wolfVotes) {
+        expect(vote.target).toBe(2);
+        // target 是单一座位号，不是 encoded 值
+        expect(vote.target).toBeLessThan(100);
+        expect(vote.target).toBeGreaterThanOrEqual(-1);
+      }
+
+      // wolfKill 步骤结束后还会发送一个 ACTION 消息（lead wolf 提交）
+      const wolfKillAction = findActionMessage(captured, 'wolfKill');
+      expect(wolfKillAction).toBeDefined();
+      expect(wolfKillAction!.target).toBe(2);
+    });
+
+    it('wolfKill 步骤：空刀时 target === null（或不发 WOLF_VOTE）', () => {
+      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      ctx.clearCapturedMessages();
+
+      // 运行夜晚：狼空刀（target 为 null）
+      ctx.runNight({
+        wolf: null, // 空刀
+        seer: 4,
+        witch: { stepResults: { save: null, poison: null } },
+        hunter: { confirmed: true },
+        magician: { targets: [] },
+      });
+
+      const captured = ctx.getCapturedMessages();
+      const wolfVotes = findWolfVoteMessages(captured, 'wolfKill');
+
+      // 空刀时不应该发送 WOLF_VOTE（或者发送 target=-1）
+      // 当前实现是不发送 WOLF_VOTE
+      expect(wolfVotes.length).toBe(0);
+
+      // 但 ACTION 消息应该存在，target 为 null
+      const wolfKillAction = findActionMessage(captured, 'wolfKill');
+      expect(wolfKillAction).toBeDefined();
+      expect(wolfKillAction!.target).toBeNull();
     });
   });
 
