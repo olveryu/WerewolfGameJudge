@@ -5,9 +5,9 @@
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#1a1a2e" />
-    <meta name="background-color" content="#1a1a2e" />
+    <!-- PWA Meta Tags - 使用 light 主题颜色 -->
+    <meta name="theme-color" content="#6366F1" />
+    <meta name="background-color" content="#FAFAFA" />
     <meta name="description" content="本地/离线狼人杀游戏辅助工具，支持多人联机" />
     
     <!-- iOS Meta Tags -->
@@ -34,14 +34,14 @@
     <title>狼人杀电子法官</title>
     
     <style>
-      /* 全屏样式 */
+      /* 全屏样式 - 使用 light 主题默认背景色 */
       html, body, #root {
         width: 100%;
         height: 100%;
         margin: 0;
         padding: 0;
         overflow: hidden;
-        background-color: #1a1a2e;
+        background-color: #FAFAFA;
       }
       
       /* iOS 安全区域适配 */
@@ -52,14 +52,14 @@
         padding-right: env(safe-area-inset-right);
       }
       
-      /* 启动画面样式 */
+      /* 启动画面样式 - 使用 light 主题 primary 色 */
       #splash-screen {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: #1a1a2e;
+        background-color: #FAFAFA;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -81,7 +81,7 @@
       }
       
       #splash-screen .loading-text {
-        color: #ffffff;
+        color: #52525B;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-size: 14px;
         margin-top: 20px;
@@ -118,6 +118,38 @@
     <div id="root"></div>
     
     <script>
+      // 主题颜色映射（与 src/theme/themes.ts 保持同步）
+      var THEMES = {
+        light:    { background: '#FAFAFA', text: '#52525B', primary: '#6366F1', isDark: false },
+        minimal:  { background: '#FFFFFF', text: '#666666', primary: '#000000', isDark: false },
+        dark:     { background: '#0F0F0F', text: '#A1A1AA', primary: '#6366F1', isDark: true },
+        midnight: { background: '#0A0A0F', text: '#A78BFA', primary: '#7C3AED', isDark: true },
+        blood:    { background: '#111111', text: '#FCA5A5', primary: '#DC2626', isDark: true },
+        discord:  { background: '#36393f', text: '#b9bbbe', primary: '#5865F2', isDark: true }
+      };
+      
+      // 读取用户保存的主题，应用到 splash
+      (function() {
+        var saved = localStorage.getItem('@werewolf_theme');
+        var themeKey = saved ? saved.replace(/"/g, '') : 'light';
+        var theme = THEMES[themeKey] || THEMES.light;
+        
+        // 应用背景色
+        document.documentElement.style.backgroundColor = theme.background;
+        document.body.style.backgroundColor = theme.background;
+        
+        var splash = document.getElementById('splash-screen');
+        if (splash) {
+          splash.style.backgroundColor = theme.background;
+          var text = splash.querySelector('.loading-text');
+          if (text) text.style.color = theme.text;
+        }
+        
+        // 更新 theme-color meta
+        var themeMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeMeta) themeMeta.content = theme.primary;
+      })();
+      
       // 隐藏启动画面
       window.addEventListener('load', function() {
         setTimeout(function() {
