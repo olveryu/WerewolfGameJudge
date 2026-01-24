@@ -196,6 +196,25 @@ export function handleAdvanceNight(
     actions.push(setWitchContextAction);
   }
 
+
+  // Case 2: 推进到 witchAction，但 witchContext 未设置（无狼板子）
+  // 当模板没有狼人时，buildNightPlan() 跳过 wolfKill 步骤，导致 Case 1 不触发
+  // 此时需要在进入 witchAction 前设置 witchContext
+  if (
+    nextStepId === 'witchAction' &&
+    hasWitch &&
+    !state.witchContext &&
+    currentStepId !== 'wolfKill' // Case 1 已经处理了从 wolfKill 推进的情况
+  ) {
+    actions.push({
+      type: 'SET_WITCH_CONTEXT',
+      payload: {
+        killedIndex: -1, // 无狼杀，无人死亡
+        canSave: false, // 没有人需要救
+        canPoison: true, // Night-1 毒药可用
+      },
+    });
+  }
   // 音频播放：当前步骤的结束音频 + 下一步的开始音频
   // 按顺序添加到 sideEffects，Facade 会按顺序播放
   const sideEffects: HandlerResult['sideEffects'] = [{ type: 'BROADCAST_STATE' }];

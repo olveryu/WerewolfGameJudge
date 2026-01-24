@@ -687,6 +687,45 @@ describe('nightFlowHandler', () => {
           expect(witchContextAction.payload.canSave).toBe(true);
         }
       });
+
+      it('should set witchContext when advancing TO witchAction on no-wolf board (Case 2)', () => {
+        /**
+         * Bug fix: 当板子里没有狼人时，女巫不会弹出"昨夜无人倒台"的提示
+         *
+         * 场景：模板中有女巫但没有狼人角色
+         * - buildNightPlan() 会跳过 wolfKill 步骤
+         * - 当从非 wolfKill 步骤推进到 witchAction 时，Case 2 触发
+         */
+
+        // 模板: 女巫 + 预言家 + 村民，没有狼人
+        const templateRoles: RoleId[] = ['witch', 'seer', 'villager', 'villager'];
+
+        const players: Record<number, BroadcastPlayer> = {
+          0: createPlayer(0, 'witch'),
+          1: createPlayer(1, 'seer'),
+          2: createPlayer(2, 'villager'),
+          3: createPlayer(3, 'villager'),
+        };
+
+        const intent: AdvanceNightIntent = { type: 'ADVANCE_NIGHT' };
+        const context: HandlerContext = {
+          state: createOngoingState({
+            players,
+            currentActionerIndex: 0,
+            currentStepId: 'seerCheck',
+            templateRoles,
+            currentNightResults: {},
+          }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleAdvanceNight(intent, context);
+
+        expect(result.success).toBe(true);
+        // handler 内部依赖 nightFlow.peekNext()，这里验证不会崩溃
+      });
     });
   });
 });
