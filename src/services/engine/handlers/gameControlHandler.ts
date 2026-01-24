@@ -23,7 +23,7 @@ import { shuffleArray } from '../../../utils/shuffle';
 import type { RoleId } from '../../../models/roles';
 import { buildNightPlan } from '../../../models/roles/spec/plan';
 import { getStepSpec } from '../../../models/roles/spec/nightSteps';
-import { maybeCreateWitchContextAction } from './nightFlowHandler';
+import { maybeCreateWitchContextAction } from './witchContext';
 
 /**
  * 处理分配角色（仅 seated → assigned）

@@ -36,6 +36,7 @@ import { isWolfRole } from '../../../models/roles';
 import { makeWitchSave, makeWitchPoison, makeWitchNone } from '../../../models/actions/WitchAction';
 import { nightFlowLog } from '../../../utils/logger';
 import { resolveWolfVotes } from '../../resolveWolfVotes';
+import { maybeCreateWitchContextAction } from './witchContext';
 
 /**
  * 非 null 的 state 类型
@@ -100,84 +101,6 @@ function validateNightFlowPreconditions(
 // =============================================================================
 
 /**
- * 计算女巫上下文（纯函数）
- *
- * 在进入 witchAction 步骤前调用，统一计算：
- * - killedIndex: 狼刀目标（-1 表示无人死亡）
- * - canSave: 是否可以使用解药
- * - canPoison: 是否可以使用毒药
- *
- * @param state 当前游戏状态
- * @returns witchContext payload
- */
-export function computeWitchContext(state: NonNullState): {
-  killedIndex: number;
-  canSave: boolean;
-  canPoison: boolean;
-} {
-  // 1. 计算狼刀目标（killedIndex）
-  let killedIndex = -1;
-
-  if (!state.wolfKillDisabled) {
-    const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat ?? {};
-    const votes = new Map<number, number>();
-    for (const [seatStr, targetSeat] of Object.entries(wolfVotesBySeat)) {
-      const seat = Number.parseInt(seatStr, 10);
-      if (!Number.isFinite(seat) || typeof targetSeat !== 'number') continue;
-      votes.set(seat, targetSeat);
-    }
-    const resolved = resolveWolfVotes(votes);
-    if (typeof resolved === 'number') {
-      killedIndex = resolved;
-    }
-  }
-
-  // 2. 查找女巫座位，用于 notSelf 约束
-  let witchSeat = -1;
-  for (const [seatStr, player] of Object.entries(state.players)) {
-    if (player?.role === 'witch') {
-      witchSeat = Number.parseInt(seatStr, 10);
-      break;
-    }
-  }
-
-  // 3. Schema-first: witchAction.steps[0] (save) 有 notSelf 约束
-  // canSave 必须为 false 当：(1) 没有被杀者 或 (2) 被杀者是女巫自己
-  const canSave = killedIndex >= 0 && killedIndex !== witchSeat;
-
-  // Night-1 only: 毒药总是可用
-  const canPoison = true;
-
-  return { killedIndex, canSave, canPoison };
-}
-
-/**
- * 检查是否需要设置 witchContext，如需要则返回 action
- *
- * 统一入口：任何地方进入 witchAction 步骤时都调用此函数
- *
- * @param nextStepId 即将进入的步骤 ID
- * @param state 当前游戏状态
- * @returns SET_WITCH_CONTEXT action 或 null
- */
-export function maybeCreateWitchContextAction(
-  nextStepId: SchemaId,
-  state: NonNullState,
-): SetWitchContextAction | null {
-  const hasWitch = state.templateRoles.includes('witch');
-
-  // 只在进入 witchAction 步骤且尚未设置 witchContext 时触发
-  if (nextStepId !== 'witchAction' || !hasWitch || state.witchContext) {
-    return null;
-  }
-
-  return {
-    type: 'SET_WITCH_CONTEXT',
-    payload: computeWitchContext(state),
-  };
-}
-
-/**
  * 推进夜晚到下一步
  *
  * Gate:
@@ -226,7 +149,10 @@ export function handleAdvanceNight(
   const actions: (AdvanceToNextActionAction | SetWitchContextAction)[] = [advanceAction];
 
   // 统一入口：如果即将进入 witchAction，设置 witchContext
-  const witchContextAction = maybeCreateWitchContextAction(nextStepId ?? 'wolfKill', state);
+  // Guard: nextStepId 必须存在（夜晚结束时为 undefined，不应设置 witchContext）
+  const witchContextAction = nextStepId
+    ? maybeCreateWitchContextAction(nextStepId, state)
+    : null;
   if (witchContextAction) {
     actions.push(witchContextAction);
   }
