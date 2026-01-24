@@ -786,7 +786,7 @@ export const HomeScreen: React.FC = () => {
 
         {/* Footer with author and version */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>v1.0.0 · 作者：严振宇</Text>
+          <Text style={styles.footerText}>{APP_VERSION} · 作者：严振宇</Text>
         </View>
       </ScrollView>
 
