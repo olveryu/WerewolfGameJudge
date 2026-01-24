@@ -726,6 +726,50 @@ describe('nightFlowHandler', () => {
         expect(result.success).toBe(true);
         // handler 内部依赖 nightFlow.peekNext()，这里验证不会崩溃
       });
+
+      it('should NOT set witchContext when nextStepId is undefined (night ends)', () => {
+        /**
+         * Fail-safe 测试：当夜晚推进到最后一步并结束时，
+         * nextStepId 为 undefined，不应设置 witchContext
+         *
+         * 这验证了显式 guard：nextStepId ? maybeCreate...() : null
+         */
+
+        // 模板: wolf, witch - 只有 2 步（wolfKill, witchAction）
+        const templateRoles: RoleId[] = ['wolf', 'witch', 'villager'];
+
+        const players: Record<number, BroadcastPlayer> = {
+          0: createPlayer(0, 'wolf'),
+          1: createPlayer(1, 'witch'),
+          2: createPlayer(2, 'villager'),
+        };
+
+        const intent: AdvanceNightIntent = { type: 'ADVANCE_NIGHT' };
+        // 当前在最后一步 witchAction，推进后夜晚结束
+        const context: HandlerContext = {
+          state: createOngoingState({
+            players,
+            currentActionerIndex: 1, // witchAction 是第 1 步
+            currentStepId: 'witchAction',
+            templateRoles,
+            currentNightResults: {},
+            // witchContext 已经设置（进入 witchAction 时设置的）
+            witchContext: { killedIndex: -1, canSave: false, canPoison: true },
+          }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleAdvanceNight(intent, context);
+
+        // 夜晚结束时返回 END_NIGHT，不是 ADVANCE
+        // 关键断言：不应有 SET_WITCH_CONTEXT action
+        const witchContextAction = result.actions.find(
+          (a) => a.type === 'SET_WITCH_CONTEXT',
+        );
+        expect(witchContextAction).toBeUndefined();
+      });
     });
   });
 });
