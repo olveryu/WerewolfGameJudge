@@ -135,6 +135,13 @@ export class GameStore implements IHostGameStore {
   }
 
   /**
+   * 获取当前 listener 数量（仅用于测试/调试）
+   */
+  getListenerCount(): number {
+    return this.listeners.size;
+  }
+
+  /**
    * 通知所有订阅者
    */
   private notifyListeners(): void {
