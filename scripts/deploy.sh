@@ -5,10 +5,19 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-echo "� 更新版本号..."
+echo "📦 更新版本号..."
 bash ./scripts/update-version.sh
 
-echo "�🔄 备份 .env.local（如果存在）..."
+echo "📝 提交并推送更改..."
+git add -A
+if git diff --cached --quiet; then
+  echo "没有需要提交的更改"
+else
+  git commit -m "chore: update version for deploy"
+fi
+git push origin HEAD 2>/dev/null || echo "⚠️ 推送失败（可能是网络问题），继续部署..."
+
+echo "🔄 备份 .env.local（如果存在）..."
 if [ -f .env.local ]; then
   cp .env.local .env.local.backup
   HAS_BACKUP=true
