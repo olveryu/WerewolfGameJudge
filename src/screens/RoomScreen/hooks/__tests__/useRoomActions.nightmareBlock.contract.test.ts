@@ -100,21 +100,21 @@ describe('A) Schema-driven intents - UI 总是返回 schema-driven intent', () =
       expect(bottomAction.buttons[0].label).toBe('不使用技能');
     });
 
-    it('confirm schema 玩家 (hunter) 底部按钮 → 显示 confirm 和 skip 按钮', () => {
+    it('confirm schema 玩家 (hunter) 未被 block 时 → 只显示 confirm 按钮（必须确认）', () => {
       const ctx = makeContext({
         currentSchema: getSchema('hunterConfirm'),
         myRole: 'hunter',
         currentActionRole: 'hunter',
+        // 未被 block（没有设置 blockedSeat）
       });
 
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
-      // Confirm schema shows two buttons: confirm and skip
+      // Host-authoritative design: 未 blocked 时只显示 confirm，无 skip 选项
       const bottomAction = result.current.getBottomAction();
-      expect(bottomAction.buttons).toHaveLength(2);
+      expect(bottomAction.buttons).toHaveLength(1);
       expect(bottomAction.buttons[0].key).toBe('confirm');
       expect(bottomAction.buttons[0].label).toBe('查看发动状态');
-      expect(bottomAction.buttons[1].key).toBe('skip');
     });
   });
 });
