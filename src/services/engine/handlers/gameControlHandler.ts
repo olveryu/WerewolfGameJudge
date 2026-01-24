@@ -17,6 +17,7 @@ import type {
   StartNightAction,
   RestartGameAction,
   UpdateTemplateAction,
+  SetWitchContextAction,
 } from '../reducer/types';
 import { shuffleArray } from '../../../utils/shuffle';
 import type { RoleId } from '../../../models/roles';
@@ -246,11 +247,30 @@ export function handleStartNight(
   const firstStepId = nightPlan.steps[0].stepId;
   const firstStepSpec = getStepSpec(firstStepId);
 
+  // 收集需要返回的 actions
+  const actions: (StartNightAction | SetWitchContextAction)[] = [];
+
   // Night-1 only: currentActionerIndex 从 0 开始（首个步骤）
   const startNightAction: StartNightAction = {
     type: 'START_NIGHT',
     payload: { currentActionerIndex: 0, currentStepId: firstStepId },
   };
+  actions.push(startNightAction);
+
+  // Case: 首步为 witchAction（无狼板子）
+  // 此时需要立即设置 witchContext，否则女巫无法看到提示弹窗
+  const hasWitch = state.templateRoles.includes('witch');
+  if (firstStepId === 'witchAction' && hasWitch) {
+    const setWitchContextAction: SetWitchContextAction = {
+      type: 'SET_WITCH_CONTEXT',
+      payload: {
+        killedIndex: -1, // 无狼杀，无人死亡
+        canSave: false, // 没有人需要救
+        canPoison: true, // Night-1 毒药可用
+      },
+    };
+    actions.push(setWitchContextAction);
+  }
 
   // 构建 sideEffects：先广播 + 保存，然后播放夜晚开始音频 + 第一步音频
   const sideEffects: HandlerResult['sideEffects'] = [
@@ -271,7 +291,7 @@ export function handleStartNight(
 
   return {
     success: true,
-    actions: [startNightAction],
+    actions,
     sideEffects,
   };
 }

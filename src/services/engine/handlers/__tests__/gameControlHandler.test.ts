@@ -297,6 +297,46 @@ describe('handleStartNight', () => {
     }
   });
 
+  it('should set witchContext when first step is witchAction (no wolf template)', () => {
+    // 无狼板子：只有女巫 + 村民
+    const noWolfState = createMinimalState({
+      status: 'ready',
+      templateRoles: ['villager', 'villager', 'witch'],
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        1: { uid: 'p2', seatNumber: 1, role: 'villager', hasViewedRole: true },
+        2: { uid: 'p3', seatNumber: 2, role: 'witch', hasViewedRole: true },
+      },
+    });
+    const context = createContext(noWolfState);
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    const result = handleStartNight(intent, context);
+
+    expect(result.success).toBe(true);
+
+    // 应该有 START_NIGHT + SET_WITCH_CONTEXT 两个 actions
+    expect(result.actions.length).toBe(2);
+
+    const startNightAction = result.actions.find((a) => a.type === 'START_NIGHT');
+    expect(startNightAction).toBeDefined();
+    if (startNightAction?.type === 'START_NIGHT') {
+      // 首步应该是 witchAction（无狼，跳过 wolfKill）
+      expect(startNightAction.payload.currentStepId).toBe('witchAction');
+    }
+
+    const witchContextAction = result.actions.find((a) => a.type === 'SET_WITCH_CONTEXT');
+    expect(witchContextAction).toBeDefined();
+    if (witchContextAction?.type === 'SET_WITCH_CONTEXT') {
+      // 无人死亡
+      expect(witchContextAction.payload.killedIndex).toBe(-1);
+      // 没有人需要救
+      expect(witchContextAction.payload.canSave).toBe(false);
+      // 毒药可用
+      expect(witchContextAction.payload.canPoison).toBe(true);
+    }
+  });
+
   it('should fail when not host (gate: host_only)', () => {
     const context = createContext(readyState, { isHost: false });
     const intent: StartNightIntent = { type: 'START_NIGHT' };
