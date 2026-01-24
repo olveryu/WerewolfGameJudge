@@ -61,6 +61,20 @@ describe('V2 Wire Protocol Contract', () => {
         expect(schema.kind).toBeDefined();
       }
     });
+
+    it('所有 chooseSeat 类型 schema 应该有 constraints 数组', () => {
+      const chooseSeatSchemas = Object.entries(SCHEMAS).filter(
+        ([, schema]) => schema.kind === 'chooseSeat',
+      );
+      expect(chooseSeatSchemas.length).toBeGreaterThan(0);
+
+      for (const [, schema] of chooseSeatSchemas) {
+        expect(schema.kind).toBe('chooseSeat');
+        if (schema.kind === 'chooseSeat') {
+          expect(Array.isArray(schema.constraints)).toBe(true);
+        }
+      }
+    });
   });
 
   describe('Runtime Payload Shape - Harness 运行态抓包', () => {
@@ -395,6 +409,162 @@ describe('V2 Wire Protocol Contract', () => {
         if (target !== null && target !== undefined) {
           expect(target).toBeLessThan(100);
           expect(target).toBeGreaterThanOrEqual(-1); // -1 表示放弃
+        }
+      }
+    });
+  });
+
+  describe('chooseSeat Wire Protocol Contract', () => {
+    /**
+     * chooseSeat 类 schema 的 wire protocol 合约：
+     * - target: number | null（单一座位号或 null 表示跳过）
+     * - 不使用 extra 字段（extra 仅用于 compound/swap/confirm）
+     */
+
+    // 简化模板：只包含 seer 和 wolf
+    const SEER_TEMPLATE: RoleId[] = ['seer', 'wolf', 'villager', 'villager'];
+
+    /** 辅助函数：推进到 seerCheck 步骤 */
+    function advanceToSeerCheck(ctx: ReturnType<typeof createHostGameV2>): void {
+      // 第一步是 wolfKill
+      if (ctx.getBroadcastState().currentStepId === 'wolfKill') {
+        // 狼空刀
+        ctx.sendPlayerMessage({
+          type: 'WOLF_VOTE',
+          seat: 1,
+          target: -1,
+        });
+        ctx.sendPlayerMessage({
+          type: 'ACTION',
+          seat: 1,
+          role: 'wolf',
+          target: null,
+        });
+        ctx.advanceNight();
+      }
+    }
+
+    it('seerCheck: target 是单一座位号', () => {
+      const assignment = new Map<number, RoleId>();
+      SEER_TEMPLATE.forEach((role, idx) => assignment.set(idx, role));
+
+      const ctx = createHostGameV2(SEER_TEMPLATE, assignment);
+      
+      // 推进到 seerCheck
+      advanceToSeerCheck(ctx);
+      expect(ctx.getBroadcastState().currentStepId).toBe('seerCheck');
+      
+      ctx.clearCapturedMessages();
+
+      // seer 查验 seat 1
+      ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 0,
+        role: 'seer',
+        target: 1,
+      });
+
+      const captured = ctx.getCapturedMessages();
+      const seerMsg = captured.find(
+        (c) => c.stepId === 'seerCheck' && c.message.type === 'ACTION',
+      );
+
+      expect(seerMsg).toBeDefined();
+      const msg = seerMsg!.message as ActionMessage;
+      expect(msg.target).toBe(1);
+      // 不使用 extra
+      expect(msg.extra?.targets).toBeUndefined();
+      expect(msg.extra?.stepResults).toBeUndefined();
+    });
+
+    it('seerCheck skip: target=null', () => {
+      const assignment = new Map<number, RoleId>();
+      SEER_TEMPLATE.forEach((role, idx) => assignment.set(idx, role));
+
+      const ctx = createHostGameV2(SEER_TEMPLATE, assignment);
+      
+      // 推进到 seerCheck
+      advanceToSeerCheck(ctx);
+      
+      ctx.clearCapturedMessages();
+
+      ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 0,
+        role: 'seer',
+        target: null,
+      });
+
+      const captured = ctx.getCapturedMessages();
+      const seerMsg = captured.find(
+        (c) => c.stepId === 'seerCheck' && c.message.type === 'ACTION',
+      );
+
+      expect(seerMsg).toBeDefined();
+      const msg = seerMsg!.message as ActionMessage;
+      expect(msg.target).toBeNull();
+    });
+
+    it('guardProtect: target 是单一座位号', () => {
+      // 需要包含 guard 的模板
+      const GUARD_TEMPLATE: RoleId[] = ['guard', 'wolf', 'villager', 'villager'];
+      const assignment = new Map<number, RoleId>();
+      GUARD_TEMPLATE.forEach((role, idx) => assignment.set(idx, role));
+
+      const ctx = createHostGameV2(GUARD_TEMPLATE, assignment);
+
+      // 找到 guardProtect 步骤
+      while (ctx.getBroadcastState().currentStepId !== 'guardProtect') {
+        const result = ctx.advanceNight();
+        if (!result.success) break;
+      }
+
+      if (ctx.getBroadcastState().currentStepId === 'guardProtect') {
+        ctx.clearCapturedMessages();
+
+        ctx.sendPlayerMessage({
+          type: 'ACTION',
+          seat: 0,
+          role: 'guard',
+          target: 1,
+        });
+
+        const captured = ctx.getCapturedMessages();
+        const guardMsg = captured.find(
+          (c) => c.stepId === 'guardProtect' && c.message.type === 'ACTION',
+        );
+
+        expect(guardMsg).toBeDefined();
+        const msg = guardMsg!.message as ActionMessage;
+        expect(msg.target).toBe(1);
+        expect(msg.extra?.targets).toBeUndefined();
+        expect(msg.extra?.stepResults).toBeUndefined();
+      }
+    });
+
+    it('chooseSeat payload 禁止使用 encoded-target', () => {
+      const assignment = new Map<number, RoleId>();
+      SEER_TEMPLATE.forEach((role, idx) => assignment.set(idx, role));
+
+      const ctx = createHostGameV2(SEER_TEMPLATE, assignment);
+      ctx.clearCapturedMessages();
+
+      ctx.runNight({ seer: 2, wolf: null });
+
+      const captured = ctx.getCapturedMessages();
+      const chooseSeatMessages = captured.filter(
+        (c) =>
+          c.message.type === 'ACTION' &&
+          c.stepId &&
+          SCHEMAS[c.stepId]?.kind === 'chooseSeat',
+      );
+
+      for (const msg of chooseSeatMessages) {
+        const actionMsg = msg.message as ActionMessage;
+        if (actionMsg.target !== null) {
+          // target 必须是单一座位号，不是 encoded 值
+          expect(actionMsg.target).toBeLessThan(100);
+          expect(actionMsg.target).toBeGreaterThanOrEqual(0);
         }
       }
     });
