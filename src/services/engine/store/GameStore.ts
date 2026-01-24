@@ -10,7 +10,7 @@
  */
 
 import type { GameState, StateListener, IHostGameStore } from './types';
-import { normalizeState } from '../../core/state/normalize';
+import { normalizeState } from '../state/normalize';
 import { log } from '../../../utils/logger';
 
 const gameStoreLog = log.extend('GameStore');

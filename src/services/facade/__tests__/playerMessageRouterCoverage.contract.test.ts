@@ -410,38 +410,15 @@ describe('PlayerMessage Router Coverage Contract', () => {
 // =============================================================================
 
 describe('PlayerMessage Router Coverage Report', () => {
-  it('prints coverage summary', () => {
+  it('validates coverage expectations', () => {
     const IMPLEMENTED = ['REQUEST_STATE', 'VIEWED_ROLE', 'SEAT_ACTION_REQUEST', 'ACTION', 'WOLF_VOTE', 'REVEAL_ACK'];
     const LEGACY = ['JOIN', 'LEAVE'];
     const UNIMPLEMENTED = ['SNAPSHOT_REQUEST'];
 
-    console.log('\n┌─────────────────────────────────────────────────────────────┐');
-    console.log('│          PlayerMessage Router Coverage Report (PR9)         │');
-    console.log('├─────────────────────────────────────────────────────────────┤');
-    console.log(
-      `│  Total message types:     ${ALL_PLAYER_MESSAGE_TYPES.length.toString().padStart(2)}                               │`,
-    );
-    console.log(
-      `│  Implemented in v2:       ${IMPLEMENTED.length.toString().padStart(2)}                               │`,
-    );
-    console.log(
-      `│  Legacy (warn only):      ${LEGACY.length.toString().padStart(2)}                               │`,
-    );
-    console.log(
-      `│  Unimplemented (warn):    ${UNIMPLEMENTED.length.toString().padStart(2)}                               │`,
-    );
-    console.log('├─────────────────────────────────────────────────────────────┤');
-    console.log('│  ✓ REQUEST_STATE      → broadcastCurrentState              │');
-    console.log('│  ✓ VIEWED_ROLE        → handleViewedRole                   │');
-    console.log('│  ✓ SEAT_ACTION_REQUEST → hostHandleSeatActionRequest       │');
-    console.log('│  ✓ ACTION             → handleAction (PR9)                 │');
-    console.log('│  ✓ WOLF_VOTE          → handleWolfVote (PR9)               │');
-    console.log('│  ✓ REVEAL_ACK         → handleRevealAck (P0-FIX)           │');
-    console.log('│  ⚠ JOIN               → warn: use SEAT_ACTION_REQUEST      │');
-    console.log('│  ⚠ LEAVE              → warn: use SEAT_ACTION_REQUEST      │');
-    console.log('│  ⚠ SNAPSHOT_REQUEST   → warn: use REQUEST_STATE            │');
-    console.log('└─────────────────────────────────────────────────────────────┘\n');
-
-    expect(true).toBe(true);
+    // Validate counts instead of printing
+    expect(IMPLEMENTED.length).toBe(6);
+    expect(LEGACY.length).toBe(2);
+    expect(UNIMPLEMENTED.length).toBe(1);
+    expect(ALL_PLAYER_MESSAGE_TYPES.length).toBe(IMPLEMENTED.length + LEGACY.length + UNIMPLEMENTED.length);
   });
 });

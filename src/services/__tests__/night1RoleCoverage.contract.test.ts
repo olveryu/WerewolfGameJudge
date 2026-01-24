@@ -101,15 +101,6 @@ describe('Night-1 Role Coverage Contract', () => {
       const stepsWithResolver = NIGHT_STEPS.filter((s) => RESOLVERS[s.id]).length;
       const stepsWithAudio = NIGHT_STEPS.filter((s) => s.audioKey).length;
 
-      // 打印覆盖率统计（CI 可见）
-      console.log(`
-=== Night-1 Role Coverage Report ===
-Total Steps: ${totalSteps}
-With Schema: ${stepsWithSchema}/${totalSteps} (${((stepsWithSchema / totalSteps) * 100).toFixed(0)}%)
-With Resolver: ${stepsWithResolver}/${totalSteps} (${((stepsWithResolver / totalSteps) * 100).toFixed(0)}%)
-With Audio: ${stepsWithAudio}/${totalSteps} (${((stepsWithAudio / totalSteps) * 100).toFixed(0)}%)
-      `);
-
       // 100% 覆盖率要求
       expect(stepsWithSchema).toBe(totalSteps);
       expect(stepsWithResolver).toBe(totalSteps);

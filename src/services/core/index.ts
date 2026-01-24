@@ -5,4 +5,4 @@
  */
 
 // State normalization
-export { normalizeState, canonicalizeSeatKeyRecord } from './state/normalize';
+export { normalizeState, canonicalizeSeatKeyRecord, normalizeStateForTests } from './state/normalize';
