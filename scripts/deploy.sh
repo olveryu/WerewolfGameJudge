@@ -27,8 +27,18 @@ echo "📦 更新版本号..."
 # 自动递增 patch 版本 (1.0.0 → 1.0.1)
 npm version patch --no-git-tag-version
 
+# 同步版本号到 app.json
+NEW_VERSION=$(node -p "require('./package.json').version")
+node -e "
+const fs = require('fs');
+const appJson = require('./app.json');
+appJson.expo.version = '$NEW_VERSION';
+fs.writeFileSync('./app.json', JSON.stringify(appJson, null, 2) + '\n');
+"
+echo "✅ 版本号已同步: v$NEW_VERSION"
+
 # 获取版本号用于 commit message
-VERSION="v$(node -p "require('./package.json').version")"
+VERSION="v$NEW_VERSION"
 
 echo "📝 提交并推送更改..."
 git add -A
