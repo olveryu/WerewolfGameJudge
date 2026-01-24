@@ -7,7 +7,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-const WORKSPACE_ROOT = path.resolve(__dirname, '../../../..');
+const WORKSPACE_ROOT = path.resolve(__dirname, '../../..');
 
 const LEGACY_IMPORT_PATTERNS = [
   // 任何形式的 GameStateService import（包括 type import）

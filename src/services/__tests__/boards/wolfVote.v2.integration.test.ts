@@ -10,7 +10,7 @@
  * All tests run on v2-only harness (createHostGameV2)
  */
 
-import type { RoleId } from '../../../../models/roles';
+import type { RoleId } from '../../../models/roles';
 import { createHostGameV2 } from './hostGameFactory.v2';
 
 describe('WolfVote v2 Integration Tests', () => {

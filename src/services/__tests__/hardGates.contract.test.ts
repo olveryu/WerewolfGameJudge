@@ -41,12 +41,12 @@ function scanDirForNeedle(dir: string, needle: string): Match[] {
 }
 
 describe('hard gates (contract)', () => {
-  const repoRoot = path.resolve(__dirname, '../../../..');
-  const v2Root = path.join(repoRoot, 'src/services/v2');
-  const v2FacadeRoot = path.join(repoRoot, 'src/services/facade');
+  const repoRoot = path.resolve(__dirname, '../../..');
+  const facadeRoot = path.join(repoRoot, 'src/services/facade');
+  const engineRoot = path.join(repoRoot, 'src/services/engine');
 
-  it('forbids dynamic require() in src/services/v2/** (non-tests)', () => {
-    const matches = scanDirForNeedle(v2Root, 'require(').filter(
+  it('forbids dynamic require() in src/services/engine/** (non-tests)', () => {
+    const matches = scanDirForNeedle(engineRoot, 'require(').filter(
       (m) => !m.file.includes(`${path.sep}__tests__${path.sep}`),
     );
 
@@ -54,7 +54,7 @@ describe('hard gates (contract)', () => {
   });
 
   it('forbids Facade-level progression evaluators (no evaluateAndExecuteProgression)', () => {
-    const matches = scanDirForNeedle(v2FacadeRoot, 'evaluateAndExecuteProgression');
+    const matches = scanDirForNeedle(facadeRoot, 'evaluateAndExecuteProgression');
     expect(matches).toEqual([]);
   });
 
@@ -62,7 +62,7 @@ describe('hard gates (contract)', () => {
     const forbiddenNeedles = ['evaluateNightProgression(', 'buildProgressionKey('];
 
     const matches = forbiddenNeedles.flatMap((needle) =>
-      scanDirForNeedle(v2FacadeRoot, needle).filter(
+      scanDirForNeedle(facadeRoot, needle).filter(
         (m) => !m.file.includes(`${path.sep}__tests__${path.sep}`),
       ),
     );
@@ -79,7 +79,7 @@ describe('hard gates (contract)', () => {
     ];
 
     const matches = forbiddenNeedles.flatMap((needle) =>
-      scanDirForNeedle(v2FacadeRoot, needle).filter(
+      scanDirForNeedle(facadeRoot, needle).filter(
         (m) => !m.file.includes(`${path.sep}__tests__${path.sep}`),
       ),
     );
@@ -105,7 +105,7 @@ describe('hard gates (contract)', () => {
     ];
 
     const matches = forbiddenNeedles.flatMap((needle) =>
-      scanDirForNeedle(v2FacadeRoot, needle).filter(
+      scanDirForNeedle(facadeRoot, needle).filter(
         (m) => !m.file.includes(`${path.sep}__tests__${path.sep}`),
       ),
     );
