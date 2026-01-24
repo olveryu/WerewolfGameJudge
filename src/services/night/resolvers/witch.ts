@@ -7,7 +7,7 @@
  */
 
 import type { ResolverFn, ResolverResult } from './types';
-import { resolveWolfVotes } from '../../WolfVoteResolver';
+import { resolveWolfVotes } from '../../resolveWolfVotes';
 
 function resolveWolfKillSeatFromVotes(
   wolfVotesBySeat: Readonly<Record<string, number>> | undefined,
