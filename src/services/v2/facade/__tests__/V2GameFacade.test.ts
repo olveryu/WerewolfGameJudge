@@ -31,7 +31,7 @@ jest.mock('../../../BroadcastService', () => ({
 }));
 
 // P0-1: Mock AudioService
-jest.mock('../../../AudioService', () => ({
+jest.mock('../../../infra/AudioService', () => ({
   __esModule: true,
   default: {
     getInstance: jest.fn(() => ({

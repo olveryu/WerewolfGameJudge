@@ -12,8 +12,8 @@
  * - updated_at: timestamptz
  */
 
-import { supabase, isSupabaseConfigured } from '../config/supabase';
-import { roomLog } from '../utils/logger';
+import { supabase, isSupabaseConfigured } from '../../config/supabase';
+import { roomLog } from '../../utils/logger';
 
 // Minimal room record stored in Supabase
 export interface RoomRecord {

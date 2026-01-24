@@ -15,7 +15,7 @@ const mockUpdateProfile = jest.fn();
 const mockSignOut = jest.fn();
 const mockGetCurrentUser = jest.fn();
 
-jest.mock('../../services/AuthService', () => ({
+jest.mock('../../services/infra/AuthService', () => ({
   AuthService: {
     getInstance: jest.fn(() => ({
       signInAnonymously: mockSignInAnonymously,
@@ -31,7 +31,7 @@ jest.mock('../../services/AuthService', () => ({
 // Mock AvatarUploadService
 const mockUploadAvatar = jest.fn();
 
-jest.mock('../../services/AvatarUploadService', () => ({
+jest.mock('../../services/infra/AvatarUploadService', () => ({
   AvatarUploadService: {
     getInstance: jest.fn(() => ({
       uploadAvatar: mockUploadAvatar,

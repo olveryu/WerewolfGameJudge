@@ -11,9 +11,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { LocalGameState } from '../services/types/GameStateTypes';
 import { GameStatus } from '../services/types/GameStateTypes';
-import { SimplifiedRoomService, RoomRecord } from '../services/SimplifiedRoomService';
+import { SimplifiedRoomService, RoomRecord } from '../services/infra/RoomService';
 import { BroadcastService, type ConnectionStatus } from '../services/BroadcastService';
-import { AuthService } from '../services/AuthService';
+import { AuthService } from '../services/infra/AuthService';
 import { GameTemplate } from '../models/Template';
 import { RoleId, buildNightPlan } from '../models/roles';
 import {
