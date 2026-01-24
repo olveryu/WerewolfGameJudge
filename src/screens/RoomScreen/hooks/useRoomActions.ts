@@ -472,27 +472,39 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       return { buttons };
     }
 
-    // confirm schema (hunterConfirm/darkWolfKingConfirm): show both buttons
-    // NOTE: Nightmare block is handled by Host. UI always shows both buttons.
-    // - If blocked: user can click "skip" → Host accepts (confirmed=false)
-    // - If not blocked: user must click "confirm" → Host accepts (confirmed=true)
-    // Host will reject the wrong action and UI shows error from actionRejected.
+    // confirm schema (hunterConfirm/darkWolfKingConfirm): Host-authoritative blocked handling
+    // UI reads blockedSeat from BroadcastGameState (single source of truth).
+    // - If blocked: show only skip button (user cannot confirm when blocked)
+    // - If not blocked: show only confirm button (user must confirm)
+    // Host validates and rejects invalid actions via actionRejected.
     if (currentSchema.kind === 'confirm') {
+      const blockedSeat = gameState.currentNightResults?.blockedSeat;
+      const isBlocked = blockedSeat === mySeatNumber;
+
+      if (isBlocked) {
+        // Blocked: show only skip button
+        return {
+          buttons: [
+            {
+              key: 'skip',
+              label: BLOCKED_UI_DEFAULTS.skipButtonText,
+              intent: {
+                type: 'skip',
+                targetIndex: -1,
+                message: BLOCKED_UI_DEFAULTS.skipButtonText,
+              },
+            },
+          ],
+        };
+      }
+
+      // Not blocked: show only confirm button
       return {
         buttons: [
           {
             key: 'confirm',
             label: currentSchema.ui?.bottomActionText || '查看发动状态',
             intent: { type: 'confirmTrigger', targetIndex: -1 },
-          },
-          {
-            key: 'skip',
-            label: BLOCKED_UI_DEFAULTS.skipButtonText,
-            intent: {
-              type: 'skip',
-              targetIndex: -1,
-              message: BLOCKED_UI_DEFAULTS.skipButtonText,
-            },
           },
         ],
       };

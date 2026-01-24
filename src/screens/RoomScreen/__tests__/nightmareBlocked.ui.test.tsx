@@ -135,6 +135,9 @@ describe('Nightmare Blocked UI (Host-authoritative)', () => {
           mySeatNumber: 0,
         }).gameState,
         nightmareBlockedSeat: 0,
+        currentNightResults: {
+          blockedSeat: 0,
+        },
       },
     };
 
@@ -153,6 +156,80 @@ describe('Nightmare Blocked UI (Host-authoritative)', () => {
     await waitFor(() => {
       const skipButton = queryByText(BLOCKED_UI_DEFAULTS.skipButtonText);
       expect(skipButton).toBeTruthy();
+    });
+  });
+
+  it('confirm schema (hunter) does NOT show skip button when NOT blocked', async () => {
+    mockUseGameRoomReturn = {
+      ...makeBaseUseGameRoomReturn({
+        schemaId: 'hunterConfirm',
+        currentActionRole: 'hunter',
+        myRole: 'hunter',
+        mySeatNumber: 0,
+        overrides: {
+          getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
+        },
+        gameStateOverrides: {
+          nightmareBlockedSeat: null, // No nightmare block
+          currentNightResults: {
+            blockedSeat: null,
+          },
+        },
+      }),
+    };
+
+    const { getByTestId, queryByText } = render(
+      <RoomScreen
+        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        navigation={mockNavigation as any}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
+    });
+
+    // When NOT blocked, hunter should NOT see skip button - only confirm button
+    await waitFor(() => {
+      const skipButton = queryByText(BLOCKED_UI_DEFAULTS.skipButtonText);
+      expect(skipButton).toBeNull();
+    });
+  });
+
+  it('confirm schema (darkWolfKing) does NOT show skip button when NOT blocked', async () => {
+    mockUseGameRoomReturn = {
+      ...makeBaseUseGameRoomReturn({
+        schemaId: 'darkWolfKingConfirm',
+        currentActionRole: 'darkWolfKing',
+        myRole: 'darkWolfKing',
+        mySeatNumber: 0,
+        overrides: {
+          getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
+        },
+        gameStateOverrides: {
+          nightmareBlockedSeat: null, // No nightmare block
+          currentNightResults: {
+            blockedSeat: null,
+          },
+        },
+      }),
+    };
+
+    const { getByTestId, queryByText } = render(
+      <RoomScreen
+        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        navigation={mockNavigation as any}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
+    });
+
+    // When NOT blocked, darkWolfKing should NOT see skip button
+    await waitFor(() => {
+      const skipButton = queryByText(BLOCKED_UI_DEFAULTS.skipButtonText);
+      expect(skipButton).toBeNull();
     });
   });
 });
