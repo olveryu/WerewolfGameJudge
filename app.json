@@ -1,22 +1,38 @@
 {
   "expo": {
-    "name": "WerewolfGameJudge",
+    "name": "狼人杀裁判",
     "slug": "WerewolfGameJudge",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1a1a2e"
     },
     "ios": {
       "supportsTablet": true
     },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a1a2e"
+      }
+    },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "狼人杀裁判",
+      "shortName": "狼人杀",
+      "description": "本地/离线狼人杀游戏辅助工具，支持多人联机",
+      "lang": "zh-CN",
+      "themeColor": "#1a1a2e",
+      "backgroundColor": "#1a1a2e",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "scope": "/"
     },
     "plugins": ["expo-audio"]
   }
