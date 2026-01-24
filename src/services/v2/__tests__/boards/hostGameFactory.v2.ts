@@ -52,6 +52,8 @@ export interface HostGameContextV2 {
   runNight: (actions: NightActionSequenceV2) => NightResultV2;
   /** 发送 PlayerMessage（模拟 player→host intent） */
   sendPlayerMessage: (msg: PlayerMessage) => { success: boolean; reason?: string };
+  /** 推进到下一个夜晚步骤 */
+  advanceNight: () => { success: boolean; reason?: string };
   /** 断言当前步骤 */
   assertStep: (expectedStepId: SchemaId) => void;
   /** 查找角色的座位号 */
@@ -428,6 +430,7 @@ export function createHostGameV2(
     getNightPlan,
     runNight,
     sendPlayerMessage,
+    advanceNight,
     assertStep,
     findSeatByRole,
     getRoleAtSeat,
