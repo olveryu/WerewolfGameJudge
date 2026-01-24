@@ -208,17 +208,12 @@ export class AuthService {
 
     const chars = uid.split('');
     const hash1 = chars.reduce((acc, char, i) => acc + (char.codePointAt(0) || 0) * (i + 1), 0);
-    const hash2 = chars.reduce((acc, char, i) => acc + (char.codePointAt(0) || 0) * (i + 7), 0);
     const hash3 = chars.reduce((acc, char) => acc ^ (char.codePointAt(0) || 0), 0) * 31;
 
     const idx1 = Math.abs(hash1) % adjectives.length;
-    let idx2 = Math.abs(hash2) % adjectives.length;
-    if (idx1 === idx2) {
-      idx2 = (idx2 + 1) % adjectives.length;
-    }
     const idx3 = Math.abs(hash3) % nouns.length;
 
-    return adjectives[idx1] + adjectives[idx2] + nouns[idx3];
+    return adjectives[idx1] + nouns[idx3];
   }
 
   // Get current user's display name
