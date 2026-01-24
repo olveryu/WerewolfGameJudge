@@ -1,4 +1,4 @@
-.import { supabase, isSupabaseConfigured } from '../../config/supabase';
+import { supabase, isSupabaseConfigured } from '../../config/supabase';
 import { authLog } from '../../utils/logger';
 import { getAllRoleIds, getRoleSpec } from '../../models/roles';
 import { withTimeout } from '../../utils/withTimeout';
