@@ -18,7 +18,7 @@ interface ActionMessage {
   seat: number;
   role: RoleId;
   target: number | null;
-  extra?: { targets?: number[]; stepResults?: unknown };
+  extra?: { targets?: number[]; stepResults?: unknown; confirmed?: boolean };
 }
 
 describe('V2 Wire Protocol Contract', () => {
@@ -222,6 +222,70 @@ describe('V2 Wire Protocol Contract', () => {
       // 即使不使用技能，也必须有 save 和 poison 两个 key
       expect('save' in stepResults).toBe(true);
       expect('poison' in stepResults).toBe(true);
+    });
+
+    it('hunterConfirm payload: target === null, extra.confirmed === true', () => {
+      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      ctx.clearCapturedMessages();
+
+      ctx.runNight({
+        wolf: 0,
+        seer: 4,
+        witch: { stepResults: { save: null, poison: null } },
+        hunter: { confirmed: true },
+        magician: { targets: [] },
+      });
+
+      const captured = ctx.getCapturedMessages();
+      const hunterMsg = findActionMessage(captured, 'hunterConfirm');
+
+      expect(hunterMsg).toBeDefined();
+      expect(hunterMsg!.target).toBeNull();
+      expect(hunterMsg!.extra).toBeDefined();
+      expect(hunterMsg!.extra!.confirmed).toBe(true);
+    });
+
+    it('hunterConfirm payload: skip 时 confirmed === false', () => {
+      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      ctx.clearCapturedMessages();
+
+      ctx.runNight({
+        wolf: 0,
+        seer: 4,
+        witch: { stepResults: { save: null, poison: null } },
+        hunter: { confirmed: false },
+        magician: { targets: [] },
+      });
+
+      const captured = ctx.getCapturedMessages();
+      const hunterMsg = findActionMessage(captured, 'hunterConfirm');
+
+      expect(hunterMsg).toBeDefined();
+      expect(hunterMsg!.target).toBeNull();
+      // skip 时 extra.confirmed 应该是 false
+      expect(hunterMsg!.extra?.confirmed).toBe(false);
+    });
+
+    it('darkWolfKingConfirm payload: target === null, extra.confirmed', () => {
+      const ctx = createHostGameV2(TEMPLATE_ROLES, createRoleAssignment());
+      ctx.clearCapturedMessages();
+
+      ctx.runNight({
+        wolf: 0,
+        darkWolfKing: { confirmed: true },
+        seer: 4,
+        witch: { stepResults: { save: null, poison: null } },
+        hunter: { confirmed: true },
+        magician: { targets: [] },
+      });
+
+      const captured = ctx.getCapturedMessages();
+      const darkWolfKingMsg = findActionMessage(captured, 'darkWolfKingConfirm');
+
+      expect(darkWolfKingMsg).toBeDefined();
+      expect(darkWolfKingMsg!.target).toBeNull();
+      expect(darkWolfKingMsg!.extra).toBeDefined();
+      expect(darkWolfKingMsg!.extra!.confirmed).toBe(true);
     });
   });
 

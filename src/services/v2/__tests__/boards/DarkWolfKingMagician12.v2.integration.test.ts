@@ -158,4 +158,38 @@ describe(`${TEMPLATE_NAME} - V2 Host Runtime Integration`, () => {
       expect(result.deaths).toEqual([7]);
     });
   });
+
+  describe('Confirm 角色（hunter/darkWolfKing）', () => {
+    it('hunter confirmed=true：流程正常完成', () => {
+      ctx = createHostGameV2(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = ctx.runNight({
+        magician: null,
+        darkWolfKing: { confirmed: true },
+        wolf: 0,
+        witch: { stepResults: { save: null, poison: null } },
+        seer: 4,
+        hunter: { confirmed: true },
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([0]);
+    });
+
+    it('darkWolfKing confirmed=true：流程正常完成', () => {
+      ctx = createHostGameV2(TEMPLATE_NAME, createRoleAssignment());
+
+      const result = ctx.runNight({
+        magician: null,
+        darkWolfKing: { confirmed: true },
+        wolf: 1,
+        witch: { stepResults: { save: null, poison: null } },
+        seer: 4,
+        hunter: { confirmed: true },
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.deaths).toEqual([1]);
+    });
+  });
 });
