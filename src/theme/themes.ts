@@ -58,7 +58,7 @@ export interface Theme {
 
 const darkTheme: Theme = {
   key: 'dark',
-  name: '🌙 暗黑模式',
+  name: '暗黑',
   isDark: true,
   colors: {
     primary: '#6366F1',
@@ -94,7 +94,7 @@ const darkTheme: Theme = {
 
 const lightTheme: Theme = {
   key: 'light',
-  name: '☀️ 浅色模式',
+  name: '浅色',
   isDark: false,
   colors: {
     primary: '#6366F1',
@@ -130,7 +130,7 @@ const lightTheme: Theme = {
 
 const midnightTheme: Theme = {
   key: 'midnight',
-  name: '🔮 午夜紫',
+  name: '午夜',
   isDark: true,
   colors: {
     primary: '#7C3AED',
@@ -202,7 +202,7 @@ const bloodTheme: Theme = {
 
 const discordTheme: Theme = {
   key: 'discord',
-  name: '💜 Discord',
+  name: '紫霞',
   isDark: true,
   colors: {
     primary: '#5865F2',
@@ -238,7 +238,7 @@ const discordTheme: Theme = {
 
 const minimalTheme: Theme = {
   key: 'minimal',
-  name: '⬜ 极简黑白',
+  name: '极简',
   isDark: false,
   colors: {
     // 纯黑白灰，无彩色

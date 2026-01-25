@@ -101,10 +101,11 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
             </TouchableOpacity>
 
             {seat.player && (
-              <Text style={styles.playerName} numberOfLines={1}>
+              <Text style={styles.playerName} numberOfLines={1} ellipsizeMode="tail">
                 {seat.player.displayName}
               </Text>
             )}
+            {!seat.player && <View style={styles.playerNamePlaceholder} />}
           </View>
         );
       })}
@@ -201,6 +202,11 @@ function createStyles(colors: ThemeColors) {
       textAlign: 'center',
       marginTop: 4,
       width: TILE_SIZE - 8,
+      height: 18, // Fixed height for consistent row layout
+    },
+    playerNamePlaceholder: {
+      marginTop: 4,
+      height: 18, // Same height as playerName to keep rows consistent
     },
   });
 }
