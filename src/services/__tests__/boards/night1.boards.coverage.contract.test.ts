@@ -10,6 +10,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+import { NIGHT_STEPS } from '../../../models/roles/spec/nightSteps';
+
 // =============================================================================
 // 权威列表：10 个 12 人板子（来自 PRESET_TEMPLATES）
 // =============================================================================
@@ -84,6 +86,29 @@ function readTestFileContent(filename: string): string {
   return fs.readFileSync(filepath, 'utf-8');
 }
 
+function escapeRegExp(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function fileMentionsStepId(content: string, stepId: string): boolean {
+  // We accept a few common usages:
+  // - ctx.assertStep('wolfKill')
+  // - currentStepId === 'seerCheck'
+  // - executeStepsUntil(ctx, 'witchAction', ...)
+  // - schemaId === 'dreamcatcherDream'
+  const s = escapeRegExp(stepId);
+  const patterns: RegExp[] = [
+    new RegExp(`\\.assertStep\\(\\s*['\"]${s}['\"]\\s*\\)`),
+    new RegExp(`currentStepId\\s*(?:===|!==|\"toBe\"|\"not\\.toBe\")\\s*['\"]${s}['\"]`),
+    new RegExp(`executeStepsUntil\\(\\s*\\w+\\s*,\\s*['\"]${s}['\"]`),
+    new RegExp(`schemaId\\s*===\\s*['\"]${s}['\"]`),
+    new RegExp(`stepId\\s*===\\s*['\"]${s}['\"]`),
+    new RegExp(`findActionMessage\\([^)]*['\"]${s}['\"]`),
+  ];
+
+  return patterns.some((p) => p.test(content));
+}
+
 // =============================================================================
 // Contract Tests
 // =============================================================================
@@ -127,5 +152,29 @@ describe('Night-1 Boards Coverage Contract', () => {
         expect(hasThemeAssertion).toBe(true);
       },
     );
+  });
+
+  describe('C. Step-level coverage: NIGHT_STEPS 每个 stepId 必须在 boards tests 中出现', () => {
+    const stepIds = NIGHT_STEPS.map((s) => s.id);
+
+    it('NIGHT_STEPS 中的 stepId 必须非空且唯一', () => {
+      expect(stepIds.length).toBeGreaterThan(0);
+      expect(new Set(stepIds).size).toBe(stepIds.length);
+      expect(stepIds.every((id) => typeof id === 'string' && id.length > 0)).toBe(true);
+    });
+
+    it.each(stepIds)('stepId "%s" 必须至少被一个 boards test 提及（显式断言或推进到该 step）', (stepId) => {
+      // Search all boards tests (including non-12p helpers/contract tests)
+      const allBoardTests = fs
+        .readdirSync(BOARDS_TEST_DIR)
+        .filter((f) => f.endsWith('.test.ts'));
+
+      const mentionedInSomeFile = allBoardTests.some((filename) => {
+        const content = readTestFileContent(filename);
+        return fileMentionsStepId(content, stepId);
+      });
+
+      expect(mentionedInSomeFile).toBe(true);
+    });
   });
 });

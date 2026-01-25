@@ -8,33 +8,51 @@
  * 2. 任何 gate（如 wolfRobotHunterStatusViewed）都必须由测试显式发送消息解除
  * 3. 禁止 helper 自动发送任何确认/ack 类消息
  * 4. 每次 sendPlayerMessage / advanceNight 必须 fail-fast（失败即 throw）
+ * 5. advanceNightOrThrow 的单一实现来源是 ctx.advanceNightOrThrow()（在 hostGameFactory.ts）
  */
 
-import type { HostGameContext } from './hostGameFactory';
+import type { HostGameContext } from './hostGameContext';
 import type { RoleId } from '../../../models/roles';
 import { doesRoleParticipateInWolfVote } from '../../../models/roles';
 import type { SchemaId } from '../../../models/roles/spec';
 import type { PlayerMessage } from '../../protocol/types';
 
 // =============================================================================
-// Fail-Fast Helper
+// Fail-Fast Helpers (Exported for direct use in tests)
 // =============================================================================
 
 /**
  * 发送 PlayerMessage 并 fail-fast（失败即 throw）
  *
- * Runner 内所有 sendPlayerMessage 必须通过此函数发送
+ * 这是所有 board integration tests 发送消息的单一 fail-fast 来源。
+ * 禁止在测试文件或其他地方自行实现类似的 helper，以防止 drift。
+ *
+ * ⚠️ 硬性要求：
+ * - 此函数不会自动发送任何 ack/gate 消息
+ * - 所有 gate（REVEAL_ACK / WOLF_ROBOT_HUNTER_STATUS_VIEWED）必须由测试显式发送
+ *
+ * @param ctx - HostGameContext
+ * @param message - PlayerMessage 消息
+ * @param context - 上下文信息（用于错误消息）
+ * @throws 如果 sendPlayerMessage 返回 success: false
  */
-function sendMessageOrThrow(
+export function sendMessageOrThrow(
   ctx: HostGameContext,
   message: PlayerMessage,
-  context: { stepId?: SchemaId | null },
+  context: string | { stepId?: SchemaId | null },
 ): void {
   const result = ctx.sendPlayerMessage(message);
   if (!result.success) {
-    const stepInfo = context.stepId ? ` at step "${context.stepId}"` : '';
+    let contextStr: string;
+    if (typeof context === 'string') {
+      contextStr = context;
+    } else if (context.stepId) {
+      contextStr = `step "${context.stepId}"`;
+    } else {
+      contextStr = 'unknown step';
+    }
     throw new Error(
-      `[stepByStepRunner] sendPlayerMessage failed${stepInfo}: ` +
+      `[sendMessageOrThrow] failed at ${contextStr}: ` +
         `type=${message.type}, seat=${'seat' in message ? message.seat : 'N/A'}, ` +
         `reason=${result.reason ?? 'unknown'}`,
     );
@@ -114,13 +132,8 @@ export function executeStepsUntil(
     // 执行当前步骤
     executeCurrentStep(ctx, customActions);
 
-    // 推进到下一步（fail-fast）
-    const advanceResult = ctx.advanceNight();
-    if (!advanceResult.success) {
-      throw new Error(
-        `[stepByStepRunner] advanceNight failed at step "${currentStepId}": ${advanceResult.reason ?? 'unknown'}`,
-      );
-    }
+    // 推进到下一步（使用 ctx.advanceNightOrThrow - 单一实现来源）
+    ctx.advanceNightOrThrow(`executeStepsUntil step "${currentStepId}"`);
   }
 
   return false;
@@ -129,19 +142,36 @@ export function executeStepsUntil(
 /**
  * 从当前步骤继续执行到 Night-1 结束
  *
- * ⚠️ 任何 gate（如 pendingRevealAcks / wolfRobotHunterStatusViewed）
- *    必须由测试在 customActions 回调中显式发送消息解除
+ * 语义：从当前 `BroadcastGameState.currentStepId` 接着往后逐步执行，直到 Night-1 结束。
+ * 支持先 `executeStepsUntil` 到某个步骤，再调用本函数继续跑完剩余流程。
+ *
+ * ⚠️ 硬性要求（MUST follow）：
+ * - 本函数不会自动发送任何 ack/gate 消息
+ * - 任何 gate（如 pendingRevealAcks / wolfRobotHunterStatusViewed）
+ *   必须由测试显式发送对应消息解除
+ * - 遇到 gate 阻塞时会 throw（fail-fast），不会自动处理
  *
  * @param ctx - HostGameContext
  * @param customActions - 自定义某些角色的 action
- * @returns 执行结果
- * @throws 如果 advanceNight 失败
+ * @returns 执行结果（deaths 列表 + 是否完成）
+ * @throws 如果 advanceNight 失败（包括被 gate 阻塞）
+ * @throws 如果 state.status !== 'ongoing' 且 currentStepId 存在（状态不一致）
  */
 export function executeRemainingSteps(
   ctx: HostGameContext,
   customActions: CustomActions = {},
 ): StepByStepResult {
   const MAX_ITERATIONS = 30;
+
+  // Fail-fast 校验：状态必须合法（只读校验，不修改 state）
+  const initialState = ctx.getBroadcastState();
+  if (initialState.currentStepId && initialState.status !== 'ongoing') {
+    throw new Error(
+      `[executeRemainingSteps] Invalid state: currentStepId="${initialState.currentStepId}" ` +
+        `but status="${initialState.status}" (expected "ongoing"). ` +
+        `Night flow may have been corrupted.`,
+    );
+  }
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const state = ctx.getBroadcastState();
@@ -168,13 +198,8 @@ export function executeRemainingSteps(
     // 执行当前步骤
     executeCurrentStep(ctx, customActions);
 
-    // 推进到下一步（fail-fast）
-    const advanceResult = ctx.advanceNight();
-    if (!advanceResult.success) {
-      throw new Error(
-        `[stepByStepRunner] advanceNight failed at step "${currentStepId}": ${advanceResult.reason ?? 'unknown'}`,
-      );
-    }
+    // 推进到下一步（使用 ctx.advanceNightOrThrow - 单一实现来源）
+    ctx.advanceNightOrThrow(`executeRemainingSteps step "${currentStepId}"`);
   }
 
   // 超出最大迭代次数，触发结束
@@ -186,16 +211,34 @@ export function executeRemainingSteps(
 }
 
 /**
- * 执行完整的 Night-1 流程（从头到尾逐步执行）
+ * 执行完整的 Night-1 流程（测试意图层别名）
+ *
+ * ⚠️ 这是 `executeRemainingSteps` 的薄封装，用于提升测试可读性。
+ *
+ * ⚠️ 硬性护栏（MUST follow）：
+ * - 本函数**不会** start night、不会重置 state
+ * - 本函数**不会**自动处理任何 ack/gate，包括：
+ *   - pendingRevealAcks（需要测试显式发送 REVEAL_ACK）
+ *   - wolfRobotHunterStatusViewed（需要测试显式发送 WOLF_ROBOT_HUNTER_STATUS_VIEWED）
+ * - gate 必须由测试显式发送对应消息解除
+ * - 遇到 gate 阻塞时会 throw（fail-fast），不会自动处理
+ *
+ * 禁止在本函数内新增：
+ * - 自动发 REVEAL_ACK / WOLF_ROBOT_HUNTER_STATUS_VIEWED
+ * - 自动清任何 gate
+ * - 自动 skip step / fast-forward / jump
+ * - 任何"遇到 gate 就帮忙处理"的逻辑
  *
  * @param ctx - HostGameContext
  * @param customActions - 自定义某些角色的 action
- * @returns 执行结果
+ * @returns 执行结果（deaths 列表 + 是否完成）
+ * @throws 如果 advanceNight 失败（包括被 gate 阻塞）
  */
 export function executeFullNight(
   ctx: HostGameContext,
   customActions: CustomActions = {},
 ): StepByStepResult {
+  // 薄封装：只调用 executeRemainingSteps，禁止添加任何额外逻辑
   return executeRemainingSteps(ctx, customActions);
 }
 

@@ -26,7 +26,7 @@ import {
   cleanupHostGame,
   HostGameContext,
 } from './hostGameFactory';
-import { executeFullNight } from './stepByStepRunner';
+import { executeFullNight, executeStepsUntil, executeRemainingSteps } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '石像鬼守墓人12人';
@@ -62,7 +62,12 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     it('gargoyle 查验 villager(0)，返回 villager', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = executeFullNight(ctx, {
+      // Step-aware 断言：确认确实走到了 gargoyleCheck step
+      expect(executeStepsUntil(ctx, 'gargoyleCheck')).toBe(true);
+      ctx.assertStep('gargoyleCheck');
+
+      // 继续执行剩余步骤
+      const result = executeRemainingSteps(ctx, {
         gargoyle: 0, // 查验 villager
         wolf: 1,
         witch: { save: null, poison: null },
@@ -137,7 +142,12 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     it('gargoyle 不查验时，gargoyleReveal 不写入', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = executeFullNight(ctx, {
+      // Step-aware 断言：确认确实走到了 gargoyleCheck step
+      expect(executeStepsUntil(ctx, 'gargoyleCheck')).toBe(true);
+      ctx.assertStep('gargoyleCheck');
+
+      // 继续执行剩余步骤
+      const result = executeRemainingSteps(ctx, {
         gargoyle: null, // 不查验
         wolf: 0,
         witch: { save: null, poison: null },
@@ -156,8 +166,12 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     it('gargoyle 查验 gargoyle 自己(7，狼阵营)，返回 gargoyle', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
+      // Step-aware 断言：确认确实走到了 gargoyleCheck step
+      expect(executeStepsUntil(ctx, 'gargoyleCheck')).toBe(true);
+      ctx.assertStep('gargoyleCheck');
+
       // 石像鬼查验自己（如果 schema 允许）
-      const result = executeFullNight(ctx, {
+      const result = executeRemainingSteps(ctx, {
         gargoyle: 7, // 查验自己
         wolf: 0,
         witch: { save: null, poison: null },
