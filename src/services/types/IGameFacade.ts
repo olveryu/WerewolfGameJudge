@@ -165,6 +165,11 @@ export interface IGameFacade {
     role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot',
   ): Promise<{ success: boolean; reason?: string }>;
 
+  /**
+   * 提交机械狼查看猎人状态确认
+   */
+  sendWolfRobotHunterStatusViewed(): Promise<{ success: boolean; reason?: string }>;
+
   // === Night Flow (Host-only) ===
   /**
    * 推进夜晚到下一步

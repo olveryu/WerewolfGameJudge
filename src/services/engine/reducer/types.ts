@@ -106,9 +106,24 @@ export interface ApplyResolverResultAction {
     seerReveal?: { targetSeat: number; result: '好人' | '狼人' };
     psychicReveal?: { targetSeat: number; result: string };
     gargoyleReveal?: { targetSeat: number; result: string };
-    wolfRobotReveal?: { targetSeat: number; result: string };
+    wolfRobotReveal?: {
+      targetSeat: number;
+      result: string;
+      /**
+       * The learned role ID (strict RoleId) - REQUIRED for hunter gate check and disguise.
+       * This is never optional when wolfRobotReveal exists.
+       */
+      learnedRoleId: RoleId;
+      /** When learned hunter, whether wolfRobot can shoot as hunter */
+      canShootAsHunter?: boolean;
+    };
     /** Wolf Robot disguise context - written when wolfRobot learns a target */
     wolfRobotContext?: { learnedSeat: number; disguisedRole: RoleId };
+    /**
+     * Gate: wolfRobot learned hunter and must view status before proceeding.
+     * Set to false when wolfRobotLearn reveal shows hunter.
+     */
+    wolfRobotHunterStatusViewed?: boolean;
   };
 }
 
@@ -201,6 +216,17 @@ export interface ClearRevealAcksAction {
 }
 
 // =============================================================================
+// Wolf Robot Hunter Gate 动作
+// =============================================================================
+
+export interface SetWolfRobotHunterStatusViewedAction {
+  type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED';
+  payload: {
+    viewed: boolean;
+  };
+}
+
+// =============================================================================
 // Schema ID 追踪（用于当前步骤）
 // =============================================================================
 
@@ -236,6 +262,8 @@ export type StateAction =
   | ClearRevealStateAction
   // 狼人相关
   | SetWolfKillDisabledAction
+  // Wolf Robot Hunter Gate
+  | SetWolfRobotHunterStatusViewedAction
   // 音频
   | SetAudioPlayingAction
   // 玩家状态

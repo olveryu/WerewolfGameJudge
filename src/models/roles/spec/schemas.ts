@@ -128,6 +128,10 @@ export const SCHEMAS = {
       prompt: '请点击下方按钮查看技能发动状态',
       confirmText: '确定查看猎人发动状态吗？',
       bottomActionText: '查看发动状态',
+      // Status dialog (shown after user taps "查看发动状态")
+      statusDialogTitle: '技能状态',
+      canShootText: '猎人可以发动技能',
+      cannotShootText: '猎人不能发动技能',
     },
   },
 
@@ -204,6 +208,11 @@ export const SCHEMAS = {
       confirmText: '确定要学习该玩家吗？',
       revealKind: 'wolfRobot',
       bottomActionText: '不使用技能',
+      // Hunter gate UI: shown after learning hunter, before night advances
+      hunterGateButtonText: '查看状态',
+      hunterGateDialogTitle: '技能状态',
+      hunterGateCanShootText: '机械狼学到了猎人，可以发动猎人技能',
+      hunterGateCannotShootText: '机械狼学到了猎人，但不能发动猎人技能',
     },
   },
 
@@ -217,6 +226,10 @@ export const SCHEMAS = {
       prompt: '请点击下方按钮查看技能发动状态',
       confirmText: '确定查看黑狼王发动状态吗？',
       bottomActionText: '查看发动状态',
+      // Status dialog (shown after user taps "查看发动状态")
+      statusDialogTitle: '技能状态',
+      canShootText: '黑狼王可以发动技能',
+      cannotShootText: '黑狼王不能发动技能',
     },
   },
 

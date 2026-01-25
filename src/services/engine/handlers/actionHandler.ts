@@ -118,12 +118,30 @@ function buildRevealPayload(
     } else if (role === 'gargoyle') {
       payload.gargoyleReveal = { targetSeat, result: result.result.identityResult };
     } else if (role === 'wolfRobot') {
-      payload.wolfRobotReveal = { targetSeat, result: result.result.identityResult };
+      const learnedRoleId = result.result.learnedRoleId;
+      // FAIL-FAST: learnedRoleId is REQUIRED when wolfRobotReveal is set
+      // This ensures type safety and prevents "identityResult exists but learnedRoleId missing" bugs
+      if (!learnedRoleId) {
+        throw new Error(
+          '[FAIL-FAST] wolfRobotLearn resolver must return learnedRoleId when identityResult is set',
+        );
+      }
+      payload.wolfRobotReveal = {
+        targetSeat,
+        result: result.result.identityResult,
+        learnedRoleId,
+        // canShootAsHunter comes from resolver calculation (only set when learned hunter)
+        canShootAsHunter: result.result.canShootAsHunter,
+      };
+      // Gate: if learned hunter, set gate to false (requires viewing before advancing)
+      if (learnedRoleId === 'hunter') {
+        payload.wolfRobotHunterStatusViewed = false;
+      }
       // Write wolfRobotContext for disguise during subsequent checks
-      if (result.result.learnTarget !== undefined && result.result.learnedRoleId) {
+      if (result.result.learnTarget !== undefined && learnedRoleId) {
         payload.wolfRobotContext = {
           learnedSeat: result.result.learnTarget,
-          disguisedRole: result.result.learnedRoleId, // strict RoleId
+          disguisedRole: learnedRoleId, // strict RoleId
         };
       }
     }

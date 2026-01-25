@@ -97,7 +97,7 @@ export interface ResolverResult {
   /** Computed results (role-specific, for feedback to Host/UI) */
   readonly result?: {
     readonly checkResult?: '好人' | '狼人'; // seer
-    readonly identityResult?: RoleId; // psychic, gargoyle (display only)
+    readonly identityResult?: RoleId; // psychic, gargoyle, wolfRobot (display only)
     readonly savedTarget?: number; // witch save
     readonly poisonedTarget?: number; // witch poison
     readonly guardedTarget?: number; // guard
@@ -106,9 +106,89 @@ export interface ResolverResult {
     readonly charmTarget?: number; // wolfQueen
     readonly swapTargets?: readonly [number, number]; // magician
     readonly learnTarget?: number; // wolfRobot - target seat
-    readonly learnedRoleId?: RoleId; // wolfRobot - learned role (strict RoleId for disguise)
+    readonly learnedRoleId?: RoleId; // wolfRobot - learned role (see WolfRobotLearnSuccessResult for strong typing)
+    readonly canShootAsHunter?: boolean; // wolfRobot - can shoot as hunter (only set when learned hunter)
     readonly idolTarget?: number; // slacker
   };
+}
+
+// =============================================================================
+// WolfRobot Resolver 专用类型（编译期强类型保证）
+// =============================================================================
+
+/**
+ * WolfRobot 成功学习时的 result 类型（learnedRoleId 编译期必填）
+ *
+ * 这是 wolfRobotLearnResolver 成功学习时必须返回的类型。
+ * learnTarget 和 learnedRoleId 在编译期就必须同时存在。
+ */
+export interface WolfRobotLearnResultPayload {
+  readonly learnTarget: number;
+  readonly learnedRoleId: RoleId; // 编译期必填
+  readonly identityResult: RoleId; // for UI display
+  readonly canShootAsHunter?: boolean; // only set when learned hunter
+}
+
+/**
+ * WolfRobot Resolver 的专用返回类型
+ *
+ * 为了向后兼容现有测试代码（不先检查 valid），
+ * 此类型继承 ResolverResult，所有字段都是可选的。
+ *
+ * 真正的编译期类型安全由 resolver 内部 overload 保证。
+ */
+export interface WolfRobotResolverResult extends ResolverResult {
+  // 继承 ResolverResult，向后兼容
+  // 编译期保证由 resolver 内部实现
+}
+
+/**
+ * WolfRobot 成功学习时的 result 类型（向后兼容别名）
+ */
+export interface WolfRobotLearnResult {
+  readonly learnTarget: number;
+  readonly learnedRoleId: RoleId; // 必须存在
+  readonly identityResult?: RoleId;
+  readonly canShootAsHunter?: boolean;
+}
+
+/**
+ * 类型守卫：检查 resolver result 是否包含有效的 wolfRobot 学习结果
+ *
+ * 合约：当 learnTarget 存在时，learnedRoleId 必须存在
+ */
+export function isWolfRobotLearnResult(
+  result: ResolverResult['result'] | undefined,
+): result is WolfRobotLearnResult {
+  if (!result) return false;
+  return (
+    typeof result.learnTarget === 'number' &&
+    typeof result.learnedRoleId === 'string'
+  );
+}
+
+/**
+ * 断言 wolfRobot resolver result 包含 learnedRoleId
+ *
+ * 用于 Host 层：当确定是 wolfRobot 成功学习时，断言 learnedRoleId 存在
+ * @throws TypeError 如果 learnedRoleId 缺失（违反合约）
+ *
+ * NOTE: 由于 WolfRobotResolverResult 类型设计，编译期应该已经保证不会缺字段。
+ * 此函数保留作为 runtime 防线。
+ */
+export function assertWolfRobotLearnedRoleId(
+  result: ResolverResult['result'] | undefined,
+  context: string,
+): asserts result is WolfRobotLearnResult {
+  if (!result) {
+    throw new TypeError(`[${context}] wolfRobot result is undefined`);
+  }
+  if (typeof result.learnTarget !== 'number') {
+    throw new TypeError(`[${context}] wolfRobot result missing learnTarget`);
+  }
+  if (typeof result.learnedRoleId !== 'string') {
+    throw new TypeError(`[${context}] wolfRobot result missing learnedRoleId - type contract violation`);
+  }
 }
 
 /** Resolver function signature */

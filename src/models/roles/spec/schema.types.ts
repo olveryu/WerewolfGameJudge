@@ -59,6 +59,27 @@ export interface SchemaUi {
    * Example: "{seat}号被狼人杀了，是否使用解药？"
    */
   readonly promptTemplate?: string;
+
+  // === WolfRobot Hunter Gate UI (wolfRobotLearn only) ===
+  /**
+   * Button text for the hunter status gate (wolfRobotLearn step).
+   * This gate appears after wolfRobot learns hunter, before night advances.
+   */
+  readonly hunterGateButtonText?: string;
+  /** Dialog title for hunter status gate. */
+  readonly hunterGateDialogTitle?: string;
+  /** Dialog message when wolfRobot can shoot as hunter. */
+  readonly hunterGateCanShootText?: string;
+  /** Dialog message when wolfRobot cannot shoot as hunter (poisoned). */
+  readonly hunterGateCannotShootText?: string;
+
+  // === Confirm Schema Status Dialog UI (hunterConfirm/darkWolfKingConfirm) ===
+  /** Dialog title when showing trigger status. */
+  readonly statusDialogTitle?: string;
+  /** Dialog message when role can shoot/trigger. */
+  readonly canShootText?: string;
+  /** Dialog message when role cannot shoot/trigger. */
+  readonly cannotShootText?: string;
 }
 
 /** Base schema interface */

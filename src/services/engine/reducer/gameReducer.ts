@@ -24,6 +24,7 @@ import type {
   SetWitchContextAction,
   SetConfirmStatusAction,
   SetWolfKillDisabledAction,
+  SetWolfRobotHunterStatusViewedAction,
   SetAudioPlayingAction,
   PlayerViewedRoleAction,
   ActionRejectedAction,
@@ -193,8 +194,15 @@ function handleRecordAction(state: GameState, action: RecordActionAction): GameS
 }
 
 function handleApplyResolverResult(state: GameState, action: ApplyResolverResultAction): GameState {
-  const { updates, seerReveal, psychicReveal, gargoyleReveal, wolfRobotReveal, wolfRobotContext } =
-    action.payload;
+  const {
+    updates,
+    seerReveal,
+    psychicReveal,
+    gargoyleReveal,
+    wolfRobotReveal,
+    wolfRobotContext,
+    wolfRobotHunterStatusViewed,
+  } = action.payload;
 
   const currentNightResults = updates
     ? {
@@ -221,6 +229,8 @@ function handleApplyResolverResult(state: GameState, action: ApplyResolverResult
     gargoyleReveal: gargoyleReveal ?? state.gargoyleReveal,
     wolfRobotReveal: wolfRobotReveal ?? state.wolfRobotReveal,
     wolfRobotContext: wolfRobotContext ?? state.wolfRobotContext,
+    // Gate: wolfRobot learned hunter - must view status before proceeding
+    wolfRobotHunterStatusViewed: wolfRobotHunterStatusViewed ?? state.wolfRobotHunterStatusViewed,
   };
 }
 
@@ -244,6 +254,16 @@ function handleSetWolfKillDisabled(state: GameState, action: SetWolfKillDisabled
     ...state,
     wolfKillDisabled: disabled,
     nightmareBlockedSeat: blockedSeat,
+  };
+}
+
+function handleSetWolfRobotHunterStatusViewed(
+  state: GameState,
+  action: SetWolfRobotHunterStatusViewedAction,
+): GameState {
+  return {
+    ...state,
+    wolfRobotHunterStatusViewed: action.payload.viewed,
   };
 }
 
@@ -381,12 +401,16 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
         psychicReveal: undefined,
         gargoyleReveal: undefined,
         wolfRobotReveal: undefined,
+        wolfRobotHunterStatusViewed: undefined,
         confirmStatus: undefined,
         witchContext: undefined,
       };
 
     case 'SET_WOLF_KILL_DISABLED':
       return handleSetWolfKillDisabled(state, action);
+
+    case 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED':
+      return handleSetWolfRobotHunterStatusViewed(state, action);
 
     case 'SET_AUDIO_PLAYING':
       return handleSetAudioPlaying(state, action);

@@ -33,6 +33,7 @@ function createFakeFacade(): IGameFacade {
     endNight: async () => ({ success: true }),
     setAudioPlaying: async () => ({ success: true }),
     requestSnapshot: async () => true,
+    sendWolfRobotHunterStatusViewed: async () => ({ success: true }),
   };
 }
 

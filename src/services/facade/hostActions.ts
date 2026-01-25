@@ -52,6 +52,7 @@ import {
   handleNightProgression,
   resetProgressionTracker,
 } from '../engine/handlers/nightFlowHandler';
+import { handleSetWolfRobotHunterStatusViewed } from '../engine/handlers/wolfRobotHunterGateHandler';
 import { gameReducer } from '../engine/reducer';
 import { facadeLog } from '../../utils/logger';
 
@@ -476,6 +477,53 @@ export async function clearRevealAcks(
 
   // 推进夜晚流程
   await callNightProgression(ctx);
+
+  return { success: true };
+}
+
+/**
+ * Host: 设置机械狼查看猎人状态的 gate
+ *
+ * 当机械狼学到猎人后查看状态按钮被点击时调用
+ *
+ * 编排职责：调用 handler → reducer → store → broadcast
+ * 业务逻辑全部在 handler 层（handleSetWolfRobotHunterStatusViewed）
+ */
+export async function setWolfRobotHunterStatusViewed(
+  ctx: HostActionsContext,
+  seat: number,
+): Promise<{ success: boolean; reason?: string }> {
+  facadeLog.debug('setWolfRobotHunterStatusViewed called', { isHost: ctx.isHost, seat });
+
+  // 构建 handler context
+  const handlerCtx = {
+    state: ctx.store.getState(),
+    isHost: ctx.isHost,
+    myUid: ctx.myUid,
+    mySeat: ctx.getMySeatNumber(),
+  };
+
+  // 调用 handler（业务逻辑全部在 handler）
+  const result = handleSetWolfRobotHunterStatusViewed(handlerCtx, {
+    type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
+    seat,
+  });
+
+  if (!result.success) {
+    return { success: false, reason: result.reason };
+  }
+
+  // 应用 actions（通过 reducer）
+  let state = ctx.store.getState();
+  if (!state) {
+    return { success: false, reason: 'no_state_after_handler' };
+  }
+  for (const action of result.actions) {
+    state = gameReducer(state, action);
+  }
+  ctx.store.setState(state);
+
+  await ctx.broadcastCurrentState();
 
   return { success: true };
 }

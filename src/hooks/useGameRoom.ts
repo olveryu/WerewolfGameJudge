@@ -86,6 +86,7 @@ export interface UseGameRoomResult {
   submitAction: (target: number | null, extra?: any) => Promise<void>;
   submitWolfVote: (target: number) => Promise<void>;
   submitRevealAck: (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => Promise<void>;
+  sendWolfRobotHunterStatusViewed: () => Promise<void>;
 
   // Sync actions
   requestSnapshot: () => Promise<boolean>;
@@ -551,6 +552,11 @@ export const useGameRoom = (): UseGameRoomResult => {
     [facade],
   );
 
+  // WolfRobot hunter status viewed gate
+  const sendWolfRobotHunterStatusViewed = useCallback(async (): Promise<void> => {
+    await facade.sendWolfRobotHunterStatusViewed();
+  }, [facade]);
+
   // Get last night info - now derived from gameState
   const getLastNightInfo = useCallback((): string => {
     if (!gameState) return '无信息';
@@ -622,6 +628,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     submitAction,
     submitWolfVote,
     submitRevealAck,
+    sendWolfRobotHunterStatusViewed,
     getLastNightInfo,
     lastSeatError,
     clearLastSeatError,
