@@ -55,6 +55,7 @@ type NonNullState = NonNullable<HandlerContext['state']>;
  * 2. no_state
  * 3. invalid_status (must be ongoing)
  * 4. forbidden_while_audio_playing
+ * 5. wolfrobot_hunter_status_not_viewed (if learned hunter but not viewed)
  */
 function validateNightFlowPreconditions(
   context: HandlerContext,
@@ -90,6 +91,19 @@ function validateNightFlowPreconditions(
     return {
       valid: false,
       result: { success: false, reason: 'forbidden_while_audio_playing', actions: [] },
+    };
+  }
+
+  // Gate 5: wolfrobot_hunter_status_not_viewed
+  // If current step is wolfRobotLearn and learned hunter but not viewed, reject advance
+  if (
+    state.currentStepId === 'wolfRobotLearn' &&
+    state.wolfRobotReveal?.learnedRoleId === 'hunter' &&
+    state.wolfRobotHunterStatusViewed === false
+  ) {
+    return {
+      valid: false,
+      result: { success: false, reason: 'wolfrobot_hunter_status_not_viewed', actions: [] },
     };
   }
 

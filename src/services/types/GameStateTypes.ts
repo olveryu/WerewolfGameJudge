@@ -117,7 +117,16 @@ export interface LocalGameState {
   wolfRobotReveal?: {
     targetSeat: number;
     result: string;
+    /**
+     * The learned role ID (strict RoleId) - REQUIRED for hunter gate check and disguise.
+     * This is never optional when wolfRobotReveal exists.
+     */
+    learnedRoleId: RoleId;
+    canShootAsHunter?: boolean;
   };
+
+  /** Gate: wolfRobot learned hunter and must view status before advancing */
+  wolfRobotHunterStatusViewed?: boolean;
 
   /** Confirm status for hunter/darkWolfKing - only display to that role via UI filter */
   confirmStatus?: {

@@ -79,7 +79,18 @@ export interface BroadcastGameState {
   wolfKillDisabled?: boolean;
 
   // --- 机械狼伪装上下文 ---
-  /** Wolf Robot learned role context - for disguise during checks */
+  /**
+   * 机械狼伪装上下文（用于“查验类”resolver 的身份解析）
+   *
+   * 职责：这是给 Host-only resolvers/engine 用的“计算上下文”，用于统一的
+   * `resolveRoleForChecks()`：当某座位的有效身份为 wolfRobot 时，需要把它
+   * 解释为 `disguisedRole`，从而影响预言家/通灵师/石像鬼等的查验结果。
+   *
+   * 注意：
+   * - 这是 BroadcastGameState 的一部分（公开广播），但 UI 一般不直接依赖它；
+   *   UI 只从 schema + BroadcastGameState 渲染，并按 myRole 过滤展示。
+   * - 禁止在 engine 之外维护平行的“伪装身份”状态，避免 Host/Player drift。
+   */
   wolfRobotContext?: {
     /** The seat wolfRobot learned from */
     learnedSeat: number;
@@ -113,11 +124,36 @@ export interface BroadcastGameState {
     result: string;
   };
 
-  /** Wolf Robot reveal result - only display to wolf robot via UI filter */
+  /**
+   * 机械狼学习结果（公开广播的“事实结果”）
+   *
+   * 职责：描述 wolfRobot 在 wolfRobotLearn 这一步的计算结果（学了谁/学到什么）。
+   * 这是单一真相（Single source of truth）：Host 执行 resolver 后写入并广播。
+   *
+   * UI：所有客户端都会收到，但必须按 myRole 过滤，只对 wolfRobot（或 Host UI）展示。
+   */
   wolfRobotReveal?: {
     targetSeat: number;
     result: string;
+    /**
+     * The learned role ID (strict RoleId) - REQUIRED for hunter gate check and disguise.
+     * This is never optional when wolfRobotReveal exists.
+     */
+    learnedRoleId: RoleId;
+    /** When learned hunter, whether wolfRobot can shoot as hunter */
+    canShootAsHunter?: boolean;
   };
+
+  /**
+   * Gate（流程前置条件）：机械狼学到猎人后，必须“查看状态”才能推进夜晚
+   *
+   * 职责：这是 Host-authoritative 的流程 gate。
+   * - Host 写入：当 `wolfRobotReveal.learnedRoleId === 'hunter'` 时设置为 false（需要查看）。
+   * - Host 清除：收到玩家确认消息 `WOLF_ROBOT_HUNTER_STATUS_VIEWED` 后设置为 true。
+   * - NightFlow：若 gate 未清除，Host 必须拒绝推进（防止 authority split）。
+   * - UI：仅根据 schema + BroadcastGameState 展示底部按钮，不允许 UI 本地状态机自推导。
+   */
+  wolfRobotHunterStatusViewed?: boolean;
 
   /** Confirm status for hunter/darkWolfKing - only display to that role via UI filter */
   confirmStatus?: {
@@ -190,4 +226,6 @@ export type PlayerMessage =
       displayName?: string;
       avatarUrl?: string;
     }
-  | { type: 'SNAPSHOT_REQUEST'; requestId: string; uid: string; lastRevision?: number };
+  | { type: 'SNAPSHOT_REQUEST'; requestId: string; uid: string; lastRevision?: number }
+  /** WolfRobot learned hunter: player viewed status, Host clears gate */
+  | { type: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED'; seat: number };

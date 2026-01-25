@@ -18,7 +18,9 @@ interface LoadingScreenProps {
  */
 export function LoadingScreen({ message = '加载中...', fullScreen = true }: LoadingScreenProps) {
   const { colors } = useTheme();
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnimRef = useRef(new Animated.Value(1));
+  // eslint-disable-next-line react-hooks/refs -- RN Animated standard pattern: read Animated.Value from ref during render to bind into styles.
+  const pulseAnim = pulseAnimRef.current;
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -39,6 +41,8 @@ export function LoadingScreen({ message = '加载中...', fullScreen = true }: L
     return () => pulse.stop();
   }, [pulseAnim]);
 
+  // Derived animation value - standard React Native pattern
+  // eslint-disable-next-line react-hooks/refs -- RN Animated standard pattern: interpolate derived animated values during render.
   const opacityAnim = pulseAnim.interpolate({
     inputRange: [1, 1.05],
     outputRange: [1, 0.8],
@@ -53,12 +57,15 @@ export function LoadingScreen({ message = '加载中...', fullScreen = true }: L
       ]}
     >
       <Animated.View
+  // eslint-disable-next-line react-hooks/refs -- RN Animated standard pattern: passing Animated.Value into style props during render.
         style={[
           styles.iconContainer,
+          /* eslint-disable react-hooks/refs -- RN Animated standard pattern: Animated.Value is used in render-bound style objects. */
           {
             transform: [{ scale: pulseAnim }],
             opacity: opacityAnim,
           },
+          /* eslint-enable react-hooks/refs */
         ]}
       >
         <Image source={appIcon} style={styles.icon} resizeMode="contain" />

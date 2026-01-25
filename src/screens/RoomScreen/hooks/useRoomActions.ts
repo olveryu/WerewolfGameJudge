@@ -36,6 +36,9 @@ export type ActionIntentType =
   | 'skip' // Skip action
   | 'confirmTrigger' // Hunter/DarkWolfKing: trigger status check via bottom button
 
+  // WolfRobot hunter gate
+  | 'wolfRobotViewHunterStatus' // WolfRobot learned hunter: view status gate
+
   // Auto-trigger prompt (dismiss → wait for seat tap)
   | 'actionPrompt'; // Generic action prompt for all roles
 
@@ -383,6 +386,32 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
     // Schema-driven bottom action visibility.
     if (!currentSchema) return { buttons: [] };
+
+    // wolfRobot learned hunter gate: must view status before continuing
+    // Condition: learned hunter (regardless of canShootAsHunter true/false)
+    // This gate takes precedence over other bottom actions when wolfRobot step is active
+    if (
+      currentSchema.id === 'wolfRobotLearn' &&
+      gameState.wolfRobotReveal?.learnedRoleId === 'hunter' &&
+      gameState.wolfRobotHunterStatusViewed === false
+    ) {
+      // Schema-driven: read button text from schema (fail-fast if missing)
+      const gateButtonText = currentSchema.ui?.hunterGateButtonText;
+      if (!gateButtonText) {
+        throw new Error(
+          '[useRoomActions] wolfRobotLearn schema missing ui.hunterGateButtonText - schema-driven UI requires this field',
+        );
+      }
+      return {
+        buttons: [
+          {
+            key: 'viewHunterStatus',
+            label: gateButtonText,
+            intent: { type: 'wolfRobotViewHunterStatus', targetIndex: -1 },
+          },
+        ],
+      };
+    }
 
     // wolfVote: always allow empty vote (-1)
     if (currentSchema.kind === 'wolfVote') {

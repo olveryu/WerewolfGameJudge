@@ -84,6 +84,7 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
     psychicReveal: raw.psychicReveal,
     gargoyleReveal: raw.gargoyleReveal,
     wolfRobotReveal: raw.wolfRobotReveal,
+    wolfRobotHunterStatusViewed: raw.wolfRobotHunterStatusViewed,
     wolfRobotContext: raw.wolfRobotContext,
     confirmStatus: raw.confirmStatus,
     actionRejected: raw.actionRejected,

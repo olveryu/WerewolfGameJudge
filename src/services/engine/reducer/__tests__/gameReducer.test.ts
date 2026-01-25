@@ -248,7 +248,7 @@ describe('gameReducer', () => {
         seerReveal: { targetSeat: 1, result: '好人' },
         psychicReveal: { targetSeat: 2, result: '狼人阵营' },
         gargoyleReveal: { targetSeat: 3, result: '守卫' },
-        wolfRobotReveal: { targetSeat: 4, result: '预言家' },
+        wolfRobotReveal: { targetSeat: 4, result: '预言家', learnedRoleId: 'seer' },
         confirmStatus: { role: 'hunter', canShoot: true },
         witchContext: { killedIndex: 1, canSave: true, canPoison: true },
       });
@@ -266,7 +266,7 @@ describe('gameReducer', () => {
       expect(newState.seerReveal).toEqual({ targetSeat: 1, result: '好人' });
       expect(newState.psychicReveal).toEqual({ targetSeat: 2, result: '狼人阵营' });
       expect(newState.gargoyleReveal).toEqual({ targetSeat: 3, result: '守卫' });
-      expect(newState.wolfRobotReveal).toEqual({ targetSeat: 4, result: '预言家' });
+      expect(newState.wolfRobotReveal).toEqual({ targetSeat: 4, result: '预言家', learnedRoleId: 'seer' });
       // context 仍然被清空（这些是步骤特定的，不是结果）
       expect(newState.confirmStatus).toBeUndefined();
       expect(newState.witchContext).toBeUndefined();

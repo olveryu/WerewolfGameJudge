@@ -452,6 +452,38 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   /**
+   * 提交机械狼查看猎人状态确认
+   *
+   * 当机械狼学到猎人并查看状态后调用：
+   * - Host: 直接调用 setWolfRobotHunterStatusViewed
+   * - Player: 发送 WOLF_ROBOT_HUNTER_STATUS_VIEWED 消息给 Host
+   */
+  async sendWolfRobotHunterStatusViewed(): Promise<{ success: boolean; reason?: string }> {
+    const seat = this.getMySeatNumber();
+    if (seat === null) {
+      return { success: false, reason: 'not_seated' };
+    }
+
+    if (this.isHost) {
+      // Host 直接执行
+      return hostActions.setWolfRobotHunterStatusViewed(this.getHostActionsContext(), seat);
+    }
+
+    // Player: 发送消息给 Host
+    const msg: PlayerMessage = {
+      type: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED',
+      seat,
+    };
+
+    try {
+      await this.broadcastService.sendToHost(msg);
+      return { success: true };
+    } catch {
+      return { success: false, reason: 'send_failed' };
+    }
+  }
+
+  /**
    * Player: 请求状态快照
    *
    * PR8: Player 发送 REQUEST_STATE 消息给 Host
@@ -565,6 +597,8 @@ export class GameFacade implements IGameFacade {
       handleWolfVote: (voterSeat: number, targetSeat: number) =>
         hostActions.submitWolfVote(this.getHostActionsContext(), voterSeat, targetSeat),
       handleRevealAck: () => hostActions.clearRevealAcks(this.getHostActionsContext()),
+      handleWolfRobotHunterStatusViewed: (seat: number) =>
+        hostActions.setWolfRobotHunterStatusViewed(this.getHostActionsContext(), seat),
     };
   }
 

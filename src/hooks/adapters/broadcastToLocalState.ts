@@ -175,6 +175,7 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
     psychicReveal: broadcast.psychicReveal,
     gargoyleReveal: broadcast.gargoyleReveal,
     wolfRobotReveal: broadcast.wolfRobotReveal,
+    wolfRobotHunterStatusViewed: broadcast.wolfRobotHunterStatusViewed,
     confirmStatus: broadcast.confirmStatus,
     actionRejected: broadcast.actionRejected,
   };

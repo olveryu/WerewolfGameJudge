@@ -70,6 +70,14 @@ export interface MessageRouterContext {
    * 由 GameFacade 注入 hostActions.clearRevealAcks 实现
    */
   handleRevealAck?: () => Promise<{ success: boolean; reason?: string }>;
+
+  /**
+   * Host 处理 Player 发来的 WOLF_ROBOT_HUNTER_STATUS_VIEWED 消息
+   * 由 GameFacade 注入实现
+   */
+  handleWolfRobotHunterStatusViewed?: (
+    seat: number,
+  ) => Promise<{ success: boolean; reason?: string }>;
 }
 
 // =============================================================================
@@ -205,6 +213,25 @@ export async function hostHandlePlayerMessage(
       }
       break;
     }
+
+    case 'WOLF_ROBOT_HUNTER_STATUS_VIEWED':
+      if (ctx.handleWolfRobotHunterStatusViewed) {
+        try {
+          await ctx.handleWolfRobotHunterStatusViewed(msg.seat);
+        } catch (e) {
+          const err = e as { message?: string };
+          facadeLog.error('[messageRouter] WOLF_ROBOT_HUNTER_STATUS_VIEWED handler error', {
+            seat: msg.seat,
+            error: err?.message ?? String(e),
+          });
+        }
+      } else {
+        facadeLog.warn(
+          '[messageRouter] WOLF_ROBOT_HUNTER_STATUS_VIEWED received but handler not wired',
+          { seat: msg.seat },
+        );
+      }
+      break;
 
     case 'SNAPSHOT_REQUEST':
       facadeLog.warn('[messageRouter] Unimplemented PlayerMessage type', {

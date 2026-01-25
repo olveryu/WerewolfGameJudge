@@ -58,6 +58,7 @@ describe('useGameRoom - ACK reason transparency', () => {
     endNight: jest.fn().mockResolvedValue({ success: true }),
     setAudioPlaying: jest.fn().mockResolvedValue({ success: true }),
     requestSnapshot: jest.fn().mockResolvedValue(true),
+    sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),
     ...overrides,
   });
 

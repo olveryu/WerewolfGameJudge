@@ -19,6 +19,7 @@ export type {
   SetConfirmStatusAction,
   ClearRevealStateAction,
   SetWolfKillDisabledAction,
+  SetWolfRobotHunterStatusViewedAction,
   SetAudioPlayingAction,
   PlayerViewedRoleAction,
   ActionRejectedAction,

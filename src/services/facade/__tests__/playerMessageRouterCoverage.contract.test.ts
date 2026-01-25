@@ -49,6 +49,7 @@ const ALL_PLAYER_MESSAGE_TYPES: PlayerMessage['type'][] = [
   'REVEAL_ACK',
   'SEAT_ACTION_REQUEST',
   'SNAPSHOT_REQUEST',
+  'WOLF_ROBOT_HUNTER_STATUS_VIEWED',
 ];
 
 /**
@@ -111,6 +112,8 @@ function createMinimalPayload(type: PlayerMessage['type']): PlayerMessage {
       };
     case 'SNAPSHOT_REQUEST':
       return { type: 'SNAPSHOT_REQUEST', requestId: 'req-1', uid: 'player-uid' };
+    case 'WOLF_ROBOT_HUNTER_STATUS_VIEWED':
+      return { type: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED', seat: 0 };
     default: {
       // TypeScript exhaustive check：如果新增了 type 但这里没处理，编译会报错
       const _exhaustiveCheck: never = type;
@@ -143,10 +146,10 @@ describe('PlayerMessage Router Coverage Contract', () => {
       }
     });
 
-    it('should have exactly 9 message types (update this if adding new types)', () => {
+    it('should have exactly 10 message types (update this if adding new types)', () => {
       // 门禁：如果新增消息类型，这个数字必须更新
       // 这会提醒开发者同时更新 router 和这个测试
-      expect(ALL_PLAYER_MESSAGE_TYPES.length).toBe(9);
+      expect(ALL_PLAYER_MESSAGE_TYPES.length).toBe(10);
     });
   });
 
@@ -347,6 +350,7 @@ describe('PlayerMessage Router Coverage Contract', () => {
       'ACTION', // PR9: now wired via handleAction
       'WOLF_VOTE', // PR9: now wired via handleWolfVote
       'REVEAL_ACK', // P0-FIX: now wired via handleRevealAck
+      'WOLF_ROBOT_HUNTER_STATUS_VIEWED', // WolfRobot Hunter gate ack
     ];
 
     const LEGACY_TYPES: PlayerMessage['type'][] = [
@@ -358,8 +362,8 @@ describe('PlayerMessage Router Coverage Contract', () => {
       'SNAPSHOT_REQUEST', // Tracked: reserved for future differential sync
     ];
 
-    it('should have 6 implemented types', () => {
-      expect(IMPLEMENTED_TYPES.length).toBe(6);
+    it('should have 7 implemented types', () => {
+      expect(IMPLEMENTED_TYPES.length).toBe(7);
     });
 
     it('should have 2 legacy types', () => {
@@ -411,12 +415,12 @@ describe('PlayerMessage Router Coverage Contract', () => {
 
 describe('PlayerMessage Router Coverage Report', () => {
   it('validates coverage expectations', () => {
-    const IMPLEMENTED = ['REQUEST_STATE', 'VIEWED_ROLE', 'SEAT_ACTION_REQUEST', 'ACTION', 'WOLF_VOTE', 'REVEAL_ACK'];
+    const IMPLEMENTED = ['REQUEST_STATE', 'VIEWED_ROLE', 'SEAT_ACTION_REQUEST', 'ACTION', 'WOLF_VOTE', 'REVEAL_ACK', 'WOLF_ROBOT_HUNTER_STATUS_VIEWED'];
     const LEGACY = ['JOIN', 'LEAVE'];
     const UNIMPLEMENTED = ['SNAPSHOT_REQUEST'];
 
     // Validate counts instead of printing
-    expect(IMPLEMENTED.length).toBe(6);
+    expect(IMPLEMENTED.length).toBe(7);
     expect(LEGACY.length).toBe(2);
     expect(UNIMPLEMENTED.length).toBe(1);
     expect(ALL_PLAYER_MESSAGE_TYPES.length).toBe(IMPLEMENTED.length + LEGACY.length + UNIMPLEMENTED.length);

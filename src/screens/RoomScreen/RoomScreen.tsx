@@ -19,7 +19,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { GameStatus, getWolfVoteSummary, getPlayersNotViewedRole } from '../../models/Room';
-import { getRoleSpec, getRoleDisplayName, buildNightPlan } from '../../models/roles';
+import { getRoleSpec, buildNightPlan } from '../../models/roles';
 import { showAlert } from '../../utils/alert';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
@@ -87,6 +87,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     clearLastSeatError,
     requestSnapshot,
     submitRevealAck,
+    sendWolfRobotHunterStatusViewed,
   } = useGameRoom();
 
   // Night progress indicator: calculate current step index and total steps
@@ -738,6 +739,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           // Status comes from gameState.confirmStatus (Host computed and broadcast)
           if (!gameState) break;
 
+          // Schema-driven UI: get text from currentSchema (hunterConfirm or darkWolfKingConfirm)
+          // Fail-fast if schema missing required status dialog fields
+          if (!currentSchema?.ui?.statusDialogTitle || !currentSchema?.ui?.canShootText || !currentSchema?.ui?.cannotShootText) {
+            throw new Error(
+              `[RoomScreen] confirmTrigger schema missing status dialog UI fields for ${currentSchema?.id}`,
+            );
+          }
+
           // Get status from gameState (Host computed)
           const confirmStatus = gameState.confirmStatus;
 
@@ -753,20 +762,49 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             }
           }
 
-          // Schema-driven: get displayName from ROLE_SPECS
-          const roleDisplayName = getRoleDisplayName(myRole ?? '');
-
-          const statusMessage = canShoot
-            ? `${roleDisplayName}可以发动技能`
-            : `${roleDisplayName}不能发动技能`;
+          // Schema-driven: use schema text directly (no string concatenation)
+          const dialogTitle = currentSchema.ui.statusDialogTitle;
+          const statusMessage = canShoot ? currentSchema.ui.canShootText : currentSchema.ui.cannotShootText;
 
           // Show info dialog with status, then submit action when user acknowledges
           // IMPORTANT: Pass confirmed=true to satisfy Host block guard
           actionDialogs.showRoleActionPrompt(
-            '技能状态',
+            dialogTitle,
             statusMessage,
             () => void proceedWithActionTyped(mySeatNumber ?? 0, { confirmed: true } as any),
           );
+          break;
+        }
+
+        case 'wolfRobotViewHunterStatus': {
+          // WolfRobot learned hunter: show status dialog, then set gate
+          if (!gameState?.wolfRobotReveal) break;
+
+          // Schema-driven UI: use currentSchema (must be wolfRobotLearn at this point)
+          // Assert schema consistency to catch refactoring errors early
+          if (currentSchema?.id !== 'wolfRobotLearn') {
+            throw new Error(
+              `[RoomScreen] wolfRobotViewHunterStatus intent received but currentSchema is ${currentSchema?.id}, expected wolfRobotLearn`,
+            );
+          }
+
+          // Read all texts from currentSchema.ui (fail-fast if missing)
+          const dialogTitle = currentSchema.ui?.hunterGateDialogTitle;
+          const canShootText = currentSchema.ui?.hunterGateCanShootText;
+          const cannotShootText = currentSchema.ui?.hunterGateCannotShootText;
+
+          if (!dialogTitle || !canShootText || !cannotShootText) {
+            throw new Error(
+              '[RoomScreen] wolfRobotLearn schema missing hunterGate UI fields - schema-driven UI requires these',
+            );
+          }
+
+          const canShoot = gameState.wolfRobotReveal.canShootAsHunter === true;
+          const statusMessage = canShoot ? canShootText : cannotShootText;
+
+          actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, () => {
+            void sendWolfRobotHunterStatusViewed();
+          });
           break;
         }
       }
@@ -785,6 +823,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       getSubStepByKey,
       hasWolfVoted,
       proceedWithActionTyped,
+      sendWolfRobotHunterStatusViewed,
       submitRevealAckSafe,
       submitWolfVote,
     ],
