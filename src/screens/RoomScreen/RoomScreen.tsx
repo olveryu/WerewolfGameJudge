@@ -149,6 +149,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // 这样天亮弹窗（发言顺序）会等待查验结果弹窗关闭后再显示
   const [pendingRevealDialog, setPendingRevealDialog] = useState(false);
 
+  // P1-FIX: 追踪"机械狼猎人状态确认正在提交"的状态
+  // 防止 sendWolfRobotHunterStatusViewed 在 state 更新前被重复触发
+  const [pendingHunterStatusViewed, setPendingHunterStatusViewed] = useState(false);
+
   // Keep gameStateRef in sync
   useEffect(() => {
     gameStateRef.current = gameState;
@@ -784,6 +788,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           // WolfRobot learned hunter: show status dialog, then set gate
           if (!gameState?.wolfRobotReveal) break;
 
+          // P1-FIX: 防重入 - 如果正在提交确认，跳过
+          if (pendingHunterStatusViewed) {
+            roomScreenLog.debug('[wolfRobotViewHunterStatus] Skipping - pending submission');
+            break;
+          }
+
           // Schema-driven UI: use currentSchema (must be wolfRobotLearn at this point)
           // Assert schema consistency to catch refactoring errors early
           if (currentSchema?.id !== 'wolfRobotLearn') {
@@ -806,8 +816,24 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           const canShoot = gameState.wolfRobotReveal.canShootAsHunter === true;
           const statusMessage = canShoot ? canShootText : cannotShootText;
 
-          actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, () => {
-            void sendWolfRobotHunterStatusViewed();
+          actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, async () => {
+            // P1-FIX: 设置 pending 状态并 await 确保 state 更新后再释放
+            setPendingHunterStatusViewed(true);
+            try {
+              await sendWolfRobotHunterStatusViewed();
+            } catch (error) {
+              // P1-FIX: 失败时给用户可见提示，避免用户误以为没点成功而反复操作
+              roomScreenLog.error('[wolfRobotViewHunterStatus] Failed to send confirmation', error);
+              actionDialogs.showRoleActionPrompt(
+                '确认失败',
+                '状态确认发送失败，请稍后重试。如问题持续，请联系房主。',
+                () => {
+                  // 用户知悉后关闭
+                },
+              );
+            } finally {
+              setPendingHunterStatusViewed(false);
+            }
           });
           break;
         }
@@ -826,6 +852,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       findVotingWolfSeat,
       getSubStepByKey,
       hasWolfVoted,
+      pendingHunterStatusViewed,
       proceedWithActionTyped,
       sendWolfRobotHunterStatusViewed,
       submitRevealAckSafe,
