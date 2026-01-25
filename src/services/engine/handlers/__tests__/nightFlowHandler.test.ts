@@ -325,11 +325,34 @@ describe('nightFlowHandler', () => {
       });
     });
 
+    describe('Gate: night_not_complete', () => {
+      it('should reject when currentStepId is still set (night plan not finished)', () => {
+        // currentStepId 仍然有值，说明 night plan 还没走完
+        const context: HandlerContext = {
+          state: createOngoingState({
+            currentStepId: 'wolfKill', // 还在 wolfKill 步骤
+            currentNightResults: { wolfVotesBySeat: {} },
+          }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleEndNight(intent, context);
+
+        expect(result.success).toBe(false);
+        expect(result.reason).toBe('night_not_complete');
+        expect(result.actions).toHaveLength(0);
+      });
+    });
+
     describe('Happy path: death calculation', () => {
       it('should produce END_NIGHT action with empty deaths when no wolf kill', () => {
         // 没有狼投票 = 空刀 = 无死亡
+        // currentStepId: undefined 表示 night plan 已走完
         const context: HandlerContext = {
           state: createOngoingState({
+            currentStepId: undefined,
             currentNightResults: { wolfVotesBySeat: {} },
           }),
           isHost: true,
@@ -353,8 +376,10 @@ describe('nightFlowHandler', () => {
 
       it('should calculate wolf kill death (simple case)', () => {
         // 两只狼都投给 4 号（villager）
+        // currentStepId: undefined 表示 night plan 已走完
         const context: HandlerContext = {
           state: createOngoingState({
+            currentStepId: undefined,
             currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 4 } },
           }),
           isHost: true,
@@ -374,8 +399,10 @@ describe('nightFlowHandler', () => {
 
       it('should return empty deaths on tie vote (空刀)', () => {
         // 两只狼投不同目标 = 平票 = 空刀
+        // currentStepId: undefined 表示 night plan 已走完
         const context: HandlerContext = {
           state: createOngoingState({
+            currentStepId: undefined,
             currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 5 } },
           }),
           isHost: true,
@@ -396,8 +423,10 @@ describe('nightFlowHandler', () => {
 
       it('should return empty deaths when wolfKillDisabled (nightmare blocked wolf)', () => {
         // 狼被封锁，即使投票了也无效
+        // currentStepId: undefined 表示 night plan 已走完
         const context: HandlerContext = {
           state: createOngoingState({
+            currentStepId: undefined,
             currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 4 } },
             wolfKillDisabled: true,
           }),
@@ -418,8 +447,10 @@ describe('nightFlowHandler', () => {
 
       it('should respect guard protection (no death)', () => {
         // 狼刀 4 号，守卫守 4 号
+        // currentStepId: undefined 表示 night plan 已走完
         const context: HandlerContext = {
           state: createOngoingState({
+            currentStepId: undefined,
             players: {
               0: createPlayer(0, 'wolf'),
               1: createPlayer(1, 'wolf'),

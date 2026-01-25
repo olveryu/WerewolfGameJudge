@@ -12,6 +12,7 @@
 
 import type { RoleId } from '../../../models/roles';
 import { createHostGame } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 
 describe('WolfVote Integration Tests', () => {
   // 12人板子：含 4 个狼角色
@@ -32,11 +33,11 @@ describe('WolfVote Integration Tests', () => {
       const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
 
       // 运行夜晚：所有狼刀座位 0
-      ctx.runNight({
+      executeFullNight(ctx, {
         wolf: 0,
         darkWolfKing: { confirmed: true },
         seer: 8,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         hunter: { confirmed: true },
         magician: { targets: [] },
       });
@@ -58,11 +59,11 @@ describe('WolfVote Integration Tests', () => {
       const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
 
       // 运行夜晚：狼空刀
-      ctx.runNight({
+      executeFullNight(ctx, {
         wolf: null, // 空刀
         darkWolfKing: { confirmed: true },
         seer: 8,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         hunter: { confirmed: true },
         magician: { targets: [] },
       });
@@ -86,11 +87,11 @@ describe('WolfVote Integration Tests', () => {
     it('投票后 night 正常结束（不会卡住）', () => {
       const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         wolf: 2,
         darkWolfKing: { confirmed: true },
         seer: 8,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         hunter: { confirmed: true },
         magician: { targets: [] },
       });
@@ -268,17 +269,16 @@ describe('WolfVote Integration Tests', () => {
       expect(state.currentNightResults?.wolfKillDisabled).toBeFalsy();
     });
 
-    it('nightmare 封锁后通过 runNight 完成夜晚，被封锁狼的投票无效', () => {
+    it('nightmare 封锁后通过逐步执行完成夜晚，被封锁狼空刀', () => {
       const ctx = createHostGame(NIGHTMARE_TEMPLATE, createNightmareRoleAssignment());
 
       // 完整运行夜晚：nightmare 封锁座位 4（第一个狼）
-      // 注意：当前 runNight 不支持 nightmare 行动输入
-      // 所以这个测试验证的是"没有 nightmare 输入时的行为"
-      const result = ctx.runNight({
+      // 注意：被封锁的狼只能 skip（非 skip action 会被 reject）
+      const result = executeFullNight(ctx, {
         nightmare: 4, // 封锁座位 4
-        wolf: 1, // 尝试刀座位 1
+        wolf: null, // 狼空刀（被封锁只能 skip）
         seer: 2,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         hunter: { confirmed: true },
         guard: 3,
       });
@@ -286,9 +286,8 @@ describe('WolfVote Integration Tests', () => {
       // 夜晚应该完成
       expect(result.completed).toBe(true);
 
-      // 由于狼被封锁，刀人应该无效
-      // 座位 1 不应该死亡
-      expect(result.deaths).not.toContain(1);
+      // 由于狼被封锁，无人死亡
+      expect(result.deaths).toEqual([]);
     });
   });
 });

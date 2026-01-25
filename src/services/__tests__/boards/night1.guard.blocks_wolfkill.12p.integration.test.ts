@@ -25,6 +25,7 @@ import {
   cleanupHostGame,
   HostGameContext,
 } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '狼王守卫12人';
@@ -61,13 +62,11 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 守卫守 seat 0，狼刀 seat 0
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         guard: 0, // 守 seat 0
-        darkWolfKing: { confirmed: false },
         wolf: 0, // 刀 seat 0
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
@@ -76,20 +75,18 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
       expect(result.deaths).toEqual([]);
 
       // guardedSeat 写入 currentNightResults
-      expect(result.state.currentNightResults?.guardedSeat).toBe(0);
+      expect(ctx.getBroadcastState().currentNightResults?.guardedSeat).toBe(0);
     });
 
     it('守卫守护非狼刀目标，狼刀目标死亡', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 守卫守 seat 1，狼刀 seat 0
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         guard: 1, // 守 seat 1
-        darkWolfKing: { confirmed: false },
         wolf: 0, // 刀 seat 0
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
@@ -103,13 +100,11 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
     it('守卫空守时，狼刀正常生效', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         guard: null, // 不守护
-        darkWolfKing: { confirmed: false },
         wolf: 2,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
@@ -130,13 +125,11 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 守卫守 seat 0，女巫救 seat 0，狼刀 seat 0
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         guard: 0,
-        darkWolfKing: { confirmed: false },
         wolf: 0,
-        witch: { stepResults: { save: 0, poison: null } },
+        witch: { save: 0, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
@@ -149,13 +142,11 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 守卫守 seat 1，狼刀 seat 0，女巫救 seat 0
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         guard: 1, // 守 seat 1（不是被刀的）
-        darkWolfKing: { confirmed: false },
         wolf: 0, // 刀 seat 0
-        witch: { stepResults: { save: 0, poison: null } }, // 救 seat 0
+        witch: { save: 0, poison: null }, // 救 seat 0
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);

@@ -21,6 +21,7 @@ import {
   cleanupHostGame,
   HostGameContext,
 } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '狼王魔术师12人';
@@ -58,19 +59,17 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
 
       // magician 交换 seat 0 (villager) 与 seat 4 (wolf)
       // 交换后：seat 0 = wolf 身份, seat 4 = villager 身份
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         magician: { targets: [0, 4] },
-        darkWolfKing: { confirmed: false },
         wolf: 1, // 狼刀 seat 1
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 0, // seer 查 seat 0（交换后是 wolf 身份）
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：seerReveal 应显示 seat 0 是"狼人"（因为交换后身份是 wolf）
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(0);
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
@@ -83,19 +82,17 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 交换后：seat 4 = villager 身份
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         magician: { targets: [0, 4] },
-        darkWolfKing: { confirmed: false },
         wolf: 1,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4, // seer 查 seat 4（交换后是 villager 身份）
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：seerReveal 应显示 seat 4 是"好人"
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(4);
       expect(['good', '好人']).toContain(state.seerReveal!.result);
@@ -105,18 +102,16 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 不交换：seat 4 仍是 wolf
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         magician: null, // 不交换
-        darkWolfKing: { confirmed: false },
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4, // seer 查 seat 4（原始 wolf）
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(4);
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
@@ -133,13 +128,11 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
       // 交换 seat 0 与 seat 4
       // 狼刀 seat 0
       // 根据规则：魔术师交换死亡命运，所以 seat 4 死
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         magician: { targets: [0, 4] },
-        darkWolfKing: { confirmed: false },
         wolf: 0, // 狼刀 seat 0
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 1,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
@@ -151,13 +144,11 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
     it('交换后女巫毒 seat 4，因 swap 规则 seat 0 死', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         magician: { targets: [0, 4] },
-        darkWolfKing: { confirmed: false },
         wolf: null, // 空刀
-        witch: { stepResults: { save: null, poison: 4 } }, // 毒 seat 4
+        witch: { save: null, poison: 4 }, // 毒 seat 4
         seer: 1,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
@@ -170,13 +161,11 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 狼刀 seat 0，女巫毒 seat 4
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         magician: { targets: [0, 4] },
-        darkWolfKing: { confirmed: false },
         wolf: 0, // 刀 seat 0
-        witch: { stepResults: { save: null, poison: 4 } }, // 毒 seat 4
+        witch: { save: null, poison: 4 }, // 毒 seat 4
         seer: 1,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
@@ -191,23 +180,22 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
     it('swappedSeats 应正确记录交换的两个座位', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         magician: { targets: [2, 7] }, // 交换 villager(2) 与 darkWolfKing(7)
-        darkWolfKing: { confirmed: false },
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 2, // 查 seat 2（交换后是 darkWolfKing 身份）
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // swappedSeats 写入 currentNightResults
-      expect(result.state.currentNightResults?.swappedSeats).toEqual([2, 7]);
+      const state = ctx.getBroadcastState();
+      expect(state.currentNightResults?.swappedSeats).toEqual([2, 7]);
 
       // seer 查 seat 2 应返回"狼人"（darkWolfKing 是狼阵营）
-      expect(result.state.seerReveal).toBeDefined();
-      expect(['wolf', '狼人']).toContain(result.state.seerReveal!.result);
+      expect(state.seerReveal).toBeDefined();
+      expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
     });
   });
 });

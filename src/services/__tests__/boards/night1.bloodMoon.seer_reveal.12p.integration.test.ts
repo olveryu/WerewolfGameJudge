@@ -21,6 +21,7 @@ import {
   cleanupHostGame,
   HostGameContext,
 } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '血月猎魔12人';
@@ -56,16 +57,16 @@ describe('Night-1: 血月猎魔12人 - Seer Reveal (12p)', () => {
     it('seer 查验 villager(0)，seerReveal.result 为 "好人"', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         wolf: 1,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 0, // 查验 villager
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：seerReveal 写入 BroadcastGameState
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(0);
       expect(['good', '好人']).toContain(state.seerReveal!.result);
@@ -76,16 +77,16 @@ describe('Night-1: 血月猎魔12人 - Seer Reveal (12p)', () => {
     it('seer 查验 bloodMoon(7，狼阵营)，seerReveal.result 为 "狼人"', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 7, // 查验 bloodMoon
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：bloodMoon 是狼阵营
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(7);
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
@@ -96,16 +97,16 @@ describe('Night-1: 血月猎魔12人 - Seer Reveal (12p)', () => {
     it('seer 不查验时，seerReveal 不包含结果', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: null, // 不查验
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：seerReveal 无结果
-      expect(result.state.seerReveal?.result).toBeUndefined();
+      expect(ctx.getBroadcastState().seerReveal?.result).toBeUndefined();
     });
   });
 
@@ -113,18 +114,19 @@ describe('Night-1: 血月猎魔12人 - Seer Reveal (12p)', () => {
     it('seer 查验 witcher(11，好人阵营)，seerReveal.result 为 "好人"', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 11, // 查验 witcher
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：witcher 是好人阵营
-      expect(result.state.seerReveal).toBeDefined();
-      expect(result.state.seerReveal!.targetSeat).toBe(11);
-      expect(['good', '好人']).toContain(result.state.seerReveal!.result);
+      const state = ctx.getBroadcastState();
+      expect(state.seerReveal).toBeDefined();
+      expect(state.seerReveal!.targetSeat).toBe(11);
+      expect(['good', '好人']).toContain(state.seerReveal!.result);
     });
   });
 });

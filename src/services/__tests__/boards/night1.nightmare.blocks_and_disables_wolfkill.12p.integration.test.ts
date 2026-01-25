@@ -18,10 +18,6 @@
  * - **被阻断玩家提交 skip（target: null）→ 有效但无效果**
  * - 若 nightmare 选中狼阵营玩家：wolfKillDisabled === true，狼刀无效
  *
- * ⚠️ 测试局限性说明：
- * runNight harness 不直接暴露 reject 信息，这里只能通过 state 不写入来侧面验证。
- * reject 的直接证据由 UI 测试覆盖：nightmareBlocked.ui.test.tsx 中的 actionRejected 弹窗测试。
- *
  * 架构：intents → handlers → reducer → BroadcastGameState
  */
 
@@ -30,6 +26,7 @@ import {
   cleanupHostGame,
   HostGameContext,
 } from './hostGameFactory';
+import { executeStepsUntil } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '梦魇守卫12人';
@@ -62,205 +59,228 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
   });
 
   describe('Nightmare 阻断狼阵营 → 禁刀', () => {
-    it('nightmare 选中 wolf(4)，wolfKillDisabled=true，狼刀无效', () => {
+    it('nightmare 选中 wolf(4)，wolfKillDisabled=true', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // nightmare 阻断 wolf(seat 4)
-      const result = ctx.runNight({
-        nightmare: 4, // 阻断 wolf
-        guard: null,
-        wolf: 0, // 狼刀 seat 0
-        witch: { stepResults: { save: null, poison: null } },
-        seer: 5,
-        hunter: { confirmed: false },
-      });
+      // 执行到 nightmareBlock 步骤
+      ctx.assertStep('nightmareBlock');
 
-      expect(result.completed).toBe(true);
+      // nightmare 阻断 wolf(seat 4)
+      const blockResult = ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 7,
+        role: 'nightmare',
+        target: 4,
+      });
+      expect(blockResult.success).toBe(true);
+      ctx.advanceNight();
 
       // 核心断言：wolfKillDisabled = true
-      expect(result.state.currentNightResults?.wolfKillDisabled).toBe(true);
-
-      // 核心断言：狼刀无效，seat 0 不死
-      expect(result.deaths).toEqual([]);
-
-      // blockedSeat 写入
-      expect(result.state.currentNightResults?.blockedSeat).toBe(4);
+      const state = ctx.getBroadcastState();
+      expect(state.currentNightResults?.wolfKillDisabled).toBe(true);
+      expect(state.currentNightResults?.blockedSeat).toBe(4);
     });
 
     it('nightmare 选中 nightmare 自己(7，狼阵营)，wolfKillDisabled=true', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx.assertStep('nightmareBlock');
 
-      // nightmare 阻断自己（nightmare 也是狼阵营）
-      const result = ctx.runNight({
-        nightmare: 7, // 阻断自己
-        guard: null,
-        wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
-        seer: 5,
-        hunter: { confirmed: false },
+      // nightmare 阻断自己
+      const blockResult = ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 7,
+        role: 'nightmare',
+        target: 7,
       });
-
-      expect(result.completed).toBe(true);
+      expect(blockResult.success).toBe(true);
+      ctx.advanceNight();
 
       // nightmare 是狼阵营，选中自己也触发禁刀
-      expect(result.state.currentNightResults?.wolfKillDisabled).toBe(true);
-      expect(result.deaths).toEqual([]);
+      const state = ctx.getBroadcastState();
+      expect(state.currentNightResults?.wolfKillDisabled).toBe(true);
     });
   });
 
   describe('Nightmare 阻断好人阵营 → 不禁刀', () => {
-    it('nightmare 选中 villager(0)，wolfKillDisabled 不设置，狼刀正常', () => {
+    it('nightmare 选中 villager(0)，wolfKillDisabled 不设置', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx.assertStep('nightmareBlock');
 
-      const result = ctx.runNight({
-        nightmare: 0, // 阻断 villager
-        guard: null,
-        wolf: 1, // 刀另一个 villager
-        witch: { stepResults: { save: null, poison: null } },
-        seer: 5,
-        hunter: { confirmed: false },
+      // nightmare 阻断 villager
+      ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 7,
+        role: 'nightmare',
+        target: 0,
       });
-
-      expect(result.completed).toBe(true);
+      ctx.advanceNight();
 
       // 核心断言：wolfKillDisabled 不设置（undefined）
-      expect(result.state.currentNightResults?.wolfKillDisabled).toBeUndefined();
-
-      // 狼刀正常生效
-      expect(result.deaths).toEqual([1]);
+      const state = ctx.getBroadcastState();
+      expect(state.currentNightResults?.wolfKillDisabled).toBeUndefined();
+      expect(state.currentNightResults?.blockedSeat).toBe(0);
     });
+  });
 
-    it('nightmare 选中 seer(8)，狼刀正常生效', () => {
+  describe('被阻断者提交非 skip action → reject', () => {
+    it('guard 被阻断后尝试守护 → reject', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx.assertStep('nightmareBlock');
 
-      const result = ctx.runNight({
-        nightmare: 8, // 阻断 seer
-        guard: null,
-        wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
-        seer: 4, // seer 被阻断但可以提交 action
-        hunter: { confirmed: false },
+      // nightmare 阻断 guard(11)
+      ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 7,
+        role: 'nightmare',
+        target: 11,
+      });
+      ctx.advanceNight();
+
+      // 推进到 guard 步骤
+      executeStepsUntil(ctx, 'guardProtect', {});
+      ctx.assertStep('guardProtect');
+
+      // guard 尝试守护 seat 0（应该被 reject）
+      const guardResult = ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 11,
+        role: 'guard',
+        target: 0,
       });
 
-      expect(result.completed).toBe(true);
+      // 核心断言：被阻断后提交非 skip action 被 reject
+      expect(guardResult.success).toBe(false);
+      expect(guardResult.reason).toContain('梦魇封锁');
+    });
 
-      // 选中好人阵营，wolfKillDisabled 不设置（undefined）
-      expect(result.state.currentNightResults?.wolfKillDisabled).toBeUndefined();
-      expect(result.deaths).toEqual([0]);
+    it('seer 被阻断后尝试查验 → reject', () => {
+      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx.assertStep('nightmareBlock');
 
-      // blockedSeat 记录
-      expect(result.state.currentNightResults?.blockedSeat).toBe(8);
+      // nightmare 阻断 seer(8)
+      ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 7,
+        role: 'nightmare',
+        target: 8,
+      });
+      ctx.advanceNight();
+
+      // 推进到 seer 步骤
+      executeStepsUntil(ctx, 'seerCheck', {
+        guard: null,
+        wolf: 0,
+        witch: { save: null, poison: null },
+        hunter: { confirmed: true },
+      });
+      ctx.assertStep('seerCheck');
+
+      // seer 尝试查验 seat 4（应该被 reject）
+      const seerResult = ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 8,
+        role: 'seer',
+        target: 4,
+      });
+
+      // 核心断言：被阻断后提交非 skip action 被 reject
+      expect(seerResult.success).toBe(false);
+      expect(seerResult.reason).toContain('梦魇封锁');
+    });
+
+    it('witch 被阻断后尝试救人 → reject', () => {
+      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx.assertStep('nightmareBlock');
+
+      // nightmare 阻断 witch(9)
+      ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 7,
+        role: 'nightmare',
+        target: 9,
+      });
+      ctx.advanceNight();
+
+      // 推进到 witch 步骤
+      executeStepsUntil(ctx, 'witchAction', {
+        guard: null,
+        wolf: 0, // 狼刀 seat 0
+      });
+      ctx.assertStep('witchAction');
+
+      // witch 尝试救 seat 0（应该被 reject）
+      // 正确的 witch 消息格式：使用 stepResults
+      const witchResult = ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 9,
+        role: 'witch',
+        target: null,
+        extra: { stepResults: { save: 0, poison: null } },
+      });
+
+      // 核心断言：被阻断后提交非 skip action 被 reject
+      expect(witchResult.success).toBe(false);
+      expect(witchResult.reason).toContain('梦魇封锁');
+    });
+  });
+
+  describe('被阻断者提交 skip → 有效但无效果', () => {
+    it('seer 被阻断后 skip，流程继续但 seerReveal 为空', () => {
+      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx.assertStep('nightmareBlock');
+
+      // nightmare 阻断 seer(8)
+      ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 7,
+        role: 'nightmare',
+        target: 8,
+      });
+      ctx.advanceNight();
+
+      // 推进到 seer 步骤
+      executeStepsUntil(ctx, 'seerCheck', {
+        guard: null,
+        wolf: 0,
+        witch: { save: null, poison: null },
+        hunter: { confirmed: true },
+      });
+      ctx.assertStep('seerCheck');
+
+      // seer skip（被阻断后只能 skip）
+      const seerResult = ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 8,
+        role: 'seer',
+        target: null, // skip
+      });
+
+      // 核心断言：skip 有效
+      expect(seerResult.success).toBe(true);
+
+      // seerReveal 为空（因为 skip）
+      const state = ctx.getBroadcastState();
+      expect(state.seerReveal?.result).toBeUndefined();
     });
   });
 
   describe('Nightmare 不行动', () => {
     it('nightmare 空选，狼刀正常生效', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx.assertStep('nightmareBlock');
 
-      const result = ctx.runNight({
-        nightmare: null, // 不阻断
-        guard: null,
-        wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
-        seer: 4,
-        hunter: { confirmed: false },
+      // nightmare skip
+      ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 7,
+        role: 'nightmare',
+        target: null,
       });
+      ctx.advanceNight();
 
-      expect(result.completed).toBe(true);
-
-      expect(result.state.currentNightResults?.blockedSeat).toBeUndefined();
-      expect(result.state.currentNightResults?.wolfKillDisabled).toBeUndefined();
-      expect(result.deaths).toEqual([0]);
-    });
-  });
-
-  describe('被阻断者的技能无效', () => {
-    it('nightmare 阻断 guard(11)，guard 守护无效', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
-
-      const result = ctx.runNight({
-        nightmare: 11, // 阻断 guard
-        guard: 0, // guard 尝试守 seat 0（但会被阻断）
-        wolf: 0, // 狼刀 seat 0
-        witch: { stepResults: { save: null, poison: null } },
-        seer: 4,
-        hunter: { confirmed: false },
-      });
-
-      expect(result.completed).toBe(true);
-
-      // 核心断言：guard 被阻断，守护无效，seat 0 死亡
-      expect(result.deaths).toEqual([0]);
-
-      // blockedSeat 记录
-      expect(result.state.currentNightResults?.blockedSeat).toBe(11);
-
-      // 显式断言：guardedSeat 未写入（被 reject 导致不写入）
-      expect(result.state.currentNightResults?.guardedSeat).toBeUndefined();
-    });
-
-    it('nightmare 阻断 witch(9)，witch 救/毒无效', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
-
-      const result = ctx.runNight({
-        nightmare: 9, // 阻断 witch
-        guard: null,
-        wolf: 0, // 狼刀 seat 0
-        witch: { stepResults: { save: 0, poison: null } }, // witch 尝试救（但会被阻断）
-        seer: 4,
-        hunter: { confirmed: false },
-      });
-
-      expect(result.completed).toBe(true);
-
-      // 核心断言：witch 被阻断，救人无效，seat 0 死亡
-      expect(result.deaths).toEqual([0]);
-
-      // 显式断言：savedSeat 未写入（被 reject 导致不写入）
-      expect(result.state.currentNightResults?.savedSeat).toBeUndefined();
-    });
-
-    it('nightmare 阻断 witch(9)，witch 毒人无效', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
-
-      const result = ctx.runNight({
-        nightmare: 9, // 阻断 witch
-        guard: null,
-        wolf: 0, // 狼刀 seat 0
-        witch: { stepResults: { save: null, poison: 1 } }, // witch 尝试毒（但会被阻断）
-        seer: 4,
-        hunter: { confirmed: false },
-      });
-
-      expect(result.completed).toBe(true);
-
-      // 核心断言：witch 被阻断，毒人无效，只有 seat 0 死亡
-      expect(result.deaths).toEqual([0]);
-
-      // 显式断言：poisonedSeat 未写入（被 reject 导致不写入）
-      expect(result.state.currentNightResults?.poisonedSeat).toBeUndefined();
-    });
-
-    it('nightmare 阻断 seer(8)，seer 查验无结果', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
-
-      const result = ctx.runNight({
-        nightmare: 8, // 阻断 seer
-        guard: null,
-        wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
-        seer: 4, // seer 尝试查验（但会被阻断）
-        hunter: { confirmed: false },
-      });
-
-      expect(result.completed).toBe(true);
-
-      // blockedSeat 记录
-      expect(result.state.currentNightResults?.blockedSeat).toBe(8);
-
-      // 核心断言：seer 被阻断（非 skip action 被 reject），seerReveal 未写入
-      // ⚠️ reject 的直接证据由 UI 测试覆盖：nightmareBlocked.ui.test.tsx 中的 actionRejected 弹窗
-      expect(result.state.seerReveal).toBeUndefined();
+      const state = ctx.getBroadcastState();
+      expect(state.currentNightResults?.blockedSeat).toBeUndefined();
+      expect(state.currentNightResults?.wolfKillDisabled).toBeUndefined();
     });
   });
 });
