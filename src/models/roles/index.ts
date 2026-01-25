@@ -7,6 +7,10 @@
  * No class hierarchy, no BaseRole - pure declarative data.
  */
 
+import { log } from '../../utils/logger';
+
+const roleLog = log.extend('Role');
+
 // ============================================================
 // Re-export from spec/
 // ============================================================
@@ -53,12 +57,19 @@ import type { Team, SeerCheckResult } from './spec/types';
 // ============================================================
 
 /**
- * Get role display name
+ * Get role display name (Chinese).
+ * Falls back to '未知角色' for unknown roleIds, with warning log.
+ *
+ * @param roleId - The role ID to look up
+ * @returns The Chinese display name (e.g., '普通村民', '狼人', '预言家')
  */
 export function getRoleDisplayName(roleId: string): string {
-  if (!isValidRoleId(roleId)) return roleId;
+  if (!isValidRoleId(roleId)) {
+    roleLog.warn(`Unknown roleId: ${roleId}`);
+    return '未知角色';
+  }
   const spec = getRoleSpec(roleId);
-  return spec?.displayName ?? roleId;
+  return spec?.displayName ?? '未知角色';
 }
 
 /**

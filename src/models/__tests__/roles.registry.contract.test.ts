@@ -7,7 +7,7 @@
  * 3. All RoleId values map to valid role specs
  * 4. Role metadata (displayName, faction, etc.) is complete
  */
-import { ROLE_SPECS, getRoleSpec, isValidRoleId, getAllRoleIds, RoleId } from '../roles';
+import { ROLE_SPECS, getRoleSpec, getRoleDisplayName, isValidRoleId, getAllRoleIds, RoleId } from '../roles';
 
 describe('Role Registry Contract Tests', () => {
   describe('ROLE_SPECS is single source of truth', () => {
@@ -129,6 +129,36 @@ describe('Role Registry Contract Tests', () => {
         // Type check: roleId should be assignable to keyof typeof ROLE_SPECS
         const _keyCheck: keyof typeof ROLE_SPECS = roleId;
         expect(_keyCheck).toBe(roleId);
+      }
+    });
+  });
+
+  describe('getRoleDisplayName (UI helper)', () => {
+    it('returns Chinese displayName for valid roleId', () => {
+      expect(getRoleDisplayName('villager')).toBe('普通村民');
+      expect(getRoleDisplayName('wolf')).toBe('狼人');
+      expect(getRoleDisplayName('seer')).toBe('预言家');
+      expect(getRoleDisplayName('witch')).toBe('女巫');
+      expect(getRoleDisplayName('hunter')).toBe('猎人');
+      expect(getRoleDisplayName('guard')).toBe('守卫');
+      expect(getRoleDisplayName('psychic')).toBe('通灵师');
+      expect(getRoleDisplayName('gargoyle')).toBe('石像鬼');
+      expect(getRoleDisplayName('wolfRobot')).toBe('机械狼');
+    });
+
+    it('returns "未知角色" for unknown roleId with warning log', () => {
+      // Unknown roleId should return fallback
+      expect(getRoleDisplayName('unknown')).toBe('未知角色');
+      expect(getRoleDisplayName('invalidRole')).toBe('未知角色');
+      expect(getRoleDisplayName('')).toBe('未知角色');
+    });
+
+    it('all valid roleIds return non-empty displayName', () => {
+      const allRoleIds = getAllRoleIds();
+      for (const roleId of allRoleIds) {
+        const displayName = getRoleDisplayName(roleId);
+        expect(displayName).toBeTruthy();
+        expect(displayName).not.toBe('未知角色');
       }
     });
   });
