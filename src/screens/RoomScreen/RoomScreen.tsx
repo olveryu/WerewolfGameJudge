@@ -19,7 +19,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { GameStatus, getWolfVoteSummary, getPlayersNotViewedRole } from '../../models/Room';
-import { getRoleSpec, buildNightPlan } from '../../models/roles';
+import { getRoleSpec, buildNightPlan, getRoleDisplayName } from '../../models/roles';
 import { showAlert } from '../../utils/alert';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
@@ -552,8 +552,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             }
 
             if (reveal) {
+              // Seer result is already Chinese ('好人'/'狼人'), others are RoleId
+              const displayResult = revealKind === 'seer' 
+                ? reveal.result 
+                : getRoleDisplayName(reveal.result);
               actionDialogs.showRevealDialog(
-                `${reveal.targetSeat + 1}号是${reveal.result}`,
+                `${reveal.targetSeat + 1}号是${displayResult}`,
                 '',
                 () => {
                   submitRevealAckSafe(revealKind);
