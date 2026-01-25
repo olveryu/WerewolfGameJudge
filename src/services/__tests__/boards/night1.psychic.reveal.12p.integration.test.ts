@@ -25,7 +25,7 @@ import {
   cleanupHostGame,
   HostGameContext,
 } from './hostGameFactory';
-import { executeFullNight } from './stepByStepRunner';
+import { executeFullNight, executeStepsUntil, executeRemainingSteps } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '机械狼通灵师12人';
@@ -67,7 +67,12 @@ describe('Night-1: Psychic Reveal (12p)', () => {
     it('psychic 查验 villager(0)，应返回 roleId "villager"', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = executeFullNight(ctx, {
+      // Step-aware 断言：确认确实走到了 psychicCheck step
+      expect(executeStepsUntil(ctx, 'psychicCheck')).toBe(true);
+      ctx.assertStep('psychicCheck');
+
+      // 继续执行剩余步骤
+      const result = executeRemainingSteps(ctx, {
         wolfRobot: null, // wolfRobot learn（如有）
         guard: null,
         wolf: 1,
@@ -131,7 +136,12 @@ describe('Night-1: Psychic Reveal (12p)', () => {
     it('psychic 不查验时，psychicReveal 不写入或为空', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = executeFullNight(ctx, {
+      // Step-aware 断言：确认确实走到了 psychicCheck step
+      expect(executeStepsUntil(ctx, 'psychicCheck')).toBe(true);
+      ctx.assertStep('psychicCheck');
+
+      // 继续执行剩余步骤
+      const result = executeRemainingSteps(ctx, {
         wolfRobot: null,
         guard: null,
         wolf: 0,
@@ -152,7 +162,12 @@ describe('Night-1: Psychic Reveal (12p)', () => {
     it('psychic 查验 guard(11，好人阵营)，应返回 roleId "guard"', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = executeFullNight(ctx, {
+      // Step-aware 断言：确认确实走到了 psychicCheck step
+      expect(executeStepsUntil(ctx, 'psychicCheck')).toBe(true);
+      ctx.assertStep('psychicCheck');
+
+      // 继续执行剩余步骤
+      const result = executeRemainingSteps(ctx, {
         wolfRobot: null,
         guard: 0, // guard 守人
         wolf: 1,

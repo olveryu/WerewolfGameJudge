@@ -9,7 +9,6 @@
  * 单一真相：BroadcastGameState（= GameState）
  */
 
-import type { BroadcastGameState } from '../../protocol/types';
 import type { RoleId } from '../../../models/roles';
 import type { SchemaId } from '../../../models/roles/spec';
 import type { GameState } from '../../engine/store/types';
@@ -17,7 +16,7 @@ import type { StateAction } from '../../engine/reducer/types';
 import type { HandlerContext, HandlerResult } from '../../engine/handlers/types';
 import type { SubmitActionIntent, SubmitWolfVoteIntent } from '../../engine/intents/types';
 import type { NightPlan } from '../../../models/roles/spec/plan';
-import type { PlayerMessage } from '../../protocol/types';
+import type { BroadcastGameState, PlayerMessage } from '../../protocol/types';
 
 import { gameReducer } from '../../engine/reducer';
 import { handleSubmitAction, handleSubmitWolfVote } from '../../engine/handlers/actionHandler';
@@ -26,46 +25,9 @@ import { handleSetWolfRobotHunterStatusViewed } from '../../engine/handlers/wolf
 import { buildNightPlan } from '../../../models/roles/spec/plan';
 import { PRESET_TEMPLATES, createTemplateFromRoles, GameTemplate } from '../../../models/Template';
 
-// =============================================================================
-// Types
-// =============================================================================
-
-/**
- * 捕获的消息记录（用于 wire protocol 合约测试）
- */
-export interface CapturedMessage {
-  /** 消息发送时的 currentStepId */
-  stepId: SchemaId | null;
-  /** 原始 PlayerMessage */
-  message: PlayerMessage;
-}
-
-export interface HostGameContext {
-  /** 获取当前 BroadcastGameState */
-  getBroadcastState: () => BroadcastGameState;
-  /** 获取当前 revision */
-  getRevision: () => number;
-  /** 获取 NightPlan */
-  getNightPlan: () => NightPlan;
-  /** 发送 PlayerMessage（模拟 player→host intent） */
-  sendPlayerMessage: (msg: PlayerMessage) => { success: boolean; reason?: string };
-  /** 推进到下一个夜晚步骤 */
-  advanceNight: () => { success: boolean; reason?: string };
-  /** 结束夜晚，触发死亡结算 */
-  endNight: () => { success: boolean; deaths: number[] };
-  /** 断言当前步骤 */
-  assertStep: (expectedStepId: SchemaId) => void;
-  /** 查找角色的座位号 */
-  findSeatByRole: (role: RoleId) => number;
-  /** 获取座位的角色 */
-  getRoleAtSeat: (seat: number) => RoleId | null;
-  /** 获取模板 */
-  template: GameTemplate;
-  /** 获取捕获的消息（用于 wire protocol 合约测试） */
-  getCapturedMessages: () => readonly CapturedMessage[];
-  /** 清空捕获的消息 */
-  clearCapturedMessages: () => void;
-}
+// Re-export types from hostGameContext.ts for backward compatibility
+export type { HostGameContext, CapturedMessage } from './hostGameContext';
+import type { HostGameContext, CapturedMessage } from './hostGameContext';
 
 // =============================================================================
 // Internal State Management
@@ -222,6 +184,31 @@ export function createHostGame(
   };
 
   /**
+   * 推进到下一个夜晚步骤（fail-fast 版本）
+   *
+   * 逻辑与 stepByStepRunner.advanceNightOrThrow 完全一致：
+   * - 调用 advanceNight()
+   * - 如果 success: false 则 throw
+   *
+   * 两处实现保持行为一致，避免循环依赖。
+   * 逻辑极简（call + throw），不存在 drift 风险。
+   *
+   * @param context - 上下文信息（用于错误消息）
+   * @throws 如果 advanceNight 返回 success: false
+   */
+  const advanceNightOrThrow = (context: string): void => {
+    const result = advanceNight();
+    if (!result.success) {
+      const currentStepId = internal.state.currentStepId;
+      throw new Error(
+        `[advanceNightOrThrow] failed at ${context}: ` +
+          `currentStepId=${currentStepId ?? 'null'}, ` +
+          `reason=${result.reason ?? 'unknown'}`,
+      );
+    }
+  };
+
+  /**
    * 结束夜晚，触发死亡结算
    *
    * FAIL-FAST: 只有当 night plan 走完（currentStepId 为空）时才允许调用。
@@ -318,6 +305,7 @@ export function createHostGame(
     getNightPlan,
     sendPlayerMessage,
     advanceNight,
+    advanceNightOrThrow,
     endNight,
     assertStep,
     findSeatByRole,

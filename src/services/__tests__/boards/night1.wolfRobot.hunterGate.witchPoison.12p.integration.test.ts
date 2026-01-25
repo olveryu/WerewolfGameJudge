@@ -34,6 +34,7 @@ import {
 import {
   executeStepsUntil,
   executeRemainingSteps,
+  sendMessageOrThrow,
 } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
@@ -77,31 +78,6 @@ function createRoleAssignment(): Map<number, RoleId> {
 
 const WOLF_ROBOT_SEAT = 7;
 const HUNTER_SEAT = 3;
-const WITCH_SEAT = 9;
-
-/**
- * 发送消息并 fail-fast（失败即 throw）
- */
-function sendMessageOrThrow(
-  ctx: HostGameContext,
-  message: Parameters<HostGameContext['sendPlayerMessage']>[0],
-  context: string,
-): void {
-  const result = ctx.sendPlayerMessage(message);
-  if (!result.success) {
-    throw new Error(`[${context}] sendPlayerMessage failed: ${result.reason ?? 'unknown'}`);
-  }
-}
-
-/**
- * advanceNight 并 fail-fast（失败即 throw）
- */
-function advanceNightOrThrow(ctx: HostGameContext, context: string): void {
-  const result = ctx.advanceNight();
-  if (!result.success) {
-    throw new Error(`[${context}] advanceNight failed: ${result.reason ?? 'unknown'}`);
-  }
-}
 
 describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () => {
   let ctx: HostGameContext;
@@ -172,7 +148,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       expect(stateAfterGate.wolfRobotHunterStatusViewed).toBe(true);
 
       // 断言 6: advance 不再被拒绝（可以推进到下一步）
-      advanceNightOrThrow(ctx, 'after gate cleared');
+      ctx.advanceNightOrThrow('after gate cleared');
 
       // 断言 7: 已推进到下一步（不再是 wolfRobotLearn）
       const stateAfterAdvance = ctx.getBroadcastState();
@@ -227,7 +203,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       expect(state.wolfRobotHunterStatusViewed).toBe(true);
 
       // 推进到下一步
-      advanceNightOrThrow(ctx, 'after wolfRobot gate cleared');
+      ctx.advanceNightOrThrow('after wolfRobot gate cleared');
 
       // Step 4: 完成剩余步骤（使用统一 runner）
       const { deaths } = executeRemainingSteps(ctx, {
@@ -297,7 +273,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       expect(state.wolfRobotHunterStatusViewed).toBe(true);
 
       // 推进到下一步
-      advanceNightOrThrow(ctx, 'after wolfRobot gate cleared');
+      ctx.advanceNightOrThrow('after wolfRobot gate cleared');
 
       // Step 4: 完成剩余步骤（使用统一 runner）
       const { deaths } = executeRemainingSteps(ctx, {
@@ -354,7 +330,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       expect(state.wolfRobotHunterStatusViewed).not.toBe(false);
 
       // 可以直接 advance（不被 gate 阻塞）
-      advanceNightOrThrow(ctx, 'after learning non-hunter');
+      ctx.advanceNightOrThrow('after learning non-hunter');
     });
 
     it('wolfRobot 跳过学习时，不触发 hunter gate', () => {
@@ -390,7 +366,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       expect(state.wolfRobotHunterStatusViewed).not.toBe(false);
 
       // 可以直接 advance
-      advanceNightOrThrow(ctx, 'after skip');
+      ctx.advanceNightOrThrow('after skip');
     });
   });
 });
