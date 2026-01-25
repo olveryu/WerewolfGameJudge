@@ -326,6 +326,27 @@ UI (从 schema + gameState 推导显示)
   - audioKey 非空
 - E2E 只做 smoke：核心 e2e 必须 `workers=1`，房间就绪必须用 `waitForRoomScreenReady()`。
 
+### Integration tests 必须“真实”（硬性要求）
+
+当你新增/修改 `src/services/__tests__/boards/**` 下的 integration board tests 时，必须满足：
+
+1) **必须跑真实 NightFlow（按 `NIGHT_STEPS` 顺序逐步执行）**
+  - 禁止使用“一键跑完整晚”但无法插入中间断言/交互的黑盒 helper。
+  - 禁止新增任何 “跳过 step / 直达 step” 的工具（例如 `advanceToStep/skipToStep/fastForward`）。
+
+2) **禁止 helper 自动清除任何 gate / 自动发送任何确认类消息**
+  - 例如：`pendingRevealAcks` / `wolfRobotHunterStatusViewed` / `isAudioPlaying` 等 gate。
+  - 例如：`REVEAL_ACK`、`WOLF_ROBOT_HUNTER_STATUS_VIEWED`、以及任何“确认/查看状态/ack”类型消息。
+  - 这些必须由测试用例显式发送，以便测试能覆盖“卡 gate / 解除 gate / step mismatch”等真实 bug。
+
+3) **必须 fail-fast（失败即停止）**
+  - runner/harness 内每一次 `sendPlayerMessage(...)` / `advanceNight()` 只要返回失败，都必须立刻抛错（包含 stepId、seat、reason）。
+  - 禁止 warn / 吞掉失败 / 继续推进（否则测试会把 bug 吃掉而误绿）。
+
+4) **测试断言必须基于 `BroadcastGameState` 单一真相**
+  - 禁止直接改 state / 注入 host-only 状态。
+  - 需要验证拒绝（reject）就显式断言 `{ success:false, reason }` 或抛错；不要把输入改成 skip 来绕开规则。
+
 ### 修复与审计规范
 
 - 修 bug 优先根因修复；修复后回滚基于错误假设的过时 patch，避免补丁叠补丁。
