@@ -98,12 +98,12 @@ function fileMentionsStepId(content: string, stepId: string): boolean {
   // - schemaId === 'dreamcatcherDream'
   const s = escapeRegExp(stepId);
   const patterns: RegExp[] = [
-    new RegExp(`\\.assertStep\\(\\s*['\"]${s}['\"]\\s*\\)`),
-    new RegExp(`currentStepId\\s*(?:===|!==|\"toBe\"|\"not\\.toBe\")\\s*['\"]${s}['\"]`),
-    new RegExp(`executeStepsUntil\\(\\s*\\w+\\s*,\\s*['\"]${s}['\"]`),
-    new RegExp(`schemaId\\s*===\\s*['\"]${s}['\"]`),
-    new RegExp(`stepId\\s*===\\s*['\"]${s}['\"]`),
-    new RegExp(`findActionMessage\\([^)]*['\"]${s}['\"]`),
+    new RegExp(String.raw`\.assertStep\(\s*['"]${s}['"]\s*\)`),
+    new RegExp(String.raw`currentStepId\s*(?:===|!==|"toBe"|"not\.toBe")\s*['"]${s}['"]`),
+    new RegExp(String.raw`executeStepsUntil\(\s*\w+\s*,\s*['"]${s}['"]`),
+    new RegExp(String.raw`schemaId\s*===\s*['"]${s}['"]`),
+    new RegExp(String.raw`stepId\s*===\s*['"]${s}['"]`),
+    new RegExp(String.raw`findActionMessage\([^)]*['"]${s}['"]`),
   ];
 
   return patterns.some((p) => p.test(content));

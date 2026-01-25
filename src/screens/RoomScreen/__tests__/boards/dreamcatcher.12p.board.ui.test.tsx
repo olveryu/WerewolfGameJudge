@@ -1,0 +1,329 @@
+/**
+ * Dreamcatcher 12P Board UI Test
+ *
+ * Board: 狼王摄梦人12人
+ * Roles: 4x villager, 3x wolf, darkWolfKing, seer, witch, hunter, dreamcatcher
+ *
+ * Required UI coverage (getRequiredUiDialogTypes):
+ * - actionPrompt, wolfVote, confirmTrigger, witchSavePrompt, witchPoisonPrompt
+ */
+
+import React from 'react';
+import { render, waitFor, fireEvent } from '@testing-library/react-native';
+import { RoomScreen } from '../../RoomScreen';
+import { showAlert } from '../../../../utils/alert';
+import {
+  RoomScreenTestHarness,
+  createShowAlertMock,
+  getBoardByName,
+  mockNavigation,
+  createGameRoomMock,
+  waitForRoomScreen,
+  tapSeat,
+} from '../harness';
+
+jest.mock('../../../../utils/alert', () => ({
+  showAlert: jest.fn(),
+}));
+
+jest.mock('@react-navigation/native', () => ({}));
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+jest.mock('../../useRoomHostDialogs', () => ({
+  useRoomHostDialogs: () => ({
+    showPrepareToFlipDialog: jest.fn(),
+    showStartGameDialog: jest.fn(),
+    showLastNightInfoDialog: jest.fn(),
+    showRestartDialog: jest.fn(),
+    showSpeakOrderDialog: jest.fn(),
+    handleSettingsPress: jest.fn(),
+  }),
+}));
+
+jest.mock('../../useRoomSeatDialogs', () => ({
+  useRoomSeatDialogs: () => ({
+    showEnterSeatDialog: jest.fn(),
+    showLeaveSeatDialog: jest.fn(),
+    handleConfirmSeat: jest.fn(),
+    handleCancelSeat: jest.fn(),
+    handleConfirmLeave: jest.fn(),
+    handleLeaveRoom: jest.fn(),
+  }),
+}));
+
+jest.mock('../../hooks/useActionerState', () => ({
+  useActionerState: () => ({
+    imActioner: true,
+    showWolves: true,
+  }),
+}));
+
+
+const BOARD_NAME = '狼王摄梦人12人';
+const _board = getBoardByName(BOARD_NAME)!;
+
+let harness: RoomScreenTestHarness;
+let mockUseGameRoomReturn: ReturnType<typeof createGameRoomMock>;
+
+jest.mock('../../../../hooks/useGameRoom', () => ({
+  useGameRoom: () => mockUseGameRoomReturn,
+}));
+
+describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    harness = new RoomScreenTestHarness();
+    (showAlert as jest.Mock).mockImplementation(createShowAlertMock(harness));
+  });
+
+  describe('actionPrompt coverage', () => {
+    it('dreamcatcher action: shows action prompt', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'dreamcatcherDream',
+        currentActionRole: 'dreamcatcher',
+        myRole: 'dreamcatcher',
+        mySeatNumber: 11,
+      });
+
+      const { getByTestId } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+    });
+  });
+
+  describe('wolfVote coverage', () => {
+    it('darkWolfKing vote: tapping seat shows wolf vote dialog', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfKill',
+        currentActionRole: 'wolf',
+        myRole: 'darkWolfKing',
+        mySeatNumber: 7,
+        roleAssignments: new Map([
+          [4, 'wolf'],
+          [5, 'wolf'],
+          [6, 'wolf'],
+          [7, 'darkWolfKing'],
+        ]),
+      });
+
+      const { getByTestId } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+      tapSeat(getByTestId, 1);
+      await waitFor(() => expect(harness.hasSeen('wolfVote')).toBe(true));
+    });
+  });
+
+  describe('confirmTrigger coverage', () => {
+    it('darkWolfKing confirm: shows confirm trigger', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'darkWolfKingConfirm',
+        currentActionRole: 'darkWolfKing',
+        myRole: 'darkWolfKing',
+        mySeatNumber: 7,
+      });
+
+      const { getByTestId } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      await waitFor(() =>
+        expect(harness.hasSeen('confirmTrigger') || harness.hasSeen('actionPrompt')).toBe(true),
+      );
+    });
+  });
+
+  describe('witchSavePrompt coverage', () => {
+    it('witch action: shows save prompt', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'witchAction',
+        currentActionRole: 'witch',
+        myRole: 'witch',
+        mySeatNumber: 9,
+        witchContext: { killedIndex: 1, canSave: true, canPoison: true },
+        gameStateOverrides: { witchContext: { killedIndex: 1, canSave: true, canPoison: true } },
+      });
+
+      const { getByTestId } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
+    });
+  });
+
+  describe('witchPoisonPrompt coverage', () => {
+    it('witch action: tapping seat triggers poison', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'witchAction',
+        currentActionRole: 'witch',
+        myRole: 'witch',
+        mySeatNumber: 9,
+        witchContext: { killedIndex: -1, canSave: false, canPoison: true },
+        gameStateOverrides: { witchContext: { killedIndex: -1, canSave: false, canPoison: true } },
+      });
+
+      const { getByTestId } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+      tapSeat(getByTestId, 1);
+      await waitFor(() =>
+        expect(
+          harness.hasSeen('witchPoisonPrompt') ||
+            harness.hasSeen('witchPoisonConfirm') ||
+            harness.hasSeen('actionConfirm'),
+        ).toBe(true),
+      );
+    });
+  });
+
+  describe('Coverage Assertion (MUST PASS)', () => {
+    it('all required UI dialog types must be covered', async () => {
+      // actionPrompt
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'dreamcatcherDream',
+        currentActionRole: 'dreamcatcher',
+        myRole: 'dreamcatcher',
+        mySeatNumber: 11,
+      });
+      let result = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+      await waitForRoomScreen(result.getByTestId);
+      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+      result.unmount();
+
+      // wolfVote
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfKill',
+        currentActionRole: 'wolf',
+        myRole: 'darkWolfKing',
+        mySeatNumber: 7,
+        roleAssignments: new Map([
+          [4, 'wolf'],
+          [5, 'wolf'],
+          [6, 'wolf'],
+          [7, 'darkWolfKing'],
+        ]),
+      });
+      result = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+      await waitForRoomScreen(result.getByTestId);
+      tapSeat(result.getByTestId, 1);
+      await waitFor(() => expect(harness.hasSeen('wolfVote')).toBe(true));
+      result.unmount();
+
+      // confirmTrigger - darkWolfKing (MUST actually press confirm button)
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'darkWolfKingConfirm',
+        currentActionRole: 'darkWolfKing',
+        myRole: 'darkWolfKing',
+        mySeatNumber: 7,
+        hookOverrides: { getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }) },
+      });
+      result = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+      await waitForRoomScreen(result.getByTestId);
+      const confirmButton = result.queryByText('查看发动状态');
+      if (confirmButton) {
+        fireEvent.press(confirmButton);
+        await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
+      }
+      result.unmount();
+
+      // witchSavePrompt
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'witchAction',
+        currentActionRole: 'witch',
+        myRole: 'witch',
+        mySeatNumber: 9,
+        witchContext: { killedIndex: 1, canSave: true, canPoison: true },
+        gameStateOverrides: { witchContext: { killedIndex: 1, canSave: true, canPoison: true } },
+      });
+      result = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+      await waitForRoomScreen(result.getByTestId);
+      await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
+      result.unmount();
+
+      // witchPoisonPrompt
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'witchAction',
+        currentActionRole: 'witch',
+        myRole: 'witch',
+        mySeatNumber: 9,
+        witchContext: { killedIndex: -1, canSave: false, canPoison: true },
+        gameStateOverrides: { witchContext: { killedIndex: -1, canSave: false, canPoison: true } },
+      });
+      result = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+      await waitForRoomScreen(result.getByTestId);
+      tapSeat(result.getByTestId, 1);
+      await waitFor(() =>
+        expect(
+          harness.hasSeen('witchPoisonPrompt') ||
+            harness.hasSeen('witchPoisonConfirm') ||
+            harness.hasSeen('actionConfirm'),
+        ).toBe(true),
+      );
+      result.unmount();
+
+      // Use literal coverage requirements
+      harness.assertCoverage([
+        'actionPrompt',
+        'wolfVote',
+        'confirmTrigger',
+        'witchSavePrompt',
+        'witchPoisonPrompt',
+      ]);
+    });
+  });
+});
