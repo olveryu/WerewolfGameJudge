@@ -559,6 +559,15 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   const getAutoTriggerIntent = useCallback((): ActionIntent | null => {
     if (!myRole || !imActioner || isAudioPlaying) return null;
 
+    // wolfRobotLearn: suppress auto-trigger if wolfRobot has already completed learning
+    // (wolfRobotReveal exists means learning is done - don't re-popup the action prompt)
+    if (currentSchema?.id === 'wolfRobotLearn' && gameState?.wolfRobotReveal) {
+      // WolfRobot has already learned a role - don't auto-trigger actionPrompt
+      // If learned hunter, the hunter gate button will be shown instead
+      // If learned other role, wait for Host to advance to next step
+      return null;
+    }
+
     // Schema-driven: compound schema (witch two-phase flow)
     if (currentSchema?.kind === 'compound') {
       // ANTI-CHEAT: 仅在 WitchContext 到达后才弹 prompt（避免没有 killedIndex 时误导 UI）。
@@ -584,7 +593,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
     // All other schemas: show generic action prompt, dismiss → wait for seat tap
     return { type: 'actionPrompt', targetIndex: -1 };
-  }, [myRole, imActioner, isAudioPlaying, currentSchema, getWitchContext, anotherIndex]);
+  }, [myRole, imActioner, isAudioPlaying, currentSchema, gameState?.wolfRobotReveal, getWitchContext, anotherIndex]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Get action intent when seat is tapped
