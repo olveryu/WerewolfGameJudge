@@ -357,6 +357,7 @@ function buildNightActions(state: NonNullState): NightActions {
  * 2. no_state
  * 3. invalid_status
  * 4. forbidden_while_audio_playing
+ * 5. night_not_complete (currentStepId must be undefined - all steps must be finished)
  *
  * 逻辑:
  * - 从 wolfVotes 调用 resolveWolfVotes 得到 wolfKill
@@ -371,6 +372,20 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
   }
 
   const { state } = validation;
+
+  // Gate 5 (END_NIGHT specific): night_not_complete
+  // currentStepId 必须为 undefined，表示所有步骤已完成（advanceNight 将 nextStepId 设为 null 后）
+  // 中途调用 endNight 是严重的架构违规，必须 fail-fast
+  if (state.currentStepId !== undefined) {
+    nightFlowLog.error('handleEndNight: night_not_complete - currentStepId is still set', {
+      currentStepId: state.currentStepId,
+    });
+    return {
+      success: false,
+      reason: 'night_not_complete',
+      actions: [],
+    };
+  }
 
   // 构建 NightActions
   const nightActions = buildNightActions(state);

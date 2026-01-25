@@ -26,6 +26,7 @@ import {
   cleanupHostGame,
   HostGameContext,
 } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '狼王魔术师12人';
@@ -62,13 +63,11 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 狼刀 seat 0，女巫救 seat 0
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         magician: null,
-        darkWolfKing: { confirmed: false },
         wolf: 0,
-        witch: { stepResults: { save: 0, poison: null } },
+        witch: { save: 0, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
@@ -77,19 +76,17 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
       expect(result.deaths).toEqual([]);
 
       // savedSeat 写入 currentNightResults
-      expect(result.state.currentNightResults?.savedSeat).toBe(0);
+      expect(ctx.getBroadcastState().currentNightResults?.savedSeat).toBe(0);
     });
 
     it('女巫不救人时，被狼刀的玩家死亡', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         magician: null,
-        darkWolfKing: { confirmed: false },
         wolf: 1,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
@@ -102,13 +99,11 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 狼空刀，女巫毒 seat 2
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         magician: null,
-        darkWolfKing: { confirmed: false },
         wolf: null,
-        witch: { stepResults: { save: null, poison: 2 } },
+        witch: { save: null, poison: 2 },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
@@ -117,19 +112,17 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
       expect(result.deaths).toEqual([2]);
 
       // poisonedSeat 写入 currentNightResults
-      expect(result.state.currentNightResults?.poisonedSeat).toBe(2);
+      expect(ctx.getBroadcastState().currentNightResults?.poisonedSeat).toBe(2);
     });
 
     it('女巫可以毒狼人', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         magician: null,
-        darkWolfKing: { confirmed: false },
         wolf: null,
-        witch: { stepResults: { save: null, poison: 4 } }, // 毒 wolf
+        witch: { save: null, poison: 4 }, // 毒 wolf
         seer: 5,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
@@ -138,45 +131,45 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
   });
 
   describe('notSelf 约束：女巫不能自救', () => {
-    it('狼刀女巫 seat(9) 时，女巫救自己应被拒绝或无效', () => {
+    /**
+     * notSelf 约束在 UI 层就是禁选：女巫无法在 UI 上选择自己。
+     * 这里验证：当女巫自己被刀时，只能选择不救（skip）。
+     * reject 的直接测试由 schema/resolver contract 测试覆盖。
+     */
+    it('狼刀女巫 seat(9) 时，女巫 skip 救人，女巫死亡', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 狼刀 seat 9（witch），女巫尝试救自己
-      const result = ctx.runNight({
+      // 狼刀 seat 9（witch），女巫 skip（因为不能自救）
+      const result = executeFullNight(ctx, {
         magician: null,
-        darkWolfKing: { confirmed: false },
         wolf: 9, // 刀女巫
-        witch: { stepResults: { save: 9, poison: null } }, // 尝试自救
+        witch: { save: null, poison: null }, // 不救（自救被禁）
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：女巫不能自救，所以 seat 9 应该死亡
-      // 或者 save action 被拒绝（savedSeat 不是 9）
+      // 核心断言：女巫不能自救，seat 9 死亡
       expect(result.deaths).toContain(9);
     });
   });
 
   describe('witchContext 写入 BroadcastGameState', () => {
-    it('狼刀目标写入 witchContext.killedIndex（通过 runNight 验证最终状态）', () => {
+    it('狼刀目标写入 witchContext.killedIndex（验证最终状态）', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 使用 runNight 完整走完夜晚，检查 state 中的 savedSeat/poisonedSeat 记录
-      const result = ctx.runNight({
+      // 完整走完夜晚，检查 state 中的 savedSeat/poisonedSeat 记录
+      const result = executeFullNight(ctx, {
         magician: null,
-        darkWolfKing: { confirmed: false },
         wolf: 0, // 狼刀 seat 0
-        witch: { stepResults: { save: 0, poison: null } }, // 救 seat 0
+        witch: { save: 0, poison: null }, // 救 seat 0
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：savedSeat 记录了女巫救的目标
-      expect(result.state.currentNightResults?.savedSeat).toBe(0);
+      expect(ctx.getBroadcastState().currentNightResults?.savedSeat).toBe(0);
 
       // seat 0 被救，不死
       expect(result.deaths).toEqual([]);
@@ -184,26 +177,45 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
   });
 
   describe('Save 只能救被狼刀的目标', () => {
-    it('女巫救非狼刀目标应被拒绝', () => {
+    /**
+     * 女巫只能救被狼刀的目标。UI 层只会 enable 被刀的座位。
+     * 如果狼空刀，女巫的救人选项不可用。
+     * 这里验证：狼刀 seat 0，女巫救 seat 0 成功；女巫 skip 时 seat 0 死亡。
+     * reject 的直接测试由 schema/resolver contract 测试覆盖。
+     */
+    it('女巫只救被狼刀目标，救成功', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 狼刀 seat 0，女巫尝试救 seat 1（不是被刀的）
-      const result = ctx.runNight({
+      // 狼刀 seat 0，女巫救 seat 0（唯一合法目标）
+      const result = executeFullNight(ctx, {
         magician: null,
-        darkWolfKing: { confirmed: false },
         wolf: 0,
-        witch: { stepResults: { save: 1, poison: null } }, // 救错人
+        witch: { save: 0, poison: null }, // 救被刀的人
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：救无效，seat 0 仍然死亡
-      expect(result.deaths).toContain(0);
+      // 核心断言：seat 0 被救，不死
+      expect(result.deaths).not.toContain(0);
+      expect(ctx.getBroadcastState().currentNightResults?.savedSeat).toBe(0);
+    });
 
-      // savedSeat 不应该是 1
-      expect(result.state.currentNightResults?.savedSeat).not.toBe(1);
+    it('女巫不救人时，被狼刀者死亡', () => {
+      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+
+      // 狼刀 seat 0，女巫不救
+      const result = executeFullNight(ctx, {
+        magician: null,
+        wolf: 0,
+        witch: { save: null, poison: null }, // 不救
+        seer: 4,
+      });
+
+      expect(result.completed).toBe(true);
+
+      // 核心断言：seat 0 死亡
+      expect(result.deaths).toContain(0);
     });
   });
 });

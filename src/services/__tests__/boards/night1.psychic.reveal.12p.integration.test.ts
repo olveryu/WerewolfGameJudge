@@ -25,6 +25,7 @@ import {
   cleanupHostGame,
   HostGameContext,
 } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '机械狼通灵师12人';
@@ -66,19 +67,19 @@ describe('Night-1: Psychic Reveal (12p)', () => {
     it('psychic 查验 villager(0)，应返回 roleId "villager"', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         wolfRobot: null, // wolfRobot learn（如有）
         guard: null,
         wolf: 1,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
+        hunter: { confirmed: true },
         psychic: 0, // 查验 villager
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：psychicReveal 写入 BroadcastGameState
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(0);
       expect(state.psychicReveal!.result).toBe('villager');
@@ -87,18 +88,18 @@ describe('Night-1: Psychic Reveal (12p)', () => {
     it('psychic 查验 wolf(4)，应返回 roleId "wolf"', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         wolfRobot: null,
         guard: null,
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
+        hunter: { confirmed: true },
         psychic: 4, // 查验 wolf
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(4);
       expect(state.psychicReveal!.result).toBe('wolf');
@@ -107,18 +108,18 @@ describe('Night-1: Psychic Reveal (12p)', () => {
     it('psychic 查验 wolfRobot(7，狼阵营)，应返回 roleId "wolfRobot"', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         wolfRobot: null,
         guard: null,
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
+        hunter: { confirmed: true },
         psychic: 7, // 查验 wolfRobot
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(7);
       // wolfRobot 是狼阵营，返回精确角色 roleId
@@ -130,19 +131,19 @@ describe('Night-1: Psychic Reveal (12p)', () => {
     it('psychic 不查验时，psychicReveal 不写入或为空', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         wolfRobot: null,
         guard: null,
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
+        hunter: { confirmed: true },
         psychic: null, // 不查验
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // psychicReveal 应该为 undefined 或不包含结果
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.psychicReveal?.result).toBeUndefined();
     });
   });
@@ -151,18 +152,18 @@ describe('Night-1: Psychic Reveal (12p)', () => {
     it('psychic 查验 guard(11，好人阵营)，应返回 roleId "guard"', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         wolfRobot: null,
         guard: 0, // guard 守人
         wolf: 1,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
+        hunter: { confirmed: true },
         psychic: 11, // 查验 guard
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(11);
       // psychic 返回精确角色 roleId
@@ -172,18 +173,18 @@ describe('Night-1: Psychic Reveal (12p)', () => {
     it('psychic 查验 witch(9，好人阵营)，应返回 roleId "witch"', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         wolfRobot: null,
         guard: null,
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
+        hunter: { confirmed: true },
         psychic: 9, // 查验 witch
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(9);
       expect(state.psychicReveal!.result).toBe('witch');

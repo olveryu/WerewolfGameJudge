@@ -25,6 +25,7 @@ import {
   cleanupHostGame,
   HostGameContext,
 } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '狼美守卫12人';
@@ -60,19 +61,19 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
     it('wolfQueen 魅惑 villager(0)，action 记录正确，流程完成', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         guard: null,
         wolf: 1, // 狼刀 seat 1
         wolfQueen: 0, // 魅惑 seat 0
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：wolfQueenCharm action 写入 state.actions
-      const charmAction = result.state.actions?.find(
+      const state = ctx.getBroadcastState();
+      const charmAction = state.actions?.find(
         (a) => a.schemaId === 'wolfQueenCharm',
       );
       expect(charmAction).toBeDefined();
@@ -86,19 +87,19 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
     it('wolfQueen 魅惑 seer(8)，action 写入 targetSeat=8', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         guard: null,
         wolf: 0,
         wolfQueen: 8, // 魅惑 seer
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：action 记录魅惑目标
-      const charmAction = result.state.actions?.find(
+      const state = ctx.getBroadcastState();
+      const charmAction = state.actions?.find(
         (a) => a.schemaId === 'wolfQueenCharm',
       );
       expect(charmAction).toBeDefined();
@@ -112,17 +113,17 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
     it('wolfQueen 空选，action 中 targetSeat 为 undefined（或无该 action）', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         guard: null,
         wolf: 0,
         wolfQueen: null, // 不魅惑
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       // 核心断言：空选时 action 存在但 targetSeat 为 undefined，或无该 action
-      const charmAction = result.state.actions?.find(
+      const state = ctx.getBroadcastState();
+      const charmAction = state.actions?.find(
         (a) => a.schemaId === 'wolfQueenCharm',
       );
       // 空选时：要么无 action，要么 targetSeat 为 undefined
@@ -148,13 +149,12 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
 
       // wolfQueen 魅惑 seat 0，狼刀 seat 0
       // 根据当前规则（单向链接），只有 seat 0 死
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         guard: null,
         wolf: 0, // 刀被魅惑者
         wolfQueen: 0, // 魅惑 seat 0
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
@@ -167,13 +167,12 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       // wolfQueen 魅惑 seat 0，女巫毒 wolfQueen(7)
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         guard: null,
         wolf: null, // 空刀
         wolfQueen: 0, // 魅惑 seat 0
-        witch: { stepResults: { save: null, poison: 7 } }, // 毒 wolfQueen
+        witch: { save: null, poison: 7 }, // 毒 wolfQueen
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
@@ -187,13 +186,12 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
     it('wolfQueen 魅惑 A，狼刀 B，只有 B 死', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         guard: null,
         wolf: 1, // 刀 seat 1
         wolfQueen: 0, // 魅惑 seat 0（不同于狼刀目标）
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);

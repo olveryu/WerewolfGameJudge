@@ -26,6 +26,7 @@ import {
   cleanupHostGame,
   HostGameContext,
 } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '石像鬼守墓人12人';
@@ -61,18 +62,17 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     it('gargoyle 查验 villager(0)，返回 villager', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         gargoyle: 0, // 查验 villager
         wolf: 1,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：gargoyleReveal 返回具体角色
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.gargoyleReveal).toBeDefined();
       expect(state.gargoyleReveal!.targetSeat).toBe(0);
       expect(state.gargoyleReveal!.result).toBe('villager');
@@ -81,17 +81,16 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     it('gargoyle 查验 wolf(4)，返回 wolf', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         gargoyle: 4, // 查验 wolf
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 5,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.gargoyleReveal).toBeDefined();
       expect(state.gargoyleReveal!.targetSeat).toBe(4);
       expect(state.gargoyleReveal!.result).toBe('wolf');
@@ -100,17 +99,16 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     it('gargoyle 查验 seer(8)，返回 seer', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         gargoyle: 8, // 查验 seer
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.gargoyleReveal).toBeDefined();
       expect(state.gargoyleReveal!.targetSeat).toBe(8);
       expect(state.gargoyleReveal!.result).toBe('seer');
@@ -119,17 +117,16 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     it('gargoyle 查验 hunter(10)，返回 hunter', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         gargoyle: 10, // 查验 hunter
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       expect(state.gargoyleReveal).toBeDefined();
       expect(state.gargoyleReveal!.targetSeat).toBe(10);
       expect(state.gargoyleReveal!.result).toBe('hunter');
@@ -140,18 +137,18 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     it('gargoyle 不查验时，gargoyleReveal 不写入', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         gargoyle: null, // 不查验
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // gargoyleReveal 应该为 undefined
-      expect(result.state.gargoyleReveal).toBeUndefined();
+      const state = ctx.getBroadcastState();
+      expect(state.gargoyleReveal).toBeUndefined();
     });
   });
 
@@ -160,19 +157,18 @@ describe('Night-1: Gargoyle Check (12p)', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 石像鬼查验自己（如果 schema 允许）
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         gargoyle: 7, // 查验自己
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // 如果允许自查，应返回 gargoyle
       // 如果不允许，action 会被拒绝，这里根据实际 schema 约束判断
-      const state = result.state;
+      const state = ctx.getBroadcastState();
       if (state.gargoyleReveal) {
         expect(state.gargoyleReveal.result).toBe('gargoyle');
       }

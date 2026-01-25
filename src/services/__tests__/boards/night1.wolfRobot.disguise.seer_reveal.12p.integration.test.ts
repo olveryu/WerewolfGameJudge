@@ -27,6 +27,7 @@ import {
   cleanupHostGame,
   HostGameContext,
 } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 /**
@@ -77,63 +78,66 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
   it('wolfRobot 学习 villager，seer 查验 wolfRobot 显示 "好人"', () => {
     ctx = createHostGame(CUSTOM_ROLES, createRoleAssignment());
 
-    const result = ctx.runNight({
+    const result = executeFullNight(ctx, {
       wolfRobot: 0, // 学习 villager（好人阵营）
-      magician: null,
+      magician: { targets: [] },
       guard: null,
       wolf: 1,
-      witch: { stepResults: { save: null, poison: null } },
+      witch: { save: null, poison: null },
       seer: 7, // 查验 wolfRobot 所在 seat
     });
 
     expect(result.completed).toBe(true);
 
+    const state = ctx.getBroadcastState();
     // wolfRobotContext 写入
-    expect(result.state.wolfRobotContext).toBeDefined();
-    expect(result.state.wolfRobotContext!.learnedSeat).toBe(0);
-    expect(result.state.wolfRobotContext!.disguisedRole).toBe('villager');
+    expect(state.wolfRobotContext).toBeDefined();
+    expect(state.wolfRobotContext!.learnedSeat).toBe(0);
+    expect(state.wolfRobotContext!.disguisedRole).toBe('villager');
 
     // seerReveal 显示 "好人"（伪装为 villager = 好人阵营）
-    expect(result.state.seerReveal!.targetSeat).toBe(7);
-    expect(result.state.seerReveal!.result).toBe('好人');
+    expect(state.seerReveal!.targetSeat).toBe(7);
+    expect(state.seerReveal!.result).toBe('好人');
   });
 
   it('wolfRobot 学习 wolf，seer 查验 wolfRobot 显示 "狼人"', () => {
     ctx = createHostGame(CUSTOM_ROLES, createRoleAssignment());
 
-    const result = ctx.runNight({
+    const result = executeFullNight(ctx, {
       wolfRobot: 4, // 学习 wolf（狼阵营）
-      magician: null,
+      magician: { targets: [] },
       guard: null,
       wolf: 1,
-      witch: { stepResults: { save: null, poison: null } },
+      witch: { save: null, poison: null },
       seer: 7, // 查验 wolfRobot
     });
 
     expect(result.completed).toBe(true);
 
-    expect(result.state.wolfRobotContext!.disguisedRole).toBe('wolf');
-    expect(result.state.seerReveal!.result).toBe('狼人');
+    const state = ctx.getBroadcastState();
+    expect(state.wolfRobotContext!.disguisedRole).toBe('wolf');
+    expect(state.seerReveal!.result).toBe('狼人');
   });
 
   it('wolfRobot 空选，seer 查验 wolfRobot 显示 "狼人"（本体）', () => {
     ctx = createHostGame(CUSTOM_ROLES, createRoleAssignment());
 
-    const result = ctx.runNight({
+    const result = executeFullNight(ctx, {
       wolfRobot: null, // 不学习
-      magician: null,
+      magician: { targets: [] },
       guard: null,
       wolf: 1,
-      witch: { stepResults: { save: null, poison: null } },
+      witch: { save: null, poison: null },
       seer: 7, // 查验 wolfRobot
     });
 
     expect(result.completed).toBe(true);
 
+    const state = ctx.getBroadcastState();
     // wolfRobotContext 未写入
-    expect(result.state.wolfRobotContext).toBeUndefined();
+    expect(state.wolfRobotContext).toBeUndefined();
     // seerReveal 显示 "狼人"（wolfRobot 本体是狼阵营）
-    expect(result.state.seerReveal!.result).toBe('狼人');
+    expect(state.seerReveal!.result).toBe('狼人');
   });
 
   describe('swap + disguise 边界', () => {
@@ -144,23 +148,24 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
       // 交换后：seat 7 是 villager，seat 0 是 wolfRobot
       // wolfRobot 学习 witch(9) = 好人阵营
       // seer 查验 seat 0（此时是 wolfRobot），应显示 "好人"
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         wolfRobot: 9, // 学习 witch（好人阵营）
         magician: { targets: [7, 0] }, // swap wolfRobot <-> villager
         guard: null,
         wolf: 1,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 0, // 查验 seat 0（swap 后是 wolfRobot）
       });
 
       expect(result.completed).toBe(true);
 
+      const state = ctx.getBroadcastState();
       // wolfRobotContext 写入（学到 witch）
-      expect(result.state.wolfRobotContext!.disguisedRole).toBe('witch');
+      expect(state.wolfRobotContext!.disguisedRole).toBe('witch');
 
       // seer 查验 seat 0（swap 后是 wolfRobot）显示 "好人"
-      expect(result.state.seerReveal!.targetSeat).toBe(0);
-      expect(result.state.seerReveal!.result).toBe('好人');
+      expect(state.seerReveal!.targetSeat).toBe(0);
+      expect(state.seerReveal!.result).toBe('好人');
     });
 
     it('magician swap wolfRobot<->wolf，seer 查验 wolfRobot 原 seat 显示 "狼人"（swap 后是 wolf）', () => {
@@ -170,20 +175,21 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
       // 交换后：seat 7 是 wolf，seat 4 是 wolfRobot
       // wolfRobot 学习 villager(0) = 好人阵营
       // seer 查验 seat 7（此时是 wolf），应显示 "狼人"
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         wolfRobot: 0, // 学习 villager
         magician: { targets: [7, 4] }, // swap wolfRobot <-> wolf
         guard: null,
         wolf: 1,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 7, // 查验 seat 7（swap 后是 wolf）
       });
 
       expect(result.completed).toBe(true);
 
+      const state = ctx.getBroadcastState();
       // seer 查验 seat 7（swap 后是 wolf）显示 "狼人"
-      expect(result.state.seerReveal!.targetSeat).toBe(7);
-      expect(result.state.seerReveal!.result).toBe('狼人');
+      expect(state.seerReveal!.targetSeat).toBe(7);
+      expect(state.seerReveal!.result).toBe('狼人');
     });
   });
 });

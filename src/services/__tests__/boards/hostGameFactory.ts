@@ -22,10 +22,9 @@ import type { PlayerMessage } from '../../protocol/types';
 import { gameReducer } from '../../engine/reducer';
 import { handleSubmitAction, handleSubmitWolfVote } from '../../engine/handlers/actionHandler';
 import { handleAdvanceNight, handleEndNight } from '../../engine/handlers/nightFlowHandler';
+import { handleSetWolfRobotHunterStatusViewed } from '../../engine/handlers/wolfRobotHunterGateHandler';
 import { buildNightPlan } from '../../../models/roles/spec/plan';
-import { SCHEMAS } from '../../../models/roles/spec';
 import { PRESET_TEMPLATES, createTemplateFromRoles, GameTemplate } from '../../../models/Template';
-import { doesRoleParticipateInWolfVote } from '../../../models/roles';
 
 // =============================================================================
 // Types
@@ -48,12 +47,12 @@ export interface HostGameContext {
   getRevision: () => number;
   /** 获取 NightPlan */
   getNightPlan: () => NightPlan;
-  /** 运行完整夜晚流程 */
-  runNight: (actions: NightActionSequence) => NightResult;
   /** 发送 PlayerMessage（模拟 player→host intent） */
   sendPlayerMessage: (msg: PlayerMessage) => { success: boolean; reason?: string };
   /** 推进到下一个夜晚步骤 */
   advanceNight: () => { success: boolean; reason?: string };
+  /** 结束夜晚，触发死亡结算 */
+  endNight: () => { success: boolean; deaths: number[] };
   /** 断言当前步骤 */
   assertStep: (expectedStepId: SchemaId) => void;
   /** 查找角色的座位号 */
@@ -66,25 +65,6 @@ export interface HostGameContext {
   getCapturedMessages: () => readonly CapturedMessage[];
   /** 清空捕获的消息 */
   clearCapturedMessages: () => void;
-}
-
-/**
- * Night-1 行动序列（wire protocol）
- */
-export interface NightActionSequence {
-  [role: string]:
-    | number
-    | null
-    | undefined
-    | { targets: readonly number[] }
-    | { stepResults: { save: number | null; poison: number | null } }
-    | { confirmed: boolean };
-}
-
-export interface NightResult {
-  deaths: number[];
-  completed: boolean;
-  state: BroadcastGameState;
 }
 
 // =============================================================================
@@ -241,10 +221,25 @@ export function createHostGame(
     return executeHandler(result);
   };
 
+  /**
+   * 结束夜晚，触发死亡结算
+   *
+   * FAIL-FAST: 只有当 night plan 走完（currentStepId 为空）时才允许调用。
+   * 中途调用会抛出错误，因为这违反了 NightFlow invariants。
+   *
+   * 复用生产 handleEndNight handler，不自造 deaths。
+   */
   const endNight = (): { success: boolean; deaths: number[] } => {
     const context = createContext(internal.state, true);
     const result = handleEndNight({ type: 'END_NIGHT' }, context);
     if (!result.success) {
+      // FAIL-FAST: 如果是 night_not_complete，说明测试代码试图中途 endNight，这是架构违规
+      if (result.reason === 'night_not_complete') {
+        throw new Error(
+          `endNight() called before night plan completed. currentStepId=${internal.state.currentStepId}. ` +
+          `You must advanceNight() through all steps first.`
+        );
+      }
       return { success: false, deaths: [] };
     }
     internal.state = applyActions(internal.state, result.actions);
@@ -304,133 +299,26 @@ export function createHostGame(
         return { success: true };
       }
 
+      case 'WOLF_ROBOT_HUNTER_STATUS_VIEWED': {
+        const result = handleSetWolfRobotHunterStatusViewed(context, {
+          type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
+          seat: msg.seat,
+        });
+        return executeHandler(result);
+      }
+
       default:
         return { success: false, reason: `Unsupported message type: ${(msg as any).type}` };
     }
-  };
-
-  const runNight = (actions: NightActionSequence): NightResult => {
-    const plan = internal.nightPlan;
-
-    for (let stepIdx = 0; stepIdx < plan.steps.length; stepIdx++) {
-      const step = plan.steps[stepIdx];
-      const schemaId = step.stepId;
-      const roleId = step.roleId;
-      const schema = SCHEMAS[schemaId];
-      const actionValue = actions[roleId];
-      const actorSeat = findSeatByRole(roleId);
-      if (actorSeat === -1) {
-        throw new Error(`Role ${roleId} not found in template`);
-      }
-
-      if (schema.kind === 'wolfVote') {
-        const wolfSeats: number[] = [];
-        for (const [seatStr, player] of Object.entries(internal.state.players)) {
-          if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
-            wolfSeats.push(Number.parseInt(seatStr, 10));
-          }
-        }
-        const wolfTarget = typeof actionValue === 'number' ? actionValue : null;
-        for (const wolfSeat of wolfSeats) {
-          if (wolfTarget !== null) {
-            sendPlayerMessage({
-              type: 'WOLF_VOTE',
-              seat: wolfSeat,
-              target: wolfTarget,
-            });
-          }
-        }
-        const leadWolfSeat = wolfSeats[0] ?? actorSeat;
-        const wolfRole = internal.state.players[leadWolfSeat]?.role ?? 'wolf';
-        sendPlayerMessage({
-          type: 'ACTION',
-          seat: leadWolfSeat,
-          role: wolfRole as RoleId,
-          target: wolfTarget,
-          extra: undefined,
-        });
-      } else if (schema.kind === 'swap') {
-        let targets: readonly number[] = [];
-        if (actionValue && typeof actionValue === 'object' && 'targets' in actionValue) {
-          targets = actionValue.targets;
-        }
-        sendPlayerMessage({
-          type: 'ACTION',
-          seat: actorSeat,
-          role: roleId as RoleId,
-          target: null,
-          extra: targets.length > 0 ? { targets } : undefined,
-        });
-      } else if (schema.kind === 'compound') {
-        let stepResults: { save: number | null; poison: number | null } = {
-          save: null,
-          poison: null,
-        };
-        if (actionValue && typeof actionValue === 'object' && 'stepResults' in actionValue) {
-          stepResults = actionValue.stepResults;
-        } else if (typeof actionValue === 'number') {
-          stepResults = { save: actionValue, poison: null };
-        }
-        sendPlayerMessage({
-          type: 'ACTION',
-          seat: actorSeat,
-          role: roleId as RoleId,
-          target: null, // compound schema target in stepResults
-          extra: { stepResults },
-        });
-      } else if (schema.kind === 'confirm') {
-        let confirmed = false;
-        if (actionValue && typeof actionValue === 'object' && 'confirmed' in actionValue) {
-          confirmed = actionValue.confirmed;
-        }
-        sendPlayerMessage({
-          type: 'ACTION',
-          seat: actorSeat,
-          role: roleId as RoleId,
-          target: null,
-          extra: { confirmed },
-        });
-      } else {
-        const target = typeof actionValue === 'number' ? actionValue : null;
-        sendPlayerMessage({
-          type: 'ACTION',
-          seat: actorSeat,
-          role: roleId as RoleId,
-          target,
-          extra: undefined,
-        });
-      }
-
-      if (internal.state.pendingRevealAcks?.length) {
-        sendPlayerMessage({
-          type: 'REVEAL_ACK',
-          seat: actorSeat,
-          role: roleId as RoleId,
-          revision: internal.revision,
-        });
-      }
-
-      if (stepIdx < plan.steps.length - 1) {
-        advanceNight();
-      }
-    }
-
-    const { deaths } = endNight();
-
-    return {
-      deaths,
-      completed: internal.state.status === 'ended',
-      state: internal.state,
-    };
   };
 
   return {
     getBroadcastState,
     getRevision,
     getNightPlan,
-    runNight,
     sendPlayerMessage,
     advanceNight,
+    endNight,
     assertStep,
     findSeatByRole,
     getRoleAtSeat,

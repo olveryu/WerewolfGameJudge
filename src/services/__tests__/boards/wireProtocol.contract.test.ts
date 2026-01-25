@@ -9,7 +9,8 @@
  */
 
 import { SCHEMAS, NIGHT_STEPS } from '../../../models/roles/spec';
-import { createHostGame } from './hostGameFactory';
+import { createHostGame, cleanupHostGame } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 import { RoleId } from '../../../models/roles';
 
 // ACTION message 类型
@@ -22,6 +23,10 @@ interface ActionMessage {
 }
 
 describe('Wire Protocol Contract', () => {
+  afterEach(() => {
+    cleanupHostGame();
+  });
+
   describe('Schema Kind Validation', () => {
     it('magicianSwap schema 应该是 swap 类型', () => {
       const schema = SCHEMAS['magicianSwap'];
@@ -125,11 +130,11 @@ describe('Wire Protocol Contract', () => {
       ctx.clearCapturedMessages();
 
       // 运行夜晚：magician 交换 seat 0 和 seat 1
-      ctx.runNight({
+      executeFullNight(ctx, {
         wolf: 2,
         seer: 4,
-        witch: { stepResults: { save: null, poison: null } },
-        hunter: null,
+        witch: { save: null, poison: null },
+        
         magician: { targets: [0, 1] },
       });
 
@@ -147,11 +152,11 @@ describe('Wire Protocol Contract', () => {
       ctx.clearCapturedMessages();
 
       // 运行夜晚：magician 不交换
-      ctx.runNight({
+      executeFullNight(ctx, {
         wolf: 2,
         seer: 4,
-        witch: { stepResults: { save: null, poison: null } },
-        hunter: null,
+        witch: { save: null, poison: null },
+        
         magician: { targets: [] },
       });
 
@@ -175,11 +180,11 @@ describe('Wire Protocol Contract', () => {
       ctx.clearCapturedMessages();
 
       // 运行夜晚：witch 救人
-      ctx.runNight({
+      executeFullNight(ctx, {
         wolf: 0,
         seer: 4,
-        witch: { stepResults: { save: 0, poison: null } },
-        hunter: null,
+        witch: { save: 0, poison: null },
+        
         magician: { targets: [] },
       });
 
@@ -204,11 +209,11 @@ describe('Wire Protocol Contract', () => {
       ctx.clearCapturedMessages();
 
       // 运行夜晚：witch 毒人
-      ctx.runNight({
+      executeFullNight(ctx, {
         wolf: 0,
         seer: 4,
-        witch: { stepResults: { save: null, poison: 2 } },
-        hunter: null,
+        witch: { save: null, poison: 2 },
+        
         magician: { targets: [] },
       });
 
@@ -232,11 +237,11 @@ describe('Wire Protocol Contract', () => {
       ctx.clearCapturedMessages();
 
       // 运行夜晚：witch 不使用技能
-      ctx.runNight({
+      executeFullNight(ctx, {
         wolf: 0,
         seer: 4,
-        witch: { stepResults: { save: null, poison: null } },
-        hunter: null,
+        witch: { save: null, poison: null },
+        
         magician: { targets: [] },
       });
 
@@ -258,10 +263,10 @@ describe('Wire Protocol Contract', () => {
       const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
-      ctx.runNight({
+      executeFullNight(ctx, {
         wolf: 0,
         seer: 4,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         hunter: { confirmed: true },
         magician: { targets: [] },
       });
@@ -275,36 +280,19 @@ describe('Wire Protocol Contract', () => {
       expect(hunterMsg!.extra!.confirmed).toBe(true);
     });
 
-    it('hunterConfirm payload: skip 时 confirmed === false', () => {
-      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
-      ctx.clearCapturedMessages();
-
-      ctx.runNight({
-        wolf: 0,
-        seer: 4,
-        witch: { stepResults: { save: null, poison: null } },
-        hunter: { confirmed: false },
-        magician: { targets: [] },
-      });
-
-      const captured = ctx.getCapturedMessages();
-      const hunterMsg = findActionMessage(captured, 'hunterConfirm');
-
-      expect(hunterMsg).toBeDefined();
-      expect(hunterMsg!.target).toBeNull();
-      // skip 时 extra.confirmed 应该是 false
-      expect(hunterMsg!.extra?.confirmed).toBe(false);
-    });
+    // NOTE: 由于系统不允许未被 block 时 skip hunterConfirm，
+    // 此处不再测试 "skip 时 confirmed === false" 场景。
+    // 如需测试 "被 block 时的 skip"，需要配置 nightmare block hunter 的模板。
 
     it('darkWolfKingConfirm payload: target === null, extra.confirmed', () => {
       const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
-      ctx.runNight({
+      executeFullNight(ctx, {
         wolf: 0,
         darkWolfKing: { confirmed: true },
         seer: 4,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         hunter: { confirmed: true },
         magician: { targets: [] },
       });
@@ -323,10 +311,10 @@ describe('Wire Protocol Contract', () => {
       ctx.clearCapturedMessages();
 
       // 运行夜晚：狼刀座位 2
-      ctx.runNight({
+      executeFullNight(ctx, {
         wolf: 2,
         seer: 4,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         hunter: { confirmed: true },
         magician: { targets: [] },
       });
@@ -356,10 +344,10 @@ describe('Wire Protocol Contract', () => {
       ctx.clearCapturedMessages();
 
       // 运行夜晚：狼空刀（target 为 null）
-      ctx.runNight({
+      executeFullNight(ctx, {
         wolf: null, // 空刀
         seer: 4,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         hunter: { confirmed: true },
         magician: { targets: [] },
       });
@@ -391,11 +379,11 @@ describe('Wire Protocol Contract', () => {
       const ctx = createHostGame(TEMPLATE_ROLES, assignment);
       ctx.clearCapturedMessages();
 
-      ctx.runNight({
+      executeFullNight(ctx, {
         wolf: 0,
         seer: 4,
-        witch: { stepResults: { save: null, poison: null } },
-        hunter: null,
+        witch: { save: null, poison: null },
+        
         magician: { targets: [0, 1] },
       });
 
@@ -549,7 +537,7 @@ describe('Wire Protocol Contract', () => {
       const ctx = createHostGame(SEER_TEMPLATE, assignment);
       ctx.clearCapturedMessages();
 
-      ctx.runNight({ seer: 2, wolf: null });
+      executeFullNight(ctx, { seer: 2, wolf: null });
 
       const captured = ctx.getCapturedMessages();
       const chooseSeatMessages = captured.filter(

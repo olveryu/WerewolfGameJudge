@@ -25,6 +25,7 @@ import {
   cleanupHostGame,
   HostGameContext,
 } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '机械狼通灵师12人';
@@ -59,65 +60,65 @@ describe('Night-1: WolfRobot Disguise - Psychic Reveal (12p)', () => {
   it('wolfRobot 学习 villager，psychic 查验 wolfRobot 显示 villager', () => {
     ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-    const result = ctx.runNight({
+    const result = executeFullNight(ctx, {
       wolfRobot: 0, // 学习 villager
       guard: null,
       wolf: 1,
-      witch: { stepResults: { save: null, poison: null } },
+      witch: { save: null, poison: null },
       psychic: 7, // 查验 wolfRobot
-      hunter: { confirmed: false },
     });
 
     expect(result.completed).toBe(true);
 
+    const state = ctx.getBroadcastState();
     // wolfRobotContext 写入
-    expect(result.state.wolfRobotContext).toBeDefined();
-    expect(result.state.wolfRobotContext!.learnedSeat).toBe(0);
-    expect(result.state.wolfRobotContext!.disguisedRole).toBe('villager');
+    expect(state.wolfRobotContext).toBeDefined();
+    expect(state.wolfRobotContext!.learnedSeat).toBe(0);
+    expect(state.wolfRobotContext!.disguisedRole).toBe('villager');
 
     // psychicReveal 显示伪装角色 villager
-    expect(result.state.psychicReveal!.targetSeat).toBe(7);
-    expect(result.state.psychicReveal!.result).toBe('villager');
+    expect(state.psychicReveal!.targetSeat).toBe(7);
+    expect(state.psychicReveal!.result).toBe('villager');
 
     // wolfRobotReveal 也写入
-    expect(result.state.wolfRobotReveal!.result).toBe('villager');
+    expect(state.wolfRobotReveal!.result).toBe('villager');
   });
 
   it('wolfRobot 学习 wolf，psychic 查验 wolfRobot 显示 wolf', () => {
     ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-    const result = ctx.runNight({
+    const result = executeFullNight(ctx, {
       wolfRobot: 4, // 学习 wolf
       guard: null,
       wolf: 1,
-      witch: { stepResults: { save: null, poison: null } },
+      witch: { save: null, poison: null },
       psychic: 7, // 查验 wolfRobot
-      hunter: { confirmed: false },
     });
 
     expect(result.completed).toBe(true);
 
-    expect(result.state.wolfRobotContext!.disguisedRole).toBe('wolf');
-    expect(result.state.psychicReveal!.result).toBe('wolf');
+    const state = ctx.getBroadcastState();
+    expect(state.wolfRobotContext!.disguisedRole).toBe('wolf');
+    expect(state.psychicReveal!.result).toBe('wolf');
   });
 
   it('wolfRobot 空选，psychic 查验 wolfRobot 显示 wolfRobot（本体）', () => {
     ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-    const result = ctx.runNight({
+    const result = executeFullNight(ctx, {
       wolfRobot: null, // 不学习
       guard: null,
       wolf: 1,
-      witch: { stepResults: { save: null, poison: null } },
+      witch: { save: null, poison: null },
       psychic: 7, // 查验 wolfRobot
-      hunter: { confirmed: false },
     });
 
     expect(result.completed).toBe(true);
 
+    const state = ctx.getBroadcastState();
     // wolfRobotContext 未写入
-    expect(result.state.wolfRobotContext).toBeUndefined();
+    expect(state.wolfRobotContext).toBeUndefined();
     // psychicReveal 显示真实角色 wolfRobot
-    expect(result.state.psychicReveal!.result).toBe('wolfRobot');
+    expect(state.psychicReveal!.result).toBe('wolfRobot');
   });
 });

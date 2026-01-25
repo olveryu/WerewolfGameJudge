@@ -25,6 +25,7 @@ import {
   cleanupHostGame,
   HostGameContext,
 } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 const TEMPLATE_NAME = '狼王摄梦人12人';
@@ -60,19 +61,18 @@ describe('Night-1: 狼王摄梦人12人 - Dreamcatcher (12p)', () => {
     it('dreamcatcher 守护 villager(0)，action 写入 state.actions', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         dreamcatcher: 0, // 守护 villager
-        darkWolfKing: { confirmed: false },
         wolf: 1,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：dreamcatcherDream action 写入 state.actions
-      const dreamAction = result.state.actions?.find(
+      const state = ctx.getBroadcastState();
+      const dreamAction = state.actions?.find(
         (a) => a.schemaId === 'dreamcatcherDream',
       );
       expect(dreamAction).toBeDefined();
@@ -86,19 +86,18 @@ describe('Night-1: 狼王摄梦人12人 - Dreamcatcher (12p)', () => {
     it('dreamcatcher 守护被狼刀目标(1)，该目标免疫死亡', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         dreamcatcher: 1, // 守护 villager(1)
-        darkWolfKing: { confirmed: false },
         wolf: 1, // 狼刀 villager(1)
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：action 记录
-      const dreamAction = result.state.actions?.find(
+      const state = ctx.getBroadcastState();
+      const dreamAction = state.actions?.find(
         (a) => a.schemaId === 'dreamcatcherDream',
       );
       expect(dreamAction).toBeDefined();
@@ -113,19 +112,18 @@ describe('Night-1: 狼王摄梦人12人 - Dreamcatcher (12p)', () => {
     it('dreamcatcher 不守护时，action 中 targetSeat 为 undefined', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         dreamcatcher: null, // 不守护
-        darkWolfKing: { confirmed: false },
         wolf: 0,
-        witch: { stepResults: { save: null, poison: null } },
+        witch: { save: null, poison: null },
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
 
       // 核心断言：空选时 action 的 targetSeat 为 undefined 或无该 action
-      const dreamAction = result.state.actions?.find(
+      const state = ctx.getBroadcastState();
+      const dreamAction = state.actions?.find(
         (a) => a.schemaId === 'dreamcatcherDream',
       );
       expect(dreamAction?.targetSeat).toBeUndefined();
@@ -138,13 +136,11 @@ describe('Night-1: 狼王摄梦人12人 - Dreamcatcher (12p)', () => {
     it('dreamcatcher 被毒杀，被守护者也死亡', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
-      const result = ctx.runNight({
+      const result = executeFullNight(ctx, {
         dreamcatcher: 0, // 守护 villager(0)
-        darkWolfKing: { confirmed: false },
         wolf: null, // 空刀
-        witch: { stepResults: { save: null, poison: 11 } }, // 毒 dreamcatcher
+        witch: { save: null, poison: 11 }, // 毒 dreamcatcher
         seer: 4,
-        hunter: { confirmed: false },
       });
 
       expect(result.completed).toBe(true);
