@@ -10,7 +10,7 @@
 [![React Native](https://img.shields.io/badge/React%20Native-Expo-purple?style=flat-square&logo=expo)](https://expo.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-Realtime-green?style=flat-square&logo=supabase)](https://supabase.com/)
 [![Tests](https://img.shields.io/badge/Tests-1922%20passed-brightgreen?style=flat-square)](.)
-[![Version](https://img.shields.io/badge/Version-1.0.6-orange?style=flat-square)](.)
+[![Version](https://img.shields.io/badge/Version-1.0.24-orange?style=flat-square)](.)
 
 ---
 
@@ -21,8 +21,10 @@
 | 🎙️ **自动语音播报** - 第一晚全流程自动引导，Host 也能闭眼参与 | 🎙️ **Auto Voice Narration** - Fully guided Night-1 flow, Host can close eyes too |
 | 📱 **多设备同步** - 一人建房，多人扫码加入，实时同步 | 📱 **Multi-device Sync** - One host creates room, others join via 4-digit code |
 | 🎭 **22 种角色** - 完整狼人杀角色库，含多种特殊狼人和神职 | 🎭 **22 Roles** - Complete role library with special wolves and gods |
+| 🤖 **AI 狼人杀助手** - 悬浮聊天泡泡，随时咨询规则和策略 | 🤖 **AI Werewolf Assistant** - Floating chat bubble for rules and strategy help |
 | ⚡ **即开即用** - 匿名登录，无需注册，4位房间码快速加入 | ⚡ **Instant Play** - Anonymous login, no registration, quick join |
 | 🌐 **跨平台** - iOS / Android / Web 全平台支持 | 🌐 **Cross-platform** - iOS / Android / Web supported |
+| 🎨 **多主题** - 6 种主题风格可选（暗黑/浅色/午夜/血月/紫霞/极简）| 🎨 **Themes** - 6 theme styles (Dark/Light/Midnight/Blood/Purple/Minimal) |
 | 🧪 **高测试覆盖** - 1922 个单元测试 + UI 测试 + E2E 测试 | 🧪 **High Test Coverage** - 1922 unit tests + UI tests + E2E tests |
 
 ---
@@ -45,6 +47,32 @@
 
 > 💡 白天发言与投票在线下进行，App 只负责第一晚。  
 > *Daytime discussion and voting happen offline. App handles Night-1 only.*
+
+---
+
+## 🤖 AI 狼人杀助手 | AI Werewolf Assistant
+
+屏幕右下角的 🐺 悬浮按钮是你的专属狼人杀顾问！  
+*The 🐺 floating button at the bottom-right is your personal Werewolf consultant!*
+
+### 功能 | Features
+
+| 中文 | English |
+|------|---------|
+| 📚 **规则咨询** - 询问任何角色的技能和规则 | 📚 **Rules Help** - Ask about any role's skills and rules |
+| 🎯 **策略建议** - 获取针对不同角色的打法建议 | 🎯 **Strategy Tips** - Get gameplay advice for different roles |
+| 🔍 **技能对决** - 查询技能结算顺序和冲突规则 | 🔍 **Skill Conflicts** - Check skill resolution order and conflicts |
+| 💬 **自然对话** - 支持中英文自由提问 | 💬 **Natural Chat** - Ask freely in Chinese or English |
+
+### 使用示例 | Example Questions
+
+- "女巫的毒药和解药怎么用？" / *"How does the Witch use poison and antidote?"*
+- "守卫和女巫同守一人会怎样？" / *"What happens if Guard and Witch both protect the same player?"*
+- "狼美人的魅惑有什么用？" / *"What's the use of Wolf Queen's charm?"*
+- "第一晚预言家应该查谁？" / *"Who should the Seer check on Night-1?"*
+
+> 💡 点击悬浮按钮打开聊天，可拖动调整位置，聊天记录会自动保存。  
+> *Click the floating button to chat, drag to reposition, chat history auto-saves.*
 
 ---
 
