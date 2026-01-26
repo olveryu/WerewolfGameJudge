@@ -193,9 +193,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Build seat view models for PlayerGrid
   const seatViewModels = useMemo(() => {
     if (!gameState) return [];
+
+    // Bug fix: After wolfRobot learns (wolfRobotReveal exists), all seat taps
+    // should have NO effect - no dialogs, no actions. Skip schema constraints
+    // entirely so that PlayerGrid won't show "不能选择自己" alert for self-tap.
+    const skipConstraints =
+      currentSchema?.id === 'wolfRobotLearn' && gameState.wolfRobotReveal != null;
+
     return buildSeatViewModels(gameState, mySeatNumber, showWolves, anotherIndex, {
       // Schema-driven constraints (notSelf, etc.) - UX-only early rejection
-      schemaConstraints: imActioner ? currentSchemaConstraints : undefined,
+      // Skip when wolfRobot learning is complete (no seat should be tappable)
+      schemaConstraints: imActioner && !skipConstraints ? currentSchemaConstraints : undefined,
       // For magician swap: highlight the second seat being selected
       secondSelectedIndex: secondSeatIndex,
     });
@@ -207,6 +215,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     secondSeatIndex,
     imActioner,
     currentSchemaConstraints,
+    currentSchema?.id,
   ]);
 
   // Calculate role statistics using helper
@@ -1057,7 +1066,19 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!currentSchema?.ui?.prompt) {
       throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
     }
-    const baseMessage = currentSchema.ui.prompt;
+
+  // Bug fix (ONLY hunter gate): When wolfRobot has learned hunter (wolfRobotReveal exists)
+  // and needs to view hunter status, show the hunter gate prompt instead of learning prompt.
+  // NOTE: This is intentionally NOT a generic "any learned role" gate. Only hunter has
+  // this extra UI gate before night advances.
+    const isWolfRobotHunterGateActive =
+      currentSchema.id === 'wolfRobotLearn' &&
+      gameState?.wolfRobotReveal?.learnedRoleId === 'hunter' &&
+      !gameState?.wolfRobotHunterStatusViewed;
+
+    const baseMessage = isWolfRobotHunterGateActive
+      ? (currentSchema.ui.hunterGatePrompt ?? currentSchema.ui.prompt)
+      : currentSchema.ui.prompt;
 
     const wolfStatusLine = getWolfStatusLine();
     if (wolfStatusLine) {

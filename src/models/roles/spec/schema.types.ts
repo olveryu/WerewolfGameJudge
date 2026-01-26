@@ -62,6 +62,11 @@ export interface SchemaUi {
 
   // === WolfRobot Hunter Gate UI (wolfRobotLearn only) ===
   /**
+   * Prompt text shown when hunter gate is active (after learning hunter).
+   * Overrides the default schema.ui.prompt when wolfRobotReveal exists.
+   */
+  readonly hunterGatePrompt?: string;
+  /**
    * Button text for the hunter status gate (wolfRobotLearn step).
    * This gate appears after wolfRobot learns hunter, before night advances.
    */
