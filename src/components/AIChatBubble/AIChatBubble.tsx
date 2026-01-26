@@ -307,17 +307,19 @@ export const AIChatBubble: React.FC = () => {
       {/* 聊天窗口 Modal */}
       <Modal visible={isOpen} transparent animationType="fade" onRequestClose={() => setIsOpen(false)}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalContainer}
+          enabled={Platform.OS !== 'web'}
         >
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setIsOpen(false)} />
 
           <View
             style={[
               styles.chatWindow,
-              {
-                bottom: Platform.OS === 'ios' ? Math.max(keyboardHeight, 90) : 90,
-              },
+              // 只在 iOS 上根据键盘高度调整位置，Web 上固定位置
+              Platform.OS === 'ios' && keyboardHeight > 0
+                ? { bottom: keyboardHeight + 10 }
+                : { bottom: 90 },
             ]}
           >
             {showSettings ? (
@@ -438,6 +440,7 @@ const createStyles = (colors: ThemeColors) =>
       right: 16,
       width: CHAT_WIDTH,
       height: CHAT_HEIGHT,
+      maxHeight: CHAT_HEIGHT,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xl,
       shadowColor: '#000',
