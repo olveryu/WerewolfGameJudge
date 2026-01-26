@@ -30,8 +30,8 @@ const STORAGE_KEY_POSITION = '@ai_chat_bubble_position';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CHAT_WIDTH = Math.min(SCREEN_WIDTH - 32, 380);
-// 使用固定像素值，避免 viewport 变化导致的问题
-const CHAT_HEIGHT = 420;
+// 基础高度，会在组件挂载时被锁定为初始 viewport 高度的一部分
+const BASE_CHAT_HEIGHT = 420;
 const BUBBLE_SIZE = 56;
 const BUBBLE_MARGIN = 16;
 
@@ -48,11 +48,27 @@ interface DisplayMessage {
   timestamp: number;
 }
 
+// Web 端：获取初始 viewport 高度，用于锁定聊天窗口高度
+const getInitialViewportHeight = (): number => {
+  if (Platform.OS === 'web' && globalThis.window !== undefined) {
+    // 使用 visualViewport 如果可用（更准确），否则用 innerHeight
+    const vh = globalThis.window.visualViewport?.height ?? globalThis.window.innerHeight;
+    // 聊天窗口高度 = min(BASE_CHAT_HEIGHT, viewport - 120px padding)
+    return Math.min(BASE_CHAT_HEIGHT, vh - 120);
+  }
+  return BASE_CHAT_HEIGHT;
+};
+
 export const AIChatBubble: React.FC = () => {
   const { colors } = useTheme();
-  const styles = createStyles(colors);
   const flatListRef = useRef<FlatList>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // 锁定的聊天窗口高度（在打开时计算一次，不随键盘变化）
+  const [lockedChatHeight, setLockedChatHeight] = useState(BASE_CHAT_HEIGHT);
+  
+  // 动态创建 styles，使用锁定的高度
+  const styles = createStyles(colors, lockedChatHeight);
 
   // 拖动位置状态
   const [position, setPosition] = useState(DEFAULT_POSITION);
@@ -68,8 +84,11 @@ export const AIChatBubble: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [tempApiKey, setTempApiKey] = useState(getDefaultApiKey());
 
+
   // 按钮点击处理（需要在 handleTouchEnd 之前定义）
   const handleBubblePress = useCallback(() => {
+    // 在打开前锁定当前 viewport 高度，防止键盘弹出后变形
+    setLockedChatHeight(getInitialViewportHeight());
     // 按钮动画
     Animated.sequence([
       Animated.timing(scaleAnim, { toValue: 0.9, duration: 100, useNativeDriver: true }),
@@ -377,7 +396,7 @@ export const AIChatBubble: React.FC = () => {
   );
 };
 
-const createStyles = (colors: ThemeColors) =>
+const createStyles = (colors: ThemeColors, chatHeight: number) =>
   StyleSheet.create({
     // 悬浮按钮 - 使用 left/top 定位
     bubbleContainer: {
@@ -414,11 +433,11 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: 'rgba(0,0,0,0.3)',
     },
 
-    // 聊天窗口 - flex 居中，固定宽高防止键盘弹出时变形
+    // 聊天窗口 - flex 居中，使用锁定的高度防止键盘弹出时变形
     chatWindow: {
       width: CHAT_WIDTH,
-      height: CHAT_HEIGHT,
-      maxHeight: CHAT_HEIGHT, // 防止被 flex 拉伸
+      height: chatHeight,
+      maxHeight: chatHeight, // 防止被 flex 拉伸
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xl,
       shadowColor: '#000',
