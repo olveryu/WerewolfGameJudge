@@ -86,10 +86,7 @@ function buildPlayerContext(
     context.currentPhase = state.currentStepId ? `第一夜 - ${state.currentStepId}` : '第一夜';
   }
 
-  // 已死亡玩家（公开信息）
-  if (state.lastNightDeaths && state.lastNightDeaths.length > 0) {
-    context.deadPlayers = state.lastNightDeaths;
-  }
+  // 注意：lastNightDeaths 是 Host 宣布后才公开的信息，AI 不应提前知道
 
   // 玩家自己知道的信息（只能看到自己该看到的）
   const myKnowledge: string[] = [];

@@ -58,8 +58,6 @@ export interface GameContext {
   usedSkills?: string[];
   /** 我知道的信息（预言家查验结果等，仅自己能看到的） */
   myKnowledge?: string[];
-  /** 已确认死亡的玩家 */
-  deadPlayers?: number[];
 }
 
 /**
@@ -113,10 +111,7 @@ export function buildGameContextPrompt(context: GameContext): string {
     context.myKnowledge.forEach((k) => lines.push(`  - ${k}`));
   }
 
-  if (context.deadPlayers && context.deadPlayers.length > 0) {
-    const deadList = context.deadPlayers.map((s) => `${s + 1}号`).join('、');
-    lines.push(`- 已死亡玩家: ${deadList}`);
-  }
+  // NOTE: deadPlayers 已移除 - 只有 Host 能宣布死亡信息
 
   lines.push('', '注意：以上是玩家自己能看到的信息，请基于这些信息给出建议。');
 
