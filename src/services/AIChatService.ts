@@ -17,6 +17,23 @@ const API_CONFIG = {
   maxTokens: 1024,
 };
 
+// 从环境变量获取默认 API Key（用户无需手动配置）
+const DEFAULT_API_KEY = process.env.EXPO_PUBLIC_GITHUB_TOKEN || '';
+
+/**
+ * 获取 API Key（优先使用环境变量）
+ */
+export function getDefaultApiKey(): string {
+  return DEFAULT_API_KEY;
+}
+
+/**
+ * 检查是否已配置 API Key
+ */
+export function hasApiKey(): boolean {
+  return !!DEFAULT_API_KEY;
+}
+
 // 获取所有角色信息用于 System Prompt
 function getRolesDescription(): string {
   const roles = Object.values(ROLE_SPECS);
