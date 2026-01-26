@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme, spacing, borderRadius, typography, ThemeColors } from '../../theme';
-import { sendChatMessage, ChatMessage } from '../../services/AIChatService';
+import { sendChatMessage, ChatMessage, getDefaultApiKey, hasApiKey } from '../../services/AIChatService';
 import { showAlert } from '../../utils/alert';
 
 const STORAGE_KEY_API_KEY = '@ai_chat_github_token';
@@ -49,9 +49,10 @@ export const AIChatBubble: React.FC = () => {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState('');
+  // 优先使用环境变量中的 API Key
+  const [apiKey, setApiKey] = useState(getDefaultApiKey());
   const [showSettings, setShowSettings] = useState(false);
-  const [tempApiKey, setTempApiKey] = useState('');
+  const [tempApiKey, setTempApiKey] = useState(getDefaultApiKey());
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // 监听键盘
@@ -68,7 +69,7 @@ export const AIChatBubble: React.FC = () => {
     };
   }, []);
 
-  // 加载保存的 API Key 和消息
+  // 加载保存的 API Key 和消息（仅当环境变量未配置时才读取存储的 key）
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -76,7 +77,8 @@ export const AIChatBubble: React.FC = () => {
           AsyncStorage.getItem(STORAGE_KEY_API_KEY),
           AsyncStorage.getItem(STORAGE_KEY_MESSAGES),
         ]);
-        if (savedKey) {
+        // 只有在没有默认 API Key 时才使用存储的 key
+        if (!hasApiKey() && savedKey) {
           setApiKey(savedKey);
           setTempApiKey(savedKey);
         }
