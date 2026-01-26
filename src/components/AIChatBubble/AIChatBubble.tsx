@@ -66,14 +66,8 @@ export const AIChatBubble: React.FC = () => {
   // 直接使用环境变量中的 API Key（不需要用户配置）
   const apiKey = getDefaultApiKey();
 
-  // 记录初始视口高度，用于计算键盘偏移
-  const initialViewportHeight = useRef(
-    Platform.OS === 'web' && globalThis.window !== undefined 
-      ? globalThis.window.visualViewport?.height ?? globalThis.window.innerHeight 
-      : SCREEN_HEIGHT
-  );
-  // 可用高度 = 视口高度 - 键盘高度
-  const [availableHeight, setAvailableHeight] = useState(initialViewportHeight.current);
+  // 键盘高度（用于计算窗口底部偏移）
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // Web 平台：使用 visualViewport API 监听键盘
   useEffect(() => {
@@ -84,17 +78,21 @@ export const AIChatBubble: React.FC = () => {
     const viewport = globalThis.window.visualViewport;
     if (!viewport) return;
 
-    const handleResize = () => {
-      // 直接使用当前 viewport 高度作为可用高度
-      setAvailableHeight(viewport.height);
+    // 记录初始高度
+    const initialHeight = globalThis.window.innerHeight;
+
+    const handleViewportChange = () => {
+      // 键盘高度 = 初始高度 - 当前 viewport 高度 - viewport 滚动偏移
+      // iOS Safari 上键盘弹出时 viewport 会滚动
+      const kbHeight = initialHeight - viewport.height - viewport.offsetTop;
+      setKeyboardHeight(Math.max(0, kbHeight));
     };
 
-    // 初始化
-    setAvailableHeight(viewport.height);
-
-    viewport.addEventListener('resize', handleResize);
+    viewport.addEventListener('resize', handleViewportChange);
+    viewport.addEventListener('scroll', handleViewportChange);
     return () => {
-      viewport.removeEventListener('resize', handleResize);
+      viewport.removeEventListener('resize', handleViewportChange);
+      viewport.removeEventListener('scroll', handleViewportChange);
     };
   }, []);
 
@@ -106,11 +104,10 @@ export const AIChatBubble: React.FC = () => {
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     
     const showSubscription = Keyboard.addListener(showEvent, (e) => {
-      // 原生平台：减去键盘高度
-      setAvailableHeight(SCREEN_HEIGHT - e.endCoordinates.height);
+      setKeyboardHeight(e.endCoordinates.height);
     });
     const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      setAvailableHeight(SCREEN_HEIGHT);
+      setKeyboardHeight(0);
     });
 
     return () => {
@@ -300,12 +297,12 @@ export const AIChatBubble: React.FC = () => {
 
       {/* 聊天窗口 Modal */}
       <Modal visible={isOpen} transparent animationType="fade" onRequestClose={() => setIsOpen(false)}>
-        {/* 容器高度 = visualViewport 高度，这样 flex-end 就会贴近键盘上方 */}
-        <View style={[styles.modalContainer, { height: availableHeight }]}>
+        {/* 使用 paddingBottom 来避开键盘 */}
+        <View style={[styles.modalContainer, { paddingBottom: keyboardHeight + 10 }]}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setIsOpen(false)} />
 
-          {/* 动态高度：取固定高度和可用高度的较小值，留出边距 */}
-          <View style={[styles.chatWindow, { height: Math.min(CHAT_HEIGHT, availableHeight - 60) }]}>
+          {/* 固定高度 */}
+          <View style={styles.chatWindow}>
             {/* Header */}
             <View style={styles.chatHeader}>
               <Text style={styles.chatTitle}>🐺 狼人杀助手</Text>
@@ -411,10 +408,10 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: 'rgba(0,0,0,0.3)',
     },
 
-    // 聊天窗口 - 高度由行内样式动态设置
+    // 聊天窗口 - 固定高度
     chatWindow: {
       width: CHAT_WIDTH,
-      maxHeight: CHAT_HEIGHT,
+      height: CHAT_HEIGHT,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xl,
       shadowColor: '#000',
