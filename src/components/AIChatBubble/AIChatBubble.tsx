@@ -19,6 +19,9 @@ import {
   Animated,
   Dimensions,
   Keyboard,
+  PanResponder,
+  GestureResponderEvent,
+  PanResponderGestureState,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme, spacing, borderRadius, typography, ThemeColors } from '../../theme';
@@ -27,10 +30,19 @@ import { showAlert } from '../../utils/alert';
 
 const STORAGE_KEY_API_KEY = '@ai_chat_github_token';
 const STORAGE_KEY_MESSAGES = '@ai_chat_messages';
+const STORAGE_KEY_POSITION = '@ai_chat_bubble_position';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CHAT_WIDTH = Math.min(SCREEN_WIDTH - 32, 380);
 const CHAT_HEIGHT = Math.min(SCREEN_HEIGHT * 0.6, 500);
+const BUBBLE_SIZE = 56;
+const BUBBLE_MARGIN = 16;
+
+// 默认位置：右下角
+const DEFAULT_POSITION = {
+  x: SCREEN_WIDTH - BUBBLE_SIZE - BUBBLE_MARGIN,
+  y: SCREEN_HEIGHT - BUBBLE_SIZE - 60, // 降低位置，距离底部 60
+};
 
 interface DisplayMessage {
   id: string;
@@ -45,6 +57,11 @@ export const AIChatBubble: React.FC = () => {
   const flatListRef = useRef<FlatList>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  // 拖动位置状态
+  const pan = useRef(new Animated.ValueXY(DEFAULT_POSITION)).current;
+  const lastPosition = useRef(DEFAULT_POSITION);
+  const isDragging = useRef(false);
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -54,6 +71,55 @@ export const AIChatBubble: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [tempApiKey, setTempApiKey] = useState(getDefaultApiKey());
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // 拖动手势处理
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState: PanResponderGestureState) => {
+        // 移动超过 5 像素才算拖动
+        return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderGrant: () => {
+        isDragging.current = false;
+        pan.setOffset({
+          x: lastPosition.current.x,
+          y: lastPosition.current.y,
+        });
+        pan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
+        if (Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5) {
+          isDragging.current = true;
+        }
+        Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false })(
+          evt,
+          gestureState
+        );
+      },
+      onPanResponderRelease: (_, gestureState: PanResponderGestureState) => {
+        pan.flattenOffset();
+        // 计算新位置并限制在屏幕内
+        let newX = lastPosition.current.x + gestureState.dx;
+        let newY = lastPosition.current.y + gestureState.dy;
+
+        // 边界限制
+        newX = Math.max(BUBBLE_MARGIN, Math.min(SCREEN_WIDTH - BUBBLE_SIZE - BUBBLE_MARGIN, newX));
+        newY = Math.max(BUBBLE_MARGIN + 50, Math.min(SCREEN_HEIGHT - BUBBLE_SIZE - BUBBLE_MARGIN, newY));
+
+        lastPosition.current = { x: newX, y: newY };
+        pan.setValue({ x: newX, y: newY });
+
+        // 保存位置
+        AsyncStorage.setItem(STORAGE_KEY_POSITION, JSON.stringify({ x: newX, y: newY }));
+
+        // 如果没有拖动，则视为点击
+        if (!isDragging.current) {
+          handleBubblePress();
+        }
+      },
+    })
+  ).current;
 
   // 监听键盘
   useEffect(() => {
@@ -73,9 +139,10 @@ export const AIChatBubble: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [savedKey, savedMessages] = await Promise.all([
+        const [savedKey, savedMessages, savedPosition] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEY_API_KEY),
           AsyncStorage.getItem(STORAGE_KEY_MESSAGES),
+          AsyncStorage.getItem(STORAGE_KEY_POSITION),
         ]);
         // 只有在没有默认 API Key 时才使用存储的 key
         if (!hasApiKey() && savedKey) {
@@ -85,12 +152,18 @@ export const AIChatBubble: React.FC = () => {
         if (savedMessages) {
           setMessages(JSON.parse(savedMessages));
         }
+        // 加载保存的位置
+        if (savedPosition) {
+          const pos = JSON.parse(savedPosition);
+          lastPosition.current = pos;
+          pan.setValue(pos);
+        }
       } catch {
         // Storage read failed, use defaults
       }
     };
     loadData();
-  }, []);
+  }, [pan]);
 
   // 保存消息
   useEffect(() => {
@@ -217,11 +290,19 @@ export const AIChatBubble: React.FC = () => {
 
   return (
     <>
-      {/* 悬浮按钮 */}
-      <Animated.View style={[styles.bubbleContainer, { transform: [{ scale: scaleAnim }] }]}>
-        <TouchableOpacity style={styles.bubble} onPress={handleBubblePress} activeOpacity={0.8}>
+      {/* 悬浮按钮 - 可拖动 */}
+      <Animated.View
+        style={[
+          styles.bubbleContainer,
+          {
+            transform: [{ translateX: pan.x }, { translateY: pan.y }, { scale: scaleAnim }],
+          },
+        ]}
+        {...panResponder.panHandlers}
+      >
+        <View style={styles.bubble}>
           <Text style={styles.bubbleIcon}>🐺</Text>
-        </TouchableOpacity>
+        </View>
       </Animated.View>
 
       {/* 聊天窗口 Modal */}
@@ -319,17 +400,17 @@ export const AIChatBubble: React.FC = () => {
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    // 悬浮按钮
+    // 悬浮按钮 - 使用 translate 定位，不用 right/bottom
     bubbleContainer: {
       position: 'absolute',
-      right: 16,
-      bottom: 100,
+      left: 0,
+      top: 0,
       zIndex: 1000,
     },
     bubble: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
+      width: BUBBLE_SIZE,
+      height: BUBBLE_SIZE,
+      borderRadius: BUBBLE_SIZE / 2,
       backgroundColor: colors.primary,
       justifyContent: 'center',
       alignItems: 'center',
