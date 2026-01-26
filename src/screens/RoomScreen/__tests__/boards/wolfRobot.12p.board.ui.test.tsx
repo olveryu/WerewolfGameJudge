@@ -745,7 +745,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // CRITICAL: Actually press the confirm button to trigger confirmTrigger dialog
       const confirmButton = result.getByText('查看发动状态');
       fireEvent.press(confirmButton);
-      await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
+  await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
       result.unmount();
 
       // Step 8: skipConfirm (guard) - MUST press the skip button
