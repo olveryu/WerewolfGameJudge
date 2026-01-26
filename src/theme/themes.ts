@@ -166,7 +166,7 @@ const midnightTheme: Theme = {
 
 const bloodTheme: Theme = {
   key: 'blood',
-  name: '🩸 血月',
+  name: '血月',
   isDark: true,
   colors: {
     primary: '#DC2626',

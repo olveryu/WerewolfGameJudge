@@ -845,7 +845,7 @@ const SettingsScreen: React.FC = () => {
 
         {/* Theme selector */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>🎨 主题</Text>
+          <Text style={styles.cardTitle}>主题</Text>
           <View style={styles.themeOptions}>
             {availableThemes.map((theme) => (
               <TouchableOpacity
