@@ -68,6 +68,16 @@ export const AIChatBubble: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [tempApiKey, setTempApiKey] = useState(getDefaultApiKey());
 
+  // 按钮点击处理（需要在 handleTouchEnd 之前定义）
+  const handleBubblePress = useCallback(() => {
+    // 按钮动画
+    Animated.sequence([
+      Animated.timing(scaleAnim, { toValue: 0.9, duration: 100, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
+    ]).start();
+    setIsOpen(true);
+  }, [scaleAnim]);
+
   // 拖动手势处理函数
   const handleTouchStart = useCallback((e: GestureResponderEvent) => {
     const touch = e.nativeEvent;
@@ -108,7 +118,7 @@ export const AIChatBubble: React.FC = () => {
       // 没有拖动，视为点击
       handleBubblePress();
     }
-  }, [position]);
+  }, [position, handleBubblePress]);
 
   // 加载保存的 API Key 和消息（仅当环境变量未配置时才读取存储的 key）
   useEffect(() => {
@@ -145,15 +155,6 @@ export const AIChatBubble: React.FC = () => {
       AsyncStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(messages.slice(-50)));
     }
   }, [messages]);
-
-  const handleBubblePress = useCallback(() => {
-    // 按钮动画
-    Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 0.9, duration: 100, useNativeDriver: true }),
-      Animated.timing(scaleAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
-    ]).start();
-    setIsOpen(true);
-  }, [scaleAnim]);
 
   const handleSend = useCallback(async () => {
     const text = inputText.trim();
@@ -268,7 +269,7 @@ export const AIChatBubble: React.FC = () => {
 
   return (
     <>
-      {/* 悬浮按钮 - 可拖动 */}
+      {/* 悬浮按钮 - 可拖动，支持 Web 桌面点击 */}
       <Animated.View
         style={[
           styles.bubbleContainer,
@@ -283,9 +284,14 @@ export const AIChatBubble: React.FC = () => {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <View style={styles.bubble}>
+        {/* 用 TouchableOpacity 包裹，确保 Web 桌面端鼠标点击生效 */}
+        <TouchableOpacity
+          style={styles.bubble}
+          onPress={handleBubblePress}
+          activeOpacity={0.8}
+        >
           <Text style={styles.bubbleIcon}>🐺</Text>
-        </View>
+        </TouchableOpacity>
       </Animated.View>
 
       {/* 聊天窗口 Modal */}
@@ -408,12 +414,11 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: 'rgba(0,0,0,0.3)',
     },
 
-    // 聊天窗口 - 绝对定位在屏幕中央偏上，固定尺寸
+    // 聊天窗口 - flex 居中，固定宽高防止键盘弹出时变形
     chatWindow: {
-      position: 'absolute',
-      top: 60,
       width: CHAT_WIDTH,
       height: CHAT_HEIGHT,
+      maxHeight: CHAT_HEIGHT, // 防止被 flex 拉伸
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xl,
       shadowColor: '#000',
