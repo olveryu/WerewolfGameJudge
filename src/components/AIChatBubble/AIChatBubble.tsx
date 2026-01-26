@@ -12,13 +12,11 @@ import {
   TouchableOpacity,
   FlatList,
   Modal,
-  KeyboardAvoidingView,
   Platform,
   StyleSheet,
   ActivityIndicator,
   Animated,
   Dimensions,
-  Keyboard,
   GestureResponderEvent,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -68,7 +66,6 @@ export const AIChatBubble: React.FC = () => {
   const [apiKey, setApiKey] = useState(getDefaultApiKey());
   const [showSettings, setShowSettings] = useState(false);
   const [tempApiKey, setTempApiKey] = useState(getDefaultApiKey());
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // 拖动手势处理函数
   const handleTouchStart = useCallback((e: GestureResponderEvent) => {
@@ -111,20 +108,6 @@ export const AIChatBubble: React.FC = () => {
       handleBubblePress();
     }
   }, [position]);
-
-  // 监听键盘
-  useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
-      setKeyboardHeight(e.endCoordinates.height);
-    });
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardHeight(0);
-    });
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   // 加载保存的 API Key 和消息（仅当环境变量未配置时才读取存储的 key）
   useEffect(() => {
@@ -306,22 +289,10 @@ export const AIChatBubble: React.FC = () => {
 
       {/* 聊天窗口 Modal */}
       <Modal visible={isOpen} transparent animationType="fade" onRequestClose={() => setIsOpen(false)}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalContainer}
-          enabled={Platform.OS !== 'web'}
-        >
+        <View style={styles.modalContainer}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setIsOpen(false)} />
 
-          <View
-            style={[
-              styles.chatWindow,
-              // 只在 iOS 上根据键盘高度调整位置，Web 上固定位置
-              Platform.OS === 'ios' && keyboardHeight > 0
-                ? { bottom: keyboardHeight + 10 }
-                : { bottom: 90 },
-            ]}
-          >
+          <View style={styles.chatWindow}>
             {showSettings ? (
               renderSettings()
             ) : (
@@ -393,7 +364,7 @@ export const AIChatBubble: React.FC = () => {
               </>
             )}
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
     </>
   );
@@ -428,16 +399,16 @@ const createStyles = (colors: ThemeColors) =>
     // Modal
     modalContainer: {
       flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     modalBackdrop: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: 'rgba(0,0,0,0.3)',
     },
 
-    // 聊天窗口
+    // 聊天窗口 - 居中显示，固定尺寸
     chatWindow: {
-      position: 'absolute',
-      right: 16,
       width: CHAT_WIDTH,
       height: CHAT_HEIGHT,
       maxHeight: CHAT_HEIGHT,
