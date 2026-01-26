@@ -58,6 +58,8 @@ export interface GameContext {
   usedSkills?: string[];
   /** 我知道的信息（预言家查验结果等，仅自己能看到的） */
   myKnowledge?: string[];
+  /** 板子配置（所有角色名称，公开信息） */
+  boardRoles?: string[];
 }
 
 /**
@@ -96,6 +98,10 @@ export function buildGameContextPrompt(context: GameContext): string {
 
   if (context.totalPlayers) {
     lines.push(`- 总玩家数: ${context.totalPlayers} 人`);
+  }
+
+  if (context.boardRoles && context.boardRoles.length > 0) {
+    lines.push(`- 板子配置: ${context.boardRoles.join('、')}`);
   }
 
   if (context.currentPhase) {

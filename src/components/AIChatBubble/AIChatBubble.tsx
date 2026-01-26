@@ -70,6 +70,14 @@ function buildPlayerContext(
     totalPlayers: Object.values(state.players).filter(Boolean).length,
   };
 
+  // 板子配置（公开信息 - 所有角色名称）
+  if (state.templateRoles && state.templateRoles.length > 0) {
+    context.boardRoles = state.templateRoles.map((roleId) => {
+      const roleSpec = ROLE_SPECS[roleId];
+      return roleSpec?.displayName || roleId;
+    });
+  }
+
   // 我的座位和角色
   if (mySeat !== null && mySeat !== undefined) {
     context.mySeat = mySeat;
