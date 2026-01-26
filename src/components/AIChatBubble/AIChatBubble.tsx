@@ -2,7 +2,7 @@
  * AI Chat Bubble - 全局悬浮聊天泡泡
  *
  * 在右下角显示一个悬浮按钮，点击后弹出聊天窗口
- * 使用 React Native Keyboard API 处理键盘弹出
+ * 使用 visualViewport API (Web) 处理键盘弹出
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -66,16 +66,48 @@ export const AIChatBubble: React.FC = () => {
   // 直接使用环境变量中的 API Key（不需要用户配置）
   const apiKey = getDefaultApiKey();
 
-  // 键盘高度状态（用于调整聊天窗口位置）
+  // 记录初始视口高度，用于计算键盘偏移
+  const initialViewportHeight = useRef(
+    Platform.OS === 'web' && globalThis.window !== undefined 
+      ? globalThis.window.visualViewport?.height ?? globalThis.window.innerHeight 
+      : SCREEN_HEIGHT
+  );
   const [keyboardOffset, setKeyboardOffset] = useState(0);
 
-  // 监听键盘事件（React Native 方式）
+  // Web 平台：使用 visualViewport API 监听键盘
   useEffect(() => {
+    if (Platform.OS !== 'web' || globalThis.window === undefined) {
+      return;
+    }
+
+    const viewport = globalThis.window.visualViewport;
+    if (!viewport) return;
+
+    const handleResize = () => {
+      const heightDiff = initialViewportHeight.current - viewport.height;
+      // 键盘弹出时 viewport.height 会变小
+      if (heightDiff > 100) {
+        // 键盘弹出
+        setKeyboardOffset(heightDiff / 2);
+      } else {
+        setKeyboardOffset(0);
+      }
+    };
+
+    viewport.addEventListener('resize', handleResize);
+    return () => {
+      viewport.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  // 原生平台：使用 Keyboard API
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     
     const showSubscription = Keyboard.addListener(showEvent, (e) => {
-      // 键盘弹出时，向上偏移聊天窗口
       setKeyboardOffset(e.endCoordinates.height / 2);
     });
     const hideSubscription = Keyboard.addListener(hideEvent, () => {
