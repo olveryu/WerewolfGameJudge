@@ -113,15 +113,19 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   { type: 'seerReveal', match: (t) => t.includes('预言家') || t.includes('查验结果') },
   { type: 'psychicReveal', match: (t) => t.includes('通灵师') },
   { type: 'gargoyleReveal', match: (t) => t.includes('石像鬼') },
-  // wolfRobotHunterStatus: uses message because title is generic '技能状态'
-  { type: 'wolfRobotHunterStatus', match: (t, m) => m.includes('机械狼') && m.includes('猎人') },
+  // wolfRobotHunterStatus: schema-driven title/message for wolfRobotLearn hunter gate.
+  // Current copy in SCHEMAS.wolfRobotLearn.ui.hunterGate*: title is “技能状态”,
+  // message contains “猎人” + “发动”.
+  // Must be checked BEFORE confirmTrigger since both use “技能状态”.
+  { type: 'wolfRobotHunterStatus', match: (t, m) => t === '技能状态' && m.includes('猎人') && m.includes('发动') },
   { type: 'wolfRobotReveal', match: (t) => t.includes('机械狼') || t.includes('你学习了') },
 
   // Magician
   { type: 'magicianFirst', match: (t) => t.includes('已选择第一位') },
 
-  // Confirm trigger (hunter/darkWolfKing status)
-  { type: 'confirmTrigger', match: (t) => t.includes('发动状态') || t.includes('确认发动') || t.includes('技能状态') },
+  // Confirm trigger (hunter/darkWolfKing status): title is “技能状态”,
+  // message contains “可以/不能” + “发动”, and should NOT contain “猎人” (else it's wolfRobot gate).
+  { type: 'confirmTrigger', match: (t, m) => t === '技能状态' && !m.includes('猎人') && (m.includes('可以') || m.includes('不能')) && m.includes('发动') },
 
   // Role card
   { type: 'roleCard', match: (t) => t.includes('你的身份是') },

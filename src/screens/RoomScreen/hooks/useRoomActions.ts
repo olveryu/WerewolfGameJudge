@@ -609,6 +609,12 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     (index: number): ActionIntent | null => {
       if (!myRole) return null;
 
+      // wolfRobotLearn: after learning is done (wolfRobotReveal exists),
+      // seat taps have no effect. User must interact via bottom button only.
+      if (currentSchema?.id === 'wolfRobotLearn' && gameState?.wolfRobotReveal) {
+        return null;
+      }
+
       // NOTE: Nightmare block is now handled by Host resolver.
       // UI no longer intercepts with 'blocked' intent.
       // All seat taps go through submit → Host validates → ACTION_REJECTED if blocked.
@@ -641,7 +647,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       // - default/unknown → null (no seat tap effect)
       return schemaIntent;
     },
-    [myRole, currentSchema, anotherIndex, findVotingWolfSeat, buildActionMessage],
+    [myRole, currentSchema, anotherIndex, findVotingWolfSeat, buildActionMessage, gameState?.wolfRobotReveal],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
