@@ -210,7 +210,8 @@ export const SCHEMAS = {
       bottomActionText: '不使用技能',
       // Hunter gate UI: shown after learning hunter, before night advances
       hunterGateButtonText: '查看发动状态',
-      hunterGateDialogTitle: '机械狼技能状态',
+      // Keep dialog title aligned with other “confirm trigger” style dialogs and test harness classification.
+      hunterGateDialogTitle: '技能状态',
       hunterGateCanShootText: '你学到的猎人可以发动技能',
       hunterGateCannotShootText: '你学到的猎人不能发动技能',
     },

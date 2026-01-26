@@ -117,15 +117,24 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   // Current copy in SCHEMAS.wolfRobotLearn.ui.hunterGate*: title is “技能状态”,
   // message contains “猎人” + “发动”.
   // Must be checked BEFORE confirmTrigger since both use “技能状态”.
-  { type: 'wolfRobotHunterStatus', match: (t, m) => t === '技能状态' && m.includes('猎人') && m.includes('发动') },
+  { type: 'wolfRobotHunterStatus', match: (t, m) => t === '技能状态' && m.includes('学到') && m.includes('猎人') && m.includes('发动') },
   { type: 'wolfRobotReveal', match: (t) => t.includes('机械狼') || t.includes('你学习了') },
 
   // Magician
   { type: 'magicianFirst', match: (t) => t.includes('已选择第一位') },
 
   // Confirm trigger (hunter/darkWolfKing status): title is “技能状态”,
-  // message contains “可以/不能” + “发动”, and should NOT contain “猎人” (else it's wolfRobot gate).
-  { type: 'confirmTrigger', match: (t, m) => t === '技能状态' && !m.includes('猎人') && (m.includes('可以') || m.includes('不能')) && m.includes('发动') },
+  // message contains “可以/不能” + “发动”, and is for hunter/darkWolfKing confirm steps.
+  // NOTE: wolfRobot learned-hunter gate also uses similar language, but includes “学到”.
+  {
+    type: 'confirmTrigger',
+    match: (t, m) =>
+      t === '技能状态' &&
+  !m.includes('学到') &&
+      // Some copy uses “不可以” instead of “不能”
+      (m.includes('可以') || m.includes('不能') || m.includes('不可以')) &&
+      m.includes('发动'),
+  },
 
   // Role card
   { type: 'roleCard', match: (t) => t.includes('你的身份是') },
@@ -213,7 +222,9 @@ export class RoomScreenTestHarness {
   expectSeen(type: DialogType): void {
     if (!this.hasSeen(type)) {
       const seenTypes = [...new Set(this._events.map((e) => e.type))];
-      const eventList = this._events.map((e) => `  - ${e.type}: "${e.title}"`).join('\n');
+      const eventList = this._events
+        .map((e) => `  - ${e.type}: "${e.title}" :: ${JSON.stringify(e.message)}`)
+        .join('\n');
       throw new Error(
         `Expected to see dialog type '${type}' but it was not seen.\n` +
           `Seen types: [${seenTypes.join(', ')}]\n` +
