@@ -191,7 +191,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
      * Prerequisites:
      * - wolfRobotReveal.learnedRoleId = 'hunter' (shows gate button)
      * - wolfRobotHunterStatusViewed = false (gate not yet cleared)
-     * - Must press gate button ('查看状态') to trigger the dialog
+     * - Must press gate button ('查看发动状态') to trigger the dialog
      */
     it('wolfRobot learns hunter: shows hunter status gate, requires pressPrimary, no infinite loop', async () => {
       mockUseGameRoomReturn = createGameRoomMock({
@@ -221,7 +221,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
 
       // CRITICAL: Must press the gate button to trigger the dialog
-      const hunterGateButton = getByText('查看状态');
+      const hunterGateButton = getByText('查看发动状态');
       fireEvent.press(hunterGateButton);
 
       // Wait for hunter status gate to appear
@@ -234,6 +234,196 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       // Verify no infinite loop (max 3 occurrences)
       harness.assertNoLoop({ type: 'wolfRobotHunterStatus', maxTimesPerStep: 3 });
+    });
+
+    /**
+     * CRITICAL TEST: Verify sendWolfRobotHunterStatusViewed is called on confirmation
+     *
+     * This test ensures that pressing the primary button in the hunter status dialog
+     * actually triggers the wire protocol message to the Host.
+     */
+    it('pressing confirm calls sendWolfRobotHunterStatusViewed', async () => {
+      const sendWolfRobotHunterStatusViewedMock = jest.fn().mockResolvedValue(undefined);
+
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfRobotLearn',
+        currentActionRole: 'wolfRobot',
+        myRole: 'wolfRobot',
+        mySeatNumber: 7,
+        gameStateOverrides: {
+          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+          wolfRobotHunterStatusViewed: false,
+        },
+        hookOverrides: {
+          sendWolfRobotHunterStatusViewed: sendWolfRobotHunterStatusViewedMock,
+        },
+      });
+
+      const { getByTestId, getByText } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+
+      // Press gate button to trigger dialog
+      const hunterGateButton = getByText('查看发动状态');
+      fireEvent.press(hunterGateButton);
+
+      await waitFor(() => {
+        expect(harness.hasSeen('wolfRobotHunterStatus')).toBe(true);
+      });
+
+      // Press primary button (confirm)
+      harness.pressPrimary();
+
+      // CRITICAL ASSERTION: sendWolfRobotHunterStatusViewed must be called
+      await waitFor(() => {
+        expect(sendWolfRobotHunterStatusViewedMock).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    /**
+     * CRITICAL TEST: Gate button disappears after state update
+     *
+     * This test uses a mutable mock to simulate the state update that occurs
+     * after sendWolfRobotHunterStatusViewed succeeds. The button should disappear.
+     */
+    it('gate button disappears after wolfRobotHunterStatusViewed becomes true', async () => {
+      // Initial state: gate not viewed
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfRobotLearn',
+        currentActionRole: 'wolfRobot',
+        myRole: 'wolfRobot',
+        mySeatNumber: 7,
+        gameStateOverrides: {
+          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+          wolfRobotHunterStatusViewed: false,
+        },
+      });
+
+      const { getByTestId, getByText, queryByText, rerender } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+
+      // Button should be visible initially
+      expect(getByText('查看发动状态')).toBeTruthy();
+
+      // Simulate state update: Host broadcasts wolfRobotHunterStatusViewed = true
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfRobotLearn',
+        currentActionRole: 'wolfRobot',
+        myRole: 'wolfRobot',
+        mySeatNumber: 7,
+        gameStateOverrides: {
+          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+          wolfRobotHunterStatusViewed: true, // Changed to true
+        },
+      });
+
+      // Force re-render with new state
+      rerender(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      // CRITICAL ASSERTION: Button should disappear
+      await waitFor(() => {
+        expect(queryByText('查看发动状态')).toBeNull();
+      });
+    });
+
+    /**
+     * CRITICAL TEST: Cannot re-trigger hunter status dialog after gate cleared
+     *
+     * This test verifies that once wolfRobotHunterStatusViewed is true,
+     * the hunter status dialog cannot be triggered again (prevents repeated learning).
+     */
+    it('cannot trigger hunter status dialog when wolfRobotHunterStatusViewed is true', async () => {
+      // State with gate already cleared
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfRobotLearn',
+        currentActionRole: 'wolfRobot',
+        myRole: 'wolfRobot',
+        mySeatNumber: 7,
+        gameStateOverrides: {
+          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+          wolfRobotHunterStatusViewed: true, // Gate already cleared
+        },
+      });
+
+      const { getByTestId, queryByText } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+
+      // Button should NOT be visible when gate is already cleared
+      expect(queryByText('查看发动状态')).toBeNull();
+
+      // Clear any prior dialog events
+      harness.clear();
+
+      // No wolfRobotHunterStatus dialog should appear automatically
+      // (since there's no button to press and no auto-trigger)
+      expect(harness.hasSeen('wolfRobotHunterStatus')).toBe(false);
+    });
+
+    /**
+     * CRITICAL TEST: Seat taps have NO effect after learning is complete
+     *
+     * Bug fix verification: After wolfRobot learns hunter (wolfRobotReveal exists),
+     * tapping any seat should NOT trigger any action dialog or confirmation.
+     * User must interact via bottom button only.
+     */
+    it('seat tap has no effect after learning is complete (cannot re-learn)', async () => {
+      // State with learning complete (wolfRobotReveal exists)
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfRobotLearn',
+        currentActionRole: 'wolfRobot',
+        myRole: 'wolfRobot',
+        mySeatNumber: 7,
+        gameStateOverrides: {
+          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+          wolfRobotHunterStatusViewed: false, // Gate not yet cleared
+        },
+      });
+
+      const { getByTestId } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+
+      // Try to tap a seat after learning is done
+      tapSeat(getByTestId, 1);
+
+      // Wait a bit to ensure no dialog appears
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // CRITICAL: No action dialogs should appear from seat tap
+      expect(harness.hasSeen('actionPrompt')).toBe(false);
+      expect(harness.hasSeen('actionConfirm')).toBe(false);
+      expect(harness.hasSeen('wolfRobotHunterStatus')).toBe(false);
+
+      // showAlert should NOT have been called for seat tap
+      expect(showAlert).not.toHaveBeenCalled();
     });
   });
 
@@ -456,8 +646,8 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       await waitForRoomScreen(result.getByTestId);
       // CRITICAL: Must press the gate button to trigger wolfRobotHunterStatus dialog
-      // The button text is schema-driven: hunterGateButtonText = '查看状态'
-      const hunterGateButton = result.getByText('查看状态');
+      // The button text is schema-driven: hunterGateButtonText = '查看发动状态'
+      const hunterGateButton = result.getByText('查看发动状态');
       fireEvent.press(hunterGateButton);
       await waitFor(() => expect(harness.hasSeen('wolfRobotHunterStatus')).toBe(true));
       harness.pressPrimary(); // Clear the gate
