@@ -1,8 +1,9 @@
 /**
- * AI Chat Service - GitHub Models (GPT-4o)
+ * AI Chat Service - Groq (Llama 3.3 70B)
  *
- * 使用 GitHub Models 提供免费的 GPT-4o API
- * 文档: https://docs.github.com/en/github-models
+ * 使用 Groq 提供免费的 Llama 3.3 70B API
+ * 免费额度：30 RPM, 14400 RPD, 6000 TPM
+ * 文档: https://console.groq.com/docs/quickstart
  */
 
 import { log } from '../utils/logger';
@@ -10,15 +11,15 @@ import { ROLE_SPECS } from '../models/roles/spec/specs';
 
 const chatLog = log.extend('AIChatService');
 
-// GitHub Models API 配置
+// Groq API 配置
 const API_CONFIG = {
-  baseURL: 'https://models.inference.ai.azure.com',
-  model: 'gpt-4o',
+  baseURL: 'https://api.groq.com/openai/v1',
+  model: 'llama-3.3-70b-versatile',
   maxTokens: 1024,
 };
 
 // 从环境变量获取默认 API Key（用户无需手动配置）
-const DEFAULT_API_KEY = process.env.EXPO_PUBLIC_GITHUB_TOKEN || '';
+const DEFAULT_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || '';
 
 /**
  * 获取 API Key（优先使用环境变量）
@@ -200,7 +201,7 @@ export async function sendChatMessage(
   gameContext?: GameContext
 ): Promise<ChatResponse> {
   if (!apiKey) {
-    return { success: false, error: '请先配置 GitHub Token' };
+    return { success: false, error: '请先配置 Groq API Key' };
   }
 
   try {
