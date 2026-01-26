@@ -316,6 +316,51 @@ UI (从 schema + gameState 推导显示)
 
 ## 交付与门禁（必须执行）
 
+### UI-level 测试门禁（RoomScreen 弹窗/互动必须全覆盖）
+
+当你新增/修改任意“板子/模板”（12p preset）或新增/修改任意 Night-1 行动角色（含 UI 交互、弹窗、gate）时，**必须同时补齐 UI-level 测试**，否则视为未完成交付。
+
+**硬性要求：**
+
+1) **必须实现并使用 `RoomScreenTestHarness`**
+  - 目的：拦截并记录所有 `showAlert/showDialog` 调用（title + message + buttons + 分类 type），使“弹窗/互动覆盖”可证明、可门禁。
+  - 允许在测试环境 mock `src/utils/alert.ts` 的 `showAlert` 入口来实现拦截。
+  - 测试末尾必须做清单式断言：任何缺失的弹窗类型/互动分支都必须 fail。
+
+2) **每新增一个板子（12p preset）必须新增对应 UI-level board test**
+  - 位置建议：`src/screens/RoomScreen/__tests__/boards-ui/**/*.ui.test.tsx`（或项目既有一致路径）。
+  - 每个板子最低要求：覆盖 Night-1 全流程中该板子涉及的所有弹窗与互动（prompt/confirm/reveal/skip 等）。
+  - 禁止用 snapshot/Storybook 截图替代交互覆盖。
+
+3) **每新增/修改一个 Night-1 行动角色，必须覆盖其 UI 分支与 gate**
+  - 至少覆盖：
+    - 行动提示（prompt）
+    - 确认/取消（confirm）
+    - reveal 弹窗 + `REVEAL_ACK` 链路（如果该角色产生 reveal）
+    - 任何额外 gate（例如：`wolfRobotHunterStatusViewed`）必须在 UI test 中显式点击/发送并断言解除，禁止自动清 gate。
+  - **梦魇（nightmare）属于高风险分支：**板子包含 nightmare 时，UI-level tests 必须覆盖 nightmare blocked 的弹窗/拒绝路径以及其对后续 UI（如 wolfKillDisabled）的影响。
+
+4) **必须有门禁（contract gate）防漏测**
+  - 必须存在一个 contract test：强制“板子 × 必需弹窗类型”的覆盖清单全部满足；任何漏测直接 fail。
+  - 清单必须 schema/steps 驱动（来自 `SCHEMAS` / `NIGHT_STEPS`），禁止手写散落硬编码。
+
+5) **反作弊硬红线（不可协商）**
+
+- **禁止跳过 UI 覆盖测试**：
+  - `src/screens/RoomScreen/__tests__/boards/**` 下 **禁止出现** `it.skip` / `test.skip` / `describe.skip`。
+  - CI/contract gate 必须检查到任何 `*.board.ui.test.tsx` 含有 `\.skip\b` 都直接 fail。
+
+- **禁止“动态口径覆盖”（必须可证明）**：
+  - Board UI tests 的最终覆盖断言 **必须**使用字面量数组：
+    - ✅ 允许：`harness.assertCoverage(['actionPrompt', 'wolfVote', ...])`
+    - ❌ 禁止：`harness.assertCoverage(getRequired*DialogTypes(...))`
+    - ❌ 禁止：`harness.assertCoverage(requiredTypes)`（任何非字面量数组都视为可作弊）
+  - Contract gate 必须解析并对照覆盖矩阵（schema/board 驱动的 required 清单），少任意一个 `DialogType` 直接 fail。
+
+- **难测分支不得移出 required 清单**（禁止以“button-dependent/不好测”为理由降级覆盖）：
+  - 例如：`confirmTrigger`、`skipConfirm`、`actionConfirm`、`wolfRobotHunterStatus`、`wolfRobotHunterStatusViewed` gate。
+  - 不好测只能增强 mock/harness，不允许把它们改成 optional/移到别的层。
+
 ### 质量门禁（Quality gates）
 
 - 修改代码后，必须跑 ESLint/Prettier（以项目既有 npm scripts 为准），确保 0 errors。

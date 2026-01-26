@@ -523,7 +523,11 @@ export async function setWolfRobotHunterStatusViewed(
   }
   ctx.store.setState(state);
 
+  // 必须 await broadcast，确保 Player 先收到 gate 解除再推进
   await ctx.broadcastCurrentState();
+
+  // 推进夜晚流程（gate 解除后自动推进到下一步）
+  await callNightProgression(ctx);
 
   return { success: true };
 }

@@ -209,10 +209,12 @@ export const SCHEMAS = {
       revealKind: 'wolfRobot',
       bottomActionText: '不使用技能',
       // Hunter gate UI: shown after learning hunter, before night advances
-      hunterGateButtonText: '查看状态',
+      hunterGatePrompt: '请点击下方按钮查看猎人发动状态',
+      hunterGateButtonText: '查看发动状态',
+      // Keep dialog title aligned with other “confirm trigger” style dialogs and test harness classification.
       hunterGateDialogTitle: '技能状态',
-      hunterGateCanShootText: '机械狼学到了猎人，可以发动猎人技能',
-      hunterGateCannotShootText: '机械狼学到了猎人，但不能发动猎人技能',
+      hunterGateCanShootText: '你学到的猎人可以发动技能',
+      hunterGateCannotShootText: '你学到的猎人不能发动技能',
     },
   },
 
