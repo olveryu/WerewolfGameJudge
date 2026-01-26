@@ -278,6 +278,10 @@ export const AIChatBubble: React.FC = () => {
     </View>
   );
 
+  // Web 专用样式：阻止拖动时页面滚动
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const webDragStyle: any = Platform.OS === 'web' ? { touchAction: 'none', cursor: 'grab', userSelect: 'none' } : {};
+
   return (
     <>
       {/* 悬浮按钮 - 可拖动 */}
@@ -289,6 +293,7 @@ export const AIChatBubble: React.FC = () => {
             top: position.y,
             transform: [{ scale: scaleAnim }],
           },
+          webDragStyle,
         ]}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -394,7 +399,7 @@ export const AIChatBubble: React.FC = () => {
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    // 悬浮按钮 - 使用 translate 定位，不用 right/bottom
+    // 悬浮按钮 - 使用 left/top 定位
     bubbleContainer: {
       position: 'absolute',
       left: 0,

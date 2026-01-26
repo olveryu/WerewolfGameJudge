@@ -66,6 +66,15 @@ fi
 echo "🔧 切换到生产环境配置..."
 cp .env .env.local
 
+# 从备份中提取 GITHUB_TOKEN 并添加到构建配置
+if [ "$HAS_BACKUP" = true ]; then
+  GITHUB_TOKEN=$(grep '^EXPO_PUBLIC_GITHUB_TOKEN=' .env.local.backup | cut -d '=' -f2)
+  if [ -n "$GITHUB_TOKEN" ]; then
+    echo "EXPO_PUBLIC_GITHUB_TOKEN=$GITHUB_TOKEN" >> .env.local
+    echo "✅ 已添加 EXPO_PUBLIC_GITHUB_TOKEN 到构建配置"
+  fi
+fi
+
 echo "🧹 清除缓存并构建..."
 # 清理旧的构建产物，但保留 .vercel 配置
 find dist -mindepth 1 -maxdepth 1 ! -name '.vercel' -exec rm -rf {} + 2>/dev/null || true
