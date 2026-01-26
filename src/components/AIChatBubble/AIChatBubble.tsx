@@ -72,7 +72,8 @@ export const AIChatBubble: React.FC = () => {
       ? globalThis.window.visualViewport?.height ?? globalThis.window.innerHeight 
       : SCREEN_HEIGHT
   );
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  // 可用高度 = 视口高度 - 键盘高度
+  const [availableHeight, setAvailableHeight] = useState(initialViewportHeight.current);
 
   // Web 平台：使用 visualViewport API 监听键盘
   useEffect(() => {
@@ -84,15 +85,12 @@ export const AIChatBubble: React.FC = () => {
     if (!viewport) return;
 
     const handleResize = () => {
-      const heightDiff = initialViewportHeight.current - viewport.height;
-      // 键盘弹出时 viewport.height 会变小
-      if (heightDiff > 100) {
-        // 键盘弹出
-        setKeyboardOffset(heightDiff / 2);
-      } else {
-        setKeyboardOffset(0);
-      }
+      // 直接使用当前 viewport 高度作为可用高度
+      setAvailableHeight(viewport.height);
     };
+
+    // 初始化
+    setAvailableHeight(viewport.height);
 
     viewport.addEventListener('resize', handleResize);
     return () => {
@@ -108,10 +106,11 @@ export const AIChatBubble: React.FC = () => {
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     
     const showSubscription = Keyboard.addListener(showEvent, (e) => {
-      setKeyboardOffset(e.endCoordinates.height / 2);
+      // 原生平台：减去键盘高度
+      setAvailableHeight(SCREEN_HEIGHT - e.endCoordinates.height);
     });
     const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      setKeyboardOffset(0);
+      setAvailableHeight(SCREEN_HEIGHT);
     });
 
     return () => {
@@ -304,7 +303,8 @@ export const AIChatBubble: React.FC = () => {
         <View style={styles.modalContainer}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setIsOpen(false)} />
 
-          <View style={[styles.chatWindow, { marginBottom: keyboardOffset }]}>
+          {/* 动态高度：取固定高度和可用高度的较小值，留出边距 */}
+          <View style={[styles.chatWindow, { height: Math.min(CHAT_HEIGHT, availableHeight - 40) }]}>
             {/* Header */}
             <View style={styles.chatHeader}>
               <Text style={styles.chatTitle}>🐺 狼人杀助手</Text>
@@ -409,10 +409,9 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: 'rgba(0,0,0,0.3)',
     },
 
-    // 聊天窗口 - flex 居中，固定高度
+    // 聊天窗口 - 高度由行内样式动态设置
     chatWindow: {
       width: CHAT_WIDTH,
-      height: CHAT_HEIGHT,
       maxHeight: CHAT_HEIGHT,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xl,
