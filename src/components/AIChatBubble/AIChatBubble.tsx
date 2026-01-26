@@ -300,11 +300,12 @@ export const AIChatBubble: React.FC = () => {
 
       {/* 聊天窗口 Modal */}
       <Modal visible={isOpen} transparent animationType="fade" onRequestClose={() => setIsOpen(false)}>
-        <View style={styles.modalContainer}>
+        {/* 容器高度 = visualViewport 高度，这样 flex-end 就会贴近键盘上方 */}
+        <View style={[styles.modalContainer, { height: availableHeight }]}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setIsOpen(false)} />
 
           {/* 动态高度：取固定高度和可用高度的较小值，留出边距 */}
-          <View style={[styles.chatWindow, { height: Math.min(CHAT_HEIGHT, availableHeight - 40) }]}>
+          <View style={[styles.chatWindow, { height: Math.min(CHAT_HEIGHT, availableHeight - 60) }]}>
             {/* Header */}
             <View style={styles.chatHeader}>
               <Text style={styles.chatTitle}>🐺 狼人杀助手</Text>
@@ -401,8 +402,9 @@ const createStyles = (colors: ThemeColors) =>
     // Modal - 使用固定尺寸，避免键盘弹出时 viewport 变化
     modalContainer: {
       ...StyleSheet.absoluteFillObject,
-      justifyContent: 'center',
+      justifyContent: 'flex-end', // 靠底部对齐
       alignItems: 'center',
+      paddingBottom: 20, // 基础底部间距
     },
     modalBackdrop: {
       ...StyleSheet.absoluteFillObject,
