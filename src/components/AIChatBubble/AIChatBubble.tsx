@@ -19,9 +19,7 @@ import {
   Animated,
   Dimensions,
   Keyboard,
-  PanResponder,
   GestureResponderEvent,
-  PanResponderGestureState,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme, spacing, borderRadius, typography, ThemeColors } from '../../theme';
@@ -58,9 +56,9 @@ export const AIChatBubble: React.FC = () => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   // 拖动位置状态
-  const pan = useRef(new Animated.ValueXY(DEFAULT_POSITION)).current;
-  const lastPosition = useRef(DEFAULT_POSITION);
-  const isDragging = useRef(false);
+  const [position, setPosition] = useState(DEFAULT_POSITION);
+  const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
+  const isDraggingRef = useRef(false);
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -72,54 +70,47 @@ export const AIChatBubble: React.FC = () => {
   const [tempApiKey, setTempApiKey] = useState(getDefaultApiKey());
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  // 拖动手势处理
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState: PanResponderGestureState) => {
-        // 移动超过 5 像素才算拖动
-        return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
-      },
-      onPanResponderGrant: () => {
-        isDragging.current = false;
-        pan.setOffset({
-          x: lastPosition.current.x,
-          y: lastPosition.current.y,
-        });
-        pan.setValue({ x: 0, y: 0 });
-      },
-      onPanResponderMove: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
-        if (Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5) {
-          isDragging.current = true;
-        }
-        Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false })(
-          evt,
-          gestureState
-        );
-      },
-      onPanResponderRelease: (_, gestureState: PanResponderGestureState) => {
-        pan.flattenOffset();
-        // 计算新位置并限制在屏幕内
-        let newX = lastPosition.current.x + gestureState.dx;
-        let newY = lastPosition.current.y + gestureState.dy;
+  // 拖动手势处理函数
+  const handleTouchStart = useCallback((e: GestureResponderEvent) => {
+    const touch = e.nativeEvent;
+    dragStartRef.current = {
+      x: touch.pageX,
+      y: touch.pageY,
+      posX: position.x,
+      posY: position.y,
+    };
+    isDraggingRef.current = false;
+  }, [position]);
 
-        // 边界限制
-        newX = Math.max(BUBBLE_MARGIN, Math.min(SCREEN_WIDTH - BUBBLE_SIZE - BUBBLE_MARGIN, newX));
-        newY = Math.max(BUBBLE_MARGIN + 50, Math.min(SCREEN_HEIGHT - BUBBLE_SIZE - BUBBLE_MARGIN, newY));
+  const handleTouchMove = useCallback((e: GestureResponderEvent) => {
+    const touch = e.nativeEvent;
+    const dx = touch.pageX - dragStartRef.current.x;
+    const dy = touch.pageY - dragStartRef.current.y;
 
-        lastPosition.current = { x: newX, y: newY };
-        pan.setValue({ x: newX, y: newY });
+    // 移动超过 10 像素才算拖动
+    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+      isDraggingRef.current = true;
 
-        // 保存位置
-        AsyncStorage.setItem(STORAGE_KEY_POSITION, JSON.stringify({ x: newX, y: newY }));
+      let newX = dragStartRef.current.posX + dx;
+      let newY = dragStartRef.current.posY + dy;
 
-        // 如果没有拖动，则视为点击
-        if (!isDragging.current) {
-          handleBubblePress();
-        }
-      },
-    })
-  ).current;
+      // 边界限制
+      newX = Math.max(BUBBLE_MARGIN, Math.min(SCREEN_WIDTH - BUBBLE_SIZE - BUBBLE_MARGIN, newX));
+      newY = Math.max(BUBBLE_MARGIN + 50, Math.min(SCREEN_HEIGHT - BUBBLE_SIZE - BUBBLE_MARGIN, newY));
+
+      setPosition({ x: newX, y: newY });
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (isDraggingRef.current) {
+      // 保存位置
+      AsyncStorage.setItem(STORAGE_KEY_POSITION, JSON.stringify(position));
+    } else {
+      // 没有拖动，视为点击
+      handleBubblePress();
+    }
+  }, [position]);
 
   // 监听键盘
   useEffect(() => {
@@ -155,15 +146,14 @@ export const AIChatBubble: React.FC = () => {
         // 加载保存的位置
         if (savedPosition) {
           const pos = JSON.parse(savedPosition);
-          lastPosition.current = pos;
-          pan.setValue(pos);
+          setPosition(pos);
         }
       } catch {
         // Storage read failed, use defaults
       }
     };
     loadData();
-  }, [pan]);
+  }, []);
 
   // 保存消息
   useEffect(() => {
@@ -295,10 +285,14 @@ export const AIChatBubble: React.FC = () => {
         style={[
           styles.bubbleContainer,
           {
-            transform: [{ translateX: pan.x }, { translateY: pan.y }, { scale: scaleAnim }],
+            left: position.x,
+            top: position.y,
+            transform: [{ scale: scaleAnim }],
           },
         ]}
-        {...panResponder.panHandlers}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <View style={styles.bubble}>
           <Text style={styles.bubbleIcon}>🐺</Text>
