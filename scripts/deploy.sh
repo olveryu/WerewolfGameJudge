@@ -98,6 +98,18 @@ fi
 
 echo "🚀 部署到 Vercel..."
 cd dist
+
+# 同步环境变量到 Vercel（从 .env.local.backup 读取）
+echo "🔑 同步环境变量..."
+if [ "$HAS_BACKUP" = true ] && [ -f ../.env.local.backup ]; then
+  # 读取 EXPO_PUBLIC_GITHUB_TOKEN
+  GITHUB_TOKEN=$(grep '^EXPO_PUBLIC_GITHUB_TOKEN=' ../.env.local.backup | cut -d '=' -f2)
+  if [ -n "$GITHUB_TOKEN" ]; then
+    echo "$GITHUB_TOKEN" | vercel env add EXPO_PUBLIC_GITHUB_TOKEN production --force 2>/dev/null || true
+    echo "✅ EXPO_PUBLIC_GITHUB_TOKEN 已同步"
+  fi
+fi
+
 DEPLOYMENT_URL=$(vercel --prod --yes 2>&1 | grep -oE 'https://[^ ]+\.vercel\.app' | head -1)
 echo "部署完成: $DEPLOYMENT_URL"
 
