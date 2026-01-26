@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AppNavigator } from './src/navigation';
 import { ThemeProvider, useTheme } from './src/theme';
 import { AlertModal } from './src/components/AlertModal';
+import { AIChatBubble } from './src/components/AIChatBubble/AIChatBubble';
 import { setAlertListener, AlertConfig } from './src/utils/alert';
 import { GameFacadeProvider, NetworkProvider } from './src/contexts';
 import { GameFacade } from './src/services/facade/GameFacade';
@@ -37,6 +38,7 @@ function AppContent() {
           onClose={handleAlertClose}
         />
       )}
+      <AIChatBubble />
     </>
   );
 }
