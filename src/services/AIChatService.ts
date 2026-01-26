@@ -60,6 +60,8 @@ export interface GameContext {
   myKnowledge?: string[];
   /** 板子配置（所有角色名称，公开信息） */
   boardRoles?: string[];
+  /** 板子中每个角色的详细技能描述（公开信息） */
+  boardRoleDetails?: Array<{ name: string; description: string }>;
 }
 
 /**
@@ -102,6 +104,21 @@ export function buildGameContextPrompt(context: GameContext): string {
 
   if (context.boardRoles && context.boardRoles.length > 0) {
     lines.push(`- 板子配置: ${context.boardRoles.join('、')}`);
+  }
+
+  // 显示板子中每个角色的技能（去重）
+  if (context.boardRoleDetails && context.boardRoleDetails.length > 0) {
+    // 去重（同一角色可能出现多次）
+    const uniqueRoles = new Map<string, string>();
+    context.boardRoleDetails.forEach((r) => {
+      if (!uniqueRoles.has(r.name)) {
+        uniqueRoles.set(r.name, r.description);
+      }
+    });
+    lines.push(`- 本局角色技能:`);
+    uniqueRoles.forEach((desc, name) => {
+      lines.push(`  - ${name}: ${desc}`);
+    });
   }
 
   if (context.currentPhase) {

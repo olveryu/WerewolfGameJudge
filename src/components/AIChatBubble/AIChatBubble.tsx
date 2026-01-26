@@ -70,11 +70,19 @@ function buildPlayerContext(
     totalPlayers: Object.values(state.players).filter(Boolean).length,
   };
 
-  // 板子配置（公开信息 - 所有角色名称）
+  // 板子配置（公开信息 - 所有角色名称和技能）
   if (state.templateRoles && state.templateRoles.length > 0) {
     context.boardRoles = state.templateRoles.map((roleId) => {
       const roleSpec = ROLE_SPECS[roleId];
       return roleSpec?.displayName || roleId;
+    });
+    // 加入每个角色的详细技能描述
+    context.boardRoleDetails = state.templateRoles.map((roleId) => {
+      const roleSpec = ROLE_SPECS[roleId];
+      return {
+        name: roleSpec?.displayName || roleId,
+        description: roleSpec?.description || '无描述',
+      };
     });
   }
 
