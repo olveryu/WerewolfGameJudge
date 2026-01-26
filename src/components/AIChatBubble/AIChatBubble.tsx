@@ -30,7 +30,8 @@ const STORAGE_KEY_POSITION = '@ai_chat_bubble_position';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CHAT_WIDTH = Math.min(SCREEN_WIDTH - 32, 380);
-const CHAT_HEIGHT = Math.min(SCREEN_HEIGHT * 0.6, 500);
+// 使用固定像素值，避免 viewport 变化导致的问题
+const CHAT_HEIGHT = 420;
 const BUBBLE_SIZE = 56;
 const BUBBLE_MARGIN = 16;
 
@@ -396,9 +397,9 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 28,
     },
 
-    // Modal
+    // Modal - 使用固定尺寸，避免键盘弹出时 viewport 变化
     modalContainer: {
-      flex: 1,
+      ...StyleSheet.absoluteFillObject,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -407,11 +408,12 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: 'rgba(0,0,0,0.3)',
     },
 
-    // 聊天窗口 - 居中显示，固定尺寸
+    // 聊天窗口 - 绝对定位在屏幕中央偏上，固定尺寸
     chatWindow: {
+      position: 'absolute',
+      top: 60,
       width: CHAT_WIDTH,
       height: CHAT_HEIGHT,
-      maxHeight: CHAT_HEIGHT,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xl,
       shadowColor: '#000',
