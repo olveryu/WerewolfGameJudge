@@ -3,6 +3,7 @@
  *
  * 在右下角显示一个悬浮按钮，点击后弹出聊天窗口
  * 使用 visualViewport API (Web) 处理键盘弹出
+ * 支持读取游戏上下文（玩家视角，不作弊）
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -23,8 +24,11 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme, spacing, borderRadius, typography, ThemeColors } from '../../theme';
-import { sendChatMessage, ChatMessage, getDefaultApiKey } from '../../services/AIChatService';
+import { sendChatMessage, ChatMessage, getDefaultApiKey, GameContext } from '../../services/AIChatService';
 import { showAlert } from '../../utils/alert';
+import { useGameFacade } from '../../contexts';
+import { ROLE_SPECS } from '../../models/roles/spec/specs';
+import type { BroadcastGameState } from '../../services/protocol/types';
 
 const STORAGE_KEY_MESSAGES = '@ai_chat_messages';
 const STORAGE_KEY_POSITION = '@ai_chat_bubble_position';
@@ -48,11 +52,96 @@ interface DisplayMessage {
   timestamp: number;
 }
 
+/**
+ * 从游戏状态构建玩家视角的上下文（不包含作弊信息）
+ */
+function buildPlayerContext(
+  state: BroadcastGameState | null,
+  mySeat: number | null,
+): GameContext {
+  if (!state) {
+    return { inRoom: false };
+  }
+
+  const context: GameContext = {
+    inRoom: true,
+    roomCode: state.roomCode,
+    status: state.status,
+    totalPlayers: Object.values(state.players).filter(Boolean).length,
+  };
+
+  // 我的座位和角色
+  if (mySeat !== null && mySeat !== undefined) {
+    context.mySeat = mySeat;
+    const player = state.players[mySeat];
+    if (player?.role) {
+      context.myRole = player.role;
+      const roleSpec = ROLE_SPECS[player.role];
+      context.myRoleName = roleSpec?.displayName || player.role;
+    }
+  }
+
+  // 当前阶段
+  if (state.status === 'ongoing') {
+    context.currentPhase = state.currentStepId ? `第一夜 - ${state.currentStepId}` : '第一夜';
+  }
+
+  // 已死亡玩家（公开信息）
+  if (state.lastNightDeaths && state.lastNightDeaths.length > 0) {
+    context.deadPlayers = state.lastNightDeaths;
+  }
+
+  // 玩家自己知道的信息（只能看到自己该看到的）
+  const myKnowledge: string[] = [];
+
+  // 预言家的查验结果
+  if (context.myRole === 'seer' && state.seerReveal) {
+    myKnowledge.push(`${state.seerReveal.targetSeat + 1}号是${state.seerReveal.result}`);
+  }
+
+  // 通灵师的查验结果
+  if (context.myRole === 'psychic' && state.psychicReveal) {
+    myKnowledge.push(`${state.psychicReveal.targetSeat + 1}号的身份是${state.psychicReveal.result}`);
+  }
+
+  // 女巫知道的信息
+  if (context.myRole === 'witch' && state.witchContext) {
+    if (state.witchContext.killedIndex >= 0) {
+      myKnowledge.push(`今晚狼人刀了${state.witchContext.killedIndex + 1}号`);
+    }
+    const usedSkills: string[] = [];
+    if (!state.witchContext.canSave) usedSkills.push('解药已用');
+    if (!state.witchContext.canPoison) usedSkills.push('毒药已用');
+    if (usedSkills.length > 0) {
+      context.usedSkills = usedSkills;
+    }
+  }
+
+  // 石像鬼的查验结果
+  if (context.myRole === 'gargoyle' && state.gargoyleReveal) {
+    myKnowledge.push(`${state.gargoyleReveal.targetSeat + 1}号的身份是${state.gargoyleReveal.result}`);
+  }
+
+  // 机械狼的学习结果
+  if (context.myRole === 'wolfRobot' && state.wolfRobotReveal) {
+    myKnowledge.push(`学习了${state.wolfRobotReveal.targetSeat + 1}号，获得了${state.wolfRobotReveal.result}的技能`);
+  }
+
+  if (myKnowledge.length > 0) {
+    context.myKnowledge = myKnowledge;
+  }
+
+  return context;
+}
+
 export const AIChatBubble: React.FC = () => {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const flatListRef = useRef<FlatList>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // 游戏 Facade - 用于获取游戏状态
+  const facade = useGameFacade();
 
   // 拖动位置状态
   const [position, setPosition] = useState(DEFAULT_POSITION);
@@ -221,6 +310,11 @@ export const AIChatBubble: React.FC = () => {
     // 收起键盘
     Keyboard.dismiss();
 
+    // 获取游戏上下文（玩家视角，不作弊）
+    const gameState = facade.getState();
+    const mySeat = facade.getMySeatNumber();
+    const gameContext = buildPlayerContext(gameState, mySeat);
+
     // 构建上下文（最近 10 条消息）
     const contextMessages: ChatMessage[] = messages.slice(-10).map((m) => ({
       role: m.role,
@@ -228,7 +322,7 @@ export const AIChatBubble: React.FC = () => {
     }));
     contextMessages.push({ role: 'user', content: text });
 
-    const response = await sendChatMessage(contextMessages, apiKey);
+    const response = await sendChatMessage(contextMessages, apiKey, gameContext);
 
     if (response.success && response.message) {
       const assistantMessage: DisplayMessage = {

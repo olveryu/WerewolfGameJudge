@@ -34,6 +34,95 @@ export function hasApiKey(): boolean {
   return !!DEFAULT_API_KEY;
 }
 
+/**
+ * 游戏上下文信息（玩家视角，不包含作弊信息）
+ */
+export interface GameContext {
+  /** 是否在游戏房间中 */
+  inRoom: boolean;
+  /** 房间号 */
+  roomCode?: string;
+  /** 游戏状态 */
+  status?: 'unseated' | 'seated' | 'assigned' | 'ready' | 'ongoing' | 'ended';
+  /** 我的座位号 */
+  mySeat?: number;
+  /** 我的角色 */
+  myRole?: string;
+  /** 我的角色名称 */
+  myRoleName?: string;
+  /** 总人数 */
+  totalPlayers?: number;
+  /** 当前阶段 */
+  currentPhase?: string;
+  /** 已使用的技能（女巫等） */
+  usedSkills?: string[];
+  /** 我知道的信息（预言家查验结果等，仅自己能看到的） */
+  myKnowledge?: string[];
+  /** 已确认死亡的玩家 */
+  deadPlayers?: number[];
+}
+
+/**
+ * 构建游戏上下文提示（玩家视角，不泄露其他玩家信息）
+ */
+export function buildGameContextPrompt(context: GameContext): string {
+  if (!context.inRoom) {
+    return '（用户当前不在游戏房间中）';
+  }
+
+  const lines: string[] = ['## 当前游戏状态（玩家视角）', ''];
+
+  if (context.roomCode) {
+    lines.push(`- 房间号: ${context.roomCode}`);
+  }
+
+  if (context.status) {
+    const statusMap: Record<string, string> = {
+      unseated: '等待入座',
+      seated: '已入座，等待分配角色',
+      assigned: '已分配角色，等待查看',
+      ready: '已准备，等待开始',
+      ongoing: '游戏进行中（第一夜）',
+      ended: '游戏已结束',
+    };
+    lines.push(`- 游戏状态: ${statusMap[context.status] || context.status}`);
+  }
+
+  if (context.mySeat !== undefined) {
+    lines.push(`- 我的座位: ${context.mySeat + 1} 号`);
+  }
+
+  if (context.myRoleName) {
+    lines.push(`- 我的身份: ${context.myRoleName}`);
+  }
+
+  if (context.totalPlayers) {
+    lines.push(`- 总玩家数: ${context.totalPlayers} 人`);
+  }
+
+  if (context.currentPhase) {
+    lines.push(`- 当前阶段: ${context.currentPhase}`);
+  }
+
+  if (context.usedSkills && context.usedSkills.length > 0) {
+    lines.push(`- 已使用技能: ${context.usedSkills.join('、')}`);
+  }
+
+  if (context.myKnowledge && context.myKnowledge.length > 0) {
+    lines.push(`- 我知道的信息:`);
+    context.myKnowledge.forEach((k) => lines.push(`  - ${k}`));
+  }
+
+  if (context.deadPlayers && context.deadPlayers.length > 0) {
+    const deadList = context.deadPlayers.map((s) => `${s + 1}号`).join('、');
+    lines.push(`- 已死亡玩家: ${deadList}`);
+  }
+
+  lines.push('', '注意：以上是玩家自己能看到的信息，请基于这些信息给出建议。');
+
+  return lines.join('\n');
+}
+
 // 获取所有角色信息用于 System Prompt
 function getRolesDescription(): string {
   const roles = Object.values(ROLE_SPECS);
@@ -83,17 +172,27 @@ export interface ChatResponse {
 
 /**
  * 发送聊天消息到 AI
+ * @param messages 聊天消息历史
+ * @param apiKey API Key
+ * @param gameContext 可选的游戏上下文（玩家视角）
  */
 export async function sendChatMessage(
   messages: ChatMessage[],
-  apiKey: string
+  apiKey: string,
+  gameContext?: GameContext
 ): Promise<ChatResponse> {
   if (!apiKey) {
     return { success: false, error: '请先配置 GitHub Token' };
   }
 
   try {
-    chatLog.debug('Sending chat request', { messageCount: messages.length });
+    chatLog.debug('Sending chat request', { messageCount: messages.length, hasContext: !!gameContext });
+
+    // 构建系统提示（包含游戏上下文）
+    let systemPrompt = SYSTEM_PROMPT;
+    if (gameContext) {
+      systemPrompt += '\n\n' + buildGameContextPrompt(gameContext);
+    }
 
     const response = await fetch(`${API_CONFIG.baseURL}/chat/completions`, {
       method: 'POST',
@@ -103,7 +202,7 @@ export async function sendChatMessage(
       },
       body: JSON.stringify({
         model: API_CONFIG.model,
-        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
         max_tokens: API_CONFIG.maxTokens,
         temperature: 0.7,
       }),
