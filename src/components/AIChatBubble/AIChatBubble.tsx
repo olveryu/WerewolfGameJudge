@@ -505,7 +505,7 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: borderRadius.lg,
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xs,
-      fontSize: typography.sm,
+      fontSize: 16, // 必须 >= 16px，否则 iOS Safari 会自动缩放
       color: colors.text,
       marginRight: spacing.xs,
     },
