@@ -425,6 +425,88 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // showAlert should NOT have been called for seat tap
       expect(showAlert).not.toHaveBeenCalled();
     });
+
+    /**
+     * CRITICAL TEST: Self-seat tap has NO effect after learning (Bug A fix)
+     *
+     * Bug fix verification: After wolfRobot learns (wolfRobotReveal exists),
+     * tapping own seat should NOT trigger "不能选择自己" error dialog.
+     * This tests that schema constraints are correctly skipped.
+     */
+    it('self-seat tap has no effect after learning (no "不能选择自己" error)', async () => {
+      // State with learning complete (wolfRobotReveal exists)
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfRobotLearn',
+        currentActionRole: 'wolfRobot',
+        myRole: 'wolfRobot',
+        mySeatNumber: 7,
+        gameStateOverrides: {
+          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+          wolfRobotHunterStatusViewed: false, // Gate not yet cleared
+        },
+      });
+
+      const { getByTestId } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+
+      // Try to tap own seat (mySeatNumber=7, 0-indexed)
+      tapSeat(getByTestId, 7);
+
+      // Wait a bit to ensure no dialog appears
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // CRITICAL: No dialogs should appear, including "不能选择自己" error
+      expect(harness.hasSeen('actionPrompt')).toBe(false);
+      expect(harness.hasSeen('actionConfirm')).toBe(false);
+      expect(harness.hasSeen('wolfRobotHunterStatus')).toBe(false);
+
+      // showAlert should NOT have been called for self-seat tap
+      // This specifically tests that "不能选择自己" error is NOT shown
+      expect(showAlert).not.toHaveBeenCalled();
+    });
+
+    /**
+     * CRITICAL TEST: Prompt text changes when hunter gate is active (Bug B fix)
+     *
+     * Bug fix verification: After wolfRobot learns hunter and gate is active,
+     * the prompt text above the bottom button should show hunter gate prompt,
+     * NOT the learning prompt "请选择要学习的玩家".
+     */
+    it('prompt text shows hunter gate prompt when gate is active (not learning prompt)', async () => {
+      // State with learning complete, hunter gate active
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfRobotLearn',
+        currentActionRole: 'wolfRobot',
+        myRole: 'wolfRobot',
+        mySeatNumber: 7,
+        gameStateOverrides: {
+          wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+          wolfRobotHunterStatusViewed: false, // Gate not yet cleared
+        },
+      });
+
+      const { getByTestId, queryByText } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+
+      // CRITICAL: Should show hunter gate prompt, NOT learning prompt
+      // The hunter gate prompt is: '请点击下方按钮查看猎人发动状态'
+      // The learning prompt is: '请选择要学习的玩家'
+      expect(queryByText(/请选择要学习的玩家/)).toBeNull();
+      expect(queryByText(/请点击下方按钮查看猎人发动状态/)).not.toBeNull();
+    });
   });
 
   describe('witchSavePrompt coverage', () => {

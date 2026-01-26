@@ -209,6 +209,7 @@ export const SCHEMAS = {
       revealKind: 'wolfRobot',
       bottomActionText: '不使用技能',
       // Hunter gate UI: shown after learning hunter, before night advances
+      hunterGatePrompt: '请点击下方按钮查看猎人发动状态',
       hunterGateButtonText: '查看发动状态',
       // Keep dialog title aligned with other “confirm trigger” style dialogs and test harness classification.
       hunterGateDialogTitle: '技能状态',
