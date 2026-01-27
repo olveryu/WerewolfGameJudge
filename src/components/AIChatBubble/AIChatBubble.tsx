@@ -561,7 +561,11 @@ export const AIChatBubble: React.FC = () => {
         const suggestions = suggestionsMatch[1]
           .split('\n')
           .map(s => s.trim())
-          .filter(s => s.length > 0 && s.length <= 20);
+          // 移除常见的序号格式：1. 2. - * 等
+          .map(s => s.replace(/^\d+[.、)]\s*/, '').replace(/^[-*•]\s*/, ''))
+          .filter(s => s.length > 0 && s.length <= 20)
+          // 确保以问号结尾（如果没有就加上）
+          .map(s => s.endsWith('？') || s.endsWith('?') ? s : s + '？');
         setAiSuggestions(suggestions.slice(0, 2));
         // 从显示内容中移除建议块
         content = content.replace(/```suggestions\n[\s\S]*?```/, '').trim();
@@ -695,7 +699,9 @@ export const AIChatBubble: React.FC = () => {
                   onPress={() => handleQuickQuestion(q)}
                   disabled={isLoading}
                 >
-                  <Text style={[styles.quickQuestionText, styles.aiSuggestionText]} numberOfLines={1}>{q}</Text>
+                  <Text style={[styles.quickQuestionText, styles.aiSuggestionText]} numberOfLines={1}>
+                    💬 {q}
+                  </Text>
                 </TouchableOpacity>
               ))}
               {/* 补充上下文问题（最多补到 4 个） */}
@@ -928,32 +934,33 @@ const createStyles = (colors: ThemeColors) =>
       flexDirection: 'row',
       flexWrap: 'wrap',
       paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
+      paddingVertical: spacing.sm,
       borderTopWidth: 1,
       borderTopColor: colors.border,
       backgroundColor: colors.surface,
+      gap: 8,
     },
     quickQuestionBtn: {
       backgroundColor: colors.background,
       borderWidth: 1,
-      borderColor: colors.primary,
+      borderColor: colors.border,
       borderRadius: borderRadius.lg,
-      paddingVertical: 4,
-      paddingHorizontal: spacing.sm,
-      marginRight: spacing.xs,
-      marginBottom: 4,
+      paddingVertical: 6,
+      paddingHorizontal: spacing.md,
     },
     // AI 生成的跟进问题样式（更醒目）
     aiSuggestionBtn: {
-      backgroundColor: colors.primary,
+      backgroundColor: `${colors.primary}15`,
       borderColor: colors.primary,
+      borderWidth: 1.5,
     },
     aiSuggestionText: {
-      color: colors.textInverse,
+      color: colors.primary,
+      fontWeight: '500',
     },
     quickQuestionText: {
-      fontSize: 12,
-      color: colors.primary,
+      fontSize: 13,
+      color: colors.textSecondary,
     },
   });
 
