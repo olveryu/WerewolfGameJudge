@@ -341,37 +341,18 @@ export const AIChatBubble: React.FC = () => {
   // 直接使用环境变量中的 API Key（不需要用户配置）
   const apiKey = getDefaultApiKey();
 
-  // 快捷问题（根据上下文和聊天记录生成）
-  const [quickQuestions, setQuickQuestions] = useState<string[]>([]);
-  // 记录上一次的 isLoading 状态，用于检测加载完成
-  const prevIsLoadingRef = useRef(false);
+  // AI 生成的跟进问题（从回复中解析）
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
 
   // 键盘高度（用于计算窗口底部偏移）
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  // 刷新快捷问题的函数
-  const refreshQuickQuestions = useCallback(() => {
+  // 根据游戏上下文生成快捷问题（不包含 AI 建议）
+  const generateContextQuestions = useCallback((): string[] => {
     const gameState = facade.getState();
     const mySeat = facade.getMySeatNumber();
-    const questions = generateQuickQuestions(gameState, mySeat, messages);
-    setQuickQuestions(questions);
-  }, [facade, messages]);
-
-  // 打开时刷新一次
-  useEffect(() => {
-    if (isOpen) {
-      refreshQuickQuestions();
-    }
-  }, [isOpen]); // 只依赖 isOpen，打开时刷新一次
-
-  // 回复完成后刷新（isLoading 从 true 变成 false）
-  useEffect(() => {
-    if (prevIsLoadingRef.current && !isLoading) {
-      // 刚刚完成加载，刷新问题
-      refreshQuickQuestions();
-    }
-    prevIsLoadingRef.current = isLoading;
-  }, [isLoading, refreshQuickQuestions]);
+    return generateQuickQuestions(gameState, mySeat, []);
+  }, [facade]);
 
   // Web 平台：使用 visualViewport API 监听键盘
   useEffect(() => {
@@ -521,6 +502,8 @@ export const AIChatBubble: React.FC = () => {
     setMessages((prev) => [...prev, userMessage]);
     setInputText('');
     setIsLoading(true);
+    // 清空旧的 AI 建议
+    setAiSuggestions([]);
 
     // 收起键盘
     Keyboard.dismiss();
@@ -540,10 +523,25 @@ export const AIChatBubble: React.FC = () => {
     const response = await sendChatMessage(contextMessages, apiKey, gameContext);
 
     if (response.success && response.message) {
+      let content = response.message;
+      
+      // 解析 AI 返回的跟进建议
+      const suggestionsRegex = /```suggestions\n([\s\S]*?)```/;
+      const suggestionsMatch = suggestionsRegex.exec(content);
+      if (suggestionsMatch) {
+        const suggestions = suggestionsMatch[1]
+          .split('\n')
+          .map(s => s.trim())
+          .filter(s => s.length > 0 && s.length <= 20);
+        setAiSuggestions(suggestions.slice(0, 2));
+        // 从显示内容中移除建议块
+        content = content.replace(/```suggestions\n[\s\S]*?```/, '').trim();
+      }
+
       const assistantMessage: DisplayMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response.message,
+        content,
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
@@ -655,18 +653,33 @@ export const AIChatBubble: React.FC = () => {
               }
             />
 
-            {/* 快捷问题 - 始终显示在输入框上方 */}
+            {/* 快捷问题 - AI 建议 + 上下文问题 */}
             <View style={styles.quickQuestionsContainer}>
-              {quickQuestions.map((q) => (
+              {/* 优先显示 AI 生成的跟进问题 */}
+              {aiSuggestions.map((q) => (
                 <TouchableOpacity
                   key={q}
-                  style={styles.quickQuestionBtn}
+                  style={[styles.quickQuestionBtn, styles.aiSuggestionBtn]}
                   onPress={() => handleQuickQuestion(q)}
                   disabled={isLoading}
                 >
-                  <Text style={styles.quickQuestionText} numberOfLines={1}>{q}</Text>
+                  <Text style={[styles.quickQuestionText, styles.aiSuggestionText]} numberOfLines={1}>{q}</Text>
                 </TouchableOpacity>
               ))}
+              {/* 补充上下文问题（最多补到 4 个） */}
+              {generateContextQuestions()
+                .filter(q => !aiSuggestions.includes(q))
+                .slice(0, Math.max(0, 4 - aiSuggestions.length))
+                .map((q) => (
+                  <TouchableOpacity
+                    key={q}
+                    style={styles.quickQuestionBtn}
+                    onPress={() => handleQuickQuestion(q)}
+                    disabled={isLoading}
+                  >
+                    <Text style={styles.quickQuestionText} numberOfLines={1}>{q}</Text>
+                  </TouchableOpacity>
+                ))}
             </View>
 
             {/* Input */}
@@ -890,6 +903,14 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: spacing.sm,
       marginRight: spacing.xs,
       marginBottom: 4,
+    },
+    // AI 生成的跟进问题样式（更醒目）
+    aiSuggestionBtn: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    aiSuggestionText: {
+      color: colors.textInverse,
     },
     quickQuestionText: {
       fontSize: 12,
