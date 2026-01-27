@@ -1042,9 +1042,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             <TouchableOpacity
               style={[styles.errorBackButton, { backgroundColor: colors.primary }]}
               onPress={() => {
+                setIsInitialized(false); // 重置初始化状态
                 setShowRetryButton(false);
                 setLoadingMessage('重试中...');
-                // 递增 retryKey 强制触发 useEffect 重试
+                // 递增 retryKey 强制触发 useEffect 重试（即使 isInitialized 已经是 false）
                 setRetryKey((prev) => prev + 1);
               }}
             >
