@@ -137,7 +137,12 @@ function buildPlayerContext(
 
   // 机械狼的学习结果
   if (context.myRole === 'wolfRobot' && state.wolfRobotReveal) {
-    myKnowledge.push(`学习了${state.wolfRobotReveal.targetSeat + 1}号，获得了${state.wolfRobotReveal.result}的技能`);
+    const roleSpec = ROLE_SPECS[state.wolfRobotReveal.learnedRoleId];
+    const roleName = roleSpec?.displayName || state.wolfRobotReveal.learnedRoleId;
+    myKnowledge.push(`学习了${state.wolfRobotReveal.targetSeat + 1}号，获得了${roleName}的技能`);
+    if (state.wolfRobotReveal.learnedRoleId === 'hunter') {
+      myKnowledge.push(`作为猎人${state.wolfRobotReveal.canShootAsHunter ? '可以' : '不能'}开枪`);
+    }
   }
 
   if (myKnowledge.length > 0) {
@@ -353,20 +358,20 @@ export const AIChatBubble: React.FC = () => {
   // 键盘高度（用于计算窗口底部偏移）
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  // 刷新上下文问题
-  const refreshContextQuestions = useCallback(() => {
+  // 刷新上下文问题（基于当前聊天记录生成跟进问题）
+  const refreshContextQuestions = useCallback((currentMessages: DisplayMessage[]) => {
     const gameState = facade.getState();
     const mySeat = facade.getMySeatNumber();
-    const questions = generateQuickQuestions(gameState, mySeat, []);
+    const questions = generateQuickQuestions(gameState, mySeat, currentMessages);
     setContextQuestions(questions);
   }, [facade]);
 
   // 打开时刷新上下文问题（只刷新一次）
   useEffect(() => {
     if (isOpen) {
-      refreshContextQuestions();
+      refreshContextQuestions(messages);
     }
-  }, [isOpen, refreshContextQuestions]);
+  }, [isOpen, refreshContextQuestions, messages]);
 
   // Web 平台：使用 visualViewport API 监听键盘
   useEffect(() => {
@@ -417,7 +422,15 @@ export const AIChatBubble: React.FC = () => {
 
 
   // 按钮点击处理（需要在 handleTouchEnd 之前定义）
+  // 使用 ref 防止拖拽和点击双触发
+  const justHandledTouchRef = useRef(false);
+  
   const handleBubblePress = useCallback(() => {
+    // 防止拖拽结束时 onPress 再次触发
+    if (justHandledTouchRef.current) {
+      justHandledTouchRef.current = false;
+      return;
+    }
     // 按钮动画
     Animated.sequence([
       Animated.timing(scaleAnim, { toValue: 0.9, duration: 100, useNativeDriver: true }),
@@ -436,6 +449,7 @@ export const AIChatBubble: React.FC = () => {
       posY: position.y,
     };
     isDraggingRef.current = false;
+    justHandledTouchRef.current = false;
   }, [position]);
 
   const handleTouchMove = useCallback((e: GestureResponderEvent) => {
@@ -460,10 +474,13 @@ export const AIChatBubble: React.FC = () => {
 
   const handleTouchEnd = useCallback(() => {
     if (isDraggingRef.current) {
-      // 保存位置
-      AsyncStorage.setItem(STORAGE_KEY_POSITION, JSON.stringify(position));
+      // 保存位置（加 catch 避免 promise 噪音）
+      AsyncStorage.setItem(STORAGE_KEY_POSITION, JSON.stringify(position)).catch(() => {});
+      // 标记已处理，防止 onPress 再次触发
+      justHandledTouchRef.current = true;
     } else {
-      // 没有拖动，视为点击
+      // 没有拖动，视为点击 - 标记后触发
+      justHandledTouchRef.current = true;
       handleBubblePress();
     }
   }, [position, handleBubblePress]);
@@ -490,10 +507,10 @@ export const AIChatBubble: React.FC = () => {
     loadData();
   }, []);
 
-  // 保存消息
+  // 保存消息（加 catch 避免 promise 噪音）
   useEffect(() => {
     if (messages.length > 0) {
-      AsyncStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(messages.slice(-50)));
+      AsyncStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(messages.slice(-50))).catch(() => {});
     }
   }, [messages]);
 
@@ -529,7 +546,13 @@ export const AIChatBubble: React.FC = () => {
       timestamp: Date.now(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    // 先捕获当前 messages 快照，用于构建上下文
+    // 注意：这里不能依赖闭包中的 messages，因为 setMessages 是异步的
+    let currentMessages: DisplayMessage[] = [];
+    setMessages((prev) => {
+      currentMessages = prev; // 捕获最新状态
+      return [...prev, userMessage];
+    });
     setInputText('');
     setIsLoading(true);
     // 注意：不在这里清空 aiSuggestions，等 AI 回复后再更新
@@ -537,59 +560,63 @@ export const AIChatBubble: React.FC = () => {
     // 收起键盘
     Keyboard.dismiss();
 
-    // 获取游戏上下文（玩家视角，不作弊）
-    const gameState = facade.getState();
-    const mySeat = facade.getMySeatNumber();
-    const gameContext = buildPlayerContext(gameState, mySeat);
+    try {
+      // 获取游戏上下文（玩家视角，不作弊）
+      const gameState = facade.getState();
+      const mySeat = facade.getMySeatNumber();
+      const gameContext = buildPlayerContext(gameState, mySeat);
 
-    // 构建上下文（最近 10 条消息）
-    const contextMessages: ChatMessage[] = messages.slice(-10).map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
-    contextMessages.push({ role: 'user', content: text });
+      // 构建上下文（最近 10 条消息 + 刚发送的用户消息）
+      // 使用 currentMessages 确保包含最新历史
+      const contextMessages: ChatMessage[] = currentMessages.slice(-9).map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+      // 添加当前用户消息（确保不丢失）
+      contextMessages.push({ role: 'user', content: text });
 
-    const response = await sendChatMessage(contextMessages, apiKey, gameContext);
+      const response = await sendChatMessage(contextMessages, apiKey, gameContext);
 
-    if (response.success && response.message) {
-      let content = response.message;
-      
-      // 移除 Qwen3 的 <think>...</think> 思考过程
-      content = content.replaceAll(/<think>[\s\S]*?<\/think>/g, '').trim();
-      
-      // 解析 AI 返回的跟进建议
-      const suggestionsRegex = /```suggestions\n([\s\S]*?)```/;
-      const suggestionsMatch = suggestionsRegex.exec(content);
-      if (suggestionsMatch) {
-        const suggestions = suggestionsMatch[1]
-          .split('\n')
-          .map(s => s.trim())
-          // 移除常见的序号格式：1. 2. - * 等
-          .map(s => s.replace(/^\d+[.、)]\s*/, '').replace(/^[-*•]\s*/, ''))
-          .filter(s => s.length > 0 && s.length <= 20)
-          // 确保以问号结尾（如果没有就加上）
-          .map(s => s.endsWith('？') || s.endsWith('?') ? s : s + '？');
-        setAiSuggestions(suggestions.slice(0, 2));
-        // 从显示内容中移除建议块
-        content = content.replace(/```suggestions\n[\s\S]*?```/, '').trim();
+      if (response.success && response.message) {
+        let content = response.message;
+        
+        // 移除 Qwen3 的 <think>...</think> 思考过程
+        content = content.replaceAll(/<think>[\s\S]*?<\/think>/g, '').trim();
+        
+        // 解析 AI 返回的跟进建议
+        const suggestionsRegex = /```suggestions\n([\s\S]*?)```/;
+        const suggestionsMatch = suggestionsRegex.exec(content);
+        if (suggestionsMatch) {
+          const suggestions = suggestionsMatch[1]
+            .split('\n')
+            .map(s => s.trim())
+            // 移除常见的序号格式：1. 2. - * 等
+            .map(s => s.replace(/^\d+[.、)]\s*/, '').replace(/^[-*•]\s*/, ''))
+            .filter(s => s.length > 0 && s.length <= 20)
+            // 确保以问号结尾（如果没有就加上）
+            .map(s => s.endsWith('？') || s.endsWith('?') ? s : s + '？');
+          setAiSuggestions(suggestions.slice(0, 2));
+          // 从显示内容中移除建议块
+          content = content.replace(/```suggestions\n[\s\S]*?```/, '').trim();
+        } else {
+          // AI 没有返回建议时，清空旧的
+          setAiSuggestions([]);
+        }
+
+        const assistantMessage: DisplayMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content,
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
       } else {
-        // AI 没有返回建议时，清空旧的
-        setAiSuggestions([]);
+        showAlert('发送失败', response.error || '未知错误');
       }
-
-      const assistantMessage: DisplayMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content,
-        timestamp: Date.now(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    } else {
-      showAlert('发送失败', response.error || '未知错误');
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
-  }, [isLoading, cooldownRemaining, apiKey, messages, facade]);
+  }, [isLoading, cooldownRemaining, apiKey, facade]);
 
   const handleSend = useCallback(async () => {
     const text = inputText.trim();
