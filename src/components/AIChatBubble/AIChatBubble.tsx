@@ -553,22 +553,23 @@ export const AIChatBubble: React.FC = () => {
                     👋 你好！我是狼人杀助手{'\n'}
                     可以问我游戏规则、策略建议等
                   </Text>
-                  {/* 快捷问题 */}
-                  <View style={styles.quickQuestionsContainer}>
-                    {quickQuestions.map((q) => (
-                      <TouchableOpacity
-                        key={q}
-                        style={styles.quickQuestionBtn}
-                        onPress={() => handleQuickQuestion(q)}
-                        disabled={isLoading}
-                      >
-                        <Text style={styles.quickQuestionText}>{q}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
                 </View>
               }
             />
+
+            {/* 快捷问题 - 始终显示在输入框上方 */}
+            <View style={styles.quickQuestionsContainer}>
+              {quickQuestions.map((q) => (
+                <TouchableOpacity
+                  key={q}
+                  style={styles.quickQuestionBtn}
+                  onPress={() => handleQuickQuestion(q)}
+                  disabled={isLoading}
+                >
+                  <Text style={styles.quickQuestionText} numberOfLines={1}>{q}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
             {/* Input */}
             <View style={styles.inputContainer}>
@@ -772,24 +773,29 @@ const createStyles = (colors: ThemeColors) =>
       lineHeight: 22,
     },
 
-    // Quick Questions
+    // Quick Questions - 横向滚动的 chips
     quickQuestionsContainer: {
-      marginTop: spacing.md,
-      width: '100%',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      backgroundColor: colors.surface,
     },
     quickQuestionBtn: {
-      backgroundColor: colors.surface,
+      backgroundColor: colors.background,
       borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: borderRadius.md,
-      paddingVertical: spacing.xs,
+      borderColor: colors.primary,
+      borderRadius: borderRadius.lg,
+      paddingVertical: 4,
       paddingHorizontal: spacing.sm,
-      marginBottom: spacing.xs,
+      marginRight: spacing.xs,
+      marginBottom: 4,
     },
     quickQuestionText: {
-      fontSize: typography.sm,
+      fontSize: 12,
       color: colors.primary,
-      textAlign: 'center',
     },
   });
 
