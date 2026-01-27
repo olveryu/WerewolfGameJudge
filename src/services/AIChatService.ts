@@ -1,8 +1,8 @@
 /**
- * AI Chat Service - Groq (Llama 3.3 70B)
+ * AI Chat Service - Groq (Llama 3.1 8B Instant)
  *
- * 使用 Groq 提供免费的 Llama 3.3 70B API
- * 免费额度：30 RPM, 14400 RPD, 6000 TPM
+ * 使用 Groq 提供免费的 Llama 3.1 8B API
+ * 免费额度：30 RPM, 14400 RPD, 131072 TPM（比 70B 宽松很多）
  * 文档: https://console.groq.com/docs/quickstart
  */
 
@@ -14,7 +14,7 @@ const chatLog = log.extend('AIChatService');
 // Groq API 配置
 const API_CONFIG = {
   baseURL: 'https://api.groq.com/openai/v1',
-  model: 'llama-3.3-70b-versatile',
+  model: 'llama-3.1-8b-instant',
   maxTokens: 1024,
 };
 
