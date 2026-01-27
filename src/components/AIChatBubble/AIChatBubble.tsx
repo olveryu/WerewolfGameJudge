@@ -205,10 +205,10 @@ const FOLLOW_UP_QUESTIONS: Record<string, string[]> = {
 
 // 通用跟进模板：根据用户问题生成跟进问题
 const GENERIC_FOLLOW_UPS = [
-  '能说得更详细一些吗？',
-  '还有其他方面要考虑吗？',
-  '有什么具体例子吗？',
-  '这种情况怎么处理最好？',
+  '继续说说？',
+  '还有别的吗？',
+  '具体怎么做？',
+  '为什么呢？',
 ];
 
 /**
@@ -217,6 +217,7 @@ const GENERIC_FOLLOW_UPS = [
  * 如果没有匹配到预设关键词，返回通用跟进问题
  */
 function getContextQuestion(messages: DisplayMessage[]): string | null {
+  // 只要有消息就返回跟进问题
   if (messages.length === 0) return null;
   
   // 优先取 AI 最后的回答
@@ -246,12 +247,8 @@ function getContextQuestion(messages: DisplayMessage[]): string | null {
     return followUps[Math.floor(Math.random() * followUps.length)];
   }
   
-  // 没有匹配到预设关键词，但有对话内容 → 返回通用跟进问题
-  if (lastAssistantMsg || lastUserMsg) {
-    return GENERIC_FOLLOW_UPS[Math.floor(Math.random() * GENERIC_FOLLOW_UPS.length)];
-  }
-  
-  return null;
+  // 没有匹配到预设关键词 → 一律返回通用跟进问题（只要有对话）
+  return GENERIC_FOLLOW_UPS[Math.floor(Math.random() * GENERIC_FOLLOW_UPS.length)];
 }
 
 /**
