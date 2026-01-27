@@ -203,9 +203,18 @@ const FOLLOW_UP_QUESTIONS: Record<string, string[]> = {
   '银水': ['银水是什么意思？', '银水可信吗？', '怎么利用银水信息？'],
 };
 
+// 通用跟进模板：根据用户问题生成跟进问题
+const GENERIC_FOLLOW_UPS = [
+  '能说得更详细一些吗？',
+  '还有其他方面要考虑吗？',
+  '有什么具体例子吗？',
+  '这种情况怎么处理最好？',
+];
+
 /**
  * 从聊天记录中提取关键词并生成跟进问题
  * 优先从 AI 最后的回答中提取关键词
+ * 如果没有匹配到预设关键词，返回通用跟进问题
  */
 function getContextQuestion(messages: DisplayMessage[]): string | null {
   if (messages.length === 0) return null;
@@ -229,15 +238,20 @@ function getContextQuestion(messages: DisplayMessage[]): string | null {
     }
   }
   
-  if (matchedKeywords.length === 0) return null;
+  // 如果匹配到预设关键词，返回对应跟进问题
+  if (matchedKeywords.length > 0) {
+    const sortedKeywords = [...matchedKeywords].sort((a, b) => b.length - a.length);
+    const bestKeyword = sortedKeywords[0];
+    const followUps = FOLLOW_UP_QUESTIONS[bestKeyword];
+    return followUps[Math.floor(Math.random() * followUps.length)];
+  }
   
-  // 选择最长的关键词（通常更具体）
-  const sortedKeywords = [...matchedKeywords].sort((a, b) => b.length - a.length);
-  const bestKeyword = sortedKeywords[0];
-  const followUps = FOLLOW_UP_QUESTIONS[bestKeyword];
+  // 没有匹配到预设关键词，但有对话内容 → 返回通用跟进问题
+  if (lastAssistantMsg || lastUserMsg) {
+    return GENERIC_FOLLOW_UPS[Math.floor(Math.random() * GENERIC_FOLLOW_UPS.length)];
+  }
   
-  // 随机选一个跟进问题
-  return followUps[Math.floor(Math.random() * followUps.length)];
+  return null;
 }
 
 /**
