@@ -147,6 +147,39 @@ function buildPlayerContext(
   return context;
 }
 
+/**
+ * 随机问题池 - 每次随机选 2 个
+ */
+const RANDOM_QUESTIONS = [
+  '预言家第一晚应该查谁？',
+  '女巫第一晚要不要救人？',
+  '守卫第一晚应该守谁？',
+  '狼人刀人有什么技巧？',
+  '好人应该怎么发言？',
+  '狼人应该怎么隐藏身份？',
+  '猎人什么时候开枪最好？',
+  '女巫的毒什么时候用？',
+  '怎么分析别人的发言？',
+  '什么是金水银水？',
+  '什么是自刀？',
+  '怎么判断谁是狼人？',
+  '第一晚狼队怎么配合？',
+  '好人怎么保护神职？',
+];
+
+/**
+ * 固定问题 - 每次都显示
+ */
+const FIXED_QUESTION = '本局所有角色的技能是什么？';
+
+/**
+ * 从数组中随机选 n 个不重复的元素
+ */
+function pickRandom<T>(arr: T[], n: number): T[] {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+}
+
 export const AIChatBubble: React.FC = () => {
   const { colors } = useTheme();
   const styles = createStyles(colors);
@@ -168,8 +201,19 @@ export const AIChatBubble: React.FC = () => {
   // 直接使用环境变量中的 API Key（不需要用户配置）
   const apiKey = getDefaultApiKey();
 
+  // 快捷问题（每次打开聊天时刷新随机问题）
+  const [quickQuestions, setQuickQuestions] = useState<string[]>([]);
+
   // 键盘高度（用于计算窗口底部偏移）
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // 打开时刷新快捷问题
+  useEffect(() => {
+    if (isOpen) {
+      const randomQuestions = pickRandom(RANDOM_QUESTIONS, 2);
+      setQuickQuestions([...randomQuestions, FIXED_QUESTION]);
+    }
+  }, [isOpen]);
 
   // Web 平台：使用 visualViewport API 监听键盘
   useEffect(() => {
@@ -300,8 +344,8 @@ export const AIChatBubble: React.FC = () => {
     }
   }, [messages]);
 
-  const handleSend = useCallback(async () => {
-    const text = inputText.trim();
+  // 通用发送函数（供 handleSend 和 handleQuickQuestion 调用）
+  const sendMessage = useCallback(async (text: string) => {
     if (!text || isLoading) return;
 
     if (!apiKey) {
@@ -350,7 +394,17 @@ export const AIChatBubble: React.FC = () => {
     }
 
     setIsLoading(false);
-  }, [inputText, isLoading, apiKey, messages]);
+  }, [isLoading, apiKey, messages, facade]);
+
+  const handleSend = useCallback(async () => {
+    const text = inputText.trim();
+    await sendMessage(text);
+  }, [inputText, sendMessage]);
+
+  // 快捷问题点击
+  const handleQuickQuestion = useCallback((question: string) => {
+    sendMessage(question);
+  }, [sendMessage]);
 
   const handleClearHistory = useCallback(async () => {
     setMessages([]);
@@ -439,6 +493,19 @@ export const AIChatBubble: React.FC = () => {
                     👋 你好！我是狼人杀助手{'\n'}
                     可以问我游戏规则、策略建议等
                   </Text>
+                  {/* 快捷问题 */}
+                  <View style={styles.quickQuestionsContainer}>
+                    {quickQuestions.map((q) => (
+                      <TouchableOpacity
+                        key={q}
+                        style={styles.quickQuestionBtn}
+                        onPress={() => handleQuickQuestion(q)}
+                        disabled={isLoading}
+                      >
+                        <Text style={styles.quickQuestionText}>{q}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
               }
             />
@@ -643,6 +710,26 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMuted,
       textAlign: 'center',
       lineHeight: 22,
+    },
+
+    // Quick Questions
+    quickQuestionsContainer: {
+      marginTop: spacing.md,
+      width: '100%',
+    },
+    quickQuestionBtn: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.sm,
+      marginBottom: spacing.xs,
+    },
+    quickQuestionText: {
+      fontSize: typography.sm,
+      color: colors.primary,
+      textAlign: 'center',
     },
   });
 
