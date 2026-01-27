@@ -157,6 +157,8 @@ const GENERAL_QUESTIONS = [
   '什么是金水银水？',
   '怎么分析别人的发言？',
   '第一晚狼队怎么配合？',
+  '怎么判断谁是狼人？',
+  '好人怎么保护神职？',
 ];
 
 /**
@@ -182,60 +184,122 @@ const ROLE_QUESTIONS: Record<string, string[]> = {
 };
 
 /**
- * 根据游戏上下文生成快捷问题
+ * 根据聊天记录中提到的关键词生成跟进问题
+ */
+const FOLLOW_UP_QUESTIONS: Record<string, string[]> = {
+  '预言家': ['预言家被刀了怎么办？', '预言家验到狼怎么处理？', '预言家第二晚查谁？'],
+  '女巫': ['女巫的解药什么时候用？', '女巫要不要自救？', '女巫毒错人怎么办？'],
+  '守卫': ['守卫守错人怎么办？', '守卫能连续守同一人吗？', '守卫和女巫同时救怎么办？'],
+  '猎人': ['猎人枪打谁最好？', '猎人要不要暴露身份？', '猎人被毒能开枪吗？'],
+  '狼人': ['狼人怎么悍跳？', '狼人怎么互保？', '狼人白天怎么发言？'],
+  '刀': ['狼刀有什么策略？', '刀边和刀中有什么区别？', '连刀和跳刀怎么选？'],
+  '毒': ['女巫毒药什么时候用？', '毒死好人怎么办？', '怎么判断该不该毒？'],
+  '救': ['女巫要不要第一晚救？', '救人有什么风险？', '自救和救队友怎么选？'],
+  '查': ['预言家查谁效率高？', '查到好人怎么处理？', '查到狼人要跳吗？'],
+  '跳': ['什么时候应该跳身份？', '悍跳是什么意思？', '跳身份被反驳怎么办？'],
+  '投票': ['第一轮投票策略？', '怎么判断投票站边？', '弃票是好策略吗？'],
+  '发言': ['好人怎么发言？', '狼人怎么发言？', '发言顺序有影响吗？'],
+  '金水': ['金水应该怎么发言？', '金水被怀疑怎么办？', '假金水怎么辨别？'],
+  '银水': ['银水是什么意思？', '银水可信吗？', '怎么利用银水信息？'],
+};
+
+/**
+ * 从聊天记录中提取关键词并生成跟进问题
+ */
+function getContextQuestion(messages: DisplayMessage[]): string | null {
+  if (messages.length === 0) return null;
+  
+  // 取最近5条消息的内容
+  const recentContent = messages
+    .slice(-5)
+    .map(m => m.content)
+    .join(' ');
+  
+  // 查找匹配的关键词
+  const matchedKeywords: string[] = [];
+  for (const keyword of Object.keys(FOLLOW_UP_QUESTIONS)) {
+    if (recentContent.includes(keyword)) {
+      matchedKeywords.push(keyword);
+    }
+  }
+  
+  if (matchedKeywords.length === 0) return null;
+  
+  // 随机选一个关键词
+  const randomKeyword = matchedKeywords[Math.floor(Math.random() * matchedKeywords.length)];
+  const followUps = FOLLOW_UP_QUESTIONS[randomKeyword];
+  
+  // 随机选一个跟进问题
+  return followUps[Math.floor(Math.random() * followUps.length)];
+}
+
+/**
+ * 根据游戏上下文和聊天记录生成快捷问题（共4道）
  */
 function generateQuickQuestions(
   state: BroadcastGameState | null,
-  mySeat: number | null
+  mySeat: number | null,
+  messages: DisplayMessage[]
 ): string[] {
   const questions: string[] = [];
-
-  // 固定问题：本局角色技能（只在有板子时显示）
-  if (state?.templateRoles && state.templateRoles.length > 0) {
-    questions.push('本局所有角色的技能是什么？');
+  const usedQuestions = new Set<string>();
+  
+  // 1. 根据聊天记录生成跟进问题（优先级最高）
+  const contextQ = getContextQuestion(messages);
+  if (contextQ && !usedQuestions.has(contextQ)) {
+    questions.push(contextQ);
+    usedQuestions.add(contextQ);
   }
 
-  // 如果有我的角色，添加角色相关问题
+  // 2. 固定问题：本局角色技能（只在有板子时显示）
+  const boardQ = '本局所有角色的技能是什么？';
+  if (state?.templateRoles && state.templateRoles.length > 0 && !usedQuestions.has(boardQ)) {
+    questions.push(boardQ);
+    usedQuestions.add(boardQ);
+  }
+
+  // 3. 如果有我的角色，添加角色相关问题
   if (mySeat !== null && state?.players[mySeat]?.role) {
     const myRole = state.players[mySeat]?.role;
     if (myRole && ROLE_QUESTIONS[myRole]) {
-      // 随机选 1 个我的角色相关问题
-      const roleQs = ROLE_QUESTIONS[myRole];
-      const randomRoleQ = roleQs[Math.floor(Math.random() * roleQs.length)];
-      questions.push(randomRoleQ);
-    }
-  }
-
-  // 根据板子里的其他角色添加问题
-  if (state?.templateRoles && state.templateRoles.length > 0) {
-    // 获取板子里有但不是我的角色
-    const otherRoles = state.templateRoles.filter((r) => {
-      if (mySeat !== null && state.players[mySeat]?.role === r) return false;
-      return ROLE_QUESTIONS[r] !== undefined;
-    });
-    // 去重
-    const uniqueOtherRoles = [...new Set(otherRoles)];
-    // 随机选 1 个其他角色
-    if (uniqueOtherRoles.length > 0) {
-      const randomRole = uniqueOtherRoles[Math.floor(Math.random() * uniqueOtherRoles.length)];
-      const roleQs = ROLE_QUESTIONS[randomRole];
-      if (roleQs) {
-        const randomQ = roleQs[Math.floor(Math.random() * roleQs.length)];
-        questions.push(randomQ);
+      const roleQs = ROLE_QUESTIONS[myRole].filter(q => !usedQuestions.has(q));
+      if (roleQs.length > 0) {
+        const randomRoleQ = roleQs[Math.floor(Math.random() * roleQs.length)];
+        questions.push(randomRoleQ);
+        usedQuestions.add(randomRoleQ);
       }
     }
   }
 
-  // 如果问题不够 3 个，从通用问题池补充
-  if (questions.length < 3) {
-    const remaining = 3 - questions.length;
-    const shuffledGeneral = [...GENERAL_QUESTIONS].sort(() => Math.random() - 0.5);
+  // 4. 根据板子里的其他角色添加问题
+  if (state?.templateRoles && state.templateRoles.length > 0 && questions.length < 4) {
+    const otherRoles = state.templateRoles.filter((r) => {
+      if (mySeat !== null && state.players[mySeat]?.role === r) return false;
+      return ROLE_QUESTIONS[r] !== undefined;
+    });
+    const uniqueOtherRoles = [...new Set(otherRoles)];
+    if (uniqueOtherRoles.length > 0) {
+      const randomRole = uniqueOtherRoles[Math.floor(Math.random() * uniqueOtherRoles.length)];
+      const roleQs = ROLE_QUESTIONS[randomRole]?.filter(q => !usedQuestions.has(q)) || [];
+      if (roleQs.length > 0) {
+        const randomQ = roleQs[Math.floor(Math.random() * roleQs.length)];
+        questions.push(randomQ);
+        usedQuestions.add(randomQ);
+      }
+    }
+  }
+
+  // 5. 如果问题不够4个，从通用问题池补充
+  if (questions.length < 4) {
+    const remaining = 4 - questions.length;
+    const availableGeneral = GENERAL_QUESTIONS.filter(q => !usedQuestions.has(q));
+    const shuffledGeneral = [...availableGeneral].sort(() => Math.random() - 0.5);
     for (let i = 0; i < remaining && i < shuffledGeneral.length; i++) {
       questions.push(shuffledGeneral[i]);
     }
   }
 
-  return questions.slice(0, 3);
+  return questions.slice(0, 4);
 }
 
 export const AIChatBubble: React.FC = () => {
@@ -259,21 +323,21 @@ export const AIChatBubble: React.FC = () => {
   // 直接使用环境变量中的 API Key（不需要用户配置）
   const apiKey = getDefaultApiKey();
 
-  // 快捷问题（每次打开聊天时根据上下文生成）
+  // 快捷问题（根据上下文和聊天记录生成）
   const [quickQuestions, setQuickQuestions] = useState<string[]>([]);
 
   // 键盘高度（用于计算窗口底部偏移）
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  // 打开时根据游戏上下文生成快捷问题
+  // 打开时或消息变化时刷新快捷问题
   useEffect(() => {
     if (isOpen) {
       const gameState = facade.getState();
       const mySeat = facade.getMySeatNumber();
-      const questions = generateQuickQuestions(gameState, mySeat);
+      const questions = generateQuickQuestions(gameState, mySeat, messages);
       setQuickQuestions(questions);
     }
-  }, [isOpen, facade]);
+  }, [isOpen, facade, messages]);
 
   // Web 平台：使用 visualViewport API 监听键盘
   useEffect(() => {
