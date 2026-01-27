@@ -205,29 +205,36 @@ const FOLLOW_UP_QUESTIONS: Record<string, string[]> = {
 
 /**
  * 从聊天记录中提取关键词并生成跟进问题
+ * 优先从 AI 最后的回答中提取关键词
  */
 function getContextQuestion(messages: DisplayMessage[]): string | null {
   if (messages.length === 0) return null;
   
-  // 取最近5条消息的内容
-  const recentContent = messages
-    .slice(-5)
-    .map(m => m.content)
-    .join(' ');
+  // 优先取 AI 最后的回答
+  const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
+  const contentToAnalyze = lastAssistantMsg?.content || '';
   
-  // 查找匹配的关键词
+  // 如果 AI 还没回答，取用户最后的问题
+  const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+  const userContent = lastUserMsg?.content || '';
+  
+  // 合并分析
+  const allContent = contentToAnalyze + ' ' + userContent;
+  
+  // 查找匹配的关键词（按优先级排序：越具体的关键词越优先）
   const matchedKeywords: string[] = [];
   for (const keyword of Object.keys(FOLLOW_UP_QUESTIONS)) {
-    if (recentContent.includes(keyword)) {
+    if (allContent.includes(keyword)) {
       matchedKeywords.push(keyword);
     }
   }
   
   if (matchedKeywords.length === 0) return null;
   
-  // 随机选一个关键词
-  const randomKeyword = matchedKeywords[Math.floor(Math.random() * matchedKeywords.length)];
-  const followUps = FOLLOW_UP_QUESTIONS[randomKeyword];
+  // 选择最长的关键词（通常更具体）
+  const sortedKeywords = [...matchedKeywords].sort((a, b) => b.length - a.length);
+  const bestKeyword = sortedKeywords[0];
+  const followUps = FOLLOW_UP_QUESTIONS[bestKeyword];
   
   // 随机选一个跟进问题
   return followUps[Math.floor(Math.random() * followUps.length)];
@@ -325,19 +332,35 @@ export const AIChatBubble: React.FC = () => {
 
   // 快捷问题（根据上下文和聊天记录生成）
   const [quickQuestions, setQuickQuestions] = useState<string[]>([]);
+  // 记录上一次的 isLoading 状态，用于检测加载完成
+  const prevIsLoadingRef = useRef(false);
 
   // 键盘高度（用于计算窗口底部偏移）
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  // 打开时或消息变化时刷新快捷问题
+  // 刷新快捷问题的函数
+  const refreshQuickQuestions = useCallback(() => {
+    const gameState = facade.getState();
+    const mySeat = facade.getMySeatNumber();
+    const questions = generateQuickQuestions(gameState, mySeat, messages);
+    setQuickQuestions(questions);
+  }, [facade, messages]);
+
+  // 打开时刷新一次
   useEffect(() => {
     if (isOpen) {
-      const gameState = facade.getState();
-      const mySeat = facade.getMySeatNumber();
-      const questions = generateQuickQuestions(gameState, mySeat, messages);
-      setQuickQuestions(questions);
+      refreshQuickQuestions();
     }
-  }, [isOpen, facade, messages]);
+  }, [isOpen]); // 只依赖 isOpen，打开时刷新一次
+
+  // 回复完成后刷新（isLoading 从 true 变成 false）
+  useEffect(() => {
+    if (prevIsLoadingRef.current && !isLoading) {
+      // 刚刚完成加载，刷新问题
+      refreshQuickQuestions();
+    }
+    prevIsLoadingRef.current = isLoading;
+  }, [isLoading, refreshQuickQuestions]);
 
   // Web 平台：使用 visualViewport API 监听键盘
   useEffect(() => {
