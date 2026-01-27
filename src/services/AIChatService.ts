@@ -1,9 +1,9 @@
 /**
- * AI Chat Service - Groq (Llama 3.3 70B)
+ * AI Chat Service - Google Gemini 1.5 Flash
  *
- * 使用 Groq 提供免费的 Llama 3.3 70B API
- * 免费额度：30 RPM, 14400 RPD, 6000 TPM
- * 文档: https://console.groq.com/docs/quickstart
+ * 使用 Google AI Studio 提供免费的 Gemini API
+ * 免费额度：15 RPM, 100万 TPD, 100万 TPM
+ * 文档: https://ai.google.dev/gemini-api/docs
  */
 
 import { log } from '../utils/logger';
@@ -11,15 +11,15 @@ import { ROLE_SPECS } from '../models/roles/spec/specs';
 
 const chatLog = log.extend('AIChatService');
 
-// Groq API 配置
+// Gemini API 配置
 const API_CONFIG = {
-  baseURL: 'https://api.groq.com/openai/v1',
-  model: 'llama-3.3-70b-versatile',
+  baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+  model: 'gemini-1.5-flash',
   maxTokens: 1024,
 };
 
 // 从环境变量获取默认 API Key（用户无需手动配置）
-const DEFAULT_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || '';
+const DEFAULT_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
 
 /**
  * 获取 API Key（优先使用环境变量）
@@ -226,7 +226,7 @@ export async function sendChatMessage(
   gameContext?: GameContext
 ): Promise<ChatResponse> {
   if (!apiKey) {
-    return { success: false, error: '请先配置 Groq API Key' };
+    return { success: false, error: '请先配置 Gemini API Key' };
   }
 
   try {
@@ -238,26 +238,38 @@ export async function sendChatMessage(
       systemPrompt += '\n\n' + buildGameContextPrompt(gameContext);
     }
 
-    const response = await fetch(`${API_CONFIG.baseURL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: API_CONFIG.model,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        max_tokens: API_CONFIG.maxTokens,
-        temperature: 0.7,
-      }),
-    });
+    // Gemini API 格式
+    const geminiMessages = messages.map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+
+    const response = await fetch(
+      `${API_CONFIG.baseURL}/models/${API_CONFIG.model}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: geminiMessages,
+          systemInstruction: {
+            parts: [{ text: systemPrompt }],
+          },
+          generationConfig: {
+            maxOutputTokens: API_CONFIG.maxTokens,
+            temperature: 0.7,
+          },
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
       chatLog.error('API error', { status: response.status, error: errorText });
 
-      if (response.status === 401) {
-        return { success: false, error: 'Groq API Key 无效或未配置，请联系管理员' };
+      if (response.status === 401 || response.status === 403) {
+        return { success: false, error: 'Gemini API Key 无效或未配置，请联系管理员' };
       }
       if (response.status === 429) {
         return { success: false, error: '请求太频繁，请稍后再试' };
@@ -266,7 +278,7 @@ export async function sendChatMessage(
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!content) {
       return { success: false, error: '未收到有效回复' };
