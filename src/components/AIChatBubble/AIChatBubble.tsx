@@ -333,6 +333,10 @@ export const AIChatBubble: React.FC = () => {
   const [position, setPosition] = useState(DEFAULT_POSITION);
   const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
   const isDraggingRef = useRef(false);
+  
+  // 请求冷却：上次请求时间
+  const lastRequestTimeRef = useRef(0);
+  const COOLDOWN_MS = 3000; // 3秒冷却
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -497,10 +501,22 @@ export const AIChatBubble: React.FC = () => {
   const sendMessage = useCallback(async (text: string) => {
     if (!text || isLoading) return;
 
+    // 冷却检查：3秒内不能重复请求
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTimeRef.current;
+    if (timeSinceLastRequest < COOLDOWN_MS) {
+      const remainingSeconds = Math.ceil((COOLDOWN_MS - timeSinceLastRequest) / 1000);
+      showAlert('请稍候', `请等待 ${remainingSeconds} 秒后再提问`);
+      return;
+    }
+
     if (!apiKey) {
       showAlert('配置错误', 'AI 服务未配置');
       return;
     }
+
+    // 记录本次请求时间
+    lastRequestTimeRef.current = now;
 
     const userMessage: DisplayMessage = {
       id: Date.now().toString(),
