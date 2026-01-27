@@ -343,16 +343,26 @@ export const AIChatBubble: React.FC = () => {
 
   // AI 生成的跟进问题（从回复中解析）
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  // 上下文问题（缓存，只在打开时刷新）
+  const [contextQuestions, setContextQuestions] = useState<string[]>([]);
 
   // 键盘高度（用于计算窗口底部偏移）
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  // 根据游戏上下文生成快捷问题（不包含 AI 建议）
-  const generateContextQuestions = useCallback((): string[] => {
+  // 刷新上下文问题
+  const refreshContextQuestions = useCallback(() => {
     const gameState = facade.getState();
     const mySeat = facade.getMySeatNumber();
-    return generateQuickQuestions(gameState, mySeat, []);
+    const questions = generateQuickQuestions(gameState, mySeat, []);
+    setContextQuestions(questions);
   }, [facade]);
+
+  // 打开时刷新上下文问题（只刷新一次）
+  useEffect(() => {
+    if (isOpen) {
+      refreshContextQuestions();
+    }
+  }, [isOpen, refreshContextQuestions]);
 
   // Web 平台：使用 visualViewport API 监听键盘
   useEffect(() => {
@@ -667,7 +677,7 @@ export const AIChatBubble: React.FC = () => {
                 </TouchableOpacity>
               ))}
               {/* 补充上下文问题（最多补到 4 个） */}
-              {generateContextQuestions()
+              {contextQuestions
                 .filter(q => !aiSuggestions.includes(q))
                 .slice(0, Math.max(0, 4 - aiSuggestions.length))
                 .map((q) => (
