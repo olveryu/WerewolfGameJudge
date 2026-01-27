@@ -554,6 +554,9 @@ export const AIChatBubble: React.FC = () => {
     if (response.success && response.message) {
       let content = response.message;
       
+      // 移除 Qwen3 的 <think>...</think> 思考过程
+      content = content.replaceAll(/<think>[\s\S]*?<\/think>/g, '').trim();
+      
       // 解析 AI 返回的跟进建议
       const suggestionsRegex = /```suggestions\n([\s\S]*?)```/;
       const suggestionsMatch = suggestionsRegex.exec(content);
