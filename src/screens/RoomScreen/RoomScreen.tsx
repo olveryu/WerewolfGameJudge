@@ -138,6 +138,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('加载房间...');
   const [showRetryButton, setShowRetryButton] = useState(false);
+  const [retryKey, setRetryKey] = useState(0); // 用于强制触发重试
 
   // Refs for callback stability
   const gameStateRef = useRef<LocalGameState | null>(null);
@@ -270,7 +271,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     };
 
     initRoom();
-  }, [isInitialized, isHostParam, template, roomNumber, createRoom, joinRoom, takeSeat]);
+    // retryKey 变化时也会触发重试
+  }, [isInitialized, retryKey, isHostParam, template, roomNumber, createRoom, joinRoom, takeSeat]);
 
   // Reset UI state when game restarts
   useEffect(() => {
@@ -1040,9 +1042,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             <TouchableOpacity
               style={[styles.errorBackButton, { backgroundColor: colors.primary }]}
               onPress={() => {
-                setIsInitialized(false);
                 setShowRetryButton(false);
                 setLoadingMessage('重试中...');
+                // 递增 retryKey 强制触发 useEffect 重试
+                setRetryKey((prev) => prev + 1);
               }}
             >
               <Text style={styles.errorBackButtonText}>重试</Text>
