@@ -148,36 +148,94 @@ function buildPlayerContext(
 }
 
 /**
- * 随机问题池 - 每次随机选 2 个
+ * 通用问题池 - 不在游戏中时使用
  */
-const RANDOM_QUESTIONS = [
-  '预言家第一晚应该查谁？',
-  '女巫第一晚要不要救人？',
-  '守卫第一晚应该守谁？',
-  '狼人刀人有什么技巧？',
-  '好人应该怎么发言？',
+const GENERAL_QUESTIONS = [
+  '狼人杀有哪些基本规则？',
+  '好人阵营怎么配合？',
   '狼人应该怎么隐藏身份？',
-  '猎人什么时候开枪最好？',
-  '女巫的毒什么时候用？',
-  '怎么分析别人的发言？',
   '什么是金水银水？',
-  '什么是自刀？',
-  '怎么判断谁是狼人？',
+  '怎么分析别人的发言？',
   '第一晚狼队怎么配合？',
-  '好人怎么保护神职？',
 ];
 
 /**
- * 固定问题 - 每次都显示
+ * 根据角色生成相关问题
  */
-const FIXED_QUESTION = '本局所有角色的技能是什么？';
+const ROLE_QUESTIONS: Record<string, string[]> = {
+  seer: ['预言家第一晚应该查谁？', '预言家怎么保护自己？', '预言家什么时候跳身份？'],
+  witch: ['女巫第一晚要不要救人？', '女巫的毒什么时候用？', '女巫能自救吗？'],
+  guard: ['守卫第一晚应该守谁？', '守卫怎么和预言家配合？', '守卫能守自己吗？'],
+  hunter: ['猎人什么时候开枪最好？', '猎人被毒死能开枪吗？', '猎人怎么发挥最大价值？'],
+  wolf: ['狼人刀人有什么技巧？', '狼人怎么伪装成好人？', '狼刀完我该怎么发言？'],
+  wolfQueen: ['狼王有什么特殊技能？', '狼王死后能带人吗？'],
+  wolfKing: ['狼王技能是什么？', '狼王什么时候自爆？'],
+  nightmare: ['梦魇的技能是什么？', '梦魇怎么配合狼队？'],
+  gargoyle: ['石像鬼的技能是什么？', '石像鬼能看到什么信息？'],
+  wolfRobot: ['机械狼技能是什么？', '机械狼能和其他狼互认吗？'],
+  psychic: ['通灵师和预言家有什么区别？', '通灵师怎么验人？'],
+  magician: ['魔术师的技能是什么？', '魔术师交换座位有什么用？'],
+  idiot: ['白痴被投票后会怎样？', '白痴翻牌后还能投票吗？'],
+  knight: ['骑士的决斗怎么用？', '骑士什么时候翻牌？'],
+  villager: ['普通村民怎么发挥作用？', '村民应该怎么发言？'],
+  slacker: ['混子是什么阵营？', '混子的胜利条件是什么？'],
+};
 
 /**
- * 从数组中随机选 n 个不重复的元素
+ * 根据游戏上下文生成快捷问题
  */
-function pickRandom<T>(arr: T[], n: number): T[] {
-  const shuffled = [...arr].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, n);
+function generateQuickQuestions(
+  state: BroadcastGameState | null,
+  mySeat: number | null
+): string[] {
+  const questions: string[] = [];
+
+  // 固定问题：本局角色技能（只在有板子时显示）
+  if (state?.templateRoles && state.templateRoles.length > 0) {
+    questions.push('本局所有角色的技能是什么？');
+  }
+
+  // 如果有我的角色，添加角色相关问题
+  if (mySeat !== null && state?.players[mySeat]?.role) {
+    const myRole = state.players[mySeat]?.role;
+    if (myRole && ROLE_QUESTIONS[myRole]) {
+      // 随机选 1 个我的角色相关问题
+      const roleQs = ROLE_QUESTIONS[myRole];
+      const randomRoleQ = roleQs[Math.floor(Math.random() * roleQs.length)];
+      questions.push(randomRoleQ);
+    }
+  }
+
+  // 根据板子里的其他角色添加问题
+  if (state?.templateRoles && state.templateRoles.length > 0) {
+    // 获取板子里有但不是我的角色
+    const otherRoles = state.templateRoles.filter((r) => {
+      if (mySeat !== null && state.players[mySeat]?.role === r) return false;
+      return ROLE_QUESTIONS[r] !== undefined;
+    });
+    // 去重
+    const uniqueOtherRoles = [...new Set(otherRoles)];
+    // 随机选 1 个其他角色
+    if (uniqueOtherRoles.length > 0) {
+      const randomRole = uniqueOtherRoles[Math.floor(Math.random() * uniqueOtherRoles.length)];
+      const roleQs = ROLE_QUESTIONS[randomRole];
+      if (roleQs) {
+        const randomQ = roleQs[Math.floor(Math.random() * roleQs.length)];
+        questions.push(randomQ);
+      }
+    }
+  }
+
+  // 如果问题不够 3 个，从通用问题池补充
+  if (questions.length < 3) {
+    const remaining = 3 - questions.length;
+    const shuffledGeneral = [...GENERAL_QUESTIONS].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < remaining && i < shuffledGeneral.length; i++) {
+      questions.push(shuffledGeneral[i]);
+    }
+  }
+
+  return questions.slice(0, 3);
 }
 
 export const AIChatBubble: React.FC = () => {
@@ -201,19 +259,21 @@ export const AIChatBubble: React.FC = () => {
   // 直接使用环境变量中的 API Key（不需要用户配置）
   const apiKey = getDefaultApiKey();
 
-  // 快捷问题（每次打开聊天时刷新随机问题）
+  // 快捷问题（每次打开聊天时根据上下文生成）
   const [quickQuestions, setQuickQuestions] = useState<string[]>([]);
 
   // 键盘高度（用于计算窗口底部偏移）
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  // 打开时刷新快捷问题
+  // 打开时根据游戏上下文生成快捷问题
   useEffect(() => {
     if (isOpen) {
-      const randomQuestions = pickRandom(RANDOM_QUESTIONS, 2);
-      setQuickQuestions([...randomQuestions, FIXED_QUESTION]);
+      const gameState = facade.getState();
+      const mySeat = facade.getMySeatNumber();
+      const questions = generateQuickQuestions(gameState, mySeat);
+      setQuickQuestions(questions);
     }
-  }, [isOpen]);
+  }, [isOpen, facade]);
 
   // Web 平台：使用 visualViewport API 监听键盘
   useEffect(() => {
