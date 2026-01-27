@@ -512,8 +512,7 @@ export const AIChatBubble: React.FC = () => {
     setMessages((prev) => [...prev, userMessage]);
     setInputText('');
     setIsLoading(true);
-    // 清空旧的 AI 建议
-    setAiSuggestions([]);
+    // 注意：不在这里清空 aiSuggestions，等 AI 回复后再更新
 
     // 收起键盘
     Keyboard.dismiss();
@@ -546,6 +545,9 @@ export const AIChatBubble: React.FC = () => {
         setAiSuggestions(suggestions.slice(0, 2));
         // 从显示内容中移除建议块
         content = content.replace(/```suggestions\n[\s\S]*?```/, '').trim();
+      } else {
+        // AI 没有返回建议时，清空旧的
+        setAiSuggestions([]);
       }
 
       const assistantMessage: DisplayMessage = {
