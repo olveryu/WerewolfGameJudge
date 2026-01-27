@@ -335,7 +335,7 @@ export const AIChatBubble: React.FC = () => {
   const isDraggingRef = useRef(false);
   
   // 请求冷却
-  const COOLDOWN_SECONDS = 3;
+  const COOLDOWN_SECONDS = 5;
   const [cooldownRemaining, setCooldownRemaining] = useState(0); // 剩余冷却秒数
 
   const [isOpen, setIsOpen] = useState(false);
