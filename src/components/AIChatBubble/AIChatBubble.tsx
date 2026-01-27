@@ -501,22 +501,18 @@ export const AIChatBubble: React.FC = () => {
   useEffect(() => {
     if (cooldownRemaining <= 0) return;
     
-    const timer = setInterval(() => {
-      setCooldownRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
+    const timer = setTimeout(() => {
+      setCooldownRemaining((prev) => prev - 1);
     }, 1000);
     
-    return () => clearInterval(timer);
+    return () => clearTimeout(timer);
   }, [cooldownRemaining]);
 
   // 通用发送函数（供 handleSend 和 handleQuickQuestion 调用）
   const sendMessage = useCallback(async (text: string) => {
-    if (!text || isLoading || cooldownRemaining > 0) return;
+    if (!text || isLoading) return;
+    // 冷却中不发送（但不阻止，因为按钮已禁用）
+    if (cooldownRemaining > 0) return;
 
     if (!apiKey) {
       showAlert('配置错误', 'AI 服务未配置');
@@ -586,7 +582,7 @@ export const AIChatBubble: React.FC = () => {
     }
 
     setIsLoading(false);
-  }, [isLoading, apiKey, messages, facade]);
+  }, [isLoading, cooldownRemaining, apiKey, messages, facade]);
 
   const handleSend = useCallback(async () => {
     const text = inputText.trim();
