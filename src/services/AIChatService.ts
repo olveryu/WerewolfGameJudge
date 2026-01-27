@@ -201,9 +201,7 @@ ${getRolesDescription()}
 
 - 本 App 只处理第一晚 (Night-1)，白天发言投票在线下进行
 - 守卫不能连续两晚守同一人（但本 App 只有一晚所以不受限）
-- 女巫第一晚不能自救
-- 机械狼与普通狼人互不相认
-- 石像鬼不参与狼人投票`;
+- 具体规则以本局游戏配置为准，请参考上下文中的角色技能描述`;
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -259,7 +257,7 @@ export async function sendChatMessage(
       chatLog.error('API error', { status: response.status, error: errorText });
 
       if (response.status === 401) {
-        return { success: false, error: 'GitHub Token 无效，请检查配置' };
+        return { success: false, error: 'Groq API Key 无效或未配置，请联系管理员' };
       }
       if (response.status === 429) {
         return { success: false, error: '请求太频繁，请稍后再试' };
