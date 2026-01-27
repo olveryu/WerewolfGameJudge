@@ -1,8 +1,8 @@
 /**
- * AI Chat Service - Google Gemini 1.5 Flash
+ * AI Chat Service - Google Gemini 2.0 Flash
  *
  * 使用 Google AI Studio 提供免费的 Gemini API
- * 免费额度：15 RPM, 100万 TPD, 100万 TPM
+ * 免费额度：15 RPM, 1500 RPD, 100万 TPM
  * 文档: https://ai.google.dev/gemini-api/docs
  */
 
@@ -14,7 +14,7 @@ const chatLog = log.extend('AIChatService');
 // Gemini API 配置
 const API_CONFIG = {
   baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-  model: 'gemini-1.5-flash',
+  model: 'gemini-2.0-flash',
   maxTokens: 1024,
 };
 
