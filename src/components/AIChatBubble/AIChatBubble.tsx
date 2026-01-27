@@ -334,9 +334,9 @@ export const AIChatBubble: React.FC = () => {
   const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
   const isDraggingRef = useRef(false);
   
-  // 请求冷却：上次请求时间
-  const lastRequestTimeRef = useRef(0);
-  const COOLDOWN_MS = 3000; // 3秒冷却
+  // 请求冷却
+  const COOLDOWN_SECONDS = 3;
+  const [cooldownRemaining, setCooldownRemaining] = useState(0); // 剩余冷却秒数
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -497,26 +497,34 @@ export const AIChatBubble: React.FC = () => {
     }
   }, [messages]);
 
+  // 冷却倒计时
+  useEffect(() => {
+    if (cooldownRemaining <= 0) return;
+    
+    const timer = setInterval(() => {
+      setCooldownRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [cooldownRemaining]);
+
   // 通用发送函数（供 handleSend 和 handleQuickQuestion 调用）
   const sendMessage = useCallback(async (text: string) => {
-    if (!text || isLoading) return;
-
-    // 冷却检查：3秒内不能重复请求
-    const now = Date.now();
-    const timeSinceLastRequest = now - lastRequestTimeRef.current;
-    if (timeSinceLastRequest < COOLDOWN_MS) {
-      const remainingSeconds = Math.ceil((COOLDOWN_MS - timeSinceLastRequest) / 1000);
-      showAlert('请稍候', `请等待 ${remainingSeconds} 秒后再提问`);
-      return;
-    }
+    if (!text || isLoading || cooldownRemaining > 0) return;
 
     if (!apiKey) {
       showAlert('配置错误', 'AI 服务未配置');
       return;
     }
 
-    // 记录本次请求时间
-    lastRequestTimeRef.current = now;
+    // 启动冷却倒计时
+    setCooldownRemaining(COOLDOWN_SECONDS);
 
     const userMessage: DisplayMessage = {
       id: Date.now().toString(),
@@ -726,15 +734,22 @@ export const AIChatBubble: React.FC = () => {
                 blurOnSubmit={false}
               />
               <TouchableOpacity
-                style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
+                style={[
+                  styles.sendButton,
+                  (!inputText.trim() || isLoading || cooldownRemaining > 0) && styles.sendButtonDisabled,
+                ]}
                 onPress={handleSend}
-                disabled={!inputText.trim() || isLoading}
+                disabled={!inputText.trim() || isLoading || cooldownRemaining > 0}
               >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.sendButtonText}>↑</Text>
-                )}
+                {(() => {
+                  if (isLoading) {
+                    return <ActivityIndicator size="small" color="#fff" />;
+                  }
+                  if (cooldownRemaining > 0) {
+                    return <Text style={styles.sendButtonText}>{cooldownRemaining}</Text>;
+                  }
+                  return <Text style={styles.sendButtonText}>↑</Text>;
+                })()}
               </TouchableOpacity>
             </View>
           </View>
