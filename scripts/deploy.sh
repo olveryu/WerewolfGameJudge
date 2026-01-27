@@ -66,12 +66,12 @@ fi
 echo "🔧 切换到生产环境配置..."
 cp .env .env.local
 
-# 从备份中提取 GEMINI_API_KEY 并添加到构建配置
+# 从备份中提取 GROQ_API_KEY 并添加到构建配置
 if [ "$HAS_BACKUP" = true ]; then
-  GEMINI_API_KEY=$(grep '^EXPO_PUBLIC_GEMINI_API_KEY=' .env.local.backup | cut -d '=' -f2)
-  if [ -n "$GEMINI_API_KEY" ]; then
-    echo "EXPO_PUBLIC_GEMINI_API_KEY=$GEMINI_API_KEY" >> .env.local
-    echo "✅ 已添加 EXPO_PUBLIC_GEMINI_API_KEY 到构建配置"
+  GROQ_API_KEY=$(grep '^EXPO_PUBLIC_GROQ_API_KEY=' .env.local.backup | cut -d '=' -f2)
+  if [ -n "$GROQ_API_KEY" ]; then
+    echo "EXPO_PUBLIC_GROQ_API_KEY=$GROQ_API_KEY" >> .env.local
+    echo "✅ 已添加 EXPO_PUBLIC_GROQ_API_KEY 到构建配置"
   fi
 fi
 
@@ -111,11 +111,11 @@ cd dist
 # 同步环境变量到 Vercel（从 .env.local.backup 读取）
 echo "🔑 同步环境变量..."
 if [ "$HAS_BACKUP" = true ] && [ -f ../.env.local.backup ]; then
-  # 读取 EXPO_PUBLIC_GEMINI_API_KEY
-  GEMINI_API_KEY=$(grep '^EXPO_PUBLIC_GEMINI_API_KEY=' ../.env.local.backup | cut -d '=' -f2)
-  if [ -n "$GEMINI_API_KEY" ]; then
-    echo "$GEMINI_API_KEY" | vercel env add EXPO_PUBLIC_GEMINI_API_KEY production --force 2>/dev/null || true
-    echo "✅ EXPO_PUBLIC_GEMINI_API_KEY 已同步"
+  # 读取 EXPO_PUBLIC_GROQ_API_KEY
+  GROQ_API_KEY=$(grep '^EXPO_PUBLIC_GROQ_API_KEY=' ../.env.local.backup | cut -d '=' -f2)
+  if [ -n "$GROQ_API_KEY" ]; then
+    echo "$GROQ_API_KEY" | vercel env add EXPO_PUBLIC_GROQ_API_KEY production --force 2>/dev/null || true
+    echo "✅ EXPO_PUBLIC_GROQ_API_KEY 已同步"
   fi
 fi
 
