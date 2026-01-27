@@ -1,9 +1,9 @@
 /**
- * AI Chat Service - Groq (Llama 3.3 70B)
+ * AI Chat Service - Groq (Qwen3-32B)
  *
- * 使用 Groq 提供免费的 Llama 3.3 70B API
- * 免费额度：30 RPM, 14400 RPD, 6000 TPM
- * 文档: https://console.groq.com/docs/quickstart
+ * 使用 Groq 提供 Qwen3-32B API
+ * 免费额度：300K TPM, 1K RPM（比 Llama 70B 高 50 倍）
+ * 文档: https://console.groq.com/docs/models
  */
 
 import { log } from '../utils/logger';
@@ -11,10 +11,10 @@ import { ROLE_SPECS } from '../models/roles/spec/specs';
 
 const chatLog = log.extend('AIChatService');
 
-// Groq API 配置
+// Groq API 配置 - Qwen3-32B（中文能力更强，TPM 额度更高）
 const API_CONFIG = {
   baseURL: 'https://api.groq.com/openai/v1',
-  model: 'llama-3.3-70b-versatile',
+  model: 'qwen/qwen3-32b',
   maxTokens: 1024,
 };
 
