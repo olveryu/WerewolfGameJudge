@@ -272,13 +272,13 @@ function extractWitchAction(
 }
 
 /**
- * 从 state 构建 NightActions（对齐 legacy buildNightActions）
+ * Build NightActions from state for death resolution
  */
 function buildNightActions(state: NonNullState): NightActions {
   const actions = state.actions ?? [];
   const nightActions: NightActions = {};
 
-  // Wolf kill - legacy-compatible: resolve final target from wolfVotesBySeat.
+  // Wolf kill - resolve final target from wolfVotesBySeat
   // Single source of truth is the votes table; final target is derived.
   if (!state.wolfKillDisabled) {
     const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat ?? {};

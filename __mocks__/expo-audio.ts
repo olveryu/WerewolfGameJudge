@@ -34,7 +34,7 @@ export const useAudioPlayer = jest.fn().mockReturnValue({
   isLoaded: true,
 });
 
-// Legacy Audio namespace (for backward compatibility)
+// Audio namespace (expo-audio SDK 52+ API)
 export const Audio = {
   Sound: {
     createAsync: jest.fn().mockResolvedValue({

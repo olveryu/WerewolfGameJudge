@@ -474,23 +474,23 @@ describe('Handler → Resolver wire protocol (buildActionInput)', () => {
     });
   });
 
-  describe('legacy encoding 不再支持', () => {
-    it('mergedTarget 编码 (a + b*100) 不会被 resolver 解析', () => {
+  describe('old mergedTarget encoding is not supported', () => {
+    it('mergedTarget encoding (a + b*100) is not parsed by resolver', () => {
       const ctx = createContext(3, 'magician', players);
 
-      // 旧的 mergedTarget 编码：2 + 4*100 = 402
-      // 这个值如果被放在 target 字段，resolver 不会解析
+      // Old mergedTarget encoding: 2 + 4*100 = 402
+      // This value in target field will not be parsed
       const input: ActionInput = {
         schemaId: 'magicianSwap',
-        target: 402, // legacy mergedTarget
+        target: 402, // old mergedTarget format
         targets: undefined,
       };
 
       const result = magicianSwapResolver(ctx, input);
 
-      // targets undefined → 视为跳过，不是错误
+      // targets undefined → treated as skip, not error
       expect(result.valid).toBe(true);
-      expect(result.updates).toBeUndefined(); // 无 swap
+      expect(result.updates).toBeUndefined(); // no swap
     });
   });
 });

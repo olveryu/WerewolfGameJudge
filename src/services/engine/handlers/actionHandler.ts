@@ -623,17 +623,16 @@ export function handleSubmitWolfVote(
     payload: {
       seat,
       role: (voterForGate.role ?? 'wolf') as RoleId,
-  // wolfKill supports empty knife via target = null.
-  // Keep on-wire SUBMIT_WOLF_VOTE stable by mapping legacy target=-1 to null.
-  target: target === -1 ? null : target,
+      // wolfKill supports empty knife via target = null.
+      // Map target=-1 to null for empty knife.
+      target: target === -1 ? null : target,
     },
   };
 
   const delegated = handleSubmitAction(delegateIntent, context);
   if (!delegated.success) {
-  // Unified reason: do not map resolver/user-facing reasons to legacy wolf-vote codes.
-  // Just broadcast whatever the unified pipeline produced.
-  return normalizeWolfVoteRejection(delegated);
+    // Broadcast whatever the unified pipeline produced.
+    return normalizeWolfVoteRejection(delegated);
   }
 
   // IMPORTANT:
