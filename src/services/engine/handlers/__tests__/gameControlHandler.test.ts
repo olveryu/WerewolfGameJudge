@@ -153,7 +153,7 @@ describe('handleAssignRoles', () => {
 });
 
 // =============================================================================
-// handleStartGame tests (legacy, will be modified in PR3)
+// handleStartGame tests
 // =============================================================================
 
 describe('handleStartGame', () => {

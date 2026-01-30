@@ -264,7 +264,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     };
   }, [connectionStatus, isHost, roomRecord, facade]);
 
-  // Phase 1: myRole 从 gameState 派生，不再依赖 legacy service
+  // Derive myRole from gameState
   const myRole = useMemo(() => {
     if (mySeatNumber === null || !gameState) return null;
     return gameState.players.get(mySeatNumber)?.role ?? null;
@@ -636,7 +636,6 @@ export const useGameRoom = (): UseGameRoomResult => {
   );
 
   // Clear seat error (BUG-2 fix)
-  // Phase 1: 只更新本地状态，不再调用 legacy service
   const clearLastSeatError = useCallback(() => {
     setLastSeatError(null);
   }, []);

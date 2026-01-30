@@ -40,7 +40,7 @@ export function handleAssignRoles(
 ): HandlerResult {
   const { state, isHost } = context;
 
-  // 验证：仅主机可操作（Legacy L1456）
+  // Gate: host only
   if (!isHost) {
     return {
       success: false,
@@ -58,7 +58,7 @@ export function handleAssignRoles(
     };
   }
 
-  // 验证：游戏状态必须是 seated（Legacy L1457）
+  // Gate: game status must be 'seated'
   if (state.status !== 'seated') {
     return {
       success: false,
@@ -77,7 +77,7 @@ export function handleAssignRoles(
     };
   }
 
-  // 随机分配角色（Legacy L1460）
+  // Shuffle and assign roles
   const shuffledRoles = shuffleArray([...state.templateRoles]);
   const assignments: Record<number, RoleId> = {};
   const seats = Object.keys(state.players).map((s) => Number.parseInt(s, 10));
@@ -223,7 +223,7 @@ export function handleStartNight(
     };
   }
 
-  // Gate: 前置状态必须是 ready（Legacy L1485）
+  // Gate: status must be 'ready'
   if (state.status !== 'ready') {
     return {
       success: false,
