@@ -247,10 +247,12 @@ class AudioService {
    */
   async startBgm(): Promise<void> {
     if (this.isBgmPlaying || this.bgmPlayer) {
+      audioLog.debug('BGM already playing, skipping');
       return; // Already playing
     }
 
     try {
+      audioLog.debug('Starting BGM...');
       const player = createAudioPlayer(BGM_NIGHT);
       this.bgmPlayer = player;
       this.isBgmPlaying = true;
@@ -262,7 +264,7 @@ class AudioService {
       player.loop = true;
 
       player.play();
-      audioLog.debug('BGM started');
+      audioLog.debug('BGM started successfully');
     } catch (error) {
       audioLog.warn('Failed to start BGM:', error);
       this.isBgmPlaying = false;

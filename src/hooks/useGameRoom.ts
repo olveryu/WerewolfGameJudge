@@ -535,7 +535,9 @@ export const useGameRoom = (): UseGameRoomResult => {
   const startGame = useCallback(async (): Promise<void> => {
     if (!isHost) return;
     // Start BGM if enabled
-    if (settingsService.current.isBgmEnabled()) {
+    const bgmEnabled = settingsService.current.isBgmEnabled();
+    console.log('[useGameRoom] startGame - BGM enabled:', bgmEnabled);
+    if (bgmEnabled) {
       void audioService.current.startBgm();
     }
     await facade.startNight();
