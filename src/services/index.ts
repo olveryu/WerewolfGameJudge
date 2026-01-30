@@ -17,6 +17,11 @@ export { default as AudioService } from './infra/AudioService';
 export { AuthService } from './infra/AuthService';
 export { AvatarUploadService } from './infra/AvatarUploadService';
 export { SimplifiedRoomService, type RoomRecord } from './infra/RoomService';
+export {
+  default as SettingsService,
+  type UserSettings,
+  type ThemeKey,
+} from './infra/SettingsService';
 
 // =============================================================================
 // Transport: 网络传输

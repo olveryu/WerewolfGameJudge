@@ -1,0 +1,169 @@
+/**
+ * SettingsService - Persistent user settings storage
+ *
+ * Uses AsyncStorage to persist user preferences across sessions.
+ * All settings are stored under a single key as a JSON object.
+ *
+ * Consolidates previously scattered storage keys:
+ * - @werewolf_theme → themeKey
+ * - @werewolf_settings → all other settings
+ */
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const SETTINGS_KEY = '@werewolf_settings';
+// Legacy key for theme (for migration)
+const LEGACY_THEME_KEY = '@werewolf_theme';
+
+/** Valid theme keys */
+export type ThemeKey = 'light' | 'minimal' | 'dark' | 'midnight' | 'blood' | 'discord';
+
+export interface UserSettings {
+  /** Whether to play background music during night phase (default: true) */
+  bgmEnabled: boolean;
+  /** Selected theme (default: 'dark') */
+  themeKey: ThemeKey;
+}
+
+const DEFAULT_SETTINGS: UserSettings = {
+  bgmEnabled: true,
+  themeKey: 'dark',
+};
+
+class SettingsService {
+  private static instance: SettingsService;
+  private settings: UserSettings = { ...DEFAULT_SETTINGS };
+  private loaded = false;
+
+  private constructor() {}
+
+  static getInstance(): SettingsService {
+    if (!SettingsService.instance) {
+      SettingsService.instance = new SettingsService();
+    }
+    return SettingsService.instance;
+  }
+
+  /**
+   * Load settings from storage. Call this on app startup.
+   * Also migrates legacy settings from separate storage keys.
+   */
+  async load(): Promise<void> {
+    if (this.loaded) return;
+
+    try {
+      const raw = await AsyncStorage.getItem(SETTINGS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<UserSettings>;
+        // Merge with defaults to handle new settings added in future versions
+        this.settings = { ...DEFAULT_SETTINGS, ...parsed };
+      }
+
+      // Migrate legacy theme key if exists and not already in settings
+      if (!raw || !JSON.parse(raw).themeKey) {
+        const legacyTheme = await AsyncStorage.getItem(LEGACY_THEME_KEY);
+        if (legacyTheme && this.isValidThemeKey(legacyTheme)) {
+          this.settings.themeKey = legacyTheme;
+          // Save migrated settings and clean up legacy key
+          await this.save();
+          await AsyncStorage.removeItem(LEGACY_THEME_KEY);
+        }
+      }
+
+      this.loaded = true;
+    } catch {
+      // If load fails, use defaults
+      this.settings = { ...DEFAULT_SETTINGS };
+      this.loaded = true;
+    }
+  }
+
+  /**
+   * Check if a string is a valid theme key.
+   */
+  private isValidThemeKey(key: string): key is ThemeKey {
+    return ['light', 'minimal', 'dark', 'midnight', 'blood', 'discord'].includes(key);
+  }
+
+  /**
+   * Save current settings to storage.
+   */
+  private async save(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
+      this.notifyListeners();
+    } catch {
+      // Ignore save errors
+    }
+  }
+
+  /**
+   * Get whether BGM is enabled.
+   */
+  isBgmEnabled(): boolean {
+    return this.settings.bgmEnabled;
+  }
+
+  /**
+   * Set BGM enabled/disabled and persist.
+   */
+  async setBgmEnabled(enabled: boolean): Promise<void> {
+    this.settings.bgmEnabled = enabled;
+    await this.save();
+  }
+
+  /**
+   * Toggle BGM setting and persist. Returns new value.
+   */
+  async toggleBgm(): Promise<boolean> {
+    this.settings.bgmEnabled = !this.settings.bgmEnabled;
+    await this.save();
+    return this.settings.bgmEnabled;
+  }
+
+  // =========================================================================
+  // Theme Settings
+  // =========================================================================
+
+  /**
+   * Get current theme key.
+   */
+  getThemeKey(): ThemeKey {
+    return this.settings.themeKey;
+  }
+
+  /**
+   * Set theme and persist.
+   */
+  async setThemeKey(key: ThemeKey): Promise<void> {
+    this.settings.themeKey = key;
+    await this.save();
+  }
+
+  /**
+   * Get all settings (for debugging/display).
+   */
+  getAll(): UserSettings {
+    return { ...this.settings };
+  }
+
+  /**
+   * Add a listener for settings changes.
+   * Returns unsubscribe function.
+   */
+  private readonly listeners: Set<(settings: UserSettings) => void> = new Set();
+
+  addListener(listener: (settings: UserSettings) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  /**
+   * Notify all listeners of settings change.
+   */
+  private notifyListeners(): void {
+    const snapshot = { ...this.settings };
+    this.listeners.forEach((listener) => listener(snapshot));
+  }
+}
+
+export default SettingsService;

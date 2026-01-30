@@ -104,6 +104,9 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     waitForGargoyleReveal: jest.fn(),
     waitForWolfRobotReveal: jest.fn(),
     submitRevealAck: jest.fn(),
+
+    isBgmEnabled: true,
+    toggleBgm: jest.fn(),
   }),
 }));
 

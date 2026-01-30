@@ -16,10 +16,10 @@ import React, {
   ReactNode,
 } from 'react';
 import { Platform, StatusBar } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { themes, defaultTheme, Theme, ThemeKey, ThemeColors } from './themes';
 import { spacing, borderRadius, typography, shadows, layout } from './tokens';
 import { log } from '../utils/logger';
+import SettingsService from '../services/infra/SettingsService';
 
 const themeLog = log.extend('Theme');
 
@@ -59,8 +59,6 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-const STORAGE_KEY = '@werewolf_theme';
-
 // ============================================
 // Provider
 // ============================================
@@ -75,14 +73,16 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   initialTheme = defaultTheme,
 }) => {
   const [themeKey, setThemeKey] = useState<ThemeKey>(initialTheme);
+  const settingsService = useMemo(() => SettingsService.getInstance(), []);
 
   // Load saved theme on mount
   useEffect(() => {
     const loadTheme = async () => {
       try {
-        const saved = await AsyncStorage.getItem(STORAGE_KEY);
+        await settingsService.load();
+        const saved = settingsService.getThemeKey();
         if (saved && saved in themes) {
-          setThemeKey(saved as ThemeKey);
+          setThemeKey(saved);
         }
       } catch (error) {
         const e = error as { message?: string; name?: string; code?: string };
@@ -93,8 +93,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
         });
       }
     };
-    loadTheme();
-  }, []);
+    void loadTheme();
+  }, [settingsService]);
 
   // Update status bar / theme-color when theme changes
   useEffect(() => {
@@ -126,17 +126,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   }, [themeKey]);
 
   // Set theme and persist
-  const setTheme = useCallback((key: ThemeKey) => {
-    setThemeKey(key);
-    AsyncStorage.setItem(STORAGE_KEY, key).catch((error) => {
-      const e = error as { message?: string; name?: string; code?: string };
-      themeLog.warn('Failed to save theme', {
-        message: e?.message ?? String(error),
-        name: e?.name,
-        code: e?.code,
-      });
-    });
-  }, []);
+  const setTheme = useCallback(
+    (key: ThemeKey) => {
+      setThemeKey(key);
+      void settingsService.setThemeKey(key);
+    },
+    [settingsService],
+  );
 
   // Toggle between dark and light
   const toggleTheme = useCallback(() => {

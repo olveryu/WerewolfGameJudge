@@ -53,11 +53,14 @@ const meta: Meta<typeof HostControlButtons> = {
     showStartGame: false,
     showLastNightInfo: false,
     showRestart: false,
+    showBgmToggle: false,
+    isBgmEnabled: true,
     onSettingsPress: () => console.log('Settings'),
     onPrepareToFlipPress: () => console.log('Prepare to flip'),
     onStartGamePress: () => console.log('Start game'),
     onLastNightInfoPress: () => console.log('Last night info'),
     onRestartPress: () => console.log('Restart'),
+    onBgmToggle: () => console.log('BGM toggle'),
   },
 };
 
@@ -102,6 +105,17 @@ export const GameOngoing: Story = {
   name: '🌙 游戏进行中',
   args: {
     showRestart: true,
+    showBgmToggle: true,
+    isBgmEnabled: true,
+  },
+};
+
+export const GameOngoingBgmOff: Story = {
+  name: '🌙 游戏进行中（音乐关闭）',
+  args: {
+    showRestart: true,
+    showBgmToggle: true,
+    isBgmEnabled: false,
   },
 };
 

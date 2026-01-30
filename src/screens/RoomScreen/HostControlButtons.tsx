@@ -16,6 +16,10 @@ export interface HostControlButtonsProps {
   showStartGame: boolean;
   showLastNightInfo: boolean;
   showRestart: boolean;
+  showBgmToggle: boolean;
+
+  // BGM state
+  isBgmEnabled: boolean;
 
   // Button press handlers (parent provides dialog/logic)
   onSettingsPress: () => void;
@@ -23,6 +27,7 @@ export interface HostControlButtonsProps {
   onStartGamePress: () => void;
   onLastNightInfoPress: () => void;
   onRestartPress: () => void;
+  onBgmToggle: () => void;
 }
 
 export const HostControlButtons: React.FC<HostControlButtonsProps> = ({
@@ -32,11 +37,14 @@ export const HostControlButtons: React.FC<HostControlButtonsProps> = ({
   showStartGame,
   showLastNightInfo,
   showRestart,
+  showBgmToggle,
+  isBgmEnabled,
   onSettingsPress,
   onPrepareToFlipPress,
   onStartGamePress,
   onLastNightInfoPress,
   onRestartPress,
+  onBgmToggle,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -52,6 +60,16 @@ export const HostControlButtons: React.FC<HostControlButtonsProps> = ({
           onPress={onSettingsPress}
         >
           <Text style={styles.buttonText}>⚙️ 设置</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Host: BGM Toggle */}
+      {showBgmToggle && (
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: colors.primaryDark }]}
+          onPress={onBgmToggle}
+        >
+          <Text style={styles.buttonText}>{isBgmEnabled ? '🎵 关闭音乐' : '🔇 开启音乐'}</Text>
         </TouchableOpacity>
       )}
 

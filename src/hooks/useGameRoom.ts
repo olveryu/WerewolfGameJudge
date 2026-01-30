@@ -27,6 +27,8 @@ import {
 import { gameRoomLog } from '../utils/logger';
 import { useGameFacade } from '../contexts';
 import { broadcastToLocalState } from './adapters/broadcastToLocalState';
+import SettingsService from '../services/infra/SettingsService';
+import AudioService from '../services/infra/AudioService';
 
 export interface UseGameRoomResult {
   // Room info
@@ -80,6 +82,10 @@ export interface UseGameRoomResult {
 
   // Host audio control (PR7: 音频时序控制)
   setAudioPlaying: (isPlaying: boolean) => Promise<{ success: boolean; reason?: string }>;
+
+  // BGM control (Host only)
+  isBgmEnabled: boolean;
+  toggleBgm: () => Promise<void>;
 
   // Player actions
   viewedRole: () => Promise<void>;
@@ -144,9 +150,25 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Throttle: only request once per live session (reset when state is received)
   const hasRequestedInSessionRef = useRef<boolean>(false);
 
+  // BGM state
+  const [isBgmEnabled, setIsBgmEnabled] = useState(true);
+  const settingsService = useRef(SettingsService.getInstance());
+  const audioService = useRef(AudioService.getInstance());
+
   const roomService = useRef(SimplifiedRoomService.getInstance());
   const authService = useRef(AuthService.getInstance());
   const broadcastService = useRef(BroadcastService.getInstance());
+
+  // =========================================================================
+  // Load settings on mount
+  // =========================================================================
+  useEffect(() => {
+    const loadSettings = async () => {
+      await settingsService.current.load();
+      setIsBgmEnabled(settingsService.current.isBgmEnabled());
+    };
+    void loadSettings();
+  }, []);
 
   // =========================================================================
   // Phase 1A: 订阅 facade state（转换为 LocalGameState）
@@ -186,6 +208,22 @@ export const useGameRoom = (): UseGameRoomResult => {
     });
     return unsubscribe;
   }, [facade]);
+
+  // =========================================================================
+  // BGM control: Stop BGM when game ends (Host only)
+  // =========================================================================
+  const prevStatusRef = useRef<GameStatus | null>(null);
+  useEffect(() => {
+    if (!isHost) return;
+    const currentStatus = gameState?.status ?? null;
+    const prevStatus = prevStatusRef.current;
+    prevStatusRef.current = currentStatus;
+
+    // Stop BGM when transitioning from ongoing to ended
+    if (prevStatus === GameStatus.ongoing && currentStatus === GameStatus.ended) {
+      audioService.current.stopBgm();
+    }
+  }, [isHost, gameState?.status]);
 
   // Subscribe to connection status changes
   useEffect(() => {
@@ -493,17 +531,38 @@ export const useGameRoom = (): UseGameRoomResult => {
     await facade.assignRoles();
   }, [isHost, facade]);
 
-  // Start game (host only) - now uses startNight
+  // Start game (host only) - now uses startNight + BGM
   const startGame = useCallback(async (): Promise<void> => {
     if (!isHost) return;
+    // Start BGM if enabled
+    if (settingsService.current.isBgmEnabled()) {
+      void audioService.current.startBgm();
+    }
     await facade.startNight();
   }, [isHost, facade]);
 
   // Restart game (host only)
   const restartGame = useCallback(async (): Promise<void> => {
     if (!isHost) return;
+    // Stop BGM on restart
+    audioService.current.stopBgm();
     await facade.restartGame();
   }, [isHost, facade]);
+
+  // Toggle BGM setting (host only)
+  const toggleBgm = useCallback(async (): Promise<void> => {
+    const newValue = await settingsService.current.toggleBgm();
+    setIsBgmEnabled(newValue);
+    // If currently playing, stop/start based on new setting
+    if (newValue) {
+      // Only start if game is ongoing
+      if (gameState?.status === GameStatus.ongoing) {
+        void audioService.current.startBgm();
+      }
+    } else {
+      audioService.current.stopBgm();
+    }
+  }, [gameState?.status]);
 
   // Set audio playing (host only) - PR7 音频时序控制
   const setAudioPlaying = useCallback(
@@ -624,6 +683,8 @@ export const useGameRoom = (): UseGameRoomResult => {
     startGame,
     restartGame,
     setAudioPlaying,
+    isBgmEnabled,
+    toggleBgm,
     viewedRole,
     submitAction,
     submitWolfVote,
