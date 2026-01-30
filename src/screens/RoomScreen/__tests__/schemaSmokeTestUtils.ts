@@ -109,6 +109,9 @@ export function makeBaseUseGameRoomReturn({
     waitForWolfRobotReveal: jest.fn(),
     submitRevealAck: jest.fn(),
 
+    isBgmEnabled: true,
+    toggleBgm: jest.fn(),
+
     ...(overrides ?? {}),
   };
 }

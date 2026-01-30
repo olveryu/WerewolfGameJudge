@@ -120,6 +120,11 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     waitForGargoyleReveal: jest.fn(),
     waitForWolfRobotReveal: jest.fn(),
     submitRevealAck: jest.fn(),
+
+    // BGM controls
+    isBgmEnabled: true,
+    toggleBgm: jest.fn(),
+
     ...overrides,
   };
 }

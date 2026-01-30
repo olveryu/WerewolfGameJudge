@@ -50,11 +50,19 @@ const AUDIO_END_FILES: Partial<Record<RoleId, any>> = {
 const NIGHT_AUDIO = require('../../../assets/audio/night.mp3');
 const NIGHT_END_AUDIO = require('../../../assets/audio/night_end.mp3');
 
+// Background music
+const BGM_NIGHT = require('../../../assets/audio/bgm_night.mp3');
+
+/** BGM volume (0.0 to 1.0) - lower so TTS narration is audible */
+const BGM_VOLUME = 0.3;
+
 class AudioService {
   private static instance: AudioService;
   private static initPromise: Promise<void> | null = null;
   private player: AudioPlayer | null = null;
+  private bgmPlayer: AudioPlayer | null = null;
   private isPlaying = false;
+  private isBgmPlaying = false;
 
   private constructor() {
     // Constructor does not call async methods
@@ -215,7 +223,7 @@ class AudioService {
     return AUDIO_END_FILES[role] ?? null;
   }
 
-  // Stop all audio
+  // Stop all audio (not BGM)
   stop(): void {
     this.stopCurrentPlayer();
   }
@@ -225,9 +233,65 @@ class AudioService {
     return this.isPlaying;
   }
 
-  // Clean up
+  // Clean up all audio including BGM
   cleanup(): void {
     this.stopCurrentPlayer();
+    this.stopBgm();
+  }
+
+  // ============ BGM Methods ============
+
+  /**
+   * Start playing background music in a loop.
+   * Does nothing if BGM is already playing.
+   */
+  async startBgm(): Promise<void> {
+    if (this.isBgmPlaying || this.bgmPlayer) {
+      return; // Already playing
+    }
+
+    try {
+      const player = createAudioPlayer(BGM_NIGHT);
+      this.bgmPlayer = player;
+      this.isBgmPlaying = true;
+
+      // Set volume lower so TTS is audible
+      player.volume = BGM_VOLUME;
+
+      // Loop BGM
+      player.loop = true;
+
+      player.play();
+      audioLog.debug('BGM started');
+    } catch (error) {
+      audioLog.warn('Failed to start BGM:', error);
+      this.isBgmPlaying = false;
+      this.bgmPlayer = null;
+    }
+  }
+
+  /**
+   * Stop background music.
+   */
+  stopBgm(): void {
+    if (this.bgmPlayer) {
+      try {
+        this.bgmPlayer.pause();
+        this.bgmPlayer.remove();
+      } catch {
+        // Ignore errors
+      }
+      this.bgmPlayer = null;
+      this.isBgmPlaying = false;
+      audioLog.debug('BGM stopped');
+    }
+  }
+
+  /**
+   * Check if BGM is currently playing.
+   */
+  getIsBgmPlaying(): boolean {
+    return this.isBgmPlaying;
   }
 }
 

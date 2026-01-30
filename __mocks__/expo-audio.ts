@@ -16,6 +16,9 @@ const createMockPlayer = () => ({
   muted: false,
   shouldCorrectPitch: true,
   currentStatus: { isLoaded: true, didJustFinish: false },
+  volume: 1,
+  loop: false,
+  addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
 });
 
 // Top-level exports matching expo-audio API

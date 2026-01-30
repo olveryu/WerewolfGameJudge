@@ -88,6 +88,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     requestSnapshot,
     submitRevealAck,
     sendWolfRobotHunterStatusViewed,
+    isBgmEnabled,
+    toggleBgm,
   } = useGameRoom();
 
   // Night progress indicator: calculate current step index and total steps
@@ -1167,11 +1169,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             roomStatus === GameStatus.ongoing ||
             roomStatus === GameStatus.ended
           }
+          showBgmToggle={roomStatus === GameStatus.ongoing && !isAudioPlaying}
+          isBgmEnabled={isBgmEnabled}
           onSettingsPress={handleSettingsPress}
           onPrepareToFlipPress={showPrepareToFlipDialog}
           onStartGamePress={showStartGameDialog}
           onLastNightInfoPress={showLastNightInfoDialog}
           onRestartPress={showRestartDialog}
+          onBgmToggle={toggleBgm}
         />
 
         {/* Actioner: schema-driven bottom action buttons */}
