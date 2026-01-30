@@ -138,9 +138,20 @@
       
       // 读取用户保存的主题，应用到 splash
       (function() {
-        var saved = localStorage.getItem('@werewolf_theme');
-        var themeKey = saved ? saved.replace(/"/g, '') : 'light';
-        var theme = THEMES[themeKey] || THEMES.light;
+        var themeKey = 'dark';
+        // 优先读新格式 @werewolf_settings
+        var settings = localStorage.getItem('@werewolf_settings');
+        if (settings) {
+          try {
+            var parsed = JSON.parse(settings);
+            if (parsed.themeKey) themeKey = parsed.themeKey;
+          } catch (e) {}
+        } else {
+          // 兼容旧格式 @werewolf_theme
+          var legacy = localStorage.getItem('@werewolf_theme');
+          if (legacy) themeKey = legacy.replace(/"/g, '');
+        }
+        var theme = THEMES[themeKey] || THEMES.dark;
         
         // 应用背景色
         document.documentElement.style.backgroundColor = theme.background;
