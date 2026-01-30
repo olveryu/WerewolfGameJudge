@@ -171,6 +171,10 @@ async function processHandlerResult(
     try {
       for (const effect of audioEffects) {
         await ctx.playAudio(effect.audioKey, effect.isEndAudio);
+        // 播放完 "night"（天黑请闭眼）后，等待 3 秒再播放下一个音频
+        if (effect.audioKey === 'night') {
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+        }
       }
     } finally {
       // 无论成功/失败/中断，都必须释放 gate
