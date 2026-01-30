@@ -1,21 +1,25 @@
 /**
- * AI Chat Service - Groq (Qwen3-32B)
+ * AI Chat Service - Groq (Llama 4 Scout)
  *
- * 使用 Groq 提供 Qwen3-32B API
- * 免费额度：300K TPM, 1K RPM（比 Llama 70B 高 50 倍）
+ * 使用 Groq 提供 Llama 4 Scout API
+ * 免费额度：30K TPM, 1K RPD（TPM 比 Qwen3 高 5 倍）
  * 文档: https://console.groq.com/docs/models
  */
 
 import { log } from '../utils/logger';
-import { ROLE_SPECS } from '../models/roles/spec/specs';
 
 const chatLog = log.extend('AIChatService');
 
-// Groq API 配置 - Qwen3-32B（中文能力更强，TPM 额度更高）
+// Groq API 配置 - Llama 4 Scout（TPM 最高，Llama 4 最新架构）
 const API_CONFIG = {
   baseURL: 'https://api.groq.com/openai/v1',
-  model: 'qwen/qwen3-32b',
-  maxTokens: 1024,
+  model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+  maxTokens: 512, // 优化5: 降低回复长度，节省 tokens
+};
+
+// Token 优化配置
+const TOKEN_OPTIMIZATION = {
+  maxHistoryRounds: 3, // 优化6: 最多保留最近 3 轮对话
 };
 
 // 从环境变量获取默认 API Key（用户无需手动配置）
@@ -107,9 +111,8 @@ export function buildGameContextPrompt(context: GameContext): string {
     lines.push(`- 板子配置: ${context.boardRoles.join('、')}`);
   }
 
-  // 显示板子中每个角色的技能（去重）
+  // 优化1: 只显示当前板子的角色技能（已去重），不再发送全部角色
   if (context.boardRoleDetails && context.boardRoleDetails.length > 0) {
-    // 去重（同一角色可能出现多次）
     const uniqueRoles = new Map<string, string>();
     context.boardRoleDetails.forEach((r) => {
       if (!uniqueRoles.has(r.name)) {
@@ -135,73 +138,20 @@ export function buildGameContextPrompt(context: GameContext): string {
     context.myKnowledge.forEach((k) => lines.push(`  - ${k}`));
   }
 
-  // NOTE: deadPlayers 已移除 - 只有 Host 能宣布死亡信息
-
-  lines.push('', '注意：以上是玩家自己能看到的信息，请基于这些信息给出建议。');
+  lines.push('');
 
   return lines.join('\n');
 }
 
-// 获取所有角色信息用于 System Prompt
-function getRolesDescription(): string {
-  const roles = Object.values(ROLE_SPECS);
-  return roles
-    .map((role) => `- ${role.displayName}: ${role.description}`)
-    .join('\n');
-}
+// 优化1: 移除 getRolesDescription，改用板子上下文中的角色
 
-// System Prompt - 狼人杀游戏助手
-const SYSTEM_PROMPT = `你是一个专业的狼人杀游戏助手，名叫"狼人杀小助手"。你的职责是：
+// 优化3+4: 精简 System Prompt，移除跟进问题要求
+const SYSTEM_PROMPT = `你是狼人杀游戏助手。职责：规则解答、策略建议、争议裁决。
 
-1. **规则解答**: 解释狼人杀游戏规则、角色技能、特殊情况处理
-2. **策略建议**: 提供游戏策略、发言技巧、推理方法
-3. **争议裁决**: 帮助解释规则争议，给出合理判断
-4. **娱乐互动**: 友好地与玩家聊天，增加游戏乐趣
-
-## 你了解的角色
-
-${getRolesDescription()}
-
-## 回答原则
-
-- 使用简洁、口语化的中文回答
-- 回答要准确，如果不确定请说明
-- 可以使用 emoji 增加趣味性 🐺
-- 如果问题与狼人杀无关，也可以友好地回答，但适时引导回游戏话题
-- 每次回答尽量控制在 200 字以内，除非用户要求详细解释
-
-## 跟进问题（重要！）
-
-在每次回答的**最后**，请附带 2 个相关的跟进问题，格式必须严格如下：
-\`\`\`suggestions
-继续追问的问题一
-继续追问的问题二
-\`\`\`
-
-跟进问题的要求：
-- 每行一个问题，不要加序号、不要加符号（如 - 或 1.）
-- 问题简短精炼（8-15个字，不超过15字）
-- 必须以问号结尾
-- 与当前对话主题直接相关
-- 是用户可能真正感兴趣的内容
-
-正确示例（用户问"女巫第一晚要救人吗"）：
-\`\`\`suggestions
-不救人有什么好处？
-女巫能自救吗？
-\`\`\`
-
-错误示例（不要这样）：
-\`\`\`suggestions
-1. 不救人有什么好处？
-- 女巫能自救吗？
-\`\`\`
-
-## 特别注意
-
-- 本 App 只处理第一晚 (Night-1)，白天发言投票在线下进行
-- 守卫不能连续两晚守同一人（但本 App 只有一晚所以不受限）
-- 具体规则以本局游戏配置为准，请参考上下文中的角色技能描述`;
+回答原则：
+- 简洁中文，控制在150字内
+- 可用emoji 🐺
+- 本App只处理第一夜，白天在线下进行`;
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -238,6 +188,12 @@ export async function sendChatMessage(
       systemPrompt += '\n\n' + buildGameContextPrompt(gameContext);
     }
 
+    // 优化2: 限制历史轮数，只保留最近 N 轮对话
+    const maxMessages = TOKEN_OPTIMIZATION.maxHistoryRounds * 2; // 每轮 = 1 user + 1 assistant
+    const trimmedMessages = messages.length > maxMessages 
+      ? messages.slice(-maxMessages) 
+      : messages;
+
     const response = await fetch(`${API_CONFIG.baseURL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -246,7 +202,7 @@ export async function sendChatMessage(
       },
       body: JSON.stringify({
         model: API_CONFIG.model,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        messages: [{ role: 'system', content: systemPrompt }, ...trimmedMessages],
         max_tokens: API_CONFIG.maxTokens,
         temperature: 0.7,
       }),
