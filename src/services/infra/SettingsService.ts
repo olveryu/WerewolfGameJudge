@@ -3,16 +3,10 @@
  *
  * Uses AsyncStorage to persist user preferences across sessions.
  * All settings are stored under a single key as a JSON object.
- *
- * Consolidates previously scattered storage keys:
- * - @werewolf_theme → themeKey
- * - @werewolf_settings → all other settings
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SETTINGS_KEY = '@werewolf_settings';
-// Legacy key for theme (for migration)
-const LEGACY_THEME_KEY = '@werewolf_theme';
 
 /** Valid theme keys */
 export type ThemeKey = 'light' | 'minimal' | 'dark' | 'midnight' | 'blood' | 'discord';
@@ -45,7 +39,6 @@ class SettingsService {
 
   /**
    * Load settings from storage. Call this on app startup.
-   * Also migrates legacy settings from separate storage keys.
    */
   async load(): Promise<void> {
     if (this.loaded) return;
@@ -56,17 +49,6 @@ class SettingsService {
         const parsed = JSON.parse(raw) as Partial<UserSettings>;
         // Merge with defaults to handle new settings added in future versions
         this.settings = { ...DEFAULT_SETTINGS, ...parsed };
-      }
-
-      // Migrate legacy theme key if exists and not already in settings
-      if (!raw || !JSON.parse(raw).themeKey) {
-        const legacyTheme = await AsyncStorage.getItem(LEGACY_THEME_KEY);
-        if (legacyTheme && this.isValidThemeKey(legacyTheme)) {
-          this.settings.themeKey = legacyTheme;
-          // Save migrated settings and clean up legacy key
-          await this.save();
-          await AsyncStorage.removeItem(LEGACY_THEME_KEY);
-        }
       }
 
       this.loaded = true;
