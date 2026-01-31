@@ -19,7 +19,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { GameStatus, getWolfVoteSummary, getPlayersNotViewedRole } from '../../models/Room';
-import { getRoleSpec, buildNightPlan, getRoleDisplayName } from '../../models/roles';
+import { buildNightPlan, getRoleDisplayName } from '../../models/roles';
 import { showAlert } from '../../utils/alert';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
@@ -48,6 +48,7 @@ import { roomScreenLog } from '../../utils/logger';
 import type { ActionSchema, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
 import { SCHEMAS, isValidSchemaId, BLOCKED_UI_DEFAULTS } from '../../models/roles/spec';
 import { LoadingScreen } from '../../components/LoadingScreen';
+import { RoleCardModal } from '../../components/RoleCardModal';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -987,19 +988,22 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     roomNumber,
   });
 
+  // Role card modal state
+  const [roleCardVisible, setRoleCardVisible] = useState(false);
+
   const showRoleCardDialog = useCallback(async () => {
     if (!myRole) return;
 
-    const spec = getRoleSpec(myRole);
-    const roleName = spec?.displayName || myRole;
-    const description = spec?.description || '无技能描述';
+    // 显示翻牌动画模态框
+    setRoleCardVisible(true);
 
+    // 标记已查看
     await viewedRole();
-
-    showAlert(`你的身份是：${roleName}`, `【技能介绍】\n${description}`, [
-      { text: '确定', style: 'default' },
-    ]);
   }, [myRole, viewedRole]);
+
+  const handleRoleCardClose = useCallback(() => {
+    setRoleCardVisible(false);
+  }, []);
 
   // ───────────────────────────────────────────────────────────────────────────
   // Host: Show speaking order dialog when night ends (after audio finishes)
@@ -1217,6 +1221,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         seatNumber={(pendingSeatIndex ?? 0) + 1}
         onConfirm={modalType === 'enter' ? handleConfirmSeat : handleConfirmLeave}
         onCancel={handleCancelSeat}
+      />
+
+      {/* Role Card Modal with flip animation */}
+      <RoleCardModal
+        visible={roleCardVisible}
+        roleId={myRole}
+        onClose={handleRoleCardClose}
       />
     </View>
   );
