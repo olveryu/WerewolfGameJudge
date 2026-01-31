@@ -49,6 +49,9 @@ import type { ActionSchema, SchemaId, InlineSubStepSchema } from '../../models/r
 import { SCHEMAS, isValidSchemaId, BLOCKED_UI_DEFAULTS } from '../../models/roles/spec';
 import { LoadingScreen } from '../../components/LoadingScreen';
 import { RoleCardModal } from '../../components/RoleCardModal';
+import { RoleRouletteModal } from '../../components/RoleRouletteModal';
+import { RoleCardSimple } from '../../components/RoleCardSimple';
+import SettingsService, { type RoleRevealAnimation } from '../../services/infra/SettingsService';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -990,11 +993,22 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Role card modal state
   const [roleCardVisible, setRoleCardVisible] = useState(false);
+  const [roleRevealAnimation, setRoleRevealAnimation] = useState<RoleRevealAnimation>('roulette');
+
+  // Load animation setting on mount
+  useEffect(() => {
+    const loadAnimationSetting = async () => {
+      const settings = SettingsService.getInstance();
+      await settings.load();
+      setRoleRevealAnimation(settings.getRoleRevealAnimation());
+    };
+    loadAnimationSetting();
+  }, []);
 
   const showRoleCardDialog = useCallback(async () => {
     if (!myRole) return;
 
-    // 显示翻牌动画模态框
+    // 显示角色卡模态框
     setRoleCardVisible(true);
 
     // 标记已查看
@@ -1223,12 +1237,31 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onCancel={handleCancelSeat}
       />
 
-      {/* Role Card Modal with flip animation */}
-      <RoleCardModal
-        visible={roleCardVisible}
-        roleId={myRole}
-        onClose={handleRoleCardClose}
-      />
+      {/* Role Card Modal - 根据设置选择动画方式 */}
+      {roleRevealAnimation === 'roulette' && (
+        <RoleRouletteModal
+          visible={roleCardVisible}
+          roleId={myRole}
+          allRoles={gameState?.template?.roles ?? template?.roles ?? []}
+          onClose={handleRoleCardClose}
+        />
+      )}
+
+      {roleRevealAnimation === 'flip' && (
+        <RoleCardModal
+          visible={roleCardVisible}
+          roleId={myRole}
+          onClose={handleRoleCardClose}
+        />
+      )}
+
+      {roleRevealAnimation === 'none' && (
+        <RoleCardSimple
+          visible={roleCardVisible}
+          roleId={myRole}
+          onClose={handleRoleCardClose}
+        />
+      )}
     </View>
   );
 };
