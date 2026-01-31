@@ -3,7 +3,7 @@
  *
  * 点击"查看身份"后显示翻牌动画，正面显示角色信息
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Modal,
   View,
@@ -69,73 +69,82 @@ export interface RoleCardModalProps {
 }
 
 export const RoleCardModal: React.FC<RoleCardModalProps> = ({ visible, roleId, onClose }) => {
+  // Use a key-based remount strategy to avoid stale animation state on web
+  // Each time visible becomes true, we want a fresh component
+  if (!visible) return null;
+
+  return <RoleCardModalContent roleId={roleId} onClose={onClose} />;
+};
+
+// Inner component that mounts fresh each time modal opens
+const RoleCardModalContent: React.FC<{ roleId: RoleId | null; onClose: () => void }> = ({
+  roleId,
+  onClose,
+}) => {
   const colors = useColors();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
 
-  // 动画值
+  // 动画值 - fresh on every mount
   const flipAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  const [isFlipped, setIsFlipped] = useState(false);
 
-  // 重置动画状态
+  // Web compatibility: useNativeDriver doesn't work well with some animations on web
+  const isWeb = Platform.OS === 'web';
+  const nativeDriver = !isWeb;
+
+  // 入场动画 - runs once on mount
   useEffect(() => {
-    if (visible) {
-      setIsFlipped(false);
-      flipAnim.setValue(0);
-      scaleAnim.setValue(0.3);
-      opacityAnim.setValue(0);
+    // 入场动画：缩放 + 淡入
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 6,
+        tension: 100,
+        useNativeDriver: nativeDriver,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: nativeDriver,
+      }),
+    ]).start(() => {
+      // 入场完成后自动翻牌
+      setTimeout(() => {
+        doFlip();
+      }, 300);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
-      // 入场动画：缩放 + 淡入
-      Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 6,
-          tension: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        // 入场完成后自动翻牌
-        setTimeout(() => {
-          flipCard();
-        }, 300);
-      });
-    }
-  }, [visible]);
-
-  const flipCard = () => {
-    if (isFlipped) return;
-    setIsFlipped(true);
-
+  const doFlip = () => {
     Animated.spring(flipAnim, {
       toValue: 1,
       friction: 8,
       tension: 80,
-      useNativeDriver: true,
+      useNativeDriver: nativeDriver,
     }).start();
   };
 
   const handleClose = () => {
-    // 退场动画
+    // CRITICAL: Call onClose synchronously FIRST to ensure modal closes immediately.
+    // On web, animation callbacks and setTimeout are unreliable and can cause the modal
+    // to stay open even after the user clicks the dismiss button.
+    onClose();
+
+    // Fire-and-forget exit animation (purely visual, doesn't block closure)
     Animated.parallel([
       Animated.timing(scaleAnim, {
         toValue: 0.3,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: nativeDriver,
       }),
       Animated.timing(opacityAnim, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: nativeDriver,
       }),
-    ]).start(() => {
-      onClose();
-    });
+    ]).start();
   };
 
   if (!roleId) return null;
@@ -187,7 +196,7 @@ export const RoleCardModal: React.FC<RoleCardModalProps> = ({ visible, roleId, o
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={handleClose}>
+    <Modal visible={true} transparent animationType="none" onRequestClose={handleClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={handleClose}>
         <View style={styles.cardContainer}>
           {/* 卡片背面（问号面） */}

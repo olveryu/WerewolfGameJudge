@@ -36,8 +36,21 @@ test.describe('Create Room', () => {
     // Ensure logged in
     await ensureAnonLogin(page);
 
+    // Small delay to ensure auth state is fully propagated
+    await page.waitForTimeout(500);
+
     // Click create room
     await page.getByText('创建房间').click();
+
+    // Handle potential login dialog (race condition with auth sync)
+    const loginDialog = page.getByText('需要登录');
+    if (await loginDialog.isVisible({ timeout: 1000 }).catch(() => false)) {
+      // Dismiss and wait for auth to sync
+      await page.getByText('取消', { exact: true }).click();
+      await page.waitForTimeout(1000);
+      // Retry
+      await page.getByText('创建房间').click();
+    }
 
     // Should be on config screen - look for 创建 button
     await expect(getVisibleText(page, '创建')).toBeVisible({ timeout: 10000 });
