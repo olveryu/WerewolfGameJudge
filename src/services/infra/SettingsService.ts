@@ -8,8 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SETTINGS_KEY = '@werewolf_settings';
 
-/** Valid theme keys */
-export type ThemeKey = 'light' | 'minimal' | 'dark' | 'midnight' | 'blood' | 'discord';
+/** Valid theme keys (must match themes.ts ThemeKey) */
+export type ThemeKey = 'light' | 'minimal' | 'dark' | 'midnight' | 'blood' | 'discord' | 'forest' | 'snow';
 
 export interface UserSettings {
   /** Whether to play background music during night phase (default: true) */

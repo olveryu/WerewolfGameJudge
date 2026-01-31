@@ -224,7 +224,9 @@ src/services/
 │   ├── handlers/                  # 来自 engine/handlers
 │   │   ├── actionHandler.ts
 │   │   ├── gameControlHandler.ts
-│   │   ├── nightFlowHandler.ts    # ⚠️ 技术债：812 行，见 D.4
+│   │   ├── nightFlowHandler.ts    # re-export 入口（已拆分，见 D.4）
+│   │   ├── stepTransitionHandler.ts  # 步骤切换逻辑（508 行）
+│   │   ├── progressionEvaluator.ts   # 幂等推进决策（302 行）
 │   │   ├── seatHandler.ts
 │   │   ├── types.ts
 │   │   ├── index.ts
@@ -551,24 +553,14 @@ grep -rn "GameFacade" src --include="*.ts"
 
 ### D.4 技术债声明：nightFlowHandler.ts
 
-**现状**：`engine/handlers/nightFlowHandler.ts` 共 812 行，超过 400 行红线。
+**✅ 已解决**（2026-01-31）
 
-**暂缓拆分原因**：
-- 本次重构范围是目录扁平化 + 前缀清理，不涉及逻辑重构
-- nightFlowHandler 内部职责边界尚未明确，贸然拆分可能引入 bug
+原 `engine/handlers/nightFlowHandler.ts` 共 812 行已拆分为：
+- `nightFlowHandler.ts` - re-export 入口（38 行）
+- `stepTransitionHandler.ts` - 步骤切换逻辑（508 行）
+- `progressionEvaluator.ts` - 幂等推进决策（302 行）
 
-**后续计划**（建议在单独 PR 处理）：
-1. 按职责拆分为：
-   - `nightFlowHandler.ts` - 主流程编排 (~200 行)
-   - `stepTransitionHandler.ts` - 步骤切换逻辑
-   - `actionDispatcher.ts` - action 分发
-2. 添加合约测试确保拆分后行为不变
-3. 目标：每个文件 < 400 行
-
-**本次迁移**：照常移动到 `engine/handlers/nightFlowHandler.ts`，并在文件头部添加 TODO 注释：
-```typescript
-// TODO: Tech debt - 812 lines, should split into stepTransitionHandler + actionDispatcher
-```
+所有测试通过，外部 API 保持不变。
 
 ---
 

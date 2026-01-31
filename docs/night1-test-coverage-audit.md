@@ -21,19 +21,19 @@
 | schemaId | kind | constraints | UI Payload Shape | Handler Contract | Resolver Integration | Boards Integration | Single Source of Truth |
 |----------|------|-------------|------------------|------------------|----------------------|----------------------|------------------------|
 | `magicianSwap` | swap | `[]` | `target=null, extra.targets: number[]` | `wireProtocol.contract.test.ts` | `DarkWolfKingMagician12.integration.test.ts` | `wireProtocol.contract.test.ts` | `currentNightResults.swappedSeats` |
-| `slackerChooseIdol` | chooseSeat | `['notSelf']` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | TODO: 需要专门模板 | `currentNightResults.slackerIdolSeat` |
-| `wolfRobotLearn` | chooseSeat | `['notSelf']` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | TODO: 需要专门模板 | `wolfRobotReveal` |
-| `dreamcatcherDream` | chooseSeat | `['notSelf']` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | TODO: 需要专门模板 | `currentNightResults.dreamedSeat` |
-| `gargoyleCheck` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | TODO: 需要专门模板 | `gargoyleReveal` |
-| `nightmareBlock` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | `seer.integration.test.ts` (block edge) | `currentNightResults.blockedSeat` |
-| `guardProtect` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts`, `wireProtocol.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | `boundary.guard.test.ts` | `currentNightResults.guardedSeat` |
-| `wolfKill` | wolfVote | `[]` | `WOLF_VOTE { seat, target }` | `actionHandler.test.ts`, `wireProtocol.contract.test.ts` | `wolfVote.integration.test.ts` | `wolfVote.integration.test.ts`, `DarkWolfKingMagician12.integration.test.ts` | `currentNightResults.wolfVotesBySeat`, `currentNightResults.wolfKillTarget` |
-| `wolfQueenCharm` | chooseSeat | `['notSelf']` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | TODO: 需要专门模板 | `currentNightResults.charmedSeat` |
-| `witchAction` | compound | - | `target=null, extra.stepResults: { save: number \| null, poison: number \| null }` | `witchContract.test.ts`, `wireProtocol.contract.test.ts` | `witchContract.test.ts` | `wireProtocol.contract.test.ts`, `DarkWolfKingMagician12.integration.test.ts` | `currentNightResults.savedSeat`, `currentNightResults.poisonedSeat` |
-| `seerCheck` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts`, `wireProtocol.contract.test.ts` | `seer.integration.test.ts` | `seer.integration.test.ts`, `magicianSwap.seerReveal.integration.test.ts` | `seerReveal` |
-| `psychicCheck` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | TODO: 需要专门模板 | `psychicReveal` |
-| `hunterConfirm` | confirm | - | `target=null, extra.confirmed: boolean` | `wireProtocol.contract.test.ts` | `actionHandler.test.ts` | `DarkWolfKingMagician12.integration.test.ts` | `confirmStatus.hunter` |
-| `darkWolfKingConfirm` | confirm | - | `target=null, extra.confirmed: boolean` | `wireProtocol.contract.test.ts` | `actionHandler.test.ts` | `DarkWolfKingMagician12.integration.test.ts` | `confirmStatus.darkWolfKing` |
+| `slackerChooseIdol` | chooseSeat | `['notSelf']` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | ✅ `night1.steps.coverage.12p.integration.test.ts` | `currentNightResults.slackerIdolSeat` |
+| `wolfRobotLearn` | chooseSeat | `['notSelf']` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | ✅ `night1.wolfRobot.*.12p.integration.test.ts` (3 files) | `wolfRobotReveal` |
+| `dreamcatcherDream` | chooseSeat | `['notSelf']` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | ✅ `night1.dreamcatcher.dream.12p.integration.test.ts` | `currentNightResults.dreamedSeat` |
+| `gargoyleCheck` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | ✅ `night1.gargoyle.check.12p.integration.test.ts` | `gargoyleReveal` |
+| `nightmareBlock` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | ✅ `seer.integration.test.ts`, `night1.nightmare.*.12p.integration.test.ts` | `currentNightResults.blockedSeat` |
+| `guardProtect` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts`, `wireProtocol.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | ✅ `boundary.guard.test.ts`, `night1.guard.blocks_wolfkill.12p.integration.test.ts` | `currentNightResults.guardedSeat` |
+| `wolfKill` | wolfVote | `[]` | `WOLF_VOTE { seat, target }` | `actionHandler.test.ts`, `wireProtocol.contract.test.ts` | `wolfVote.integration.test.ts` | ✅ `wolfVote.integration.test.ts`, `DarkWolfKingMagician12.integration.test.ts` | `currentNightResults.wolfVotesBySeat`, `currentNightResults.wolfKillTarget` |
+| `wolfQueenCharm` | chooseSeat | `['notSelf']` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | ✅ `night1.wolfQueen.charm.12p.integration.test.ts` | `currentNightResults.charmedSeat` |
+| `witchAction` | compound | - | `target=null, extra.stepResults: { save: number \| null, poison: number \| null }` | `witchContract.test.ts`, `wireProtocol.contract.test.ts` | `witchContract.test.ts` | ✅ `wireProtocol.contract.test.ts`, `night1.witch.save_poison_contracts.12p.integration.test.ts` | `currentNightResults.savedSeat`, `currentNightResults.poisonedSeat` |
+| `seerCheck` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts`, `wireProtocol.contract.test.ts` | `seer.integration.test.ts` | ✅ `seer.integration.test.ts`, `magicianSwap.seerReveal.integration.test.ts`, `night1.standard.seer_reveal.12p.integration.test.ts` | `seerReveal` |
+| `psychicCheck` | chooseSeat | `[]` | `target: number \| null` | `chooseSeat.batch.contract.test.ts` | `chooseSeat.batch.contract.test.ts` | ✅ `night1.psychic.reveal.12p.integration.test.ts`, `night1.steps.coverage.12p.integration.test.ts` | `psychicReveal` |
+| `hunterConfirm` | confirm | - | `target=null, extra.confirmed: boolean` | `wireProtocol.contract.test.ts` | `actionHandler.test.ts` | ✅ `DarkWolfKingMagician12.integration.test.ts` | `confirmStatus.hunter` |
+| `darkWolfKingConfirm` | confirm | - | `target=null, extra.confirmed: boolean` | `wireProtocol.contract.test.ts` | `actionHandler.test.ts` | ✅ `DarkWolfKingMagician12.integration.test.ts` | `confirmStatus.darkWolfKing` |
 
 ---
 
@@ -72,19 +72,9 @@
 |------|--------|------|--------|
 | Handler Contract | 14/14 | 14 | 100% |
 | Resolver Integration | 14/14 | 14 | 100% |
-| Boards Integration | 10/14 | 14 | 71% |
+| Boards Integration | 14/14 | 14 | **100%** ✅ |
 
-### 待补充的 Boards Integration（非阻塞）
-以下 schemaId 有 handler/resolver 覆盖但无专门的 boards 测试：
-- `slackerChooseIdol`：需要包含 slacker 的模板
-- `wolfRobotLearn`：需要包含 wolfRobot 的模板
-- `dreamcatcherDream`：需要包含 dreamcatcher 的模板
-- `gargoyleCheck`：需要包含 gargoyle 的模板
-- `wolfQueenCharm`：需要包含 wolfQueen 的模板
-- `psychicCheck`：需要包含 psychic 的模板
-
-> 注：这些 schema 的 handler + resolver 层面已通过 batch contract 测试覆盖，
-> 只是缺少端到端的 boards 测试。可在后续按需补充。
+> ✅ **所有 schemaId 现在都有 Boards Integration 测试覆盖**（2026-01-31 审计）
 
 ---
 
@@ -104,3 +94,4 @@
 | 日期 | 变更 |
 |------|------|
 | 2026-01-23 | 初始版本，Commit 5 审计完成 |
+| 2026-01-31 | 更新：所有 6 个角色的 Boards Integration 测试已确认存在，覆盖率 100% |
