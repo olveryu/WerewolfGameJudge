@@ -611,7 +611,9 @@ async function runNightFlowLoop(
 
   // Fail-fast thresholds
   const WOLF_VOTE_STUCK_THRESHOLD = 8;
-  const NO_PROGRESS_THRESHOLD = 15; // If no progress for 15 iterations, fail
+  // NO_PROGRESS_THRESHOLD must be > AUDIO_TIMEOUT_MS / iteration_delay to allow audio timeout
+  // AUDIO_TIMEOUT_MS = 15000ms, iteration_delay = ~500ms → need at least 30+ iterations
+  const NO_PROGRESS_THRESHOLD = 35; // Allow audio timeout (15s) + buffer
 
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
     // Check if night has ended (on primary page)
@@ -893,17 +895,13 @@ test.describe('Night 1 Happy Path', () => {
       await expect(viewRoleBtnA).toBeVisible({ timeout: 5000 });
       await viewRoleBtnA.click();
 
-      // Wait for role card dialog and dismiss it
-      // Dialog shows "你的身份是：xxx" and has a "确定" button inside AlertModal
-      const roleDialogA = pageA.getByText('你的身份是', { exact: false });
-      await expect(roleDialogA).toBeVisible({ timeout: 3000 });
-      console.log('[NIGHT] HOST A role card visible');
-
-      // Click the "确定" text inside the modal (AlertModal uses TouchableOpacity with Text)
-      // Wait a moment for dialog to fully render
-      await pageA.waitForTimeout(300);
-      const okBtnA = pageA.locator('text="确定"').first();
-      await expect(okBtnA).toBeVisible({ timeout: 2000 });
+      // Wait for role card flip animation and dismiss it
+      // RoleCardModal shows faction badge (狼人阵营/神职阵营/平民阵营) after flip animation
+      // Wait for the flip animation to complete and "我知道了" button to be visible
+      await pageA.waitForTimeout(500); // Wait for flip animation
+      const okBtnA = pageA.getByText('我知道了', { exact: true });
+      await expect(okBtnA).toBeVisible({ timeout: 5000 });
+      console.log('[NIGHT] HOST A role card visible (flip animation complete)');
       await okBtnA.click();
       console.log('[NIGHT] HOST A dismissed role card');
 
@@ -916,13 +914,11 @@ test.describe('Night 1 Happy Path', () => {
       await expect(viewRoleBtnB).toBeVisible({ timeout: 5000 });
       await viewRoleBtnB.click();
 
-      const roleDialogB = pageB.getByText('你的身份是', { exact: false });
-      await expect(roleDialogB).toBeVisible({ timeout: 3000 });
-      console.log('[NIGHT] JOINER B role card visible');
-
-      await pageB.waitForTimeout(300);
-      const okBtnB = pageB.locator('text="确定"').first();
-      await expect(okBtnB).toBeVisible({ timeout: 2000 });
+      // Wait for flip animation and dismiss
+      await pageB.waitForTimeout(500);
+      const okBtnB = pageB.getByText('我知道了', { exact: true });
+      await expect(okBtnB).toBeVisible({ timeout: 5000 });
+      console.log('[NIGHT] JOINER B role card visible (flip animation complete)');
       await okBtnB.click();
       console.log('[NIGHT] JOINER B dismissed role card');
 
@@ -1209,12 +1205,10 @@ test.describe('Night 1 Happy Path', () => {
         await expect(viewRoleBtn).toBeVisible({ timeout: 5000 });
         await viewRoleBtn.click();
 
-        const roleDialog = page.getByText('你的身份是', { exact: false });
-        await expect(roleDialog).toBeVisible({ timeout: 3000 });
-
-        await page.waitForTimeout(200);
-        const okBtn = page.locator('text="确定"').first();
-        await expect(okBtn).toBeVisible({ timeout: 2000 });
+        // Wait for flip animation and dismiss with "我知道了"
+        await page.waitForTimeout(500);
+        const okBtn = page.getByText('我知道了', { exact: true });
+        await expect(okBtn).toBeVisible({ timeout: 5000 });
         await okBtn.click();
         console.log(`[6P] ${label} dismissed role card`);
 
@@ -1372,9 +1366,10 @@ test.describe('Night 1 Happy Path', () => {
         const btn = page.getByText('查看身份', { exact: true });
         await expect(btn).toBeVisible({ timeout: 5000 });
         await btn.click();
-        await expect(page.getByText('你的身份是', { exact: false })).toBeVisible({ timeout: 3000 });
-        await page.waitForTimeout(200);
-        await page.locator('text="确定"').first().click();
+        // Wait for flip animation and dismiss with "我知道了"
+        await page.waitForTimeout(500);
+        await expect(page.getByText('我知道了', { exact: true })).toBeVisible({ timeout: 5000 });
+        await page.getByText('我知道了', { exact: true }).click();
         await page.waitForTimeout(300);
       }
       await pageA.waitForTimeout(1000);
@@ -1443,9 +1438,10 @@ test.describe('Night 1 Happy Path', () => {
         const btn = page.getByText('查看身份', { exact: true });
         await expect(btn).toBeVisible({ timeout: 5000 });
         await btn.click();
-        await expect(page.getByText('你的身份是', { exact: false })).toBeVisible({ timeout: 3000 });
-        await page.waitForTimeout(200);
-        await page.locator('text="确定"').first().click();
+        // Wait for flip animation and dismiss with "我知道了"
+        await page.waitForTimeout(500);
+        await expect(page.getByText('我知道了', { exact: true })).toBeVisible({ timeout: 5000 });
+        await page.getByText('我知道了', { exact: true }).click();
         await page.waitForTimeout(300);
       }
       await pageA.waitForTimeout(1000);
