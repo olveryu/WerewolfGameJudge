@@ -43,7 +43,7 @@ export interface ThemeColors {
   overlayLight: string;
 }
 
-export type ThemeKey = 'light' | 'minimal' | 'dark' | 'midnight' | 'blood' | 'discord';
+export type ThemeKey = 'light' | 'minimal' | 'dark' | 'midnight' | 'blood' | 'discord' | 'forest' | 'snow';
 
 export interface Theme {
   key: ThemeKey;
@@ -278,6 +278,80 @@ const minimalTheme: Theme = {
   },
 };
 
+// 🌲 森林主题 - 神秘绿色森林氛围
+const forestTheme: Theme = {
+  key: 'forest',
+  name: '森林',
+  isDark: true,
+  colors: {
+    primary: '#22C55E',
+    primaryLight: '#4ADE80',
+    primaryDark: '#16A34A',
+
+    background: '#0A1510',
+    surface: '#0F1F17',
+    surfaceHover: '#152A1F',
+    card: '#122119',
+
+    text: '#ECFDF5',
+    textSecondary: '#86EFAC',
+    textMuted: '#166534',
+    textInverse: '#000000',
+
+    border: '#14532D',
+    borderLight: '#166534',
+
+    success: '#4ADE80',
+    warning: '#FCD34D',
+    error: '#F87171',
+    info: '#34D399',
+
+    wolf: '#EF4444',
+    villager: '#4ADE80',
+    god: '#A78BFA',
+
+    overlay: 'rgba(10, 21, 16, 0.85)',
+    overlayLight: 'rgba(10, 21, 16, 0.5)',
+  },
+};
+
+// ❄️ 雪夜主题 - 冰冷的冬夜氛围
+const snowTheme: Theme = {
+  key: 'snow',
+  name: '雪夜',
+  isDark: true,
+  colors: {
+    primary: '#38BDF8',
+    primaryLight: '#7DD3FC',
+    primaryDark: '#0284C7',
+
+    background: '#0C1929',
+    surface: '#0F2137',
+    surfaceHover: '#132A45',
+    card: '#11243D',
+
+    text: '#F0F9FF',
+    textSecondary: '#7DD3FC',
+    textMuted: '#0369A1',
+    textInverse: '#000000',
+
+    border: '#0C4A6E',
+    borderLight: '#075985',
+
+    success: '#34D399',
+    warning: '#FBBF24',
+    error: '#FB7185',
+    info: '#38BDF8',
+
+    wolf: '#F43F5E',
+    villager: '#34D399',
+    god: '#A78BFA',
+
+    overlay: 'rgba(12, 25, 41, 0.85)',
+    overlayLight: 'rgba(12, 25, 41, 0.5)',
+  },
+};
+
 // ============================================
 // 导出
 // ============================================
@@ -289,6 +363,8 @@ export const themes: Record<ThemeKey, Theme> = {
   midnight: midnightTheme,
   blood: bloodTheme,
   discord: discordTheme,
+  forest: forestTheme,
+  snow: snowTheme,
 };
 
 export const defaultTheme: ThemeKey = 'light';
