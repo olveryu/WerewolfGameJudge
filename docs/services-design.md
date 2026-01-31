@@ -43,16 +43,19 @@
 ### 硬性约束（不可违反）
 
 - ❌ 不得引入仅主机状态字段（host-only state）
-- ❌ 不得发明平行的线协议（wire protocol）；一切在“线上传输”仍以 `PlayerMessage`（玩家消息）/ `HostBroadcast`（主机广播消息）作为唯一合约
-  - ✅ 允许（迁移期护栏）：在 `BroadcastGameState` 中新增字段，必须先以 `?` 可选字段落地，以降低 多版本并存时的耦合风险
-    - TODO(remove by 2026-03-01): 当 **legacy 与切换开关移除**、新架构成为唯一路径后，评估将相关字段收紧为必填或移除此“迁移期可选字段”规则，并同步更新合约测试
-  - 🛑 禁止：引入 `NewPlayerMessage` / `NewHostBroadcast` / `PrivateEffect` 等平行协议，或同时维护两份 state shape
+- ❌ 不得发明平行的线协议（wire protocol）；一切在"线上传输"仍以 `PlayerMessage`（玩家消息）/ `HostBroadcast`（主机广播消息）作为唯一合约
+  - ✅ 可选字段的语义说明：`BroadcastGameState` 中的可选字段是**业务语义上可选**的，而非"迁移期临时可选"：
+    - 状态依赖字段（`currentStepId`、`actions`、`currentNightResults`）：仅在 `status=ongoing` 时存在
+    - 角色依赖字段（`witchContext`、`seerReveal`、`wolfRobotContext` 等）：仅在该角色参与时存在
+    - 事件驱动字段（`pendingRevealAcks`、`actionRejected`）：仅在特定事件发生时存在
+  - �� 禁止：引入 `NewPlayerMessage` / `NewHostBroadcast` / `PrivateEffect` 等平行协议，或同时维护两份 state shape
 - ❌ 运行时不得从 legacy 导入
 - ❌ 玩家（Player）不得执行 resolver/reducer/夜晚推进/死亡结算
 - ✅ 所有现有测试必须通过
 
 ---
 
+## 2. 架构总览
 ## 2. 架构总览
 
 ```
