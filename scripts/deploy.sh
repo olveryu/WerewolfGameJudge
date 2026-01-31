@@ -45,7 +45,58 @@ git add -A
 if git diff --cached --quiet; then
   echo "没有需要提交的更改"
 else
-  git commit -m "release: $VERSION"
+  # 尝试使用 AI 生成 commit message
+  COMMIT_MSG=""
+  
+  # 检查是否有 GROQ API key
+  if [ -f .env.local.backup ]; then
+    GROQ_API_KEY=$(grep '^EXPO_PUBLIC_GROQ_API_KEY=' .env.local.backup | cut -d '=' -f2)
+  elif [ -f .env.local ]; then
+    GROQ_API_KEY=$(grep '^EXPO_PUBLIC_GROQ_API_KEY=' .env.local | cut -d '=' -f2)
+  fi
+  
+  if [ -n "$GROQ_API_KEY" ]; then
+    echo "🤖 AI 正在生成 commit message..."
+    
+    # 获取 git diff 摘要（限制长度避免 token 过多）
+    DIFF_SUMMARY=$(git diff --cached --stat | head -20)
+    DIFF_FILES=$(git diff --cached --name-only | head -10 | tr '\n' ', ')
+    
+    # 调用 Groq API 生成 commit message
+    AI_RESPONSE=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
+      -H "Authorization: Bearer $GROQ_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"model\": \"llama-3.1-8b-instant\",
+        \"messages\": [
+          {
+            \"role\": \"system\",
+            \"content\": \"You are a helpful assistant that generates concise git commit messages. Generate a single line commit message (max 72 chars) in English that describes the changes. Use conventional commit format (feat/fix/docs/style/refactor/chore). Do not include quotes or any explanation, just the commit message.\"
+          },
+          {
+            \"role\": \"user\",
+            \"content\": \"Generate a commit message for version $VERSION. Files changed: $DIFF_FILES. Diff summary:\\n$DIFF_SUMMARY\"
+          }
+        ],
+        \"temperature\": 0.3,
+        \"max_tokens\": 100
+      }" 2>/dev/null)
+    
+    # 提取 commit message
+    if [ -n "$AI_RESPONSE" ]; then
+      COMMIT_MSG=$(echo "$AI_RESPONSE" | grep -o '"content":"[^"]*"' | head -1 | sed 's/"content":"//;s/"$//' | tr -d '\n' | head -c 100)
+    fi
+  fi
+  
+  # 如果 AI 生成失败，使用默认 message
+  if [ -z "$COMMIT_MSG" ] || [ ${#COMMIT_MSG} -lt 5 ]; then
+    COMMIT_MSG="release: $VERSION"
+    echo "ℹ️ 使用默认 commit message"
+  else
+    echo "✅ AI 生成: $COMMIT_MSG"
+  fi
+  
+  git commit -m "$COMMIT_MSG"
   git tag "$VERSION"
 fi
 
