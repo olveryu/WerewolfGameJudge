@@ -57,6 +57,9 @@ describe('restartGame Contract', () => {
   };
 
   beforeEach(() => {
+    // 使用 fake timers 加速 5 秒音频延迟
+    jest.useFakeTimers();
+
     GameFacade.resetInstance();
     broadcastCalls = [];
 
@@ -77,6 +80,7 @@ describe('restartGame Contract', () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     GameFacade.resetInstance();
   });
 
@@ -129,8 +133,10 @@ describe('restartGame Contract', () => {
       await facade.markViewedRole(i);
     }
 
-    // 5. 开始游戏
-    await facade.startNight();
+    // 5. 开始游戏（使用 runAllTimersAsync 加速 5 秒音频延迟）
+    const startNightPromise = facade.startNight();
+    await jest.runAllTimersAsync();
+    await startNightPromise;
 
     // 清除之前的广播记录
     broadcastCalls = [];

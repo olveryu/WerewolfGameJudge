@@ -1044,8 +1044,14 @@ describe('GameFacade', () => {
     };
 
     beforeEach(async () => {
+      // 使用 fake timers 加速 5 秒音频延迟
+      jest.useFakeTimers();
       await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
       mockBroadcastService.broadcastAsHost.mockClear();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
     });
 
     it('should reject if not host, with reason from handler (host_only)', async () => {
@@ -1095,7 +1101,9 @@ describe('GameFacade', () => {
     it('should succeed when host and status is ready (happy path)', async () => {
       await setupReadyState(facade, mockTemplate);
 
-      const result = await facade.startNight();
+      const startNightPromise = facade.startNight();
+      await jest.runAllTimersAsync();
+      const result = await startNightPromise;
 
       expect(result.success).toBe(true);
       expect(result.reason).toBeUndefined();
@@ -1104,7 +1112,9 @@ describe('GameFacade', () => {
     it('should set status to ongoing', async () => {
       await setupReadyState(facade, mockTemplate);
 
-      await facade.startNight();
+      const startNightPromise = facade.startNight();
+      await jest.runAllTimersAsync();
+      await startNightPromise;
 
       // 获取 broadcast 调用的 state
       const broadcastCall = mockBroadcastService.broadcastAsHost.mock.calls.find(
@@ -1119,7 +1129,9 @@ describe('GameFacade', () => {
     it('should initialize Night-1 fields correctly', async () => {
       await setupReadyState(facade, mockTemplate);
 
-      await facade.startNight();
+      const startNightPromise = facade.startNight();
+      await jest.runAllTimersAsync();
+      await startNightPromise;
 
       // 获取 broadcast 调用的 state
       const broadcastCall = mockBroadcastService.broadcastAsHost.mock.calls.find(
