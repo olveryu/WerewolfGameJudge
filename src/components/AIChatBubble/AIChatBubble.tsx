@@ -366,12 +366,13 @@ export const AIChatBubble: React.FC = () => {
     setContextQuestions(questions);
   }, [facade]);
 
-  // 打开时刷新上下文问题（只刷新一次）
+  // 只在打开聊天窗口时刷新上下文问题（不依赖 messages，避免发送/回复时重复刷新）
   useEffect(() => {
     if (isOpen) {
       refreshContextQuestions(messages);
     }
-  }, [isOpen, refreshContextQuestions, messages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]); // 故意不依赖 messages，只在打开时刷新一次
 
   // Web 平台：使用 visualViewport API 监听键盘
   useEffect(() => {
@@ -609,14 +610,19 @@ export const AIChatBubble: React.FC = () => {
           content,
           timestamp: Date.now(),
         };
-        setMessages((prev) => [...prev, assistantMessage]);
+        setMessages((prev) => {
+          const updatedMessages = [...prev, assistantMessage];
+          // AI 回复成功后刷新上下文问题（使用最新的消息列表）
+          refreshContextQuestions(updatedMessages);
+          return updatedMessages;
+        });
       } else {
         showAlert('发送失败', response.error || '未知错误');
       }
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, cooldownRemaining, apiKey, facade]);
+  }, [isLoading, cooldownRemaining, apiKey, facade, refreshContextQuestions]);
 
   const handleSend = useCallback(async () => {
     const text = inputText.trim();
