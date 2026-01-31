@@ -11,16 +11,22 @@ const SETTINGS_KEY = '@werewolf_settings';
 /** Valid theme keys (must match themes.ts ThemeKey) */
 export type ThemeKey = 'light' | 'minimal' | 'dark' | 'midnight' | 'blood' | 'discord' | 'forest' | 'snow';
 
+/** Role reveal animation type */
+export type RoleRevealAnimation = 'roulette' | 'flip' | 'none';
+
 export interface UserSettings {
   /** Whether to play background music during night phase (default: true) */
   bgmEnabled: boolean;
   /** Selected theme (default: 'dark') */
   themeKey: ThemeKey;
+  /** Role reveal animation style (default: 'roulette') */
+  roleRevealAnimation: RoleRevealAnimation;
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
   bgmEnabled: true,
   themeKey: 'dark',
+  roleRevealAnimation: 'roulette',
 };
 
 class SettingsService {
@@ -63,7 +69,14 @@ class SettingsService {
    * Check if a string is a valid theme key.
    */
   private isValidThemeKey(key: string): key is ThemeKey {
-    return ['light', 'minimal', 'dark', 'midnight', 'blood', 'discord'].includes(key);
+    return ['light', 'minimal', 'dark', 'midnight', 'blood', 'discord', 'forest', 'snow'].includes(key);
+  }
+
+  /**
+   * Check if a string is a valid role reveal animation.
+   */
+  private isValidRoleRevealAnimation(anim: string): anim is RoleRevealAnimation {
+    return ['roulette', 'flip', 'none'].includes(anim);
   }
 
   /**
@@ -118,6 +131,25 @@ class SettingsService {
    */
   async setThemeKey(key: ThemeKey): Promise<void> {
     this.settings.themeKey = key;
+    await this.save();
+  }
+
+  // =========================================================================
+  // Role Reveal Animation Settings
+  // =========================================================================
+
+  /**
+   * Get current role reveal animation.
+   */
+  getRoleRevealAnimation(): RoleRevealAnimation {
+    return this.settings.roleRevealAnimation;
+  }
+
+  /**
+   * Set role reveal animation and persist.
+   */
+  async setRoleRevealAnimation(anim: RoleRevealAnimation): Promise<void> {
+    this.settings.roleRevealAnimation = anim;
     await this.save();
   }
 
