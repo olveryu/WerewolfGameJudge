@@ -135,8 +135,8 @@ function buildPlayerContext(
     myKnowledge.push(`${state.gargoyleReveal.targetSeat + 1}号的身份是${state.gargoyleReveal.result}`);
   }
 
-  // 机械狼的学习结果
-  if (context.myRole === 'wolfRobot' && state.wolfRobotReveal) {
+  // 机械狼的学习结果（加 defensive check 避免 targetSeat 不存在时拼出 NaN号）
+  if (context.myRole === 'wolfRobot' && state.wolfRobotReveal?.targetSeat !== undefined) {
     const roleSpec = ROLE_SPECS[state.wolfRobotReveal.learnedRoleId];
     const roleName = roleSpec?.displayName || state.wolfRobotReveal.learnedRoleId;
     myKnowledge.push(`学习了${state.wolfRobotReveal.targetSeat + 1}号，获得了${roleName}的技能`);
@@ -610,12 +610,10 @@ export const AIChatBubble: React.FC = () => {
           content,
           timestamp: Date.now(),
         };
-        setMessages((prev) => {
-          const updatedMessages = [...prev, assistantMessage];
-          // AI 回复成功后刷新上下文问题（使用最新的消息列表）
-          refreshContextQuestions(updatedMessages);
-          return updatedMessages;
-        });
+        // 更新消息列表并刷新上下文问题
+        setMessages((prev) => [...prev, assistantMessage]);
+        // AI 回复成功后刷新上下文问题（使用 currentMessages + userMessage + assistantMessage）
+        refreshContextQuestions([...currentMessages, userMessage, assistantMessage]);
       } else {
         showAlert('发送失败', response.error || '未知错误');
       }
@@ -634,9 +632,11 @@ export const AIChatBubble: React.FC = () => {
     sendMessage(question);
   }, [sendMessage]);
 
-  const handleClearHistory = useCallback(async () => {
+  const handleClearHistory = useCallback(() => {
     setMessages([]);
-    await AsyncStorage.removeItem(STORAGE_KEY_MESSAGES);
+    AsyncStorage.removeItem(STORAGE_KEY_MESSAGES).catch(() => {
+      // 静默失败，不影响 UI
+    });
   }, []);
 
   const renderMessage = useCallback(
