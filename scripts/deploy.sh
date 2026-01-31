@@ -59,32 +59,20 @@ else
     echo "🤖 AI 正在生成 commit message..."
     
     # 获取 git diff 摘要（限制长度避免 token 过多）
-    DIFF_SUMMARY=$(git diff --cached --stat | head -20)
-    DIFF_FILES=$(git diff --cached --name-only | head -10 | tr '\n' ', ')
+    DIFF_FILES=$(git diff --cached --name-only | head -10 | tr '\n' ' ')
+    
+    # 构建 prompt（简化，避免转义问题）
+    PROMPT="Generate a git commit message for version $VERSION. Changed files: $DIFF_FILES. Use conventional commit format (feat/fix/chore). Max 60 chars. Just the message, no quotes or explanation."
     
     # 调用 Groq API 生成 commit message
     AI_RESPONSE=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
       -H "Authorization: Bearer $GROQ_API_KEY" \
       -H "Content-Type: application/json" \
-      -d "{
-        \"model\": \"llama-3.1-8b-instant\",
-        \"messages\": [
-          {
-            \"role\": \"system\",
-            \"content\": \"You are a helpful assistant that generates concise git commit messages. Generate a single line commit message (max 72 chars) in English that describes the changes. Use conventional commit format (feat/fix/docs/style/refactor/chore). Do not include quotes or any explanation, just the commit message.\"
-          },
-          {
-            \"role\": \"user\",
-            \"content\": \"Generate a commit message for version $VERSION. Files changed: $DIFF_FILES. Diff summary:\\n$DIFF_SUMMARY\"
-          }
-        ],
-        \"temperature\": 0.3,
-        \"max_tokens\": 100
-      }" 2>/dev/null)
+      -d "{\"model\":\"llama-3.1-8b-instant\",\"messages\":[{\"role\":\"user\",\"content\":\"$PROMPT\"}],\"temperature\":0.3,\"max_tokens\":50}" 2>/dev/null)
     
-    # 提取 commit message
+    # 提取 commit message（使用 python 解析 JSON 更可靠）
     if [ -n "$AI_RESPONSE" ]; then
-      COMMIT_MSG=$(echo "$AI_RESPONSE" | grep -o '"content":"[^"]*"' | head -1 | sed 's/"content":"//;s/"$//' | tr -d '\n' | head -c 100)
+      COMMIT_MSG=$(echo "$AI_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['choices'][0]['message']['content'].strip())" 2>/dev/null | head -1 | cut -c1-72)
     fi
   fi
   
