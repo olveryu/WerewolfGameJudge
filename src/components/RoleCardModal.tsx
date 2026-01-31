@@ -1,7 +1,8 @@
 /**
- * RoleCardModal.tsx - 3D 翻牌动画角色卡片模态框
+ * RoleCardModal.tsx - 翻牌动画角色卡片模态框
  *
  * 点击"查看身份"后显示翻牌动画，正面显示角色信息
+ * 使用 scaleX 模拟 3D 翻转效果（兼容 Web）
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -41,6 +42,7 @@ const ROLE_ICONS: Record<string, string> = {
   psychic: '👁️',
   dreamcatcher: '🌙',
   magician: '🎩',
+  spiritKnight: '⚔️',
   // 平民
   villager: '👤',
   slacker: '😴',
@@ -75,12 +77,14 @@ export const RoleCardModal: React.FC<RoleCardModalProps> = ({ visible, roleId, o
   const flipAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [showFront, setShowFront] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
 
   // 重置动画状态
   useEffect(() => {
     if (visible) {
       setIsFlipped(false);
+      setShowFront(false);
       flipAnim.setValue(0);
       scaleAnim.setValue(0.3);
       opacityAnim.setValue(0);
@@ -102,7 +106,7 @@ export const RoleCardModal: React.FC<RoleCardModalProps> = ({ visible, roleId, o
         // 入场完成后自动翻牌
         setTimeout(() => {
           flipCard();
-        }, 300);
+        }, 400);
       });
     }
   }, [visible]);
@@ -111,12 +115,22 @@ export const RoleCardModal: React.FC<RoleCardModalProps> = ({ visible, roleId, o
     if (isFlipped) return;
     setIsFlipped(true);
 
-    Animated.spring(flipAnim, {
-      toValue: 1,
-      friction: 8,
-      tension: 80,
+    // 第一阶段：缩小到 0（卡片侧面）
+    Animated.timing(flipAnim, {
+      toValue: 0.5,
+      duration: 200,
       useNativeDriver: true,
-    }).start();
+    }).start(() => {
+      // 中间点切换显示面
+      setShowFront(true);
+      // 第二阶段：展开到 1
+      Animated.spring(flipAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 80,
+        useNativeDriver: true,
+      }).start();
+    });
   };
 
   const handleClose = () => {
@@ -146,77 +160,52 @@ export const RoleCardModal: React.FC<RoleCardModalProps> = ({ visible, roleId, o
   const factionColor = getFactionColor(roleId);
   const factionName = getFactionName(roleId);
 
-  // 翻牌动画插值
-  const frontInterpolate = flipAnim.interpolate({
+  // 使用 scaleX 模拟翻转效果（兼容 Web）
+  const flipScale = flipAnim.interpolate({
     inputRange: [0, 0.5, 1],
-    outputRange: ['0deg', '90deg', '180deg'],
+    outputRange: [1, 0.1, 1],
   });
 
-  const backInterpolate = flipAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: ['180deg', '90deg', '0deg'],
-  });
-
-  const frontOpacity = flipAnim.interpolate({
-    inputRange: [0, 0.5, 0.5, 1],
-    outputRange: [1, 1, 0, 0],
-  });
-
-  const backOpacity = flipAnim.interpolate({
-    inputRange: [0, 0.5, 0.5, 1],
-    outputRange: [0, 0, 1, 1],
-  });
-
-  const frontAnimatedStyle = {
-    transform: [
-      { perspective: 1000 },
-      { rotateY: frontInterpolate },
-      { scale: scaleAnim },
-    ],
-    opacity: Animated.multiply(frontOpacity, opacityAnim),
-  };
-
-  const backAnimatedStyle = {
-    transform: [
-      { perspective: 1000 },
-      { rotateY: backInterpolate },
-      { scale: scaleAnim },
-    ],
-    opacity: Animated.multiply(backOpacity, opacityAnim),
+  const cardAnimatedStyle = {
+    transform: [{ scaleX: flipScale }, { scale: scaleAnim }],
+    opacity: opacityAnim,
   };
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={handleClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={handleClose}>
         <View style={styles.cardContainer}>
-          {/* 卡片背面（问号面） */}
-          <Animated.View style={[styles.card, styles.cardBack, frontAnimatedStyle]}>
-            <View style={styles.cardBackInner}>
-              <Text style={styles.cardBackPattern}>🐺</Text>
-              <Text style={styles.cardBackQuestion}>?</Text>
-              <Text style={styles.cardBackHint}>点击翻牌</Text>
-            </View>
-          </Animated.View>
+          <Animated.View style={[styles.card, cardAnimatedStyle]}>
+            {showFront ? (
+              // 卡片正面（角色信息）
+              <View style={[styles.cardInner, styles.cardFront, { borderColor: factionColor }]}>
+                <View style={[styles.factionBadge, { backgroundColor: factionColor }]}>
+                  <Text style={styles.factionText}>{factionName}</Text>
+                </View>
 
-          {/* 卡片正面（角色信息） */}
-          <Animated.View
-            style={[styles.card, styles.cardFront, { borderColor: factionColor }, backAnimatedStyle]}
-          >
-            <View style={[styles.factionBadge, { backgroundColor: factionColor }]}>
-              <Text style={styles.factionText}>{factionName}</Text>
-            </View>
+                <Text style={styles.roleIcon}>{icon}</Text>
+                <Text style={[styles.roleName, { color: factionColor }]}>{roleName}</Text>
 
-            <Text style={styles.roleIcon}>{icon}</Text>
-            <Text style={[styles.roleName, { color: factionColor }]}>{roleName}</Text>
+                <View style={styles.divider} />
 
-            <View style={styles.divider} />
+                <Text style={styles.skillTitle}>技能介绍</Text>
+                <Text style={styles.description}>{description}</Text>
 
-            <Text style={styles.skillTitle}>技能介绍</Text>
-            <Text style={styles.description}>{description}</Text>
-
-            <TouchableOpacity style={[styles.confirmButton, { backgroundColor: factionColor }]} onPress={handleClose}>
-              <Text style={styles.confirmButtonText}>我知道了</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.confirmButton, { backgroundColor: factionColor }]}
+                  onPress={handleClose}
+                >
+                  <Text style={styles.confirmButtonText}>我知道了</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              // 卡片背面（问号面）
+              <View style={[styles.cardInner, styles.cardBack]}>
+                <Text style={styles.cardBackPattern}>🐺</Text>
+                <Text style={styles.cardBackQuestion}>?</Text>
+                <Text style={styles.cardBackHint}>翻牌中...</Text>
+              </View>
+            )}
           </Animated.View>
         </View>
       </TouchableOpacity>
@@ -235,13 +224,12 @@ function createStyles(colors: ThemeColors) {
     cardContainer: {
       width: CARD_WIDTH,
       height: CARD_HEIGHT,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     card: {
-      position: 'absolute',
       width: CARD_WIDTH,
       height: CARD_HEIGHT,
-      borderRadius: borderRadius.xl,
-      backfaceVisibility: 'hidden',
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -257,6 +245,11 @@ function createStyles(colors: ThemeColors) {
         },
       }),
     },
+    cardInner: {
+      flex: 1,
+      borderRadius: borderRadius.xl,
+      overflow: 'hidden',
+    },
     cardBack: {
       backgroundColor: '#1F2937',
       borderWidth: 3,
@@ -264,14 +257,11 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
       alignItems: 'center',
     },
-    cardBackInner: {
-      alignItems: 'center',
-    },
     cardBackPattern: {
       fontSize: 48,
       opacity: 0.3,
       position: 'absolute',
-      top: -80,
+      top: 60,
     },
     cardBackQuestion: {
       fontSize: 72,
