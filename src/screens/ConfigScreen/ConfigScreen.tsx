@@ -610,7 +610,7 @@ export const ConfigScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']} testID={TESTIDS.configScreenRoot}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>

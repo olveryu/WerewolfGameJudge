@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation';
 import { ThemeProvider, useTheme } from './src/theme';
 import { AlertModal } from './src/components/AlertModal';
@@ -50,12 +51,14 @@ export default function App() {
   const facade = GameFacade.getInstance();
 
   return (
-    <ThemeProvider>
-      <NetworkProvider>
-        <GameFacadeProvider facade={facade}>
-          <AppContent />
-        </GameFacadeProvider>
-      </NetworkProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <NetworkProvider>
+          <GameFacadeProvider facade={facade}>
+            <AppContent />
+          </GameFacadeProvider>
+        </NetworkProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

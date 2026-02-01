@@ -681,7 +681,7 @@ export const HomeScreen: React.FC = () => {
   }, [navigation]);
 
   return (
-    <SafeAreaView style={styles.container} testID={TESTIDS.homeScreenRoot}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']} testID={TESTIDS.homeScreenRoot}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
