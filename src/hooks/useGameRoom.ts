@@ -545,7 +545,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     if (!isHost) return;
     // Start BGM if enabled
     const bgmEnabled = settingsService.current.isBgmEnabled();
-    console.log('[useGameRoom] startGame - BGM enabled:', bgmEnabled);
+    gameRoomLog.debug('startGame - BGM enabled:', { bgmEnabled });
     if (bgmEnabled) {
       void audioService.current.startBgm();
     }
