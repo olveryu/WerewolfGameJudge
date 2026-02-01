@@ -8,7 +8,7 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -38,7 +38,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     header: {
       alignItems: 'center',
-      paddingVertical: spacing.xlarge,
+      paddingVertical: spacing.medium,
     },
     logo: {
       fontSize: 64,
@@ -503,6 +503,7 @@ const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
 
 export const HomeScreen: React.FC = () => {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const navigation = useNavigation<NavigationProp>();
@@ -681,7 +682,7 @@ export const HomeScreen: React.FC = () => {
   }, [navigation]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']} testID={TESTIDS.homeScreenRoot}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} testID={TESTIDS.homeScreenRoot}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -828,7 +829,7 @@ export const HomeScreen: React.FC = () => {
         onCancel={handleCancelJoin}
         colors={colors}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
