@@ -10,7 +10,7 @@ import {
   ImageSourcePropType,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../hooks';
@@ -602,6 +602,7 @@ const AuthOptions: React.FC<AuthOptionsProps> = ({
 
 const SettingsScreen: React.FC = () => {
   const { colors, themeKey, setTheme, availableThemes } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const navigation = useNavigation();
@@ -828,7 +829,7 @@ const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.backBtnText}>←</Text>
@@ -868,7 +869,7 @@ const SettingsScreen: React.FC = () => {
 
         <View style={{ height: 32 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
