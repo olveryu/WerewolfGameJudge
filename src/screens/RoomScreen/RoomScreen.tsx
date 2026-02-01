@@ -16,6 +16,7 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { GameStatus, getWolfVoteSummary, getPlayersNotViewedRole } from '../../models/Room';
@@ -1109,7 +1110,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const actionMessage = getActionMessage();
 
   return (
-    <View style={styles.container} testID={TESTIDS.roomScreenRoot}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']} testID={TESTIDS.roomScreenRoot}>
       {/* Header */}
       <View style={styles.header} testID={TESTIDS.roomHeader}>
         <TouchableOpacity onPress={handleLeaveRoom} style={styles.backButton}>
@@ -1260,7 +1261,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onClose={handleRoleCardClose}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -1316,8 +1317,7 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: spacing.medium,
-      paddingTop: spacing.xlarge,
-      paddingBottom: spacing.medium,
+      paddingVertical: spacing.medium,
       backgroundColor: colors.background,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
