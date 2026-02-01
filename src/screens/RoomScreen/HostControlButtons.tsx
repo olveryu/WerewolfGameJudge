@@ -108,14 +108,14 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     actionButton: {
       backgroundColor: colors.primary,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.large,
+      paddingVertical: spacing.medium,
       borderRadius: borderRadius.full,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.small,
     },
     buttonText: {
       color: colors.textInverse,
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       fontWeight: '600',
     },
   });

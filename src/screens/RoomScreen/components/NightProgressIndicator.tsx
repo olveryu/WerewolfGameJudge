@@ -47,8 +47,8 @@ export const NightProgressIndicator: React.FC<NightProgressIndicatorProps> = ({
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
@@ -57,15 +57,15 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: spacing.xs,
+      marginBottom: spacing.tight,
     },
     stepText: {
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       fontWeight: '600',
       color: colors.text,
     },
     roleText: {
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       color: colors.textSecondary,
     },
     progressBarContainer: {

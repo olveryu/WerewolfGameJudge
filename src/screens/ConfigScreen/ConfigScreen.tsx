@@ -39,7 +39,7 @@ const createStyles = (colors: ThemeColors) =>
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: spacing.md,
+      padding: spacing.medium,
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
@@ -47,7 +47,7 @@ const createStyles = (colors: ThemeColors) =>
     headerBtn: {
       width: 40,
       height: 40,
-      borderRadius: borderRadius.md,
+      borderRadius: borderRadius.medium,
       backgroundColor: colors.background,
       justifyContent: 'center',
       alignItems: 'center',
@@ -61,12 +61,12 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
     },
     title: {
-      fontSize: typography.lg,
+      fontSize: typography.subtitle,
       fontWeight: '600',
       color: colors.text,
     },
     subtitle: {
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       color: colors.textSecondary,
       marginTop: 2,
     },
@@ -76,60 +76,60 @@ const createStyles = (colors: ThemeColors) =>
     },
     createBtnText: {
       color: colors.textInverse,
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       fontWeight: '600',
     },
     scrollView: {
       flex: 1,
-      padding: spacing.md,
+      padding: spacing.medium,
     },
     card: {
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.lg,
-      padding: spacing.md,
-      marginBottom: spacing.md,
+      borderRadius: borderRadius.large,
+      padding: spacing.medium,
+      marginBottom: spacing.medium,
       ...shadows.sm,
     },
     cardTitle: {
-      fontSize: typography.base,
+      fontSize: typography.body,
       fontWeight: '600',
       color: colors.text,
-      marginBottom: spacing.md,
+      marginBottom: spacing.medium,
     },
     presetContainer: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: spacing.sm,
+      gap: spacing.small,
     },
     presetBtn: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
       backgroundColor: colors.background,
       borderRadius: borderRadius.full,
       borderWidth: 1,
       borderColor: colors.border,
     },
     presetText: {
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       color: colors.textSecondary,
     },
     section: {
-      marginBottom: spacing.md,
+      marginBottom: spacing.medium,
     },
     sectionTitle: {
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       fontWeight: '500',
       color: colors.textSecondary,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.small,
     },
     chipContainer: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: spacing.xs,
+      gap: spacing.tight,
     },
     chip: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
       backgroundColor: colors.background,
       borderRadius: borderRadius.full,
       borderWidth: 1,
@@ -140,7 +140,7 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.primary,
     },
     chipText: {
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       color: colors.textSecondary,
     },
     chipTextSelected: {
@@ -153,8 +153,8 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
     },
     loadingText: {
-      marginTop: spacing.md,
-      fontSize: typography.base,
+      marginTop: spacing.medium,
+      fontSize: typography.body,
       color: colors.textSecondary,
     },
   });
@@ -713,7 +713,7 @@ export const ConfigScreen: React.FC = () => {
             </Section>
           </View>
 
-          <View style={{ height: spacing.xxl }} />
+          <View style={{ height: spacing.xxlarge }} />
         </ScrollView>
       )}
     </SafeAreaView>

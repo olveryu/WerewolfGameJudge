@@ -32,22 +32,22 @@ export const WaitingViewRoleList: React.FC<WaitingViewRoleListProps> = ({ seatIn
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     actionLogContainer: {
-      marginTop: spacing.md,
-      marginHorizontal: spacing.md,
-      padding: spacing.md,
+      marginTop: spacing.medium,
+      marginHorizontal: spacing.medium,
+      padding: spacing.medium,
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.md,
+      borderRadius: borderRadius.medium,
       borderWidth: 1,
       borderColor: colors.border,
     },
     actionLogTitle: {
-      fontSize: typography.base,
+      fontSize: typography.body,
       fontWeight: '600',
       color: colors.text,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.small,
     },
     actionLogItem: {
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       color: colors.textSecondary,
       paddingVertical: 2,
     },

@@ -3,7 +3,7 @@
  *
  * 用法:
  *   const { colors, t } = useTheme();
- *   <View style={{ backgroundColor: colors.background, padding: t.spacing.md }} />
+ *   <View style={{ backgroundColor: colors.background, padding: t.spacing.medium }} />
  */
 
 import React, {

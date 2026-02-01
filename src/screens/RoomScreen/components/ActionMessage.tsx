@@ -26,11 +26,11 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     actionMessage: {
       textAlign: 'center',
-      fontSize: typography.base,
+      fontSize: typography.body,
       color: colors.text,
-      marginTop: spacing.md,
-      marginBottom: spacing.sm,
-      paddingHorizontal: spacing.md,
+      marginTop: spacing.medium,
+      marginBottom: spacing.small,
+      paddingHorizontal: spacing.medium,
     },
   });
 }

@@ -1,86 +1,418 @@
 /**
- * Design Tokens - 不随主题变化的设计常量
+ * Design Tokens - Semantic Design System
+ *
+ * 三层架构:
+ * 1. Primitives (内部) - 基础数值
+ * 2. Semantic (公开 API) - 语义化命名
+ * 3. Component (公开 API) - 组件专用尺寸
+ *
+ * 使用方式:
+ * - import { spacing, typography, borderRadius, componentSizes } from '@/theme/tokens';
+ * - spacing.small, typography.body, borderRadius.medium
  */
 
-// ============================================
-// Spacing
-// ============================================
-export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
-} as const;
+import { Dimensions, PixelRatio, TextStyle, ViewStyle } from 'react-native';
 
-// ============================================
-// Border Radius
-// ============================================
-export const borderRadius = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  full: 9999,
-} as const;
+// ============================================================================
+// Responsive Scaling
+// ============================================================================
 
-// ============================================
-// Typography
-// ============================================
-export const typography = {
-  // Font sizes
-  xs: 12,
-  sm: 14,
-  base: 16,
-  lg: 18,
-  xl: 20,
-  '2xl': 24,
-  '3xl': 30,
-  '4xl': 36,
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375; // iPhone SE/8 基准宽度
 
-  // Font weights
-  normal: '400' as const,
-  medium: '500' as const,
-  semibold: '600' as const,
-  bold: '700' as const,
-} as const;
-
-// ============================================
-// Shadows
-// ============================================
-import { Platform } from 'react-native';
-
-// Helper to create cross-platform shadows
-const createShadow = (offsetY: number, blurRadius: number, opacity: number, elevation: number) => {
-  if (Platform.OS === 'web') {
-    return {
-      boxShadow: `0px ${offsetY}px ${blurRadius}px rgba(0, 0, 0, ${opacity})`,
-    };
-  }
-  return {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: offsetY },
-    shadowOpacity: opacity,
-    shadowRadius: blurRadius,
-    elevation,
-  };
+/**
+ * 响应式缩放因子 (0.75x ~ 1.25x)
+ * - 小屏 (320px): 0.85x
+ * - 基准 (375px): 1.0x
+ * - 大屏 (428px+): 1.14x ~ 1.25x
+ */
+const getScaleFactor = (): number => {
+  const raw = SCREEN_WIDTH / BASE_WIDTH;
+  return Math.max(0.75, Math.min(1.25, raw));
 };
 
-export const shadows = {
-  none: {},
-  sm: createShadow(1, 2, 0.05, 1),
-  md: createShadow(2, 4, 0.08, 2),
-  lg: createShadow(4, 8, 0.12, 4),
+const SCALE = getScaleFactor();
+
+/**
+ * 应用响应式缩放
+ * @param size 基础尺寸
+ * @returns 缩放后的尺寸 (像素对齐)
+ */
+const scale = (size: number): number => {
+  return PixelRatio.roundToNearestPixel(size * SCALE);
+};
+
+// ============================================================================
+// Layer 1: Primitives (内部使用)
+// ============================================================================
+
+/** 基础间距值 */
+const primitiveSpace = {
+  0: 0,
+  1: 2,
+  2: 4,
+  3: 6,
+  4: 8,
+  5: 12,
+  6: 16,
+  7: 20,
+  8: 24,
+  9: 32,
+  10: 40,
+  11: 48,
+  12: 64,
 } as const;
 
-// ============================================
-// Layout
-// ============================================
+/** 基础字号值 */
+const primitiveFontSize = {
+  10: 10,
+  11: 11,
+  12: 12,
+  13: 13,
+  14: 14,
+  15: 15,
+  16: 16,
+  17: 17,
+  18: 18,
+  20: 20,
+  22: 22,
+  24: 24,
+  28: 28,
+  32: 32,
+  36: 36,
+  40: 40,
+  48: 48,
+} as const;
+
+/** 基础圆角值 */
+const primitiveRadius = {
+  0: 0,
+  4: 4,
+  6: 6,
+  8: 8,
+  12: 12,
+  16: 16,
+  20: 20,
+  24: 24,
+  9999: 9999,
+} as const;
+
+/** 基础尺寸值 */
+const primitiveSize = {
+  12: 12,
+  16: 16,
+  20: 20,
+  24: 24,
+  28: 28,
+  32: 32,
+  36: 36,
+  40: 40,
+  44: 44,
+  48: 48,
+  56: 56,
+  64: 64,
+  72: 72,
+  80: 80,
+  96: 96,
+  120: 120,
+} as const;
+
+// ============================================================================
+// Layer 2: Semantic Tokens (公开 API)
+// ============================================================================
+
+/**
+ * 语义化间距
+ * - tight: 紧凑间距 (图标与文字)
+ * - small: 小间距 (列表项内部)
+ * - medium: 中等间距 (卡片内边距)
+ * - large: 大间距 (区块分隔)
+ * - xlarge: 超大间距 (页面边距)
+ * - xxlarge: 特大间距 (大区块分隔)
+ */
+export const spacing = {
+  /** 4px - 紧凑间距 */
+  tight: scale(primitiveSpace[2]),
+  /** 8px - 小间距 */
+  small: scale(primitiveSpace[4]),
+  /** 16px - 中等间距 */
+  medium: scale(primitiveSpace[6]),
+  /** 24px - 大间距 */
+  large: scale(primitiveSpace[8]),
+  /** 32px - 超大间距 */
+  xlarge: scale(primitiveSpace[9]),
+  /** 48px - 特大间距 */
+  xxlarge: scale(primitiveSpace[11]),
+} as const;
+
+/**
+ * 语义化字号
+ * - caption: 辅助说明文字
+ * - secondary: 次要信息
+ * - body: 正文
+ * - subtitle: 副标题
+ * - title: 标题
+ * - heading: 大标题
+ * - hero: 超大标题
+ * - display: 展示标题
+ */
+export const typography = {
+  /** 12px - 辅助说明 */
+  caption: scale(primitiveFontSize[12]),
+  /** 14px - 次要信息 */
+  secondary: scale(primitiveFontSize[14]),
+  /** 16px - 正文 */
+  body: scale(primitiveFontSize[16]),
+  /** 18px - 副标题 */
+  subtitle: scale(primitiveFontSize[18]),
+  /** 20px - 标题 */
+  title: scale(primitiveFontSize[20]),
+  /** 24px - 大标题 */
+  heading: scale(primitiveFontSize[24]),
+  /** 32px - 超大标题 */
+  hero: scale(primitiveFontSize[32]),
+  /** 40px - 展示标题 */
+  display: scale(primitiveFontSize[40]),
+
+  /** 字重 */
+  weights: {
+    normal: '400' as TextStyle['fontWeight'],
+    medium: '500' as TextStyle['fontWeight'],
+    semibold: '600' as TextStyle['fontWeight'],
+    bold: '700' as TextStyle['fontWeight'],
+  },
+} as const;
+
+/**
+ * 语义化圆角
+ * - none: 无圆角
+ * - small: 小圆角 (按钮、输入框)
+ * - medium: 中等圆角 (卡片)
+ * - large: 大圆角 (弹窗、底部面板)
+ * - xlarge: 超大圆角
+ * - full: 完全圆角 (头像、徽章)
+ */
+export const borderRadius = {
+  /** 0px */
+  none: primitiveRadius[0],
+  /** 8px */
+  small: scale(primitiveRadius[8]),
+  /** 12px */
+  medium: scale(primitiveRadius[12]),
+  /** 16px */
+  large: scale(primitiveRadius[16]),
+  /** 24px */
+  xlarge: scale(primitiveRadius[24]),
+  /** 9999px */
+  full: primitiveRadius[9999],
+} as const;
+
+// ============================================================================
+// Layer 3: Component Tokens (公开 API)
+// ============================================================================
+
+/**
+ * 组件尺寸
+ */
+export const componentSizes = {
+  /** 按钮高度 */
+  button: {
+    sm: scale(primitiveSize[32]),
+    md: scale(primitiveSize[44]),
+    lg: scale(primitiveSize[56]),
+  },
+
+  /** 头像尺寸 */
+  avatar: {
+    xs: scale(primitiveSize[24]),
+    sm: scale(primitiveSize[32]),
+    md: scale(primitiveSize[40]),
+    lg: scale(primitiveSize[56]),
+    xl: scale(primitiveSize[80]),
+  },
+
+  /** 图标尺寸 */
+  icon: {
+    xs: scale(primitiveSize[12]),
+    sm: scale(primitiveSize[16]),
+    md: scale(primitiveSize[20]),
+    lg: scale(primitiveSize[24]),
+    xl: scale(primitiveSize[32]),
+  },
+
+  /** 徽章尺寸 */
+  badge: {
+    dot: scale(8),
+    sm: scale(primitiveSize[16]),
+    md: scale(primitiveSize[20]),
+  },
+
+  /** 标签/Chip */
+  chip: {
+    minWidth: scale(primitiveSize[56]),
+    paddingH: scale(primitiveSpace[5]),
+    paddingV: scale(primitiveSpace[3]),
+  },
+
+  /** 头部导航栏 */
+  header: scale(primitiveSize[56]),
+
+  /** 底部标签栏 */
+  tabBar: scale(primitiveSize[56]),
+} as const;
+
+// ============================================================================
+// Fixed Values (不响应式缩放)
+// ============================================================================
+
+/**
+ * 固定值 - 不随屏幕缩放
+ */
+export const fixed = {
+  /** 边框宽度 */
+  borderWidth: 1,
+  borderWidthThick: 2,
+
+  /** 分隔线高度 */
+  divider: 1,
+
+  /** 最小点击区域 */
+  minTouchTarget: 44,
+
+  /** 最大内容宽度 */
+  maxContentWidth: 600,
+
+  /** 键盘避让额外间距 */
+  keyboardOffset: 24,
+} as const;
+
+// ============================================================================
+// Shadows
+// ============================================================================
+
+type ShadowStyle = Pick<
+  ViewStyle,
+  'shadowColor' | 'shadowOffset' | 'shadowOpacity' | 'shadowRadius' | 'elevation'
+>;
+
+/**
+ * 阴影样式
+ */
+export const shadows: Record<'none' | 'sm' | 'md' | 'lg', ShadowStyle> = {
+  none: {},
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  lg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+} as const;
+
+// ============================================================================
+// Layout Constants
+// ============================================================================
+
+/**
+ * 布局常量
+ */
 export const layout = {
-  maxWidth: 600,
-  headerHeight: 56,
-  tabBarHeight: 60,
-  tileColumns: 4,
+  /** 最大内容宽度 */
+  maxWidth: fixed.maxContentWidth,
+  /** 头部高度 */
+  headerHeight: componentSizes.header,
+  /** 标签栏高度 */
+  tabBarHeight: componentSizes.tabBar,
+  /** 屏幕水平内边距 */
+  screenPaddingH: spacing.medium,
+  /** 屏幕垂直内边距 */
+  screenPaddingV: spacing.large,
+  /** 卡片内边距 */
+  cardPadding: spacing.medium,
+  /** 列表项间距 */
+  listItemGap: spacing.small,
+} as const;
+
+// ============================================================================
+// Animation Durations
+// ============================================================================
+
+/**
+ * 动画时长 (毫秒)
+ */
+export const duration = {
+  instant: 100,
+  fast: 150,
+  normal: 250,
+  slow: 400,
+  slower: 600,
+} as const;
+
+// ============================================================================
+// Z-Index
+// ============================================================================
+
+/**
+ * 层级
+ */
+export const zIndex = {
+  base: 0,
+  dropdown: 100,
+  sticky: 200,
+  modal: 300,
+  popover: 400,
+  toast: 500,
+  tooltip: 600,
+} as const;
+
+// ============================================================================
+// Responsive Helpers (导出供外部使用)
+// ============================================================================
+
+/**
+ * 获取当前缩放因子
+ */
+export const getScale = (): number => SCALE;
+
+/**
+ * 应用缩放到自定义值
+ */
+export const applyScale = scale;
+
+/**
+ * 屏幕尺寸断点
+ */
+export const breakpoints = {
+  /** 小屏手机 */
+  sm: 320,
+  /** 普通手机 */
+  md: 375,
+  /** 大屏手机 */
+  lg: 428,
+  /** 平板 */
+  xl: 768,
+} as const;
+
+/**
+ * 判断当前屏幕尺寸
+ */
+export const screenSize = {
+  isSmall: SCREEN_WIDTH < breakpoints.md,
+  isMedium: SCREEN_WIDTH >= breakpoints.md && SCREEN_WIDTH < breakpoints.lg,
+  isLarge: SCREEN_WIDTH >= breakpoints.lg && SCREEN_WIDTH < breakpoints.xl,
+  isXLarge: SCREEN_WIDTH >= breakpoints.xl,
 } as const;

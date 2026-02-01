@@ -49,24 +49,24 @@ const createStyles = (colors: ThemeColors) => ({
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: borderRadius.md,
+      borderRadius: borderRadius.medium,
     },
     text: {
       fontWeight: '600',
     },
     textWithIcon: {
-      marginLeft: spacing.sm,
+      marginLeft: spacing.small,
     },
     disabled: {
       opacity: 0.5,
     },
     // Size styles
-    buttonSmall: { paddingVertical: spacing.xs, paddingHorizontal: spacing.md },
-    buttonMedium: { paddingVertical: spacing.sm, paddingHorizontal: spacing.lg },
-    buttonLarge: { paddingVertical: spacing.md, paddingHorizontal: spacing.xl },
-    textSmall: { fontSize: typography.sm },
-    textMedium: { fontSize: typography.base },
-    textLarge: { fontSize: typography.lg },
+    buttonSmall: { paddingVertical: spacing.tight, paddingHorizontal: spacing.medium },
+    buttonMedium: { paddingVertical: spacing.small, paddingHorizontal: spacing.large },
+    buttonLarge: { paddingVertical: spacing.medium, paddingHorizontal: spacing.xlarge },
+    textSmall: { fontSize: typography.secondary },
+    textMedium: { fontSize: typography.body },
+    textLarge: { fontSize: typography.subtitle },
   }),
 });
 

@@ -840,7 +840,7 @@ const createStyles = (colors: ThemeColors) =>
       width: CHAT_WIDTH,
       height: CHAT_HEIGHT,
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.xl,
+      borderRadius: borderRadius.xlarge,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.25,
@@ -854,23 +854,23 @@ const createStyles = (colors: ThemeColors) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       backgroundColor: colors.background,
     },
     chatTitle: {
-      fontSize: typography.base,
+      fontSize: typography.body,
       fontWeight: '600',
       color: colors.text,
     },
     headerButtons: {
       flexDirection: 'row',
-      gap: spacing.xs,
+      gap: spacing.tight,
     },
     headerBtn: {
-      padding: spacing.xs,
+      padding: spacing.tight,
     },
     headerBtnText: {
       fontSize: 16,
@@ -881,10 +881,10 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
     },
     messageListContent: {
-      padding: spacing.sm,
+      padding: spacing.small,
     },
     messageRow: {
-      marginBottom: spacing.xs,
+      marginBottom: spacing.tight,
       flexDirection: 'row',
     },
     messageRowUser: {
@@ -892,9 +892,9 @@ const createStyles = (colors: ThemeColors) =>
     },
     messageBubble: {
       maxWidth: '85%',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.tight,
+      borderRadius: borderRadius.medium,
     },
     userBubble: {
       backgroundColor: colors.primary,
@@ -905,7 +905,7 @@ const createStyles = (colors: ThemeColors) =>
       borderBottomLeftRadius: 4,
     },
     messageText: {
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       color: colors.text,
       lineHeight: 20,
     },
@@ -917,7 +917,7 @@ const createStyles = (colors: ThemeColors) =>
     inputContainer: {
       flexDirection: 'row',
       alignItems: 'flex-end',
-      padding: spacing.sm,
+      padding: spacing.small,
       borderTopWidth: 1,
       borderTopColor: colors.border,
       backgroundColor: colors.background,
@@ -927,12 +927,12 @@ const createStyles = (colors: ThemeColors) =>
       minHeight: 36,
       maxHeight: 80,
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.lg,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.large,
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.tight,
       fontSize: 16, // 必须 >= 16px，否则 iOS Safari 会自动缩放
       color: colors.text,
-      marginRight: spacing.xs,
+      marginRight: spacing.tight,
     },
     sendButton: {
       width: 36,
@@ -956,10 +956,10 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      padding: spacing.lg,
+      padding: spacing.large,
     },
     emptyText: {
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       color: colors.textMuted,
       textAlign: 'center',
       lineHeight: 22,
@@ -969,8 +969,8 @@ const createStyles = (colors: ThemeColors) =>
     quickQuestionsContainer: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.small,
       borderTopWidth: 1,
       borderTopColor: colors.border,
       backgroundColor: colors.surface,
@@ -980,9 +980,9 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.background,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadius.large,
       paddingVertical: 6,
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: spacing.medium,
     },
     // AI 生成的跟进问题样式（更醒目）
     aiSuggestionBtn: {
