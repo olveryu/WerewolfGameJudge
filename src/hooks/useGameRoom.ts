@@ -48,6 +48,9 @@ export interface UseGameRoomResult {
   currentActionRole: RoleId | null;
   isAudioPlaying: boolean;
 
+  // Role reveal animation (Host controlled, all players use)
+  roleRevealAnimation: 'roulette' | 'flip' | 'none';
+
   // Schema-driven UI (Phase 3)
   currentSchemaId: SchemaId | null; // schemaId for current action role (null if no action)
   currentSchema: ActionSchema | null; // Full schema (derived from schemaId, null if no schema)
@@ -79,6 +82,7 @@ export interface UseGameRoomResult {
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
+  setRoleRevealAnimation: (animation: 'roulette' | 'flip' | 'none') => Promise<void>;
 
   // Host audio control (PR7: 音频时序控制)
   setAudioPlaying: (isPlaying: boolean) => Promise<{ success: boolean; reason?: string }>;
@@ -317,6 +321,11 @@ export const useGameRoom = (): UseGameRoomResult => {
     return gameState?.isAudioPlaying ?? false;
   }, [gameState]);
 
+  // Role reveal animation (Host controlled, all players use)
+  const roleRevealAnimation = useMemo((): 'roulette' | 'flip' | 'none' => {
+    return gameState?.roleRevealAnimation ?? 'roulette';
+  }, [gameState]);
+
   // =========================================================================
   // Phase 1B: createRoom / joinRoom 使用 facade
   // =========================================================================
@@ -551,6 +560,15 @@ export const useGameRoom = (): UseGameRoomResult => {
     await facade.restartGame();
   }, [isHost, facade]);
 
+  // Set role reveal animation (host only)
+  const setRoleRevealAnimation = useCallback(
+    async (animation: 'roulette' | 'flip' | 'none'): Promise<void> => {
+      if (!isHost) return;
+      await facade.setRoleRevealAnimation(animation);
+    },
+    [isHost, facade],
+  );
+
   // Toggle BGM setting (host only)
   const toggleBgm = useCallback(async (): Promise<void> => {
     const newValue = await settingsService.current.toggleBgm();
@@ -662,6 +680,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     roomStatus,
     currentActionRole,
     isAudioPlaying,
+    roleRevealAnimation,
     currentSchemaId,
     currentSchema,
     currentStepId,
@@ -683,6 +702,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     assignRoles,
     startGame,
     restartGame,
+    setRoleRevealAnimation,
     setAudioPlaying,
     isBgmEnabled,
     toggleBgm,

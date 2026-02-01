@@ -68,6 +68,11 @@ export interface LocalGameState {
    */
   currentStepId?: import('../../models/roles/spec').SchemaId;
   isAudioPlaying: boolean;
+  /**
+   * 开牌动画（Host 控制）
+   * 默认 'roulette'
+   */
+  roleRevealAnimation?: 'roulette' | 'flip' | 'none';
   lastNightDeaths: number[]; // Calculated after night ends
   nightmareBlockedSeat?: number; // Seat blocked by nightmare (skill disabled for this night)
   /**

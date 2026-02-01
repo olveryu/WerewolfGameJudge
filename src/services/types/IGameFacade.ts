@@ -125,6 +125,11 @@ export interface IGameFacade {
   updateTemplate(template: GameTemplate): Promise<{ success: boolean; reason?: string }>;
 
   /**
+   * 设置开牌动画（Host only）
+   */
+  setRoleRevealAnimation(animation: 'roulette' | 'flip' | 'none'): Promise<{ success: boolean; reason?: string }>;
+
+  /**
    * 开始夜晚
    */
   startNight(): Promise<{ success: boolean; reason?: string }>;

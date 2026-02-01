@@ -48,6 +48,7 @@ describe('useGameRoom - ACK reason transparency', () => {
     leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
     assignRoles: jest.fn().mockResolvedValue({ success: true }),
     updateTemplate: jest.fn().mockResolvedValue({ success: true }),
+    setRoleRevealAnimation: jest.fn().mockResolvedValue({ success: true }),
     startNight: jest.fn().mockResolvedValue({ success: true }),
     restartGame: jest.fn().mockResolvedValue({ success: true }),
     markViewedRole: jest.fn().mockResolvedValue({ success: true }),

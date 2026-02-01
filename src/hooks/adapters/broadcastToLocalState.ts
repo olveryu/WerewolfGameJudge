@@ -165,6 +165,7 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
     currentActionerIndex: broadcast.currentActionerIndex,
     currentStepId: broadcast.currentStepId, // PR9: 透传 currentStepId
     isAudioPlaying: broadcast.isAudioPlaying,
+    roleRevealAnimation: broadcast.roleRevealAnimation,
     lastNightDeaths: broadcast.lastNightDeaths ?? [],
     nightmareBlockedSeat: broadcast.nightmareBlockedSeat,
     wolfKillDisabled: broadcast.wolfKillDisabled,
