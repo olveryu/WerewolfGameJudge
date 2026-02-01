@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -45,15 +46,15 @@ const createStyles = (colors: ThemeColors) =>
       borderBottomColor: colors.border,
     },
     headerBtn: {
-      width: 40,
-      height: 40,
+      width: spacing.xlarge + spacing.small, // 40
+      height: spacing.xlarge + spacing.small, // 40
       borderRadius: borderRadius.medium,
       backgroundColor: colors.background,
       justifyContent: 'center',
       alignItems: 'center',
     },
     headerBtnText: {
-      fontSize: 20,
+      fontSize: typography.title,
       color: colors.text,
     },
     headerCenter: {
@@ -68,16 +69,55 @@ const createStyles = (colors: ThemeColors) =>
     subtitle: {
       fontSize: typography.secondary,
       color: colors.textSecondary,
-      marginTop: 2,
+      marginTop: spacing.tight / 2,
     },
     createBtn: {
       backgroundColor: colors.primary,
-      width: 60,
+      width: spacing.xlarge + spacing.large + spacing.tight, // 60
     },
     createBtnText: {
       color: colors.textInverse,
       fontSize: typography.secondary,
       fontWeight: '600',
+    },
+    // Settings row (template + animation selectors)
+    settingsRow: {
+      flexDirection: 'row',
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      gap: spacing.medium,
+    },
+    settingsItem: {
+      flex: 1,
+    },
+    settingsLabel: {
+      fontSize: typography.caption,
+      color: colors.textSecondary,
+      marginBottom: spacing.tight,
+    },
+    settingsSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.small,
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.medium,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    settingsSelectorText: {
+      fontSize: typography.secondary,
+      color: colors.text,
+      flex: 1,
+    },
+    settingsSelectorArrow: {
+      fontSize: typography.secondary,
+      color: colors.textSecondary,
+      marginLeft: spacing.tight,
     },
     scrollView: {
       flex: 1,
@@ -128,12 +168,14 @@ const createStyles = (colors: ThemeColors) =>
       gap: spacing.tight,
     },
     chip: {
+      minWidth: spacing.xxlarge * 2 - spacing.small, // ~88
       paddingHorizontal: spacing.medium,
       paddingVertical: spacing.small,
       backgroundColor: colors.background,
       borderRadius: borderRadius.full,
       borderWidth: 1,
       borderColor: colors.border,
+      alignItems: 'center',
     },
     chipSelected: {
       backgroundColor: colors.primary,
@@ -156,6 +198,64 @@ const createStyles = (colors: ThemeColors) =>
       marginTop: spacing.medium,
       fontSize: typography.body,
       color: colors.textSecondary,
+    },
+    // Modal styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: borderRadius.large,
+      borderTopRightRadius: borderRadius.large,
+      paddingBottom: spacing.xlarge,
+      maxHeight: '60%',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.medium,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    modalTitle: {
+      fontSize: typography.subtitle,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    modalCloseBtn: {
+      padding: spacing.small,
+    },
+    modalCloseBtnText: {
+      fontSize: typography.title,
+      color: colors.textSecondary,
+    },
+    modalOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.medium,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    modalOptionSelected: {
+      backgroundColor: colors.primaryLight + '20',
+    },
+    modalOptionText: {
+      fontSize: typography.body,
+      color: colors.text,
+    },
+    modalOptionTextSelected: {
+      color: colors.primary,
+      fontWeight: '600',
+    },
+    modalOptionCheck: {
+      fontSize: typography.body,
+      color: colors.primary,
     },
   });
 
@@ -197,6 +297,82 @@ const Section: React.FC<SectionProps> = ({ title, children, colors }) => {
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <View style={styles.chipContainer}>{children}</View>
+    </View>
+  );
+};
+
+// Dropdown selector with Modal
+interface DropdownOption {
+  value: string;
+  label: string;
+}
+
+interface DropdownProps {
+  label: string;
+  value: string;
+  options: DropdownOption[];
+  onSelect: (value: string) => void;
+  colors: ThemeColors;
+}
+
+const Dropdown: React.FC<DropdownProps> = ({ label, value, options, onSelect, colors }) => {
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const [visible, setVisible] = useState(false);
+
+  const selectedOption = options.find((o) => o.value === value);
+
+  return (
+    <View style={styles.settingsItem}>
+      <Text style={styles.settingsLabel}>{label}</Text>
+      <TouchableOpacity
+        style={styles.settingsSelector}
+        onPress={() => setVisible(true)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.settingsSelectorText} numberOfLines={1}>
+          {selectedOption?.label ?? value}
+        </Text>
+        <Text style={styles.settingsSelectorArrow}>▼</Text>
+      </TouchableOpacity>
+
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={() => setVisible(false)}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{label}</Text>
+              <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setVisible(false)}>
+                <Text style={styles.modalCloseBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView>
+              {options.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[styles.modalOption, option.value === value && styles.modalOptionSelected]}
+                  onPress={() => {
+                    onSelect(option.value);
+                    setVisible(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      option.value === value && styles.modalOptionTextSelected,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  {option.value === value && <Text style={styles.modalOptionCheck}>✓</Text>}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -408,6 +584,31 @@ export const ConfigScreen: React.FC = () => {
     }
   }, [selection, navigation, isEditMode, existingRoomNumber, facade, roleRevealAnimation, settingsService]);
 
+  // Dropdown options
+  const templateOptions: DropdownOption[] = useMemo(
+    () => PRESET_TEMPLATES.map((p) => ({ value: p.name, label: p.name })),
+    [],
+  );
+
+  const animationOptions: DropdownOption[] = useMemo(
+    () => [
+      { value: 'roulette', label: '🎰 轮盘' },
+      { value: 'flip', label: '🃏 翻牌' },
+      { value: 'none', label: '⚡ 无' },
+    ],
+    [],
+  );
+
+  const [selectedTemplate, setSelectedTemplate] = useState(PRESET_TEMPLATES[0]?.name ?? '');
+
+  const handleTemplateChange = useCallback(
+    (templateName: string) => {
+      setSelectedTemplate(templateName);
+      handlePresetSelect(templateName);
+    },
+    [handlePresetSelect],
+  );
+
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
       {/* Header */}
@@ -432,285 +633,85 @@ export const ConfigScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
+      {/* Settings Row (Template + Animation) */}
+      <View style={styles.settingsRow}>
+        <Dropdown
+          label="模板"
+          value={selectedTemplate}
+          options={templateOptions}
+          onSelect={handleTemplateChange}
+          colors={colors}
+        />
+        <Dropdown
+          label="动画"
+          value={roleRevealAnimation}
+          options={animationOptions}
+          onSelect={(v) => setRoleRevealAnimation(v as 'roulette' | 'flip' | 'none')}
+          colors={colors}
+        />
+      </View>
+
       {isLoading ? (
         <LoadingScreen message="加载中..." fullScreen={false} />
       ) : (
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Presets */}
-          <View style={styles.card} testID={TESTIDS.configPresetSection}>
-            <Text style={styles.cardTitle}>快速模板</Text>
-            <View style={styles.presetContainer}>
-              {PRESET_TEMPLATES.map((preset) => (
-                <TouchableOpacity
-                  key={preset.name}
-                  style={styles.presetBtn}
-                  onPress={() => handlePresetSelect(preset.name)}
-                >
-                  <Text style={styles.presetText}>{preset.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {/* 🐺 狼人阵营 */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>🐺 狼人阵营</Text>
+
+            <Section title="普通狼人" colors={colors}>
+              <RoleChip id="wolf" label="狼人" selected={selection.wolf} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="wolf1" label="狼人" selected={selection.wolf1} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="wolf2" label="狼人" selected={selection.wolf2} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="wolf3" label="狼人" selected={selection.wolf3} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="wolf4" label="狼人" selected={selection.wolf4} onToggle={toggleRole} colors={colors} />
+            </Section>
+
+            <Section title="技能狼" colors={colors}>
+              <RoleChip id="wolfQueen" label="狼美人" selected={selection.wolfQueen} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="wolfKing" label="白狼王" selected={selection.wolfKing} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="darkWolfKing" label="黑狼王" selected={selection.darkWolfKing} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="gargoyle" label="石像鬼" selected={selection.gargoyle} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="nightmare" label="梦魇" selected={selection.nightmare} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="bloodMoon" label="血月使徒" selected={selection.bloodMoon} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="wolfRobot" label="机械狼" selected={selection.wolfRobot} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="spiritKnight" label="恶灵骑士" selected={selection.spiritKnight} onToggle={toggleRole} colors={colors} />
+            </Section>
           </View>
 
-          {/* Roles */}
+          {/* 👥 好人阵营 */}
           <View style={styles.card}>
-            <Section title="🐺 狼人" colors={colors}>
-              <RoleChip
-                id="wolf"
-                label="普狼"
-                selected={selection.wolf}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="wolf1"
-                label="普狼"
-                selected={selection.wolf1}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="wolf2"
-                label="普狼"
-                selected={selection.wolf2}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="wolf3"
-                label="普狼"
-                selected={selection.wolf3}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="wolf4"
-                label="普狼"
-                selected={selection.wolf4}
-                onToggle={toggleRole}
-                colors={colors}
-              />
+            <Text style={styles.cardTitle}>👥 好人阵营</Text>
+
+            <Section title="普通村民" colors={colors}>
+              <RoleChip id="villager" label="村民" selected={selection.villager} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="villager1" label="村民" selected={selection.villager1} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="villager2" label="村民" selected={selection.villager2} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="villager3" label="村民" selected={selection.villager3} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="villager4" label="村民" selected={selection.villager4} onToggle={toggleRole} colors={colors} />
             </Section>
 
-            <Section title="🎭 技能狼" colors={colors}>
-              <RoleChip
-                id="wolfQueen"
-                label="狼美人"
-                selected={selection.wolfQueen}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="wolfKing"
-                label="白狼王"
-                selected={selection.wolfKing}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="darkWolfKing"
-                label="黑狼王"
-                selected={selection.darkWolfKing}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="gargoyle"
-                label="石像鬼"
-                selected={selection.gargoyle}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="nightmare"
-                label="梦魇"
-                selected={selection.nightmare}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="bloodMoon"
-                label="血月使徒"
-                selected={selection.bloodMoon}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="wolfRobot"
-                label="机械狼"
-                selected={selection.wolfRobot}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="spiritKnight"
-                label="恶灵骑士"
-                selected={selection.spiritKnight}
-                onToggle={toggleRole}
-                colors={colors}
-              />
+            <Section title="神职" colors={colors}>
+              <RoleChip id="seer" label="预言家" selected={selection.seer} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="witch" label="女巫" selected={selection.witch} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="hunter" label="猎人" selected={selection.hunter} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="guard" label="守卫" selected={selection.guard} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="idiot" label="白痴" selected={selection.idiot} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="graveyardKeeper" label="守墓人" selected={selection.graveyardKeeper} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="knight" label="骑士" selected={selection.knight} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="dreamcatcher" label="摄梦人" selected={selection.dreamcatcher} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="magician" label="魔术师" selected={selection.magician} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="witcher" label="猎魔人" selected={selection.witcher} onToggle={toggleRole} colors={colors} />
+              <RoleChip id="psychic" label="通灵师" selected={selection.psychic} onToggle={toggleRole} colors={colors} />
             </Section>
+          </View>
 
-            <Section title="👤 村民" colors={colors}>
-              <RoleChip
-                id="villager"
-                label="村民"
-                selected={selection.villager}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="villager1"
-                label="村民"
-                selected={selection.villager1}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="villager2"
-                label="村民"
-                selected={selection.villager2}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="villager3"
-                label="村民"
-                selected={selection.villager3}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="villager4"
-                label="村民"
-                selected={selection.villager4}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-            </Section>
-
-            <Section title="✨ 神职" colors={colors}>
-              <RoleChip
-                id="seer"
-                label="预言家"
-                selected={selection.seer}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="witch"
-                label="女巫"
-                selected={selection.witch}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="hunter"
-                label="猎人"
-                selected={selection.hunter}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="guard"
-                label="守卫"
-                selected={selection.guard}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="idiot"
-                label="白痴"
-                selected={selection.idiot}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="graveyardKeeper"
-                label="守墓人"
-                selected={selection.graveyardKeeper}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="knight"
-                label="骑士"
-                selected={selection.knight}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="dreamcatcher"
-                label="摄梦人"
-                selected={selection.dreamcatcher}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="magician"
-                label="魔术师"
-                selected={selection.magician}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="witcher"
-                label="猎魔人"
-                selected={selection.witcher}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-              <RoleChip
-                id="psychic"
-                label="通灵师"
-                selected={selection.psychic}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-            </Section>
-
-            <Section title="🎲 特殊" colors={colors}>
-              <RoleChip
-                id="slacker"
-                label="混子"
-                selected={selection.slacker}
-                onToggle={toggleRole}
-                colors={colors}
-              />
-            </Section>
-
-            <Section title="🎰 开牌动画" colors={colors}>
-              <TouchableOpacity
-                testID="config-animation-roulette"
-                style={[styles.chip, roleRevealAnimation === 'roulette' && styles.chipSelected]}
-                onPress={() => setRoleRevealAnimation('roulette')}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.chipText, roleRevealAnimation === 'roulette' && styles.chipTextSelected]}>
-                  🎰 轮盘
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                testID="config-animation-flip"
-                style={[styles.chip, roleRevealAnimation === 'flip' && styles.chipSelected]}
-                onPress={() => setRoleRevealAnimation('flip')}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.chipText, roleRevealAnimation === 'flip' && styles.chipTextSelected]}>
-                  🃏 翻牌
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                testID="config-animation-none"
-                style={[styles.chip, roleRevealAnimation === 'none' && styles.chipSelected]}
-                onPress={() => setRoleRevealAnimation('none')}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.chipText, roleRevealAnimation === 'none' && styles.chipTextSelected]}>
-                  ⚡ 无
-                </Text>
-              </TouchableOpacity>
-            </Section>
+          {/* ⚖️ 中立阵营 */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>⚖️ 中立阵营</Text>
+            <View style={styles.chipContainer}>
+              <RoleChip id="slacker" label="混子" selected={selection.slacker} onToggle={toggleRole} colors={colors} />
+            </View>
           </View>
 
           <View style={{ height: spacing.xxlarge }} />
