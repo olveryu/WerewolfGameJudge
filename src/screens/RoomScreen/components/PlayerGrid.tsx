@@ -123,7 +123,7 @@ function createStyles(colors: ThemeColors) {
     tileWrapper: {
       width: TILE_SIZE,
       alignItems: 'center',
-      marginBottom: spacing.tight,
+      marginBottom: spacing.small,
     },
     playerTile: {
       width: TILE_SIZE - spacing.small,
@@ -154,7 +154,7 @@ function createStyles(colors: ThemeColors) {
       color: colors.textMuted,
       position: 'absolute',
       top: spacing.small,
-      left: spacing.small + spacing.tight,
+      left: spacing.small + spacing.tight, // ~12
     },
     seatedSeatNumber: {
       color: colors.textInverse,
@@ -202,11 +202,11 @@ function createStyles(colors: ThemeColors) {
       textAlign: 'center',
       marginTop: spacing.tight,
       width: TILE_SIZE - spacing.small,
-      height: typography.body, // Fixed height for consistent row layout
+      height: typography.subtitle, // ~18, Fixed height for consistent row layout
     },
     playerNamePlaceholder: {
       marginTop: spacing.tight,
-      height: typography.body, // Same height as playerName to keep rows consistent
+      height: typography.subtitle, // ~18, Same height as playerName
     },
   });
 }

@@ -1,8 +1,8 @@
 /**
- * BoardInfoCard.tsx - Game board configuration display
+ * BoardInfoCard.tsx - Game board configuration display (collapsible)
  */
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useMemo, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 
 export interface BoardInfoCardProps {
@@ -16,6 +16,8 @@ export interface BoardInfoCardProps {
   specialRolesText?: string;
   /** Number of villagers */
   villagerCount: number;
+  /** Whether the card should be collapsed */
+  collapsed?: boolean;
 }
 
 export const BoardInfoCard: React.FC<BoardInfoCardProps> = ({
@@ -24,35 +26,60 @@ export const BoardInfoCard: React.FC<BoardInfoCardProps> = ({
   godRolesText,
   specialRolesText,
   villagerCount,
+  collapsed = false,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const [isCollapsed, setIsCollapsed] = useState(collapsed);
+  const [userHasInteracted, setUserHasInteracted] = useState(false);
+
+  // Sync with external collapsed prop only if user hasn't manually interacted
+  useEffect(() => {
+    if (!userHasInteracted) {
+      setIsCollapsed(collapsed);
+    }
+  }, [collapsed, userHasInteracted]);
+
+  const handleToggle = () => {
+    setUserHasInteracted(true);
+    setIsCollapsed(!isCollapsed);
+  };
 
   return (
     <View style={styles.boardInfoContainer}>
-      <Text style={styles.boardInfoTitle}>板子配置 ({playerCount}人局)</Text>
-      <View style={styles.boardInfoContent}>
-        <View style={styles.roleCategory}>
-          <Text style={styles.roleCategoryLabel}>🐺 狼人：</Text>
-          <Text style={styles.roleCategoryText}>{wolfRolesText}</Text>
-        </View>
-        <View style={styles.roleCategory}>
-          <Text style={styles.roleCategoryLabel}>✨ 神职：</Text>
-          <Text style={styles.roleCategoryText}>{godRolesText}</Text>
-        </View>
-        {Boolean(specialRolesText) && (
+      <TouchableOpacity
+        style={styles.headerRow}
+        onPress={handleToggle}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.boardInfoTitle}>板子配置 ({playerCount}人局)</Text>
+        <Text style={styles.collapseIcon}>{isCollapsed ? '▼' : '▲'}</Text>
+      </TouchableOpacity>
+
+      {!isCollapsed && (
+        <View style={styles.boardInfoContent}>
           <View style={styles.roleCategory}>
-            <Text style={styles.roleCategoryLabel}>🎭 特殊：</Text>
-            <Text style={styles.roleCategoryText}>{specialRolesText}</Text>
+            <Text style={styles.roleCategoryLabel}>🐺 狼人：</Text>
+            <Text style={styles.roleCategoryText}>{wolfRolesText}</Text>
           </View>
-        )}
-        {villagerCount > 0 && (
           <View style={styles.roleCategory}>
-            <Text style={styles.roleCategoryLabel}>👤 村民：</Text>
-            <Text style={styles.roleCategoryText}>{villagerCount}人</Text>
+            <Text style={styles.roleCategoryLabel}>✨ 神职：</Text>
+            <Text style={styles.roleCategoryText}>{godRolesText}</Text>
           </View>
-        )}
-      </View>
+          {Boolean(specialRolesText) && (
+            <View style={styles.roleCategory}>
+              <Text style={styles.roleCategoryLabel}>🎭 特殊：</Text>
+              <Text style={styles.roleCategoryText}>{specialRolesText}</Text>
+            </View>
+          )}
+          {villagerCount > 0 && (
+            <View style={styles.roleCategory}>
+              <Text style={styles.roleCategoryLabel}>👤 村民：</Text>
+              <Text style={styles.roleCategoryText}>{villagerCount}人</Text>
+            </View>
+          )}
+        </View>
+      )}
     </View>
   );
 };
@@ -67,13 +94,22 @@ function createStyles(colors: ThemeColors) {
       borderWidth: 1,
       borderColor: colors.border,
     },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
     boardInfoTitle: {
       fontSize: typography.body,
       fontWeight: '700',
       color: colors.text,
-      marginBottom: spacing.small,
+    },
+    collapseIcon: {
+      fontSize: typography.secondary,
+      color: colors.textSecondary,
     },
     boardInfoContent: {
+      marginTop: spacing.small,
       gap: spacing.tight,
     },
     roleCategory: {
