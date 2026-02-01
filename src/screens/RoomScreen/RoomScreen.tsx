@@ -16,7 +16,7 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { GameStatus, getWolfVoteSummary, getPlayersNotViewedRole } from '../../models/Room';
@@ -59,7 +59,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const { roomNumber, isHost: isHostParam, template, roleRevealAnimation: initialRoleRevealAnimation } = route.params;
   const colors = useColors();
-  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Use the new game room hook
@@ -1111,7 +1110,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const actionMessage = getActionMessage();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} testID={TESTIDS.roomScreenRoot}>
+    <SafeAreaView style={styles.container} testID={TESTIDS.roomScreenRoot}>
       {/* Header */}
       <View style={styles.header} testID={TESTIDS.roomHeader}>
         <TouchableOpacity onPress={handleLeaveRoom} style={styles.backButton}>
@@ -1262,7 +1261,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onClose={handleRoleCardClose}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

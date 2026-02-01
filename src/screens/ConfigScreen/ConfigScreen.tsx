@@ -8,7 +8,7 @@ import {
   StyleSheet,
   Modal,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -453,7 +453,6 @@ type ConfigRouteProp = RouteProp<RootStackParamList, 'Config'>;
 
 export const ConfigScreen: React.FC = () => {
   const colors = useColors();
-  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const navigation = useNavigation<NavigationProp>();
@@ -611,7 +610,7 @@ export const ConfigScreen: React.FC = () => {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} testID={TESTIDS.configScreenRoot}>
+    <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
@@ -718,7 +717,7 @@ export const ConfigScreen: React.FC = () => {
           <View style={{ height: spacing.xxlarge }} />
         </ScrollView>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
