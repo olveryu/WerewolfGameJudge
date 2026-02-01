@@ -84,13 +84,13 @@ function createStyles(colors: ThemeColors) {
       fontSize: typography.secondary,
       fontWeight: '600',
       color: colors.textSecondary,
-      width: 70,
+      width: spacing.xxlarge * 2 + spacing.tight, // ~70
     },
     roleCategoryText: {
       flex: 1,
       fontSize: typography.secondary,
       color: colors.text,
-      lineHeight: 20,
+      lineHeight: typography.title, // ~20
     },
   });
 }

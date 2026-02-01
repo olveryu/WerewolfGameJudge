@@ -40,8 +40,8 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: spacing.small,
     },
     button: {
-      width: 72,
-      height: 56,
+      width: spacing.xxlarge + spacing.xlarge + spacing.small, // ~72
+      height: spacing.xxlarge + spacing.medium + spacing.small, // ~56
       backgroundColor: colors.background,
       borderRadius: borderRadius.medium,
       justifyContent: 'center',

@@ -1282,7 +1282,7 @@ function createStyles(colors: ThemeColors) {
       color: colors.textSecondary,
     },
     errorIcon: {
-      fontSize: 48,
+      fontSize: spacing.xxlarge + spacing.medium, // ~48
       marginBottom: spacing.medium,
     },
     errorMessageText: {
@@ -1304,8 +1304,8 @@ function createStyles(colors: ThemeColors) {
     },
     retryButtonRow: {
       flexDirection: 'row',
-      gap: 12,
-      marginTop: 20,
+      gap: spacing.small + spacing.tight, // ~12
+      marginTop: spacing.large,
     },
     header: {
       flexDirection: 'row',
@@ -1332,7 +1332,7 @@ function createStyles(colors: ThemeColors) {
       color: colors.text,
     },
     headerSpacer: {
-      width: 60,
+      width: spacing.xxlarge + spacing.large, // ~64
     },
     scrollView: {
       flex: 1,
