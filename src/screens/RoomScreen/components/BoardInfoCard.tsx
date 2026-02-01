@@ -61,34 +61,34 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     boardInfoContainer: {
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.lg,
-      padding: spacing.md,
-      marginBottom: spacing.md,
+      borderRadius: borderRadius.large,
+      padding: spacing.medium,
+      marginBottom: spacing.medium,
       borderWidth: 1,
       borderColor: colors.border,
     },
     boardInfoTitle: {
-      fontSize: typography.base,
+      fontSize: typography.body,
       fontWeight: '700',
       color: colors.text,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.small,
     },
     boardInfoContent: {
-      gap: spacing.xs,
+      gap: spacing.tight,
     },
     roleCategory: {
       flexDirection: 'row',
       alignItems: 'flex-start',
     },
     roleCategoryLabel: {
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       fontWeight: '600',
       color: colors.textSecondary,
       width: 70,
     },
     roleCategoryText: {
       flex: 1,
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       color: colors.text,
       lineHeight: 20,
     },

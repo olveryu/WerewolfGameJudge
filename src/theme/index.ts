@@ -13,10 +13,10 @@
  *   return (
  *     <View style={{
  *       backgroundColor: colors.background,
- *       padding: t.spacing.md, // or spacing.md
- *       borderRadius: t.borderRadius.md,
+ *       padding: t.spacing.medium, // or spacing.medium
+ *       borderRadius: t.borderRadius.medium,
  *     }}>
- *       <Text style={{ color: colors.text, fontSize: t.typography.base }}>
+ *       <Text style={{ color: colors.text, fontSize: t.typography.body }}>
  *         Hello
  *       </Text>
  *     </View>

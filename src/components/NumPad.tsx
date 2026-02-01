@@ -36,19 +36,19 @@ const createStyles = (colors: ThemeColors) =>
     row: {
       flexDirection: 'row',
       justifyContent: 'center',
-      gap: spacing.sm,
-      marginBottom: spacing.sm,
+      gap: spacing.small,
+      marginBottom: spacing.small,
     },
     button: {
       width: 72,
       height: 56,
       backgroundColor: colors.background,
-      borderRadius: borderRadius.md,
+      borderRadius: borderRadius.medium,
       justifyContent: 'center',
       alignItems: 'center',
     },
     buttonText: {
-      fontSize: typography.xl,
+      fontSize: typography.title,
       fontWeight: '600',
       color: colors.text,
     },
@@ -56,7 +56,7 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.surfaceHover,
     },
     specialButtonText: {
-      fontSize: typography.base,
+      fontSize: typography.body,
       color: colors.textSecondary,
     },
     buttonDisabled: {

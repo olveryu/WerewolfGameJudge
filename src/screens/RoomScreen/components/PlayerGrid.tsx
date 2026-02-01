@@ -123,14 +123,14 @@ function createStyles(colors: ThemeColors) {
     tileWrapper: {
       width: TILE_SIZE,
       alignItems: 'center',
-      marginBottom: spacing.sm,
+      marginBottom: spacing.small,
     },
     playerTile: {
       width: TILE_SIZE - 8,
       height: TILE_SIZE - 8,
       margin: 4,
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadius.large,
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 2,
@@ -149,7 +149,7 @@ function createStyles(colors: ThemeColors) {
       borderColor: colors.primaryDark,
     },
     seatNumber: {
-      fontSize: typography.lg,
+      fontSize: typography.subtitle,
       fontWeight: '700',
       color: colors.textMuted,
       position: 'absolute',
@@ -167,17 +167,17 @@ function createStyles(colors: ThemeColors) {
     avatarOverlay: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: 'rgba(99, 102, 241, 0.3)',
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadius.large,
     },
     wolfOverlay: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: 'rgba(239, 68, 68, 0.4)',
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadius.large,
     },
     selectedOverlay: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: colors.primaryDark + '66',
-      borderRadius: borderRadius.lg,
+      borderRadius: borderRadius.large,
     },
     mySeatBadge: {
       position: 'absolute',
@@ -193,7 +193,7 @@ function createStyles(colors: ThemeColors) {
       overflow: 'hidden',
     },
     emptyIndicator: {
-      fontSize: typography.sm,
+      fontSize: typography.secondary,
       color: colors.textMuted,
     },
     playerName: {
