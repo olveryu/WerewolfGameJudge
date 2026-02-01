@@ -88,9 +88,11 @@ describe('ConfigScreen', () => {
     it('should render role selection sections', () => {
       const { getByText } = renderWithFacade(<ConfigScreen />);
 
-      // Check for role sections - actual UI uses these labels with emoji
-      expect(getByText('✨ 神职')).toBeTruthy();
-      expect(getByText('快速模板')).toBeTruthy();
+      // Check for role sections - new UI uses faction cards
+      expect(getByText('🐺 狼人阵营')).toBeTruthy();
+      expect(getByText('👥 好人阵营')).toBeTruthy();
+      expect(getByText('⚖️ 中立阵营')).toBeTruthy();
+      expect(getByText('神职')).toBeTruthy();
     });
 
     it('should render create button', () => {
@@ -108,13 +110,13 @@ describe('ConfigScreen', () => {
   });
 
   describe('Template Selection', () => {
-    it('should render multiple template options', () => {
+    it('should render template dropdown in settings row', () => {
       const { getByText } = renderWithFacade(<ConfigScreen />);
 
-      // Verify template options are rendered
+      // Verify template dropdown label and default value are rendered
+      expect(getByText('模板')).toBeTruthy();
+      // Default template is shown in the selector
       expect(getByText('标准板12人')).toBeTruthy();
-      expect(getByText('狼美守卫12人')).toBeTruthy();
-      expect(getByText('狼王守卫12人')).toBeTruthy();
     });
   });
 
