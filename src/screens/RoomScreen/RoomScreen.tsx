@@ -1115,7 +1115,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         <TouchableOpacity onPress={handleLeaveRoom} style={styles.backButton}>
           <Text style={styles.backButtonText}>← 返回</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>房间 {roomNumber}</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>房间 {roomNumber}</Text>
+          <Text style={styles.headerSubtitle}>{gameState.template.roles.length}人局</Text>
+        </View>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -1134,7 +1137,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       )}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Board Info */}
+        {/* Board Info - collapsed when game is ongoing */}
         <BoardInfoCard
           playerCount={gameState.template.roles.length}
           wolfRolesText={formatRoleList(wolfRoles, roleCounts)}
@@ -1143,6 +1146,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             specialRoles.length > 0 ? formatRoleList(specialRoles, roleCounts) : undefined
           }
           villagerCount={villagerCount}
+          collapsed={roomStatus === GameStatus.ongoing || roomStatus === GameStatus.ended}
         />
 
         {/* Player Grid */}
@@ -1326,10 +1330,18 @@ function createStyles(colors: ThemeColors) {
       fontSize: typography.body,
       fontWeight: '600',
     },
+    headerCenter: {
+      alignItems: 'center',
+    },
     headerTitle: {
       fontSize: typography.subtitle,
       fontWeight: '700',
       color: colors.text,
+    },
+    headerSubtitle: {
+      fontSize: typography.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.tight / 2,
     },
     headerSpacer: {
       width: spacing.xxlarge + spacing.large, // ~64
