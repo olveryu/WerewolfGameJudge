@@ -69,7 +69,7 @@ function createStyles(colors: ThemeColors) {
       color: colors.textSecondary,
     },
     progressBarContainer: {
-      height: 4,
+      height: spacing.tight, // 4
       backgroundColor: colors.border,
       borderRadius: borderRadius.full,
       overflow: 'hidden',

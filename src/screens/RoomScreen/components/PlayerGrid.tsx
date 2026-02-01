@@ -123,12 +123,12 @@ function createStyles(colors: ThemeColors) {
     tileWrapper: {
       width: TILE_SIZE,
       alignItems: 'center',
-      marginBottom: spacing.small,
+      marginBottom: spacing.tight,
     },
     playerTile: {
-      width: TILE_SIZE - 8,
-      height: TILE_SIZE - 8,
-      margin: 4,
+      width: TILE_SIZE - spacing.small,
+      height: TILE_SIZE - spacing.small,
+      margin: spacing.tight,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.large,
       justifyContent: 'center',
@@ -153,8 +153,8 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       color: colors.textMuted,
       position: 'absolute',
-      top: 8,
-      left: 12,
+      top: spacing.small,
+      left: spacing.small + spacing.tight,
     },
     seatedSeatNumber: {
       color: colors.textInverse,
@@ -181,15 +181,15 @@ function createStyles(colors: ThemeColors) {
     },
     mySeatBadge: {
       position: 'absolute',
-      bottom: 6,
-      right: 6,
+      bottom: spacing.tight + spacing.tight / 2, // ~6
+      right: spacing.tight + spacing.tight / 2, // ~6
       backgroundColor: colors.success,
       color: colors.textInverse,
-      fontSize: 12,
+      fontSize: typography.caption,
       fontWeight: '700',
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 8,
+      paddingHorizontal: spacing.tight + spacing.tight / 2, // ~6
+      paddingVertical: spacing.tight / 2, // ~2
+      borderRadius: spacing.small,
       overflow: 'hidden',
     },
     emptyIndicator: {
@@ -197,16 +197,16 @@ function createStyles(colors: ThemeColors) {
       color: colors.textMuted,
     },
     playerName: {
-      fontSize: 13,
+      fontSize: typography.caption,
       color: colors.text,
       textAlign: 'center',
-      marginTop: 4,
-      width: TILE_SIZE - 8,
-      height: 18, // Fixed height for consistent row layout
+      marginTop: spacing.tight,
+      width: TILE_SIZE - spacing.small,
+      height: typography.body, // Fixed height for consistent row layout
     },
     playerNamePlaceholder: {
-      marginTop: 4,
-      height: 18, // Same height as playerName to keep rows consistent
+      marginTop: spacing.tight,
+      height: typography.body, // Same height as playerName to keep rows consistent
     },
   });
 }

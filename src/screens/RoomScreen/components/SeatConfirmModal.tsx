@@ -79,7 +79,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xlarge,
       padding: spacing.xlarge,
-      minWidth: 300,
+      minWidth: spacing.xxlarge * 6 + spacing.large, // ~280
       alignItems: 'center',
     },
     modalTitle: {
@@ -102,7 +102,7 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: spacing.large,
       paddingVertical: spacing.medium,
       borderRadius: borderRadius.medium,
-      minWidth: 100,
+      minWidth: spacing.xxlarge * 2 + spacing.medium, // ~100
       alignItems: 'center',
     },
     modalCancelButton: {

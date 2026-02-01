@@ -49,7 +49,7 @@ function createStyles(colors: ThemeColors) {
     actionLogItem: {
       fontSize: typography.secondary,
       color: colors.textSecondary,
-      paddingVertical: 2,
+      paddingVertical: spacing.tight / 2, // ~2
     },
   });
 }

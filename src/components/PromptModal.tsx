@@ -88,7 +88,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surface,
       borderRadius: borderRadius.large,
       padding: spacing.large,
-      minWidth: 300,
+      minWidth: spacing.xxlarge * 6 + spacing.large, // ~280
       maxWidth: Dimensions.get('window').width * 0.85,
     },
     title: {
