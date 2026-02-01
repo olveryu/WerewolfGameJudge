@@ -126,15 +126,15 @@ const createStyles = (colors: ThemeColors) =>
     card: {
       backgroundColor: colors.surface,
       borderRadius: borderRadius.large,
-      padding: spacing.medium,
-      marginBottom: spacing.medium,
+      padding: spacing.small,
+      marginBottom: spacing.small,
       ...shadows.sm,
     },
     cardTitle: {
       fontSize: typography.body,
       fontWeight: '600',
       color: colors.text,
-      marginBottom: spacing.medium,
+      marginBottom: spacing.small,
     },
     presetContainer: {
       flexDirection: 'row',
@@ -154,13 +154,13 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textSecondary,
     },
     section: {
-      marginBottom: spacing.medium,
+      marginBottom: spacing.small,
     },
     sectionTitle: {
-      fontSize: typography.secondary,
+      fontSize: typography.caption,
       fontWeight: '500',
       color: colors.textSecondary,
-      marginBottom: spacing.small,
+      marginBottom: spacing.tight,
     },
     chipContainer: {
       flexDirection: 'row',
@@ -168,9 +168,9 @@ const createStyles = (colors: ThemeColors) =>
       gap: spacing.tight,
     },
     chip: {
-      minWidth: spacing.xxlarge * 2 - spacing.small, // ~88
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
+      minWidth: spacing.xxlarge + spacing.large, // ~72
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.tight,
       backgroundColor: colors.background,
       borderRadius: borderRadius.full,
       borderWidth: 1,
@@ -182,7 +182,7 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.primary,
     },
     chipText: {
-      fontSize: typography.secondary,
+      fontSize: typography.caption,
       color: colors.textSecondary,
     },
     chipTextSelected: {
