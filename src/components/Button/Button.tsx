@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -70,7 +70,7 @@ const createStyles = (colors: ThemeColors) => ({
   }),
 });
 
-const Button: React.FC<ButtonProps> = ({
+const ButtonComponent: React.FC<ButtonProps> = ({
   title,
   onPress,
   variant = 'primary',
@@ -142,5 +142,8 @@ const Button: React.FC<ButtonProps> = ({
     </TouchableOpacity>
   );
 };
+
+// Memoize to prevent unnecessary re-renders
+export const Button = memo(ButtonComponent);
 
 export default Button;

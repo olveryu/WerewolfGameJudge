@@ -1,7 +1,7 @@
 /**
  * SeatConfirmModal.tsx - Modal for confirming seat enter/leave actions
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 import { TESTIDS } from '../../../testids';
@@ -21,7 +21,7 @@ export interface SeatConfirmModalProps {
   onCancel: () => void;
 }
 
-export const SeatConfirmModal: React.FC<SeatConfirmModalProps> = ({
+const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
   visible,
   modalType,
   seatNumber,
@@ -66,6 +66,9 @@ export const SeatConfirmModal: React.FC<SeatConfirmModalProps> = ({
     </Modal>
   );
 };
+
+// Memoize to prevent unnecessary re-renders
+export const SeatConfirmModal = memo(SeatConfirmModalComponent);
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
