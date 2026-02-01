@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Image, StyleSheet, ImageSourcePropType } from 'react-native';
 import { getAvatarImage, getUniqueAvatarBySeat } from '../utils/avatar';
 import { useColors } from '../theme';
@@ -20,8 +20,10 @@ interface AvatarProps {
  *
  * If seatNumber is provided, uses seat-based unique avatar assignment
  * Otherwise falls back to hash-based avatar selection using value
+ *
+ * Memoized to prevent unnecessary re-renders when parent components update
  */
-export const Avatar: React.FC<AvatarProps> = ({ value, size, avatarUrl, seatNumber, roomId }) => {
+const AvatarComponent: React.FC<AvatarProps> = ({ value, size, avatarUrl, seatNumber, roomId }) => {
   const colors = useColors();
 
   // Use custom avatar URL if provided, otherwise use local image
@@ -55,6 +57,9 @@ export const Avatar: React.FC<AvatarProps> = ({ value, size, avatarUrl, seatNumb
     />
   );
 };
+
+// Memoize to prevent re-renders when props haven't changed
+export const Avatar = memo(AvatarComponent);
 
 const styles = StyleSheet.create({
   avatar: {},

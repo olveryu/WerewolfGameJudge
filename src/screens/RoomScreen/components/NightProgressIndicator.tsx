@@ -4,7 +4,7 @@
  * Displays current step number and total steps based on the active night plan.
  * Only visible during ongoing game (status === 'ongoing').
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 import { TESTIDS } from '../../../testids';
@@ -18,7 +18,7 @@ export interface NightProgressIndicatorProps {
   currentRoleName?: string;
 }
 
-export const NightProgressIndicator: React.FC<NightProgressIndicatorProps> = ({
+const NightProgressIndicatorComponent: React.FC<NightProgressIndicatorProps> = ({
   currentStep,
   totalSteps,
   currentRoleName,
@@ -43,6 +43,9 @@ export const NightProgressIndicator: React.FC<NightProgressIndicatorProps> = ({
     </View>
   );
 };
+
+// Memoize to prevent unnecessary re-renders
+export const NightProgressIndicator = memo(NightProgressIndicatorComponent);
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({

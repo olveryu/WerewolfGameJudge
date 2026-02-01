@@ -4,7 +4,7 @@
  * This component only handles button rendering based on visibility flags.
  * All business logic, dialogs, and service calls remain in RoomScreen.
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
 
@@ -30,7 +30,7 @@ export interface HostControlButtonsProps {
   onBgmToggle: () => void;
 }
 
-export const HostControlButtons: React.FC<HostControlButtonsProps> = ({
+const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
   isHost,
   showSettings,
   showPrepareToFlip,
@@ -103,6 +103,9 @@ export const HostControlButtons: React.FC<HostControlButtonsProps> = ({
     </>
   );
 };
+
+// Memoize to prevent unnecessary re-renders
+export const HostControlButtons = memo(HostControlButtonsComponent);
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({

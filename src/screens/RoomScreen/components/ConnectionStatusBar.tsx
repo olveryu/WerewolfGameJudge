@@ -3,7 +3,7 @@
  *
  * Shows connection state and provides force sync button when disconnected.
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { TESTIDS } from '../../../testids';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
@@ -20,7 +20,7 @@ export interface ConnectionStatusBarProps {
 /**
  * Connection status bar shown to non-host players
  */
-export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
+const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
   status,
   onForceSync,
 }) => {
@@ -75,6 +75,9 @@ export const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({
     </View>
   );
 };
+
+// Memoize to prevent unnecessary re-renders
+export const ConnectionStatusBar = memo(ConnectionStatusBarComponent);
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useColors, spacing, borderRadius, typography, ThemeColors } from '../theme';
 
@@ -67,7 +67,7 @@ const createStyles = (colors: ThemeColors) =>
 /**
  * 9-pad numeric keypad for entering room codes
  */
-export const NumPad: React.FC<NumPadProps> = ({
+const NumPadComponent: React.FC<NumPadProps> = ({
   value,
   onValueChange,
   maxLength = 4,
@@ -125,5 +125,8 @@ export const NumPad: React.FC<NumPadProps> = ({
     </View>
   );
 };
+
+// Memoize to prevent unnecessary re-renders
+export const NumPad = memo(NumPadComponent);
 
 export default NumPad;

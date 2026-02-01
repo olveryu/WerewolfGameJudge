@@ -7,7 +7,7 @@
  * ❌ Do NOT import: any Service singletons
  * ✅ Allowed: types, styles, UI components (Avatar, etc.)
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Avatar } from '../../../components/Avatar';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
@@ -31,7 +31,7 @@ export interface PlayerGridProps {
   disabled?: boolean;
 }
 
-export const PlayerGrid: React.FC<PlayerGridProps> = ({
+const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   seats,
   roomNumber,
   onSeatPress,
@@ -43,7 +43,9 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
   return (
     <View style={styles.gridContainer}>
       {seats.map((seat) => {
-        const seatKey = `seat-${seat.index}-${seat.role}`;
+        // Key should be seat index only - seats are fixed positions
+        // Don't include player/role info which causes unnecessary re-mounts when players move
+        const seatKey = `seat-${seat.index}`;
         const isDisabled = disabled || !!seat.disabledReason;
 
         return (
@@ -112,6 +114,9 @@ export const PlayerGrid: React.FC<PlayerGridProps> = ({
     </View>
   );
 };
+
+// Memoize to prevent re-renders when parent updates but props haven't changed
+export const PlayerGrid = memo(PlayerGridComponent);
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
