@@ -54,6 +54,12 @@ export interface BroadcastGameState {
   currentActionerIndex: number;
   isAudioPlaying: boolean;
 
+  /**
+   * 开牌动画（Host 控制）
+   * 默认 'roulette'
+   */
+  roleRevealAnimation?: 'roulette' | 'flip' | 'none';
+
   /** 当前夜晚步骤 ID（来自 NIGHT_STEPS 表驱动单源） */
   currentStepId?: SchemaId;
 

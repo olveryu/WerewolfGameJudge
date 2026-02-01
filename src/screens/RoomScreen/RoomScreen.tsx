@@ -51,13 +51,12 @@ import { LoadingScreen } from '../../components/LoadingScreen';
 import { RoleCardModal } from '../../components/RoleCardModal';
 import { RoleRouletteModal } from '../../components/RoleRouletteModal';
 import { RoleCardSimple } from '../../components/RoleCardSimple';
-import SettingsService, { type RoleRevealAnimation } from '../../services/infra/SettingsService';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { roomNumber, isHost: isHostParam, template } = route.params;
+  const { roomNumber, isHost: isHostParam, template, roleRevealAnimation: initialRoleRevealAnimation } = route.params;
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -73,6 +72,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     currentSchema,
     currentStepId,
     isAudioPlaying,
+    roleRevealAnimation,
     connectionStatus,
     error: gameRoomError,
     createRoom,
@@ -82,6 +82,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     assignRoles,
     startGame,
     restartGame,
+    setRoleRevealAnimation,
     viewedRole,
     submitAction,
     submitWolfVote,
@@ -254,6 +255,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         const createdRoomNumber = await createRoom(template, roomNumber);
 
         if (createdRoomNumber) {
+          // Set role reveal animation if provided from ConfigScreen
+          if (initialRoleRevealAnimation) {
+            await setRoleRevealAnimation(initialRoleRevealAnimation);
+          }
           // Host auto-takes seat 0
           setLoadingMessage('正在入座...');
           await takeSeat(0);
@@ -278,7 +283,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
     initRoom();
     // retryKey 变化时也会触发重试
-  }, [isInitialized, retryKey, isHostParam, template, roomNumber, createRoom, joinRoom, takeSeat]);
+  }, [isInitialized, retryKey, isHostParam, template, roomNumber, createRoom, joinRoom, takeSeat, initialRoleRevealAnimation, setRoleRevealAnimation]);
 
   // Reset UI state when game restarts
   useEffect(() => {
@@ -993,17 +998,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Role card modal state
   const [roleCardVisible, setRoleCardVisible] = useState(false);
-  const [roleRevealAnimation, setRoleRevealAnimation] = useState<RoleRevealAnimation>('roulette');
-
-  // Load animation setting on mount
-  useEffect(() => {
-    const loadAnimationSetting = async () => {
-      const settings = SettingsService.getInstance();
-      await settings.load();
-      setRoleRevealAnimation(settings.getRoleRevealAnimation());
-    };
-    loadAnimationSetting();
-  }, []);
 
   const showRoleCardDialog = useCallback(async () => {
     if (!myRole) return;

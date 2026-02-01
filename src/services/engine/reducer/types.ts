@@ -33,6 +33,11 @@ export interface UpdateTemplateAction {
   };
 }
 
+export interface SetRoleRevealAnimationAction {
+  type: 'SET_ROLE_REVEAL_ANIMATION';
+  animation: 'roulette' | 'flip' | 'none';
+}
+
 // =============================================================================
 // 座位管理动作
 // =============================================================================
@@ -246,6 +251,7 @@ export type StateAction =
   | InitializeGameAction
   | RestartGameAction
   | UpdateTemplateAction
+  | SetRoleRevealAnimationAction
   // 座位
   | PlayerJoinAction
   | PlayerLeaveAction

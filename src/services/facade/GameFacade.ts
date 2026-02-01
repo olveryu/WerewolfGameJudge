@@ -315,6 +315,10 @@ export class GameFacade implements IGameFacade {
     return hostActions.updateTemplate(this.getHostActionsContext(), template);
   }
 
+  async setRoleRevealAnimation(animation: 'roulette' | 'flip' | 'none'): Promise<{ success: boolean; reason?: string }> {
+    return hostActions.setRoleRevealAnimation(this.getHostActionsContext(), animation);
+  }
+
   async markViewedRole(seat: number): Promise<{ success: boolean; reason?: string }> {
     // Host: 直接处理
     if (this.isHost) {

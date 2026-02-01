@@ -74,6 +74,15 @@ export interface UpdateTemplateIntent {
   };
 }
 
+/**
+ * 设置开牌动画 Intent（Host-only）
+ * 用于 Host 在房间内选择开牌动画
+ */
+export interface SetRoleRevealAnimationIntent {
+  type: 'SET_ROLE_REVEAL_ANIMATION';
+  animation: 'roulette' | 'flip' | 'none';
+}
+
 // =============================================================================
 // 夜晚行动 Intent
 // =============================================================================
@@ -191,6 +200,7 @@ export type GameIntent =
   | StartNightIntent
   | RestartGameIntent
   | UpdateTemplateIntent
+  | SetRoleRevealAnimationIntent
   | SubmitActionIntent
   | SubmitWolfVoteIntent
   | ViewedRoleIntent

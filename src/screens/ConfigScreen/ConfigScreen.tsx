@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,7 @@ import { TESTIDS } from '../../testids';
 import { configLog } from '../../utils/logger';
 import { LoadingScreen } from '../../components/LoadingScreen';
 import { generateRoomCode } from '../../utils/roomCode';
+import SettingsService from '../../services/infra/SettingsService';
 
 // ============================================
 // Styles factory
@@ -283,12 +284,23 @@ export const ConfigScreen: React.FC = () => {
   const existingRoomNumber = route.params?.existingRoomNumber;
   const isEditMode = !!existingRoomNumber;
 
+  const settingsService = useRef(SettingsService.getInstance()).current;
+
   const [selection, setSelection] = useState(getInitialSelection);
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
+  const [roleRevealAnimation, setRoleRevealAnimation] = useState<'roulette' | 'flip' | 'none'>('roulette');
 
   const facade = useGameFacade();
   const selectedCount = Object.values(selection).filter(Boolean).length;
+
+  // Load last animation choice for new rooms
+  useEffect(() => {
+    if (!existingRoomNumber) {
+      const lastChoice = settingsService.getRoleRevealAnimation();
+      setRoleRevealAnimation(lastChoice);
+    }
+  }, [existingRoomNumber, settingsService]);
 
   // Load current room's roles when in edit mode
   useEffect(() => {
@@ -310,6 +322,10 @@ export const ConfigScreen: React.FC = () => {
         configLog.debug(' State loaded:', state ? 'success' : 'not found');
         if (state?.templateRoles && state.templateRoles.length > 0) {
           setSelection(applyPreset(state.templateRoles));
+        }
+        // Load role reveal animation setting
+        if (state?.roleRevealAnimation) {
+          setRoleRevealAnimation(state.roleRevealAnimation);
         }
       } catch (error) {
         configLog.error(' Failed to load room:', error);
@@ -370,18 +386,27 @@ export const ConfigScreen: React.FC = () => {
           showAlert('错误', result.reason ?? '更新房间失败');
           return;
         }
+        // Update role reveal animation
+        await facade.setRoleRevealAnimation(roleRevealAnimation);
         navigation.goBack();
       } else {
+        // Save as default for next time (only for new rooms)
+        await settingsService.setRoleRevealAnimation(roleRevealAnimation);
         const roomNumber = generateRoomCode();
         await AsyncStorage.setItem('lastRoomNumber', roomNumber);
-        navigation.navigate('Room', { roomNumber, isHost: true, template });
+        navigation.navigate('Room', {
+          roomNumber,
+          isHost: true,
+          template,
+          roleRevealAnimation,
+        });
       }
     } catch {
       showAlert('错误', isEditMode ? '更新房间失败' : '创建房间失败');
     } finally {
       setIsCreating(false);
     }
-  }, [selection, navigation, isEditMode, existingRoomNumber, facade]);
+  }, [selection, navigation, isEditMode, existingRoomNumber, facade, roleRevealAnimation, settingsService]);
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
@@ -652,6 +677,39 @@ export const ConfigScreen: React.FC = () => {
                 onToggle={toggleRole}
                 colors={colors}
               />
+            </Section>
+
+            <Section title="🎰 开牌动画" colors={colors}>
+              <TouchableOpacity
+                testID="config-animation-roulette"
+                style={[styles.chip, roleRevealAnimation === 'roulette' && styles.chipSelected]}
+                onPress={() => setRoleRevealAnimation('roulette')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.chipText, roleRevealAnimation === 'roulette' && styles.chipTextSelected]}>
+                  🎰 轮盘
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID="config-animation-flip"
+                style={[styles.chip, roleRevealAnimation === 'flip' && styles.chipSelected]}
+                onPress={() => setRoleRevealAnimation('flip')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.chipText, roleRevealAnimation === 'flip' && styles.chipTextSelected]}>
+                  🃏 翻牌
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID="config-animation-none"
+                style={[styles.chip, roleRevealAnimation === 'none' && styles.chipSelected]}
+                onPress={() => setRoleRevealAnimation('none')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.chipText, roleRevealAnimation === 'none' && styles.chipTextSelected]}>
+                  ⚡ 无
+                </Text>
+              </TouchableOpacity>
             </Section>
           </View>
 

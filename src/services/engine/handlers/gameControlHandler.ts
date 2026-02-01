@@ -10,6 +10,7 @@ import type {
   StartNightIntent,
   RestartGameIntent,
   UpdateTemplateIntent,
+  SetRoleRevealAnimationIntent,
 } from '../intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type {
@@ -18,6 +19,7 @@ import type {
   RestartGameAction,
   UpdateTemplateAction,
   SetWitchContextAction,
+  SetRoleRevealAnimationAction,
 } from '../reducer/types';
 import { shuffleArray } from '../../../utils/shuffle';
 import type { RoleId } from '../../../models/roles';
@@ -361,6 +363,48 @@ export function handleUpdateTemplate(
   const action: UpdateTemplateAction = {
     type: 'UPDATE_TEMPLATE',
     payload: { templateRoles: intent.payload.templateRoles },
+  };
+
+  return {
+    success: true,
+    actions: [action],
+    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+  };
+}
+
+/**
+ * 处理设置开牌动画（Host-only）
+ *
+ * Host 在房间内选择开牌动画时调用。
+ * 前置条件：仅 Host 可操作（无状态阶段限制）
+ */
+export function handleSetRoleRevealAnimation(
+  intent: SetRoleRevealAnimationIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const { state, isHost } = context;
+
+  // 验证：仅主机可操作
+  if (!isHost) {
+    return {
+      success: false,
+      reason: 'host_only',
+      actions: [],
+    };
+  }
+
+  // 验证：state 存在
+  if (!state) {
+    return {
+      success: false,
+      reason: 'no_state',
+      actions: [],
+    };
+  }
+
+  const action: SetRoleRevealAnimationAction = {
+    type: 'SET_ROLE_REVEAL_ANIMATION',
+    animation: intent.animation,
   };
 
   return {

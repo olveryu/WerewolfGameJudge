@@ -23,6 +23,7 @@ function createFakeFacade(): IGameFacade {
     leaveSeatWithAck: async () => ({ success: true }),
     assignRoles: async () => ({ success: true }),
     updateTemplate: async () => ({ success: true }),
+    setRoleRevealAnimation: async () => ({ success: true }),
     startNight: async () => ({ success: true }),
     restartGame: async () => ({ success: true }),
     markViewedRole: async () => ({ success: true }),

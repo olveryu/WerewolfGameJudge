@@ -17,7 +17,6 @@ import { useAuth } from '../../hooks';
 import { useTheme, spacing, borderRadius, typography, shadows, ThemeColors } from '../../theme';
 import { showAlert } from '../../utils/alert';
 import { getAvatarImage } from '../../utils/avatar';
-import SettingsService, { type RoleRevealAnimation } from '../../services/infra/SettingsService';
 
 // ============================================
 // Styles factory
@@ -631,25 +630,6 @@ const SettingsScreen: React.FC = () => {
   const [editName, setEditName] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  // Role reveal animation state
-  const [roleRevealAnimation, setRoleRevealAnimation] = useState<RoleRevealAnimation>('roulette');
-
-  // Load animation setting on mount
-  useEffect(() => {
-    const loadAnimationSetting = async () => {
-      const settings = SettingsService.getInstance();
-      await settings.load();
-      setRoleRevealAnimation(settings.getRoleRevealAnimation());
-    };
-    loadAnimationSetting();
-  }, []);
-
-  const handleAnimationChange = async (anim: RoleRevealAnimation) => {
-    setRoleRevealAnimation(anim);
-    const settings = SettingsService.getInstance();
-    await settings.setRoleRevealAnimation(anim);
-  };
-
   // Reset transient states when screen regains focus
   useEffect(() => {
     const addListener = (
@@ -880,36 +860,6 @@ const SettingsScreen: React.FC = () => {
                   ]}
                 >
                   {theme.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Role Reveal Animation selector */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>开牌动画</Text>
-          <View style={styles.themeOptions}>
-            {([
-              { key: 'roulette' as const, icon: '🎰', label: '轮盘' },
-              { key: 'flip' as const, icon: '🃏', label: '翻牌' },
-              { key: 'none' as const, icon: '⚡', label: '无' },
-            ]).map((anim) => (
-              <TouchableOpacity
-                key={anim.key}
-                style={[
-                  styles.themeOption,
-                  roleRevealAnimation === anim.key && styles.themeOptionActive,
-                ]}
-                onPress={() => handleAnimationChange(anim.key)}
-              >
-                <Text
-                  style={[
-                    styles.themeOptionText,
-                    roleRevealAnimation === anim.key && styles.themeOptionTextActive,
-                  ]}
-                >
-                  {anim.icon} {anim.label}
                 </Text>
               </TouchableOpacity>
             ))}

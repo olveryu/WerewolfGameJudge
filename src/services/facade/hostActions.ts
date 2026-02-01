@@ -27,6 +27,7 @@ import type {
   SetAudioPlayingIntent,
   RestartGameIntent,
   UpdateTemplateIntent,
+  SetRoleRevealAnimationIntent,
 } from '../engine/intents/types';
 import type { StateAction } from '../engine/reducer/types';
 import type { RoleId } from '../../models/roles';
@@ -39,6 +40,7 @@ import {
   handleStartNight,
   handleRestartGame,
   handleUpdateTemplate,
+  handleSetRoleRevealAnimation,
 } from '../engine/handlers/gameControlHandler';
 import {
   handleViewedRole,
@@ -307,6 +309,27 @@ export async function restartGame(
   const result = handleRestartGame(intent, context);
 
   return processHandlerResult(ctx, result, { logPrefix: 'restartGame' });
+}
+
+/**
+ * Host: 设置开牌动画
+ *
+ * Host 在房间内选择开牌动画，所有玩家统一使用
+ */
+export async function setRoleRevealAnimation(
+  ctx: HostActionsContext,
+  animation: 'roulette' | 'flip' | 'none',
+): Promise<{ success: boolean; reason?: string }> {
+  facadeLog.debug('setRoleRevealAnimation called', { isHost: ctx.isHost, animation });
+
+  const intent: SetRoleRevealAnimationIntent = {
+    type: 'SET_ROLE_REVEAL_ANIMATION',
+    animation,
+  };
+  const context = buildHandlerContext(ctx);
+  const result = handleSetRoleRevealAnimation(intent, context);
+
+  return processHandlerResult(ctx, result, { logPrefix: 'setRoleRevealAnimation' });
 }
 
 /**

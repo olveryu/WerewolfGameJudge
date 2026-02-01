@@ -12,6 +12,7 @@ export type RootStackParamList = {
     roomNumber: string;
     isHost: boolean;
     template?: GameTemplate;
+    roleRevealAnimation?: 'roulette' | 'flip' | 'none';
   };
   Settings: undefined;
 };

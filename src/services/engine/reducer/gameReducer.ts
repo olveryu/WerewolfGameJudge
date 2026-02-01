@@ -364,6 +364,13 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       };
     }
 
+    case 'SET_ROLE_REVEAL_ANIMATION': {
+      return {
+        ...state,
+        roleRevealAnimation: action.animation,
+      };
+    }
+
     case 'PLAYER_JOIN':
       return handlePlayerJoin(state, action);
 
