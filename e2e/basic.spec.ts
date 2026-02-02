@@ -55,8 +55,8 @@ test.describe('Create Room', () => {
     // Should be on config screen - look for 创建 button
     await expect(getVisibleText(page, '创建')).toBeVisible({ timeout: 10000 });
 
-    // Should see template options
-    await expect(page.getByText('快速模板')).toBeVisible();
+    // Should see template options (UI shows "模板" label)
+    await expect(page.getByText('模板')).toBeVisible();
   });
 });
 
@@ -105,11 +105,15 @@ test.describe('Template Selection', () => {
     await expect(getVisibleText(page, '创建')).toBeVisible({ timeout: 15000 });
 
     // Default template should be visible (标准板12人)
-    await expect(page.getByText('标准板12人')).toBeVisible({ timeout: 5000 });
+    const templateDropdown = getVisibleText(page, '标准板12人');
+    await expect(templateDropdown).toBeVisible({ timeout: 5000 });
 
     console.log('[Template] Config screen loaded, testing template selection...');
 
-    // Click on a different template - 狼美守卫12人
+    // Click on the template dropdown to open it
+    await templateDropdown.click();
+
+    // Now the dropdown should show other templates - click on 狼美守卫12人
     const template2 = getVisibleText(page, '狼美守卫12人');
     await template2.scrollIntoViewIfNeeded();
     await expect(template2).toBeVisible({ timeout: 3000 });
@@ -154,7 +158,12 @@ test.describe('Template Selection', () => {
     console.log('[TemplateInSettings] Settings opened');
 
     // === Step 4: Change template ===
-    // Current template is 标准板12人, change to 狼美守卫12人
+    // Wait for the template dropdown to be visible, then click it
+    const templateDropdown = getVisibleText(page, '标准板12人');
+    await expect(templateDropdown).toBeVisible({ timeout: 5000 });
+    await templateDropdown.click();
+    
+    // Now select 狼美守卫12人 from the dropdown
     const template2 = getVisibleText(page, '狼美守卫12人');
     await template2.scrollIntoViewIfNeeded();
     await expect(template2).toBeVisible({ timeout: 3000 });
