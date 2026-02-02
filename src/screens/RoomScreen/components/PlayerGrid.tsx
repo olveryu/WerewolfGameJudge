@@ -62,14 +62,15 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
                 seat.isSelected && styles.selectedTile,
               ]}
               onPress={() => {
-                // Always delegate to caller with disabledReason if present
-                // Caller (RoomScreen) handles all logic via SeatTapPolicy
-                if (disabled) return; // Grid-level disable (audio gate)
+                // ALWAYS delegate to caller - PlayerGrid is pure UI
+                // All interaction decisions (audio gate, disabledReason, routing)
+                // are handled by SeatTapPolicy in RoomScreen
                 onSeatPress(seat.index, seat.disabledReason);
               }}
               activeOpacity={disabled || seat.disabledReason ? 1 : 0.7}
-              // Don't set `disabled` here. In test environments it can prevent `press` events
-              // from firing at all, which would skip our UX-only hint.
+              // `disabled` prop only affects visual feedback (activeOpacity),
+              // not event reporting. This allows SeatTapPolicy to be the
+              // single source of truth for all tap decisions.
             >
               {seat.player && (
                 <View style={styles.avatarContainer}>
