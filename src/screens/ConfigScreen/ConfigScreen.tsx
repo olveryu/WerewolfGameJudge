@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   Modal,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -90,6 +91,21 @@ const createStyles = (colors: ThemeColors) =>
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       gap: spacing.medium,
+    },
+    // BGM toggle row
+    bgmRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    bgmLabel: {
+      fontSize: typography.secondary,
+      color: colors.text,
     },
     settingsItem: {
       flex: 1,
@@ -468,15 +484,18 @@ export const ConfigScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [roleRevealAnimation, setRoleRevealAnimation] = useState<'roulette' | 'flip' | 'none'>('roulette');
   const [selectedTemplate, setSelectedTemplate] = useState(PRESET_TEMPLATES[0]?.name ?? '');
+  const [bgmEnabled, setBgmEnabled] = useState(true);
 
   const facade = useGameFacade();
   const selectedCount = Object.values(selection).filter(Boolean).length;
 
-  // Load last animation choice for new rooms
+  // Load settings (animation + BGM) for new rooms
   useEffect(() => {
     if (!existingRoomNumber) {
       const lastChoice = settingsService.getRoleRevealAnimation();
       setRoleRevealAnimation(lastChoice);
+      // Load BGM setting from SettingsService
+      setBgmEnabled(settingsService.isBgmEnabled());
     }
   }, [existingRoomNumber, settingsService]);
 
@@ -508,6 +527,8 @@ export const ConfigScreen: React.FC = () => {
         if (state?.roleRevealAnimation) {
           setRoleRevealAnimation(state.roleRevealAnimation);
         }
+        // Load BGM setting from SettingsService (global setting)
+        setBgmEnabled(settingsService.isBgmEnabled());
       } catch (error) {
         configLog.error(' Failed to load room:', error);
       } finally {
@@ -517,7 +538,7 @@ export const ConfigScreen: React.FC = () => {
     };
 
     loadCurrentRoles();
-  }, [isEditMode, existingRoomNumber, facade]);
+  }, [isEditMode, existingRoomNumber, facade, settingsService]);
 
   // Reset transient states when screen regains focus
   useEffect(() => {
@@ -563,6 +584,9 @@ export const ConfigScreen: React.FC = () => {
     try {
       const template = createCustomTemplate(roles);
 
+      // Save BGM setting (global setting via SettingsService)
+      await settingsService.setBgmEnabled(bgmEnabled);
+
       if (isEditMode && existingRoomNumber) {
         const result = await facade.updateTemplate(template);
         if (!result.success) {
@@ -589,7 +613,7 @@ export const ConfigScreen: React.FC = () => {
     } finally {
       setIsCreating(false);
     }
-  }, [selection, navigation, isEditMode, existingRoomNumber, facade, roleRevealAnimation, settingsService]);
+  }, [selection, navigation, isEditMode, existingRoomNumber, facade, roleRevealAnimation, settingsService, bgmEnabled]);
 
   // Dropdown options
   const templateOptions: DropdownOption[] = useMemo(
@@ -659,6 +683,17 @@ export const ConfigScreen: React.FC = () => {
           options={animationOptions}
           onSelect={(v) => setRoleRevealAnimation(v as 'roulette' | 'flip' | 'none')}
           colors={colors}
+        />
+      </View>
+
+      {/* BGM Toggle Row */}
+      <View style={styles.bgmRow}>
+        <Text style={styles.bgmLabel}>🎵 背景音乐</Text>
+        <Switch
+          value={bgmEnabled}
+          onValueChange={setBgmEnabled}
+          trackColor={{ false: colors.border, true: colors.primary }}
+          thumbColor={colors.surface}
         />
       </View>
 
