@@ -64,7 +64,6 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-
 const BOARD_NAME = '狼王魔术师12人';
 const _board = getBoardByName(BOARD_NAME)!;
 
@@ -280,14 +279,14 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       await waitForRoomScreen(getByTestId);
       harness.clear();
-      
+
       // First tap: triggers magicianFirst (sets anotherIndex internally)
       tapSeat(getByTestId, 1);
       await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
-      
+
       // Press OK to dismiss first dialog and confirm first target
       harness.pressPrimary();
-      
+
       // Second tap: triggers actionConfirm (uses the set anotherIndex)
       tapSeat(getByTestId, 2);
       await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
@@ -421,14 +420,14 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         />,
       );
       await waitForRoomScreen(result.getByTestId);
-      
+
       // First tap: magicianFirst
       tapSeat(result.getByTestId, 1);
       await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
-      
+
       // Dismiss first dialog and confirm first target
       harness.pressPrimary();
-      
+
       // Second tap: actionConfirm (uses internally set anotherIndex)
       tapSeat(result.getByTestId, 2);
       await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));

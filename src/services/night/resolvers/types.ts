@@ -161,10 +161,7 @@ export function isWolfRobotLearnResult(
   result: ResolverResult['result'] | undefined,
 ): result is WolfRobotLearnResult {
   if (!result) return false;
-  return (
-    typeof result.learnTarget === 'number' &&
-    typeof result.learnedRoleId === 'string'
-  );
+  return typeof result.learnTarget === 'number' && typeof result.learnedRoleId === 'string';
 }
 
 /**
@@ -187,7 +184,9 @@ export function assertWolfRobotLearnedRoleId(
     throw new TypeError(`[${context}] wolfRobot result missing learnTarget`);
   }
   if (typeof result.learnedRoleId !== 'string') {
-    throw new TypeError(`[${context}] wolfRobot result missing learnedRoleId - type contract violation`);
+    throw new TypeError(
+      `[${context}] wolfRobot result missing learnedRoleId - type contract violation`,
+    );
   }
 }
 
@@ -266,10 +265,7 @@ export interface WolfRobotContext {
  * @param seat - The seat to check
  * @returns The role to use for checks (after swap and disguise)
  */
-export function resolveRoleForChecks(
-  context: ResolverContext,
-  seat: number,
-): RoleId | undefined {
+export function resolveRoleForChecks(context: ResolverContext, seat: number): RoleId | undefined {
   const { players, currentNightResults, wolfRobotContext } = context;
 
   // Step 1: Get role after magician swap

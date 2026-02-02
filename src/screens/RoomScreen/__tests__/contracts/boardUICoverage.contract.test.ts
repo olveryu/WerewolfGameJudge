@@ -47,7 +47,8 @@ const CHEATING_PATTERNS = {
   // ANTI-CHEAT: Dynamic function call bypasses the literal array requirement
   dynamicGetRequiredTypes: /harness\.assertCoverage\s*\(\s*getRequiredUiDialogTypes\s*\(/,
   // ANTI-CHEAT: it.skip on required dialogs bypasses coverage
-  itSkipOnRequiredDialogs: /it\.skip\s*\(\s*['"`][^'"`]*(confirmTrigger|skipConfirm|actionConfirm|wolfRobotHunterStatus|actionRejected)/,
+  itSkipOnRequiredDialogs:
+    /it\.skip\s*\(\s*['"`][^'"`]*(confirmTrigger|skipConfirm|actionConfirm|wolfRobotHunterStatus|actionRejected)/,
 } as const;
 
 // Required structural patterns for valid UI test
@@ -149,7 +150,9 @@ function validateTestStructure(content: string, filename: string): StructureRepo
 
   // Must use harness's showAlert mock
   if (!REQUIRED_PATTERNS.showAlertMockFromHarness.test(content)) {
-    issues.push(`[STRUCTURE] ${filename}: Must use createShowAlertMock(harness) for showAlert mock`);
+    issues.push(
+      `[STRUCTURE] ${filename}: Must use createShowAlertMock(harness) for showAlert mock`,
+    );
   }
 
   return {
@@ -183,8 +186,10 @@ function validateCoverageAssertion(
   const issues: string[] = [];
 
   // ANTI-CHEAT: Detect dynamic getRequiredUiDialogTypes() usage - this is CHEATING
-  const usesDynamicCoverage = /harness\.assertCoverage\s*\(\s*getRequiredUiDialogTypes\s*\(/m.test(content);
-  
+  const usesDynamicCoverage = /harness\.assertCoverage\s*\(\s*getRequiredUiDialogTypes\s*\(/m.test(
+    content,
+  );
+
   if (usesDynamicCoverage) {
     issues.push(
       `[CHEAT] ${filename}: Using getRequiredUiDialogTypes() in assertCoverage is CHEATING! Must use literal array.`,
@@ -343,9 +348,7 @@ describe('Board UI Coverage Contract', () => {
       const report = detectCheating(content, expectedFile);
 
       if (report.isCheating) {
-        throw new Error(
-          `CHEATING DETECTED in ${expectedFile}:\n${report.violations.join('\n')}`,
-        );
+        throw new Error(`CHEATING DETECTED in ${expectedFile}:\n${report.violations.join('\n')}`);
       }
     });
   });
@@ -412,9 +415,7 @@ describe('Board UI Coverage Contract', () => {
         const issues = validateNightmareBoard(content, expectedFile);
 
         if (issues.length > 0) {
-          throw new Error(
-            `NIGHTMARE VALIDATION FAILED for ${expectedFile}:\n${issues.join('\n')}`,
-          );
+          throw new Error(`NIGHTMARE VALIDATION FAILED for ${expectedFile}:\n${issues.join('\n')}`);
         }
       },
     );
@@ -431,9 +432,7 @@ describe('Board UI Coverage Contract', () => {
         const issues = validateWolfRobotBoard(content, expectedFile);
 
         if (issues.length > 0) {
-          throw new Error(
-            `WOLROBOT VALIDATION FAILED for ${expectedFile}:\n${issues.join('\n')}`,
-          );
+          throw new Error(`WOLROBOT VALIDATION FAILED for ${expectedFile}:\n${issues.join('\n')}`);
         }
       },
     );

@@ -272,13 +272,13 @@ describe('RoomScreen wolf vote UI', () => {
   });
 
   it('forbidden target role is NOT disabled in UI; still opens confirm dialog and submits vote intent', async () => {
-  let submitWolfVoteMock: jest.Mock | null = null;
+    let submitWolfVoteMock: jest.Mock | null = null;
 
     // Plan A (Host-authoritative): UI does not disable schema-external targets.
     // If a forbidden role is tapped, we still open confirm dialog and submit.
     // Host then broadcasts actionRejected and UI shows the unified "操作无效" alert.
 
-  // Override just the players map: seat 3 (index 2) is spiritKnight (Host will reject).
+    // Override just the players map: seat 3 (index 2) is spiritKnight (Host will reject).
     mockUseGameRoomImpl = () => {
       const base = makeBaseUseGameRoomReturn();
       const players = new Map(base.gameState.players);
@@ -294,15 +294,15 @@ describe('RoomScreen wolf vote UI', () => {
         }),
         role: 'spiritKnight',
       });
-  const submitWolfVote = mockSubmitWolfVote;
-  submitWolfVoteMock = submitWolfVote;
+      const submitWolfVote = mockSubmitWolfVote;
+      submitWolfVoteMock = submitWolfVote;
 
       return makeBaseUseGameRoomReturn({
         gameState: {
           ...base.gameState,
           players,
         },
-  submitWolfVote,
+        submitWolfVote,
         currentSchema: (() => {
           const { getSchema } = require('../../../models/roles/spec/schemas');
           return getSchema('wolfKill');
@@ -321,8 +321,8 @@ describe('RoomScreen wolf vote UI', () => {
       },
     };
 
-  const rendered = render(<RoomScreen {...props} />);
-  const { findByTestId, findByText } = rendered;
+    const rendered = render(<RoomScreen {...props} />);
+    const { findByTestId, findByText } = rendered;
     await findByText(/请选择要猎杀的玩家/);
 
     // Ignore any alerts from initial render/auto intent.

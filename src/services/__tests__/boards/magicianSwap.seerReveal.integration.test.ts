@@ -30,8 +30,8 @@ describe('Magician Swap → Seer Reveal Regression', () => {
    */
   const SWAP_TEMPLATE: RoleId[] = [
     'magician', // seat 0
-    'wolf',     // seat 1
-    'seer',     // seat 2
+    'wolf', // seat 1
+    'seer', // seat 2
     'villager', // seat 3
   ];
 
@@ -49,7 +49,7 @@ describe('Magician Swap → Seer Reveal Regression', () => {
   ): void {
     for (let i = 0; i < MAX_STEP_ADVANCES; i++) {
       const currentStepId = ctx.getBroadcastState().currentStepId;
-      
+
       if (currentStepId === targetStepId) {
         return;
       }

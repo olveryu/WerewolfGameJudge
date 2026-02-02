@@ -26,16 +26,8 @@
  * 架构：intents → handlers → resolver → BroadcastGameState
  */
 
-import {
-  createHostGame,
-  cleanupHostGame,
-  HostGameContext,
-} from './hostGameFactory';
-import {
-  executeStepsUntil,
-  executeRemainingSteps,
-  sendMessageOrThrow,
-} from './stepByStepRunner';
+import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
+import { executeStepsUntil, executeRemainingSteps, sendMessageOrThrow } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
 /**
@@ -370,4 +362,3 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
     });
   });
 });
-

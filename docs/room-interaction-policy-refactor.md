@@ -304,18 +304,21 @@ Policy 只接收一个最小的 `InteractionContext`（例如：roomStatus、isA
 - 例：HostControlButtons 继续走 props，同时 dispatchInteraction 也能触发 HOST_CONTROL。
 
 对策：
+
 - ✅ PR3 完成后：HostControlButtons 只发 event；props 直连删掉。
 - ✅ policy + orchestrator 单测/约束锁定。
 
 ### 风险 2：组件层吞点击回归
 
 对策：
+
 - 代码 review 明确检查 `disabled={...}` + `if(...) return`。
 - 未来可加 lint/contract test（可选）：扫描 RoomScreen components 里是否出现 `.skip`/disabled gate（按 copilot-instructions 的思路）。
 
 ### 风险 3：优先级回归
 
 对策：
+
 - ✅ policy contract tests 必须覆盖"audio gate 优先于 disabledReason / 其它 gate"。
 
 ---
@@ -332,21 +335,20 @@ Policy 只接收一个最小的 `InteractionContext`（例如：roomStatus、isA
 
 ## 附：文件清单
 
-| 文件 | 职责 |
-|------|------|
-| `src/screens/RoomScreen/policy/types.ts` | InteractionEvent/Result/Context + 优先级常量 |
-| `src/screens/RoomScreen/policy/RoomInteractionPolicy.ts` | 纯策略函数 `getInteractionResult` |
-| `src/screens/RoomScreen/policy/__tests__/RoomInteractionPolicy.test.ts` | 优先级 contract tests（38 tests） |
-| `src/screens/RoomScreen/RoomScreen.tsx` | `dispatchInteraction(event)` 编排执行副作用 |
+| 文件                                                                    | 职责                                         |
+| ----------------------------------------------------------------------- | -------------------------------------------- |
+| `src/screens/RoomScreen/policy/types.ts`                                | InteractionEvent/Result/Context + 优先级常量 |
+| `src/screens/RoomScreen/policy/RoomInteractionPolicy.ts`                | 纯策略函数 `getInteractionResult`            |
+| `src/screens/RoomScreen/policy/__tests__/RoomInteractionPolicy.test.ts` | 优先级 contract tests（38 tests）            |
+| `src/screens/RoomScreen/RoomScreen.tsx`                                 | `dispatchInteraction(event)` 编排执行副作用  |
 
 ---
 
 ## 变更历史
 
-| 日期 | 变更 |
-|------|------|
-| 2026-02-01 | PR2 完成：核心入口迁移（SEAT_TAP, BOTTOM_ACTION, VIEW_ROLE, LEAVE_ROOM） |
-| 2026-02-01 | PR3 完成：HOST_CONTROL 纳入 dispatchInteraction |
+| 日期       | 变更                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------- |
+| 2026-02-01 | PR2 完成：核心入口迁移（SEAT_TAP, BOTTOM_ACTION, VIEW_ROLE, LEAVE_ROOM）                    |
+| 2026-02-01 | PR3 完成：HOST_CONTROL 纳入 dispatchInteraction                                             |
 | 2026-02-01 | PR4 基础设施完成：REVEAL_ACK, WOLF_ROBOT_HUNTER_STATUS_VIEWED 类型 + policy + dispatch 执行 |
-| 2026-02-01 | PR5 完成：语义/命名/收尾清理，更新 dispatchInteraction 注释 |
-
+| 2026-02-01 | PR5 完成：语义/命名/收尾清理，更新 dispatchInteraction 注释                                 |

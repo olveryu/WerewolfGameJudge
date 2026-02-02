@@ -109,9 +109,7 @@ describe('UPDATE_TEMPLATE player retention', () => {
   });
 
   it('should clear role if player somehow has one (safety fallback)', () => {
-    const state = createStateWithPlayers([
-      { uid: 'u1', displayName: 'Player1', role: 'wolf' },
-    ]);
+    const state = createStateWithPlayers([{ uid: 'u1', displayName: 'Player1', role: 'wolf' }]);
 
     const newState = gameReducer(state, {
       type: 'UPDATE_TEMPLATE',

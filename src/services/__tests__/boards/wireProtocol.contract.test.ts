@@ -46,7 +46,7 @@ describe('Wire Protocol Contract', () => {
       if (schema.kind === 'compound') {
         expect(schema.steps).toBeDefined();
         expect(schema.steps.length).toBe(2);
-        
+
         const stepKeys = schema.steps.map((s) => s.key);
         expect(stepKeys).toContain('save');
         expect(stepKeys).toContain('poison');
@@ -85,9 +85,18 @@ describe('Wire Protocol Contract', () => {
   describe('Runtime Payload Shape - Harness 运行态抓包', () => {
     // 12人狼王魔术师板子：含 magician(swap) + witch(compound)
     const TEMPLATE_ROLES: RoleId[] = [
-      'villager', 'villager', 'villager', 'villager',
-      'wolf', 'wolf', 'wolf', 'darkWolfKing',
-      'seer', 'witch', 'hunter', 'magician',
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'darkWolfKing',
+      'seer',
+      'witch',
+      'hunter',
+      'magician',
     ];
 
     function createRoleAssignment(): Map<number, RoleId> {
@@ -98,11 +107,9 @@ describe('Wire Protocol Contract', () => {
 
     function findActionMessage(
       captured: ReturnType<ReturnType<typeof createHostGame>['getCapturedMessages']>,
-      stepId: string
+      stepId: string,
     ): ActionMessage | undefined {
-      const found = captured.find(
-        (c) => c.stepId === stepId && c.message.type === 'ACTION'
-      );
+      const found = captured.find((c) => c.stepId === stepId && c.message.type === 'ACTION');
       if (found && found.message.type === 'ACTION') {
         return found.message as ActionMessage;
       }
@@ -115,7 +122,7 @@ describe('Wire Protocol Contract', () => {
      */
     function findWolfVoteMessages(
       captured: ReturnType<ReturnType<typeof createHostGame>['getCapturedMessages']>,
-      stepId: string
+      stepId: string,
     ): Array<{ seat: number; target: number }> {
       return captured
         .filter((c) => c.stepId === stepId && c.message.type === 'WOLF_VOTE')
@@ -134,7 +141,7 @@ describe('Wire Protocol Contract', () => {
         wolf: 2,
         seer: 4,
         witch: { save: null, poison: null },
-        
+
         magician: { targets: [0, 1] },
       });
 
@@ -156,7 +163,7 @@ describe('Wire Protocol Contract', () => {
         wolf: 2,
         seer: 4,
         witch: { save: null, poison: null },
-        
+
         magician: { targets: [] },
       });
 
@@ -169,8 +176,7 @@ describe('Wire Protocol Contract', () => {
       if (magicianMsg!.extra !== undefined) {
         expect(
           magicianMsg!.extra.targets === undefined ||
-          (Array.isArray(magicianMsg!.extra.targets) && 
-           magicianMsg!.extra.targets.length === 0)
+            (Array.isArray(magicianMsg!.extra.targets) && magicianMsg!.extra.targets.length === 0),
         ).toBe(true);
       }
     });
@@ -184,7 +190,7 @@ describe('Wire Protocol Contract', () => {
         wolf: 0,
         seer: 4,
         witch: { save: 0, poison: null },
-        
+
         magician: { targets: [] },
       });
 
@@ -194,8 +200,11 @@ describe('Wire Protocol Contract', () => {
       expect(witchMsg).toBeDefined();
       expect(witchMsg!.target).toBeNull();
       expect(witchMsg!.extra).toBeDefined();
-      
-      const stepResults = witchMsg!.extra!.stepResults as { save: number | null; poison: number | null };
+
+      const stepResults = witchMsg!.extra!.stepResults as {
+        save: number | null;
+        poison: number | null;
+      };
       expect(stepResults).toBeDefined();
       // 必须有 save 和 poison 两个 key（即使值为 null）
       expect('save' in stepResults).toBe(true);
@@ -213,7 +222,7 @@ describe('Wire Protocol Contract', () => {
         wolf: 0,
         seer: 4,
         witch: { save: null, poison: 2 },
-        
+
         magician: { targets: [] },
       });
 
@@ -223,8 +232,11 @@ describe('Wire Protocol Contract', () => {
       expect(witchMsg).toBeDefined();
       expect(witchMsg!.target).toBeNull();
       expect(witchMsg!.extra).toBeDefined();
-      
-      const stepResults = witchMsg!.extra!.stepResults as { save: number | null; poison: number | null };
+
+      const stepResults = witchMsg!.extra!.stepResults as {
+        save: number | null;
+        poison: number | null;
+      };
       expect(stepResults).toBeDefined();
       expect('save' in stepResults).toBe(true);
       expect('poison' in stepResults).toBe(true);
@@ -241,7 +253,7 @@ describe('Wire Protocol Contract', () => {
         wolf: 0,
         seer: 4,
         witch: { save: null, poison: null },
-        
+
         magician: { targets: [] },
       });
 
@@ -251,8 +263,11 @@ describe('Wire Protocol Contract', () => {
       expect(witchMsg).toBeDefined();
       expect(witchMsg!.target).toBeNull();
       expect(witchMsg!.extra).toBeDefined();
-      
-      const stepResults = witchMsg!.extra!.stepResults as { save: number | null; poison: number | null };
+
+      const stepResults = witchMsg!.extra!.stepResults as {
+        save: number | null;
+        poison: number | null;
+      };
       expect(stepResults).toBeDefined();
       // 即使不使用技能，也必须有 save 和 poison 两个 key
       expect('save' in stepResults).toBe(true);
@@ -369,9 +384,18 @@ describe('Wire Protocol Contract', () => {
   describe('Anti-Regression: 禁止 encoded-target 协议', () => {
     it('所有 ACTION 消息的 target 不得使用 encoded-target (firstSeat + secondSeat * 100)', () => {
       const TEMPLATE_ROLES: RoleId[] = [
-        'villager', 'villager', 'villager', 'villager',
-        'wolf', 'wolf', 'wolf', 'darkWolfKing',
-        'seer', 'witch', 'hunter', 'magician',
+        'villager',
+        'villager',
+        'villager',
+        'villager',
+        'wolf',
+        'wolf',
+        'wolf',
+        'darkWolfKing',
+        'seer',
+        'witch',
+        'hunter',
+        'magician',
       ];
       const assignment = new Map<number, RoleId>();
       TEMPLATE_ROLES.forEach((role, idx) => assignment.set(idx, role));
@@ -383,7 +407,7 @@ describe('Wire Protocol Contract', () => {
         wolf: 0,
         seer: 4,
         witch: { save: null, poison: null },
-        
+
         magician: { targets: [0, 1] },
       });
 
@@ -437,11 +461,11 @@ describe('Wire Protocol Contract', () => {
       SEER_TEMPLATE.forEach((role, idx) => assignment.set(idx, role));
 
       const ctx = createHostGame(SEER_TEMPLATE, assignment);
-      
+
       // 推进到 seerCheck
       advanceToSeerCheck(ctx);
       expect(ctx.getBroadcastState().currentStepId).toBe('seerCheck');
-      
+
       ctx.clearCapturedMessages();
 
       // seer 查验 seat 1
@@ -453,9 +477,7 @@ describe('Wire Protocol Contract', () => {
       });
 
       const captured = ctx.getCapturedMessages();
-      const seerMsg = captured.find(
-        (c) => c.stepId === 'seerCheck' && c.message.type === 'ACTION',
-      );
+      const seerMsg = captured.find((c) => c.stepId === 'seerCheck' && c.message.type === 'ACTION');
 
       expect(seerMsg).toBeDefined();
       const msg = seerMsg!.message as ActionMessage;
@@ -470,10 +492,10 @@ describe('Wire Protocol Contract', () => {
       SEER_TEMPLATE.forEach((role, idx) => assignment.set(idx, role));
 
       const ctx = createHostGame(SEER_TEMPLATE, assignment);
-      
+
       // 推进到 seerCheck
       advanceToSeerCheck(ctx);
-      
+
       ctx.clearCapturedMessages();
 
       ctx.sendPlayerMessage({
@@ -484,9 +506,7 @@ describe('Wire Protocol Contract', () => {
       });
 
       const captured = ctx.getCapturedMessages();
-      const seerMsg = captured.find(
-        (c) => c.stepId === 'seerCheck' && c.message.type === 'ACTION',
-      );
+      const seerMsg = captured.find((c) => c.stepId === 'seerCheck' && c.message.type === 'ACTION');
 
       expect(seerMsg).toBeDefined();
       const msg = seerMsg!.message as ActionMessage;
@@ -541,10 +561,7 @@ describe('Wire Protocol Contract', () => {
 
       const captured = ctx.getCapturedMessages();
       const chooseSeatMessages = captured.filter(
-        (c) =>
-          c.message.type === 'ACTION' &&
-          c.stepId &&
-          SCHEMAS[c.stepId]?.kind === 'chooseSeat',
+        (c) => c.message.type === 'ACTION' && c.stepId && SCHEMAS[c.stepId]?.kind === 'chooseSeat',
       );
 
       for (const msg of chooseSeatMessages) {

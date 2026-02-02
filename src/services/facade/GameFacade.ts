@@ -315,7 +315,9 @@ export class GameFacade implements IGameFacade {
     return hostActions.updateTemplate(this.getHostActionsContext(), template);
   }
 
-  async setRoleRevealAnimation(animation: 'roulette' | 'flip' | 'none'): Promise<{ success: boolean; reason?: string }> {
+  async setRoleRevealAnimation(
+    animation: 'roulette' | 'flip' | 'none',
+  ): Promise<{ success: boolean; reason?: string }> {
     return hostActions.setRoleRevealAnimation(this.getHostActionsContext(), animation);
   }
 

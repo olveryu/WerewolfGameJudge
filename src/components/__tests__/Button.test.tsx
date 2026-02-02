@@ -89,7 +89,9 @@ describe('Button', () => {
 
     it('should call onPress with disabled meta when disabled', () => {
       const onPress = jest.fn();
-      const { UNSAFE_getByType } = render(<Button {...defaultProps} onPress={onPress} disabled={true} />);
+      const { UNSAFE_getByType } = render(
+        <Button {...defaultProps} onPress={onPress} disabled={true} />,
+      );
 
       // Find the TouchableOpacity and press it directly
       const button = UNSAFE_getByType(TouchableOpacity);
@@ -102,7 +104,9 @@ describe('Button', () => {
 
     it('should call onPress with loading meta when loading', () => {
       const onPress = jest.fn();
-      const { UNSAFE_getByType } = render(<Button {...defaultProps} onPress={onPress} loading={true} />);
+      const { UNSAFE_getByType } = render(
+        <Button {...defaultProps} onPress={onPress} loading={true} />,
+      );
 
       // Find the TouchableOpacity and press it directly
       const button = UNSAFE_getByType(TouchableOpacity);

@@ -250,7 +250,13 @@ describe('nightFlowHandler', () => {
           templateRoles: ['wolf', 'villager'],
           players: {
             0: { uid: 'u0', seatNumber: 0, displayName: 'P0', role: 'wolf', hasViewedRole: true },
-            1: { uid: 'u1', seatNumber: 1, displayName: 'P1', role: 'villager', hasViewedRole: true },
+            1: {
+              uid: 'u1',
+              seatNumber: 1,
+              displayName: 'P1',
+              role: 'villager',
+              hasViewedRole: true,
+            },
           },
           currentActionerIndex: 0,
           currentStepId: undefined,
@@ -265,10 +271,10 @@ describe('nightFlowHandler', () => {
 
       const result = handleEndNight({ type: 'END_NIGHT' } as any, context);
       expect(result.success).toBe(true);
-  const end = (result.actions ?? []).find((a: any) => a.type === 'END_NIGHT');
-  expect(end).toBeDefined();
-  const endNightAction = end as any;
-  expect(endNightAction.payload.deaths).toEqual([0]);
+      const end = (result.actions ?? []).find((a: any) => a.type === 'END_NIGHT');
+      expect(end).toBeDefined();
+      const endNightAction = end as any;
+      expect(endNightAction.payload.deaths).toEqual([0]);
     });
 
     describe('Gate: no_state', () => {
@@ -796,9 +802,7 @@ describe('nightFlowHandler', () => {
 
         // 夜晚结束时返回 END_NIGHT，不是 ADVANCE
         // 关键断言：不应有 SET_WITCH_CONTEXT action
-        const witchContextAction = result.actions.find(
-          (a) => a.type === 'SET_WITCH_CONTEXT',
-        );
+        const witchContextAction = result.actions.find((a) => a.type === 'SET_WITCH_CONTEXT');
         expect(witchContextAction).toBeUndefined();
       });
     });

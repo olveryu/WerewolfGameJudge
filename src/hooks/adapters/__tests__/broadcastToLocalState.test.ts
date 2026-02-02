@@ -22,10 +22,15 @@ describe('broadcastToLocalState', () => {
   it('maps core fields and optional role contexts', () => {
     const broadcast = makeBaseBroadcastState({
       currentStepId: 'seerCheck' as any,
-  currentNightResults: { wolfVotesBySeat: { '0': 2 } } as any,
+      currentNightResults: { wolfVotesBySeat: { '0': 2 } } as any,
       witchContext: { killedIndex: 2, canSave: true, canPoison: true },
       seerReveal: { targetSeat: 0, result: '狼人' },
-      actionRejected: { action: 'seerCheck', reason: 'invalid_step', targetUid: 'p2', rejectionId: 'test-1' },
+      actionRejected: {
+        action: 'seerCheck',
+        reason: 'invalid_step',
+        targetUid: 'p2',
+        rejectionId: 'test-1',
+      },
     });
 
     const local = broadcastToLocalState(broadcast);
@@ -42,7 +47,12 @@ describe('broadcastToLocalState', () => {
 
     expect(local.witchContext).toEqual({ killedIndex: 2, canSave: true, canPoison: true });
     expect(local.seerReveal).toEqual({ targetSeat: 0, result: '狼人' });
-    expect(local.actionRejected).toEqual({ action: 'seerCheck', reason: 'invalid_step', targetUid: 'p2', rejectionId: 'test-1' });
+    expect(local.actionRejected).toEqual({
+      action: 'seerCheck',
+      reason: 'invalid_step',
+      targetUid: 'p2',
+      rejectionId: 'test-1',
+    });
   });
 
   it('maps BroadcastGameState.actions into LocalGameState.actions (all Night-1 schemas)', () => {
@@ -81,8 +91,15 @@ describe('broadcastToLocalState', () => {
     expect(local.actions.get('slacker' as any)).toEqual({ kind: 'target', targetSeat: 2 });
     expect(local.actions.get('hunter' as any)).toEqual({ kind: 'none' });
     expect(local.actions.get('darkWolfKing' as any)).toEqual({ kind: 'none' });
-    expect(local.actions.get('magician' as any)).toEqual({ kind: 'magicianSwap', firstSeat: 3, secondSeat: 4 });
-    expect(local.actions.get('witch' as any)).toEqual({ kind: 'witch', witchAction: { kind: 'save', targetSeat: 2 } });
+    expect(local.actions.get('magician' as any)).toEqual({
+      kind: 'magicianSwap',
+      firstSeat: 3,
+      secondSeat: 4,
+    });
+    expect(local.actions.get('witch' as any)).toEqual({
+      kind: 'witch',
+      witchAction: { kind: 'save', targetSeat: 2 },
+    });
   });
 
   it('maps witchAction as poison when target != killedIndex', () => {
@@ -92,7 +109,10 @@ describe('broadcastToLocalState', () => {
     });
 
     const local = broadcastToLocalState(broadcast);
-    expect(local.actions.get('witch' as any)).toEqual({ kind: 'witch', witchAction: { kind: 'poison', targetSeat: 0 } });
+    expect(local.actions.get('witch' as any)).toEqual({
+      kind: 'witch',
+      witchAction: { kind: 'poison', targetSeat: 0 },
+    });
   });
 
   it('maps witchAction as none when no targetSeat', () => {
@@ -102,6 +122,9 @@ describe('broadcastToLocalState', () => {
     });
 
     const local = broadcastToLocalState(broadcast);
-    expect(local.actions.get('witch' as any)).toEqual({ kind: 'witch', witchAction: { kind: 'none' } });
+    expect(local.actions.get('witch' as any)).toEqual({
+      kind: 'witch',
+      witchAction: { kind: 'none' },
+    });
   });
 });

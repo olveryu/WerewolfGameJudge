@@ -17,9 +17,18 @@ import { executeFullNight } from './stepByStepRunner';
 describe('WolfVote Integration Tests', () => {
   // 12人板子：含 4 个狼角色
   const TEMPLATE_ROLES: RoleId[] = [
-    'villager', 'villager', 'villager', 'villager', // seats 0-3
-    'wolf', 'wolf', 'wolf', 'darkWolfKing',         // seats 4-7 (4 wolves)
-    'seer', 'witch', 'hunter', 'magician',          // seats 8-11
+    'villager',
+    'villager',
+    'villager',
+    'villager', // seats 0-3
+    'wolf',
+    'wolf',
+    'wolf',
+    'darkWolfKing', // seats 4-7 (4 wolves)
+    'seer',
+    'witch',
+    'hunter',
+    'magician', // seats 8-11
   ];
 
   function createRoleAssignment(): Map<number, RoleId> {
@@ -78,9 +87,7 @@ describe('WolfVote Integration Tests', () => {
       expect(wolfVotesBySeat).toBeDefined();
       // At least the lead wolf should have a record
       const wolfSeats = ['4', '5', '6', '7'];
-      const hasEmptyKnifeRecord = wolfSeats.some(
-        (seat) => wolfVotesBySeat![seat] === -1
-      );
+      const hasEmptyKnifeRecord = wolfSeats.some((seat) => wolfVotesBySeat![seat] === -1);
       expect(hasEmptyKnifeRecord).toBe(true);
     });
 
@@ -107,10 +114,18 @@ describe('WolfVote Integration Tests', () => {
     // 极简模板：只有狼 + seer/witch/hunter（都在 wolfKill 之后）
     // 这样 wolfKill 就是第一步
     const SIMPLE_TEMPLATE: RoleId[] = [
-      'villager', 'villager', 'villager', 'villager', // seats 0-3
-      'wolf', 'wolf',                                  // seats 4-5
-      'seer', 'witch', 'hunter',                       // seats 6-8
-      'villager', 'villager', 'villager',              // seats 9-11
+      'villager',
+      'villager',
+      'villager',
+      'villager', // seats 0-3
+      'wolf',
+      'wolf', // seats 4-5
+      'seer',
+      'witch',
+      'hunter', // seats 6-8
+      'villager',
+      'villager',
+      'villager', // seats 9-11
     ];
 
     function createSimpleRoleAssignment(): Map<number, RoleId> {
@@ -121,7 +136,7 @@ describe('WolfVote Integration Tests', () => {
 
     it('WOLF_VOTE 消息通过统一 resolver 管线处理', () => {
       const ctx = createHostGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
-      
+
       // 这个模板第一步应该是 wolfKill（没有 guard/nightmare/magician 等前置角色）
       ctx.assertStep('wolfKill');
 
@@ -217,11 +232,18 @@ describe('WolfVote Integration Tests', () => {
   describe('Nightmare Block Edge Cases', () => {
     // 带 nightmare 的板子（简化：只有 nightmare + wolf）
     const NIGHTMARE_TEMPLATE: RoleId[] = [
-      'nightmare',    // seat 0 (nightmare)
-      'villager', 'villager', 'villager',  // seats 1-3
-      'wolf', 'wolf',  // seats 4-5
-      'seer', 'witch', 'hunter', 'guard',  // seats 6-9
-      'villager', 'villager',   // seats 10-11
+      'nightmare', // seat 0 (nightmare)
+      'villager',
+      'villager',
+      'villager', // seats 1-3
+      'wolf',
+      'wolf', // seats 4-5
+      'seer',
+      'witch',
+      'hunter',
+      'guard', // seats 6-9
+      'villager',
+      'villager', // seats 10-11
     ];
 
     function createNightmareRoleAssignment(): Map<number, RoleId> {

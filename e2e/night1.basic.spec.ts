@@ -683,9 +683,7 @@ async function runNightFlowLoop(
     // Get current action message for comparison
     const actionMsgLocator = primaryPage.locator('[data-testid="action-message"]');
     const currentActionMsg =
-      (await actionMsgLocator
-        .textContent({ timeout: 100 })
-        .catch(() => '')) ?? '';
+      (await actionMsgLocator.textContent({ timeout: 100 }).catch(() => '')) ?? '';
 
     if (advanced) {
       // Action was taken, reset no-progress counter
@@ -1009,7 +1007,9 @@ test.describe('Night 1 Happy Path', () => {
             await dismissBtn.click();
           }
         } else {
-          console.log('[NIGHT] WARNING: Confirmation dialog not visible, skipping last night info capture');
+          console.log(
+            '[NIGHT] WARNING: Confirmation dialog not visible, skipping last night info capture',
+          );
         }
       }
 
@@ -1022,7 +1022,10 @@ test.describe('Night 1 Happy Path', () => {
         nightResult.resultText.includes('平安夜') ||
         nightResult.resultText.includes('死亡');
 
-      expect(nightEnded, 'First night should complete with result (查看昨晚信息 visible or death/peace result)').toBe(true);
+      expect(
+        nightEnded,
+        'First night should complete with result (查看昨晚信息 visible or death/peace result)',
+      ).toBe(true);
 
       // Attach diagnostic report
       await testInfo.attach('night1.txt', {
@@ -1262,7 +1265,10 @@ test.describe('Night 1 Happy Path', () => {
         nightResult.resultText.includes('平安夜') ||
         nightResult.resultText.includes('死亡');
 
-      expect(nightEnded, '6-player first night should complete (查看昨晚信息 visible or death/peace result)').toBe(true);
+      expect(
+        nightEnded,
+        '6-player first night should complete (查看昨晚信息 visible or death/peace result)',
+      ).toBe(true);
 
       // Attach diagnostic report
       await testInfo.attach('6player-night.txt', {

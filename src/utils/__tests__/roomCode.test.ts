@@ -53,10 +53,7 @@ describe('ConfigScreen Math.random contract', () => {
     const path = require('node:path');
 
     // Navigate from src/utils/__tests__ to src/screens/ConfigScreen
-    const configScreenPath = path.join(
-      process.cwd(),
-      'src/screens/ConfigScreen/ConfigScreen.tsx',
-    );
+    const configScreenPath = path.join(process.cwd(), 'src/screens/ConfigScreen/ConfigScreen.tsx');
 
     const content = fs.readFileSync(configScreenPath, 'utf-8');
 

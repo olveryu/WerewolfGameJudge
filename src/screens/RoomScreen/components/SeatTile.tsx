@@ -112,7 +112,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
               value={playerUid}
               size={tileSize - 16}
               avatarUrl={playerAvatarUrl}
-              seatNumber={index + 1}
               roomId={roomNumber}
             />
             {(isWolf || isSelected) && (
@@ -127,9 +126,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           </View>
         )}
 
-        <Text style={[styles.seatNumber, hasPlayer && styles.seatedSeatNumber]}>
-          {index + 1}
-        </Text>
+        <Text style={[styles.seatNumber, hasPlayer && styles.seatedSeatNumber]}>{index + 1}</Text>
 
         {!hasPlayer && <Text style={styles.emptyIndicator}>空</Text>}
 

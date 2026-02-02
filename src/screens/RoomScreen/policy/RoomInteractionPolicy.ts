@@ -16,11 +16,7 @@
 
 import { GameStatus } from '../../../models/Room';
 import { getSeatTapResult } from '../seatTap/SeatTapPolicy';
-import type {
-  InteractionContext,
-  InteractionEvent,
-  InteractionResult,
-} from './types';
+import type { InteractionContext, InteractionEvent, InteractionResult } from './types';
 
 // =============================================================================
 // Gate Checks (Priority 1-4)
@@ -146,16 +142,19 @@ function handleBottomAction(
  * Handle host control event.
  * Validates host status and returns host control result.
  */
-function handleHostControl(
-  ctx: InteractionContext,
-  event: { action: string },
-): InteractionResult {
+function handleHostControl(ctx: InteractionContext, event: { action: string }): InteractionResult {
   if (!ctx.isHost) {
     return { kind: 'NOOP', reason: 'host_only' };
   }
 
   // Type narrowing for action
-  const validActions = ['settings', 'prepareToFlip', 'startGame', 'lastNightInfo', 'restart'] as const;
+  const validActions = [
+    'settings',
+    'prepareToFlip',
+    'startGame',
+    'lastNightInfo',
+    'restart',
+  ] as const;
 
   if (!validActions.includes(event.action as (typeof validActions)[number])) {
     return { kind: 'NOOP', reason: 'other_status' };

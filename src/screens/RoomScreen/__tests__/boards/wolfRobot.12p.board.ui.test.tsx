@@ -78,7 +78,6 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-
 // =============================================================================
 // Test Setup
 // =============================================================================
@@ -189,7 +188,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
      *
      * When wolfRobot learns hunter, UI must show wolfRobotHunterStatus dialog
      * and require user to press primary button before proceeding.
-     * 
+     *
      * Prerequisites:
      * - wolfRobotReveal.learnedRoleId = 'hunter' (shows gate button)
      * - wolfRobotHunterStatusViewed = false (gate not yet cleared)
@@ -829,7 +828,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // CRITICAL: Actually press the confirm button to trigger confirmTrigger dialog
       const confirmButton = result.getByText('查看发动状态');
       fireEvent.press(confirmButton);
-  await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
+      await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
       result.unmount();
 
       // Step 8: skipConfirm (guard) - MUST press the skip button

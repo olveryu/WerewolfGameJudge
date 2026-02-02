@@ -225,10 +225,7 @@ function validateActionPreconditions(
   // Special case: wolfKill is a meeting step shared by multiple wolf-team roles
   // (e.g. wolf, spiritKnight, wolfQueen...). For this step we validate participation
   // via ROLE_SPECS[*].wolfMeeting.participatesInWolfVote instead of role->schema mapping.
-  if (
-    currentStepId === 'wolfKill' &&
-    doesRoleParticipateInWolfVote(role)
-  ) {
+  if (currentStepId === 'wolfKill' && doesRoleParticipateInWolfVote(role)) {
     // ok
   } else if (expectedSchemaId !== currentStepId) {
     return {
@@ -278,10 +275,7 @@ function validateActionPreconditions(
  * @param actionInput - 玩家提交的 action input
  * @returns true 表示是 skip，false 表示是实际行动
  */
-function isSkipAction(
-  schema: (typeof SCHEMAS)[SchemaId],
-  actionInput: ActionInput,
-): boolean {
+function isSkipAction(schema: (typeof SCHEMAS)[SchemaId], actionInput: ActionInput): boolean {
   switch (schema.kind) {
     case 'confirm':
       // confirm 类型：confirmed !== true 视为 skip
@@ -441,7 +435,7 @@ function buildRejectionResult(
       action: schemaId,
       reason: rejectReason ?? 'invalid_action',
       targetUid: state.players[seat]?.uid ?? '',
-  rejectionId: newRejectionId(),
+      rejectionId: newRejectionId(),
     },
   };
 
@@ -485,7 +479,7 @@ function buildSuccessResult(
       type: 'APPLY_RESOLVER_RESULT',
       payload: buildRevealPayload(result, role, target),
     });
-    
+
     // 如果 schema 定义了 revealKind，需要弹窗确认，添加 pending ack 阻塞推进
     // ackKey 使用 schemaId 作为稳定标识符（避免 revealKind 文案变更导致问题）
     const schema = SCHEMAS[schemaId];
@@ -549,12 +543,12 @@ export function handleSubmitWolfVote(
     const rejectAction: ActionRejectedAction = {
       type: 'ACTION_REJECTED',
       payload: {
-  // Use the stable schemaId for wolf vote (single source of truth)
-  // so UI dedupe and logs key off a consistent identifier.
-  action: 'wolfKill',
+        // Use the stable schemaId for wolf vote (single source of truth)
+        // so UI dedupe and logs key off a consistent identifier.
+        action: 'wolfKill',
         reason,
         targetUid: voterUid,
-  rejectionId: newRejectionId(),
+        rejectionId: newRejectionId(),
       },
     };
 
@@ -586,10 +580,8 @@ export function handleSubmitWolfVote(
   // *real* role must be used for role/seat alignment.
   const validation = validateActionPreconditions(context, seat, (voterRole ?? 'wolf') as RoleId);
   if (!validation.valid) {
-  return normalizeWolfVoteRejection(validation.result);
+    return normalizeWolfVoteRejection(validation.result);
   }
-
-
 
   // Meeting-specific gate: not_wolf_participant (voter must participate in wolf vote)
   // Do this AFTER not_seated/no_state/etc, but BEFORE delegating into resolver-first action pipeline.
@@ -600,7 +592,11 @@ export function handleSubmitWolfVote(
       voterRole: null,
       currentStepId: context.state?.currentStepId ?? null,
     });
-  return normalizeWolfVoteRejection({ success: false, reason: 'not_wolf_participant', actions: [] });
+    return normalizeWolfVoteRejection({
+      success: false,
+      reason: 'not_wolf_participant',
+      actions: [],
+    });
   }
 
   if (!doesRoleParticipateInWolfVote(voterForGate.role)) {
@@ -612,7 +608,11 @@ export function handleSubmitWolfVote(
         : null,
       currentStepId: context.state?.currentStepId ?? null,
     });
-  return normalizeWolfVoteRejection({ success: false, reason: 'not_wolf_participant', actions: [] });
+    return normalizeWolfVoteRejection({
+      success: false,
+      reason: 'not_wolf_participant',
+      actions: [],
+    });
   }
 
   // IMPORTANT: delegate must use the voter's *actual* role.

@@ -224,7 +224,7 @@ export function createHostGame(
       if (result.reason === 'night_not_complete') {
         throw new Error(
           `endNight() called before night plan completed. currentStepId=${internal.state.currentStepId}. ` +
-          `You must advanceNight() through all steps first.`
+            `You must advanceNight() through all steps first.`,
         );
       }
       return { success: false, deaths: [] };

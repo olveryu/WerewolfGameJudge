@@ -74,8 +74,8 @@ describe('hard gates (contract)', () => {
     const forbiddenNeedles = [
       'progressionTracker',
       'tryAdvanceNight',
-  'evaluateNightProgression(',
-  'buildProgressionKey(',
+      'evaluateNightProgression(',
+      'buildProgressionKey(',
     ];
 
     const matches = forbiddenNeedles.flatMap((needle) =>
@@ -98,10 +98,10 @@ describe('hard gates (contract)', () => {
       'await advanceNight(',
       'await endNight(',
       'return tryAdvanceNight',
-  // facade is allowed to *call* handleNightProgression once as a pure forwarder,
-  // but is not allowed to use its return value to orchestrate additional progress.
-  // We can't reliably enforce "only once" with simple string scans, so we enforce
-  // the known dangerous orchestration patterns above.
+      // facade is allowed to *call* handleNightProgression once as a pure forwarder,
+      // but is not allowed to use its return value to orchestrate additional progress.
+      // We can't reliably enforce "only once" with simple string scans, so we enforce
+      // the known dangerous orchestration patterns above.
     ];
 
     const matches = forbiddenNeedles.flatMap((needle) =>

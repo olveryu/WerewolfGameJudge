@@ -34,7 +34,11 @@ describe('Host authority import boundary', () => {
 
       if (entry.isDirectory()) {
         // Skip test directories
-        if (entry.name === '__tests__' || entry.name === 'node_modules' || entry.name === '__mocks__') {
+        if (
+          entry.name === '__tests__' ||
+          entry.name === 'node_modules' ||
+          entry.name === '__mocks__'
+        ) {
           continue;
         }
         results.push(...getAllProductionFiles(fullPath));
@@ -60,10 +64,15 @@ describe('Host authority import boundary', () => {
     /from\s+['"].*services\/NightFlowController/,
     /from\s+['"].*services\/DeathCalculator/,
     // Relative path patterns (for imports like ../../services/engine/reducer)
+    // eslint-disable-next-line no-useless-escape
     /from\s+['"][.\/]+services\/engine\/reducer/,
+    // eslint-disable-next-line no-useless-escape
     /from\s+['"][.\/]+services\/engine\/handlers/,
+    // eslint-disable-next-line no-useless-escape
     /from\s+['"][.\/]+services\/night\/resolvers/,
+    // eslint-disable-next-line no-useless-escape
     /from\s+['"][.\/]+services\/NightFlowController/,
+    // eslint-disable-next-line no-useless-escape
     /from\s+['"][.\/]+services\/DeathCalculator/,
     // Direct imports from gameReducer
     /from\s+['"].*gameReducer/,
@@ -84,21 +93,18 @@ describe('Host authority import boundary', () => {
     expect(allFilesToCheck.length).toBeGreaterThan(0);
   });
 
-  it.each(allFilesToCheck)(
-    'should not import Host-only modules in %s',
-    (filePath) => {
-      const content = fs.readFileSync(filePath, 'utf-8');
+  it.each(allFilesToCheck)('should not import Host-only modules in %s', (filePath) => {
+    const content = fs.readFileSync(filePath, 'utf-8');
 
-      for (const pattern of forbiddenPatterns) {
-        const match = content.match(pattern);
-        if (match) {
-          fail(
-            `File ${filePath} imports Host-only module: "${match[0]}"\n` +
-              'Hooks and screens should not import reducer, handlers, resolvers, NightFlowController, or DeathCalculator.\n' +
-              'Use GameFacade or transport layer instead.',
-          );
-        }
+    for (const pattern of forbiddenPatterns) {
+      const match = content.match(pattern);
+      if (match) {
+        fail(
+          `File ${filePath} imports Host-only module: "${match[0]}"\n` +
+            'Hooks and screens should not import reducer, handlers, resolvers, NightFlowController, or DeathCalculator.\n' +
+            'Use GameFacade or transport layer instead.',
+        );
       }
-    },
-  );
+    }
+  });
 });

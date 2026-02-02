@@ -149,6 +149,6 @@ describe('Night-1-only resolvers contract', () => {
       }),
       { schemaId: 'wolfKill' as any, target: 2 },
     );
-  expect(teammateRes.valid).toBe(true);
+    expect(teammateRes.valid).toBe(true);
   });
 });

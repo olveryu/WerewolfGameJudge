@@ -46,7 +46,11 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
   // This is a vote-time forbidden target ("禁选"), not a death-resolution effect.
   // If forbidden, we must reject and NOT record the vote.
   const immuneRoleIds = getWolfKillImmuneRoleIds();
-  if (immuneRoleIds.length > 0 && isValidRoleId(targetRoleId) && immuneRoleIds.includes(targetRoleId)) {
+  if (
+    immuneRoleIds.length > 0 &&
+    isValidRoleId(targetRoleId) &&
+    immuneRoleIds.includes(targetRoleId)
+  ) {
     const targetRoleSpec = getRoleSpec(targetRoleId);
     const targetRoleName = targetRoleSpec?.displayName ?? targetRoleId;
     return {
@@ -66,6 +70,6 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
         [String(actorSeat)]: target,
       },
     },
-  result: {},
+    result: {},
   };
 };

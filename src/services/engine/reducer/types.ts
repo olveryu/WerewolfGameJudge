@@ -193,11 +193,11 @@ export interface ActionRejectedAction {
     action: string;
     reason: string;
     targetUid: string;
-  /**
-   * Unique id for this rejection event.
-   * Used by UI to avoid accidentally deduping distinct rejections that share the same reason.
-   */
-  rejectionId: string;
+    /**
+     * Unique id for this rejection event.
+     * Used by UI to avoid accidentally deduping distinct rejections that share the same reason.
+     */
+    rejectionId: string;
   };
 }
 

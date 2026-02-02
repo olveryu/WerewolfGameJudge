@@ -51,7 +51,7 @@ interface RejectResult {
 
 /**
  * Resolver 内部使用的严格类型（union 分支）
- * 
+ *
  * 这个类型在编译期强制：
  * - 返回 learnTarget 时必须同时返回 learnedRoleId
  * - 所有 return 语句都必须满足其中一个分支

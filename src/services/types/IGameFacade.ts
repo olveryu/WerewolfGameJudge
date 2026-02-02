@@ -127,7 +127,9 @@ export interface IGameFacade {
   /**
    * 设置开牌动画（Host only）
    */
-  setRoleRevealAnimation(animation: 'roulette' | 'flip' | 'none'): Promise<{ success: boolean; reason?: string }>;
+  setRoleRevealAnimation(
+    animation: 'roulette' | 'flip' | 'none',
+  ): Promise<{ success: boolean; reason?: string }>;
 
   /**
    * 开始夜晚

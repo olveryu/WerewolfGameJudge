@@ -173,14 +173,17 @@ export interface ChatResponse {
 export async function sendChatMessage(
   messages: ChatMessage[],
   apiKey: string,
-  gameContext?: GameContext
+  gameContext?: GameContext,
 ): Promise<ChatResponse> {
   if (!apiKey) {
     return { success: false, error: '请先配置 Groq API Key' };
   }
 
   try {
-    chatLog.debug('Sending chat request', { messageCount: messages.length, hasContext: !!gameContext });
+    chatLog.debug('Sending chat request', {
+      messageCount: messages.length,
+      hasContext: !!gameContext,
+    });
 
     // 构建系统提示（包含游戏上下文）
     let systemPrompt = SYSTEM_PROMPT;
@@ -190,9 +193,7 @@ export async function sendChatMessage(
 
     // 优化2: 限制历史轮数，只保留最近 N 轮对话
     const maxMessages = TOKEN_OPTIMIZATION.maxHistoryRounds * 2; // 每轮 = 1 user + 1 assistant
-    const trimmedMessages = messages.length > maxMessages 
-      ? messages.slice(-maxMessages) 
-      : messages;
+    const trimmedMessages = messages.length > maxMessages ? messages.slice(-maxMessages) : messages;
 
     const response = await fetch(`${API_CONFIG.baseURL}/chat/completions`, {
       method: 'POST',

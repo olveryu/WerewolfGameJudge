@@ -43,7 +43,15 @@ export interface ThemeColors {
   overlayLight: string;
 }
 
-export type ThemeKey = 'light' | 'minimal' | 'dark' | 'midnight' | 'blood' | 'discord' | 'forest' | 'snow';
+export type ThemeKey =
+  | 'light'
+  | 'minimal'
+  | 'dark'
+  | 'midnight'
+  | 'blood'
+  | 'discord'
+  | 'forest'
+  | 'snow';
 
 export interface Theme {
   key: ThemeKey;

@@ -266,18 +266,22 @@ describe('gameReducer', () => {
       expect(newState.seerReveal).toEqual({ targetSeat: 1, result: '好人' });
       expect(newState.psychicReveal).toEqual({ targetSeat: 2, result: '狼人阵营' });
       expect(newState.gargoyleReveal).toEqual({ targetSeat: 3, result: '守卫' });
-      expect(newState.wolfRobotReveal).toEqual({ targetSeat: 4, result: '预言家', learnedRoleId: 'seer' });
+      expect(newState.wolfRobotReveal).toEqual({
+        targetSeat: 4,
+        result: '预言家',
+        learnedRoleId: 'seer',
+      });
       // context 仍然被清空（这些是步骤特定的，不是结果）
       expect(newState.confirmStatus).toBeUndefined();
       expect(newState.witchContext).toBeUndefined();
     });
 
-  it('should preserve currentNightResults on advance for death calculation at END_NIGHT', () => {
+    it('should preserve currentNightResults on advance for death calculation at END_NIGHT', () => {
       const state = createMinimalState({
         status: 'ongoing',
         currentActionerIndex: 0,
         currentStepId: 'wolfKill',
-    currentNightResults: { wolfVotesBySeat: { '1': 3, '2': 3 } },
+        currentNightResults: { wolfVotesBySeat: { '1': 3, '2': 3 } },
       });
       const action: AdvanceToNextActionAction = {
         type: 'ADVANCE_TO_NEXT_ACTION',
@@ -286,7 +290,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-  expect(newState.currentNightResults).toEqual({ wolfVotesBySeat: { '1': 3, '2': 3 } });
+      expect(newState.currentNightResults).toEqual({ wolfVotesBySeat: { '1': 3, '2': 3 } });
     });
 
     it('should set currentStepId to undefined when nextStepId is null (night end)', () => {
@@ -412,7 +416,7 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       expect(newState.currentNightResults).toEqual({
-  guardedSeat: 1,
+        guardedSeat: 1,
       });
     });
 
@@ -713,7 +717,7 @@ describe('gameReducer', () => {
         action: 'newAction',
         reason: 'new_reason',
         targetUid: 'new-uid',
-  rejectionId: 'r3',
+        rejectionId: 'r3',
       });
     });
   });

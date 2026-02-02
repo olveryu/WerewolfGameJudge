@@ -127,7 +127,13 @@ describe('determineActionerState', () => {
       const wolfVotes = new Map<number, number>();
       wolfVotes.set(7, 0);
 
-      for (const role of ['wolf', 'nightmare', 'wolfQueen', 'darkWolfKing', 'spiritKnight'] as const) {
+      for (const role of [
+        'wolf',
+        'nightmare',
+        'wolfQueen',
+        'darkWolfKing',
+        'spiritKnight',
+      ] as const) {
         const result = determineActionerState(
           role,
           // In practice wolfKill is a meeting step, currentActionRole can be any wolf-team role.
@@ -527,7 +533,4 @@ describe('buildSeatViewModels', () => {
       expect(seats[2].disabledReason).toBeUndefined();
     });
   });
-
 });
-
-

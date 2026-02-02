@@ -20,11 +20,7 @@
  * 架构：intents → handlers → reducer → BroadcastGameState
  */
 
-import {
-  createHostGame,
-  cleanupHostGame,
-  HostGameContext,
-} from './hostGameFactory';
+import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
 import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
@@ -72,9 +68,7 @@ describe('Night-1: 狼王摄梦人12人 - Dreamcatcher (12p)', () => {
 
       // 核心断言：dreamcatcherDream action 写入 state.actions
       const state = ctx.getBroadcastState();
-      const dreamAction = state.actions?.find(
-        (a) => a.schemaId === 'dreamcatcherDream',
-      );
+      const dreamAction = state.actions?.find((a) => a.schemaId === 'dreamcatcherDream');
       expect(dreamAction).toBeDefined();
       expect(dreamAction!.actorSeat).toBe(11); // dreamcatcher 在 seat 11
       expect(dreamAction!.targetSeat).toBe(0); // 守护 seat 0
@@ -97,9 +91,7 @@ describe('Night-1: 狼王摄梦人12人 - Dreamcatcher (12p)', () => {
 
       // 核心断言：action 记录
       const state = ctx.getBroadcastState();
-      const dreamAction = state.actions?.find(
-        (a) => a.schemaId === 'dreamcatcherDream',
-      );
+      const dreamAction = state.actions?.find((a) => a.schemaId === 'dreamcatcherDream');
       expect(dreamAction).toBeDefined();
       expect(dreamAction!.targetSeat).toBe(1);
 
@@ -123,9 +115,7 @@ describe('Night-1: 狼王摄梦人12人 - Dreamcatcher (12p)', () => {
 
       // 核心断言：空选时 action 的 targetSeat 为 undefined 或无该 action
       const state = ctx.getBroadcastState();
-      const dreamAction = state.actions?.find(
-        (a) => a.schemaId === 'dreamcatcherDream',
-      );
+      const dreamAction = state.actions?.find((a) => a.schemaId === 'dreamcatcherDream');
       expect(dreamAction?.targetSeat).toBeUndefined();
 
       expect(result.deaths).toEqual([0]);

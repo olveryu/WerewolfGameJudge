@@ -20,11 +20,7 @@ import {
   makeActionTarget,
   makeActionWitch,
 } from '../../models/actions/RoleAction';
-import {
-  makeWitchNone,
-  makeWitchPoison,
-  makeWitchSave,
-} from '../../models/actions/WitchAction';
+import { makeWitchNone, makeWitchPoison, makeWitchSave } from '../../models/actions/WitchAction';
 
 /**
  * 将 BroadcastPlayer 转换为 LocalPlayer

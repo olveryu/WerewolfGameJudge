@@ -25,7 +25,9 @@ export type TimeoutErrorFactory = (ms: number, context?: string) => Error;
  * 默认超时错误工厂（技术消息，仅用于日志/调试）
  */
 const defaultErrorFactory: TimeoutErrorFactory = (ms, context) =>
-  new Error(context ? `Operation timed out after ${ms}ms: ${context}` : `Operation timed out after ${ms}ms`);
+  new Error(
+    context ? `Operation timed out after ${ms}ms: ${context}` : `Operation timed out after ${ms}ms`,
+  );
 
 /**
  * 包装一个 Promise，在指定时间内未完成则 reject
@@ -53,7 +55,8 @@ export function withTimeout<T>(
 
   // 解析参数：字符串当 context，函数当 errorFactory
   const context = typeof contextOrFactory === 'string' ? contextOrFactory : undefined;
-  const errorFactory = typeof contextOrFactory === 'function' ? contextOrFactory : defaultErrorFactory;
+  const errorFactory =
+    typeof contextOrFactory === 'function' ? contextOrFactory : defaultErrorFactory;
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutHandle = setTimeout(() => {

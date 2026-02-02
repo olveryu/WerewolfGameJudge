@@ -152,10 +152,7 @@ describe('useRoomSeatDialogs', () => {
 
       expect(mockTakeSeat).toHaveBeenCalledWith(4);
       expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
-      expect(mockShowAlert).toHaveBeenCalledWith(
-        '入座失败',
-        '5号座位已被占用，请选择其他位置。',
-      );
+      expect(mockShowAlert).toHaveBeenCalledWith('入座失败', '5号座位已被占用，请选择其他位置。');
       expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
     });
   });
