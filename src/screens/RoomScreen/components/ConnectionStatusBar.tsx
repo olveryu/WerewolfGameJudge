@@ -58,18 +58,24 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
   };
 
   const showSyncButton = status === 'disconnected' || status === 'syncing';
+  const isSyncing = status === 'syncing';
 
   return (
     <View style={[styles.container, getStatusStyle()]} testID={TESTIDS.connectionStatusContainer}>
       <Text style={styles.statusText}>{getStatusText()}</Text>
       {showSyncButton && onForceSync && (
         <TouchableOpacity
-          onPress={onForceSync}
-          style={styles.syncButton}
-          disabled={status === 'syncing'}
+          onPress={() => {
+            // Always report intent; caller decides whether to act
+            // Syncing state is visible in UI, orchestrator can ignore if needed
+            onForceSync();
+          }}
+          style={[styles.syncButton, isSyncing && styles.syncButtonDisabled]}
+          activeOpacity={isSyncing ? 1 : 0.7}
+          accessibilityState={{ disabled: isSyncing }}
           testID={TESTIDS.forceSyncButton}
         >
-          <Text style={styles.syncButtonText}>{status === 'syncing' ? '同步中' : '强制同步'}</Text>
+          <Text style={styles.syncButtonText}>{isSyncing ? '同步中' : '强制同步'}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -114,6 +120,9 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: spacing.tight,
       backgroundColor: colors.primary,
       borderRadius: borderRadius.small,
+    },
+    syncButtonDisabled: {
+      backgroundColor: colors.textMuted,
     },
     syncButtonText: {
       fontSize: typography.secondary,

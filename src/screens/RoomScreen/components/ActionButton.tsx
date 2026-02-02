@@ -1,5 +1,9 @@
 /**
  * ActionButton.tsx - Action button with theme support
+ *
+ * ⚠️ IMPORTANT: This component NEVER uses RN `disabled` to block onPress.
+ * Per copilot-instructions.md, components must always report intent.
+ * Visual disabled state is preserved via styles only.
  */
 import React, { useMemo } from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
@@ -8,9 +12,9 @@ import { useColors, spacing, typography, borderRadius, type ThemeColors } from '
 export interface ActionButtonProps {
   /** Button label text */
   label: string;
-  /** Callback when pressed */
-  onPress: () => void;
-  /** Whether the button is disabled (greyed out) */
+  /** Callback when pressed - always called, even when visually disabled */
+  onPress: (meta: { disabled: boolean }) => void;
+  /** Whether the button appears disabled (greyed out) - does NOT block onPress */
   disabled?: boolean;
   /** Optional test ID */
   testID?: string;
@@ -28,10 +32,10 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   return (
     <TouchableOpacity
       style={[styles.actionButton, disabled && styles.disabledButton]}
-      onPress={onPress}
-      disabled={disabled}
+      onPress={() => onPress({ disabled })}
       testID={testID}
-      activeOpacity={0.7}
+      activeOpacity={disabled ? 1 : 0.7}
+      accessibilityState={{ disabled }}
     >
       <Text style={styles.buttonText}>{label}</Text>
     </TouchableOpacity>

@@ -1330,7 +1330,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             <ActionButton
               key={b.key}
               label={b.label}
-              onPress={() => dispatchInteraction({ kind: 'BOTTOM_ACTION', intent: b.intent })}
+              onPress={(_meta) => dispatchInteraction({ kind: 'BOTTOM_ACTION', intent: b.intent })}
             />
           ));
         })()}
@@ -1343,7 +1343,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           mySeatNumber !== null && (
             <ActionButton
               label="查看身份"
-              onPress={() => dispatchInteraction({ kind: 'VIEW_ROLE' })}
+              onPress={(_meta) => dispatchInteraction({ kind: 'VIEW_ROLE' })}
             />
           )}
 
@@ -1353,7 +1353,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             <ActionButton
               label="查看身份"
               disabled
-              onPress={() => showAlert('等待房主点击"准备看牌"分配角色')}
+              onPress={(meta) => {
+                // Policy decision: disabled button shows alert
+                if (meta.disabled) {
+                  showAlert('等待房主点击"准备看牌"分配角色');
+                }
+              }}
             />
           )}
       </View>
