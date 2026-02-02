@@ -4,20 +4,27 @@
  * This is a pure UI component that displays player seats.
  * It receives a SeatViewModel[] and a single callback.
  *
+ * Performance optimization:
+ * - Each seat is rendered by a memoized SeatTile component
+ * - SeatTile only re-renders when its specific props change
+ * - This prevents full grid re-render on seat selection/swap
+ * - Uses ref pattern to ensure callback always calls latest version
+ *   even when SeatTile is memoized and doesn't re-render
+ *
  * ❌ Do NOT import: any Service singletons, showAlert
  * ✅ Allowed: types, styles, UI components (Avatar, etc.)
  */
-import React, { useMemo, memo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { Avatar } from '../../../components/Avatar';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
-import { TESTIDS } from '../../../testids';
+import React, { useMemo, memo, useCallback, useRef, useLayoutEffect } from 'react';
+import { View, StyleSheet, Dimensions } from 'react-native';
+import { useColors, type ThemeColors } from '../../../theme';
 import type { SeatViewModel } from '../RoomScreen.helpers';
+import { SeatTile, GRID_COLUMNS } from './SeatTile';
 
 // Grid calculation - needs to be exported for Avatar sizing
-const GRID_COLUMNS = 4;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export const TILE_SIZE = (SCREEN_WIDTH - 48) / GRID_COLUMNS;
+// Re-export GRID_COLUMNS for external use
+export { GRID_COLUMNS } from './SeatTile';
 
 export interface PlayerGridProps {
   /** Array of seat view models (pre-computed from game state) */
@@ -43,74 +50,43 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
+  // Use ref to always call the latest onSeatPress callback.
+  // This is necessary because SeatTile is memoized and won't re-render
+  // when parent re-renders with a new callback reference.
+  // By keeping the latest callback in a ref and using a stable wrapper,
+  // SeatTile can stay memoized but still call the latest callback.
+  const onSeatPressRef = useRef(onSeatPress);
+  useLayoutEffect(() => {
+    onSeatPressRef.current = onSeatPress;
+  });
+
+  // Stable callback reference that uses ref internally
+  const handleSeatPress = useCallback(
+    (seatIndex: number, disabledReason?: string) => {
+      onSeatPressRef.current(seatIndex, disabledReason);
+    },
+    [], // No dependencies - callback is stable, always uses ref
+  );
+
   return (
     <View style={styles.gridContainer}>
-      {seats.map((seat) => {
-        // Key should be seat index only - seats are fixed positions
-        // Don't include player/role info which causes unnecessary re-mounts when players move
-        const seatKey = `seat-${seat.index}`;
-
-        return (
-          <View key={seatKey} style={styles.tileWrapper} testID={TESTIDS.seatTile(seat.index)}>
-            <TouchableOpacity
-              testID={TESTIDS.seatTilePressable(seat.index)}
-              accessibilityLabel={TESTIDS.seatTilePressable(seat.index)}
-              style={[
-                styles.playerTile,
-                seat.isMySpot && styles.mySpotTile,
-                seat.isWolf && styles.wolfTile,
-                seat.isSelected && styles.selectedTile,
-              ]}
-              onPress={() => {
-                // ALWAYS delegate to caller - PlayerGrid is pure UI
-                // All interaction decisions (audio gate, disabledReason, routing)
-                // are handled by SeatTapPolicy in RoomScreen
-                onSeatPress(seat.index, seat.disabledReason);
-              }}
-              activeOpacity={disabled || seat.disabledReason ? 1 : 0.7}
-              // `disabled` prop only affects visual feedback (activeOpacity),
-              // not event reporting. This allows SeatTapPolicy to be the
-              // single source of truth for all tap decisions.
-            >
-              {seat.player && (
-                <View style={styles.avatarContainer}>
-                  <Avatar
-                    value={seat.player.uid}
-                    size={TILE_SIZE - 16}
-                    avatarUrl={seat.player.avatarUrl}
-                    seatNumber={seat.index + 1}
-                    roomId={roomNumber}
-                  />
-                  {(seat.isWolf || seat.isSelected) && (
-                    <View
-                      style={[
-                        styles.avatarOverlay,
-                        seat.isWolf && styles.wolfOverlay,
-                        seat.isSelected && styles.selectedOverlay,
-                      ]}
-                    />
-                  )}
-                </View>
-              )}
-
-              <Text style={[styles.seatNumber, seat.player && styles.seatedSeatNumber]}>
-                {seat.index + 1}
-              </Text>
-
-              {!seat.player && <Text style={styles.emptyIndicator}>空</Text>}
-
-              {seat.isMySpot && seat.player && <Text style={styles.mySeatBadge}>我</Text>}
-            </TouchableOpacity>
-
-            {seat.player && (
-              <Text style={styles.playerName} numberOfLines={1} ellipsizeMode="tail">
-                {seat.player.displayName}
-              </Text>
-            )}
-            {!seat.player && <View style={styles.playerNamePlaceholder} />}
-          </View>
-        );
-      })}
+      {seats.map((seat) => (
+        <SeatTile
+          key={`seat-${seat.index}`}
+          index={seat.index}
+          roomNumber={roomNumber}
+          tileSize={TILE_SIZE}
+          disabled={disabled}
+          disabledReason={seat.disabledReason}
+          isMySpot={seat.isMySpot}
+          isWolf={seat.isWolf}
+          isSelected={seat.isSelected}
+          playerUid={seat.player?.uid ?? null}
+          playerAvatarUrl={seat.player?.avatarUrl}
+          playerDisplayName={seat.player?.displayName ?? null}
+          onPress={handleSeatPress}
+        />
+      ))}
     </View>
   );
 };
@@ -118,100 +94,12 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
 // Memoize to prevent re-renders when parent updates but props haven't changed
 export const PlayerGrid = memo(PlayerGridComponent);
 
-function createStyles(colors: ThemeColors) {
+function createStyles(_colors: ThemeColors) {
   return StyleSheet.create({
     gridContainer: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'flex-start',
-    },
-    tileWrapper: {
-      width: TILE_SIZE,
-      alignItems: 'center',
-      marginBottom: spacing.small,
-    },
-    playerTile: {
-      width: TILE_SIZE - spacing.small,
-      height: TILE_SIZE - spacing.small,
-      margin: spacing.tight,
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderWidth: 2,
-      borderColor: colors.border,
-    },
-    mySpotTile: {
-      borderColor: colors.success,
-      borderWidth: 3,
-    },
-    wolfTile: {
-      backgroundColor: colors.error,
-      borderColor: colors.error,
-    },
-    selectedTile: {
-      backgroundColor: colors.primaryDark,
-      borderColor: colors.primaryDark,
-    },
-    seatNumber: {
-      fontSize: typography.subtitle,
-      fontWeight: '700',
-      color: colors.textMuted,
-      position: 'absolute',
-      top: spacing.small,
-      left: spacing.small + spacing.tight, // ~12
-    },
-    seatedSeatNumber: {
-      color: colors.textInverse,
-    },
-    avatarContainer: {
-      ...StyleSheet.absoluteFillObject,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    avatarOverlay: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(99, 102, 241, 0.3)',
-      borderRadius: borderRadius.large,
-    },
-    wolfOverlay: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(239, 68, 68, 0.4)',
-      borderRadius: borderRadius.large,
-    },
-    selectedOverlay: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: colors.primaryDark + '66',
-      borderRadius: borderRadius.large,
-    },
-    mySeatBadge: {
-      position: 'absolute',
-      bottom: spacing.tight + spacing.tight / 2, // ~6
-      right: spacing.tight + spacing.tight / 2, // ~6
-      backgroundColor: colors.success,
-      color: colors.textInverse,
-      fontSize: typography.caption,
-      fontWeight: '700',
-      paddingHorizontal: spacing.tight + spacing.tight / 2, // ~6
-      paddingVertical: spacing.tight / 2, // ~2
-      borderRadius: spacing.small,
-      overflow: 'hidden',
-    },
-    emptyIndicator: {
-      fontSize: typography.secondary,
-      color: colors.textMuted,
-    },
-    playerName: {
-      fontSize: typography.caption,
-      color: colors.text,
-      textAlign: 'center',
-      marginTop: spacing.tight,
-      width: TILE_SIZE - spacing.small,
-      height: typography.subtitle, // ~18, Fixed height for consistent row layout
-    },
-    playerNamePlaceholder: {
-      marginTop: spacing.tight,
-      height: typography.subtitle, // ~18, Same height as playerName
     },
   });
 }
