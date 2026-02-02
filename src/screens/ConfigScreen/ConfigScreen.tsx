@@ -17,6 +17,7 @@ import {
   PRESET_TEMPLATES,
   createCustomTemplate,
   validateTemplateRoles,
+  findMatchingPresetName,
 } from '../../models/Template';
 import { useGameFacade } from '../../contexts';
 import { showAlert } from '../../utils/alert';
@@ -466,6 +467,7 @@ export const ConfigScreen: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [roleRevealAnimation, setRoleRevealAnimation] = useState<'roulette' | 'flip' | 'none'>('roulette');
+  const [selectedTemplate, setSelectedTemplate] = useState(PRESET_TEMPLATES[0]?.name ?? '');
 
   const facade = useGameFacade();
   const selectedCount = Object.values(selection).filter(Boolean).length;
@@ -498,6 +500,11 @@ export const ConfigScreen: React.FC = () => {
         configLog.debug(' State loaded:', state ? 'success' : 'not found');
         if (state?.templateRoles && state.templateRoles.length > 0) {
           setSelection(applyPreset(state.templateRoles));
+          // Sync selected template dropdown with current roles
+          const matchedPreset = findMatchingPresetName(state.templateRoles);
+          if (matchedPreset) {
+            setSelectedTemplate(matchedPreset);
+          }
         }
         // Load role reveal animation setting
         if (state?.roleRevealAnimation) {
@@ -598,8 +605,6 @@ export const ConfigScreen: React.FC = () => {
     ],
     [],
   );
-
-  const [selectedTemplate, setSelectedTemplate] = useState(PRESET_TEMPLATES[0]?.name ?? '');
 
   const handleTemplateChange = useCallback(
     (templateName: string) => {

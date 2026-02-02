@@ -545,7 +545,8 @@ export async function extractRoomNumber(page: Page): Promise<string> {
   const headerLocator = page.locator(`[data-testid="${TESTIDS.roomHeader}"]`);
   await expect(headerLocator).toBeVisible({ timeout: 5000 });
   const headerText = await headerLocator.textContent();
-  const match = headerText?.match(/\b(\d{4})\b/);
+  // Match "房间 XXXX" pattern - room number follows "房间 " text
+  const match = headerText?.match(/房间\s*(\d{4})/);
   if (!match) throw new Error(`Could not extract room number from: ${headerText}`);
   return match[1];
 }

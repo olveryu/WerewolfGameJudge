@@ -69,6 +69,24 @@ export const templateHasSkilledWolf = (template: GameTemplate): boolean => {
   return template.roles.some((role) => skilledWolves.includes(role));
 };
 
+/**
+ * Find matching preset name for given roles.
+ * Returns the preset name if roles match exactly (sorted), otherwise null.
+ */
+export const findMatchingPresetName = (roles: RoleId[]): string | null => {
+  const sortedRoles = [...roles].sort((a, b) => a.localeCompare(b));
+  for (const preset of PRESET_TEMPLATES) {
+    const sortedPreset = [...preset.roles].sort((a, b) => a.localeCompare(b));
+    if (
+      sortedPreset.length === sortedRoles.length &&
+      sortedPreset.every((r, i) => r === sortedRoles[i])
+    ) {
+      return preset.name;
+    }
+  }
+  return null;
+};
+
 // Predefined templates matching Flutter app
 export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   {
