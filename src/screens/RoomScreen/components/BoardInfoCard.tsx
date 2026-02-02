@@ -71,7 +71,9 @@ export const BoardInfoCard: React.FC<BoardInfoCardProps> = ({
           {villagerCount > 0 && (
             <View style={styles.roleCategory}>
               <Text style={styles.roleCategoryLabel}>👤 村民：</Text>
-              <Text style={styles.roleCategoryText}>{villagerCount}人</Text>
+              <Text style={styles.roleCategoryText}>
+                {villagerCount > 1 ? `村民×${villagerCount}` : '村民'}
+              </Text>
             </View>
           )}
         </View>
