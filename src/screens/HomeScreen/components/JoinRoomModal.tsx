@@ -1,0 +1,96 @@
+/**
+ * JoinRoomModal - Memoized join room modal component
+ *
+ * Uses shared styles from parent to avoid redundant StyleSheet.create.
+ */
+import React, { memo, useMemo } from 'react';
+import { View, Text, Modal, TouchableOpacity } from 'react-native';
+import { NumPad } from '../../../components/NumPad';
+import { type HomeScreenStyles } from './styles';
+
+export interface JoinRoomModalProps {
+  visible: boolean;
+  roomCode: string;
+  isLoading: boolean;
+  errorMessage: string | null;
+  onRoomCodeChange: (text: string) => void;
+  onJoin: () => void;
+  onCancel: () => void;
+  styles: HomeScreenStyles;
+}
+
+function arePropsEqual(prev: JoinRoomModalProps, next: JoinRoomModalProps): boolean {
+  return (
+    prev.visible === next.visible &&
+    prev.roomCode === next.roomCode &&
+    prev.isLoading === next.isLoading &&
+    prev.errorMessage === next.errorMessage &&
+    prev.styles === next.styles
+    // callbacks excluded - use ref pattern
+  );
+}
+
+const JoinRoomModalComponent: React.FC<JoinRoomModalProps> = ({
+  visible,
+  roomCode,
+  isLoading,
+  errorMessage,
+  onRoomCodeChange,
+  onJoin,
+  onCancel,
+  styles,
+}) => {
+  // Memoize digit indices to avoid inline array creation
+  const digitIndices = useMemo(() => [0, 1, 2, 3], []);
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>加入房间</Text>
+          <Text style={styles.modalSubtitle}>输入4位房间号码</Text>
+
+          {/* Room code display */}
+          <View style={styles.codeDisplay}>
+            {digitIndices.map((i) => (
+              <View key={i} style={styles.codeDigitBox}>
+                <Text style={styles.codeDigitText}>{roomCode[i] || ''}</Text>
+              </View>
+            ))}
+          </View>
+
+          {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
+          {/* NumPad */}
+          <NumPad
+            value={roomCode}
+            onValueChange={onRoomCodeChange}
+            maxLength={4}
+            disabled={isLoading}
+          />
+
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.secondaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]}
+              onPress={onCancel}
+              activeOpacity={isLoading ? 1 : 0.7}
+              accessibilityState={{ disabled: isLoading }}
+            >
+              <Text style={styles.secondaryButtonText}>取消</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.primaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]}
+              onPress={onJoin}
+              activeOpacity={isLoading ? 1 : 0.7}
+              accessibilityState={{ disabled: isLoading }}
+            >
+              <Text style={styles.primaryButtonText}>{isLoading ? '加入中...' : '加入'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+export const JoinRoomModal = memo(JoinRoomModalComponent, arePropsEqual);

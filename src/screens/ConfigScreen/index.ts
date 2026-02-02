@@ -1,1 +1,1 @@
-export { default } from './ConfigScreen';
+export { ConfigScreen, default } from './ConfigScreen';

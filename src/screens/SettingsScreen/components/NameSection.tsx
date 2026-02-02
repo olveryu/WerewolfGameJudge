@@ -1,0 +1,82 @@
+/**
+ * NameSection - Memoized name display/edit component
+ *
+ * Performance: Receives pre-created styles from parent.
+ */
+import React, { memo } from 'react';
+import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { ThemeColors } from '../../../theme';
+import { SettingsScreenStyles } from './styles';
+
+export interface NameSectionProps {
+  isAnonymous: boolean;
+  displayName: string | null;
+  isEditingName: boolean;
+  editName: string;
+  onEditNameChange: (text: string) => void;
+  onStartEdit: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+  styles: SettingsScreenStyles;
+  colors: ThemeColors;
+}
+
+const arePropsEqual = (prev: NameSectionProps, next: NameSectionProps): boolean => {
+  return (
+    prev.isAnonymous === next.isAnonymous &&
+    prev.displayName === next.displayName &&
+    prev.isEditingName === next.isEditingName &&
+    prev.editName === next.editName &&
+    prev.styles === next.styles
+    // onXxx callbacks excluded - stable via useCallback
+  );
+};
+
+export const NameSection = memo<NameSectionProps>(
+  ({
+    isAnonymous,
+    displayName,
+    isEditingName,
+    editName,
+    onEditNameChange,
+    onStartEdit,
+    onSave,
+    onCancel,
+    styles,
+    colors,
+  }) => {
+    if (isAnonymous) {
+      return <Text style={styles.userName}>匿名用户</Text>;
+    }
+
+    if (isEditingName) {
+      return (
+        <View style={styles.editNameRow}>
+          <TextInput
+            style={styles.nameInput}
+            value={editName}
+            onChangeText={onEditNameChange}
+            placeholder="输入名字"
+            placeholderTextColor={colors.textSecondary}
+          />
+          <TouchableOpacity style={styles.saveBtn} onPress={onSave}>
+            <Text style={styles.saveBtnText}>保存</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cancelBtn} onPress={onCancel}>
+            <Text style={styles.cancelBtnText}>取消</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <TouchableOpacity style={styles.nameRow} onPress={onStartEdit}>
+        <Text style={styles.userName}>{displayName || '点击设置名字'}</Text>
+        <Text style={styles.editIcon}>✏️</Text>
+      </TouchableOpacity>
+    );
+  },
+  arePropsEqual,
+);
+
+NameSection.displayName = 'NameSection';

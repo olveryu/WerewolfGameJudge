@@ -1,13 +1,13 @@
+/**
+ * ConfigScreen - Game configuration and room creation
+ *
+ * Performance optimizations:
+ * - Styles created once in parent and passed to all sub-components
+ * - All sub-components memoized with custom arePropsEqual
+ * - Handlers use useCallback to maintain stable references
+ */
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  StyleSheet,
-  Modal,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,366 +22,19 @@ import {
 import { useGameFacade } from '../../contexts';
 import { showAlert } from '../../utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useColors, spacing, borderRadius, typography, shadows, ThemeColors } from '../../theme';
+import { useColors, spacing } from '../../theme';
 import { TESTIDS } from '../../testids';
 import { configLog } from '../../utils/logger';
 import { LoadingScreen } from '../../components/LoadingScreen';
 import { generateRoomCode } from '../../utils/roomCode';
 import SettingsService from '../../services/infra/SettingsService';
-
-// ============================================
-// Styles factory
-// ============================================
-const createStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: spacing.medium,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    headerBtn: {
-      width: spacing.xlarge + spacing.small, // 40
-      height: spacing.xlarge + spacing.small, // 40
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.background,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    headerBtnText: {
-      fontSize: typography.title,
-      color: colors.text,
-    },
-    headerCenter: {
-      flex: 1,
-      alignItems: 'center',
-    },
-    title: {
-      fontSize: typography.subtitle,
-      fontWeight: '600',
-      color: colors.text,
-    },
-    subtitle: {
-      fontSize: typography.secondary,
-      color: colors.textSecondary,
-      marginTop: spacing.tight / 2,
-    },
-    createBtn: {
-      backgroundColor: colors.primary,
-      width: spacing.xlarge + spacing.large + spacing.tight, // 60
-    },
-    createBtnText: {
-      color: colors.textInverse,
-      fontSize: typography.secondary,
-      fontWeight: '600',
-    },
-    // Settings row (template + animation selectors)
-    settingsRow: {
-      flexDirection: 'row',
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      gap: spacing.medium,
-    },
-    settingsItem: {
-      flex: 1,
-    },
-    settingsLabel: {
-      fontSize: typography.caption,
-      color: colors.textSecondary,
-      marginBottom: spacing.tight,
-    },
-    settingsSelector: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: spacing.small,
-      paddingVertical: spacing.small,
-      backgroundColor: colors.background,
-      borderRadius: borderRadius.medium,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    settingsSelectorText: {
-      fontSize: typography.secondary,
-      color: colors.text,
-      flex: 1,
-    },
-    settingsSelectorArrow: {
-      fontSize: typography.secondary,
-      color: colors.textSecondary,
-      marginLeft: spacing.tight,
-    },
-    scrollView: {
-      flex: 1,
-      padding: spacing.medium,
-    },
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      padding: spacing.small,
-      marginBottom: spacing.small,
-      ...shadows.sm,
-    },
-    cardTitle: {
-      fontSize: typography.body,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: spacing.small,
-    },
-    presetContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing.small,
-    },
-    presetBtn: {
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-      backgroundColor: colors.background,
-      borderRadius: borderRadius.full,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    presetText: {
-      fontSize: typography.secondary,
-      color: colors.textSecondary,
-    },
-    section: {
-      marginBottom: spacing.small,
-    },
-    sectionTitle: {
-      fontSize: typography.caption,
-      fontWeight: '500',
-      color: colors.textSecondary,
-      marginBottom: spacing.tight,
-    },
-    chipContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing.tight,
-    },
-    chip: {
-      minWidth: spacing.xxlarge + spacing.large, // ~72
-      paddingHorizontal: spacing.small,
-      paddingVertical: spacing.tight,
-      backgroundColor: colors.background,
-      borderRadius: borderRadius.full,
-      borderWidth: 1,
-      borderColor: colors.border,
-      alignItems: 'center',
-    },
-    chipSelected: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
-    },
-    chipText: {
-      fontSize: typography.caption,
-      color: colors.textSecondary,
-    },
-    chipTextSelected: {
-      color: colors.textInverse,
-      fontWeight: '500',
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    loadingText: {
-      marginTop: spacing.medium,
-      fontSize: typography.body,
-      color: colors.textSecondary,
-    },
-    // Modal styles
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      justifyContent: 'flex-end',
-    },
-    modalContent: {
-      backgroundColor: colors.surface,
-      borderTopLeftRadius: borderRadius.large,
-      borderTopRightRadius: borderRadius.large,
-      paddingBottom: spacing.xlarge,
-      maxHeight: '60%',
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.medium,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    modalTitle: {
-      fontSize: typography.subtitle,
-      fontWeight: '600',
-      color: colors.text,
-    },
-    modalCloseBtn: {
-      padding: spacing.small,
-    },
-    modalCloseBtnText: {
-      fontSize: typography.title,
-      color: colors.textSecondary,
-    },
-    modalOption: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.medium,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    modalOptionSelected: {
-      backgroundColor: colors.primaryLight + '20',
-    },
-    modalOptionText: {
-      fontSize: typography.body,
-      color: colors.text,
-    },
-    modalOptionTextSelected: {
-      color: colors.primary,
-      fontWeight: '600',
-    },
-    modalOptionCheck: {
-      fontSize: typography.body,
-      color: colors.primary,
-    },
-  });
-
-// ============================================
-// Sub-components
-// ============================================
-
-interface RoleChipProps {
-  id: string;
-  label: string;
-  selected: boolean;
-  onToggle: (id: string) => void;
-  colors: ThemeColors;
-}
-
-const RoleChip: React.FC<RoleChipProps> = ({ id, label, selected, onToggle, colors }) => {
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  return (
-    <TouchableOpacity
-      testID={`config-role-chip-${id}`}
-      style={[styles.chip, selected && styles.chipSelected]}
-      onPress={() => onToggle(id)}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
-    </TouchableOpacity>
-  );
-};
-
-interface SectionProps {
-  title: string;
-  children: React.ReactNode;
-  colors: ThemeColors;
-}
-
-const Section: React.FC<SectionProps> = ({ title, children, colors }) => {
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.chipContainer}>{children}</View>
-    </View>
-  );
-};
-
-// Dropdown selector with Modal
-interface DropdownOption {
-  value: string;
-  label: string;
-}
-
-interface DropdownProps {
-  label: string;
-  value: string;
-  options: DropdownOption[];
-  onSelect: (value: string) => void;
-  colors: ThemeColors;
-}
-
-const Dropdown: React.FC<DropdownProps> = ({ label, value, options, onSelect, colors }) => {
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const [visible, setVisible] = useState(false);
-
-  const selectedOption = options.find((o) => o.value === value);
-
-  return (
-    <View style={styles.settingsItem}>
-      <Text style={styles.settingsLabel}>{label}</Text>
-      <TouchableOpacity
-        style={styles.settingsSelector}
-        onPress={() => setVisible(true)}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.settingsSelectorText} numberOfLines={1}>
-          {selectedOption?.label ?? value}
-        </Text>
-        <Text style={styles.settingsSelectorArrow}>▼</Text>
-      </TouchableOpacity>
-
-      <Modal
-        visible={visible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setVisible(false)}
-        >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{label}</Text>
-              <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setVisible(false)}>
-                <Text style={styles.modalCloseBtnText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView>
-              {options.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[styles.modalOption, option.value === value && styles.modalOptionSelected]}
-                  onPress={() => {
-                    onSelect(option.value);
-                    setVisible(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.modalOptionText,
-                      option.value === value && styles.modalOptionTextSelected,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  {option.value === value && <Text style={styles.modalOptionCheck}>✓</Text>}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </View>
-  );
-};
+import {
+  RoleChip,
+  Section,
+  Dropdown,
+  createConfigScreenStyles,
+  type DropdownOption,
+} from './components';
 
 // ============================================
 // Helper functions
@@ -459,7 +112,8 @@ type ConfigRouteProp = RouteProp<RootStackParamList, 'Config'>;
 
 export const ConfigScreen: React.FC = () => {
   const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  // Create styles once and pass to all sub-components
+  const styles = useMemo(() => createConfigScreenStyles(colors), [colors]);
 
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ConfigRouteProp>();
@@ -485,7 +139,6 @@ export const ConfigScreen: React.FC = () => {
     if (!existingRoomNumber) {
       const lastChoice = settingsService.getRoleRevealAnimation();
       setRoleRevealAnimation(lastChoice);
-      // Load BGM setting from SettingsService
       setBgmEnabled(settingsService.isBgmEnabled());
     }
   }, [existingRoomNumber, settingsService]);
@@ -510,15 +163,12 @@ export const ConfigScreen: React.FC = () => {
         configLog.debug(' State loaded:', state ? 'success' : 'not found');
         if (state?.templateRoles && state.templateRoles.length > 0) {
           setSelection(applyPreset(state.templateRoles));
-          // Sync selected template dropdown with current roles
           const matchedPreset = findMatchingPresetName(state.templateRoles);
           setSelectedTemplate(matchedPreset ?? '__custom__');
         }
-        // Load role reveal animation setting
         if (state?.roleRevealAnimation) {
           setRoleRevealAnimation(state.roleRevealAnimation);
         }
-        // Load BGM setting from SettingsService (global setting)
         setBgmEnabled(settingsService.isBgmEnabled());
       } catch (error) {
         configLog.error(' Failed to load room:', error);
@@ -547,9 +197,16 @@ export const ConfigScreen: React.FC = () => {
     return unsubscribe;
   }, [navigation]);
 
+  // ============================================
+  // Stable callback handlers
+  // ============================================
+
+  const handleGoBack = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
+
   const toggleRole = useCallback((key: string) => {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
-    // When user manually changes roles, switch to "自定义"
     setSelectedTemplate('__custom__');
   }, []);
 
@@ -559,7 +216,6 @@ export const ConfigScreen: React.FC = () => {
   }, []);
 
   const handleCreateRoom = useCallback(async () => {
-    // Guard: prevent action when loading/creating
     if (isCreating || isLoading) return;
 
     const roles = selectionToRoles(selection);
@@ -578,7 +234,6 @@ export const ConfigScreen: React.FC = () => {
     try {
       const template = createCustomTemplate(roles);
 
-      // Save BGM setting (global setting via SettingsService)
       await settingsService.setBgmEnabled(bgmEnabled);
 
       if (isEditMode && existingRoomNumber) {
@@ -587,11 +242,9 @@ export const ConfigScreen: React.FC = () => {
           showAlert('错误', result.reason ?? '更新房间失败');
           return;
         }
-        // Update role reveal animation
         await facade.setRoleRevealAnimation(roleRevealAnimation);
         navigation.goBack();
       } else {
-        // Save as default for next time (only for new rooms)
         await settingsService.setRoleRevealAnimation(roleRevealAnimation);
         const roomNumber = generateRoomCode();
         await AsyncStorage.setItem('lastRoomNumber', roomNumber);
@@ -638,10 +291,17 @@ export const ConfigScreen: React.FC = () => {
     [],
   );
 
+  const bgmOptions: DropdownOption[] = useMemo(
+    () => [
+      { value: 'on', label: '开' },
+      { value: 'off', label: '关' },
+    ],
+    [],
+  );
+
   const handleTemplateChange = useCallback(
     (templateName: string) => {
       setSelectedTemplate(templateName);
-      // Only apply preset if not selecting "自定义"
       if (templateName !== '__custom__') {
         handlePresetSelect(templateName);
       }
@@ -649,11 +309,19 @@ export const ConfigScreen: React.FC = () => {
     [handlePresetSelect],
   );
 
+  const handleAnimationChange = useCallback((v: string) => {
+    setRoleRevealAnimation(v as 'roulette' | 'flip' | 'none');
+  }, []);
+
+  const handleBgmChange = useCallback((v: string) => {
+    setBgmEnabled(v === 'on');
+  }, []);
+
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.headerBtn} onPress={handleGoBack}>
           <Text style={styles.headerBtnText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -685,24 +353,21 @@ export const ConfigScreen: React.FC = () => {
           value={selectedTemplate}
           options={templateOptions}
           onSelect={handleTemplateChange}
-          colors={colors}
+          styles={styles}
         />
         <Dropdown
           label="动画"
           value={roleRevealAnimation}
           options={animationOptions}
-          onSelect={(v) => setRoleRevealAnimation(v as 'roulette' | 'flip' | 'none')}
-          colors={colors}
+          onSelect={handleAnimationChange}
+          styles={styles}
         />
         <Dropdown
           label="🎵 BGM"
           value={bgmEnabled ? 'on' : 'off'}
-          options={[
-            { value: 'on', label: '开' },
-            { value: 'off', label: '关' },
-          ]}
-          onSelect={(v) => setBgmEnabled(v === 'on')}
-          colors={colors}
+          options={bgmOptions}
+          onSelect={handleBgmChange}
+          styles={styles}
         />
       </View>
 
@@ -714,100 +379,100 @@ export const ConfigScreen: React.FC = () => {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>🐺 狼人阵营</Text>
 
-            <Section title="普通狼人" colors={colors}>
+            <Section title="普通狼人" styles={styles}>
               <RoleChip
                 id="wolf"
                 label="狼人"
                 selected={selection.wolf}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="wolf1"
                 label="狼人"
                 selected={selection.wolf1}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="wolf2"
                 label="狼人"
                 selected={selection.wolf2}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="wolf3"
                 label="狼人"
                 selected={selection.wolf3}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="wolf4"
                 label="狼人"
                 selected={selection.wolf4}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
             </Section>
 
-            <Section title="技能狼" colors={colors}>
+            <Section title="技能狼" styles={styles}>
               <RoleChip
                 id="wolfQueen"
                 label="狼美人"
                 selected={selection.wolfQueen}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="wolfKing"
                 label="白狼王"
                 selected={selection.wolfKing}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="darkWolfKing"
                 label="黑狼王"
                 selected={selection.darkWolfKing}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="gargoyle"
                 label="石像鬼"
                 selected={selection.gargoyle}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="nightmare"
                 label="梦魇"
                 selected={selection.nightmare}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="bloodMoon"
                 label="血月使徒"
                 selected={selection.bloodMoon}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="wolfRobot"
                 label="机械狼"
                 selected={selection.wolfRobot}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="spiritKnight"
                 label="恶灵骑士"
                 selected={selection.spiritKnight}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
             </Section>
           </View>
@@ -816,121 +481,121 @@ export const ConfigScreen: React.FC = () => {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>👥 好人阵营</Text>
 
-            <Section title="普通村民" colors={colors}>
+            <Section title="普通村民" styles={styles}>
               <RoleChip
                 id="villager"
                 label="村民"
                 selected={selection.villager}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="villager1"
                 label="村民"
                 selected={selection.villager1}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="villager2"
                 label="村民"
                 selected={selection.villager2}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="villager3"
                 label="村民"
                 selected={selection.villager3}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="villager4"
                 label="村民"
                 selected={selection.villager4}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
             </Section>
 
-            <Section title="神职" colors={colors}>
+            <Section title="神职" styles={styles}>
               <RoleChip
                 id="seer"
                 label="预言家"
                 selected={selection.seer}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="witch"
                 label="女巫"
                 selected={selection.witch}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="hunter"
                 label="猎人"
                 selected={selection.hunter}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="guard"
                 label="守卫"
                 selected={selection.guard}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="idiot"
                 label="白痴"
                 selected={selection.idiot}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="graveyardKeeper"
                 label="守墓人"
                 selected={selection.graveyardKeeper}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="knight"
                 label="骑士"
                 selected={selection.knight}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="dreamcatcher"
                 label="摄梦人"
                 selected={selection.dreamcatcher}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="magician"
                 label="魔术师"
                 selected={selection.magician}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="witcher"
                 label="猎魔人"
                 selected={selection.witcher}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
               <RoleChip
                 id="psychic"
                 label="通灵师"
                 selected={selection.psychic}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
             </Section>
           </View>
@@ -944,7 +609,7 @@ export const ConfigScreen: React.FC = () => {
                 label="混子"
                 selected={selection.slacker}
                 onToggle={toggleRole}
-                colors={colors}
+                styles={styles}
               />
             </View>
           </View>

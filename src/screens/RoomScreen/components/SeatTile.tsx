@@ -15,7 +15,14 @@
  * ✅ Allowed: types, styles, UI components (Avatar, etc.)
  */
 import React, { memo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, type ViewStyle, type TextStyle } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  type ViewStyle,
+  type TextStyle,
+} from 'react-native';
 import { Avatar } from '../../../components/Avatar';
 import { spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 import { TESTIDS } from '../../../testids';
