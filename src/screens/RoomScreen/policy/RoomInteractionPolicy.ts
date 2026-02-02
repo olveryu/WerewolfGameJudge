@@ -155,14 +155,7 @@ function handleHostControl(
   }
 
   // Type narrowing for action
-  const validActions = [
-    'settings',
-    'prepareToFlip',
-    'startGame',
-    'lastNightInfo',
-    'restart',
-    'bgmToggle',
-  ] as const;
+  const validActions = ['settings', 'prepareToFlip', 'startGame', 'lastNightInfo', 'restart'] as const;
 
   if (!validActions.includes(event.action as (typeof validActions)[number])) {
     return { kind: 'NOOP', reason: 'other_status' };

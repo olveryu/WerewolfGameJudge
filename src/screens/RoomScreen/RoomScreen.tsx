@@ -99,8 +99,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     requestSnapshot,
     submitRevealAck,
     sendWolfRobotHunterStatusViewed,
-    isBgmEnabled,
-    toggleBgm,
   } = useGameRoom();
 
   // Night progress indicator: calculate current step index and total steps
@@ -1083,9 +1081,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             case 'restart':
               showRestartDialog();
               return;
-            case 'bgmToggle':
-              toggleBgm();
-              return;
           }
           return;
 
@@ -1114,7 +1109,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       showStartGameDialog,
       showLastNightInfoDialog,
       showRestartDialog,
-      toggleBgm,
       submitRevealAckSafe,
       sendWolfRobotHunterStatusViewed,
     ],
@@ -1312,14 +1306,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             roomStatus === GameStatus.ongoing ||
             roomStatus === GameStatus.ended
           }
-          showBgmToggle={roomStatus === GameStatus.ongoing && !isAudioPlaying}
-          isBgmEnabled={isBgmEnabled}
           onSettingsPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' })}
           onPrepareToFlipPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' })}
           onStartGamePress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'startGame' })}
           onLastNightInfoPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'lastNightInfo' })}
           onRestartPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' })}
-          onBgmToggle={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'bgmToggle' })}
         />
 
         {/* Actioner: schema-driven bottom action buttons */}

@@ -49,7 +49,7 @@ function createBottomActionEvent(): InteractionEvent {
 }
 
 function createHostControlEvent(
-  action: 'settings' | 'prepareToFlip' | 'startGame' | 'lastNightInfo' | 'restart' | 'bgmToggle',
+  action: 'settings' | 'prepareToFlip' | 'startGame' | 'lastNightInfo' | 'restart',
 ): InteractionEvent {
   return { kind: 'HOST_CONTROL', action };
 }
