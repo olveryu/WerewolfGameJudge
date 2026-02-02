@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   StyleSheet,
   Modal,
-  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -91,21 +90,6 @@ const createStyles = (colors: ThemeColors) =>
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       gap: spacing.medium,
-    },
-    // BGM toggle row
-    bgmRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    bgmLabel: {
-      fontSize: typography.secondary,
-      color: colors.text,
     },
     settingsItem: {
       flex: 1,
@@ -672,7 +656,7 @@ export const ConfigScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Settings Row (Template + Animation) */}
+      {/* Settings Row (Template + Animation + BGM) */}
       <View style={styles.settingsRow}>
         <Dropdown
           label="模板"
@@ -688,16 +672,15 @@ export const ConfigScreen: React.FC = () => {
           onSelect={(v) => setRoleRevealAnimation(v as 'roulette' | 'flip' | 'none')}
           colors={colors}
         />
-      </View>
-
-      {/* BGM Toggle Row */}
-      <View style={styles.bgmRow}>
-        <Text style={styles.bgmLabel}>🎵 背景音乐</Text>
-        <Switch
-          value={bgmEnabled}
-          onValueChange={setBgmEnabled}
-          trackColor={{ false: colors.border, true: colors.primary }}
-          thumbColor={colors.surface}
+        <Dropdown
+          label="🎵 BGM"
+          value={bgmEnabled ? 'on' : 'off'}
+          options={[
+            { value: 'on', label: '开' },
+            { value: 'off', label: '关' },
+          ]}
+          onSelect={(v) => setBgmEnabled(v === 'on')}
+          colors={colors}
         />
       </View>
 
