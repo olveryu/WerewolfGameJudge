@@ -594,8 +594,8 @@ export const ConfigScreen: React.FC = () => {
   // Dropdown options
   const templateOptions: DropdownOption[] = useMemo(
     () => [
-      { value: '__custom__', label: '自定义' },
       ...PRESET_TEMPLATES.map((p) => ({ value: p.name, label: p.name })),
+      { value: '__custom__', label: '自定义' },
     ],
     [],
   );
