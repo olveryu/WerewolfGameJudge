@@ -36,6 +36,7 @@ export {
   tapSeat,
   tapBottomAction,
   pressDialogButton,
+  MockSafeAreaView,
   type GameStateMockOptions,
   type BoardTestContext,
 } from './boardTestUtils';

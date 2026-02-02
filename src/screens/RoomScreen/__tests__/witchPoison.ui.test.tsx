@@ -17,9 +17,11 @@ const mockNavigation = {
 
 jest.mock('@react-navigation/native', () => ({}));
 
-jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
-}));
+// Use MockSafeAreaView from harness to preserve testID
+jest.mock('react-native-safe-area-context', () => {
+  const { MockSafeAreaView } = require('./harness');
+  return { SafeAreaView: MockSafeAreaView };
+});
 
 // Schema-driven flow: when currentSchema is the step schema (witchPoison), seat tap triggers a confirm
 // and confirmation submits submitAction(target, { poison: true }).

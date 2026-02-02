@@ -22,9 +22,11 @@ jest.mock('../../../utils/alert', () => ({
 
 jest.mock('@react-navigation/native', () => ({}));
 
-jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
-}));
+// Use MockSafeAreaView from harness to preserve testID
+jest.mock('react-native-safe-area-context', () => {
+  const { MockSafeAreaView } = require('./harness');
+  return { SafeAreaView: MockSafeAreaView };
+});
 
 jest.mock('../hooks/useActionerState', () => ({
   useActionerState: () => ({

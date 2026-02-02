@@ -7,9 +7,11 @@ import type { WolfVoteSchema } from '../../../models/roles/spec';
 
 jest.mock('@react-navigation/native', () => ({}));
 
-jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
-}));
+// Use MockSafeAreaView from harness to preserve testID
+jest.mock('react-native-safe-area-context', () => {
+  const { MockSafeAreaView } = require('./harness');
+  return { SafeAreaView: MockSafeAreaView };
+});
 
 jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
