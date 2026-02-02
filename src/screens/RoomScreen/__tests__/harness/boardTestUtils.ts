@@ -6,12 +6,46 @@
  */
 
 import React from 'react';
+import { View } from 'react-native';
 import { waitFor, fireEvent } from '@testing-library/react-native';
 import type { RoleId } from '../../../../models/roles';
 import type { SchemaId } from '../../../../models/roles/spec';
 import { GameStatus } from '../../../../models/Room';
 import { TESTIDS } from '../../../../testids';
 import { RoomScreenTestHarness } from './RoomScreenTestHarness';
+
+// =============================================================================
+// SafeAreaView Mock (MUST preserve testID)
+// =============================================================================
+
+/**
+ * Mock SafeAreaView that preserves testID and other props.
+ *
+ * PURPOSE: The default react-native-safe-area-context mock (`({ children }) => children`)
+ * loses the `testID` prop, causing `room-screen-root` to be missing from the render tree.
+ * This breaks all board UI tests that use `waitForRoomScreen()`.
+ *
+ * REQUIREMENT: All board UI tests MUST use this mock via:
+ * ```
+ * jest.mock('react-native-safe-area-context', () => {
+ *   const { MockSafeAreaView } = require('./harness');
+ *   return { SafeAreaView: MockSafeAreaView };
+ * });
+ * ```
+ *
+ * DO NOT write inline SafeAreaView mocks in individual test files.
+ */
+export const MockSafeAreaView = ({
+  children,
+  testID,
+  style,
+  ...rest
+}: {
+  children?: React.ReactNode;
+  testID?: string;
+  style?: any;
+  [key: string]: any;
+}) => React.createElement(View, { testID, style, ...rest }, children);
 
 // =============================================================================
 // Mock Navigation

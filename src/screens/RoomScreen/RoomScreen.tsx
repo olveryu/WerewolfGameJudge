@@ -41,6 +41,7 @@ import {
   formatRoleList,
   buildSeatViewModels,
 } from './RoomScreen.helpers';
+import { getSeatTapResult } from './seatTap';
 import { TESTIDS } from '../../testids';
 import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
@@ -961,21 +962,45 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     [getActionIntent, handleActionIntent],
   );
 
+  /**
+   * Main seat tap handler using SeatTapPolicy for decision making.
+   *
+   * This is the orchestration layer that:
+   * 1. Calls the pure policy function to get a decision
+   * 2. Executes the decision (showAlert, call handlers, or no-op)
+   */
   const onSeatTapped = useCallback(
-    (index: number) => {
-      if (!gameState) return;
+    (index: number, disabledReason?: string) => {
+      // Get decision from pure policy function
+      const result = getSeatTapResult({
+        roomStatus,
+        isAudioPlaying,
+        seatIndex: index,
+        disabledReason,
+        imActioner,
+        hasGameState: !!gameState,
+      });
 
-      if (roomStatus === GameStatus.ongoing && isAudioPlaying) {
-        return;
-      }
+      // Execute the decision
+      switch (result.kind) {
+        case 'NOOP':
+          // Do nothing - audio playing, not actioner, or other status
+          return;
 
-      if (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) {
-        handleSeatingTap(index);
-      } else if (roomStatus === GameStatus.ongoing && imActioner) {
-        handleActionTap(index);
+        case 'ALERT':
+          showAlert(result.title, result.message, [{ text: '好' }]);
+          return;
+
+        case 'SEATING_FLOW':
+          handleSeatingTap(result.seatIndex);
+          return;
+
+        case 'ACTION_FLOW':
+          handleActionTap(result.seatIndex);
+          return;
       }
     },
-    [gameState, roomStatus, isAudioPlaying, handleSeatingTap, handleActionTap, imActioner],
+    [roomStatus, isAudioPlaying, imActioner, gameState, handleSeatingTap, handleActionTap],
   );
 
   // Host dialog callbacks from hook

@@ -20,10 +20,11 @@ const mockNavigation = {
 
 jest.mock('@react-navigation/native', () => ({}));
 
-// Mock SafeAreaContext
-jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
-}));
+// Use MockSafeAreaView from harness to preserve testID
+jest.mock('react-native-safe-area-context', () => {
+  const { MockSafeAreaView } = require('./harness');
+  return { SafeAreaView: MockSafeAreaView };
+});
 
 // Mock the room hook: provide minimal state to render PlayerGrid and accept taps
 const mockSubmitWolfVote = jest.fn();

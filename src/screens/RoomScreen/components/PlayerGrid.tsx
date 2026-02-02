@@ -4,7 +4,7 @@
  * This is a pure UI component that displays player seats.
  * It receives a SeatViewModel[] and a single callback.
  *
- * ❌ Do NOT import: any Service singletons
+ * ❌ Do NOT import: any Service singletons, showAlert
  * ✅ Allowed: types, styles, UI components (Avatar, etc.)
  */
 import React, { useMemo, memo } from 'react';
@@ -13,7 +13,6 @@ import { Avatar } from '../../../components/Avatar';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 import { TESTIDS } from '../../../testids';
 import type { SeatViewModel } from '../RoomScreen.helpers';
-import { showAlert } from '../../../utils/alert';
 
 // Grid calculation - needs to be exported for Avatar sizing
 const GRID_COLUMNS = 4;
@@ -25,8 +24,12 @@ export interface PlayerGridProps {
   seats: SeatViewModel[];
   /** Room number for Avatar */
   roomNumber: string;
-  /** Callback when a seat is pressed */
-  onSeatPress: (seatIndex: number) => void;
+  /**
+   * Callback when a seat is pressed.
+   * Always called with seatIndex and optional disabledReason.
+   * Caller (RoomScreen) is responsible for handling the logic.
+   */
+  onSeatPress: (seatIndex: number, disabledReason?: string) => void;
   /** Whether seat presses are disabled (e.g., during audio) */
   disabled?: boolean;
 }
@@ -46,7 +49,6 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
         // Key should be seat index only - seats are fixed positions
         // Don't include player/role info which causes unnecessary re-mounts when players move
         const seatKey = `seat-${seat.index}`;
-        const isDisabled = disabled || !!seat.disabledReason;
 
         return (
           <View key={seatKey} style={styles.tileWrapper} testID={TESTIDS.seatTile(seat.index)}>
@@ -60,15 +62,12 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
                 seat.isSelected && styles.selectedTile,
               ]}
               onPress={() => {
-                if (isDisabled) {
-                  if (seat.disabledReason) {
-                    showAlert('不可选择', seat.disabledReason, [{ text: '好' }]);
-                  }
-                  return;
-                }
-                onSeatPress(seat.index);
+                // Always delegate to caller with disabledReason if present
+                // Caller (RoomScreen) handles all logic via SeatTapPolicy
+                if (disabled) return; // Grid-level disable (audio gate)
+                onSeatPress(seat.index, seat.disabledReason);
               }}
-              activeOpacity={isDisabled ? 1 : 0.7}
+              activeOpacity={disabled || seat.disabledReason ? 1 : 0.7}
               // Don't set `disabled` here. In test environments it can prevent `press` events
               // from firing at all, which would skip our UX-only hint.
             >
