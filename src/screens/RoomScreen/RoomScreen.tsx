@@ -1016,11 +1016,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   /**
    * Unified interaction dispatcher using RoomInteractionPolicy.
    *
-   * This is the single entry point for user interactions that have been migrated.
+   * This is the single entry point for all user interactions.
    * It calls the pure policy function and executes the resulting instruction.
    *
-   * Currently integrated: SEAT_TAP, BOTTOM_ACTION, VIEW_ROLE, LEAVE_ROOM
-   * Not yet integrated: HOST_CONTROL (still handled by HostControlButtons props)
+   * Integrated: SEAT_TAP, BOTTOM_ACTION, VIEW_ROLE, LEAVE_ROOM, HOST_CONTROL
    */
   const dispatchInteraction = useCallback(
     (event: InteractionEvent) => {
@@ -1067,9 +1066,36 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           return;
 
         case 'HOST_CONTROL':
-          // HOST_CONTROL is NOT integrated in this PR.
-          // HostControlButtons still uses direct props. This case should not be reached.
-          roomScreenLog.warn('[dispatchInteraction] HOST_CONTROL received but not integrated', result);
+          switch (result.action) {
+            case 'settings':
+              handleSettingsPress();
+              return;
+            case 'prepareToFlip':
+              showPrepareToFlipDialog();
+              return;
+            case 'startGame':
+              showStartGameDialog();
+              return;
+            case 'lastNightInfo':
+              showLastNightInfoDialog();
+              return;
+            case 'restart':
+              showRestartDialog();
+              return;
+            case 'bgmToggle':
+              toggleBgm();
+              return;
+          }
+          return;
+
+        case 'REVEAL_ACK':
+          submitRevealAckSafe(result.revealRole);
+          // Clear the reveal gate after ack
+          setPendingRevealDialog(false);
+          return;
+
+        case 'HUNTER_STATUS_VIEWED':
+          void sendWolfRobotHunterStatusViewed();
           return;
       }
     },
@@ -1082,6 +1108,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       showLeaveSeatDialog,
       handleLeaveRoom,
       viewedRole,
+      handleSettingsPress,
+      showPrepareToFlipDialog,
+      showStartGameDialog,
+      showLastNightInfoDialog,
+      showRestartDialog,
+      toggleBgm,
+      submitRevealAckSafe,
+      sendWolfRobotHunterStatusViewed,
     ],
   );
 
@@ -1260,7 +1294,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* Bottom Buttons */}
       <View style={styles.buttonContainer}>
-        {/* Host Control Buttons */}
+        {/* Host Control Buttons - dispatch events to policy */}
         <HostControlButtons
           isHost={isHost}
           showSettings={
@@ -1279,12 +1313,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           }
           showBgmToggle={roomStatus === GameStatus.ongoing && !isAudioPlaying}
           isBgmEnabled={isBgmEnabled}
-          onSettingsPress={handleSettingsPress}
-          onPrepareToFlipPress={showPrepareToFlipDialog}
-          onStartGamePress={showStartGameDialog}
-          onLastNightInfoPress={showLastNightInfoDialog}
-          onRestartPress={showRestartDialog}
-          onBgmToggle={toggleBgm}
+          onSettingsPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' })}
+          onPrepareToFlipPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' })}
+          onStartGamePress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'startGame' })}
+          onLastNightInfoPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'lastNightInfo' })}
+          onRestartPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' })}
+          onBgmToggle={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'bgmToggle' })}
         />
 
         {/* Actioner: schema-driven bottom action buttons */}
