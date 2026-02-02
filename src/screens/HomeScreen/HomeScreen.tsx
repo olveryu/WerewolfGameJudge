@@ -6,7 +6,7 @@
  * - All sub-components memoized with custom arePropsEqual
  * - Handlers use useCallback to maintain stable references
  */
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { View, Text, ScrollView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -240,19 +240,45 @@ export const HomeScreen: React.FC = () => {
 
   // ============================================
   // Memoized menu item handlers (stable references)
+  // Use ref pattern so MenuItem can be memoized without comparing onPress,
+  // but still call the latest handler that captures current user state.
   // ============================================
 
-  const handleEnterRoomPress = useCallback(() => {
+  const handleEnterRoomPressRef = useRef(() => {
     requireAuth(handleShowJoinModal);
-  }, [requireAuth, handleShowJoinModal]);
+  });
+  useLayoutEffect(() => {
+    handleEnterRoomPressRef.current = () => {
+      requireAuth(handleShowJoinModal);
+    };
+  });
+  const handleEnterRoomPress = useCallback(() => {
+    handleEnterRoomPressRef.current();
+  }, []);
 
-  const handleCreateRoomPress = useCallback(() => {
+  const handleCreateRoomPressRef = useRef(() => {
     requireAuth(handleCreateRoom);
-  }, [requireAuth, handleCreateRoom]);
+  });
+  useLayoutEffect(() => {
+    handleCreateRoomPressRef.current = () => {
+      requireAuth(handleCreateRoom);
+    };
+  });
+  const handleCreateRoomPress = useCallback(() => {
+    handleCreateRoomPressRef.current();
+  }, []);
 
-  const handleReturnLastGamePress = useCallback(() => {
+  const handleReturnLastGamePressRef = useRef(() => {
     requireAuth(handleReturnToLastGame);
-  }, [requireAuth, handleReturnToLastGame]);
+  });
+  useLayoutEffect(() => {
+    handleReturnLastGamePressRef.current = () => {
+      requireAuth(handleReturnToLastGame);
+    };
+  });
+  const handleReturnLastGamePress = useCallback(() => {
+    handleReturnLastGamePressRef.current();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.homeScreenRoot}>
