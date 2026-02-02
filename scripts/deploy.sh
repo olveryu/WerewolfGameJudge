@@ -59,20 +59,26 @@ else
     echo "🤖 AI 正在生成 commit message..."
     
     # 获取 git diff 摘要（排除版本文件，限制长度避免 token 过多）
-    DIFF_FILES=$(git diff --cached --name-only | grep -v -E '^(package\.json|app\.json|src/config/version\.ts)$' | head -10 | tr '\n' ' ')
+    DIFF_FILES=$(git diff --cached --name-only | grep -v -E '^(package\.json|package-lock\.json|app\.json|src/config/version\.ts)$' | head -10 | tr '\n' ' ')
     
-    # 构建 prompt（简化，避免转义问题）
-    PROMPT="Generate a git commit message based on changed files. Ignore version bumps. Changed files: $DIFF_FILES. Use conventional commit format (feat/fix/chore). Max 60 chars. Just the message, no quotes or explanation."
+    # 如果排除版本文件后没有其他改动，直接用默认 message
+    if [ -z "$DIFF_FILES" ]; then
+      COMMIT_MSG="release: $VERSION"
+      echo "ℹ️ 仅版本更新，使用默认 commit message"
+    else
+      # 构建 prompt（简化，避免转义问题）
+      PROMPT="Generate a git commit message for: $DIFF_FILES. Rules: 1) NEVER mention version, dependency, bump, or update. 2) Focus on actual code/feature changes. 3) Use conventional commit (feat/fix/chore/refactor). 4) Max 60 chars. Just the message, no quotes."
     
-    # 调用 Groq API 生成 commit message
-    AI_RESPONSE=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
-      -H "Authorization: Bearer $GROQ_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d "{\"model\":\"llama-3.1-8b-instant\",\"messages\":[{\"role\":\"user\",\"content\":\"$PROMPT\"}],\"temperature\":0.3,\"max_tokens\":50}" 2>/dev/null)
+      # 调用 Groq API 生成 commit message
+      AI_RESPONSE=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
+        -H "Authorization: Bearer $GROQ_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\":\"llama-3.1-8b-instant\",\"messages\":[{\"role\":\"user\",\"content\":\"$PROMPT\"}],\"temperature\":0.3,\"max_tokens\":50}" 2>/dev/null)
     
-    # 提取 commit message（使用 python 解析 JSON 更可靠）
-    if [ -n "$AI_RESPONSE" ]; then
-      COMMIT_MSG=$(echo "$AI_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['choices'][0]['message']['content'].strip())" 2>/dev/null | head -1 | cut -c1-72)
+      # 提取 commit message（使用 python 解析 JSON 更可靠）
+      if [ -n "$AI_RESPONSE" ]; then
+        COMMIT_MSG=$(echo "$AI_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['choices'][0]['message']['content'].strip())" 2>/dev/null | head -1 | cut -c1-72)
+      fi
     fi
   fi
   

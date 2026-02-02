@@ -13,6 +13,19 @@ export interface User {
   isAnonymous: boolean;
 }
 
+// Shallow equality check for User objects to prevent unnecessary re-renders
+const userEquals = (a: User | null, b: User | null): boolean => {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.uid === b.uid &&
+    a.email === b.email &&
+    a.displayName === b.displayName &&
+    a.avatarUrl === b.avatarUrl &&
+    a.isAnonymous === b.isAnonymous
+  );
+};
+
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,6 +45,11 @@ export const useAuth = () => {
     };
   }, []);
 
+  // Only update user state if data actually changed (prevents unnecessary re-renders)
+  const updateUserIfChanged = useCallback((newUser: User | null) => {
+    setUser((prev) => (userEquals(prev, newUser) ? prev : newUser));
+  }, []);
+
   // Load current user on mount
   useEffect(() => {
     // Don't do anything if Supabase is not configured
@@ -44,7 +62,7 @@ export const useAuth = () => {
       try {
         const result = await authService.getCurrentUser();
         if (result?.data?.user) {
-          setUser(toUser(result.data.user));
+          updateUserIfChanged(toUser(result.data.user));
         }
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
@@ -63,7 +81,7 @@ export const useAuth = () => {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       authLog.info('Auth state changed:', event);
       if (session?.user) {
-        setUser(toUser(session.user));
+        updateUserIfChanged(toUser(session.user));
       } else {
         setUser(null);
       }
@@ -73,7 +91,7 @@ export const useAuth = () => {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [authService, toUser]);
+  }, [authService, toUser, updateUserIfChanged]);
 
   const signInAnonymously = async () => {
     setLoading(true);
