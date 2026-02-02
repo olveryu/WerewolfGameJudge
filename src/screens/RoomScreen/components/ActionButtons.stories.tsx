@@ -35,7 +35,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
           key={b.key}
           style={[mockStyles.button, disabled && mockStyles.disabled]}
           onPress={b.onPress}
-          disabled={disabled}
+          activeOpacity={disabled ? 1 : 0.7}
+          accessibilityState={{ disabled }}
         >
           <Text style={mockStyles.buttonText}>{b.label}</Text>
         </TouchableOpacity>

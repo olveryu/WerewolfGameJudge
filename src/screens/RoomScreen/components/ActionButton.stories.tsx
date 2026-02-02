@@ -77,8 +77,8 @@ export const Disabled: Story = {
 export const StateComparison: Story = {
   render: () => (
     <View style={{ gap: 12 }}>
-      <ActionButton label="Enabled" onPress={() => {}} />
-      <ActionButton label="Disabled" disabled onPress={() => {}} />
+      <ActionButton label="Enabled" onPress={(_meta) => {}} />
+      <ActionButton label="Disabled" disabled onPress={(_meta) => {}} />
     </View>
   ),
 };
