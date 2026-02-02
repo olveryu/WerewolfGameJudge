@@ -58,11 +58,11 @@ else
   if [ -n "$GROQ_API_KEY" ]; then
     echo "🤖 AI 正在生成 commit message..."
     
-    # 获取 git diff 摘要（限制长度避免 token 过多）
-    DIFF_FILES=$(git diff --cached --name-only | head -10 | tr '\n' ' ')
+    # 获取 git diff 摘要（排除版本文件，限制长度避免 token 过多）
+    DIFF_FILES=$(git diff --cached --name-only | grep -v -E '^(package\.json|app\.json|src/config/version\.ts)$' | head -10 | tr '\n' ' ')
     
     # 构建 prompt（简化，避免转义问题）
-    PROMPT="Generate a git commit message for version $VERSION. Changed files: $DIFF_FILES. Use conventional commit format (feat/fix/chore). Max 60 chars. Just the message, no quotes or explanation."
+    PROMPT="Generate a git commit message based on changed files. Ignore version bumps. Changed files: $DIFF_FILES. Use conventional commit format (feat/fix/chore). Max 60 chars. Just the message, no quotes or explanation."
     
     # 调用 Groq API 生成 commit message
     AI_RESPONSE=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
