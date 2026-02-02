@@ -1,5 +1,27 @@
 ## WerewolfGameJudge Copilot 指令（全中文）
 
+## 快速索引（Table of Contents）
+
+- 协作规则：未确认禁止写代码（MUST follow）
+- 不可协商规则（先读）
+- 架构边界（Architecture boundaries）
+- 夜晚流程与 NightPlan（Host 权威）
+  - 自动推进（auto-advance）硬性护栏
+  - 音频 Gate（isAudioPlaying）硬性护栏
+- 约束、校验与 Night-1-only 红线
+- 广播架构（Broadcast architecture：无私聊/无私有消息）
+- Anti-drift 护栏（MUST follow）
+- RoomScreen UI 交互架构（MUST follow）
+- Screen 性能设计一致性（All Screens SHOULD follow）
+- 实现清单（角色 / schema / step / UI 必做）
+- 交付与门禁（必须执行）
+
+### 0.5) 协作规则：未确认禁止写代码（MUST follow）
+
+- **禁止在未明确征得用户同意的情况下修改代码**（尤其是 apply_patch / edit）。
+  - ✅ 允许：只读检查（read/search/list/grep）、运行测试/格式化/类型检查。
+  - ✅ 若需要改动：必须先在回复中列出“将修改的文件 + 变更点摘要 + 风险”，等待用户明确确认（例如“OK/同意/可以改”）后才能动手。
+
 ### 0) 不可协商规则（先读）
 
 - **Host 是唯一的游戏逻辑权威。** Supabase 只负责 transport/discovery/identity（传输/发现/身份）。
@@ -62,40 +84,16 @@ advanceToNextAction()
 
 ### Role/Schema/Step 三层架构
 
-```
-ROLE_SPECS (角色固有属性)
-    │ 定义：displayName, faction, wolfMeeting, flags
-    │ 文件：src/models/roles/spec/specs.ts
-    │
-    ▼
-SCHEMAS (行动输入协议)    ← 单一真相
-    │ 定义：kind, constraints, ui.prompt, meeting (for wolfVote)
-    │ 文件：src/models/roles/spec/schemas.ts
-    │ UI 从 schema 推导行为 (e.g., showWolves = schema.meeting.canSeeEachOther)
-    │
-    ▼
-NIGHT_STEPS (步骤序列)    ← 只管顺序和音频
-    │ 定义：id (= SchemaId), roleId, audioKey
-    │ 文件：src/models/roles/spec/nightSteps.ts
-    │
-    ▼
-GameStateService / Resolvers (Host 执行)
-    │
-    ▼
-UI (从 schema + gameState 推导显示)
-```
+三层表驱动（单一真相）：
 
-**职责划分：**
-| 层级 | 职责 | 示例 |
-|------|------|------|
-| `ROLE_SPECS` | 角色固有属性，不随步骤变化 | `wolfMeeting.canSeeWolves` = 这个角色能否被狼队友看到 |
-| `SCHEMAS` | 行动输入协议，描述 UI 交互和约束 | `meeting.canSeeEachOther` = 会议中能否互相看到 |
-| `NIGHT_STEPS` | 步骤序列，只管顺序和音频 | `audioKey` = 播放哪个音频 |
+- `ROLE_SPECS`：角色固有属性（不随步骤变化）→ `src/models/roles/spec/specs.ts`
+- `SCHEMAS`：行动输入协议（约束/提示/meeting，可驱动 UI）→ `src/models/roles/spec/schemas.ts`
+- `NIGHT_STEPS`：Night-1 步骤顺序 + 音频（id=SchemaId）→ `src/models/roles/spec/nightSteps.ts`
 
-**不是双写：**
+不是双写：
 
-- `schema.meeting.canSeeEachOther` 控制 "何时" 显示队友 (开关)
-- `ROLE_SPECS[role].wolfMeeting.canSeeWolves` 控制 "谁" 被高亮 (过滤)
+- `schema.meeting.canSeeEachOther` 决定“何时显示队友”（开关）
+- `ROLE_SPECS[role].wolfMeeting.canSeeWolves` 决定“谁被高亮”（过滤）
 
 ### 日志（Logging）
 
@@ -180,13 +178,6 @@ UI (从 schema + gameState 推导显示)
   - 优先修复 Host 的 setAudioPlaying(false) 兜底链路
   - 并补 E2E/contract fail-fast，禁止靠超时隐藏问题
 
-  - ✅ 允许：`handleSetAudioPlaying`（Host-only）→ reducer 处理 `SET_AUDIO_PLAYING`。
-  - ❌ 禁止：在 reducer 中对 `START_NIGHT` / `ADVANCE_TO_NEXT_ACTION` / `SET_CURRENT_STEP` 等 action “顺便”把 `isAudioPlaying` 设为 `true/false`（这会把事实状态变成推导状态，导致 drift / 卡死）。
-
-- **Host 负责“音频时序编排”，但音频播放 IO 可以在 UI 层触发。** 允许的模式是：
-  - 优先修复 Host 的 setAudioPlaying(false) 兜底链路
-  - 并补 E2E/contract fail-fast，禁止靠超时隐藏问题
-
 ### StepSpec id 规则
 
 - Step id 必须是稳定的 `SchemaId`。
@@ -217,13 +208,13 @@ UI (从 schema + gameState 推导显示)
 
 ## 广播架构（Broadcast architecture：无私聊/无私有消息）
 
-- **所有游戏状态都是公开的。** `BroadcastGameState` 必须包含全部信息（包括角色特定数据）。
-- **UI 层过滤显示。** Client UI 根据 `myRole` 决定显示什么：
-  - 女巫仅在 `myRole === 'witch'` 时显示 `witchContext.killedIndex`
-  - 预言家仅在 `myRole === 'seer'` 时显示 `seerReveal.result`
-  - 狼人仅在 `isWolfRole(myRole)` 时显示狼队投票信息（例如 `currentNightResults.wolfVotesBySeat`）
-- **不允许 PRIVATE_EFFECT。** 为简化架构，所有私有消息基础设施已移除。
-- **Host 和 Player 读取同一份 state。** 不允许 Host 用本地状态、Player 用广播状态导致不同步。
+- **所有游戏状态都是公开的。** `BroadcastGameState` 必须包含全部信息（含角色特定数据）。
+- **UI 层过滤显示。** Client UI 按 `myRole` 过滤：
+  - 例：女巫仅在 `myRole === 'witch'` 时显示 `witchContext.killedIndex`
+  - 例：预言家仅在 `myRole === 'seer'` 时显示 `seerReveal.result`
+  - 狼人同理：仅狼阵营显示狼队信息（例如 `currentNightResults.wolfVotesBySeat`）
+- **不允许 `PRIVATE_EFFECT`。** 私有消息基础设施已移除。
+- **Host 与 Player 读取同一份 state。** 禁止 Host 用本地状态、Player 用广播状态导致不同步。
 
 ---
 
@@ -284,6 +275,41 @@ UI (从 schema + gameState 推导显示)
   - gate 必须由 policy 决策并在 orchestrator 执行（NOOP / ALERT）
 
 > 说明：这一条是为了避免出现 "PlayerGrid 挡一层、RoomScreen/Policy 再挡一层" 的双 gate。
+
+> 适用范围补充：以上“禁吞点击 / 逻辑 gate”规则 **不只适用于 RoomScreen**。
+>
+> - `src/screens/**/components/**` 全部按同一规则执行。
+> - `disabled` 只允许用于“视觉/无障碍语义”，不允许作为“阻断事件”的手段。
+> - 少数例外：纯 Storybook / test files 可为演示使用 `disabled`，但不得被生产组件复用。
+
+---
+
+## Screen 性能设计一致性（All Screens SHOULD follow）
+
+当你修改/新增任何 Screen（`src/screens/**`）的 UI 结构或性能相关代码时，优先遵守以下统一模式（参考：`HomeScreen` / `SettingsScreen` / `ConfigScreen` / `RoomScreen PlayerGrid/SeatTile`）：
+
+### 1) Styles factory 上提（单次创建）
+
+- ✅ 用 `createXxxScreenStyles(colors)`（或 `createXxxStyles(colors)`）集中创建样式。
+- ✅ 在 Screen 父组件里 `useMemo(() => createXxxScreenStyles(colors), [colors])` **只创建一次**。
+- ✅ styles 通过 props 传给子组件；子组件 **禁止**各自 `StyleSheet.create`。
+
+### 2) 子组件 memo 化（只比较 UI primitive + styles 引用）
+
+- ✅ 子组件使用 `React.memo(Component, arePropsEqual)`。
+- ✅ `arePropsEqual` 只比较：UI 相关 primitive props + `styles` 引用。
+- ✅ 回调（`onPress/onChange/...`）通常不参与比较（由父级 `useCallback` 稳定化）。
+
+### 3) Handler 稳定化（useCallback）
+
+- ✅ 父级 Screen 负责把 handler 用 `useCallback` 固定引用。
+- ✅ 避免大量内联 `onPress={() => ...}` 导致 props identity 抖动；必要时抽成 `useCallback`。
+
+### 4) 性能门禁测试（最小集）
+
+- ✅ 建议至少提供其中一种（推荐两种都做）：
+  - a) `createXxxScreenStyles` 的 key coverage 测试（防漏字段）；
+  - b) memo 行为测试：无关 state 变化不触发子组件重渲染（renderSpy 或同等方式）。
 
 ### 必须锁定的优先级合约（Contract MUST exist）
 
@@ -377,60 +403,54 @@ UI (从 schema + gameState 推导显示)
 
 当你新增/修改任意“板子/模板”（12p preset）或新增/修改任意 Night-1 行动角色（含 UI 交互、弹窗、gate）时，**必须同时补齐 UI-level 测试**，否则视为未完成交付。
 
-**硬性要求：**
+#### 必须（MUST）
 
-1. **必须实现并使用 `RoomScreenTestHarness`**
+1. `RoomScreenTestHarness`
 
-- 目的：拦截并记录所有 `showAlert/showDialog` 调用（title + message + buttons + 分类 type），使“弹窗/互动覆盖”可证明、可门禁。
-- 允许在测试环境 mock `src/utils/alert.ts` 的 `showAlert` 入口来实现拦截。
-- 测试末尾必须做清单式断言：任何缺失的弹窗类型/互动分支都必须 fail。
+- 必须实现并使用 `RoomScreenTestHarness`：拦截并记录所有 `showAlert/showDialog`（title/message/buttons/type）。
+- 允许在测试环境 mock `src/utils/alert.ts` 的 `showAlert` 入口。
+- 测试末尾必须做覆盖清单断言：缺任意弹窗类型/互动分支必须 fail。
 
-2. **每新增一个板子（12p preset）必须新增对应 UI-level board test**
+2. Board UI tests
 
-- 位置建议：`src/screens/RoomScreen/__tests__/boards-ui/**/*.ui.test.tsx`（或项目既有一致路径）。
-- 每个板子最低要求：覆盖 Night-1 全流程中该板子涉及的所有弹窗与互动（prompt/confirm/reveal/skip 等）。
+- 每新增一个板子（12p preset）必须新增对应 UI-level board test。
+- 位置：`src/screens/RoomScreen/__tests__/boards-ui/**/*.ui.test.tsx`（或项目既有一致路径）。
+- 最低覆盖：Night-1 全流程涉及的 prompt/confirm/reveal/skip 等互动。
 - 禁止用 snapshot/Storybook 截图替代交互覆盖。
 
-3. **每新增/修改一个 Night-1 行动角色，必须覆盖其 UI 分支与 gate**
+3. 角色行动 UI 覆盖
 
-- 至少覆盖：
-  - 行动提示（prompt）
-  - 确认/取消（confirm）
-  - reveal 弹窗 + `REVEAL_ACK` 链路（如果该角色产生 reveal）
-  - 任何额外 gate（例如：`wolfRobotHunterStatusViewed`）必须在 UI test 中显式点击/发送并断言解除，禁止自动清 gate。
-- **梦魇（nightmare）属于高风险分支：**板子包含 nightmare 时，UI-level tests 必须覆盖 nightmare blocked 的弹窗/拒绝路径以及其对后续 UI（如 wolfKillDisabled）的影响。
+- 每新增/修改一个 Night-1 行动角色，至少覆盖：prompt / confirm /（如有）reveal + `REVEAL_ACK`。
+- 任何额外 gate（例如 `wolfRobotHunterStatusViewed`）必须在 UI test 中显式点击/发送并断言解除，禁止自动清 gate。
+- nightmare（高风险）必须覆盖 blocked 的弹窗/拒绝路径，并断言对后续 UI 的影响（如 `wolfKillDisabled`）。
 
-4. **必须有门禁（contract gate）防漏测**
+4. Contract gate 防漏测
 
-- 必须存在一个 contract test：强制“板子 × 必需弹窗类型”的覆盖清单全部满足；任何漏测直接 fail。
-- 清单必须 schema/steps 驱动（来自 `SCHEMAS` / `NIGHT_STEPS`），禁止手写散落硬编码。
+- 必须存在 contract test：强制“板子 × 必需弹窗类型”覆盖清单全部满足；漏任意一个直接 fail。
+- required 清单必须 schema/steps 驱动（来自 `SCHEMAS` / `NIGHT_STEPS`），禁止手写散落硬编码。
 
-5. **反作弊硬红线（不可协商）**
+#### 反作弊硬红线（不可协商 / MUST）
 
-- **禁止跳过 UI 覆盖测试**：
-  - `src/screens/RoomScreen/__tests__/boards/**` 下 **禁止出现** `it.skip` / `test.skip` / `describe.skip`。
-  - CI/contract gate 必须检查到任何 `*.board.ui.test.tsx` 含有 `\.skip\b` 都直接 fail。
-
-- **禁止“动态口径覆盖”（必须可证明）**：
-  - Board UI tests 的最终覆盖断言 **必须**使用字面量数组：
-    - ✅ 允许：`harness.assertCoverage(['actionPrompt', 'wolfVote', ...])`
-    - ❌ 禁止：`harness.assertCoverage(getRequired*DialogTypes(...))`
-    - ❌ 禁止：`harness.assertCoverage(requiredTypes)`（任何非字面量数组都视为可作弊）
-  - Contract gate 必须解析并对照覆盖矩阵（schema/board 驱动的 required 清单），少任意一个 `DialogType` 直接 fail。
-
-- **难测分支不得移出 required 清单**（禁止以“button-dependent/不好测”为理由降级覆盖）：
-  - 例如：`confirmTrigger`、`skipConfirm`、`actionConfirm`、`wolfRobotHunterStatus`、`wolfRobotHunterStatusViewed` gate。
-  - 不好测只能增强 mock/harness，不允许把它们改成 optional/移到别的层。
+- 禁止跳过：`src/screens/RoomScreen/__tests__/boards/**` 下禁止出现 `it.skip` / `test.skip` / `describe.skip`。
+  - CI/contract gate 必须检查到任意 `*.board.ui.test.tsx` 含 `\.skip\b` 直接 fail。
+- 禁止“动态口径覆盖”：Board UI tests 的最终覆盖断言必须使用字面量数组。
+  - ✅ 允许：`harness.assertCoverage(['actionPrompt', 'wolfVote', ...])`
+  - ❌ 禁止：`harness.assertCoverage(getRequired*DialogTypes(...))`
+  - ❌ 禁止：`harness.assertCoverage(requiredTypes)`（任何非字面量数组都视为可作弊）
+  - Contract gate 必须解析并对照覆盖矩阵（schema/board 驱动 required 清单），少任意一个 `DialogType` 直接 fail。
+- 难测分支不得移出 required 清单（禁止以“button-dependent/不好测”为理由降级覆盖）：
+  - 例如：`confirmTrigger`、`skipConfirm`、`actionConfirm`、`wolfRobotHunterStatus`、`wolfRobotHunterStatusViewed`。
+  - 不好测只能增强 mock/harness，不允许改成 optional/移层。
 
 ### 质量门禁（Quality gates）
 
-- 修改代码后，必须跑 ESLint/Prettier（以项目既有 npm scripts 为准），确保 0 errors。
+- 格式化/静态检查：修改代码后必须跑 ESLint/Prettier（以项目既有 npm scripts 为准），确保 0 errors。
 - 合约测试必须覆盖：
   - `NIGHT_STEPS` 引用有效性（`roleId`、`SchemaId`）
-  - step ids 顺序确定性（snapshot）与唯一性
+  - Step ids 顺序确定性（snapshot）与唯一性
   - Night-1-only 红线
-  - audioKey 非空
-- E2E 只做 smoke：核心 e2e 必须 `workers=1`，房间就绪必须用 `waitForRoomScreenReady()`。
+  - `audioKey` 非空
+- E2E 仅 smoke：核心 e2e 必须 `workers=1`，房间就绪必须用 `waitForRoomScreenReady()`。
 
 ### Integration tests 必须“真实”（硬性要求）
 
@@ -460,7 +480,7 @@ UI (从 schema + gameState 推导显示)
 ### 修复与审计规范
 
 - 修 bug 优先根因修复；修复后回滚基于错误假设的过时 patch，避免补丁叠补丁。
-- 禁止无证据宣称“已修复”。非 trivial 必须给：commit hash、修改文件、关键符号、行为变化、验证结果（typecheck/Jest/e2e）。
+- 禁止无证据宣称“已修复”：非 trivial 必须给 commit hash、修改文件、关键符号、行为变化、验证结果（typecheck/Jest/e2e）。
 
 ### 终端输出规范
 
