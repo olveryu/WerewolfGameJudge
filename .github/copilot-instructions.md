@@ -97,17 +97,11 @@ advanceToNextAction()
 
 ### 日志（Logging）
 
-- **使用结构化 logger**：统一从 `src/utils/logger.ts` 获取（例如 `gameRoomLog`、`roomScreenLog`、`gameStateLog`）。
-- **禁止在业务代码中使用 `console.*`**：除非明确属于**测试/脚本/Storybook mock/E2E 调试**，否则一律用 logger。
-  - ✅ 允许：`src/**/__tests__/**`、`e2e/**`、`scripts/**`、`*.stories.tsx` 中的 `console.*`
-  - ✅ 允许：对第三方库/运行环境不可控的 `console.*`（例如依赖内部）
-  - ❌ 禁止：`src/**` 业务/服务/组件代码里新增 `console.log/warn/error`
-  - 推荐用法：
-    - `import { log } from 'src/utils/logger'` 然后 `log.extend('Module').debug('msg', data)`
-    - 或直接用预置的 `roomScreenLog` / `broadcastLog` 等
-- **关键事件必须打日志**：状态迁移、action 提交、错误、关键分支决策。
-- **日志格式**：包含 context（例如 `[RoomScreen]`、`[GameStateService]`）与相关数据。
-- **Debug vs Error**：正常流程用 `.debug()`；可恢复问题用 `.warn()`；失败用 `.error()`。
+- **入口**：统一从 `src/utils/logger.ts` 获取（例如 `gameRoomLog`、`roomScreenLog`、`gameStateLog`）。
+- **禁止**：`src/**` 业务/服务/组件代码里新增 `console.*`。
+- **允许**：`src/**/__tests__/**`、`e2e/**`、`scripts/**`、`*.stories.tsx`；以及第三方库/运行环境不可控的 `console.*`。
+- **必须打日志**：状态迁移、action 提交、错误、关键分支决策（带 context + 关键数据）。
+- **级别**：正常流程 `.debug()`；可恢复问题 `.warn()`；失败 `.error()`。
 
 ---
 
@@ -181,7 +175,7 @@ advanceToNextAction()
 ### StepSpec id 规则
 
 - Step id 必须是稳定的 `SchemaId`。
-- 禁止使用 UI 文案作为逻辑 key；测试必须断言稳定 identifier。
+- 禁止使用 UI 文案作为逻辑 key；测试必须断言稳定 identifier。（同“NightPlan 单一真相”处的稳定 key 规则）
 
 ---
 
@@ -276,11 +270,7 @@ advanceToNextAction()
 
 > 说明：这一条是为了避免出现 "PlayerGrid 挡一层、RoomScreen/Policy 再挡一层" 的双 gate。
 
-> 适用范围补充：以上“禁吞点击 / 逻辑 gate”规则 **不只适用于 RoomScreen**。
->
-> - `src/screens/**/components/**` 全部按同一规则执行。
-> - `disabled` 只允许用于“视觉/无障碍语义”，不允许作为“阻断事件”的手段。
-> - 少数例外：纯 Storybook / test files 可为演示使用 `disabled`，但不得被生产组件复用。
+> 同样规则适用于 `src/screens/**/components/**`：`disabled` 只能做视觉/无障碍语义，不得阻断事件；Storybook/test files 允许演示性例外。
 
 ---
 
@@ -307,9 +297,9 @@ advanceToNextAction()
 
 ### 4) 性能门禁测试（最小集）
 
-- ✅ 建议至少提供其中一种（推荐两种都做）：
-  - a) `createXxxScreenStyles` 的 key coverage 测试（防漏字段）；
-  - b) memo 行为测试：无关 state 变化不触发子组件重渲染（renderSpy 或同等方式）。
+- ✅ 至少提供一种：
+  - `createXxxScreenStyles` key coverage（防漏字段）
+  - 或 memo 行为测试（无关 state 变化不重渲染）
 
 ### 必须锁定的优先级合约（Contract MUST exist）
 
@@ -336,16 +326,6 @@ advanceToNextAction()
   - 接收 `HostBroadcast.STATE_UPDATE`
   - `applySnapshot(broadcastState, revision)`
 
-### “legacy” 边界（纯模块禁止移入 legacy）
-
-- 禁止把这些内容移动到 `legacy/`：
-  - `src/services/night/resolvers/**`（或迁移后的 `src/services/engine/night/resolvers/**`）
-  - `src/models/roles/spec/**`（ROLE_SPECS / SCHEMAS / NIGHT_STEPS）
-  - `NightFlowController`（纯状态机）
-  - `DeathCalculator`（纯计算）
-
-- 只允许把即将被替换的编排/胶水代码移动到 `legacy/`（例如 God service / 旧 transport wrapper / persistence glue）。
-
 ### wire protocol 必须稳定（Transport protocol stability）
 
 - on-wire protocol 是稳定的，必须保持兼容：
@@ -356,8 +336,6 @@ advanceToNextAction()
 
 - 可以引入内部 “Intent” 类型，但必须适配到现有 protocol。
   - 除非同时提供兼容层 + 合约测试，否则禁止发明平行的消息协议。
-
-    **显式规则：** legacy 仅用于比较
 
 ---
 
