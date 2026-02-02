@@ -568,6 +568,9 @@ export const ConfigScreen: React.FC = () => {
   }, []);
 
   const handleCreateRoom = useCallback(async () => {
+    // Guard: prevent action when loading/creating
+    if (isCreating || isLoading) return;
+
     const roles = selectionToRoles(selection);
     if (roles.length === 0) {
       showAlert('错误', '请至少选择一个角色');
@@ -613,7 +616,7 @@ export const ConfigScreen: React.FC = () => {
     } finally {
       setIsCreating(false);
     }
-  }, [selection, navigation, isEditMode, existingRoomNumber, facade, roleRevealAnimation, settingsService, bgmEnabled]);
+  }, [selection, navigation, isEditMode, existingRoomNumber, facade, roleRevealAnimation, settingsService, bgmEnabled, isCreating, isLoading]);
 
   // Dropdown options
   const templateOptions: DropdownOption[] = useMemo(
@@ -656,9 +659,10 @@ export const ConfigScreen: React.FC = () => {
           <Text style={styles.subtitle}>{selectedCount} 名玩家</Text>
         </View>
         <TouchableOpacity
-          style={[styles.headerBtn, styles.createBtn]}
+          style={[styles.headerBtn, styles.createBtn, (isCreating || isLoading) && { opacity: 0.5 }]}
           onPress={handleCreateRoom}
-          disabled={isCreating || isLoading}
+          activeOpacity={isCreating || isLoading ? 1 : 0.7}
+          accessibilityState={{ disabled: isCreating || isLoading }}
         >
           {isCreating ? (
             <ActivityIndicator color={colors.textInverse} size="small" />

@@ -9,7 +9,7 @@ interface NumPadProps {
   onValueChange: (value: string) => void;
   /** Maximum number of digits (default: 4) */
   maxLength?: number;
-  /** Disable all buttons */
+  /** Visual disabled state (opacity) - also prevents value changes */
   disabled?: boolean;
 }
 
@@ -77,6 +77,7 @@ const NumPadComponent: React.FC<NumPadProps> = ({
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const handlePress = (key: string) => {
+    // NumPad is an input component - disabled means no input accepted
     if (disabled) return;
 
     if (key === 'clear') {
@@ -106,8 +107,8 @@ const NumPadComponent: React.FC<NumPadProps> = ({
           disabled && styles.buttonDisabled,
         ]}
         onPress={() => handlePress(key)}
-        disabled={disabled}
-        activeOpacity={0.7}
+        activeOpacity={disabled ? 1 : 0.7}
+        accessibilityState={{ disabled }}
         testID={`numpad-${key}`}
       >
         <Text style={[styles.buttonText, isSpecial && styles.specialButtonText]}>{label}</Text>

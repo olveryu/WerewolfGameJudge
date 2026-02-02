@@ -394,7 +394,11 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
   }
 
   return (
-    <TouchableOpacity onPress={onPickAvatar} disabled={uploadingAvatar}>
+    <TouchableOpacity
+      onPress={onPickAvatar}
+      activeOpacity={uploadingAvatar ? 1 : 0.7}
+      accessibilityState={{ disabled: uploadingAvatar }}
+    >
       {uploadingAvatar ? (
         <View style={styles.avatarPlaceholder}>
           <ActivityIndicator color={colors.primary} />
@@ -544,7 +548,8 @@ const AuthForm: React.FC<AuthFormProps> = ({
       <TouchableOpacity
         style={[styles.authBtn, authLoading && styles.authBtnDisabled]}
         onPress={onSubmit}
-        disabled={authLoading}
+        activeOpacity={authLoading ? 1 : 0.7}
+        accessibilityState={{ disabled: authLoading }}
       >
         <Text style={styles.authBtnText}>{getButtonText()}</Text>
       </TouchableOpacity>
@@ -585,9 +590,10 @@ const AuthOptions: React.FC<AuthOptionsProps> = ({
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.authOptionBtn, styles.authOptionBtnSecondary]}
+        style={[styles.authOptionBtn, styles.authOptionBtnSecondary, authLoading && { opacity: 0.5 }]}
         onPress={onAnonymousLogin}
-        disabled={authLoading}
+        activeOpacity={authLoading ? 1 : 0.7}
+        accessibilityState={{ disabled: authLoading }}
       >
         <Text style={styles.authOptionIcon}>👤</Text>
         <Text style={styles.authOptionTextSecondary}>{authLoading ? '处理中...' : '匿名登录'}</Text>

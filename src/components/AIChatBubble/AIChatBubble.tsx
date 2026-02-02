@@ -731,9 +731,10 @@ export const AIChatBubble: React.FC = () => {
               {aiSuggestions.map((q) => (
                 <TouchableOpacity
                   key={q}
-                  style={[styles.quickQuestionBtn, styles.aiSuggestionBtn]}
+                  style={[styles.quickQuestionBtn, styles.aiSuggestionBtn, isLoading && styles.quickQuestionBtnDisabled]}
                   onPress={() => handleQuickQuestion(q)}
-                  disabled={isLoading}
+                  activeOpacity={isLoading ? 1 : 0.7}
+                  accessibilityState={{ disabled: isLoading }}
                 >
                   <Text style={[styles.quickQuestionText, styles.aiSuggestionText]} numberOfLines={1}>
                     💬 {q}
@@ -747,9 +748,10 @@ export const AIChatBubble: React.FC = () => {
                 .map((q) => (
                   <TouchableOpacity
                     key={q}
-                    style={styles.quickQuestionBtn}
+                    style={[styles.quickQuestionBtn, isLoading && styles.quickQuestionBtnDisabled]}
                     onPress={() => handleQuickQuestion(q)}
-                    disabled={isLoading}
+                    activeOpacity={isLoading ? 1 : 0.7}
+                    accessibilityState={{ disabled: isLoading }}
                   >
                     <Text style={styles.quickQuestionText} numberOfLines={1}>{q}</Text>
                   </TouchableOpacity>
@@ -769,7 +771,6 @@ export const AIChatBubble: React.FC = () => {
                 editable={!isLoading}
                 returnKeyType="send"
                 onSubmitEditing={handleSend}
-                blurOnSubmit={false}
               />
               <TouchableOpacity
                 style={[
@@ -777,7 +778,8 @@ export const AIChatBubble: React.FC = () => {
                   (!inputText.trim() || isLoading || cooldownRemaining > 0) && styles.sendButtonDisabled,
                 ]}
                 onPress={handleSend}
-                disabled={!inputText.trim() || isLoading || cooldownRemaining > 0}
+                activeOpacity={(!inputText.trim() || isLoading || cooldownRemaining > 0) ? 1 : 0.7}
+                accessibilityState={{ disabled: !inputText.trim() || isLoading || cooldownRemaining > 0 }}
               >
                 {(() => {
                   if (isLoading) {
@@ -983,6 +985,9 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: borderRadius.large,
       paddingVertical: 6,
       paddingHorizontal: spacing.medium,
+    },
+    quickQuestionBtnDisabled: {
+      opacity: 0.5,
     },
     // AI 生成的跟进问题样式（更醒目）
     aiSuggestionBtn: {
