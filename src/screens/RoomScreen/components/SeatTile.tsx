@@ -6,22 +6,44 @@
  * unnecessary re-renders when seat data hasn't changed.
  *
  * Performance notes:
- * - useColors() is called internally (not passed as prop) to avoid identity comparison issues
- * - arePropsEqual only compares UI-relevant primitive fields, not callbacks
+ * - Styles are created once in PlayerGrid and passed as prop (not created per-tile)
+ * - arePropsEqual compares styles reference to ensure memo works correctly
  * - PlayerGrid provides a stable callback using ref pattern, so SeatTile can stay memoized
  * - This prevents full grid re-render when callback references change
  *
  * ❌ Do NOT import: any Service singletons, showAlert
  * ✅ Allowed: types, styles, UI components (Avatar, etc.)
  */
-import React, { memo, useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, type ViewStyle, type TextStyle } from 'react-native';
 import { Avatar } from '../../../components/Avatar';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
+import { spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 import { TESTIDS } from '../../../testids';
 
 // Re-export for PlayerGrid
 export const GRID_COLUMNS = 4;
+
+/**
+ * Pre-computed styles for SeatTile.
+ * Created once in PlayerGrid and passed to all SeatTile instances.
+ */
+export interface SeatTileStyles {
+  tileWrapper: ViewStyle;
+  playerTile: ViewStyle;
+  mySpotTile: ViewStyle;
+  wolfTile: ViewStyle;
+  selectedTile: ViewStyle;
+  seatNumber: TextStyle;
+  seatedSeatNumber: TextStyle;
+  avatarContainer: ViewStyle;
+  avatarOverlay: ViewStyle;
+  wolfOverlay: ViewStyle;
+  selectedOverlay: ViewStyle;
+  mySeatBadge: TextStyle;
+  emptyIndicator: TextStyle;
+  playerName: TextStyle;
+  playerNamePlaceholder: ViewStyle;
+}
 
 export interface SeatTileProps {
   // Primitive props for stable comparison
@@ -37,6 +59,8 @@ export interface SeatTileProps {
   playerUid: string | null;
   playerAvatarUrl?: string;
   playerDisplayName: string | null;
+  // Styles (created once in PlayerGrid)
+  styles: SeatTileStyles;
   // Callback (not compared in arePropsEqual to avoid callback identity issues)
   onPress: (seatIndex: number, disabledReason?: string) => void;
 }
@@ -49,6 +73,9 @@ export interface SeatTileProps {
  * Callback identity can change due to parent re-renders, but as long as
  * the visual props are the same, we don't need to re-render the tile.
  * The callback will still work correctly when pressed.
+ *
+ * NOTE: We compare styles by reference. PlayerGrid creates styles once
+ * and passes the same reference to all tiles, so this is efficient.
  */
 function arePropsEqual(prev: SeatTileProps, next: SeatTileProps): boolean {
   return (
@@ -62,7 +89,8 @@ function arePropsEqual(prev: SeatTileProps, next: SeatTileProps): boolean {
     prev.isSelected === next.isSelected &&
     prev.playerUid === next.playerUid &&
     prev.playerAvatarUrl === next.playerAvatarUrl &&
-    prev.playerDisplayName === next.playerDisplayName
+    prev.playerDisplayName === next.playerDisplayName &&
+    prev.styles === next.styles
   );
 }
 
@@ -78,12 +106,9 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   playerUid,
   playerAvatarUrl,
   playerDisplayName,
+  styles,
   onPress,
 }) => {
-  // Get colors internally to avoid prop identity comparison issues
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors, tileSize), [colors, tileSize]);
-
   // Note: onPress callback stability is handled by PlayerGrid using ref pattern.
   // SeatTile receives a stable callback that always calls the latest parent callback.
   const handlePress = useCallback(() => {
@@ -147,7 +172,11 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 // Memoize with custom comparison
 export const SeatTile = memo(SeatTileComponent, arePropsEqual);
 
-function createStyles(colors: ThemeColors, tileSize: number) {
+/**
+ * Create SeatTile styles. Called once in PlayerGrid and passed to all tiles.
+ * Exported for use by PlayerGrid.
+ */
+export function createSeatTileStyles(colors: ThemeColors, tileSize: number): SeatTileStyles {
   return StyleSheet.create({
     tileWrapper: {
       width: tileSize,

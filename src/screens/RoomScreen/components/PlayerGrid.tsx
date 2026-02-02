@@ -10,6 +10,8 @@
  * - This prevents full grid re-render on seat selection/swap
  * - Uses ref pattern to ensure callback always calls latest version
  *   even when SeatTile is memoized and doesn't re-render
+ * - Styles are created once in PlayerGrid and passed to all SeatTile instances
+ *   to avoid redundant StyleSheet.create calls
  *
  * ❌ Do NOT import: any Service singletons, showAlert
  * ✅ Allowed: types, styles, UI components (Avatar, etc.)
@@ -18,7 +20,7 @@ import React, { useMemo, memo, useCallback, useRef, useLayoutEffect } from 'reac
 import { View, StyleSheet, Dimensions } from 'react-native';
 import { useColors, type ThemeColors } from '../../../theme';
 import type { SeatViewModel } from '../RoomScreen.helpers';
-import { SeatTile, GRID_COLUMNS } from './SeatTile';
+import { SeatTile, GRID_COLUMNS, createSeatTileStyles } from './SeatTile';
 
 // Grid calculation - needs to be exported for Avatar sizing
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -49,6 +51,10 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  // Create SeatTile styles once and pass to all tiles (performance optimization)
+  // This avoids each SeatTile calling StyleSheet.create independently
+  const seatTileStyles = useMemo(() => createSeatTileStyles(colors, TILE_SIZE), [colors]);
 
   // Use ref to always call the latest onSeatPress callback.
   // This is necessary because SeatTile is memoized and won't re-render
@@ -84,6 +90,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           playerUid={seat.player?.uid ?? null}
           playerAvatarUrl={seat.player?.avatarUrl}
           playerDisplayName={seat.player?.displayName ?? null}
+          styles={seatTileStyles}
           onPress={handleSeatPress}
         />
       ))}

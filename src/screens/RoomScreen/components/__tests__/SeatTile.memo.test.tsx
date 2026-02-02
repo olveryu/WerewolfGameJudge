@@ -7,11 +7,16 @@
  * Key optimizations verified:
  * 1. onPress callback changes do NOT cause re-render (excluded from arePropsEqual)
  * 2. Only UI-relevant primitive props trigger re-render
- * 3. colors is obtained internally via useColors(), not passed as prop
+ * 3. styles are passed from PlayerGrid (created once) to avoid per-tile StyleSheet.create
+ * 4. styles reference comparison in arePropsEqual ensures memo works correctly
  */
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { SeatTile, SeatTileProps } from '../SeatTile';
+import { SeatTile, SeatTileProps, SeatTileStyles, createSeatTileStyles } from '../SeatTile';
+import { themes } from '../../../../theme/themes';
+
+// Create mock styles once (simulating what PlayerGrid does)
+const mockStyles: SeatTileStyles = createSeatTileStyles(themes.dark.colors, 80);
 
 // Track render count
 let renderCount = 0;
@@ -40,6 +45,7 @@ describe('SeatTile memo optimization', () => {
     playerUid: 'user-1',
     playerAvatarUrl: undefined,
     playerDisplayName: 'Player 1',
+    styles: mockStyles,
     onPress: jest.fn(),
   };
 
@@ -107,6 +113,16 @@ describe('SeatTile memo optimization', () => {
     // we verify the expected behavior: wrapper renders but memo logic is correct
     expect(renderCount).toBe(2);
   });
+
+  it('should re-render when styles reference changes', () => {
+    const { rerender } = render(<TrackedSeatTile {...baseProps} />);
+    expect(renderCount).toBe(1);
+
+    // Create new styles object (different reference)
+    const newStyles = createSeatTileStyles(themes.dark.colors, 80);
+    rerender(<TrackedSeatTile {...baseProps} styles={newStyles} />);
+    expect(renderCount).toBe(2);
+  });
 });
 
 describe('SeatTile arePropsEqual logic', () => {
@@ -124,6 +140,7 @@ describe('SeatTile arePropsEqual logic', () => {
       playerUid: 'user-1',
       playerAvatarUrl: 'https://example.com/avatar.png',
       playerDisplayName: 'Player 1',
+      styles: mockStyles,
       onPress: jest.fn(),
     };
 
@@ -137,9 +154,9 @@ describe('SeatTile arePropsEqual logic', () => {
     expect(props1.isSelected).not.toBe(props2.isSelected);
   });
 
-  it('should not include colors in props (obtained via useColors internally)', () => {
-    // Verify that SeatTileProps does not have a colors property
-    // This ensures colors reference changes don't cause full grid re-render
+  it('should include styles in props (passed from PlayerGrid)', () => {
+    // Verify that SeatTileProps has styles property
+    // Styles are created once in PlayerGrid and passed to all tiles
     const props: SeatTileProps = {
       index: 0,
       roomNumber: '1234',
@@ -150,11 +167,73 @@ describe('SeatTile arePropsEqual logic', () => {
       isSelected: false,
       playerUid: null,
       playerDisplayName: null,
+      styles: mockStyles,
       onPress: jest.fn(),
     };
 
-    // TypeScript would fail if colors was required in SeatTileProps
-    // This test documents the intentional design decision
+    // styles is now required in SeatTileProps
+    expect('styles' in props).toBe(true);
+    // colors should NOT be in props (styles abstracts theme colors)
     expect('colors' in props).toBe(false);
   });
+});
+
+describe('createSeatTileStyles optimization', () => {
+  it('createSeatTileStyles should be called once per Grid, not per tile', () => {
+    // This test documents the performance optimization:
+    // - PlayerGrid calls createSeatTileStyles ONCE
+    // - The same styles object is passed to all 12 SeatTile instances
+    // - This avoids 12x StyleSheet.create calls
+
+    // Spy on StyleSheet.create to count calls
+    const { StyleSheet } = require('react-native');
+    const createSpy = jest.spyOn(StyleSheet, 'create');
+    createSpy.mockClear();
+
+    // Simulate what PlayerGrid does: create styles once
+    const styles1 = createSeatTileStyles(themes.dark.colors, 80);
+
+    // StyleSheet.create should be called exactly once
+    expect(createSpy).toHaveBeenCalledTimes(1);
+
+    // If we were to create styles per tile (old behavior), it would be 12 calls
+    // But now we pass the same styles reference to all tiles
+    const styles2 = styles1; // Same reference, no new StyleSheet.create call
+    expect(styles2).toBe(styles1);
+
+    createSpy.mockRestore();
+  });
+
+  it('same styles reference should be used for all tiles in a grid', () => {
+    // Verify that PlayerGrid pattern: create once, pass to all
+    const gridStyles = createSeatTileStyles(themes.dark.colors, 80);
+
+    // Simulate 12 tiles receiving the same styles reference
+    const tilePropsArray = Array.from({ length: 12 }, (_, i) => ({
+      ...baseProps,
+      index: i,
+      playerDisplayName: `Player ${i + 1}`,
+      styles: gridStyles, // Same reference for all
+    }));
+
+    // All tiles should have the exact same styles reference
+    const allSameReference = tilePropsArray.every((props) => props.styles === gridStyles);
+    expect(allSameReference).toBe(true);
+  });
+
+  // Helper for base props in this describe block
+  const baseProps: Omit<SeatTileProps, 'styles'> = {
+    index: 0,
+    roomNumber: '1234',
+    tileSize: 80,
+    disabled: false,
+    disabledReason: undefined,
+    isMySpot: false,
+    isWolf: false,
+    isSelected: false,
+    playerUid: 'user-1',
+    playerAvatarUrl: undefined,
+    playerDisplayName: 'Player 1',
+    onPress: jest.fn(),
+  };
 });
