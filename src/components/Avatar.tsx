@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { Image, StyleSheet, ImageSourcePropType } from 'react-native';
 import { getAvatarImage, getUniqueAvatarBySeat } from '../utils/avatar';
 import { useColors } from '../theme';
@@ -26,15 +26,27 @@ interface AvatarProps {
 const AvatarComponent: React.FC<AvatarProps> = ({ value, size, avatarUrl, seatNumber, roomId }) => {
   const colors = useColors();
 
+  // Memoize style object to prevent new object creation on each render
+  const imageStyle = useMemo(
+    () => [
+      styles.avatar,
+      { width: size, height: size, borderRadius: size / 4, backgroundColor: colors.border },
+    ],
+    [size, colors.border],
+  );
+
+  // Memoize URI source object to prevent new object creation
+  const uriSource = useMemo(
+    () => (avatarUrl ? { uri: avatarUrl } : null),
+    [avatarUrl],
+  );
+
   // Use custom avatar URL if provided, otherwise use local image
-  if (avatarUrl) {
+  if (uriSource) {
     return (
       <Image
-        source={{ uri: avatarUrl }}
-        style={[
-          styles.avatar,
-          { width: size, height: size, borderRadius: size / 4, backgroundColor: colors.border },
-        ]}
+        source={uriSource}
+        style={imageStyle}
         resizeMode="cover"
       />
     );
@@ -49,10 +61,7 @@ const AvatarComponent: React.FC<AvatarProps> = ({ value, size, avatarUrl, seatNu
   return (
     <Image
       source={imageSource as ImageSourcePropType}
-      style={[
-        styles.avatar,
-        { width: size, height: size, borderRadius: size / 4, backgroundColor: colors.border },
-      ]}
+      style={imageStyle}
       resizeMode="cover"
     />
   );
