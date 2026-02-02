@@ -194,6 +194,24 @@ function handleLeaveRoom(): InteractionResult {
   return { kind: 'SHOW_DIALOG', dialogType: 'leaveRoom' };
 }
 
+/**
+ * Handle reveal ack event.
+ * Simply returns the ack instruction to be executed by the orchestrator.
+ */
+function handleRevealAck(event: {
+  revealRole: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot';
+}): InteractionResult {
+  return { kind: 'REVEAL_ACK', revealRole: event.revealRole };
+}
+
+/**
+ * Handle wolf robot hunter status viewed event.
+ * Simply returns the instruction to be executed by the orchestrator.
+ */
+function handleHunterStatusViewed(): InteractionResult {
+  return { kind: 'HUNTER_STATUS_VIEWED' };
+}
+
 // =============================================================================
 // Main Policy Function
 // =============================================================================
@@ -250,6 +268,10 @@ export function getInteractionResult(
       return handleViewRole(ctx);
     case 'LEAVE_ROOM':
       return handleLeaveRoom();
+    case 'REVEAL_ACK':
+      return handleRevealAck(event);
+    case 'WOLF_ROBOT_HUNTER_STATUS_VIEWED':
+      return handleHunterStatusViewed();
     default: {
       // Exhaustive check
       const _exhaustive: never = event;

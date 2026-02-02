@@ -59,13 +59,27 @@ export interface LeaveRoomEvent {
   kind: 'LEAVE_ROOM';
 }
 
+/** Reveal ack - user acknowledged the reveal result (seer/psychic/gargoyle/wolfRobot) */
+export interface RevealAckEvent {
+  kind: 'REVEAL_ACK';
+  /** The role that revealed (determines which ack to send) */
+  revealRole: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot';
+}
+
+/** WolfRobot hunter status viewed - user acknowledged the hunter status */
+export interface WolfRobotHunterStatusViewedEvent {
+  kind: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED';
+}
+
 /** Union of all possible interaction events */
 export type InteractionEvent =
   | SeatTapEvent
   | BottomActionEvent
   | HostControlEvent
   | ViewRoleEvent
-  | LeaveRoomEvent;
+  | LeaveRoomEvent
+  | RevealAckEvent
+  | WolfRobotHunterStatusViewedEvent;
 
 // =============================================================================
 // Interaction Results - What the orchestrator should do
@@ -125,6 +139,17 @@ export interface InteractionResultHostControl {
     | 'bgmToggle';
 }
 
+/** Submit reveal ack (seer/psychic/gargoyle/wolfRobot) */
+export interface InteractionResultRevealAck {
+  kind: 'REVEAL_ACK';
+  revealRole: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot';
+}
+
+/** Submit wolf robot hunter status viewed */
+export interface InteractionResultHunterStatusViewed {
+  kind: 'HUNTER_STATUS_VIEWED';
+}
+
 /** Union of all possible interaction results */
 export type InteractionResult =
   | InteractionResultNoop
@@ -132,7 +157,9 @@ export type InteractionResult =
   | InteractionResultShowDialog
   | InteractionResultSeatingFlow
   | InteractionResultActionFlow
-  | InteractionResultHostControl;
+  | InteractionResultHostControl
+  | InteractionResultRevealAck
+  | InteractionResultHunterStatusViewed;
 
 // =============================================================================
 // Interaction Context - Minimal state needed for policy decisions

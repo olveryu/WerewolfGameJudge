@@ -62,6 +62,16 @@ function createLeaveRoomEvent(): InteractionEvent {
   return { kind: 'LEAVE_ROOM' };
 }
 
+function createRevealAckEvent(
+  revealRole: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot',
+): InteractionEvent {
+  return { kind: 'REVEAL_ACK', revealRole };
+}
+
+function createWolfRobotHunterStatusViewedEvent(): InteractionEvent {
+  return { kind: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED' };
+}
+
 // =============================================================================
 // Priority Order Contract Tests
 // =============================================================================
@@ -454,6 +464,85 @@ describe('RoomInteractionPolicy - Event Routing', () => {
 
       expect(result.kind).toBe('SHOW_DIALOG');
       expect(result).toHaveProperty('dialogType', 'leaveRoom');
+    });
+  });
+
+  describe('REVEAL_ACK', () => {
+    test('routes to REVEAL_ACK result with seer role', () => {
+      const ctx = createBaseContext();
+      const event = createRevealAckEvent('seer');
+
+      const result = getInteractionResult(ctx, event);
+
+      expect(result.kind).toBe('REVEAL_ACK');
+      expect(result).toHaveProperty('revealRole', 'seer');
+    });
+
+    test('routes to REVEAL_ACK result with psychic role', () => {
+      const ctx = createBaseContext();
+      const event = createRevealAckEvent('psychic');
+
+      const result = getInteractionResult(ctx, event);
+
+      expect(result.kind).toBe('REVEAL_ACK');
+      expect(result).toHaveProperty('revealRole', 'psychic');
+    });
+
+    test('routes to REVEAL_ACK result with gargoyle role', () => {
+      const ctx = createBaseContext();
+      const event = createRevealAckEvent('gargoyle');
+
+      const result = getInteractionResult(ctx, event);
+
+      expect(result.kind).toBe('REVEAL_ACK');
+      expect(result).toHaveProperty('revealRole', 'gargoyle');
+    });
+
+    test('routes to REVEAL_ACK result with wolfRobot role', () => {
+      const ctx = createBaseContext();
+      const event = createRevealAckEvent('wolfRobot');
+
+      const result = getInteractionResult(ctx, event);
+
+      expect(result.kind).toBe('REVEAL_ACK');
+      expect(result).toHaveProperty('revealRole', 'wolfRobot');
+    });
+
+    test('blocked by audio gate during ongoing', () => {
+      const ctx = createBaseContext({
+        isAudioPlaying: true,
+        roomStatus: GameStatus.ongoing,
+      });
+      const event = createRevealAckEvent('seer');
+
+      const result = getInteractionResult(ctx, event);
+
+      expect(result.kind).toBe('NOOP');
+      expect(result).toHaveProperty('reason', 'audio_playing');
+    });
+  });
+
+  describe('WOLF_ROBOT_HUNTER_STATUS_VIEWED', () => {
+    test('routes to HUNTER_STATUS_VIEWED result', () => {
+      const ctx = createBaseContext();
+      const event = createWolfRobotHunterStatusViewedEvent();
+
+      const result = getInteractionResult(ctx, event);
+
+      expect(result.kind).toBe('HUNTER_STATUS_VIEWED');
+    });
+
+    test('blocked by audio gate during ongoing', () => {
+      const ctx = createBaseContext({
+        isAudioPlaying: true,
+        roomStatus: GameStatus.ongoing,
+      });
+      const event = createWolfRobotHunterStatusViewedEvent();
+
+      const result = getInteractionResult(ctx, event);
+
+      expect(result.kind).toBe('NOOP');
+      expect(result).toHaveProperty('reason', 'audio_playing');
     });
   });
 });
