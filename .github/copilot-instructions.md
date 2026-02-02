@@ -243,6 +243,60 @@ UI (从 schema + gameState 推导显示)
 - Host 与 Player 内存中的 state shape 必须完全一致。
 - 计算/派生字段必须从同一份 state 计算，或只写入 `BroadcastGameState` 一次（禁止双写/漂移）。
 
+---
+
+## RoomScreen UI 交互架构（MUST follow）
+
+> 目标：避免 "双 gate / 多处决策" 导致 drift；让交互逻辑可测试、可推理。
+
+### 三层分工（Single-source-of-truth for interaction decisions）
+
+当你修改/新增任何 RoomScreen 交互（Seat 点击、BottomAction、Confirm/Skip、Ack、弹窗按钮等）时，必须遵守：
+
+1) **Policy / Guard（纯逻辑层）**
+   - ✅ 只做：输入（纯数据）→ 输出（Instruction）
+   - ✅ 输出举例：`NOOP` / `ALERT` / `SEATING_FLOW` / `ACTION_FLOW` / `SUBMIT` / `SHOW_DIALOG`
+   - ✅ 必须可单元测试锁顺序（contract tests）
+   - ❌ 禁止：`showAlert`、navigation、service 单例、React hooks、任何副作用
+   - 推荐目录：`src/screens/RoomScreen/seatTap/**` 或 `src/screens/RoomScreen/policy/**`
+
+2) **Orchestrator（编排层：RoomScreen / hooks）**
+   - ✅ 只做：调用 policy → `switch` 执行副作用（`showAlert` / submitAction / navigation / showDialog）
+   - ❌ 禁止：在 orchestrator 里再写一套与 policy 并行的业务判断（否则 drift）
+
+3) **Presentational UI（展示层：`src/screens/RoomScreen/components/**`）**
+   - ✅ 只做：渲染 + 上报用户 intent（onPress/onChange）
+   - ❌ 禁止：import services / `showAlert` / navigation
+   - ❌ 禁止：组件层 gate/吞点击（见下条）
+
+### 禁止组件层“吞点击 / 逻辑 gate”（Hard rule）
+
+为了保证 policy 是交互决策的单一真相：
+
+- **禁止在 `components/**` 内用 `disabled={true}` 来阻断 `onPress` 事件**（RN 会直接不触发回调）：
+  - ✅ 允许：视觉置灰（样式 / activeOpacity / accessibilityState）
+  - ✅ 允许：仍然触发回调，把 "disabled" 作为参数上报给 orchestrator/policy
+  - ❌ 禁止：`disabled={disabled}` 让点击不上报
+
+- **禁止在组件 `onPress` 里 `if (xxx) return;` 作为业务 gate**
+  - 例：`if (disabled) return;`、`if (isAudioPlaying) return;` 都属于禁止项
+  - gate 必须由 policy 决策并在 orchestrator 执行（NOOP / ALERT）
+
+> 说明：这一条是为了避免出现 "PlayerGrid 挡一层、RoomScreen/Policy 再挡一层" 的双 gate。
+
+### 必须锁定的优先级合约（Contract MUST exist）
+
+当存在 `isAudioPlaying` gate 时（ongoing 阶段）：
+
+- **Audio gate 必须是最高优先级**：播放音频时的交互应统一 NOOP（或可选轻提示），且不得被 `disabledReason`/notSelf 等提示抢先。
+- 必须有对应 policy 单测锁死："audio_playing 优先于 disabledReason"。
+
+### 测试门禁（必须执行）
+
+- 任何新增/修改交互 policy 都必须补单元测试：
+  - Happy path + 关键 gate（audio_playing / pendingRevealAcks / disabledReason）
+- 若修改影响 RoomScreen 弹窗/互动路径，必须保持 board UI tests + contract tests 全绿。
+
 ### Player 端禁止运行业务逻辑
 
 - Player 客户端绝对不能执行：

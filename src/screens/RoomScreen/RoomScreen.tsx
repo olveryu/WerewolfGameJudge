@@ -41,7 +41,11 @@ import {
   formatRoleList,
   buildSeatViewModels,
 } from './RoomScreen.helpers';
-import { getSeatTapResult } from './seatTap';
+import {
+  getInteractionResult,
+  type InteractionEvent,
+  type InteractionContext,
+} from './policy';
 import { TESTIDS } from '../../testids';
 import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
@@ -962,48 +966,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     [getActionIntent, handleActionIntent],
   );
 
-  /**
-   * Main seat tap handler using SeatTapPolicy for decision making.
-   *
-   * This is the orchestration layer that:
-   * 1. Calls the pure policy function to get a decision
-   * 2. Executes the decision (showAlert, call handlers, or no-op)
-   */
-  const onSeatTapped = useCallback(
-    (index: number, disabledReason?: string) => {
-      // Get decision from pure policy function
-      const result = getSeatTapResult({
-        roomStatus,
-        isAudioPlaying,
-        seatIndex: index,
-        disabledReason,
-        imActioner,
-        hasGameState: !!gameState,
-      });
-
-      // Execute the decision
-      switch (result.kind) {
-        case 'NOOP':
-          // Do nothing - audio playing, not actioner, or other status
-          return;
-
-        case 'ALERT':
-          showAlert(result.title, result.message, [{ text: '好' }]);
-          return;
-
-        case 'SEATING_FLOW':
-          handleSeatingTap(result.seatIndex);
-          return;
-
-        case 'ACTION_FLOW':
-          handleActionTap(result.seatIndex);
-          return;
-      }
-    },
-    [roomStatus, isAudioPlaying, imActioner, gameState, handleSeatingTap, handleActionTap],
-  );
-
-  // Host dialog callbacks from hook
+  // Host dialog callbacks from hook (must be declared before dispatchInteraction)
   const {
     showPrepareToFlipDialog,
     showStartGameDialog,
@@ -1022,18 +985,118 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     roomNumber,
   });
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // Build InteractionContext for policy decisions
+  // ───────────────────────────────────────────────────────────────────────────
+  const interactionContext: InteractionContext = useMemo(
+    () => ({
+      roomStatus,
+      hasGameState: !!gameState,
+      isAudioPlaying,
+      pendingRevealAck: pendingRevealDialog,
+      pendingHunterGate: pendingHunterStatusViewed,
+      isHost,
+      imActioner,
+      mySeatNumber,
+      myRole,
+    }),
+    [
+      roomStatus,
+      gameState,
+      isAudioPlaying,
+      pendingRevealDialog,
+      pendingHunterStatusViewed,
+      isHost,
+      imActioner,
+      mySeatNumber,
+      myRole,
+    ],
+  );
+
+  /**
+   * Unified interaction dispatcher using RoomInteractionPolicy.
+   *
+   * This is the single entry point for user interactions that have been migrated.
+   * It calls the pure policy function and executes the resulting instruction.
+   *
+   * Currently integrated: SEAT_TAP, BOTTOM_ACTION, VIEW_ROLE, LEAVE_ROOM
+   * Not yet integrated: HOST_CONTROL (still handled by HostControlButtons props)
+   */
+  const dispatchInteraction = useCallback(
+    (event: InteractionEvent) => {
+      const result = getInteractionResult(interactionContext, event);
+
+      switch (result.kind) {
+        case 'NOOP':
+          // Do nothing - blocked by gate or not applicable
+          roomScreenLog.debug('[dispatchInteraction] NOOP', { reason: result.reason, event: event.kind });
+          return;
+
+        case 'ALERT':
+          showAlert(result.title, result.message, [{ text: '好' }]);
+          return;
+
+        case 'SHOW_DIALOG':
+          switch (result.dialogType) {
+            case 'seatingEnter':
+              if (result.seatIndex !== undefined) showEnterSeatDialog(result.seatIndex);
+              return;
+            case 'seatingLeave':
+              if (result.seatIndex !== undefined) showLeaveSeatDialog(result.seatIndex);
+              return;
+            case 'roleCard':
+              setRoleCardVisible(true);
+              void viewedRole();
+              return;
+            case 'leaveRoom':
+              handleLeaveRoom();
+              return;
+          }
+          return;
+
+        case 'SEATING_FLOW':
+          handleSeatingTap(result.seatIndex);
+          return;
+
+        case 'ACTION_FLOW':
+          if (result.intent) {
+            handleActionIntent(result.intent);
+          } else if (result.seatIndex !== undefined) {
+            handleActionTap(result.seatIndex);
+          }
+          return;
+
+        case 'HOST_CONTROL':
+          // HOST_CONTROL is NOT integrated in this PR.
+          // HostControlButtons still uses direct props. This case should not be reached.
+          roomScreenLog.warn('[dispatchInteraction] HOST_CONTROL received but not integrated', result);
+          return;
+      }
+    },
+    [
+      interactionContext,
+      handleSeatingTap,
+      handleActionTap,
+      handleActionIntent,
+      showEnterSeatDialog,
+      showLeaveSeatDialog,
+      handleLeaveRoom,
+      viewedRole,
+    ],
+  );
+
+  /**
+   * Main seat tap handler - delegates to dispatchInteraction.
+   */
+  const onSeatTapped = useCallback(
+    (index: number, disabledReason?: string) => {
+      dispatchInteraction({ kind: 'SEAT_TAP', seatIndex: index, disabledReason });
+    },
+    [dispatchInteraction],
+  );
+
   // Role card modal state
   const [roleCardVisible, setRoleCardVisible] = useState(false);
-
-  const showRoleCardDialog = useCallback(async () => {
-    if (!myRole) return;
-
-    // 显示角色卡模态框
-    setRoleCardVisible(true);
-
-    // 标记已查看
-    await viewedRole();
-  }, [myRole, viewedRole]);
 
   const handleRoleCardClose = useCallback(() => {
     setRoleCardVisible(false);
@@ -1138,7 +1201,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     <SafeAreaView style={styles.container} testID={TESTIDS.roomScreenRoot}>
       {/* Header */}
       <View style={styles.header} testID={TESTIDS.roomHeader}>
-        <TouchableOpacity onPress={handleLeaveRoom} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => dispatchInteraction({ kind: 'LEAVE_ROOM' })}
+          style={styles.backButton}
+        >
           <Text style={styles.backButtonText}>← 返回</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -1229,7 +1295,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             <ActionButton
               key={b.key}
               label={b.label}
-              onPress={() => handleActionIntent(b.intent)}
+              onPress={() => dispatchInteraction({ kind: 'BOTTOM_ACTION', intent: b.intent })}
             />
           ));
         })()}
@@ -1239,7 +1305,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           roomStatus === GameStatus.ready ||
           roomStatus === GameStatus.ongoing ||
           roomStatus === GameStatus.ended) &&
-          mySeatNumber !== null && <ActionButton label="查看身份" onPress={showRoleCardDialog} />}
+          mySeatNumber !== null && (
+            <ActionButton
+              label="查看身份"
+              onPress={() => dispatchInteraction({ kind: 'VIEW_ROLE' })}
+            />
+          )}
 
         {/* Greyed View Role (waiting for host) */}
         {(roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) &&
