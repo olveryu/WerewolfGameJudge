@@ -34,8 +34,6 @@
       "startUrl": "/",
       "scope": "/"
     },
-    "plugins": [
-      "expo-audio"
-    ]
+    "plugins": ["expo-audio"]
   }
 }
