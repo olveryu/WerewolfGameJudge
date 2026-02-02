@@ -1,5 +1,7 @@
+import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useAuth, User } from '../useAuth';
+import { AuthProvider } from '../../contexts/AuthContext';
 
 // Mock supabase config
 jest.mock('../../config/supabase', () => ({
@@ -39,6 +41,10 @@ jest.mock('../../services/infra/AvatarUploadService', () => ({
   },
 }));
 
+// Wrapper for renderHook that includes AuthProvider
+const wrapper = ({ children }: { children: React.ReactNode }) =>
+  React.createElement(AuthProvider, null, children);
+
 describe('useAuth hook', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -47,7 +53,7 @@ describe('useAuth hook', () => {
 
   describe('Initial state', () => {
     it('should start with null user when supabase is not configured', async () => {
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -59,7 +65,7 @@ describe('useAuth hook', () => {
     });
 
     it('should provide all auth methods', () => {
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       expect(typeof result.current.signInAnonymously).toBe('function');
       expect(typeof result.current.signUpWithEmail).toBe('function');
@@ -74,7 +80,7 @@ describe('useAuth hook', () => {
     it('should call authService.signInAnonymously', async () => {
       mockSignInAnonymously.mockResolvedValue({});
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -91,7 +97,7 @@ describe('useAuth hook', () => {
       const errorMessage = 'Sign in failed';
       mockSignInAnonymously.mockRejectedValue(new Error(errorMessage));
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -119,7 +125,7 @@ describe('useAuth hook', () => {
       };
       mockSignUpWithEmail.mockResolvedValue({ user: mockUser });
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -145,7 +151,7 @@ describe('useAuth hook', () => {
       };
       mockSignUpWithEmail.mockResolvedValue({ user: mockUser });
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -169,7 +175,7 @@ describe('useAuth hook', () => {
       const errorMessage = 'Email already exists';
       mockSignUpWithEmail.mockRejectedValue(new Error(errorMessage));
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -192,7 +198,7 @@ describe('useAuth hook', () => {
       mockSignInWithEmail.mockResolvedValue({});
       mockGetCurrentUser.mockResolvedValue({ data: { user: null } });
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -209,7 +215,7 @@ describe('useAuth hook', () => {
       const errorMessage = 'Invalid credentials';
       mockSignInWithEmail.mockRejectedValue(new Error(errorMessage));
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -232,7 +238,7 @@ describe('useAuth hook', () => {
       mockUpdateProfile.mockResolvedValue({});
       mockGetCurrentUser.mockResolvedValue({ data: { user: null } });
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -249,7 +255,7 @@ describe('useAuth hook', () => {
       const errorMessage = 'Update failed';
       mockUpdateProfile.mockRejectedValue(new Error(errorMessage));
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -273,7 +279,7 @@ describe('useAuth hook', () => {
       mockUploadAvatar.mockResolvedValue(avatarUrl);
       mockGetCurrentUser.mockResolvedValue({ data: { user: null } });
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -292,7 +298,7 @@ describe('useAuth hook', () => {
       const errorMessage = 'Upload failed';
       mockUploadAvatar.mockRejectedValue(new Error(errorMessage));
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -314,7 +320,7 @@ describe('useAuth hook', () => {
     it('should call authService.signOut and clear user', async () => {
       mockSignOut.mockResolvedValue({});
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -333,7 +339,7 @@ describe('useAuth hook', () => {
       const errorMessage = 'Sign out failed';
       mockSignOut.mockRejectedValue(new Error(errorMessage));
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -360,7 +366,7 @@ describe('useAuth hook', () => {
       };
       mockSignUpWithEmail.mockResolvedValue({ user: mockSupabaseUser });
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -388,7 +394,7 @@ describe('useAuth hook', () => {
       };
       mockSignUpWithEmail.mockResolvedValue({ user: mockSupabaseUser });
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -415,7 +421,7 @@ describe('useAuth hook', () => {
       };
       mockSignUpWithEmail.mockResolvedValue({ user: mockSupabaseUser });
 
-      const { result } = renderHook(() => useAuth());
+      const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
