@@ -368,7 +368,8 @@ const EmailForm: React.FC<EmailFormProps> = ({
       <TouchableOpacity
         style={[styles.primaryButton, authLoading && styles.buttonDisabled]}
         onPress={onSubmit}
-        disabled={authLoading}
+        activeOpacity={authLoading ? 1 : 0.7}
+        accessibilityState={{ disabled: authLoading }}
       >
         <Text style={styles.primaryButtonText}>{getButtonText()}</Text>
       </TouchableOpacity>
@@ -414,7 +415,8 @@ const LoginOptions: React.FC<LoginOptionsProps> = ({
       <TouchableOpacity
         style={[styles.outlineButton, authLoading && styles.buttonDisabled]}
         onPress={onAnonymousLogin}
-        disabled={authLoading}
+        activeOpacity={authLoading ? 1 : 0.7}
+        accessibilityState={{ disabled: authLoading }}
         testID={TESTIDS.homeAnonLoginButton}
       >
         <Text style={styles.outlineButtonText}>{authLoading ? '处理中...' : '👤 匿名登录'}</Text>
@@ -479,14 +481,16 @@ const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
             <TouchableOpacity
               style={[styles.secondaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]}
               onPress={onCancel}
-              disabled={isLoading}
+              activeOpacity={isLoading ? 1 : 0.7}
+              accessibilityState={{ disabled: isLoading }}
             >
               <Text style={styles.secondaryButtonText}>取消</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.primaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]}
               onPress={onJoin}
-              disabled={isLoading}
+              activeOpacity={isLoading ? 1 : 0.7}
+              accessibilityState={{ disabled: isLoading }}
             >
               <Text style={styles.primaryButtonText}>{isLoading ? '加入中...' : '加入'}</Text>
             </TouchableOpacity>

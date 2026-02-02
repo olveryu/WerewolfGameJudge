@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { Text, ActivityIndicator } from 'react-native';
+import { Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import Button from '../Button/Button';
 
 describe('Button', () => {
@@ -84,23 +84,33 @@ describe('Button', () => {
       fireEvent.press(getByText('Test Button'));
 
       expect(onPress).toHaveBeenCalledTimes(1);
+      expect(onPress).toHaveBeenCalledWith({ disabled: false, loading: false });
     });
 
-    it('should not call onPress when disabled', () => {
+    it('should call onPress with disabled meta when disabled', () => {
       const onPress = jest.fn();
-      const { getByText } = render(<Button {...defaultProps} onPress={onPress} disabled={true} />);
+      const { UNSAFE_getByType } = render(<Button {...defaultProps} onPress={onPress} disabled={true} />);
 
-      fireEvent.press(getByText('Test Button'));
+      // Find the TouchableOpacity and press it directly
+      const button = UNSAFE_getByType(TouchableOpacity);
+      fireEvent.press(button);
 
-      expect(onPress).not.toHaveBeenCalled();
+      // Button now reports meta instead of blocking - caller decides behavior
+      expect(onPress).toHaveBeenCalledTimes(1);
+      expect(onPress).toHaveBeenCalledWith({ disabled: true, loading: false });
     });
 
-    it('should not call onPress when loading', () => {
+    it('should call onPress with loading meta when loading', () => {
       const onPress = jest.fn();
-      const { queryByText } = render(<Button {...defaultProps} onPress={onPress} loading={true} />);
+      const { UNSAFE_getByType } = render(<Button {...defaultProps} onPress={onPress} loading={true} />);
 
-      // When loading, title is not rendered (ActivityIndicator is shown instead)
-      expect(queryByText('Test Button')).toBeNull();
+      // Find the TouchableOpacity and press it directly
+      const button = UNSAFE_getByType(TouchableOpacity);
+      fireEvent.press(button);
+
+      // Button now reports meta - caller decides behavior
+      expect(onPress).toHaveBeenCalledTimes(1);
+      expect(onPress).toHaveBeenCalledWith({ disabled: false, loading: true });
     });
   });
 

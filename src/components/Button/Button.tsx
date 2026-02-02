@@ -9,9 +9,21 @@ import {
 } from 'react-native';
 import { useColors, spacing, borderRadius, typography, ThemeColors } from '../../theme';
 
+/** Metadata passed to onPress callback */
+export interface ButtonPressMetadata {
+  /** Whether the button was visually disabled when pressed */
+  disabled: boolean;
+  /** Whether the button was in loading state when pressed */
+  loading: boolean;
+}
+
 interface ButtonProps {
   title: string;
-  onPress: () => void;
+  /**
+   * Press handler. Receives metadata about button state.
+   * Caller decides whether to proceed (e.g., ignore if disabled/loading).
+   */
+  onPress: (meta?: ButtonPressMetadata) => void;
   variant?: 'primary' | 'secondary' | 'danger' | 'outline';
   size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
@@ -108,18 +120,20 @@ const ButtonComponent: React.FC<ButtonProps> = ({
     }
   };
 
+  const isDisabled = disabled || loading;
+
   return (
     <TouchableOpacity
       style={[
         styles.base.button,
         variantStyle.button,
         getSizeButtonStyle(),
-        disabled && styles.base.disabled,
+        isDisabled && styles.base.disabled,
         style,
       ]}
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.7}
+      onPress={() => onPress({ disabled: !!disabled, loading: !!loading })}
+      activeOpacity={isDisabled ? 1 : 0.7}
+      accessibilityState={{ disabled: isDisabled }}
     >
       {loading ? (
         <ActivityIndicator color={variant === 'outline' ? colors.primary : colors.textInverse} />
