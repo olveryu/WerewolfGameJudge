@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from 'react';
-import { Image, ImageSourcePropType, ImageStyle } from 'react-native';
+import { Image, StyleSheet, ImageSourcePropType } from 'react-native';
 import { getAvatarImage, getAvatarByUid } from '../utils/avatar';
 import { useColors } from '../theme';
 
@@ -26,16 +26,17 @@ interface AvatarProps {
 const AvatarComponent: React.FC<AvatarProps> = ({ value, size, avatarUrl, roomId }) => {
   const colors = useColors();
 
-  // Memoize style object as a single object (not array) to prevent re-renders
-  const imageStyle = useMemo<ImageStyle>(
-    () => ({
-      width: size,
-      height: size,
-      borderRadius: size / 4,
-      backgroundColor: colors.border,
-    }),
+  // Memoize style object to prevent new object creation on each render
+  const imageStyle = useMemo(
+    () => [
+      styles.avatar,
+      { width: size, height: size, borderRadius: size / 4, backgroundColor: colors.border },
+    ],
     [size, colors.border],
   );
+
+  // Memoize URI source object to prevent new object creation
+  const uriSource = useMemo(() => (avatarUrl ? { uri: avatarUrl } : null), [avatarUrl]);
 
   // Memoize local image source based on uid and roomId
   // This ensures same (uid, roomId) always gets same avatar, regardless of seat
@@ -45,8 +46,8 @@ const AvatarComponent: React.FC<AvatarProps> = ({ value, size, avatarUrl, roomId
   }, [avatarUrl, roomId, value]);
 
   // Use custom avatar URL if provided, otherwise use local image
-  if (avatarUrl) {
-    return <Image source={{ uri: avatarUrl }} style={imageStyle} resizeMode="cover" />;
+  if (uriSource) {
+    return <Image source={uriSource} style={imageStyle} resizeMode="cover" />;
   }
 
   return (
@@ -56,5 +57,9 @@ const AvatarComponent: React.FC<AvatarProps> = ({ value, size, avatarUrl, roomId
 
 // Memoize to prevent re-renders when props haven't changed
 export const Avatar = memo(AvatarComponent);
+
+const styles = StyleSheet.create({
+  avatar: {},
+});
 
 export default Avatar;

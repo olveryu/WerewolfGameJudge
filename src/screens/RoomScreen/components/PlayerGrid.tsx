@@ -98,52 +98,8 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   );
 };
 
-/**
- * Custom comparison for PlayerGrid memo.
- * Deep-compares seats array by primitive values to prevent unnecessary re-renders.
- * This is critical for performance when seats array reference changes but content is the same.
- *
- * In seating phase (unseated/seated), only player info and isMySpot change.
- * In ongoing phase, isWolf/isSelected/disabledReason may also change.
- * We compare all fields for correctness across all phases.
- */
-function arePlayerGridPropsEqual(
-  prev: PlayerGridProps,
-  next: PlayerGridProps,
-): boolean {
-  // Quick checks for primitive props
-  if (prev.roomNumber !== next.roomNumber) return false;
-  if (prev.disabled !== next.disabled) return false;
-  // onSeatPress is excluded - we use ref pattern for callback stability
-
-  // Deep compare seats array
-  if (prev.seats.length !== next.seats.length) return false;
-
-  for (let i = 0; i < prev.seats.length; i++) {
-    const prevSeat = prev.seats[i];
-    const nextSeat = next.seats[i];
-
-    // Compare all SeatViewModel fields
-    if (
-      prevSeat.index !== nextSeat.index ||
-      prevSeat.role !== nextSeat.role ||
-      prevSeat.isMySpot !== nextSeat.isMySpot ||
-      prevSeat.isWolf !== nextSeat.isWolf ||
-      prevSeat.isSelected !== nextSeat.isSelected ||
-      prevSeat.disabledReason !== nextSeat.disabledReason ||
-      prevSeat.player?.uid !== nextSeat.player?.uid ||
-      prevSeat.player?.displayName !== nextSeat.player?.displayName ||
-      prevSeat.player?.avatarUrl !== nextSeat.player?.avatarUrl
-    ) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-// Memoize with custom comparison to prevent re-renders when seats content is unchanged
-export const PlayerGrid = memo(PlayerGridComponent, arePlayerGridPropsEqual);
+// Memoize to prevent re-renders when parent updates but props haven't changed
+export const PlayerGrid = memo(PlayerGridComponent);
 
 function createStyles(_colors: ThemeColors) {
   return StyleSheet.create({
