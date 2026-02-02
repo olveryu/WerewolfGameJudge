@@ -47,11 +47,7 @@ export const BoardInfoCard: React.FC<BoardInfoCardProps> = ({
 
   return (
     <View style={styles.boardInfoContainer}>
-      <TouchableOpacity
-        style={styles.headerRow}
-        onPress={handleToggle}
-        activeOpacity={0.7}
-      >
+      <TouchableOpacity style={styles.headerRow} onPress={handleToggle} activeOpacity={0.7}>
         <Text style={styles.boardInfoTitle}>板子配置 ({playerCount}人局)</Text>
         <Text style={styles.collapseIcon}>{isCollapsed ? '▼' : '▲'}</Text>
       </TouchableOpacity>

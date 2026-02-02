@@ -35,7 +35,7 @@ export function LoadingScreen({ message = '加载中...', fullScreen = true }: L
           duration: 1000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
     pulse.start();
     return () => pulse.stop();
@@ -57,7 +57,7 @@ export function LoadingScreen({ message = '加载中...', fullScreen = true }: L
       ]}
     >
       <Animated.View
-  // eslint-disable-next-line react-hooks/refs -- RN Animated standard pattern: passing Animated.Value into style props during render.
+        // eslint-disable-next-line react-hooks/refs -- RN Animated standard pattern: passing Animated.Value into style props during render.
         style={[
           styles.iconContainer,
           /* eslint-disable react-hooks/refs -- RN Animated standard pattern: Animated.Value is used in render-bound style objects. */

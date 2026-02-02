@@ -20,11 +20,7 @@
  * 架构：intents → handlers → reducer → BroadcastGameState
  */
 
-import {
-  createHostGame,
-  cleanupHostGame,
-  HostGameContext,
-} from './hostGameFactory';
+import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
 import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 
@@ -73,9 +69,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
 
       // 核心断言：wolfQueenCharm action 写入 state.actions
       const state = ctx.getBroadcastState();
-      const charmAction = state.actions?.find(
-        (a) => a.schemaId === 'wolfQueenCharm',
-      );
+      const charmAction = state.actions?.find((a) => a.schemaId === 'wolfQueenCharm');
       expect(charmAction).toBeDefined();
       expect(charmAction!.actorSeat).toBe(7); // wolfQueen 在 seat 7
       expect(charmAction!.targetSeat).toBe(0); // 魅惑 seat 0
@@ -99,9 +93,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
 
       // 核心断言：action 记录魅惑目标
       const state = ctx.getBroadcastState();
-      const charmAction = state.actions?.find(
-        (a) => a.schemaId === 'wolfQueenCharm',
-      );
+      const charmAction = state.actions?.find((a) => a.schemaId === 'wolfQueenCharm');
       expect(charmAction).toBeDefined();
       expect(charmAction!.targetSeat).toBe(8);
 
@@ -123,9 +115,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
 
       // 核心断言：空选时 action 存在但 targetSeat 为 undefined，或无该 action
       const state = ctx.getBroadcastState();
-      const charmAction = state.actions?.find(
-        (a) => a.schemaId === 'wolfQueenCharm',
-      );
+      const charmAction = state.actions?.find((a) => a.schemaId === 'wolfQueenCharm');
       // 空选时：要么无 action，要么 targetSeat 为 undefined
       expect(charmAction?.targetSeat).toBeUndefined();
 

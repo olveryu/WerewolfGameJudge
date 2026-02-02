@@ -48,16 +48,12 @@ describe('RoleCardSimple', () => {
   });
 
   it('renders nothing when not visible', () => {
-    const { queryByText } = render(
-      <RoleCardSimple {...defaultProps} visible={false} />
-    );
+    const { queryByText } = render(<RoleCardSimple {...defaultProps} visible={false} />);
     expect(queryByText('狼人')).toBeNull();
   });
 
   it('renders nothing when roleId is null', () => {
-    const { queryByText } = render(
-      <RoleCardSimple {...defaultProps} roleId={null} />
-    );
+    const { queryByText } = render(<RoleCardSimple {...defaultProps} roleId={null} />);
     expect(queryByText('狼人')).toBeNull();
   });
 
@@ -88,42 +84,32 @@ describe('RoleCardSimple', () => {
 
   it('calls onClose when close button is pressed', () => {
     const onClose = jest.fn();
-    const { getByText } = render(
-      <RoleCardSimple {...defaultProps} onClose={onClose} />
-    );
-    
+    const { getByText } = render(<RoleCardSimple {...defaultProps} onClose={onClose} />);
+
     fireEvent.press(getByText('我知道了'));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('shows correct faction for seer role', () => {
-    const { getByText } = render(
-      <RoleCardSimple {...defaultProps} roleId="seer" />
-    );
+    const { getByText } = render(<RoleCardSimple {...defaultProps} roleId="seer" />);
     expect(getByText('神职阵营')).toBeTruthy();
     expect(getByText('预言家')).toBeTruthy();
   });
 
   it('shows correct faction for villager role', () => {
-    const { getByText } = render(
-      <RoleCardSimple {...defaultProps} roleId="villager" />
-    );
+    const { getByText } = render(<RoleCardSimple {...defaultProps} roleId="villager" />);
     expect(getByText('平民阵营')).toBeTruthy();
     expect(getByText('普通村民')).toBeTruthy();
   });
 
   it('shows correct icon for witch role', () => {
-    const { getByText } = render(
-      <RoleCardSimple {...defaultProps} roleId="witch" />
-    );
+    const { getByText } = render(<RoleCardSimple {...defaultProps} roleId="witch" />);
     expect(getByText('🧙‍♀️')).toBeTruthy();
     expect(getByText('女巫')).toBeTruthy();
   });
 
   it('shows correct icon for hunter role', () => {
-    const { getByText } = render(
-      <RoleCardSimple {...defaultProps} roleId="hunter" />
-    );
+    const { getByText } = render(<RoleCardSimple {...defaultProps} roleId="hunter" />);
     expect(getByText('🏹')).toBeTruthy();
     expect(getByText('猎人')).toBeTruthy();
   });

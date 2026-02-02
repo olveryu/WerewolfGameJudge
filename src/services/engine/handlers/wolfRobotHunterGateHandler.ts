@@ -44,7 +44,10 @@ export function handleSetWolfRobotHunterStatusViewed(
   ctx: HandlerContext,
   intent: SetWolfRobotHunterStatusViewedIntent,
 ): HandlerResult {
-  handlerLog.debug('handleSetWolfRobotHunterStatusViewed', { isHost: ctx.isHost, seat: intent.seat });
+  handlerLog.debug('handleSetWolfRobotHunterStatusViewed', {
+    isHost: ctx.isHost,
+    seat: intent.seat,
+  });
 
   // Gate 1: host_only
   if (!ctx.isHost) {

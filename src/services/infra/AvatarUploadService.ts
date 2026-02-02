@@ -96,11 +96,7 @@ export class AvatarUploadService {
   /**
    * DOM-based image compression (browser/web only).
    */
-  private compressImageWithDom(
-    fileUri: string,
-    maxSize: number,
-    quality: number,
-  ): Promise<Blob> {
+  private compressImageWithDom(fileUri: string, maxSize: number, quality: number): Promise<Blob> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';

@@ -24,7 +24,12 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme, spacing, borderRadius, typography, ThemeColors } from '../../theme';
-import { sendChatMessage, ChatMessage, getDefaultApiKey, GameContext } from '../../services/AIChatService';
+import {
+  sendChatMessage,
+  ChatMessage,
+  getDefaultApiKey,
+  GameContext,
+} from '../../services/AIChatService';
 import { showAlert } from '../../utils/alert';
 import { useGameFacade } from '../../contexts';
 import { ROLE_SPECS } from '../../models/roles/spec/specs';
@@ -55,10 +60,7 @@ interface DisplayMessage {
 /**
  * 从游戏状态构建玩家视角的上下文（不包含作弊信息）
  */
-function buildPlayerContext(
-  state: BroadcastGameState | null,
-  mySeat: number | null,
-): GameContext {
+function buildPlayerContext(state: BroadcastGameState | null, mySeat: number | null): GameContext {
   if (!state) {
     return { inRoom: false };
   }
@@ -114,7 +116,9 @@ function buildPlayerContext(
 
   // 通灵师的查验结果
   if (context.myRole === 'psychic' && state.psychicReveal) {
-    myKnowledge.push(`${state.psychicReveal.targetSeat + 1}号的身份是${state.psychicReveal.result}`);
+    myKnowledge.push(
+      `${state.psychicReveal.targetSeat + 1}号的身份是${state.psychicReveal.result}`,
+    );
   }
 
   // 女巫知道的信息
@@ -132,7 +136,9 @@ function buildPlayerContext(
 
   // 石像鬼的查验结果
   if (context.myRole === 'gargoyle' && state.gargoyleReveal) {
-    myKnowledge.push(`${state.gargoyleReveal.targetSeat + 1}号的身份是${state.gargoyleReveal.result}`);
+    myKnowledge.push(
+      `${state.gargoyleReveal.targetSeat + 1}号的身份是${state.gargoyleReveal.result}`,
+    );
   }
 
   // 机械狼的学习结果（加 defensive check 避免 targetSeat 不存在时拼出 NaN号）
@@ -192,29 +198,24 @@ const ROLE_QUESTIONS: Record<string, string[]> = {
  * 根据聊天记录中提到的关键词生成跟进问题
  */
 const FOLLOW_UP_QUESTIONS: Record<string, string[]> = {
-  '预言家': ['预言家被刀了怎么办？', '预言家验到狼怎么处理？', '预言家第二晚查谁？'],
-  '女巫': ['女巫的解药什么时候用？', '女巫要不要自救？', '女巫毒错人怎么办？'],
-  '守卫': ['守卫守错人怎么办？', '守卫能连续守同一人吗？', '守卫和女巫同时救怎么办？'],
-  '猎人': ['猎人枪打谁最好？', '猎人要不要暴露身份？', '猎人被毒能开枪吗？'],
-  '狼人': ['狼人怎么悍跳？', '狼人怎么互保？', '狼人白天怎么发言？'],
-  '刀': ['狼刀有什么策略？', '刀边和刀中有什么区别？', '连刀和跳刀怎么选？'],
-  '毒': ['女巫毒药什么时候用？', '毒死好人怎么办？', '怎么判断该不该毒？'],
-  '救': ['女巫要不要第一晚救？', '救人有什么风险？', '自救和救队友怎么选？'],
-  '查': ['预言家查谁效率高？', '查到好人怎么处理？', '查到狼人要跳吗？'],
-  '跳': ['什么时候应该跳身份？', '悍跳是什么意思？', '跳身份被反驳怎么办？'],
-  '投票': ['第一轮投票策略？', '怎么判断投票站边？', '弃票是好策略吗？'],
-  '发言': ['好人怎么发言？', '狼人怎么发言？', '发言顺序有影响吗？'],
-  '金水': ['金水应该怎么发言？', '金水被怀疑怎么办？', '假金水怎么辨别？'],
-  '银水': ['银水是什么意思？', '银水可信吗？', '怎么利用银水信息？'],
+  预言家: ['预言家被刀了怎么办？', '预言家验到狼怎么处理？', '预言家第二晚查谁？'],
+  女巫: ['女巫的解药什么时候用？', '女巫要不要自救？', '女巫毒错人怎么办？'],
+  守卫: ['守卫守错人怎么办？', '守卫能连续守同一人吗？', '守卫和女巫同时救怎么办？'],
+  猎人: ['猎人枪打谁最好？', '猎人要不要暴露身份？', '猎人被毒能开枪吗？'],
+  狼人: ['狼人怎么悍跳？', '狼人怎么互保？', '狼人白天怎么发言？'],
+  刀: ['狼刀有什么策略？', '刀边和刀中有什么区别？', '连刀和跳刀怎么选？'],
+  毒: ['女巫毒药什么时候用？', '毒死好人怎么办？', '怎么判断该不该毒？'],
+  救: ['女巫要不要第一晚救？', '救人有什么风险？', '自救和救队友怎么选？'],
+  查: ['预言家查谁效率高？', '查到好人怎么处理？', '查到狼人要跳吗？'],
+  跳: ['什么时候应该跳身份？', '悍跳是什么意思？', '跳身份被反驳怎么办？'],
+  投票: ['第一轮投票策略？', '怎么判断投票站边？', '弃票是好策略吗？'],
+  发言: ['好人怎么发言？', '狼人怎么发言？', '发言顺序有影响吗？'],
+  金水: ['金水应该怎么发言？', '金水被怀疑怎么办？', '假金水怎么辨别？'],
+  银水: ['银水是什么意思？', '银水可信吗？', '怎么利用银水信息？'],
 };
 
 // 通用跟进模板：根据用户问题生成跟进问题
-const GENERIC_FOLLOW_UPS = [
-  '继续说说？',
-  '还有别的吗？',
-  '具体怎么做？',
-  '为什么呢？',
-];
+const GENERIC_FOLLOW_UPS = ['继续说说？', '还有别的吗？', '具体怎么做？', '为什么呢？'];
 
 /**
  * 从聊天记录中提取关键词并生成跟进问题
@@ -224,18 +225,18 @@ const GENERIC_FOLLOW_UPS = [
 function getContextQuestion(messages: DisplayMessage[]): string | null {
   // 只要有消息就返回跟进问题
   if (messages.length === 0) return null;
-  
+
   // 优先取 AI 最后的回答
-  const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
+  const lastAssistantMsg = [...messages].reverse().find((m) => m.role === 'assistant');
   const contentToAnalyze = lastAssistantMsg?.content || '';
-  
+
   // 如果 AI 还没回答，取用户最后的问题
-  const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+  const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
   const userContent = lastUserMsg?.content || '';
-  
+
   // 合并分析
   const allContent = contentToAnalyze + ' ' + userContent;
-  
+
   // 查找匹配的关键词（按优先级排序：越具体的关键词越优先）
   const matchedKeywords: string[] = [];
   for (const keyword of Object.keys(FOLLOW_UP_QUESTIONS)) {
@@ -243,7 +244,7 @@ function getContextQuestion(messages: DisplayMessage[]): string | null {
       matchedKeywords.push(keyword);
     }
   }
-  
+
   // 如果匹配到预设关键词，返回对应跟进问题
   if (matchedKeywords.length > 0) {
     const sortedKeywords = [...matchedKeywords].sort((a, b) => b.length - a.length);
@@ -251,7 +252,7 @@ function getContextQuestion(messages: DisplayMessage[]): string | null {
     const followUps = FOLLOW_UP_QUESTIONS[bestKeyword];
     return followUps[Math.floor(Math.random() * followUps.length)];
   }
-  
+
   // 没有匹配到预设关键词 → 一律返回通用跟进问题（只要有对话）
   return GENERIC_FOLLOW_UPS[Math.floor(Math.random() * GENERIC_FOLLOW_UPS.length)];
 }
@@ -262,11 +263,11 @@ function getContextQuestion(messages: DisplayMessage[]): string | null {
 function generateQuickQuestions(
   state: BroadcastGameState | null,
   mySeat: number | null,
-  messages: DisplayMessage[]
+  messages: DisplayMessage[],
 ): string[] {
   const questions: string[] = [];
   const usedQuestions = new Set<string>();
-  
+
   // 1. 根据聊天记录生成跟进问题（优先级最高）
   const contextQ = getContextQuestion(messages);
   if (contextQ && !usedQuestions.has(contextQ)) {
@@ -285,7 +286,7 @@ function generateQuickQuestions(
   if (mySeat !== null && state?.players[mySeat]?.role) {
     const myRole = state.players[mySeat]?.role;
     if (myRole && ROLE_QUESTIONS[myRole]) {
-      const roleQs = ROLE_QUESTIONS[myRole].filter(q => !usedQuestions.has(q));
+      const roleQs = ROLE_QUESTIONS[myRole].filter((q) => !usedQuestions.has(q));
       if (roleQs.length > 0) {
         const randomRoleQ = roleQs[Math.floor(Math.random() * roleQs.length)];
         questions.push(randomRoleQ);
@@ -303,7 +304,7 @@ function generateQuickQuestions(
     const uniqueOtherRoles = [...new Set(otherRoles)];
     if (uniqueOtherRoles.length > 0) {
       const randomRole = uniqueOtherRoles[Math.floor(Math.random() * uniqueOtherRoles.length)];
-      const roleQs = ROLE_QUESTIONS[randomRole]?.filter(q => !usedQuestions.has(q)) || [];
+      const roleQs = ROLE_QUESTIONS[randomRole]?.filter((q) => !usedQuestions.has(q)) || [];
       if (roleQs.length > 0) {
         const randomQ = roleQs[Math.floor(Math.random() * roleQs.length)];
         questions.push(randomQ);
@@ -315,7 +316,7 @@ function generateQuickQuestions(
   // 5. 如果问题不够4个，从通用问题池补充
   if (questions.length < 4) {
     const remaining = 4 - questions.length;
-    const availableGeneral = GENERAL_QUESTIONS.filter(q => !usedQuestions.has(q));
+    const availableGeneral = GENERAL_QUESTIONS.filter((q) => !usedQuestions.has(q));
     const shuffledGeneral = [...availableGeneral].sort(() => Math.random() - 0.5);
     for (let i = 0; i < remaining && i < shuffledGeneral.length; i++) {
       questions.push(shuffledGeneral[i]);
@@ -338,7 +339,7 @@ export const AIChatBubble: React.FC = () => {
   const [position, setPosition] = useState(DEFAULT_POSITION);
   const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
   const isDraggingRef = useRef(false);
-  
+
   // 请求冷却
   const COOLDOWN_SECONDS = 5;
   const [cooldownRemaining, setCooldownRemaining] = useState(0); // 剩余冷却秒数
@@ -359,12 +360,15 @@ export const AIChatBubble: React.FC = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // 刷新上下文问题（基于当前聊天记录生成跟进问题）
-  const refreshContextQuestions = useCallback((currentMessages: DisplayMessage[]) => {
-    const gameState = facade.getState();
-    const mySeat = facade.getMySeatNumber();
-    const questions = generateQuickQuestions(gameState, mySeat, currentMessages);
-    setContextQuestions(questions);
-  }, [facade]);
+  const refreshContextQuestions = useCallback(
+    (currentMessages: DisplayMessage[]) => {
+      const gameState = facade.getState();
+      const mySeat = facade.getMySeatNumber();
+      const questions = generateQuickQuestions(gameState, mySeat, currentMessages);
+      setContextQuestions(questions);
+    },
+    [facade],
+  );
 
   // 只在打开聊天窗口时刷新上下文问题（不依赖 messages，避免发送/回复时重复刷新）
   useEffect(() => {
@@ -404,10 +408,10 @@ export const AIChatBubble: React.FC = () => {
   // 原生平台：使用 Keyboard API
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    
+
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    
+
     const showSubscription = Keyboard.addListener(showEvent, (e) => {
       setKeyboardHeight(e.endCoordinates.height);
     });
@@ -421,11 +425,10 @@ export const AIChatBubble: React.FC = () => {
     };
   }, []);
 
-
   // 按钮点击处理（需要在 handleTouchEnd 之前定义）
   // 使用 ref 防止拖拽和点击双触发
   const justHandledTouchRef = useRef(false);
-  
+
   const handleBubblePress = useCallback(() => {
     // 防止拖拽结束时 onPress 再次触发
     if (justHandledTouchRef.current) {
@@ -441,17 +444,20 @@ export const AIChatBubble: React.FC = () => {
   }, [scaleAnim]);
 
   // 拖动手势处理函数
-  const handleTouchStart = useCallback((e: GestureResponderEvent) => {
-    const touch = e.nativeEvent;
-    dragStartRef.current = {
-      x: touch.pageX,
-      y: touch.pageY,
-      posX: position.x,
-      posY: position.y,
-    };
-    isDraggingRef.current = false;
-    justHandledTouchRef.current = false;
-  }, [position]);
+  const handleTouchStart = useCallback(
+    (e: GestureResponderEvent) => {
+      const touch = e.nativeEvent;
+      dragStartRef.current = {
+        x: touch.pageX,
+        y: touch.pageY,
+        posX: position.x,
+        posY: position.y,
+      };
+      isDraggingRef.current = false;
+      justHandledTouchRef.current = false;
+    },
+    [position],
+  );
 
   const handleTouchMove = useCallback((e: GestureResponderEvent) => {
     const touch = e.nativeEvent;
@@ -467,7 +473,10 @@ export const AIChatBubble: React.FC = () => {
 
       // 边界限制
       newX = Math.max(BUBBLE_MARGIN, Math.min(SCREEN_WIDTH - BUBBLE_SIZE - BUBBLE_MARGIN, newX));
-      newY = Math.max(BUBBLE_MARGIN + 50, Math.min(SCREEN_HEIGHT - BUBBLE_SIZE - BUBBLE_MARGIN, newY));
+      newY = Math.max(
+        BUBBLE_MARGIN + 50,
+        Math.min(SCREEN_HEIGHT - BUBBLE_SIZE - BUBBLE_MARGIN, newY),
+      );
 
       setPosition({ x: newX, y: newY });
     }
@@ -511,116 +520,121 @@ export const AIChatBubble: React.FC = () => {
   // 保存消息（加 catch 避免 promise 噪音）
   useEffect(() => {
     if (messages.length > 0) {
-      AsyncStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(messages.slice(-50))).catch(() => {});
+      AsyncStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(messages.slice(-50))).catch(
+        () => {},
+      );
     }
   }, [messages]);
 
   // 冷却倒计时
   useEffect(() => {
     if (cooldownRemaining <= 0) return;
-    
+
     const timer = setTimeout(() => {
       setCooldownRemaining((prev) => prev - 1);
     }, 1000);
-    
+
     return () => clearTimeout(timer);
   }, [cooldownRemaining]);
 
   // 通用发送函数（供 handleSend 和 handleQuickQuestion 调用）
-  const sendMessage = useCallback(async (text: string) => {
-    if (!text || isLoading) return;
-    // 冷却中不发送（但不阻止，因为按钮已禁用）
-    if (cooldownRemaining > 0) return;
+  const sendMessage = useCallback(
+    async (text: string) => {
+      if (!text || isLoading) return;
+      // 冷却中不发送（但不阻止，因为按钮已禁用）
+      if (cooldownRemaining > 0) return;
 
-    if (!apiKey) {
-      showAlert('配置错误', 'AI 服务未配置');
-      return;
-    }
-
-    // 启动冷却倒计时
-    setCooldownRemaining(COOLDOWN_SECONDS);
-
-    const userMessage: DisplayMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: text,
-      timestamp: Date.now(),
-    };
-
-    // 先捕获当前 messages 快照，用于构建上下文
-    // 注意：这里不能依赖闭包中的 messages，因为 setMessages 是异步的
-    let currentMessages: DisplayMessage[] = [];
-    setMessages((prev) => {
-      currentMessages = prev; // 捕获最新状态
-      return [...prev, userMessage];
-    });
-    setInputText('');
-    setIsLoading(true);
-    // 注意：不在这里清空 aiSuggestions，等 AI 回复后再更新
-
-    // 收起键盘
-    Keyboard.dismiss();
-
-    try {
-      // 获取游戏上下文（玩家视角，不作弊）
-      const gameState = facade.getState();
-      const mySeat = facade.getMySeatNumber();
-      const gameContext = buildPlayerContext(gameState, mySeat);
-
-      // 构建上下文（最近 10 条消息 + 刚发送的用户消息）
-      // 使用 currentMessages 确保包含最新历史
-      const contextMessages: ChatMessage[] = currentMessages.slice(-9).map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-      // 添加当前用户消息（确保不丢失）
-      contextMessages.push({ role: 'user', content: text });
-
-      const response = await sendChatMessage(contextMessages, apiKey, gameContext);
-
-      if (response.success && response.message) {
-        let content = response.message;
-        
-        // 移除 Qwen3 的 <think>...</think> 思考过程
-        content = content.replaceAll(/<think>[\s\S]*?<\/think>/g, '').trim();
-        
-        // 解析 AI 返回的跟进建议
-        const suggestionsRegex = /```suggestions\n([\s\S]*?)```/;
-        const suggestionsMatch = suggestionsRegex.exec(content);
-        if (suggestionsMatch) {
-          const suggestions = suggestionsMatch[1]
-            .split('\n')
-            .map(s => s.trim())
-            // 移除常见的序号格式：1. 2. - * 等
-            .map(s => s.replace(/^\d+[.、)]\s*/, '').replace(/^[-*•]\s*/, ''))
-            .filter(s => s.length > 0 && s.length <= 20)
-            // 确保以问号结尾（如果没有就加上）
-            .map(s => s.endsWith('？') || s.endsWith('?') ? s : s + '？');
-          setAiSuggestions(suggestions.slice(0, 2));
-          // 从显示内容中移除建议块
-          content = content.replace(/```suggestions\n[\s\S]*?```/, '').trim();
-        } else {
-          // AI 没有返回建议时，清空旧的
-          setAiSuggestions([]);
-        }
-
-        const assistantMessage: DisplayMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content,
-          timestamp: Date.now(),
-        };
-        // 更新消息列表并刷新上下文问题
-        setMessages((prev) => [...prev, assistantMessage]);
-        // AI 回复成功后刷新上下文问题（使用 currentMessages + userMessage + assistantMessage）
-        refreshContextQuestions([...currentMessages, userMessage, assistantMessage]);
-      } else {
-        showAlert('发送失败', response.error || '未知错误');
+      if (!apiKey) {
+        showAlert('配置错误', 'AI 服务未配置');
+        return;
       }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLoading, cooldownRemaining, apiKey, facade, refreshContextQuestions]);
+
+      // 启动冷却倒计时
+      setCooldownRemaining(COOLDOWN_SECONDS);
+
+      const userMessage: DisplayMessage = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: text,
+        timestamp: Date.now(),
+      };
+
+      // 先捕获当前 messages 快照，用于构建上下文
+      // 注意：这里不能依赖闭包中的 messages，因为 setMessages 是异步的
+      let currentMessages: DisplayMessage[] = [];
+      setMessages((prev) => {
+        currentMessages = prev; // 捕获最新状态
+        return [...prev, userMessage];
+      });
+      setInputText('');
+      setIsLoading(true);
+      // 注意：不在这里清空 aiSuggestions，等 AI 回复后再更新
+
+      // 收起键盘
+      Keyboard.dismiss();
+
+      try {
+        // 获取游戏上下文（玩家视角，不作弊）
+        const gameState = facade.getState();
+        const mySeat = facade.getMySeatNumber();
+        const gameContext = buildPlayerContext(gameState, mySeat);
+
+        // 构建上下文（最近 10 条消息 + 刚发送的用户消息）
+        // 使用 currentMessages 确保包含最新历史
+        const contextMessages: ChatMessage[] = currentMessages.slice(-9).map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+        // 添加当前用户消息（确保不丢失）
+        contextMessages.push({ role: 'user', content: text });
+
+        const response = await sendChatMessage(contextMessages, apiKey, gameContext);
+
+        if (response.success && response.message) {
+          let content = response.message;
+
+          // 移除 Qwen3 的 <think>...</think> 思考过程
+          content = content.replaceAll(/<think>[\s\S]*?<\/think>/g, '').trim();
+
+          // 解析 AI 返回的跟进建议
+          const suggestionsRegex = /```suggestions\n([\s\S]*?)```/;
+          const suggestionsMatch = suggestionsRegex.exec(content);
+          if (suggestionsMatch) {
+            const suggestions = suggestionsMatch[1]
+              .split('\n')
+              .map((s) => s.trim())
+              // 移除常见的序号格式：1. 2. - * 等
+              .map((s) => s.replace(/^\d+[.、)]\s*/, '').replace(/^[-*•]\s*/, ''))
+              .filter((s) => s.length > 0 && s.length <= 20)
+              // 确保以问号结尾（如果没有就加上）
+              .map((s) => (s.endsWith('？') || s.endsWith('?') ? s : s + '？'));
+            setAiSuggestions(suggestions.slice(0, 2));
+            // 从显示内容中移除建议块
+            content = content.replace(/```suggestions\n[\s\S]*?```/, '').trim();
+          } else {
+            // AI 没有返回建议时，清空旧的
+            setAiSuggestions([]);
+          }
+
+          const assistantMessage: DisplayMessage = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content,
+            timestamp: Date.now(),
+          };
+          // 更新消息列表并刷新上下文问题
+          setMessages((prev) => [...prev, assistantMessage]);
+          // AI 回复成功后刷新上下文问题（使用 currentMessages + userMessage + assistantMessage）
+          refreshContextQuestions([...currentMessages, userMessage, assistantMessage]);
+        } else {
+          showAlert('发送失败', response.error || '未知错误');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isLoading, cooldownRemaining, apiKey, facade, refreshContextQuestions],
+  );
 
   const handleSend = useCallback(async () => {
     const text = inputText.trim();
@@ -628,9 +642,12 @@ export const AIChatBubble: React.FC = () => {
   }, [inputText, sendMessage]);
 
   // 快捷问题点击
-  const handleQuickQuestion = useCallback((question: string) => {
-    sendMessage(question);
-  }, [sendMessage]);
+  const handleQuickQuestion = useCallback(
+    (question: string) => {
+      sendMessage(question);
+    },
+    [sendMessage],
+  );
 
   const handleClearHistory = useCallback(() => {
     setMessages([]);
@@ -650,12 +667,13 @@ export const AIChatBubble: React.FC = () => {
         </View>
       );
     },
-    [styles]
+    [styles],
   );
 
   // Web 专用样式：阻止拖动时页面滚动
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const webDragStyle: any = Platform.OS === 'web' ? { touchAction: 'none', cursor: 'grab', userSelect: 'none' } : {};
+  const webDragStyle: any =
+    Platform.OS === 'web' ? { touchAction: 'none', cursor: 'grab', userSelect: 'none' } : {};
 
   return (
     <>
@@ -675,20 +693,25 @@ export const AIChatBubble: React.FC = () => {
         onTouchEnd={handleTouchEnd}
       >
         {/* 用 TouchableOpacity 包裹，确保 Web 桌面端鼠标点击生效 */}
-        <TouchableOpacity
-          style={styles.bubble}
-          onPress={handleBubblePress}
-          activeOpacity={0.8}
-        >
+        <TouchableOpacity style={styles.bubble} onPress={handleBubblePress} activeOpacity={0.8}>
           <Text style={styles.bubbleIcon}>🐺</Text>
         </TouchableOpacity>
       </Animated.View>
 
       {/* 聊天窗口 Modal */}
-      <Modal visible={isOpen} transparent animationType="fade" onRequestClose={() => setIsOpen(false)}>
+      <Modal
+        visible={isOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsOpen(false)}
+      >
         {/* 使用 paddingBottom 来避开键盘 */}
         <View style={[styles.modalContainer, { paddingBottom: keyboardHeight + 10 }]}>
-          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setIsOpen(false)} />
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setIsOpen(false)}
+          />
 
           {/* 固定高度 */}
           <View style={styles.chatWindow}>
@@ -731,19 +754,26 @@ export const AIChatBubble: React.FC = () => {
               {aiSuggestions.map((q) => (
                 <TouchableOpacity
                   key={q}
-                  style={[styles.quickQuestionBtn, styles.aiSuggestionBtn, isLoading && styles.quickQuestionBtnDisabled]}
+                  style={[
+                    styles.quickQuestionBtn,
+                    styles.aiSuggestionBtn,
+                    isLoading && styles.quickQuestionBtnDisabled,
+                  ]}
                   onPress={() => handleQuickQuestion(q)}
                   activeOpacity={isLoading ? 1 : 0.7}
                   accessibilityState={{ disabled: isLoading }}
                 >
-                  <Text style={[styles.quickQuestionText, styles.aiSuggestionText]} numberOfLines={1}>
+                  <Text
+                    style={[styles.quickQuestionText, styles.aiSuggestionText]}
+                    numberOfLines={1}
+                  >
                     💬 {q}
                   </Text>
                 </TouchableOpacity>
               ))}
               {/* 补充上下文问题（最多补到 4 个） */}
               {contextQuestions
-                .filter(q => !aiSuggestions.includes(q))
+                .filter((q) => !aiSuggestions.includes(q))
                 .slice(0, Math.max(0, 4 - aiSuggestions.length))
                 .map((q) => (
                   <TouchableOpacity
@@ -753,7 +783,9 @@ export const AIChatBubble: React.FC = () => {
                     activeOpacity={isLoading ? 1 : 0.7}
                     accessibilityState={{ disabled: isLoading }}
                   >
-                    <Text style={styles.quickQuestionText} numberOfLines={1}>{q}</Text>
+                    <Text style={styles.quickQuestionText} numberOfLines={1}>
+                      {q}
+                    </Text>
                   </TouchableOpacity>
                 ))}
             </View>
@@ -775,11 +807,14 @@ export const AIChatBubble: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.sendButton,
-                  (!inputText.trim() || isLoading || cooldownRemaining > 0) && styles.sendButtonDisabled,
+                  (!inputText.trim() || isLoading || cooldownRemaining > 0) &&
+                    styles.sendButtonDisabled,
                 ]}
                 onPress={handleSend}
-                activeOpacity={(!inputText.trim() || isLoading || cooldownRemaining > 0) ? 1 : 0.7}
-                accessibilityState={{ disabled: !inputText.trim() || isLoading || cooldownRemaining > 0 }}
+                activeOpacity={!inputText.trim() || isLoading || cooldownRemaining > 0 ? 1 : 0.7}
+                accessibilityState={{
+                  disabled: !inputText.trim() || isLoading || cooldownRemaining > 0,
+                }}
               >
                 {(() => {
                   if (isLoading) {

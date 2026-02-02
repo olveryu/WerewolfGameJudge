@@ -178,7 +178,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
         0: { role: 'wolf' },
         1: { role: 'villager' },
       },
-  currentNightResults: { wolfVotesBySeat: { '0': 1 } }, // Wolf has voted
+      currentNightResults: { wolfVotesBySeat: { '0': 1 } }, // Wolf has voted
       actions: [],
       templateRoles: ['wolf', 'villager'],
     };
@@ -211,7 +211,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
       currentStepId: 'wolfKill',
       currentActionerIndex: 0,
       players: { 0: { role: 'wolf' } },
-  currentNightResults: { wolfVotesBySeat: { '0': 1 } },
+      currentNightResults: { wolfVotesBySeat: { '0': 1 } },
       actions: [],
       templateRoles: ['wolf'],
     };

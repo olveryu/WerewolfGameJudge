@@ -593,7 +593,15 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
     // All other schemas: show generic action prompt, dismiss → wait for seat tap
     return { type: 'actionPrompt', targetIndex: -1 };
-  }, [myRole, imActioner, isAudioPlaying, currentSchema, gameState?.wolfRobotReveal, getWitchContext, anotherIndex]);
+  }, [
+    myRole,
+    imActioner,
+    isAudioPlaying,
+    currentSchema,
+    gameState?.wolfRobotReveal,
+    getWitchContext,
+    anotherIndex,
+  ]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Get action intent when seat is tapped
@@ -647,7 +655,14 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       // - default/unknown → null (no seat tap effect)
       return schemaIntent;
     },
-    [myRole, currentSchema, anotherIndex, findVotingWolfSeat, buildActionMessage, gameState?.wolfRobotReveal],
+    [
+      myRole,
+      currentSchema,
+      anotherIndex,
+      findVotingWolfSeat,
+      buildActionMessage,
+      gameState?.wolfRobotReveal,
+    ],
   );
 
   // ─────────────────────────────────────────────────────────────────────────

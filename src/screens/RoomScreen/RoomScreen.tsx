@@ -9,13 +9,7 @@
  * All game state accessed through useGameRoom hook.
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -41,11 +35,7 @@ import {
   formatRoleList,
   buildSeatViewModels,
 } from './RoomScreen.helpers';
-import {
-  getInteractionResult,
-  type InteractionEvent,
-  type InteractionContext,
-} from './policy';
+import { getInteractionResult, type InteractionEvent, type InteractionContext } from './policy';
 import { TESTIDS } from '../../testids';
 import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
@@ -62,7 +52,12 @@ import { useColors, spacing, typography, borderRadius, type ThemeColors } from '
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { roomNumber, isHost: isHostParam, template, roleRevealAnimation: initialRoleRevealAnimation } = route.params;
+  const {
+    roomNumber,
+    isHost: isHostParam,
+    template,
+    roleRevealAnimation: initialRoleRevealAnimation,
+  } = route.params;
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -186,7 +181,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     currentActionRole,
     currentSchema,
     mySeatNumber,
-  wolfVotes: wolfVotesMap,
+    wolfVotes: wolfVotesMap,
     isHost,
     actions: gameState?.actions ?? new Map(),
   });
@@ -287,7 +282,18 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
     initRoom();
     // retryKey 变化时也会触发重试
-  }, [isInitialized, retryKey, isHostParam, template, roomNumber, createRoom, joinRoom, takeSeat, initialRoleRevealAnimation, setRoleRevealAnimation]);
+  }, [
+    isInitialized,
+    retryKey,
+    isHostParam,
+    template,
+    roomNumber,
+    createRoom,
+    joinRoom,
+    takeSeat,
+    initialRoleRevealAnimation,
+    setRoleRevealAnimation,
+  ]);
 
   // Reset UI state when game restarts
   useEffect(() => {
@@ -445,9 +451,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // ---------------------------------------------------------------------------------
 
   type WitchStepResults = { save: number | null; poison: number | null };
-  type ActionExtra =
-    | { stepResults: WitchStepResults }
-    | { targets: readonly [number, number] }; // swap protocol: [seatA, seatB]
+  type ActionExtra = { stepResults: WitchStepResults } | { targets: readonly [number, number] }; // swap protocol: [seatA, seatB]
 
   // Schema lookup helper (used internally)
   const _getSchemaById = useCallback((id: string): ActionSchema | null => {
@@ -583,9 +587,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
             if (reveal) {
               // Seer result is already Chinese ('好人'/'狼人'), others are RoleId
-              const displayResult = revealKind === 'seer' 
-                ? reveal.result 
-                : getRoleDisplayName(reveal.result);
+              const displayResult =
+                revealKind === 'seer' ? reveal.result : getRoleDisplayName(reveal.result);
               actionDialogs.showRevealDialog(
                 `${reveal.targetSeat + 1}号是${displayResult}`,
                 '',
@@ -596,7 +599,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 },
               );
             } else {
-              roomScreenLog.warn(` ${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`);
+              roomScreenLog.warn(
+                ` ${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`,
+              );
               // P0-FIX: 超时也要清除 pending 状态
               setPendingRevealDialog(false);
             }
@@ -641,9 +646,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 if (currentSchema?.id !== 'wolfKill' || !targetRole) return base;
                 // Local import would create layering issues; use a lightweight string hint only.
                 // The real validation still happens in wolfKillResolver (Host-only).
-                const immune =
-                  targetRole === 'spiritKnight' ||
-                  targetRole === 'wolfQueen';
+                const immune = targetRole === 'spiritKnight' || targetRole === 'wolfQueen';
                 return immune ? `${base ?? ''}\n（提示：该角色免疫狼刀，Host 会拒绝）` : base;
               })(),
             );
@@ -775,7 +778,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
           // Schema-driven UI: get text from currentSchema (hunterConfirm or darkWolfKingConfirm)
           // Fail-fast if schema missing required status dialog fields
-          if (!currentSchema?.ui?.statusDialogTitle || !currentSchema?.ui?.canShootText || !currentSchema?.ui?.cannotShootText) {
+          if (
+            !currentSchema?.ui?.statusDialogTitle ||
+            !currentSchema?.ui?.canShootText ||
+            !currentSchema?.ui?.cannotShootText
+          ) {
             throw new Error(
               `[RoomScreen] confirmTrigger schema missing status dialog UI fields for ${currentSchema?.id}`,
             );
@@ -798,7 +805,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
           // Schema-driven: use schema text directly (no string concatenation)
           const dialogTitle = currentSchema.ui.statusDialogTitle;
-          const statusMessage = canShoot ? currentSchema.ui.canShootText : currentSchema.ui.cannotShootText;
+          const statusMessage = canShoot
+            ? currentSchema.ui.canShootText
+            : currentSchema.ui.cannotShootText;
 
           // Show info dialog with status, then submit action when user acknowledges
           // IMPORTANT: Pass confirmed=true to satisfy Host block guard
@@ -1027,7 +1036,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       switch (result.kind) {
         case 'NOOP':
           // Do nothing - blocked by gate or not applicable
-          roomScreenLog.debug('[dispatchInteraction] NOOP', { reason: result.reason, event: event.kind });
+          roomScreenLog.debug('[dispatchInteraction] NOOP', {
+            reason: result.reason,
+            event: event.kind,
+          });
           return;
 
         case 'ALERT':
@@ -1203,10 +1215,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
     }
 
-  // Bug fix (ONLY hunter gate): When wolfRobot has learned hunter (wolfRobotReveal exists)
-  // and needs to view hunter status, show the hunter gate prompt instead of learning prompt.
-  // NOTE: This is intentionally NOT a generic "any learned role" gate. Only hunter has
-  // this extra UI gate before night advances.
+    // Bug fix (ONLY hunter gate): When wolfRobot has learned hunter (wolfRobotReveal exists)
+    // and needs to view hunter status, show the hunter gate prompt instead of learning prompt.
+    // NOTE: This is intentionally NOT a generic "any learned role" gate. Only hunter has
+    // this extra UI gate before night advances.
     const isWolfRobotHunterGateActive =
       currentSchema.id === 'wolfRobotLearn' &&
       gameState?.wolfRobotReveal?.learnedRoleId === 'hunter' &&
@@ -1307,9 +1319,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             roomStatus === GameStatus.ended
           }
           onSettingsPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' })}
-          onPrepareToFlipPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' })}
-          onStartGamePress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'startGame' })}
-          onLastNightInfoPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'lastNightInfo' })}
+          onPrepareToFlipPress={() =>
+            dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' })
+          }
+          onStartGamePress={() =>
+            dispatchInteraction({ kind: 'HOST_CONTROL', action: 'startGame' })
+          }
+          onLastNightInfoPress={() =>
+            dispatchInteraction({ kind: 'HOST_CONTROL', action: 'lastNightInfo' })
+          }
           onRestartPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' })}
         />
 
@@ -1374,19 +1392,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       )}
 
       {roleRevealAnimation === 'flip' && (
-        <RoleCardModal
-          visible={roleCardVisible}
-          roleId={myRole}
-          onClose={handleRoleCardClose}
-        />
+        <RoleCardModal visible={roleCardVisible} roleId={myRole} onClose={handleRoleCardClose} />
       )}
 
       {roleRevealAnimation === 'none' && (
-        <RoleCardSimple
-          visible={roleCardVisible}
-          roleId={myRole}
-          onClose={handleRoleCardClose}
-        />
+        <RoleCardSimple visible={roleCardVisible} roleId={myRole} onClose={handleRoleCardClose} />
       )}
     </SafeAreaView>
   );

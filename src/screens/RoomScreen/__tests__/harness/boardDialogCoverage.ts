@@ -62,15 +62,12 @@ export function getBoardByName(name: string): BoardConfig | undefined {
 /**
  * Base dialog types that ALL boards must cover (UI-triggerable)
  */
-const BASE_UI_DIALOG_TYPES: DialogType[] = [
-  'actionPrompt',
-  'wolfVote',
-];
+const BASE_UI_DIALOG_TYPES: DialogType[] = ['actionPrompt', 'wolfVote'];
 
 /**
  * UI-TRIGGERABLE role-specific dialog requirements
  * These MUST be covered by UI tests (render → interaction → showAlert)
- * 
+ *
  * CRITICAL: ALL these dialogs are MANDATORY and cannot be excluded.
  * Tests must properly mock hooks/buttons to trigger these dialogs.
  */
@@ -237,16 +234,16 @@ export function generateCoverageMatrix(): CoverageEntry[] {
  * Map board name to expected test file name pattern
  */
 export const BOARD_TEST_FILE_MAP: Record<string, string> = {
-  '标准板12人': 'standard.12p.board.ui.test.tsx',
-  '狼美守卫12人': 'wolfQueen.12p.board.ui.test.tsx',
-  '狼王守卫12人': 'darkWolfKing.12p.board.ui.test.tsx',
-  '石像鬼守墓人12人': 'gargoyle.12p.board.ui.test.tsx',
-  '梦魇守卫12人': 'nightmare.12p.board.ui.test.tsx',
-  '血月猎魔12人': 'bloodMoon.12p.board.ui.test.tsx',
-  '狼王摄梦人12人': 'dreamcatcher.12p.board.ui.test.tsx',
-  '狼王魔术师12人': 'magician.12p.board.ui.test.tsx',
-  '机械狼通灵师12人': 'wolfRobot.12p.board.ui.test.tsx',
-  '恶灵骑士12人': 'spiritKnight.12p.board.ui.test.tsx',
+  标准板12人: 'standard.12p.board.ui.test.tsx',
+  狼美守卫12人: 'wolfQueen.12p.board.ui.test.tsx',
+  狼王守卫12人: 'darkWolfKing.12p.board.ui.test.tsx',
+  石像鬼守墓人12人: 'gargoyle.12p.board.ui.test.tsx',
+  梦魇守卫12人: 'nightmare.12p.board.ui.test.tsx',
+  血月猎魔12人: 'bloodMoon.12p.board.ui.test.tsx',
+  狼王摄梦人12人: 'dreamcatcher.12p.board.ui.test.tsx',
+  狼王魔术师12人: 'magician.12p.board.ui.test.tsx',
+  机械狼通灵师12人: 'wolfRobot.12p.board.ui.test.tsx',
+  恶灵骑士12人: 'spiritKnight.12p.board.ui.test.tsx',
 };
 
 /**

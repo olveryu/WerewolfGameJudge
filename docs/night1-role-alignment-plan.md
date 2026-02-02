@@ -15,11 +15,11 @@
 ## 0. 交付方式（强制）
 
 - **必须分 Commit**，每个 commit 都要：
-  1) 扫描/对齐结论（写在 PR/commit message）
-  2) 最少 1 个 Handler Contract Test（验证 UI payload → `buildActionInput`）
-  3) 最少 1 个 Resolver Integration Test（验证 resolver 输入/输出 shape + 关键 edge case）
-  4) 最少 1 个 **boards / harness integration**（必须跑在 harness 上，见 0.1）
-  4) 本地跑过 Jest 全绿
+  1. 扫描/对齐结论（写在 PR/commit message）
+  2. 最少 1 个 Handler Contract Test（验证 UI payload → `buildActionInput`）
+  3. 最少 1 个 Resolver Integration Test（验证 resolver 输入/输出 shape + 关键 edge case）
+  4. 最少 1 个 **boards / harness integration**（必须跑在 harness 上，见 0.1）
+  5. 本地跑过 Jest 全绿
 - 每个 commit 完成后 **停下来等审核**，不得一次性批量堆 10+ 角色。
 
 ### 0.1 集成测试门禁（强制，避免 legacy 假阳性）
@@ -28,26 +28,26 @@
 
 每个涉及 Night-1 行动协议的改动（UI/handler/resolver 任一处），必须同时满足：
 
-1) **boards/integration 必须基于 harness**
+1. **boards/integration 必须基于 harness**
 
 - 必须使用：`src/services/__tests__/boards/hostGameFactory.ts`（或等价 harness）。
 - ❌ 禁止：在 boards 目录下 import `src/services/GameStateService*`、`src/services/legacy/**`、`NightFlowController`。
 
-2) **必须有 boundary guard（防止回退到 legacy/encoded-target）**
+2. **必须有 boundary guard（防止回退到 legacy/encoded-target）**
 
 - 必须通过：`src/services/__tests__/boards/boundary.guard.test.ts`
 - guard 至少要覆盖：
   - boards harness 目录
   - core（`src/services/engine/handlers/**`、`src/services/engine/reducer/**`）
 
-3) **必须有 wire protocol contract（锁死“harness 实际发送的 payload shape”）**
+3. **必须有 wire protocol contract（锁死“harness 实际发送的 payload shape”）**
 
 - 必须通过：`src/services/__tests__/boards/wireProtocol.contract.test.ts`
 - contract 不只测 `SCHEMAS/NIGHT_STEPS`，还必须额外锁死：`hostGameFactory.ts` 实际发送的 `PlayerMessage`（或等价测试手段）。
   - swap（magicianSwap）：`target === null` + `extra.targets`（仅在 length>0 时存在）
   - compound（witchAction）：`target === null` + `extra.stepResults` 且包含 `save/poison` 两个 key
 
-4) **单一真相（BroadcastGameState）强制落地到 night end / death calc**
+4. **单一真相（BroadcastGameState）强制落地到 night end / death calc**
 
 - night end / death calc 必须只读 `BroadcastGameState`（= state）中的权威字段。
 - 例如：witch 的 save/poison 结果必须从 `currentNightResults.savedSeat/poisonedSeat` 读取。
@@ -59,15 +59,15 @@
 
 对每个 Night-1 行动角色（或 schema）都要回答下面 3 个问题，并用测试覆盖：
 
-1) **UI 实际提交的 payload 长什么样？**
+1. **UI 实际提交的 payload 长什么样？**
    - 以 `src/screens/RoomScreen/__tests__/*.ui.test.tsx` 里的 `toHaveBeenCalledWith(...)` 为事实来源。
    - 如果没有对应 UI 测试，先补 UI 测试再谈对齐。
 
-2) **Handler 如何把 payload 转成 `ActionInput`？**
+2. **Handler 如何把 payload 转成 `ActionInput`？**
    - 入口在 `src/services/engine/handlers/actionHandler.ts` 的 `buildActionInput()`。
    - Handler Contract Test 必须断言 build 出来的 `ActionInput` 字段：`target | targets | stepResults | confirmed`。
 
-3) **Resolver 实际读取哪些字段？**
+3. **Resolver 实际读取哪些字段？**
    - 在 `src/services/night/resolvers/<role>.ts` 中看 `input.*` 访问点。
    - Resolver Integration Test 必须用真实的 `ActionInput` shape 调用 resolver（不要用“自己拍脑袋造的 input”）。
 
@@ -276,11 +276,11 @@
 
 对你要改的角色，按顺序扫描并写在 commit message：
 
-1) UI tests 里 submitAction/submitWolfVote 的实参长什么样
-2) `buildActionInput()` 现在怎么解析
-3) resolver 读取哪些 `input.*`
-4) schema constraints 有哪些（notSelf / allowSelf / etc.）
-5) nightmare block 是否适用；适用则必须覆盖测试
+1. UI tests 里 submitAction/submitWolfVote 的实参长什么样
+2. `buildActionInput()` 现在怎么解析
+3. resolver 读取哪些 `input.*`
+4. schema constraints 有哪些（notSelf / allowSelf / etc.）
+5. nightmare block 是否适用；适用则必须覆盖测试
 
 ---
 

@@ -85,9 +85,11 @@ function isCurrentStepComplete(state: NonNullState): boolean {
       const seat = Number.parseInt(seatStr, 10);
       if (!Number.isFinite(seat) || !player?.role) continue;
 
-      const spec = getRoleSpec(player.role) as unknown as {
-        wolfMeeting?: { participatesInWolfVote?: boolean };
-      } | undefined;
+      const spec = getRoleSpec(player.role) as unknown as
+        | {
+            wolfMeeting?: { participatesInWolfVote?: boolean };
+          }
+        | undefined;
       if (spec?.wolfMeeting?.participatesInWolfVote) {
         participatingWolfSeats.push(seat);
       }

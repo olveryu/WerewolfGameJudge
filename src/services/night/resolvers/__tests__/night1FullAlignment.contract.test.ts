@@ -12,7 +12,11 @@
  */
 
 import { NIGHT_STEPS, SCHEMAS, ROLE_SPECS, type SchemaId } from '../../../../models/roles/spec';
-import type { CompoundSchema, ActionSchema, RevealKind } from '../../../../models/roles/spec/schema.types';
+import type {
+  CompoundSchema,
+  ActionSchema,
+  RevealKind,
+} from '../../../../models/roles/spec/schema.types';
 import { RESOLVERS } from '../index';
 import type { ActionInput, ResolverContext } from '../types';
 import type { RoleId } from '../../../../models/roles/spec/specs';
@@ -170,17 +174,40 @@ describe('Schema constraints ↔ Resolver alignment', () => {
 describe('revealKind ↔ Resolver result field alignment', () => {
   // 这些 schema 有 revealKind 需要返回 reveal 结果
   const schemasWithReveal = [
-    { schemaId: 'seerCheck' as SchemaId, revealKind: 'seer' as RevealKind, roleId: 'seer' as RoleId, seat: 10 },
-    { schemaId: 'psychicCheck' as SchemaId, revealKind: 'psychic' as RevealKind, roleId: 'psychic' as RoleId, seat: 11 },
-    { schemaId: 'gargoyleCheck' as SchemaId, revealKind: 'gargoyle' as RevealKind, roleId: 'gargoyle' as RoleId, seat: 4 },
-    { schemaId: 'wolfRobotLearn' as SchemaId, revealKind: 'wolfRobot' as RevealKind, roleId: 'wolfRobot' as RoleId, seat: 2 },
+    {
+      schemaId: 'seerCheck' as SchemaId,
+      revealKind: 'seer' as RevealKind,
+      roleId: 'seer' as RoleId,
+      seat: 10,
+    },
+    {
+      schemaId: 'psychicCheck' as SchemaId,
+      revealKind: 'psychic' as RevealKind,
+      roleId: 'psychic' as RoleId,
+      seat: 11,
+    },
+    {
+      schemaId: 'gargoyleCheck' as SchemaId,
+      revealKind: 'gargoyle' as RevealKind,
+      roleId: 'gargoyle' as RoleId,
+      seat: 4,
+    },
+    {
+      schemaId: 'wolfRobotLearn' as SchemaId,
+      revealKind: 'wolfRobot' as RevealKind,
+      roleId: 'wolfRobot' as RoleId,
+      seat: 2,
+    },
   ];
 
   describe('schemas with revealKind should be correctly configured', () => {
-    it.each(schemasWithReveal)('$schemaId: should have revealKind=$revealKind', ({ schemaId, revealKind }) => {
-      const actualRevealKind = getSchemaRevealKind(schemaId);
-      expect(actualRevealKind).toBe(revealKind);
-    });
+    it.each(schemasWithReveal)(
+      '$schemaId: should have revealKind=$revealKind',
+      ({ schemaId, revealKind }) => {
+        const actualRevealKind = getSchemaRevealKind(schemaId);
+        expect(actualRevealKind).toBe(revealKind);
+      },
+    );
   });
 
   describe('resolvers with revealKind should return corresponding result field', () => {
@@ -415,15 +442,21 @@ describe('canSkip behavior alignment', () => {
   ];
 
   describe('confirm schemas should have canSkip=true (blocked can skip)', () => {
-    it.each(confirmSchemasShouldHaveCanSkip)('$schemaId: should have canSkip=true', ({ schemaId }) => {
-      expect(getSchemaCanSkip(schemaId)).toBe(true);
-    });
+    it.each(confirmSchemasShouldHaveCanSkip)(
+      '$schemaId: should have canSkip=true',
+      ({ schemaId }) => {
+        expect(getSchemaCanSkip(schemaId)).toBe(true);
+      },
+    );
   });
 
   describe('schemas without canSkip', () => {
-    it.each(noSkipSchemas)('$schemaId: schema should have canSkip=false or undefined', ({ schemaId }) => {
-      expect(getSchemaCanSkip(schemaId)).toBe(false);
-    });
+    it.each(noSkipSchemas)(
+      '$schemaId: schema should have canSkip=false or undefined',
+      ({ schemaId }) => {
+        expect(getSchemaCanSkip(schemaId)).toBe(false);
+      },
+    );
   });
 });
 
@@ -475,12 +508,15 @@ describe('Confirm kind schemas', () => {
     expect(schema.kind).toBe('confirm');
   });
 
-  it.each(confirmSchemas)('$schemaId: resolver should accept confirm input', ({ schemaId, roleId, seat }) => {
-    const resolver = RESOLVERS[schemaId];
-    const context = createContext(seat, roleId);
+  it.each(confirmSchemas)(
+    '$schemaId: resolver should accept confirm input',
+    ({ schemaId, roleId, seat }) => {
+      const resolver = RESOLVERS[schemaId];
+      const context = createContext(seat, roleId);
 
-    const result = resolver!(context, { schemaId, confirmed: true });
+      const result = resolver!(context, { schemaId, confirmed: true });
 
-    expect(result.valid).toBe(true);
-  });
+      expect(result.valid).toBe(true);
+    },
+  );
 });

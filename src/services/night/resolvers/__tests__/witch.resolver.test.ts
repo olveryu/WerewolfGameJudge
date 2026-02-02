@@ -26,7 +26,7 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
     actorSeat: 5,
     actorRoleId: 'witch',
     players: defaultPlayers,
-  currentNightResults: { wolfVotesBySeat: { '2': 0 } },
+    currentNightResults: { wolfVotesBySeat: { '2': 0 } },
     gameState: {
       isNight1: true,
       witchHasAntidote: true,
@@ -74,7 +74,7 @@ describe('witchActionResolver', () => {
   describe('save action', () => {
     it('应该拒绝女巫自救 (notSelf constraint)', () => {
       const ctx = createContext({
-    currentNightResults: { wolfVotesBySeat: { '1': 5 } }, // witch is killed
+        currentNightResults: { wolfVotesBySeat: { '1': 5 } }, // witch is killed
       });
       const input = createInput({ save: 5, poison: null });
 
@@ -98,7 +98,7 @@ describe('witchActionResolver', () => {
 
     it('应该拒绝救非狼刀目标', () => {
       const ctx = createContext({
-    currentNightResults: { wolfVotesBySeat: { '1': 0 } },
+        currentNightResults: { wolfVotesBySeat: { '1': 0 } },
       });
       const input = createInput({ save: 1, poison: null }); // seat 1 is not wolf target
 
@@ -110,7 +110,7 @@ describe('witchActionResolver', () => {
 
     it('应该接受救被狼刀目标', () => {
       const ctx = createContext({
-    currentNightResults: { wolfVotesBySeat: { '1': 0 } },
+        currentNightResults: { wolfVotesBySeat: { '1': 0 } },
       });
       const input = createInput({ save: 0, poison: null });
 
@@ -136,7 +136,7 @@ describe('witchActionResolver', () => {
 
     it('应该拒绝同时救和毒', () => {
       const ctx = createContext({
-    currentNightResults: { wolfVotesBySeat: { '1': 0 } },
+        currentNightResults: { wolfVotesBySeat: { '1': 0 } },
       });
       const input = createInput({ save: 0, poison: 1 });
 
@@ -170,7 +170,7 @@ describe('witchActionResolver', () => {
   describe('updates', () => {
     it('救人时应该更新 savedSeat', () => {
       const ctx = createContext({
-    currentNightResults: { wolfVotesBySeat: { '1': 0 } },
+        currentNightResults: { wolfVotesBySeat: { '1': 0 } },
       });
       const input = createInput({ save: 0, poison: null });
 

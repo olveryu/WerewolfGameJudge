@@ -1,16 +1,15 @@
 import React, { memo, useMemo } from 'react';
 import { Image, StyleSheet, ImageSourcePropType } from 'react-native';
-import { getAvatarImage, getUniqueAvatarBySeat } from '../utils/avatar';
+import { getAvatarImage, getAvatarByUid } from '../utils/avatar';
 import { useColors } from '../theme';
 
 interface AvatarProps {
+  /** User ID for avatar generation (used when no avatarUrl) */
   value: string;
   size: number;
   /** Custom avatar URL. If provided, will be used instead of generated avatar */
   avatarUrl?: string | null;
-  /** Seat number for unique avatar assignment in a room (1-based) */
-  seatNumber?: number;
-  /** Room ID for room-specific avatar offset */
+  /** Room ID for room-specific default avatar (stable per uid+roomId) */
   roomId?: string;
 }
 
@@ -18,12 +17,13 @@ interface AvatarProps {
  * Avatar component that displays either a custom uploaded avatar
  * or uses a local avatar image from assets/avatars
  *
- * If seatNumber is provided, uses seat-based unique avatar assignment
- * Otherwise falls back to hash-based avatar selection using value
+ * Default avatar selection:
+ * - If roomId is provided: uses uid + roomId hash for stable, seat-independent avatar
+ * - Otherwise: falls back to hash-based avatar selection using value (uid)
  *
  * Memoized to prevent unnecessary re-renders when parent components update
  */
-const AvatarComponent: React.FC<AvatarProps> = ({ value, size, avatarUrl, seatNumber, roomId }) => {
+const AvatarComponent: React.FC<AvatarProps> = ({ value, size, avatarUrl, roomId }) => {
   const colors = useColors();
 
   // Memoize style object to prevent new object creation on each render
@@ -36,34 +36,22 @@ const AvatarComponent: React.FC<AvatarProps> = ({ value, size, avatarUrl, seatNu
   );
 
   // Memoize URI source object to prevent new object creation
-  const uriSource = useMemo(
-    () => (avatarUrl ? { uri: avatarUrl } : null),
-    [avatarUrl],
-  );
+  const uriSource = useMemo(() => (avatarUrl ? { uri: avatarUrl } : null), [avatarUrl]);
+
+  // Memoize local image source based on uid and roomId
+  // This ensures same (uid, roomId) always gets same avatar, regardless of seat
+  const localImageSource = useMemo(() => {
+    if (avatarUrl) return null; // Not needed when custom avatar is provided
+    return roomId ? getAvatarByUid(roomId, value) : getAvatarImage(value);
+  }, [avatarUrl, roomId, value]);
 
   // Use custom avatar URL if provided, otherwise use local image
   if (uriSource) {
-    return (
-      <Image
-        source={uriSource}
-        style={imageStyle}
-        resizeMode="cover"
-      />
-    );
+    return <Image source={uriSource} style={imageStyle} resizeMode="cover" />;
   }
 
-  // Use seat-based unique avatar if seat number is provided
-  // Otherwise fall back to hash-based avatar
-  const imageSource = seatNumber
-    ? getUniqueAvatarBySeat(seatNumber, roomId)
-    : getAvatarImage(value);
-
   return (
-    <Image
-      source={imageSource as ImageSourcePropType}
-      style={imageStyle}
-      resizeMode="cover"
-    />
+    <Image source={localImageSource as ImageSourcePropType} style={imageStyle} resizeMode="cover" />
   );
 };
 

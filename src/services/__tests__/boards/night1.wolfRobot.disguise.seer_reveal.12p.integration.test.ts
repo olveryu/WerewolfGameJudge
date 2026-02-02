@@ -22,11 +22,7 @@
  * 架构：intents → handlers → resolver(resolveRoleForChecks) → BroadcastGameState
  */
 
-import {
-  createHostGame,
-  cleanupHostGame,
-  HostGameContext,
-} from './hostGameFactory';
+import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
 import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 

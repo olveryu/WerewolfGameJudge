@@ -590,7 +590,11 @@ const AuthOptions: React.FC<AuthOptionsProps> = ({
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.authOptionBtn, styles.authOptionBtnSecondary, authLoading && { opacity: 0.5 }]}
+        style={[
+          styles.authOptionBtn,
+          styles.authOptionBtnSecondary,
+          authLoading && { opacity: 0.5 },
+        ]}
         onPress={onAnonymousLogin}
         activeOpacity={authLoading ? 1 : 0.7}
         accessibilityState={{ disabled: authLoading }}

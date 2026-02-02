@@ -9,7 +9,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const SETTINGS_KEY = '@werewolf_settings';
 
 /** Valid theme keys (must match themes.ts ThemeKey) */
-export type ThemeKey = 'light' | 'minimal' | 'dark' | 'midnight' | 'blood' | 'discord' | 'forest' | 'snow';
+export type ThemeKey =
+  | 'light'
+  | 'minimal'
+  | 'dark'
+  | 'midnight'
+  | 'blood'
+  | 'discord'
+  | 'forest'
+  | 'snow';
 
 /** Role reveal animation type */
 export type RoleRevealAnimation = 'roulette' | 'flip' | 'none';
@@ -69,7 +77,9 @@ class SettingsService {
    * Check if a string is a valid theme key.
    */
   private isValidThemeKey(key: string): key is ThemeKey {
-    return ['light', 'minimal', 'dark', 'midnight', 'blood', 'discord', 'forest', 'snow'].includes(key);
+    return ['light', 'minimal', 'dark', 'midnight', 'blood', 'discord', 'forest', 'snow'].includes(
+      key,
+    );
   }
 
   /**

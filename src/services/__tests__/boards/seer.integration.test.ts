@@ -19,14 +19,14 @@ const MAX_STEP_ADVANCES = 20;
 describe('Seer Integration', () => {
   /**
    * 简化模板：只包含 seer 和 wolf（最小可测试配置）
-   * 
+   *
    * NIGHT_STEPS 顺序决定第一步：
    * - 这个模板的第一步是 wolfKill（因为 wolf 在步骤表中排在 seer 前面）
    * - 测试需要先推进到 seerCheck 步骤
    */
   const SEER_TEMPLATE: RoleId[] = [
-    'seer',     // seat 0
-    'wolf',     // seat 1
+    'seer', // seat 0
+    'wolf', // seat 1
     'villager', // seat 2
     'villager', // seat 3
   ];
@@ -55,7 +55,7 @@ describe('Seer Integration', () => {
       });
       ctx.advanceNight();
     }
-    
+
     // 现在应该在 seerCheck
     return ctx.getBroadcastState().currentStepId === 'seerCheck';
   }
@@ -157,9 +157,9 @@ describe('Seer Integration', () => {
     // 需要包含 nightmare 的模板
     const NIGHTMARE_SEER_TEMPLATE: RoleId[] = [
       'nightmare', // seat 0
-      'wolf',      // seat 1
-      'seer',      // seat 2
-      'villager',  // seat 3
+      'wolf', // seat 1
+      'seer', // seat 2
+      'villager', // seat 3
     ];
 
     function createNightmareAssignment(): Map<number, RoleId> {
@@ -174,9 +174,9 @@ describe('Seer Integration', () => {
         if (ctx.getBroadcastState().currentStepId === 'seerCheck') {
           return;
         }
-        
+
         const currentStep = ctx.getBroadcastState().currentStepId;
-        
+
         // 如果是 wolfKill，需要提交狼刀
         if (currentStep === 'wolfKill') {
           ctx.sendPlayerMessage({
@@ -191,11 +191,11 @@ describe('Seer Integration', () => {
             target: null,
           });
         }
-        
+
         const advanceResult = ctx.advanceNight();
         if (!advanceResult.success) break;
       }
-      
+
       if (ctx.getBroadcastState().currentStepId !== 'seerCheck') {
         throw new Error(`Failed to reach seerCheck within ${MAX_STEP_ADVANCES} advances`);
       }
@@ -263,7 +263,7 @@ describe('Seer Integration', () => {
   describe('Wire Protocol Contract', () => {
     it('seerCheck payload: target is single seat number (not encoded)', () => {
       const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
-      
+
       // 推进到 seerCheck
       advanceToSeerStep(ctx);
       ctx.clearCapturedMessages();
@@ -276,9 +276,7 @@ describe('Seer Integration', () => {
       });
 
       const captured = ctx.getCapturedMessages();
-      const seerMsg = captured.find(
-        (c) => c.stepId === 'seerCheck' && c.message.type === 'ACTION',
-      );
+      const seerMsg = captured.find((c) => c.stepId === 'seerCheck' && c.message.type === 'ACTION');
 
       expect(seerMsg).toBeDefined();
       const msg = seerMsg!.message as { target: number | null };
@@ -289,7 +287,7 @@ describe('Seer Integration', () => {
 
     it('seerCheck payload: skip has target=null', () => {
       const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
-      
+
       // 推进到 seerCheck
       advanceToSeerStep(ctx);
       ctx.clearCapturedMessages();
@@ -302,9 +300,7 @@ describe('Seer Integration', () => {
       });
 
       const captured = ctx.getCapturedMessages();
-      const seerMsg = captured.find(
-        (c) => c.stepId === 'seerCheck' && c.message.type === 'ACTION',
-      );
+      const seerMsg = captured.find((c) => c.stepId === 'seerCheck' && c.message.type === 'ACTION');
 
       expect(seerMsg).toBeDefined();
       const msg = seerMsg!.message as { target: number | null };

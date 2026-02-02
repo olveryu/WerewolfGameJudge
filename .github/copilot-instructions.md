@@ -156,9 +156,9 @@ UI (从 schema + gameState 推导显示)
   - 禁止在 handler 里做任何音频 IO、也禁止在 handler 里碰 UI。
 - **Facade（Host-only 编排/IO 入口）**：
   - 负责执行 `PLAY_AUDIO` 的副作用：
-    1) `setAudioPlaying(true)` 广播 Gate
-    2) 执行音频播放（`AudioService`）
-    3) `finally { setAudioPlaying(false) }` 兜底释放 Gate（无论成功/失败/跳过/中断）
+    1. `setAudioPlaying(true)` 广播 Gate
+    2. 执行音频播放（`AudioService`）
+    3. `finally { setAudioPlaying(false) }` 兜底释放 Gate（无论成功/失败/跳过/中断）
   - 只允许 Facade 触发/调用 `setAudioPlaying`；Player 端绝对禁止写 Gate。
 - **RoomScreen（UI）**：
   - **只读 `isAudioPlaying` 并据此禁用交互**（按钮/提交/advance）。
@@ -172,9 +172,9 @@ UI (从 schema + gameState 推导显示)
   - ✅ 允许：`handleSetAudioPlaying`（Host-only）→ reducer 处理 `SET_AUDIO_PLAYING`。
   - ❌ 禁止：在 reducer 中对 `START_NIGHT` / `ADVANCE_TO_NEXT_ACTION` / `SET_CURRENT_STEP` 等 action “顺便”把 `isAudioPlaying` 设为 `true/false`（这会把事实状态变成推导状态，导致 drift / 卡死）。
 - **Host 负责“音频时序编排”，但音频播放 IO 可以在 UI 层触发。** 允许的模式是：
-  1) Host 看到 step 切换（`currentStepId` 变化）→ 先调用 `setAudioPlaying(true)` 广播 Gate
-  2) Host 播放对应 `audioKey`
-  3) 音频结束/跳过 → Host 调用 `setAudioPlaying(false)` 解除 Gate（必须 finally/兜底）
+  1. Host 看到 step 切换（`currentStepId` 变化）→ 先调用 `setAudioPlaying(true)` 广播 Gate
+  2. Host 播放对应 `audioKey`
+  3. 音频结束/跳过 → Host 调用 `setAudioPlaying(false)` 解除 Gate（必须 finally/兜底）
 - **Player 端绝对不能写 Gate**：Player 不允许调用 `setAudioPlaying`（`host_only`）。
 - **Fail-fast 要求（测试门禁）**：若出现“UI 已进入可行动提示（如狼刀/技能选择）但 `isAudioPlaying===true` 持续不释放”或“提交行动持续被 `forbidden_while_audio_playing` 拒绝”，必须：
   - 优先修复 Host 的 setAudioPlaying(false) 兜底链路
@@ -182,16 +182,15 @@ UI (从 schema + gameState 推导显示)
 
   - ✅ 允许：`handleSetAudioPlaying`（Host-only）→ reducer 处理 `SET_AUDIO_PLAYING`。
   - ❌ 禁止：在 reducer 中对 `START_NIGHT` / `ADVANCE_TO_NEXT_ACTION` / `SET_CURRENT_STEP` 等 action “顺便”把 `isAudioPlaying` 设为 `true/false`（这会把事实状态变成推导状态，导致 drift / 卡死）。
+
 - **Host 负责“音频时序编排”，但音频播放 IO 可以在 UI 层触发。** 允许的模式是：
   - 优先修复 Host 的 setAudioPlaying(false) 兜底链路
   - 并补 E2E/contract fail-fast，禁止靠超时隐藏问题
-
 
 ### StepSpec id 规则
 
 - Step id 必须是稳定的 `SchemaId`。
 - 禁止使用 UI 文案作为逻辑 key；测试必须断言稳定 identifier。
-
 
 ---
 
@@ -205,6 +204,7 @@ UI (从 schema + gameState 推导显示)
   - 如果 schema 允许自指目标，resolver 不得拒绝（除非明确文档化 + 测试覆盖）。
 
 ### Night-1-only 禁止项
+
 - 禁止跨夜记忆：禁止 `previousActions`、`lastNightTarget`、“连续两晚/第二晚开始”等约束。
 - Resolver context/types 不得携带跨夜字段。
 
@@ -226,13 +226,14 @@ UI (从 schema + gameState 推导显示)
 - **Host 和 Player 读取同一份 state。** 不允许 Host 用本地状态、Player 用广播状态导致不同步。
 
 ---
+
 ## Anti-drift 护栏（MUST follow）
 
 这些规则用于防止任何重构/迁移过程中出现回归：
+
 - host/player 分支逻辑漂移
 - Host UI 因读取不同 state shape 而与 Player UI 不一致
 - “临时” feature-flag 导出破坏模块系统
-
 
 ### 单一真相：`BroadcastGameState`
 
@@ -253,18 +254,18 @@ UI (从 schema + gameState 推导显示)
 
 当你修改/新增任何 RoomScreen 交互（Seat 点击、BottomAction、Confirm/Skip、Ack、弹窗按钮等）时，必须遵守：
 
-1) **Policy / Guard（纯逻辑层）**
+1. **Policy / Guard（纯逻辑层）**
    - ✅ 只做：输入（纯数据）→ 输出（Instruction）
    - ✅ 输出举例：`NOOP` / `ALERT` / `SEATING_FLOW` / `ACTION_FLOW` / `SUBMIT` / `SHOW_DIALOG`
    - ✅ 必须可单元测试锁顺序（contract tests）
    - ❌ 禁止：`showAlert`、navigation、service 单例、React hooks、任何副作用
    - 推荐目录：`src/screens/RoomScreen/seatTap/**` 或 `src/screens/RoomScreen/policy/**`
 
-2) **Orchestrator（编排层：RoomScreen / hooks）**
+2. **Orchestrator（编排层：RoomScreen / hooks）**
    - ✅ 只做：调用 policy → `switch` 执行副作用（`showAlert` / submitAction / navigation / showDialog）
    - ❌ 禁止：在 orchestrator 里再写一套与 policy 并行的业务判断（否则 drift）
 
-3) **Presentational UI（展示层：`src/screens/RoomScreen/components/**`）**
+3. **Presentational UI（展示层：`src/screens/RoomScreen/components/**`）\*\*
    - ✅ 只做：渲染 + 上报用户 intent（onPress/onChange）
    - ❌ 禁止：import services / `showAlert` / navigation
    - ❌ 禁止：组件层 gate/吞点击（见下条）
@@ -273,7 +274,7 @@ UI (从 schema + gameState 推导显示)
 
 为了保证 policy 是交互决策的单一真相：
 
-- **禁止在 `components/**` 内用 `disabled={true}` 来阻断 `onPress` 事件**（RN 会直接不触发回调）：
+- **禁止在 `components/**`内用`disabled={true}`来阻断`onPress` 事件\*\*（RN 会直接不触发回调）：
   - ✅ 允许：视觉置灰（样式 / activeOpacity / accessibilityState）
   - ✅ 允许：仍然触发回调，把 "disabled" 作为参数上报给 orchestrator/policy
   - ❌ 禁止：`disabled={disabled}` 让点击不上报
@@ -326,41 +327,43 @@ UI (从 schema + gameState 推导显示)
 
   - `PlayerMessage`
   - `BroadcastGameState`
+
 - 可以引入内部 “Intent” 类型，但必须适配到现有 protocol。
   - 除非同时提供兼容层 + 合约测试，否则禁止发明平行的消息协议。
 
-   **显式规则：** legacy 仅用于比较
+    **显式规则：** legacy 仅用于比较
+
 ---
 
 ## 实现清单（角色 / schema / step / UI 必做）
 
 当你新增或修改任意 Night-1 行动角色（含 UI）时，必须同时检查下面这些点：
 
-1) **Schema-first + Resolver 对齐**
+1. **Schema-first + Resolver 对齐**
 
 - 输入合法性必须写在 `SCHEMAS[*].constraints`。
 - resolver 的校验必须与 schema constraints 完全一致：
   - schema 写了 `notSelf` → resolver 必须拒绝自指目标。
   - schema 允许自指 → resolver 不得擅自拒绝（除非明确文档化 + 测试覆盖）。
 
-2) **Nightmare 阻断**
+2. **Nightmare 阻断**
 
 - resolver 必须检查 `currentNightResults.blockedSeat === actorSeat`。
 - 若被阻断：返回 `{ valid: true, result: {} }`（有效但无效果）。
 
-3) **上下文/结果必须写入 `BroadcastGameState`（公开广播）**
+3. **上下文/结果必须写入 `BroadcastGameState`（公开广播）**
 
 - 需要上下文：必须加到 `BroadcastGameState`（例如 `witchContext`、`confirmStatus`）。
 - 需要 reveal：必须把结果写回 `BroadcastGameState`（例如 `seerReveal`、`psychicReveal`）。
 - UI 只从 `gameState.*` 读取，并按 `myRole` 过滤显示。
 
-4) **三层表驱动：角色/协议/步骤**
+4. **三层表驱动：角色/协议/步骤**
 
 - 角色加入 `ROLE_SPECS`（`src/models/roles/spec/specs.ts`）。
 - 行动协议在 `SCHEMAS`（`src/models/roles/spec/schemas.ts`）。
 - Night-1 顺序与音频在 `NIGHT_STEPS`（`src/models/roles/spec/nightSteps.ts`），step id 必须是稳定 `SchemaId`。
 
-5) **狼人相关 UI/规则（schema 驱动）**
+5. **狼人相关 UI/规则（schema 驱动）**
 
 - UI 从 schema 推导 `showWolves`：`schema?.kind === 'wolfVote' && schema.meeting.canSeeEachOther`。
 - 禁止使用 step-level visibility 字段。
@@ -376,29 +379,33 @@ UI (从 schema + gameState 推导显示)
 
 **硬性要求：**
 
-1) **必须实现并使用 `RoomScreenTestHarness`**
-  - 目的：拦截并记录所有 `showAlert/showDialog` 调用（title + message + buttons + 分类 type），使“弹窗/互动覆盖”可证明、可门禁。
-  - 允许在测试环境 mock `src/utils/alert.ts` 的 `showAlert` 入口来实现拦截。
-  - 测试末尾必须做清单式断言：任何缺失的弹窗类型/互动分支都必须 fail。
+1. **必须实现并使用 `RoomScreenTestHarness`**
 
-2) **每新增一个板子（12p preset）必须新增对应 UI-level board test**
-  - 位置建议：`src/screens/RoomScreen/__tests__/boards-ui/**/*.ui.test.tsx`（或项目既有一致路径）。
-  - 每个板子最低要求：覆盖 Night-1 全流程中该板子涉及的所有弹窗与互动（prompt/confirm/reveal/skip 等）。
-  - 禁止用 snapshot/Storybook 截图替代交互覆盖。
+- 目的：拦截并记录所有 `showAlert/showDialog` 调用（title + message + buttons + 分类 type），使“弹窗/互动覆盖”可证明、可门禁。
+- 允许在测试环境 mock `src/utils/alert.ts` 的 `showAlert` 入口来实现拦截。
+- 测试末尾必须做清单式断言：任何缺失的弹窗类型/互动分支都必须 fail。
 
-3) **每新增/修改一个 Night-1 行动角色，必须覆盖其 UI 分支与 gate**
-  - 至少覆盖：
-    - 行动提示（prompt）
-    - 确认/取消（confirm）
-    - reveal 弹窗 + `REVEAL_ACK` 链路（如果该角色产生 reveal）
-    - 任何额外 gate（例如：`wolfRobotHunterStatusViewed`）必须在 UI test 中显式点击/发送并断言解除，禁止自动清 gate。
-  - **梦魇（nightmare）属于高风险分支：**板子包含 nightmare 时，UI-level tests 必须覆盖 nightmare blocked 的弹窗/拒绝路径以及其对后续 UI（如 wolfKillDisabled）的影响。
+2. **每新增一个板子（12p preset）必须新增对应 UI-level board test**
 
-4) **必须有门禁（contract gate）防漏测**
-  - 必须存在一个 contract test：强制“板子 × 必需弹窗类型”的覆盖清单全部满足；任何漏测直接 fail。
-  - 清单必须 schema/steps 驱动（来自 `SCHEMAS` / `NIGHT_STEPS`），禁止手写散落硬编码。
+- 位置建议：`src/screens/RoomScreen/__tests__/boards-ui/**/*.ui.test.tsx`（或项目既有一致路径）。
+- 每个板子最低要求：覆盖 Night-1 全流程中该板子涉及的所有弹窗与互动（prompt/confirm/reveal/skip 等）。
+- 禁止用 snapshot/Storybook 截图替代交互覆盖。
 
-5) **反作弊硬红线（不可协商）**
+3. **每新增/修改一个 Night-1 行动角色，必须覆盖其 UI 分支与 gate**
+
+- 至少覆盖：
+  - 行动提示（prompt）
+  - 确认/取消（confirm）
+  - reveal 弹窗 + `REVEAL_ACK` 链路（如果该角色产生 reveal）
+  - 任何额外 gate（例如：`wolfRobotHunterStatusViewed`）必须在 UI test 中显式点击/发送并断言解除，禁止自动清 gate。
+- **梦魇（nightmare）属于高风险分支：**板子包含 nightmare 时，UI-level tests 必须覆盖 nightmare blocked 的弹窗/拒绝路径以及其对后续 UI（如 wolfKillDisabled）的影响。
+
+4. **必须有门禁（contract gate）防漏测**
+
+- 必须存在一个 contract test：强制“板子 × 必需弹窗类型”的覆盖清单全部满足；任何漏测直接 fail。
+- 清单必须 schema/steps 驱动（来自 `SCHEMAS` / `NIGHT_STEPS`），禁止手写散落硬编码。
+
+5. **反作弊硬红线（不可协商）**
 
 - **禁止跳过 UI 覆盖测试**：
   - `src/screens/RoomScreen/__tests__/boards/**` 下 **禁止出现** `it.skip` / `test.skip` / `describe.skip`。
@@ -429,22 +436,26 @@ UI (从 schema + gameState 推导显示)
 
 当你新增/修改 `src/services/__tests__/boards/**` 下的 integration board tests 时，必须满足：
 
-1) **必须跑真实 NightFlow（按 `NIGHT_STEPS` 顺序逐步执行）**
-  - 禁止使用“一键跑完整晚”但无法插入中间断言/交互的黑盒 helper。
-  - 禁止新增任何 “跳过 step / 直达 step” 的工具（例如 `advanceToStep/skipToStep/fastForward`）。
+1. **必须跑真实 NightFlow（按 `NIGHT_STEPS` 顺序逐步执行）**
 
-2) **禁止 helper 自动清除任何 gate / 自动发送任何确认类消息**
-  - 例如：`pendingRevealAcks` / `wolfRobotHunterStatusViewed` / `isAudioPlaying` 等 gate。
-  - 例如：`REVEAL_ACK`、`WOLF_ROBOT_HUNTER_STATUS_VIEWED`、以及任何“确认/查看状态/ack”类型消息。
-  - 这些必须由测试用例显式发送，以便测试能覆盖“卡 gate / 解除 gate / step mismatch”等真实 bug。
+- 禁止使用“一键跑完整晚”但无法插入中间断言/交互的黑盒 helper。
+- 禁止新增任何 “跳过 step / 直达 step” 的工具（例如 `advanceToStep/skipToStep/fastForward`）。
 
-3) **必须 fail-fast（失败即停止）**
-  - runner/harness 内每一次 `sendPlayerMessage(...)` / `advanceNight()` 只要返回失败，都必须立刻抛错（包含 stepId、seat、reason）。
-  - 禁止 warn / 吞掉失败 / 继续推进（否则测试会把 bug 吃掉而误绿）。
+2. **禁止 helper 自动清除任何 gate / 自动发送任何确认类消息**
 
-4) **测试断言必须基于 `BroadcastGameState` 单一真相**
-  - 禁止直接改 state / 注入 host-only 状态。
-  - 需要验证拒绝（reject）就显式断言 `{ success:false, reason }` 或抛错；不要把输入改成 skip 来绕开规则。
+- 例如：`pendingRevealAcks` / `wolfRobotHunterStatusViewed` / `isAudioPlaying` 等 gate。
+- 例如：`REVEAL_ACK`、`WOLF_ROBOT_HUNTER_STATUS_VIEWED`、以及任何“确认/查看状态/ack”类型消息。
+- 这些必须由测试用例显式发送，以便测试能覆盖“卡 gate / 解除 gate / step mismatch”等真实 bug。
+
+3. **必须 fail-fast（失败即停止）**
+
+- runner/harness 内每一次 `sendPlayerMessage(...)` / `advanceNight()` 只要返回失败，都必须立刻抛错（包含 stepId、seat、reason）。
+- 禁止 warn / 吞掉失败 / 继续推进（否则测试会把 bug 吃掉而误绿）。
+
+4. **测试断言必须基于 `BroadcastGameState` 单一真相**
+
+- 禁止直接改 state / 注入 host-only 状态。
+- 需要验证拒绝（reject）就显式断言 `{ success:false, reason }` 或抛错；不要把输入改成 skip 来绕开规则。
 
 ### 修复与审计规范
 

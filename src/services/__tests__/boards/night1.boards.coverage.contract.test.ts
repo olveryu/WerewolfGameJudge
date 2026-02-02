@@ -76,9 +76,7 @@ const BOARDS_TEST_DIR = path.join(__dirname, '.');
 
 function getIntegrationTestFiles(): string[] {
   const files = fs.readdirSync(BOARDS_TEST_DIR);
-  return files.filter(
-    (f) => f.startsWith('night1.') && f.endsWith('.12p.integration.test.ts'),
-  );
+  return files.filter((f) => f.startsWith('night1.') && f.endsWith('.12p.integration.test.ts'));
 }
 
 function readTestFileContent(filename: string): string {
@@ -139,19 +137,16 @@ describe('Night-1 Boards Coverage Contract', () => {
   });
 
   describe('B. 防止"空壳 / 只测 deaths"', () => {
-    it.each(testFiles)(
-      '文件 "%s" 必须包含至少一个主题字段断言（非纯 deaths 测试）',
-      (filename) => {
-        const content = readTestFileContent(filename);
+    it.each(testFiles)('文件 "%s" 必须包含至少一个主题字段断言（非纯 deaths 测试）', (filename) => {
+      const content = readTestFileContent(filename);
 
-        // 检查是否包含至少一个主题字段断言
-        const hasThemeAssertion = REQUIRED_ASSERTION_PATTERNS.some((pattern) =>
-          pattern.test(content),
-        );
+      // 检查是否包含至少一个主题字段断言
+      const hasThemeAssertion = REQUIRED_ASSERTION_PATTERNS.some((pattern) =>
+        pattern.test(content),
+      );
 
-        expect(hasThemeAssertion).toBe(true);
-      },
-    );
+      expect(hasThemeAssertion).toBe(true);
+    });
   });
 
   describe('C. Step-level coverage: NIGHT_STEPS 每个 stepId 必须在 boards tests 中出现', () => {
@@ -163,18 +158,19 @@ describe('Night-1 Boards Coverage Contract', () => {
       expect(stepIds.every((id) => typeof id === 'string' && id.length > 0)).toBe(true);
     });
 
-    it.each(stepIds)('stepId "%s" 必须至少被一个 boards test 提及（显式断言或推进到该 step）', (stepId) => {
-      // Search all boards tests (including non-12p helpers/contract tests)
-      const allBoardTests = fs
-        .readdirSync(BOARDS_TEST_DIR)
-        .filter((f) => f.endsWith('.test.ts'));
+    it.each(stepIds)(
+      'stepId "%s" 必须至少被一个 boards test 提及（显式断言或推进到该 step）',
+      (stepId) => {
+        // Search all boards tests (including non-12p helpers/contract tests)
+        const allBoardTests = fs.readdirSync(BOARDS_TEST_DIR).filter((f) => f.endsWith('.test.ts'));
 
-      const mentionedInSomeFile = allBoardTests.some((filename) => {
-        const content = readTestFileContent(filename);
-        return fileMentionsStepId(content, stepId);
-      });
+        const mentionedInSomeFile = allBoardTests.some((filename) => {
+          const content = readTestFileContent(filename);
+          return fileMentionsStepId(content, stepId);
+        });
 
-      expect(mentionedInSomeFile).toBe(true);
-    });
+        expect(mentionedInSomeFile).toBe(true);
+      },
+    );
   });
 });

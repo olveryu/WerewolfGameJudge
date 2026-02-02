@@ -415,7 +415,15 @@ describe('PlayerMessage Router Coverage Contract', () => {
 
 describe('PlayerMessage Router Coverage Report', () => {
   it('validates coverage expectations', () => {
-    const IMPLEMENTED = ['REQUEST_STATE', 'VIEWED_ROLE', 'SEAT_ACTION_REQUEST', 'ACTION', 'WOLF_VOTE', 'REVEAL_ACK', 'WOLF_ROBOT_HUNTER_STATUS_VIEWED'];
+    const IMPLEMENTED = [
+      'REQUEST_STATE',
+      'VIEWED_ROLE',
+      'SEAT_ACTION_REQUEST',
+      'ACTION',
+      'WOLF_VOTE',
+      'REVEAL_ACK',
+      'WOLF_ROBOT_HUNTER_STATUS_VIEWED',
+    ];
     const LEGACY = ['JOIN', 'LEAVE'];
     const UNIMPLEMENTED = ['SNAPSHOT_REQUEST'];
 
@@ -423,6 +431,8 @@ describe('PlayerMessage Router Coverage Report', () => {
     expect(IMPLEMENTED.length).toBe(7);
     expect(LEGACY.length).toBe(2);
     expect(UNIMPLEMENTED.length).toBe(1);
-    expect(ALL_PLAYER_MESSAGE_TYPES.length).toBe(IMPLEMENTED.length + LEGACY.length + UNIMPLEMENTED.length);
+    expect(ALL_PLAYER_MESSAGE_TYPES.length).toBe(
+      IMPLEMENTED.length + LEGACY.length + UNIMPLEMENTED.length,
+    );
   });
 });

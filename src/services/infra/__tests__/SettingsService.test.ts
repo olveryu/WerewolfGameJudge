@@ -57,7 +57,7 @@ describe('SettingsService', () => {
 
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
         '@werewolf_settings',
-        expect.stringContaining('"roleRevealAnimation":"flip"')
+        expect.stringContaining('"roleRevealAnimation":"flip"'),
       );
     });
 
@@ -94,7 +94,7 @@ describe('SettingsService', () => {
 
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
         '@werewolf_settings',
-        expect.stringContaining('"themeKey":"blood"')
+        expect.stringContaining('"themeKey":"blood"'),
       );
       expect(service.getThemeKey()).toBe('blood');
     });
@@ -150,7 +150,7 @@ describe('SettingsService', () => {
       await service.setRoleRevealAnimation('flip');
 
       expect(listener).toHaveBeenCalledWith(
-        expect.objectContaining({ roleRevealAnimation: 'flip' })
+        expect.objectContaining({ roleRevealAnimation: 'flip' }),
       );
     });
 

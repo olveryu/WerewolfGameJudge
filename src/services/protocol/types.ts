@@ -172,8 +172,8 @@ export interface BroadcastGameState {
     action: string;
     reason: string;
     targetUid: string;
-  /** Unique id for this rejection event (UI uses it for dedupe). */
-  rejectionId: string;
+    /** Unique id for this rejection event (UI uses it for dedupe). */
+    rejectionId: string;
   };
 }
 

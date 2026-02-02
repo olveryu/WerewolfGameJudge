@@ -45,9 +45,7 @@ function requireField<T>(value: T | undefined, fieldName: string): T {
 export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
   // single source of truth: currentNightResults.wolfVotesBySeat
   // Protocol no longer includes top-level wolfVotes/wolfVoteStatus.
-  const wolfVotesBySeat = canonicalizeSeatKeyRecord(
-    raw.currentNightResults?.wolfVotesBySeat,
-  );
+  const wolfVotesBySeat = canonicalizeSeatKeyRecord(raw.currentNightResults?.wolfVotesBySeat);
 
   const currentNightResults = raw.currentNightResults
     ? {
@@ -69,7 +67,7 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
 
     // 执行状态（可选，无需默认值）
     actions: raw.actions,
-  currentNightResults,
+    currentNightResults,
     pendingRevealAcks: raw.pendingRevealAcks,
     lastNightDeaths: raw.lastNightDeaths,
 

@@ -5,7 +5,7 @@ import { Avatar } from '../Avatar';
 // Mock avatar utility functions
 jest.mock('../../utils/avatar', () => ({
   getAvatarImage: jest.fn(() => 1), // Return a mock image source
-  getUniqueAvatarBySeat: jest.fn(() => 2), // Return a different mock image source
+  getAvatarByUid: jest.fn(() => 2), // Return a different mock image source
 }));
 
 describe('Avatar', () => {
@@ -32,39 +32,31 @@ describe('Avatar', () => {
 
   describe('Avatar source selection', () => {
     it('should use custom avatarUrl when provided', () => {
-      const { getAvatarImage, getUniqueAvatarBySeat } = require('../../utils/avatar');
+      const { getAvatarImage, getAvatarByUid } = require('../../utils/avatar');
 
       render(<Avatar value="test-user" size={50} avatarUrl="https://example.com/avatar.jpg" />);
 
       // When avatarUrl is provided, neither helper should be called
       expect(getAvatarImage).not.toHaveBeenCalled();
-      expect(getUniqueAvatarBySeat).not.toHaveBeenCalled();
+      expect(getAvatarByUid).not.toHaveBeenCalled();
     });
 
-    it('should use getUniqueAvatarBySeat when seatNumber is provided', () => {
-      const { getAvatarImage, getUniqueAvatarBySeat } = require('../../utils/avatar');
+    it('should use getAvatarByUid when roomId is provided', () => {
+      const { getAvatarImage, getAvatarByUid } = require('../../utils/avatar');
 
-      render(<Avatar value="test-user" size={50} seatNumber={3} />);
+      render(<Avatar value="test-user" size={50} roomId="room-123" />);
 
-      expect(getUniqueAvatarBySeat).toHaveBeenCalledWith(3, undefined);
+      expect(getAvatarByUid).toHaveBeenCalledWith('room-123', 'test-user');
       expect(getAvatarImage).not.toHaveBeenCalled();
     });
 
-    it('should use getUniqueAvatarBySeat with roomId when both are provided', () => {
-      const { getUniqueAvatarBySeat } = require('../../utils/avatar');
-
-      render(<Avatar value="test-user" size={50} seatNumber={3} roomId="room-123" />);
-
-      expect(getUniqueAvatarBySeat).toHaveBeenCalledWith(3, 'room-123');
-    });
-
-    it('should use getAvatarImage when no seatNumber is provided', () => {
-      const { getAvatarImage, getUniqueAvatarBySeat } = require('../../utils/avatar');
+    it('should use getAvatarImage when no roomId is provided', () => {
+      const { getAvatarImage, getAvatarByUid } = require('../../utils/avatar');
 
       render(<Avatar value="test-user" size={50} />);
 
       expect(getAvatarImage).toHaveBeenCalledWith('test-user');
-      expect(getUniqueAvatarBySeat).not.toHaveBeenCalled();
+      expect(getAvatarByUid).not.toHaveBeenCalled();
     });
   });
 
@@ -98,6 +90,18 @@ describe('Avatar', () => {
       render(<Avatar value="test-user" size={50} avatarUrl={undefined} />);
 
       expect(getAvatarImage).toHaveBeenCalledWith('test-user');
+    });
+  });
+
+  describe('Seat independence (new behavior)', () => {
+    it('avatar selection does not depend on seat - same uid+roomId always gets same avatar', () => {
+      const { getAvatarByUid } = require('../../utils/avatar');
+
+      // Render avatar for same user in same room
+      render(<Avatar value="player-123" size={50} roomId="room-456" />);
+
+      // getAvatarByUid should be called with roomId and uid (no seat parameter)
+      expect(getAvatarByUid).toHaveBeenCalledWith('room-456', 'player-123');
     });
   });
 });

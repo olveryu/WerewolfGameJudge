@@ -8,7 +8,7 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/assets/pwa/icon-192.png',
   '/assets/pwa/icon-512.png',
-  '/assets/pwa/apple-touch-icon.png'
+  '/assets/pwa/apple-touch-icon.png',
 ];
 
 // 安装事件 - 缓存静态资源
@@ -17,7 +17,7 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Caching static assets');
       return cache.addAll(STATIC_ASSETS);
-    })
+    }),
   );
   // 立即激活
   self.skipWaiting();
@@ -33,9 +33,9 @@ self.addEventListener('activate', (event) => {
           .map((name) => {
             console.log('[SW] Deleting old cache:', name);
             return caches.delete(name);
-          })
+          }),
       );
-    })
+    }),
   );
   // 立即控制所有页面
   self.clients.claim();
@@ -77,6 +77,6 @@ self.addEventListener('fetch', (event) => {
           }
           return new Response('Offline', { status: 503 });
         });
-      })
+      }),
   );
 });

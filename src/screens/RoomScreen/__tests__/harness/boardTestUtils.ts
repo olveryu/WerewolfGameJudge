@@ -161,8 +161,8 @@ export function createGameRoomMock(options: GameStateMockOptions) {
       status: 'ongoing',
       template: {
         numberOfPlayers,
-        roles: Array.from({ length: numberOfPlayers }).map((_, i) =>
-          roleAssignments?.get(i) || 'villager',
+        roles: Array.from({ length: numberOfPlayers }).map(
+          (_, i) => roleAssignments?.get(i) || 'villager',
         ),
       },
       players,

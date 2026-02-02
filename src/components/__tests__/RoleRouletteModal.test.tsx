@@ -78,38 +78,34 @@ describe('RoleRouletteModal', () => {
   });
 
   it('renders nothing when not visible', () => {
-    const { queryByText } = render(
-      <RoleRouletteModal {...defaultProps} visible={false} />
-    );
+    const { queryByText } = render(<RoleRouletteModal {...defaultProps} visible={false} />);
     expect(queryByText('🎰 命运轮盘')).toBeNull();
   });
 
   it('renders nothing when roleId is null', () => {
-    const { queryByText } = render(
-      <RoleRouletteModal {...defaultProps} roleId={null} />
-    );
+    const { queryByText } = render(<RoleRouletteModal {...defaultProps} roleId={null} />);
     expect(queryByText('🎰 命运轮盘')).toBeNull();
   });
 
   it('renders modal when visible', async () => {
     const { getByText } = render(<RoleRouletteModal {...defaultProps} />);
-    
+
     await act(async () => {
       jest.runAllTimers();
     });
-    
+
     // After animation, should show role card
     expect(getByText('狼人')).toBeTruthy();
   });
 
   it('shows role card after animation completes', async () => {
     const { getByText } = render(<RoleRouletteModal {...defaultProps} />);
-    
+
     // Wait for animation to complete
     await act(async () => {
       jest.advanceTimersByTime(3000);
     });
-    
+
     // After reveal, should show role name
     await waitFor(() => {
       expect(getByText('狼人')).toBeTruthy();
@@ -118,31 +114,29 @@ describe('RoleRouletteModal', () => {
 
   it('calls onClose when close button is pressed after reveal', async () => {
     const onClose = jest.fn();
-    const { getByText } = render(
-      <RoleRouletteModal {...defaultProps} onClose={onClose} />
-    );
-    
+    const { getByText } = render(<RoleRouletteModal {...defaultProps} onClose={onClose} />);
+
     // Wait for animation to complete
     await act(async () => {
       jest.advanceTimersByTime(3000);
     });
-    
+
     // Find and press the close button
     await waitFor(() => {
       const closeButton = getByText('我知道了');
       fireEvent.press(closeButton);
     });
-    
+
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('shows correct faction for wolf role', async () => {
     const { getByText } = render(<RoleRouletteModal {...defaultProps} roleId="wolf" />);
-    
+
     await act(async () => {
       jest.advanceTimersByTime(3000);
     });
-    
+
     await waitFor(() => {
       expect(getByText('狼人阵营')).toBeTruthy();
     });
@@ -150,11 +144,11 @@ describe('RoleRouletteModal', () => {
 
   it('shows correct faction for seer role', async () => {
     const { getByText } = render(<RoleRouletteModal {...defaultProps} roleId="seer" />);
-    
+
     await act(async () => {
       jest.advanceTimersByTime(3000);
     });
-    
+
     await waitFor(() => {
       expect(getByText('神职阵营')).toBeTruthy();
     });
@@ -162,11 +156,11 @@ describe('RoleRouletteModal', () => {
 
   it('shows correct faction for villager role', async () => {
     const { getByText } = render(<RoleRouletteModal {...defaultProps} roleId="villager" />);
-    
+
     await act(async () => {
       jest.advanceTimersByTime(3000);
     });
-    
+
     await waitFor(() => {
       expect(getByText('平民阵营')).toBeTruthy();
     });

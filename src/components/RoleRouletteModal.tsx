@@ -90,13 +90,7 @@ export const RoleRouletteModal: React.FC<RoleRouletteModalProps> = ({
 }) => {
   if (!visible) return null;
 
-  return (
-    <RoleRouletteModalContent
-      roleId={roleId}
-      allRoles={allRoles}
-      onClose={onClose}
-    />
-  );
+  return <RoleRouletteModalContent roleId={roleId} allRoles={allRoles} onClose={onClose} />;
 };
 
 // Inner component that mounts fresh each time modal opens
@@ -205,7 +199,11 @@ const RoleRouletteModalContent: React.FC<{
 
   return (
     <Modal visible={true} transparent animationType="none" onRequestClose={handleClose}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={revealed ? handleClose : undefined}>
+      <TouchableOpacity
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={revealed ? handleClose : undefined}
+      >
         <Animated.View
           style={[
             styles.container,
@@ -241,12 +239,12 @@ const RoleRouletteModalContent: React.FC<{
             // 轮盘滚动阶段
             <View style={styles.rouletteContainer}>
               <Text style={styles.rouletteTitle}>🎰 命运轮盘</Text>
-              
+
               {/* 轮盘窗口 */}
               <View style={styles.rouletteWindow}>
                 {/* 选中指示器 */}
                 <View style={styles.selector} />
-                
+
                 {/* 滚动的角色列表 */}
                 <Animated.View
                   style={[
@@ -271,7 +269,7 @@ const RoleRouletteModalContent: React.FC<{
                   })}
                 </Animated.View>
               </View>
-              
+
               <Text style={styles.rouletteHint}>命运正在揭晓...</Text>
             </View>
           )}

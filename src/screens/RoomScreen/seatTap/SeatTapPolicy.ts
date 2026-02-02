@@ -83,14 +83,7 @@ export interface SeatTapPolicyInput {
  * @returns An instruction telling the caller what to do
  */
 export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
-  const {
-    roomStatus,
-    isAudioPlaying,
-    seatIndex,
-    disabledReason,
-    imActioner,
-    hasGameState,
-  } = input;
+  const { roomStatus, isAudioPlaying, seatIndex, disabledReason, imActioner, hasGameState } = input;
 
   // Guard: no game state
   if (!hasGameState) {

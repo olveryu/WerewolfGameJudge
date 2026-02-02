@@ -80,7 +80,7 @@ describe('wolfKillResolver', () => {
       const result = wolfKillResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-  expect(result.updates?.wolfVotesBySeat?.['2']).toBe(0);
+      expect(result.updates?.wolfVotesBySeat?.['2']).toBe(0);
     });
 
     it('应该接受刀神职 (预言家)', () => {
@@ -90,7 +90,7 @@ describe('wolfKillResolver', () => {
       const result = wolfKillResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-  expect(result.updates?.wolfVotesBySeat?.['2']).toBe(4);
+      expect(result.updates?.wolfVotesBySeat?.['2']).toBe(4);
     });
 
     it('狼人可以刀自己（neutral judge: 不限制 self）', () => {
@@ -100,7 +100,7 @@ describe('wolfKillResolver', () => {
       const result = wolfKillResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-  expect(result.updates?.wolfVotesBySeat?.['2']).toBe(2);
+      expect(result.updates?.wolfVotesBySeat?.['2']).toBe(2);
     });
 
     it('狼人可以刀狼队友（neutral judge: 不限制 team）', () => {
@@ -110,7 +110,7 @@ describe('wolfKillResolver', () => {
       const result = wolfKillResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-  expect(result.updates?.wolfVotesBySeat?.['2']).toBe(3);
+      expect(result.updates?.wolfVotesBySeat?.['2']).toBe(3);
     });
   });
 
@@ -141,14 +141,14 @@ describe('wolfKillResolver', () => {
   });
 
   describe('updates', () => {
-  it('刀人时应该更新 wolfVotesBySeat', () => {
+    it('刀人时应该更新 wolfVotesBySeat', () => {
       const ctx = createContext();
       const input = createInput(0);
 
       const result = wolfKillResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-  expect(result.updates?.wolfVotesBySeat?.['2']).toBe(0);
+      expect(result.updates?.wolfVotesBySeat?.['2']).toBe(0);
     });
   });
 });

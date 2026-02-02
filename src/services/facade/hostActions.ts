@@ -148,8 +148,9 @@ async function processHandlerResult(
 
   // 收集所有 PLAY_AUDIO 副作用（支持队列播放）
   const audioEffects =
-    result.sideEffects?.filter((e): e is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } => 
-      e.type === 'PLAY_AUDIO'
+    result.sideEffects?.filter(
+      (e): e is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } =>
+        e.type === 'PLAY_AUDIO',
     ) ?? [];
 
   // 如果有音频要播放，必须在 BROADCAST_STATE 之前设置 gate
@@ -498,7 +499,7 @@ export async function clearRevealAcks(
   // 应用 CLEAR_REVEAL_ACKS action
   const newState = gameReducer(state, { type: 'CLEAR_REVEAL_ACKS' });
   ctx.store.setState(newState);
-  
+
   // 必须 await broadcast，确保 Player 先收到 ack 清除再推进
   await ctx.broadcastCurrentState();
 

@@ -7,7 +7,14 @@
  * 3. All RoleId values map to valid role specs
  * 4. Role metadata (displayName, faction, etc.) is complete
  */
-import { ROLE_SPECS, getRoleSpec, getRoleDisplayName, isValidRoleId, getAllRoleIds, RoleId } from '../roles';
+import {
+  ROLE_SPECS,
+  getRoleSpec,
+  getRoleDisplayName,
+  isValidRoleId,
+  getAllRoleIds,
+  RoleId,
+} from '../roles';
 
 describe('Role Registry Contract Tests', () => {
   describe('ROLE_SPECS is single source of truth', () => {

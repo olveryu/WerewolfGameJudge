@@ -254,10 +254,7 @@ export function executeFullNight(
  * ⚠️ 任何 gate（如 pendingRevealAcks / wolfRobotHunterStatusViewed）
  *    必须由测试在 customActions 回调中显式发送消息解除
  */
-function executeCurrentStep(
-  ctx: HostGameContext,
-  customActions: CustomActions,
-): void {
+function executeCurrentStep(ctx: HostGameContext, customActions: CustomActions): void {
   const plan = ctx.getNightPlan();
   const state = ctx.getBroadcastState();
   const currentStepId = state.currentStepId;
@@ -487,4 +484,3 @@ function submitNormalAction(
 
 // ⚠️ 已删除 handleRevealAck / handleWolfRobotHunterGate
 // 所有确认类消息必须由测试在 customActions 回调中显式发送
-

@@ -40,7 +40,7 @@
 
 ### 1.1 Seating（Phase1 已完成，Phase2 不动）
 
-| 行为                     | 行号范围           | 代码片段摘录                                                                                                                                                                                                  | 对齐状态    |
+| 行为                     | 行号范围           | 代码片段摘录                                                                                                                                                                                                  | 对齐状态       |
 | ------------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
 | 入座后 allSeated 检查    | L722-725           | `const allSeated = Array.from(this.state.players.values()).every((p) => p !== null);`<br>`if (allSeated && this.state.status === GameStatus.unseated) {`<br>`  this.state.status = GameStatus.seated;`<br>`}` | ✅ Phase1 完成 |
 | 离座后 status 回退       | L740-742           | `if (this.state.status === GameStatus.seated) {`<br>`  this.state.status = GameStatus.unseated;`<br>`}`                                                                                                       | ✅ Phase1 完成 |
@@ -295,23 +295,23 @@
 
 > 以 `NIGHT_STEPS` 顺序为准（`src/models/roles/spec/nightSteps.ts`）
 
-| 角色              | UI 显示（myRole 过滤）                  | PlayerMessage                                                             | Handler 输入           | Resolver 输入/输出                                                | 写入 BroadcastGameState                                                                       | Nightmare block 处理                                                         | Schema constraints                          |
-| ----------------- | --------------------------------------- | ------------------------------------------------------------------------- | ---------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------- |
-| **magician**      | 选择两个座位交换                        | `ACTION { seat, role:'magician', target: encoded }`                       | `SubmitActionIntent`   | `magicianSwap(ctx, {firstSeat, secondSeat})` → `{valid, updates}` | `actions`, `currentNightResults.swappedSeats`                                                 | `blockedSeat === actorSeat` → valid but no-effect                            | 无                                          |
-| **slacker**       | 选择偶像（懒人）                        | `ACTION { seat, role:'slacker', target }`                                 | `SubmitActionIntent`   | `slackerChooseIdol(ctx, {targetSeat})`                            | `actions`, `currentNightResults.slackerIdol`                                                  | valid but no-effect                                                          | `notSelf`                                   |
-| **wolfRobot**     | 选择查验目标                            | `ACTION { seat, role:'wolfRobot', target }`                               | `SubmitActionIntent`   | `wolfRobotLearn(ctx, {targetSeat})` → `{result}`                  | `actions`, `wolfRobotReveal`                                                                  | valid but no-effect                                                          | `notSelf`                                   |
-| **dreamcatcher**  | 选择守梦目标                            | `ACTION { seat, role:'dreamcatcher', target }`                            | `SubmitActionIntent`   | `dreamcatcherDream(ctx, {targetSeat})`                            | `actions`, `currentNightResults.dreamProtectedSeat`                                           | valid but no-effect                                                          | `notSelf`                                   |
-| **gargoyle**      | 选择查验目标                            | `ACTION { seat, role:'gargoyle', target }`                                | `SubmitActionIntent`   | `gargoyleCheck(ctx, {targetSeat})` → `{result}`                   | `actions`, `gargoyleReveal`                                                                   | valid but no-effect                                                          | `notSelf`                                   |
-| **nightmare**     | 选择封锁目标                            | `ACTION { seat, role:'nightmare', target }`                               | `SubmitActionIntent`   | `nightmareBlock(ctx, {targetSeat})`                               | `actions`, `currentNightResults.blockedSeat`, `nightmareBlockedSeat`, 可能 `wolfKillDisabled` | valid but no-effect                                                          | `notSelf`                                   |
-| **guard**         | 选择守护目标                            | `ACTION { seat, role:'guard', target }`                                   | `SubmitActionIntent`   | `guardProtect(ctx, {targetSeat})`                                 | `actions`, `currentNightResults.guardedSeat`                                                  | valid but no-effect                                                          | `notSelf`, `notConsecutive`（Night-1 无效） |
+| 角色              | UI 显示（myRole 过滤）                  | PlayerMessage                                                             | Handler 输入           | Resolver 输入/输出                                                | 写入 BroadcastGameState                                                                                 | Nightmare block 处理                                                         | Schema constraints                          |
+| ----------------- | --------------------------------------- | ------------------------------------------------------------------------- | ---------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------- |
+| **magician**      | 选择两个座位交换                        | `ACTION { seat, role:'magician', target: encoded }`                       | `SubmitActionIntent`   | `magicianSwap(ctx, {firstSeat, secondSeat})` → `{valid, updates}` | `actions`, `currentNightResults.swappedSeats`                                                           | `blockedSeat === actorSeat` → valid but no-effect                            | 无                                          |
+| **slacker**       | 选择偶像（懒人）                        | `ACTION { seat, role:'slacker', target }`                                 | `SubmitActionIntent`   | `slackerChooseIdol(ctx, {targetSeat})`                            | `actions`, `currentNightResults.slackerIdol`                                                            | valid but no-effect                                                          | `notSelf`                                   |
+| **wolfRobot**     | 选择查验目标                            | `ACTION { seat, role:'wolfRobot', target }`                               | `SubmitActionIntent`   | `wolfRobotLearn(ctx, {targetSeat})` → `{result}`                  | `actions`, `wolfRobotReveal`                                                                            | valid but no-effect                                                          | `notSelf`                                   |
+| **dreamcatcher**  | 选择守梦目标                            | `ACTION { seat, role:'dreamcatcher', target }`                            | `SubmitActionIntent`   | `dreamcatcherDream(ctx, {targetSeat})`                            | `actions`, `currentNightResults.dreamProtectedSeat`                                                     | valid but no-effect                                                          | `notSelf`                                   |
+| **gargoyle**      | 选择查验目标                            | `ACTION { seat, role:'gargoyle', target }`                                | `SubmitActionIntent`   | `gargoyleCheck(ctx, {targetSeat})` → `{result}`                   | `actions`, `gargoyleReveal`                                                                             | valid but no-effect                                                          | `notSelf`                                   |
+| **nightmare**     | 选择封锁目标                            | `ACTION { seat, role:'nightmare', target }`                               | `SubmitActionIntent`   | `nightmareBlock(ctx, {targetSeat})`                               | `actions`, `currentNightResults.blockedSeat`, `nightmareBlockedSeat`, 可能 `wolfKillDisabled`           | valid but no-effect                                                          | `notSelf`                                   |
+| **guard**         | 选择守护目标                            | `ACTION { seat, role:'guard', target }`                                   | `SubmitActionIntent`   | `guardProtect(ctx, {targetSeat})`                                 | `actions`, `currentNightResults.guardedSeat`                                                            | valid but no-effect                                                          | `notSelf`, `notConsecutive`（Night-1 无效） |
 | **wolf** (vote)   | 每个狼人选择刀人目标                    | `WOLF_VOTE { seat, target }`                                              | `SubmitWolfVoteIntent` | `wolfVoteResolver(ctx, {targetSeat})`                             | `currentNightResults.wolfVotesBySeat`；allVoted 后写入 `actions` / `currentNightResults.wolfKillTarget` | 如果当前狼被 block：投票无效（skip）；如果所有狼被 block：`wolfKillDisabled` | neutral judge（允许刀自己/队友）            |
-| **wolfQueen**     | 选择魅惑目标                            | `ACTION { seat, role:'wolfQueen', target }`                               | `SubmitActionIntent`   | `wolfQueenCharm(ctx, {targetSeat})`                               | `actions`, `currentNightResults.charmedSeat`                                                  | valid but no-effect                                                          | `notSelf`, `notWolf`                        |
-| **witch**         | 看到被刀者；选择救/毒/跳过              | `ACTION { seat, role:'witch', target, extra:{save:true}\|{poison:true} }` | `SubmitActionIntent`   | `witchAction(ctx, {targetSeat, save?, poison?})`                  | `actions`, `currentNightResults.witchSave`/`witchPoison`                                      | valid but no-effect（看不到被刀者）                                          | `notSelf`（毒）                             |
-| **witch context** | 只有女巫看到 `witchContext.killedIndex` | -                                                                         | -                      | -                                                                 | `witchContext: {killedIndex, canSave, canPoison}`                                             | 被 block 时不设置 witchContext                                               | -                                           |
-| **seer**          | 选择查验目标                            | `ACTION { seat, role:'seer', target }`                                    | `SubmitActionIntent`   | `seerCheck(ctx, {targetSeat})` → `{result:'好人'\|'狼人'}`        | `actions`, `seerReveal`                                                                       | valid but no-effect                                                          | `notSelf`                                   |
-| **psychic**       | 选择查验目标                            | `ACTION { seat, role:'psychic', target }`                                 | `SubmitActionIntent`   | `psychicCheck(ctx, {targetSeat})` → `{result}`                    | `actions`, `psychicReveal`                                                                    | valid but no-effect                                                          | `notSelf`                                   |
-| **hunter**        | 确认是否可开枪                          | `ACTION { seat, role:'hunter', target:null }`                             | `SubmitActionIntent`   | `hunterConfirm(ctx, {})`                                          | `actions`, `confirmStatus`                                                                    | valid but no-effect                                                          | -                                           |
-| **darkWolfKing**  | 确认是否可开枪                          | `ACTION { seat, role:'darkWolfKing', target:null }`                       | `SubmitActionIntent`   | `darkWolfKingConfirm(ctx, {})`                                    | `actions`, `confirmStatus`                                                                    | valid but no-effect                                                          | -                                           |
+| **wolfQueen**     | 选择魅惑目标                            | `ACTION { seat, role:'wolfQueen', target }`                               | `SubmitActionIntent`   | `wolfQueenCharm(ctx, {targetSeat})`                               | `actions`, `currentNightResults.charmedSeat`                                                            | valid but no-effect                                                          | `notSelf`, `notWolf`                        |
+| **witch**         | 看到被刀者；选择救/毒/跳过              | `ACTION { seat, role:'witch', target, extra:{save:true}\|{poison:true} }` | `SubmitActionIntent`   | `witchAction(ctx, {targetSeat, save?, poison?})`                  | `actions`, `currentNightResults.witchSave`/`witchPoison`                                                | valid but no-effect（看不到被刀者）                                          | `notSelf`（毒）                             |
+| **witch context** | 只有女巫看到 `witchContext.killedIndex` | -                                                                         | -                      | -                                                                 | `witchContext: {killedIndex, canSave, canPoison}`                                                       | 被 block 时不设置 witchContext                                               | -                                           |
+| **seer**          | 选择查验目标                            | `ACTION { seat, role:'seer', target }`                                    | `SubmitActionIntent`   | `seerCheck(ctx, {targetSeat})` → `{result:'好人'\|'狼人'}`        | `actions`, `seerReveal`                                                                                 | valid but no-effect                                                          | `notSelf`                                   |
+| **psychic**       | 选择查验目标                            | `ACTION { seat, role:'psychic', target }`                                 | `SubmitActionIntent`   | `psychicCheck(ctx, {targetSeat})` → `{result}`                    | `actions`, `psychicReveal`                                                                              | valid but no-effect                                                          | `notSelf`                                   |
+| **hunter**        | 确认是否可开枪                          | `ACTION { seat, role:'hunter', target:null }`                             | `SubmitActionIntent`   | `hunterConfirm(ctx, {})`                                          | `actions`, `confirmStatus`                                                                              | valid but no-effect                                                          | -                                           |
+| **darkWolfKing**  | 确认是否可开枪                          | `ACTION { seat, role:'darkWolfKing', target:null }`                       | `SubmitActionIntent`   | `darkWolfKingConfirm(ctx, {})`                                    | `actions`, `confirmStatus`                                                                              | valid but no-effect                                                          | -                                           |
 
 ### 3.1 Reveal Role 特殊处理
 
@@ -334,9 +334,9 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 **改动文件**：
 
-| 文件路径                                         | 改动符号              | 说明                                                                     |
-| ------------------------------------------------ | --------------------- | ------------------------------------------------------------------------ |
-| `src/services/facade/GameFacade.ts`         | `assignRoles()`       | 新增方法：构造 intent → 调 handler → apply actions → broadcast           |
+| 文件路径                                             | 改动符号              | 说明                                                                     |
+| ---------------------------------------------------- | --------------------- | ------------------------------------------------------------------------ |
+| `src/services/facade/GameFacade.ts`                  | `assignRoles()`       | 新增方法：构造 intent → 调 handler → apply actions → broadcast           |
 | `src/services/engine/handlers/gameControlHandler.ts` | `handleAssignRoles()` | 新增（或拆分原 handleStartGame）：校验 seated → 生成 ASSIGN_ROLES action |
 | `src/services/engine/intents/types.ts`               | `AssignRolesIntent`   | 新增 intent 类型                                                         |
 
@@ -360,10 +360,10 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 **改动文件**：
 
-| 文件路径                                    | 改动符号                    | 说明                                                             |
-| ------------------------------------------- | --------------------------- | ---------------------------------------------------------------- |
-| `src/services/facade/GameFacade.ts`    | `viewedRole()`              | 新增方法（Player 端发 PlayerMessage）                            |
-| `src/services/facade/GameFacade.ts`    | `hostHandlePlayerMessage()` | 新增 case `'VIEWED_ROLE'`                                        |
+| 文件路径                                        | 改动符号                    | 说明                                                             |
+| ----------------------------------------------- | --------------------------- | ---------------------------------------------------------------- |
+| `src/services/facade/GameFacade.ts`             | `viewedRole()`              | 新增方法（Player 端发 PlayerMessage）                            |
+| `src/services/facade/GameFacade.ts`             | `hostHandlePlayerMessage()` | 新增 case `'VIEWED_ROLE'`                                        |
 | `src/services/engine/handlers/actionHandler.ts` | `handleViewedRole()`        | 校验 assigned → 设置 hasViewedRole → 检查 allViewed → 可能 ready |
 | `src/services/engine/reducer/gameReducer.ts`    | `handlePlayerViewedRole()`  | 已存在，需确保 allViewed → ready 逻辑                            |
 
@@ -387,12 +387,12 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 **改动文件**：
 
-| 文件路径                                         | 改动符号             | 说明                                                                   |
-| ------------------------------------------------ | -------------------- | ---------------------------------------------------------------------- |
-| `src/services/facade/GameFacade.ts`         | `startGame()`        | 新增方法：校验 ready → 调 handler → apply → broadcast → 播放音频       |
+| 文件路径                                             | 改动符号             | 说明                                                                   |
+| ---------------------------------------------------- | -------------------- | ---------------------------------------------------------------------- |
+| `src/services/facade/GameFacade.ts`                  | `startGame()`        | 新增方法：校验 ready → 调 handler → apply → broadcast → 播放音频       |
 | `src/services/engine/handlers/gameControlHandler.ts` | `handleStartGame()`  | 修改：前置条件改为 `ready`（不是 seated）；生成 START_NIGHT action     |
 | `src/services/engine/reducer/gameReducer.ts`         | `handleStartNight()` | 修改：设置 `currentNightPhase` / `currentStepId`                       |
-| `src/services/protocol/types.ts`                 | `BroadcastGameState` | 新增 `currentNightPhase?: NightPhaseType` / `currentStepId?: SchemaId` |
+| `src/services/protocol/types.ts`                     | `BroadcastGameState` | 新增 `currentNightPhase?: NightPhaseType` / `currentStepId?: SchemaId` |
 | `src/services/engine/reducer/types.ts`               | `StartNightAction`   | payload 新增 `currentNightPhase` / `currentStepId`                     |
 
 **新增 `BroadcastGameState` 字段**：
@@ -421,10 +421,10 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 **改动文件**：
 
-| 文件路径                                    | 改动符号                    | 说明                                         |
-| ------------------------------------------- | --------------------------- | -------------------------------------------- |
-| `src/services/facade/GameFacade.ts`    | `submitAction()`            | 新增方法（Player 端发 PlayerMessage）        |
-| `src/services/facade/GameFacade.ts`    | `hostHandlePlayerMessage()` | 新增 case `'ACTION'`                         |
+| 文件路径                                        | 改动符号                    | 说明                                         |
+| ----------------------------------------------- | --------------------------- | -------------------------------------------- |
+| `src/services/facade/GameFacade.ts`             | `submitAction()`            | 新增方法（Player 端发 PlayerMessage）        |
+| `src/services/facade/GameFacade.ts`             | `hostHandlePlayerMessage()` | 新增 case `'ACTION'`                         |
 | `src/services/engine/handlers/actionHandler.ts` | `handleSubmitAction()`      | 校验 phase/role → 调 resolver → apply result |
 
 **新增/修改 `BroadcastGameState` 字段**：无（reveal 字段已存在）
@@ -447,10 +447,10 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 **改动文件**：
 
-| 文件路径                                    | 改动符号                    | 说明                                                      |
-| ------------------------------------------- | --------------------------- | --------------------------------------------------------- |
-| `src/services/facade/GameFacade.ts`    | `submitWolfVote()`          | 新增方法                                                  |
-| `src/services/facade/GameFacade.ts`    | `hostHandlePlayerMessage()` | 新增 case `'WOLF_VOTE'`                                   |
+| 文件路径                                        | 改动符号                    | 说明                                                      |
+| ----------------------------------------------- | --------------------------- | --------------------------------------------------------- |
+| `src/services/facade/GameFacade.ts`             | `submitWolfVote()`          | 新增方法                                                  |
+| `src/services/facade/GameFacade.ts`             | `hostHandlePlayerMessage()` | 新增 case `'WOLF_VOTE'`                                   |
 | `src/services/engine/handlers/actionHandler.ts` | `handleSubmitWolfVote()`    | 新增：校验 wolf role → 记录投票 → 检查 allVoted → resolve |
 
 **新增/修改 `BroadcastGameState` 字段**：无
@@ -473,11 +473,11 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 **改动文件**：
 
-| 文件路径                                 | 改动符号                      | 说明                                   |
-| ---------------------------------------- | ----------------------------- | -------------------------------------- |
-| `src/services/facade/GameFacade.ts` | `advanceToNextAction()`       | 新增：推进步骤 + 播放音频              |
-| `src/services/facade/GameFacade.ts` | `endNight()`                  | 新增：计算死亡 + 广播                  |
-| `src/services/facade/GameFacade.ts` | `playCurrentRoleAudio()`      | 新增：根据 step 播放音频               |
+| 文件路径                                     | 改动符号                      | 说明                                   |
+| -------------------------------------------- | ----------------------------- | -------------------------------------- |
+| `src/services/facade/GameFacade.ts`          | `advanceToNextAction()`       | 新增：推进步骤 + 播放音频              |
+| `src/services/facade/GameFacade.ts`          | `endNight()`                  | 新增：计算死亡 + 广播                  |
+| `src/services/facade/GameFacade.ts`          | `playCurrentRoleAudio()`      | 新增：根据 step 播放音频               |
 | `src/services/engine/reducer/gameReducer.ts` | `handleAdvanceToNextAction()` | 更新 phase/stepId/currentActionerIndex |
 | `src/services/engine/reducer/gameReducer.ts` | `handleEndNight()`            | 已存在                                 |
 
@@ -485,10 +485,10 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 **测试门禁**：
 
-| 测试文件                         | 测试用例                                          | 类型                   |
-| -------------------------------- | ------------------------------------------------- | ---------------------- |
+| 测试文件                       | 测试用例                                          | 类型                   |
+| ------------------------------ | ------------------------------------------------- | ---------------------- |
 | `GameFacade.nightFlow.test.ts` | 完整 Night-1 流程                                 | Jest                   |
-| `e2e/night1.basic.spec.ts`       | 创建 → 入座 → 分配 → 查看 → 开始 → action → ended | Playwright (workers=1) |
+| `e2e/night1.basic.spec.ts`     | 创建 → 入座 → 分配 → 查看 → 开始 → action → ended | Playwright (workers=1) |
 
 **回滚策略**：`git revert` 整个 PR
 
@@ -519,11 +519,11 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 ### 5.3 禁止项扫描
 
-| 扫描项                        | 方法                                        |
-| ----------------------------- | ------------------------------------------- |
+| 扫描项                     | 方法                                     |
+| -------------------------- | ---------------------------------------- |
 | runtime 不得 import legacy | `grep -r "from '.*legacy" src/services/` |
-| 无 hostOnly state             | `grep -r "hostOnly\|HostOnlyState" src/`    |
-| 无 runtime feature flag       | `grep -r "ENABLE_" src/`      |
+| 无 hostOnly state          | `grep -r "hostOnly\|HostOnlyState" src/` |
+| 无 runtime feature flag    | `grep -r "ENABLE_" src/`                 |
 
 ### 5.4 E2E（可选）
 
@@ -537,7 +537,7 @@ Legacy（L916-923）中，reveal role（seer/psychic/gargoyle/wolfRobot）提交
 
 | 禁止项                                | 说明                                                                |
 | ------------------------------------- | ------------------------------------------------------------------- |
-| runtime feature flag / fallback       | 不允许 `if (useNew) { ... } else { legacy }`                         |
+| runtime feature flag / fallback       | 不允许 `if (useNew) { ... } else { legacy }`                        |
 | hostOnly state / HostLocalState       | 所有状态必须进 `BroadcastGameState`                                 |
 | 伪 API                                | 不允许使用 repo 中不存在的函数签名（如自造的 `restoreFromState()`） |
 | UI 文案作为逻辑 key                   | 必须使用稳定 id：`SchemaId` / `RoleId`                              |
@@ -583,26 +583,26 @@ export type NightPhaseType =
 
 （证明没有 hostOnly state，所有 UI 显示都可从 `BroadcastGameState` 派生）
 
-| 字段                          | UI 显示             | 可见条件                             |
-| ----------------------------- | ------------------- | ------------------------------------ |
-| `status`                      | 房间状态/按钮可用性 | 所有玩家                             |
-| `players[seat].role`          | 角色图标            | `seat === mySeat` 或特定互看规则     |
-| `players[seat].hasViewedRole` | "未看牌"标记        | Host 全部；Player 只见自己           |
-| `currentActionerIndex`        | 当前行动角色        | 所有玩家                             |
-| `currentNightPhase`           | 夜晚阶段指示器      | 所有玩家（缺失视为 Idle）            |
-| `currentStepId`               | 当前步骤名称        | 所有玩家（缺失不显示）               |
-| `isAudioPlaying`              | 音频播放指示器      | 所有玩家                             |
-| `currentNightResults.wolfVotesBySeat`  | 狼人投票进度（seat -> target） | `isWolfRole(myRole)`                 |
-| `witchContext`                | 女巫面板            | `myRole === 'witch'`                 |
-| `seerReveal`                  | 预言家结果          | `myRole === 'seer'`                  |
-| `psychicReveal`               | 通灵师结果          | `myRole === 'psychic'`               |
-| `gargoyleReveal`              | 石像鬼结果          | `myRole === 'gargoyle'`              |
-| `wolfRobotReveal`             | 机械狼结果          | `myRole === 'wolfRobot'`             |
-| `confirmStatus`               | 猎人/狼王确认       | `myRole === confirmStatus.role`      |
-| `actionRejected`              | 行动被拒绝 toast    | `myUid === actionRejected.targetUid` |
-| `nightmareBlockedSeat`        | 被封锁标记          | 所有玩家                             |
-| `wolfKillDisabled`            | 狼刀失效            | `isWolfRole(myRole)`                 |
-| `lastNightDeaths`             | 死亡公告            | 所有玩家                             |
+| 字段                                  | UI 显示                        | 可见条件                             |
+| ------------------------------------- | ------------------------------ | ------------------------------------ |
+| `status`                              | 房间状态/按钮可用性            | 所有玩家                             |
+| `players[seat].role`                  | 角色图标                       | `seat === mySeat` 或特定互看规则     |
+| `players[seat].hasViewedRole`         | "未看牌"标记                   | Host 全部；Player 只见自己           |
+| `currentActionerIndex`                | 当前行动角色                   | 所有玩家                             |
+| `currentNightPhase`                   | 夜晚阶段指示器                 | 所有玩家（缺失视为 Idle）            |
+| `currentStepId`                       | 当前步骤名称                   | 所有玩家（缺失不显示）               |
+| `isAudioPlaying`                      | 音频播放指示器                 | 所有玩家                             |
+| `currentNightResults.wolfVotesBySeat` | 狼人投票进度（seat -> target） | `isWolfRole(myRole)`                 |
+| `witchContext`                        | 女巫面板                       | `myRole === 'witch'`                 |
+| `seerReveal`                          | 预言家结果                     | `myRole === 'seer'`                  |
+| `psychicReveal`                       | 通灵师结果                     | `myRole === 'psychic'`               |
+| `gargoyleReveal`                      | 石像鬼结果                     | `myRole === 'gargoyle'`              |
+| `wolfRobotReveal`                     | 机械狼结果                     | `myRole === 'wolfRobot'`             |
+| `confirmStatus`                       | 猎人/狼王确认                  | `myRole === confirmStatus.role`      |
+| `actionRejected`                      | 行动被拒绝 toast               | `myUid === actionRejected.targetUid` |
+| `nightmareBlockedSeat`                | 被封锁标记                     | 所有玩家                             |
+| `wolfKillDisabled`                    | 狼刀失效                       | `isWolfRole(myRole)`                 |
+| `lastNightDeaths`                     | 死亡公告                       | 所有玩家                             |
 
 ---
 

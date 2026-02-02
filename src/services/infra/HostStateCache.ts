@@ -176,7 +176,11 @@ export class HostStateCache {
         return null;
       }
 
-      hostCacheLog.debug('Loaded host state cache', { roomCode, hostUid, revision: cached.revision });
+      hostCacheLog.debug('Loaded host state cache', {
+        roomCode,
+        hostUid,
+        revision: cached.revision,
+      });
       return cached;
     } catch (err) {
       hostCacheLog.error('Failed to load host state cache', err);

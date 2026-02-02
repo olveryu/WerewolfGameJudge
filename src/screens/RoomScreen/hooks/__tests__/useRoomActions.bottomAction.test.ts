@@ -45,8 +45,8 @@ describe('useRoomActions.getBottomAction (Host-authoritative)', () => {
         bottomActionText: '不查验',
       },
     };
-    
-    const ctx = makeContext({ 
+
+    const ctx = makeContext({
       currentSchema: chooseSeatSchema,
     });
     const { result } = renderHook(() =>
@@ -56,7 +56,7 @@ describe('useRoomActions.getBottomAction (Host-authoritative)', () => {
         getWitchContext: () => null,
       }),
     );
-    
+
     // UI no longer forces skip - shows normal schema button
     const bottomAction = result.current.getBottomAction();
     expect(bottomAction.buttons).toHaveLength(1);

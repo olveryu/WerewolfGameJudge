@@ -56,6 +56,7 @@
 ---
 
 ## 2. 架构总览
+
 ## 2. 架构总览
 
 ```
@@ -158,10 +159,10 @@
 
 **Phase 1 迁移期策略（重要）**:
 
-| 字段             | Phase 1 类型                              | 说明                                                        |
-| ---------------- | ----------------------------------------- | ----------------------------------------------------------- |
-| `players`        | `Record<number, BroadcastPlayer \| null>` | **保持现状不改**（现有代码/测试大量依赖）                   |
-| `currentNightResults.wolfVotesBySeat` | `Record<string, number>`     | wolf 投票 seat-map（seat → target），string key             |
+| 字段                                  | Phase 1 类型                              | 说明                                            |
+| ------------------------------------- | ----------------------------------------- | ----------------------------------------------- |
+| `players`                             | `Record<number, BroadcastPlayer \| null>` | **保持现状不改**（现有代码/测试大量依赖）       |
+| `currentNightResults.wolfVotesBySeat` | `Record<string, number>`                  | wolf 投票 seat-map（seat → target），string key |
 
 **后续 Phase（可选）**: 如果要把 `players` 也改成 `Record<string, ...>`，必须作为**单独 migration PR**，全量修改测试；不属于 Phase 1 范围。
 
@@ -443,12 +444,12 @@ export function normalizeState(raw: Partial<BroadcastGameState>): BroadcastGameS
 
 ### 5.3 不变量
 
-| 规则                           | 描述                                                               |
-| ------------------------------ | ------------------------------------------------------------------ |
-| **新增字段 keys 是 string**    | `currentNightResults.wolfVotesBySeat` 等 seat-map 字段的 key 是 string |
-| **players 保持现状**           | Phase 1 不改动 `players` 的 key 类型                               |
-| **seat-map keys 规范化**       | 对 `currentNightResults.wolfVotesBySeat` 等 seat-map 做 key canonicalization（number → string） |
-| **广播前归一化**               | 主机在每次 `STATE_UPDATE` 前调用 `normalizeState(state)`           |
+| 规则                        | 描述                                                                                            |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| **新增字段 keys 是 string** | `currentNightResults.wolfVotesBySeat` 等 seat-map 字段的 key 是 string                          |
+| **players 保持现状**        | Phase 1 不改动 `players` 的 key 类型                                                            |
+| **seat-map keys 规范化**    | 对 `currentNightResults.wolfVotesBySeat` 等 seat-map 做 key canonicalization（number → string） |
+| **广播前归一化**            | 主机在每次 `STATE_UPDATE` 前调用 `normalizeState(state)`                                        |
 
 > 注：`normalizeState()` 不是“容错恢复器”。
 > 它的职责是“形态规范化 + 派生字段”。如果核心必填状态缺失，更推荐在主机的存储/恢复路径 fail-fast 并打日志。
@@ -463,9 +464,9 @@ export function normalizeState(raw: Partial<BroadcastGameState>): BroadcastGameS
 | ------------ | ---------------------------------------------------------------- | ----------------------------------- |
 | `protocol/`  | `import type` from `models/**`, `services/night/resolvers/types` | 任何运行时导入；任何 transport 导入 |
 | `core/`      | `import type` from protocol；import from `models/**`             | 运行时导入 transport                |
-| `transport/` | 从 protocol 导入（types）；导入 supabase                         | 从 engine、legacy 导入                  |
+| `transport/` | 从 protocol 导入（types）；导入 supabase                         | 从 engine、legacy 导入              |
 | `legacy/`    | 任意（迁移期豁免）                                               | —                                   |
-| `engine/        | 从 protocol、core 导入                                           | 运行时导入 legacy                   |
+| `engine/     | 从 protocol、core 导入                                           | 运行时导入 legacy                   |
 
 ### 6.2 执法策略
 
@@ -670,11 +671,11 @@ src/services/
 
 ### Phase 1B：归一化层
 
-| 文件                                                           | 动作     | 改动点                                                                      |
-| -------------------------------------------------------------- | -------- | --------------------------------------------------------------------------- |
+| 文件                                                           | 动作     | 改动点                                            |
+| -------------------------------------------------------------- | -------- | ------------------------------------------------- |
 | `src/services/core/state/normalize.ts`                         | **新建** | `normalizeState()`、`canonicalizeSeatKeyRecord()` |
-| `src/services/core/state/__tests__/normalize.contract.test.ts` | **新建** | 归一化测试（见第 9 节）                                                     |
-| `src/services/core/index.ts`                                   | **新建** | 重导出 normalize 函数                                                       |
+| `src/services/core/state/__tests__/normalize.contract.test.ts` | **新建** | 归一化测试（见第 9 节）                           |
+| `src/services/core/index.ts`                                   | **新建** | 重导出 normalize 函数                             |
 
 ### Phase 1C：Legacy 隔离
 
@@ -706,9 +707,9 @@ src/services/
 | `boundary.contract.test.ts`  | `BroadcastService.ts 不导出 HostBroadcast 类型`      | Phase 1 完成后通过                                   |
 | `boundary.contract.test.ts`  | `BroadcastService.ts 不导出 PlayerMessage 类型`      | Phase 1 完成后通过                                   |
 | `boundary.contract.test.ts`  | `protocol/types.ts 导出 BroadcastGameState`          | Regex 找到 `export interface BroadcastGameState`     |
-| `boundary.contract.test.ts`  | `engine/ 不运行时导入 legacy/`                           | 扫描所有 engine/ 文件                                    |
+| `boundary.contract.test.ts`  | `engine/ 不运行时导入 legacy/`                       | 扫描所有 engine/ 文件                                |
 | `boundary.contract.test.ts`  | `core/ 不运行时导入 transport/`                      | 扫描所有 core/ 文件                                  |
-| `normalize.contract.test.ts` | `规范化 wolfVotesBySeat keys 为 string`             | `{ 1: 3 }` → `{ '1': 3 }`                            |
+| `normalize.contract.test.ts` | `规范化 wolfVotesBySeat keys 为 string`              | `{ 1: 3 }` → `{ '1': 3 }`                            |
 | `normalize.contract.test.ts` | `填充必填字段默认值`                                 | 空输入 → 有效的 BroadcastGameState                   |
 | `normalize.contract.test.ts` | `players 不做 key 规范化`                            | Phase 1 保持 number key 不变                         |
 
@@ -752,16 +753,19 @@ npm test -- --testPathPattern="src/services/__tests__"
 目标：运行时只剩当前路径，删除所有 legacy runtime 代码与测试。
 
 **Batch 1+2**: 删除 legacy boards integration + 旧 runtime tests
+
 - **Commit**: `e2463f5`
 - **删除内容**: `src/services/__tests__/boards/**` (10 integration tests + hostGameFactory.ts)、`GameStateService.*.test.ts` (11 files)、`NightFlowController.test.ts`、`WolfVoteResolver.test.ts`、`boundary.contract.test.ts`、`wolfKillNeutral.contract.test.ts`
 - **diff stat**: 27 files changed, 7125 deletions
 
 **Batch 3**: 删除 legacy GameStateService 代码
+
 - **Commit**: `487bb33`
 - **删除内容**: `src/services/legacy/GameStateService.ts` (2733 lines)、`src/services/GameStateService.ts` (re-export)
 - **diff stat**: 6 files changed, 2902 deletions
 
 **门禁验证**:
+
 - `grep -rn "services/legacy" src App.tsx` → 0 matches（仅 legacyRuntimeGate.contract.test.ts 断言）
 - `ls src/services/legacy/` → Directory does not exist
 - `ls src/services/__tests__/boards/` → Directory does not exist
@@ -792,27 +796,27 @@ npm test -- --testPathPattern="src/services/__tests__"
 | --- | ------------------------------------------------- | ------ | ---- | -------------------------------------------- | --------------------------------------------------- |
 | 1   | 类型提取后导入路径断裂                            | 中     | 高   | 重导出 shims + grep 验证所有导入             | `grep -r "from.*BroadcastService" --include="*.ts"` |
 | 2   | `Record<number, T>` 的 number key 残留在 fixtures | 中     | 中   | 归一化所有输入；在 normalize 中 canonicalize | `npm test -- normalize.contract`                    |
-| 3   | seat-map key 规范化错误（drift）                  | 高     | 高   | 统一走 `canonicalizeSeatKeyRecord()`          | `npm test -- normalize.contract`                    |
+| 3   | seat-map key 规范化错误（drift）                  | 高     | 高   | 统一走 `canonicalizeSeatKeyRecord()`         | `npm test -- normalize.contract`                    |
 | 4   | `CurrentNightResults` 被作为运行时导入            | 低     | 高   | 边界测试扫描运行时导入                       | `npm test -- boundary.contract`                     |
-| 5   | 意外导入 legacy                                | 低     | 严重 | ESLint 规则 + 边界测试                       | `npm test -- boundary.contract`                     |
+| 5   | 意外导入 legacy                                   | 低     | 严重 | ESLint 规则 + 边界测试                       | `npm test -- boundary.contract`                     |
 
 ---
 
 ## 12. 验收清单（Acceptance Checklist）
 
-| #   | 标准                                          | 验证命令                         |
-| --- | --------------------------------------------- | -------------------------------- |
-| 1   | `protocol/types.ts` 无运行时代码              | `npm test -- boundary.contract`  |
-| 2   | `BroadcastService.ts` 不再导出协议类型        | `npm test -- boundary.contract`  |
-| 3   | 新增 seat-map 字段 keys 是 string             | `npm test -- normalize.contract` |
-| 4   | `players` key 类型保持 number（Phase 1）      | 现有测试通过                     |
-| 5   | 旧协议字段误用（代码/文档未清理）                | `npm test -- normalize.contract` |
-| 6   | `CurrentNightResults` type-only 导入          | Grep + 边界测试                  |
-| 7   | 不运行时导入 legacy                        | `npm test -- boundary.contract`  |
-| 8   | core 不运行时导入 transport                   | `npm test -- boundary.contract`  |
-| 9   | 主机每次广播递增 revision                     | 集成测试                         |
-| 10  | 玩家丢弃旧 revision                           | 集成测试                         |
-| 11  | 所有现有测试通过                              | `npm test`                       |
+| #   | 标准                                     | 验证命令                         |
+| --- | ---------------------------------------- | -------------------------------- |
+| 1   | `protocol/types.ts` 无运行时代码         | `npm test -- boundary.contract`  |
+| 2   | `BroadcastService.ts` 不再导出协议类型   | `npm test -- boundary.contract`  |
+| 3   | 新增 seat-map 字段 keys 是 string        | `npm test -- normalize.contract` |
+| 4   | `players` key 类型保持 number（Phase 1） | 现有测试通过                     |
+| 5   | 旧协议字段误用（代码/文档未清理）        | `npm test -- normalize.contract` |
+| 6   | `CurrentNightResults` type-only 导入     | Grep + 边界测试                  |
+| 7   | 不运行时导入 legacy                      | `npm test -- boundary.contract`  |
+| 8   | core 不运行时导入 transport              | `npm test -- boundary.contract`  |
+| 9   | 主机每次广播递增 revision                | 集成测试                         |
+| 10  | 玩家丢弃旧 revision                      | 集成测试                         |
+| 11  | 所有现有测试通过                         | `npm test`                       |
 
 ---
 
@@ -875,7 +879,7 @@ const seatNumber: number = parseInt(key, 10);
 
 ### Phase 1 字段 Key 类型一览
 
-| 字段             | Phase 1 TS 类型                           | 说明              |
-| ---------------- | ----------------------------------------- | ----------------- |
-| `players`        | `Record<number, BroadcastPlayer \| null>` | 保持现状          |
-| `currentNightResults.wolfVotesBySeat` | `Record<string, number>`     | seat → target（string key） |
+| 字段                                  | Phase 1 TS 类型                           | 说明                        |
+| ------------------------------------- | ----------------------------------------- | --------------------------- |
+| `players`                             | `Record<number, BroadcastPlayer \| null>` | 保持现状                    |
+| `currentNightResults.wolfVotesBySeat` | `Record<string, number>`                  | seat → target（string key） |

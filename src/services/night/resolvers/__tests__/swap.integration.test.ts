@@ -25,9 +25,7 @@ import type { RoleId } from '../../../../models/roles/spec/specs';
 // Test Helpers
 // =============================================================================
 
-function createPlayers(
-  seats: Array<[number, RoleId]>,
-): ReadonlyMap<number, RoleId> {
+function createPlayers(seats: Array<[number, RoleId]>): ReadonlyMap<number, RoleId> {
   return new Map(seats);
 }
 
@@ -447,7 +445,7 @@ describe('Handler → Resolver wire protocol (buildActionInput)', () => {
       const input: ActionInput = {
         schemaId: 'magicianSwap',
         target: undefined, // protocol: target 必须为 null/undefined
-        targets: [0, 1],   // protocol: extra.targets
+        targets: [0, 1], // protocol: extra.targets
       };
 
       const result = magicianSwapResolver(ctx, input);

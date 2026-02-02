@@ -34,10 +34,7 @@ function createBaseContext(overrides: Partial<InteractionContext> = {}): Interac
   };
 }
 
-function createSeatTapEvent(
-  seatIndex: number,
-  disabledReason?: string,
-): InteractionEvent {
+function createSeatTapEvent(seatIndex: number, disabledReason?: string): InteractionEvent {
   return { kind: 'SEAT_TAP', seatIndex, disabledReason };
 }
 
@@ -78,9 +75,7 @@ function createWolfRobotHunterStatusViewedEvent(): InteractionEvent {
 
 describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
   test('priority constants are in correct order', () => {
-    expect(INTERACTION_PRIORITY.AUDIO_GATE).toBeLessThan(
-      INTERACTION_PRIORITY.NO_GAME_STATE,
-    );
+    expect(INTERACTION_PRIORITY.AUDIO_GATE).toBeLessThan(INTERACTION_PRIORITY.NO_GAME_STATE);
     expect(INTERACTION_PRIORITY.NO_GAME_STATE).toBeLessThan(
       INTERACTION_PRIORITY.PENDING_REVEAL_ACK,
     );

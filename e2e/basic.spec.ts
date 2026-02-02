@@ -162,7 +162,7 @@ test.describe('Template Selection', () => {
     const templateDropdown = getVisibleText(page, '标准板12人');
     await expect(templateDropdown).toBeVisible({ timeout: 5000 });
     await templateDropdown.click();
-    
+
     // Now select 狼美守卫12人 from the dropdown
     const template2 = getVisibleText(page, '狼美守卫12人');
     await template2.scrollIntoViewIfNeeded();

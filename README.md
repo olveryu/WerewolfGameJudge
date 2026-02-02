@@ -3,7 +3,7 @@
 **狼人杀第一晚电子法官** | **Night-1 Electronic Judge for Werewolf**
 
 专为线下同桌狼人杀设计的自动化裁判 App  
-*An automated judge app designed for in-person Werewolf games*
+_An automated judge app designed for in-person Werewolf games_
 
 [![Live Demo](https://img.shields.io/badge/Live-werewolf--judge.vercel.app-blue?style=flat-square)](https://werewolf-judge.vercel.app)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
@@ -16,16 +16,16 @@
 
 ## ✨ 核心特性 | Features
 
-| 中文 | English |
-|------|---------|
-| 🎙️ **自动语音播报** - 第一晚全流程自动引导，Host 也能闭眼参与 | 🎙️ **Auto Voice Narration** - Fully guided Night-1 flow, Host can close eyes too |
-| 📱 **多设备同步** - 一人建房，多人扫码加入，实时同步 | 📱 **Multi-device Sync** - One host creates room, others join via 4-digit code |
-| 🎭 **22 种角色** - 完整狼人杀角色库，含多种特殊狼人和神职 | 🎭 **22 Roles** - Complete role library with special wolves and gods |
-| 🤖 **AI 狼人杀助手** - 悬浮聊天泡泡，随时咨询规则和策略 | 🤖 **AI Werewolf Assistant** - Floating chat bubble for rules and strategy help |
-| ⚡ **即开即用** - 匿名登录，无需注册，4位房间码快速加入 | ⚡ **Instant Play** - Anonymous login, no registration, quick join |
-| 🌐 **跨平台** - iOS / Android / Web 全平台支持 | 🌐 **Cross-platform** - iOS / Android / Web supported |
-| 🎨 **多主题** - 6 种主题风格可选（暗黑/浅色/午夜/血月/紫霞/极简）| 🎨 **Themes** - 6 theme styles (Dark/Light/Midnight/Blood/Purple/Minimal) |
-| 🧪 **高测试覆盖** - 1922 个单元测试 + UI 测试 + E2E 测试 | 🧪 **High Test Coverage** - 1922 unit tests + UI tests + E2E tests |
+| 中文                                                              | English                                                                          |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 🎙️ **自动语音播报** - 第一晚全流程自动引导，Host 也能闭眼参与     | 🎙️ **Auto Voice Narration** - Fully guided Night-1 flow, Host can close eyes too |
+| 📱 **多设备同步** - 一人建房，多人扫码加入，实时同步              | 📱 **Multi-device Sync** - One host creates room, others join via 4-digit code   |
+| 🎭 **22 种角色** - 完整狼人杀角色库，含多种特殊狼人和神职         | 🎭 **22 Roles** - Complete role library with special wolves and gods             |
+| 🤖 **AI 狼人杀助手** - 悬浮聊天泡泡，随时咨询规则和策略           | 🤖 **AI Werewolf Assistant** - Floating chat bubble for rules and strategy help  |
+| ⚡ **即开即用** - 匿名登录，无需注册，4位房间码快速加入           | ⚡ **Instant Play** - Anonymous login, no registration, quick join               |
+| 🌐 **跨平台** - iOS / Android / Web 全平台支持                    | 🌐 **Cross-platform** - iOS / Android / Web supported                            |
+| 🎨 **多主题** - 6 种主题风格可选（暗黑/浅色/午夜/血月/紫霞/极简） | 🎨 **Themes** - 6 theme styles (Dark/Light/Midnight/Blood/Purple/Minimal)        |
+| 🧪 **高测试覆盖** - 1922 个单元测试 + UI 测试 + E2E 测试          | 🧪 **High Test Coverage** - 1922 unit tests + UI tests + E2E tests               |
 
 ---
 
@@ -37,42 +37,42 @@
 
 ### 玩家使用 | How to Play
 
-| 步骤 Step | Host（房主）| 玩家 Player |
-| ---- | ---------------------------------------- | ---------------- |
-| 1 | 点击「创建房间」，选择板子和人数<br/>*Click "Create Room", select template and player count* | 点击「进入房间」<br/>*Click "Join Room"* |
-| 2 | 分享 4 位房间号给其他玩家<br/>*Share 4-digit room code with others* | 输入房间号加入<br/>*Enter room code to join* |
-| 3 | 等待所有人入座，点击「准备看牌」<br/>*Wait for all to sit, click "Ready to View Cards"* | 点击座位入座<br/>*Click a seat to sit* |
-| 4 | 所有人看牌后，点击「开始游戏」<br/>*After all viewed cards, click "Start Game"* | 查看身份，确认<br/>*View your role, confirm* |
-| 5 | 夜晚结束后，点击「查看昨晚信息」宣布结果<br/>*After night ends, click "View Last Night" to announce results* | 根据身份执行行动<br/>*Perform actions based on your role* |
+| 步骤 Step | Host（房主）                                                                                                 | 玩家 Player                                               |
+| --------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| 1         | 点击「创建房间」，选择板子和人数<br/>_Click "Create Room", select template and player count_                 | 点击「进入房间」<br/>_Click "Join Room"_                  |
+| 2         | 分享 4 位房间号给其他玩家<br/>_Share 4-digit room code with others_                                          | 输入房间号加入<br/>_Enter room code to join_              |
+| 3         | 等待所有人入座，点击「准备看牌」<br/>_Wait for all to sit, click "Ready to View Cards"_                      | 点击座位入座<br/>_Click a seat to sit_                    |
+| 4         | 所有人看牌后，点击「开始游戏」<br/>_After all viewed cards, click "Start Game"_                              | 查看身份，确认<br/>_View your role, confirm_              |
+| 5         | 夜晚结束后，点击「查看昨晚信息」宣布结果<br/>_After night ends, click "View Last Night" to announce results_ | 根据身份执行行动<br/>_Perform actions based on your role_ |
 
 > 💡 白天发言与投票在线下进行，App 只负责第一晚。  
-> *Daytime discussion and voting happen offline. App handles Night-1 only.*
+> _Daytime discussion and voting happen offline. App handles Night-1 only._
 
 ---
 
 ## 🤖 AI 狼人杀助手 | AI Werewolf Assistant
 
 屏幕右下角的 🐺 悬浮按钮是你的专属狼人杀顾问！  
-*The 🐺 floating button at the bottom-right is your personal Werewolf consultant!*
+_The 🐺 floating button at the bottom-right is your personal Werewolf consultant!_
 
 ### 功能 | Features
 
-| 中文 | English |
-|------|---------|
-| 📚 **规则咨询** - 询问任何角色的技能和规则 | 📚 **Rules Help** - Ask about any role's skills and rules |
-| 🎯 **策略建议** - 获取针对不同角色的打法建议 | 🎯 **Strategy Tips** - Get gameplay advice for different roles |
+| 中文                                         | English                                                             |
+| -------------------------------------------- | ------------------------------------------------------------------- |
+| 📚 **规则咨询** - 询问任何角色的技能和规则   | 📚 **Rules Help** - Ask about any role's skills and rules           |
+| 🎯 **策略建议** - 获取针对不同角色的打法建议 | 🎯 **Strategy Tips** - Get gameplay advice for different roles      |
 | 🔍 **技能对决** - 查询技能结算顺序和冲突规则 | 🔍 **Skill Conflicts** - Check skill resolution order and conflicts |
-| 💬 **自然对话** - 支持中英文自由提问 | 💬 **Natural Chat** - Ask freely in Chinese or English |
+| 💬 **自然对话** - 支持中英文自由提问         | 💬 **Natural Chat** - Ask freely in Chinese or English              |
 
 ### 使用示例 | Example Questions
 
-- "女巫的毒药和解药怎么用？" / *"How does the Witch use poison and antidote?"*
-- "守卫和女巫同守一人会怎样？" / *"What happens if Guard and Witch both protect the same player?"*
-- "狼美人的魅惑有什么用？" / *"What's the use of Wolf Queen's charm?"*
-- "第一晚预言家应该查谁？" / *"Who should the Seer check on Night-1?"*
+- "女巫的毒药和解药怎么用？" / _"How does the Witch use poison and antidote?"_
+- "守卫和女巫同守一人会怎样？" / _"What happens if Guard and Witch both protect the same player?"_
+- "狼美人的魅惑有什么用？" / _"What's the use of Wolf Queen's charm?"_
+- "第一晚预言家应该查谁？" / _"Who should the Seer check on Night-1?"_
 
 > 💡 点击悬浮按钮打开聊天，可拖动调整位置，聊天记录会自动保存。  
-> *Click the floating button to chat, drag to reposition, chat history auto-saves.*
+> _Click the floating button to chat, drag to reposition, chat history auto-saves._
 
 ---
 
@@ -80,40 +80,40 @@
 
 ### 神职阵营 | God Faction (11)
 
-| 中文 | English | 描述 Description |
-|------|---------|------------------|
-| 预言家 | Seer | 每晚查验一名玩家阵营<br/>*Check one player's faction each night* |
-| 女巫 | Witch | 一瓶解药一瓶毒药<br/>*One antidote and one poison* |
-| 猎人 | Hunter | 被狼杀时可开枪带人<br/>*Shoot when killed by wolves* |
-| 守卫 | Guard | 每晚守护一名玩家<br/>*Protect one player each night* |
-| 白痴 | Idiot | 被投票时翻牌免死<br/>*Reveal to survive vote exile* |
-| 骑士 | Knight | 白天可与人决斗<br/>*Duel during day* |
-| 魔术师 | Magician | 每晚交换两人号码牌<br/>*Swap two seats each night* |
-| 猎魔人 | Witcher | 第二晚起可狩猎玩家<br/>*Hunt players from Night-2* |
-| 通灵师 | Psychic | 每晚查验具体身份牌<br/>*Check exact role each night* |
-| 摄梦人 | Dreamcatcher | 每晚选择梦游者<br/>*Choose a sleepwalker each night* |
-| 守墓人 | Graveyard Keeper | 得知被放逐者阵营<br/>*Know exiled player's faction* |
+| 中文   | English          | 描述 Description                                                 |
+| ------ | ---------------- | ---------------------------------------------------------------- |
+| 预言家 | Seer             | 每晚查验一名玩家阵营<br/>_Check one player's faction each night_ |
+| 女巫   | Witch            | 一瓶解药一瓶毒药<br/>_One antidote and one poison_               |
+| 猎人   | Hunter           | 被狼杀时可开枪带人<br/>_Shoot when killed by wolves_             |
+| 守卫   | Guard            | 每晚守护一名玩家<br/>_Protect one player each night_             |
+| 白痴   | Idiot            | 被投票时翻牌免死<br/>_Reveal to survive vote exile_              |
+| 骑士   | Knight           | 白天可与人决斗<br/>_Duel during day_                             |
+| 魔术师 | Magician         | 每晚交换两人号码牌<br/>_Swap two seats each night_               |
+| 猎魔人 | Witcher          | 第二晚起可狩猎玩家<br/>_Hunt players from Night-2_               |
+| 通灵师 | Psychic          | 每晚查验具体身份牌<br/>_Check exact role each night_             |
+| 摄梦人 | Dreamcatcher     | 每晚选择梦游者<br/>_Choose a sleepwalker each night_             |
+| 守墓人 | Graveyard Keeper | 得知被放逐者阵营<br/>_Know exiled player's faction_              |
 
 ### 狼人阵营 | Wolf Faction (9)
 
-| 中文 | English | 描述 Description |
-|------|---------|------------------|
-| 狼人 | Werewolf | 每晚与队友共同猎杀<br/>*Hunt with teammates each night* |
-| 狼美人 | Wolf Queen | 狼刀后可魅惑一人<br/>*Charm one player after wolf kill* |
-| 白狼王 | Wolf King | 白天可自爆带人<br/>*Self-destruct to take someone* |
-| 黑狼王 | Dark Wolf King | 被刀杀时可开枪<br/>*Shoot when knife-killed* |
-| 梦魇 | Nightmare | 每晚恐惧一人使其失能<br/>*Block one player's skill each night* |
-| 石像鬼 | Gargoyle | 查验具体身份，不参与狼刀<br/>*Check exact role, no wolf vote* |
-| 血月使徒 | Blood Moon | 自爆后封印好人技能<br/>*Seal good skills after self-destruct* |
-| 机械狼 | Wolf Robot | 学习一人技能，隐身狼<br/>*Learn one skill, hidden wolf* |
-| 恶灵骑士 | Spirit Knight | 免疫夜间伤害，反伤神职<br/>*Immune to night damage, reflect to gods* |
+| 中文     | English        | 描述 Description                                                     |
+| -------- | -------------- | -------------------------------------------------------------------- |
+| 狼人     | Werewolf       | 每晚与队友共同猎杀<br/>_Hunt with teammates each night_              |
+| 狼美人   | Wolf Queen     | 狼刀后可魅惑一人<br/>_Charm one player after wolf kill_              |
+| 白狼王   | Wolf King      | 白天可自爆带人<br/>_Self-destruct to take someone_                   |
+| 黑狼王   | Dark Wolf King | 被刀杀时可开枪<br/>_Shoot when knife-killed_                         |
+| 梦魇     | Nightmare      | 每晚恐惧一人使其失能<br/>_Block one player's skill each night_       |
+| 石像鬼   | Gargoyle       | 查验具体身份，不参与狼刀<br/>_Check exact role, no wolf vote_        |
+| 血月使徒 | Blood Moon     | 自爆后封印好人技能<br/>_Seal good skills after self-destruct_        |
+| 机械狼   | Wolf Robot     | 学习一人技能，隐身狼<br/>_Learn one skill, hidden wolf_              |
+| 恶灵骑士 | Spirit Knight  | 免疫夜间伤害，反伤神职<br/>_Immune to night damage, reflect to gods_ |
 
 ### 其他阵营 | Other Factions (2)
 
-| 中文 | English | 描述 Description |
-|------|---------|------------------|
-| 普通村民 | Villager | 依靠推理投票<br/>*Rely on deduction and voting* |
-| 混子 | Slacker | 第一晚选择榜样，与其同阵营<br/>*Choose idol on Night-1, share their faction* |
+| 中文     | English  | 描述 Description                                                             |
+| -------- | -------- | ---------------------------------------------------------------------------- |
+| 普通村民 | Villager | 依靠推理投票<br/>_Rely on deduction and voting_                              |
+| 混子     | Slacker  | 第一晚选择榜样，与其同阵营<br/>_Choose idol on Night-1, share their faction_ |
 
 ---
 
@@ -121,12 +121,12 @@
 
 ### 核心原则 | Core Principles
 
-| 原则 | Principle |
-|------|-----------|
-| ✅ Host 是唯一游戏逻辑权威 | Host is the single authority for game logic |
-| ✅ Supabase 只负责传输/发现/身份 | Supabase handles transport/discovery/identity only |
+| 原则                               | Principle                                          |
+| ---------------------------------- | -------------------------------------------------- |
+| ✅ Host 是唯一游戏逻辑权威         | Host is the single authority for game logic        |
+| ✅ Supabase 只负责传输/发现/身份   | Supabase handles transport/discovery/identity only |
 | ✅ `BroadcastGameState` 是单一真相 | `BroadcastGameState` is the single source of truth |
-| ✅ UI 层按 `myRole` 过滤显示 | UI filters display based on `myRole` |
+| ✅ UI 层按 `myRole` 过滤显示       | UI filters display based on `myRole`               |
 
 ### 系统架构 | System Architecture
 
@@ -156,23 +156,23 @@ NIGHT_STEPS (步骤序列)                Step sequence
     nightSteps.ts                        (order & audio)
 ```
 
-| 层级 Layer | 职责 Responsibility | 文件 File |
-|------------|---------------------|-----------|
-| `ROLE_SPECS` | 角色固有属性（阵营、能力标志）<br/>*Role properties (faction, ability flags)* | `specs.ts` |
-| `SCHEMAS` | 行动输入协议（UI 提示、约束）<br/>*Action protocols (UI prompts, constraints)* | `schemas.ts` |
-| `NIGHT_STEPS` | 步骤序列（顺序、音频键）<br/>*Step sequence (order, audio keys)* | `nightSteps.ts` |
+| 层级 Layer    | 职责 Responsibility                                                            | 文件 File       |
+| ------------- | ------------------------------------------------------------------------------ | --------------- |
+| `ROLE_SPECS`  | 角色固有属性（阵营、能力标志）<br/>_Role properties (faction, ability flags)_  | `specs.ts`      |
+| `SCHEMAS`     | 行动输入协议（UI 提示、约束）<br/>_Action protocols (UI prompts, constraints)_ | `schemas.ts`    |
+| `NIGHT_STEPS` | 步骤序列（顺序、音频键）<br/>_Step sequence (order, audio keys)_               | `nightSteps.ts` |
 
 ---
 
 ## 🧪 测试覆盖 | Test Coverage
 
-| 类型 Type | 数量 Count | 说明 Description |
-|-----------|------------|------------------|
-| **Unit Tests** | 1922 | 134 test suites |
-| **UI Board Tests** | 10 boards | 覆盖所有预设板子<br/>*Cover all preset boards* |
-| **Integration Tests** | 25+ | 夜晚流程全链路<br/>*Full night flow chains* |
-| **Contract Tests** | 15+ | Schema/Resolver 对齐<br/>*Schema/Resolver alignment* |
-| **E2E Tests** | 3 | Playwright 端到端<br/>*Playwright end-to-end* |
+| 类型 Type             | 数量 Count | 说明 Description                                     |
+| --------------------- | ---------- | ---------------------------------------------------- |
+| **Unit Tests**        | 1922       | 134 test suites                                      |
+| **UI Board Tests**    | 10 boards  | 覆盖所有预设板子<br/>_Cover all preset boards_       |
+| **Integration Tests** | 25+        | 夜晚流程全链路<br/>_Full night flow chains_          |
+| **Contract Tests**    | 15+        | Schema/Resolver 对齐<br/>_Schema/Resolver alignment_ |
+| **E2E Tests**         | 3          | Playwright 端到端<br/>_Playwright end-to-end_        |
 
 ### 测试门禁 | Test Gates
 
@@ -273,25 +273,25 @@ vercel deploy dist --prod
 
 ## 📖 更多文档 | Documentation
 
-| 文档 Document | 说明 Description |
-|---------------|------------------|
-| [线下玩法 SOP](docs/offline-sop.md) | 完整的线下游戏流程指南<br/>*Complete offline game flow guide* |
-| [部署指南](docs/DEPLOYMENT.md) | Supabase + Vercel 完整部署流程<br/>*Full deployment with Supabase + Vercel* |
-| [角色对齐矩阵](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) | Night-1 角色/Schema/Resolver 对齐<br/>*Night-1 role/schema/resolver alignment* |
-| [服务设计](docs/services-design.md) | 服务层架构设计<br/>*Service layer architecture* |
+| 文档 Document                                        | 说明 Description                                                               |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [线下玩法 SOP](docs/offline-sop.md)                  | 完整的线下游戏流程指南<br/>_Complete offline game flow guide_                  |
+| [部署指南](docs/DEPLOYMENT.md)                       | Supabase + Vercel 完整部署流程<br/>_Full deployment with Supabase + Vercel_    |
+| [角色对齐矩阵](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) | Night-1 角色/Schema/Resolver 对齐<br/>_Night-1 role/schema/resolver alignment_ |
+| [服务设计](docs/services-design.md)                  | 服务层架构设计<br/>_Service layer architecture_                                |
 
 ---
 
 ## 📊 技术栈 | Tech Stack
 
-| 类别 Category | 技术 Technology |
-|---------------|-----------------|
-| **Frontend** | React Native + Expo |
-| **Language** | TypeScript 5.3 |
-| **Backend** | Supabase (Realtime, Auth) |
-| **Testing** | Jest + Testing Library + Playwright |
-| **Deployment** | Vercel (Web) |
-| **State** | Custom GameStateService (Host-only) |
+| 类别 Category  | 技术 Technology                     |
+| -------------- | ----------------------------------- |
+| **Frontend**   | React Native + Expo                 |
+| **Language**   | TypeScript 5.3                      |
+| **Backend**    | Supabase (Realtime, Auth)           |
+| **Testing**    | Jest + Testing Library + Playwright |
+| **Deployment** | Vercel (Web)                        |
+| **State**      | Custom GameStateService (Host-only) |
 
 ---
 

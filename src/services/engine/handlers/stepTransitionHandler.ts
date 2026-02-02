@@ -195,9 +195,10 @@ function findActionBySchemaId(
  * wire protocol: witch 的 save/poison 结果已经写入 currentNightResults.savedSeat / poisonedSeat
  * 这里直接从 currentNightResults 读取，不再依赖 ProtocolAction.targetSeat
  */
-function extractWitchAction(
-  currentNightResults?: { savedSeat?: number; poisonedSeat?: number },
-): WitchAction | undefined {
+function extractWitchAction(currentNightResults?: {
+  savedSeat?: number;
+  poisonedSeat?: number;
+}): WitchAction | undefined {
   const savedSeat = currentNightResults?.savedSeat;
   const poisonedSeat = currentNightResults?.poisonedSeat;
 
@@ -346,9 +347,7 @@ export function handleAdvanceNight(
 
   // 统一入口：如果即将进入 witchAction，设置 witchContext
   // Guard: nextStepId 必须存在（夜晚结束时为 undefined，不应设置 witchContext）
-  const witchContextAction = nextStepId
-    ? maybeCreateWitchContextAction(nextStepId, state)
-    : null;
+  const witchContextAction = nextStepId ? maybeCreateWitchContextAction(nextStepId, state) : null;
   if (witchContextAction) {
     actions.push(witchContextAction);
   }

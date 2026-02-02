@@ -117,7 +117,11 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   // Current copy in SCHEMAS.wolfRobotLearn.ui.hunterGate*: title is “技能状态”,
   // message contains “猎人” + “发动”.
   // Must be checked BEFORE confirmTrigger since both use “技能状态”.
-  { type: 'wolfRobotHunterStatus', match: (t, m) => t === '技能状态' && m.includes('学到') && m.includes('猎人') && m.includes('发动') },
+  {
+    type: 'wolfRobotHunterStatus',
+    match: (t, m) =>
+      t === '技能状态' && m.includes('学到') && m.includes('猎人') && m.includes('发动'),
+  },
   { type: 'wolfRobotReveal', match: (t) => t.includes('机械狼') || t.includes('你学习了') },
 
   // Magician
@@ -130,7 +134,7 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
     type: 'confirmTrigger',
     match: (t, m) =>
       t === '技能状态' &&
-  !m.includes('学到') &&
+      !m.includes('学到') &&
       // Some copy uses “不可以” instead of “不能”
       (m.includes('可以') || m.includes('不能') || m.includes('不可以')) &&
       m.includes('发动'),
@@ -151,12 +155,7 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
     type: 'actionConfirm',
     match: (t, m) => {
       // Has 确定/取消 buttons implied by confirm dialogs
-      return (
-        t.includes('确认') ||
-        t.includes('确定') ||
-        m.includes('是否') ||
-        m.includes('确定要')
-      );
+      return t.includes('确认') || t.includes('确定') || m.includes('是否') || m.includes('确定要');
     },
   },
 

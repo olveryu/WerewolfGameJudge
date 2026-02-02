@@ -42,9 +42,9 @@ describe('Night-1: step-level coverage (12p)', () => {
   it('should reach slackerChooseIdol / gargoyleCheck / psychicCheck steps', () => {
     const ctx = createHostGame(CUSTOM_ROLES);
 
-  // Theme assertion (not just deaths): include a real BroadcastGameState field assertion.
-  // Contract gate looks for patterns like `.actions??.` so we assert with optional chaining.
-  expect(ctx.getBroadcastState().actions?.length).toBeGreaterThanOrEqual(0);
+    // Theme assertion (not just deaths): include a real BroadcastGameState field assertion.
+    // Contract gate looks for patterns like `.actions??.` so we assert with optional chaining.
+    expect(ctx.getBroadcastState().actions?.length).toBeGreaterThanOrEqual(0);
 
     expect(
       executeStepsUntil(ctx, 'slackerChooseIdol', {

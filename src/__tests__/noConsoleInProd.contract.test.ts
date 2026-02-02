@@ -23,7 +23,11 @@ describe('No console.* in production code', () => {
 
       if (entry.isDirectory()) {
         // Skip test directories and node_modules
-        if (entry.name === '__tests__' || entry.name === 'node_modules' || entry.name === '__mocks__') {
+        if (
+          entry.name === '__tests__' ||
+          entry.name === 'node_modules' ||
+          entry.name === '__mocks__'
+        ) {
           continue;
         }
         results.push(...getAllProductionFiles(fullPath));

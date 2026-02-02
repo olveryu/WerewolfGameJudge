@@ -66,7 +66,6 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-
 const BOARD_NAME = '石像鬼守墓人12人';
 const _board = getBoardByName(BOARD_NAME)!;
 

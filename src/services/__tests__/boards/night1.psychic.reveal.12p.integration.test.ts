@@ -20,11 +20,7 @@
  * 架构：intents → handlers → reducer → BroadcastGameState
  */
 
-import {
-  createHostGame,
-  cleanupHostGame,
-  HostGameContext,
-} from './hostGameFactory';
+import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
 import { executeFullNight, executeStepsUntil, executeRemainingSteps } from './stepByStepRunner';
 import type { RoleId } from '../../../models/roles';
 

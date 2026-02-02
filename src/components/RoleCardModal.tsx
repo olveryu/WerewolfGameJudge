@@ -178,20 +178,12 @@ const RoleCardModalContent: React.FC<{ roleId: RoleId | null; onClose: () => voi
   });
 
   const frontAnimatedStyle = {
-    transform: [
-      { perspective: 1000 },
-      { rotateY: frontInterpolate },
-      { scale: scaleAnim },
-    ],
+    transform: [{ perspective: 1000 }, { rotateY: frontInterpolate }, { scale: scaleAnim }],
     opacity: Animated.multiply(frontOpacity, opacityAnim),
   };
 
   const backAnimatedStyle = {
-    transform: [
-      { perspective: 1000 },
-      { rotateY: backInterpolate },
-      { scale: scaleAnim },
-    ],
+    transform: [{ perspective: 1000 }, { rotateY: backInterpolate }, { scale: scaleAnim }],
     opacity: Animated.multiply(backOpacity, opacityAnim),
   };
 
@@ -210,7 +202,12 @@ const RoleCardModalContent: React.FC<{ roleId: RoleId | null; onClose: () => voi
 
           {/* 卡片正面（角色信息） */}
           <Animated.View
-            style={[styles.card, styles.cardFront, { borderColor: factionColor }, backAnimatedStyle]}
+            style={[
+              styles.card,
+              styles.cardFront,
+              { borderColor: factionColor },
+              backAnimatedStyle,
+            ]}
           >
             <View style={[styles.factionBadge, { backgroundColor: factionColor }]}>
               <Text style={styles.factionText}>{factionName}</Text>
@@ -224,7 +221,10 @@ const RoleCardModalContent: React.FC<{ roleId: RoleId | null; onClose: () => voi
             <Text style={styles.skillTitle}>技能介绍</Text>
             <Text style={styles.description}>{description}</Text>
 
-            <TouchableOpacity style={[styles.confirmButton, { backgroundColor: factionColor }]} onPress={handleClose}>
+            <TouchableOpacity
+              style={[styles.confirmButton, { backgroundColor: factionColor }]}
+              onPress={handleClose}
+            >
               <Text style={styles.confirmButtonText}>我知道了</Text>
             </TouchableOpacity>
           </Animated.View>
