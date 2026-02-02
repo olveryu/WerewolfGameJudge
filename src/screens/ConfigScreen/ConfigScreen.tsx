@@ -502,9 +502,7 @@ export const ConfigScreen: React.FC = () => {
           setSelection(applyPreset(state.templateRoles));
           // Sync selected template dropdown with current roles
           const matchedPreset = findMatchingPresetName(state.templateRoles);
-          if (matchedPreset) {
-            setSelectedTemplate(matchedPreset);
-          }
+          setSelectedTemplate(matchedPreset ?? '__custom__');
         }
         // Load role reveal animation setting
         if (state?.roleRevealAnimation) {
@@ -539,6 +537,8 @@ export const ConfigScreen: React.FC = () => {
 
   const toggleRole = useCallback((key: string) => {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
+    // When user manually changes roles, switch to "自定义"
+    setSelectedTemplate('__custom__');
   }, []);
 
   const handlePresetSelect = useCallback((presetName: string) => {
@@ -593,7 +593,10 @@ export const ConfigScreen: React.FC = () => {
 
   // Dropdown options
   const templateOptions: DropdownOption[] = useMemo(
-    () => PRESET_TEMPLATES.map((p) => ({ value: p.name, label: p.name })),
+    () => [
+      { value: '__custom__', label: '自定义' },
+      ...PRESET_TEMPLATES.map((p) => ({ value: p.name, label: p.name })),
+    ],
     [],
   );
 
@@ -609,7 +612,10 @@ export const ConfigScreen: React.FC = () => {
   const handleTemplateChange = useCallback(
     (templateName: string) => {
       setSelectedTemplate(templateName);
-      handlePresetSelect(templateName);
+      // Only apply preset if not selecting "自定义"
+      if (templateName !== '__custom__') {
+        handlePresetSelect(templateName);
+      }
     },
     [handlePresetSelect],
   );
