@@ -244,26 +244,27 @@ Policy 只接收一个最小的 `InteractionContext`（例如：roomStatus、isA
 
 ---
 
-### PR5：语义/命名/收尾清理（低风险）- 待完成
+### PR5：语义/命名/收尾清理（低风险）✅ 已完成
 
 #### 目标
 
 - 把遗留的命名/语义不清处收敛，删掉旧路径残留，提升可维护性。
 
-#### 改什么（可选）
+#### 已完成
 
-- 若 `handleLeaveRoom()` 实际是"展示确认弹窗"，可改名为 `showLeaveRoomDialog()`（或在 policy/result 层更名对齐）。
-- 清理不再使用的旧 handler / import / dead code。
+- ✅ 更新 `dispatchInteraction` 注释，补齐 `REVEAL_ACK` 和 `WOLF_ROBOT_HUNTER_STATUS_VIEWED`
+- ✅ 确认 `handleLeaveRoom` 命名准确（它确实"处理"离开，而不仅仅是"显示弹窗"）
+- ✅ 确认无 dead code 需要清理
 
-#### 测试门禁
+#### 测试门禁（已通过）
 
-- `npm run typecheck`
-- `npm test --silent`
+- ✅ `npm run typecheck`
+- ✅ `npm test -- --testPathPattern="RoomInteractionPolicy"` (38 passed)
 
 #### 验收标准
 
-- 没有行为改变（纯整理），测试全绿。
-- 文档与代码一致。
+- ✅ 没有行为改变（纯整理），测试全绿。
+- ✅ 文档与代码一致。
 
 ---
 
@@ -347,4 +348,5 @@ Policy 只接收一个最小的 `InteractionContext`（例如：roomStatus、isA
 | 2026-02-01 | PR2 完成：核心入口迁移（SEAT_TAP, BOTTOM_ACTION, VIEW_ROLE, LEAVE_ROOM） |
 | 2026-02-01 | PR3 完成：HOST_CONTROL 纳入 dispatchInteraction |
 | 2026-02-01 | PR4 基础设施完成：REVEAL_ACK, WOLF_ROBOT_HUNTER_STATUS_VIEWED 类型 + policy + dispatch 执行 |
+| 2026-02-01 | PR5 完成：语义/命名/收尾清理，更新 dispatchInteraction 注释 |
 

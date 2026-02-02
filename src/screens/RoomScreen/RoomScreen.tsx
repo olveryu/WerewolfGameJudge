@@ -1019,7 +1019,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
    * This is the single entry point for all user interactions.
    * It calls the pure policy function and executes the resulting instruction.
    *
-   * Integrated: SEAT_TAP, BOTTOM_ACTION, VIEW_ROLE, LEAVE_ROOM, HOST_CONTROL
+   * Integrated: SEAT_TAP, BOTTOM_ACTION, VIEW_ROLE, LEAVE_ROOM, HOST_CONTROL,
+   *             REVEAL_ACK, WOLF_ROBOT_HUNTER_STATUS_VIEWED
    */
   const dispatchInteraction = useCallback(
     (event: InteractionEvent) => {
