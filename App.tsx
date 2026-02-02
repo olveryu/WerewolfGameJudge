@@ -6,7 +6,7 @@ import { ThemeProvider, useTheme } from './src/theme';
 import { AlertModal } from './src/components/AlertModal';
 import { AIChatBubble } from './src/components/AIChatBubble/AIChatBubble';
 import { setAlertListener, AlertConfig } from './src/utils/alert';
-import { GameFacadeProvider, NetworkProvider } from './src/contexts';
+import { GameFacadeProvider, NetworkProvider, AuthProvider } from './src/contexts';
 import { GameFacade } from './src/services/facade/GameFacade';
 import { log } from './src/utils/logger';
 
@@ -53,11 +53,13 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <NetworkProvider>
-          <GameFacadeProvider facade={facade}>
-            <AppContent />
-          </GameFacadeProvider>
-        </NetworkProvider>
+        <AuthProvider>
+          <NetworkProvider>
+            <GameFacadeProvider facade={facade}>
+              <AppContent />
+            </GameFacadeProvider>
+          </NetworkProvider>
+        </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
