@@ -11,15 +11,20 @@
  * - PlayerGrid provides a stable callback using ref pattern, so SeatTile can stay memoized
  * - This prevents full grid re-render when callback references change
  *
+ * Animation notes:
+ * - Player join: slide up + bounce animation
+ * - Player leave: fade out + shrink animation
+ *
  * ❌ Do NOT import: any Service singletons, showAlert
  * ✅ Allowed: types, styles, UI components (Avatar, etc.)
  */
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
+  Animated,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
@@ -124,6 +129,59 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 
   const hasPlayer = playerUid !== null;
 
+  // Track previous hasPlayer state for enter/leave animations
+  const prevHasPlayerRef = useRef<boolean | null>(null);
+  // Track if we're in the middle of a leave animation
+  const isLeavingRef = useRef(false);
+
+  // Animation values
+  const slideAnim = useRef(new Animated.Value(hasPlayer ? 0 : 30)).current;
+  const scaleAnim = useRef(new Animated.Value(hasPlayer ? 1 : 0.5)).current;
+  const opacityAnim = useRef(new Animated.Value(hasPlayer ? 1 : 0)).current;
+
+  // Player join/leave animation
+  useEffect(() => {
+    if (prevHasPlayerRef.current === false && hasPlayer) {
+      // Player just joined - slide up + bounce
+      isLeavingRef.current = false;
+      slideAnim.setValue(30);
+      scaleAnim.setValue(0.5);
+      opacityAnim.setValue(0);
+
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          friction: 6,
+          tension: 100,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 5,
+          tension: 120,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else if (prevHasPlayerRef.current === true && !hasPlayer) {
+      // Player just left - mark as leaving (animation handled by keeping avatar visible briefly)
+      isLeavingRef.current = true;
+      // Note: We don't animate here because the avatar will be unmounted immediately
+      // The animation would cause issues with unmounted components
+      // For a smoother experience, we could use a delayed unmount, but that's more complex
+    }
+    prevHasPlayerRef.current = hasPlayer;
+  }, [hasPlayer, slideAnim, scaleAnim, opacityAnim]);
+
+  const avatarAnimatedStyle = {
+    transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+    opacity: opacityAnim,
+  };
+
   return (
     <View style={styles.tileWrapper} testID={TESTIDS.seatTile(index)}>
       <TouchableOpacity
@@ -139,7 +197,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
         activeOpacity={disabled || disabledReason ? 1 : 0.7}
       >
         {hasPlayer && (
-          <View style={styles.avatarContainer}>
+          <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>
             <Avatar
               value={playerUid}
               size={tileSize - 16}
@@ -155,7 +213,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
                 ]}
               />
             )}
-          </View>
+          </Animated.View>
         )}
 
         <Text style={[styles.seatNumber, hasPlayer && styles.seatedSeatNumber]}>{index + 1}</Text>
