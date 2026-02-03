@@ -2,6 +2,9 @@
  * Section - Memoized section container for role groups
  *
  * Performance: Receives pre-created styles from parent.
+ * Note: We use default shallow comparison which includes children.
+ * When children (RoleChips) change their props, React will create new
+ * React elements, causing children reference to change and Section to re-render.
  */
 import React, { memo } from 'react';
 import { View, Text } from 'react-native';
@@ -13,13 +16,6 @@ export interface SectionProps {
   styles: ConfigScreenStyles;
 }
 
-// Section is a container, children change often, so we use a simpler memo
-// that only compares title and styles reference
-const arePropsEqual = (prev: SectionProps, next: SectionProps): boolean => {
-  return prev.title === next.title && prev.styles === next.styles;
-  // children are complex and change when selection changes, so we let them re-render
-};
-
 export const Section = memo<SectionProps>(({ title, children, styles }) => {
   return (
     <View style={styles.section}>
@@ -27,6 +23,6 @@ export const Section = memo<SectionProps>(({ title, children, styles }) => {
       <View style={styles.chipContainer}>{children}</View>
     </View>
   );
-}, arePropsEqual);
+});
 
 Section.displayName = 'Section';
