@@ -9,13 +9,7 @@
  * - Dramatic heat distortion effect
  */
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import {
-  View,
-  Animated,
-  StyleSheet,
-  Dimensions,
-  Easing,
-} from 'react-native';
+import { View, Animated, StyleSheet, Dimensions, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors, borderRadius } from '../../../theme';
 import type { RoleRevealEffectProps } from '../types';
@@ -132,54 +126,57 @@ export const FireReveal: React.FC<RoleRevealEffectProps> = ({
   }, [cardWidth, cardHeight]);
 
   // Animate embers rising
-  const animateEmbers = useCallback((emberList: Ember[]) => {
-    emberList.forEach((ember, index) => {
-      const delay = index * 80;
-      const duration = 2000 + Math.random() * 1500;
-      const driftX = (Math.random() - 0.5) * 100;
+  const animateEmbers = useCallback(
+    (emberList: Ember[]) => {
+      emberList.forEach((ember, index) => {
+        const delay = index * 80;
+        const duration = 2000 + Math.random() * 1500;
+        const driftX = (Math.random() - 0.5) * 100;
 
-      Animated.sequence([
-        Animated.delay(delay),
-        Animated.parallel([
-          // Fade in
-          Animated.timing(ember.opacity, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: canUseNativeDriver,
-          }),
-          Animated.timing(ember.scale, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: canUseNativeDriver,
-          }),
-        ]),
-      ]).start();
-
-      // Float upward with drift
-      Animated.parallel([
-        Animated.timing(ember.y, {
-          toValue: -cardHeight,
-          duration: duration,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(ember.x, {
-          toValue: (ember.x as unknown as { _value: number })._value + driftX,
-          duration: duration,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: canUseNativeDriver,
-        }),
         Animated.sequence([
-          Animated.delay(duration * 0.7),
-          Animated.timing(ember.opacity, {
-            toValue: 0,
-            duration: duration * 0.3,
+          Animated.delay(delay),
+          Animated.parallel([
+            // Fade in
+            Animated.timing(ember.opacity, {
+              toValue: 1,
+              duration: 200,
+              useNativeDriver: canUseNativeDriver,
+            }),
+            Animated.timing(ember.scale, {
+              toValue: 1,
+              duration: 200,
+              useNativeDriver: canUseNativeDriver,
+            }),
+          ]),
+        ]).start();
+
+        // Float upward with drift
+        Animated.parallel([
+          Animated.timing(ember.y, {
+            toValue: -cardHeight,
+            duration: duration,
+            easing: Easing.out(Easing.cubic),
             useNativeDriver: canUseNativeDriver,
           }),
-        ]),
-      ]).start();
-    });
-  }, [cardHeight]);
+          Animated.timing(ember.x, {
+            toValue: (ember.x as unknown as { _value: number })._value + driftX,
+            duration: duration,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: canUseNativeDriver,
+          }),
+          Animated.sequence([
+            Animated.delay(duration * 0.7),
+            Animated.timing(ember.opacity, {
+              toValue: 0,
+              duration: duration * 0.3,
+              useNativeDriver: canUseNativeDriver,
+            }),
+          ]),
+        ]).start();
+      });
+    },
+    [cardHeight],
+  );
 
   // Animate flames
   const animateFlames = useCallback((flameList: Flame[]) => {
@@ -215,7 +212,7 @@ export const FireReveal: React.FC<RoleRevealEffectProps> = ({
             duration: 100 + Math.random() * 150,
             useNativeDriver: canUseNativeDriver,
           }),
-        ])
+        ]),
       ).start();
     });
   }, []);
@@ -399,11 +396,7 @@ export const FireReveal: React.FC<RoleRevealEffectProps> = ({
       >
         {/* Role card content */}
         <View style={[styles.cardContent, { borderRadius: borderRadius.medium }]}>
-          <RoleCardContent
-            roleId={role.id as RoleId}
-            width={cardWidth}
-            height={cardHeight}
-          />
+          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
         </View>
 
         {/* Darkness overlay with burn effect */}
@@ -449,7 +442,12 @@ export const FireReveal: React.FC<RoleRevealEffectProps> = ({
       </Animated.View>
 
       {/* Flames at bottom */}
-      <View style={[styles.flamesContainer, { width: cardWidth, bottom: '50%', marginBottom: -cardHeight / 2 }]}>
+      <View
+        style={[
+          styles.flamesContainer,
+          { width: cardWidth, bottom: '50%', marginBottom: -cardHeight / 2 },
+        ]}
+      >
         {flames.map((flame) => {
           const flameHeight = flame.height.interpolate({
             inputRange: [0, 1],
@@ -494,11 +492,7 @@ export const FireReveal: React.FC<RoleRevealEffectProps> = ({
               backgroundColor: ember.color,
               shadowColor: ember.color,
               opacity: ember.opacity,
-              transform: [
-                { translateX: ember.x },
-                { translateY: ember.y },
-                { scale: ember.scale },
-              ],
+              transform: [{ translateX: ember.x }, { translateY: ember.y }, { scale: ember.scale }],
             },
           ]}
         />

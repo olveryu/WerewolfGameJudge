@@ -42,10 +42,7 @@ export async function preloadSounds(): Promise<void> {
  *
  * @see https://github.com/example/issue/123 添加真正的 UI 音效文件后启用
  */
-export async function playSound(
-  _type: SoundType,
-  _volume?: number
-): Promise<void> {
+export async function playSound(_type: SoundType, _volume?: number): Promise<void> {
   // 禁用音效 - 避免错误使用游戏语音
   return;
 }
@@ -54,9 +51,7 @@ export async function playSound(
  * Create a rhythmic tick player for roulette
  * Returns a controller object for starting/stopping
  */
-export function createTickPlayer(
-  enabled: boolean
-): {
+export function createTickPlayer(enabled: boolean): {
   start: (intervalMs: number) => void;
   updateInterval: (intervalMs: number) => void;
   stop: () => void;

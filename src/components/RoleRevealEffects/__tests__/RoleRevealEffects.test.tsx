@@ -17,7 +17,7 @@ const mockWolfRole: RoleData = createRoleData(
   '狼人',
   'wolf',
   '🐺',
-  '每晚与狼队友共同选择一名玩家猎杀'
+  '每晚与狼队友共同选择一名玩家猎杀',
 );
 
 const mockGodRole: RoleData = createRoleData(
@@ -25,7 +25,7 @@ const mockGodRole: RoleData = createRoleData(
   '预言家',
   'god',
   '🔮',
-  '每晚可以查验一名玩家的身份'
+  '每晚可以查验一名玩家的身份',
 );
 
 const mockVillagerRole: RoleData = createRoleData(
@@ -33,7 +33,7 @@ const mockVillagerRole: RoleData = createRoleData(
   '普通村民',
   'villager',
   '👤',
-  '没有特殊能力'
+  '没有特殊能力',
 );
 
 describe('RoleRevealEffects', () => {
@@ -51,7 +51,7 @@ describe('RoleRevealEffects', () => {
           effectType="flip"
           role={mockWolfRole}
           onComplete={onComplete}
-        />
+        />,
       );
 
       expect(queryByTestId('role-reveal-modal')).toBeNull();
@@ -65,7 +65,7 @@ describe('RoleRevealEffects', () => {
           effectType="flip"
           role={mockWolfRole}
           onComplete={onComplete}
-        />
+        />,
       );
 
       expect(getByTestId('role-reveal-modal')).toBeTruthy();
@@ -80,7 +80,7 @@ describe('RoleRevealEffects', () => {
           role={mockGodRole}
           onComplete={onComplete}
           testIDPrefix="flip-reveal"
-        />
+        />,
       );
 
       expect(getByTestId('flip-reveal-container')).toBeTruthy();
@@ -95,7 +95,7 @@ describe('RoleRevealEffects', () => {
           role={mockVillagerRole}
           onComplete={onComplete}
           testIDPrefix="scratch-reveal"
-        />
+        />,
       );
 
       expect(getByTestId('scratch-reveal-container')).toBeTruthy();
@@ -110,7 +110,7 @@ describe('RoleRevealEffects', () => {
           role={mockWolfRole}
           onComplete={onComplete}
           testIDPrefix="tarot-draw"
-        />
+        />,
       );
 
       expect(getByTestId('tarot-draw-container')).toBeTruthy();
@@ -125,7 +125,7 @@ describe('RoleRevealEffects', () => {
           role={mockGodRole}
           onComplete={onComplete}
           testIDPrefix="fire-reveal"
-        />
+        />,
       );
 
       expect(getByTestId('fire-reveal-container')).toBeTruthy();
@@ -143,7 +143,7 @@ describe('RoleRevealEffects', () => {
           allRoles={allRoles}
           onComplete={onComplete}
           testIDPrefix="enhanced-roulette"
-        />
+        />,
       );
 
       expect(getByTestId('enhanced-roulette-container')).toBeTruthy();
@@ -154,11 +154,7 @@ describe('RoleRevealEffects', () => {
     it('renders flip container', () => {
       const onComplete = jest.fn();
       const { getByTestId } = render(
-        <FlipReveal
-          role={mockWolfRole}
-          onComplete={onComplete}
-          testIDPrefix="flip-reveal"
-        />
+        <FlipReveal role={mockWolfRole} onComplete={onComplete} testIDPrefix="flip-reveal" />,
       );
 
       expect(getByTestId('flip-reveal-container')).toBeTruthy();
@@ -173,7 +169,7 @@ describe('RoleRevealEffects', () => {
           onComplete={onComplete}
           reducedMotion={true}
           testIDPrefix="flip-reveal"
-        />
+        />,
       );
 
       // Fast-forward through the reduced motion animation
@@ -194,7 +190,7 @@ describe('RoleRevealEffects', () => {
           onComplete={onComplete}
           reducedMotion={true}
           testIDPrefix="flip-reveal"
-        />
+        />,
       );
 
       // The role name should be visible
@@ -210,7 +206,7 @@ describe('RoleRevealEffects', () => {
           role={mockVillagerRole}
           onComplete={onComplete}
           testIDPrefix="scratch-reveal"
-        />
+        />,
       );
 
       expect(getByTestId('scratch-reveal-container')).toBeTruthy();
@@ -219,11 +215,7 @@ describe('RoleRevealEffects', () => {
     it('auto-reveals when scratch threshold is reached', async () => {
       const onComplete = jest.fn();
       render(
-        <ScratchReveal
-          role={mockWolfRole}
-          onComplete={onComplete}
-          testIDPrefix="scratch-reveal"
-        />
+        <ScratchReveal role={mockWolfRole} onComplete={onComplete} testIDPrefix="scratch-reveal" />,
       );
 
       // Auto-reveal happens when scratch progress reaches threshold (simulated by timer)
@@ -245,7 +237,7 @@ describe('RoleRevealEffects', () => {
           onComplete={onComplete}
           reducedMotion={true}
           testIDPrefix="scratch-reveal"
-        />
+        />,
       );
 
       // In reduced motion, there should be a tap overlay
@@ -263,7 +255,7 @@ describe('RoleRevealEffects', () => {
           onComplete={onComplete}
           reducedMotion={true}
           testIDPrefix="scratch-reveal"
-        />
+        />,
       );
 
       // In reduced motion, user needs to tap the button to reveal
@@ -319,7 +311,7 @@ describe('RoleRevealEffects', () => {
           onComplete={onComplete}
           reducedMotion={true}
           testIDPrefix="flip-reveal"
-        />
+        />,
       );
 
       // Container should render
@@ -334,7 +326,7 @@ describe('RoleRevealEffects', () => {
           onComplete={onComplete}
           reducedMotion={true}
           testIDPrefix="flip-reveal"
-        />
+        />,
       );
 
       expect(getByTestId('flip-reveal-container')).toBeTruthy();
@@ -348,7 +340,7 @@ describe('RoleRevealEffects', () => {
           onComplete={onComplete}
           reducedMotion={true}
           testIDPrefix="flip-reveal"
-        />
+        />,
       );
 
       expect(getByTestId('flip-reveal-container')).toBeTruthy();
@@ -364,7 +356,7 @@ describe('RoleRevealEffects', () => {
           onComplete={onComplete}
           reducedMotion={true}
           testIDPrefix="flip-reveal"
-        />
+        />,
       );
 
       // Particle burst should not be rendered in reduced motion
@@ -382,7 +374,7 @@ describe('RoleRevealEffects', () => {
           enableSound={true}
           enableHaptics={true}
           testIDPrefix="flip-reveal"
-        />
+        />,
       );
 
       // Fast-forward through the reduced motion animation
@@ -404,7 +396,7 @@ describe('RoleRevealEffects', () => {
           onComplete={onComplete}
           reducedMotion={true}
           testIDPrefix="scratch-reveal"
-        />
+        />,
       );
 
       // Should show "tap to reveal" instruction

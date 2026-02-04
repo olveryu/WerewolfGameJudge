@@ -43,8 +43,8 @@ export const ParticleBurst: React.FC<ParticleBurstProps> = ({
 }) => {
   const [particles] = React.useState<ParticleWithId[]>(() =>
     generateBurstParticles(count, centerX, centerY, radius, color, sizeRange, durationRange).map(
-      (p, i) => ({ ...p, id: `particle-${i}-${Date.now()}` })
-    )
+      (p, i) => ({ ...p, id: `particle-${i}-${Date.now()}` }),
+    ),
   );
 
   const completedCount = React.useRef(0);
@@ -61,11 +61,7 @@ export const ParticleBurst: React.FC<ParticleBurstProps> = ({
   return (
     <View style={styles.container} pointerEvents="none">
       {particles.map((props) => (
-        <Particle
-          key={props.id}
-          {...props}
-          onComplete={handleParticleComplete}
-        />
+        <Particle key={props.id} {...props} onComplete={handleParticleComplete} />
       ))}
     </View>
   );

@@ -26,10 +26,7 @@
  */
 
 // Main animator component
-export {
-  RoleRevealAnimator,
-  createRoleData,
-} from './RoleRevealAnimator';
+export { RoleRevealAnimator, createRoleData } from './RoleRevealAnimator';
 
 // Individual effect components (for advanced usage)
 export { EnhancedRoulette, type EnhancedRouletteProps } from './EnhancedRoulette';
@@ -54,18 +51,9 @@ export { ALIGNMENT_THEMES } from './types';
 export { CONFIG } from './config';
 
 // Utilities (for advanced usage)
-export {
-  playSound,
-  createTickPlayer,
-  cleanupSounds,
-  type SoundType,
-} from './utils/sound';
+export { playSound, createTickPlayer, cleanupSounds, type SoundType } from './utils/sound';
 
-export {
-  triggerHaptic,
-  triggerHapticSequence,
-  type HapticStyle,
-} from './utils/haptics';
+export { triggerHaptic, triggerHapticSequence, type HapticStyle } from './utils/haptics';
 
 export {
   canUseNativeDriver,

@@ -83,10 +83,7 @@ export const ShineEffect: React.FC<ShineEffectProps> = ({
           {
             height,
             opacity,
-            transform: [
-              { translateX },
-              { rotate: '-20deg' },
-            ],
+            transform: [{ translateX }, { rotate: '-20deg' }],
             backgroundColor: color,
           },
         ]}

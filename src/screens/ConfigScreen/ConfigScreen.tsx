@@ -126,8 +126,7 @@ export const ConfigScreen: React.FC = () => {
   const [selection, setSelection] = useState(getInitialSelection);
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
-  const [roleRevealAnimation, setRoleRevealAnimation] =
-    useState<RoleRevealAnimation>('random');
+  const [roleRevealAnimation, setRoleRevealAnimation] = useState<RoleRevealAnimation>('random');
   const [selectedTemplate, setSelectedTemplate] = useState(PRESET_TEMPLATES[0]?.name ?? '');
   const [bgmEnabled, setBgmEnabled] = useState(true);
 

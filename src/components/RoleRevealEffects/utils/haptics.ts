@@ -23,16 +23,20 @@ async function loadHaptics(): Promise<typeof import('expo-haptics') | null> {
 /**
  * Haptic feedback styles
  */
-export type HapticStyle = 'light' | 'medium' | 'heavy' | 'selection' | 'success' | 'warning' | 'error';
+export type HapticStyle =
+  | 'light'
+  | 'medium'
+  | 'heavy'
+  | 'selection'
+  | 'success'
+  | 'warning'
+  | 'error';
 
 /**
  * Trigger haptic feedback
  * Silently fails on platforms without haptic support
  */
-export async function triggerHaptic(
-  style: HapticStyle,
-  enabled: boolean = true
-): Promise<void> {
+export async function triggerHaptic(style: HapticStyle, enabled: boolean = true): Promise<void> {
   if (!enabled) return;
   if (!canUseHaptics()) return;
 
@@ -74,7 +78,7 @@ export async function triggerHaptic(
 export async function triggerHapticSequence(
   styles: HapticStyle[],
   intervalMs: number = 100,
-  enabled: boolean = true
+  enabled: boolean = true,
 ): Promise<void> {
   if (!enabled) return;
 

@@ -46,7 +46,7 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
 
     const subscription = AccessibilityInfo.addEventListener(
       'reduceMotionChanged',
-      setSystemReducedMotion
+      setSystemReducedMotion,
     );
 
     return () => {
@@ -99,9 +99,7 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
       statusBarTranslucent
       testID={`${testIDPrefix}-modal`}
     >
-      <View style={[styles.container, { backgroundColor: colors.overlay }]}>
-        {renderEffect()}
-      </View>
+      <View style={[styles.container, { backgroundColor: colors.overlay }]}>{renderEffect()}</View>
     </Modal>
   );
 };
@@ -114,7 +112,7 @@ export function createRoleData(
   name: string,
   alignment: 'wolf' | 'god' | 'villager',
   avatar?: string,
-  description?: string
+  description?: string,
 ): RoleData {
   return { id, name, alignment, avatar, description };
 }

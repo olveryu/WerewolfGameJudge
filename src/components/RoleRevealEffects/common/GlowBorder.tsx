@@ -84,7 +84,7 @@ export const GlowBorder: React.FC<GlowBorderProps> = ({
               useNativeDriver: canUseNativeDriver,
             }),
           ]),
-        ])
+        ]),
       );
     }
 

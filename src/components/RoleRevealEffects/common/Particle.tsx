@@ -127,7 +127,7 @@ export function generateBurstParticles(
   radius: number,
   color: string,
   sizeRange: [number, number] = [4, 8],
-  durationRange: [number, number] = [600, 1000]
+  durationRange: [number, number] = [600, 1000],
 ): ParticleProps[] {
   const particles: ParticleProps[] = [];
 
@@ -135,8 +135,7 @@ export function generateBurstParticles(
     const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
     const distance = radius * (0.6 + Math.random() * 0.4);
     const size = sizeRange[0] + Math.random() * (sizeRange[1] - sizeRange[0]);
-    const duration =
-      durationRange[0] + Math.random() * (durationRange[1] - durationRange[0]);
+    const duration = durationRange[0] + Math.random() * (durationRange[1] - durationRange[0]);
 
     particles.push({
       startX: centerX,

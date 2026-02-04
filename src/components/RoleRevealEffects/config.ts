@@ -95,6 +95,8 @@ export const CONFIG = {
   // Tarot Draw
   // =====================================================
   tarot: {
+    /** Duration for shuffle animation before drawing (ms) */
+    shuffleDuration: 2000,
     /** Duration for card to float up from deck (ms) */
     floatUpDuration: 800,
     /** Duration for card to hover before flip (ms) */

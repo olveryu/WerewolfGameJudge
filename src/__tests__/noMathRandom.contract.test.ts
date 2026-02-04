@@ -66,7 +66,7 @@ describe('Math.random() 禁止规则', () => {
               pattern
                 .replaceAll('**', '.*')
                 .replaceAll('*', '[^/]*')
-                .replaceAll('.', String.raw`\.`)
+                .replaceAll('.', String.raw`\.`),
             );
             return regex.test(relativePath) || regex.test(file);
           }
@@ -98,9 +98,7 @@ describe('Math.random() 禁止规则', () => {
     }
 
     if (violations.length > 0) {
-      const report = violations
-        .map((v) => `  ${v.file}:${v.line}\n    ${v.content}`)
-        .join('\n\n');
+      const report = violations.map((v) => `  ${v.file}:${v.line}\n    ${v.content}`).join('\n\n');
 
       fail(
         `发现 ${violations.length} 处禁止使用 Math.random() 的代码:\n\n${report}\n\n` +
@@ -108,7 +106,7 @@ describe('Math.random() 禁止规则', () => {
           `- ID/nonce 生成 → import { randomHex } from '@/utils/id'\n` +
           `- 可测试随机 → import { secureRng, randomIntInclusive } from '@/utils/random'\n` +
           `- 跨客户端一致 → Host 解析并通过 BroadcastGameState 广播\n` +
-          `- 详见 docs/random-and-id-guidelines.md`
+          `- 详见 docs/random-and-id-guidelines.md`,
       );
     }
   });

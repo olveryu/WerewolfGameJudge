@@ -40,12 +40,7 @@ export type ResolvedRoleRevealAnimation =
 /**
  * 可随机选择的动画类型（不含 none 和 random）
  */
-export type RandomizableAnimation =
-  | 'roulette'
-  | 'flip'
-  | 'scratch'
-  | 'tarot'
-  | 'fire';
+export type RandomizableAnimation = 'roulette' | 'flip' | 'scratch' | 'tarot' | 'fire';
 
 /**
  * 可随机选择的动画数组（用于 random 解析）

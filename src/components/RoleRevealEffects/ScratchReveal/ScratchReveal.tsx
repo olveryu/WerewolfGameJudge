@@ -111,7 +111,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: canUseNativeDriver,
         }),
-      ])
+      ]),
     );
     animation.start();
 
@@ -121,7 +121,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   // Calculate scratch progress based on scratched area
   const calculateProgress = useCallback(() => {
     const brushArea = Math.PI * brushRadius * brushRadius;
-    // Overlap factor: points are close together when scratching, 
+    // Overlap factor: points are close together when scratching,
     // so actual revealed area is much smaller than brush count × brush area
     // Using 0.15 to account for ~85% overlap between consecutive scratch points
     const estimatedArea = scratchedAreaRef.current * brushArea * 0.15;
@@ -271,7 +271,15 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
         triggerReveal();
       }
     },
-    [isRevealed, calculateProgress, config.autoRevealThreshold, triggerReveal, createShaving, enableHaptics, progressWidth]
+    [
+      isRevealed,
+      calculateProgress,
+      config.autoRevealThreshold,
+      triggerReveal,
+      createShaving,
+      enableHaptics,
+      progressWidth,
+    ],
   );
 
   // Refs for PanResponder
@@ -294,10 +302,8 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () =>
-          !reducedMotionRef.current && !isRevealedRef.current,
-        onMoveShouldSetPanResponder: () =>
-          !reducedMotionRef.current && !isRevealedRef.current,
+        onStartShouldSetPanResponder: () => !reducedMotionRef.current && !isRevealedRef.current,
+        onMoveShouldSetPanResponder: () => !reducedMotionRef.current && !isRevealedRef.current,
         onPanResponderGrant: (evt) => {
           const { locationX, locationY } = evt.nativeEvent;
           addScratchPointRef.current(locationX, locationY);
@@ -307,7 +313,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
           addScratchPointRef.current(locationX, locationY);
         },
       }),
-    []
+    [],
   );
 
   // Reduced motion: tap to reveal
@@ -362,11 +368,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       >
         {/* Role card underneath */}
         <View style={styles.roleCardLayer}>
-          <RoleCardContent
-            roleId={role.id as RoleId}
-            width={cardWidth}
-            height={cardHeight}
-          />
+          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
         </View>
 
         {/* Scratch overlay layer */}
@@ -384,7 +386,11 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
           >
             {/* Metallic base layer */}
             <LinearGradient
-              colors={[SCRATCH_COLORS.metalLight, SCRATCH_COLORS.metalBase, SCRATCH_COLORS.metalDark]}
+              colors={[
+                SCRATCH_COLORS.metalLight,
+                SCRATCH_COLORS.metalBase,
+                SCRATCH_COLORS.metalDark,
+              ]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}

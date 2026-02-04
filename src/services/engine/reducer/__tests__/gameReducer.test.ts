@@ -938,9 +938,7 @@ describe('gameReducer', () => {
       const newState2 = gameReducer(state2, action);
 
       // 同一 roomCode + nonce → 同一解析结果
-      expect(newState1.resolvedRoleRevealAnimation).toBe(
-        newState2.resolvedRoleRevealAnimation,
-      );
+      expect(newState1.resolvedRoleRevealAnimation).toBe(newState2.resolvedRoleRevealAnimation);
     });
 
     it('should produce different results for different roomCodes', () => {
