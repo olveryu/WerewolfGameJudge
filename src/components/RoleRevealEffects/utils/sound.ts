@@ -4,7 +4,6 @@
  * Handles audio playback with graceful degradation.
  */
 import { createAudioPlayer } from 'expo-audio';
-import { CONFIG } from '../config';
 
 // Audio player cache
 interface AudioCache {
@@ -49,22 +48,6 @@ export async function playSound(
 ): Promise<void> {
   // 禁用音效 - 避免错误使用游戏语音
   return;
-}
-
-/**
- * Get volume for a sound type from config
- */
-function getSoundVolume(type: SoundType): number {
-  switch (type) {
-    case 'tick':
-      return CONFIG.sound.tickVolume;
-    case 'confirm':
-      return CONFIG.sound.confirmVolume;
-    case 'whoosh':
-      return CONFIG.sound.whooshVolume;
-    default:
-      return 0.5;
-  }
 }
 
 /**
