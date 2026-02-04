@@ -33,6 +33,8 @@ module.exports = {
       'warn',
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
     ],
+    // Detect unused private class members (methods, properties)
+    'no-unused-private-class-members': 'warn',
     '@typescript-eslint/no-require-imports': 'off', // Expo assets require require()
     'react/react-in-jsx-scope': 'off', // Not needed in React 17+
     'react/prop-types': 'off', // Using TypeScript

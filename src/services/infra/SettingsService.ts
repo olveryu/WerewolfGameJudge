@@ -75,30 +75,6 @@ class SettingsService {
   }
 
   /**
-   * Check if a string is a valid theme key.
-   */
-  private isValidThemeKey(key: string): key is ThemeKey {
-    return ['light', 'minimal', 'dark', 'midnight', 'blood', 'discord', 'forest', 'snow'].includes(
-      key,
-    );
-  }
-
-  /**
-   * Check if a string is a valid role reveal animation.
-   */
-  private isValidRoleRevealAnimation(anim: string): anim is RoleRevealAnimation {
-    return [
-      'roulette',
-      'flip',
-      'scratch',
-      'tarot',
-      'fire',
-      'none',
-      'random',
-    ].includes(anim);
-  }
-
-  /**
    * Save current settings to storage.
    */
   private async save(): Promise<void> {

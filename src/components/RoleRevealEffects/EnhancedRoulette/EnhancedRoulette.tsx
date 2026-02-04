@@ -84,7 +84,6 @@ interface Particle {
 }
 
 const CELEBRATION_EMOJIS = ['⭐', '✨', '🎉', '🎊', '💫', '🌟'];
-const CELEBRATION_COLORS = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
 
 export interface EnhancedRouletteProps extends RoleRevealEffectProps {
   /** All roles to show in the roulette */
