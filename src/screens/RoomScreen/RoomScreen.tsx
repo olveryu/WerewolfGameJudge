@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { GameStatus, getWolfVoteSummary, getPlayersNotViewedRole } from '../../models/Room';
-import { buildNightPlan, getRoleDisplayName } from '../../models/roles';
+import { buildNightPlan, getRoleDisplayName, getRoleSpec, Faction } from '../../models/roles';
 import { showAlert } from '../../utils/alert';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
@@ -44,9 +44,13 @@ import { roomScreenLog } from '../../utils/logger';
 import type { ActionSchema, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
 import { SCHEMAS, isValidSchemaId, BLOCKED_UI_DEFAULTS } from '../../models/roles/spec';
 import { LoadingScreen } from '../../components/LoadingScreen';
-import { RoleCardModal } from '../../components/RoleCardModal';
-import { RoleRouletteModal } from '../../components/RoleRouletteModal';
 import { RoleCardSimple } from '../../components/RoleCardSimple';
+import {
+  RoleRevealAnimator,
+  createRoleData,
+  type RoleData,
+  type RevealEffectType,
+} from '../../components/RoleRevealEffects';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -1381,19 +1385,41 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onCancel={handleCancelSeat}
       />
 
-      {/* Role Card Modal - 根据设置选择动画方式 */}
-      {roleRevealAnimation === 'roulette' && (
-        <RoleRouletteModal
-          visible={roleCardVisible}
-          roleId={myRole}
-          allRoles={gameState?.template?.roles ?? template?.roles ?? []}
-          onClose={handleRoleCardClose}
-        />
-      )}
-
-      {roleRevealAnimation === 'flip' && (
-        <RoleCardModal visible={roleCardVisible} roleId={myRole} onClose={handleRoleCardClose} />
-      )}
+      {/* Role Card Modal - 统一使用 RoleRevealAnimator */}
+      {roleRevealAnimation !== 'none' && roleCardVisible && myRole && (() => {
+        const roleSpec = getRoleSpec(myRole);
+        const alignmentMap: Record<string, 'wolf' | 'god' | 'villager'> = {
+          [Faction.Wolf]: 'wolf',
+          [Faction.God]: 'god',
+          [Faction.Villager]: 'villager',
+          [Faction.Special]: 'villager', // Special 归类为 villager
+        };
+        const myRoleData: RoleData = createRoleData(
+          myRole,
+          getRoleDisplayName(myRole),
+          alignmentMap[roleSpec.faction] ?? 'villager'
+        );
+        const allRoles = gameState?.template?.roles ?? template?.roles ?? [];
+        const allRolesData: RoleData[] = allRoles.map((roleId) => {
+          const spec = getRoleSpec(roleId);
+          return createRoleData(
+            roleId,
+            getRoleDisplayName(roleId),
+            alignmentMap[spec.faction] ?? 'villager'
+          );
+        });
+        // roleRevealAnimation 直接作为 effectType（类型已扩展支持所有效果）
+        const effectType: RevealEffectType = roleRevealAnimation as RevealEffectType;
+        return (
+          <RoleRevealAnimator
+            visible={roleCardVisible}
+            role={myRoleData}
+            effectType={effectType}
+            allRoles={allRolesData}
+            onComplete={handleRoleCardClose}
+          />
+        );
+      })()}
 
       {roleRevealAnimation === 'none' && (
         <RoleCardSimple visible={roleCardVisible} roleId={myRole} onClose={handleRoleCardClose} />

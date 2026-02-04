@@ -8,6 +8,7 @@
 import type { BroadcastGameState } from '../protocol/types';
 import type { GameTemplate } from '../../models/Template';
 import type { RoleId } from '../../models/roles';
+import type { RoleRevealAnimation } from './RoleRevealAnimation';
 
 export type StateListener = (state: BroadcastGameState | null) => void;
 
@@ -128,7 +129,7 @@ export interface IGameFacade {
    * 设置开牌动画（Host only）
    */
   setRoleRevealAnimation(
-    animation: 'roulette' | 'flip' | 'none',
+    animation: RoleRevealAnimation,
   ): Promise<{ success: boolean; reason?: string }>;
 
   /**

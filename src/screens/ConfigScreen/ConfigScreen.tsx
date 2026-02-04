@@ -28,6 +28,7 @@ import { configLog } from '../../utils/logger';
 import { LoadingScreen } from '../../components/LoadingScreen';
 import { generateRoomCode } from '../../utils/roomCode';
 import SettingsService from '../../services/infra/SettingsService';
+import type { RoleRevealAnimation } from '../../services/types/RoleRevealAnimation';
 import {
   RoleChip,
   Section,
@@ -125,9 +126,8 @@ export const ConfigScreen: React.FC = () => {
   const [selection, setSelection] = useState(getInitialSelection);
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
-  const [roleRevealAnimation, setRoleRevealAnimation] = useState<'roulette' | 'flip' | 'none'>(
-    'roulette',
-  );
+  const [roleRevealAnimation, setRoleRevealAnimation] =
+    useState<RoleRevealAnimation>('roulette');
   const [selectedTemplate, setSelectedTemplate] = useState(PRESET_TEMPLATES[0]?.name ?? '');
   const [bgmEnabled, setBgmEnabled] = useState(true);
 
@@ -282,11 +282,15 @@ export const ConfigScreen: React.FC = () => {
     [],
   );
 
+  // 5 种动画 + 无动画
   const animationOptions: DropdownOption[] = useMemo(
     () => [
       { value: 'roulette', label: '🎰 轮盘' },
       { value: 'flip', label: '🃏 翻牌' },
-      { value: 'none', label: '⚡ 无' },
+      { value: 'scratch', label: '🎫 刮刮卡' },
+      { value: 'fragment', label: '💥 碎片' },
+      { value: 'fog', label: '🌫️ 迷雾' },
+      { value: 'none', label: '⚡ 无动画' },
     ],
     [],
   );
@@ -310,7 +314,7 @@ export const ConfigScreen: React.FC = () => {
   );
 
   const handleAnimationChange = useCallback((v: string) => {
-    setRoleRevealAnimation(v as 'roulette' | 'flip' | 'none');
+    setRoleRevealAnimation(v as RoleRevealAnimation);
   }, []);
 
   const handleBgmChange = useCallback((v: string) => {

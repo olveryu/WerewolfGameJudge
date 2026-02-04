@@ -6,6 +6,7 @@
  */
 
 import type { RoleId } from '../../../models/roles';
+import type { RoleRevealAnimation } from '../../types/RoleRevealAnimation';
 
 // =============================================================================
 // 座位相关 Intent
@@ -80,7 +81,7 @@ export interface UpdateTemplateIntent {
  */
 export interface SetRoleRevealAnimationIntent {
   type: 'SET_ROLE_REVEAL_ANIMATION';
-  animation: 'roulette' | 'flip' | 'none';
+  animation: RoleRevealAnimation;
 }
 
 // =============================================================================

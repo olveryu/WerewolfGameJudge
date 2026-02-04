@@ -8,6 +8,7 @@ import type { RoleId } from '../../../models/roles';
 import type { SchemaId } from '../../../models/roles/spec';
 import type { BroadcastPlayer, ProtocolAction } from '../../protocol/types';
 import type { CurrentNightResults } from '../../night/resolvers/types';
+import type { RoleRevealAnimation } from '../../types/RoleRevealAnimation';
 
 // =============================================================================
 // 游戏生命周期动作
@@ -35,7 +36,7 @@ export interface UpdateTemplateAction {
 
 export interface SetRoleRevealAnimationAction {
   type: 'SET_ROLE_REVEAL_ANIMATION';
-  animation: 'roulette' | 'flip' | 'none';
+  animation: RoleRevealAnimation;
 }
 
 // =============================================================================
