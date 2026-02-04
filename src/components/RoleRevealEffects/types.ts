@@ -28,12 +28,7 @@ export interface RoleData {
 /**
  * Available reveal effect types
  */
-export type RevealEffectType =
-  | 'roulette'
-  | 'flip'
-  | 'scratch'
-  | 'tarot'
-  | 'fire';
+export type RevealEffectType = 'roulette' | 'flip' | 'scratch' | 'tarot' | 'fire';
 
 /**
  * Common props for all reveal effect components

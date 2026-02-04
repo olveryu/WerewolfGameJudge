@@ -81,41 +81,23 @@ export const RoleCard: React.FC<RoleCardProps> = ({
       ]}
     >
       {/* Avatar/Icon */}
-      <View
-        style={[
-          styles.avatarContainer,
-          { backgroundColor: theme.gradientColors[0] },
-        ]}
-      >
+      <View style={[styles.avatarContainer, { backgroundColor: theme.gradientColors[0] }]}>
         <Text style={styles.avatar}>{role.avatar || '❓'}</Text>
       </View>
 
       {/* Role Name */}
-      <Text
-        style={[styles.roleName, { color: theme.primaryColor }]}
-        numberOfLines={1}
-      >
+      <Text style={[styles.roleName, { color: theme.primaryColor }]} numberOfLines={1}>
         {role.name}
       </Text>
 
       {/* Alignment Badge */}
-      <View
-        style={[
-          styles.alignmentBadge,
-          { backgroundColor: theme.primaryColor },
-        ]}
-      >
-        <Text style={styles.alignmentText}>
-          {getAlignmentLabel(role.alignment)}
-        </Text>
+      <View style={[styles.alignmentBadge, { backgroundColor: theme.primaryColor }]}>
+        <Text style={styles.alignmentText}>{getAlignmentLabel(role.alignment)}</Text>
       </View>
 
       {/* Description */}
       {role.description && (
-        <Text
-          style={[styles.description, { color: colors.textSecondary }]}
-          numberOfLines={3}
-        >
+        <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={3}>
           {role.description}
         </Text>
       )}

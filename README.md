@@ -183,13 +183,13 @@ _5 visual effect animations when revealing roles, enhancing game experience!_
 
 ### 特效类型 | Effect Types
 
-| 类型 Type        | 描述 Description                                                       |
-| ---------------- | ---------------------------------------------------------------------- |
-| 🎰 **轮盘** roulette | 老虎机滚动效果<br/>_Slot machine spinning effect_                      |
-| 🃏 **翻牌** flip     | 3D 卡牌翻转动画<br/>_3D card flip animation_                           |
-| ✨ **刮刮卡** scratch | 手指刮开揭示身份<br/>_Scratch to reveal with finger_                   |
-| 🧩 **碎片** fragment | 碎片从四周飞入拼合<br/>_Fragments fly in and assemble_                 |
-| 🌫️ **迷雾** fog     | 迷雾散开揭示卡牌<br/>_Fog disperses to reveal card_                   |
+| 类型 Type             | 描述 Description                                       |
+| --------------------- | ------------------------------------------------------ |
+| 🎰 **轮盘** roulette  | 老虎机滚动效果<br/>_Slot machine spinning effect_      |
+| 🃏 **翻牌** flip      | 3D 卡牌翻转动画<br/>_3D card flip animation_           |
+| ✨ **刮刮卡** scratch | 手指刮开揭示身份<br/>_Scratch to reveal with finger_   |
+| 🧩 **碎片** fragment  | 碎片从四周飞入拼合<br/>_Fragments fly in and assemble_ |
+| 🌫️ **迷雾** fog       | 迷雾散开揭示卡牌<br/>_Fog disperses to reveal card_    |
 
 ### 特性 | Features
 
@@ -202,16 +202,17 @@ _5 visual effect animations when revealing roles, enhancing game experience!_
 
 ### 平台降级说明 | Platform Degradation
 
-| 功能 Feature       | iOS/Android        | Web                                                                                   |
-| ------------------ | ------------------ | ------------------------------------------------------------------------------------- |
-| 🔊 **音效** Sound  | ✅ 完整支持          | ⚠️ 需用户交互解锁（浏览器自动播放限制）<br/>_Requires user interaction to unlock (browser autoplay policy)_ |
-| 📳 **触觉** Haptics| ✅ 完整支持          | ❌ 静默 no-op（Web 无振动 API）<br/>_Silent no-op (no vibration API)_                    |
-| 🌟 **阴影/发光**    | ✅ 原生阴影          | ⚠️ 使用 CSS box-shadow 模拟，效果略有差异<br/>_Uses CSS box-shadow, slight visual difference_ |
-| 🎬 **动画驱动**     | ✅ useNativeDriver | ⚠️ JS 线程驱动，低端设备可能卡顿<br/>_JS thread driven, may lag on low-end devices_      |
+| 功能 Feature        | iOS/Android        | Web                                                                                                         |
+| ------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| 🔊 **音效** Sound   | ✅ 完整支持        | ⚠️ 需用户交互解锁（浏览器自动播放限制）<br/>_Requires user interaction to unlock (browser autoplay policy)_ |
+| 📳 **触觉** Haptics | ✅ 完整支持        | ❌ 静默 no-op（Web 无振动 API）<br/>_Silent no-op (no vibration API)_                                       |
+| 🌟 **阴影/发光**    | ✅ 原生阴影        | ⚠️ 使用 CSS box-shadow 模拟，效果略有差异<br/>_Uses CSS box-shadow, slight visual difference_               |
+| 🎬 **动画驱动**     | ✅ useNativeDriver | ⚠️ JS 线程驱动，低端设备可能卡顿<br/>_JS thread driven, may lag on low-end devices_                         |
 
 ### Reduced Motion 无障碍模式
 
 当系统开启"减少动态效果"时：
+
 - 粒子效果自动关闭
 - 动画简化为简单淡入
 - 音效和触觉反馈自动禁用
@@ -223,7 +224,7 @@ import { RoleRevealAnimator, createRoleData } from '@/components/RoleRevealEffec
 
 function MyScreen() {
   const [showReveal, setShowReveal] = useState(false);
-  
+
   const role = createRoleData('wolf', '狼人', 'wolf', '🐺', '每晚与狼队友共同选择一名玩家猎杀');
 
   return (

@@ -334,11 +334,10 @@ export const useGameRoom = (): UseGameRoomResult => {
   }, [gameState]);
 
   // Resolved animation (for UI rendering - never 'random')
-  const resolvedRoleRevealAnimation =
-    useMemo((): ResolvedRoleRevealAnimation => {
-      // 'random' fallback 时返回 'roulette'（实际上 Host 会解析 random）
-      return gameState?.resolvedRoleRevealAnimation ?? 'roulette';
-    }, [gameState]);
+  const resolvedRoleRevealAnimation = useMemo((): ResolvedRoleRevealAnimation => {
+    // 'random' fallback 时返回 'roulette'（实际上 Host 会解析 random）
+    return gameState?.resolvedRoleRevealAnimation ?? 'roulette';
+  }, [gameState]);
 
   // =========================================================================
   // Phase 1B: createRoom / joinRoom 使用 facade

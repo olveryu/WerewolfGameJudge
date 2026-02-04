@@ -149,25 +149,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
       }
     },
-    [authService]
+    [authService],
   );
 
-  const signInWithEmail = useCallback(async (email: string, password: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      await authService.signInWithEmail(email, password);
-      const result = await authService.getCurrentUser();
-      if (result?.data?.user) {
-        setUser(toUser(result.data.user));
+  const signInWithEmail = useCallback(
+    async (email: string, password: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await authService.signInWithEmail(email, password);
+        const result = await authService.getCurrentUser();
+        if (result?.data?.user) {
+          setUser(toUser(result.data.user));
+        }
+      } catch (e: any) {
+        setError(e.message);
+        throw e;
+      } finally {
+        setLoading(false);
       }
-    } catch (e: any) {
-      setError(e.message);
-      throw e;
-    } finally {
-      setLoading(false);
-    }
-  }, [authService]);
+    },
+    [authService],
+  );
 
   const updateProfile = useCallback(
     async (updates: { displayName?: string; avatarUrl?: string }) => {
@@ -183,23 +186,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw e;
       }
     },
-    [authService]
+    [authService],
   );
 
-  const uploadAvatar = useCallback(async (fileUri: string): Promise<string> => {
-    setError(null);
-    try {
-      const url = await avatarUploadService.uploadAvatar(fileUri);
-      const result = await authService.getCurrentUser();
-      if (result?.data?.user) {
-        setUser(toUser(result.data.user));
+  const uploadAvatar = useCallback(
+    async (fileUri: string): Promise<string> => {
+      setError(null);
+      try {
+        const url = await avatarUploadService.uploadAvatar(fileUri);
+        const result = await authService.getCurrentUser();
+        if (result?.data?.user) {
+          setUser(toUser(result.data.user));
+        }
+        return url;
+      } catch (e: any) {
+        setError(e.message);
+        throw e;
       }
-      return url;
-    } catch (e: any) {
-      setError(e.message);
-      throw e;
-    }
-  }, [authService, avatarUploadService]);
+    },
+    [authService, avatarUploadService],
+  );
 
   const signOut = useCallback(async () => {
     setLoading(true);
@@ -237,7 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateProfile,
       uploadAvatar,
       signOut,
-    ]
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

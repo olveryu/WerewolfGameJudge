@@ -4,11 +4,11 @@
 
 ## 三分法
 
-| 场景 | 使用工具 | 说明 |
-|------|----------|------|
-| **ID / Nonce** | `src/utils/id.ts` | 不可预测、不可复现的唯一标识符（如 requestId、nonce） |
-| **可测试随机** | `src/utils/random.ts` | 支持 `rng?: Rng` 注入，测试时可固定随机源 |
-| **跨端一致随机** | Host resolve + `BroadcastGameState` | 随机结果必须由 Host 解析并广播，客户端只读 |
+| 场景             | 使用工具                            | 说明                                                  |
+| ---------------- | ----------------------------------- | ----------------------------------------------------- |
+| **ID / Nonce**   | `src/utils/id.ts`                   | 不可预测、不可复现的唯一标识符（如 requestId、nonce） |
+| **可测试随机**   | `src/utils/random.ts`               | 支持 `rng?: Rng` 注入，测试时可固定随机源             |
+| **跨端一致随机** | Host resolve + `BroadcastGameState` | 随机结果必须由 Host 解析并广播，客户端只读            |
 
 ---
 
@@ -80,12 +80,12 @@ import { randomHex } from '../../../utils/id';
 function handleRestartGame(state: GameState): GameState {
   const newNonce = randomHex(8);
   let resolvedAnimation = state.resolvedRoleRevealAnimation;
-  
+
   if (state.roleRevealAnimation === 'random') {
     const seed = `${state.roomCode}:${newNonce}`;
     resolvedAnimation = resolveRandomAnimation(seed);
   }
-  
+
   return {
     ...state,
     roleRevealRandomNonce: newNonce,
@@ -101,12 +101,12 @@ const animation = gameState.resolvedRoleRevealAnimation; // 直接读取，不�
 
 ## 文件职责
 
-| 文件 | 职责 | 依赖 |
-|------|------|------|
-| `src/utils/id.ts` | 唯一 ID、nonce 生成 | expo-crypto, Web Crypto |
-| `src/utils/random.ts` | 可测试随机（rng 注入） | expo-crypto, Web Crypto |
-| `src/utils/shuffle.ts` | 数组打乱（rng 注入） | random.ts |
-| `src/services/types/RoleRevealAnimation.ts` | 动画随机解析（领域特定） | 确定性 hash |
+| 文件                                        | 职责                     | 依赖                    |
+| ------------------------------------------- | ------------------------ | ----------------------- |
+| `src/utils/id.ts`                           | 唯一 ID、nonce 生成      | expo-crypto, Web Crypto |
+| `src/utils/random.ts`                       | 可测试随机（rng 注入）   | expo-crypto, Web Crypto |
+| `src/utils/shuffle.ts`                      | 数组打乱（rng 注入）     | random.ts               |
+| `src/services/types/RoleRevealAnimation.ts` | 动画随机解析（领域特定） | 确定性 hash             |
 
 ---
 

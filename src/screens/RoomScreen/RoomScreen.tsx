@@ -1061,7 +1061,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             case 'roleCard':
               {
                 // 在显示角色卡时，先检查是否需要播放动画（基于当前 hasViewedRole 状态）
-                const myPlayer = mySeatNumber === null ? null : gameState?.players.get(mySeatNumber);
+                const myPlayer =
+                  mySeatNumber === null ? null : gameState?.players.get(mySeatNumber);
                 const needAnimation = !(myPlayer?.hasViewedRole ?? false);
                 setShouldPlayRevealAnimation(needAnimation);
                 setRoleCardVisible(true);
@@ -1396,48 +1397,54 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* Role Card Modal - 统一使用 RoleRevealAnimator */}
       {/* 只在首次查看时播放动画（shouldPlayRevealAnimation），后续直接显示静态卡片 */}
-      {roleCardVisible && myRole && (() => {
-        // 如果动画是 none 或不需要播放动画，直接显示静态卡片
-        if (resolvedRoleRevealAnimation === 'none' || !shouldPlayRevealAnimation) {
+      {roleCardVisible &&
+        myRole &&
+        (() => {
+          // 如果动画是 none 或不需要播放动画，直接显示静态卡片
+          if (resolvedRoleRevealAnimation === 'none' || !shouldPlayRevealAnimation) {
+            return (
+              <RoleCardSimple
+                visible={roleCardVisible}
+                roleId={myRole}
+                onClose={handleRoleCardClose}
+              />
+            );
+          }
+
+          // 首次查看，播放动画
+          const roleSpec = getRoleSpec(myRole);
+          const alignmentMap: Record<string, 'wolf' | 'god' | 'villager'> = {
+            [Faction.Wolf]: 'wolf',
+            [Faction.God]: 'god',
+            [Faction.Villager]: 'villager',
+            [Faction.Special]: 'villager', // Special 归类为 villager
+          };
+          const myRoleData: RoleData = createRoleData(
+            myRole,
+            getRoleDisplayName(myRole),
+            alignmentMap[roleSpec.faction] ?? 'villager',
+          );
+          const allRoles = gameState?.template?.roles ?? template?.roles ?? [];
+          const allRolesData: RoleData[] = allRoles.map((roleId) => {
+            const spec = getRoleSpec(roleId);
+            return createRoleData(
+              roleId,
+              getRoleDisplayName(roleId),
+              alignmentMap[spec.faction] ?? 'villager',
+            );
+          });
+          // resolvedRoleRevealAnimation 直接作为 effectType（Host 已解析 random → 具体动画）
+          const effectType: RevealEffectType = resolvedRoleRevealAnimation as RevealEffectType;
           return (
-            <RoleCardSimple visible={roleCardVisible} roleId={myRole} onClose={handleRoleCardClose} />
+            <RoleRevealAnimator
+              visible={roleCardVisible}
+              role={myRoleData}
+              effectType={effectType}
+              allRoles={allRolesData}
+              onComplete={handleRoleCardClose}
+            />
           );
-        }
-        
-        // 首次查看，播放动画
-        const roleSpec = getRoleSpec(myRole);
-        const alignmentMap: Record<string, 'wolf' | 'god' | 'villager'> = {
-          [Faction.Wolf]: 'wolf',
-          [Faction.God]: 'god',
-          [Faction.Villager]: 'villager',
-          [Faction.Special]: 'villager', // Special 归类为 villager
-        };
-        const myRoleData: RoleData = createRoleData(
-          myRole,
-          getRoleDisplayName(myRole),
-          alignmentMap[roleSpec.faction] ?? 'villager'
-        );
-        const allRoles = gameState?.template?.roles ?? template?.roles ?? [];
-        const allRolesData: RoleData[] = allRoles.map((roleId) => {
-          const spec = getRoleSpec(roleId);
-          return createRoleData(
-            roleId,
-            getRoleDisplayName(roleId),
-            alignmentMap[spec.faction] ?? 'villager'
-          );
-        });
-        // resolvedRoleRevealAnimation 直接作为 effectType（Host 已解析 random → 具体动画）
-        const effectType: RevealEffectType = resolvedRoleRevealAnimation as RevealEffectType;
-        return (
-          <RoleRevealAnimator
-            visible={roleCardVisible}
-            role={myRoleData}
-            effectType={effectType}
-            allRoles={allRolesData}
-            onComplete={handleRoleCardClose}
-          />
-        );
-      })()}
+        })()}
     </SafeAreaView>
   );
 };

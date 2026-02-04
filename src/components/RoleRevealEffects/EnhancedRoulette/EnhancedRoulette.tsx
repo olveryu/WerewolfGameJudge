@@ -10,14 +10,7 @@
  * - Golden highlight animation
  */
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import {
-  View,
-  Text,
-  Animated,
-  StyleSheet,
-  Dimensions,
-  Easing,
-} from 'react-native';
+import { View, Text, Animated, StyleSheet, Dimensions, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors, spacing, typography, borderRadius } from '../../../theme';
 import type { RoleRevealEffectProps, RoleData } from '../types';
@@ -163,7 +156,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: canUseNativeDriver,
         }),
-      ])
+      ]),
     ).start();
   }, [frameGlowAnim, reducedMotion]);
 
@@ -201,7 +194,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   // Tick player for sound
   const tickPlayer = useMemo(
     () => createTickPlayer(enableSound && !reducedMotion),
-    [enableSound, reducedMotion]
+    [enableSound, reducedMotion],
   );
 
   // Create celebration particles
@@ -306,9 +299,12 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
           useNativeDriver: canUseNativeDriver,
         }),
       ]).start();
-      const timer = setTimeout(() => {
-        onComplete();
-      }, CONFIG.common.reducedMotionFadeDuration + (config.revealHoldDuration ?? 1500));
+      const timer = setTimeout(
+        () => {
+          onComplete();
+        },
+        CONFIG.common.reducedMotionFadeDuration + (config.revealHoldDuration ?? 1500),
+      );
       return () => clearTimeout(timer);
     }
 
@@ -402,13 +398,13 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   // With visibleItems=3, center position is at index 1 (0-indexed)
   // So we offset by 1 item height to center item 0 initially
   const centeringOffset = config.itemHeight; // One item height to center first item
-  
+
   const translateY = Animated.add(
     scrollAnim.interpolate({
       inputRange: [0, 1],
       outputRange: [centeringOffset, centeringOffset - config.itemHeight],
     }),
-    bounceAnim
+    bounceAnim,
   );
 
   // Card dimensions for revealed state
@@ -481,11 +477,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
             },
           ]}
         >
-          <RoleCardContent
-            roleId={role.id as RoleId}
-            width={cardWidth}
-            height={cardHeight}
-          />
+          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
           <GlowBorder
             width={cardWidth + 8}
             height={cardHeight + 8}
@@ -593,10 +585,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
                         colors={[SLOT_COLORS.itemCard, '#FFFFFF', SLOT_COLORS.itemCard]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={[
-                          styles.itemCard,
-                          { borderColor: SLOT_COLORS.itemCardBorder },
-                        ]}
+                        style={[styles.itemCard, { borderColor: SLOT_COLORS.itemCardBorder }]}
                       >
                         <Text style={styles.itemIcon}>{r.avatar || '❓'}</Text>
                         <Text

@@ -13,10 +13,7 @@
 import { RoleId } from '../../models/roles';
 import type { CurrentNightResults } from '../night/resolvers/types';
 import { GameTemplate } from '../../models/Template';
-import type {
-  RoleRevealAnimation,
-  ResolvedRoleRevealAnimation,
-} from './RoleRevealAnimation';
+import type { RoleRevealAnimation, ResolvedRoleRevealAnimation } from './RoleRevealAnimation';
 
 // =============================================================================
 // Game Status Enum

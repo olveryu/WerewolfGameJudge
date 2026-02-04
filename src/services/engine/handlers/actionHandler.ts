@@ -141,7 +141,10 @@ function handleGargoyleReveal(
 function handleWolfRobotReveal(
   result: ResolverResult,
   targetSeat: number,
-): Pick<ApplyResolverResultAction['payload'], 'wolfRobotReveal' | 'wolfRobotHunterStatusViewed' | 'wolfRobotContext'> {
+): Pick<
+  ApplyResolverResultAction['payload'],
+  'wolfRobotReveal' | 'wolfRobotHunterStatusViewed' | 'wolfRobotContext'
+> {
   if (!result.result?.identityResult) {
     return {};
   }
@@ -154,7 +157,10 @@ function handleWolfRobotReveal(
     );
   }
 
-  const payload: Pick<ApplyResolverResultAction['payload'], 'wolfRobotReveal' | 'wolfRobotHunterStatusViewed' | 'wolfRobotContext'> = {
+  const payload: Pick<
+    ApplyResolverResultAction['payload'],
+    'wolfRobotReveal' | 'wolfRobotHunterStatusViewed' | 'wolfRobotContext'
+  > = {
     wolfRobotReveal: {
       targetSeat,
       result: result.result.identityResult,

@@ -10,13 +10,7 @@
  * - Bounce effect on landing
  */
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import {
-  View,
-  Animated,
-  StyleSheet,
-  Dimensions,
-  Easing,
-} from 'react-native';
+import { View, Animated, StyleSheet, Dimensions, Easing } from 'react-native';
 import { useColors, borderRadius } from '../../../theme';
 import type { RoleRevealEffectProps } from '../types';
 import { ALIGNMENT_THEMES } from '../types';
@@ -60,7 +54,9 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   const config = CONFIG.flip;
   const theme = ALIGNMENT_THEMES[role.alignment];
 
-  const [phase, setPhase] = useState<'entry' | 'levitate' | 'flipping' | 'landing' | 'revealed'>('entry');
+  const [phase, setPhase] = useState<'entry' | 'levitate' | 'flipping' | 'landing' | 'revealed'>(
+    'entry',
+  );
   const [particles, setParticles] = useState<Particle[]>([]);
 
   // Animation values
@@ -422,10 +418,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
               width: cardWidth,
               height: cardHeight,
               opacity: shadowOpacity,
-              transform: [
-                { translateY: shadowOffsetY },
-                { scaleX: 0.95 },
-              ],
+              transform: [{ translateY: shadowOffsetY }, { scaleX: 0.95 }],
             },
           ]}
         />
@@ -437,9 +430,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
               width: cardWidth * 0.9,
               height: cardHeight * 0.1,
               opacity: Animated.multiply(shadowOpacity, 0.5),
-              transform: [
-                { translateY: Animated.add(shadowOffsetY, 10) },
-              ],
+              transform: [{ translateY: Animated.add(shadowOffsetY, 10) }],
             },
           ]}
         />
@@ -456,12 +447,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
             },
           ]}
         >
-          <RoleCard
-            role={role}
-            showBack={true}
-            width={cardWidth}
-            height={cardHeight}
-          />
+          <RoleCard role={role} showBack={true} width={cardWidth} height={cardHeight} />
         </Animated.View>
 
         {/* Card front (role) */}
@@ -477,11 +463,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
             },
           ]}
         >
-          <RoleCardContent
-            roleId={role.id as RoleId}
-            width={cardWidth}
-            height={cardHeight}
-          />
+          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
 
           {/* Edge glow during flip */}
           <Animated.View
