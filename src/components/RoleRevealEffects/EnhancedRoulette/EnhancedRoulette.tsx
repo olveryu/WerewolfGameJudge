@@ -85,6 +85,14 @@ interface Particle {
 
 const CELEBRATION_EMOJIS = ['⭐', '✨', '🎉', '🎊', '💫', '🌟'];
 
+// Fixed bulb identifiers (stable keys for decoration)
+const TOP_BULB_IDS = ['t1', 't2', 't3', 't4', 't5', 't6'] as const;
+const BOTTOM_BULB_IDS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'] as const;
+
+// Bulb pattern helper
+const generateRandomBulbPattern = (count: number, threshold: number = 0.5): boolean[] =>
+  new Array(count).fill(false).map(() => Math.random() > threshold);
+
 export interface EnhancedRouletteProps extends RoleRevealEffectProps {
   /** All roles to show in the roulette */
   allRoles: RoleData[];
@@ -123,7 +131,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
   // Initialize bulb pattern
   useEffect(() => {
-    setBulbPattern(new Array(bulbCount).fill(false).map(() => Math.random() > 0.5));
+    setBulbPattern(generateRandomBulbPattern(bulbCount));
   }, []);
 
   // Animate bulbs during spinning
@@ -131,7 +139,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     if (phase !== 'spinning' || reducedMotion) return;
 
     const interval = setInterval(() => {
-      setBulbPattern((prev) => prev.map(() => Math.random() > 0.3));
+      setBulbPattern(generateRandomBulbPattern(bulbCount, 0.3));
     }, 150);
 
     return () => clearInterval(interval);
@@ -260,6 +268,24 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     setParticles(newParticles);
   }, []);
 
+  // Transition to revealed phase
+  const transitionToRevealed = useCallback(() => {
+    setPhase('revealed');
+    Animated.parallel([
+      Animated.spring(revealScaleAnim, {
+        toValue: 1,
+        friction: 6,
+        tension: 100,
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.timing(revealOpacityAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: canUseNativeDriver,
+      }),
+    ]).start();
+  }, [revealScaleAnim, revealOpacityAnim]);
+
   // Spin animation
   useEffect(() => {
     if (shuffledRoles.length === 0 || targetIndex < 0) {
@@ -332,23 +358,8 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
         // Create particles
         createParticles();
 
-        // Transition to revealed
-        setTimeout(() => {
-          setPhase('revealed');
-          Animated.parallel([
-            Animated.spring(revealScaleAnim, {
-              toValue: 1,
-              friction: 6,
-              tension: 100,
-              useNativeDriver: canUseNativeDriver,
-            }),
-            Animated.timing(revealOpacityAnim, {
-              toValue: 1,
-              duration: 300,
-              useNativeDriver: canUseNativeDriver,
-            }),
-          ]).start();
-        }, 500);
+        // Transition to revealed after a short delay
+        setTimeout(transitionToRevealed, 500);
       });
     });
 
@@ -372,6 +383,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     enableHaptics,
     config,
     createParticles,
+    transitionToRevealed,
     revealScaleAnim,
     revealOpacityAnim,
     onComplete,
@@ -520,10 +532,10 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
           <View style={styles.topPanel}>
             <Text style={styles.slotTitle}>🎰 JACKPOT 🎰</Text>
             <View style={styles.bulbRow}>
-              {bulbPattern.slice(0, 6).map((on, i) => (
+              {TOP_BULB_IDS.map((id, i) => (
                 <Bulb
-                  key={`top-${i}`}
-                  on={on}
+                  key={id}
+                  on={bulbPattern[i] ?? false}
                   color={i % 2 === 0 ? SLOT_COLORS.neonPink : SLOT_COLORS.neonBlue}
                 />
               ))}
@@ -625,10 +637,10 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
           {/* Bottom decorative panel with bulbs */}
           <View style={styles.bottomPanel}>
             <View style={styles.bulbRow}>
-              {bulbPattern.slice(6, 12).map((on, i) => (
+              {BOTTOM_BULB_IDS.map((id, i) => (
                 <Bulb
-                  key={`bottom-${i}`}
-                  on={on}
+                  key={id}
+                  on={bulbPattern[6 + i] ?? false}
                   color={i % 2 === 0 ? SLOT_COLORS.neonGreen : SLOT_COLORS.gold}
                 />
               ))}

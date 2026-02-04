@@ -97,6 +97,89 @@ function getSchemaIdForRole(role: RoleId): SchemaId | null {
 }
 
 /**
+ * 处理 Seer reveal
+ */
+function handleSeerReveal(
+  result: ResolverResult,
+  targetSeat: number,
+): Pick<ApplyResolverResultAction['payload'], 'seerReveal'> {
+  if (result.result?.checkResult) {
+    return { seerReveal: { targetSeat, result: result.result.checkResult } };
+  }
+  return {};
+}
+
+/**
+ * 处理 Psychic reveal
+ */
+function handlePsychicReveal(
+  result: ResolverResult,
+  targetSeat: number,
+): Pick<ApplyResolverResultAction['payload'], 'psychicReveal'> {
+  if (result.result?.identityResult) {
+    return { psychicReveal: { targetSeat, result: result.result.identityResult } };
+  }
+  return {};
+}
+
+/**
+ * 处理 Gargoyle reveal
+ */
+function handleGargoyleReveal(
+  result: ResolverResult,
+  targetSeat: number,
+): Pick<ApplyResolverResultAction['payload'], 'gargoyleReveal'> {
+  if (result.result?.identityResult) {
+    return { gargoyleReveal: { targetSeat, result: result.result.identityResult } };
+  }
+  return {};
+}
+
+/**
+ * 处理 WolfRobot reveal
+ */
+function handleWolfRobotReveal(
+  result: ResolverResult,
+  targetSeat: number,
+): Pick<ApplyResolverResultAction['payload'], 'wolfRobotReveal' | 'wolfRobotHunterStatusViewed' | 'wolfRobotContext'> {
+  if (!result.result?.identityResult) {
+    return {};
+  }
+
+  const learnedRoleId = result.result.learnedRoleId;
+  // FAIL-FAST: learnedRoleId is REQUIRED when wolfRobotReveal is set
+  if (!learnedRoleId) {
+    throw new Error(
+      '[FAIL-FAST] wolfRobotLearn resolver must return learnedRoleId when identityResult is set',
+    );
+  }
+
+  const payload: Pick<ApplyResolverResultAction['payload'], 'wolfRobotReveal' | 'wolfRobotHunterStatusViewed' | 'wolfRobotContext'> = {
+    wolfRobotReveal: {
+      targetSeat,
+      result: result.result.identityResult,
+      learnedRoleId,
+      canShootAsHunter: result.result.canShootAsHunter,
+    },
+  };
+
+  // Gate: if learned hunter, set gate to false (requires viewing before advancing)
+  if (learnedRoleId === 'hunter') {
+    payload.wolfRobotHunterStatusViewed = false;
+  }
+
+  // Write wolfRobotContext for disguise during subsequent checks
+  if (result.result.learnTarget !== undefined && learnedRoleId) {
+    payload.wolfRobotContext = {
+      learnedSeat: result.result.learnTarget,
+      disguisedRole: learnedRoleId,
+    };
+  }
+
+  return payload;
+}
+
+/**
  * 从 resolver result 构建 ApplyResolverResultAction payload
  */
 function buildRevealPayload(
@@ -109,42 +192,14 @@ function buildRevealPayload(
   };
 
   // 根据角色类型设置对应的 reveal
-  if (result.result?.checkResult && role === 'seer') {
-    payload.seerReveal = { targetSeat, result: result.result.checkResult };
-  }
-  if (result.result?.identityResult) {
-    if (role === 'psychic') {
-      payload.psychicReveal = { targetSeat, result: result.result.identityResult };
-    } else if (role === 'gargoyle') {
-      payload.gargoyleReveal = { targetSeat, result: result.result.identityResult };
-    } else if (role === 'wolfRobot') {
-      const learnedRoleId = result.result.learnedRoleId;
-      // FAIL-FAST: learnedRoleId is REQUIRED when wolfRobotReveal is set
-      // This ensures type safety and prevents "identityResult exists but learnedRoleId missing" bugs
-      if (!learnedRoleId) {
-        throw new Error(
-          '[FAIL-FAST] wolfRobotLearn resolver must return learnedRoleId when identityResult is set',
-        );
-      }
-      payload.wolfRobotReveal = {
-        targetSeat,
-        result: result.result.identityResult,
-        learnedRoleId,
-        // canShootAsHunter comes from resolver calculation (only set when learned hunter)
-        canShootAsHunter: result.result.canShootAsHunter,
-      };
-      // Gate: if learned hunter, set gate to false (requires viewing before advancing)
-      if (learnedRoleId === 'hunter') {
-        payload.wolfRobotHunterStatusViewed = false;
-      }
-      // Write wolfRobotContext for disguise during subsequent checks
-      if (result.result.learnTarget !== undefined && learnedRoleId) {
-        payload.wolfRobotContext = {
-          learnedSeat: result.result.learnTarget,
-          disguisedRole: learnedRoleId, // strict RoleId
-        };
-      }
-    }
+  if (role === 'seer') {
+    Object.assign(payload, handleSeerReveal(result, targetSeat));
+  } else if (role === 'psychic') {
+    Object.assign(payload, handlePsychicReveal(result, targetSeat));
+  } else if (role === 'gargoyle') {
+    Object.assign(payload, handleGargoyleReveal(result, targetSeat));
+  } else if (role === 'wolfRobot') {
+    Object.assign(payload, handleWolfRobotReveal(result, targetSeat));
   }
 
   return payload;
@@ -578,7 +633,7 @@ export function handleSubmitWolfVote(
   // Validate common gates first.
   // NOTE: wolf vote still submits through the unified action pipeline, so the actor's
   // *real* role must be used for role/seat alignment.
-  const validation = validateActionPreconditions(context, seat, (voterRole ?? 'wolf') as RoleId);
+  const validation = validateActionPreconditions(context, seat, voterRole ?? 'wolf');
   if (!validation.valid) {
     return normalizeWolfVoteRejection(validation.result);
   }
@@ -622,7 +677,7 @@ export function handleSubmitWolfVote(
     type: 'SUBMIT_ACTION',
     payload: {
       seat,
-      role: (voterForGate.role ?? 'wolf') as RoleId,
+      role: voterForGate.role ?? 'wolf',
       // wolfKill supports empty knife via target = null.
       // Map target=-1 to null for empty knife.
       target: target === -1 ? null : target,

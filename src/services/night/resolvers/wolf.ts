@@ -22,7 +22,7 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
       valid: true,
       updates: {
         wolfVotesBySeat: {
-          ...(currentNightResults.wolfVotesBySeat ?? {}),
+          ...currentNightResults.wolfVotesBySeat,
           [String(actorSeat)]: -1,
         },
       },
@@ -66,7 +66,7 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
     valid: true,
     updates: {
       wolfVotesBySeat: {
-        ...(currentNightResults.wolfVotesBySeat ?? {}),
+        ...currentNightResults.wolfVotesBySeat,
         [String(actorSeat)]: target,
       },
     },

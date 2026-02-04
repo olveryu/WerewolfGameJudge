@@ -157,6 +157,17 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     });
   }, []);
 
+  // Fade out stardust particles
+  const fadeOutStardust = useCallback((particles: StardustParticle[]) => {
+    particles.forEach((p) => {
+      Animated.timing(p.opacity, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: canUseNativeDriver,
+      }).start();
+    });
+  }, []);
+
   // Handle reveal complete
   const handleRevealComplete = useCallback(() => {
     setTimeout(() => {
@@ -299,15 +310,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       }).start(() => {
         if (enableHaptics) triggerHaptic('heavy', true);
         setPhase('revealed');
-        
-        // Fade out stardust
-        particles.forEach((p) => {
-          Animated.timing(p.opacity, {
-            toValue: 0,
-            duration: 500,
-            useNativeDriver: canUseNativeDriver,
-          }).start();
-        });
+        fadeOutStardust(particles);
       });
     };
 
@@ -328,6 +331,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     flipAnim,
     createStardust,
     animateStardust,
+    fadeOutStardust,
   ]);
 
   // Card rotation interpolations
