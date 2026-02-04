@@ -10,6 +10,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
     '^expo-audio$': '<rootDir>/__mocks__/expo-audio.ts',
+    '^expo-haptics$': '<rootDir>/__mocks__/expo-haptics.ts',
     '^@react-native-async-storage/async-storage$':
       '<rootDir>/__mocks__/@react-native-async-storage/async-storage.ts',
   },

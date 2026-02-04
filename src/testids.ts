@@ -51,4 +51,15 @@ export const TESTIDS = {
 
   // NightProgressIndicator
   nightProgressIndicator: 'night-progress-indicator',
+
+  // RoleRevealEffects
+  // Used by: RoleRevealEffects components, unit tests
+  roleRevealModal: 'role-reveal-modal',
+  roleRevealContainer: (effect: string) => `${effect}-container`,
+  roleRevealCard: (effect: string) => `${effect}-card`,
+  roleRevealCardBack: (effect: string) => `${effect}-card-back`,
+  roleRevealCardFront: (effect: string) => `${effect}-card-front`,
+  roleRevealWindow: (effect: string) => `${effect}-window`,
+  roleRevealAutoReveal: (effect: string) => `${effect}-auto-reveal`,
+  roleRevealTapReveal: (effect: string) => `${effect}-tap-reveal`,
 } as const;
