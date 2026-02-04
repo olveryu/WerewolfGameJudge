@@ -104,7 +104,12 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
 };
 
 /**
- * Hook to get a random effect type
+ * @deprecated 不要使用此 hook。
+ * "random" 动画必须由 Host 解析并通过 BroadcastGameState.resolvedRoleRevealAnimation 广播。
+ * 客户端应直接读取 gameState.resolvedRoleRevealAnimation，而非本地随机选择。
+ * 详见 docs/random-and-id-guidelines.md
+ *
+ * 保留此函数仅为向后兼容，将在未来版本移除。
  */
 export function useRandomEffectType(): RevealEffectType {
   const effects: RevealEffectType[] = ['roulette', 'flip', 'scratch', 'fragment', 'fog'];

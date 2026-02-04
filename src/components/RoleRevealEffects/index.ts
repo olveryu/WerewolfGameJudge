@@ -28,7 +28,6 @@
 // Main animator component
 export {
   RoleRevealAnimator,
-  useRandomEffectType,
   createRoleData,
 } from './RoleRevealAnimator';
 

@@ -8,7 +8,6 @@ export { RoleCardSimple } from './RoleCardSimple';
 // Role Reveal Effects System
 export {
   RoleRevealAnimator,
-  useRandomEffectType,
   createRoleData,
   EnhancedRoulette,
   FlipReveal,
