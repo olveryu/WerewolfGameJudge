@@ -6,9 +6,11 @@ import { withTimeout } from '../../utils/withTimeout';
 export class AuthService {
   private static instance: AuthService;
   private currentUserId: string | null = null;
-  private initPromise: Promise<void> | null = null;
+  private readonly initPromise: Promise<void>;
 
   private constructor() {
+    // Note: async operation in constructor is intentional for singleton initialization
+    // The promise is stored and can be awaited via ensureInitialized()
     this.initPromise = this.autoSignIn();
   }
 
@@ -30,11 +32,9 @@ export class AuthService {
   }
 
   async waitForInit(): Promise<void> {
-    if (this.initPromise) {
-      // Add timeout to prevent infinite waiting
-      // 使用用户友好的错误消息，技术上下文由 withTimeout 内部 logger 记录
-      await withTimeout(this.initPromise, 10000, () => new Error('登录超时，请重试'));
-    }
+    // Add timeout to prevent infinite waiting
+    // 使用用户友好的错误消息，技术上下文由 withTimeout 内部 logger 记录
+    await withTimeout(this.initPromise, 10000, () => new Error('登录超时，请重试'));
   }
 
   static getInstance(): AuthService {

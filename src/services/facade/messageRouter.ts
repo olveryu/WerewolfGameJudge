@@ -358,7 +358,7 @@ function playerHandleSeatActionAck(
   if (msg.toUid !== ctx.myUid) return;
 
   // 检查 requestId 是否匹配
-  if (!pendingSeatAction.current || pendingSeatAction.current.requestId !== msg.requestId) {
+  if (pendingSeatAction.current?.requestId !== msg.requestId) {
     facadeLog.warn('Received ACK for unknown request', { requestId: msg.requestId });
     return;
   }
