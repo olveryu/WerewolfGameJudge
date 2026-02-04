@@ -28,7 +28,10 @@ import { gameRoomLog } from '../utils/logger';
 import { useGameFacade } from '../contexts';
 import { broadcastToLocalState } from './adapters/broadcastToLocalState';
 import SettingsService from '../services/infra/SettingsService';
-import type { RoleRevealAnimation } from '../services/types/RoleRevealAnimation';
+import type {
+  RoleRevealAnimation,
+  ResolvedRoleRevealAnimation,
+} from '../services/types/RoleRevealAnimation';
 import AudioService from '../services/infra/AudioService';
 
 export interface UseGameRoomResult {
@@ -51,6 +54,9 @@ export interface UseGameRoomResult {
 
   // Role reveal animation (Host controlled, all players use)
   roleRevealAnimation: RoleRevealAnimation;
+
+  // Resolved animation for UI rendering (never 'random')
+  resolvedRoleRevealAnimation: ResolvedRoleRevealAnimation;
 
   // Schema-driven UI (Phase 3)
   currentSchemaId: SchemaId | null; // schemaId for current action role (null if no action)
@@ -324,8 +330,15 @@ export const useGameRoom = (): UseGameRoomResult => {
 
   // Role reveal animation (Host controlled, all players use)
   const roleRevealAnimation = useMemo((): RoleRevealAnimation => {
-    return gameState?.roleRevealAnimation ?? 'roulette';
+    return gameState?.roleRevealAnimation ?? 'random';
   }, [gameState]);
+
+  // Resolved animation (for UI rendering - never 'random')
+  const resolvedRoleRevealAnimation =
+    useMemo((): ResolvedRoleRevealAnimation => {
+      // 'random' fallback 时返回 'roulette'（实际上 Host 会解析 random）
+      return gameState?.resolvedRoleRevealAnimation ?? 'roulette';
+    }, [gameState]);
 
   // =========================================================================
   // Phase 1B: createRoom / joinRoom 使用 facade
@@ -682,6 +695,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     currentActionRole,
     isAudioPlaying,
     roleRevealAnimation,
+    resolvedRoleRevealAnimation,
     currentSchemaId,
     currentSchema,
     currentStepId,

@@ -35,7 +35,7 @@ export interface UserSettings {
 const DEFAULT_SETTINGS: UserSettings = {
   bgmEnabled: true,
   themeKey: 'dark',
-  roleRevealAnimation: 'roulette',
+  roleRevealAnimation: 'random',
 };
 
 class SettingsService {
@@ -87,7 +87,15 @@ class SettingsService {
    * Check if a string is a valid role reveal animation.
    */
   private isValidRoleRevealAnimation(anim: string): anim is RoleRevealAnimation {
-    return ['roulette', 'flip', 'none'].includes(anim);
+    return [
+      'roulette',
+      'flip',
+      'scratch',
+      'fragment',
+      'fog',
+      'none',
+      'random',
+    ].includes(anim);
   }
 
   /**

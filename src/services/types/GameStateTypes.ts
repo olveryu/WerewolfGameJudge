@@ -13,7 +13,10 @@
 import { RoleId } from '../../models/roles';
 import type { CurrentNightResults } from '../night/resolvers/types';
 import { GameTemplate } from '../../models/Template';
-import type { RoleRevealAnimation } from './RoleRevealAnimation';
+import type {
+  RoleRevealAnimation,
+  ResolvedRoleRevealAnimation,
+} from './RoleRevealAnimation';
 
 // =============================================================================
 // Game Status Enum
@@ -70,10 +73,19 @@ export interface LocalGameState {
   currentStepId?: import('../../models/roles/spec').SchemaId;
   isAudioPlaying: boolean;
   /**
-   * 开牌动画（Host 控制）
-   * 默认 'roulette'
+   * 开牌动画配置（Host 控制）
+   * 可为具体动画、none 或 random
    */
   roleRevealAnimation?: RoleRevealAnimation;
+  /**
+   * 解析后的开牌动画（Host 解析 random 后广播）
+   * 客户端使用此字段渲染，不含 random
+   */
+  resolvedRoleRevealAnimation?: ResolvedRoleRevealAnimation;
+  /**
+   * 本局开牌动画随机种子（用于 random 解析）
+   */
+  roleRevealRandomNonce?: string;
   lastNightDeaths: number[]; // Calculated after night ends
   nightmareBlockedSeat?: number; // Seat blocked by nightmare (skill disabled for this night)
   /**
