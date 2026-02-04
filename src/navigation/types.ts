@@ -1,4 +1,5 @@
 import { GameTemplate } from '../models/Template';
+import type { RoleRevealAnimation } from '../services/types/RoleRevealAnimation';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -12,7 +13,7 @@ export type RootStackParamList = {
     roomNumber: string;
     isHost: boolean;
     template?: GameTemplate;
-    roleRevealAnimation?: 'roulette' | 'flip' | 'none';
+    roleRevealAnimation?: RoleRevealAnimation;
   };
   Settings: undefined;
 };

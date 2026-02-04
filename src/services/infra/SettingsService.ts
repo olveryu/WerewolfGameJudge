@@ -19,8 +19,9 @@ export type ThemeKey =
   | 'forest'
   | 'snow';
 
-/** Role reveal animation type */
-export type RoleRevealAnimation = 'roulette' | 'flip' | 'none';
+/** Role reveal animation type - re-export from pure types */
+export type { RoleRevealAnimation } from '../types/RoleRevealAnimation';
+import type { RoleRevealAnimation } from '../types/RoleRevealAnimation';
 
 export interface UserSettings {
   /** Whether to play background music during night phase (default: true) */

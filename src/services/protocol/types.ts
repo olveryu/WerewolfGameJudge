@@ -11,6 +11,7 @@
 import type { RoleId } from '../../models/roles';
 import type { SchemaId } from '../../models/roles/spec';
 import type { CurrentNightResults } from '../night/resolvers/types';
+import type { RoleRevealAnimation } from '../types/RoleRevealAnimation';
 
 // =============================================================================
 // 协议动作记录（ProtocolAction）— 线安全、稳定
@@ -58,7 +59,7 @@ export interface BroadcastGameState {
    * 开牌动画（Host 控制）
    * 默认 'roulette'
    */
-  roleRevealAnimation?: 'roulette' | 'flip' | 'none';
+  roleRevealAnimation?: RoleRevealAnimation;
 
   /** 当前夜晚步骤 ID（来自 NIGHT_STEPS 表驱动单源） */
   currentStepId?: SchemaId;

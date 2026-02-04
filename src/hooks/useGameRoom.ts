@@ -28,6 +28,7 @@ import { gameRoomLog } from '../utils/logger';
 import { useGameFacade } from '../contexts';
 import { broadcastToLocalState } from './adapters/broadcastToLocalState';
 import SettingsService from '../services/infra/SettingsService';
+import type { RoleRevealAnimation } from '../services/types/RoleRevealAnimation';
 import AudioService from '../services/infra/AudioService';
 
 export interface UseGameRoomResult {
@@ -49,7 +50,7 @@ export interface UseGameRoomResult {
   isAudioPlaying: boolean;
 
   // Role reveal animation (Host controlled, all players use)
-  roleRevealAnimation: 'roulette' | 'flip' | 'none';
+  roleRevealAnimation: RoleRevealAnimation;
 
   // Schema-driven UI (Phase 3)
   currentSchemaId: SchemaId | null; // schemaId for current action role (null if no action)
@@ -82,7 +83,7 @@ export interface UseGameRoomResult {
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
-  setRoleRevealAnimation: (animation: 'roulette' | 'flip' | 'none') => Promise<void>;
+  setRoleRevealAnimation: (animation: RoleRevealAnimation) => Promise<void>;
 
   // Host audio control (PR7: 音频时序控制)
   setAudioPlaying: (isPlaying: boolean) => Promise<{ success: boolean; reason?: string }>;
@@ -322,7 +323,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   }, [gameState]);
 
   // Role reveal animation (Host controlled, all players use)
-  const roleRevealAnimation = useMemo((): 'roulette' | 'flip' | 'none' => {
+  const roleRevealAnimation = useMemo((): RoleRevealAnimation => {
     return gameState?.roleRevealAnimation ?? 'roulette';
   }, [gameState]);
 
@@ -562,7 +563,7 @@ export const useGameRoom = (): UseGameRoomResult => {
 
   // Set role reveal animation (host only)
   const setRoleRevealAnimation = useCallback(
-    async (animation: 'roulette' | 'flip' | 'none'): Promise<void> => {
+    async (animation: RoleRevealAnimation): Promise<void> => {
       if (!isHost) return;
       await facade.setRoleRevealAnimation(animation);
     },

@@ -13,6 +13,7 @@
 import { RoleId } from '../../models/roles';
 import type { CurrentNightResults } from '../night/resolvers/types';
 import { GameTemplate } from '../../models/Template';
+import type { RoleRevealAnimation } from './RoleRevealAnimation';
 
 // =============================================================================
 // Game Status Enum
@@ -72,7 +73,7 @@ export interface LocalGameState {
    * 开牌动画（Host 控制）
    * 默认 'roulette'
    */
-  roleRevealAnimation?: 'roulette' | 'flip' | 'none';
+  roleRevealAnimation?: RoleRevealAnimation;
   lastNightDeaths: number[]; // Calculated after night ends
   nightmareBlockedSeat?: number; // Seat blocked by nightmare (skill disabled for this night)
   /**

@@ -34,6 +34,7 @@ import type { RoleId } from '../../models/roles';
 import type { GameTemplate } from '../../models/Template';
 
 import { doesRoleParticipateInWolfVote } from '../../models/roles';
+import type { RoleRevealAnimation } from '../types/RoleRevealAnimation';
 
 import {
   handleAssignRoles,
@@ -319,7 +320,7 @@ export async function restartGame(
  */
 export async function setRoleRevealAnimation(
   ctx: HostActionsContext,
-  animation: 'roulette' | 'flip' | 'none',
+  animation: RoleRevealAnimation,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('setRoleRevealAnimation called', { isHost: ctx.isHost, animation });
 
