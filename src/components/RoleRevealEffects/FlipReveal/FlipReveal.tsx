@@ -75,8 +75,9 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   const bounceY = useMemo(() => new Animated.Value(0), []);
   const bounceScale = useMemo(() => new Animated.Value(1), []);
 
-  const cardWidth = Math.min(config.cardWidth, SCREEN_WIDTH * 0.7);
-  const cardHeight = cardWidth * (config.cardHeight / config.cardWidth);
+  // Use same calculation as RoleCardSimple: Math.min(SCREEN_WIDTH * 0.75, 280) and ratio 1.4
+  const cardWidth = Math.min(SCREEN_WIDTH * 0.75, 280);
+  const cardHeight = cardWidth * 1.4;
 
   // Create celebration particles
   const createParticles = useCallback(() => {

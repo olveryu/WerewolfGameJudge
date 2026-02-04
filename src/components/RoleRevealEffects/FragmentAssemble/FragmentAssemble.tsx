@@ -121,8 +121,9 @@ export const FragmentAssemble: React.FC<RoleRevealEffectProps> = ({
     [config.gridRows, config.gridCols]
   );
 
+  // Use same calculation as RoleCardSimple: Math.min(SCREEN_WIDTH * 0.75, 280) and ratio 1.4
   const cardWidth = Math.min(280, SCREEN_WIDTH * 0.75);
-  const cardHeight = cardWidth * 1.3;
+  const cardHeight = cardWidth * 1.4;
   const fragmentWidth = cardWidth / cols;
   const fragmentHeight = cardHeight / rows;
 
@@ -360,7 +361,7 @@ export const FragmentAssemble: React.FC<RoleRevealEffectProps> = ({
       outputRange: [-fragmentWidth, fragmentWidth],
     });
 
-    // Fragment position on the card
+    // Fragment position on the card (relative to container top-left, which is at center of screen)
     const left = fragment.col * fragmentWidth;
     const top = fragment.row * fragmentHeight;
 
@@ -372,8 +373,8 @@ export const FragmentAssemble: React.FC<RoleRevealEffectProps> = ({
           {
             width: fragmentWidth,
             height: fragmentHeight,
-            left: left - cardWidth / 2,
-            top: top - cardHeight / 2,
+            left: left,
+            top: top,
             transform: [
               { translateX },
               { translateY },
@@ -503,8 +504,8 @@ export const FragmentAssemble: React.FC<RoleRevealEffectProps> = ({
             onComplete={handleGlowComplete}
             style={{
               position: 'absolute',
-              top: -cardHeight / 2 - 4,
-              left: -cardWidth / 2 - 4,
+              top: -4,
+              left: -4,
             }}
           />
         )}
@@ -521,8 +522,7 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
+    // No alignItems/justifyContent here - fragments use negative offsets for centering
   },
   fragment: {
     position: 'absolute',

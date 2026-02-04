@@ -181,14 +181,15 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   }, [shuffledRoles, role]);
 
   // Create repeated list for smooth scrolling
+  // Need enough items for all spins plus buffer
   const repeatedRoles = useMemo(() => {
-    const repeats = 5;
+    const repeats = config.spinRotations + 2; // Extra buffer for safety
     const result: RoleData[] = [];
     for (let i = 0; i < repeats; i++) {
       result.push(...shuffledRoles);
     }
     return result;
-  }, [shuffledRoles]);
+  }, [shuffledRoles, config.spinRotations]);
 
   // Tick player for sound
   const tickPlayer = useMemo(
@@ -297,17 +298,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     Animated.timing(scrollAnim, {
       toValue: targetPosition,
       duration: config.spinDuration,
-      easing: (t) => {
-        // Custom easing: fast for 85% of time, then rapid slowdown
-        // This makes it harder to predict where it will stop
-        if (t < 0.85) {
-          // Fast and nearly linear for most of the spin
-          return t * 0.95;
-        }
-        // Very fast slowdown in the last 15%
-        const slowdownProgress = (t - 0.85) / 0.15;
-        return 0.8075 + (1 - Math.pow(1 - slowdownProgress, 3)) * 0.1925;
-      },
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: canUseNativeDriver,
     }).start(() => {
       setPhase('stopping');
@@ -396,12 +387,15 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   }, [onComplete, config.revealHoldDuration]);
 
   // Calculate scroll position
-  const centerOffset = config.itemHeight * Math.floor(config.visibleItems / 2);
-
+  // When scrollAnim = N, item N should be at the center of the window
+  // With visibleItems=3, center position is at index 1 (0-indexed)
+  // So we offset by 1 item height to center item 0 initially
+  const centeringOffset = config.itemHeight; // One item height to center first item
+  
   const translateY = Animated.add(
     scrollAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: [centerOffset, centerOffset - config.itemHeight],
+      outputRange: [centeringOffset, centeringOffset - config.itemHeight],
     }),
     bounceAnim
   );

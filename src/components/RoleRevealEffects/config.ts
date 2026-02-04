@@ -52,8 +52,8 @@ export const CONFIG = {
     /** Flip animation duration */
     flipDuration: 600,
     /** Card dimensions */
-    cardWidth: 220,
-    cardHeight: 320,
+    cardWidth: 280,
+    cardHeight: 400,
     /** Shadow animation range */
     shadowOpacityRange: [0.2, 0.5] as [number, number],
     shadowBlurRange: [10, 25] as [number, number],
