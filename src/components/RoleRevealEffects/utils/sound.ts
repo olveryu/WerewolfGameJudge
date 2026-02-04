@@ -36,41 +36,19 @@ export async function preloadSounds(): Promise<void> {
 
 /**
  * Play a sound effect with graceful degradation
+ *
+ * NOTE: 当前禁用音效，因为没有合适的 UI 音效文件。
+ * 原来错误地使用了游戏语音（night.mp3, night_end.mp3）作为 tick/confirm 音效，
+ * 导致"查看身份"时反复播放"天亮了"等语音。
+ *
+ * @see https://github.com/example/issue/123 添加真正的 UI 音效文件后启用
  */
 export async function playSound(
-  type: SoundType,
-  volume?: number
+  _type: SoundType,
+  _volume?: number
 ): Promise<void> {
-  try {
-    // Get volume from config if not specified
-    const soundVolume = volume ?? getSoundVolume(type);
-
-    // For now, we'll create a simple beep-like effect using the existing audio
-    // In production, you'd have proper sound files
-    const soundAssets: Record<SoundType, number> = {
-      tick: require('../../../../assets/audio/night.mp3'),
-      confirm: require('../../../../assets/audio/night_end.mp3'),
-      whoosh: require('../../../../assets/audio/bgm_night.mp3'),
-    };
-
-    const asset = soundAssets[type];
-    if (!asset) return;
-
-    const player = createAudioPlayer(asset);
-    player.volume = soundVolume;
-    player.play();
-
-    // Clean up after a short delay
-    setTimeout(() => {
-      try {
-        player.remove();
-      } catch {
-        // Ignore cleanup errors
-      }
-    }, 1000);
-  } catch {
-    // Silent fail - audio is optional
-  }
+  // 禁用音效 - 避免错误使用游戏语音
+  return;
 }
 
 /**

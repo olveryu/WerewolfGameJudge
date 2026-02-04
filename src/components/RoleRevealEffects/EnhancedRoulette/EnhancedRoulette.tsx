@@ -1,43 +1,94 @@
 /**
- * EnhancedRoulette - Slot machine style role reveal animation
+ * EnhancedRoulette - Fancy Slot Machine style role reveal animation
  *
  * Features:
- * - Spinning roulette with flow particles
- * - Haptic feedback on stop
- * - Rhythmic tick sounds
- * - Gradient edge masks
- * - Golden highlight on selection
+ * - Realistic slot machine cabinet with metallic frame
+ * - Neon lights and decorative bulbs
+ * - 3D-style spinning reels with item cards
+ * - Bounce effect on stop
+ * - Celebration particles on reveal
+ * - Golden highlight animation
  */
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, Animated, StyleSheet, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  Animated,
+  StyleSheet,
+  Dimensions,
+  Easing,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useColors, spacing, typography, borderRadius } from '../../../theme';
 import type { RoleRevealEffectProps, RoleData } from '../types';
 import { ALIGNMENT_THEMES } from '../types';
 import { CONFIG } from '../config';
-import { canUseNativeDriver, getOptimalParticleCount } from '../utils/platform';
+import { canUseNativeDriver } from '../utils/platform';
 import { playSound, createTickPlayer } from '../utils/sound';
 import { triggerHaptic } from '../utils/haptics';
-import { GradientOverlay } from '../common/GradientOverlay';
 import { GlowBorder } from '../common/GlowBorder';
-import { Particle } from '../common/Particle';
+import { RoleCardContent } from '../common/RoleCardContent';
+import type { RoleId } from '../../../models/roles/spec/specs';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Slot machine colors
+const SLOT_COLORS = {
+  frameOuter: '#2D2D2D',
+  frameInner: '#1A1A1A',
+  metalGradient: ['#4A4A4A', '#2D2D2D', '#1A1A1A', '#2D2D2D', '#4A4A4A'] as const,
+  gold: '#FFD700',
+  goldDark: '#B8860B',
+  neonPink: '#FF1493',
+  neonBlue: '#00BFFF',
+  neonGreen: '#39FF14',
+  bulbOn: '#FFE566',
+  bulbOff: '#666666',
+  reelBg: '#FFFFFF',
+  itemCard: '#F5F5F5',
+  itemCardBorder: '#E0E0E0',
+};
+
+// Decorative bulb component
+const Bulb: React.FC<{ on: boolean; color?: string; size?: number }> = ({
+  on,
+  color = SLOT_COLORS.bulbOn,
+  size = 8,
+}) => (
+  <View
+    style={[
+      styles.bulb,
+      {
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: on ? color : SLOT_COLORS.bulbOff,
+        shadowColor: on ? color : 'transparent',
+        shadowOpacity: on ? 0.8 : 0,
+        shadowRadius: size / 2,
+        shadowOffset: { width: 0, height: 0 },
+      },
+    ]}
+  />
+);
+
+// Celebration particle
+interface Particle {
+  id: number;
+  x: Animated.Value;
+  y: Animated.Value;
+  scale: Animated.Value;
+  opacity: Animated.Value;
+  rotation: Animated.Value;
+  emoji: string;
+}
+
+const CELEBRATION_EMOJIS = ['⭐', '✨', '🎉', '🎊', '💫', '🌟'];
+const CELEBRATION_COLORS = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
 
 export interface EnhancedRouletteProps extends RoleRevealEffectProps {
   /** All roles to show in the roulette */
   allRoles: RoleData[];
-}
-
-interface FlowParticle {
-  id: string;
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-  color: string;
-  size: number;
-  duration: number;
-  delay: number;
 }
 
 export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
@@ -53,15 +104,63 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const config = CONFIG.roulette;
 
   const [phase, setPhase] = useState<'spinning' | 'stopping' | 'revealed'>('spinning');
-  const [showHighlight, setShowHighlight] = useState(false);
-  const [flowParticles, setFlowParticles] = useState<FlowParticle[]>([]);
   const [shuffledRoles, setShuffledRoles] = useState<RoleData[]>([]);
+  const [bulbPattern, setBulbPattern] = useState<boolean[]>([]);
+  const [particles, setParticles] = useState<Particle[]>([]);
 
   const scrollAnim = useMemo(() => new Animated.Value(0), []);
-  const containerWidth = Math.min(SCREEN_WIDTH * 0.85, 320);
-  const containerHeight = config.itemHeight * config.visibleItems;
+  const bounceAnim = useMemo(() => new Animated.Value(0), []);
+  const frameGlowAnim = useMemo(() => new Animated.Value(0), []);
+  const revealScaleAnim = useMemo(() => new Animated.Value(0.8), []);
+  const revealOpacityAnim = useMemo(() => new Animated.Value(0), []);
 
-  // Shuffle roles on mount (avoid Math.random during render)
+  const containerWidth = Math.min(SCREEN_WIDTH * 0.9, 340);
+  const containerHeight = config.itemHeight * config.visibleItems;
+  const frameWidth = containerWidth + 40;
+  const frameHeight = containerHeight + 100;
+
+  // Number of decorative bulbs
+  const bulbCount = 12;
+
+  // Initialize bulb pattern
+  useEffect(() => {
+    setBulbPattern(new Array(bulbCount).fill(false).map(() => Math.random() > 0.5));
+  }, []);
+
+  // Animate bulbs during spinning
+  useEffect(() => {
+    if (phase !== 'spinning' || reducedMotion) return;
+
+    const interval = setInterval(() => {
+      setBulbPattern((prev) => prev.map(() => Math.random() > 0.3));
+    }, 150);
+
+    return () => clearInterval(interval);
+  }, [phase, reducedMotion]);
+
+  // Frame glow animation
+  useEffect(() => {
+    if (reducedMotion) return;
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(frameGlowAnim, {
+          toValue: 1,
+          duration: 1500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: canUseNativeDriver,
+        }),
+        Animated.timing(frameGlowAnim, {
+          toValue: 0,
+          duration: 1500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: canUseNativeDriver,
+        }),
+      ])
+    ).start();
+  }, [frameGlowAnim, reducedMotion]);
+
+  // Shuffle roles on mount
   useEffect(() => {
     const unique = [...new Set(allRoles.map((r) => r.id))];
     const roles = unique.map((id) => allRoles.find((r) => r.id === id)!);
@@ -91,49 +190,101 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     return result;
   }, [shuffledRoles]);
 
-  // Generate flow particles
-  const generateFlowParticles = useCallback(() => {
-    const count = getOptimalParticleCount(config.particleCount);
-    const particles: FlowParticle[] = [];
-    const theme = ALIGNMENT_THEMES[role.alignment];
-
-    for (let i = 0; i < count; i++) {
-      const side = Math.random() > 0.5 ? -1 : 1;
-      particles.push({
-        id: `flow-${i}-${Date.now()}`,
-        startX: side * (containerWidth / 2 + 20),
-        startY: Math.random() * containerHeight,
-        endX: side * (containerWidth / 2 - 50),
-        endY: Math.random() * containerHeight,
-        color: theme.particleColor,
-        size: 4 + Math.random() * 4,
-        duration: 600 + Math.random() * 400,
-        delay: Math.random() * 500,
-      });
-    }
-    return particles;
-  }, [role.alignment, containerWidth, containerHeight, config.particleCount]);
-
   // Tick player for sound
   const tickPlayer = useMemo(
     () => createTickPlayer(enableSound && !reducedMotion),
     [enableSound, reducedMotion]
   );
 
-  // Spin animation
-  useEffect(() => {
-    if (reducedMotion) {
-      // Reduced motion: just fade in the result
-      setPhase('revealed');
-      setShowHighlight(true);
-      const timer = setTimeout(() => {
-        onComplete();
-      }, CONFIG.common.reducedMotionFadeDuration);
-      return () => clearTimeout(timer);
+  // Create celebration particles
+  const createParticles = useCallback(() => {
+    const newParticles: Particle[] = [];
+    const count = 20;
+
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+      const distance = 100 + Math.random() * 100;
+      const targetX = Math.cos(angle) * distance;
+      const targetY = Math.sin(angle) * distance - 50;
+
+      newParticles.push({
+        id: i,
+        x: new Animated.Value(0),
+        y: new Animated.Value(0),
+        scale: new Animated.Value(0),
+        opacity: new Animated.Value(1),
+        rotation: new Animated.Value(0),
+        emoji: CELEBRATION_EMOJIS[i % CELEBRATION_EMOJIS.length],
+      });
+
+      // Animate particle
+      Animated.parallel([
+        Animated.timing(newParticles[i].x, {
+          toValue: targetX,
+          duration: 800 + Math.random() * 400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: canUseNativeDriver,
+        }),
+        Animated.timing(newParticles[i].y, {
+          toValue: targetY,
+          duration: 800 + Math.random() * 400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: canUseNativeDriver,
+        }),
+        Animated.sequence([
+          Animated.timing(newParticles[i].scale, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: canUseNativeDriver,
+          }),
+          Animated.timing(newParticles[i].scale, {
+            toValue: 0,
+            duration: 600,
+            delay: 200,
+            useNativeDriver: canUseNativeDriver,
+          }),
+        ]),
+        Animated.timing(newParticles[i].opacity, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: canUseNativeDriver,
+        }),
+        Animated.timing(newParticles[i].rotation, {
+          toValue: Math.random() * 4 - 2,
+          duration: 1000,
+          useNativeDriver: canUseNativeDriver,
+        }),
+      ]).start();
     }
 
-    // Generate initial particles
-    setFlowParticles(generateFlowParticles());
+    setParticles(newParticles);
+  }, []);
+
+  // Spin animation
+  useEffect(() => {
+    if (shuffledRoles.length === 0 || targetIndex < 0) {
+      return;
+    }
+
+    if (reducedMotion) {
+      setPhase('revealed');
+      Animated.parallel([
+        Animated.timing(revealScaleAnim, {
+          toValue: 1,
+          duration: CONFIG.common.reducedMotionFadeDuration,
+          useNativeDriver: canUseNativeDriver,
+        }),
+        Animated.timing(revealOpacityAnim, {
+          toValue: 1,
+          duration: CONFIG.common.reducedMotionFadeDuration,
+          useNativeDriver: canUseNativeDriver,
+        }),
+      ]).start();
+      const timer = setTimeout(() => {
+        onComplete();
+      }, CONFIG.common.reducedMotionFadeDuration + (config.revealHoldDuration ?? 1500));
+      return () => clearTimeout(timer);
+    }
 
     // Start tick sounds
     tickPlayer.start(config.tickIntervalFast);
@@ -142,30 +293,70 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     const totalSpins = config.spinRotations;
     const targetPosition = totalSpins * shuffledRoles.length + targetIndex;
 
-    // Animate spin
+    // Animate spin with bounce at end
     Animated.timing(scrollAnim, {
       toValue: targetPosition,
       duration: config.spinDuration,
       easing: (t) => {
-        // Ease out cubic for slot machine feel
-        return 1 - Math.pow(1 - t, 3);
+        // Custom easing: fast start, dramatic slowdown
+        if (t < 0.7) {
+          return t * 1.2;
+        }
+        // Slow down dramatically at the end
+        return 0.84 + (1 - Math.pow(1 - (t - 0.7) / 0.3, 4)) * 0.16;
       },
       useNativeDriver: canUseNativeDriver,
     }).start(() => {
       setPhase('stopping');
       tickPlayer.stop();
 
-      // Play confirm sound and haptic
-      if (enableSound) {
-        playSound('confirm');
-      }
-      if (enableHaptics) {
-        triggerHaptic('medium', true);
-      }
+      // Bounce effect
+      Animated.sequence([
+        Animated.timing(bounceAnim, {
+          toValue: -15,
+          duration: 100,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: canUseNativeDriver,
+        }),
+        Animated.spring(bounceAnim, {
+          toValue: 0,
+          friction: 4,
+          tension: 300,
+          useNativeDriver: canUseNativeDriver,
+        }),
+      ]).start(() => {
+        // Play confirm sound and haptic
+        if (enableSound) {
+          playSound('confirm');
+        }
+        if (enableHaptics) {
+          triggerHaptic('heavy', true);
+        }
 
-      // Show highlight animation
-      setShowHighlight(true);
-      setPhase('revealed');
+        // All bulbs on for celebration
+        setBulbPattern(new Array(bulbCount).fill(true));
+
+        // Create particles
+        createParticles();
+
+        // Transition to revealed
+        setTimeout(() => {
+          setPhase('revealed');
+          Animated.parallel([
+            Animated.spring(revealScaleAnim, {
+              toValue: 1,
+              friction: 6,
+              tension: 100,
+              useNativeDriver: canUseNativeDriver,
+            }),
+            Animated.timing(revealOpacityAnim, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: canUseNativeDriver,
+            }),
+          ]).start();
+        }, 500);
+      });
     });
 
     // Gradually slow down tick sounds
@@ -173,152 +364,310 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       tickPlayer.updateInterval(config.tickIntervalSlow);
     }, config.spinDuration * 0.6);
 
-    // Regenerate particles periodically
-    const particleInterval = setInterval(() => {
-      setFlowParticles(generateFlowParticles());
-    }, 800);
-
     return () => {
       tickPlayer.stop();
       clearTimeout(slowdownTimer);
-      clearInterval(particleInterval);
     };
   }, [
     reducedMotion,
     scrollAnim,
+    bounceAnim,
     shuffledRoles.length,
     targetIndex,
-    generateFlowParticles,
     tickPlayer,
     enableSound,
     enableHaptics,
-    onComplete,
     config,
+    createParticles,
+    revealScaleAnim,
+    revealOpacityAnim,
+    onComplete,
   ]);
 
-  // Handle highlight animation complete
-  const handleHighlightComplete = useCallback(() => {
-    onComplete();
-  }, [onComplete]);
+  // Handle reveal complete
+  const handleRevealComplete = useCallback(() => {
+    const holdDuration = config.revealHoldDuration ?? 1500;
+    setTimeout(() => {
+      onComplete();
+    }, holdDuration);
+  }, [onComplete, config.revealHoldDuration]);
 
   // Calculate scroll position
-  const translateY = scrollAnim.interpolate({
-    inputRange: [0, shuffledRoles.length],
-    outputRange: [0, -config.itemHeight * shuffledRoles.length],
+  const centerOffset = config.itemHeight * Math.floor(config.visibleItems / 2);
+
+  const translateY = Animated.add(
+    scrollAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [centerOffset, centerOffset - config.itemHeight],
+    }),
+    bounceAnim
+  );
+
+  // Card dimensions for revealed state
+  const cardWidth = Math.min(SCREEN_WIDTH * 0.85, 320);
+  const cardHeight = cardWidth * 1.4;
+
+  // Frame glow opacity
+  const frameGlowOpacity = frameGlowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.8],
   });
 
-  // Center offset to show middle item
-  const centerOffset = config.itemHeight * Math.floor(config.visibleItems / 2);
+  // Wait for shuffledRoles to be ready
+  if (shuffledRoles.length === 0) {
+    return (
+      <View
+        testID={`${testIDPrefix}-container`}
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { color: colors.text }]}>准备中...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Revealed phase - show RoleCardContent
+  if (phase === 'revealed') {
+    return (
+      <View
+        testID={`${testIDPrefix}-container`}
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
+        {/* Celebration particles */}
+        <View style={styles.particleContainer}>
+          {particles.map((p) => (
+            <Animated.Text
+              key={p.id}
+              style={[
+                styles.particle,
+                {
+                  transform: [
+                    { translateX: p.x },
+                    { translateY: p.y },
+                    { scale: p.scale },
+                    {
+                      rotate: p.rotation.interpolate({
+                        inputRange: [-2, 2],
+                        outputRange: ['-360deg', '360deg'],
+                      }),
+                    },
+                  ],
+                  opacity: p.opacity,
+                },
+              ]}
+            >
+              {p.emoji}
+            </Animated.Text>
+          ))}
+        </View>
+
+        <Animated.View
+          style={[
+            styles.revealedCardContainer,
+            {
+              width: cardWidth,
+              height: cardHeight,
+              transform: [{ scale: revealScaleAnim }],
+              opacity: revealOpacityAnim,
+            },
+          ]}
+        >
+          <RoleCardContent
+            roleId={role.id as RoleId}
+            width={cardWidth}
+            height={cardHeight}
+          />
+          <GlowBorder
+            width={cardWidth + 8}
+            height={cardHeight + 8}
+            color="#FFD700"
+            glowColor="#FFA500"
+            borderWidth={3}
+            borderRadius={borderRadius.medium + 4}
+            animate={!reducedMotion}
+            flashCount={config.highlightFlashCount}
+            flashDuration={config.highlightFlashDuration}
+            onComplete={handleRevealComplete}
+            style={{
+              position: 'absolute',
+              top: -4,
+              left: -4,
+            }}
+          />
+        </Animated.View>
+      </View>
+    );
+  }
 
   return (
     <View
       testID={`${testIDPrefix}-container`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      {/* Flow particles */}
-      {phase === 'spinning' && !reducedMotion && (
-        <View style={styles.particleContainer}>
-          {flowParticles.map((p) => (
-            <Particle
-              key={p.id}
-              startX={containerWidth / 2 + p.startX}
-              startY={p.startY}
-              endX={containerWidth / 2 + p.endX}
-              endY={p.endY}
-              color={p.color}
-              size={p.size}
-              duration={p.duration}
-              delay={p.delay}
-              fadeOut
-            />
-          ))}
-        </View>
-      )}
-
-      {/* Roulette window */}
-      <View
-        testID={`${testIDPrefix}-window`}
-        style={[
-          styles.window,
-          {
-            width: containerWidth,
-            height: containerHeight,
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        {/* Scrolling items */}
-        <Animated.View
-          style={[
-            styles.scrollContainer,
-            {
-              transform: [{ translateY: Animated.add(translateY, centerOffset) }],
-            },
-          ]}
+      {/* Slot Machine Cabinet */}
+      <View style={[styles.cabinet, { width: frameWidth, height: frameHeight }]}>
+        {/* Outer metallic frame */}
+        <LinearGradient
+          colors={[...SLOT_COLORS.metalGradient]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.outerFrame}
         >
-          {repeatedRoles.map((r, index) => {
-            const theme = ALIGNMENT_THEMES[r.alignment];
-            return (
-              <View
-                key={`role-${r.id}-${index}`}
+          {/* Decorative corner screws */}
+          <View style={[styles.screw, styles.screwTopLeft]} />
+          <View style={[styles.screw, styles.screwTopRight]} />
+          <View style={[styles.screw, styles.screwBottomLeft]} />
+          <View style={[styles.screw, styles.screwBottomRight]} />
+
+          {/* Top decorative panel with bulbs */}
+          <View style={styles.topPanel}>
+            <Text style={styles.slotTitle}>🎰 JACKPOT 🎰</Text>
+            <View style={styles.bulbRow}>
+              {bulbPattern.slice(0, 6).map((on, i) => (
+                <Bulb
+                  key={`top-${i}`}
+                  on={on}
+                  color={i % 2 === 0 ? SLOT_COLORS.neonPink : SLOT_COLORS.neonBlue}
+                />
+              ))}
+            </View>
+          </View>
+
+          {/* Neon glow border */}
+          <Animated.View
+            style={[
+              styles.neonBorder,
+              {
+                opacity: frameGlowOpacity,
+                shadowColor: SLOT_COLORS.neonPink,
+              },
+            ]}
+          />
+
+          {/* Inner frame with reel window */}
+          <View style={[styles.innerFrame, { backgroundColor: SLOT_COLORS.frameInner }]}>
+            {/* Reel window */}
+            <View
+              testID={`${testIDPrefix}-window`}
+              style={[
+                styles.reelWindow,
+                {
+                  width: containerWidth,
+                  height: containerHeight,
+                  backgroundColor: SLOT_COLORS.reelBg,
+                },
+              ]}
+            >
+              {/* Scrolling items */}
+              <Animated.View
                 style={[
-                  styles.item,
+                  styles.scrollContainer,
                   {
-                    height: config.itemHeight,
-                    borderBottomColor: colors.border,
+                    transform: [{ translateY: translateY as unknown as number }],
                   },
                 ]}
               >
-                <Text style={styles.itemIcon}>{r.avatar || '❓'}</Text>
-                <Text
-                  style={[styles.itemName, { color: theme.primaryColor }]}
-                  numberOfLines={1}
-                >
-                  {r.name}
-                </Text>
+                {repeatedRoles.map((r, index) => {
+                  const theme = ALIGNMENT_THEMES[r.alignment];
+                  return (
+                    <View
+                      key={`role-${r.id}-${index}`}
+                      style={[
+                        styles.item,
+                        {
+                          height: config.itemHeight,
+                        },
+                      ]}
+                    >
+                      {/* Item card with 3D effect */}
+                      <LinearGradient
+                        colors={[SLOT_COLORS.itemCard, '#FFFFFF', SLOT_COLORS.itemCard]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={[
+                          styles.itemCard,
+                          { borderColor: SLOT_COLORS.itemCardBorder },
+                        ]}
+                      >
+                        <Text style={styles.itemIcon}>{r.avatar || '❓'}</Text>
+                        <Text
+                          style={[styles.itemName, { color: theme.primaryColor }]}
+                          numberOfLines={1}
+                        >
+                          {r.name}
+                        </Text>
+                      </LinearGradient>
+                    </View>
+                  );
+                })}
+              </Animated.View>
+
+              {/* Gradient masks for 3D depth */}
+              <LinearGradient
+                colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)']}
+                style={[styles.gradientMask, styles.gradientMaskTop]}
+              />
+              <LinearGradient
+                colors={['rgba(255,255,255,0)', 'rgba(255,255,255,1)']}
+                style={[styles.gradientMask, styles.gradientMaskBottom]}
+              />
+
+              {/* Center selection indicators */}
+              <View style={[styles.selectionIndicator, styles.selectionIndicatorLeft]}>
+                <Text style={styles.indicatorArrow}>▶</Text>
               </View>
-            );
-          })}
-        </Animated.View>
+              <View style={[styles.selectionIndicator, styles.selectionIndicatorRight]}>
+                <Text style={styles.indicatorArrow}>◀</Text>
+              </View>
 
-        {/* Gradient masks */}
-        <GradientOverlay
-          position="top"
-          size={config.itemHeight * 0.8}
-          color={colors.surface}
-        />
-        <GradientOverlay
-          position="bottom"
-          size={config.itemHeight * 0.8}
-          color={colors.surface}
-        />
+              {/* Center highlight line */}
+              <View style={[styles.centerHighlight, { backgroundColor: SLOT_COLORS.gold }]} />
+            </View>
+          </View>
 
-        {/* Center indicator lines */}
-        <View style={[styles.centerLine, styles.centerLineTop, { backgroundColor: colors.primary }]} />
-        <View style={[styles.centerLine, styles.centerLineBottom, { backgroundColor: colors.primary }]} />
+          {/* Bottom decorative panel with bulbs */}
+          <View style={styles.bottomPanel}>
+            <View style={styles.bulbRow}>
+              {bulbPattern.slice(6, 12).map((on, i) => (
+                <Bulb
+                  key={`bottom-${i}`}
+                  on={on}
+                  color={i % 2 === 0 ? SLOT_COLORS.neonGreen : SLOT_COLORS.gold}
+                />
+              ))}
+            </View>
+          </View>
+        </LinearGradient>
       </View>
 
-      {/* Golden glow border on reveal */}
-      {showHighlight && (
-        <GlowBorder
-          width={containerWidth + 8}
-          height={containerHeight + 8}
-          color="#FFD700"
-          glowColor="#FFA500"
-          borderWidth={3}
-          borderRadius={borderRadius.medium + 4}
-          animate={!reducedMotion}
-          flashCount={config.highlightFlashCount}
-          flashDuration={config.highlightFlashDuration}
-          onComplete={handleHighlightComplete}
-          style={{
-            position: 'absolute',
-            top: -4,
-            left: (SCREEN_WIDTH - containerWidth) / 2 - 4,
-          }}
-        />
-      )}
+      {/* Celebration particles */}
+      <View style={styles.particleContainer}>
+        {particles.map((p) => (
+          <Animated.Text
+            key={p.id}
+            style={[
+              styles.particle,
+              {
+                transform: [
+                  { translateX: p.x },
+                  { translateY: p.y },
+                  { scale: p.scale },
+                  {
+                    rotate: p.rotation.interpolate({
+                      inputRange: [-2, 2],
+                      outputRange: ['-360deg', '360deg'],
+                    }),
+                  },
+                ],
+                opacity: p.opacity,
+              },
+            ]}
+          >
+            {p.emoji}
+          </Animated.Text>
+        ))}
+      </View>
     </View>
   );
 };
@@ -329,43 +678,193 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  particleContainer: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  window: {
-    borderRadius: borderRadius.medium,
+  loadingText: {
+    fontSize: typography.body,
+  },
+  cabinet: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  outerFrame: {
+    flex: 1,
+    width: '100%',
+    borderRadius: 16,
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // 3D shadow effect
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  neonBorder: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 16,
     borderWidth: 2,
+    borderColor: SLOT_COLORS.neonPink,
+    shadowRadius: 10,
+    shadowOpacity: 1,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  innerFrame: {
+    borderRadius: 12,
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Inner shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  topPanel: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  slotTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: SLOT_COLORS.gold,
+    textShadowColor: SLOT_COLORS.goldDark,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+    marginBottom: 6,
+  },
+  bottomPanel: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  bulbRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '80%',
+  },
+  bulb: {
+    marginHorizontal: 4,
+  },
+  screw: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#555',
+    borderWidth: 1,
+    borderColor: '#777',
+  },
+  screwTopLeft: {
+    top: 8,
+    left: 8,
+  },
+  screwTopRight: {
+    top: 8,
+    right: 8,
+  },
+  screwBottomLeft: {
+    bottom: 8,
+    left: 8,
+  },
+  screwBottomRight: {
+    bottom: 8,
+    right: 8,
+  },
+  reelWindow: {
+    borderRadius: 8,
     overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: '#333',
   },
   scrollContainer: {
     width: '100%',
   },
   item: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.small,
+  },
+  itemCard: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.medium,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: spacing.small,
+    borderRadius: 8,
+    borderWidth: 1,
+    width: '95%',
+    // 3D effect
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
   itemIcon: {
-    fontSize: 32,
+    fontSize: 36,
     marginRight: spacing.medium,
   },
   itemName: {
     fontSize: typography.title,
-    fontWeight: '600',
+    fontWeight: '700',
     flex: 1,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
-  centerLine: {
+  gradientMask: {
     position: 'absolute',
     left: 0,
     right: 0,
+    height: 40,
+    pointerEvents: 'none',
+  },
+  gradientMaskTop: {
+    top: 0,
+  },
+  gradientMaskBottom: {
+    bottom: 0,
+  },
+  selectionIndicator: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -12,
+  },
+  selectionIndicatorLeft: {
+    left: 4,
+  },
+  selectionIndicatorRight: {
+    right: 4,
+  },
+  indicatorArrow: {
+    fontSize: 16,
+    color: SLOT_COLORS.gold,
+    textShadowColor: SLOT_COLORS.goldDark,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  centerHighlight: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: '50%',
     height: 2,
+    marginTop: -1,
+    opacity: 0.5,
   },
-  centerLineTop: {
-    top: '33.33%',
+  revealedCardContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  centerLineBottom: {
-    bottom: '33.33%',
+  particleContainer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'none',
+  },
+  particle: {
+    position: 'absolute',
+    fontSize: 24,
   },
 });

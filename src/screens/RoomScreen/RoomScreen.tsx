@@ -1059,8 +1059,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               if (result.seatIndex !== undefined) showLeaveSeatDialog(result.seatIndex);
               return;
             case 'roleCard':
-              setRoleCardVisible(true);
-              void viewedRole();
+              {
+                // 在显示角色卡时，先检查是否需要播放动画（基于当前 hasViewedRole 状态）
+                const myPlayer = mySeatNumber === null ? null : gameState?.players.get(mySeatNumber);
+                const needAnimation = !(myPlayer?.hasViewedRole ?? false);
+                setShouldPlayRevealAnimation(needAnimation);
+                setRoleCardVisible(true);
+                void viewedRole();
+              }
               return;
             case 'leaveRoom':
               handleLeaveRoom();
@@ -1142,9 +1148,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Role card modal state
   const [roleCardVisible, setRoleCardVisible] = useState(false);
+  // 记录本次打开是否需要播放动画（在打开时根据 hasViewedRole 决定，避免状态更新后丢失）
+  const [shouldPlayRevealAnimation, setShouldPlayRevealAnimation] = useState(false);
 
   const handleRoleCardClose = useCallback(() => {
     setRoleCardVisible(false);
+    setShouldPlayRevealAnimation(false);
   }, []);
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -1386,7 +1395,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       />
 
       {/* Role Card Modal - 统一使用 RoleRevealAnimator */}
-      {resolvedRoleRevealAnimation !== 'none' && roleCardVisible && myRole && (() => {
+      {/* 只在首次查看时播放动画（shouldPlayRevealAnimation），后续直接显示静态卡片 */}
+      {roleCardVisible && myRole && (() => {
+        // 如果动画是 none 或不需要播放动画，直接显示静态卡片
+        if (resolvedRoleRevealAnimation === 'none' || !shouldPlayRevealAnimation) {
+          return (
+            <RoleCardSimple visible={roleCardVisible} roleId={myRole} onClose={handleRoleCardClose} />
+          );
+        }
+        
+        // 首次查看，播放动画
         const roleSpec = getRoleSpec(myRole);
         const alignmentMap: Record<string, 'wolf' | 'god' | 'villager'> = {
           [Faction.Wolf]: 'wolf',
@@ -1420,10 +1438,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           />
         );
       })()}
-
-      {resolvedRoleRevealAnimation === 'none' && (
-        <RoleCardSimple visible={roleCardVisible} roleId={myRole} onClose={handleRoleCardClose} />
-      )}
     </SafeAreaView>
   );
 };
