@@ -121,7 +121,10 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   // Calculate scratch progress based on scratched area
   const calculateProgress = useCallback(() => {
     const brushArea = Math.PI * brushRadius * brushRadius;
-    const estimatedArea = scratchedAreaRef.current * brushArea * 0.7;
+    // Overlap factor: points are close together when scratching, 
+    // so actual revealed area is much smaller than brush count × brush area
+    // Using 0.15 to account for ~85% overlap between consecutive scratch points
+    const estimatedArea = scratchedAreaRef.current * brushArea * 0.15;
     return Math.min(1, estimatedArea / totalArea);
   }, [brushRadius, totalArea]);
 

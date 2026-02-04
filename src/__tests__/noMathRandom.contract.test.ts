@@ -30,12 +30,10 @@ const ALLOWED_PATTERNS = [
   '**/RoleRevealEffects/Particle.tsx',
   '**/RoleRevealEffects/EnhancedRoulette.tsx',
   '**/RoleRevealEffects/ScratchReveal.tsx',
-  '**/RoleRevealEffects/FragmentAssemble.tsx',
-  '**/RoleRevealEffects/FogReveal.tsx',
+  '**/RoleRevealEffects/TarotDraw.tsx',
+  '**/RoleRevealEffects/FireReveal.tsx',
   // AI 建议（非游戏逻辑）
   '**/AIChatBubble.tsx',
-  // 明确标记为 @deprecated 的旧代码
-  '**/RoleRevealAnimator.tsx', // useRandomEffectType 已废弃
 ];
 
 // 需要检查的目录

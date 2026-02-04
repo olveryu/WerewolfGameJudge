@@ -10,8 +10,8 @@
  * - roulette: 轮盘动画
  * - flip: 翻牌动画
  * - scratch: 刮刮卡动画
- * - fragment: 碎片聚合动画
- * - fog: 迷雾消散动画
+ * - tarot: 塔罗牌抽取动画
+ * - fire: 火焰燃烧动画
  * - none: 无动画（简单卡片）
  * - random: 随机选择（Host 解析后广播）
  */
@@ -19,8 +19,8 @@ export type RoleRevealAnimation =
   | 'roulette'
   | 'flip'
   | 'scratch'
-  | 'fragment'
-  | 'fog'
+  | 'tarot'
+  | 'fire'
   | 'none'
   | 'random';
 
@@ -33,8 +33,8 @@ export type ResolvedRoleRevealAnimation =
   | 'roulette'
   | 'flip'
   | 'scratch'
-  | 'fragment'
-  | 'fog'
+  | 'tarot'
+  | 'fire'
   | 'none';
 
 /**
@@ -44,8 +44,8 @@ export type RandomizableAnimation =
   | 'roulette'
   | 'flip'
   | 'scratch'
-  | 'fragment'
-  | 'fog';
+  | 'tarot'
+  | 'fire';
 
 /**
  * 可随机选择的动画数组（用于 random 解析）
@@ -54,8 +54,8 @@ export const RANDOMIZABLE_ANIMATIONS: readonly RandomizableAnimation[] = [
   'roulette',
   'flip',
   'scratch',
-  'fragment',
-  'fog',
+  'tarot',
+  'fire',
 ] as const;
 
 /**

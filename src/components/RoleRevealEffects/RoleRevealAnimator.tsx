@@ -16,12 +16,12 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Modal, View, StyleSheet, AccessibilityInfo } from 'react-native';
-import type { RoleRevealAnimatorProps, RevealEffectType, RoleData } from './types';
+import type { RoleRevealAnimatorProps, RoleData } from './types';
 import { EnhancedRoulette } from './EnhancedRoulette';
 import { FlipReveal } from './FlipReveal';
 import { ScratchReveal } from './ScratchReveal';
-import { FragmentAssemble } from './FragmentAssemble';
-import { FogReveal } from './FogReveal';
+import { TarotDraw } from './TarotDraw';
+import { FireReveal } from './FireReveal';
 import { useColors } from '../../theme';
 
 export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
@@ -81,10 +81,10 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
         return <FlipReveal {...commonProps} />;
       case 'scratch':
         return <ScratchReveal {...commonProps} />;
-      case 'fragment':
-        return <FragmentAssemble {...commonProps} />;
-      case 'fog':
-        return <FogReveal {...commonProps} />;
+      case 'tarot':
+        return <TarotDraw {...commonProps} />;
+      case 'fire':
+        return <FireReveal {...commonProps} />;
       default:
         // Default to flip if unknown effect type
         return <FlipReveal {...commonProps} />;
@@ -107,22 +107,6 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
 };
 
 /**
- * @deprecated 不要使用此 hook。
- * "random" 动画必须由 Host 解析并通过 BroadcastGameState.resolvedRoleRevealAnimation 广播。
- * 客户端应直接读取 gameState.resolvedRoleRevealAnimation，而非本地随机选择。
- * 详见 docs/random-and-id-guidelines.md
- *
- * 保留此函数仅为向后兼容，将在未来版本移除。
- */
-export function useRandomEffectType(): RevealEffectType {
-  const effects: RevealEffectType[] = ['roulette', 'flip', 'scratch', 'fragment', 'fog'];
-  const [effectType] = useState<RevealEffectType>(
-    () => effects[Math.floor(Math.random() * effects.length)]
-  );
-  return effectType;
-}
-
-/**
  * Helper to create RoleData from role ID and spec
  */
 export function createRoleData(
@@ -138,5 +122,6 @@ export function createRoleData(
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    overflow: 'visible', // Allow child effects to render outside bounds
   },
 });

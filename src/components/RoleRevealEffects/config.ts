@@ -77,8 +77,8 @@ export const CONFIG = {
   scratch: {
     /** Scratch brush radius */
     brushRadius: 15,
-    /** Auto-reveal threshold (percentage scratched) - 75% required */
-    autoRevealThreshold: 0.75,
+    /** Auto-reveal threshold (percentage scratched) - 15% required */
+    autoRevealThreshold: 0.15,
     /** Scratch overlay color */
     overlayColor: '#374151',
     /** Scratch pattern colors */
@@ -92,48 +92,33 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Fragment Assemble
+  // Tarot Draw
   // =====================================================
-  fragment: {
-    /** Grid dimensions (rows x cols) - more fragments = finer detail */
-    gridRows: 8,
-    gridCols: 4,
-    /** Fragment assembly duration */
-    assembleDuration: 3000,
-    /** Stagger delay between fragments */
-    staggerDelay: 50,
-    /** Max initial distance from center */
-    initialDistanceRange: [200, 400] as [number, number],
-    /** Initial rotation range (degrees) */
-    initialRotationRange: [-180, 180] as [number, number],
-    /** Initial scale range */
-    initialScaleRange: [0.3, 0.7] as [number, number],
-    /** Flash duration after assembly */
-    flashDuration: 300,
-    /** Low-end device threshold (reduce fragments) */
-    lowEndFragmentCount: 9, // 3x3
+  tarot: {
+    /** Duration for card to float up from deck (ms) */
+    floatUpDuration: 800,
+    /** Duration for card to hover before flip (ms) */
+    hoverDuration: 600,
+    /** Card flip duration (ms) */
+    flipDuration: 800,
+    /** Aura pulse duration (ms) */
+    auraPulseDuration: 400,
     /** Hold duration after reveal before calling onComplete (ms) */
     revealHoldDuration: 1500,
   },
 
   // =====================================================
-  // Fog Reveal
+  // Fire Reveal
   // =====================================================
-  fog: {
-    /** Number of fog layers */
-    layerCount: 4,
-    /** Fog disperse duration */
-    disperseDuration: 3000,
-    /** Stagger delay between layers */
-    layerStaggerDelay: 100,
-    /** Fog opacity range */
-    opacityRange: [0.7, 0.9] as [number, number],
-    /** Fog scale expansion */
-    scaleExpansion: 1.5,
-    /** Fog translation distance */
-    translateDistance: 200,
-    /** Base blur amount (simulated with opacity) */
-    blurSimulation: 0.6,
+  fire: {
+    /** Number of fire particles */
+    particleCount: 20,
+    /** Fire burn duration (ms) */
+    burnDuration: 2000,
+    /** Ember count after burn */
+    emberCount: 15,
+    /** Ember float duration (ms) */
+    emberDuration: 1500,
     /** Hold duration after reveal before calling onComplete (ms) */
     revealHoldDuration: 1500,
   },

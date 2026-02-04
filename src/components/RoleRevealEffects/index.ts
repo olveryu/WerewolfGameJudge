@@ -14,7 +14,7 @@
  *   return (
  *     <RoleRevealAnimator
  *       visible={showReveal}
- *       effectType="flip" // 'roulette' | 'flip' | 'scratch' | 'fragment' | 'fog'
+ *       effectType="flip" // 'roulette' | 'flip' | 'scratch' | 'tarot' | 'fire'
  *       role={role}
  *       onComplete={() => setShowReveal(false)}
  *       enableSound={true}
@@ -35,8 +35,8 @@ export {
 export { EnhancedRoulette, type EnhancedRouletteProps } from './EnhancedRoulette';
 export { FlipReveal } from './FlipReveal';
 export { ScratchReveal } from './ScratchReveal';
-export { FragmentAssemble } from './FragmentAssemble';
-export { FogReveal } from './FogReveal';
+export { TarotDraw } from './TarotDraw';
+export { FireReveal } from './FireReveal';
 
 // Types
 export type {
@@ -76,7 +76,6 @@ export {
   isAndroid,
   getReducedMotionPreference,
   getOptimalParticleCount,
-  getOptimalFragmentGrid,
 } from './utils/platform';
 
 // Common components (for building custom effects)

@@ -20,10 +20,3 @@ const PLACEHOLDER_AVATAR =
 export const getAvatarImage = (_seed: string): string => {
   return PLACEHOLDER_AVATAR;
 };
-
-/**
- * Mock: Returns a placeholder image URL for seat-based avatar
- */
-export const getUniqueAvatarBySeat = (_seatNumber: number, _roomId?: string): string => {
-  return PLACEHOLDER_AVATAR;
-};

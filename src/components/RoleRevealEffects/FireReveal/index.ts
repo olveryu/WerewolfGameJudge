@@ -1,0 +1,1 @@
+export { FireReveal } from './FireReveal';

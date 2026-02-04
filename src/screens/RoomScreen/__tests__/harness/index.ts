@@ -15,7 +15,6 @@ export {
 export {
   getAll12PBoards,
   getBoardByName,
-  getRequiredDialogTypes,
   getRequiredUiDialogTypes,
   getRequiredHostDataDialogTypes,
   boardHasRole,

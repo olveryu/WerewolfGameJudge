@@ -62,28 +62,6 @@ export const getAvatarImage = (seed: string): number => {
 };
 
 /**
- * @deprecated Use getAvatarByUid instead. This function uses seatNumber which
- * causes avatar to change when user changes seat.
- *
- * Get unique avatar for a player based on seat number
- * This ensures each player in the same room gets a different avatar
- * @param seatNumber - The player's seat number (1-based)
- * @param roomId - Optional room ID for additional randomization
- */
-export const getUniqueAvatarBySeat = (seatNumber: number, roomId?: string): number => {
-  // Use room ID to create a room-specific offset so different rooms have different avatar assignments
-  let roomOffset = 0;
-  if (roomId) {
-    for (let i = 0; i < roomId.length; i++) {
-      roomOffset += roomId.codePointAt(i) || 0;
-    }
-  }
-  // Seat number is 1-based, convert to 0-based index with room offset
-  const index = (seatNumber - 1 + roomOffset) % AVATAR_IMAGES.length;
-  return AVATAR_IMAGES[index];
-};
-
-/**
  * Get a stable default avatar for a user in a specific room.
  *
  * Properties:
