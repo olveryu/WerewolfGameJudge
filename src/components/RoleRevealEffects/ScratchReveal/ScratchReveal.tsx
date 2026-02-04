@@ -20,7 +20,7 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop, G, Mask, Rect } from 'react-native-svg';
+// No SVG imports needed - using native View clipping
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors, spacing, typography, borderRadius } from '../../../theme';
 import type { RoleRevealEffectProps } from '../types';
@@ -404,43 +404,39 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
               />
             </Animated.View>
 
-            {/* SVG scratch mask - creates transparent holes where scratched */}
-            <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFill}>
-              <Defs>
-                <SvgLinearGradient id="scratchGradient" x1="0" y1="0" x2="1" y2="1">
-                  <Stop offset="0%" stopColor={SCRATCH_COLORS.metalLight} />
-                  <Stop offset="50%" stopColor={SCRATCH_COLORS.metalBase} />
-                  <Stop offset="100%" stopColor={SCRATCH_COLORS.metalDark} />
-                </SvgLinearGradient>
-                {/* Mask: white = visible, black = transparent */}
-                <Mask id="scratchMask">
-                  {/* Start with full white (all visible) */}
-                  <Rect x="0" y="0" width={cardWidth} height={cardHeight} fill="white" />
-                  {/* Scratch holes become black (transparent) */}
-                  <G>
-                    {scratchPoints.map((point) => (
-                      <Circle
-                        key={point.id}
-                        cx={point.x}
-                        cy={point.y}
-                        r={brushRadius}
-                        fill="black"
-                      />
-                    ))}
-                  </G>
-                </Mask>
-              </Defs>
-
-              {/* Metal layer with mask applied - scratched areas become transparent */}
-              <Rect
-                x="0"
-                y="0"
-                width={cardWidth}
-                height={cardHeight}
-                fill="url(#scratchGradient)"
-                mask="url(#scratchMask)"
-              />
-            </Svg>
+            {/* Scratch holes - each hole shows the role card beneath */}
+            {scratchPoints.map((point) => (
+              <View
+                key={point.id}
+                style={[
+                  styles.scratchHole,
+                  {
+                    left: point.x - brushRadius,
+                    top: point.y - brushRadius,
+                    width: brushRadius * 2,
+                    height: brushRadius * 2,
+                    borderRadius: brushRadius,
+                  },
+                ]}
+              >
+                {/* Clipped view of the role card at this position */}
+                <View
+                  style={{
+                    width: cardWidth,
+                    height: cardHeight,
+                    position: 'absolute',
+                    left: -(point.x - brushRadius),
+                    top: -(point.y - brushRadius),
+                  }}
+                >
+                  <RoleCardContent
+                    roleId={role.id as RoleId}
+                    width={cardWidth}
+                    height={cardHeight}
+                  />
+                </View>
+              </View>
+            ))}
 
             {/* Scratch texture overlay */}
             <View style={styles.textureOverlay}>
@@ -571,6 +567,11 @@ const styles = StyleSheet.create({
   scratchLayer: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
+  },
+  scratchHole: {
+    position: 'absolute',
+    overflow: 'hidden',
+    zIndex: 2,
   },
   sheen: {
     position: 'absolute',
