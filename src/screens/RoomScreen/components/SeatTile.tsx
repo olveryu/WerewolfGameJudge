@@ -18,7 +18,7 @@
  * ❌ Do NOT import: any Service singletons, showAlert
  * ✅ Allowed: types, styles, UI components (Avatar, etc.)
  */
-import React, { memo, useCallback, useEffect, useRef } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -134,10 +134,15 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   // Track if we're in the middle of a leave animation
   const isLeavingRef = useRef(false);
 
-  // Animation values
-  const slideAnim = useRef(new Animated.Value(hasPlayer ? 0 : 30)).current;
-  const scaleAnim = useRef(new Animated.Value(hasPlayer ? 1 : 0.5)).current;
-  const opacityAnim = useRef(new Animated.Value(hasPlayer ? 1 : 0)).current;
+  // Animation values - use useMemo to avoid lint errors with useRef().current
+  // We intentionally only use hasPlayer for initial value, not as dependency.
+  // Subsequent changes are handled by the useEffect animation logic below.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const slideAnim = useMemo(() => new Animated.Value(hasPlayer ? 0 : 30), []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const scaleAnim = useMemo(() => new Animated.Value(hasPlayer ? 1 : 0.5), []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const opacityAnim = useMemo(() => new Animated.Value(hasPlayer ? 1 : 0), []);
 
   // Player join/leave animation
   useEffect(() => {

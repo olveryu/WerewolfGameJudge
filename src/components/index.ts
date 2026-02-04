@@ -4,3 +4,25 @@ export { PromptModal } from './PromptModal';
 export { RoleCardModal } from './RoleCardModal';
 export { RoleRouletteModal } from './RoleRouletteModal';
 export { RoleCardSimple } from './RoleCardSimple';
+
+// Role Reveal Effects System
+export {
+  RoleRevealAnimator,
+  useRandomEffectType,
+  createRoleData,
+  EnhancedRoulette,
+  FlipReveal,
+  ScratchReveal,
+  FragmentAssemble,
+  FogReveal,
+  CONFIG as RoleRevealConfig,
+  ALIGNMENT_THEMES,
+} from './RoleRevealEffects';
+
+export type {
+  RoleData,
+  RoleAlignment,
+  RevealEffectType,
+  RoleRevealEffectProps,
+  RoleRevealAnimatorProps,
+} from './RoleRevealEffects';
