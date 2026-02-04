@@ -77,7 +77,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     currentSchema,
     currentStepId,
     isAudioPlaying,
-    roleRevealAnimation,
+    resolvedRoleRevealAnimation,
     connectionStatus,
     error: gameRoomError,
     createRoom,
@@ -1386,7 +1386,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       />
 
       {/* Role Card Modal - 统一使用 RoleRevealAnimator */}
-      {roleRevealAnimation !== 'none' && roleCardVisible && myRole && (() => {
+      {resolvedRoleRevealAnimation !== 'none' && roleCardVisible && myRole && (() => {
         const roleSpec = getRoleSpec(myRole);
         const alignmentMap: Record<string, 'wolf' | 'god' | 'villager'> = {
           [Faction.Wolf]: 'wolf',
@@ -1408,8 +1408,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             alignmentMap[spec.faction] ?? 'villager'
           );
         });
-        // roleRevealAnimation 直接作为 effectType（类型已扩展支持所有效果）
-        const effectType: RevealEffectType = roleRevealAnimation as RevealEffectType;
+        // resolvedRoleRevealAnimation 直接作为 effectType（Host 已解析 random → 具体动画）
+        const effectType: RevealEffectType = resolvedRoleRevealAnimation as RevealEffectType;
         return (
           <RoleRevealAnimator
             visible={roleCardVisible}
@@ -1421,7 +1421,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         );
       })()}
 
-      {roleRevealAnimation === 'none' && (
+      {resolvedRoleRevealAnimation === 'none' && (
         <RoleCardSimple visible={roleCardVisible} roleId={myRole} onClose={handleRoleCardClose} />
       )}
     </SafeAreaView>

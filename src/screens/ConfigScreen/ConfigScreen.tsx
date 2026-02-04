@@ -127,7 +127,7 @@ export const ConfigScreen: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [roleRevealAnimation, setRoleRevealAnimation] =
-    useState<RoleRevealAnimation>('roulette');
+    useState<RoleRevealAnimation>('random');
   const [selectedTemplate, setSelectedTemplate] = useState(PRESET_TEMPLATES[0]?.name ?? '');
   const [bgmEnabled, setBgmEnabled] = useState(true);
 
@@ -282,9 +282,10 @@ export const ConfigScreen: React.FC = () => {
     [],
   );
 
-  // 5 种动画 + 无动画
+  // 5 种动画 + 随机 + 无动画
   const animationOptions: DropdownOption[] = useMemo(
     () => [
+      { value: 'random', label: '🎲 随机 5 种动画' },
       { value: 'roulette', label: '🎰 轮盘' },
       { value: 'flip', label: '🃏 翻牌' },
       { value: 'scratch', label: '🎫 刮刮卡' },

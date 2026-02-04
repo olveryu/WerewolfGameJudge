@@ -30,6 +30,9 @@ import type {
   ActionRejectedAction,
   AddRevealAckAction,
 } from './types';
+import { resolveRandomAnimation } from '../../types/RoleRevealAnimation';
+import type { ResolvedRoleRevealAnimation } from '../../types/RoleRevealAnimation';
+import { randomHex } from '../../../utils/id';
 
 // =============================================================================
 // 子 Reducer 函数（降低认知复杂度）
@@ -74,6 +77,16 @@ function handleRestartGame(state: GameState): GameState {
     }
   }
 
+  // 生成新的 nonce，重开时 random 会解析为新动画
+  const newNonce = randomHex(8);
+
+  // 如果当前是 random，重新解析
+  let resolvedAnimation = state.resolvedRoleRevealAnimation;
+  if (state.roleRevealAnimation === 'random') {
+    const seed = `${state.roomCode}:${newNonce}`;
+    resolvedAnimation = resolveRandomAnimation(seed);
+  }
+
   return {
     ...state,
     players,
@@ -95,6 +108,9 @@ function handleRestartGame(state: GameState): GameState {
     nightmareBlockedSeat: undefined,
     wolfKillDisabled: undefined,
     pendingRevealAcks: undefined,
+    // 重开时更新 nonce 和 resolved 动画
+    roleRevealRandomNonce: newNonce,
+    resolvedRoleRevealAnimation: resolvedAnimation,
   };
 }
 
@@ -365,9 +381,27 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     }
 
     case 'SET_ROLE_REVEAL_ANIMATION': {
+      const animation = action.animation;
+      let resolved: ResolvedRoleRevealAnimation;
+      let nonce = state.roleRevealRandomNonce;
+
+      if (animation === 'random') {
+        // 如果没有 nonce，生成一个新的
+        if (!nonce) {
+          nonce = randomHex(8);
+        }
+        // seed = roomCode + ':' + nonce，确保同一房间同一局同一动画
+        const seed = `${state.roomCode ?? 'default'}:${nonce}`;
+        resolved = resolveRandomAnimation(seed);
+      } else {
+        resolved = animation;
+      }
+
       return {
         ...state,
-        roleRevealAnimation: action.animation,
+        roleRevealAnimation: animation,
+        resolvedRoleRevealAnimation: resolved,
+        roleRevealRandomNonce: nonce,
       };
     }
 

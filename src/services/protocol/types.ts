@@ -11,7 +11,10 @@
 import type { RoleId } from '../../models/roles';
 import type { SchemaId } from '../../models/roles/spec';
 import type { CurrentNightResults } from '../night/resolvers/types';
-import type { RoleRevealAnimation } from '../types/RoleRevealAnimation';
+import type {
+  RoleRevealAnimation,
+  ResolvedRoleRevealAnimation,
+} from '../types/RoleRevealAnimation';
 
 // =============================================================================
 // 协议动作记录（ProtocolAction）— 线安全、稳定
@@ -56,10 +59,23 @@ export interface BroadcastGameState {
   isAudioPlaying: boolean;
 
   /**
-   * 开牌动画（Host 控制）
-   * 默认 'roulette'
+   * 开牌动画配置（Host 控制）
+   * 可为具体动画、none 或 random
    */
   roleRevealAnimation?: RoleRevealAnimation;
+
+  /**
+   * 解析后的开牌动画（Host 解析 random 后广播）
+   * 客户端使用此字段渲染，不含 random
+   */
+  resolvedRoleRevealAnimation?: ResolvedRoleRevealAnimation;
+
+  /**
+   * 本局开牌动画随机种子（用于 random 解析）
+   * Host 在创建房间/重开游戏时生成
+   * seed = roomCode + ':' + roleRevealRandomNonce
+   */
+  roleRevealRandomNonce?: string;
 
   /** 当前夜晚步骤 ID（来自 NIGHT_STEPS 表驱动单源） */
   currentStepId?: SchemaId;

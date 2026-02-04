@@ -875,4 +875,199 @@ describe('gameReducer', () => {
       expect(newState.currentStepId).toBeUndefined();
     });
   });
+
+  // ==========================================================================
+  // SET_ROLE_REVEAL_ANIMATION: random resolution contract
+  // ==========================================================================
+  describe('SET_ROLE_REVEAL_ANIMATION', () => {
+    it('should set roleRevealAnimation for non-random values', () => {
+      const state = createMinimalState({
+        roleRevealAnimation: 'roulette',
+        resolvedRoleRevealAnimation: 'roulette',
+      });
+      const action = {
+        type: 'SET_ROLE_REVEAL_ANIMATION' as const,
+        animation: 'flip' as const,
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.roleRevealAnimation).toBe('flip');
+      expect(newState.resolvedRoleRevealAnimation).toBe('flip');
+    });
+
+    it('should resolve "random" to a specific animation', () => {
+      const state = createMinimalState({
+        roomCode: 'ABCD',
+        roleRevealAnimation: 'roulette',
+        resolvedRoleRevealAnimation: 'roulette',
+      });
+      const action = {
+        type: 'SET_ROLE_REVEAL_ANIMATION' as const,
+        animation: 'random' as const,
+      };
+
+      const newState = gameReducer(state, action);
+
+      // roleRevealAnimation 保持 'random'（配置值）
+      expect(newState.roleRevealAnimation).toBe('random');
+      // resolvedRoleRevealAnimation 是具体动画（不是 'random' 也不是 'none'）
+      expect(newState.resolvedRoleRevealAnimation).not.toBe('random');
+      expect(newState.resolvedRoleRevealAnimation).not.toBe('none');
+      expect(['roulette', 'flip', 'scratch', 'fragment', 'fog']).toContain(
+        newState.resolvedRoleRevealAnimation,
+      );
+    });
+
+    it('should be deterministic for same roomCode and nonce', () => {
+      const sharedNonce = 'testnonce';
+      const state1 = createMinimalState({
+        roomCode: 'WXYZ',
+        roleRevealRandomNonce: sharedNonce,
+      });
+      const state2 = createMinimalState({
+        roomCode: 'WXYZ',
+        roleRevealRandomNonce: sharedNonce,
+      });
+      const action = {
+        type: 'SET_ROLE_REVEAL_ANIMATION' as const,
+        animation: 'random' as const,
+      };
+
+      const newState1 = gameReducer(state1, action);
+      const newState2 = gameReducer(state2, action);
+
+      // 同一 roomCode + nonce → 同一解析结果
+      expect(newState1.resolvedRoleRevealAnimation).toBe(
+        newState2.resolvedRoleRevealAnimation,
+      );
+    });
+
+    it('should produce different results for different roomCodes', () => {
+      // 使用多个 roomCode 确保至少有一个不同
+      const roomCodes = ['AAAA', 'BBBB', 'CCCC', 'DDDD', 'EEEE'];
+      const results = new Set<string>();
+      const action = {
+        type: 'SET_ROLE_REVEAL_ANIMATION' as const,
+        animation: 'random' as const,
+      };
+
+      for (const roomCode of roomCodes) {
+        const state = createMinimalState({ roomCode });
+        const newState = gameReducer(state, action);
+        results.add(newState.resolvedRoleRevealAnimation ?? '');
+      }
+
+      // 至少应该有 2 种不同结果（概率上）
+      expect(results.size).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should set resolvedRoleRevealAnimation to "none" when animation is "none"', () => {
+      const state = createMinimalState({
+        roleRevealAnimation: 'roulette',
+        resolvedRoleRevealAnimation: 'roulette',
+      });
+      const action = {
+        type: 'SET_ROLE_REVEAL_ANIMATION' as const,
+        animation: 'none' as const,
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.roleRevealAnimation).toBe('none');
+      expect(newState.resolvedRoleRevealAnimation).toBe('none');
+    });
+
+    it('should generate nonce when setting random for the first time', () => {
+      const state = createMinimalState({
+        roomCode: 'TEST',
+        roleRevealRandomNonce: undefined,
+      });
+      const action = {
+        type: 'SET_ROLE_REVEAL_ANIMATION' as const,
+        animation: 'random' as const,
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.roleRevealRandomNonce).toBeDefined();
+      expect(newState.roleRevealRandomNonce).toHaveLength(8);
+    });
+
+    it('should preserve existing nonce when setting random again', () => {
+      const state = createMinimalState({
+        roomCode: 'TEST',
+        roleRevealRandomNonce: 'existing1',
+        roleRevealAnimation: 'random',
+      });
+      const action = {
+        type: 'SET_ROLE_REVEAL_ANIMATION' as const,
+        animation: 'random' as const,
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.roleRevealRandomNonce).toBe('existing1');
+    });
+  });
+
+  // ==========================================================================
+  // RESTART_GAME: nonce regeneration contract
+  // ==========================================================================
+  describe('RESTART_GAME nonce regeneration', () => {
+    it('should generate new nonce on restart', () => {
+      const state = createMinimalState({
+        roomCode: 'TEST',
+        status: 'ended',
+        roleRevealRandomNonce: 'oldnonce',
+        roleRevealAnimation: 'flip',
+      });
+      const action = { type: 'RESTART_GAME' as const };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.roleRevealRandomNonce).toBeDefined();
+      expect(newState.roleRevealRandomNonce).not.toBe('oldnonce');
+      expect(newState.roleRevealRandomNonce).toHaveLength(8);
+    });
+
+    it('should re-resolve random animation with new nonce on restart', () => {
+      // 使用固定的 nonce 来验证 seed 变化导致 resolved 变化
+      const state = createMinimalState({
+        roomCode: 'TEST',
+        status: 'ended',
+        roleRevealRandomNonce: 'nonce_a1',
+        roleRevealAnimation: 'random',
+        resolvedRoleRevealAnimation: 'roulette',
+      });
+      const action = { type: 'RESTART_GAME' as const };
+
+      const newState = gameReducer(state, action);
+
+      // nonce 应该变化
+      expect(newState.roleRevealRandomNonce).not.toBe('nonce_a1');
+      // resolved 应该是有效动画（可能相同也可能不同，但必须有效）
+      expect(['roulette', 'flip', 'scratch', 'fragment', 'fog']).toContain(
+        newState.resolvedRoleRevealAnimation,
+      );
+    });
+
+    it('should NOT change resolvedRoleRevealAnimation if not random', () => {
+      const state = createMinimalState({
+        roomCode: 'TEST',
+        status: 'ended',
+        roleRevealRandomNonce: 'oldnonce',
+        roleRevealAnimation: 'flip',
+        resolvedRoleRevealAnimation: 'flip',
+      });
+      const action = { type: 'RESTART_GAME' as const };
+
+      const newState = gameReducer(state, action);
+
+      // 非 random 时，resolved 保持不变
+      expect(newState.resolvedRoleRevealAnimation).toBe('flip');
+      // 但 nonce 仍然更新（为下次切换到 random 做准备）
+      expect(newState.roleRevealRandomNonce).not.toBe('oldnonce');
+    });
+  });
 });

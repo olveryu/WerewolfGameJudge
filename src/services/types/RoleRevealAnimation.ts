@@ -6,13 +6,14 @@
  */
 
 /**
- * 角色揭示动画类型
+ * 角色揭示动画配置类型（包含 random）
  * - roulette: 轮盘动画
  * - flip: 翻牌动画
  * - scratch: 刮刮卡动画
  * - fragment: 碎片聚合动画
  * - fog: 迷雾消散动画
  * - none: 无动画（简单卡片）
+ * - random: 随机选择（Host 解析后广播）
  */
 export type RoleRevealAnimation =
   | 'roulette'
@@ -20,4 +21,62 @@ export type RoleRevealAnimation =
   | 'scratch'
   | 'fragment'
   | 'fog'
+  | 'none'
+  | 'random';
+
+/**
+ * 解析后的角色揭示动画类型（不含 random）
+ * - Host 解析 random 后得到的实际动画
+ * - 客户端只使用此类型渲染
+ */
+export type ResolvedRoleRevealAnimation =
+  | 'roulette'
+  | 'flip'
+  | 'scratch'
+  | 'fragment'
+  | 'fog'
   | 'none';
+
+/**
+ * 可随机选择的动画类型（不含 none 和 random）
+ */
+export type RandomizableAnimation =
+  | 'roulette'
+  | 'flip'
+  | 'scratch'
+  | 'fragment'
+  | 'fog';
+
+/**
+ * 可随机选择的动画数组（用于 random 解析）
+ */
+export const RANDOMIZABLE_ANIMATIONS: readonly RandomizableAnimation[] = [
+  'roulette',
+  'flip',
+  'scratch',
+  'fragment',
+  'fog',
+] as const;
+
+/**
+ * 确定性 hash 函数（用于 random 解析）
+ * 使用简单的 djb2 算法，不依赖外部库
+ */
+export function simpleHash(str: string): number {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    const codePoint = str.codePointAt(i) ?? 0;
+    hash = (hash * 33) ^ codePoint;
+  }
+  return hash >>> 0; // 确保为正整数
+}
+
+/**
+ * 根据 seed 解析 random 为具体动画
+ * @param seed 稳定的 seed 字符串（如 roomNumber:templateId:revision）
+ * @returns 解析后的动画类型
+ */
+export function resolveRandomAnimation(seed: string): RandomizableAnimation {
+  const index = simpleHash(seed) % RANDOMIZABLE_ANIMATIONS.length;
+  return RANDOMIZABLE_ANIMATIONS[index];
+}
