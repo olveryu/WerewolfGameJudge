@@ -5,7 +5,7 @@ import { RoleId, isValidRoleId, getRoleSpec } from './roles';
 // ---------------------------------------------------------------------------
 
 /** Minimum number of players for a valid template */
-export const MINIMUM_PLAYERS = 2;
+export const MINIMUM_PLAYERS = 1;
 
 /**
  * Validate a list of roles for template creation.
