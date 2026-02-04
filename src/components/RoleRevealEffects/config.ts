@@ -28,7 +28,7 @@ export const CONFIG = {
     /** Number of full rotations before stopping */
     spinRotations: 3,
     /** Total spin duration in ms */
-    spinDuration: 2500,
+    spinDuration: 5000,
     /** Tick sound interval during fast spin (ms) */
     tickIntervalFast: 80,
     /** Tick sound interval during slow spin (ms) */
@@ -37,6 +37,8 @@ export const CONFIG = {
     highlightFlashCount: 3,
     /** Flash duration per cycle (ms) */
     highlightFlashDuration: 200,
+    /** Hold duration after reveal before calling onComplete (ms) */
+    revealHoldDuration: 1500,
     /** Particle count for flow effect */
     particleCount: 12,
     /** Particle trail length */
@@ -65,6 +67,8 @@ export const CONFIG = {
     particleSpreadRadius: 150,
     /** Particle animation duration */
     particleDuration: 800,
+    /** Hold duration after reveal before calling onComplete (ms) */
+    revealHoldDuration: 1500,
   },
 
   // =====================================================
@@ -72,28 +76,30 @@ export const CONFIG = {
   // =====================================================
   scratch: {
     /** Scratch brush radius */
-    brushRadius: 30,
+    brushRadius: 15,
     /** Auto-reveal threshold (percentage scratched) */
-    autoRevealThreshold: 0.6,
+    autoRevealThreshold: 0.5,
     /** Scratch overlay color */
     overlayColor: '#374151',
     /** Scratch pattern colors */
     patternColors: ['#4B5563', '#6B7280', '#9CA3AF'],
     /** Reveal animation duration after threshold */
     revealDuration: 500,
-    /** Grid size for scratch detection */
-    gridSize: 10,
+    /** Grid size for scratch detection - smaller = finer scratch effect */
+    gridSize: 3,
+    /** Hold duration after reveal before calling onComplete (ms) */
+    revealHoldDuration: 1500,
   },
 
   // =====================================================
   // Fragment Assemble
   // =====================================================
   fragment: {
-    /** Grid dimensions (rows x cols) */
-    gridRows: 4,
+    /** Grid dimensions (rows x cols) - more fragments = finer detail */
+    gridRows: 8,
     gridCols: 4,
     /** Fragment assembly duration */
-    assembleDuration: 1500,
+    assembleDuration: 3000,
     /** Stagger delay between fragments */
     staggerDelay: 50,
     /** Max initial distance from center */
@@ -106,6 +112,8 @@ export const CONFIG = {
     flashDuration: 300,
     /** Low-end device threshold (reduce fragments) */
     lowEndFragmentCount: 9, // 3x3
+    /** Hold duration after reveal before calling onComplete (ms) */
+    revealHoldDuration: 1500,
   },
 
   // =====================================================
@@ -115,7 +123,7 @@ export const CONFIG = {
     /** Number of fog layers */
     layerCount: 4,
     /** Fog disperse duration */
-    disperseDuration: 1500,
+    disperseDuration: 3000,
     /** Stagger delay between layers */
     layerStaggerDelay: 100,
     /** Fog opacity range */
@@ -126,6 +134,8 @@ export const CONFIG = {
     translateDistance: 200,
     /** Base blur amount (simulated with opacity) */
     blurSimulation: 0.6,
+    /** Hold duration after reveal before calling onComplete (ms) */
+    revealHoldDuration: 1500,
   },
 
   // =====================================================

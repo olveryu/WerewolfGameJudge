@@ -285,7 +285,7 @@ export const ConfigScreen: React.FC = () => {
   // 5 种动画 + 随机 + 无动画
   const animationOptions: DropdownOption[] = useMemo(
     () => [
-      { value: 'random', label: '🎲 随机 5 种动画' },
+      { value: 'random', label: '🎲 随机' },
       { value: 'roulette', label: '🎰 轮盘' },
       { value: 'flip', label: '🃏 翻牌' },
       { value: 'scratch', label: '🎫 刮刮卡' },

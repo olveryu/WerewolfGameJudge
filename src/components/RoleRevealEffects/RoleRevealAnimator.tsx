@@ -10,6 +10,9 @@
  *   onComplete={() => setShowReveal(false)}
  * />
  * ```
+ *
+ * All effects display the full RoleCardContent style (faction badge, icon, name, description)
+ * during the animation itself. Animation completes → onComplete is called.
  */
 import React, { useEffect, useState } from 'react';
 import { Modal, View, StyleSheet, AccessibilityInfo } from 'react-native';

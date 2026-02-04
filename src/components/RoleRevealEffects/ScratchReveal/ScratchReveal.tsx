@@ -1,11 +1,13 @@
 /**
- * ScratchReveal - Scratch card style reveal animation
+ * ScratchReveal - Enhanced scratch card style reveal animation
  *
  * Features:
- * - Touch-based scratch to reveal
- * - Auto-reveal at threshold
- * - Auto-complete button for accessibility
- * - Reduced motion: tap to reveal
+ * - Metallic silver scratch layer with gradient sheen
+ * - Real scratch texture marks
+ * - Metal shaving particles when scratching
+ * - Continuous haptic feedback while scratching
+ * - Progress indicator bar
+ * - Light burst on reveal
  */
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
@@ -16,17 +18,30 @@ import {
   TouchableOpacity,
   PanResponder,
   Animated,
+  Easing,
 } from 'react-native';
+import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop, G } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useColors, spacing, typography, borderRadius } from '../../../theme';
 import type { RoleRevealEffectProps } from '../types';
 import { ALIGNMENT_THEMES } from '../types';
 import { CONFIG } from '../config';
 import { canUseNativeDriver } from '../utils/platform';
-import { playSound } from '../utils/sound';
 import { triggerHaptic } from '../utils/haptics';
-import { RoleCard } from '../common/RoleCard';
+import { RoleCardContent } from '../common/RoleCardContent';
+import { GlowBorder } from '../common/GlowBorder';
+import type { RoleId } from '../../../models/roles';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Scratch effect colors
+const SCRATCH_COLORS = {
+  metalBase: '#C0C0C0',
+  metalLight: '#E8E8E8',
+  metalDark: '#909090',
+  metalSheen: '#FFFFFF',
+  shavingColors: ['#D4D4D4', '#B8B8B8', '#A0A0A0', '#888888'],
+};
 
 interface ScratchPoint {
   x: number;
@@ -34,11 +49,21 @@ interface ScratchPoint {
   id: string;
 }
 
+interface MetalShaving {
+  id: number;
+  x: Animated.Value;
+  y: Animated.Value;
+  rotation: Animated.Value;
+  opacity: Animated.Value;
+  scale: Animated.Value;
+  color: string;
+  size: number;
+}
+
 export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   role,
   onComplete,
   reducedMotion = false,
-  enableSound = true,
   enableHaptics = true,
   testIDPrefix = 'scratch-reveal',
 }) => {
@@ -49,104 +74,207 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   const [scratchPoints, setScratchPoints] = useState<ScratchPoint[]>([]);
   const [isRevealed, setIsRevealed] = useState(false);
   const [scratchProgress, setScratchProgress] = useState(0);
+  const [shavings, setShavings] = useState<MetalShaving[]>([]);
+  const [showGlow, setShowGlow] = useState(false);
 
   const revealAnim = useMemo(() => new Animated.Value(0), []);
-  const containerRef = useRef<View>(null);
-  const layoutRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
-  const gridRef = useRef<Set<string>>(new Set());
+  const burstScale = useMemo(() => new Animated.Value(0), []);
+  const burstOpacity = useMemo(() => new Animated.Value(0), []);
+  const sheenPosition = useMemo(() => new Animated.Value(0), []);
+  const progressWidth = useMemo(() => new Animated.Value(0), []);
+
+  const scratchedAreaRef = useRef(0);
+  const lastHapticTime = useRef(0);
+  const shavingIdRef = useRef(0);
 
   const cardWidth = Math.min(260, SCREEN_WIDTH * 0.75);
   const cardHeight = cardWidth * 1.4;
+  const totalArea = cardWidth * cardHeight;
+  const brushRadius = config.brushRadius;
 
-  // Pre-generate pattern dot colors to avoid Math.random during render
-  // This is frozen on mount to ensure consistent rendering
-  const [patternDotColors] = useState<string[][]>(() => {
-    const rows = 5;
-    const cols = 5;
-    const result: string[][] = [];
-    for (let row = 0; row < rows; row++) {
-      const rowColors: string[] = [];
-      for (let col = 0; col < cols; col++) {
-        const colorIndex = Math.floor(Math.random() * config.patternColors.length);
-        rowColors.push(config.patternColors[colorIndex]);
-      }
-      result.push(rowColors);
-    }
-    return result;
-  });
+  // Animate metallic sheen
+  useEffect(() => {
+    if (reducedMotion || isRevealed) return;
 
-  // Calculate scratch progress based on grid cells scratched
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(sheenPosition, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: canUseNativeDriver,
+        }),
+        Animated.timing(sheenPosition, {
+          toValue: 0,
+          duration: 2000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: canUseNativeDriver,
+        }),
+      ])
+    );
+    animation.start();
+
+    return () => animation.stop();
+  }, [sheenPosition, reducedMotion, isRevealed]);
+
+  // Calculate scratch progress based on scratched area
   const calculateProgress = useCallback(() => {
-    const totalCells =
-      Math.ceil(cardWidth / config.gridSize) * Math.ceil(cardHeight / config.gridSize);
-    return gridRef.current.size / totalCells;
-  }, [cardWidth, cardHeight, config.gridSize]);
+    const brushArea = Math.PI * brushRadius * brushRadius;
+    const estimatedArea = scratchedAreaRef.current * brushArea * 0.7;
+    return Math.min(1, estimatedArea / totalArea);
+  }, [brushRadius, totalArea]);
+
+  // Create metal shaving particle
+  const createShaving = useCallback((x: number, y: number) => {
+    const id = shavingIdRef.current++;
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 30 + Math.random() * 40;
+    const targetX = x + Math.cos(angle) * distance;
+    const targetY = y + Math.sin(angle) * distance + 20; // Gravity
+
+    const shaving: MetalShaving = {
+      id,
+      x: new Animated.Value(x),
+      y: new Animated.Value(y),
+      rotation: new Animated.Value(0),
+      opacity: new Animated.Value(1),
+      scale: new Animated.Value(1),
+      color: SCRATCH_COLORS.shavingColors[id % SCRATCH_COLORS.shavingColors.length],
+      size: 4 + Math.random() * 6,
+    };
+
+    setShavings((prev) => [...prev.slice(-30), shaving]); // Keep max 30 shavings
+
+    // Animate shaving
+    Animated.parallel([
+      Animated.timing(shaving.x, {
+        toValue: targetX,
+        duration: 400,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.timing(shaving.y, {
+        toValue: targetY,
+        duration: 400,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.timing(shaving.rotation, {
+        toValue: Math.random() * 4 - 2,
+        duration: 400,
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.timing(shaving.opacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.timing(shaving.scale, {
+        toValue: 0.3,
+        duration: 400,
+        useNativeDriver: canUseNativeDriver,
+      }),
+    ]).start();
+  }, []);
 
   // Handle reveal animation
   const triggerReveal = useCallback(() => {
     if (isRevealed) return;
     setIsRevealed(true);
 
-    if (enableSound) {
-      playSound('confirm');
-    }
     if (enableHaptics) {
       triggerHaptic('success', true);
     }
 
+    // Light burst effect
+    Animated.parallel([
+      Animated.timing(burstScale, {
+        toValue: 2,
+        duration: 400,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.sequence([
+        Animated.timing(burstOpacity, {
+          toValue: 0.8,
+          duration: 100,
+          useNativeDriver: canUseNativeDriver,
+        }),
+        Animated.timing(burstOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: canUseNativeDriver,
+        }),
+      ]),
+    ]).start();
+
+    // Reveal animation
     Animated.timing(revealAnim, {
       toValue: 1,
       duration: config.revealDuration,
       useNativeDriver: canUseNativeDriver,
     }).start(() => {
-      onComplete();
+      setShowGlow(true);
     });
-  }, [isRevealed, revealAnim, config.revealDuration, enableSound, enableHaptics, onComplete]);
+  }, [isRevealed, revealAnim, burstScale, burstOpacity, config.revealDuration, enableHaptics]);
 
-  // Add scratch point and update grid
+  // Handle glow complete
+  const handleGlowComplete = useCallback(() => {
+    setTimeout(() => {
+      onComplete();
+    }, config.revealHoldDuration);
+  }, [onComplete, config.revealHoldDuration]);
+
+  // Add scratch point
   const addScratchPoint = useCallback(
     (x: number, y: number) => {
       if (isRevealed) return;
 
-      // Add to grid for progress tracking
-      const gridX = Math.floor(x / config.gridSize);
-      const gridY = Math.floor(y / config.gridSize);
-
-      // Also mark nearby cells for brush radius
-      const brushCells = Math.ceil(config.brushRadius / config.gridSize);
-      for (let dx = -brushCells; dx <= brushCells; dx++) {
-        for (let dy = -brushCells; dy <= brushCells; dy++) {
-          gridRef.current.add(`${gridX + dx},${gridY + dy}`);
-        }
-      }
-
-      // Add visual scratch point
       const newPoint: ScratchPoint = {
         x,
         y,
         id: `scratch-${Date.now()}-${Math.random()}`,
       };
-      setScratchPoints((prev) => [...prev, newPoint]);
 
-      // Update progress
+      setScratchPoints((prev) => [...prev, newPoint]);
+      scratchedAreaRef.current += 1;
+
       const progress = calculateProgress();
       setScratchProgress(progress);
 
-      // Check threshold
+      // Update progress bar
+      Animated.timing(progressWidth, {
+        toValue: progress,
+        duration: 100,
+        useNativeDriver: false,
+      }).start();
+
+      // Create metal shaving
+      if (Math.random() > 0.7) {
+        createShaving(x, y);
+      }
+
+      // Haptic feedback (throttled)
+      if (enableHaptics) {
+        const now = Date.now();
+        if (now - lastHapticTime.current > 50) {
+          triggerHaptic('light', true);
+          lastHapticTime.current = now;
+        }
+      }
+
       if (progress >= config.autoRevealThreshold) {
         triggerReveal();
       }
     },
-    [isRevealed, config, calculateProgress, triggerReveal]
+    [isRevealed, calculateProgress, config.autoRevealThreshold, triggerReveal, createShaving, enableHaptics, progressWidth]
   );
 
-  // Refs to store latest values for PanResponder (avoids closure issues)
-  // This is the standard "latest ref" pattern for React Native gesture handlers.
+  // Refs for PanResponder
   const isRevealedRef = useRef(isRevealed);
   const reducedMotionRef = useRef(reducedMotion);
   const addScratchPointRef = useRef(addScratchPoint);
 
-  // Keep refs in sync with latest values
   useEffect(() => {
     isRevealedRef.current = isRevealed;
   }, [isRevealed]);
@@ -159,21 +287,6 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     addScratchPointRef.current = addScratchPoint;
   }, [addScratchPoint]);
 
-  /**
-   * PanResponder for scratch gestures.
-   *
-   * WHY eslint-disable is needed here (react-hooks/refs):
-   * - The linter flags passing refs to functions as potentially unsafe
-   * - However, PanResponder callbacks execute at RUNTIME (not during render)
-   * - We use the "latest ref" pattern: refs are updated via useEffect, callbacks read them
-   * - This is the standard React Native pattern for gesture handlers with dynamic state
-   * - The ref reads happen in event handlers (onPanResponderGrant/Move), not during render
-   *
-   * Alternative approaches considered and rejected:
-   * - Recreating PanResponder on state change: causes gesture interruption
-   * - Passing state directly: creates stale closure issues
-   */
-  /* eslint-disable react-hooks/refs -- Safe: refs read at runtime in event handlers, not during render */
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -192,30 +305,24 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       }),
     []
   );
-  /* eslint-enable react-hooks/refs */
 
-  // Handle tap for reduced motion
+  // Reduced motion: tap to reveal
   const handleTapReveal = useCallback(() => {
-    if (reducedMotion) {
+    if (reducedMotion && !isRevealed) {
       triggerReveal();
     }
-  }, [reducedMotion, triggerReveal]);
+  }, [reducedMotion, isRevealed, triggerReveal]);
 
-  // Reduced motion: auto-reveal on mount
-  useEffect(() => {
-    if (reducedMotion) {
-      // Show the card immediately with fade
-      const timer = setTimeout(() => {
-        triggerReveal();
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [reducedMotion, triggerReveal]);
-
-  // Overlay opacity for reveal
-  const overlayOpacity = revealAnim.interpolate({
+  // Sheen animation interpolation
+  const sheenTranslateX = sheenPosition.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 0],
+    outputRange: [-cardWidth, cardWidth],
+  });
+
+  // Progress bar width interpolation
+  const progressBarWidth = progressWidth.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
   });
 
   return (
@@ -223,103 +330,206 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       testID={`${testIDPrefix}-container`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <Text style={[styles.instruction, { color: colors.textSecondary }]}>
-        {reducedMotion ? '点击揭示身份' : `刮开卡片查看身份 (${Math.round(scratchProgress * 100)}%)`}
-      </Text>
+      {/* Light burst effect */}
+      <Animated.View
+        style={[
+          styles.lightBurst,
+          {
+            width: cardWidth * 1.5,
+            height: cardHeight * 1.5,
+            borderRadius: cardWidth,
+            backgroundColor: theme.glowColor,
+            transform: [{ scale: burstScale }],
+            opacity: burstOpacity,
+          },
+        ]}
+      />
 
+      {/* Main scratch card */}
       <View
-        ref={containerRef}
-        style={[styles.cardContainer, { width: cardWidth, height: cardHeight }]}
-        onLayout={(e) => {
-          layoutRef.current = e.nativeEvent.layout;
-        }}
-        {...(reducedMotion ? {} : panResponder.panHandlers)}
+        style={[
+          styles.cardWrapper,
+          {
+            width: cardWidth,
+            height: cardHeight,
+            borderRadius: borderRadius.medium,
+          },
+        ]}
       >
         {/* Role card underneath */}
-        <RoleCard
-          role={role}
-          width={cardWidth}
-          height={cardHeight}
-          testID={`${testIDPrefix}-card`}
-        />
+        <View style={styles.roleCardLayer}>
+          <RoleCardContent
+            roleId={role.id as RoleId}
+            width={cardWidth}
+            height={cardHeight}
+          />
+        </View>
 
-        {/* Scratch overlay */}
-        <Animated.View
-          style={[
-            styles.overlay,
-            {
-              backgroundColor: config.overlayColor,
-              opacity: overlayOpacity,
-              borderRadius: borderRadius.large,
-            },
-          ]}
-          pointerEvents={isRevealed ? 'none' : 'auto'}
-        >
-          {/* Scratch pattern */}
-          <View style={styles.patternContainer}>
-            {[0, 1, 2, 3, 4].map((row) =>
-              [0, 1, 2, 3, 4].map((col) => (
+        {/* Scratch overlay layer */}
+        {!isRevealed && (
+          <View
+            {...panResponder.panHandlers}
+            style={[
+              styles.scratchLayer,
+              {
+                width: cardWidth,
+                height: cardHeight,
+                borderRadius: borderRadius.medium,
+              },
+            ]}
+          >
+            {/* Metallic base layer */}
+            <LinearGradient
+              colors={[SCRATCH_COLORS.metalLight, SCRATCH_COLORS.metalBase, SCRATCH_COLORS.metalDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+
+            {/* Animated sheen */}
+            <Animated.View
+              style={[
+                styles.sheen,
+                {
+                  transform: [{ translateX: sheenTranslateX }],
+                },
+              ]}
+            >
+              <LinearGradient
+                colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={StyleSheet.absoluteFill}
+              />
+            </Animated.View>
+
+            {/* SVG scratch mask */}
+            <Svg width={cardWidth} height={cardHeight} style={StyleSheet.absoluteFill}>
+              <Defs>
+                <SvgLinearGradient id="scratchGradient" x1="0" y1="0" x2="1" y2="1">
+                  <Stop offset="0%" stopColor={SCRATCH_COLORS.metalLight} />
+                  <Stop offset="50%" stopColor={SCRATCH_COLORS.metalBase} />
+                  <Stop offset="100%" stopColor={SCRATCH_COLORS.metalDark} />
+                </SvgLinearGradient>
+              </Defs>
+
+              {/* Scratch holes - revealed areas */}
+              <G>
+                {scratchPoints.map((point) => (
+                  <Circle
+                    key={point.id}
+                    cx={point.x}
+                    cy={point.y}
+                    r={brushRadius}
+                    fill={colors.background}
+                  />
+                ))}
+              </G>
+            </Svg>
+
+            {/* Scratch texture overlay */}
+            <View style={styles.textureOverlay}>
+              {scratchPoints.slice(-50).map((point, index) => (
                 <View
-                  key={`pattern-${row}-${col}`}
+                  key={`texture-${point.id}`}
                   style={[
-                    styles.patternDot,
+                    styles.scratchMark,
                     {
-                      backgroundColor: patternDotColors[row][col],
-                      left: `${20 * col + 10}%`,
-                      top: `${20 * row + 10}%`,
+                      left: point.x - 2,
+                      top: point.y - 2,
+                      opacity: 0.3 + (index / 50) * 0.4,
                     },
                   ]}
                 />
-              ))
-            )}
-          </View>
+              ))}
+            </View>
 
-          {/* Scratch holes */}
-          {scratchPoints.map((point) => (
-            <View
-              key={point.id}
-              style={[
-                styles.scratchHole,
-                {
-                  left: point.x - config.brushRadius,
-                  top: point.y - config.brushRadius,
-                  width: config.brushRadius * 2,
-                  height: config.brushRadius * 2,
-                  borderRadius: config.brushRadius,
-                },
-              ]}
-            />
-          ))}
-
-          {/* Hint text */}
-          {!reducedMotion && scratchProgress < 0.1 && (
+            {/* Hint text */}
             <View style={styles.hintContainer}>
-              <Text style={styles.hintText}>刮一刮</Text>
+              <Text style={styles.hintText}>刮开查看角色</Text>
               <Text style={styles.hintIcon}>👆</Text>
             </View>
-          )}
-        </Animated.View>
+          </View>
+        )}
 
-        {/* Tap overlay for reduced motion */}
-        {reducedMotion && !isRevealed && (
-          <TouchableOpacity
-            style={styles.tapOverlay}
-            onPress={handleTapReveal}
-            testID={`${testIDPrefix}-tap-reveal`}
-          >
-            <Text style={styles.tapText}>点击揭示</Text>
-          </TouchableOpacity>
+        {/* Metal shavings */}
+        {shavings.map((shaving) => (
+          <Animated.View
+            key={shaving.id}
+            pointerEvents="none"
+            style={[
+              styles.shaving,
+              {
+                width: shaving.size,
+                height: shaving.size * 0.6,
+                backgroundColor: shaving.color,
+                transform: [
+                  { translateX: shaving.x },
+                  { translateY: shaving.y },
+                  { scale: shaving.scale },
+                  {
+                    rotate: shaving.rotation.interpolate({
+                      inputRange: [-2, 2],
+                      outputRange: ['-180deg', '180deg'],
+                    }),
+                  },
+                ],
+                opacity: shaving.opacity,
+              },
+            ]}
+          />
+        ))}
+
+        {/* Glow border on reveal */}
+        {showGlow && (
+          <GlowBorder
+            width={cardWidth + 8}
+            height={cardHeight + 8}
+            color={theme.primaryColor}
+            glowColor={theme.glowColor}
+            borderWidth={3}
+            borderRadius={borderRadius.medium + 4}
+            animate={!reducedMotion}
+            flashCount={3}
+            flashDuration={200}
+            onComplete={handleGlowComplete}
+            style={{
+              position: 'absolute',
+              top: -4,
+              left: -4,
+            }}
+          />
         )}
       </View>
 
-      {/* Auto-complete button */}
-      {!reducedMotion && !isRevealed && (
+      {/* Progress bar */}
+      {!isRevealed && (
+        <View style={styles.progressContainer}>
+          <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+            <Animated.View
+              style={[
+                styles.progressFill,
+                {
+                  width: progressBarWidth,
+                  backgroundColor: theme.primaryColor,
+                },
+              ]}
+            />
+          </View>
+          <Text style={[styles.progressText, { color: colors.textSecondary }]}>
+            {Math.round(scratchProgress * 100)}%
+          </Text>
+        </View>
+      )}
+
+      {/* Reduced motion: tap button */}
+      {reducedMotion && !isRevealed && (
         <TouchableOpacity
-          style={[styles.autoButton, { backgroundColor: theme.primaryColor }]}
-          onPress={triggerReveal}
-          testID={`${testIDPrefix}-auto-reveal`}
+          testID={`${testIDPrefix}-tap-reveal`}
+          style={[styles.tapButton, { backgroundColor: theme.primaryColor }]}
+          onPress={handleTapReveal}
         >
-          <Text style={styles.autoButtonText}>直接揭示</Text>
+          <Text style={styles.tapButtonText}>点击揭示角色</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -331,53 +541,51 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.large,
   },
-  instruction: {
-    fontSize: typography.body,
-    marginBottom: spacing.large,
-  },
-  cardContainer: {
-    position: 'relative',
+  cardWrapper: {
     overflow: 'hidden',
-    borderRadius: borderRadius.large,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
-  },
-  patternContainer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  patternDot: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    opacity: 0.3,
-  },
-  scratchHole: {
-    position: 'absolute',
-    backgroundColor: 'transparent',
-    // Use a "punch through" effect by making the hole transparent
-    // In React Native, we simulate this with a shadow trick
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    // Actually hide the overlay in this spot
-    borderWidth: 0,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  roleCardLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  scratchLayer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  sheen: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 80,
+    zIndex: 1,
+  },
+  textureOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    pointerEvents: 'none',
+  },
+  scratchMark: {
+    position: 'absolute',
+    width: 4,
+    height: 4,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 2,
   },
   hintContainer: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
+    pointerEvents: 'none',
   },
   hintText: {
-    color: '#FFFFFF',
     fontSize: typography.title,
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    fontWeight: '600',
+    color: 'rgba(0,0,0,0.4)',
+    textShadowColor: 'rgba(255,255,255,0.5)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
@@ -385,25 +593,41 @@ const styles = StyleSheet.create({
     fontSize: 32,
     marginTop: spacing.small,
   },
-  tapOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  shaving: {
+    position: 'absolute',
+    borderRadius: 1,
+  },
+  lightBurst: {
+    position: 'absolute',
+  },
+  progressContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: borderRadius.large,
+    marginTop: spacing.large,
   },
-  tapText: {
-    color: '#FFFFFF',
-    fontSize: typography.title,
-    fontWeight: 'bold',
+  progressTrack: {
+    width: 150,
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
-  autoButton: {
-    marginTop: spacing.xlarge,
-    paddingHorizontal: spacing.xlarge,
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressText: {
+    marginLeft: spacing.small,
+    fontSize: typography.caption,
+    fontWeight: '600',
+    width: 40,
+  },
+  tapButton: {
+    marginTop: spacing.large,
+    paddingHorizontal: spacing.large,
     paddingVertical: spacing.medium,
     borderRadius: borderRadius.medium,
   },
-  autoButtonText: {
+  tapButtonText: {
     color: '#FFFFFF',
     fontSize: typography.body,
     fontWeight: '600',

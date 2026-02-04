@@ -1,33 +1,58 @@
 /**
- * FlipReveal - 3D card flip reveal animation
+ * FlipReveal - Enhanced 3D card flip reveal animation
  *
  * Features:
- * - 3D flip animation with dynamic shadow
- * - Shine sweep effect on reveal
- * - Alignment-based particle burst
- * - Glow effects matching faction
+ * - Card levitation before flip
+ * - Multi-layer shadows for 3D depth
+ * - Air pressure ripple during flip
+ * - Edge glow during flip
+ * - Golden particle explosion on reveal
+ * - Bounce effect on landing
  */
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Animated, StyleSheet, Dimensions } from 'react-native';
+import {
+  View,
+  Animated,
+  StyleSheet,
+  Dimensions,
+  Easing,
+} from 'react-native';
 import { useColors, borderRadius } from '../../../theme';
 import type { RoleRevealEffectProps } from '../types';
 import { ALIGNMENT_THEMES } from '../types';
 import { CONFIG } from '../config';
-import { canUseNativeDriver, getOptimalParticleCount } from '../utils/platform';
-import { playSound } from '../utils/sound';
+import { canUseNativeDriver } from '../utils/platform';
 import { triggerHaptic } from '../utils/haptics';
 import { RoleCard } from '../common/RoleCard';
-import { ShineEffect } from '../common/ShineEffect';
-import { ParticleBurst } from '../common/ParticleBurst';
+import { RoleCardContent } from '../common/RoleCardContent';
 import { GlowBorder } from '../common/GlowBorder';
+import type { RoleId } from '../../../models/roles';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Effect colors
+const EFFECT_COLORS = {
+  edgeGlow: '#FFD700',
+  ripple: 'rgba(255, 215, 0, 0.3)',
+  particle: ['#FFD700', '#FFA500', '#FF6347', '#FFFFFF', '#87CEEB'],
+};
+
+// Celebration particle
+interface Particle {
+  id: number;
+  x: Animated.Value;
+  y: Animated.Value;
+  scale: Animated.Value;
+  opacity: Animated.Value;
+  rotation: Animated.Value;
+  color: string;
+  size: number;
+}
 
 export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   role,
   onComplete,
   reducedMotion = false,
-  enableSound = true,
   enableHaptics = true,
   testIDPrefix = 'flip-reveal',
 }) => {
@@ -35,243 +60,459 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   const config = CONFIG.flip;
   const theme = ALIGNMENT_THEMES[role.alignment];
 
-  const [showShine, setShowShine] = useState(false);
-  const [showParticles, setShowParticles] = useState(false);
-  const [showGlow, setShowGlow] = useState(false);
+  const [phase, setPhase] = useState<'entry' | 'levitate' | 'flipping' | 'landing' | 'revealed'>('entry');
+  const [particles, setParticles] = useState<Particle[]>([]);
 
-  // Use useMemo to create stable Animated values (avoids lint rules about ref.current during render)
+  // Animation values
+  const entryScale = useMemo(() => new Animated.Value(0.3), []);
+  const entryOpacity = useMemo(() => new Animated.Value(0), []);
+  const levitateY = useMemo(() => new Animated.Value(0), []);
+  const levitateShadow = useMemo(() => new Animated.Value(1), []);
   const flipAnim = useMemo(() => new Animated.Value(0), []);
-  const scaleAnim = useMemo(() => new Animated.Value(0.8), []);
-  const opacityAnim = useMemo(() => new Animated.Value(0), []);
-  const shadowAnim = useMemo(() => new Animated.Value(0), []);
+  const edgeGlowOpacity = useMemo(() => new Animated.Value(0), []);
+  const rippleScale = useMemo(() => new Animated.Value(0), []);
+  const rippleOpacity = useMemo(() => new Animated.Value(0), []);
+  const bounceY = useMemo(() => new Animated.Value(0), []);
+  const bounceScale = useMemo(() => new Animated.Value(1), []);
 
   const cardWidth = Math.min(config.cardWidth, SCREEN_WIDTH * 0.7);
   const cardHeight = cardWidth * (config.cardHeight / config.cardWidth);
 
-  // Handle flip complete
-  const handleFlipComplete = useCallback(() => {
-    // Trigger effects
-    if (enableSound) {
-      playSound('whoosh');
+  // Create celebration particles
+  const createParticles = useCallback(() => {
+    const newParticles: Particle[] = [];
+    const count = 30;
+
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+      const distance = 80 + Math.random() * 120;
+      const targetX = Math.cos(angle) * distance;
+      const targetY = Math.sin(angle) * distance - 30;
+
+      const particle: Particle = {
+        id: i,
+        x: new Animated.Value(0),
+        y: new Animated.Value(0),
+        scale: new Animated.Value(0),
+        opacity: new Animated.Value(1),
+        rotation: new Animated.Value(0),
+        color: EFFECT_COLORS.particle[i % EFFECT_COLORS.particle.length],
+        size: 8 + (i % 4) * 4,
+      };
+
+      newParticles.push(particle);
+
+      // Animate particle
+      Animated.parallel([
+        Animated.timing(particle.x, {
+          toValue: targetX,
+          duration: 600 + Math.random() * 400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: canUseNativeDriver,
+        }),
+        Animated.timing(particle.y, {
+          toValue: targetY,
+          duration: 600 + Math.random() * 400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: canUseNativeDriver,
+        }),
+        Animated.sequence([
+          Animated.timing(particle.scale, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: canUseNativeDriver,
+          }),
+          Animated.timing(particle.scale, {
+            toValue: 0,
+            duration: 450,
+            delay: 100,
+            useNativeDriver: canUseNativeDriver,
+          }),
+        ]),
+        Animated.timing(particle.opacity, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: canUseNativeDriver,
+        }),
+        Animated.timing(particle.rotation, {
+          toValue: (Math.random() - 0.5) * 4,
+          duration: 800,
+          useNativeDriver: canUseNativeDriver,
+        }),
+      ]).start();
     }
+
+    setParticles(newParticles);
+  }, []);
+
+  // Handle phases
+  const startLevitation = useCallback(() => {
+    setPhase('levitate');
+
+    // Float up with expanding shadow
+    Animated.parallel([
+      Animated.timing(levitateY, {
+        toValue: -30,
+        duration: 400,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.timing(levitateShadow, {
+        toValue: 2,
+        duration: 400,
+        useNativeDriver: canUseNativeDriver,
+      }),
+    ]).start(() => {
+      startFlip();
+    });
+  }, [levitateY, levitateShadow]);
+
+  const startFlip = useCallback(() => {
+    setPhase('flipping');
+
     if (enableHaptics) {
       triggerHaptic('medium', true);
     }
 
-    // Show shine and particles
-    setShowShine(true);
-    setShowParticles(true);
+    // Edge glow during flip
+    Animated.sequence([
+      Animated.timing(edgeGlowOpacity, {
+        toValue: 1,
+        duration: config.flipDuration * 0.3,
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.timing(edgeGlowOpacity, {
+        toValue: 0,
+        duration: config.flipDuration * 0.4,
+        delay: config.flipDuration * 0.3,
+        useNativeDriver: canUseNativeDriver,
+      }),
+    ]).start();
 
-    setTimeout(() => {
-      setShowGlow(true);
-    }, config.shineDelay);
-  }, [enableSound, enableHaptics, config.shineDelay]);
-
-  // Handle entry animation complete - start flip
-  const handleEntryComplete = useCallback(() => {
-    // Animate flip
+    // Air ripple effect
     Animated.parallel([
-      Animated.timing(flipAnim, {
-        toValue: 1,
+      Animated.timing(rippleScale, {
+        toValue: 2,
+        duration: config.flipDuration,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.timing(rippleOpacity, {
+        toValue: 0,
         duration: config.flipDuration,
         useNativeDriver: canUseNativeDriver,
       }),
-      Animated.timing(shadowAnim, {
-        toValue: 1,
-        duration: config.flipDuration,
-        useNativeDriver: canUseNativeDriver,
-      }),
-    ]).start(handleFlipComplete);
-  }, [flipAnim, shadowAnim, config.flipDuration, handleFlipComplete]);
+    ]).start();
+    rippleOpacity.setValue(0.6);
 
-  // Entry animation
-  useEffect(() => {
-    if (reducedMotion) {
-      // Reduced motion: simple fade in
-      opacityAnim.setValue(0);
-      scaleAnim.setValue(CONFIG.common.reducedMotionMinScale);
-      flipAnim.setValue(1);
+    // Main flip animation
+    Animated.timing(flipAnim, {
+      toValue: 1,
+      duration: config.flipDuration,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: canUseNativeDriver,
+    }).start(() => {
+      startLanding();
+    });
+  }, [flipAnim, edgeGlowOpacity, rippleScale, rippleOpacity, config.flipDuration, enableHaptics]);
 
-      Animated.parallel([
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: CONFIG.common.reducedMotionFadeDuration,
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: CONFIG.common.reducedMotionFadeDuration,
-          useNativeDriver: canUseNativeDriver,
-        }),
-      ]).start(() => {
-        onComplete();
-      });
-      return;
+  const startLanding = useCallback(() => {
+    setPhase('landing');
+
+    if (enableHaptics) {
+      triggerHaptic('heavy', true);
     }
 
-    // Normal animation sequence - fade in the back of the card
+    // Create particles
+    createParticles();
+
+    // Drop down with bounce
     Animated.parallel([
-      Animated.timing(opacityAnim, {
+      Animated.timing(levitateY, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.timing(levitateShadow, {
         toValue: 1,
         duration: 200,
         useNativeDriver: canUseNativeDriver,
       }),
-      Animated.spring(scaleAnim, {
+    ]).start(() => {
+      // Bounce effect
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(bounceY, {
+            toValue: -15,
+            duration: 100,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: canUseNativeDriver,
+          }),
+          Animated.timing(bounceScale, {
+            toValue: 1.05,
+            duration: 100,
+            useNativeDriver: canUseNativeDriver,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.spring(bounceY, {
+            toValue: 0,
+            friction: 4,
+            tension: 200,
+            useNativeDriver: canUseNativeDriver,
+          }),
+          Animated.spring(bounceScale, {
+            toValue: 1,
+            friction: 4,
+            tension: 200,
+            useNativeDriver: canUseNativeDriver,
+          }),
+        ]),
+      ]).start(() => {
+        setPhase('revealed');
+      });
+    });
+  }, [levitateY, levitateShadow, bounceY, bounceScale, createParticles, enableHaptics]);
+
+  // Handle glow complete
+  const handleGlowComplete = useCallback(() => {
+    setTimeout(() => {
+      onComplete();
+    }, config.revealHoldDuration);
+  }, [onComplete, config.revealHoldDuration]);
+
+  // Start animation sequence
+  useEffect(() => {
+    if (reducedMotion) {
+      // Reduced motion: simple fade
+      flipAnim.setValue(1);
+      entryOpacity.setValue(1);
+      entryScale.setValue(1);
+      setPhase('revealed');
+      return;
+    }
+
+    // Entry animation
+    Animated.parallel([
+      Animated.timing(entryOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.spring(entryScale, {
         toValue: 1,
         friction: 8,
         tension: 100,
         useNativeDriver: canUseNativeDriver,
       }),
     ]).start(() => {
-      // Start flip after short delay
-      setTimeout(handleEntryComplete, 400);
+      // Start levitation after short delay
+      setTimeout(startLevitation, 300);
     });
-  }, [
-    reducedMotion,
-    flipAnim,
-    scaleAnim,
-    opacityAnim,
-    shadowAnim,
-    onComplete,
-    handleEntryComplete,
-  ]);
-
-  // Handle glow animation complete
-  const handleGlowComplete = useCallback(() => {
-    onComplete();
-  }, [onComplete]);
+  }, [reducedMotion, flipAnim, entryOpacity, entryScale, startLevitation]);
 
   // Flip interpolations
   const frontRotateY = flipAnim.interpolate({
     inputRange: [0, 0.5, 1],
-    outputRange: ['180deg', '90deg', '0deg'],
+    outputRange: ['0deg', '90deg', '180deg'],
   });
 
   const backRotateY = flipAnim.interpolate({
     inputRange: [0, 0.5, 1],
-    outputRange: ['0deg', '90deg', '180deg'],
+    outputRange: ['180deg', '90deg', '0deg'],
   });
 
   const frontOpacity = flipAnim.interpolate({
     inputRange: [0, 0.5, 0.5, 1],
-    outputRange: [0, 0, 1, 1],
+    outputRange: [1, 1, 0, 0],
   });
 
   const backOpacity = flipAnim.interpolate({
     inputRange: [0, 0.5, 0.5, 1],
-    outputRange: [1, 1, 0, 0],
+    outputRange: [0, 0, 1, 1],
   });
 
-  // Dynamic shadow based on flip progress
-  const shadowOpacity = shadowAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [
-      config.shadowOpacityRange[0],
-      config.shadowOpacityRange[1],
-      config.shadowOpacityRange[0],
-    ],
+  // Shadow interpolation
+  const shadowOpacity = levitateShadow.interpolate({
+    inputRange: [1, 2],
+    outputRange: [0.2, 0.4],
   });
+
+  const shadowOffsetY = levitateShadow.interpolate({
+    inputRange: [1, 2],
+    outputRange: [5, 20],
+  });
+
+  // Combined transforms
+  const cardTransform = [
+    { translateY: Animated.add(levitateY, bounceY) },
+    { scale: Animated.multiply(entryScale, bounceScale) },
+  ];
 
   return (
     <View
       testID={`${testIDPrefix}-container`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      {/* Particle burst */}
-      <ParticleBurst
-        centerX={SCREEN_WIDTH / 2}
-        centerY={cardHeight / 2 + 100}
-        color={theme.particleColor}
-        count={getOptimalParticleCount(config.particleCount)}
-        radius={config.particleSpreadRadius}
-        durationRange={[config.particleDuration, config.particleDuration * 1.5]}
-        active={showParticles}
+      {/* Air ripple effect */}
+      <Animated.View
+        style={[
+          styles.ripple,
+          {
+            width: cardWidth * 1.5,
+            height: cardHeight * 1.5,
+            borderRadius: borderRadius.large,
+            borderColor: EFFECT_COLORS.ripple,
+            transform: [{ scale: rippleScale }],
+            opacity: rippleOpacity,
+          },
+        ]}
       />
 
-      {/* Card container */}
+      {/* Particles */}
+      <View style={styles.particleContainer}>
+        {particles.map((p) => (
+          <Animated.View
+            key={p.id}
+            style={[
+              styles.particle,
+              {
+                width: p.size,
+                height: p.size,
+                borderRadius: p.size / 2,
+                backgroundColor: p.color,
+                transform: [
+                  { translateX: p.x },
+                  { translateY: p.y },
+                  { scale: p.scale },
+                  {
+                    rotate: p.rotation.interpolate({
+                      inputRange: [-2, 2],
+                      outputRange: ['-360deg', '360deg'],
+                    }),
+                  },
+                ],
+                opacity: p.opacity,
+              },
+            ]}
+          />
+        ))}
+      </View>
+
+      {/* Main card container */}
       <Animated.View
         style={[
           styles.cardContainer,
           {
             width: cardWidth,
             height: cardHeight,
-            opacity: opacityAnim,
-            transform: [{ scale: scaleAnim }],
+            opacity: entryOpacity,
+            transform: cardTransform,
           },
         ]}
       >
-        {/* Back of card */}
+        {/* Multi-layer shadow */}
         <Animated.View
           style={[
-            styles.cardFace,
+            styles.shadowLayer,
+            styles.shadowLayer1,
             {
               width: cardWidth,
               height: cardHeight,
-              opacity: backOpacity,
-              transform: [{ rotateY: backRotateY }],
-              shadowOpacity: shadowAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.2, 0.4],
-              }),
+              opacity: shadowOpacity,
+              transform: [
+                { translateY: shadowOffsetY },
+                { scaleX: 0.95 },
+              ],
             },
           ]}
-        >
-          <RoleCard
-            role={role}
-            width={cardWidth}
-            height={cardHeight}
-            showBack
-            testID={`${testIDPrefix}-card-back`}
-          />
-        </Animated.View>
+        />
+        <Animated.View
+          style={[
+            styles.shadowLayer,
+            styles.shadowLayer2,
+            {
+              width: cardWidth * 0.9,
+              height: cardHeight * 0.1,
+              opacity: Animated.multiply(shadowOpacity, 0.5),
+              transform: [
+                { translateY: Animated.add(shadowOffsetY, 10) },
+              ],
+            },
+          ]}
+        />
 
-        {/* Front of card */}
+        {/* Card back (question mark) */}
         <Animated.View
           style={[
             styles.cardFace,
-            styles.cardFront,
             {
               width: cardWidth,
               height: cardHeight,
-              opacity: frontOpacity,
               transform: [{ rotateY: frontRotateY }],
-              shadowOpacity,
+              opacity: frontOpacity,
             },
           ]}
         >
           <RoleCard
             role={role}
+            showBack={true}
             width={cardWidth}
             height={cardHeight}
-            testID={`${testIDPrefix}-card-front`}
-          />
-
-          {/* Shine effect overlay */}
-          <ShineEffect
-            width={cardWidth}
-            height={cardHeight}
-            active={showShine}
-            duration={config.shineDuration}
-            delay={config.shineDelay}
-            color="rgba(255, 255, 255, 0.5)"
-            style={styles.shineOverlay}
           />
         </Animated.View>
 
-        {/* Glow border */}
-        {showGlow && (
+        {/* Card front (role) */}
+        <Animated.View
+          style={[
+            styles.cardFace,
+            styles.cardBack,
+            {
+              width: cardWidth,
+              height: cardHeight,
+              transform: [{ rotateY: backRotateY }],
+              opacity: backOpacity,
+            },
+          ]}
+        >
+          <RoleCardContent
+            roleId={role.id as RoleId}
+            width={cardWidth}
+            height={cardHeight}
+          />
+
+          {/* Edge glow during flip */}
+          <Animated.View
+            style={[
+              styles.edgeGlow,
+              {
+                borderColor: EFFECT_COLORS.edgeGlow,
+                opacity: edgeGlowOpacity,
+                shadowColor: EFFECT_COLORS.edgeGlow,
+              },
+            ]}
+          />
+        </Animated.View>
+
+        {/* Glow border on reveal */}
+        {phase === 'revealed' && (
           <GlowBorder
             width={cardWidth + 8}
             height={cardHeight + 8}
             color={theme.primaryColor}
             glowColor={theme.glowColor}
             borderWidth={3}
-            borderRadius={borderRadius.large + 4}
+            borderRadius={borderRadius.medium + 4}
             animate={!reducedMotion}
-            flashCount={2}
+            flashCount={3}
             flashDuration={200}
             onComplete={handleGlowComplete}
-            style={styles.glowBorder}
+            style={{
+              position: 'absolute',
+              top: -4,
+              left: -4,
+            }}
           />
         )}
       </Animated.View>
@@ -286,29 +527,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    // perspective handled by transform in React Native
   },
   cardFace: {
     position: 'absolute',
     backfaceVisibility: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 16,
-    elevation: 8,
   },
-  cardFront: {
-    zIndex: 1,
+  cardBack: {
+    // Already positioned absolutely
   },
-  shineOverlay: {
+  shadowLayer: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    borderRadius: borderRadius.large,
+    backgroundColor: '#000',
+    borderRadius: borderRadius.medium,
   },
-  glowBorder: {
+  shadowLayer1: {
+    // Primary shadow
+  },
+  shadowLayer2: {
+    // Secondary shadow (smaller, further)
+    alignSelf: 'center',
+    borderRadius: 50,
+  },
+  edgeGlow: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 3,
+    borderRadius: borderRadius.medium,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 15,
+  },
+  ripple: {
     position: 'absolute',
-    top: -4,
-    left: -4,
+    borderWidth: 3,
+  },
+  particleContainer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'none',
+  },
+  particle: {
+    position: 'absolute',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
   },
 });
