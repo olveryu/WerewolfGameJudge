@@ -87,7 +87,8 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   const lastHapticTime = useRef(0);
   const shavingIdRef = useRef(0);
 
-  const cardWidth = Math.min(260, SCREEN_WIDTH * 0.75);
+  // Use same calculation as RoleCardSimple: Math.min(SCREEN_WIDTH * 0.75, 280) and ratio 1.4
+  const cardWidth = Math.min(280, SCREEN_WIDTH * 0.75);
   const cardHeight = cardWidth * 1.4;
   const totalArea = cardWidth * cardHeight;
   const brushRadius = config.brushRadius;

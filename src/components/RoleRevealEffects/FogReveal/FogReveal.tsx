@@ -133,8 +133,9 @@ export const FogReveal: React.FC<RoleRevealEffectProps> = ({
 
   const [phase, setPhase] = useState<'foggy' | 'dispersing' | 'revealed'>('foggy');
 
+  // Use same calculation as RoleCardSimple: Math.min(SCREEN_WIDTH * 0.75, 280) and ratio 1.4
   const cardWidth = Math.min(280, SCREEN_WIDTH * 0.75);
-  const cardHeight = cardWidth * 1.35;
+  const cardHeight = cardWidth * 1.4;
 
   // Generate particle data
   const smokeParticleData = useMemo(
