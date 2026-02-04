@@ -32,8 +32,8 @@ export type RevealEffectType =
   | 'roulette'
   | 'flip'
   | 'scratch'
-  | 'fragment'
-  | 'fog';
+  | 'tarot'
+  | 'fire';
 
 /**
  * Common props for all reveal effect components

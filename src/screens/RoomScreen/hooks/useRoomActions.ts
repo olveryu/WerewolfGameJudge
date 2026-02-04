@@ -110,12 +110,6 @@ export interface UseRoomActionsResult {
   /** Check if can tap for action */
   canTapForAction: () => boolean;
 
-  /**
-   * @deprecated Legacy mergedTarget encoding. Use `extra.targets: [seatA, seatB]` instead.
-   * Will be removed after all call sites are updated.
-   */
-  getMagicianTarget: (secondIndex: number) => number;
-
   /** UI-only: if current actor is wolf, returns vote summary + (optional) my-seat suffix. */
   getWolfStatusLine: () => string | null;
 
@@ -334,24 +328,6 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     if (!imActioner) return false;
     return true;
   }, [gameState, roomStatus, isAudioPlaying, imActioner]);
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Magician two-target merge (DEPRECATED)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /**
-   * @deprecated Legacy mergedTarget encoding. Use `extra.targets: [seatA, seatB]` instead.
-   * RoomScreen now uses protocol: `proceedWithActionTyped(null, { targets: [a, b] })`.
-   */
-  const getMagicianTarget = useCallback(
-    (secondIndex: number): number => {
-      if (anotherIndex === null) {
-        throw new Error('getMagicianTarget called without first target set');
-      }
-      return anotherIndex + secondIndex * 100;
-    },
-    [anotherIndex],
-  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // UI-only: wolf status line for the action prompt area
@@ -691,7 +667,6 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     buildActionMessage,
     findVotingWolfSeat,
     canTapForAction,
-    getMagicianTarget,
     getWolfStatusLine,
     getBottomAction,
   };

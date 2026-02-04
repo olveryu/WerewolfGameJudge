@@ -91,8 +91,8 @@ class SettingsService {
       'roulette',
       'flip',
       'scratch',
-      'fragment',
-      'fog',
+      'tarot',
+      'fire',
       'none',
       'random',
     ].includes(anim);

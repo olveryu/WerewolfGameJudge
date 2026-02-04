@@ -65,20 +65,3 @@ export function getOptimalParticleCount(desired: number): number {
   }
   return desired;
 }
-
-/**
- * Get optimal fragment count based on platform
- */
-export function getOptimalFragmentGrid(
-  rows: number,
-  cols: number
-): { rows: number; cols: number } {
-  if (isWeb) {
-    // Reduce grid size for web performance
-    return {
-      rows: Math.max(2, Math.floor(rows * 0.75)),
-      cols: Math.max(2, Math.floor(cols * 0.75)),
-    };
-  }
-  return { rows, cols };
-}

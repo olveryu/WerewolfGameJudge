@@ -23,5 +23,5 @@ export { shuffleArray } from './shuffle';
 // 其他常用 utils
 export { withTimeout, cancellableDelay, type TimeoutErrorFactory } from './withTimeout';
 export { showAlert, showPrompt, setAlertListener, type AlertButton, type AlertConfig } from './alert';
-export { getAvatarImage, getUniqueAvatarBySeat, getAvatarByUid, AVATAR_COUNT } from './avatar';
+export { getAvatarImage, getAvatarByUid, AVATAR_COUNT } from './avatar';
 export { generateRoomCode } from './roomCode';

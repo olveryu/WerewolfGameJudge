@@ -49,6 +49,8 @@ export const GlowBorder: React.FC<GlowBorderProps> = ({
     if (!animate) {
       opacity.setValue(1);
       scale.setValue(1);
+      // Still call onComplete even when not animating
+      onComplete?.();
       return;
     }
 

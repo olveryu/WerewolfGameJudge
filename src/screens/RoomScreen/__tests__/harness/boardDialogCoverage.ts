@@ -149,16 +149,6 @@ export function getRequiredHostDataDialogTypes(board: BoardConfig): DialogType[]
 }
 
 /**
- * Generate ALL required dialog types for a board (UI + Host-data)
- * @deprecated Use getRequiredUiDialogTypes for UI tests
- */
-export function getRequiredDialogTypes(board: BoardConfig): DialogType[] {
-  const uiTypes = getRequiredUiDialogTypes(board);
-  const hostTypes = getRequiredHostDataDialogTypes(board);
-  return [...new Set([...uiTypes, ...hostTypes])];
-}
-
-/**
  * Check if a board contains a specific role
  */
 export function boardHasRole(board: BoardConfig, role: RoleId): boolean {

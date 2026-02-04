@@ -26,8 +26,8 @@ describe('RoleRevealAnimation', () => {
       expect(RANDOMIZABLE_ANIMATIONS).toContain('roulette');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('flip');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('scratch');
-      expect(RANDOMIZABLE_ANIMATIONS).toContain('fragment');
-      expect(RANDOMIZABLE_ANIMATIONS).toContain('fog');
+      expect(RANDOMIZABLE_ANIMATIONS).toContain('tarot');
+      expect(RANDOMIZABLE_ANIMATIONS).toContain('fire');
     });
 
     it('should NOT contain "none"', () => {

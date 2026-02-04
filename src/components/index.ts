@@ -12,8 +12,8 @@ export {
   EnhancedRoulette,
   FlipReveal,
   ScratchReveal,
-  FragmentAssemble,
-  FogReveal,
+  TarotDraw,
+  FireReveal,
   CONFIG as RoleRevealConfig,
   ALIGNMENT_THEMES,
 } from './RoleRevealEffects';
