@@ -26,9 +26,9 @@ export const CONFIG = {
     /** Number of visible items in the window */
     visibleItems: 3,
     /** Number of full rotations before stopping */
-    spinRotations: 3,
+    spinRotations: 5,
     /** Total spin duration in ms */
-    spinDuration: 5000,
+    spinDuration: 4000,
     /** Tick sound interval during fast spin (ms) */
     tickIntervalFast: 80,
     /** Tick sound interval during slow spin (ms) */

@@ -298,12 +298,15 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       toValue: targetPosition,
       duration: config.spinDuration,
       easing: (t) => {
-        // Custom easing: fast start, dramatic slowdown
-        if (t < 0.7) {
-          return t * 1.2;
+        // Custom easing: fast for 85% of time, then rapid slowdown
+        // This makes it harder to predict where it will stop
+        if (t < 0.85) {
+          // Fast and nearly linear for most of the spin
+          return t * 0.95;
         }
-        // Slow down dramatically at the end
-        return 0.84 + (1 - Math.pow(1 - (t - 0.7) / 0.3, 4)) * 0.16;
+        // Very fast slowdown in the last 15%
+        const slowdownProgress = (t - 0.85) / 0.15;
+        return 0.8075 + (1 - Math.pow(1 - slowdownProgress, 3)) * 0.1925;
       },
       useNativeDriver: canUseNativeDriver,
     }).start(() => {

@@ -527,11 +527,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardContainer: {
-    // perspective handled by transform in React Native
+    overflow: 'visible',
   },
   cardFace: {
     position: 'absolute',
+    top: 0,
+    left: 0,
     backfaceVisibility: 'hidden',
+    overflow: 'visible',
   },
   cardBack: {
     // Already positioned absolutely
