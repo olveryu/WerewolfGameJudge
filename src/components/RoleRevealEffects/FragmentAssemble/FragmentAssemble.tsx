@@ -166,8 +166,9 @@ export const FragmentAssemble: React.FC<RoleRevealEffectProps> = ({
   // Create spark particles at fragment positions
   const createSparks = useCallback((fragmentIndex: number) => {
     const fragment = fragments[fragmentIndex];
-    const centerX = (fragment.col + 0.5) * fragmentWidth - cardWidth / 2;
-    const centerY = (fragment.row + 0.5) * fragmentHeight - cardHeight / 2;
+    // Position relative to cardContainer top-left (same as fragment positioning)
+    const centerX = (fragment.col + 0.5) * fragmentWidth;
+    const centerY = (fragment.row + 0.5) * fragmentHeight;
     
     const newSparks: SparkParticle[] = [];
     const sparkCount = 3;
@@ -217,7 +218,7 @@ export const FragmentAssemble: React.FC<RoleRevealEffectProps> = ({
     }
 
     setSparks((prev) => [...prev, ...newSparks]);
-  }, [fragments, fragmentWidth, fragmentHeight, cardWidth, cardHeight]);
+  }, [fragments, fragmentWidth, fragmentHeight]);
 
   // Handle assembly complete
   const handleAssemblyComplete = useCallback(() => {
