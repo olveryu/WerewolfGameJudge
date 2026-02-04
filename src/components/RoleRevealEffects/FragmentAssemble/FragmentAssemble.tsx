@@ -521,6 +521,8 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   fragment: {
     position: 'absolute',
