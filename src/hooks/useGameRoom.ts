@@ -626,8 +626,16 @@ export const useGameRoom = (): UseGameRoomResult => {
     if (!isHost) {
       return { success: false, reason: 'host_only' };
     }
+    // If Host is seated, leave seat first so the seat can be filled with a bot
+    if (mySeatNumber !== null) {
+      try {
+        await facade.leaveSeat();
+      } catch (err) {
+        return { success: false, reason: `failed_to_leave_seat: ${String(err)}` };
+      }
+    }
     return facade.fillWithBots();
-  }, [isHost, facade]);
+  }, [isHost, mySeatNumber, facade]);
 
   const markAllBotsViewed = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
     if (!isHost) {

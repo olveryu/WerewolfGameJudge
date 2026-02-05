@@ -30,6 +30,7 @@ import { ActionButton } from './components/ActionButton';
 import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { NightProgressIndicator } from './components/NightProgressIndicator';
 import { ControlledSeatBanner } from './components/ControlledSeatBanner';
+import { HostMenuDropdown } from './components/HostMenuDropdown';
 import {
   toGameRoomLike,
   getRoleStats,
@@ -108,6 +109,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     effectiveSeat,
     effectiveRole,
   } = useGameRoom();
+
+  // Check if there are any bots in the game (for showing bot mode hint)
+  const hasBots = useMemo(() => {
+    if (!gameState) return false;
+    return Array.from(gameState.players.values()).some((p) => p?.isBot);
+  }, [gameState]);
 
   // Night progress indicator: calculate current step index and total steps
   // Uses buildNightPlan to get the actual steps based on the template roles
@@ -1306,7 +1313,22 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.headerTitle}>房间 {roomNumber}</Text>
           <Text style={styles.headerSubtitle}>{gameState.template.roles.length}人局</Text>
         </View>
-        <View style={styles.headerSpacer} />
+        {/* Host Menu Dropdown - replaces headerSpacer */}
+        <HostMenuDropdown
+          visible={isHost}
+          showRestart={
+            !isAudioPlaying &&
+            (roomStatus === GameStatus.assigned ||
+              roomStatus === GameStatus.ready ||
+              roomStatus === GameStatus.ongoing ||
+              roomStatus === GameStatus.ended)
+          }
+          showFillWithBots={roomStatus === GameStatus.unseated}
+          showMarkAllBotsViewed={isDebugMode && roomStatus === GameStatus.assigned}
+          onRestart={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' })}
+          onFillWithBots={() => void fillWithBots()}
+          onMarkAllBotsViewed={() => void markAllBotsViewed()}
+        />
       </View>
 
       {/* Connection Status Bar */}
@@ -1321,6 +1343,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           totalSteps={nightProgress.total}
           currentRoleName={nightProgress.roleName}
         />
+      )}
+
+      {/* Bot Mode Hint - shown below progress indicator when bots are present */}
+      {isDebugMode && hasBots && roomStatus === GameStatus.ongoing && (
+        <View style={styles.botModeHintContainer}>
+          <Text style={styles.botModeHintText}>💡 长按座位可接管机器人</Text>
+        </View>
       )}
 
       {/* Controlled Seat Banner - show when Host is controlling a bot seat */}
@@ -1375,30 +1404,19 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             !isAudioPlaying &&
             (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated)
           }
-          showFillWithBots={roomStatus === GameStatus.unseated}
           showPrepareToFlip={roomStatus === GameStatus.seated}
-          showMarkAllBotsViewed={isDebugMode && roomStatus === GameStatus.assigned}
           showStartGame={roomStatus === GameStatus.ready && !isStartingGame}
           showLastNightInfo={roomStatus === GameStatus.ended && !isAudioPlaying}
-          showRestart={
-            roomStatus === GameStatus.assigned ||
-            roomStatus === GameStatus.ready ||
-            roomStatus === GameStatus.ongoing ||
-            roomStatus === GameStatus.ended
-          }
           onSettingsPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' })}
-          onFillWithBotsPress={() => void fillWithBots()}
           onPrepareToFlipPress={() =>
             dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' })
           }
-          onMarkAllBotsViewedPress={() => void markAllBotsViewed()}
           onStartGamePress={() =>
             dispatchInteraction({ kind: 'HOST_CONTROL', action: 'startGame' })
           }
           onLastNightInfoPress={() =>
             dispatchInteraction({ kind: 'HOST_CONTROL', action: 'lastNightInfo' })
           }
-          onRestartPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' })}
         />
 
         {/* Actioner: schema-driven bottom action buttons */}
@@ -1564,6 +1582,7 @@ function createStyles(colors: ThemeColors) {
     },
     backButton: {
       padding: spacing.small,
+      minWidth: 60,
     },
     backButtonText: {
       color: colors.primary,
@@ -1571,6 +1590,7 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '600',
     },
     headerCenter: {
+      flex: 1,
       alignItems: 'center',
     },
     headerTitle: {
@@ -1584,7 +1604,7 @@ function createStyles(colors: ThemeColors) {
       marginTop: spacing.tight / 2,
     },
     headerSpacer: {
-      width: spacing.xxlarge + spacing.large, // ~64
+      minWidth: 60,
     },
     scrollView: {
       flex: 1,
@@ -1599,6 +1619,14 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: spacing.medium,
       paddingBottom: spacing.xlarge,
       gap: spacing.small,
+    },
+    botModeHintContainer: {
+      alignItems: 'center',
+      paddingVertical: spacing.small,
+    },
+    botModeHintText: {
+      fontSize: typography.caption,
+      color: colors.textSecondary,
     },
   });
 }
