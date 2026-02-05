@@ -228,7 +228,7 @@ describe('useRoomSeatDialogs', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('handleLeaveRoom', () => {
-    it('should navigate directly to Home when status is ongoing', () => {
+    it('should show confirm dialog when status is ongoing', () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
@@ -241,11 +241,18 @@ describe('useRoomSeatDialogs', () => {
         result.current.handleLeaveRoom();
       });
 
-      expect(mockNavigate).toHaveBeenCalledWith('Home');
-      expect(mockShowAlert).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(mockShowAlert).toHaveBeenCalledWith(
+        '离开房间？',
+        '',
+        expect.arrayContaining([
+          expect.objectContaining({ text: '确定' }),
+          expect.objectContaining({ text: '取消', style: 'cancel' }),
+        ]),
+      );
     });
 
-    it('should navigate directly to Home when status is ended', () => {
+    it('should show confirm dialog when status is ended', () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
@@ -258,8 +265,15 @@ describe('useRoomSeatDialogs', () => {
         result.current.handleLeaveRoom();
       });
 
-      expect(mockNavigate).toHaveBeenCalledWith('Home');
-      expect(mockShowAlert).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(mockShowAlert).toHaveBeenCalledWith(
+        '离开房间？',
+        '',
+        expect.arrayContaining([
+          expect.objectContaining({ text: '确定' }),
+          expect.objectContaining({ text: '取消', style: 'cancel' }),
+        ]),
+      );
     });
 
     it('should show confirm dialog when status is unseated', () => {
@@ -336,6 +350,37 @@ describe('useRoomSeatDialogs', () => {
           expect.objectContaining({ text: '取消', style: 'cancel' }),
         ]),
       );
+    });
+
+    it('should call onLeaveRoom callback when confirm is pressed', () => {
+      const mockOnLeaveRoom = jest.fn();
+      const { result } = renderHook(() =>
+        useRoomSeatDialogs(
+          createHookParams({
+            roomStatus: GameStatus.ongoing,
+            onLeaveRoom: mockOnLeaveRoom,
+          }),
+        ),
+      );
+
+      act(() => {
+        result.current.handleLeaveRoom();
+      });
+
+      // Get the buttons passed to showAlert
+      const alertCall = mockShowAlert.mock.calls[0];
+      const buttons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
+
+      // Find and click the confirm button
+      const confirmButton = buttons.find((b) => b.text === '确定');
+      expect(confirmButton).toBeDefined();
+
+      act(() => {
+        confirmButton?.onPress?.();
+      });
+
+      expect(mockOnLeaveRoom).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledWith('Home');
     });
   });
 });
