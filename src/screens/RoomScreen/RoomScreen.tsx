@@ -1345,20 +1345,18 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       )}
 
-      {/* Bot Mode Hint - shown below progress indicator when bots are present */}
+      {/* Bot Mode Hint / Controlled Seat Banner - mutually exclusive */}
       {isDebugMode && hasBots && roomStatus === GameStatus.ongoing && (
-        <View style={styles.botModeHintContainer}>
-          <Text style={styles.botModeHintText}>💡 长按座位可接管机器人</Text>
-        </View>
-      )}
-
-      {/* Controlled Seat Banner - show when Host is controlling a bot seat */}
-      {isDebugMode && controlledSeat !== null && gameState.players.get(controlledSeat) && (
-        <ControlledSeatBanner
-          controlledSeat={controlledSeat}
-          botDisplayName={gameState.players.get(controlledSeat)?.displayName || 'Bot'}
-          onRelease={() => setControlledSeat(null)}
-        />
+        controlledSeat !== null && gameState.players.get(controlledSeat) ? (
+          <ControlledSeatBanner
+            mode="controlled"
+            controlledSeat={controlledSeat}
+            botDisplayName={gameState.players.get(controlledSeat)?.displayName || 'Bot'}
+            onRelease={() => setControlledSeat(null)}
+          />
+        ) : (
+          <ControlledSeatBanner mode="hint" />
+        )
       )}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -1619,14 +1617,6 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: spacing.medium,
       paddingBottom: spacing.xlarge,
       gap: spacing.small,
-    },
-    botModeHintContainer: {
-      alignItems: 'center',
-      paddingVertical: spacing.small,
-    },
-    botModeHintText: {
-      fontSize: typography.caption,
-      color: colors.textSecondary,
     },
   });
 }

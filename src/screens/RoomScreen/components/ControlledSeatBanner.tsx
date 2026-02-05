@@ -2,6 +2,7 @@
  * ControlledSeatBanner.tsx - Debug mode banner showing currently controlled bot seat
  *
  * Shows a banner at the top of the screen when Host is controlling a bot seat.
+ * Also shows a hint banner when no bot is controlled but bots are present.
  * Allows quick release of control.
  *
  * ❌ Do NOT import: any Service singletons, showAlert
@@ -13,21 +14,26 @@ import { useColors, type ThemeColors, spacing, typography, borderRadius } from '
 
 export interface ControlledSeatBannerStyles {
   container: ViewStyle;
+  hintContainer: ViewStyle;
   text: TextStyle;
+  hintText: TextStyle;
   releaseButton: ViewStyle;
   releaseButtonText: TextStyle;
 }
 
 export interface ControlledSeatBannerProps {
-  /** The seat number being controlled (0-indexed, display as 1-indexed) */
-  controlledSeat: number;
-  /** Display name of the bot being controlled */
-  botDisplayName: string;
-  /** Callback when user wants to release control */
-  onRelease: () => void;
+  /** Mode: 'hint' shows takeover hint, 'controlled' shows controlled bot */
+  mode: 'hint' | 'controlled';
+  /** The seat number being controlled (0-indexed, display as 1-indexed) - required when mode='controlled' */
+  controlledSeat?: number;
+  /** Display name of the bot being controlled - required when mode='controlled' */
+  botDisplayName?: string;
+  /** Callback when user wants to release control - required when mode='controlled' */
+  onRelease?: () => void;
 }
 
 const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
+  mode,
   controlledSeat,
   botDisplayName,
   onRelease,
@@ -35,10 +41,18 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
   const colors = useColors();
   const styles = createStyles(colors);
 
+  if (mode === 'hint') {
+    return (
+      <View style={styles.hintContainer}>
+        <Text style={styles.hintText}>💡 长按座位可接管机器人</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.text}>
-        🎮 正在操控 {controlledSeat + 1} 号位（{botDisplayName}）
+        🎮 正在操控 {(controlledSeat ?? 0) + 1} 号位（{botDisplayName}）
       </Text>
       <TouchableOpacity style={styles.releaseButton} onPress={onRelease}>
         <Text style={styles.releaseButtonText}>回到自己</Text>
@@ -59,11 +73,26 @@ function createStyles(colors: ThemeColors): ControlledSeatBannerStyles {
       marginBottom: spacing.small,
       borderRadius: borderRadius.medium,
     },
+    hintContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+      paddingVertical: spacing.small,
+      paddingHorizontal: spacing.medium,
+      marginBottom: spacing.small,
+      borderRadius: borderRadius.medium,
+    },
     text: {
       fontSize: typography.secondary,
       color: colors.textInverse,
       fontWeight: '600',
       flex: 1,
+    },
+    hintText: {
+      fontSize: typography.secondary,
+      color: colors.textSecondary,
+      fontWeight: '500',
     },
     releaseButton: {
       backgroundColor: colors.surface,
