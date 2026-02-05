@@ -1,14 +1,14 @@
 /**
- * TarotDraw - Card Draw from Shuffling Deck Animation
+ * TarotDraw - 转盘抽卡效果
  *
- * Features:
- * - Multiple cards in a deck, continuously shuffling/rotating
- * - Cards fly around in a circular pattern
- * - One card gets "drawn" - flies out and flips to reveal
- * - Mystical particle effects during shuffle
+ * 动画流程：
+ * 1. 多张牌围成一圈，不停旋转
+ * 2. 转速逐渐减慢
+ * 3. 一张牌被抽出，飞向中央
+ * 4. 翻转揭示角色
  */
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Animated, StyleSheet, Dimensions, Easing } from 'react-native';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { View, Animated, StyleSheet, Dimensions, Easing, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors, borderRadius } from '../../../theme';
 import type { RoleRevealEffectProps } from '../types';
@@ -20,227 +20,38 @@ import { RoleCardContent } from '../common/RoleCardContent';
 import { GlowBorder } from '../common/GlowBorder';
 import type { RoleId } from '../../../models/roles';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Deck colors
-const DECK_COLORS = {
-  cardBack: '#1a1a2e',
-  cardBackAccent: '#4a1a6b',
-  cardBackPattern: '#6b3fa0',
-  stardustGold: '#FFD700',
-  particle: ['#FFD700', '#9370DB', '#00CED1', '#FF69B4'],
+const TAROT_COLORS = {
+  cardBack: ['#2a2a4e', '#3d3d64', '#2a2a4e'] as const,
+  gold: '#d4af37',
+  goldGlow: '#ffd700',
 };
 
-// Number of cards in the shuffling deck
-const DECK_SIZE = 7;
-
-// Stable IDs for deck cards
-const DECK_CARD_IDS = ['deck-a', 'deck-b', 'deck-c', 'deck-d', 'deck-e', 'deck-f', 'deck-g'];
-const DECK_FADE_IDS = ['fade-a', 'fade-b', 'fade-c', 'fade-d', 'fade-e', 'fade-f', 'fade-g'];
-
-// Helper: Create orbit animation for a particle
-function createParticleOrbitAnimation(
-  p: ShuffleParticle,
-  startAngle: number,
-  radius: number,
-  halfDuration: number,
-): Animated.CompositeAnimation {
-  return Animated.parallel([
-    Animated.sequence([
-      Animated.timing(p.x, {
-        toValue: Math.cos(startAngle) * radius,
-        duration: halfDuration,
-        easing: Easing.inOut(Easing.sin),
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(p.x, {
-        toValue: Math.cos(startAngle + Math.PI) * radius,
-        duration: halfDuration,
-        easing: Easing.inOut(Easing.sin),
-        useNativeDriver: canUseNativeDriver,
-      }),
-    ]),
-    Animated.sequence([
-      Animated.timing(p.y, {
-        toValue: Math.sin(startAngle) * radius * 0.5,
-        duration: halfDuration,
-        easing: Easing.inOut(Easing.sin),
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(p.y, {
-        toValue: Math.sin(startAngle + Math.PI) * radius * 0.5,
-        duration: halfDuration,
-        easing: Easing.inOut(Easing.sin),
-        useNativeDriver: canUseNativeDriver,
-      }),
-    ]),
-    Animated.sequence([
-      Animated.timing(p.opacity, {
-        toValue: 0.8,
-        duration: halfDuration,
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(p.opacity, {
-        toValue: 0.4,
-        duration: halfDuration,
-        useNativeDriver: canUseNativeDriver,
-      }),
-    ]),
-    Animated.sequence([
-      Animated.timing(p.scale, {
-        toValue: 1.2,
-        duration: halfDuration,
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(p.scale, {
-        toValue: 0.6,
-        duration: halfDuration,
-        useNativeDriver: canUseNativeDriver,
-      }),
-    ]),
-  ]);
-}
-
-// Helper: Create card shuffle animation
-function createCardShuffleAnimation(
-  card: DeckCardAnim,
-  startAngle: number,
-  currentRotation: number,
-  radius: number,
-  duration: number,
-): Animated.CompositeAnimation {
-  const halfDuration = duration / 2;
-  return Animated.parallel([
-    Animated.sequence([
-      Animated.timing(card.x, {
-        toValue: Math.cos(startAngle) * radius,
-        duration: halfDuration,
-        easing: Easing.inOut(Easing.sin),
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(card.x, {
-        toValue: Math.cos(startAngle + Math.PI) * radius,
-        duration: halfDuration,
-        easing: Easing.inOut(Easing.sin),
-        useNativeDriver: canUseNativeDriver,
-      }),
-    ]),
-    Animated.sequence([
-      Animated.timing(card.y, {
-        toValue: Math.sin(startAngle) * radius * 0.4,
-        duration: halfDuration,
-        easing: Easing.inOut(Easing.sin),
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(card.y, {
-        toValue: Math.sin(startAngle + Math.PI) * radius * 0.4,
-        duration: halfDuration,
-        easing: Easing.inOut(Easing.sin),
-        useNativeDriver: canUseNativeDriver,
-      }),
-    ]),
-    Animated.timing(card.rotate, {
-      toValue: currentRotation + 15,
-      duration,
-      easing: Easing.linear,
-      useNativeDriver: canUseNativeDriver,
-    }),
-  ]);
-}
-
-// Helper: Start looping particle orbit animation
-function startParticleOrbit(p: ShuffleParticle, radius: number, halfDuration: number): void {
-  const animateOrbit = (startAngle: number) => {
-    createParticleOrbitAnimation(p, startAngle, radius, halfDuration).start(() =>
-      animateOrbit(startAngle + Math.PI),
-    );
-  };
-  animateOrbit(p.baseAngle);
-}
-
-// Helper: Start looping card shuffle animation
-function startCardShuffle(card: DeckCardAnim, radius: number, duration: number): void {
-  const animateCard = (startAngle: number, currentRotation: number) => {
-    createCardShuffleAnimation(card, startAngle, currentRotation, radius, duration).start(() =>
-      animateCard(startAngle + Math.PI, currentRotation + 15),
-    );
-  };
-  animateCard(card.baseAngle, 0);
-}
-
-// Deck card animation values
-interface DeckCardAnim {
-  x: Animated.Value;
-  y: Animated.Value;
-  rotate: Animated.Value;
-  scale: Animated.Value;
-  opacity: Animated.Value;
-  baseAngle: number;
-}
-
-// Shuffle particle
-interface ShuffleParticle {
+interface WheelCard {
   id: number;
-  x: Animated.Value;
-  y: Animated.Value;
-  opacity: Animated.Value;
-  scale: Animated.Value;
-  color: string;
-  baseAngle: number;
+  angle: number;
 }
 
-// Single deck card component (card back)
-interface DeckCardViewProps {
-  anim: DeckCardAnim;
-  cardWidth: number;
-  cardHeight: number;
-  zIndex: number;
-}
-
-const DeckCardView: React.FC<DeckCardViewProps> = React.memo(
-  ({ anim, cardWidth, cardHeight, zIndex }) => {
-    const rotation = anim.rotate.interpolate({
-      inputRange: [-180, 0, 180, 360],
-      outputRange: ['-180deg', '0deg', '180deg', '360deg'],
-    });
-
-    return (
-      <Animated.View
-        style={[
-          styles.deckCard,
-          {
-            width: cardWidth,
-            height: cardHeight,
-            zIndex,
-            transform: [
-              { translateX: anim.x },
-              { translateY: anim.y },
-              { rotate: rotation },
-              { scale: anim.scale },
-            ],
-            opacity: anim.opacity,
-          },
-        ]}
+const CardBackFace: React.FC<{ width: number; height: number }> = React.memo(
+  ({ width, height }) => (
+    <View style={[styles.cardBackFace, { width, height }]}>
+      <LinearGradient
+        colors={[...TAROT_COLORS.cardBack]}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        <LinearGradient
-          colors={[DECK_COLORS.cardBack, DECK_COLORS.cardBackAccent]}
-          style={styles.cardBackGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          {/* Card back pattern */}
-          <View style={styles.cardBackPattern}>
-            <View style={[styles.patternCircle, styles.patternOuter]} />
-            <View style={[styles.patternCircle, styles.patternMiddle]} />
-            <View style={[styles.patternCircle, styles.patternInner]} />
-            <View style={styles.patternStar} />
+        <View style={styles.cardBackInner}>
+          <View style={[styles.cardBackBorder, { borderColor: TAROT_COLORS.gold }]}>
+            <Animated.Text style={styles.symbolText}>☽</Animated.Text>
           </View>
-        </LinearGradient>
-      </Animated.View>
-    );
-  },
+        </View>
+      </LinearGradient>
+    </View>
+  ),
 );
-DeckCardView.displayName = 'DeckCardView';
+CardBackFace.displayName = 'CardBackFace';
 
 export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   role,
@@ -251,397 +62,312 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 }) => {
   const colors = useColors();
   const theme = ALIGNMENT_THEMES[role.alignment];
+  const config = CONFIG.tarot ?? { flipDuration: 800, revealHoldDuration: 1500 };
 
-  const [phase, setPhase] = useState<'shuffling' | 'drawing' | 'revealing' | 'revealed'>(
-    'shuffling',
+  const [phase, setPhase] = useState<'waiting' | 'drawing' | 'flipping' | 'revealed'>(
+    'waiting',
   );
-  const [particles, setParticles] = useState<ShuffleParticle[]>([]);
+  const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
+  const onCompleteCalledRef = useRef(false);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const spinAnimRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  // Card dimensions
-  const deckCardWidth = Math.min(160, SCREEN_WIDTH * 0.4);
-  const deckCardHeight = deckCardWidth * 1.4;
-  const revealCardWidth = Math.min(280, SCREEN_WIDTH * 0.75);
-  const revealCardHeight = revealCardWidth * 1.4;
+  const cardWidth = Math.min(SCREEN_WIDTH * 0.7, 260);
+  const cardHeight = cardWidth * 1.4;
+  const wheelRadius = Math.min(SCREEN_WIDTH * 0.32, 130);
 
-  // Deck cards animation values
-  const deckCards = useMemo<DeckCardAnim[]>(() => {
-    return Array.from({ length: DECK_SIZE }, (_, i) => ({
-      x: new Animated.Value(0),
-      y: new Animated.Value(0),
-      rotate: new Animated.Value(i * 10 - 30),
-      scale: new Animated.Value(0.9),
-      opacity: new Animated.Value(1),
-      baseAngle: (Math.PI * 2 * i) / DECK_SIZE,
+  const wheelCards: WheelCard[] = useMemo(() => {
+    const count = 8;
+    return Array.from({ length: count }, (_, i) => ({
+      id: i,
+      angle: (Math.PI * 2 * i) / count,
     }));
   }, []);
 
-  // The chosen card (will be drawn out)
-  const chosenCard = useMemo(
-    () => ({
-      x: new Animated.Value(0),
-      y: new Animated.Value(50), // Start slightly lower
-      rotate: new Animated.Value(0),
-      scale: new Animated.Value(0.6),
-      opacity: new Animated.Value(0),
-      flip: new Animated.Value(0),
-    }),
-    [],
-  );
+  const wheelRotation = useMemo(() => new Animated.Value(0), []);
+  const wheelOpacity = useMemo(() => new Animated.Value(1), []);
+  const wheelScale = useMemo(() => new Animated.Value(1), []);
 
-  // Glow effect
-  const glowOpacity = useMemo(() => new Animated.Value(0), []);
-  const glowScale = useMemo(() => new Animated.Value(0.8), []);
+  const drawnCardX = useMemo(() => new Animated.Value(0), []);
+  const drawnCardY = useMemo(() => new Animated.Value(-wheelRadius), []);
+  const drawnCardScale = useMemo(() => new Animated.Value(1), []);
+  const drawnCardOpacity = useMemo(() => new Animated.Value(0), []);
+  const drawnCardRotateZ = useMemo(() => new Animated.Value(0), []);
 
-  // Create shuffle particles
-  const createParticles = useCallback((): ShuffleParticle[] => {
-    const newParticles: ShuffleParticle[] = [];
-    for (let i = 0; i < 12; i++) {
-      newParticles.push({
-        id: i,
-        x: new Animated.Value(0),
-        y: new Animated.Value(0),
-        opacity: new Animated.Value(0),
-        scale: new Animated.Value(0),
-        color: DECK_COLORS.particle[i % DECK_COLORS.particle.length],
-        baseAngle: (Math.PI * 2 * i) / 12,
-      });
-    }
-    setParticles(newParticles);
-    return newParticles;
+  const flipProgress = useMemo(() => new Animated.Value(0), []);
+
+  const cleanup = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+    spinAnimRef.current?.stop();
   }, []);
 
-  // Animate particles in circular motion
-  const animateParticles = useCallback((particleList: ShuffleParticle[]) => {
-    particleList.forEach((p) => {
-      const radius = 90 + Math.random() * 30;
-      const duration = 1200 + Math.random() * 400;
-      const halfDuration = duration / 2;
-      startParticleOrbit(p, radius, halfDuration);
-    });
-  }, []);
+  useEffect(() => cleanup, [cleanup]);
 
-  // Fade out particles
-  const fadeOutParticles = useCallback((particleList: ShuffleParticle[]) => {
-    particleList.forEach((p) => {
-      Animated.timing(p.opacity, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: canUseNativeDriver,
-      }).start();
-    });
-  }, []);
+  const flipRotateY = flipProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
 
-  // Shuffle animation - cards orbit around center
-  const startShuffleAnimation = useCallback(() => {
-    deckCards.forEach((card) => {
-      const radius = 50;
-      const duration = 600 + Math.random() * 200;
-      startCardShuffle(card, radius, duration);
-    });
-  }, [deckCards]);
+  const backOpacity = flipProgress.interpolate({
+    inputRange: [0, 0.48, 0.52, 1],
+    outputRange: [1, 1, 0, 0],
+  });
 
-  // Draw animation - one card flies out
-  const startDrawAnimation = useCallback(() => {
+  const frontOpacity = flipProgress.interpolate({
+    inputRange: [0, 0.48, 0.52, 1],
+    outputRange: [0, 0, 1, 1],
+  });
+
+  const startFlipping = useCallback(() => {
+    setPhase('flipping');
+    if (enableHaptics) triggerHaptic('medium', true);
+
+    Animated.timing(flipProgress, {
+      toValue: 1,
+      duration: config.flipDuration ?? 800,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: canUseNativeDriver,
+    }).start(() => {
+      setPhase('revealed');
+      if (enableHaptics) triggerHaptic('heavy', true);
+    });
+  }, [flipProgress, config.flipDuration, enableHaptics]);
+
+  const startDrawing = useCallback(() => {
     setPhase('drawing');
     if (enableHaptics) triggerHaptic('medium', true);
 
-    // Fade deck cards
-    deckCards.forEach((card) => {
-      Animated.parallel([
-        Animated.timing(card.opacity, {
-          toValue: 0.2,
-          duration: 500,
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(card.scale, {
-          toValue: 0.6,
-          duration: 500,
-          useNativeDriver: canUseNativeDriver,
-        }),
-      ]).start();
-    });
+    drawnCardOpacity.setValue(1);
 
-    // Animate chosen card flying up
-    Animated.sequence([
-      // Appear
-      Animated.parallel([
-        Animated.timing(chosenCard.opacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(chosenCard.scale, {
-          toValue: 0.8,
-          duration: 200,
-          useNativeDriver: canUseNativeDriver,
-        }),
-      ]),
-      // Fly up
-      Animated.parallel([
-        Animated.timing(chosenCard.y, {
-          toValue: -SCREEN_HEIGHT * 0.08,
-          duration: 700,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(chosenCard.scale, {
-          toValue: 1,
-          duration: 700,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(chosenCard.rotate, {
-          toValue: 3,
-          duration: 700,
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(glowOpacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(glowScale, {
-          toValue: 1.2,
-          duration: 700,
-          useNativeDriver: canUseNativeDriver,
-        }),
-      ]),
-    ]).start(() => {
-      // Start flip
-      setPhase('revealing');
-      if (enableHaptics) triggerHaptic('heavy', true);
-
-      Animated.timing(chosenCard.flip, {
-        toValue: 1,
-        duration: 800,
-        easing: Easing.inOut(Easing.cubic),
+    Animated.parallel([
+      Animated.timing(wheelScale, {
+        toValue: 0.5,
+        duration: 400,
         useNativeDriver: canUseNativeDriver,
-      }).start(() => {
-        setPhase('revealed');
-        if (enableHaptics) triggerHaptic('heavy', true);
-      });
+      }),
+      Animated.timing(wheelOpacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: canUseNativeDriver,
+      }),
+    ]).start();
+
+    Animated.parallel([
+      Animated.timing(drawnCardX, {
+        toValue: 0,
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.timing(drawnCardY, {
+        toValue: 0,
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: canUseNativeDriver,
+      }),
+    ]).start(() => {
+      const t = setTimeout(() => startFlipping(), 300);
+      timersRef.current.push(t);
     });
-  }, [deckCards, chosenCard, glowOpacity, glowScale, enableHaptics]);
+  }, [
+    drawnCardX,
+    drawnCardY,
+    drawnCardScale,
+    drawnCardRotateZ,
+    drawnCardOpacity,
+    wheelScale,
+    wheelOpacity,
+    enableHaptics,
+    startFlipping,
+  ]);
 
-  // Handle reveal complete
-  const handleRevealComplete = useCallback(() => {
-    setTimeout(() => {
+  // 点击选牌时调用
+  const handleCardSelect = useCallback(
+    (cardIndex: number) => {
+      if (phase !== 'waiting') return;
+      setSelectedCardIndex(cardIndex);
+      spinAnimRef.current?.stop();
+      if (enableHaptics) triggerHaptic('medium', true);
+
+      // 获取选中牌的位置
+      const currentRotation = (wheelRotation as unknown as { _value: number })._value || 0;
+      const cardAngle = wheelCards[cardIndex].angle;
+      const totalAngle = currentRotation * Math.PI * 2 + cardAngle - Math.PI / 2;
+      const x = Math.cos(totalAngle) * wheelRadius;
+      const y = Math.sin(totalAngle) * wheelRadius;
+
+      // 设置抽出牌的初始位置
+      drawnCardX.setValue(x);
+      drawnCardY.setValue(y);
+      drawnCardOpacity.setValue(1);
+
+      startDrawing();
+    },
+    [
+      phase,
+      wheelRotation,
+      wheelCards,
+      wheelRadius,
+      drawnCardX,
+      drawnCardY,
+      drawnCardOpacity,
+      enableHaptics,
+      startDrawing,
+    ],
+  );
+
+  const startSpinning = useCallback(() => {
+    // 慢速旋转：4秒转一圈（等待玩家选牌）
+    const spin = Animated.loop(
+      Animated.timing(wheelRotation, {
+        toValue: 1,
+        duration: 4000,
+        easing: Easing.linear,
+        useNativeDriver: canUseNativeDriver,
+      }),
+    );
+    spinAnimRef.current = spin;
+    spin.start();
+  }, [wheelRotation]);
+
+  const handleGlowComplete = useCallback(() => {
+    if (onCompleteCalledRef.current) return;
+    onCompleteCalledRef.current = true;
+
+    const t = setTimeout(() => {
       onComplete();
-    }, CONFIG.tarot?.revealHoldDuration ?? 1500);
-  }, [onComplete]);
+    }, config.revealHoldDuration ?? 1200);
+    timersRef.current.push(t);
+  }, [onComplete, config.revealHoldDuration]);
 
-  // Main animation sequence
   useEffect(() => {
     if (reducedMotion) {
-      chosenCard.opacity.setValue(1);
-      chosenCard.scale.setValue(1);
-      chosenCard.flip.setValue(1);
-      chosenCard.y.setValue(-SCREEN_HEIGHT * 0.08);
+      flipProgress.setValue(1);
+      wheelOpacity.setValue(0);
+      drawnCardOpacity.setValue(1);
+      drawnCardScale.setValue(1);
       setPhase('revealed');
       return;
     }
 
-    // Create and animate particles
-    const particleList = createParticles();
-    animateParticles(particleList);
+    startSpinning();
+  }, [reducedMotion, flipProgress, wheelOpacity, drawnCardOpacity, drawnCardScale, startSpinning]);
 
-    // Start shuffle
-    startShuffleAnimation();
-    if (enableHaptics) triggerHaptic('light', true);
-
-    // After shuffle, draw a card
-    const shuffleDuration = CONFIG.tarot?.shuffleDuration ?? 2000;
-    const drawTimer = setTimeout(() => {
-      fadeOutParticles(particleList);
-      startDrawAnimation();
-    }, shuffleDuration);
-
-    return () => {
-      clearTimeout(drawTimer);
-    };
-  }, [
-    reducedMotion,
-    enableHaptics,
-    createParticles,
-    animateParticles,
-    fadeOutParticles,
-    startShuffleAnimation,
-    startDrawAnimation,
-    chosenCard,
-  ]);
-
-  // Trigger complete when revealed
-  useEffect(() => {
-    if (phase === 'revealed') {
-      handleRevealComplete();
-    }
-  }, [phase, handleRevealComplete]);
-
-  // Flip interpolations
-  const frontRotateY = chosenCard.flip.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: ['180deg', '90deg', '0deg'],
-  });
-
-  const backRotateY = chosenCard.flip.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: ['0deg', '90deg', '180deg'],
-  });
-
-  const frontOpacity = chosenCard.flip.interpolate({
-    inputRange: [0, 0.5, 0.5, 1],
-    outputRange: [0, 0, 1, 1],
-  });
-
-  const backOpacity = chosenCard.flip.interpolate({
-    inputRange: [0, 0.5, 0.5, 1],
-    outputRange: [1, 1, 0, 0],
-  });
-
-  const chosenRotation = chosenCard.rotate.interpolate({
-    inputRange: [-30, 0, 30],
-    outputRange: ['-30deg', '0deg', '30deg'],
+  const wheelRotateZ = wheelRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
   });
 
   return (
     <View
-      style={[styles.container, { backgroundColor: colors.background }]}
       testID={`${testIDPrefix}-container`}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
-      {/* Background gradient */}
-      <LinearGradient
-        colors={['rgba(0,0,0,0.9)', 'rgba(20,0,40,0.95)', 'rgba(0,0,0,0.9)']}
-        style={StyleSheet.absoluteFill}
-      />
+      <LinearGradient colors={['#f5f5f5', '#ffffff', '#f5f5f5']} style={StyleSheet.absoluteFill} />
 
-      {/* Shuffle particles */}
-      {particles.map((p) => (
+      {/* 提示文字 */}
+      {phase === 'waiting' && (
+        <View style={styles.promptContainer}>
+          <Animated.Text style={[styles.promptText, { color: TAROT_COLORS.gold }]}>
+            选择一张牌
+          </Animated.Text>
+        </View>
+      )}
+
+      {phase !== 'revealed' && (
         <Animated.View
-          key={`particle-${p.id}`}
+          testID={`${testIDPrefix}-wheel`}
           style={[
-            styles.particle,
+            styles.wheel,
             {
-              backgroundColor: p.color,
-              transform: [{ translateX: p.x }, { translateY: p.y }, { scale: p.scale }],
-              opacity: p.opacity,
-            },
-          ]}
-        />
-      ))}
-
-      {/* Deck cards (shuffling) */}
-      {phase === 'shuffling' &&
-        deckCards.map((card, i) => (
-          <DeckCardView
-            key={DECK_CARD_IDS[i]}
-            anim={card}
-            cardWidth={deckCardWidth}
-            cardHeight={deckCardHeight}
-            zIndex={i}
-          />
-        ))}
-
-      {/* Fading deck during draw/reveal */}
-      {(phase === 'drawing' || phase === 'revealing' || phase === 'revealed') &&
-        deckCards.map((card, i) => (
-          <DeckCardView
-            key={DECK_FADE_IDS[i]}
-            anim={card}
-            cardWidth={deckCardWidth}
-            cardHeight={deckCardHeight}
-            zIndex={i}
-          />
-        ))}
-
-      {/* Glow behind chosen card */}
-      {(phase === 'drawing' || phase === 'revealing' || phase === 'revealed') && (
-        <Animated.View
-          style={[
-            styles.glowContainer,
-            {
-              transform: [{ translateY: chosenCard.y }, { scale: glowScale }],
-              opacity: glowOpacity,
+              width: wheelRadius * 2.5,
+              height: wheelRadius * 2.5,
+              opacity: wheelOpacity,
+              transform: [{ scale: wheelScale }, { rotate: wheelRotateZ }],
             },
           ]}
         >
-          <LinearGradient
-            colors={[theme.glowColor + '80', theme.primaryColor + '40', 'transparent']}
-            style={[styles.glow, { width: revealCardWidth * 1.5, height: revealCardHeight * 1.5 }]}
-            start={{ x: 0.5, y: 0.5 }}
-            end={{ x: 1, y: 1 }}
-          />
+          {wheelCards.map((card, index) => {
+            const x = Math.cos(card.angle - Math.PI / 2) * wheelRadius;
+            const y = Math.sin(card.angle - Math.PI / 2) * wheelRadius;
+            const rotation = (card.angle * 180) / Math.PI;
+            const isSelected = selectedCardIndex === index;
+
+            return (
+              <View
+                key={card.id}
+                style={[
+                  styles.wheelCard,
+                  {
+                    width: cardWidth * 0.55,
+                    height: cardHeight * 0.55,
+                    opacity: isSelected ? 0 : 1,
+                    transform: [
+                      { translateX: x },
+                      { translateY: y },
+                      { rotate: `${rotation}deg` },
+                    ],
+                  },
+                ]}
+              >
+                <Pressable
+                  onPress={() => handleCardSelect(index)}
+                  disabled={phase !== 'waiting'}
+                  style={{ flex: 1 }}
+                >
+                  <CardBackFace width={cardWidth * 0.55} height={cardHeight * 0.55} />
+                </Pressable>
+              </View>
+            );
+          })}
         </Animated.View>
       )}
 
-      {/* The chosen card */}
-      {(phase === 'drawing' || phase === 'revealing' || phase === 'revealed') && (
+      <Animated.View
+        testID={`${testIDPrefix}-drawn-card`}
+        style={[
+          styles.drawnCard,
+          {
+            width: cardWidth,
+            height: cardHeight,
+            opacity: drawnCardOpacity,
+            transform: [
+              { translateX: drawnCardX },
+              { translateY: drawnCardY },
+              { scale: drawnCardScale },
+              {
+                rotate: drawnCardRotateZ.interpolate({
+                  inputRange: [-180, 180],
+                  outputRange: ['-180deg', '180deg'],
+                }),
+              },
+              { perspective: 1200 },
+              { rotateY: flipRotateY },
+            ],
+          },
+        ]}
+      >
+        <Animated.View style={[styles.cardFace, styles.cardBack, { opacity: backOpacity }]}>
+          <CardBackFace width={cardWidth} height={cardHeight} />
+        </Animated.View>
+
         <Animated.View
           style={[
-            styles.chosenCardContainer,
+            styles.cardFace,
+            styles.cardFront,
             {
-              transform: [
-                { translateY: chosenCard.y },
-                { rotate: chosenRotation },
-                { scale: chosenCard.scale },
-              ],
-              opacity: chosenCard.opacity,
+              opacity: frontOpacity,
+              transform: [{ scaleX: -1 }],
             },
           ]}
         >
-          {/* Card back (before flip) */}
-          <Animated.View
-            style={[
-              styles.cardFace,
-              {
-                width: revealCardWidth,
-                height: revealCardHeight,
-                borderRadius: borderRadius.medium,
-                transform: [{ rotateY: backRotateY }],
-                opacity: backOpacity,
-              },
-            ]}
-          >
-            <LinearGradient
-              colors={[DECK_COLORS.cardBack, DECK_COLORS.cardBackAccent]}
-              style={[styles.cardBackGradient, { borderRadius: borderRadius.medium }]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.cardBackPattern}>
-                <View style={[styles.patternCircle, styles.patternOuter]} />
-                <View style={[styles.patternCircle, styles.patternMiddle]} />
-                <View style={[styles.patternCircle, styles.patternInner]} />
-                <View style={[styles.patternStar, { borderColor: DECK_COLORS.stardustGold }]} />
-              </View>
-            </LinearGradient>
-          </Animated.View>
+          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
 
-          {/* Card front (role revealed) */}
-          <Animated.View
-            style={[
-              styles.cardFace,
-              styles.cardFront,
-              {
-                width: revealCardWidth,
-                height: revealCardHeight,
-                borderRadius: borderRadius.medium,
-                transform: [{ rotateY: frontRotateY }],
-                opacity: frontOpacity,
-              },
-            ]}
-          >
-            <RoleCardContent
-              roleId={role.id as RoleId}
-              width={revealCardWidth}
-              height={revealCardHeight}
-            />
-          </Animated.View>
-
-          {/* Glow border on reveal */}
           {phase === 'revealed' && (
             <GlowBorder
-              width={revealCardWidth + 8}
-              height={revealCardHeight + 8}
+              width={cardWidth + 8}
+              height={cardHeight + 8}
               color={theme.primaryColor}
               glowColor={theme.glowColor}
               borderWidth={3}
@@ -649,12 +375,12 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
               animate={!reducedMotion}
               flashCount={3}
               flashDuration={200}
-              onComplete={handleRevealComplete}
+              onComplete={handleGlowComplete}
               style={styles.glowBorder}
             />
           )}
         </Animated.View>
-      )}
+      </Animated.View>
     </View>
   );
 };
@@ -664,93 +390,82 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
   },
-  deckCard: {
+  wheel: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  wheelCard: {
     position: 'absolute',
     borderRadius: borderRadius.small,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
-  cardBackGradient: {
+  cardBackFace: {
+    borderRadius: borderRadius.medium,
+    overflow: 'hidden',
+  },
+  cardBackInner: {
     flex: 1,
+    padding: 6,
+  },
+  cardBackBorder: {
+    flex: 1,
+    borderWidth: 2,
     borderRadius: borderRadius.small,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: DECK_COLORS.cardBackPattern,
   },
-  cardBackPattern: {
-    width: '80%',
-    height: '80%',
-    justifyContent: 'center',
-    alignItems: 'center',
+  symbolText: {
+    fontSize: 36,
+    color: TAROT_COLORS.gold,
+    textShadowColor: TAROT_COLORS.goldGlow,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
-  patternCircle: {
-    position: 'absolute',
-    borderWidth: 1,
-    borderColor: DECK_COLORS.cardBackPattern,
-    borderRadius: 1000,
-  },
-  patternOuter: {
-    width: '100%',
-    aspectRatio: 1,
-    opacity: 0.4,
-  },
-  patternMiddle: {
-    width: '70%',
-    aspectRatio: 1,
-    opacity: 0.6,
-  },
-  patternInner: {
-    width: '40%',
-    aspectRatio: 1,
-    opacity: 0.8,
-  },
-  patternStar: {
-    width: 30,
-    height: 30,
-    borderWidth: 2,
-    borderColor: DECK_COLORS.stardustGold,
-    transform: [{ rotate: '45deg' }],
-  },
-  particle: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  glowContainer: {
-    position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  glow: {
-    borderRadius: 1000,
-  },
-  chosenCardContainer: {
-    position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
+  drawnCard: {
+    borderRadius: borderRadius.medium,
+    shadowColor: TAROT_COLORS.gold,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 15,
   },
   cardFace: {
     position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: borderRadius.medium,
+    overflow: 'hidden',
     backfaceVisibility: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    elevation: 12,
+  },
+  cardBack: {
+    zIndex: 2,
   },
   cardFront: {
-    // Additional styles for front
+    zIndex: 1,
   },
   glowBorder: {
     position: 'absolute',
     top: -4,
     left: -4,
+  },
+  promptContainer: {
+    position: 'absolute',
+    top: 60,
+    alignItems: 'center',
+  },
+  promptText: {
+    fontSize: 20,
+    fontWeight: '600',
+    textShadowColor: TAROT_COLORS.goldGlow,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
 });
