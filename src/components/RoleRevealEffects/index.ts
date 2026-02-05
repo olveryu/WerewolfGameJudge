@@ -14,7 +14,7 @@
  *   return (
  *     <RoleRevealAnimator
  *       visible={showReveal}
- *       effectType="flip" // 'roulette' | 'flip' | 'scratch' | 'tarot' | 'fire'
+ *       effectType="flip" // 'roulette' | 'flip' | 'scratch' | 'tarot' | 'gachaMachine'
  *       role={role}
  *       onComplete={() => setShowReveal(false)}
  *       enableSound={true}
@@ -33,7 +33,7 @@ export { EnhancedRoulette, type EnhancedRouletteProps } from './EnhancedRoulette
 export { FlipReveal } from './FlipReveal';
 export { ScratchReveal } from './ScratchReveal';
 export { TarotDraw } from './TarotDraw';
-export { FireReveal } from './FireReveal';
+export { GachaMachine } from './GachaMachine';
 
 // Types
 export type {

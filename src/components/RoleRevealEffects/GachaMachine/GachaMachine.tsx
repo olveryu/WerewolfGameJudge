@@ -1,10 +1,10 @@
 /**
- * 复古日式扭蛋机 - Retro Gashapon Machine
+ * GachaMachine - 复古日式扭蛋机揭示效果
  * 
  * 特点：
  * - 圆形透明球体顶部
  * - 前面板有投币口装饰
- * - 底部旋转手柄（点击旋转）
+ * - 侧面旋转手柄（点击旋转）
  * - 扭蛋从出口滚出
  */
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
@@ -26,7 +26,7 @@ const CAPSULE_COLORS = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#DDA0DD', '
 const TinyCapsule: React.FC<{ angle: number; distance: number; color: string; size: number }> = React.memo(
   ({ angle, distance, color, size }) => {
     const x = Math.cos(angle) * distance;
-    const y = Math.sin(angle) * distance + 10; // 偏下，模拟重力
+    const y = Math.sin(angle) * distance + 10;
     return (
       <View style={[styles.tinyCapsule, { left: 75 + x - size/2, top: 75 + y - size/2, width: size, height: size, borderRadius: size/2, backgroundColor: color }]}>
         <View style={[styles.tinyCapsuleShine, { width: size * 0.3, height: size * 0.3 }]} />
@@ -36,11 +36,11 @@ const TinyCapsule: React.FC<{ angle: number; distance: number; color: string; si
 );
 TinyCapsule.displayName = 'TinyCapsule';
 
-export const FireReveal: React.FC<RoleRevealEffectProps> = ({
-  role, onComplete, reducedMotion = false, enableHaptics = true, testIDPrefix = 'gashapon',
+export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
+  role, onComplete, reducedMotion = false, enableHaptics = true, testIDPrefix = 'gacha-machine',
 }) => {
   const theme = ALIGNMENT_THEMES[role.alignment];
-  const config = CONFIG.fire ?? { revealHoldDuration: 1500 };
+  const config = CONFIG.gachaMachine ?? { revealHoldDuration: 1500 };
 
   const [phase, setPhase] = useState<'ready' | 'spinning' | 'dropping' | 'waiting' | 'opening' | 'revealed'>('ready');
   const onCompleteCalledRef = useRef(false);
@@ -103,7 +103,6 @@ export const FireReveal: React.FC<RoleRevealEffectProps> = ({
     setPhase('spinning');
     if (enableHaptics) triggerHaptic('medium', true);
 
-    // 手柄旋转一圈
     Animated.timing(dialRotation, {
       toValue: 360,
       duration: 600,
@@ -113,7 +112,6 @@ export const FireReveal: React.FC<RoleRevealEffectProps> = ({
       setPhase('dropping');
       capsuleOpacity.setValue(1);
       
-      // 扭蛋掉落
       Animated.parallel([
         Animated.timing(capsuleY, { toValue: 200, duration: 800, easing: Easing.bounce, useNativeDriver: canUseNativeDriver }),
         Animated.timing(capsuleRotate, { toValue: 540, duration: 800, useNativeDriver: canUseNativeDriver }),
@@ -161,7 +159,6 @@ export const FireReveal: React.FC<RoleRevealEffectProps> = ({
           <Animated.View style={[styles.dome, { transform: [{ translateY: bobble }] }]}>
             <LinearGradient colors={['rgba(255,255,255,0.9)', 'rgba(200,220,255,0.6)', 'rgba(255,255,255,0.8)']} style={styles.domeGradient} />
             {tinyCapsules.map(c => <TinyCapsule key={c.id} angle={c.angle} distance={c.distance} color={c.color} size={c.size} />)}
-            {/* 高光 */}
             <View style={styles.domeHighlight} />
           </Animated.View>
 
@@ -169,17 +166,14 @@ export const FireReveal: React.FC<RoleRevealEffectProps> = ({
           <View style={styles.body}>
             <LinearGradient colors={['#FF7F7F', '#FF6B6B', '#E55555']} style={StyleSheet.absoluteFill} />
             
-            {/* 投币口装饰 */}
             <View style={styles.coinSlot}>
               <View style={styles.coinSlotInner} />
             </View>
 
-            {/* 品牌标签 */}
             <View style={styles.label}>
               <Text style={styles.labelText}>GACHA</Text>
             </View>
 
-            {/* 出口 */}
             <View style={styles.outlet}>
               <View style={styles.outletInner} />
             </View>
@@ -238,14 +232,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   machine: { alignItems: 'center' },
   
-  // 圆形透明球顶
   dome: { width: 150, height: 150, borderRadius: 75, overflow: 'hidden', borderWidth: 3, borderColor: 'rgba(255,255,255,0.8)' },
   domeGradient: { ...StyleSheet.absoluteFillObject, borderRadius: 75 },
   domeHighlight: { position: 'absolute', top: 15, left: 20, width: 40, height: 25, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 20, transform: [{ rotate: '-30deg' }] },
   tinyCapsule: { position: 'absolute' },
   tinyCapsuleShine: { position: 'absolute', top: 2, left: 2, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 10 },
 
-  // 机身
   body: { width: 160, height: 120, borderRadius: 12, overflow: 'hidden', marginTop: -10, alignItems: 'center' },
   coinSlot: { marginTop: 12, width: 50, height: 8, backgroundColor: '#333', borderRadius: 4, justifyContent: 'center', alignItems: 'center' },
   coinSlotInner: { width: 30, height: 3, backgroundColor: '#111', borderRadius: 2 },
@@ -254,20 +246,17 @@ const styles = StyleSheet.create({
   outlet: { position: 'absolute', bottom: 10, width: 60, height: 35, backgroundColor: '#222', borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   outletInner: { width: 50, height: 25, backgroundColor: '#111', borderRadius: 6 },
 
-  // 旋转手柄
   dialContainer: { position: 'absolute', right: -50, top: 160, width: 60, height: 60 },
   dial: { width: 60, height: 60, justifyContent: 'center', alignItems: 'center' },
   dialCenter: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#FFD700', borderWidth: 3, borderColor: '#DAA520' },
   dialArm: { position: 'absolute', width: 8, height: 35, backgroundColor: '#888', borderRadius: 4, top: -5 },
   dialKnob: { position: 'absolute', top: -15, width: 20, height: 20, borderRadius: 10, backgroundColor: '#E74C3C', borderWidth: 2, borderColor: '#C0392B' },
 
-  // 底座
   base: { width: 180, height: 25, borderBottomLeftRadius: 10, borderBottomRightRadius: 10, overflow: 'hidden' },
 
   hint: { position: 'absolute', bottom: 80 },
   hintText: { fontSize: 22, fontWeight: '700', color: '#D35400' },
 
-  // 扭蛋
   capsule: { position: 'absolute', width: 80, height: 80 },
   capsuleTouch: { width: '100%', height: '100%' },
   capsuleTop: { position: 'absolute', top: 0, width: '100%', height: '52%', backgroundColor: '#FF69B4', borderTopLeftRadius: 999, borderTopRightRadius: 999 },

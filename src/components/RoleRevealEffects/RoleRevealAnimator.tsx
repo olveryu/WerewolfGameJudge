@@ -21,7 +21,7 @@ import { EnhancedRoulette } from './EnhancedRoulette';
 import { FlipReveal } from './FlipReveal';
 import { ScratchReveal } from './ScratchReveal';
 import { TarotDraw } from './TarotDraw';
-import { FireReveal } from './FireReveal';
+import { GachaMachine } from './GachaMachine';
 import { useColors } from '../../theme';
 
 export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
@@ -83,8 +83,8 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
         return <ScratchReveal {...commonProps} />;
       case 'tarot':
         return <TarotDraw {...commonProps} />;
-      case 'fire':
-        return <FireReveal {...commonProps} />;
+      case 'gachaMachine':
+        return <GachaMachine {...commonProps} />;
       default:
         // Default to flip if unknown effect type
         return <FlipReveal {...commonProps} />;

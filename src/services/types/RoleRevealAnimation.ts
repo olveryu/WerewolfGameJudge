@@ -11,7 +11,7 @@
  * - flip: 翻牌动画
  * - scratch: 刮刮卡动画
  * - tarot: 塔罗牌抽取动画
- * - fire: 火焰燃烧动画
+ * - gachaMachine: 扭蛋机动画
  * - none: 无动画（简单卡片）
  * - random: 随机选择（Host 解析后广播）
  */
@@ -20,7 +20,7 @@ export type RoleRevealAnimation =
   | 'flip'
   | 'scratch'
   | 'tarot'
-  | 'fire'
+  | 'gachaMachine'
   | 'none'
   | 'random';
 
@@ -34,13 +34,13 @@ export type ResolvedRoleRevealAnimation =
   | 'flip'
   | 'scratch'
   | 'tarot'
-  | 'fire'
+  | 'gachaMachine'
   | 'none';
 
 /**
  * 可随机选择的动画类型（不含 none 和 random）
  */
-export type RandomizableAnimation = 'roulette' | 'flip' | 'scratch' | 'tarot' | 'fire';
+export type RandomizableAnimation = 'roulette' | 'flip' | 'scratch' | 'tarot' | 'gachaMachine';
 
 /**
  * 可随机选择的动画数组（用于 random 解析）
@@ -50,7 +50,7 @@ export const RANDOMIZABLE_ANIMATIONS: readonly RandomizableAnimation[] = [
   'flip',
   'scratch',
   'tarot',
-  'fire',
+  'gachaMachine',
 ] as const;
 
 /**

@@ -116,19 +116,19 @@ describe('RoleRevealEffects', () => {
       expect(getByTestId('tarot-draw-container')).toBeTruthy();
     });
 
-    it('renders fire effect container', () => {
+    it('renders gachaMachine effect container', () => {
       const onComplete = jest.fn();
       const { getByTestId } = render(
         <RoleRevealAnimator
           visible={true}
-          effectType="fire"
+          effectType="gachaMachine"
           role={mockGodRole}
           onComplete={onComplete}
-          testIDPrefix="fire-reveal"
+          testIDPrefix="gacha-machine"
         />,
       );
 
-      expect(getByTestId('fire-reveal-container')).toBeTruthy();
+      expect(getByTestId('gacha-machine-container')).toBeTruthy();
     });
 
     it('renders roulette effect container with allRoles', () => {
