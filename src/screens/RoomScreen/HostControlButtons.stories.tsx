@@ -52,12 +52,10 @@ const meta: Meta<typeof HostControlButtons> = {
     showPrepareToFlip: false,
     showStartGame: false,
     showLastNightInfo: false,
-    showRestart: false,
     onSettingsPress: () => console.log('Settings'),
     onPrepareToFlipPress: () => console.log('Prepare to flip'),
     onStartGamePress: () => console.log('Start game'),
     onLastNightInfoPress: () => console.log('Last night info'),
-    onRestartPress: () => console.log('Restart'),
   },
 };
 
@@ -101,7 +99,7 @@ export const PreparingPhase: Story = {
 export const GameOngoing: Story = {
   name: '🌙 游戏进行中',
   args: {
-    showRestart: true,
+    // No buttons in bottom bar during ongoing (restart moved to dropdown)
   },
 };
 
@@ -109,7 +107,6 @@ export const DayPhase: Story = {
   name: '☀️ 白天阶段',
   args: {
     showLastNightInfo: true,
-    showRestart: true,
   },
 };
 
@@ -117,7 +114,6 @@ export const GameFinished: Story = {
   name: '🏁 游戏结束',
   args: {
     showLastNightInfo: true,
-    showRestart: true,
   },
 };
 
@@ -128,6 +124,5 @@ export const AllButtons: Story = {
     showPrepareToFlip: true,
     showStartGame: true,
     showLastNightInfo: true,
-    showRestart: true,
   },
 };
