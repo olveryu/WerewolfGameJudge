@@ -74,6 +74,11 @@ export interface HostActionsContext {
   getMySeatNumber: () => number | null;
   broadcastCurrentState: () => Promise<void>;
   /**
+   * Abort check: returns true if room has been left.
+   * Used by processHandlerResult to stop audio queue when leaving room.
+   */
+  isAborted?: () => boolean;
+  /**
    * P0-1/P0-5 修复: 音频播放回调
    * @param audioKey - 'night' | 'night_end' | RoleId
    * @param isEndAudio - 如果为 true，使用 audio_end 目录
@@ -182,6 +187,11 @@ async function processHandlerResult(
     });
     try {
       for (const effect of audioEffects) {
+        // Check abort flag before each audio play (P0 fix: stop queue when leaving room)
+        if (ctx.isAborted?.()) {
+          facadeLog.debug('processHandlerResult: aborted, skipping remaining audio');
+          break;
+        }
         facadeLog.debug('processHandlerResult: playing audio', {
           audioKey: effect.audioKey,
           isEndAudio: effect.isEndAudio,
@@ -191,7 +201,8 @@ async function processHandlerResult(
       }
     } finally {
       // 无论成功/失败/中断，都必须释放 gate
-      if (ctx.setAudioPlayingGate) {
+      // 但如果已 abort（离开房间），跳过释放（已经不是 host，避免 warn）
+      if (ctx.setAudioPlayingGate && !ctx.isAborted?.()) {
         await ctx.setAudioPlayingGate(false);
       }
     }

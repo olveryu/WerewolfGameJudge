@@ -91,11 +91,8 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     marginBottom: 20,
-    // 添加阴影
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    // 添加阴影 - 使用新的 boxShadow 语法
+    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
     elevation: 8,
   },
   icon: {
