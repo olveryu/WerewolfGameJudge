@@ -43,6 +43,13 @@ export class GameFacade implements IGameFacade {
   private isHost = false;
   private myUid: string | null = null;
 
+  /**
+   * Abort flag: set to true when leaving room.
+   * Used to abort ongoing async operations (e.g., audio queue in processHandlerResult).
+   * Reset to false when creating/joining a new room.
+   */
+  private _aborted = false;
+
   /** Pending seat action request (Player: waiting for ACK) */
   private readonly pendingSeatAction: { current: PendingSeatAction | null } = { current: null };
 
@@ -117,6 +124,7 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   async initializeAsHost(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
+    this._aborted = false; // Reset abort flag when creating new room
     this.isHost = true;
     this.myUid = hostUid;
 
@@ -158,6 +166,7 @@ export class GameFacade implements IGameFacade {
     _displayName?: string,
     _avatarUrl?: string,
   ): Promise<void> {
+    this._aborted = false; // Reset abort flag when joining room
     this.isHost = false;
     this.myUid = playerUid;
     this.store.reset();
@@ -246,6 +255,9 @@ export class GameFacade implements IGameFacade {
   }
 
   async leaveRoom(): Promise<void> {
+    // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
+    this._aborted = true;
+
     const mySeat = this.getMySeatNumber();
 
     // 如果在座且不是 Host，发送离座请求
@@ -584,6 +596,8 @@ export class GameFacade implements IGameFacade {
       myUid: this.myUid,
       getMySeatNumber: () => this.getMySeatNumber(),
       broadcastCurrentState: () => this.broadcastCurrentState(),
+      // Abort check: used by processHandlerResult to stop audio queue when leaving room
+      isAborted: () => this._aborted,
       // P0-1/P0-5: 音频播放回调（只负责播放 IO）
       playAudio: async (audioKey: string, isEndAudio?: boolean) => {
         const audio = AudioService.getInstance();

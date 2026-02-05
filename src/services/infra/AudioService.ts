@@ -91,14 +91,17 @@ class AudioService {
 
   private stopCurrentPlayer(): void {
     if (this.player) {
+      audioLog.debug('stopCurrentPlayer: stopping current player');
       try {
         this.player.pause();
         this.player.remove();
-      } catch {
-        // Ignore errors when stopping
+      } catch (e) {
+        audioLog.warn('stopCurrentPlayer: error stopping player', e);
       }
       this.player = null;
       this.isPlaying = false;
+    } else {
+      audioLog.debug('stopCurrentPlayer: no player to stop');
     }
   }
 
@@ -240,6 +243,7 @@ class AudioService {
 
   // Clean up all audio including BGM
   cleanup(): void {
+    audioLog.debug('cleanup: stopping all audio');
     this.stopCurrentPlayer();
     this.stopBgm();
   }

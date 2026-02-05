@@ -693,11 +693,8 @@ const styles = StyleSheet.create({
     padding: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    // 3D shadow effect
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
+    // 3D shadow effect - 使用新的 boxShadow 语法
+    boxShadow: '0px 8px 12px rgba(0, 0, 0, 0.5)',
     elevation: 10,
   },
   neonBorder: {
@@ -705,20 +702,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 2,
     borderColor: SLOT_COLORS.neonPink,
-    shadowRadius: 10,
-    shadowOpacity: 1,
-    shadowOffset: { width: 0, height: 0 },
+    boxShadow: `0px 0px 10px ${SLOT_COLORS.neonPink}`,
   },
   innerFrame: {
     borderRadius: 12,
     padding: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    // Inner shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    // Inner shadow - 使用新的 boxShadow 语法
+    boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.3)',
   },
   topPanel: {
     alignItems: 'center',
@@ -728,6 +720,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: SLOT_COLORS.gold,
+    // 保留旧语法（RN 类型定义尚未支持 textShadow 复合属性）
     textShadowColor: SLOT_COLORS.goldDark,
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,

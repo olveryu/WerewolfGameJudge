@@ -85,6 +85,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     error: gameRoomError,
     createRoom,
     joinRoom,
+    leaveRoom,
     takeSeat,
     leaveSeat,
     assignRoles,
@@ -397,10 +398,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const actionDialogs = useRoomActionDialogs();
 
-  // Cleanup callback for leaving room - stops all audio
+  // Cleanup callback for leaving room - MUST call leaveRoom() to abort async operations
   const handleLeaveRoomCleanup = useCallback(() => {
+    roomScreenLog.debug('handleLeaveRoomCleanup: calling leaveRoom + cleanup');
+    // P0 fix: leaveRoom() sets abort flag to stop ongoing async operations (e.g., audio queue)
+    // This also cleans up facade state, presence, etc.
+    void leaveRoom();
+    // Also cleanup audio (stops current player + BGM immediately)
     AudioService.getInstance().cleanup();
-  }, []);
+  }, [leaveRoom]);
 
   const seatDialogs = useRoomSeatDialogs({
     pendingSeatIndex,
