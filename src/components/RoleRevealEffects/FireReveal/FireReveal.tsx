@@ -1,17 +1,16 @@
 /**
- * FireReveal - Fire burning reveal animation
- *
- * Features:
- * - Card covered by darkness
- * - Fire rises from bottom
- * - Fire "burns away" the cover to reveal the role
- * - Embers float upward
- * - Dramatic heat distortion effect
+ * 复古日式扭蛋机 - Retro Gashapon Machine
+ * 
+ * 特点：
+ * - 圆形透明球体顶部
+ * - 前面板有投币口装饰
+ * - 底部旋转手柄（点击旋转）
+ * - 扭蛋从出口滚出
  */
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Animated, StyleSheet, Dimensions, Easing } from 'react-native';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { View, Animated, StyleSheet, Pressable, Text, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useColors, borderRadius } from '../../../theme';
+import { borderRadius } from '../../../theme';
 import type { RoleRevealEffectProps } from '../types';
 import { ALIGNMENT_THEMES } from '../types';
 import { CONFIG } from '../config';
@@ -21,548 +20,261 @@ import { RoleCardContent } from '../common/RoleCardContent';
 import { GlowBorder } from '../common/GlowBorder';
 import type { RoleId } from '../../../models/roles';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CAPSULE_COLORS = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#DDA0DD', '#87CEEB', '#F0E68C'];
 
-// Fire colors
-const FIRE_COLORS = {
-  core: '#FFFF00',
-  inner: '#FFA500',
-  outer: '#FF4500',
-  ember: ['#FF6347', '#FF4500', '#FFD700', '#FF8C00'],
-  smoke: 'rgba(50, 50, 50, 0.6)',
-  darkness: '#0a0a0a',
-};
-
-// Ember particle
-interface Ember {
-  id: number;
-  x: Animated.Value;
-  y: Animated.Value;
-  scale: Animated.Value;
-  opacity: Animated.Value;
-  color: string;
-  size: number;
-}
-
-// Fire flame
-interface Flame {
-  id: number;
-  x: number;
-  height: Animated.Value;
-  opacity: Animated.Value;
-  scale: Animated.Value;
-  delay: number;
-}
+// 圆形透明球内的小扭蛋
+const TinyCapsule: React.FC<{ angle: number; distance: number; color: string; size: number }> = React.memo(
+  ({ angle, distance, color, size }) => {
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance + 10; // 偏下，模拟重力
+    return (
+      <View style={[styles.tinyCapsule, { left: 75 + x - size/2, top: 75 + y - size/2, width: size, height: size, borderRadius: size/2, backgroundColor: color }]}>
+        <View style={[styles.tinyCapsuleShine, { width: size * 0.3, height: size * 0.3 }]} />
+      </View>
+    );
+  }
+);
+TinyCapsule.displayName = 'TinyCapsule';
 
 export const FireReveal: React.FC<RoleRevealEffectProps> = ({
-  role,
-  onComplete,
-  reducedMotion = false,
-  enableHaptics = true,
-  testIDPrefix = 'fire-reveal',
+  role, onComplete, reducedMotion = false, enableHaptics = true, testIDPrefix = 'gashapon',
 }) => {
-  const colors = useColors();
   const theme = ALIGNMENT_THEMES[role.alignment];
+  const config = CONFIG.fire ?? { revealHoldDuration: 1500 };
 
-  const [phase, setPhase] = useState<'dark' | 'igniting' | 'burning' | 'revealed'>('dark');
-  const [embers, setEmbers] = useState<Ember[]>([]);
-  const [flames, setFlames] = useState<Flame[]>([]);
+  const [phase, setPhase] = useState<'ready' | 'spinning' | 'dropping' | 'waiting' | 'opening' | 'revealed'>('ready');
+  const onCompleteCalledRef = useRef(false);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // Card dimensions
-  const cardWidth = Math.min(280, SCREEN_WIDTH * 0.75);
-  const cardHeight = cardWidth * 1.4;
+  const cardWidth = 260;
+  const cardHeight = 364;
 
-  // Animation values
-  const darknessOpacity = useMemo(() => new Animated.Value(1), []);
-  const burnLine = useMemo(() => new Animated.Value(cardHeight), []); // Burns from bottom to top
-  const fireGlow = useMemo(() => new Animated.Value(0), []);
-  const cardScale = useMemo(() => new Animated.Value(0.95), []);
-  const cardOpacity = useMemo(() => new Animated.Value(0.3), []);
-  const heatDistortion = useMemo(() => new Animated.Value(0), []);
+  // 动画值
+  const dialRotation = useMemo(() => new Animated.Value(0), []);
+  const capsuleY = useMemo(() => new Animated.Value(-30), []);
+  const capsuleOpacity = useMemo(() => new Animated.Value(0), []);
+  const capsuleRotate = useMemo(() => new Animated.Value(0), []);
+  const shellScale = useMemo(() => new Animated.Value(1), []);
+  const shellOpacity = useMemo(() => new Animated.Value(1), []);
+  const cardScale = useMemo(() => new Animated.Value(0), []);
+  const cardOpacity = useMemo(() => new Animated.Value(0), []);
+  const bobble = useMemo(() => new Animated.Value(0), []);
 
-  // Create flames
-  const createFlames = useCallback(() => {
-    const flameCount = 12;
-    const newFlames: Flame[] = [];
-
-    for (let i = 0; i < flameCount; i++) {
-      const xPos = (i / (flameCount - 1)) * cardWidth - cardWidth / 2;
-      newFlames.push({
+  // 随机小扭蛋位置
+  const tinyCapsules = useMemo(() => {
+    const result = [];
+    for (let i = 0; i < 12; i++) {
+      result.push({
         id: i,
-        x: xPos,
-        height: new Animated.Value(0),
-        opacity: new Animated.Value(0),
-        scale: new Animated.Value(0.5 + Math.random() * 0.5),
-        delay: Math.random() * 200,
+        angle: (Math.PI * 2 / 12) * i + Math.random() * 0.5,
+        distance: 25 + Math.random() * 35,
+        color: CAPSULE_COLORS[Math.floor(Math.random() * CAPSULE_COLORS.length)],
+        size: 14 + Math.random() * 10,
       });
     }
+    return result;
+  }, []);
 
-    setFlames(newFlames);
-    return newFlames;
-  }, [cardWidth]);
+  const cleanup = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current = []; }, []);
+  useEffect(() => cleanup, [cleanup]);
 
-  // Create embers
-  const createEmbers = useCallback(() => {
-    const emberCount = 30;
-    const newEmbers: Ember[] = [];
-
-    for (let i = 0; i < emberCount; i++) {
-      const startX = (Math.random() - 0.5) * cardWidth;
-      const startY = cardHeight / 2 + Math.random() * 50;
-
-      newEmbers.push({
-        id: i,
-        x: new Animated.Value(startX),
-        y: new Animated.Value(startY),
-        scale: new Animated.Value(0),
-        opacity: new Animated.Value(0),
-        color: FIRE_COLORS.ember[i % FIRE_COLORS.ember.length],
-        size: 3 + Math.random() * 5,
-      });
+  // 小球轻微晃动
+  useEffect(() => {
+    if (phase === 'ready') {
+      const anim = Animated.loop(Animated.sequence([
+        Animated.timing(bobble, { toValue: 3, duration: 800, easing: Easing.inOut(Easing.sin), useNativeDriver: canUseNativeDriver }),
+        Animated.timing(bobble, { toValue: -3, duration: 800, easing: Easing.inOut(Easing.sin), useNativeDriver: canUseNativeDriver }),
+      ]));
+      anim.start();
+      return () => anim.stop();
     }
+  }, [phase, bobble]);
 
-    setEmbers(newEmbers);
-    return newEmbers;
-  }, [cardWidth, cardHeight]);
+  const handleGlowComplete = useCallback(() => {
+    if (onCompleteCalledRef.current) return;
+    onCompleteCalledRef.current = true;
+    const t = setTimeout(() => onComplete(), config.revealHoldDuration ?? 1200);
+    timersRef.current.push(t);
+  }, [onComplete, config.revealHoldDuration]);
 
-  // Animate embers rising
-  const animateEmbers = useCallback(
-    (emberList: Ember[]) => {
-      emberList.forEach((ember, index) => {
-        const delay = index * 80;
-        const duration = 2000 + Math.random() * 1500;
-        const driftX = (Math.random() - 0.5) * 100;
+  // 旋转手柄 → 扭蛋掉落
+  const spinDial = useCallback(() => {
+    if (phase !== 'ready') return;
+    setPhase('spinning');
+    if (enableHaptics) triggerHaptic('medium', true);
 
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.parallel([
-            // Fade in
-            Animated.timing(ember.opacity, {
-              toValue: 1,
-              duration: 200,
-              useNativeDriver: canUseNativeDriver,
-            }),
-            Animated.timing(ember.scale, {
-              toValue: 1,
-              duration: 200,
-              useNativeDriver: canUseNativeDriver,
-            }),
-          ]),
-        ]).start();
-
-        // Float upward with drift
-        Animated.parallel([
-          Animated.timing(ember.y, {
-            toValue: -cardHeight,
-            duration: duration,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: canUseNativeDriver,
-          }),
-          Animated.timing(ember.x, {
-            toValue: (ember.x as unknown as { _value: number })._value + driftX,
-            duration: duration,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: canUseNativeDriver,
-          }),
-          Animated.sequence([
-            Animated.delay(duration * 0.7),
-            Animated.timing(ember.opacity, {
-              toValue: 0,
-              duration: duration * 0.3,
-              useNativeDriver: canUseNativeDriver,
-            }),
-          ]),
-        ]).start();
-      });
-    },
-    [cardHeight],
-  );
-
-  // Animate flames
-  const animateFlames = useCallback((flameList: Flame[]) => {
-    flameList.forEach((flame) => {
-      // Initial rise
-      Animated.sequence([
-        Animated.delay(flame.delay),
-        Animated.parallel([
-          Animated.timing(flame.opacity, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: canUseNativeDriver,
-          }),
-          Animated.timing(flame.height, {
-            toValue: 1,
-            duration: 500,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: canUseNativeDriver,
-          }),
-        ]),
-      ]).start();
-
-      // Flickering loop
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(flame.scale, {
-            toValue: 0.7 + Math.random() * 0.6,
-            duration: 100 + Math.random() * 150,
-            useNativeDriver: canUseNativeDriver,
-          }),
-          Animated.timing(flame.scale, {
-            toValue: 0.5 + Math.random() * 0.5,
-            duration: 100 + Math.random() * 150,
-            useNativeDriver: canUseNativeDriver,
-          }),
-        ]),
-      ).start();
+    // 手柄旋转一圈
+    Animated.timing(dialRotation, {
+      toValue: 360,
+      duration: 600,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: canUseNativeDriver,
+    }).start(() => {
+      setPhase('dropping');
+      capsuleOpacity.setValue(1);
+      
+      // 扭蛋掉落
+      Animated.parallel([
+        Animated.timing(capsuleY, { toValue: 200, duration: 800, easing: Easing.bounce, useNativeDriver: canUseNativeDriver }),
+        Animated.timing(capsuleRotate, { toValue: 540, duration: 800, useNativeDriver: canUseNativeDriver }),
+      ]).start(() => setPhase('waiting'));
     });
-  }, []);
+  }, [phase, dialRotation, capsuleY, capsuleOpacity, capsuleRotate, enableHaptics]);
 
-  // Handle reveal complete
-  const handleRevealComplete = useCallback(() => {
-    setTimeout(() => {
-      onComplete();
-    }, CONFIG.flip.revealHoldDuration);
-  }, [onComplete]);
+  // 打开扭蛋
+  const openCapsule = useCallback(() => {
+    if (phase !== 'waiting') return;
+    setPhase('opening');
+    if (enableHaptics) triggerHaptic('heavy', true);
 
-  // Fade out flames
-  const fadeOutFlames = useCallback((flameList: Flame[]) => {
-    flameList.forEach((flame) => {
-      Animated.timing(flame.opacity, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: canUseNativeDriver,
-      }).start();
-    });
-  }, []);
+    Animated.parallel([
+      Animated.timing(shellScale, { toValue: 1.3, duration: 250, useNativeDriver: canUseNativeDriver }),
+      Animated.timing(shellOpacity, { toValue: 0, duration: 250, useNativeDriver: canUseNativeDriver }),
+    ]).start();
 
-  // Main animation sequence
+    Animated.sequence([
+      Animated.delay(200),
+      Animated.parallel([
+        Animated.spring(cardScale, { toValue: 1, tension: 60, friction: 7, useNativeDriver: canUseNativeDriver }),
+        Animated.timing(cardOpacity, { toValue: 1, duration: 250, useNativeDriver: canUseNativeDriver }),
+      ]),
+    ]).start(() => setPhase('revealed'));
+  }, [phase, shellScale, shellOpacity, cardScale, cardOpacity, enableHaptics]);
+
   useEffect(() => {
     if (reducedMotion) {
-      darknessOpacity.setValue(0);
-      burnLine.setValue(0);
-      cardScale.setValue(1);
-      cardOpacity.setValue(1);
-      setPhase('revealed');
-      return;
+      cardScale.setValue(1); cardOpacity.setValue(1); shellOpacity.setValue(0); setPhase('revealed');
     }
+  }, [reducedMotion, cardScale, cardOpacity, shellOpacity]);
 
-    const flameList = createFlames();
-    const emberList = createEmbers();
-
-    // Phase 1: Ignition
-    const igniteAnimation = () => {
-      setPhase('igniting');
-      if (enableHaptics) triggerHaptic('light', true);
-
-      // Start flames
-      animateFlames(flameList);
-
-      // Fire glow
-      Animated.timing(fireGlow, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: canUseNativeDriver,
-      }).start();
-
-      // Start embers
-      setTimeout(() => {
-        animateEmbers(emberList);
-      }, 300);
-
-      // Move to burning phase
-      setTimeout(burnAnimation, 600);
-    };
-
-    // Phase 2: Burning away the darkness
-    const burnAnimation = () => {
-      setPhase('burning');
-      if (enableHaptics) triggerHaptic('medium', true);
-
-      Animated.parallel([
-        // Burn line moves up (darkness recedes)
-        Animated.timing(burnLine, {
-          toValue: 0,
-          duration: 2000,
-          easing: Easing.inOut(Easing.cubic),
-          useNativeDriver: canUseNativeDriver,
-        }),
-        // Card becomes visible
-        Animated.timing(cardOpacity, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: canUseNativeDriver,
-        }),
-        // Card scales up slightly
-        Animated.timing(cardScale, {
-          toValue: 1,
-          duration: 1500,
-          easing: Easing.out(Easing.back(1.05)),
-          useNativeDriver: canUseNativeDriver,
-        }),
-        // Heat distortion
-        Animated.timing(heatDistortion, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: canUseNativeDriver,
-        }),
-      ]).start(() => {
-        revealAnimation(flameList);
-      });
-    };
-
-    // Phase 3: Reveal complete
-    const revealAnimation = (flameListRef: Flame[]) => {
-      setPhase('revealed');
-      if (enableHaptics) triggerHaptic('heavy', true);
-
-      // Fade darkness completely
-      Animated.timing(darknessOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: canUseNativeDriver,
-      }).start();
-
-      // Fade out flames
-      fadeOutFlames(flameListRef);
-
-      // Fade out fire glow
-      Animated.timing(fireGlow, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: canUseNativeDriver,
-      }).start();
-    };
-
-    // Start sequence
-    setTimeout(igniteAnimation, 500);
-  }, [
-    reducedMotion,
-    enableHaptics,
-    darknessOpacity,
-    burnLine,
-    fireGlow,
-    cardScale,
-    cardOpacity,
-    heatDistortion,
-    createFlames,
-    createEmbers,
-    animateFlames,
-    animateEmbers,
-    fadeOutFlames,
-  ]);
-
-  // Burn mask height (inverted - shows more as burn line goes up)
-  const burnMaskHeight = burnLine.interpolate({
-    inputRange: [0, cardHeight],
-    outputRange: [0, cardHeight],
-  });
+  const dialRotateZ = dialRotation.interpolate({ inputRange: [0, 360], outputRange: ['0deg', '360deg'] });
+  const capsuleRotateZ = capsuleRotate.interpolate({ inputRange: [0, 540], outputRange: ['0deg', '540deg'] });
 
   return (
-    <View
-      testID={`${testIDPrefix}-container`}
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      {/* Fire glow behind card */}
-      <Animated.View
-        style={[
-          styles.fireGlow,
-          {
-            width: cardWidth * 1.5,
-            height: cardHeight * 1.5,
-            opacity: fireGlow,
-          },
-        ]}
-      >
-        <LinearGradient
-          colors={[FIRE_COLORS.outer + '80', FIRE_COLORS.inner + '40', 'transparent']}
-          style={styles.fireGlowGradient}
-          start={{ x: 0.5, y: 1 }}
-          end={{ x: 0.5, y: 0 }}
-        />
-      </Animated.View>
+    <View testID={`${testIDPrefix}-container`} style={styles.container}>
+      <LinearGradient colors={['#FFF5E6', '#FFE4CC', '#FFF5E6']} style={StyleSheet.absoluteFill} />
 
-      {/* Card container */}
-      <Animated.View
-        style={[
-          styles.cardContainer,
-          {
-            width: cardWidth,
-            height: cardHeight,
-            borderRadius: borderRadius.medium,
-            transform: [{ scale: cardScale }],
-            opacity: cardOpacity,
-          },
-        ]}
-      >
-        {/* Role card content */}
-        <View style={[styles.cardContent, { borderRadius: borderRadius.medium }]}>
-          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
-        </View>
+      {/* 扭蛋机 */}
+      {phase !== 'revealed' && (
+        <View style={styles.machine}>
+          {/* 圆形透明球顶 */}
+          <Animated.View style={[styles.dome, { transform: [{ translateY: bobble }] }]}>
+            <LinearGradient colors={['rgba(255,255,255,0.9)', 'rgba(200,220,255,0.6)', 'rgba(255,255,255,0.8)']} style={styles.domeGradient} />
+            {tinyCapsules.map(c => <TinyCapsule key={c.id} angle={c.angle} distance={c.distance} color={c.color} size={c.size} />)}
+            {/* 高光 */}
+            <View style={styles.domeHighlight} />
+          </Animated.View>
 
-        {/* Darkness overlay with burn effect */}
-        <Animated.View
-          style={[
-            styles.darknessOverlay,
-            {
-              height: burnMaskHeight,
-              opacity: darknessOpacity,
-              borderRadius: borderRadius.medium,
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={[FIRE_COLORS.darkness, FIRE_COLORS.darkness]}
-            style={StyleSheet.absoluteFill}
-          />
-          {/* Burning edge gradient */}
-          <LinearGradient
-            colors={['transparent', FIRE_COLORS.outer, FIRE_COLORS.inner, FIRE_COLORS.core]}
-            style={styles.burningEdge}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-          />
-        </Animated.View>
+          {/* 机身 */}
+          <View style={styles.body}>
+            <LinearGradient colors={['#FF7F7F', '#FF6B6B', '#E55555']} style={StyleSheet.absoluteFill} />
+            
+            {/* 投币口装饰 */}
+            <View style={styles.coinSlot}>
+              <View style={styles.coinSlotInner} />
+            </View>
 
-        {/* Glow border on reveal */}
-        {phase === 'revealed' && (
-          <GlowBorder
-            width={cardWidth + 8}
-            height={cardHeight + 8}
-            color={theme.primaryColor}
-            glowColor={theme.glowColor}
-            borderWidth={3}
-            borderRadius={borderRadius.medium + 4}
-            animate={!reducedMotion}
-            flashCount={3}
-            flashDuration={200}
-            onComplete={handleRevealComplete}
-            style={styles.glowBorder}
-          />
-        )}
-      </Animated.View>
+            {/* 品牌标签 */}
+            <View style={styles.label}>
+              <Text style={styles.labelText}>GACHA</Text>
+            </View>
 
-      {/* Flames at bottom */}
-      <View
-        style={[
-          styles.flamesContainer,
-          { width: cardWidth, bottom: '50%', marginBottom: -cardHeight / 2 },
-        ]}
-      >
-        {flames.map((flame) => {
-          const flameHeight = flame.height.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 80 + Math.random() * 40],
-          });
+            {/* 出口 */}
+            <View style={styles.outlet}>
+              <View style={styles.outletInner} />
+            </View>
+          </View>
 
-          return (
-            <Animated.View
-              key={flame.id}
-              style={[
-                styles.flame,
-                {
-                  left: flame.x + cardWidth / 2 - 15,
-                  opacity: flame.opacity,
-                  transform: [{ scaleX: flame.scale }, { scaleY: flame.scale }],
-                },
-              ]}
-            >
-              <Animated.View style={{ height: flameHeight, width: 30 }}>
-                <LinearGradient
-                  colors={[FIRE_COLORS.core, FIRE_COLORS.inner, FIRE_COLORS.outer, 'transparent']}
-                  style={styles.flameGradient}
-                  start={{ x: 0.5, y: 1 }}
-                  end={{ x: 0.5, y: 0 }}
-                />
-              </Animated.View>
+          {/* 旋转手柄 */}
+          <Pressable onPress={spinDial} style={styles.dialContainer}>
+            <Animated.View style={[styles.dial, { transform: [{ rotate: dialRotateZ }] }]}>
+              <View style={styles.dialCenter} />
+              <View style={styles.dialArm} />
+              <View style={styles.dialKnob} />
             </Animated.View>
-          );
-        })}
-      </View>
+          </Pressable>
 
-      {/* Embers */}
-      {embers.map((ember) => (
-        <Animated.View
-          key={ember.id}
-          style={[
-            styles.ember,
-            {
-              width: ember.size,
-              height: ember.size,
-              borderRadius: ember.size / 2,
-              backgroundColor: ember.color,
-              shadowColor: ember.color,
-              opacity: ember.opacity,
-              transform: [{ translateX: ember.x }, { translateY: ember.y }, { scale: ember.scale }],
-            },
-          ]}
-        />
-      ))}
+          {/* 底座 */}
+          <View style={styles.base}>
+            <LinearGradient colors={['#666', '#444', '#333']} style={StyleSheet.absoluteFill} />
+          </View>
+        </View>
+      )}
+
+      {/* 提示 */}
+      {phase === 'ready' && <View style={styles.hint}><Text style={styles.hintText}>🎯 点击转盘抽蛋!</Text></View>}
+      {phase === 'waiting' && <View style={styles.hint}><Text style={styles.hintText}>✨ 点击扭蛋打开!</Text></View>}
+
+      {/* 掉落的扭蛋 */}
+      {(phase === 'dropping' || phase === 'waiting' || phase === 'opening') && (
+        <Animated.View style={[styles.capsule, { 
+          opacity: Animated.multiply(capsuleOpacity, shellOpacity),
+          transform: [{ translateY: capsuleY }, { scale: shellScale }, { rotate: capsuleRotateZ }] 
+        }]}>
+          <Pressable onPress={openCapsule} style={styles.capsuleTouch}>
+            <View style={styles.capsuleTop}><View style={styles.capsuleTopShine} /></View>
+            <View style={styles.capsuleBottom} />
+            <View style={styles.capsuleRing} />
+          </Pressable>
+        </Animated.View>
+      )}
+
+      {/* 角色卡 */}
+      {(phase === 'opening' || phase === 'revealed') && (
+        <Animated.View style={[styles.cardWrapper, { opacity: cardOpacity, transform: [{ scale: cardScale }] }]}>
+          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
+          {phase === 'revealed' && (
+            <GlowBorder width={cardWidth + 8} height={cardHeight + 8} color={theme.primaryColor} glowColor={theme.glowColor}
+              borderWidth={3} borderRadius={borderRadius.medium + 4} animate={!reducedMotion} flashCount={3} flashDuration={200}
+              onComplete={handleGlowComplete} style={styles.glowBorder} />
+          )}
+        </Animated.View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'visible',
-  },
-  fireGlow: {
-    position: 'absolute',
-  },
-  fireGlowGradient: {
-    flex: 1,
-    borderRadius: 1000,
-  },
-  cardContainer: {
-    position: 'relative',
-    overflow: 'hidden',
-    shadowColor: FIRE_COLORS.outer,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  cardContent: {
-    flex: 1,
-    overflow: 'hidden',
-  },
-  darknessOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    overflow: 'hidden',
-  },
-  burningEdge: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 30,
-  },
-  glowBorder: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-  },
-  flamesContainer: {
-    position: 'absolute',
-    height: 120,
-  },
-  flame: {
-    position: 'absolute',
-    bottom: 0,
-  },
-  flameGradient: {
-    flex: 1,
-    borderRadius: 15,
-  },
-  ember: {
-    position: 'absolute',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-  },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  machine: { alignItems: 'center' },
+  
+  // 圆形透明球顶
+  dome: { width: 150, height: 150, borderRadius: 75, overflow: 'hidden', borderWidth: 3, borderColor: 'rgba(255,255,255,0.8)' },
+  domeGradient: { ...StyleSheet.absoluteFillObject, borderRadius: 75 },
+  domeHighlight: { position: 'absolute', top: 15, left: 20, width: 40, height: 25, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 20, transform: [{ rotate: '-30deg' }] },
+  tinyCapsule: { position: 'absolute' },
+  tinyCapsuleShine: { position: 'absolute', top: 2, left: 2, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 10 },
+
+  // 机身
+  body: { width: 160, height: 120, borderRadius: 12, overflow: 'hidden', marginTop: -10, alignItems: 'center' },
+  coinSlot: { marginTop: 12, width: 50, height: 8, backgroundColor: '#333', borderRadius: 4, justifyContent: 'center', alignItems: 'center' },
+  coinSlotInner: { width: 30, height: 3, backgroundColor: '#111', borderRadius: 2 },
+  label: { marginTop: 8, backgroundColor: '#FFF', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 },
+  labelText: { fontSize: 14, fontWeight: '900', color: '#FF6B6B', letterSpacing: 2 },
+  outlet: { position: 'absolute', bottom: 10, width: 60, height: 35, backgroundColor: '#222', borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  outletInner: { width: 50, height: 25, backgroundColor: '#111', borderRadius: 6 },
+
+  // 旋转手柄
+  dialContainer: { position: 'absolute', right: -50, top: 160, width: 60, height: 60 },
+  dial: { width: 60, height: 60, justifyContent: 'center', alignItems: 'center' },
+  dialCenter: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#FFD700', borderWidth: 3, borderColor: '#DAA520' },
+  dialArm: { position: 'absolute', width: 8, height: 35, backgroundColor: '#888', borderRadius: 4, top: -5 },
+  dialKnob: { position: 'absolute', top: -15, width: 20, height: 20, borderRadius: 10, backgroundColor: '#E74C3C', borderWidth: 2, borderColor: '#C0392B' },
+
+  // 底座
+  base: { width: 180, height: 25, borderBottomLeftRadius: 10, borderBottomRightRadius: 10, overflow: 'hidden' },
+
+  hint: { position: 'absolute', bottom: 80 },
+  hintText: { fontSize: 22, fontWeight: '700', color: '#D35400' },
+
+  // 扭蛋
+  capsule: { position: 'absolute', width: 80, height: 80 },
+  capsuleTouch: { width: '100%', height: '100%' },
+  capsuleTop: { position: 'absolute', top: 0, width: '100%', height: '52%', backgroundColor: '#FF69B4', borderTopLeftRadius: 999, borderTopRightRadius: 999 },
+  capsuleTopShine: { position: 'absolute', top: 8, left: 15, width: 20, height: 12, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 10 },
+  capsuleBottom: { position: 'absolute', bottom: 0, width: '100%', height: '52%', backgroundColor: '#FFF', borderBottomLeftRadius: 999, borderBottomRightRadius: 999 },
+  capsuleRing: { position: 'absolute', top: '46%', width: '100%', height: 8, backgroundColor: '#EEE', borderWidth: 1, borderColor: '#DDD' },
+
+  cardWrapper: { alignItems: 'center', justifyContent: 'center' },
+  glowBorder: { position: 'absolute', top: -4, left: -4 },
 });
