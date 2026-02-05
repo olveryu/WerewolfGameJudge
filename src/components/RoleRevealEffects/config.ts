@@ -110,17 +110,19 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Fire Reveal
+  // Gacha Machine (扭蛋机)
   // =====================================================
-  fire: {
-    /** Number of fire particles */
-    particleCount: 20,
-    /** Fire burn duration (ms) */
-    burnDuration: 2000,
-    /** Ember count after burn */
-    emberCount: 15,
-    /** Ember float duration (ms) */
-    emberDuration: 1500,
+  gachaMachine: {
+    /** Dial rotation speed (ms per turn) */
+    dialRotateDuration: 400,
+    /** Number of dial rotations */
+    dialRotations: 3,
+    /** Capsule drop duration (ms) */
+    capsuleDropDuration: 600,
+    /** Capsule bounce height */
+    capsuleBounceHeight: 30,
+    /** Capsule open duration (ms) */
+    capsuleOpenDuration: 500,
     /** Hold duration after reveal before calling onComplete (ms) */
     revealHoldDuration: 1500,
   },

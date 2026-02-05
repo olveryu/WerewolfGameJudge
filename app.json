@@ -2,7 +2,7 @@
   "expo": {
     "name": "狼人杀电子法官",
     "slug": "WerewolfGameJudge",
-    "version": "1.0.121",
+    "version": "1.0.122",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -34,6 +34,8 @@
       "startUrl": "/",
       "scope": "/"
     },
-    "plugins": ["expo-audio"]
+    "plugins": [
+      "expo-audio"
+    ]
   }
 }

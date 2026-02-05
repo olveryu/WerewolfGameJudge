@@ -289,7 +289,7 @@ export const ConfigScreen: React.FC = () => {
       { value: 'flip', label: '🃏 翻牌' },
       { value: 'scratch', label: '🎫 刮刮卡' },
       { value: 'tarot', label: '🎴 塔罗牌' },
-      { value: 'fire', label: '🔥 火焰' },
+      { value: 'gachaMachine', label: '🎱 扭蛋机' },
       { value: 'none', label: '⚡ 无动画' },
     ],
     [],

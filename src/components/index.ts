@@ -13,7 +13,7 @@ export {
   FlipReveal,
   ScratchReveal,
   TarotDraw,
-  FireReveal,
+  GachaMachine,
   CONFIG as RoleRevealConfig,
   ALIGNMENT_THEMES,
 } from './RoleRevealEffects';

@@ -31,7 +31,7 @@ const ALLOWED_PATTERNS = [
   '**/RoleRevealEffects/EnhancedRoulette.tsx',
   '**/RoleRevealEffects/ScratchReveal.tsx',
   '**/RoleRevealEffects/TarotDraw.tsx',
-  '**/RoleRevealEffects/FireReveal.tsx',
+  '**/RoleRevealEffects/GachaMachine.tsx',
   // AI 建议（非游戏逻辑）
   '**/AIChatBubble.tsx',
 ];

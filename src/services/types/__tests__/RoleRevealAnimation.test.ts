@@ -27,7 +27,7 @@ describe('RoleRevealAnimation', () => {
       expect(RANDOMIZABLE_ANIMATIONS).toContain('flip');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('scratch');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('tarot');
-      expect(RANDOMIZABLE_ANIMATIONS).toContain('fire');
+      expect(RANDOMIZABLE_ANIMATIONS).toContain('gachaMachine');
     });
 
     it('should NOT contain "none"', () => {
