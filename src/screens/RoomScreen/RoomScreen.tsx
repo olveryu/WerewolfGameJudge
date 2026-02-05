@@ -29,6 +29,7 @@ import { WaitingViewRoleList } from './components/WaitingViewRoleList';
 import { ActionButton } from './components/ActionButton';
 import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { NightProgressIndicator } from './components/NightProgressIndicator';
+import { ControlledSeatBanner } from './components/ControlledSeatBanner';
 import {
   toGameRoomLike,
   getRoleStats,
@@ -98,6 +99,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     requestSnapshot,
     submitRevealAck,
     sendWolfRobotHunterStatusViewed,
+    // Debug mode
+    isDebugMode,
+    fillWithBots,
+    markAllBotsViewed,
+    controlledSeat,
+    setControlledSeat,
+    effectiveSeat,
+    effectiveRole,
   } = useGameRoom();
 
   // Night progress indicator: calculate current step index and total steps
@@ -180,11 +189,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [gameState?.currentNightResults]);
 
   // Computed values: use useActionerState hook
+  // In debug mode, use effectiveRole/effectiveSeat to allow controlling bot seats
   const { imActioner, showWolves } = useActionerState({
-    myRole,
+    myRole: effectiveRole,
     currentActionRole,
     currentSchema,
-    mySeatNumber,
+    mySeatNumber: effectiveSeat,
     wolfVotes: wolfVotesMap,
     isHost,
     actions: gameState?.actions ?? new Map(),
@@ -337,8 +347,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       currentActionRole,
       currentSchema,
       imActioner,
-      mySeatNumber,
-      myRole,
+      mySeatNumber: effectiveSeat,
+      myRole: effectiveRole,
       isAudioPlaying,
       anotherIndex,
     }),
@@ -348,8 +358,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       currentActionRole,
       currentSchema,
       imActioner,
-      mySeatNumber,
-      myRole,
+      effectiveSeat,
+      effectiveRole,
       isAudioPlaying,
       anotherIndex,
     ],
@@ -658,7 +668,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           break;
 
         case 'actionConfirm':
-          if (myRole === 'magician' && anotherIndex !== null) {
+          if (effectiveRole === 'magician' && anotherIndex !== null) {
             // protocol: target = null, extra.targets = [seatA, seatB]
             const swapTargets: [number, number] = [anotherIndex, intent.targetIndex];
             // Highlight both seats during confirmation dialog
@@ -797,11 +807,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
           let canShoot = true; // Default if no status (shouldn't happen in normal flow)
 
-          if (myRole === 'hunter') {
+          if (effectiveRole === 'hunter') {
             if (confirmStatus?.role === 'hunter') {
               canShoot = confirmStatus.canShoot;
             }
-          } else if (myRole === 'darkWolfKing') {
+          } else if (effectiveRole === 'darkWolfKing') {
             if (confirmStatus?.role === 'darkWolfKing') {
               canShoot = confirmStatus.canShoot;
             }
@@ -880,8 +890,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     },
     [
       gameState,
-      myRole,
-      mySeatNumber,
+      effectiveRole,
+      effectiveSeat,
       anotherIndex,
       actionDialogs,
       buildWitchStepResults,
@@ -926,7 +936,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       currentActionRole ?? 'null',
       imActioner ? 'A' : 'N',
       isAudioPlaying ? 'P' : 'S',
-      myRole ?? 'null',
+      effectiveRole ?? 'null',
       anotherIndex ?? 'null',
       autoIntent.type,
     ].join('|');
@@ -943,7 +953,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [
     imActioner,
     isAudioPlaying,
-    myRole,
+    effectiveRole,
     anotherIndex,
     roomStatus,
     currentActionRole,
@@ -1008,8 +1018,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       pendingHunterGate: pendingHunterStatusViewed,
       isHost,
       imActioner,
-      mySeatNumber,
-      myRole,
+      mySeatNumber: effectiveSeat,
+      myRole: effectiveRole,
+      // Debug mode fields
+      isDebugMode,
+      controlledSeat,
+      getBotSeats: () => {
+        if (!gameState) return [];
+        return Array.from(gameState.players.entries())
+          .filter(([, player]) => player?.isBot)
+          .map(([seatIndex]) => seatIndex);
+      },
     }),
     [
       roomStatus,
@@ -1019,8 +1038,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       pendingHunterStatusViewed,
       isHost,
       imActioner,
-      mySeatNumber,
-      myRole,
+      effectiveSeat,
+      effectiveRole,
+      isDebugMode,
+      controlledSeat,
     ],
   );
 
@@ -1116,6 +1137,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         case 'HUNTER_STATUS_VIEWED':
           void sendWolfRobotHunterStatusViewed();
           return;
+
+        case 'TAKEOVER_BOT_SEAT':
+          setControlledSeat(result.seatIndex);
+          return;
+
+        case 'RELEASE_BOT_SEAT':
+          setControlledSeat(null);
+          return;
       }
     },
     [
@@ -1134,6 +1163,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       showRestartDialog,
       submitRevealAckSafe,
       sendWolfRobotHunterStatusViewed,
+      setControlledSeat,
     ],
   );
 
@@ -1143,6 +1173,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const onSeatTapped = useCallback(
     (index: number, disabledReason?: string) => {
       dispatchInteraction({ kind: 'SEAT_TAP', seatIndex: index, disabledReason });
+    },
+    [dispatchInteraction],
+  );
+
+  /**
+   * Seat long-press handler for bot takeover (debug mode).
+   */
+  const onSeatLongPressed = useCallback(
+    (seatIndex: number) => {
+      dispatchInteraction({ kind: 'TAKEOVER_BOT_SEAT', seatIndex });
     },
     [dispatchInteraction],
   );
@@ -1283,6 +1323,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       )}
 
+      {/* Controlled Seat Banner - show when Host is controlling a bot seat */}
+      {isDebugMode && controlledSeat !== null && gameState.players.get(controlledSeat) && (
+        <ControlledSeatBanner
+          controlledSeat={controlledSeat}
+          botDisplayName={gameState.players.get(controlledSeat)?.displayName || 'Bot'}
+          onRelease={() => setControlledSeat(null)}
+        />
+      )}
+
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Board Info - collapsed when game is ongoing */}
         <BoardInfoCard
@@ -1301,7 +1350,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           seats={seatViewModels}
           roomNumber={roomNumber}
           onSeatPress={onSeatTapped}
+          onSeatLongPress={onSeatLongPressed}
           disabled={roomStatus === GameStatus.ongoing && isAudioPlaying}
+          controlledSeat={controlledSeat}
+          showBotRoles={isDebugMode && isHost}
         />
 
         {/* Action Message - only show after audio finishes */}
@@ -1323,7 +1375,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             !isAudioPlaying &&
             (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated)
           }
+          showFillWithBots={roomStatus === GameStatus.unseated}
           showPrepareToFlip={roomStatus === GameStatus.seated}
+          showMarkAllBotsViewed={isDebugMode && roomStatus === GameStatus.assigned}
           showStartGame={roomStatus === GameStatus.ready && !isStartingGame}
           showLastNightInfo={roomStatus === GameStatus.ended && !isAudioPlaying}
           showRestart={
@@ -1333,9 +1387,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             roomStatus === GameStatus.ended
           }
           onSettingsPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' })}
+          onFillWithBotsPress={() => void fillWithBots()}
           onPrepareToFlipPress={() =>
             dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' })
           }
+          onMarkAllBotsViewedPress={() => void markAllBotsViewed()}
           onStartGamePress={() =>
             dispatchInteraction({ kind: 'HOST_CONTROL', action: 'startGame' })
           }

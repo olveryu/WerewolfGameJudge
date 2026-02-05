@@ -26,6 +26,8 @@ function createFakeFacade(): IGameFacade {
     setRoleRevealAnimation: async () => ({ success: true }),
     startNight: async () => ({ success: true }),
     restartGame: async () => ({ success: true }),
+    fillWithBots: async () => ({ success: true }),
+    markAllBotsViewed: async () => ({ success: true }),
     markViewedRole: async () => ({ success: true }),
     submitAction: async () => ({ success: true }),
     submitWolfVote: async () => ({ success: true }),

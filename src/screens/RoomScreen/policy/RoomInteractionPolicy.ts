@@ -204,6 +204,38 @@ function handleHunterStatusViewed(): InteractionResult {
   return { kind: 'HUNTER_STATUS_VIEWED' };
 }
 
+/**
+ * Handle takeover bot seat event (debug mode).
+ * Validates debug mode and bot seat, then returns takeover/release instruction.
+ */
+function handleTakeoverBotSeat(
+  ctx: InteractionContext,
+  event: { seatIndex: number },
+): InteractionResult {
+  // Must be Host
+  if (!ctx.isHost) {
+    return { kind: 'NOOP', reason: 'host_only' };
+  }
+
+  // Must be in debug mode
+  if (!ctx.isDebugMode) {
+    return { kind: 'NOOP', reason: 'other_status' };
+  }
+
+  // Check if seat is a bot
+  const botSeats = ctx.getBotSeats?.() ?? [];
+  if (!botSeats.includes(event.seatIndex)) {
+    return { kind: 'ALERT', title: '无法接管', message: '只能接管机器人座位' };
+  }
+
+  // Toggle: if already controlling this seat, release it
+  if (ctx.controlledSeat === event.seatIndex) {
+    return { kind: 'RELEASE_BOT_SEAT' };
+  }
+
+  return { kind: 'TAKEOVER_BOT_SEAT', seatIndex: event.seatIndex };
+}
+
 // =============================================================================
 // Main Policy Function
 // =============================================================================
@@ -264,6 +296,8 @@ export function getInteractionResult(
       return handleRevealAck(event);
     case 'WOLF_ROBOT_HUNTER_STATUS_VIEWED':
       return handleHunterStatusViewed();
+    case 'TAKEOVER_BOT_SEAT':
+      return handleTakeoverBotSeat(ctx, event);
     default: {
       // Exhaustive check
       const _exhaustive: never = event;

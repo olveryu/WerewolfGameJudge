@@ -31,6 +31,8 @@ import {
 import { Avatar } from '../../../components/Avatar';
 import { spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 import { TESTIDS } from '../../../testids';
+import type { RoleId } from '../../../models/roles';
+import { getRoleDisplayName } from '../../../models/roles';
 
 // Re-export for PlayerGrid
 export const GRID_COLUMNS = 4;
@@ -45,6 +47,7 @@ export interface SeatTileStyles {
   mySpotTile: ViewStyle;
   wolfTile: ViewStyle;
   selectedTile: ViewStyle;
+  controlledTile: ViewStyle;
   seatNumber: TextStyle;
   seatedSeatNumber: TextStyle;
   avatarContainer: ViewStyle;
@@ -55,6 +58,7 @@ export interface SeatTileStyles {
   emptyIndicator: TextStyle;
   playerName: TextStyle;
   playerNamePlaceholder: ViewStyle;
+  botRoleName: TextStyle;
 }
 
 export interface SeatTileProps {
@@ -67,14 +71,21 @@ export interface SeatTileProps {
   isMySpot: boolean;
   isWolf: boolean;
   isSelected: boolean;
+  isBot: boolean;
+  isControlled: boolean; // Host is controlling this bot seat
   // Player info (null if empty seat)
   playerUid: string | null;
   playerAvatarUrl?: string;
   playerDisplayName: string | null;
+  // Role info for bot display (debug mode only)
+  roleId: RoleId | null;
+  showBotRole: boolean; // isHost && debugMode?.botsEnabled && isBot
   // Styles (created once in PlayerGrid)
   styles: SeatTileStyles;
-  // Callback (not compared in arePropsEqual to avoid callback identity issues)
+  // Callbacks (not compared in arePropsEqual to avoid callback identity issues)
   onPress: (seatIndex: number, disabledReason?: string) => void;
+  /** Long press callback for takeover bot seat (debug mode) */
+  onLongPress?: (seatIndex: number) => void;
 }
 
 /**
@@ -99,9 +110,13 @@ function arePropsEqual(prev: SeatTileProps, next: SeatTileProps): boolean {
     prev.isMySpot === next.isMySpot &&
     prev.isWolf === next.isWolf &&
     prev.isSelected === next.isSelected &&
+    prev.isBot === next.isBot &&
+    prev.isControlled === next.isControlled &&
     prev.playerUid === next.playerUid &&
     prev.playerAvatarUrl === next.playerAvatarUrl &&
     prev.playerDisplayName === next.playerDisplayName &&
+    prev.roleId === next.roleId &&
+    prev.showBotRole === next.showBotRole &&
     prev.styles === next.styles
   );
 }
@@ -115,17 +130,26 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   isMySpot,
   isWolf,
   isSelected,
+  isBot,
+  isControlled,
   playerUid,
   playerAvatarUrl,
   playerDisplayName,
+  roleId,
+  showBotRole,
   styles,
   onPress,
+  onLongPress,
 }) => {
   // Note: onPress callback stability is handled by PlayerGrid using ref pattern.
   // SeatTile receives a stable callback that always calls the latest parent callback.
   const handlePress = useCallback(() => {
     onPress(index, disabledReason);
   }, [onPress, index, disabledReason]);
+
+  const handleLongPress = useCallback(() => {
+    onLongPress?.(index);
+  }, [onLongPress, index]);
 
   const hasPlayer = playerUid !== null;
 
@@ -187,6 +211,9 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
     opacity: opacityAnim,
   };
 
+  // Get role display name for bot (debug mode only)
+  const botRoleDisplayName = showBotRole && roleId ? getRoleDisplayName(roleId) : null;
+
   return (
     <View style={styles.tileWrapper} testID={TESTIDS.seatTile(index)}>
       <TouchableOpacity
@@ -197,8 +224,11 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           isMySpot && styles.mySpotTile,
           isWolf && styles.wolfTile,
           isSelected && styles.selectedTile,
+          isControlled && styles.controlledTile,
         ]}
         onPress={handlePress}
+        onLongPress={handleLongPress}
+        delayLongPress={500}
         activeOpacity={disabled || disabledReason ? 1 : 0.7}
       >
         {hasPlayer && (
@@ -229,9 +259,16 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
       </TouchableOpacity>
 
       {hasPlayer ? (
-        <Text style={styles.playerName} numberOfLines={1} ellipsizeMode="tail">
-          {playerDisplayName}
-        </Text>
+        <>
+          <Text style={styles.playerName} numberOfLines={1} ellipsizeMode="tail">
+            {isBot ? '🤖 ' : ''}{playerDisplayName}
+          </Text>
+          {botRoleDisplayName && (
+            <Text style={styles.botRoleName} numberOfLines={1}>
+              {botRoleDisplayName}
+            </Text>
+          )}
+        </>
       ) : (
         <View style={styles.playerNamePlaceholder} />
       )}
@@ -275,6 +312,10 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     selectedTile: {
       backgroundColor: colors.primaryDark,
       borderColor: colors.primaryDark,
+    },
+    controlledTile: {
+      borderColor: colors.warning,
+      borderWidth: 3,
     },
     seatNumber: {
       fontSize: typography.subtitle,
@@ -335,6 +376,12 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     playerNamePlaceholder: {
       marginTop: spacing.tight,
       height: typography.subtitle,
+    },
+    botRoleName: {
+      fontSize: typography.caption - 2,
+      color: colors.textMuted,
+      textAlign: 'center',
+      width: tileSize - spacing.small,
     },
   });
 }

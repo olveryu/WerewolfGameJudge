@@ -39,15 +39,24 @@ export interface PlayerGridProps {
    * Caller (RoomScreen) is responsible for handling the logic.
    */
   onSeatPress: (seatIndex: number, disabledReason?: string) => void;
+  /** Callback when a seat is long-pressed (for bot takeover in debug mode) */
+  onSeatLongPress?: (seatIndex: number) => void;
   /** Whether seat presses are disabled (e.g., during audio) */
   disabled?: boolean;
+  /** Currently controlled bot seat (debug mode) */
+  controlledSeat?: number | null;
+  /** Whether to show bot roles (isHost && debugMode?.botsEnabled) */
+  showBotRoles?: boolean;
 }
 
 const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   seats,
   roomNumber,
   onSeatPress,
+  onSeatLongPress,
   disabled = false,
+  controlledSeat = null,
+  showBotRoles = false,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -74,6 +83,19 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
     [], // No dependencies - callback is stable, always uses ref
   );
 
+  // Use ref for long press callback as well
+  const onSeatLongPressRef = useRef(onSeatLongPress);
+  useLayoutEffect(() => {
+    onSeatLongPressRef.current = onSeatLongPress;
+  });
+
+  const handleSeatLongPress = useCallback(
+    (seatIndex: number) => {
+      onSeatLongPressRef.current?.(seatIndex);
+    },
+    [], // No dependencies - callback is stable, always uses ref
+  );
+
   return (
     <View style={styles.gridContainer}>
       {seats.map((seat) => (
@@ -87,11 +109,16 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           isMySpot={seat.isMySpot}
           isWolf={seat.isWolf}
           isSelected={seat.isSelected}
+          isBot={seat.player?.isBot === true}
+          isControlled={controlledSeat === seat.index}
           playerUid={seat.player?.uid ?? null}
           playerAvatarUrl={seat.player?.avatarUrl}
           playerDisplayName={seat.player?.displayName ?? null}
+          roleId={seat.player?.role ?? null}
+          showBotRole={showBotRoles && seat.player?.isBot === true}
           styles={seatTileStyles}
           onPress={handleSeatPress}
+          onLongPress={handleSeatLongPress}
         />
       ))}
     </View>

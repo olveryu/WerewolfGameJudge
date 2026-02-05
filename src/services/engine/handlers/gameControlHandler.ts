@@ -11,6 +11,8 @@ import type {
   RestartGameIntent,
   UpdateTemplateIntent,
   SetRoleRevealAnimationIntent,
+  FillWithBotsIntent,
+  MarkAllBotsViewedIntent,
 } from '../intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type {
@@ -20,7 +22,10 @@ import type {
   UpdateTemplateAction,
   SetWitchContextAction,
   SetRoleRevealAnimationAction,
+  FillWithBotsAction,
+  MarkAllBotsViewedAction,
 } from '../reducer/types';
+import type { BroadcastPlayer } from '../../protocol/types';
 import { shuffleArray } from '../../../utils/shuffle';
 import type { RoleId } from '../../../models/roles';
 import { buildNightPlan } from '../../../models/roles/spec/plan';
@@ -405,6 +410,147 @@ export function handleSetRoleRevealAnimation(
   const action: SetRoleRevealAnimationAction = {
     type: 'SET_ROLE_REVEAL_ANIMATION',
     animation: intent.animation,
+  };
+
+  return {
+    success: true,
+    actions: [action],
+    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+  };
+}
+
+/**
+ * 处理填充机器人（Debug-only, Host-only）
+ *
+ * 前置条件：
+ * - isHost === true
+ * - status === 'unseated'
+ *
+ * 结果：
+ * - 为所有空座位创建 bot player（isBot: true）
+ * - 设置 debugMode.botsEnabled = true
+ */
+export function handleFillWithBots(
+  _intent: FillWithBotsIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const { state, isHost } = context;
+
+  // Gate: host only
+  if (!isHost) {
+    return {
+      success: false,
+      reason: 'host_only',
+      actions: [],
+    };
+  }
+
+  // Gate: state 存在
+  if (!state) {
+    return {
+      success: false,
+      reason: 'no_state',
+      actions: [],
+    };
+  }
+
+  // Gate: 只允许在 unseated 阶段填充 bot
+  if (state.status !== 'unseated') {
+    return {
+      success: false,
+      reason: 'invalid_status',
+      actions: [],
+    };
+  }
+
+  // 计算空座位并生成 bot players
+  const seatCount = state.templateRoles.length;
+  // 只有 player !== null 的座位才算已占用
+  const occupiedSeats = new Set(
+    Object.entries(state.players)
+      .filter(([, player]) => player !== null)
+      .map(([seat]) => Number.parseInt(seat, 10)),
+  );
+  const bots: Record<number, BroadcastPlayer> = {};
+
+  for (let seat = 0; seat < seatCount; seat++) {
+    if (!occupiedSeats.has(seat)) {
+      bots[seat] = {
+        uid: `bot-${seat}`,
+        seatNumber: seat,
+        displayName: `Bot ${seat}`,
+        hasViewedRole: false,
+        isBot: true,
+      };
+    }
+  }
+
+  const action: FillWithBotsAction = {
+    type: 'FILL_WITH_BOTS',
+    payload: { bots },
+  };
+
+  return {
+    success: true,
+    actions: [action],
+    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+  };
+}
+
+/**
+ * 处理标记所有机器人已查看角色（Debug-only, Host-only）
+ *
+ * 前置条件：
+ * - isHost === true
+ * - debugMode.botsEnabled === true
+ * - status === 'assigned'
+ *
+ * 结果：仅对 isBot === true 的玩家设置 hasViewedRole = true
+ */
+export function handleMarkAllBotsViewed(
+  _intent: MarkAllBotsViewedIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const { state, isHost } = context;
+
+  // Gate: host only
+  if (!isHost) {
+    return {
+      success: false,
+      reason: 'host_only',
+      actions: [],
+    };
+  }
+
+  // Gate: state 存在
+  if (!state) {
+    return {
+      success: false,
+      reason: 'no_state',
+      actions: [],
+    };
+  }
+
+  // Gate: debugMode.botsEnabled 必须为 true
+  if (!state.debugMode?.botsEnabled) {
+    return {
+      success: false,
+      reason: 'debug_not_enabled',
+      actions: [],
+    };
+  }
+
+  // Gate: status 必须是 assigned
+  if (state.status !== 'assigned') {
+    return {
+      success: false,
+      reason: 'invalid_status',
+      actions: [],
+    };
+  }
+
+  const action: MarkAllBotsViewedAction = {
+    type: 'MARK_ALL_BOTS_VIEWED',
   };
 
   return {

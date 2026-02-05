@@ -33,6 +33,7 @@ function toLocalPlayer(bp: BroadcastPlayer, seatNumber: number): LocalPlayer {
     avatarUrl: bp.avatarUrl,
     role: bp.role ?? null,
     hasViewedRole: bp.hasViewedRole,
+    isBot: bp.isBot,
   };
 }
 
@@ -177,5 +178,7 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
     wolfRobotHunterStatusViewed: broadcast.wolfRobotHunterStatusViewed,
     confirmStatus: broadcast.confirmStatus,
     actionRejected: broadcast.actionRejected,
+    // Debug mode (直接透传)
+    debugMode: broadcast.debugMode,
   };
 }

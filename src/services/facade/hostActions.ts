@@ -28,6 +28,8 @@ import type {
   RestartGameIntent,
   UpdateTemplateIntent,
   SetRoleRevealAnimationIntent,
+  FillWithBotsIntent,
+  MarkAllBotsViewedIntent,
 } from '../engine/intents/types';
 import type { StateAction } from '../engine/reducer/types';
 import type { RoleId } from '../../models/roles';
@@ -42,6 +44,8 @@ import {
   handleRestartGame,
   handleUpdateTemplate,
   handleSetRoleRevealAnimation,
+  handleFillWithBots,
+  handleMarkAllBotsViewed,
 } from '../engine/handlers/gameControlHandler';
 import {
   handleViewedRole,
@@ -593,4 +597,44 @@ function buildNightProgressionCallbacks(ctx: HostActionsContext) {
 async function callNightProgression(ctx: HostActionsContext): Promise<void> {
   const callbacks = buildNightProgressionCallbacks(ctx);
   await handleNightProgression(callbacks);
+}
+
+// =============================================================================
+// Debug Mode: Fill With Bots（调试模式：填充机器人）
+// =============================================================================
+
+/**
+ * Host: 填充机器人（Debug-only）
+ *
+ * 为所有空座位创建 bot player，设置 debugMode.botsEnabled = true。
+ * 仅在 status === 'unseated' 时可用。
+ */
+export async function fillWithBots(
+  ctx: HostActionsContext,
+): Promise<{ success: boolean; reason?: string }> {
+  const intent: FillWithBotsIntent = { type: 'FILL_WITH_BOTS' };
+  const handlerContext = buildHandlerContext(ctx);
+  const result = handleFillWithBots(intent, handlerContext);
+
+  return processHandlerResult(ctx, result, {
+    logPrefix: 'fillWithBots',
+  });
+}
+
+/**
+ * Host: 标记所有机器人已查看角色（Debug-only）
+ *
+ * 仅对 isBot === true 的玩家设置 hasViewedRole = true。
+ * 仅在 debugMode.botsEnabled === true && status === 'assigned' 时可用。
+ */
+export async function markAllBotsViewed(
+  ctx: HostActionsContext,
+): Promise<{ success: boolean; reason?: string }> {
+  const intent: MarkAllBotsViewedIntent = { type: 'MARK_ALL_BOTS_VIEWED' };
+  const handlerContext = buildHandlerContext(ctx);
+  const result = handleMarkAllBotsViewed(intent, handlerContext);
+
+  return processHandlerResult(ctx, result, {
+    logPrefix: 'markAllBotsViewed',
+  });
 }

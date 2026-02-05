@@ -244,6 +244,30 @@ export interface SetCurrentStepAction {
 }
 
 // =============================================================================
+// Debug Bots 动作
+// =============================================================================
+
+/**
+ * 填充机器人动作
+ * 为所有空座位创建 bot player，设置 debugMode.botsEnabled = true
+ */
+export interface FillWithBotsAction {
+  type: 'FILL_WITH_BOTS';
+  payload: {
+    /** bot players to add (keyed by seat number) */
+    bots: Record<number, BroadcastPlayer>;
+  };
+}
+
+/**
+ * 标记所有机器人已查看角色动作
+ * 仅对 isBot === true 的玩家设置 hasViewedRole = true
+ */
+export interface MarkAllBotsViewedAction {
+  type: 'MARK_ALL_BOTS_VIEWED';
+}
+
+// =============================================================================
 // StateAction 联合类型
 // =============================================================================
 
@@ -282,4 +306,7 @@ export type StateAction =
   | AddRevealAckAction
   | ClearRevealAcksAction
   // 步骤追踪
-  | SetCurrentStepAction;
+  | SetCurrentStepAction
+  // Debug Bots
+  | FillWithBotsAction
+  | MarkAllBotsViewedAction;

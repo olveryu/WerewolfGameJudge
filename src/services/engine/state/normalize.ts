@@ -91,6 +91,9 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
     wolfRobotContext: raw.wolfRobotContext,
     confirmStatus: raw.confirmStatus,
     actionRejected: raw.actionRejected,
+
+    // Debug mode（透传）
+    debugMode: raw.debugMode,
   };
 }
 
