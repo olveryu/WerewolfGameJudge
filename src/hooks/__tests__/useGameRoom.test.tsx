@@ -51,6 +51,8 @@ describe('useGameRoom - ACK reason transparency', () => {
     setRoleRevealAnimation: jest.fn().mockResolvedValue({ success: true }),
     startNight: jest.fn().mockResolvedValue({ success: true }),
     restartGame: jest.fn().mockResolvedValue({ success: true }),
+    fillWithBots: jest.fn().mockResolvedValue({ success: true }),
+    markAllBotsViewed: jest.fn().mockResolvedValue({ success: true }),
     markViewedRole: jest.fn().mockResolvedValue({ success: true }),
     submitAction: jest.fn().mockResolvedValue({ success: true }),
     submitWolfVote: jest.fn().mockResolvedValue({ success: true }),
@@ -450,5 +452,238 @@ describe('useGameRoom - ACK reason transparency', () => {
       // 现在应该调用第二次
       expect(requestSnapshotMock).toHaveBeenCalledTimes(2);
     });
+  });
+});
+
+// =============================================================================
+// Debug Bot Control: effectiveSeat/effectiveRole Tests
+// =============================================================================
+
+describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () => {
+  // Create a mock facade for testing
+  const createMockFacade = (overrides: Partial<IGameFacade> = {}): IGameFacade => ({
+    addListener: jest.fn().mockReturnValue(() => {}),
+    getState: jest.fn().mockReturnValue(null),
+    isHostPlayer: jest.fn().mockReturnValue(true),
+    getMyUid: jest.fn().mockReturnValue('host-uid'),
+    getMySeatNumber: jest.fn().mockReturnValue(0),
+    getStateRevision: jest.fn().mockReturnValue(1),
+    initializeAsHost: jest.fn().mockResolvedValue(undefined),
+    joinAsPlayer: jest.fn().mockResolvedValue(undefined),
+    joinAsHost: jest.fn().mockResolvedValue({ success: true }),
+    leaveRoom: jest.fn().mockResolvedValue(undefined),
+    takeSeat: jest.fn().mockResolvedValue(true),
+    takeSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
+    leaveSeat: jest.fn().mockResolvedValue(true),
+    leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
+    assignRoles: jest.fn().mockResolvedValue({ success: true }),
+    updateTemplate: jest.fn().mockResolvedValue({ success: true }),
+    setRoleRevealAnimation: jest.fn().mockResolvedValue({ success: true }),
+    startNight: jest.fn().mockResolvedValue({ success: true }),
+    restartGame: jest.fn().mockResolvedValue({ success: true }),
+    fillWithBots: jest.fn().mockResolvedValue({ success: true }),
+    markAllBotsViewed: jest.fn().mockResolvedValue({ success: true }),
+    markViewedRole: jest.fn().mockResolvedValue({ success: true }),
+    submitAction: jest.fn().mockResolvedValue({ success: true }),
+    submitWolfVote: jest.fn().mockResolvedValue({ success: true }),
+    submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
+    advanceNight: jest.fn().mockResolvedValue({ success: true }),
+    endNight: jest.fn().mockResolvedValue({ success: true }),
+    setAudioPlaying: jest.fn().mockResolvedValue({ success: true }),
+    requestSnapshot: jest.fn().mockResolvedValue(true),
+    sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    const mockAuthService = {
+      waitForInit: jest.fn().mockResolvedValue(undefined),
+      getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
+      getCurrentDisplayName: jest.fn().mockResolvedValue('Host Player'),
+      getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
+    } as any;
+
+    const mockBroadcastService = {
+      addStatusListener: jest.fn().mockReturnValue(() => {}),
+    } as any;
+
+    (AuthService.getInstance as jest.Mock).mockReturnValue(mockAuthService);
+    (BroadcastService.getInstance as jest.Mock).mockReturnValue(mockBroadcastService);
+  });
+
+  it('submitAction should use effectiveSeat and effectiveRole when controlledSeat is set', async () => {
+    const submitActionMock = jest.fn().mockResolvedValue({ success: true });
+    let stateListener: ((state: any) => void) | null = null;
+
+    // Mock state with Host at seat 0 (villager) and bot at seat 1 (wolf)
+    // Use 'assigned' status to avoid triggering nightPlan logic in hook
+    // Players must be Record<number, ...> for broadcastToLocalState adapter
+    const mockState = {
+      roomCode: 'TEST',
+      hostUid: 'host-uid',
+      status: 'assigned' as const,
+      templateRoles: ['villager', 'wolf'],
+      players: {
+        0: { uid: 'host-uid', seatNumber: 0, displayName: 'Host', role: 'villager', hasViewedRole: true },
+        1: { uid: 'bot-1', seatNumber: 1, displayName: 'Bot 1', role: 'wolf', hasViewedRole: true, isBot: true },
+      },
+      currentActionerIndex: -1,
+      isAudioPlaying: false,
+      debugMode: { botsEnabled: true },
+      currentNightResults: {},
+    };
+
+    const mockFacade = createMockFacade({
+      addListener: jest.fn().mockImplementation((fn) => {
+        stateListener = fn;
+        return () => {};
+      }),
+      getState: jest.fn().mockReturnValue(mockState),
+      getMySeatNumber: jest.fn().mockReturnValue(0),
+      submitAction: submitActionMock,
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+    );
+
+    const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+    // Trigger state update through listener (this populates mySeatNumber from localState)
+    await act(async () => {
+      stateListener?.(mockState);
+    });
+
+    // Initially: effectiveSeat = 0 (mySeatNumber), effectiveRole = 'villager'
+    expect(result.current.effectiveSeat).toBe(0);
+    expect(result.current.effectiveRole).toBe('villager');
+
+    // Set controlledSeat to 1 (bot seat)
+    await act(async () => {
+      result.current.setControlledSeat(1);
+    });
+
+    // Now: effectiveSeat = 1, effectiveRole = 'wolf'
+    expect(result.current.effectiveSeat).toBe(1);
+    expect(result.current.effectiveRole).toBe('wolf');
+
+    // Submit action - should use effectiveSeat=1 and effectiveRole='wolf'
+    await act(async () => {
+      await result.current.submitAction(5); // target seat 5
+    });
+
+    // Verify facade.submitAction was called with bot's seat and role
+    expect(submitActionMock).toHaveBeenCalledWith(1, 'wolf', 5, undefined);
+    // NOT called with Host's seat and role
+    expect(submitActionMock).not.toHaveBeenCalledWith(0, 'villager', 5, undefined);
+  });
+
+  it('submitWolfVote should use effectiveSeat when controlledSeat is set', async () => {
+    const submitWolfVoteMock = jest.fn().mockResolvedValue({ success: true });
+    let stateListener: ((state: any) => void) | null = null;
+
+    // Use 'assigned' status to avoid triggering nightPlan logic in hook
+    // Players must be Record<number, ...> for broadcastToLocalState adapter
+    const mockState = {
+      roomCode: 'TEST',
+      hostUid: 'host-uid',
+      status: 'assigned' as const,
+      templateRoles: ['villager', 'wolf'],
+      players: {
+        0: { uid: 'host-uid', seatNumber: 0, displayName: 'Host', role: 'villager', hasViewedRole: true },
+        1: { uid: 'bot-1', seatNumber: 1, displayName: 'Bot 1', role: 'wolf', hasViewedRole: true, isBot: true },
+      },
+      currentActionerIndex: -1,
+      isAudioPlaying: false,
+      debugMode: { botsEnabled: true },
+      currentNightResults: {},
+    };
+
+    const mockFacade = createMockFacade({
+      addListener: jest.fn().mockImplementation((fn) => {
+        stateListener = fn;
+        return () => {};
+      }),
+      getState: jest.fn().mockReturnValue(mockState),
+      getMySeatNumber: jest.fn().mockReturnValue(0),
+      submitWolfVote: submitWolfVoteMock,
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+    );
+
+    const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+    // Trigger state update through listener
+    await act(async () => {
+      stateListener?.(mockState);
+    });
+
+    // Set controlledSeat to 1 (bot seat)
+    await act(async () => {
+      result.current.setControlledSeat(1);
+    });
+
+    // Submit wolf vote - should use effectiveSeat=1
+    await act(async () => {
+      await result.current.submitWolfVote(5);
+    });
+
+    // Verify facade.submitWolfVote was called with bot's seat
+    expect(submitWolfVoteMock).toHaveBeenCalledWith(1, 5);
+    // NOT called with Host's seat
+    expect(submitWolfVoteMock).not.toHaveBeenCalledWith(0, 5);
+  });
+
+  it('effectiveRole should be null when effectiveSeat has no player', async () => {
+    let stateListener: ((state: any) => void) | null = null;
+
+    // Use 'assigned' status to avoid triggering nightPlan logic in hook
+    // Players must be Record<number, ...> for broadcastToLocalState adapter
+    const mockState = {
+      roomCode: 'TEST',
+      hostUid: 'host-uid',
+      status: 'assigned' as const,
+      templateRoles: ['villager', 'wolf', 'seer'],
+      players: {
+        0: { uid: 'host-uid', seatNumber: 0, displayName: 'Host', role: 'villager', hasViewedRole: true },
+        // seat 1 is empty (null)
+        1: null,
+      },
+      currentActionerIndex: -1,
+      isAudioPlaying: false,
+      currentNightResults: {},
+    };
+
+    const mockFacade = createMockFacade({
+      addListener: jest.fn().mockImplementation((fn) => {
+        stateListener = fn;
+        return () => {};
+      }),
+      getState: jest.fn().mockReturnValue(mockState),
+      getMySeatNumber: jest.fn().mockReturnValue(0),
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+    );
+
+    const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+    // Trigger state update through listener
+    await act(async () => {
+      stateListener?.(mockState);
+    });
+
+    // Set controlledSeat to empty seat 1
+    await act(async () => {
+      result.current.setControlledSeat(1);
+    });
+
+    expect(result.current.effectiveSeat).toBe(1);
+    expect(result.current.effectiveRole).toBeNull();
   });
 });

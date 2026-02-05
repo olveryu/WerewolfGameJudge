@@ -39,6 +39,8 @@ export interface BroadcastPlayer {
   avatarUrl?: string;
   role?: RoleId | null;
   hasViewedRole: boolean;
+  /** Debug mode: true if this is a bot placeholder (not a real player) */
+  isBot?: boolean;
 }
 
 // =============================================================================
@@ -191,6 +193,16 @@ export interface BroadcastGameState {
     targetUid: string;
     /** Unique id for this rejection event (UI uses it for dedupe). */
     rejectionId: string;
+  };
+
+  // --- Debug 模式 ---
+  /**
+   * Debug mode settings (optional, for development/testing only).
+   * When debugMode.botsEnabled is true, bot-related UI and features are enabled.
+   */
+  debugMode?: {
+    /** Whether bot placeholder mode is enabled */
+    botsEnabled: boolean;
   };
 }
 

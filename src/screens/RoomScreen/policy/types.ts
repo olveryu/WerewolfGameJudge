@@ -65,6 +65,12 @@ export interface WolfRobotHunterStatusViewedEvent {
   kind: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED';
 }
 
+/** Takeover bot seat - Host wants to control a bot seat (debug mode) */
+export interface TakeoverBotSeatEvent {
+  kind: 'TAKEOVER_BOT_SEAT';
+  seatIndex: number;
+}
+
 /** Union of all possible interaction events */
 export type InteractionEvent =
   | SeatTapEvent
@@ -73,7 +79,8 @@ export type InteractionEvent =
   | ViewRoleEvent
   | LeaveRoomEvent
   | RevealAckEvent
-  | WolfRobotHunterStatusViewedEvent;
+  | WolfRobotHunterStatusViewedEvent
+  | TakeoverBotSeatEvent;
 
 // =============================================================================
 // Interaction Results - What the orchestrator should do
@@ -138,6 +145,17 @@ export interface InteractionResultHunterStatusViewed {
   kind: 'HUNTER_STATUS_VIEWED';
 }
 
+/** Takeover bot seat (debug mode) */
+export interface InteractionResultTakeoverBotSeat {
+  kind: 'TAKEOVER_BOT_SEAT';
+  seatIndex: number;
+}
+
+/** Release bot seat control (debug mode) */
+export interface InteractionResultReleaseBotSeat {
+  kind: 'RELEASE_BOT_SEAT';
+}
+
 /** Union of all possible interaction results */
 export type InteractionResult =
   | InteractionResultNoop
@@ -147,7 +165,9 @@ export type InteractionResult =
   | InteractionResultActionFlow
   | InteractionResultHostControl
   | InteractionResultRevealAck
-  | InteractionResultHunterStatusViewed;
+  | InteractionResultHunterStatusViewed
+  | InteractionResultTakeoverBotSeat
+  | InteractionResultReleaseBotSeat;
 
 // =============================================================================
 // Interaction Context - Minimal state needed for policy decisions
@@ -172,6 +192,12 @@ export interface InteractionContext {
   imActioner: boolean;
   mySeatNumber: number | null;
   myRole: RoleId | null;
+
+  // Debug mode (optional)
+  isDebugMode?: boolean;
+  controlledSeat?: number | null;
+  /** Function to get all bot seat indices (for takeover logic) */
+  getBotSeats?: () => number[];
 }
 
 // =============================================================================

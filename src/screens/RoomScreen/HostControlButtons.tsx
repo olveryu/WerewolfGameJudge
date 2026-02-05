@@ -19,12 +19,20 @@ export interface HostControlButtonsProps {
   showLastNightInfo: boolean;
   showRestart: boolean;
 
+  // Debug mode visibility flags
+  showFillWithBots: boolean;
+  showMarkAllBotsViewed: boolean;
+
   // Button press handlers (parent provides dialog/logic)
   onSettingsPress: () => void;
   onPrepareToFlipPress: () => void;
   onStartGamePress: () => void;
   onLastNightInfoPress: () => void;
   onRestartPress: () => void;
+
+  // Debug mode handlers
+  onFillWithBotsPress: () => void;
+  onMarkAllBotsViewedPress: () => void;
 }
 
 const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
@@ -34,11 +42,15 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
   showStartGame,
   showLastNightInfo,
   showRestart,
+  showFillWithBots,
+  showMarkAllBotsViewed,
   onSettingsPress,
   onPrepareToFlipPress,
   onStartGamePress,
   onLastNightInfoPress,
   onRestartPress,
+  onFillWithBotsPress,
+  onMarkAllBotsViewedPress,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -57,10 +69,30 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
         </TouchableOpacity>
       )}
 
+      {/* Debug: Fill With Bots (only in unseated status) */}
+      {showFillWithBots && (
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: colors.warning }]}
+          onPress={onFillWithBotsPress}
+        >
+          <Text style={styles.buttonText}>🤖 填充机器人</Text>
+        </TouchableOpacity>
+      )}
+
       {/* Host: Prepare to Flip */}
       {showPrepareToFlip && (
         <TouchableOpacity style={styles.actionButton} onPress={onPrepareToFlipPress}>
           <Text style={styles.buttonText}>准备看牌</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Debug: Mark All Bots Viewed (only in assigned status with bots) */}
+      {showMarkAllBotsViewed && (
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: colors.warning }]}
+          onPress={onMarkAllBotsViewedPress}
+        >
+          <Text style={styles.buttonText}>🤖 一键看牌</Text>
         </TouchableOpacity>
       )}
 

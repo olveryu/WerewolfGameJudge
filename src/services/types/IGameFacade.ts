@@ -142,6 +142,18 @@ export interface IGameFacade {
    */
   restartGame(): Promise<{ success: boolean; reason?: string }>;
 
+  // === Debug Mode ===
+  /**
+   * 填充机器人（Debug-only, Host-only）
+   * 为所有空座位创建 bot player
+   */
+  fillWithBots(): Promise<{ success: boolean; reason?: string }>;
+
+  /**
+   * 标记所有机器人已查看角色（Debug-only, Host-only）
+   */
+  markAllBotsViewed(): Promise<{ success: boolean; reason?: string }>;
+
   // === Player Actions ===
   /**
    * 玩家确认已查看角色

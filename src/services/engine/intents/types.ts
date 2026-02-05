@@ -190,6 +190,32 @@ export interface RequestSnapshotIntent {
 }
 
 // =============================================================================
+// Debug Bots Intent（仅主机）
+// =============================================================================
+
+/**
+ * 填充机器人 Intent（Host-only, Debug-only）
+ *
+ * 前置条件：status === 'unseated'
+ * 结果：
+ * - 为所有空座位创建 bot player（isBot: true）
+ * - 设置 debugMode.botsEnabled = true
+ */
+export interface FillWithBotsIntent {
+  type: 'FILL_WITH_BOTS';
+}
+
+/**
+ * 标记所有机器人已查看角色 Intent（Host-only, Debug-only）
+ *
+ * 前置条件：debugMode.botsEnabled === true && status === 'assigned'
+ * 结果：仅对 isBot === true 的玩家设置 hasViewedRole = true
+ */
+export interface MarkAllBotsViewedIntent {
+  type: 'MARK_ALL_BOTS_VIEWED';
+}
+
+// =============================================================================
 // Intent 联合类型
 // =============================================================================
 
@@ -211,4 +237,6 @@ export type GameIntent =
   | PlayNextAudioIntent
   | AdvanceNightIntent
   | EndNightIntent
-  | RequestSnapshotIntent;
+  | RequestSnapshotIntent
+  | FillWithBotsIntent
+  | MarkAllBotsViewedIntent;

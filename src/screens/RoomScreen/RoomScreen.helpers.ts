@@ -56,6 +56,8 @@ export interface SeatViewModel {
     uid: string;
     displayName: string;
     avatarUrl?: string;
+    isBot?: boolean;
+    role?: RoleId | null; // For bot role display (debug mode)
   } | null;
   isMySpot: boolean;
   isWolf: boolean;
@@ -290,6 +292,8 @@ export function buildSeatViewModels(
             uid: player.uid,
             displayName: player.displayName || '玩家',
             avatarUrl: player.avatarUrl,
+            isBot: player.isBot,
+            role: player.role, // For bot role display (debug mode)
           }
         : null,
       isMySpot: mySeatNumber === index,

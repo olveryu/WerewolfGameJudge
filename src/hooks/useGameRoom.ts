@@ -47,6 +47,17 @@ export interface UseGameRoomResult {
   mySeatNumber: number | null;
   myRole: RoleId | null;
 
+  // Debug mode: controlled seat (Host takes over a bot seat)
+  controlledSeat: number | null;
+  effectiveSeat: number | null; // = controlledSeat ?? mySeatNumber
+  effectiveRole: RoleId | null; // role of effectiveSeat
+  setControlledSeat: (seat: number | null) => void;
+
+  // Debug mode: bot actions
+  isDebugMode: boolean;
+  fillWithBots: () => Promise<{ success: boolean; reason?: string }>;
+  markAllBotsViewed: () => Promise<{ success: boolean; reason?: string }>;
+
   // Computed values
   roomStatus: GameStatus;
   currentActionRole: RoleId | null;
@@ -154,6 +165,9 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Connection status
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [stateRevision, setStateRevision] = useState(0);
+
+  // Debug mode: controlled seat (Host takes over a bot seat for testing)
+  const [controlledSeat, setControlledSeat] = useState<number | null>(null);
 
   // Sync status for Player reconnection
   const [lastStateReceivedAt, setLastStateReceivedAt] = useState<number | null>(null);
@@ -280,6 +294,34 @@ export const useGameRoom = (): UseGameRoomResult => {
     if (mySeatNumber === null || !gameState) return null;
     return gameState.players.get(mySeatNumber)?.role ?? null;
   }, [gameState, mySeatNumber]);
+
+  // Debug mode: effectiveSeat = controlledSeat ?? mySeatNumber
+  // When Host controls a bot seat, effectiveSeat is the bot's seat
+  const effectiveSeat = useMemo(() => {
+    return controlledSeat ?? mySeatNumber;
+  }, [controlledSeat, mySeatNumber]);
+
+  // Debug mode: effectiveRole = role of effectiveSeat
+  const effectiveRole = useMemo(() => {
+    if (effectiveSeat === null || !gameState) return null;
+    return gameState.players.get(effectiveSeat)?.role ?? null;
+  }, [gameState, effectiveSeat]);
+
+  // Debug mode: check if botsEnabled
+  const isDebugMode = useMemo(() => {
+    const result = gameState?.debugMode?.botsEnabled === true;
+    // Temporary debug log - remove after debugging
+    if (gameState && gameState.status === 'assigned') {
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG] isDebugMode in assigned status', {
+        debugMode: JSON.stringify(gameState.debugMode),
+        botsEnabled: gameState.debugMode?.botsEnabled,
+        result,
+        status: gameState.status,
+      });
+    }
+    return result;
+  }, [gameState]);
 
   // GameStatus is now an alias for GameStatus (Phase 5)
   const roomStatus = useMemo((): GameStatus => {
@@ -571,7 +613,27 @@ export const useGameRoom = (): UseGameRoomResult => {
     if (!isHost) return;
     // Stop BGM on restart
     audioService.current.stopBgm();
+    // Clear controlled seat on restart
+    setControlledSeat(null);
     await facade.restartGame();
+  }, [isHost, facade]);
+
+  // =========================================================================
+  // Debug Mode: Fill With Bots (Host only)
+  // =========================================================================
+
+  const fillWithBots = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
+    if (!isHost) {
+      return { success: false, reason: 'host_only' };
+    }
+    return facade.fillWithBots();
+  }, [isHost, facade]);
+
+  const markAllBotsViewed = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
+    if (!isHost) {
+      return { success: false, reason: 'host_only' };
+    }
+    return facade.markAllBotsViewed();
   }, [isHost, facade]);
 
   // Set role reveal animation (host only)
@@ -616,25 +678,25 @@ export const useGameRoom = (): UseGameRoomResult => {
     await facade.markViewedRole(seat);
   }, [mySeatNumber, facade]);
 
-  // Submit action
+  // Submit action (uses effectiveSeat/effectiveRole for debug bot control)
   const submitAction = useCallback(
     async (target: number | null, extra?: unknown): Promise<void> => {
-      const seat = mySeatNumber;
-      const role = myRole;
+      const seat = effectiveSeat;
+      const role = effectiveRole;
       if (seat === null || !role) return;
       await facade.submitAction(seat, role, target, extra);
     },
-    [mySeatNumber, myRole, facade],
+    [effectiveSeat, effectiveRole, facade],
   );
 
-  // Submit wolf vote
+  // Submit wolf vote (uses effectiveSeat for debug bot control)
   const submitWolfVote = useCallback(
     async (target: number): Promise<void> => {
-      const seat = mySeatNumber;
+      const seat = effectiveSeat;
       if (seat === null) return;
       await facade.submitWolfVote(seat, target);
     },
-    [mySeatNumber, facade],
+    [effectiveSeat, facade],
   );
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
@@ -691,6 +753,15 @@ export const useGameRoom = (): UseGameRoomResult => {
     myUid,
     mySeatNumber,
     myRole,
+    // Debug mode
+    controlledSeat,
+    effectiveSeat,
+    effectiveRole,
+    setControlledSeat,
+    isDebugMode,
+    fillWithBots,
+    markAllBotsViewed,
+    // Computed values
     roomStatus,
     currentActionRole,
     isAudioPlaying,

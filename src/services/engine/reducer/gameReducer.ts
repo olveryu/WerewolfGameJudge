@@ -29,6 +29,7 @@ import type {
   PlayerViewedRoleAction,
   ActionRejectedAction,
   AddRevealAckAction,
+  FillWithBotsAction,
 } from './types';
 import { resolveRandomAnimation } from '../../types/RoleRevealAnimation';
 import type { ResolvedRoleRevealAnimation } from '../../types/RoleRevealAnimation';
@@ -330,6 +331,51 @@ function handleAddRevealAck(state: GameState, action: AddRevealAckAction): GameS
   };
 }
 
+function handleFillWithBots(state: GameState, action: FillWithBotsAction): GameState {
+  const { bots } = action.payload;
+
+  // 合并现有玩家和 bot
+  const newPlayers = { ...state.players };
+  for (const [seatStr, bot] of Object.entries(bots)) {
+    const seat = Number.parseInt(seatStr, 10);
+    newPlayers[seat] = bot;
+  }
+
+  // 判断是否全部入座
+  const allSeated = Object.values(newPlayers).every((p) => p !== null);
+
+  return {
+    ...state,
+    players: newPlayers,
+    status: allSeated ? 'seated' : state.status,
+    debugMode: { botsEnabled: true },
+  };
+}
+
+function handleMarkAllBotsViewed(state: GameState): GameState {
+  const newPlayers = { ...state.players };
+
+  for (const [seatStr, player] of Object.entries(state.players)) {
+    if (player?.isBot) {
+      const seat = Number.parseInt(seatStr, 10);
+      newPlayers[seat] = {
+        ...player,
+        hasViewedRole: true,
+      };
+    }
+  }
+
+  // 检查是否所有玩家都已查看角色
+  const allViewed = Object.values(newPlayers).every((p) => p?.hasViewedRole === true);
+  const newStatus = state.status === 'assigned' && allViewed ? 'ready' : state.status;
+
+  return {
+    ...state,
+    players: newPlayers,
+    status: newStatus,
+  };
+}
+
 // =============================================================================
 // 主 Reducer
 // =============================================================================
@@ -476,6 +522,12 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
         ...state,
         pendingRevealAcks: undefined,
       };
+
+    case 'FILL_WITH_BOTS':
+      return handleFillWithBots(state, action);
+
+    case 'MARK_ALL_BOTS_VIEWED':
+      return handleMarkAllBotsViewed(state);
 
     case 'SET_CURRENT_STEP':
       // 当前 BroadcastGameState 没有 currentStepId 字段，预留

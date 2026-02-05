@@ -359,6 +359,36 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
+  // Debug Mode: Fill With Bots (委托给 hostActions)
+  // =========================================================================
+
+  /**
+   * Host: 填充机器人（Debug-only）
+   *
+   * 为所有空座位创建 bot player，设置 debugMode.botsEnabled = true。
+   * 仅在 isHost && status === 'unseated' 时可用。
+   */
+  async fillWithBots(): Promise<{ success: boolean; reason?: string }> {
+    if (!this.isHost) {
+      return { success: false, reason: 'host_only' };
+    }
+    return hostActions.fillWithBots(this.getHostActionsContext());
+  }
+
+  /**
+   * Host: 标记所有机器人已查看角色（Debug-only）
+   *
+   * 仅对 isBot === true 的玩家设置 hasViewedRole = true。
+   * 仅在 debugMode.botsEnabled === true && status === 'assigned' 时可用。
+   */
+  async markAllBotsViewed(): Promise<{ success: boolean; reason?: string }> {
+    if (!this.isHost) {
+      return { success: false, reason: 'host_only' };
+    }
+    return hostActions.markAllBotsViewed(this.getHostActionsContext());
+  }
+
+  // =========================================================================
   // Night Actions (委托给 hostActions)
   // =========================================================================
 
