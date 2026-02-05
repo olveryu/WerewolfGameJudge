@@ -28,6 +28,9 @@ export interface UseRoomSeatDialogsParams {
   // Leave room
   roomStatus: GameStatus;
   navigation: NativeStackNavigationProp<RootStackParamList, 'Room'>;
+
+  // Cleanup callback (e.g., stop audio)
+  onLeaveRoom?: () => void;
 }
 
 export interface UseRoomSeatDialogsResult {
@@ -48,6 +51,7 @@ export function useRoomSeatDialogs({
   leaveSeat,
   roomStatus,
   navigation,
+  onLeaveRoom,
 }: UseRoomSeatDialogsParams): UseRoomSeatDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
   // Enter seat dialog
@@ -116,17 +120,18 @@ export function useRoomSeatDialogs({
   // Leave room
   // ─────────────────────────────────────────────────────────────────────────
 
-  const handleLeaveRoom = useCallback(() => {
-    if (roomStatus === GameStatus.ongoing || roomStatus === GameStatus.ended) {
-      navigation.navigate('Home');
-      return;
-    }
+  const doLeaveRoom = useCallback(() => {
+    onLeaveRoom?.(); // Stop audio, cleanup
+    navigation.navigate('Home');
+  }, [navigation, onLeaveRoom]);
 
+  const handleLeaveRoom = useCallback(() => {
+    // Always show confirmation dialog regardless of room status
     showAlert('离开房间？', '', [
-      { text: '确定', onPress: () => navigation.navigate('Home') },
+      { text: '确定', onPress: doLeaveRoom },
       { text: '取消', style: 'cancel' },
     ]);
-  }, [roomStatus, navigation]);
+  }, [doLeaveRoom]);
 
   return {
     showEnterSeatDialog,

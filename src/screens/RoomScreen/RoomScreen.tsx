@@ -17,6 +17,7 @@ import { GameStatus, getWolfVoteSummary, getPlayersNotViewedRole } from '../../m
 import { buildNightPlan, getRoleDisplayName, getRoleSpec, Faction } from '../../models/roles';
 import { showAlert } from '../../utils/alert';
 import { useGameRoom } from '../../hooks/useGameRoom';
+import { AudioService } from '../../services';
 import type { LocalGameState } from '../../services/types/GameStateTypes';
 import { HostControlButtons } from './HostControlButtons';
 import { useRoomHostDialogs } from './useRoomHostDialogs';
@@ -396,6 +397,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const actionDialogs = useRoomActionDialogs();
 
+  // Cleanup callback for leaving room - stops all audio
+  const handleLeaveRoomCleanup = useCallback(() => {
+    AudioService.getInstance().cleanup();
+  }, []);
+
   const seatDialogs = useRoomSeatDialogs({
     pendingSeatIndex,
     setPendingSeatIndex,
@@ -405,6 +411,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     leaveSeat,
     roomStatus,
     navigation,
+    onLeaveRoom: handleLeaveRoomCleanup,
   });
 
   const {
