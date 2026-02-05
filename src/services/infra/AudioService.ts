@@ -116,6 +116,7 @@ class AudioService {
     try {
       this.stopCurrentPlayer();
 
+      audioLog.debug('safePlayAudioFile: creating player and starting playback');
       const player = createAudioPlayer(audioFile);
       this.player = player;
       this.isPlaying = true;
@@ -198,8 +199,10 @@ class AudioService {
     const audioFile = AUDIO_FILES[role];
     if (!audioFile) {
       // Normal case: some roles (e.g. villager) intentionally have no narration.
+      audioLog.debug(`playRoleBeginningAudio: no audio file for role "${role}", skipping`);
       return;
     }
+    audioLog.debug(`playRoleBeginningAudio: playing audio for role "${role}"`);
     return this.safePlayAudioFile(audioFile);
   }
 
@@ -208,8 +211,10 @@ class AudioService {
     const audioFile = AUDIO_END_FILES[role];
     if (!audioFile) {
       // Normal case: some roles (e.g. villager) intentionally have no narration.
+      audioLog.debug(`playRoleEndingAudio: no audio file for role "${role}", skipping`);
       return;
     }
+    audioLog.debug(`playRoleEndingAudio: playing audio for role "${role}"`);
     return this.safePlayAudioFile(audioFile);
   }
 

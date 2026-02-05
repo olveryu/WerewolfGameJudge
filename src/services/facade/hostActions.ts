@@ -172,13 +172,18 @@ async function processHandlerResult(
   // 播放所有音频（按顺序）
   // Gate 在上面已设置，这里逐个播放，最后 finally 释放
   if (audioEffects.length > 0 && ctx.playAudio) {
+    facadeLog.debug('processHandlerResult: playing audio effects', {
+      count: audioEffects.length,
+      audioKeys: audioEffects.map((e) => ({ key: e.audioKey, isEnd: e.isEndAudio })),
+    });
     try {
       for (const effect of audioEffects) {
+        facadeLog.debug('processHandlerResult: playing audio', {
+          audioKey: effect.audioKey,
+          isEndAudio: effect.isEndAudio,
+        });
         await ctx.playAudio(effect.audioKey, effect.isEndAudio);
-        // 播放完 "night"（天黑请闭眼）后，等待 3 秒再播放下一个音频
-        if (effect.audioKey === 'night') {
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-        }
+        // 注：night.mp3 已包含 5 秒尾部静音，无需额外 setTimeout
       }
     } finally {
       // 无论成功/失败/中断，都必须释放 gate
