@@ -55,7 +55,7 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
         🎮 正在操控 {(controlledSeat ?? 0) + 1} 号位（{botDisplayName}）
       </Text>
       <TouchableOpacity style={styles.releaseButton} onPress={onRelease}>
-        <Text style={styles.releaseButtonText}>回到自己</Text>
+        <Text style={styles.releaseButtonText}>退出</Text>
       </TouchableOpacity>
     </View>
   );
@@ -77,7 +77,7 @@ function createStyles(colors: ThemeColors): ControlledSeatBannerStyles {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.surface,
+      backgroundColor: colors.warning,
       paddingVertical: spacing.small,
       paddingHorizontal: spacing.medium,
       marginBottom: spacing.small,
@@ -91,8 +91,8 @@ function createStyles(colors: ThemeColors): ControlledSeatBannerStyles {
     },
     hintText: {
       fontSize: typography.secondary,
-      color: colors.textSecondary,
-      fontWeight: '500',
+      color: colors.textInverse,
+      fontWeight: '600',
     },
     releaseButton: {
       backgroundColor: colors.surface,
