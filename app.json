@@ -2,7 +2,7 @@
   "expo": {
     "name": "狼人杀电子法官",
     "slug": "WerewolfGameJudge",
-    "version": "1.0.123",
+    "version": "1.0.124",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",

@@ -12,6 +12,7 @@ Outputs (by default):
 Notes:
 - Generating requires internet access.
 - Playback in-app is offline; files are bundled as static assets.
+- "night.mp3" has 5s of trailing silence appended (iOS Safari workaround).
 
 Example:
   python3 scripts/generate_audio_edge_tts.py --voice zh-CN-YunxiNeural
@@ -23,6 +24,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import subprocess
+import tempfile
 from pathlib import Path
 
 import edge_tts
@@ -32,6 +35,12 @@ OUT_BEGIN_DIR = ROOT_DIR / "assets" / "audio"
 OUT_END_DIR = ROOT_DIR / "assets" / "audio_end"
 
 DEFAULT_VOICE = "zh-CN-YunxiNeural"
+
+# Trailing silence duration in seconds for specific keys.
+# "night" needs 5s silence so iOS Safari doesn't break the audio chain.
+TRAILING_SILENCE: dict[str, int] = {
+    "night": 5,
+}
 
 # Keep text single-source-of-truth here.
 BEGIN_TEXT: dict[str, str] = {
@@ -87,14 +96,46 @@ async def list_voices() -> None:
         print(v.get("ShortName"))
 
 
-async def generate_one(text: str, voice: str, out_path: Path, dry_run: bool) -> None:
+async def generate_one(key: str, text: str, voice: str, out_path: Path, dry_run: bool) -> None:
     if dry_run:
-        print(f"[dry-run] -> {out_path}")
+        silence = TRAILING_SILENCE.get(key, 0)
+        suffix = f" (+{silence}s silence)" if silence else ""
+        print(f"[dry-run] -> {out_path}{suffix}")
         return
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    communicate = edge_tts.Communicate(text, voice)
-    await communicate.save(str(out_path))
+
+    silence_seconds = TRAILING_SILENCE.get(key, 0)
+
+    if silence_seconds > 0:
+        # Generate to temp file, then append silence with ffmpeg
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+        try:
+            communicate = edge_tts.Communicate(text, voice)
+            await communicate.save(str(tmp_path))
+
+            # Use ffmpeg to append silence
+            # -f lavfi -t 5 -i anullsrc creates 5s of silence
+            # Then concatenate with the original audio
+            subprocess.run(
+                [
+                    "ffmpeg", "-y",
+                    "-i", str(tmp_path),
+                    "-f", "lavfi", "-t", str(silence_seconds), "-i", "anullsrc=r=24000:cl=mono",
+                    "-filter_complex", "[0:a][1:a]concat=n=2:v=0:a=1",
+                    "-b:a", "48k",
+                    str(out_path),
+                ],
+                check=True,
+                capture_output=True,
+            )
+            print(f"Generated {out_path} (+{silence_seconds}s silence)")
+        finally:
+            tmp_path.unlink(missing_ok=True)
+    else:
+        communicate = edge_tts.Communicate(text, voice)
+        await communicate.save(str(out_path))
 
 
 async def main() -> None:
@@ -111,12 +152,12 @@ async def main() -> None:
     for key, text in BEGIN_TEXT.items():
         if only and only != key:
             continue
-        tasks.append(generate_one(text, args.voice, OUT_BEGIN_DIR / f"{key}.mp3", args.dry_run))
+        tasks.append(generate_one(key, text, args.voice, OUT_BEGIN_DIR / f"{key}.mp3", args.dry_run))
 
     for key, text in END_TEXT.items():
         if only and only != key:
             continue
-        tasks.append(generate_one(text, args.voice, OUT_END_DIR / f"{key}.mp3", args.dry_run))
+        tasks.append(generate_one(key, text, args.voice, OUT_END_DIR / f"{key}.mp3", args.dry_run))
 
     if not tasks:
         raise SystemExit(f"No tasks to run (only={only!r}).")
