@@ -556,6 +556,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Start game (host only) - now uses startNight + BGM
   const startGame = useCallback(async (): Promise<void> => {
     if (!isHost) return;
+
     // Start BGM if enabled
     const bgmEnabled = settingsService.current.isBgmEnabled();
     gameRoomLog.debug('startGame - BGM enabled:', { bgmEnabled });
