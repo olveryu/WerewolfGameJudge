@@ -81,8 +81,10 @@ export interface GameStateMockOptions {
   isHost?: boolean;
   /** Audio playing state */
   isAudioPlaying?: boolean;
-  /** Nightmare blocked seat */
+  /** Nightmare blocked seat (single source of truth for UI) */
   nightmareBlockedSeat?: number | null;
+  /** Wolf kill disabled (single source of truth for UI) */
+  wolfKillDisabled?: boolean;
   /** Current night results */
   currentNightResults?: Record<string, any>;
   /** Witch context */
@@ -122,6 +124,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     isHost = false,
     isAudioPlaying = false,
     nightmareBlockedSeat = null,
+    wolfKillDisabled = false,
     currentNightResults = {},
     witchContext = null,
     actionRejected = null,
@@ -172,6 +175,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
       isAudioPlaying,
       lastNightDeaths: [],
       nightmareBlockedSeat,
+      wolfKillDisabled,
       currentNightResults,
       templateRoles: [],
       hostUid: isHost ? 'p0' : 'host',
@@ -345,3 +349,131 @@ export function tapBottomAction(queryByText: (text: string) => any, buttonText: 
 export function pressDialogButton(harness: RoomScreenTestHarness, text: string) {
   harness.press(text);
 }
+
+// =============================================================================
+// Reactive Mock for Host-Authoritative Testing
+// =============================================================================
+
+/**
+ * ActionRejection type for simulateHostReject
+ */
+export interface ActionRejection {
+  action: string;
+  reason: string;
+  targetUid: string;
+  rejectionId?: string;
+}
+
+/**
+ * Creates a reactive game room mock that can simulate Host state updates.
+ *
+ * Usage:
+ * ```typescript
+ * const reactiveMock = createReactiveGameRoomMock(initialOptions);
+ * mockUseGameRoomReturn = reactiveMock.getMock();
+ *
+ * const { rerender } = render(<RoomScreen ... />);
+ *
+ * // Connect rerender for automatic updates
+ * reactiveMock.connect((newMock) => {
+ *   mockUseGameRoomReturn = newMock;
+ *   rerender(<RoomScreen ... />);
+ * });
+ *
+ * // Simulate Host reject (auto-triggers rerender via connect callback)
+ * await reactiveMock.simulateHostReject({
+ *   action: 'seerCheck',
+ *   reason: BLOCKED_UI_DEFAULTS.message,
+ *   targetUid: 'p8',
+ * });
+ * ```
+ *
+ * NOTE: Call connect() after render() to enable automatic re-rendering on state updates.
+ */
+export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions) {
+  let currentOptions = { ...initialOptions };
+  let currentMock = createGameRoomMock(currentOptions);
+  let onUpdateCallback: ((mock: ReturnType<typeof createGameRoomMock>) => void) | null = null;
+
+  const notifyUpdate = () => {
+    if (onUpdateCallback) {
+      onUpdateCallback(currentMock);
+    }
+  };
+
+  const self = {
+    /**
+     * Get the current mock object (pass to mockUseGameRoomReturn)
+     */
+    getMock: () => currentMock,
+
+    /**
+     * Connect a callback to be called when the mock is updated.
+     * Use this to trigger rerender after state changes.
+     *
+     * @param callback Called with the new mock after any simulate* call
+     */
+    connect: (callback: (mock: ReturnType<typeof createGameRoomMock>) => void) => {
+      onUpdateCallback = callback;
+      return self;
+    },
+
+    /**
+     * Disconnect the update callback
+     */
+    disconnect: () => {
+      onUpdateCallback = null;
+      return self;
+    },
+
+    /**
+     * Simulate Host rejecting an action.
+     * Updates the mock's gameState.actionRejected and triggers connected callback.
+     */
+    simulateHostReject: (rejection: ActionRejection) => {
+      currentOptions = {
+        ...currentOptions,
+        actionRejected: rejection,
+      };
+      currentMock = createGameRoomMock(currentOptions);
+      notifyUpdate();
+      return self;
+    },
+
+    /**
+     * Simulate Host state update.
+     * Merges overrides into the current options and rebuilds the mock.
+     */
+    simulateStateUpdate: (overrides: Partial<GameStateMockOptions>) => {
+      currentOptions = {
+        ...currentOptions,
+        ...overrides,
+      };
+      currentMock = createGameRoomMock(currentOptions);
+      notifyUpdate();
+      return self;
+    },
+
+    /**
+     * Reset to initial options (does not notify)
+     */
+    reset: () => {
+      currentOptions = { ...initialOptions };
+      currentMock = createGameRoomMock(currentOptions);
+      return self;
+    },
+
+    /**
+     * Get current options (for debugging)
+     */
+    getCurrentOptions: () => ({ ...currentOptions }),
+  };
+
+  return self;
+}
+
+/**
+ * Type for the reactive mock returned by createReactiveGameRoomMock
+ */
+export type ReactiveGameRoomMock = ReturnType<typeof createReactiveGameRoomMock>;
+

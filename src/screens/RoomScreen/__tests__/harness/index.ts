@@ -30,6 +30,7 @@ export {
 export {
   mockNavigation,
   createGameRoomMock,
+  createReactiveGameRoomMock,
   setupBoardTestMocks,
   waitForRoomScreen,
   tapSeat,
@@ -38,4 +39,6 @@ export {
   MockSafeAreaView,
   type GameStateMockOptions,
   type BoardTestContext,
+  type ActionRejection,
+  type ReactiveGameRoomMock,
 } from './boardTestUtils';

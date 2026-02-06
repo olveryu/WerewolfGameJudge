@@ -29,6 +29,7 @@ import {
   getBoardByName,
   mockNavigation,
   createGameRoomMock,
+  createReactiveGameRoomMock,
   waitForRoomScreen,
   tapSeat,
 } from '../harness';
@@ -289,12 +290,14 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
     /**
      * CRITICAL TEST: Gate button disappears after state update
      *
-     * This test uses a mutable mock to simulate the state update that occurs
+     * This test uses reactive mock with connect() to simulate the state update that occurs
      * after sendWolfRobotHunterStatusViewed succeeds. The button should disappear.
+     *
+     * NOTE: Uses createReactiveGameRoomMock with connect() for clean Host state simulation.
      */
     it('gate button disappears after wolfRobotHunterStatusViewed becomes true', async () => {
-      // Initial state: gate not viewed
-      mockUseGameRoomReturn = createGameRoomMock({
+      // Initial state: gate not viewed - use reactive mock
+      const reactiveMock = createReactiveGameRoomMock({
         schemaId: 'wolfRobotLearn',
         currentActionRole: 'wolfRobot',
         myRole: 'wolfRobot',
@@ -304,6 +307,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           wolfRobotHunterStatusViewed: false,
         },
       });
+      mockUseGameRoomReturn = reactiveMock.getMock();
 
       const { getByTestId, getByText, queryByText, rerender } = render(
         <RoomScreen
@@ -312,35 +316,36 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         />,
       );
 
+      // Connect rerender for automatic updates when Host state changes
+      reactiveMock.connect((newMock) => {
+        mockUseGameRoomReturn = newMock;
+        rerender(
+          <RoomScreen
+            route={{ params: { roomNumber: '1234', isHost: false } } as any}
+            navigation={mockNavigation as any}
+          />,
+        );
+      });
+
       await waitForRoomScreen(getByTestId);
 
       // Button should be visible initially
       expect(getByText('查看发动状态')).toBeTruthy();
 
       // Simulate state update: Host broadcasts wolfRobotHunterStatusViewed = true
-      mockUseGameRoomReturn = createGameRoomMock({
-        schemaId: 'wolfRobotLearn',
-        currentActionRole: 'wolfRobot',
-        myRole: 'wolfRobot',
-        mySeatNumber: 7,
+      reactiveMock.simulateStateUpdate({
         gameStateOverrides: {
           wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
           wolfRobotHunterStatusViewed: true, // Changed to true
         },
       });
 
-      // Force re-render with new state
-      rerender(
-        <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
-      );
-
       // CRITICAL ASSERTION: Button should disappear
       await waitFor(() => {
         expect(queryByText('查看发动状态')).toBeNull();
       });
+
+      reactiveMock.disconnect();
     });
 
     /**

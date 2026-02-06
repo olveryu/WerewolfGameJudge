@@ -71,6 +71,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
       isAudioPlaying: false,
       lastNightDeaths: [],
       nightmareBlockedSeat: null,
+      currentNightResults: {},
       templateRoles: [],
       hostUid: 'host',
       roomCode: '1234',
@@ -88,6 +89,16 @@ jest.mock('../../../hooks/useGameRoom', () => ({
 
     mySeatNumber: 0,
     myRole: 'seer',
+    myUid: 'p0',
+
+    // Debug mode fields
+    isDebugMode: false,
+    controlledSeat: null,
+    effectiveSeat: 0,
+    effectiveRole: 'seer',
+    fillWithBots: jest.fn(),
+    markAllBotsViewed: jest.fn(),
+    setControlledSeat: jest.fn(),
 
     createRoom: jest.fn(),
     joinRoom: jest.fn().mockResolvedValue(true),

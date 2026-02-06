@@ -483,7 +483,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
-    if (!myUid || rejected.targetUid !== myUid) return;
+    // In debug mode, Host controls bot seats, so also check effectiveSeat's uid
+    const effectiveUid =
+      effectiveSeat === null ? null : gameState?.players.get(effectiveSeat)?.uid;
+    const isTargetMatch = rejected.targetUid === myUid || rejected.targetUid === effectiveUid;
+    if (!myUid || !isTargetMatch) return;
 
     // Deduplicate repeated broadcasts of the same rejection
     // Prefer a unique rejection id so repeated errors with the same reason still show.
@@ -494,7 +498,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     lastRejectedKeyRef.current = key;
 
     actionDialogs.showActionRejectedAlert(rejected.reason);
-  }, [gameState?.actionRejected, myUid, actionDialogs]);
+  }, [gameState?.actionRejected, gameState?.players, myUid, effectiveSeat, actionDialogs]);
 
   // ---------------------------------------------------------------------------------
   // Action extra typing (UI -> Host wire payload)
@@ -585,6 +589,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleActionIntent = useCallback(
     async (intent: ActionIntent) => {
+      // DEBUG: Log every intent received
+      roomScreenLog.debug('[handleActionIntent] Received intent:', {
+        type: intent.type,
+        targetIndex: intent.targetIndex,
+        stepKey: intent.stepKey,
+        message: intent.message,
+        effectiveRole,
+        mySeatNumber,
+      });
+
       switch (intent.type) {
         // NOTE: 'blocked' intent type has been removed.
         // Nightmare block is now handled by Host resolver.
@@ -707,6 +721,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           break;
 
         case 'actionConfirm':
+          // DEBUG: Log actionConfirm handling details
+          roomScreenLog.debug('[actionConfirm] Processing:', {
+            effectiveRole,
+            anotherIndex,
+            schemaKind: currentSchema?.kind,
+            schemaId: currentSchema?.id,
+            'intent.targetIndex': intent.targetIndex,
+            'intent.stepKey': intent.stepKey,
+            mySeatNumber,
+          });
+
           if (effectiveRole === 'magician' && anotherIndex !== null) {
             // protocol: target = null, extra.targets = [seatA, seatB]
             const swapTargets: [number, number] = [anotherIndex, intent.targetIndex];
@@ -730,22 +755,38 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               );
             }, 0);
           } else {
-            // Witch/compound: drive copy + payload by stepKey when provided.
-            // protocol: seat = actorSeat (mySeatNumber), target info in stepResults
+            // Handle based on schema kind:
+            // - compound (witch): protocol uses seat=actorSeat, target info in stepResults
+            // - chooseSeat (nightmare/seer/guard/etc): protocol uses target=intent.targetIndex
             const stepSchema = getSubStepByKey(intent.stepKey);
             let extra: ActionExtra | undefined;
-            if (stepSchema?.key === 'save') {
-              // save: target is intent.targetIndex (killedIndex from witchContext)
-              extra = buildWitchStepResults({ saveTarget: intent.targetIndex, poisonTarget: null });
-            } else if (stepSchema?.key === 'poison') {
-              // poison: target is intent.targetIndex (user-selected seat)
-              extra = buildWitchStepResults({ saveTarget: null, poisonTarget: intent.targetIndex });
+            let targetToSubmit: number | null;
+
+            if (currentSchema?.kind === 'compound') {
+              // Compound schema (witch): target = actorSeat, real targets in extra.stepResults
+              targetToSubmit = mySeatNumber ?? 0;
+              if (stepSchema?.key === 'save') {
+                extra = buildWitchStepResults({ saveTarget: intent.targetIndex, poisonTarget: null });
+              } else if (stepSchema?.key === 'poison') {
+                extra = buildWitchStepResults({ saveTarget: null, poisonTarget: intent.targetIndex });
+              }
+            } else {
+              // chooseSeat schema: target = user-selected seat (intent.targetIndex)
+              targetToSubmit = intent.targetIndex;
             }
+
+            // DEBUG: Log what we're about to submit
+            roomScreenLog.debug('[actionConfirm] Submitting:', {
+              schemaKind: currentSchema?.kind,
+              targetToSubmit,
+              'intent.targetIndex': intent.targetIndex,
+              extra,
+            });
 
             actionDialogs.showConfirmDialog(
               stepSchema?.ui?.confirmTitle || currentSchema?.ui?.confirmTitle || '确认行动',
               stepSchema?.ui?.confirmText || intent.message || '',
-              () => void proceedWithActionTyped(mySeatNumber ?? 0, extra),
+              () => void proceedWithActionTyped(targetToSubmit, extra),
             );
           }
           break;
@@ -784,6 +825,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             skipConfirmText,
             () => void proceedWithActionTyped(skipSeat, skipExtra),
           );
+          break;
+        }
+
+        case 'blocked': {
+          // Nightmare blocked: show blocked alert immediately
+          // User only sees skip button, but we also show an alert for awareness
+          actionDialogs.showBlockedAlert();
           break;
         }
 

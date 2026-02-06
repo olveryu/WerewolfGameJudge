@@ -33,6 +33,7 @@ import {
   boardHasNightmare,
   mockNavigation,
   createGameRoomMock,
+  createReactiveGameRoomMock,
   waitForRoomScreen,
   tapSeat,
 } from '../harness';
@@ -200,10 +201,12 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
      * 2. Seer tries to act (taps a seat) - REAL INTERACTION
      * 3. Host rejects with actionRejected containing BLOCKED_UI_DEFAULTS.message
      * 4. UI shows actionRejected dialog with correct message
+     *
+     * NOTE: Uses createReactiveGameRoomMock with connect() for clean state simulation.
      */
     it('blocked seer: tapSeat triggers action → Host rejects → shows actionRejected with BLOCKED_UI_DEFAULTS', async () => {
-      // Seer is blocked by nightmare
-      mockUseGameRoomReturn = createGameRoomMock({
+      // Seer is blocked by nightmare - use reactive mock
+      const reactiveMock = createReactiveGameRoomMock({
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
@@ -213,6 +216,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           blockedSeat: 8,
         },
       });
+      mockUseGameRoomReturn = reactiveMock.getMock();
 
       const { getByTestId, rerender } = render(
         <RoomScreen
@@ -221,6 +225,17 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         />,
       );
 
+      // Connect rerender for automatic updates when Host state changes
+      reactiveMock.connect((newMock) => {
+        mockUseGameRoomReturn = newMock;
+        rerender(
+          <RoomScreen
+            route={{ params: { roomNumber: '1234', isHost: false } } as any}
+            navigation={mockNavigation as any}
+          />,
+        );
+      });
+
       await waitForRoomScreen(getByTestId);
       harness.clear();
 
@@ -228,31 +243,13 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       tapSeat(getByTestId, 1);
 
       // Simulate Host rejecting the action due to nightmare block
-      // In real flow, Host would set actionRejected after receiving the action
-      mockUseGameRoomReturn = createGameRoomMock({
-        schemaId: 'seerCheck',
-        currentActionRole: 'seer',
-        myRole: 'seer',
-        mySeatNumber: 8,
-        nightmareBlockedSeat: 8,
-        currentNightResults: {
-          blockedSeat: 8,
-        },
-        actionRejected: {
-          action: 'seerCheck',
-          reason: BLOCKED_UI_DEFAULTS.message,
-          targetUid: 'p8',
-          rejectionId: 'nightmare-block-1',
-        },
+      // Uses reactive mock - connect() auto-triggers rerender
+      reactiveMock.simulateHostReject({
+        action: 'seerCheck',
+        reason: BLOCKED_UI_DEFAULTS.message,
+        targetUid: 'p8',
+        rejectionId: 'nightmare-block-1',
       });
-
-      // Rerender to apply the actionRejected state
-      rerender(
-        <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
-      );
 
       // actionRejected is triggered via useEffect when gameState.actionRejected changes
       await waitFor(() => {
@@ -263,10 +260,13 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       const rejectedEvents = harness.eventsOfType('actionRejected');
       expect(rejectedEvents.length).toBeGreaterThan(0);
       expect(rejectedEvents[0].message).toContain(BLOCKED_UI_DEFAULTS.message);
+
+      reactiveMock.disconnect();
     });
 
     it('blocked witch: tapSeat triggers action → Host rejects → shows actionRejected', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      // Witch is blocked by nightmare - use reactive mock
+      const reactiveMock = createReactiveGameRoomMock({
         schemaId: 'witchAction',
         currentActionRole: 'witch',
         myRole: 'witch',
@@ -281,6 +281,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           canPoison: true,
         },
       });
+      mockUseGameRoomReturn = reactiveMock.getMock();
 
       const { getByTestId, rerender } = render(
         <RoomScreen
@@ -289,45 +290,36 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         />,
       );
 
+      // Connect rerender for automatic updates
+      reactiveMock.connect((newMock) => {
+        mockUseGameRoomReturn = newMock;
+        rerender(
+          <RoomScreen
+            route={{ params: { roomNumber: '1234', isHost: false } } as any}
+            navigation={mockNavigation as any}
+          />,
+        );
+      });
+
       await waitForRoomScreen(getByTestId);
       harness.clear();
 
       // REAL INTERACTION: Blocked witch taps to try to use poison
       tapSeat(getByTestId, 1);
 
-      // Host rejects due to nightmare block
-      mockUseGameRoomReturn = createGameRoomMock({
-        schemaId: 'witchAction',
-        currentActionRole: 'witch',
-        myRole: 'witch',
-        mySeatNumber: 9,
-        nightmareBlockedSeat: 9,
-        currentNightResults: {
-          blockedSeat: 9,
-        },
-        witchContext: {
-          killedIndex: 1,
-          canSave: true,
-          canPoison: true,
-        },
-        actionRejected: {
-          action: 'witchAction',
-          reason: BLOCKED_UI_DEFAULTS.message,
-          targetUid: 'p9',
-          rejectionId: 'nightmare-block-2',
-        },
+      // Host rejects due to nightmare block - uses reactive mock
+      reactiveMock.simulateHostReject({
+        action: 'witchAction',
+        reason: BLOCKED_UI_DEFAULTS.message,
+        targetUid: 'p9',
+        rejectionId: 'nightmare-block-2',
       });
-
-      rerender(
-        <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
-      );
 
       await waitFor(() => {
         expect(harness.hasSeen('actionRejected')).toBe(true);
       });
+
+      reactiveMock.disconnect();
     });
   });
 
@@ -473,10 +465,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         myRole: 'wolf',
         mySeatNumber: 5,
         nightmareBlockedSeat: 4,
-        currentNightResults: {
-          blockedSeat: 4,
-          wolfKillDisabled: true,
-        },
+        wolfKillDisabled: true,
         roleAssignments: new Map([
           [4, 'wolf'],
           [5, 'wolf'],
@@ -560,7 +549,8 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       result.unmount();
 
       // Step 3: actionRejected (blocked seer with REAL interaction)
-      mockUseGameRoomReturn = createGameRoomMock({
+      // Use reactive mock with connect() for clean Host state simulation
+      const seerReactiveMock = createReactiveGameRoomMock({
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
@@ -570,6 +560,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           blockedSeat: 8,
         },
       });
+      mockUseGameRoomReturn = seerReactiveMock.getMock();
 
       result = render(
         <RoomScreen
@@ -578,33 +569,31 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         />,
       );
 
+      // Connect rerender for automatic updates
+      seerReactiveMock.connect((newMock) => {
+        mockUseGameRoomReturn = newMock;
+        result.rerender(
+          <RoomScreen
+            route={{ params: { roomNumber: '1234', isHost: false } } as any}
+            navigation={mockNavigation as any}
+          />,
+        );
+      });
+
       await waitForRoomScreen(result.getByTestId);
       // REAL INTERACTION: Blocked seer taps a seat
       tapSeat(result.getByTestId, 1);
 
-      // Simulate Host rejection
-      mockUseGameRoomReturn = createGameRoomMock({
-        schemaId: 'seerCheck',
-        currentActionRole: 'seer',
-        myRole: 'seer',
-        mySeatNumber: 8,
-        nightmareBlockedSeat: 8,
-        actionRejected: {
-          action: 'seerCheck',
-          reason: BLOCKED_UI_DEFAULTS.message,
-          targetUid: 'p8',
-          rejectionId: 'coverage-test',
-        },
+      // Simulate Host rejection using reactive mock - connect() auto-triggers rerender
+      seerReactiveMock.simulateHostReject({
+        action: 'seerCheck',
+        reason: BLOCKED_UI_DEFAULTS.message,
+        targetUid: 'p8',
+        rejectionId: 'coverage-test',
       });
 
-      result.rerender(
-        <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
-      );
-
       await waitFor(() => expect(harness.hasSeen('actionRejected')).toBe(true));
+      seerReactiveMock.disconnect();
       result.unmount();
 
       // Step 4: witchSavePrompt
