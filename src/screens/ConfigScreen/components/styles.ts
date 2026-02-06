@@ -26,7 +26,10 @@ export interface ConfigScreenStyles {
   headerTitle: TextStyle;
   headerGearBtn: ViewStyle;
   headerGearBtnText: TextStyle;
-  // Header row 2 (template pill + player count, centered)
+  // Card A (template + faction tabs)
+  cardA: ViewStyle;
+  cardADivider: ViewStyle;
+  // Header row 2 (template pill + player count, inside cardA)
   templateRow: ViewStyle;
   templatePill: ViewStyle;
   templatePillText: TextStyle;
@@ -37,7 +40,7 @@ export interface ConfigScreenStyles {
   bottomCreateBtn: ViewStyle;
   bottomCreateBtnDisabled: ViewStyle;
   bottomCreateBtnText: TextStyle;
-  // Faction tab bar
+  // Faction tab bar (inside cardA)
   tabBar: ViewStyle;
   tab: ViewStyle;
   tabActive: ViewStyle;
@@ -45,6 +48,9 @@ export interface ConfigScreenStyles {
   tabBadge: ViewStyle;
   tabBadgeText: TextStyle;
   tabIndicator: ViewStyle;
+  // Card B (stepper + role sections)
+  cardB: ViewStyle;
+  cardBDivider: ViewStyle;
   // Settings row (used by Dropdown)
   settingsRow: ViewStyle;
   settingsItem: ViewStyle;
@@ -150,18 +156,28 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       fontSize: typography.body,
     },
 
-    // ── Header row 2: [标准板 ▾] 12人 (card) ──
+    // ── Card A: template + faction tabs (merged card) ──
+    cardA: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.large,
+      marginHorizontal: layout.screenPaddingH,
+      marginTop: spacing.small,
+      overflow: 'hidden',
+      ...shadows.sm,
+    },
+    cardADivider: {
+      height: fixed.divider,
+      backgroundColor: colors.border,
+      marginHorizontal: layout.cardPadding,
+    },
+
+    // ── Template row (inside cardA, no own card styling) ──
     templateRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       paddingVertical: spacing.small + spacing.tight,
       gap: spacing.small,
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      marginHorizontal: layout.screenPaddingH,
-      marginTop: spacing.small,
-      ...shadows.sm,
     },
     templatePill: {
       flexDirection: 'row',
@@ -253,16 +269,10 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       marginLeft: spacing.tight,
     },
 
-    // ── Faction tab bar (card) ─────────────────
+    // ── Faction tab bar (inside cardA, no own card styling) ──
     tabBar: {
       flexDirection: 'row',
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      marginHorizontal: layout.screenPaddingH,
-      marginTop: spacing.small,
       paddingTop: spacing.tight,
-      overflow: 'hidden',
-      ...shadows.sm,
     },
     tab: {
       flex: 1,
@@ -324,22 +334,20 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       marginBottom: spacing.medium,
     },
 
-    // ── Section (iOS Grouped Card) ────────────
+    // ── Section (inside cardB) ────────────
     section: {
-      marginBottom: spacing.medium,
+      marginTop: spacing.medium,
     },
     sectionTitle: {
       fontSize: typography.body,
       fontWeight: typography.weights.semibold,
       color: colors.text,
       marginBottom: spacing.small,
+      paddingHorizontal: layout.cardPadding,
     },
     sectionCard: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.medium,
       paddingHorizontal: layout.cardPadding,
       paddingVertical: spacing.small + spacing.tight,
-      ...shadows.sm,
     },
     chipContainer: {
       flexDirection: 'row',
@@ -383,17 +391,28 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       fontWeight: typography.weights.semibold,
     },
 
-    // ── Role stepper (inside card) ────────────
+    // ── Card B: stepper + role sections (merged card) ──
+    cardB: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.large,
+      marginHorizontal: layout.screenPaddingH,
+      marginTop: spacing.small,
+      paddingBottom: spacing.small + spacing.tight,
+      ...shadows.sm,
+    },
+    cardBDivider: {
+      height: fixed.divider,
+      backgroundColor: colors.border,
+      marginHorizontal: layout.cardPadding,
+    },
+
+    // ── Role stepper (inside cardB, no own card styling) ──
     stepperRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.medium,
       paddingVertical: spacing.small + spacing.tight,
       paddingHorizontal: layout.cardPadding,
-      marginBottom: spacing.medium,
-      ...shadows.sm,
     },
     stepperLabel: {
       fontSize: typography.body,
@@ -443,7 +462,6 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     // ── Scroll area ─────────────────────────────
     scrollView: {
       flex: 1,
-      padding: layout.screenPaddingH,
     },
 
     // ── Loading ─────────────────────────────────

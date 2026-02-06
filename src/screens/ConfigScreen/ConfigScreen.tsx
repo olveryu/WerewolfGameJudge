@@ -504,26 +504,32 @@ export const ConfigScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Header row 2 — template pill + player count (centered) */}
-      <View style={styles.templateRow}>
-        <TouchableOpacity
-          style={styles.templatePill}
-          onPress={handleOpenTemplateDropdown}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.templatePillText}>{selectedTemplateLabel}</Text>
-          <Text style={styles.templatePillArrow}>▾</Text>
-        </TouchableOpacity>
-        <Text style={styles.playerCount}>{totalCount}人</Text>
-      </View>
+      {/* Card A — template selector + faction tabs */}
+      <View style={styles.cardA}>
+        {/* Template pill + player count */}
+        <View style={styles.templateRow}>
+          <TouchableOpacity
+            style={styles.templatePill}
+            onPress={handleOpenTemplateDropdown}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.templatePillText}>{selectedTemplateLabel}</Text>
+            <Text style={styles.templatePillArrow}>▾</Text>
+          </TouchableOpacity>
+          <Text style={styles.playerCount}>{totalCount}人</Text>
+        </View>
 
-      {/* Faction Tab Bar */}
-      <FactionTabs
-        tabs={tabItems}
-        activeKey={activeTab}
-        onTabPress={handleTabPress}
-        styles={styles}
-      />
+        {/* Divider */}
+        <View style={styles.cardADivider} />
+
+        {/* Faction Tab Bar */}
+        <FactionTabs
+          tabs={tabItems}
+          activeKey={activeTab}
+          onTabPress={handleTabPress}
+          styles={styles}
+        />
+      </View>
 
       {isLoading ? (
         <LoadingScreen message="加载中..." fullScreen={false} />
@@ -535,45 +541,55 @@ export const ConfigScreen: React.FC = () => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: spacing.large }}
           >
-            {activeGroup.sections.map((section) => {
-              // Bulk slot → RoleStepper
-              const bulkSlot = section.roles.find((s) => s.isBulk);
-              if (bulkSlot) {
-                const maxCount = bulkSlot.count ?? 1;
-                const currentCount = getBulkCount(bulkSlot.roleId, maxCount);
-                const spec = ROLE_SPECS[bulkSlot.roleId as keyof typeof ROLE_SPECS];
-                return (
-                  <RoleStepper
-                    key={section.title}
-                    roleId={bulkSlot.roleId}
-                    label={spec?.displayName ?? bulkSlot.roleId}
-                    count={currentCount}
-                    maxCount={maxCount}
-                    onCountChange={handleBulkCountChange}
-                    styles={styles}
-                    accentColor={activeAccentColor}
-                  />
-                );
-              }
+            {/* Card B — stepper + role sections */}
+            <View style={styles.cardB}>
+              {activeGroup.sections.map((section, index) => {
+                // Bulk slot → RoleStepper
+                const bulkSlot = section.roles.find((s) => s.isBulk);
+                if (bulkSlot) {
+                  const maxCount = bulkSlot.count ?? 1;
+                  const currentCount = getBulkCount(bulkSlot.roleId, maxCount);
+                  const spec = ROLE_SPECS[bulkSlot.roleId as keyof typeof ROLE_SPECS];
+                  return (
+                    <React.Fragment key={section.title}>
+                      <RoleStepper
+                        roleId={bulkSlot.roleId}
+                        label={spec?.displayName ?? bulkSlot.roleId}
+                        count={currentCount}
+                        maxCount={maxCount}
+                        onCountChange={handleBulkCountChange}
+                        styles={styles}
+                        accentColor={activeAccentColor}
+                      />
+                      {index < activeGroup.sections.length - 1 && (
+                        <View style={styles.cardBDivider} />
+                      )}
+                    </React.Fragment>
+                  );
+                }
 
-              // Skill slots → Section + RoleChips
-              return (
-                <Section key={section.title} title={section.title} styles={styles}>
-                  {section.roles.flatMap(expandSlotToChipEntries).map((entry) => (
-                    <RoleChip
-                      key={entry.key}
-                      id={entry.key}
-                      label={entry.label}
-                      selected={!!selection[entry.key]}
-                      onToggle={toggleRole}
-                      styles={styles}
-                      factionColor={activeFactionColorKey}
-                      accentColor={activeAccentColor}
-                    />
-                  ))}
-                </Section>
-              );
-            })}
+                // Skill slots → Section + RoleChips
+                return (
+                  <React.Fragment key={section.title}>
+                    {index > 0 && <View style={styles.cardBDivider} />}
+                    <Section title={section.title} styles={styles}>
+                      {section.roles.flatMap(expandSlotToChipEntries).map((entry) => (
+                        <RoleChip
+                          key={entry.key}
+                          id={entry.key}
+                          label={entry.label}
+                          selected={!!selection[entry.key]}
+                          onToggle={toggleRole}
+                          styles={styles}
+                          factionColor={activeFactionColorKey}
+                          accentColor={activeAccentColor}
+                        />
+                      ))}
+                    </Section>
+                  </React.Fragment>
+                );
+              })}
+            </View>
           </ScrollView>
         </>
       )}

@@ -49,7 +49,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     buttonText: {
       fontSize: typography.title,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
       color: colors.text,
     },
     specialButton: {

@@ -200,7 +200,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     codeDigitBox: {
       width: componentSizes.button.lg,
-      height: 64,
+      height: componentSizes.button.lg + spacing.small,
       backgroundColor: colors.background,
       borderRadius: borderRadius.medium,
       justifyContent: 'center',
