@@ -13,8 +13,11 @@ export type { SectionProps } from './Section';
 export { Dropdown } from './Dropdown';
 export type { DropdownProps, DropdownOption } from './Dropdown';
 
-export { FactionPanel } from './FactionPanel';
-export type { FactionPanelProps } from './FactionPanel';
+export { FactionTabs } from './FactionTabs';
+export type { FactionTabsProps, FactionTabItem } from './FactionTabs';
+
+export { BottomActionBar } from './BottomActionBar';
+export type { BottomActionBarProps } from './BottomActionBar';
 
 export { createConfigScreenStyles } from './styles';
 export type { ConfigScreenStyles } from './styles';

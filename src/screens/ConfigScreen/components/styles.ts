@@ -3,10 +3,10 @@
  *
  * Created once in parent, passed to all sub-components to avoid redundant StyleSheet.create calls.
  *
- * Layout: Compact collapsible panels (方案 A)
+ * Layout: Tab-based faction switching (方案 A)
  */
 import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { spacing, borderRadius, typography, shadows, ThemeColors } from '../../../theme';
+import { spacing, borderRadius, typography, ThemeColors } from '../../../theme';
 
 export interface ConfigScreenStyles {
   container: ViewStyle;
@@ -20,23 +20,24 @@ export interface ConfigScreenStyles {
   headerCreateBtn: ViewStyle;
   headerCreateBtnDisabled: ViewStyle;
   headerCreateBtnText: TextStyle;
-  // Settings row (Template + Animation + BGM)
+  // Faction tab bar
+  tabBar: ViewStyle;
+  tab: ViewStyle;
+  tabActive: ViewStyle;
+  tabLabel: TextStyle;
+  tabBadge: ViewStyle;
+  tabBadgeText: TextStyle;
+  tabIndicator: ViewStyle;
+  // Settings row (used by Dropdown inside BottomActionBar)
   settingsRow: ViewStyle;
   settingsItem: ViewStyle;
   settingsLabel: TextStyle;
   settingsSelector: ViewStyle;
   settingsSelectorText: TextStyle;
   settingsSelectorArrow: TextStyle;
-  // Collapsible faction panel
-  factionPanel: ViewStyle;
-  factionHeader: ViewStyle;
-  factionHeaderLeft: ViewStyle;
-  factionChevron: TextStyle;
-  factionTitle: TextStyle;
-  factionBadge: ViewStyle;
-  factionBadgeText: TextStyle;
-  factionContent: ViewStyle;
-  // Section (within faction panel)
+  // Bottom action bar (Template + Animation + BGM)
+  bottomBar: ViewStyle;
+  // Section (within tab content)
   section: ViewStyle;
   sectionTitle: TextStyle;
   chipContainer: ViewStyle;
@@ -178,51 +179,59 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       marginLeft: spacing.tight,
     },
 
-    // ── Collapsible faction panel ───────────────
-    factionPanel: {
+    // ── Faction tab bar ─────────────────────────
+    tabBar: {
+      flexDirection: 'row',
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      marginBottom: spacing.medium,
-      ...shadows.sm,
-      overflow: 'hidden',
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
     },
-    factionHeader: {
-      flexDirection: 'row',
+    tab: {
+      flex: 1,
       alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: spacing.medium,
       paddingVertical: spacing.small + spacing.tight / 2,
+      position: 'relative' as const,
     },
-    factionHeaderLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.tight,
+    tabActive: {
+      // active background is subtle — indicator line provides main highlight
     },
-    factionChevron: {
-      fontSize: typography.body,
-      color: colors.textMuted,
-      width: spacing.medium,
-    },
-    factionTitle: {
-      fontSize: typography.body,
-      fontWeight: '700',
-    },
-    factionBadge: {
-      paddingHorizontal: spacing.small,
-      paddingVertical: spacing.tight / 2,
-      borderRadius: borderRadius.full,
-    },
-    factionBadgeText: {
+    tabLabel: {
       fontSize: typography.caption,
       fontWeight: '600',
+      color: colors.textMuted,
+      marginBottom: spacing.tight / 2,
     },
-    factionContent: {
-      paddingHorizontal: spacing.medium,
-      paddingTop: spacing.small,
-      paddingBottom: spacing.small,
+    tabBadge: {
+      paddingHorizontal: spacing.small,
+      paddingVertical: 1,
+      borderRadius: borderRadius.full,
+    },
+    tabBadgeText: {
+      fontSize: typography.caption,
+      fontWeight: '700',
+      color: colors.textMuted,
+    },
+    tabIndicator: {
+      position: 'absolute' as const,
+      bottom: 0,
+      left: spacing.medium,
+      right: spacing.medium,
+      height: 2.5,
+      borderRadius: 2,
     },
 
-    // ── Section (within faction panel) ──────────
+    // ── Bottom action bar ───────────────────────
+    bottomBar: {
+      flexDirection: 'row',
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      gap: spacing.medium,
+    },
+
+    // ── Section (within tab content) ────────────
     section: {
       marginBottom: spacing.medium,
     },
@@ -236,19 +245,19 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     chipContainer: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: spacing.tight + 2, // 6px — balanced spacing
+      gap: spacing.small,
     },
 
     // ── Role chip ───────────────────────────────
     chip: {
-      minWidth: spacing.xxlarge + spacing.large,
-      paddingHorizontal: spacing.small + spacing.tight,
-      paddingVertical: spacing.tight + 1,
+      width: '30%',
+      paddingVertical: spacing.small,
       backgroundColor: colors.background,
       borderRadius: borderRadius.full,
       borderWidth: 1.5,
       borderColor: colors.border,
       alignItems: 'center',
+      justifyContent: 'center',
     },
     chipSelected: {
       backgroundColor: colors.primary + '15',

@@ -34,11 +34,12 @@ import {
   RoleChip,
   RoleStepper,
   Section,
-  Dropdown,
-  FactionPanel,
+  FactionTabs,
+  BottomActionBar,
   createConfigScreenStyles,
   type DropdownOption,
   type FactionColorKey,
+  type FactionTabItem,
 } from './components';
 import { FACTION_GROUPS, buildInitialSelection } from './configData';
 
@@ -106,23 +107,6 @@ const expandSlotToChipEntries = (
     key: i === 0 ? slot.roleId : `${slot.roleId}${i}`,
     label,
   }));
-};
-
-/** Check if a faction group has any selected roles in the given selection */
-const factionHasSelected = (
-  group: (typeof FACTION_GROUPS)[number],
-  sel: Record<string, boolean>,
-): boolean => {
-  for (const section of group.sections) {
-    for (const slot of section.roles) {
-      const count = slot.count ?? 1;
-      for (let i = 0; i < count; i++) {
-        const key = i === 0 ? slot.roleId : `${slot.roleId}${i}`;
-        if (sel[key]) return true;
-      }
-    }
-  }
-  return false;
 };
 
 // ============================================
@@ -343,20 +327,13 @@ export const ConfigScreen: React.FC = () => {
   }, []);
 
   // ============================================
-  // Collapsible panels state
+  // Active faction tab
   // ============================================
 
-  const [expandedFactions, setExpandedFactions] = useState<Record<string, boolean>>(() => {
-    const initialSel = getInitialSelection();
-    const initial: Record<string, boolean> = {};
-    FACTION_GROUPS.forEach((g) => {
-      initial[g.faction] = factionHasSelected(g, initialSel);
-    });
-    return initial;
-  });
+  const [activeTab, setActiveTab] = useState<string>(FACTION_GROUPS[0]?.faction ?? '');
 
-  const handleToggleExpand = useCallback((factionKey: string) => {
-    setExpandedFactions((prev) => ({ ...prev, [factionKey]: !prev[factionKey] }));
+  const handleTabPress = useCallback((key: string) => {
+    setActiveTab(key);
   }, []);
 
   // ============================================
@@ -438,6 +415,29 @@ export const ConfigScreen: React.FC = () => {
     [selection],
   );
 
+  /** Build tab items for FactionTabs */
+  const tabItems: FactionTabItem[] = useMemo(
+    () =>
+      FACTION_GROUPS.map((group) => ({
+        key: group.faction,
+        emoji: group.emoji,
+        title: group.title,
+        count: getFactionSelectedCount(group),
+        accentColor: getFactionAccentColor(group.faction),
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selection, getFactionAccentColor, getFactionSelectedCount],
+  );
+
+  /** The currently active faction group */
+  const activeGroup = useMemo(
+    () => FACTION_GROUPS.find((g) => g.faction === activeTab) ?? FACTION_GROUPS[0],
+    [activeTab],
+  );
+
+  const activeAccentColor = getFactionAccentColor(activeGroup.faction);
+  const activeFactionColorKey = FACTION_COLOR_MAP[activeGroup.faction] ?? 'good';
+
   const isDisabled = isCreating || isLoading;
 
   return (
@@ -467,100 +467,79 @@ export const ConfigScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Settings Row (Template + Animation + BGM) */}
-      <View style={styles.settingsRow}>
-        <Dropdown
-          label="板子"
-          value={selectedTemplate}
-          options={templateOptions}
-          onSelect={handleTemplateChange}
-          styles={styles}
-        />
-        <Dropdown
-          label="发牌动画"
-          value={roleRevealAnimation}
-          options={animationOptions}
-          onSelect={handleAnimationChange}
-          styles={styles}
-        />
-        <Dropdown
-          label="BGM"
-          value={bgmEnabled ? 'on' : 'off'}
-          options={bgmOptions}
-          onSelect={handleBgmChange}
-          styles={styles}
-        />
-      </View>
+      {/* Faction Tab Bar */}
+      <FactionTabs
+        tabs={tabItems}
+        activeKey={activeTab}
+        onTabPress={handleTabPress}
+        styles={styles}
+      />
 
       {isLoading ? (
         <LoadingScreen message="加载中..." fullScreen={false} />
       ) : (
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: spacing.large }}
-        >
-          {/* Data-driven collapsible faction panels */}
-          {FACTION_GROUPS.map((group) => {
-            const factionColorKey = FACTION_COLOR_MAP[group.faction] ?? 'good';
-            const accentColor = getFactionAccentColor(group.faction);
-            const selectedCount = getFactionSelectedCount(group);
+        <>
+          {/* Active tab content */}
+          <ScrollView
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: spacing.large }}
+          >
+            {activeGroup.sections.map((section) => {
+              // Bulk slot → RoleStepper
+              const bulkSlot = section.roles.find((s) => s.isBulk);
+              if (bulkSlot) {
+                const maxCount = bulkSlot.count ?? 1;
+                const currentCount = getBulkCount(bulkSlot.roleId, maxCount);
+                const spec = ROLE_SPECS[bulkSlot.roleId as keyof typeof ROLE_SPECS];
+                return (
+                  <RoleStepper
+                    key={section.title}
+                    roleId={bulkSlot.roleId}
+                    label={spec?.displayName ?? bulkSlot.roleId}
+                    count={currentCount}
+                    maxCount={maxCount}
+                    onCountChange={handleBulkCountChange}
+                    styles={styles}
+                    accentColor={activeAccentColor}
+                  />
+                );
+              }
 
-            return (
-              <FactionPanel
-                key={group.faction}
-                factionKey={group.faction}
-                emoji={group.emoji}
-                title={group.title}
-                count={selectedCount}
-                accentColor={accentColor}
-                expanded={!!expandedFactions[group.faction]}
-                onToggleExpand={handleToggleExpand}
-                styles={styles}
-              >
-                {group.sections.map((section) => {
-                  // Bulk slot → RoleStepper
-                  const bulkSlot = section.roles.find((s) => s.isBulk);
-                  if (bulkSlot) {
-                    const maxCount = bulkSlot.count ?? 1;
-                    const currentCount = getBulkCount(bulkSlot.roleId, maxCount);
-                    const spec = ROLE_SPECS[bulkSlot.roleId as keyof typeof ROLE_SPECS];
-                    return (
-                      <RoleStepper
-                        key={section.title}
-                        roleId={bulkSlot.roleId}
-                        label={spec?.displayName ?? bulkSlot.roleId}
-                        count={currentCount}
-                        maxCount={maxCount}
-                        onCountChange={handleBulkCountChange}
-                        styles={styles}
-                        accentColor={accentColor}
-                      />
-                    );
-                  }
+              // Skill slots → Section + RoleChips
+              return (
+                <Section key={section.title} title={section.title} styles={styles}>
+                  {section.roles.flatMap(expandSlotToChipEntries).map((entry) => (
+                    <RoleChip
+                      key={entry.key}
+                      id={entry.key}
+                      label={entry.label}
+                      selected={!!selection[entry.key]}
+                      onToggle={toggleRole}
+                      styles={styles}
+                      factionColor={activeFactionColorKey}
+                      accentColor={activeAccentColor}
+                    />
+                  ))}
+                </Section>
+              );
+            })}
+          </ScrollView>
 
-                  // Skill slots → Section + RoleChips
-                  return (
-                    <Section key={section.title} title={section.title} styles={styles}>
-                      {section.roles.flatMap(expandSlotToChipEntries).map((entry) => (
-                        <RoleChip
-                          key={entry.key}
-                          id={entry.key}
-                          label={entry.label}
-                          selected={!!selection[entry.key]}
-                          onToggle={toggleRole}
-                          styles={styles}
-                          factionColor={factionColorKey}
-                          accentColor={accentColor}
-                        />
-                      ))}
-                    </Section>
-                  );
-                })}
-              </FactionPanel>
-            );
-          })}
-        </ScrollView>
+          {/* Bottom Action Bar (Template + Animation + BGM) */}
+          <BottomActionBar
+            templateValue={selectedTemplate}
+            templateOptions={templateOptions}
+            onTemplateChange={handleTemplateChange}
+            animationValue={roleRevealAnimation}
+            animationOptions={animationOptions}
+            onAnimationChange={handleAnimationChange}
+            bgmValue={bgmEnabled ? 'on' : 'off'}
+            bgmOptions={bgmOptions}
+            onBgmChange={handleBgmChange}
+            styles={styles}
+          />
+        </>
       )}
 
     </SafeAreaView>

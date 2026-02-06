@@ -88,11 +88,12 @@ describe('ConfigScreen', () => {
     it('should render role selection sections', () => {
       const { getByText } = renderWithFacade(<ConfigScreen />);
 
-      // Check for role sections - new UI uses faction cards
+      // Check for faction tabs in tab bar
       expect(getByText('🐺 狼人阵营')).toBeTruthy();
       expect(getByText('👥 好人阵营')).toBeTruthy();
       expect(getByText('⚖️ 中立阵营')).toBeTruthy();
-      expect(getByText('神职')).toBeTruthy();
+      // Active tab (wolf) shows its section title
+      expect(getByText('技能狼')).toBeTruthy();
     });
 
     it('should render create button in header', () => {
@@ -123,13 +124,13 @@ describe('ConfigScreen', () => {
   });
 
   describe('Role Selection', () => {
-    it('should render role chips', () => {
-      const { getByText } = renderWithFacade(<ConfigScreen />);
+    it('should render role chips for active tab', () => {
+      const { getByText, getByTestId } = renderWithFacade(<ConfigScreen />);
 
-      // Find role chips
-      expect(getByText('女巫')).toBeTruthy();
-      expect(getByText('预言家')).toBeTruthy();
-      expect(getByText('猎人')).toBeTruthy();
+      // Default active tab is wolf — skill wolf chips should be visible
+      expect(getByText('狼美人')).toBeTruthy();
+      expect(getByText('白狼王')).toBeTruthy();
+      expect(getByTestId('config-stepper-dec-wolf')).toBeTruthy();
     });
   });
 
