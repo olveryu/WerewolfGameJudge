@@ -6,8 +6,7 @@
  */
 import React, { useMemo, memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
-import { fixed } from '../../../theme/tokens';
+import { useColors, spacing, typography, borderRadius, shadows, type ThemeColors } from '../../../theme';
 import { TESTIDS } from '../../../testids';
 
 export interface NightProgressIndicatorProps {
@@ -54,8 +53,10 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: spacing.medium,
       paddingVertical: spacing.small,
       backgroundColor: colors.surface,
-      borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.border,
+      borderRadius: borderRadius.large,
+      marginHorizontal: spacing.medium,
+      marginTop: spacing.small,
+      ...shadows.sm,
     },
     headerRow: {
       flexDirection: 'row',

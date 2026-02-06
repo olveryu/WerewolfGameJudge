@@ -3,8 +3,7 @@
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
-import { fixed } from '../../../theme/tokens';
+import { useColors, spacing, typography, borderRadius, shadows, type ThemeColors } from '../../../theme';
 
 export interface BoardInfoCardProps {
   /** Total number of players */
@@ -90,8 +89,7 @@ function createStyles(colors: ThemeColors) {
       borderRadius: borderRadius.large,
       padding: spacing.medium,
       marginBottom: spacing.medium,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
+      ...shadows.sm,
     },
     headerRow: {
       flexDirection: 'row',

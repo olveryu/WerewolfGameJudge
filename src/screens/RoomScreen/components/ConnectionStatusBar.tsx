@@ -6,8 +6,7 @@
 import React, { useMemo, memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { TESTIDS } from '../../../testids';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
-import { fixed } from '../../../theme/tokens';
+import { useColors, spacing, typography, borderRadius, shadows, type ThemeColors } from '../../../theme';
 
 export type ConnectionState = 'live' | 'syncing' | 'connecting' | 'disconnected';
 
@@ -95,8 +94,10 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: spacing.tight,
       paddingHorizontal: spacing.medium,
       backgroundColor: colors.surface,
-      borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.border,
+      borderRadius: borderRadius.large,
+      marginHorizontal: spacing.medium,
+      marginTop: spacing.small,
+      ...shadows.sm,
     },
     statusLive: {
       backgroundColor: colors.success + '20',

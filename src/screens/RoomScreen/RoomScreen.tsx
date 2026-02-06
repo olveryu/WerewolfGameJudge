@@ -55,7 +55,7 @@ import {
   type RevealEffectType,
 } from '../../components/RoleRevealEffects';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
-import { fixed } from '../../theme/tokens';
+import { componentSizes, fixed } from '../../theme/tokens';
 import { mobileDebug } from '../../utils/mobileDebug';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -1469,7 +1469,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onPress={() => dispatchInteraction({ kind: 'LEAVE_ROOM' })}
           style={styles.backButton}
         >
-          <Text style={styles.backButtonText}>← 返回</Text>
+          <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <TouchableOpacity onPress={handleDebugTitleTap} activeOpacity={1}>
@@ -1745,18 +1745,21 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'space-between',
       paddingHorizontal: spacing.medium,
       paddingVertical: spacing.medium,
-      backgroundColor: colors.background,
+      backgroundColor: colors.surface,
       borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
     },
     backButton: {
-      padding: spacing.small,
-      minWidth: 60,
+      width: componentSizes.avatar.md,
+      height: componentSizes.avatar.md,
+      borderRadius: borderRadius.medium,
+      backgroundColor: colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     backButtonText: {
-      color: colors.primary,
-      fontSize: typography.body,
-      fontWeight: typography.weights.semibold,
+      color: colors.text,
+      fontSize: typography.title,
     },
     headerCenter: {
       flex: 1,

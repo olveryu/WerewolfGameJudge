@@ -19,8 +19,8 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import { useColors, type ThemeColors, spacing, borderRadius, typography } from '../../../theme';
-import { fixed } from '../../../theme/tokens';
+import { useColors, type ThemeColors, spacing, borderRadius, typography, shadows } from '../../../theme';
+import { componentSizes, fixed } from '../../../theme/tokens';
 
 export interface HostMenuDropdownStyles {
   triggerButton: ViewStyle;
@@ -158,7 +158,10 @@ function createStyles(colors: ThemeColors): HostMenuDropdownStyles {
       minWidth: 60,
     },
     restartButton: {
-      padding: spacing.small,
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.medium,
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
     },
     restartButtonText: {
       color: colors.primary,
@@ -166,33 +169,29 @@ function createStyles(colors: ThemeColors): HostMenuDropdownStyles {
       fontWeight: typography.weights.semibold,
     },
     triggerButton: {
-      width: 32,
-      height: 32,
+      width: componentSizes.avatar.sm,
+      height: componentSizes.avatar.sm,
       justifyContent: 'center',
       alignItems: 'center',
     },
     triggerText: {
       fontSize: typography.heading,
       color: colors.text,
-      fontWeight: 'bold',
+      fontWeight: typography.weights.bold,
     },
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.3)',
+      backgroundColor: colors.overlayLight,
       justifyContent: 'flex-start',
       alignItems: 'flex-end',
-      paddingTop: 60, // Below header
+      paddingTop: componentSizes.header + spacing.small,
       paddingRight: spacing.medium,
     },
     menuContainer: {
       backgroundColor: colors.surface,
       borderRadius: borderRadius.medium,
       minWidth: 180,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-      elevation: 5,
+      ...shadows.md,
       overflow: 'hidden',
     },
     menuItem: {
