@@ -102,11 +102,12 @@ describe('ConfigScreen', () => {
       expect(getByText('创建')).toBeTruthy();
     });
 
-    it('should render header title with player count', () => {
+    it('should render header title and player count', () => {
       const { getByText } = renderWithFacade(<ConfigScreen />);
 
-      // Header shows "房间 X 人"
-      expect(getByText(/房间 \d+ 人/)).toBeTruthy();
+      // Header shows title and player count
+      expect(getByText('创建房间')).toBeTruthy();
+      expect(getByText(/\d+ 名玩家/)).toBeTruthy();
     });
   });
 

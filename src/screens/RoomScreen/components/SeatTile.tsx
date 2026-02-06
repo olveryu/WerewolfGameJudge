@@ -76,6 +76,8 @@ export interface SeatTileProps {
   // Player info (null if empty seat)
   playerUid: string | null;
   playerAvatarUrl?: string;
+  /** Pre-computed unique avatar index (from room-level dedup). Undefined = use hash fallback. */
+  playerAvatarIndex?: number;
   playerDisplayName: string | null;
   // Role info for bot display (debug mode only)
   roleId: RoleId | null;
@@ -114,6 +116,7 @@ function arePropsEqual(prev: SeatTileProps, next: SeatTileProps): boolean {
     prev.isControlled === next.isControlled &&
     prev.playerUid === next.playerUid &&
     prev.playerAvatarUrl === next.playerAvatarUrl &&
+    prev.playerAvatarIndex === next.playerAvatarIndex &&
     prev.playerDisplayName === next.playerDisplayName &&
     prev.roleId === next.roleId &&
     prev.showBotRole === next.showBotRole &&
@@ -134,6 +137,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   isControlled,
   playerUid,
   playerAvatarUrl,
+  playerAvatarIndex,
   playerDisplayName,
   roleId,
   showBotRole,
@@ -237,6 +241,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
               value={playerUid}
               size={tileSize - 16}
               avatarUrl={playerAvatarUrl}
+              avatarIndex={playerAvatarIndex}
               roomId={roomNumber}
             />
             {(isWolf || isSelected) && (

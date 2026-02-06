@@ -21,6 +21,7 @@ import { View, StyleSheet, Dimensions } from 'react-native';
 import { useColors, type ThemeColors } from '../../../theme';
 import type { SeatViewModel } from '../RoomScreen.helpers';
 import { SeatTile, GRID_COLUMNS, createSeatTileStyles } from './SeatTile';
+import { getUniqueAvatarMap } from '../../../utils/avatar';
 
 // Grid calculation - needs to be exported for Avatar sizing
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -64,6 +65,15 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   // Create SeatTile styles once and pass to all tiles (performance optimization)
   // This avoids each SeatTile calling StyleSheet.create independently
   const seatTileStyles = useMemo(() => createSeatTileStyles(colors, TILE_SIZE), [colors]);
+
+  // Compute room-level unique avatar indices so no two players share an avatar.
+  // Only includes players without a custom avatarUrl.
+  const avatarMap = useMemo(() => {
+    const uids = seats
+      .filter((s) => s.player?.uid && !s.player.avatarUrl)
+      .map((s) => s.player!.uid);
+    return getUniqueAvatarMap(roomNumber, uids);
+  }, [seats, roomNumber]);
 
   // Use ref to always call the latest onSeatPress callback.
   // This is necessary because SeatTile is memoized and won't re-render
@@ -113,6 +123,9 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           isControlled={controlledSeat === seat.index}
           playerUid={seat.player?.uid ?? null}
           playerAvatarUrl={seat.player?.avatarUrl}
+          playerAvatarIndex={
+            seat.player?.uid ? avatarMap.get(seat.player.uid) : undefined
+          }
           playerDisplayName={seat.player?.displayName ?? null}
           roleId={seat.player?.role ?? null}
           showBotRole={showBotRoles && seat.player?.isBot === true}

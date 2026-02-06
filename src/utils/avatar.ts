@@ -40,8 +40,22 @@ const AVATAR_IMAGES = [
 export const AVATAR_COUNT = AVATAR_IMAGES.length;
 
 /**
+ * FNV-1a hash — better avalanche properties than djb2 for short similar strings.
+ * Returns an unsigned 32-bit integer.
+ */
+function fnv1aHash(str: string): number {
+  let hash = 2166136261; // FNV offset basis (32-bit)
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.codePointAt(i) || 0;
+    hash = Math.imul(hash, 16777619); // FNV prime (32-bit)
+  }
+  return hash >>> 0;
+}
+
+/**
  * Simple deterministic hash function (djb2 algorithm)
- * Returns a non-negative integer
+ * Returns a non-negative integer.
+ * Kept for backward-compat with getAvatarImage (seed-based).
  */
 function djb2Hash(str: string): number {
   let hash = 5381;
@@ -75,13 +89,43 @@ export const getAvatarImage = (seed: string): number => {
  * @returns The avatar index (0-based) - use getAvatarImageByIndex to get the actual image
  */
 export function getDefaultAvatarIndex(roomId: string, uid: string): number {
-  // Primary index from uid hash (ensures same user tends to get same base avatar)
-  const uidHash = djb2Hash(uid);
-  // Room offset to add variety across rooms
-  const roomHash = djb2Hash(roomId);
-  // Combine: uid determines base, room adds offset
-  const index = (uidHash + roomHash) % AVATAR_IMAGES.length;
-  return index;
+  // Combine roomId and uid into a single string before hashing.
+  // FNV-1a has much better avalanche than djb2 for short sequential strings
+  // like "bot-0" .. "bot-11", greatly reducing collisions within a room.
+  const combined = `${roomId}:${uid}`;
+  return fnv1aHash(combined) % AVATAR_IMAGES.length;
+}
+
+/**
+ * Assign guaranteed-unique avatar indices to a list of UIDs within one room.
+ *
+ * Uses each uid's preferred index (from getDefaultAvatarIndex) as the starting
+ * point, then probes forward to find the next free slot if taken.
+ * With 29 avatars and ≤12 players this always succeeds and never collides.
+ *
+ * @param roomId - The room identifier
+ * @param uids   - Ordered list of player UIDs in the room
+ * @returns Map from uid → unique avatar index (0-based)
+ */
+export function getUniqueAvatarMap(
+  roomId: string,
+  uids: string[],
+): Map<string, number> {
+  const N = AVATAR_IMAGES.length;
+  const taken = new Set<number>();
+  const result = new Map<string, number>();
+
+  for (const uid of uids) {
+    let idx = getDefaultAvatarIndex(roomId, uid);
+    // Linear probe until we find a free slot
+    while (taken.has(idx)) {
+      idx = (idx + 1) % N;
+    }
+    taken.add(idx);
+    result.set(uid, idx);
+  }
+
+  return result;
 }
 
 /**

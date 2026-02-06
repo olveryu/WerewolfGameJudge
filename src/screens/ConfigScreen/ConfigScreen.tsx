@@ -448,7 +448,8 @@ export const ConfigScreen: React.FC = () => {
           <Text style={styles.headerBtnText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>房间 {totalCount} 人</Text>
+          <Text style={styles.title}>{isEditMode ? '修改配置' : '创建房间'}</Text>
+          <Text style={styles.subtitle}>{totalCount} 名玩家</Text>
         </View>
         <TouchableOpacity
           style={[styles.headerCreateBtn, isDisabled && styles.headerCreateBtnDisabled]}
