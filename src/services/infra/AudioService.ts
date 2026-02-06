@@ -1,4 +1,5 @@
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer, AudioStatus } from 'expo-audio';
+import { Platform } from 'react-native';
 import { RoleId } from '../../models/roles';
 import { audioLog } from '../../utils/logger';
 import { mobileDebug } from '../../utils/mobileDebug';
@@ -9,6 +10,8 @@ import { mobileDebug } from '../../utils/mobileDebug';
  * the completion event is never fired (e.g., Web autoplay blocked, app backgrounded).
  */
 const AUDIO_TIMEOUT_MS = 15000;
+
+const isWeb = Platform.OS === 'web';
 
 const isJest = typeof process !== 'undefined' && !!process.env?.JEST_WORKER_ID;
 
@@ -71,6 +74,10 @@ class AudioService {
   private visibilityHandler: (() => void) | null = null;
   private wasPlayingBeforeHidden = false;
   private wasBgmPlayingBeforeHidden = false;
+  
+  // Web-only: Single HTML Audio element that we reuse (iOS Safari requires this)
+  private webAudioElement: HTMLAudioElement | null = null;
+  private webBgmElement: HTMLAudioElement | null = null;
 
   private constructor() {
     // Constructor does not call async methods
@@ -173,11 +180,9 @@ class AudioService {
   /**
    * Safe wrapper for audio playback that guarantees resolution.
    * 
-   * iOS Safari fix attempt #3: Always create a new player for each audio.
-   * The key insight is that iOS Safari blocks new Audio elements created
-   * programmatically, but once the user has interacted with the page,
-   * subsequent Audio elements should work. We keep the old player alive
-   * (just paused) to avoid potentially revoking the audio permission.
+   * iOS Safari fix: On Web, use a single reusable HTML Audio element.
+   * The key insight is that iOS Safari allows an Audio element created
+   * during a user gesture to play multiple times by changing its src.
    *
    * Guarantees:
    * - Always returns a Promise that resolves (never rejects)
@@ -186,6 +191,114 @@ class AudioService {
    */
   private async safePlayAudioFile(audioFile: any, label = 'audio'): Promise<void> {
     mobileDebug.log(`[${label}] safePlayAudioFile START`);
+    
+    // On Web, use native HTML Audio API for iOS Safari compatibility
+    if (isWeb && typeof document !== 'undefined') {
+      return this.safePlayAudioFileWeb(audioFile, label);
+    }
+    
+    // Native platforms: use expo-audio
+    return this.safePlayAudioFileNative(audioFile, label);
+  }
+  
+  /**
+   * Web-specific audio playback using HTML Audio element.
+   * Reuses a single Audio element to maintain iOS Safari user gesture authorization.
+   */
+  private async safePlayAudioFileWeb(audioFile: any, label = 'audio'): Promise<void> {
+    mobileDebug.log(`[${label}] [WEB] starting playback`);
+    
+    return new Promise<void>((resolve) => {
+      try {
+        // Stop any current playback
+        if (this.webAudioElement) {
+          this.webAudioElement.pause();
+          this.webAudioElement.onended = null;
+          this.webAudioElement.onerror = null;
+        }
+        if (this.currentTimeoutId) {
+          clearTimeout(this.currentTimeoutId);
+          this.currentTimeoutId = null;
+        }
+        
+        // Get the audio URL from the audioFile (expo asset)
+        const audioUrl = typeof audioFile === 'string' ? audioFile : audioFile?.uri || audioFile;
+        mobileDebug.log(`[${label}] [WEB] audioUrl=${audioUrl}`);
+        
+        // Create or reuse Audio element
+        if (this.webAudioElement) {
+          mobileDebug.log(`[${label}] [WEB] reusing existing Audio element`);
+        } else {
+          mobileDebug.log(`[${label}] [WEB] creating new Audio element`);
+          this.webAudioElement = new Audio();
+        }
+        
+        const audio = this.webAudioElement;
+        this.isPlaying = true;
+        
+        // Set up event handlers
+        audio.onended = () => {
+          mobileDebug.log(`[${label}] [WEB] onended fired`);
+          this.isPlaying = false;
+          if (this.currentTimeoutId) {
+            clearTimeout(this.currentTimeoutId);
+            this.currentTimeoutId = null;
+          }
+          resolve();
+        };
+        
+        audio.onerror = () => {
+          mobileDebug.log(`[${label}] [WEB] onerror fired`);
+          audioLog.warn(`[WEB] Audio error for ${label}`);
+          this.isPlaying = false;
+          if (this.currentTimeoutId) {
+            clearTimeout(this.currentTimeoutId);
+            this.currentTimeoutId = null;
+          }
+          resolve(); // Resolve anyway to not block the flow
+        };
+        
+        // Timeout fallback
+        this.currentTimeoutId = setTimeout(() => {
+          mobileDebug.log(`[${label}] [WEB] TIMEOUT after ${AUDIO_TIMEOUT_MS}ms`);
+          audioLog.warn(`[WEB] Playback timeout for ${label}`);
+          this.isPlaying = false;
+          audio.pause();
+          resolve();
+        }, AUDIO_TIMEOUT_MS);
+        
+        // Set source and play
+        audio.src = audioUrl;
+        mobileDebug.log(`[${label}] [WEB] calling audio.play()`);
+        
+        audio.play()
+          .then(() => {
+            mobileDebug.log(`[${label}] [WEB] play() promise resolved`);
+          })
+          .catch((err) => {
+            mobileDebug.log(`[${label}] [WEB] play() promise rejected: ${err}`);
+            audioLog.warn(`[WEB] play() failed for ${label}:`, err);
+            this.isPlaying = false;
+            if (this.currentTimeoutId) {
+              clearTimeout(this.currentTimeoutId);
+              this.currentTimeoutId = null;
+            }
+            resolve(); // Resolve anyway
+          });
+          
+      } catch (error) {
+        mobileDebug.log(`[${label}] [WEB] ERROR: ${error}`);
+        audioLog.warn(`[WEB] Audio playback failed for ${label}:`, error);
+        this.isPlaying = false;
+        resolve();
+      }
+    });
+  }
+  
+  /**
+   * Native platform audio playback using expo-audio.
+   */
+  private async safePlayAudioFileNative(audioFile: any, label = 'audio'): Promise<void> {
     try {
       // Stop any current playback but keep old player alive (just paused)
       this.stopCurrentPlayer();
