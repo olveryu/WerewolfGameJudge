@@ -32,33 +32,25 @@ export interface HostMenuDropdownStyles {
   menuItemDanger: ViewStyle;
   menuItemTextDanger: TextStyle;
   separator: ViewStyle;
-  // New styles for restart button
-  restartButton: ViewStyle;
-  restartButtonText: TextStyle;
   headerRightContainer: ViewStyle;
 }
 
 export interface HostMenuDropdownProps {
   /** Whether to show the menu (Host only) */
   visible: boolean;
-  /** Show restart option (displayed as separate button) */
-  showRestart: boolean;
   /** Show fill with bots option (in dropdown) */
   showFillWithBots: boolean;
   /** Show mark all bots viewed option (in dropdown) */
   showMarkAllBotsViewed: boolean;
   /** Callbacks */
-  onRestart: () => void;
   onFillWithBots: () => void;
   onMarkAllBotsViewed: () => void;
 }
 
 const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   visible,
-  showRestart,
   showFillWithBots,
   showMarkAllBotsViewed,
-  onRestart,
   onFillWithBots,
   onMarkAllBotsViewed,
 }) => {
@@ -95,13 +87,6 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
 
   return (
     <View style={styles.headerRightContainer}>
-      {/* Restart button - shown separately, always visible when applicable */}
-      {showRestart && (
-        <TouchableOpacity style={styles.restartButton} onPress={onRestart}>
-          <Text style={styles.restartButtonText}>重开</Text>
-        </TouchableOpacity>
-      )}
-
       {/* Dropdown menu trigger - only show if there are dropdown items */}
       {hasDropdownItems && (
         <>
@@ -156,17 +141,6 @@ function createStyles(colors: ThemeColors): HostMenuDropdownStyles {
       alignItems: 'center',
       justifyContent: 'flex-end',
       minWidth: 60,
-    },
-    restartButton: {
-      backgroundColor: colors.background,
-      borderRadius: borderRadius.medium,
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-    },
-    restartButtonText: {
-      color: colors.primary,
-      fontSize: typography.body,
-      fontWeight: typography.weights.semibold,
     },
     triggerButton: {
       width: componentSizes.avatar.sm,

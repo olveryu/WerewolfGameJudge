@@ -14,7 +14,6 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'plugin:react/recommended',
     'plugin:react-hooks/recommended',
-    'plugin:storybook/recommended',
   ],
   settings: {
     react: {
@@ -44,8 +43,6 @@ module.exports = {
     // flag common state-sync patterns that are acceptable for this app.
     'react-hooks/set-state-in-effect': 'off',
     'react-hooks/preserve-manual-memoization': 'off',
-    // Storybook 10 uses @storybook/react-vite but the rule expects direct framework import
-    'storybook/no-renderer-packages': 'off',
   },
   ignorePatterns: [
     'node_modules/',

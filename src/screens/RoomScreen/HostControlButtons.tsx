@@ -17,12 +17,14 @@ export interface HostControlButtonsProps {
   showPrepareToFlip: boolean;
   showStartGame: boolean;
   showLastNightInfo: boolean;
+  showRestart: boolean;
 
   // Button press handlers (parent provides dialog/logic)
   onSettingsPress: () => void;
   onPrepareToFlipPress: () => void;
   onStartGamePress: () => void;
   onLastNightInfoPress: () => void;
+  onRestartPress: () => void;
 }
 
 const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
@@ -31,10 +33,12 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
   showPrepareToFlip,
   showStartGame,
   showLastNightInfo,
+  showRestart,
   onSettingsPress,
   onPrepareToFlipPress,
   onStartGamePress,
   onLastNightInfoPress,
+  onRestartPress,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -73,6 +77,16 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
           <Text style={styles.buttonText}>查看昨晚信息</Text>
         </TouchableOpacity>
       )}
+
+      {/* Host: Restart Game - danger style */}
+      {showRestart && (
+        <TouchableOpacity
+          style={[styles.actionButton, styles.restartButton]}
+          onPress={onRestartPress}
+        >
+          <Text style={styles.buttonText}>重开</Text>
+        </TouchableOpacity>
+      )}
     </>
   );
 };
@@ -88,6 +102,9 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: spacing.medium,
       borderRadius: borderRadius.full,
       marginBottom: spacing.small,
+    },
+    restartButton: {
+      backgroundColor: colors.error,
     },
     buttonText: {
       color: colors.textInverse,

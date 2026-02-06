@@ -1480,16 +1480,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Host Menu Dropdown - replaces headerSpacer */}
         <HostMenuDropdown
           visible={isHost}
-          showRestart={
-            !isAudioPlaying &&
-            (roomStatus === GameStatus.assigned ||
-              roomStatus === GameStatus.ready ||
-              roomStatus === GameStatus.ongoing ||
-              roomStatus === GameStatus.ended)
-          }
           showFillWithBots={roomStatus === GameStatus.unseated}
           showMarkAllBotsViewed={isDebugMode && roomStatus === GameStatus.assigned}
-          onRestart={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' })}
           onFillWithBots={() => void fillWithBots()}
           onMarkAllBotsViewed={() => void markAllBotsViewed()}
         />
@@ -1571,6 +1563,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           showPrepareToFlip={roomStatus === GameStatus.seated}
           showStartGame={roomStatus === GameStatus.ready && !isStartingGame}
           showLastNightInfo={roomStatus === GameStatus.ended && !isAudioPlaying}
+          showRestart={
+            !isAudioPlaying &&
+            (roomStatus === GameStatus.assigned ||
+              roomStatus === GameStatus.ready ||
+              roomStatus === GameStatus.ongoing ||
+              roomStatus === GameStatus.ended)
+          }
           onSettingsPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' })}
           onPrepareToFlipPress={() =>
             dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' })
@@ -1581,6 +1580,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onLastNightInfoPress={() =>
             dispatchInteraction({ kind: 'HOST_CONTROL', action: 'lastNightInfo' })
           }
+          onRestartPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' })}
         />
 
         {/* Actioner: schema-driven bottom action buttons */}
