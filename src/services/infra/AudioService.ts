@@ -54,8 +54,8 @@ const NIGHT_END_AUDIO = require('../../../assets/audio/night_end.mp3');
 // Background music
 const BGM_NIGHT = require('../../../assets/audio/bgm_night.mp3');
 
-/** BGM volume (0.0 to 1.0) - lower so TTS narration is audible */
-const BGM_VOLUME = 0.3;
+/** BGM volume (0.0 to 1.0) - lower so TTS narration is clearly audible */
+const BGM_VOLUME = 0.15;
 
 class AudioService {
   private static instance: AudioService;
@@ -68,6 +68,9 @@ class AudioService {
   // Resolve function for current playback - called when audio finishes or times out
   private currentPlaybackResolve: (() => void) | null = null;
   private currentTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private visibilityHandler: (() => void) | null = null;
+  private wasPlayingBeforeHidden = false;
+  private wasBgmPlayingBeforeHidden = false;
 
   private constructor() {
     // Constructor does not call async methods
@@ -86,9 +89,57 @@ class AudioService {
     try {
       await setAudioModeAsync({
         playsInSilentMode: true,
-        shouldPlayInBackground: true,
+        shouldPlayInBackground: false, // Stop when app goes to background
         interruptionMode: 'duckOthers',
       });
+      
+      // Web: Listen for visibility change to pause/resume audio when browser goes to background
+      if (typeof document !== 'undefined') {
+        this.visibilityHandler = () => {
+          if (document.hidden) {
+            // Page hidden - pause all audio
+            mobileDebug.log('[visibility] page hidden, pausing all audio');
+            this.wasPlayingBeforeHidden = this.isPlaying;
+            this.wasBgmPlayingBeforeHidden = this.isBgmPlaying;
+            
+            if (this.player) {
+              try {
+                this.player.pause();
+              } catch (e) {
+                audioLog.warn('[visibility] error pausing player', e);
+              }
+            }
+            if (this.bgmPlayer) {
+              try {
+                this.bgmPlayer.pause();
+              } catch (e) {
+                audioLog.warn('[visibility] error pausing bgm', e);
+              }
+            }
+          } else {
+            // Page visible again - resume audio if it was playing before
+            mobileDebug.log(`[visibility] page visible, wasPlaying=${this.wasPlayingBeforeHidden}, wasBgmPlaying=${this.wasBgmPlayingBeforeHidden}`);
+            
+            if (this.wasPlayingBeforeHidden && this.player) {
+              try {
+                this.player.play();
+                mobileDebug.log('[visibility] resumed main audio');
+              } catch (e) {
+                audioLog.warn('[visibility] error resuming player', e);
+              }
+            }
+            if (this.wasBgmPlayingBeforeHidden && this.bgmPlayer) {
+              try {
+                this.bgmPlayer.play();
+                mobileDebug.log('[visibility] resumed BGM');
+              } catch (e) {
+                audioLog.warn('[visibility] error resuming bgm', e);
+              }
+            }
+          }
+        };
+        document.addEventListener('visibilitychange', this.visibilityHandler);
+      }
     } catch (error) {
       audioLog.error('Failed to initialize audio:', error);
     }
