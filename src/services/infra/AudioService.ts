@@ -173,9 +173,11 @@ class AudioService {
   /**
    * Safe wrapper for audio playback that guarantees resolution.
    * 
-   * iOS Safari fix: Reuses the same AudioPlayer instance and uses replace()
-   * to switch audio sources. This preserves the user gesture authorization
-   * that allows audio playback.
+   * iOS Safari fix attempt #3: Always create a new player for each audio.
+   * The key insight is that iOS Safari blocks new Audio elements created
+   * programmatically, but once the user has interacted with the page,
+   * subsequent Audio elements should work. We keep the old player alive
+   * (just paused) to avoid potentially revoking the audio permission.
    *
    * Guarantees:
    * - Always returns a Promise that resolves (never rejects)
@@ -185,30 +187,34 @@ class AudioService {
   private async safePlayAudioFile(audioFile: any, label = 'audio'): Promise<void> {
     mobileDebug.log(`[${label}] safePlayAudioFile START`);
     try {
-      // Stop any current playback but keep the player
+      // Stop any current playback but keep old player alive (just paused)
       this.stopCurrentPlayer();
 
-      let player = this.player;
-      
-      if (player) {
-        // Reuse existing player - use replace() to switch audio source
-        // This is crucial for iOS Safari: keeps the user gesture authorization
-        mobileDebug.log(`[${label}] reusing player, calling replace()...`);
-        player.replace(audioFile);
-        mobileDebug.log(`[${label}] replace() done`);
-      } else {
-        // First time: create new player
-        mobileDebug.log(`[${label}] creating new player...`);
-        audioLog.debug('safePlayAudioFile: creating player and starting playback');
-        player = createAudioPlayer(audioFile);
-        this.player = player;
-        
-        // Set up persistent listener (only once per player instance)
-        this.playerSubscription = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
-          this.handlePlaybackStatus(status);
-        });
-        mobileDebug.log(`[${label}] player created OK`);
+      // Remove old listener if exists
+      if (this.playerSubscription) {
+        try {
+          this.playerSubscription.remove();
+        } catch {
+          // Ignore
+        }
+        this.playerSubscription = null;
       }
+      
+      // iOS Safari fix: Always create a new player for each audio file.
+      // Don't remove() the old player - just pause it and let it exist.
+      // This seems to work better than replace() which doesn't fire events.
+      mobileDebug.log(`[${label}] creating new player...`);
+      audioLog.debug('safePlayAudioFile: creating player and starting playback');
+      const player = createAudioPlayer(audioFile);
+      // Keep reference to old player (don't remove it), just replace reference
+      this.player = player;
+      mobileDebug.log(`[${label}] player created OK`);
+      
+      // Add listener for the new player
+      this.playerSubscription = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
+        this.handlePlaybackStatus(status);
+      });
+      mobileDebug.log(`[${label}] listener added`);
       
       this.isPlaying = true;
 
@@ -230,7 +236,7 @@ class AudioService {
         }, AUDIO_TIMEOUT_MS);
 
         mobileDebug.log(`[${label}] calling player.play()`);
-        player!.play();
+        player.play();
         mobileDebug.log(`[${label}] player.play() returned`);
       });
     } catch (error) {
