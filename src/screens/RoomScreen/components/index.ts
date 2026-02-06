@@ -31,3 +31,7 @@ export type { ActionButtonProps } from './ActionButton';
 // Modals
 export { SeatConfirmModal } from './SeatConfirmModal';
 export type { SeatConfirmModalProps, SeatModalType } from './SeatConfirmModal';
+
+// Bottom Panel
+export { BottomActionPanel } from './BottomActionPanel';
+export type { BottomActionPanelProps } from './BottomActionPanel';

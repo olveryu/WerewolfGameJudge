@@ -39,8 +39,9 @@ export const TESTIDS = {
   connectionStatusContainer: 'connection-status-container',
   forceSyncButton: 'force-sync-button',
 
-  // ActionMessage
+  // ActionMessage / BottomActionPanel
   actionMessage: 'action-message',
+  bottomActionPanel: 'bottom-action-panel',
 
   // SeatConfirmModal
   seatConfirmModal: 'seat-confirm-modal',

@@ -25,13 +25,13 @@ import { useRoomActionDialogs } from './useRoomActionDialogs';
 import { useRoomSeatDialogs } from './useRoomSeatDialogs';
 import { PlayerGrid } from './components/PlayerGrid';
 import { BoardInfoCard } from './components/BoardInfoCard';
-import { ActionMessage } from './components/ActionMessage';
 import { WaitingViewRoleList } from './components/WaitingViewRoleList';
 import { ActionButton } from './components/ActionButton';
 import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { NightProgressIndicator } from './components/NightProgressIndicator';
 import { ControlledSeatBanner } from './components/ControlledSeatBanner';
 import { HostMenuDropdown } from './components/HostMenuDropdown';
+import { BottomActionPanel } from './components/BottomActionPanel';
 import {
   toGameRoomLike,
   getRoleStats,
@@ -1513,17 +1513,19 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       )}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Board Info - collapsed when game is ongoing */}
-        <BoardInfoCard
-          playerCount={gameState.template.roles.length}
-          wolfRolesText={formatRoleList(wolfRoles, roleCounts)}
-          godRolesText={formatRoleList(godRoles, roleCounts)}
-          specialRolesText={
-            specialRoles.length > 0 ? formatRoleList(specialRoles, roleCounts) : undefined
-          }
-          villagerCount={villagerCount}
-          collapsed={roomStatus === GameStatus.ongoing || roomStatus === GameStatus.ended}
-        />
+        {/* Board Info - hidden during ongoing/ended, shown during setup phases */}
+        {roomStatus !== GameStatus.ongoing && roomStatus !== GameStatus.ended && (
+          <BoardInfoCard
+            playerCount={gameState.template.roles.length}
+            wolfRolesText={formatRoleList(wolfRoles, roleCounts)}
+            godRolesText={formatRoleList(godRoles, roleCounts)}
+            specialRolesText={
+              specialRoles.length > 0 ? formatRoleList(specialRoles, roleCounts) : undefined
+            }
+            villagerCount={villagerCount}
+            collapsed={false}
+          />
+        )}
 
         {/* Player Grid */}
         <PlayerGrid
@@ -1536,17 +1538,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           showBotRoles={isDebugMode && isHost}
         />
 
-        {/* Action Message - only show after audio finishes */}
-        {imActioner && !isAudioPlaying && <ActionMessage message={actionMessage} />}
-
         {/* Show players who haven't viewed their roles yet */}
         {isHost && roomStatus === GameStatus.assigned && (
           <WaitingViewRoleList seatIndices={getPlayersNotViewedRole(toGameRoomLike(gameState))} />
         )}
       </ScrollView>
 
-      {/* Bottom Buttons */}
-      <View style={styles.buttonContainer}>
+      {/* Bottom Action Panel - floating card with message + buttons */}
+      <BottomActionPanel
+        message={actionMessage}
+        showMessage={imActioner && !isAudioPlaying}
+      >
         {/* Host Control Buttons - dispatch events to policy */}
         <HostControlButtons
           isHost={isHost}
@@ -1610,7 +1612,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               }}
             />
           )}
-      </View>
+      </BottomActionPanel>
 
       {/* Seat Confirmation Modal */}
       {/* Seat Confirmation Modal - only render when pendingSeatIndex is set */}
@@ -1767,14 +1769,8 @@ function createStyles(colors: ThemeColors) {
     },
     scrollContent: {
       padding: spacing.medium,
-    },
-    buttonContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-      paddingHorizontal: spacing.medium,
-      paddingBottom: spacing.xlarge,
-      gap: spacing.small,
+      // Extra bottom padding so content isn't hidden behind BottomActionPanel
+      paddingBottom: spacing.xxlarge + spacing.xlarge,
     },
   });
 }
