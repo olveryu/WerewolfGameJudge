@@ -351,4 +351,118 @@ describe('Delegation Seat Identity Contract', () => {
       }
     });
   });
+
+  describe('Auto-trigger idempotency key must include actor seat dimension', () => {
+    /**
+     * P0 Contract: auto-trigger idempotency key must include actor seat
+     *
+     * Bug prevented: When Host switches controlledSeat from wolf A to wolf B
+     * within the same wolfVote step, the idempotency key was identical
+     * (same step, same role, same intent type) → prompt was skipped for wolf B.
+     *
+     * The key MUST include an actor-seat-level field (actorSeatForUi or effectiveSeat)
+     * so that switching seats produces a different key and re-triggers the prompt.
+     */
+    it('idempotency key must contain actorSeatForUi (preferred) or effectiveSeat', () => {
+      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+
+      // Find the idempotency key construction block
+      // We need the one inside the auto-trigger useEffect, not any other key.
+      // The auto-trigger key is preceded by a comment about "idempotency"
+      const idempotencySection = content.indexOf('Auto-trigger intent (with idempotency');
+      expect(idempotencySection).toBeGreaterThan(-1);
+
+      // Find the key = [...] within the region after that comment
+      const searchRegion = content.substring(idempotencySection, idempotencySection + 1500);
+      const keyStart = searchRegion.indexOf('const key = [');
+      expect(keyStart).toBeGreaterThan(-1);
+
+      // Extract the key array (up to '].join')
+      const keyRegion = searchRegion.substring(keyStart);
+      const joinIndex = keyRegion.indexOf('].join');
+      expect(joinIndex).toBeGreaterThan(-1);
+
+      const keyArrayBlock = keyRegion.substring(0, joinIndex);
+
+      // MUST include actor seat dimension: actorSeatForUi (preferred) or effectiveSeat
+      const hasActorSeat = keyArrayBlock.includes('actorSeatForUi');
+      const hasEffectiveSeat = keyArrayBlock.includes('effectiveSeat');
+      expect(hasActorSeat || hasEffectiveSeat).toBe(true);
+    });
+
+    /**
+     * Contract: key must NOT be solely composed of step/role-level fields
+     * (which are identical across different wolf seats in the same step).
+     *
+     * A key without any seat-level field would cause cross-seat deduplication.
+     */
+    it('idempotency key must not be missing all seat-level fields', () => {
+      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+
+      const idempotencySection = content.indexOf('Auto-trigger intent (with idempotency');
+      expect(idempotencySection).toBeGreaterThan(-1);
+
+      const searchRegion = content.substring(idempotencySection, idempotencySection + 1500);
+      const keyStart = searchRegion.indexOf('const key = [');
+      expect(keyStart).toBeGreaterThan(-1);
+
+      const keyRegion = searchRegion.substring(keyStart);
+      const joinIndex = keyRegion.indexOf('].join');
+      expect(joinIndex).toBeGreaterThan(-1);
+
+      const keyArrayBlock = keyRegion.substring(0, joinIndex);
+
+      // At least one of these seat-level fields must be present
+      const seatFields = ['actorSeatForUi', 'effectiveSeat', 'mySeatNumber', 'controlledSeat'];
+      const presentSeatFields = seatFields.filter((f) => keyArrayBlock.includes(f));
+
+      expect(presentSeatFields.length).toBeGreaterThan(0);
+
+      // If mySeatNumber is used as the sole seat field, that's a bug
+      // (mySeatNumber is null for Host delegation → no differentiation)
+      if (presentSeatFields.length === 1 && presentSeatFields[0] === 'mySeatNumber') {
+        throw new Error(
+          'Idempotency key uses mySeatNumber as sole seat field. ' +
+            'This will cause cross-seat deduplication when Host delegates (mySeatNumber=null). ' +
+            'Use actorSeatForUi or effectiveSeat instead.',
+        );
+      }
+    });
+
+    /**
+     * Contract: useEffect deps must include the seat field used in key
+     */
+    it('useEffect dependency array must include the seat field used in key', () => {
+      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+
+      const idempotencySection = content.indexOf('Auto-trigger intent (with idempotency');
+      expect(idempotencySection).toBeGreaterThan(-1);
+
+      // Find the deps array: starts with '}, [' after handleActionIntent call
+      const afterSection = content.substring(idempotencySection, idempotencySection + 2000);
+
+      // Find which seat field is in the key
+      const keyStart = afterSection.indexOf('const key = [');
+      const keyRegion = afterSection.substring(keyStart);
+      const joinIndex = keyRegion.indexOf('].join');
+      const keyArrayBlock = keyRegion.substring(0, joinIndex);
+
+      const usesActorSeat = keyArrayBlock.includes('actorSeatForUi');
+      const usesEffectiveSeat = keyArrayBlock.includes('effectiveSeat');
+
+      // Find the deps array (the }, [ ... ]); block at the end of useEffect)
+      const depsRegex = /\},\s*\[([\s\S]*?)\]\);/g;
+      const depsMatch = depsRegex.exec(afterSection);
+      expect(depsMatch).toBeTruthy();
+      const depsBlock = depsMatch![1];
+
+      // The seat field used in the key must appear in deps
+      if (usesActorSeat) {
+        expect(depsBlock).toContain('actorSeatForUi');
+      }
+      if (usesEffectiveSeat) {
+        expect(depsBlock).toContain('effectiveSeat');
+      }
+    });
+  });
 });

@@ -1074,11 +1074,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     const autoIntent = getAutoTriggerIntent();
     if (!autoIntent) return;
 
-    // Build idempotency key: stable representation of "same turn"
+    // Build idempotency key: stable representation of "same turn + same actor"
+    // P0-FIX: actorSeatForUi 必须在 key 中，否则同一 wolfVote step 内
+    // 切换 controlledSeat 到另一个狼人时 key 不变，prompt 被判重跳过。
     const key = [
       roomStatus,
       gameState?.currentActionerIndex ?? 'null',
       currentActionRole ?? 'null',
+      actorSeatForUi ?? 'null',
       imActioner ? 'A' : 'N',
       isAudioPlaying ? 'P' : 'S',
       effectiveRole ?? 'null',
@@ -1099,6 +1102,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     imActioner,
     isAudioPlaying,
     effectiveRole,
+    actorSeatForUi,
     anotherIndex,
     roomStatus,
     currentActionRole,
