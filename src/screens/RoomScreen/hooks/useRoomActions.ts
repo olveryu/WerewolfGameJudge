@@ -137,7 +137,7 @@ export interface BottomButton {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface IntentContext {
-  myRole: RoleId;
+  actorRole: RoleId;
   schemaKind: ActionSchema['kind'] | undefined;
   schemaId: SchemaId | undefined;
   uiRevealKind: RevealKind | undefined;
@@ -160,7 +160,7 @@ interface IntentContext {
  * Exported for testability (avoid calling hooks directly in unit tests).
  */
 export function deriveSkipIntentFromSchema(
-  myRole: RoleId,
+  actorRole: RoleId,
   currentSchema: ActionSchema | null | undefined,
   buildMessage: (idx: number) => string,
   isWolf: boolean,
@@ -622,7 +622,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
       // Delegate to pure helper for schema-driven intent derivation
       const schemaIntent = deriveIntentFromSchema({
-        myRole: actorRole,
+        actorRole: actorRole,
         schemaKind: currentSchema?.kind,
         schemaId:
           currentSchema?.id && isValidSchemaId(currentSchema.id) ? currentSchema.id : undefined,

@@ -505,13 +505,10 @@ export class GameFacade implements IGameFacade {
    * 当机械狼学到猎人并查看状态后调用：
    * - Host: 直接调用 setWolfRobotHunterStatusViewed
    * - Player: 发送 WOLF_ROBOT_HUNTER_STATUS_VIEWED 消息给 Host
+   *
+   * @param seat - wolfRobot 的座位号（由调用方传入 effectiveSeat，以支持 debug bot 接管）
    */
-  async sendWolfRobotHunterStatusViewed(): Promise<{ success: boolean; reason?: string }> {
-    const seat = this.getMySeatNumber();
-    if (seat === null) {
-      return { success: false, reason: 'not_seated' };
-    }
-
+  async sendWolfRobotHunterStatusViewed(seat: number): Promise<{ success: boolean; reason?: string }> {
     if (this.isHost) {
       // Host 直接执行
       return hostActions.setWolfRobotHunterStatusViewed(this.getHostActionsContext(), seat);

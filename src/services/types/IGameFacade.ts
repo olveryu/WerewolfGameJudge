@@ -187,8 +187,9 @@ export interface IGameFacade {
 
   /**
    * 提交机械狼查看猎人状态确认
+   * @param seat - wolfRobot 的座位号（必须由调用方传入 effectiveSeat，以支持 debug bot 接管）
    */
-  sendWolfRobotHunterStatusViewed(): Promise<{ success: boolean; reason?: string }>;
+  sendWolfRobotHunterStatusViewed(seat: number): Promise<{ success: boolean; reason?: string }>;
 
   // === Night Flow (Host-only) ===
   /**

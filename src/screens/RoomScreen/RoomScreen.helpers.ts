@@ -76,21 +76,21 @@ export interface SeatViewModel {
  * Schema-driven logic:
  * - showWolves = true only when:
  *   1. schema.kind === 'wolfVote' AND schema.meeting.canSeeEachOther === true
- *   2. myRole is a wolf that participates in wolf vote
+ *   2. actorRole is a wolf that participates in wolf vote
  *
- * @param myRole - Current player's role
+ * @param actorRole - Actor's role (actorRoleForUi — may be bot's role when Host is delegating)
  * @param currentActionRole - The role that should act now
  * @param currentSchema - Current action schema (schema-driven UI)
- * @param mySeatNumber - Current player's seat number
+ * @param actorSeatNumber - Actor's seat number (actorSeatForUi — may be bot's seat when delegating)
  * @param wolfVotes - Map of wolf votes (seat -> target)
  * @param isHost - Whether current player is host (unused but kept for future)
  * @param actions - Map of already submitted role actions
  */
 export function determineActionerState(
-  myRole: RoleId | null,
+  actorRole: RoleId | null,
   currentActionRole: RoleId | null,
   currentSchema: ActionSchema | null,
-  mySeatNumber: number | null,
+  actorSeatNumber: number | null,
   wolfVotes: Map<number, number>,
   _isHost: boolean,
   actions: Map<RoleId, RoleAction> = new Map(),
@@ -104,25 +104,25 @@ export function determineActionerState(
     currentSchema?.kind === 'wolfVote' && currentSchema.meeting?.canSeeEachOther === true;
 
   // My role matches current action
-  if (myRole === currentActionRole) {
-    return handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions, isWolfMeetingSchema);
+  if (actorRole === currentActionRole) {
+    return handleMatchingRole(actorRole, actorSeatNumber, wolfVotes, actions, isWolfMeetingSchema);
   }
 
   // Wolf meeting phase: participating wolves can see pack list and act
-  if (isWolfMeetingSchema && myRole && isWolfRole(myRole)) {
-    if (!doesRoleParticipateInWolfVote(myRole)) {
+  if (isWolfMeetingSchema && actorRole && isWolfRole(actorRole)) {
+    if (!doesRoleParticipateInWolfVote(actorRole)) {
       // Non-voting wolves (e.g., wolfRobot) cannot see the pack
       return { imActioner: false, showWolves: false };
     }
-    return handleWolfTeamTurn(mySeatNumber, wolfVotes);
+    return handleWolfTeamTurn(actorSeatNumber, wolfVotes);
   }
 
   return { imActioner: false, showWolves: false };
 }
 
 function handleMatchingRole(
-  myRole: RoleId,
-  mySeatNumber: number | null,
+  actorRole: RoleId,
+  actorSeatNumber: number | null,
   wolfVotes: Map<number, number>,
   actions: Map<RoleId, RoleAction>,
   isWolfMeetingSchema: boolean,
@@ -131,32 +131,32 @@ function handleMatchingRole(
   // (Not just role === 'wolf' — special wolf roles like nightmare/wolfQueen also vote.)
   if (
     isWolfMeetingSchema &&
-    doesRoleParticipateInWolfVote(myRole) &&
-    mySeatNumber !== null &&
-    wolfVotes.has(mySeatNumber)
+    doesRoleParticipateInWolfVote(actorRole) &&
+    actorSeatNumber !== null &&
+    wolfVotes.has(actorSeatNumber)
   ) {
     return { imActioner: false, showWolves: true };
   }
 
   // For non-wolf roles, check if action already submitted
   // (Skip wolf roles as they use wolfVotes for vote tracking)
-  if (!isWolfRole(myRole) && actions.has(myRole)) {
+  if (!isWolfRole(actorRole) && actions.has(actorRole)) {
     return { imActioner: false, showWolves: false };
   }
 
   // Schema-driven: show wolves only during wolf meeting with canSeeEachOther
   const showWolves =
-    isWolfMeetingSchema && isWolfRole(myRole) && doesRoleParticipateInWolfVote(myRole);
+    isWolfMeetingSchema && isWolfRole(actorRole) && doesRoleParticipateInWolfVote(actorRole);
 
   return { imActioner: true, showWolves };
 }
 
 function handleWolfTeamTurn(
-  mySeatNumber: number | null,
+  actorSeatNumber: number | null,
   wolfVotes: Map<number, number>,
 ): ActionerState {
   // Check if this wolf has already voted
-  const hasVoted = mySeatNumber !== null && wolfVotes.has(mySeatNumber);
+  const hasVoted = actorSeatNumber !== null && wolfVotes.has(actorSeatNumber);
   return { imActioner: !hasVoted, showWolves: true };
 }
 
@@ -248,10 +248,12 @@ export function formatRoleList(roles: string[], counts: Record<string, number>):
 
 /**
  * Build SeatViewModel array from game state
+ *
+ * @param actorSeatNumber - Actor's seat (actorSeatForUi). Used for isMySpot + notSelf constraint.
  */
 export function buildSeatViewModels(
   gameState: LocalGameState,
-  mySeatNumber: number | null,
+  actorSeatNumber: number | null,
   showWolves: boolean,
   selectedIndex: number | null,
   options?: {
@@ -280,7 +282,7 @@ export function buildSeatViewModels(
     let disabledReason: string | undefined;
 
     // Constraint: notSelf - cannot select own seat
-    if (options?.schemaConstraints?.includes('notSelf') && index === mySeatNumber) {
+    if (options?.schemaConstraints?.includes('notSelf') && index === actorSeatNumber) {
       disabledReason = '不能选择自己';
     }
 
@@ -296,7 +298,7 @@ export function buildSeatViewModels(
             role: player.role, // For bot role display (debug mode)
           }
         : null,
-      isMySpot: mySeatNumber === index,
+      isMySpot: actorSeatNumber === index,
       isWolf,
       isSelected: selectedIndex === index || options?.secondSelectedIndex === index,
       disabledReason,

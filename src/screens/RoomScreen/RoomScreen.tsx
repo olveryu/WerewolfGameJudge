@@ -251,10 +251,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   // Computed values: use useActionerState hook
   // Use actorSeatForUi/actorRoleForUi for action-related decisions
   const { imActioner, showWolves } = useActionerState({
-    myRole: actorRoleForUi,
+    actorRole: actorRoleForUi,
     currentActionRole,
     currentSchema,
-    mySeatNumber: actorSeatForUi,
+    actorSeatNumber: actorSeatForUi,
     wolfVotes: wolfVotesMap,
     isHost,
     actions: gameState?.actions ?? new Map(),
@@ -744,12 +744,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           // DEBUG: Log actionConfirm handling details
           roomScreenLog.debug('[actionConfirm] Processing:', {
             effectiveRole,
+            effectiveSeat,
             anotherIndex,
             schemaKind: currentSchema?.kind,
             schemaId: currentSchema?.id,
             'intent.targetIndex': intent.targetIndex,
             'intent.stepKey': intent.stepKey,
-            mySeatNumber,
           });
 
           if (effectiveRole === 'magician' && anotherIndex !== null) {
@@ -829,7 +829,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           }
 
           // Witch/compound: protocol - skip means stepResults with all null
-          // seat = actorSeat (mySeatNumber)
+          // seat = effectiveSeat (supports debug bot takeover)
           const skipStepSchema = getSubStepByKey(intent.stepKey);
           let skipExtra: ActionExtra | undefined;
           let skipSeat: number | null = null; // default for chooseSeat: null
@@ -1011,10 +1011,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           const statusMessage = canShoot ? canShootText : cannotShootText;
 
           actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, async () => {
+            // FAIL-FAST: effectiveSeat is required for wolfRobot seat validation in handler
+            if (effectiveSeat === null) {
+              roomScreenLog.warn('[wolfRobotViewHunterStatus] Cannot submit without seat (effectiveSeat is null)');
+              return;
+            }
             // P1-FIX: 设置 pending 状态并 await 确保 state 更新后再释放
             setPendingHunterStatusViewed(true);
             try {
-              await sendWolfRobotHunterStatusViewed();
+              await sendWolfRobotHunterStatusViewed(effectiveSeat);
             } catch (error) {
               // P1-FIX: 失败时给用户可见提示，避免用户误以为没点成功而反复操作
               roomScreenLog.error('[wolfRobotViewHunterStatus] Failed to send confirmation', error);
@@ -1293,7 +1298,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           return;
 
         case 'HUNTER_STATUS_VIEWED':
-          void sendWolfRobotHunterStatusViewed();
+          // effectiveSeat 用于 handler 中的 wolfRobot seat 校验
+          if (effectiveSeat === null) {
+            roomScreenLog.warn('[HUNTER_STATUS_VIEWED] Cannot submit without seat (effectiveSeat is null)');
+          } else {
+            void sendWolfRobotHunterStatusViewed(effectiveSeat);
+          }
           return;
 
         case 'TAKEOVER_BOT_SEAT':

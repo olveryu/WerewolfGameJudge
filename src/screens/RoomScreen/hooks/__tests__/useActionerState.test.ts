@@ -15,10 +15,10 @@ import type { RoleAction } from '../../../../models/actions/RoleAction';
 
 function createParams(overrides: Partial<UseActionerStateParams> = {}): UseActionerStateParams {
   return {
-    myRole: null,
+    actorRole: null,
     currentActionRole: null,
     currentSchema: null,
-    mySeatNumber: null,
+    actorSeatNumber: null,
     wolfVotes: new Map(),
     isHost: false,
     actions: new Map(),
@@ -33,7 +33,7 @@ function createParams(overrides: Partial<UseActionerStateParams> = {}): UseActio
 describe('useActionerState', () => {
   describe('基本行为', () => {
     it('无当前行动角色时 imActioner 应该为 false', () => {
-      const { result } = renderHook(() => useActionerState(createParams({ myRole: 'seer' })));
+      const { result } = renderHook(() => useActionerState(createParams({ actorRole: 'seer' })));
 
       expect(result.current.imActioner).toBe(false);
       expect(result.current.showWolves).toBe(false);
@@ -43,9 +43,9 @@ describe('useActionerState', () => {
       const { result } = renderHook(() =>
         useActionerState(
           createParams({
-            myRole: 'seer',
+            actorRole: 'seer',
             currentActionRole: 'seer',
-            mySeatNumber: 0,
+            actorSeatNumber: 0,
           }),
         ),
       );
@@ -57,9 +57,9 @@ describe('useActionerState', () => {
       const { result } = renderHook(() =>
         useActionerState(
           createParams({
-            myRole: 'seer',
+            actorRole: 'seer',
             currentActionRole: 'witch',
-            mySeatNumber: 0,
+            actorSeatNumber: 0,
           }),
         ),
       );
@@ -73,10 +73,10 @@ describe('useActionerState', () => {
       const { result } = renderHook(() =>
         useActionerState(
           createParams({
-            myRole: 'wolf',
+            actorRole: 'wolf',
             currentActionRole: 'wolf',
             currentSchema: require('../../../../models/roles/spec/schemas').getSchema('wolfKill'),
-            mySeatNumber: 1,
+            actorSeatNumber: 1,
             wolfVotes: new Map(),
           }),
         ),
@@ -93,10 +93,10 @@ describe('useActionerState', () => {
       const { result } = renderHook(() =>
         useActionerState(
           createParams({
-            myRole: 'wolf',
+            actorRole: 'wolf',
             currentActionRole: 'wolf',
             currentSchema: require('../../../../models/roles/spec/schemas').getSchema('wolfKill'),
-            mySeatNumber: 1,
+            actorSeatNumber: 1,
             wolfVotes,
           }),
         ),
@@ -110,10 +110,10 @@ describe('useActionerState', () => {
       const { result } = renderHook(() =>
         useActionerState(
           createParams({
-            myRole: 'nightmare',
+            actorRole: 'nightmare',
             currentActionRole: 'wolf',
             currentSchema: require('../../../../models/roles/spec/schemas').getSchema('wolfKill'),
-            mySeatNumber: 2,
+            actorSeatNumber: 2,
           }),
         ),
       );
@@ -130,9 +130,9 @@ describe('useActionerState', () => {
       const { result } = renderHook(() =>
         useActionerState(
           createParams({
-            myRole: 'seer',
+            actorRole: 'seer',
             currentActionRole: 'seer',
-            mySeatNumber: 0,
+            actorSeatNumber: 0,
             actions,
           }),
         ),
@@ -145,9 +145,9 @@ describe('useActionerState', () => {
       const { result } = renderHook(() =>
         useActionerState(
           createParams({
-            myRole: 'witch',
+            actorRole: 'witch',
             currentActionRole: 'witch',
-            mySeatNumber: 1,
+            actorSeatNumber: 1,
             actions: new Map(),
           }),
         ),
@@ -162,12 +162,12 @@ describe('useActionerState', () => {
       const { result } = renderHook(() =>
         useActionerState(
           createParams({
-            myRole: 'nightmare',
+            actorRole: 'nightmare',
             currentActionRole: 'nightmare',
             currentSchema: require('../../../../models/roles/spec/schemas').getSchema(
               'nightmareBlock',
             ),
-            mySeatNumber: 0,
+            actorSeatNumber: 0,
           }),
         ),
       );
@@ -180,9 +180,9 @@ describe('useActionerState', () => {
   describe('useMemo 稳定性', () => {
     it('相同输入应该返回相同引用', () => {
       const params = createParams({
-        myRole: 'seer',
+        actorRole: 'seer',
         currentActionRole: 'seer',
-        mySeatNumber: 0,
+        actorSeatNumber: 0,
       });
 
       const { result, rerender } = renderHook(() => useActionerState(params));

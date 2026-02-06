@@ -14,14 +14,14 @@ import type { ActionSchema } from '../../../models/roles/spec';
 import { determineActionerState, type ActionerState } from '../RoomScreen.helpers';
 
 export interface UseActionerStateParams {
-  /** Current player's role */
-  myRole: RoleId | null;
+  /** Actor's role (actorRoleForUi — may be bot's role when Host is delegating) */
+  actorRole: RoleId | null;
   /** Currently acting role in night phase */
   currentActionRole: RoleId | null;
   /** Current action schema (Phase 3: schema-driven UI) */
   currentSchema: ActionSchema | null;
-  /** Current player's seat number */
-  mySeatNumber: number | null;
+  /** Actor's seat number (actorSeatForUi — may be bot's seat when Host is delegating) */
+  actorSeatNumber: number | null;
   /** Wolf votes map (seatNumber -> targetSeat) */
   wolfVotes: Map<number, number>;
   /** Whether current player is host */
@@ -35,23 +35,23 @@ export interface UseActionerStateParams {
  * Returns a stable object via useMemo.
  */
 export function useActionerState({
-  myRole,
+  actorRole,
   currentActionRole,
   currentSchema,
-  mySeatNumber,
+  actorSeatNumber,
   wolfVotes,
   isHost,
   actions,
 }: UseActionerStateParams): ActionerState {
   return useMemo(() => {
     return determineActionerState(
-      myRole,
+      actorRole,
       currentActionRole,
       currentSchema,
-      mySeatNumber,
+      actorSeatNumber,
       wolfVotes,
       isHost,
       actions,
     );
-  }, [myRole, currentActionRole, currentSchema, mySeatNumber, wolfVotes, isHost, actions]);
+  }, [actorRole, currentActionRole, currentSchema, actorSeatNumber, wolfVotes, isHost, actions]);
 }
