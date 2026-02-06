@@ -448,13 +448,33 @@ describe('RoomInteractionPolicy - Event Routing', () => {
     });
 
     test('returns NOOP when no role', () => {
-      const ctx = createBaseContext({ myRole: null });
+      const ctx = createBaseContext({ myRole: null, actorRoleForUi: null });
       const event = createViewRoleEvent();
 
       const result = getInteractionResult(ctx, event);
 
       expect(result.kind).toBe('NOOP');
       expect(result).toHaveProperty('reason', 'no_role');
+    });
+
+    test('routes to SHOW_DIALOG when delegating bot with role (myRole null)', () => {
+      // Host has no seat/role but is controlling a bot
+      const ctx = createBaseContext({
+        isHost: true,
+        myRole: null,
+        mySeatNumber: null,
+        actorRoleForUi: 'wolf',
+        actorSeatForUi: 3,
+        controlledSeat: 3,
+        isDelegating: true,
+        isDebugMode: true,
+      });
+      const event = createViewRoleEvent();
+
+      const result = getInteractionResult(ctx, event);
+
+      expect(result.kind).toBe('SHOW_DIALOG');
+      expect(result).toHaveProperty('dialogType', 'roleCard');
     });
   });
 

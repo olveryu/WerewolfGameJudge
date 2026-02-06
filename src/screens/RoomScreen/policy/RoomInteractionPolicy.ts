@@ -171,7 +171,10 @@ function handleHostControl(ctx: InteractionContext, event: { action: string }): 
  * Validates player has a role and returns show dialog result.
  */
 function handleViewRole(ctx: InteractionContext): InteractionResult {
-  if (!ctx.myRole) {
+  // When Host is controlling a bot seat, actorRoleForUi is the bot's role.
+  // Fall back to myRole for the normal (non-delegating) case.
+  const roleToView = ctx.actorRoleForUi ?? ctx.myRole;
+  if (!roleToView) {
     return { kind: 'NOOP', reason: 'no_role' };
   }
 
