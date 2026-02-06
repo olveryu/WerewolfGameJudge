@@ -92,7 +92,7 @@ function createStyles(colors: ThemeColors) {
     buttonText: {
       color: colors.textInverse,
       fontSize: typography.secondary,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
   });
 }

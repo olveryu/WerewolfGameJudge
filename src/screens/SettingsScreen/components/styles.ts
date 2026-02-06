@@ -5,6 +5,7 @@
  */
 import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from 'react-native';
 import { spacing, borderRadius, typography, shadows, ThemeColors } from '../../../theme';
+import { componentSizes, fixed } from '../../../theme/tokens';
 
 export interface SettingsScreenStyles {
   container: ViewStyle;
@@ -85,30 +86,30 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       alignItems: 'center',
       padding: spacing.medium,
       backgroundColor: colors.surface,
-      borderBottomWidth: 1,
+      borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
     },
     backBtn: {
-      width: 40,
-      height: 40,
+      width: componentSizes.avatar.md,
+      height: componentSizes.avatar.md,
       borderRadius: borderRadius.medium,
       backgroundColor: colors.background,
       justifyContent: 'center',
       alignItems: 'center',
     },
     backBtnText: {
-      fontSize: 20,
+      fontSize: typography.title,
       color: colors.text,
     },
     title: {
       flex: 1,
       fontSize: typography.subtitle,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
       color: colors.text,
       textAlign: 'center',
     },
     placeholder: {
-      width: 40,
+      width: componentSizes.avatar.md,
     },
     scrollView: {
       flex: 1,
@@ -123,7 +124,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     cardTitle: {
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
       color: colors.text,
       marginBottom: spacing.medium,
     },
@@ -171,7 +172,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     logoutBtnText: {
       fontSize: typography.secondary,
       color: colors.error,
-      fontWeight: '500',
+      fontWeight: typography.weights.medium,
     },
     infoRow: {
       flexDirection: 'row',
@@ -192,43 +193,43 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       alignItems: 'center',
       paddingVertical: spacing.medium,
       marginBottom: spacing.medium,
-      borderBottomWidth: 1,
+      borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
     },
     avatar: {
-      width: 80,
-      height: 80,
-      borderRadius: 12,
+      width: componentSizes.avatar.xl,
+      height: componentSizes.avatar.xl,
+      borderRadius: borderRadius.medium,
       marginBottom: spacing.small,
       overflow: 'hidden',
     },
     avatarPlaceholder: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
+      width: componentSizes.avatar.xl,
+      height: componentSizes.avatar.xl,
+      borderRadius: borderRadius.full,
       backgroundColor: colors.border,
       justifyContent: 'center',
       alignItems: 'center',
       marginBottom: spacing.small,
     },
     avatarPlaceholderIcon: {
-      fontSize: 40,
+      fontSize: typography.display,
     },
     avatarEditBadge: {
       position: 'absolute',
       bottom: spacing.small,
       right: 0,
-      width: 24,
-      height: 24,
-      borderRadius: 12,
+      width: componentSizes.icon.lg,
+      height: componentSizes.icon.lg,
+      borderRadius: borderRadius.medium,
       backgroundColor: colors.surface,
       justifyContent: 'center',
       alignItems: 'center',
-      borderWidth: 2,
+      borderWidth: fixed.borderWidthThick,
       borderColor: colors.border,
     },
     avatarEditIcon: {
-      fontSize: 12,
+      fontSize: typography.caption,
     },
     nameRow: {
       flexDirection: 'row',
@@ -237,11 +238,11 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     userName: {
       fontSize: typography.subtitle,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
       color: colors.text,
     },
     editIcon: {
-      fontSize: 14,
+      fontSize: typography.secondary,
     },
     editNameRow: {
       flexDirection: 'row',
@@ -250,13 +251,13 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     nameInput: {
       flex: 1,
-      height: 40,
+      height: componentSizes.avatar.md,
       backgroundColor: colors.background,
       borderRadius: borderRadius.medium,
       paddingHorizontal: spacing.small,
       fontSize: typography.body,
       color: colors.text,
-      borderWidth: 1,
+      borderWidth: fixed.borderWidth,
       borderColor: colors.border,
     },
     saveBtn: {
@@ -268,7 +269,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     saveBtnText: {
       color: colors.textInverse,
       fontSize: typography.secondary,
-      fontWeight: '500',
+      fontWeight: typography.weights.medium,
     },
     cancelBtn: {
       paddingHorizontal: spacing.small,
@@ -284,19 +285,19 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     authTitle: {
       fontSize: typography.subtitle,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
       color: colors.text,
       textAlign: 'center',
       marginBottom: spacing.large,
     },
     input: {
-      height: 48,
+      height: spacing.xxlarge,
       backgroundColor: colors.background,
       borderRadius: borderRadius.medium,
       paddingHorizontal: spacing.medium,
       fontSize: typography.body,
       color: colors.text,
-      borderWidth: 1,
+      borderWidth: fixed.borderWidth,
       borderColor: colors.border,
       marginBottom: spacing.medium,
     },
@@ -308,7 +309,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     authBtn: {
       backgroundColor: colors.primary,
-      height: 48,
+      height: spacing.xxlarge,
       borderRadius: borderRadius.medium,
       justifyContent: 'center',
       alignItems: 'center',
@@ -320,7 +321,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     authBtnText: {
       color: colors.textInverse,
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     switchAuthBtn: {
       alignItems: 'center',
@@ -348,27 +349,27 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.primary,
-      height: 48,
+      height: spacing.xxlarge,
       borderRadius: borderRadius.medium,
       gap: spacing.small,
     },
     authOptionBtnSecondary: {
       backgroundColor: colors.background,
-      borderWidth: 1,
+      borderWidth: fixed.borderWidth,
       borderColor: colors.border,
     },
     authOptionIcon: {
-      fontSize: 20,
+      fontSize: typography.title,
     },
     authOptionText: {
       color: colors.textInverse,
       fontSize: typography.body,
-      fontWeight: '500',
+      fontWeight: typography.weights.medium,
     },
     authOptionTextSecondary: {
       color: colors.text,
       fontSize: typography.body,
-      fontWeight: '500',
+      fontWeight: typography.weights.medium,
     },
     // Theme section
     themeSection: {
@@ -387,7 +388,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     themeValue: {
       fontSize: typography.secondary,
       color: colors.primary,
-      fontWeight: '500',
+      fontWeight: typography.weights.medium,
     },
     themeOptions: {
       flexDirection: 'row',
@@ -400,7 +401,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       paddingVertical: spacing.small,
       borderRadius: borderRadius.medium,
       backgroundColor: colors.background,
-      borderWidth: 1,
+      borderWidth: fixed.borderWidth,
       borderColor: colors.border,
     },
     themeOptionActive: {
@@ -413,6 +414,6 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     themeOptionTextActive: {
       color: colors.primary,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
   });

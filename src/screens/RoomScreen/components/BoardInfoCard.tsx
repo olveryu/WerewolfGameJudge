@@ -4,6 +4,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
+import { fixed } from '../../../theme/tokens';
 
 export interface BoardInfoCardProps {
   /** Total number of players */
@@ -89,7 +90,7 @@ function createStyles(colors: ThemeColors) {
       borderRadius: borderRadius.large,
       padding: spacing.medium,
       marginBottom: spacing.medium,
-      borderWidth: 1,
+      borderWidth: fixed.borderWidth,
       borderColor: colors.border,
     },
     headerRow: {
@@ -99,7 +100,7 @@ function createStyles(colors: ThemeColors) {
     },
     boardInfoTitle: {
       fontSize: typography.body,
-      fontWeight: '700',
+      fontWeight: typography.weights.bold,
       color: colors.text,
     },
     collapseIcon: {
@@ -116,7 +117,7 @@ function createStyles(colors: ThemeColors) {
     },
     roleCategoryLabel: {
       fontSize: typography.secondary,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
       color: colors.textSecondary,
       width: spacing.xxlarge * 2 + spacing.tight, // ~70
     },

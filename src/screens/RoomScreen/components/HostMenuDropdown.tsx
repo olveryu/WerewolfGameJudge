@@ -20,6 +20,7 @@ import {
   type TextStyle,
 } from 'react-native';
 import { useColors, type ThemeColors, spacing, borderRadius, typography } from '../../../theme';
+import { fixed } from '../../../theme/tokens';
 
 export interface HostMenuDropdownStyles {
   triggerButton: ViewStyle;
@@ -162,7 +163,7 @@ function createStyles(colors: ThemeColors): HostMenuDropdownStyles {
     restartButtonText: {
       color: colors.primary,
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     triggerButton: {
       width: 32,
@@ -171,7 +172,7 @@ function createStyles(colors: ThemeColors): HostMenuDropdownStyles {
       alignItems: 'center',
     },
     triggerText: {
-      fontSize: 24,
+      fontSize: typography.heading,
       color: colors.text,
       fontWeight: 'bold',
     },
@@ -199,7 +200,7 @@ function createStyles(colors: ThemeColors): HostMenuDropdownStyles {
       paddingHorizontal: spacing.large,
     },
     menuItemText: {
-      fontSize: 16,
+      fontSize: typography.body,
       color: colors.text,
     },
     menuItemDanger: {
@@ -209,7 +210,7 @@ function createStyles(colors: ThemeColors): HostMenuDropdownStyles {
       color: colors.error,
     },
     separator: {
-      height: 1,
+      height: fixed.divider,
       backgroundColor: colors.border,
       marginHorizontal: spacing.medium,
     },

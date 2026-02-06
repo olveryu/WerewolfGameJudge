@@ -4,6 +4,7 @@
 import React, { useMemo, memo } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
+import { fixed } from '../../../theme/tokens';
 import { TESTIDS } from '../../../testids';
 
 export type SeatModalType = 'enter' | 'leave';
@@ -87,7 +88,7 @@ function createStyles(colors: ThemeColors) {
     },
     modalTitle: {
       fontSize: typography.title,
-      fontWeight: '700',
+      fontWeight: typography.weights.bold,
       color: colors.text,
       marginBottom: spacing.small,
     },
@@ -110,7 +111,7 @@ function createStyles(colors: ThemeColors) {
     },
     modalCancelButton: {
       backgroundColor: colors.surfaceHover,
-      borderWidth: 1,
+      borderWidth: fixed.borderWidth,
       borderColor: colors.border,
     },
     modalConfirmButton: {
@@ -119,12 +120,12 @@ function createStyles(colors: ThemeColors) {
     modalCancelText: {
       color: colors.textSecondary,
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     modalConfirmText: {
       color: colors.textInverse,
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
   });
 }

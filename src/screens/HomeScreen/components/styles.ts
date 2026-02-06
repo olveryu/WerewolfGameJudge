@@ -6,6 +6,7 @@
  */
 import { StyleSheet, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
 import { type ThemeColors, spacing, borderRadius, typography, shadows } from '../../../theme';
+import { componentSizes, fixed } from '../../../theme/tokens';
 
 export interface HomeScreenStyles {
   container: ViewStyle;
@@ -71,7 +72,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     title: {
       fontSize: typography.hero,
-      fontWeight: '700',
+      fontWeight: typography.weights.bold,
       color: colors.text,
     },
     subtitle: {
@@ -95,16 +96,16 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       marginRight: spacing.small,
     },
     userAvatarImage: {
-      width: 36,
-      height: 36,
-      borderRadius: 8,
+      width: componentSizes.avatar.sm,
+      height: componentSizes.avatar.sm,
+      borderRadius: borderRadius.small,
       marginRight: spacing.small,
       overflow: 'hidden',
     },
     userAvatarPlaceholder: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+      width: componentSizes.avatar.sm,
+      height: componentSizes.avatar.sm,
+      borderRadius: borderRadius.full,
       backgroundColor: colors.border,
       justifyContent: 'center',
       alignItems: 'center',
@@ -115,7 +116,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     userNameText: {
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
       color: colors.textInverse,
       marginLeft: spacing.small,
     },
@@ -131,8 +132,8 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       padding: spacing.medium,
     },
     menuIcon: {
-      width: 44,
-      height: 44,
+      width: componentSizes.button.md,
+      height: componentSizes.button.md,
       borderRadius: borderRadius.medium,
       backgroundColor: colors.background,
       justifyContent: 'center',
@@ -147,7 +148,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     menuTitle: {
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
       color: colors.text,
     },
     menuSubtitle: {
@@ -160,7 +161,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       color: colors.textMuted,
     },
     divider: {
-      height: 1,
+      height: fixed.divider,
       backgroundColor: colors.borderLight,
       marginHorizontal: spacing.medium,
     },
@@ -180,7 +181,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     modalTitle: {
       fontSize: typography.title,
-      fontWeight: '700',
+      fontWeight: typography.weights.bold,
       color: colors.text,
       textAlign: 'center',
     },
@@ -198,18 +199,18 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       marginBottom: spacing.medium,
     },
     codeDigitBox: {
-      width: 56,
+      width: componentSizes.button.lg,
       height: 64,
       backgroundColor: colors.background,
       borderRadius: borderRadius.medium,
       justifyContent: 'center',
       alignItems: 'center',
-      borderWidth: 2,
+      borderWidth: fixed.borderWidthThick,
       borderColor: colors.border,
     },
     codeDigitText: {
-      fontSize: 32,
-      fontWeight: '700',
+      fontSize: typography.hero,
+      fontWeight: typography.weights.bold,
       color: colors.text,
     },
     modalButtons: {
@@ -225,7 +226,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     primaryButtonText: {
       color: colors.textInverse,
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     secondaryButton: {
       backgroundColor: colors.background,
@@ -236,7 +237,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     secondaryButtonText: {
       color: colors.textSecondary,
       fontSize: typography.body,
-      fontWeight: '500',
+      fontWeight: typography.weights.medium,
     },
     input: {
       backgroundColor: colors.background,
@@ -262,10 +263,10 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     linkButtonText: {
       color: colors.primary,
       fontSize: typography.secondary,
-      fontWeight: '500',
+      fontWeight: typography.weights.medium,
     },
     outlineButton: {
-      borderWidth: 1,
+      borderWidth: fixed.borderWidth,
       borderColor: colors.border,
       padding: spacing.medium,
       borderRadius: borderRadius.medium,
@@ -275,7 +276,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     outlineButtonText: {
       color: colors.textSecondary,
       fontSize: typography.body,
-      fontWeight: '500',
+      fontWeight: typography.weights.medium,
     },
     footer: {
       alignItems: 'center',

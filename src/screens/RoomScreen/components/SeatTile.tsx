@@ -30,6 +30,7 @@ import {
 } from 'react-native';
 import { Avatar } from '../../../components/Avatar';
 import { spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
+import { fixed } from '../../../theme/tokens';
 import { TESTIDS } from '../../../testids';
 import type { RoleId } from '../../../models/roles';
 import { getRoleDisplayName } from '../../../models/roles';
@@ -303,7 +304,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       borderRadius: borderRadius.large,
       justifyContent: 'center',
       alignItems: 'center',
-      borderWidth: 2,
+      borderWidth: fixed.borderWidthThick,
       borderColor: colors.border,
     },
     mySpotTile: {
@@ -324,7 +325,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     },
     seatNumber: {
       fontSize: typography.subtitle,
-      fontWeight: '700',
+      fontWeight: typography.weights.bold,
       color: colors.textMuted,
       position: 'absolute',
       top: spacing.small,
@@ -360,7 +361,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       backgroundColor: colors.success,
       color: colors.textInverse,
       fontSize: typography.caption,
-      fontWeight: '700',
+      fontWeight: typography.weights.bold,
       paddingHorizontal: spacing.tight + spacing.tight / 2,
       paddingVertical: spacing.tight / 2,
       borderRadius: spacing.small,

@@ -7,6 +7,7 @@ import React, { useMemo, memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { TESTIDS } from '../../../testids';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
+import { fixed } from '../../../theme/tokens';
 
 export type ConnectionState = 'live' | 'syncing' | 'connecting' | 'disconnected';
 
@@ -94,7 +95,7 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: spacing.tight,
       paddingHorizontal: spacing.medium,
       backgroundColor: colors.surface,
-      borderBottomWidth: 1,
+      borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
     },
     statusLive: {
@@ -112,7 +113,7 @@ function createStyles(colors: ThemeColors) {
     statusText: {
       fontSize: typography.secondary,
       color: colors.text,
-      fontWeight: '500',
+      fontWeight: typography.weights.medium,
     },
     syncButton: {
       marginLeft: spacing.medium,
@@ -127,7 +128,7 @@ function createStyles(colors: ThemeColors) {
     syncButtonText: {
       fontSize: typography.secondary,
       color: colors.textInverse,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
   });
 }

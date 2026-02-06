@@ -289,7 +289,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     // ── Settings sheet (Animation + BGM) ──────
     settingsSheetOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      backgroundColor: colors.overlayLight,
       justifyContent: 'flex-end',
     },
     settingsSheetContent: {
@@ -454,7 +454,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     // ── Modal (Dropdown) ────────────────────────
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: colors.overlay,
       justifyContent: 'flex-end',
     },
     modalContent: {

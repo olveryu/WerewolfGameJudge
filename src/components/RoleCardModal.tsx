@@ -15,6 +15,7 @@ import {
   Platform,
 } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../theme';
+import { fixed } from '../theme/tokens';
 import type { RoleId } from '../models/roles';
 import { getRoleSpec, isWolfRole } from '../models/roles';
 
@@ -312,7 +313,7 @@ function createStyles(colors: ThemeColors) {
     factionText: {
       color: '#fff',
       fontSize: typography.secondary,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     roleIcon: {
       fontSize: 64,
@@ -321,11 +322,11 @@ function createStyles(colors: ThemeColors) {
     },
     roleName: {
       fontSize: typography.heading,
-      fontWeight: '700',
+      fontWeight: typography.weights.bold,
     },
     divider: {
       width: '80%',
-      height: 1,
+      height: fixed.divider,
       backgroundColor: colors.border,
       marginVertical: spacing.medium,
     },
@@ -351,7 +352,7 @@ function createStyles(colors: ThemeColors) {
     confirmButtonText: {
       color: '#fff',
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
   });
 }

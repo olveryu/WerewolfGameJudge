@@ -55,6 +55,7 @@ import {
   type RevealEffectType,
 } from '../../components/RoleRevealEffects';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
+import { fixed } from '../../theme/tokens';
 import { mobileDebug } from '../../utils/mobileDebug';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -1731,7 +1732,7 @@ function createStyles(colors: ThemeColors) {
     errorBackButtonText: {
       color: colors.textInverse,
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     retryButtonRow: {
       flexDirection: 'row',
@@ -1745,7 +1746,7 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: spacing.medium,
       paddingVertical: spacing.medium,
       backgroundColor: colors.background,
-      borderBottomWidth: 1,
+      borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
     },
     backButton: {
@@ -1755,7 +1756,7 @@ function createStyles(colors: ThemeColors) {
     backButtonText: {
       color: colors.primary,
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     headerCenter: {
       flex: 1,
@@ -1763,7 +1764,7 @@ function createStyles(colors: ThemeColors) {
     },
     headerTitle: {
       fontSize: typography.subtitle,
-      fontWeight: '700',
+      fontWeight: typography.weights.bold,
       color: colors.text,
     },
     headerSubtitle: {

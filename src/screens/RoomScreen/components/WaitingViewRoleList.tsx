@@ -4,6 +4,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
+import { fixed } from '../../../theme/tokens';
 
 export interface WaitingViewRoleListProps {
   /** Seat numbers (0-indexed) of players who haven't viewed roles */
@@ -37,12 +38,12 @@ function createStyles(colors: ThemeColors) {
       padding: spacing.medium,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.medium,
-      borderWidth: 1,
+      borderWidth: fixed.borderWidth,
       borderColor: colors.border,
     },
     actionLogTitle: {
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
       color: colors.text,
       marginBottom: spacing.small,
     },

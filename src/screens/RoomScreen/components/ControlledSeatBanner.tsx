@@ -92,13 +92,13 @@ function createStyles(colors: ThemeColors): ControlledSeatBannerStyles {
     text: {
       fontSize: typography.secondary,
       color: colors.textInverse,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
       flex: 1,
     },
     hintText: {
       fontSize: typography.secondary,
       color: colors.textInverse,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     releaseButton: {
       backgroundColor: colors.surface,
@@ -109,7 +109,7 @@ function createStyles(colors: ThemeColors): ControlledSeatBannerStyles {
     releaseButtonText: {
       fontSize: typography.caption,
       color: colors.text,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
   });
 }
