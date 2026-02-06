@@ -140,6 +140,14 @@ describe('Nightmare Blocked UI (Host-authoritative)', () => {
         currentNightResults: {
           blockedSeat: 0,
         },
+        // Host-driven UI hint for blocked player (skip button)
+        ui: {
+          currentActorHint: {
+            bottomAction: 'skipOnly',
+            message: BLOCKED_UI_DEFAULTS.skipButtonText,
+            targetRoleIds: ['hunter'],
+          },
+        },
       },
     };
 
@@ -256,6 +264,14 @@ describe('Nightmare Blocked UI (Host-authoritative)', () => {
         nightmareBlockedSeat: 0,
         currentNightResults: {
           blockedSeat: 0,
+        },
+        // Host-driven UI hint for blocked player (skip button)
+        ui: {
+          currentActorHint: {
+            bottomAction: 'skipOnly',
+            message: BLOCKED_UI_DEFAULTS.skipButtonText,
+            targetRoleIds: ['darkWolfKing'],
+          },
         },
       },
     };

@@ -187,15 +187,21 @@ export interface InteractionContext {
   pendingRevealAck: boolean;
   pendingHunterGate: boolean;
 
-  // Player state
+  // Player state (real identity - for display only)
   isHost: boolean;
-  imActioner: boolean;
   mySeatNumber: number | null;
   myRole: RoleId | null;
 
-  // Debug mode (optional)
+  // Actor identity (for all action-related decisions)
+  // When Host controls a bot, these are the bot's seat/role
+  actorSeatForUi: number | null;
+  actorRoleForUi: RoleId | null;
+  imActioner: boolean; // computed from actorSeatForUi
+
+  // Debug mode
   isDebugMode?: boolean;
   controlledSeat?: number | null;
+  isDelegating?: boolean;
   /** Function to get all bot seat indices (for takeover logic) */
   getBotSeats?: () => number[];
 }

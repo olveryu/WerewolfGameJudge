@@ -34,8 +34,8 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     currentActionRole: 'seer',
     currentSchema: getSchema('seerCheck'),
     imActioner: true,
-    mySeatNumber: 0,
-    myRole: 'seer',
+    actorSeatNumber: 0,
+    actorRole: 'seer',
     isAudioPlaying: false,
     anotherIndex: null,
     ...overrides,
@@ -57,7 +57,7 @@ describe('A) Schema-driven intents - UI 总是返回 schema-driven intent', () =
     it('预言家点击座位 → 返回正常 reveal intent', () => {
       const ctx = makeContext({
         currentSchema: getSchema('seerCheck'),
-        myRole: 'seer',
+        actorRole: 'seer',
       });
 
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
@@ -71,7 +71,7 @@ describe('A) Schema-driven intents - UI 总是返回 schema-driven intent', () =
     it('confirm schema 玩家 (hunter) 点击座位 → 返回 null (confirm 不响应座位点击)', () => {
       const ctx = makeContext({
         currentSchema: getSchema('hunterConfirm'),
-        myRole: 'hunter',
+        actorRole: 'hunter',
         currentActionRole: 'hunter',
       });
 
@@ -87,7 +87,7 @@ describe('A) Schema-driven intents - UI 总是返回 schema-driven intent', () =
     it('预言家底部按钮 → 正常显示 schema 定义的按钮', () => {
       const ctx = makeContext({
         currentSchema: getSchema('seerCheck'),
-        myRole: 'seer',
+        actorRole: 'seer',
       });
 
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
@@ -103,7 +103,7 @@ describe('A) Schema-driven intents - UI 总是返回 schema-driven intent', () =
     it('confirm schema 玩家 (hunter) 未被 block 时 → 只显示 confirm 按钮（必须确认）', () => {
       const ctx = makeContext({
         currentSchema: getSchema('hunterConfirm'),
-        myRole: 'hunter',
+        actorRole: 'hunter',
         currentActionRole: 'hunter',
         // 未被 block（没有设置 blockedSeat）
       });
@@ -128,7 +128,7 @@ describe('B) 狼人投票 - UI 返回正常 wolfVote intent', () => {
     it('狼人点击座位 → 返回正常 wolfVote intent', () => {
       const ctx = makeContext({
         currentSchema: getSchema('wolfKill'),
-        myRole: 'wolf',
+        actorRole: 'wolf',
         currentActionRole: 'wolf',
       });
 
@@ -145,7 +145,7 @@ describe('B) 狼人投票 - UI 返回正常 wolfVote intent', () => {
     it('狼人底部按钮 → 正常显示"空刀"按钮', () => {
       const ctx = makeContext({
         currentSchema: getSchema('wolfKill'),
-        myRole: 'wolf',
+        actorRole: 'wolf',
         currentActionRole: 'wolf',
       });
 
@@ -170,10 +170,10 @@ describe('C) 合约: ActionIntent 类型不包含 blocked', () => {
   it('getActionIntent 永远不返回 type=blocked', () => {
     // Test various schema scenarios
     const scenarios: Partial<GameContext>[] = [
-      { currentSchema: getSchema('seerCheck'), myRole: 'seer' },
-      { currentSchema: getSchema('guardProtect'), myRole: 'guard' },
-      { currentSchema: getSchema('wolfKill'), myRole: 'wolf', currentActionRole: 'wolf' },
-      { currentSchema: getSchema('hunterConfirm'), myRole: 'hunter', currentActionRole: 'hunter' },
+      { currentSchema: getSchema('seerCheck'), actorRole: 'seer' },
+      { currentSchema: getSchema('guardProtect'), actorRole: 'guard' },
+      { currentSchema: getSchema('wolfKill'), actorRole: 'wolf', currentActionRole: 'wolf' },
+      { currentSchema: getSchema('hunterConfirm'), actorRole: 'hunter', currentActionRole: 'hunter' },
     ];
 
     for (const overrides of scenarios) {

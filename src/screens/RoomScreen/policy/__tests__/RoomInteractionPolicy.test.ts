@@ -28,8 +28,12 @@ function createBaseContext(overrides: Partial<InteractionContext> = {}): Interac
     pendingHunterGate: false,
     isHost: false,
     imActioner: true,
+    // Real identity (for display)
     mySeatNumber: 0,
     myRole: 'villager',
+    // Actor identity (for actions)
+    actorSeatForUi: 0,
+    actorRoleForUi: 'villager',
     ...overrides,
   };
 }
@@ -571,5 +575,101 @@ describe('RoomInteractionPolicy - Edge Cases', () => {
 
     expect(result.kind).toBe('NOOP');
     expect(result).toHaveProperty('reason', 'other_status');
+  });
+});
+
+// =============================================================================
+// Actor Identity Contract Tests (controlledSeat delegation)
+// =============================================================================
+
+describe('RoomInteractionPolicy - Actor Identity (Contract)', () => {
+  describe('actorSeatForUi / actorRoleForUi are used for action decisions', () => {
+    test('when not delegating: actorSeat equals mySeat', () => {
+      const ctx = createBaseContext({
+        mySeatNumber: 0,
+        myRole: 'villager',
+        actorSeatForUi: 0,
+        actorRoleForUi: 'villager',
+      });
+      const event = createSeatTapEvent(1);
+
+      const result = getInteractionResult(ctx, event);
+
+      // Not tapping self, should route to action
+      expect(result.kind).toBe('ACTION_FLOW');
+    });
+
+    test('when delegating (controlledSeat): actorSeat differs from mySeat', () => {
+      // Host (seat 0) controlling bot at seat 5 (wolf)
+      const ctx = createBaseContext({
+        isHost: true,
+        mySeatNumber: 0, // real seat
+        myRole: 'seer', // real role
+        actorSeatForUi: 5, // controlled bot seat
+        actorRoleForUi: 'wolf', // controlled bot role
+      });
+      const event = createSeatTapEvent(3);
+
+      const result = getInteractionResult(ctx, event);
+
+      // Bot's perspective: tapping seat 3 as wolf
+      expect(result.kind).toBe('ACTION_FLOW');
+    });
+
+    test('tapping own real seat while delegating is NOT self-tap (uses actorSeat)', () => {
+      // Host at seat 0 is controlling bot at seat 5
+      // Tapping seat 0 is NOT self-tap for the bot (actorSeat=5)
+      const ctx = createBaseContext({
+        isHost: true,
+        mySeatNumber: 0,
+        myRole: 'seer',
+        actorSeatForUi: 5,
+        actorRoleForUi: 'wolf',
+      });
+      const event = createSeatTapEvent(0);
+
+      const result = getInteractionResult(ctx, event);
+
+      // From bot's perspective (seat 5), tapping seat 0 is a valid target
+      expect(result.kind).toBe('ACTION_FLOW');
+    });
+
+    test('tapping controlled bot seat while delegating IS self-tap (uses actorSeat)', () => {
+      // Host at seat 0 is controlling bot at seat 5
+      // Tapping seat 5 IS self-tap for the bot
+      const ctx = createBaseContext({
+        isHost: true,
+        mySeatNumber: 0,
+        myRole: 'seer',
+        actorSeatForUi: 5,
+        actorRoleForUi: 'wolf',
+        // If schema says "notSelf", seat 5 would have disabledReason
+      });
+      const event = createSeatTapEvent(5, '不能选择自己');
+
+      const result = getInteractionResult(ctx, event);
+
+      // With disabledReason, should show alert
+      expect(result.kind).toBe('ALERT');
+    });
+  });
+
+  describe('bottom action uses actor identity', () => {
+    test('bottom action proceeds with actor identity context', () => {
+      const ctx = createBaseContext({
+        isHost: true,
+        mySeatNumber: 0,
+        myRole: 'seer',
+        actorSeatForUi: 5,
+        actorRoleForUi: 'wolf',
+        imActioner: true,
+      });
+      const event = createBottomActionEvent();
+
+      const result = getInteractionResult(ctx, event);
+
+      // Bottom action routes through ACTION_FLOW
+      expect(result.kind).toBe('ACTION_FLOW');
+    });
   });
 });

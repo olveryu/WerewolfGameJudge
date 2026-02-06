@@ -68,8 +68,12 @@ export interface GameContext {
   currentActionRole: RoleId | null;
   currentSchema: ActionSchema | null; // Phase 3: schema for current action role
   imActioner: boolean;
-  mySeatNumber: number | null;
-  myRole: RoleId | null;
+
+  // Actor identity (for all action-related decisions)
+  // When Host controls a bot, these are the bot's seat/role
+  actorSeatNumber: number | null;
+  actorRole: RoleId | null;
+
   isAudioPlaying: boolean;
   anotherIndex: number | null; // Magician first target
 }
@@ -264,8 +268,8 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     roomStatus,
     currentSchema,
     imActioner,
-    mySeatNumber,
-    myRole,
+    actorSeatNumber,
+    actorRole,
     isAudioPlaying,
     anotherIndex,
   } = gameContext;
@@ -280,15 +284,15 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     if (!gameState) return null;
     // Only wolves that participate in wolf vote can vote (excludes gargoyle, wolfRobot, etc.)
     if (
-      mySeatNumber !== null &&
-      myRole &&
-      doesRoleParticipateInWolfVote(myRole) &&
-      !hasWolfVoted(mySeatNumber)
+      actorSeatNumber !== null &&
+      actorRole &&
+      doesRoleParticipateInWolfVote(actorRole) &&
+      !hasWolfVoted(actorSeatNumber)
     ) {
-      return mySeatNumber;
+      return actorSeatNumber;
     }
     return null;
-  }, [gameState, mySeatNumber, myRole, hasWolfVoted]);
+  }, [gameState, actorSeatNumber, actorRole, hasWolfVoted]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Action message builder
@@ -334,16 +338,16 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   // ─────────────────────────────────────────────────────────────────────────
 
   const getWolfStatusLine = useCallback((): string | null => {
-    if (!myRole || !isWolfRole(myRole)) return null;
+    if (!actorRole || !isWolfRole(actorRole)) return null;
     // Only show during the schema-driven wolf-vote step.
     if (currentSchema?.kind !== 'wolfVote') return null;
 
     const base = getWolfVoteSummary();
-    if (mySeatNumber !== null && !hasWolfVoted(mySeatNumber)) {
+    if (actorSeatNumber !== null && !hasWolfVoted(actorSeatNumber)) {
       return base;
     }
     return `${base} (你已投票，等待其他狼人)`;
-  }, [currentSchema?.kind, getWolfVoteSummary, hasWolfVoted, myRole, mySeatNumber]);
+  }, [currentSchema?.kind, getWolfVoteSummary, hasWolfVoted, actorRole, actorSeatNumber]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // UI-only: schema-driven bottom action button (skip / wolf empty vote / blocked)
@@ -362,10 +366,10 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     // ─────────────────────────────────────────────────────────────────────────
     // UI Hint（Host 广播驱动，UI 只读展示）
     // 如果 Host 广播了 currentActorHint，直接按 hint 渲染按钮，不再走 schema 分支。
-    // 使用 targetRoleIds 过滤：只有 myRole 在 targetRoleIds 中才显示 hint。
+    // 使用 targetRoleIds 过滤：只有 actorRole 在 targetRoleIds 中才显示 hint。
     // ─────────────────────────────────────────────────────────────────────────
     const hint = gameState.ui?.currentActorHint;
-    const hintApplies = hint && myRole && hint.targetRoleIds.includes(myRole);
+    const hintApplies = hint && actorRole && hint.targetRoleIds.includes(actorRole);
     if (hintApplies) {
       if (hint.bottomAction === 'skipOnly') {
         return {
@@ -384,7 +388,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
             {
               key: 'wolfEmpty',
               label: hint.message,
-              intent: { type: 'wolfVote', targetIndex: -1, wolfSeat: mySeatNumber ?? undefined },
+              intent: { type: 'wolfVote', targetIndex: -1, wolfSeat: actorSeatNumber ?? undefined },
             },
           ],
         };
@@ -428,7 +432,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
             intent: {
               type: 'wolfVote',
               targetIndex: -1,
-              wolfSeat: mySeatNumber ?? undefined,
+              wolfSeat: actorSeatNumber ?? undefined,
             },
           },
         ],
@@ -530,7 +534,8 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     isAudioPlaying,
     currentSchema,
     roomStatus,
-    mySeatNumber,
+    actorSeatNumber,
+    actorRole,
   ]);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -539,7 +544,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   // ─────────────────────────────────────────────────────────────────────────
 
   const getAutoTriggerIntent = useCallback((): ActionIntent | null => {
-    if (!myRole || !imActioner || isAudioPlaying) return null;
+    if (!actorRole || !imActioner || isAudioPlaying) return null;
 
     // NOTE: Nightmare block is handled by Host resolver (Host-authoritative).
     // UI does NOT intercept or change prompt for blocked players.
@@ -581,7 +586,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     // All other schemas: show generic action prompt, dismiss → wait for seat tap
     return { type: 'actionPrompt', targetIndex: -1 };
   }, [
-    myRole,
+    actorRole,
     imActioner,
     isAudioPlaying,
     currentSchema,
@@ -602,7 +607,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
   const getActionIntent = useCallback(
     (index: number): ActionIntent | null => {
-      if (!myRole) return null;
+      if (!actorRole) return null;
 
       // wolfRobotLearn: after learning is done (wolfRobotReveal exists),
       // seat taps have no effect. User must interact via bottom button only.
@@ -617,7 +622,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
       // Delegate to pure helper for schema-driven intent derivation
       const schemaIntent = deriveIntentFromSchema({
-        myRole,
+        myRole: actorRole,
         schemaKind: currentSchema?.kind,
         schemaId:
           currentSchema?.id && isValidSchemaId(currentSchema.id) ? currentSchema.id : undefined,
@@ -629,7 +634,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
         // Participation is defined by ROLE_SPECS[*].wolfMeeting.participatesInWolfVote.
         // Do NOT additionally gate by isWolfRole(): the meeting participation flag is the
         // single source for whether this role can submit WOLF_VOTE during wolfKill.
-        isWolf: doesRoleParticipateInWolfVote(myRole),
+        isWolf: doesRoleParticipateInWolfVote(actorRole),
         wolfSeat: findVotingWolfSeat(),
         buildMessage: (idx) => buildActionMessage(idx),
       });
@@ -644,7 +649,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       return schemaIntent;
     },
     [
-      myRole,
+      actorRole,
       currentSchema,
       anotherIndex,
       findVotingWolfSeat,
@@ -659,18 +664,18 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   // ─────────────────────────────────────────────────────────────────────────
 
   const getSkipIntent = useCallback((): ActionIntent | null => {
-    if (!myRole) return null;
+    if (!actorRole) return null;
 
-    const isWolf = isWolfRole(myRole);
+    const isWolf = isWolfRole(actorRole);
     const wolfSeat = findVotingWolfSeat();
     return deriveSkipIntentFromSchema(
-      myRole,
+      actorRole,
       currentSchema,
       (idx) => buildActionMessage(idx),
       isWolf,
       wolfSeat,
     );
-  }, [myRole, currentSchema, findVotingWolfSeat, buildActionMessage]);
+  }, [actorRole, currentSchema, findVotingWolfSeat, buildActionMessage]);
 
   return {
     getActionIntent,

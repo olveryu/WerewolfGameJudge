@@ -49,10 +49,16 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
     );
   }
 
+  // mode='controlled': controlledSeat must be a valid number (caller guarantees this)
+  // Fail-fast: if controlledSeat is undefined, don't render garbage
+  if (controlledSeat === undefined) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.text}>
-        🎮 正在操控 {(controlledSeat ?? 0) + 1} 号位（{botDisplayName}）
+        🎮 正在操控 {controlledSeat + 1} 号位（{botDisplayName}）
       </Text>
       <TouchableOpacity style={styles.releaseButton} onPress={onRelease}>
         <Text style={styles.releaseButtonText}>退出</Text>

@@ -24,8 +24,8 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     currentActionRole: 'wolf',
     currentSchema: getSchema('wolfKill'),
     imActioner: true,
-    mySeatNumber: 0,
-    myRole: 'wolf',
+    actorSeatNumber: 0,
+    actorRole: 'wolf',
     isAudioPlaying: false,
     anotherIndex: null,
   };
@@ -52,7 +52,7 @@ describe('useRoomActions wolf vote (Host-authoritative)', () => {
 
     it('returns null for non-wolf (not their turn)', () => {
       const ctx = makeContext({
-        myRole: 'seer',
+        actorRole: 'seer',
         imActioner: false,
       });
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));

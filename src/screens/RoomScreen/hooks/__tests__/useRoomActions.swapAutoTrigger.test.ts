@@ -19,8 +19,8 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     currentActionRole: 'magician',
     currentSchema: getSchema('magicianSwap'),
     imActioner: true,
-    mySeatNumber: 0,
-    myRole: 'magician',
+    actorSeatNumber: 0,
+    actorRole: 'magician',
     isAudioPlaying: false,
     anotherIndex: null,
   };

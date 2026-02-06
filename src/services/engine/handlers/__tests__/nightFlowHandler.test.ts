@@ -170,8 +170,8 @@ describe('nightFlowHandler', () => {
         const result = handleAdvanceNight(intent, context);
 
         expect(result.success).toBe(true);
-        // 从 wolfKill 推进且有 witch，应该返回 2 个 actions
-        expect(result.actions).toHaveLength(2);
+        // 从 wolfKill 推进且有 witch，应该返回 3 个 actions (ADVANCE + SET_WITCH_CONTEXT + SET_UI_HINT)
+        expect(result.actions).toHaveLength(3);
 
         const advanceAction = result.actions[0];
         expect(advanceAction.type).toBe('ADVANCE_TO_NEXT_ACTION');
@@ -184,6 +184,10 @@ describe('nightFlowHandler', () => {
         // 从 wolfKill 推进且有 witch，应该有 SET_WITCH_CONTEXT action
         const witchContextAction = result.actions[1];
         expect(witchContextAction.type).toBe('SET_WITCH_CONTEXT');
+
+        // 应该有 SET_UI_HINT action 清除当前提示
+        const uiHintAction = result.actions[2];
+        expect(uiHintAction.type).toBe('SET_UI_HINT');
 
         expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
       });

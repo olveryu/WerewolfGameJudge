@@ -38,7 +38,7 @@ import {
   formatRoleList,
   buildSeatViewModels,
 } from './RoomScreen.helpers';
-import { getInteractionResult, type InteractionEvent, type InteractionContext } from './policy';
+import { getInteractionResult, getActorIdentity, type InteractionEvent, type InteractionContext } from './policy';
 import { TESTIDS } from '../../testids';
 import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
@@ -216,13 +216,30 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     return map;
   }, [gameState?.currentNightResults]);
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // Actor Identity: Single source of truth for UI action-related decisions
+  // ───────────────────────────────────────────────────────────────────────────
+  const actorIdentity = useMemo(
+    () =>
+      getActorIdentity({
+        mySeatNumber,
+        myRole,
+        effectiveSeat,
+        effectiveRole,
+        controlledSeat,
+      }),
+    [mySeatNumber, myRole, effectiveSeat, effectiveRole, controlledSeat],
+  );
+
+  const { actorSeatForUi, actorRoleForUi, isDelegating } = actorIdentity;
+
   // Computed values: use useActionerState hook
-  // In debug mode, use effectiveRole/effectiveSeat to allow controlling bot seats
+  // Use actorSeatForUi/actorRoleForUi for action-related decisions
   const { imActioner, showWolves } = useActionerState({
-    myRole: effectiveRole,
+    myRole: actorRoleForUi,
     currentActionRole,
     currentSchema,
-    mySeatNumber: effectiveSeat,
+    mySeatNumber: actorSeatForUi,
     wolfVotes: wolfVotesMap,
     isHost,
     actions: gameState?.actions ?? new Map(),
@@ -240,6 +257,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [currentSchema]);
 
   // Build seat view models for PlayerGrid
+  // Uses actorSeatForUi to highlight the actor's seat (bot seat when delegating)
   const seatViewModels = useMemo(() => {
     if (!gameState) return [];
 
@@ -249,7 +267,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     const skipConstraints =
       currentSchema?.id === 'wolfRobotLearn' && gameState.wolfRobotReveal != null;
 
-    return buildSeatViewModels(gameState, mySeatNumber, showWolves, anotherIndex, {
+    return buildSeatViewModels(gameState, actorSeatForUi, showWolves, anotherIndex, {
       // Schema-driven constraints (notSelf, etc.) - UX-only early rejection
       // Skip when wolfRobot learning is complete (no seat should be tappable)
       schemaConstraints: imActioner && !skipConstraints ? currentSchemaConstraints : undefined,
@@ -258,7 +276,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     });
   }, [
     gameState,
-    mySeatNumber,
+    actorSeatForUi,
     showWolves,
     anotherIndex,
     secondSeatIndex,
@@ -375,8 +393,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       currentActionRole,
       currentSchema,
       imActioner,
-      mySeatNumber: effectiveSeat,
-      myRole: effectiveRole,
+      actorSeatNumber: actorSeatForUi,
+      actorRole: actorRoleForUi,
       isAudioPlaying,
       anotherIndex,
     }),
@@ -386,8 +404,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       currentActionRole,
       currentSchema,
       imActioner,
-      effectiveSeat,
-      effectiveRole,
+      actorSeatForUi,
+      actorRoleForUi,
       isAudioPlaying,
       anotherIndex,
     ],
@@ -1130,11 +1148,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       pendingHunterGate: pendingHunterStatusViewed,
       isHost,
       imActioner,
-      mySeatNumber: effectiveSeat,
-      myRole: effectiveRole,
+      // Real identity (for display purposes only)
+      mySeatNumber,
+      myRole,
+      // Actor identity (for all action-related decisions)
+      actorSeatForUi,
+      actorRoleForUi,
       // Debug mode fields
       isDebugMode,
       controlledSeat,
+      isDelegating,
       getBotSeats: () => {
         if (!gameState) return [];
         return Array.from(gameState.players.entries())
@@ -1150,10 +1173,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       pendingHunterStatusViewed,
       isHost,
       imActioner,
-      effectiveSeat,
-      effectiveRole,
+      mySeatNumber,
+      myRole,
+      actorSeatForUi,
+      actorRoleForUi,
       isDebugMode,
       controlledSeat,
+      isDelegating,
     ],
   );
 
@@ -1566,13 +1592,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       </View>
 
       {/* Seat Confirmation Modal */}
-      <SeatConfirmModal
-        visible={seatModalVisible}
-        modalType={modalType}
-        seatNumber={(pendingSeatIndex ?? 0) + 1}
-        onConfirm={modalType === 'enter' ? handleConfirmSeat : handleConfirmLeave}
-        onCancel={handleCancelSeat}
-      />
+      {/* Seat Confirmation Modal - only render when pendingSeatIndex is set */}
+      {pendingSeatIndex !== null && (
+        <SeatConfirmModal
+          visible={seatModalVisible}
+          modalType={modalType}
+          seatNumber={pendingSeatIndex + 1}
+          onConfirm={modalType === 'enter' ? handleConfirmSeat : handleConfirmLeave}
+          onCancel={handleCancelSeat}
+        />
+      )}
 
       {/* Role Card Modal - 统一使用 RoleRevealAnimator */}
       {/* 只在首次查看时播放动画（shouldPlayRevealAnimation），后续直接显示静态卡片 */}

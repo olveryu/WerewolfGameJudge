@@ -51,8 +51,8 @@ describe('useRoomActions seer reveal', () => {
           currentActionRole: 'seer',
           currentSchema: schema,
           imActioner: true,
-          mySeatNumber: 0,
-          myRole: 'seer',
+          actorSeatNumber: 0,
+          actorRole: 'seer',
           isAudioPlaying: false,
           anotherIndex: null,
         },
@@ -81,8 +81,8 @@ describe('useRoomActions seer reveal', () => {
           currentActionRole: 'seer',
           currentSchema: schema,
           imActioner: true,
-          mySeatNumber: 0,
-          myRole: 'seer',
+          actorSeatNumber: 0,
+          actorRole: 'seer',
           isAudioPlaying: false,
           anotherIndex: null,
         },
@@ -99,7 +99,7 @@ describe('useRoomActions seer reveal', () => {
     expect(intent?.targetIndex).toBe(2);
   });
 
-  it('returns null when myRole is null', () => {
+  it('returns null when actorRole is null', () => {
     const gameState = makeGameState();
     const schema = makeSeerSchema();
 
@@ -111,8 +111,8 @@ describe('useRoomActions seer reveal', () => {
           currentActionRole: 'seer',
           currentSchema: schema,
           imActioner: true,
-          mySeatNumber: 0,
-          myRole: null, // No role
+          actorSeatNumber: 0,
+          actorRole: null, // No role
           isAudioPlaying: false,
           anotherIndex: null,
         },
@@ -135,8 +135,8 @@ describe('useRoomActions seer reveal', () => {
           currentActionRole: 'seer',
           currentSchema: null, // No schema!
           imActioner: true,
-          mySeatNumber: 0,
-          myRole: 'seer',
+          actorSeatNumber: 0,
+          actorRole: 'seer',
           isAudioPlaying: false,
           anotherIndex: null,
         },

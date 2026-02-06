@@ -22,8 +22,8 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     currentActionRole: null,
     currentSchema: null,
     imActioner: true,
-    mySeatNumber: 0,
-    myRole: 'seer',
+    actorSeatNumber: 0,
+    actorRole: 'seer',
     isAudioPlaying: false,
     anotherIndex: null,
   };
@@ -155,7 +155,7 @@ describe('useRoomActions.getBottomAction (Host-authoritative)', () => {
 
     const ctx = makeContext({
       currentSchema: wolfVoteSchema,
-      myRole: 'wolf',
+      actorRole: 'wolf',
     });
     const { result } = renderHook(() =>
       useRoomActions(ctx, {
@@ -196,8 +196,8 @@ describe('useRoomActions.getActionIntent (Host-authoritative)', () => {
       currentActionRole: 'seer',
       currentSchema: chooseSeatSchema,
       imActioner: true,
-      mySeatNumber: 0,
-      myRole: 'seer',
+      actorSeatNumber: 0,
+      actorRole: 'seer',
       isAudioPlaying: false,
       anotherIndex: null,
     };
@@ -238,8 +238,8 @@ describe('useRoomActions.getActionIntent (Host-authoritative)', () => {
       currentActionRole: 'seer',
       currentSchema: chooseSeatSchema,
       imActioner: true,
-      mySeatNumber: 0,
-      myRole: 'seer',
+      actorSeatNumber: 0,
+      actorRole: 'seer',
       isAudioPlaying: false,
       anotherIndex: null,
     };
