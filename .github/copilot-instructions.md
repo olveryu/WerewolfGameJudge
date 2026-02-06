@@ -229,6 +229,19 @@ advanceToNextAction()
 - Host 与 Player 内存中的 state shape 必须完全一致。
 - 计算/派生字段必须从同一份 state 计算，或只写入 `BroadcastGameState` 一次（禁止双写/漂移）。
 
+### 新增字段必须同步 `normalizeState`（MUST follow）
+
+当你向 `BroadcastGameState`（或其子结构）新增任何字段时：
+
+1. **必须检查 `src/services/engine/state/normalize.ts`**
+   - `normalizeState` 函数是 state 存储/广播前的必经之路
+   - 它显式列出所有要保留的字段；**遗漏的字段会被静默丢弃**
+2. **必须把新字段加到 `normalizeState` 返回值**
+   - 例如：新增 `ui` 字段 → 必须加 `ui: raw.ui`
+3. **测试门禁**：新增字段后，写一个端到端流程验证 Host→Player 广播后字段仍存在（而非 `undefined`）
+
+这是高频 bug 源：reducer 正确设置了字段，但 `normalizeState` 没透传 → 广播后变 `undefined`。
+
 ---
 
 ## RoomScreen UI 交互架构（MUST follow）

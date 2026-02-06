@@ -59,6 +59,9 @@ const BROADCAST_GAME_STATE_FIELDS: (keyof BroadcastGameState)[] = [
 
   // Debug 模式
   'debugMode',
+
+  // UI Hints
+  'ui',
 ];
 
 describe('normalizeState contract', () => {
