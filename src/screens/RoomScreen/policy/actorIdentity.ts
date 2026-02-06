@@ -6,9 +6,11 @@
  * the actor identity switches to the bot's seat/role.
  *
  * Rules:
- * - actorSeatForUi/actorRoleForUi: Used for ALL action-related decisions
- *   (can I tap? what intent? what prompt? what submit actor?)
- * - mySeat/myRole: Only used for displaying "my real identity" in UI
+ * - When NOT delegating (controlledSeat === null):
+ *   actorSeatForUi = mySeatNumber, actorRoleForUi = myRole
+ * - When delegating (controlledSeat !== null):
+ *   actorSeatForUi = effectiveSeat, actorRoleForUi = effectiveRole
+ *   (with consistency check: effectiveSeat must equal controlledSeat)
  *
  * ❌ Do NOT import: React hooks, services, navigation, any IO
  * ❌ Do NOT provide default values (null means fail-fast at caller)
@@ -25,9 +27,9 @@ export interface ActorIdentityInput {
   mySeatNumber: number | null;
   /** My real role (null if no role assigned) */
   myRole: RoleId | null;
-  /** Effective seat (= controlledSeat ?? mySeatNumber) */
+  /** Effective seat (= controlledSeat ?? mySeatNumber, computed by useGameRoom) */
   effectiveSeat: number | null;
-  /** Effective role (= role of effectiveSeat) */
+  /** Effective role (= role of effectiveSeat, computed by useGameRoom) */
   effectiveRole: RoleId | null;
   /** Currently controlled bot seat (null if not controlling) */
   controlledSeat: number | null;
@@ -64,25 +66,44 @@ export interface ActorIdentity {
  * - Which role to check for imActioner / schema matching
  * - Which actor to submit actions as
  *
+ * Rules:
+ * - NOT delegating: use my real identity (mySeatNumber, myRole)
+ * - Delegating: use bot identity (effectiveSeat, effectiveRole)
+ *   with consistency check (effectiveSeat must equal controlledSeat)
+ *
  * @param input - Identity fields from useGameRoom
- * @returns Actor identity for UI, with null values if invalid
+ * @returns Actor identity for UI, with null values if invalid/inconsistent
  */
 export function getActorIdentity(input: ActorIdentityInput): ActorIdentity {
-  const { effectiveSeat, effectiveRole, controlledSeat } = input;
+  const { mySeatNumber, myRole, effectiveSeat, effectiveRole, controlledSeat } = input;
 
   const isDelegating = controlledSeat !== null;
 
-  // When delegating, use effective (bot's) identity
-  // When not delegating, use my real identity
-  // Note: effectiveSeat/effectiveRole already handle the fallback in useGameRoom
-  // so we just pass them through here
-  const actorSeatForUi = effectiveSeat;
-  const actorRoleForUi = effectiveRole;
+  if (!isDelegating) {
+    // Not delegating: use my real identity
+    return {
+      actorSeatForUi: mySeatNumber,
+      actorRoleForUi: myRole,
+      isDelegating: false,
+    };
+  }
+
+  // Delegating: use bot identity with consistency check
+  // FAIL-FAST: effectiveSeat must equal controlledSeat (prevent drift)
+  if (effectiveSeat !== controlledSeat) {
+    // Inconsistent state - return invalid identity
+    // Caller should NOOP/ALERT, not use default values
+    return {
+      actorSeatForUi: null,
+      actorRoleForUi: null,
+      isDelegating: true,
+    };
+  }
 
   return {
-    actorSeatForUi,
-    actorRoleForUi,
-    isDelegating,
+    actorSeatForUi: effectiveSeat,
+    actorRoleForUi: effectiveRole,
+    isDelegating: true,
   };
 }
 

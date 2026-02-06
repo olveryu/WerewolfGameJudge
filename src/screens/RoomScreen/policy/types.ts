@@ -198,10 +198,10 @@ export interface InteractionContext {
   actorRoleForUi: RoleId | null;
   imActioner: boolean; // computed from actorSeatForUi
 
-  // Debug mode
-  isDebugMode?: boolean;
-  controlledSeat?: number | null;
-  isDelegating?: boolean;
+  // Debug mode (required to prevent silent drift)
+  isDebugMode: boolean;
+  controlledSeat: number | null;
+  isDelegating: boolean;
   /** Function to get all bot seat indices (for takeover logic) */
   getBotSeats?: () => number[];
 }

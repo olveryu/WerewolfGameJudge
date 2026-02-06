@@ -2,17 +2,18 @@
  * actorIdentity.contract.test.ts - Contract tests for actor identity single source of truth
  *
  * These tests lock the behavior of getActorIdentity to ensure:
- * 1. When not delegating (controlledSeat=null): actorSeatForUi = mySeat
- * 2. When delegating (controlledSeat=botSeat): actorSeatForUi = botSeat
- * 3. isDelegating flag is correctly set
- * 4. No default value fallbacks - null in = null out
+ * 1. When not delegating (controlledSeat=null): actorSeatForUi = mySeatNumber, actorRoleForUi = myRole
+ * 2. When delegating (controlledSeat=botSeat): actorSeatForUi = effectiveSeat, actorRoleForUi = effectiveRole
+ * 3. Consistency check: when delegating, effectiveSeat MUST equal controlledSeat (fail-fast)
+ * 4. isDelegating flag is correctly set
+ * 5. No default value fallbacks - null in = null out
  */
 
 import { getActorIdentity, isActorIdentityValid } from '../actorIdentity';
 
 describe('getActorIdentity contract', () => {
   describe('when NOT delegating (controlledSeat=null)', () => {
-    it('returns mySeat/myRole as actor identity', () => {
+    it('returns mySeatNumber/myRole as actor identity (NOT effectiveSeat/effectiveRole)', () => {
       const result = getActorIdentity({
         mySeatNumber: 3,
         myRole: 'seer',
@@ -23,6 +24,21 @@ describe('getActorIdentity contract', () => {
 
       expect(result.actorSeatForUi).toBe(3);
       expect(result.actorRoleForUi).toBe('seer');
+      expect(result.isDelegating).toBe(false);
+    });
+
+    it('uses mySeatNumber even if effectiveSeat differs (edge case prevention)', () => {
+      // This shouldn't happen in practice, but tests that we use mySeat not effective
+      const result = getActorIdentity({
+        mySeatNumber: 3,
+        myRole: 'seer',
+        effectiveSeat: 5, // Inconsistent with mySeat - should be ignored when not delegating
+        effectiveRole: 'wolf',
+        controlledSeat: null,
+      });
+
+      expect(result.actorSeatForUi).toBe(3); // Uses mySeatNumber
+      expect(result.actorRoleForUi).toBe('seer'); // Uses myRole
       expect(result.isDelegating).toBe(false);
     });
 
@@ -42,13 +58,13 @@ describe('getActorIdentity contract', () => {
   });
 
   describe('when delegating (controlledSeat=botSeat)', () => {
-    it('returns bot seat/role as actor identity', () => {
+    it('returns effectiveSeat/effectiveRole as actor identity when consistent', () => {
       const result = getActorIdentity({
         mySeatNumber: 0, // Host's real seat
         myRole: 'wolf',
         effectiveSeat: 5, // Bot seat being controlled
         effectiveRole: 'seer', // Bot's role
-        controlledSeat: 5,
+        controlledSeat: 5, // Matches effectiveSeat
       });
 
       expect(result.actorSeatForUi).toBe(5);
@@ -56,17 +72,36 @@ describe('getActorIdentity contract', () => {
       expect(result.isDelegating).toBe(true);
     });
 
-    it('isDelegating is true even if effectiveSeat is same as mySeat', () => {
-      // Edge case: controlling the seat you're actually sitting on (shouldn't happen but test the flag)
+    it('FAIL-FAST: returns null identity when effectiveSeat !== controlledSeat (drift prevention)', () => {
+      // This tests the consistency check - if effectiveSeat doesn't match controlledSeat,
+      // something is wrong and we should fail-fast (return invalid identity)
+      const result = getActorIdentity({
+        mySeatNumber: 0,
+        myRole: 'wolf',
+        effectiveSeat: 3, // WRONG - should be 5
+        effectiveRole: 'hunter',
+        controlledSeat: 5, // Expects seat 5
+      });
+
+      expect(result.actorSeatForUi).toBeNull();
+      expect(result.actorRoleForUi).toBeNull();
+      expect(result.isDelegating).toBe(true); // Still delegating, just invalid
+      expect(isActorIdentityValid(result)).toBe(false);
+    });
+
+    it('isDelegating is true when controlling same seat as mySeat (edge case)', () => {
+      // Edge case: controlling the seat you're actually sitting on
       const result = getActorIdentity({
         mySeatNumber: 3,
         myRole: 'wolf',
         effectiveSeat: 3,
         effectiveRole: 'wolf',
-        controlledSeat: 3, // Controlling same seat (weird but valid)
+        controlledSeat: 3, // Controlling same seat
       });
 
-      expect(result.isDelegating).toBe(true);
+      expect(result.actorSeatForUi).toBe(3);
+      expect(result.actorRoleForUi).toBe('wolf');
+      expect(result.isDelegating).toBe(true); // Flag is based on controlledSeat !== null
     });
   });
 
@@ -106,6 +141,18 @@ describe('getActorIdentity contract', () => {
 
       expect(isActorIdentityValid(identity)).toBe(false);
     });
+
+    it('returns false for inconsistent delegation state', () => {
+      const identity = getActorIdentity({
+        mySeatNumber: 0,
+        myRole: 'wolf',
+        effectiveSeat: 3, // Mismatches controlledSeat
+        effectiveRole: 'seer',
+        controlledSeat: 5,
+      });
+
+      expect(isActorIdentityValid(identity)).toBe(false);
+    });
   });
 });
 
@@ -136,5 +183,20 @@ describe('actor identity integration with policy context', () => {
     expect(controllingBot.actorSeatForUi).toBe(5);
     expect(controllingBot.actorRoleForUi).toBe('seer');
     expect(controllingBot.isDelegating).toBe(true);
+  });
+
+  it('releasing control reverts to real identity', () => {
+    // Host releases control - back to real identity
+    const released = getActorIdentity({
+      mySeatNumber: 0,
+      myRole: 'wolf',
+      effectiveSeat: 0, // Back to mySeat
+      effectiveRole: 'wolf',
+      controlledSeat: null, // No longer controlling
+    });
+
+    expect(released.actorSeatForUi).toBe(0);
+    expect(released.actorRoleForUi).toBe('wolf');
+    expect(released.isDelegating).toBe(false);
   });
 });

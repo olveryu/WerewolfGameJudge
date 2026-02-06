@@ -34,6 +34,10 @@ function createBaseContext(overrides: Partial<InteractionContext> = {}): Interac
     // Actor identity (for actions)
     actorSeatForUi: 0,
     actorRoleForUi: 'villager',
+    // Debug mode (required, non-optional)
+    isDebugMode: false,
+    controlledSeat: null,
+    isDelegating: false,
     ...overrides,
   };
 }
