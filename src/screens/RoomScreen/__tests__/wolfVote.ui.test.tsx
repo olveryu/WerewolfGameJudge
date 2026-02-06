@@ -2,6 +2,7 @@ import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { RoomScreen } from '../RoomScreen';
 import { TESTIDS } from '../../../testids';
+import { RoomScreenTestHarness, createShowAlertMock } from './harness';
 
 // We assert on showAlert calls (RoomScreen uses this wrapper)
 import { showAlert } from '../../../utils/alert';
@@ -368,5 +369,120 @@ describe('RoomScreen wolf vote UI', () => {
     expect(submitWolfVoteMock).not.toBeNull();
     const submitWolfVoteSpy = submitWolfVoteMock as unknown as jest.Mock;
     expect(submitWolfVoteSpy).toHaveBeenCalledWith(2);
+  });
+});
+
+// =============================================================================
+// Chain interaction tests (using enhanced harness)
+// =============================================================================
+
+describe('RoomScreen wolf vote chain interaction (harness)', () => {
+  let harness: RoomScreenTestHarness;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    harness = new RoomScreenTestHarness();
+    (showAlert as jest.Mock).mockImplementation(createShowAlertMock(harness));
+    mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
+  });
+
+  it('tap seat → wolfVote dialog → press 确定 → submitWolfVote called with correct target', async () => {
+    mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
+
+    const props: any = {
+      navigation: mockNavigation,
+      route: {
+        params: { roomNumber: '1234', isHost: false, template: '梦魇守卫12人' },
+      },
+    };
+
+    const { findByTestId, findByText } = render(<RoomScreen {...props} />);
+
+    // Wait for action prompt to render
+    await findByText(/请选择要猎杀的玩家/);
+    harness.clear(); // Discard auto-trigger events
+
+    // Tap seat 3 (index 2)
+    const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
+    await act(async () => {
+      fireEvent.press(seatPressable);
+    });
+
+    // wolfVote dialog should appear
+    await waitFor(() => {
+      harness.expectSeen('wolfVote');
+    });
+
+    // Use new harness API: press 确定 on the wolfVote dialog
+    await act(async () => {
+      harness.pressButtonOnType('wolfVote', '确定');
+    });
+
+    // submitWolfVote should be called with the target seat index
+    expect(mockSubmitWolfVote).toHaveBeenCalledWith(2);
+  });
+
+  it('tap seat → wolfVote dialog → press 取消 → submitWolfVote NOT called', async () => {
+    mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
+
+    const props: any = {
+      navigation: mockNavigation,
+      route: {
+        params: { roomNumber: '1234', isHost: false, template: '梦魇守卫12人' },
+      },
+    };
+
+    const { findByTestId, findByText } = render(<RoomScreen {...props} />);
+
+    await findByText(/请选择要猎杀的玩家/);
+    harness.clear();
+
+    const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
+    await act(async () => {
+      fireEvent.press(seatPressable);
+    });
+
+    await waitFor(() => {
+      harness.expectSeen('wolfVote');
+    });
+
+    // Press cancel — submitWolfVote must NOT be called
+    await act(async () => {
+      harness.pressButtonOnType('wolfVote', '取消');
+    });
+
+    expect(mockSubmitWolfVote).not.toHaveBeenCalled();
+  });
+
+  it('harness getLastEvent returns the wolfVote dialog with correct metadata', async () => {
+    mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
+
+    const props: any = {
+      navigation: mockNavigation,
+      route: {
+        params: { roomNumber: '1234', isHost: false, template: '梦魇守卫12人' },
+      },
+    };
+
+    const { findByTestId, findByText } = render(<RoomScreen {...props} />);
+
+    await findByText(/请选择要猎杀的玩家/);
+    harness.clear();
+
+    const seatPressable = await findByTestId(TESTIDS.seatTilePressable(4));
+    await act(async () => {
+      fireEvent.press(seatPressable);
+    });
+
+    await waitFor(() => {
+      harness.expectSeen('wolfVote');
+    });
+
+    // Verify event metadata
+    const event = harness.getLastEventOfType('wolfVote');
+    expect(event).not.toBeNull();
+    expect(event!.title).toBe('狼人投票');
+    expect(event!.buttons).toEqual(expect.arrayContaining(['确定', '取消']));
+    expect(event!.buttons.length).toBe(2);
   });
 });

@@ -23,6 +23,8 @@ import {
   createGameRoomMock,
   waitForRoomScreen,
   tapSeat,
+  chainWolfVoteConfirm,
+  chainConfirmTrigger,
 } from '../harness';
 
 jest.mock('../../../../utils/alert', () => ({
@@ -207,6 +209,39 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
       await waitFor(() =>
         expect(harness.hasSeen('confirmTrigger') || harness.hasSeen('actionPrompt')).toBe(true),
+      );
+    });
+  });
+
+  // =============================================================================
+  // Chain Interaction (press button → assert callback)
+  // =============================================================================
+
+  describe('chain interaction', () => {
+    const renderRoom = () =>
+      render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+    const setMock = (m: ReturnType<typeof createGameRoomMock>) => {
+      mockUseGameRoomReturn = m;
+    };
+
+    it('wolfVote confirm → submitWolfVote called', async () => {
+      await chainWolfVoteConfirm(
+        harness, setMock, renderRoom,
+        'wolf', 4,
+        new Map<number, any>([[4, 'wolf'], [5, 'wolf'], [6, 'wolf'], [7, 'gargoyle']]),
+        1,
+      );
+    });
+
+    it('confirmTrigger (hunter) → dialog dismissed', async () => {
+      await chainConfirmTrigger(
+        harness, setMock, renderRoom,
+        'hunterConfirm', 'hunter', 'hunter', 10,
       );
     });
   });

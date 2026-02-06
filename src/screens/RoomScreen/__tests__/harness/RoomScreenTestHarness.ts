@@ -73,6 +73,12 @@ export interface DialogEvent {
   timestamp: number;
   /** Raw call arguments for debugging */
   raw: { title: string; message?: string; buttons?: any[] };
+  /**
+   * Button callbacks keyed by button text.
+   * Use harness.pressButton() to invoke; do NOT call directly.
+   * @internal
+   */
+  _callbacks: Map<string, (() => void) | undefined>;
 }
 
 // =============================================================================
@@ -192,7 +198,6 @@ function classifyDialog(title: string, message: string): DialogType {
 
 export class RoomScreenTestHarness {
   private _events: DialogEvent[] = [];
-  private readonly _buttonCallbacks: Map<string, (() => void) | undefined> = new Map();
 
   /**
    * Get all recorded dialog events
@@ -278,10 +283,13 @@ export class RoomScreenTestHarness {
   }
 
   /**
-   * Press a button by text (triggers the callback if any)
+   * Press a button by text on the LAST recorded dialog.
+   * @deprecated Use pressButton() for fail-fast behavior.
    */
   press(text: string): void {
-    const callback = this._buttonCallbacks.get(text);
+    const last = this._events.at(-1);
+    if (!last) return;
+    const callback = last._callbacks.get(text);
     if (callback) {
       callback();
     }
@@ -289,6 +297,7 @@ export class RoomScreenTestHarness {
 
   /**
    * Press the primary button (first button, usually "确定" or "知道了")
+   * @deprecated Use pressButton() for fail-fast behavior.
    */
   pressPrimary(): void {
     const lastEvent = this._events.at(-1);
@@ -299,6 +308,7 @@ export class RoomScreenTestHarness {
 
   /**
    * Press the cancel button (second button, usually "取消")
+   * @deprecated Use pressButton() for fail-fast behavior.
    */
   pressCancel(): void {
     const lastEvent = this._events.at(-1);
@@ -307,16 +317,148 @@ export class RoomScreenTestHarness {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Enhanced Button Press API (fail-fast)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get the last recorded dialog event.
+   * Returns null if no dialogs have been recorded.
+   */
+  getLastEvent(): DialogEvent | null {
+    return this._events.at(-1) ?? null;
+  }
+
+  /**
+   * Get the last recorded dialog event of a specific type.
+   * Returns null if no matching dialog has been recorded.
+   */
+  getLastEventOfType(type: DialogType): DialogEvent | null {
+    for (let i = this._events.length - 1; i >= 0; i--) {
+      if (this._events[i].type === type) return this._events[i];
+    }
+    return null;
+  }
+
+  /**
+   * Press a button on the last dialog, identified by label.
+   * FAIL-FAST: Throws if no dialog recorded or button label not found.
+   *
+   * @example
+   * harness.pressButton('确定');
+   * harness.pressButton('取消');
+   */
+  pressButton(label: string): void {
+    const last = this._events.at(-1);
+    if (!last) {
+      throw new Error(
+        `[pressButton] No dialog recorded. Cannot press "${label}".`,
+      );
+    }
+    this._pressButtonOnEvent(last, label);
+  }
+
+  /**
+   * Press a button by index on the last dialog.
+   * FAIL-FAST: Throws if no dialog or index out of range.
+   *
+   * @example
+   * harness.pressButtonByIndex(0); // first button (usually "确定")
+   * harness.pressButtonByIndex(1); // second button (usually "取消")
+   */
+  pressButtonByIndex(index: number): void {
+    const last = this._events.at(-1);
+    if (!last) {
+      throw new Error(
+        `[pressButtonByIndex] No dialog recorded. Cannot press button at index ${index}.`,
+      );
+    }
+    if (index < 0 || index >= last.buttons.length) {
+      throw new Error(
+        `[pressButtonByIndex] Button index ${index} out of range. ` +
+          `Last dialog "${last.title}" has ${last.buttons.length} button(s): [${last.buttons.join(', ')}]`,
+      );
+    }
+    this._pressButtonOnEvent(last, last.buttons[index]);
+  }
+
+  /**
+   * Press a button on the last dialog of a given type, identified by label.
+   * FAIL-FAST: Throws if no dialog of that type found or button label not found.
+   *
+   * @example
+   * harness.pressButtonOnType('wolfVote', '确定');
+   * harness.pressButtonOnType('skipConfirm', '确定');
+   */
+  pressButtonOnType(type: DialogType, label: string): void {
+    const event = this.getLastEventOfType(type);
+    if (!event) {
+      const seenTypes = [...new Set(this._events.map((e) => e.type))];
+      throw new Error(
+        `[pressButtonOnType] No dialog of type '${type}' found.\n` +
+          `Seen types: [${seenTypes.join(', ')}]\n` +
+          `Total events: ${this._events.length}`,
+      );
+    }
+    this._pressButtonOnEvent(event, label);
+  }
+
+  /**
+   * Press the primary (first) button on the last dialog.
+   * FAIL-FAST: Throws if no dialog recorded or no buttons.
+   */
+  pressLastPrimary(): void {
+    this.pressButtonByIndex(0);
+  }
+
+  /**
+   * Press the primary (first) button on the last dialog of a given type.
+   * FAIL-FAST: Throws if no dialog of that type found or no buttons.
+   */
+  pressPrimaryOnType(type: DialogType): void {
+    const event = this.getLastEventOfType(type);
+    if (!event) {
+      const seenTypes = [...new Set(this._events.map((e) => e.type))];
+      throw new Error(
+        `[pressPrimaryOnType] No dialog of type '${type}' found.\n` +
+          `Seen types: [${seenTypes.join(', ')}]\n` +
+          `Total events: ${this._events.length}`,
+      );
+    }
+    if (event.buttons.length === 0) {
+      throw new Error(
+        `[pressPrimaryOnType] Dialog '${type}' ("${event.title}") has no buttons.`,
+      );
+    }
+    this._pressButtonOnEvent(event, event.buttons[0]);
+  }
+
+  /**
+   * Internal: press a button on a specific event, with fail-fast.
+   */
+  private _pressButtonOnEvent(event: DialogEvent, label: string): void {
+    const callback = event._callbacks.get(label);
+    if (callback === undefined && !event._callbacks.has(label)) {
+      throw new Error(
+        `[pressButton] Button "${label}" not found in dialog "${event.title}".\n` +
+          `Available buttons: [${event.buttons.join(', ')}]\n` +
+          `Message: "${event.message}"`,
+      );
+    }
+    // callback may be undefined (button exists but no onPress) — that's valid, just a no-op
+    callback?.();
+  }
+
   /**
    * Clear all recorded events
    */
   clear(): void {
     this._events = [];
-    this._buttonCallbacks.clear();
   }
 
   /**
    * Get the last event
+   * @deprecated Use getLastEvent() instead.
    */
   lastEvent(): DialogEvent | undefined {
     return this._events.at(-1);
@@ -329,13 +471,14 @@ export class RoomScreenTestHarness {
   _record(title: string, message?: string, buttons?: any[]): void {
     const msg = message || '';
     const type = classifyDialog(title, msg);
-    const buttonTexts = (buttons || [{ text: '确定' }]).map((b: any) => b.text || '');
+    const btnArray = buttons || [{ text: '确定' }];
+    const buttonTexts = btnArray.map((b: any) => b.text || '');
 
-    // Store callbacks for press simulation
-    this._buttonCallbacks.clear();
-    for (const btn of buttons || []) {
-      if (btn.text && btn.onPress) {
-        this._buttonCallbacks.set(btn.text, btn.onPress);
+    // Build per-event callback map
+    const callbacks = new Map<string, (() => void) | undefined>();
+    for (const btn of btnArray) {
+      if (btn.text) {
+        callbacks.set(btn.text, btn.onPress);
       }
     }
 
@@ -346,6 +489,7 @@ export class RoomScreenTestHarness {
       buttons: buttonTexts,
       timestamp: Date.now(),
       raw: { title, message, buttons },
+      _callbacks: callbacks,
     });
   }
 }

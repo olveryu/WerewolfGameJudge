@@ -36,6 +36,9 @@ import {
   createReactiveGameRoomMock,
   waitForRoomScreen,
   tapSeat,
+  chainWolfVoteConfirm,
+  chainSkipConfirm,
+  chainConfirmTrigger,
 } from '../harness';
 
 // =============================================================================
@@ -490,6 +493,46 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitFor(() => {
         expect(harness.hasSeen('wolfVote')).toBe(true);
       });
+    });
+  });
+
+  // =============================================================================
+  // Chain Interaction (press button → assert callback)
+  // =============================================================================
+
+  describe('chain interaction', () => {
+    const renderRoom = () =>
+      render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+    const setMock = (m: ReturnType<typeof createGameRoomMock>) => {
+      mockUseGameRoomReturn = m;
+    };
+
+    it('wolfVote confirm → submitWolfVote called', async () => {
+      await chainWolfVoteConfirm(
+        harness, setMock, renderRoom,
+        'nightmare', 7,
+        new Map<number, any>([[4, 'wolf'], [5, 'wolf'], [6, 'wolf'], [7, 'nightmare']]),
+        1,
+      );
+    });
+
+    it('skipConfirm (guard) → submitAction called', async () => {
+      await chainSkipConfirm(
+        harness, setMock, renderRoom,
+        'guardProtect', 'guard', 'guard', 11,
+      );
+    });
+
+    it('confirmTrigger (hunter) → dialog dismissed', async () => {
+      await chainConfirmTrigger(
+        harness, setMock, renderRoom,
+        'hunterConfirm', 'hunter', 'hunter', 10,
+      );
     });
   });
 

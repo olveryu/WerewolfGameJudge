@@ -20,6 +20,9 @@ import {
   createGameRoomMock,
   waitForRoomScreen,
   tapSeat,
+  chainWolfVoteConfirm,
+  chainSkipConfirm,
+  chainConfirmTrigger,
 } from '../harness';
 
 jest.mock('../../../../utils/alert', () => ({
@@ -253,6 +256,49 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       fireEvent.press(skipButton);
 
       await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
+    });
+  });
+
+  // =============================================================================
+  // Chain Interaction (press button → assert callback)
+  // =============================================================================
+
+  describe('chain interaction', () => {
+    const renderRoom = () =>
+      render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+    const setMock = (m: ReturnType<typeof createGameRoomMock>) => {
+      mockUseGameRoomReturn = m;
+    };
+
+    it('wolfVote confirm → submitWolfVote called', async () => {
+      await chainWolfVoteConfirm(
+        harness,
+        setMock,
+        renderRoom,
+        'darkWolfKing',
+        7,
+        new Map<number, any>([[4, 'wolf'], [5, 'wolf'], [6, 'wolf'], [7, 'darkWolfKing']]),
+        1,
+      );
+    });
+
+    it('skipConfirm (guard) → submitAction called', async () => {
+      await chainSkipConfirm(
+        harness, setMock, renderRoom,
+        'guardProtect', 'guard', 'guard', 11,
+      );
+    });
+
+    it('confirmTrigger (darkWolfKing) → dialog dismissed', async () => {
+      await chainConfirmTrigger(
+        harness, setMock, renderRoom,
+        'darkWolfKingConfirm', 'darkWolfKing', 'darkWolfKing', 7,
+      );
     });
   });
 

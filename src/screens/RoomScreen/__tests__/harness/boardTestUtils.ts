@@ -477,3 +477,259 @@ export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions)
  */
 export type ReactiveGameRoomMock = ReturnType<typeof createReactiveGameRoomMock>;
 
+// =============================================================================
+// Chain Interaction Drivers
+// =============================================================================
+//
+// Shared helpers for chain interaction tests:
+//   render → trigger dialog → press button → assert callback fired
+//
+// Usage in board tests:
+//   import { chainWolfVoteConfirm, chainSkipConfirm, ... } from '../harness';
+//   it('wolfVote confirm → submitWolfVote called', async () => {
+//     await chainWolfVoteConfirm(harness, mockUseGameRoomReturn, ...);
+//   });
+// =============================================================================
+
+/** Common RoomScreen route/navigation props for chain drivers */
+const ROOM_PROPS = {
+  route: { params: { roomNumber: '1234', isHost: false } } as any,
+};
+
+/**
+ * Chain interaction: wolfVote confirm → submitWolfVote called
+ *
+ * Flow: render wolf step → tap seat → wolfVote dialog → press "确定"
+ *       → assert submitWolfVote was called with correct targetIndex
+ *
+ * @returns The submitWolfVote mock for further assertions if needed
+ */
+export async function chainWolfVoteConfirm(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  wolfRole: RoleId,
+  wolfSeat: number,
+  wolfAssignments: Map<number, RoleId>,
+  targetSeat: number,
+): Promise<jest.Mock> {
+  const submitWolfVote = jest.fn().mockResolvedValue(undefined);
+  mockSetter(
+    createGameRoomMock({
+      schemaId: 'wolfKill',
+      currentActionRole: 'wolf',
+      myRole: wolfRole,
+      mySeatNumber: wolfSeat,
+      roleAssignments: wolfAssignments,
+      hookOverrides: { submitWolfVote },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+  harness.clear();
+
+  tapSeat(result.getByTestId, targetSeat);
+  await waitFor(() => expect(harness.hasSeen('wolfVote')).toBe(true));
+
+  // Chain: press "确定" → submitWolfVote called
+  harness.pressButtonOnType('wolfVote', '确定');
+  expect(submitWolfVote).toHaveBeenCalledTimes(1);
+  expect(submitWolfVote).toHaveBeenCalledWith(targetSeat);
+
+  result.unmount();
+  return submitWolfVote;
+}
+
+/**
+ * Chain interaction: skipConfirm → submitAction called
+ *
+ * Flow: render guard step → press "不使用技能" → skipConfirm dialog
+ *       → press "确定" → assert submitAction was called
+ *
+ * @returns The submitAction mock for further assertions if needed
+ */
+export async function chainSkipConfirm(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  schemaId: SchemaId,
+  actionRole: RoleId,
+  playerRole: RoleId,
+  seatNumber: number,
+): Promise<jest.Mock> {
+  const submitAction = jest.fn().mockResolvedValue(undefined);
+  mockSetter(
+    createGameRoomMock({
+      schemaId,
+      currentActionRole: actionRole,
+      myRole: playerRole,
+      mySeatNumber: seatNumber,
+      hookOverrides: { submitAction },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+  harness.clear();
+
+  // Press the skip button
+  const skipButton = result.getByText('不使用技能');
+  fireEvent.press(skipButton);
+  await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
+
+  // Chain: press "确定" → submitAction called
+  harness.pressButtonOnType('skipConfirm', '确定');
+  expect(submitAction).toHaveBeenCalledTimes(1);
+
+  result.unmount();
+  return submitAction;
+}
+
+/**
+ * Chain interaction: confirmTrigger → dialog dismissed with "知道了"
+ *
+ * Flow: render confirm step → press "查看发动状态" → confirmTrigger dialog
+ *       → press "知道了" → verify dialog button callback fired
+ *
+ * Note: confirmTrigger shows status info; pressing "知道了" dismisses it.
+ * The confirm step itself is about viewing status, not submitting an action.
+ */
+export async function chainConfirmTrigger(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  schemaId: SchemaId,
+  actionRole: RoleId,
+  playerRole: RoleId,
+  seatNumber: number,
+): Promise<void> {
+  mockSetter(
+    createGameRoomMock({
+      schemaId,
+      currentActionRole: actionRole,
+      myRole: playerRole,
+      mySeatNumber: seatNumber,
+      hookOverrides: {
+        getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
+      },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+  harness.clear();
+
+  // Press the bottom button to trigger confirmTrigger dialog
+  await waitFor(() => expect(result.queryByText('查看发动状态')).toBeTruthy());
+  const confirmButton = result.getByText('查看发动状态');
+  fireEvent.press(confirmButton);
+  await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
+
+  // Chain: press primary button ("知道了") → dialog callback fires
+  harness.pressPrimaryOnType('confirmTrigger');
+  // Verify the dialog was interacted with (callback ran without throwing)
+
+  result.unmount();
+}
+
+/**
+ * Chain interaction: wolfRobotHunterStatus gate → sendWolfRobotHunterStatusViewed called
+ *
+ * Flow: render wolfRobot learn (hunter learned) → press "查看发动状态"
+ *       → wolfRobotHunterStatus dialog → press primary
+ *       → assert sendWolfRobotHunterStatusViewed was called
+ *
+ * @returns The sendWolfRobotHunterStatusViewed mock
+ */
+export async function chainWolfRobotHunterStatus(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  seatNumber: number,
+): Promise<jest.Mock> {
+  const sendMock = jest.fn().mockResolvedValue(undefined);
+  mockSetter(
+    createGameRoomMock({
+      schemaId: 'wolfRobotLearn',
+      currentActionRole: 'wolfRobot',
+      myRole: 'wolfRobot',
+      mySeatNumber: seatNumber,
+      gameStateOverrides: {
+        wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+        wolfRobotHunterStatusViewed: false,
+      },
+      hookOverrides: {
+        sendWolfRobotHunterStatusViewed: sendMock,
+      },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+  harness.clear();
+
+  // Press gate button
+  const gateButton = result.getByText('查看发动状态');
+  fireEvent.press(gateButton);
+  await waitFor(() => expect(harness.hasSeen('wolfRobotHunterStatus')).toBe(true));
+
+  // Chain: press primary → sendWolfRobotHunterStatusViewed called
+  harness.pressPrimaryOnType('wolfRobotHunterStatus');
+  await waitFor(() => expect(sendMock).toHaveBeenCalledTimes(1));
+
+  result.unmount();
+  return sendMock;
+}
+
+/**
+ * Chain interaction: magician actionConfirm → submitAction called
+ *
+ * Flow: render magician swap → tap seat 1 → magicianFirst dialog → press "知道了"
+ *       → tap seat 2 → actionConfirm dialog → press "确定"
+ *       → assert submitAction was called
+ *
+ * @returns The submitAction mock
+ */
+export async function chainActionConfirm(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  seatNumber: number,
+  firstTarget: number,
+  secondTarget: number,
+): Promise<jest.Mock> {
+  const submitAction = jest.fn().mockResolvedValue(undefined);
+  mockSetter(
+    createGameRoomMock({
+      schemaId: 'magicianSwap',
+      currentActionRole: 'magician',
+      myRole: 'magician',
+      mySeatNumber: seatNumber,
+      hookOverrides: { submitAction },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+  harness.clear();
+
+  // First tap → magicianFirst
+  tapSeat(result.getByTestId, firstTarget);
+  await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
+
+  // Dismiss first dialog
+  harness.pressPrimaryOnType('magicianFirst');
+
+  // Second tap → actionConfirm
+  tapSeat(result.getByTestId, secondTarget);
+  await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+
+  // Chain: press "确定" → submitAction called
+  harness.pressButtonOnType('actionConfirm', '确定');
+  expect(submitAction).toHaveBeenCalledTimes(1);
+
+  result.unmount();
+  return submitAction;
+}
+
