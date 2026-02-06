@@ -54,7 +54,7 @@ export const Dropdown = memo<DropdownProps>(({ label, value, options, onSelect, 
 
   return (
     <View style={styles.settingsItem}>
-      <Text style={styles.settingsLabel}>{label}</Text>
+      {label ? <Text style={styles.settingsLabel}>{label}</Text> : null}
       <TouchableOpacity style={styles.settingsSelector} onPress={handleOpen} activeOpacity={0.7}>
         <Text style={styles.settingsSelectorText} numberOfLines={1}>
           {selectedOption?.label ?? value}
@@ -66,7 +66,7 @@ export const Dropdown = memo<DropdownProps>(({ label, value, options, onSelect, 
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={handleClose}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{label}</Text>
+              <Text style={styles.modalTitle}>{label || '选择'}</Text>
               <TouchableOpacity style={styles.modalCloseBtn} onPress={handleClose}>
                 <Text style={styles.modalCloseBtnText}>✕</Text>
               </TouchableOpacity>

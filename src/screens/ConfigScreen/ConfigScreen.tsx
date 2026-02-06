@@ -8,7 +8,7 @@
  * - Role list is data-driven from FACTION_GROUPS + ROLE_SPECS (no hand-written chips)
  */
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -35,7 +35,7 @@ import {
   RoleStepper,
   Section,
   FactionTabs,
-  BottomActionBar,
+  Dropdown,
   createConfigScreenStyles,
   type DropdownOption,
   type FactionColorKey,
@@ -277,10 +277,13 @@ export const ConfigScreen: React.FC = () => {
     isLoading,
   ]);
 
-  // Template dropdown options
+  // Template dropdown options (short display names, strip "12人" suffix)
   const templateOptions: DropdownOption[] = useMemo(
     () => [
-      ...PRESET_TEMPLATES.map((p) => ({ value: p.name, label: p.name })),
+      ...PRESET_TEMPLATES.map((p) => ({
+        value: p.name,
+        label: p.name.replace(/\d+人$/, ''),
+      })),
       { value: '__custom__', label: '自定义' },
     ],
     [],
@@ -335,6 +338,47 @@ export const ConfigScreen: React.FC = () => {
   const handleTabPress = useCallback((key: string) => {
     setActiveTab(key);
   }, []);
+
+  // ============================================
+  // Settings sheet (Animation + BGM)
+  // ============================================
+
+  const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
+
+  const handleOpenSettings = useCallback(() => {
+    setSettingsSheetVisible(true);
+  }, []);
+
+  const handleCloseSettings = useCallback(() => {
+    setSettingsSheetVisible(false);
+  }, []);
+
+  // ============================================
+  // Template dropdown (title-style trigger in header)
+  // ============================================
+
+  const [templateDropdownVisible, setTemplateDropdownVisible] = useState(false);
+
+  const handleOpenTemplateDropdown = useCallback(() => {
+    setTemplateDropdownVisible(true);
+  }, []);
+
+  const handleCloseTemplateDropdown = useCallback(() => {
+    setTemplateDropdownVisible(false);
+  }, []);
+
+  const handleSelectTemplate = useCallback(
+    (value: string) => {
+      handleTemplateChange(value);
+      setTemplateDropdownVisible(false);
+    },
+    [handleTemplateChange],
+  );
+
+  const selectedTemplateLabel = useMemo(() => {
+    const opt = templateOptions.find((o) => o.value === selectedTemplate);
+    return opt?.label ?? selectedTemplate;
+  }, [selectedTemplate, templateOptions]);
 
   // ============================================
   // Bulk role stepper
@@ -442,29 +486,35 @@ export const ConfigScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
-      {/* Header — back + title + create */}
+      {/* Header row 1 — ← | 配置 | ⚙️ */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={handleGoBack}>
           <Text style={styles.headerBtnText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>{isEditMode ? '修改配置' : '创建房间'}</Text>
-          <Text style={styles.subtitle}>{totalCount} 名玩家</Text>
+          <Text style={styles.headerTitle}>配置</Text>
         </View>
         <TouchableOpacity
-          style={[styles.headerCreateBtn, isDisabled && styles.headerCreateBtnDisabled]}
-          onPress={handleCreateRoom}
-          activeOpacity={isDisabled ? 1 : 0.7}
-          accessibilityState={{ disabled: isDisabled }}
+          style={styles.headerGearBtn}
+          onPress={handleOpenSettings}
+          activeOpacity={0.7}
+          testID="config-gear-btn"
         >
-          {isCreating ? (
-            <ActivityIndicator color={colors.textInverse} size="small" />
-          ) : (
-            <Text style={styles.headerCreateBtnText}>
-              {isEditMode ? '保存' : '创建'}
-            </Text>
-          )}
+          <Text style={styles.headerGearBtnText}>⚙️</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Header row 2 — template pill + player count (centered) */}
+      <View style={styles.templateRow}>
+        <TouchableOpacity
+          style={styles.templatePill}
+          onPress={handleOpenTemplateDropdown}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.templatePillText}>{selectedTemplateLabel}</Text>
+          <Text style={styles.templatePillArrow}>▾</Text>
+        </TouchableOpacity>
+        <Text style={styles.playerCount}>{totalCount}人</Text>
       </View>
 
       {/* Faction Tab Bar */}
@@ -525,22 +575,108 @@ export const ConfigScreen: React.FC = () => {
               );
             })}
           </ScrollView>
-
-          {/* Bottom Action Bar (Template + Animation + BGM) */}
-          <BottomActionBar
-            templateValue={selectedTemplate}
-            templateOptions={templateOptions}
-            onTemplateChange={handleTemplateChange}
-            animationValue={roleRevealAnimation}
-            animationOptions={animationOptions}
-            onAnimationChange={handleAnimationChange}
-            bgmValue={bgmEnabled ? 'on' : 'off'}
-            bgmOptions={bgmOptions}
-            onBgmChange={handleBgmChange}
-            styles={styles}
-          />
         </>
       )}
+
+      {/* Bottom Create Button */}
+      <View style={styles.bottomCreateBar}>
+        <TouchableOpacity
+          style={[styles.bottomCreateBtn, isDisabled && styles.bottomCreateBtnDisabled]}
+          onPress={handleCreateRoom}
+          activeOpacity={isDisabled ? 1 : 0.7}
+          accessibilityState={{ disabled: isDisabled }}
+        >
+          {isCreating ? (
+            <ActivityIndicator color={colors.textInverse} size="small" />
+          ) : (
+            <Text style={styles.bottomCreateBtnText}>
+              {isEditMode ? '保存配置' : '创建房间'}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Settings Sheet (Animation + BGM) */}
+      <Modal
+        visible={settingsSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={handleCloseSettings}
+      >
+        <TouchableOpacity
+          style={styles.settingsSheetOverlay}
+          activeOpacity={1}
+          onPress={handleCloseSettings}
+        >
+          <View style={styles.settingsSheetContent}>
+            <View style={styles.settingsSheetHandle} />
+            <Text style={styles.settingsSheetTitle}>设置</Text>
+            <View style={styles.settingsRow}>
+              <Dropdown
+                label="动画"
+                value={roleRevealAnimation}
+                options={animationOptions}
+                onSelect={handleAnimationChange}
+                styles={styles}
+              />
+              <Dropdown
+                label="BGM"
+                value={bgmEnabled ? 'on' : 'off'}
+                options={bgmOptions}
+                onSelect={handleBgmChange}
+                styles={styles}
+              />
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Template Dropdown Modal */}
+      <Modal
+        visible={templateDropdownVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={handleCloseTemplateDropdown}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={handleCloseTemplateDropdown}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>选择板子</Text>
+              <TouchableOpacity style={styles.modalCloseBtn} onPress={handleCloseTemplateDropdown}>
+                <Text style={styles.modalCloseBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView>
+              {templateOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.modalOption,
+                    option.value === selectedTemplate && styles.modalOptionSelected,
+                  ]}
+                  onPress={() => handleSelectTemplate(option.value)}
+                >
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      option.value === selectedTemplate && styles.modalOptionTextSelected,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  {option.value === selectedTemplate && (
+                    <Text style={styles.modalOptionCheck}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
     </SafeAreaView>
   );

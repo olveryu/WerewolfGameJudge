@@ -50,32 +50,8 @@ export interface FactionGroup {
 
 export const FACTION_GROUPS: FactionGroup[] = [
   {
-    title: '狼人阵营',
-    emoji: '🐺',
-    faction: Faction.Wolf,
-    sections: [
-      {
-        title: '普通狼人',
-        roles: [{ roleId: 'wolf', count: 5, isBulk: true }],
-      },
-      {
-        title: '技能狼',
-        roles: [
-          { roleId: 'wolfQueen' },
-          { roleId: 'wolfKing' },
-          { roleId: 'darkWolfKing' },
-          { roleId: 'gargoyle' },
-          { roleId: 'nightmare' },
-          { roleId: 'bloodMoon' },
-          { roleId: 'wolfRobot' },
-          { roleId: 'spiritKnight' },
-        ],
-      },
-    ],
-  },
-  {
     title: '好人阵营',
-    emoji: '👥',
+    emoji: '�',
     faction: Faction.Villager, // covers both Villager & God faction visually
     sections: [
       {
@@ -96,6 +72,30 @@ export const FACTION_GROUPS: FactionGroup[] = [
           { roleId: 'magician' },
           { roleId: 'witcher' },
           { roleId: 'psychic' },
+        ],
+      },
+    ],
+  },
+  {
+    title: '狼人阵营',
+    emoji: '�',
+    faction: Faction.Wolf,
+    sections: [
+      {
+        title: '普通狼人',
+        roles: [{ roleId: 'wolf', count: 5, isBulk: true }],
+      },
+      {
+        title: '技能狼',
+        roles: [
+          { roleId: 'wolfQueen' },
+          { roleId: 'wolfKing' },
+          { roleId: 'darkWolfKing' },
+          { roleId: 'gargoyle' },
+          { roleId: 'nightmare' },
+          { roleId: 'bloodMoon' },
+          { roleId: 'wolfRobot' },
+          { roleId: 'spiritKnight' },
         ],
       },
     ],

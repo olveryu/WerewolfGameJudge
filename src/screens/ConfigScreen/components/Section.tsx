@@ -20,7 +20,9 @@ export const Section = memo<SectionProps>(({ title, children, styles }) => {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.chipContainer}>{children}</View>
+      <View style={styles.sectionCard}>
+        <View style={styles.chipContainer}>{children}</View>
+      </View>
     </View>
   );
 });

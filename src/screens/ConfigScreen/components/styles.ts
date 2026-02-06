@@ -6,20 +6,37 @@
  * Layout: Tab-based faction switching (方案 A)
  */
 import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { spacing, borderRadius, typography, ThemeColors } from '../../../theme';
+import {
+  spacing,
+  borderRadius,
+  typography,
+  ThemeColors,
+  shadows,
+  layout,
+} from '../../../theme';
+import { componentSizes, fixed } from '../../../theme/tokens';
 
 export interface ConfigScreenStyles {
   container: ViewStyle;
-  // Header (back + title + create button)
+  // Header row 1 (back + 配置 title + gear)
   header: ViewStyle;
   headerBtn: ViewStyle;
   headerBtnText: TextStyle;
   headerCenter: ViewStyle;
-  title: TextStyle;
-  subtitle: TextStyle;
-  headerCreateBtn: ViewStyle;
-  headerCreateBtnDisabled: ViewStyle;
-  headerCreateBtnText: TextStyle;
+  headerTitle: TextStyle;
+  headerGearBtn: ViewStyle;
+  headerGearBtnText: TextStyle;
+  // Header row 2 (template pill + player count, centered)
+  templateRow: ViewStyle;
+  templatePill: ViewStyle;
+  templatePillText: TextStyle;
+  templatePillArrow: TextStyle;
+  playerCount: TextStyle;
+  // Bottom create button
+  bottomCreateBar: ViewStyle;
+  bottomCreateBtn: ViewStyle;
+  bottomCreateBtnDisabled: ViewStyle;
+  bottomCreateBtnText: TextStyle;
   // Faction tab bar
   tabBar: ViewStyle;
   tab: ViewStyle;
@@ -28,18 +45,22 @@ export interface ConfigScreenStyles {
   tabBadge: ViewStyle;
   tabBadgeText: TextStyle;
   tabIndicator: ViewStyle;
-  // Settings row (used by Dropdown inside BottomActionBar)
+  // Settings row (used by Dropdown)
   settingsRow: ViewStyle;
   settingsItem: ViewStyle;
   settingsLabel: TextStyle;
   settingsSelector: ViewStyle;
   settingsSelectorText: TextStyle;
   settingsSelectorArrow: TextStyle;
-  // Bottom action bar (Template + Animation + BGM)
-  bottomBar: ViewStyle;
-  // Section (within tab content)
+  // Settings sheet (Animation + BGM)
+  settingsSheetOverlay: ViewStyle;
+  settingsSheetContent: ViewStyle;
+  settingsSheetHandle: ViewStyle;
+  settingsSheetTitle: TextStyle;
+  // Section (within tab content) — iOS Grouped Card
   section: ViewStyle;
   sectionTitle: TextStyle;
+  sectionCard: ViewStyle;
   chipContainer: ViewStyle;
   // Role chip
   chip: ViewStyle;
@@ -85,21 +106,19 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       backgroundColor: colors.background,
     },
 
-    // ── Header ──────────────────────────────────
+    // ── Header row 1: ← | 配置 | ⚙️ ────────────
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: spacing.medium,
-      paddingBottom: spacing.small,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      justifyContent: 'space-between',
+      paddingHorizontal: layout.screenPaddingH,
+      paddingVertical: spacing.small + spacing.tight,
+      backgroundColor: colors.background,
     },
     headerBtn: {
-      width: spacing.xlarge + spacing.small,
-      height: spacing.xlarge + spacing.small,
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.background,
+      minWidth: componentSizes.button.sm,
+      height: componentSizes.button.sm,
+      borderRadius: componentSizes.button.sm / 2,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -110,42 +129,90 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     headerCenter: {
       flex: 1,
       alignItems: 'center',
-      justifyContent: 'center',
     },
-    title: {
+    headerTitle: {
       fontSize: typography.subtitle,
-      fontWeight: '600',
+      fontWeight: typography.weights.bold,
       color: colors.text,
     },
-    subtitle: {
+    headerGearBtn: {
+      minWidth: componentSizes.button.sm,
+      height: componentSizes.button.sm,
+      borderRadius: componentSizes.button.sm / 2,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerGearBtnText: {
+      fontSize: typography.body,
+    },
+
+    // ── Header row 2: [标准板 ▾] 12人 (centered) ──
+    templateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.small,
+      paddingBottom: spacing.small + spacing.tight,
+      gap: spacing.small,
+      backgroundColor: colors.background,
+    },
+    templatePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.full,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      paddingHorizontal: componentSizes.chip.paddingH,
+      paddingVertical: componentSizes.chip.paddingV,
+    },
+    templatePillText: {
+      fontSize: typography.secondary,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
+    },
+    templatePillArrow: {
+      fontSize: typography.caption,
+      color: colors.textSecondary,
+      marginLeft: spacing.tight,
+    },
+    playerCount: {
       fontSize: typography.secondary,
       color: colors.textSecondary,
-      marginTop: spacing.tight / 2,
+      fontWeight: typography.weights.medium,
     },
-    headerCreateBtn: {
-      width: spacing.xlarge + spacing.large + spacing.tight, // 60
-      height: spacing.xlarge + spacing.small, // 40
-      borderRadius: borderRadius.medium,
+
+    // ── Bottom create button ────────────────────
+    bottomCreateBar: {
+      paddingHorizontal: layout.screenPaddingH,
+      paddingVertical: spacing.small + spacing.tight,
+      backgroundColor: colors.background,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+    },
+    bottomCreateBtn: {
+      height: componentSizes.button.lg,
+      borderRadius: borderRadius.full,
       backgroundColor: colors.primary,
       justifyContent: 'center',
       alignItems: 'center',
     },
-    headerCreateBtnDisabled: {
+    bottomCreateBtnDisabled: {
       opacity: 0.5,
     },
-    headerCreateBtnText: {
+    bottomCreateBtnText: {
       color: colors.textInverse,
-      fontSize: typography.secondary,
-      fontWeight: '600',
+      fontSize: typography.body,
+      fontWeight: typography.weights.semibold,
     },
 
     // ── Settings row ────────────────────────────
     settingsRow: {
       flexDirection: 'row',
-      paddingHorizontal: spacing.medium,
+      paddingHorizontal: layout.screenPaddingH,
       paddingVertical: spacing.small,
       backgroundColor: colors.surface,
-      borderBottomWidth: 1,
+      borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
       gap: spacing.medium,
     },
@@ -165,7 +232,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       paddingVertical: spacing.small,
       backgroundColor: colors.background,
       borderRadius: borderRadius.medium,
-      borderWidth: 1,
+      borderWidth: fixed.borderWidth,
       borderColor: colors.border,
     },
     settingsSelectorText: {
@@ -182,65 +249,90 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     // ── Faction tab bar ─────────────────────────
     tabBar: {
       flexDirection: 'row',
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
+      backgroundColor: colors.background,
+      borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
+      paddingTop: spacing.tight,
     },
     tab: {
       flex: 1,
       alignItems: 'center',
-      paddingVertical: spacing.small + spacing.tight / 2,
+      paddingVertical: spacing.small + spacing.tight,
       position: 'relative' as const,
     },
-    tabActive: {
-      // active background is subtle — indicator line provides main highlight
-    },
+    tabActive: {},
     tabLabel: {
-      fontSize: typography.caption,
-      fontWeight: '600',
+      fontSize: typography.secondary,
+      fontWeight: typography.weights.semibold,
       color: colors.textMuted,
-      marginBottom: spacing.tight / 2,
+      marginBottom: spacing.tight,
     },
     tabBadge: {
-      paddingHorizontal: spacing.small,
-      paddingVertical: 1,
+      paddingHorizontal: spacing.small + spacing.tight,
+      paddingVertical: spacing.tight / 2,
       borderRadius: borderRadius.full,
     },
     tabBadgeText: {
-      fontSize: typography.caption,
-      fontWeight: '700',
-      color: colors.textMuted,
+      fontSize: typography.body,
+      fontWeight: typography.weights.bold,
+      color: colors.textSecondary,
     },
     tabIndicator: {
       position: 'absolute' as const,
       bottom: 0,
       left: spacing.medium,
       right: spacing.medium,
-      height: 2.5,
-      borderRadius: 2,
+      height: fixed.borderWidthThick + 0.5,
+      borderRadius: fixed.borderWidth,
     },
 
-    // ── Bottom action bar ───────────────────────
-    bottomBar: {
-      flexDirection: 'row',
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
+    // ── Settings sheet (Animation + BGM) ──────
+    settingsSheetOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      justifyContent: 'flex-end',
+    },
+    settingsSheetContent: {
       backgroundColor: colors.surface,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-      gap: spacing.medium,
+      borderTopLeftRadius: borderRadius.large,
+      borderTopRightRadius: borderRadius.large,
+      paddingHorizontal: layout.screenPaddingH,
+      paddingBottom: spacing.xlarge,
+    },
+    settingsSheetHandle: {
+      width: componentSizes.button.sm + spacing.tight,
+      height: spacing.tight,
+      borderRadius: spacing.tight / 2,
+      backgroundColor: colors.border,
+      alignSelf: 'center',
+      marginVertical: spacing.small + spacing.tight / 2,
+    },
+    settingsSheetTitle: {
+      fontSize: typography.subtitle,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
+      marginBottom: spacing.medium,
     },
 
-    // ── Section (within tab content) ────────────
+    // ── Section (iOS Grouped Card) ────────────
     section: {
       marginBottom: spacing.medium,
     },
     sectionTitle: {
-      fontSize: typography.secondary,
-      fontWeight: '500',
-      color: colors.textMuted,
+      fontSize: typography.caption,
+      fontWeight: typography.weights.medium,
+      color: colors.textSecondary,
       marginBottom: spacing.small,
+      marginLeft: spacing.tight,
+      textTransform: 'uppercase',
       letterSpacing: 0.5,
+    },
+    sectionCard: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.medium,
+      paddingHorizontal: layout.cardPadding,
+      paddingVertical: spacing.small + spacing.tight,
+      ...shadows.sm,
     },
     chipContainer: {
       flexDirection: 'row',
@@ -248,61 +340,65 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       gap: spacing.small,
     },
 
-    // ── Role chip ───────────────────────────────
+    // ── Role chip (inside card) ────────────────
     chip: {
       width: '30%',
-      paddingVertical: spacing.small + spacing.tight / 2,
+      paddingVertical: componentSizes.chip.paddingV,
       backgroundColor: colors.background,
       borderRadius: borderRadius.full,
-      borderWidth: 1.5,
+      borderWidth: fixed.borderWidth,
       borderColor: colors.border,
       alignItems: 'center',
       justifyContent: 'center',
     },
     chipSelected: {
-      backgroundColor: colors.primary + '15',
+      backgroundColor: colors.primary + '20',
       borderColor: colors.primary,
     },
     chipSelectedWolf: {
-      backgroundColor: colors.wolf + '15',
+      backgroundColor: colors.wolf + '20',
       borderColor: colors.wolf,
     },
     chipSelectedGood: {
-      backgroundColor: colors.god + '15',
+      backgroundColor: colors.god + '20',
       borderColor: colors.god,
     },
     chipSelectedNeutral: {
-      backgroundColor: colors.warning + '15',
+      backgroundColor: colors.warning + '20',
       borderColor: colors.warning,
     },
     chipText: {
       fontSize: typography.secondary,
-      fontWeight: '500',
+      fontWeight: typography.weights.medium,
       color: colors.textSecondary,
     },
     chipTextSelected: {
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
 
-    // ── Role stepper ────────────────────────────
+    // ── Role stepper (inside card) ────────────
     stepperRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingVertical: spacing.tight,
-      paddingHorizontal: spacing.tight,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.medium,
+      paddingVertical: spacing.small + spacing.tight,
+      paddingHorizontal: layout.cardPadding,
+      marginBottom: spacing.medium,
+      ...shadows.sm,
     },
     stepperLabel: {
       fontSize: typography.body,
       color: colors.text,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     stepperPill: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: colors.background,
       borderRadius: borderRadius.full,
-      borderWidth: 1,
+      borderWidth: fixed.borderWidth,
       borderColor: colors.border,
       paddingHorizontal: spacing.tight / 2,
       paddingVertical: spacing.tight / 2,
@@ -324,14 +420,14 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     stepperBtnText: {
       fontSize: typography.subtitle,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     stepperBtnTextDisabled: {
       color: colors.textMuted,
     },
     stepperCount: {
       fontSize: typography.body,
-      fontWeight: '700',
+      fontWeight: typography.weights.bold,
       color: colors.text,
       minWidth: spacing.large,
       textAlign: 'center',
@@ -340,7 +436,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     // ── Scroll area ─────────────────────────────
     scrollView: {
       flex: 1,
-      padding: spacing.medium,
+      padding: layout.screenPaddingH,
     },
 
     // ── Loading ─────────────────────────────────
@@ -372,14 +468,14 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: spacing.medium,
+      paddingHorizontal: layout.screenPaddingH,
       paddingVertical: spacing.medium,
-      borderBottomWidth: 1,
+      borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
     },
     modalTitle: {
       fontSize: typography.subtitle,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
       color: colors.text,
     },
     modalCloseBtn: {
@@ -393,9 +489,9 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: spacing.medium,
+      paddingHorizontal: layout.screenPaddingH,
       paddingVertical: spacing.medium,
-      borderBottomWidth: 1,
+      borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
     },
     modalOptionSelected: {
@@ -407,7 +503,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     modalOptionTextSelected: {
       color: colors.primary,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     modalOptionCheck: {
       fontSize: typography.body,

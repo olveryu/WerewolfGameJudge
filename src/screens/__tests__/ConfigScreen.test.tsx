@@ -81,45 +81,44 @@ describe('ConfigScreen', () => {
     it('should render preset template buttons', () => {
       const { getByText } = renderWithFacade(<ConfigScreen />);
 
-      // Check for common preset templates - actual UI uses "标准板12人"
-      expect(getByText('标准板12人')).toBeTruthy();
+      // Template title in header shows short display name + arrow
+      expect(getByText(/标准板/)).toBeTruthy();
     });
 
     it('should render role selection sections', () => {
-      const { getByText } = renderWithFacade(<ConfigScreen />);
+      const { getByText, getByTestId } = renderWithFacade(<ConfigScreen />);
 
-      // Check for faction tabs in tab bar
-      expect(getByText('🐺 狼人阵营')).toBeTruthy();
-      expect(getByText('👥 好人阵营')).toBeTruthy();
-      expect(getByText('⚖️ 中立阵营')).toBeTruthy();
-      // Active tab (wolf) shows its section title
-      expect(getByText('技能狼')).toBeTruthy();
+      // Check for faction tabs in tab bar (use testID to avoid emoji encoding issues)
+      expect(getByTestId('config-faction-tab-villager')).toBeTruthy();
+      expect(getByTestId('config-faction-tab-wolf')).toBeTruthy();
+      expect(getByTestId('config-faction-tab-special')).toBeTruthy();
+      // Active tab (good) shows its section title
+      expect(getByText('神职')).toBeTruthy();
     });
 
-    it('should render create button in header', () => {
+    it('should render create button at bottom', () => {
       const { getByText } = renderWithFacade(<ConfigScreen />);
 
-      // Header right button shows "创建"
-      expect(getByText('创建')).toBeTruthy();
-    });
-
-    it('should render header title and player count', () => {
-      const { getByText } = renderWithFacade(<ConfigScreen />);
-
-      // Header shows title and player count
+      // Bottom sticky button shows "创建房间"
       expect(getByText('创建房间')).toBeTruthy();
-      expect(getByText(/\d+ 名玩家/)).toBeTruthy();
+    });
+
+    it('should render header with player count and gear button', () => {
+      const { getByText, getByTestId } = renderWithFacade(<ConfigScreen />);
+
+      // Header shows player count
+      expect(getByText(/\d+人/)).toBeTruthy();
+      // Gear button for settings
+      expect(getByTestId('config-gear-btn')).toBeTruthy();
     });
   });
 
   describe('Template Selection', () => {
-    it('should render template dropdown with default selected', () => {
+    it('should render template dropdown in header with default selected', () => {
       const { getByText } = renderWithFacade(<ConfigScreen />);
 
-      // Template dropdown shows selected template name
-      expect(getByText('标准板12人')).toBeTruthy();
-      // Dropdown label
-      expect(getByText('板子')).toBeTruthy();
+      // Template title in header shows short name + arrow indicator
+      expect(getByText(/标准板/)).toBeTruthy();
     });
   });
 
@@ -127,10 +126,10 @@ describe('ConfigScreen', () => {
     it('should render role chips for active tab', () => {
       const { getByText, getByTestId } = renderWithFacade(<ConfigScreen />);
 
-      // Default active tab is wolf — skill wolf chips should be visible
-      expect(getByText('狼美人')).toBeTruthy();
-      expect(getByText('白狼王')).toBeTruthy();
-      expect(getByTestId('config-stepper-dec-wolf')).toBeTruthy();
+      // Default active tab is good — god role chips should be visible
+      expect(getByText('女巫')).toBeTruthy();
+      expect(getByText('预言家')).toBeTruthy();
+      expect(getByTestId('config-stepper-dec-villager')).toBeTruthy();
     });
   });
 

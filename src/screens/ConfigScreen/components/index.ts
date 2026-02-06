@@ -16,8 +16,5 @@ export type { DropdownProps, DropdownOption } from './Dropdown';
 export { FactionTabs } from './FactionTabs';
 export type { FactionTabsProps, FactionTabItem } from './FactionTabs';
 
-export { BottomActionBar } from './BottomActionBar';
-export type { BottomActionBarProps } from './BottomActionBar';
-
 export { createConfigScreenStyles } from './styles';
 export type { ConfigScreenStyles } from './styles';
