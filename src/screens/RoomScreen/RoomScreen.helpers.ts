@@ -103,6 +103,19 @@ export function determineActionerState(
   const isWolfMeetingSchema =
     currentSchema?.kind === 'wolfVote' && currentSchema.meeting?.canSeeEachOther === true;
 
+  // DEBUG: Log all inputs
+  console.log('[DEBUG determineActionerState]', {
+    myRole,
+    currentActionRole,
+    schemaKind: currentSchema?.kind,
+    schemaId: currentSchema?.id,
+    mySeatNumber,
+    wolfVotesSize: wolfVotes.size,
+    isWolfMeetingSchema,
+    isWolfRole: myRole ? isWolfRole(myRole) : 'N/A',
+    participatesInWolfVote: myRole ? doesRoleParticipateInWolfVote(myRole) : 'N/A',
+  });
+
   // My role matches current action
   if (myRole === currentActionRole) {
     return handleMatchingRole(myRole, mySeatNumber, wolfVotes, actions, isWolfMeetingSchema);

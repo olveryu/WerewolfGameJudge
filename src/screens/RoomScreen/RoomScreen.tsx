@@ -260,6 +260,24 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     actions: gameState?.actions ?? new Map(),
   });
 
+  // DEBUG: Log imActioner calculation for delegation mode
+  useEffect(() => {
+    if (controlledSeat !== null && roomStatus === GameStatus.ongoing) {
+      roomScreenLog.debug('[DEBUG imActioner]', {
+        controlledSeat,
+        actorSeatForUi,
+        actorRoleForUi,
+        currentActionRole,
+        currentSchemaId: currentSchema?.id,
+        imActioner,
+        showWolves,
+        isAudioPlaying: gameState?.isAudioPlaying,
+        wolfVotesSize: wolfVotesMap.size,
+        wolfVotesHasSeat: actorSeatForUi === null ? 'N/A' : wolfVotesMap.has(actorSeatForUi),
+      });
+    }
+  }, [controlledSeat, actorSeatForUi, actorRoleForUi, currentActionRole, currentSchema, imActioner, showWolves, gameState?.isAudioPlaying, wolfVotesMap, roomStatus]);
+
   // Extract schema constraints for chooseSeat/swap schemas (non-compound).
   // Compound schemas (witch) have fixed targets or step-specific handling.
   const currentSchemaConstraints = useMemo(() => {
@@ -1209,7 +1227,29 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
    */
   const dispatchInteraction = useCallback(
     (event: InteractionEvent) => {
+      // DEBUG: Log all interactions in delegation mode
+      if (controlledSeat !== null) {
+        roomScreenLog.debug('[DEBUG dispatchInteraction] Event received', {
+          eventKind: event.kind,
+          controlledSeat,
+          actorSeatForUi,
+          actorRoleForUi,
+          imActioner,
+          isAudioPlaying,
+          roomStatus,
+        });
+      }
+
       const result = getInteractionResult(interactionContext, event);
+
+      // DEBUG: Log policy result in delegation mode
+      if (controlledSeat !== null) {
+        roomScreenLog.debug('[DEBUG dispatchInteraction] Policy result', {
+          resultKind: result.kind,
+          resultReason: (result as any).reason,
+          eventKind: event.kind,
+        });
+      }
 
       switch (result.kind) {
         case 'NOOP':
