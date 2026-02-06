@@ -114,6 +114,8 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       paddingHorizontal: layout.screenPaddingH,
       paddingVertical: spacing.small + spacing.tight,
       backgroundColor: colors.surface,
+      borderBottomWidth: fixed.borderWidth,
+      borderBottomColor: colors.border,
     },
     headerBtn: {
       width: componentSizes.avatar.md,
@@ -148,17 +150,18 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       fontSize: typography.body,
     },
 
-    // ── Header row 2: [标准板 ▾] 12人 (centered) ──
+    // ── Header row 2: [标准板 ▾] 12人 (card) ──
     templateRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: spacing.small,
-      paddingBottom: spacing.small + spacing.tight,
+      paddingVertical: spacing.small + spacing.tight,
       gap: spacing.small,
       backgroundColor: colors.surface,
-      borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.border,
+      borderRadius: borderRadius.large,
+      marginHorizontal: layout.screenPaddingH,
+      marginTop: spacing.small,
+      ...shadows.sm,
     },
     templatePill: {
       flexDirection: 'row',
@@ -250,13 +253,16 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       marginLeft: spacing.tight,
     },
 
-    // ── Faction tab bar ─────────────────────────
+    // ── Faction tab bar (card) ─────────────────
     tabBar: {
       flexDirection: 'row',
-      backgroundColor: colors.background,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.large,
+      marginHorizontal: layout.screenPaddingH,
+      marginTop: spacing.small,
       paddingTop: spacing.tight,
+      overflow: 'hidden',
+      ...shadows.sm,
     },
     tab: {
       flex: 1,
@@ -323,13 +329,10 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       marginBottom: spacing.medium,
     },
     sectionTitle: {
-      fontSize: typography.caption,
-      fontWeight: typography.weights.medium,
-      color: colors.textSecondary,
+      fontSize: typography.body,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
       marginBottom: spacing.small,
-      marginLeft: spacing.tight,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
     },
     sectionCard: {
       backgroundColor: colors.surface,
