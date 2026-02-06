@@ -10,7 +10,8 @@
  */
 import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, type ViewStyle, type TextStyle } from 'react-native';
-import { useColors, type ThemeColors, spacing, typography, borderRadius } from '../../../theme';
+import { useColors, type ThemeColors, spacing, typography, borderRadius, shadows } from '../../../theme';
+import { fixed } from '../../../theme/tokens';
 
 export interface ControlledSeatBannerStyles {
   container: ViewStyle;
@@ -73,38 +74,46 @@ function createStyles(colors: ThemeColors): ControlledSeatBannerStyles {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.warning,
+      backgroundColor: colors.warning + '20',
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.warning,
       paddingVertical: spacing.small,
       paddingHorizontal: spacing.medium,
+      marginHorizontal: spacing.medium,
       marginBottom: spacing.small,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.large,
+      ...shadows.sm,
     },
     hintContainer: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.warning,
+      backgroundColor: colors.warning + '20',
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.warning,
       paddingVertical: spacing.small,
       paddingHorizontal: spacing.medium,
+      marginHorizontal: spacing.medium,
       marginBottom: spacing.small,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.large,
+      ...shadows.sm,
     },
     text: {
       fontSize: typography.secondary,
-      color: colors.textInverse,
+      color: colors.text,
       fontWeight: typography.weights.semibold,
       flex: 1,
     },
     hintText: {
       fontSize: typography.secondary,
-      color: colors.textInverse,
+      color: colors.text,
       fontWeight: typography.weights.semibold,
     },
     releaseButton: {
       backgroundColor: colors.surface,
       paddingVertical: spacing.tight,
       paddingHorizontal: spacing.small,
-      borderRadius: borderRadius.small,
+      borderRadius: borderRadius.medium,
     },
     releaseButtonText: {
       fontSize: typography.caption,
