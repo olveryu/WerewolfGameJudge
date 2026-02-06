@@ -236,10 +236,10 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       marginBottom: spacing.medium,
     },
     sectionTitle: {
-      fontSize: typography.caption,
-      fontWeight: '400',
+      fontSize: typography.secondary,
+      fontWeight: '500',
       color: colors.textMuted,
-      marginBottom: spacing.tight,
+      marginBottom: spacing.small,
       letterSpacing: 0.5,
     },
     chipContainer: {
@@ -251,7 +251,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     // ── Role chip ───────────────────────────────
     chip: {
       width: '30%',
-      paddingVertical: spacing.small,
+      paddingVertical: spacing.small + spacing.tight / 2,
       backgroundColor: colors.background,
       borderRadius: borderRadius.full,
       borderWidth: 1.5,
@@ -276,7 +276,8 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       borderColor: colors.warning,
     },
     chipText: {
-      fontSize: typography.caption,
+      fontSize: typography.secondary,
+      fontWeight: '500',
       color: colors.textSecondary,
     },
     chipTextSelected: {
@@ -292,7 +293,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       paddingHorizontal: spacing.tight,
     },
     stepperLabel: {
-      fontSize: typography.secondary,
+      fontSize: typography.body,
       color: colors.text,
       fontWeight: '600',
     },
