@@ -669,11 +669,13 @@ export const useGameRoom = (): UseGameRoomResult => {
   );
 
   // Mark role as viewed
+  // Debug mode: when delegating (controlledSeat !== null), mark the bot's seat as viewed
+  // Normal mode: mark my own seat as viewed
   const viewedRole = useCallback(async (): Promise<void> => {
-    const seat = mySeatNumber;
+    const seat = controlledSeat ?? mySeatNumber;
     if (seat === null) return;
     await facade.markViewedRole(seat);
-  }, [mySeatNumber, facade]);
+  }, [controlledSeat, mySeatNumber, facade]);
 
   // Submit action (uses effectiveSeat/effectiveRole for debug bot control)
   const submitAction = useCallback(

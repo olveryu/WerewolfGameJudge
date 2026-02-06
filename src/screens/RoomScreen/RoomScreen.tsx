@@ -38,7 +38,7 @@ import {
   formatRoleList,
   buildSeatViewModels,
 } from './RoomScreen.helpers';
-import { getInteractionResult, getActorIdentity, type InteractionEvent, type InteractionContext } from './policy';
+import { getInteractionResult, getActorIdentity, isActorIdentityValid, type InteractionEvent, type InteractionContext } from './policy';
 import { TESTIDS } from '../../testids';
 import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
@@ -232,6 +232,21 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   const { actorSeatForUi, actorRoleForUi, isDelegating } = actorIdentity;
+
+  // FAIL-FAST observability: Log warning when delegating but identity is invalid
+  // This helps debugging "can't click anything" issues in debug bot mode
+  useEffect(() => {
+    if (isDelegating && !isActorIdentityValid(actorIdentity)) {
+      roomScreenLog.warn('[ActorIdentity] Invalid delegation state detected', {
+        controlledSeat,
+        effectiveSeat,
+        effectiveRole,
+        actorSeatForUi,
+        actorRoleForUi,
+        hint: 'effectiveSeat should equal controlledSeat when delegating',
+      });
+    }
+  }, [isDelegating, actorIdentity, controlledSeat, effectiveSeat, effectiveRole, actorSeatForUi, actorRoleForUi]);
 
   // Computed values: use useActionerState hook
   // Use actorSeatForUi/actorRoleForUi for action-related decisions
