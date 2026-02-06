@@ -64,9 +64,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   const theme = ALIGNMENT_THEMES[role.alignment];
   const config = CONFIG.tarot ?? { flipDuration: 800, revealHoldDuration: 1500 };
 
-  const [phase, setPhase] = useState<'waiting' | 'drawing' | 'flipping' | 'revealed'>(
-    'waiting',
-  );
+  const [phase, setPhase] = useState<'waiting' | 'drawing' | 'flipping' | 'revealed'>('waiting');
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
   const onCompleteCalledRef = useRef(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -89,7 +87,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   const wheelScale = useMemo(() => new Animated.Value(1), []);
 
   const drawnCardX = useMemo(() => new Animated.Value(0), []);
-  const drawnCardY = useMemo(() => new Animated.Value(-wheelRadius), []);
+  const drawnCardY = useMemo(() => new Animated.Value(-wheelRadius), [wheelRadius]);
   const drawnCardScale = useMemo(() => new Animated.Value(1), []);
   const drawnCardOpacity = useMemo(() => new Animated.Value(0), []);
   const drawnCardRotateZ = useMemo(() => new Animated.Value(0), []);
@@ -173,8 +171,6 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   }, [
     drawnCardX,
     drawnCardY,
-    drawnCardScale,
-    drawnCardRotateZ,
     drawnCardOpacity,
     wheelScale,
     wheelOpacity,
@@ -303,11 +299,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
                     width: cardWidth * 0.55,
                     height: cardHeight * 0.55,
                     opacity: isSelected ? 0 : 1,
-                    transform: [
-                      { translateX: x },
-                      { translateY: y },
-                      { rotate: `${rotation}deg` },
-                    ],
+                    transform: [{ translateX: x }, { translateY: y }, { rotate: `${rotation}deg` }],
                   },
                 ]}
               >

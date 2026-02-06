@@ -96,9 +96,10 @@ const computeTotalCount = (selection: Record<string, boolean>): number => {
 };
 
 /** Expand a RoleSlot into an array of {key, label} for rendering chips */
-const expandSlotToChipEntries = (
-  slot: { roleId: string; count?: number },
-): { key: string; label: string }[] => {
+const expandSlotToChipEntries = (slot: {
+  roleId: string;
+  count?: number;
+}): { key: string; label: string }[] => {
   const count = slot.count ?? 1;
   const spec = ROLE_SPECS[slot.roleId as keyof typeof ROLE_SPECS];
   const label = spec?.displayName ?? slot.roleId;
@@ -397,30 +398,27 @@ export const ConfigScreen: React.FC = () => {
     [selection],
   );
 
-  const handleBulkCountChange = useCallback(
-    (roleId: string, newCount: number) => {
-      setSelection((prev) => {
-        const next = { ...prev };
-        // Find maxCount from FACTION_GROUPS
-        let maxCount = 1;
-        for (const group of FACTION_GROUPS) {
-          for (const section of group.sections) {
-            for (const slot of section.roles) {
-              if (slot.roleId === roleId) maxCount = slot.count ?? 1;
-            }
+  const handleBulkCountChange = useCallback((roleId: string, newCount: number) => {
+    setSelection((prev) => {
+      const next = { ...prev };
+      // Find maxCount from FACTION_GROUPS
+      let maxCount = 1;
+      for (const group of FACTION_GROUPS) {
+        for (const section of group.sections) {
+          for (const slot of section.roles) {
+            if (slot.roleId === roleId) maxCount = slot.count ?? 1;
           }
         }
-        // Set first `newCount` keys to true, rest to false
-        for (let i = 0; i < maxCount; i++) {
-          const key = i === 0 ? roleId : `${roleId}${i}`;
-          next[key] = i < newCount;
-        }
-        return next;
-      });
-      setSelectedTemplate('__custom__');
-    },
-    [],
-  );
+      }
+      // Set first `newCount` keys to true, rest to false
+      for (let i = 0; i < maxCount; i++) {
+        const key = i === 0 ? roleId : `${roleId}${i}`;
+        next[key] = i < newCount;
+      }
+      return next;
+    });
+    setSelectedTemplate('__custom__');
+  }, []);
 
   /** Map faction to accent color for UI */
   const getFactionAccentColor = useCallback(
@@ -605,9 +603,7 @@ export const ConfigScreen: React.FC = () => {
           {isCreating ? (
             <ActivityIndicator color={colors.textInverse} size="small" />
           ) : (
-            <Text style={styles.bottomCreateBtnText}>
-              {isEditMode ? '保存配置' : '创建房间'}
-            </Text>
+            <Text style={styles.bottomCreateBtnText}>{isEditMode ? '保存配置' : '创建房间'}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -693,7 +689,6 @@ export const ConfigScreen: React.FC = () => {
           </View>
         </TouchableOpacity>
       </Modal>
-
     </SafeAreaView>
   );
 };

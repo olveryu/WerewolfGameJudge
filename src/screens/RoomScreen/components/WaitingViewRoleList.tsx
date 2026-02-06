@@ -3,7 +3,14 @@
  */
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useColors, spacing, typography, borderRadius, shadows, type ThemeColors } from '../../../theme';
+import {
+  useColors,
+  spacing,
+  typography,
+  borderRadius,
+  shadows,
+  type ThemeColors,
+} from '../../../theme';
 
 export interface WaitingViewRoleListProps {
   /** Seat numbers (0-indexed) of players who haven't viewed roles */

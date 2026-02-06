@@ -224,9 +224,17 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
     it('wolfVote confirm → submitWolfVote called', async () => {
       await chainWolfVoteConfirm(
-        harness, setMock, renderRoom,
-        'wolf', 4,
-        new Map<number, any>([[4, 'wolf'], [5, 'wolf'], [6, 'wolf'], [7, 'wolf']]),
+        harness,
+        setMock,
+        renderRoom,
+        'wolf',
+        4,
+        new Map<number, any>([
+          [4, 'wolf'],
+          [5, 'wolf'],
+          [6, 'wolf'],
+          [7, 'wolf'],
+        ]),
         1,
       );
     });

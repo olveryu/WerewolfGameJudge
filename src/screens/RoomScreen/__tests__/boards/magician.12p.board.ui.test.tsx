@@ -314,25 +314,35 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
     it('wolfVote confirm → submitWolfVote called', async () => {
       await chainWolfVoteConfirm(
-        harness, setMock, renderRoom,
-        'darkWolfKing', 7,
-        new Map<number, any>([[4, 'wolf'], [5, 'wolf'], [6, 'wolf'], [7, 'darkWolfKing']]),
+        harness,
+        setMock,
+        renderRoom,
+        'darkWolfKing',
+        7,
+        new Map<number, any>([
+          [4, 'wolf'],
+          [5, 'wolf'],
+          [6, 'wolf'],
+          [7, 'darkWolfKing'],
+        ]),
         1,
       );
     });
 
     it('confirmTrigger (hunter) → dialog dismissed', async () => {
       await chainConfirmTrigger(
-        harness, setMock, renderRoom,
-        'hunterConfirm', 'hunter', 'hunter', 10,
+        harness,
+        setMock,
+        renderRoom,
+        'hunterConfirm',
+        'hunter',
+        'hunter',
+        10,
       );
     });
 
     it('actionConfirm (magician) → submitAction called', async () => {
-      await chainActionConfirm(
-        harness, setMock, renderRoom,
-        11, 1, 2,
-      );
+      await chainActionConfirm(harness, setMock, renderRoom, 11, 1, 2);
     });
   });
 

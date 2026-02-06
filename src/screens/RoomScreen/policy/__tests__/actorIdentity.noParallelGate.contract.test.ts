@@ -50,7 +50,9 @@ function findFiles(dir: string, pattern: RegExp, exclude: RegExp[] = []): string
 describe('Actor Identity Anti-Drift Contracts', () => {
   describe('No parallel action identity gate', () => {
     it('RoomInteractionPolicy should not directly use effectiveSeat/effectiveRole for gating', () => {
-      const policyContent = readFileContent('src/screens/RoomScreen/policy/RoomInteractionPolicy.ts');
+      const policyContent = readFileContent(
+        'src/screens/RoomScreen/policy/RoomInteractionPolicy.ts',
+      );
 
       // Policy should NOT contain effectiveSeat or effectiveRole
       // (except in comments or type imports which we'll allow)
@@ -60,7 +62,11 @@ describe('Actor Identity Anti-Drift Contracts', () => {
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         // Skip comments and imports
-        if (line.trim().startsWith('//') || line.trim().startsWith('*') || line.includes('import')) {
+        if (
+          line.trim().startsWith('//') ||
+          line.trim().startsWith('*') ||
+          line.includes('import')
+        ) {
           continue;
         }
         // Check for direct usage of effectiveSeat/effectiveRole
@@ -80,7 +86,11 @@ describe('Actor Identity Anti-Drift Contracts', () => {
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        if (line.trim().startsWith('//') || line.trim().startsWith('*') || line.includes('import')) {
+        if (
+          line.trim().startsWith('//') ||
+          line.trim().startsWith('*') ||
+          line.includes('import')
+        ) {
           continue;
         }
         if (/\beffectiveSeat\b/.test(line) || /\beffectiveRole\b/.test(line)) {
@@ -129,7 +139,11 @@ describe('Actor Identity Anti-Drift Contracts', () => {
             continue;
           }
           // Check for ACTION_ORDER (which would be a parallel order source)
-          if (/\bACTION_ORDER\b/.test(line) && !line.includes('removed') && !line.includes('deprecated')) {
+          if (
+            /\bACTION_ORDER\b/.test(line) &&
+            !line.includes('removed') &&
+            !line.includes('deprecated')
+          ) {
             violations.push(`${file}:${i + 1}: ${line.trim()}`);
           }
         }
@@ -157,7 +171,11 @@ describe('Actor Identity Anti-Drift Contracts', () => {
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        if (line.trim().startsWith('//') || line.trim().startsWith('*') || line.includes('import')) {
+        if (
+          line.trim().startsWith('//') ||
+          line.trim().startsWith('*') ||
+          line.includes('import')
+        ) {
           continue;
         }
         // Look for audioKey: 'xxx' pattern which would indicate duplicate definition
@@ -189,7 +207,9 @@ describe('Actor Identity Anti-Drift Contracts', () => {
     });
 
     it('getActorIdentity should have fail-fast for delegation consistency', () => {
-      const actorIdentityContent = readFileContent('src/screens/RoomScreen/policy/actorIdentity.ts');
+      const actorIdentityContent = readFileContent(
+        'src/screens/RoomScreen/policy/actorIdentity.ts',
+      );
 
       // Should have consistency check: effectiveSeat !== controlledSeat
       expect(actorIdentityContent).toMatch(/effectiveSeat\s*!==\s*controlledSeat/);

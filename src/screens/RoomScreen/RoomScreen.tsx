@@ -38,7 +38,13 @@ import {
   formatRoleList,
   buildSeatViewModels,
 } from './RoomScreen.helpers';
-import { getInteractionResult, getActorIdentity, isActorIdentityValid, type InteractionEvent, type InteractionContext } from './policy';
+import {
+  getInteractionResult,
+  getActorIdentity,
+  isActorIdentityValid,
+  type InteractionEvent,
+  type InteractionContext,
+} from './policy';
 import { TESTIDS } from '../../testids';
 import { useActionerState } from './hooks/useActionerState';
 import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
@@ -247,7 +253,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         hint: 'effectiveSeat should equal controlledSeat when delegating',
       });
     }
-  }, [isDelegating, actorIdentity, controlledSeat, effectiveSeat, effectiveRole, actorSeatForUi, actorRoleForUi]);
+  }, [
+    isDelegating,
+    actorIdentity,
+    controlledSeat,
+    effectiveSeat,
+    effectiveRole,
+    actorSeatForUi,
+    actorRoleForUi,
+  ]);
 
   // Computed values: use useActionerState hook
   // Use actorSeatForUi/actorRoleForUi for action-related decisions
@@ -518,8 +532,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     }
 
     // In debug mode, Host controls bot seats, so also check effectiveSeat's uid
-    const effectiveUid =
-      effectiveSeat === null ? null : gameState?.players.get(effectiveSeat)?.uid;
+    const effectiveUid = effectiveSeat === null ? null : gameState?.players.get(effectiveSeat)?.uid;
     const isTargetMatch = rejected.targetUid === myUid || rejected.targetUid === effectiveUid;
     if (!myUid || !isTargetMatch) return;
 
@@ -788,14 +801,22 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               // Use effectiveSeat (supports both normal play and debug/bot takeover mode)
               // FAIL-FAST: If effectiveSeat is null, player is not seated and cannot act.
               if (effectiveSeat === null) {
-                roomScreenLog.warn('[actionConfirm] Cannot submit compound action without seat (effectiveSeat is null)');
+                roomScreenLog.warn(
+                  '[actionConfirm] Cannot submit compound action without seat (effectiveSeat is null)',
+                );
                 return;
               }
               targetToSubmit = effectiveSeat;
               if (stepSchema?.key === 'save') {
-                extra = buildWitchStepResults({ saveTarget: intent.targetIndex, poisonTarget: null });
+                extra = buildWitchStepResults({
+                  saveTarget: intent.targetIndex,
+                  poisonTarget: null,
+                });
               } else if (stepSchema?.key === 'poison') {
-                extra = buildWitchStepResults({ saveTarget: null, poisonTarget: intent.targetIndex });
+                extra = buildWitchStepResults({
+                  saveTarget: null,
+                  poisonTarget: intent.targetIndex,
+                });
               }
             } else {
               // chooseSeat schema: target = user-selected seat (intent.targetIndex)
@@ -840,7 +861,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             // Use effectiveSeat (supports both normal play and debug/bot takeover mode)
             // FAIL-FAST: If effectiveSeat is null, player is not seated and cannot act.
             if (effectiveSeat === null) {
-              roomScreenLog.warn('[skip] Cannot submit compound skip without seat (effectiveSeat is null)');
+              roomScreenLog.warn(
+                '[skip] Cannot submit compound skip without seat (effectiveSeat is null)',
+              );
               return;
             }
             skipExtra = buildWitchStepResults({ saveTarget: null, poisonTarget: null });
@@ -872,7 +895,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           const hintApplies = hint && effectiveRole && hint.targetRoleIds.includes(effectiveRole);
           // DEBUG: 临时调试日志
           roomScreenLog.debug('[actionPrompt] UI Hint check', {
-            hint: hint ? { kind: hint.kind, targetRoleIds: hint.targetRoleIds, bottomAction: hint.bottomAction } : null,
+            hint: hint
+              ? {
+                  kind: hint.kind,
+                  targetRoleIds: hint.targetRoleIds,
+                  bottomAction: hint.bottomAction,
+                }
+              : null,
             effectiveRole,
             hintApplies,
             'gameState.ui': gameState?.ui,
@@ -968,7 +997,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           // Use effectiveSeat (supports both normal play and debug/bot takeover mode)
           // FAIL-FAST: If effectiveSeat is null, player is not seated and cannot act.
           if (effectiveSeat === null) {
-            roomScreenLog.warn('[confirmTrigger] Cannot submit confirm action without seat (effectiveSeat is null)');
+            roomScreenLog.warn(
+              '[confirmTrigger] Cannot submit confirm action without seat (effectiveSeat is null)',
+            );
             return;
           }
           actionDialogs.showRoleActionPrompt(
@@ -1014,7 +1045,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, async () => {
             // FAIL-FAST: effectiveSeat is required for wolfRobot seat validation in handler
             if (effectiveSeat === null) {
-              roomScreenLog.warn('[wolfRobotViewHunterStatus] Cannot submit without seat (effectiveSeat is null)');
+              roomScreenLog.warn(
+                '[wolfRobotViewHunterStatus] Cannot submit without seat (effectiveSeat is null)',
+              );
               return;
             }
             // P1-FIX: 设置 pending 状态并 await 确保 state 更新后再释放
@@ -1301,7 +1334,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         case 'HUNTER_STATUS_VIEWED':
           // effectiveSeat 用于 handler 中的 wolfRobot seat 校验
           if (effectiveSeat === null) {
-            roomScreenLog.warn('[HUNTER_STATUS_VIEWED] Cannot submit without seat (effectiveSeat is null)');
+            roomScreenLog.warn(
+              '[HUNTER_STATUS_VIEWED] Cannot submit without seat (effectiveSeat is null)',
+            );
           } else {
             void sendWolfRobotHunterStatusViewed(effectiveSeat);
           }
@@ -1502,8 +1537,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       )}
 
       {/* Bot Mode Hint / Controlled Seat Banner - mutually exclusive */}
-      {isDebugMode && hasBots && roomStatus === GameStatus.ongoing && (
-        controlledSeat !== null && gameState.players.get(controlledSeat) ? (
+      {isDebugMode &&
+        hasBots &&
+        roomStatus === GameStatus.ongoing &&
+        (controlledSeat !== null && gameState.players.get(controlledSeat) ? (
           <ControlledSeatBanner
             mode="controlled"
             controlledSeat={controlledSeat}
@@ -1512,8 +1549,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           />
         ) : (
           <ControlledSeatBanner mode="hint" />
-        )
-      )}
+        ))}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Board Info - hidden during ongoing/ended, shown during setup phases */}
@@ -1548,10 +1584,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       </ScrollView>
 
       {/* Bottom Action Panel - floating card with message + buttons */}
-      <BottomActionPanel
-        message={actionMessage}
-        showMessage={imActioner && !isAudioPlaying}
-      >
+      <BottomActionPanel message={actionMessage} showMessage={imActioner && !isAudioPlaying}>
         {/* Host Control Buttons - dispatch events to policy */}
         <HostControlButtons
           isHost={isHost}

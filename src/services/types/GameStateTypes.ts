@@ -169,7 +169,7 @@ export interface LocalGameState {
    *
    * 职责：允许 Host 向特定角色广播"提前提示"（如被封锁/狼刀被禁用）。
    * Host 通过 resolver/handler 判定后写入，进入下一 step 时清空。
-   * 
+   *
    * UI 规则：按 targetRoleIds + myRole 过滤。
    */
   ui?: {

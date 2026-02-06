@@ -19,7 +19,14 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import { useColors, type ThemeColors, spacing, borderRadius, typography, shadows } from '../../../theme';
+import {
+  useColors,
+  type ThemeColors,
+  spacing,
+  borderRadius,
+  typography,
+  shadows,
+} from '../../../theme';
 import { componentSizes, fixed } from '../../../theme/tokens';
 
 export interface HostMenuDropdownStyles {

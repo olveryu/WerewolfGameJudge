@@ -492,7 +492,7 @@ export type ReactiveGameRoomMock = ReturnType<typeof createReactiveGameRoomMock>
 // =============================================================================
 
 /** Common RoomScreen route/navigation props for chain drivers */
-const ROOM_PROPS = {
+const _ROOM_PROPS = {
   route: { params: { roomNumber: '1234', isHost: false } } as any,
 };
 
@@ -732,4 +732,3 @@ export async function chainActionConfirm(
   result.unmount();
   return submitAction;
 }
-

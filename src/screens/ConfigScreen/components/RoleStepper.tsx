@@ -48,10 +48,7 @@ export const RoleStepper = memo<RoleStepperProps>(
           <View style={styles.stepperControls}>
             <TouchableOpacity
               testID={`config-stepper-dec-${roleId}`}
-              style={[
-                styles.stepperBtn,
-                count <= 0 && styles.stepperBtnDisabled,
-              ]}
+              style={[styles.stepperBtn, count <= 0 && styles.stepperBtnDisabled]}
               onPress={handleDecrement}
               activeOpacity={count <= 0 ? 1 : 0.6}
               accessibilityState={{ disabled: count <= 0 }}
@@ -71,10 +68,7 @@ export const RoleStepper = memo<RoleStepperProps>(
             </Text>
             <TouchableOpacity
               testID={`config-stepper-inc-${roleId}`}
-              style={[
-                styles.stepperBtn,
-                count >= maxCount && styles.stepperBtnDisabled,
-              ]}
+              style={[styles.stepperBtn, count >= maxCount && styles.stepperBtnDisabled]}
               onPress={handleIncrement}
               activeOpacity={count >= maxCount ? 1 : 0.6}
               accessibilityState={{ disabled: count >= maxCount }}

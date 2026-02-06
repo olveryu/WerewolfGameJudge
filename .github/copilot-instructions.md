@@ -23,16 +23,16 @@
 
 ### Token 类别与用途
 
-| 类别 | 导入来源 | 说明 |
-|------|---------|------|
-| `colors` | `useColors()` / `useTheme()` | 所有颜色值（背景、文字、边框、阵营色等） |
-| `spacing` | `src/theme` | 间距：tight=4, small=8, medium=16, large=24, xlarge=32, xxlarge=48 |
-| `typography` | `src/theme` | 字号（caption=12 ~ display=40）+ `weights`（normal/medium/semibold/bold） |
-| `borderRadius` | `src/theme` | 圆角：none=0, small=8, medium=12, large=16, xlarge=24, full=9999 |
-| `shadows` | `src/theme` | 阴影预设：none, sm, md, lg |
-| `layout` | `src/theme` | 页面级常量：screenPaddingH, screenPaddingV, cardPadding, listItemGap |
-| `componentSizes` | ⚠️ `src/theme/tokens` | 组件尺寸：button.sm/md/lg, avatar.xs~xl, chip, header, tabBar |
-| `fixed` | ⚠️ `src/theme/tokens` | 固定值：borderWidth=1, borderWidthThick=2, divider=1, minTouchTarget=44, maxContentWidth=600 |
+| 类别             | 导入来源                     | 说明                                                                                         |
+| ---------------- | ---------------------------- | -------------------------------------------------------------------------------------------- |
+| `colors`         | `useColors()` / `useTheme()` | 所有颜色值（背景、文字、边框、阵营色等）                                                     |
+| `spacing`        | `src/theme`                  | 间距：tight=4, small=8, medium=16, large=24, xlarge=32, xxlarge=48                           |
+| `typography`     | `src/theme`                  | 字号（caption=12 ~ display=40）+ `weights`（normal/medium/semibold/bold）                    |
+| `borderRadius`   | `src/theme`                  | 圆角：none=0, small=8, medium=12, large=16, xlarge=24, full=9999                             |
+| `shadows`        | `src/theme`                  | 阴影预设：none, sm, md, lg                                                                   |
+| `layout`         | `src/theme`                  | 页面级常量：screenPaddingH, screenPaddingV, cardPadding, listItemGap                         |
+| `componentSizes` | ⚠️ `src/theme/tokens`        | 组件尺寸：button.sm/md/lg, avatar.xs~xl, chip, header, tabBar                                |
+| `fixed`          | ⚠️ `src/theme/tokens`        | 固定值：borderWidth=1, borderWidthThick=2, divider=1, minTouchTarget=44, maxContentWidth=600 |
 
 ### Import 路径规则（硬性）
 
@@ -115,13 +115,13 @@ borderBottomColor: colors.border
 
 ### 文字层级
 
-| 层级 | 字号 | 字重 | 颜色 |
-|------|------|------|------|
-| 标题 | `typography.title` ~ `typography.heading` | `bold` | `colors.text` |
-| 副标题 / 分区标题 | `typography.body` ~ `typography.subtitle` | `semibold` | `colors.text` |
-| 正文 | `typography.body` | `normal` | `colors.text` |
-| 辅助说明 | `typography.secondary` | `normal` | `colors.textSecondary` |
-| 提示 / 标签 | `typography.caption` | `normal` | `colors.textMuted` |
+| 层级              | 字号                                      | 字重       | 颜色                   |
+| ----------------- | ----------------------------------------- | ---------- | ---------------------- |
+| 标题              | `typography.title` ~ `typography.heading` | `bold`     | `colors.text`          |
+| 副标题 / 分区标题 | `typography.body` ~ `typography.subtitle` | `semibold` | `colors.text`          |
+| 正文              | `typography.body`                         | `normal`   | `colors.text`          |
+| 辅助说明          | `typography.secondary`                    | `normal`   | `colors.textSecondary` |
+| 提示 / 标签       | `typography.caption`                      | `normal`   | `colors.textMuted`     |
 
 ### 按钮层级
 
@@ -142,6 +142,7 @@ borderBottomColor: colors.border
 ---
 
 ## 实现清单（角色 / schema / step / UI 必做）s SHOULD follow）
+
 - Theme Token 使用规范（MUST follow）
 - UI 风格统一规范（SHOULD follow）
 - 实现清单（角色 / schema / step / UI 必做）
@@ -440,16 +441,16 @@ advanceToNextAction()
 
 ### 硬规则（MUST）
 
-1) **提交给 Host 的地方只能用 `effective*`**
+1. **提交给 Host 的地方只能用 `effective*`**
    - ✅ 例如：`proceedWithAction` / `submitAction` / `submitWolfVote` / `confirmTrigger` / compound schema（witch）的 `skip/save/poison` 等。
    - ❌ 禁止：在提交路径里使用 `mySeatNumber`（debug 接管会不一致、甚至为 null）。
    - ❌ 禁止：用 `actorSeatNumber` 代替 `effectiveSeat` 来 submit（会把 UI 决策层字段耦合进提交层，增加 drift 风险）。
 
-2) **UI 决策（policy/intent/useRoomActions/useActionerState）只能用 `actor*`**
+2. **UI 决策（policy/intent/useRoomActions/useActionerState）只能用 `actor*`**
    - ✅ `gameContext.actorSeatNumber` / `interactionContext.actorSeatForUi` 等传入 policy 的字段必须来自 `getActorIdentity()`。
    - ❌ 禁止：policy 里直接读取 `effectiveSeat/effectiveRole` 或 `controlledSeat` 来决定“我是不是 actioner/能不能点”。
 
-3) **展示用逻辑才用 `my*`**
+3. **展示用逻辑才用 `my*`**
    - ✅ 例如：显示“你本人座位/身份”、debug panel 显示真实 uid 绑定。
    - ❌ 禁止：把 `my*` 当作行动提交身份（除非明确不支持接管模式且有测试门禁）。
 

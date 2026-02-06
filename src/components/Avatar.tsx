@@ -27,7 +27,13 @@ interface AvatarProps {
  *
  * Memoized to prevent unnecessary re-renders when parent components update
  */
-const AvatarComponent: React.FC<AvatarProps> = ({ value, size, avatarUrl, roomId, avatarIndex }) => {
+const AvatarComponent: React.FC<AvatarProps> = ({
+  value,
+  size,
+  avatarUrl,
+  roomId,
+  avatarIndex,
+}) => {
   const colors = useColors();
 
   // Memoize style object to prevent new object creation on each render

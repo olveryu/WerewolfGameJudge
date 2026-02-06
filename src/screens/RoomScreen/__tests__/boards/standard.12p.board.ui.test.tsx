@@ -287,15 +287,25 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         renderRoom,
         'wolf',
         4,
-        new Map<number, any>([[4, 'wolf'], [5, 'wolf'], [6, 'wolf'], [7, 'wolf']]),
+        new Map<number, any>([
+          [4, 'wolf'],
+          [5, 'wolf'],
+          [6, 'wolf'],
+          [7, 'wolf'],
+        ]),
         1,
       );
     });
 
     it('confirmTrigger (hunter) → dialog dismissed', async () => {
       await chainConfirmTrigger(
-        harness, setMock, renderRoom,
-        'hunterConfirm', 'hunter', 'hunter', 10,
+        harness,
+        setMock,
+        renderRoom,
+        'hunterConfirm',
+        'hunter',
+        'hunter',
+        10,
       );
     });
   });

@@ -508,7 +508,9 @@ export class GameFacade implements IGameFacade {
    *
    * @param seat - wolfRobot 的座位号（由调用方传入 effectiveSeat，以支持 debug bot 接管）
    */
-  async sendWolfRobotHunterStatusViewed(seat: number): Promise<{ success: boolean; reason?: string }> {
+  async sendWolfRobotHunterStatusViewed(
+    seat: number,
+  ): Promise<{ success: boolean; reason?: string }> {
     if (this.isHost) {
       // Host 直接执行
       return hostActions.setWolfRobotHunterStatusViewed(this.getHostActionsContext(), seat);

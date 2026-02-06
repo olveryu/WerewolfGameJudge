@@ -267,7 +267,8 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
       {hasPlayer ? (
         <>
           <Text style={styles.playerName} numberOfLines={1} ellipsizeMode="tail">
-            {isBot ? '🤖 ' : ''}{playerDisplayName}
+            {isBot ? '🤖 ' : ''}
+            {playerDisplayName}
           </Text>
           {botRoleDisplayName && (
             <Text style={styles.botRoleName} numberOfLines={1}>

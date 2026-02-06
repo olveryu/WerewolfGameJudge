@@ -6,7 +6,14 @@
 import React, { useMemo, memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { TESTIDS } from '../../../testids';
-import { useColors, spacing, typography, borderRadius, shadows, type ThemeColors } from '../../../theme';
+import {
+  useColors,
+  spacing,
+  typography,
+  borderRadius,
+  shadows,
+  type ThemeColors,
+} from '../../../theme';
 
 export type ConnectionState = 'live' | 'syncing' | 'connecting' | 'disconnected';
 

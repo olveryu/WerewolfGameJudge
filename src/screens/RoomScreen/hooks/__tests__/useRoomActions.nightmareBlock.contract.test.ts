@@ -173,7 +173,11 @@ describe('C) 合约: ActionIntent 类型不包含 blocked', () => {
       { currentSchema: getSchema('seerCheck'), actorRole: 'seer' },
       { currentSchema: getSchema('guardProtect'), actorRole: 'guard' },
       { currentSchema: getSchema('wolfKill'), actorRole: 'wolf', currentActionRole: 'wolf' },
-      { currentSchema: getSchema('hunterConfirm'), actorRole: 'hunter', currentActionRole: 'hunter' },
+      {
+        currentSchema: getSchema('hunterConfirm'),
+        actorRole: 'hunter',
+        currentActionRole: 'hunter',
+      },
     ];
 
     for (const overrides of scenarios) {

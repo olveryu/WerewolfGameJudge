@@ -3,7 +3,14 @@
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useColors, spacing, typography, borderRadius, shadows, type ThemeColors } from '../../../theme';
+import {
+  useColors,
+  spacing,
+  typography,
+  borderRadius,
+  shadows,
+  type ThemeColors,
+} from '../../../theme';
 
 export interface BoardInfoCardProps {
   /** Total number of players */

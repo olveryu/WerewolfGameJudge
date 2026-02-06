@@ -74,7 +74,7 @@ class AudioService {
   private visibilityHandler: (() => void) | null = null;
   private wasPlayingBeforeHidden = false;
   private wasBgmPlayingBeforeHidden = false;
-  
+
   // Web-only: Single HTML Audio element that we reuse (iOS Safari requires this)
   private webAudioElement: HTMLAudioElement | null = null;
   private webBgmElement: HTMLAudioElement | null = null;
@@ -99,7 +99,7 @@ class AudioService {
         shouldPlayInBackground: false, // Stop when app goes to background
         interruptionMode: 'duckOthers',
       });
-      
+
       // Web: Listen for visibility change to pause/resume audio when browser goes to background
       if (typeof document !== 'undefined') {
         this.visibilityHandler = () => {
@@ -108,7 +108,7 @@ class AudioService {
             mobileDebug.log('[visibility] page hidden, pausing all audio');
             this.wasPlayingBeforeHidden = this.isPlaying;
             this.wasBgmPlayingBeforeHidden = this.isBgmPlaying;
-            
+
             if (this.player) {
               try {
                 this.player.pause();
@@ -125,8 +125,10 @@ class AudioService {
             }
           } else {
             // Page visible again - resume audio if it was playing before
-            mobileDebug.log(`[visibility] page visible, wasPlaying=${this.wasPlayingBeforeHidden}, wasBgmPlaying=${this.wasBgmPlayingBeforeHidden}`);
-            
+            mobileDebug.log(
+              `[visibility] page visible, wasPlaying=${this.wasPlayingBeforeHidden}, wasBgmPlaying=${this.wasBgmPlayingBeforeHidden}`,
+            );
+
             if (this.wasPlayingBeforeHidden && this.player) {
               try {
                 this.player.play();
@@ -179,7 +181,7 @@ class AudioService {
 
   /**
    * Safe wrapper for audio playback that guarantees resolution.
-   * 
+   *
    * iOS Safari fix: On Web, use a single reusable HTML Audio element.
    * The key insight is that iOS Safari allows an Audio element created
    * during a user gesture to play multiple times by changing its src.
@@ -191,23 +193,23 @@ class AudioService {
    */
   private async safePlayAudioFile(audioFile: any, label = 'audio'): Promise<void> {
     mobileDebug.log(`[${label}] safePlayAudioFile START`);
-    
+
     // On Web, use native HTML Audio API for iOS Safari compatibility
     if (isWeb && typeof document !== 'undefined') {
       return this.safePlayAudioFileWeb(audioFile, label);
     }
-    
+
     // Native platforms: use expo-audio
     return this.safePlayAudioFileNative(audioFile, label);
   }
-  
+
   /**
    * Web-specific audio playback using HTML Audio element.
    * Reuses a single Audio element to maintain iOS Safari user gesture authorization.
    */
   private async safePlayAudioFileWeb(audioFile: any, label = 'audio'): Promise<void> {
     mobileDebug.log(`[${label}] [WEB] starting playback`);
-    
+
     return new Promise<void>((resolve) => {
       try {
         // Stop any current playback
@@ -220,11 +222,11 @@ class AudioService {
           clearTimeout(this.currentTimeoutId);
           this.currentTimeoutId = null;
         }
-        
+
         // Get the audio URL from the audioFile (expo asset)
         const audioUrl = typeof audioFile === 'string' ? audioFile : audioFile?.uri || audioFile;
         mobileDebug.log(`[${label}] [WEB] audioUrl=${audioUrl}`);
-        
+
         // Create or reuse Audio element
         if (this.webAudioElement) {
           mobileDebug.log(`[${label}] [WEB] reusing existing Audio element`);
@@ -232,10 +234,10 @@ class AudioService {
           mobileDebug.log(`[${label}] [WEB] creating new Audio element`);
           this.webAudioElement = new Audio();
         }
-        
+
         const audio = this.webAudioElement;
         this.isPlaying = true;
-        
+
         // Set up event handlers
         audio.onended = () => {
           mobileDebug.log(`[${label}] [WEB] onended fired`);
@@ -246,7 +248,7 @@ class AudioService {
           }
           resolve();
         };
-        
+
         audio.onerror = () => {
           mobileDebug.log(`[${label}] [WEB] onerror fired`);
           audioLog.warn(`[WEB] Audio error for ${label}`);
@@ -257,7 +259,7 @@ class AudioService {
           }
           resolve(); // Resolve anyway to not block the flow
         };
-        
+
         // Timeout fallback
         this.currentTimeoutId = setTimeout(() => {
           mobileDebug.log(`[${label}] [WEB] TIMEOUT after ${AUDIO_TIMEOUT_MS}ms`);
@@ -266,12 +268,13 @@ class AudioService {
           audio.pause();
           resolve();
         }, AUDIO_TIMEOUT_MS);
-        
+
         // Set source and play
         audio.src = audioUrl;
         mobileDebug.log(`[${label}] [WEB] calling audio.play()`);
-        
-        audio.play()
+
+        audio
+          .play()
           .then(() => {
             mobileDebug.log(`[${label}] [WEB] play() promise resolved`);
           })
@@ -285,7 +288,6 @@ class AudioService {
             }
             resolve(); // Resolve anyway
           });
-          
       } catch (error) {
         mobileDebug.log(`[${label}] [WEB] ERROR: ${error}`);
         audioLog.warn(`[WEB] Audio playback failed for ${label}:`, error);
@@ -294,7 +296,7 @@ class AudioService {
       }
     });
   }
-  
+
   /**
    * Native platform audio playback using expo-audio.
    */
@@ -312,7 +314,7 @@ class AudioService {
         }
         this.playerSubscription = null;
       }
-      
+
       // iOS Safari fix: Always create a new player for each audio file.
       // Don't remove() the old player - just pause it and let it exist.
       // This seems to work better than replace() which doesn't fire events.
@@ -322,13 +324,16 @@ class AudioService {
       // Keep reference to old player (don't remove it), just replace reference
       this.player = player;
       mobileDebug.log(`[${label}] player created OK`);
-      
+
       // Add listener for the new player
-      this.playerSubscription = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
-        this.handlePlaybackStatus(status);
-      });
+      this.playerSubscription = player.addListener(
+        'playbackStatusUpdate',
+        (status: AudioStatus) => {
+          this.handlePlaybackStatus(status);
+        },
+      );
       mobileDebug.log(`[${label}] listener added`);
-      
+
       this.isPlaying = true;
 
       return new Promise<void>((resolve) => {
@@ -339,7 +344,9 @@ class AudioService {
 
         // Timeout fallback - resolve after max time even if audio didn't finish
         this.currentTimeoutId = setTimeout(() => {
-          mobileDebug.log(`[${label}] TIMEOUT after ${AUDIO_TIMEOUT_MS}ms, statusCount=${this.currentStatusCount}`);
+          mobileDebug.log(
+            `[${label}] TIMEOUT after ${AUDIO_TIMEOUT_MS}ms, statusCount=${this.currentStatusCount}`,
+          );
           if (isJest) {
             audioLog.debug(' Playback timeout - proceeding without waiting for completion');
           } else {
@@ -367,8 +374,10 @@ class AudioService {
   private handlePlaybackStatus(status: AudioStatus): void {
     this.currentStatusCount++;
     const label = this.currentLabel;
-    mobileDebug.log(`[${label}] status #${this.currentStatusCount}: playing=${status.playing} loaded=${status.isLoaded} duration=${status.duration} didJustFinish=${status.didJustFinish}`);
-    
+    mobileDebug.log(
+      `[${label}] status #${this.currentStatusCount}: playing=${status.playing} loaded=${status.isLoaded} duration=${status.duration} didJustFinish=${status.didJustFinish}`,
+    );
+
     try {
       if (status.isLoaded && status.duration === 0) {
         audioLog.warn(' Audio duration is 0 - may be invalid, waiting for timeout fallback');
@@ -390,7 +399,9 @@ class AudioService {
     }
     this.isPlaying = false;
     if (this.currentPlaybackResolve) {
-      mobileDebug.log(`[${this.currentLabel}] finishCurrentPlayback called, statusCount=${this.currentStatusCount}`);
+      mobileDebug.log(
+        `[${this.currentLabel}] finishCurrentPlayback called, statusCount=${this.currentStatusCount}`,
+      );
       this.currentPlaybackResolve();
       this.currentPlaybackResolve = null;
     }

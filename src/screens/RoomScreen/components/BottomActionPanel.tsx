@@ -11,13 +11,7 @@
  */
 import React, { useMemo, memo } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
-import {
-  useColors,
-  spacing,
-  typography,
-  borderRadius,
-  type ThemeColors,
-} from '../../../theme';
+import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 import { TESTIDS } from '../../../testids';
 
 export interface BottomActionPanelProps {

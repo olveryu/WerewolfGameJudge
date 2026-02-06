@@ -43,27 +43,24 @@ const arePropsEqual = (prev: FactionTabsProps, next: FactionTabsProps): boolean 
   return true;
 };
 
-export const FactionTabs = memo<FactionTabsProps>(
-  ({ tabs, activeKey, onTabPress, styles }) => {
-    return (
-      <View style={styles.tabBar}>
-        {tabs.map((tab) => {
-          const isActive = tab.key === activeKey;
-          return (
-            <FactionTab
-              key={tab.key}
-              tab={tab}
-              isActive={isActive}
-              onPress={onTabPress}
-              styles={styles}
-            />
-          );
-        })}
-      </View>
-    );
-  },
-  arePropsEqual,
-);
+export const FactionTabs = memo<FactionTabsProps>(({ tabs, activeKey, onTabPress, styles }) => {
+  return (
+    <View style={styles.tabBar}>
+      {tabs.map((tab) => {
+        const isActive = tab.key === activeKey;
+        return (
+          <FactionTab
+            key={tab.key}
+            tab={tab}
+            isActive={isActive}
+            onPress={onTabPress}
+            styles={styles}
+          />
+        );
+      })}
+    </View>
+  );
+}, arePropsEqual);
 
 FactionTabs.displayName = 'FactionTabs';
 
@@ -86,32 +83,13 @@ const FactionTab = memo<FactionTabProps>(({ tab, isActive, onPress, styles }) =>
       onPress={handlePress}
       activeOpacity={0.7}
     >
-      <Text
-        style={[
-          styles.tabLabel,
-          { color: tab.accentColor },
-        ]}
-      >
+      <Text style={[styles.tabLabel, { color: tab.accentColor }]}>
         {tab.emoji} {tab.title}
       </Text>
-      <View
-        style={[
-          styles.tabBadge,
-          { backgroundColor: tab.accentColor + '20' },
-        ]}
-      >
-        <Text
-          style={[
-            styles.tabBadgeText,
-            { color: tab.accentColor },
-          ]}
-        >
-          {tab.count}
-        </Text>
+      <View style={[styles.tabBadge, { backgroundColor: tab.accentColor + '20' }]}>
+        <Text style={[styles.tabBadgeText, { color: tab.accentColor }]}>{tab.count}</Text>
       </View>
-      {isActive && (
-        <View style={[styles.tabIndicator, { backgroundColor: tab.accentColor }]} />
-      )}
+      {isActive && <View style={[styles.tabIndicator, { backgroundColor: tab.accentColor }]} />}
     </TouchableOpacity>
   );
 });

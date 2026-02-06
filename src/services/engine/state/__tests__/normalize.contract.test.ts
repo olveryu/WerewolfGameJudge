@@ -121,7 +121,7 @@ describe('normalizeState contract', () => {
       // Debug 模式
       debugMode: { botsEnabled: true },
     };
-  }
+  };
 
   it('should preserve all BroadcastGameState fields after normalization', () => {
     const fullState = createFullState();

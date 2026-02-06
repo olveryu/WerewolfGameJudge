@@ -299,6 +299,8 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     addScratchPointRef.current = addScratchPoint;
   }, [addScratchPoint]);
 
+  // PanResponder reads refs inside callbacks (not during render) — safe pattern
+  /* eslint-disable react-hooks/refs */
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -315,6 +317,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       }),
     [],
   );
+  /* eslint-enable react-hooks/refs */
 
   // Reduced motion: tap to reveal
   const handleTapReveal = useCallback(() => {

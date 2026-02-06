@@ -626,7 +626,10 @@ export const useGameRoom = (): UseGameRoomResult => {
     return facade.fillWithBots();
   }, [isHost, mySeatNumber, facade]);
 
-  const markAllBotsViewed = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
+  const markAllBotsViewed = useCallback(async (): Promise<{
+    success: boolean;
+    reason?: string;
+  }> => {
     if (!isHost) {
       return { success: false, reason: 'host_only' };
     }
@@ -708,9 +711,12 @@ export const useGameRoom = (): UseGameRoomResult => {
 
   // WolfRobot hunter status viewed gate
   // seat 参数由调用方传入 effectiveSeat，以支持 debug bot 接管模式
-  const sendWolfRobotHunterStatusViewed = useCallback(async (seat: number): Promise<void> => {
-    await facade.sendWolfRobotHunterStatusViewed(seat);
-  }, [facade]);
+  const sendWolfRobotHunterStatusViewed = useCallback(
+    async (seat: number): Promise<void> => {
+      await facade.sendWolfRobotHunterStatusViewed(seat);
+    },
+    [facade],
+  );
 
   // Get last night info - now derived from gameState
   const getLastNightInfo = useCallback((): string => {

@@ -244,7 +244,8 @@ function maybeCreateUiHintAction(
   const schemaUi = schema?.ui as Partial<SchemaUi> | undefined;
   const blockedTitle = schemaUi?.blockedTitle ?? BLOCKED_UI_DEFAULTS.title;
   const blockedMessage = schemaUi?.blockedMessage ?? BLOCKED_UI_DEFAULTS.message;
-  const blockedSkipButtonText = schemaUi?.blockedSkipButtonText ?? BLOCKED_UI_DEFAULTS.skipButtonText;
+  const blockedSkipButtonText =
+    schemaUi?.blockedSkipButtonText ?? BLOCKED_UI_DEFAULTS.skipButtonText;
 
   // Case 1: wolfVote 且 wolfKillDisabled → 所有狼人看到 wolf_kill_disabled hint
   if (schema?.kind === 'wolfVote' && state.wolfKillDisabled) {

@@ -9,8 +9,22 @@
  * ✅ Allowed: types, styles, UI components
  */
 import React, { memo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, type ViewStyle, type TextStyle } from 'react-native';
-import { useColors, type ThemeColors, spacing, typography, borderRadius, shadows } from '../../../theme';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  type ViewStyle,
+  type TextStyle,
+} from 'react-native';
+import {
+  useColors,
+  type ThemeColors,
+  spacing,
+  typography,
+  borderRadius,
+  shadows,
+} from '../../../theme';
 import { fixed } from '../../../theme/tokens';
 
 export interface ControlledSeatBannerStyles {

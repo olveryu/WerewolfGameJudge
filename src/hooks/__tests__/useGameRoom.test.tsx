@@ -526,8 +526,21 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
       status: 'assigned' as const,
       templateRoles: ['villager', 'wolf'],
       players: {
-        0: { uid: 'host-uid', seatNumber: 0, displayName: 'Host', role: 'villager', hasViewedRole: true },
-        1: { uid: 'bot-1', seatNumber: 1, displayName: 'Bot 1', role: 'wolf', hasViewedRole: true, isBot: true },
+        0: {
+          uid: 'host-uid',
+          seatNumber: 0,
+          displayName: 'Host',
+          role: 'villager',
+          hasViewedRole: true,
+        },
+        1: {
+          uid: 'bot-1',
+          seatNumber: 1,
+          displayName: 'Bot 1',
+          role: 'wolf',
+          hasViewedRole: true,
+          isBot: true,
+        },
       },
       currentActionerIndex: -1,
       isAudioPlaying: false,
@@ -592,8 +605,21 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
       status: 'assigned' as const,
       templateRoles: ['villager', 'wolf'],
       players: {
-        0: { uid: 'host-uid', seatNumber: 0, displayName: 'Host', role: 'villager', hasViewedRole: true },
-        1: { uid: 'bot-1', seatNumber: 1, displayName: 'Bot 1', role: 'wolf', hasViewedRole: true, isBot: true },
+        0: {
+          uid: 'host-uid',
+          seatNumber: 0,
+          displayName: 'Host',
+          role: 'villager',
+          hasViewedRole: true,
+        },
+        1: {
+          uid: 'bot-1',
+          seatNumber: 1,
+          displayName: 'Bot 1',
+          role: 'wolf',
+          hasViewedRole: true,
+          isBot: true,
+        },
       },
       currentActionerIndex: -1,
       isAudioPlaying: false,
@@ -649,7 +675,13 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
       status: 'assigned' as const,
       templateRoles: ['villager', 'wolf', 'seer'],
       players: {
-        0: { uid: 'host-uid', seatNumber: 0, displayName: 'Host', role: 'villager', hasViewedRole: true },
+        0: {
+          uid: 'host-uid',
+          seatNumber: 0,
+          displayName: 'Host',
+          role: 'villager',
+          hasViewedRole: true,
+        },
         // seat 1 is empty (null)
         1: null,
       },

@@ -107,10 +107,7 @@ export function getDefaultAvatarIndex(roomId: string, uid: string): number {
  * @param uids   - Ordered list of player UIDs in the room
  * @returns Map from uid → unique avatar index (0-based)
  */
-export function getUniqueAvatarMap(
-  roomId: string,
-  uids: string[],
-): Map<string, number> {
+export function getUniqueAvatarMap(roomId: string, uids: string[]): Map<string, number> {
   const N = AVATAR_IMAGES.length;
   const taken = new Set<number>();
   const result = new Map<string, number>();

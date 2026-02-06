@@ -16,10 +16,7 @@ import type { GameState } from '../../store/types';
 // Test Utilities
 // =============================================================================
 
-function createMinimalPlayer(
-  seat: number,
-  overrides?: Partial<BroadcastPlayer>,
-): BroadcastPlayer {
+function createMinimalPlayer(seat: number, overrides?: Partial<BroadcastPlayer>): BroadcastPlayer {
   return {
     uid: `player-${seat}`,
     seatNumber: seat,
@@ -84,7 +81,10 @@ describe('handleFillWithBots', () => {
       expect(result.actions).toHaveLength(1);
       expect(result.actions[0].type).toBe('FILL_WITH_BOTS');
 
-      const action = result.actions[0] as { type: 'FILL_WITH_BOTS'; payload: { bots: Record<number, BroadcastPlayer> } };
+      const action = result.actions[0] as {
+        type: 'FILL_WITH_BOTS';
+        payload: { bots: Record<number, BroadcastPlayer> };
+      };
       const bots = action.payload.bots;
 
       // All 12 seats should have bots
@@ -116,7 +116,10 @@ describe('handleFillWithBots', () => {
 
       expect(result.success).toBe(true);
 
-      const action = result.actions[0] as { type: 'FILL_WITH_BOTS'; payload: { bots: Record<number, BroadcastPlayer> } };
+      const action = result.actions[0] as {
+        type: 'FILL_WITH_BOTS';
+        payload: { bots: Record<number, BroadcastPlayer> };
+      };
       const bots = action.payload.bots;
 
       // Only 10 bots created (seats 1-4, 6-11)

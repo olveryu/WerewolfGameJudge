@@ -35,8 +35,7 @@ describe('Delegation Seat Identity Contract', () => {
       const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
 
       // Find the compound action block
-      const compoundBlockRegex =
-        /if\s*\(\s*currentSchema\?\.kind\s*===\s*['"]compound['"]\s*\)/g;
+      const compoundBlockRegex = /if\s*\(\s*currentSchema\?\.kind\s*===\s*['"]compound['"]\s*\)/g;
       const matches = [...content.matchAll(compoundBlockRegex)];
 
       expect(matches.length).toBeGreaterThan(0);
@@ -68,7 +67,8 @@ describe('Delegation Seat Identity Contract', () => {
       const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
 
       // Find the skip compound block - look for the compound/skipAll handling specifically
-      const skipCompoundRegex = /if\s*\(\s*intent\.stepKey\s*===\s*['"]skipAll['"]\s*\|\|\s*currentSchema\?\.kind\s*===\s*['"]compound['"]\s*\)/g;
+      const skipCompoundRegex =
+        /if\s*\(\s*intent\.stepKey\s*===\s*['"]skipAll['"]\s*\|\|\s*currentSchema\?\.kind\s*===\s*['"]compound['"]\s*\)/g;
       const match = skipCompoundRegex.exec(content);
 
       expect(match).toBeTruthy();

@@ -20,16 +20,16 @@
 
 ### 1.1 目标
 
-1) 在 Host 端（`isHost`）提供 **“填充机器人”** 按钮：补满空座到 12 人（或当前 board 约定人数）。
-2) Bot 仅用于占位与调试：
+1. 在 Host 端（`isHost`）提供 **“填充机器人”** 按钮：补满空座到 12 人（或当前 board 约定人数）。
+2. Bot 仅用于占位与调试：
    - `isBot: true`
    - 不会自动提交任何 action
    - Host 可选择接管某个 bot seat 进行代发
-3) Host 在 debug bots 模式下：
+3. Host 在 debug bots 模式下：
    - 不需要 view role 12 次
    - **能直接看到 bot 的身份（角色）**
    - 可以一键将所有 bot 标记为 `hasViewedRole=true`（仅 bot 生效）以通过 `assigned → ready` gate
-4) 代发行动应复用既有 Action 提交流程与校验（包括 seat/role gate），不引入并行消息协议。
+4. 代发行动应复用既有 Action 提交流程与校验（包括 seat/role gate），不引入并行消息协议。
 
 ### 1.2 非目标（明确不做）
 
@@ -156,9 +156,9 @@ export type BroadcastPlayer = {
 
 ### 6.2 Policy 必须包含的 guard
 
-1) debug 未开启 → `ALERT/NOOP`
-2) seat 不存在玩家 / 玩家不是 bot → `ALERT`
-3) 当前已接管该 seat → 输出 `RELEASE_TAKEOVER`（toggle 语义）
+1. debug 未开启 → `ALERT/NOOP`
+2. seat 不存在玩家 / 玩家不是 bot → `ALERT`
+3. 当前已接管该 seat → 输出 `RELEASE_TAKEOVER`（toggle 语义）
 
 ---
 
@@ -215,6 +215,7 @@ if (player.role !== role) {
 **输出**：更新 `players[]`、设置 `debugMode.botsEnabled=true`
 
 规则：
+
 - 只允许 `isHost && status === 'unseated'` 时执行（否则 reject/no-op + 可观测 reason）
 - 只填充空位，不覆盖已有 human
 - 新建 bot player 最少字段：
@@ -225,6 +226,7 @@ if (player.role !== role) {
 ### 9.2 markAllBotsViewedRole
 
 规则：
+
 - 只允许当 `debugMode?.botsEnabled === true && status === 'assigned'`
 - 仅对 `isBot === true` 的玩家：`hasViewedRole = true`
 - human 玩家不变
@@ -240,18 +242,20 @@ if (player.role !== role) {
 新增：`src/services/engine/handlers/__tests__/debugBots.contract.test.ts`
 
 必须覆盖：
-1) `fillWithBots` 后：
+
+1. `fillWithBots` 后：
    - `debugMode.botsEnabled === true`
    - 新增的 player 均 `isBot: true`
    - 原有 human 不被覆盖
-2) `markAllBotsViewedRole`：
+2. `markAllBotsViewedRole`：
    - bot 的 `hasViewedRole` 变为 true
    - human 的 `hasViewedRole` 不变
-3) debug 未开启/状态不对时调用 `markAllBotsViewedRole`：必须 reject（fail-fast），并且 reject reason 可断言
+3. debug 未开启/状态不对时调用 `markAllBotsViewedRole`：必须 reject（fail-fast），并且 reject reason 可断言
 
 ### 10.2 UI-level tests（建议最小集）
 
 若你改动 RoomScreen UI：至少补 1 个 UI test 确保：
+
 - debug 按钮只在 host + 对应 status 出现
 - 未开启 debug 不显示“角色：xxx/接管按钮”
 
@@ -269,21 +273,21 @@ if (player.role !== role) {
 
 - 所有 debug 行为必须以 `debugMode?.botsEnabled` 为前置；回滚时可通过移除该开关入口保证能力不可达。
 - 若出现破坏性问题，优先回滚：
-  1) `markAllBotsViewedRole` 写 `hasViewedRole` 路径
-  2) controlledSeat 代发路径
-  3) fillWithBots（最后）
+  1. `markAllBotsViewedRole` 写 `hasViewedRole` 路径
+  2. controlledSeat 代发路径
+  3. fillWithBots（最后）
 
 ---
 
 ## 🚧 12. 实施顺序建议（给对面 agent 的施工 checklist）
 
-1) 先加类型与 contract tests（红灯先行）
-2) 实现 handler/reducer（让 contract 绿）
-3) 加 UI：HostControlButtons（fill/ready）
-4) 加 SeatTile debug 展示（角色小字 + 接管按钮）
-5) 加 policy/orchestrator：controlledSeat toggle
-6) 修改 `useGameRoom.submitAction/submitWolfVote`：seat+role 跟随 effectiveSeat
-7) 跑全量门禁（format/typecheck/jest，必要时加 e2e smoke）
+1. 先加类型与 contract tests（红灯先行）
+2. 实现 handler/reducer（让 contract 绿）
+3. 加 UI：HostControlButtons（fill/ready）
+4. 加 SeatTile debug 展示（角色小字 + 接管按钮）
+5. 加 policy/orchestrator：controlledSeat toggle
+6. 修改 `useGameRoom.submitAction/submitWolfVote`：seat+role 跟随 effectiveSeat
+7. 跑全量门禁（format/typecheck/jest，必要时加 e2e smoke）
 
 ---
 

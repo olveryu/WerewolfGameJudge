@@ -6,7 +6,14 @@
  */
 import React, { useMemo, memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useColors, spacing, typography, borderRadius, shadows, type ThemeColors } from '../../../theme';
+import {
+  useColors,
+  spacing,
+  typography,
+  borderRadius,
+  shadows,
+  type ThemeColors,
+} from '../../../theme';
 import { TESTIDS } from '../../../testids';
 
 export interface NightProgressIndicatorProps {

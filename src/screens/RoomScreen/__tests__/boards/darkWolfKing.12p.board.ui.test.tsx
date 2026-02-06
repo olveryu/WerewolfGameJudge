@@ -282,22 +282,29 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         renderRoom,
         'darkWolfKing',
         7,
-        new Map<number, any>([[4, 'wolf'], [5, 'wolf'], [6, 'wolf'], [7, 'darkWolfKing']]),
+        new Map<number, any>([
+          [4, 'wolf'],
+          [5, 'wolf'],
+          [6, 'wolf'],
+          [7, 'darkWolfKing'],
+        ]),
         1,
       );
     });
 
     it('skipConfirm (guard) → submitAction called', async () => {
-      await chainSkipConfirm(
-        harness, setMock, renderRoom,
-        'guardProtect', 'guard', 'guard', 11,
-      );
+      await chainSkipConfirm(harness, setMock, renderRoom, 'guardProtect', 'guard', 'guard', 11);
     });
 
     it('confirmTrigger (darkWolfKing) → dialog dismissed', async () => {
       await chainConfirmTrigger(
-        harness, setMock, renderRoom,
-        'darkWolfKingConfirm', 'darkWolfKing', 'darkWolfKing', 7,
+        harness,
+        setMock,
+        renderRoom,
+        'darkWolfKingConfirm',
+        'darkWolfKing',
+        'darkWolfKing',
+        7,
       );
     });
   });

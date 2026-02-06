@@ -123,9 +123,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           isControlled={controlledSeat === seat.index}
           playerUid={seat.player?.uid ?? null}
           playerAvatarUrl={seat.player?.avatarUrl}
-          playerAvatarIndex={
-            seat.player?.uid ? avatarMap.get(seat.player.uid) : undefined
-          }
+          playerAvatarIndex={seat.player?.uid ? avatarMap.get(seat.player.uid) : undefined}
           playerDisplayName={seat.player?.displayName ?? null}
           roleId={seat.player?.role ?? null}
           showBotRole={showBotRoles && seat.player?.isBot === true}

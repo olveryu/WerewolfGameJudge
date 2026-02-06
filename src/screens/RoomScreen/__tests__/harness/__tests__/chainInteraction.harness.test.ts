@@ -9,10 +9,7 @@
  * These are unit tests for the harness itself (no React rendering).
  */
 
-import {
-  RoomScreenTestHarness,
-  createShowAlertMock,
-} from '../RoomScreenTestHarness';
+import { RoomScreenTestHarness, createShowAlertMock } from '../RoomScreenTestHarness';
 
 describe('RoomScreenTestHarness enhanced button API', () => {
   let harness: RoomScreenTestHarness;
@@ -59,10 +56,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
 
   it('pressButton succeeds when button exists', () => {
     const cb = jest.fn();
-    mockShowAlert('狼人投票', '确定要猎杀吗？', [
-      { text: '确定', onPress: cb },
-      { text: '取消' },
-    ]);
+    mockShowAlert('狼人投票', '确定要猎杀吗？', [{ text: '确定', onPress: cb }, { text: '取消' }]);
 
     harness.pressButton('确定');
     expect(cb).toHaveBeenCalledTimes(1);
@@ -73,10 +67,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
   });
 
   it('pressButton throws when button label not found', () => {
-    mockShowAlert('狼人投票', '确定要猎杀吗？', [
-      { text: '确定' },
-      { text: '取消' },
-    ]);
+    mockShowAlert('狼人投票', '确定要猎杀吗？', [{ text: '确定' }, { text: '取消' }]);
 
     expect(() => harness.pressButton('不存在的按钮')).toThrow(
       /Button "不存在的按钮" not found.*狼人投票/,
@@ -159,10 +150,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
 
   it('pressLastPrimary presses the first button of the last dialog', () => {
     const cb = jest.fn();
-    mockShowAlert('确认行动', '是否使用技能？', [
-      { text: '确定', onPress: cb },
-      { text: '取消' },
-    ]);
+    mockShowAlert('确认行动', '是否使用技能？', [{ text: '确定', onPress: cb }, { text: '取消' }]);
 
     harness.pressLastPrimary();
     expect(cb).toHaveBeenCalledTimes(1);
@@ -236,10 +224,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
           dismissed = true;
           // After dismiss, a second dialog appears (poison prompt)
           // Title contains '毒杀' + '号' → witchPoisonConfirm
-          mockShowAlert('毒杀5号', '确定要使用毒药吗？', [
-            { text: '确定' },
-            { text: '取消' },
-          ]);
+          mockShowAlert('毒杀5号', '确定要使用毒药吗？', [{ text: '确定' }, { text: '取消' }]);
         },
       },
     ]);
@@ -262,23 +247,17 @@ describe('RoomScreenTestHarness enhanced button API', () => {
 
   it('deprecated press() still works for backward compat', () => {
     const cb = jest.fn();
-    mockShowAlert('狼人投票', '确定？', [
-      { text: '确定', onPress: cb },
-    ]);
+    mockShowAlert('狼人投票', '确定？', [{ text: '确定', onPress: cb }]);
 
-    // eslint-disable-next-line deprecation/deprecation
-    harness.press('确定');
+    harness.press('确定'); // deprecated method — testing backward compat
     expect(cb).toHaveBeenCalledTimes(1);
   });
 
   it('deprecated pressPrimary() still works for backward compat', () => {
     const cb = jest.fn();
-    mockShowAlert('狼人投票', '确定？', [
-      { text: '确定', onPress: cb },
-    ]);
+    mockShowAlert('狼人投票', '确定？', [{ text: '确定', onPress: cb }]);
 
-    // eslint-disable-next-line deprecation/deprecation
-    harness.pressPrimary();
+    harness.pressPrimary(); // deprecated method — testing backward compat
     expect(cb).toHaveBeenCalledTimes(1);
   });
 });

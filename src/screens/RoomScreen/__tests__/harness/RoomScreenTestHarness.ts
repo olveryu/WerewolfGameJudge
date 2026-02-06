@@ -351,9 +351,7 @@ export class RoomScreenTestHarness {
   pressButton(label: string): void {
     const last = this._events.at(-1);
     if (!last) {
-      throw new Error(
-        `[pressButton] No dialog recorded. Cannot press "${label}".`,
-      );
+      throw new Error(`[pressButton] No dialog recorded. Cannot press "${label}".`);
     }
     this._pressButtonOnEvent(last, label);
   }
@@ -426,9 +424,7 @@ export class RoomScreenTestHarness {
       );
     }
     if (event.buttons.length === 0) {
-      throw new Error(
-        `[pressPrimaryOnType] Dialog '${type}' ("${event.title}") has no buttons.`,
-      );
+      throw new Error(`[pressPrimaryOnType] Dialog '${type}' ("${event.title}") has no buttons.`);
     }
     this._pressButtonOnEvent(event, event.buttons[0]);
   }

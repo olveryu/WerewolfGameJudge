@@ -142,77 +142,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
     setParticles(newParticles);
   }, []);
 
-  // Handle phases
-  const startLevitation = useCallback(() => {
-    setPhase('levitate');
-
-    // Float up with expanding shadow
-    Animated.parallel([
-      Animated.timing(levitateY, {
-        toValue: -30,
-        duration: 400,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(levitateShadow, {
-        toValue: 2,
-        duration: 400,
-        useNativeDriver: canUseNativeDriver,
-      }),
-    ]).start(() => {
-      startFlip();
-    });
-  }, [levitateY, levitateShadow]);
-
-  const startFlip = useCallback(() => {
-    setPhase('flipping');
-
-    if (enableHaptics) {
-      triggerHaptic('medium', true);
-    }
-
-    // Edge glow during flip
-    Animated.sequence([
-      Animated.timing(edgeGlowOpacity, {
-        toValue: 1,
-        duration: config.flipDuration * 0.3,
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(edgeGlowOpacity, {
-        toValue: 0,
-        duration: config.flipDuration * 0.4,
-        delay: config.flipDuration * 0.3,
-        useNativeDriver: canUseNativeDriver,
-      }),
-    ]).start();
-
-    // Air ripple effect
-    Animated.parallel([
-      Animated.timing(rippleScale, {
-        toValue: 2,
-        duration: config.flipDuration,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(rippleOpacity, {
-        toValue: 0,
-        duration: config.flipDuration,
-        useNativeDriver: canUseNativeDriver,
-      }),
-    ]).start();
-    rippleOpacity.setValue(0.6);
-
-    // Main flip animation
-    Animated.timing(flipAnim, {
-      toValue: 1,
-      duration: config.flipDuration,
-      easing: Easing.inOut(Easing.cubic),
-      useNativeDriver: canUseNativeDriver,
-    }).start(() => {
-      startLanding();
-    });
-  }, [flipAnim, edgeGlowOpacity, rippleScale, rippleOpacity, config.flipDuration, enableHaptics]);
-
+  // Handle phases — declared in reverse dependency order to avoid forward references
   const startLanding = useCallback(() => {
     setPhase('landing');
 
@@ -271,6 +201,84 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
       });
     });
   }, [levitateY, levitateShadow, bounceY, bounceScale, createParticles, enableHaptics]);
+
+  const startFlip = useCallback(() => {
+    setPhase('flipping');
+
+    if (enableHaptics) {
+      triggerHaptic('medium', true);
+    }
+
+    // Edge glow during flip
+    Animated.sequence([
+      Animated.timing(edgeGlowOpacity, {
+        toValue: 1,
+        duration: config.flipDuration * 0.3,
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.timing(edgeGlowOpacity, {
+        toValue: 0,
+        duration: config.flipDuration * 0.4,
+        delay: config.flipDuration * 0.3,
+        useNativeDriver: canUseNativeDriver,
+      }),
+    ]).start();
+
+    // Air ripple effect
+    Animated.parallel([
+      Animated.timing(rippleScale, {
+        toValue: 2,
+        duration: config.flipDuration,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.timing(rippleOpacity, {
+        toValue: 0,
+        duration: config.flipDuration,
+        useNativeDriver: canUseNativeDriver,
+      }),
+    ]).start();
+    rippleOpacity.setValue(0.6);
+
+    // Main flip animation
+    Animated.timing(flipAnim, {
+      toValue: 1,
+      duration: config.flipDuration,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: canUseNativeDriver,
+    }).start(() => {
+      startLanding();
+    });
+  }, [
+    flipAnim,
+    edgeGlowOpacity,
+    rippleScale,
+    rippleOpacity,
+    config.flipDuration,
+    enableHaptics,
+    startLanding,
+  ]);
+
+  const startLevitation = useCallback(() => {
+    setPhase('levitate');
+
+    // Float up with expanding shadow
+    Animated.parallel([
+      Animated.timing(levitateY, {
+        toValue: -30,
+        duration: 400,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: canUseNativeDriver,
+      }),
+      Animated.timing(levitateShadow, {
+        toValue: 2,
+        duration: 400,
+        useNativeDriver: canUseNativeDriver,
+      }),
+    ]).start(() => {
+      startFlip();
+    });
+  }, [levitateY, levitateShadow, startFlip]);
 
   // Handle glow complete
   const handleGlowComplete = useCallback(() => {

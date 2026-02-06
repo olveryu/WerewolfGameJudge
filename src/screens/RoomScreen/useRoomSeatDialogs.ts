@@ -49,7 +49,7 @@ export function useRoomSeatDialogs({
   setModalType,
   takeSeat,
   leaveSeat,
-  roomStatus,
+  roomStatus: _roomStatus,
   navigation,
   onLeaveRoom,
 }: UseRoomSeatDialogsParams): UseRoomSeatDialogsResult {
