@@ -51,6 +51,7 @@ export interface ConfigScreenStyles {
   // Role stepper
   stepperRow: ViewStyle;
   stepperLabel: TextStyle;
+  stepperPill: ViewStyle;
   stepperControls: ViewStyle;
   stepperBtn: ViewStyle;
   stepperBtnDisabled: ViewStyle;
@@ -181,7 +182,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     factionPanel: {
       backgroundColor: colors.surface,
       borderRadius: borderRadius.large,
-      marginBottom: spacing.small,
+      marginBottom: spacing.medium,
       ...shadows.sm,
       overflow: 'hidden',
     },
@@ -217,52 +218,52 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     factionContent: {
       paddingHorizontal: spacing.medium,
+      paddingTop: spacing.small,
       paddingBottom: spacing.small,
     },
 
     // ── Section (within faction panel) ──────────
     section: {
-      marginBottom: spacing.small,
+      marginBottom: spacing.medium,
     },
     sectionTitle: {
-      fontSize: 11,
+      fontSize: typography.caption,
       fontWeight: '400',
       color: colors.textMuted,
       marginBottom: spacing.tight,
-      textTransform: 'uppercase',
       letterSpacing: 0.5,
     },
     chipContainer: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: spacing.tight,
+      gap: spacing.tight + 2, // 6px — balanced spacing
     },
 
     // ── Role chip ───────────────────────────────
     chip: {
       minWidth: spacing.xxlarge + spacing.large,
-      paddingHorizontal: spacing.small,
-      paddingVertical: spacing.tight,
+      paddingHorizontal: spacing.small + spacing.tight,
+      paddingVertical: spacing.tight + 1,
       backgroundColor: colors.background,
       borderRadius: borderRadius.full,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: colors.border,
       alignItems: 'center',
     },
     chipSelected: {
-      backgroundColor: colors.primary,
+      backgroundColor: colors.primary + '15',
       borderColor: colors.primary,
     },
     chipSelectedWolf: {
-      backgroundColor: colors.wolf,
+      backgroundColor: colors.wolf + '15',
       borderColor: colors.wolf,
     },
     chipSelectedGood: {
-      backgroundColor: colors.god,
+      backgroundColor: colors.god + '15',
       borderColor: colors.god,
     },
     chipSelectedNeutral: {
-      backgroundColor: colors.warning,
+      backgroundColor: colors.warning + '15',
       borderColor: colors.warning,
     },
     chipText: {
@@ -270,8 +271,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       color: colors.textSecondary,
     },
     chipTextSelected: {
-      color: colors.textInverse,
-      fontWeight: '500',
+      fontWeight: '600',
     },
 
     // ── Role stepper ────────────────────────────
@@ -287,18 +287,25 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       color: colors.text,
       fontWeight: '600',
     },
+    stepperPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.full,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: spacing.tight / 2,
+      paddingVertical: spacing.tight / 2,
+    },
     stepperControls: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.small + spacing.tight,
+      gap: 0,
     },
     stepperBtn: {
-      width: spacing.xlarge + spacing.tight,
-      height: spacing.xlarge + spacing.tight,
+      width: spacing.large + spacing.tight,
+      height: spacing.large + spacing.tight,
       borderRadius: borderRadius.full,
-      backgroundColor: colors.background,
-      borderWidth: 1.5,
-      borderColor: colors.border,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -306,14 +313,14 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       opacity: 0.25,
     },
     stepperBtnText: {
-      fontSize: typography.title,
+      fontSize: typography.subtitle,
       fontWeight: '600',
     },
     stepperBtnTextDisabled: {
       color: colors.textMuted,
     },
     stepperCount: {
-      fontSize: typography.title,
+      fontSize: typography.body,
       fontWeight: '700',
       color: colors.text,
       minWidth: spacing.large,

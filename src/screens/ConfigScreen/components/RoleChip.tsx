@@ -17,6 +17,8 @@ export interface RoleChipProps {
   styles: ConfigScreenStyles;
   /** Faction color key for the selected state. Falls back to primary if omitted. */
   factionColor?: FactionColorKey;
+  /** Accent color for selected text. Falls back to text color if omitted. */
+  accentColor?: string;
 }
 
 const FACTION_STYLE_MAP: Record<FactionColorKey, keyof ConfigScreenStyles> = {
@@ -31,13 +33,14 @@ const arePropsEqual = (prev: RoleChipProps, next: RoleChipProps): boolean => {
     prev.label === next.label &&
     prev.selected === next.selected &&
     prev.factionColor === next.factionColor &&
+    prev.accentColor === next.accentColor &&
     prev.styles === next.styles
     // onToggle excluded - stable via useCallback
   );
 };
 
 export const RoleChip = memo<RoleChipProps>(
-  ({ id, label, selected, onToggle, styles, factionColor }) => {
+  ({ id, label, selected, onToggle, styles, factionColor, accentColor }) => {
     const selectedStyle = factionColor
       ? styles[FACTION_STYLE_MAP[factionColor]]
       : styles.chipSelected;
@@ -49,7 +52,15 @@ export const RoleChip = memo<RoleChipProps>(
         onPress={() => onToggle(id)}
         activeOpacity={0.7}
       >
-        <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+        <Text
+          style={[
+            styles.chipText,
+            selected && styles.chipTextSelected,
+            selected && accentColor ? { color: accentColor } : undefined,
+          ]}
+        >
+          {label}
+        </Text>
       </TouchableOpacity>
     );
   },

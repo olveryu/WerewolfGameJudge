@@ -551,6 +551,7 @@ export const ConfigScreen: React.FC = () => {
                           onToggle={toggleRole}
                           styles={styles}
                           factionColor={factionColorKey}
+                          accentColor={accentColor}
                         />
                       ))}
                     </Section>

@@ -44,52 +44,52 @@ export const RoleStepper = memo<RoleStepperProps>(
     return (
       <View style={styles.stepperRow}>
         <Text style={styles.stepperLabel}>{label}</Text>
-        <View style={styles.stepperControls}>
-          <TouchableOpacity
-            testID={`config-stepper-dec-${roleId}`}
-            style={[
-              styles.stepperBtn,
-              { borderColor: accentColor },
-              count <= 0 && styles.stepperBtnDisabled,
-            ]}
-            onPress={handleDecrement}
-            activeOpacity={count <= 0 ? 1 : 0.6}
-            accessibilityState={{ disabled: count <= 0 }}
-          >
-            <Text
+        <View style={[styles.stepperPill, count > 0 && { borderColor: accentColor + '40' }]}>
+          <View style={styles.stepperControls}>
+            <TouchableOpacity
+              testID={`config-stepper-dec-${roleId}`}
               style={[
-                styles.stepperBtnText,
-                { color: accentColor },
-                count <= 0 && styles.stepperBtnTextDisabled,
+                styles.stepperBtn,
+                count <= 0 && styles.stepperBtnDisabled,
               ]}
+              onPress={handleDecrement}
+              activeOpacity={count <= 0 ? 1 : 0.6}
+              accessibilityState={{ disabled: count <= 0 }}
             >
-              −
+              <Text
+                style={[
+                  styles.stepperBtnText,
+                  { color: accentColor },
+                  count <= 0 && styles.stepperBtnTextDisabled,
+                ]}
+              >
+                −
+              </Text>
+            </TouchableOpacity>
+            <Text style={[styles.stepperCount, { color: count > 0 ? accentColor : undefined }]}>
+              {count}
             </Text>
-          </TouchableOpacity>
-          <Text style={[styles.stepperCount, { color: count > 0 ? accentColor : undefined }]}>
-            {count}
-          </Text>
-          <TouchableOpacity
-            testID={`config-stepper-inc-${roleId}`}
-            style={[
-              styles.stepperBtn,
-              { borderColor: accentColor },
-              count >= maxCount && styles.stepperBtnDisabled,
-            ]}
-            onPress={handleIncrement}
-            activeOpacity={count >= maxCount ? 1 : 0.6}
-            accessibilityState={{ disabled: count >= maxCount }}
-          >
-            <Text
+            <TouchableOpacity
+              testID={`config-stepper-inc-${roleId}`}
               style={[
-                styles.stepperBtnText,
-                { color: accentColor },
-                count >= maxCount && styles.stepperBtnTextDisabled,
+                styles.stepperBtn,
+                count >= maxCount && styles.stepperBtnDisabled,
               ]}
+              onPress={handleIncrement}
+              activeOpacity={count >= maxCount ? 1 : 0.6}
+              accessibilityState={{ disabled: count >= maxCount }}
             >
-              +
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={[
+                  styles.stepperBtnText,
+                  { color: accentColor },
+                  count >= maxCount && styles.stepperBtnTextDisabled,
+                ]}
+              >
+                +
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );

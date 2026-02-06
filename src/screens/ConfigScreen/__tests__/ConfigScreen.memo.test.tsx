@@ -92,6 +92,7 @@ describe('ConfigScreen Performance Optimizations', () => {
         'chipTextSelected',
         'stepperRow',
         'stepperLabel',
+        'stepperPill',
         'stepperControls',
         'stepperBtn',
         'stepperBtnDisabled',
