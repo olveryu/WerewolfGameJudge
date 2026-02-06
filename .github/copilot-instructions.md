@@ -12,7 +12,138 @@
 - Anti-drift 护栏（MUST follow）
   - 新增字段必须同步 `normalizeState`（MUST follow）
 - RoomScreen UI 交互架构（MUST follow）
-- Screen 性能设计一致性（All Screens SHOULD follow）
+- Screen 性能设计一致性（All - 可以引入内部 "Intent" 类型，但必须适配到现有 protocol。
+  - 除非同时提供兼容层 + 合约测试，否则禁止发明平行的消息协议。
+
+---
+
+## Theme Token 使用规范（MUST follow）
+
+> 目标：禁止硬编码样式值，所有视觉属性必须来自主题系统（`src/theme/tokens.ts`），确保全局一致性与主题切换能力。
+
+### Token 类别与用途
+
+| 类别 | 导入来源 | 说明 |
+|------|---------|------|
+| `colors` | `useColors()` / `useTheme()` | 所有颜色值（背景、文字、边框、阵营色等） |
+| `spacing` | `src/theme` | 间距：tight=4, small=8, medium=16, large=24, xlarge=32, xxlarge=48 |
+| `typography` | `src/theme` | 字号（caption=12 ~ display=40）+ `weights`（normal/medium/semibold/bold） |
+| `borderRadius` | `src/theme` | 圆角：none=0, small=8, medium=12, large=16, xlarge=24, full=9999 |
+| `shadows` | `src/theme` | 阴影预设：none, sm, md, lg |
+| `layout` | `src/theme` | 页面级常量：screenPaddingH, screenPaddingV, cardPadding, listItemGap |
+| `componentSizes` | ⚠️ `src/theme/tokens` | 组件尺寸：button.sm/md/lg, avatar.xs~xl, chip, header, tabBar |
+| `fixed` | ⚠️ `src/theme/tokens` | 固定值：borderWidth=1, borderWidthThick=2, divider=1, minTouchTarget=44, maxContentWidth=600 |
+
+### Import 路径规则（硬性）
+
+- `spacing`、`typography`、`borderRadius`、`shadows`、`layout`：从 `src/theme`（`index.ts`）导入。
+- **`componentSizes`、`fixed`**：**必须从 `src/theme/tokens` 直接导入**（`index.ts` 未 re-export）。
+  - ✅ `import { componentSizes, fixed } from '../../../theme/tokens';`
+  - ❌ `import { componentSizes } from '../../../theme';`（编译通过但值为 `undefined`）
+
+### 禁止项（Hard rules）
+
+- ❌ 禁止硬编码颜色值：`'#xxx'`、`'rgb(...)'`、`'rgba(...)'` → 必须用 `colors.*`。
+- ❌ 禁止硬编码间距/尺寸数字：`padding: 16` → 必须用 `spacing.medium`。
+- ❌ 禁止硬编码字号：`fontSize: 14` → 必须用 `typography.secondary`。
+- ❌ 禁止硬编码字重：`fontWeight: '600'` → 必须用 `typography.weights.semibold`。
+- ❌ 禁止硬编码圆角：`borderRadius: 12` → 必须用 `borderRadius.medium`。
+- ❌ 禁止硬编码阴影：手写 `shadowColor/Offset/Opacity/Radius` → 必须用 `shadows.sm/md/lg`。
+
+### 允许的例外
+
+- `*.stories.tsx`：Storybook 演示文件允许硬编码。
+- `RoleRevealEffects/*`：动画组件（缩放/旋转等动画常量）。
+- Emoji `fontSize`：Emoji 渲染尺寸不走 `typography`，允许直接写数字。
+- `statusDot` 6×6：极小的状态指示点。
+- 第三方库/平台层面不可控的样式值。
+
+### 审计口径
+
+- 修改/新增任何 `styles.ts` 或内联样式时，必须检查是否用了 token。
+- PR 自查：`grep -rn "fontSize: [0-9]" src/screens/` → 如有非例外项，必须修正。
+
+---
+
+## UI 风格统一规范（SHOULD follow）
+
+> 目标：所有 Screen 的视觉风格保持一致，以 **SettingsScreen** 为参考标准。
+
+### 参考标准：SettingsScreen
+
+SettingsScreen 定义了 App 的统一视觉语言，其他 Screen 应与之保持一致：
+
+- Header：`surface` 背景 + `borderBottom`（`border` 色 + `fixed.divider`）
+- 返回/操作按钮：方形（`componentSizes.avatar.md` × `avatar.md`）+ `background` 背景色 + `borderRadius.medium`
+- 内容卡片/分区：`surface` 背景 + `borderRadius.large` + `shadows.sm`（**不用 border 描边**）
+- 页面背景：`background` 色
+
+### Header 样式
+
+```
+backgroundColor: colors.surface
+borderBottomWidth: fixed.divider
+borderBottomColor: colors.border
+```
+
+- 返回按钮：方形容器，`width/height: componentSizes.avatar.md`，`borderRadius: borderRadius.medium`，`backgroundColor: colors.background`。
+- 操作按钮（齿轮/菜单等）：同上规格。
+
+### 卡片 / 分区（Card / Section）
+
+- ✅ 使用 `shadows.sm` 提供层次感（代替 border 描边）。
+- ✅ `borderRadius: borderRadius.large`。
+- ✅ `backgroundColor: colors.surface`。
+- ❌ 禁止用 `borderWidth + borderColor` 做卡片边框（视觉上不统一）。
+- 例外：输入框、选中态高亮等功能性边框仍可使用。
+
+### 信息条 / 进度条（Bar → Card 化）
+
+- 全宽铺满的 bar（如 NightProgressIndicator、ConnectionStatusBar）应改为卡片风格：
+  - 加 `marginHorizontal: spacing.medium`
+  - 加 `borderRadius: borderRadius.large`
+  - 加 `shadows.sm`
+  - 加 `marginTop/marginBottom` 适当间距
+
+### Banner / 提示条
+
+- 使用浅色背景（主色 + `'20'` 透明度后缀），而非实色填满。
+- 加 `borderWidth: fixed.borderWidth` + 对应颜色 border。
+- 加 `borderRadius: borderRadius.large`。
+- 加 `marginHorizontal` + `shadows.sm`。
+- 文字颜色用 `colors.text`（而非 `textInverse`），确保可读性。
+
+### 文字层级
+
+| 层级 | 字号 | 字重 | 颜色 |
+|------|------|------|------|
+| 标题 | `typography.title` ~ `typography.heading` | `bold` | `colors.text` |
+| 副标题 / 分区标题 | `typography.body` ~ `typography.subtitle` | `semibold` | `colors.text` |
+| 正文 | `typography.body` | `normal` | `colors.text` |
+| 辅助说明 | `typography.secondary` | `normal` | `colors.textSecondary` |
+| 提示 / 标签 | `typography.caption` | `normal` | `colors.textMuted` |
+
+### 按钮层级
+
+- 主按钮：`backgroundColor: colors.primary`，`color: colors.textInverse`，`borderRadius: borderRadius.medium`。
+- 次要/功能按钮：`backgroundColor: colors.background`，`color: colors.text`，`borderRadius: borderRadius.medium`。
+- 文字按钮 / 链接：无背景，`color: colors.primary`。
+- 危险操作：`backgroundColor: colors.error`，`color: colors.textInverse`。
+
+### 新增 Screen 时的自查清单
+
+1. Header 是否使用 `surface` bg + `borderBottom`？
+2. 返回按钮是否方形 + `background` 色 + `borderRadius.medium`？
+3. 内容卡片是否用 `shadows.sm` 而非 border 描边？
+4. 全宽 bar 是否改为卡片化？
+5. 文字层级是否与上表一致？
+6. 所有样式值是否来自 theme token？
+
+---
+
+## 实现清单（角色 / schema / step / UI 必做）s SHOULD follow）
+- Theme Token 使用规范（MUST follow）
+- UI 风格统一规范（SHOULD follow）
 - 实现清单（角色 / schema / step / UI 必做）
 - 交付与门禁（必须执行）
 
