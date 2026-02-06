@@ -287,6 +287,49 @@ advanceToNextAction()
 
 ---
 
+## Actor identity（my/effective/actor）三层语义与使用口径（MUST follow）
+
+> 目标：避免 debug bot 接管（`controlledSeat`）引入“用错 seat/role”导致的 `role_mismatch`、无法提交行动、以及 UI/Host 漂移（drift）。
+
+### 三层语义（必须按职责使用）
+
+- `mySeatNumber` / `myRole`
+  - **真实身份**：本设备/uid 自己是谁。
+  - 用途：展示（“我是谁”）、本地文案；不作为“提交行动身份”。
+
+- `effectiveSeat` / `effectiveRole`
+  - **提交身份**：当需要向 Host 提交行动/intent 时，应该以哪个 seat/role 去提交。
+  - 典型定义：`effectiveSeat = controlledSeat ?? mySeatNumber`（接管 bot 时即 bot seat）。
+  - 用途：构造 wire payload、调用 `submitAction/submitWolfVote/submitRevealAck/...` 等“会影响 Host 状态”的提交。
+
+- `actorSeatNumber` / `actorRole`
+  - **UI 决策身份（单一真相）**：给 policy / `useRoomActions` / `useActionerState` 使用的行动者身份。
+  - RoomScreen 里通常来自 `getActorIdentity()` 的输出（例如 `actorSeatForUi/actorRoleForUi`）。
+  - 用途：所有“UI 是否可行动 / seat 高亮 / intent 生成 / imActioner 判断”等纯 UI 决策。
+
+### 硬规则（MUST）
+
+1) **提交给 Host 的地方只能用 `effective*`**
+   - ✅ 例如：`proceedWithAction` / `submitAction` / `submitWolfVote` / `confirmTrigger` / compound schema（witch）的 `skip/save/poison` 等。
+   - ❌ 禁止：在提交路径里使用 `mySeatNumber`（debug 接管会不一致、甚至为 null）。
+   - ❌ 禁止：用 `actorSeatNumber` 代替 `effectiveSeat` 来 submit（会把 UI 决策层字段耦合进提交层，增加 drift 风险）。
+
+2) **UI 决策（policy/intent/useRoomActions/useActionerState）只能用 `actor*`**
+   - ✅ `gameContext.actorSeatNumber` / `interactionContext.actorSeatForUi` 等传入 policy 的字段必须来自 `getActorIdentity()`。
+   - ❌ 禁止：policy 里直接读取 `effectiveSeat/effectiveRole` 或 `controlledSeat` 来决定“我是不是 actioner/能不能点”。
+
+3) **展示用逻辑才用 `my*`**
+   - ✅ 例如：显示“你本人座位/身份”、debug panel 显示真实 uid 绑定。
+   - ❌ 禁止：把 `my*` 当作行动提交身份（除非明确不支持接管模式且有测试门禁）。
+
+### Review/防回归清单（SHOULD 在 PR 里自查）
+
+- 搜索 `submitAction(` / `proceedWithAction` / `submitWolfVote(` 周边：是否出现 `mySeatNumber`？（应为 `effectiveSeat` 或 submit API 内部封装）
+- 搜索 policy / `useRoomActions(` / `useActionerState(` 入参：是否使用 `actorSeatNumber/actorRole`（来自 `getActorIdentity`）？
+- 如果出现了“同时传 `my*`、`effective*`、`actor*`”：必须在注释里说明用途分层，避免后续误用。
+
+---
+
 ## Screen 性能设计一致性（All Screens SHOULD follow）
 
 当你修改/新增任何 Screen（`src/screens/**`）的 UI 结构或性能相关代码时，优先遵守以下统一模式（参考：`HomeScreen` / `SettingsScreen` / `ConfigScreen` / `RoomScreen PlayerGrid/SeatTile`）：

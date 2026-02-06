@@ -701,26 +701,23 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
         case 'wolfVote':
           {
-            const seat = intent.wolfSeat ?? findVotingWolfSeat();
-            roomScreenLog.info(
-              '[handleActionIntent] wolfVote:',
-              'intent.wolfSeat=',
-              intent.wolfSeat,
-              'findVotingWolfSeat()=',
-              findVotingWolfSeat(),
-              'seat=',
+            // P0-FIX: UI 不再做"是否允许投票/是否已投票"的业务校验。
+            // 仅检查提交身份是否存在（effectiveSeat）；其他校验由 Host resolver 处理。
+            // intent.wolfSeat 已在 useRoomActions 中用 actorSeatNumber（即 actorSeatForUi）填充。
+            const seat = intent.wolfSeat ?? effectiveSeat;
+            roomScreenLog.info('[handleActionIntent] wolfVote:', {
+              'intent.wolfSeat': intent.wolfSeat,
+              effectiveSeat,
+              effectiveRole,
+              controlledSeat,
               seat,
-              'targetIndex=',
-              intent.targetIndex,
-            );
+              targetIndex: intent.targetIndex,
+            });
+            // 仅当提交身份不存在时阻断（未入座无法提交）
             if (seat === null) {
               roomScreenLog.warn(
-                '[handleActionIntent] wolfVote: seat is null, returning early. myRole=',
-                myRole,
-                'mySeatNumber=',
-                mySeatNumber,
-                'hasWolfVoted=',
-                mySeatNumber === null ? 'N/A' : hasWolfVoted(mySeatNumber),
+                '[handleActionIntent] wolfVote: effectiveSeat is null, cannot submit.',
+                { effectiveSeat, effectiveRole, controlledSeat },
               );
               return;
             }
@@ -787,12 +784,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
             if (currentSchema?.kind === 'compound') {
               // Compound schema (witch): target = actorSeat, real targets in extra.stepResults
-              // FAIL-FAST: If mySeatNumber is null, player is not seated and cannot act.
-              if (mySeatNumber === null) {
-                roomScreenLog.warn('[actionConfirm] Cannot submit compound action without seat');
+              // Use effectiveSeat (supports both normal play and debug/bot takeover mode)
+              // FAIL-FAST: If effectiveSeat is null, player is not seated and cannot act.
+              if (effectiveSeat === null) {
+                roomScreenLog.warn('[actionConfirm] Cannot submit compound action without seat (effectiveSeat is null)');
                 return;
               }
-              targetToSubmit = mySeatNumber;
+              targetToSubmit = effectiveSeat;
               if (stepSchema?.key === 'save') {
                 extra = buildWitchStepResults({ saveTarget: intent.targetIndex, poisonTarget: null });
               } else if (stepSchema?.key === 'poison') {
@@ -838,13 +836,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
           if (intent.stepKey === 'skipAll' || currentSchema?.kind === 'compound') {
             // Compound schema: skip uses actorSeat + stepResults with all null
-            // FAIL-FAST: If mySeatNumber is null, player is not seated and cannot act.
-            if (mySeatNumber === null) {
-              roomScreenLog.warn('[skip] Cannot submit compound skip without seat');
+            // Use effectiveSeat (supports both normal play and debug/bot takeover mode)
+            // FAIL-FAST: If effectiveSeat is null, player is not seated and cannot act.
+            if (effectiveSeat === null) {
+              roomScreenLog.warn('[skip] Cannot submit compound skip without seat (effectiveSeat is null)');
               return;
             }
             skipExtra = buildWitchStepResults({ saveTarget: null, poisonTarget: null });
-            skipSeat = mySeatNumber;
+            skipSeat = effectiveSeat;
           }
 
           // FAIL-FAST: skip confirmText must come from schema or intent
@@ -965,15 +964,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
           // Show info dialog with status, then submit action when user acknowledges
           // IMPORTANT: Pass confirmed=true to satisfy Host block guard
-          // FAIL-FAST: If mySeatNumber is null, player is not seated and cannot act.
-          if (mySeatNumber === null) {
-            roomScreenLog.warn('[confirmTrigger] Cannot submit confirm action without seat');
+          // Use effectiveSeat (supports both normal play and debug/bot takeover mode)
+          // FAIL-FAST: If effectiveSeat is null, player is not seated and cannot act.
+          if (effectiveSeat === null) {
+            roomScreenLog.warn('[confirmTrigger] Cannot submit confirm action without seat (effectiveSeat is null)');
             return;
           }
           actionDialogs.showRoleActionPrompt(
             dialogTitle,
             statusMessage,
-            () => void proceedWithActionTyped(mySeatNumber, { confirmed: true } as any),
+            () => void proceedWithActionTyped(effectiveSeat, { confirmed: true } as any),
           );
           break;
         }
@@ -1234,10 +1234,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               return;
             case 'roleCard':
               {
-                // 在显示角色卡时，先检查是否需要播放动画（基于当前 hasViewedRole 状态）
-                const myPlayer =
-                  mySeatNumber === null ? null : gameState?.players.get(mySeatNumber);
-                const needAnimation = !(myPlayer?.hasViewedRole ?? false);
+                // P0-FIX: 使用 effectiveSeat 获取当前接管身份的 hasViewedRole 状态
+                // 接管模式下看的是 bot 的身份，非接管时看的是自己的身份
+                const effectivePlayer =
+                  effectiveSeat === null ? null : gameState?.players.get(effectiveSeat);
+                const needAnimation = !(effectivePlayer?.hasViewedRole ?? false);
                 setShouldPlayRevealAnimation(needAnimation);
                 setRoleCardVisible(true);
                 void viewedRole();
@@ -1579,11 +1580,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         })()}
 
         {/* View Role Card */}
+        {/* P0-FIX: 使用 effectiveSeat 支持接管模式（Host 无 seat 但接管 bot 时也能查看身份） */}
         {(roomStatus === GameStatus.assigned ||
           roomStatus === GameStatus.ready ||
           roomStatus === GameStatus.ongoing ||
           roomStatus === GameStatus.ended) &&
-          mySeatNumber !== null && (
+          effectiveSeat !== null && (
             <ActionButton
               label="查看身份"
               onPress={(_meta) => dispatchInteraction({ kind: 'VIEW_ROLE' })}
@@ -1592,7 +1594,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* Greyed View Role (waiting for host) */}
         {(roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) &&
-          mySeatNumber !== null && (
+          effectiveSeat !== null && (
             <ActionButton
               label="查看身份"
               disabled
@@ -1620,31 +1622,32 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* Role Card Modal - 统一使用 RoleRevealAnimator */}
       {/* 只在首次查看时播放动画（shouldPlayRevealAnimation），后续直接显示静态卡片 */}
+      {/* P0-FIX: 使用 effectiveRole 支持接管模式（Host 接管 bot 时显示 bot 的身份） */}
       {roleCardVisible &&
-        myRole &&
+        effectiveRole &&
         (() => {
           // 如果动画是 none 或不需要播放动画，直接显示静态卡片
           if (resolvedRoleRevealAnimation === 'none' || !shouldPlayRevealAnimation) {
             return (
               <RoleCardSimple
                 visible={roleCardVisible}
-                roleId={myRole}
+                roleId={effectiveRole}
                 onClose={handleRoleCardClose}
               />
             );
           }
 
           // 首次查看，播放动画
-          const roleSpec = getRoleSpec(myRole);
+          const roleSpec = getRoleSpec(effectiveRole);
           const alignmentMap: Record<string, 'wolf' | 'god' | 'villager'> = {
             [Faction.Wolf]: 'wolf',
             [Faction.God]: 'god',
             [Faction.Villager]: 'villager',
             [Faction.Special]: 'villager', // Special 归类为 villager
           };
-          const myRoleData: RoleData = createRoleData(
-            myRole,
-            getRoleDisplayName(myRole),
+          const effectiveRoleData: RoleData = createRoleData(
+            effectiveRole,
+            getRoleDisplayName(effectiveRole),
             alignmentMap[roleSpec.faction] ?? 'villager',
           );
           const allRoles = gameState?.template?.roles ?? template?.roles ?? [];
@@ -1661,7 +1664,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           return (
             <RoleRevealAnimator
               visible={roleCardVisible}
-              role={myRoleData}
+              role={effectiveRoleData}
               effectType={effectType}
               allRoles={allRolesData}
               onComplete={handleRoleCardClose}
