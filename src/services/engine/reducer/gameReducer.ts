@@ -499,6 +499,15 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     case 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED':
       return handleSetWolfRobotHunterStatusViewed(state, action);
 
+    case 'SET_UI_HINT':
+      return {
+        ...state,
+        ui: {
+          ...state.ui,
+          currentActorHint: action.payload.currentActorHint,
+        },
+      };
+
     case 'SET_AUDIO_PLAYING':
       return handleSetAudioPlaying(state, action);
 

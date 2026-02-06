@@ -161,6 +161,28 @@ export interface LocalGameState {
   };
 
   // =========================================================================
+  // UI Hints（Host 广播驱动，UI 只读展示）
+  // =========================================================================
+
+  /**
+   * UI hint for current step - Host writes, UI reads only (no derivation).
+   *
+   * 职责：允许 Host 向特定角色广播"提前提示"（如被封锁/狼刀被禁用）。
+   * Host 通过 resolver/handler 判定后写入，进入下一 step 时清空。
+   * 
+   * UI 规则：按 targetRoleIds + myRole 过滤。
+   */
+  ui?: {
+    currentActorHint?: {
+      kind: 'blocked_by_nightmare' | 'wolf_kill_disabled';
+      targetRoleIds: RoleId[];
+      message: string;
+      bottomAction?: 'skipOnly' | 'wolfEmptyOnly';
+      promptOverride?: { title?: string; text?: string };
+    } | null;
+  };
+
+  // =========================================================================
   // Debug Mode
   // =========================================================================
 

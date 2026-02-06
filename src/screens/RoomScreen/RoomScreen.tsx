@@ -589,16 +589,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleActionIntent = useCallback(
     async (intent: ActionIntent) => {
-      // DEBUG: Log every intent received
-      roomScreenLog.debug('[handleActionIntent] Received intent:', {
-        type: intent.type,
-        targetIndex: intent.targetIndex,
-        stepKey: intent.stepKey,
-        message: intent.message,
-        effectiveRole,
-        mySeatNumber,
-      });
-
       switch (intent.type) {
         // NOTE: 'blocked' intent type has been removed.
         // Nightmare block is now handled by Host resolver.
@@ -764,7 +754,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
             if (currentSchema?.kind === 'compound') {
               // Compound schema (witch): target = actorSeat, real targets in extra.stepResults
-              targetToSubmit = mySeatNumber ?? 0;
+              // FAIL-FAST: If mySeatNumber is null, player is not seated and cannot act.
+              if (mySeatNumber === null) {
+                roomScreenLog.warn('[actionConfirm] Cannot submit compound action without seat');
+                return;
+              }
+              targetToSubmit = mySeatNumber;
               if (stepSchema?.key === 'save') {
                 extra = buildWitchStepResults({ saveTarget: intent.targetIndex, poisonTarget: null });
               } else if (stepSchema?.key === 'poison') {
@@ -810,8 +805,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
           if (intent.stepKey === 'skipAll' || currentSchema?.kind === 'compound') {
             // Compound schema: skip uses actorSeat + stepResults with all null
+            // FAIL-FAST: If mySeatNumber is null, player is not seated and cannot act.
+            if (mySeatNumber === null) {
+              roomScreenLog.warn('[skip] Cannot submit compound skip without seat');
+              return;
+            }
             skipExtra = buildWitchStepResults({ saveTarget: null, poisonTarget: null });
-            skipSeat = mySeatNumber ?? 0;
+            skipSeat = mySeatNumber;
           }
 
           // FAIL-FAST: skip confirmText must come from schema or intent
@@ -828,14 +828,34 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           break;
         }
 
-        case 'blocked': {
-          // Nightmare blocked: show blocked alert immediately
-          // User only sees skip button, but we also show an alert for awareness
-          actionDialogs.showBlockedAlert();
-          break;
-        }
-
         case 'actionPrompt': {
+          // ─────────────────────────────────────────────────────────────────
+          // UI Hint（Host 广播驱动，UI 只读展示）
+          // 如果 Host 广播了 promptOverride，直接显示覆盖后的 prompt。
+          // 使用 targetRoleIds 过滤：只有 effectiveRole 在 targetRoleIds 中才显示 hint。
+          // 注意：使用 effectiveRole 而非 myRole，以支持 debug/bot 模式下 Host 代操作。
+          // ─────────────────────────────────────────────────────────────────
+          const hint = gameState?.ui?.currentActorHint;
+          const hintApplies = hint && effectiveRole && hint.targetRoleIds.includes(effectiveRole);
+          // DEBUG: 临时调试日志
+          roomScreenLog.debug('[actionPrompt] UI Hint check', {
+            hint: hint ? { kind: hint.kind, targetRoleIds: hint.targetRoleIds, bottomAction: hint.bottomAction } : null,
+            effectiveRole,
+            hintApplies,
+            'gameState.ui': gameState?.ui,
+          });
+          if (hintApplies && hint.promptOverride) {
+            actionDialogs.showRoleActionPrompt(
+              hint.promptOverride.title || '技能被封锁',
+              hint.promptOverride.text || hint.message,
+              () => {
+                // Dismiss callback: 与其他 prompt 一致，关闭后等待用户操作底部按钮
+                // 底部按钮已经被 hint.bottomAction 控制为 skipOnly/wolfEmptyOnly
+              },
+            );
+            break;
+          }
+
           // Schema-driven prompt.
           // WitchAction uses witchContext from gameState for dynamic info; template copy comes from schema.
           if (currentSchema?.kind === 'compound' && currentSchema.id === 'witchAction') {
@@ -912,10 +932,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
           // Show info dialog with status, then submit action when user acknowledges
           // IMPORTANT: Pass confirmed=true to satisfy Host block guard
+          // FAIL-FAST: If mySeatNumber is null, player is not seated and cannot act.
+          if (mySeatNumber === null) {
+            roomScreenLog.warn('[confirmTrigger] Cannot submit confirm action without seat');
+            return;
+          }
           actionDialogs.showRoleActionPrompt(
             dialogTitle,
             statusMessage,
-            () => void proceedWithActionTyped(mySeatNumber ?? 0, { confirmed: true } as any),
+            () => void proceedWithActionTyped(mySeatNumber, { confirmed: true } as any),
           );
           break;
         }

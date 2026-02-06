@@ -195,6 +195,35 @@ export interface BroadcastGameState {
     rejectionId: string;
   };
 
+  // --- UI Hints（Host 广播驱动，UI 只读展示） ---
+  /**
+   * UI hint for current step - Host writes, UI reads only (no derivation).
+   *
+   * 职责：允许 Host 向特定角色广播"提前提示"（如被封锁/狼刀被禁用）。
+   * Host 通过 resolver/handler 判定后写入，进入下一 step 或阻断解除时清空。
+   *
+   * UI 规则：
+   * - targetRoleIds 决定"谁能看到"这个 hint（UI 按 myRole 过滤）
+   * - bottomAction === 'skipOnly' → 底部只显示 skip
+   * - bottomAction === 'wolfEmptyOnly' → 底部只显示空刀
+   * - promptOverride 存在 → 替换 actionPrompt 文案
+   * - message 用于 banner/提示/按钮文案
+   */
+  ui?: {
+    currentActorHint?: {
+      kind: 'blocked_by_nightmare' | 'wolf_kill_disabled';
+      /**
+       * 哪些角色能看到这个 hint（UI 按 myRole 过滤）
+       * - blocked_by_nightmare: [被封锁角色的 roleId]
+       * - wolf_kill_disabled: 所有狼角色（wolf, darkWolfKing, wolfRobot, wolfQueen, etc.）
+       */
+      targetRoleIds: RoleId[];
+      message: string;
+      bottomAction?: 'skipOnly' | 'wolfEmptyOnly';
+      promptOverride?: { title?: string; text?: string };
+    } | null;
+  };
+
   // --- Debug 模式 ---
   /**
    * Debug mode settings (optional, for development/testing only).

@@ -92,6 +92,9 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
     confirmStatus: raw.confirmStatus,
     actionRejected: raw.actionRejected,
 
+    // UI Hints（Host 广播驱动，UI 只读展示，必须透传）
+    ui: raw.ui,
+
     // Debug mode（透传）
     debugMode: raw.debugMode,
   };

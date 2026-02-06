@@ -178,6 +178,8 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
     wolfRobotHunterStatusViewed: broadcast.wolfRobotHunterStatusViewed,
     confirmStatus: broadcast.confirmStatus,
     actionRejected: broadcast.actionRejected,
+    // UI Hints (Host 广播驱动，直接透传)
+    ui: broadcast.ui,
     // Debug mode (直接透传)
     debugMode: broadcast.debugMode,
   };

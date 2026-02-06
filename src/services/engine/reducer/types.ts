@@ -163,6 +163,29 @@ export interface SetWolfKillDisabledAction {
 }
 
 // =============================================================================
+// UI Hint 动作（Host 广播驱动，UI 只读）
+// =============================================================================
+
+/**
+ * 设置当前步骤的 UI Hint
+ *
+ * 职责：Host 通过 resolver/handler 判定后写入，进入下一 step 时清空。
+ * UI 只读展示，不推导。按 targetRoleIds 过滤"谁能看到"。
+ */
+export interface SetUiHintAction {
+  type: 'SET_UI_HINT';
+  payload: {
+    currentActorHint: {
+      kind: 'blocked_by_nightmare' | 'wolf_kill_disabled';
+      targetRoleIds: RoleId[];
+      message: string;
+      bottomAction?: 'skipOnly' | 'wolfEmptyOnly';
+      promptOverride?: { title?: string; text?: string };
+    } | null;
+  };
+}
+
+// =============================================================================
 // 音频状态动作
 // =============================================================================
 
@@ -295,6 +318,8 @@ export type StateAction =
   | SetWolfKillDisabledAction
   // Wolf Robot Hunter Gate
   | SetWolfRobotHunterStatusViewedAction
+  // UI Hint（Host 广播驱动）
+  | SetUiHintAction
   // 音频
   | SetAudioPlayingAction
   // 玩家状态

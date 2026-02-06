@@ -8,9 +8,9 @@
 - 夜晚流程与 NightPlan（Host 权威）
   - 自动推进（auto-advance）硬性护栏
   - 音频 Gate（isAudioPlaying）硬性护栏
-- 约束、校验与 Night-1-only 红线
 - 广播架构（Broadcast architecture：无私聊/无私有消息）
 - Anti-drift 护栏（MUST follow）
+  - 新增字段必须同步 `normalizeState`（MUST follow）
 - RoomScreen UI 交互架构（MUST follow）
 - Screen 性能设计一致性（All Screens SHOULD follow）
 - 实现清单（角色 / schema / step / UI 必做）

@@ -19,7 +19,8 @@ import type {
   AdvanceToNextActionAction,
   EndNightAction,
   SetAudioPlayingAction,
-  SetWitchContextAction,
+  SetUiHintAction,
+  StateAction,
 } from '../reducer/types';
 import type { SchemaId } from '../../../models/roles/spec';
 import type { RoleId } from '../../../models/roles';
@@ -27,10 +28,12 @@ import type { NightActions, RoleSeatMap } from '../../DeathCalculator';
 import type { WitchAction } from '../../../models/actions/WitchAction';
 import type { ProtocolAction } from '../../protocol/types';
 
-import { buildNightPlan } from '../../../models/roles/spec/plan';
+import { buildNightPlan, type NightPlanStep } from '../../../models/roles/spec/plan';
 import { getStepSpec } from '../../../models/roles/spec/nightSteps';
+import { SCHEMAS } from '../../../models/roles/spec/schemas';
+import { BLOCKED_UI_DEFAULTS, type SchemaUi } from '../../../models/roles/spec/schema.types';
 import { calculateDeaths } from '../../DeathCalculator';
-import { isWolfRole } from '../../../models/roles';
+import { isWolfRole, getWolfRoleIds } from '../../../models/roles';
 import { makeWitchSave, makeWitchPoison, makeWitchNone } from '../../../models/actions/WitchAction';
 import { nightFlowLog } from '../../../utils/logger';
 import { resolveWolfVotes } from '../../resolveWolfVotes';
@@ -190,6 +193,107 @@ function findActionBySchemaId(
 }
 
 /**
+ * 根据 roleId 从 state.players 中找到座位号
+ */
+function findSeatByRoleId(state: NonNullState, roleId: RoleId): number | null {
+  for (const [seatStr, player] of Object.entries(state.players)) {
+    if (player?.role === roleId) {
+      return Number.parseInt(seatStr, 10);
+    }
+  }
+  return null;
+}
+
+/**
+ * 创建 UI Hint Action
+ *
+ * 规则：
+ * 1. 如果下一步的行动者被 nightmare 封锁，设置 blocked_by_nightmare hint
+ * 2. 如果下一步是 wolfVote 且 wolfKillDisabled，设置 wolf_kill_disabled hint
+ * 3. 其他情况清空 hint（null）
+ *
+ * @param nextStep - 下一步的 NightPlanStep（null 表示夜晚结束）
+ * @param state - 当前游戏状态
+ */
+function maybeCreateUiHintAction(
+  nextStep: NightPlanStep | null,
+  state: NonNullState,
+): SetUiHintAction {
+  // 夜晚结束或没有下一步：清空 hint
+  if (!nextStep) {
+    nightFlowLog.debug('[UI Hint] nextStep is null, clearing hint');
+    return { type: 'SET_UI_HINT', payload: { currentActorHint: null } };
+  }
+
+  const { stepId, roleId } = nextStep;
+  const schema = SCHEMAS[stepId];
+
+  // DEBUG: Log the hint decision inputs
+  const nextActorSeat = findSeatByRoleId(state, roleId);
+  nightFlowLog.debug('[UI Hint] evaluating', {
+    stepId,
+    roleId,
+    nextActorSeat,
+    nightmareBlockedSeat: state.nightmareBlockedSeat,
+    wolfKillDisabled: state.wolfKillDisabled,
+    schemaKind: schema?.kind,
+  });
+
+  // Schema-driven blocked UI: 优先使用 schema.ui 的 per-role 覆盖，否则用默认值
+  // 使用类型断言因为 SCHEMAS 使用 as const 推断，字面量类型不含可选的 blocked* 字段
+  const schemaUi = schema?.ui as Partial<SchemaUi> | undefined;
+  const blockedTitle = schemaUi?.blockedTitle ?? BLOCKED_UI_DEFAULTS.title;
+  const blockedMessage = schemaUi?.blockedMessage ?? BLOCKED_UI_DEFAULTS.message;
+  const blockedSkipButtonText = schemaUi?.blockedSkipButtonText ?? BLOCKED_UI_DEFAULTS.skipButtonText;
+
+  // Case 1: wolfVote 且 wolfKillDisabled → 所有狼人看到 wolf_kill_disabled hint
+  if (schema?.kind === 'wolfVote' && state.wolfKillDisabled) {
+    // 所有狼人阵营角色都能看到这个 hint
+    const wolfRoleIds = getWolfRoleIds();
+    nightFlowLog.debug('[UI Hint] setting wolf_kill_disabled hint', { wolfRoleIds });
+    return {
+      type: 'SET_UI_HINT',
+      payload: {
+        currentActorHint: {
+          kind: 'wolf_kill_disabled',
+          targetRoleIds: wolfRoleIds,
+          message: blockedMessage,
+          bottomAction: 'wolfEmptyOnly',
+          promptOverride: {
+            title: blockedTitle,
+            text: '今晚狼队无法刀人', // Wolf 特殊文案：狼刀被禁用
+          },
+        },
+      },
+    };
+  }
+
+  // Case 2: 下一步行动者被 nightmare 封锁
+  if (nextActorSeat !== null && state.nightmareBlockedSeat === nextActorSeat) {
+    nightFlowLog.debug('[UI Hint] setting blocked_by_nightmare hint', { nextActorSeat, roleId });
+    return {
+      type: 'SET_UI_HINT',
+      payload: {
+        currentActorHint: {
+          kind: 'blocked_by_nightmare',
+          targetRoleIds: [roleId], // 只有被封锁的角色能看到
+          message: blockedSkipButtonText, // 用于 skip 按钮文案
+          bottomAction: 'skipOnly',
+          promptOverride: {
+            title: blockedTitle,
+            text: blockedMessage,
+          },
+        },
+      },
+    };
+  }
+
+  // Case 3: 正常步骤，清空 hint
+  nightFlowLog.debug('[UI Hint] no hint needed, clearing');
+  return { type: 'SET_UI_HINT', payload: { currentActorHint: null } };
+}
+
+/**
  * 从 currentNightResults 还原 WitchAction
  *
  * wire protocol: witch 的 save/poison 结果已经写入 currentNightResults.savedSeat / poisonedSeat
@@ -343,7 +447,7 @@ export function handleAdvanceNight(
   };
 
   // 收集所有需要返回的 actions
-  const actions: (AdvanceToNextActionAction | SetWitchContextAction)[] = [advanceAction];
+  const actions: StateAction[] = [advanceAction];
 
   // 统一入口：如果即将进入 witchAction，设置 witchContext
   // Guard: nextStepId 必须存在（夜晚结束时为 undefined，不应设置 witchContext）
@@ -351,6 +455,16 @@ export function handleAdvanceNight(
   if (witchContextAction) {
     actions.push(witchContextAction);
   }
+
+  // ==========================================================================
+  // UI Hint：Host 广播驱动，UI 只读展示
+  // ==========================================================================
+  // 在推进到下一步时，检查是否需要设置 UI hint。
+  // - 如果下一步的行动者被 nightmare 封锁，设置 blocked_by_nightmare hint
+  // - 如果下一步是 wolfVote 且 wolfKillDisabled，设置 wolf_kill_disabled hint
+  // - 其他情况清空 hint（null）
+  const uiHintAction = maybeCreateUiHintAction(nextStep, state);
+  actions.push(uiHintAction);
 
   // 音频播放：当前步骤的结束音频 + 下一步的开始音频
   // 按顺序添加到 sideEffects，Facade 会按顺序播放

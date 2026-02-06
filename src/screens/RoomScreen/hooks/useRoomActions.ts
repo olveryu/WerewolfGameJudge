@@ -15,7 +15,7 @@ import type { LocalGameState } from '../../../services/types/GameStateTypes';
 import { GameStatus } from '../../../models/Room';
 import { RoleId, isWolfRole, doesRoleParticipateInWolfVote } from '../../../models/roles';
 import type { ActionSchema, SchemaId, RevealKind } from '../../../models/roles/spec';
-import { SCHEMAS, isValidSchemaId, BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
+import { SCHEMAS, isValidSchemaId } from '../../../models/roles/spec';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ActionIntent Types (must be serializable - no callbacks/refs/functions)
@@ -40,10 +40,7 @@ export type ActionIntentType =
   | 'wolfRobotViewHunterStatus' // WolfRobot learned hunter: view status gate
 
   // Auto-trigger prompt (dismiss → wait for seat tap)
-  | 'actionPrompt' // Generic action prompt for all roles
-
-  // Nightmare blocked (show blocked alert instead of action prompt)
-  | 'blocked';
+  | 'actionPrompt'; // Generic action prompt for all roles
 
 export interface ActionIntent {
   type: ActionIntentType;
@@ -363,57 +360,36 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     if (!currentSchema) return { buttons: [] };
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Nightmare block check (UI proactive hint)
-    //
-    // If current player is blocked by nightmare, show skip-only button for ALL
-    // schema kinds (chooseSeat/swap/compound/wolfVote/confirm).
-    // This provides immediate visual feedback before user attempts any action.
-    //
-    // NOTE: Use top-level `nightmareBlockedSeat` as single source of truth.
-    // Do NOT read from `currentNightResults.blockedSeat` (duplicated field).
+    // UI Hint（Host 广播驱动，UI 只读展示）
+    // 如果 Host 广播了 currentActorHint，直接按 hint 渲染按钮，不再走 schema 分支。
+    // 使用 targetRoleIds 过滤：只有 myRole 在 targetRoleIds 中才显示 hint。
     // ─────────────────────────────────────────────────────────────────────────
-    const blockedSeat = gameState.nightmareBlockedSeat;
-    const isBlocked = blockedSeat === mySeatNumber;
-
-    if (isBlocked) {
-      // Blocked: show only skip button (same for all schema kinds)
-      return {
-        buttons: [
-          {
-            key: 'skip',
-            label: BLOCKED_UI_DEFAULTS.skipButtonText,
-            intent: {
-              type: 'skip',
-              targetIndex: -1,
-              message: BLOCKED_UI_DEFAULTS.skipButtonText,
+    const hint = gameState.ui?.currentActorHint;
+    const hintApplies = hint && myRole && hint.targetRoleIds.includes(myRole);
+    if (hintApplies) {
+      if (hint.bottomAction === 'skipOnly') {
+        return {
+          buttons: [
+            {
+              key: 'skip',
+              label: hint.message,
+              intent: { type: 'skip', targetIndex: -1, message: hint.message },
             },
-          },
-        ],
-      };
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Wolf kill disabled check (nightmare blocked a wolf)
-    //
-    // When wolfKillDisabled is true, wolves can only empty vote.
-    // Show a special "被封锁，只能空刀" style button.
-    //
-    // NOTE: Use top-level `wolfKillDisabled` as single source of truth.
-    // ─────────────────────────────────────────────────────────────────────────
-    if (currentSchema.kind === 'wolfVote' && gameState.wolfKillDisabled) {
-      return {
-        buttons: [
-          {
-            key: 'wolfEmpty',
-            label: BLOCKED_UI_DEFAULTS.skipButtonText, // "跳过（技能被封锁）"
-            intent: {
-              type: 'wolfVote',
-              targetIndex: -1,
-              wolfSeat: mySeatNumber ?? undefined,
+          ],
+        };
+      }
+      if (hint.bottomAction === 'wolfEmptyOnly') {
+        return {
+          buttons: [
+            {
+              key: 'wolfEmpty',
+              label: hint.message,
+              intent: { type: 'wolfVote', targetIndex: -1, wolfSeat: mySeatNumber ?? undefined },
             },
-          },
-        ],
-      };
+          ],
+        };
+      }
+      // hint 存在但没有 bottomAction 指示 → 按正常 schema 处理
     }
 
     // wolfRobot learned hunter gate: must view status before continuing
@@ -565,33 +541,10 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   const getAutoTriggerIntent = useCallback((): ActionIntent | null => {
     if (!myRole || !imActioner || isAudioPlaying) return null;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Nightmare block check: show blocked prompt instead of normal action prompt
-    // This gives immediate visual feedback that user is blocked.
-    //
-    // NOTE: Use top-level `nightmareBlockedSeat` as single source of truth.
-    // Do NOT read from `currentNightResults.blockedSeat` (duplicated field).
-    // ─────────────────────────────────────────────────────────────────────────
-    const blockedSeat = gameState?.nightmareBlockedSeat;
-    const isBlocked = blockedSeat === mySeatNumber;
-
-    if (isBlocked) {
-      // Return a special 'blocked' intent that RoomScreen can handle
-      // to show "你被梦魇封锁了" prompt instead of normal action prompt
-      return { type: 'blocked', targetIndex: -1 };
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Wolf kill disabled check: when nightmare blocked a wolf, ALL wolves see
-    // the blocked prompt (not just the blocked wolf). This is because the entire
-    // wolf kill step is disabled - wolves can only empty vote.
-    //
-    // NOTE: Use top-level `wolfKillDisabled` as single source of truth.
-    // ─────────────────────────────────────────────────────────────────────────
-    if (currentSchema?.kind === 'wolfVote' && gameState?.wolfKillDisabled) {
-      // All wolves see blocked prompt when wolf kill is disabled
-      return { type: 'blocked', targetIndex: -1 };
-    }
+    // NOTE: Nightmare block is handled by Host resolver (Host-authoritative).
+    // UI does NOT intercept or change prompt for blocked players.
+    // All actions go through submit → Host validates → ACTION_REJECTED if blocked.
+    // UI then reads gameState.actionRejected and shows the rejection alert.
 
     // wolfRobotLearn: suppress auto-trigger if wolfRobot has already completed learning
     // (wolfRobotReveal exists means learning is done - don't re-popup the action prompt)
@@ -629,13 +582,10 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     return { type: 'actionPrompt', targetIndex: -1 };
   }, [
     myRole,
-    mySeatNumber,
     imActioner,
     isAudioPlaying,
     currentSchema,
     gameState?.wolfRobotReveal,
-    gameState?.nightmareBlockedSeat,
-    gameState?.wolfKillDisabled,
     getWitchContext,
     anotherIndex,
   ]);
