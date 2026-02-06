@@ -465,4 +465,38 @@ describe('Delegation Seat Identity Contract', () => {
       }
     });
   });
+
+  describe('Wolf participation check consistency (getActionIntent vs getSkipIntent)', () => {
+    /**
+     * P3 Contract: getSkipIntent and getActionIntent must use the same wolf
+     * participation check — doesRoleParticipateInWolfVote (NOT isWolfRole).
+     *
+     * isWolfRole checks team==='wolf' which includes non-voting wolves
+     * (wolfRobot, gargoyle) that must NOT generate wolfVote skip intents.
+     *
+     * Bug prevented: If getSkipIntent uses isWolfRole while getActionIntent uses
+     * doesRoleParticipateInWolfVote, a non-voting wolf could theoretically generate
+     * a wolfVote skip intent but not a wolfVote seat-tap intent — logic drift.
+     */
+    it('getSkipIntent must use doesRoleParticipateInWolfVote, not isWolfRole', () => {
+      const content = readFileContent('src/screens/RoomScreen/hooks/useRoomActions.ts');
+
+      // Find getSkipIntent definition
+      const getSkipRegex = /const\s+getSkipIntent\s*=\s*useCallback/g;
+      const match = getSkipRegex.exec(content);
+      expect(match).toBeTruthy();
+
+      if (match) {
+        const startIndex = match.index;
+        // Capture enough to include the isWolf assignment
+        const block = content.substring(startIndex, startIndex + 500);
+
+        // Must use doesRoleParticipateInWolfVote for wolf check
+        expect(block).toMatch(/isWolf\s*=\s*doesRoleParticipateInWolfVote\(actorRole\)/);
+
+        // Must NOT use isWolfRole for wolf check
+        expect(block).not.toMatch(/isWolf\s*=\s*isWolfRole\(actorRole\)/);
+      }
+    });
+  });
 });

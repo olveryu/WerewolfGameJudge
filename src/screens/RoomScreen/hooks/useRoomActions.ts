@@ -666,7 +666,10 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   const getSkipIntent = useCallback((): ActionIntent | null => {
     if (!actorRole) return null;
 
-    const isWolf = isWolfRole(actorRole);
+    // MUST use doesRoleParticipateInWolfVote (not isWolfRole) to align with getActionIntent.
+    // isWolfRole checks team==='wolf' which includes non-voting wolves (wolfRobot/gargoyle).
+    // doesRoleParticipateInWolfVote checks wolfMeeting.participatesInWolfVote (single source of truth).
+    const isWolf = doesRoleParticipateInWolfVote(actorRole);
     const wolfSeat = findVotingWolfSeat();
     return deriveSkipIntentFromSchema(
       actorRole,
