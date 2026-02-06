@@ -198,6 +198,15 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     myUid: `p${mySeatNumber}`,
     error: null,
 
+    // Debug mode - effectiveSeat/effectiveRole are used in RoomScreen
+    isDebugMode: false,
+    controlledSeat: null,
+    effectiveSeat: mySeatNumber,
+    effectiveRole: myRole,
+    fillWithBots: jest.fn(),
+    markAllBotsViewed: jest.fn(),
+    setControlledSeat: jest.fn(),
+
     // Actions
     createRoom: jest.fn(),
     joinRoom: jest.fn().mockResolvedValue(true),

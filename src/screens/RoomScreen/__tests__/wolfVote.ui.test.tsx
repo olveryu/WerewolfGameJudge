@@ -92,6 +92,15 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     mySeatNumber: 0,
     myRole: 'wolfQueen',
 
+    // Debug mode - effectiveSeat/effectiveRole are used in RoomScreen
+    isDebugMode: false,
+    controlledSeat: null,
+    effectiveSeat: 0,
+    effectiveRole: 'wolfQueen',
+    fillWithBots: jest.fn(),
+    markAllBotsViewed: jest.fn(),
+    setControlledSeat: jest.fn(),
+
     // Actions used by RoomScreen
     createRoom: jest.fn(),
     joinRoom: jest.fn().mockResolvedValue(true),

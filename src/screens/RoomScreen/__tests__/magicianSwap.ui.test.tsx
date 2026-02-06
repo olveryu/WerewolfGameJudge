@@ -76,6 +76,16 @@ jest.mock('../../../hooks/useGameRoom', () => ({
 
     mySeatNumber: 0,
     myRole: 'magician',
+    myUid: 'p0',
+
+    // Debug mode fields
+    isDebugMode: false,
+    controlledSeat: null,
+    effectiveSeat: 0,
+    effectiveRole: 'magician',
+    fillWithBots: jest.fn(),
+    markAllBotsViewed: jest.fn(),
+    setControlledSeat: jest.fn(),
 
     createRoom: jest.fn(),
     joinRoom: jest.fn().mockResolvedValue(true),

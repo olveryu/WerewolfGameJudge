@@ -103,7 +103,7 @@ describe('AudioService - Singleton', () => {
 
     expect(setAudioModeAsync).toHaveBeenCalledWith({
       playsInSilentMode: true,
-      shouldPlayInBackground: true,
+      shouldPlayInBackground: false, // Stop when app goes to background
       interruptionMode: 'duckOthers',
     });
   });
@@ -306,9 +306,9 @@ describe('AudioService - Stop current player', () => {
     // Start another - should stop the first
     audioService.playRoleBeginningAudio('seer');
 
-    // Second call should have paused and removed the first player
+    // Second call should have paused the first player (player kept for reuse on iOS Safari)
     expect(mockPause).toHaveBeenCalled();
-    expect(mockRemove).toHaveBeenCalled();
+    // Note: remove() is no longer called - player is reused for iOS Safari compatibility
     expect(createAudioPlayer).toHaveBeenCalledTimes(2);
 
     // Consume pending timers to avoid open handles
@@ -326,7 +326,7 @@ describe('AudioService - Stop current player', () => {
     audioService.stop();
 
     expect(mockPause).toHaveBeenCalled();
-    expect(mockRemove).toHaveBeenCalled();
+    // Note: remove() is no longer called - player is kept for reuse on iOS Safari
     expect(audioService.getIsPlaying()).toBe(false);
   });
 });

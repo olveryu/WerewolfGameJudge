@@ -309,18 +309,7 @@ export const useGameRoom = (): UseGameRoomResult => {
 
   // Debug mode: check if botsEnabled
   const isDebugMode = useMemo(() => {
-    const result = gameState?.debugMode?.botsEnabled === true;
-    // Temporary debug log - remove after debugging
-    if (gameState && gameState.status === 'assigned') {
-      // eslint-disable-next-line no-console
-      console.log('[DEBUG] isDebugMode in assigned status', {
-        debugMode: JSON.stringify(gameState.debugMode),
-        botsEnabled: gameState.debugMode?.botsEnabled,
-        result,
-        status: gameState.status,
-      });
-    }
-    return result;
+    return gameState?.debugMode?.botsEnabled === true;
   }, [gameState]);
 
   // GameStatus is now an alias for GameStatus (Phase 5)

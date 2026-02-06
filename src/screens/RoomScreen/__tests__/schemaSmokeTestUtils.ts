@@ -80,6 +80,16 @@ export function makeBaseUseGameRoomReturn({
 
     mySeatNumber,
     myRole,
+    myUid: `p${mySeatNumber}`,
+
+    // Debug mode fields
+    isDebugMode: false,
+    controlledSeat: null,
+    effectiveSeat: mySeatNumber,
+    effectiveRole: myRole,
+    fillWithBots: jest.fn(),
+    markAllBotsViewed: jest.fn(),
+    setControlledSeat: jest.fn(),
 
     createRoom: jest.fn(),
     joinRoom: jest.fn().mockResolvedValue(true),
