@@ -1,6 +1,7 @@
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer, AudioStatus } from 'expo-audio';
 import { RoleId } from '../../models/roles';
 import { audioLog } from '../../utils/logger';
+import { mobileDebug } from '../../utils/mobileDebug';
 
 /**
  * Maximum time to wait for audio playback completion before auto-resolving.
@@ -60,9 +61,13 @@ class AudioService {
   private static instance: AudioService;
   private static initPromise: Promise<void> | null = null;
   private player: AudioPlayer | null = null;
+  private playerSubscription: ReturnType<AudioPlayer['addListener']> | null = null;
   private bgmPlayer: AudioPlayer | null = null;
   private isPlaying = false;
   private isBgmPlaying = false;
+  // Resolve function for current playback - called when audio finishes or times out
+  private currentPlaybackResolve: (() => void) | null = null;
+  private currentTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   private constructor() {
     // Constructor does not call async methods
@@ -90,15 +95,24 @@ class AudioService {
   }
 
   private stopCurrentPlayer(): void {
+    // Cancel any pending playback
+    if (this.currentPlaybackResolve) {
+      mobileDebug.log('[stopCurrentPlayer] resolving pending playback');
+      this.currentPlaybackResolve();
+      this.currentPlaybackResolve = null;
+    }
+    if (this.currentTimeoutId) {
+      clearTimeout(this.currentTimeoutId);
+      this.currentTimeoutId = null;
+    }
+    // Just pause, don't remove - we want to reuse the player for iOS Safari
     if (this.player) {
-      audioLog.debug('stopCurrentPlayer: stopping current player');
+      audioLog.debug('stopCurrentPlayer: pausing current player (keeping for reuse)');
       try {
         this.player.pause();
-        this.player.remove();
       } catch (e) {
-        audioLog.warn('stopCurrentPlayer: error stopping player', e);
+        audioLog.warn('stopCurrentPlayer: error pausing player', e);
       }
-      this.player = null;
       this.isPlaying = false;
     } else {
       audioLog.debug('stopCurrentPlayer: no player to stop');
@@ -107,94 +121,124 @@ class AudioService {
 
   /**
    * Safe wrapper for audio playback that guarantees resolution.
-   * This is the outermost fallback layer - it catches all possible errors
-   * from player creation, loading, playback, and listener callbacks.
+   * 
+   * iOS Safari fix: Reuses the same AudioPlayer instance and uses replace()
+   * to switch audio sources. This preserves the user gesture authorization
+   * that allows audio playback.
    *
    * Guarantees:
    * - Always returns a Promise that resolves (never rejects)
    * - Resolves on: normal completion, timeout, or any error
    * - Logs warnings on fallback scenarios for debugging
    */
-  private async safePlayAudioFile(audioFile: any): Promise<void> {
+  private async safePlayAudioFile(audioFile: any, label = 'audio'): Promise<void> {
+    mobileDebug.log(`[${label}] safePlayAudioFile START`);
     try {
+      // Stop any current playback but keep the player
       this.stopCurrentPlayer();
 
-      audioLog.debug('safePlayAudioFile: creating player and starting playback');
-      const player = createAudioPlayer(audioFile);
-      this.player = player;
+      let player = this.player;
+      
+      if (player) {
+        // Reuse existing player - use replace() to switch audio source
+        // This is crucial for iOS Safari: keeps the user gesture authorization
+        mobileDebug.log(`[${label}] reusing player, calling replace()...`);
+        player.replace(audioFile);
+        mobileDebug.log(`[${label}] replace() done`);
+      } else {
+        // First time: create new player
+        mobileDebug.log(`[${label}] creating new player...`);
+        audioLog.debug('safePlayAudioFile: creating player and starting playback');
+        player = createAudioPlayer(audioFile);
+        this.player = player;
+        
+        // Set up persistent listener (only once per player instance)
+        this.playerSubscription = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
+          this.handlePlaybackStatus(status);
+        });
+        mobileDebug.log(`[${label}] player created OK`);
+      }
+      
       this.isPlaying = true;
 
       return new Promise<void>((resolve) => {
-        let resolved = false;
-
-        const cleanup = () => {
-          if (resolved) return;
-          resolved = true;
-          this.isPlaying = false;
-          try {
-            subscription?.remove();
-            player?.remove();
-          } catch {
-            // Ignore cleanup errors
-          }
-          this.player = null;
-          resolve();
-        };
+        // Store resolve function so status handler can call it
+        this.currentPlaybackResolve = resolve;
+        this.currentLabel = label;
+        this.currentStatusCount = 0;
 
         // Timeout fallback - resolve after max time even if audio didn't finish
-        const timeoutId = setTimeout(() => {
-          // In Jest we frequently don't get a real "didJustFinish" event from mocks.
-          // Keep the fallback, but avoid noisy test output.
+        this.currentTimeoutId = setTimeout(() => {
+          mobileDebug.log(`[${label}] TIMEOUT after ${AUDIO_TIMEOUT_MS}ms, statusCount=${this.currentStatusCount}`);
           if (isJest) {
             audioLog.debug(' Playback timeout - proceeding without waiting for completion');
           } else {
             audioLog.warn(' Playback timeout - proceeding without waiting for completion');
           }
-          cleanup();
+          this.finishCurrentPlayback();
         }, AUDIO_TIMEOUT_MS);
 
-        const subscription = player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
-          try {
-            // Warn if duration is 0 (possible invalid audio), but let timeout handle it
-            if (status.isLoaded && status.duration === 0) {
-              audioLog.warn(' Audio duration is 0 - may be invalid, waiting for timeout fallback');
-            }
-            if (status.didJustFinish) {
-              clearTimeout(timeoutId);
-              cleanup();
-            }
-          } catch {
-            // Listener callback error - cleanup and resolve
-            audioLog.warn(' Error in playback status listener - resolving');
-            clearTimeout(timeoutId);
-            cleanup();
-          }
-        });
-
-        player.play();
+        mobileDebug.log(`[${label}] calling player.play()`);
+        player!.play();
+        mobileDebug.log(`[${label}] player.play() returned`);
       });
     } catch (error) {
-      // Catch any error from createAudioPlayer, addListener, play, etc.
+      mobileDebug.log(`[${label}] ERROR: ${error}`);
       audioLog.warn(' Audio playback failed, resolving anyway:', error);
       this.isPlaying = false;
-      // Explicitly resolve - do not throw (return from async function resolves)
       return;
+    }
+  }
+
+  // Shared state for current playback
+  private currentLabel = 'audio';
+  private currentStatusCount = 0;
+
+  private handlePlaybackStatus(status: AudioStatus): void {
+    this.currentStatusCount++;
+    const label = this.currentLabel;
+    mobileDebug.log(`[${label}] status #${this.currentStatusCount}: playing=${status.playing} loaded=${status.isLoaded} duration=${status.duration} didJustFinish=${status.didJustFinish}`);
+    
+    try {
+      if (status.isLoaded && status.duration === 0) {
+        audioLog.warn(' Audio duration is 0 - may be invalid, waiting for timeout fallback');
+      }
+      if (status.didJustFinish) {
+        mobileDebug.log(`[${label}] didJustFinish=true, calling finishCurrentPlayback`);
+        this.finishCurrentPlayback();
+      }
+    } catch {
+      audioLog.warn(' Error in playback status listener - resolving');
+      this.finishCurrentPlayback();
+    }
+  }
+
+  private finishCurrentPlayback(): void {
+    if (this.currentTimeoutId) {
+      clearTimeout(this.currentTimeoutId);
+      this.currentTimeoutId = null;
+    }
+    this.isPlaying = false;
+    if (this.currentPlaybackResolve) {
+      mobileDebug.log(`[${this.currentLabel}] finishCurrentPlayback called, statusCount=${this.currentStatusCount}`);
+      this.currentPlaybackResolve();
+      this.currentPlaybackResolve = null;
     }
   }
 
   // Play night start audio
   async playNightAudio(): Promise<void> {
-    return this.safePlayAudioFile(NIGHT_AUDIO);
+    return this.safePlayAudioFile(NIGHT_AUDIO, 'night');
   }
 
   // Alias for playNightAudio
   async playNightBeginAudio(): Promise<void> {
-    return this.safePlayAudioFile(NIGHT_AUDIO);
+    return this.safePlayAudioFile(NIGHT_AUDIO, 'night');
   }
 
   // Play night end audio
   async playNightEndAudio(): Promise<void> {
-    return this.safePlayAudioFile(NIGHT_END_AUDIO);
+    return this.safePlayAudioFile(NIGHT_END_AUDIO, 'night_end');
   }
 
   // Play role beginning audio (when role's turn starts)
@@ -206,7 +250,7 @@ class AudioService {
       return;
     }
     audioLog.debug(`playRoleBeginningAudio: playing audio for role "${role}"`);
-    return this.safePlayAudioFile(audioFile);
+    return this.safePlayAudioFile(audioFile, `role_begin_${role}`);
   }
 
   // Play role ending audio (when role's turn ends)
@@ -218,7 +262,7 @@ class AudioService {
       return;
     }
     audioLog.debug(`playRoleEndingAudio: playing audio for role "${role}"`);
-    return this.safePlayAudioFile(audioFile);
+    return this.safePlayAudioFile(audioFile, `role_end_${role}`);
   }
 
   // Get beginning audio for role

@@ -55,6 +55,7 @@ import {
   type RevealEffectType,
 } from '../../components/RoleRevealEffects';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
+import { mobileDebug } from '../../utils/mobileDebug';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -167,6 +168,24 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loadingMessage, setLoadingMessage] = useState('加载房间...');
   const [showRetryButton, setShowRetryButton] = useState(false);
   const [retryKey, setRetryKey] = useState(0); // 用于强制触发重试
+
+  // Hidden debug panel trigger: tap title 5 times to show mobileDebug panel
+  const debugTapCountRef = useRef(0);
+  const debugTapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleDebugTitleTap = useCallback(() => {
+    debugTapCountRef.current += 1;
+    if (debugTapTimeoutRef.current) {
+      clearTimeout(debugTapTimeoutRef.current);
+    }
+    if (debugTapCountRef.current >= 5) {
+      debugTapCountRef.current = 0;
+      mobileDebug.toggle();
+    } else {
+      debugTapTimeoutRef.current = setTimeout(() => {
+        debugTapCountRef.current = 0;
+      }, 2000);
+    }
+  }, []);
 
   // Refs for callback stability
   const gameStateRef = useRef<LocalGameState | null>(null);
@@ -1323,7 +1342,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.backButtonText}>← 返回</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>房间 {roomNumber}</Text>
+          <TouchableOpacity onPress={handleDebugTitleTap} activeOpacity={1}>
+            <Text style={styles.headerTitle}>房间 {roomNumber}</Text>
+          </TouchableOpacity>
           <Text style={styles.headerSubtitle}>{gameState.template.roles.length}人局</Text>
         </View>
         {/* Host Menu Dropdown - replaces headerSpacer */}
