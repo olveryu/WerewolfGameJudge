@@ -89,7 +89,7 @@ const FactionTab = memo<FactionTabProps>(({ tab, isActive, onPress, styles }) =>
       <Text
         style={[
           styles.tabLabel,
-          isActive && { color: tab.accentColor },
+          { color: tab.accentColor },
         ]}
       >
         {tab.emoji} {tab.title}
@@ -97,15 +97,13 @@ const FactionTab = memo<FactionTabProps>(({ tab, isActive, onPress, styles }) =>
       <View
         style={[
           styles.tabBadge,
-          isActive
-            ? { backgroundColor: tab.accentColor + '20' }
-            : undefined,
+          { backgroundColor: tab.accentColor + '20' },
         ]}
       >
         <Text
           style={[
             styles.tabBadgeText,
-            isActive ? { color: tab.accentColor } : undefined,
+            { color: tab.accentColor },
           ]}
         >
           {tab.count}

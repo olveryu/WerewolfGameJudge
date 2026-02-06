@@ -295,7 +295,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     tabBadgeText: {
       fontSize: typography.body,
       fontWeight: typography.weights.bold,
-      color: colors.textSecondary,
+      color: colors.text,
     },
     tabIndicator: {
       position: 'absolute' as const,
