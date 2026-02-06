@@ -95,28 +95,29 @@ describe('ConfigScreen', () => {
       expect(getByText('神职')).toBeTruthy();
     });
 
-    it('should render create button', () => {
+    it('should render create button in header', () => {
       const { getByText } = renderWithFacade(<ConfigScreen />);
 
-      // Actual UI has "创建" button, not "开始游戏"
+      // Header right button shows "创建"
       expect(getByText('创建')).toBeTruthy();
     });
 
-    it('should render screen title', () => {
+    it('should render header title with player count', () => {
       const { getByText } = renderWithFacade(<ConfigScreen />);
 
-      expect(getByText('创建房间')).toBeTruthy();
+      // Header shows "房间 X 人"
+      expect(getByText(/房间 \d+ 人/)).toBeTruthy();
     });
   });
 
   describe('Template Selection', () => {
-    it('should render template dropdown in settings row', () => {
+    it('should render template dropdown with default selected', () => {
       const { getByText } = renderWithFacade(<ConfigScreen />);
 
-      // Verify template dropdown label and default value are rendered
-      expect(getByText('模板')).toBeTruthy();
-      // Default template is shown in the selector
+      // Template dropdown shows selected template name
       expect(getByText('标准板12人')).toBeTruthy();
+      // Dropdown label
+      expect(getByText('板子')).toBeTruthy();
     });
   });
 
@@ -128,15 +129,6 @@ describe('ConfigScreen', () => {
       expect(getByText('女巫')).toBeTruthy();
       expect(getByText('预言家')).toBeTruthy();
       expect(getByText('猎人')).toBeTruthy();
-    });
-  });
-
-  describe('Player Count', () => {
-    it('should display player count', () => {
-      const { getByText } = renderWithFacade(<ConfigScreen />);
-
-      // Check that player count is shown
-      expect(getByText(/名玩家/)).toBeTruthy();
     });
   });
 

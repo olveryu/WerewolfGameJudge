@@ -5,6 +5,7 @@
  * - Styles created once in parent and passed to all sub-components
  * - All sub-components memoized with custom arePropsEqual
  * - Handlers use useCallback to maintain stable references
+ * - Role list is data-driven from FACTION_GROUPS + ROLE_SPECS (no hand-written chips)
  */
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
@@ -12,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { RoleId } from '../../models/roles';
+import { RoleId, ROLE_SPECS, Faction } from '../../models/roles';
 import {
   PRESET_TEMPLATES,
   createCustomTemplate,
@@ -31,49 +32,21 @@ import SettingsService from '../../services/infra/SettingsService';
 import type { RoleRevealAnimation } from '../../services/types/RoleRevealAnimation';
 import {
   RoleChip,
+  RoleStepper,
   Section,
   Dropdown,
+  FactionPanel,
   createConfigScreenStyles,
   type DropdownOption,
+  type FactionColorKey,
 } from './components';
+import { FACTION_GROUPS, buildInitialSelection } from './configData';
 
 // ============================================
 // Helper functions
 // ============================================
 
-const getInitialSelection = (): Record<string, boolean> => ({
-  wolf: true,
-  wolf1: true,
-  wolf2: true,
-  wolf3: true,
-  wolf4: false,
-  wolfQueen: false,
-  wolfKing: false,
-  darkWolfKing: false,
-  gargoyle: false,
-  nightmare: false,
-  bloodMoon: false,
-  wolfRobot: false,
-  spiritKnight: false,
-  villager: true,
-  villager1: true,
-  villager2: true,
-  villager3: true,
-  villager4: false,
-  seer: true,
-  witch: true,
-  hunter: true,
-  guard: false,
-  idiot: true,
-  graveyardKeeper: false,
-  slacker: false,
-  knight: false,
-  dreamcatcher: false,
-  magician: false,
-  tree: false,
-  witcher: false,
-  psychic: false,
-});
+const getInitialSelection = (): Record<string, boolean> => buildInitialSelection();
 
 const selectionToRoles = (selection: Record<string, boolean>): RoleId[] => {
   const roles: RoleId[] = [];
@@ -104,6 +77,54 @@ const applyPreset = (presetRoles: RoleId[]): Record<string, boolean> => {
   return selection;
 };
 
+/** Map Faction enum to FactionColorKey for chip coloring */
+const FACTION_COLOR_MAP: Record<string, FactionColorKey> = {
+  [Faction.Wolf]: 'wolf',
+  [Faction.God]: 'good',
+  [Faction.Villager]: 'good',
+  [Faction.Special]: 'neutral',
+};
+
+/** Compute total selected role count */
+const computeTotalCount = (selection: Record<string, boolean>): number => {
+  let total = 0;
+  Object.values(selection).forEach((selected) => {
+    if (selected) total++;
+  });
+  return total;
+};
+
+/** Expand a RoleSlot into an array of {key, label} for rendering chips */
+const expandSlotToChipEntries = (
+  slot: { roleId: string; count?: number },
+): { key: string; label: string }[] => {
+  const count = slot.count ?? 1;
+  const spec = ROLE_SPECS[slot.roleId as keyof typeof ROLE_SPECS];
+  const label = spec?.displayName ?? slot.roleId;
+
+  return Array.from({ length: count }, (_, i) => ({
+    key: i === 0 ? slot.roleId : `${slot.roleId}${i}`,
+    label,
+  }));
+};
+
+/** Check if a faction group has any selected roles in the given selection */
+const factionHasSelected = (
+  group: (typeof FACTION_GROUPS)[number],
+  sel: Record<string, boolean>,
+): boolean => {
+  for (const section of group.sections) {
+    for (const slot of section.roles) {
+      const count = slot.count ?? 1;
+      for (let i = 0; i < count; i++) {
+        const key = i === 0 ? slot.roleId : `${slot.roleId}${i}`;
+        if (sel[key]) return true;
+      }
+    }
+  }
+  return false;
+};
+
 // ============================================
 // Main Component
 // ============================================
@@ -131,7 +152,7 @@ export const ConfigScreen: React.FC = () => {
   const [bgmEnabled, setBgmEnabled] = useState(true);
 
   const facade = useGameFacade();
-  const selectedCount = Object.values(selection).filter(Boolean).length;
+  const totalCount = useMemo(() => computeTotalCount(selection), [selection]);
 
   // Load settings (animation + BGM) for new rooms
   useEffect(() => {
@@ -272,7 +293,7 @@ export const ConfigScreen: React.FC = () => {
     isLoading,
   ]);
 
-  // Dropdown options
+  // Template dropdown options
   const templateOptions: DropdownOption[] = useMemo(
     () => [
       ...PRESET_TEMPLATES.map((p) => ({ value: p.name, label: p.name })),
@@ -321,31 +342,126 @@ export const ConfigScreen: React.FC = () => {
     setBgmEnabled(v === 'on');
   }, []);
 
+  // ============================================
+  // Collapsible panels state
+  // ============================================
+
+  const [expandedFactions, setExpandedFactions] = useState<Record<string, boolean>>(() => {
+    const initialSel = getInitialSelection();
+    const initial: Record<string, boolean> = {};
+    FACTION_GROUPS.forEach((g) => {
+      initial[g.faction] = factionHasSelected(g, initialSel);
+    });
+    return initial;
+  });
+
+  const handleToggleExpand = useCallback((factionKey: string) => {
+    setExpandedFactions((prev) => ({ ...prev, [factionKey]: !prev[factionKey] }));
+  }, []);
+
+  // ============================================
+  // Bulk role stepper
+  // ============================================
+
+  /** Count how many of a bulk role are currently selected */
+  const getBulkCount = useCallback(
+    (roleId: string, maxCount: number): number => {
+      let count = 0;
+      for (let i = 0; i < maxCount; i++) {
+        const key = i === 0 ? roleId : `${roleId}${i}`;
+        if (selection[key]) count++;
+      }
+      return count;
+    },
+    [selection],
+  );
+
+  const handleBulkCountChange = useCallback(
+    (roleId: string, newCount: number) => {
+      setSelection((prev) => {
+        const next = { ...prev };
+        // Find maxCount from FACTION_GROUPS
+        let maxCount = 1;
+        for (const group of FACTION_GROUPS) {
+          for (const section of group.sections) {
+            for (const slot of section.roles) {
+              if (slot.roleId === roleId) maxCount = slot.count ?? 1;
+            }
+          }
+        }
+        // Set first `newCount` keys to true, rest to false
+        for (let i = 0; i < maxCount; i++) {
+          const key = i === 0 ? roleId : `${roleId}${i}`;
+          next[key] = i < newCount;
+        }
+        return next;
+      });
+      setSelectedTemplate('__custom__');
+    },
+    [],
+  );
+
+  /** Map faction to accent color for UI */
+  const getFactionAccentColor = useCallback(
+    (faction: Faction): string => {
+      switch (faction) {
+        case Faction.Wolf:
+          return colors.wolf;
+        case Faction.God:
+          return colors.god;
+        case Faction.Villager:
+          return colors.god; // same as god for the "good" side
+        case Faction.Special:
+          return colors.warning;
+        default:
+          return colors.primary;
+      }
+    },
+    [colors],
+  );
+
+  /** Count selected roles in a faction group */
+  const getFactionSelectedCount = useCallback(
+    (group: (typeof FACTION_GROUPS)[number]): number => {
+      let count = 0;
+      for (const section of group.sections) {
+        for (const slot of section.roles) {
+          const slotCount = slot.count ?? 1;
+          for (let i = 0; i < slotCount; i++) {
+            const key = i === 0 ? slot.roleId : `${slot.roleId}${i}`;
+            if (selection[key]) count++;
+          }
+        }
+      }
+      return count;
+    },
+    [selection],
+  );
+
+  const isDisabled = isCreating || isLoading;
+
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
-      {/* Header */}
+      {/* Header — back + title + create */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={handleGoBack}>
           <Text style={styles.headerBtnText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>{isEditMode ? '修改配置' : '创建房间'}</Text>
-          <Text style={styles.subtitle}>{selectedCount} 名玩家</Text>
+          <Text style={styles.title}>房间 {totalCount} 人</Text>
         </View>
         <TouchableOpacity
-          style={[
-            styles.headerBtn,
-            styles.createBtn,
-            (isCreating || isLoading) && { opacity: 0.5 },
-          ]}
+          style={[styles.headerCreateBtn, isDisabled && styles.headerCreateBtnDisabled]}
           onPress={handleCreateRoom}
-          activeOpacity={isCreating || isLoading ? 1 : 0.7}
-          accessibilityState={{ disabled: isCreating || isLoading }}
+          activeOpacity={isDisabled ? 1 : 0.7}
+          accessibilityState={{ disabled: isDisabled }}
         >
           {isCreating ? (
             <ActivityIndicator color={colors.textInverse} size="small" />
           ) : (
-            <Text style={styles.createBtnText}>{isEditMode ? '保存' : '创建'}</Text>
+            <Text style={styles.headerCreateBtnText}>
+              {isEditMode ? '保存' : '创建'}
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -353,21 +469,21 @@ export const ConfigScreen: React.FC = () => {
       {/* Settings Row (Template + Animation + BGM) */}
       <View style={styles.settingsRow}>
         <Dropdown
-          label="模板"
+          label="板子"
           value={selectedTemplate}
           options={templateOptions}
           onSelect={handleTemplateChange}
           styles={styles}
         />
         <Dropdown
-          label="动画"
+          label="发牌动画"
           value={roleRevealAnimation}
           options={animationOptions}
           onSelect={handleAnimationChange}
           styles={styles}
         />
         <Dropdown
-          label="🎵 BGM"
+          label="BGM"
           value={bgmEnabled ? 'on' : 'off'}
           options={bgmOptions}
           onSelect={handleBgmChange}
@@ -378,249 +494,73 @@ export const ConfigScreen: React.FC = () => {
       {isLoading ? (
         <LoadingScreen message="加载中..." fullScreen={false} />
       ) : (
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* 🐺 狼人阵营 */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>🐺 狼人阵营</Text>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: spacing.large }}
+        >
+          {/* Data-driven collapsible faction panels */}
+          {FACTION_GROUPS.map((group) => {
+            const factionColorKey = FACTION_COLOR_MAP[group.faction] ?? 'good';
+            const accentColor = getFactionAccentColor(group.faction);
+            const selectedCount = getFactionSelectedCount(group);
 
-            <Section title="普通狼人" styles={styles}>
-              <RoleChip
-                id="wolf"
-                label="狼人"
-                selected={selection.wolf}
-                onToggle={toggleRole}
+            return (
+              <FactionPanel
+                key={group.faction}
+                factionKey={group.faction}
+                emoji={group.emoji}
+                title={group.title}
+                count={selectedCount}
+                accentColor={accentColor}
+                expanded={!!expandedFactions[group.faction]}
+                onToggleExpand={handleToggleExpand}
                 styles={styles}
-              />
-              <RoleChip
-                id="wolf1"
-                label="狼人"
-                selected={selection.wolf1}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="wolf2"
-                label="狼人"
-                selected={selection.wolf2}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="wolf3"
-                label="狼人"
-                selected={selection.wolf3}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="wolf4"
-                label="狼人"
-                selected={selection.wolf4}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-            </Section>
+              >
+                {group.sections.map((section) => {
+                  // Bulk slot → RoleStepper
+                  const bulkSlot = section.roles.find((s) => s.isBulk);
+                  if (bulkSlot) {
+                    const maxCount = bulkSlot.count ?? 1;
+                    const currentCount = getBulkCount(bulkSlot.roleId, maxCount);
+                    const spec = ROLE_SPECS[bulkSlot.roleId as keyof typeof ROLE_SPECS];
+                    return (
+                      <RoleStepper
+                        key={section.title}
+                        roleId={bulkSlot.roleId}
+                        label={spec?.displayName ?? bulkSlot.roleId}
+                        count={currentCount}
+                        maxCount={maxCount}
+                        onCountChange={handleBulkCountChange}
+                        styles={styles}
+                        accentColor={accentColor}
+                      />
+                    );
+                  }
 
-            <Section title="技能狼" styles={styles}>
-              <RoleChip
-                id="wolfQueen"
-                label="狼美人"
-                selected={selection.wolfQueen}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="wolfKing"
-                label="白狼王"
-                selected={selection.wolfKing}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="darkWolfKing"
-                label="黑狼王"
-                selected={selection.darkWolfKing}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="gargoyle"
-                label="石像鬼"
-                selected={selection.gargoyle}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="nightmare"
-                label="梦魇"
-                selected={selection.nightmare}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="bloodMoon"
-                label="血月使徒"
-                selected={selection.bloodMoon}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="wolfRobot"
-                label="机械狼"
-                selected={selection.wolfRobot}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="spiritKnight"
-                label="恶灵骑士"
-                selected={selection.spiritKnight}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-            </Section>
-          </View>
-
-          {/* 👥 好人阵营 */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>👥 好人阵营</Text>
-
-            <Section title="普通村民" styles={styles}>
-              <RoleChip
-                id="villager"
-                label="村民"
-                selected={selection.villager}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="villager1"
-                label="村民"
-                selected={selection.villager1}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="villager2"
-                label="村民"
-                selected={selection.villager2}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="villager3"
-                label="村民"
-                selected={selection.villager3}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="villager4"
-                label="村民"
-                selected={selection.villager4}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-            </Section>
-
-            <Section title="神职" styles={styles}>
-              <RoleChip
-                id="seer"
-                label="预言家"
-                selected={selection.seer}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="witch"
-                label="女巫"
-                selected={selection.witch}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="hunter"
-                label="猎人"
-                selected={selection.hunter}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="guard"
-                label="守卫"
-                selected={selection.guard}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="idiot"
-                label="白痴"
-                selected={selection.idiot}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="graveyardKeeper"
-                label="守墓人"
-                selected={selection.graveyardKeeper}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="knight"
-                label="骑士"
-                selected={selection.knight}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="dreamcatcher"
-                label="摄梦人"
-                selected={selection.dreamcatcher}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="magician"
-                label="魔术师"
-                selected={selection.magician}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="witcher"
-                label="猎魔人"
-                selected={selection.witcher}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-              <RoleChip
-                id="psychic"
-                label="通灵师"
-                selected={selection.psychic}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-            </Section>
-          </View>
-
-          {/* ⚖️ 中立阵营 */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>⚖️ 中立阵营</Text>
-            <View style={styles.chipContainer}>
-              <RoleChip
-                id="slacker"
-                label="混子"
-                selected={selection.slacker}
-                onToggle={toggleRole}
-                styles={styles}
-              />
-            </View>
-          </View>
-
-          <View style={{ height: spacing.xxlarge }} />
+                  // Skill slots → Section + RoleChips
+                  return (
+                    <Section key={section.title} title={section.title} styles={styles}>
+                      {section.roles.flatMap(expandSlotToChipEntries).map((entry) => (
+                        <RoleChip
+                          key={entry.key}
+                          id={entry.key}
+                          label={entry.label}
+                          selected={!!selection[entry.key]}
+                          onToggle={toggleRole}
+                          styles={styles}
+                          factionColor={factionColorKey}
+                        />
+                      ))}
+                    </Section>
+                  );
+                })}
+              </FactionPanel>
+            );
+          })}
         </ScrollView>
       )}
+
     </SafeAreaView>
   );
 };
