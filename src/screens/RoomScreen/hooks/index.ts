@@ -15,3 +15,15 @@ export type {
   GameContext,
   UseRoomActionsResult,
 } from './useRoomActions';
+
+export { useActionOrchestrator } from './useActionOrchestrator';
+export type {
+  UseActionOrchestratorParams,
+  UseActionOrchestratorResult,
+} from './useActionOrchestrator';
+
+export { useInteractionDispatcher } from './useInteractionDispatcher';
+export type {
+  UseInteractionDispatcherParams,
+  UseInteractionDispatcherResult,
+} from './useInteractionDispatcher';

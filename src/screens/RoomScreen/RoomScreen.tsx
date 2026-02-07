@@ -1,12 +1,28 @@
 /**
  * RoomScreen - Main game room screen
  *
- * Refactored to use modular architecture:
- * - RoomScreen.helpers.ts (pure functions)
- * - hooks/ (useRoomInit, useRoomActions, useActionerState)
- * - components/PlayerGrid.tsx (seat grid display)
+ * ✅ Allowed:
+ *   - Own top-level state (magician seats, role card modal, isStartingGame)
+ *   - Compute derived data (seatViewModels, roleStats, nightProgress, wolfVotesMap)
+ *   - Wire hooks together (useGameRoom → useRoomInit → useActionOrchestrator → useInteractionDispatcher)
+ *   - Render JSX (header, grid, bottom panel, modals)
+ *   - Own styles factory (createStyles)
  *
- * All game state accessed through useGameRoom hook.
+ * ❌ Do NOT:
+ *   - Contain action intent processing logic (that's useActionOrchestrator)
+ *   - Contain interaction dispatch / policy logic (that's useInteractionDispatcher)
+ *   - Contain room init logic (that's useRoomInit)
+ *   - Import services directly (all through useGameRoom)
+ *   - Duplicate gate checks that belong in policy layer
+ *
+ * Refactored modular architecture:
+ * - hooks/useRoomInit.ts (room initialization lifecycle)
+ * - hooks/useActionOrchestrator.ts (action intent handler + auto-trigger + rejection)
+ * - hooks/useInteractionDispatcher.ts (policy dispatch + seat tap handlers)
+ * - hooks/useRoomActions.ts (intent derivation layer)
+ * - hooks/useActionerState.ts (actioner state derivation)
+ * - RoomScreen.helpers.ts (pure functions)
+ * - components/ (presentational layer)
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
@@ -18,7 +34,6 @@ import { buildNightPlan, getRoleDisplayName, getRoleSpec, Faction } from '../../
 import { showAlert } from '../../utils/alert';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import { AudioService } from '../../services';
-import type { LocalGameState } from '../../services/types/GameStateTypes';
 import { HostControlButtons } from './HostControlButtons';
 import { useRoomHostDialogs } from './useRoomHostDialogs';
 import { useRoomActionDialogs } from './useRoomActionDialogs';
@@ -39,19 +54,17 @@ import {
   buildSeatViewModels,
 } from './RoomScreen.helpers';
 import {
-  getInteractionResult,
   getActorIdentity,
   isActorIdentityValid,
-  type InteractionEvent,
-  type InteractionContext,
 } from './policy';
 import { TESTIDS } from '../../testids';
 import { useActionerState } from './hooks/useActionerState';
-import { useRoomActions, ActionIntent } from './hooks/useRoomActions';
+import { useRoomActions } from './hooks/useRoomActions';
+import { useRoomInit } from './hooks/useRoomInit';
+import { useActionOrchestrator } from './hooks/useActionOrchestrator';
+import { useInteractionDispatcher } from './hooks/useInteractionDispatcher';
 import { ConnectionStatusBar } from './components/ConnectionStatusBar';
 import { roomScreenLog } from '../../utils/logger';
-import type { ActionSchema, SchemaId, InlineSubStepSchema } from '../../models/roles/spec';
-import { SCHEMAS, isValidSchemaId, BLOCKED_UI_DEFAULTS } from '../../models/roles/spec';
 import { LoadingScreen } from '../../components/LoadingScreen';
 import { RoleCardSimple } from '../../components/RoleCardSimple';
 import {
@@ -172,10 +185,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const [seatModalVisible, setSeatModalVisible] = useState(false);
   const [pendingSeatIndex, setPendingSeatIndex] = useState<number | null>(null);
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('加载房间...');
-  const [showRetryButton, setShowRetryButton] = useState(false);
-  const [retryKey, setRetryKey] = useState(0); // 用于强制触发重试
 
   // Hidden debug panel trigger: tap title 5 times to show mobileDebug panel
   const debugTapCountRef = useRef(0);
@@ -195,24 +204,31 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, []);
 
-  // Refs for callback stability
-  const gameStateRef = useRef<LocalGameState | null>(null);
+  // ───────────────────────────────────────────────────────────────────────────
+  // Room initialization (delegated to useRoomInit hook)
+  // ───────────────────────────────────────────────────────────────────────────
+  const {
+    isInitialized,
+    loadingMessage,
+    showRetryButton,
+    handleRetry,
+  } = useRoomInit({
+    roomNumber,
+    isHostParam,
+    template,
+    createRoom,
+    joinRoom,
+    takeSeat,
+    hasGameState: !!gameState,
+    initialRoleRevealAnimation,
+    setRoleRevealAnimation,
+    gameRoomError,
+  });
 
   // Auto-trigger intent idempotency: prevent duplicate triggers in the same turn
-  const lastAutoIntentKeyRef = useRef<string | null>(null);
+  // (managed by useActionOrchestrator)
 
-  // P0-FIX: 追踪"正在等待/显示查验结果弹窗"的状态
-  // 这样天亮弹窗（发言顺序）会等待查验结果弹窗关闭后再显示
-  const [pendingRevealDialog, setPendingRevealDialog] = useState(false);
-
-  // P1-FIX: 追踪"机械狼猎人状态确认正在提交"的状态
-  // 防止 sendWolfRobotHunterStatusViewed 在 state 更新前被重复触发
-  const [pendingHunterStatusViewed, setPendingHunterStatusViewed] = useState(false);
-
-  // Keep gameStateRef in sync
-  useEffect(() => {
-    gameStateRef.current = gameState;
-  }, [gameState]);
+  // Keep gameStateRef removed - managed by useActionOrchestrator
 
   const wolfVotesMap = useMemo(() => {
     const raw = gameState?.currentNightResults?.wolfVotesBySeat;
@@ -332,60 +348,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [lastSeatError, clearLastSeatError]);
 
-  // Initialize room on mount (host creates, player joins)
-  useEffect(() => {
-    if (isInitialized) return;
-
-    const initRoom = async () => {
-      setLoadingMessage('正在初始化...');
-
-      if (isHostParam && template) {
-        // Host creates room with the provided roomNumber from ConfigScreen
-        setLoadingMessage('正在创建房间...');
-        const createdRoomNumber = await createRoom(template, roomNumber);
-
-        if (createdRoomNumber) {
-          // Set role reveal animation if provided from ConfigScreen
-          if (initialRoleRevealAnimation) {
-            await setRoleRevealAnimation(initialRoleRevealAnimation);
-          }
-          // Host auto-takes seat 0
-          setLoadingMessage('正在入座...');
-          await takeSeat(0);
-          setIsInitialized(true);
-        } else {
-          setLoadingMessage('创建失败');
-          setShowRetryButton(true);
-        }
-      } else {
-        // Player joins existing room via BroadcastService
-        setLoadingMessage('正在加入房间...');
-        const joined = await joinRoom(roomNumber);
-
-        if (joined) {
-          setIsInitialized(true);
-        } else {
-          setLoadingMessage('加入房间失败');
-          setShowRetryButton(true);
-        }
-      }
-    };
-
-    initRoom();
-    // retryKey 变化时也会触发重试
-  }, [
-    isInitialized,
-    retryKey,
-    isHostParam,
-    template,
-    roomNumber,
-    createRoom,
-    joinRoom,
-    takeSeat,
-    initialRoleRevealAnimation,
-    setRoleRevealAnimation,
-  ]);
-
   // Reset UI state when game restarts
   useEffect(() => {
     if (!gameState) return;
@@ -395,23 +357,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       setAnotherIndex(null); // Reset magician state
     }
   }, [gameState, roomStatus]);
-
-  // Loading timeout
-  useEffect(() => {
-    if (isInitialized && gameState) {
-      setShowRetryButton(false);
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      if (!isInitialized || !gameState) {
-        setShowRetryButton(true);
-        setLoadingMessage('加载超时');
-      }
-    }, 5000);
-
-    return () => clearTimeout(timeout);
-  }, [isInitialized, gameState]);
 
   // ───────────────────────────────────────────────────────────────────────────
   // Intent Layer: useRoomActions
@@ -498,683 +443,39 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   } = seatDialogs;
 
   // ───────────────────────────────────────────────────────────────────────────
-  // Execution Layer: proceedWithAction
-  // Action rejection is now checked via gameState.actionRejected after state update.
+  // Action Orchestrator (delegated to useActionOrchestrator hook)
+  // Handles: handleActionIntent, auto-trigger, rejection effect,
+  //          proceedWithAction, buildWitchStepResults, confirmThenAct
   // ───────────────────────────────────────────────────────────────────────────
 
-  const proceedWithAction = useCallback(
-    async (targetIndex: number | null, extra?: any): Promise<boolean> => {
-      await submitAction(targetIndex, extra);
-
-      // Submission success/failure UX is handled by the state-driven
-      // `gameState.actionRejected` effect below (covers submitAction + submitWolfVote).
-      // Return true here to keep callers progressing; Host rejection will be surfaced
-      // asynchronously via broadcast.
-      return true;
-    },
-    [submitAction],
-  );
-
-  // ---------------------------------------------------------------------------
-  // Unified rejection UX (Host-authoritative)
-  //
-  // NOTE: Do NOT rely on submitAction-only plumbing.
-  // WOLF_VOTE is submitted via submitWolfVote(), so we surface actionRejected
-  // via a state-driven effect for ALL action types.
-  // ---------------------------------------------------------------------------
-
-  const lastRejectedKeyRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    const rejected = gameState?.actionRejected;
-    if (!rejected) {
-      lastRejectedKeyRef.current = null;
-      return;
-    }
-
-    // In debug mode, Host controls bot seats, so also check effectiveSeat's uid
-    const effectiveUid = effectiveSeat === null ? null : gameState?.players.get(effectiveSeat)?.uid;
-    const isTargetMatch = rejected.targetUid === myUid || rejected.targetUid === effectiveUid;
-    if (!myUid || !isTargetMatch) return;
-
-    // Deduplicate repeated broadcasts of the same rejection
-    // Prefer a unique rejection id so repeated errors with the same reason still show.
-    const key =
-      (rejected as { rejectionId?: string }).rejectionId ??
-      `${rejected.action}:${rejected.reason}:${rejected.targetUid}`;
-    if (key === lastRejectedKeyRef.current) return;
-    lastRejectedKeyRef.current = key;
-
-    actionDialogs.showActionRejectedAlert(rejected.reason);
-  }, [gameState?.actionRejected, gameState?.players, myUid, effectiveSeat, actionDialogs]);
-
-  // ---------------------------------------------------------------------------------
-  // Action extra typing (UI -> Host wire payload)
-  //
-  // NOTE: The transport currently uses an untyped `extra?: any` field.
-  // We keep it type-safe on the UI side by narrowing locally.
-  // ---------------------------------------------------------------------------------
-
-  type WitchStepResults = { save: number | null; poison: number | null };
-  type ActionExtra = { stepResults: WitchStepResults } | { targets: readonly [number, number] }; // swap protocol: [seatA, seatB]
-
-  // Schema lookup helper (used internally)
-  const _getSchemaById = useCallback((id: string): ActionSchema | null => {
-    if (!isValidSchemaId(id)) return null;
-    const schemaId: SchemaId = id;
-    return SCHEMAS[schemaId] ?? null;
-  }, []);
-
-  /**
-   * Get a compound sub-step by key (e.g., 'save', 'poison' for witchAction).
-   * Returns the InlineSubStepSchema or null if not found.
-   */
-  const getSubStepByKey = useCallback(
-    (stepKey: string | undefined): InlineSubStepSchema | null => {
-      if (!stepKey || currentSchema?.kind !== 'compound') return null;
-      const compound = currentSchema;
-      return compound.steps.find((s) => s.key === stepKey) ?? null;
-    },
-    [currentSchema],
-  );
-
-  /**
-   * Build witch action extra with stepResults protocol.
-   * @param opts.saveTarget - seat to save (or null to skip save)
-   * @param opts.poisonTarget - seat to poison (or null to skip poison)
-   */
-  const buildWitchStepResults = useCallback(
-    (opts: { saveTarget: number | null; poisonTarget: number | null }): ActionExtra => {
-      return { stepResults: { save: opts.saveTarget, poison: opts.poisonTarget } };
-    },
-    [],
-  );
-
-  const proceedWithActionTyped = useCallback(
-    async (targetIndex: number | null, extra?: ActionExtra): Promise<boolean> => {
-      return proceedWithAction(targetIndex, extra);
-    },
-    [proceedWithAction],
-  );
-
-  // UI-only helpers: keep confirm copy schema-driven and avoid repeating the same fallback logic.
-  const getConfirmTitleForSchema = useCallback((): string => {
-    return currentSchema?.kind === 'chooseSeat'
-      ? currentSchema.ui?.confirmTitle || '确认行动'
-      : '确认行动';
-  }, [currentSchema]);
-
-  const getConfirmTextForSeatAction = useCallback(
-    (targetIndex: number): string => {
-      return currentSchema?.kind === 'chooseSeat'
-        ? currentSchema.ui?.confirmText || `是否对${targetIndex + 1}号玩家使用技能？`
-        : `是否对${targetIndex + 1}号玩家使用技能？`;
-    },
-    [currentSchema],
-  );
-
-  const confirmThenAct = useCallback(
-    (
-      targetIndex: number,
-      onAccepted: () => Promise<void> | void,
-      opts?: { title?: string; message?: string },
-    ) => {
-      const title = opts?.title ?? getConfirmTitleForSchema();
-      const message = opts?.message ?? getConfirmTextForSeatAction(targetIndex);
-
-      actionDialogs.showConfirmDialog(title, message, async () => {
-        const accepted = await proceedWithActionTyped(targetIndex);
-        if (!accepted) return;
-        await onAccepted();
-      });
-    },
-    [actionDialogs, getConfirmTextForSeatAction, getConfirmTitleForSchema, proceedWithActionTyped],
-  );
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // Intent Handler (Orchestrator)
-  // ───────────────────────────────────────────────────────────────────────────
-
-  const handleActionIntent = useCallback(
-    async (intent: ActionIntent) => {
-      switch (intent.type) {
-        // NOTE: 'blocked' intent type has been removed.
-        // Nightmare block is now handled by Host resolver.
-        // UI submits action → Host validates → ACTION_REJECTED if blocked.
-
-        case 'magicianFirst':
-          setAnotherIndex(intent.targetIndex);
-          actionDialogs.showMagicianFirstAlert(intent.targetIndex);
-          break;
-
-        case 'reveal': {
-          if (!gameState) return;
-          if (!intent.revealKind) {
-            roomScreenLog.warn(' reveal intent missing revealKind');
-            return;
-          }
-
-          const revealKind = intent.revealKind;
-
-          // Get reveal data from gameState after action is processed
-          const getRevealData = (): { targetSeat: number; result: string } | undefined => {
-            const state = gameStateRef.current;
-            if (!state) return undefined;
-            switch (revealKind) {
-              case 'seer':
-                return state.seerReveal;
-              case 'psychic':
-                return state.psychicReveal;
-              case 'gargoyle':
-                return state.gargoyleReveal;
-              case 'wolfRobot':
-                return state.wolfRobotReveal;
-              default:
-                return undefined;
-            }
-          };
-
-          confirmThenAct(intent.targetIndex, async () => {
-            // P0-FIX: 用户确认后设置 pending 状态，阻止天亮弹窗在查验结果显示之前出现
-            // 必须在回调内设置，因为用户可能取消确认弹窗
-            setPendingRevealDialog(true);
-
-            // Wait for state to propagate with retry (React batch updates may delay ref update)
-            const maxRetries = 10;
-            const retryInterval = 50;
-            let reveal: { targetSeat: number; result: string } | undefined;
-
-            for (let i = 0; i < maxRetries; i++) {
-              await new Promise((resolve) => setTimeout(resolve, retryInterval));
-              reveal = getRevealData();
-              if (reveal) break;
-            }
-
-            if (reveal) {
-              // Seer result is already Chinese ('好人'/'狼人'), others are RoleId
-              const displayResult =
-                revealKind === 'seer' ? reveal.result : getRoleDisplayName(reveal.result);
-              actionDialogs.showRevealDialog(
-                `${reveal.targetSeat + 1}号是${displayResult}`,
-                '',
-                () => {
-                  submitRevealAckSafe(revealKind);
-                  // P0-FIX: 用户确认后清除 pending 状态，允许天亮弹窗显示
-                  setPendingRevealDialog(false);
-                },
-              );
-            } else {
-              roomScreenLog.warn(
-                ` ${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`,
-              );
-              // P0-FIX: 超时也要清除 pending 状态
-              setPendingRevealDialog(false);
-            }
-          });
-          break;
-        }
-
-        case 'wolfVote':
-          {
-            // P0-FIX: UI 不再做"是否允许投票/是否已投票"的业务校验。
-            // 仅检查提交身份是否存在（effectiveSeat）；其他校验由 Host resolver 处理。
-            // intent.wolfSeat 已在 useRoomActions 中用 actorSeatNumber（即 actorSeatForUi）填充。
-            const seat = intent.wolfSeat ?? effectiveSeat;
-            roomScreenLog.info('[handleActionIntent] wolfVote:', {
-              'intent.wolfSeat': intent.wolfSeat,
-              effectiveSeat,
-              effectiveRole,
-              controlledSeat,
-              seat,
-              targetIndex: intent.targetIndex,
-            });
-            // 仅当提交身份不存在时阻断（未入座无法提交）
-            if (seat === null) {
-              roomScreenLog.warn(
-                '[handleActionIntent] wolfVote: effectiveSeat is null, cannot submit.',
-                { effectiveSeat, effectiveRole, controlledSeat },
-              );
-              return;
-            }
-            actionDialogs.showWolfVoteDialog(
-              `${seat + 1}号狼人`,
-              intent.targetIndex,
-              () => void submitWolfVote(intent.targetIndex),
-              // Schema-driven copy: prefer schema.ui.confirmText (contract-enforced)
-              // NOTE: target immune rule is Host-authoritative; we only add a UX hint here to avoid confusion.
-              (() => {
-                const base = currentSchema?.ui?.confirmText;
-                const targetRole = gameStateRef.current?.players?.get(intent.targetIndex)?.role;
-                if (currentSchema?.id !== 'wolfKill' || !targetRole) return base;
-                // Local import would create layering issues; use a lightweight string hint only.
-                // The real validation still happens in wolfKillResolver (Host-only).
-                const immune = targetRole === 'spiritKnight' || targetRole === 'wolfQueen';
-                return immune ? `${base ?? ''}\n（提示：该角色免疫狼刀，Host 会拒绝）` : base;
-              })(),
-            );
-          }
-          break;
-
-        case 'actionConfirm':
-          // DEBUG: Log actionConfirm handling details
-          roomScreenLog.debug('[actionConfirm] Processing:', {
-            effectiveRole,
-            effectiveSeat,
-            anotherIndex,
-            schemaKind: currentSchema?.kind,
-            schemaId: currentSchema?.id,
-            'intent.targetIndex': intent.targetIndex,
-            'intent.stepKey': intent.stepKey,
-          });
-
-          if (effectiveRole === 'magician' && anotherIndex !== null) {
-            // protocol: target = null, extra.targets = [seatA, seatB]
-            const swapTargets: [number, number] = [anotherIndex, intent.targetIndex];
-            // Highlight both seats during confirmation dialog
-            setSecondSeatIndex(intent.targetIndex);
-            // Use setTimeout to allow React to re-render before showing dialog
-            setTimeout(() => {
-              actionDialogs.showConfirmDialog(
-                currentSchema?.ui?.confirmTitle || '确认交换',
-                intent.message || `确定交换${anotherIndex + 1}号和${intent.targetIndex + 1}号?`,
-                () => {
-                  setAnotherIndex(null);
-                  setSecondSeatIndex(null);
-                  void proceedWithActionTyped(null, { targets: swapTargets });
-                },
-                () => {
-                  // User cancelled - reset both seats for re-selection
-                  setAnotherIndex(null);
-                  setSecondSeatIndex(null);
-                },
-              );
-            }, 0);
-          } else {
-            // Handle based on schema kind:
-            // - compound (witch): protocol uses seat=actorSeat, target info in stepResults
-            // - chooseSeat (nightmare/seer/guard/etc): protocol uses target=intent.targetIndex
-            const stepSchema = getSubStepByKey(intent.stepKey);
-            let extra: ActionExtra | undefined;
-            let targetToSubmit: number | null;
-
-            if (currentSchema?.kind === 'compound') {
-              // Compound schema (witch): target = actorSeat, real targets in extra.stepResults
-              // Use effectiveSeat (supports both normal play and debug/bot takeover mode)
-              // FAIL-FAST: If effectiveSeat is null, player is not seated and cannot act.
-              if (effectiveSeat === null) {
-                roomScreenLog.warn(
-                  '[actionConfirm] Cannot submit compound action without seat (effectiveSeat is null)',
-                );
-                return;
-              }
-              targetToSubmit = effectiveSeat;
-              if (stepSchema?.key === 'save') {
-                extra = buildWitchStepResults({
-                  saveTarget: intent.targetIndex,
-                  poisonTarget: null,
-                });
-              } else if (stepSchema?.key === 'poison') {
-                extra = buildWitchStepResults({
-                  saveTarget: null,
-                  poisonTarget: intent.targetIndex,
-                });
-              }
-            } else {
-              // chooseSeat schema: target = user-selected seat (intent.targetIndex)
-              targetToSubmit = intent.targetIndex;
-            }
-
-            // DEBUG: Log what we're about to submit
-            roomScreenLog.debug('[actionConfirm] Submitting:', {
-              schemaKind: currentSchema?.kind,
-              targetToSubmit,
-              'intent.targetIndex': intent.targetIndex,
-              extra,
-            });
-
-            actionDialogs.showConfirmDialog(
-              stepSchema?.ui?.confirmTitle || currentSchema?.ui?.confirmTitle || '确认行动',
-              stepSchema?.ui?.confirmText || intent.message || '',
-              () => void proceedWithActionTyped(targetToSubmit, extra),
-            );
-          }
-          break;
-
-        case 'skip': {
-          // Special handling for confirm schema (hunter/darkWolfKing) blocked skip
-          if (currentSchema?.kind === 'confirm') {
-            actionDialogs.showConfirmDialog(
-              '确认跳过',
-              intent.message || BLOCKED_UI_DEFAULTS.skipButtonText,
-              () => void proceedWithActionTyped(null, { confirmed: false } as any),
-            );
-            break;
-          }
-
-          // Witch/compound: protocol - skip means stepResults with all null
-          // seat = effectiveSeat (supports debug bot takeover)
-          const skipStepSchema = getSubStepByKey(intent.stepKey);
-          let skipExtra: ActionExtra | undefined;
-          let skipSeat: number | null = null; // default for chooseSeat: null
-
-          if (intent.stepKey === 'skipAll' || currentSchema?.kind === 'compound') {
-            // Compound schema: skip uses actorSeat + stepResults with all null
-            // Use effectiveSeat (supports both normal play and debug/bot takeover mode)
-            // FAIL-FAST: If effectiveSeat is null, player is not seated and cannot act.
-            if (effectiveSeat === null) {
-              roomScreenLog.warn(
-                '[skip] Cannot submit compound skip without seat (effectiveSeat is null)',
-              );
-              return;
-            }
-            skipExtra = buildWitchStepResults({ saveTarget: null, poisonTarget: null });
-            skipSeat = effectiveSeat;
-          }
-
-          // FAIL-FAST: skip confirmText must come from schema or intent
-          const skipConfirmText = skipStepSchema?.ui?.confirmText || intent.message;
-          if (!skipConfirmText) {
-            throw new Error(`[FAIL-FAST] Missing confirmText for skip action: ${intent.stepKey}`);
-          }
-
-          actionDialogs.showConfirmDialog(
-            '确认跳过',
-            skipConfirmText,
-            () => void proceedWithActionTyped(skipSeat, skipExtra),
-          );
-          break;
-        }
-
-        case 'actionPrompt': {
-          // ─────────────────────────────────────────────────────────────────
-          // UI Hint（Host 广播驱动，UI 只读展示）
-          // 如果 Host 广播了 promptOverride，直接显示覆盖后的 prompt。
-          // 使用 targetRoleIds 过滤：只有 effectiveRole 在 targetRoleIds 中才显示 hint。
-          // 注意：使用 effectiveRole 而非 myRole，以支持 debug/bot 模式下 Host 代操作。
-          // ─────────────────────────────────────────────────────────────────
-          const hint = gameState?.ui?.currentActorHint;
-          const hintApplies = hint && effectiveRole && hint.targetRoleIds.includes(effectiveRole);
-          // DEBUG: 临时调试日志
-          roomScreenLog.debug('[actionPrompt] UI Hint check', {
-            hint: hint
-              ? {
-                  kind: hint.kind,
-                  targetRoleIds: hint.targetRoleIds,
-                  bottomAction: hint.bottomAction,
-                }
-              : null,
-            effectiveRole,
-            hintApplies,
-            'gameState.ui': gameState?.ui,
-          });
-          if (hintApplies && hint.promptOverride) {
-            actionDialogs.showRoleActionPrompt(
-              hint.promptOverride.title || '技能被封锁',
-              hint.promptOverride.text || hint.message,
-              () => {
-                // Dismiss callback: 与其他 prompt 一致，关闭后等待用户操作底部按钮
-                // 底部按钮已经被 hint.bottomAction 控制为 skipOnly/wolfEmptyOnly
-              },
-            );
-            break;
-          }
-
-          // Schema-driven prompt.
-          // WitchAction uses witchContext from gameState for dynamic info; template copy comes from schema.
-          if (currentSchema?.kind === 'compound' && currentSchema.id === 'witchAction') {
-            const witchCtx = gameState?.witchContext;
-            if (!witchCtx) return;
-            actionDialogs.showWitchInfoPrompt(witchCtx, currentSchema, () => {
-              // dismiss → do nothing, wait for user to tap seat / use bottom buttons
-            });
-            break;
-          }
-
-          // confirm schema (hunter/darkWolfKing): show standard prompt
-          // NOTE: Nightmare block is now handled by Host resolver.
-          // UI no longer shows blocked prompt here. Action goes through submit → Host validates.
-          if (currentSchema?.kind === 'confirm') {
-            // FAIL-FAST: schema.ui.prompt must exist for confirm schema
-            if (!currentSchema.ui?.prompt) {
-              throw new Error(
-                `[FAIL-FAST] Missing schema.ui.prompt for confirm schema: ${currentActionRole}`,
-              );
-            }
-            actionDialogs.showRoleActionPrompt('行动提示', currentSchema.ui.prompt, () => {});
-            break;
-          }
-
-          // Generic action prompt for all other roles (dismiss → wait for seat tap)
-          // FAIL-FAST: schema.ui.prompt must exist for all action schemas
-          if (!currentSchema?.ui?.prompt) {
-            throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
-          }
-          actionDialogs.showRoleActionPrompt('行动提示', currentSchema.ui.prompt, () => {
-            // dismiss → do nothing, wait for user to tap seat
-          });
-          break;
-        }
-
-        case 'confirmTrigger': {
-          // Hunter/DarkWolfKing: show status dialog (can shoot or not), then submit action
-          // Status comes from gameState.confirmStatus (Host computed and broadcast)
-          if (!gameState) break;
-
-          // Schema-driven UI: get text from currentSchema (hunterConfirm or darkWolfKingConfirm)
-          // Fail-fast if schema missing required status dialog fields
-          if (
-            !currentSchema?.ui?.statusDialogTitle ||
-            !currentSchema?.ui?.canShootText ||
-            !currentSchema?.ui?.cannotShootText
-          ) {
-            throw new Error(
-              `[RoomScreen] confirmTrigger schema missing status dialog UI fields for ${currentSchema?.id}`,
-            );
-          }
-
-          // Get status from gameState (Host computed)
-          const confirmStatus = gameState.confirmStatus;
-
-          let canShoot = true; // Default if no status (shouldn't happen in normal flow)
-
-          if (effectiveRole === 'hunter') {
-            if (confirmStatus?.role === 'hunter') {
-              canShoot = confirmStatus.canShoot;
-            }
-          } else if (effectiveRole === 'darkWolfKing') {
-            if (confirmStatus?.role === 'darkWolfKing') {
-              canShoot = confirmStatus.canShoot;
-            }
-          }
-
-          // Schema-driven: use schema text directly (no string concatenation)
-          const dialogTitle = currentSchema.ui.statusDialogTitle;
-          const statusMessage = canShoot
-            ? currentSchema.ui.canShootText
-            : currentSchema.ui.cannotShootText;
-
-          // Show info dialog with status, then submit action when user acknowledges
-          // IMPORTANT: Pass confirmed=true to satisfy Host block guard
-          // Use effectiveSeat (supports both normal play and debug/bot takeover mode)
-          // FAIL-FAST: If effectiveSeat is null, player is not seated and cannot act.
-          if (effectiveSeat === null) {
-            roomScreenLog.warn(
-              '[confirmTrigger] Cannot submit confirm action without seat (effectiveSeat is null)',
-            );
-            return;
-          }
-          actionDialogs.showRoleActionPrompt(
-            dialogTitle,
-            statusMessage,
-            () => void proceedWithActionTyped(effectiveSeat, { confirmed: true } as any),
-          );
-          break;
-        }
-
-        case 'wolfRobotViewHunterStatus': {
-          // WolfRobot learned hunter: show status dialog, then set gate
-          if (!gameState?.wolfRobotReveal) break;
-
-          // P1-FIX: 防重入 - 如果正在提交确认，跳过
-          if (pendingHunterStatusViewed) {
-            roomScreenLog.debug('[wolfRobotViewHunterStatus] Skipping - pending submission');
-            break;
-          }
-
-          // Schema-driven UI: use currentSchema (must be wolfRobotLearn at this point)
-          // Assert schema consistency to catch refactoring errors early
-          if (currentSchema?.id !== 'wolfRobotLearn') {
-            throw new Error(
-              `[RoomScreen] wolfRobotViewHunterStatus intent received but currentSchema is ${currentSchema?.id}, expected wolfRobotLearn`,
-            );
-          }
-
-          // Read all texts from currentSchema.ui (fail-fast if missing)
-          const dialogTitle = currentSchema.ui?.hunterGateDialogTitle;
-          const canShootText = currentSchema.ui?.hunterGateCanShootText;
-          const cannotShootText = currentSchema.ui?.hunterGateCannotShootText;
-
-          if (!dialogTitle || !canShootText || !cannotShootText) {
-            throw new Error(
-              '[RoomScreen] wolfRobotLearn schema missing hunterGate UI fields - schema-driven UI requires these',
-            );
-          }
-
-          const canShoot = gameState.wolfRobotReveal.canShootAsHunter === true;
-          const statusMessage = canShoot ? canShootText : cannotShootText;
-
-          actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, async () => {
-            // FAIL-FAST: effectiveSeat is required for wolfRobot seat validation in handler
-            if (effectiveSeat === null) {
-              roomScreenLog.warn(
-                '[wolfRobotViewHunterStatus] Cannot submit without seat (effectiveSeat is null)',
-              );
-              return;
-            }
-            // P1-FIX: 设置 pending 状态并 await 确保 state 更新后再释放
-            setPendingHunterStatusViewed(true);
-            try {
-              await sendWolfRobotHunterStatusViewed(effectiveSeat);
-            } catch (error) {
-              // P1-FIX: 失败时给用户可见提示，避免用户误以为没点成功而反复操作
-              roomScreenLog.error('[wolfRobotViewHunterStatus] Failed to send confirmation', error);
-              actionDialogs.showRoleActionPrompt(
-                '确认失败',
-                '状态确认发送失败，请稍后重试。如问题持续，请联系房主。',
-                () => {
-                  // 用户知悉后关闭
-                },
-              );
-            } finally {
-              setPendingHunterStatusViewed(false);
-            }
-          });
-          break;
-        }
-      }
-    },
-    [
-      gameState,
-      effectiveRole,
-      effectiveSeat,
-      anotherIndex,
-      actionDialogs,
-      buildWitchStepResults,
-      confirmThenAct,
-      currentSchema,
-      currentActionRole,
-      findVotingWolfSeat,
-      getSubStepByKey,
-      hasWolfVoted,
-      pendingHunterStatusViewed,
-      proceedWithActionTyped,
-      sendWolfRobotHunterStatusViewed,
-      submitRevealAckSafe,
-      submitWolfVote,
-    ],
-  );
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // Auto-trigger intent (with idempotency to prevent duplicate triggers)
-  // ───────────────────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    // Guard: reset key when not in ongoing state or night ended
-    if (roomStatus !== GameStatus.ongoing || !currentActionRole) {
-      if (lastAutoIntentKeyRef.current !== null) {
-        roomScreenLog.debug(' Clearing key (not ongoing or night ended)');
-        lastAutoIntentKeyRef.current = null;
-      }
-      return;
-    }
-
-    // 音频播放中禁止自动触发 intent（gate 由 Facade 层管理）
-    if (!imActioner || isAudioPlaying) return;
-
-    const autoIntent = getAutoTriggerIntent();
-    if (!autoIntent) return;
-
-    // Build idempotency key: stable representation of "same turn + same actor"
-    // P0-FIX: actorSeatForUi 必须在 key 中，否则同一 wolfVote step 内
-    // 切换 controlledSeat 到另一个狼人时 key 不变，prompt 被判重跳过。
-    const key = [
-      roomStatus,
-      gameState?.currentActionerIndex ?? 'null',
-      currentActionRole ?? 'null',
-      actorSeatForUi ?? 'null',
-      imActioner ? 'A' : 'N',
-      isAudioPlaying ? 'P' : 'S',
-      effectiveRole ?? 'null',
-      anotherIndex ?? 'null',
-      autoIntent.type,
-    ].join('|');
-
-    // Skip if same key (idempotent - already triggered this exact intent)
-    if (key === lastAutoIntentKeyRef.current) {
-      roomScreenLog.debug(` Skipping duplicate: key=${key}`);
-      return;
-    }
-
-    roomScreenLog.debug(` Triggering: key=${key}, intent=${autoIntent.type}`);
-    lastAutoIntentKeyRef.current = key;
-    handleActionIntent(autoIntent);
-  }, [
-    imActioner,
-    isAudioPlaying,
-    effectiveRole,
-    actorSeatForUi,
-    anotherIndex,
+  const {
+    handleActionIntent,
+    pendingRevealDialog,
+    setPendingRevealDialog,
+    pendingHunterStatusViewed,
+  } = useActionOrchestrator({
+    gameState,
     roomStatus,
     currentActionRole,
-    gameState?.currentActionerIndex,
+    currentSchema,
+    effectiveSeat,
+    effectiveRole,
+    controlledSeat,
+    actorSeatForUi,
+    imActioner,
+    isAudioPlaying,
+    myUid,
+    anotherIndex,
+    setAnotherIndex,
+    setSecondSeatIndex,
+    submitAction,
+    submitWolfVote,
+    submitRevealAckSafe,
+    sendWolfRobotHunterStatusViewed,
     getAutoTriggerIntent,
-    handleActionIntent,
-  ]);
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // Seat tap handlers
-  // ───────────────────────────────────────────────────────────────────────────
-
-  const handleSeatingTap = useCallback(
-    (index: number) => {
-      if (mySeatNumber !== null && index === mySeatNumber) {
-        showLeaveSeatDialog(index);
-      } else {
-        showEnterSeatDialog(index);
-      }
-    },
-    [mySeatNumber, showLeaveSeatDialog, showEnterSeatDialog],
-  );
-
-  const handleActionTap = useCallback(
-    (index: number) => {
-      const intent = getActionIntent(index);
-      if (intent) {
-        handleActionIntent(intent);
-      }
-    },
-    [getActionIntent, handleActionIntent],
-  );
+    findVotingWolfSeat,
+    actionDialogs,
+  });
 
   // Host dialog callbacks from hook (must be declared before dispatchInteraction)
   const {
@@ -1195,203 +496,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     roomNumber,
   });
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Build InteractionContext for policy decisions
-  // ───────────────────────────────────────────────────────────────────────────
-  const interactionContext: InteractionContext = useMemo(
-    () => ({
-      roomStatus,
-      hasGameState: !!gameState,
-      isAudioPlaying,
-      pendingRevealAck: pendingRevealDialog,
-      pendingHunterGate: pendingHunterStatusViewed,
-      isHost,
-      imActioner,
-      // Real identity (for display purposes only)
-      mySeatNumber,
-      myRole,
-      // Actor identity (for all action-related decisions)
-      actorSeatForUi,
-      actorRoleForUi,
-      // Debug mode fields
-      isDebugMode,
-      controlledSeat,
-      isDelegating,
-      getBotSeats: () => {
-        if (!gameState) return [];
-        return Array.from(gameState.players.entries())
-          .filter(([, player]) => player?.isBot)
-          .map(([seatIndex]) => seatIndex);
-      },
-    }),
-    [
-      roomStatus,
-      gameState,
-      isAudioPlaying,
-      pendingRevealDialog,
-      pendingHunterStatusViewed,
-      isHost,
-      imActioner,
-      mySeatNumber,
-      myRole,
-      actorSeatForUi,
-      actorRoleForUi,
-      isDebugMode,
-      controlledSeat,
-      isDelegating,
-    ],
-  );
-
-  /**
-   * Unified interaction dispatcher using RoomInteractionPolicy.
-   *
-   * This is the single entry point for all user interactions.
-   * It calls the pure policy function and executes the resulting instruction.
-   *
-   * Integrated: SEAT_TAP, BOTTOM_ACTION, VIEW_ROLE, LEAVE_ROOM, HOST_CONTROL,
-   *             REVEAL_ACK, WOLF_ROBOT_HUNTER_STATUS_VIEWED
-   */
-  const dispatchInteraction = useCallback(
-    (event: InteractionEvent) => {
-      const result = getInteractionResult(interactionContext, event);
-
-      switch (result.kind) {
-        case 'NOOP':
-          // Do nothing - blocked by gate or not applicable
-          roomScreenLog.debug('[dispatchInteraction] NOOP', {
-            reason: result.reason,
-            event: event.kind,
-          });
-          return;
-
-        case 'ALERT':
-          showAlert(result.title, result.message, [{ text: '好' }]);
-          return;
-
-        case 'SHOW_DIALOG':
-          switch (result.dialogType) {
-            case 'seatingEnter':
-              if (result.seatIndex !== undefined) showEnterSeatDialog(result.seatIndex);
-              return;
-            case 'seatingLeave':
-              if (result.seatIndex !== undefined) showLeaveSeatDialog(result.seatIndex);
-              return;
-            case 'roleCard':
-              {
-                // P0-FIX: 使用 effectiveSeat 获取当前接管身份的 hasViewedRole 状态
-                // 接管模式下看的是 bot 的身份，非接管时看的是自己的身份
-                const effectivePlayer =
-                  effectiveSeat === null ? null : gameState?.players.get(effectiveSeat);
-                const needAnimation = !(effectivePlayer?.hasViewedRole ?? false);
-                setShouldPlayRevealAnimation(needAnimation);
-                setRoleCardVisible(true);
-                void viewedRole();
-              }
-              return;
-            case 'leaveRoom':
-              handleLeaveRoom();
-              return;
-          }
-          return;
-
-        case 'SEATING_FLOW':
-          handleSeatingTap(result.seatIndex);
-          return;
-
-        case 'ACTION_FLOW':
-          if (result.intent) {
-            handleActionIntent(result.intent);
-          } else if (result.seatIndex !== undefined) {
-            handleActionTap(result.seatIndex);
-          }
-          return;
-
-        case 'HOST_CONTROL':
-          switch (result.action) {
-            case 'settings':
-              handleSettingsPress();
-              return;
-            case 'prepareToFlip':
-              showPrepareToFlipDialog();
-              return;
-            case 'startGame':
-              showStartGameDialog();
-              return;
-            case 'lastNightInfo':
-              showLastNightInfoDialog();
-              return;
-            case 'restart':
-              showRestartDialog();
-              return;
-          }
-          return;
-
-        case 'REVEAL_ACK':
-          submitRevealAckSafe(result.revealRole);
-          // Clear the reveal gate after ack
-          setPendingRevealDialog(false);
-          return;
-
-        case 'HUNTER_STATUS_VIEWED':
-          // effectiveSeat 用于 handler 中的 wolfRobot seat 校验
-          if (effectiveSeat === null) {
-            roomScreenLog.warn(
-              '[HUNTER_STATUS_VIEWED] Cannot submit without seat (effectiveSeat is null)',
-            );
-          } else {
-            void sendWolfRobotHunterStatusViewed(effectiveSeat);
-          }
-          return;
-
-        case 'TAKEOVER_BOT_SEAT':
-          setControlledSeat(result.seatIndex);
-          return;
-
-        case 'RELEASE_BOT_SEAT':
-          setControlledSeat(null);
-          return;
-      }
-    },
-    [
-      interactionContext,
-      handleSeatingTap,
-      handleActionTap,
-      handleActionIntent,
-      showEnterSeatDialog,
-      showLeaveSeatDialog,
-      handleLeaveRoom,
-      viewedRole,
-      handleSettingsPress,
-      showPrepareToFlipDialog,
-      showStartGameDialog,
-      showLastNightInfoDialog,
-      showRestartDialog,
-      submitRevealAckSafe,
-      sendWolfRobotHunterStatusViewed,
-      setControlledSeat,
-    ],
-  );
-
-  /**
-   * Main seat tap handler - delegates to dispatchInteraction.
-   */
-  const onSeatTapped = useCallback(
-    (index: number, disabledReason?: string) => {
-      dispatchInteraction({ kind: 'SEAT_TAP', seatIndex: index, disabledReason });
-    },
-    [dispatchInteraction],
-  );
-
-  /**
-   * Seat long-press handler for bot takeover (debug mode).
-   */
-  const onSeatLongPressed = useCallback(
-    (seatIndex: number) => {
-      dispatchInteraction({ kind: 'TAKEOVER_BOT_SEAT', seatIndex });
-    },
-    [dispatchInteraction],
-  );
-
   // Role card modal state
   const [roleCardVisible, setRoleCardVisible] = useState(false);
   // 记录本次打开是否需要播放动画（在打开时根据 hasViewedRole 决定，避免状态更新后丢失）
@@ -1401,6 +505,64 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     setRoleCardVisible(false);
     setShouldPlayRevealAnimation(false);
   }, []);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Interaction Dispatcher (delegated to useInteractionDispatcher hook)
+  // Handles: seat tap, long press, interactionContext, dispatchInteraction,
+  //          policy evaluation, host control actions, reveal ack, bot takeover
+  // ───────────────────────────────────────────────────────────────────────────
+
+  const { dispatchInteraction, onSeatTapped, onSeatLongPressed } = useInteractionDispatcher({
+    // ── Game state ──
+    gameState,
+    roomStatus,
+
+    // ── Gate state ──
+    isAudioPlaying,
+    pendingRevealDialog,
+    pendingHunterStatusViewed,
+
+    // ── Identity ──
+    isHost,
+    imActioner,
+    mySeatNumber,
+    myRole,
+    effectiveSeat,
+    actorSeatForUi,
+    actorRoleForUi,
+
+    // ── Debug mode ──
+    isDebugMode,
+    controlledSeat,
+    isDelegating,
+
+    // ── Action intent handler ──
+    handleActionIntent,
+    getActionIntent,
+
+    // ── Seat dialogs ──
+    showEnterSeatDialog,
+    showLeaveSeatDialog,
+
+    // ── State setters ──
+    setShouldPlayRevealAnimation,
+    setRoleCardVisible,
+    setControlledSeat,
+    setPendingRevealDialog,
+
+    // ── Submission callbacks ──
+    viewedRole,
+    submitRevealAckSafe,
+    sendWolfRobotHunterStatusViewed,
+    handleLeaveRoom,
+
+    // ── Host control dialogs ──
+    handleSettingsPress,
+    showPrepareToFlipDialog,
+    showStartGameDialog,
+    showLastNightInfoDialog,
+    showRestartDialog,
+  });
 
   // ───────────────────────────────────────────────────────────────────────────
   // Host: Show speaking order dialog when night ends (after audio finishes)
@@ -1444,13 +606,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={styles.retryButtonRow}>
             <TouchableOpacity
               style={[styles.errorBackButton, { backgroundColor: colors.primary }]}
-              onPress={() => {
-                setIsInitialized(false); // 重置初始化状态
-                setShowRetryButton(false);
-                setLoadingMessage('重试中...');
-                // 递增 retryKey 强制触发 useEffect 重试（即使 isInitialized 已经是 false）
-                setRetryKey((prev) => prev + 1);
-              }}
+              onPress={handleRetry}
             >
               <Text style={styles.errorBackButtonText}>重试</Text>
             </TouchableOpacity>

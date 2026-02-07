@@ -22,6 +22,12 @@ function readFileContent(relativePath: string): string {
   return fs.readFileSync(absolutePath, 'utf-8');
 }
 
+// After refactoring, handleActionIntent logic moved to useActionOrchestrator,
+// and dispatchInteraction logic moved to useInteractionDispatcher.
+const ORCHESTRATOR_PATH = 'src/screens/RoomScreen/hooks/useActionOrchestrator.ts';
+const DISPATCHER_PATH = 'src/screens/RoomScreen/hooks/useInteractionDispatcher.ts';
+const ROOM_SCREEN_PATH = 'src/screens/RoomScreen/RoomScreen.tsx';
+
 describe('Delegation Seat Identity Contract', () => {
   describe('handleActionIntent must use effectiveSeat for action submission', () => {
     /**
@@ -32,7 +38,7 @@ describe('Delegation Seat Identity Contract', () => {
      * causing witch actions to fail silently.
      */
     it('compound action (witch) should use effectiveSeat, not mySeatNumber', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      const content = readFileContent(ORCHESTRATOR_PATH);
 
       // Find the compound action block
       const compoundBlockRegex = /if\s*\(\s*currentSchema\?\.kind\s*===\s*['"]compound['"]\s*\)/g;
@@ -64,7 +70,7 @@ describe('Delegation Seat Identity Contract', () => {
      * P0 Contract: skip action (compound) must use effectiveSeat
      */
     it('skip action (compound) should use effectiveSeat, not mySeatNumber', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      const content = readFileContent(ORCHESTRATOR_PATH);
 
       // Find the skip compound block - look for the compound/skipAll handling specifically
       const skipCompoundRegex =
@@ -92,7 +98,7 @@ describe('Delegation Seat Identity Contract', () => {
      * P0 Contract: confirmTrigger (hunter/darkWolfKing) must use effectiveSeat
      */
     it('confirmTrigger should use effectiveSeat, not mySeatNumber', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      const content = readFileContent(ORCHESTRATOR_PATH);
 
       // Find the confirmTrigger block - look for the effectiveSeat check specifically
       // We need to find the section after the canShoot determination
@@ -244,7 +250,7 @@ describe('Delegation Seat Identity Contract', () => {
      * using mySeatNumber would send null and fail silently.
      */
     it('HUNTER_STATUS_VIEWED should pass effectiveSeat to sendWolfRobotHunterStatusViewed', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      const content = readFileContent(DISPATCHER_PATH);
 
       // Find the HUNTER_STATUS_VIEWED case block
       const regex = /case\s*['"]HUNTER_STATUS_VIEWED['"]:/g;
@@ -254,7 +260,7 @@ describe('Delegation Seat Identity Contract', () => {
 
       if (match) {
         const startIndex = match.index;
-        const block = content.substring(startIndex, startIndex + 500);
+        const block = content.substring(startIndex, startIndex + 700);
 
         // Must call sendWolfRobotHunterStatusViewed(effectiveSeat)
         expect(block).toMatch(/sendWolfRobotHunterStatusViewed\(effectiveSeat\)/);
@@ -273,7 +279,7 @@ describe('Delegation Seat Identity Contract', () => {
      * instead of letting Host reject via actionRejected.
      */
     it('wolfVote should use effectiveSeat as fallback, not findVotingWolfSeat', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      const content = readFileContent(ORCHESTRATOR_PATH);
 
       // Find the wolfVote case block
       const wolfVoteRegex = /case\s*['"]wolfVote['"]:\s*\{/g;
@@ -300,7 +306,7 @@ describe('Delegation Seat Identity Contract', () => {
      * wolfVote log should not reference myRole/mySeatNumber
      */
     it('wolfVote should log effectiveSeat/effectiveRole, not myRole/mySeatNumber', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      const content = readFileContent(ORCHESTRATOR_PATH);
 
       const wolfVoteRegex = /case\s*['"]wolfVote['"]:\s*\{/g;
       const match = wolfVoteRegex.exec(content);
@@ -384,7 +390,7 @@ describe('Delegation Seat Identity Contract', () => {
      * P0 Contract: hasViewedRole check should use effectiveSeat
      */
     it('roleCard hasViewedRole check should use effectiveSeat', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      const content = readFileContent(DISPATCHER_PATH);
 
       // Find the roleCard case in dispatchInteraction
       const roleCardCaseRegex = /case\s*['"]roleCard['"]:\s*\{/g;
@@ -417,12 +423,12 @@ describe('Delegation Seat Identity Contract', () => {
      * so that switching seats produces a different key and re-triggers the prompt.
      */
     it('idempotency key must contain actorSeatForUi (preferred) or effectiveSeat', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      const content = readFileContent(ORCHESTRATOR_PATH);
 
       // Find the idempotency key construction block
       // We need the one inside the auto-trigger useEffect, not any other key.
-      // The auto-trigger key is preceded by a comment about "idempotency"
-      const idempotencySection = content.indexOf('Auto-trigger intent (with idempotency');
+      // The auto-trigger key is preceded by a comment about "Auto-trigger"
+      const idempotencySection = content.indexOf('Auto-trigger intent');
       expect(idempotencySection).toBeGreaterThan(-1);
 
       // Find the key = [...] within the region after that comment
@@ -450,9 +456,9 @@ describe('Delegation Seat Identity Contract', () => {
      * A key without any seat-level field would cause cross-seat deduplication.
      */
     it('idempotency key must not be missing all seat-level fields', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      const content = readFileContent(ORCHESTRATOR_PATH);
 
-      const idempotencySection = content.indexOf('Auto-trigger intent (with idempotency');
+      const idempotencySection = content.indexOf('Auto-trigger intent');
       expect(idempotencySection).toBeGreaterThan(-1);
 
       const searchRegion = content.substring(idempotencySection, idempotencySection + 1500);
@@ -486,9 +492,9 @@ describe('Delegation Seat Identity Contract', () => {
      * Contract: useEffect deps must include the seat field used in key
      */
     it('useEffect dependency array must include the seat field used in key', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      const content = readFileContent(ORCHESTRATOR_PATH);
 
-      const idempotencySection = content.indexOf('Auto-trigger intent (with idempotency');
+      const idempotencySection = content.indexOf('Auto-trigger intent');
       expect(idempotencySection).toBeGreaterThan(-1);
 
       // Find the deps array: starts with '}, [' after handleActionIntent call
@@ -555,35 +561,66 @@ describe('Delegation Seat Identity Contract', () => {
 
   describe('wolfRobot hunter gate with controlledSeat (debug takeover)', () => {
     /**
-     * P0 Contract: When Host takes over a wolfRobot via controlledSeat,
-     * the HUNTER_STATUS_VIEWED dispatch in RoomScreen must use effectiveSeat.
-     *
-     * Bug prevented: If the dispatch uses mySeatNumber instead of effectiveSeat,
-     * the hunter status viewed call would use the Host's seat (null or 0)
-     * instead of the bot's seat, causing the gate to fail.
+     * P0 Contract: Orchestrator's wolfRobotViewHunterStatus case must:
+     * 1. Gate on pendingHunterStatusViewed (idempotent, prevent duplicate submission)
+     * 2. Call sendWolfRobotHunterStatusViewed(effectiveSeat) — not mySeatNumber
      */
-    it('handleActionIntent wolfRobotHunterStatus uses effectiveSeat in dispatchInteraction', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+    it('orchestrator wolfRobotViewHunterStatus uses pendingHunterStatusViewed gate + effectiveSeat', () => {
+      const content = readFileContent(ORCHESTRATOR_PATH);
 
-      // Find the wolfRobotHunterStatus handling block
-      // This is in the handleActionIntent or the useEffect that processes intents
-      const hunterStatusRegex = /wolfRobotHunterStatus/g;
-      const matches = [...content.matchAll(hunterStatusRegex)];
+      // Find the wolfRobotViewHunterStatus case block
+      const regex = /case\s*['"]wolfRobotViewHunterStatus['"]:\s*\{/g;
+      const match = regex.exec(content);
 
-      // Must exist (not removed)
-      expect(matches.length).toBeGreaterThan(0);
+      expect(match).toBeTruthy();
 
-      // Find the sendWolfRobotHunterStatusViewed call context
-      // There should be at least one call that uses effectiveSeat
-      const callRegex = /sendWolfRobotHunterStatusViewed\(\s*(\w+)\s*\)/g;
-      const callMatches = [...content.matchAll(callRegex)];
+      if (match) {
+        const startIndex = match.index;
+        const block = content.substring(startIndex, startIndex + 2000);
 
-      expect(callMatches.length).toBeGreaterThan(0);
+        // Must gate on pendingHunterStatusViewed (prevent duplicate submission)
+        expect(block).toMatch(/pendingHunterStatusViewed/);
 
-      // Every call to sendWolfRobotHunterStatusViewed must use effectiveSeat
-      for (const callMatch of callMatches) {
-        const arg = callMatch[1];
-        expect(arg).toBe('effectiveSeat');
+        // Must call sendWolfRobotHunterStatusViewed(effectiveSeat)
+        expect(block).toMatch(/sendWolfRobotHunterStatusViewed\(effectiveSeat\)/);
+
+        // Must NOT call sendWolfRobotHunterStatusViewed(mySeatNumber)
+        expect(block).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeatNumber\)/);
+
+        // Must set pendingHunterStatusViewed(true) before the async call
+        expect(block).toMatch(/setPendingHunterStatusViewed\(true\)/);
+
+        // Must reset pendingHunterStatusViewed(false) in finally/catch
+        expect(block).toMatch(/setPendingHunterStatusViewed\(false\)/);
+      }
+    });
+
+    /**
+     * P0 Contract: Dispatcher's HUNTER_STATUS_VIEWED case must:
+     * 1. Gate on pendingHunterStatusViewed (prevent duplicate submission)
+     * 2. Call sendWolfRobotHunterStatusViewed(effectiveSeat) — not mySeatNumber
+     */
+    it('dispatcher HUNTER_STATUS_VIEWED gates on pendingHunterStatusViewed + uses effectiveSeat', () => {
+      const content = readFileContent(DISPATCHER_PATH);
+
+      // Find the HUNTER_STATUS_VIEWED case block
+      const regex = /case\s*['"]HUNTER_STATUS_VIEWED['"]:/g;
+      const match = regex.exec(content);
+
+      expect(match).toBeTruthy();
+
+      if (match) {
+        const startIndex = match.index;
+        const block = content.substring(startIndex, startIndex + 700);
+
+        // Must gate on pendingHunterStatusViewed (prevent duplicate submission)
+        expect(block).toMatch(/pendingHunterStatusViewed/);
+
+        // Must call sendWolfRobotHunterStatusViewed(effectiveSeat)
+        expect(block).toMatch(/sendWolfRobotHunterStatusViewed\(effectiveSeat\)/);
+
+        // Must NOT call sendWolfRobotHunterStatusViewed(mySeatNumber)
+        expect(block).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeatNumber\)/);
       }
     });
 
