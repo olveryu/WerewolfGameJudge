@@ -58,6 +58,7 @@ applyTo: "**/*.test.ts,**/*.test.tsx,**/__tests__/**"
 
 - **跑测试（Jest / Playwright / tsc 等）时，禁止用 `| grep`、`| head`、`| tail` 截断输出。** 必须看完整结果，避免遗漏错误或误判通过。
 - 只有在非测试场景（如查看日志、搜索代码）中，才允许使用 `grep` 过滤。
+- **跑 Playwright 时必须加 `--reporter=list`**（例如 `npx playwright test ... --reporter=list 2>&1`）。项目 `playwright.config.ts` 默认 reporter 是 `html`，跑完后会启动 HTTP server 展示报告并阻塞终端，导致命令永远不会退出。
 
 ## 质量门禁（Quality gates）
 
