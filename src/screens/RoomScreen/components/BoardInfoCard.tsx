@@ -1,16 +1,11 @@
 /**
  * BoardInfoCard.tsx - Game board configuration display (collapsible)
+ *
+ * Performance: Memoized, receives pre-created styles from parent.
  */
-import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import {
-  useColors,
-  spacing,
-  typography,
-  borderRadius,
-  shadows,
-  type ThemeColors,
-} from '../../../theme';
+import React, { useState, useEffect, memo } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { type BoardInfoCardStyles } from './styles';
 
 export interface BoardInfoCardProps {
   /** Total number of players */
@@ -25,18 +20,31 @@ export interface BoardInfoCardProps {
   villagerCount: number;
   /** Whether the card should be collapsed */
   collapsed?: boolean;
+  /** Pre-created styles from parent */
+  styles: BoardInfoCardStyles;
 }
 
-export const BoardInfoCard: React.FC<BoardInfoCardProps> = ({
+function arePropsEqual(prev: BoardInfoCardProps, next: BoardInfoCardProps): boolean {
+  return (
+    prev.playerCount === next.playerCount &&
+    prev.wolfRolesText === next.wolfRolesText &&
+    prev.godRolesText === next.godRolesText &&
+    prev.specialRolesText === next.specialRolesText &&
+    prev.villagerCount === next.villagerCount &&
+    prev.collapsed === next.collapsed &&
+    prev.styles === next.styles
+  );
+}
+
+const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   playerCount,
   wolfRolesText,
   godRolesText,
   specialRolesText,
   villagerCount,
   collapsed = false,
+  styles,
 }) => {
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
   const [userHasInteracted, setUserHasInteracted] = useState(false);
 
@@ -89,50 +97,6 @@ export const BoardInfoCard: React.FC<BoardInfoCardProps> = ({
   );
 };
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    boardInfoContainer: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      padding: spacing.medium,
-      marginBottom: spacing.medium,
-      ...shadows.sm,
-    },
-    headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    boardInfoTitle: {
-      fontSize: typography.body,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-    },
-    collapseIcon: {
-      fontSize: typography.secondary,
-      color: colors.textSecondary,
-    },
-    boardInfoContent: {
-      marginTop: spacing.small,
-      gap: spacing.tight,
-    },
-    roleCategory: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-    },
-    roleCategoryLabel: {
-      fontSize: typography.secondary,
-      fontWeight: typography.weights.semibold,
-      color: colors.textSecondary,
-      width: spacing.xxlarge * 2 + spacing.tight, // ~70
-    },
-    roleCategoryText: {
-      flex: 1,
-      fontSize: typography.secondary,
-      color: colors.text,
-      lineHeight: typography.title, // ~20
-    },
-  });
-}
+export const BoardInfoCard = memo(BoardInfoCardComponent, arePropsEqual);
 
-export default BoardInfoCard;
+BoardInfoCard.displayName = 'BoardInfoCard';

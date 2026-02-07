@@ -1,20 +1,25 @@
 /**
  * ActionMessage.tsx - Displays the current action prompt/message
+ *
+ * Performance: Memoized, receives pre-created styles from parent.
  */
-import React, { useMemo } from 'react';
-import { Text, StyleSheet } from 'react-native';
-import { useColors, spacing, typography, type ThemeColors } from '../../../theme';
+import React, { memo } from 'react';
+import { Text } from 'react-native';
 import { TESTIDS } from '../../../testids';
+import { type ActionMessageStyles } from './styles';
 
 export interface ActionMessageProps {
   /** The message to display */
   message: string;
+  /** Pre-created styles from parent */
+  styles: ActionMessageStyles;
 }
 
-export const ActionMessage: React.FC<ActionMessageProps> = ({ message }) => {
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+function arePropsEqual(prev: ActionMessageProps, next: ActionMessageProps): boolean {
+  return prev.message === next.message && prev.styles === next.styles;
+}
 
+const ActionMessageComponent: React.FC<ActionMessageProps> = ({ message, styles }) => {
   return (
     <Text style={styles.actionMessage} testID={TESTIDS.actionMessage}>
       {message}
@@ -22,17 +27,6 @@ export const ActionMessage: React.FC<ActionMessageProps> = ({ message }) => {
   );
 };
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    actionMessage: {
-      textAlign: 'center',
-      fontSize: typography.body,
-      color: colors.text,
-      marginTop: spacing.medium,
-      marginBottom: spacing.small,
-      paddingHorizontal: spacing.medium,
-    },
-  });
-}
+export const ActionMessage = memo(ActionMessageComponent, arePropsEqual);
 
-export default ActionMessage;
+ActionMessage.displayName = 'ActionMessage';

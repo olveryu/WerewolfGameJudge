@@ -1,26 +1,31 @@
 /**
  * WaitingViewRoleList.tsx - Shows players who haven't viewed their roles
+ *
+ * Performance: Memoized with arePropsEqual, receives pre-created styles from parent.
+ *
+ * ❌ Do NOT import: any Service singletons, showAlert
+ * ✅ Allowed: types, styles, UI components
  */
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import {
-  useColors,
-  spacing,
-  typography,
-  borderRadius,
-  shadows,
-  type ThemeColors,
-} from '../../../theme';
+import React, { memo } from 'react';
+import { View, Text } from 'react-native';
+import { type WaitingViewRoleListStyles } from './styles';
 
 export interface WaitingViewRoleListProps {
   /** Seat numbers (0-indexed) of players who haven't viewed roles */
   seatIndices: number[];
+  /** Pre-created styles from parent */
+  styles: WaitingViewRoleListStyles;
 }
 
-export const WaitingViewRoleList: React.FC<WaitingViewRoleListProps> = ({ seatIndices }) => {
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+function arePropsEqual(prev: WaitingViewRoleListProps, next: WaitingViewRoleListProps): boolean {
+  // seatIndices is an array — compare by length + reference (parent should stabilize via useMemo)
+  return prev.seatIndices === next.seatIndices && prev.styles === next.styles;
+}
 
+const WaitingViewRoleListComponent: React.FC<WaitingViewRoleListProps> = ({
+  seatIndices,
+  styles,
+}) => {
   if (seatIndices.length === 0) {
     return null;
   }
@@ -36,28 +41,6 @@ export const WaitingViewRoleList: React.FC<WaitingViewRoleListProps> = ({ seatIn
   );
 };
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    actionLogContainer: {
-      marginTop: spacing.medium,
-      marginHorizontal: spacing.medium,
-      padding: spacing.medium,
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      ...shadows.sm,
-    },
-    actionLogTitle: {
-      fontSize: typography.body,
-      fontWeight: typography.weights.semibold,
-      color: colors.text,
-      marginBottom: spacing.small,
-    },
-    actionLogItem: {
-      fontSize: typography.secondary,
-      color: colors.textSecondary,
-      paddingVertical: spacing.tight / 2, // ~2
-    },
-  });
-}
+export const WaitingViewRoleList = memo(WaitingViewRoleListComponent, arePropsEqual);
 
-export default WaitingViewRoleList;
+WaitingViewRoleList.displayName = 'WaitingViewRoleList';

@@ -3,17 +3,15 @@
  *
  * Displays current step number and total steps based on the active night plan.
  * Only visible during ongoing game (status === 'ongoing').
+ *
+ * Performance: Memoized with arePropsEqual, receives pre-created styles from parent.
+ *
+ * ❌ Do NOT import: any Service singletons, showAlert
+ * ✅ Allowed: types, styles, UI components
  */
-import React, { useMemo, memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import {
-  useColors,
-  spacing,
-  typography,
-  borderRadius,
-  shadows,
-  type ThemeColors,
-} from '../../../theme';
+import React, { memo } from 'react';
+import { View, Text } from 'react-native';
+import { type NightProgressIndicatorStyles } from './styles';
 import { TESTIDS } from '../../../testids';
 
 export interface NightProgressIndicatorProps {
@@ -23,16 +21,28 @@ export interface NightProgressIndicatorProps {
   totalSteps: number;
   /** Optional: current role name for display */
   currentRoleName?: string;
+  /** Pre-created styles from parent */
+  styles: NightProgressIndicatorStyles;
+}
+
+function arePropsEqual(
+  prev: NightProgressIndicatorProps,
+  next: NightProgressIndicatorProps,
+): boolean {
+  return (
+    prev.currentStep === next.currentStep &&
+    prev.totalSteps === next.totalSteps &&
+    prev.currentRoleName === next.currentRoleName &&
+    prev.styles === next.styles
+  );
 }
 
 const NightProgressIndicatorComponent: React.FC<NightProgressIndicatorProps> = ({
   currentStep,
   totalSteps,
   currentRoleName,
+  styles,
 }) => {
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-
   // Calculate progress percentage
   const progressPercent = totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0;
 
@@ -51,47 +61,6 @@ const NightProgressIndicatorComponent: React.FC<NightProgressIndicatorProps> = (
   );
 };
 
-// Memoize to prevent unnecessary re-renders
-export const NightProgressIndicator = memo(NightProgressIndicatorComponent);
+export const NightProgressIndicator = memo(NightProgressIndicatorComponent, arePropsEqual);
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    container: {
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      marginHorizontal: spacing.medium,
-      marginTop: spacing.small,
-      ...shadows.sm,
-    },
-    headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: spacing.tight,
-    },
-    stepText: {
-      fontSize: typography.secondary,
-      fontWeight: typography.weights.semibold,
-      color: colors.text,
-    },
-    roleText: {
-      fontSize: typography.secondary,
-      color: colors.textSecondary,
-    },
-    progressBarContainer: {
-      height: spacing.tight, // 4
-      backgroundColor: colors.border,
-      borderRadius: borderRadius.full,
-      overflow: 'hidden',
-    },
-    progressBarFill: {
-      height: '100%',
-      backgroundColor: colors.primary,
-      borderRadius: borderRadius.full,
-    },
-  });
-}
-
-export default NightProgressIndicator;
+NightProgressIndicator.displayName = 'NightProgressIndicator';

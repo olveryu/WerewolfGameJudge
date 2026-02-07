@@ -2,18 +2,13 @@
  * ConnectionStatusBar.tsx - Connection status indicator for non-host players
  *
  * Shows connection state and provides force sync button when disconnected.
+ *
+ * Performance: Memoized, receives pre-created styles from parent.
  */
-import React, { useMemo, memo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { memo } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { TESTIDS } from '../../../testids';
-import {
-  useColors,
-  spacing,
-  typography,
-  borderRadius,
-  shadows,
-  type ThemeColors,
-} from '../../../theme';
+import { type ConnectionStatusBarStyles } from './styles';
 
 export type ConnectionState = 'live' | 'syncing' | 'connecting' | 'disconnected';
 
@@ -22,6 +17,13 @@ export interface ConnectionStatusBarProps {
   status: ConnectionState;
   /** Callback for force sync button */
   onForceSync?: () => void;
+  /** Pre-created styles from parent */
+  styles: ConnectionStatusBarStyles;
+}
+
+function arePropsEqual(prev: ConnectionStatusBarProps, next: ConnectionStatusBarProps): boolean {
+  return prev.status === next.status && prev.styles === next.styles;
+  // onForceSync excluded - stable via useCallback
 }
 
 /**
@@ -30,10 +32,8 @@ export interface ConnectionStatusBarProps {
 const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
   status,
   onForceSync,
+  styles,
 }) => {
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-
   const getStatusStyle = () => {
     switch (status) {
       case 'live':
@@ -89,56 +89,6 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
   );
 };
 
-// Memoize to prevent unnecessary re-renders
-export const ConnectionStatusBar = memo(ConnectionStatusBarComponent);
+export const ConnectionStatusBar = memo(ConnectionStatusBarComponent, arePropsEqual);
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    container: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: spacing.tight,
-      paddingHorizontal: spacing.medium,
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      marginHorizontal: spacing.medium,
-      marginTop: spacing.small,
-      ...shadows.sm,
-    },
-    statusLive: {
-      backgroundColor: colors.success + '20',
-    },
-    statusSyncing: {
-      backgroundColor: colors.warning + '20',
-    },
-    statusConnecting: {
-      backgroundColor: colors.info + '20',
-    },
-    statusDisconnected: {
-      backgroundColor: colors.error + '20',
-    },
-    statusText: {
-      fontSize: typography.secondary,
-      color: colors.text,
-      fontWeight: typography.weights.medium,
-    },
-    syncButton: {
-      marginLeft: spacing.medium,
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.tight,
-      backgroundColor: colors.primary,
-      borderRadius: borderRadius.small,
-    },
-    syncButtonDisabled: {
-      backgroundColor: colors.textMuted,
-    },
-    syncButtonText: {
-      fontSize: typography.secondary,
-      color: colors.textInverse,
-      fontWeight: typography.weights.semibold,
-    },
-  });
-}
-
-export default ConnectionStatusBar;
+ConnectionStatusBar.displayName = 'ConnectionStatusBar';

@@ -1,10 +1,14 @@
 /**
  * SeatConfirmModal.tsx - Modal for confirming seat enter/leave actions
+ *
+ * Performance: Memoized with arePropsEqual, receives pre-created styles from parent.
+ *
+ * ❌ Do NOT import: any Service singletons, showAlert
+ * ✅ Allowed: types, styles, UI components
  */
-import React, { useMemo, memo } from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
-import { fixed } from '../../../theme/tokens';
+import React, { memo } from 'react';
+import { Modal, View, Text, TouchableOpacity } from 'react-native';
+import { type SeatConfirmModalStyles } from './styles';
 import { TESTIDS } from '../../../testids';
 
 export type SeatModalType = 'enter' | 'leave';
@@ -20,6 +24,18 @@ export interface SeatConfirmModalProps {
   onConfirm: () => void;
   /** Called when user cancels or dismisses the modal */
   onCancel: () => void;
+  /** Pre-created styles from parent */
+  styles: SeatConfirmModalStyles;
+}
+
+function arePropsEqual(prev: SeatConfirmModalProps, next: SeatConfirmModalProps): boolean {
+  return (
+    prev.visible === next.visible &&
+    prev.modalType === next.modalType &&
+    prev.seatNumber === next.seatNumber &&
+    prev.styles === next.styles
+    // callbacks excluded - stable via useCallback
+  );
 }
 
 const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
@@ -28,10 +44,8 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
   seatNumber,
   onConfirm,
   onCancel,
+  styles,
 }) => {
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-
   const title = modalType === 'enter' ? '入座' : '站起';
   const message =
     modalType === 'enter' ? `确定在${seatNumber}号位入座?` : `确定从${seatNumber}号位站起?`;
@@ -68,66 +82,6 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
   );
 };
 
-// Memoize to prevent unnecessary re-renders
-export const SeatConfirmModal = memo(SeatConfirmModalComponent);
+export const SeatConfirmModal = memo(SeatConfirmModalComponent, arePropsEqual);
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: colors.overlay,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    modalContent: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.xlarge,
-      padding: spacing.xlarge,
-      minWidth: spacing.xxlarge * 6 + spacing.large, // ~280
-      alignItems: 'center',
-    },
-    modalTitle: {
-      fontSize: typography.title,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-      marginBottom: spacing.small,
-    },
-    modalMessage: {
-      fontSize: typography.body,
-      color: colors.textSecondary,
-      marginBottom: spacing.large,
-      textAlign: 'center',
-    },
-    modalButtons: {
-      flexDirection: 'row',
-      gap: spacing.medium,
-    },
-    modalButton: {
-      paddingHorizontal: spacing.large,
-      paddingVertical: spacing.medium,
-      borderRadius: borderRadius.medium,
-      minWidth: spacing.xxlarge * 2 + spacing.medium, // ~100
-      alignItems: 'center',
-    },
-    modalCancelButton: {
-      backgroundColor: colors.surfaceHover,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-    },
-    modalConfirmButton: {
-      backgroundColor: colors.primary,
-    },
-    modalCancelText: {
-      color: colors.textSecondary,
-      fontSize: typography.body,
-      fontWeight: typography.weights.semibold,
-    },
-    modalConfirmText: {
-      color: colors.textInverse,
-      fontSize: typography.body,
-      fontWeight: typography.weights.semibold,
-    },
-  });
-}
-
-export default SeatConfirmModal;
+SeatConfirmModal.displayName = 'SeatConfirmModal';

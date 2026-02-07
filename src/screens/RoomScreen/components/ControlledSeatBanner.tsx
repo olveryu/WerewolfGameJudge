@@ -5,36 +5,14 @@
  * Also shows a hint banner when no bot is controlled but bots are present.
  * Allows quick release of control.
  *
+ * Performance: Memoized, receives pre-created styles from parent.
+ *
  * ❌ Do NOT import: any Service singletons, showAlert
  * ✅ Allowed: types, styles, UI components
  */
 import React, { memo } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  type ViewStyle,
-  type TextStyle,
-} from 'react-native';
-import {
-  useColors,
-  type ThemeColors,
-  spacing,
-  typography,
-  borderRadius,
-  shadows,
-} from '../../../theme';
-import { fixed } from '../../../theme/tokens';
-
-export interface ControlledSeatBannerStyles {
-  container: ViewStyle;
-  hintContainer: ViewStyle;
-  text: TextStyle;
-  hintText: TextStyle;
-  releaseButton: ViewStyle;
-  releaseButtonText: TextStyle;
-}
+import { View, Text, TouchableOpacity } from 'react-native';
+import { type ControlledSeatBannerStyles } from './styles';
 
 export interface ControlledSeatBannerProps {
   /** Mode: 'hint' shows takeover hint, 'controlled' shows controlled bot */
@@ -45,6 +23,18 @@ export interface ControlledSeatBannerProps {
   botDisplayName?: string;
   /** Callback when user wants to release control - required when mode='controlled' */
   onRelease?: () => void;
+  /** Pre-created styles from parent */
+  styles: ControlledSeatBannerStyles;
+}
+
+function arePropsEqual(prev: ControlledSeatBannerProps, next: ControlledSeatBannerProps): boolean {
+  return (
+    prev.mode === next.mode &&
+    prev.controlledSeat === next.controlledSeat &&
+    prev.botDisplayName === next.botDisplayName &&
+    prev.styles === next.styles
+    // onRelease excluded - stable via useCallback
+  );
 }
 
 const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
@@ -52,10 +42,8 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
   controlledSeat,
   botDisplayName,
   onRelease,
+  styles,
 }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
-
   if (mode === 'hint') {
     return (
       <View style={styles.hintContainer}>
@@ -82,60 +70,6 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
   );
 };
 
-function createStyles(colors: ThemeColors): ControlledSeatBannerStyles {
-  return StyleSheet.create({
-    container: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.warning + '20',
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.warning,
-      paddingVertical: spacing.small,
-      paddingHorizontal: spacing.medium,
-      marginHorizontal: spacing.medium,
-      marginBottom: spacing.small,
-      borderRadius: borderRadius.large,
-      ...shadows.sm,
-    },
-    hintContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.warning + '20',
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.warning,
-      paddingVertical: spacing.small,
-      paddingHorizontal: spacing.medium,
-      marginHorizontal: spacing.medium,
-      marginBottom: spacing.small,
-      borderRadius: borderRadius.large,
-      ...shadows.sm,
-    },
-    text: {
-      fontSize: typography.secondary,
-      color: colors.text,
-      fontWeight: typography.weights.semibold,
-      flex: 1,
-    },
-    hintText: {
-      fontSize: typography.secondary,
-      color: colors.text,
-      fontWeight: typography.weights.semibold,
-    },
-    releaseButton: {
-      backgroundColor: colors.surface,
-      paddingVertical: spacing.tight,
-      paddingHorizontal: spacing.small,
-      borderRadius: borderRadius.medium,
-    },
-    releaseButtonText: {
-      fontSize: typography.caption,
-      color: colors.text,
-      fontWeight: typography.weights.semibold,
-    },
-  });
-}
+export const ControlledSeatBanner = memo(ControlledSeatBannerComponent, arePropsEqual);
 
-export const ControlledSeatBanner = memo(ControlledSeatBannerComponent);
-export default ControlledSeatBanner;
+ControlledSeatBanner.displayName = 'ControlledSeatBanner';

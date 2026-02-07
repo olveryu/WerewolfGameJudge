@@ -2,45 +2,17 @@
  * HostMenuDropdown.tsx - Dropdown menu for Host actions
  *
  * Shows a "..." button in the header that opens a dropdown menu with:
- * - Restart (重新开始)
  * - Fill with Bots (填充机器人) - only in unseated phase
  * - Mark All Bots Viewed (标记机器人已查看) - only in assigned phase with debug mode
+ *
+ * Performance: Memoized, receives pre-created styles from parent.
  *
  * ❌ Do NOT import: any Service singletons, showAlert
  * ✅ Allowed: types, styles, UI components
  */
-import React, { memo, useState, useCallback, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  StyleSheet,
-  type ViewStyle,
-  type TextStyle,
-} from 'react-native';
-import {
-  useColors,
-  type ThemeColors,
-  spacing,
-  borderRadius,
-  typography,
-  shadows,
-} from '../../../theme';
-import { componentSizes, fixed } from '../../../theme/tokens';
-
-export interface HostMenuDropdownStyles {
-  triggerButton: ViewStyle;
-  triggerText: TextStyle;
-  modalOverlay: ViewStyle;
-  menuContainer: ViewStyle;
-  menuItem: ViewStyle;
-  menuItemText: TextStyle;
-  menuItemDanger: ViewStyle;
-  menuItemTextDanger: TextStyle;
-  separator: ViewStyle;
-  headerRightContainer: ViewStyle;
-}
+import React, { memo, useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, Modal } from 'react-native';
+import { type HostMenuDropdownStyles } from './styles';
 
 export interface HostMenuDropdownProps {
   /** Whether to show the menu (Host only) */
@@ -52,6 +24,18 @@ export interface HostMenuDropdownProps {
   /** Callbacks */
   onFillWithBots: () => void;
   onMarkAllBotsViewed: () => void;
+  /** Pre-created styles from parent */
+  styles: HostMenuDropdownStyles;
+}
+
+function arePropsEqual(prev: HostMenuDropdownProps, next: HostMenuDropdownProps): boolean {
+  return (
+    prev.visible === next.visible &&
+    prev.showFillWithBots === next.showFillWithBots &&
+    prev.showMarkAllBotsViewed === next.showMarkAllBotsViewed &&
+    prev.styles === next.styles
+    // callbacks excluded - stable via useCallback
+  );
 }
 
 const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
@@ -60,11 +44,9 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   showMarkAllBotsViewed,
   onFillWithBots,
   onMarkAllBotsViewed,
+  styles,
 }) => {
-  const colors = useColors();
-  const styles = createStyles(colors);
   const [menuOpen, setMenuOpen] = useState(false);
-  const triggerRef = useRef<View>(null);
 
   const handleOpenMenu = useCallback(() => {
     setMenuOpen(true);
@@ -98,7 +80,6 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
       {hasDropdownItems && (
         <>
           <TouchableOpacity
-            ref={triggerRef}
             style={styles.triggerButton}
             onPress={handleOpenMenu}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -141,60 +122,6 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   );
 };
 
-function createStyles(colors: ThemeColors): HostMenuDropdownStyles {
-  return StyleSheet.create({
-    headerRightContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'flex-end',
-      minWidth: 60,
-    },
-    triggerButton: {
-      width: componentSizes.avatar.sm,
-      height: componentSizes.avatar.sm,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    triggerText: {
-      fontSize: typography.heading,
-      color: colors.text,
-      fontWeight: typography.weights.bold,
-    },
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: colors.overlayLight,
-      justifyContent: 'flex-start',
-      alignItems: 'flex-end',
-      paddingTop: componentSizes.header + spacing.small,
-      paddingRight: spacing.medium,
-    },
-    menuContainer: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.medium,
-      minWidth: 180,
-      ...shadows.md,
-      overflow: 'hidden',
-    },
-    menuItem: {
-      paddingVertical: spacing.medium,
-      paddingHorizontal: spacing.large,
-    },
-    menuItemText: {
-      fontSize: typography.body,
-      color: colors.text,
-    },
-    menuItemDanger: {
-      // No additional style, just for semantic grouping
-    },
-    menuItemTextDanger: {
-      color: colors.error,
-    },
-    separator: {
-      height: fixed.divider,
-      backgroundColor: colors.border,
-      marginHorizontal: spacing.medium,
-    },
-  });
-}
+export const HostMenuDropdown = memo(HostMenuDropdownComponent, arePropsEqual);
 
-export const HostMenuDropdown = memo(HostMenuDropdownComponent);
+HostMenuDropdown.displayName = 'HostMenuDropdown';

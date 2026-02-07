@@ -8,11 +8,13 @@
  * This component is purely presentational:
  * - Renders message + button children
  * - No business logic, no service imports
+ *
+ * Performance: Memoized, receives pre-created styles from parent.
  */
-import React, { useMemo, memo } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
+import React, { memo } from 'react';
+import { View, Text } from 'react-native';
 import { TESTIDS } from '../../../testids';
+import { type BottomActionPanelStyles } from './styles';
 
 export interface BottomActionPanelProps {
   /** Action message to display (e.g., "请选择要查验的玩家") */
@@ -21,16 +23,16 @@ export interface BottomActionPanelProps {
   showMessage?: boolean;
   /** Button elements (ActionButton, HostControlButtons, etc.) */
   children: React.ReactNode;
+  /** Pre-created styles from parent */
+  styles: BottomActionPanelStyles;
 }
 
 const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
   message,
   showMessage = false,
   children,
+  styles,
 }) => {
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-
   // Don't render if there's nothing to show
   const hasButtons = React.Children.count(children) > 0;
   if (!hasButtons && !showMessage) return null;
@@ -52,48 +54,4 @@ const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
 
 export const BottomActionPanel = memo(BottomActionPanelComponent);
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    container: {
-      backgroundColor: colors.surface,
-      borderTopLeftRadius: borderRadius.large,
-      borderTopRightRadius: borderRadius.large,
-      paddingTop: spacing.medium,
-      paddingHorizontal: spacing.medium,
-      paddingBottom: spacing.xlarge,
-      borderTopWidth: 1,
-      borderTopColor: colors.borderLight,
-      // Shadow for elevation effect
-      ...Platform.select({
-        ios: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.1,
-          shadowRadius: 6,
-        },
-        android: {
-          elevation: 8,
-        },
-        web: {
-          boxShadow: '0 -3px 12px rgba(0, 0, 0, 0.08)',
-        },
-      }),
-    },
-    message: {
-      textAlign: 'center',
-      fontSize: typography.body,
-      color: colors.text,
-      marginBottom: spacing.small,
-      paddingHorizontal: spacing.small,
-      lineHeight: typography.body * 1.4,
-    },
-    buttonRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-      gap: spacing.small,
-    },
-  });
-}
-
-export default BottomActionPanel;
+BottomActionPanel.displayName = 'BottomActionPanel';

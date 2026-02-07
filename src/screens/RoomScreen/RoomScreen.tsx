@@ -71,6 +71,7 @@ import { RoleCardModal } from './components/RoleCardModal';
 import { useColors, spacing } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { createRoomScreenStyles } from './RoomScreen.styles';
+import { createRoomScreenComponentStyles } from './components/styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -83,6 +84,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   } = route.params;
   const colors = useColors();
   const styles = useMemo(() => createRoomScreenStyles(colors), [colors]);
+  const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), [colors]);
 
   // Use the new game room hook
   const {
@@ -625,12 +627,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           showMarkAllBotsViewed={isDebugMode && roomStatus === GameStatus.assigned}
           onFillWithBots={() => void fillWithBots()}
           onMarkAllBotsViewed={() => void markAllBotsViewed()}
+          styles={componentStyles.hostMenuDropdown}
         />
       </View>
 
       {/* Connection Status Bar */}
       {!isHost && (
-        <ConnectionStatusBar status={connectionStatus} onForceSync={() => requestSnapshot()} />
+        <ConnectionStatusBar status={connectionStatus} onForceSync={() => requestSnapshot()} styles={componentStyles.connectionStatusBar} />
       )}
 
       {/* Night Progress Indicator - only show during ongoing game */}
@@ -639,6 +642,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           currentStep={nightProgress.current}
           totalSteps={nightProgress.total}
           currentRoleName={nightProgress.roleName}
+          styles={componentStyles.nightProgressIndicator}
         />
       )}
 
@@ -652,9 +656,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             controlledSeat={controlledSeat}
             botDisplayName={gameState.players.get(controlledSeat)?.displayName || 'Bot'}
             onRelease={() => setControlledSeat(null)}
+            styles={componentStyles.controlledSeatBanner}
           />
         ) : (
-          <ControlledSeatBanner mode="hint" />
+          <ControlledSeatBanner mode="hint" styles={componentStyles.controlledSeatBanner} />
         ))}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -669,6 +674,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             }
             villagerCount={villagerCount}
             collapsed={false}
+            styles={componentStyles.boardInfoCard}
           />
         )}
 
@@ -685,12 +691,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* Show players who haven't viewed their roles yet */}
         {isHost && roomStatus === GameStatus.assigned && (
-          <WaitingViewRoleList seatIndices={getPlayersNotViewedRole(toGameRoomLike(gameState))} />
+          <WaitingViewRoleList seatIndices={getPlayersNotViewedRole(toGameRoomLike(gameState))} styles={componentStyles.waitingViewRoleList} />
         )}
       </ScrollView>
 
       {/* Bottom Action Panel - floating card with message + buttons */}
-      <BottomActionPanel message={actionMessage} showMessage={imActioner && !isAudioPlaying}>
+      <BottomActionPanel message={actionMessage} showMessage={imActioner && !isAudioPlaying} styles={componentStyles.bottomActionPanel}>
         {/* Host Control Buttons - dispatch events to policy */}
         <HostControlButtons
           isHost={isHost}
@@ -731,6 +737,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               key={b.key}
               label={b.label}
               onPress={(_meta) => dispatchInteraction({ kind: 'BOTTOM_ACTION', intent: b.intent })}
+              styles={componentStyles.actionButton}
             />
           ));
         })()}
@@ -745,6 +752,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             <ActionButton
               label="查看身份"
               onPress={(_meta) => dispatchInteraction({ kind: 'VIEW_ROLE' })}
+              styles={componentStyles.actionButton}
             />
           )}
 
@@ -760,6 +768,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                   showAlert('等待房主点击"准备看牌"分配角色');
                 }
               }}
+              styles={componentStyles.actionButton}
             />
           )}
       </BottomActionPanel>
@@ -773,6 +782,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           seatNumber={pendingSeatIndex + 1}
           onConfirm={modalType === 'enter' ? handleConfirmSeat : handleConfirmLeave}
           onCancel={handleCancelSeat}
+          styles={componentStyles.seatConfirmModal}
         />
       )}
 
