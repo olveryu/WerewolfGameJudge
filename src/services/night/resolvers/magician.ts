@@ -1,7 +1,10 @@
 /**
- * Magician Resolver (HOST-ONLY)
+ * Magician Resolver (HOST-ONLY, 纯函数)
  *
- * Validates magician swap action and computes result.
+ * 职责：校验魔术师交换行动 + 计算交换结果
+ *
+ * ✅ 允许：交换目标校验 + 结果计算（含跳过交换）
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */

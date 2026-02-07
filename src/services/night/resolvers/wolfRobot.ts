@@ -1,11 +1,10 @@
 /**
- * Wolf Robot Resolver (HOST-ONLY)
+ * Wolf Robot Resolver (HOST-ONLY, 纯函数)
  *
- * Validates wolf robot learn action and computes result.
- * Returns exact role identity.
+ * 职责：校验机器狼学习行动 + 返回精确角色身份 + 计算 canShootAsHunter
  *
- * If learned role is hunter, also computes canShootAsHunter based on:
- * - Whether wolfRobot is poisoned by witch (cannot shoot if poisoned)
+ * ✅ 允许：学习行动校验 + 猎人技能继承判定（是否被女巫毒 → 不能开枪）
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */

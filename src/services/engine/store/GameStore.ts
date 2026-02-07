@@ -1,5 +1,5 @@
 /**
- * GameStore - 状态持有者
+ * GameStore - 游戏状态持有者
  *
  * 职责：
  * - 持有 GameState（= BroadcastGameState）
@@ -7,6 +7,10 @@
  * - 订阅/通知机制
  * - 玩家端：applySnapshot（版本号检查）
  * - 主机端：setState / updateState
+ *
+ * ✅ 允许：state CRUD + revision 管理 + listener 通知
+ * ❌ 禁止：业务逻辑（校验/结算/流程推进）
+ * ❌ 禁止：IO（网络/音频/Alert）
  */
 
 import type { GameState, StateListener, IHostGameStore } from './types';

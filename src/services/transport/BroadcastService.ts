@@ -1,11 +1,15 @@
 /**
- * BroadcastService - Handles Supabase Realtime Broadcast for game state synchronization
+ * BroadcastService - Supabase Realtime 广播传输服务
  *
- * Architecture (IMPORTANT):
- * - Host is the Single Source of Truth for game state
- * - ALL game state is broadcast publicly via HostBroadcast.STATE_UPDATE (no private effects)
- * - Players only send intents/messages to Host (PlayerMessage)
- * - No game state is stored in database (only room basic info)
+ * 职责：
+ * - 管理 Supabase Realtime Channel 生命周期（subscribe/unsubscribe）
+ * - Host→Player 广播 STATE_UPDATE / ACK / SNAPSHOT_RESPONSE
+ * - Player→Host 发送 intent / PlayerMessage
+ * - 断线重连 + SNAPSHOT_REQUEST/RESPONSE 状态恢复
+ *
+ * ✅ 允许：Realtime channel 管理 + 消息收发 + presence
+ * ❌ 禁止：游戏逻辑（校验/结算/流程推进）
+ * ❌ 禁止：存储游戏状态
  *
  * Protocol Features:
  * - stateRevision: Monotonic counter for ordering state updates

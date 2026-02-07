@@ -1,8 +1,13 @@
 /**
- * Seat Handler - 座位相关处理器
+ * Seat Handler - 座位操作处理器（Host-only）
  *
- * 处理 JOIN_SEAT / LEAVE_MY_SEAT intent
- * 所有校验（包括 state/uid 有效性）都在这里，Facade 不做任何校验
+ * 职责：
+ * - 处理 JOIN_SEAT / LEAVE_MY_SEAT intent
+ * - 所有校验（state/uid/座位有效性/重复占座）集中在此，Facade 不做任何校验
+ *
+ * ✅ 允许：座位校验 + 返回 StateAction 列表
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
+ * ❌ 禁止：直接修改 state（返回 StateAction 列表由 reducer 执行）
  */
 
 import type { JoinSeatIntent, LeaveMySeatIntent } from '../intents/types';

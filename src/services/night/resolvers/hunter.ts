@@ -1,11 +1,12 @@
 /**
- * Hunter Confirm Resolver (HOST-ONLY)
+ * Hunter Confirm Resolver (HOST-ONLY, 纯函数)
  *
- * Validates hunter confirm action.
- * Hunter just confirms their status (no target selection).
+ * 职责：校验猎人确认行动（仅确认身份，无目标选择）
+ *
+ * ✅ 允许：确认行动校验
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
- * This resolver only validates the confirm action itself.
  */
 
 import type { ResolverFn } from './types';

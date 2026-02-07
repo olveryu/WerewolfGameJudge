@@ -1,7 +1,14 @@
 /**
- * Game Control Handler - 游戏控制处理器
+ * Game Control Handler - 游戏控制处理器（Host-only）
  *
- * 处理 ASSIGN_ROLES / START_NIGHT / RESTART_GAME intent（仅主机）
+ * 职责：
+ * - 处理 ASSIGN_ROLES / START_NIGHT / RESTART_GAME / UPDATE_TEMPLATE intent
+ * - 角色分配逻辑（shuffle + 写入 state）
+ * - NightPlan 构建（基于 template 生成步骤计划）
+ *
+ * ✅ 允许：角色分配 + NightPlan 构建 + 返回 StateAction 列表
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
+ * ❌ 禁止：直接修改 state（返回 StateAction 列表由 reducer 执行）
  */
 
 import type {

@@ -1,7 +1,10 @@
 /**
- * Night Flow Handler - 夜晚流程处理器
+ * Night Flow Handler - 夜晚流程处理器（re-export 入口）
  *
- * 此文件现在作为 re-export 入口，保持向后兼容。
+ * 职责：作为向后兼容的统一入口，re-export 拆分后的子模块
+ *
+ * ✅ 允许：re-export stepTransitionHandler + progressionEvaluator
+ * ❌ 禁止：在此文件中新增业务逻辑（应写在对应子模块中）
  *
  * 实际实现已拆分为：
  * - stepTransitionHandler.ts: 步骤切换逻辑（handleAdvanceNight, handleEndNight, handleSetAudioPlaying）

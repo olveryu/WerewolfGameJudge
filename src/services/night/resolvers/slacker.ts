@@ -1,12 +1,12 @@
 /**
- * Slacker Resolver (HOST-ONLY)
+ * Slacker Resolver (HOST-ONLY, 纯函数)
  *
- * Validates slacker choose idol action and computes result.
+ * 职责：校验懒汉选择偶像行动 + 计算结果
  *
- * RULE:
- * - Slacker's schema has canSkip=false, so normally slacker must choose a target.
- * - If blocked by nightmare, skip is allowed (handler layer permits target=null when blocked).
+ * ✅ 允许：目标选择校验 + 结果计算
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
  *
+ * RULE: canSkip=false — 必须选目标（被 nightmare 阻断时例外，handler 层允许 skip）。
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 

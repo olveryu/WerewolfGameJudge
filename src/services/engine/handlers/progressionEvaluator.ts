@@ -1,14 +1,14 @@
 /**
- * Progression Evaluator - 夜晚推进决策评估器
+ * Progression Evaluator - 夜晚推进决策评估器（Host-only）
  *
- * Host-only 幂等推进决策:
- * - evaluateNightProgression: 评估是否需要推进
- * - handleNightProgression: 执行推进
- *
- * 职责:
- * - 基于 BroadcastGameState 事实判断推进时机
+ * 职责：
+ * - evaluateNightProgression：基于 BroadcastGameState 事实评估是否需要推进
+ * - handleNightProgression：执行推进（调用 advanceNight / endNight）
  * - 幂等保护（同一 {revision, currentStepId} 最多推进一次）
- * - 调用 advanceNight / endNight
+ *
+ * ✅ 允许：读取 state 事实做推进判断 + 调用 advanceNight/endNight
+ * ❌ 禁止：在 Facade / UI / submit 回调里做推进决策（推进权威必须集中在此）
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
  */
 
 import type { BroadcastGameState } from '../../protocol/types';

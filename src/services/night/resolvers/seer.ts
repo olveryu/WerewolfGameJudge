@@ -1,10 +1,12 @@
 /**
- * Seer Resolver (HOST-ONLY)
+ * Seer Resolver (HOST-ONLY, 纯函数)
  *
- * Validates seer check action and computes result.
+ * 职责：校验预言家查验行动 + 返回目标阵营（好人/狼人）
+ *
+ * ✅ 允许：查验校验 + 使用 resolveRoleForChecks 统一角色解析（magician swap + wolfRobot disguise）
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
- * NOTE: Uses resolveRoleForChecks for unified role resolution (magician swap + wolfRobot disguise).
  */
 
 import { ROLE_SPECS } from '../../../models/roles/spec/specs';

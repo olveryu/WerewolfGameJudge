@@ -1,7 +1,11 @@
 /**
- * Wolf Kill Resolver (HOST-ONLY)
+ * Wolf Kill Resolver (HOST-ONLY, 纯函数)
  *
- * Validates wolf kill action and computes result.
+ * 职责：校验狼刀行动合法性 + 计算刀人结果
+ *
+ * ✅ 允许：校验狼刀 + 检查 wolfKillDisabled（nightmare 阻断）
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
+ * ❌ 禁止：添加 notSelf/notWolf 约束（狼刀是中立的，可刀任意座位）
  *
  * RULE: If wolfKillDisabled (nightmare blocked a wolf), non-empty vote is REJECTED.
  */

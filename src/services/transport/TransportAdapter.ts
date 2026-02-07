@@ -1,7 +1,12 @@
 /**
- * Transport Adapter - BroadcastService 包装器
+ * TransportAdapter - BroadcastService → ITransport 适配器
  *
- * 将 BroadcastService 适配的 transport 接口
+ * 职责：
+ * - 将 BroadcastService 适配为 ITransport 接口
+ * - 提供 sendState / sendMessage / onPlayerMessage 等统一传输 API
+ *
+ * ✅ 允许：消息转发 + 事件代理
+ * ❌ 禁止：游戏逻辑（校验/结算/流程推进）
  */
 
 import type { BroadcastService } from './BroadcastService';

@@ -1,11 +1,12 @@
 /**
- * Gargoyle Resolver (HOST-ONLY)
+ * Gargoyle Resolver (HOST-ONLY, 纯函数)
  *
- * Validates gargoyle check action and computes result.
- * Returns exact role identity (like psychic).
+ * 职责：校验石像鬼查验行动 + 返回精确角色身份
+ *
+ * ✅ 允许：查验校验 + 使用 resolveRoleForChecks 统一角色解析（magician swap + wolfRobot disguise）
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
- * NOTE: Uses resolveRoleForChecks for unified role resolution (magician swap + wolfRobot disguise).
  */
 
 import { SCHEMAS } from '../../../models/roles/spec/schemas';

@@ -5,6 +5,16 @@ import { AuthService } from './AuthService';
 
 const avatarLog = log.extend('Avatar');
 
+/**
+ * AvatarUploadService - 头像上传服务
+ *
+ * 职责：
+ * - 将用户头像上传到 Supabase Storage
+ * - 返回公开可访问的头像 URL
+ *
+ * ✅ 允许：Supabase Storage API 调用 + 文件格式转换
+ * ❌ 禁止：游戏逻辑 / 游戏状态存储
+ */
 export class AvatarUploadService {
   private static instance: AvatarUploadService;
   private readonly authService: AuthService;

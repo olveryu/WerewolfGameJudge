@@ -1,7 +1,10 @@
 /**
- * Wolf Queen Resolver (HOST-ONLY)
+ * Wolf Queen Resolver (HOST-ONLY, 纯函数)
  *
- * Validates wolf queen charm action and computes result.
+ * 职责：校验狼王魅惑行动 + 计算魅惑结果
+ *
+ * ✅ 允许：魅惑目标校验 + 结果计算
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */

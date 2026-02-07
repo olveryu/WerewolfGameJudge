@@ -1,7 +1,10 @@
 /**
- * Guard Resolver (HOST-ONLY)
+ * Guard Resolver (HOST-ONLY, 纯函数)
  *
- * Validates guard protect action and computes result.
+ * 职责：校验守卫守护行动 + 计算守护结果
+ *
+ * ✅ 允许：守护目标校验 + 结果计算（含跳过守护）
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */

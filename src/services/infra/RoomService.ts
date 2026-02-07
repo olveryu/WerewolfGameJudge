@@ -1,8 +1,12 @@
 /**
- * SimplifiedRoomService - Minimal Supabase room storage
+ * SimplifiedRoomService - Supabase 房间记录的最小存储服务
  *
- * This service ONLY handles basic room record in Supabase.
- * All game state is managed by GameFacade (in-memory on Host).
+ * 职责：
+ * - 创建/查询/删除 Supabase rooms 表记录
+ * - 生成唯一 4 位房间号
+ *
+ * ✅ 允许：Supabase rooms 表的 CRUD 操作
+ * ❌ 禁止：存储/校验任何游戏状态（游戏状态由 GameFacade 在内存中管理）
  *
  * Supabase rooms table schema (simplified):
  * - id: uuid (primary key)

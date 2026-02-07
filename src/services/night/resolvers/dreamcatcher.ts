@@ -1,7 +1,10 @@
 /**
- * Dreamcatcher Resolver (HOST-ONLY)
+ * Dreamcatcher Resolver (HOST-ONLY, 纯函数)
  *
- * Validates dreamcatcher action and computes result.
+ * 职责：校验摄梦人行动 + 计算摄梦结果
+ *
+ * ✅ 允许：摄梦目标校验 + 结果计算
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */

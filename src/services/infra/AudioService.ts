@@ -59,6 +59,18 @@ const BGM_NIGHT = require('../../../assets/audio/bgm_night.mp3');
 /** BGM volume (0.0 to 1.0) - lower so TTS narration is clearly audible */
 const BGM_VOLUME = 0.15;
 
+/**
+ * AudioService - 音频播放引擎
+ *
+ * 职责：
+ * - 管理角色语音 TTS 播放（play / stop / 超时兜底）
+ * - 管理夜晚 BGM 播放（start / stop / fade）
+ * - 提供 playAndWait() 接口供 Facade 编排音频时序
+ *
+ * ✅ 允许：音频播放 IO（expo-audio API）+ 超时/错误处理
+ * ❌ 禁止：决定"何时播什么音频"（由 Handler 声明、Facade 编排）
+ * ❌ 禁止：游戏逻辑 / 状态修改
+ */
 class AudioService {
   private static instance: AudioService;
   private static initPromise: Promise<void> | null = null;

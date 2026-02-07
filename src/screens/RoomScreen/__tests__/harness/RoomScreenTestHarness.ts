@@ -1,13 +1,14 @@
 /**
- * RoomScreenTestHarness
+ * RoomScreenTestHarness - RoomScreen UI 测试基础设施
  *
- * Test infrastructure for RoomScreen UI tests.
- * Intercepts and records all showAlert calls, providing assertion APIs.
+ * 职责：
+ * - 拦截并记录所有 showAlert 调用
+ * - 提供 fluent API 用于事件检查和断言
+ * - Dialog 类型分类的单一真相（centralized classification）
+ * - 支持循环检测和覆盖率验证
  *
- * Design:
- * - Dialog type classification is centralized here (single source of truth)
- * - Provides fluent API for event inspection and assertions
- * - Supports loop detection and coverage verification
+ * ✅ 允许：拦截 dialog + 断言 + 覆盖率检查
+ * ❌ 禁止：自动清除 gate / 跳过断言
  */
 
 import { showAlert as realShowAlert } from '../../../../utils/alert';

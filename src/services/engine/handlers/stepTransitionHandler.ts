@@ -1,16 +1,17 @@
 /**
- * Step Transition Handler - 步骤切换处理器
+ * Step Transition Handler - 夜晚步骤切换与结算处理器（Host-only）
  *
- * 处理夜晚步骤切换和结算:
- * - ADVANCE_NIGHT: 音频结束后，推进到下一步
- * - END_NIGHT: 夜晚结束音频结束后，进行死亡结算
- * - SET_AUDIO_PLAYING: 设置音频播放状态
+ * 职责：
+ * - ADVANCE_NIGHT：音频结束后推进到下一步
+ * - END_NIGHT：夜晚结束后进行死亡结算
+ * - SET_AUDIO_PLAYING：设置音频播放 Gate 状态
+ * - Gate validation（host_only / no_state / invalid_status / forbidden_while_audio_playing）
+ * - 调用 resolveWolfVotes / calculateDeaths（复用，不重写）
  *
- * 职责:
- * - Gate validation (host_only / no_state / invalid_status / forbidden_while_audio_playing)
- * - 调用 resolveWolfVotes (复用，不重写)
- * - 调用 calculateDeaths (复用，不重写)
- * - 返回 StateAction 列表
+ * ✅ 允许：返回 StateAction 列表 + SideEffect（PLAY_AUDIO）
+ * ❌ 禁止：IO（网络 / 音频播放 / Alert）— 音频 IO 由 Facade 执行
+ * ❌ 禁止：直接修改 state（返回 StateAction 列表由 reducer 执行）
+ * ❌ 禁止：手动推进 index（`++` 兜底策略禁止）
  */
 
 import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../intents/types';

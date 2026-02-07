@@ -5,10 +5,9 @@
  * - Host 端本地持久化最后一次 BroadcastGameState + revision
  * - 用于 Host 断线重连后恢复其权威状态
  *
- * 注意：
- * - 这不是权威存储，只是本地缓存
- * - Supabase 不存储游戏状态
- * - 仅 Host 使用，Player 不需要
+ * ✅ 允许：AsyncStorage 读写 + 结构校验 + cache key 防误命中
+ * ❌ 禁止：作为权威存储使用（这只是本地缓存，Supabase 不存储游戏状态）
+ * ❌ 禁止：Player 端使用
  *
  * 防误命中策略：
  * - cache key = roomCode:hostUid（防止 roomCode 复用）

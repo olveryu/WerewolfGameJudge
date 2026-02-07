@@ -3,6 +3,17 @@ import { authLog } from '../../utils/logger';
 import { getAllRoleIds, getRoleSpec } from '../../models/roles';
 import { withTimeout } from '../../utils/withTimeout';
 
+/**
+ * AuthService - Supabase 匿名认证服务
+ *
+ * 职责：
+ * - 管理匿名用户的 sign-in / session 恢复
+ * - 提供当前 userId（uid）
+ * - 管理用户昵称和头像元数据
+ *
+ * ✅ 允许：Supabase Auth API 调用 + 用户元数据管理
+ * ❌ 禁止：游戏逻辑 / 游戏状态存储
+ */
 export class AuthService {
   private static instance: AuthService;
   private currentUserId: string | null = null;

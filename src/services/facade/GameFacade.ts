@@ -6,9 +6,9 @@
  * - 管理 Singleton 生命周期和身份状态
  * - 对外暴露统一的 public API
  *
- * 禁止：
- * - 业务逻辑/校验规则（全部在 handler）
- * - 直接修改 state（全部在 reducer）
+ * ✅ 允许：组合子模块、管理生命周期、音频编排（执行 SideEffect: PLAY_AUDIO）
+ * ❌ 禁止：业务逻辑/校验规则（全部在 handler）
+ * ❌ 禁止：直接修改 state（全部在 reducer）
  *
  * 子模块划分：
  * - hostActions.ts: Host-only 业务编排（assignRoles/startNight/submitAction/submitWolfVote）

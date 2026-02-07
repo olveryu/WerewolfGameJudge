@@ -1,7 +1,10 @@
 /**
- * Witch Resolver (HOST-ONLY)
+ * Witch Resolver (HOST-ONLY, 纯函数)
  *
- * Validates witch action (save/poison compound) and computes result.
+ * 职责：校验女巫行动（save/poison compound）+ 计算结果
+ *
+ * ✅ 允许：救人/毒人复合行动校验 + 结果计算
+ * ❌ 禁止：IO（网络 / 音频 / Alert）
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
