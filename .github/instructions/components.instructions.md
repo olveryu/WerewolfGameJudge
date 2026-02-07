@@ -6,8 +6,13 @@ applyTo: src/screens/**/components/**
 
 ## 核心原则
 
-- **展示层 only**：组件只负责渲染 + 上报用户 intent（onPress/onChange）。
-- **禁止业务逻辑**：禁止 import services、禁止 `showAlert`、禁止 navigation。
+- ✅ 渲染 UI + 上报用户 intent（`onPress` / `onChange` 回调）。
+- ✅ 接收 styles prop（由父组件通过 `createXxxStyles(colors)` 创建并传入）。
+- ✅ 视觉置灰（样式 / `activeOpacity` / `accessibilityState`）。
+- ✅ `import type` 引用 `services/types/**` 的纯类型定义。
+- ❌ 禁止 import services（runtime 值）、禁止 `showAlert`、禁止 navigation。
+- ❌ 禁止组件内部做业务逻辑判断（gate 决策由 policy 层完成）。
+- ❌ 禁止 `console.*`（使用命名 logger）。
 
 ## 性能模式（MUST follow）
 

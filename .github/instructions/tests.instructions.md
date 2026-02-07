@@ -4,6 +4,22 @@ applyTo: "**/*.test.ts,**/*.test.tsx,**/__tests__/**"
 
 # 测试规范
 
+## 核心原则
+
+- ✅ 测试文件中允许 `console.*`。
+- ✅ 测试文件中允许 `as` 构造 mock 数据。
+- ✅ 允许 mock `src/utils/alert.ts` 的 `showAlert`。
+- ✅ 测试断言基于 `BroadcastGameState` 单一真相。
+- ✅ Integration board tests 跑真实 NightFlow（按 `NIGHT_STEPS` 顺序逐步执行）。
+- ✅ Resolver unit tests 使用纯函数调用。
+- ❌ 禁止 `it.skip` / `test.skip` / `describe.skip`。
+- ❌ 禁止直接改 state / 注入 host-only 状态。
+- ❌ 禁止 snapshot/Storybook 截图替代交互覆盖。
+- ❌ 禁止"跳过 step / 直达 step"工具（`advanceToStep` / `skipToStep`）。
+- ❌ 禁止 helper 自动清除 gate 或自动发送确认消息。
+- ❌ 禁止跑测试时用 `| grep` / `| head` / `| tail` 截断输出。
+- ❌ 禁止无证据宣称"已修复"。
+
 ## 通用规则
 
 - 禁止 `it.skip` / `test.skip` / `describe.skip`（CI 会检测到并 fail）。

@@ -7,6 +7,18 @@ applyTo: "src/**/*.ts,src/**/*.tsx"
 
 > 项目已启用 `strict: true`，以下规则进一步收紧类型安全。
 
+## 核心原则
+
+- ✅ type guard / `satisfies` / 泛型推导替代类型断言。
+- ✅ `as const` 字面量收窄。
+- ✅ Discriminated Union（`type` / `kind` 标签字段做联合区分）。
+- ✅ `readonly` 标注函数参数中的数组/对象类型。
+- ✅ `unknown` + 类型收窄替代 `any`。
+- ✅ exhaustive `switch`（`default` 用 `assertNever` / `const _: never`）。
+- ❌ 禁止 `as` 强制类型断言（`as const` 和测试 mock 除外）。
+- ❌ 禁止 `any`（第三方库类型缺失时的 suppress 需附注释）。
+- ❌ 禁止用一堆 optional 字段 + runtime 判断区分变体。
+
 ## 禁止 `as` 强制类型断言（Hard rule）
 
 - ❌ `const x = value as SomeType;`

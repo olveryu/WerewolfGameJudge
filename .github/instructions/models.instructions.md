@@ -6,8 +6,12 @@ applyTo: src/models/**
 
 ## 核心原则
 
-- **声明式内容 only**：`src/models/roles/**` 只允许 spec / schema / types 等声明式定义。
-- **禁止副作用**：禁止 service 逻辑、禁止 import service、禁止 IO 操作。
+- ✅ 声明式内容（spec / schema / types / enums / 常量定义）。
+- ✅ 纯函数查询/工厂（`getRoleSpec()`、`makeActionTarget()`、type guard `isActionTarget()`）— 仅从声明式数据派生，无副作用。
+- ✅ 纯类型定义和导出（`type` / `interface` / `enum`）。
+- ❌ 禁止 import service / hooks / UI 组件 / contexts / navigation。
+- ❌ 禁止副作用（IO / 网络请求 / 音频 / Alert / `console.*`）。
+- ❌ 禁止 runtime 业务逻辑（状态迁移、resolver 计算、death calculation）。
 
 ## 三层表驱动架构（单一真相）
 

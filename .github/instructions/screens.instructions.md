@@ -4,6 +4,19 @@ applyTo: src/screens/**/*.ts,src/screens/**/*.tsx
 
 # Screen 层规范
 
+## 核心原则
+
+- ✅ 三层分工：Policy（纯逻辑）→ Orchestrator（副作用）→ Presentational（渲染）。
+- ✅ 所有样式值来自 theme token（`colors.*` / `spacing.*` / `typography.*` / `borderRadius.*` / `shadows.*`）。
+- ✅ `createXxxScreenStyles(colors)` 集中创建，`useMemo` 只创建一次，props 传子组件。
+- ✅ Actor identity 三层语义：`my*`=展示、`effective*`=提交、`actor*`=UI 决策。
+- ❌ 禁止硬编码样式值（`'#xxx'` / `padding: 16` / `fontSize: 14` 等）。
+- ❌ Policy 禁止副作用（`showAlert` / navigation / service / hooks）。
+- ❌ Orchestrator 禁止写与 policy 并行的业务判断。
+- ❌ Presentational 禁止 import services、禁止组件层 gate/吞点击。
+- ❌ 提交路径禁止使用 `mySeatNumber`（必须用 `effectiveSeat`）。
+- ❌ 禁止 `console.*`（使用命名 logger）。
+
 ## Theme Token（MUST follow）
 
 - 所有样式值必须来自 theme token，禁止硬编码。

@@ -7,6 +7,22 @@ applyTo: "src/screens/**/*.tsx,src/components/**/*.tsx"
 
 > 补充 `screens.instructions.md` 中的 memo/styles 规范，聚焦 RN 平台特有的性能陷阱。
 
+## 核心原则
+
+- ✅ 超 ~10 项列表使用 `FlatList` / `SectionList`。
+- ✅ `keyExtractor` 返回稳定唯一字符串（`item.id` / `String(item.seatNumber)`）。
+- ✅ `renderItem` 用 `useCallback` 包裹或提取为独立组件。
+- ✅ 预计算 style 数组或用 `StyleSheet.compose` 做条件样式。
+- ✅ `InteractionManager.runAfterInteractions` 做导航后重计算。
+- ✅ `<Image>` 指定 `resizeMode` + 明确 `width`/`height`。
+- ✅ 动画优先 `react-native-reanimated` 或 `useNativeDriver: true`。
+- ❌ 禁止 `<ScrollView>{items.map(...)}</ScrollView>` 渲染长列表。
+- ❌ 禁止用 index 作 key（除非列表静态不可变且不会重排）。
+- ❌ 禁止 `renderItem` 内联匿名函数（每次渲染创建新函数 → memo 失效）。
+- ❌ 禁止循环/列表内创建内联 style 对象。
+- ❌ 禁止在渲染路径做同步 I/O（`JSON.parse` 大对象放 `useEffect`）。
+- ❌ 禁止在动画回调中频繁 `setState`。
+
 ## 列表渲染（Hard rule）
 
 - 超过 ~10 项的列表**必须**使用 `FlatList`（或 `SectionList`）。

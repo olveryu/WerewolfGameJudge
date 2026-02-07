@@ -5,6 +5,19 @@ applyTo: "src/hooks/**,src/screens/**/hooks/**"
 
 # React Hooks 卫生规范
 
+## 核心原则
+
+- ✅ 自定义 hook 以 `use` 前缀命名，文件名与 hook 名一致。
+- ✅ `useCallback` 用于传给 memo 化子组件的回调，保持引用稳定。
+- ✅ `useMemo` 用于真正昂贵的计算（数组 filter/sort/reduce、对象深构建）。
+- ✅ 返回值超 2 个用具名对象（`function useXxx(): XxxResult`）。
+- ✅ `useEffect` 含订阅/timer/listener 必须返回 cleanup 函数。
+- ❌ 禁止条件式调用 hook（`if` / `for` / `switch` / 早期 `return` 之后）。
+- ❌ 禁止无理由 suppress `react-hooks/exhaustive-deps`（suppress 必须附注释）。
+- ❌ 禁止对 primitive 值或简单对象字面量包 `useMemo`。
+- ❌ 禁止在一个 hook 里同时管理多个不相关的 state + effect。
+- ❌ 禁止 `console.*`（使用命名 logger）。
+
 ## 命名（Hard rule）
 
 - 自定义 hook 必须以 `use` 前缀命名：`useXxx`。
