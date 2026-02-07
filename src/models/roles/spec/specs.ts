@@ -12,7 +12,6 @@
  */
 import type { RoleSpec } from './spec.types';
 import { Faction } from './types';
-import { NIGHT_STEPS } from './nightSteps';
 
 export const ROLE_SPECS = {
   // ===================================================================
@@ -274,17 +273,6 @@ export function isValidRoleId(id: string): id is RoleId {
 /** Get all role IDs */
 export function getAllRoleIds(): RoleId[] {
   return Object.keys(ROLE_SPECS) as RoleId[];
-}
-
-/** Get roles with night-1 action in the authoritative NIGHT_STEPS order */
-export function getNight1ActionRoles(): RoleId[] {
-  // Derive order from NIGHT_STEPS (single source of truth), not legacy RoleSpec.night1.order.
-  // NOTE: Current contract assumes each role appears at most once in NIGHT_STEPS.
-  const roleIds = new Set<RoleId>();
-  for (const step of NIGHT_STEPS) {
-    roleIds.add(step.roleId);
-  }
-  return Array.from(roleIds);
 }
 
 // Re-export types

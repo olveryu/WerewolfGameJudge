@@ -27,9 +27,10 @@ export {
   getRoleSpec,
   isValidRoleId,
   getAllRoleIds,
-  getNight1ActionRoles,
   type RoleId,
 } from './spec/specs';
+
+export { getNight1ActionRoles } from './spec/nightSteps';
 
 export {
   // Schemas
