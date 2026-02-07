@@ -6,8 +6,9 @@
 - 不可协商规则（先读）
 - 架构边界（Architecture boundaries）
 - 夜晚流程与 NightPlan（Host 权威）
-- 约束、校验与 Night-1-only 红线
-- 广播架构（Broadcast architecture）
+- 约束、校验与 Night-1-only   - 并补 E2E/contract fail-fast，禁止靠超时隐藏问题
+
+---构（Broadcast architecture）
 - Anti-drift 护栏（MUST follow）
 - 实现清单（角色 / schema / step / UI 必做）
 - 交付与门禁（必须执行）
@@ -48,6 +49,7 @@
   - 禁止并行维护顺序表/map/双写字段导致 drift。
 - **优先使用成熟库而不是自研。** 新增能力（日志、校验等）先找成熟 npm 库；只有在库不合适或过度复杂时才写自定义代码。
 - **单一职责原则（SRP）。** 每个 class/module 必须且只能负责一件事。禁止 God Class（多个不相关职责揉在一起）。若单个模块超过 ~400 行或承担多个关注点，必须拆分。
+  - **但行数是信号，不是判决。** 超过阈值时，先评估：(1) 文件内部是否已有清晰的分区和职责边界？(2) 拆出的模块是否有独立的复用/测试/修改场景？(3) 拆分后跨文件跳转成本是否超过收益？若三项都不成立，应保持现状并注释说明为何不拆。禁止机械套用行数规则无条件输出拆分方案。
 
 不清楚就先问再写代码。不要臆造仓库事实。
 
@@ -286,12 +288,7 @@ advanceToNextAction()
 
 当你新增或修改任意 Night-1 行动角色（含 UI）时，必须同时检查下面这些点：
 
-1. **Schema-first + Resolver 对齐**
-
-- 输入合法性必须写在 `SCHEMAS[*].constraints`。
-- resolver 的校验必须与 schema constraints 完全一致：
-  - schema 写了 `notSelf` → resolver 必须拒绝自指目标。
-  - schema 允许自指 → resolver 不得擅自拒绝（除非明确文档化 + 测试覆盖）。
+1. **Schema-first + Resolver 对齐**（详见上方"约束、校验"章节）
 
 2. **Nightmare 阻断**
 

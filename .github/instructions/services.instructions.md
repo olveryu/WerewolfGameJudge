@@ -7,6 +7,7 @@ applyTo: src/services/**
 ## 核心原则
 
 - **单一职责（SRP）**：每个 module/class 只负责一件事。超过 ~400 行必须拆分。
+  - **但行数是信号，不是判决。** 超过阈值时，先评估：(1) 文件内部是否已有清晰的分区和职责边界？(2) 拆出的模块是否有独立的复用/测试/修改场景？(3) 拆分后跨文件跳转成本是否超过收益？若三项都不成立，应保持现状并注释说明为何不拆。禁止机械套用行数规则无条件输出拆分方案。
 - **纯函数优先**：resolver / calculator / validator 必须是纯函数，无副作用、不碰 IO/UI。
 - **Host-only 逻辑**：resolver、reducer、state transition、death calculation、night flow progression 只在 Host 运行，Player 端绝对不执行。
 
