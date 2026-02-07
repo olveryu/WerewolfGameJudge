@@ -1,6 +1,6 @@
-# E2E Helpers
+# E2E Test Suite
 
-Layered test helpers for Playwright E2E tests.
+Layered test helpers and Page Objects for Playwright E2E tests.
 
 ## Configuration
 
@@ -34,25 +34,66 @@ Layered test helpers for Playwright E2E tests.
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Spec Files (basic.spec.ts, night1.spec.ts, etc.)           │
-│    ↓ import                                                 │
-├─────────────────────────────────────────────────────────────┤
-│  Domain Helpers                                             │
-│  ├── home.ts   → Home screen / login / room create-join    │
-│  └── waits.ts  → Room screen readiness / sync              │
-│    ↓ import                                                 │
-├─────────────────────────────────────────────────────────────┤
-│  Generic Primitives                                         │
-│  └── ui.ts     → Visibility, click, retry, evidence        │
-└─────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│  Spec Files (e2e/specs/*.spec.ts)                                │
+│    ↓ import                                                      │
+├───────────────────────────────────────────────────────────────────┤
+│  Fixtures & Page Objects                                         │
+│  ├── fixtures/app.fixture.ts → login/nav boilerplate fixture     │
+│  ├── pages/HomePage.ts       → Home screen PO                   │
+│  ├── pages/ConfigPage.ts     → Config/template screen PO        │
+│  ├── pages/RoomPage.ts       → Room screen PO                   │
+│  └── pages/NightFlowPage.ts  → Night flow loop orchestrator     │
+│    ↓ import                                                      │
+├───────────────────────────────────────────────────────────────────┤
+│  Orchestrators                                                   │
+│  └── helpers/multi-player.ts → N-player game setup               │
+│    ↓ import                                                      │
+├───────────────────────────────────────────────────────────────────┤
+│  Domain Helpers                                                  │
+│  ├── helpers/home.ts   → Home screen / login / room create-join  │
+│  └── helpers/waits.ts  → Room screen readiness / sync            │
+│    ↓ import                                                      │
+├───────────────────────────────────────────────────────────────────┤
+│  Generic Primitives                                              │
+│  └── helpers/ui.ts     → Visibility, click, retry, evidence      │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+### Directory Structure
+
+```
+e2e/
+├── fixtures/
+│   └── app.fixture.ts        ← login/navigation boilerplate fixture
+├── pages/
+│   ├── HomePage.ts            ← Home screen Page Object
+│   ├── ConfigPage.ts          ← Config/template screen Page Object
+│   ├── RoomPage.ts            ← Room screen Page Object
+│   └── NightFlowPage.ts       ← Night flow loop orchestrator
+├── helpers/
+│   ├── README.md              ← you are here
+│   ├── ui.ts                  ← generic Playwright primitives (zero app logic)
+│   ├── home.ts                ← app entry: hydration, login, room create/join
+│   ├── waits.ts               ← room screen readiness waits
+│   ├── diagnostics.ts         ← dev server diagnostics logging
+│   └── multi-player.ts        ← N-player game setup orchestrator
+└── specs/
+    ├── home.spec.ts            ← home navigation smoke
+    ├── config.spec.ts          ← config / template smoke
+    ├── seating.spec.ts         ← seating assignment / broadcast
+    ├── night-2p.spec.ts        ← 2-player night-1 flow
+    ├── night-6p.spec.ts        ← 6-player night-1 flow
+    └── restart.spec.ts         ← restart + settings change
 ```
 
 **Rules:**
 
 - `ui.ts` has **zero app-specific logic** — pure Playwright utilities
 - `home.ts` and `waits.ts` import from `ui.ts`, never the reverse
-- Specs import from domain helpers; avoid reaching into `ui.ts` unless needed
+- Specs import Page Objects and fixtures; avoid reaching into `ui.ts` / `home.ts` directly
+- Page Objects encapsulate all selector logic; specs should not use raw locators
+- `multi-player.ts` orchestrates N-player game setup using fixtures + Page Objects
 
 ---
 

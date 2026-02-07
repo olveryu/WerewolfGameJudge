@@ -34,7 +34,7 @@ process.env.E2E_BASE_URL = E2E_BASE_URL;
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './e2e/specs',
 
   /* Run tests in parallel */
   fullyParallel: true,

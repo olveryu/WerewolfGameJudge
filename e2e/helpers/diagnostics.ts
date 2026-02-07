@@ -46,14 +46,23 @@ export interface DiagnosticData {
 /**
  * Setup diagnostic listeners on a page.
  * Returns a DiagnosticData object that accumulates data.
+ *
+ * @param page - Playwright Page instance
+ * @param label - Label for log lines
+ * @param opts - Options: `quiet` suppresses real-time console.log to reduce output volume
  */
-export function setupDiagnostics(page: Page, label: string): DiagnosticData {
+export function setupDiagnostics(
+  page: Page,
+  label: string,
+  opts?: { quiet?: boolean },
+): DiagnosticData {
   const data: DiagnosticData = {
     consoleLogs: [],
     pageErrors: [],
     failedRequests: [],
     errorResponses: [],
   };
+  const quiet = opts?.quiet ?? false;
 
   // Filter console logs by prefix
   page.on('console', (msg) => {
@@ -61,7 +70,10 @@ export function setupDiagnostics(page: Page, label: string): DiagnosticData {
     if (LOG_PREFIXES.some((p) => text.includes(p))) {
       const logLine = `[${label}] ${text}`;
       data.consoleLogs.push(logLine);
-      console.log('[PW console]', logLine);
+      // In quiet mode, only print errors/warnings; skip verbose broadcast/state logs
+      if (!quiet) {
+        console.log('[PW console]', logLine);
+      }
     }
   });
 
