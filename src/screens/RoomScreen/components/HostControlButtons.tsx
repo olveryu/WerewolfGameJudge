@@ -53,6 +53,7 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: colors.info }]}
           onPress={onSettingsPress}
+          testID="room-settings-button"
         >
           <Text style={styles.buttonText}>
             <Ionicons name="settings-outline" size={14} color={colors.textInverse} />

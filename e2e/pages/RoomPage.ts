@@ -166,9 +166,9 @@ export class RoomPage {
     await this.page.waitForTimeout(1000);
   }
 
-  /** Click "⚙️ 设置" to open config in edit mode. */
+  /** Click the settings button to open config in edit mode. */
   async openSettings() {
-    await this.page.getByText('⚙️ 设置').click();
+    await this.page.locator('[data-testid="room-settings-button"]').click();
   }
 
   /** Check if "查看昨晚信息" button is visible (night ended indicator). */

@@ -26,7 +26,7 @@ export class ConfigPage {
   }
 
   private get backButton() {
-    return this.page.locator('[data-testid="config-back-button"]');
+    return this.page.locator('[data-testid="config-back-button"]').last();
   }
 
   // ---------------------------------------------------------------------------

@@ -38,6 +38,7 @@ export const TESTIDS = {
   roomScreenRoot: 'room-screen-root',
   roomBackButton: 'room-back-button',
   roomHeader: 'room-header',
+  roomSettingsButton: 'room-settings-button',
   connectionStatusContainer: 'connection-status-container',
   forceSyncButton: 'force-sync-button',
 
