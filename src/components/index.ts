@@ -1,7 +1,6 @@
 export { default as Button } from './Button';
 export { AlertModal } from './AlertModal';
-export { PromptModal } from './PromptModal';
-export { RoleRouletteModal } from './RoleRouletteModal';
+export { AIChatBubble } from './AIChatBubble';
 export { RoleCardSimple } from './RoleCardSimple';
 
 // Role Reveal Effects System
@@ -13,7 +12,6 @@ export {
   ScratchReveal,
   TarotDraw,
   GachaMachine,
-  CONFIG as RoleRevealConfig,
   ALIGNMENT_THEMES,
 } from './RoleRevealEffects';
 

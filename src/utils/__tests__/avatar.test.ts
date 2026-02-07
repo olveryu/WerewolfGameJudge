@@ -14,6 +14,9 @@ import {
   AVATAR_COUNT,
 } from '../avatar';
 
+// AVATAR_COUNT is exported from avatar.ts for test assertions only
+// (not re-exported from utils/index.ts since no production code needs it)
+
 describe('getDefaultAvatarIndex', () => {
   describe('stability', () => {
     it('returns same index for same (roomId, uid) across multiple calls', () => {

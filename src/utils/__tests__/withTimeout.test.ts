@@ -8,7 +8,7 @@
  * 4) fake timers 场景下不会出现 unhandled rejection
  */
 
-import { withTimeout, cancellableDelay } from '../withTimeout';
+import { withTimeout } from '../withTimeout';
 
 describe('withTimeout', () => {
   beforeEach(() => {
@@ -103,52 +103,5 @@ describe('withTimeout', () => {
     const failingPromise = Promise.reject(originalError);
 
     await expect(withTimeout(failingPromise, 5000)).rejects.toBe(originalError);
-  });
-});
-
-describe('cancellableDelay', () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it('should resolve after specified delay', async () => {
-    const { promise } = cancellableDelay(1000);
-
-    jest.advanceTimersByTime(1000);
-
-    await expect(promise).resolves.toBeUndefined();
-  });
-
-  it('should reject when cancelled before delay completes', async () => {
-    const { promise, cancel } = cancellableDelay(1000);
-
-    // Attach rejection handler BEFORE cancel to avoid unhandled rejection
-    const rejection = expect(promise).rejects.toThrow('Delay cancelled');
-
-    // Cancel before timeout
-    cancel();
-
-    await rejection;
-  });
-
-  it('should clear timer when cancelled', async () => {
-    const clearTimeoutSpy = jest.spyOn(globalThis, 'clearTimeout');
-
-    const { promise, cancel } = cancellableDelay(1000);
-
-    // Attach rejection handler BEFORE cancel
-    const rejection = promise.catch(() => {
-      /* expected rejection */
-    });
-
-    cancel();
-
-    await rejection;
-    expect(clearTimeoutSpy).toHaveBeenCalled();
-    clearTimeoutSpy.mockRestore();
   });
 });

@@ -4,7 +4,7 @@
  * 提供统一的 showAlert API，在 Web 端使用自定义 Modal，
  * 在 Native 端使用 RN Alert.alert。支持 listener 模式驱动 AlertModal。
  *
- * ✅ 允许：showAlert / registerAlertListener / dismissAlert
+ * ✅ 允许：showAlert / setAlertListener
  * ❌ 禁止：import React 组件 / service / 游戏状态
  */
 import { Alert, Platform } from 'react-native';
@@ -81,37 +81,6 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
   } else {
     Alert.alert(title, message || '', alertButtons);
   }
-};
-
-/**
- * Show a prompt dialog for text input
- * Returns the entered value or null if cancelled
- */
-export const showPrompt = (
-  title: string,
-  message?: string,
-  placeholder?: string,
-  secureTextEntry = false,
-): Promise<string | null> => {
-  return new Promise((resolve) => {
-    if (Platform.OS === 'web') {
-      const result = globalThis.prompt(message ? `${title}\n\n${message}` : title, '');
-      resolve(result);
-    } else {
-      // For native, use Alert.prompt on iOS or a workaround
-      Alert.prompt(
-        title,
-        message || '',
-        [
-          { text: '取消', onPress: () => resolve(null), style: 'cancel' },
-          { text: '确定', onPress: (value?: string) => resolve(value || null) },
-        ],
-        secureTextEntry ? 'secure-text' : 'plain-text',
-        '',
-        placeholder ? 'default' : undefined,
-      );
-    }
-  });
 };
 
 export default showAlert;
