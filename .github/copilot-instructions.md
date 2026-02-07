@@ -10,6 +10,7 @@
 - 广播架构（Broadcast architecture）
 - Anti-drift 护栏（MUST follow）
 - 实现清单（角色 / schema / step / UI 必做）
+- 交付与门禁（必须执行）
 - Git Commit 规范（Conventional Commits）
 - Instruction 文件自检与同步提醒（MUST follow）
 
@@ -327,7 +328,6 @@ advanceToNextAction()
 - 禁止跳过测试（no `.skip`）、禁止动态口径覆盖（必须字面量数组）、难测分支不得移出 required 清单。
 - Integration board tests 必须跑真实 NightFlow、fail-fast、禁止自动清 gate。
 - 修 bug 优先根因修复，禁止无证据宣称“已修复”。
-- 终端输出禁止 `| head` / `| tail` 截断，用 `grep` 过滤。
 
 ## Git Commit 规范（Conventional Commits）
 
