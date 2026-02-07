@@ -209,6 +209,59 @@ describe('Delegation Seat Identity Contract', () => {
         expect(block).not.toMatch(/seat\s*=\s*mySeatNumber/);
       }
     });
+
+    /**
+     * P0 Contract: sendWolfRobotHunterStatusViewed takes seat param directly
+     * (caller must pass effectiveSeat). Verify JSDoc / comment signals this.
+     */
+    it('sendWolfRobotHunterStatusViewed must accept seat param (caller passes effectiveSeat)', () => {
+      const content = readFileContent('src/hooks/useGameRoom.ts');
+
+      // Find sendWolfRobotHunterStatusViewed definition
+      const regex = /const\s+sendWolfRobotHunterStatusViewed\s*=\s*useCallback/g;
+      const match = regex.exec(content);
+
+      expect(match).toBeTruthy();
+
+      if (match) {
+        const startIndex = match.index;
+        const block = content.substring(startIndex, startIndex + 300);
+
+        // Must take seat as a parameter (not derive it internally from mySeatNumber)
+        expect(block).toMatch(/async\s*\(\s*seat:\s*number\s*\)/);
+        // Must delegate seat to facade
+        expect(block).toMatch(/facade\.sendWolfRobotHunterStatusViewed\(seat\)/);
+      }
+    });
+  });
+
+  describe('HUNTER_STATUS_VIEWED case must use effectiveSeat', () => {
+    /**
+     * P0 Contract: RoomScreen HUNTER_STATUS_VIEWED case must pass effectiveSeat
+     * to sendWolfRobotHunterStatusViewed, NOT mySeatNumber.
+     *
+     * Bug prevented: When Host takes over wolfRobot (controlledSeat=X, mySeatNumber=null),
+     * using mySeatNumber would send null and fail silently.
+     */
+    it('HUNTER_STATUS_VIEWED should pass effectiveSeat to sendWolfRobotHunterStatusViewed', () => {
+      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+
+      // Find the HUNTER_STATUS_VIEWED case block
+      const regex = /case\s*['"]HUNTER_STATUS_VIEWED['"]:/g;
+      const match = regex.exec(content);
+
+      expect(match).toBeTruthy();
+
+      if (match) {
+        const startIndex = match.index;
+        const block = content.substring(startIndex, startIndex + 500);
+
+        // Must call sendWolfRobotHunterStatusViewed(effectiveSeat)
+        expect(block).toMatch(/sendWolfRobotHunterStatusViewed\(effectiveSeat\)/);
+        // Must NOT call sendWolfRobotHunterStatusViewed(mySeatNumber)
+        expect(block).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeatNumber\)/);
+      }
+    });
   });
 
   describe('wolfVote intent handler must not use findVotingWolfSeat as hard gate', () => {
@@ -497,6 +550,53 @@ describe('Delegation Seat Identity Contract', () => {
         // Must NOT use isWolfRole for wolf check
         expect(block).not.toMatch(/isWolf\s*=\s*isWolfRole\(actorRole\)/);
       }
+    });
+  });
+
+  describe('wolfRobot hunter gate with controlledSeat (debug takeover)', () => {
+    /**
+     * P0 Contract: When Host takes over a wolfRobot via controlledSeat,
+     * the HUNTER_STATUS_VIEWED dispatch in RoomScreen must use effectiveSeat.
+     *
+     * Bug prevented: If the dispatch uses mySeatNumber instead of effectiveSeat,
+     * the hunter status viewed call would use the Host's seat (null or 0)
+     * instead of the bot's seat, causing the gate to fail.
+     */
+    it('handleActionIntent wolfRobotHunterStatus uses effectiveSeat in dispatchInteraction', () => {
+      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+
+      // Find the wolfRobotHunterStatus handling block
+      // This is in the handleActionIntent or the useEffect that processes intents
+      const hunterStatusRegex = /wolfRobotHunterStatus/g;
+      const matches = [...content.matchAll(hunterStatusRegex)];
+
+      // Must exist (not removed)
+      expect(matches.length).toBeGreaterThan(0);
+
+      // Find the sendWolfRobotHunterStatusViewed call context
+      // There should be at least one call that uses effectiveSeat
+      const callRegex = /sendWolfRobotHunterStatusViewed\(\s*(\w+)\s*\)/g;
+      const callMatches = [...content.matchAll(callRegex)];
+
+      expect(callMatches.length).toBeGreaterThan(0);
+
+      // Every call to sendWolfRobotHunterStatusViewed must use effectiveSeat
+      for (const callMatch of callMatches) {
+        const arg = callMatch[1];
+        expect(arg).toBe('effectiveSeat');
+      }
+    });
+
+    /**
+     * Contract: IGameFacade.sendWolfRobotHunterStatusViewed must accept seat as param
+     * (not derive it internally) — this is the API contract for debug takeover support.
+     */
+    it('IGameFacade.sendWolfRobotHunterStatusViewed takes seat parameter', () => {
+      const content = readFileContent('src/services/types/IGameFacade.ts');
+
+      // Find the method signature
+      const regex = /sendWolfRobotHunterStatusViewed\s*\(\s*seat\s*:\s*number\s*\)/;
+      expect(content).toMatch(regex);
     });
   });
 });

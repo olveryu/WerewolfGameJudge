@@ -664,6 +664,76 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     expect(submitWolfVoteMock).not.toHaveBeenCalledWith(0, 5);
   });
 
+  it('sendWolfRobotHunterStatusViewed should use effectiveSeat when controlledSeat is set', async () => {
+    const sendWolfRobotHunterStatusViewedMock = jest.fn().mockResolvedValue({ success: true });
+    let stateListener: ((state: any) => void) | null = null;
+
+    const mockState = {
+      roomCode: 'TEST',
+      hostUid: 'host-uid',
+      status: 'assigned' as const,
+      templateRoles: ['villager', 'wolfRobot'],
+      players: {
+        0: {
+          uid: 'host-uid',
+          seatNumber: 0,
+          displayName: 'Host',
+          role: 'villager',
+          hasViewedRole: true,
+        },
+        1: {
+          uid: 'bot-1',
+          seatNumber: 1,
+          displayName: 'Bot 1',
+          role: 'wolfRobot',
+          hasViewedRole: true,
+          isBot: true,
+        },
+      },
+      currentActionerIndex: -1,
+      isAudioPlaying: false,
+      debugMode: { botsEnabled: true },
+      currentNightResults: {},
+    };
+
+    const mockFacade = createMockFacade({
+      addListener: jest.fn().mockImplementation((fn) => {
+        stateListener = fn;
+        return () => {};
+      }),
+      getState: jest.fn().mockReturnValue(mockState),
+      getMySeatNumber: jest.fn().mockReturnValue(0),
+      sendWolfRobotHunterStatusViewed: sendWolfRobotHunterStatusViewedMock,
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+    );
+
+    const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+    await act(async () => {
+      stateListener?.(mockState);
+    });
+
+    // Set controlledSeat to 1 (wolfRobot bot seat)
+    await act(async () => {
+      result.current.setControlledSeat(1);
+    });
+
+    // effectiveSeat should now be 1
+    expect(result.current.effectiveSeat).toBe(1);
+
+    // Call sendWolfRobotHunterStatusViewed with effectiveSeat
+    await act(async () => {
+      await result.current.sendWolfRobotHunterStatusViewed(result.current.effectiveSeat!);
+    });
+
+    // Verify facade was called with bot's seat (effectiveSeat=1), NOT Host's seat
+    expect(sendWolfRobotHunterStatusViewedMock).toHaveBeenCalledWith(1);
+    expect(sendWolfRobotHunterStatusViewedMock).not.toHaveBeenCalledWith(0);
+  });
+
   it('effectiveRole should be null when effectiveSeat has no player', async () => {
     let stateListener: ((state: any) => void) | null = null;
 
