@@ -23,15 +23,19 @@ import {
   Platform,
   ActivityIndicator,
   Animated,
+  useWindowDimensions,
 } from 'react-native';
 import { useTheme } from '../../theme';
 import { useAIChat } from './useAIChat';
-import { createStyles, type DisplayMessage } from './AIChatBubble.styles';
+import { createStyles, getChatHeight, type DisplayMessage } from './AIChatBubble.styles';
+import { SimpleMarkdown } from './SimpleMarkdown';
 
 export const AIChatBubble: React.FC = () => {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const flatListRef = useRef<FlatList>(null);
+  const { height: screenHeight } = useWindowDimensions();
+  const chatHeight = getChatHeight(screenHeight);
 
   const chat = useAIChat();
 
@@ -46,14 +50,18 @@ export const AIChatBubble: React.FC = () => {
               isUser ? styles.userBubble : styles.assistantBubble,
             ]}
           >
-            <Text style={[styles.messageText, isUser && styles.userText]}>
-              {item.content}
-            </Text>
+            {isUser ? (
+              <Text style={[styles.messageText, styles.userText]}>
+                {item.content}
+              </Text>
+            ) : (
+              <SimpleMarkdown content={item.content} colors={colors} />
+            )}
           </View>
         </View>
       );
     },
-    [styles],
+    [styles, colors],
   );
 
   // Web 专用样式：阻止拖动时页面滚动
@@ -110,8 +118,8 @@ export const AIChatBubble: React.FC = () => {
             onPress={() => chat.setIsOpen(false)}
           />
 
-          {/* 固定高度 */}
-          <View style={styles.chatWindow}>
+          {/* 响应式高度 */}
+          <View style={[styles.chatWindow, { height: chatHeight }]}>
             {/* Header */}
             <View style={styles.chatHeader}>
               <Text style={styles.chatTitle}>🐺 狼人杀助手</Text>

@@ -735,8 +735,18 @@ export function useAIChat(): UseAIChatReturn {
   );
 
   const handleClearHistory = useCallback(() => {
-    setMessages([]);
-    AsyncStorage.removeItem(STORAGE_KEY_MESSAGES).catch(() => {});
+    showAlert('清除聊天记录', '确定要清除所有聊天记录吗？此操作不可恢复。', [
+      {
+        text: '清除',
+        style: 'destructive',
+        onPress: () => {
+          setMessages([]);
+          setAiSuggestions([]);
+          AsyncStorage.removeItem(STORAGE_KEY_MESSAGES).catch(() => {});
+        },
+      },
+      { text: '取消', style: 'cancel' },
+    ]);
   }, []);
 
   // ── Return ───────────────────────────────────────────

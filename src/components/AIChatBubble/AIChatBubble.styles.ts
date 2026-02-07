@@ -15,9 +15,13 @@ import { spacing, borderRadius, typography, shadows, type ThemeColors } from '..
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const CHAT_WIDTH = Math.min(SCREEN_WIDTH - 32, 380);
-export const CHAT_HEIGHT = 420;
 export const BUBBLE_SIZE = 56;
 export const BUBBLE_MARGIN = 16;
+
+/** 根据屏幕高度动态计算聊天窗口高度（55%，限制 320~600） */
+export function getChatHeight(screenHeight: number): number {
+  return Math.min(600, Math.max(320, Math.round(screenHeight * 0.55)));
+}
 
 /** 默认位置：右下角 */
 export const DEFAULT_POSITION = {
@@ -70,17 +74,12 @@ export const createStyles = (colors: ThemeColors) =>
       backgroundColor: 'rgba(0,0,0,0.3)',
     },
 
-    // 聊天窗口 - 固定高度
+    // 聊天窗口 - 高度由组件通过 getChatHeight() 动态传入
     chatWindow: {
       width: CHAT_WIDTH,
-      height: CHAT_HEIGHT,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xlarge,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.25,
-      shadowRadius: 16,
-      elevation: 16,
+      ...shadows.lg,
       overflow: 'hidden',
     },
 
