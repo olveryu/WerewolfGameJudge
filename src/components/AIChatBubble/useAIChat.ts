@@ -736,6 +736,7 @@ export function useAIChat(): UseAIChatReturn {
 
   const handleClearHistory = useCallback(() => {
     showAlert('清除聊天记录', '确定要清除所有聊天记录吗？此操作不可恢复。', [
+      { text: '取消', style: 'cancel' },
       {
         text: '清除',
         style: 'destructive',
@@ -745,7 +746,6 @@ export function useAIChat(): UseAIChatReturn {
           AsyncStorage.removeItem(STORAGE_KEY_MESSAGES).catch(() => {});
         },
       },
-      { text: '取消', style: 'cancel' },
     ]);
   }, []);
 

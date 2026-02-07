@@ -135,8 +135,8 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   const showConfirmDialog = useCallback(
     (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
       showAlert(title, message, [
-        { text: '确定', onPress: onConfirm },
         { text: '取消', style: 'cancel', onPress: onCancel },
+        { text: '确定', onPress: onConfirm },
       ]);
     },
     [],
@@ -155,8 +155,8 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
           : `${wolfName} 确定要猎杀${targetIndex + 1}号玩家吗？`);
 
       showAlert('狼人投票', msg, [
-        { text: '确定', onPress: onConfirm },
         { text: '取消', style: 'cancel' },
+        { text: '确定', onPress: onConfirm },
       ]);
     },
     [],
@@ -184,8 +184,8 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
       // Can save - choice dialog
       showAlert(`昨夜倒台玩家为${killedIndex + 1}号`, '是否救助?', [
-        { text: '确定', onPress: onSave },
         { text: '取消', style: 'cancel', onPress: onSkip },
+        { text: '确定', onPress: onSave },
       ]);
     },
     [],
@@ -210,8 +210,8 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   const showWitchPoisonConfirm = useCallback(
     (targetIndex: number, onConfirm: () => void, onCancel: () => void) => {
       showAlert(`确定要毒杀${targetIndex + 1}号玩家吗？`, '', [
-        { text: '确定', onPress: onConfirm },
         { text: '取消', style: 'cancel', onPress: onCancel },
+        { text: '确定', onPress: onConfirm },
       ]);
     },
     [],

@@ -32,7 +32,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   onClose,
 }) => {
   const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, buttons.length), [colors, buttons.length]);
 
   const handleButtonPress = (button: AlertButton) => {
     // First close the modal, then execute the callback
@@ -88,7 +88,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   );
 };
 
-function createStyles(colors: ThemeColors) {
+function createStyles(colors: ThemeColors, buttonCount: number) {
   return StyleSheet.create({
     overlay: {
       flex: 1,
@@ -118,14 +118,16 @@ function createStyles(colors: ThemeColors) {
     },
     buttonContainer: {
       marginTop: spacing.small,
+      flexDirection: buttonCount === 2 ? 'row' : 'column',
+      gap: spacing.small,
     },
     button: {
       backgroundColor: colors.primary,
       borderRadius: borderRadius.medium,
       paddingVertical: spacing.medium,
       paddingHorizontal: spacing.large,
-      marginVertical: spacing.tight,
       alignItems: 'center',
+      ...(buttonCount === 2 ? { flex: 1 } : {}),
     },
     cancelButton: {
       backgroundColor: colors.surfaceHover,

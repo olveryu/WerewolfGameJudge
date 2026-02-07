@@ -297,24 +297,30 @@ export class RoomScreenTestHarness {
   }
 
   /**
-   * Press the primary button (first button, usually "确定" or "知道了")
+   * Press the primary button (the non-cancel action button, e.g. "确定" / "知道了")
+   * Falls back to first button if no style info or only one button.
    * @deprecated Use pressButton() for fail-fast behavior.
    */
   pressPrimary(): void {
     const lastEvent = this._events.at(-1);
     if (lastEvent && lastEvent.buttons.length > 0) {
-      this.press(lastEvent.buttons[0]);
+      const primaryLabel = this._findPrimaryButton(lastEvent);
+      this.press(primaryLabel);
     }
   }
 
   /**
-   * Press the cancel button (second button, usually "取消")
+   * Press the cancel button (button with style 'cancel', e.g. "取消")
+   * Falls back to second button if no style info.
    * @deprecated Use pressButton() for fail-fast behavior.
    */
   pressCancel(): void {
     const lastEvent = this._events.at(-1);
     if (lastEvent && lastEvent.buttons.length > 1) {
-      this.press(lastEvent.buttons[1]);
+      const cancelLabel = this._findCancelButton(lastEvent);
+      if (cancelLabel) {
+        this.press(cancelLabel);
+      }
     }
   }
 
@@ -427,7 +433,38 @@ export class RoomScreenTestHarness {
     if (event.buttons.length === 0) {
       throw new Error(`[pressPrimaryOnType] Dialog '${type}' ("${event.title}") has no buttons.`);
     }
-    this._pressButtonOnEvent(event, event.buttons[0]);
+    const primaryLabel = this._findPrimaryButton(event);
+    this._pressButtonOnEvent(event, primaryLabel);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Internal: find primary/cancel button by style (position-independent)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Find the primary (non-cancel) button label from raw button data.
+   * Falls back to first button if no style info available.
+   */
+  private _findPrimaryButton(event: DialogEvent): string {
+    const rawButtons = event.raw.buttons;
+    if (rawButtons && rawButtons.length > 1) {
+      const primary = rawButtons.find((b: any) => b.style !== 'cancel');
+      if (primary?.text) return primary.text;
+    }
+    return event.buttons[0];
+  }
+
+  /**
+   * Find the cancel button label from raw button data.
+   * Falls back to second button if no style info available.
+   */
+  private _findCancelButton(event: DialogEvent): string | null {
+    const rawButtons = event.raw.buttons;
+    if (rawButtons && rawButtons.length > 1) {
+      const cancel = rawButtons.find((b: any) => b.style === 'cancel');
+      if (cancel?.text) return cancel.text;
+    }
+    return event.buttons.length > 1 ? event.buttons[1] : null;
   }
 
   /**
