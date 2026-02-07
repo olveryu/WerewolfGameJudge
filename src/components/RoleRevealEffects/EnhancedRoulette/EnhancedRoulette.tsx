@@ -19,6 +19,7 @@ import { triggerHaptic } from '../utils/haptics';
 import { GlowBorder } from '../common/GlowBorder';
 import { RoleCardContent } from '../common/RoleCardContent';
 import type { RoleId } from '../../../models/roles/spec/specs';
+import { shuffleArray } from '../../../utils/shuffle';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -164,12 +165,8 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     if (!roles.some((r) => r.id === role.id)) {
       roles.push(role);
     }
-    // Fisher-Yates shuffle
-    for (let i = roles.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [roles[i], roles[j]] = [roles[j], roles[i]];
-    }
-    setShuffledRoles(roles);
+    const shuffled = shuffleArray(roles);
+    setShuffledRoles(shuffled);
   }, [allRoles, role]);
 
   // Target index in the shuffled array

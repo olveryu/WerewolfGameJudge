@@ -82,3 +82,26 @@ export function randomIntInclusive(min: number, max: number, rng: Rng = secureRn
 export function randomBool(rng: Rng = secureRng): boolean {
   return rng() < 0.5;
 }
+
+/**
+ * 从数组中随机选取一个元素
+ *
+ * @param arr - 非空数组
+ * @param rng - 可选的随机数生成器，默认使用 secureRng
+ * @returns 数组中的随机元素
+ * @throws 如果数组为空
+ *
+ * @example
+ * ```ts
+ * const role = randomPick(['seer', 'witch', 'guard']);
+ *
+ * // 测试时注入固定随机
+ * const role = randomPick(['seer', 'witch', 'guard'], () => 0); // 总是 'seer'
+ * ```
+ */
+export function randomPick<T>(arr: readonly T[], rng: Rng = secureRng): T {
+  if (arr.length === 0) {
+    throw new Error('randomPick: array must not be empty');
+  }
+  return arr[Math.floor(rng() * arr.length)];
+}

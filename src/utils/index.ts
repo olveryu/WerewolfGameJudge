@@ -15,7 +15,7 @@
 export { randomHex, newRequestId, newRejectionId } from './id';
 
 // 可测试随机（支持 rng 注入）
-export { secureRng, randomIntInclusive, randomBool, type Rng } from './random';
+export { secureRng, randomIntInclusive, randomBool, randomPick, type Rng } from './random';
 
 // 数组打乱（支持 rng 注入）
 export { shuffleArray } from './shuffle';

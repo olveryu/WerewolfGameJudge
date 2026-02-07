@@ -20,6 +20,7 @@ import {
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../theme';
 import type { RoleId } from '../models/roles';
 import { getRoleSpec, isWolfRole } from '../models/roles';
+import { shuffleArray } from '../utils/shuffle';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.75, 280);
@@ -67,16 +68,6 @@ const getFactionName = (roleId: RoleId): string => {
   if (spec?.faction === 'god') return '神职阵营';
   return '平民阵营';
 };
-
-// Fisher-Yates shuffle
-function shuffleArray<T>(array: T[]): T[] {
-  const result = [...array];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-}
 
 export interface RoleRouletteModalProps {
   visible: boolean;

@@ -27,17 +27,11 @@ const ALLOWED_PATTERNS = [
   // Storybook
   '**/*.stories.tsx',
   // 视觉装饰（纯 UI 动画效果，不影响游戏逻辑）
-  '**/RoleRevealEffects/Particle.tsx',
-  '**/RoleRevealEffects/EnhancedRoulette.tsx',
-  '**/RoleRevealEffects/ScratchReveal.tsx',
-  '**/RoleRevealEffects/TarotDraw.tsx',
-  '**/RoleRevealEffects/GachaMachine.tsx',
-  // AI 建议（非游戏逻辑）
-  '**/AIChatBubble.tsx',
+  '**/RoleRevealEffects/**',
 ];
 
 // 需要检查的目录
-const SCAN_DIRS = ['src/screens', 'src/services', 'src/hooks', 'src/contexts'];
+const SCAN_DIRS = ['src/screens', 'src/services', 'src/hooks', 'src/contexts', 'src/components'];
 
 describe('Math.random() 禁止规则', () => {
   it('业务代码中不应直接使用 Math.random()', async () => {
@@ -100,11 +94,12 @@ describe('Math.random() 禁止规则', () => {
     if (violations.length > 0) {
       const report = violations.map((v) => `  ${v.file}:${v.line}\n    ${v.content}`).join('\n\n');
 
-      fail(
+      throw new Error(
         `发现 ${violations.length} 处禁止使用 Math.random() 的代码:\n\n${report}\n\n` +
           `修复方案:\n` +
           `- ID/nonce 生成 → import { randomHex } from '@/utils/id'\n` +
-          `- 可测试随机 → import { secureRng, randomIntInclusive } from '@/utils/random'\n` +
+          `- 可测试随机 → import { secureRng, randomIntInclusive, randomPick } from '@/utils/random'\n` +
+          `- 数组打乱 → import { shuffleArray } from '@/utils/shuffle'\n` +
           `- 跨客户端一致 → Host 解析并通过 BroadcastGameState 广播\n` +
           `- 详见 docs/random-and-id-guidelines.md`,
       );

@@ -28,6 +28,8 @@ import {
   type GameContext,
 } from '../../services/infra/AIChatService';
 import { showAlert } from '../../utils/alert';
+import { randomPick } from '../../utils/random';
+import { shuffleArray } from '../../utils/shuffle';
 import { useGameFacade } from '../../contexts';
 import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import type { BroadcastGameState } from '../../services/protocol/types';
@@ -289,11 +291,11 @@ function getContextQuestion(messages: DisplayMessage[]): string | null {
     const sortedKeywords = [...matchedKeywords].sort((a, b) => b.length - a.length);
     const bestKeyword = sortedKeywords[0];
     const followUps = FOLLOW_UP_QUESTIONS[bestKeyword];
-    return followUps[Math.floor(Math.random() * followUps.length)];
+    return randomPick(followUps);
   }
 
   // 没有匹配到预设关键词 → 一律返回通用跟进问题（只要有对话）
-  return GENERIC_FOLLOW_UPS[Math.floor(Math.random() * GENERIC_FOLLOW_UPS.length)];
+  return randomPick(GENERIC_FOLLOW_UPS);
 }
 
 /**
@@ -331,7 +333,7 @@ function generateQuickQuestions(
     if (myRole && ROLE_QUESTIONS[myRole]) {
       const roleQs = ROLE_QUESTIONS[myRole].filter((q) => !usedQuestions.has(q));
       if (roleQs.length > 0) {
-        const randomRoleQ = roleQs[Math.floor(Math.random() * roleQs.length)];
+        const randomRoleQ = randomPick(roleQs);
         questions.push(randomRoleQ);
         usedQuestions.add(randomRoleQ);
       }
@@ -350,12 +352,11 @@ function generateQuickQuestions(
     });
     const uniqueOtherRoles = [...new Set(otherRoles)];
     if (uniqueOtherRoles.length > 0) {
-      const randomRole =
-        uniqueOtherRoles[Math.floor(Math.random() * uniqueOtherRoles.length)];
+      const randomRole = randomPick(uniqueOtherRoles);
       const roleQs =
         ROLE_QUESTIONS[randomRole]?.filter((q) => !usedQuestions.has(q)) || [];
       if (roleQs.length > 0) {
-        const randomQ = roleQs[Math.floor(Math.random() * roleQs.length)];
+        const randomQ = randomPick(roleQs);
         questions.push(randomQ);
         usedQuestions.add(randomQ);
       }
@@ -366,7 +367,7 @@ function generateQuickQuestions(
   if (questions.length < 4) {
     const remaining = 4 - questions.length;
     const availableGeneral = GENERAL_QUESTIONS.filter((q) => !usedQuestions.has(q));
-    const shuffledGeneral = [...availableGeneral].sort(() => Math.random() - 0.5);
+    const shuffledGeneral = shuffleArray(availableGeneral);
     for (let i = 0; i < remaining && i < shuffledGeneral.length; i++) {
       questions.push(shuffledGeneral[i]);
     }
