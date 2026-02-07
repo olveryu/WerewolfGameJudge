@@ -10,6 +10,17 @@ applyTo: src/services/**
 - **纯函数优先**：resolver / calculator / validator 必须是纯函数，无副作用、不碰 IO/UI。
 - **Host-only 逻辑**：resolver、reducer、state transition、death calculation、night flow progression 只在 Host 运行，Player 端绝对不执行。
 
+## Player 端禁止运行业务逻辑
+
+Player 客户端绝对不能执行：resolvers、reducers/state transitions、death calculation、night flow progression。
+Player 仅作为 transport：发送 `PlayerMessage` → 接收 `HostBroadcast.STATE_UPDATE` → `applySnapshot(broadcastState, revision)`。
+
+## Wire Protocol 稳定性（Transport protocol stability）
+
+- on-wire protocol 必须保持兼容：`HostBroadcast`、`PlayerMessage`、`BroadcastGameState`。
+- 可以引入内部 "Intent" 类型，但必须适配到现有 protocol。
+- 除非同时提供兼容层 + 合约测试，否则禁止发明平行的消息协议。
+
 ## Resolver 规范
 
 - Resolver 位于 `src/services/engine/night/resolvers/` 或 `src/services/night/resolvers/`。

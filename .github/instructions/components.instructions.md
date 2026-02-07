@@ -29,7 +29,8 @@ applyTo: src/screens/**/components/**
 - `componentSizes`、`fixed` 必须从 `src/theme/tokens` 直接导入。
 - ❌ 禁止硬编码：`'#xxx'`、`padding: 16`、`fontSize: 14`、`borderRadius: 12`。
 
-## 卡片风格（SHOULD follow）
+## 卡片 / Banner 风格（SHOULD follow）
 
 - 卡片用 `shadows.sm` + `borderRadius.large` + `colors.surface`，不用 border 描边。
 - 全宽 bar 应卡片化（加 marginHorizontal + borderRadius + shadows）。
+- Banner 用浅色背景（主色 + `'20'` 透明度后缀）+ `borderWidth: fixed.borderWidth` + `borderRadius.large`，文字用 `colors.text`。

@@ -9,25 +9,58 @@ applyTo: "**/*.test.ts,**/*.test.tsx,**/__tests__/**"
 - 禁止 `it.skip` / `test.skip` / `describe.skip`（CI 会检测到并 fail）。
 - 测试断言必须基于 `BroadcastGameState` 单一真相，禁止直接改 state / 注入 host-only 状态。
 - 禁止用 snapshot/Storybook 截图替代交互覆盖。
+- 测试文件中允许 `console.*`。
 
 ## Integration Board Tests（`src/services/__tests__/boards/**`）
 
 - 必须跑真实 NightFlow（按 `NIGHT_STEPS` 顺序逐步执行）。
 - 禁止"跳过 step / 直达 step"的工具（`advanceToStep/skipToStep/fastForward`）。
-- 禁止 helper 自动清除 gate（`pendingRevealAcks`、`isAudioPlaying` 等）。
-- 必须 fail-fast：`sendPlayerMessage()` / `advanceNight()` 失败立刻抛错。
+- 禁止 helper 自动清除 gate（`pendingRevealAcks`、`wolfRobotHunterStatusViewed`、`isAudioPlaying` 等）。
+- 禁止 helper 自动发送确认类消息（`REVEAL_ACK`、`WOLF_ROBOT_HUNTER_STATUS_VIEWED` 等），必须由测试用例显式发送。
+- 必须 fail-fast：`sendPlayerMessage()` / `advanceNight()` 失败立刻抛错（含 stepId、seat、reason），禁止 warn / 吞失败 / 继续推进。
+- 需要验证拒绝（reject）就显式断言 `{ success:false, reason }` 或抛错，不要把输入改成 skip 来绕开规则。
 
 ## Board UI Tests（`src/screens/RoomScreen/__tests__/boards-ui/**`）
 
-- 必须使用 `RoomScreenTestHarness`，拦截并记录所有 `showAlert/showDialog`。
-- 最低覆盖：Night-1 全流程的 prompt / confirm / reveal / skip。
-- 覆盖断言必须用字面量数组，禁止动态生成。
+### RoomScreenTestHarness（MUST）
+
+- 必须实现并使用 `RoomScreenTestHarness`：拦截并记录所有 `showAlert/showDialog`（title/message/buttons/type）。
+- 允许在测试环境 mock `src/utils/alert.ts` 的 `showAlert` 入口。
+- 测试末尾必须做覆盖清单断言：缺任意弹窗类型/互动分支必须 fail。
+
+### 最低覆盖
+
+- Night-1 全流程涉及的 prompt / confirm / reveal / skip 等互动。
+- 每新增/修改一个 Night-1 行动角色，至少覆盖：prompt / confirm /（如有）reveal + `REVEAL_ACK`。
+- 额外 gate（如 `wolfRobotHunterStatusViewed`）必须在 UI test 中显式点击/发送并断言解除，禁止自动清 gate。
+- nightmare 必须覆盖 blocked 的弹窗/拒绝路径，并断言对后续 UI 的影响（如 `wolfKillDisabled`）。
+
+### 反作弊硬红线（不可协商 / MUST）
+
+- **禁止跳过**：`src/screens/RoomScreen/__tests__/boards/**` 下禁止 `it.skip` / `test.skip` / `describe.skip`。CI 检测到 `\.skip\b` 直接 fail。
+- **覆盖断言必须用字面量数组**：
+  - ✅ `harness.assertCoverage(['actionPrompt', 'wolfVote', ...])`
+  - ❌ `harness.assertCoverage(getRequired*DialogTypes(...))`
+  - ❌ `harness.assertCoverage(requiredTypes)`（任何非字面量数组都视为可作弊）
+- **难测分支不得移出 required 清单**：`confirmTrigger`、`skipConfirm`、`actionConfirm`、`wolfRobotHunterStatus`、`wolfRobotHunterStatusViewed` 等不可降级/移层，只能增强 mock/harness。
+
+### Contract gate 防漏测
+
+- 必须存在 contract test：强制"板子 × 必需弹窗类型"覆盖清单全部满足，漏任意一个直接 fail。
+- required 清单必须 schema/steps 驱动（来自 `SCHEMAS` / `NIGHT_STEPS`），禁止手写散落硬编码。
 
 ## Resolver Unit Tests
 
 - 必须覆盖：happy path、nightmare 阻断、schema 约束拒绝、边界条件。
 - 使用纯函数调用，禁止 mock service 或 IO。
 
-## 日志
+## 质量门禁（Quality gates）
 
-- 测试文件中允许 `console.*`（例外：`__tests__/**`）。
+- 格式化/静态检查：修改代码后必须跑 ESLint/Prettier，确保 0 errors。
+- 合约测试必须覆盖：`NIGHT_STEPS` 引用有效性（`roleId`、`SchemaId`）、Step ids 顺序确定性（snapshot）与唯一性、Night-1-only 红线、`audioKey` 非空。
+- E2E 仅 smoke：核心 e2e 必须 `workers=1`，房间就绪必须用 `waitForRoomScreenReady()`。
+
+## 修复与审计规范
+
+- 修 bug 优先根因修复；修复后回滚基于错误假设的过时 patch，避免补丁叠补丁。
+- 禁止无证据宣称"已修复"：非 trivial 必须给 commit hash、修改文件、关键符号、行为变化、验证结果（typecheck/Jest/e2e）。
