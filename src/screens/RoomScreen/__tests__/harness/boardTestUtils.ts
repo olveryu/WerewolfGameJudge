@@ -682,6 +682,384 @@ export async function chainWolfRobotHunterStatus(
   return sendMock;
 }
 
+// =============================================================================
+// Coverage-Integrated Chain Drivers ("AndAssert" variants)
+// =============================================================================
+//
+// These helpers are designed for use INSIDE the Coverage Assertion test.
+// They:
+//   1. Set up mock with jest.fn() hookOverrides
+//   2. Render RoomScreen
+//   3. Trigger dialog via real interaction
+//   4. Press confirm/primary button on the dialog
+//   5. Assert the effect callback was called (fail-fast)
+//   6. Unmount
+//   7. Return the mock for additional payload assertions
+//
+// IMPORTANT: They do NOT call harness.clear() so events accumulate
+// across the coverage assertion test.
+// =============================================================================
+
+/**
+ * Coverage chain: wolfVote → press "确定" → assert submitWolfVote called
+ * Returns { submitWolfVote } for payload assertions.
+ */
+export async function coverageChainWolfVote(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  wolfRole: RoleId,
+  wolfSeat: number,
+  wolfAssignments: Map<number, RoleId>,
+  targetSeat: number,
+): Promise<{ submitWolfVote: jest.Mock }> {
+  const submitWolfVote = jest.fn().mockResolvedValue(undefined);
+  mockSetter(
+    createGameRoomMock({
+      schemaId: 'wolfKill',
+      currentActionRole: 'wolf',
+      myRole: wolfRole,
+      mySeatNumber: wolfSeat,
+      roleAssignments: wolfAssignments,
+      hookOverrides: { submitWolfVote },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+
+  tapSeat(result.getByTestId, targetSeat);
+  await waitFor(() => expect(harness.hasSeen('wolfVote')).toBe(true));
+
+  // Chain: press "确定" on wolfVote dialog
+  harness.pressPrimaryOnType('wolfVote');
+  expect(submitWolfVote).toHaveBeenCalledTimes(1);
+  expect(submitWolfVote).toHaveBeenCalledWith(targetSeat);
+
+  result.unmount();
+  return { submitWolfVote };
+}
+
+/**
+ * Coverage chain: skipConfirm → press "确定" → assert submitAction called
+ * Returns { submitAction } for payload assertions.
+ */
+export async function coverageChainSkipConfirm(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  schemaId: SchemaId,
+  actionRole: RoleId,
+  playerRole: RoleId,
+  seatNumber: number,
+): Promise<{ submitAction: jest.Mock }> {
+  const submitAction = jest.fn().mockResolvedValue(undefined);
+  mockSetter(
+    createGameRoomMock({
+      schemaId,
+      currentActionRole: actionRole,
+      myRole: playerRole,
+      mySeatNumber: seatNumber,
+      hookOverrides: { submitAction },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+
+  const skipButton = result.getByText('不使用技能');
+  fireEvent.press(skipButton);
+  await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
+
+  // Chain: press primary on skipConfirm dialog
+  harness.pressPrimaryOnType('skipConfirm');
+  expect(submitAction).toHaveBeenCalledTimes(1);
+
+  result.unmount();
+  return { submitAction };
+}
+
+/**
+ * Coverage chain: confirmTrigger → press primary → assertNoLoop
+ * Presses "查看发动状态" button, then presses primary on confirmTrigger dialog.
+ */
+export async function coverageChainConfirmTrigger(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  schemaId: SchemaId,
+  actionRole: RoleId,
+  playerRole: RoleId,
+  seatNumber: number,
+): Promise<void> {
+  mockSetter(
+    createGameRoomMock({
+      schemaId,
+      currentActionRole: actionRole,
+      myRole: playerRole,
+      mySeatNumber: seatNumber,
+      hookOverrides: {
+        getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
+      },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+
+  // Wait for actionPrompt, then press bottom button
+  await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+  const confirmButton = result.getByText('查看发动状态');
+  fireEvent.press(confirmButton);
+  await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
+
+  // Chain: press primary on confirmTrigger
+  harness.pressPrimaryOnType('confirmTrigger');
+  harness.assertNoLoop({ type: 'confirmTrigger', maxTimesPerStep: 3 });
+
+  result.unmount();
+}
+
+/**
+ * Coverage chain: wolfRobotHunterStatus gate → press primary →
+ * assert sendWolfRobotHunterStatusViewed called.
+ * Returns { sendWolfRobotHunterStatusViewed } for payload assertions.
+ */
+export async function coverageChainWolfRobotHunterStatus(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  seatNumber: number,
+): Promise<{ sendWolfRobotHunterStatusViewed: jest.Mock }> {
+  const sendMock = jest.fn().mockResolvedValue(undefined);
+  mockSetter(
+    createGameRoomMock({
+      schemaId: 'wolfRobotLearn',
+      currentActionRole: 'wolfRobot',
+      myRole: 'wolfRobot',
+      mySeatNumber: seatNumber,
+      gameStateOverrides: {
+        wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
+        wolfRobotHunterStatusViewed: false,
+      },
+      hookOverrides: {
+        sendWolfRobotHunterStatusViewed: sendMock,
+        getWolfRobotHunterStatus: jest.fn().mockReturnValue({
+          learned: true,
+          viewed: false,
+        }),
+      },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+
+  const gateButton = result.getByText('查看发动状态');
+  fireEvent.press(gateButton);
+  await waitFor(() => expect(harness.hasSeen('wolfRobotHunterStatus')).toBe(true));
+
+  // Chain: press primary → sendWolfRobotHunterStatusViewed called
+  harness.pressPrimaryOnType('wolfRobotHunterStatus');
+  await waitFor(() => expect(sendMock).toHaveBeenCalledTimes(1));
+  harness.assertNoLoop({ type: 'wolfRobotHunterStatus', maxTimesPerStep: 3 });
+
+  result.unmount();
+  return { sendWolfRobotHunterStatusViewed: sendMock };
+}
+
+/**
+ * Coverage chain: actionPrompt (generic — just render and wait for dialog)
+ * No button press needed since actionPrompt is informational.
+ */
+export async function coverageChainActionPrompt(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  schemaId: SchemaId,
+  actionRole: RoleId,
+  playerRole: RoleId,
+  seatNumber: number,
+): Promise<void> {
+  mockSetter(
+    createGameRoomMock({
+      schemaId,
+      currentActionRole: actionRole,
+      myRole: playerRole,
+      mySeatNumber: seatNumber,
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+  await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+  result.unmount();
+}
+
+/**
+ * Coverage chain: witchSavePrompt (auto-triggered on render)
+ */
+export async function coverageChainWitchSavePrompt(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  seatNumber: number,
+): Promise<void> {
+  mockSetter(
+    createGameRoomMock({
+      schemaId: 'witchAction',
+      currentActionRole: 'witch',
+      myRole: 'witch',
+      mySeatNumber: seatNumber,
+      witchContext: { killedIndex: 1, canSave: true, canPoison: true },
+      gameStateOverrides: { witchContext: { killedIndex: 1, canSave: true, canPoison: true } },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+  await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
+  result.unmount();
+}
+
+/**
+ * Coverage chain: witchPoisonPrompt (tap seat to trigger)
+ */
+export async function coverageChainWitchPoisonPrompt(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  seatNumber: number,
+): Promise<void> {
+  mockSetter(
+    createGameRoomMock({
+      schemaId: 'witchAction',
+      currentActionRole: 'witch',
+      myRole: 'witch',
+      mySeatNumber: seatNumber,
+      witchContext: { killedIndex: -1, canSave: false, canPoison: true },
+      gameStateOverrides: { witchContext: { killedIndex: -1, canSave: false, canPoison: true } },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+
+  tapSeat(result.getByTestId, 1);
+  await waitFor(() =>
+    expect(
+      harness.hasSeen('witchPoisonPrompt') ||
+        harness.hasSeen('witchPoisonConfirm') ||
+        harness.hasSeen('actionConfirm'),
+    ).toBe(true),
+  );
+  result.unmount();
+}
+
+/**
+ * Coverage chain: magicianFirst + actionConfirm (two-tap swap)
+ * Returns { submitAction } for payload assertions.
+ */
+export async function coverageChainMagicianSwap(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  seatNumber: number,
+  firstTarget: number,
+  secondTarget: number,
+): Promise<{ submitAction: jest.Mock }> {
+  const submitAction = jest.fn().mockResolvedValue(undefined);
+  mockSetter(
+    createGameRoomMock({
+      schemaId: 'magicianSwap',
+      currentActionRole: 'magician',
+      myRole: 'magician',
+      mySeatNumber: seatNumber,
+      hookOverrides: { submitAction },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+
+  // First tap → magicianFirst
+  tapSeat(result.getByTestId, firstTarget);
+  await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
+  harness.pressPrimaryOnType('magicianFirst');
+
+  // Second tap → actionConfirm
+  tapSeat(result.getByTestId, secondTarget);
+  await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+
+  // Chain: press "确定" → submitAction called
+  harness.pressButtonOnType('actionConfirm', '确定');
+  expect(submitAction).toHaveBeenCalledTimes(1);
+
+  result.unmount();
+  return { submitAction };
+}
+
+/**
+ * Coverage chain: nightmare blocked → actionRejected
+ * Uses reactive mock to simulate Host rejection after seat tap.
+ * Returns the actionRejected events for message assertions.
+ */
+export async function coverageChainNightmareBlocked(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  blockedSchemaId: SchemaId,
+  blockedRole: RoleId,
+  blockedSeat: number,
+  blockedMessage: string,
+): Promise<{ rejectedEvents: import('./RoomScreenTestHarness').DialogEvent[] }> {
+  const reactiveMock = createReactiveGameRoomMock({
+    schemaId: blockedSchemaId,
+    currentActionRole: blockedRole,
+    myRole: blockedRole,
+    mySeatNumber: blockedSeat,
+    nightmareBlockedSeat: blockedSeat,
+    currentNightResults: { blockedSeat },
+  });
+  mockSetter(reactiveMock.getMock());
+
+  const result = renderFn();
+
+  reactiveMock.connect((newMock) => {
+    mockSetter(newMock);
+    result.rerender(
+      React.createElement(
+        require('../../RoomScreen').RoomScreen,
+        {
+          route: { params: { roomNumber: '1234', isHost: false } } as any,
+          navigation: mockNavigation as any,
+        },
+      ),
+    );
+  });
+
+  await waitForRoomScreen(result.getByTestId);
+
+  // REAL INTERACTION: blocked player taps a seat
+  tapSeat(result.getByTestId, 1);
+
+  // Simulate Host rejection
+  reactiveMock.simulateHostReject({
+    action: blockedSchemaId,
+    reason: blockedMessage,
+    targetUid: `p${blockedSeat}`,
+    rejectionId: `nightmare-block-coverage`,
+  });
+
+  await waitFor(() => expect(harness.hasSeen('actionRejected')).toBe(true));
+  harness.assertNoLoop({ type: 'actionRejected', maxTimesPerStep: 3 });
+
+  const rejectedEvents = harness.eventsOfType('actionRejected');
+  reactiveMock.disconnect();
+  result.unmount();
+  return { rejectedEvents };
+}
+
 /**
  * Chain interaction: magician actionConfirm → submitAction called
  *

@@ -10,7 +10,7 @@
  */
 
 import React from 'react';
-import { render, waitFor, fireEvent } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 import { RoomScreen } from '../../RoomScreen';
 import { showAlert } from '../../../../utils/alert';
 import {
@@ -24,6 +24,13 @@ import {
   chainWolfVoteConfirm,
   chainConfirmTrigger,
   chainActionConfirm,
+  // Coverage-integrated chain drivers
+  coverageChainActionPrompt,
+  coverageChainWolfVote,
+  coverageChainWitchSavePrompt,
+  coverageChainWitchPoisonPrompt,
+  coverageChainConfirmTrigger,
+  coverageChainMagicianSwap,
 } from '../harness';
 
 jest.mock('../../../../utils/alert', () => ({
@@ -78,6 +85,17 @@ jest.mock('../../../../hooks/useGameRoom', () => ({
 }));
 
 describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
+  const renderRoom = () =>
+    render(
+      <RoomScreen
+        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        navigation={mockNavigation as any}
+      />,
+    );
+  const setMock = (m: ReturnType<typeof createGameRoomMock>) => {
+    mockUseGameRoomReturn = m;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     harness = new RoomScreenTestHarness();
@@ -288,7 +306,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
 
       // Press OK to dismiss first dialog and confirm first target
-      harness.pressPrimary();
+      harness.pressPrimaryOnType('magicianFirst');
 
       // Second tap: triggers actionConfirm (uses the set anotherIndex)
       tapSeat(getByTestId, 2);
@@ -301,17 +319,6 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   // =============================================================================
 
   describe('chain interaction', () => {
-    const renderRoom = () =>
-      render(
-        <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
-      );
-    const setMock = (m: ReturnType<typeof createGameRoomMock>) => {
-      mockUseGameRoomReturn = m;
-    };
-
     it('wolfVote confirm → submitWolfVote called', async () => {
       await chainWolfVoteConfirm(
         harness,
@@ -347,146 +354,56 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   });
 
   describe('Coverage Assertion (MUST PASS)', () => {
-    it('all required UI dialog types must be covered', async () => {
-      // actionPrompt
-      mockUseGameRoomReturn = createGameRoomMock({
-        schemaId: 'seerCheck',
-        currentActionRole: 'seer',
-        myRole: 'seer',
-        mySeatNumber: 8,
-      });
-      let result = render(
-        <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
-      );
-      await waitForRoomScreen(result.getByTestId);
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
-      result.unmount();
+    it('all required UI dialog types covered with chain interactions and effect assertions', async () => {
+      // Step 1: actionPrompt (seer)
+      await coverageChainActionPrompt(harness, setMock, renderRoom, 'seerCheck', 'seer', 'seer', 8);
 
-      // wolfVote
-      mockUseGameRoomReturn = createGameRoomMock({
-        schemaId: 'wolfKill',
-        currentActionRole: 'wolf',
-        myRole: 'darkWolfKing',
-        mySeatNumber: 7,
-        roleAssignments: new Map([
+      // Step 2: wolfVote → press confirm → submitWolfVote(1) called
+      const { submitWolfVote } = await coverageChainWolfVote(
+        harness,
+        setMock,
+        renderRoom,
+        'darkWolfKing',
+        7,
+        new Map<number, any>([
           [4, 'wolf'],
           [5, 'wolf'],
           [6, 'wolf'],
           [7, 'darkWolfKing'],
         ]),
-      });
-      result = render(
-        <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
+        1,
       );
-      await waitForRoomScreen(result.getByTestId);
-      tapSeat(result.getByTestId, 1);
-      await waitFor(() => expect(harness.hasSeen('wolfVote')).toBe(true));
-      result.unmount();
+      expect(submitWolfVote).toHaveBeenCalledWith(1);
 
-      // confirmTrigger
-      mockUseGameRoomReturn = createGameRoomMock({
-        schemaId: 'darkWolfKingConfirm',
-        currentActionRole: 'darkWolfKing',
-        myRole: 'darkWolfKing',
-        mySeatNumber: 7,
-        hookOverrides: {
-          getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
-        },
-      });
-      result = render(
-        <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
+      // Step 3: confirmTrigger (darkWolfKing/hunter) → press primary + assertNoLoop
+      await coverageChainConfirmTrigger(
+        harness,
+        setMock,
+        renderRoom,
+        'darkWolfKingConfirm',
+        'darkWolfKing',
+        'darkWolfKing',
+        7,
       );
-      await waitForRoomScreen(result.getByTestId);
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
-      // CRITICAL: Actually press the confirm button to trigger confirmTrigger dialog
-      const confirmButton = result.getByText('查看发动状态');
-      fireEvent.press(confirmButton);
-      await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
-      result.unmount();
 
-      // witchSavePrompt
-      mockUseGameRoomReturn = createGameRoomMock({
-        schemaId: 'witchAction',
-        currentActionRole: 'witch',
-        myRole: 'witch',
-        mySeatNumber: 9,
-        witchContext: { killedIndex: 1, canSave: true, canPoison: true },
-        gameStateOverrides: { witchContext: { killedIndex: 1, canSave: true, canPoison: true } },
-      });
-      result = render(
-        <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
+      // Step 4: witchSavePrompt
+      await coverageChainWitchSavePrompt(harness, setMock, renderRoom, 9);
+
+      // Step 5: witchPoisonPrompt
+      await coverageChainWitchPoisonPrompt(harness, setMock, renderRoom, 9);
+
+      // Step 6: magicianSwap → two-tap → magicianFirst + actionConfirm → submitAction called
+      const { submitAction: magicianSubmit } = await coverageChainMagicianSwap(
+        harness,
+        setMock,
+        renderRoom,
+        11,
+        1,
+        2,
       );
-      await waitForRoomScreen(result.getByTestId);
-      await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
-      result.unmount();
+      expect(magicianSubmit).toHaveBeenCalled();
 
-      // witchPoisonPrompt
-      mockUseGameRoomReturn = createGameRoomMock({
-        schemaId: 'witchAction',
-        currentActionRole: 'witch',
-        myRole: 'witch',
-        mySeatNumber: 9,
-        witchContext: { killedIndex: -1, canSave: false, canPoison: true },
-        gameStateOverrides: { witchContext: { killedIndex: -1, canSave: false, canPoison: true } },
-      });
-      result = render(
-        <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
-      );
-      await waitForRoomScreen(result.getByTestId);
-      tapSeat(result.getByTestId, 1);
-      await waitFor(() =>
-        expect(
-          harness.hasSeen('witchPoisonPrompt') ||
-            harness.hasSeen('witchPoisonConfirm') ||
-            harness.hasSeen('actionConfirm'),
-        ).toBe(true),
-      );
-      result.unmount();
-
-      // magicianFirst + actionConfirm (MUST be in same render instance)
-      // anotherIndex is internal state set by first tap, so both taps must be in same render
-      mockUseGameRoomReturn = createGameRoomMock({
-        schemaId: 'magicianSwap',
-        currentActionRole: 'magician',
-        myRole: 'magician',
-        mySeatNumber: 11,
-      });
-      result = render(
-        <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
-      );
-      await waitForRoomScreen(result.getByTestId);
-
-      // First tap: magicianFirst
-      tapSeat(result.getByTestId, 1);
-      await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
-
-      // Dismiss first dialog and confirm first target
-      harness.pressPrimary();
-
-      // Second tap: actionConfirm (uses internally set anotherIndex)
-      tapSeat(result.getByTestId, 2);
-      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
-      result.unmount();
-
-      // Use literal coverage requirements
+      // Final: literal coverage requirements
       harness.assertCoverage([
         'actionPrompt',
         'wolfVote',
