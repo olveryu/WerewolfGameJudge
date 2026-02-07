@@ -379,3 +379,23 @@ advanceToNextAction()
 - **发现可能需要同步时，主动问用户**："这次变更可能需要同步更新 `xxx.instructions.md` 的 `YYY` 章节，要我一起更新吗？"
 - **禁止静默跳过**：不得在明知 instruction 与代码不一致的情况下不提醒。
 - **禁止自作主张修改 instruction**：必须先告知用户具体要改什么、为什么，获得确认后再改。
+
+### Instruction 文件标准格式（MUST follow）
+
+每个 `*.instructions.md` **必须**包含明确的"允许"和"禁止"约束，格式如下：
+
+- 使用 `✅` 标记**允许**的行为（e.g. `✅ 声明式内容（spec/schema/types）`）。
+- 使用 `❌` 标记**禁止**的行为（e.g. `❌ 禁止 import service`）。
+- 允许写在"核心原则"中或独立的"✅ 允许 / ❌ 禁止"区块中，但必须一眼可辨。
+- 禁止只用散文描述约束而不带 `✅/❌` 标记。
+
+### 写/改文件时的 Instruction 检查（MUST follow）
+
+每次**创建新文件**或**修改现有文件**时，必须：
+
+1. **确认该文件所属目录有对应的 instruction 文件**（`.github/instructions/*.instructions.md`，`applyTo` glob 匹配）。
+2. **确认 instruction 中有明确的 `✅ 允许` 和 `❌ 禁止` 约束**。
+3. 如果缺失（无 instruction 文件，或 instruction 缺少 ✅/❌ 约束），**必须主动提醒用户**："该目录 `xxx` 尚无 instruction 文件（或缺少 ✅/❌ 约束），要我补充吗？"
+4. **禁止在明知缺少约束的情况下静默写代码**。
+
+> 当前尚无 instruction 覆盖的目录：`src/utils/**`、`src/config/**`、`src/constants/**`、`src/contexts/**`、`src/navigation/**`。遇到这些目录的文件操作时，必须提醒。
