@@ -14,6 +14,8 @@
 - RoomScreen UI 交互架构（MUST follow）
 - Screen 性能设计一致性（All - 可以引入内部 "Intent" 类型，但必须适配到现有 protocol。
   - 除非同时提供兼容层 + 合约测试，否则禁止发明平行的消息协议。
+- Git Commit 规范（Conventional Commits）
+- Instruction 文件自检与同步提醒（MUST follow）
 
 ---
 
@@ -651,3 +653,58 @@ advanceToNextAction()
 ### 终端输出规范
 
 - 禁止使用 `| head` / `| tail` 截断输出；输出过长用 `grep` 过滤关键行。
+
+---
+
+## Git Commit 规范（Conventional Commits）
+
+> 格式：`<type>(<scope>): <description>`
+
+### Type（必须）
+
+| Type | 用途 |
+|------|------|
+| `feat` | 新功能（对应 MINOR） |
+| `fix` | Bug 修复（对应 PATCH） |
+| `refactor` | 重构（不改行为） |
+| `perf` | 性能优化 |
+| `test` | 测试新增/修改 |
+| `docs` | 文档变更 |
+| `style` | 格式化（不影响逻辑） |
+| `chore` | 构建/依赖/CI 等杂务 |
+
+### Scope（推荐）
+
+- 按模块：`night`、`room`、`config`、`hooks`、`theme`、`e2e`、`models`、`services`、`audio`
+- 例：`feat(night): add seer reveal flow`
+- 例：`fix(room): audio gate not releasing after skip`
+- 例：`refactor(hooks): extract useNightProgress`
+
+### 规则
+
+- description 用英文、小写开头、不加句号、祈使语气（`add` 而非 `added`）。
+- 破坏性变更：在 type 后加 `!`，例如 `feat(models)!: rename BroadcastGameState.ui`。
+- body（可选）：空一行后写详细说明。
+- 单个 commit 只做一件事，禁止大杂烩 commit。
+
+---
+
+## Instruction 文件自检与同步提醒（MUST follow）
+
+> 目标：确保 `.github/copilot-instructions.md` 和 `.github/instructions/*.instructions.md` 始终与代码现状保持一致。
+
+### 触发时机
+
+当你执行的代码变更涉及以下任一情况时，**必须主动检查**现有 instruction 文件是否需要同步更新：
+
+1. **新增/重命名/删除目录或文件路径** — 可能导致 `applyTo` glob 失配。
+2. **新增/修改/废弃编码约定** — 例如新增 theme token 类别、改变 state 字段、引入新的架构模式。
+3. **新增/修改 wire protocol / 消息类型** — `BroadcastGameState`、`PlayerMessage`、`HostBroadcast` 等变更。
+4. **新增角色 / schema / step** — 可能需要更新实现清单或示例。
+5. **修改构建/测试/部署流程** — 可能影响质量门禁章节。
+
+### 行为要求（MUST）
+
+- **发现可能需要同步时，主动问用户**："这次变更可能需要同步更新 `xxx.instructions.md` 的 `YYY` 章节，要我一起更新吗？"
+- **禁止静默跳过**：不得在明知 instruction 与代码不一致的情况下不提醒。
+- **禁止自作主张修改 instruction**：必须先告知用户具体要改什么、为什么，获得确认后再改。
