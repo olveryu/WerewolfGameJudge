@@ -9,15 +9,10 @@
  * Behavior:
  * - Seat tap has NO effect (action is via bottom button only)
  * - Bottom button triggers status check dialog
- * - Status is determined by getConfirmRoleCanShoot() (poisoned = cannot shoot)
+ * - canShoot logic now lives in resolvers (see wolfRobot.resolver.test.ts)
  */
 
 import { SCHEMAS } from '../../../../models/roles/spec/schemas';
-import { getConfirmRoleCanShoot } from '../../../../models/Room';
-import type { GameRoomLike } from '../../../../models/Room';
-import type { RoleId } from '../../../../models/roles';
-import type { RoleAction } from '../../../../models/actions';
-import { makeActionWitch, makeWitchPoison } from '../../../../models/actions';
 
 describe('confirm schema contract (hunter/darkWolfKing)', () => {
   describe('hunterConfirm schema', () => {
@@ -93,70 +88,12 @@ describe('confirm schema contract (hunter/darkWolfKing)', () => {
       expect(SCHEMAS.darkWolfKingConfirm.ui?.bottomActionText).toBeDefined();
     });
 
+
     it('both should use the same bottom button text', () => {
       // They should have identical button text for consistency
       expect(SCHEMAS.hunterConfirm.ui?.bottomActionText).toBe(
         SCHEMAS.darkWolfKingConfirm.ui?.bottomActionText,
       );
-    });
-  });
-
-  describe('getConfirmRoleCanShoot behavior', () => {
-    const createMockRoom = (
-      role: 'hunter' | 'darkWolfKing',
-      roleSeat: number,
-      poisonedSeat: number | null,
-    ): GameRoomLike => {
-      const players = new Map<
-        number,
-        { uid: string; seatNumber: number; role: RoleId | null; hasViewedRole: boolean }
-      >();
-      for (let i = 0; i < 12; i++) {
-        players.set(i, {
-          uid: `p${i}`,
-          seatNumber: i,
-          role: i === roleSeat ? role : 'villager',
-          hasViewedRole: true,
-        });
-      }
-
-      const actions = new Map<RoleId, RoleAction>();
-      if (poisonedSeat !== null) {
-        actions.set('witch', makeActionWitch(makeWitchPoison(poisonedSeat)));
-      }
-
-      return {
-        template: { name: 'test', numberOfPlayers: 12, roles: [] },
-        players,
-        actions,
-        wolfVotes: new Map(),
-        currentActionerIndex: 0,
-      };
-    };
-
-    it('hunter can shoot when NOT poisoned', () => {
-      const room = createMockRoom('hunter', 5, null);
-      expect(getConfirmRoleCanShoot(room, 'hunter')).toBe(true);
-    });
-
-    it('hunter CANNOT shoot when poisoned', () => {
-      const room = createMockRoom('hunter', 5, 5); // poisoned at seat 5
-      expect(getConfirmRoleCanShoot(room, 'hunter')).toBe(false);
-    });
-
-    it('darkWolfKing can shoot when NOT poisoned', () => {
-      const room = createMockRoom('darkWolfKing', 3, null);
-      expect(getConfirmRoleCanShoot(room, 'darkWolfKing')).toBe(true);
-    });
-
-    it('darkWolfKing CANNOT shoot when poisoned', () => {
-      const room = createMockRoom('darkWolfKing', 3, 3); // poisoned at seat 3
-      expect(getConfirmRoleCanShoot(room, 'darkWolfKing')).toBe(false);
-    });
-
-    it('poisoning a different seat does NOT affect the role', () => {
-      const room = createMockRoom('hunter', 5, 7); // hunter at 5, poisoned at 7
-      expect(getConfirmRoleCanShoot(room, 'hunter')).toBe(true);
     });
   });
 });

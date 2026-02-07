@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { LocalGameState } from '../services/types/GameStateTypes';
-import { GameStatus } from '../services/types/GameStateTypes';
+import { GameStatus } from '../models/GameStatus';
 import { SimplifiedRoomService, RoomRecord } from '../services/infra/RoomService';
 import { BroadcastService, type ConnectionStatus } from '../services/transport/BroadcastService';
 import { AuthService } from '../services/infra/AuthService';

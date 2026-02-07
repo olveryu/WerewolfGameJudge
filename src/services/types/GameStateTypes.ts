@@ -14,25 +14,13 @@ import { RoleId } from '../../models/roles';
 import type { CurrentNightResults } from '../night/resolvers/types';
 import { GameTemplate } from '../../models/Template';
 import type { RoleRevealAnimation, ResolvedRoleRevealAnimation } from './RoleRevealAnimation';
+import { GameStatus } from '../../models/GameStatus';
 
 // =============================================================================
-// Game Status Enum
+// Game Status Enum (canonical definition in src/models/GameStatus.ts)
 // =============================================================================
 
-export enum GameStatus {
-  unseated = 'unseated', // Waiting for players to join
-  seated = 'seated', // All seats filled, waiting for host to assign roles
-  assigned = 'assigned', // Roles assigned, players viewing their cards
-  ready = 'ready', // All players have viewed cards, ready to start
-  ongoing = 'ongoing', // Night phase in progress
-  /**
-   * Night-1 complete (results ready).
-   *
-   * IMPORTANT: This app does not decide winners. "ended" only means the app's
-   * Night-1 flow is complete and players can view the summary/deaths.
-   */
-  ended = 'ended',
-}
+export { GameStatus } from '../../models/GameStatus';
 
 // =============================================================================
 // Player Types
