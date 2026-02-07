@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import SettingsScreen from '../SettingsScreen/SettingsScreen';
+import SettingsScreen from '../SettingsScreen';
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -14,7 +14,7 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 // Mock useAuth hook - default to unauthenticated state
-jest.mock('../../hooks', () => ({
+jest.mock('../../../hooks', () => ({
   useAuth: () => ({
     user: null,
     loading: false,
@@ -38,11 +38,11 @@ jest.mock('expo-image-picker', () => ({
 }));
 
 // Mock utils
-jest.mock('../../utils/alert', () => ({
+jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
-jest.mock('../../utils/avatar', () => ({
+jest.mock('../../../utils/avatar', () => ({
   getAvatarImage: jest.fn(() => ({ uri: 'https://example.com/avatar.png' })),
 }));
 

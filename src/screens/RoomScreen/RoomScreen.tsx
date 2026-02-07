@@ -33,7 +33,7 @@ import { GameStatus, getWolfVoteSummary, getPlayersNotViewedRole } from '../../m
 import { showAlert } from '../../utils/alert';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import { AudioService } from '../../services';
-import { HostControlButtons } from './HostControlButtons';
+import { HostControlButtons } from './components/HostControlButtons';
 import { useRoomHostDialogs } from './useRoomHostDialogs';
 import { useRoomActionDialogs } from './useRoomActionDialogs';
 import { useRoomSeatDialogs } from './useRoomSeatDialogs';

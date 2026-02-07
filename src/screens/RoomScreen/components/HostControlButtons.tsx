@@ -8,7 +8,7 @@
  */
 import React, { useMemo, memo } from 'react';
 import { Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
+import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
 import { Ionicons } from '@expo/vector-icons';
 
 export interface HostControlButtonsProps {

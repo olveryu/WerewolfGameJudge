@@ -1,8 +1,8 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { ConfigScreen } from '../ConfigScreen/ConfigScreen';
-import { GameFacadeProvider } from '../../contexts/GameFacadeContext';
-import type { IGameFacade } from '../../services/types/IGameFacade';
+import { ConfigScreen } from '../ConfigScreen';
+import { GameFacadeProvider } from '../../../contexts/GameFacadeContext';
+import type { IGameFacade } from '../../../services/types/IGameFacade';
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -33,7 +33,7 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 // Mock utils
-jest.mock('../../utils/alert', () => ({
+jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 

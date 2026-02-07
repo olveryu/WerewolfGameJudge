@@ -60,3 +60,7 @@ export type { RoleCardModalProps } from './RoleCardModal';
 // Bottom Panel
 export { BottomActionPanel } from './BottomActionPanel';
 export type { BottomActionPanelProps } from './BottomActionPanel';
+
+// Host Controls
+export { HostControlButtons } from './HostControlButtons';
+export type { HostControlButtonsProps } from './HostControlButtons';
