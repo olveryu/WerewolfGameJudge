@@ -133,6 +133,27 @@ cp assets/pwa/*.png dist/assets/pwa/
 cp web/manifest.json dist/
 cp web/sw.js dist/
 
+# Vercel 不上传 node_modules 路径下的文件，但 Expo 构建把字体放在
+# assets/node_modules/@expo/vector-icons/.../Fonts/ 路径下。
+# 将字体复制到 assets/fonts/ 并修复 JS bundle 中的引用。
+FONT_SRC="dist/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts"
+FONT_DST="dist/assets/fonts"
+if [ -d "$FONT_SRC" ]; then
+  echo "🔤 修复字体路径（Vercel 不支持 node_modules 路径）..."
+  mkdir -p "$FONT_DST"
+  cp "$FONT_SRC"/*.ttf "$FONT_DST/"
+  # 替换 JS bundle 中的字体引用路径
+  OLD_PATH="/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/"
+  NEW_PATH="/assets/fonts/"
+  for jsfile in dist/_expo/static/js/web/*.js; do
+    sed -i '' "s|$OLD_PATH|$NEW_PATH|g" "$jsfile"
+  done
+  FONT_COUNT=$(ls "$FONT_DST"/*.ttf 2>/dev/null | wc -l | tr -d ' ')
+  echo "✅ 已复制 $FONT_COUNT 个字体文件到 assets/fonts/"
+  # 清理原始 node_modules 路径（可选，减少上传体积）
+  rm -rf dist/assets/node_modules
+fi
+
 # 使用自定义 index.html 模板（保留 Expo 生成的 JS bundle）
 if [ -f dist/index.html ]; then
   # 提取 Expo 生成的 JS bundle 路径
