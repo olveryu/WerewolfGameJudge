@@ -283,49 +283,8 @@ export class RoomScreenTestHarness {
     }
   }
 
-  /**
-   * Press a button by text on the LAST recorded dialog.
-   * @deprecated Use pressButton() for fail-fast behavior.
-   */
-  press(text: string): void {
-    const last = this._events.at(-1);
-    if (!last) return;
-    const callback = last._callbacks.get(text);
-    if (callback) {
-      callback();
-    }
-  }
-
-  /**
-   * Press the primary button (the non-cancel action button, e.g. "确定" / "知道了")
-   * Falls back to first button if no style info or only one button.
-   * @deprecated Use pressButton() for fail-fast behavior.
-   */
-  pressPrimary(): void {
-    const lastEvent = this._events.at(-1);
-    if (lastEvent && lastEvent.buttons.length > 0) {
-      const primaryLabel = this._findPrimaryButton(lastEvent);
-      this.press(primaryLabel);
-    }
-  }
-
-  /**
-   * Press the cancel button (button with style 'cancel', e.g. "取消")
-   * Falls back to second button if no style info.
-   * @deprecated Use pressButton() for fail-fast behavior.
-   */
-  pressCancel(): void {
-    const lastEvent = this._events.at(-1);
-    if (lastEvent && lastEvent.buttons.length > 1) {
-      const cancelLabel = this._findCancelButton(lastEvent);
-      if (cancelLabel) {
-        this.press(cancelLabel);
-      }
-    }
-  }
-
   // ─────────────────────────────────────────────────────────────────────────
-  // Enhanced Button Press API (fail-fast)
+  // Button Press API (fail-fast)
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
@@ -488,14 +447,6 @@ export class RoomScreenTestHarness {
    */
   clear(): void {
     this._events = [];
-  }
-
-  /**
-   * Get the last event
-   * @deprecated Use getLastEvent() instead.
-   */
-  lastEvent(): DialogEvent | undefined {
-    return this._events.at(-1);
   }
 
   /**

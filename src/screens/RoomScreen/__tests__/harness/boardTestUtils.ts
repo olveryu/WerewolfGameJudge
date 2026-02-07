@@ -343,13 +343,6 @@ export function tapBottomAction(queryByText: (text: string) => any, buttonText: 
   }
 }
 
-/**
- * Press a dialog button by text
- */
-export function pressDialogButton(harness: RoomScreenTestHarness, text: string) {
-  harness.press(text);
-}
-
 // =============================================================================
 // Reactive Mock for Host-Authoritative Testing
 // =============================================================================

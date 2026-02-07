@@ -241,23 +241,4 @@ describe('RoomScreenTestHarness enhanced button API', () => {
     expect(harness.hasSeen('witchPoisonConfirm')).toBe(true);
   });
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Backward compatibility: deprecated methods still work
-  // ─────────────────────────────────────────────────────────────────────────
-
-  it('deprecated press() still works for backward compat', () => {
-    const cb = jest.fn();
-    mockShowAlert('狼人投票', '确定？', [{ text: '确定', onPress: cb }]);
-
-    harness.press('确定'); // deprecated method — testing backward compat
-    expect(cb).toHaveBeenCalledTimes(1);
-  });
-
-  it('deprecated pressPrimary() still works for backward compat', () => {
-    const cb = jest.fn();
-    mockShowAlert('狼人投票', '确定？', [{ text: '确定', onPress: cb }]);
-
-    harness.pressPrimary(); // deprecated method — testing backward compat
-    expect(cb).toHaveBeenCalledTimes(1);
-  });
 });

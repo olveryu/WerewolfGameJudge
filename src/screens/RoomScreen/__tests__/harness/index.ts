@@ -35,7 +35,6 @@ export {
   waitForRoomScreen,
   tapSeat,
   tapBottomAction,
-  pressDialogButton,
   MockSafeAreaView,
   chainWolfVoteConfirm,
   chainSkipConfirm,
