@@ -129,7 +129,7 @@ function updatePanel(): void {
   panelElement.scrollTop = panelElement.scrollHeight;
 }
 
-function addLog(message: string, level: LogEntry['level'] = 'log'): void {
+function addLog(message: string, level: LogEntry['level'] = 'log', silent = false): void {
   const entry: LogEntry = {
     timestamp: new Date(),
     message: String(message),
@@ -141,11 +141,41 @@ function addLog(message: string, level: LogEntry['level'] = 'log'): void {
     logs = logs.slice(-MAX_LOGS);
   }
 
-  // Also log to console
-  console[level === 'debug' ? 'log' : level]('[MobileDebug]', message);
+  // Also log to console (skip when called from logger transport to avoid double-logging)
+  if (!silent) {
+    console[level === 'debug' ? 'log' : level]('[MobileDebug]', message);
+  }
 
   updatePanel();
 }
+
+/**
+ * react-native-logs transport that forwards all logger output to the mobile debug panel.
+ * This allows every logger extension (Audio, Host, NightFlow, etc.) to appear in the
+ * on-screen debug panel automatically, without manual mobileDebug.log() calls.
+ *
+ * Skips console output (silent=true) because consoleTransport already handles that.
+ */
+export const mobileDebugTransport = (props: {
+  msg: string;
+  rawMsg: unknown;
+  level: { severity: number; text: string };
+  extension?: string | null;
+}): void => {
+  if (Platform.OS !== 'web') return;
+
+  const levelMap: Record<string, LogEntry['level']> = {
+    debug: 'debug',
+    info: 'log',
+    warn: 'warn',
+    error: 'error',
+  };
+  const level = levelMap[props.level.text] ?? 'log';
+  const prefix = props.extension ? `[${props.extension}] ` : '';
+  const message = `${prefix}${props.msg}`;
+
+  addLog(message, level, true);
+};
 
 export const mobileDebug = {
   log: (message: string) => {

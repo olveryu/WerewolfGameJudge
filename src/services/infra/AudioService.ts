@@ -2,7 +2,6 @@ import { createAudioPlayer, setAudioModeAsync, AudioPlayer, AudioStatus } from '
 import { Platform } from 'react-native';
 import { RoleId } from '../../models/roles';
 import { audioLog } from '../../utils/logger';
-import { mobileDebug } from '../../utils/mobileDebug';
 
 /**
  * Maximum time to wait for audio playback completion before auto-resolving.
@@ -105,7 +104,7 @@ class AudioService {
         this.visibilityHandler = () => {
           if (document.hidden) {
             // Page hidden - pause all audio
-            mobileDebug.log('[visibility] page hidden, pausing all audio');
+            audioLog.debug('[visibility] page hidden, pausing all audio');
             this.wasPlayingBeforeHidden = this.isPlaying;
             this.wasBgmPlayingBeforeHidden = this.isBgmPlaying;
 
@@ -125,14 +124,14 @@ class AudioService {
             }
           } else {
             // Page visible again - resume audio if it was playing before
-            mobileDebug.log(
+            audioLog.debug(
               `[visibility] page visible, wasPlaying=${this.wasPlayingBeforeHidden}, wasBgmPlaying=${this.wasBgmPlayingBeforeHidden}`,
             );
 
             if (this.wasPlayingBeforeHidden && this.player) {
               try {
                 this.player.play();
-                mobileDebug.log('[visibility] resumed main audio');
+                audioLog.debug('[visibility] resumed main audio');
               } catch (e) {
                 audioLog.warn('[visibility] error resuming player', e);
               }
@@ -140,7 +139,7 @@ class AudioService {
             if (this.wasBgmPlayingBeforeHidden && this.bgmPlayer) {
               try {
                 this.bgmPlayer.play();
-                mobileDebug.log('[visibility] resumed BGM');
+                audioLog.debug('[visibility] resumed BGM');
               } catch (e) {
                 audioLog.warn('[visibility] error resuming bgm', e);
               }
@@ -157,7 +156,7 @@ class AudioService {
   private stopCurrentPlayer(): void {
     // Cancel any pending playback
     if (this.currentPlaybackResolve) {
-      mobileDebug.log('[stopCurrentPlayer] resolving pending playback');
+      audioLog.debug('[stopCurrentPlayer] resolving pending playback');
       this.currentPlaybackResolve();
       this.currentPlaybackResolve = null;
     }
@@ -192,7 +191,7 @@ class AudioService {
    * - Logs warnings on fallback scenarios for debugging
    */
   private async safePlayAudioFile(audioFile: any, label = 'audio'): Promise<void> {
-    mobileDebug.log(`[${label}] safePlayAudioFile START`);
+    audioLog.debug(`[${label}] safePlayAudioFile START`);
 
     // On Web, use native HTML Audio API for iOS Safari compatibility
     if (isWeb && typeof document !== 'undefined') {
@@ -208,7 +207,7 @@ class AudioService {
    * Reuses a single Audio element to maintain iOS Safari user gesture authorization.
    */
   private async safePlayAudioFileWeb(audioFile: any, label = 'audio'): Promise<void> {
-    mobileDebug.log(`[${label}] [WEB] starting playback`);
+    audioLog.debug(`[${label}] [WEB] starting playback`);
 
     return new Promise<void>((resolve) => {
       try {
@@ -225,13 +224,13 @@ class AudioService {
 
         // Get the audio URL from the audioFile (expo asset)
         const audioUrl = typeof audioFile === 'string' ? audioFile : audioFile?.uri || audioFile;
-        mobileDebug.log(`[${label}] [WEB] audioUrl=${audioUrl}`);
+        audioLog.debug(`[${label}] [WEB] audioUrl=${audioUrl}`);
 
         // Create or reuse Audio element
         if (this.webAudioElement) {
-          mobileDebug.log(`[${label}] [WEB] reusing existing Audio element`);
+          audioLog.debug(`[${label}] [WEB] reusing existing Audio element`);
         } else {
-          mobileDebug.log(`[${label}] [WEB] creating new Audio element`);
+          audioLog.debug(`[${label}] [WEB] creating new Audio element`);
           this.webAudioElement = new Audio();
         }
 
@@ -240,7 +239,7 @@ class AudioService {
 
         // Set up event handlers
         audio.onended = () => {
-          mobileDebug.log(`[${label}] [WEB] onended fired`);
+          audioLog.debug(`[${label}] [WEB] onended fired`);
           this.isPlaying = false;
           if (this.currentTimeoutId) {
             clearTimeout(this.currentTimeoutId);
@@ -250,7 +249,6 @@ class AudioService {
         };
 
         audio.onerror = () => {
-          mobileDebug.log(`[${label}] [WEB] onerror fired`);
           audioLog.warn(`[WEB] Audio error for ${label}`);
           this.isPlaying = false;
           if (this.currentTimeoutId) {
@@ -262,7 +260,6 @@ class AudioService {
 
         // Timeout fallback
         this.currentTimeoutId = setTimeout(() => {
-          mobileDebug.log(`[${label}] [WEB] TIMEOUT after ${AUDIO_TIMEOUT_MS}ms`);
           audioLog.warn(`[WEB] Playback timeout for ${label}`);
           this.isPlaying = false;
           audio.pause();
@@ -271,15 +268,14 @@ class AudioService {
 
         // Set source and play
         audio.src = audioUrl;
-        mobileDebug.log(`[${label}] [WEB] calling audio.play()`);
+        audioLog.debug(`[${label}] [WEB] calling audio.play()`);
 
         audio
           .play()
           .then(() => {
-            mobileDebug.log(`[${label}] [WEB] play() promise resolved`);
+            audioLog.debug(`[${label}] [WEB] play() promise resolved`);
           })
           .catch((err) => {
-            mobileDebug.log(`[${label}] [WEB] play() promise rejected: ${err}`);
             audioLog.warn(`[WEB] play() failed for ${label}:`, err);
             this.isPlaying = false;
             if (this.currentTimeoutId) {
@@ -289,7 +285,6 @@ class AudioService {
             resolve(); // Resolve anyway
           });
       } catch (error) {
-        mobileDebug.log(`[${label}] [WEB] ERROR: ${error}`);
         audioLog.warn(`[WEB] Audio playback failed for ${label}:`, error);
         this.isPlaying = false;
         resolve();
@@ -318,12 +313,11 @@ class AudioService {
       // iOS Safari fix: Always create a new player for each audio file.
       // Don't remove() the old player - just pause it and let it exist.
       // This seems to work better than replace() which doesn't fire events.
-      mobileDebug.log(`[${label}] creating new player...`);
-      audioLog.debug('safePlayAudioFile: creating player and starting playback');
+      audioLog.debug(`[${label}] creating player and starting playback`);
       const player = createAudioPlayer(audioFile);
       // Keep reference to old player (don't remove it), just replace reference
       this.player = player;
-      mobileDebug.log(`[${label}] player created OK`);
+      audioLog.debug(`[${label}] player created OK`);
 
       // Add listener for the new player
       this.playerSubscription = player.addListener(
@@ -332,7 +326,7 @@ class AudioService {
           this.handlePlaybackStatus(status);
         },
       );
-      mobileDebug.log(`[${label}] listener added`);
+      audioLog.debug(`[${label}] listener added`);
 
       this.isPlaying = true;
 
@@ -344,7 +338,7 @@ class AudioService {
 
         // Timeout fallback - resolve after max time even if audio didn't finish
         this.currentTimeoutId = setTimeout(() => {
-          mobileDebug.log(
+          audioLog.debug(
             `[${label}] TIMEOUT after ${AUDIO_TIMEOUT_MS}ms, statusCount=${this.currentStatusCount}`,
           );
           if (isJest) {
@@ -355,13 +349,12 @@ class AudioService {
           this.finishCurrentPlayback();
         }, AUDIO_TIMEOUT_MS);
 
-        mobileDebug.log(`[${label}] calling player.play()`);
+        audioLog.debug(`[${label}] calling player.play()`);
         player.play();
-        mobileDebug.log(`[${label}] player.play() returned`);
+        audioLog.debug(`[${label}] player.play() returned`);
       });
     } catch (error) {
-      mobileDebug.log(`[${label}] ERROR: ${error}`);
-      audioLog.warn(' Audio playback failed, resolving anyway:', error);
+      audioLog.warn(`[${label}] Audio playback failed, resolving anyway:`, error);
       this.isPlaying = false;
       return;
     }
@@ -374,7 +367,7 @@ class AudioService {
   private handlePlaybackStatus(status: AudioStatus): void {
     this.currentStatusCount++;
     const label = this.currentLabel;
-    mobileDebug.log(
+    audioLog.debug(
       `[${label}] status #${this.currentStatusCount}: playing=${status.playing} loaded=${status.isLoaded} duration=${status.duration} didJustFinish=${status.didJustFinish}`,
     );
 
@@ -383,7 +376,7 @@ class AudioService {
         audioLog.warn(' Audio duration is 0 - may be invalid, waiting for timeout fallback');
       }
       if (status.didJustFinish) {
-        mobileDebug.log(`[${label}] didJustFinish=true, calling finishCurrentPlayback`);
+        audioLog.debug(`[${label}] didJustFinish=true, calling finishCurrentPlayback`);
         this.finishCurrentPlayback();
       }
     } catch {
@@ -399,7 +392,7 @@ class AudioService {
     }
     this.isPlaying = false;
     if (this.currentPlaybackResolve) {
-      mobileDebug.log(
+      audioLog.debug(
         `[${this.currentLabel}] finishCurrentPlayback called, statusCount=${this.currentStatusCount}`,
       );
       this.currentPlaybackResolve();

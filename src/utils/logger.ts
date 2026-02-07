@@ -11,10 +11,11 @@
  */
 
 import { logger, consoleTransport } from 'react-native-logs';
+import { mobileDebugTransport } from './mobileDebug';
 
 const config = {
-  transport: consoleTransport,
-  severity: __DEV__ ? 'debug' : 'warn',
+  transport: [consoleTransport, mobileDebugTransport],
+  severity: __DEV__ ? 'debug' : ('warn' as const),
   transportOptions: {
     colors: {
       debug: 'white',
@@ -23,7 +24,7 @@ const config = {
       error: 'redBright',
     } as const,
   },
-} as const;
+};
 
 export const log = logger.createLogger(config);
 
