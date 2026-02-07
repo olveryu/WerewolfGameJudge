@@ -59,9 +59,10 @@ describe('SettingsScreen', () => {
     });
 
     it('should render account section', () => {
-      const { getByText } = render(<SettingsScreen />);
+      const { getByText, getByTestId } = render(<SettingsScreen />);
 
-      expect(getByText('👤 账户')).toBeTruthy();
+      expect(getByTestId('Ionicons-icon-person-outline')).toBeTruthy();
+      expect(getByText(/账户/)).toBeTruthy();
     });
 
     it('should render back button', () => {

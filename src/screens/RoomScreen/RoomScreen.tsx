@@ -1439,7 +1439,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (isError) {
       return (
         <View style={styles.loadingContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
+          <Ionicons name="warning-outline" size={spacing.xxlarge + spacing.medium} color={colors.error} style={{ marginBottom: spacing.medium }} />
           <Text style={[styles.loadingText, styles.errorMessageText]}>{displayMessage}</Text>
           <View style={styles.retryButtonRow}>
             <TouchableOpacity

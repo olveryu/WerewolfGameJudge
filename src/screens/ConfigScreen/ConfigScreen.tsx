@@ -23,7 +23,7 @@ import {
 import { useGameFacade } from '../../contexts';
 import { showAlert } from '../../utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useColors, spacing } from '../../theme';
+import { useColors, spacing, typography } from '../../theme';
 import { TESTIDS } from '../../testids';
 import { configLog } from '../../utils/logger';
 import { LoadingScreen } from '../../components/LoadingScreen';
@@ -670,7 +670,7 @@ export const ConfigScreen: React.FC = () => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>选择板子</Text>
               <TouchableOpacity style={styles.modalCloseBtn} onPress={handleCloseTemplateDropdown}>
-                <Text style={styles.modalCloseBtnText}>✕</Text>
+                <Ionicons name="close" size={typography.title} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             <ScrollView>
@@ -692,7 +692,7 @@ export const ConfigScreen: React.FC = () => {
                     {option.label}
                   </Text>
                   {option.value === selectedTemplate && (
-                    <Text style={styles.modalOptionCheck}>✓</Text>
+                    <Ionicons name="checkmark" size={typography.body} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}

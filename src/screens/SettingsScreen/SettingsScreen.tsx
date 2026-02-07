@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../hooks';
-import { useTheme, ThemeKey } from '../../theme';
+import { useTheme, ThemeKey, typography } from '../../theme';
 import { showAlert } from '../../utils/alert';
 import { getAvatarImage } from '../../utils/avatar';
 import {
@@ -297,7 +297,9 @@ const SettingsScreen: React.FC = () => {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>👤 账户</Text>
+          <Text style={styles.cardTitle}>
+            <Ionicons name="person-outline" size={typography.body} color={colors.text} /> 账户
+          </Text>
           {renderAuthSection()}
         </View>
 

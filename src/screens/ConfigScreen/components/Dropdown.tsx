@@ -22,6 +22,8 @@
  */
 import React, { memo, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { typography } from '../../../theme';
 import { ConfigScreenStyles } from './styles';
 
 export interface DropdownOption {
@@ -99,7 +101,7 @@ export const Dropdown = memo<DropdownProps>(
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{label || '选择'}</Text>
                 <TouchableOpacity style={styles.modalCloseBtn} onPress={handleClose}>
-                  <Text style={styles.modalCloseBtnText}>✕</Text>
+                  <Ionicons name="close" size={typography.title} color={styles.modalCloseBtnText.color as string} />
                 </TouchableOpacity>
               </View>
               <ScrollView>
@@ -121,7 +123,7 @@ export const Dropdown = memo<DropdownProps>(
                     >
                       {option.label}
                     </Text>
-                    {option.value === value && <Text style={styles.modalOptionCheck}>✓</Text>}
+                    {option.value === value && <Ionicons name="checkmark" size={typography.body} color={styles.modalOptionCheck.color as string} />}
                   </TouchableOpacity>
                 ))}
               </ScrollView>
