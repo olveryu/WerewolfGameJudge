@@ -29,6 +29,7 @@ import {
 } from '../../services/infra/AIChatService';
 import { showAlert } from '../../utils/alert';
 import { randomPick } from '../../utils/random';
+import { newRequestId } from '../../utils/id';
 import { shuffleArray } from '../../utils/shuffle';
 import { useGameFacade } from '../../contexts';
 import { ROLE_SPECS } from '../../models/roles/spec/specs';
@@ -636,7 +637,7 @@ export function useAIChat(): UseAIChatReturn {
       setCooldownRemaining(COOLDOWN_SECONDS);
 
       const userMessage: DisplayMessage = {
-        id: Date.now().toString(),
+        id: newRequestId(),
         role: 'user',
         content: text,
         timestamp: Date.now(),
@@ -700,7 +701,7 @@ export function useAIChat(): UseAIChatReturn {
           }
 
           const assistantMessage: DisplayMessage = {
-            id: (Date.now() + 1).toString(),
+            id: newRequestId(),
             role: 'assistant',
             content,
             timestamp: Date.now(),

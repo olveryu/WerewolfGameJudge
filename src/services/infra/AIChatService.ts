@@ -239,11 +239,3 @@ export async function sendChatMessage(
     };
   }
 }
-
-/**
- * 测试 API Key 是否有效
- */
-export async function testApiKey(apiKey: string): Promise<boolean> {
-  const response = await sendChatMessage([{ role: 'user', content: '你好' }], apiKey);
-  return response.success;
-}

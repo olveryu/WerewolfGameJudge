@@ -8,7 +8,7 @@
  */
 
 import { Dimensions, StyleSheet } from 'react-native';
-import { spacing, borderRadius, typography, type ThemeColors } from '../../theme';
+import { spacing, borderRadius, typography, shadows, type ThemeColors } from '../../theme';
 
 // ── 布局常量 ──────────────────────────────────────────────
 
@@ -52,11 +52,7 @@ export const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.primary,
       justifyContent: 'center',
       alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
+      ...shadows.lg,
     },
     bubbleIcon: {
       fontSize: 28,
@@ -112,7 +108,7 @@ export const createStyles = (colors: ThemeColors) =>
       padding: spacing.tight,
     },
     headerBtnText: {
-      fontSize: 16,
+      fontSize: typography.body,
     },
 
     // Messages
@@ -169,7 +165,7 @@ export const createStyles = (colors: ThemeColors) =>
       borderRadius: borderRadius.large,
       paddingHorizontal: spacing.small,
       paddingVertical: spacing.tight,
-      fontSize: 16, // 必须 >= 16px，否则 iOS Safari 会自动缩放
+      fontSize: typography.body, // 必须 >= 16px，否则 iOS Safari 会自动缩放
       color: colors.text,
       marginRight: spacing.tight,
     },
@@ -213,14 +209,14 @@ export const createStyles = (colors: ThemeColors) =>
       borderTopWidth: 1,
       borderTopColor: colors.border,
       backgroundColor: colors.surface,
-      gap: 8,
+      gap: spacing.small,
     },
     quickQuestionBtn: {
       backgroundColor: colors.background,
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: borderRadius.large,
-      paddingVertical: 6,
+      paddingVertical: spacing.tight,
       paddingHorizontal: spacing.medium,
     },
     quickQuestionBtnDisabled: {
@@ -237,7 +233,7 @@ export const createStyles = (colors: ThemeColors) =>
       fontWeight: '500',
     },
     quickQuestionText: {
-      fontSize: 13,
+      fontSize: typography.caption,
       color: colors.textSecondary,
     },
   });
