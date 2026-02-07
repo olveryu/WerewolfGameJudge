@@ -12,8 +12,12 @@
 | `hooks/useRoomInit.ts` | 167 | Room 初始化 + retryKey + roleRevealAnimation 状态 |
 | `hooks/useActionOrchestrator.ts` | 669 | Night action intent 大 switch + auto-trigger + rejection effect + pendingRevealDialog / pendingHunterStatusViewed gate |
 | `hooks/useInteractionDispatcher.ts` | 355 | Interaction context 构建 + policy dispatch + seat tap / long-press / bot takeover |
-| `hooks/index.ts` | 30 | 统一导出 |
-| `RoomScreen.tsx` | 985 | 顶层 wiring + JSX 渲染（不再包含任何业务逻辑） |
+| `hooks/useNightProgress.ts` | 119 | Night progress 计算 + speak order dialog 自动弹窗 |
+| `hooks/useHiddenDebugTrigger.ts` | 63 | 5 连击 debug 面板触发器 |
+| `hooks/index.ts` | 40 | 统一导出 |
+| `RoomScreen.styles.ts` | 109 | Styles factory（`createRoomScreenStyles`） |
+| `components/RoleCardModal.tsx` | 108 | Role Card 弹窗（静态/动画两模式） |
+| `RoomScreen.tsx` | 793 | 顶层 wiring + JSX 渲染（不再包含任何业务逻辑） |
 
 ### 关键设计决策
 
@@ -33,36 +37,41 @@
 
 ## 后续拆分 TODO（下一步 PR）
 
-RoomScreen 当前仍有 **985 行**，目标是 < 600 行。以下是可继续提取的模块：
+RoomScreen 当前仍有 **793 行**，目标是 < 600 行。以下是可继续提取的模块：
 
-### 1. `useNightProgress` hook（预估 −120 行）
+### 1. ~~`useNightProgress` hook~~ ✅ 已完成（−49 行）
 
-**提取内容：**
-- Night-end 说话顺序弹窗逻辑（`speakOrderDialogShown` + `useEffect`）
-- Night progress 相关的 derived state（`currentStep`、`nightProgress` 计算）
-- `showLastNightInfoDialog` 构建
+**已提取到** `hooks/useNightProgress.ts`（119 行）：
+- Night progress derived state（`buildNightPlan` → step index/total/roleName）
+- Speak order dialog auto-show effect（Host-only, one-shot + restart reset）
 
-**当前位置：** RoomScreen 内联 `useEffect` + 散落的 derived state
+### 2. ~~`useHiddenDebugTrigger` hook~~ ✅ 已完成（−14 行）
 
-### 2. `useHiddenDebugTrigger` hook（预估 −60 行）
+**已提取到** `hooks/useHiddenDebugTrigger.ts`（63 行）：
+- 5 连击 debug 面板触发器（`tapCountRef` + `tapTimeoutRef` + `handleDebugTitleTap`）
+- 常量 `TAP_THRESHOLD=5`、`TAP_TIMEOUT_MS=2000`
 
-**提取内容：**
-- 10 次连击进入 debug 模式的计数器（`hiddenTapCount` + `tapTimer`）
-- `handleHiddenTap` callback
-- debug 模式开关逻辑
+### 3. ~~`useLocalUiState` hook~~ ⏭️ 跳过（state 分散，提取收益低）
 
-**当前位置：** RoomScreen 内联 `useRef` + `useCallback`
+经分析，8 个 `useState` 的 setter 分别传给不同 hooks（useActionOrchestrator、useInteractionDispatcher、useRoomSeatDialogs、useRoomHostDialogs），grouping 只是移动声明不减少 wiring。
 
-### 3. `useLocalUiState` hook（预估 −80 行）
+**替代方案已完成：**
 
-**提取内容：**
-- `roleCardVisible` / `shouldPlayRevealAnimation`
-- `anotherIndex` / `secondSeatIndex`（Magician 状态）
-- 各种 dialog visible 状态
+### 3a. ✅ Styles extraction（−97 行）
 
-**当前位置：** RoomScreen 顶部的多个 `useState`
+**已提取到** `RoomScreen.styles.ts`（109 行）：
+- `createRoomScreenStyles(colors)` factory（原 `createStyles`）
+- 移除了 RoomScreen 中对 `typography`、`borderRadius`、`componentSizes`、`fixed`、`StyleSheet` 的直接依赖
 
-### 4. JSX 分区抽取（预估 −100 行）
+### 3b. ✅ `RoleCardModal` component（−47 行）
+
+**已提取到** `components/RoleCardModal.tsx`（108 行）：
+- 角色身份展示弹窗（静态 RoleCardSimple / 动画 RoleRevealAnimator）
+- 内聚 `ALIGNMENT_MAP`、`getRoleSpec`/`getRoleDisplayName`/`Faction` 等角色数据转换
+- React.memo 优化
+- 从 RoomScreen 移除了 5 个 import（RoleCardSimple、RoleRevealAnimator、createRoleData、RoleData、RevealEffectType、getRoleSpec、getRoleDisplayName、Faction）
+
+### 4. JSX 分区抽取（预估 −60~100 行）
 
 **提取内容：**
 - Header 区域 → `<RoomHeader />` 组件
@@ -71,10 +80,10 @@ RoomScreen 当前仍有 **985 行**，目标是 < 600 行。以下是可继续�
 
 ### 优先级建议
 
-1. **P1**: `useNightProgress`（逻辑最独立、风险最低）
-2. **P2**: `useHiddenDebugTrigger`（纯 UI，零业务风险）
-3. **P3**: `useLocalUiState`（需要评估 state 间依赖）
-4. **P4**: JSX 分区（需配合 styles factory 调整）
+1. ~~**P1**: `useNightProgress`~~ ✅ 已完成
+2. ~~**P2**: `useHiddenDebugTrigger`~~ ✅ 已完成
+3. ~~**P3**: `useLocalUiState`~~ ⏭️ 跳过 → **P3a**: Styles extraction ✅ + **P3b**: RoleCardModal ✅
+4. **P4**: JSX 分区（Header 抽取等，需进一步评估 ROI）
 
 ### 门禁要求
 

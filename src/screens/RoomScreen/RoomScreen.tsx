@@ -24,13 +24,12 @@
  * - RoomScreen.helpers.ts (pure functions)
  * - components/ (presentational layer)
  */
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { GameStatus, getWolfVoteSummary, getPlayersNotViewedRole } from '../../models/Room';
-import { buildNightPlan, getRoleDisplayName, getRoleSpec, Faction } from '../../models/roles';
 import { showAlert } from '../../utils/alert';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import { AudioService } from '../../services';
@@ -63,20 +62,15 @@ import { useRoomActions } from './hooks/useRoomActions';
 import { useRoomInit } from './hooks/useRoomInit';
 import { useActionOrchestrator } from './hooks/useActionOrchestrator';
 import { useInteractionDispatcher } from './hooks/useInteractionDispatcher';
+import { useNightProgress } from './hooks/useNightProgress';
+import { useHiddenDebugTrigger } from './hooks/useHiddenDebugTrigger';
 import { ConnectionStatusBar } from './components/ConnectionStatusBar';
 import { roomScreenLog } from '../../utils/logger';
 import { LoadingScreen } from '../../components/LoadingScreen';
-import { RoleCardSimple } from '../../components/RoleCardSimple';
-import {
-  RoleRevealAnimator,
-  createRoleData,
-  type RoleData,
-  type RevealEffectType,
-} from '../../components/RoleRevealEffects';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
-import { componentSizes, fixed } from '../../theme/tokens';
-import { mobileDebug } from '../../utils/mobileDebug';
+import { RoleCardModal } from './components/RoleCardModal';
+import { useColors, spacing } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
+import { createRoomScreenStyles } from './RoomScreen.styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -88,7 +82,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     roleRevealAnimation: initialRoleRevealAnimation,
   } = route.params;
   const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createRoomScreenStyles(colors), [colors]);
 
   // Use the new game room hook
   const {
@@ -140,27 +134,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     return Array.from(gameState.players.values()).some((p) => p?.isBot);
   }, [gameState]);
 
-  // Night progress indicator: calculate current step index and total steps
-  // Uses buildNightPlan to get the actual steps based on the template roles
-  const nightProgress = useMemo(() => {
-    if (!currentStepId || gameState?.status !== 'ongoing') {
-      return null;
-    }
-
-    // Build night plan from template roles (same as Host uses)
-    const nightPlan = buildNightPlan(gameState.template.roles);
-
-    // Find current step index in the dynamically built plan
-    const stepIndex = nightPlan.steps.findIndex((step) => step.stepId === currentStepId);
-    if (stepIndex === -1) return null;
-
-    const currentStep = nightPlan.steps[stepIndex];
-    return {
-      current: stepIndex + 1, // 1-based for display
-      total: nightPlan.length,
-      roleName: currentStep?.displayName,
-    };
-  }, [currentStepId, gameState]);
+  // Night progress indicator: delegated to useNightProgress hook
+  // (nightProgress computed + speak order dialog managed there)
 
   // =========================================================================
   // PR7: 音频架构 - UI 只读 isAudioPlaying
@@ -186,23 +161,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const [pendingSeatIndex, setPendingSeatIndex] = useState<number | null>(null);
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
 
-  // Hidden debug panel trigger: tap title 5 times to show mobileDebug panel
-  const debugTapCountRef = useRef(0);
-  const debugTapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleDebugTitleTap = useCallback(() => {
-    debugTapCountRef.current += 1;
-    if (debugTapTimeoutRef.current) {
-      clearTimeout(debugTapTimeoutRef.current);
-    }
-    if (debugTapCountRef.current >= 5) {
-      debugTapCountRef.current = 0;
-      mobileDebug.toggle();
-    } else {
-      debugTapTimeoutRef.current = setTimeout(() => {
-        debugTapCountRef.current = 0;
-      }, 2000);
-    }
-  }, []);
+  // Hidden debug panel trigger: delegated to useHiddenDebugTrigger hook
+  const { handleDebugTitleTap } = useHiddenDebugTrigger();
 
   // ───────────────────────────────────────────────────────────────────────────
   // Room initialization (delegated to useRoomInit hook)
@@ -565,32 +525,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   });
 
   // ───────────────────────────────────────────────────────────────────────────
-  // Host: Show speaking order dialog when night ends (after audio finishes)
+  // Night progress + speak order dialog (delegated to useNightProgress hook)
   // ───────────────────────────────────────────────────────────────────────────
-  const hasShownSpeakOrderRef = useRef(false);
-
-  useEffect(() => {
-    // Only show once per game, only for host, only when game ended and audio finished
-    // P0-FIX: 等待查验结果弹窗关闭后再显示发言顺序弹窗
-    if (
-      !isHost ||
-      roomStatus !== GameStatus.ended ||
-      isAudioPlaying ||
-      pendingRevealDialog ||
-      hasShownSpeakOrderRef.current
-    )
-      return;
-
-    hasShownSpeakOrderRef.current = true;
-    showSpeakOrderDialog();
-  }, [isHost, roomStatus, isAudioPlaying, pendingRevealDialog, showSpeakOrderDialog]);
-
-  // Reset speak order flag when game restarts
-  useEffect(() => {
-    if (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) {
-      hasShownSpeakOrderRef.current = false;
-    }
-  }, [roomStatus]);
+  const { nightProgress } = useNightProgress({
+    currentStepId,
+    gameState,
+    roomStatus,
+    isHost,
+    isAudioPlaying,
+    pendingRevealDialog,
+    showSpeakOrderDialog,
+  });
 
   // Loading state
   if (!isInitialized || !gameState) {
@@ -601,6 +546,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (isError) {
       return (
         <View style={styles.loadingContainer}>
+          {/* Icon size 例外：Ionicons size 属于 icon 渲染尺寸，不走 typography token（同 Emoji fontSize 例外） */}
           <Ionicons name="warning-outline" size={spacing.xxlarge + spacing.medium} color={colors.error} style={{ marginBottom: spacing.medium }} />
           <Text style={[styles.loadingText, styles.errorMessageText]}>{displayMessage}</Text>
           <View style={styles.retryButtonRow}>
@@ -830,156 +776,19 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       )}
 
-      {/* Role Card Modal - 统一使用 RoleRevealAnimator */}
-      {/* 只在首次查看时播放动画（shouldPlayRevealAnimation），后续直接显示静态卡片 */}
-      {/* P0-FIX: 使用 effectiveRole 支持接管模式（Host 接管 bot 时显示 bot 的身份） */}
-      {roleCardVisible &&
-        effectiveRole &&
-        (() => {
-          // 如果动画是 none 或不需要播放动画，直接显示静态卡片
-          if (resolvedRoleRevealAnimation === 'none' || !shouldPlayRevealAnimation) {
-            return (
-              <RoleCardSimple
-                visible={roleCardVisible}
-                roleId={effectiveRole}
-                onClose={handleRoleCardClose}
-              />
-            );
-          }
-
-          // 首次查看，播放动画
-          const roleSpec = getRoleSpec(effectiveRole);
-          const alignmentMap: Record<string, 'wolf' | 'god' | 'villager'> = {
-            [Faction.Wolf]: 'wolf',
-            [Faction.God]: 'god',
-            [Faction.Villager]: 'villager',
-            [Faction.Special]: 'villager', // Special 归类为 villager
-          };
-          const effectiveRoleData: RoleData = createRoleData(
-            effectiveRole,
-            getRoleDisplayName(effectiveRole),
-            alignmentMap[roleSpec.faction] ?? 'villager',
-          );
-          const allRoles = gameState?.template?.roles ?? template?.roles ?? [];
-          const allRolesData: RoleData[] = allRoles.map((roleId) => {
-            const spec = getRoleSpec(roleId);
-            return createRoleData(
-              roleId,
-              getRoleDisplayName(roleId),
-              alignmentMap[spec.faction] ?? 'villager',
-            );
-          });
-          // resolvedRoleRevealAnimation 直接作为 effectType（Host 已解析 random → 具体动画）
-          const effectType: RevealEffectType = resolvedRoleRevealAnimation as RevealEffectType;
-          return (
-            <RoleRevealAnimator
-              visible={roleCardVisible}
-              role={effectiveRoleData}
-              effectType={effectType}
-              allRoles={allRolesData}
-              onComplete={handleRoleCardClose}
-            />
-          );
-        })()}
+      {/* Role Card Modal */}
+      {roleCardVisible && effectiveRole && (
+        <RoleCardModal
+          visible={roleCardVisible}
+          roleId={effectiveRole}
+          resolvedAnimation={resolvedRoleRevealAnimation}
+          shouldPlayAnimation={shouldPlayRevealAnimation}
+          allRoleIds={gameState?.template?.roles ?? template?.roles ?? []}
+          onClose={handleRoleCardClose}
+        />
+      )}
     </SafeAreaView>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Styles factory
-// ─────────────────────────────────────────────────────────────────────────────
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: colors.background,
-    },
-    loadingText: {
-      marginTop: spacing.medium,
-      fontSize: typography.body,
-      color: colors.textSecondary,
-    },
-    errorIcon: {
-      fontSize: spacing.xxlarge + spacing.medium, // ~48
-      marginBottom: spacing.medium,
-    },
-    errorMessageText: {
-      color: colors.error,
-      textAlign: 'center',
-      paddingHorizontal: spacing.large,
-    },
-    errorBackButton: {
-      marginTop: spacing.large,
-      paddingHorizontal: spacing.large,
-      paddingVertical: spacing.medium,
-      backgroundColor: colors.primary,
-      borderRadius: borderRadius.medium,
-    },
-    errorBackButtonText: {
-      color: colors.textInverse,
-      fontSize: typography.body,
-      fontWeight: typography.weights.semibold,
-    },
-    retryButtonRow: {
-      flexDirection: 'row',
-      gap: spacing.small + spacing.tight, // ~12
-      marginTop: spacing.large,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.medium,
-      backgroundColor: colors.surface,
-      borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.border,
-    },
-    backButton: {
-      width: componentSizes.avatar.md,
-      height: componentSizes.avatar.md,
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.background,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    backButtonText: {
-      color: colors.text,
-      fontSize: typography.title,
-    },
-    headerCenter: {
-      flex: 1,
-      alignItems: 'center',
-    },
-    headerTitle: {
-      fontSize: typography.subtitle,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-    },
-    headerSubtitle: {
-      fontSize: typography.caption,
-      color: colors.textSecondary,
-      marginTop: spacing.tight / 2,
-    },
-    headerSpacer: {
-      minWidth: 60,
-    },
-    scrollView: {
-      flex: 1,
-    },
-    scrollContent: {
-      padding: spacing.medium,
-      // Extra bottom padding so content isn't hidden behind BottomActionPanel
-      paddingBottom: spacing.xxlarge + spacing.xlarge,
-    },
-  });
-}
 
 export default RoomScreen;
