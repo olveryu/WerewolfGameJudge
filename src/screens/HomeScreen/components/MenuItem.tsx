@@ -3,12 +3,12 @@
  *
  * Uses shared styles from parent to avoid redundant StyleSheet.create.
  */
-import React, { memo } from 'react';
+import React, { memo, type ReactNode } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { type HomeScreenStyles } from './styles';
 
 export interface MenuItemProps {
-  icon: string;
+  icon: ReactNode;
   title: string;
   subtitle?: string;
   onPress: () => void;
@@ -38,7 +38,7 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
   return (
     <TouchableOpacity testID={testID} style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.menuIcon}>
-        <Text style={styles.menuIconText}>{icon}</Text>
+        {typeof icon === 'string' ? <Text style={styles.menuIconText}>{icon}</Text> : icon}
       </View>
       <View style={styles.menuContent}>
         <Text style={styles.menuTitle}>{title}</Text>

@@ -1,18 +1,18 @@
 /**
  * FactionTabs - Segmented tab bar for switching between faction groups
  *
- * Displays faction emoji + title + count badge per tab.
+ * Displays faction icon + title + count badge per tab.
  * Active tab is highlighted with accent color underline.
  *
  * Performance: Memoized, receives pre-created styles from parent.
  */
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, type ReactNode } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { ConfigScreenStyles } from './styles';
 
 export interface FactionTabItem {
   key: string;
-  emoji: string;
+  icon: ReactNode;
   title: string;
   count: number;
   accentColor: string;
@@ -84,7 +84,7 @@ const FactionTab = memo<FactionTabProps>(({ tab, isActive, onPress, styles }) =>
       activeOpacity={0.7}
     >
       <Text style={[styles.tabLabel, { color: tab.accentColor }]}>
-        {tab.emoji} {tab.title}
+        {tab.icon} {tab.title}
       </Text>
       <View style={[styles.tabBadge, { backgroundColor: tab.accentColor + '20' }]}>
         <Text style={[styles.tabBadgeText, { color: tab.accentColor }]}>{tab.count}</Text>

@@ -42,6 +42,7 @@ import {
   type FactionTabItem,
 } from './components';
 import { FACTION_GROUPS, buildInitialSelection } from './configData';
+import { Ionicons } from '@expo/vector-icons';
 
 // ============================================
 // Helper functions
@@ -460,13 +461,16 @@ export const ConfigScreen: React.FC = () => {
   /** Build tab items for FactionTabs */
   const tabItems: FactionTabItem[] = useMemo(
     () =>
-      FACTION_GROUPS.map((group) => ({
-        key: group.faction,
-        emoji: group.emoji,
-        title: group.title,
-        count: getFactionSelectedCount(group),
-        accentColor: getFactionAccentColor(group.faction),
-      })),
+      FACTION_GROUPS.map((group) => {
+        const accentColor = getFactionAccentColor(group.faction);
+        return {
+          key: group.faction,
+          icon: <Ionicons name={group.iconName as keyof typeof Ionicons.glyphMap} size={14} color={accentColor} />,
+          title: group.title,
+          count: getFactionSelectedCount(group),
+          accentColor,
+        };
+      }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selection, getFactionAccentColor, getFactionSelectedCount],
   );
@@ -486,8 +490,12 @@ export const ConfigScreen: React.FC = () => {
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
       {/* Header row 1 — ← | 配置 | ⚙️ */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBtn} onPress={handleGoBack}>
-          <Text style={styles.headerBtnText}>←</Text>
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={handleGoBack}
+          testID={TESTIDS.configBackButton}
+        >
+          <Ionicons name="chevron-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>配置</Text>
@@ -498,7 +506,7 @@ export const ConfigScreen: React.FC = () => {
           activeOpacity={0.7}
           testID="config-gear-btn"
         >
-          <Text style={styles.headerGearBtnText}>⚙️</Text>
+          <Ionicons name="settings-outline" size={18} color={colors.text} />
         </TouchableOpacity>
       </View>
 

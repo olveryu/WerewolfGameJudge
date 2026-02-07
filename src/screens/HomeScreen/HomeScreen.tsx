@@ -19,6 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { homeLog } from '../../utils/logger';
 import { TESTIDS } from '../../testids';
 import { APP_VERSION } from '../../config/version';
+import { Ionicons } from '@expo/vector-icons';
 import {
   MenuItem,
   EmailForm,
@@ -302,7 +303,7 @@ export const HomeScreen: React.FC = () => {
         {/* Menu */}
         <View style={styles.menu}>
           <MenuItem
-            icon="🚪"
+            icon={<Ionicons name="log-in-outline" size={22} color={colors.text} />}
             title={isJoining ? '进入中...' : '进入房间'}
             subtitle="输入房间号进入游戏"
             onPress={handleEnterRoomPress}
@@ -310,7 +311,7 @@ export const HomeScreen: React.FC = () => {
             styles={styles}
           />
           <MenuItem
-            icon="➕"
+            icon={<Ionicons name="add-circle-outline" size={22} color={colors.text} />}
             title={isCreating ? '创建中...' : '创建房间'}
             subtitle="开始新的一局游戏"
             onPress={handleCreateRoomPress}
@@ -319,7 +320,7 @@ export const HomeScreen: React.FC = () => {
           />
           <View style={styles.divider} />
           <MenuItem
-            icon="↩️"
+            icon={<Ionicons name="arrow-undo-outline" size={22} color={colors.text} />}
             title="返回上局"
             subtitle={lastRoomNumber ? `房间 ${lastRoomNumber}` : '没有上局记录'}
             onPress={handleReturnLastGamePress}
@@ -327,7 +328,7 @@ export const HomeScreen: React.FC = () => {
             styles={styles}
           />
           <MenuItem
-            icon="⚙️"
+            icon={<Ionicons name="settings-outline" size={22} color={colors.text} />}
             title="设置"
             subtitle="应用偏好设置"
             onPress={handleNavigateSettings}

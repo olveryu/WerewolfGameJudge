@@ -65,9 +65,9 @@ describe('SettingsScreen', () => {
     });
 
     it('should render back button', () => {
-      const { getByText } = render(<SettingsScreen />);
+      const { getByTestId } = render(<SettingsScreen />);
 
-      expect(getByText('←')).toBeTruthy();
+      expect(getByTestId('Ionicons-icon-chevron-back')).toBeTruthy();
     });
   });
 
@@ -83,10 +83,10 @@ describe('SettingsScreen', () => {
 
   describe('Navigation', () => {
     it('should render navigation controls', () => {
-      const { getByText } = render(<SettingsScreen />);
+      const { getByTestId } = render(<SettingsScreen />);
 
       // Back button should be present
-      expect(getByText('←')).toBeTruthy();
+      expect(getByTestId('Ionicons-icon-chevron-back')).toBeTruthy();
     });
   });
 });

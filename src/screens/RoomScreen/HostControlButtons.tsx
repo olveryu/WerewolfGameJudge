@@ -9,6 +9,7 @@
 import React, { useMemo, memo } from 'react';
 import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
+import { Ionicons } from '@expo/vector-icons';
 
 export interface HostControlButtonsProps {
   // Visibility flags
@@ -53,7 +54,10 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
           style={[styles.actionButton, { backgroundColor: colors.info }]}
           onPress={onSettingsPress}
         >
-          <Text style={styles.buttonText}>⚙️ 设置</Text>
+          <Text style={styles.buttonText}>
+            <Ionicons name="settings-outline" size={14} color={colors.textInverse} />
+            {' 设置'}
+          </Text>
         </TouchableOpacity>
       )}
 

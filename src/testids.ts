@@ -32,9 +32,11 @@ export const TESTIDS = {
   homeAnonLoginButton: 'home-anon-login-button', // "👤 匿名登录" button in modal
 
   configScreenRoot: 'config-screen-root',
+  configBackButton: 'config-back-button',
   configPresetSection: 'config-preset-section',
 
   roomScreenRoot: 'room-screen-root',
+  roomBackButton: 'room-back-button',
   roomHeader: 'room-header',
   connectionStatusContainer: 'connection-status-container',
   forceSyncButton: 'force-sync-button',

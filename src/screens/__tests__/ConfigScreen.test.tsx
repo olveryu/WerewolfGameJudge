@@ -135,10 +135,10 @@ describe('ConfigScreen', () => {
 
   describe('Navigation', () => {
     it('should render back button', () => {
-      const { getByText } = renderWithFacade(<ConfigScreen />);
+      const { getByTestId } = renderWithFacade(<ConfigScreen />);
 
-      // Back button shows "←"
-      expect(getByText('←')).toBeTruthy();
+      // Back button renders chevron-back icon
+      expect(getByTestId('Ionicons-icon-chevron-back')).toBeTruthy();
     });
   });
 });

@@ -23,6 +23,7 @@ import {
   ThemeSelector,
   createSettingsScreenStyles,
 } from './components';
+import { Ionicons } from '@expo/vector-icons';
 
 const SettingsScreen: React.FC = () => {
   const { colors, themeKey, setTheme, availableThemes } = useTheme();
@@ -288,7 +289,7 @@ const SettingsScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={handleGoBack}>
-          <Text style={styles.backBtnText}>←</Text>
+          <Ionicons name="chevron-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.title}>设置</Text>
         <View style={styles.placeholder} />

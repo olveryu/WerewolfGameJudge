@@ -63,6 +63,7 @@ import {
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../theme';
 import { componentSizes, fixed } from '../../theme/tokens';
 import { mobileDebug } from '../../utils/mobileDebug';
+import { Ionicons } from '@expo/vector-icons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -1503,8 +1504,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         <TouchableOpacity
           onPress={() => dispatchInteraction({ kind: 'LEAVE_ROOM' })}
           style={styles.backButton}
+          testID={TESTIDS.roomBackButton}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Text style={styles.backButtonText}>
+            <Ionicons name="chevron-back" size={20} color={colors.text} />
+          </Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <TouchableOpacity onPress={handleDebugTitleTap} activeOpacity={1}>

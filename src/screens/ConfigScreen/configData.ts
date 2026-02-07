@@ -39,7 +39,8 @@ export interface RoleSection {
 
 export interface FactionGroup {
   title: string;
-  emoji: string;
+  /** Ionicons icon name for the faction tab */
+  iconName: string;
   faction: Faction;
   sections: RoleSection[];
 }
@@ -51,7 +52,7 @@ export interface FactionGroup {
 export const FACTION_GROUPS: FactionGroup[] = [
   {
     title: '好人阵营',
-    emoji: '�',
+    iconName: 'shield-outline',
     faction: Faction.Villager, // covers both Villager & God faction visually
     sections: [
       {
@@ -78,7 +79,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
   },
   {
     title: '狼人阵营',
-    emoji: '�',
+    iconName: 'paw-outline',
     faction: Faction.Wolf,
     sections: [
       {
@@ -102,7 +103,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
   },
   {
     title: '中立阵营',
-    emoji: '⚖️',
+    iconName: 'git-compare-outline',
     faction: Faction.Special,
     sections: [
       {

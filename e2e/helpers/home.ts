@@ -458,7 +458,7 @@ async function navigateBackToHome(page: Page): Promise<void> {
       .catch(() => false);
     if (onConfig) {
       console.log('[navigateBackToHome] On ConfigScreen, clicking back');
-      const backBtn = getVisibleText(page, '←');
+      const backBtn = page.locator('[data-testid="config-back-button"]');
       if (await backBtn.isVisible({ timeout: 500 }).catch(() => false)) {
         await backBtn.click();
         await page.waitForTimeout(500);
@@ -485,7 +485,7 @@ async function navigateBackToHome(page: Page): Promise<void> {
     }
 
     // Try back button anyway
-    const backBtn = getVisibleText(page, '←');
+    const backBtn = page.locator('[data-testid="config-back-button"]');
     if (await backBtn.isVisible({ timeout: 500 }).catch(() => false)) {
       await backBtn.click();
       await page.waitForTimeout(500);
