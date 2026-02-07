@@ -1,5 +1,10 @@
 /**
- * ShineEffect - Animated light sweep effect
+ * ShineEffect - 光扫动画效果组件
+ *
+ * 在容器上播放一道扫过的光效。
+ *
+ * ✅ 允许：渲染光效动画 UI
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useEffect, useMemo } from 'react';
 import { View, Animated, StyleSheet, ViewStyle } from 'react-native';

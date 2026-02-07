@@ -1,7 +1,10 @@
 /**
- * Night Steps Types
+ * Night Steps Types - 夜晚步骤表类型定义
  *
- * 夜晚步骤表类型定义。
+ * 定义 StepSpec 接口，描述单个夜晚步骤的结构。
+ *
+ * ✅ 允许：StepSpec 类型定义
+ * ❌ 禁止：import service / 副作用
  */
 
 import type { RoleId } from './specs';

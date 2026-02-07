@@ -6,6 +6,9 @@
  * - Poison potion: kill a player
  *
  * This is a discriminated union type for type-safe handling.
+ *
+ * ✅ 允许：类型定义、type guard 纯函数、工厂函数
+ * ❌ 禁止：import service / 副作用 / 业务逻辑
  */
 
 // =============================================================================

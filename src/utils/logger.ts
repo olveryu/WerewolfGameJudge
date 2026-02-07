@@ -1,5 +1,7 @@
 /**
- * Unified logger using react-native-logs
+ * logger - Unified logging module using react-native-logs
+ *
+ * 全项目统一日志入口，提供命名 logger 实例。
  *
  * Usage:
  *   import { log } from '../utils/logger';
@@ -8,6 +10,9 @@
  * Or with extensions:
  *   const hostLog = log.extend('Host');
  *   hostLog.info('Seat action', { seat: 1 });
+ *
+ * ✅ 允许：创建命名 logger、配置 transport/severity
+ * ❌ 禁止：import React / service / 游戏状态
  */
 
 import { logger, consoleTransport } from 'react-native-logs';

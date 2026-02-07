@@ -1,10 +1,10 @@
 /**
- * Section - Memoized section container for role groups
+ * Section - 角色分组容器（Memoized）
  *
- * Performance: Receives pre-created styles from parent.
- * Note: We use default shallow comparison which includes children.
- * When children (RoleChips) change their props, React will create new
- * React elements, causing children reference to change and Section to re-render.
+ * 接收 title + children（RoleChip 列表）。
+ *
+ * ✅ 允许：渲染分区 UI
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo } from 'react';
 import { View, Text } from 'react-native';

@@ -2,8 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { showAlert } from '../utils/alert';
 
 /**
- * Hook for executing network actions with automatic error handling and retry support.
+ * useNetworkAction - Hook for executing network actions with error handling and retry
+ *
  * Shows a user-friendly dialog when network errors occur, allowing retry.
+ *
+ * ✅ 允许：封装 async action 执行、showAlert 错误提示、retry 回调
+ * ❌ 禁止：业务逻辑判断、直接修改游戏状态
  */
 export function useNetworkAction() {
   const [isLoading, setIsLoading] = useState(false);

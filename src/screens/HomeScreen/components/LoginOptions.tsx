@@ -1,7 +1,10 @@
 /**
- * LoginOptions - Memoized login options component
+ * LoginOptions - 登录方式选项（Memoized）
  *
- * Uses shared styles from parent to avoid redundant StyleSheet.create.
+ * 显示邮箱登录/匿名登录按钮，通过回调上报选择意图。
+ *
+ * ✅ 允许：渲染 UI + 上报用户 intent
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo } from 'react';
 import { Text, TouchableOpacity } from 'react-native';

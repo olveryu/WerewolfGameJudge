@@ -1,7 +1,10 @@
 /**
- * ActionMessage.tsx - Displays the current action prompt/message
+ * ActionMessage - 行动提示文本（Memoized）
  *
- * Performance: Memoized, receives pre-created styles from parent.
+ * 显示当前行动阶段的提示信息。
+ *
+ * ✅ 允许：渲染文本 UI
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo } from 'react';
 import { Text } from 'react-native';

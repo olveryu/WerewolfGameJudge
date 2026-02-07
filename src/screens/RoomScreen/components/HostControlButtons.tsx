@@ -1,10 +1,10 @@
 /**
- * HostControlButtons - Host-only control buttons for RoomScreen
+ * HostControlButtons - Host 专属控制按钮组（Memoized）
  *
- * This component only handles button rendering based on visibility flags.
- * All business logic, dialogs, and service calls remain in RoomScreen.
+ * 仅负责按 visibility flags 渲染按钮，业务逻辑由 RoomScreen 处理。
  *
- * NOTE: BGM toggle has been moved to ConfigScreen (room creation/edit).
+ * ✅ 允许：渲染 UI + 上报 onPress 回调
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useMemo, memo } from 'react';
 import { Text, TouchableOpacity, StyleSheet } from 'react-native';

@@ -1,3 +1,11 @@
+/**
+ * AppNavigator - Root navigation stack for the app
+ *
+ * 注册所有 Screen（Home / Config / Room / Settings）并配置导航栈。
+ *
+ * ✅ 允许：导航栈定义、Screen 注册、header 样式配置
+ * ❌ 禁止：业务逻辑、直接调用 service
+ */
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';

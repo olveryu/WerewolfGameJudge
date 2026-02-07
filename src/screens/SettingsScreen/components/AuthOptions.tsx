@@ -1,7 +1,10 @@
 /**
- * AuthOptions - Memoized login options component
+ * AuthOptions - 登录方式选项组件（Memoized）
  *
- * Performance: Receives pre-created styles from parent.
+ * 显示邮箱/匿名登录按钮，通过回调上报选择意图。
+ *
+ * ✅ 允许：渲染 UI + 上报用户 intent
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';

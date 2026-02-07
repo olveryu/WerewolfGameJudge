@@ -1,3 +1,11 @@
+/**
+ * PromptModal - 文本输入弹窗组件
+ *
+ * 通用的模态输入框，支持 title/message/placeholder/secureTextEntry。
+ *
+ * ✅ 允许：渲染弹窗 + 上报 onConfirm/onCancel
+ * ❌ 禁止：import service / 业务逻辑判断
+ */
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Modal,

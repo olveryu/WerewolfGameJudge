@@ -1,9 +1,10 @@
 /**
- * ConnectionStatusBar.tsx - Connection status indicator for non-host players
+ * ConnectionStatusBar - 连接状态指示器（Memoized）
  *
- * Shows connection state and provides force sync button when disconnected.
+ * 显示连接状态 + 强制同步按钮（非 Host 玩家用）。
  *
- * Performance: Memoized, receives pre-created styles from parent.
+ * ✅ 允许：渲染 UI + 上报 onForceSync
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';

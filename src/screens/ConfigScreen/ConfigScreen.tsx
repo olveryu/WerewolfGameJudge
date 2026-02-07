@@ -1,11 +1,10 @@
 /**
- * ConfigScreen - Game configuration and room creation
+ * ConfigScreen - 游戏配置与房间创建
  *
- * Performance optimizations:
- * - Styles created once in parent and passed to all sub-components
- * - All sub-components memoized with custom arePropsEqual
- * - Handlers use useCallback to maintain stable references
- * - Role list is data-driven from FACTION_GROUPS + ROLE_SPECS (no hand-written chips)
+ * 角色列表由 FACTION_GROUPS + ROLE_SPECS 数据驱动。性能优化同 HomeScreen。
+ *
+ * ✅ 允许：编排子组件、调用 service/navigation/showAlert
+ * ❌ 禁止：硬编码样式值 / console.*
  */
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';

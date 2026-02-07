@@ -1,7 +1,10 @@
 /**
- * RoleChip - Memoized role selection chip with faction-colored selected state
+ * RoleChip - 角色选择标签（Memoized）
  *
- * Performance: Receives pre-created styles from parent.
+ * 带阵营色选中状态。
+ *
+ * ✅ 允许：渲染 UI + 上报 onToggle
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo } from 'react';
 import { TouchableOpacity, Text } from 'react-native';

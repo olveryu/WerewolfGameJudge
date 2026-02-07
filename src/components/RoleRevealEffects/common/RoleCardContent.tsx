@@ -1,9 +1,10 @@
 /**
- * RoleCardContent - Role card display matching RoleCardSimple style
+ * RoleCardContent - 角色卡片内容区域（无 Modal 包裹）
  *
- * This is the content portion of RoleCardSimple without Modal wrapper.
- * Used by animation effects (flip, fog, scratch, fragment) to show
- * the same card style that RoleCardSimple displays.
+ * 与 RoleCardSimple 相同的卡片样式，供各动画效果组件复用。
+ *
+ * ✅ 允许：渲染角色卡片内容 UI
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Platform, ViewStyle } from 'react-native';

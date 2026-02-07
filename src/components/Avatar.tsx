@@ -1,10 +1,18 @@
+/**
+ * Avatar - 用户头像组件
+ *
+ * 支持自定义头像 URL、uid 随机生成、roomId 稳定分配。
+ * Memoized 以避免不必要的重渲染。
+ *
+ * ✅ 允许：渲染头像图片、通过 props 配置
+ * ❌ 禁止：import service / 业务逻辑
+ */
 import React, { memo, useMemo } from 'react';
 import { Image, StyleSheet, ImageSourcePropType } from 'react-native';
 import { getAvatarImage, getAvatarByUid, getAvatarImageByIndex } from '../utils/avatar';
 import { useColors } from '../theme';
 
 interface AvatarProps {
-  /** User ID for avatar generation (used when no avatarUrl) */
   value: string;
   size: number;
   /** Custom avatar URL. If provided, will be used instead of generated avatar */

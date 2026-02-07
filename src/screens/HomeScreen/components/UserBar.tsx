@@ -1,7 +1,10 @@
 /**
- * UserBar - Memoized user bar component
+ * UserBar - 用户信息栏（Memoized）
  *
- * Uses shared styles from parent to avoid redundant StyleSheet.create.
+ * 显示头像 + 昵称 + 注销按钮，通过回调上报操作意图。
+ *
+ * ✅ 允许：渲染 UI + 上报用户 intent
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';

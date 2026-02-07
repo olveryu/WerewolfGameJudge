@@ -1,7 +1,10 @@
 /**
- * ThemeSelector - Memoized theme selection component
+ * ThemeSelector - 主题选择组件（Memoized）
  *
- * Performance: Receives pre-created styles from parent.
+ * 显示可用主题列表，通过 onThemeChange 上报选择。
+ *
+ * ✅ 允许：渲染 UI + 上报用户 intent
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';

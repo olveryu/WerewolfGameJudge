@@ -7,6 +7,9 @@
  * - 只做数据格式转换（Record → Map，templateRoles → template）
  * - 不做业务逻辑
  * - 缺失字段用合理默认值
+ *
+ * ✅ 允许：纯数据格式转换、默认值填充
+ * ❌ 禁止：业务逻辑、副作用、调用 service
  */
 
 import type { BroadcastGameState, BroadcastPlayer } from '../../services/protocol/types';

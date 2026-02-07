@@ -1,5 +1,10 @@
 /**
- * GlowBorder - Animated glowing border effect
+ * GlowBorder - 动画发光边框效果
+ *
+ * 支持闪烁次数、持续时间配置。
+ *
+ * ✅ 允许：渲染动画边框 UI
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useEffect, useMemo } from 'react';
 import { Animated, StyleSheet, ViewStyle } from 'react-native';

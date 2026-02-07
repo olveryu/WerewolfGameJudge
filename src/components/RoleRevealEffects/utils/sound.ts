@@ -1,7 +1,10 @@
 /**
- * Sound utilities for RoleRevealEffects
+ * sound - 揭示动画音效工具
  *
- * Handles audio playback with graceful degradation.
+ * 管理 tick/confirm/whoosh 音效的预加载与播放，优雅降级。
+ *
+ * ✅ 允许：音频播放 IO
+ * ❌ 禁止：import service / 游戏业务逻辑
  */
 import { createAudioPlayer } from 'expo-audio';
 

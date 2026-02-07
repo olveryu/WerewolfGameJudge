@@ -11,6 +11,9 @@
  *   - useDebugMode: debug bot control
  *
  * Host device is the Single Source of Truth for all game state.
+ *
+ * ✅ 允许：组合子 hooks、通过 facade 操作游戏、派生 UI 状态
+ * ❌ 禁止：直接调用 Supabase、绕过 facade 修改状态
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';

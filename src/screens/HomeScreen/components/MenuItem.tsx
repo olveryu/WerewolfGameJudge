@@ -1,7 +1,10 @@
 /**
- * MenuItem - Memoized menu item component
+ * MenuItem - 菜单项（Memoized）
  *
- * Uses shared styles from parent to avoid redundant StyleSheet.create.
+ * 显示 icon + 标题 + 可选副标题，通过 onPress 上报点击意图。
+ *
+ * ✅ 允许：渲染 UI + 上报用户 intent
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo, type ReactNode } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';

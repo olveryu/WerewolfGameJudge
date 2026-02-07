@@ -1,7 +1,10 @@
 /**
- * AuthForm - Memoized email auth form component
+ * AuthForm - 邮箱认证表单组件（Memoized）
  *
- * Performance: Receives pre-created styles from parent.
+ * 接收父组件 styles，通过回调上报输入和提交意图。
+ *
+ * ✅ 允许：渲染 UI + 上报用户 intent
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo, useMemo } from 'react';
 import { View, Text, TouchableOpacity, TextInput } from 'react-native';

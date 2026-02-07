@@ -5,6 +5,9 @@
  * - BroadcastService connection status subscription
  * - Player auto-recovery after reconnect (throttled snapshot request)
  * - State staleness detection
+ *
+ * ✅ 允许：订阅 BroadcastService 连接状态、派生 staleness
+ * ❌ 禁止：直接修改游戏状态、业务校验逻辑
  */
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';

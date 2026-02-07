@@ -1,3 +1,12 @@
+/**
+ * Button - 通用按钮组件
+ *
+ * 支持 primary/secondary/danger/outline 变体、三种尺寸、loading 状态。
+ * Memoized 以避免不必要的重渲染。
+ *
+ * ✅ 允许：渲染 UI + 上报用户 intent（onPress 回调）
+ * ❌ 禁止：import service / 业务逻辑判断
+ */
 import React, { useMemo, memo } from 'react';
 import {
   TouchableOpacity,

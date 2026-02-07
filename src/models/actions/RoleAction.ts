@@ -3,6 +3,9 @@
  *
  * This is a discriminated union that covers all possible night actions.
  * No magic numbers, no encoding/decoding - just plain structured data.
+ *
+ * ✅ 允许：类型定义、type guard 纯函数
+ * ❌ 禁止：import service / 副作用 / 业务逻辑
  */
 
 import { WitchAction } from './WitchAction';

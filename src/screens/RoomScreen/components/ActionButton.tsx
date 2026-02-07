@@ -1,11 +1,11 @@
 /**
- * ActionButton.tsx - Action button with theme support
+ * ActionButton - 行动按钮（Memoized）
  *
- * ⚠️ IMPORTANT: This component NEVER uses RN `disabled` to block onPress.
- * Per copilot-instructions.md, components must always report intent.
- * Visual disabled state is preserved via styles only.
+ * ⚠️ 永不使用 RN `disabled` 阻断 onPress — 始终上报 intent。
+ * 视觉禁用仅通过样式表达。
  *
- * Performance: Memoized, receives pre-created styles from parent.
+ * ✅ 允许：渲染 UI + 上报 onPress（含 meta）
+ * ❌ 禁止：import service / 业务逻辑判断 / disabled={true}
  */
 import React, { memo } from 'react';
 import { TouchableOpacity, Text } from 'react-native';

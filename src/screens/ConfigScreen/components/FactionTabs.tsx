@@ -1,10 +1,10 @@
 /**
- * FactionTabs - Segmented tab bar for switching between faction groups
+ * FactionTabs - 阵营分段标签栏（Memoized）
  *
- * Displays faction icon + title + count badge per tab.
- * Active tab is highlighted with accent color underline.
+ * 显示阵营 icon + 标题 + 计数角标，选中态带色下划线。
  *
- * Performance: Memoized, receives pre-created styles from parent.
+ * ✅ 允许：渲染 UI + 上报 onTabChange
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo, useCallback, type ReactNode } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';

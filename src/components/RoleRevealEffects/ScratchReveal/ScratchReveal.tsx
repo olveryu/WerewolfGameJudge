@@ -1,13 +1,10 @@
 /**
- * ScratchReveal - Enhanced scratch card style reveal animation
+ * ScratchReveal - 刮刮卡风格揭示动画
  *
- * Features:
- * - Metallic silver scratch layer with gradient sheen
- * - Real scratch texture marks
- * - Metal shaving particles when scratching
- * - Continuous haptic feedback while scratching
- * - Progress indicator bar
- * - Light burst on reveal
+ * 特点：金属银刮层、刮痕纹理、金属碎片粒子、触觉反馈、进度条。
+ *
+ * ✅ 允许：渲染动画 + 触觉反馈
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {

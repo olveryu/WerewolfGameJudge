@@ -1,8 +1,11 @@
 /**
- * Action Schema Types
+ * Action Schema Types - 行动输入协议类型定义
  *
  * Declarative descriptions of role action inputs.
  * Pure data - no functions, no flow control.
+ *
+ * ✅ 允许：ActionSchema / CompoundSchema / SchemaUi 等类型定义、BLOCKED_UI_DEFAULTS 常量
+ * ❌ 禁止：import service / 副作用 / 流程控制
  */
 
 /**

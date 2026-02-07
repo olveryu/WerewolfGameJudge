@@ -1,5 +1,5 @@
 /**
- * Night Plan Builder
+ * Night Plan Builder - 夜晚行动序列构建器
  *
  * Builds night action sequence from template roles.
  * Single source of truth for action order.
@@ -8,6 +8,9 @@
  * - This builder derives steps from `NIGHT_STEPS` (array order = authority).
  * - `NightPlanStep.order` is derived from the table index.
  * - RoleSpec no longer carries night-1 ordering or schemaId. Treat `NIGHT_STEPS` as authoritative.
+ *
+ * ✅ 允许：buildNightPlan 纯函数、fail-fast 校验
+ * ❌ 禁止：import service / 副作用 / IO
  */
 
 import { ROLE_SPECS, type RoleId, isValidRoleId } from './specs';

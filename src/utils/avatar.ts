@@ -1,6 +1,11 @@
 /**
- * Local avatar images for werewolf game
- * 29 dark fantasy style character portraits
+ * avatar - Local avatar image registry and selection utilities
+ *
+ * 29 dark fantasy style character portraits.
+ * 提供基于 uid/roomId 的稳定头像分配和去重。
+ *
+ * ✅ 允许：头像图片映射、uid→avatar hash、去重分配
+ * ❌ 禁止：import React / service / 网络请求
  */
 
 // Import all avatar images

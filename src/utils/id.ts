@@ -1,5 +1,5 @@
 /**
- * Unique ID generation utilities
+ * id - Unique ID generation utilities
  *
  * 提供安全的唯一 ID 生成，全链路不依赖 Math.random()
  *
@@ -7,6 +7,9 @@
  * 1. crypto.randomUUID() - 如果可用（现代浏览器/Node.js）
  * 2. crypto.getRandomValues() - Web Crypto API
  * 3. expo-crypto - React Native / Expo 环境
+ *
+ * ✅ 允许：生成 randomHex / requestId / rejectionId
+ * ❌ 禁止：import React / service / Math.random()
  */
 
 import * as ExpoCrypto from 'expo-crypto';

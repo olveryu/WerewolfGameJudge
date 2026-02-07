@@ -1,3 +1,12 @@
+/**
+ * Room - 房间/游戏状态数据模型
+ *
+ * 定义 GameRoomLike / Room 等核心接口和纯函数工具
+ * （calculateDeaths / formatActionSummary 等）。
+ *
+ * ✅ 允许：类型定义、纯函数查询/计算
+ * ❌ 禁止：import service / 副作用 / IO
+ */
 import { GameTemplate } from './Template';
 import { RoleId, doesRoleParticipateInWolfVote } from './roles';
 import {

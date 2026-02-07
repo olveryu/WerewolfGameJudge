@@ -1,7 +1,10 @@
 /**
- * Dropdown - Memoized dropdown selector with Modal
+ * Dropdown - 下拉选择器（Memoized，带 Modal）
  *
- * Performance: Receives pre-created styles from parent.
+ * 支持 testID 子 ID 约定（trigger / option / overlay）。
+ *
+ * ✅ 允许：渲染 UI + 上报 onSelect
+ * ❌ 禁止：import service / 业务逻辑判断
  *
  * ## testID convention (E2E only)
  *

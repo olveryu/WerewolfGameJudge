@@ -1,7 +1,10 @@
 /**
- * Particle - Simple animated particle component
+ * Particle - 轻量粒子动画组件
  *
- * A lightweight particle for visual effects.
+ * 用于视觉特效的单个粒子，支持起止坐标、颜色、旋转。
+ *
+ * ✅ 允许：渲染粒子动画 UI
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useEffect, useMemo } from 'react';
 import { Animated, StyleSheet } from 'react-native';

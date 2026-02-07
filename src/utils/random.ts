@@ -1,8 +1,11 @@
 /**
- * Secure random utilities
+ * random - Secure random utilities
  *
  * 提供可注入随机源的工具函数，用于替代 Math.random()
  * 全链路使用安全随机，支持测试时注入固定随机源
+ *
+ * ✅ 允许：secureRng / secureRandomInt / 可注入 Rng 类型
+ * ❌ 禁止：import React / service / Math.random()（生产代码）
  */
 
 import * as ExpoCrypto from 'expo-crypto';

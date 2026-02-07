@@ -1,7 +1,10 @@
 /**
- * RoleRevealEffects - Shared Types
+ * RoleRevealEffects/types - 揭示动画共享类型
  *
- * Common interfaces for all role reveal animation effects.
+ * 所有揭示动画组件的公共接口定义。
+ *
+ * ✅ 允许：纯类型/接口/枚举定义
+ * ❌ 禁止：运行时逻辑 / import service
  */
 
 /**

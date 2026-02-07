@@ -1,8 +1,11 @@
 /**
- * Room code generation utilities
+ * roomCode - Room code generation utilities
  *
  * 统一的房间号生成入口，确保所有创建房间路径使用相同的生成逻辑
  * 全链路使用安全随机，不依赖 Math.random()
+ *
+ * ✅ 允许：生成 4 位房间号
+ * ❌ 禁止：import React / service / Math.random()
  */
 
 import * as ExpoCrypto from 'expo-crypto';

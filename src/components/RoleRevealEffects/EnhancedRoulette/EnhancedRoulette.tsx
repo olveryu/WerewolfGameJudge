@@ -1,13 +1,10 @@
 /**
- * EnhancedRoulette - Fancy Slot Machine style role reveal animation
+ * EnhancedRoulette - 老虎机风格角色揭示动画
  *
- * Features:
- * - Realistic slot machine cabinet with metallic frame
- * - Neon lights and decorative bulbs
- * - 3D-style spinning reels with item cards
- * - Bounce effect on stop
- * - Celebration particles on reveal
- * - Golden highlight animation
+ * 特点：金属框架、霓虹灯、3D 转轮、弹跳停止、庆祝粒子。
+ *
+ * ✅ 允许：渲染动画 + 触觉/音效反馈
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { View, Text, Animated, StyleSheet, Dimensions, Easing } from 'react-native';

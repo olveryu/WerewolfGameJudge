@@ -1,11 +1,10 @@
 /**
  * GachaMachine - 复古日式扭蛋机揭示效果
  *
- * 特点：
- * - 圆形透明球体顶部
- * - 前面板有投币口装饰
- * - 侧面旋转手柄（点击旋转）
- * - 扭蛋从出口滚出
+ * 特点：圆形透明球体顶部、投币口、旋转手柄、扭蛋滚出。
+ *
+ * ✅ 允许：渲染动画 + 触觉反馈
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { View, Animated, StyleSheet, Pressable, Text, Easing } from 'react-native';

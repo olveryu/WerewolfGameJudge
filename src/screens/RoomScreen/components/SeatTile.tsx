@@ -1,22 +1,11 @@
 /**
- * SeatTile.tsx - Individual seat tile component (memoized)
+ * SeatTile - 单个座位瓦片（Memoized）
  *
- * This component renders a single seat in the PlayerGrid.
- * It is memoized with a custom areEqual function to prevent
- * unnecessary re-renders when seat data hasn't changed.
+ * 由 PlayerGrid 创建 styles 并传入，自定义 areEqual 防止不必要重渲染。
+ * 入场/离场动画（slide up + bounce / fade out + shrink）。
  *
- * Performance notes:
- * - Styles are created once in PlayerGrid and passed as prop (not created per-tile)
- * - arePropsEqual compares styles reference to ensure memo works correctly
- * - PlayerGrid provides a stable callback using ref pattern, so SeatTile can stay memoized
- * - This prevents full grid re-render when callback references change
- *
- * Animation notes:
- * - Player join: slide up + bounce animation
- * - Player leave: fade out + shrink animation
- *
- * ❌ Do NOT import: any Service singletons, showAlert
- * ✅ Allowed: types, styles, UI components (Avatar, etc.)
+ * ✅ 允许：渲染 UI + 上报 onPress
+ * ❌ 禁止：import service / showAlert / 业务逻辑判断
  */
 import React, { memo, useCallback, useEffect, useRef, useMemo } from 'react';
 import {

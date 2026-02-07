@@ -1,20 +1,11 @@
 /**
- * PlayerGrid.tsx - Seat grid display component
+ * PlayerGrid - 座位网格组件
  *
- * This is a pure UI component that displays player seats.
- * It receives a SeatViewModel[] and a single callback.
+ * 纯 UI，接收 SeatViewModel[] + 单个回调。
+ * Styles 创建一次后传入所有 SeatTile。
  *
- * Performance optimization:
- * - Each seat is rendered by a memoized SeatTile component
- * - SeatTile only re-renders when its specific props change
- * - This prevents full grid re-render on seat selection/swap
- * - Uses ref pattern to ensure callback always calls latest version
- *   even when SeatTile is memoized and doesn't re-render
- * - Styles are created once in PlayerGrid and passed to all SeatTile instances
- *   to avoid redundant StyleSheet.create calls
- *
- * ❌ Do NOT import: any Service singletons, showAlert
- * ✅ Allowed: types, styles, UI components (Avatar, etc.)
+ * ✅ 允许：渲染 UI + 上报 onSeatPress
+ * ❌ 禁止：import service / showAlert / 业务逻辑判断
  */
 import React, { useMemo, memo, useCallback, useRef, useLayoutEffect } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';

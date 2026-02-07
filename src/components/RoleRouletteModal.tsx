@@ -1,7 +1,10 @@
 /**
- * RoleRouletteModal.tsx - 轮盘抽奖动画角色卡片模态框
+ * RoleRouletteModal - 轮盘抽奖动画角色卡片模态框
  *
- * 点击"查看身份"后显示轮盘滚动动画，停在角色上后显示角色信息
+ * 点击"查看身份"后显示轮盘滚动动画，停在角色上后显示角色信息。
+ *
+ * ✅ 允许：渲染轮盘动画 + 显示角色卡片
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {

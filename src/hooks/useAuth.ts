@@ -8,6 +8,9 @@
  * - Single auth state shared across all screens
  * - Single onAuthStateChange subscription
  * - No "login flicker" when navigating between screens
+ *
+ * ✅ 允许：从 AuthContext 读取状态、re-export 类型
+ * ❌ 禁止：直接调用 Supabase / AuthService、业务逻辑
  */
 
 // Re-export User type for backward compatibility

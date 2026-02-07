@@ -1,13 +1,10 @@
 /**
- * FlipReveal - Enhanced 3D card flip reveal animation
+ * FlipReveal - 3D 翻牌揭示动画
  *
- * Features:
- * - Card levitation before flip
- * - Multi-layer shadows for 3D depth
- * - Air pressure ripple during flip
- * - Edge glow during flip
- * - Golden particle explosion on reveal
- * - Bounce effect on landing
+ * 特点：悬浮 → 多层阴影 → 翻转气压波纹 → 边缘发光 → 金粒子爆发。
+ *
+ * ✅ 允许：渲染动画 + 触觉反馈
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Animated, StyleSheet, Dimensions, Easing } from 'react-native';

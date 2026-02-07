@@ -1,11 +1,10 @@
 /**
- * TarotDraw - 转盘抽卡效果
+ * TarotDraw - 转盘抽卡揭示效果
  *
- * 动画流程：
- * 1. 多张牌围成一圈，不停旋转
- * 2. 转速逐渐减慢
- * 3. 一张牌被抽出，飞向中央
- * 4. 翻转揭示角色
+ * 动画流程：多张牌围成一圈旋转 → 减速 → 抽出飞向中央 → 翻转揭示。
+ *
+ * ✅ 允许：渲染动画 + 触觉反馈
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { View, Animated, StyleSheet, Dimensions, Easing, Pressable } from 'react-native';

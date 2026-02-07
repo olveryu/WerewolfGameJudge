@@ -1,3 +1,11 @@
+/**
+ * Player - 玩家数据模型
+ *
+ * 定义 Player 接口和相关枚举（PlayerStatus / SkillStatus）。
+ *
+ * ✅ 允许：类型定义、枚举
+ * ❌ 禁止：import service / 副作用 / 业务逻辑
+ */
 import { RoleId } from './roles';
 
 export enum PlayerStatus {

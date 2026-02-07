@@ -1,7 +1,10 @@
 /**
- * Night Plan Types
+ * Night Plan Types - 夜晚行动序列类型定义
  *
  * Table-driven night action sequence.
+ *
+ * ✅ 允许：NightPlan / NightPlanStep / NightPlanBuildError 类型定义
+ * ❌ 禁止：import service / 副作用
  */
 
 import type { RoleId } from './specs';

@@ -1,9 +1,18 @@
 /**
+ * shuffle - Fisher-Yates shuffle algorithm
+ *
+ * Creates a new shuffled array without modifying the original.
+ *
+ * ✅ 允许：纯函数数组打乱、可注入 rng
+ * ❌ 禁止：import React / service / 直接调用 Math 的 random（必须用 secureRng）
+ */
+
+/**
  * Fisher-Yates shuffle algorithm
  * Creates a new shuffled array without modifying the original
  *
  * @param array - 要打乱的数组
- * @param rng - 可选的随机数生成器，默认使用 secureRng（禁止 Math.random）
+ * @param rng - 可选的随机数生成器，默认使用 secureRng
  */
 import { secureRng, type Rng } from './random';
 

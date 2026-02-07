@@ -1,18 +1,11 @@
 /**
- * RoleRevealAnimator - Unified entry point for all reveal effects
+ * RoleRevealAnimator - 角色揭示动画统一入口
  *
- * Usage:
- * ```tsx
- * <RoleRevealAnimator
- *   visible={showReveal}
- *   effectType="flip"
- *   role={{ id: 'wolf', name: '狼人', alignment: 'wolf', avatar: '🐺' }}
- *   onComplete={() => setShowReveal(false)}
- * />
- * ```
+ * 根据 effectType 分发到对应的揭示动画组件（flip/scratch/tarot/gacha/roulette）。
+ * 所有效果在动画中直接显示完整 RoleCardContent 样式。
  *
- * All effects display the full RoleCardContent style (faction badge, icon, name, description)
- * during the animation itself. Animation completes → onComplete is called.
+ * ✅ 允许：渲染动画 + 分发 effect 组件
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useEffect, useState } from 'react';
 import { Modal, View, StyleSheet, AccessibilityInfo } from 'react-native';

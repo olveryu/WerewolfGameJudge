@@ -1,7 +1,10 @@
 /**
- * JoinRoomModal - Memoized join room modal component
+ * JoinRoomModal - 加入房间弹窗（Memoized）
  *
- * Uses shared styles from parent to avoid redundant StyleSheet.create.
+ * 内嵌 NumPad 输入房间号，通过回调上报加入/取消意图。
+ *
+ * ✅ 允许：渲染 UI + 上报用户 intent
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo, useMemo } from 'react';
 import { View, Text, Modal, TouchableOpacity } from 'react-native';

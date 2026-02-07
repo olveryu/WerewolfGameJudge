@@ -1,10 +1,10 @@
 /**
- * RoleStepper - Bulk role quantity adjuster ([-] count [+])
+ * RoleStepper - 角色数量步进器（Memoized）
  *
- * Used for generic roles like 普通狼人/普通村民 where individual chips
- * would be redundant. Displays role name + stepper controls.
+ * 用于普通狼人/村民等批量角色的 [-] count [+] 控件。
  *
- * Performance: Memoized, receives pre-created styles from parent.
+ * ✅ 允许：渲染 UI + 上报 onCountChange
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';

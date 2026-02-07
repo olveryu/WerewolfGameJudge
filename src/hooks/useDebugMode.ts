@@ -6,6 +6,9 @@
  * - effectiveSeat / effectiveRole derivation
  * - isDebugMode flag
  * - fillWithBots / markAllBotsViewed actions
+ *
+ * ✅ 允许：派生 effectiveSeat/effectiveRole、调用 facade debug API
+ * ❌ 禁止：直接修改 BroadcastGameState、跳过 facade 操作游戏
  */
 
 import { useState, useMemo, useCallback } from 'react';

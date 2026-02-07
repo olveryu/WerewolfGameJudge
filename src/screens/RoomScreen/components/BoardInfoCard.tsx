@@ -1,7 +1,10 @@
 /**
- * BoardInfoCard.tsx - Game board configuration display (collapsible)
+ * BoardInfoCard - 板子信息卡片（可折叠，Memoized）
  *
- * Performance: Memoized, receives pre-created styles from parent.
+ * 显示角色配置概览（狼/神/民数量）。
+ *
+ * ✅ 允许：渲染 UI + 折叠交互
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useState, useEffect, memo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';

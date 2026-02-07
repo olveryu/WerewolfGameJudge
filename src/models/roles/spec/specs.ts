@@ -1,5 +1,5 @@
 /**
- * Role Specs Registry
+ * Role Specs Registry - 角色固有属性表
  *
  * Single source of truth for all role definitions.
  * Derived from authoritative role files.
@@ -9,6 +9,9 @@
  * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic, dreamcatcher, graveyardKeeper (11)
  * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, bloodMoon, wolfRobot, spiritKnight (9)
  * - Third-party: slacker (1)
+ *
+ * ✅ 允许：声明式角色属性定义（faction / team / night1 / wolfMeeting 等）
+ * ❌ 禁止：import service / 副作用 / resolver 逻辑
  */
 import type { RoleSpec } from './spec.types';
 import { Faction } from './types';

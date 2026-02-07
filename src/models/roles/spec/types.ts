@@ -1,5 +1,5 @@
 /**
- * Role Types - Single Source of Truth
+ * Role Types - Single Source of Truth for Faction / Team enums
  *
  * IMPORTANT: Team is different from Faction for display purposes.
  * - Faction: Wolf, God, Villager, Special (internal classification)
@@ -9,6 +9,9 @@
  * - team='wolf' → seer sees "狼人"
  * - team='good' OR team='third' → seer sees "好人"
  * - This is strictly binary. Third-party roles are treated as "好人" for seer checks.
+ *
+ * ✅ 允许：Faction / Team 枚举、getSeerCheckResultForTeam 纯函数
+ * ❌ 禁止：import service / 副作用
  */
 
 export enum Faction {

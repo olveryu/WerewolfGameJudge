@@ -1,10 +1,10 @@
 /**
- * HomeScreen - Main entry screen
+ * HomeScreen - 主页入口（登录、加入房间、创建房间）
  *
- * Performance optimizations:
- * - Styles created once in parent and passed to all sub-components
- * - All sub-components memoized with custom arePropsEqual
- * - Handlers use useCallback to maintain stable references
+ * 性能优化：styles factory 集中创建一次，通过 props 传入子组件；handlers 用 useCallback 稳定化。
+ *
+ * ✅ 允许：编排子组件、调用 service/navigation/showAlert
+ * ❌ 禁止：硬编码样式值 / console.*
  */
 import React, { useState, useCallback, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { View, Text, ScrollView, Modal } from 'react-native';

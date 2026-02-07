@@ -1,7 +1,10 @@
 /**
- * EmailForm - Memoized email auth form component
+ * EmailForm - 邮箱登录表单（Memoized）
  *
- * Uses shared styles from parent to avoid redundant StyleSheet.create.
+ * 接收父组件 styles，通过回调上报输入和提交意图。
+ *
+ * ✅ 允许：渲染 UI + 上报用户 intent
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo, useCallback } from 'react';
 import { Text, TextInput, TouchableOpacity } from 'react-native';

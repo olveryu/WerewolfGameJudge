@@ -1,7 +1,10 @@
 /**
- * AvatarSection - Memoized avatar display/edit component
+ * AvatarSection - 头像显示/编辑组件（Memoized）
  *
- * Performance: Receives pre-created styles from parent.
+ * 显示当前头像 + 上传按钮，通过回调上报操作意图。
+ *
+ * ✅ 允许：渲染 UI + 上报用户 intent
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo } from 'react';
 import {

@@ -1,5 +1,10 @@
 /**
- * RoleCard - Base role card display component
+ * RoleCard - 基础角色卡片展示组件
+ *
+ * 支持正反面显示、对齐主题色。
+ *
+ * ✅ 允许：渲染卡片 UI
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';

@@ -1,7 +1,10 @@
 /**
- * Platform utilities for RoleRevealEffects
+ * platform - 揭示动画平台检测工具
  *
- * Handles platform detection and capability checks.
+ * 提供平台判断、native driver / haptics / audio 能力检测。
+ *
+ * ✅ 允许：平台检测常量与纯函数
+ * ❌ 禁止：import service / 游戏业务逻辑
  */
 import { Platform, AccessibilityInfo } from 'react-native';
 

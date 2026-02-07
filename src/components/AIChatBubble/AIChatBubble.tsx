@@ -1,5 +1,5 @@
 /**
- * AI Chat Bubble - 全局悬浮聊天泡泡
+ * AIChatBubble - 全局悬浮聊天泡泡
  *
  * 在右下角显示一个悬浮按钮，点击后弹出聊天窗口
  * 使用 visualViewport API (Web) 处理键盘弹出
@@ -7,6 +7,9 @@
  *
  * 逻辑层：useAIChat.ts
  * 样式层：AIChatBubble.styles.ts
+ *
+ * ✅ 允许：渲染聊天 UI、通过 useAIChat hook 交互
+ * ❌ 禁止：直接 import service / 直接调用 API
  */
 
 import React, { useRef, useCallback } from 'react';

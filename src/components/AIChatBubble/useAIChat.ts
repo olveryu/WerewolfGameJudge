@@ -8,6 +8,9 @@
  * - 气泡拖动与位置持久化
  * - 键盘高度监听（Web visualViewport + Native Keyboard）
  * - 冷却倒计时
+ *
+ * ✅ 允许：管理聊天状态、构建游戏上下文、调用 AI API
+ * ❌ 禁止：修改游戏状态、绕过 facade
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';

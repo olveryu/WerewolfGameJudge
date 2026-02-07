@@ -1,5 +1,5 @@
 /**
- * Design Tokens - Semantic Design System
+ * tokens - Design Tokens (Semantic Design System)
  *
  * 三层架构:
  * 1. Primitives (内部) - 基础数值
@@ -9,6 +9,9 @@
  * 使用方式:
  * - import { spacing, typography, borderRadius, componentSizes } from '@/theme/tokens';
  * - spacing.small, typography.body, borderRadius.medium
+ *
+ * ✅ 允许：spacing / typography / borderRadius / shadows / layout / componentSizes 定义
+ * ❌ 禁止：业务逻辑、import React / service、硬编码颜色（颜色在 themes.ts）
  */
 
 import { Dimensions, PixelRatio, TextStyle, ViewStyle } from 'react-native';

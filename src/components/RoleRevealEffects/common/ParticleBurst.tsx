@@ -1,5 +1,10 @@
 /**
- * ParticleBurst - Burst of particles from a center point
+ * ParticleBurst - 粒子爆发效果组件
+ *
+ * 从中心点向外发射一组粒子。
+ *
+ * ✅ 允许：渲染粒子爆发动画 UI
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React from 'react';
 import { View, StyleSheet } from 'react-native';

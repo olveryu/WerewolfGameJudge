@@ -1,15 +1,10 @@
 /**
- * BottomActionPanel.tsx - Floating bottom action panel
+ * BottomActionPanel - 底部浮动操作面板（Memoized）
  *
- * A card-like panel fixed at the bottom of RoomScreen that combines
- * the action message prompt and action buttons into a unified,
- * visually distinct section with rounded top corners and shadow.
+ * 卡片风格，组合 action message + action buttons。纯展示组件。
  *
- * This component is purely presentational:
- * - Renders message + button children
- * - No business logic, no service imports
- *
- * Performance: Memoized, receives pre-created styles from parent.
+ * ✅ 允许：渲染 UI（message + 按钮子组件）
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo } from 'react';
 import { View, Text } from 'react-native';

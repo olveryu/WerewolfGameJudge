@@ -1,5 +1,5 @@
 /**
- * Night Steps Registry
+ * Night Steps Registry - 夜晚步骤表
  *
  * 夜晚步骤的单一真相。
  *
@@ -7,6 +7,9 @@
  * step.id 即 schemaId（无需双字段）
  *
  * 策划维护：调顺序只需移动数组元素
+ *
+ * ✅ 允许：步骤定义（roleId / schemaId / audioKey / audioEndKey）
+ * ❌ 禁止：import service / 副作用 / 在 specs 双写 audioKey
  */
 
 import type { StepSpec } from './nightSteps.types';

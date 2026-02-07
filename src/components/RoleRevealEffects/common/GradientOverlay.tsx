@@ -1,5 +1,10 @@
 /**
- * GradientOverlay - Gradient mask for edge fading effects
+ * GradientOverlay - 渐变遮罩组件
+ *
+ * 使用多层半透明 View 模拟渐变淡出效果，兼容所有平台。
+ *
+ * ✅ 允许：渲染渐变 UI
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';

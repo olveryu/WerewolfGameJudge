@@ -1,7 +1,10 @@
 /**
- * RoleCardSimple.tsx - 无动画直接显示角色卡片模态框
+ * RoleCardSimple - 无动画直接显示角色卡片模态框
  *
- * 点击"查看身份"后直接显示角色信息，无任何动画
+ * 点击"查看身份"后直接显示角色信息，无任何动画。
+ *
+ * ✅ 允许：渲染角色信息卡片 UI
+ * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useMemo } from 'react';
 import {

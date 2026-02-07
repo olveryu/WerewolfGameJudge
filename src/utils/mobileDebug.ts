@@ -1,5 +1,7 @@
 /**
- * Mobile Debug Panel - shows logs on-screen for iOS Safari debugging
+ * mobileDebug - Mobile Debug Panel for on-screen logging
+ *
+ * Shows logs on-screen for iOS Safari debugging
  * where console.log is not easily accessible.
  *
  * Usage:
@@ -7,6 +9,9 @@
  *   mobileDebug.log('message');
  *   mobileDebug.show(); // Show the debug panel
  *   mobileDebug.hide(); // Hide the debug panel
+ *
+ * ✅ 允许：on-screen 日志显示、transport 接口
+ * ❌ 禁止：import React 组件 / service / 游戏状态
  */
 
 import { Platform } from 'react-native';

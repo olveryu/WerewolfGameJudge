@@ -1,10 +1,10 @@
 /**
- * SettingsScreen - App settings and account management
+ * SettingsScreen - 应用设置与账号管理
  *
- * Performance optimizations:
- * - Styles created once in parent and passed to all sub-components
- * - All sub-components memoized with custom arePropsEqual
- * - Handlers use useCallback to maintain stable references
+ * 性能优化同 HomeScreen：styles factory + useCallback + memoized 子组件。
+ *
+ * ✅ 允许：编排子组件、调用 service/navigation/showAlert
+ * ❌ 禁止：硬编码样式值 / console.*
  */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
