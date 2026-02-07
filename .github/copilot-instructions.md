@@ -122,10 +122,10 @@ advanceToNextAction()
 
 ## 夜晚流程与 NightPlan（Host 权威）
 
-### NightFlowController 不变量（invariants）
+### Night Flow Handler 不变量（invariants）
 
-- `NightFlowController` 是夜晚推进（night progression）的单一真相。
-- 当 `isHost === true` 且 `state.status === ongoing` 时，`nightFlow` 必须非空（违反则 fail-fast）。
+- `nightFlowHandler` / `stepTransitionHandler` 是夜晚推进（night progression）的单一真相。
+- 当 `isHost === true` 且 `state.status === ongoing` 时，夜晚流程必须处于活跃状态（违反则 fail-fast）。
 - 禁止手动推进 index（`++` 兜底策略是禁止的）。
 - phase 不匹配事件必须是幂等 no-op（仅 debug）。
 
@@ -134,7 +134,7 @@ advanceToNextAction()
 - **禁止在 Facade / UI / submit 成功回调里做“自动推进夜晚”决策**（例如 `submitAction()` 成功后直接调用 `advanceNight()`）。
   - 这会导致推进权威分裂、重入（double-advance）、以及 Host/Player drift。
 - 自动推进如果需要存在：
-  - **必须集中在 Host-only 的 night flow 控制器/handler**（例如 `NightFlowController` / `nightFlowHandler`），由它基于 `BroadcastGameState` 的事实判断“是否推进/推进到哪一步/是否 endNight”。
+  - **必须集中在 Host-only 的 night flow handler**（即 `nightFlowHandler` / `stepTransitionHandler`），由它基于 `BroadcastGameState` 的事实判断“是否推进/推进到哪一步/是否 endNight”。
   - **必须幂等**：同一 `{revision, currentStepId}` 组合最多推进一次；重复触发必须 safe no-op（仅 debug）。
 - Facade 允许做的事情仅限：
   - “发起 intent / request”（transport + orchestration），例如向 Host 发送 `ADVANCE_NIGHT` intent；

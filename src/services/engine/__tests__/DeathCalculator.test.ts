@@ -35,7 +35,7 @@ import {
   RoleSeatMap,
   DEFAULT_ROLE_SEAT_MAP,
 } from '../DeathCalculator';
-import { makeWitchSave, makeWitchPoison } from '../../models/actions/WitchAction';
+import { makeWitchSave, makeWitchPoison } from '../../../models/actions/WitchAction';
 
 describe('DeathCalculator', () => {
   // ===========================================================================

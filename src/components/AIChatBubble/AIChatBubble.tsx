@@ -29,7 +29,7 @@ import {
   ChatMessage,
   getDefaultApiKey,
   GameContext,
-} from '../../services/AIChatService';
+} from '../../services/infra/AIChatService';
 import { showAlert } from '../../utils/alert';
 import { useGameFacade } from '../../contexts';
 import { ROLE_SPECS } from '../../models/roles/spec/specs';

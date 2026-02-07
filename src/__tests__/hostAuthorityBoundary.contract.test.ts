@@ -60,20 +60,20 @@ describe('Host authority import boundary', () => {
     // Absolute path patterns
     /from\s+['"].*services\/engine\/reducer/,
     /from\s+['"].*services\/engine\/handlers/,
+    /from\s+['"].*services\/engine\/DeathCalculator/,
+    /from\s+['"].*services\/engine\/resolveWolfVotes/,
     /from\s+['"].*services\/night\/resolvers/,
-    /from\s+['"].*services\/NightFlowController/,
-    /from\s+['"].*services\/DeathCalculator/,
     // Relative path patterns (for imports like ../../services/engine/reducer)
     // eslint-disable-next-line no-useless-escape
     /from\s+['"][.\/]+services\/engine\/reducer/,
     // eslint-disable-next-line no-useless-escape
     /from\s+['"][.\/]+services\/engine\/handlers/,
     // eslint-disable-next-line no-useless-escape
+    /from\s+['"][.\/]+services\/engine\/DeathCalculator/,
+    // eslint-disable-next-line no-useless-escape
+    /from\s+['"][.\/]+services\/engine\/resolveWolfVotes/,
+    // eslint-disable-next-line no-useless-escape
     /from\s+['"][.\/]+services\/night\/resolvers/,
-    // eslint-disable-next-line no-useless-escape
-    /from\s+['"][.\/]+services\/NightFlowController/,
-    // eslint-disable-next-line no-useless-escape
-    /from\s+['"][.\/]+services\/DeathCalculator/,
     // Direct imports from gameReducer
     /from\s+['"].*gameReducer/,
     // Direct imports from resolvers index
@@ -101,7 +101,7 @@ describe('Host authority import boundary', () => {
       if (match) {
         fail(
           `File ${filePath} imports Host-only module: "${match[0]}"\n` +
-            'Hooks and screens should not import reducer, handlers, resolvers, NightFlowController, or DeathCalculator.\n' +
+            'Hooks and screens should not import reducer, handlers, resolvers, DeathCalculator, or resolveWolfVotes.\n' +
             'Use GameFacade or transport layer instead.',
         );
       }

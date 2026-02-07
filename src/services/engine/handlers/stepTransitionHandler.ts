@@ -24,7 +24,7 @@ import type {
 } from '../reducer/types';
 import type { SchemaId } from '../../../models/roles/spec';
 import type { RoleId } from '../../../models/roles';
-import type { NightActions, RoleSeatMap } from '../../DeathCalculator';
+import type { NightActions, RoleSeatMap } from '../DeathCalculator';
 import type { WitchAction } from '../../../models/actions/WitchAction';
 import type { ProtocolAction } from '../../protocol/types';
 
@@ -32,11 +32,11 @@ import { buildNightPlan, type NightPlanStep } from '../../../models/roles/spec/p
 import { getStepSpec } from '../../../models/roles/spec/nightSteps';
 import { SCHEMAS } from '../../../models/roles/spec/schemas';
 import { BLOCKED_UI_DEFAULTS, type SchemaUi } from '../../../models/roles/spec/schema.types';
-import { calculateDeaths } from '../../DeathCalculator';
+import { calculateDeaths } from '../DeathCalculator';
 import { isWolfRole, getWolfRoleIds } from '../../../models/roles';
 import { makeWitchSave, makeWitchPoison, makeWitchNone } from '../../../models/actions/WitchAction';
 import { nightFlowLog } from '../../../utils/logger';
-import { resolveWolfVotes } from '../../resolveWolfVotes';
+import { resolveWolfVotes } from '../resolveWolfVotes';
 import { maybeCreateWitchContextAction } from './witchContext';
 
 /**

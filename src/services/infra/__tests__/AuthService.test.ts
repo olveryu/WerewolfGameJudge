@@ -1,7 +1,7 @@
-import { AuthService } from '../infra/AuthService';
+import { AuthService } from '../AuthService';
 
 // Mock supabase
-jest.mock('../../config/supabase', () => ({
+jest.mock('../../../config/supabase', () => ({
   supabase: null,
   isSupabaseConfigured: jest.fn(() => false),
 }));

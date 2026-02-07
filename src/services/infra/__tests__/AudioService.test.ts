@@ -1,8 +1,8 @@
-import { RoleId } from '../../models/roles';
+import { RoleId } from '../../../models/roles';
 
 // Mock logger
 const mockAudioLogWarn = jest.fn();
-jest.mock('../../utils/logger', () => ({
+jest.mock('../../../utils/logger', () => ({
   audioLog: {
     warn: (msg: string, ...args: unknown[]) => mockAudioLogWarn(msg, ...args),
     info: jest.fn(),
@@ -28,53 +28,53 @@ jest.mock('expo-audio', () => ({
 }));
 
 // Mock all audio file requires before importing AudioService
-jest.mock('../../../assets/audio/slacker.mp3', () => 'slacker-audio', { virtual: true });
-jest.mock('../../../assets/audio/wolf_robot.mp3', () => 'wolf_robot-audio', { virtual: true });
-jest.mock('../../../assets/audio/magician.mp3', () => 'magician-audio', { virtual: true });
-jest.mock('../../../assets/audio/dreamcatcher.mp3', () => 'dreamcatcher-audio', { virtual: true });
-jest.mock('../../../assets/audio/gargoyle.mp3', () => 'gargoyle-audio', { virtual: true });
-jest.mock('../../../assets/audio/nightmare.mp3', () => 'nightmare-audio', { virtual: true });
-jest.mock('../../../assets/audio/guard.mp3', () => 'guard-audio', { virtual: true });
-jest.mock('../../../assets/audio/wolf.mp3', () => 'wolf-audio', { virtual: true });
-jest.mock('../../../assets/audio/wolf_queen.mp3', () => 'wolf_queen-audio', { virtual: true });
-jest.mock('../../../assets/audio/witch.mp3', () => 'witch-audio', { virtual: true });
-jest.mock('../../../assets/audio/seer.mp3', () => 'seer-audio', { virtual: true });
-jest.mock('../../../assets/audio/psychic.mp3', () => 'psychic-audio', { virtual: true });
-jest.mock('../../../assets/audio/hunter.mp3', () => 'hunter-audio', { virtual: true });
-jest.mock('../../../assets/audio/dark_wolf_king.mp3', () => 'dark_wolf_king-audio', {
+jest.mock('../../../../assets/audio/slacker.mp3', () => 'slacker-audio', { virtual: true });
+jest.mock('../../../../assets/audio/wolf_robot.mp3', () => 'wolf_robot-audio', { virtual: true });
+jest.mock('../../../../assets/audio/magician.mp3', () => 'magician-audio', { virtual: true });
+jest.mock('../../../../assets/audio/dreamcatcher.mp3', () => 'dreamcatcher-audio', { virtual: true });
+jest.mock('../../../../assets/audio/gargoyle.mp3', () => 'gargoyle-audio', { virtual: true });
+jest.mock('../../../../assets/audio/nightmare.mp3', () => 'nightmare-audio', { virtual: true });
+jest.mock('../../../../assets/audio/guard.mp3', () => 'guard-audio', { virtual: true });
+jest.mock('../../../../assets/audio/wolf.mp3', () => 'wolf-audio', { virtual: true });
+jest.mock('../../../../assets/audio/wolf_queen.mp3', () => 'wolf_queen-audio', { virtual: true });
+jest.mock('../../../../assets/audio/witch.mp3', () => 'witch-audio', { virtual: true });
+jest.mock('../../../../assets/audio/seer.mp3', () => 'seer-audio', { virtual: true });
+jest.mock('../../../../assets/audio/psychic.mp3', () => 'psychic-audio', { virtual: true });
+jest.mock('../../../../assets/audio/hunter.mp3', () => 'hunter-audio', { virtual: true });
+jest.mock('../../../../assets/audio/dark_wolf_king.mp3', () => 'dark_wolf_king-audio', {
   virtual: true,
 });
-jest.mock('../../../assets/audio/night.mp3', () => 'night-audio', { virtual: true });
-jest.mock('../../../assets/audio/night_end.mp3', () => 'night_end-audio', { virtual: true });
+jest.mock('../../../../assets/audio/night.mp3', () => 'night-audio', { virtual: true });
+jest.mock('../../../../assets/audio/night_end.mp3', () => 'night_end-audio', { virtual: true });
 
 // Mock ending audio files
-jest.mock('../../../assets/audio_end/slacker.mp3', () => 'slacker-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/wolf_robot.mp3', () => 'wolf_robot-end-audio', {
+jest.mock('../../../../assets/audio_end/slacker.mp3', () => 'slacker-end-audio', { virtual: true });
+jest.mock('../../../../assets/audio_end/wolf_robot.mp3', () => 'wolf_robot-end-audio', {
   virtual: true,
 });
-jest.mock('../../../assets/audio_end/magician.mp3', () => 'magician-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/dreamcatcher.mp3', () => 'dreamcatcher-end-audio', {
+jest.mock('../../../../assets/audio_end/magician.mp3', () => 'magician-end-audio', { virtual: true });
+jest.mock('../../../../assets/audio_end/dreamcatcher.mp3', () => 'dreamcatcher-end-audio', {
   virtual: true,
 });
-jest.mock('../../../assets/audio_end/gargoyle.mp3', () => 'gargoyle-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/nightmare.mp3', () => 'nightmare-end-audio', {
+jest.mock('../../../../assets/audio_end/gargoyle.mp3', () => 'gargoyle-end-audio', { virtual: true });
+jest.mock('../../../../assets/audio_end/nightmare.mp3', () => 'nightmare-end-audio', {
   virtual: true,
 });
-jest.mock('../../../assets/audio_end/guard.mp3', () => 'guard-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/wolf.mp3', () => 'wolf-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/wolf_queen.mp3', () => 'wolf_queen-end-audio', {
+jest.mock('../../../../assets/audio_end/guard.mp3', () => 'guard-end-audio', { virtual: true });
+jest.mock('../../../../assets/audio_end/wolf.mp3', () => 'wolf-end-audio', { virtual: true });
+jest.mock('../../../../assets/audio_end/wolf_queen.mp3', () => 'wolf_queen-end-audio', {
   virtual: true,
 });
-jest.mock('../../../assets/audio_end/witch.mp3', () => 'witch-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/seer.mp3', () => 'seer-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/psychic.mp3', () => 'psychic-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/hunter.mp3', () => 'hunter-end-audio', { virtual: true });
-jest.mock('../../../assets/audio_end/dark_wolf_king.mp3', () => 'dark_wolf_king-end-audio', {
+jest.mock('../../../../assets/audio_end/witch.mp3', () => 'witch-end-audio', { virtual: true });
+jest.mock('../../../../assets/audio_end/seer.mp3', () => 'seer-end-audio', { virtual: true });
+jest.mock('../../../../assets/audio_end/psychic.mp3', () => 'psychic-end-audio', { virtual: true });
+jest.mock('../../../../assets/audio_end/hunter.mp3', () => 'hunter-end-audio', { virtual: true });
+jest.mock('../../../../assets/audio_end/dark_wolf_king.mp3', () => 'dark_wolf_king-end-audio', {
   virtual: true,
 });
 
 // Now import AudioService after mocks are set up
-import AudioService from '../infra/AudioService';
+import AudioService from '../AudioService';
 
 describe('AudioService - Singleton', () => {
   beforeEach(() => {

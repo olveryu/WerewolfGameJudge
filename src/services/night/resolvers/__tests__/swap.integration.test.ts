@@ -17,7 +17,7 @@ import { seerCheckResolver } from '../seer';
 import { psychicCheckResolver } from '../psychic';
 import { gargoyleCheckResolver } from '../gargoyle';
 import { wolfRobotLearnResolver } from '../wolfRobot';
-import { calculateDeaths } from '../../../DeathCalculator';
+import { calculateDeaths } from '../../../engine/DeathCalculator';
 import type { ResolverContext, ActionInput, CurrentNightResults } from '../types';
 import type { RoleId } from '../../../../models/roles/spec/specs';
 
