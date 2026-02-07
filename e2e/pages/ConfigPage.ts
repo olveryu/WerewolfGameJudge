@@ -165,30 +165,47 @@ export class ConfigPage {
 
   /**
    * Disable role reveal animation so E2E tests see the static "我知道了" card.
-   * Opens gear → clicks animation dropdown → selects "⚡ 无动画" → closes settings.
+   *
+   * Uses stable testID selectors only (no text/position/coordinate hacks):
+   * - `config-gear-btn` → open settings sheet
+   * - `config-animation` → open animation dropdown
+   * - `config-animation-option-none` → select "无动画"
+   * - `config-settings-overlay` → close settings sheet
    */
   async setAnimationNone() {
     // Open settings sheet
     const gearBtn = this.page.locator('[data-testid="config-gear-btn"]');
     await gearBtn.waitFor({ state: 'visible', timeout: 3000 });
     await gearBtn.click();
-    // Wait for animation dropdown to be visible (it's inside the settings sheet)
-    await expect(this.page.getByText('动画')).toBeVisible({ timeout: 3000 });
+    await this.page.waitForTimeout(200);
 
-    // Click the animation dropdown trigger (shows "▼" arrow)
-    const animTrigger = this.page.getByText('▼').first();
+    // Open the animation dropdown (testID on the trigger button)
+    const animTrigger = this.page.locator('[data-testid="config-animation"]');
+    await animTrigger.waitFor({ state: 'visible', timeout: 3000 });
     await animTrigger.click();
     await this.page.waitForTimeout(200);
 
-    // Select "⚡ 无动画" in the opened dropdown modal
-    const noneOption = this.page.getByText('⚡ 无动画');
-    await expect(noneOption).toBeVisible({ timeout: 3000 });
+    // Select "无动画" option (testID="config-animation-option-none")
+    const noneOption = this.page.locator('[data-testid="config-animation-option-none"]');
+    await noneOption.waitFor({ state: 'visible', timeout: 3000 });
     await noneOption.click();
+    // Wait for the dropdown modal to close
+    await noneOption.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
     await this.page.waitForTimeout(200);
 
-    // Close settings sheet — click on overlay area (top of screen, outside content)
-    await this.page.mouse.click(10, 10);
-    await this.page.waitForTimeout(200);
+    // Close settings sheet by clicking the overlay backdrop.
+    //
+    // Why NOT `page.keyboard.press('Escape')`?
+    // React Native Web's Modal `onRequestClose` does not reliably fire on
+    // Escape in Playwright/Chromium — the key event can be swallowed by the
+    // underlying RN focus system, leaving the sheet open while subsequent
+    // interactions (role chip deselection) happen *behind* the modal.
+    // Clicking the overlay testID at an edge position is the stable path.
+    const overlay = this.page.locator('[data-testid="config-settings-overlay"]');
+    // Click the very edge of the overlay (which is outside the settings content)
+    // Use force:true because the content may obscure part of the overlay
+    await overlay.click({ position: { x: 5, y: 5 }, force: true });
+    await this.page.waitForTimeout(300);
   }
 
   // ---------------------------------------------------------------------------

@@ -619,6 +619,7 @@ export const ConfigScreen: React.FC = () => {
           style={styles.settingsSheetOverlay}
           activeOpacity={1}
           onPress={handleCloseSettings}
+          testID="config-settings-overlay"
         >
           <View style={styles.settingsSheetContent}>
             <View style={styles.settingsSheetHandle} />
@@ -630,6 +631,7 @@ export const ConfigScreen: React.FC = () => {
                 options={animationOptions}
                 onSelect={handleAnimationChange}
                 styles={styles}
+                testID="config-animation"
               />
               <Dropdown
                 label="BGM"
@@ -637,6 +639,7 @@ export const ConfigScreen: React.FC = () => {
                 options={bgmOptions}
                 onSelect={handleBgmChange}
                 styles={styles}
+                testID="config-bgm"
               />
             </View>
           </View>

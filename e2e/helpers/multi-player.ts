@@ -42,21 +42,32 @@ export interface GameSetupResult {
 // Presence stabilization
 // ---------------------------------------------------------------------------
 
+/** Max poll attempts before hard-failing. Total timeout ≈ PRESENCE_MAX_ATTEMPTS × PRESENCE_INTERVAL_MS. */
+const PRESENCE_MAX_ATTEMPTS = 30;
+/** Interval between poll attempts (ms). */
+const PRESENCE_INTERVAL_MS = 500;
+
 /**
- * Wait for all joiner presence to be reflected on the host page.
- * Polls for "准备看牌" button visibility (only visible when all seats filled).
+ * Hard gate: Wait for all joiner presence to be reflected on the host page.
+ *
+ * Polls for "准备看牌" button visibility (only appears when all seats are filled).
+ * Throws with diagnostic info if presence does not stabilize within the timeout.
+ *
+ * @param hostPage - The host's Playwright page
+ * @param joinerPages - All joiner pages (used for keep-alive pings)
+ * @param roomCode - Room code for diagnostic messages
  */
 async function waitForPresenceStable(
   hostPage: Page,
   joinerPages: Page[],
-  maxAttempts = 10,
+  roomCode: string,
 ): Promise<void> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // Ping joiner pages to keep connections alive
+  for (let attempt = 1; attempt <= PRESENCE_MAX_ATTEMPTS; attempt++) {
+    // Ping joiner pages to keep WebSocket connections alive
     for (const joinerPage of joinerPages) {
       await joinerPage.locator('body').count();
     }
-    await hostPage.waitForTimeout(200);
+    await hostPage.waitForTimeout(PRESENCE_INTERVAL_MS);
 
     const isPrepareVisible = await hostPage
       .getByText('准备看牌')
@@ -64,7 +75,28 @@ async function waitForPresenceStable(
       .catch(() => false);
     if (isPrepareVisible) return;
   }
-  // Not a hard failure — the button may just take a moment
+
+  // Hard fail: collect diagnostics for debugging
+  const visibleTexts: string[] = [];
+  for (const text of ['准备看牌', '等待玩家', '开始游戏']) {
+    const visible = await hostPage
+      .getByText(text)
+      .isVisible()
+      .catch(() => false);
+    if (visible) visibleTexts.push(text);
+  }
+  const seatCount = await hostPage
+    .locator('[data-testid^="seat-tile-"]')
+    .count()
+    .catch(() => -1);
+
+  throw new Error(
+    `waitForPresenceStable FAILED after ${PRESENCE_MAX_ATTEMPTS} attempts (room=${roomCode}). ` +
+      `Expected ${joinerPages.length + 1} players seated. ` +
+      `Visible seat tiles: ${seatCount}. ` +
+      `Visible UI texts: [${visibleTexts.join(', ')}]. ` +
+      `"准备看牌" button never appeared — presence not stable.`,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -150,7 +182,7 @@ export async function setupNPlayerGame(
   }
 
   // Step 4: Presence stabilization
-  await waitForPresenceStable(hostPage, joinerPages);
+  await waitForPresenceStable(hostPage, joinerPages, roomNumber);
 
   // Step 5: Prepare roles
   const hostRoom = new RoomPage(hostPage);

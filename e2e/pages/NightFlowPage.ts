@@ -33,40 +33,81 @@ interface NightFlowResult {
 // Constants
 // ---------------------------------------------------------------------------
 
-const NIGHT_END_KEYWORDS = ['平安夜', '玩家死亡', '昨天晚上', '查看昨晚信息'];
+/**
+ * Chinese UI text constants used for night flow detection.
+ *
+ * Centralised here so i18n changes only need one update.
+ * Sources: RoomScreen action messages, AlertModal titles,
+ * NightProgressIndicator, and death result banners.
+ */
+const UI_TEXT = {
+  /** Texts that signal the night phase has ended */
+  nightEnd: ['平安夜', '玩家死亡', '昨天晚上', '查看昨晚信息'] as const,
 
-const ROLE_TURN_KEYWORDS = [
-  '请睁眼',
-  '请行动',
-  '狼人',
-  '预言家',
-  '女巫',
-  '守卫',
-  '猎人',
-  '请选择',
-  '请选择猎杀对象',
-  '请选择查验对象',
-];
+  /** Texts indicating a role's turn is active */
+  roleTurn: [
+    '请睁眼',
+    '请行动',
+    '狼人',
+    '预言家',
+    '女巫',
+    '守卫',
+    '猎人',
+    '请选择',
+    '请选择猎杀对象',
+    '请选择查验对象',
+  ] as const,
 
-const ADVANCE_BUTTONS = ['知道了', '确定', '不使用技能', '投票空刀', '查看发动状态'];
+  /** Button labels that advance the night flow */
+  advanceButtons: ['知道了', '确定', '不使用技能', '投票空刀', '查看发动状态'] as const,
 
+  /** Action message patterns indicating a seat-target selection is needed */
+  targetSelection: [
+    '请选择要猎杀的玩家',
+    '请选择猎杀对象',
+    '请选择查验对象',
+    '请选择守护对象',
+    '请选择救人',
+    '请选择毒杀',
+    '请选择使用解药',
+    '如要使用毒药，请点击座位。',
+    '点击选择',
+    '选择目标',
+  ] as const,
+
+  /**
+   * Wolf vote confirm AlertModal title (data-testid="alert-title").
+   *
+   * Reliability note: we detect the wolf vote confirm dialog by its *title*
+   * (`alertTitle === '狼人投票'`) rather than by the button text ('确定'),
+   * because '确定' also appears in non-wolf-vote alerts (e.g. action prompts).
+   * The title is rendered via a dedicated `alert-title` testID inside
+   * `AlertModal`, which is stable across layouts.
+   */
+  wolfVoteConfirmTitle: '狼人投票',
+} as const;
+
+/** Regex pattern for wolf vote progress (e.g. "1/2 狼人已投票"). */
 const VOTE_COUNT_PATTERN = String.raw`\d+/\d+ 狼人已投票`;
-
-const TARGET_SELECTION_PATTERNS = [
-  '请选择要猎杀的玩家',
-  '请选择猎杀对象',
-  '请选择查验对象',
-  '请选择守护对象',
-  '请选择救人',
-  '请选择毒杀',
-  '请选择使用解药',
-  '如要使用毒药，请点击座位。',
-  '点击选择',
-  '选择目标',
-];
 
 const WOLF_VOTE_STUCK_THRESHOLD = 8;
 const NO_PROGRESS_THRESHOLD = 35;
+
+// ---------------------------------------------------------------------------
+// Logging control
+// ---------------------------------------------------------------------------
+
+/** Module-level verbose flag. Set via `setNightFlowVerbose(true)` before calling `runNightFlowLoop`. */
+let _verbose = false;
+
+/** Enable or disable verbose iteration logging for NightFlowPage. Default: quiet. */
+export function setNightFlowVerbose(on: boolean): void {
+  _verbose = on;
+}
+
+function nightLog(msg: string): void {
+  if (_verbose) console.log(msg);
+}
 
 // ---------------------------------------------------------------------------
 // Low-level helpers
@@ -97,7 +138,13 @@ async function getMySeatIndex(page: Page): Promise<number | null> {
 
   for (let i = 0; i < 12; i++) {
     const tile = page.locator(`[data-testid="seat-tile-${i}"]`);
-    if (await tile.locator('text="我"').isVisible({ timeout: 100 }).catch(() => false)) return i;
+    if (
+      await tile
+        .locator('text="我"')
+        .isVisible({ timeout: 100 })
+        .catch(() => false)
+    )
+      return i;
   }
   return null;
 }
@@ -117,7 +164,7 @@ function getSeatTileLocator(page: Page, seatIndex: number) {
 }
 
 async function isNightEnded(page: Page): Promise<boolean> {
-  for (const kw of NIGHT_END_KEYWORDS) {
+  for (const kw of UI_TEXT.nightEnd) {
     if (await isTextVisible(page, kw)) return true;
   }
   return false;
@@ -206,7 +253,7 @@ async function executeAction(
     return false;
   }
 
-  console.log(`[NightFlow] ${pageLabel}: executeAction clicking "${buttonText}"`);
+  nightLog(`[NightFlow] ${pageLabel}: executeAction clicking "${buttonText}"`);
   // Strategy: try within bottom-action-panel first (for buttons like 投票空刀),
   // then try page-level getByText.
   // RN Web renders Text as <div>, so locator('text=') may not work with exact match.
@@ -227,7 +274,9 @@ async function executeAction(
   if (!clicked) {
     // Diagnostic: dump bottom-action-panel inner HTML to understand DOM structure
     const panelHtml = await panel.innerHTML().catch(() => 'N/A');
-    console.log(`[NightFlow] ${pageLabel}: could not click "${buttonText}". Panel HTML: ${panelHtml.slice(0, 500)}`);
+    nightLog(
+      `[NightFlow] ${pageLabel}: could not click "${buttonText}". Panel HTML: ${panelHtml.slice(0, 500)}`,
+    );
     return false;
   }
   return handlePostClick(page, buttonText, state, pageLabel);
@@ -253,7 +302,7 @@ async function tryConfirmSeatViaAlert(
   if (alertAppeared) {
     const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
     if (await confirmBtn.isVisible({ timeout: 500 }).catch(() => false)) {
-      console.log(`[NightFlow] ${pageLabel}: confirming seat-${seatIdx} selection`);
+      nightLog(`[NightFlow] ${pageLabel}: confirming seat-${seatIdx} selection`);
       await confirmBtn.click({ force: true });
       await alertModal.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
       if (isWolfVote) state.wolfVotedPages.add(pageLabel);
@@ -291,7 +340,7 @@ async function attemptSeatSelection(
       const tile = getSeatTileLocator(page, idx);
       if (!(await tile.isVisible({ timeout: 100 }).catch(() => false))) continue;
 
-      console.log(`[NightFlow] ${pageLabel}: clicking seat-${idx} (mySeat=${mySeat})`);
+      nightLog(`[NightFlow] ${pageLabel}: clicking seat-${idx} (mySeat=${mySeat})`);
       await tile.click({ force: true, timeout: 3000 });
 
       const confirmed = await tryConfirmSeatViaAlert(page, pageLabel, idx, isWolfVote, state);
@@ -312,18 +361,20 @@ async function tryClickSeatTarget(
   if (!(await actionMsgLocator.isVisible({ timeout: 100 }).catch(() => false))) return false;
 
   const text = (await actionMsgLocator.textContent().catch(() => '')) ?? '';
-  if (!TARGET_SELECTION_PATTERNS.some((p) => text.includes(p))) return false;
+  if (!UI_TEXT.targetSelection.some((p) => text.includes(p))) return false;
 
   const isWolfVote = text.includes('猎杀') || text.includes('狼人已投票');
   if (isWolfVote && state.wolfVotedPages.has(pageLabel)) return false;
 
   const mySeat = await getMySeatIndex(page);
   if (mySeat === null) {
-    console.log(`[NightFlow] ${pageLabel}: target pattern matched but mySeat is null`);
+    nightLog(`[NightFlow] ${pageLabel}: target pattern matched but mySeat is null`);
     return false;
   }
 
-  console.log(`[NightFlow] ${pageLabel}: attempting seat selection (isWolfVote=${isWolfVote}, mySeat=${mySeat})`);
+  nightLog(
+    `[NightFlow] ${pageLabel}: attempting seat selection (isWolfVote=${isWolfVote}, mySeat=${mySeat})`,
+  );
   return attemptSeatSelection(page, mySeat, isWolfVote, state, pageLabel);
 }
 
@@ -332,7 +383,7 @@ async function tryClickSeatTarget(
 // ---------------------------------------------------------------------------
 
 async function detectRoleTurns(page: Page, turnLog: string[]): Promise<void> {
-  for (const keyword of ROLE_TURN_KEYWORDS) {
+  for (const keyword of UI_TEXT.roleTurn) {
     if (!(await isTextVisible(page, keyword))) continue;
     const text =
       (await page
@@ -355,16 +406,22 @@ async function tryAdvanceNight(
   const hasAlert = await alertModal.isVisible({ timeout: 200 }).catch(() => false);
   if (hasAlert) {
     // Use the alert TITLE (testid="alert-title") to detect wolf vote confirm.
-    // Wolf vote confirm dialog title is exactly '狼人投票'.
-    // Action prompts have title '行动提示' or other titles.
-    const alertTitle = (await alertModal.locator('[data-testid="alert-title"]').textContent().catch(() => '')) ?? '';
-    const isWolfVoteConfirm = alertTitle === '狼人投票';
+    // See UI_TEXT.wolfVoteConfirmTitle for rationale on why title-based detection
+    // is more reliable than button-text matching.
+    const alertTitle =
+      (await alertModal
+        .locator('[data-testid="alert-title"]')
+        .textContent()
+        .catch(() => '')) ?? '';
+    const isWolfVoteConfirm = alertTitle === UI_TEXT.wolfVoteConfirmTitle;
 
     // Find and click any button in the alert
-    for (const text of ADVANCE_BUTTONS) {
+    for (const text of UI_TEXT.advanceButtons) {
       const btn = alertModal.getByText(text, { exact: true }).first();
       if (await btn.isVisible({ timeout: 100 }).catch(() => false)) {
-        console.log(`[NightFlow] ${pageLabel}: alert title="${alertTitle}" clicking "${text}" (isWolfVoteConfirm=${isWolfVoteConfirm})`);
+        nightLog(
+          `[NightFlow] ${pageLabel}: alert title="${alertTitle}" clicking "${text}" (isWolfVoteConfirm=${isWolfVoteConfirm})`,
+        );
         await btn.click({ force: true });
         await alertModal.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
         // Track wolf vote ONLY if this was the wolf vote confirm dialog ('狼人投票')
@@ -380,7 +437,7 @@ async function tryAdvanceNight(
   await detectRoleTurns(page, turnLog);
 
   // 2. Check advance buttons outside alerts (exact match to avoid false positives)
-  for (const text of ADVANCE_BUTTONS) {
+  for (const text of UI_TEXT.advanceButtons) {
     if (await isTextVisible(page, text, true)) {
       return executeAction(page, text, state, pageLabel);
     }
@@ -472,7 +529,10 @@ async function maybeTakeAllScreenshots(
   if (iter % interval !== 0) return;
   for (let i = 0; i < pages.length; i++) {
     const shot = await pages[i].screenshot();
-    await testInfo.attach(`night-iter-${iter}-page-${i}.png`, { body: shot, contentType: 'image/png' });
+    await testInfo.attach(`night-iter-${iter}-page-${i}.png`, {
+      body: shot,
+      contentType: 'image/png',
+    });
   }
 }
 
@@ -489,17 +549,23 @@ async function tryAdvanceAnyPage(
         new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 10_000)),
       ]);
       if (advanced) {
-        console.log(`[NightFlow] Advanced on page-${i}`);
+        nightLog(`[NightFlow] Advanced on page-${i}`);
         return true;
       }
     } catch (e) {
-      console.log(`[NightFlow] ERROR on page-${i}: ${e instanceof Error ? e.message : String(e)}`);
+      console.error(
+        `[NightFlow] ERROR on page-${i}: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
   }
   return false;
 }
 
-async function assertProgress(pages: Page[], advanced: boolean, state: NightFlowState): Promise<void> {
+async function assertProgress(
+  pages: Page[],
+  advanced: boolean,
+  state: NightFlowState,
+): Promise<void> {
   // Check action messages across ALL pages, not just primary
   const msgs: string[] = [];
   for (const p of pages) {
@@ -529,7 +595,7 @@ async function logIterationState(
     const msg = await getActionMessageText(pages[p]);
     if (msg) actionMsgs.push(`p${p}="${msg.replaceAll('\n', ' ').slice(0, 60)}"`);
   }
-  console.log(
+  nightLog(
     `[NightFlow] iter=${iter} adv=${advanced} noP=${state.noProgressIterations} wVoted=[${Array.from(state.wolfVotedPages)}] msgs=[${actionMsgs.join(', ')}]`,
   );
 }
@@ -545,9 +611,10 @@ async function logIterationState(
 export async function runNightFlowLoop(
   pages: Page[],
   testInfo: TestInfo,
-  opts: { maxIterations?: number; screenshotInterval?: number } = {},
+  opts: { maxIterations?: number; screenshotInterval?: number; verbose?: boolean } = {},
 ): Promise<NightFlowResult> {
-  const { maxIterations = 50, screenshotInterval = 5 } = opts;
+  const { maxIterations = 50, screenshotInterval = 5, verbose = false } = opts;
+  _verbose = verbose;
   const turnLog: string[] = [];
   const primaryPage = pages[0];
   const state = createInitialState();
@@ -570,5 +637,7 @@ export async function runNightFlowLoop(
   }
 
   const diag = await captureDiagnostics(primaryPage, state);
-  throw new Error(`FAIL-FAST: Night did not complete after ${maxIterations} iters. ${JSON.stringify(diag)}`);
+  throw new Error(
+    `FAIL-FAST: Night did not complete after ${maxIterations} iters. ${JSON.stringify(diag)}`,
+  );
 }
