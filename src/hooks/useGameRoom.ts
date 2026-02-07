@@ -4,6 +4,11 @@
  * This hook combines:
  * - GameFacade (via useGameFacade) for all game operations
  * - SimplifiedRoomService (for DB)
+ * - Sub-hooks for focused concerns:
+ *   - useNightDerived: pure derivations for night phase UI
+ *   - useConnectionSync: connection status + Player auto-recovery
+ *   - useBgmControl: BGM state management
+ *   - useDebugMode: debug bot control
  *
  * Host device is the Single Source of Truth for all game state.
  */
@@ -12,27 +17,22 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { LocalGameState } from '../services/types/GameStateTypes';
 import { GameStatus } from '../models/GameStatus';
 import { SimplifiedRoomService, RoomRecord } from '../services/infra/RoomService';
-import { BroadcastService, type ConnectionStatus } from '../services/transport/BroadcastService';
+import type { ConnectionStatus } from '../services/transport/BroadcastService';
 import { AuthService } from '../services/infra/AuthService';
 import { GameTemplate } from '../models/Template';
-import { RoleId, buildNightPlan } from '../models/roles';
-import {
-  isValidRoleId,
-  getRoleSpec,
-  getSchema,
-  type ActionSchema,
-  type SchemaId,
-  getStepsByRoleStrict,
-} from '../models/roles/spec';
+import { RoleId } from '../models/roles';
+import type { ActionSchema, SchemaId } from '../models/roles/spec';
 import { gameRoomLog } from '../utils/logger';
 import { useGameFacade } from '../contexts';
 import { broadcastToLocalState } from './adapters/broadcastToLocalState';
-import SettingsService from '../services/infra/SettingsService';
 import type {
   RoleRevealAnimation,
   ResolvedRoleRevealAnimation,
 } from '../services/types/RoleRevealAnimation';
-import AudioService from '../services/infra/AudioService';
+import { useNightDerived } from './useNightDerived';
+import { useConnectionSync } from './useConnectionSync';
+import { useBgmControl } from './useBgmControl';
+import { useDebugMode } from './useDebugMode';
 
 export interface UseGameRoomResult {
   // Room info
@@ -162,38 +162,24 @@ export const useGameRoom = (): UseGameRoomResult => {
     null,
   );
 
-  // Connection status
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
-  const [stateRevision, setStateRevision] = useState(0);
-
-  // Debug mode: controlled seat (Host takes over a bot seat for testing)
-  const [controlledSeat, setControlledSeat] = useState<number | null>(null);
-
-  // Sync status for Player reconnection
-  const [lastStateReceivedAt, setLastStateReceivedAt] = useState<number | null>(null);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Throttle: only request once per live session (reset when state is received)
-  const hasRequestedInSessionRef = useRef<boolean>(false);
-
-  // BGM state
-  const [isBgmEnabled, setIsBgmEnabled] = useState(true);
-  const settingsService = useRef(SettingsService.getInstance());
-  const audioService = useRef(AudioService.getInstance());
-
   const roomService = useRef(SimplifiedRoomService.getInstance());
   const authService = useRef(AuthService.getInstance());
-  const broadcastService = useRef(BroadcastService.getInstance());
 
   // =========================================================================
-  // Load settings on mount
+  // Sub-hooks: focused concerns extracted for SRP
   // =========================================================================
-  useEffect(() => {
-    const loadSettings = async () => {
-      await settingsService.current.load();
-      setIsBgmEnabled(settingsService.current.isBgmEnabled());
-    };
-    void loadSettings();
-  }, []);
+
+  // Connection status + Player auto-recovery
+  const connection = useConnectionSync(facade, isHost, roomRecord);
+
+  // BGM state management
+  const bgm = useBgmControl(isHost, gameState?.status ?? null);
+
+  // Debug mode: bot control
+  const debug = useDebugMode(facade, isHost, mySeatNumber, gameState);
+
+  // Night-phase derived values (pure computation)
+  const nightDerived = useNightDerived(gameState);
 
   // =========================================================================
   // Phase 1A: 订阅 facade state（转换为 LocalGameState）
@@ -212,82 +198,20 @@ export const useGameRoom = (): UseGameRoomResult => {
         setIsHost(facade.isHostPlayer());
         setMyUid(facade.getMyUid());
         setMySeatNumber(facade.getMySeatNumber());
-        setStateRevision(facade.getStateRevision());
-        // 更新 lastStateReceivedAt（Player 同步状态追踪）
-        setLastStateReceivedAt(Date.now());
-        // 重置 throttle flag（收到状态后允许下次 auto-recovery）
-        hasRequestedInSessionRef.current = false;
-        // 清除 reconnect timer（收到新状态说明同步成功）
-        if (reconnectTimerRef.current) {
-          clearTimeout(reconnectTimerRef.current);
-          reconnectTimerRef.current = null;
-        }
+        connection.setStateRevision(facade.getStateRevision());
+        // Notify connection sync (resets throttle + clears timer)
+        connection.onStateReceived();
       } else {
         setGameState(null);
         setIsHost(false);
         setMyUid(null);
         setMySeatNumber(null);
-        setStateRevision(0);
-        setLastStateReceivedAt(null);
+        connection.setStateRevision(0);
+        connection.setLastStateReceivedAt(null);
       }
     });
     return unsubscribe;
-  }, [facade]);
-
-  // =========================================================================
-  // BGM control: Stop BGM when game ends (Host only)
-  // =========================================================================
-  const prevStatusRef = useRef<GameStatus | null>(null);
-  useEffect(() => {
-    if (!isHost) return;
-    const currentStatus = gameState?.status ?? null;
-    const prevStatus = prevStatusRef.current;
-    prevStatusRef.current = currentStatus;
-
-    // Stop BGM when transitioning from ongoing to ended
-    if (prevStatus === GameStatus.ongoing && currentStatus === GameStatus.ended) {
-      audioService.current.stopBgm();
-    }
-  }, [isHost, gameState?.status]);
-
-  // Subscribe to connection status changes
-  useEffect(() => {
-    const unsubscribe = broadcastService.current.addStatusListener((status) => {
-      setConnectionStatus(status);
-    });
-    return unsubscribe;
-  }, []);
-
-  // Player 自动恢复：断线重连后自动请求状态
-  // Throttle: 只在同一 live session 中请求一次（收到 STATE_UPDATE 后重置）
-  useEffect(() => {
-    // 只有 Player 需要自动恢复（Host 是权威）
-    if (isHost) return;
-    // 只在连接恢复时触发
-    if (connectionStatus !== 'live') return;
-    // 如果没有 roomRecord，说明还没加入房间
-    if (!roomRecord) return;
-    // Throttle: 已经请求过，跳过（避免 REQUEST_STATE spam）
-    if (hasRequestedInSessionRef.current) {
-      gameRoomLog.debug('Player auto-recovery: already requested in this session, skipping');
-      return;
-    }
-
-    // 启动定时器：如果 2 秒内没有收到 STATE_UPDATE，主动请求
-    reconnectTimerRef.current = setTimeout(() => {
-      if (hasRequestedInSessionRef.current) return; // 双重保险
-      hasRequestedInSessionRef.current = true;
-      gameRoomLog.debug('Player auto-recovery: requesting state after reconnect');
-      void facade.requestSnapshot();
-    }, 2000);
-
-    return () => {
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
-        reconnectTimerRef.current = null;
-      }
-    };
-  }, [connectionStatus, isHost, roomRecord, facade]);
+  }, [facade, connection]);
 
   // Derive myRole from gameState
   const myRole = useMemo(() => {
@@ -295,79 +219,10 @@ export const useGameRoom = (): UseGameRoomResult => {
     return gameState.players.get(mySeatNumber)?.role ?? null;
   }, [gameState, mySeatNumber]);
 
-  // Debug mode: effectiveSeat = controlledSeat ?? mySeatNumber
-  // When Host controls a bot seat, effectiveSeat is the bot's seat
-  const effectiveSeat = useMemo(() => {
-    return controlledSeat ?? mySeatNumber;
-  }, [controlledSeat, mySeatNumber]);
-
-  // Debug mode: effectiveRole = role of effectiveSeat
-  const effectiveRole = useMemo(() => {
-    if (effectiveSeat === null || !gameState) return null;
-    return gameState.players.get(effectiveSeat)?.role ?? null;
-  }, [gameState, effectiveSeat]);
-
-  // Debug mode: check if botsEnabled
-  const isDebugMode = useMemo(() => {
-    return gameState?.debugMode?.botsEnabled === true;
-  }, [gameState]);
-
-  // GameStatus is now an alias for GameStatus (Phase 5)
+  // GameStatus
   const roomStatus = useMemo((): GameStatus => {
     if (!gameState) return GameStatus.unseated;
     return gameState.status;
-  }, [gameState]);
-
-  // Current action role - only valid when game is ongoing (night phase)
-  // Phase 5: actionOrder removed from template, now derived from NightPlan
-  const currentActionRole = useMemo((): RoleId | null => {
-    if (!gameState) return null;
-    // Only return action role when game is in progress
-    if (gameState.status !== GameStatus.ongoing) return null;
-    // Derive action order dynamically from template.roles via NightPlan
-    const nightPlan = buildNightPlan(gameState.template.roles);
-    if (gameState.currentActionerIndex >= nightPlan.steps.length) return null;
-    return nightPlan.steps[gameState.currentActionerIndex].roleId;
-  }, [gameState]);
-
-  // Schema-driven UI (Phase 3): derive schemaId from currentActionRole locally
-  // No broadcast needed - schema is derived from local spec
-  const currentSchemaId = useMemo((): SchemaId | null => {
-    if (!currentActionRole) return null;
-    if (!isValidRoleId(currentActionRole)) return null;
-    const spec = getRoleSpec(currentActionRole);
-    if (!spec.night1.hasAction) return null;
-    // M3: schemaId is derived from NIGHT_STEPS single source of truth.
-    // Current assumption (locked by contract tests): each role has at most one NightStep.
-    const [step] = getStepsByRoleStrict(currentActionRole);
-    return step?.id ?? null; // step.id is the schemaId
-  }, [currentActionRole]);
-
-  // Schema-driven UI (Phase 3): derive full schema from schemaId
-  const currentSchema = useMemo((): ActionSchema | null => {
-    if (!currentSchemaId) return null;
-    return getSchema(currentSchemaId);
-  }, [currentSchemaId]);
-
-  // Authoritative stepId from Host ROLE_TURN (UI-only)
-  const currentStepId = useMemo((): SchemaId | null => {
-    return gameState?.currentStepId ?? null;
-  }, [gameState]);
-
-  // Check if audio is currently playing
-  const isAudioPlaying = useMemo((): boolean => {
-    return gameState?.isAudioPlaying ?? false;
-  }, [gameState]);
-
-  // Role reveal animation (Host controlled, all players use)
-  const roleRevealAnimation = useMemo((): RoleRevealAnimation => {
-    return gameState?.roleRevealAnimation ?? 'random';
-  }, [gameState]);
-
-  // Resolved animation (for UI rendering - never 'random')
-  const resolvedRoleRevealAnimation = useMemo((): ResolvedRoleRevealAnimation => {
-    // 'random' fallback 时返回 'roulette'（实际上 Host 会解析 random）
-    return gameState?.resolvedRoleRevealAnimation ?? 'roulette';
   }, [gameState]);
 
   // =========================================================================
@@ -554,20 +409,20 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Request snapshot from host (force sync)
   const requestSnapshot = useCallback(async (): Promise<boolean> => {
     try {
-      setConnectionStatus('syncing');
+      connection.setConnectionStatus('syncing');
       const result = await facade.requestSnapshot();
       if (result) {
-        setConnectionStatus('live');
+        connection.setConnectionStatus('live');
       } else {
-        setConnectionStatus('disconnected');
+        connection.setConnectionStatus('disconnected');
       }
       return result;
     } catch (err) {
       gameRoomLog.error(' Error requesting snapshot:', err);
-      setConnectionStatus('disconnected');
+      connection.setConnectionStatus('disconnected');
       return false;
     }
-  }, [facade]);
+  }, [facade, connection]);
 
   // Update template (host only)
   const updateTemplate = useCallback(
@@ -589,52 +444,23 @@ export const useGameRoom = (): UseGameRoomResult => {
     if (!isHost) return;
 
     // Start BGM if enabled
-    const bgmEnabled = settingsService.current.isBgmEnabled();
-    gameRoomLog.debug('startGame - BGM enabled:', { bgmEnabled });
-    if (bgmEnabled) {
-      void audioService.current.startBgm();
-    }
+    bgm.startBgmIfEnabled();
     await facade.startNight();
-  }, [isHost, facade]);
+  }, [isHost, facade, bgm]);
 
   // Restart game (host only)
   const restartGame = useCallback(async (): Promise<void> => {
     if (!isHost) return;
     // Stop BGM on restart
-    audioService.current.stopBgm();
+    bgm.stopBgm();
     // Clear controlled seat on restart
-    setControlledSeat(null);
+    debug.setControlledSeat(null);
     await facade.restartGame();
-  }, [isHost, facade]);
+  }, [isHost, facade, bgm, debug]);
 
   // =========================================================================
-  // Debug Mode: Fill With Bots (Host only)
+  // Debug Mode & BGM: delegated to sub-hooks
   // =========================================================================
-
-  const fillWithBots = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
-    if (!isHost) {
-      return { success: false, reason: 'host_only' };
-    }
-    // If Host is seated, leave seat first so the seat can be filled with a bot
-    if (mySeatNumber !== null) {
-      try {
-        await facade.leaveSeat();
-      } catch (err) {
-        return { success: false, reason: `failed_to_leave_seat: ${String(err)}` };
-      }
-    }
-    return facade.fillWithBots();
-  }, [isHost, mySeatNumber, facade]);
-
-  const markAllBotsViewed = useCallback(async (): Promise<{
-    success: boolean;
-    reason?: string;
-  }> => {
-    if (!isHost) {
-      return { success: false, reason: 'host_only' };
-    }
-    return facade.markAllBotsViewed();
-  }, [isHost, facade]);
 
   // Set role reveal animation (host only)
   const setRoleRevealAnimation = useCallback(
@@ -644,21 +470,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     },
     [isHost, facade],
   );
-
-  // Toggle BGM setting (host only)
-  const toggleBgm = useCallback(async (): Promise<void> => {
-    const newValue = await settingsService.current.toggleBgm();
-    setIsBgmEnabled(newValue);
-    // If currently playing, stop/start based on new setting
-    if (newValue) {
-      // Only start if game is ongoing
-      if (gameState?.status === GameStatus.ongoing) {
-        void audioService.current.startBgm();
-      }
-    } else {
-      audioService.current.stopBgm();
-    }
-  }, [gameState?.status]);
 
   // Set audio playing (host only) - PR7 音频时序控制
   const setAudioPlaying = useCallback(
@@ -675,30 +486,30 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Debug mode: when delegating (controlledSeat !== null), mark the bot's seat as viewed
   // Normal mode: mark my own seat as viewed
   const viewedRole = useCallback(async (): Promise<void> => {
-    const seat = controlledSeat ?? mySeatNumber;
+    const seat = debug.controlledSeat ?? mySeatNumber;
     if (seat === null) return;
     await facade.markViewedRole(seat);
-  }, [controlledSeat, mySeatNumber, facade]);
+  }, [debug.controlledSeat, mySeatNumber, facade]);
 
   // Submit action (uses effectiveSeat/effectiveRole for debug bot control)
   const submitAction = useCallback(
     async (target: number | null, extra?: unknown): Promise<void> => {
-      const seat = effectiveSeat;
-      const role = effectiveRole;
+      const seat = debug.effectiveSeat;
+      const role = debug.effectiveRole;
       if (seat === null || !role) return;
       await facade.submitAction(seat, role, target, extra);
     },
-    [effectiveSeat, effectiveRole, facade],
+    [debug.effectiveSeat, debug.effectiveRole, facade],
   );
 
   // Submit wolf vote (uses effectiveSeat for debug bot control)
   const submitWolfVote = useCallback(
     async (target: number): Promise<void> => {
-      const seat = effectiveSeat;
+      const seat = debug.effectiveSeat;
       if (seat === null) return;
       await facade.submitWolfVote(seat, target);
     },
-    [effectiveSeat, facade],
+    [debug.effectiveSeat, facade],
   );
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
@@ -742,16 +553,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     setLastSeatError(null);
   }, []);
 
-  // 一致性提示：状态是否可能过时
-  // - connectionStatus 不是 'live' 时可能过时
-  // - 超过 30 秒没收到状态更新时可能过时
-  const STALE_THRESHOLD_MS = 30000;
-  const isStateStale = useMemo(() => {
-    if (connectionStatus !== 'live') return true;
-    if (!lastStateReceivedAt) return true;
-    return Date.now() - lastStateReceivedAt > STALE_THRESHOLD_MS;
-  }, [connectionStatus, lastStateReceivedAt]);
-
   return {
     roomRecord,
     gameState,
@@ -759,29 +560,30 @@ export const useGameRoom = (): UseGameRoomResult => {
     myUid,
     mySeatNumber,
     myRole,
-    // Debug mode
-    controlledSeat,
-    effectiveSeat,
-    effectiveRole,
-    setControlledSeat,
-    isDebugMode,
-    fillWithBots,
-    markAllBotsViewed,
-    // Computed values
+    // Debug mode (from useDebugMode)
+    controlledSeat: debug.controlledSeat,
+    effectiveSeat: debug.effectiveSeat,
+    effectiveRole: debug.effectiveRole,
+    setControlledSeat: debug.setControlledSeat,
+    isDebugMode: debug.isDebugMode,
+    fillWithBots: debug.fillWithBots,
+    markAllBotsViewed: debug.markAllBotsViewed,
+    // Computed values (from useNightDerived)
     roomStatus,
-    currentActionRole,
-    isAudioPlaying,
-    roleRevealAnimation,
-    resolvedRoleRevealAnimation,
-    currentSchemaId,
-    currentSchema,
-    currentStepId,
+    currentActionRole: nightDerived.currentActionRole,
+    isAudioPlaying: nightDerived.isAudioPlaying,
+    roleRevealAnimation: nightDerived.roleRevealAnimation,
+    resolvedRoleRevealAnimation: nightDerived.resolvedRoleRevealAnimation,
+    currentSchemaId: nightDerived.currentSchemaId,
+    currentSchema: nightDerived.currentSchema,
+    currentStepId: nightDerived.currentStepId,
     loading,
     error,
-    connectionStatus,
-    stateRevision,
-    lastStateReceivedAt,
-    isStateStale,
+    // Connection (from useConnectionSync)
+    connectionStatus: connection.connectionStatus,
+    stateRevision: connection.stateRevision,
+    lastStateReceivedAt: connection.lastStateReceivedAt,
+    isStateStale: connection.isStateStale,
     createRoom,
     joinRoom,
     leaveRoom,
@@ -796,8 +598,9 @@ export const useGameRoom = (): UseGameRoomResult => {
     restartGame,
     setRoleRevealAnimation,
     setAudioPlaying,
-    isBgmEnabled,
-    toggleBgm,
+    // BGM (from useBgmControl)
+    isBgmEnabled: bgm.isBgmEnabled,
+    toggleBgm: bgm.toggleBgm,
     viewedRole,
     submitAction,
     submitWolfVote,

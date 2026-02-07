@@ -188,8 +188,8 @@ describe('Delegation Seat Identity Contract', () => {
         const startIndex = match.index;
         const block = content.substring(startIndex, startIndex + 300);
 
-        // Should use effectiveSeat
-        expect(block).toMatch(/seat\s*=\s*effectiveSeat/);
+        // Should use effectiveSeat (may be prefixed with debug. after sub-hook extraction)
+        expect(block).toMatch(/seat\s*=\s*(debug\.)?effectiveSeat/);
         expect(block).not.toMatch(/seat\s*=\s*mySeatNumber/);
       }
     });
@@ -210,8 +210,8 @@ describe('Delegation Seat Identity Contract', () => {
         const startIndex = match.index;
         const block = content.substring(startIndex, startIndex + 200);
 
-        // Should use effectiveSeat
-        expect(block).toMatch(/seat\s*=\s*effectiveSeat/);
+        // Should use effectiveSeat (may be prefixed with debug. after sub-hook extraction)
+        expect(block).toMatch(/seat\s*=\s*(debug\.)?effectiveSeat/);
         expect(block).not.toMatch(/seat\s*=\s*mySeatNumber/);
       }
     });
