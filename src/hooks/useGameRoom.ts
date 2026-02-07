@@ -85,7 +85,10 @@ export interface UseGameRoomResult {
   error: string | null;
 
   // Actions
-  createRoom: (template: GameTemplate, roomNumber?: string) => Promise<string | null>;
+  /** Create room record in DB only (no facade init). Returns confirmed roomNumber or null. */
+  createRoomRecord: () => Promise<string | null>;
+  /** Initialize host room (facade only, no DB). Call AFTER createRoomRecord + navigation. */
+  initializeHostRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
   joinRoom: (roomNumber: string) => Promise<boolean>;
   leaveRoom: () => Promise<void>;
 
@@ -229,9 +232,38 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Phase 1B: createRoom / joinRoom 使用 facade
   // =========================================================================
 
-  // Create a new room as host
-  const createRoom = useCallback(
-    async (template: GameTemplate, providedRoomNumber?: string): Promise<string | null> => {
+  // Create room record in DB only (optimistic insert with retry on conflict).
+  // Returns the confirmed/final roomNumber, or null on failure.
+  // ConfigScreen calls this BEFORE navigating to RoomScreen.
+  const createRoomRecord = useCallback(async (): Promise<string | null> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await authService.current.waitForInit();
+      const hostUid = authService.current.getCurrentUserId();
+      if (!hostUid) {
+        throw new Error('User not authenticated');
+      }
+
+      const record = await roomService.current.createRoom(hostUid);
+      // NOTE: roomRecord state is set here for this hook instance.
+      // RoomScreen mounts a separate instance, so initializeHostRoom also sets it.
+      setRoomRecord(record);
+      return record.roomNumber;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create room';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Initialize host room: facade only, no DB creation.
+  // RoomScreen/useRoomInit calls this AFTER navigation with the confirmed roomNumber.
+  const initializeHostRoom = useCallback(
+    async (roomNumber: string, template: GameTemplate): Promise<boolean> => {
       setLoading(true);
       setError(null);
 
@@ -242,21 +274,16 @@ export const useGameRoom = (): UseGameRoomResult => {
           throw new Error('User not authenticated');
         }
 
-        // Use provided room number or generate a new one
-        const roomNumber = providedRoomNumber || (await roomService.current.generateRoomNumber());
+        // Set roomRecord for connection sync & leaveRoom cleanup
+        setRoomRecord({ roomNumber, hostUid, createdAt: new Date() });
 
-        // Create room record in Supabase
-        const record = await roomService.current.createRoom(roomNumber, hostUid);
-        setRoomRecord(record);
-
-        // Phase 1B: 使用 facade 初始化房间
         await facade.initializeAsHost(roomNumber, hostUid, template);
 
-        return roomNumber;
+        return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to create room';
+        const message = err instanceof Error ? err.message : 'Failed to initialize room';
         setError(message);
-        return null;
+        return false;
       } finally {
         setLoading(false);
       }
@@ -584,7 +611,8 @@ export const useGameRoom = (): UseGameRoomResult => {
     stateRevision: connection.stateRevision,
     lastStateReceivedAt: connection.lastStateReceivedAt,
     isStateStale: connection.isStateStale,
-    createRoom,
+    createRoomRecord,
+    initializeHostRoom,
     joinRoom,
     leaveRoom,
     takeSeat,

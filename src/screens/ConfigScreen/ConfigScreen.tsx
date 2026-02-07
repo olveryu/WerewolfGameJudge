@@ -27,7 +27,7 @@ import { useColors, spacing, typography } from '../../theme';
 import { TESTIDS } from '../../testids';
 import { configLog } from '../../utils/logger';
 import { LoadingScreen } from '../../components/LoadingScreen';
-import { generateRoomCode } from '../../utils/roomCode';
+import { useGameRoom } from '../../hooks/useGameRoom';
 import SettingsService from '../../services/infra/SettingsService';
 import type { RoleRevealAnimation } from '../../services/types/RoleRevealAnimation';
 import {
@@ -129,6 +129,7 @@ export const ConfigScreen: React.FC = () => {
   const isEditMode = !!existingRoomNumber;
 
   const settingsService = useRef(SettingsService.getInstance()).current;
+  const { createRoomRecord } = useGameRoom();
 
   const [selection, setSelection] = useState(getInitialSelection);
   const [isCreating, setIsCreating] = useState(false);
@@ -252,7 +253,12 @@ export const ConfigScreen: React.FC = () => {
         navigation.goBack();
       } else {
         await settingsService.setRoleRevealAnimation(roleRevealAnimation);
-        const roomNumber = generateRoomCode();
+        // Create room record in DB first — get confirmed/final roomNumber
+        const roomNumber = await createRoomRecord();
+        if (!roomNumber) {
+          showAlert('错误', '创建房间失败');
+          return;
+        }
         await AsyncStorage.setItem('lastRoomNumber', roomNumber);
         navigation.navigate('Room', {
           roomNumber,
@@ -277,6 +283,7 @@ export const ConfigScreen: React.FC = () => {
     bgmEnabled,
     isCreating,
     isLoading,
+    createRoomRecord,
   ]);
 
   // Template dropdown options (short display names, strip "12人" suffix)

@@ -3,6 +3,8 @@ import { render } from '@testing-library/react-native';
 import { ConfigScreen } from '../ConfigScreen';
 import { GameFacadeProvider } from '../../../contexts/GameFacadeContext';
 import type { IGameFacade } from '../../../services/types/IGameFacade';
+import { AuthService } from '../../../services/infra/AuthService';
+import { BroadcastService } from '../../../services/transport/BroadcastService';
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -36,6 +38,11 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
 }));
+
+// Mock services used by useGameRoom (now called from ConfigScreen)
+jest.mock('../../../services/infra/RoomService');
+jest.mock('../../../services/infra/AuthService');
+jest.mock('../../../services/transport/BroadcastService');
 
 // Mock facade for testing
 const createMockFacade = (): IGameFacade =>
@@ -75,6 +82,19 @@ const renderWithFacade = (ui: React.ReactElement) => {
 describe('ConfigScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Setup minimal mock services for useGameRoom (used by ConfigScreen)
+    const mockAuthService = {
+      waitForInit: jest.fn().mockResolvedValue(undefined),
+      getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
+      getCurrentDisplayName: jest.fn().mockResolvedValue('Test Host'),
+      getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
+    };
+    const mockBroadcastService = {
+      addStatusListener: jest.fn().mockReturnValue(() => {}),
+    };
+    (AuthService.getInstance as jest.Mock).mockReturnValue(mockAuthService);
+    (BroadcastService.getInstance as jest.Mock).mockReturnValue(mockBroadcastService);
   });
 
   describe('Rendering', () => {

@@ -55,70 +55,40 @@ export class SimplifiedRoomService {
   }
 
   /**
-   * Generate a unique 4-digit room number
-   */
-  async generateRoomNumber(): Promise<string> {
-    this.ensureConfigured();
-
-    const maxAttempts = 10;
-    for (let i = 0; i < maxAttempts; i++) {
-      const roomNumber = generateRoomCode();
-
-      // Check if room exists (use maybeSingle to avoid 406 on no match)
-      const { data, error } = await supabase!
-        .from('rooms')
-        .select('code')
-        .eq('code', roomNumber)
-        .maybeSingle();
-
-      if (error) {
-        roomLog.error(' Error checking room:', error);
-        continue;
-      }
-
-      if (!data) {
-        // Room doesn't exist, we can use this number
-        return roomNumber;
-      }
-    }
-
-    throw new Error('Failed to generate unique room number');
-  }
-
-  /**
-   * Create a new room record with retry on conflict (HTTP 409).
+   * Create a new room record via optimistic insert.
    *
-   * MITIGATION for room code race condition:
-   * If another client creates a room with the same code between our
-   * generateRoomNumber() check and insert, Supabase returns 409 (conflict).
-   * We retry with a new room number up to maxRetries times.
+   * Strategy: INSERT directly with the given (or randomly generated) room code.
+   * If the code collides (HTTP 409 / unique constraint violation),
+   * generate a new code and retry. This eliminates the SELECT-then-INSERT
+   * race condition that caused spurious 409 errors in the console.
    *
-   * @param roomNumber - Initial room number to try
    * @param hostUid - Host user ID
-   * @param maxRetries - Max retry attempts on 409 conflict (default: 3)
+   * @param initialRoomNumber - Optional initial room code to try first
+   * @param maxRetries - Max retry attempts on conflict (default: 5)
    */
   async createRoom(
-    roomNumber: string,
     hostUid: string,
-    maxRetries: number = 3,
+    initialRoomNumber?: string,
+    maxRetries: number = 5,
   ): Promise<RoomRecord> {
     this.ensureConfigured();
 
-    let currentRoomNumber = roomNumber;
     let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const roomNumber = attempt === 1 && initialRoomNumber ? initialRoomNumber : generateRoomCode();
+
       const { error } = await supabase!.from('rooms').insert({
-        code: currentRoomNumber,
+        code: roomNumber,
         host_id: hostUid,
       });
 
       if (!error) {
         if (attempt > 1) {
-          roomLog.info(` Room created on attempt ${attempt} with code ${currentRoomNumber}`);
+          roomLog.info(` Room created on attempt ${attempt} with code ${roomNumber}`);
         }
         return {
-          roomNumber: currentRoomNumber,
+          roomNumber,
           hostUid,
           createdAt: new Date(),
         };
@@ -132,14 +102,9 @@ export class SimplifiedRoomService {
         error.message.includes('already exists');
 
       if (isConflict && attempt < maxRetries) {
-        roomLog.info(
-          ` HTTP 409 conflict on attempt ${attempt}, room ${currentRoomNumber} already exists`,
+        roomLog.debug(
+          ` Room code ${roomNumber} already exists (attempt ${attempt}), retrying with new code...`,
         );
-        roomLog.debug(`  Error: ${error.message}`);
-        roomLog.debug(`  Generating new room number...`);
-
-        // Generate a new room number for retry
-        currentRoomNumber = await this.generateRoomNumber();
         continue;
       }
 

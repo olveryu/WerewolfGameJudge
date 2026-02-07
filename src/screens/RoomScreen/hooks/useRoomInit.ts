@@ -2,7 +2,7 @@
  * useRoomInit.ts - Room initialization hook
  *
  * ✅ Allowed:
- *   - Call useGameRoom init APIs (createRoom, joinRoom, takeSeat)
+ *   - Call useGameRoom init APIs (initializeHostRoom, joinRoom, takeSeat)
  *   - Manage local loading/retry UI state
  *   - Set role reveal animation on room creation (host only)
  *   - Surface gameRoomError for error display
@@ -12,6 +12,7 @@
  *   - Import services or business logic
  *   - Access or modify BroadcastGameState fields
  *   - Contain any night flow / audio / policy logic
+ *   - Create room record in DB (that's done in ConfigScreen before navigation)
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -19,14 +20,14 @@ import type { GameTemplate } from '../../../models/Template';
 import type { RoleRevealAnimation } from '../../../services/types/RoleRevealAnimation';
 
 export interface UseRoomInitParams {
-  /** Room number (4-digit code) */
+  /** Room number (4-digit code) — confirmed/final, already created in DB */
   roomNumber: string;
   /** Whether this client is creating the room (host) */
   isHostParam: boolean;
   /** Template for room creation (host only) */
   template: GameTemplate | undefined;
-  /** From useGameRoom: create a new room */
-  createRoom: (template: GameTemplate, roomNumber?: string) => Promise<string | null>;
+  /** From useGameRoom: initialize host room (facade only, no DB) */
+  initializeHostRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
   /** From useGameRoom: join existing room */
   joinRoom: (roomNumber: string) => Promise<boolean>;
   /** From useGameRoom: take a seat */
@@ -54,8 +55,11 @@ export interface UseRoomInitResult {
 
 /**
  * Manages room initialization lifecycle.
- * Host: createRoom → setRoleRevealAnimation → takeSeat(0) → initialized
+ * Host: initializeHostRoom → setRoleRevealAnimation → takeSeat(0) → initialized
  * Player: joinRoom → initialized
+ *
+ * Note: DB room creation is done in ConfigScreen BEFORE navigation.
+ * This hook only handles facade initialization (host) or joining (player).
  *
  * Retry: handleRetry resets state and increments retryKey to force re-trigger.
  */
@@ -63,7 +67,7 @@ export function useRoomInit({
   roomNumber,
   isHostParam,
   template,
-  createRoom,
+  initializeHostRoom,
   joinRoom,
   takeSeat,
   hasGameState,
@@ -84,11 +88,11 @@ export function useRoomInit({
       setLoadingMessage('正在初始化...');
 
       if (isHostParam && template) {
-        // Host creates room with the provided roomNumber from ConfigScreen
-        setLoadingMessage('正在创建房间...');
-        const createdRoomNumber = await createRoom(template, roomNumber);
+        // Host initializes room (DB record already created before navigation)
+        setLoadingMessage('正在初始化房间...');
+        const success = await initializeHostRoom(roomNumber, template);
 
-        if (createdRoomNumber) {
+        if (success) {
           // Set role reveal animation if provided from ConfigScreen
           if (initialRoleRevealAnimation && setRoleRevealAnimation) {
             await setRoleRevealAnimation(initialRoleRevealAnimation);
@@ -123,7 +127,7 @@ export function useRoomInit({
     isHostParam,
     template,
     roomNumber,
-    createRoom,
+    initializeHostRoom,
     joinRoom,
     takeSeat,
     initialRoleRevealAnimation,
