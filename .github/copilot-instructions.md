@@ -6,9 +6,9 @@
 - 不可协商规则（先读）
 - 架构边界（Architecture boundaries）
 - 夜晚流程与 NightPlan（Host 权威）
-- 约束、校验与 Night-1-only   - 并补 E2E/contract fail-fast，禁止靠超时隐藏问题
-
----构（Broadcast architecture）
+- 约束、校验与 Night-1-only
+- 并补 E2E/contract fail-fast，禁止靠超时隐藏问题
+- 广播架构（Broadcast architecture）
 - Anti-drift 护栏（MUST follow）
 - 实现清单（角色 / schema / step / UI 必做）
 - 交付与门禁（必须执行）
@@ -38,6 +38,7 @@
 - **禁止在未明确征得用户同意的情况下修改代码**（尤其是 apply_patch / edit）。
   - ✅ 允许：只读检查（read/search/list/grep）、运行测试/格式化/类型检查。
   - ✅ 若需要改动：必须先在回复中列出“将修改的文件 + 变更点摘要 + 风险”，等待用户明确确认（例如“OK/同意/可以改”）后才能动手。
+- **收到涉及代码修改的需求时，必须先用 Sequential Thinking 做完整分析**（分解问题 → 收集上下文 → 制定变更计划 → 验证假设），再列出变更计划等待确认。禁止跳过分析直接动手。
 
 ### 0) 不可协商规则（先读）
 
