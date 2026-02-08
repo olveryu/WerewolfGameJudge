@@ -24,8 +24,8 @@ export type ThemeKey =
   | 'snow';
 
 /** Role reveal animation type - re-export from pure types */
-export type { RoleRevealAnimation } from '../types/RoleRevealAnimation';
-import type { RoleRevealAnimation } from '../types/RoleRevealAnimation';
+export type { RoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
+import type { RoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
 
 export interface UserSettings {
   /** Whether to play background music during night phase (default: true) */

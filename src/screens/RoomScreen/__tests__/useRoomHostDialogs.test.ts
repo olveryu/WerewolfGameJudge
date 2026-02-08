@@ -2,12 +2,12 @@
  * Tests for useRoomHostDialogs hook
  */
 import { renderHook, act } from '@testing-library/react-native';
-import { useRoomHostDialogs } from '../useRoomHostDialogs';
-import { showAlert } from '../../../utils/alert';
-import type { LocalGameState, LocalPlayer } from '../../../services/types/GameStateTypes';
-import { GameStatus } from '../../../models/GameStatus';
-import type { RoleId } from '../../../models/roles';
-import type { RoleAction } from '../../../models/actions/RoleAction';
+import { useRoomHostDialogs } from '@/screens/RoomScreen/useRoomHostDialogs';
+import { showAlert } from '@/utils/alert';
+import type { LocalGameState, LocalPlayer } from '@/services/types/GameStateTypes';
+import { GameStatus } from '@/models/GameStatus';
+import type { RoleId } from '@/models/roles';
+import type { RoleAction } from '@/models/actions/RoleAction';
 
 // Mock showAlert
 jest.mock('../../../utils/alert', () => ({

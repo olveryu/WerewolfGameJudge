@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
-import { RoomScreen } from '../RoomScreen';
-import { TESTIDS } from '../../../testids';
-import { showAlert } from '../../../utils/alert';
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { TESTIDS } from '@/testids';
+import { showAlert } from '@/utils/alert';
 
 jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
@@ -64,11 +64,11 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     connectionStatus: 'live',
 
     isHost: false,
-    roomStatus: require('../../../models/Room').GameStatus.ongoing,
+    roomStatus: require('@/models/Room').GameStatus.ongoing,
 
     currentActionRole: 'magician',
     currentSchema: (() => {
-      const { getSchema } = require('../../../models/roles/spec/schemas');
+      const { getSchema } = require('@/models/roles/spec/schemas');
       return getSchema('magicianSwap');
     })(),
 
@@ -131,7 +131,7 @@ jest.mock('../hooks/useActionerState', () => ({
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
     showMagicianFirstAlert: (index: number) => {
-      const { showAlert: mockShowAlert } = require('../../../utils/alert');
+      const { showAlert: mockShowAlert } = require('@/utils/alert');
       mockShowAlert('已选择第一位玩家', `${index + 1}号，请选择第二位玩家`, [{ text: '好' }]);
     },
     showConfirmDialog: (
@@ -140,7 +140,7 @@ jest.mock('../useRoomActionDialogs', () => ({
       onConfirm: () => void,
       onCancel?: () => void,
     ) => {
-      const { showAlert: mockShowAlert } = require('../../../utils/alert');
+      const { showAlert: mockShowAlert } = require('@/utils/alert');
       mockShowAlert(title, message, [
         { text: '确定', onPress: onConfirm },
         { text: '取消', style: 'cancel', onPress: onCancel },

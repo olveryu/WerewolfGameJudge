@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppNavigator } from './src/navigation';
-import { ThemeProvider, useTheme } from './src/theme';
-import { AlertModal, AIChatBubble } from './src/components';
-import { setAlertListener, AlertConfig } from './src/utils/alert';
-import { GameFacadeProvider, NetworkProvider, AuthProvider } from './src/contexts';
-import { GameFacade } from './src/services/facade/GameFacade';
-import { log } from './src/utils/logger';
+import { AppNavigator } from '@/navigation';
+import { ThemeProvider, useTheme } from '@/theme';
+import { AlertModal, AIChatBubble } from '@/components';
+import { setAlertListener, AlertConfig } from '@/utils/alert';
+import { GameFacadeProvider, NetworkProvider, AuthProvider } from '@/contexts';
+import { GameFacade } from '@/services/facade/GameFacade';
+import { log } from '@/utils/logger';
 
 function AppContent() {
   const { colors, isDark } = useTheme();

@@ -22,7 +22,7 @@
 
 import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
 import { executeFullNight } from './stepByStepRunner';
-import type { RoleId } from '../../../models/roles';
+import type { RoleId } from '@/models/roles';
 
 const TEMPLATE_NAME = '狼王摄梦人12人';
 

@@ -12,10 +12,10 @@
  */
 
 import type { HostGameContext } from './hostGameContext';
-import type { RoleId } from '../../../models/roles';
-import { doesRoleParticipateInWolfVote } from '../../../models/roles';
-import type { SchemaId } from '../../../models/roles/spec';
-import type { PlayerMessage } from '../../protocol/types';
+import type { RoleId } from '@/models/roles';
+import { doesRoleParticipateInWolfVote } from '@/models/roles';
+import type { SchemaId } from '@/models/roles/spec';
+import type { PlayerMessage } from '@/services/protocol/types';
 
 // =============================================================================
 // Fail-Fast Helpers (Exported for direct use in tests)

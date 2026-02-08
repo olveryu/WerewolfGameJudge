@@ -9,8 +9,8 @@
  */
 import React, { memo, useMemo } from 'react';
 import { Image, StyleSheet, ImageSourcePropType } from 'react-native';
-import { getAvatarImage, getAvatarByUid, getAvatarImageByIndex } from '../utils/avatar';
-import { useColors } from '../theme';
+import { getAvatarImage, getAvatarByUid, getAvatarImageByIndex } from '@/utils/avatar';
+import { useColors } from '@/theme';
 
 interface AvatarProps {
   value: string;

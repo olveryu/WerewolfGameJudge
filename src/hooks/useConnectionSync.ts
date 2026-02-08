@@ -11,9 +11,9 @@
  */
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { BroadcastService, type ConnectionStatus } from '../services/transport/BroadcastService';
-import { gameRoomLog } from '../utils/logger';
-import type { IGameFacade } from '../services/types/IGameFacade';
+import { BroadcastService, type ConnectionStatus } from '@/services/transport/BroadcastService';
+import { gameRoomLog } from '@/utils/logger';
+import type { IGameFacade } from '@/services/types/IGameFacade';
 
 const STALE_THRESHOLD_MS = 30000;
 

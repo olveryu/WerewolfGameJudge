@@ -14,8 +14,8 @@
  * ✅ Allowed imports: types only, SeatTapPolicy (pure)
  */
 
-import { GameStatus } from '../../../models/Room';
-import { getSeatTapResult } from '../seatTap/SeatTapPolicy';
+import { GameStatus } from '@/models/Room';
+import { getSeatTapResult } from '@/screens/RoomScreen/seatTap/SeatTapPolicy';
 import type { InteractionContext, InteractionEvent, InteractionResult } from './types';
 
 // =============================================================================

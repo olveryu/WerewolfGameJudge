@@ -11,14 +11,14 @@ import { View, Text, ScrollView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/types';
-import { useAuth } from '../../hooks/useAuth';
-import { showAlert } from '../../utils/alert';
-import { useTheme } from '../../theme';
+import { RootStackParamList } from '@/navigation/types';
+import { useAuth } from '@/hooks/useAuth';
+import { showAlert } from '@/utils/alert';
+import { useTheme } from '@/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { homeLog } from '../../utils/logger';
-import { TESTIDS } from '../../testids';
-import { APP_VERSION } from '../../config/version';
+import { homeLog } from '@/utils/logger';
+import { TESTIDS } from '@/testids';
+import { APP_VERSION } from '@/config/version';
 import { Ionicons } from '@expo/vector-icons';
 import {
   MenuItem,

@@ -8,7 +8,7 @@
  * 4) fake timers 场景下不会出现 unhandled rejection
  */
 
-import { withTimeout } from '../withTimeout';
+import { withTimeout } from '@/utils/withTimeout';
 
 describe('withTimeout', () => {
   beforeEach(() => {

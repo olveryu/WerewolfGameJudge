@@ -12,7 +12,7 @@
  * - canShoot logic now lives in resolvers (see wolfRobot.resolver.test.ts)
  */
 
-import { SCHEMAS } from '../../../../models/roles/spec/schemas';
+import { SCHEMAS } from '@/models/roles/spec/schemas';
 
 describe('confirm schema contract (hunter/darkWolfKing)', () => {
   describe('hunterConfirm schema', () => {

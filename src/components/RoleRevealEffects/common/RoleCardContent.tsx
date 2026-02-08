@@ -8,9 +8,9 @@
  */
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Platform, ViewStyle } from 'react-native';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
-import type { RoleId } from '../../../models/roles';
-import { getRoleSpec, isWolfRole } from '../../../models/roles';
+import { useColors, spacing, typography, borderRadius, type ThemeColors } from '@/theme';
+import type { RoleId } from '@/models/roles';
+import { getRoleSpec, isWolfRole } from '@/models/roles';
 
 // 角色对应的 emoji 图标
 const ROLE_ICONS: Record<string, string> = {

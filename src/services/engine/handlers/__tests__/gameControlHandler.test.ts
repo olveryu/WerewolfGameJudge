@@ -8,16 +8,16 @@ import {
   handleStartNight,
   handleRestartGame,
   handleUpdateTemplate,
-} from '../gameControlHandler';
-import type { HandlerContext } from '../types';
+} from '@/services/engine/handlers/gameControlHandler';
+import type { HandlerContext } from '@/services/engine/handlers/types';
 import type {
   AssignRolesIntent,
   StartGameIntent,
   StartNightIntent,
   RestartGameIntent,
   UpdateTemplateIntent,
-} from '../../intents/types';
-import type { GameState } from '../../store/types';
+} from '@/services/engine/intents/types';
+import type { GameState } from '@/services/engine/store/types';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {

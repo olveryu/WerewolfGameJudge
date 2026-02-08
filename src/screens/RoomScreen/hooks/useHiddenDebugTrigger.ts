@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useRef } from 'react';
-import { mobileDebug } from '../../../utils/mobileDebug';
+import { mobileDebug } from '@/utils/mobileDebug';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants

@@ -8,7 +8,7 @@
  */
 import React, { memo, useMemo } from 'react';
 import { View, Text, Modal, TouchableOpacity } from 'react-native';
-import { NumPad } from '../../../components/NumPad';
+import { NumPad } from '@/components/NumPad';
 import { type HomeScreenStyles } from './styles';
 
 export interface JoinRoomModalProps {

@@ -6,10 +6,10 @@
  */
 import { useCallback } from 'react';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../navigation/types';
-import { showAlert } from '../../utils/alert';
-import type { LocalGameState } from '../../services/types/GameStateTypes';
-import { randomIntInclusive, randomBool, Rng } from '../../utils/random';
+import type { RootStackParamList } from '@/navigation/types';
+import { showAlert } from '@/utils/alert';
+import type { LocalGameState } from '@/services/types/GameStateTypes';
+import { randomIntInclusive, randomBool, Rng } from '@/utils/random';
 
 /**
  * Generate random speaking order for the start of day phase.

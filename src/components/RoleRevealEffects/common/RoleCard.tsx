@@ -8,9 +8,9 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { useColors, spacing, typography, borderRadius } from '../../../theme';
-import type { RoleData, RoleAlignment } from '../types';
-import { ALIGNMENT_THEMES } from '../types';
+import { useColors, spacing, typography, borderRadius } from '@/theme';
+import type { RoleData, RoleAlignment } from '@/components/RoleRevealEffects/types';
+import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 
 export interface RoleCardProps {
   /** Role data to display */

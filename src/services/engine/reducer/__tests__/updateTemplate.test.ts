@@ -4,9 +4,9 @@
  * 验证更新模板时智能保留/扩缩容座位玩家
  */
 
-import { gameReducer } from '../gameReducer';
-import type { GameState } from '../../store/types';
-import type { RoleId } from '../../../../models/roles';
+import { gameReducer } from '@/services/engine/reducer/gameReducer';
+import type { GameState } from '@/services/engine/store/types';
+import type { RoleId } from '@/models/roles';
 
 interface PlayerInput {
   uid: string;

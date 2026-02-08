@@ -11,10 +11,10 @@
  */
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AuthService } from '../services/infra/AuthService';
-import { AvatarUploadService } from '../services/infra/AvatarUploadService';
-import { supabase, isSupabaseConfigured } from '../config/supabase';
-import { authLog } from '../utils/logger';
+import { AuthService } from '@/services/infra/AuthService';
+import { AvatarUploadService } from '@/services/infra/AvatarUploadService';
+import { supabase, isSupabaseConfigured } from '@/config/supabase';
+import { authLog } from '@/utils/logger';
 
 export interface User {
   uid: string;

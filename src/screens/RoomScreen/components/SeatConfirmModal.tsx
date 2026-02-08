@@ -9,7 +9,7 @@
 import React, { memo } from 'react';
 import { Modal, View, Text, TouchableOpacity } from 'react-native';
 import { type SeatConfirmModalStyles } from './styles';
-import { TESTIDS } from '../../../testids';
+import { TESTIDS } from '@/testids';
 
 export type SeatModalType = 'enter' | 'leave';
 

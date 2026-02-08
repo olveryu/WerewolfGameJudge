@@ -10,11 +10,11 @@
 
 import React from 'react';
 import { render, waitFor, fireEvent } from '@testing-library/react-native';
-import { RoomScreen } from '../RoomScreen';
-import { showAlert } from '../../../utils/alert';
-import { BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { showAlert } from '@/utils/alert';
+import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
 import { makeBaseUseGameRoomReturn, mockNavigation } from './schemaSmokeTestUtils';
-import { TESTIDS } from '../../../testids';
+import { TESTIDS } from '@/testids';
 
 jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),

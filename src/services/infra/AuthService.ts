@@ -1,7 +1,7 @@
-import { supabase, isSupabaseConfigured } from '../../config/supabase';
-import { authLog } from '../../utils/logger';
-import { getAllRoleIds, getRoleSpec } from '../../models/roles';
-import { withTimeout } from '../../utils/withTimeout';
+import { supabase, isSupabaseConfigured } from '@/config/supabase';
+import { authLog } from '@/utils/logger';
+import { getAllRoleIds, getRoleSpec } from '@/models/roles';
+import { withTimeout } from '@/utils/withTimeout';
 
 /**
  * AuthService - Supabase 匿名认证服务

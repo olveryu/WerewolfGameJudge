@@ -9,11 +9,11 @@
 
 import { renderHook, act } from '@testing-library/react-native';
 import React from 'react';
-import { AuthService } from '../../services/infra/AuthService';
-import { BroadcastService } from '../../services/transport/BroadcastService';
-import { useGameRoom } from '../useGameRoom';
-import { GameFacadeProvider } from '../../contexts';
-import type { IGameFacade } from '../../services/types/IGameFacade';
+import { AuthService } from '@/services/infra/AuthService';
+import { BroadcastService } from '@/services/transport/BroadcastService';
+import { useGameRoom } from '@/hooks/useGameRoom';
+import { GameFacadeProvider } from '@/contexts';
+import type { IGameFacade } from '@/services/types/IGameFacade';
 
 // Mock the services (only those actually needed)
 jest.mock('../../services/infra/RoomService');

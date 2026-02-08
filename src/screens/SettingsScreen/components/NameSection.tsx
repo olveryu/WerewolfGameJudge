@@ -8,7 +8,7 @@
  */
 import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, TextInput } from 'react-native';
-import { ThemeColors } from '../../../theme';
+import { ThemeColors } from '@/theme';
 import { SettingsScreenStyles } from './styles';
 
 export interface NameSectionProps {

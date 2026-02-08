@@ -5,8 +5,8 @@
  * This avoids redundant StyleSheet.create calls per component.
  */
 import { StyleSheet, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
-import { type ThemeColors, spacing, borderRadius, typography, shadows } from '../../../theme';
-import { componentSizes, fixed } from '../../../theme/tokens';
+import { type ThemeColors, spacing, borderRadius, typography, shadows } from '@/theme';
+import { componentSizes, fixed } from '@/theme/tokens';
 
 export interface HomeScreenStyles {
   container: ViewStyle;

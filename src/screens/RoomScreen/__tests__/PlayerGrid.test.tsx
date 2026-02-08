@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { PlayerGrid } from '../components/PlayerGrid';
-import { TESTIDS } from '../../../testids';
+import { PlayerGrid } from '@/screens/RoomScreen/components/PlayerGrid';
+import { TESTIDS } from '@/testids';
 
 jest.mock('../../../components/Avatar', () => ({
   Avatar: () => null,

@@ -18,21 +18,21 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { LocalGameState } from '../services/types/GameStateTypes';
-import { GameStatus } from '../models/GameStatus';
-import { SimplifiedRoomService, RoomRecord } from '../services/infra/RoomService';
-import type { ConnectionStatus } from '../services/transport/BroadcastService';
-import { AuthService } from '../services/infra/AuthService';
-import { GameTemplate } from '../models/Template';
-import { RoleId } from '../models/roles';
-import type { ActionSchema, SchemaId } from '../models/roles/spec';
-import { gameRoomLog } from '../utils/logger';
-import { useGameFacade } from '../contexts';
+import type { LocalGameState } from '@/services/types/GameStateTypes';
+import { GameStatus } from '@/models/GameStatus';
+import { SimplifiedRoomService, RoomRecord } from '@/services/infra/RoomService';
+import type { ConnectionStatus } from '@/services/transport/BroadcastService';
+import { AuthService } from '@/services/infra/AuthService';
+import { GameTemplate } from '@/models/Template';
+import { RoleId } from '@/models/roles';
+import type { ActionSchema, SchemaId } from '@/models/roles/spec';
+import { gameRoomLog } from '@/utils/logger';
+import { useGameFacade } from '@/contexts';
 import { broadcastToLocalState } from './adapters/broadcastToLocalState';
 import type {
   RoleRevealAnimation,
   ResolvedRoleRevealAnimation,
-} from '../services/types/RoleRevealAnimation';
+} from '@/services/types/RoleRevealAnimation';
 import { useNightDerived } from './useNightDerived';
 import { useConnectionSync } from './useConnectionSync';
 import { useBgmControl } from './useBgmControl';

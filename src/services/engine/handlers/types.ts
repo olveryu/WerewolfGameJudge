@@ -7,9 +7,9 @@
  * 3. 返回 StateAction 列表
  */
 
-import type { GameState } from '../store/types';
-import type { StateAction } from '../reducer/types';
-import type { GameIntent } from '../intents/types';
+import type { GameState } from '@/services/engine/store/types';
+import type { StateAction } from '@/services/engine/reducer/types';
+import type { GameIntent } from '@/services/engine/intents/types';
 
 /**
  * Handler 上下文

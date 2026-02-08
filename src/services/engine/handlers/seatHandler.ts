@@ -10,9 +10,9 @@
  * ❌ 禁止：直接修改 state（返回 StateAction 列表由 reducer 执行）
  */
 
-import type { JoinSeatIntent, LeaveMySeatIntent } from '../intents/types';
+import type { JoinSeatIntent, LeaveMySeatIntent } from '@/services/engine/intents/types';
 import type { HandlerContext, HandlerResult } from './types';
-import type { PlayerJoinAction, PlayerLeaveAction } from '../reducer/types';
+import type { PlayerJoinAction, PlayerLeaveAction } from '@/services/engine/reducer/types';
 import {
   REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
@@ -20,7 +20,7 @@ import {
   REASON_INVALID_SEAT,
   REASON_SEAT_TAKEN,
   REASON_GAME_IN_PROGRESS,
-} from '../../protocol/reasonCodes';
+} from '@/services/protocol/reasonCodes';
 
 /**
  * 处理加入座位

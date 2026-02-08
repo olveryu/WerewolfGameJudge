@@ -12,11 +12,11 @@
  * 3. 权限检查：仅 Host 可调用
  */
 
-import { GameFacade } from '../GameFacade';
-import { BroadcastService } from '../../transport/BroadcastService';
-import { gameReducer } from '../../engine/reducer/gameReducer';
-import type { PlayerJoinAction } from '../../engine/reducer/types';
-import type { HostBroadcast, BroadcastPlayer } from '../../protocol/types';
+import { GameFacade } from '@/services/facade/GameFacade';
+import { BroadcastService } from '@/services/transport/BroadcastService';
+import { gameReducer } from '@/services/engine/reducer/gameReducer';
+import type { PlayerJoinAction } from '@/services/engine/reducer/types';
+import type { HostBroadcast, BroadcastPlayer } from '@/services/protocol/types';
 
 // Mock BroadcastService
 jest.mock('../../transport/BroadcastService', () => ({

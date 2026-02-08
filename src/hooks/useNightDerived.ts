@@ -9,8 +9,8 @@
  */
 
 import { useMemo } from 'react';
-import type { LocalGameState } from '../services/types/GameStateTypes';
-import { GameStatus } from '../models/GameStatus';
+import type { LocalGameState } from '@/services/types/GameStateTypes';
+import { GameStatus } from '@/models/GameStatus';
 import {
   isValidRoleId,
   getRoleSpec,
@@ -18,12 +18,12 @@ import {
   getStepsByRoleStrict,
   type ActionSchema,
   type SchemaId,
-} from '../models/roles/spec';
-import { RoleId, buildNightPlan } from '../models/roles';
+} from '@/models/roles/spec';
+import { RoleId, buildNightPlan } from '@/models/roles';
 import type {
   RoleRevealAnimation,
   ResolvedRoleRevealAnimation,
-} from '../services/types/RoleRevealAnimation';
+} from '@/services/types/RoleRevealAnimation';
 
 export interface NightDerivedValues {
   /** Current action role derived from NightPlan */

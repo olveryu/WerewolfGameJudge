@@ -4,9 +4,9 @@
  * Tests for seerCheckResolver validation and resolution logic.
  */
 
-import { seerCheckResolver } from '../seer';
-import type { ResolverContext, ActionInput } from '../types';
-import type { RoleId } from '../../../../models/roles/spec/specs';
+import { seerCheckResolver } from '@/services/night/resolvers/seer';
+import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // =============================================================================
 // Test Helpers

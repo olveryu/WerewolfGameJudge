@@ -11,7 +11,7 @@ import {
   Dropdown,
   createConfigScreenStyles,
   ConfigScreenStyles,
-} from '../components';
+} from '@/screens/ConfigScreen/components';
 
 // Mock theme colors - complete ThemeColors interface
 const mockColors = {

@@ -3,9 +3,9 @@ import {
   getLastNightInfo,
   getPlayersNotViewedRole,
   getWolfVoteSummary,
-} from '../Room';
-import { GameTemplate } from '../Template';
-import { RoleId } from '../roles';
+} from '@/models/Room';
+import { GameTemplate } from '@/models/Template';
+import { RoleId } from '@/models/roles';
 import {
   RoleAction,
   makeActionTarget,
@@ -13,7 +13,7 @@ import {
   makeWitchSave,
   makeWitchPoison,
   makeActionMagicianSwap,
-} from '../actions';
+} from '@/models/actions';
 
 // Helper to create a test room with specific roles and pre-set actions
 const createTestRoom = (

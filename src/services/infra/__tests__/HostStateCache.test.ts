@@ -5,8 +5,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { HostStateCache, CachedHostState } from '../HostStateCache';
-import type { BroadcastGameState } from '../../protocol/types';
+import { HostStateCache, CachedHostState } from '@/services/infra/HostStateCache';
+import type { BroadcastGameState } from '@/services/protocol/types';
 
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({

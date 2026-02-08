@@ -16,15 +16,15 @@
  * - messageRouter.ts: PlayerMessage/HostBroadcast 路由分发
  */
 
-import type { IGameFacade, StateListener } from '../types/IGameFacade';
-import type { GameTemplate } from '../../models/Template';
-import type { BroadcastGameState, PlayerMessage, HostBroadcast } from '../protocol/types';
-import type { RoleId } from '../../models/roles';
+import type { IGameFacade, StateListener } from '@/services/types/IGameFacade';
+import type { GameTemplate } from '@/models/Template';
+import type { BroadcastGameState, PlayerMessage, HostBroadcast } from '@/services/protocol/types';
+import type { RoleId } from '@/models/roles';
 
-import { BroadcastService } from '../transport/BroadcastService';
-import { GameStore } from '../engine/store';
-import AudioService from '../infra/AudioService';
-import { HostStateCache } from '../infra/HostStateCache';
+import { BroadcastService } from '@/services/transport/BroadcastService';
+import { GameStore } from '@/services/engine/store';
+import AudioService from '@/services/infra/AudioService';
+import { HostStateCache } from '@/services/infra/HostStateCache';
 
 // 子模块
 import type { HostActionsContext } from './hostActions';
@@ -33,7 +33,7 @@ import type { MessageRouterContext } from './messageRouter';
 import * as hostActions from './hostActions';
 import * as seatActions from './seatActions';
 import * as messageRouter from './messageRouter';
-import { newRequestId } from '../../utils/id';
+import { newRequestId } from '@/utils/id';
 
 export class GameFacade implements IGameFacade {
   private static _instance: GameFacade | null = null;

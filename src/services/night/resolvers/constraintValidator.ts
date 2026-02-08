@@ -8,7 +8,7 @@
  * ❌ 禁止：IO（网络 / 音频 / Alert）
  */
 
-import type { TargetConstraint } from '../../../models/roles/spec/schema.types';
+import type { TargetConstraint } from '@/models/roles/spec/schema.types';
 
 export interface ConstraintValidationContext {
   /** Current actor's seat */

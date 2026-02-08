@@ -11,7 +11,7 @@
  * ❌ 禁止：直接修改 state（返回 StateAction 列表由 reducer 执行）
  */
 
-import type { SubmitActionIntent, SubmitWolfVoteIntent, ViewedRoleIntent } from '../intents/types';
+import type { SubmitActionIntent, SubmitWolfVoteIntent, ViewedRoleIntent } from '@/services/engine/intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type {
   RecordActionAction,
@@ -19,17 +19,17 @@ import type {
   PlayerViewedRoleAction,
   ActionRejectedAction,
   StateAction,
-} from '../reducer/types';
-import type { ProtocolAction } from '../../protocol/types';
-import type { SchemaId } from '../../../models/roles/spec';
-import { RESOLVERS } from '../../night/resolvers';
-import { NIGHT_STEPS, SCHEMAS, BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
-import type { ResolverContext, ActionInput, ResolverResult } from '../../night/resolvers/types';
-import type { RoleId } from '../../../models/roles';
+} from '@/services/engine/reducer/types';
+import type { ProtocolAction } from '@/services/protocol/types';
+import type { SchemaId } from '@/models/roles/spec';
+import { RESOLVERS } from '@/services/night/resolvers';
+import { NIGHT_STEPS, SCHEMAS, BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
+import type { ResolverContext, ActionInput, ResolverResult } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles';
 
-import { doesRoleParticipateInWolfVote } from '../../../models/roles';
-import { log } from '../../../utils/logger';
-import { newRejectionId } from '../../../utils/id';
+import { doesRoleParticipateInWolfVote } from '@/models/roles';
+import { log } from '@/utils/logger';
+import { newRejectionId } from '@/utils/id';
 
 const actionHandlerLog = log.extend('ActionHandler');
 

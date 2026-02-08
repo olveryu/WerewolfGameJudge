@@ -10,8 +10,8 @@
 
 import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
-import { RoomScreen } from '../../RoomScreen';
-import { showAlert } from '../../../../utils/alert';
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { showAlert } from '@/utils/alert';
 import {
   RoomScreenTestHarness,
   createShowAlertMock,
@@ -28,7 +28,7 @@ import {
   coverageChainWitchSavePrompt,
   coverageChainWitchPoisonPrompt,
   coverageChainConfirmTrigger,
-} from '../harness';
+} from '@/screens/RoomScreen/__tests__/harness';
 
 jest.mock('../../../../utils/alert', () => ({
   showAlert: jest.fn(),
@@ -38,7 +38,7 @@ jest.mock('@react-navigation/native', () => ({}));
 
 // Use MockSafeAreaView from harness to preserve testID
 jest.mock('react-native-safe-area-context', () => {
-  const { MockSafeAreaView } = require('../harness');
+  const { MockSafeAreaView } = require('@/screens/RoomScreen/__tests__/harness');
   return { SafeAreaView: MockSafeAreaView };
 });
 

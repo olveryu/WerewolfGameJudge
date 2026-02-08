@@ -2,7 +2,7 @@
  * Tests for room code generation
  */
 
-import { generateRoomCode } from '../roomCode';
+import { generateRoomCode } from '@/utils/roomCode';
 
 describe('generateRoomCode', () => {
   it('should generate a 4-digit string', () => {

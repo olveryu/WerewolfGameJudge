@@ -15,14 +15,14 @@
  * 走 compound 路径，不在此测试范围。
  */
 
-import { handleSubmitAction } from '../actionHandler';
-import { SCHEMAS, BLOCKED_UI_DEFAULTS } from '../../../../models/roles/spec';
-import type { SchemaId } from '../../../../models/roles/spec';
-import type { HandlerContext } from '../types';
-import type { SubmitActionIntent } from '../../intents/types';
-import type { GameState } from '../../store/types';
-import type { RoleId } from '../../../../models/roles';
-import type { ApplyResolverResultAction } from '../../reducer/types';
+import { handleSubmitAction } from '@/services/engine/handlers/actionHandler';
+import { SCHEMAS, BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
+import type { SchemaId } from '@/models/roles/spec';
+import type { HandlerContext } from '@/services/engine/handlers/types';
+import type { SubmitActionIntent } from '@/services/engine/intents/types';
+import type { GameState } from '@/services/engine/store/types';
+import type { RoleId } from '@/models/roles';
+import type { ApplyResolverResultAction } from '@/services/engine/reducer/types';
 
 // =============================================================================
 // Test Data

@@ -8,7 +8,7 @@
  */
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Image } from 'react-native';
-import { useTheme } from '../../theme/ThemeProvider';
+import { useTheme } from '@/theme/ThemeProvider';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const appIcon = require('../../../assets/pwa/icon-192.png');

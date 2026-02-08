@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
-import { RoomScreen } from '../RoomScreen';
-import { TESTIDS } from '../../../testids';
-import { showAlert } from '../../../utils/alert';
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { TESTIDS } from '@/testids';
+import { showAlert } from '@/utils/alert';
 
 jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
@@ -63,11 +63,11 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     connectionStatus: 'live',
 
     isHost: false,
-    roomStatus: require('../../../models/Room').GameStatus.ongoing,
+    roomStatus: require('@/models/Room').GameStatus.ongoing,
 
     currentActionRole: 'witch',
     currentSchema: ((): any => {
-      const { getSchema } = require('../../../models/roles/spec/schemas');
+      const { getSchema } = require('@/models/roles/spec/schemas');
       return getSchema('witchAction');
     })(),
 
@@ -137,7 +137,7 @@ jest.mock('../useRoomActionDialogs', () => ({
       onConfirm: () => void,
       onCancel?: () => void,
     ) => {
-      const { showAlert: mockShowAlert } = require('../../../utils/alert');
+      const { showAlert: mockShowAlert } = require('@/utils/alert');
       mockShowAlert(title, message, [
         { text: '确定', onPress: onConfirm },
         { text: '取消', style: 'cancel', onPress: onCancel },
@@ -152,7 +152,7 @@ jest.mock('../useRoomActionDialogs', () => ({
     showWitchPoisonPrompt: jest.fn(),
     showWitchPoisonConfirm: jest.fn(),
     showWitchInfoPrompt: (ctx: any, schema: any, onDismiss: () => void) => {
-      const { showAlert: mockShowAlert } = require('../../../utils/alert');
+      const { showAlert: mockShowAlert } = require('@/utils/alert');
       mockShowAlert('女巫信息', schema?.ui?.prompt || '', [{ text: '知道了', onPress: onDismiss }]);
     },
   }),
@@ -225,7 +225,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
   // Regression guard: seat-tap poison must NOT be driven by any save-related context.
   // (phase field removed; seat taps always mean poison under new UX.)
   it('canSave=true still tap seat -> poison confirm -> submitAction(target, {poison:true})', async () => {
-    const { useGameRoom } = require('../../../hooks/useGameRoom');
+    const { useGameRoom } = require('@/hooks/useGameRoom');
     const room = useGameRoom();
     room.getWitchContext.mockReturnValue({
       kind: 'WITCH_CONTEXT',

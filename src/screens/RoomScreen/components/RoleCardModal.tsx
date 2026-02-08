@@ -17,16 +17,16 @@
  */
 
 import React from 'react';
-import { RoleCardSimple } from '../../../components/RoleCardSimple';
+import { RoleCardSimple } from '@/components/RoleCardSimple';
 import {
   RoleRevealAnimator,
   createRoleData,
   type RoleData,
   type RevealEffectType,
-} from '../../../components/RoleRevealEffects';
-import { getRoleDisplayName, getRoleSpec, Faction } from '../../../models/roles';
-import type { RoleId } from '../../../models/roles/spec/specs';
-import type { ResolvedRoleRevealAnimation } from '../../../services/types/RoleRevealAnimation';
+} from '@/components/RoleRevealEffects';
+import { getRoleDisplayName, getRoleSpec, Faction } from '@/models/roles';
+import type { RoleId } from '@/models/roles/spec/specs';
+import type { ResolvedRoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
 
 // ─── Alignment map (Faction → reveal alignment) ────────────────────────────
 const ALIGNMENT_MAP: Record<Faction, 'wolf' | 'god' | 'villager'> = {

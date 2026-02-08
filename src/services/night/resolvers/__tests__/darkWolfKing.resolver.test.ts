@@ -4,9 +4,9 @@
  * Tests for darkWolfKingConfirmResolver validation logic.
  */
 
-import { darkWolfKingConfirmResolver } from '../darkWolfKing';
-import type { ResolverContext, ActionInput } from '../types';
-import type { RoleId } from '../../../../models/roles/spec/specs';
+import { darkWolfKingConfirmResolver } from '@/services/night/resolvers/darkWolfKing';
+import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // =============================================================================
 // Test Helpers

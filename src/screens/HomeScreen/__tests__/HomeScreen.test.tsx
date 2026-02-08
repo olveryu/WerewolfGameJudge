@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { HomeScreen } from '../HomeScreen';
+import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -80,7 +80,7 @@ describe('HomeScreen', () => {
   describe('Navigation', () => {
     it('should navigate to Config screen when "创建房间" is pressed', async () => {
       // Set up authenticated user
-      jest.spyOn(require('../../../hooks/useAuth'), 'useAuth').mockReturnValue({
+      jest.spyOn(require('@/hooks/useAuth'), 'useAuth').mockReturnValue({
         user: { uid: 'test-user', displayName: 'Test' },
         loading: false,
         error: null,
@@ -113,7 +113,7 @@ describe('HomeScreen', () => {
   describe('Join Room Modal', () => {
     it('should show join room modal when "进入房间" is pressed', async () => {
       // Mock authenticated user
-      jest.spyOn(require('../../../hooks/useAuth'), 'useAuth').mockReturnValue({
+      jest.spyOn(require('@/hooks/useAuth'), 'useAuth').mockReturnValue({
         user: { uid: 'test-user', displayName: 'Test' },
         loading: false,
         error: null,

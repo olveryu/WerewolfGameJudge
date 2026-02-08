@@ -19,15 +19,15 @@ import {
 } from 'react-native';
 // No SVG imports needed - using native View clipping
 import { LinearGradient } from 'expo-linear-gradient';
-import { useColors, spacing, typography, borderRadius } from '../../../theme';
-import type { RoleRevealEffectProps } from '../types';
-import { ALIGNMENT_THEMES } from '../types';
-import { CONFIG } from '../config';
-import { canUseNativeDriver } from '../utils/platform';
-import { triggerHaptic } from '../utils/haptics';
-import { RoleCardContent } from '../common/RoleCardContent';
-import { GlowBorder } from '../common/GlowBorder';
-import type { RoleId } from '../../../models/roles';
+import { useColors, spacing, typography, borderRadius } from '@/theme';
+import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
+import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
+import { CONFIG } from '@/components/RoleRevealEffects/config';
+import { canUseNativeDriver } from '@/components/RoleRevealEffects/utils/platform';
+import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
+import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
+import type { RoleId } from '@/models/roles';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

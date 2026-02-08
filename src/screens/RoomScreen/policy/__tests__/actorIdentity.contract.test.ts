@@ -9,7 +9,7 @@
  * 5. No default value fallbacks - null in = null out
  */
 
-import { getActorIdentity, isActorIdentityValid } from '../actorIdentity';
+import { getActorIdentity, isActorIdentityValid } from '@/screens/RoomScreen/policy/actorIdentity';
 
 describe('getActorIdentity contract', () => {
   describe('when NOT delegating (controlledSeat=null)', () => {

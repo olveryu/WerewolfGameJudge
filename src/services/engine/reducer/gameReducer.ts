@@ -9,7 +9,7 @@
  * - 不调用 resolver（resolver 由 handler 调用，结果通过 action 传入）
  */
 
-import type { GameState } from '../store/types';
+import type { GameState } from '@/services/engine/store/types';
 import type {
   StateAction,
   InitializeGameAction,
@@ -31,9 +31,9 @@ import type {
   AddRevealAckAction,
   FillWithBotsAction,
 } from './types';
-import { resolveRandomAnimation } from '../../types/RoleRevealAnimation';
-import type { ResolvedRoleRevealAnimation } from '../../types/RoleRevealAnimation';
-import { randomHex } from '../../../utils/id';
+import { resolveRandomAnimation } from '@/services/types/RoleRevealAnimation';
+import type { ResolvedRoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
+import { randomHex } from '@/utils/id';
 
 // =============================================================================
 // 子 Reducer 函数（降低认知复杂度）

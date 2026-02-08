@@ -16,9 +16,9 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../theme';
-import type { RoleId } from '../models/roles';
-import { getRoleSpec, isWolfRole } from '../models/roles';
+import { useColors, spacing, typography, borderRadius, type ThemeColors } from '@/theme';
+import type { RoleId } from '@/models/roles';
+import { getRoleSpec, isWolfRole } from '@/models/roles';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.75, 280);

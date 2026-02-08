@@ -5,9 +5,9 @@
  * Facade 只做编排，不写业务逻辑。
  */
 
-import type { BroadcastGameState } from '../protocol/types';
-import type { GameTemplate } from '../../models/Template';
-import type { RoleId } from '../../models/roles';
+import type { BroadcastGameState } from '@/services/protocol/types';
+import type { GameTemplate } from '@/models/Template';
+import type { RoleId } from '@/models/roles';
 import type { RoleRevealAnimation } from './RoleRevealAnimation';
 
 export type StateListener = (state: BroadcastGameState | null) => void;

@@ -5,8 +5,8 @@
  * Intent 与 PlayerMessage 对应，但更加类型安全
  */
 
-import type { RoleId } from '../../../models/roles';
-import type { RoleRevealAnimation } from '../../types/RoleRevealAnimation';
+import type { RoleId } from '@/models/roles';
+import type { RoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
 
 // =============================================================================
 // 座位相关 Intent

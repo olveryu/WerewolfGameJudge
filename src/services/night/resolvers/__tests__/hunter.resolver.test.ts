@@ -4,9 +4,9 @@
  * Tests for hunterConfirmResolver validation logic.
  */
 
-import { hunterConfirmResolver } from '../hunter';
-import type { ResolverContext, ActionInput } from '../types';
-import type { RoleId } from '../../../../models/roles/spec/specs';
+import { hunterConfirmResolver } from '@/services/night/resolvers/hunter';
+import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // =============================================================================
 // Test Helpers

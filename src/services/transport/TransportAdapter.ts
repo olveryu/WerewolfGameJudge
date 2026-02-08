@@ -10,8 +10,8 @@
  */
 
 import type { BroadcastService } from './BroadcastService';
-import type { HostBroadcast, PlayerMessage as ProtocolPlayerMessage } from '../protocol/types';
-import type { GameState } from '../engine/store/types';
+import type { HostBroadcast, PlayerMessage as ProtocolPlayerMessage } from '@/services/protocol/types';
+import type { GameState } from '@/services/engine/store/types';
 
 /**
  * Transport 监听器

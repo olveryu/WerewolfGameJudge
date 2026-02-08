@@ -10,17 +10,17 @@
  * No runtime logic or service dependencies.
  */
 
-import { RoleId } from '../../models/roles';
-import type { CurrentNightResults } from '../night/resolvers/types';
-import { GameTemplate } from '../../models/Template';
+import { RoleId } from '@/models/roles';
+import type { CurrentNightResults } from '@/services/night/resolvers/types';
+import { GameTemplate } from '@/models/Template';
 import type { RoleRevealAnimation, ResolvedRoleRevealAnimation } from './RoleRevealAnimation';
-import { GameStatus } from '../../models/GameStatus';
+import { GameStatus } from '@/models/GameStatus';
 
 // =============================================================================
 // Game Status Enum (canonical definition in src/models/GameStatus.ts)
 // =============================================================================
 
-export { GameStatus } from '../../models/GameStatus';
+export { GameStatus } from '@/models/GameStatus';
 
 // =============================================================================
 // Player Types
@@ -41,7 +41,7 @@ export interface LocalPlayer {
 // Game State Types
 // =============================================================================
 
-import { RoleAction } from '../../models/actions/RoleAction';
+import { RoleAction } from '@/models/actions/RoleAction';
 
 export interface LocalGameState {
   roomCode: string;

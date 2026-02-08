@@ -11,24 +11,24 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/types';
-import { RoleId, ROLE_SPECS, Faction } from '../../models/roles';
+import { RootStackParamList } from '@/navigation/types';
+import { RoleId, ROLE_SPECS, Faction } from '@/models/roles';
 import {
   PRESET_TEMPLATES,
   createCustomTemplate,
   validateTemplateRoles,
   findMatchingPresetName,
-} from '../../models/Template';
-import { useGameFacade } from '../../contexts';
-import { showAlert } from '../../utils/alert';
+} from '@/models/Template';
+import { useGameFacade } from '@/contexts';
+import { showAlert } from '@/utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useColors, spacing, typography } from '../../theme';
-import { TESTIDS } from '../../testids';
-import { configLog } from '../../utils/logger';
-import { LoadingScreen } from '../../components/LoadingScreen';
-import { useGameRoom } from '../../hooks/useGameRoom';
-import SettingsService from '../../services/infra/SettingsService';
-import type { RoleRevealAnimation } from '../../services/types/RoleRevealAnimation';
+import { useColors, spacing, typography } from '@/theme';
+import { TESTIDS } from '@/testids';
+import { configLog } from '@/utils/logger';
+import { LoadingScreen } from '@/components/LoadingScreen';
+import { useGameRoom } from '@/hooks/useGameRoom';
+import SettingsService from '@/services/infra/SettingsService';
+import type { RoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
 import {
   RoleChip,
   RoleStepper,

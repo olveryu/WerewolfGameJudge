@@ -14,8 +14,8 @@ import {
   typography,
   borderRadius,
   shadows,
-} from '../../../theme';
-import { componentSizes, fixed } from '../../../theme/tokens';
+} from '@/theme';
+import { componentSizes, fixed } from '@/theme/tokens';
 
 // ─── Per-component style interfaces ─────────────────────────────────────────
 

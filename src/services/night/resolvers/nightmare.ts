@@ -11,7 +11,7 @@
  *       gargoyle, wolfRobot, spiritKnight, etc.
  */
 
-import { ROLE_SPECS } from '../../../models/roles/spec/specs';
+import { ROLE_SPECS } from '@/models/roles/spec/specs';
 import type { ResolverFn } from './types';
 
 export const nightmareBlockResolver: ResolverFn = (context, input) => {

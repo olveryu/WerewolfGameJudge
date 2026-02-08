@@ -10,7 +10,7 @@
  * ❌ 禁止：import service / 副作用 / resolver 逻辑
  */
 
-import { log } from '../../utils/logger';
+import { log } from '@/utils/logger';
 
 const roleLog = log.extend('Role');
 

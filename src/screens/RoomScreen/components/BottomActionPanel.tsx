@@ -8,7 +8,7 @@
  */
 import React, { memo } from 'react';
 import { View, Text } from 'react-native';
-import { TESTIDS } from '../../../testids';
+import { TESTIDS } from '@/testids';
 import { type BottomActionPanelStyles } from './styles';
 
 export interface BottomActionPanelProps {

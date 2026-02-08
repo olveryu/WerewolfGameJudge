@@ -7,8 +7,8 @@
  * ❌ 禁止：游戏业务逻辑、直接调用 Supabase
  */
 import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
-import { log } from '../utils/logger';
-import { showAlert } from '../utils/alert';
+import { log } from '@/utils/logger';
+import { showAlert } from '@/utils/alert';
 
 interface NetworkContextType {
   isConnecting: boolean;

@@ -9,6 +9,7 @@ module.exports = {
   collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
     '^expo-audio$': '<rootDir>/__mocks__/expo-audio.ts',
     '^expo-haptics$': '<rootDir>/__mocks__/expo-haptics.ts',
     '^@react-native-async-storage/async-storage$':

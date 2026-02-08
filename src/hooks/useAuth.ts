@@ -14,7 +14,7 @@
  */
 
 // Re-export User type for backward compatibility
-export type { User } from '../contexts/AuthContext';
+export type { User } from '@/contexts/AuthContext';
 
 // Re-export the hook with the same name for backward compatibility
-export { useAuthContext as useAuth } from '../contexts/AuthContext';
+export { useAuthContext as useAuth } from '@/contexts/AuthContext';

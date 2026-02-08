@@ -8,11 +8,11 @@
  * - Player 收到 STATE_UPDATE → applySnapshot
  */
 
-import { GameFacade } from '../GameFacade';
-import { BroadcastService } from '../../transport/BroadcastService';
-import type { PlayerMessage, HostBroadcast, BroadcastPlayer } from '../../protocol/types';
-import { gameReducer } from '../../engine/reducer/gameReducer';
-import type { PlayerJoinAction } from '../../engine/reducer/types';
+import { GameFacade } from '@/services/facade/GameFacade';
+import { BroadcastService } from '@/services/transport/BroadcastService';
+import type { PlayerMessage, HostBroadcast, BroadcastPlayer } from '@/services/protocol/types';
+import { gameReducer } from '@/services/engine/reducer/gameReducer';
+import type { PlayerJoinAction } from '@/services/engine/reducer/types';
 import {
   REASON_TIMEOUT,
   REASON_INVALID_SEAT,
@@ -21,7 +21,7 @@ import {
   REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
   REASON_NOT_SEATED,
-} from '../../protocol/reasonCodes';
+} from '@/services/protocol/reasonCodes';
 
 // Mock BroadcastService
 jest.mock('../../transport/BroadcastService', () => ({

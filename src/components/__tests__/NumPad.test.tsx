@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { NumPad } from '../NumPad';
+import { NumPad } from '@/components/NumPad';
 
 describe('NumPad', () => {
   const mockOnValueChange = jest.fn();

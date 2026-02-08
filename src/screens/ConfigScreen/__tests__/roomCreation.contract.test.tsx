@@ -8,12 +8,12 @@
 
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { ConfigScreen } from '../ConfigScreen';
-import { GameFacadeProvider } from '../../../contexts/GameFacadeContext';
-import type { IGameFacade } from '../../../services/types/IGameFacade';
-import { AuthService } from '../../../services/infra/AuthService';
-import { BroadcastService } from '../../../services/transport/BroadcastService';
-import { SimplifiedRoomService } from '../../../services/infra/RoomService';
+import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
+import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
+import type { IGameFacade } from '@/services/types/IGameFacade';
+import { AuthService } from '@/services/infra/AuthService';
+import { BroadcastService } from '@/services/transport/BroadcastService';
+import { SimplifiedRoomService } from '@/services/infra/RoomService';
 
 // Mock navigation
 const mockNavigate = jest.fn();

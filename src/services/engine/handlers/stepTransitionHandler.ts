@@ -14,7 +14,7 @@
  * ❌ 禁止：手动推进 index（`++` 兜底策略禁止）
  */
 
-import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../intents/types';
+import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '@/services/engine/intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type {
   AdvanceToNextActionAction,
@@ -22,22 +22,22 @@ import type {
   SetAudioPlayingAction,
   SetUiHintAction,
   StateAction,
-} from '../reducer/types';
-import type { SchemaId } from '../../../models/roles/spec';
-import type { RoleId } from '../../../models/roles';
-import type { NightActions, RoleSeatMap } from '../DeathCalculator';
-import type { WitchAction } from '../../../models/actions/WitchAction';
-import type { ProtocolAction } from '../../protocol/types';
+} from '@/services/engine/reducer/types';
+import type { SchemaId } from '@/models/roles/spec';
+import type { RoleId } from '@/models/roles';
+import type { NightActions, RoleSeatMap } from '@/services/engine/DeathCalculator';
+import type { WitchAction } from '@/models/actions/WitchAction';
+import type { ProtocolAction } from '@/services/protocol/types';
 
-import { buildNightPlan, type NightPlanStep } from '../../../models/roles/spec/plan';
-import { getStepSpec } from '../../../models/roles/spec/nightSteps';
-import { SCHEMAS } from '../../../models/roles/spec/schemas';
-import { BLOCKED_UI_DEFAULTS, type SchemaUi } from '../../../models/roles/spec/schema.types';
-import { calculateDeaths } from '../DeathCalculator';
-import { isWolfRole, getWolfRoleIds } from '../../../models/roles';
-import { makeWitchSave, makeWitchPoison, makeWitchNone } from '../../../models/actions/WitchAction';
-import { nightFlowLog } from '../../../utils/logger';
-import { resolveWolfVotes } from '../resolveWolfVotes';
+import { buildNightPlan, type NightPlanStep } from '@/models/roles/spec/plan';
+import { getStepSpec } from '@/models/roles/spec/nightSteps';
+import { SCHEMAS } from '@/models/roles/spec/schemas';
+import { BLOCKED_UI_DEFAULTS, type SchemaUi } from '@/models/roles/spec/schema.types';
+import { calculateDeaths } from '@/services/engine/DeathCalculator';
+import { isWolfRole, getWolfRoleIds } from '@/models/roles';
+import { makeWitchSave, makeWitchPoison, makeWitchNone } from '@/models/actions/WitchAction';
+import { nightFlowLog } from '@/utils/logger';
+import { resolveWolfVotes } from '@/services/engine/resolveWolfVotes';
 import { maybeCreateWitchContextAction } from './witchContext';
 
 /**

@@ -9,17 +9,17 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { View, Text, Animated, StyleSheet, Dimensions, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useColors, spacing, typography, borderRadius } from '../../../theme';
-import type { RoleRevealEffectProps, RoleData } from '../types';
-import { ALIGNMENT_THEMES } from '../types';
-import { CONFIG } from '../config';
-import { canUseNativeDriver } from '../utils/platform';
-import { playSound, createTickPlayer } from '../utils/sound';
-import { triggerHaptic } from '../utils/haptics';
-import { GlowBorder } from '../common/GlowBorder';
-import { RoleCardContent } from '../common/RoleCardContent';
-import type { RoleId } from '../../../models/roles/spec/specs';
-import { shuffleArray } from '../../../utils/shuffle';
+import { useColors, spacing, typography, borderRadius } from '@/theme';
+import type { RoleRevealEffectProps, RoleData } from '@/components/RoleRevealEffects/types';
+import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
+import { CONFIG } from '@/components/RoleRevealEffects/config';
+import { canUseNativeDriver } from '@/components/RoleRevealEffects/utils/platform';
+import { playSound, createTickPlayer } from '@/components/RoleRevealEffects/utils/sound';
+import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
+import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
+import type { RoleId } from '@/models/roles/spec/specs';
+import { shuffleArray } from '@/utils/shuffle';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

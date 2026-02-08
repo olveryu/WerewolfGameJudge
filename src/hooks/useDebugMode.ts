@@ -12,9 +12,9 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
-import type { LocalGameState } from '../services/types/GameStateTypes';
-import type { RoleId } from '../models/roles';
-import type { IGameFacade } from '../services/types/IGameFacade';
+import type { LocalGameState } from '@/services/types/GameStateTypes';
+import type { RoleId } from '@/models/roles';
+import type { IGameFacade } from '@/services/types/IGameFacade';
 
 export interface DebugModeState {
   /** Which bot seat the Host is currently controlling (null = normal mode) */

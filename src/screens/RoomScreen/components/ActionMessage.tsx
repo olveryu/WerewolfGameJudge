@@ -8,7 +8,7 @@
  */
 import React, { memo } from 'react';
 import { Text } from 'react-native';
-import { TESTIDS } from '../../../testids';
+import { TESTIDS } from '@/testids';
 import { type ActionMessageStyles } from './styles';
 
 export interface ActionMessageProps {

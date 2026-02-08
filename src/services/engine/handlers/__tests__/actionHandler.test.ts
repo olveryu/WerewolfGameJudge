@@ -2,15 +2,15 @@
  * actionHandler Unit Tests
  */
 
-import { handleSubmitAction, handleSubmitWolfVote, handleViewedRole } from '../actionHandler';
-import type { HandlerContext } from '../types';
+import { handleSubmitAction, handleSubmitWolfVote, handleViewedRole } from '@/services/engine/handlers/actionHandler';
+import type { HandlerContext } from '@/services/engine/handlers/types';
 import type {
   SubmitActionIntent,
   SubmitWolfVoteIntent,
   ViewedRoleIntent,
-} from '../../intents/types';
-import type { GameState } from '../../store/types';
-import type { SchemaId } from '../../../../models/roles/spec';
+} from '@/services/engine/intents/types';
+import type { GameState } from '@/services/engine/store/types';
+import type { SchemaId } from '@/models/roles/spec';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
@@ -1221,8 +1221,8 @@ describe('handleSubmitAction', () => {
 
 describe('isSkipAction (schema-aware skip detection)', () => {
   // Import from actionHandler (exported for testing)
-  const { isSkipAction } = require('../actionHandler');
-  const { SCHEMAS } = require('../../../../models/roles/spec');
+  const { isSkipAction } = require('@/services/engine/handlers/actionHandler');
+  const { SCHEMAS } = require('@/models/roles/spec');
 
   it('should detect skip for chooseSeat schema with target=undefined', () => {
     const result = isSkipAction(SCHEMAS.seerCheck, { schemaId: 'seerCheck', target: undefined });
@@ -1275,8 +1275,8 @@ describe('isSkipAction (schema-aware skip detection)', () => {
 });
 
 describe('checkNightmareBlockGuard (single-point guard)', () => {
-  const { checkNightmareBlockGuard } = require('../actionHandler');
-  const { SCHEMAS, BLOCKED_UI_DEFAULTS } = require('../../../../models/roles/spec');
+  const { checkNightmareBlockGuard } = require('@/services/engine/handlers/actionHandler');
+  const { SCHEMAS, BLOCKED_UI_DEFAULTS } = require('@/models/roles/spec');
 
   describe('chooseSeat schema', () => {
     it('should reject blocked player with non-skip action', () => {

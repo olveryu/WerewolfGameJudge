@@ -6,7 +6,7 @@
  * - 可选字段正确透传
  */
 
-import type { BroadcastGameState } from '../../protocol/types';
+import type { BroadcastGameState } from '@/services/protocol/types';
 
 /**
  * 规范化座位键记录（canonicalize），确保所有 key 都是 string。

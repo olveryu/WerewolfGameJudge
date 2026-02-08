@@ -10,9 +10,9 @@ import {
   getAllSchemaIds,
   isValidSchemaId,
   BLOCKED_UI_DEFAULTS,
-} from '../index';
-import { NIGHT_STEPS } from '../index';
-import type { CompoundSchema } from '../schema.types';
+} from '@/models/roles/spec/index';
+import { NIGHT_STEPS } from '@/models/roles/spec/index';
+import type { CompoundSchema } from '@/models/roles/spec/schema.types';
 
 describe('SCHEMAS contract', () => {
   it('should include at least all NIGHT_STEPS schemas (and may include helper schemas)', () => {

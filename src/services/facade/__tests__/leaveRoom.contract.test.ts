@@ -4,7 +4,7 @@
  * 验证离开房间后不会有残留的 store listeners 导致内存/逻辑泄漏
  */
 
-import { GameFacade } from '../GameFacade';
+import { GameFacade } from '@/services/facade/GameFacade';
 
 // Mock BroadcastService
 jest.mock('../../transport/BroadcastService', () => ({

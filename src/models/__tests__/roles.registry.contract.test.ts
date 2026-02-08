@@ -14,7 +14,7 @@ import {
   isValidRoleId,
   getAllRoleIds,
   RoleId,
-} from '../roles';
+} from '@/models/roles';
 
 describe('Role Registry Contract Tests', () => {
   describe('ROLE_SPECS is single source of truth', () => {

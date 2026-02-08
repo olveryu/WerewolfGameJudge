@@ -16,10 +16,10 @@
  * Facade 的 security validation 测试应放在 hostActions 的单元测试中。
  */
 
-import { handleAdvanceNight } from '../nightFlowHandler';
-import { handleSetWolfRobotHunterStatusViewed } from '../wolfRobotHunterGateHandler';
-import type { HandlerContext } from '../types';
-import type { BroadcastGameState } from '../../../protocol/types';
+import { handleAdvanceNight } from '@/services/engine/handlers/nightFlowHandler';
+import { handleSetWolfRobotHunterStatusViewed } from '@/services/engine/handlers/wolfRobotHunterGateHandler';
+import type { HandlerContext } from '@/services/engine/handlers/types';
+import type { BroadcastGameState } from '@/services/protocol/types';
 
 // Create minimal state for testing
 function createTestState(overrides?: Partial<BroadcastGameState>): BroadcastGameState {

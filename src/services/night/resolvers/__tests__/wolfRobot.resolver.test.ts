@@ -10,9 +10,9 @@
  * - canShootAsHunter = false if learned hunter AND poisoned by witch
  */
 
-import { wolfRobotLearnResolver } from '../wolfRobot';
-import type { ResolverContext, ActionInput } from '../types';
-import type { RoleId } from '../../../../models/roles/spec/specs';
+import { wolfRobotLearnResolver } from '@/services/night/resolvers/wolfRobot';
+import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // =============================================================================
 // Test Helpers
@@ -256,7 +256,7 @@ describe('wolfRobotLearnResolver', () => {
 // Type Guard & Assert Contract Tests
 // =============================================================================
 
-import { isWolfRobotLearnResult, assertWolfRobotLearnedRoleId } from '../types';
+import { isWolfRobotLearnResult, assertWolfRobotLearnedRoleId } from '@/services/night/resolvers/types';
 
 describe('WolfRobot Type Guards & Asserts', () => {
   describe('isWolfRobotLearnResult', () => {

@@ -25,7 +25,7 @@ import {
   Animated,
   useWindowDimensions,
 } from 'react-native';
-import { useTheme } from '../../theme';
+import { useTheme } from '@/theme';
 import { useAIChat } from './useAIChat';
 import { createStyles, getChatHeight, type DisplayMessage } from './AIChatBubble.styles';
 import { SimpleMarkdown } from './SimpleMarkdown';

@@ -4,9 +4,9 @@
  * Tests for witchActionResolver validation and resolution logic.
  */
 
-import { witchActionResolver } from '../witch';
-import type { ResolverContext, ActionInput } from '../types';
-import type { RoleId } from '../../../../models/roles/spec/specs';
+import { witchActionResolver } from '@/services/night/resolvers/witch';
+import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // =============================================================================
 // Test Helpers

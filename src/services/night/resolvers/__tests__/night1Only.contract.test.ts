@@ -4,14 +4,14 @@
  * This app is Night-1 only: resolvers must not enforce cross-night constraints.
  */
 
-import { dreamcatcherDreamResolver } from '../dreamcatcher';
-import { guardProtectResolver } from '../guard';
-import { nightmareBlockResolver } from '../nightmare';
-import { wolfQueenCharmResolver } from '../wolfQueen';
-import { wolfRobotLearnResolver } from '../wolfRobot';
-import { slackerChooseIdolResolver } from '../slacker';
-import { wolfKillResolver } from '../wolf';
-import type { ResolverContext } from '../types';
+import { dreamcatcherDreamResolver } from '@/services/night/resolvers/dreamcatcher';
+import { guardProtectResolver } from '@/services/night/resolvers/guard';
+import { nightmareBlockResolver } from '@/services/night/resolvers/nightmare';
+import { wolfQueenCharmResolver } from '@/services/night/resolvers/wolfQueen';
+import { wolfRobotLearnResolver } from '@/services/night/resolvers/wolfRobot';
+import { slackerChooseIdolResolver } from '@/services/night/resolvers/slacker';
+import { wolfKillResolver } from '@/services/night/resolvers/wolf';
+import type { ResolverContext } from '@/services/night/resolvers/types';
 
 function makeContext(overrides: Partial<ResolverContext> = {}): ResolverContext {
   const players = new Map<number, any>([

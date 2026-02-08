@@ -2,8 +2,8 @@
  * Tests for generateSpeakOrder
  */
 
-import { generateSpeakOrder } from '../useRoomHostDialogs';
-import { Rng } from '../../../utils/random';
+import { generateSpeakOrder } from '@/screens/RoomScreen/useRoomHostDialogs';
+import { Rng } from '@/utils/random';
 
 describe('generateSpeakOrder', () => {
   it('should return seat 1 when rng returns 0', () => {

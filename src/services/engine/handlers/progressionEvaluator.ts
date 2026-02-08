@@ -11,10 +11,10 @@
  * ❌ 禁止：IO（网络 / 音频 / Alert）
  */
 
-import type { BroadcastGameState } from '../../protocol/types';
+import type { BroadcastGameState } from '@/services/protocol/types';
 
-import { getRoleSpec } from '../../../models/roles';
-import { nightFlowLog } from '../../../utils/logger';
+import { getRoleSpec } from '@/models/roles';
+import { nightFlowLog } from '@/utils/logger';
 
 /**
  * 非 null 的 state 类型

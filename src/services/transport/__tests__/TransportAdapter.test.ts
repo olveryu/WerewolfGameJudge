@@ -2,10 +2,10 @@
  * TransportAdapter Unit Tests
  */
 
-import { TransportAdapter } from '../TransportAdapter';
-import type { TransportListener } from '../TransportAdapter';
-import type { BroadcastService } from '../BroadcastService';
-import type { GameState } from '../../engine/store/types';
+import { TransportAdapter } from '@/services/transport/TransportAdapter';
+import type { TransportListener } from '@/services/transport/TransportAdapter';
+import type { BroadcastService } from '@/services/transport/BroadcastService';
+import type { GameState } from '@/services/engine/store/types';
 
 function createMockBroadcastService(): jest.Mocked<BroadcastService> {
   return {

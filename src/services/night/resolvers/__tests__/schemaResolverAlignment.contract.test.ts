@@ -8,11 +8,11 @@
  * 这是防止 "一刀切" skip 行为的合约测试。
  */
 
-import { SCHEMAS, type SchemaId } from '../../../../models/roles/spec';
-import type { CompoundSchema, ChooseSeatSchema } from '../../../../models/roles/spec/schema.types';
-import { RESOLVERS } from '../index';
-import type { ActionInput, ResolverContext } from '../types';
-import type { RoleId } from '../../../../models/roles/spec/specs';
+import { SCHEMAS, type SchemaId } from '@/models/roles/spec';
+import type { CompoundSchema, ChooseSeatSchema } from '@/models/roles/spec/schema.types';
+import { RESOLVERS } from '@/services/night/resolvers/index';
+import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // 创建基础的 ResolverContext
 function createBaseContext(
@@ -167,7 +167,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
     const {
       evaluateNightProgression,
       createProgressionTracker,
-    } = require('../../../engine/handlers/nightFlowHandler');
+    } = require('@/services/engine/handlers/nightFlowHandler');
 
     const state = {
       status: 'ongoing',
@@ -201,7 +201,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
     const {
       evaluateNightProgression,
       createProgressionTracker,
-    } = require('../../../engine/handlers/nightFlowHandler');
+    } = require('@/services/engine/handlers/nightFlowHandler');
 
     const tracker = createProgressionTracker();
 
@@ -234,7 +234,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
   });
 
   it('returns none when not host', () => {
-    const { evaluateNightProgression } = require('../../../engine/handlers/nightFlowHandler');
+    const { evaluateNightProgression } = require('@/services/engine/handlers/nightFlowHandler');
 
     const state = {
       status: 'ongoing',
@@ -253,7 +253,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
   });
 
   it('returns none when audio is playing', () => {
-    const { evaluateNightProgression } = require('../../../engine/handlers/nightFlowHandler');
+    const { evaluateNightProgression } = require('@/services/engine/handlers/nightFlowHandler');
 
     const state = {
       status: 'ongoing',

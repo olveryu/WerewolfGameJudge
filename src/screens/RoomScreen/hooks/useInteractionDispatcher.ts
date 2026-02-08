@@ -16,17 +16,17 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import type { LocalGameState } from '../../../services/types/GameStateTypes';
-import { GameStatus } from '../../../models/Room';
-import { showAlert } from '../../../utils/alert';
-import { roomScreenLog } from '../../../utils/logger';
+import type { LocalGameState } from '@/services/types/GameStateTypes';
+import { GameStatus } from '@/models/Room';
+import { showAlert } from '@/utils/alert';
+import { roomScreenLog } from '@/utils/logger';
 import type { ActionIntent } from './useRoomActions';
 import {
   getInteractionResult,
   type InteractionEvent,
   type InteractionContext,
-} from '../policy';
-import type { RoleId } from '../../../models/roles/spec/specs';
+} from '@/screens/RoomScreen/policy';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

@@ -8,13 +8,13 @@
  */
 
 // ⚠️ 以现有 repo 导出路径为准
-import type { RoleId } from '../../models/roles';
-import type { SchemaId } from '../../models/roles/spec';
-import type { CurrentNightResults } from '../night/resolvers/types';
+import type { RoleId } from '@/models/roles';
+import type { SchemaId } from '@/models/roles/spec';
+import type { CurrentNightResults } from '@/services/night/resolvers/types';
 import type {
   RoleRevealAnimation,
   ResolvedRoleRevealAnimation,
-} from '../types/RoleRevealAnimation';
+} from '@/services/types/RoleRevealAnimation';
 
 // =============================================================================
 // 协议动作记录（ProtocolAction）— 线安全、稳定

@@ -12,8 +12,8 @@
  */
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { SeatTile, SeatTileProps, SeatTileStyles, createSeatTileStyles } from '../SeatTile';
-import { themes } from '../../../../theme/themes';
+import { SeatTile, SeatTileProps, SeatTileStyles, createSeatTileStyles } from '@/screens/RoomScreen/components/SeatTile';
+import { themes } from '@/theme/themes';
 
 // Create mock styles once (simulating what PlayerGrid does)
 const mockStyles: SeatTileStyles = createSeatTileStyles(themes.dark.colors, 80);

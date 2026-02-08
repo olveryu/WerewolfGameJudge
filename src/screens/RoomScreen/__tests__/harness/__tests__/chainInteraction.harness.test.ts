@@ -9,7 +9,7 @@
  * These are unit tests for the harness itself (no React rendering).
  */
 
-import { RoomScreenTestHarness, createShowAlertMock } from '../RoomScreenTestHarness';
+import { RoomScreenTestHarness, createShowAlertMock } from '@/screens/RoomScreen/__tests__/harness/RoomScreenTestHarness';
 
 describe('RoomScreenTestHarness enhanced button API', () => {
   let harness: RoomScreenTestHarness;

@@ -8,7 +8,7 @@
  */
 import React, { useMemo, memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useColors, spacing, borderRadius, typography, ThemeColors } from '../theme';
+import { useColors, spacing, borderRadius, typography, ThemeColors } from '@/theme';
 
 interface NumPadProps {
   /** Current value (max 4 digits) */

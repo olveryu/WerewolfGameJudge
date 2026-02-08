@@ -15,7 +15,7 @@ import {
   ActivityIndicator,
   ImageSourcePropType,
 } from 'react-native';
-import { ThemeColors } from '../../../theme';
+import { ThemeColors } from '@/theme';
 import { SettingsScreenStyles } from './styles';
 
 export interface AvatarSectionProps {

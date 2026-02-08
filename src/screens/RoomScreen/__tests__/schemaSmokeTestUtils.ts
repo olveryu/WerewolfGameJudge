@@ -1,4 +1,4 @@
-import type { SchemaId } from '../../../models/roles/spec/schemas';
+import type { SchemaId } from '@/models/roles/spec/schemas';
 
 type RoleId = any;
 
@@ -32,7 +32,7 @@ export function makeBaseUseGameRoomReturn({
   overrides,
   gameStateOverrides,
 }: MakeUseGameRoomArgs): UseGameRoomReturn {
-  const { getSchema } = require('../../../models/roles/spec/schemas');
+  const { getSchema } = require('@/models/roles/spec/schemas');
 
   const players = new Map(
     Array.from({ length: numberOfPlayers }).map((_, i) => [
@@ -72,7 +72,7 @@ export function makeBaseUseGameRoomReturn({
     connectionStatus: 'live',
 
     isHost: false,
-    roomStatus: require('../../../models/Room').GameStatus.ongoing,
+    roomStatus: require('@/models/Room').GameStatus.ongoing,
 
     currentActionRole,
     currentSchema: getSchema(schemaId),

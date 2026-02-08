@@ -8,7 +8,7 @@
  */
 import React, { useMemo } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '../theme';
+import { useColors, spacing, typography, borderRadius, type ThemeColors } from '@/theme';
 
 export interface AlertButton {
   text: string;

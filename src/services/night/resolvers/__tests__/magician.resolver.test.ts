@@ -4,9 +4,9 @@
  * Tests for magicianSwapResolver validation and resolution logic.
  */
 
-import { magicianSwapResolver } from '../magician';
-import type { ResolverContext, ActionInput } from '../types';
-import type { RoleId } from '../../../../models/roles/spec/specs';
+import { magicianSwapResolver } from '@/services/night/resolvers/magician';
+import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // =============================================================================
 // Test Helpers

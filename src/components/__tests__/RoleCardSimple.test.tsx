@@ -3,8 +3,8 @@
  */
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { RoleCardSimple } from '../RoleCardSimple';
-import type { RoleId } from '../../models/roles';
+import { RoleCardSimple } from '@/components/RoleCardSimple';
+import type { RoleId } from '@/models/roles';
 
 // Mock the theme hook
 jest.mock('../../theme', () => ({

@@ -11,7 +11,7 @@
 
 import { createHostGame, cleanupHostGame } from './hostGameFactory';
 import { executeStepsUntil, executeFullNight } from './stepByStepRunner';
-import type { RoleId } from '../../../models/roles';
+import type { RoleId } from '@/models/roles';
 
 const TEMPLATE_NAME = '标准板12人';
 

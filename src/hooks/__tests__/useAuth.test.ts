@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react-native';
-import { useAuth, User } from '../useAuth';
-import { AuthProvider } from '../../contexts/AuthContext';
+import { useAuth, User } from '@/hooks/useAuth';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 // Mock supabase config
 jest.mock('../../config/supabase', () => ({

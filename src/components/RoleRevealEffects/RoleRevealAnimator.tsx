@@ -15,7 +15,7 @@ import { FlipReveal } from './FlipReveal';
 import { ScratchReveal } from './ScratchReveal';
 import { TarotDraw } from './TarotDraw';
 import { GachaMachine } from './GachaMachine';
-import { useColors } from '../../theme';
+import { useColors } from '@/theme';
 
 export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
   visible,

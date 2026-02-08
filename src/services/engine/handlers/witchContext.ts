@@ -12,10 +12,10 @@
  * - Night-1-only：canPoison 总是 true（项目规则：Night-1 毒药可用）
  */
 
-import type { SchemaId } from '../../../models/roles/spec';
-import type { SetWitchContextAction } from '../reducer/types';
-import type { BroadcastGameState } from '../../protocol/types';
-import { resolveWolfVotes } from '../resolveWolfVotes';
+import type { SchemaId } from '@/models/roles/spec';
+import type { SetWitchContextAction } from '@/services/engine/reducer/types';
+import type { BroadcastGameState } from '@/services/protocol/types';
+import { resolveWolfVotes } from '@/services/engine/resolveWolfVotes';
 
 /**
  * 非 null 的 state 类型

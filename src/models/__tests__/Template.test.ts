@@ -4,8 +4,8 @@ import {
   templateHasSkilledWolf,
   getTemplateRoomInfo,
   PRESET_TEMPLATES,
-} from '../Template';
-import { RoleId, buildNightPlan } from '../roles';
+} from '@/models/Template';
+import { RoleId, buildNightPlan } from '@/models/roles';
 
 /**
  * Helper: Get action order from roles via NightPlan

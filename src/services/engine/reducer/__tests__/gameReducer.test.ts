@@ -2,8 +2,8 @@
  * gameReducer Unit Tests
  */
 
-import { gameReducer } from '../gameReducer';
-import type { GameState } from '../../store/types';
+import { gameReducer } from '@/services/engine/reducer/gameReducer';
+import type { GameState } from '@/services/engine/store/types';
 import type {
   PlayerJoinAction,
   PlayerLeaveAction,
@@ -16,7 +16,7 @@ import type {
   PlayerViewedRoleAction,
   SetAudioPlayingAction,
   StateAction,
-} from '../types';
+} from '@/services/engine/reducer/types';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {

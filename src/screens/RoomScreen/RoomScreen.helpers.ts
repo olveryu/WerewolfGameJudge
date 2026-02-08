@@ -8,17 +8,17 @@
  * ✅ Allowed imports: types, roles registry (getRoleSpec, isWolfRole)
  */
 
-import type { RoleId } from '../../models/roles';
+import type { RoleId } from '@/models/roles';
 import {
   canRoleSeeWolves,
   doesRoleParticipateInWolfVote,
   getRoleSpec,
   isWolfRole,
-} from '../../models/roles';
-import type { LocalGameState } from '../../services/types/GameStateTypes';
-import type { GameRoomLike } from '../../models/Room';
-import type { RoleAction } from '../../models/actions/RoleAction';
-import type { ActionSchema, TargetConstraint } from '../../models/roles/spec';
+} from '@/models/roles';
+import type { LocalGameState } from '@/services/types/GameStateTypes';
+import type { GameRoomLike } from '@/models/Room';
+import type { RoleAction } from '@/models/actions/RoleAction';
+import type { ActionSchema, TargetConstraint } from '@/models/roles/spec';
 
 // =============================================================================
 // Types
@@ -30,7 +30,7 @@ export interface ActionerState {
 }
 
 // Re-export GameRoomLike for convenience
-export type { GameRoomLike } from '../../models/Room';
+export type { GameRoomLike } from '@/models/Room';
 
 export interface PlayerInfoLike {
   uid: string;

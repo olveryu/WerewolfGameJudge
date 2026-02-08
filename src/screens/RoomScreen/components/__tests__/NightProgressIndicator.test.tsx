@@ -5,10 +5,10 @@
  */
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { NightProgressIndicator } from '../NightProgressIndicator';
-import { createRoomScreenComponentStyles } from '../styles';
-import { themes } from '../../../../theme/themes';
-import { TESTIDS } from '../../../../testids';
+import { NightProgressIndicator } from '@/screens/RoomScreen/components/NightProgressIndicator';
+import { createRoomScreenComponentStyles } from '@/screens/RoomScreen/components/styles';
+import { themes } from '@/theme/themes';
+import { TESTIDS } from '@/testids';
 
 const mockStyles = createRoomScreenComponentStyles(themes.light.colors).nightProgressIndicator;
 

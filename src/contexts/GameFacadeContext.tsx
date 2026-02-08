@@ -9,7 +9,7 @@
  */
 import React, { createContext, useContext, useMemo } from 'react';
 
-import type { IGameFacade } from '../services/types/IGameFacade';
+import type { IGameFacade } from '@/services/types/IGameFacade';
 
 type GameFacadeContextValue = {
   facade: IGameFacade;

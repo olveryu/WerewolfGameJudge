@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { Avatar } from '../Avatar';
+import { Avatar } from '@/components/Avatar';
 
 // Mock avatar utility functions
 jest.mock('../../utils/avatar', () => ({
@@ -32,7 +32,7 @@ describe('Avatar', () => {
 
   describe('Avatar source selection', () => {
     it('should use custom avatarUrl when provided', () => {
-      const { getAvatarImage, getAvatarByUid } = require('../../utils/avatar');
+      const { getAvatarImage, getAvatarByUid } = require('@/utils/avatar');
 
       render(<Avatar value="test-user" size={50} avatarUrl="https://example.com/avatar.jpg" />);
 
@@ -42,7 +42,7 @@ describe('Avatar', () => {
     });
 
     it('should use getAvatarByUid when roomId is provided', () => {
-      const { getAvatarImage, getAvatarByUid } = require('../../utils/avatar');
+      const { getAvatarImage, getAvatarByUid } = require('@/utils/avatar');
 
       render(<Avatar value="test-user" size={50} roomId="room-123" />);
 
@@ -51,7 +51,7 @@ describe('Avatar', () => {
     });
 
     it('should use getAvatarImage when no roomId is provided', () => {
-      const { getAvatarImage, getAvatarByUid } = require('../../utils/avatar');
+      const { getAvatarImage, getAvatarByUid } = require('@/utils/avatar');
 
       render(<Avatar value="test-user" size={50} />);
 
@@ -77,7 +77,7 @@ describe('Avatar', () => {
 
   describe('Null avatarUrl handling', () => {
     it('should fall back to local image when avatarUrl is null', () => {
-      const { getAvatarImage } = require('../../utils/avatar');
+      const { getAvatarImage } = require('@/utils/avatar');
 
       render(<Avatar value="test-user" size={50} avatarUrl={null} />);
 
@@ -85,7 +85,7 @@ describe('Avatar', () => {
     });
 
     it('should fall back to local image when avatarUrl is undefined', () => {
-      const { getAvatarImage } = require('../../utils/avatar');
+      const { getAvatarImage } = require('@/utils/avatar');
 
       render(<Avatar value="test-user" size={50} avatarUrl={undefined} />);
 
@@ -95,7 +95,7 @@ describe('Avatar', () => {
 
   describe('Seat independence (new behavior)', () => {
     it('avatar selection does not depend on seat - same uid+roomId always gets same avatar', () => {
-      const { getAvatarByUid } = require('../../utils/avatar');
+      const { getAvatarByUid } = require('@/utils/avatar');
 
       // Render avatar for same user in same room
       render(<Avatar value="player-123" size={50} roomId="room-456" />);

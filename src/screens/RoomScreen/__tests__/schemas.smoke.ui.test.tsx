@@ -1,9 +1,9 @@
 import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
-import { RoomScreen } from '../RoomScreen';
-import { getAllSchemaIds, getSchema } from '../../../models/roles/spec/schemas';
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { getAllSchemaIds, getSchema } from '@/models/roles/spec/schemas';
 import { mockNavigation, makeBaseUseGameRoomReturn } from './schemaSmokeTestUtils';
-import type { WolfVoteSchema } from '../../../models/roles/spec';
+import type { WolfVoteSchema } from '@/models/roles/spec';
 
 jest.mock('@react-navigation/native', () => ({}));
 
@@ -79,7 +79,7 @@ jest.mock('../useRoomActionDialogs', () => ({
   }),
 }));
 
-import { useRoomActionDialogs } from '../useRoomActionDialogs';
+import { useRoomActionDialogs } from '@/screens/RoomScreen/useRoomActionDialogs';
 
 const schemaToRole: Record<string, string> = {
   // god

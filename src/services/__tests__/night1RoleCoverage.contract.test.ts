@@ -12,8 +12,8 @@
  * - audioKey 遗漏导致音频不播放
  */
 
-import { NIGHT_STEPS, SCHEMAS } from '../../models/roles/spec';
-import { RESOLVERS } from '../night/resolvers';
+import { NIGHT_STEPS, SCHEMAS } from '@/models/roles/spec';
+import { RESOLVERS } from '@/services/night/resolvers';
 
 describe('Night-1 Role Coverage Contract', () => {
   describe('NIGHT_STEPS completeness', () => {

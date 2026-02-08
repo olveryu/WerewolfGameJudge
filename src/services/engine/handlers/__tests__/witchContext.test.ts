@@ -4,8 +4,8 @@
  * 测试 computeWitchContext / maybeCreateWitchContextAction 纯函数
  */
 
-import type { BroadcastGameState, BroadcastPlayer } from '../../../protocol/types';
-import { computeWitchContext, maybeCreateWitchContextAction } from '../witchContext';
+import type { BroadcastGameState, BroadcastPlayer } from '@/services/protocol/types';
+import { computeWitchContext, maybeCreateWitchContextAction } from '@/services/engine/handlers/witchContext';
 
 // =============================================================================
 // Test Helpers

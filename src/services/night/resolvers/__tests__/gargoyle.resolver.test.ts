@@ -4,9 +4,9 @@
  * Tests for gargoyleCheckResolver validation and resolution logic.
  */
 
-import { gargoyleCheckResolver } from '../gargoyle';
-import type { ResolverContext, ActionInput } from '../types';
-import type { RoleId } from '../../../../models/roles/spec/specs';
+import { gargoyleCheckResolver } from '@/services/night/resolvers/gargoyle';
+import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // =============================================================================
 // Test Helpers

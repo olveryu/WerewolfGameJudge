@@ -9,8 +9,8 @@
  * @see docs/phase4-final-migration.md for full architecture
  */
 
-import type { RoleId } from '../../models/roles';
-import type { SchemaId } from '../../models/roles/spec';
+import type { RoleId } from '@/models/roles';
+import type { SchemaId } from '@/models/roles/spec';
 
 // =============================================================================
 // Public Payload Union (Whitelist)

@@ -12,7 +12,7 @@
 import React, { memo } from 'react';
 import { View, Text } from 'react-native';
 import { type NightProgressIndicatorStyles } from './styles';
-import { TESTIDS } from '../../../testids';
+import { TESTIDS } from '@/testids';
 
 export interface NightProgressIndicatorProps {
   /** Current step index (1-based for display) */

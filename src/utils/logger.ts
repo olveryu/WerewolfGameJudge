@@ -4,7 +4,7 @@
  * 全项目统一日志入口，提供命名 logger 实例。
  *
  * Usage:
- *   import { log } from '../utils/logger';
+ *   import { log } from '@/utils/logger';
  *   log.info('Host', 'Seat action', { seat: 1 });
  *
  * Or with extensions:

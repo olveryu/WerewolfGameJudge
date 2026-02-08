@@ -1,4 +1,4 @@
-import { TESTIDS } from '../testids';
+import { TESTIDS } from '@/testids';
 
 describe('testids.ts contract (stability + legacy compatibility)', () => {
   it('keeps legacy seatTile testID unchanged', () => {

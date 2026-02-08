@@ -16,7 +16,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { useColors, spacing, borderRadius, typography, ThemeColors } from '../../theme';
+import { useColors, spacing, borderRadius, typography, ThemeColors } from '@/theme';
 
 /** Metadata passed to onPress callback */
 export interface ButtonPressMetadata {

@@ -23,7 +23,7 @@
 
 import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
 import { executeStepsUntil } from './stepByStepRunner';
-import type { RoleId } from '../../../models/roles';
+import type { RoleId } from '@/models/roles';
 
 const TEMPLATE_NAME = '梦魇守卫12人';
 

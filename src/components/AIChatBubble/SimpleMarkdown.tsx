@@ -15,7 +15,7 @@
 
 import React from 'react';
 import { Text, View, StyleSheet } from 'react-native';
-import { spacing, typography, type ThemeColors } from '../../theme';
+import { spacing, typography, type ThemeColors } from '@/theme';
 
 interface SimpleMarkdownProps {
   content: string;

@@ -11,11 +11,11 @@
  */
 
 import { useCallback } from 'react';
-import type { LocalGameState } from '../../../services/types/GameStateTypes';
-import { GameStatus } from '../../../models/Room';
-import { RoleId, isWolfRole, doesRoleParticipateInWolfVote } from '../../../models/roles';
-import type { ActionSchema, SchemaId, RevealKind } from '../../../models/roles/spec';
-import { SCHEMAS, isValidSchemaId } from '../../../models/roles/spec';
+import type { LocalGameState } from '@/services/types/GameStateTypes';
+import { GameStatus } from '@/models/Room';
+import { RoleId, isWolfRole, doesRoleParticipateInWolfVote } from '@/models/roles';
+import type { ActionSchema, SchemaId, RevealKind } from '@/models/roles/spec';
+import { SCHEMAS, isValidSchemaId } from '@/models/roles/spec';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ActionIntent Types (must be serializable - no callbacks/refs/functions)

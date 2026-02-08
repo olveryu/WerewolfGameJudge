@@ -17,12 +17,12 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import { Avatar } from '../../../components/Avatar';
-import { spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
-import { componentSizes, fixed } from '../../../theme/tokens';
-import { TESTIDS } from '../../../testids';
-import type { RoleId } from '../../../models/roles';
-import { getRoleDisplayName } from '../../../models/roles';
+import { Avatar } from '@/components/Avatar';
+import { spacing, typography, borderRadius, type ThemeColors } from '@/theme';
+import { componentSizes, fixed } from '@/theme/tokens';
+import { TESTIDS } from '@/testids';
+import type { RoleId } from '@/models/roles';
+import { getRoleDisplayName } from '@/models/roles';
 
 // Re-export for PlayerGrid
 export const GRID_COLUMNS = 4;

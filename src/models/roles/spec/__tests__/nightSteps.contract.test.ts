@@ -11,9 +11,9 @@ import {
   getStepSpecStrict,
   getStepsByRole,
   getStepsByRoleStrict,
-} from '../nightSteps';
-import { ROLE_SPECS, isValidRoleId } from '../specs';
-import { isValidSchemaId } from '../schemas';
+} from '@/models/roles/spec/nightSteps';
+import { ROLE_SPECS, isValidRoleId } from '@/models/roles/spec/specs';
+import { isValidSchemaId } from '@/models/roles/spec/schemas';
 
 describe('NIGHT_STEPS contract', () => {
   describe('uniqueness', () => {

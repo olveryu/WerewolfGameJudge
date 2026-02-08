@@ -15,8 +15,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { BroadcastGameState } from '../protocol/types';
-import { log } from '../../utils/logger';
+import type { BroadcastGameState } from '@/services/protocol/types';
+import { log } from '@/utils/logger';
 
 const hostCacheLog = log.extend('HostStateCache');
 

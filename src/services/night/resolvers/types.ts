@@ -12,8 +12,8 @@
  * Use the import boundary test in __tests__/import-boundary.test.ts to enforce this.
  */
 
-import type { RoleId } from '../../../models/roles/spec/specs';
-import type { SchemaId } from '../../../models/roles/spec/schemas';
+import type { RoleId } from '@/models/roles/spec/specs';
+import type { SchemaId } from '@/models/roles/spec/schemas';
 
 /**
  * Current night's accumulated results.

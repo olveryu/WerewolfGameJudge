@@ -4,9 +4,9 @@
  * Tests for dreamcatcherDreamResolver validation and resolution logic.
  */
 
-import { dreamcatcherDreamResolver } from '../dreamcatcher';
-import type { ResolverContext, ActionInput } from '../types';
-import type { RoleId } from '../../../../models/roles/spec/specs';
+import { dreamcatcherDreamResolver } from '@/services/night/resolvers/dreamcatcher';
+import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // =============================================================================
 // Test Helpers

@@ -11,9 +11,9 @@
  */
 
 import type { ResolverFn } from './types';
-import { getRoleSpec, getWolfKillImmuneRoleIds } from '../../../models/roles';
-import { isValidRoleId } from '../../../models/roles/spec/specs';
-import { BLOCKED_UI_DEFAULTS } from '../../../models/roles/spec';
+import { getRoleSpec, getWolfKillImmuneRoleIds } from '@/models/roles';
+import { isValidRoleId } from '@/models/roles/spec/specs';
+import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
 
 export const wolfKillResolver: ResolverFn = (context, input) => {
   const { players, currentNightResults, actorSeat } = context;

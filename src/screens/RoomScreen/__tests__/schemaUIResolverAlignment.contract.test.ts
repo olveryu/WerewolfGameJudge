@@ -9,15 +9,15 @@
  * 如果任何层出现 drift，此测试会失败。
  */
 
-import { SCHEMAS, type SchemaId } from '../../../models/roles/spec/schemas';
+import { SCHEMAS, type SchemaId } from '@/models/roles/spec/schemas';
 import type {
   ChooseSeatSchema,
   SwapSchema,
   CompoundSchema,
-} from '../../../models/roles/spec/schema.types';
-import { RESOLVERS } from '../../../services/night/resolvers';
-import type { ResolverContext, ActionInput } from '../../../services/night/resolvers/types';
-import type { RoleId } from '../../../models/roles/spec/specs';
+} from '@/models/roles/spec/schema.types';
+import { RESOLVERS } from '@/services/night/resolvers';
+import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // === Test Helpers ===
 
@@ -183,7 +183,7 @@ describe('UI reads constraints from schema (no hardcode)', () => {
   it('buildSeatViewModels uses schemaConstraints parameter (not hardcoded role checks)', () => {
     // 这个测试在 RoomScreen.helpers.test.ts 中有详细覆盖
     // 这里只做存在性断言
-    const { buildSeatViewModels } = require('../RoomScreen.helpers');
+    const { buildSeatViewModels } = require('@/screens/RoomScreen/RoomScreen.helpers');
     expect(typeof buildSeatViewModels).toBe('function');
 
     // 函数签名中包含 schemaConstraints 参数

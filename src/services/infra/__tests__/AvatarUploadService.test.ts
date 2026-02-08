@@ -1,4 +1,4 @@
-import { AvatarUploadService } from '../AvatarUploadService';
+import { AvatarUploadService } from '@/services/infra/AvatarUploadService';
 
 // Mock supabase
 jest.mock('../../../config/supabase', () => ({
@@ -95,7 +95,7 @@ describe('AvatarUploadService - Service dependencies', () => {
   });
 
   it('should initialize AuthService dependency', () => {
-    const { AuthService } = require('../AuthService');
+    const { AuthService } = require('@/services/infra/AuthService');
 
     AvatarUploadService.getInstance();
 

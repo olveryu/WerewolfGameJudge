@@ -23,7 +23,7 @@
 
 import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
 import { executeFullNight, executeStepsUntil, executeRemainingSteps } from './stepByStepRunner';
-import type { RoleId } from '../../../models/roles';
+import type { RoleId } from '@/models/roles';
 
 const TEMPLATE_NAME = '石像鬼守墓人12人';
 

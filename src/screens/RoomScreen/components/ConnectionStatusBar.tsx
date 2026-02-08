@@ -8,7 +8,7 @@
  */
 import React, { memo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { TESTIDS } from '../../../testids';
+import { TESTIDS } from '@/testids';
 import { type ConnectionStatusBarStyles } from './styles';
 
 export type ConnectionState = 'live' | 'syncing' | 'connecting' | 'disconnected';

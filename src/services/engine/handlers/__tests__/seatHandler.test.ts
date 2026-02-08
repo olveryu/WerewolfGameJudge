@@ -2,10 +2,10 @@
  * seatHandler Unit Tests
  */
 
-import { handleJoinSeat, handleLeaveMySeat } from '../seatHandler';
-import type { HandlerContext } from '../types';
-import type { JoinSeatIntent, LeaveMySeatIntent } from '../../intents/types';
-import type { GameState } from '../../store/types';
+import { handleJoinSeat, handleLeaveMySeat } from '@/services/engine/handlers/seatHandler';
+import type { HandlerContext } from '@/services/engine/handlers/types';
+import type { JoinSeatIntent, LeaveMySeatIntent } from '@/services/engine/intents/types';
+import type { GameState } from '@/services/engine/store/types';
 import {
   REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
@@ -13,7 +13,7 @@ import {
   REASON_SEAT_TAKEN,
   REASON_GAME_IN_PROGRESS,
   REASON_NOT_SEATED,
-} from '../../../protocol/reasonCodes';
+} from '@/services/protocol/reasonCodes';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {

@@ -12,7 +12,7 @@ import {
   isWitchPoison,
   getWitchSaveTarget,
   getWitchPoisonTarget,
-} from '../WitchAction';
+} from '@/models/actions/WitchAction';
 
 describe('WitchAction', () => {
   describe('Factory Functions', () => {

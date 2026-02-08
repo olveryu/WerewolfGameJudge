@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import { RoomScreen } from '../RoomScreen';
-import { showAlert } from '../../../utils/alert';
-import type { ChooseSeatSchema } from '../../../models/roles/spec/schema.types';
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { showAlert } from '@/utils/alert';
+import type { ChooseSeatSchema } from '@/models/roles/spec/schema.types';
 
 jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
@@ -31,7 +31,7 @@ let mockedSchemaId: ChooseSeatSchema['id'] = 'seerCheck';
 
 const getChooseSeatSchema = (schemaId: ChooseSeatSchema['id']): ChooseSeatSchema => {
   // Use the real schema as source-of-truth, then override the one test-specific knob.
-  const { getSchema } = require('../../../models/roles/spec/schemas');
+  const { getSchema } = require('@/models/roles/spec/schemas');
   const schema = getSchema(schemaId);
   if (schema.kind !== 'chooseSeat') {
     throw new Error(`Expected chooseSeat schema for ${schemaId}`);
@@ -80,7 +80,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     connectionStatus: 'live',
 
     isHost: false,
-    roomStatus: require('../../../models/Room').GameStatus.ongoing,
+    roomStatus: require('@/models/Room').GameStatus.ongoing,
 
     currentActionRole: 'seer',
     currentSchema: getChooseSeatSchema(mockedSchemaId),

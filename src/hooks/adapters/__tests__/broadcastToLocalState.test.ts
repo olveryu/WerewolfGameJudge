@@ -1,5 +1,5 @@
-import { broadcastToLocalState } from '../broadcastToLocalState';
-import type { BroadcastGameState } from '../../../services/protocol/types';
+import { broadcastToLocalState } from '@/hooks/adapters/broadcastToLocalState';
+import type { BroadcastGameState } from '@/services/protocol/types';
 
 function makeBaseBroadcastState(overrides: Partial<BroadcastGameState> = {}): BroadcastGameState {
   return {

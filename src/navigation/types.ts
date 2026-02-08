@@ -1,5 +1,5 @@
-import { GameTemplate } from '../models/Template';
-import type { RoleRevealAnimation } from '../services/types/RoleRevealAnimation';
+import { GameTemplate } from '@/models/Template';
+import type { RoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
 
 export type RootStackParamList = {
   Home: undefined;

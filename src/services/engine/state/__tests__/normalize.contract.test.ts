@@ -5,8 +5,8 @@
  * 当新增字段时，如果忘记在 normalizeState 中透传，此测试会失败。
  */
 
-import { normalizeState } from '../normalize';
-import type { BroadcastGameState } from '../../../protocol/types';
+import { normalizeState } from '@/services/engine/state/normalize';
+import type { BroadcastGameState } from '@/services/protocol/types';
 
 /**
  * BroadcastGameState 的所有顶层字段列表（单一真相）

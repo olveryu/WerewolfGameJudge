@@ -26,14 +26,14 @@ import {
   type ChatMessage,
   getDefaultApiKey,
   type GameContext,
-} from '../../services/infra/AIChatService';
-import { showAlert } from '../../utils/alert';
-import { randomPick } from '../../utils/random';
-import { newRequestId } from '../../utils/id';
-import { shuffleArray } from '../../utils/shuffle';
-import { useGameFacade } from '../../contexts';
-import { ROLE_SPECS } from '../../models/roles/spec/specs';
-import type { BroadcastGameState } from '../../services/protocol/types';
+} from '@/services/infra/AIChatService';
+import { showAlert } from '@/utils/alert';
+import { randomPick } from '@/utils/random';
+import { newRequestId } from '@/utils/id';
+import { shuffleArray } from '@/utils/shuffle';
+import { useGameFacade } from '@/contexts';
+import { ROLE_SPECS } from '@/models/roles/spec/specs';
+import type { BroadcastGameState } from '@/services/protocol/types';
 import {
   BUBBLE_SIZE,
   BUBBLE_MARGIN,

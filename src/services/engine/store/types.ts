@@ -4,7 +4,7 @@
  * GameState ≡ BroadcastGameState（单一状态形态）
  */
 
-import type { BroadcastGameState } from '../../protocol/types';
+import type { BroadcastGameState } from '@/services/protocol/types';
 
 /**
  * 游戏状态类型别名

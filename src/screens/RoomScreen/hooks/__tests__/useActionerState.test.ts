@@ -5,9 +5,9 @@
  */
 
 import { renderHook } from '@testing-library/react-native';
-import { useActionerState, UseActionerStateParams } from '../useActionerState';
-import type { RoleId } from '../../../../models/roles';
-import type { RoleAction } from '../../../../models/actions/RoleAction';
+import { useActionerState, UseActionerStateParams } from '@/screens/RoomScreen/hooks/useActionerState';
+import type { RoleId } from '@/models/roles';
+import type { RoleAction } from '@/models/actions/RoleAction';
 
 // =============================================================================
 // Test Helpers
@@ -75,7 +75,7 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'wolf',
             currentActionRole: 'wolf',
-            currentSchema: require('../../../../models/roles/spec/schemas').getSchema('wolfKill'),
+            currentSchema: require('@/models/roles/spec/schemas').getSchema('wolfKill'),
             actorSeatNumber: 1,
             wolfVotes: new Map(),
           }),
@@ -95,7 +95,7 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'wolf',
             currentActionRole: 'wolf',
-            currentSchema: require('../../../../models/roles/spec/schemas').getSchema('wolfKill'),
+            currentSchema: require('@/models/roles/spec/schemas').getSchema('wolfKill'),
             actorSeatNumber: 1,
             wolfVotes,
           }),
@@ -112,7 +112,7 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'nightmare',
             currentActionRole: 'wolf',
-            currentSchema: require('../../../../models/roles/spec/schemas').getSchema('wolfKill'),
+            currentSchema: require('@/models/roles/spec/schemas').getSchema('wolfKill'),
             actorSeatNumber: 2,
           }),
         ),
@@ -164,7 +164,7 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'nightmare',
             currentActionRole: 'nightmare',
-            currentSchema: require('../../../../models/roles/spec/schemas').getSchema(
+            currentSchema: require('@/models/roles/spec/schemas').getSchema(
               'nightmareBlock',
             ),
             actorSeatNumber: 0,

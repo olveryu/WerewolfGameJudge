@@ -1,5 +1,5 @@
-import { validateTemplateRoles, MINIMUM_PLAYERS } from '../Template';
-import type { RoleId } from '../roles';
+import { validateTemplateRoles, MINIMUM_PLAYERS } from '@/models/Template';
+import type { RoleId } from '@/models/roles';
 
 describe('validateTemplateRoles', () => {
   it('rejects empty roles array', () => {

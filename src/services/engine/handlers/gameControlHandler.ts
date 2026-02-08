@@ -20,7 +20,7 @@ import type {
   SetRoleRevealAnimationIntent,
   FillWithBotsIntent,
   MarkAllBotsViewedIntent,
-} from '../intents/types';
+} from '@/services/engine/intents/types';
 import type { HandlerContext, HandlerResult } from './types';
 import type {
   AssignRolesAction,
@@ -31,12 +31,12 @@ import type {
   SetRoleRevealAnimationAction,
   FillWithBotsAction,
   MarkAllBotsViewedAction,
-} from '../reducer/types';
-import type { BroadcastPlayer } from '../../protocol/types';
-import { shuffleArray } from '../../../utils/shuffle';
-import type { RoleId } from '../../../models/roles';
-import { buildNightPlan } from '../../../models/roles/spec/plan';
-import { getStepSpec } from '../../../models/roles/spec/nightSteps';
+} from '@/services/engine/reducer/types';
+import type { BroadcastPlayer } from '@/services/protocol/types';
+import { shuffleArray } from '@/utils/shuffle';
+import type { RoleId } from '@/models/roles';
+import { buildNightPlan } from '@/models/roles/spec/plan';
+import { getStepSpec } from '@/models/roles/spec/nightSteps';
 import { maybeCreateWitchContextAction } from './witchContext';
 
 /**

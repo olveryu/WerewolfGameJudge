@@ -1,9 +1,9 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { GameStatus } from '../../../../models/Room';
-import type { ActionSchema } from '../../../../models/roles/spec';
-import type { LocalGameState } from '../../../../services/types/GameStateTypes';
-import { useRoomActions, type ActionDeps, type GameContext } from '../useRoomActions';
+import { GameStatus } from '@/models/Room';
+import type { ActionSchema } from '@/models/roles/spec';
+import type { LocalGameState } from '@/services/types/GameStateTypes';
+import { useRoomActions, type ActionDeps, type GameContext } from '@/screens/RoomScreen/hooks/useRoomActions';
 
 function makeContext(partial: Partial<GameContext>): GameContext {
   return {

@@ -29,7 +29,7 @@ import {
   boardHasRole,
   type BoardConfig,
   type DialogType,
-} from '../harness';
+} from '@/screens/RoomScreen/__tests__/harness';
 
 // =============================================================================
 // Constants

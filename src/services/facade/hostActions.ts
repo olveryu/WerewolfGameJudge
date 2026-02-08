@@ -13,9 +13,9 @@
  * - 直接修改 state（全部在 reducer）
  */
 
-import type { BroadcastGameState } from '../protocol/types';
-import type { GameStore } from '../engine/store';
-import type { HandlerContext, HandlerResult } from '../engine/handlers/types';
+import type { BroadcastGameState } from '@/services/protocol/types';
+import type { GameStore } from '@/services/engine/store';
+import type { HandlerContext, HandlerResult } from '@/services/engine/handlers/types';
 import type {
   AssignRolesIntent,
   ViewedRoleIntent,
@@ -30,13 +30,13 @@ import type {
   SetRoleRevealAnimationIntent,
   FillWithBotsIntent,
   MarkAllBotsViewedIntent,
-} from '../engine/intents/types';
-import type { StateAction } from '../engine/reducer/types';
-import type { RoleId } from '../../models/roles';
-import type { GameTemplate } from '../../models/Template';
+} from '@/services/engine/intents/types';
+import type { StateAction } from '@/services/engine/reducer/types';
+import type { RoleId } from '@/models/roles';
+import type { GameTemplate } from '@/models/Template';
 
-import { doesRoleParticipateInWolfVote } from '../../models/roles';
-import type { RoleRevealAnimation } from '../types/RoleRevealAnimation';
+import { doesRoleParticipateInWolfVote } from '@/models/roles';
+import type { RoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
 
 import {
   handleAssignRoles,
@@ -46,22 +46,22 @@ import {
   handleSetRoleRevealAnimation,
   handleFillWithBots,
   handleMarkAllBotsViewed,
-} from '../engine/handlers/gameControlHandler';
+} from '@/services/engine/handlers/gameControlHandler';
 import {
   handleViewedRole,
   handleSubmitAction,
   handleSubmitWolfVote,
-} from '../engine/handlers/actionHandler';
+} from '@/services/engine/handlers/actionHandler';
 import {
   handleAdvanceNight,
   handleEndNight,
   handleSetAudioPlaying,
   handleNightProgression,
   resetProgressionTracker,
-} from '../engine/handlers/nightFlowHandler';
-import { handleSetWolfRobotHunterStatusViewed } from '../engine/handlers/wolfRobotHunterGateHandler';
-import { gameReducer } from '../engine/reducer';
-import { facadeLog } from '../../utils/logger';
+} from '@/services/engine/handlers/nightFlowHandler';
+import { handleSetWolfRobotHunterStatusViewed } from '@/services/engine/handlers/wolfRobotHunterGateHandler';
+import { gameReducer } from '@/services/engine/reducer';
+import { facadeLog } from '@/utils/logger';
 
 /**
  * Host Actions 依赖的上下文接口

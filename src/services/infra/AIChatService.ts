@@ -6,7 +6,7 @@
  * 文档: https://console.groq.com/docs/models
  */
 
-import { log } from '../../utils/logger';
+import { log } from '@/utils/logger';
 
 const chatLog = log.extend('AIChatService');
 

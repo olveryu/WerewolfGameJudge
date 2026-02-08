@@ -4,9 +4,9 @@
  * Tests for slackerChooseIdolResolver validation and resolution logic.
  */
 
-import { slackerChooseIdolResolver } from '../slacker';
-import type { ResolverContext, ActionInput } from '../types';
-import type { RoleId } from '../../../../models/roles/spec/specs';
+import { slackerChooseIdolResolver } from '@/services/night/resolvers/slacker';
+import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // =============================================================================
 // Test Helpers

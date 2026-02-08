@@ -7,7 +7,7 @@ import {
   playerFromMap,
   isPlayerAlive,
   isPlayerSkillAvailable,
-} from '../Player';
+} from '@/models/Player';
 
 describe('Player - createPlayer', () => {
   it('should create a player with correct default values', () => {

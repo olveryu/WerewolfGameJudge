@@ -9,7 +9,7 @@
  *   这样它才不会出现在 `template.actionOrder`，避免 Host 夜晚流程错误提示该角色起床。
  */
 
-import { PRESET_TEMPLATES, createTemplateFromRoles } from '../Template';
+import { PRESET_TEMPLATES, createTemplateFromRoles } from '@/models/Template';
 import {
   RoleId,
   buildNightPlan,
@@ -17,7 +17,7 @@ import {
   isValidRoleId,
   hasNightAction,
   isWolfRole,
-} from '../roles';
+} from '@/models/roles';
 
 /**
  * Helper: Get action order from roles via NightPlan

@@ -13,8 +13,8 @@
  */
 
 import type { HandlerContext, HandlerResult } from './types';
-import type { SetWolfRobotHunterStatusViewedAction } from '../reducer/types';
-import { log } from '../../../utils/logger';
+import type { SetWolfRobotHunterStatusViewedAction } from '@/services/engine/reducer/types';
+import { log } from '@/utils/logger';
 
 const handlerLog = log.extend('WolfRobotHunterGateHandler');
 

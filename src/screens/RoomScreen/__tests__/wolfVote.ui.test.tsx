@@ -1,11 +1,11 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import { RoomScreen } from '../RoomScreen';
-import { TESTIDS } from '../../../testids';
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { TESTIDS } from '@/testids';
 import { RoomScreenTestHarness, createShowAlertMock } from './harness';
 
 // We assert on showAlert calls (RoomScreen uses this wrapper)
-import { showAlert } from '../../../utils/alert';
+import { showAlert } from '@/utils/alert';
 
 jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
@@ -80,11 +80,11 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
 
     // Host/role/step info used by RoomScreen
     isHost: false,
-    roomStatus: require('../../../models/Room').GameStatus.ongoing,
+    roomStatus: require('@/models/Room').GameStatus.ongoing,
     // Make this client the current actioner so seat taps route to handleActionTap
     currentActionRole: 'wolf',
     currentSchema: (() => {
-      const { getSchema } = require('../../../models/roles/spec/schemas');
+      const { getSchema } = require('@/models/roles/spec/schemas');
       return getSchema('wolfKill');
     })(),
     isAudioPlaying: false,
@@ -186,7 +186,7 @@ jest.mock('../useRoomActionDialogs', () => ({
       onConfirm: () => void,
       messageOverride?: string,
     ) => {
-      const { showAlert: mockShowAlert } = require('../../../utils/alert');
+      const { showAlert: mockShowAlert } = require('@/utils/alert');
       const msg =
         messageOverride ||
         (targetIndex === -1
@@ -219,7 +219,7 @@ describe('RoomScreen wolf vote UI', () => {
     // Regression guard for dialog copy + confirm wiring.
     // (This is stable and independent from RN press bubbling quirks in tests.)
 
-    const { useRoomActionDialogs } = require('../useRoomActionDialogs');
+    const { useRoomActionDialogs } = require('@/screens/RoomScreen/useRoomActionDialogs');
     const dialogs = useRoomActionDialogs();
 
     dialogs.showWolfVoteDialog('1号狼人', 2, () => mockSubmitWolfVote(2));
@@ -314,7 +314,7 @@ describe('RoomScreen wolf vote UI', () => {
         },
         submitWolfVote,
         currentSchema: (() => {
-          const { getSchema } = require('../../../models/roles/spec/schemas');
+          const { getSchema } = require('@/models/roles/spec/schemas');
           return getSchema('wolfKill');
         })(),
       });

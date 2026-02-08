@@ -9,10 +9,10 @@
  */
 import React, { useMemo, memo, useCallback, useRef, useLayoutEffect } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
-import { useColors, type ThemeColors } from '../../../theme';
-import type { SeatViewModel } from '../RoomScreen.helpers';
+import { useColors, type ThemeColors } from '@/theme';
+import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
 import { SeatTile, GRID_COLUMNS, createSeatTileStyles } from './SeatTile';
-import { getUniqueAvatarMap } from '../../../utils/avatar';
+import { getUniqueAvatarMap } from '@/utils/avatar';
 
 // Grid calculation - needs to be exported for Avatar sizing
 const { width: SCREEN_WIDTH } = Dimensions.get('window');

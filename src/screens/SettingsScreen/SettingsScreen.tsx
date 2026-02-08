@@ -11,10 +11,10 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { useAuth } from '../../hooks';
-import { useTheme, ThemeKey, typography } from '../../theme';
-import { showAlert } from '../../utils/alert';
-import { getAvatarImage } from '../../utils/avatar';
+import { useAuth } from '@/hooks';
+import { useTheme, ThemeKey, typography } from '@/theme';
+import { showAlert } from '@/utils/alert';
+import { getAvatarImage } from '@/utils/avatar';
 import {
   AvatarSection,
   NameSection,

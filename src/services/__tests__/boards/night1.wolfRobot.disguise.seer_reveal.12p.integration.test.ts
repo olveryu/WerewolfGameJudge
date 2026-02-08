@@ -24,7 +24,7 @@
 
 import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
 import { executeFullNight } from './stepByStepRunner';
-import type { RoleId } from '../../../models/roles';
+import type { RoleId } from '@/models/roles';
 
 /**
  * 自定义角色列表（含 wolfRobot + seer + magician）

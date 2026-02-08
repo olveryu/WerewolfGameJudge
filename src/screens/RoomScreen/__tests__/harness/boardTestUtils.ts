@@ -8,10 +8,10 @@
 import React from 'react';
 import { View } from 'react-native';
 import { waitFor, fireEvent } from '@testing-library/react-native';
-import type { RoleId } from '../../../../models/roles';
-import type { SchemaId } from '../../../../models/roles/spec';
-import { GameStatus } from '../../../../models/Room';
-import { TESTIDS } from '../../../../testids';
+import type { RoleId } from '@/models/roles';
+import type { SchemaId } from '@/models/roles/spec';
+import { GameStatus } from '@/models/Room';
+import { TESTIDS } from '@/testids';
 import { RoomScreenTestHarness } from './RoomScreenTestHarness';
 
 // =============================================================================
@@ -156,7 +156,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
   );
 
   // Get schema
-  const { getSchema } = require('../../../../models/roles/spec/schemas');
+  const { getSchema } = require('@/models/roles/spec/schemas');
   const currentSchema = getSchema(schemaId);
 
   return {
@@ -478,7 +478,7 @@ export type ReactiveGameRoomMock = ReturnType<typeof createReactiveGameRoomMock>
 //   render → trigger dialog → press button → assert callback fired
 //
 // Usage in board tests:
-//   import { chainWolfVoteConfirm, chainSkipConfirm, ... } from '../harness';
+//   import { chainWolfVoteConfirm, chainSkipConfirm, ... } from '@/screens/RoomScreen/__tests__/harness';
 //   it('wolfVote confirm → submitWolfVote called', async () => {
 //     await chainWolfVoteConfirm(harness, mockUseGameRoomReturn, ...);
 //   });
@@ -1022,7 +1022,7 @@ export async function coverageChainNightmareBlocked(
     mockSetter(newMock);
     result.rerender(
       React.createElement(
-        require('../../RoomScreen').RoomScreen,
+        require('@/screens/RoomScreen/RoomScreen').RoomScreen,
         {
           route: { params: { roomNumber: '1234', isHost: false } } as any,
           navigation: mockNavigation as any,

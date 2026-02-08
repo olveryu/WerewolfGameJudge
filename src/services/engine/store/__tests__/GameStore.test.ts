@@ -2,8 +2,8 @@
  * GameStore Unit Tests
  */
 
-import { GameStore } from '../GameStore';
-import type { GameState } from '../types';
+import { GameStore } from '@/services/engine/store/GameStore';
+import type { GameState } from '@/services/engine/store/types';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {

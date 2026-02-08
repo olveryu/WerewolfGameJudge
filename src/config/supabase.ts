@@ -9,7 +9,7 @@
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { log } from '../utils/logger';
+import { log } from '@/utils/logger';
 
 const supabaseLog = log.extend('Supabase');
 

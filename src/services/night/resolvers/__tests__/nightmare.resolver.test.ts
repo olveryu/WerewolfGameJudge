@@ -7,9 +7,9 @@
  *            This includes ALL wolf-faction roles: gargoyle, wolfRobot, etc.
  */
 
-import { nightmareBlockResolver } from '../nightmare';
-import type { ResolverContext, ActionInput } from '../types';
-import type { RoleId } from '../../../../models/roles/spec/specs';
+import { nightmareBlockResolver } from '@/services/night/resolvers/nightmare';
+import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // =============================================================================
 // Test Helpers

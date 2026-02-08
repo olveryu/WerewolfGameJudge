@@ -11,7 +11,7 @@
  * ❌ 禁止：自动清除 gate / 跳过断言
  */
 
-import { showAlert as realShowAlert } from '../../../../utils/alert';
+import { showAlert as realShowAlert } from '@/utils/alert';
 
 // =============================================================================
 // Dialog Type Definitions (Single Source of Truth)

@@ -4,7 +4,7 @@
  * Validates the buildNightPlan function and NightPlan structure.
  */
 
-import { buildNightPlan, type NightPlanStep, ROLE_SPECS, type RoleId, NIGHT_STEPS } from '../index';
+import { buildNightPlan, type NightPlanStep, ROLE_SPECS, type RoleId, NIGHT_STEPS } from '@/models/roles/spec/index';
 
 describe('buildNightPlan', () => {
   describe('basic functionality', () => {

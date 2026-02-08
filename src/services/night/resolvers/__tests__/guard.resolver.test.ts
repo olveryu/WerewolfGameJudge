@@ -4,9 +4,9 @@
  * Tests for guardProtectResolver validation and resolution logic.
  */
 
-import { guardProtectResolver } from '../guard';
-import type { ResolverContext, ActionInput } from '../types';
-import type { RoleId } from '../../../../models/roles/spec/specs';
+import { guardProtectResolver } from '@/services/night/resolvers/guard';
+import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
+import type { RoleId } from '@/models/roles/spec/specs';
 
 // =============================================================================
 // Test Helpers
