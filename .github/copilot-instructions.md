@@ -139,20 +139,6 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 
 ---
 
-## 已迁移章节索引
-
-| 章节 | 目标文件 |
-|------|----------|
-| Theme Token 使用规范 | `screens.instructions.md` / `components.instructions.md` |
-| UI 风格统一 | `screens.instructions.md` |
-| RoomScreen 交互架构 | `screens.instructions.md` / `components.instructions.md` |
-| Actor identity 三层语义 | `screens.instructions.md` |
-| Screen 性能模式 | `screens.instructions.md` |
-| Player 端 / Wire Protocol | `services.instructions.md` |
-| 交付与门禁 | `tests.instructions.md` |
-
----
-
 ## 实现清单（新增/修改 Night-1 行动角色时必查）
 
 1. **Schema-first + Resolver 对齐** — schema 约束与 resolver 校验一致。
