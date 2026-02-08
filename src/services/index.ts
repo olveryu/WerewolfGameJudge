@@ -11,17 +11,21 @@
  */
 
 // =============================================================================
-// Infra: 基础设施服务
+// Infra: 基础设施服务（IO/外部依赖）
 // =============================================================================
 export { default as AudioService } from './infra/AudioService';
 export { AuthService } from './infra/AuthService';
-export { AvatarUploadService } from './infra/AvatarUploadService';
 export { SimplifiedRoomService, type RoomRecord } from './infra/RoomService';
+
+// =============================================================================
+// Feature: 业务功能服务
+// =============================================================================
+export { AvatarUploadService } from './feature/AvatarUploadService';
 export {
   default as SettingsService,
   type UserSettings,
   type ThemeKey,
-} from './infra/SettingsService';
+} from './feature/SettingsService';
 
 // =============================================================================
 // Transport: 网络传输

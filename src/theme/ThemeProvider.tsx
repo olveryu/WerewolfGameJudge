@@ -24,7 +24,7 @@ import { Platform, StatusBar } from 'react-native';
 import { themes, defaultTheme, Theme, ThemeKey, ThemeColors } from './themes';
 import { spacing, borderRadius, typography, shadows, layout } from './tokens';
 import { log } from '@/utils/logger';
-import SettingsService from '@/services/infra/SettingsService';
+import SettingsService from '@/services/feature/SettingsService';
 
 const themeLog = log.extend('Theme');
 

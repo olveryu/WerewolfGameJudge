@@ -1,7 +1,7 @@
-import { AvatarUploadService } from '@/services/infra/AvatarUploadService';
+import { AvatarUploadService } from '@/services/feature/AvatarUploadService';
 
 // Mock supabase
-jest.mock('../../../config/supabase', () => ({
+jest.mock('@/config/supabase', () => ({
   supabase: null,
   isSupabaseConfigured: jest.fn(() => false),
 }));
@@ -10,7 +10,7 @@ jest.mock('../../../config/supabase', () => ({
 const mockGetCurrentUserId = jest.fn();
 const mockUpdateProfile = jest.fn();
 
-jest.mock('../AuthService', () => ({
+jest.mock('@/services/infra/AuthService', () => ({
   AuthService: {
     getInstance: jest.fn(() => ({
       getCurrentUserId: mockGetCurrentUserId,

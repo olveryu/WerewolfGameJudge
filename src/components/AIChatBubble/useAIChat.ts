@@ -26,7 +26,7 @@ import {
   type ChatMessage,
   getDefaultApiKey,
   type GameContext,
-} from '@/services/infra/AIChatService';
+} from '@/services/feature/AIChatService';
 import { showAlert } from '@/utils/alert';
 import { randomPick } from '@/utils/random';
 import { newRequestId } from '@/utils/id';

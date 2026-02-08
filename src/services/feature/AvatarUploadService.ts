@@ -1,7 +1,7 @@
 import { supabase, isSupabaseConfigured } from '@/config/supabase';
 import { log } from '@/utils/logger';
 import { randomHex } from '@/utils/id';
-import { AuthService } from './AuthService';
+import { AuthService } from '@/services/infra/AuthService';
 
 const avatarLog = log.extend('Avatar');
 
