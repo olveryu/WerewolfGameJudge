@@ -46,8 +46,8 @@ function AppContent() {
 export default function App() {
   log.extend('App').debug('render');
 
-  // Phase 0: 注入 facade（Host/Player 模式由 facade 内部 initialize/join 决定）
-  const facade = GameFacade.getInstance();
+  // Composition root: 创建 facade 实例并通过 Context 注入
+  const facade = new GameFacade();
 
   return (
     <SafeAreaProvider>

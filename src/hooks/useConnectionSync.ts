@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { BroadcastService, type ConnectionStatus } from '@/services/transport/BroadcastService';
+import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import { gameRoomLog } from '@/utils/logger';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 
@@ -45,8 +45,6 @@ export function useConnectionSync(
   // Throttle: only request once per live session (reset when state is received)
   const hasRequestedInSessionRef = useRef<boolean>(false);
 
-  const broadcastService = useRef(BroadcastService.getInstance());
-
   // Called when a state update is received — resets throttle and clears timer
   const onStateReceived = useCallback(() => {
     setLastStateReceivedAt(Date.now());
@@ -59,11 +57,11 @@ export function useConnectionSync(
 
   // Subscribe to connection status changes
   useEffect(() => {
-    const unsubscribe = broadcastService.current.addStatusListener((status) => {
+    const unsubscribe = facade.addConnectionStatusListener((status) => {
       setConnectionStatus(status);
     });
     return unsubscribe;
-  }, []);
+  }, [facade]);
 
   // Player 自动恢复：断线重连后自动请求状态
   // Throttle: 只在同一 live session 中请求一次（收到 STATE_UPDATE 后重置）

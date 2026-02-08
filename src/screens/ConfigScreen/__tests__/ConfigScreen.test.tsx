@@ -4,7 +4,6 @@ import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { AuthService } from '@/services/infra/AuthService';
-import { BroadcastService } from '@/services/transport/BroadcastService';
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -42,7 +41,6 @@ jest.mock('../../../utils/alert', () => ({
 // Mock services used by useGameRoom (now called from ConfigScreen)
 jest.mock('../../../services/infra/RoomService');
 jest.mock('../../../services/infra/AuthService');
-jest.mock('../../../services/transport/BroadcastService');
 
 // Mock facade for testing
 const createMockFacade = (): IGameFacade =>
@@ -72,6 +70,7 @@ const createMockFacade = (): IGameFacade =>
     endNight: jest.fn(),
     setAudioPlaying: jest.fn(),
     requestSnapshot: jest.fn(),
+    addConnectionStatusListener: jest.fn(() => jest.fn()),
   }) as unknown as IGameFacade;
 
 const renderWithFacade = (ui: React.ReactElement) => {
@@ -90,11 +89,7 @@ describe('ConfigScreen', () => {
       getCurrentDisplayName: jest.fn().mockResolvedValue('Test Host'),
       getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
     };
-    const mockBroadcastService = {
-      addStatusListener: jest.fn().mockReturnValue(() => {}),
-    };
     (AuthService.getInstance as jest.Mock).mockReturnValue(mockAuthService);
-    (BroadcastService.getInstance as jest.Mock).mockReturnValue(mockBroadcastService);
   });
 
   describe('Rendering', () => {

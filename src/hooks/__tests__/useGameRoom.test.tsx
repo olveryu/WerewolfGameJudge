@@ -10,7 +10,6 @@
 import { renderHook, act } from '@testing-library/react-native';
 import React from 'react';
 import { AuthService } from '@/services/infra/AuthService';
-import { BroadcastService } from '@/services/transport/BroadcastService';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import { GameFacadeProvider } from '@/contexts';
 import type { IGameFacade } from '@/services/types/IGameFacade';
@@ -18,7 +17,6 @@ import type { IGameFacade } from '@/services/types/IGameFacade';
 // Mock the services (only those actually needed)
 jest.mock('../../services/infra/RoomService');
 jest.mock('../../services/infra/AuthService');
-jest.mock('../../services/transport/BroadcastService');
 
 /**
  * Tests for useGameRoom ACK reason transparency
@@ -28,7 +26,6 @@ jest.mock('../../services/transport/BroadcastService');
  */
 describe('useGameRoom - ACK reason transparency', () => {
   let mockAuthService: jest.Mocked<AuthService>;
-  let mockBroadcastService: jest.Mocked<BroadcastService>;
 
   // Create a mock facade for testing
   const createMockFacade = (overrides: Partial<IGameFacade> = {}): IGameFacade => ({
@@ -62,6 +59,7 @@ describe('useGameRoom - ACK reason transparency', () => {
     setAudioPlaying: jest.fn().mockResolvedValue({ success: true }),
     requestSnapshot: jest.fn().mockResolvedValue(true),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),
+    addConnectionStatusListener: jest.fn().mockReturnValue(() => {}),
     ...overrides,
   });
 
@@ -76,12 +74,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
     } as any;
 
-    mockBroadcastService = {
-      addStatusListener: jest.fn().mockReturnValue(() => {}),
-    } as any;
-
     (AuthService.getInstance as jest.Mock).mockReturnValue(mockAuthService);
-    (BroadcastService.getInstance as jest.Mock).mockReturnValue(mockBroadcastService);
   });
 
   describe('takeSeatWithAck reason transparency', () => {
@@ -300,11 +293,10 @@ describe('useGameRoom - ACK reason transparency', () => {
       const mockFacade = createMockFacade({
         requestSnapshot: requestSnapshotMock,
         isHostPlayer: jest.fn().mockReturnValue(false), // Player mode
-      });
-
-      mockBroadcastService.addStatusListener = jest.fn().mockImplementation((fn) => {
-        statusListener = fn;
-        return () => {};
+        addConnectionStatusListener: jest.fn().mockImplementation((fn) => {
+          statusListener = fn;
+          return () => {};
+        }),
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -377,11 +369,10 @@ describe('useGameRoom - ACK reason transparency', () => {
           stateListener = fn;
           return () => {};
         }),
-      });
-
-      mockBroadcastService.addStatusListener = jest.fn().mockImplementation((fn) => {
-        statusListener = fn;
-        return () => {};
+        addConnectionStatusListener: jest.fn().mockImplementation((fn) => {
+          statusListener = fn;
+          return () => {};
+        }),
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -492,6 +483,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     setAudioPlaying: jest.fn().mockResolvedValue({ success: true }),
     requestSnapshot: jest.fn().mockResolvedValue(true),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),
+    addConnectionStatusListener: jest.fn().mockReturnValue(() => {}),
     ...overrides,
   });
 
@@ -505,12 +497,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
       getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
     } as any;
 
-    const mockBroadcastService = {
-      addStatusListener: jest.fn().mockReturnValue(() => {}),
-    } as any;
-
     (AuthService.getInstance as jest.Mock).mockReturnValue(mockAuthService);
-    (BroadcastService.getInstance as jest.Mock).mockReturnValue(mockBroadcastService);
   });
 
   it('submitAction should use effectiveSeat and effectiveRole when controlledSeat is set', async () => {

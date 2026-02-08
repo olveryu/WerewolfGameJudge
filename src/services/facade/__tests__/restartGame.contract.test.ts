@@ -17,11 +17,9 @@ import { gameReducer } from '@/services/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@/services/engine/reducer/types';
 import type { HostBroadcast, BroadcastPlayer } from '@/services/protocol/types';
 
-// Mock BroadcastService
+// Mock BroadcastService (constructor mock — DI 测试直接注入，此处仅防止真实 import)
 jest.mock('../../transport/BroadcastService', () => ({
-  BroadcastService: {
-    getInstance: jest.fn(),
-  },
+  BroadcastService: jest.fn().mockImplementation(() => ({})),
 }));
 
 // P0-1: Mock AudioService

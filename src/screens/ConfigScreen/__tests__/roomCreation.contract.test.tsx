@@ -12,7 +12,6 @@ import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { AuthService } from '@/services/infra/AuthService';
-import { BroadcastService } from '@/services/transport/BroadcastService';
 import { SimplifiedRoomService } from '@/services/infra/RoomService';
 
 // Mock navigation
@@ -46,7 +45,6 @@ jest.mock('../../../utils/alert', () => ({
 // Mock services used by useGameRoom
 jest.mock('../../../services/infra/RoomService');
 jest.mock('../../../services/infra/AuthService');
-jest.mock('../../../services/transport/BroadcastService');
 
 const createMockFacade = (): IGameFacade =>
   ({
@@ -75,6 +73,7 @@ const createMockFacade = (): IGameFacade =>
     endNight: jest.fn(),
     setAudioPlaying: jest.fn(),
     requestSnapshot: jest.fn(),
+    addConnectionStatusListener: jest.fn(() => jest.fn()),
   }) as unknown as IGameFacade;
 
 describe('Room creation → navigation roomNumber contract', () => {
@@ -91,12 +90,6 @@ describe('Room creation → navigation roomNumber contract', () => {
       getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
     };
     (AuthService.getInstance as jest.Mock).mockReturnValue(mockAuthService);
-
-    // Broadcast mock
-    const mockBroadcastService = {
-      addStatusListener: jest.fn().mockReturnValue(() => {}),
-    };
-    (BroadcastService.getInstance as jest.Mock).mockReturnValue(mockBroadcastService);
 
     // RoomService mock — simulate 409 retry: returned roomNumber differs from any pre-generated code
     mockRoomService = {

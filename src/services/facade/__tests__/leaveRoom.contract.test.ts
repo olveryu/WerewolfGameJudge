@@ -8,15 +8,14 @@ import { GameFacade } from '@/services/facade/GameFacade';
 
 // Mock BroadcastService
 jest.mock('../../transport/BroadcastService', () => ({
-  BroadcastService: {
-    getInstance: jest.fn(() => ({
-      joinRoom: jest.fn().mockResolvedValue(undefined),
-      leaveRoom: jest.fn().mockResolvedValue(undefined),
-      broadcastAsHost: jest.fn(),
-      sendToHost: jest.fn().mockResolvedValue(undefined),
-      markAsLive: jest.fn(),
-    })),
-  },
+  BroadcastService: jest.fn().mockImplementation(() => ({
+    joinRoom: jest.fn().mockResolvedValue(undefined),
+    leaveRoom: jest.fn().mockResolvedValue(undefined),
+    broadcastAsHost: jest.fn(),
+    sendToHost: jest.fn().mockResolvedValue(undefined),
+    markAsLive: jest.fn(),
+    addStatusListener: jest.fn().mockReturnValue(() => {}),
+  })),
 }));
 
 // Mock AudioService
@@ -42,17 +41,8 @@ jest.mock('../../infra/HostStateCache', () => ({
 }));
 
 describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
-  const createMockBroadcastService = () =>
-    ({
-      joinRoom: jest.fn().mockResolvedValue(undefined),
-      leaveRoom: jest.fn().mockResolvedValue(undefined),
-      broadcastAsHost: jest.fn(),
-      sendToHost: jest.fn().mockResolvedValue(undefined),
-      markAsLive: jest.fn(),
-    }) as any;
-
   it('should have zero listeners after leaveRoom when all subscribers have unsubscribed', async () => {
-    const facade = new GameFacade({ broadcastService: createMockBroadcastService() });
+    const facade = new GameFacade();
 
     // 初始状态应该没有 listeners
     expect(facade.getListenerCount()).toBe(0);
@@ -79,7 +69,7 @@ describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
   });
 
   it('should preserve listeners after leaveRoom (reset does not clear listeners)', async () => {
-    const facade = new GameFacade({ broadcastService: createMockBroadcastService() });
+    const facade = new GameFacade();
 
     // 订阅但不取消（模拟组件未正确 cleanup）
     facade.addListener(() => {});
@@ -95,30 +85,8 @@ describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
     expect(facade.getListenerCount()).toBe(2);
   });
 
-  it('should clear all listeners after resetInstance (test isolation)', async () => {
-    // 此测试验证 singleton resetInstance 行为（向后兼容）
-    GameFacade.resetInstance();
-    const facade = GameFacade.getInstance();
-
-    // 订阅
-    facade.addListener(() => {});
-    facade.addListener(() => {});
-
-    expect(facade.getListenerCount()).toBe(2);
-
-    // resetInstance 应该完全销毁，包括 listeners
-    GameFacade.resetInstance();
-
-    // 新实例应该是干净的
-    const newFacade = GameFacade.getInstance();
-    expect(newFacade.getListenerCount()).toBe(0);
-
-    // cleanup
-    GameFacade.resetInstance();
-  });
-
   it('should allow unsubscribe to be called multiple times safely', async () => {
-    const facade = new GameFacade({ broadcastService: createMockBroadcastService() });
+    const facade = new GameFacade();
 
     const unsubscribe = facade.addListener(() => {});
     expect(facade.getListenerCount()).toBe(1);
@@ -134,7 +102,7 @@ describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
   });
 
   it('should notify listeners with null state on leaveRoom', async () => {
-    const facade = new GameFacade({ broadcastService: createMockBroadcastService() });
+    const facade = new GameFacade();
     const listener = jest.fn();
 
     facade.addListener(listener);

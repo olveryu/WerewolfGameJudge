@@ -1,20 +1,20 @@
 /**
- * GameFacade - UI Facade 实现（重构后）
+ * GameFacade - UI Facade 实现
  *
  * 职责：
  * - 组合 hostActions / seatActions / messageRouter 子模块
  * - 管理生命周期和身份状态
  * - 对外暴露统一的 public API
  *
- * DI 支持：
- * - constructor 接受可选的 `GameFacadeDeps`（store / broadcastService）
- * - 未提供时自动创建生产默认值
- * - `getInstance()` 保留为向后兼容的全局单例工厂
+ * 实例化方式：
+ * - 由 composition root（App.tsx）通过 `new GameFacade(deps)` 创建
+ * - 通过 GameFacadeContext 注入到组件树
  *
  * ✅ 允许：组合子模块、管理生命周期、音频编排（执行 SideEffect: PLAY_AUDIO）
  * ✅ 允许：通过 constructor DI 注入依赖（测试/组合根）
  * ❌ 禁止：业务逻辑/校验规则（全部在 handler）
  * ❌ 禁止：直接修改 state（全部在 reducer）
+ * ❌ 禁止：全局单例（已移除 getInstance/resetInstance）
  *
  * 子模块划分：
  * - hostActions.ts: Host-only 业务编排（assignRoles/startNight/submitAction/submitWolfVote）
@@ -23,6 +23,7 @@
  */
 
 import type { IGameFacade, StateListener } from '@/services/types/IGameFacade';
+import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { GameTemplate } from '@/models/Template';
 import type { BroadcastGameState, PlayerMessage, HostBroadcast } from '@/services/protocol/types';
 import type { RoleId } from '@/models/roles';
@@ -42,16 +43,16 @@ import * as messageRouter from './messageRouter';
 import { newRequestId } from '@/utils/id';
 
 /**
- * GameFacade 可注入依赖（全部可选，未提供时使用生产默认值）
+ * GameFacade 可注入依赖
  */
 export interface GameFacadeDeps {
+  /** GameStore 实例（可选，默认 new GameStore()） */
   store?: GameStore;
+  /** BroadcastService 实例（可选，默认 new BroadcastService()） */
   broadcastService?: BroadcastService;
 }
 
 export class GameFacade implements IGameFacade {
-  private static _instance: GameFacade | null = null;
-
   private readonly store: GameStore;
   private readonly broadcastService: BroadcastService;
   private isHost = false;
@@ -69,29 +70,10 @@ export class GameFacade implements IGameFacade {
 
   /**
    * @param deps - 可选依赖注入。未提供时使用生产默认值。
-   *   - `store`: GameStore 实例（默认 `new GameStore()`）
-   *   - `broadcastService`: BroadcastService 实例（默认 `BroadcastService.getInstance()`）
    */
   constructor(deps?: GameFacadeDeps) {
     this.store = deps?.store ?? new GameStore();
-    this.broadcastService = deps?.broadcastService ?? BroadcastService.getInstance();
-  }
-
-  /**
-   * 全局单例工厂（向后兼容）
-   * 生产代码中推荐通过 composition root 使用 `new GameFacade()` + Context 注入。
-   */
-  static getInstance(): GameFacade {
-    GameFacade._instance ??= new GameFacade();
-    return GameFacade._instance;
-  }
-
-  /** 测试隔离：完全销毁 instance 包括 listeners */
-  static resetInstance(): void {
-    if (GameFacade._instance) {
-      GameFacade._instance.store.destroy();
-    }
-    GameFacade._instance = null;
+    this.broadcastService = deps?.broadcastService ?? new BroadcastService();
   }
 
   // =========================================================================
@@ -133,6 +115,10 @@ export class GameFacade implements IGameFacade {
 
   getStateRevision(): number {
     return this.store.getRevision();
+  }
+
+  addConnectionStatusListener(fn: (status: ConnectionStatus) => void): () => void {
+    return this.broadcastService.addStatusListener(fn);
   }
 
   /**

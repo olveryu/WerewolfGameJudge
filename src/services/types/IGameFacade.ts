@@ -10,6 +10,9 @@ import type { GameTemplate } from '@/models/Template';
 import type { RoleId } from '@/models/roles';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
+/** Connection status for UI display (re-exported from BroadcastService) */
+export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected';
+
 export type StateListener = (state: BroadcastGameState | null) => void;
 
 export interface IGameFacade {
@@ -212,4 +215,12 @@ export interface IGameFacade {
    * 请求状态快照（Player）
    */
   requestSnapshot(): Promise<boolean>;
+
+  // === Connection ===
+  /**
+   * 订阅连接状态变化
+   * 委托 BroadcastService.addStatusListener，避免 UI 层直接依赖 BroadcastService
+   * @returns 取消订阅函数
+   */
+  addConnectionStatusListener(fn: (status: ConnectionStatus) => void): () => void;
 }

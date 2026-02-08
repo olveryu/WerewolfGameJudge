@@ -21,7 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { GameStatus } from '@/models/GameStatus';
 import { SimplifiedRoomService, RoomRecord } from '@/services/infra/RoomService';
-import type { ConnectionStatus } from '@/services/transport/BroadcastService';
+import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import { AuthService } from '@/services/infra/AuthService';
 import { GameTemplate } from '@/models/Template';
 import { RoleId } from '@/models/roles';
