@@ -20,6 +20,7 @@
 import { supabase, isSupabaseConfigured } from '@/config/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { broadcastLog } from '@/utils/logger';
+import type { ConnectionStatus } from '@/services/types/IGameFacade';
 
 // Protocol types - Import for local use
 import type { HostBroadcast, PlayerMessage } from '@/services/protocol/types';
@@ -32,12 +33,8 @@ export type {
   PlayerMessage,
 } from '@/services/protocol/types';
 
-// =============================================================================
-// Connection Status
-// =============================================================================
-
-/** Connection status for UI display */
-export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected';
+// Re-export ConnectionStatus for backward compatibility
+export type { ConnectionStatus } from '@/services/types/IGameFacade';
 
 /** Status change listener */
 export type ConnectionStatusListener = (status: ConnectionStatus) => void;
