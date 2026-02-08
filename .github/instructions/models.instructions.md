@@ -28,3 +28,4 @@ applyTo: src/models/**
 - 输入合法性必须写在 `SCHEMAS[*].constraints`（schema-first）。
 - 禁止跨夜约束（`previousActions`、`lastNightTarget` 等）。
 - 狼刀是中立的：可以刀任意座位（包括自己/狼队友），不要加 `notSelf`/`notWolf`。
+- `schema.meeting.canSeeEachOther` 决定"何时显示队友"（开关）；`ROLE_SPECS[role].wolfMeeting.canSeeWolves` 决定"谁被高亮"（过滤）— 不是双写。

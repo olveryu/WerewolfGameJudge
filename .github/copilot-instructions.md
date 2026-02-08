@@ -95,6 +95,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 - 统一从 `src/utils/logger.ts` 获取（`gameRoomLog`、`roomScreenLog` 等）。
 - ❌ 禁止 `src/**` 业务代码 `console.*`。
 - ✅ 允许：`__tests__/**`、`e2e/**`、`scripts/**`。
+- 状态迁移、action 提交、错误、关键分支决策必须打日志（带 context + 关键数据）。
 - 级别：`.debug()`（正常）/ `.warn()`（可恢复）/ `.error()`（失败）。
 
 ---
@@ -169,10 +170,12 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 | Type | 用途 |
 |------|------|
 | `feat` | 新功能 | `fix` | Bug 修复 | `refactor` | 重构 |
-| `test` | 测试 | `docs` | 文档 | `chore` | 杂务 |
+| `perf` | 性能优化 | `style` | 格式化 | `chore` | 杂务 |
+| `test` | 测试 | `docs` | 文档 | | |
 
 - Scope：`night` / `room` / `config` / `hooks` / `theme` / `e2e` / `models` / `services` / `audio`
 - 英文、小写开头、祈使语气、不加句号。破坏性变更加 `!`。
+- body（可选）：空一行后写详细说明。
 - 单个 commit 只做一件事，禁止大杂烩 commit。
 
 ---
@@ -195,6 +198,8 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 - 发现需同步时主动问用户，禁止静默跳过或自作主张修改。
 - 每个 `*.instructions.md` 必须有 `✅/❌` 标记。
 - 每个 class/module JSDoc 必须有：名称定位 + 职责 + `✅/❌`。
+- ❌ 禁止只有 `✅/❌` 而没有功能介绍（先知道"是什么"再知道"能不能做"）。
+- ❌ 禁止只有功能介绍而没有 `✅/❌`（缺约束视为不完整）。
 
 ### 写/改文件时的检查
 

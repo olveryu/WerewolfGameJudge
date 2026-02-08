@@ -35,7 +35,9 @@ Player 仅作为 transport：发送 `PlayerMessage` → 接收 `HostBroadcast.ST
 - ✅ 输入：`ActionInput` + `ResolverContext`（含 `currentNightResults`）。
 - ✅ 输出：`{ valid, rejectReason?, updates?, result? }`。
 - ✅ 必须检查 nightmare 阻断：`currentNightResults.blockedSeat === actorSeat`。
-- ✅ 校验必须与 `SCHEMAS[*].constraints` 完全一致。
+- ✅ 被阻断时返回 `{ valid: true, result: {} }`（有效但无效果）。
+- ✅ 校验必须与 `SCHEMAS[*].constraints` 完全一致（双向）：schema 规定 `notSelf` → resolver 必须拒绝；schema 允许 → resolver 不得拒绝。
+- ✅ `wolfKillDisabled` 单一真相：在 `handlePlayerAction` 中 nightmare 阻断狼时设置，`toBroadcastState` 直接读取。
 - ❌ 禁止 resolver 中做 IO（网络请求、音频播放、Alert 等）。
 
 ## 状态管理
@@ -134,6 +136,9 @@ advanceToNextAction()
 ## Anti-drift 护栏
 
 ### `normalizeState` 同步规则
+
+- Host 需要某字段 → 该字段必须属于 `BroadcastGameState`。隐私是 UI 层问题（按 `myRole`/`isHost` 过滤），不是数据模型问题。
+- 派生字段必须从同一份 state 计算，或只写入 `BroadcastGameState` 一次（禁止双写/漂移）。
 
 当向 `BroadcastGameState`（或其子结构）新增字段时：
 
