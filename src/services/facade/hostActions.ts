@@ -37,6 +37,7 @@ import type { GameTemplate } from '@/models/Template';
 
 import { doesRoleParticipateInWolfVote } from '@/models/roles';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
+import AudioService from '@/services/infra/AudioService';
 
 import {
   handleAssignRoles,
@@ -287,6 +288,17 @@ export async function startNight(
           .currentActionerIndex,
       });
     }
+  }
+
+  // Fire-and-forget: preload audio for all template roles before night flow starts.
+  // This eliminates 100-500ms first-play decode latency for each role's audio.
+  const stateAfterStart = ctx.store.getState();
+  if (result.success && stateAfterStart?.templateRoles) {
+    AudioService.getInstance()
+      .preloadForRoles(stateAfterStart.templateRoles as import('@/models/roles').RoleId[])
+      .catch(() => {
+        // Preload failure is non-critical; normal playback will still work.
+      });
   }
 
   return processHandlerResult(ctx, result, { logPrefix: 'startNight' });

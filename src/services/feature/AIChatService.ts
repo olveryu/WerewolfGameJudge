@@ -169,11 +169,13 @@ export interface ChatResponse {
  * @param messages 聊天消息历史
  * @param apiKey API Key
  * @param gameContext 可选的游戏上下文（玩家视角）
+ * @param signal 可选的 AbortSignal，用于取消请求（关闭聊天时中断）
  */
 export async function sendChatMessage(
   messages: ChatMessage[],
   apiKey: string,
   gameContext?: GameContext,
+  signal?: AbortSignal,
 ): Promise<ChatResponse> {
   if (!apiKey) {
     return { success: false, error: '请先配置 Groq API Key' };
@@ -207,6 +209,7 @@ export async function sendChatMessage(
         max_tokens: API_CONFIG.maxTokens,
         temperature: 0.7,
       }),
+      signal,
     });
 
     if (!response.ok) {
@@ -232,6 +235,10 @@ export async function sendChatMessage(
     chatLog.debug('Chat response received', { length: content.length });
     return { success: true, message: content };
   } catch (error) {
+    // Rethrow AbortError so callers can distinguish cancellation from real failures
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw error;
+    }
     chatLog.error('Chat request failed', { error });
     return {
       success: false,

@@ -90,6 +90,10 @@ class AudioService {
   private webAudioElement: HTMLAudioElement | null = null;
   private webBgmElement: HTMLAudioElement | null = null;
 
+  // Preload cache: keeps pre-decoded audio players alive to skip first-play decode latency
+  private preloadedPlayers: Map<string, AudioPlayer> = new Map();
+  private preloadedWebAudios: Map<string, HTMLAudioElement> = new Map();
+
   private constructor() {
     // Constructor does not call async methods
   }
@@ -533,6 +537,87 @@ class AudioService {
    */
   getIsBgmPlaying(): boolean {
     return this.isBgmPlaying;
+  }
+
+  // ============ Preload Methods ============
+
+  /**
+   * Preload audio files for the given roles to eliminate first-play decode latency.
+   *
+   * Fire-and-forget: failures are silently logged and do not affect gameplay.
+   * Call this when entering night phase (e.g., startNight) so audio is ready
+   * before the first role's turn.
+   *
+   * Preloads:
+   * - NIGHT_AUDIO + NIGHT_END_AUDIO (always)
+   * - AUDIO_FILES[role] + AUDIO_END_FILES[role] for each role in the template
+   */
+  async preloadForRoles(roles: RoleId[]): Promise<void> {
+    audioLog.debug('preloadForRoles: starting', { roles });
+
+    // Collect all audio files to preload
+    const filesToPreload: Array<{ key: string; file: any }> = [
+      { key: 'night', file: NIGHT_AUDIO },
+      { key: 'night_end', file: NIGHT_END_AUDIO },
+    ];
+
+    for (const role of roles) {
+      const beginFile = AUDIO_FILES[role];
+      if (beginFile) {
+        filesToPreload.push({ key: `begin_${role}`, file: beginFile });
+      }
+      const endFile = AUDIO_END_FILES[role];
+      if (endFile) {
+        filesToPreload.push({ key: `end_${role}`, file: endFile });
+      }
+    }
+
+    const promises = filesToPreload.map(({ key, file }) =>
+      this.preloadSingleFile(key, file).catch((err) => {
+        audioLog.warn(`preloadForRoles: failed to preload ${key}`, err);
+      }),
+    );
+
+    await Promise.all(promises);
+    audioLog.debug('preloadForRoles: done', { count: filesToPreload.length });
+  }
+
+  private async preloadSingleFile(key: string, audioFile: any): Promise<void> {
+    if (isWeb && typeof document !== 'undefined') {
+      // Web: create an Audio element, set preload='auto' to trigger decode
+      if (this.preloadedWebAudios.has(key)) return;
+      const audioUrl = typeof audioFile === 'string' ? audioFile : audioFile?.uri || audioFile;
+      const audio = new Audio();
+      audio.preload = 'auto';
+      audio.src = audioUrl;
+      // Load but don't play
+      audio.load();
+      this.preloadedWebAudios.set(key, audio);
+    } else if (!isJest) {
+      // Native: create a player to pre-decode the audio asset
+      if (this.preloadedPlayers.has(key)) return;
+      const player = createAudioPlayer(audioFile);
+      this.preloadedPlayers.set(key, player);
+    }
+  }
+
+  /**
+   * Clear all preloaded audio (call on restartGame / leaveRoom to free memory).
+   */
+  clearPreloaded(): void {
+    for (const player of this.preloadedPlayers.values()) {
+      try {
+        player.remove();
+      } catch {
+        // ignore
+      }
+    }
+    this.preloadedPlayers.clear();
+
+    // Web: just clear references, browser GC handles the rest
+    this.preloadedWebAudios.clear();
+
+    audioLog.debug('clearPreloaded: all preloaded audio released');
   }
 }
 

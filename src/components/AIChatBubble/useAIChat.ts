@@ -406,6 +406,9 @@ export function useAIChat(): UseAIChatReturn {
   // 上下文问题（缓存，只在打开时刷新）
   const [contextQuestions, setContextQuestions] = useState<string[]>([]);
 
+  // AbortController: cancel in-flight AI request on close / unmount
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // ── Cooldown ─────────────────────────────────────────
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
@@ -608,6 +611,11 @@ export function useAIChat(): UseAIChatReturn {
 
       setCooldownRemaining(COOLDOWN_SECONDS);
 
+      // Cancel any in-flight request before starting a new one
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       const userMessage: DisplayMessage = {
         id: newRequestId(),
         role: 'user',
@@ -642,7 +650,11 @@ export function useAIChat(): UseAIChatReturn {
           contextMessages,
           apiKey,
           gameContext,
+          controller.signal,
         );
+
+        // If aborted while waiting, silently bail out
+        if (controller.signal.aborted) return;
 
         if (response.success && response.message) {
           let content = response.message;
@@ -687,6 +699,10 @@ export function useAIChat(): UseAIChatReturn {
         } else {
           showAlert('发送失败', response.error || '未知错误');
         }
+      } catch (err: unknown) {
+        // AbortError is expected when user closes chat — silently ignore
+        if (err instanceof Error && err.name === 'AbortError') return;
+        throw err;
       } finally {
         setIsLoading(false);
       }
@@ -705,6 +721,26 @@ export function useAIChat(): UseAIChatReturn {
     },
     [sendMessage],
   );
+
+  // Wrap setIsOpen: abort in-flight request when closing chat panel
+  const handleSetIsOpen = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
+      }
+      setIsOpen(open);
+    },
+    [],
+  );
+
+  // Cleanup on unmount: abort any in-flight request
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+    };
+  }, []);
 
   const handleClearHistory = useCallback(() => {
     showAlert('清除聊天记录', '确定要清除所有聊天记录吗？此操作不可恢复。', [
@@ -729,7 +765,7 @@ export function useAIChat(): UseAIChatReturn {
     setInputText,
     isLoading,
     isOpen,
-    setIsOpen,
+    setIsOpen: handleSetIsOpen,
     cooldownRemaining,
     aiSuggestions,
     contextQuestions,

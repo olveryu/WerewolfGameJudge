@@ -31,6 +31,8 @@ jest.mock('../../infra/AudioService', () => ({
       playNightEndAudio: jest.fn().mockResolvedValue(undefined),
       playRoleBeginningAudio: jest.fn().mockResolvedValue(undefined),
       playRoleEndingAudio: jest.fn().mockResolvedValue(undefined),
+      preloadForRoles: jest.fn().mockResolvedValue(undefined),
+      clearPreloaded: jest.fn(),
     })),
   },
 }));
