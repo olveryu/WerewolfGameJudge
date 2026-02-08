@@ -142,8 +142,8 @@ jest.mock('../useRoomActionDialogs', () => ({
     ) => {
       const { showAlert: mockShowAlert } = require('@/utils/alert');
       mockShowAlert(title, message, [
-        { text: '确定', onPress: onConfirm },
         { text: '取消', style: 'cancel', onPress: onCancel },
+        { text: '确定', onPress: onConfirm },
       ]);
     },
     showWolfVoteDialog: jest.fn(),

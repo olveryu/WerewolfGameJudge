@@ -76,13 +76,13 @@ export const useRoomHostDialogs = ({
     }
 
     showAlert('允许看牌？', '所有座位已被占用。将洗牌并分配角色。', [
+      { text: '取消', style: 'cancel' },
       {
         text: '确定',
         onPress: () => {
           void assignRoles();
         },
       },
-      { text: '取消', style: 'cancel' },
     ]);
   }, [gameState, assignRoles]);
 
@@ -93,18 +93,19 @@ export const useRoomHostDialogs = ({
 
   const showStartGameDialog = useCallback(() => {
     showAlert('开始游戏？', '请将您的手机音量调整到最大。', [
+      { text: '取消', style: 'cancel' },
       {
         text: '确定',
         onPress: () => {
           void handleStartGame();
         },
       },
-      { text: '取消', style: 'cancel' },
     ]);
   }, [handleStartGame]);
 
   const showLastNightInfoDialog = useCallback(() => {
     showAlert('确定查看昨夜信息？', '', [
+      { text: '取消', style: 'cancel' },
       {
         text: '确定',
         onPress: () => {
@@ -112,19 +113,18 @@ export const useRoomHostDialogs = ({
           showAlert('昨夜信息', info, [{ text: '知道了', style: 'default' }]);
         },
       },
-      { text: '取消', style: 'cancel' },
     ]);
   }, [getLastNightInfo]);
 
   const showRestartDialog = useCallback(() => {
     showAlert('重新开始游戏？', '使用相同板子开始新一局游戏。', [
+      { text: '取消', style: 'cancel' },
       {
         text: '确定',
         onPress: () => {
           void restartGame();
         },
       },
-      { text: '取消', style: 'cancel' },
     ]);
   }, [restartGame]);
 

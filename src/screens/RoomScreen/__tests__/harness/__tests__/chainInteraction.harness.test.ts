@@ -30,14 +30,14 @@ describe('RoomScreenTestHarness enhanced button API', () => {
 
     // Dialog 1
     mockShowAlert('狼人投票', '1号狼人 确定要猎杀3号玩家吗？', [
-      { text: '确定', onPress: cb1 },
       { text: '取消', style: 'cancel' },
+      { text: '确定', onPress: cb1 },
     ]);
 
     // Dialog 2
     mockShowAlert('确认跳过', '确定不使用技能吗？', [
-      { text: '确定', onPress: cb2 },
       { text: '取消', style: 'cancel' },
+      { text: '确定', onPress: cb2 },
     ]);
 
     // Press confirm on the wolfVote dialog (not the last one)
@@ -56,7 +56,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
 
   it('pressButton succeeds when button exists', () => {
     const cb = jest.fn();
-    mockShowAlert('狼人投票', '确定要猎杀吗？', [{ text: '确定', onPress: cb }, { text: '取消' }]);
+    mockShowAlert('狼人投票', '确定要猎杀吗？', [{ text: '取消' }, { text: '确定', onPress: cb }]);
 
     harness.pressButton('确定');
     expect(cb).toHaveBeenCalledTimes(1);
@@ -67,7 +67,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
   });
 
   it('pressButton throws when button label not found', () => {
-    mockShowAlert('狼人投票', '确定要猎杀吗？', [{ text: '确定' }, { text: '取消' }]);
+    mockShowAlert('狼人投票', '确定要猎杀吗？', [{ text: '取消' }, { text: '确定' }]);
 
     expect(() => harness.pressButton('不存在的按钮')).toThrow(
       /Button "不存在的按钮" not found.*狼人投票/,
@@ -82,11 +82,11 @@ describe('RoomScreenTestHarness enhanced button API', () => {
     const confirmCb = jest.fn();
     const cancelCb = jest.fn();
     mockShowAlert('确认行动', '是否对3号使用技能？', [
-      { text: '确定', onPress: confirmCb },
       { text: '取消', onPress: cancelCb },
+      { text: '确定', onPress: confirmCb },
     ]);
 
-    harness.pressButtonByIndex(1); // "取消"
+    harness.pressButtonByIndex(0); // "取消"
     expect(cancelCb).toHaveBeenCalledTimes(1);
     expect(confirmCb).not.toHaveBeenCalled();
   });
@@ -109,12 +109,12 @@ describe('RoomScreenTestHarness enhanced button API', () => {
     const skipCb = jest.fn();
 
     mockShowAlert('狼人投票', '确定要猎杀5号吗？', [
-      { text: '确定', onPress: wolfCb },
       { text: '取消' },
+      { text: '确定', onPress: wolfCb },
     ]);
     mockShowAlert('确认跳过', '确定不使用技能吗？', [
-      { text: '确定', onPress: skipCb },
       { text: '取消' },
+      { text: '确定', onPress: skipCb },
     ]);
 
     harness.pressButtonOnType('wolfVote', '确定');
@@ -133,11 +133,11 @@ describe('RoomScreenTestHarness enhanced button API', () => {
   // pressPrimaryOnType (convenience)
   // ─────────────────────────────────────────────────────────────────────────
 
-  it('pressPrimaryOnType presses the first button of matching type', () => {
+  it('pressPrimaryOnType presses the primary (non-cancel) button of matching type', () => {
     const cb = jest.fn();
     mockShowAlert('狼人投票', '确定要猎杀5号吗？', [
+      { text: '取消', style: 'cancel' },
       { text: '确定', onPress: cb },
-      { text: '取消' },
     ]);
 
     harness.pressPrimaryOnType('wolfVote');
@@ -148,9 +148,12 @@ describe('RoomScreenTestHarness enhanced button API', () => {
   // pressLastPrimary (convenience)
   // ─────────────────────────────────────────────────────────────────────────
 
-  it('pressLastPrimary presses the first button of the last dialog', () => {
+  it('pressLastPrimary presses the primary (non-cancel) button of the last dialog', () => {
     const cb = jest.fn();
-    mockShowAlert('确认行动', '是否使用技能？', [{ text: '确定', onPress: cb }, { text: '取消' }]);
+    mockShowAlert('确认行动', '是否使用技能？', [
+      { text: '取消', style: 'cancel' },
+      { text: '确定', onPress: cb },
+    ]);
 
     harness.pressLastPrimary();
     expect(cb).toHaveBeenCalledTimes(1);
@@ -197,13 +200,13 @@ describe('RoomScreenTestHarness enhanced button API', () => {
 
     // Simulate: wolfVote dialog appears
     mockShowAlert('狼人投票', '1号狼人 确定要猎杀3号玩家吗？', [
+      { text: '取消', style: 'cancel' },
       {
         text: '确定',
         onPress: () => {
           submitWolfVote(2); // seat index 2 = player 3
         },
       },
-      { text: '取消', style: 'cancel' },
     ]);
 
     // Test: press confirm
@@ -224,7 +227,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
           dismissed = true;
           // After dismiss, a second dialog appears (poison prompt)
           // Title contains '毒杀' + '号' → witchPoisonConfirm
-          mockShowAlert('毒杀5号', '确定要使用毒药吗？', [{ text: '确定' }, { text: '取消' }]);
+      mockShowAlert('毒杀5号', '确定要使用毒药吗？', [{ text: '取消' }, { text: '确定' }]);
         },
       },
     ]);

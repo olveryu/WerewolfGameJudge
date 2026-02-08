@@ -368,11 +368,19 @@ export class RoomScreenTestHarness {
   }
 
   /**
-   * Press the primary (first) button on the last dialog.
+   * Press the primary (non-cancel) button on the last dialog.
    * FAIL-FAST: Throws if no dialog recorded or no buttons.
    */
   pressLastPrimary(): void {
-    this.pressButtonByIndex(0);
+    const event = this.getLastEvent();
+    if (!event) {
+      throw new Error('[pressLastPrimary] No dialog recorded.');
+    }
+    if (event.buttons.length === 0) {
+      throw new Error(`[pressLastPrimary] Dialog ("${event.title}") has no buttons.`);
+    }
+    const primaryLabel = this._findPrimaryButton(event);
+    this._pressButtonOnEvent(event, primaryLabel);
   }
 
   /**

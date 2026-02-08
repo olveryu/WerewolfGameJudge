@@ -102,8 +102,8 @@ export const HomeScreen: React.FC = () => {
     (action: () => void) => {
       if (!user) {
         showAlert('需要登录', '请先登录后继续', [
-          { text: '登录', onPress: () => setShowLoginModal(true) },
           { text: '取消', style: 'cancel' },
+          { text: '登录', onPress: () => setShowLoginModal(true) },
         ]);
         return;
       }

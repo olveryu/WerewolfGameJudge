@@ -194,8 +194,8 @@ jest.mock('../useRoomActionDialogs', () => ({
           : `${wolfName} 确定要猎杀${targetIndex + 1}号玩家吗？`);
 
       mockShowAlert('狼人投票', msg, [
-        { text: '确定', onPress: onConfirm },
         { text: '取消', style: 'cancel' },
+        { text: '确定', onPress: onConfirm },
       ]);
     },
     showConfirmDialog: jest.fn(),

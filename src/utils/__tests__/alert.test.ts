@@ -83,16 +83,16 @@ describe('alert utility', () => {
 
       const onDelete = jest.fn();
       showAlert('Delete', 'Delete this item?', [
-        { text: 'Delete', style: 'destructive', onPress: onDelete },
         { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: onDelete },
       ]);
 
       expect(mockListener).toHaveBeenCalledWith({
         title: 'Delete',
         message: 'Delete this item?',
         buttons: [
-          { text: 'Delete', style: 'destructive', onPress: onDelete },
           { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: onDelete },
         ],
       });
     });

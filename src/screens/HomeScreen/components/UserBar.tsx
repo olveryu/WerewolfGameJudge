@@ -50,12 +50,12 @@ const UserBarComponent: React.FC<UserBarProps> = ({
   const handlePress = useCallback(() => {
     if (user) {
       showAlert(userName, user.isAnonymous ? '匿名登录用户' : user.email || '已登录', [
+        { text: '取消', style: 'cancel' },
         {
           text: '退出登录',
           style: 'destructive',
           onPress: onSignOut,
         },
-        { text: '取消', style: 'cancel' },
       ]);
     } else {
       onLogin();

@@ -107,17 +107,17 @@ export const NetworkProvider: React.FC<Props> = ({ children }) => {
           retryFn
             ? [
                 {
-                  text: '重试',
-                  onPress: () => {
-                    retryDialogShownRef.current = false;
-                    retryLastOperation();
-                  },
-                },
-                {
                   text: '取消',
                   style: 'cancel',
                   onPress: () => {
                     retryDialogShownRef.current = false;
+                  },
+                },
+                {
+                  text: '重试',
+                  onPress: () => {
+                    retryDialogShownRef.current = false;
+                    retryLastOperation();
                     clearError();
                   },
                 },
