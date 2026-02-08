@@ -217,6 +217,9 @@ export const createStyles = (colors: ThemeColors) =>
       borderRadius: borderRadius.large,
       paddingVertical: spacing.tight,
       paddingHorizontal: spacing.medium,
+      flexBasis: '48%',
+      flexGrow: 0,
+      flexShrink: 1,
     },
     quickQuestionBtnDisabled: {
       opacity: 0.5,

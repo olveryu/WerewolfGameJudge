@@ -148,7 +148,7 @@ export const AIChatBubble: React.FC = () => {
               style={styles.messageList}
               contentContainerStyle={styles.messageListContent}
               onContentSizeChange={() =>
-                flatListRef.current?.scrollToEnd({ animated: true })
+                flatListRef.current?.scrollToEnd({ animated: false })
               }
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
