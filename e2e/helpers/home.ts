@@ -378,8 +378,29 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
     }
     await page.waitForTimeout(500);
 
-    // Complete login flow
-    await completeAnonLoginIfNeeded(page);
+    // Check if auto-sign-in already completed during the wait
+    if (await userNameLocator.isVisible({ timeout: 500 }).catch(() => false)) {
+      console.log('[ensureAnonLogin] Auto-sign-in completed during wait');
+      // Dismiss any leftover login modal
+      await dismissBlockingModals(page);
+      await ensureHomeReady(page);
+      console.log('[ensureAnonLogin] Completed (auto-sign-in)');
+      return;
+    }
+
+    // Login Modal should be open now — click the anonymous login button directly
+    const anonLoginBtn = page.locator(`[data-testid="${TESTIDS.homeAnonLoginButton}"]`);
+    const hasAnonBtn = await anonLoginBtn.isVisible({ timeout: 3000 }).catch(() => false);
+    if (hasAnonBtn) {
+      console.log('[ensureAnonLogin] Login modal open, clicking anonymous login...');
+      await anonLoginBtn.click();
+      // Wait for login to complete — user name should appear
+      await expect(userNameLocator).toBeVisible({ timeout: 15000 });
+      console.log('[ensureAnonLogin] Anonymous login completed');
+    } else {
+      // Fallback: Login modal might have different shape, try generic flow
+      await completeAnonLoginIfNeeded(page);
+    }
 
     // Wait for home to be stable
     await ensureHomeReady(page);
