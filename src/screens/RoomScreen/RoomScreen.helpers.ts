@@ -181,8 +181,6 @@ export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
     return map;
   })();
 
-  // Adapter object (avoid unsafe assertions like `as unknown as`).
-  // Treat this as a view over LocalGameState for model-layer helpers that expect GameRoomLike.
   return {
     template: gameState.template,
     players: gameState.players,
