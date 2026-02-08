@@ -32,7 +32,7 @@ import { RootStackParamList } from '@/navigation/types';
 import { GameStatus } from '@/models/GameStatus';
 import { showAlert } from '@/utils/alert';
 import { useGameRoom } from '@/hooks/useGameRoom';
-import AudioService from '@/services/infra/AudioService';
+import { AudioService } from '@/services/infra/AudioService';
 import { HostControlButtons } from './components/HostControlButtons';
 import { useRoomHostDialogs } from './useRoomHostDialogs';
 import { useRoomActionDialogs } from './useRoomActionDialogs';
@@ -798,5 +798,3 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     </SafeAreaView>
   );
 };
-
-export default RoomScreen;

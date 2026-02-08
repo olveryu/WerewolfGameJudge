@@ -270,5 +270,3 @@ export class BroadcastService {
     return this.channel !== null;
   }
 }
-
-export default BroadcastService;

@@ -18,6 +18,7 @@ import {
   Animated,
   Keyboard,
   Platform,
+  useWindowDimensions,
   type GestureResponderEvent,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -53,11 +54,6 @@ const COOLDOWN_SECONDS = 5;
 // ── 拖动判定阈值 ─────────────────────────────────────────
 
 const DRAG_THRESHOLD = 10;
-
-// ── Screen 尺寸（用于拖动边界限制）─────────────────────────
-
-import { Dimensions } from 'react-native';
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // ══════════════════════════════════════════════════════════
 // Pure functions & data
@@ -384,6 +380,7 @@ export interface UseAIChatReturn {
 
 export function useAIChat(): UseAIChatReturn {
   const facade = useGameFacade();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   // ── Animations ───────────────────────────────────────
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -531,16 +528,16 @@ export function useAIChat(): UseAIChatReturn {
       // 边界限制
       newX = Math.max(
         BUBBLE_MARGIN,
-        Math.min(SCREEN_WIDTH - BUBBLE_SIZE - BUBBLE_MARGIN, newX),
+        Math.min(screenWidth - BUBBLE_SIZE - BUBBLE_MARGIN, newX),
       );
       newY = Math.max(
         BUBBLE_MARGIN + 50,
-        Math.min(SCREEN_HEIGHT - BUBBLE_SIZE - BUBBLE_MARGIN, newY),
+        Math.min(screenHeight - BUBBLE_SIZE - BUBBLE_MARGIN, newY),
       );
 
       setPosition({ x: newX, y: newY });
     }
-  }, []);
+  }, [screenWidth, screenHeight]);
 
   const handleTouchEnd = useCallback(() => {
     if (isDraggingRef.current) {

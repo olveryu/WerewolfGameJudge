@@ -6,7 +6,7 @@
  * may have been modified by other tests or app initialization.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import SettingsService from '@/services/feature/SettingsService';
+import { SettingsService } from '@/services/feature/SettingsService';
 
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({

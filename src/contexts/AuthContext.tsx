@@ -128,8 +128,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       await authService.signInAnonymously();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
       throw e;
     } finally {
       setLoading(false);
@@ -145,8 +146,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (result.user) {
           setUser(toUser(result.user));
         }
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(msg);
         throw e;
       } finally {
         setLoading(false);
@@ -165,8 +167,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (result?.data?.user) {
           setUser(toUser(result.data.user));
         }
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(msg);
         throw e;
       } finally {
         setLoading(false);
@@ -184,8 +187,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (result?.data?.user) {
           setUser(toUser(result.data.user));
         }
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(msg);
         throw e;
       }
     },
@@ -202,8 +206,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(toUser(result.data.user));
         }
         return url;
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(msg);
         throw e;
       }
     },
@@ -216,8 +221,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await authService.signOut();
       await AsyncStorage.removeItem('lastRoomNumber');
       setUser(null);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
     } finally {
       setLoading(false);
     }

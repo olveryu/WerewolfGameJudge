@@ -13,7 +13,7 @@ import { RootStackParamList } from './types';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
-import SettingsScreen from '@/screens/SettingsScreen/SettingsScreen';
+import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
 import { useColors } from '@/theme';
 import { log } from '@/utils/logger';
 

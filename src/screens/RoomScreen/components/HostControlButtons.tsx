@@ -118,5 +118,3 @@ function createStyles(colors: ThemeColors) {
     },
   });
 }
-
-export default HostControlButtons;

@@ -7,7 +7,7 @@
  * ❌ 禁止：import service / 业务逻辑
  */
 import React, { useMemo } from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '@/theme';
 
 export interface AlertButton {
@@ -32,7 +32,8 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   onClose,
 }) => {
   const colors = useColors();
-  const styles = useMemo(() => createStyles(colors, buttons.length), [colors, buttons.length]);
+  const { width: screenWidth } = useWindowDimensions();
+  const styles = useMemo(() => createStyles(colors, buttons.length, screenWidth), [colors, buttons.length, screenWidth]);
 
   const handleButtonPress = (button: AlertButton) => {
     // First close the modal, then execute the callback
@@ -88,7 +89,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   );
 };
 
-function createStyles(colors: ThemeColors, buttonCount: number) {
+function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: number) {
   return StyleSheet.create({
     overlay: {
       flex: 1,
@@ -101,7 +102,7 @@ function createStyles(colors: ThemeColors, buttonCount: number) {
       borderRadius: borderRadius.large,
       padding: spacing.large,
       minWidth: spacing.xxlarge * 6, // ~280
-      maxWidth: Dimensions.get('window').width * 0.85,
+      maxWidth: screenWidth * 0.85,
     },
     title: {
       fontSize: typography.subtitle,
@@ -148,5 +149,3 @@ function createStyles(colors: ThemeColors, buttonCount: number) {
     },
   });
 }
-
-export default AlertModal;

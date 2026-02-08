@@ -13,15 +13,11 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { useColors, spacing, typography, borderRadius, shadows, type ThemeColors } from '@/theme';
 import type { RoleId } from '@/models/roles';
 import { getRoleSpec, isWolfRole } from '@/models/roles';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.75, 280);
-const CARD_HEIGHT = CARD_WIDTH * 1.4;
 
 // 角色对应的 emoji 图标
 const ROLE_ICONS: Record<string, string> = {
@@ -71,7 +67,10 @@ export interface RoleCardSimpleProps {
 
 export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({ visible, roleId, onClose }) => {
   const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = Math.min(screenWidth * 0.75, 280);
+  const cardHeight = cardWidth * 1.4;
+  const styles = useMemo(() => createStyles(colors, cardWidth, cardHeight), [colors, cardWidth, cardHeight]);
 
   if (!visible || !roleId) return null;
 
@@ -110,7 +109,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({ visible, roleId,
   );
 };
 
-function createStyles(colors: ThemeColors) {
+function createStyles(colors: ThemeColors, cardWidth: number, cardHeight: number) {
   return StyleSheet.create({
     overlay: {
       flex: 1,
@@ -119,8 +118,8 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
     },
     card: {
-      width: CARD_WIDTH,
-      height: CARD_HEIGHT,
+      width: cardWidth,
+      height: cardHeight,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xlarge,
       borderWidth: 3,
@@ -184,5 +183,3 @@ function createStyles(colors: ThemeColors) {
     },
   });
 }
-
-export default RoleCardSimple;

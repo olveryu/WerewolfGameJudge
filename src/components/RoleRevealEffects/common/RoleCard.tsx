@@ -8,9 +8,12 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { useColors, spacing, typography, borderRadius } from '@/theme';
+import { useColors, spacing, typography, borderRadius, shadows } from '@/theme';
 import type { RoleData, RoleAlignment } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
+
+/** White text color for alignment badge on colored backgrounds */
+const BADGE_TEXT_WHITE = '#FFFFFF';
 
 export interface RoleCardProps {
   /** Role data to display */
@@ -118,7 +121,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     // Shadow
-    shadowColor: '#000',
+    shadowColor: shadows.md.shadowColor,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -159,7 +162,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.medium,
   },
   alignmentText: {
-    color: '#FFFFFF',
+    color: BADGE_TEXT_WHITE,
     fontSize: typography.secondary,
     fontWeight: '600',
   },

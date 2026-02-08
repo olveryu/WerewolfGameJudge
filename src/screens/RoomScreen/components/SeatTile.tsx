@@ -403,5 +403,3 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     },
   });
 }
-
-export default SeatTile;

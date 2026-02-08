@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { Text, ActivityIndicator, TouchableOpacity } from 'react-native';
-import Button from '@/components/Button/Button';
+import { Button } from '@/components/Button/Button';
 
 describe('Button', () => {
   const defaultProps = {

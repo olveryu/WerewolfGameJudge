@@ -14,8 +14,15 @@ const isWeb = Platform.OS === 'web';
 
 const isJest = typeof process !== 'undefined' && !!process.env?.JEST_WORKER_ID;
 
+/**
+ * Metro bundler `require()` returns a number (asset ID) at runtime.
+ * On Web, expo-audio also accepts string URLs or { uri: string }.
+ */
+type AudioAsset = number;
+
 // Audio file mappings matching Flutter's JudgeAudioProvider
-const AUDIO_FILES: Partial<Record<RoleId, any>> = {
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const AUDIO_FILES: Partial<Record<RoleId, AudioAsset>> = {
   slacker: require('../../../assets/audio/slacker.mp3'),
   wolfRobot: require('../../../assets/audio/wolf_robot.mp3'),
   magician: require('../../../assets/audio/magician.mp3'),
@@ -32,7 +39,8 @@ const AUDIO_FILES: Partial<Record<RoleId, any>> = {
   darkWolfKing: require('../../../assets/audio/dark_wolf_king.mp3'),
 };
 
-const AUDIO_END_FILES: Partial<Record<RoleId, any>> = {
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const AUDIO_END_FILES: Partial<Record<RoleId, AudioAsset>> = {
   slacker: require('../../../assets/audio_end/slacker.mp3'),
   wolfRobot: require('../../../assets/audio_end/wolf_robot.mp3'),
   magician: require('../../../assets/audio_end/magician.mp3'),
@@ -50,11 +58,14 @@ const AUDIO_END_FILES: Partial<Record<RoleId, any>> = {
 };
 
 // Night audio
-const NIGHT_AUDIO = require('../../../assets/audio/night.mp3');
-const NIGHT_END_AUDIO = require('../../../assets/audio/night_end.mp3');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const NIGHT_AUDIO: AudioAsset = require('../../../assets/audio/night.mp3');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const NIGHT_END_AUDIO: AudioAsset = require('../../../assets/audio/night_end.mp3');
 
 // Background music
-const BGM_NIGHT = require('../../../assets/audio/bgm_night.mp3');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const BGM_NIGHT: AudioAsset = require('../../../assets/audio/bgm_night.mp3');
 
 /** BGM volume (0.0 to 1.0) - lower so TTS narration is clearly audible */
 const BGM_VOLUME = 0.15;
@@ -71,7 +82,7 @@ const BGM_VOLUME = 0.15;
  * ❌ 禁止：决定"何时播什么音频"（由 Handler 声明、Facade 编排）
  * ❌ 禁止：游戏逻辑 / 状态修改
  */
-class AudioService {
+export class AudioService {
   private static instance: AudioService;
   private static initPromise: Promise<void> | null = null;
   private player: AudioPlayer | null = null;
@@ -206,7 +217,7 @@ class AudioService {
    * - Resolves on: normal completion, timeout, or any error
    * - Logs warnings on fallback scenarios for debugging
    */
-  private async safePlayAudioFile(audioFile: any, label = 'audio'): Promise<void> {
+  private async safePlayAudioFile(audioFile: AudioAsset, label = 'audio'): Promise<void> {
     audioLog.debug(`[${label}] safePlayAudioFile START`);
 
     // On Web, use native HTML Audio API for iOS Safari compatibility
@@ -222,7 +233,7 @@ class AudioService {
    * Web-specific audio playback using HTML Audio element.
    * Reuses a single Audio element to maintain iOS Safari user gesture authorization.
    */
-  private async safePlayAudioFileWeb(audioFile: any, label = 'audio'): Promise<void> {
+  private async safePlayAudioFileWeb(audioFile: AudioAsset, label = 'audio'): Promise<void> {
     audioLog.debug(`[${label}] [WEB] starting playback`);
 
     return new Promise<void>((resolve) => {
@@ -311,7 +322,7 @@ class AudioService {
   /**
    * Native platform audio playback using expo-audio.
    */
-  private async safePlayAudioFileNative(audioFile: any, label = 'audio'): Promise<void> {
+  private async safePlayAudioFileNative(audioFile: AudioAsset, label = 'audio'): Promise<void> {
     try {
       // Stop any current playback but keep old player alive (just paused)
       this.stopCurrentPlayer();
@@ -556,7 +567,7 @@ class AudioService {
     audioLog.debug('preloadForRoles: starting', { roles });
 
     // Collect all audio files to preload
-    const filesToPreload: Array<{ key: string; file: any }> = [
+    const filesToPreload: Array<{ key: string; file: AudioAsset }> = [
       { key: 'night', file: NIGHT_AUDIO },
       { key: 'night_end', file: NIGHT_END_AUDIO },
     ];
@@ -582,7 +593,7 @@ class AudioService {
     audioLog.debug('preloadForRoles: done', { count: filesToPreload.length });
   }
 
-  private async preloadSingleFile(key: string, audioFile: any): Promise<void> {
+  private async preloadSingleFile(key: string, audioFile: AudioAsset): Promise<void> {
     if (isWeb && typeof document !== 'undefined') {
       // Web: create an Audio element, set preload='auto' to trigger decode
       if (this.preloadedWebAudios.has(key)) return;
@@ -621,4 +632,3 @@ class AudioService {
   }
 }
 
-export default AudioService;

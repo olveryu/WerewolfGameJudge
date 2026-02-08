@@ -7,7 +7,7 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Animated, StyleSheet, Dimensions, Easing } from 'react-native';
+import { View, Animated, StyleSheet, useWindowDimensions, Easing } from 'react-native';
 import { useColors, borderRadius } from '@/theme';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
@@ -19,13 +19,12 @@ import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardC
 import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
 import type { RoleId } from '@/models/roles';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 // Effect colors
 const EFFECT_COLORS = {
   edgeGlow: '#FFD700',
   ripple: 'rgba(255, 215, 0, 0.3)',
   particle: ['#FFD700', '#FFA500', '#FF6347', '#FFFFFF', '#87CEEB'],
+  cardBackBg: '#000',
 };
 
 // Celebration particle
@@ -48,6 +47,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   testIDPrefix = 'flip-reveal',
 }) => {
   const colors = useColors();
+  const { width: screenWidth } = useWindowDimensions();
   const config = CONFIG.flip;
   const theme = ALIGNMENT_THEMES[role.alignment];
 
@@ -68,8 +68,8 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   const bounceY = useMemo(() => new Animated.Value(0), []);
   const bounceScale = useMemo(() => new Animated.Value(1), []);
 
-  // Use same calculation as RoleCardSimple: Math.min(SCREEN_WIDTH * 0.75, 280) and ratio 1.4
-  const cardWidth = Math.min(SCREEN_WIDTH * 0.75, 280);
+  // Use same calculation as RoleCardSimple: Math.min(screenWidth * 0.75, 280) and ratio 1.4
+  const cardWidth = Math.min(screenWidth * 0.75, 280);
   const cardHeight = cardWidth * 1.4;
 
   // Create celebration particles
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
   },
   shadowLayer: {
     position: 'absolute',
-    backgroundColor: '#000',
+    backgroundColor: EFFECT_COLORS.cardBackBg,
     borderRadius: borderRadius.medium,
   },
   shadowLayer1: {
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   },
   particle: {
     position: 'absolute',
-    shadowColor: '#FFD700',
+    shadowColor: EFFECT_COLORS.edgeGlow,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,

@@ -29,6 +29,38 @@ const CAPSULE_COLORS = [
   '#F0E68C',
 ];
 
+/** Decorative colors for the gacha machine UI (not theme tokens) */
+const GACHA_COLORS = {
+  // Machine body gradient
+  bodyGradient: ['#FF7F7F', '#FF6B6B', '#E55555'] as const,
+  // Background gradient (warm cream)
+  backgroundGradient: ['#FFF5E6', '#FFE4CC', '#FFF5E6'] as const,
+  // Base gradient (metallic dark)
+  baseGradient: ['#666', '#444', '#333'] as const,
+  // Coin slot
+  coinSlotBg: '#333',
+  coinSlotInnerBg: '#111',
+  // Label
+  labelBg: '#FFF',
+  labelText: '#FF6B6B',
+  // Outlet
+  outletBg: '#222',
+  outletInnerBg: '#111',
+  // Dial
+  dialCenterBg: '#FFD700',
+  dialCenterBorder: '#DAA520',
+  dialArmBg: '#888',
+  dialKnobBg: '#E74C3C',
+  dialKnobBorder: '#C0392B',
+  // Hint text
+  hintTextColor: '#D35400',
+  // Capsule
+  capsuleTopBg: '#FF69B4',
+  capsuleBottomBg: '#FFF',
+  capsuleRingBg: '#EEE',
+  capsuleRingBorder: '#DDD',
+};
+
 // 圆形透明球内的小扭蛋
 const TinyCapsule: React.FC<{ angle: number; distance: number; color: string; size: number }> =
   React.memo(({ angle, distance, color, size }) => {
@@ -224,7 +256,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
   return (
     <View testID={`${testIDPrefix}-container`} style={styles.container}>
-      <LinearGradient colors={['#FFF5E6', '#FFE4CC', '#FFF5E6']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[...GACHA_COLORS.backgroundGradient]} style={StyleSheet.absoluteFill} />
 
       {/* 扭蛋机 */}
       {phase !== 'revealed' && (
@@ -250,7 +282,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
           {/* 机身 */}
           <View style={styles.body}>
             <LinearGradient
-              colors={['#FF7F7F', '#FF6B6B', '#E55555']}
+              colors={[...GACHA_COLORS.bodyGradient]}
               style={StyleSheet.absoluteFill}
             />
 
@@ -278,7 +310,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
           {/* 底座 */}
           <View style={styles.base}>
-            <LinearGradient colors={['#666', '#444', '#333']} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={[...GACHA_COLORS.baseGradient]} style={StyleSheet.absoluteFill} />
           </View>
         </View>
       )}
@@ -391,31 +423,31 @@ const styles = StyleSheet.create({
     marginTop: 12,
     width: 50,
     height: 8,
-    backgroundColor: '#333',
+    backgroundColor: GACHA_COLORS.coinSlotBg,
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  coinSlotInner: { width: 30, height: 3, backgroundColor: '#111', borderRadius: 2 },
+  coinSlotInner: { width: 30, height: 3, backgroundColor: GACHA_COLORS.coinSlotInnerBg, borderRadius: 2 },
   label: {
     marginTop: 8,
-    backgroundColor: '#FFF',
+    backgroundColor: GACHA_COLORS.labelBg,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  labelText: { fontSize: 14, fontWeight: '900', color: '#FF6B6B', letterSpacing: 2 },
+  labelText: { fontSize: 14, fontWeight: '900', color: GACHA_COLORS.labelText, letterSpacing: 2 },
   outlet: {
     position: 'absolute',
     bottom: 10,
     width: 60,
     height: 35,
-    backgroundColor: '#222',
+    backgroundColor: GACHA_COLORS.outletBg,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  outletInner: { width: 50, height: 25, backgroundColor: '#111', borderRadius: 6 },
+  outletInner: { width: 50, height: 25, backgroundColor: GACHA_COLORS.outletInnerBg, borderRadius: 6 },
 
   dialContainer: { position: 'absolute', right: -50, top: 160, width: 60, height: 60 },
   dial: { width: 60, height: 60, justifyContent: 'center', alignItems: 'center' },
@@ -423,15 +455,15 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#FFD700',
+    backgroundColor: GACHA_COLORS.dialCenterBg,
     borderWidth: 3,
-    borderColor: '#DAA520',
+    borderColor: GACHA_COLORS.dialCenterBorder,
   },
   dialArm: {
     position: 'absolute',
     width: 8,
     height: 35,
-    backgroundColor: '#888',
+    backgroundColor: GACHA_COLORS.dialArmBg,
     borderRadius: 4,
     top: -5,
   },
@@ -441,9 +473,9 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#E74C3C',
+    backgroundColor: GACHA_COLORS.dialKnobBg,
     borderWidth: 2,
-    borderColor: '#C0392B',
+    borderColor: GACHA_COLORS.dialKnobBorder,
   },
 
   base: {
@@ -455,7 +487,7 @@ const styles = StyleSheet.create({
   },
 
   hint: { position: 'absolute', bottom: 80 },
-  hintText: { fontSize: 22, fontWeight: '700', color: '#D35400' },
+  hintText: { fontSize: 22, fontWeight: '700', color: GACHA_COLORS.hintTextColor },
 
   capsule: { position: 'absolute', width: 80, height: 80 },
   capsuleTouch: { width: '100%', height: '100%' },
@@ -464,7 +496,7 @@ const styles = StyleSheet.create({
     top: 0,
     width: '100%',
     height: '52%',
-    backgroundColor: '#FF69B4',
+    backgroundColor: GACHA_COLORS.capsuleTopBg,
     borderTopLeftRadius: 999,
     borderTopRightRadius: 999,
   },
@@ -482,7 +514,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: '100%',
     height: '52%',
-    backgroundColor: '#FFF',
+    backgroundColor: GACHA_COLORS.capsuleBottomBg,
     borderBottomLeftRadius: 999,
     borderBottomRightRadius: 999,
   },
@@ -491,9 +523,9 @@ const styles = StyleSheet.create({
     top: '46%',
     width: '100%',
     height: 8,
-    backgroundColor: '#EEE',
+    backgroundColor: GACHA_COLORS.capsuleRingBg,
     borderWidth: 1,
-    borderColor: '#DDD',
+    borderColor: GACHA_COLORS.capsuleRingBorder,
   },
 
   cardWrapper: { alignItems: 'center', justifyContent: 'center' },

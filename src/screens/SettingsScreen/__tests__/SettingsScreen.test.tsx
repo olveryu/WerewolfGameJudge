@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import SettingsScreen from '@/screens/SettingsScreen/SettingsScreen';
+import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -10,6 +10,7 @@ jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: mockNavigate,
     goBack: mockGoBack,
+    addListener: jest.fn(() => jest.fn()),
   }),
 }));
 

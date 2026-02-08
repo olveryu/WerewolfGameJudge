@@ -30,7 +30,7 @@ jest.mock('../../transport/BroadcastService', () => ({
 // P0-1: Mock AudioService
 jest.mock('../../infra/AudioService', () => ({
   __esModule: true,
-  default: {
+  AudioService: {
     getInstance: jest.fn(() => ({
       playNightAudio: jest.fn().mockResolvedValue(undefined),
       playNightEndAudio: jest.fn().mockResolvedValue(undefined),

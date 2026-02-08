@@ -8,15 +8,12 @@
  * ❌ 禁止：import service / showAlert / 业务逻辑判断
  */
 import React, { useMemo, memo, useCallback, useRef, useLayoutEffect } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { useColors, type ThemeColors } from '@/theme';
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
 import { SeatTile, GRID_COLUMNS, createSeatTileStyles } from './SeatTile';
 import { getUniqueAvatarMap } from '@/utils/avatar';
 
-// Grid calculation - needs to be exported for Avatar sizing
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-export const TILE_SIZE = (SCREEN_WIDTH - 48) / GRID_COLUMNS;
 // Re-export GRID_COLUMNS for external use
 export { GRID_COLUMNS } from './SeatTile';
 
@@ -51,11 +48,13 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   showBotRoles = false,
 }) => {
   const colors = useColors();
+  const { width: screenWidth } = useWindowDimensions();
+  const tileSize = (screenWidth - 48) / GRID_COLUMNS;
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Create SeatTile styles once and pass to all tiles (performance optimization)
   // This avoids each SeatTile calling StyleSheet.create independently
-  const seatTileStyles = useMemo(() => createSeatTileStyles(colors, TILE_SIZE), [colors]);
+  const seatTileStyles = useMemo(() => createSeatTileStyles(colors, tileSize), [colors, tileSize]);
 
   // Compute room-level unique avatar indices so no two players share an avatar.
   // Only includes players without a custom avatarUrl.
@@ -104,7 +103,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           key={`seat-${seat.index}`}
           index={seat.index}
           roomNumber={roomNumber}
-          tileSize={TILE_SIZE}
+          tileSize={tileSize}
           disabled={disabled}
           disabledReason={seat.disabledReason}
           isMySpot={seat.isMySpot}
@@ -140,5 +139,3 @@ function createStyles(_colors: ThemeColors) {
     },
   });
 }
-
-export default PlayerGrid;

@@ -21,7 +21,7 @@ jest.mock('../../transport/BroadcastService', () => ({
 // Mock AudioService
 jest.mock('../../infra/AudioService', () => ({
   __esModule: true,
-  default: {
+  AudioService: {
     getInstance: jest.fn(() => ({
       playAudio: jest.fn().mockResolvedValue(undefined),
       stopAudio: jest.fn(),

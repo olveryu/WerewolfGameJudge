@@ -13,7 +13,7 @@
 
 import type { BroadcastGameState } from '@/services/protocol/types';
 
-import { getRoleSpec } from '@/models/roles';
+import { doesRoleParticipateInWolfVote } from '@/models/roles';
 import { nightFlowLog } from '@/utils/logger';
 
 /**
@@ -85,12 +85,7 @@ function isCurrentStepComplete(state: NonNullState): boolean {
       const seat = Number.parseInt(seatStr, 10);
       if (!Number.isFinite(seat) || !player?.role) continue;
 
-      const spec = getRoleSpec(player.role) as unknown as
-        | {
-            wolfMeeting?: { participatesInWolfVote?: boolean };
-          }
-        | undefined;
-      if (spec?.wolfMeeting?.participatesInWolfVote) {
+      if (doesRoleParticipateInWolfVote(player.role)) {
         participatingWolfSeats.push(seat);
       }
     }

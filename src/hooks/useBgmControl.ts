@@ -12,8 +12,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GameStatus } from '@/models/GameStatus';
-import SettingsService from '@/services/feature/SettingsService';
-import AudioService from '@/services/infra/AudioService';
+import { SettingsService } from '@/services/feature/SettingsService';
+import { AudioService } from '@/services/infra/AudioService';
 
 export interface BgmControlState {
   isBgmEnabled: boolean;

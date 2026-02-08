@@ -30,7 +30,7 @@ import type { RoleId } from '@/models/roles';
 
 import { BroadcastService } from '@/services/transport/BroadcastService';
 import { GameStore } from '@/services/engine/store';
-import AudioService from '@/services/infra/AudioService';
+import { AudioService } from '@/services/infra/AudioService';
 import { HostStateCache } from '@/services/infra/HostStateCache';
 
 // 子模块
@@ -41,6 +41,7 @@ import * as hostActions from './hostActions';
 import * as seatActions from './seatActions';
 import * as messageRouter from './messageRouter';
 import { newRequestId } from '@/utils/id';
+import { facadeLog } from '@/utils/logger';
 
 /**
  * GameFacade 可注入依赖
@@ -499,7 +500,8 @@ export class GameFacade implements IGameFacade {
     try {
       await this.broadcastService.sendToHost(msg);
       return { success: true };
-    } catch {
+    } catch (e) {
+      facadeLog.warn('sendToHost failed (REVEAL_ACK)', e);
       return { success: false, reason: 'send_failed' };
     }
   }
@@ -534,7 +536,8 @@ export class GameFacade implements IGameFacade {
     try {
       await this.broadcastService.sendToHost(msg);
       return { success: true };
-    } catch {
+    } catch (e) {
+      facadeLog.warn('sendToHost failed (WOLF_ROBOT_HUNTER_STATUS_VIEWED)', e);
       return { success: false, reason: 'send_failed' };
     }
   }
@@ -557,7 +560,8 @@ export class GameFacade implements IGameFacade {
       const reqMsg: PlayerMessage = { type: 'REQUEST_STATE', uid };
       await this.broadcastService.sendToHost(reqMsg);
       return true;
-    } catch {
+    } catch (e) {
+      facadeLog.warn('sendToHost failed (REQUEST_STATE)', e);
       return false;
     }
   }

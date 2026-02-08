@@ -153,5 +153,3 @@ export class AvatarUploadService {
     });
   }
 }
-
-export default AvatarUploadService;

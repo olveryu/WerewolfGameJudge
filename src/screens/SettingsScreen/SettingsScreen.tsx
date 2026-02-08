@@ -10,6 +10,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '@/navigation/types';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useTheme, ThemeKey, typography } from '@/theme';
@@ -25,12 +27,12 @@ import {
 } from './components';
 import { Ionicons } from '@expo/vector-icons';
 
-const SettingsScreen: React.FC = () => {
+export const SettingsScreen: React.FC = () => {
   const { colors, themeKey, setTheme, availableThemes } = useTheme();
   // Create styles once and pass to all sub-components
   const styles = useMemo(() => createSettingsScreenStyles(colors), [colors]);
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Settings'>>();
   const {
     user,
     signOut,
@@ -58,15 +60,7 @@ const SettingsScreen: React.FC = () => {
 
   // Reset transient states when screen regains focus
   useEffect(() => {
-    const addListener = (
-      navigation as unknown as { addListener?: (event: string, cb: () => void) => () => void }
-    ).addListener;
-
-    if (!addListener) {
-      return;
-    }
-
-    const unsubscribe = addListener('focus', () => {
+    const unsubscribe = navigation.addListener('focus', () => {
       setUploadingAvatar(false);
       setIsEditingName(false);
     });
@@ -316,4 +310,3 @@ const SettingsScreen: React.FC = () => {
   );
 };
 
-export default SettingsScreen;

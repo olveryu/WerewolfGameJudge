@@ -37,7 +37,7 @@ import type { GameTemplate } from '@/models/Template';
 
 import { doesRoleParticipateInWolfVote } from '@/models/roles';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
-import AudioService from '@/services/infra/AudioService';
+import { AudioService } from '@/services/infra/AudioService';
 
 import {
   handleAssignRoles,

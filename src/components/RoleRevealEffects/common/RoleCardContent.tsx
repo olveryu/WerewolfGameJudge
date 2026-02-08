@@ -8,9 +8,13 @@
  */
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Platform, ViewStyle } from 'react-native';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '@/theme';
+import { useColors, spacing, typography, borderRadius, shadows, type ThemeColors } from '@/theme';
 import type { RoleId } from '@/models/roles';
 import { getRoleSpec, isWolfRole } from '@/models/roles';
+import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
+
+/** White text color for badges/overlays on colored backgrounds */
+const BADGE_TEXT_WHITE = '#fff';
 
 // 角色对应的 emoji 图标
 const ROLE_ICONS: Record<string, string> = {
@@ -39,10 +43,10 @@ const ROLE_ICONS: Record<string, string> = {
 
 // 阵营颜色
 const getFactionColor = (roleId: RoleId): string => {
-  if (isWolfRole(roleId)) return '#DC2626'; // 红色 - 狼人
+  if (isWolfRole(roleId)) return ALIGNMENT_THEMES.wolf.primaryColor;
   const spec = getRoleSpec(roleId);
-  if (spec?.faction === 'god') return '#3B82F6'; // 蓝色 - 神职
-  return '#6B7280'; // 灰色 - 平民
+  if (spec?.faction === 'god') return ALIGNMENT_THEMES.god.primaryColor;
+  return ALIGNMENT_THEMES.villager.primaryColor;
 };
 
 const getFactionName = (roleId: RoleId): string => {
@@ -112,7 +116,7 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
       overflow: 'hidden',
       ...Platform.select({
         ios: {
-          shadowColor: '#000',
+          shadowColor: shadows.md.shadowColor,
           shadowOffset: { width: 0, height: 10 },
           shadowOpacity: 0.5,
           shadowRadius: 20,
@@ -136,7 +140,7 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
       alignItems: 'center',
     },
     factionText: {
-      color: '#fff',
+      color: BADGE_TEXT_WHITE,
       fontSize: typography.secondary,
       fontWeight: '600',
     },
@@ -169,5 +173,3 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
     },
   });
 }
-
-export default RoleCardContent;

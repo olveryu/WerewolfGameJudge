@@ -80,4 +80,3 @@ const styles = StyleSheet.create({
   avatar: {},
 });
 
-export default Avatar;

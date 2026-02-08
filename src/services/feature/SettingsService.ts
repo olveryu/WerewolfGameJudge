@@ -42,7 +42,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   roleRevealAnimation: 'random',
 };
 
-class SettingsService {
+export class SettingsService {
   private static instance: SettingsService;
   private settings: UserSettings = { ...DEFAULT_SETTINGS };
   private loaded = false;
@@ -179,4 +179,3 @@ class SettingsService {
   }
 }
 
-export default SettingsService;

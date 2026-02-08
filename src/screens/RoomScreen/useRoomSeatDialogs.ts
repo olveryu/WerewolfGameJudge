@@ -142,5 +142,3 @@ export function useRoomSeatDialogs({
     handleLeaveRoom,
   };
 }
-
-export default useRoomSeatDialogs;

@@ -58,15 +58,7 @@ export const HomeScreen: React.FC = () => {
 
   // Prevent transient UI states from getting stuck if we navigate away
   useEffect(() => {
-    const addListener = (
-      navigation as unknown as { addListener?: (event: string, cb: () => void) => () => void }
-    ).addListener;
-
-    if (!addListener) {
-      return;
-    }
-
-    const unsubscribe = addListener('focus', () => {
+    const unsubscribe = navigation.addListener('focus', () => {
       setIsCreating(false);
       setIsJoining(false);
     });
@@ -390,5 +382,3 @@ export const HomeScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-export default HomeScreen;

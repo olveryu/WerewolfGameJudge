@@ -7,9 +7,9 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, Animated, StyleSheet, Dimensions, Easing } from 'react-native';
+import { View, Text, Animated, StyleSheet, useWindowDimensions, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useColors, spacing, typography, borderRadius } from '@/theme';
+import { useColors, spacing, typography, borderRadius, shadows } from '@/theme';
 import type { RoleRevealEffectProps, RoleData } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
@@ -21,8 +21,6 @@ import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardC
 import type { RoleId } from '@/models/roles';
 import { shuffleArray } from '@/utils/shuffle';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 // Slot machine colors
 const SLOT_COLORS = {
   frameOuter: '#2D2D2D',
@@ -30,6 +28,7 @@ const SLOT_COLORS = {
   metalGradient: ['#4A4A4A', '#2D2D2D', '#1A1A1A', '#2D2D2D', '#4A4A4A'] as const,
   gold: '#FFD700',
   goldDark: '#B8860B',
+  glowOrange: '#FFA500',
   neonPink: '#FF1493',
   neonBlue: '#00BFFF',
   neonGreen: '#39FF14',
@@ -38,6 +37,10 @@ const SLOT_COLORS = {
   reelBg: '#FFFFFF',
   itemCard: '#F5F5F5',
   itemCardBorder: '#E0E0E0',
+  itemCardHighlight: '#FFFFFF',
+  screwBg: '#555',
+  screwBorder: '#777',
+  reelWindowBorder: '#333',
 };
 
 // Decorative bulb component
@@ -99,6 +102,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   testIDPrefix = 'enhanced-roulette',
 }) => {
   const colors = useColors();
+  const { width: screenWidth } = useWindowDimensions();
   const config = CONFIG.roulette;
 
   const [phase, setPhase] = useState<'spinning' | 'stopping' | 'revealed'>('spinning');
@@ -112,7 +116,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const revealScaleAnim = useMemo(() => new Animated.Value(0.8), []);
   const revealOpacityAnim = useMemo(() => new Animated.Value(0), []);
 
-  const containerWidth = Math.min(SCREEN_WIDTH * 0.9, 340);
+  const containerWidth = Math.min(screenWidth * 0.9, 340);
   const containerHeight = config.itemHeight * config.visibleItems;
   const frameWidth = containerWidth + 40;
   const frameHeight = containerHeight + 100;
@@ -393,16 +397,13 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   // So we offset by 1 item height to center item 0 initially
   const centeringOffset = config.itemHeight; // One item height to center first item
 
-  const translateY = Animated.add(
-    scrollAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [centeringOffset, centeringOffset - config.itemHeight],
-    }),
-    bounceAnim,
-  );
+  const scrollTranslateY = scrollAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [centeringOffset, centeringOffset - config.itemHeight],
+  });
 
   // Card dimensions for revealed state
-  const cardWidth = Math.min(SCREEN_WIDTH * 0.85, 320);
+  const cardWidth = Math.min(screenWidth * 0.85, 320);
   const cardHeight = cardWidth * 1.4;
 
   // Frame glow opacity
@@ -475,8 +476,8 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
           <GlowBorder
             width={cardWidth + 8}
             height={cardHeight + 8}
-            color="#FFD700"
-            glowColor="#FFA500"
+            color={SLOT_COLORS.gold}
+            glowColor={SLOT_COLORS.glowOrange}
             borderWidth={3}
             borderRadius={borderRadius.medium + 4}
             animate={!reducedMotion}
@@ -558,7 +559,10 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
                 style={[
                   styles.scrollContainer,
                   {
-                    transform: [{ translateY: translateY as unknown as number }],
+                    transform: [
+                      { translateY: scrollTranslateY },
+                      { translateY: bounceAnim },
+                    ],
                   },
                 ]}
               >
@@ -576,7 +580,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
                     >
                       {/* Item card with 3D effect */}
                       <LinearGradient
-                        colors={[SLOT_COLORS.itemCard, '#FFFFFF', SLOT_COLORS.itemCard]}
+                        colors={[SLOT_COLORS.itemCard, SLOT_COLORS.itemCardHighlight, SLOT_COLORS.itemCard]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={[styles.itemCard, { borderColor: SLOT_COLORS.itemCardBorder }]}
@@ -737,9 +741,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#555',
+    backgroundColor: SLOT_COLORS.screwBg,
     borderWidth: 1,
-    borderColor: '#777',
+    borderColor: SLOT_COLORS.screwBorder,
   },
   screwTopLeft: {
     top: 8,
@@ -761,7 +765,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 3,
-    borderColor: '#333',
+    borderColor: SLOT_COLORS.reelWindowBorder,
   },
   scrollContainer: {
     width: '100%',
@@ -780,7 +784,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     width: '95%',
     // 3D effect
-    shadowColor: '#000',
+    shadowColor: shadows.md.shadowColor,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,

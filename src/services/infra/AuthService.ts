@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '@/config/supabase';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { authLog } from '@/utils/logger';
 import { getAllRoleIds, getRoleSpec } from '@/models/roles';
 import { withTimeout } from '@/utils/withTimeout';
@@ -86,7 +87,7 @@ export class AuthService {
     email: string,
     password: string,
     displayName?: string,
-  ): Promise<{ userId: string; user: any }> {
+  ): Promise<{ userId: string; user: SupabaseUser | null }> {
     this.ensureConfigured();
     const { data, error } = await supabase!.auth.signUp({
       email,
@@ -239,8 +240,8 @@ export class AuthService {
       if (registeredName) {
         return registeredName;
       }
-    } catch {
-      // Fall through to generated name
+    } catch (e) {
+      authLog.debug('getUser for displayName failed, falling through to generated name', e);
     }
 
     return this.generateDisplayName(this.currentUserId || 'anonymous');
@@ -255,10 +256,9 @@ export class AuthService {
     try {
       const { data } = await supabase!.auth.getUser();
       return data.user?.user_metadata?.avatar_url || null;
-    } catch {
+    } catch (e) {
+      authLog.debug('getUser for avatarUrl failed', e);
       return null;
     }
   }
 }
-
-export default AuthService;

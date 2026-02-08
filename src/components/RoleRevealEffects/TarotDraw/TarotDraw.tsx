@@ -7,9 +7,9 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { View, Animated, StyleSheet, Dimensions, Easing, Pressable } from 'react-native';
+import { View, Animated, StyleSheet, useWindowDimensions, Easing, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useColors, borderRadius } from '@/theme';
+import { useColors, borderRadius, shadows } from '@/theme';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
@@ -19,12 +19,11 @@ import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardC
 import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
 import type { RoleId } from '@/models/roles';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 const TAROT_COLORS = {
   cardBack: ['#2a2a4e', '#3d3d64', '#2a2a4e'] as const,
   gold: '#d4af37',
   goldGlow: '#ffd700',
+  cardFrontGradient: ['#f5f5f5', '#ffffff', '#f5f5f5'] as const,
 };
 
 interface WheelCard {
@@ -60,6 +59,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   testIDPrefix = 'tarot-draw',
 }) => {
   const colors = useColors();
+  const { width: screenWidth } = useWindowDimensions();
   const theme = ALIGNMENT_THEMES[role.alignment];
   const config = CONFIG.tarot ?? { flipDuration: 800, revealHoldDuration: 1500 };
 
@@ -68,10 +68,11 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   const onCompleteCalledRef = useRef(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const spinAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+  const wheelRotationValueRef = useRef(0);
 
-  const cardWidth = Math.min(SCREEN_WIDTH * 0.7, 260);
+  const cardWidth = Math.min(screenWidth * 0.7, 260);
   const cardHeight = cardWidth * 1.4;
-  const wheelRadius = Math.min(SCREEN_WIDTH * 0.32, 130);
+  const wheelRadius = Math.min(screenWidth * 0.32, 130);
 
   const wheelCards: WheelCard[] = useMemo(() => {
     const count = 8;
@@ -100,6 +101,14 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   }, []);
 
   useEffect(() => cleanup, [cleanup]);
+
+  // Track wheelRotation value via listener (avoids accessing private _value)
+  useEffect(() => {
+    const listenerId = wheelRotation.addListener(({ value }) => {
+      wheelRotationValueRef.current = value;
+    });
+    return () => wheelRotation.removeListener(listenerId);
+  }, [wheelRotation]);
 
   const flipRotateY = flipProgress.interpolate({
     inputRange: [0, 1],
@@ -186,7 +195,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       if (enableHaptics) triggerHaptic('medium', true);
 
       // 获取选中牌的位置
-      const currentRotation = (wheelRotation as unknown as { _value: number })._value || 0;
+      const currentRotation = wheelRotationValueRef.current || 0;
       const cardAngle = wheelCards[cardIndex].angle;
       const totalAngle = currentRotation * Math.PI * 2 + cardAngle - Math.PI / 2;
       const x = Math.cos(totalAngle) * wheelRadius;
@@ -259,7 +268,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       testID={`${testIDPrefix}-container`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <LinearGradient colors={['#f5f5f5', '#ffffff', '#f5f5f5']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[...TAROT_COLORS.cardFrontGradient]} style={StyleSheet.absoluteFill} />
 
       {/* 提示文字 */}
       {phase === 'waiting' && (
@@ -390,7 +399,7 @@ const styles = StyleSheet.create({
   wheelCard: {
     position: 'absolute',
     borderRadius: borderRadius.small,
-    shadowColor: '#000',
+    shadowColor: shadows.md.shadowColor,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,

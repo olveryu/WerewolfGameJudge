@@ -74,7 +74,7 @@ jest.mock('../../../../assets/audio_end/dark_wolf_king.mp3', () => 'dark_wolf_ki
 });
 
 // Now import AudioService after mocks are set up
-import AudioService from '@/services/infra/AudioService';
+import { AudioService } from '@/services/infra/AudioService';
 
 describe('AudioService - Singleton', () => {
   beforeEach(() => {

@@ -647,5 +647,3 @@ export const useGameRoom = (): UseGameRoomResult => {
     // Role-specific context is now read directly from gameState
   };
 };
-
-export default useGameRoom;

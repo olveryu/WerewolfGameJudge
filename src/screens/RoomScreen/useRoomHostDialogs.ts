@@ -152,5 +152,3 @@ export const useRoomHostDialogs = ({
     handleSettingsPress,
   };
 };
-
-export default useRoomHostDialogs;

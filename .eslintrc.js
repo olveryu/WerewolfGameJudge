@@ -26,15 +26,14 @@ module.exports = {
     es6: true,
   },
   rules: {
-    // Disable some rules that are too strict
-    '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/no-unused-vars': [
       'warn',
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
     ],
     // Detect unused private class members (methods, properties)
     'no-unused-private-class-members': 'warn',
-    '@typescript-eslint/no-require-imports': 'off', // Expo assets require require()
+    '@typescript-eslint/no-require-imports': 'warn', // Targeted inline-disable where Expo require() is needed
     'react/react-in-jsx-scope': 'off', // Not needed in React 17+
     'react/prop-types': 'off', // Using TypeScript
     '@typescript-eslint/no-empty-object-type': 'off',
@@ -44,6 +43,16 @@ module.exports = {
     'react-hooks/set-state-in-effect': 'off',
     'react-hooks/preserve-manual-memoization': 'off',
   },
+  overrides: [
+    {
+      // Tests frequently use require() for lazy imports after jest.mock()
+      files: ['**/__tests__/**', '**/*.test.ts', '**/*.test.tsx'],
+      rules: {
+        '@typescript-eslint/no-require-imports': 'off',
+        '@typescript-eslint/no-explicit-any': 'off',
+      },
+    },
+  ],
   ignorePatterns: [
     'node_modules/',
     'dist/',

@@ -137,5 +137,3 @@ const NumPadComponent: React.FC<NumPadProps> = ({
 
 // Memoize to prevent unnecessary re-renders
 export const NumPad = memo(NumPadComponent);
-
-export default NumPad;

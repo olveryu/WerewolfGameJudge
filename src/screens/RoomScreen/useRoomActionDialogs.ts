@@ -265,5 +265,3 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
     showRoleActionPrompt,
   };
 }
-
-export default useRoomActionDialogs;

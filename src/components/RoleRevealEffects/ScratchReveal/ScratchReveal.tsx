@@ -11,7 +11,7 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
   TouchableOpacity,
   PanResponder,
   Animated,
@@ -28,8 +28,6 @@ import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
 import type { RoleId } from '@/models/roles';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Scratch effect colors
 const SCRATCH_COLORS = {
@@ -65,6 +63,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   testIDPrefix = 'scratch-reveal',
 }) => {
   const colors = useColors();
+  const { width: screenWidth } = useWindowDimensions();
   const config = CONFIG.scratch;
   const theme = ALIGNMENT_THEMES[role.alignment];
 
@@ -84,8 +83,8 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   const lastHapticTime = useRef(0);
   const shavingIdRef = useRef(0);
 
-  // Use same calculation as RoleCardSimple: Math.min(SCREEN_WIDTH * 0.75, 280) and ratio 1.4
-  const cardWidth = Math.min(280, SCREEN_WIDTH * 0.75);
+  // Use same calculation as RoleCardSimple: Math.min(screenWidth * 0.75, 280) and ratio 1.4
+  const cardWidth = Math.min(280, screenWidth * 0.75);
   const cardHeight = cardWidth * 1.4;
   const totalArea = cardWidth * cardHeight;
   const brushRadius = config.brushRadius;

@@ -169,4 +169,3 @@ const ButtonComponent: React.FC<ButtonProps> = ({
 // Memoize to prevent unnecessary re-renders
 export const Button = memo(ButtonComponent);
 
-export default Button;

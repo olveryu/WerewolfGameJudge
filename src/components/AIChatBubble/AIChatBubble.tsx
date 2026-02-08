@@ -269,5 +269,3 @@ export const AIChatBubble: React.FC = () => {
     </>
   );
 };
-
-export default AIChatBubble;

@@ -27,7 +27,7 @@ import { TESTIDS } from '@/testids';
 import { configLog } from '@/utils/logger';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useGameRoom } from '@/hooks/useGameRoom';
-import SettingsService from '@/services/feature/SettingsService';
+import { SettingsService } from '@/services/feature/SettingsService';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import {
   RoleChip,
@@ -189,15 +189,7 @@ export const ConfigScreen: React.FC = () => {
 
   // Reset transient states when screen regains focus
   useEffect(() => {
-    const addListener = (
-      navigation as unknown as { addListener?: (event: string, cb: () => void) => () => void }
-    ).addListener;
-
-    if (!addListener) {
-      return;
-    }
-
-    const unsubscribe = addListener('focus', () => {
+    const unsubscribe = navigation.addListener('focus', () => {
       setIsCreating(false);
     });
     return unsubscribe;
@@ -266,7 +258,8 @@ export const ConfigScreen: React.FC = () => {
           roleRevealAnimation,
         });
       }
-    } catch {
+    } catch (e) {
+      configLog.error('Room create/join failed', e);
       showAlert('错误', isEditMode ? '更新房间失败' : '创建房间失败');
     } finally {
       setIsCreating(false);
@@ -709,5 +702,3 @@ export const ConfigScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-export default ConfigScreen;
