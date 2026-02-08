@@ -123,6 +123,8 @@ supabase projects api-keys --project-ref <your-project-ref>
 | `.env.local` | 本地开发 | `http://127.0.0.1:54321`  |
 
 > ⚠️ `.env.local` 优先级高于 `.env`。两个文件都不会被 Git 追踪。
+>
+> 部署脚本还会读取 `EXPO_PUBLIC_GROQ_API_KEY`（用于 AI 生成 commit message），如需使用请在 `.env.local` 中配置。
 
 ### 本地开发（.env.local）
 
@@ -154,19 +156,27 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 ### 方式一：使用部署脚本（推荐）
 
 ```bash
+# 标准部署
 ./scripts/deploy.sh
+
+# 部署后自动恢复本地 Supabase 配置
+./scripts/deploy.sh --local
 ```
 
 脚本会自动：
 
-1. 备份本地开发配置 (`.env.local`)
-2. 切换到生产配置
-3. 清除缓存并构建
-4. 部署到 Vercel
-5. 设置别名 `werewolf-judge.vercel.app`
-6. 恢复本地开发配置
+1. 递增 patch 版本号并同步到 `app.json`
+2. Git commit + push + tag
+3. 备份 `.env.local`，切换到生产配置
+4. 清除缓存并构建 Web 版本
+5. 复制 PWA 文件、修复字体路径、注入自定义 `index.html`
+6. 同步环境变量（含 `EXPO_PUBLIC_GROQ_API_KEY`）并部署到 Vercel
+7. 设置别名 `werewolf-judge.vercel.app`
+8. 恢复本地开发配置（`--local` 时自动检测本地 Supabase）
 
 ### 方式二：手动部署
+
+> ⚠️ 手动部署会缺少 PWA 文件复制、字体路径修复等步骤。建议优先使用部署脚本，或参考 `scripts/deploy.sh` 源码补全步骤。
 
 #### 1. 切换到生产配置
 
