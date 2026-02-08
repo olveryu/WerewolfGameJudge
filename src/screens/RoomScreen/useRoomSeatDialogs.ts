@@ -128,8 +128,8 @@ export function useRoomSeatDialogs({
   const handleLeaveRoom = useCallback(() => {
     // Always show confirmation dialog regardless of room status
     showAlert('离开房间？', '', [
-      { text: '确定', onPress: doLeaveRoom },
       { text: '取消', style: 'cancel' },
+      { text: '确定', onPress: doLeaveRoom },
     ]);
   }, [doLeaveRoom]);
 
