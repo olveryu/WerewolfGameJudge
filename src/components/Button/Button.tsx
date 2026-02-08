@@ -73,7 +73,7 @@ const createStyles = (colors: ThemeColors) => ({
       borderRadius: borderRadius.medium,
     },
     text: {
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     textWithIcon: {
       marginLeft: spacing.small,

@@ -138,7 +138,7 @@ function createStyles(colors: ThemeColors, buttonCount: number) {
     buttonText: {
       fontSize: typography.body,
       color: colors.textInverse,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     cancelButtonText: {
       color: colors.textSecondary,

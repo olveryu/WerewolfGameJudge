@@ -67,11 +67,11 @@ export const createStyles = (colors: ThemeColors) =>
       ...StyleSheet.absoluteFillObject,
       justifyContent: 'flex-end', // 靠底部对齐
       alignItems: 'center',
-      paddingBottom: 20, // 基础底部间距
+      paddingBottom: spacing.large, // 基础底部间距
     },
     modalBackdrop: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(0,0,0,0.3)',
+      backgroundColor: colors.overlayLight,
     },
 
     // 聊天窗口 - 高度由组件通过 getChatHeight() 动态传入
@@ -96,7 +96,7 @@ export const createStyles = (colors: ThemeColors) =>
     },
     chatTitle: {
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
       color: colors.text,
     },
     headerButtons: {
@@ -172,7 +172,7 @@ export const createStyles = (colors: ThemeColors) =>
       width: 36,
       height: 36,
       backgroundColor: colors.primary,
-      borderRadius: 18,
+      borderRadius: borderRadius.full,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -181,8 +181,8 @@ export const createStyles = (colors: ThemeColors) =>
     },
     sendButtonText: {
       color: colors.textInverse,
-      fontWeight: '700',
-      fontSize: 18,
+      fontWeight: typography.weights.bold,
+      fontSize: typography.subtitle,
     },
 
     // Empty
@@ -232,7 +232,7 @@ export const createStyles = (colors: ThemeColors) =>
     },
     aiSuggestionText: {
       color: colors.primary,
-      fontWeight: '500',
+      fontWeight: typography.weights.medium,
     },
     quickQuestionText: {
       fontSize: typography.caption,

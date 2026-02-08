@@ -157,7 +157,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       marginTop: 2,
     },
     menuArrow: {
-      fontSize: 24,
+      fontSize: typography.heading,
       color: colors.textMuted,
     },
     divider: {

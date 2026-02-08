@@ -75,7 +75,7 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({
 }) => {
   const textColor = inverted ? colors.textInverse : colors.text;
   const baseStyle = { fontSize: typography.secondary, color: textColor, lineHeight: 20 };
-  const boldStyle = { fontWeight: '700' as const };
+  const boldStyle = { fontWeight: typography.weights.bold as const };
   const bulletStyle = { color: textColor, fontSize: typography.secondary, marginRight: spacing.tight };
 
   const lines = content.split('\n');

@@ -9,6 +9,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 import { useTheme } from '@/theme/ThemeProvider';
+import { spacing, typography, borderRadius, shadows } from '@/theme';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const appIcon = require('../../../assets/pwa/icon-192.png');
@@ -91,24 +92,24 @@ const styles = StyleSheet.create({
   },
   inlineContainer: {
     flex: 0,
+    // 60px: not on the spacing scale (4-8-16-24-32-48-64), layout-specific for loading animation
     paddingVertical: 60,
   },
   iconContainer: {
     width: 120,
     height: 120,
-    borderRadius: 24,
+    borderRadius: borderRadius.xlarge,
     overflow: 'hidden',
-    marginBottom: 20,
-    // 添加阴影 - 使用新的 boxShadow 语法
-    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
-    elevation: 8,
+    marginBottom: spacing.large,
+    // 阴影
+    ...shadows.lg,
   },
   icon: {
     width: '100%',
     height: '100%',
   },
   message: {
-    fontSize: 14,
+    fontSize: typography.secondary,
     opacity: 0.7,
   },
 });

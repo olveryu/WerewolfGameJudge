@@ -205,10 +205,10 @@ export function createRoomScreenComponentStyles(
         paddingBottom: spacing.xlarge,
         borderTopWidth: 1,
         borderTopColor: colors.borderLight,
-        // Shadow for elevation effect
+        // Upward shadow — directional override not suited for global shadow tokens
         ...Platform.select({
           ios: {
-            shadowColor: '#000',
+            shadowColor: shadows.md.shadowColor,
             shadowOffset: { width: 0, height: -3 },
             shadowOpacity: 0.1,
             shadowRadius: 6,

@@ -14,9 +14,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
-  Platform,
 } from 'react-native';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '@/theme';
+import { useColors, spacing, typography, borderRadius, shadows, type ThemeColors } from '@/theme';
 import type { RoleId } from '@/models/roles';
 import { getRoleSpec, isWolfRole } from '@/models/roles';
 
@@ -49,12 +48,12 @@ const ROLE_ICONS: Record<string, string> = {
   slacker: '😴',
 };
 
-// 阵营颜色
-const getFactionColor = (roleId: RoleId): string => {
-  if (isWolfRole(roleId)) return '#DC2626'; // 红色 - 狼人
+// 阵营颜色 — 使用 theme token
+const getFactionColor = (roleId: RoleId, colors: ThemeColors): string => {
+  if (isWolfRole(roleId)) return colors.wolf;
   const spec = getRoleSpec(roleId);
-  if (spec?.faction === 'god') return '#3B82F6'; // 蓝色 - 神职
-  return '#6B7280'; // 灰色 - 平民
+  if (spec?.faction === 'god') return colors.god;
+  return colors.textMuted; // 平民
 };
 
 const getFactionName = (roleId: RoleId): string => {
@@ -80,7 +79,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({ visible, roleId,
   const roleName = spec?.displayName || roleId;
   const description = spec?.description || '无技能描述';
   const icon = ROLE_ICONS[roleId] || '❓';
-  const factionColor = getFactionColor(roleId);
+  const factionColor = getFactionColor(roleId, colors);
   const factionName = getFactionName(roleId);
 
   return (
@@ -115,7 +114,7 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.85)',
+      backgroundColor: colors.overlay,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -127,20 +126,7 @@ function createStyles(colors: ThemeColors) {
       borderWidth: 3,
       padding: spacing.large,
       alignItems: 'center',
-      ...Platform.select({
-        ios: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.5,
-          shadowRadius: 20,
-        },
-        android: {
-          elevation: 20,
-        },
-        web: {
-          boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
-        },
-      }),
+      ...shadows.lg,
     },
     factionBadge: {
       position: 'absolute',
@@ -153,9 +139,9 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
     },
     factionText: {
-      color: '#fff',
+      color: colors.textInverse,
       fontSize: typography.secondary,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     roleIcon: {
       fontSize: 64,
@@ -164,7 +150,7 @@ function createStyles(colors: ThemeColors) {
     },
     roleName: {
       fontSize: typography.heading,
-      fontWeight: '700',
+      fontWeight: typography.weights.bold,
     },
     divider: {
       width: '80%',
@@ -192,9 +178,9 @@ function createStyles(colors: ThemeColors) {
       marginTop: spacing.medium,
     },
     confirmButtonText: {
-      color: '#fff',
+      color: colors.textInverse,
       fontSize: typography.body,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
   });
 }
