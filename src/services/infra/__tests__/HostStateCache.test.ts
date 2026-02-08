@@ -213,9 +213,9 @@ describe('HostStateCache', () => {
   // loadState - expiry
   // =========================================================================
   describe('loadState expiry', () => {
-    it('should return null and removeItem when cache is expired (> 2 hours)', async () => {
+    it('should return null and removeItem when cache is expired (> 24 hours)', async () => {
       const cached = createValidCached({
-        cachedAt: Date.now() - 3 * 60 * 60 * 1000, // 3 hours ago
+        cachedAt: Date.now() - 25 * 60 * 60 * 1000, // 25 hours ago
       });
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
 
@@ -226,9 +226,9 @@ describe('HostStateCache', () => {
       expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(CACHE_KEY);
     });
 
-    it('should return cached state if not expired (< 2 hours)', async () => {
+    it('should return cached state if not expired (< 24 hours)', async () => {
       const cached = createValidCached({
-        cachedAt: Date.now() - 1 * 60 * 60 * 1000, // 1 hour ago
+        cachedAt: Date.now() - 12 * 60 * 60 * 1000, // 12 hours ago
       });
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
 

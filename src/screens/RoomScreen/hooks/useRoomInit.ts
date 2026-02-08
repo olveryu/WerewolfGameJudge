@@ -144,7 +144,14 @@ export function useRoomInit({
     const timeout = setTimeout(() => {
       if (!isInitialized || !hasGameState) {
         setShowRetryButton(true);
-        setLoadingMessage('加载超时');
+        // 区分两种超时场景：
+        // - 已加入频道但没收到 state → 房主可能不在线
+        // - 初始化本身失败 → 通用加载超时
+        if (isInitialized && !hasGameState) {
+          setLoadingMessage('等待房主上线...（房主可能不在房间内）');
+        } else {
+          setLoadingMessage('加载超时');
+        }
       }
     }, 5000);
 

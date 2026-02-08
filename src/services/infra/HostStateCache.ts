@@ -35,9 +35,10 @@ export interface CachedHostState {
 
 /**
  * 缓存过期时间（毫秒）
- * 默认 2 小时 - 超过此时间的缓存视为无效
+ * 默认 24 小时 — 与 GitHub Actions cleanup-rooms.yml 的清理周期对齐。
+ * 房间记录 24h 后被自动删除，缓存无需比房间活得更短。
  */
-const CACHE_TTL_MS = 2 * 60 * 60 * 1000;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
  * 结构校验：验证 cached 对象是否包含所有必需字段且类型正确

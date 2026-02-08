@@ -17,6 +17,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { LocalGameState } from '../services/types/GameStateTypes';
 import { GameStatus } from '../models/GameStatus';
 import { SimplifiedRoomService, RoomRecord } from '../services/infra/RoomService';
@@ -311,6 +312,8 @@ export const useGameRoom = (): UseGameRoomResult => {
         const record = await roomService.current.getRoom(roomNumber);
         if (!record) {
           setError('房间不存在');
+          // 防御性清理：房间已不存在，清除过时的 lastRoomNumber
+          void AsyncStorage.removeItem('lastRoomNumber');
           return false;
         }
         setRoomRecord(record);
@@ -326,9 +329,12 @@ export const useGameRoom = (): UseGameRoomResult => {
           const result = await facade.joinAsHost(roomNumber, playerUid);
           if (!result.success) {
             gameRoomLog.error('Host rejoin failed', { reason: result.reason });
-            setError('房间状态已丢失，请重新创建房间');
+            setError('房间状态已过期，请重新创建房间');
             return false;
           }
+          // 立即同步 identity，避免 useConnectionSync 在 facade listener 触发前误判
+          setIsHost(true);
+          setMyUid(playerUid);
           gameRoomLog.debug('Host rejoin successful');
           return true;
         }
