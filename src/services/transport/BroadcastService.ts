@@ -19,7 +19,6 @@
 
 import { supabase, isSupabaseConfigured } from '@/config/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
-import type { PublicPayload } from '@/services/types/PublicBroadcast';
 import { broadcastLog } from '@/utils/logger';
 
 // Protocol types - Import for local use
@@ -243,29 +242,6 @@ export class BroadcastService {
     });
   }
 
-  /**
-   * Host: Broadcast a PUBLIC message to all players.
-   *
-   * NOTE:
-   * - This project uses broadcast-only architecture: PRIVATE_EFFECT / private messaging is NOT used.
-   * - All state (including role-specific context) must live in BroadcastGameState and be broadcast.
-   * - UI is responsible for role-based filtering.
-   */
-  async broadcastPublic(payload: PublicPayload): Promise<void> {
-    if (!this.channel) {
-      broadcastLog.warn(' Not connected to any room');
-      return;
-    }
-
-    broadcastLog.info(' Broadcasting public:', payload.type);
-    await this.channel.send({
-      type: 'broadcast',
-      event: 'host',
-      payload,
-    });
-  }
-
-  /**
   /**
    * Player: Send a message to Host
    */
