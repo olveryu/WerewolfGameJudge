@@ -309,6 +309,11 @@ export function buildSeatViewModels(
     showReadyBadges?: boolean;
   },
 ): SeatViewModel[] {
+  // Wolf vote progress: reuse ✅ badge on wolf seats that have voted (ongoing phase only, mutually exclusive with assigned/ready badge)
+  const wolfVotesBySeat = showWolves
+    ? gameState.currentNightResults?.wolfVotesBySeat
+    : undefined;
+
   return gameState.template.roles.map((role, index) => {
     const player = gameState.players.get(index);
     const effectiveRole = player?.role ?? role;
@@ -326,6 +331,11 @@ export function buildSeatViewModels(
       disabledReason = '不能选择自己';
     }
 
+    // ✅ badge: assigned/ready → "已查看身份"; ongoing wolfKill → "已投票"
+    const readyBadge =
+      (options?.showReadyBadges && player != null && (player.hasViewedRole ?? false)) ||
+      (isWolf && wolfVotesBySeat != null && String(index) in wolfVotesBySeat);
+
     return {
       index,
       role,
@@ -342,7 +352,7 @@ export function buildSeatViewModels(
       isWolf,
       isSelected: selectedIndex === index || options?.secondSelectedIndex === index,
       disabledReason,
-      showReadyBadge: options?.showReadyBadges && player != null && (player.hasViewedRole ?? false),
+      showReadyBadge: readyBadge,
     };
   });
 }
