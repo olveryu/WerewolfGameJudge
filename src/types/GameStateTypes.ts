@@ -183,9 +183,3 @@ export interface LocalGameState {
     botsEnabled: boolean;
   };
 }
-
-// =============================================================================
-// Listener Types
-// =============================================================================
-
-export type GameStateListener = (state: LocalGameState) => void;
