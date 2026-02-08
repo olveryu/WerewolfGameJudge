@@ -12,7 +12,7 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { useRoomSeatDialogs } from '@/screens/RoomScreen/useRoomSeatDialogs';
 import { showAlert } from '@/utils/alert';
-import { GameStatus } from '@/models/Room';
+import { GameStatus } from '@/models/GameStatus';
 
 // Mock showAlert
 jest.mock('../../../utils/alert', () => ({

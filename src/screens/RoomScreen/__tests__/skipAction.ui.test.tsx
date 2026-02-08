@@ -80,7 +80,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     connectionStatus: 'live',
 
     isHost: false,
-    roomStatus: require('@/models/Room').GameStatus.ongoing,
+    roomStatus: require('@/models/GameStatus').GameStatus.ongoing,
 
     currentActionRole: 'seer',
     currentSchema: getChooseSeatSchema(mockedSchemaId),

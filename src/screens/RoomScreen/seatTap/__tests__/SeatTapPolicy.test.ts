@@ -9,7 +9,7 @@
 
 import { getSeatTapResult, SeatTapPolicyInput } from '@/screens/RoomScreen/seatTap/SeatTapPolicy';
 // Use the re-export from models/Room for consistency
-import { GameStatus } from '@/models/Room';
+import { GameStatus } from '@/models/GameStatus';
 
 describe('SeatTapPolicy', () => {
   // ==========================================================================

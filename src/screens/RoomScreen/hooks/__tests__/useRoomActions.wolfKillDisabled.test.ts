@@ -11,7 +11,7 @@
  */
 import { renderHook } from '@testing-library/react-native';
 
-import { GameStatus } from '@/models/Room';
+import { GameStatus } from '@/models/GameStatus';
 import { getSchema } from '@/models/roles/spec';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import type { GameContext } from '@/screens/RoomScreen/hooks/useRoomActions';

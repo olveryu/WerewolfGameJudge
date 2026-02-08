@@ -9,7 +9,7 @@
  */
 import { renderHook } from '@testing-library/react-native';
 
-import { GameStatus } from '@/models/Room';
+import { GameStatus } from '@/models/GameStatus';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import type { GameContext } from '@/screens/RoomScreen/hooks/useRoomActions';
 import { useRoomActions } from '@/screens/RoomScreen/hooks/useRoomActions';

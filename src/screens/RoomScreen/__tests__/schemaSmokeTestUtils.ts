@@ -72,7 +72,7 @@ export function makeBaseUseGameRoomReturn({
     connectionStatus: 'live',
 
     isHost: false,
-    roomStatus: require('@/models/Room').GameStatus.ongoing,
+    roomStatus: require('@/models/GameStatus').GameStatus.ongoing,
 
     currentActionRole,
     currentSchema: getSchema(schemaId),

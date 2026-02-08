@@ -17,7 +17,7 @@
 
 import { useCallback, useMemo } from 'react';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import { GameStatus } from '@/models/Room';
+import { GameStatus } from '@/models/GameStatus';
 import { showAlert } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';
 import type { ActionIntent } from './useRoomActions';

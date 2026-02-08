@@ -4,7 +4,7 @@
 import { renderHook } from '@testing-library/react-native';
 import { useRoomActions } from '@/screens/RoomScreen/hooks/useRoomActions';
 import { SCHEMAS, type ActionSchema } from '@/models/roles/spec';
-import { GameStatus } from '@/models/Room';
+import { GameStatus } from '@/models/GameStatus';
 import type { LocalGameState } from '@/types/GameStateTypes';
 
 const makeGameState = (): LocalGameState =>

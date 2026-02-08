@@ -10,7 +10,7 @@ import { View } from 'react-native';
 import { waitFor, fireEvent } from '@testing-library/react-native';
 import type { RoleId } from '@/models/roles';
 import type { SchemaId } from '@/models/roles/spec';
-import { GameStatus } from '@/models/Room';
+import { GameStatus } from '@/models/GameStatus';
 import { TESTIDS } from '@/testids';
 import { RoomScreenTestHarness } from './RoomScreenTestHarness';
 

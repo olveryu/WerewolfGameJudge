@@ -14,7 +14,7 @@
  * ✅ Allowed imports: types only (GameStatus, RoleId, ActionIntent, etc.)
  */
 
-import type { GameStatus } from '@/models/Room';
+import type { GameStatus } from '@/models/GameStatus';
 import type { RoleId } from '@/models/roles';
 import type { ActionIntent } from '@/screens/RoomScreen/hooks/useRoomActions';
 

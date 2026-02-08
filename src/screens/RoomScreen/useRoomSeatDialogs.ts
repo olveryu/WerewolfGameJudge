@@ -12,7 +12,7 @@ import { useCallback } from 'react';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { showAlert } from '@/utils/alert';
-import { GameStatus } from '@/models/Room';
+import { GameStatus } from '@/models/GameStatus';
 
 export interface UseRoomSeatDialogsParams {
   // Seat modal state

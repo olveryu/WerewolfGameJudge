@@ -29,7 +29,7 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/navigation/types';
-import { GameStatus, getWolfVoteSummary } from '@/models/Room';
+import { GameStatus } from '@/models/GameStatus';
 import { showAlert } from '@/utils/alert';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import { AudioService } from '@/services';
@@ -47,6 +47,7 @@ import { HostMenuDropdown } from './components/HostMenuDropdown';
 import { BottomActionPanel } from './components/BottomActionPanel';
 import {
   toGameRoomLike,
+  getWolfVoteSummary,
   getRoleStats,
   formatRoleList,
   buildSeatViewModels,

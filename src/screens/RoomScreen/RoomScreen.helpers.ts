@@ -16,21 +16,40 @@ import {
   isWolfRole,
 } from '@/models/roles';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import type { GameRoomLike } from '@/models/Room';
 import type { RoleAction } from '@/models/actions/RoleAction';
 import type { ActionSchema, TargetConstraint } from '@/models/roles/spec';
+import type { GameTemplate } from '@/models/Template';
 
 // =============================================================================
 // Types
 // =============================================================================
 
+/**
+ * Common interface for Room-like objects (supports both Room and LocalGameState).
+ * Used by getWolfVoteSummary and toGameRoomLike.
+ */
+export interface GameRoomLike {
+  template: GameTemplate;
+  players: Map<
+    number,
+    {
+      uid: string;
+      seatNumber: number;
+      role: RoleId | null;
+      hasViewedRole: boolean;
+      displayName?: string;
+      avatarUrl?: string | null;
+    } | null
+  >;
+  actions: Map<RoleId, RoleAction>;
+  wolfVotes: Map<number, number>;
+  currentStepIndex: number;
+}
+
 export interface ActionerState {
   imActioner: boolean;
   showWolves: boolean;
 }
-
-// Re-export GameRoomLike for convenience
-export type { GameRoomLike } from '@/models/Room';
 
 export interface PlayerInfoLike {
   uid: string;
@@ -188,6 +207,22 @@ export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
     wolfVotes,
     currentStepIndex: gameState.currentStepIndex,
   };
+}
+
+/**
+ * Get wolf vote summary for display (e.g. "2/3 狼人已投票")
+ */
+export function getWolfVoteSummary(room: GameRoomLike): string {
+  const wolfSeats: number[] = [];
+  room.players.forEach((player, seat) => {
+    if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
+      wolfSeats.push(seat);
+    }
+  });
+  wolfSeats.sort((a, b) => a - b);
+
+  const voted = wolfSeats.filter((seat) => room.wolfVotes.has(seat));
+  return `${voted.length}/${wolfSeats.length} 狼人已投票`;
 }
 
 /**
