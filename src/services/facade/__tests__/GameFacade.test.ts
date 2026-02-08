@@ -9,7 +9,6 @@
  */
 
 import { GameFacade } from '@/services/facade/GameFacade';
-import { BroadcastService } from '@/services/transport/BroadcastService';
 import type { PlayerMessage, HostBroadcast, BroadcastPlayer } from '@/services/protocol/types';
 import { gameReducer } from '@/services/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@/services/engine/reducer/types';
@@ -61,9 +60,6 @@ describe('GameFacade', () => {
   };
 
   beforeEach(() => {
-    // Reset singleton
-    GameFacade.resetInstance();
-
     // Setup mock BroadcastService
     mockBroadcastService = {
       joinRoom: jest.fn().mockResolvedValue(undefined),
@@ -73,13 +69,8 @@ describe('GameFacade', () => {
       markAsLive: jest.fn(),
     };
 
-    (BroadcastService.getInstance as jest.Mock).mockReturnValue(mockBroadcastService);
-
-    facade = GameFacade.getInstance();
-  });
-
-  afterEach(() => {
-    GameFacade.resetInstance();
+    // DI: 直接注入 mock，无需 singleton
+    facade = new GameFacade({ broadcastService: mockBroadcastService as any });
   });
 
   // ===========================================================================
@@ -825,9 +816,8 @@ describe('GameFacade', () => {
     });
 
     it('should reject if not host, with reason from handler (host_only)', async () => {
-      // 创建一个非 host facade（player）
-      GameFacade.resetInstance();
-      const playerFacade = GameFacade.getInstance();
+      // DI: 创建独立的 player facade
+      const playerFacade = new GameFacade({ broadcastService: mockBroadcastService as any });
       await playerFacade.joinAsPlayer('ABCD', 'player-uid');
 
       const result = await playerFacade.assignRoles();
@@ -949,9 +939,8 @@ describe('GameFacade', () => {
     });
 
     it('should send PlayerMessage to host when called by player (not host)', async () => {
-      // 创建一个非 host facade（player）
-      GameFacade.resetInstance();
-      const playerFacade = GameFacade.getInstance();
+      // DI: 创建独立的 player facade
+      const playerFacade = new GameFacade({ broadcastService: mockBroadcastService as any });
       await playerFacade.joinAsPlayer('ABCD', 'player-uid');
 
       const result = await playerFacade.markViewedRole(0);
@@ -1055,9 +1044,8 @@ describe('GameFacade', () => {
     });
 
     it('should reject if not host, with reason from handler (host_only)', async () => {
-      // 创建一个非 host facade（player）
-      GameFacade.resetInstance();
-      const playerFacade = GameFacade.getInstance();
+      // DI: 创建独立的 player facade
+      const playerFacade = new GameFacade({ broadcastService: mockBroadcastService as any });
       await playerFacade.joinAsPlayer('ABCD', 'player-uid');
 
       const result = await playerFacade.startNight();

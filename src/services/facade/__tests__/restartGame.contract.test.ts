@@ -13,7 +13,6 @@
  */
 
 import { GameFacade } from '@/services/facade/GameFacade';
-import { BroadcastService } from '@/services/transport/BroadcastService';
 import { gameReducer } from '@/services/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@/services/engine/reducer/types';
 import type { HostBroadcast, BroadcastPlayer } from '@/services/protocol/types';
@@ -60,7 +59,6 @@ describe('restartGame Contract', () => {
     // 使用 fake timers 加速 5 秒音频延迟
     jest.useFakeTimers();
 
-    GameFacade.resetInstance();
     broadcastCalls = [];
 
     mockBroadcastService = {
@@ -74,14 +72,12 @@ describe('restartGame Contract', () => {
       markAsLive: jest.fn(),
     };
 
-    (BroadcastService.getInstance as jest.Mock).mockReturnValue(mockBroadcastService);
-
-    facade = GameFacade.getInstance();
+    // DI: 直接注入 mock
+    facade = new GameFacade({ broadcastService: mockBroadcastService as any });
   });
 
   afterEach(() => {
     jest.useRealTimers();
-    GameFacade.resetInstance();
   });
 
   // ===========================================================================

@@ -62,8 +62,15 @@ export class BroadcastService {
   private onPlayerMessage: ((message: PlayerMessage, senderId: string) => void) | null = null;
   private onPresenceChange: ((users: string[]) => void) | null = null;
 
-  private constructor() {}
+  /**
+   * @param _deps - 预留 DI 扩展点（当前无依赖需注入）
+   */
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  constructor() {}
 
+  /**
+   * 全局单例工厂（向后兼容）
+   */
   static getInstance(): BroadcastService {
     if (!BroadcastService.instance) {
       BroadcastService.instance = new BroadcastService();

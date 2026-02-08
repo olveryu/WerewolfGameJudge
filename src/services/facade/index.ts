@@ -3,3 +3,4 @@
  */
 
 export { GameFacade } from './GameFacade';
+export type { GameFacadeDeps } from './GameFacade';
