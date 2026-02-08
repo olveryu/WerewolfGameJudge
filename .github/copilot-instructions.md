@@ -1,5 +1,43 @@
 ## WerewolfGameJudge Copilot 指令（全中文）
 
+## Project Overview
+
+React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Supabase 仅做房间发现与 realtime 传输。支持 iOS / Android / Web。
+
+## Tech Stack
+
+- React Native 0.81 + React 19 + Expo SDK 54
+- TypeScript ~5.9
+- Supabase (auth + realtime broadcast)
+- Jest 29 (单元/集成测试) | Playwright (E2E)
+- ESLint 8 (`.eslintrc.js`) | Prettier
+- Path alias: `@/` → `src/`
+
+## Key Directories
+
+- `src/models/roles/` — 角色 spec / schema / nightSteps（声明式，无副作用）
+- `src/services/engine/` — Host-only 游戏引擎（reducer + handlers + resolvers）
+- `src/services/facade/` — UI 层 facade（编排 + IO）
+- `src/services/transport/` — Supabase realtime broadcast
+- `src/services/infra/` — 基础设施（AudioService / AuthService / RoomService）
+- `src/services/feature/` — 功能服务（SettingsService / AvatarUploadService）
+- `src/screens/` — React Native screens（Home / Config / Room / Settings）
+- `src/theme/` — Design tokens (`tokens.ts`) + themes (`themes.ts`)
+- `src/components/` — 通用 UI 组件
+- `src/hooks/` — 通用 hooks
+- `src/contexts/` — React Context（AuthContext / GameFacadeContext / ThemeProvider）
+
+## Common Commands
+
+- `npm run web` — 启动 Web 开发服务器
+- `npx jest --no-coverage --forceExit` — 跑全部单元/集成测试（153 suites / 2428 tests）
+- `npx playwright test --reporter=list` — 跑 E2E（必须加 `--reporter=list`，否则会阻塞终端）
+- `npx tsc --noEmit` — 类型检查
+- `npm run lint` — ESLint
+- `npm run quality` — typecheck + lint + format + test 一次全跑
+
+---
+
 ## 快速索引（Table of Contents）
 
 - 社区惯例优先（MUST follow）
