@@ -12,6 +12,7 @@
 - Anti-drift 护栏（MUST follow）
 - 实现清单（角色 / schema / step / UI 必做）
 - 交付与门禁（必须执行）
+- 终端输出规范（MUST follow）
 - Git Commit 规范（Conventional Commits）
 - Instruction 文件自检与同步提醒（MUST follow）
 
@@ -326,7 +327,11 @@ advanceToNextAction()
 - 禁止跳过测试（no `.skip`）、禁止动态口径覆盖（必须字面量数组）、难测分支不得移出 required 清单。
 - Integration board tests 必须跑真实 NightFlow、fail-fast、禁止自动清 gate。
 - 修 bug 优先根因修复，禁止无证据宣称“已修复”。
+### 终端输出规范（MUST follow）
 
+- **跑测试（Jest / Playwright / tsc 等）时，禁止用 `| grep`、`| head`、`| tail` 截断输出。** 必须看完整结果，避免遗漏错误或误判通过。
+- 只有在非测试场景（如查看日志、搜索代码）中，才允许使用 `grep` 过滤。
+- **跑 Playwright 时必须加 `--reporter=list`**（例如 `npx playwright test ... --reporter=list 2>&1`）。项目 `playwright.config.ts` 默认 reporter 是 `html`，跑完后会启动 HTTP server 展示报告并阻塞终端，导致命令永远不会退出。
 ## Git Commit 规范（Conventional Commits）
 
 > 格式：`<type>(<scope>): <description>`
