@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { Avatar } from '../../../components/Avatar';
 import { spacing, typography, borderRadius, type ThemeColors } from '../../../theme';
-import { fixed } from '../../../theme/tokens';
+import { componentSizes, fixed } from '../../../theme/tokens';
 import { TESTIDS } from '../../../testids';
 import type { RoleId } from '../../../models/roles';
 import { getRoleDisplayName } from '../../../models/roles';
@@ -325,9 +325,9 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       position: 'absolute',
       top: spacing.tight,
       left: spacing.tight,
-      width: 22,
-      height: 22,
-      borderRadius: 11,
+      width: componentSizes.badge.md,
+      height: componentSizes.badge.md,
+      borderRadius: borderRadius.full,
       backgroundColor: colors.primary,
       justifyContent: 'center',
       alignItems: 'center',
