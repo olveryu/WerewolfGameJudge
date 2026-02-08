@@ -261,7 +261,8 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
       {/* Floating seat number badge - overlaps top-left corner of tile */}
       <View style={styles.seatNumberBadge}>
         <Text style={styles.seatNumberText}>{index + 1}</Text>
-      </View>      {hasPlayer ? (
+      </View>
+      {hasPlayer ? (
         <>
           <Text style={styles.playerName} numberOfLines={1} ellipsizeMode="tail">
             {isBot ? '🤖 ' : ''}
