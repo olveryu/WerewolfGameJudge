@@ -173,21 +173,8 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 
 ---
 
-## Instruction 文件自检（MUST follow）
+## JSDoc 规范
 
-### 触发时机
-
-新增/修改路径、编码约定、wire protocol、角色/schema、构建流程时，主动检查 instruction 是否需同步。
-
-### 行为
-
-- 发现需同步时主动问用户，禁止静默跳过或自作主张修改。
-- 每个 `*.instructions.md` 必须有 `✅/❌` 标记。
 - 每个 class/module JSDoc 必须有：名称定位 + 职责 + `✅/❌`。
 - ❌ 禁止只有 `✅/❌` 而没有功能介绍（先知道"是什么"再知道"能不能做"）。
 - ❌ 禁止只有功能介绍而没有 `✅/❌`（缺约束视为不完整）。
-
-### 写/改文件时的检查
-
-- 确认目标目录有对应 instruction 文件（`.github/instructions/*.instructions.md`）。
-- 确认 instruction 含 `✅/❌` 约束。缺失时必须提醒用户。
