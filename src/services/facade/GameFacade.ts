@@ -22,7 +22,7 @@
  * - messageRouter.ts: PlayerMessage/HostBroadcast 路由分发
  */
 
-import type { IGameFacade, StateListener } from '@/services/types/IGameFacade';
+import type { IGameFacade, FacadeStateListener } from '@/services/types/IGameFacade';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { GameTemplate } from '@/models/Template';
 import type { BroadcastGameState, PlayerMessage, HostBroadcast } from '@/services/protocol/types';
@@ -80,7 +80,7 @@ export class GameFacade implements IGameFacade {
   // Lifecycle
   // =========================================================================
 
-  addListener(fn: StateListener): () => void {
+  addListener(fn: FacadeStateListener): () => void {
     return this.store.subscribe((_state, _rev) => {
       fn(this.store.getState());
     });

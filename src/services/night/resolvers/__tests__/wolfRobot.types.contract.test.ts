@@ -1,4 +1,4 @@
-import type { RoleId } from '@/models/roles/spec';
+import type { RoleId } from '@/models/roles';
 
 /**
  * Type-level contract: wolfRobot learn success result must include learnedRoleId.

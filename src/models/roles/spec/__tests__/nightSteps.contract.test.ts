@@ -12,7 +12,7 @@ import {
   getStepsByRole,
   getStepsByRoleStrict,
 } from '@/models/roles/spec/nightSteps';
-import { ROLE_SPECS, isValidRoleId } from '@/models/roles/spec/specs';
+import { ROLE_SPECS, isValidRoleId } from '@/models/roles';
 import { isValidSchemaId } from '@/models/roles/spec/schemas';
 
 describe('NIGHT_STEPS contract', () => {

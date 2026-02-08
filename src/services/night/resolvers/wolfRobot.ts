@@ -9,7 +9,7 @@
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
-import type { RoleId } from '@/models/roles/spec';
+import type { RoleId } from '@/models/roles';
 import { SCHEMAS } from '@/models/roles/spec/schemas';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverContext, ActionInput, WolfRobotResolverResult } from './types';

@@ -9,7 +9,7 @@
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
-import { ROLE_SPECS } from '@/models/roles/spec/specs';
+import { ROLE_SPECS } from '@/models/roles';
 import { getSeerCheckResultForTeam } from '@/models/roles/spec/types';
 import { SCHEMAS } from '@/models/roles/spec/schemas';
 import { validateConstraints } from './constraintValidator';

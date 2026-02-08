@@ -32,7 +32,7 @@ import { randomPick } from '@/utils/random';
 import { newRequestId } from '@/utils/id';
 import { shuffleArray } from '@/utils/shuffle';
 import { useGameFacade } from '@/contexts';
-import { ROLE_SPECS } from '@/models/roles/spec/specs';
+import { ROLE_SPECS } from '@/models/roles';
 import type { BroadcastGameState } from '@/services/protocol/types';
 import {
   BUBBLE_SIZE,

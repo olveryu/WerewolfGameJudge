@@ -26,7 +26,7 @@ import {
   type InteractionEvent,
   type InteractionContext,
 } from '@/screens/RoomScreen/policy';
-import type { RoleId } from '@/models/roles/spec/specs';
+import type { RoleId } from '@/models/roles';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

@@ -12,7 +12,7 @@
 
 import type { ResolverFn } from './types';
 import { getRoleSpec, getWolfKillImmuneRoleIds } from '@/models/roles';
-import { isValidRoleId } from '@/models/roles/spec/specs';
+import { isValidRoleId } from '@/models/roles';
 import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
 
 export const wolfKillResolver: ResolverFn = (context, input) => {

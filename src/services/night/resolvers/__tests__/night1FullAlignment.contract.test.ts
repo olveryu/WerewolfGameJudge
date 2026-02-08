@@ -19,7 +19,7 @@ import type {
 } from '@/models/roles/spec/schema.types';
 import { RESOLVERS } from '@/services/night/resolvers/index';
 import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
-import type { RoleId } from '@/models/roles/spec/specs';
+import type { RoleId } from '@/models/roles';
 
 // === Test Helpers ===
 

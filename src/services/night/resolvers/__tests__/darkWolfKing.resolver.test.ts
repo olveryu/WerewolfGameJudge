@@ -6,7 +6,7 @@
 
 import { darkWolfKingConfirmResolver } from '@/services/night/resolvers/darkWolfKing';
 import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
-import type { RoleId } from '@/models/roles/spec/specs';
+import type { RoleId } from '@/models/roles';
 
 // =============================================================================
 // Test Helpers

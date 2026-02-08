@@ -12,7 +12,7 @@ import { SCHEMAS, type SchemaId } from '@/models/roles/spec';
 import type { CompoundSchema, ChooseSeatSchema } from '@/models/roles/spec/schema.types';
 import { RESOLVERS } from '@/services/night/resolvers/index';
 import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
-import type { RoleId } from '@/models/roles/spec/specs';
+import type { RoleId } from '@/models/roles';
 
 // 创建基础的 ResolverContext
 function createBaseContext(

@@ -18,7 +18,7 @@ import { playSound, createTickPlayer } from '@/components/RoleRevealEffects/util
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
-import type { RoleId } from '@/models/roles/spec/specs';
+import type { RoleId } from '@/models/roles';
 import { shuffleArray } from '@/utils/shuffle';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');

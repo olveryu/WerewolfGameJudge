@@ -13,10 +13,10 @@ import type { BroadcastGameState } from '@/services/protocol/types';
 export type GameState = BroadcastGameState;
 
 /**
- * 状态订阅者回调
+ * 状态订阅者回调（Store 层）
  * state 可能为 null（reset 后）
  */
-export type StateListener = (state: GameState | null, revision: number) => void;
+export type StoreStateListener = (state: GameState | null, revision: number) => void;
 
 /**
  * 状态存储接口
@@ -29,7 +29,7 @@ export interface IGameStore {
   getRevision(): number;
 
   /** 订阅状态变化 */
-  subscribe(listener: StateListener): () => void;
+  subscribe(listener: StoreStateListener): () => void;
 
   /** 应用快照（玩家端） */
   applySnapshot(state: GameState, revision: number): void;

@@ -13,7 +13,7 @@
  * ❌ 禁止：IO（网络/音频/Alert）
  */
 
-import type { GameState, StateListener, IHostGameStore } from './types';
+import type { GameState, StoreStateListener, IHostGameStore } from './types';
 import { normalizeState } from '@/services/engine/state/normalize';
 import { log } from '@/utils/logger';
 
@@ -22,7 +22,7 @@ const gameStoreLog = log.extend('GameStore');
 export class GameStore implements IHostGameStore {
   private state: GameState | null = null;
   private revision: number = 0;
-  private readonly listeners: Set<StateListener> = new Set();
+  private readonly listeners: Set<StoreStateListener> = new Set();
 
   /**
    * Host-only: apply an existing snapshot as the current state, preserving the given revision.
@@ -55,7 +55,7 @@ export class GameStore implements IHostGameStore {
    * 订阅状态变化
    * @returns 取消订阅函数
    */
-  subscribe(listener: StateListener): () => void {
+  subscribe(listener: StoreStateListener): () => void {
     this.listeners.add(listener);
     return () => {
       this.listeners.delete(listener);

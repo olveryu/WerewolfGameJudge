@@ -20,7 +20,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import type { ActionSchema, InlineSubStepSchema } from '@/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
-import type { RoleId } from '@/models/roles/spec/specs';
+import type { RoleId } from '@/models/roles';
 import { getRoleDisplayName } from '@/models/roles';
 import { GameStatus } from '@/models/GameStatus';
 import { roomScreenLog } from '@/utils/logger';

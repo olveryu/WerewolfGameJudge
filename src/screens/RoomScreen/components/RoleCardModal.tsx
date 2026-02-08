@@ -25,7 +25,7 @@ import {
   type RevealEffectType,
 } from '@/components/RoleRevealEffects';
 import { getRoleDisplayName, getRoleSpec, Faction } from '@/models/roles';
-import type { RoleId } from '@/models/roles/spec/specs';
+import type { RoleId } from '@/models/roles';
 import type { ResolvedRoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 // ─── Alignment map (Faction → reveal alignment) ────────────────────────────

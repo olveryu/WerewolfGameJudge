@@ -13,7 +13,7 @@ import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 /** Connection status for UI display (re-exported from BroadcastService) */
 export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected';
 
-export type StateListener = (state: BroadcastGameState | null) => void;
+export type FacadeStateListener = (state: BroadcastGameState | null) => void;
 
 export interface IGameFacade {
   // === Lifecycle ===
@@ -21,7 +21,7 @@ export interface IGameFacade {
    * 订阅状态变化
    * @returns 取消订阅函数
    */
-  addListener(fn: StateListener): () => void;
+  addListener(fn: FacadeStateListener): () => void;
 
   /**
    * 获取当前状态（一次性读取）
