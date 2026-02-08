@@ -2,6 +2,7 @@
 
 ## 快速索引（Table of Contents）
 
+- 社区惯例优先（MUST follow）
 - 协作规则：未确认禁止写代码（MUST follow）
 - 修改代码时逐符号验证（MUST follow）
 - 不可协商规则（先读）
@@ -34,6 +35,14 @@
 **核心原则**：以 SettingsScreen 为标准 — Header 用 `surface` 背景 + `borderBottom`，卡片用 `shadows.sm` 不用 border 描边，页面背景用 `background` 色。
 
 ---
+
+### 0.4) 社区惯例优先（MUST follow）
+
+- **在思考问题、制定方案、编写/修改代码之前，必须先考虑社区和生态系统的通行做法。**
+  - 例如：React Native 社区推荐 `useWindowDimensions()` 而非 `Dimensions.get()`；社区普遍使用 named export 而非 default export；`catch(e: unknown)` 是 TypeScript 社区的共识。
+  - 如果不确定社区惯例，先搜索/查阅文档，不要凭习惯或惯性写出过时/非主流的写法。
+- **新增依赖/模式/API 时，优先选择社区广泛采用的成熟方案**，而非自己发明或使用冷门替代方案。
+- **发现现有代码不符合社区惯例时，主动指出**（纳入变更计划或单独提醒），但仍需遵守"未确认禁止写代码"规则。
 
 ### 0.5) 协作规则：未确认禁止写代码（MUST follow）
 
