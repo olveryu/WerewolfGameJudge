@@ -16,7 +16,6 @@ export type { ControlledSeatBannerStyles } from './styles';
 export type { HostMenuDropdownStyles } from './styles';
 export type { NightProgressIndicatorStyles } from './styles';
 export type { SeatConfirmModalStyles } from './styles';
-export type { WaitingViewRoleListStyles } from './styles';
 
 // Grid and Layout
 export { PlayerGrid } from './PlayerGrid';
@@ -31,9 +30,6 @@ export type { ActionMessageProps } from './ActionMessage';
 
 export { ConnectionStatusBar } from './ConnectionStatusBar';
 export type { ConnectionStatusBarProps, ConnectionState } from './ConnectionStatusBar';
-
-export { WaitingViewRoleList } from './WaitingViewRoleList';
-export type { WaitingViewRoleListProps } from './WaitingViewRoleList';
 
 export { NightProgressIndicator } from './NightProgressIndicator';
 export type { NightProgressIndicatorProps } from './NightProgressIndicator';

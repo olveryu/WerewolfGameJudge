@@ -29,7 +29,7 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { GameStatus, getWolfVoteSummary, getPlayersNotViewedRole } from '../../models/Room';
+import { GameStatus, getWolfVoteSummary } from '../../models/Room';
 import { showAlert } from '../../utils/alert';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import { AudioService } from '../../services';
@@ -39,7 +39,6 @@ import { useRoomActionDialogs } from './useRoomActionDialogs';
 import { useRoomSeatDialogs } from './useRoomSeatDialogs';
 import { PlayerGrid } from './components/PlayerGrid';
 import { BoardInfoCard } from './components/BoardInfoCard';
-import { WaitingViewRoleList } from './components/WaitingViewRoleList';
 import { ActionButton } from './components/ActionButton';
 import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { NightProgressIndicator } from './components/NightProgressIndicator';
@@ -282,6 +281,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       schemaConstraints: imActioner && !skipConstraints ? currentSchemaConstraints : undefined,
       // For magician swap: highlight the second seat being selected
       secondSelectedIndex: secondSeatIndex,
+      // Show ✅ badge on seats whose players have viewed their role (assigned/ready phase, hidden once ongoing)
+      showReadyBadges: roomStatus === GameStatus.assigned || roomStatus === GameStatus.ready,
     });
   }, [
     gameState,
@@ -292,6 +293,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     imActioner,
     currentSchemaConstraints,
     currentSchema?.id,
+    roomStatus,
   ]);
 
   // Calculate role statistics using helper
@@ -688,11 +690,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           controlledSeat={controlledSeat}
           showBotRoles={isDebugMode && isHost}
         />
-
-        {/* Show players who haven't viewed their roles yet */}
-        {isHost && roomStatus === GameStatus.assigned && (
-          <WaitingViewRoleList seatIndices={getPlayersNotViewedRole(toGameRoomLike(gameState))} styles={componentStyles.waitingViewRoleList} />
-        )}
       </ScrollView>
 
       {/* Bottom Action Panel - floating card with message + buttons */}

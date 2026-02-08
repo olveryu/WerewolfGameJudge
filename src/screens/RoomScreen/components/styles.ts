@@ -102,12 +102,6 @@ export interface SeatConfirmModalStyles {
   modalConfirmText: TextStyle;
 }
 
-export interface WaitingViewRoleListStyles {
-  actionLogContainer: ViewStyle;
-  actionLogTitle: TextStyle;
-  actionLogItem: TextStyle;
-}
-
 // ─── Combined styles container ──────────────────────────────────────────────
 
 export interface RoomScreenComponentStyles {
@@ -120,7 +114,6 @@ export interface RoomScreenComponentStyles {
   hostMenuDropdown: HostMenuDropdownStyles;
   nightProgressIndicator: NightProgressIndicatorStyles;
   seatConfirmModal: SeatConfirmModalStyles;
-  waitingViewRoleList: WaitingViewRoleListStyles;
 }
 
 // ─── Factory ────────────────────────────────────────────────────────────────
@@ -490,28 +483,6 @@ export function createRoomScreenComponentStyles(
         color: colors.textInverse,
         fontSize: typography.body,
         fontWeight: typography.weights.semibold,
-      },
-    }),
-
-    waitingViewRoleList: StyleSheet.create<WaitingViewRoleListStyles>({
-      actionLogContainer: {
-        marginTop: spacing.medium,
-        marginHorizontal: spacing.medium,
-        padding: spacing.medium,
-        backgroundColor: colors.surface,
-        borderRadius: borderRadius.large,
-        ...shadows.sm,
-      },
-      actionLogTitle: {
-        fontSize: typography.body,
-        fontWeight: typography.weights.semibold,
-        color: colors.text,
-        marginBottom: spacing.small,
-      },
-      actionLogItem: {
-        fontSize: typography.secondary,
-        color: colors.textSecondary,
-        paddingVertical: spacing.tight / 2, // ~2
       },
     }),
   };

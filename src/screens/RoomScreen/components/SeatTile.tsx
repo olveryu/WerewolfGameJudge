@@ -45,6 +45,7 @@ export interface SeatTileStyles {
   wolfOverlay: ViewStyle;
   selectedOverlay: ViewStyle;
   mySeatBadge: TextStyle;
+  readyBadge: TextStyle;
   emptyIndicator: TextStyle;
   playerName: TextStyle;
   playerNamePlaceholder: ViewStyle;
@@ -72,6 +73,8 @@ export interface SeatTileProps {
   // Role info for bot display (debug mode only)
   roleId: RoleId | null;
   showBotRole: boolean; // isHost && debugMode?.botsEnabled && isBot
+  /** Show ✅ ready badge (e.g. player has viewed role during assigned phase). */
+  showReadyBadge: boolean;
   // Styles (created once in PlayerGrid)
   styles: SeatTileStyles;
   // Callbacks (not compared in arePropsEqual to avoid callback identity issues)
@@ -110,6 +113,7 @@ function arePropsEqual(prev: SeatTileProps, next: SeatTileProps): boolean {
     prev.playerDisplayName === next.playerDisplayName &&
     prev.roleId === next.roleId &&
     prev.showBotRole === next.showBotRole &&
+    prev.showReadyBadge === next.showReadyBadge &&
     prev.styles === next.styles
   );
 }
@@ -131,6 +135,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   playerDisplayName,
   roleId,
   showBotRole,
+  showReadyBadge,
   styles,
   onPress,
   onLongPress,
@@ -251,6 +256,8 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
         {!hasPlayer && <Text style={styles.emptyIndicator}>空</Text>}
 
         {isMySpot && hasPlayer && <Text style={styles.mySeatBadge}>我</Text>}
+
+        {showReadyBadge && hasPlayer && <Text style={styles.readyBadge}>✅</Text>}
       </TouchableOpacity>
 
       {hasPlayer ? (
@@ -356,6 +363,13 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       paddingVertical: spacing.tight / 2,
       borderRadius: spacing.small,
       overflow: 'hidden',
+    },
+    readyBadge: {
+      position: 'absolute',
+      bottom: spacing.tight + spacing.tight / 2,
+      left: spacing.tight + spacing.tight / 2,
+      // Emoji fontSize 例外：✅ 属于 Emoji 渲染尺寸，不走 typography token
+      fontSize: 14,
     },
     emptyIndicator: {
       fontSize: typography.secondary,

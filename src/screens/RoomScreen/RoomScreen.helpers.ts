@@ -64,6 +64,8 @@ export interface SeatViewModel {
   isSelected: boolean;
   /** UX-only: if set, the seat is non-selectable for the current UI context (Host still validates). */
   disabledReason?: string;
+  /** Show ✅ badge on seat tile (e.g. player has viewed role during assigned phase). */
+  showReadyBadge?: boolean;
 }
 
 // =============================================================================
@@ -267,6 +269,11 @@ export function buildSeatViewModels(
      * Used to highlight the second seat being selected before confirmation.
      */
     secondSelectedIndex?: number | null;
+    /**
+     * Show ✅ ready badge on seats where player has viewed their role.
+     * Typically true during 'assigned' phase.
+     */
+    showReadyBadges?: boolean;
   },
 ): SeatViewModel[] {
   return gameState.template.roles.map((role, index) => {
@@ -302,6 +309,7 @@ export function buildSeatViewModels(
       isWolf,
       isSelected: selectedIndex === index || options?.secondSelectedIndex === index,
       disabledReason,
+      showReadyBadge: options?.showReadyBadges && player != null && (player.hasViewedRole ?? false),
     };
   });
 }
