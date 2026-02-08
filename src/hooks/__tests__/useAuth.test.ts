@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react-native';
-import { useAuth, User } from '@/hooks/useAuth';
+import { useAuthContext as useAuth, type User } from '@/contexts/AuthContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 
 // Mock supabase config

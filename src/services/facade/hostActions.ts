@@ -57,9 +57,11 @@ import {
   handleAdvanceNight,
   handleEndNight,
   handleSetAudioPlaying,
+} from '@/services/engine/handlers/stepTransitionHandler';
+import {
   handleNightProgression,
   resetProgressionTracker,
-} from '@/services/engine/handlers/nightFlowHandler';
+} from '@/services/engine/handlers/progressionEvaluator';
 import { handleSetWolfRobotHunterStatusViewed } from '@/services/engine/handlers/wolfRobotHunterGateHandler';
 import { gameReducer } from '@/services/engine/reducer';
 import { facadeLog } from '@/utils/logger';

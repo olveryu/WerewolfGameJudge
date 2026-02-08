@@ -167,7 +167,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
     const {
       evaluateNightProgression,
       createProgressionTracker,
-    } = require('@/services/engine/handlers/nightFlowHandler');
+    } = require('@/services/engine/handlers/progressionEvaluator');
 
     const state = {
       status: 'ongoing',
@@ -201,7 +201,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
     const {
       evaluateNightProgression,
       createProgressionTracker,
-    } = require('@/services/engine/handlers/nightFlowHandler');
+    } = require('@/services/engine/handlers/progressionEvaluator');
 
     const tracker = createProgressionTracker();
 
@@ -234,7 +234,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
   });
 
   it('returns none when not host', () => {
-    const { evaluateNightProgression } = require('@/services/engine/handlers/nightFlowHandler');
+    const { evaluateNightProgression } = require('@/services/engine/handlers/progressionEvaluator');
 
     const state = {
       status: 'ongoing',
@@ -253,7 +253,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
   });
 
   it('returns none when audio is playing', () => {
-    const { evaluateNightProgression } = require('@/services/engine/handlers/nightFlowHandler');
+    const { evaluateNightProgression } = require('@/services/engine/handlers/progressionEvaluator');
 
     const state = {
       status: 'ongoing',

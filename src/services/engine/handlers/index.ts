@@ -22,4 +22,4 @@ export {
 export { handleSubmitAction, handleSubmitWolfVote, handleViewedRole } from './actionHandler';
 
 // Night flow handlers (PR6, PR7)
-export { handleAdvanceNight, handleEndNight, handleSetAudioPlaying } from './nightFlowHandler';
+export { handleAdvanceNight, handleEndNight, handleSetAudioPlaying } from './stepTransitionHandler';

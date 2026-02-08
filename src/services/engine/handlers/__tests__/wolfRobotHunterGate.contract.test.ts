@@ -16,7 +16,7 @@
  * Facade 的 security validation 测试应放在 hostActions 的单元测试中。
  */
 
-import { handleAdvanceNight } from '@/services/engine/handlers/nightFlowHandler';
+import { handleAdvanceNight } from '@/services/engine/handlers/stepTransitionHandler';
 import { handleSetWolfRobotHunterStatusViewed } from '@/services/engine/handlers/wolfRobotHunterGateHandler';
 import type { HandlerContext } from '@/services/engine/handlers/types';
 import type { BroadcastGameState } from '@/services/protocol/types';

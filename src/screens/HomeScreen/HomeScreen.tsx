@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/navigation/types';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { showAlert } from '@/utils/alert';
 import { useTheme } from '@/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';

@@ -20,8 +20,8 @@ const mockSignUpWithEmail = jest.fn();
 const mockSignInWithEmail = jest.fn();
 const mockSignOut = jest.fn();
 
-jest.mock('../../../hooks/useAuth', () => ({
-  useAuth: () => ({
+jest.mock('../../../contexts/AuthContext', () => ({
+  useAuthContext: () => ({
     user: null,
     loading: false,
     error: null,
@@ -80,7 +80,7 @@ describe('HomeScreen', () => {
   describe('Navigation', () => {
     it('should navigate to Config screen when "创建房间" is pressed', async () => {
       // Set up authenticated user
-      jest.spyOn(require('@/hooks/useAuth'), 'useAuth').mockReturnValue({
+      jest.spyOn(require('@/contexts/AuthContext'), 'useAuthContext').mockReturnValue({
         user: { uid: 'test-user', displayName: 'Test' },
         loading: false,
         error: null,
@@ -113,7 +113,7 @@ describe('HomeScreen', () => {
   describe('Join Room Modal', () => {
     it('should show join room modal when "进入房间" is pressed', async () => {
       // Mock authenticated user
-      jest.spyOn(require('@/hooks/useAuth'), 'useAuth').mockReturnValue({
+      jest.spyOn(require('@/contexts/AuthContext'), 'useAuthContext').mockReturnValue({
         user: { uid: 'test-user', displayName: 'Test' },
         loading: false,
         error: null,

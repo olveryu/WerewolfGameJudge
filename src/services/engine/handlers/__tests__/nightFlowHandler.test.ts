@@ -14,7 +14,7 @@
  * - endNight 调用 calculateDeaths 并产出正确 deaths
  */
 
-import { handleAdvanceNight, handleEndNight, handleSetAudioPlaying } from '@/services/engine/handlers/nightFlowHandler';
+import { handleAdvanceNight, handleEndNight, handleSetAudioPlaying } from '@/services/engine/handlers/stepTransitionHandler';
 import type { HandlerContext } from '@/services/engine/handlers/types';
 import type {
   AdvanceNightIntent,

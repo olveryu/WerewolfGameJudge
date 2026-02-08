@@ -14,8 +14,8 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 // Mock useAuth hook - default to unauthenticated state
-jest.mock('../../../hooks', () => ({
-  useAuth: () => ({
+jest.mock('../../../contexts/AuthContext', () => ({
+  useAuthContext: () => ({
     user: null,
     loading: false,
     error: null,

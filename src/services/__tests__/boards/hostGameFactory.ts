@@ -20,7 +20,7 @@ import type { BroadcastGameState, PlayerMessage } from '@/services/protocol/type
 
 import { gameReducer } from '@/services/engine/reducer';
 import { handleSubmitAction, handleSubmitWolfVote } from '@/services/engine/handlers/actionHandler';
-import { handleAdvanceNight, handleEndNight } from '@/services/engine/handlers/nightFlowHandler';
+import { handleAdvanceNight, handleEndNight } from '@/services/engine/handlers/stepTransitionHandler';
 import { handleSetWolfRobotHunterStatusViewed } from '@/services/engine/handlers/wolfRobotHunterGateHandler';
 import { buildNightPlan } from '@/models/roles/spec/plan';
 import { PRESET_TEMPLATES, createTemplateFromRoles, GameTemplate } from '@/models/Template';
