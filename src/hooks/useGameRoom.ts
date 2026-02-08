@@ -355,13 +355,10 @@ export const useGameRoom = (): UseGameRoomResult => {
   );
 
   // Leave the current room
+  // NOTE: Room record is NOT deleted here — GitHub Actions cleanup-rooms.yml
+  // automatically deletes rooms older than 24 hours, so host can rejoin after leaving.
   const leaveRoom = useCallback(async (): Promise<void> => {
     try {
-      // If host, also delete room record
-      if (isHost && roomRecord) {
-        await roomService.current.deleteRoom(roomRecord.roomNumber);
-      }
-
       // Phase 1B: 使用 facade 离开房间
       await facade.leaveRoom();
       setRoomRecord(null);
@@ -369,7 +366,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     } catch (err) {
       gameRoomLog.error(' Error leaving room:', err);
     }
-  }, [facade, isHost, roomRecord]);
+  }, [facade]);
 
   // =========================================================================
   // Phase 1B: takeSeat / leaveSeat 使用 facade
