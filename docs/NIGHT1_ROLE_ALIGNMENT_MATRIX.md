@@ -13,18 +13,18 @@
 | ---- | --------------------- | -------------- | -------------- | ----------- |
 | 0    | `magicianSwap`        | `magician`     | `magician`     | (同)        |
 | 1    | `slackerChooseIdol`   | `slacker`      | `slacker`      | (同)        |
-| 2    | `wolfRobotLearn`      | `wolfRobot`    | `wolfRobot`    | (同)        |
+| 2    | `nightmareBlock`      | `nightmare`    | `nightmare`    | (同)        |
 | 3    | `dreamcatcherDream`   | `dreamcatcher` | `dreamcatcher` | (同)        |
-| 4    | `gargoyleCheck`       | `gargoyle`     | `gargoyle`     | (同)        |
-| 5    | `nightmareBlock`      | `nightmare`    | `nightmare`    | (同)        |
-| 6    | `guardProtect`        | `guard`        | `guard`        | (同)        |
-| 7    | `wolfKill`            | `wolf`         | `wolf`         | (同)        |
-| 8    | `wolfQueenCharm`      | `wolfQueen`    | `wolfQueen`    | (同)        |
-| 9    | `witchAction`         | `witch`        | `witch`        | (同)        |
-| 10   | `seerCheck`           | `seer`         | `seer`         | (同)        |
-| 11   | `psychicCheck`        | `psychic`      | `psychic`      | (同)        |
-| 12   | `hunterConfirm`       | `hunter`       | `hunter`       | (同)        |
-| 13   | `darkWolfKingConfirm` | `darkWolfKing` | `darkWolfKing` | (同)        |
+| 4    | `guardProtect`        | `guard`        | `guard`        | (同)        |
+| 5    | `wolfKill`            | `wolf`         | `wolf`         | (同)        |
+| 6    | `wolfQueenCharm`      | `wolfQueen`    | `wolfQueen`    | (同)        |
+| 7    | `witchAction`         | `witch`        | `witch`        | (同)        |
+| 8    | `hunterConfirm`       | `hunter`       | `hunter`       | (同)        |
+| 9    | `darkWolfKingConfirm` | `darkWolfKing` | `darkWolfKing` | (同)        |
+| 10   | `wolfRobotLearn`      | `wolfRobot`    | `wolfRobot`    | (同)        |
+| 11   | `seerCheck`           | `seer`         | `seer`         | (同)        |
+| 12   | `gargoyleCheck`       | `gargoyle`     | `gargoyle`     | (同)        |
+| 13   | `psychicCheck`        | `psychic`      | `psychic`      | (同)        |
 
 **合约保证**：
 

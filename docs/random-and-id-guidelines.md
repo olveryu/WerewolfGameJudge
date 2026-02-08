@@ -109,7 +109,7 @@ const animation = gameState.resolvedRoleRevealAnimation; // 直接读取，不�
 | `src/utils/random.ts`                       | 可测试随机（rng 注入）           | expo-crypto, Web Crypto |
 | `src/utils/shuffle.ts`                      | 数组打乱（rng 注入）             | random.ts               |
 | `src/utils/roomCode.ts`                     | 4 位房间号生成                   | random.ts               |
-| `src/services/types/RoleRevealAnimation.ts` | 动画随机解析（领域特定）         | 确定性 hash             |
+| `src/types/RoleRevealAnimation.ts`          | 动画随机解析（领域特定）         | 确定性 hash             |
 
 ### 工具函数速查
 
@@ -129,6 +129,6 @@ const animation = gameState.resolvedRoleRevealAnimation; // 直接读取，不�
 
 ## 相关链接
 
-- `src/hooks/useRoomHostDialogs.ts` - rng 注入示例
-- `src/services/types/RoleRevealAnimation.ts` - `resolveRandomAnimation` 实现
+- `src/screens/RoomScreen/useRoomHostDialogs.ts` - rng 注入示例
+- `src/types/RoleRevealAnimation.ts` - `resolveRandomAnimation` 实现
 - `src/__tests__/noMathRandom.contract.test.ts` - Math.random 禁用门禁测试
