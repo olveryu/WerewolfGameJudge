@@ -14,7 +14,7 @@ import {
   RANDOMIZABLE_ANIMATIONS,
   type RoleRevealAnimation,
   type ResolvedRoleRevealAnimation,
-} from '@/services/types/RoleRevealAnimation';
+} from '@/types/RoleRevealAnimation';
 
 describe('RoleRevealAnimation', () => {
   describe('RANDOMIZABLE_ANIMATIONS', () => {

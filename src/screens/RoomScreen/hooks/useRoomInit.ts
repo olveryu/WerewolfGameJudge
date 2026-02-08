@@ -17,7 +17,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { GameTemplate } from '@/models/Template';
-import type { RoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
+import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 export interface UseRoomInitParams {
   /** Room number (4-digit code) — confirmed/final, already created in DB */

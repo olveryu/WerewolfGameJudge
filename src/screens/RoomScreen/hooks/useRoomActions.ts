@@ -11,7 +11,7 @@
  */
 
 import { useCallback } from 'react';
-import type { LocalGameState } from '@/services/types/GameStateTypes';
+import type { LocalGameState } from '@/types/GameStateTypes';
 import { GameStatus } from '@/models/Room';
 import { RoleId, isWolfRole, doesRoleParticipateInWolfVote } from '@/models/roles';
 import type { ActionSchema, SchemaId, RevealKind } from '@/models/roles/spec';

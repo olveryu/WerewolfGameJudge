@@ -12,7 +12,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
-import type { LocalGameState } from '@/services/types/GameStateTypes';
+import type { LocalGameState } from '@/types/GameStateTypes';
 import type { RoleId } from '@/models/roles';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 

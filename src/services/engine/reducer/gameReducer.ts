@@ -31,8 +31,8 @@ import type {
   AddRevealAckAction,
   FillWithBotsAction,
 } from './types';
-import { resolveRandomAnimation } from '@/services/types/RoleRevealAnimation';
-import type { ResolvedRoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
+import { resolveRandomAnimation } from '@/types/RoleRevealAnimation';
+import type { ResolvedRoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { randomHex } from '@/utils/id';
 
 // =============================================================================

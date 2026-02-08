@@ -14,7 +14,7 @@ import type { CurrentNightResults } from '@/services/night/resolvers/types';
 import type {
   RoleRevealAnimation,
   ResolvedRoleRevealAnimation,
-} from '@/services/types/RoleRevealAnimation';
+} from '@/types/RoleRevealAnimation';
 
 // =============================================================================
 // 协议动作记录（ProtocolAction）— 线安全、稳定

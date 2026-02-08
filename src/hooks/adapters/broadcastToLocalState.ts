@@ -13,7 +13,7 @@
  */
 
 import type { BroadcastGameState, BroadcastPlayer } from '@/services/protocol/types';
-import type { LocalGameState, LocalPlayer } from '@/services/types/GameStateTypes';
+import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 import { GameStatus } from '@/models/GameStatus';
 import { createTemplateFromRoles } from '@/models/Template';
 import type { RoleId } from '@/models/roles';

@@ -77,4 +77,4 @@ export * from './protocol/reasonCodes';
 // =============================================================================
 // Types: 共享类型
 // =============================================================================
-export { GameStatus, type LocalGameState, type LocalPlayer } from './types/GameStateTypes';
+export { GameStatus, type LocalGameState, type LocalPlayer } from '@/types/GameStateTypes';

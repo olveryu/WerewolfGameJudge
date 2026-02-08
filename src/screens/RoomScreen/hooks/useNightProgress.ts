@@ -17,7 +17,7 @@ import { useMemo, useEffect, useRef } from 'react';
 import { buildNightPlan } from '@/models/roles';
 import type { SchemaId } from '@/models/roles';
 import { GameStatus } from '@/models/Room';
-import type { LocalGameState } from '@/services/types/GameStateTypes';
+import type { LocalGameState } from '@/types/GameStateTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

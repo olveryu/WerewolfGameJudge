@@ -26,7 +26,7 @@ import {
 } from '@/components/RoleRevealEffects';
 import { getRoleDisplayName, getRoleSpec, Faction } from '@/models/roles';
 import type { RoleId } from '@/models/roles/spec/specs';
-import type { ResolvedRoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
+import type { ResolvedRoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 // ─── Alignment map (Faction → reveal alignment) ────────────────────────────
 const ALIGNMENT_MAP: Record<Faction, 'wolf' | 'god' | 'villager'> = {

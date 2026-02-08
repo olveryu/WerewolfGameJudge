@@ -8,7 +8,7 @@ import type { RoleId } from '@/models/roles';
 import type { SchemaId } from '@/models/roles/spec';
 import type { BroadcastPlayer, ProtocolAction } from '@/services/protocol/types';
 import type { CurrentNightResults } from '@/services/night/resolvers/types';
-import type { RoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
+import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 // =============================================================================
 // 游戏生命周期动作

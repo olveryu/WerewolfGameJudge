@@ -17,7 +17,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { LocalGameState } from '@/services/types/GameStateTypes';
+import type { LocalGameState } from '@/types/GameStateTypes';
 import type { ActionSchema, InlineSubStepSchema } from '@/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
 import type { RoleId } from '@/models/roles/spec/specs';

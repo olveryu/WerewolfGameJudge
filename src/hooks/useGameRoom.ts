@@ -18,7 +18,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { LocalGameState } from '@/services/types/GameStateTypes';
+import type { LocalGameState } from '@/types/GameStateTypes';
 import { GameStatus } from '@/models/GameStatus';
 import { SimplifiedRoomService, RoomRecord } from '@/services/infra/RoomService';
 import type { ConnectionStatus } from '@/services/transport/BroadcastService';
@@ -32,7 +32,7 @@ import { broadcastToLocalState } from './adapters/broadcastToLocalState';
 import type {
   RoleRevealAnimation,
   ResolvedRoleRevealAnimation,
-} from '@/services/types/RoleRevealAnimation';
+} from '@/types/RoleRevealAnimation';
 import { useNightDerived } from './useNightDerived';
 import { useConnectionSync } from './useConnectionSync';
 import { useBgmControl } from './useBgmControl';

@@ -8,7 +8,7 @@
 import type { BroadcastGameState } from '@/services/protocol/types';
 import type { GameTemplate } from '@/models/Template';
 import type { RoleId } from '@/models/roles';
-import type { RoleRevealAnimation } from './RoleRevealAnimation';
+import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 export type StateListener = (state: BroadcastGameState | null) => void;
 

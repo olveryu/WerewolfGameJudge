@@ -10,7 +10,7 @@ import {
   toGameRoomLike,
 } from '@/screens/RoomScreen/RoomScreen.helpers';
 import type { RoleId } from '@/models/roles';
-import type { LocalGameState } from '@/services/types/GameStateTypes';
+import type { LocalGameState } from '@/types/GameStateTypes';
 import { GameStatus } from '@/models/GameStatus';
 import { SCHEMAS } from '@/models/roles/spec/schemas';
 

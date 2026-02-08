@@ -36,7 +36,7 @@ import type { RoleId } from '@/models/roles';
 import type { GameTemplate } from '@/models/Template';
 
 import { doesRoleParticipateInWolfVote } from '@/models/roles';
-import type { RoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
+import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 import {
   handleAssignRoles,

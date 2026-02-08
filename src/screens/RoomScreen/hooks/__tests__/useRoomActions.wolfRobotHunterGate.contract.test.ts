@@ -8,7 +8,7 @@
  */
 
 import { SCHEMAS } from '@/models/roles/spec/schemas';
-import type { LocalGameState } from '@/services/types/GameStateTypes';
+import type { LocalGameState } from '@/types/GameStateTypes';
 import { GameStatus } from '@/models/GameStatus';
 import { createTemplateFromRoles } from '@/models/Template';
 

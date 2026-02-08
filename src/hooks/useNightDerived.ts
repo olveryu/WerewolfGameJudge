@@ -9,7 +9,7 @@
  */
 
 import { useMemo } from 'react';
-import type { LocalGameState } from '@/services/types/GameStateTypes';
+import type { LocalGameState } from '@/types/GameStateTypes';
 import { GameStatus } from '@/models/GameStatus';
 import {
   isValidRoleId,
@@ -23,7 +23,7 @@ import { RoleId, buildNightPlan } from '@/models/roles';
 import type {
   RoleRevealAnimation,
   ResolvedRoleRevealAnimation,
-} from '@/services/types/RoleRevealAnimation';
+} from '@/types/RoleRevealAnimation';
 
 export interface NightDerivedValues {
   /** Current action role derived from NightPlan */

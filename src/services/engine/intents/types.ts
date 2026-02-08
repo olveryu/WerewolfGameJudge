@@ -6,7 +6,7 @@
  */
 
 import type { RoleId } from '@/models/roles';
-import type { RoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
+import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 // =============================================================================
 // 座位相关 Intent

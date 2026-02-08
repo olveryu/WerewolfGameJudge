@@ -57,7 +57,7 @@ export interface LocalGameState {
    * This is used for schema-driven UI mapping (e.g. NIGHT_STEPS.audioKey display).
    * It must not be used to drive game logic.
    */
-  currentStepId?: import('../../models/roles/spec').SchemaId;
+  currentStepId?: import('@/models/roles/spec').SchemaId;
   isAudioPlaying: boolean;
   /**
    * 开牌动画配置（Host 控制）

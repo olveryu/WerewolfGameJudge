@@ -28,7 +28,7 @@ import { configLog } from '@/utils/logger';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import SettingsService from '@/services/infra/SettingsService';
-import type { RoleRevealAnimation } from '@/services/types/RoleRevealAnimation';
+import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import {
   RoleChip,
   RoleStepper,
