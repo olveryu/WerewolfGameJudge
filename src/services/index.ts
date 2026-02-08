@@ -15,7 +15,7 @@
 // =============================================================================
 export { default as AudioService } from './infra/AudioService';
 export { AuthService } from './infra/AuthService';
-export { SimplifiedRoomService, type RoomRecord } from './infra/RoomService';
+export { RoomService, type RoomRecord } from './infra/RoomService';
 
 // =============================================================================
 // Feature: 业务功能服务

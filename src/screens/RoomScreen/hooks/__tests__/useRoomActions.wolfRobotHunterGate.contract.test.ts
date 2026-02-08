@@ -26,7 +26,7 @@ function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState
     ]),
     actions: new Map(),
     wolfVotes: new Map(),
-    currentActionerIndex: 0,
+    currentStepIndex: 0,
     currentStepId: 'wolfRobotLearn',
     isAudioPlaying: false,
     lastNightDeaths: [],

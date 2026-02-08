@@ -61,7 +61,7 @@ function createOngoingState(overrides?: Partial<BroadcastGameState>): BroadcastG
       4: createPlayer(4, 'villager'),
       5: createPlayer(5, 'villager'),
     },
-    currentActionerIndex: 0,
+    currentStepIndex: 0,
     currentStepId: NIGHT_STEPS[0]?.id,
     isAudioPlaying: false,
     actions: [],
@@ -158,7 +158,7 @@ describe('nightFlowHandler', () => {
         const context: HandlerContext = {
           // 从 wolfKill 推进，且模板包含 witch，应该设置 witchContext
           state: createOngoingState({
-            currentActionerIndex: 0,
+            currentStepIndex: 0,
             currentStepId: 'wolfKill',
             templateRoles,
           }),
@@ -176,7 +176,7 @@ describe('nightFlowHandler', () => {
         const advanceAction = result.actions[0];
         expect(advanceAction.type).toBe('ADVANCE_TO_NEXT_ACTION');
         if (advanceAction.type === 'ADVANCE_TO_NEXT_ACTION') {
-          expect(advanceAction.payload.nextActionerIndex).toBe(1);
+          expect(advanceAction.payload.nextStepIndex).toBe(1);
           // 使用 buildNightPlan 过滤后的步骤（对应模板角色）
           expect(advanceAction.payload.nextStepId).toBe(nightPlan.steps[1]?.stepId ?? null);
         }
@@ -202,7 +202,7 @@ describe('nightFlowHandler', () => {
         const lastIndex = nightPlan.steps.length - 1;
         const context: HandlerContext = {
           state: createOngoingState({
-            currentActionerIndex: lastIndex,
+            currentStepIndex: lastIndex,
             currentStepId: nightPlan.steps[lastIndex]?.stepId,
           }),
           isHost: true,
@@ -215,7 +215,7 @@ describe('nightFlowHandler', () => {
         expect(result.success).toBe(true);
         const action = result.actions[0];
         if (action.type === 'ADVANCE_TO_NEXT_ACTION') {
-          expect(action.payload.nextActionerIndex).toBe(lastIndex + 1);
+          expect(action.payload.nextStepIndex).toBe(lastIndex + 1);
           expect(action.payload.nextStepId).toBeNull();
         }
       });
@@ -262,7 +262,7 @@ describe('nightFlowHandler', () => {
               hasViewedRole: true,
             },
           },
-          currentActionerIndex: 0,
+          currentStepIndex: 0,
           currentStepId: undefined,
           actions: [],
           currentNightResults: {
@@ -661,7 +661,7 @@ describe('nightFlowHandler', () => {
         const context: HandlerContext = {
           state: createOngoingState({
             players,
-            currentActionerIndex: 0, // wolfKill 是第 0 步
+            currentStepIndex: 0, // wolfKill 是第 0 步
             currentStepId: 'wolfKill',
             templateRoles,
             // 狼杀了女巫（座位 1）
@@ -682,8 +682,8 @@ describe('nightFlowHandler', () => {
         expect(witchContextAction).toBeDefined();
 
         if (witchContextAction?.type === 'SET_WITCH_CONTEXT') {
-          // killedIndex 应该是 1（女巫座位）
-          expect(witchContextAction.payload.killedIndex).toBe(1);
+          // killedSeat 应该是 1（女巫座位）
+          expect(witchContextAction.payload.killedSeat).toBe(1);
           // canSave 必须是 false（女巫不能自救，notSelf 约束）
           expect(witchContextAction.payload.canSave).toBe(false);
         }
@@ -703,7 +703,7 @@ describe('nightFlowHandler', () => {
         const context: HandlerContext = {
           state: createOngoingState({
             players,
-            currentActionerIndex: 0,
+            currentStepIndex: 0,
             currentStepId: 'wolfKill',
             templateRoles,
             // 狼杀了村民（座位 2）
@@ -722,8 +722,8 @@ describe('nightFlowHandler', () => {
         expect(witchContextAction).toBeDefined();
 
         if (witchContextAction?.type === 'SET_WITCH_CONTEXT') {
-          // killedIndex 应该是 2（村民座位）
-          expect(witchContextAction.payload.killedIndex).toBe(2);
+          // killedSeat 应该是 2（村民座位）
+          expect(witchContextAction.payload.killedSeat).toBe(2);
           // canSave 应该是 true（可以救别人）
           expect(witchContextAction.payload.canSave).toBe(true);
         }
@@ -752,7 +752,7 @@ describe('nightFlowHandler', () => {
         const context: HandlerContext = {
           state: createOngoingState({
             players,
-            currentActionerIndex: 0,
+            currentStepIndex: 0,
             currentStepId: 'seerCheck',
             templateRoles,
             currentNightResults: {},
@@ -790,12 +790,12 @@ describe('nightFlowHandler', () => {
         const context: HandlerContext = {
           state: createOngoingState({
             players,
-            currentActionerIndex: 1, // witchAction 是第 1 步
+            currentStepIndex: 1, // witchAction 是第 1 步
             currentStepId: 'witchAction',
             templateRoles,
             currentNightResults: {},
             // witchContext 已经设置（进入 witchAction 时设置的）
-            witchContext: { killedIndex: -1, canSave: false, canPoison: true },
+            witchContext: { killedSeat: -1, canSave: false, canPoison: true },
           }),
           isHost: true,
           myUid: 'host-uid',

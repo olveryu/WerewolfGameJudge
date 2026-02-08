@@ -38,7 +38,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
       1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
       2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
     },
-    currentActionerIndex: 0,
+    currentStepIndex: 0,
     isAudioPlaying: false,
     actions: [],
     currentNightResults: {},

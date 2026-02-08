@@ -45,7 +45,7 @@ const createTestRoom = (
     players,
     actions,
     wolfVotes,
-    currentActionerIndex: 0,
+    currentStepIndex: 0,
   };
 };
 

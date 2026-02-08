@@ -26,7 +26,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: 'unseated',
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
-    currentActionerIndex: -1,
+    currentStepIndex: -1,
     isAudioPlaying: false,
     ...overrides,
   };
@@ -269,7 +269,7 @@ describe('handleStartNight', () => {
     expect(result.actions[0].type).toBe('START_NIGHT');
   });
 
-  it('should set currentActionerIndex to 0', () => {
+  it('should set currentStepIndex to 0', () => {
     const context = createContext(readyState);
     const intent: StartNightIntent = { type: 'START_NIGHT' };
 
@@ -278,7 +278,7 @@ describe('handleStartNight', () => {
     const startNightAction = result.actions.find((a) => a.type === 'START_NIGHT');
     expect(startNightAction).toBeDefined();
     if (startNightAction?.type === 'START_NIGHT') {
-      expect(startNightAction.payload.currentActionerIndex).toBe(0);
+      expect(startNightAction.payload.currentStepIndex).toBe(0);
     }
   });
 
@@ -329,7 +329,7 @@ describe('handleStartNight', () => {
     expect(witchContextAction).toBeDefined();
     if (witchContextAction?.type === 'SET_WITCH_CONTEXT') {
       // 无人死亡
-      expect(witchContextAction.payload.killedIndex).toBe(-1);
+      expect(witchContextAction.payload.killedSeat).toBe(-1);
       // 没有人需要救
       expect(witchContextAction.payload.canSave).toBe(false);
       // 毒药可用

@@ -183,13 +183,13 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         myRole: 'witch',
         mySeatNumber: 9,
         witchContext: {
-          killedIndex: 1,
+          killedSeat: 1,
           canSave: true,
           canPoison: true,
         },
         gameStateOverrides: {
           witchContext: {
-            killedIndex: 1,
+            killedSeat: 1,
             canSave: true,
             canPoison: true,
           },
@@ -219,13 +219,13 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         myRole: 'witch',
         mySeatNumber: 9,
         witchContext: {
-          killedIndex: -1, // No one died
+          killedSeat: -1, // No one died
           canSave: false,
           canPoison: true,
         },
         gameStateOverrides: {
           witchContext: {
-            killedIndex: -1,
+            killedSeat: -1,
             canSave: false,
             canPoison: true,
           },

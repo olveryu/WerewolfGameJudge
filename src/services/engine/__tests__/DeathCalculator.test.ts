@@ -23,7 +23,7 @@
  * - magicianSwap: { first: number; second: number } | undefined
  * - seerCheck: number | undefined
  * - nightmareBlock: number | undefined
- * - nightmareBlockedWolf: boolean | undefined
+ * - isWolfBlockedByNightmare: boolean | undefined
  *
  * RoleSeatMap 字段定义来源：src/services/DeathCalculator.ts
  * - witcher, wolfQueen, dreamcatcher, spiritKnight, seer, witch, guard: number (-1 表示不在场)
@@ -439,7 +439,7 @@ describe('DeathCalculator', () => {
     it('封锁狼人 → 狼人无法杀人', () => {
       const actions: NightActions = {
         wolfKill: 0, // 狼想杀0号
-        nightmareBlockedWolf: true, // 梦魇封锁了狼人
+        isWolfBlockedByNightmare: true, // 梦魇封锁了狼人
       };
 
       const deaths = calculateDeaths(actions);

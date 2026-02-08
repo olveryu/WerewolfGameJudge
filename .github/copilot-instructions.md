@@ -47,7 +47,7 @@
 - **离线本地玩法。** 这是本地/离线的游戏辅助；Host 设备同时也是玩家，不是单独裁判机。
 - **仅 Night-1 范围。** 绝对不要加入跨夜状态/规则。
 - **`BroadcastGameState` 是唯一且完整的单一真相（Single source of truth）。**
-  - 所有游戏信息（包括角色上下文，如女巫 `killedIndex`、预言家 reveal）都必须公开广播在 `BroadcastGameState` 中；UI 再按 `myRole` 过滤显示。
+  - 所有游戏信息（包括角色上下文，如女巫 `killedSeat`、预言家 reveal）都必须公开广播在 `BroadcastGameState` 中；UI 再按 `myRole` 过滤显示。
   - 禁止并行维护顺序表/map/双写字段导致 drift。
 - **优先使用成熟库而不是自研。** 新增能力（日志、校验等）先找成熟 npm 库；只有在库不合适或过度复杂时才写自定义代码。
 - **单一职责原则（SRP）。** 每个 class/module 必须且只能负责一件事。禁止 God Class（多个不相关职责揉在一起）。若单个模块超过 ~400 行或承担多个关注点，必须拆分。
@@ -224,7 +224,7 @@ advanceToNextAction()
 
 - **所有游戏状态都是公开的。** `BroadcastGameState` 必须包含全部信息（含角色特定数据）。
 - **UI 层过滤显示。** Client UI 按 `myRole` 过滤：
-  - 例：女巫仅在 `myRole === 'witch'` 时显示 `witchContext.killedIndex`
+  - 例：女巫仅在 `myRole === 'witch'` 时显示 `witchContext.killedSeat`
   - 例：预言家仅在 `myRole === 'seer'` 时显示 `seerReveal.result`
   - 狼人同理：仅狼阵营显示狼队信息（例如 `currentNightResults.wolfVotesBySeat`）
 - **不允许 `PRIVATE_EFFECT`。** 私有消息基础设施已移除。

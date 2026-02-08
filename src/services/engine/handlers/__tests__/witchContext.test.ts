@@ -34,7 +34,7 @@ function createOngoingState(
       1: createPlayer(1, 'witch'),
       2: createPlayer(2, 'villager'),
     },
-    currentActionerIndex: 0,
+    currentStepIndex: 0,
     currentStepId: 'wolfKill',
     actions: [],
     currentNightResults: {},
@@ -58,7 +58,7 @@ describe('computeWitchContext', () => {
 
       const result = computeWitchContext(state);
 
-      expect(result.killedIndex).toBe(2);
+      expect(result.killedSeat).toBe(2);
       expect(result.canSave).toBe(true);
     });
 
@@ -69,7 +69,7 @@ describe('computeWitchContext', () => {
 
       const result = computeWitchContext(state);
 
-      expect(result.killedIndex).toBe(1);
+      expect(result.killedSeat).toBe(1);
       expect(result.canSave).toBe(false);
     });
 
@@ -80,7 +80,7 @@ describe('computeWitchContext', () => {
 
       const result = computeWitchContext(state);
 
-      expect(result.killedIndex).toBe(-1);
+      expect(result.killedSeat).toBe(-1);
       expect(result.canSave).toBe(false);
     });
 
@@ -92,7 +92,7 @@ describe('computeWitchContext', () => {
 
       const result = computeWitchContext(state);
 
-      expect(result.killedIndex).toBe(-1);
+      expect(result.killedSeat).toBe(-1);
       expect(result.canSave).toBe(false);
     });
 
@@ -117,7 +117,7 @@ describe('computeWitchContext', () => {
       const result = computeWitchContext(state);
 
       // 关键断言：即使有被杀者，witchSeat=-1 时 canSave 必须为 false
-      expect(result.killedIndex).toBe(2);
+      expect(result.killedSeat).toBe(2);
       expect(result.canSave).toBe(false);
     });
   });
@@ -147,7 +147,7 @@ describe('maybeCreateWitchContextAction', () => {
 
     expect(action).not.toBeNull();
     expect(action?.type).toBe('SET_WITCH_CONTEXT');
-    expect(action?.payload.killedIndex).toBe(2);
+    expect(action?.payload.killedSeat).toBe(2);
     expect(action?.payload.canSave).toBe(true);
   });
 
@@ -161,7 +161,7 @@ describe('maybeCreateWitchContextAction', () => {
 
   it('should return null when witchContext already exists', () => {
     const state = createOngoingState({
-      witchContext: { killedIndex: 2, canSave: true, canPoison: true },
+      witchContext: { killedSeat: 2, canSave: true, canPoison: true },
     });
 
     const action = maybeCreateWitchContextAction('witchAction', state);

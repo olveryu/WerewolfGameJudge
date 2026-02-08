@@ -149,7 +149,7 @@ export class GameFacade implements IGameFacade {
       status: 'unseated',
       templateRoles: template.roles,
       players,
-      currentActionerIndex: -1,
+      currentStepIndex: -1,
       isAudioPlaying: false,
     };
 
@@ -234,7 +234,7 @@ export class GameFacade implements IGameFacade {
         status: 'unseated',
         templateRoles,
         players,
-        currentActionerIndex: -1,
+        currentStepIndex: -1,
         isAudioPlaying: false,
       };
 

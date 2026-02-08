@@ -211,7 +211,7 @@ describe('toGameRoomLike', () => {
       players: new Map(),
       actions: new Map(),
       wolfVotes: new Map(),
-      currentActionerIndex: 0,
+      currentStepIndex: 0,
       isAudioPlaying: false,
       lastNightDeaths: [],
       currentNightResults: {},
@@ -224,7 +224,7 @@ describe('toGameRoomLike', () => {
     expect(result.players).toBe(mockState.players);
     expect(result.actions).toBe(mockState.actions);
     expect(result.wolfVotes).toBe(mockState.wolfVotes);
-    expect(result.currentActionerIndex).toBe(0);
+    expect(result.currentStepIndex).toBe(0);
   });
 });
 
@@ -267,7 +267,7 @@ describe('buildSeatViewModels', () => {
       ]),
       actions: new Map(),
       wolfVotes: new Map(),
-      currentActionerIndex: 0,
+      currentStepIndex: 0,
       isAudioPlaying: false,
       lastNightDeaths: [],
       currentNightResults: {},
@@ -345,7 +345,7 @@ describe('buildSeatViewModels', () => {
       ]),
       actions: new Map(),
       wolfVotes: new Map(),
-      currentActionerIndex: 0,
+      currentStepIndex: 0,
       isAudioPlaying: false,
       lastNightDeaths: [],
       currentNightResults: {},
@@ -397,7 +397,7 @@ describe('buildSeatViewModels', () => {
       ]),
       actions: new Map(),
       wolfVotes: new Map(),
-      currentActionerIndex: 0,
+      currentStepIndex: 0,
       isAudioPlaying: false,
       lastNightDeaths: [],
       currentNightResults: {},
@@ -453,7 +453,7 @@ describe('buildSeatViewModels', () => {
         ]),
         actions: new Map(),
         wolfVotes: new Map(),
-        currentActionerIndex: 0,
+        currentStepIndex: 0,
         isAudioPlaying: false,
         lastNightDeaths: [],
         currentNightResults: {},
@@ -515,7 +515,7 @@ describe('buildSeatViewModels', () => {
         ]),
         actions: new Map(),
         wolfVotes: new Map(),
-        currentActionerIndex: 0,
+        currentStepIndex: 0,
         isAudioPlaying: false,
         lastNightDeaths: [],
         currentNightResults: {},

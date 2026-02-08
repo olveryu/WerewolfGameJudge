@@ -66,7 +66,7 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
       ),
       actions: new Map(),
       wolfVotes: new Map(),
-      currentActionerIndex: 0,
+      currentStepIndex: 0,
       isAudioPlaying: false,
       lastNightDeaths: [],
       nightmareBlockedSeat: null,

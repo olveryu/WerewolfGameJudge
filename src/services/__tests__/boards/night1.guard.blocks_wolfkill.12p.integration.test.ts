@@ -15,7 +15,7 @@
  *
  * 核心规则：
  * - 守卫守护的目标免疫狼刀
- * - witchContext.killedIndex 在守卫挡刀时的取值需要固化
+ * - witchContext.killedSeat 在守卫挡刀时的取值需要固化
  *
  * 架构：intents → handlers → reducer → BroadcastGameState
  */
@@ -109,10 +109,10 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
   });
 
   /**
-   * witchContext.killedIndex 的 contract 由 witchContext.test.ts 单元测试覆盖。
+   * witchContext.killedSeat 的 contract 由 witchContext.test.ts 单元测试覆盖。
    * Integration 测试只验证最终死亡结果，不检查中间状态。
    *
-   * 守卫挡刀时，witchContext.killedIndex 仍为原目标（女巫能看到谁被刀）。
+   * 守卫挡刀时，witchContext.killedSeat 仍为原目标（女巫能看到谁被刀）。
    * 这个规则的验证见：src/services/engine/handlers/__tests__/witchContext.test.ts
    */
 

@@ -260,7 +260,7 @@ describe('useGameRoom - ACK reason transparency', () => {
         status: 'unseated',
         templateRoles: ['villager', 'wolf', 'seer'],
         players: {},
-        currentActionerIndex: -1,
+        currentStepIndex: -1,
         isAudioPlaying: false,
       };
 
@@ -315,7 +315,7 @@ describe('useGameRoom - ACK reason transparency', () => {
         deleteRoom: jest.fn(),
         subscribeToRoom: jest.fn().mockReturnValue(() => {}),
       };
-      jest.requireMock('../../services/infra/RoomService').SimplifiedRoomService = {
+      jest.requireMock('../../services/infra/RoomService').RoomService = {
         getInstance: () => mockRoomService,
       };
 
@@ -390,7 +390,7 @@ describe('useGameRoom - ACK reason transparency', () => {
         deleteRoom: jest.fn(),
         subscribeToRoom: jest.fn().mockReturnValue(() => {}),
       };
-      jest.requireMock('../../services/infra/RoomService').SimplifiedRoomService = {
+      jest.requireMock('../../services/infra/RoomService').RoomService = {
         getInstance: () => mockRoomService,
       };
 
@@ -418,7 +418,7 @@ describe('useGameRoom - ACK reason transparency', () => {
         status: 'unseated',
         templateRoles: ['villager'],
         players: {},
-        currentActionerIndex: -1,
+        currentStepIndex: -1,
         isAudioPlaying: false,
       };
 
@@ -529,7 +529,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
           isBot: true,
         },
       },
-      currentActionerIndex: -1,
+      currentStepIndex: -1,
       isAudioPlaying: false,
       debugMode: { botsEnabled: true },
       currentNightResults: {},
@@ -608,7 +608,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
           isBot: true,
         },
       },
-      currentActionerIndex: -1,
+      currentStepIndex: -1,
       isAudioPlaying: false,
       debugMode: { botsEnabled: true },
       currentNightResults: {},
@@ -677,7 +677,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
           isBot: true,
         },
       },
-      currentActionerIndex: -1,
+      currentStepIndex: -1,
       isAudioPlaying: false,
       debugMode: { botsEnabled: true },
       currentNightResults: {},
@@ -742,7 +742,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
         // seat 1 is empty (null)
         1: null,
       },
-      currentActionerIndex: -1,
+      currentStepIndex: -1,
       isAudioPlaying: false,
       currentNightResults: {},
     };

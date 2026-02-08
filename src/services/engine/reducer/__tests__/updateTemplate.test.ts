@@ -47,7 +47,7 @@ function createStateWithPlayers(
     status: allSeated ? 'seated' : 'unseated',
     templateRoles,
     players: playersMap,
-    currentActionerIndex: -1,
+    currentStepIndex: -1,
     isAudioPlaying: false,
     ...overrides,
   };

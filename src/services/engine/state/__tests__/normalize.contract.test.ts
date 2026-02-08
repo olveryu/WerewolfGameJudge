@@ -23,7 +23,7 @@ const BROADCAST_GAME_STATE_FIELDS: (keyof BroadcastGameState)[] = [
   'status',
   'templateRoles',
   'players',
-  'currentActionerIndex',
+  'currentStepIndex',
   'isAudioPlaying',
 
   // 开牌动画配置
@@ -79,7 +79,7 @@ describe('normalizeState contract', () => {
       players: {
         1: { uid: 'p1', seatNumber: 1, hasViewedRole: true },
       },
-      currentActionerIndex: 0,
+      currentStepIndex: 0,
       isAudioPlaying: false,
 
       // 开牌动画配置
@@ -104,7 +104,7 @@ describe('normalizeState contract', () => {
       wolfRobotContext: { learnedSeat: 4, disguisedRole: 'seer' },
 
       // 角色特定上下文
-      witchContext: { killedIndex: 2, canSave: true, canPoison: true },
+      witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       seerReveal: { targetSeat: 3, result: '好人' },
       psychicReveal: { targetSeat: 4, result: 'seer' },
       gargoyleReveal: { targetSeat: 5, result: '好人阵营' },
@@ -173,7 +173,7 @@ describe('normalizeState contract', () => {
       status: 'unseated',
       templateRoles: ['villager'],
       players: {},
-      currentActionerIndex: -1,
+      currentStepIndex: -1,
       isAudioPlaying: false,
     };
 

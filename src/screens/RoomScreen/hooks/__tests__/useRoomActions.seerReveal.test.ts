@@ -24,7 +24,7 @@ const makeGameState = (): LocalGameState =>
     ]),
     actions: new Map(),
     wolfVotes: new Map(),
-    currentActionerIndex: 0,
+    currentStepIndex: 0,
     isAudioPlaying: false,
     lastNightDeaths: [],
     currentNightResults: {},

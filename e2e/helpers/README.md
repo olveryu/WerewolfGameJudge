@@ -283,7 +283,7 @@ Specialized waits for RoomScreen after creation or joining.
 **Root Cause:** Race condition between `generateRoomNumber()` check and `createRoom()` insert.
 If another client creates a room with the same 4-digit code in between, Supabase returns 409.
 
-### Mitigation (IMPLEMENTED in SimplifiedRoomService)
+### Mitigation (IMPLEMENTED in RoomService)
 
 1. **createRoom() retry logic:**
    - On 409/duplicate error: generate new room number and retry
@@ -311,4 +311,4 @@ Per `.github/copilot-instructions.md`:
 **Known mitigated flakes:**
 
 - `ERR_CONNECTION_REFUSED` → `gotoWithRetry()` with HTTP health check
-- `HTTP 409 room conflict` → `createRoom()` retry logic in SimplifiedRoomService
+- `HTTP 409 room conflict` → `createRoom()` retry logic in RoomService

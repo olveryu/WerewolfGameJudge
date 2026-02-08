@@ -135,7 +135,7 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
 
     if (typeof targetSeat !== 'number') {
       actionsMap.set('witch', makeActionWitch(makeWitchNone()));
-    } else if (ctx && targetSeat === ctx.killedIndex && ctx.canSave) {
+    } else if (ctx && targetSeat === ctx.killedSeat && ctx.canSave) {
       actionsMap.set('witch', makeActionWitch(makeWitchSave(targetSeat)));
     } else {
       actionsMap.set('witch', makeActionWitch(makeWitchPoison(targetSeat)));
@@ -162,7 +162,7 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
     players: playersMap,
     actions: actionsMap,
     wolfVotes: wolfVotesMap,
-    currentActionerIndex: broadcast.currentActionerIndex,
+    currentStepIndex: broadcast.currentStepIndex,
     currentStepId: broadcast.currentStepId, // PR9: 透传 currentStepId
     isAudioPlaying: broadcast.isAudioPlaying,
     roleRevealAnimation: broadcast.roleRevealAnimation,

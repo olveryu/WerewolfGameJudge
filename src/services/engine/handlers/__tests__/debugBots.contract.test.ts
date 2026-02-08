@@ -40,7 +40,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     status: 'unseated',
     templateRoles: new Array<string>(totalSeats).fill('villager') as any,
     players: defaultPlayers,
-    currentActionerIndex: -1,
+    currentStepIndex: -1,
     isAudioPlaying: false,
     currentNightResults: {},
     ...overrides,

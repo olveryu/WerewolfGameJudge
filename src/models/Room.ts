@@ -39,7 +39,7 @@ export interface GameRoomLike {
   >;
   actions: Map<RoleId, RoleAction>;
   wolfVotes: Map<number, number>;
-  currentActionerIndex: number;
+  currentStepIndex: number;
 }
 
 // Check if a specific wolf has voted
@@ -83,63 +83,63 @@ function parseWitchActionFromRoleAction(action: RoleAction | undefined): {
 
 // Parse magician action into exchanged seats (from structured RoleAction)
 function parseMagicianActionFromRoleAction(action: RoleAction | undefined): {
-  firstExchanged?: number;
-  secondExchanged?: number;
+  firstSwapSeat?: number;
+  secondSwapSeat?: number;
 } {
   if (!action || !isActionMagicianSwap(action)) {
     return {};
   }
   return {
-    firstExchanged: action.firstSeat,
-    secondExchanged: action.secondSeat,
+    firstSwapSeat: action.firstSeat,
+    secondSwapSeat: action.secondSeat,
   };
 }
 
 // Find special role seats (works with GameRoomLike)
 function findSpecialRoleSeats(room: GameRoomLike): {
-  queenIndex?: number;
-  dreamcatcherIndex?: number;
-  witcherIndex?: number;
-  spiritKnightIndex?: number;
-  seerIndex?: number;
-  witchIndex?: number;
+  queenSeat?: number;
+  dreamcatcherSeat?: number;
+  witcherSeat?: number;
+  spiritKnightSeat?: number;
+  seerSeat?: number;
+  witchSeat?: number;
 } {
-  let queenIndex: number | undefined;
-  let dreamcatcherIndex: number | undefined;
-  let witcherIndex: number | undefined;
-  let spiritKnightIndex: number | undefined;
-  let seerIndex: number | undefined;
-  let witchIndex: number | undefined;
+  let queenSeat: number | undefined;
+  let dreamcatcherSeat: number | undefined;
+  let witcherSeat: number | undefined;
+  let spiritKnightSeat: number | undefined;
+  let seerSeat: number | undefined;
+  let witchSeat: number | undefined;
 
   room.players.forEach((player, seat) => {
-    if (player?.role === 'wolfQueen') queenIndex = seat;
-    if (player?.role === 'dreamcatcher') dreamcatcherIndex = seat;
-    if (player?.role === 'witcher') witcherIndex = seat;
-    if (player?.role === 'spiritKnight') spiritKnightIndex = seat;
-    if (player?.role === 'seer') seerIndex = seat;
-    if (player?.role === 'witch') witchIndex = seat;
+    if (player?.role === 'wolfQueen') queenSeat = seat;
+    if (player?.role === 'dreamcatcher') dreamcatcherSeat = seat;
+    if (player?.role === 'witcher') witcherSeat = seat;
+    if (player?.role === 'spiritKnight') spiritKnightSeat = seat;
+    if (player?.role === 'seer') seerSeat = seat;
+    if (player?.role === 'witch') witchSeat = seat;
   });
 
-  return { queenIndex, dreamcatcherIndex, witcherIndex, spiritKnightIndex, seerIndex, witchIndex };
+  return { queenSeat, dreamcatcherSeat, witcherSeat, spiritKnightSeat, seerSeat, witchSeat };
 }
 
 // Apply magician swap to deaths
 function applyMagicianSwap(
   deaths: Set<number>,
-  firstExchanged?: number,
-  secondExchanged?: number,
+  firstSwapSeat?: number,
+  secondSwapSeat?: number,
 ): void {
-  if (firstExchanged === undefined || secondExchanged === undefined) return;
+  if (firstSwapSeat === undefined || secondSwapSeat === undefined) return;
 
-  const firstDead = deaths.has(firstExchanged);
-  const secondDead = deaths.has(secondExchanged);
+  const firstDead = deaths.has(firstSwapSeat);
+  const secondDead = deaths.has(secondSwapSeat);
 
   if (firstDead && !secondDead) {
-    deaths.delete(firstExchanged);
-    deaths.add(secondExchanged);
+    deaths.delete(firstSwapSeat);
+    deaths.add(secondSwapSeat);
   } else if (!firstDead && secondDead) {
-    deaths.delete(secondExchanged);
-    deaths.add(firstExchanged);
+    deaths.delete(secondSwapSeat);
+    deaths.add(firstSwapSeat);
   }
 }
 
@@ -148,14 +148,14 @@ export const getLastNightInfo = (room: GameRoomLike): string => {
   const wolfKillSeat = getActionTargetSeat(room.actions.get('wolf'));
   const witchAction = room.actions.get('witch');
   const { killedByWitch, savedByWitch } = parseWitchActionFromRoleAction(witchAction);
-  const sleptWithSeat = getActionTargetSeat(room.actions.get('wolfQueen'));
+  const charmTargetSeat = getActionTargetSeat(room.actions.get('wolfQueen'));
   const guardProtectSeat = getActionTargetSeat(room.actions.get('guard'));
-  const nightWalkerSeat = getActionTargetSeat(room.actions.get('dreamcatcher'));
+  const dreamcatcherTargetSeat = getActionTargetSeat(room.actions.get('dreamcatcher'));
   const seerCheckedSeat = getActionTargetSeat(room.actions.get('seer'));
-  const { firstExchanged, secondExchanged } = parseMagicianActionFromRoleAction(
+  const { firstSwapSeat, secondSwapSeat } = parseMagicianActionFromRoleAction(
     room.actions.get('magician'),
   );
-  const { queenIndex, dreamcatcherIndex, witcherIndex, spiritKnightIndex, seerIndex, witchIndex } =
+  const { queenSeat, dreamcatcherSeat, witcherSeat, spiritKnightSeat, seerSeat, witchSeat } =
     findSpecialRoleSeats(room);
 
   const deaths = new Set<number>();
@@ -177,54 +177,54 @@ export const getLastNightInfo = (room: GameRoomLike): string => {
   }
 
   // Poisoned by witch (witcher is immune)
-  if (killedByWitch !== null && witcherIndex !== killedByWitch) {
+  if (killedByWitch !== null && witcherSeat !== killedByWitch) {
     deaths.add(killedByWitch);
   }
 
   // Spirit Knight reflect rules:
   // - If seer checks spiritKnight, seer dies (next day). We model it as a death in last night info.
   // - If witch poisons spiritKnight, witch dies (next day) and poison is ineffective.
-  if (spiritKnightIndex !== undefined) {
+  if (spiritKnightSeat !== undefined) {
     if (
       seerCheckedSeat !== undefined &&
-      seerCheckedSeat === spiritKnightIndex &&
-      seerIndex !== undefined
+      seerCheckedSeat === spiritKnightSeat &&
+      seerSeat !== undefined
     ) {
-      deaths.add(seerIndex);
+      deaths.add(seerSeat);
     }
 
-    if (killedByWitch !== null && killedByWitch === spiritKnightIndex) {
+    if (killedByWitch !== null && killedByWitch === spiritKnightSeat) {
       // Poison has no effect on spirit knight
-      deaths.delete(spiritKnightIndex);
+      deaths.delete(spiritKnightSeat);
 
       // Witch dies by reflection
-      if (witchIndex !== undefined) {
-        deaths.add(witchIndex);
+      if (witchSeat !== undefined) {
+        deaths.add(witchSeat);
       }
     }
   }
 
   // Wolf queen dies, linked player dies too
-  if (queenIndex !== undefined && deaths.has(queenIndex) && sleptWithSeat !== undefined) {
-    deaths.add(sleptWithSeat);
+  if (queenSeat !== undefined && deaths.has(queenSeat) && charmTargetSeat !== undefined) {
+    deaths.add(charmTargetSeat);
   }
 
   // Dreamcatcher protects dream target from death
-  if (nightWalkerSeat !== undefined) {
-    deaths.delete(nightWalkerSeat);
+  if (dreamcatcherTargetSeat !== undefined) {
+    deaths.delete(dreamcatcherTargetSeat);
   }
 
   // Dreamcatcher dies, dreamer dies too
   if (
-    dreamcatcherIndex !== undefined &&
-    deaths.has(dreamcatcherIndex) &&
-    nightWalkerSeat !== undefined
+    dreamcatcherSeat !== undefined &&
+    deaths.has(dreamcatcherSeat) &&
+    dreamcatcherTargetSeat !== undefined
   ) {
-    deaths.add(nightWalkerSeat);
+    deaths.add(dreamcatcherTargetSeat);
   }
 
   // Magician swap death
-  applyMagicianSwap(deaths, firstExchanged, secondExchanged);
+  applyMagicianSwap(deaths, firstSwapSeat, secondSwapSeat);
 
   if (deaths.size === 0) {
     return '昨天晚上是平安夜。';

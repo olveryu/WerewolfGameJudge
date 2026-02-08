@@ -22,7 +22,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: 'unseated',
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
-    currentActionerIndex: -1,
+    currentStepIndex: -1,
     isAudioPlaying: false,
     ...overrides,
   };

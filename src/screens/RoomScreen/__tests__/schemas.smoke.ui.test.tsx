@@ -126,7 +126,7 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
       if (schemaId === 'witchAction') {
         overrides.getWitchContext = jest.fn().mockReturnValue({
           kind: 'WITCH_CONTEXT',
-          killedIndex: 2,
+          killedSeat: 2,
           canSave: true,
         });
       }

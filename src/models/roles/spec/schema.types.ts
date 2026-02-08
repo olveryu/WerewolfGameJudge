@@ -192,7 +192,7 @@ export interface ConfirmSchema extends BaseActionSchema {
  * Confirm with fixed target (witch save - target is pre-determined by context)
  *
  * Unlike chooseSeat, the target is not selected by user but provided by context
- * (e.g., WITCH_CONTEXT.killedIndex). User only confirms whether to act on that target.
+ * (e.g., WITCH_CONTEXT.killedSeat). User only confirms whether to act on that target.
  */
 export interface ConfirmTargetSchema extends BaseActionSchema {
   readonly kind: 'confirmTarget';

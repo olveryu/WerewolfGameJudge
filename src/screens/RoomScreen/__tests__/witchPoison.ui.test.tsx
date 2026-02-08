@@ -51,7 +51,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
       ),
       actions: new Map(),
       wolfVotes: new Map(),
-      currentActionerIndex: 0,
+      currentStepIndex: 0,
       isAudioPlaying: false,
       lastNightDeaths: [],
       nightmareBlockedSeat: null,
@@ -107,7 +107,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     // NOTE(phase removed): phase no longer exists; seat taps always mean poison.
     getWitchContext: jest
       .fn()
-      .mockReturnValue({ kind: 'WITCH_CONTEXT', killedIndex: -1, canSave: false, canPoison: true }),
+      .mockReturnValue({ kind: 'WITCH_CONTEXT', killedSeat: -1, canSave: false, canPoison: true }),
     getLastNightInfo: jest.fn().mockReturnValue(''),
     getLastNightDeaths: jest.fn().mockReturnValue([]),
 
@@ -229,7 +229,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
     const room = useGameRoom();
     room.getWitchContext.mockReturnValue({
       kind: 'WITCH_CONTEXT',
-      killedIndex: 2,
+      killedSeat: 2,
       canSave: true,
       canPoison: true,
     });

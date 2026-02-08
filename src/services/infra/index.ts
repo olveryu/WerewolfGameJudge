@@ -4,5 +4,5 @@
 
 export { default as AudioService } from './AudioService';
 export { AuthService } from './AuthService';
-export { SimplifiedRoomService, type RoomRecord } from './RoomService';
+export { RoomService, type RoomRecord } from './RoomService';
 export { HostStateCache } from './HostStateCache';

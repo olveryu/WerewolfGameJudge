@@ -90,7 +90,7 @@ export function createHostGame(
     status: 'seated',
     templateRoles: template.roles,
     players: initialPlayers,
-    currentActionerIndex: 0,
+    currentStepIndex: 0,
     isAudioPlaying: false,
   };
 
@@ -126,7 +126,7 @@ export function createHostGame(
   state = gameReducer(state, {
     type: 'START_NIGHT',
     payload: {
-      currentActionerIndex: 0,
+      currentStepIndex: 0,
       currentStepId: firstStepId,
     },
   });

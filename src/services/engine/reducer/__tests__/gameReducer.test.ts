@@ -25,7 +25,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: 'unseated',
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
-    currentActionerIndex: -1,
+    currentStepIndex: -1,
     isAudioPlaying: false,
     ...overrides,
   };
@@ -190,7 +190,7 @@ describe('gameReducer', () => {
           2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
         },
         // These should remain unchanged
-        currentActionerIndex: -1,
+        currentStepIndex: -1,
         isAudioPlaying: false,
       });
       const action: AssignRolesAction = {
@@ -202,7 +202,7 @@ describe('gameReducer', () => {
 
       // PR1 contract: ASSIGN_ROLES should NOT initialize night fields
       expect(newState.status).toBe('assigned'); // NOT 'ongoing'
-      expect(newState.currentActionerIndex).toBe(-1); // NOT 0
+      expect(newState.currentStepIndex).toBe(-1); // NOT 0
       expect(newState.isAudioPlaying).toBe(false);
       expect(newState.actions).toBeUndefined();
       expect(newState.currentNightResults).toBeUndefined();
@@ -214,13 +214,13 @@ describe('gameReducer', () => {
       const state = createMinimalState({ status: 'assigned' });
       const action: StartNightAction = {
         type: 'START_NIGHT',
-        payload: { currentActionerIndex: 0, currentStepId: 'magicianSwap' },
+        payload: { currentStepIndex: 0, currentStepId: 'magicianSwap' },
       };
 
       const newState = gameReducer(state, action);
 
       expect(newState.status).toBe('ongoing');
-      expect(newState.currentActionerIndex).toBe(0);
+      expect(newState.currentStepIndex).toBe(0);
       expect(newState.currentStepId).toBe('magicianSwap');
       expect(newState.actions).toEqual([]);
       expect(newState.currentNightResults).toEqual({});
@@ -230,7 +230,7 @@ describe('gameReducer', () => {
       const state = createMinimalState({ status: 'ready' });
       const action: StartNightAction = {
         type: 'START_NIGHT',
-        payload: { currentActionerIndex: 0, currentStepId: 'wolfKill' },
+        payload: { currentStepIndex: 0, currentStepId: 'wolfKill' },
       };
 
       const newState = gameReducer(state, action);
@@ -240,27 +240,27 @@ describe('gameReducer', () => {
   });
 
   describe('ADVANCE_TO_NEXT_ACTION', () => {
-    it('should update currentActionerIndex, currentStepId and clear context but preserve reveal states', () => {
+    it('should update currentStepIndex, currentStepId and clear context but preserve reveal states', () => {
       const state = createMinimalState({
         status: 'ongoing',
-        currentActionerIndex: 0,
+        currentStepIndex: 0,
         currentStepId: 'wolfKill',
         seerReveal: { targetSeat: 1, result: '好人' },
         psychicReveal: { targetSeat: 2, result: '狼人阵营' },
         gargoyleReveal: { targetSeat: 3, result: '守卫' },
         wolfRobotReveal: { targetSeat: 4, result: '预言家', learnedRoleId: 'seer' },
         confirmStatus: { role: 'hunter', canShoot: true },
-        witchContext: { killedIndex: 1, canSave: true, canPoison: true },
+        witchContext: { killedSeat: 1, canSave: true, canPoison: true },
       });
       const action: AdvanceToNextActionAction = {
         type: 'ADVANCE_TO_NEXT_ACTION',
-        payload: { nextActionerIndex: 1, nextStepId: 'seerCheck' },
+        payload: { nextStepIndex: 1, nextStepId: 'seerCheck' },
       };
 
       const newState = gameReducer(state, action);
 
       // PR6 contract: 同时更新 index 和 stepId
-      expect(newState.currentActionerIndex).toBe(1);
+      expect(newState.currentStepIndex).toBe(1);
       expect(newState.currentStepId).toBe('seerCheck');
       // P0-FIX: reveal 状态保留到夜晚结束，给 UI 足够时间显示弹窗
       expect(newState.seerReveal).toEqual({ targetSeat: 1, result: '好人' });
@@ -279,13 +279,13 @@ describe('gameReducer', () => {
     it('should preserve currentNightResults on advance for death calculation at END_NIGHT', () => {
       const state = createMinimalState({
         status: 'ongoing',
-        currentActionerIndex: 0,
+        currentStepIndex: 0,
         currentStepId: 'wolfKill',
         currentNightResults: { wolfVotesBySeat: { '1': 3, '2': 3 } },
       });
       const action: AdvanceToNextActionAction = {
         type: 'ADVANCE_TO_NEXT_ACTION',
-        payload: { nextActionerIndex: 1, nextStepId: 'witchAction' },
+        payload: { nextStepIndex: 1, nextStepId: 'witchAction' },
       };
 
       const newState = gameReducer(state, action);
@@ -296,18 +296,18 @@ describe('gameReducer', () => {
     it('should set currentStepId to undefined when nextStepId is null (night end)', () => {
       const state = createMinimalState({
         status: 'ongoing',
-        currentActionerIndex: 5,
+        currentStepIndex: 5,
         currentStepId: 'hunterConfirm',
       });
       const action: AdvanceToNextActionAction = {
         type: 'ADVANCE_TO_NEXT_ACTION',
-        payload: { nextActionerIndex: -1, nextStepId: null },
+        payload: { nextStepIndex: -1, nextStepId: null },
       };
 
       const newState = gameReducer(state, action);
 
       // PR6 contract: nextStepId=null 表示夜晚结束，stepId 清空
-      expect(newState.currentActionerIndex).toBe(-1);
+      expect(newState.currentStepIndex).toBe(-1);
       expect(newState.currentStepId).toBeUndefined();
     });
   });
@@ -328,7 +328,7 @@ describe('gameReducer', () => {
 
       expect(newState.status).toBe('ended');
       expect(newState.lastNightDeaths).toEqual([1, 2]);
-      expect(newState.currentActionerIndex).toBe(-1);
+      expect(newState.currentStepIndex).toBe(-1);
       // PR6 contract: 清空 stepId 和 isAudioPlaying
       expect(newState.currentStepId).toBeUndefined();
       expect(newState.isAudioPlaying).toBe(false);
@@ -339,7 +339,7 @@ describe('gameReducer', () => {
         status: 'ongoing',
         currentStepId: 'witchAction',
         isAudioPlaying: true,
-        currentActionerIndex: 3,
+        currentStepIndex: 3,
       });
       const action: EndNightAction = {
         type: 'END_NIGHT',
@@ -351,7 +351,7 @@ describe('gameReducer', () => {
       // PR6 contract: 夜晚结束必须清 stepId 和 isAudioPlaying
       expect(newState.currentStepId).toBeUndefined();
       expect(newState.isAudioPlaying).toBe(false);
-      expect(newState.currentActionerIndex).toBe(-1);
+      expect(newState.currentStepIndex).toBe(-1);
       expect(newState.status).toBe('ended');
     });
   });
@@ -568,7 +568,7 @@ describe('gameReducer', () => {
         // 确保这些字段在 assigned 状态下是 undefined
         actions: undefined,
         currentNightResults: undefined,
-        currentActionerIndex: -1,
+        currentStepIndex: -1,
       });
       const action: PlayerViewedRoleAction = {
         type: 'PLAYER_VIEWED_ROLE',
@@ -580,7 +580,7 @@ describe('gameReducer', () => {
       // PR2 contract: 不触碰 night 字段
       expect(newState.actions).toBeUndefined();
       expect(newState.currentNightResults).toBeUndefined();
-      expect(newState.currentActionerIndex).toBe(-1);
+      expect(newState.currentStepIndex).toBe(-1);
       expect(newState.witchContext).toBeUndefined();
       expect(newState.seerReveal).toBeUndefined();
     });
@@ -620,7 +620,7 @@ describe('gameReducer', () => {
       // 夜晚状态清除
       expect(newState.actions).toBeUndefined();
       expect(newState.lastNightDeaths).toBeUndefined();
-      expect(newState.currentActionerIndex).toBe(0);
+      expect(newState.currentStepIndex).toBe(0);
     });
   });
 
@@ -629,7 +629,7 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         seerReveal: { targetSeat: 1, result: '好人' },
         psychicReveal: { targetSeat: 1, result: 'wolf' },
-        witchContext: { killedIndex: 0, canSave: true, canPoison: true },
+        witchContext: { killedSeat: 0, canSave: true, canPoison: true },
       });
 
       const newState = gameReducer(state, { type: 'CLEAR_REVEAL_STATE' });
@@ -777,7 +777,7 @@ describe('gameReducer', () => {
     it('should not change other state fields', () => {
       const state = createMinimalState({
         status: 'ongoing',
-        currentActionerIndex: 2,
+        currentStepIndex: 2,
         currentStepId: 'seerCheck',
         isAudioPlaying: false,
       });
@@ -789,7 +789,7 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       expect(newState.status).toBe('ongoing');
-      expect(newState.currentActionerIndex).toBe(2);
+      expect(newState.currentStepIndex).toBe(2);
       expect(newState.currentStepId).toBe('seerCheck');
     });
   });
@@ -802,7 +802,7 @@ describe('gameReducer', () => {
       const baseState = createMinimalState({
         status: 'ongoing',
         isAudioPlaying: true,
-        currentActionerIndex: 0,
+        currentStepIndex: 0,
         currentStepId: 'wolfKill',
         players: {
           0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
@@ -822,11 +822,11 @@ describe('gameReducer', () => {
         } satisfies AssignRolesAction,
         {
           type: 'START_NIGHT',
-          payload: { currentActionerIndex: 0, currentStepId: 'wolfKill' },
+          payload: { currentStepIndex: 0, currentStepId: 'wolfKill' },
         } satisfies StartNightAction,
         {
           type: 'ADVANCE_TO_NEXT_ACTION',
-          payload: { nextActionerIndex: 1, nextStepId: 'seerCheck' },
+          payload: { nextStepIndex: 1, nextStepId: 'seerCheck' },
         } satisfies AdvanceToNextActionAction,
         {
           type: 'APPLY_RESOLVER_RESULT',

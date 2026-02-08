@@ -284,8 +284,8 @@ export async function startNight(
     if (startNightAction && 'payload' in startNightAction) {
       facadeLog.debug('startNight action payload', {
         currentStepId: (startNightAction.payload as { currentStepId?: string }).currentStepId,
-        currentActionerIndex: (startNightAction.payload as { currentActionerIndex?: number })
-          .currentActionerIndex,
+        currentStepIndex: (startNightAction.payload as { currentStepIndex?: number })
+          .currentStepIndex,
       });
     }
   }

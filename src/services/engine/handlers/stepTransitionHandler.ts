@@ -347,7 +347,7 @@ function buildNightActions(state: NonNullState): NightActions {
 
   // 检查 nightmare 封锁的是否是狼人
   if (state.wolfKillDisabled) {
-    nightActions.nightmareBlockedWolf = true;
+    nightActions.isWolfBlockedByNightmare = true;
   }
 
   // Guard protect
@@ -392,7 +392,7 @@ function buildNightActions(state: NonNullState): NightActions {
     const blockedSeat = nightmareAction.targetSeat;
     const blockedPlayer = state.players[blockedSeat];
     if (blockedPlayer?.role && isWolfRole(blockedPlayer.role)) {
-      nightActions.nightmareBlockedWolf = true;
+      nightActions.isWolfBlockedByNightmare = true;
     }
   }
 
@@ -413,7 +413,7 @@ function buildNightActions(state: NonNullState): NightActions {
  * 4. forbidden_while_audio_playing
  *
  * 逻辑:
- * - 从当前 currentActionerIndex 推进到下一个
+ * - 从当前 currentStepIndex 推进到下一个
  * - 计算下一个 stepId
  * - 返回 ADVANCE_TO_NEXT_ACTION action
  */
@@ -427,7 +427,7 @@ export function handleAdvanceNight(
   }
 
   const { state } = validation;
-  const currentIndex = state.currentActionerIndex;
+  const currentIndex = state.currentStepIndex;
 
   // 计算下一个 index
   const nextIndex = currentIndex + 1;
@@ -443,7 +443,7 @@ export function handleAdvanceNight(
   const advanceAction: AdvanceToNextActionAction = {
     type: 'ADVANCE_TO_NEXT_ACTION',
     payload: {
-      nextActionerIndex: nextIndex,
+      nextStepIndex: nextIndex,
       nextStepId,
     },
   };

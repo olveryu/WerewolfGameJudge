@@ -17,7 +17,7 @@ const baseContext: any = {
       0: { uid: 'p0', seatNumber: 0, role: 'seer', hasViewedRole: true },
       1: { uid: 'p1', seatNumber: 1, role: 'villager', hasViewedRole: true },
     },
-    currentActionerIndex: 0,
+    currentStepIndex: 0,
     isAudioPlaying: false,
     currentStepId: 'seerCheck', // PR4: 必须设置 currentStepId
     currentNightResults: {},

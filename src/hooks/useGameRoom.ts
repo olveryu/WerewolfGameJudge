@@ -3,7 +3,7 @@
  *
  * This hook combines:
  * - GameFacade (via useGameFacade) for all game operations
- * - SimplifiedRoomService (for DB)
+ * - RoomService (for DB)
  * - Sub-hooks for focused concerns:
  *   - useNightDerived: pure derivations for night phase UI
  *   - useConnectionSync: connection status + Player auto-recovery
@@ -20,7 +20,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { GameStatus } from '@/models/GameStatus';
-import { SimplifiedRoomService, RoomRecord } from '@/services/infra/RoomService';
+import { RoomService, RoomRecord } from '@/services/infra/RoomService';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import { AuthService } from '@/services/infra/AuthService';
 import { GameTemplate } from '@/models/Template';
@@ -118,7 +118,7 @@ export interface UseGameRoomResult {
 
   // Player actions
   viewedRole: () => Promise<void>;
-  submitAction: (target: number | null, extra?: any) => Promise<void>;
+  submitAction: (target: number | null, extra?: unknown) => Promise<void>;
   submitWolfVote: (target: number) => Promise<void>;
   submitRevealAck: (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
@@ -169,7 +169,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     null,
   );
 
-  const roomService = useRef(SimplifiedRoomService.getInstance());
+  const roomService = useRef(RoomService.getInstance());
   const authService = useRef(AuthService.getInstance());
 
   // =========================================================================

@@ -151,7 +151,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
   });
 
   describe('witchContext 写入 BroadcastGameState', () => {
-    it('狼刀目标写入 witchContext.killedIndex（验证最终状态）', () => {
+    it('狼刀目标写入 witchContext.killedSeat（验证最终状态）', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 完整走完夜晚，检查 state 中的 savedSeat/poisonedSeat 记录

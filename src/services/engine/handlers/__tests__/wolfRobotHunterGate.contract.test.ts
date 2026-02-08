@@ -33,7 +33,7 @@ function createTestState(overrides?: Partial<BroadcastGameState>): BroadcastGame
       1: { uid: 'U2', seatNumber: 1, displayName: 'P2', role: 'hunter', hasViewedRole: true },
       2: { uid: 'U3', seatNumber: 2, displayName: 'P3', role: 'villager', hasViewedRole: true },
     },
-    currentActionerIndex: 0,
+    currentStepIndex: 0,
     currentStepId: 'wolfRobotLearn',
     isAudioPlaying: false,
     wolfRobotReveal: {

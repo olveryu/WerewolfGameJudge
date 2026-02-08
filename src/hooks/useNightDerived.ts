@@ -55,8 +55,8 @@ export function useNightDerived(gameState: LocalGameState | null): NightDerivedV
     if (gameState.status !== GameStatus.ongoing) return null;
     // Derive action order dynamically from template.roles via NightPlan
     const nightPlan = buildNightPlan(gameState.template.roles);
-    if (gameState.currentActionerIndex >= nightPlan.steps.length) return null;
-    return nightPlan.steps[gameState.currentActionerIndex].roleId;
+    if (gameState.currentStepIndex >= nightPlan.steps.length) return null;
+    return nightPlan.steps[gameState.currentStepIndex].roleId;
   }, [gameState]);
 
   // Schema-driven UI (Phase 3): derive schemaId from currentActionRole locally

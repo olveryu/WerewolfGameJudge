@@ -173,7 +173,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
       status: 'ongoing',
       isAudioPlaying: false,
       currentStepId: 'wolfKill',
-      currentActionerIndex: 0,
+      currentStepIndex: 0,
       players: {
         0: { role: 'wolf' },
         1: { role: 'villager' },
@@ -209,7 +209,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
       status: 'ongoing',
       isAudioPlaying: false,
       currentStepId: 'wolfKill',
-      currentActionerIndex: 0,
+      currentStepIndex: 0,
       players: { 0: { role: 'wolf' } },
       currentNightResults: { wolfVotesBySeat: { '0': 1 } },
       actions: [],
@@ -224,7 +224,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
     const state2 = {
       ...state1,
       currentStepId: undefined, // No more steps
-      currentActionerIndex: 1,
+      currentStepIndex: 1,
     };
 
     // Should allow new progression (different revision)
@@ -240,7 +240,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
       status: 'ongoing',
       isAudioPlaying: false,
       currentStepId: 'wolfKill',
-      currentActionerIndex: 0,
+      currentStepIndex: 0,
       players: {},
       actions: [],
       templateRoles: [],
@@ -259,7 +259,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
       status: 'ongoing',
       isAudioPlaying: true, // Audio playing
       currentStepId: 'wolfKill',
-      currentActionerIndex: 0,
+      currentStepIndex: 0,
       players: {},
       actions: [],
       templateRoles: [],

@@ -159,8 +159,8 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         currentActionRole: 'witch',
         myRole: 'witch',
         mySeatNumber: 9,
-        witchContext: { killedIndex: 1, canSave: true, canPoison: true },
-        gameStateOverrides: { witchContext: { killedIndex: 1, canSave: true, canPoison: true } },
+        witchContext: { killedSeat: 1, canSave: true, canPoison: true },
+        gameStateOverrides: { witchContext: { killedSeat: 1, canSave: true, canPoison: true } },
       });
 
       const { getByTestId } = render(
@@ -182,8 +182,8 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         currentActionRole: 'witch',
         myRole: 'witch',
         mySeatNumber: 9,
-        witchContext: { killedIndex: -1, canSave: false, canPoison: true },
-        gameStateOverrides: { witchContext: { killedIndex: -1, canSave: false, canPoison: true } },
+        witchContext: { killedSeat: -1, canSave: false, canPoison: true },
+        gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
       });
 
       const { getByTestId } = render(

@@ -62,7 +62,7 @@ export interface NightActions {
    * Whether nightmare blocked a wolf player on night 1.
    * When true, the wolf kill is nullified (wolves cannot kill).
    */
-  nightmareBlockedWolf?: boolean;
+  isWolfBlockedByNightmare?: boolean;
 }
 
 /**
@@ -159,18 +159,18 @@ export function calculateDeaths(
  * - Nightmare block:
  *   - If guard is blocked, guard protection is nullified
  *   - If witch is blocked, witch save is nullified
- *   - If nightmare blocked a wolf on night 1 (nightmareBlockedWolf), wolf kill is nullified
+ *   - If nightmare blocked a wolf on night 1 (isWolfBlockedByNightmare), wolf kill is nullified
  */
 function processWolfKill(
   actions: NightActions,
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>,
 ): void {
-  const { wolfKill, guardProtect, witchAction, nightmareBlock, nightmareBlockedWolf } = actions;
+  const { wolfKill, guardProtect, witchAction, nightmareBlock, isWolfBlockedByNightmare } = actions;
   const { guard: guardSeat, witch: witchSeat } = roleSeatMap;
 
   // Nightmare blocked a wolf on night 1: wolves cannot kill
-  if (nightmareBlockedWolf) return;
+  if (isWolfBlockedByNightmare) return;
 
   // No wolf kill or empty kill
   if (wolfKill === undefined) return;

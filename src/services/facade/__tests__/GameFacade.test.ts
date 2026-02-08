@@ -110,7 +110,7 @@ describe('GameFacade', () => {
     let state = facadeInstance['store'].getState()!;
     state = gameReducer(state, {
       type: 'START_NIGHT',
-      payload: { currentActionerIndex: 0, currentStepId: 'wolfKill' },
+      payload: { currentStepIndex: 0, currentStepId: 'wolfKill' },
     });
     facadeInstance['store'].setState(state);
     return state;
@@ -375,7 +375,7 @@ describe('GameFacade', () => {
               hasViewedRole: false,
             },
           },
-          currentActionerIndex: -1,
+          currentStepIndex: -1,
           isAudioPlaying: false,
         },
       };
@@ -591,7 +591,7 @@ describe('GameFacade', () => {
               hasViewedRole: false,
             },
           },
-          currentActionerIndex: -1,
+          currentStepIndex: -1,
           isAudioPlaying: false,
         },
       });
@@ -1128,7 +1128,7 @@ describe('GameFacade', () => {
       expect(broadcastCall).toBeDefined();
 
       const broadcastedState = broadcastCall![0].state;
-      expect(broadcastedState.currentActionerIndex).toBe(0);
+      expect(broadcastedState.currentStepIndex).toBe(0);
       expect(broadcastedState.actions).toEqual([]);
       expect(broadcastedState.currentNightResults).toEqual({});
     });

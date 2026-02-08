@@ -131,7 +131,7 @@ function createMinimalState(
       1: { uid: 'p2', seatNumber: 1, role, hasViewedRole: true },
       2: { uid: 'p3', seatNumber: 2, role: 'wolf', hasViewedRole: true },
     },
-    currentActionerIndex: 1,
+    currentStepIndex: 1,
     isAudioPlaying: false,
     actions: [],
     currentNightResults: {},

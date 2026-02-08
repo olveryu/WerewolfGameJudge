@@ -53,7 +53,7 @@ export interface UseActionOrchestratorParams {
   setSecondSeatIndex: (v: number | null) => void;
 
   // ── Submission callbacks ──
-  submitAction: (targetIndex: number | null, extra?: any) => Promise<void>;
+  submitAction: (targetIndex: number | null, extra?: unknown) => Promise<void>;
   submitWolfVote: (targetIndex: number) => Promise<void>;
   submitRevealAckSafe: (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => void;
   sendWolfRobotHunterStatusViewed: (seatIndex: number) => Promise<void>;
@@ -126,7 +126,7 @@ export function useActionOrchestrator({
   // ─── Submission helpers ──────────────────────────────────────────────────
 
   const proceedWithAction = useCallback(
-    async (targetIndex: number | null, extra?: any): Promise<boolean> => {
+    async (targetIndex: number | null, extra?: unknown): Promise<boolean> => {
       await submitAction(targetIndex, extra);
       // Submission success/failure UX is handled by the state-driven
       // `gameState.actionRejected` effect below (covers submitAction + submitWolfVote).
@@ -628,7 +628,7 @@ export function useActionOrchestrator({
     // Build idempotency key: stable representation of "same turn + same actor"
     const key = [
       roomStatus,
-      gameState?.currentActionerIndex ?? 'null',
+      gameState?.currentStepIndex ?? 'null',
       currentActionRole ?? 'null',
       actorSeatForUi ?? 'null',
       imActioner ? 'A' : 'N',
@@ -655,7 +655,7 @@ export function useActionOrchestrator({
     anotherIndex,
     roomStatus,
     currentActionRole,
-    gameState?.currentActionerIndex,
+    gameState?.currentStepIndex,
     getAutoTriggerIntent,
     handleActionIntent,
   ]);

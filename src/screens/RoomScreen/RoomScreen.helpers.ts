@@ -188,7 +188,7 @@ export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
     players: gameState.players,
     actions: gameState.actions,
     wolfVotes,
-    currentActionerIndex: gameState.currentActionerIndex,
+    currentStepIndex: gameState.currentStepIndex,
   };
 }
 

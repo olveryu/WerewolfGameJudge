@@ -89,7 +89,7 @@ export interface ActionDeps {
    * Returns null if no witchContext in current state
    */
   getWitchContext: () => {
-    killedIndex: number;
+    killedSeat: number;
     canSave: boolean;
     canPoison: boolean;
   } | null;
@@ -470,7 +470,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       const witchCtx = getWitchContext();
       if (!witchCtx) return { buttons: [] };
 
-      // Schema-driven: save is confirmTarget (target = killedIndex), poison is chooseSeat
+      // Schema-driven: save is confirmTarget (target = killedSeat), poison is chooseSeat
       const saveStep = currentSchema.steps.find(
         (s) => s.key === 'save' && s.kind === 'confirmTarget',
       );
@@ -481,15 +481,15 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       const buttons: BottomButton[] = [];
 
       // 1) Save button (confirmTarget): only show when kill exists and canSave.
-      //    Target is fixed (witchCtx.killedIndex), user only confirms.
-      if (saveStep && witchCtx.killedIndex >= 0 && witchCtx.canSave) {
-        const label = `对${witchCtx.killedIndex + 1}号用解药`;
+      //    Target is fixed (witchCtx.killedSeat), user only confirms.
+      if (saveStep && witchCtx.killedSeat >= 0 && witchCtx.canSave) {
+        const label = `对${witchCtx.killedSeat + 1}号用解药`;
         buttons.push({
           key: 'save',
           label,
           intent: {
             type: 'actionConfirm',
-            targetIndex: witchCtx.killedIndex,
+            targetIndex: witchCtx.killedSeat,
             message: saveStep.ui?.confirmText,
             stepKey: 'save',
           },
@@ -562,7 +562,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
     // Schema-driven: compound schema (witch two-phase flow)
     if (currentSchema?.kind === 'compound') {
-      // ANTI-CHEAT: 仅在 WitchContext 到达后才弹 prompt（避免没有 killedIndex 时误导 UI）。
+      // ANTI-CHEAT: 仅在 WitchContext 到达后才弹 prompt（避免没有 killedSeat 时误导 UI）。
       const witchCtx = getWitchContext();
       if (!witchCtx) return null;
       return { type: 'actionPrompt', targetIndex: -1 };

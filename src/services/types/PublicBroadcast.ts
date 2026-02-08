@@ -3,7 +3,7 @@
  *
  * ANTI-CHEAT PRINCIPLE:
  * - Only these whitelisted fields can be broadcast to all players
- * - Sensitive information (killedIndex, checkResult, etc.) MUST use PrivateBroadcast
+ * - Sensitive information (killedSeat, checkResult, etc.) MUST use PrivateBroadcast
  * - Compiler enforces type separation via broadcastPublic() API
  *
  * @see docs/phase4-final-migration.md for full architecture
@@ -21,7 +21,7 @@ import type { SchemaId } from '@/models/roles/spec';
  * broadcastPublic() ONLY accepts these types (compiler-enforced).
  *
  * ❌ FORBIDDEN in public payloads:
- *    killedIndex, checkResult, seerResult, psychicResult, canSave,
+ *    killedSeat, checkResult, seerResult, psychicResult, canSave,
  *    selectableSeats, blockedSeat, nightmareBlockedSeat, actions
  */
 export type PublicPayload =
@@ -50,7 +50,7 @@ export interface PublicRoleTurn {
   role: RoleId;
   stepId?: SchemaId;
   pendingSeats?: number[];
-  // ❌ FORBIDDEN: killedIndex, checkResult, canSave, selectableSeats
+  // ❌ FORBIDDEN: killedSeat, checkResult, canSave, selectableSeats
 }
 
 export interface PublicNightEnd {
@@ -107,7 +107,7 @@ export interface PublicSnapshotResponse {
  *
  * ❌ FORBIDDEN fields (must use private messages):
  *    - nightmareBlockedSeat (use BLOCKED private message)
- *    - killedIndex (use WITCH_CONTEXT private message)
+ *    - killedSeat (use WITCH_CONTEXT private message)
  *    - selectableSeats (UI calculates locally from schema)
  *    - actions (never broadcast)
  */
@@ -117,7 +117,7 @@ export interface PublicGameState {
   status: 'unseated' | 'seated' | 'assigned' | 'ready' | 'ongoing' | 'ended';
   templateRoles: RoleId[];
   players: Record<number, PublicPlayer | null>;
-  currentActionerIndex: number;
+  currentStepIndex: number;
   isAudioPlaying: boolean;
 }
 

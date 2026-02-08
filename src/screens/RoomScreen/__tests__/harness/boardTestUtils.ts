@@ -89,7 +89,7 @@ export interface GameStateMockOptions {
   currentNightResults?: Record<string, any>;
   /** Witch context */
   witchContext?: {
-    killedIndex: number;
+    killedSeat: number;
     canSave: boolean;
     canPoison: boolean;
   } | null;
@@ -171,7 +171,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
       players,
       actions: new Map(),
       wolfVotes: new Map(),
-      currentActionerIndex: 0,
+      currentStepIndex: 0,
       isAudioPlaying,
       lastNightDeaths: [],
       nightmareBlockedSeat,
@@ -904,8 +904,8 @@ export async function coverageChainWitchSavePrompt(
       currentActionRole: 'witch',
       myRole: 'witch',
       mySeatNumber: seatNumber,
-      witchContext: { killedIndex: 1, canSave: true, canPoison: true },
-      gameStateOverrides: { witchContext: { killedIndex: 1, canSave: true, canPoison: true } },
+      witchContext: { killedSeat: 1, canSave: true, canPoison: true },
+      gameStateOverrides: { witchContext: { killedSeat: 1, canSave: true, canPoison: true } },
     }),
   );
 
@@ -930,8 +930,8 @@ export async function coverageChainWitchPoisonPrompt(
       currentActionRole: 'witch',
       myRole: 'witch',
       mySeatNumber: seatNumber,
-      witchContext: { killedIndex: -1, canSave: false, canPoison: true },
-      gameStateOverrides: { witchContext: { killedIndex: -1, canSave: false, canPoison: true } },
+      witchContext: { killedSeat: -1, canSave: false, canPoison: true },
+      gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
     }),
   );
 

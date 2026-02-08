@@ -1,5 +1,5 @@
 /**
- * SimplifiedRoomService - Supabase 房间记录的最小存储服务
+ * RoomService - Supabase 房间记录的最小存储服务
  *
  * 职责：
  * - 创建/查询/删除 Supabase rooms 表记录
@@ -36,16 +36,16 @@ interface DbRoomRecord {
   updated_at: string;
 }
 
-export class SimplifiedRoomService {
-  private static instance: SimplifiedRoomService;
+export class RoomService {
+  private static instance: RoomService;
 
   private constructor() {}
 
-  static getInstance(): SimplifiedRoomService {
-    if (!SimplifiedRoomService.instance) {
-      SimplifiedRoomService.instance = new SimplifiedRoomService();
+  static getInstance(): RoomService {
+    if (!RoomService.instance) {
+      RoomService.instance = new RoomService();
     }
-    return SimplifiedRoomService.instance;
+    return RoomService.instance;
   }
 
   private isConfigured(): boolean {
@@ -164,4 +164,4 @@ export class SimplifiedRoomService {
   }
 }
 
-export default SimplifiedRoomService;
+export default RoomService;

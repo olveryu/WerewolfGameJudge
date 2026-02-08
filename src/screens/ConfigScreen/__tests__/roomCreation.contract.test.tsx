@@ -12,7 +12,7 @@ import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { AuthService } from '@/services/infra/AuthService';
-import { SimplifiedRoomService } from '@/services/infra/RoomService';
+import { RoomService } from '@/services/infra/RoomService';
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -99,7 +99,7 @@ describe('Room creation → navigation roomNumber contract', () => {
         createdAt: new Date(),
       }),
     };
-    (SimplifiedRoomService.getInstance as jest.Mock).mockReturnValue(mockRoomService);
+    (RoomService.getInstance as jest.Mock).mockReturnValue(mockRoomService);
   });
 
   it('should navigate with the roomNumber returned by createRoomRecord, not a pre-generated code', async () => {

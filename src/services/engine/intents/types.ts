@@ -163,7 +163,7 @@ export interface PlayNextAudioIntent {
 
 /**
  * 推进夜晚到下一步
- * Host-only：音频结束后调用，推进 currentActionerIndex + currentStepId
+ * Host-only：音频结束后调用，推进 currentStepIndex + currentStepId
  */
 export interface AdvanceNightIntent {
   type: 'ADVANCE_NIGHT';

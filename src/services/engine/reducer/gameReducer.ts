@@ -52,7 +52,7 @@ function handleInitializeGame(state: GameState, action: InitializeGameAction): G
     templateRoles,
     players,
     status: 'unseated',
-    currentActionerIndex: -1,
+    currentStepIndex: -1,
     isAudioPlaying: false,
   };
 }
@@ -92,7 +92,7 @@ function handleRestartGame(state: GameState): GameState {
     ...state,
     players,
     status: 'seated', // v1: 重置到 seated，不是 unseated
-    currentActionerIndex: 0, // v1: 重置到 0
+    currentStepIndex: 0, // v1: 重置到 0
     isAudioPlaying: false,
     currentStepId: undefined, // 清除夜晚步骤
     actions: undefined,
@@ -157,11 +157,11 @@ function handleAssignRoles(state: GameState, action: AssignRolesAction): GameSta
 }
 
 function handleStartNight(state: GameState, action: StartNightAction): GameState {
-  const { currentActionerIndex, currentStepId } = action.payload;
+  const { currentStepIndex, currentStepId } = action.payload;
   return {
     ...state,
     status: 'ongoing',
-    currentActionerIndex,
+    currentStepIndex,
     currentStepId,
     // 不在 reducer 里设置 isAudioPlaying，由 Host UI 调用 SET_AUDIO_PLAYING 控制
     actions: [],
@@ -170,10 +170,10 @@ function handleStartNight(state: GameState, action: StartNightAction): GameState
 }
 
 function handleAdvanceToNextAction(state: GameState, action: AdvanceToNextActionAction): GameState {
-  const { nextActionerIndex, nextStepId } = action.payload;
+  const { nextStepIndex, nextStepId } = action.payload;
   return {
     ...state,
-    currentActionerIndex: nextActionerIndex,
+    currentStepIndex: nextStepIndex,
     // PR6 contract: 推进时同步更新 currentStepId（单一真相）
     currentStepId: nextStepId ?? undefined,
     // 不在 reducer 里设置 isAudioPlaying，由 Host UI 调用 SET_AUDIO_PLAYING 控制
@@ -194,7 +194,7 @@ function handleEndNight(state: GameState, action: EndNightAction): GameState {
     // This is NOT a winner decision; players decide outcomes offline.
     status: 'ended',
     lastNightDeaths: deaths,
-    currentActionerIndex: -1,
+    currentStepIndex: -1,
     // PR6 contract: 夜晚结束清空 stepId 和 isAudioPlaying
     currentStepId: undefined,
     isAudioPlaying: false,

@@ -205,13 +205,13 @@ describe('restartGame Contract', () => {
       expect(state.isAudioPlaying).toBe(false);
     });
 
-    it('should reset currentActionerIndex to 0', async () => {
+    it('should reset currentStepIndex to 0', async () => {
       await setupToOngoingState();
 
       await facade.restartGame();
 
       const state = facade.getState()!;
-      expect(state.currentActionerIndex).toBe(0);
+      expect(state.currentStepIndex).toBe(0);
     });
   });
 

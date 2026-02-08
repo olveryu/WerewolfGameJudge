@@ -51,7 +51,7 @@ export interface LocalGameState {
   players: Map<number, LocalPlayer | null>; // seat -> player
   actions: Map<RoleId, RoleAction>; // role -> structured action
   wolfVotes: Map<number, number>; // wolf seat -> target
-  currentActionerIndex: number;
+  currentStepIndex: number;
   /**
    * UI-only: authoritative current stepId broadcast from Host via ROLE_TURN.
    * This is used for schema-driven UI mapping (e.g. NIGHT_STEPS.audioKey display).
@@ -95,7 +95,7 @@ export interface LocalGameState {
 
   /** Witch turn context - only display to witch via UI filter */
   witchContext?: {
-    killedIndex: number; // seat killed by wolves (-1 = empty kill)
+    killedSeat: number; // seat killed by wolves (-1 = empty kill)
     canSave: boolean;
     canPoison: boolean;
   };

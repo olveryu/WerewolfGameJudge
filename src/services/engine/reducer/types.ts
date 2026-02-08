@@ -72,7 +72,7 @@ export interface AssignRolesAction {
 export interface StartNightAction {
   type: 'START_NIGHT';
   payload: {
-    currentActionerIndex: number;
+    currentStepIndex: number;
     /** 首步 stepId，来自 NIGHT_STEPS[0].id 表驱动单源 */
     currentStepId: SchemaId;
   };
@@ -81,7 +81,7 @@ export interface StartNightAction {
 export interface AdvanceToNextActionAction {
   type: 'ADVANCE_TO_NEXT_ACTION';
   payload: {
-    nextActionerIndex: number;
+    nextStepIndex: number;
     /** 下一步 stepId（来自 NIGHT_STEPS 表驱动单源），null 表示夜晚结束 */
     nextStepId: SchemaId | null;
   };
@@ -136,7 +136,7 @@ export interface ApplyResolverResultAction {
 export interface SetWitchContextAction {
   type: 'SET_WITCH_CONTEXT';
   payload: {
-    killedIndex: number;
+    killedSeat: number;
     canSave: boolean;
     canPoison: boolean;
   };

@@ -57,7 +57,7 @@ export interface BroadcastGameState {
   // ⚠️ Phase 1: players 保持 Record<number, ...> 不改，与现有实现一致
   players: Record<number, BroadcastPlayer | null>;
 
-  currentActionerIndex: number;
+  currentStepIndex: number;
   isAudioPlaying: boolean;
 
   /**
@@ -126,7 +126,7 @@ export interface BroadcastGameState {
   // --- 角色特定上下文（全部公开，UI 按 myRole 过滤） ---
   /** Witch turn context - only display to witch via UI filter */
   witchContext?: {
-    killedIndex: number;
+    killedSeat: number;
     canSave: boolean;
     canPoison: boolean;
   };
@@ -245,7 +245,7 @@ export type HostBroadcast =
       type: 'ROLE_TURN';
       role: RoleId;
       pendingSeats: number[];
-      killedIndex?: number;
+      killedSeat?: number;
       stepId?: SchemaId;
     }
   | { type: 'NIGHT_END'; deaths: number[] }

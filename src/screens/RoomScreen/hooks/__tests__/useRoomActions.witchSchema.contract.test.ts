@@ -21,7 +21,7 @@ describe('useRoomActions witch schema contract', () => {
       const saveStep = SCHEMAS.witchAction.steps.find((s) => s.key === 'save');
       expect(saveStep).toBeDefined();
       expect(saveStep!.kind).toBe('confirmTarget');
-      // confirmTarget means: target is pre-determined (WITCH_CONTEXT.killedIndex)
+      // confirmTarget means: target is pre-determined (WITCH_CONTEXT.killedSeat)
       // user only confirms whether to use the antidote on that fixed target
     });
 

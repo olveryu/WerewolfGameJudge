@@ -20,7 +20,7 @@ import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
  */
 export interface WitchContext {
   /** Seat killed by wolves (-1 = empty kill) */
-  killedIndex: number;
+  killedSeat: number;
   /** Whether witch can save (Host already checked: not self, has antidote) */
   canSave: boolean;
   /** Whether witch has poison available */
@@ -61,7 +61,7 @@ export interface UseRoomActionDialogsResult {
 
   /** Witch save phase dialog */
   showWitchSaveDialog: (
-    killedIndex: number, // -1 = no one killed
+    killedSeat: number, // -1 = no one killed
     canSave: boolean,
     onSave: () => void,
     onSkip: () => void,
@@ -167,8 +167,8 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showWitchSaveDialog = useCallback(
-    (killedIndex: number, canSave: boolean, onSave: () => void, onSkip: () => void) => {
-      if (killedIndex === -1) {
+    (killedSeat: number, canSave: boolean, onSave: () => void, onSkip: () => void) => {
+      if (killedSeat === -1) {
         // No one killed - info prompt
         showAlert('昨夜无人倒台', '', [{ text: '知道了', onPress: onSkip }]);
         return;
@@ -176,14 +176,14 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
       if (!canSave) {
         // Cannot save (self killed) - info prompt
-        showAlert(`昨夜倒台玩家为${killedIndex + 1}号（你自己）`, '女巫无法自救', [
+        showAlert(`昨夜倒台玩家为${killedSeat + 1}号（你自己）`, '女巫无法自救', [
           { text: '知道了', onPress: onSkip },
         ]);
         return;
       }
 
       // Can save - choice dialog
-      showAlert(`昨夜倒台玩家为${killedIndex + 1}号`, '是否救助?', [
+      showAlert(`昨夜倒台玩家为${killedSeat + 1}号`, '是否救助?', [
         { text: '取消', style: 'cancel', onPress: onSkip },
         { text: '确定', onPress: onSave },
       ]);
@@ -234,7 +234,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
       const hint = poisonPrompt || rolePrompt;
 
-      const title = ctx.killedIndex >= 0 ? `昨夜${ctx.killedIndex + 1}号玩家死亡` : '昨夜无人倒台';
+      const title = ctx.killedSeat >= 0 ? `昨夜${ctx.killedSeat + 1}号玩家死亡` : '昨夜无人倒台';
       showAlert(title, hint, [{ text: '知道了', style: 'default', onPress: onDismiss }]);
     },
     [],

@@ -19,7 +19,7 @@
  * - `value` is the **enum/stable value** from `DropdownOption.value`, NOT the
  *   display label. This keeps selectors stable across i18n/label changes.
  * - When `testID` is omitted (undefined), **no extra testID attributes** are
- *   emitted — behaviour is identical to the pre-testID version.
+ *   emitted — behavior is identical to the pre-testID version.
  * - Overlay testID is scoped to this Dropdown instance's Modal, so multiple
  *   Dropdowns on the same screen won't collide (each has a unique prefix).
  */

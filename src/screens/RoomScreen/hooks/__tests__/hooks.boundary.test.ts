@@ -32,7 +32,7 @@ function checkForbiddenImports(file: string): boolean {
     'GameStateService',
     'BroadcastService',
     'NightFlowController',
-    'SimplifiedRoomService',
+    'RoomService',
     'supabase',
   ];
   const filePath = path.join(HOOKS_DIR, file);
@@ -70,8 +70,8 @@ describe('RoomScreen hooks boundary constraints', () => {
   describe('No night phase advancement', () => {
     const nightAdvancePatterns = [
       /advanceToNextAction\s*\(/,
-      /currentActionerIndex\s*\+\+/,
-      /currentActionerIndex\s*\+=\s*1/,
+      /currentStepIndex\s*\+\+/,
+      /currentStepIndex\s*\+=\s*1/,
       /setCurrentActionerIndex\s*\(/,
       /endNight\s*\(/,
       /startNight\s*\(/,

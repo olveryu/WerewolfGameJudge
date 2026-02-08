@@ -3,7 +3,7 @@
  *
  * Locks the contract:
  * - save step is confirmTarget (no seat tapping to select target)
- * - save action uses killedIndex from witchContext
+ * - save action uses killedSeat from witchContext
  * - when canSave=false, save should not submit
  * - protocol: submitAction(actorSeat, { stepResults: { save, poison } })
  */
@@ -38,7 +38,7 @@ jest.mock('../hooks/useActionerState', () => ({
 const mockShowAlert = showAlert as jest.Mock;
 const mockSubmitAction = jest.fn();
 
-const makeMock = (overrides?: { canSave?: boolean; killedIndex?: number }) =>
+const makeMock = (overrides?: { canSave?: boolean; killedSeat?: number }) =>
   makeBaseUseGameRoomReturn({
     schemaId: 'witchAction',
     currentActionRole: 'witch',
@@ -48,7 +48,7 @@ const makeMock = (overrides?: { canSave?: boolean; killedIndex?: number }) =>
       submitAction: mockSubmitAction,
       getWitchContext: jest.fn().mockReturnValue({
         kind: 'WITCH_CONTEXT',
-        killedIndex: overrides?.killedIndex ?? 2,
+        killedSeat: overrides?.killedSeat ?? 2,
         canSave: overrides?.canSave ?? true,
         canPoison: true,
       }),
@@ -56,7 +56,7 @@ const makeMock = (overrides?: { canSave?: boolean; killedIndex?: number }) =>
     // gameState.witchContext is read by RoomScreen actionDeps
     gameStateOverrides: {
       witchContext: {
-        killedIndex: overrides?.killedIndex ?? 2,
+        killedSeat: overrides?.killedSeat ?? 2,
         canSave: overrides?.canSave ?? true,
         canPoison: true,
       },
@@ -109,7 +109,7 @@ describe('RoomScreen witch save UI (contract)', () => {
   });
 
   it('canSave=false should not submit save (guardrail contract)', async () => {
-    mockUseGameRoomReturn = makeMock({ canSave: false, killedIndex: 2 });
+    mockUseGameRoomReturn = makeMock({ canSave: false, killedSeat: 2 });
 
     const { getByTestId } = render(
       <RoomScreen
@@ -127,9 +127,9 @@ describe('RoomScreen witch save UI (contract)', () => {
     expect(mockSubmitAction).not.toHaveBeenCalled();
   });
 
-  it('save button -> confirm -> submitAction(actorSeat, { stepResults: { save: killedIndex, poison: null } })', async () => {
-    // killedIndex = 2, mySeatNumber = 0
-    mockUseGameRoomReturn = makeMock({ canSave: true, killedIndex: 2 });
+  it('save button -> confirm -> submitAction(actorSeat, { stepResults: { save: killedSeat, poison: null } })', async () => {
+    // killedSeat = 2, mySeatNumber = 0
+    mockUseGameRoomReturn = makeMock({ canSave: true, killedSeat: 2 });
 
     const { getByTestId, getByText } = render(
       <RoomScreen

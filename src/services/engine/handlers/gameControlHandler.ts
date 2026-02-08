@@ -189,7 +189,7 @@ export function handleStartGame(_intent: StartGameIntent, context: HandlerContex
 
   const startNightAction: StartNightAction = {
     type: 'START_NIGHT',
-    payload: { currentActionerIndex: 0, currentStepId: firstStepId },
+    payload: { currentStepIndex: 0, currentStepId: firstStepId },
   };
 
   return {
@@ -265,10 +265,10 @@ export function handleStartNight(
   // 收集需要返回的 actions
   const actions: (StartNightAction | SetWitchContextAction)[] = [];
 
-  // Night-1 only: currentActionerIndex 从 0 开始（首个步骤）
+  // Night-1 only: currentStepIndex 从 0 开始（首个步骤）
   const startNightAction: StartNightAction = {
     type: 'START_NIGHT',
-    payload: { currentActionerIndex: 0, currentStepId: firstStepId },
+    payload: { currentStepIndex: 0, currentStepId: firstStepId },
   };
   actions.push(startNightAction);
 

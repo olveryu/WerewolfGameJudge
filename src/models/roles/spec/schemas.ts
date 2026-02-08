@@ -38,7 +38,7 @@ export const SCHEMAS = {
       {
         key: 'save',
         displayName: '救人',
-        kind: 'confirmTarget', // Target is fixed (WITCH_CONTEXT.killedIndex), user only confirms
+        kind: 'confirmTarget', // Target is fixed (WITCH_CONTEXT.killedSeat), user only confirms
         constraints: ['notSelf'], // Cannot save self (enforced by Host via canSave)
         canSkip: true,
         ui: {

@@ -62,7 +62,7 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
     templateRoles: requireField(raw.templateRoles, 'templateRoles'),
     // ⚠️ Phase 1: players 保持原样，不做 key 规范化
     players: requireField(raw.players, 'players'),
-    currentActionerIndex: requireField(raw.currentActionerIndex, 'currentActionerIndex'),
+    currentStepIndex: requireField(raw.currentStepIndex, 'currentStepIndex'),
     isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
 
     // 执行状态（可选，无需默认值）
@@ -113,7 +113,7 @@ export function normalizeStateForTests(partial: Partial<BroadcastGameState>): Br
     status: 'unseated',
     templateRoles: [],
     players: {},
-    currentActionerIndex: -1,
+    currentStepIndex: -1,
     isAudioPlaying: false,
   };
   return normalizeState({ ...base, ...partial });

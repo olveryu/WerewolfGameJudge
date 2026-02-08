@@ -12,7 +12,7 @@ function makeBaseBroadcastState(overrides: Partial<BroadcastGameState> = {}): Br
       1: { uid: 'p1', seatNumber: 1, displayName: 'P2', hasViewedRole: true, role: 'witch' as any },
       2: { uid: 'p2', seatNumber: 2, displayName: 'P3', hasViewedRole: true, role: 'seer' as any },
     },
-    currentActionerIndex: 0,
+    currentStepIndex: 0,
     isAudioPlaying: false,
     ...overrides,
   };
@@ -23,7 +23,7 @@ describe('broadcastToLocalState', () => {
     const broadcast = makeBaseBroadcastState({
       currentStepId: 'seerCheck' as any,
       currentNightResults: { wolfVotesBySeat: { '0': 2 } } as any,
-      witchContext: { killedIndex: 2, canSave: true, canPoison: true },
+      witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       seerReveal: { targetSeat: 0, result: '狼人' },
       actionRejected: {
         action: 'seerCheck',
@@ -45,7 +45,7 @@ describe('broadcastToLocalState', () => {
 
     expect(local.wolfVotes.get(0)).toBe(2);
 
-    expect(local.witchContext).toEqual({ killedIndex: 2, canSave: true, canPoison: true });
+    expect(local.witchContext).toEqual({ killedSeat: 2, canSave: true, canPoison: true });
     expect(local.seerReveal).toEqual({ targetSeat: 0, result: '狼人' });
     expect(local.actionRejected).toEqual({
       action: 'seerCheck',
@@ -59,7 +59,7 @@ describe('broadcastToLocalState', () => {
     const broadcast = makeBaseBroadcastState({
       // swap lives in currentNightResults
       currentNightResults: { swappedSeats: [3, 4] } as any,
-      witchContext: { killedIndex: 2, canSave: true, canPoison: true },
+      witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       actions: [
         { schemaId: 'seerCheck' as any, actorSeat: 2, targetSeat: 0, timestamp: 1 },
         { schemaId: 'guardProtect' as any, actorSeat: 0, targetSeat: 1, timestamp: 2 },
@@ -73,7 +73,7 @@ describe('broadcastToLocalState', () => {
         // confirm
         { schemaId: 'hunterConfirm' as any, actorSeat: 0, timestamp: 10 },
         { schemaId: 'darkWolfKingConfirm' as any, actorSeat: 0, timestamp: 11 },
-        // witch compound: choose save by targeting killedIndex.
+        // witch compound: choose save by targeting killedSeat.
         { schemaId: 'witchAction' as any, actorSeat: 1, targetSeat: 2, timestamp: 12 },
       ],
     });
@@ -102,9 +102,9 @@ describe('broadcastToLocalState', () => {
     });
   });
 
-  it('maps witchAction as poison when target != killedIndex', () => {
+  it('maps witchAction as poison when target != killedSeat', () => {
     const broadcast = makeBaseBroadcastState({
-      witchContext: { killedIndex: 2, canSave: true, canPoison: true },
+      witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       actions: [{ schemaId: 'witchAction' as any, actorSeat: 1, targetSeat: 0, timestamp: 1 }],
     });
 
@@ -117,7 +117,7 @@ describe('broadcastToLocalState', () => {
 
   it('maps witchAction as none when no targetSeat', () => {
     const broadcast = makeBaseBroadcastState({
-      witchContext: { killedIndex: 2, canSave: true, canPoison: true },
+      witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       actions: [{ schemaId: 'witchAction' as any, actorSeat: 1, timestamp: 1 }],
     });
 

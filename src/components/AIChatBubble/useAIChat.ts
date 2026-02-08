@@ -132,8 +132,8 @@ function buildPlayerContext(
 
   // 女巫知道的信息
   if (context.myRole === 'witch' && state.witchContext) {
-    if (state.witchContext.killedIndex >= 0) {
-      myKnowledge.push(`今晚狼人刀了${state.witchContext.killedIndex + 1}号`);
+    if (state.witchContext.killedSeat >= 0) {
+      myKnowledge.push(`今晚狼人刀了${state.witchContext.killedSeat + 1}号`);
     }
     const usedSkills: string[] = [];
     if (!state.witchContext.canSave) usedSkills.push('解药已用');
