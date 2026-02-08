@@ -9,7 +9,7 @@
  * ✅ 允许：管理 auth 状态、订阅 onAuthStateChange、提供 login/logout/updateProfile
  * ❌ 禁止：游戏业务逻辑、直接操作游戏状态
  */
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, use, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthService } from '@/services/infra/AuthService';
 import { AvatarUploadService } from '@/services/feature/AvatarUploadService';
@@ -253,7 +253,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuthContext = (): AuthContextValue => {
-  const context = useContext(AuthContext);
+  const context = use(AuthContext);
   if (!context) {
     throw new Error('useAuthContext must be used within an AuthProvider');
   }

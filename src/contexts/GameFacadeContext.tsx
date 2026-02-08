@@ -7,7 +7,7 @@
  * ✅ 允许：创建 Context + Provider、useGameFacade hook
  * ❌ 禁止：业务逻辑、直接调用 service、创建 facade 实例
  */
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, use, useMemo } from 'react';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
 
@@ -35,7 +35,7 @@ export const GameFacadeProvider: React.FC<GameFacadeProviderProps> = ({ children
 };
 
 export const useGameFacade = (): IGameFacade => {
-  const ctx = useContext(GameFacadeContext);
+  const ctx = use(GameFacadeContext);
   if (!ctx) {
     throw new Error('[useGameFacade] Missing <GameFacadeProvider> in component tree');
   }

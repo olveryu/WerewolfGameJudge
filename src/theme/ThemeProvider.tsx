@@ -13,7 +13,7 @@
 
 import React, {
   createContext,
-  useContext,
+  use,
   useState,
   useEffect,
   useMemo,
@@ -176,7 +176,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
  * Main theme hook - 获取完整主题上下文
  */
 export function useTheme(): ThemeContextValue {
-  const context = useContext(ThemeContext);
+  const context = use(ThemeContext);
   if (!context) {
     throw new Error('useTheme must be used within a ThemeProvider');
   }

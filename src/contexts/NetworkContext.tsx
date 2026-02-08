@@ -6,7 +6,7 @@
  * ✅ 允许：管理网络错误状态、提供 reportNetworkError / retryLastOperation
  * ❌ 禁止：游戏业务逻辑、直接调用 Supabase
  */
-import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
+import React, { createContext, use, useState, useCallback, useRef, useMemo } from 'react';
 import { log } from '@/utils/logger';
 import { showAlert } from '@/utils/alert';
 
@@ -29,7 +29,7 @@ const NetworkContext = createContext<NetworkContextType>({
   clearError: () => {},
 });
 
-export const useNetwork = () => useContext(NetworkContext);
+export const useNetwork = () => use(NetworkContext);
 
 interface Props {
   children: React.ReactNode;
