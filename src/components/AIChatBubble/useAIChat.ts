@@ -290,7 +290,7 @@ function generateQuickQuestions(
   }
 
   // 2. 固定问题：本局角色技能（只在有板子时显示）
-  const boardQ = '本局角色技能？';
+  const boardQ = '本局角色有哪些？';
   if (
     state?.templateRoles &&
     state.templateRoles.length > 0 &&
