@@ -38,8 +38,8 @@ export interface SeatTileStyles {
   wolfTile: ViewStyle;
   selectedTile: ViewStyle;
   controlledTile: ViewStyle;
-  seatNumber: TextStyle;
-  seatedSeatNumber: TextStyle;
+  seatNumberBadge: ViewStyle;
+  seatNumberText: TextStyle;
   avatarContainer: ViewStyle;
   avatarOverlay: ViewStyle;
   wolfOverlay: ViewStyle;
@@ -213,7 +213,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   // Get role display name for bot (debug mode only)
   const botRoleDisplayName = showBotRole && roleId ? getRoleDisplayName(roleId) : null;
 
-  return (
+    return (
     <View style={styles.tileWrapper} testID={TESTIDS.seatTile(index)}>
       <TouchableOpacity
         testID={TESTIDS.seatTilePressable(index)}
@@ -251,8 +251,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           </Animated.View>
         )}
 
-        <Text style={[styles.seatNumber, hasPlayer && styles.seatedSeatNumber]}>{index + 1}</Text>
-
         {!hasPlayer && <Text style={styles.emptyIndicator}>空</Text>}
 
         {isMySpot && hasPlayer && <Text style={styles.mySeatBadge}>我</Text>}
@@ -260,7 +258,10 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
         {showReadyBadge && hasPlayer && <Text style={styles.readyBadge}>✅</Text>}
       </TouchableOpacity>
 
-      {hasPlayer ? (
+      {/* Floating seat number badge - overlaps top-left corner of tile */}
+      <View style={styles.seatNumberBadge}>
+        <Text style={styles.seatNumberText}>{index + 1}</Text>
+      </View>      {hasPlayer ? (
         <>
           <Text style={styles.playerName} numberOfLines={1} ellipsizeMode="tail">
             {isBot ? '🤖 ' : ''}
@@ -320,15 +321,21 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       borderColor: colors.warning,
       borderWidth: 3,
     },
-    seatNumber: {
-      fontSize: typography.subtitle,
-      fontWeight: typography.weights.bold,
-      color: colors.textMuted,
+    seatNumberBadge: {
       position: 'absolute',
-      top: spacing.small,
-      left: spacing.small + spacing.tight,
+      top: spacing.tight,
+      left: spacing.tight,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 10,
     },
-    seatedSeatNumber: {
+    seatNumberText: {
+      fontSize: typography.caption,
+      fontWeight: typography.weights.bold,
       color: colors.textInverse,
     },
     avatarContainer: {
