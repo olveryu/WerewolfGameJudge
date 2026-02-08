@@ -346,12 +346,12 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     },
     avatarOverlay: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(99, 102, 241, 0.3)',
+      backgroundColor: colors.primary + '4D',
       borderRadius: borderRadius.large,
     },
     wolfOverlay: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(239, 68, 68, 0.4)',
+      backgroundColor: colors.wolf + '66',
       borderRadius: borderRadius.large,
     },
     selectedOverlay: {
