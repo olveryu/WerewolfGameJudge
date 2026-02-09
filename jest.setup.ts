@@ -130,34 +130,6 @@ jest.mock('./src/theme', () => {
     ThemeContext: React.createContext(theme),
     useTheme: () => theme,
     useColors: () => colors,
-    useTokens: () => ({
-      spacing: { tight: 4, small: 8, medium: 16, large: 24, xlarge: 32, xxlarge: 48 },
-      borderRadius: { none: 0, small: 8, medium: 12, large: 16, xlarge: 24, full: 9999 },
-      typography: {
-        caption: 12,
-        secondary: 14,
-        body: 16,
-        subtitle: 18,
-        title: 20,
-        heading: 24,
-        hero: 32,
-        display: 40,
-        weights: {
-          normal: '400',
-          medium: '500',
-          semibold: '600',
-          bold: '700',
-        },
-      },
-      shadows: { none: {}, sm: {}, md: {}, lg: {} },
-      layout: {
-        maxWidth: 600,
-        headerHeight: 56,
-        tabBarHeight: 56,
-        screenPaddingH: 16,
-        screenPaddingV: 24,
-      },
-    }),
     spacing: {
       tight: 4,
       small: 8,
@@ -222,23 +194,6 @@ jest.mock('./src/theme', () => {
       screenPaddingV: 24,
       cardPadding: 16,
       listItemGap: 8,
-    },
-    componentSizes: {
-      button: { sm: 32, md: 44, lg: 56 },
-      avatar: { xs: 24, sm: 32, md: 40, lg: 56, xl: 80 },
-      icon: { xs: 12, sm: 16, md: 20, lg: 24, xl: 32 },
-      badge: { dot: 8, sm: 16, md: 20 },
-      chip: { minWidth: 56, paddingH: 12, paddingV: 6 },
-      header: 56,
-      tabBar: 56,
-    },
-    fixed: {
-      borderWidth: 1,
-      borderWidthThick: 2,
-      divider: 1,
-      minTouchTarget: 44,
-      maxContentWidth: 600,
-      keyboardOffset: 24,
     },
   };
 });

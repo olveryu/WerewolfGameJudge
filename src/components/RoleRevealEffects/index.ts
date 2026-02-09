@@ -51,25 +51,15 @@ export { ALIGNMENT_THEMES } from './types';
 export { CONFIG } from './config';
 
 // Utilities (for advanced usage)
-export { playSound, createTickPlayer, cleanupSounds, type SoundType } from './utils/sound';
+export { playSound, createTickPlayer, type SoundType } from './utils/sound';
 
-export { triggerHaptic, triggerHapticSequence, type HapticStyle } from './utils/haptics';
+export { triggerHaptic, type HapticStyle } from './utils/haptics';
 
 export {
   canUseNativeDriver,
   canUseHaptics,
-  canUseAudio,
-  isWeb,
-  isIOS,
-  isAndroid,
-  getReducedMotionPreference,
-  getOptimalParticleCount,
 } from './utils/platform';
 
 // Common components (for building custom effects)
-export { Particle, generateBurstParticles, type ParticleProps } from './common/Particle';
-export { ParticleBurst, type ParticleBurstProps } from './common/ParticleBurst';
-export { GradientOverlay, type GradientOverlayProps } from './common/GradientOverlay';
 export { GlowBorder, type GlowBorderProps } from './common/GlowBorder';
-export { ShineEffect, type ShineEffectProps } from './common/ShineEffect';
 export { RoleCard, type RoleCardProps } from './common/RoleCard';

@@ -103,21 +103,4 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
   };
 }
 
-/**
- * Test-only helper.
- *
- * Creates a valid BroadcastGameState from a Partial, then runs normalizeState.
- * Keep normalizeState itself fail-fast in real runtime.
- */
-export function normalizeStateForTests(partial: Partial<BroadcastGameState>): BroadcastGameState {
-  const base: BroadcastGameState = {
-    roomCode: 'TEST',
-    hostUid: 'HOST',
-    status: 'unseated',
-    templateRoles: [],
-    players: {},
-    currentStepIndex: -1,
-    isAudioPlaying: false,
-  };
-  return normalizeState({ ...base, ...partial });
-}
+

@@ -32,12 +32,6 @@ export function getDefaultApiKey(): string {
   return DEFAULT_API_KEY;
 }
 
-/**
- * 检查是否已配置 API Key
- */
-export function hasApiKey(): boolean {
-  return !!DEFAULT_API_KEY;
-}
 
 /**
  * 游戏上下文信息（玩家视角，不包含作弊信息）

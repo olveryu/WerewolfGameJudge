@@ -8,33 +8,11 @@
  */
 import { createAudioPlayer } from 'expo-audio';
 
-// Audio player cache
-interface AudioCache {
-  tick?: ReturnType<typeof createAudioPlayer>;
-  confirm?: ReturnType<typeof createAudioPlayer>;
-  whoosh?: ReturnType<typeof createAudioPlayer>;
-}
-
-const audioCache: AudioCache = {};
-
 /**
  * Sound types available
  */
 export type SoundType = 'tick' | 'confirm' | 'whoosh';
 
-/**
- * Preload audio files for faster playback
- * Call this early in the app lifecycle if possible
- */
-export async function preloadSounds(): Promise<void> {
-  try {
-    // We'll use simple audio assets
-    // In a real implementation, these would be actual audio files
-    // For now, we'll silently skip if assets don't exist
-  } catch {
-    // Silent fail - audio is optional
-  }
-}
 
 /**
  * Play a sound effect with graceful degradation
@@ -86,17 +64,4 @@ export function createTickPlayer(enabled: boolean): {
       }
     },
   };
-}
-
-/**
- * Cleanup all cached audio players
- */
-export function cleanupSounds(): void {
-  Object.values(audioCache).forEach((player) => {
-    try {
-      player?.remove();
-    } catch {
-      // Ignore cleanup errors
-    }
-  });
 }

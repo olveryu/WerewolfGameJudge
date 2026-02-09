@@ -103,31 +103,3 @@ export function setupDiagnostics(
   return data;
 }
 
-/**
- * Print diagnostic summary
- */
-export function printDiagnosticSummary(label: string, data: DiagnosticData): void {
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`DIAGNOSTIC SUMMARY: ${label}`);
-  console.log('='.repeat(60));
-
-  console.log(`\n--- Console Logs (${data.consoleLogs.length}) ---`);
-  data.consoleLogs.forEach((log) => console.log(log));
-
-  if (data.pageErrors.length > 0) {
-    console.log(`\n--- Page Errors (${data.pageErrors.length}) ---`);
-    data.pageErrors.forEach((err) => console.log(err));
-  }
-
-  if (data.failedRequests.length > 0) {
-    console.log(`\n--- Failed Requests (${data.failedRequests.length}) ---`);
-    data.failedRequests.forEach((req) => console.log(req));
-  }
-
-  if (data.errorResponses.length > 0) {
-    console.log(`\n--- Error Responses (${data.errorResponses.length}) ---`);
-    data.errorResponses.forEach((resp) => console.log(resp));
-  }
-
-  console.log('='.repeat(60) + '\n');
-}

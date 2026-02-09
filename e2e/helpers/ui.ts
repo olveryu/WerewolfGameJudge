@@ -1,4 +1,4 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Page, Locator } from '@playwright/test';
 import * as path from 'node:path';
 
 /**
@@ -272,62 +272,6 @@ export function getVisibleText(page: Page, text: string) {
   return page.locator(`text="${text}" >> visible=true`);
 }
 
-/**
- * Wait for any of the given locators/texts to be visible.
- * Returns the index of the first one that becomes visible.
- *
- * @param page - Playwright Page
- * @param targets - Array of locators or text strings
- * @param opts - Timeout and polling options
- * @returns Index of the first visible target
- */
-export async function waitForAnyVisible(
-  page: Page,
-  targets: (Locator | string)[],
-  opts: { timeoutMs?: number; pollMs?: number } = {},
-): Promise<number> {
-  const { timeoutMs = 10000, pollMs = 200 } = opts;
-  const startTime = Date.now();
-
-  while (Date.now() - startTime < timeoutMs) {
-    for (let i = 0; i < targets.length; i++) {
-      const target = targets[i];
-      const locator = typeof target === 'string' ? page.getByText(target) : target;
-      const isVisible = await locator.isVisible({ timeout: 50 }).catch(() => false);
-      if (isVisible) {
-        return i;
-      }
-    }
-    await page.waitForTimeout(pollMs);
-  }
-
-  throw new Error(
-    `[waitForAnyVisible] None of ${targets.length} targets became visible within ${timeoutMs}ms`,
-  );
-}
-
-/**
- * Wait for all of the given locators/texts to be visible.
- *
- * @param page - Playwright Page
- * @param targets - Array of locators or text strings
- * @param opts - Timeout options
- */
-export async function waitForAllVisible(
-  page: Page,
-  targets: (Locator | string)[],
-  opts: { timeoutMs?: number } = {},
-): Promise<void> {
-  const { timeoutMs = 10000 } = opts;
-
-  await Promise.all(
-    targets.map((target) => {
-      const locator = typeof target === 'string' ? page.getByText(target) : target;
-      return expect(locator).toBeVisible({ timeout: timeoutMs });
-    }),
-  );
-}
-
 // =============================================================================
 // Click Helpers
 // =============================================================================
@@ -364,58 +308,6 @@ export async function clickIfVisible(
 // =============================================================================
 // Wait Helpers
 // =============================================================================
-
-/**
- * Wait for a text or regex pattern to disappear from the page.
- *
- * @param page - Playwright Page
- * @param textOrRegex - Text string or regex pattern to wait for disappearance
- * @param opts - Timeout options
- */
-export async function waitForTextGone(
-  page: Page,
-  textOrRegex: string | RegExp,
-  opts: { timeoutMs?: number } = {},
-): Promise<void> {
-  const { timeoutMs = 10000 } = opts;
-
-  const locator = page.getByText(textOrRegex);
-
-  await locator.waitFor({ state: 'hidden', timeout: timeoutMs });
-}
-
-// =============================================================================
-// Retry Helpers
-// =============================================================================
-
-/**
- * Retry a function with exponential backoff.
- *
- * @param fn - Async function to retry
- * @param opts - Retry options
- */
-export async function retry<T>(
-  fn: () => Promise<T>,
-  opts: { retries?: number; backoffMs?: number; label?: string } = {},
-): Promise<T> {
-  const { retries = 3, backoffMs = 500, label = 'retry' } = opts;
-  let lastError: Error | undefined;
-
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      return await fn();
-    } catch (e) {
-      lastError = e instanceof Error ? e : new Error(String(e));
-      console.log(`[${label}] Attempt ${attempt}/${retries} failed: ${lastError.message}`);
-
-      if (attempt < retries) {
-        await new Promise((resolve) => setTimeout(resolve, backoffMs * attempt));
-      }
-    }
-  }
-
-  throw lastError;
-}
 
 // =============================================================================
 // Evidence Helpers
@@ -488,35 +380,3 @@ export async function debugProbe(page: Page, label: string): Promise<void> {
   console.log(`========== END PROBE ==========\n`);
 }
 
-/**
- * Wrap a step with fail-fast diagnostics and timeout.
- * On failure, takes screenshot and runs debug probe.
- *
- * @param name - Step name for logging
- * @param page - Playwright Page
- * @param fn - Async function to execute
- * @param timeoutMs - Maximum time for the step (default 60s)
- */
-export async function withStep<T>(
-  name: string,
-  page: Page,
-  fn: () => Promise<T>,
-  timeoutMs = 60000,
-): Promise<T> {
-  console.log(`>> STEP: ${name}`);
-
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(
-      () => reject(new Error(`Step "${name}" timed out after ${timeoutMs / 1000}s`)),
-      timeoutMs,
-    );
-  });
-
-  try {
-    return await Promise.race([fn(), timeoutPromise]);
-  } catch (error) {
-    await debugProbe(page, name);
-    await screenshotOnFail(page, name);
-    throw error;
-  }
-}

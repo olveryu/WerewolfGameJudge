@@ -76,33 +76,6 @@ export class RoomPage {
     await this.page.waitForTimeout(500);
   }
 
-  /** Get the 0-based seat index with the "我" badge. Returns null if not found. */
-  async getMySeatIndex(): Promise<number | null> {
-    const myBadge = this.page.getByText('我', { exact: true }).first();
-    const isVisible = await myBadge.isVisible({ timeout: 500 }).catch(() => false);
-    if (!isVisible) return null;
-
-    // Try testID-based ancestor lookup first
-    const seatTileAncestor = myBadge
-      .locator('xpath=ancestor::*[starts-with(@data-testid, "seat-tile-")]')
-      .first();
-    // eslint-disable-next-line unicorn/prefer-dom-node-dataset -- Playwright Locator API, not DOM
-    const testIdAttr = await seatTileAncestor.getAttribute('data-testid').catch(() => null);
-
-    if (testIdAttr?.startsWith('seat-tile-')) {
-      const idx = Number.parseInt(testIdAttr.replace('seat-tile-', ''), 10);
-      if (!Number.isNaN(idx)) return idx;
-    }
-
-    // Fallback: scan seats
-    for (let i = 0; i < 12; i++) {
-      const tile = this.page.locator(`[data-testid="seat-tile-${i}"]`);
-      const has = await tile.locator('text="我"').isVisible({ timeout: 100 }).catch(() => false);
-      if (has) return i;
-    }
-    return null;
-  }
-
   /** Check if "我" badge is visible anywhere. */
   async expectMyBadgeVisible() {
     await expect(this.page.getByText('我')).toBeVisible({ timeout: 3000 });

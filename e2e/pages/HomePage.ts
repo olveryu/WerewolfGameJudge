@@ -25,10 +25,6 @@ export class HomePage {
     return this.page.locator(`[data-testid="${TESTIDS.homeCreateRoomButton}"]`);
   }
 
-  private get returnLastGameButton() {
-    return this.page.locator(`[data-testid="${TESTIDS.homeReturnLastGameButton}"]`);
-  }
-
   private get settingsButton() {
     return this.page.getByText('设置', { exact: true });
   }

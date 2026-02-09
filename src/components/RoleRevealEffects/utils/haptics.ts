@@ -74,19 +74,3 @@ export async function triggerHaptic(style: HapticStyle, enabled: boolean = true)
     // Silent fail - haptics are optional
   }
 }
-
-/**
- * Trigger a sequence of haptic feedbacks
- */
-export async function triggerHapticSequence(
-  styles: HapticStyle[],
-  intervalMs: number = 100,
-  enabled: boolean = true,
-): Promise<void> {
-  if (!enabled) return;
-
-  for (const style of styles) {
-    await triggerHaptic(style, enabled);
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
-  }
-}

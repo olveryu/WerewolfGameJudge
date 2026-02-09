@@ -191,14 +191,6 @@ export function useColors(): ThemeColors {
   return colors;
 }
 
-/**
- * Tokens hook - 只获取 design tokens
- */
-export function useTokens() {
-  const { t } = useTheme();
-  return t;
-}
-
 // ============================================
 // Re-export tokens for direct import
 // ============================================

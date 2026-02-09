@@ -1,5 +1,5 @@
 import { Page, expect } from '@playwright/test';
-import { clickIfVisible, screenshotOnFail, getVisibleText } from './ui';
+import { clickIfVisible, screenshotOnFail } from './ui';
 import { TESTIDS } from '../../src/testids';
 
 /**
@@ -522,43 +522,6 @@ async function navigateBackToHome(page: Page): Promise<void> {
 }
 
 /**
- * Check if currently in a room (sees "房间 XXXX" header).
- * If in room, returns the room code. Otherwise returns null.
- */
-export async function getCurrentRoomCode(page: Page): Promise<string | null> {
-  const roomHeader = page.locator(`[data-testid="${TESTIDS.roomHeader}"]`);
-  if (await roomHeader.isVisible({ timeout: 500 }).catch(() => false)) {
-    const text = await roomHeader.textContent();
-    const match = text?.match(/\b(\d{4})\b/);
-    return match ? match[1] : null;
-  }
-  return null;
-}
-
-/**
- * Ensure we're either in a room or on a stable home screen.
- *
- * If already in room (房间 XXXX visible), returns immediately.
- * Otherwise ensures home is ready.
- *
- * @returns Room code if in room, null if on home
- */
-export async function ensureInRoomOrHomeReady(page: Page): Promise<string | null> {
-  await waitForAppReady(page);
-
-  // Check if in room
-  const roomCode = await getCurrentRoomCode(page);
-  if (roomCode) {
-    console.log(`[ensureInRoomOrHomeReady] Already in room ${roomCode}`);
-    return roomCode;
-  }
-
-  // Not in room, ensure home is ready
-  await ensureHomeReady(page);
-  return null;
-}
-
-/**
  * Extract room number from room screen header.
  * Assumes we're on a room screen.
  */
@@ -572,69 +535,6 @@ export async function extractRoomNumber(page: Page): Promise<string> {
   return match[1];
 }
 
-// =============================================================================
-// Room Creation/Join Actions
-// =============================================================================
-
-/**
- * Create a new room from home screen.
- * Assumes we're logged in and on home screen.
- *
- * @param page - Playwright Page
- * @returns Room code of created room
- */
-export async function createRoom(page: Page): Promise<string> {
-  console.log('[createRoom] Starting...');
-
-  // Click 创建房间
-  await page.locator(`[data-testid="${TESTIDS.homeCreateRoomButton}"]`).click();
-
-  // Wait for config screen
-  await expect(page.locator(`[data-testid="${TESTIDS.configScreenRoot}"]`)).toBeVisible({
-    timeout: 10000,
-  });
-
-  // Click 创建 to create the room (header right button)
-  await getVisibleText(page, '创建').click();
-
-  // Wait for room to be created (room header visible)
-  const { waitForRoomScreenReady } = await import('./waits');
-  await waitForRoomScreenReady(page, { role: 'host' });
-
-  // Extract and return room code
-  const roomCode = await extractRoomNumber(page);
-  console.log(`[createRoom] Room ${roomCode} created`);
-  return roomCode;
-}
-
-/**
- * Join an existing room from home screen.
- * Assumes we're logged in and on home screen.
- *
- * @param page - Playwright Page
- * @param roomCode - 4-digit room code
- */
-export async function joinRoom(page: Page, roomCode: string): Promise<void> {
-  console.log(`[joinRoom] Joining room ${roomCode}...`);
-
-  // Click 进入房间
-  await page.locator(`[data-testid="${TESTIDS.homeEnterRoomButton}"]`).click();
-
-  // Wait for join dialog
-  await expect(page.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-
-  // Enter room code via NumPad
-  await enterRoomCodeViaNumPad(page, roomCode);
-
-  // Click 加入
-  await page.getByText('加入', { exact: true }).click();
-
-  // Wait for room to load
-  const { waitForRoomScreenReady } = await import('./waits');
-  await waitForRoomScreenReady(page, { role: 'joiner' });
-
-  console.log(`[joinRoom] Joined room ${roomCode}`);
-}
 
 /**
  * Enter a room code using the NumPad component.

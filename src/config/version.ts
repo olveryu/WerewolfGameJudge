@@ -12,10 +12,3 @@
 const packageJson = require('../../package.json');
 
 export const APP_VERSION = `v${packageJson.version}`;
-
-/**
- * 获取完整版本号
- */
-export function getVersionString(): string {
-  return APP_VERSION;
-}

@@ -147,18 +147,6 @@ export class ConfigPage {
   // Player Count
   // ---------------------------------------------------------------------------
 
-  /** Read the player count from header (e.g. "6 名玩家" → 6). */
-  async getPlayerCount(): Promise<number | null> {
-    const text = await this.page
-      .getByText(/\d+ 名玩家/)
-      .first()
-      .textContent()
-      .catch(() => null);
-    if (!text) return null;
-    const match = /(\d+)/.exec(text);
-    return match ? Number.parseInt(match[1], 10) : null;
-  }
-
   // ---------------------------------------------------------------------------
   // Settings (Animation)
   // ---------------------------------------------------------------------------

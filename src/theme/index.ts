@@ -25,7 +25,7 @@
  */
 
 // Provider & Hooks
-export { ThemeProvider, useTheme, useColors, useTokens } from './ThemeProvider';
+export { ThemeProvider, useTheme, useColors } from './ThemeProvider';
 
 // Tokens (可直接导入)
 export { spacing, borderRadius, typography, shadows, layout } from './tokens';

@@ -6,7 +6,6 @@
 
 export {
   RoomScreenTestHarness,
-  setupHarness,
   createShowAlertMock,
   type DialogType,
   type DialogEvent,
@@ -19,22 +18,16 @@ export {
   getRequiredHostDataDialogTypes,
   boardHasRole,
   boardHasNightmare,
-  getBoardSpecialRole,
-  generateCoverageMatrix,
-  getTestFileName,
   BOARD_TEST_FILE_MAP,
   type BoardConfig,
-  type CoverageEntry,
 } from './boardDialogCoverage';
 
 export {
   mockNavigation,
   createGameRoomMock,
   createReactiveGameRoomMock,
-  setupBoardTestMocks,
   waitForRoomScreen,
   tapSeat,
-  tapBottomAction,
   MockSafeAreaView,
   chainWolfVoteConfirm,
   chainSkipConfirm,
@@ -51,8 +44,4 @@ export {
   coverageChainWitchPoisonPrompt,
   coverageChainMagicianSwap,
   coverageChainNightmareBlocked,
-  type GameStateMockOptions,
-  type BoardTestContext,
-  type ActionRejection,
-  type ReactiveGameRoomMock,
 } from './boardTestUtils';

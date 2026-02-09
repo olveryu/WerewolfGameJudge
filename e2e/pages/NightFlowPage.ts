@@ -105,13 +105,8 @@ const NO_PROGRESS_THRESHOLD = 35;
 // Logging control
 // ---------------------------------------------------------------------------
 
-/** Module-level verbose flag. Set via `setNightFlowVerbose(true)` before calling `runNightFlowLoop`. */
+/** Module-level verbose flag. Set via `opts.verbose` in `runNightFlowLoop`. */
 let _verbose = false;
-
-/** Enable or disable verbose iteration logging for NightFlowPage. Default: quiet. */
-export function setNightFlowVerbose(on: boolean): void {
-  _verbose = on;
-}
 
 function nightLog(msg: string): void {
   if (_verbose) console.log(msg);

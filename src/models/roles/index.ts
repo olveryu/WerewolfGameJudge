@@ -33,7 +33,6 @@ export {
   type RoleId,
 } from './spec/specs';
 
-export { getNight1ActionRoles } from './spec/nightSteps';
 
 export {
   // Schemas
@@ -54,7 +53,7 @@ export {
 // Re-imports from spec/ (for internal use)
 // ============================================================
 import { ROLE_SPECS, getRoleSpec, isValidRoleId, getAllRoleIds, type RoleId } from './spec/specs';
-import type { Team, SeerCheckResult } from './spec/types';
+import type { Team } from './spec/types';
 
 // ============================================================
 // Display Name Helpers (UI-facing)
@@ -76,35 +75,9 @@ export function getRoleDisplayName(roleId: string): string {
   return spec?.displayName ?? '未知角色';
 }
 
-/**
- * Get role English name
- */
-export function getRoleEnglishName(roleId: string): string {
-  if (!isValidRoleId(roleId)) return roleId;
-  const spec = getRoleSpec(roleId) as { englishName?: string };
-  if (spec?.englishName) return spec.englishName;
-  return roleId.charAt(0).toUpperCase() + roleId.slice(1);
-}
-
 // ============================================================
 // Team & Faction Helpers
 // ============================================================
-
-/**
- * Team display names in Chinese
- */
-export const TEAM_DISPLAY_NAMES: Record<Team, string> = {
-  wolf: '狼人',
-  good: '好人',
-  third: '第三方',
-} as const;
-
-/**
- * Get team display name in Chinese
- */
-export function getTeamDisplayName(team: Team): string {
-  return TEAM_DISPLAY_NAMES[team];
-}
 
 /**
  * Get team for a role
@@ -113,13 +86,6 @@ export function getRoleTeam(roleId: string): Team {
   if (!isValidRoleId(roleId)) return 'good';
   const spec = getRoleSpec(roleId);
   return spec?.team ?? 'good';
-}
-
-/**
- * Get team display name for a role
- */
-export function getRoleTeamDisplayName(roleId: string): string {
-  return TEAM_DISPLAY_NAMES[getRoleTeam(roleId)];
 }
 
 // ============================================================
@@ -203,13 +169,3 @@ export function hasNightAction(roleId: string): boolean {
 
 // Re-export SeerCheckResult from types.ts (single source of truth)
 export type { SeerCheckResult } from './spec/types';
-
-/**
- * Get seer check result for a role.
- * IMPORTANT: Seer can only see binary '好人' or '狼人'.
- * - All wolf-faction roles → '狼人'
- * - All other roles (god, villager, third-party) → '好人'
- */
-export function getSeerCheckResult(roleId: string): SeerCheckResult {
-  return isWolfRole(roleId) ? '狼人' : '好人';
-}

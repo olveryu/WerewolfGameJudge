@@ -1,6 +1,6 @@
 /**
  * Utils barrel export
  */
-export * from './platform';
-export * from './sound';
-export * from './haptics';
+export { canUseNativeDriver, canUseHaptics, isWeb, isIOS, isAndroid } from './platform';
+export { playSound, createTickPlayer, type SoundType } from './sound';
+export { triggerHaptic, type HapticStyle } from './haptics';
