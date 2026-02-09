@@ -95,7 +95,7 @@ export interface RoleSeatMap {
 /**
  * Default role seat map (all roles not present)
  */
-export const DEFAULT_ROLE_SEAT_MAP: RoleSeatMap = {
+const DEFAULT_ROLE_SEAT_MAP: RoleSeatMap = {
   witcher: -1,
   wolfQueen: -1,
   dreamcatcher: -1,

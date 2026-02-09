@@ -1,11 +1,12 @@
 /**
  * witchContext.ts 单元测试
  *
- * 测试 computeWitchContext / maybeCreateWitchContextAction 纯函数
+ * 测试 maybeCreateWitchContextAction 纯函数（公共 API）
+ * witchContext 计算逻辑通过公共 API 间接覆盖
  */
 
 import type { BroadcastGameState, BroadcastPlayer } from '@/services/protocol/types';
-import { computeWitchContext, maybeCreateWitchContextAction } from '@/services/engine/handlers/witchContext';
+import { maybeCreateWitchContextAction } from '@/services/engine/handlers/witchContext';
 
 // =============================================================================
 // Test Helpers
@@ -46,20 +47,22 @@ function createOngoingState(
 }
 
 // =============================================================================
-// computeWitchContext Tests
+// maybeCreateWitchContextAction Tests
 // =============================================================================
 
-describe('computeWitchContext', () => {
+describe('maybeCreateWitchContextAction', () => {
+  // ---- canSave 计算逻辑 ----
+
   describe('canSave calculation', () => {
     it('should set canSave=true when wolf kills someone else (normal case)', () => {
       const state = createOngoingState({
         currentNightResults: { wolfVotesBySeat: { '0': 2 } }, // wolf kills villager at seat 2
       });
 
-      const result = computeWitchContext(state);
+      const action = maybeCreateWitchContextAction('witchAction', state);
 
-      expect(result.killedSeat).toBe(2);
-      expect(result.canSave).toBe(true);
+      expect(action?.payload.killedSeat).toBe(2);
+      expect(action?.payload.canSave).toBe(true);
     });
 
     it('should set canSave=false when wolf kills the witch (notSelf constraint)', () => {
@@ -67,10 +70,10 @@ describe('computeWitchContext', () => {
         currentNightResults: { wolfVotesBySeat: { '0': 1 } }, // wolf kills witch at seat 1
       });
 
-      const result = computeWitchContext(state);
+      const action = maybeCreateWitchContextAction('witchAction', state);
 
-      expect(result.killedSeat).toBe(1);
-      expect(result.canSave).toBe(false);
+      expect(action?.payload.killedSeat).toBe(1);
+      expect(action?.payload.canSave).toBe(false);
     });
 
     it('should set canSave=false when no one is killed', () => {
@@ -78,10 +81,10 @@ describe('computeWitchContext', () => {
         currentNightResults: {},
       });
 
-      const result = computeWitchContext(state);
+      const action = maybeCreateWitchContextAction('witchAction', state);
 
-      expect(result.killedSeat).toBe(-1);
-      expect(result.canSave).toBe(false);
+      expect(action?.payload.killedSeat).toBe(-1);
+      expect(action?.payload.canSave).toBe(false);
     });
 
     it('should set canSave=false when wolfKillDisabled', () => {
@@ -90,10 +93,10 @@ describe('computeWitchContext', () => {
         currentNightResults: { wolfVotesBySeat: { '0': 2 } },
       });
 
-      const result = computeWitchContext(state);
+      const action = maybeCreateWitchContextAction('witchAction', state);
 
-      expect(result.killedSeat).toBe(-1);
-      expect(result.canSave).toBe(false);
+      expect(action?.payload.killedSeat).toBe(-1);
+      expect(action?.payload.canSave).toBe(false);
     });
 
     /**
@@ -114,30 +117,28 @@ describe('computeWitchContext', () => {
         currentNightResults: { wolfVotesBySeat: { '0': 2 } }, // wolf kills villager at seat 2
       });
 
-      const result = computeWitchContext(state);
+      const action = maybeCreateWitchContextAction('witchAction', state);
 
       // 关键断言：即使有被杀者，witchSeat=-1 时 canSave 必须为 false
-      expect(result.killedSeat).toBe(2);
-      expect(result.canSave).toBe(false);
+      expect(action?.payload.killedSeat).toBe(2);
+      expect(action?.payload.canSave).toBe(false);
     });
   });
+
+  // ---- canPoison 计算逻辑 ----
 
   describe('canPoison calculation (Night-1 only)', () => {
     it('should always set canPoison=true (Night-1 only project rule)', () => {
       const state = createOngoingState();
 
-      const result = computeWitchContext(state);
+      const action = maybeCreateWitchContextAction('witchAction', state);
 
-      expect(result.canPoison).toBe(true);
+      expect(action?.payload.canPoison).toBe(true);
     });
   });
-});
 
-// =============================================================================
-// maybeCreateWitchContextAction Tests
-// =============================================================================
+  // ---- 门控逻辑 ----
 
-describe('maybeCreateWitchContextAction', () => {
   it('should return SET_WITCH_CONTEXT action when entering witchAction step', () => {
     const state = createOngoingState({
       currentNightResults: { wolfVotesBySeat: { '0': 2 } },

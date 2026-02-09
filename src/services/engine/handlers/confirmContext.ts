@@ -39,7 +39,7 @@ const CONFIRM_STEP_ROLE: Record<string, 'hunter' | 'darkWolfKing'> = {
  * @param state 当前游戏状态
  * @returns { role, canShoot }
  */
-export function computeConfirmStatus(
+function computeConfirmStatus(
   role: 'hunter' | 'darkWolfKing',
   state: NonNullState,
 ): { role: 'hunter' | 'darkWolfKing'; canShoot: boolean } {

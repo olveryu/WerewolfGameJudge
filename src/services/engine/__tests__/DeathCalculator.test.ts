@@ -33,9 +33,19 @@ import {
   calculateDeaths,
   NightActions,
   RoleSeatMap,
-  DEFAULT_ROLE_SEAT_MAP,
 } from '@/services/engine/DeathCalculator';
 import { makeWitchSave, makeWitchPoison } from '@/models/actions/WitchAction';
+
+/** All roles absent — mirrors the module-private DEFAULT_ROLE_SEAT_MAP */
+const NO_ROLES: RoleSeatMap = {
+  witcher: -1,
+  wolfQueen: -1,
+  dreamcatcher: -1,
+  spiritKnight: -1,
+  seer: -1,
+  witch: -1,
+  guard: -1,
+};
 
 describe('DeathCalculator', () => {
   // ===========================================================================
@@ -169,7 +179,7 @@ describe('DeathCalculator', () => {
         witchAction: makeWitchPoison(5),
       };
       const roleSeatMap: RoleSeatMap = {
-        ...DEFAULT_ROLE_SEAT_MAP,
+        ...NO_ROLES,
         witcher: 5,
       };
 
@@ -182,7 +192,7 @@ describe('DeathCalculator', () => {
         witchAction: makeWitchPoison(5),
       };
       const roleSeatMap: RoleSeatMap = {
-        ...DEFAULT_ROLE_SEAT_MAP,
+        ...NO_ROLES,
         witcher: 7, // witcher is at different seat
       };
 
@@ -202,7 +212,7 @@ describe('DeathCalculator', () => {
         wolfQueenCharm: 5,
       };
       const roleSeatMap: RoleSeatMap = {
-        ...DEFAULT_ROLE_SEAT_MAP,
+        ...NO_ROLES,
         wolfQueen: 2,
       };
 
@@ -216,7 +226,7 @@ describe('DeathCalculator', () => {
         wolfQueenCharm: 5,
       };
       const roleSeatMap: RoleSeatMap = {
-        ...DEFAULT_ROLE_SEAT_MAP,
+        ...NO_ROLES,
         wolfQueen: 2,
       };
 
@@ -256,7 +266,7 @@ describe('DeathCalculator', () => {
         dreamcatcherDream: 5,
       };
       const roleSeatMap: RoleSeatMap = {
-        ...DEFAULT_ROLE_SEAT_MAP,
+        ...NO_ROLES,
         dreamcatcher: 2,
       };
 
@@ -273,7 +283,7 @@ describe('DeathCalculator', () => {
         dreamcatcherDream: 5,
       };
       const roleSeatMap: RoleSeatMap = {
-        ...DEFAULT_ROLE_SEAT_MAP,
+        ...NO_ROLES,
         dreamcatcher: 2,
       };
 
@@ -392,7 +402,7 @@ describe('DeathCalculator', () => {
         nightmareBlock: 11, // 封锁守卫（座位11）
       };
       const roleSeatMap: RoleSeatMap = {
-        ...DEFAULT_ROLE_SEAT_MAP,
+        ...NO_ROLES,
         guard: 11,
       };
 
@@ -409,7 +419,7 @@ describe('DeathCalculator', () => {
         nightmareBlock: 9, // 封锁女巫（座位9）
       };
       const roleSeatMap: RoleSeatMap = {
-        ...DEFAULT_ROLE_SEAT_MAP,
+        ...NO_ROLES,
         witch: 9,
       };
 
@@ -426,7 +436,7 @@ describe('DeathCalculator', () => {
         nightmareBlock: 9, // 封锁女巫（座位9）
       };
       const roleSeatMap: RoleSeatMap = {
-        ...DEFAULT_ROLE_SEAT_MAP,
+        ...NO_ROLES,
         witch: 9,
       };
 
@@ -455,7 +465,7 @@ describe('DeathCalculator', () => {
         nightmareBlock: 0, // 封锁座位0（村民）
       };
       const roleSeatMap: RoleSeatMap = {
-        ...DEFAULT_ROLE_SEAT_MAP,
+        ...NO_ROLES,
         guard: 11,
       };
 
@@ -472,7 +482,7 @@ describe('DeathCalculator', () => {
 
   describe('Spirit Knight Reflection', () => {
     const spiritKnightRoleSeatMap: RoleSeatMap = {
-      ...DEFAULT_ROLE_SEAT_MAP,
+      ...NO_ROLES,
       spiritKnight: 7,
       seer: 8,
       witch: 9,

@@ -41,8 +41,7 @@ const AVATAR_IMAGES = [
   require('../../assets/avatars/villager_029.jpg'),
 ];
 
-/** Export for testing */
-export const AVATAR_COUNT = AVATAR_IMAGES.length;
+const AVATAR_COUNT = AVATAR_IMAGES.length;
 
 /**
  * FNV-1a hash — better avalanche properties than djb2 for short similar strings.
@@ -93,7 +92,7 @@ export const getAvatarImage = (seed: string): number => {
  * @param uid - The user's unique identifier
  * @returns The avatar index (0-based) - use getAvatarImageByIndex to get the actual image
  */
-export function getDefaultAvatarIndex(roomId: string, uid: string): number {
+function getDefaultAvatarIndex(roomId: string, uid: string): number {
   // Combine roomId and uid into a single string before hashing.
   // FNV-1a has much better avalanche than djb2 for short sequential strings
   // like "bot-0" .. "bot-11", greatly reducing collisions within a room.

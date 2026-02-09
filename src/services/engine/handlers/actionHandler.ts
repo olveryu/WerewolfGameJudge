@@ -423,7 +423,6 @@ function checkNightmareBlockGuard(
   return undefined;
 }
 
-// Export for testing
 export { isSkipAction, checkNightmareBlockGuard };
 
 /**

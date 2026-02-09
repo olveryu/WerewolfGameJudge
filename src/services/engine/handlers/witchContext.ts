@@ -33,7 +33,7 @@ type NonNullState = NonNullable<BroadcastGameState>;
  * @param state 当前游戏状态
  * @returns witchContext payload
  */
-export function computeWitchContext(state: NonNullState): {
+function computeWitchContext(state: NonNullState): {
   killedSeat: number;
   canSave: boolean;
   canPoison: boolean;
