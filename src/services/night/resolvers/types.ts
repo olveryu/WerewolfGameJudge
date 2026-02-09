@@ -134,54 +134,6 @@ export interface WolfRobotResolverResult extends ResolverResult {
   // 编译期保证由 resolver 内部实现
 }
 
-/**
- * WolfRobot 成功学习时的 result 类型（向后兼容别名）
- */
-export interface WolfRobotLearnResult {
-  readonly learnTarget: number;
-  readonly learnedRoleId: RoleId; // 必须存在
-  readonly identityResult?: RoleId;
-  readonly canShootAsHunter?: boolean;
-}
-
-/**
- * 类型守卫：检查 resolver result 是否包含有效的 wolfRobot 学习结果
- *
- * 合约：当 learnTarget 存在时，learnedRoleId 必须存在
- */
-export function isWolfRobotLearnResult(
-  result: ResolverResult['result'] | undefined,
-): result is WolfRobotLearnResult {
-  if (!result) return false;
-  return typeof result.learnTarget === 'number' && typeof result.learnedRoleId === 'string';
-}
-
-/**
- * 断言 wolfRobot resolver result 包含 learnedRoleId
- *
- * 用于 Host 层：当确定是 wolfRobot 成功学习时，断言 learnedRoleId 存在
- * @throws TypeError 如果 learnedRoleId 缺失（违反合约）
- *
- * NOTE: 由于 WolfRobotResolverResult 类型设计，编译期应该已经保证不会缺字段。
- * 此函数保留作为 runtime 防线。
- */
-export function assertWolfRobotLearnedRoleId(
-  result: ResolverResult['result'] | undefined,
-  context: string,
-): asserts result is WolfRobotLearnResult {
-  if (!result) {
-    throw new TypeError(`[${context}] wolfRobot result is undefined`);
-  }
-  if (typeof result.learnTarget !== 'number') {
-    throw new TypeError(`[${context}] wolfRobot result missing learnTarget`);
-  }
-  if (typeof result.learnedRoleId !== 'string') {
-    throw new TypeError(
-      `[${context}] wolfRobot result missing learnedRoleId - type contract violation`,
-    );
-  }
-}
-
 /** Resolver function signature */
 export type ResolverFn = (context: ResolverContext, input: ActionInput) => ResolverResult;
 

@@ -59,7 +59,15 @@ const UI_TEXT = {
   ] as const,
 
   /** Button labels that advance the night flow */
-  advanceButtons: ['知道了', '确定', '不使用技能', '投票空刀', '查看发动状态'] as const,
+  advanceButtons: [
+    '知道了',
+    '确定',
+    '不使用技能',
+    '投票空刀',
+    '空刀',
+    '查看发动状态',
+    '查看技能状态',
+  ] as const,
 
   /** Action message patterns indicating a seat-target selection is needed */
   targetSelection: [
