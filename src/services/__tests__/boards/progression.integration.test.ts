@@ -215,7 +215,7 @@ describe('evaluateNightProgression (integration with real board state)', () => {
       // 提交 witch action (skip = 不用药)
       sendMessageOrThrow(
         ctx,
-        { type: 'ACTION', seat: 9, role: 'witch', target: -1, extra: { usePoison: false, poisonTarget: -1 } },
+        { type: 'ACTION', seat: 9, role: 'witch', target: null, extra: { stepResults: { save: null, poison: null } } },
         'witchAction',
       );
 
@@ -245,7 +245,7 @@ describe('evaluateNightProgression (integration with real board state)', () => {
       ctx.assertStep('witchAction');
       sendMessageOrThrow(
         ctx,
-        { type: 'ACTION', seat: 9, role: 'witch', target: -1, extra: { usePoison: false, poisonTarget: -1 } },
+        { type: 'ACTION', seat: 9, role: 'witch', target: null, extra: { stepResults: { save: null, poison: null } } },
         'witchAction',
       );
       ctx.advanceNightOrThrow('past witchAction');
