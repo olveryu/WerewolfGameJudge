@@ -611,9 +611,18 @@ export async function chainConfirmTrigger(
   await waitForRoomScreen(result.getByTestId);
   harness.clear();
 
+  const { getSchema } = require('@/models/roles/spec/schemas');
+  const schema = getSchema(schemaId);
+  const bottomActionText = schema.ui?.bottomActionText;
+  if (!bottomActionText) {
+    throw new Error(
+      `[TEST] Missing schema.ui.bottomActionText for confirmTrigger chain: ${schemaId}`,
+    );
+  }
+
   // Press the bottom button to trigger confirmTrigger dialog
-  await waitFor(() => expect(result.queryByText('查看发动状态')).toBeTruthy());
-  const confirmButton = result.getByText('查看发动状态');
+  await waitFor(() => expect(result.queryByText(bottomActionText)).toBeTruthy());
+  const confirmButton = result.getByText(bottomActionText);
   fireEvent.press(confirmButton);
   await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
 
@@ -660,8 +669,14 @@ export async function chainWolfRobotHunterStatus(
   await waitForRoomScreen(result.getByTestId);
   harness.clear();
 
+  const { SCHEMAS } = require('@/models/roles/spec/schemas');
+  const gateButtonText = SCHEMAS.wolfRobotLearn.ui?.hunterGateButtonText;
+  if (!gateButtonText) {
+    throw new Error('[TEST] Missing SCHEMAS.wolfRobotLearn.ui.hunterGateButtonText');
+  }
+
   // Press gate button
-  const gateButton = result.getByText('查看发动状态');
+  const gateButton = result.getByText(gateButtonText);
   fireEvent.press(gateButton);
   await waitFor(() => expect(harness.hasSeen('wolfRobotHunterStatus')).toBe(true));
 
@@ -798,9 +813,18 @@ export async function coverageChainConfirmTrigger(
   const result = renderFn();
   await waitForRoomScreen(result.getByTestId);
 
+  const { getSchema } = require('@/models/roles/spec/schemas');
+  const schema = getSchema(schemaId);
+  const bottomActionText = schema.ui?.bottomActionText;
+  if (!bottomActionText) {
+    throw new Error(
+      `[TEST] Missing schema.ui.bottomActionText for confirmTrigger coverage chain: ${schemaId}`,
+    );
+  }
+
   // Wait for actionPrompt, then press bottom button
   await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
-  const confirmButton = result.getByText('查看发动状态');
+  const confirmButton = result.getByText(bottomActionText);
   fireEvent.press(confirmButton);
   await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
 
@@ -846,7 +870,13 @@ export async function coverageChainWolfRobotHunterStatus(
   const result = renderFn();
   await waitForRoomScreen(result.getByTestId);
 
-  const gateButton = result.getByText('查看发动状态');
+  const { SCHEMAS } = require('@/models/roles/spec/schemas');
+  const gateButtonText = SCHEMAS.wolfRobotLearn.ui?.hunterGateButtonText;
+  if (!gateButtonText) {
+    throw new Error('[TEST] Missing SCHEMAS.wolfRobotLearn.ui.hunterGateButtonText');
+  }
+
+  const gateButton = result.getByText(gateButtonText);
   fireEvent.press(gateButton);
   await waitFor(() => expect(harness.hasSeen('wolfRobotHunterStatus')).toBe(true));
 

@@ -22,6 +22,7 @@
 import React from 'react';
 import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { SCHEMAS } from '@/models/roles/spec/schemas';
 import { showAlert } from '@/utils/alert';
 import {
   RoomScreenTestHarness,
@@ -44,6 +45,22 @@ import {
   coverageChainConfirmTrigger,
   coverageChainSkipConfirm,
 } from '@/screens/RoomScreen/__tests__/harness';
+
+function getWolfRobotHunterGateButtonText(): string {
+  const text = SCHEMAS.wolfRobotLearn.ui?.hunterGateButtonText;
+  if (!text) {
+    throw new Error('[TEST] Missing SCHEMAS.wolfRobotLearn.ui.hunterGateButtonText');
+  }
+  return text;
+}
+
+function getWolfRobotHunterGatePromptText(): string {
+  const text = SCHEMAS.wolfRobotLearn.ui?.hunterGatePrompt;
+  if (!text) {
+    throw new Error('[TEST] Missing SCHEMAS.wolfRobotLearn.ui.hunterGatePrompt');
+  }
+  return text;
+}
 
 // =============================================================================
 // Mocks
@@ -245,7 +262,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
 
       // CRITICAL: Must press the gate button to trigger the dialog
-      const hunterGateButton = getByText('查看发动状态');
+      const hunterGateButton = getByText(getWolfRobotHunterGateButtonText());
       fireEvent.press(hunterGateButton);
 
       // Wait for hunter status gate to appear
@@ -293,7 +310,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
 
       // Press gate button to trigger dialog
-      const hunterGateButton = getByText('查看发动状态');
+      const hunterGateButton = getByText(getWolfRobotHunterGateButtonText());
       fireEvent.press(hunterGateButton);
 
       await waitFor(() => {
@@ -352,7 +369,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
 
       // Button should be visible initially
-      expect(getByText('查看发动状态')).toBeTruthy();
+      expect(getByText(getWolfRobotHunterGateButtonText())).toBeTruthy();
 
       // Simulate state update: Host broadcasts wolfRobotHunterStatusViewed = true
       reactiveMock.simulateStateUpdate({
@@ -364,7 +381,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       // CRITICAL ASSERTION: Button should disappear
       await waitFor(() => {
-        expect(queryByText('查看发动状态')).toBeNull();
+        expect(queryByText(getWolfRobotHunterGateButtonText())).toBeNull();
       });
 
       reactiveMock.disconnect();
@@ -399,7 +416,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
 
       // Button should NOT be visible when gate is already cleared
-      expect(queryByText('查看发动状态')).toBeNull();
+      expect(queryByText(getWolfRobotHunterGateButtonText())).toBeNull();
 
       // Clear any prior dialog events
       harness.clear();
@@ -530,10 +547,9 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
 
       // CRITICAL: Should show hunter gate prompt, NOT learning prompt
-      // The hunter gate prompt is: '请点击下方按钮查看猎人发动状态'
       // The learning prompt is: '请选择要学习的玩家'
       expect(queryByText(/请选择要学习的玩家/)).toBeNull();
-      expect(queryByText(/请点击下方按钮查看猎人发动状态/)).not.toBeNull();
+      expect(queryByText(getWolfRobotHunterGatePromptText())).not.toBeNull();
     });
   });
 

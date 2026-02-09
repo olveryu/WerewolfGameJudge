@@ -12,6 +12,7 @@
  */
 
 import { showAlert as realShowAlert } from '@/utils/alert';
+import { SCHEMAS } from '@/models/roles/spec/schemas';
 
 // =============================================================================
 // Dialog Type Definitions (Single Source of Truth)
@@ -121,30 +122,40 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   { type: 'psychicReveal', match: (t) => t.includes('通灵师') },
   { type: 'gargoyleReveal', match: (t) => t.includes('石像鬼') },
   // wolfRobotHunterStatus: schema-driven title/message for wolfRobotLearn hunter gate.
-  // Current copy in SCHEMAS.wolfRobotLearn.ui.hunterGate*: title is “技能状态”,
-  // message contains “猎人” + “发动”.
-  // Must be checked BEFORE confirmTrigger since both use “技能状态”.
   {
     type: 'wolfRobotHunterStatus',
-    match: (t, m) =>
-      t === '技能状态' && m.includes('学到') && m.includes('猎人') && m.includes('发动'),
+    match: (t, m) => {
+      const title = SCHEMAS.wolfRobotLearn.ui?.hunterGateDialogTitle;
+      const canShootText = SCHEMAS.wolfRobotLearn.ui?.hunterGateCanShootText;
+      const cannotShootText = SCHEMAS.wolfRobotLearn.ui?.hunterGateCannotShootText;
+      if (!title || !canShootText || !cannotShootText) return false;
+      return t === title && (m === canShootText || m === cannotShootText);
+    },
   },
   { type: 'wolfRobotReveal', match: (t) => t.includes('机械狼') || t.includes('你学习了') },
 
   // Magician
   { type: 'magicianFirst', match: (t) => t.includes('已选择第一位') },
 
-  // Confirm trigger (hunter/darkWolfKing status): title is “技能状态”,
-  // message contains “可以/不能” + “发动”, and is for hunter/darkWolfKing confirm steps.
-  // NOTE: wolfRobot learned-hunter gate also uses similar language, but includes “学到”.
+  // Confirm trigger (hunter/darkWolfKing status): schema-driven title/message.
   {
     type: 'confirmTrigger',
-    match: (t, m) =>
-      t === '技能状态' &&
-      !m.includes('学到') &&
-      // Some copy uses “不可以” instead of “不能”
-      (m.includes('可以') || m.includes('不能') || m.includes('不可以')) &&
-      m.includes('发动'),
+    match: (t, m) => {
+      const hunterTitle = SCHEMAS.hunterConfirm.ui?.statusDialogTitle;
+      const hunterCan = SCHEMAS.hunterConfirm.ui?.canShootText;
+      const hunterCannot = SCHEMAS.hunterConfirm.ui?.cannotShootText;
+
+      const darkTitle = SCHEMAS.darkWolfKingConfirm.ui?.statusDialogTitle;
+      const darkCan = SCHEMAS.darkWolfKingConfirm.ui?.canShootText;
+      const darkCannot = SCHEMAS.darkWolfKingConfirm.ui?.cannotShootText;
+
+      const isHunterConfirm =
+        !!hunterTitle && !!hunterCan && !!hunterCannot && t === hunterTitle && (m === hunterCan || m === hunterCannot);
+      const isDarkWolfKingConfirm =
+        !!darkTitle && !!darkCan && !!darkCannot && t === darkTitle && (m === darkCan || m === darkCannot);
+
+      return isHunterConfirm || isDarkWolfKingConfirm;
+    },
   },
 
   // Role card
