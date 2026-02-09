@@ -197,11 +197,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       harness.clear();
       tapSeat(getByTestId, 1);
       await waitFor(() =>
-        expect(
-          harness.hasSeen('witchPoisonPrompt') ||
-            harness.hasSeen('witchPoisonConfirm') ||
-            harness.hasSeen('actionConfirm'),
-        ).toBe(true),
+        expect(harness.hasSeen('witchPoisonPrompt')).toBe(true),
       );
     });
   });
@@ -225,7 +221,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       await waitForRoomScreen(getByTestId);
       await waitFor(() =>
-        expect(harness.hasSeen('confirmTrigger') || harness.hasSeen('actionPrompt')).toBe(true),
+        expect(harness.hasSeen('actionPrompt')).toBe(true),
       );
     });
   });

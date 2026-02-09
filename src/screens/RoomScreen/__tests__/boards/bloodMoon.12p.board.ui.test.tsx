@@ -213,11 +213,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       harness.clear();
       tapSeat(getByTestId, 1);
       await waitFor(() =>
-        expect(
-          harness.hasSeen('witchPoisonPrompt') ||
-            harness.hasSeen('witchPoisonConfirm') ||
-            harness.hasSeen('actionConfirm'),
-        ).toBe(true),
+        expect(harness.hasSeen('witchPoisonPrompt')).toBe(true),
       );
     });
   });
