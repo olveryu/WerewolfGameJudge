@@ -25,7 +25,7 @@ import type {
   ResolvedRoleRevealAnimation,
 } from '@/types/RoleRevealAnimation';
 
-export interface NightDerivedValues {
+interface NightDerivedValues {
   /** Current action role derived from NightPlan */
   currentActionRole: RoleId | null;
   /** SchemaId for current action role (null if no action) */

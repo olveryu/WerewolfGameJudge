@@ -14,7 +14,7 @@ import React, { memo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { type ControlledSeatBannerStyles } from './styles';
 
-export interface ControlledSeatBannerProps {
+interface ControlledSeatBannerProps {
   /** Mode: 'hint' shows takeover hint, 'controlled' shows controlled bot */
   mode: 'hint' | 'controlled';
   /** The seat number being controlled (0-indexed, display as 1-indexed) - required when mode='controlled' */

@@ -22,32 +22,32 @@ import { GameStatus } from '@/models/GameStatus';
 // =============================================================================
 
 /** Result when tap should be ignored (no-op) */
-export interface SeatTapResultNoop {
+interface SeatTapResultNoop {
   kind: 'NOOP';
   reason: 'audio_playing' | 'no_game_state' | 'not_actioner' | 'other_status';
 }
 
 /** Result when an alert should be shown */
-export interface SeatTapResultAlert {
+interface SeatTapResultAlert {
   kind: 'ALERT';
   title: string;
   message: string;
 }
 
 /** Result when seating flow should be triggered */
-export interface SeatTapResultSeatingFlow {
+interface SeatTapResultSeatingFlow {
   kind: 'SEATING_FLOW';
   seatIndex: number;
 }
 
 /** Result when action flow should be triggered */
-export interface SeatTapResultActionFlow {
+interface SeatTapResultActionFlow {
   kind: 'ACTION_FLOW';
   seatIndex: number;
 }
 
 /** Union of all possible seat tap results */
-export type SeatTapResult =
+type SeatTapResult =
   | SeatTapResultNoop
   | SeatTapResultAlert
   | SeatTapResultSeatingFlow

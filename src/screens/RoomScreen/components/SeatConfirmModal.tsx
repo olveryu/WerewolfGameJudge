@@ -11,9 +11,9 @@ import { Modal, View, Text, TouchableOpacity } from 'react-native';
 import { type SeatConfirmModalStyles } from './styles';
 import { TESTIDS } from '@/testids';
 
-export type SeatModalType = 'enter' | 'leave';
+type SeatModalType = 'enter' | 'leave';
 
-export interface SeatConfirmModalProps {
+interface SeatConfirmModalProps {
   /** Whether the modal is visible */
   visible: boolean;
   /** Type of action - entering or leaving seat */

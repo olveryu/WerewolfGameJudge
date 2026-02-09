@@ -15,7 +15,7 @@ import { GameStatus } from '@/models/GameStatus';
 import { SettingsService } from '@/services/feature/SettingsService';
 import { AudioService } from '@/services/infra/AudioService';
 
-export interface BgmControlState {
+interface BgmControlState {
   isBgmEnabled: boolean;
   toggleBgm: () => Promise<void>;
   /** Start BGM if enabled — call when game starts */

@@ -29,7 +29,7 @@ const TAP_TIMEOUT_MS = 2000;
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface UseHiddenDebugTriggerResult {
+interface UseHiddenDebugTriggerResult {
   /** Callback to attach to the hidden trigger area (e.g., header title) */
   handleDebugTitleTap: () => void;
 }

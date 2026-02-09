@@ -38,7 +38,7 @@ const ALIGNMENT_MAP: Record<Faction, 'wolf' | 'god' | 'villager'> = {
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
-export interface RoleCardModalProps {
+interface RoleCardModalProps {
   /** 是否显示弹窗 */
   visible: boolean;
   /** 当前角色（effectiveRole，支持接管模式） */

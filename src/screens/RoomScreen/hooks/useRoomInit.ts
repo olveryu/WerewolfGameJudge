@@ -19,7 +19,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { GameTemplate } from '@/models/Template';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
-export interface UseRoomInitParams {
+interface UseRoomInitParams {
   /** Room number (4-digit code) — confirmed/final, already created in DB */
   roomNumber: string;
   /** Whether this client is creating the room (host) */
@@ -42,7 +42,7 @@ export interface UseRoomInitParams {
   gameRoomError?: string | null;
 }
 
-export interface UseRoomInitResult {
+interface UseRoomInitResult {
   /** Whether initialization completed */
   isInitialized: boolean;
   /** Current loading message to display (prefers gameRoomError when available + retrying) */

@@ -21,7 +21,7 @@ import { SCHEMAS, isValidSchemaId } from '@/models/roles/spec';
 // ActionIntent Types (must be serializable - no callbacks/refs/functions)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type ActionIntentType =
+type ActionIntentType =
   // Reveal (ANTI-CHEAT: RoomScreen only waits for private reveal + sends ack)
   | 'reveal'
 
@@ -97,7 +97,7 @@ export interface ActionDeps {
   } | null;
 }
 
-export interface UseRoomActionsResult {
+interface UseRoomActionsResult {
   /** Get intent when seat is tapped */
   getActionIntent: (index: number) => ActionIntent | null;
 
@@ -123,11 +123,11 @@ export interface UseRoomActionsResult {
   getBottomAction: () => BottomActionVM;
 }
 
-export interface BottomActionVM {
+interface BottomActionVM {
   buttons: BottomButton[];
 }
 
-export interface BottomButton {
+interface BottomButton {
   /** Stable key (align to schema step keys when possible). */
   key: string; // 'save' | 'skip' | 'wolfEmpty' ...
   label: string;

@@ -31,7 +31,7 @@ type NonNullState = NonNullable<BroadcastGameState>;
 /**
  * 夜晚推进决策结果
  */
-export type NightProgressionDecision =
+type NightProgressionDecision =
   | { action: 'none'; reason: string }
   | { action: 'advance'; reason: string }
   | { action: 'end_night'; reason: string };
@@ -293,7 +293,7 @@ export function resetProgressionTracker(): void {
  *
  * 用于 handleNightProgression 执行推进时调用 facade 层的方法
  */
-export interface NightProgressionCallbacks {
+interface NightProgressionCallbacks {
   /** 获取当前 revision */
   getRevision: () => number;
   /** 获取当前 state */
@@ -309,7 +309,7 @@ export interface NightProgressionCallbacks {
 /**
  * 夜晚推进结果
  */
-export interface NightProgressionResult {
+interface NightProgressionResult {
   advanced: boolean;
   decision: 'advance' | 'end_night' | 'none';
   reason?: string;

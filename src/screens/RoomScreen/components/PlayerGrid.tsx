@@ -17,7 +17,7 @@ import { getUniqueAvatarMap } from '@/utils/avatar';
 // Re-export GRID_COLUMNS for external use
 export { GRID_COLUMNS } from './SeatTile';
 
-export interface PlayerGridProps {
+interface PlayerGridProps {
   /** Array of seat view models (pre-computed from game state) */
   seats: SeatViewModel[];
   /** Room number for Avatar */

@@ -14,7 +14,7 @@ import { View, Text } from 'react-native';
 import { type NightProgressIndicatorStyles } from './styles';
 import { TESTIDS } from '@/testids';
 
-export interface NightProgressIndicatorProps {
+interface NightProgressIndicatorProps {
   /** Current step index (1-based for display) */
   currentStep: number;
   /** Total number of steps in the night plan */

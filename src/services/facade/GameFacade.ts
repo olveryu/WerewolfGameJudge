@@ -49,7 +49,7 @@ import { facadeLog } from '@/utils/logger';
 /**
  * GameFacade 可注入依赖
  */
-export interface GameFacadeDeps {
+interface GameFacadeDeps {
   /** GameStore 实例（可选，默认 new GameStore()） */
   store?: GameStore;
   /** BroadcastService 实例（可选，默认 new BroadcastService()） */

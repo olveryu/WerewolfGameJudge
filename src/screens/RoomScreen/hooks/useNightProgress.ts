@@ -23,7 +23,7 @@ import type { LocalGameState } from '@/types/GameStateTypes';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface NightProgressInfo {
+interface NightProgressInfo {
   /** 1-based step index for display */
   current: number;
   /** Total number of night steps */
@@ -32,7 +32,7 @@ export interface NightProgressInfo {
   roleName: string | undefined;
 }
 
-export interface UseNightProgressParams {
+interface UseNightProgressParams {
   /** Current night step id (null when not in night phase) */
   currentStepId: SchemaId | null;
   /** Game state (for status + template.roles to build night plan) */
@@ -49,7 +49,7 @@ export interface UseNightProgressParams {
   showSpeakOrderDialog: () => void;
 }
 
-export interface UseNightProgressResult {
+interface UseNightProgressResult {
   /** Night progress info for NightProgressIndicator, null when not applicable */
   nightProgress: NightProgressInfo | null;
 }

@@ -11,7 +11,7 @@ import React, { memo } from 'react';
 import { TouchableOpacity, Text } from 'react-native';
 import { type ActionButtonStyles } from './styles';
 
-export interface ActionButtonProps {
+interface ActionButtonProps {
   /** Button label text */
   label: string;
   /** Callback when pressed - always called, even when visually disabled */

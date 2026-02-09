@@ -11,7 +11,7 @@ import { View, Text } from 'react-native';
 import { TESTIDS } from '@/testids';
 import { type BottomActionPanelStyles } from './styles';
 
-export interface BottomActionPanelProps {
+interface BottomActionPanelProps {
   /** Action message to display (e.g., "请选择要查验的玩家") */
   message?: string;
   /** Whether to show the message section */

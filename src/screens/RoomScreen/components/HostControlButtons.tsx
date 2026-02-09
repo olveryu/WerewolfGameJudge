@@ -11,7 +11,7 @@ import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useColors, spacing, typography, borderRadius, type ThemeColors } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 
-export interface HostControlButtonsProps {
+interface HostControlButtonsProps {
   // Visibility flags
   isHost: boolean;
   showSettings: boolean;

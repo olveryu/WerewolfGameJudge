@@ -11,7 +11,7 @@ import { Text } from 'react-native';
 import { TESTIDS } from '@/testids';
 import { type ActionMessageStyles } from './styles';
 
-export interface ActionMessageProps {
+interface ActionMessageProps {
   /** The message to display */
   message: string;
   /** Pre-created styles from parent */

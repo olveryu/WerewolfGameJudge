@@ -15,7 +15,7 @@ import { Faction } from '@/models/roles/spec/types';
 // Types
 // ============================================
 
-export interface RoleSlot {
+interface RoleSlot {
   /** The base roleId (matches ROLE_SPECS key) */
   roleId: string;
   /**
@@ -32,12 +32,12 @@ export interface RoleSlot {
   isBulk?: boolean;
 }
 
-export interface RoleSection {
+interface RoleSection {
   title: string;
   roles: RoleSlot[];
 }
 
-export interface FactionGroup {
+interface FactionGroup {
   title: string;
   /** Ionicons icon name for the faction tab */
   iconName: string;

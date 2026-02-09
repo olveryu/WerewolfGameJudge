@@ -16,7 +16,7 @@ import type { LocalGameState } from '@/types/GameStateTypes';
 import type { RoleId } from '@/models/roles';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 
-export interface DebugModeState {
+interface DebugModeState {
   /** Which bot seat the Host is currently controlling (null = normal mode) */
   controlledSeat: number | null;
   setControlledSeat: (seat: number | null) => void;

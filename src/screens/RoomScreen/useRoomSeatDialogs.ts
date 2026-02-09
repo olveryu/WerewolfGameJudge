@@ -14,7 +14,7 @@ import type { RootStackParamList } from '@/navigation/types';
 import { showAlert } from '@/utils/alert';
 import { GameStatus } from '@/models/GameStatus';
 
-export interface UseRoomSeatDialogsParams {
+interface UseRoomSeatDialogsParams {
   // Seat modal state
   pendingSeatIndex: number | null;
   setPendingSeatIndex: React.Dispatch<React.SetStateAction<number | null>>;
@@ -33,7 +33,7 @@ export interface UseRoomSeatDialogsParams {
   onLeaveRoom?: () => void;
 }
 
-export interface UseRoomSeatDialogsResult {
+interface UseRoomSeatDialogsResult {
   showEnterSeatDialog: (index: number) => void;
   showLeaveSeatDialog: (index: number) => void;
   handleConfirmSeat: () => Promise<void>;

@@ -10,7 +10,7 @@ import React, { useState, useEffect, memo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { type BoardInfoCardStyles } from './styles';
 
-export interface BoardInfoCardProps {
+interface BoardInfoCardProps {
   /** Total number of players */
   playerCount: number;
   /** Wolf roles formatted string (e.g., "狼人x2, 狼王x1") */

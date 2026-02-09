@@ -28,7 +28,7 @@ export interface TransportListener {
 /**
  * Transport 接口
  */
-export interface ITransport {
+interface ITransport {
   /** 广播状态给所有玩家 */
   broadcastState(state: GameState, revision: number): Promise<void>;
 

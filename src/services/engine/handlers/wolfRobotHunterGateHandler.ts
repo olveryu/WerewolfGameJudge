@@ -21,7 +21,7 @@ const handlerLog = log.extend('WolfRobotHunterGateHandler');
 /**
  * Intent 类型：设置机械狼查看猎人状态
  */
-export interface SetWolfRobotHunterStatusViewedIntent {
+interface SetWolfRobotHunterStatusViewedIntent {
   type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED';
   seat: number;
 }

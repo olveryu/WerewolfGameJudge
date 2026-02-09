@@ -12,7 +12,7 @@ import type { BroadcastGameState } from '@/services/protocol/types';
  * 规范化座位键记录（canonicalize），确保所有 key 都是 string。
  * 用于任何 Record<string, T> 在运行时可能收到 number key 的场景。
  */
-export function canonicalizeSeatKeyRecord<T>(
+function canonicalizeSeatKeyRecord<T>(
   record: Record<string | number, T> | undefined,
 ): Record<string, T> | undefined {
   if (record === undefined) return undefined;

@@ -38,7 +38,7 @@ import { useConnectionSync } from './useConnectionSync';
 import { useBgmControl } from './useBgmControl';
 import { useDebugMode } from './useDebugMode';
 
-export interface UseGameRoomResult {
+interface UseGameRoomResult {
   // Room info
   roomRecord: RoomRecord | null;
 

@@ -18,7 +18,7 @@ import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
  * Witch context for UI display (simplified from WitchContextPayload).
  * Does not require 'kind' discriminator since it's read from gameState.
  */
-export interface WitchContext {
+interface WitchContext {
   /** Seat killed by wolves (-1 = empty kill) */
   killedSeat: number;
   /** Whether witch can save (Host already checked: not self, has antidote) */

@@ -32,7 +32,7 @@ import type { RoleId } from '@/models/roles';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface UseInteractionDispatcherParams {
+interface UseInteractionDispatcherParams {
   // ── Game state ──
   gameState: LocalGameState | null;
   roomStatus: GameStatus;
@@ -84,7 +84,7 @@ export interface UseInteractionDispatcherParams {
   setShouldPlayRevealAnimation: (v: boolean) => void;
 }
 
-export interface UseInteractionDispatcherResult {
+interface UseInteractionDispatcherResult {
   /** Unified interaction entry point — calls policy → executes side effects. */
   dispatchInteraction: (event: InteractionEvent) => void;
   /** Main seat tap handler — wraps dispatchInteraction with SEAT_TAP event. */

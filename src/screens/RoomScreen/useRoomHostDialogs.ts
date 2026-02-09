@@ -29,7 +29,7 @@ export function generateSpeakOrder(
   return { startSeat, direction };
 }
 
-export interface UseRoomHostDialogsParams {
+interface UseRoomHostDialogsParams {
   gameState: LocalGameState | null;
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
@@ -42,7 +42,7 @@ export interface UseRoomHostDialogsParams {
   roomNumber: string;
 }
 
-export interface UseRoomHostDialogsResult {
+interface UseRoomHostDialogsResult {
   showPrepareToFlipDialog: () => void;
   showStartGameDialog: () => void;
   showLastNightInfoDialog: () => void;

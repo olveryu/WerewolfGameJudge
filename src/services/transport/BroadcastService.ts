@@ -37,7 +37,7 @@ export type {
 export type { ConnectionStatus } from '@/services/types/IGameFacade';
 
 /** Status change listener */
-export type ConnectionStatusListener = (status: ConnectionStatus) => void;
+type ConnectionStatusListener = (status: ConnectionStatus) => void;
 
 // =============================================================================
 // Service Implementation

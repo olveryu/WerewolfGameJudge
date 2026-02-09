@@ -28,7 +28,7 @@ import type { GameTemplate } from '@/models/Template';
  * Common interface for Room-like objects (supports both Room and LocalGameState).
  * Used by getWolfVoteSummary and toGameRoomLike.
  */
-export interface GameRoomLike {
+interface GameRoomLike {
   template: GameTemplate;
   players: Map<
     number,
@@ -51,7 +51,7 @@ export interface ActionerState {
   showWolves: boolean;
 }
 
-export interface PlayerInfoLike {
+interface PlayerInfoLike {
   uid: string;
   seatNumber: number;
   displayName: string;
@@ -60,7 +60,7 @@ export interface PlayerInfoLike {
   hasViewedRole: boolean;
 }
 
-export interface RoleStats {
+interface RoleStats {
   roleCounts: Record<string, number>;
   wolfRoles: string[];
   godRoles: string[];

@@ -14,7 +14,7 @@ import React, { memo, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { type HostMenuDropdownStyles } from './styles';
 
-export interface HostMenuDropdownProps {
+interface HostMenuDropdownProps {
   /** Whether to show the menu (Host only) */
   visible: boolean;
   /** Show fill with bots option (in dropdown) */

@@ -17,7 +17,7 @@ import type { IGameFacade } from '@/services/types/IGameFacade';
 
 const STALE_THRESHOLD_MS = 30000;
 
-export interface ConnectionSyncState {
+interface ConnectionSyncState {
   connectionStatus: ConnectionStatus;
   setConnectionStatus: (status: ConnectionStatus) => void;
   stateRevision: number;
