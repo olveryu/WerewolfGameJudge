@@ -46,12 +46,6 @@ const makeMock = (overrides?: { canSave?: boolean; killedSeat?: number }) =>
     mySeatNumber: 0,
     overrides: {
       submitAction: mockSubmitAction,
-      getWitchContext: jest.fn().mockReturnValue({
-        kind: 'WITCH_CONTEXT',
-        killedSeat: overrides?.killedSeat ?? 2,
-        canSave: overrides?.canSave ?? true,
-        canPoison: true,
-      }),
     },
     // gameState.witchContext is read by RoomScreen actionDeps
     gameStateOverrides: {

@@ -123,12 +123,12 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
 
       // Some schemas require extra hook data to avoid hitting code paths that assume it.
       const overrides: any = {};
+      const gameStateOverrides: any = {};
       if (schemaId === 'witchAction') {
-        overrides.getWitchContext = jest.fn().mockReturnValue({
-          kind: 'WITCH_CONTEXT',
+        gameStateOverrides.witchContext = {
           killedSeat: 2,
           canSave: true,
-        });
+        };
       }
 
       mockUseGameRoomImpl = () =>
@@ -137,6 +137,7 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
           currentActionRole: role,
           myRole: role,
           overrides,
+          gameStateOverrides,
         });
 
       // Default: use the real hook logic (to keep RoomScreen mount behavior realistic).
@@ -158,7 +159,7 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
           {
             hasWolfVoted: room.hasWolfVoted,
             getWolfVoteSummary: room.getWolfVoteSummary,
-            getWitchContext: room.getWitchContext,
+            getWitchContext: () => room.gameState?.witchContext ?? null,
           },
         );
 

@@ -103,7 +103,6 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     setControlledSeat: jest.fn(),
 
     // Actions used by RoomScreen
-    createRoom: jest.fn(),
     joinRoom: jest.fn().mockResolvedValue(true),
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
@@ -121,15 +120,8 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     clearLastSeatError: jest.fn(),
 
     // Info getters
-    getWitchContext: jest.fn().mockReturnValue(null),
     getLastNightInfo: jest.fn().mockReturnValue(''),
-    getLastNightDeaths: jest.fn().mockReturnValue([]),
 
-    // Reveal plumbing (not used in this test, but destructured by RoomScreen)
-    waitForSeerReveal: jest.fn(),
-    waitForPsychicReveal: jest.fn(),
-    waitForGargoyleReveal: jest.fn(),
-    waitForWolfRobotReveal: jest.fn(),
     submitRevealAck: jest.fn(),
 
     // BGM controls

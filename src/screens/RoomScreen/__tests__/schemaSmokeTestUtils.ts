@@ -91,7 +91,6 @@ export function makeBaseUseGameRoomReturn({
     markAllBotsViewed: jest.fn(),
     setControlledSeat: jest.fn(),
 
-    createRoom: jest.fn(),
     joinRoom: jest.fn().mockResolvedValue(true),
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
@@ -109,14 +108,8 @@ export function makeBaseUseGameRoomReturn({
     lastSeatError: null,
     clearLastSeatError: jest.fn(),
 
-    getWitchContext: jest.fn().mockReturnValue(null),
     getLastNightInfo: jest.fn().mockReturnValue(''),
-    getLastNightDeaths: jest.fn().mockReturnValue([]),
 
-    waitForSeerReveal: jest.fn(),
-    waitForPsychicReveal: jest.fn(),
-    waitForGargoyleReveal: jest.fn(),
-    waitForWolfRobotReveal: jest.fn(),
     submitRevealAck: jest.fn(),
 
     isBgmEnabled: true,
