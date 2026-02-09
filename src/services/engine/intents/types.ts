@@ -46,10 +46,6 @@ export interface AssignRolesIntent {
   type: 'ASSIGN_ROLES';
 }
 
-export interface StartGameIntent {
-  type: 'START_GAME';
-}
-
 /**
  * 开始夜晚 Intent（Host-only）
  * 前置条件：status === 'ready'
@@ -223,7 +219,6 @@ export type GameIntent =
   | JoinSeatIntent
   | LeaveMySeatIntent
   | AssignRolesIntent
-  | StartGameIntent
   | StartNightIntent
   | RestartGameIntent
   | UpdateTemplateIntent

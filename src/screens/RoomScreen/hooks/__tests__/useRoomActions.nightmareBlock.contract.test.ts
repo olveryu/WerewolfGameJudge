@@ -97,7 +97,11 @@ describe('A) Schema-driven intents - UI 总是返回 schema-driven intent', () =
       expect(bottomAction.buttons).toHaveLength(1);
       expect(bottomAction.buttons[0].key).toBe('skip');
       // Label comes from schema.ui.bottomActionText
-      expect(bottomAction.buttons[0].label).toBe('不使用技能');
+      const skipText = getSchema('seerCheck').ui?.bottomActionText;
+      if (!skipText) {
+        throw new Error('[TEST] Missing seerCheck.ui.bottomActionText');
+      }
+      expect(bottomAction.buttons[0].label).toBe(skipText);
     });
 
     it('confirm schema 玩家 (hunter) 未被 block 时 → 只显示 confirm 按钮（必须确认）', () => {
@@ -114,7 +118,11 @@ describe('A) Schema-driven intents - UI 总是返回 schema-driven intent', () =
       const bottomAction = result.current.getBottomAction();
       expect(bottomAction.buttons).toHaveLength(1);
       expect(bottomAction.buttons[0].key).toBe('confirm');
-      expect(bottomAction.buttons[0].label).toBe('查看发动状态');
+      const confirmText = getSchema('hunterConfirm').ui?.bottomActionText;
+      if (!confirmText) {
+        throw new Error('[TEST] Missing hunterConfirm.ui.bottomActionText');
+      }
+      expect(bottomAction.buttons[0].label).toBe(confirmText);
     });
   });
 });

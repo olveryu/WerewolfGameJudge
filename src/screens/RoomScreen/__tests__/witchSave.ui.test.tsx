@@ -123,7 +123,8 @@ describe('RoomScreen witch save UI (contract)', () => {
 
   it('save button -> confirm -> submitAction(actorSeat, { stepResults: { save: killedSeat, poison: null } })', async () => {
     // killedSeat = 2, mySeatNumber = 0
-    mockUseGameRoomReturn = makeMock({ canSave: true, killedSeat: 2 });
+    const killedSeat = 2;
+    mockUseGameRoomReturn = makeMock({ canSave: true, killedSeat });
 
     const { getByTestId, getByText } = render(
       <RoomScreen
@@ -136,8 +137,9 @@ describe('RoomScreen witch save UI (contract)', () => {
       expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
     });
 
-    // Find and click the save button (bottom action button with text "对3号用解药")
-    const saveButton = getByText('对3号用解药');
+    // Find and click the save button (bottom action button)
+    const saveLabel = `对${killedSeat + 1}号用解药`;
+    const saveButton = getByText(saveLabel);
     await act(async () => {
       fireEvent.press(saveButton);
     });
@@ -165,7 +167,7 @@ describe('RoomScreen witch save UI (contract)', () => {
 
     // protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
     expect(mockSubmitAction).toHaveBeenCalledWith(0, {
-      stepResults: { save: 2, poison: null },
+      stepResults: { save: killedSeat, poison: null },
     });
   });
 });

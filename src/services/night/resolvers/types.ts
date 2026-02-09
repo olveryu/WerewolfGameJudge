@@ -122,19 +122,6 @@ export interface ResolverResult {
 // =============================================================================
 
 /**
- * WolfRobot 成功学习时的 result 类型（learnedRoleId 编译期必填）
- *
- * 这是 wolfRobotLearnResolver 成功学习时必须返回的类型。
- * learnTarget 和 learnedRoleId 在编译期就必须同时存在。
- */
-export interface WolfRobotLearnResultPayload {
-  readonly learnTarget: number;
-  readonly learnedRoleId: RoleId; // 编译期必填
-  readonly identityResult: RoleId; // for UI display
-  readonly canShootAsHunter?: boolean; // only set when learned hunter
-}
-
-/**
  * WolfRobot Resolver 的专用返回类型
  *
  * 为了向后兼容现有测试代码（不先检查 valid），

@@ -18,32 +18,33 @@ describe('NightProgressIndicator', () => {
       <NightProgressIndicator currentStep={3} totalSteps={12} styles={mockStyles} />,
     );
 
-    expect(getByText('步骤 3/12')).toBeTruthy();
+    expect(getByText(/3\/12/)).toBeTruthy();
   });
 
   it('should render role name when provided', () => {
+    const roleName = 'test-role';
     const { getByText } = render(
       <NightProgressIndicator
         currentStep={5}
         totalSteps={10}
-        currentRoleName="女巫"
+        currentRoleName={roleName}
         styles={mockStyles}
       />,
     );
 
-    expect(getByText('步骤 5/10')).toBeTruthy();
-    expect(getByText('女巫')).toBeTruthy();
+    expect(getByText(/5\/10/)).toBeTruthy();
+    expect(getByText(roleName)).toBeTruthy();
   });
 
   it('should not render role name when not provided', () => {
+    const roleName = 'test-role';
     const { queryByText, getByText } = render(
       <NightProgressIndicator currentStep={1} totalSteps={8} styles={mockStyles} />,
     );
 
-    expect(getByText('步骤 1/8')).toBeTruthy();
+    expect(getByText(/1\/8/)).toBeTruthy();
     // Should not have any role text element
-    expect(queryByText('女巫')).toBeNull();
-    expect(queryByText('狼人')).toBeNull();
+    expect(queryByText(roleName)).toBeNull();
   });
 
   it('should have correct testID', () => {
@@ -55,31 +56,33 @@ describe('NightProgressIndicator', () => {
   });
 
   it('should display first step correctly', () => {
+    const roleName = 'test-role';
     const { getByText } = render(
       <NightProgressIndicator
         currentStep={1}
         totalSteps={12}
-        currentRoleName="魔术师"
+        currentRoleName={roleName}
         styles={mockStyles}
       />,
     );
 
-    expect(getByText('步骤 1/12')).toBeTruthy();
-    expect(getByText('魔术师')).toBeTruthy();
+    expect(getByText(/1\/12/)).toBeTruthy();
+    expect(getByText(roleName)).toBeTruthy();
   });
 
   it('should display last step correctly', () => {
+    const roleName = 'test-role';
     const { getByText } = render(
       <NightProgressIndicator
         currentStep={12}
         totalSteps={12}
-        currentRoleName="黑狼王"
+        currentRoleName={roleName}
         styles={mockStyles}
       />,
     );
 
-    expect(getByText('步骤 12/12')).toBeTruthy();
-    expect(getByText('黑狼王')).toBeTruthy();
+    expect(getByText(/12\/12/)).toBeTruthy();
+    expect(getByText(roleName)).toBeTruthy();
   });
 
   it('should handle various total step counts', () => {
@@ -87,11 +90,11 @@ describe('NightProgressIndicator', () => {
       <NightProgressIndicator currentStep={3} totalSteps={5} styles={mockStyles} />,
     );
 
-    expect(getByText('步骤 3/5')).toBeTruthy();
+    expect(getByText(/3\/5/)).toBeTruthy();
 
     rerender(
       <NightProgressIndicator currentStep={7} totalSteps={15} styles={mockStyles} />,
     );
-    expect(getByText('步骤 7/15')).toBeTruthy();
+    expect(getByText(/7\/15/)).toBeTruthy();
   });
 });

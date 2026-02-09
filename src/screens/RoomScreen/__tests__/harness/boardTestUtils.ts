@@ -564,8 +564,15 @@ export async function chainSkipConfirm(
   await waitForRoomScreen(result.getByTestId);
   harness.clear();
 
+  const { getSchema } = require('@/models/roles/spec/schemas');
+  const schema = getSchema(schemaId);
+  const bottomActionText = schema.ui?.bottomActionText;
+  if (!bottomActionText) {
+    throw new Error(`[TEST] Missing schema.ui.bottomActionText for skipConfirm chain: ${schemaId}`);
+  }
+
   // Press the skip button
-  const skipButton = result.getByText('不使用技能');
+  const skipButton = result.getByText(bottomActionText);
   fireEvent.press(skipButton);
   await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
 
@@ -773,7 +780,16 @@ export async function coverageChainSkipConfirm(
   const result = renderFn();
   await waitForRoomScreen(result.getByTestId);
 
-  const skipButton = result.getByText('不使用技能');
+  const { getSchema } = require('@/models/roles/spec/schemas');
+  const schema = getSchema(schemaId);
+  const bottomActionText = schema.ui?.bottomActionText;
+  if (!bottomActionText) {
+    throw new Error(
+      `[TEST] Missing schema.ui.bottomActionText for skipConfirm coverage chain: ${schemaId}`,
+    );
+  }
+
+  const skipButton = result.getByText(bottomActionText);
   fireEvent.press(skipButton);
   await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
 

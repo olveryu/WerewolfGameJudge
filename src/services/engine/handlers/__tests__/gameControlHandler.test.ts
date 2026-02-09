@@ -4,7 +4,6 @@
 
 import {
   handleAssignRoles,
-  handleStartGame,
   handleStartNight,
   handleRestartGame,
   handleUpdateTemplate,
@@ -12,7 +11,6 @@ import {
 import type { HandlerContext } from '@/services/engine/handlers/types';
 import type {
   AssignRolesIntent,
-  StartGameIntent,
   StartNightIntent,
   RestartGameIntent,
   UpdateTemplateIntent,
@@ -146,98 +144,6 @@ describe('handleAssignRoles', () => {
     const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
 
     const result = handleAssignRoles(intent, context);
-
-    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
-  });
-});
-
-// =============================================================================
-// handleStartGame tests
-// =============================================================================
-
-describe('handleStartGame', () => {
-  const seatedState = createMinimalState({
-    status: 'seated',
-    players: {
-      0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
-      1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
-      2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
-    },
-  });
-
-  it('should succeed when host and all seated', () => {
-    const context = createContext(seatedState);
-    const intent: StartGameIntent = { type: 'START_GAME' };
-
-    const result = handleStartGame(intent, context);
-
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(2);
-    expect(result.actions[0].type).toBe('ASSIGN_ROLES');
-    expect(result.actions[1].type).toBe('START_NIGHT');
-  });
-
-  it('should assign all template roles', () => {
-    const context = createContext(seatedState);
-    const intent: StartGameIntent = { type: 'START_GAME' };
-
-    const result = handleStartGame(intent, context);
-
-    const assignAction = result.actions.find((a) => a.type === 'ASSIGN_ROLES');
-    expect(assignAction).toBeDefined();
-    if (assignAction?.type === 'ASSIGN_ROLES') {
-      const assignedRoles = Object.values(assignAction.payload.assignments);
-      const sortedRoles = [...assignedRoles].sort((a, b) => a.localeCompare(b));
-      expect(sortedRoles).toEqual(['seer', 'villager', 'wolf']);
-    }
-  });
-
-  it('should fail when not host', () => {
-    const context = createContext(seatedState, { isHost: false });
-    const intent: StartGameIntent = { type: 'START_GAME' };
-
-    const result = handleStartGame(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('host_only');
-  });
-
-  it('should fail when not all seated', () => {
-    const state = createMinimalState({ status: 'unseated' });
-    const context = createContext(state);
-    const intent: StartGameIntent = { type: 'START_GAME' };
-
-    const result = handleStartGame(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('not_all_seated');
-  });
-
-  it('should fail when role count mismatches seat count', () => {
-    const state = createMinimalState({
-      status: 'seated',
-      templateRoles: ['villager', 'wolf'], // 2 roles but 3 seats
-      players: {
-        0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
-        1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
-        2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
-      },
-    });
-    const context = createContext(state);
-    const intent: StartGameIntent = { type: 'START_GAME' };
-
-    const result = handleStartGame(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('role_count_mismatch');
-  });
-
-  it('should include side effects', () => {
-    const context = createContext(seatedState);
-    const intent: StartGameIntent = { type: 'START_GAME' };
-
-    const result = handleStartGame(intent, context);
 
     expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });

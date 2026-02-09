@@ -34,7 +34,7 @@ import { getStepSpec } from '@/models/roles/spec/nightSteps';
 import { SCHEMAS } from '@/models/roles/spec/schemas';
 import { BLOCKED_UI_DEFAULTS, type SchemaUi } from '@/models/roles/spec/schema.types';
 import { calculateDeaths } from '@/services/engine/DeathCalculator';
-import { isWolfRole, getWolfRoleIds } from '@/models/roles';
+import { getWolfRoleIds } from '@/models/roles';
 import { makeWitchSave, makeWitchPoison, makeWitchNone } from '@/models/actions/WitchAction';
 import { nightFlowLog } from '@/utils/logger';
 import { resolveWolfVotes } from '@/services/engine/resolveWolfVotes';
@@ -388,13 +388,6 @@ function buildNightActions(state: NonNullState): NightActions {
   const nightmareAction = findActionBySchemaId(actions, 'nightmareBlock');
   if (nightmareAction?.targetSeat !== undefined) {
     nightActions.nightmareBlock = nightmareAction.targetSeat;
-
-    // 检查被封锁的是否是狼人
-    const blockedSeat = nightmareAction.targetSeat;
-    const blockedPlayer = state.players[blockedSeat];
-    if (blockedPlayer?.role && isWolfRole(blockedPlayer.role)) {
-      nightActions.isWolfBlockedByNightmare = true;
-    }
   }
 
   return nightActions;

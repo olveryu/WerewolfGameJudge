@@ -166,7 +166,7 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   { type: 'seatDisabled', match: (t) => t === '不可选择' },
 
   // Skip confirmation
-  { type: 'skipConfirm', match: (t) => t === '确认跳过' || t.includes('不使用技能') },
+  { type: 'skipConfirm', match: (t) => t === '确认跳过' },
 
   // Generic confirm (must be after specific confirms)
   {

@@ -18,6 +18,7 @@
 import React from 'react';
 import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { getSchema } from '@/models/roles/spec';
 import { showAlert } from '@/utils/alert';
 import {
   RoomScreenTestHarness,
@@ -301,8 +302,13 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
 
       // Press bottom button to trigger confirmTrigger dialog
-      await waitFor(() => expect(getByText('查看发动状态')).toBeTruthy());
-      fireEvent.press(getByText('查看发动状态'));
+      const bottomActionText = getSchema('hunterConfirm').ui?.bottomActionText;
+      if (!bottomActionText) {
+        throw new Error('[TEST] Missing hunterConfirm.ui.bottomActionText');
+      }
+
+      await waitFor(() => expect(getByText(bottomActionText)).toBeTruthy());
+      fireEvent.press(getByText(bottomActionText));
 
       await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
 

@@ -166,6 +166,11 @@ describe('RoomScreen skip action UI', () => {
   it('schema.canSkip=false (chooseSeat) -> does not render bottom skip button', async () => {
     mockedCanSkip = false;
     mockedSchemaId = 'psychicCheck';
+    const skipText = getChooseSeatSchema(mockedSchemaId).ui?.bottomActionText;
+    if (!skipText) {
+      throw new Error(`[TEST] Missing ${mockedSchemaId}.ui.bottomActionText`);
+    }
+
     const props: any = {
       navigation: mockNavigation,
       route: {
@@ -181,13 +186,17 @@ describe('RoomScreen skip action UI', () => {
 
     // chooseSeat + canSkip=false => no bottom skip button
     await waitFor(() => {
-      expect(queryByText('不使用技能')).toBeNull();
+      expect(queryByText(skipText)).toBeNull();
     });
   });
 
   it('press "不使用技能" -> confirm -> submitAction(null)', async () => {
     mockedCanSkip = true;
     mockedSchemaId = 'seerCheck';
+    const skipText = getChooseSeatSchema(mockedSchemaId).ui?.bottomActionText;
+    if (!skipText) {
+      throw new Error(`[TEST] Missing ${mockedSchemaId}.ui.bottomActionText`);
+    }
     const props: any = {
       navigation: mockNavigation,
       route: {
@@ -201,7 +210,7 @@ describe('RoomScreen skip action UI', () => {
 
     const { findByText } = render(<RoomScreen {...props} />);
 
-    const skipButton = await findByText('不使用技能');
+  const skipButton = await findByText(skipText);
 
     await act(async () => {
       fireEvent.press(skipButton);

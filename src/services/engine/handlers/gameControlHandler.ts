@@ -13,7 +13,6 @@
 
 import type {
   AssignRolesIntent,
-  StartGameIntent,
   StartNightIntent,
   RestartGameIntent,
   UpdateTemplateIntent,
@@ -111,96 +110,6 @@ export function handleAssignRoles(
     success: true,
     actions: [assignRolesAction],
     sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
-  };
-}
-
-/**
- * 处理开始游戏（分配角色 + 开始夜晚）
- *
- * 注意：PR3 将修改此函数，使其前置条件为 status === 'ready'
- * 当前保留原实现以便回滚
- */
-export function handleStartGame(_intent: StartGameIntent, context: HandlerContext): HandlerResult {
-  const { state, isHost } = context;
-
-  // 验证：仅主机可操作
-  if (!isHost) {
-    return {
-      success: false,
-      reason: 'host_only',
-      actions: [],
-    };
-  }
-
-  // 验证：state 存在
-  if (!state) {
-    return {
-      success: false,
-      reason: 'no_state',
-      actions: [],
-    };
-  }
-
-  // 验证：游戏状态
-  if (state.status !== 'seated') {
-    return {
-      success: false,
-      reason: 'not_all_seated',
-      actions: [],
-    };
-  }
-
-  // 验证：模板角色数量与座位数匹配
-  const seatCount = Object.keys(state.players).length;
-  if (state.templateRoles.length !== seatCount) {
-    return {
-      success: false,
-      reason: 'role_count_mismatch',
-      actions: [],
-    };
-  }
-
-  // 随机分配角色
-  const shuffledRoles = shuffleArray([...state.templateRoles]);
-  const assignments: Record<number, RoleId> = {};
-  const seats = Object.keys(state.players).map((s) => Number.parseInt(s, 10));
-
-  for (let i = 0; i < seats.length; i++) {
-    assignments[seats[i]] = shuffledRoles[i];
-  }
-
-  const assignRolesAction: AssignRolesAction = {
-    type: 'ASSIGN_ROLES',
-    payload: { assignments },
-  };
-
-  // 首步来自 buildNightPlan 表驱动单源（按当前模板角色过滤）
-  const nightPlan = buildNightPlan(state.templateRoles);
-
-  // Fail-fast: 如果 nightPlan 为空，说明 templateRoles 没有夜晚行动角色
-  if (nightPlan.steps.length === 0) {
-    return {
-      success: false,
-      reason: 'no_night_actions',
-      actions: [],
-    };
-  }
-
-  const firstStepId = nightPlan.steps[0].stepId;
-
-  const startNightAction: StartNightAction = {
-    type: 'START_NIGHT',
-    payload: { currentStepIndex: 0, currentStepId: firstStepId },
-  };
-
-  return {
-    success: true,
-    actions: [assignRolesAction, startNightAction],
-    sideEffects: [
-      { type: 'BROADCAST_STATE' },
-      { type: 'SAVE_STATE' },
-      // 音频播放由外层根据 NightFlowController 决定
-    ],
   };
 }
 

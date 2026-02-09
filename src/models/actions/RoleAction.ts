@@ -49,11 +49,6 @@ export type RoleAction =
 // Factory Functions
 // =============================================================================
 
-/** Create a "no action" */
-export function makeActionNone(): RoleActionNone {
-  return { kind: 'none' };
-}
-
 /** Create a single target action */
 export function makeActionTarget(targetSeat: number): RoleActionTarget {
   return { kind: 'target', targetSeat };
@@ -70,35 +65,4 @@ export function makeActionMagicianSwap(
   secondSeat: number,
 ): RoleActionMagicianSwap {
   return { kind: 'magicianSwap', firstSeat, secondSeat };
-}
-
-// =============================================================================
-// Type Guards
-// =============================================================================
-
-export function isActionNone(action: RoleAction): action is RoleActionNone {
-  return action.kind === 'none';
-}
-
-export function isActionTarget(action: RoleAction): action is RoleActionTarget {
-  return action.kind === 'target';
-}
-
-export function isActionWitch(action: RoleAction): action is RoleActionWitch {
-  return action.kind === 'witch';
-}
-
-export function isActionMagicianSwap(action: RoleAction): action is RoleActionMagicianSwap {
-  return action.kind === 'magicianSwap';
-}
-
-// =============================================================================
-// Accessors
-// =============================================================================
-
-/** Get target seat from a target action, or undefined */
-export function getActionTargetSeat(action: RoleAction | undefined): number | undefined {
-  if (!action) return undefined;
-  if (isActionTarget(action)) return action.targetSeat;
-  return undefined;
 }

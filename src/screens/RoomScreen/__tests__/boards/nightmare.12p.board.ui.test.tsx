@@ -25,7 +25,7 @@ import React from 'react';
 import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { showAlert } from '@/utils/alert';
-import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
+import { BLOCKED_UI_DEFAULTS, getSchema } from '@/models/roles/spec';
 import {
   RoomScreenTestHarness,
   createShowAlertMock,
@@ -470,7 +470,12 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       harness.clear();
 
       // Press the skip button by text
-      const skipButton = getByText('不使用技能');
+      const skipText = getSchema('guardProtect').ui?.bottomActionText;
+      if (!skipText) {
+        throw new Error('[TEST] Missing guardProtect.ui.bottomActionText');
+      }
+
+      const skipButton = getByText(skipText);
       fireEvent.press(skipButton);
 
       await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
