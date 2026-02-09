@@ -38,6 +38,7 @@ import { isWolfRole, getWolfRoleIds } from '@/models/roles';
 import { makeWitchSave, makeWitchPoison, makeWitchNone } from '@/models/actions/WitchAction';
 import { nightFlowLog } from '@/utils/logger';
 import { resolveWolfVotes } from '@/services/engine/resolveWolfVotes';
+import { maybeCreateConfirmStatusAction } from './confirmContext';
 import { maybeCreateWitchContextAction } from './witchContext';
 
 /**
@@ -456,6 +457,12 @@ export function handleAdvanceNight(
   const witchContextAction = nextStepId ? maybeCreateWitchContextAction(nextStepId, state) : null;
   if (witchContextAction) {
     actions.push(witchContextAction);
+  }
+
+  // 统一入口：如果即将进入 hunterConfirm / darkWolfKingConfirm，设置 confirmStatus
+  const confirmStatusAction = nextStepId ? maybeCreateConfirmStatusAction(nextStepId, state) : null;
+  if (confirmStatusAction) {
+    actions.push(confirmStatusAction);
   }
 
   // ==========================================================================

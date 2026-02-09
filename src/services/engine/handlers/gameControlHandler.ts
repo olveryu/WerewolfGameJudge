@@ -27,7 +27,7 @@ import type {
   StartNightAction,
   RestartGameAction,
   UpdateTemplateAction,
-  SetWitchContextAction,
+  StateAction,
   SetRoleRevealAnimationAction,
   FillWithBotsAction,
   MarkAllBotsViewedAction,
@@ -37,6 +37,7 @@ import { shuffleArray } from '@/utils/shuffle';
 import type { RoleId } from '@/models/roles';
 import { buildNightPlan } from '@/models/roles/spec/plan';
 import { getStepSpec } from '@/models/roles/spec/nightSteps';
+import { maybeCreateConfirmStatusAction } from './confirmContext';
 import { maybeCreateWitchContextAction } from './witchContext';
 
 /**
@@ -263,7 +264,7 @@ export function handleStartNight(
   const firstStepSpec = getStepSpec(firstStepId);
 
   // 收集需要返回的 actions
-  const actions: (StartNightAction | SetWitchContextAction)[] = [];
+  const actions: StateAction[] = [];
 
   // Night-1 only: currentStepIndex 从 0 开始（首个步骤）
   const startNightAction: StartNightAction = {
@@ -276,6 +277,12 @@ export function handleStartNight(
   const witchContextAction = maybeCreateWitchContextAction(firstStepId, state);
   if (witchContextAction) {
     actions.push(witchContextAction);
+  }
+
+  // 使用统一函数检查是否需要设置 confirmStatus（首步为 hunterConfirm 的极端情况）
+  const confirmStatusAction = maybeCreateConfirmStatusAction(firstStepId, state);
+  if (confirmStatusAction) {
+    actions.push(confirmStatusAction);
   }
 
   // 构建 sideEffects：先广播 + 保存，然后播放夜晚开始音频 + 第一步音频
