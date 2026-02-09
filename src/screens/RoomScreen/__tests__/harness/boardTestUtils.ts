@@ -190,17 +190,27 @@ export function createGameRoomMock(options: GameStateMockOptions) {
       ...gameStateOverrides,
     },
 
+    roomRecord: null,
     connectionStatus: 'live',
     isHost,
     roomStatus: GameStatus.ongoing,
     currentActionRole,
     currentSchema,
     currentStepId: schemaId,
+    currentSchemaId: schemaId,
     isAudioPlaying,
+    roleRevealAnimation: null,
+    resolvedRoleRevealAnimation: null,
+    loading: false,
     mySeatNumber,
     myRole,
     myUid: `p${mySeatNumber}`,
     error: null,
+
+    // Connection
+    stateRevision: 1,
+    lastStateReceivedAt: Date.now(),
+    isStateStale: false,
 
     // Debug mode - effectiveSeat/effectiveRole are used in RoomScreen
     isDebugMode: false,
@@ -212,19 +222,31 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     setControlledSeat: jest.fn(),
 
     // Actions
+    createRoomRecord: jest.fn().mockResolvedValue(undefined),
+    initializeHostRoom: jest.fn().mockResolvedValue(true),
     joinRoom: jest.fn().mockResolvedValue(true),
+    leaveRoom: jest.fn(),
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
+    takeSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
+    leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
+    requestSnapshot: jest.fn(),
+    updateTemplate: jest.fn().mockResolvedValue(undefined),
     assignRoles: jest.fn(),
     startGame: jest.fn(),
     restartGame: jest.fn(),
+    setRoleRevealAnimation: jest.fn().mockResolvedValue(undefined),
+    setAudioPlaying: jest.fn(),
     submitAction: jest.fn().mockResolvedValue(undefined),
     submitWolfVote: jest.fn().mockResolvedValue(undefined),
     hasWolfVoted: jest.fn().mockReturnValue(false),
-    requestSnapshot: jest.fn(),
     viewedRole: jest.fn(),
     submitRevealAck: jest.fn().mockResolvedValue(undefined),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
+
+    // BGM
+    isBgmEnabled: false,
+    toggleBgm: jest.fn(),
 
     // Error plumbing
     lastSeatError: null,

@@ -23,14 +23,20 @@ import { createGameRoomMock } from '../harness/boardTestUtils';
  * 匹配模式：`key:` 或 `key,` 开头的行（跳过注释行）。
  */
 function extractReturnKeys(source: string): string[] {
-  // Find the final `return {` block in the file
-  const returnBlockRegex = /return\s*\{([^]*?)\};?\s*\};?\s*$/;
-  const match = source.match(returnBlockRegex);
-  if (!match) {
+  // Find the LAST `return {` block in the file (the hook's actual return value).
+  // Using lastIndexOf avoids false positives from inner `return { success: ... }` blocks.
+  const lastReturnIdx = source.lastIndexOf('return {');
+  if (lastReturnIdx === -1) {
     throw new Error('Could not find return block in useGameRoom.ts');
   }
+  const tail = source.substring(lastReturnIdx);
+  // Extract the content between the outer braces
+  const braceMatch = tail.match(/return\s*\{([^]*?)\};/);
+  if (!braceMatch) {
+    throw new Error('Could not parse return block in useGameRoom.ts');
+  }
 
-  const block = match[1];
+  const block = braceMatch[1];
   const keys: string[] = [];
 
   for (const line of block.split('\n')) {
@@ -64,26 +70,10 @@ describe('createGameRoomMock shape contract', () => {
    * If this set grows, it means more drift has been introduced.
    * Reduce this set over time by adding missing keys to the mock.
    */
-  const KNOWN_MISSING_KEYS = new Set([
-    'success',
-    'roomRecord',
-    'roleRevealAnimation',
-    'resolvedRoleRevealAnimation',
-    'currentSchemaId',
-    'loading',
-    'stateRevision',
-    'lastStateReceivedAt',
-    'isStateStale',
-    'createRoomRecord',
-    'initializeHostRoom',
-    'leaveRoom',
-    'takeSeatWithAck',
-    'leaveSeatWithAck',
-    'updateTemplate',
-    'setRoleRevealAnimation',
-    'setAudioPlaying',
-    'isBgmEnabled',
-    'toggleBgm',
+  const KNOWN_MISSING_KEYS = new Set<string>([
+    // All gaps fixed — this set should stay empty.
+    // If a new key is added to useGameRoom but not to createGameRoomMock,
+    // the test below will fail and tell you exactly which key to add.
   ]);
 
   it('should not introduce NEW missing keys beyond known gaps', () => {
@@ -143,7 +133,7 @@ describe('createGameRoomMock shape contract', () => {
     const allMissing = expectedKeys.filter((k) => !mockKeys.has(k));
     // This assertion documents the current drift level.
     // Decrease KNOWN_MISSING_KEYS.size as gaps are fixed.
-    expect(allMissing.length).toBe(KNOWN_MISSING_KEYS.size);
+    expect(allMissing.length).toBe(0);
   });
 
   it('should not have extra keys not in useGameRoom return value', () => {
