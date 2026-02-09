@@ -624,8 +624,8 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         currentActionRole: 'hunter',
         myRole: 'hunter',
         mySeatNumber: 10,
-        hookOverrides: {
-          getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
+        gameStateOverrides: {
+          confirmStatus: { role: 'hunter', canShoot: true },
         },
       });
 

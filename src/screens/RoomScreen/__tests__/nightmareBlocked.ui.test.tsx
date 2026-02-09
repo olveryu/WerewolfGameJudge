@@ -125,9 +125,6 @@ describe('Nightmare Blocked UI (Host-authoritative)', () => {
         currentActionRole: 'hunter',
         myRole: 'hunter',
         mySeatNumber: 0,
-        overrides: {
-          getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
-        },
       }),
       gameState: {
         ...makeBaseUseGameRoomReturn({
@@ -136,6 +133,7 @@ describe('Nightmare Blocked UI (Host-authoritative)', () => {
           myRole: 'hunter',
           mySeatNumber: 0,
         }).gameState,
+        confirmStatus: { role: 'hunter', canShoot: true },
         nightmareBlockedSeat: 0,
         currentNightResults: {
           blockedSeat: 0,
@@ -176,10 +174,8 @@ describe('Nightmare Blocked UI (Host-authoritative)', () => {
         currentActionRole: 'hunter',
         myRole: 'hunter',
         mySeatNumber: 0,
-        overrides: {
-          getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
-        },
         gameStateOverrides: {
+          confirmStatus: { role: 'hunter', canShoot: true },
           nightmareBlockedSeat: null, // No nightmare block
           currentNightResults: {
             blockedSeat: null,
@@ -213,10 +209,8 @@ describe('Nightmare Blocked UI (Host-authoritative)', () => {
         currentActionRole: 'darkWolfKing',
         myRole: 'darkWolfKing',
         mySeatNumber: 0,
-        overrides: {
-          getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
-        },
         gameStateOverrides: {
+          confirmStatus: { role: 'darkWolfKing', canShoot: true },
           nightmareBlockedSeat: null, // No nightmare block
           currentNightResults: {
             blockedSeat: null,
@@ -250,9 +244,6 @@ describe('Nightmare Blocked UI (Host-authoritative)', () => {
         currentActionRole: 'darkWolfKing',
         myRole: 'darkWolfKing',
         mySeatNumber: 0,
-        overrides: {
-          getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
-        },
       }),
       gameState: {
         ...makeBaseUseGameRoomReturn({
@@ -261,6 +252,7 @@ describe('Nightmare Blocked UI (Host-authoritative)', () => {
           myRole: 'darkWolfKing',
           mySeatNumber: 0,
         }).gameState,
+        confirmStatus: { role: 'darkWolfKing', canShoot: true },
         nightmareBlockedSeat: 0,
         currentNightResults: {
           blockedSeat: 0,

@@ -16,7 +16,7 @@
  */
 
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { showAlert } from '@/utils/alert';
 import {
@@ -261,8 +261,8 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         currentActionRole: 'hunter',
         myRole: 'hunter',
         mySeatNumber: 10,
-        hookOverrides: {
-          getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
+        gameStateOverrides: {
+          confirmStatus: { role: 'hunter', canShoot: true },
         },
       });
 
@@ -278,6 +278,37 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitFor(() => {
         expect(harness.hasSeen('confirmTrigger') || harness.hasSeen('actionPrompt')).toBe(true);
       });
+    });
+
+    it('hunter poisoned: confirmTrigger shows cannotShoot message', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'hunterConfirm',
+        currentActionRole: 'hunter',
+        myRole: 'hunter',
+        mySeatNumber: 10,
+        gameStateOverrides: {
+          confirmStatus: { role: 'hunter', canShoot: false },
+        },
+      });
+
+      const { getByTestId, getByText } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+
+      // Press bottom button to trigger confirmTrigger dialog
+      await waitFor(() => expect(getByText('查看发动状态')).toBeTruthy());
+      fireEvent.press(getByText('查看发动状态'));
+
+      await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
+
+      const event = harness.getLastEventOfType('confirmTrigger');
+      expect(event).not.toBeNull();
+      expect(event!.message).toContain('不能发动');
     });
   });
 

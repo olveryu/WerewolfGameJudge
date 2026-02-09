@@ -233,7 +233,6 @@ export function createGameRoomMock(options: GameStateMockOptions) {
 
     // Info getters
     getLastNightInfo: jest.fn().mockReturnValue(''),
-    getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
 
     ...hookOverrides,
   };
@@ -603,8 +602,8 @@ export async function chainConfirmTrigger(
       currentActionRole: actionRole,
       myRole: playerRole,
       mySeatNumber: seatNumber,
-      hookOverrides: {
-        getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
+      gameStateOverrides: {
+        confirmStatus: { role: actionRole, canShoot: true },
       },
     }),
   );
@@ -791,8 +790,8 @@ export async function coverageChainConfirmTrigger(
       currentActionRole: actionRole,
       myRole: playerRole,
       mySeatNumber: seatNumber,
-      hookOverrides: {
-        getConfirmStatus: jest.fn().mockReturnValue({ canShoot: true }),
+      gameStateOverrides: {
+        confirmStatus: { role: actionRole, canShoot: true },
       },
     }),
   );
