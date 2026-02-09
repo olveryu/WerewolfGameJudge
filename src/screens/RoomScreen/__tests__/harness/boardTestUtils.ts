@@ -222,7 +222,6 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     setControlledSeat: jest.fn(),
 
     // Actions
-    createRoomRecord: jest.fn().mockResolvedValue(undefined),
     initializeHostRoom: jest.fn().mockResolvedValue(true),
     joinRoom: jest.fn().mockResolvedValue(true),
     leaveRoom: jest.fn(),

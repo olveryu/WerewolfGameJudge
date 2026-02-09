@@ -26,7 +26,8 @@ import { useColors, spacing, typography } from '@/theme';
 import { TESTIDS } from '@/testids';
 import { configLog } from '@/utils/logger';
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { useGameRoom } from '@/hooks/useGameRoom';
+import { RoomService } from '@/services/infra/RoomService';
+import { AuthService } from '@/services/infra/AuthService';
 import { SettingsService } from '@/services/feature/SettingsService';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import {
@@ -128,7 +129,8 @@ export const ConfigScreen: React.FC = () => {
   const isEditMode = !!existingRoomNumber;
 
   const settingsService = useRef(SettingsService.getInstance()).current;
-  const { createRoomRecord } = useGameRoom();
+  const authService = useRef(AuthService.getInstance()).current;
+  const roomService = useRef(RoomService.getInstance()).current;
 
   const [selection, setSelection] = useState(getInitialSelection);
   const [isCreating, setIsCreating] = useState(false);
@@ -245,11 +247,14 @@ export const ConfigScreen: React.FC = () => {
       } else {
         await settingsService.setRoleRevealAnimation(roleRevealAnimation);
         // Create room record in DB first — get confirmed/final roomNumber
-        const roomNumber = await createRoomRecord();
-        if (!roomNumber) {
-          showAlert('错误', '创建房间失败');
+        await authService.waitForInit();
+        const hostUid = authService.getCurrentUserId();
+        if (!hostUid) {
+          showAlert('错误', '用户未认证');
           return;
         }
+        const record = await roomService.createRoom(hostUid);
+        const roomNumber = record.roomNumber;
         await AsyncStorage.setItem('lastRoomNumber', roomNumber);
         navigation.navigate('Room', {
           roomNumber,
@@ -275,7 +280,8 @@ export const ConfigScreen: React.FC = () => {
     bgmEnabled,
     isCreating,
     isLoading,
-    createRoomRecord,
+    authService,
+    roomService,
   ]);
 
   // Template dropdown options (short display names, strip "12人" suffix)

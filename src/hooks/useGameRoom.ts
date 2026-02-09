@@ -89,9 +89,7 @@ interface UseGameRoomResult {
   error: string | null;
 
   // Actions
-  /** Create room record in DB only (no facade init). Returns confirmed roomNumber or null. */
-  createRoomRecord: () => Promise<string | null>;
-  /** Initialize host room (facade only, no DB). Call AFTER createRoomRecord + navigation. */
+  /** Initialize host room (facade only, no DB). Call AFTER room record creation + navigation. */
   initializeHostRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
   joinRoom: (roomNumber: string) => Promise<boolean>;
   leaveRoom: () => Promise<void>;
@@ -235,34 +233,6 @@ export const useGameRoom = (): UseGameRoomResult => {
   // =========================================================================
   // Phase 1B: createRoom / joinRoom 使用 facade
   // =========================================================================
-
-  // Create room record in DB only (optimistic insert with retry on conflict).
-  // Returns the confirmed/final roomNumber, or null on failure.
-  // ConfigScreen calls this BEFORE navigating to RoomScreen.
-  const createRoomRecord = useCallback(async (): Promise<string | null> => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      await authService.current.waitForInit();
-      const hostUid = authService.current.getCurrentUserId();
-      if (!hostUid) {
-        throw new Error('User not authenticated');
-      }
-
-      const record = await roomService.current.createRoom(hostUid);
-      // NOTE: roomRecord state is set here for this hook instance.
-      // RoomScreen mounts a separate instance, so initializeHostRoom also sets it.
-      setRoomRecord(record);
-      return record.roomNumber;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create room';
-      setError(message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   // Initialize host room: facade only, no DB creation.
   // RoomScreen/useRoomInit calls this AFTER navigation with the confirmed roomNumber.
@@ -617,7 +587,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     stateRevision: connection.stateRevision,
     lastStateReceivedAt: connection.lastStateReceivedAt,
     isStateStale: connection.isStateStale,
-    createRoomRecord,
     initializeHostRoom,
     joinRoom,
     leaveRoom,

@@ -183,7 +183,6 @@ describe('Vertical Slice: real state → UI rendering', () => {
       isStateStale: false,
 
       // Actions
-      createRoomRecord: jest.fn(),
       initializeHostRoom: jest.fn(),
       joinRoom: jest.fn().mockResolvedValue(true),
       leaveRoom: jest.fn(),
@@ -282,7 +281,6 @@ describe('Vertical Slice: real state → UI rendering', () => {
       lastStateReceivedAt: Date.now(),
       isStateStale: false,
 
-      createRoomRecord: jest.fn(),
       initializeHostRoom: jest.fn(),
       joinRoom: jest.fn().mockResolvedValue(true),
       leaveRoom: jest.fn(),
