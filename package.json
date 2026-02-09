@@ -1,6 +1,6 @@
 {
   "name": "werewolfgamejudge",
-  "version": "1.0.147",
+  "version": "1.0.148",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
