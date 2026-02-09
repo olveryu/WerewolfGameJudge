@@ -195,6 +195,16 @@ export interface BroadcastGameState {
     rejectionId: string;
   };
 
+  // --- 狼人投票倒计时 ---
+  /**
+   * 全部狼人投票完成后的截止时间（epoch ms）。
+   *
+   * Host 在所有狼人投票完成时写入 `Date.now() + WOLF_VOTE_COUNTDOWN_MS`，
+   * 改票/撤回导致重新全投完时重置，撤回导致未全投完时清除。
+   * Timer 是 best-effort 触发器，此字段是权威时间戳。
+   */
+  wolfVoteDeadline?: number;
+
   // --- UI Hints（Host 广播驱动，UI 只读展示） ---
   /**
    * UI hint for current step - Host writes, UI reads only (no derivation).

@@ -34,6 +34,16 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
     };
   }
 
+  // 撤回（withdraw）：wire sentinel -2，删除该狼的投票记录
+  if (target === -2) {
+    const { [String(actorSeat)]: _removed, ...rest } = currentNightResults.wolfVotesBySeat ?? {};
+    return {
+      valid: true,
+      updates: { wolfVotesBySeat: rest },
+      result: {},
+    };
+  }
+
   // Check if wolf kill is disabled (nightmare blocked a wolf)
   // Non-empty vote is REJECTED when disabled
   if (currentNightResults.wolfKillDisabled) {

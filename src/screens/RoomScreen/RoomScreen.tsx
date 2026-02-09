@@ -163,6 +163,23 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const [pendingSeatIndex, setPendingSeatIndex] = useState<number | null>(null);
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Wolf vote countdown tick: force re-render every second while deadline exists
+  // ─────────────────────────────────────────────────────────────────────────
+  const [countdownTick, setCountdownTick] = useState(0);
+  const wolfVoteDeadline = gameState?.wolfVoteDeadline;
+
+  useEffect(() => {
+    if (wolfVoteDeadline == null || Date.now() >= wolfVoteDeadline) return;
+    const interval = setInterval(() => {
+      if (Date.now() >= wolfVoteDeadline) {
+        clearInterval(interval);
+      }
+      setCountdownTick((t) => t + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [wolfVoteDeadline]);
+
   // Hidden debug panel trigger: delegated to useHiddenDebugTrigger hook
   const { handleDebugTitleTap } = useHiddenDebugTrigger();
 
@@ -338,6 +355,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       actorRole: actorRoleForUi,
       isAudioPlaying,
       anotherIndex,
+      countdownTick,
     }),
     [
       gameState,
@@ -349,6 +367,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       actorRoleForUi,
       isAudioPlaying,
       anotherIndex,
+      countdownTick,
     ],
   );
 
@@ -734,7 +753,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             <ActionButton
               key={b.key}
               label={b.label}
-              onPress={(_meta) => dispatchInteraction({ kind: 'BOTTOM_ACTION', intent: b.intent })}
+              onPress={(_meta) => {
+                dispatchInteraction({ kind: 'BOTTOM_ACTION', intent: b.intent });
+              }}
               styles={componentStyles.actionButton}
             />
           ));

@@ -29,17 +29,6 @@ export interface UserBarProps {
   styles: HomeScreenStyles;
 }
 
-function arePropsEqual(prev: UserBarProps, next: UserBarProps): boolean {
-  return (
-    prev.user?.uid === next.user?.uid &&
-    prev.user?.isAnonymous === next.user?.isAnonymous &&
-    prev.user?.avatarUrl === next.user?.avatarUrl &&
-    prev.userName === next.userName &&
-    prev.styles === next.styles
-    // callbacks excluded - use ref pattern
-  );
-}
-
 const UserBarComponent: React.FC<UserBarProps> = ({
   user,
   userName,
@@ -101,4 +90,4 @@ const UserBarComponent: React.FC<UserBarProps> = ({
   );
 };
 
-export const UserBar = memo(UserBarComponent, arePropsEqual);
+export const UserBar = memo(UserBarComponent);

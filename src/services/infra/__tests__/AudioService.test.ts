@@ -74,7 +74,21 @@ jest.mock('../../../../assets/audio_end/dark_wolf_king.mp3', () => 'dark_wolf_ki
 });
 
 // Now import AudioService after mocks are set up
-import { AudioService } from '@/services/infra/AudioService';
+import { AudioService, audioAssetToUrl } from '@/services/infra/AudioService';
+
+describe('audioAssetToUrl', () => {
+  it('should passthrough string URL', () => {
+    expect(audioAssetToUrl('night.mp3')).toBe('night.mp3');
+  });
+
+  it('should read uri from { uri } object', () => {
+    expect(audioAssetToUrl({ uri: 'night.mp3' })).toBe('night.mp3');
+  });
+
+  it('should stringify number asset id', () => {
+    expect(audioAssetToUrl(123)).toBe('123');
+  });
+});
 
 describe('AudioService - Singleton', () => {
   beforeEach(() => {

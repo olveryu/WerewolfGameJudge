@@ -86,7 +86,7 @@ describe('useActionerState', () => {
       expect(result.current.showWolves).toBe(true);
     });
 
-    it('狼人已投票时 imActioner 应该为 false', () => {
+    it('狼人已投票时 imActioner 仍为 true（允许改票）', () => {
       const wolfVotes = new Map<number, number>();
       wolfVotes.set(1, 0); // seat 1 voted for seat 0
 
@@ -102,7 +102,8 @@ describe('useActionerState', () => {
         ),
       );
 
-      expect(result.current.imActioner).toBe(false);
+      // Revote allowed: imActioner remains true even after voting
+      expect(result.current.imActioner).toBe(true);
       expect(result.current.showWolves).toBe(true);
     });
 

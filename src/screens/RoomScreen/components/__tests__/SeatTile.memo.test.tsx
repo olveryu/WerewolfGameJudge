@@ -5,10 +5,9 @@
  * not when unrelated state updates in parent.
  *
  * Key optimizations verified:
- * 1. onPress callback changes do NOT cause re-render (excluded from arePropsEqual)
- * 2. Only UI-relevant primitive props trigger re-render
- * 3. styles are passed from PlayerGrid (created once) to avoid per-tile StyleSheet.create
- * 4. styles reference comparison in arePropsEqual ensures memo works correctly
+ * 1. UI-relevant prop changes trigger re-render
+ * 2. styles are passed from PlayerGrid (created once) to avoid per-tile StyleSheet.create
+ * 3. styles reference comparison in default memo ensures memo works correctly
  */
 import React from 'react';
 import { render } from '@testing-library/react-native';
@@ -46,6 +45,7 @@ describe('SeatTile memo optimization', () => {
     isControlled: false,
     roleId: null,
     showBotRole: false,
+    showReadyBadge: false,
     playerUid: 'user-1',
     playerAvatarUrl: undefined,
     playerDisplayName: 'Player 1',
@@ -99,22 +99,15 @@ describe('SeatTile memo optimization', () => {
     expect(renderCount).toBe(2);
   });
 
-  it('should NOT re-render when only onPress callback reference changes', () => {
-    // This is the key optimization: callback identity changes should NOT cause re-render
-    // because arePropsEqual excludes onPress from comparison
+  it('should re-render when onPress callback reference changes', () => {
     const onPress1 = jest.fn();
     const onPress2 = jest.fn();
 
     const { rerender } = render(<TrackedSeatTile {...baseProps} onPress={onPress1} />);
     expect(renderCount).toBe(1);
 
-    // Different callback reference - should NOT cause re-render
-    // because we exclude onPress from arePropsEqual
+    // Different callback reference - default memo detects the change
     rerender(<TrackedSeatTile {...baseProps} onPress={onPress2} />);
-
-    // TrackedSeatTile wrapper re-renders (2), but internal SeatTile memo should skip
-    // Since we can't directly test internal SeatTile render count,
-    // we verify the expected behavior: wrapper renders but memo logic is correct
     expect(renderCount).toBe(2);
   });
 
@@ -129,9 +122,9 @@ describe('SeatTile memo optimization', () => {
   });
 });
 
-describe('SeatTile arePropsEqual logic', () => {
-  it('should correctly compare all UI-relevant props (excluding onPress)', () => {
-    // This test validates that our custom areEqual covers all props
+describe('SeatTile memo logic', () => {
+  it('should correctly compare all UI-relevant props', () => {
+    // This test validates that default memo shallow-compares all props
     const props1: SeatTileProps = {
       index: 0,
       roomNumber: '1234',
@@ -144,6 +137,7 @@ describe('SeatTile arePropsEqual logic', () => {
       isControlled: false,
       roleId: null,
       showBotRole: false,
+      showReadyBadge: false,
       isSelected: false,
       playerUid: 'user-1',
       playerAvatarUrl: 'https://example.com/avatar.png',
@@ -176,6 +170,7 @@ describe('SeatTile arePropsEqual logic', () => {
       isControlled: false,
       roleId: null,
       showBotRole: false,
+      showReadyBadge: false,
       isSelected: false,
       playerUid: null,
       playerDisplayName: null,
@@ -246,6 +241,7 @@ describe('createSeatTileStyles optimization', () => {
     isControlled: false,
     roleId: null,
     showBotRole: false,
+    showReadyBadge: false,
     isSelected: false,
     playerUid: 'user-1',
     playerAvatarUrl: undefined,

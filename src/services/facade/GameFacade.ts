@@ -40,6 +40,9 @@ import type { MessageRouterContext } from './messageRouter';
 import * as hostActions from './hostActions';
 import * as seatActions from './seatActions';
 import * as messageRouter from './messageRouter';
+import { shouldTriggerWolfVoteRecovery } from '@/services/engine/handlers/progressionEvaluator';
+import { Platform, AppState } from 'react-native';
+import type { AppStateStatus } from 'react-native';
 import { newRequestId } from '@/utils/id';
 import { facadeLog } from '@/utils/logger';
 
@@ -65,6 +68,16 @@ export class GameFacade implements IGameFacade {
    * Reset to false when creating/joining a new room.
    */
   private _aborted = false;
+
+  /** 前台恢复监听器清理函数（双通道：Web visibilitychange + Native AppState） */
+  private _foregroundCleanups: Array<() => void> = [];
+
+  /**
+   * 狼人投票倒计时 Timer（Host-only）
+   * 存储在 Facade 实例上以跨 getHostActionsContext() 调用持久化。
+   * 通过 HostActionsContext 的 getter/setter 暴露给 hostActions 模块。
+   */
+  private _wolfVoteTimer?: ReturnType<typeof setTimeout>;
 
   /** Pending seat action request (Player: waiting for ACK) */
   private readonly pendingSeatAction: { current: PendingSeatAction | null } = { current: null };
@@ -130,6 +143,56 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
+  // Foreground Recovery（前台恢复 — 双通道兜底）
+  // =========================================================================
+
+  /**
+   * 注册前台恢复监听器（幂等：已注册则跳过）
+   *
+   * 双通道：
+   * - Web: `document.visibilitychange`
+   * - Native (iOS/Android): `AppState`
+   * - `Platform.OS !== 'web'` 保证不会双触发
+   */
+  private _setupForegroundRecovery(): void {
+    if (this._foregroundCleanups.length > 0) return; // 幂等：已注册则跳过
+
+    const onForeground = (): void => {
+      if (!this.isHost || this._aborted) return;
+      const state = this.store.getState();
+      if (!state || !shouldTriggerWolfVoteRecovery(state, Date.now())) return;
+      void hostActions.callNightProgression(this.getHostActionsContext());
+    };
+
+    // Channel 1: Web — document.visibilitychange
+    if (typeof document !== 'undefined') {
+      const handler = (): void => {
+        if (document.visibilityState === 'visible') onForeground();
+      };
+      document.addEventListener('visibilitychange', handler);
+      this._foregroundCleanups.push(() =>
+        document.removeEventListener('visibilitychange', handler),
+      );
+    }
+
+    // Channel 2: Native — AppState（iOS/Android only）
+    if (Platform.OS !== 'web') {
+      const subscription = AppState.addEventListener('change', (next: AppStateStatus) => {
+        if (next === 'active') onForeground();
+      });
+      this._foregroundCleanups.push(() => subscription.remove());
+    }
+  }
+
+  /**
+   * 清理前台恢复监听器
+   */
+  private _teardownForegroundRecovery(): void {
+    for (const cleanup of this._foregroundCleanups) cleanup();
+    this._foregroundCleanups = [];
+  }
+
+  // =========================================================================
   // Room Lifecycle
   // =========================================================================
 
@@ -168,6 +231,9 @@ export class GameFacade implements IGameFacade {
     });
 
     await this.broadcastCurrentState();
+
+    // 注册前台恢复（Host-only）
+    this._setupForegroundRecovery();
   }
 
   async joinAsPlayer(
@@ -261,12 +327,22 @@ export class GameFacade implements IGameFacade {
     // 立即广播当前状态，让所有 Player 同步
     await this.broadcastCurrentState();
 
+    // 注册前台恢复（Host-only）
+    this._setupForegroundRecovery();
+
     return { success: true };
   }
 
   async leaveRoom(): Promise<void> {
     // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
     this._aborted = true;
+
+    // 清理前台恢复 + wolf vote timer
+    this._teardownForegroundRecovery();
+    if (this._wolfVoteTimer != null) {
+      clearTimeout(this._wolfVoteTimer);
+      this._wolfVoteTimer = undefined;
+    }
 
     const mySeat = this.getMySeatNumber();
 
@@ -602,6 +678,8 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   private getHostActionsContext(): HostActionsContext {
+    // Use a shared reference object so timer mutations persist across calls
+    const self = this;
     return {
       store: this.store,
       isHost: this.isHost,
@@ -610,6 +688,13 @@ export class GameFacade implements IGameFacade {
       broadcastCurrentState: () => this.broadcastCurrentState(),
       // Abort check: used by processHandlerResult to stop audio queue when leaving room
       isAborted: () => this._aborted,
+      // wolfVoteTimer: getter/setter backed by Facade instance field
+      get wolfVoteTimer() {
+        return self._wolfVoteTimer;
+      },
+      set wolfVoteTimer(v) {
+        self._wolfVoteTimer = v;
+      },
       // P0-1/P0-5: 音频播放回调（只负责播放 IO）
       playAudio: async (audioKey: string, isEndAudio?: boolean) => {
         const audio = AudioService.getInstance();

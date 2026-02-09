@@ -40,7 +40,7 @@ describe('determineActionerState', () => {
     expect(result.showWolves).toBe(false);
   });
 
-  it('should return imActioner=false when wolf has already voted', () => {
+  it('should return imActioner=true when wolf has already voted (revote allowed)', () => {
     const wolfVotes = new Map<number, number>();
     wolfVotes.set(1, 0); // seat 1 voted for seat 0
 
@@ -54,7 +54,7 @@ describe('determineActionerState', () => {
       new Map(),
     );
 
-    expect(result.imActioner).toBe(false);
+    expect(result.imActioner).toBe(true);
     expect(result.showWolves).toBe(true); // Still sees wolves during wolf meeting
   });
 
@@ -123,7 +123,7 @@ describe('determineActionerState', () => {
       }
     });
 
-    it('should set imActioner=false for participating wolf roles that already voted (vote tracked by wolfVotes map)', () => {
+    it('should set imActioner=true for participating wolf roles that already voted (revote allowed)', () => {
       const wolfVotes = new Map<number, number>();
       wolfVotes.set(7, 0);
 
@@ -145,9 +145,8 @@ describe('determineActionerState', () => {
           new Map(),
         );
 
-        // Regardless of currentActionRole wiring, vote-tracking should prevent double action.
-        // (If this fails for non-'wolf' roles, it indicates drift risk in determineActionerState.)
-        expect(result.imActioner).toBe(false);
+        // Revote allowed: imActioner stays true even after voting
+        expect(result.imActioner).toBe(true);
       }
     });
   });
@@ -531,6 +530,94 @@ describe('buildSeatViewModels', () => {
       expect(seats[0].disabledReason).toBeUndefined();
       expect(seats[1].disabledReason).toBeUndefined();
       expect(seats[2].disabledReason).toBeUndefined();
+    });
+  });
+
+  describe('wolfVoteTarget badge', () => {
+    const createWolfVoteState = (
+      wolfVotesBySeat: Record<string, number> | undefined,
+    ): LocalGameState => ({
+      roomCode: 'TEST',
+      hostUid: 'host1',
+      template: {
+        name: 'Test',
+        numberOfPlayers: 3,
+        roles: ['wolf', 'villager', 'seer'] as RoleId[],
+      },
+      players: new Map([
+        [
+          0,
+          {
+            uid: 'p1',
+            seatNumber: 0,
+            displayName: 'Wolf',
+            role: 'wolf' as RoleId,
+            hasViewedRole: true,
+          },
+        ],
+        [
+          1,
+          {
+            uid: 'p2',
+            seatNumber: 1,
+            displayName: 'Villager',
+            role: 'villager' as RoleId,
+            hasViewedRole: true,
+          },
+        ],
+        [
+          2,
+          {
+            uid: 'p3',
+            seatNumber: 2,
+            displayName: 'Seer',
+            role: 'seer' as RoleId,
+            hasViewedRole: true,
+          },
+        ],
+      ]),
+      actions: new Map(),
+      wolfVotes: new Map(),
+      currentStepIndex: 0,
+      isAudioPlaying: false,
+      lastNightDeaths: [],
+      currentNightResults: { wolfVotesBySeat },
+      status: GameStatus.ongoing,
+    });
+
+    it('should populate wolfVoteTarget when showWolves=true and wolf has voted', () => {
+      const state = createWolfVoteState({ '0': 2 }); // seat 0 voted for seat 2
+      const seats = buildSeatViewModels(state, 0, true, null);
+
+      // Wolf seat 0 should show vote target
+      expect(seats[0].wolfVoteTarget).toBe(2);
+      // Non-wolf seats should not have wolfVoteTarget
+      expect(seats[1].wolfVoteTarget).toBeUndefined();
+      expect(seats[2].wolfVoteTarget).toBeUndefined();
+    });
+
+    it('should NOT populate wolfVoteTarget when showWolves=false', () => {
+      const state = createWolfVoteState({ '0': 2 });
+      const seats = buildSeatViewModels(state, 0, false, null);
+
+      // Even though wolf voted, showWolves=false hides it
+      expect(seats[0].wolfVoteTarget).toBeUndefined();
+    });
+
+    it('should show wolfVoteTarget=-1 for empty knife vote', () => {
+      const state = createWolfVoteState({ '0': -1 }); // seat 0 voted empty knife
+      const seats = buildSeatViewModels(state, 0, true, null);
+
+      expect(seats[0].wolfVoteTarget).toBe(-1);
+    });
+
+    it('wolfVoteTarget and showReadyBadge should be mutually exclusive', () => {
+      const state = createWolfVoteState({ '0': 2 });
+      const seats = buildSeatViewModels(state, 0, true, null);
+
+      // Wolf seat 0 has wolfVoteTarget → showReadyBadge must be false
+      expect(seats[0].wolfVoteTarget).toBe(2);
+      expect(seats[0].showReadyBadge).toBe(false);
     });
   });
 });

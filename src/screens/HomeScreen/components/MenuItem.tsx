@@ -19,17 +19,6 @@ export interface MenuItemProps {
   styles: HomeScreenStyles;
 }
 
-function arePropsEqual(prev: MenuItemProps, next: MenuItemProps): boolean {
-  return (
-    prev.icon === next.icon &&
-    prev.title === next.title &&
-    prev.subtitle === next.subtitle &&
-    prev.testID === next.testID &&
-    prev.styles === next.styles
-    // onPress excluded - uses ref pattern in parent for stability
-  );
-}
-
 const MenuItemComponent: React.FC<MenuItemProps> = ({
   icon,
   title,
@@ -52,4 +41,4 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
   );
 };
 
-export const MenuItem = memo(MenuItemComponent, arePropsEqual);
+export const MenuItem = memo(MenuItemComponent);

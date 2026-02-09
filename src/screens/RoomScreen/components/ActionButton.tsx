@@ -24,16 +24,6 @@ export interface ActionButtonProps {
   styles: ActionButtonStyles;
 }
 
-function arePropsEqual(prev: ActionButtonProps, next: ActionButtonProps): boolean {
-  return (
-    prev.label === next.label &&
-    prev.disabled === next.disabled &&
-    prev.testID === next.testID &&
-    prev.styles === next.styles
-    // onPress excluded - stable via useCallback
-  );
-}
-
 const ActionButtonComponent: React.FC<ActionButtonProps> = ({
   label,
   onPress,
@@ -54,6 +44,6 @@ const ActionButtonComponent: React.FC<ActionButtonProps> = ({
   );
 };
 
-export const ActionButton = memo(ActionButtonComponent, arePropsEqual);
+export const ActionButton = memo(ActionButtonComponent);
 
 ActionButton.displayName = 'ActionButton';

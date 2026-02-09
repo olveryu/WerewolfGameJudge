@@ -22,11 +22,6 @@ export interface ConnectionStatusBarProps {
   styles: ConnectionStatusBarStyles;
 }
 
-function arePropsEqual(prev: ConnectionStatusBarProps, next: ConnectionStatusBarProps): boolean {
-  return prev.status === next.status && prev.styles === next.styles;
-  // onForceSync excluded - stable via useCallback
-}
-
 /**
  * Connection status bar shown to non-host players
  */
@@ -90,6 +85,6 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
   );
 };
 
-export const ConnectionStatusBar = memo(ConnectionStatusBarComponent, arePropsEqual);
+export const ConnectionStatusBar = memo(ConnectionStatusBarComponent);
 
 ConnectionStatusBar.displayName = 'ConnectionStatusBar';

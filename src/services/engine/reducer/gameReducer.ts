@@ -542,6 +542,18 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       // 当前 BroadcastGameState 没有 currentStepId 字段，预留
       return state;
 
+    case 'SET_WOLF_VOTE_DEADLINE':
+      return {
+        ...state,
+        wolfVoteDeadline: action.payload.deadline,
+      };
+
+    case 'CLEAR_WOLF_VOTE_DEADLINE':
+      return {
+        ...state,
+        wolfVoteDeadline: undefined,
+      };
+
     default: {
       const _exhaustive: never = action;
       return _exhaustive;

@@ -28,19 +28,6 @@ export interface EmailFormProps {
   colors: ThemeColors;
 }
 
-function arePropsEqual(prev: EmailFormProps, next: EmailFormProps): boolean {
-  return (
-    prev.isSignUp === next.isSignUp &&
-    prev.email === next.email &&
-    prev.password === next.password &&
-    prev.displayName === next.displayName &&
-    prev.authError === next.authError &&
-    prev.authLoading === next.authLoading &&
-    prev.styles === next.styles
-    // callbacks and colors excluded - callbacks use ref pattern
-  );
-}
-
 const EmailFormComponent: React.FC<EmailFormProps> = ({
   isSignUp,
   email,
@@ -119,4 +106,4 @@ const EmailFormComponent: React.FC<EmailFormProps> = ({
   );
 };
 
-export const EmailForm = memo(EmailFormComponent, arePropsEqual);
+export const EmailForm = memo(EmailFormComponent);

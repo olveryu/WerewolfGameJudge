@@ -19,11 +19,6 @@ export interface LoginOptionsProps {
   styles: HomeScreenStyles;
 }
 
-function arePropsEqual(prev: LoginOptionsProps, next: LoginOptionsProps): boolean {
-  return prev.authLoading === next.authLoading && prev.styles === next.styles;
-  // callbacks excluded - use ref pattern
-}
-
 const LoginOptionsComponent: React.FC<LoginOptionsProps> = ({
   authLoading,
   onEmailLogin,
@@ -57,4 +52,4 @@ const LoginOptionsComponent: React.FC<LoginOptionsProps> = ({
   );
 };
 
-export const LoginOptions = memo(LoginOptionsComponent, arePropsEqual);
+export const LoginOptions = memo(LoginOptionsComponent);

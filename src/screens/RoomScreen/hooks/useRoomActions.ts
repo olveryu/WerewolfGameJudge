@@ -76,6 +76,8 @@ export interface GameContext {
 
   isAudioPlaying: boolean;
   anotherIndex: number | null; // Magician first target
+  /** Counter that ticks every second during wolf vote countdown, forcing re-render. */
+  countdownTick?: number;
 }
 
 export interface ActionDeps {
@@ -272,6 +274,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     actorRole,
     isAudioPlaying,
     anotherIndex,
+    countdownTick,
   } = gameContext;
 
   const { hasWolfVoted, getWolfVoteSummary, getWitchContext } = deps;
@@ -283,16 +286,16 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   const findVotingWolfSeat = useCallback((): number | null => {
     if (!gameState) return null;
     // Only wolves that participate in wolf vote can vote (excludes gargoyle, wolfRobot, etc.)
+    // Revote allowed: no longer check hasWolfVoted
     if (
       actorSeatNumber !== null &&
       actorRole &&
-      doesRoleParticipateInWolfVote(actorRole) &&
-      !hasWolfVoted(actorSeatNumber)
+      doesRoleParticipateInWolfVote(actorRole)
     ) {
       return actorSeatNumber;
     }
     return null;
-  }, [gameState, actorSeatNumber, actorRole, hasWolfVoted]);
+  }, [gameState, actorSeatNumber, actorRole]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Action message builder
@@ -343,11 +346,23 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     if (currentSchema?.kind !== 'wolfVote') return null;
 
     const base = getWolfVoteSummary();
-    if (actorSeatNumber !== null && !hasWolfVoted(actorSeatNumber)) {
+    const voted = actorSeatNumber !== null && hasWolfVoted(actorSeatNumber);
+
+    if (!voted) {
       return base;
     }
-    return `${base} (你已投票，等待其他狼人)`;
-  }, [currentSchema?.kind, getWolfVoteSummary, hasWolfVoted, actorRole, actorSeatNumber]);
+
+    // 已投票：检查倒计时
+    const deadline = gameState?.wolfVoteDeadline;
+    if (deadline != null) {
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      if (remaining > 0) {
+        return `${base}（${remaining}s 后确认）`;
+      }
+    }
+
+    return `${base}（可点击改票或取消）`;
+  }, [currentSchema?.kind, getWolfVoteSummary, hasWolfVoted, actorRole, actorSeatNumber, gameState?.wolfVoteDeadline, countdownTick]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // UI-only: schema-driven bottom action button (skip / wolf empty vote / blocked)
@@ -422,21 +437,36 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       };
     }
 
-    // wolfVote: always allow empty vote (-1)
+    // wolfVote: show empty vote + cancel button when already voted
     if (currentSchema.kind === 'wolfVote') {
-      return {
-        buttons: [
-          {
-            key: 'wolfEmpty',
-            label: currentSchema.ui?.emptyVoteText || '投票空刀',
-            intent: {
-              type: 'wolfVote',
-              targetIndex: -1,
-              wolfSeat: actorSeatNumber ?? undefined,
-            },
+      const buttons: BottomButton[] = [];
+      const voted = actorSeatNumber !== null && hasWolfVoted(actorSeatNumber);
+
+      // Cancel vote button (withdraw = -2)
+      if (voted) {
+        buttons.push({
+          key: 'wolfCancel',
+          label: '取消投票',
+          intent: {
+            type: 'wolfVote',
+            targetIndex: -2,
+            wolfSeat: actorSeatNumber ?? undefined,
           },
-        ],
-      };
+        });
+      }
+
+      // Empty vote button (always available)
+      buttons.push({
+        key: 'wolfEmpty',
+        label: currentSchema.ui?.emptyVoteText || '投票空刀',
+        intent: {
+          type: 'wolfVote',
+          targetIndex: -1,
+          wolfSeat: actorSeatNumber ?? undefined,
+        },
+      });
+
+      return { buttons };
     }
 
     // chooseSeat/swap: honor canSkip
@@ -587,12 +617,14 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     return { type: 'actionPrompt', targetIndex: -1 };
   }, [
     actorRole,
+    actorSeatNumber,
     imActioner,
     isAudioPlaying,
     currentSchema,
     gameState?.wolfRobotReveal,
     getWitchContext,
     anotherIndex,
+    hasWolfVoted,
   ]);
 
   // ─────────────────────────────────────────────────────────────────────────

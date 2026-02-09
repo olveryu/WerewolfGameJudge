@@ -85,6 +85,8 @@ export interface SeatViewModel {
   disabledReason?: string;
   /** Show ✅ badge on seat tile (e.g. player has viewed role during assigned phase). */
   showReadyBadge?: boolean;
+  /** Wolf vote target for this seat (visible to wolf-faction only during wolf meeting). */
+  wolfVoteTarget?: number;
 }
 
 // =============================================================================
@@ -144,19 +146,16 @@ export function determineActionerState(
 function handleMatchingRole(
   actorRole: RoleId,
   actorSeatNumber: number | null,
-  wolfVotes: Map<number, number>,
+  _wolfVotes: Map<number, number>,
   actions: Map<RoleId, RoleAction>,
   isWolfMeetingSchema: boolean,
 ): ActionerState {
-  // Wolf meeting phase: action eligibility is vote-based for ALL voting wolves.
-  // (Not just role === 'wolf' — special wolf roles like nightmare/wolfQueen also vote.)
+  // Wolf meeting phase: always imActioner (revote allowed)
   if (
     isWolfMeetingSchema &&
-    doesRoleParticipateInWolfVote(actorRole) &&
-    actorSeatNumber !== null &&
-    wolfVotes.has(actorSeatNumber)
+    doesRoleParticipateInWolfVote(actorRole)
   ) {
-    return { imActioner: false, showWolves: true };
+    return { imActioner: true, showWolves: true };
   }
 
   // For non-wolf roles, check if action already submitted
@@ -173,12 +172,11 @@ function handleMatchingRole(
 }
 
 function handleWolfTeamTurn(
-  actorSeatNumber: number | null,
-  wolfVotes: Map<number, number>,
+  _actorSeatNumber: number | null,
+  _wolfVotes: Map<number, number>,
 ): ActionerState {
-  // Check if this wolf has already voted
-  const hasVoted = actorSeatNumber !== null && wolfVotes.has(actorSeatNumber);
-  return { imActioner: !hasVoted, showWolves: true };
+  // Revote allowed: always imActioner during wolf meeting
+  return { imActioner: true, showWolves: true };
 }
 
 /**
@@ -331,10 +329,15 @@ export function buildSeatViewModels(
       disabledReason = '不能选择自己';
     }
 
-    // ✅ badge: assigned/ready → "已查看身份"; ongoing wolfKill → "已投票"
+    // ✅ badge: assigned/ready → "已查看身份"
+    // wolfVoteTarget badge 已包含"已投票"语义，两者互斥
+    const hasWolfVoteTarget =
+      isWolf && wolfVotesBySeat != null && String(index) in wolfVotesBySeat;
     const readyBadge =
-      (options?.showReadyBadges && player != null && (player.hasViewedRole ?? false)) ||
-      (isWolf && wolfVotesBySeat != null && String(index) in wolfVotesBySeat);
+      !hasWolfVoteTarget &&
+      options?.showReadyBadges &&
+      player != null &&
+      (player.hasViewedRole ?? false);
 
     return {
       index,
@@ -353,6 +356,9 @@ export function buildSeatViewModels(
       isSelected: selectedIndex === index || options?.secondSelectedIndex === index,
       disabledReason,
       showReadyBadge: readyBadge,
+      wolfVoteTarget: hasWolfVoteTarget
+        ? wolfVotesBySeat[String(index)]
+        : undefined,
     };
   });
 }

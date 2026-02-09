@@ -28,16 +28,6 @@ export interface HostMenuDropdownProps {
   styles: HostMenuDropdownStyles;
 }
 
-function arePropsEqual(prev: HostMenuDropdownProps, next: HostMenuDropdownProps): boolean {
-  return (
-    prev.visible === next.visible &&
-    prev.showFillWithBots === next.showFillWithBots &&
-    prev.showMarkAllBotsViewed === next.showMarkAllBotsViewed &&
-    prev.styles === next.styles
-    // callbacks excluded - stable via useCallback
-  );
-}
-
 const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   visible,
   showFillWithBots,
@@ -122,6 +112,6 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   );
 };
 
-export const HostMenuDropdown = memo(HostMenuDropdownComponent, arePropsEqual);
+export const HostMenuDropdown = memo(HostMenuDropdownComponent);
 
 HostMenuDropdown.displayName = 'HostMenuDropdown';

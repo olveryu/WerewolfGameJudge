@@ -4,7 +4,7 @@
  * Displays current step number and total steps based on the active night plan.
  * Only visible during ongoing game (status === 'ongoing').
  *
- * Performance: Memoized with arePropsEqual, receives pre-created styles from parent.
+ * Performance: Memoized, receives pre-created styles from parent.
  *
  * ❌ Do NOT import: any Service singletons, showAlert
  * ✅ Allowed: types, styles, UI components
@@ -23,18 +23,6 @@ export interface NightProgressIndicatorProps {
   currentRoleName?: string;
   /** Pre-created styles from parent */
   styles: NightProgressIndicatorStyles;
-}
-
-function arePropsEqual(
-  prev: NightProgressIndicatorProps,
-  next: NightProgressIndicatorProps,
-): boolean {
-  return (
-    prev.currentStep === next.currentStep &&
-    prev.totalSteps === next.totalSteps &&
-    prev.currentRoleName === next.currentRoleName &&
-    prev.styles === next.styles
-  );
 }
 
 const NightProgressIndicatorComponent: React.FC<NightProgressIndicatorProps> = ({
@@ -61,6 +49,6 @@ const NightProgressIndicatorComponent: React.FC<NightProgressIndicatorProps> = (
   );
 };
 
-export const NightProgressIndicator = memo(NightProgressIndicatorComponent, arePropsEqual);
+export const NightProgressIndicator = memo(NightProgressIndicatorComponent);
 
 NightProgressIndicator.displayName = 'NightProgressIndicator';

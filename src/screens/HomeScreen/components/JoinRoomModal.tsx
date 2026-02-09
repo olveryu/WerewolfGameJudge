@@ -22,17 +22,6 @@ export interface JoinRoomModalProps {
   styles: HomeScreenStyles;
 }
 
-function arePropsEqual(prev: JoinRoomModalProps, next: JoinRoomModalProps): boolean {
-  return (
-    prev.visible === next.visible &&
-    prev.roomCode === next.roomCode &&
-    prev.isLoading === next.isLoading &&
-    prev.errorMessage === next.errorMessage &&
-    prev.styles === next.styles
-    // callbacks excluded - use ref pattern
-  );
-}
-
 const JoinRoomModalComponent: React.FC<JoinRoomModalProps> = ({
   visible,
   roomCode,
@@ -96,4 +85,4 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalProps> = ({
   );
 };
 
-export const JoinRoomModal = memo(JoinRoomModalComponent, arePropsEqual);
+export const JoinRoomModal = memo(JoinRoomModalComponent);

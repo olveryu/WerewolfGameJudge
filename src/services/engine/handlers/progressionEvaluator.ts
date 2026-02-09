@@ -5,6 +5,9 @@
  * - evaluateNightProgression：基于 BroadcastGameState 事实评估是否需要推进
  * - handleNightProgression：执行推进（调用 advanceNight / endNight）
  * - 幂等保护（同一 {revision, currentStepId} 最多推进一次）
+ * - isWolfVoteAllComplete：判断全部狼人是否投票完成（exported 纯函数，evaluator + facade 共用）
+ * - shouldTriggerWolfVoteRecovery：前台恢复判断（exported 纯函数）
+ * - decideWolfVoteTimerAction：Timer set/clear/noop 决策（exported 纯函数）
  *
  * ✅ 允许：读取 state 事实做推进判断 + 调用 advanceNight/endNight
  * ❌ 禁止：在 Facade / UI / submit 回调里做推进决策（推进权威必须集中在此）
@@ -49,6 +52,95 @@ export function createProgressionTracker(): ProgressionTracker {
   return { lastProcessedKey: null };
 }
 
+// =============================================================================
+// Wolf Vote Pure Functions（exported，evaluator + facade 共用）
+// =============================================================================
+
+/** 狼人投票倒计时毫秒数 */
+export const WOLF_VOTE_COUNTDOWN_MS = 5000;
+
+/**
+ * 判断全部参与投票的狼人是否都已完成投票（exported 纯函数）。
+ *
+ * Fail-closed 设计：
+ * - player.role 缺失 → return false（无法确定角色 → 不认为全完成）
+ * - 0 参与狼人 → return false（wolfKill step 下无狼人是异常，不应推进）
+ * - 撤回（-2）的狼人 key 已被 resolver 删除，不在 wolfVotesBySeat 中 → 未投票 → false
+ *
+ * @invariant player.role !== null when status='ongoing'（此函数仅在 wolfKill step 调用）。
+ * 保证链：handleAssignRoles 为全部 seats 写入 role → status='assigned' →
+ * handleStartNight 设 status='ongoing'。ongoing 期间 handleTakeSeat 拒绝加入
+ * （status !== unseated/seated），handleLeaveMySeat 拒绝离开（status === ongoing）。
+ * 因此 fail-closed 的 `return false` 在生产中不会触发 deadlock。
+ *
+ * ⚠️ 行为变更（vs 旧 isCurrentStepComplete wolfKill 分支）：
+ * 旧逻辑 `continue` 跳过 role 缺失的座位，新逻辑 `return false`（fail-closed）。
+ */
+export function isWolfVoteAllComplete(state: BroadcastGameState): boolean {
+  const wolfVotes = state.currentNightResults?.wolfVotesBySeat ?? {};
+  const participatingWolfSeats: number[] = [];
+  for (const [seatStr, player] of Object.entries(state.players)) {
+    const seat = Number.parseInt(seatStr, 10);
+    if (!Number.isFinite(seat)) continue;
+    if (!player?.role) return false; // fail-closed：role 缺失 → 不确定 → false
+    if (doesRoleParticipateInWolfVote(player.role)) {
+      participatingWolfSeats.push(seat);
+    }
+  }
+  if (participatingWolfSeats.length === 0) return false; // fail-closed：0 狼人 → 异常 → false
+  return participatingWolfSeats.every((seat) => {
+    const v = wolfVotes[String(seat)];
+    return typeof v === 'number' && (v >= 0 || v === -1);
+  });
+}
+
+/**
+ * 前台恢复判断：是否需要在回到前台时触发狼人投票推进。
+ *
+ * 当 App 从后台回到前台时，Timer 可能已错过。
+ * 通过检查 `wolfVoteDeadline` 是否已过期来决定是否需要补偿推进。
+ */
+export function shouldTriggerWolfVoteRecovery(
+  state: BroadcastGameState,
+  now: number,
+): boolean {
+  return (
+    state.currentStepId === 'wolfKill' &&
+    state.wolfVoteDeadline != null &&
+    now >= state.wolfVoteDeadline
+  );
+}
+
+/**
+ * Timer 决策纯函数结果类型
+ */
+export type WolfVoteTimerAction =
+  | { type: 'set'; deadline: number }
+  | { type: 'clear' }
+  | { type: 'noop' };
+
+/**
+ * 决定狼人投票 Timer 的动作（纯函数）。
+ *
+ * | allVoted | hasExistingTimer | 动作 |
+ * |---------|-----------------|------|
+ * | true    | any             | set（设置/重置 deadline） |
+ * | false   | true            | clear（撤回导致未全投完） |
+ * | false   | false           | noop |
+ *
+ * 策略 A：任何成功 submit 都调用此函数，allVoted 时一律 set（无论内容是否改变）。
+ */
+export function decideWolfVoteTimerAction(
+  allVoted: boolean,
+  hasExistingTimer: boolean,
+  now: number,
+  countdownMs: number = WOLF_VOTE_COUNTDOWN_MS,
+): WolfVoteTimerAction {
+  if (allVoted) return { type: 'set', deadline: now + countdownMs };
+  if (hasExistingTimer) return { type: 'clear' };
+  return { type: 'noop' };
+}
+
 /**
  * 基于 state 事实生成幂等 key
  *
@@ -78,27 +170,7 @@ function isCurrentStepComplete(state: NonNullState): boolean {
   }
 
   if (currentStepId === 'wolfKill') {
-    const wolfVotes = state.currentNightResults?.wolfVotesBySeat ?? {};
-
-    const participatingWolfSeats: number[] = [];
-    for (const [seatStr, player] of Object.entries(state.players)) {
-      const seat = Number.parseInt(seatStr, 10);
-      if (!Number.isFinite(seat) || !player?.role) continue;
-
-      if (doesRoleParticipateInWolfVote(player.role)) {
-        participatingWolfSeats.push(seat);
-      }
-    }
-
-    // Completion contract:
-    // - A wolf is considered "done" only if they made a valid choice:
-    //   - target seat number (>= 0)
-    //   - empty knife (-1)
-    // - Forbidden target attempts (-2) do NOT count; player must re-vote.
-    return participatingWolfSeats.every((seat) => {
-      const v = wolfVotes[String(seat)];
-      return typeof v === 'number' && (v >= 0 || v === -1);
-    });
+    return isWolfVoteAllComplete(state);
   }
 
   // 其他步骤：检查是否已有对应 schemaId 的 action
@@ -175,6 +247,15 @@ export function evaluateNightProgression(
 
   // 判断当前步骤是否完成
   if (isCurrentStepComplete(state)) {
+    // Countdown gate: wolfKill 全投完但倒计时未到 → 不推进
+    if (
+      state.currentStepId === 'wolfKill' &&
+      state.wolfVoteDeadline != null &&
+      Date.now() < state.wolfVoteDeadline
+    ) {
+      return { action: 'none', reason: 'wolf_vote_countdown' };
+    }
+
     if (tracker) {
       tracker.lastProcessedKey = buildProgressionKey(revision, state.currentStepId);
     }

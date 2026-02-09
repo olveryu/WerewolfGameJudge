@@ -57,6 +57,9 @@ const BROADCAST_GAME_STATE_FIELDS: (keyof BroadcastGameState)[] = [
   'confirmStatus',
   'actionRejected',
 
+  // 狼人投票倒计时
+  'wolfVoteDeadline',
+
   // Debug 模式
   'debugMode',
 
@@ -117,6 +120,9 @@ describe('normalizeState contract', () => {
         targetUid: 'p1',
         rejectionId: 'rej-1',
       },
+
+      // 狼人投票倒计时
+      wolfVoteDeadline: Date.now() + 5000,
 
       // Debug 模式
       debugMode: { botsEnabled: true },

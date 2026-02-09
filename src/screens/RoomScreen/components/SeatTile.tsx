@@ -46,6 +46,7 @@ export interface SeatTileStyles {
   selectedOverlay: ViewStyle;
   mySeatBadge: TextStyle;
   readyBadge: TextStyle;
+  wolfVoteBadge: TextStyle;
   emptyIndicator: TextStyle;
   playerName: TextStyle;
   playerNamePlaceholder: ViewStyle;
@@ -75,47 +76,13 @@ export interface SeatTileProps {
   showBotRole: boolean; // isHost && debugMode?.botsEnabled && isBot
   /** Show ✅ ready badge (e.g. player has viewed role during assigned phase). */
   showReadyBadge: boolean;
+  /** Wolf vote target for this seat (≥ 0 = seat, -1 = empty knife). Visible to wolf-faction only. */
+  wolfVoteTarget?: number;
   // Styles (created once in PlayerGrid)
   styles: SeatTileStyles;
-  // Callbacks (not compared in arePropsEqual to avoid callback identity issues)
   onPress: (seatIndex: number, disabledReason?: string) => void;
   /** Long press callback for takeover bot seat (debug mode) */
   onLongPress?: (seatIndex: number) => void;
-}
-
-/**
- * Custom comparison function for memo.
- * Only re-render if UI-relevant primitive props change.
- *
- * NOTE: We intentionally exclude onPress from comparison.
- * Callback identity can change due to parent re-renders, but as long as
- * the visual props are the same, we don't need to re-render the tile.
- * The callback will still work correctly when pressed.
- *
- * NOTE: We compare styles by reference. PlayerGrid creates styles once
- * and passes the same reference to all tiles, so this is efficient.
- */
-function arePropsEqual(prev: SeatTileProps, next: SeatTileProps): boolean {
-  return (
-    prev.index === next.index &&
-    prev.roomNumber === next.roomNumber &&
-    prev.tileSize === next.tileSize &&
-    prev.disabled === next.disabled &&
-    prev.disabledReason === next.disabledReason &&
-    prev.isMySpot === next.isMySpot &&
-    prev.isWolf === next.isWolf &&
-    prev.isSelected === next.isSelected &&
-    prev.isBot === next.isBot &&
-    prev.isControlled === next.isControlled &&
-    prev.playerUid === next.playerUid &&
-    prev.playerAvatarUrl === next.playerAvatarUrl &&
-    prev.playerAvatarIndex === next.playerAvatarIndex &&
-    prev.playerDisplayName === next.playerDisplayName &&
-    prev.roleId === next.roleId &&
-    prev.showBotRole === next.showBotRole &&
-    prev.showReadyBadge === next.showReadyBadge &&
-    prev.styles === next.styles
-  );
 }
 
 const SeatTileComponent: React.FC<SeatTileProps> = ({
@@ -136,6 +103,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   roleId,
   showBotRole,
   showReadyBadge,
+  wolfVoteTarget,
   styles,
   onPress,
   onLongPress,
@@ -256,6 +224,12 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
         {isMySpot && hasPlayer && <Text style={styles.mySeatBadge}>我</Text>}
 
         {showReadyBadge && hasPlayer && <Text style={styles.readyBadge}>✅</Text>}
+
+        {wolfVoteTarget != null && hasPlayer && (
+          <Text style={styles.wolfVoteBadge}>
+            {wolfVoteTarget === -1 ? '空刀' : `刀${wolfVoteTarget + 1}`}
+          </Text>
+        )}
       </TouchableOpacity>
 
       {/* Floating seat number badge - overlaps top-left corner of tile */}
@@ -282,7 +256,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 };
 
 // Memoize with custom comparison
-export const SeatTile = memo(SeatTileComponent, arePropsEqual);
+export const SeatTile = memo(SeatTileComponent);
 
 /**
  * Create SeatTile styles. Called once in PlayerGrid and passed to all tiles.
@@ -378,6 +352,19 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       left: spacing.tight + spacing.tight / 2,
       // Emoji fontSize 例外：✅ 属于 Emoji 渲染尺寸，不走 typography token
       fontSize: 14,
+    },
+    wolfVoteBadge: {
+      position: 'absolute',
+      bottom: spacing.tight + spacing.tight / 2,
+      left: spacing.tight + spacing.tight / 2,
+      backgroundColor: colors.error,
+      color: colors.textInverse,
+      fontSize: typography.caption,
+      fontWeight: typography.weights.bold,
+      paddingHorizontal: spacing.tight + spacing.tight / 2,
+      paddingVertical: spacing.tight / 2,
+      borderRadius: spacing.small,
+      overflow: 'hidden',
     },
     emptyIndicator: {
       fontSize: typography.secondary,

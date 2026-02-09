@@ -27,4 +27,6 @@ export type {
   AddRevealAckAction,
   ClearRevealAcksAction,
   SetCurrentStepAction,
+  SetWolfVoteDeadlineAction,
+  ClearWolfVoteDeadlineAction,
 } from './types';

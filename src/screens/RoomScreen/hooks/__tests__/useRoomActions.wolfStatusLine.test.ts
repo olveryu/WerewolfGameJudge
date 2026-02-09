@@ -83,6 +83,6 @@ describe('useRoomActions.getWolfStatusLine (UI-only)', () => {
     });
 
     const { result } = renderHook(() => useRoomActions(ctx, deps));
-    expect(result.current.getWolfStatusLine()).toBe('1/3 狼人已投票 (你已投票，等待其他狼人)');
+    expect(result.current.getWolfStatusLine()).toBe('1/3 狼人已投票（可点击改票或取消）');
   });
 });

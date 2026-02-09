@@ -18,10 +18,6 @@ export interface ActionMessageProps {
   styles: ActionMessageStyles;
 }
 
-function arePropsEqual(prev: ActionMessageProps, next: ActionMessageProps): boolean {
-  return prev.message === next.message && prev.styles === next.styles;
-}
-
 const ActionMessageComponent: React.FC<ActionMessageProps> = ({ message, styles }) => {
   return (
     <Text style={styles.actionMessage} testID={TESTIDS.actionMessage}>
@@ -30,6 +26,6 @@ const ActionMessageComponent: React.FC<ActionMessageProps> = ({ message, styles 
   );
 };
 
-export const ActionMessage = memo(ActionMessageComponent, arePropsEqual);
+export const ActionMessage = memo(ActionMessageComponent);
 
 ActionMessage.displayName = 'ActionMessage';

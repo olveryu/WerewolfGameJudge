@@ -61,6 +61,9 @@ import {
 import {
   handleNightProgression,
   resetProgressionTracker,
+  isWolfVoteAllComplete,
+  decideWolfVoteTimerAction,
+  WOLF_VOTE_COUNTDOWN_MS,
 } from '@/services/engine/handlers/progressionEvaluator';
 import { handleSetWolfRobotHunterStatusViewed } from '@/services/engine/handlers/wolfRobotHunterGateHandler';
 import { gameReducer } from '@/services/engine/reducer';
@@ -92,6 +95,11 @@ export interface HostActionsContext {
    * 根据 copilot-instructions.md：音频播放前设 true，结束后设 false
    */
   setAudioPlayingGate?: (isPlaying: boolean) => Promise<void>;
+  /**
+   * 狼人投票倒计时 Timer 引用
+   * 由 submitWolfVote 管理：set / clear / 在 leaveRoom 时清除
+   */
+  wolfVoteTimer?: ReturnType<typeof setTimeout>;
 }
 
 /**
@@ -447,6 +455,43 @@ export async function submitWolfVote(
 
   // Host-only 自动推进：成功提交后透传调用 handler 层推进
   if (submitResult.success) {
+    // Wolf vote timer lifecycle（store 同步更新后 await 广播；广播期间 event-loop 可插入其他 microtask，但 store 已是最新状态）
+    const state = ctx.store.getState();
+    const timerAction = decideWolfVoteTimerAction(
+      state ? isWolfVoteAllComplete(state) : false,
+      ctx.wolfVoteTimer != null,
+      Date.now(),
+    );
+
+    switch (timerAction.type) {
+      case 'set': {
+        // 同步序列：clear 旧 timer → 写 deadline →（await 广播）→ set 新 timer
+        clearTimeout(ctx.wolfVoteTimer);
+        if (state) {
+          applyActions(ctx.store, state, [
+            { type: 'SET_WOLF_VOTE_DEADLINE', payload: { deadline: timerAction.deadline } },
+          ]);
+        }
+        await ctx.broadcastCurrentState();
+        ctx.wolfVoteTimer = setTimeout(async () => {
+          ctx.wolfVoteTimer = undefined;
+          if (!ctx.isAborted?.()) await callNightProgression(ctx);
+        }, WOLF_VOTE_COUNTDOWN_MS);
+        break;
+      }
+      case 'clear': {
+        // 同步序列：clear timer → 清 deadline →（await 广播）
+        clearTimeout(ctx.wolfVoteTimer);
+        ctx.wolfVoteTimer = undefined;
+        if (state) {
+          applyActions(ctx.store, state, [{ type: 'CLEAR_WOLF_VOTE_DEADLINE' }]);
+        }
+        await ctx.broadcastCurrentState();
+        break;
+      }
+      // noop: do nothing
+    }
+
     await callNightProgression(ctx);
   }
 
@@ -618,8 +663,9 @@ function buildNightProgressionCallbacks(ctx: HostActionsContext) {
  * Host: 透传调用夜晚推进
  *
  * 这是一个透传方法，将 HostActionsContext 转换后调用 handler 层的 handleNightProgression。
+ * Exported：Facade foreground recovery 需要调用此方法。
  */
-async function callNightProgression(ctx: HostActionsContext): Promise<void> {
+export async function callNightProgression(ctx: HostActionsContext): Promise<void> {
   const callbacks = buildNightProgressionCallbacks(ctx);
   await handleNightProgression(callbacks);
 }

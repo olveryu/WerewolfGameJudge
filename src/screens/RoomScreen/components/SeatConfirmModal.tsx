@@ -28,16 +28,6 @@ export interface SeatConfirmModalProps {
   styles: SeatConfirmModalStyles;
 }
 
-function arePropsEqual(prev: SeatConfirmModalProps, next: SeatConfirmModalProps): boolean {
-  return (
-    prev.visible === next.visible &&
-    prev.modalType === next.modalType &&
-    prev.seatNumber === next.seatNumber &&
-    prev.styles === next.styles
-    // callbacks excluded - stable via useCallback
-  );
-}
-
 const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
   visible,
   modalType,
@@ -82,6 +72,6 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
   );
 };
 
-export const SeatConfirmModal = memo(SeatConfirmModalComponent, arePropsEqual);
+export const SeatConfirmModal = memo(SeatConfirmModalComponent);
 
 SeatConfirmModal.displayName = 'SeatConfirmModal';

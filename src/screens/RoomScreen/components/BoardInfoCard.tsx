@@ -27,18 +27,6 @@ export interface BoardInfoCardProps {
   styles: BoardInfoCardStyles;
 }
 
-function arePropsEqual(prev: BoardInfoCardProps, next: BoardInfoCardProps): boolean {
-  return (
-    prev.playerCount === next.playerCount &&
-    prev.wolfRolesText === next.wolfRolesText &&
-    prev.godRolesText === next.godRolesText &&
-    prev.specialRolesText === next.specialRolesText &&
-    prev.villagerCount === next.villagerCount &&
-    prev.collapsed === next.collapsed &&
-    prev.styles === next.styles
-  );
-}
-
 const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   playerCount,
   wolfRolesText,
@@ -100,6 +88,6 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   );
 };
 
-export const BoardInfoCard = memo(BoardInfoCardComponent, arePropsEqual);
+export const BoardInfoCard = memo(BoardInfoCardComponent);
 
 BoardInfoCard.displayName = 'BoardInfoCard';

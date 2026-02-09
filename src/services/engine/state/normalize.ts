@@ -92,7 +92,10 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
     confirmStatus: raw.confirmStatus,
     actionRejected: raw.actionRejected,
 
-    // UI Hints（Host 广播驱动，UI 只读展示，必须透传）
+    // 狼人投票倒計時（透传）
+    wolfVoteDeadline: raw.wolfVoteDeadline,
+
+    // UI Hints（Host 広播駆動，UI 只読展示，必須透伝）
     ui: raw.ui,
 
     // Debug mode（透传）

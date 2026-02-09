@@ -27,16 +27,6 @@ export interface ControlledSeatBannerProps {
   styles: ControlledSeatBannerStyles;
 }
 
-function arePropsEqual(prev: ControlledSeatBannerProps, next: ControlledSeatBannerProps): boolean {
-  return (
-    prev.mode === next.mode &&
-    prev.controlledSeat === next.controlledSeat &&
-    prev.botDisplayName === next.botDisplayName &&
-    prev.styles === next.styles
-    // onRelease excluded - stable via useCallback
-  );
-}
-
 const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
   mode,
   controlledSeat,
@@ -70,6 +60,6 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
   );
 };
 
-export const ControlledSeatBanner = memo(ControlledSeatBannerComponent, arePropsEqual);
+export const ControlledSeatBanner = memo(ControlledSeatBannerComponent);
 
 ControlledSeatBanner.displayName = 'ControlledSeatBanner';

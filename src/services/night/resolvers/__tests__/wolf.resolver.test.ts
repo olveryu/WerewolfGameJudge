@@ -151,4 +151,45 @@ describe('wolfKillResolver', () => {
       expect(result.updates?.wolfVotesBySeat?.['2']).toBe(0);
     });
   });
+
+  describe('withdraw (target = -2)', () => {
+    it('target=-2 应删除 wolfVotesBySeat key', () => {
+      const ctx = createContext({
+        currentNightResults: {
+          wolfVotesBySeat: { '2': 0, '3': 1 },
+        },
+      });
+      const input = createInput(-2);
+
+      const result = wolfKillResolver(ctx, input);
+
+      expect(result.valid).toBe(true);
+      // actorSeat=2 的 key 应被删除
+      expect(result.updates?.wolfVotesBySeat).not.toHaveProperty('2');
+      // 其他狼的 key 应保留
+      expect(result.updates?.wolfVotesBySeat?.['3']).toBe(1);
+    });
+
+    it('target=-2 后再投票应正常写入', () => {
+      // 先撤回
+      const ctx1 = createContext({
+        currentNightResults: {
+          wolfVotesBySeat: { '2': 0, '3': 1 },
+        },
+      });
+      const withdrawResult = wolfKillResolver(ctx1, createInput(-2));
+      expect(withdrawResult.valid).toBe(true);
+      expect(withdrawResult.updates?.wolfVotesBySeat).not.toHaveProperty('2');
+
+      // 再投票（用 withdraw 的 updates 作为新 context）
+      const ctx2 = createContext({
+        currentNightResults: {
+          wolfVotesBySeat: withdrawResult.updates?.wolfVotesBySeat,
+        },
+      });
+      const voteResult = wolfKillResolver(ctx2, createInput(4));
+      expect(voteResult.valid).toBe(true);
+      expect(voteResult.updates?.wolfVotesBySeat?.['2']).toBe(4);
+    });
+  });
 });

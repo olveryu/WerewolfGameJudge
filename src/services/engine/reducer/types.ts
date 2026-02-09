@@ -291,6 +291,29 @@ export interface MarkAllBotsViewedAction {
 }
 
 // =============================================================================
+// 狼人投票倒计时
+// =============================================================================
+
+/**
+ * 设置狼人投票截止时间（epoch ms）
+ * Host 在全部狼人投票完成时写入，改票时重置。
+ */
+export interface SetWolfVoteDeadlineAction {
+  type: 'SET_WOLF_VOTE_DEADLINE';
+  payload: {
+    deadline: number;
+  };
+}
+
+/**
+ * 清除狼人投票截止时间
+ * 撤回导致未全投完时清除。
+ */
+export interface ClearWolfVoteDeadlineAction {
+  type: 'CLEAR_WOLF_VOTE_DEADLINE';
+}
+
+// =============================================================================
 // StateAction 联合类型
 // =============================================================================
 
@@ -334,4 +357,7 @@ export type StateAction =
   | SetCurrentStepAction
   // Debug Bots
   | FillWithBotsAction
-  | MarkAllBotsViewedAction;
+  | MarkAllBotsViewedAction
+  // 狼人投票倒计时
+  | SetWolfVoteDeadlineAction
+  | ClearWolfVoteDeadlineAction;

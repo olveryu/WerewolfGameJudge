@@ -15,10 +15,16 @@ const isWeb = Platform.OS === 'web';
 const isJest = typeof process !== 'undefined' && !!process.env?.JEST_WORKER_ID;
 
 /**
- * Metro bundler `require()` returns a number (asset ID) at runtime.
- * On Web, expo-audio also accepts string URLs or { uri: string }.
+ * Metro bundler `require()` returns a number (asset ID) on native,
+ * a string URL on Web. expo-audio also accepts { uri: string }.
  */
-type AudioAsset = number;
+type AudioAsset = number | string | { uri: string };
+
+export function audioAssetToUrl(audioFile: number | string | { uri: string }): string {
+  if (typeof audioFile === 'string') return audioFile;
+  if (typeof audioFile === 'number') return String(audioFile);
+  return audioFile.uri;
+}
 
 // Audio file mappings matching Flutter's JudgeAudioProvider
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -250,7 +256,7 @@ export class AudioService {
         }
 
         // Get the audio URL from the audioFile (expo asset)
-        const audioUrl = typeof audioFile === 'string' ? audioFile : audioFile?.uri || audioFile;
+        const audioUrl = audioAssetToUrl(audioFile);
         audioLog.debug(`[${label}] [WEB] audioUrl=${audioUrl}`);
 
         // Create or reuse Audio element
@@ -467,12 +473,12 @@ export class AudioService {
   }
 
   // Get beginning audio for role
-  getBeginningAudio(role: RoleId): number | null {
+  getBeginningAudio(role: RoleId): AudioAsset | null {
     return AUDIO_FILES[role] ?? null;
   }
 
   // Get ending audio for role
-  getEndingAudio(role: RoleId): number | null {
+  getEndingAudio(role: RoleId): AudioAsset | null {
     return AUDIO_END_FILES[role] ?? null;
   }
 
@@ -597,7 +603,7 @@ export class AudioService {
     if (isWeb && typeof document !== 'undefined') {
       // Web: create an Audio element, set preload='auto' to trigger decode
       if (this.preloadedWebAudios.has(key)) return;
-      const audioUrl = typeof audioFile === 'string' ? audioFile : audioFile?.uri || audioFile;
+      const audioUrl = audioAssetToUrl(audioFile);
       const audio = new Audio();
       audio.preload = 'auto';
       audio.src = audioUrl;
