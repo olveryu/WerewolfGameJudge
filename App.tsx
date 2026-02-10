@@ -47,8 +47,8 @@ function AppContent() {
 export default function App() {
   log.extend('App').debug('render');
 
-  // Composition root: 创建 facade 实例并通过 Context 注入
-  const facade = new GameFacade();
+  // Composition root: 创建 facade 实例并通过 Context 注入（useState lazy init 保证仅创建一次）
+  const [facade] = useState(() => new GameFacade());
 
   return (
     <SafeAreaProvider>
