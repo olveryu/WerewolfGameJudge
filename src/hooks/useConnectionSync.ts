@@ -10,7 +10,7 @@
  * ❌ 禁止：直接修改游戏状态、业务校验逻辑
  */
 
-import { useCallback,useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { IGameFacade } from '@/services/types/IGameFacade';
@@ -98,10 +98,16 @@ export function useConnectionSync(
   }, [connectionStatus, isHost, roomRecord, facade]);
 
   // 一致性提示：状态是否可能过时
-  const isStateStale = useMemo(() => {
-    if (connectionStatus !== 'live') return true;
-    if (!lastStateReceivedAt) return true;
-    return Date.now() - lastStateReceivedAt > STALE_THRESHOLD_MS;
+  const [isStateStale, setIsStateStale] = useState(true);
+  useEffect(() => {
+    const check = () => {
+      if (connectionStatus !== 'live') { setIsStateStale(true); return; }
+      if (!lastStateReceivedAt) { setIsStateStale(true); return; }
+      setIsStateStale(Date.now() - lastStateReceivedAt > STALE_THRESHOLD_MS);
+    };
+    check();
+    const id = setInterval(check, STALE_THRESHOLD_MS);
+    return () => clearInterval(id);
   }, [connectionStatus, lastStateReceivedAt]);
 
   return {

@@ -678,8 +678,9 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   private getHostActionsContext(): HostActionsContext {
-    // Use a shared reference object so timer mutations persist across calls
-    const self = this;
+    // Arrow closures capture `this` lexically — no self-alias needed
+    const getTimer = (): NodeJS.Timeout | null => this._wolfVoteTimer;
+    const setTimer = (v: NodeJS.Timeout | null): void => { this._wolfVoteTimer = v; };
     return {
       store: this.store,
       isHost: this.isHost,
@@ -690,10 +691,10 @@ export class GameFacade implements IGameFacade {
       isAborted: () => this._aborted,
       // wolfVoteTimer: getter/setter backed by Facade instance field
       get wolfVoteTimer() {
-        return self._wolfVoteTimer;
+        return getTimer();
       },
       set wolfVoteTimer(v) {
-        self._wolfVoteTimer = v;
+        setTimer(v);
       },
       // P0-1/P0-5: 音频播放回调（只负责播放 IO）
       playAudio: async (audioKey: string, isEndAudio?: boolean) => {
