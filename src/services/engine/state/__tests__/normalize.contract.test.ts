@@ -71,7 +71,7 @@ describe('normalizeState contract', () => {
   /**
    * 创建一个包含所有字段的完整 BroadcastGameState
    */
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+   
   const createFullState = (): BroadcastGameState => {
     return {
       // 核心必填字段

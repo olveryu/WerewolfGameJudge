@@ -12,9 +12,9 @@
  */
 
 describe('No custom React.memo comparator', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const fs = require('node:fs');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const path = require('node:path');
 
   function getAllComponentFiles(dir: string): string[] {

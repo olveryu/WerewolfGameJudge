@@ -46,7 +46,7 @@ export class BroadcastService {
   private onPlayerMessage: ((message: PlayerMessage, senderId: string) => void) | null = null;
   private onPresenceChange: ((users: string[]) => void) | null = null;
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+   
   constructor() {}
 
   private isConfigured(): boolean {

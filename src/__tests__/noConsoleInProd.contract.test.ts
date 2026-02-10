@@ -6,9 +6,9 @@
  */
 
 describe('No console.* in production code', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const fs = require('node:fs');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const path = require('node:path');
 
   /**
@@ -60,9 +60,9 @@ describe('No console.* in production code', () => {
 });
 
 describe('No Math.random in speakOrder logic', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const fs = require('node:fs');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const path = require('node:path');
 
   it('should not use Math.random in useRoomHostDialogs.ts', () => {

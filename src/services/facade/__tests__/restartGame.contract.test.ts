@@ -106,7 +106,7 @@ describe('restartGame Contract', () => {
     }
 
     // 写回 store（test-only: 访问私有 store）
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     (facade as any).store.setState(state);
   }
 

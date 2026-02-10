@@ -12,9 +12,9 @@
  */
 
 describe('Host authority import boundary', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const fs = require('node:fs');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const path = require('node:path');
 
   /**
