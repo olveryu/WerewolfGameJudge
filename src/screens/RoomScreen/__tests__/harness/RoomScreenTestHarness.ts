@@ -35,11 +35,8 @@ export type DialogType =
 
   // Witch dialogs
   | 'witchSavePrompt' // Witch save prompt (昨夜X号死亡)
-  | 'witchSaveConfirm' // Witch save confirmation
-  | 'witchCannotSave' // Witch cannot save (self killed)
   | 'witchNoKill' // No one killed last night
   | 'witchPoisonPrompt' // Witch poison prompt
-  | 'witchPoisonConfirm' // Witch poison confirmation
 
   // Reveal dialogs
   | 'seerReveal' // Seer reveal result
@@ -49,7 +46,6 @@ export type DialogType =
   | 'wolfRobotHunterStatus' // WolfRobot learned hunter status
 
   // Special dialogs
-  | 'blocked' // Nightmare blocked alert
   | 'magicianFirst' // Magician first target selected
   | 'confirmTrigger' // Hunter/DarkWolfKing confirm trigger
 
@@ -100,21 +96,15 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   // Action rejected
   { type: 'actionRejected', match: (t) => t === '操作无效' },
 
-  // Blocked
-  { type: 'blocked', match: (t) => t === '你已被封锁' || t.includes('被封锁') },
-
   // Wolf vote
   { type: 'wolfVoteEmpty', match: (t, m) => t === '狼人投票' && m.includes('空刀') },
   { type: 'wolfVote', match: (t) => t === '狼人投票' },
 
   // Witch save flow
   { type: 'witchNoKill', match: (t) => t === '昨夜无人倒台' },
-  { type: 'witchCannotSave', match: (t, m) => t.includes('倒台玩家') && m.includes('无法自救') },
-  { type: 'witchSaveConfirm', match: (t, m) => t.includes('倒台玩家') && m.includes('是否救助') },
   { type: 'witchSavePrompt', match: (t) => t.includes('倒台玩家') || t.includes('玩家死亡') },
 
   // Witch poison flow
-  { type: 'witchPoisonConfirm', match: (t) => t.includes('毒杀') && t.includes('号') },
   { type: 'witchPoisonPrompt', match: (t, m) => t.includes('毒药') || m.includes('毒药') },
 
   // Reveals (based on title patterns)

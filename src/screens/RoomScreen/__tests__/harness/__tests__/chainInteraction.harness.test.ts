@@ -225,9 +225,8 @@ describe('RoomScreenTestHarness enhanced button API', () => {
         text: '知道了',
         onPress: () => {
           dismissed = true;
-          // After dismiss, a second dialog appears (poison prompt)
-          // Title contains '毒杀' + '号' → witchPoisonConfirm
-      mockShowAlert('毒杀5号', '确定要使用毒药吗？', [{ text: '取消' }, { text: '确定' }]);
+          // After dismiss, a second dialog appears (action confirm)
+      mockShowAlert('确认行动', '确定对5号使用技能吗？', [{ text: '取消' }, { text: '确定' }]);
         },
       },
     ]);
@@ -239,9 +238,9 @@ describe('RoomScreenTestHarness enhanced button API', () => {
     harness.pressLastPrimary();
     expect(dismissed).toBe(true);
 
-    // Next dialog appeared (witchPoisonConfirm)
+    // Next dialog appeared (actionConfirm)
     expect(harness.events().length).toBe(2);
-    expect(harness.hasSeen('witchPoisonConfirm')).toBe(true);
+    expect(harness.hasSeen('actionConfirm')).toBe(true);
   });
 
 });

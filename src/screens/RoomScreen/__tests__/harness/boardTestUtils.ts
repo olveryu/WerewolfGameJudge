@@ -1007,7 +1007,6 @@ export async function coverageChainWitchPoisonPrompt(
   await waitFor(() =>
     expect(
       harness.hasSeen('witchPoisonPrompt') ||
-        harness.hasSeen('witchPoisonConfirm') ||
         harness.hasSeen('actionConfirm'),
     ).toBe(true),
   );

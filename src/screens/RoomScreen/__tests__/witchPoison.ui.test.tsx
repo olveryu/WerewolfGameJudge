@@ -138,9 +138,6 @@ jest.mock('../useRoomActionDialogs', () => ({
     showRevealDialog: jest.fn(),
     showRoleActionPrompt: jest.fn(),
     showMagicianFirstAlert: jest.fn(),
-    showWitchSaveDialog: jest.fn(),
-    showWitchPoisonPrompt: jest.fn(),
-    showWitchPoisonConfirm: jest.fn(),
     showWitchInfoPrompt: (ctx: any, schema: any, onDismiss: () => void) => {
       const { showAlert: mockShowAlert } = require('@/utils/alert');
       mockShowAlert('女巫信息', schema?.ui?.prompt || '', [{ text: '知道了', onPress: onDismiss }]);

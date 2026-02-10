@@ -12,7 +12,6 @@
 import { useCallback } from 'react';
 import { showAlert } from '@/utils/alert';
 import type { ActionSchema } from '@/models/roles/spec';
-import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
 
 /**
  * Witch context for UI display (simplified from WitchContextPayload).
@@ -33,9 +32,6 @@ export interface UseRoomActionDialogsResult {
    * @param reason - Human-readable reason from ACTION_REJECTED payload
    */
   showActionRejectedAlert: (reason: string) => void;
-
-  /** Blocked alert - displays when nightmare-blocked player taps a seat */
-  showBlockedAlert: () => void;
 
   /** Magician first target alert */
   showMagicianFirstAlert: (index: number) => void;
@@ -59,24 +55,6 @@ export interface UseRoomActionDialogsResult {
     messageOverride?: string,
   ) => void;
 
-  /** Witch save phase dialog */
-  showWitchSaveDialog: (
-    killedSeat: number, // -1 = no one killed
-    canSave: boolean,
-    onSave: () => void,
-    onSkip: () => void,
-  ) => void;
-
-  /** Witch poison phase prompt */
-  showWitchPoisonPrompt: (onDismiss: () => void) => void;
-
-  /** Witch poison confirm dialog */
-  showWitchPoisonConfirm: (
-    targetIndex: number,
-    onConfirm: () => void,
-    onCancel: () => void,
-  ) => void;
-
   /**
    * Witch info prompt (schema-driven): dynamic info comes from WitchContext;
    * template copy comes from currentSchema.
@@ -98,16 +76,6 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
   const showActionRejectedAlert = useCallback((reason: string) => {
     showAlert('操作无效', reason, [{ text: '知道了', style: 'default' }]);
-  }, []);
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Blocked alert (nightmare block feedback)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const showBlockedAlert = useCallback(() => {
-    showAlert(BLOCKED_UI_DEFAULTS.title, BLOCKED_UI_DEFAULTS.message, [
-      { text: BLOCKED_UI_DEFAULTS.dismissButtonText, style: 'default' },
-    ]);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -163,61 +131,6 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   );
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Witch save phase dialog
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const showWitchSaveDialog = useCallback(
-    (killedSeat: number, canSave: boolean, onSave: () => void, onSkip: () => void) => {
-      if (killedSeat === -1) {
-        // No one killed - info prompt
-        showAlert('昨夜无人倒台', '', [{ text: '知道了', onPress: onSkip }]);
-        return;
-      }
-
-      if (!canSave) {
-        // Cannot save (self killed) - info prompt
-        showAlert(`昨夜倒台玩家为${killedSeat + 1}号（你自己）`, '女巫无法自救', [
-          { text: '知道了', onPress: onSkip },
-        ]);
-        return;
-      }
-
-      // Can save - choice dialog
-      showAlert(`昨夜倒台玩家为${killedSeat + 1}号`, '是否救助?', [
-        { text: '取消', style: 'cancel', onPress: onSkip },
-        { text: '确定', onPress: onSave },
-      ]);
-    },
-    [],
-  );
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Witch poison phase prompt
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const showWitchPoisonPrompt = useCallback((onDismiss: () => void) => {
-    showAlert(
-      '请选择是否使用毒药',
-      '点击玩家头像使用毒药，如不使用毒药，请点击下方「不使用技能」',
-      [{ text: '知道了', style: 'default', onPress: onDismiss }],
-    );
-  }, []);
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Witch poison confirm dialog
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const showWitchPoisonConfirm = useCallback(
-    (targetIndex: number, onConfirm: () => void, onCancel: () => void) => {
-      showAlert(`确定要毒杀${targetIndex + 1}号玩家吗？`, '', [
-        { text: '取消', style: 'cancel', onPress: onCancel },
-        { text: '确定', onPress: onConfirm },
-      ]);
-    },
-    [],
-  );
-
-  // ─────────────────────────────────────────────────────────────────────────
   // Witch info prompt (schema-driven)
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -253,14 +166,10 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
   return {
     showActionRejectedAlert,
-    showBlockedAlert,
     showMagicianFirstAlert,
     showRevealDialog,
     showConfirmDialog,
     showWolfVoteDialog,
-    showWitchSaveDialog,
-    showWitchPoisonPrompt,
-    showWitchPoisonConfirm,
     showWitchInfoPrompt,
     showRoleActionPrompt,
   };
