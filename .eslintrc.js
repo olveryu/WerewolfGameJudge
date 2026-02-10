@@ -8,7 +8,7 @@ module.exports = {
       jsx: true,
     },
   },
-  plugins: ['@typescript-eslint', 'react', 'react-hooks', 'react-native'],
+  plugins: ['@typescript-eslint', 'react', 'react-hooks', 'react-native', 'simple-import-sort'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
@@ -47,6 +47,8 @@ module.exports = {
     'react-native/sort-styles': 'off', // Too strict for this codebase
     'react-native/no-unused-styles': 'off', // False positives with createStyles() factory pattern
     'react-native/no-color-literals': 'off', // Theme-driven; color literals are acceptable in style factories
+    'simple-import-sort/imports': 'warn',
+    'simple-import-sort/exports': 'warn',
   },
   overrides: [
     {
