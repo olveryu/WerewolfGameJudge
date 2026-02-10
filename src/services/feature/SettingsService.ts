@@ -13,7 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const SETTINGS_KEY = '@werewolf_settings';
 
 /** Valid theme keys (must match themes.ts ThemeKey) */
-export type ThemeKey =
+type ThemeKey =
   | 'light'
   | 'minimal'
   | 'dark'
@@ -23,8 +23,6 @@ export type ThemeKey =
   | 'forest'
   | 'snow';
 
-/** Role reveal animation type - re-export from pure types */
-export type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 interface UserSettings {

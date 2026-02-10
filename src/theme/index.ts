@@ -31,4 +31,4 @@ export { ThemeProvider, useTheme, useColors } from './ThemeProvider';
 export { spacing, borderRadius, typography, shadows, layout } from './tokens';
 
 // Types & Themes
-export { themes, defaultTheme, type ThemeKey, type ThemeColors, type Theme } from './themes';
+export { type ThemeKey, type ThemeColors, type Theme } from './themes';

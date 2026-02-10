@@ -25,17 +25,6 @@ import type { ConnectionStatus } from '@/services/types/IGameFacade';
 // Protocol types - Import for local use
 import type { HostBroadcast, PlayerMessage } from '@/services/protocol/types';
 
-// Re-export from protocol/types.ts（单一真相，迁移期保留向后兼容）
-export type {
-  BroadcastGameState,
-  BroadcastPlayer,
-  HostBroadcast,
-  PlayerMessage,
-} from '@/services/protocol/types';
-
-// Re-export ConnectionStatus for backward compatibility
-export type { ConnectionStatus } from '@/services/types/IGameFacade';
-
 /** Status change listener */
 type ConnectionStatusListener = (status: ConnectionStatus) => void;
 
