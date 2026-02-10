@@ -69,7 +69,6 @@ export default tseslint.config(
       'no-unused-private-class-members': 'warn',
 
       // React
-      'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
 
       // React Hooks
