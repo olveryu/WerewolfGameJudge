@@ -45,6 +45,8 @@ import {
   coverageChainWitchPoisonPrompt,
   coverageChainConfirmTrigger,
   coverageChainSkipConfirm,
+  coverageChainSeatActionConfirm,
+  coverageChainWolfVoteEmpty,
 } from '@/screens/RoomScreen/__tests__/harness';
 
 function getWolfRobotHunterGateButtonText(): string {
@@ -689,6 +691,84 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
     });
   });
 
+  describe('guard actionConfirm coverage', () => {
+    it('guard: tapping seat shows actionConfirm dialog', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'guardProtect',
+        currentActionRole: 'guard',
+        myRole: 'guard',
+        mySeatNumber: 11,
+      });
+
+      const { getByTestId } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+      tapSeat(getByTestId, 1);
+      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+    });
+  });
+
+  describe('witchNoKill coverage', () => {
+    it('witch: shows witchNoKill when killedSeat=-1', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'witchAction',
+        currentActionRole: 'witch',
+        myRole: 'witch',
+        mySeatNumber: 9,
+        witchContext: { killedSeat: -1, canSave: false, canPoison: true },
+        gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
+      });
+
+      const { getByTestId } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      await waitFor(() => expect(harness.hasSeen('witchNoKill')).toBe(true));
+    });
+  });
+
+  describe('wolfVoteEmpty coverage', () => {
+    it('wolf: empty knife button shows wolfVoteEmpty dialog', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfKill',
+        currentActionRole: 'wolf',
+        myRole: 'wolf',
+        mySeatNumber: 4,
+        roleAssignments: new Map([
+          [4, 'wolf'],
+          [5, 'wolf'],
+          [6, 'wolf'],
+          [7, 'wolfRobot'],
+        ]),
+      });
+
+      const { getByTestId, getByText } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+
+      const emptyText = getSchema('wolfKill').ui?.emptyVoteText;
+      if (!emptyText) throw new Error('[TEST] Missing wolfKill.ui.emptyVoteText');
+      fireEvent.press(getByText(emptyText));
+      await waitFor(() => expect(harness.hasSeen('wolfVoteEmpty')).toBe(true));
+    });
+  });
+
   // =============================================================================
   // Chain Interaction (press button → assert callback)
   // =============================================================================
@@ -810,13 +890,45 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(submitAction).toHaveBeenCalledTimes(1);
 
+      // Step 8: actionConfirm (guard tap seat) → press confirm → submitAction called
+      const { submitAction: guardSubmit } = await coverageChainSeatActionConfirm(
+        harness,
+        setMock,
+        renderRoom,
+        'guardProtect',
+        'guard',
+        'guard',
+        11,
+        1,
+      );
+      expect(guardSubmit).toHaveBeenCalled();
+
+      // Step 9: wolfVoteEmpty → press confirm → submitWolfVote(-1) called
+      const { submitWolfVote: emptyVote } = await coverageChainWolfVoteEmpty(
+        harness,
+        setMock,
+        renderRoom,
+        'wolf',
+        4,
+        new Map<number, any>([
+          [4, 'wolf'],
+          [5, 'wolf'],
+          [6, 'wolf'],
+          [7, 'wolfRobot'],
+        ]),
+      );
+      expect(emptyVote).toHaveBeenCalledWith(-1);
+
       // Use literal coverage requirements
       harness.assertCoverage([
         'actionPrompt',
         'wolfVote',
+        'wolfVoteEmpty',
         'wolfRobotHunterStatus',
         'witchSavePrompt',
+        'witchNoKill',
         'witchPoisonPrompt',
+        'actionConfirm',
         'confirmTrigger',
         'skipConfirm',
       ]);

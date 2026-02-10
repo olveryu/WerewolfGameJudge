@@ -62,7 +62,7 @@ export function getBoardByName(name: string): BoardConfig | undefined {
 /**
  * Base dialog types that ALL boards must cover (UI-triggerable)
  */
-const BASE_UI_DIALOG_TYPES: DialogType[] = ['actionPrompt', 'wolfVote'];
+const BASE_UI_DIALOG_TYPES: DialogType[] = ['actionPrompt', 'wolfVote', 'wolfVoteEmpty'];
 
 /**
  * UI-TRIGGERABLE role-specific dialog requirements
@@ -72,17 +72,20 @@ const BASE_UI_DIALOG_TYPES: DialogType[] = ['actionPrompt', 'wolfVote'];
  * Tests must properly mock hooks/buttons to trigger these dialogs.
  */
 const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
-  // Witch: save/poison prompt flows (UI can trigger with mock state)
-  witch: ['witchSavePrompt', 'witchPoisonPrompt'],
+  // Witch: save/poison prompt + no-kill info (UI can trigger with mock state)
+  witch: ['witchSavePrompt', 'witchPoisonPrompt', 'witchNoKill'],
+
+  // Seer: chooseSeat confirm + skip
+  seer: ['actionConfirm', 'skipConfirm'],
 
   // Magician: first target + action confirm (requires tapping two seats)
-  magician: ['magicianFirst', 'actionConfirm'],
+  magician: ['magicianFirst', 'actionConfirm', 'skipConfirm'],
 
-  // Nightmare: causes actionRejected for blocked players
-  nightmare: ['actionRejected'],
+  // Nightmare: causes actionRejected for blocked players + own chooseSeat
+  nightmare: ['actionRejected', 'actionConfirm', 'skipConfirm'],
 
-  // Guard: skip flow (requires pressing '不使用技能' button)
-  guard: ['skipConfirm'],
+  // Guard: chooseSeat confirm + skip
+  guard: ['actionConfirm', 'skipConfirm'],
 
   // Hunter: confirm trigger (requires pressing '查看发动状态' button)
   hunter: ['confirmTrigger'],
@@ -90,8 +93,20 @@ const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
   // DarkWolfKing: confirm trigger (requires pressing '查看发动状态' button)
   darkWolfKing: ['confirmTrigger'],
 
-  // WolfRobot: hunter gate (requires wolfRobotReveal.learnedRoleId === 'hunter')
-  wolfRobot: ['wolfRobotHunterStatus'],
+  // WolfRobot: hunter gate + chooseSeat confirm + skip
+  wolfRobot: ['wolfRobotHunterStatus', 'actionConfirm', 'skipConfirm'],
+
+  // WolfQueen: charm chooseSeat confirm + skip
+  wolfQueen: ['actionConfirm', 'skipConfirm'],
+
+  // Dreamcatcher: chooseSeat confirm + skip
+  dreamcatcher: ['actionConfirm', 'skipConfirm'],
+
+  // Gargoyle: chooseSeat confirm + skip
+  gargoyle: ['actionConfirm', 'skipConfirm'],
+
+  // Psychic: chooseSeat confirm + skip
+  psychic: ['actionConfirm', 'skipConfirm'],
 };
 
 /**

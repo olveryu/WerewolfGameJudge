@@ -36,6 +36,9 @@ import {
   coverageChainWitchSavePrompt,
   coverageChainWitchPoisonPrompt,
   coverageChainConfirmTrigger,
+  coverageChainSeatActionConfirm,
+  coverageChainSkipConfirm,
+  coverageChainWolfVoteEmpty,
 } from '@/screens/RoomScreen/__tests__/harness';
 
 // =============================================================================
@@ -314,6 +317,110 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
     });
   });
 
+  describe('seer actionConfirm coverage', () => {
+    it('seer: seat tap shows actionConfirm dialog', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'seerCheck',
+        currentActionRole: 'seer',
+        myRole: 'seer',
+        mySeatNumber: 8,
+      });
+
+      const { getByTestId } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+      tapSeat(getByTestId, 1);
+      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+    });
+  });
+
+  describe('seer skipConfirm coverage', () => {
+    it('seer: skip button shows skipConfirm dialog', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'seerCheck',
+        currentActionRole: 'seer',
+        myRole: 'seer',
+        mySeatNumber: 8,
+      });
+
+      const { getByTestId, getByText } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+
+      const skipText = getSchema('seerCheck').ui?.bottomActionText;
+      if (!skipText) throw new Error('[TEST] Missing seerCheck.ui.bottomActionText');
+      fireEvent.press(getByText(skipText));
+      await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
+    });
+  });
+
+  describe('witchNoKill coverage', () => {
+    it('witch: shows witchNoKill when killedSeat=-1', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'witchAction',
+        currentActionRole: 'witch',
+        myRole: 'witch',
+        mySeatNumber: 9,
+        witchContext: { killedSeat: -1, canSave: false, canPoison: true },
+        gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
+      });
+
+      const { getByTestId } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      await waitFor(() => expect(harness.hasSeen('witchNoKill')).toBe(true));
+    });
+  });
+
+  describe('wolfVoteEmpty coverage', () => {
+    it('wolf: empty knife button shows wolfVoteEmpty dialog', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfKill',
+        currentActionRole: 'wolf',
+        myRole: 'wolf',
+        mySeatNumber: 4,
+        roleAssignments: new Map([
+          [4, 'wolf'],
+          [5, 'wolf'],
+          [6, 'wolf'],
+          [7, 'wolf'],
+        ]),
+      });
+
+      const { getByTestId, getByText } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+
+      const emptyText = getSchema('wolfKill').ui?.emptyVoteText;
+      if (!emptyText) throw new Error('[TEST] Missing wolfKill.ui.emptyVoteText');
+      fireEvent.press(getByText(emptyText));
+      await waitFor(() => expect(harness.hasSeen('wolfVoteEmpty')).toBe(true));
+    });
+  });
+
   // =============================================================================
   // Chain Interaction (press button → assert callback)
   // =============================================================================
@@ -392,12 +499,57 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         10,
       );
 
+      // Step 6: actionConfirm (seer tap seat) → press confirm → submitAction called
+      const { submitAction: seerSubmit } = await coverageChainSeatActionConfirm(
+        harness,
+        setMock,
+        renderRoom,
+        'seerCheck',
+        'seer',
+        'seer',
+        8,
+        1,
+      );
+      expect(seerSubmit).toHaveBeenCalled();
+
+      // Step 7: skipConfirm (seer) → press primary → submitAction called
+      const { submitAction: seerSkip } = await coverageChainSkipConfirm(
+        harness,
+        setMock,
+        renderRoom,
+        'seerCheck',
+        'seer',
+        'seer',
+        8,
+      );
+      expect(seerSkip).toHaveBeenCalled();
+
+      // Step 8: wolfVoteEmpty → press confirm → submitWolfVote(-1) called
+      const { submitWolfVote: emptyVote } = await coverageChainWolfVoteEmpty(
+        harness,
+        setMock,
+        renderRoom,
+        'wolf',
+        4,
+        new Map<number, any>([
+          [4, 'wolf'],
+          [5, 'wolf'],
+          [6, 'wolf'],
+          [7, 'wolf'],
+        ]),
+      );
+      expect(emptyVote).toHaveBeenCalledWith(-1);
+
       // Final: literal coverage requirements
       harness.assertCoverage([
         'actionPrompt',
         'wolfVote',
+        'wolfVoteEmpty',
         'witchSavePrompt',
+        'witchNoKill',
         'witchPoisonPrompt',
+        'actionConfirm',
+        'skipConfirm',
         'confirmTrigger',
       ]);
     });

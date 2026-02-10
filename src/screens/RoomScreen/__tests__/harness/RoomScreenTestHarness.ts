@@ -119,7 +119,7 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
 
   // Reveals (based on title patterns)
   { type: 'seerReveal', match: (t) => t.includes('预言家') || t.includes('查验结果') },
-  { type: 'psychicReveal', match: (t) => t.includes('通灵师') },
+  { type: 'psychicReveal', match: (t) => t.includes('通灵师') || t.includes('通灵结果') },
   { type: 'gargoyleReveal', match: (t) => t.includes('石像鬼') },
   // wolfRobotHunterStatus: schema-driven title/message for wolfRobotLearn hunter gate.
   {
@@ -132,7 +132,7 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
       return t === title && (m === canShootText || m === cannotShootText);
     },
   },
-  { type: 'wolfRobotReveal', match: (t) => t.includes('机械狼') || t.includes('你学习了') },
+  { type: 'wolfRobotReveal', match: (t) => t.includes('机械狼') || t.includes('你学习了') || t.includes('学习结果') },
 
   // Magician
   { type: 'magicianFirst', match: (t) => t.includes('已选择第一位') },

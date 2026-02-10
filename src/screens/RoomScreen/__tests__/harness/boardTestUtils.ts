@@ -1119,6 +1119,170 @@ export async function coverageChainNightmareBlocked(
 }
 
 /**
+ * Coverage chain: chooseSeat actionConfirm → tap seat → confirm dialog → submitAction called
+ *
+ * Works for: seer (reveal → confirmThenAct), guard, nightmare, wolfQueenCharm,
+ *            dreamcatcher, gargoyle, psychic, wolfRobot learn, slacker
+ *
+ * Returns { submitAction } for payload assertions.
+ */
+export async function coverageChainSeatActionConfirm(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  schemaId: SchemaId,
+  actionRole: RoleId,
+  playerRole: RoleId,
+  seatNumber: number,
+  targetSeat: number,
+): Promise<{ submitAction: jest.Mock }> {
+  const submitAction = jest.fn().mockResolvedValue(undefined);
+  mockSetter(
+    createGameRoomMock({
+      schemaId,
+      currentActionRole: actionRole,
+      myRole: playerRole,
+      mySeatNumber: seatNumber,
+      hookOverrides: { submitAction },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+
+  tapSeat(result.getByTestId, targetSeat);
+  await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+
+  // Chain: press "确定" → submitAction called
+  harness.pressPrimaryOnType('actionConfirm');
+  expect(submitAction).toHaveBeenCalledTimes(1);
+
+  result.unmount();
+  return { submitAction };
+}
+
+/**
+ * Coverage chain: wolfVoteEmpty → press "空刀" bottom button → wolfVoteEmpty dialog
+ * → press "确定" → submitWolfVote(-1) called
+ *
+ * Returns { submitWolfVote } for payload assertions.
+ */
+export async function coverageChainWolfVoteEmpty(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  wolfRole: RoleId,
+  wolfSeat: number,
+  wolfAssignments: Map<number, RoleId>,
+): Promise<{ submitWolfVote: jest.Mock }> {
+  const submitWolfVote = jest.fn().mockResolvedValue(undefined);
+  mockSetter(
+    createGameRoomMock({
+      schemaId: 'wolfKill',
+      currentActionRole: 'wolf',
+      myRole: wolfRole,
+      mySeatNumber: wolfSeat,
+      roleAssignments: wolfAssignments,
+      hookOverrides: { submitWolfVote },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+
+  const { SCHEMAS } = require('@/models/roles/spec/schemas');
+  const emptyVoteText = SCHEMAS.wolfKill.ui?.emptyVoteText;
+  if (!emptyVoteText) {
+    throw new Error('[TEST] Missing SCHEMAS.wolfKill.ui.emptyVoteText');
+  }
+
+  const emptyButton = result.getByText(emptyVoteText);
+  fireEvent.press(emptyButton);
+  await waitFor(() => expect(harness.hasSeen('wolfVoteEmpty')).toBe(true));
+
+  // Chain: press "确定" → submitWolfVote(-1) called
+  harness.pressPrimaryOnType('wolfVoteEmpty');
+  expect(submitWolfVote).toHaveBeenCalledTimes(1);
+  expect(submitWolfVote).toHaveBeenCalledWith(-1);
+
+  result.unmount();
+  return { submitWolfVote };
+}
+
+/**
+ * Coverage chain: witch with killedSeat=-1 → auto-trigger shows witchNoKill dialog
+ * No button press needed (informational dialog).
+ */
+export async function coverageChainWitchNoKill(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  seatNumber: number,
+): Promise<void> {
+  mockSetter(
+    createGameRoomMock({
+      schemaId: 'witchAction',
+      currentActionRole: 'witch',
+      myRole: 'witch',
+      mySeatNumber: seatNumber,
+      witchContext: { killedSeat: -1, canSave: false, canPoison: true },
+      gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+  await waitFor(() => expect(harness.hasSeen('witchNoKill')).toBe(true));
+  result.unmount();
+}
+
+/**
+ * Coverage chain: witch skipAll → press "不使用技能" → skipConfirm → submitAction called
+ *
+ * Handles compound witchAction schema where bottomActionText comes from poison sub-step.
+ * Returns { submitAction } for payload assertions.
+ */
+export async function coverageChainWitchSkipAll(
+  harness: RoomScreenTestHarness,
+  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
+  seatNumber: number,
+): Promise<{ submitAction: jest.Mock }> {
+  const submitAction = jest.fn().mockResolvedValue(undefined);
+  mockSetter(
+    createGameRoomMock({
+      schemaId: 'witchAction',
+      currentActionRole: 'witch',
+      myRole: 'witch',
+      mySeatNumber: seatNumber,
+      witchContext: { killedSeat: -1, canSave: false, canPoison: true },
+      gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
+      hookOverrides: { submitAction },
+    }),
+  );
+
+  const result = renderFn();
+  await waitForRoomScreen(result.getByTestId);
+
+  // Witch compound skip uses poison step's bottomActionText
+  const { SCHEMAS } = require('@/models/roles/spec/schemas');
+  const poisonStep = SCHEMAS.witchAction.steps?.find(
+    (s: any) => s.key === 'poison',
+  );
+  const skipText = poisonStep?.ui?.bottomActionText || '不使用技能';
+
+  const skipButton = result.getByText(skipText);
+  fireEvent.press(skipButton);
+  await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
+
+  harness.pressPrimaryOnType('skipConfirm');
+  expect(submitAction).toHaveBeenCalledTimes(1);
+
+  result.unmount();
+  return { submitAction };
+}
+
+/**
  * Chain interaction: magician actionConfirm → submitAction called
  *
  * Flow: render magician swap → tap seat 1 → magicianFirst dialog → press "知道了"

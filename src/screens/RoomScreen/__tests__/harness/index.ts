@@ -44,4 +44,8 @@ export {
   coverageChainWitchPoisonPrompt,
   coverageChainMagicianSwap,
   coverageChainNightmareBlocked,
+  coverageChainSeatActionConfirm,
+  coverageChainWolfVoteEmpty,
+  coverageChainWitchNoKill,
+  coverageChainWitchSkipAll,
 } from './boardTestUtils';

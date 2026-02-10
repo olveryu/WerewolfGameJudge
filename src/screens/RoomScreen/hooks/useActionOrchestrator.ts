@@ -278,8 +278,16 @@ export function useActionOrchestrator({
             if (reveal) {
               const displayResult =
                 revealKind === 'seer' ? reveal.result : getRoleDisplayName(reveal.result);
+              const titlePrefix =
+                revealKind === 'seer'
+                  ? '查验结果'
+                  : revealKind === 'psychic'
+                    ? '通灵结果'
+                    : revealKind === 'gargoyle'
+                      ? '石像鬼探查'
+                      : '学习结果';
               actionDialogs.showRevealDialog(
-                `${reveal.targetSeat + 1}号是${displayResult}`,
+                `${titlePrefix}：${reveal.targetSeat + 1}号是${displayResult}`,
                 '',
                 () => {
                   submitRevealAckSafe(revealKind);
@@ -319,6 +327,8 @@ export function useActionOrchestrator({
               intent.targetIndex,
               () => void submitWolfVote(intent.targetIndex),
               (() => {
+                // Empty vote: use default "空刀" message, don't override
+                if (intent.targetIndex < 0) return undefined;
                 const base = currentSchema?.ui?.confirmText;
                 const targetRole = gameStateRef.current?.players?.get(intent.targetIndex)?.role;
                 if (currentSchema?.id !== 'wolfKill' || !targetRole) return base;
