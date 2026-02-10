@@ -11,26 +11,27 @@
  * 3. 渲染 RoomScreen 并验证正确的 dialog 出现
  */
 
-import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
-import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
-import { showAlert } from '@/utils/alert';
+import React from 'react';
+
+import { broadcastToLocalState } from '@/hooks/adapters/broadcastToLocalState';
+import { GameStatus } from '@/models/GameStatus';
 import type { RoleId } from '@/models/roles';
 import { doesRoleParticipateInWolfVote } from '@/models/roles';
 import { getSchema } from '@/models/roles/spec';
-import { GameStatus } from '@/models/GameStatus';
 import {
-  RoomScreenTestHarness,
   createShowAlertMock,
   mockNavigation,
+  RoomScreenTestHarness,
   waitForRoomScreen,
 } from '@/screens/RoomScreen/__tests__/harness';
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import {
-  createHostGame,
   cleanupHostGame,
+  createHostGame,
 } from '@/services/__tests__/boards/hostGameFactory';
 import { sendMessageOrThrow } from '@/services/__tests__/boards/stepByStepRunner';
-import { broadcastToLocalState } from '@/hooks/adapters/broadcastToLocalState';
+import { showAlert } from '@/utils/alert';
 
 // =============================================================================
 // Mocks

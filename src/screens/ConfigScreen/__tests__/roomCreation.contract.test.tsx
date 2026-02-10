@@ -6,13 +6,14 @@
  * never a pre-generated local code that might differ after 409 retry.
  */
 
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
+
 import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
-import type { IGameFacade } from '@/services/types/IGameFacade';
+import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { AuthService } from '@/services/infra/AuthService';
 import { RoomService } from '@/services/infra/RoomService';
+import type { IGameFacade } from '@/services/types/IGameFacade';
 
 // Mock navigation
 const mockNavigate = jest.fn();

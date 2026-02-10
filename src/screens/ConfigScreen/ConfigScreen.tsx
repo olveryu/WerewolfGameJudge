@@ -6,43 +6,45 @@
  * ✅ 允许：编排子组件、调用 service/navigation/showAlert
  * ❌ 禁止：硬编码样式值 / console.*
  */
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '@/navigation/types';
-import { RoleId, ROLE_SPECS, Faction } from '@/models/roles';
-import {
-  PRESET_TEMPLATES,
-  createCustomTemplate,
-  validateTemplateRoles,
-  findMatchingPresetName,
-} from '@/models/Template';
-import { useGameFacade } from '@/contexts';
-import { showAlert } from '@/utils/alert';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useColors, spacing, typography } from '@/theme';
-import { TESTIDS } from '@/testids';
-import { configLog } from '@/utils/logger';
+import { RouteProp,useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useCallback, useEffect, useMemo, useRef,useState } from 'react';
+import { ActivityIndicator, Modal,ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { RoomService } from '@/services/infra/RoomService';
-import { AuthService } from '@/services/infra/AuthService';
-import { SettingsService } from '@/services/feature/SettingsService';
-import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
+import { useGameFacade } from '@/contexts';
+import { Faction,ROLE_SPECS, RoleId } from '@/models/roles';
 import {
-  RoleChip,
-  RoleStepper,
-  Section,
-  FactionTabs,
-  Dropdown,
+  createCustomTemplate,
+  findMatchingPresetName,
+  PRESET_TEMPLATES,
+  validateTemplateRoles,
+} from '@/models/Template';
+import { RootStackParamList } from '@/navigation/types';
+import { SettingsService } from '@/services/feature/SettingsService';
+import { AuthService } from '@/services/infra/AuthService';
+import { RoomService } from '@/services/infra/RoomService';
+import { TESTIDS } from '@/testids';
+import { spacing, typography,useColors } from '@/theme';
+import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
+import { showAlert } from '@/utils/alert';
+import { configLog } from '@/utils/logger';
+
+import {
   createConfigScreenStyles,
+  Dropdown,
   type DropdownOption,
   type FactionColorKey,
   type FactionTabItem,
+  FactionTabs,
+  RoleChip,
+  RoleStepper,
+  Section,
 } from './components';
-import { FACTION_GROUPS, buildInitialSelection } from './configData';
-import { Ionicons } from '@expo/vector-icons';
+import { buildInitialSelection,FACTION_GROUPS } from './configData';
 
 // ============================================
 // Helper functions

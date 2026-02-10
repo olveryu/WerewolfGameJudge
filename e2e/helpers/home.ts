@@ -1,6 +1,7 @@
-import { Page, expect } from '@playwright/test';
-import { clickIfVisible, screenshotOnFail } from './ui';
+import { expect,Page } from '@playwright/test';
+
 import { TESTIDS } from '../../src/testids';
+import { clickIfVisible, screenshotOnFail } from './ui';
 
 /**
  * Home Screen Helpers (首页/登录稳定化层)

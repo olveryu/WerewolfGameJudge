@@ -26,39 +26,36 @@
  */
 
 // Main animator component
-export { RoleRevealAnimator, createRoleData } from './RoleRevealAnimator';
+export { createRoleData,RoleRevealAnimator } from './RoleRevealAnimator';
 
 // Individual effect components (for advanced usage)
 export { EnhancedRoulette, type EnhancedRouletteProps } from './EnhancedRoulette';
 export { FlipReveal } from './FlipReveal';
+export { GachaMachine } from './GachaMachine';
 export { ScratchReveal } from './ScratchReveal';
 export { TarotDraw } from './TarotDraw';
-export { GachaMachine } from './GachaMachine';
 
 // Types
 export type {
-  RoleData,
-  RoleAlignment,
-  RevealEffectType,
-  RoleRevealEffectProps,
-  RoleRevealAnimatorProps,
   AlignmentTheme,
+  RevealEffectType,
+  RoleAlignment,
+  RoleData,
+  RoleRevealAnimatorProps,
+  RoleRevealEffectProps,
 } from './types';
-
 export { ALIGNMENT_THEMES } from './types';
 
 // Configuration (for customization)
 export { CONFIG } from './config';
 
 // Utilities (for advanced usage)
-export { playSound, createTickPlayer, type SoundType } from './utils/sound';
-
-export { triggerHaptic, type HapticStyle } from './utils/haptics';
-
+export { type HapticStyle,triggerHaptic } from './utils/haptics';
 export {
-  canUseNativeDriver,
   canUseHaptics,
+  canUseNativeDriver,
 } from './utils/platform';
+export { createTickPlayer, playSound, type SoundType } from './utils/sound';
 
 // Common components (for building custom effects)
 export { GlowBorder, type GlowBorderProps } from './common/GlowBorder';

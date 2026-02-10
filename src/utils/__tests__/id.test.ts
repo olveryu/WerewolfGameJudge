@@ -2,7 +2,7 @@
  * Tests for ID generation utilities
  */
 
-import { newRequestId, newRejectionId, randomHex } from '@/utils/id';
+import { newRejectionId, newRequestId, randomHex } from '@/utils/id';
 
 describe('ID utilities', () => {
   describe('randomHex', () => {

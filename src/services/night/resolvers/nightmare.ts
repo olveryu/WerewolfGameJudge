@@ -12,6 +12,7 @@
  */
 
 import { ROLE_SPECS } from '@/models/roles';
+
 import type { ResolverFn } from './types';
 
 export const nightmareBlockResolver: ResolverFn = (context, input) => {

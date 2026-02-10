@@ -16,6 +16,7 @@
 
 import { GameStatus } from '@/models/GameStatus';
 import { getSeatTapResult } from '@/screens/RoomScreen/seatTap/SeatTapPolicy';
+
 import type { InteractionContext, InteractionEvent, InteractionResult } from './types';
 
 // =============================================================================

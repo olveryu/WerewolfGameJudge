@@ -19,35 +19,36 @@
  * SPECIAL: Hunter gate MUST use pressPrimaryOnType + assertNoLoop
  */
 
+import { fireEvent,render, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { render, waitFor, fireEvent } from '@testing-library/react-native';
-import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+
 import { getSchema } from '@/models/roles/spec';
 import { SCHEMAS } from '@/models/roles/spec/schemas';
-import { showAlert } from '@/utils/alert';
 import {
-  RoomScreenTestHarness,
+  chainConfirmTrigger,
+  chainSkipConfirm,
+  chainWolfRobotHunterStatus,
+  chainWolfVoteConfirm,
+  coverageChainActionPrompt,
+  coverageChainConfirmTrigger,
+  coverageChainSeatActionConfirm,
+  coverageChainSkipConfirm,
+  coverageChainWitchPoisonPrompt,
+  coverageChainWitchSavePrompt,
+  coverageChainWolfRobotHunterStatus,
+  coverageChainWolfVote,
+  coverageChainWolfVoteEmpty,
+  createGameRoomMock,
+  createReactiveGameRoomMock,
   createShowAlertMock,
   getBoardByName,
   mockNavigation,
-  createGameRoomMock,
-  createReactiveGameRoomMock,
-  waitForRoomScreen,
+  RoomScreenTestHarness,
   tapSeat,
-  chainWolfVoteConfirm,
-  chainSkipConfirm,
-  chainConfirmTrigger,
-  chainWolfRobotHunterStatus,
-  coverageChainActionPrompt,
-  coverageChainWolfVote,
-  coverageChainWolfRobotHunterStatus,
-  coverageChainWitchSavePrompt,
-  coverageChainWitchPoisonPrompt,
-  coverageChainConfirmTrigger,
-  coverageChainSkipConfirm,
-  coverageChainSeatActionConfirm,
-  coverageChainWolfVoteEmpty,
+  waitForRoomScreen,
 } from '@/screens/RoomScreen/__tests__/harness';
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { showAlert } from '@/utils/alert';
 
 function getWolfRobotHunterGateButtonText(): string {
   const text = SCHEMAS.wolfRobotLearn.ui?.hunterGateButtonText;

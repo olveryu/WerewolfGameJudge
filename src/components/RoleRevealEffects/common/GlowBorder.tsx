@@ -8,6 +8,7 @@
  */
 import React, { useEffect, useMemo } from 'react';
 import { Animated, StyleSheet, ViewStyle } from 'react-native';
+
 import { canUseNativeDriver } from '@/components/RoleRevealEffects/utils/platform';
 
 export interface GlowBorderProps {

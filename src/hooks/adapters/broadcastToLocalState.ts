@@ -12,11 +12,6 @@
  * ❌ 禁止：业务逻辑、副作用、调用 service
  */
 
-import type { BroadcastGameState, BroadcastPlayer } from '@/services/protocol/types';
-import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
-import { GameStatus } from '@/models/GameStatus';
-import { createTemplateFromRoles } from '@/models/Template';
-import type { RoleId } from '@/models/roles';
 import type { RoleAction } from '@/models/actions/RoleAction';
 import {
   makeActionMagicianSwap,
@@ -24,6 +19,11 @@ import {
   makeActionWitch,
 } from '@/models/actions/RoleAction';
 import { makeWitchNone, makeWitchPoison, makeWitchSave } from '@/models/actions/WitchAction';
+import { GameStatus } from '@/models/GameStatus';
+import type { RoleId } from '@/models/roles';
+import { createTemplateFromRoles } from '@/models/Template';
+import type { BroadcastGameState, BroadcastPlayer } from '@/services/protocol/types';
+import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 
 /**
  * 将 BroadcastPlayer 转换为 LocalPlayer

@@ -1,5 +1,6 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
+
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
 
 // Mock navigation

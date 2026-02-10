@@ -9,15 +9,15 @@
  * 如果任何层出现 drift，此测试会失败。
  */
 
-import { SCHEMAS, type SchemaId } from '@/models/roles/spec/schemas';
+import type { RoleId } from '@/models/roles';
 import type {
   ChooseSeatSchema,
-  SwapSchema,
   CompoundSchema,
+  SwapSchema,
 } from '@/models/roles/spec/schema.types';
+import { type SchemaId,SCHEMAS } from '@/models/roles/spec/schemas';
 import { RESOLVERS } from '@/services/night/resolvers';
-import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
-import type { RoleId } from '@/models/roles';
+import type { ActionInput,ResolverContext } from '@/services/night/resolvers/types';
 
 // === Test Helpers ===
 

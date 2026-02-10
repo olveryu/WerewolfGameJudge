@@ -12,9 +12,10 @@
  * - broadcast（由 facade 层处理）
  */
 
-import type { HandlerContext, HandlerResult } from './types';
 import type { SetWolfRobotHunterStatusViewedAction } from '@/services/engine/reducer/types';
 import { log } from '@/utils/logger';
+
+import type { HandlerContext, HandlerResult } from './types';
 
 const handlerLog = log.extend('WolfRobotHunterGateHandler');
 

@@ -5,11 +5,11 @@
  * 只包含 type/interface，不包含实现代码。
  */
 
-import type { BroadcastGameState, PlayerMessage } from '@/services/protocol/types';
 import type { RoleId } from '@/models/roles';
 import type { SchemaId } from '@/models/roles/spec';
 import type { NightPlan } from '@/models/roles/spec/plan';
 import type { GameTemplate } from '@/models/Template';
+import type { BroadcastGameState, PlayerMessage } from '@/services/protocol/types';
 
 // =============================================================================
 // Types

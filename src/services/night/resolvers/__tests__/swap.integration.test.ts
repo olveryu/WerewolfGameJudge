@@ -12,14 +12,14 @@
  * - swappedSeats 是 BroadcastGameState 的单一真相
  */
 
-import { magicianSwapResolver } from '@/services/night/resolvers/magician';
-import { seerCheckResolver } from '@/services/night/resolvers/seer';
-import { psychicCheckResolver } from '@/services/night/resolvers/psychic';
-import { gargoyleCheckResolver } from '@/services/night/resolvers/gargoyle';
-import { wolfRobotLearnResolver } from '@/services/night/resolvers/wolfRobot';
-import { calculateDeaths } from '@/services/engine/DeathCalculator';
-import type { ResolverContext, ActionInput, CurrentNightResults } from '@/services/night/resolvers/types';
 import type { RoleId } from '@/models/roles';
+import { calculateDeaths } from '@/services/engine/DeathCalculator';
+import { gargoyleCheckResolver } from '@/services/night/resolvers/gargoyle';
+import { magicianSwapResolver } from '@/services/night/resolvers/magician';
+import { psychicCheckResolver } from '@/services/night/resolvers/psychic';
+import { seerCheckResolver } from '@/services/night/resolvers/seer';
+import type { ActionInput, CurrentNightResults,ResolverContext } from '@/services/night/resolvers/types';
+import { wolfRobotLearnResolver } from '@/services/night/resolvers/wolfRobot';
 
 // =============================================================================
 // Test Helpers

@@ -8,6 +8,7 @@
  * ✅ Allowed imports: types, roles registry (getRoleSpec, isWolfRole)
  */
 
+import type { RoleAction } from '@/models/actions/RoleAction';
 import type { RoleId } from '@/models/roles';
 import {
   canRoleSeeWolves,
@@ -15,10 +16,9 @@ import {
   getRoleSpec,
   isWolfRole,
 } from '@/models/roles';
-import type { LocalGameState } from '@/types/GameStateTypes';
-import type { RoleAction } from '@/models/actions/RoleAction';
 import type { ActionSchema, TargetConstraint } from '@/models/roles/spec';
 import type { GameTemplate } from '@/models/Template';
+import type { LocalGameState } from '@/types/GameStateTypes';
 
 // =============================================================================
 // Types

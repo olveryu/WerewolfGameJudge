@@ -11,6 +11,7 @@
 
 import type { RoleId } from '@/models/roles';
 import { PRESET_TEMPLATES } from '@/models/Template';
+
 import type { DialogType } from './RoomScreenTestHarness';
 
 // =============================================================================

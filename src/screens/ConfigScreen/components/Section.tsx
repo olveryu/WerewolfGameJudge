@@ -7,7 +7,8 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo } from 'react';
-import { View, Text } from 'react-native';
+import { Text,View } from 'react-native';
+
 import { ConfigScreenStyles } from './styles';
 
 export interface SectionProps {

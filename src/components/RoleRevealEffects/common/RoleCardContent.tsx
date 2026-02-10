@@ -7,11 +7,12 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Platform, ViewStyle } from 'react-native';
-import { useColors, spacing, typography, borderRadius, shadows, type ThemeColors } from '@/theme';
+import { Platform, StyleSheet, Text, View, ViewStyle } from 'react-native';
+
+import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import type { RoleId } from '@/models/roles';
 import { getRoleSpec, isWolfRole } from '@/models/roles';
-import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
+import { borderRadius, shadows, spacing, type ThemeColors,typography, useColors } from '@/theme';
 
 /** White text color for badges/overlays on colored backgrounds */
 const BADGE_TEXT_WHITE = '#fff';

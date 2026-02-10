@@ -7,9 +7,9 @@
  * 3. Room Status - Route to SEATING_FLOW or ACTION_FLOW
  */
 
-import { getSeatTapResult, SeatTapPolicyInput } from '@/screens/RoomScreen/seatTap/SeatTapPolicy';
 // Use the re-export from models/Room for consistency
 import { GameStatus } from '@/models/GameStatus';
+import { getSeatTapResult, SeatTapPolicyInput } from '@/screens/RoomScreen/seatTap/SeatTapPolicy';
 
 describe('SeatTapPolicy', () => {
   // ==========================================================================

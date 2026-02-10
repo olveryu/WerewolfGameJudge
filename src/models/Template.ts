@@ -6,7 +6,7 @@
  * ✅ 允许：类型定义、纯函数校验/工厂、预设常量
  * ❌ 禁止：import service / 副作用 / IO
  */
-import { RoleId, isValidRoleId, getRoleSpec } from './roles';
+import { getRoleSpec,isValidRoleId, RoleId } from './roles';
 
 // ---------------------------------------------------------------------------
 // Template validation

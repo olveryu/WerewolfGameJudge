@@ -8,18 +8,19 @@
  * 策略：与 standard board UI test 同模板，但 useActionerState mock 返回 imActioner=false。
  */
 
+import { act,render, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { render, waitFor, act } from '@testing-library/react-native';
-import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
-import { showAlert } from '@/utils/alert';
+
 import {
-  RoomScreenTestHarness,
+  createGameRoomMock,
   createShowAlertMock,
   mockNavigation,
-  createGameRoomMock,
-  waitForRoomScreen,
+  RoomScreenTestHarness,
   tapSeat,
+  waitForRoomScreen,
 } from '@/screens/RoomScreen/__tests__/harness';
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { showAlert } from '@/utils/alert';
 
 // =============================================================================
 // Mocks — same as standard board but useActionerState returns imActioner=false

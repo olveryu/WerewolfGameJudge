@@ -5,16 +5,16 @@
  */
 
 import {
-  ROLE_SPECS,
-  type RoleId,
+  getAllRoleIds,
   getRoleSpec,
   isValidRoleId,
-  getAllRoleIds,
   NIGHT_STEPS,
+  ROLE_SPECS,
+  type RoleId,
 } from '@/models/roles/spec/index';
 import { SCHEMAS } from '@/models/roles/spec/schemas';
-import { Faction } from '@/models/roles/spec/types';
 import type { RoleSpec } from '@/models/roles/spec/spec.types';
+import { Faction } from '@/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
   it('should have exactly 22 roles', () => {

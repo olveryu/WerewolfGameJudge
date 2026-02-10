@@ -16,6 +16,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+
 import { glob } from 'glob';
 
 // 允许使用 Math.random() 的文件模式

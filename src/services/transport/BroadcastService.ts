@@ -17,13 +17,13 @@
  * - SNAPSHOT_REQUEST/RESPONSE: State recovery for reconnection/packet loss
  */
 
-import { supabase, isSupabaseConfigured } from '@/config/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { broadcastLog } from '@/utils/logger';
-import type { ConnectionStatus } from '@/services/types/IGameFacade';
 
+import { isSupabaseConfigured,supabase } from '@/config/supabase';
 // Protocol types - Import for local use
 import type { HostBroadcast, PlayerMessage } from '@/services/protocol/types';
+import type { ConnectionStatus } from '@/services/types/IGameFacade';
+import { broadcastLog } from '@/utils/logger';
 
 /** Status change listener */
 type ConnectionStatusListener = (status: ConnectionStatus) => void;

@@ -9,9 +9,10 @@
  * 使用 harness (createHostGame)
  */
 
-import { createHostGame } from './hostGameFactory';
-import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
 import type { RoleId } from '@/models/roles';
+import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
+
+import { createHostGame } from './hostGameFactory';
 
 /** Hard cap for step progression loops to avoid infinite loops */
 const MAX_STEP_ADVANCES = 20;

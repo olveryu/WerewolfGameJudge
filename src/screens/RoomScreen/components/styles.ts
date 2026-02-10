@@ -7,13 +7,14 @@
  * Each component receives only its own sub-styles via the grouped interface.
  * SeatTile/PlayerGrid have their own styles (performance: depends on tileSize).
  */
-import { StyleSheet, Platform, type ViewStyle, type TextStyle } from 'react-native';
+import { Platform, StyleSheet, type TextStyle,type ViewStyle } from 'react-native';
+
 import {
-  type ThemeColors,
-  spacing,
-  typography,
   borderRadius,
   shadows,
+  spacing,
+  type ThemeColors,
+  typography,
 } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 

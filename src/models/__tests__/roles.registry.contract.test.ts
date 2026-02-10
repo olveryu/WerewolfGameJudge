@@ -8,11 +8,11 @@
  * 4. Role metadata (displayName, faction, etc.) is complete
  */
 import {
-  ROLE_SPECS,
-  getRoleSpec,
-  getRoleDisplayName,
-  isValidRoleId,
   getAllRoleIds,
+  getRoleDisplayName,
+  getRoleSpec,
+  isValidRoleId,
+  ROLE_SPECS,
   RoleId,
 } from '@/models/roles';
 

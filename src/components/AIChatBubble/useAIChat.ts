@@ -13,31 +13,33 @@
  * ❌ 禁止：修改游戏状态、绕过 facade
  */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect,useRef, useState } from 'react';
 import {
   Animated,
+  type GestureResponderEvent,
   Keyboard,
   Platform,
   useWindowDimensions,
-  type GestureResponderEvent,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  sendChatMessage,
-  type ChatMessage,
-  getDefaultApiKey,
-  type GameContext,
-} from '@/services/feature/AIChatService';
-import { showAlert } from '@/utils/alert';
-import { randomPick } from '@/utils/random';
-import { newRequestId } from '@/utils/id';
-import { shuffleArray } from '@/utils/shuffle';
+
 import { useGameFacade } from '@/contexts';
 import { ROLE_SPECS } from '@/models/roles';
-import type { BroadcastGameState } from '@/services/protocol/types';
 import {
-  BUBBLE_SIZE,
+  type ChatMessage,
+  type GameContext,
+  getDefaultApiKey,
+  sendChatMessage,
+} from '@/services/feature/AIChatService';
+import type { BroadcastGameState } from '@/services/protocol/types';
+import { showAlert } from '@/utils/alert';
+import { newRequestId } from '@/utils/id';
+import { randomPick } from '@/utils/random';
+import { shuffleArray } from '@/utils/shuffle';
+
+import {
   BUBBLE_MARGIN,
+  BUBBLE_SIZE,
   DEFAULT_POSITION,
   type DisplayMessage,
 } from './AIChatBubble.styles';

@@ -13,9 +13,9 @@
  * ❌ 禁止：import service / 副作用 / IO
  */
 
-import { ROLE_SPECS, type RoleId, isValidRoleId } from './specs';
 import { NIGHT_STEPS } from './nightSteps';
-import { NightPlanBuildError, type NightPlan, type NightPlanStep } from './plan.types';
+import { type NightPlan, NightPlanBuildError, type NightPlanStep } from './plan.types';
+import { isValidRoleId,ROLE_SPECS, type RoleId } from './specs';
 
 /**
  * Build night plan from template roles.

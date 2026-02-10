@@ -7,16 +7,17 @@
  * ✅ 允许：渲染 UI + 上报用户 intent（onPress 回调）
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { useMemo, memo } from 'react';
+import React, { memo,useMemo } from 'react';
 import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
   ActivityIndicator,
-  ViewStyle,
+  StyleSheet,
+  Text,
   TextStyle,
+  TouchableOpacity,
+  ViewStyle,
 } from 'react-native';
-import { useColors, spacing, borderRadius, typography, ThemeColors } from '@/theme';
+
+import { borderRadius, spacing, ThemeColors,typography, useColors } from '@/theme';
 
 /** Metadata passed to onPress callback */
 export interface ButtonPressMetadata {

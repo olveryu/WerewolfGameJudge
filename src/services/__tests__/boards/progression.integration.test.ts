@@ -8,15 +8,16 @@
  * 架构：hostGameFactory → action → evaluateNightProgression → decision
  */
 
-import { createHostGame, cleanupHostGame } from './hostGameFactory';
-import { sendMessageOrThrow } from './stepByStepRunner';
 import type { RoleId } from '@/models/roles';
 import { doesRoleParticipateInWolfVote } from '@/models/roles';
 import {
-  evaluateNightProgression,
   createProgressionTracker,
+  evaluateNightProgression,
   isWolfVoteAllComplete,
 } from '@/services/engine/handlers/progressionEvaluator';
+
+import { cleanupHostGame,createHostGame } from './hostGameFactory';
+import { sendMessageOrThrow } from './stepByStepRunner';
 
 // =============================================================================
 // Template

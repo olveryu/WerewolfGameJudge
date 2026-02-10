@@ -20,15 +20,16 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+
 import {
-  getAll12PBoards,
   BOARD_TEST_FILE_MAP,
-  getRequiredUiDialogTypes,
-  getRequiredHostDataDialogTypes,
+  type BoardConfig,
   boardHasNightmare,
   boardHasRole,
-  type BoardConfig,
   type DialogType,
+  getAll12PBoards,
+  getRequiredHostDataDialogTypes,
+  getRequiredUiDialogTypes,
 } from '@/screens/RoomScreen/__tests__/harness';
 
 // =============================================================================

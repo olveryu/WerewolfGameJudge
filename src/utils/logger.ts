@@ -15,7 +15,8 @@
  * ❌ 禁止：import React / service / 游戏状态
  */
 
-import { logger, consoleTransport } from 'react-native-logs';
+import { consoleTransport,logger } from 'react-native-logs';
+
 import { mobileDebugTransport } from './mobileDebug';
 
 const config = {

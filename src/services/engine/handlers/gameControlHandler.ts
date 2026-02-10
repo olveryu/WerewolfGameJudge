@@ -11,32 +11,33 @@
  * ❌ 禁止：直接修改 state（返回 StateAction 列表由 reducer 执行）
  */
 
+import type { RoleId } from '@/models/roles';
+import { getStepSpec } from '@/models/roles/spec/nightSteps';
+import { buildNightPlan } from '@/models/roles/spec/plan';
 import type {
   AssignRolesIntent,
-  StartNightIntent,
-  RestartGameIntent,
-  UpdateTemplateIntent,
-  SetRoleRevealAnimationIntent,
   FillWithBotsIntent,
   MarkAllBotsViewedIntent,
+  RestartGameIntent,
+  SetRoleRevealAnimationIntent,
+  StartNightIntent,
+  UpdateTemplateIntent,
 } from '@/services/engine/intents/types';
-import type { HandlerContext, HandlerResult } from './types';
 import type {
   AssignRolesAction,
-  StartNightAction,
-  RestartGameAction,
-  UpdateTemplateAction,
-  StateAction,
-  SetRoleRevealAnimationAction,
   FillWithBotsAction,
   MarkAllBotsViewedAction,
+  RestartGameAction,
+  SetRoleRevealAnimationAction,
+  StartNightAction,
+  StateAction,
+  UpdateTemplateAction,
 } from '@/services/engine/reducer/types';
 import type { BroadcastPlayer } from '@/services/protocol/types';
 import { shuffleArray } from '@/utils/shuffle';
-import type { RoleId } from '@/models/roles';
-import { buildNightPlan } from '@/models/roles/spec/plan';
-import { getStepSpec } from '@/models/roles/spec/nightSteps';
+
 import { maybeCreateConfirmStatusAction } from './confirmContext';
+import type { HandlerContext, HandlerResult } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';
 
 /**

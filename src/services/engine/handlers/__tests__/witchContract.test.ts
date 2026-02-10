@@ -7,13 +7,13 @@
  * 3. Handler produces correct `updates` (savedSeat/poisonedSeat)
  */
 
-import { handleSubmitAction, isSkipAction } from '@/services/engine/handlers/actionHandler';
+import type { SchemaId } from '@/models/roles/spec';
 import { SCHEMAS } from '@/models/roles/spec';
+import { handleSubmitAction, isSkipAction } from '@/services/engine/handlers/actionHandler';
 import type { HandlerContext } from '@/services/engine/handlers/types';
 import type { SubmitActionIntent } from '@/services/engine/intents/types';
-import type { GameState } from '@/services/engine/store/types';
-import type { SchemaId } from '@/models/roles/spec';
 import type { ApplyResolverResultAction } from '@/services/engine/reducer/types';
+import type { GameState } from '@/services/engine/store/types';
 
 // =============================================================================
 // Test Helpers

@@ -7,8 +7,10 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo } from 'react';
-import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { Text, TextInput,TouchableOpacity, View } from 'react-native';
+
 import { ThemeColors } from '@/theme';
+
 import { SettingsScreenStyles } from './styles';
 
 export interface NameSectionProps {

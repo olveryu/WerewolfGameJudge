@@ -8,7 +8,9 @@
  */
 import React, { memo, useCallback } from 'react';
 import { Text, TextInput, TouchableOpacity } from 'react-native';
+
 import { type ThemeColors } from '@/theme';
+
 import { type HomeScreenStyles } from './styles';
 
 export interface EmailFormProps {

@@ -5,9 +5,10 @@
  */
 
 import { renderHook } from '@testing-library/react-native';
-import { useActionerState, UseActionerStateParams } from '@/screens/RoomScreen/hooks/useActionerState';
-import type { RoleId } from '@/models/roles';
+
 import type { RoleAction } from '@/models/actions/RoleAction';
+import type { RoleId } from '@/models/roles';
+import { useActionerState, UseActionerStateParams } from '@/screens/RoomScreen/hooks/useActionerState';
 
 // =============================================================================
 // Test Helpers

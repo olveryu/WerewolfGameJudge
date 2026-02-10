@@ -7,8 +7,9 @@
  * ✅ 允许：创建 SupabaseClient、导出 isSupabaseConfigured
  * ❌ 禁止：业务逻辑、游戏状态操作
  */
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
 import { log } from '@/utils/logger';
 
 const supabaseLog = log.extend('Supabase');

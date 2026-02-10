@@ -4,15 +4,15 @@
  * Validates NIGHT_STEPS as the single source of truth for night action order.
  */
 
+import { isValidRoleId,ROLE_SPECS } from '@/models/roles';
 import {
-  NIGHT_STEPS,
   getAllStepIds,
-  getStepSpec,
-  getStepSpecStrict,
   getStepsByRole,
   getStepsByRoleStrict,
+  getStepSpec,
+  getStepSpecStrict,
+  NIGHT_STEPS,
 } from '@/models/roles/spec/nightSteps';
-import { ROLE_SPECS, isValidRoleId } from '@/models/roles';
 import { isValidSchemaId } from '@/models/roles/spec/schemas';
 
 describe('NIGHT_STEPS contract', () => {

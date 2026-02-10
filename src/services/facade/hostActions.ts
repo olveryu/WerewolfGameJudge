@@ -13,60 +13,58 @@
  * - 直接修改 state（全部在 reducer）
  */
 
-import type { BroadcastGameState } from '@/services/protocol/types';
-import type { GameStore } from '@/services/engine/store';
-import type { HandlerContext, HandlerResult } from '@/services/engine/handlers/types';
-import type {
-  AssignRolesIntent,
-  ViewedRoleIntent,
-  StartNightIntent,
-  SubmitActionIntent,
-  SubmitWolfVoteIntent,
-  AdvanceNightIntent,
-  EndNightIntent,
-  SetAudioPlayingIntent,
-  RestartGameIntent,
-  UpdateTemplateIntent,
-  SetRoleRevealAnimationIntent,
-  FillWithBotsIntent,
-  MarkAllBotsViewedIntent,
-} from '@/services/engine/intents/types';
-import type { StateAction } from '@/services/engine/reducer/types';
 import type { RoleId } from '@/models/roles';
-import type { GameTemplate } from '@/models/Template';
-
 import { doesRoleParticipateInWolfVote } from '@/models/roles';
-import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
-import { AudioService } from '@/services/infra/AudioService';
-
+import type { GameTemplate } from '@/models/Template';
 import {
-  handleAssignRoles,
-  handleStartNight,
-  handleRestartGame,
-  handleUpdateTemplate,
-  handleSetRoleRevealAnimation,
-  handleFillWithBots,
-  handleMarkAllBotsViewed,
-} from '@/services/engine/handlers/gameControlHandler';
-import {
-  handleViewedRole,
   handleSubmitAction,
   handleSubmitWolfVote,
+  handleViewedRole,
 } from '@/services/engine/handlers/actionHandler';
+import {
+  handleAssignRoles,
+  handleFillWithBots,
+  handleMarkAllBotsViewed,
+  handleRestartGame,
+  handleSetRoleRevealAnimation,
+  handleStartNight,
+  handleUpdateTemplate,
+} from '@/services/engine/handlers/gameControlHandler';
+import {
+  decideWolfVoteTimerAction,
+  handleNightProgression,
+  isWolfVoteAllComplete,
+  resetProgressionTracker,
+  WOLF_VOTE_COUNTDOWN_MS,
+} from '@/services/engine/handlers/progressionEvaluator';
 import {
   handleAdvanceNight,
   handleEndNight,
   handleSetAudioPlaying,
 } from '@/services/engine/handlers/stepTransitionHandler';
-import {
-  handleNightProgression,
-  resetProgressionTracker,
-  isWolfVoteAllComplete,
-  decideWolfVoteTimerAction,
-  WOLF_VOTE_COUNTDOWN_MS,
-} from '@/services/engine/handlers/progressionEvaluator';
+import type { HandlerContext, HandlerResult } from '@/services/engine/handlers/types';
 import { handleSetWolfRobotHunterStatusViewed } from '@/services/engine/handlers/wolfRobotHunterGateHandler';
+import type {
+  AdvanceNightIntent,
+  AssignRolesIntent,
+  EndNightIntent,
+  FillWithBotsIntent,
+  MarkAllBotsViewedIntent,
+  RestartGameIntent,
+  SetAudioPlayingIntent,
+  SetRoleRevealAnimationIntent,
+  StartNightIntent,
+  SubmitActionIntent,
+  SubmitWolfVoteIntent,
+  UpdateTemplateIntent,
+  ViewedRoleIntent,
+} from '@/services/engine/intents/types';
 import { gameReducer } from '@/services/engine/reducer';
+import type { StateAction } from '@/services/engine/reducer/types';
+import type { GameStore } from '@/services/engine/store';
+import { AudioService } from '@/services/infra/AudioService';
+import type { BroadcastGameState } from '@/services/protocol/types';
+import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { facadeLog } from '@/utils/logger';
 
 /**

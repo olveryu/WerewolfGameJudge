@@ -9,9 +9,10 @@
  * 2. styles are passed from PlayerGrid (created once) to avoid per-tile StyleSheet.create
  * 3. styles reference comparison in default memo ensures memo works correctly
  */
-import React from 'react';
 import { render } from '@testing-library/react-native';
-import { SeatTile, SeatTileProps, SeatTileStyles, createSeatTileStyles } from '@/screens/RoomScreen/components/SeatTile';
+import React from 'react';
+
+import { createSeatTileStyles,SeatTile, SeatTileProps, SeatTileStyles } from '@/screens/RoomScreen/components/SeatTile';
 import { themes } from '@/theme/themes';
 
 // Create mock styles once (simulating what PlayerGrid does)

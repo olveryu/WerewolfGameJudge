@@ -8,9 +8,10 @@
  * ❌ 禁止：import service / 业务逻辑
  */
 import React, { memo, useMemo } from 'react';
-import { Image, StyleSheet, ImageSourcePropType } from 'react-native';
-import { getAvatarImage, getAvatarByUid, getAvatarImageByIndex } from '@/utils/avatar';
+import { Image, ImageSourcePropType,StyleSheet } from 'react-native';
+
 import { useColors } from '@/theme';
+import { getAvatarByUid, getAvatarImage, getAvatarImageByIndex } from '@/utils/avatar';
 
 interface AvatarProps {
   value: string;

@@ -4,8 +4,9 @@
  * Created once in HomeScreen and passed to all sub-components.
  * This avoids redundant StyleSheet.create calls per component.
  */
-import { StyleSheet, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
-import { type ThemeColors, spacing, borderRadius, typography, shadows } from '@/theme';
+import { type ImageStyle,StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
+
+import { borderRadius, shadows,spacing, type ThemeColors, typography } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 export interface HomeScreenStyles {

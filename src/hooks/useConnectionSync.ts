@@ -10,10 +10,11 @@
  * ❌ 禁止：直接修改游戏状态、业务校验逻辑
  */
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useCallback,useEffect, useMemo, useRef, useState } from 'react';
+
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
-import { gameRoomLog } from '@/utils/logger';
 import type { IGameFacade } from '@/services/types/IGameFacade';
+import { gameRoomLog } from '@/utils/logger';
 
 const STALE_THRESHOLD_MS = 30000;
 

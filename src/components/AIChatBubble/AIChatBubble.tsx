@@ -12,23 +12,25 @@
  * ❌ 禁止：直接 import service / 直接调用 API
  */
 
-import React, { useRef, useCallback } from 'react';
+import React, { useCallback,useRef } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
+  ActivityIndicator,
+  Animated,
   FlatList,
   Modal,
   Platform,
-  ActivityIndicator,
-  Animated,
+  Text,
+  TextInput,
+  TouchableOpacity,
   useWindowDimensions,
+  View,
 } from 'react-native';
+
 import { useTheme } from '@/theme';
-import { useAIChat } from './useAIChat';
-import { createStyles, getChatHeight, type DisplayMessage } from './AIChatBubble.styles';
+
+import { createStyles, type DisplayMessage,getChatHeight } from './AIChatBubble.styles';
 import { SimpleMarkdown } from './SimpleMarkdown';
+import { useAIChat } from './useAIChat';
 
 export const AIChatBubble: React.FC = () => {
   const { colors } = useTheme();

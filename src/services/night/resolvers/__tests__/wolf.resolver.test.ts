@@ -7,9 +7,9 @@
  * including self or wolf teammates.
  */
 
-import { wolfKillResolver } from '@/services/night/resolvers/wolf';
-import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
 import type { RoleId } from '@/models/roles';
+import type { ActionInput,ResolverContext } from '@/services/night/resolvers/types';
+import { wolfKillResolver } from '@/services/night/resolvers/wolf';
 
 // =============================================================================
 // Test Helpers

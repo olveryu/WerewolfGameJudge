@@ -10,8 +10,9 @@
  * ❌ Do NOT import: any Service singletons, showAlert
  * ✅ Allowed: types, styles, UI components
  */
-import React, { memo, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Modal } from 'react-native';
+import React, { memo, useCallback,useState } from 'react';
+import { Modal,Text, TouchableOpacity, View } from 'react-native';
+
 import { type HostMenuDropdownStyles } from './styles';
 
 interface HostMenuDropdownProps {

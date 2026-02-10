@@ -9,20 +9,21 @@
  */
 
 import { useMemo } from 'react';
-import type { LocalGameState } from '@/types/GameStateTypes';
+
 import { GameStatus } from '@/models/GameStatus';
+import { buildNightPlan,RoleId } from '@/models/roles';
 import {
-  isValidRoleId,
+  type ActionSchema,
   getRoleSpec,
   getSchema,
   getStepsByRoleStrict,
-  type ActionSchema,
+  isValidRoleId,
   type SchemaId,
 } from '@/models/roles/spec';
-import { RoleId, buildNightPlan } from '@/models/roles';
+import type { LocalGameState } from '@/types/GameStateTypes';
 import type {
-  RoleRevealAnimation,
   ResolvedRoleRevealAnimation,
+  RoleRevealAnimation,
 } from '@/types/RoleRevealAnimation';
 
 interface NightDerivedValues {

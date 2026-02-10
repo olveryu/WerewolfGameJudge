@@ -15,7 +15,8 @@
  *   - Create room record in DB (that's done in ConfigScreen before navigation)
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback,useEffect, useState } from 'react';
+
 import type { GameTemplate } from '@/models/Template';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 

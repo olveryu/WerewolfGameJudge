@@ -24,54 +24,56 @@
  * - RoomScreen.helpers.ts (pure functions)
  * - components/ (presentational layer)
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '@/navigation/types';
-import { GameStatus } from '@/models/GameStatus';
-import { showAlert } from '@/utils/alert';
+import React, { useCallback, useEffect, useMemo,useState } from 'react';
+import { ScrollView,Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { useGameRoom } from '@/hooks/useGameRoom';
+import { GameStatus } from '@/models/GameStatus';
+import { RootStackParamList } from '@/navigation/types';
 import { AudioService } from '@/services/infra/AudioService';
-import { HostControlButtons } from './components/HostControlButtons';
-import { useRoomHostDialogs } from './useRoomHostDialogs';
-import { useRoomActionDialogs } from './useRoomActionDialogs';
-import { useRoomSeatDialogs } from './useRoomSeatDialogs';
-import { PlayerGrid } from './components/PlayerGrid';
-import { BoardInfoCard } from './components/BoardInfoCard';
+import { TESTIDS } from '@/testids';
+import { spacing,useColors } from '@/theme';
+import { showAlert } from '@/utils/alert';
+import { roomScreenLog } from '@/utils/logger';
+
 import { ActionButton } from './components/ActionButton';
-import { SeatConfirmModal } from './components/SeatConfirmModal';
-import { NightProgressIndicator } from './components/NightProgressIndicator';
-import { ControlledSeatBanner } from './components/ControlledSeatBanner';
-import { HostMenuDropdown } from './components/HostMenuDropdown';
+import { BoardInfoCard } from './components/BoardInfoCard';
 import { BottomActionPanel } from './components/BottomActionPanel';
-import {
-  toGameRoomLike,
-  getWolfVoteSummary,
-  getRoleStats,
-  formatRoleList,
-  buildSeatViewModels,
-} from './RoomScreen.helpers';
+import { ConnectionStatusBar } from './components/ConnectionStatusBar';
+import { ControlledSeatBanner } from './components/ControlledSeatBanner';
+import { HostControlButtons } from './components/HostControlButtons';
+import { HostMenuDropdown } from './components/HostMenuDropdown';
+import { NightProgressIndicator } from './components/NightProgressIndicator';
+import { PlayerGrid } from './components/PlayerGrid';
+import { RoleCardModal } from './components/RoleCardModal';
+import { SeatConfirmModal } from './components/SeatConfirmModal';
+import { createRoomScreenComponentStyles } from './components/styles';
+import { useActionerState } from './hooks/useActionerState';
+import { useActionOrchestrator } from './hooks/useActionOrchestrator';
+import { useHiddenDebugTrigger } from './hooks/useHiddenDebugTrigger';
+import { useInteractionDispatcher } from './hooks/useInteractionDispatcher';
+import { useNightProgress } from './hooks/useNightProgress';
+import { useRoomActions } from './hooks/useRoomActions';
+import { useRoomInit } from './hooks/useRoomInit';
 import {
   getActorIdentity,
   isActorIdentityValid,
 } from './policy';
-import { TESTIDS } from '@/testids';
-import { useActionerState } from './hooks/useActionerState';
-import { useRoomActions } from './hooks/useRoomActions';
-import { useRoomInit } from './hooks/useRoomInit';
-import { useActionOrchestrator } from './hooks/useActionOrchestrator';
-import { useInteractionDispatcher } from './hooks/useInteractionDispatcher';
-import { useNightProgress } from './hooks/useNightProgress';
-import { useHiddenDebugTrigger } from './hooks/useHiddenDebugTrigger';
-import { ConnectionStatusBar } from './components/ConnectionStatusBar';
-import { roomScreenLog } from '@/utils/logger';
-import { LoadingScreen } from '@/components/LoadingScreen';
-import { RoleCardModal } from './components/RoleCardModal';
-import { useColors, spacing } from '@/theme';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  buildSeatViewModels,
+  formatRoleList,
+  getRoleStats,
+  getWolfVoteSummary,
+  toGameRoomLike,
+} from './RoomScreen.helpers';
 import { createRoomScreenStyles } from './RoomScreen.styles';
-import { createRoomScreenComponentStyles } from './components/styles';
+import { useRoomActionDialogs } from './useRoomActionDialogs';
+import { useRoomHostDialogs } from './useRoomHostDialogs';
+import { useRoomSeatDialogs } from './useRoomSeatDialogs';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 

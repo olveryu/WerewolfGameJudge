@@ -2,7 +2,7 @@
  * Tests for secure random utilities
  */
 
-import { randomIntInclusive, randomBool, secureRng, Rng } from '@/utils/random';
+import { randomBool, randomIntInclusive, Rng,secureRng } from '@/utils/random';
 
 describe('randomIntInclusive', () => {
   it('should return min when range is single value', () => {

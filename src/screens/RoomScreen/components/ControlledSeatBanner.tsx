@@ -11,7 +11,8 @@
  * ✅ Allowed: types, styles, UI components
  */
 import React, { memo } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { Text, TouchableOpacity,View } from 'react-native';
+
 import { type ControlledSeatBannerStyles } from './styles';
 
 interface ControlledSeatBannerProps {

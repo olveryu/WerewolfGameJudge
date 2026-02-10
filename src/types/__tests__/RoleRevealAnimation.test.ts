@@ -9,11 +9,11 @@
  */
 
 import {
-  simpleHash,
-  resolveRandomAnimation,
   RANDOMIZABLE_ANIMATIONS,
-  type RoleRevealAnimation,
   type ResolvedRoleRevealAnimation,
+  resolveRandomAnimation,
+  type RoleRevealAnimation,
+  simpleHash,
 } from '@/types/RoleRevealAnimation';
 
 describe('RoleRevealAnimation', () => {

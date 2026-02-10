@@ -3,12 +3,13 @@
  *
  * Tests for the night progress indicator component.
  */
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
+
 import { NightProgressIndicator } from '@/screens/RoomScreen/components/NightProgressIndicator';
 import { createRoomScreenComponentStyles } from '@/screens/RoomScreen/components/styles';
-import { themes } from '@/theme/themes';
 import { TESTIDS } from '@/testids';
+import { themes } from '@/theme/themes';
 
 const mockStyles = createRoomScreenComponentStyles(themes.light.colors).nightProgressIndicator;
 

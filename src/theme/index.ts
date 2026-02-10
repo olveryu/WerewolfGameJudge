@@ -25,10 +25,10 @@
  */
 
 // Provider & Hooks
-export { ThemeProvider, useTheme, useColors } from './ThemeProvider';
+export { ThemeProvider, useColors,useTheme } from './ThemeProvider';
 
 // Tokens (可直接导入)
-export { spacing, borderRadius, typography, shadows, layout } from './tokens';
+export { borderRadius, layout,shadows, spacing, typography } from './tokens';
 
 // Types & Themes
-export { type ThemeKey, type ThemeColors, type Theme } from './themes';
+export { type Theme,type ThemeColors, type ThemeKey } from './themes';

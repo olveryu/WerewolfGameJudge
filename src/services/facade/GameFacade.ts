@@ -22,29 +22,29 @@
  * - messageRouter.ts: PlayerMessage/HostBroadcast 路由分发
  */
 
-import type { IGameFacade, FacadeStateListener } from '@/services/types/IGameFacade';
-import type { ConnectionStatus } from '@/services/types/IGameFacade';
-import type { GameTemplate } from '@/models/Template';
-import type { BroadcastGameState, PlayerMessage, HostBroadcast } from '@/services/protocol/types';
-import type { RoleId } from '@/models/roles';
+import type { AppStateStatus } from 'react-native';
+import { AppState,Platform } from 'react-native';
 
-import { BroadcastService } from '@/services/transport/BroadcastService';
+import type { RoleId } from '@/models/roles';
+import type { GameTemplate } from '@/models/Template';
+import { shouldTriggerWolfVoteRecovery } from '@/services/engine/handlers/progressionEvaluator';
 import { GameStore } from '@/services/engine/store';
 import { AudioService } from '@/services/infra/AudioService';
 import { HostStateCache } from '@/services/infra/HostStateCache';
+import type { BroadcastGameState, HostBroadcast,PlayerMessage } from '@/services/protocol/types';
+import { BroadcastService } from '@/services/transport/BroadcastService';
+import type { FacadeStateListener,IGameFacade } from '@/services/types/IGameFacade';
+import type { ConnectionStatus } from '@/services/types/IGameFacade';
+import { newRequestId } from '@/utils/id';
+import { facadeLog } from '@/utils/logger';
 
 // 子模块
 import type { HostActionsContext } from './hostActions';
-import type { SeatActionsContext, PendingSeatAction } from './seatActions';
-import type { MessageRouterContext } from './messageRouter';
 import * as hostActions from './hostActions';
-import * as seatActions from './seatActions';
+import type { MessageRouterContext } from './messageRouter';
 import * as messageRouter from './messageRouter';
-import { shouldTriggerWolfVoteRecovery } from '@/services/engine/handlers/progressionEvaluator';
-import { Platform, AppState } from 'react-native';
-import type { AppStateStatus } from 'react-native';
-import { newRequestId } from '@/utils/id';
-import { facadeLog } from '@/utils/logger';
+import type { PendingSeatAction,SeatActionsContext } from './seatActions';
+import * as seatActions from './seatActions';
 
 /**
  * GameFacade 可注入依赖

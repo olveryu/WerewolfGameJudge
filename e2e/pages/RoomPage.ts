@@ -1,6 +1,7 @@
-import { Page, expect, TestInfo } from '@playwright/test';
-import { waitForRoomScreenReady } from '../helpers/waits';
+import { expect, Page, TestInfo } from '@playwright/test';
+
 import { extractRoomNumber } from '../helpers/home';
+import { waitForRoomScreenReady } from '../helpers/waits';
 
 /**
  * RoomPage Page Object

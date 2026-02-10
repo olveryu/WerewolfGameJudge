@@ -1,5 +1,6 @@
+import { fireEvent,render } from '@testing-library/react-native';
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+
 import { PlayerGrid } from '@/screens/RoomScreen/components/PlayerGrid';
 import { TESTIDS } from '@/testids';
 

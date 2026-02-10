@@ -1,11 +1,12 @@
-import { Page, expect } from '@playwright/test';
-import { getVisibleText } from './ui';
-import { extractRoomNumber, enterRoomCodeViaNumPad } from './home';
-import { waitForRoomScreenReady } from './waits';
+import type { Browser } from '@playwright/test';
+import { expect,Page } from '@playwright/test';
+
+import { createPlayerContexts,MultiPlayerFixture } from '../fixtures/app.fixture';
 import { ConfigPage } from '../pages/ConfigPage';
 import { RoomPage } from '../pages/RoomPage';
-import { MultiPlayerFixture, createPlayerContexts } from '../fixtures/app.fixture';
-import type { Browser } from '@playwright/test';
+import { enterRoomCodeViaNumPad,extractRoomNumber } from './home';
+import { getVisibleText } from './ui';
+import { waitForRoomScreenReady } from './waits';
 
 /**
  * Multi-player orchestration helpers.

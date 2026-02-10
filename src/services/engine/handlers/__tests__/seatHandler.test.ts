@@ -7,12 +7,12 @@ import type { HandlerContext } from '@/services/engine/handlers/types';
 import type { JoinSeatIntent, LeaveMySeatIntent } from '@/services/engine/intents/types';
 import type { GameState } from '@/services/engine/store/types';
 import {
+  REASON_GAME_IN_PROGRESS,
+  REASON_INVALID_SEAT,
   REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
-  REASON_INVALID_SEAT,
-  REASON_SEAT_TAKEN,
-  REASON_GAME_IN_PROGRESS,
   REASON_NOT_SEATED,
+  REASON_SEAT_TAKEN,
 } from '@/services/protocol/reasonCodes';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {

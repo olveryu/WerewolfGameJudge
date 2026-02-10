@@ -16,9 +16,9 @@
  * 3. 门禁：新增 PlayerMessage.type 时测试必须 fail，逼迫补 router case
  */
 
-import type { PlayerMessage } from '@/services/protocol/types';
 import type { MessageRouterContext } from '@/services/facade/messageRouter';
 import { hostHandlePlayerMessage } from '@/services/facade/messageRouter';
+import type { PlayerMessage } from '@/services/protocol/types';
 import { facadeLog } from '@/utils/logger';
 
 // Mock logger

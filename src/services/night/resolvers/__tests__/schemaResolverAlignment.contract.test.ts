@@ -8,11 +8,11 @@
  * 这是防止 "一刀切" skip 行为的合约测试。
  */
 
-import { SCHEMAS, type SchemaId } from '@/models/roles/spec';
-import type { CompoundSchema, ChooseSeatSchema } from '@/models/roles/spec/schema.types';
+import type { RoleId } from '@/models/roles';
+import { type SchemaId,SCHEMAS } from '@/models/roles/spec';
+import type { ChooseSeatSchema,CompoundSchema } from '@/models/roles/spec/schema.types';
 import { RESOLVERS } from '@/services/night/resolvers/index';
 import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
-import type { RoleId } from '@/models/roles';
 
 // 创建基础的 ResolverContext
 function createBaseContext(

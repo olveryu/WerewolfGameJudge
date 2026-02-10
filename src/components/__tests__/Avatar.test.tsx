@@ -1,5 +1,6 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
+
 import { Avatar } from '@/components/Avatar';
 
 // Mock avatar utility functions

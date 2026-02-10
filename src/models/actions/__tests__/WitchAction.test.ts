@@ -3,15 +3,15 @@
  */
 
 import {
-  WitchAction,
-  makeWitchNone,
-  makeWitchSave,
-  makeWitchPoison,
-  isWitchNone,
-  isWitchSave,
-  isWitchPoison,
-  getWitchSaveTarget,
   getWitchPoisonTarget,
+  getWitchSaveTarget,
+  isWitchNone,
+  isWitchPoison,
+  isWitchSave,
+  makeWitchNone,
+  makeWitchPoison,
+  makeWitchSave,
+  WitchAction,
 } from '@/models/actions/WitchAction';
 
 describe('WitchAction', () => {

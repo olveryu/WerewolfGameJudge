@@ -16,7 +16,7 @@
  * - updated_at: timestamptz
  */
 
-import { supabase, isSupabaseConfigured } from '@/config/supabase';
+import { isSupabaseConfigured,supabase } from '@/config/supabase';
 import { roomLog } from '@/utils/logger';
 import { generateRoomCode } from '@/utils/roomCode';
 

@@ -6,27 +6,29 @@
  * ✅ 允许：编排子组件、调用 service/navigation/showAlert
  * ❌ 禁止：硬编码样式值 / console.*
  */
-import React, { useState, useCallback, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
-import { View, Text, ScrollView, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '@/navigation/types';
-import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { showAlert } from '@/utils/alert';
-import { useTheme } from '@/theme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { homeLog } from '@/utils/logger';
-import { TESTIDS } from '@/testids';
+import React, { useCallback, useEffect, useLayoutEffect,useMemo, useRef, useState } from 'react';
+import { Modal,ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { APP_VERSION } from '@/config/version';
-import { Ionicons } from '@expo/vector-icons';
+import { useAuthContext as useAuth } from '@/contexts/AuthContext';
+import { RootStackParamList } from '@/navigation/types';
+import { TESTIDS } from '@/testids';
+import { useTheme } from '@/theme';
+import { showAlert } from '@/utils/alert';
+import { homeLog } from '@/utils/logger';
+
 import {
-  MenuItem,
-  EmailForm,
-  LoginOptions,
-  JoinRoomModal,
-  UserBar,
   createHomeScreenStyles,
+  EmailForm,
+  JoinRoomModal,
+  LoginOptions,
+  MenuItem,
+  UserBar,
 } from './components';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;

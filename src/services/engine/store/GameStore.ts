@@ -13,9 +13,10 @@
  * ❌ 禁止：IO（网络/音频/Alert）
  */
 
-import type { GameState, StoreStateListener, IHostGameStore } from './types';
 import { normalizeState } from '@/services/engine/state/normalize';
 import { log } from '@/utils/logger';
+
+import type { GameState, IHostGameStore,StoreStateListener } from './types';
 
 const gameStoreLog = log.extend('GameStore');
 

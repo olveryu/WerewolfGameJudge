@@ -2,6 +2,7 @@
  * actionHandler Unit Tests
  */
 
+import type { SchemaId } from '@/models/roles/spec';
 import { handleSubmitAction, handleSubmitWolfVote, handleViewedRole } from '@/services/engine/handlers/actionHandler';
 import type { HandlerContext } from '@/services/engine/handlers/types';
 import type {
@@ -10,7 +11,6 @@ import type {
   ViewedRoleIntent,
 } from '@/services/engine/intents/types';
 import type { GameState } from '@/services/engine/store/types';
-import type { SchemaId } from '@/models/roles/spec';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {

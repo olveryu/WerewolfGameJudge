@@ -8,7 +8,9 @@
  */
 import React, { memo } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
+
 import { TESTIDS } from '@/testids';
+
 import { type HomeScreenStyles } from './styles';
 
 export interface LoginOptionsProps {

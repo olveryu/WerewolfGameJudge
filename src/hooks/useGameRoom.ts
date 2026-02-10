@@ -16,27 +16,29 @@
  * ❌ 禁止：直接调用 Supabase、绕过 facade 修改状态
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import { useCallback, useEffect, useMemo,useRef, useState } from 'react';
+
+import { useGameFacade } from '@/contexts';
 import { GameStatus } from '@/models/GameStatus';
-import { RoomService, RoomRecord } from '@/services/infra/RoomService';
-import type { ConnectionStatus } from '@/services/types/IGameFacade';
-import { AuthService } from '@/services/infra/AuthService';
-import { GameTemplate } from '@/models/Template';
 import { RoleId } from '@/models/roles';
 import type { ActionSchema, SchemaId } from '@/models/roles/spec';
-import { gameRoomLog } from '@/utils/logger';
-import { useGameFacade } from '@/contexts';
-import { broadcastToLocalState } from './adapters/broadcastToLocalState';
+import { GameTemplate } from '@/models/Template';
+import { AuthService } from '@/services/infra/AuthService';
+import { RoomRecord,RoomService } from '@/services/infra/RoomService';
+import type { ConnectionStatus } from '@/services/types/IGameFacade';
+import type { LocalGameState } from '@/types/GameStateTypes';
 import type {
-  RoleRevealAnimation,
   ResolvedRoleRevealAnimation,
+  RoleRevealAnimation,
 } from '@/types/RoleRevealAnimation';
-import { useNightDerived } from './useNightDerived';
-import { useConnectionSync } from './useConnectionSync';
+import { gameRoomLog } from '@/utils/logger';
+
+import { broadcastToLocalState } from './adapters/broadcastToLocalState';
 import { useBgmControl } from './useBgmControl';
+import { useConnectionSync } from './useConnectionSync';
 import { useDebugMode } from './useDebugMode';
+import { useNightDerived } from './useNightDerived';
 
 interface UseGameRoomResult {
   // Room info

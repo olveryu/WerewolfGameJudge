@@ -14,8 +14,18 @@
  * ❌ 禁止：手动推进 index（`++` 兜底策略禁止）
  */
 
+import type { WitchAction } from '@/models/actions/WitchAction';
+import { makeWitchNone,makeWitchPoison, makeWitchSave } from '@/models/actions/WitchAction';
+import type { RoleId } from '@/models/roles';
+import { getWolfRoleIds } from '@/models/roles';
+import type { SchemaId } from '@/models/roles/spec';
+import { getStepSpec } from '@/models/roles/spec/nightSteps';
+import { buildNightPlan, type NightPlanStep } from '@/models/roles/spec/plan';
+import { BLOCKED_UI_DEFAULTS, type SchemaUi } from '@/models/roles/spec/schema.types';
+import { SCHEMAS } from '@/models/roles/spec/schemas';
+import type { NightActions, RoleSeatMap } from '@/services/engine/DeathCalculator';
+import { calculateDeaths } from '@/services/engine/DeathCalculator';
 import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '@/services/engine/intents/types';
-import type { HandlerContext, HandlerResult } from './types';
 import type {
   AdvanceToNextActionAction,
   EndNightAction,
@@ -23,22 +33,12 @@ import type {
   SetUiHintAction,
   StateAction,
 } from '@/services/engine/reducer/types';
-import type { SchemaId } from '@/models/roles/spec';
-import type { RoleId } from '@/models/roles';
-import type { NightActions, RoleSeatMap } from '@/services/engine/DeathCalculator';
-import type { WitchAction } from '@/models/actions/WitchAction';
-import type { ProtocolAction } from '@/services/protocol/types';
-
-import { buildNightPlan, type NightPlanStep } from '@/models/roles/spec/plan';
-import { getStepSpec } from '@/models/roles/spec/nightSteps';
-import { SCHEMAS } from '@/models/roles/spec/schemas';
-import { BLOCKED_UI_DEFAULTS, type SchemaUi } from '@/models/roles/spec/schema.types';
-import { calculateDeaths } from '@/services/engine/DeathCalculator';
-import { getWolfRoleIds } from '@/models/roles';
-import { makeWitchSave, makeWitchPoison, makeWitchNone } from '@/models/actions/WitchAction';
-import { nightFlowLog } from '@/utils/logger';
 import { resolveWolfVotes } from '@/services/engine/resolveWolfVotes';
+import type { ProtocolAction } from '@/services/protocol/types';
+import { nightFlowLog } from '@/utils/logger';
+
 import { maybeCreateConfirmStatusAction } from './confirmContext';
+import type { HandlerContext, HandlerResult } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';
 
 /**

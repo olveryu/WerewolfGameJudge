@@ -22,9 +22,10 @@
  * 架构：intents → handlers → resolver(resolveRoleForChecks) → BroadcastGameState
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
-import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '@/models/roles';
+
+import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 
 /**
  * 自定义角色列表（含 wolfRobot + seer + magician）

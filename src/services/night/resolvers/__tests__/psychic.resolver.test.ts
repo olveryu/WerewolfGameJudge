@@ -4,9 +4,9 @@
  * Tests for psychicCheckResolver validation and resolution logic.
  */
 
-import { psychicCheckResolver } from '@/services/night/resolvers/psychic';
-import type { ResolverContext, ActionInput } from '@/services/night/resolvers/types';
 import type { RoleId } from '@/models/roles';
+import { psychicCheckResolver } from '@/services/night/resolvers/psychic';
+import type { ActionInput,ResolverContext } from '@/services/night/resolvers/types';
 
 // =============================================================================
 // Test Helpers

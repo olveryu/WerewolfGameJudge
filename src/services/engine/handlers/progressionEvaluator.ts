@@ -14,9 +14,8 @@
  * ❌ 禁止：IO（网络 / 音频 / Alert）
  */
 
-import type { BroadcastGameState } from '@/services/protocol/types';
-
 import { doesRoleParticipateInWolfVote } from '@/models/roles';
+import type { BroadcastGameState } from '@/services/protocol/types';
 import { nightFlowLog } from '@/utils/logger';
 
 /**

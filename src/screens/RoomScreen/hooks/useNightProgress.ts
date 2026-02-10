@@ -13,10 +13,11 @@
  *   - Own any gate state (gates are in useActionOrchestrator)
  */
 
-import { useMemo, useEffect, useRef } from 'react';
-import { buildNightPlan } from '@/models/roles';
-import type { SchemaId } from '@/models/roles';
+import { useEffect, useMemo, useRef } from 'react';
+
 import { GameStatus } from '@/models/GameStatus';
+import type { SchemaId } from '@/models/roles';
+import { buildNightPlan } from '@/models/roles';
 import type { LocalGameState } from '@/types/GameStateTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────

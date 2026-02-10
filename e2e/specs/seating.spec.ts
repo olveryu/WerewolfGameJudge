@@ -1,11 +1,12 @@
-import { test, expect } from '@playwright/test';
-import { createPlayerContexts, closeAll } from '../fixtures/app.fixture';
-import { RoomPage } from '../pages/RoomPage';
-import { ConfigPage } from '../pages/ConfigPage';
-import { getVisibleText } from '../helpers/ui';
-import { enterRoomCodeViaNumPad } from '../helpers/home';
-import { waitForRoomScreenReady } from '../helpers/waits';
+import { expect,test } from '@playwright/test';
+
+import { closeAll,createPlayerContexts } from '../fixtures/app.fixture';
 import type { DiagnosticData } from '../helpers/diagnostics';
+import { enterRoomCodeViaNumPad } from '../helpers/home';
+import { getVisibleText } from '../helpers/ui';
+import { waitForRoomScreenReady } from '../helpers/waits';
+import { ConfigPage } from '../pages/ConfigPage';
+import { RoomPage } from '../pages/RoomPage';
 
 /**
  * Seating E2E Tests

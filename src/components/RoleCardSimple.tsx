@@ -9,15 +9,16 @@
 import React, { useMemo } from 'react';
 import {
   Modal,
-  View,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
   useWindowDimensions,
+  View,
 } from 'react-native';
-import { useColors, spacing, typography, borderRadius, shadows, type ThemeColors } from '@/theme';
+
 import type { RoleId } from '@/models/roles';
 import { getRoleSpec, isWolfRole } from '@/models/roles';
+import { borderRadius, shadows, spacing, type ThemeColors,typography, useColors } from '@/theme';
 
 // 角色对应的 emoji 图标
 const ROLE_ICONS: Record<string, string> = {

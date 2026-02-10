@@ -7,22 +7,23 @@
  * ✅ 允许：渲染 UI + 上报 onPress
  * ❌ 禁止：import service / showAlert / 业务逻辑判断
  */
-import React, { memo, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { memo, useCallback, useEffect, useMemo,useRef } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
   Animated,
-  type ViewStyle,
+  StyleSheet,
+  Text,
   type TextStyle,
+  TouchableOpacity,
+  View,
+  type ViewStyle,
 } from 'react-native';
+
 import { Avatar } from '@/components/Avatar';
-import { spacing, typography, borderRadius, type ThemeColors } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
-import { TESTIDS } from '@/testids';
 import type { RoleId } from '@/models/roles';
 import { getRoleDisplayName } from '@/models/roles';
+import { TESTIDS } from '@/testids';
+import { borderRadius, spacing, type ThemeColors,typography } from '@/theme';
+import { componentSizes, fixed } from '@/theme/tokens';
 
 // Re-export for PlayerGrid
 export const GRID_COLUMNS = 4;

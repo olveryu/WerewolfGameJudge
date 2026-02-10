@@ -1,11 +1,12 @@
+import { act,fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
-import { RoomScreenTestHarness, createShowAlertMock } from './harness';
-
 // We assert on showAlert calls (RoomScreen uses this wrapper)
 import { showAlert } from '@/utils/alert';
+
+import { createShowAlertMock,RoomScreenTestHarness } from './harness';
 
 jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),

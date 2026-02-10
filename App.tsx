@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import React, { useCallback,useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppNavigator } from '@/navigation';
-import { ThemeProvider, useTheme } from '@/theme';
-import { AlertModal } from '@/components/AlertModal';
+
 import { AIChatBubble } from '@/components/AIChatBubble';
-import { setAlertListener, AlertConfig } from '@/utils/alert';
-import { GameFacadeProvider, NetworkProvider, AuthProvider } from '@/contexts';
+import { AlertModal } from '@/components/AlertModal';
+import { AuthProvider,GameFacadeProvider, NetworkProvider } from '@/contexts';
+import { AppNavigator } from '@/navigation';
 import { GameFacade } from '@/services/facade/GameFacade';
+import { ThemeProvider, useTheme } from '@/theme';
+import { AlertConfig,setAlertListener } from '@/utils/alert';
 import { log } from '@/utils/logger';
 
 function AppContent() {

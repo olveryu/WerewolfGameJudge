@@ -10,9 +10,11 @@
  * ✅ Allowed: types, styles, UI components
  */
 import React, { memo } from 'react';
-import { View, Text } from 'react-native';
-import { type NightProgressIndicatorStyles } from './styles';
+import { Text,View } from 'react-native';
+
 import { TESTIDS } from '@/testids';
+
+import { type NightProgressIndicatorStyles } from './styles';
 
 interface NightProgressIndicatorProps {
   /** Current step index (1-based for display) */

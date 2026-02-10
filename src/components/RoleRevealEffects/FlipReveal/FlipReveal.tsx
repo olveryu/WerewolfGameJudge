@@ -6,18 +6,19 @@
  * ✅ 允许：渲染动画 + 触觉反馈
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Animated, StyleSheet, useWindowDimensions, Easing } from 'react-native';
-import { useColors, borderRadius } from '@/theme';
-import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
-import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
-import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { canUseNativeDriver } from '@/components/RoleRevealEffects/utils/platform';
-import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import React, { useCallback,useEffect, useMemo, useState } from 'react';
+import { Animated, Easing,StyleSheet, useWindowDimensions, View } from 'react-native';
+
+import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
 import { RoleCard } from '@/components/RoleRevealEffects/common/RoleCard';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
-import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
+import { CONFIG } from '@/components/RoleRevealEffects/config';
+import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
+import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
+import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { canUseNativeDriver } from '@/components/RoleRevealEffects/utils/platform';
 import type { RoleId } from '@/models/roles';
+import { borderRadius,useColors } from '@/theme';
 
 // Effect colors
 const EFFECT_COLORS = {

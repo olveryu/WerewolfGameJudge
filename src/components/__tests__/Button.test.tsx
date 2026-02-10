@@ -1,6 +1,7 @@
+import { fireEvent,render } from '@testing-library/react-native';
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
-import { Text, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity } from 'react-native';
+
 import { Button } from '@/components/Button/Button';
 
 describe('Button', () => {

@@ -11,16 +11,17 @@
  */
 
 import type { JoinSeatIntent, LeaveMySeatIntent } from '@/services/engine/intents/types';
-import type { HandlerContext, HandlerResult } from './types';
 import type { PlayerJoinAction, PlayerLeaveAction } from '@/services/engine/reducer/types';
 import {
+  REASON_GAME_IN_PROGRESS,
+  REASON_INVALID_SEAT,
   REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
   REASON_NOT_SEATED,
-  REASON_INVALID_SEAT,
   REASON_SEAT_TAKEN,
-  REASON_GAME_IN_PROGRESS,
 } from '@/services/protocol/reasonCodes';
+
+import type { HandlerContext, HandlerResult } from './types';
 
 /**
  * 处理加入座位

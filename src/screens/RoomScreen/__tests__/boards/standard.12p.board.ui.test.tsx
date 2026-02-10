@@ -15,31 +15,32 @@
  * - seerReveal
  */
 
+import { fireEvent,render, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { render, waitFor, fireEvent } from '@testing-library/react-native';
-import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+
 import { getSchema } from '@/models/roles/spec';
-import { showAlert } from '@/utils/alert';
 import {
-  RoomScreenTestHarness,
-  createShowAlertMock,
-  getBoardByName,
-  mockNavigation,
-  createGameRoomMock,
-  waitForRoomScreen,
-  tapSeat,
-  chainWolfVoteConfirm,
   chainConfirmTrigger,
+  chainWolfVoteConfirm,
   // Coverage-integrated chain drivers
   coverageChainActionPrompt,
-  coverageChainWolfVote,
-  coverageChainWitchSavePrompt,
-  coverageChainWitchPoisonPrompt,
   coverageChainConfirmTrigger,
   coverageChainSeatActionConfirm,
   coverageChainSkipConfirm,
+  coverageChainWitchPoisonPrompt,
+  coverageChainWitchSavePrompt,
+  coverageChainWolfVote,
   coverageChainWolfVoteEmpty,
+  createGameRoomMock,
+  createShowAlertMock,
+  getBoardByName,
+  mockNavigation,
+  RoomScreenTestHarness,
+  tapSeat,
+  waitForRoomScreen,
 } from '@/screens/RoomScreen/__tests__/harness';
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { showAlert } from '@/utils/alert';
 
 // =============================================================================
 // Mocks

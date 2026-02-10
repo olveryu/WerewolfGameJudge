@@ -10,10 +10,10 @@
  * 5. Event Routing
  */
 
+import { GameStatus } from '@/models/GameStatus';
 import { getInteractionResult } from '@/screens/RoomScreen/policy/RoomInteractionPolicy';
 import type { InteractionContext, InteractionEvent } from '@/screens/RoomScreen/policy/types';
 import { INTERACTION_PRIORITY } from '@/screens/RoomScreen/policy/types';
-import { GameStatus } from '@/models/GameStatus';
 
 // =============================================================================
 // Test Helpers

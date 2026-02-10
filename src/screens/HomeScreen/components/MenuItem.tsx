@@ -7,7 +7,8 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo, type ReactNode } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { Text, TouchableOpacity,View } from 'react-native';
+
 import { type HomeScreenStyles } from './styles';
 
 export interface MenuItemProps {

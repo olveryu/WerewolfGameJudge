@@ -14,6 +14,9 @@
  * - endNight 调用 calculateDeaths 并产出正确 deaths
  */
 
+import type { RoleId } from '@/models/roles';
+import { NIGHT_STEPS } from '@/models/roles/spec';
+import { buildNightPlan } from '@/models/roles/spec/plan';
 import { handleAdvanceNight, handleEndNight, handleSetAudioPlaying } from '@/services/engine/handlers/stepTransitionHandler';
 import type { HandlerContext } from '@/services/engine/handlers/types';
 import type {
@@ -22,9 +25,6 @@ import type {
   SetAudioPlayingIntent,
 } from '@/services/engine/intents/types';
 import type { BroadcastGameState, BroadcastPlayer } from '@/services/protocol/types';
-import { NIGHT_STEPS } from '@/models/roles/spec';
-import { buildNightPlan } from '@/models/roles/spec/plan';
-import type { RoleId } from '@/models/roles';
 
 /**
  * 创建完整的玩家对象

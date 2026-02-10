@@ -6,18 +6,19 @@
  * ✅ 允许：渲染动画 + 触觉反馈
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { View, Animated, StyleSheet, useWindowDimensions, Easing, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useColors, borderRadius, shadows } from '@/theme';
+import React, { useCallback, useEffect, useMemo, useRef,useState } from 'react';
+import { Animated, Easing, Pressable,StyleSheet, useWindowDimensions, View } from 'react-native';
+
+import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
+import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
+import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
-import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { canUseNativeDriver } from '@/components/RoleRevealEffects/utils/platform';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
-import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
+import { canUseNativeDriver } from '@/components/RoleRevealEffects/utils/platform';
 import type { RoleId } from '@/models/roles';
+import { borderRadius, shadows,useColors } from '@/theme';
 
 const TAROT_COLORS = {
   cardBack: ['#2a2a4e', '#3d3d64', '#2a2a4e'] as const,

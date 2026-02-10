@@ -9,8 +9,9 @@
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
-import type { ResolverFn, ResolverResult } from './types';
 import { resolveWolfVotes } from '@/services/engine/resolveWolfVotes';
+
+import type { ResolverFn, ResolverResult } from './types';
 
 function resolveWolfKillSeatFromVotes(
   wolfVotesBySeat: Readonly<Record<string, number>> | undefined,

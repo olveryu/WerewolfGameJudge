@@ -1,5 +1,3 @@
-export { NetworkProvider } from './NetworkContext';
-
-export { GameFacadeProvider, useGameFacade } from './GameFacadeContext';
-
 export { AuthProvider, useAuthContext } from './AuthContext';
+export { GameFacadeProvider, useGameFacade } from './GameFacadeContext';
+export { NetworkProvider } from './NetworkContext';

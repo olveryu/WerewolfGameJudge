@@ -17,15 +17,16 @@
  */
 
 import React from 'react';
+
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import {
-  RoleRevealAnimator,
   createRoleData,
-  type RoleData,
   type RevealEffectType,
+  type RoleData,
+  RoleRevealAnimator,
 } from '@/components/RoleRevealEffects';
-import { getRoleDisplayName, getRoleSpec, Faction } from '@/models/roles';
 import type { RoleId } from '@/models/roles';
+import { Faction,getRoleDisplayName, getRoleSpec } from '@/models/roles';
 import type { ResolvedRoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 // ─── Alignment map (Faction → reveal alignment) ────────────────────────────

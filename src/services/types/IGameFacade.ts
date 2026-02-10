@@ -5,9 +5,9 @@
  * Facade 只做编排，不写业务逻辑。
  */
 
-import type { BroadcastGameState } from '@/services/protocol/types';
-import type { GameTemplate } from '@/models/Template';
 import type { RoleId } from '@/models/roles';
+import type { GameTemplate } from '@/models/Template';
+import type { BroadcastGameState } from '@/services/protocol/types';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 /** Connection status for UI display (re-exported from BroadcastService) */

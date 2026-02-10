@@ -14,7 +14,7 @@
  * @param array - 要打乱的数组
  * @param rng - 可选的随机数生成器，默认使用 secureRng
  */
-import { secureRng, type Rng } from './random';
+import { type Rng,secureRng } from './random';
 
 export function shuffleArray<T>(array: T[], rng: Rng = secureRng): T[] {
   const result = [...array];

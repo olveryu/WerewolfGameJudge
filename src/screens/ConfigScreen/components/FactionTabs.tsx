@@ -6,8 +6,9 @@
  * ✅ 允许：渲染 UI + 上报 onTabChange
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { memo, useCallback, type ReactNode } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { memo, type ReactNode,useCallback } from 'react';
+import { Text, TouchableOpacity,View } from 'react-native';
+
 import { ConfigScreenStyles } from './styles';
 
 export interface FactionTabItem {

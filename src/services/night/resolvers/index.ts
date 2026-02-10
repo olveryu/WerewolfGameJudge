@@ -10,21 +10,21 @@
  * Use the import boundary test in __tests__/import-boundary.test.ts to enforce this.
  */
 
-import type { ResolverRegistry } from './types';
-import { seerCheckResolver } from './seer';
-import { witchActionResolver } from './witch';
-import { wolfKillResolver } from './wolf';
+import { darkWolfKingConfirmResolver } from './darkWolfKing';
+import { dreamcatcherDreamResolver } from './dreamcatcher';
+import { gargoyleCheckResolver } from './gargoyle';
 import { guardProtectResolver } from './guard';
+import { hunterConfirmResolver } from './hunter';
+import { magicianSwapResolver } from './magician';
 import { nightmareBlockResolver } from './nightmare';
 import { psychicCheckResolver } from './psychic';
-import { dreamcatcherDreamResolver } from './dreamcatcher';
-import { magicianSwapResolver } from './magician';
-import { gargoyleCheckResolver } from './gargoyle';
-import { wolfRobotLearnResolver } from './wolfRobot';
-import { wolfQueenCharmResolver } from './wolfQueen';
+import { seerCheckResolver } from './seer';
 import { slackerChooseIdolResolver } from './slacker';
-import { hunterConfirmResolver } from './hunter';
-import { darkWolfKingConfirmResolver } from './darkWolfKing';
+import type { ResolverRegistry } from './types';
+import { witchActionResolver } from './witch';
+import { wolfKillResolver } from './wolf';
+import { wolfQueenCharmResolver } from './wolfQueen';
+import { wolfRobotLearnResolver } from './wolfRobot';
 
 export const RESOLVERS: ResolverRegistry = {
   seerCheck: seerCheckResolver,

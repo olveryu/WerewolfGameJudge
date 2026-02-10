@@ -13,8 +13,9 @@
  * - magician swap: target=null + extra.targets=[seatA, seatB]
  */
 
-import { createHostGame } from './hostGameFactory';
 import type { RoleId } from '@/models/roles';
+
+import { createHostGame } from './hostGameFactory';
 
 /** Hard cap for step progression loops to avoid infinite loops */
 const MAX_STEP_ADVANCES = 20;

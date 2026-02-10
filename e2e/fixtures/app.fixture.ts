@@ -1,7 +1,8 @@
-import { test as base, Page, BrowserContext, Browser } from '@playwright/test';
+import { Browser,BrowserContext, Page, test as base } from '@playwright/test';
+
+import { DiagnosticData,setupDiagnostics } from '../helpers/diagnostics';
+import { ensureAnonLogin,waitForAppReady } from '../helpers/home';
 import { gotoWithRetry } from '../helpers/ui';
-import { waitForAppReady, ensureAnonLogin } from '../helpers/home';
-import { setupDiagnostics, DiagnosticData } from '../helpers/diagnostics';
 
 /**
  * App fixture: ensures a single logged-in page ready on the home screen.

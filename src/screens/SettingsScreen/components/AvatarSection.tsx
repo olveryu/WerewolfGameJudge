@@ -8,14 +8,16 @@
  */
 import React, { memo } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Image,
+  ImageSourcePropType,
   Text,
   TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  ImageSourcePropType,
+  View,
 } from 'react-native';
+
 import { ThemeColors } from '@/theme';
+
 import { SettingsScreenStyles } from './styles';
 
 export interface AvatarSectionProps {

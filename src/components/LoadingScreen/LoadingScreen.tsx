@@ -7,9 +7,10 @@
  * ❌ 禁止：import service / 业务逻辑
  */
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Image } from 'react-native';
+import { Animated, Image,StyleSheet, Text, View } from 'react-native';
+
+import { borderRadius, shadows,spacing, typography } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
-import { spacing, typography, borderRadius, shadows } from '@/theme';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const appIcon = require('../../../assets/pwa/icon-192.png');

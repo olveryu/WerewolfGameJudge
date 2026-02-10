@@ -7,11 +7,11 @@
 import { dreamcatcherDreamResolver } from '@/services/night/resolvers/dreamcatcher';
 import { guardProtectResolver } from '@/services/night/resolvers/guard';
 import { nightmareBlockResolver } from '@/services/night/resolvers/nightmare';
+import { slackerChooseIdolResolver } from '@/services/night/resolvers/slacker';
+import type { ResolverContext } from '@/services/night/resolvers/types';
+import { wolfKillResolver } from '@/services/night/resolvers/wolf';
 import { wolfQueenCharmResolver } from '@/services/night/resolvers/wolfQueen';
 import { wolfRobotLearnResolver } from '@/services/night/resolvers/wolfRobot';
-import { slackerChooseIdolResolver } from '@/services/night/resolvers/slacker';
-import { wolfKillResolver } from '@/services/night/resolvers/wolf';
-import type { ResolverContext } from '@/services/night/resolvers/types';
 
 function makeContext(overrides: Partial<ResolverContext> = {}): ResolverContext {
   const players = new Map<number, any>([

@@ -11,8 +11,9 @@
 
 import type { RoleId } from '@/models/roles';
 import { SCHEMAS } from '@/models/roles/spec/schemas';
+
 import { validateConstraints } from './constraintValidator';
-import type { ResolverContext, ActionInput, WolfRobotResolverResult } from './types';
+import type { ActionInput, ResolverContext, WolfRobotResolverResult } from './types';
 import { getRoleAfterSwap } from './types';
 
 // =============================================================================

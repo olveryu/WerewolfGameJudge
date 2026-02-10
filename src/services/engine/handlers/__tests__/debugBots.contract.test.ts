@@ -9,8 +9,8 @@
 
 import { handleFillWithBots, handleMarkAllBotsViewed } from '@/services/engine/handlers/gameControlHandler';
 import type { HandlerContext } from '@/services/engine/handlers/types';
-import type { BroadcastPlayer } from '@/services/protocol/types';
 import type { GameState } from '@/services/engine/store/types';
+import type { BroadcastPlayer } from '@/services/protocol/types';
 
 // =============================================================================
 // Test Utilities

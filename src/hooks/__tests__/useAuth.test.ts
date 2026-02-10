@@ -1,5 +1,6 @@
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { renderHook, act, waitFor } from '@testing-library/react-native';
+
 import { useAuthContext as useAuth, type User } from '@/contexts/AuthContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 

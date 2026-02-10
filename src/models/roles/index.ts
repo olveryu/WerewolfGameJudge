@@ -18,41 +18,37 @@ const roleLog = log.extend('Role');
 // Re-export from spec/
 // ============================================================
 export {
-  // Types
-  Faction,
-  type Team,
-  getSeerCheckResultForTeam,
-} from './spec/types';
-
-export {
-  // Role Spec
-  ROLE_SPECS,
-  getRoleSpec,
-  isValidRoleId,
-  getAllRoleIds,
-  type RoleId,
-} from './spec/specs';
-
-
-export {
-  // Schemas
-  SCHEMAS,
-  getSchema,
-  type ActionSchema,
-  type SchemaId,
-} from './spec/schemas';
-
-export {
   // Night Plan
   buildNightPlan,
   type NightPlan,
   type NightPlanStep,
 } from './spec/plan';
+export {
+  type ActionSchema,
+  getSchema,
+  type SchemaId,
+  // Schemas
+  SCHEMAS,
+} from './spec/schemas';
+export {
+  getAllRoleIds,
+  getRoleSpec,
+  isValidRoleId,
+  // Role Spec
+  ROLE_SPECS,
+  type RoleId,
+} from './spec/specs';
+export {
+  // Types
+  Faction,
+  getSeerCheckResultForTeam,
+  type Team,
+} from './spec/types';
 
 // ============================================================
 // Re-imports from spec/ (for internal use)
 // ============================================================
-import { ROLE_SPECS, getRoleSpec, isValidRoleId, getAllRoleIds, type RoleId } from './spec/specs';
+import { getAllRoleIds, getRoleSpec, isValidRoleId, ROLE_SPECS, type RoleId } from './spec/specs';
 import type { Team } from './spec/types';
 
 // ============================================================

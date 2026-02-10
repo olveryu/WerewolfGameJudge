@@ -9,10 +9,11 @@
  * - handleConfirmLeave: confirm leave, early return when null
  * - handleLeaveRoom: ongoing/ended direct navigate, other status shows confirm dialog
  */
-import { renderHook, act } from '@testing-library/react-native';
+import { act,renderHook } from '@testing-library/react-native';
+
+import { GameStatus } from '@/models/GameStatus';
 import { useRoomSeatDialogs } from '@/screens/RoomScreen/useRoomSeatDialogs';
 import { showAlert } from '@/utils/alert';
-import { GameStatus } from '@/models/GameStatus';
 
 // Mock showAlert
 jest.mock('../../../utils/alert', () => ({

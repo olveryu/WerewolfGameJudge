@@ -8,19 +8,19 @@
  * - Player 收到 STATE_UPDATE → applySnapshot
  */
 
-import { GameFacade } from '@/services/facade/GameFacade';
-import type { PlayerMessage, HostBroadcast, BroadcastPlayer } from '@/services/protocol/types';
 import { gameReducer } from '@/services/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@/services/engine/reducer/types';
+import { GameFacade } from '@/services/facade/GameFacade';
 import {
-  REASON_TIMEOUT,
-  REASON_INVALID_SEAT,
-  REASON_SEAT_TAKEN,
   REASON_GAME_IN_PROGRESS,
+  REASON_INVALID_SEAT,
   REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
   REASON_NOT_SEATED,
+  REASON_SEAT_TAKEN,
+  REASON_TIMEOUT,
 } from '@/services/protocol/reasonCodes';
+import type { BroadcastPlayer,HostBroadcast, PlayerMessage } from '@/services/protocol/types';
 
 // Mock BroadcastService (constructor mock — DI 测试直接注入，此处仅防止真实 import)
 jest.mock('../../transport/BroadcastService', () => ({

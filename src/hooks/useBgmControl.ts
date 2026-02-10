@@ -10,7 +10,8 @@
  * ❌ 禁止：直接操作游戏状态、调用 Supabase
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback,useEffect, useRef, useState } from 'react';
+
 import { GameStatus } from '@/models/GameStatus';
 import { SettingsService } from '@/services/feature/SettingsService';
 import { AudioService } from '@/services/infra/AudioService';

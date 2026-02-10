@@ -7,10 +7,11 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { useColors, spacing, typography, borderRadius, shadows } from '@/theme';
-import type { RoleData, RoleAlignment } from '@/components/RoleRevealEffects/types';
+import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+
+import type { RoleAlignment,RoleData } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
+import { borderRadius, shadows,spacing, typography, useColors } from '@/theme';
 
 /** White text color for alignment badge on colored backgrounds */
 const BADGE_TEXT_WHITE = '#FFFFFF';

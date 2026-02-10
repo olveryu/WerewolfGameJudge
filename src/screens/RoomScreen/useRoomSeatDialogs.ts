@@ -8,11 +8,12 @@
  * ✅ Allowed: manage seat modal state, call showAlert
  */
 
-import { useCallback } from 'react';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useCallback } from 'react';
+
+import { GameStatus } from '@/models/GameStatus';
 import type { RootStackParamList } from '@/navigation/types';
 import { showAlert } from '@/utils/alert';
-import { GameStatus } from '@/models/GameStatus';
 
 interface UseRoomSeatDialogsParams {
   // Seat modal state

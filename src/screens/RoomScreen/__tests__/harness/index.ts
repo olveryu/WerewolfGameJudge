@@ -5,47 +5,45 @@
  */
 
 export {
-  RoomScreenTestHarness,
-  createShowAlertMock,
-  type DialogType,
-  type DialogEvent,
-} from './RoomScreenTestHarness';
-
-export {
-  getAll12PBoards,
-  getBoardByName,
-  getRequiredUiDialogTypes,
-  getRequiredHostDataDialogTypes,
-  boardHasRole,
-  boardHasNightmare,
   BOARD_TEST_FILE_MAP,
   type BoardConfig,
+  boardHasNightmare,
+  boardHasRole,
+  getAll12PBoards,
+  getBoardByName,
+  getRequiredHostDataDialogTypes,
+  getRequiredUiDialogTypes,
 } from './boardDialogCoverage';
-
 export {
-  mockNavigation,
-  createGameRoomMock,
-  createReactiveGameRoomMock,
-  waitForRoomScreen,
-  tapSeat,
-  MockSafeAreaView,
-  chainWolfVoteConfirm,
-  chainSkipConfirm,
-  chainConfirmTrigger,
-  chainWolfRobotHunterStatus,
   chainActionConfirm,
-  // Coverage-integrated chain drivers
-  coverageChainWolfVote,
-  coverageChainSkipConfirm,
-  coverageChainConfirmTrigger,
-  coverageChainWolfRobotHunterStatus,
+  chainConfirmTrigger,
+  chainSkipConfirm,
+  chainWolfRobotHunterStatus,
+  chainWolfVoteConfirm,
   coverageChainActionPrompt,
-  coverageChainWitchSavePrompt,
-  coverageChainWitchPoisonPrompt,
+  coverageChainConfirmTrigger,
   coverageChainMagicianSwap,
   coverageChainNightmareBlocked,
   coverageChainSeatActionConfirm,
-  coverageChainWolfVoteEmpty,
+  coverageChainSkipConfirm,
   coverageChainWitchNoKill,
+  coverageChainWitchPoisonPrompt,
+  coverageChainWitchSavePrompt,
   coverageChainWitchSkipAll,
+  coverageChainWolfRobotHunterStatus,
+  // Coverage-integrated chain drivers
+  coverageChainWolfVote,
+  coverageChainWolfVoteEmpty,
+  createGameRoomMock,
+  createReactiveGameRoomMock,
+  mockNavigation,
+  MockSafeAreaView,
+  tapSeat,
+  waitForRoomScreen,
 } from './boardTestUtils';
+export {
+  createShowAlertMock,
+  type DialogEvent,
+  type DialogType,
+  RoomScreenTestHarness,
+} from './RoomScreenTestHarness';

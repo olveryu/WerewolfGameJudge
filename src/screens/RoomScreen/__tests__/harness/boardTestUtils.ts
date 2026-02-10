@@ -5,13 +5,15 @@
  * Provides mock factories and common test patterns.
  */
 
+import { fireEvent,waitFor } from '@testing-library/react-native';
 import React from 'react';
 import { View } from 'react-native';
-import { waitFor, fireEvent } from '@testing-library/react-native';
+
+import { GameStatus } from '@/models/GameStatus';
 import type { RoleId } from '@/models/roles';
 import type { SchemaId } from '@/models/roles/spec';
-import { GameStatus } from '@/models/GameStatus';
 import { TESTIDS } from '@/testids';
+
 import { RoomScreenTestHarness } from './RoomScreenTestHarness';
 
 // =============================================================================

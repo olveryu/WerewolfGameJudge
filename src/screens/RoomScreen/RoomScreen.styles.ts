@@ -12,7 +12,8 @@
  */
 
 import { StyleSheet } from 'react-native';
-import { spacing, typography, borderRadius, type ThemeColors } from '@/theme';
+
+import { borderRadius, spacing, type ThemeColors,typography } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 export function createRoomScreenStyles(colors: ThemeColors) {

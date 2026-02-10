@@ -14,8 +14,8 @@
 
 import type { SchemaId } from '@/models/roles/spec';
 import type { SetWitchContextAction } from '@/services/engine/reducer/types';
-import type { BroadcastGameState } from '@/services/protocol/types';
 import { resolveWolfVotes } from '@/services/engine/resolveWolfVotes';
+import type { BroadcastGameState } from '@/services/protocol/types';
 
 /**
  * 非 null 的 state 类型

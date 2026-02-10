@@ -7,8 +7,8 @@
  * ❌ 禁止：import service / 副作用
  */
 
-import type { RoleId } from './specs';
 import type { SchemaId } from './schemas';
+import type { RoleId } from './specs';
 
 /**
  * 夜晚步骤规格

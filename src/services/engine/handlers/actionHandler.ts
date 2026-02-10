@@ -11,25 +11,25 @@
  * ❌ 禁止：直接修改 state（返回 StateAction 列表由 reducer 执行）
  */
 
+import type { RoleId } from '@/models/roles';
+import { doesRoleParticipateInWolfVote } from '@/models/roles';
+import type { SchemaId } from '@/models/roles/spec';
+import { BLOCKED_UI_DEFAULTS,NIGHT_STEPS, SCHEMAS } from '@/models/roles/spec';
 import type { SubmitActionIntent, SubmitWolfVoteIntent, ViewedRoleIntent } from '@/services/engine/intents/types';
-import type { HandlerContext, HandlerResult } from './types';
 import type {
-  RecordActionAction,
+  ActionRejectedAction,
   ApplyResolverResultAction,
   PlayerViewedRoleAction,
-  ActionRejectedAction,
+  RecordActionAction,
   StateAction,
 } from '@/services/engine/reducer/types';
-import type { ProtocolAction } from '@/services/protocol/types';
-import type { SchemaId } from '@/models/roles/spec';
 import { RESOLVERS } from '@/services/night/resolvers';
-import { NIGHT_STEPS, SCHEMAS, BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
-import type { ResolverContext, ActionInput, ResolverResult } from '@/services/night/resolvers/types';
-import type { RoleId } from '@/models/roles';
-
-import { doesRoleParticipateInWolfVote } from '@/models/roles';
-import { log } from '@/utils/logger';
+import type { ActionInput, ResolverContext, ResolverResult } from '@/services/night/resolvers/types';
+import type { ProtocolAction } from '@/services/protocol/types';
 import { newRejectionId } from '@/utils/id';
+import { log } from '@/utils/logger';
+
+import type { HandlerContext, HandlerResult } from './types';
 
 const actionHandlerLog = log.extend('ActionHandler');
 
@@ -423,7 +423,7 @@ function checkNightmareBlockGuard(
   return undefined;
 }
 
-export { isSkipAction, checkNightmareBlockGuard };
+export { checkNightmareBlockGuard,isSkipAction };
 
 /**
  * 处理提交行动（PR4: SUBMIT_ACTION）

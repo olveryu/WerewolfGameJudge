@@ -23,10 +23,12 @@
  * - Overlay testID is scoped to this Dropdown instance's Modal, so multiple
  *   Dropdowns on the same screen won't collide (each has a unique prefix).
  */
-import React, { memo, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React, { memo, useCallback,useState } from 'react';
+import { Modal, ScrollView,Text, TouchableOpacity, View } from 'react-native';
+
 import { typography } from '@/theme';
+
 import { ConfigScreenStyles } from './styles';
 
 export interface DropdownOption {

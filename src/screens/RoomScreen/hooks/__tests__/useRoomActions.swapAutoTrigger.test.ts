@@ -8,9 +8,9 @@ import { renderHook } from '@testing-library/react-native';
 
 import { GameStatus } from '@/models/GameStatus';
 import { getSchema } from '@/models/roles/spec/schemas';
-import type { LocalGameState } from '@/types/GameStateTypes';
 import type { GameContext } from '@/screens/RoomScreen/hooks/useRoomActions';
 import { useRoomActions } from '@/screens/RoomScreen/hooks/useRoomActions';
+import type { LocalGameState } from '@/types/GameStateTypes';
 
 function makeContext(overrides: Partial<GameContext> = {}): GameContext {
   const base: GameContext = {

@@ -1,5 +1,5 @@
-import { deriveSkipIntentFromSchema } from '@/screens/RoomScreen/hooks/useRoomActions';
 import type { ChooseSeatSchema } from '@/models/roles/spec/schema.types';
+import { deriveSkipIntentFromSchema } from '@/screens/RoomScreen/hooks/useRoomActions';
 
 describe('deriveSkipIntentFromSchema (chooseSeat schemas)', () => {
   it('returns skip intent when currentSchema.kind=chooseSeat and canSkip=true', () => {

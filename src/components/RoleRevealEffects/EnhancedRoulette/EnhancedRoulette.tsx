@@ -6,19 +6,20 @@
  * ✅ 允许：渲染动画 + 触觉/音效反馈
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, Animated, StyleSheet, useWindowDimensions, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useColors, spacing, typography, borderRadius, shadows } from '@/theme';
-import type { RoleRevealEffectProps, RoleData } from '@/components/RoleRevealEffects/types';
-import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
-import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { canUseNativeDriver } from '@/components/RoleRevealEffects/utils/platform';
-import { playSound, createTickPlayer } from '@/components/RoleRevealEffects/utils/sound';
-import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import React, { useCallback,useEffect, useMemo, useState } from 'react';
+import { Animated, Easing,StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+
 import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
+import { CONFIG } from '@/components/RoleRevealEffects/config';
+import type { RoleData,RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
+import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
+import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { canUseNativeDriver } from '@/components/RoleRevealEffects/utils/platform';
+import { createTickPlayer,playSound } from '@/components/RoleRevealEffects/utils/sound';
 import type { RoleId } from '@/models/roles';
+import { borderRadius, shadows,spacing, typography, useColors } from '@/theme';
 import { shuffleArray } from '@/utils/shuffle';
 
 // Slot machine colors

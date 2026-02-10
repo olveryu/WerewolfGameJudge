@@ -10,30 +10,31 @@
  */
 
 import type { GameState } from '@/services/engine/store/types';
+import type { ResolvedRoleRevealAnimation } from '@/types/RoleRevealAnimation';
+import { resolveRandomAnimation } from '@/types/RoleRevealAnimation';
+import { randomHex } from '@/utils/id';
+
 import type {
-  StateAction,
+  ActionRejectedAction,
+  AddRevealAckAction,
+  AdvanceToNextActionAction,
+  ApplyResolverResultAction,
+  AssignRolesAction,
+  EndNightAction,
+  FillWithBotsAction,
   InitializeGameAction,
   PlayerJoinAction,
   PlayerLeaveAction,
-  AssignRolesAction,
-  StartNightAction,
-  AdvanceToNextActionAction,
-  EndNightAction,
+  PlayerViewedRoleAction,
   RecordActionAction,
-  ApplyResolverResultAction,
-  SetWitchContextAction,
+  SetAudioPlayingAction,
   SetConfirmStatusAction,
+  SetWitchContextAction,
   SetWolfKillDisabledAction,
   SetWolfRobotHunterStatusViewedAction,
-  SetAudioPlayingAction,
-  PlayerViewedRoleAction,
-  ActionRejectedAction,
-  AddRevealAckAction,
-  FillWithBotsAction,
+  StartNightAction,
+  StateAction,
 } from './types';
-import { resolveRandomAnimation } from '@/types/RoleRevealAnimation';
-import type { ResolvedRoleRevealAnimation } from '@/types/RoleRevealAnimation';
-import { randomHex } from '@/utils/id';
 
 // =============================================================================
 // 子 Reducer 函数（降低认知复杂度）

@@ -1,6 +1,6 @@
-import { test, expect } from '../fixtures/app.fixture';
-import { HomePage } from '../pages/HomePage';
+import { expect,test } from '../fixtures/app.fixture';
 import { ConfigPage } from '../pages/ConfigPage';
+import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
 
 /**

@@ -17,8 +17,8 @@
  */
 
 import { handleAdvanceNight } from '@/services/engine/handlers/stepTransitionHandler';
-import { handleSetWolfRobotHunterStatusViewed } from '@/services/engine/handlers/wolfRobotHunterGateHandler';
 import type { HandlerContext } from '@/services/engine/handlers/types';
+import { handleSetWolfRobotHunterStatusViewed } from '@/services/engine/handlers/wolfRobotHunterGateHandler';
 import type { BroadcastGameState } from '@/services/protocol/types';
 
 // Create minimal state for testing

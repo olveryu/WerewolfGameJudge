@@ -21,9 +21,10 @@
  * 架构：intents → handlers → reducer → BroadcastGameState
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
-import { executeFullNight } from './stepByStepRunner';
 import type { RoleId } from '@/models/roles';
+
+import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { executeFullNight } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '恶灵骑士12人';
 

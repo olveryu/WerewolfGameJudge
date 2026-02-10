@@ -1,8 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { expect,test } from '@playwright/test';
+
 import { closeAll } from '../fixtures/app.fixture';
-import { RoomPage } from '../pages/RoomPage';
-import { runNightFlowLoop } from '../pages/NightFlowPage';
 import { setupNPlayerGame } from '../helpers/multi-player';
+import { runNightFlowLoop } from '../pages/NightFlowPage';
+import { RoomPage } from '../pages/RoomPage';
 
 /**
  * Restart & Settings E2E Tests

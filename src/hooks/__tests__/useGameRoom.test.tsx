@@ -7,11 +7,12 @@
  * PR8: 完全切换到 facade，不再依赖 legacy GameStateService
  */
 
-import { renderHook, act } from '@testing-library/react-native';
+import { act,renderHook } from '@testing-library/react-native';
 import React from 'react';
-import { AuthService } from '@/services/infra/AuthService';
-import { useGameRoom } from '@/hooks/useGameRoom';
+
 import { GameFacadeProvider } from '@/contexts';
+import { useGameRoom } from '@/hooks/useGameRoom';
+import { AuthService } from '@/services/infra/AuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 
 // Mock the services (only those actually needed)

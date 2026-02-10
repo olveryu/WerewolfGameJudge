@@ -10,11 +10,12 @@
  * No runtime logic or service dependencies.
  */
 
-import { RoleId } from '@/models/roles';
-import type { CurrentNightResults } from '@/services/night/resolvers/types';
-import { GameTemplate } from '@/models/Template';
-import type { RoleRevealAnimation, ResolvedRoleRevealAnimation } from './RoleRevealAnimation';
 import { GameStatus } from '@/models/GameStatus';
+import { RoleId } from '@/models/roles';
+import { GameTemplate } from '@/models/Template';
+import type { CurrentNightResults } from '@/services/night/resolvers/types';
+
+import type { ResolvedRoleRevealAnimation,RoleRevealAnimation } from './RoleRevealAnimation';
 
 // =============================================================================
 // Game Status Enum (canonical definition in src/models/GameStatus.ts)

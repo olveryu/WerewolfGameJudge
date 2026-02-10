@@ -1,5 +1,6 @@
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
 
 // Mock navigation

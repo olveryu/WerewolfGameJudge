@@ -6,26 +6,28 @@
  * ✅ 允许：编排子组件、调用 service/navigation/showAlert
  * ❌ 禁止：硬编码样式值 / console.*
  */
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '@/navigation/types';
 import * as ImagePicker from 'expo-image-picker';
+import React, { useCallback,useEffect, useMemo, useState } from 'react';
+import { ScrollView, Text, TouchableOpacity,View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useTheme, ThemeKey, typography } from '@/theme';
+import { RootStackParamList } from '@/navigation/types';
+import { ThemeKey, typography,useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { getAvatarImage } from '@/utils/avatar';
+
 import {
-  AvatarSection,
-  NameSection,
   AuthForm,
   AuthOptions,
-  ThemeSelector,
+  AvatarSection,
   createSettingsScreenStyles,
+  NameSection,
+  ThemeSelector,
 } from './components';
-import { Ionicons } from '@expo/vector-icons';
 
 export const SettingsScreen: React.FC = () => {
   const { colors, themeKey, setTheme, availableThemes } = useTheme();

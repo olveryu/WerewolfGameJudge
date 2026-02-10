@@ -7,8 +7,10 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { Text, TouchableOpacity,View } from 'react-native';
+
 import { TESTIDS } from '@/testids';
+
 import { type ConnectionStatusBarStyles } from './styles';
 
 type ConnectionState = 'live' | 'syncing' | 'connecting' | 'disconnected';

@@ -21,34 +21,35 @@
  * - UI shows actionRejected with BLOCKED_UI_DEFAULTS message
  */
 
+import { fireEvent,render, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { render, waitFor, fireEvent } from '@testing-library/react-native';
-import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
-import { showAlert } from '@/utils/alert';
+
 import { BLOCKED_UI_DEFAULTS, getSchema } from '@/models/roles/spec';
 import {
-  RoomScreenTestHarness,
-  createShowAlertMock,
-  getBoardByName,
   boardHasNightmare,
-  mockNavigation,
+  chainConfirmTrigger,
+  chainSkipConfirm,
+  chainWolfVoteConfirm,
+  coverageChainActionPrompt,
+  coverageChainConfirmTrigger,
+  coverageChainNightmareBlocked,
+  coverageChainSeatActionConfirm,
+  coverageChainSkipConfirm,
+  coverageChainWitchPoisonPrompt,
+  coverageChainWitchSavePrompt,
+  coverageChainWolfVote,
+  coverageChainWolfVoteEmpty,
   createGameRoomMock,
   createReactiveGameRoomMock,
-  waitForRoomScreen,
+  createShowAlertMock,
+  getBoardByName,
+  mockNavigation,
+  RoomScreenTestHarness,
   tapSeat,
-  chainWolfVoteConfirm,
-  chainSkipConfirm,
-  chainConfirmTrigger,
-  coverageChainActionPrompt,
-  coverageChainWolfVote,
-  coverageChainNightmareBlocked,
-  coverageChainWitchSavePrompt,
-  coverageChainWitchPoisonPrompt,
-  coverageChainConfirmTrigger,
-  coverageChainSkipConfirm,
-  coverageChainSeatActionConfirm,
-  coverageChainWolfVoteEmpty,
+  waitForRoomScreen,
 } from '@/screens/RoomScreen/__tests__/harness';
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { showAlert } from '@/utils/alert';
 
 // =============================================================================
 // Mocks

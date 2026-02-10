@@ -26,9 +26,10 @@
  * 架构：intents → handlers → resolver → BroadcastGameState
  */
 
-import { createHostGame, cleanupHostGame, HostGameContext } from './hostGameFactory';
-import { executeStepsUntil, executeRemainingSteps, sendMessageOrThrow } from './stepByStepRunner';
 import type { RoleId } from '@/models/roles';
+
+import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { executeRemainingSteps, executeStepsUntil, sendMessageOrThrow } from './stepByStepRunner';
 
 /**
  * 自定义角色列表（含 wolfRobot + witch + hunter）

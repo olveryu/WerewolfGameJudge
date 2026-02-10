@@ -1,7 +1,8 @@
-import { supabase, isSupabaseConfigured } from '@/config/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { authLog } from '@/utils/logger';
+
+import { isSupabaseConfigured,supabase } from '@/config/supabase';
 import { getAllRoleIds, getRoleSpec } from '@/models/roles';
+import { authLog } from '@/utils/logger';
 import { withTimeout } from '@/utils/withTimeout';
 
 /**

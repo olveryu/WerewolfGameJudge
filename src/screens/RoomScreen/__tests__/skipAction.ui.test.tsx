@@ -1,8 +1,9 @@
+import { act,fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+
+import type { ChooseSeatSchema } from '@/models/roles/spec/schema.types';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { showAlert } from '@/utils/alert';
-import type { ChooseSeatSchema } from '@/models/roles/spec/schema.types';
 
 jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),

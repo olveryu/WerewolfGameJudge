@@ -1,9 +1,10 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
-import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
+import React from 'react';
+
 import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
-import type { IGameFacade } from '@/services/types/IGameFacade';
+import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { AuthService } from '@/services/infra/AuthService';
+import type { IGameFacade } from '@/services/types/IGameFacade';
 
 // Mock navigation
 const mockNavigate = jest.fn();

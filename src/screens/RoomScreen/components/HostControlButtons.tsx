@@ -6,10 +6,11 @@
  * ✅ 允许：渲染 UI + 上报 onPress 回调
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { useMemo, memo } from 'react';
-import { Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
+import React, { memo,useMemo } from 'react';
+import { StyleSheet,Text, TouchableOpacity } from 'react-native';
+
+import { borderRadius, spacing, type ThemeColors,typography, useColors } from '@/theme';
 
 interface HostControlButtonsProps {
   // Visibility flags

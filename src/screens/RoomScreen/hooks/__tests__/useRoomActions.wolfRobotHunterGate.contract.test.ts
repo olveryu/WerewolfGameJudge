@@ -7,10 +7,10 @@
  * 3. Button only appears for wolfRobot step
  */
 
-import { SCHEMAS } from '@/models/roles/spec/schemas';
-import type { LocalGameState } from '@/types/GameStateTypes';
 import { GameStatus } from '@/models/GameStatus';
+import { SCHEMAS } from '@/models/roles/spec/schemas';
 import { createTemplateFromRoles } from '@/models/Template';
+import type { LocalGameState } from '@/types/GameStateTypes';
 
 // Helper to create minimal game state
 function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState {

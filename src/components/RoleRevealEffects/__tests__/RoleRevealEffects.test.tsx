@@ -3,9 +3,10 @@
  *
  * Tests for the role reveal animation components.
  */
+import { act,fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import { RoleRevealAnimator, createRoleData, FlipReveal, ScratchReveal } from '@/components/RoleRevealEffects/index';
+
+import { createRoleData, FlipReveal, RoleRevealAnimator, ScratchReveal } from '@/components/RoleRevealEffects/index';
 import type { RoleData } from '@/components/RoleRevealEffects/types';
 
 // Mock timers for animation testing

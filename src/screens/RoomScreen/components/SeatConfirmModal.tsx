@@ -7,9 +7,11 @@
  * ✅ Allowed: types, styles, UI components
  */
 import React, { memo } from 'react';
-import { Modal, View, Text, TouchableOpacity } from 'react-native';
-import { type SeatConfirmModalStyles } from './styles';
+import { Modal, Text, TouchableOpacity,View } from 'react-native';
+
 import { TESTIDS } from '@/testids';
+
+import { type SeatConfirmModalStyles } from './styles';
 
 type SeatModalType = 'enter' | 'leave';
 

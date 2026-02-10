@@ -17,9 +17,9 @@
  */
 
 import {
-  WitchAction,
-  getWitchSaveTarget,
   getWitchPoisonTarget,
+  getWitchSaveTarget,
+  WitchAction,
 } from '@/models/actions/WitchAction';
 
 // =============================================================================

@@ -6,8 +6,8 @@
 
 import type { RoleId } from '@/models/roles';
 import type { SchemaId } from '@/models/roles/spec';
-import type { BroadcastPlayer, ProtocolAction } from '@/services/protocol/types';
 import type { CurrentNightResults } from '@/services/night/resolvers/types';
+import type { BroadcastPlayer, ProtocolAction } from '@/services/protocol/types';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 // =============================================================================

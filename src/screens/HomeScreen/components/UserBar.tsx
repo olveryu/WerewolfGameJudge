@@ -7,10 +7,12 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo, useCallback } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { Text, TouchableOpacity,View } from 'react-native';
+
 import { Avatar } from '@/components/Avatar';
-import { showAlert } from '@/utils/alert';
 import { TESTIDS } from '@/testids';
+import { showAlert } from '@/utils/alert';
+
 import { type HomeScreenStyles } from './styles';
 
 interface User {

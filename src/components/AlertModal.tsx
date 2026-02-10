@@ -7,8 +7,9 @@
  * ❌ 禁止：import service / 业务逻辑
  */
 import React, { useMemo } from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
-import { useColors, spacing, typography, borderRadius, type ThemeColors } from '@/theme';
+import { Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions,View } from 'react-native';
+
+import { borderRadius, spacing, type ThemeColors,typography, useColors } from '@/theme';
 
 export interface AlertButton {
   text: string;

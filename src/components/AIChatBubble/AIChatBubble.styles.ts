@@ -8,7 +8,8 @@
  */
 
 import { Dimensions, StyleSheet } from 'react-native';
-import { spacing, borderRadius, typography, shadows, type ThemeColors } from '@/theme';
+
+import { borderRadius, shadows, spacing, type ThemeColors,typography } from '@/theme';
 
 // ── 布局常量 ──────────────────────────────────────────────
 
