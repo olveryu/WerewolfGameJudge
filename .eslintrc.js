@@ -8,12 +8,13 @@ module.exports = {
       jsx: true,
     },
   },
-  plugins: ['@typescript-eslint', 'react', 'react-hooks'],
+  plugins: ['@typescript-eslint', 'react', 'react-hooks', 'react-native'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:react/recommended',
     'plugin:react-hooks/recommended',
+    'plugin:react-native/all',
   ],
   settings: {
     react: {
@@ -42,6 +43,10 @@ module.exports = {
     // flag common state-sync patterns that are acceptable for this app.
     'react-hooks/set-state-in-effect': 'off',
     'react-hooks/preserve-manual-memoization': 'off',
+    'react-native/no-inline-styles': 'off', // Inline styles are used extensively in this project
+    'react-native/sort-styles': 'off', // Too strict for this codebase
+    'react-native/no-unused-styles': 'off', // False positives with createStyles() factory pattern
+    'react-native/no-color-literals': 'off', // Theme-driven; color literals are acceptable in style factories
   },
   overrides: [
     {
