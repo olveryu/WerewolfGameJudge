@@ -9,7 +9,7 @@
  */
 import { Alert, Platform } from 'react-native';
 
-export interface AlertButton {
+interface AlertButton {
   text: string;
   onPress?: () => void;
   style?: 'default' | 'cancel' | 'destructive';
@@ -83,4 +83,4 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
   }
 };
 
-export default showAlert;
+

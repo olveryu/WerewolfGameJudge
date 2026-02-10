@@ -236,5 +236,3 @@ export const mobileDebug = {
 
   isVisible: () => isVisible,
 };
-
-export default mobileDebug;

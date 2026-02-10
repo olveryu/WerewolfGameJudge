@@ -122,7 +122,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
  * Generate all selection keys from FACTION_GROUPS.
  * Key format: roleId (first slot), roleId1 (second), roleId2 (third), ...
  */
-export function getAllSelectionKeys(): string[] {
+function getAllSelectionKeys(): string[] {
   const keys: string[] = [];
   for (const group of FACTION_GROUPS) {
     for (const section of group.sections) {

@@ -66,7 +66,7 @@ export interface GameContext {
 /**
  * 构建游戏上下文提示（玩家视角，不泄露其他玩家信息）
  */
-export function buildGameContextPrompt(context: GameContext): string {
+function buildGameContextPrompt(context: GameContext): string {
   if (!context.inRoom) {
     return '（用户当前不在游戏房间中）';
   }
@@ -152,7 +152,7 @@ export interface ChatMessage {
   content: string;
 }
 
-export interface ChatResponse {
+interface ChatResponse {
   success: boolean;
   message?: string;
   error?: string;

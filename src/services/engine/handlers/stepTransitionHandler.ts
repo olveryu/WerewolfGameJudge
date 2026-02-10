@@ -60,7 +60,7 @@ type NonNullState = NonNullable<HandlerContext['state']>;
  * 4. forbidden_while_audio_playing
  * 5. wolfrobot_hunter_status_not_viewed (if learned hunter but not viewed)
  */
-export function validateNightFlowPreconditions(
+function validateNightFlowPreconditions(
   context: HandlerContext,
 ): { valid: false; result: HandlerResult } | { valid: true; state: NonNullState } {
   const { state, isHost } = context;

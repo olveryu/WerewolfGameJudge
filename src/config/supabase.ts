@@ -176,4 +176,3 @@ if (isSupabaseConfigured()) {
 }
 
 export const supabase = supabaseClient;
-export default supabase;

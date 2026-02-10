@@ -27,7 +27,7 @@ export type ThemeKey =
 export type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
-export interface UserSettings {
+interface UserSettings {
   /** Whether to play background music during night phase (default: true) */
   bgmEnabled: boolean;
   /** Selected theme (default: 'dark') */

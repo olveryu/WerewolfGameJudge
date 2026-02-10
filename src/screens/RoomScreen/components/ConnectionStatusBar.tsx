@@ -11,9 +11,9 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { TESTIDS } from '@/testids';
 import { type ConnectionStatusBarStyles } from './styles';
 
-export type ConnectionState = 'live' | 'syncing' | 'connecting' | 'disconnected';
+type ConnectionState = 'live' | 'syncing' | 'connecting' | 'disconnected';
 
-export interface ConnectionStatusBarProps {
+interface ConnectionStatusBarProps {
   /** Current connection state */
   status: ConnectionState;
   /** Callback for force sync button */
