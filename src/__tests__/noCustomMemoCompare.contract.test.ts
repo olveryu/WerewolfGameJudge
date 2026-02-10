@@ -12,9 +12,7 @@
  */
 
 describe('No custom React.memo comparator', () => {
-   
   const fs = require('node:fs');
-   
   const path = require('node:path');
 
   function getAllComponentFiles(dir: string): string[] {

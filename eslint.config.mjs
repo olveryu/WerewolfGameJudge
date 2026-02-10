@@ -20,6 +20,8 @@ export default tseslint.config(
       '.expo/',
       '*.config.js',
       '*.config.mjs',
+      'web/',
+      'scripts/',
     ],
   },
 
@@ -95,10 +97,33 @@ export default tseslint.config(
   // Test file overrides
   // =========================================================================
   {
-    files: ['**/__tests__/**', '**/*.test.ts', '**/*.test.tsx'],
+    files: ['**/__tests__/**', '**/*.test.ts', '**/*.test.tsx', 'jest.setup.ts'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+
+  // =========================================================================
+  // Metro require() — assets must use require() for bundler
+  // =========================================================================
+  {
+    files: [
+      'src/services/infra/AudioService.ts',
+      'src/utils/avatar.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+
+  // =========================================================================
+  // E2E (Playwright) — not React components, disable hooks rules
+  // =========================================================================
+  {
+    files: ['e2e/**/*.ts'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
     },
   },
 );

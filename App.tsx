@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback,useEffect, useState } from 'react';
+import { useCallback,useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AIChatBubble } from '@/components/AIChatBubble';

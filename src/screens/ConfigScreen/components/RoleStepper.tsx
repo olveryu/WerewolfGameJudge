@@ -6,7 +6,7 @@
  * ✅ 允许：渲染 UI + 上报 onCountChange
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { memo, useCallback } from 'react';
+import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity,View } from 'react-native';
 
 import { ConfigScreenStyles } from './styles';

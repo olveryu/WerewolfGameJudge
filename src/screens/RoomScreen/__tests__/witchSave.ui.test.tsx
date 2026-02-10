@@ -9,7 +9,6 @@
  */
 
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-import React from 'react';
 
 import { SCHEMAS } from '@/models/roles/spec';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';

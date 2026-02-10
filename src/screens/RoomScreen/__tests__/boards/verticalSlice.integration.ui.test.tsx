@@ -12,7 +12,6 @@
  */
 
 import { render, waitFor } from '@testing-library/react-native';
-import React from 'react';
 
 import { broadcastToLocalState } from '@/hooks/adapters/broadcastToLocalState';
 import { GameStatus } from '@/models/GameStatus';

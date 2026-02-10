@@ -6,7 +6,7 @@
  * ✅ 允许：渲染 UI + 上报用户 intent
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { memo } from 'react';
+import { memo } from 'react';
 import {
   ActivityIndicator,
   Image,

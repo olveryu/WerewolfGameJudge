@@ -7,7 +7,6 @@
  * 3. 返回 StateAction 列表
  */
 
-import type { GameIntent } from '@/services/engine/intents/types';
 import type { StateAction } from '@/services/engine/reducer/types';
 import type { GameState } from '@/services/engine/store/types';
 

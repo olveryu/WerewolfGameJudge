@@ -1,7 +1,6 @@
 import { expect,test } from '@playwright/test';
 
 import { closeAll,createPlayerContexts } from '../fixtures/app.fixture';
-import type { DiagnosticData } from '../helpers/diagnostics';
 import { enterRoomCodeViaNumPad } from '../helpers/home';
 import { getVisibleText } from '../helpers/ui';
 import { waitForRoomScreenReady } from '../helpers/waits';
@@ -28,21 +27,6 @@ test.describe.configure({ mode: 'serial' });
 
 async function settleAfterRoomReady(page: import('@playwright/test').Page) {
   await page.waitForTimeout(300);
-}
-
-async function waitForChannelSubscribed(
-  diag: DiagnosticData,
-  label: string,
-  timeout = 8000,
-): Promise<boolean> {
-  const startTime = Date.now();
-  while (Date.now() - startTime < timeout) {
-    if (diag.consoleLogs.some((log: string) => log.includes('Channel status: SUBSCRIBED'))) {
-      return true;
-    }
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  return false;
 }
 
 async function dismissAnyConfirmAlert(page: import('@playwright/test').Page) {

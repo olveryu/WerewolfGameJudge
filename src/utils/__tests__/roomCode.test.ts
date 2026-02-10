@@ -47,9 +47,7 @@ describe('ConfigScreen Math.random contract', () => {
   it('should not use Math.random in ConfigScreen.tsx', () => {
     // This is a static analysis contract test
     // Use __dirname which is resolved at runtime by Jest
-     
     const fs = require('node:fs');
-     
     const path = require('node:path');
 
     // Navigate from src/utils/__tests__ to src/screens/ConfigScreen

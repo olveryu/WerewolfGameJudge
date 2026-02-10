@@ -8,7 +8,7 @@
  * ❌ 禁止：import service / 副作用 / resolver 逻辑
  */
 
-import type { ActionSchema, CompoundSchema,InlineSubStepSchema } from './schema.types';
+import type { ActionSchema } from './schema.types';
 
 export const SCHEMAS = {
   // === God actions ===

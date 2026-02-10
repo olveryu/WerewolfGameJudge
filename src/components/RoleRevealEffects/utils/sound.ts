@@ -6,7 +6,6 @@
  * ✅ 允许：音频播放 IO
  * ❌ 禁止：import service / 游戏业务逻辑
  */
-import { createAudioPlayer } from 'expo-audio';
 
 /**
  * Sound types available

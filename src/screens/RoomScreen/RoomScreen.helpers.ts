@@ -51,15 +51,6 @@ export interface ActionerState {
   showWolves: boolean;
 }
 
-interface PlayerInfoLike {
-  uid: string;
-  seatNumber: number;
-  displayName: string;
-  avatarUrl?: string;
-  role: RoleId | null;
-  hasViewedRole: boolean;
-}
-
 interface RoleStats {
   roleCounts: Record<string, number>;
   wolfRoles: string[];
@@ -188,7 +179,7 @@ export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
     const raw =
       gameState.currentNightResults?.wolfVotesBySeat ??
       // legacy fallback
-      ((gameState as any).wolfVotes as Map<number, number> | undefined);
+      ((gameState as unknown as Record<string, unknown>).wolfVotes as Map<number, number> | undefined);
     if (!raw) return new Map();
     if (raw instanceof Map) return raw;
     const map = new Map<number, number>();

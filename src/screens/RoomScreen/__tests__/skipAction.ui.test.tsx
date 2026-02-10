@@ -1,5 +1,4 @@
 import { act,fireEvent, render, waitFor } from '@testing-library/react-native';
-import React from 'react';
 
 import type { ChooseSeatSchema } from '@/models/roles/spec/schema.types';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';

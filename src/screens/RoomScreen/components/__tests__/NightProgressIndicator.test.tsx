@@ -4,7 +4,6 @@
  * Tests for the night progress indicator component.
  */
 import { render } from '@testing-library/react-native';
-import React from 'react';
 
 import { NightProgressIndicator } from '@/screens/RoomScreen/components/NightProgressIndicator';
 import { createRoomScreenComponentStyles } from '@/screens/RoomScreen/components/styles';

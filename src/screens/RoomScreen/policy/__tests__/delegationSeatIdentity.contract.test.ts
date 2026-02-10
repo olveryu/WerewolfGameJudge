@@ -26,7 +26,6 @@ function readFileContent(relativePath: string): string {
 // and dispatchInteraction logic moved to useInteractionDispatcher.
 const ORCHESTRATOR_PATH = 'src/screens/RoomScreen/hooks/useActionOrchestrator.ts';
 const DISPATCHER_PATH = 'src/screens/RoomScreen/hooks/useInteractionDispatcher.ts';
-const ROOM_SCREEN_PATH = 'src/screens/RoomScreen/RoomScreen.tsx';
 
 describe('Delegation Seat Identity Contract', () => {
   describe('handleActionIntent must use effectiveSeat for action submission', () => {

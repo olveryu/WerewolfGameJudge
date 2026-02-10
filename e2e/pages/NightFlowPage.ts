@@ -512,17 +512,6 @@ async function assertWolfVoteNotStuck(page: Page, state: NightFlowState): Promis
   }
 }
 
-async function maybeTakeScreenshot(
-  page: Page,
-  testInfo: TestInfo,
-  iter: number,
-  interval: number,
-): Promise<void> {
-  if (iter % interval !== 0) return;
-  const shot = await page.screenshot();
-  await testInfo.attach(`night-iter-${iter}.png`, { body: shot, contentType: 'image/png' });
-}
-
 async function maybeTakeAllScreenshots(
   pages: Page[],
   testInfo: TestInfo,

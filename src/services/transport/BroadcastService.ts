@@ -46,7 +46,6 @@ export class BroadcastService {
   private onPlayerMessage: ((message: PlayerMessage, senderId: string) => void) | null = null;
   private onPresenceChange: ((users: string[]) => void) | null = null;
 
-   
   constructor() {}
 
   private isConfigured(): boolean {
@@ -132,7 +131,7 @@ export class BroadcastService {
     this.channel.on('broadcast', { event: 'player' }, (payload) => {
       broadcastLog.info(' Received player message:', payload.payload?.type);
       if (this.onPlayerMessage && payload.payload) {
-        const senderId = (payload as any).presence_ref || 'unknown';
+        const senderId = (payload as Record<string, unknown>).presence_ref as string || 'unknown';
         this.onPlayerMessage(payload.payload as PlayerMessage, senderId);
       }
     });

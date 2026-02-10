@@ -103,7 +103,7 @@ export function useActionOrchestrator({
   submitRevealAckSafe,
   sendWolfRobotHunterStatusViewed,
   getAutoTriggerIntent,
-  findVotingWolfSeat,
+  findVotingWolfSeat: _findVotingWolfSeat,
   actionDialogs,
 }: UseActionOrchestratorParams): UseActionOrchestratorResult {
   // ─── Local state ─────────────────────────────────────────────────────────
@@ -139,7 +139,7 @@ export function useActionOrchestrator({
 
   // ── Action extra typing (UI -> Host wire payload) ──
   type WitchStepResults = { save: number | null; poison: number | null };
-  type ActionExtra = { stepResults: WitchStepResults } | { targets: readonly [number, number] };
+  type ActionExtra = { stepResults: WitchStepResults } | { targets: readonly [number, number] } | { confirmed: boolean };
 
   /**
    * Get a compound sub-step by key (e.g., 'save', 'poison' for witchAction).
@@ -418,7 +418,7 @@ export function useActionOrchestrator({
             actionDialogs.showConfirmDialog(
               '确认跳过',
               intent.message || BLOCKED_UI_DEFAULTS.skipButtonText,
-              () => void proceedWithActionTyped(null, { confirmed: false } as any),
+              () => void proceedWithActionTyped(null, { confirmed: false } as ActionExtra),
             );
             break;
           }
@@ -539,7 +539,7 @@ export function useActionOrchestrator({
           actionDialogs.showRoleActionPrompt(
             dialogTitle,
             statusMessage,
-            () => void proceedWithActionTyped(effectiveSeat, { confirmed: true } as any),
+            () => void proceedWithActionTyped(effectiveSeat, { confirmed: true } as ActionExtra),
           );
           break;
         }
@@ -606,7 +606,6 @@ export function useActionOrchestrator({
       confirmThenAct,
       currentSchema,
       currentActionRole,
-      findVotingWolfSeat,
       getSubStepByKey,
       pendingHunterStatusViewed,
       proceedWithActionTyped,

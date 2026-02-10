@@ -6,7 +6,7 @@
  * ✅ 允许：渲染 UI + 上报用户 intent
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { memo, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Text, TextInput,TouchableOpacity, View } from 'react-native';
 
 import { ThemeColors } from '@/theme';

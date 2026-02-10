@@ -4,7 +4,6 @@
  * Verifies that memoized sub-components don't re-render when unrelated state changes.
  */
 import { fireEvent,render } from '@testing-library/react-native';
-import React from 'react';
 
 import {
   ConfigScreenStyles,

@@ -24,7 +24,7 @@
  *   Dropdowns on the same screen won't collide (each has a unique prefix).
  */
 import { Ionicons } from '@expo/vector-icons';
-import React, { memo, useCallback,useState } from 'react';
+import { memo, useCallback,useState } from 'react';
 import { Modal, ScrollView,Text, TouchableOpacity, View } from 'react-native';
 
 import { typography } from '@/theme';

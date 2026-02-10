@@ -6,9 +6,7 @@
  */
 
 describe('No console.* in production code', () => {
-   
   const fs = require('node:fs');
-   
   const path = require('node:path');
 
   /**
@@ -60,9 +58,7 @@ describe('No console.* in production code', () => {
 });
 
 describe('No Math.random in speakOrder logic', () => {
-   
   const fs = require('node:fs');
-   
   const path = require('node:path');
 
   it('should not use Math.random in useRoomHostDialogs.ts', () => {

@@ -363,7 +363,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     }
 
     return `${base}（可点击改票或取消）`;
-  }, [currentSchema?.kind, getWolfVoteSummary, hasWolfVoted, actorRole, actorSeatNumber, gameState?.wolfVoteDeadline, countdownTick]);
+  }, [currentSchema?.kind, getWolfVoteSummary, hasWolfVoted, actorRole, actorSeatNumber, gameState?.wolfVoteDeadline, countdownTick]); // eslint-disable-line react-hooks/exhaustive-deps -- countdownTick intentionally triggers countdown re-computation
 
   // ─────────────────────────────────────────────────────────────────────────
   // UI-only: schema-driven bottom action button (skip / wolf empty vote / blocked)
@@ -567,6 +567,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     roomStatus,
     actorSeatNumber,
     actorRole,
+    hasWolfVoted,
   ]);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -618,14 +619,12 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     return { type: 'actionPrompt', targetIndex: -1 };
   }, [
     actorRole,
-    actorSeatNumber,
     imActioner,
     isAudioPlaying,
     currentSchema,
     gameState?.wolfRobotReveal,
     getWitchContext,
     anotherIndex,
-    hasWolfVoted,
   ]);
 
   // ─────────────────────────────────────────────────────────────────────────

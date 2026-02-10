@@ -1,5 +1,4 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-import React from 'react';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';

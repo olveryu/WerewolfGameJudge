@@ -106,7 +106,6 @@ describe('restartGame Contract', () => {
     }
 
     // 写回 store（test-only: 访问私有 store）
-     
     (facade as any).store.setState(state);
   }
 

@@ -1,5 +1,4 @@
 import { render, waitFor } from '@testing-library/react-native';
-import React from 'react';
 
 import type { WolfVoteSchema } from '@/models/roles/spec';
 import { getAllSchemaIds, getSchema } from '@/models/roles/spec/schemas';

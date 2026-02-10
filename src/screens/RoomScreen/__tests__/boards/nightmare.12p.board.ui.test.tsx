@@ -22,7 +22,6 @@
  */
 
 import { fireEvent,render, waitFor } from '@testing-library/react-native';
-import React from 'react';
 
 import { BLOCKED_UI_DEFAULTS, getSchema } from '@/models/roles/spec';
 import {

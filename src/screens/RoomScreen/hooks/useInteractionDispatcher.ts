@@ -330,6 +330,7 @@ export function useInteractionDispatcher({
       sendWolfRobotHunterStatusViewed,
       setControlledSeat,
       effectiveSeat,
+      pendingHunterStatusViewed,
       gameState,
       setPendingRevealDialog,
       setRoleCardVisible,

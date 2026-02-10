@@ -10,7 +10,6 @@
  */
 
 import { fireEvent,render, waitFor } from '@testing-library/react-native';
-import React from 'react';
 
 import { getSchema } from '@/models/roles/spec';
 import {

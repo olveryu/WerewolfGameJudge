@@ -6,7 +6,7 @@
  * ✅ 允许：渲染加载状态 UI、播放动画
  * ❌ 禁止：import service / 业务逻辑
  */
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Animated, Image,StyleSheet, Text, View } from 'react-native';
 
 import { borderRadius, shadows,spacing, typography } from '@/theme';

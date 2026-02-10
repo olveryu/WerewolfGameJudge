@@ -1,5 +1,4 @@
 import { fireEvent,render } from '@testing-library/react-native';
-import React from 'react';
 import { ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 
 import { Button } from '@/components/Button/Button';

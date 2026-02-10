@@ -211,7 +211,6 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     },
     [
       phase,
-      wheelRotation,
       wheelCards,
       wheelRadius,
       drawnCardX,

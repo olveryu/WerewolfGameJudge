@@ -10,6 +10,7 @@
  * ❌ 禁止：游戏业务逻辑、直接操作游戏状态
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import React, { createContext, use, useCallback, useEffect, useMemo,useState } from 'react';
 
 import { isSupabaseConfigured,supabase } from '@/config/supabase';
@@ -54,7 +55,7 @@ const userEquals = (a: User | null, b: User | null): boolean => {
 };
 
 // Convert Supabase user to our User type
-const toUser = (supabaseUser: any): User | null => {
+const toUser = (supabaseUser: SupabaseUser | null): User | null => {
   if (!supabaseUser) return null;
   return {
     uid: supabaseUser.id,

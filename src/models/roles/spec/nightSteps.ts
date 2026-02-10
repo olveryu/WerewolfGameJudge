@@ -13,7 +13,6 @@
  */
 
 import type { StepSpec } from './nightSteps.types';
-import type { RoleId } from './specs';
 
 /**
  * NIGHT_STEPS - 夜晚步骤表

@@ -6,7 +6,7 @@
  * ✅ 允许：渲染 UI + 上报 onToggle
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Text,TouchableOpacity } from 'react-native';
 
 import { ConfigScreenStyles } from './styles';

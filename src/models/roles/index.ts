@@ -49,7 +49,6 @@ export {
 // Re-imports from spec/ (for internal use)
 // ============================================================
 import { getAllRoleIds, getRoleSpec, isValidRoleId, ROLE_SPECS, type RoleId } from './spec/specs';
-import type { Team } from './spec/types';
 
 // ============================================================
 // Display Name Helpers (UI-facing)

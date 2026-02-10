@@ -1,5 +1,4 @@
 import { fireEvent,render } from '@testing-library/react-native';
-import React from 'react';
 
 import { PlayerGrid } from '@/screens/RoomScreen/components/PlayerGrid';
 import { TESTIDS } from '@/testids';

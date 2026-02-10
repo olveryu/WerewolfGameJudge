@@ -41,8 +41,6 @@ const AVATAR_IMAGES = [
   require('../../assets/avatars/villager_029.jpg'),
 ];
 
-const AVATAR_COUNT = AVATAR_IMAGES.length;
-
 /**
  * FNV-1a hash — better avalanche properties than djb2 for short similar strings.
  * Returns an unsigned 32-bit integer.

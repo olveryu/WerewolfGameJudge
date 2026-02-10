@@ -28,7 +28,6 @@ export function audioAssetToUrl(audioFile: number | string | { uri: string }): s
 }
 
 // Audio file mappings matching Flutter's JudgeAudioProvider
- 
 const AUDIO_FILES: Partial<Record<RoleId, AudioAsset>> = {
   slacker: require('../../../assets/audio/slacker.mp3'),
   wolfRobot: require('../../../assets/audio/wolf_robot.mp3'),
@@ -46,7 +45,6 @@ const AUDIO_FILES: Partial<Record<RoleId, AudioAsset>> = {
   darkWolfKing: require('../../../assets/audio/dark_wolf_king.mp3'),
 };
 
- 
 const AUDIO_END_FILES: Partial<Record<RoleId, AudioAsset>> = {
   slacker: require('../../../assets/audio_end/slacker.mp3'),
   wolfRobot: require('../../../assets/audio_end/wolf_robot.mp3'),
@@ -65,13 +63,10 @@ const AUDIO_END_FILES: Partial<Record<RoleId, AudioAsset>> = {
 };
 
 // Night audio
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const NIGHT_AUDIO: AudioAsset = require('../../../assets/audio/night.mp3');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const NIGHT_END_AUDIO: AudioAsset = require('../../../assets/audio/night_end.mp3');
 
 // Background music
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const BGM_NIGHT: AudioAsset = require('../../../assets/audio/bgm_night.mp3');
 
 /** BGM volume (0.0 to 1.0) - lower so TTS narration is clearly audible */
