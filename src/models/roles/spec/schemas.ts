@@ -273,37 +273,5 @@ export function getAllSchemaIds(): SchemaId[] {
   return Object.keys(SCHEMAS) as SchemaId[];
 }
 
-/**
- * Get a sub-step schema from a compound action.
- *
- * @param schemaId - The compound schema ID (e.g., 'witchAction')
- * @param stepIndex - Index of the sub-step (0 = save, 1 = poison for witch)
- * @returns The inline sub-step schema, or undefined if not found
- */
-export function getSubStepSchema(
-  schemaId: SchemaId,
-  stepIndex: number,
-): InlineSubStepSchema | undefined {
-  const schema = SCHEMAS[schemaId];
-  if (schema.kind !== 'compound') return undefined;
-  return (schema as CompoundSchema).steps[stepIndex];
-}
-
-/**
- * Get a sub-step schema by key from a compound action.
- *
- * @param schemaId - The compound schema ID (e.g., 'witchAction')
- * @param stepKey - Key of the sub-step (e.g., 'save', 'poison')
- * @returns The inline sub-step schema, or undefined if not found
- */
-export function getSubStepSchemaByKey(
-  schemaId: SchemaId,
-  stepKey: string,
-): InlineSubStepSchema | undefined {
-  const schema = SCHEMAS[schemaId];
-  if (schema.kind !== 'compound') return undefined;
-  return (schema as CompoundSchema).steps.find((s) => s.key === stepKey);
-}
-
 // Re-export types
 export * from './schema.types';

@@ -58,17 +58,3 @@ export type SideEffect =
   | { type: 'SEND_MESSAGE'; message: unknown }
   | { type: 'SAVE_STATE' };
 
-/**
- * Handler 函数签名
- */
-export type Handler<T extends GameIntent = GameIntent> = (
-  intent: T,
-  context: HandlerContext,
-) => HandlerResult | Promise<HandlerResult>;
-
-/**
- * Handler 注册表类型
- */
-export type HandlerRegistry = {
-  [K in GameIntent['type']]?: Handler<Extract<GameIntent, { type: K }>>;
-};

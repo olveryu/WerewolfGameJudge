@@ -34,8 +34,6 @@ const config = {
 export const log = logger.createLogger(config);
 
 // Pre-configured extensions for common modules
-export const hostLog = log.extend('Host');
-export const playerLog = log.extend('Player');
 export const nightFlowLog = log.extend('NightFlow');
 export const broadcastLog = log.extend('Broadcast');
 export const audioLog = log.extend('Audio');

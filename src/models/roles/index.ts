@@ -76,19 +76,6 @@ export function getRoleDisplayName(roleId: string): string {
 }
 
 // ============================================================
-// Team & Faction Helpers
-// ============================================================
-
-/**
- * Get team for a role
- */
-export function getRoleTeam(roleId: string): Team {
-  if (!isValidRoleId(roleId)) return 'good';
-  const spec = getRoleSpec(roleId);
-  return spec?.team ?? 'good';
-}
-
-// ============================================================
 // Wolf-related Helpers
 // ============================================================
 

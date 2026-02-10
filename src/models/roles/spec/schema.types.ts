@@ -209,5 +209,3 @@ export type ActionSchema =
   | ConfirmSchema
   | ConfirmTargetSchema;
 
-/** Schema kind literal type */
-export type SchemaKind = ActionSchema['kind'];

@@ -146,13 +146,3 @@ export function getStepsByRoleStrict(roleId: StepSpec['roleId']): StepSpec[] {
   return getStepsByRole(roleId);
 }
 
-/** Get roles with night-1 action in the authoritative NIGHT_STEPS order */
-export function getNight1ActionRoles(): RoleId[] {
-  // Derive order from NIGHT_STEPS (single source of truth), not legacy RoleSpec.night1.order.
-  // NOTE: Current contract assumes each role appears at most once in NIGHT_STEPS.
-  const roleIds = new Set<RoleId>();
-  for (const step of NIGHT_STEPS) {
-    roleIds.add(step.roleId);
-  }
-  return Array.from(roleIds);
-}

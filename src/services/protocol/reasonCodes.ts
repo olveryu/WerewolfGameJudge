@@ -22,12 +22,6 @@ export const REASON_INVALID_SEAT = 'invalid_seat' as const;
 /** 座位已被占用 */
 export const REASON_SEAT_TAKEN = 'seat_taken' as const;
 
-/** 座位是空的 */
-export const REASON_SEAT_EMPTY = 'seat_empty' as const;
-
-/** 不是你的座位 */
-export const REASON_NOT_YOUR_SEAT = 'not_your_seat' as const;
-
 /** 游戏进行中，不允许操作 */
 export const REASON_GAME_IN_PROGRESS = 'game_in_progress' as const;
 
@@ -51,20 +45,3 @@ export const REASON_CANCELLED = 'cancelled' as const;
 // Type Union
 // ============================================================
 
-/** 所有业务 reason */
-export type BusinessReasonCode =
-  | typeof REASON_NOT_AUTHENTICATED
-  | typeof REASON_NO_STATE
-  | typeof REASON_INVALID_SEAT
-  | typeof REASON_SEAT_TAKEN
-  | typeof REASON_SEAT_EMPTY
-  | typeof REASON_NOT_YOUR_SEAT
-  | typeof REASON_GAME_IN_PROGRESS
-  | typeof REASON_NOT_SEATED
-  | typeof REASON_INVALID_ACTION;
-
-/** Transport-level reason */
-export type TransportReasonCode = typeof REASON_TIMEOUT | typeof REASON_CANCELLED;
-
-/** 所有 reason */
-export type SeatActionReasonCode = BusinessReasonCode | TransportReasonCode;
