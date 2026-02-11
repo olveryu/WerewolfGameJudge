@@ -17,6 +17,31 @@ applyTo: src/screens/**/*.ts,src/screens/**/*.tsx
 - ❌ 提交路径禁止使用 `mySeatNumber`（必须用 `effectiveSeat`）。
 - ❌ 禁止 `console.*`（使用命名 logger）。
 
+## Screen 组件拆分规则（SHOULD follow）
+
+### 原则
+
+组件负责描述 UI，Hook 负责封装逻辑。当 Screen 文件超过 ~400 行且 **逻辑密度高**（hook 调用多、派生值多、副作用多）时，应拆为：
+
+- **薄壳组件**（Screen）：只含 JSX、样式、布局。
+- **组合 Hook**（`useXxxScreenState`）：编排所有子 hook、useState、useEffect、useMemo、useCallback。
+
+### 拆分判断标准
+
+| 信号 | 行动 |
+|------|------|
+| hook 调用 10+、useMemo/useCallback 10+、副作用 5+ | ✅ 拆 |
+| 行数 300-400，hook 调用少、主要是 JSX | ❌ 不拆 |
+| 行数 >400 但大部分是 JSX（表单/列表 UI） | ❌ 不急拆，优先提取子组件 |
+| 逻辑已通过子 hook 分散，Screen 只是"接线" | ✅ 拆（接线本身就是认知负荷） |
+
+### 硬规则
+
+- ✅ 组合 Hook 返回所有 UI 需要的值，Screen 只做解构 + 渲染。
+- ✅ 组合 Hook 文件名：`useXxxScreenState.ts`，放在 `hooks/` 目录。
+- ❌ 禁止为了模式统一而强拆 — 300 行以下且逻辑简单的 Screen 不需要拆。
+- ❌ 拆分不得引入新的 Context/Provider — 子组件仍通过 props 接收数据。
+
 ## Theme Token（MUST follow）
 
 - 所有样式值必须来自 theme token，禁止硬编码。

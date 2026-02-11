@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RouteProp,useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useMemo, useRef,useState } from 'react';
-import { ActivityIndicator, Modal,ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -28,14 +28,13 @@ import { SettingsService } from '@/services/feature/SettingsService';
 import { AuthService } from '@/services/infra/AuthService';
 import { RoomService } from '@/services/infra/RoomService';
 import { TESTIDS } from '@/testids';
-import { spacing, typography,useColors } from '@/theme';
+import { spacing, useColors } from '@/theme';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { showAlert } from '@/utils/alert';
 import { configLog } from '@/utils/logger';
 
 import {
   createConfigScreenStyles,
-  Dropdown,
   type DropdownOption,
   type FactionColorKey,
   type FactionTabItem,
@@ -43,6 +42,8 @@ import {
   RoleChip,
   RoleStepper,
   Section,
+  SettingsSheet,
+  TemplatePicker,
 } from './components';
 import { buildInitialSelection,FACTION_GROUPS } from './configData';
 
@@ -624,89 +625,27 @@ export const ConfigScreen: React.FC = () => {
       </View>
 
       {/* Settings Sheet (Animation + BGM) */}
-      <Modal
+      <SettingsSheet
         visible={settingsSheetVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={handleCloseSettings}
-      >
-        <TouchableOpacity
-          style={styles.settingsSheetOverlay}
-          activeOpacity={1}
-          onPress={handleCloseSettings}
-          testID="config-settings-overlay"
-        >
-          <View style={styles.settingsSheetContent}>
-            <View style={styles.settingsSheetHandle} />
-            <Text style={styles.settingsSheetTitle}>设置</Text>
-            <View style={styles.settingsRow}>
-              <Dropdown
-                label="动画"
-                value={roleRevealAnimation}
-                options={animationOptions}
-                onSelect={handleAnimationChange}
-                styles={styles}
-                testID="config-animation"
-              />
-              <Dropdown
-                label="BGM"
-                value={bgmEnabled ? 'on' : 'off'}
-                options={bgmOptions}
-                onSelect={handleBgmChange}
-                styles={styles}
-                testID="config-bgm"
-              />
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={handleCloseSettings}
+        roleRevealAnimation={roleRevealAnimation}
+        bgmValue={bgmEnabled ? 'on' : 'off'}
+        animationOptions={animationOptions}
+        bgmOptions={bgmOptions}
+        onAnimationChange={handleAnimationChange}
+        onBgmChange={handleBgmChange}
+        styles={styles}
+      />
 
       {/* Template Dropdown Modal */}
-      <Modal
+      <TemplatePicker
         visible={templateDropdownVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={handleCloseTemplateDropdown}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={handleCloseTemplateDropdown}
-        >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>选择板子</Text>
-              <TouchableOpacity style={styles.modalCloseBtn} onPress={handleCloseTemplateDropdown}>
-                <Ionicons name="close" size={typography.title} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView>
-              {templateOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.modalOption,
-                    option.value === selectedTemplate && styles.modalOptionSelected,
-                  ]}
-                  onPress={() => handleSelectTemplate(option.value)}
-                >
-                  <Text
-                    style={[
-                      styles.modalOptionText,
-                      option.value === selectedTemplate && styles.modalOptionTextSelected,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  {option.value === selectedTemplate && (
-                    <Ionicons name="checkmark" size={typography.body} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={handleCloseTemplateDropdown}
+        options={templateOptions}
+        selectedValue={selectedTemplate}
+        onSelect={handleSelectTemplate}
+        styles={styles}
+      />
     </SafeAreaView>
   );
 };
