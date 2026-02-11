@@ -176,20 +176,20 @@ jest.mock('../useRoomActionDialogs', () => ({
       wolfName: string,
       targetIndex: number,
       onConfirm: () => void,
-      messageOverride?: string,
-      schema?: any,
+      messageOverride: string | undefined,
+      schema: any,
     ) => {
       const { showAlert: mockShowAlert } = require('@/utils/alert');
-      const title = schema?.ui?.confirmTitle ?? '狼人投票';
+      const title = schema.ui.confirmTitle;
       let msg: string;
       if (messageOverride) {
         msg = messageOverride;
       } else if (targetIndex === -1) {
-        const tpl = schema?.ui?.emptyVoteConfirmTemplate ?? '{wolf} 确定投票空刀吗？';
-        msg = tpl.replace('{wolf}', wolfName);
+        msg = schema.ui.emptyVoteConfirmTemplate.replace('{wolf}', wolfName);
       } else {
-        const tpl = schema?.ui?.voteConfirmTemplate ?? '{wolf} 确定要猎杀{seat}号玩家吗？';
-        msg = tpl.replace('{wolf}', wolfName).replace('{seat}', `${targetIndex + 1}`);
+        msg = schema.ui.voteConfirmTemplate
+          .replace('{wolf}', wolfName)
+          .replace('{seat}', `${targetIndex + 1}`);
       }
       mockShowAlert(title, msg, [
         { text: '取消', style: 'cancel' },
@@ -217,7 +217,10 @@ describe('RoomScreen wolf vote UI', () => {
     const { useRoomActionDialogs } = require('@/screens/RoomScreen/useRoomActionDialogs');
     const dialogs = useRoomActionDialogs();
 
-    dialogs.showWolfVoteDialog('1号狼人', 2, () => mockSubmitWolfVote(2));
+    dialogs.showWolfVoteDialog('1号狼人', 2, () => mockSubmitWolfVote(2), undefined, (() => {
+      const { getSchema } = require('@/models/roles/spec/schemas');
+      return getSchema('wolfKill');
+    })());
 
     expect(showAlert).toHaveBeenCalledWith(
       '狼人投票',
@@ -261,7 +264,7 @@ describe('RoomScreen wolf vote UI', () => {
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
         '狼人投票',
-        expect.stringContaining('确定要猎杀该玩家吗？'),
+        expect.stringContaining('确定要猎杀3号玩家吗？'),
         expect.any(Array),
       );
     });
@@ -339,14 +342,18 @@ describe('RoomScreen wolf vote UI', () => {
       fireEvent.press(seatPressable);
     });
 
-    // First: wolf vote confirm dialog should still appear
+    // First: wolf vote confirm dialog should still appear (with immune warning)
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
         '狼人投票',
-        expect.stringContaining('确定要猎杀该玩家吗？'),
+        expect.stringContaining('确定要猎杀3号玩家吗？'),
         expect.any(Array),
       );
     });
+
+    // Verify immune warning is appended
+    const alertMsg = (showAlert as jest.Mock).mock.calls[0][1] as string;
+    expect(alertMsg).toContain('免疫狼刀');
 
     // Confirm vote
     const buttons = (showAlert as jest.Mock).mock.calls[0][2] as Array<{

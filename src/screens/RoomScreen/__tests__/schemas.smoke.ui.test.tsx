@@ -1,6 +1,5 @@
 import { render, waitFor } from '@testing-library/react-native';
 
-import type { WolfVoteSchema } from '@/models/roles/spec';
 import { getAllSchemaIds, getSchema } from '@/models/roles/spec/schemas';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 
@@ -176,18 +175,18 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
       const { queryByText } = render(<RoomScreen {...props} />);
 
       if (schemaId === 'wolfKill') {
-        const wolfSchema = schema as WolfVoteSchema;
         // wolfKill is a wolfVote schema: its copy shows via dialog (showAlert), not in the tree.
         // Deterministically trigger the wolfVote intent through the RoomScreen hook contract.
         const dialogs = useRoomActionDialogs();
 
         // Deterministically trigger the dialog through a small shim.
-        dialogs.showWolfVoteDialog('1号狼人', 1, jest.fn(), wolfSchema.ui?.confirmText);
+        dialogs.showWolfVoteDialog('1号狼人', 1, jest.fn(), undefined, schema);
 
         await waitFor(() => {
           expect(dialogs.showWolfVoteDialog).toHaveBeenCalled();
           const lastCall = (dialogs.showWolfVoteDialog as jest.Mock).mock.calls.at(-1);
-          expect(lastCall?.[3]).toBe(wolfSchema.ui?.confirmText);
+          // Schema is passed as 5th arg (schema-driven contract)
+          expect(lastCall?.[4]).toBe(schema);
         });
         return;
       }

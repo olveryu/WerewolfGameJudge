@@ -329,14 +329,19 @@ export function useActionOrchestrator({
               intent.targetIndex,
               () => void submitWolfVote(intent.targetIndex),
               (() => {
-                // Empty vote: use default "空刀" message, don't override
+                // Only override for immune targets — normal text comes from schema templates.
                 if (intent.targetIndex < 0) return undefined;
-                const base = currentSchema?.ui?.confirmText;
                 const targetRole = gameStateRef.current?.players?.get(intent.targetIndex)?.role;
-                if (currentSchema?.id !== 'wolfKill' || !targetRole) return base;
+                if (currentSchema?.id !== 'wolfKill' || !targetRole) return undefined;
                 const immune = targetRole === 'spiritKnight' || targetRole === 'wolfQueen';
-                return immune ? `${base ?? ''}\n（提示：该角色免疫狼刀，Host 会拒绝）` : base;
+                if (!immune) return undefined;
+                const tpl = currentSchema.ui!.voteConfirmTemplate!;
+                const resolved = tpl
+                  .replace('{wolf}', `${seat + 1}号狼人`)
+                  .replace('{seat}', `${intent.targetIndex + 1}`);
+                return `${resolved}\n（提示：该角色免疫狼刀，Host 会拒绝）`;
               })(),
+              currentSchema!,
             );
           }
           break;
