@@ -33,7 +33,7 @@ import type { ActionIntent } from './useRoomActions';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface UseActionOrchestratorParams {
+interface UseActionOrchestratorParams {
   // ── Game state ──
   gameState: LocalGameState | null;
   roomStatus: GameStatus;
@@ -68,7 +68,7 @@ export interface UseActionOrchestratorParams {
   actionDialogs: UseRoomActionDialogsResult;
 }
 
-export interface UseActionOrchestratorResult {
+interface UseActionOrchestratorResult {
   /** Process an ActionIntent (the big switch). Called by dispatchInteraction and auto-trigger. */
   handleActionIntent: (intent: ActionIntent) => Promise<void>;
   /** Whether a reveal dialog is pending (gates night-end speak order dialog). */
@@ -173,14 +173,14 @@ export function useActionOrchestrator({
   // UI-only helpers: keep confirm copy schema-driven
   const getConfirmTitleForSchema = useCallback((): string => {
     return currentSchema?.kind === 'chooseSeat'
-      ? currentSchema.ui?.confirmTitle || '确认行动'
+      ? currentSchema.ui!.confirmTitle!
       : '确认行动';
   }, [currentSchema]);
 
   const getConfirmTextForSeatAction = useCallback(
     (targetIndex: number): string => {
       return currentSchema?.kind === 'chooseSeat'
-        ? currentSchema.ui?.confirmText || `是否对${targetIndex + 1}号玩家使用技能？`
+        ? currentSchema.ui!.confirmText!
         : `是否对${targetIndex + 1}号玩家使用技能？`;
     },
     [currentSchema],
@@ -235,7 +235,7 @@ export function useActionOrchestrator({
       switch (intent.type) {
         case 'magicianFirst':
           setAnotherIndex(intent.targetIndex);
-          actionDialogs.showMagicianFirstAlert(intent.targetIndex, currentSchema);
+          actionDialogs.showMagicianFirstAlert(intent.targetIndex, currentSchema!);
           break;
 
         case 'reveal': {
@@ -362,8 +362,8 @@ export function useActionOrchestrator({
             setSecondSeatIndex(intent.targetIndex);
             setTimeout(() => {
               actionDialogs.showConfirmDialog(
-                currentSchema?.ui?.confirmTitle || '确认交换',
-                intent.message || `确定交换${anotherIndex + 1}号和${intent.targetIndex + 1}号?`,
+                currentSchema!.ui!.confirmTitle!,
+                intent.message!,
                 () => {
                   setAnotherIndex(null);
                   setSecondSeatIndex(null);
@@ -411,8 +411,8 @@ export function useActionOrchestrator({
             });
 
             actionDialogs.showConfirmDialog(
-              stepSchema?.ui?.confirmTitle || currentSchema?.ui?.confirmTitle || '确认行动',
-              stepSchema?.ui?.confirmText || intent.message || '',
+              stepSchema?.ui?.confirmTitle ?? currentSchema!.ui!.confirmTitle!,
+              stepSchema?.ui?.confirmText ?? intent.message!,
               () => void proceedWithActionTyped(targetToSubmit, extra),
             );
           }
@@ -473,8 +473,8 @@ export function useActionOrchestrator({
           });
           if (hintApplies && hint.promptOverride) {
             actionDialogs.showRoleActionPrompt(
-              hint.promptOverride.title || '技能被封锁',
-              hint.promptOverride.text || hint.message,
+              hint.promptOverride.title!,
+              hint.promptOverride.text!,
               () => {},
             );
             break;

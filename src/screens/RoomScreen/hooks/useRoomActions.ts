@@ -459,7 +459,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       // Empty vote button (always available)
       buttons.push({
         key: 'wolfEmpty',
-        label: currentSchema.ui?.emptyVoteText || '投票空刀',
+        label: currentSchema.ui!.emptyVoteText!,
         intent: {
           type: 'wolfVote',
           targetIndex: -1,
@@ -478,11 +478,11 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
         buttons: [
           {
             key: 'skip',
-            label: currentSchema.ui?.bottomActionText || '不使用技能',
+            label: currentSchema.ui!.bottomActionText!,
             intent: {
               type: 'skip',
               targetIndex: -1,
-              message: currentSchema.ui?.bottomActionText || '不使用技能',
+              message: currentSchema.ui!.bottomActionText!,
             },
           },
         ],
@@ -530,8 +530,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       // 2) Skip button: always available; should mean save=false AND poison=false.
       // We route through RoomScreen with stepKey='skipAll' (not a schema step) to avoid dual-submit.
       // RoomScreen will translate this to extra {save:false, poison:false}.
-      const skipLabel =
-        poisonStep?.ui?.bottomActionText || saveStep?.ui?.bottomActionText || '不使用技能';
+      const skipLabel = poisonStep!.ui!.bottomActionText!;
       buttons.push({
         key: 'skip',
         label: skipLabel,
@@ -549,7 +548,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
         buttons: [
           {
             key: 'confirm',
-            label: currentSchema.ui?.bottomActionText || '查看发动状态',
+            label: currentSchema.ui!.bottomActionText!,
             intent: { type: 'confirmTrigger', targetIndex: -1 },
           },
         ],
