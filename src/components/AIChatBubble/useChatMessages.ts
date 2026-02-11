@@ -33,9 +33,9 @@ const MAX_PERSISTED_MESSAGES = 50;
 const MAX_CONTEXT_MESSAGES = 9;
 
 /** Typewriter: minimum ms between flushing buffered tokens to UI */
-const TYPEWRITER_INTERVAL_MS = 50;
+const TYPEWRITER_INTERVAL_MS = 30;
 /** Typewriter: characters to release per tick */
-const TYPEWRITER_CHARS_PER_TICK = 1;
+const TYPEWRITER_CHARS_PER_TICK = 2;
 
 // ── Return type ──────────────────────────────────────────
 
@@ -209,13 +209,34 @@ export function useChatMessages(
           // 'done' — streaming finished, let typewriter drain remaining buffer
         }
 
-        // Drain remaining buffer then show final content
+        // Drain remaining buffer via typewriter (don't show final content instantly)
         if (typewriterTimer) clearInterval(typewriterTimer);
         if (fullContent) {
           const finalContent = fullContent.replaceAll(/<think>[\s\S]*?<\/think>/g, '').trim();
-          setMessages((prev) =>
-            prev.map((m) => (m.id === assistantId ? { ...m, content: finalContent } : m)),
-          );
+
+          // Wait for typewriter to drain remaining characters
+          await new Promise<void>((resolve) => {
+            const drainTimer = setInterval(() => {
+              if (displayedLength >= finalContent.length) {
+                clearInterval(drainTimer);
+                // Ensure final content is fully displayed
+                setMessages((prev) =>
+                  prev.map((m) => (m.id === assistantId ? { ...m, content: finalContent } : m)),
+                );
+                resolve();
+              } else {
+                displayedLength = Math.min(
+                  displayedLength + TYPEWRITER_CHARS_PER_TICK,
+                  finalContent.length,
+                );
+                const visible = finalContent.slice(0, displayedLength);
+                setMessages((prev) =>
+                  prev.map((m) => (m.id === assistantId ? { ...m, content: visible } : m)),
+                );
+              }
+            }, TYPEWRITER_INTERVAL_MS);
+          });
+
           triggerHaptic('success');
         }
       } catch (err: unknown) {
