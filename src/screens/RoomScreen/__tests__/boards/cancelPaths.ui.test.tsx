@@ -15,7 +15,6 @@ import {
   createGameRoomMock,
   createShowAlertMock,
   mockNavigation,
-  MockSafeAreaView,
   RoomScreenTestHarness,
   tapSeat,
   waitForRoomScreen,

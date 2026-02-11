@@ -15,16 +15,15 @@
  *   - Contain business logic (delegated to sub-hooks)
  */
 
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useGameRoom } from '@/hooks/useGameRoom';
 import { GameStatus } from '@/models/GameStatus';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
 import type { GameTemplate } from '@/models/Template';
 import type { RootStackParamList } from '@/navigation/types';
-import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { AudioService } from '@/services/infra/AudioService';
+import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { showAlert } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';
 
