@@ -128,7 +128,7 @@ describe('Delegation Seat Identity Contract', () => {
      * for all action-related seat decisions.
      */
     it('GameContext.actorSeatNumber should be actorSeatForUi', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      const content = readFileContent('src/screens/RoomScreen/hooks/useRoomScreenState.ts');
 
       // Find gameContext definition
       const gameContextRegex = /const\s+gameContext\s*=\s*useMemo\s*\(/g;
@@ -153,7 +153,7 @@ describe('Delegation Seat Identity Contract', () => {
      * GameContext.actorRole should be actorRoleForUi (not myRole)
      */
     it('GameContext.actorRole should be actorRoleForUi', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      const content = readFileContent('src/screens/RoomScreen/hooks/useRoomScreenState.ts');
 
       const gameContextRegex = /const\s+gameContext\s*=\s*useMemo\s*\(/g;
       const match = gameContextRegex.exec(content);
