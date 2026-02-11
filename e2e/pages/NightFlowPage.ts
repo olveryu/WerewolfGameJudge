@@ -418,6 +418,19 @@ async function tryAdvanceNight(
         .catch(() => '')) ?? '';
     const isWolfVoteConfirm = alertTitle === UI_TEXT.wolfVoteConfirmTitle;
 
+    // Skip wolf vote confirm if this page already voted — prevents re-voting
+    // which would reset the 5-second countdown and cause an infinite loop.
+    // Just dismiss the alert and let the countdown expire naturally.
+    if (isWolfVoteConfirm && state.wolfVotedPages.has(pageLabel)) {
+      nightLog(
+        `[NightFlow] ${pageLabel}: skipping wolf vote re-confirm (already voted, waiting for countdown)`,
+      );
+      // Dismiss by pressing Escape or clicking outside (don't click 确定)
+      await page.keyboard.press('Escape').catch(() => {});
+      await alertModal.waitFor({ state: 'hidden', timeout: 1000 }).catch(() => {});
+      return false;
+    }
+
     // Find and click any button in the alert
     for (const text of UI_TEXT.advanceButtons) {
       const btn = alertModal.getByText(text, { exact: true }).first();
