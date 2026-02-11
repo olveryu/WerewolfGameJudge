@@ -3,6 +3,9 @@
  * Mocks external dependencies that are not available in test environment
  */
 
+// Reanimated jest mock (must be before any component imports)
+require('react-native-reanimated').setUpTests();
+
 // ---------------------------------------------------------------------------
 // Suppress noisy React warnings (common in async component tests)
 // These warnings are informational and don't indicate test failures.
