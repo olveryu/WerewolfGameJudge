@@ -16,7 +16,6 @@ import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import {
   type ChatMessage,
   getDefaultApiKey,
-  type StreamChunk,
   streamChatMessage,
 } from '@/services/feature/AIChatService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
@@ -33,6 +32,9 @@ const COOLDOWN_SECONDS = 5;
 const MAX_PERSISTED_MESSAGES = 50;
 const MAX_CONTEXT_MESSAGES = 9;
 
+/** Typewriter: minimum ms between flushing buffered tokens to UI */
+const TYPEWRITER_INTERVAL_MS = 30;
+
 // ── Return type ──────────────────────────────────────────
 
 export interface UseChatMessagesReturn {
@@ -45,7 +47,6 @@ export interface UseChatMessagesReturn {
   handleSend: () => Promise<void>;
   handleQuickQuestion: (question: string) => void;
   handleClearHistory: () => void;
-  handleRetry: (messageId: string) => void;
 }
 
 /**
@@ -167,6 +168,23 @@ export function useChatMessages(
         contextMessages.push({ role: 'user', content: text });
 
         let fullContent = '';
+        // Typewriter buffer: accumulate tokens, flush at interval
+        let displayedLength = 0;
+        let typewriterTimer: ReturnType<typeof setInterval> | null = null;
+
+        const flushBuffer = () => {
+          const cleaned = fullContent.replaceAll(/<think>[\s\S]*?<\/think>/g, '').trim();
+          if (cleaned.length > displayedLength) {
+            // Release ~2 chars per tick for smooth typewriter feel
+            displayedLength = Math.min(displayedLength + 2, cleaned.length);
+            const visible = cleaned.slice(0, displayedLength);
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantId ? { ...m, content: visible } : m)),
+            );
+          }
+        };
+
+        typewriterTimer = setInterval(flushBuffer, TYPEWRITER_INTERVAL_MS);
 
         for await (const chunk of streamChatMessage(
           contextMessages,
@@ -174,25 +192,24 @@ export function useChatMessages(
           gameContext,
           controller.signal,
         )) {
-          if (controller.signal.aborted) return;
+          if (controller.signal.aborted) {
+            if (typewriterTimer) clearInterval(typewriterTimer);
+            return;
+          }
 
           if (chunk.type === 'delta') {
             fullContent += chunk.content;
-            // Clean Qwen3 <think> tags on-the-fly
-            const cleaned = fullContent.replaceAll(/<think>[\s\S]*?<\/think>/g, '').trim();
-            setMessages((prev) =>
-              prev.map((m) => (m.id === assistantId ? { ...m, content: cleaned } : m)),
-            );
           } else if (chunk.type === 'error') {
-            // Remove empty placeholder and show error
+            if (typewriterTimer) clearInterval(typewriterTimer);
             setMessages((prev) => prev.filter((m) => m.id !== assistantId));
             showAlert('发送失败', chunk.content);
             break;
           }
-          // 'done' — streaming finished, content already accumulated
+          // 'done' — streaming finished, let typewriter drain remaining buffer
         }
 
-        // Final cleanup of <think> tags (in case stream ended mid-tag)
+        // Drain remaining buffer then show final content
+        if (typewriterTimer) clearInterval(typewriterTimer);
         if (fullContent) {
           const finalContent = fullContent.replaceAll(/<think>[\s\S]*?<\/think>/g, '').trim();
           setMessages((prev) =>
@@ -235,32 +252,6 @@ export function useChatMessages(
     [sendMessage],
   );
 
-  const handleRetry = useCallback(
-    (messageId: string) => {
-      // Find the assistant message to retry
-      const current = messagesRef.current;
-      const msgIndex = current.findIndex((m) => m.id === messageId);
-      if (msgIndex === -1) return;
-
-      // Find preceding user message
-      let userMsg: DisplayMessage | null = null;
-      for (let i = msgIndex - 1; i >= 0; i--) {
-        if (current[i].role === 'user') {
-          userMsg = current[i];
-          break;
-        }
-      }
-      if (!userMsg) return;
-
-      // Remove the failed assistant message
-      setMessages((prev) => prev.filter((m) => m.id !== messageId));
-
-      // Re-send
-      sendMessage(userMsg.content);
-    },
-    [sendMessage],
-  );
-
   const handleClearHistory = useCallback(() => {
     showAlert('清除聊天记录', '确定要清除所有聊天记录吗？此操作不可恢复。', [
       { text: '取消', style: 'cancel' },
@@ -285,6 +276,5 @@ export function useChatMessages(
     handleSend,
     handleQuickQuestion,
     handleClearHistory,
-    handleRetry,
   };
 }

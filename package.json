@@ -1,6 +1,6 @@
 {
   "name": "werewolfgamejudge",
-  "version": "1.0.156",
+  "version": "1.0.157",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
@@ -28,7 +28,6 @@
     "@supabase/supabase-js": "^2.89.0",
     "expo": "~54.0.31",
     "expo-audio": "~1.1.1",
-    "expo-clipboard": "~8.0.8",
     "expo-crypto": "~15.0.8",
     "expo-haptics": "^15.0.8",
     "expo-image-picker": "~17.0.10",

@@ -120,7 +120,7 @@ const SYSTEM_PROMPT = `你是狼人杀游戏助手。职责：规则解答、策
 
 回答原则：
 - 简洁中文，控制在150字内
-- 可用emoji 🐺
+- 适当使用 **加粗** 突出关键词、- 列表分条说明、emoji 🐺 增加可读性
 - 本App只处理第一夜，白天在线下进行`;
 
 export interface ChatMessage {

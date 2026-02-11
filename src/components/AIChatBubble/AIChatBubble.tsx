@@ -80,11 +80,13 @@ export const AIChatBubble: React.FC = () => {
             isUser ? styles.userBubble : styles.assistantBubble,
           ]}
           textStyle={[styles.messageText, isUser && styles.userText]}
-          onRetry={chat.handleRetry}
+          isStreaming={
+            chat.isStreaming && item.id === chat.messages.at(-1)?.id
+          }
         />
       );
     },
-    [styles, colors, chat.handleRetry],
+    [styles, colors, chat.isStreaming, chat.messages],
   );
 
   // Web drag style

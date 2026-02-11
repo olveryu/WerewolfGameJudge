@@ -39,7 +39,6 @@ export interface UseAIChatReturn {
   handleSend: () => Promise<void>;
   handleQuickQuestion: (question: string) => void;
   handleClearHistory: () => void;
-  handleRetry: (messageId: string) => void;
 
   // Bubble position & drag
   position: { x: number; y: number };
@@ -93,7 +92,6 @@ export function useAIChat(): UseAIChatReturn {
     handleSend: chat.handleSend,
     handleQuickQuestion: chat.handleQuickQuestion,
     handleClearHistory: chat.handleClearHistory,
-    handleRetry: chat.handleRetry,
     contextQuestions,
 
     // Open/close
