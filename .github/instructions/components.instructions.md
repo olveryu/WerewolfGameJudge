@@ -16,7 +16,7 @@ applyTo: src/screens/**/components/**
 
 ## 性能模式（MUST follow）
 
-- 使用 `React.memo(Component, arePropsEqual)` 做 memo 化。
+- 使用 `React.memo(Component)` 做 memo 化（禁止自定义 `arePropsEqual`，依赖默认 shallow compare + 父级 `useCallback` 稳定回调）。
 - Styles 由父组件通过 `createXxxStyles(colors)` 创建并传入，子组件禁止各自 `StyleSheet.create`。
 - 回调通过 props 传入，父组件用 `useCallback` 稳定化引用。
 

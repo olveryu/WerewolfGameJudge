@@ -30,19 +30,6 @@ export interface AuthFormProps {
   colors: ThemeColors;
 }
 
-const arePropsEqual = (prev: AuthFormProps, next: AuthFormProps): boolean => {
-  return (
-    prev.isSignUp === next.isSignUp &&
-    prev.email === next.email &&
-    prev.password === next.password &&
-    prev.displayName === next.displayName &&
-    prev.authError === next.authError &&
-    prev.authLoading === next.authLoading &&
-    prev.styles === next.styles
-    // onXxx callbacks excluded - stable via useCallback
-  );
-};
-
 export const AuthForm = memo<AuthFormProps>(
   ({
     isSignUp,
@@ -121,7 +108,6 @@ export const AuthForm = memo<AuthFormProps>(
       </View>
     );
   },
-  arePropsEqual,
 );
 
 AuthForm.displayName = 'AuthForm';

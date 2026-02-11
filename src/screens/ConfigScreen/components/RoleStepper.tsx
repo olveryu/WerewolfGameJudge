@@ -21,17 +21,6 @@ export interface RoleStepperProps {
   accentColor: string;
 }
 
-const arePropsEqual = (prev: RoleStepperProps, next: RoleStepperProps): boolean => {
-  return (
-    prev.roleId === next.roleId &&
-    prev.label === next.label &&
-    prev.count === next.count &&
-    prev.maxCount === next.maxCount &&
-    prev.accentColor === next.accentColor &&
-    prev.styles === next.styles
-  );
-};
-
 export const RoleStepper = memo<RoleStepperProps>(
   ({ roleId, label, count, maxCount, onCountChange, styles, accentColor }) => {
     const handleDecrement = useCallback(() => {
@@ -89,7 +78,6 @@ export const RoleStepper = memo<RoleStepperProps>(
       </View>
     );
   },
-  arePropsEqual,
 );
 
 RoleStepper.displayName = 'RoleStepper';

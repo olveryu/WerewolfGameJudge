@@ -24,12 +24,6 @@ export interface TemplatePickerProps {
   styles: ConfigScreenStyles;
 }
 
-const arePropsEqual = (prev: TemplatePickerProps, next: TemplatePickerProps): boolean =>
-  prev.visible === next.visible &&
-  prev.selectedValue === next.selectedValue &&
-  prev.options === next.options &&
-  prev.styles === next.styles;
-
 export const TemplatePicker = memo(function TemplatePicker({
   visible,
   onClose,
@@ -100,4 +94,4 @@ export const TemplatePicker = memo(function TemplatePicker({
       </TouchableOpacity>
     </Modal>
   );
-}, arePropsEqual);
+});

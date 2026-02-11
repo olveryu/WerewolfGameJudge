@@ -1,7 +1,7 @@
 /**
  * SeatConfirmModal.tsx - Modal for confirming seat enter/leave actions
  *
- * Performance: Memoized with arePropsEqual, receives pre-created styles from parent.
+ * Performance: Memoized with default shallow compare, receives pre-created styles from parent.
  *
  * ❌ Do NOT import: any Service singletons, showAlert
  * ✅ Allowed: types, styles, UI components

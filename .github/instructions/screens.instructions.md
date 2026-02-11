@@ -126,8 +126,8 @@ applyTo: src/screens/**/*.ts,src/screens/**/*.tsx
 
 ### 2) 子组件 memo 化
 
-- ✅ `React.memo(Component, arePropsEqual)`，只比较 UI primitive + `styles` 引用。
-- ✅ 回调不参与比较（由父级 `useCallback` 稳定化）。
+- ✅ `React.memo(Component)` 默认 shallow compare（禁止自定义 `arePropsEqual`）。
+- ✅ 回调由父级 `useCallback` 稳定化，确保 shallow compare 不会触发多余渲染。
 
 ### 3) Handler 稳定化（useCallback）
 

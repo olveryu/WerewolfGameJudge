@@ -26,24 +26,6 @@ export interface FactionTabsProps {
   styles: ConfigScreenStyles;
 }
 
-const arePropsEqual = (prev: FactionTabsProps, next: FactionTabsProps): boolean => {
-  if (
-    prev.activeKey !== next.activeKey ||
-    prev.styles !== next.styles ||
-    prev.tabs.length !== next.tabs.length
-  ) {
-    return false;
-  }
-  for (let i = 0; i < prev.tabs.length; i++) {
-    const p = prev.tabs[i];
-    const n = next.tabs[i];
-    if (p.key !== n.key || p.count !== n.count || p.accentColor !== n.accentColor) {
-      return false;
-    }
-  }
-  return true;
-};
-
 export const FactionTabs = memo<FactionTabsProps>(({ tabs, activeKey, onTabPress, styles }) => {
   return (
     <View style={styles.tabBar}>
@@ -61,7 +43,7 @@ export const FactionTabs = memo<FactionTabsProps>(({ tabs, activeKey, onTabPress
       })}
     </View>
   );
-}, arePropsEqual);
+});
 
 FactionTabs.displayName = 'FactionTabs';
 

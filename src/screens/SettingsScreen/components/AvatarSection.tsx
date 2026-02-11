@@ -29,16 +29,6 @@ export interface AvatarSectionProps {
   colors: ThemeColors;
 }
 
-const arePropsEqual = (prev: AvatarSectionProps, next: AvatarSectionProps): boolean => {
-  return (
-    prev.isAnonymous === next.isAnonymous &&
-    prev.uploadingAvatar === next.uploadingAvatar &&
-    prev.styles === next.styles &&
-    // Compare avatarSource (uri objects or require'd images)
-    JSON.stringify(prev.avatarSource) === JSON.stringify(next.avatarSource)
-  );
-};
-
 export const AvatarSection = memo<AvatarSectionProps>(
   ({ isAnonymous, avatarSource, uploadingAvatar, onPickAvatar, styles, colors }) => {
     if (isAnonymous) {
@@ -70,7 +60,6 @@ export const AvatarSection = memo<AvatarSectionProps>(
       </TouchableOpacity>
     );
   },
-  arePropsEqual,
 );
 
 AvatarSection.displayName = 'AvatarSection';

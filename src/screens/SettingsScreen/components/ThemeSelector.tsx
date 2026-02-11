@@ -23,15 +23,6 @@ export interface ThemeSelectorProps {
   styles: SettingsScreenStyles;
 }
 
-const arePropsEqual = (prev: ThemeSelectorProps, next: ThemeSelectorProps): boolean => {
-  return (
-    prev.currentThemeKey === next.currentThemeKey &&
-    prev.styles === next.styles &&
-    // availableThemes rarely changes, but check length for safety
-    prev.availableThemes.length === next.availableThemes.length
-  );
-};
-
 export const ThemeSelector = memo<ThemeSelectorProps>(
   ({ currentThemeKey, availableThemes, onThemeChange, styles }) => {
     const renderThemeOption = useCallback(
@@ -59,7 +50,6 @@ export const ThemeSelector = memo<ThemeSelectorProps>(
       </View>
     );
   },
-  arePropsEqual,
 );
 
 ThemeSelector.displayName = 'ThemeSelector';

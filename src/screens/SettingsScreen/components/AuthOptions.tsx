@@ -18,11 +18,6 @@ export interface AuthOptionsProps {
   styles: SettingsScreenStyles;
 }
 
-const arePropsEqual = (prev: AuthOptionsProps, next: AuthOptionsProps): boolean => {
-  return prev.authLoading === next.authLoading && prev.styles === next.styles;
-  // onXxx callbacks excluded - stable via useCallback
-};
-
 export const AuthOptions = memo<AuthOptionsProps>(
   ({ authLoading, onShowForm, onAnonymousLogin, styles }) => {
     return (
@@ -50,7 +45,6 @@ export const AuthOptions = memo<AuthOptionsProps>(
       </View>
     );
   },
-  arePropsEqual,
 );
 
 AuthOptions.displayName = 'AuthOptions';

@@ -24,12 +24,6 @@ export interface SettingsSheetProps {
   styles: ConfigScreenStyles;
 }
 
-const arePropsEqual = (prev: SettingsSheetProps, next: SettingsSheetProps): boolean =>
-  prev.visible === next.visible &&
-  prev.roleRevealAnimation === next.roleRevealAnimation &&
-  prev.bgmValue === next.bgmValue &&
-  prev.styles === next.styles;
-
 export const SettingsSheet = memo(function SettingsSheet({
   visible,
   onClose,
@@ -79,4 +73,4 @@ export const SettingsSheet = memo(function SettingsSheet({
       </TouchableOpacity>
     </Modal>
   );
-}, arePropsEqual);
+});

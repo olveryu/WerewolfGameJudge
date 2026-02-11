@@ -31,18 +31,6 @@ const FACTION_STYLE_MAP: Record<FactionColorKey, keyof ConfigScreenStyles> = {
   neutral: 'chipSelectedNeutral',
 };
 
-const arePropsEqual = (prev: RoleChipProps, next: RoleChipProps): boolean => {
-  return (
-    prev.id === next.id &&
-    prev.label === next.label &&
-    prev.selected === next.selected &&
-    prev.factionColor === next.factionColor &&
-    prev.accentColor === next.accentColor &&
-    prev.styles === next.styles
-    // onToggle excluded - stable via useCallback
-  );
-};
-
 export const RoleChip = memo<RoleChipProps>(
   ({ id, label, selected, onToggle, styles, factionColor, accentColor }) => {
     const selectedStyle = factionColor
@@ -68,7 +56,6 @@ export const RoleChip = memo<RoleChipProps>(
       </TouchableOpacity>
     );
   },
-  arePropsEqual,
 );
 
 RoleChip.displayName = 'RoleChip';

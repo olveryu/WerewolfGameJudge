@@ -46,18 +46,6 @@ export interface DropdownProps {
   testID?: string;
 }
 
-const arePropsEqual = (prev: DropdownProps, next: DropdownProps): boolean => {
-  return (
-    prev.label === next.label &&
-    prev.value === next.value &&
-    prev.styles === next.styles &&
-    prev.testID === next.testID &&
-    // options rarely change, but check length for safety
-    prev.options.length === next.options.length
-    // onSelect excluded - stable via useCallback
-  );
-};
-
 export const Dropdown = memo<DropdownProps>(
   ({ label, value, options, onSelect, styles, testID }) => {
     const [visible, setVisible] = useState(false);
@@ -138,7 +126,6 @@ export const Dropdown = memo<DropdownProps>(
       </View>
     );
   },
-  arePropsEqual,
 );
 
 Dropdown.displayName = 'Dropdown';

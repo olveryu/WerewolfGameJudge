@@ -26,17 +26,6 @@ export interface NameSectionProps {
   colors: ThemeColors;
 }
 
-const arePropsEqual = (prev: NameSectionProps, next: NameSectionProps): boolean => {
-  return (
-    prev.isAnonymous === next.isAnonymous &&
-    prev.displayName === next.displayName &&
-    prev.isEditingName === next.isEditingName &&
-    prev.editName === next.editName &&
-    prev.styles === next.styles
-    // onXxx callbacks excluded - stable via useCallback
-  );
-};
-
 export const NameSection = memo<NameSectionProps>(
   ({
     isAnonymous,
@@ -81,7 +70,6 @@ export const NameSection = memo<NameSectionProps>(
       </TouchableOpacity>
     );
   },
-  arePropsEqual,
 );
 
 NameSection.displayName = 'NameSection';
