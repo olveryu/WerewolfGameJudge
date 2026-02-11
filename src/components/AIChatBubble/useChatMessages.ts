@@ -33,7 +33,9 @@ const MAX_PERSISTED_MESSAGES = 50;
 const MAX_CONTEXT_MESSAGES = 9;
 
 /** Typewriter: minimum ms between flushing buffered tokens to UI */
-const TYPEWRITER_INTERVAL_MS = 30;
+const TYPEWRITER_INTERVAL_MS = 50;
+/** Typewriter: characters to release per tick */
+const TYPEWRITER_CHARS_PER_TICK = 1;
 
 // ── Return type ──────────────────────────────────────────
 
@@ -175,8 +177,7 @@ export function useChatMessages(
         const flushBuffer = () => {
           const cleaned = fullContent.replaceAll(/<think>[\s\S]*?<\/think>/g, '').trim();
           if (cleaned.length > displayedLength) {
-            // Release ~2 chars per tick for smooth typewriter feel
-            displayedLength = Math.min(displayedLength + 2, cleaned.length);
+            displayedLength = Math.min(displayedLength + TYPEWRITER_CHARS_PER_TICK, cleaned.length);
             const visible = cleaned.slice(0, displayedLength);
             setMessages((prev) =>
               prev.map((m) => (m.id === assistantId ? { ...m, content: visible } : m)),
