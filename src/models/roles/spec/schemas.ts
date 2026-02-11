@@ -33,6 +33,7 @@ export const SCHEMAS = {
     kind: 'compound',
     ui: {
       prompt: '女巫请行动',
+      emptyKillTitle: '昨夜无人倒台',
     },
     steps: [
       {
@@ -45,6 +46,7 @@ export const SCHEMAS = {
           confirmTitle: '确认行动',
           prompt: '是否使用解药？',
           promptTemplate: '{seat}号被狼人杀了，是否使用解药？',
+          cannotSavePrompt: '你被狼人杀了，无法对自己使用解药，可以对别人用毒药或者不用技能。',
           confirmText: '确定使用解药吗？',
           bottomActionText: '不使用技能',
         },
@@ -119,6 +121,8 @@ export const SCHEMAS = {
       prompt: '请选择要交换的两名玩家',
       confirmText: '确定要交换这两名玩家吗？',
       bottomActionText: '不使用技能',
+      firstTargetTitle: '已选择第一位玩家',
+      firstTargetPromptTemplate: '{seat}号，请选择第二位玩家',
     },
   },
 
@@ -152,8 +156,11 @@ export const SCHEMAS = {
     },
     ui: {
       prompt: '请选择要猎杀的玩家',
+      confirmTitle: '狼人投票',
       confirmText: '确定要猎杀该玩家吗？',
       emptyVoteText: '空刀',
+      voteConfirmTemplate: '{wolf} 确定要猎杀{seat}号玩家吗？',
+      emptyVoteConfirmTemplate: '{wolf} 确定投票空刀吗？',
     },
   },
 

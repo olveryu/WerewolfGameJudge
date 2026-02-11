@@ -123,9 +123,12 @@ jest.mock('../hooks/useActionerState', () => ({
 // Keep dialogs deterministic by mapping to showAlert
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showMagicianFirstAlert: (index: number) => {
+    showMagicianFirstAlert: (index: number, schema?: any) => {
       const { showAlert: mockShowAlert } = require('@/utils/alert');
-      mockShowAlert('已选择第一位玩家', `${index + 1}号，请选择第二位玩家`, [{ text: '好' }]);
+      const title = schema?.ui?.firstTargetTitle ?? '已选择第一位玩家';
+      const tpl = schema?.ui?.firstTargetPromptTemplate ?? '{seat}号，请选择第二位玩家';
+      const msg = tpl.replace('{seat}', `${index + 1}`);
+      mockShowAlert(title, msg, [{ text: '好' }]);
     },
     showConfirmDialog: (
       title: string,

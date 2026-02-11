@@ -235,7 +235,7 @@ export function useActionOrchestrator({
       switch (intent.type) {
         case 'magicianFirst':
           setAnotherIndex(intent.targetIndex);
-          actionDialogs.showMagicianFirstAlert(intent.targetIndex);
+          actionDialogs.showMagicianFirstAlert(intent.targetIndex, currentSchema);
           break;
 
         case 'reveal': {

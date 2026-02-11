@@ -63,6 +63,13 @@ export interface SchemaUi {
    */
   readonly promptTemplate?: string;
 
+  // === Witch cannot-save prompt (schema-first) ===
+  /**
+   * Prompt shown when witch is killed by wolves and cannot self-save.
+   * Only used in witchAction save step (canSave=false, killedSeat >= 0).
+   */
+  readonly cannotSavePrompt?: string;
+
   // === WolfRobot Hunter Gate UI (wolfRobotLearn only) ===
   /**
    * Prompt text shown when hunter gate is active (after learning hunter).
@@ -88,6 +95,22 @@ export interface SchemaUi {
   readonly canShootText?: string;
   /** Dialog message when role cannot shoot/trigger. */
   readonly cannotShootText?: string;
+
+  // === Wolf vote dialog templates (schema-driven) ===
+  /** Wolf vote confirm dialog template. Placeholders: {wolf}, {seat}. */
+  readonly voteConfirmTemplate?: string;
+  /** Wolf vote empty knife confirm template. Placeholder: {wolf}. */
+  readonly emptyVoteConfirmTemplate?: string;
+
+  // === Magician first target dialog (schema-driven) ===
+  /** Title for first-target selection alert. */
+  readonly firstTargetTitle?: string;
+  /** Body template for first-target alert. Placeholder: {seat}. */
+  readonly firstTargetPromptTemplate?: string;
+
+  // === Witch empty kill title (schema-driven) ===
+  /** Title shown when no player was killed by wolves (killedSeat < 0). */
+  readonly emptyKillTitle?: string;
 }
 
 /** Base schema interface */

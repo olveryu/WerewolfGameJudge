@@ -177,15 +177,21 @@ jest.mock('../useRoomActionDialogs', () => ({
       targetIndex: number,
       onConfirm: () => void,
       messageOverride?: string,
+      schema?: any,
     ) => {
       const { showAlert: mockShowAlert } = require('@/utils/alert');
-      const msg =
-        messageOverride ||
-        (targetIndex === -1
-          ? `${wolfName} 确定投票空刀吗？`
-          : `${wolfName} 确定要猎杀${targetIndex + 1}号玩家吗？`);
-
-      mockShowAlert('狼人投票', msg, [
+      const title = schema?.ui?.confirmTitle ?? '狼人投票';
+      let msg: string;
+      if (messageOverride) {
+        msg = messageOverride;
+      } else if (targetIndex === -1) {
+        const tpl = schema?.ui?.emptyVoteConfirmTemplate ?? '{wolf} 确定投票空刀吗？';
+        msg = tpl.replace('{wolf}', wolfName);
+      } else {
+        const tpl = schema?.ui?.voteConfirmTemplate ?? '{wolf} 确定要猎杀{seat}号玩家吗？';
+        msg = tpl.replace('{wolf}', wolfName).replace('{seat}', `${targetIndex + 1}`);
+      }
+      mockShowAlert(title, msg, [
         { text: '取消', style: 'cancel' },
         { text: '确定', onPress: onConfirm },
       ]);

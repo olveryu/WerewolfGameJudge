@@ -34,8 +34,8 @@ export interface UseRoomActionDialogsResult {
    */
   showActionRejectedAlert: (reason: string) => void;
 
-  /** Magician first target alert */
-  showMagicianFirstAlert: (index: number) => void;
+  /** Magician first target alert (schema-driven when schema provided) */
+  showMagicianFirstAlert: (index: number, schema?: ActionSchema) => void;
 
   /** Reveal dialog (seer/psychic) */
   showRevealDialog: (title: string, message: string, onConfirm: () => void) => void;
@@ -48,12 +48,13 @@ export interface UseRoomActionDialogsResult {
     onCancel?: () => void,
   ) => void;
 
-  /** Wolf vote dialog */
+  /** Wolf vote dialog (schema-driven when schema provided) */
   showWolfVoteDialog: (
     wolfName: string,
     targetIndex: number, // -1 = empty knife
     onConfirm: () => void,
     messageOverride?: string,
+    schema?: ActionSchema,
   ) => void;
 
   /**
@@ -83,10 +84,11 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // Magician first target
   // ─────────────────────────────────────────────────────────────────────────
 
-  const showMagicianFirstAlert = useCallback((index: number) => {
-    showAlert('已选择第一位玩家', `${index + 1}号，请选择第二位玩家`, [
-      { text: '知道了', style: 'default' },
-    ]);
+  const showMagicianFirstAlert = useCallback((index: number, schema?: ActionSchema) => {
+    const title = schema?.ui?.firstTargetTitle ?? '已选择第一位玩家';
+    const tpl = schema?.ui?.firstTargetPromptTemplate ?? '{seat}号，请选择第二位玩家';
+    const msg = tpl.replace('{seat}', `${index + 1}`);
+    showAlert(title, msg, [{ text: '知道了', style: 'default' }]);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -116,14 +118,26 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showWolfVoteDialog = useCallback(
-    (wolfName: string, targetIndex: number, onConfirm: () => void, messageOverride?: string) => {
-      const msg =
-        messageOverride ||
-        (targetIndex === -1
-          ? `${wolfName} 确定投票空刀吗？`
-          : `${wolfName} 确定要猎杀${targetIndex + 1}号玩家吗？`);
+    (
+      wolfName: string,
+      targetIndex: number,
+      onConfirm: () => void,
+      messageOverride?: string,
+      schema?: ActionSchema,
+    ) => {
+      const title = schema?.ui?.confirmTitle ?? '狼人投票';
+      let msg: string;
+      if (messageOverride) {
+        msg = messageOverride;
+      } else if (targetIndex === -1) {
+        const tpl = schema?.ui?.emptyVoteConfirmTemplate ?? '{wolf} 确定投票空刀吗？';
+        msg = tpl.replace('{wolf}', wolfName);
+      } else {
+        const tpl = schema?.ui?.voteConfirmTemplate ?? '{wolf} 确定要猎杀{seat}号玩家吗？';
+        msg = tpl.replace('{wolf}', wolfName).replace('{seat}', `${targetIndex + 1}`);
+      }
 
-      showAlert('狼人投票', msg, [
+      showAlert(title, msg, [
         { text: '取消', style: 'cancel' },
         { text: '确定', onPress: onConfirm },
       ]);
@@ -137,19 +151,40 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
   const showWitchInfoPrompt = useCallback(
     (ctx: WitchContext, currentSchema: ActionSchema, onDismiss: () => void) => {
-      // Static template copy must come from schema.
-      const rolePrompt = currentSchema.ui?.prompt || '女巫请行动';
-
-      // Prefer poison prompt (as it matches “毒药请选择号码”) but keep schema-driven.
+      // Schema-driven: all text comes from schema steps.
+      const saveStep =
+        currentSchema.kind === 'compound'
+          ? currentSchema.steps?.find((s) => s.key === 'save')
+          : undefined;
       const poisonPrompt =
         currentSchema.kind === 'compound'
           ? currentSchema.steps?.find((s) => s.key === 'poison')?.ui?.prompt
           : undefined;
 
-      const hint = poisonPrompt || rolePrompt;
+      const rolePrompt = currentSchema.ui?.prompt || '女巫请行动';
+      const title = rolePrompt;
+      const dismiss = [{ text: '知道了', style: 'default' as const, onPress: onDismiss }];
 
-      const title = ctx.killedSeat >= 0 ? `昨夜${ctx.killedSeat + 1}号玩家死亡` : '昨夜无人倒台';
-      showAlert(title, hint, [{ text: '知道了', style: 'default', onPress: onDismiss }]);
+      // Three scenarios (all schema-driven):
+      // 1. killedSeat >= 0 && canSave=true  → promptTemplate: "{seat}号被狼人杀了，是否使用解药？"
+      // 2. killedSeat >= 0 && canSave=false → cannotSavePrompt: "你被狼人杀了…"
+      // 3. killedSeat < 0                   → poisonPrompt: "如要使用毒药，请点击座位。"
+      if (ctx.killedSeat >= 0) {
+        if (ctx.canSave && saveStep?.ui?.promptTemplate) {
+          const msg = saveStep.ui.promptTemplate.replace('{seat}', `${ctx.killedSeat + 1}`);
+          showAlert(title, msg, dismiss);
+        } else if (!ctx.canSave && saveStep?.ui?.cannotSavePrompt) {
+          showAlert(title, saveStep.ui.cannotSavePrompt, dismiss);
+        } else {
+          // Fallback: should not happen with correct schema, but defensive.
+          showAlert(title, poisonPrompt || rolePrompt, dismiss);
+        }
+        return;
+      }
+
+      // Empty kill (killedSeat < 0)
+      const emptyKillTitle = currentSchema.ui?.emptyKillTitle ?? '昨夜无人倒台';
+      showAlert(emptyKillTitle, poisonPrompt || rolePrompt, dismiss);
     },
     [],
   );

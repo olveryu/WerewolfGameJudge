@@ -370,4 +370,61 @@ describe('SCHEMAS contract', () => {
       expect(poisonStep.ui?.promptTemplate).toBeUndefined();
     });
   });
+
+  // =========================================================================
+  // Witch cannotSavePrompt contract (schema-first: self-kill prompt)
+  // =========================================================================
+  describe('witchAction.cannotSavePrompt contract', () => {
+    it('witchAction save step should have cannotSavePrompt for self-kill scenario', () => {
+      const witchSchema = SCHEMAS.witchAction as CompoundSchema;
+      const saveStep = witchSchema.steps[0];
+      expect(saveStep.key).toBe('save');
+      expect(saveStep.ui?.cannotSavePrompt).toBeDefined();
+      expect(typeof saveStep.ui?.cannotSavePrompt).toBe('string');
+      expect((saveStep.ui?.cannotSavePrompt ?? '').length).toBeGreaterThan(0);
+    });
+
+    it('witchAction poison step should NOT have cannotSavePrompt', () => {
+      const witchSchema = SCHEMAS.witchAction as CompoundSchema;
+      const poisonStep = witchSchema.steps[1];
+      expect(poisonStep.key).toBe('poison');
+      expect(poisonStep.ui?.cannotSavePrompt).toBeUndefined();
+    });
+  });
+
+  // =========================================================================
+  // Schema-driven dialog text contracts
+  // =========================================================================
+  describe('wolfKill schema-driven dialog text', () => {
+    it('wolfKill should have confirmTitle', () => {
+      expect(SCHEMAS.wolfKill.ui?.confirmTitle).toBe('狼人投票');
+    });
+
+    it('wolfKill should have voteConfirmTemplate with {wolf} and {seat}', () => {
+      expect(SCHEMAS.wolfKill.ui?.voteConfirmTemplate).toContain('{wolf}');
+      expect(SCHEMAS.wolfKill.ui?.voteConfirmTemplate).toContain('{seat}');
+    });
+
+    it('wolfKill should have emptyVoteConfirmTemplate with {wolf}', () => {
+      expect(SCHEMAS.wolfKill.ui?.emptyVoteConfirmTemplate).toContain('{wolf}');
+    });
+  });
+
+  describe('magicianSwap schema-driven dialog text', () => {
+    it('magicianSwap should have firstTargetTitle', () => {
+      expect(SCHEMAS.magicianSwap.ui?.firstTargetTitle).toBeDefined();
+      expect(typeof SCHEMAS.magicianSwap.ui?.firstTargetTitle).toBe('string');
+    });
+
+    it('magicianSwap should have firstTargetPromptTemplate with {seat}', () => {
+      expect(SCHEMAS.magicianSwap.ui?.firstTargetPromptTemplate).toContain('{seat}');
+    });
+  });
+
+  describe('witchAction schema-driven dialog text', () => {
+    it('witchAction should have emptyKillTitle', () => {
+      const witchSchema = SCHEMAS.witchAction as CompoundSchema;
+      expect(witchSchema.ui?.emptyKillTitle).toBe('昨夜无人倒台');
+    });
+  });
 });

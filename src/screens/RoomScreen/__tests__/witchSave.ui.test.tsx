@@ -10,6 +10,7 @@
 
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
+import type { CompoundSchema } from '@/models/roles/spec';
 import { SCHEMAS } from '@/models/roles/spec';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
@@ -169,6 +170,54 @@ describe('RoomScreen witch save UI (contract)', () => {
     // protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
     expect(mockSubmitAction).toHaveBeenCalledWith(0, {
       stepResults: { save: killedSeat, poison: null },
+    });
+  });
+
+  it('canSave=true with killedSeat>=0 shows promptTemplate from schema', async () => {
+    const killedSeat = 2;
+    mockUseGameRoomReturn = makeMock({ canSave: true, killedSeat });
+
+    render(
+      <RoomScreen
+        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        navigation={mockNavigation as any}
+      />,
+    );
+
+    const witchSchema = SCHEMAS.witchAction as CompoundSchema;
+    const saveStep = witchSchema.steps[0];
+    const expectedPrompt = saveStep.ui?.promptTemplate?.replace('{seat}', `${killedSeat + 1}`);
+
+    await waitFor(() => {
+      const matchingCall = mockShowAlert.mock.calls.find(
+        (c) => typeof c[1] === 'string' && c[1] === expectedPrompt,
+      );
+      expect(matchingCall).toBeDefined();
+      expect(matchingCall![0]).toBe('女巫请行动');
+    });
+  });
+
+  it('canSave=false with killedSeat>=0 shows cannotSavePrompt from schema (witch self-kill)', async () => {
+    // Witch is at seat 0, wolves kill seat 0 → canSave=false, killedSeat=0
+    mockUseGameRoomReturn = makeMock({ canSave: false, killedSeat: 0 });
+
+    render(
+      <RoomScreen
+        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        navigation={mockNavigation as any}
+      />,
+    );
+
+    const witchSchema = SCHEMAS.witchAction as CompoundSchema;
+    const saveStep = witchSchema.steps[0];
+    const expectedPrompt = saveStep.ui?.cannotSavePrompt;
+
+    await waitFor(() => {
+      const matchingCall = mockShowAlert.mock.calls.find(
+        (c) => typeof c[1] === 'string' && c[1] === expectedPrompt,
+      );
+      expect(matchingCall).toBeDefined();
+      expect(matchingCall![0]).toBe('女巫请行动');
     });
   });
 });

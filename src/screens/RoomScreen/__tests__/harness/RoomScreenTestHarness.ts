@@ -102,7 +102,8 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
 
   // Witch save flow
   { type: 'witchNoKill', match: (t) => t === '昨夜无人倒台' },
-  { type: 'witchSavePrompt', match: (t) => t.includes('倒台玩家') || t.includes('玩家死亡') },
+  // Schema-driven: title is '女巫请行动', body contains promptTemplate or cannotSavePrompt text
+  { type: 'witchSavePrompt', match: (t, m) => t.includes('女巫') && (m.includes('被狼人杀了') || m.includes('解药')) },
 
   // Witch poison flow
   { type: 'witchPoisonPrompt', match: (t, m) => t.includes('毒药') || m.includes('毒药') },
