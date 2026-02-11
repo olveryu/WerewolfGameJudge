@@ -11,6 +11,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^expo-audio$': '<rootDir>/__mocks__/expo-audio.ts',
+    '^expo-clipboard$': '<rootDir>/__mocks__/expo-clipboard.ts',
     '^expo-haptics$': '<rootDir>/__mocks__/expo-haptics.ts',
     '^@react-native-async-storage/async-storage$':
       '<rootDir>/__mocks__/@react-native-async-storage/async-storage.ts',

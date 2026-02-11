@@ -1,0 +1,290 @@
+/**
+ * useChatMessages - 聊天消息状态与 API 交互
+ *
+ * 管理消息列表、streaming 流式接收、冷却计时、
+ * AbortController 生命周期、AsyncStorage 持久化、触觉反馈。
+ *
+ * ✅ 允许：消息 CRUD、调用 AIChatService、haptics
+ * ❌ 禁止：UI 渲染、手势处理
+ */
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Keyboard } from 'react-native';
+
+import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import {
+  type ChatMessage,
+  getDefaultApiKey,
+  type StreamChunk,
+  streamChatMessage,
+} from '@/services/feature/AIChatService';
+import type { IGameFacade } from '@/services/types/IGameFacade';
+import { showAlert } from '@/utils/alert';
+import { newRequestId } from '@/utils/id';
+
+import type { DisplayMessage } from './AIChatBubble.styles';
+import { buildPlayerContext } from './playerContext';
+
+// ── Constants ────────────────────────────────────────────
+
+const STORAGE_KEY_MESSAGES = '@ai_chat_messages';
+const COOLDOWN_SECONDS = 5;
+const MAX_PERSISTED_MESSAGES = 50;
+const MAX_CONTEXT_MESSAGES = 9;
+
+// ── Return type ──────────────────────────────────────────
+
+export interface UseChatMessagesReturn {
+  messages: DisplayMessage[];
+  inputText: string;
+  setInputText: (text: string) => void;
+  isLoading: boolean;
+  isStreaming: boolean;
+  cooldownRemaining: number;
+  handleSend: () => Promise<void>;
+  handleQuickQuestion: (question: string) => void;
+  handleClearHistory: () => void;
+  handleRetry: (messageId: string) => void;
+}
+
+/**
+ * @param facade 游戏 facade（用于构建玩家上下文）
+ * @param isOpen 聊天窗口是否打开（关闭时 abort 请求）
+ */
+export function useChatMessages(
+  facade: IGameFacade,
+  isOpen: boolean,
+): UseChatMessagesReturn {
+  const [messages, setMessages] = useState<DisplayMessage[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const apiKey = getDefaultApiKey();
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  // Ref to access latest messages inside callbacks without stale closure
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+
+  // ── Load saved messages ────────────────────────────
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY_MESSAGES)
+      .then((saved) => {
+        if (saved) setMessages(JSON.parse(saved));
+      })
+      .catch(() => {});
+  }, []);
+
+  // ── Persist messages ───────────────────────────────
+  useEffect(() => {
+    if (messages.length > 0) {
+      AsyncStorage.setItem(
+        STORAGE_KEY_MESSAGES,
+        JSON.stringify(messages.slice(-MAX_PERSISTED_MESSAGES)),
+      ).catch(() => {});
+    }
+  }, [messages]);
+
+  // ── Abort on close / unmount ───────────────────────
+  useEffect(() => {
+    if (!isOpen) {
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+    };
+  }, []);
+
+  // ── Cooldown timer ─────────────────────────────────
+  useEffect(() => {
+    if (cooldownRemaining <= 0) return;
+    const timer = setTimeout(() => {
+      setCooldownRemaining((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [cooldownRemaining]);
+
+  // ── Send message (streaming) ───────────────────────
+  const sendMessage = useCallback(
+    async (text: string) => {
+      if (!text || isLoading) return;
+      if (cooldownRemaining > 0) return;
+      if (!apiKey) {
+        showAlert('配置错误', 'AI 服务未配置');
+        return;
+      }
+
+      setCooldownRemaining(COOLDOWN_SECONDS);
+
+      // Cancel previous request
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      // Create user message
+      const userMessage: DisplayMessage = {
+        id: newRequestId(),
+        role: 'user',
+        content: text,
+        timestamp: Date.now(),
+      };
+
+      // Snapshot current messages for context
+      const prevMessages = messagesRef.current;
+      setMessages((prev) => [...prev, userMessage]);
+      setInputText('');
+      setIsLoading(true);
+      setIsStreaming(true);
+
+      Keyboard.dismiss();
+      triggerHaptic('light');
+
+      // Create placeholder assistant message for streaming
+      const assistantId = newRequestId();
+      const assistantMessage: DisplayMessage = {
+        id: assistantId,
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      try {
+        const gameState = facade.getState();
+        const mySeat = facade.getMySeatNumber();
+        const gameContext = buildPlayerContext(gameState, mySeat);
+
+        const contextMessages: ChatMessage[] = prevMessages
+          .slice(-MAX_CONTEXT_MESSAGES)
+          .map((m) => ({ role: m.role, content: m.content }));
+        contextMessages.push({ role: 'user', content: text });
+
+        let fullContent = '';
+
+        for await (const chunk of streamChatMessage(
+          contextMessages,
+          apiKey,
+          gameContext,
+          controller.signal,
+        )) {
+          if (controller.signal.aborted) return;
+
+          if (chunk.type === 'delta') {
+            fullContent += chunk.content;
+            // Clean Qwen3 <think> tags on-the-fly
+            const cleaned = fullContent.replaceAll(/<think>[\s\S]*?<\/think>/g, '').trim();
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantId ? { ...m, content: cleaned } : m)),
+            );
+          } else if (chunk.type === 'error') {
+            // Remove empty placeholder and show error
+            setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+            showAlert('发送失败', chunk.content);
+            break;
+          }
+          // 'done' — streaming finished, content already accumulated
+        }
+
+        // Final cleanup of <think> tags (in case stream ended mid-tag)
+        if (fullContent) {
+          const finalContent = fullContent.replaceAll(/<think>[\s\S]*?<\/think>/g, '').trim();
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, content: finalContent } : m)),
+          );
+          triggerHaptic('success');
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          // Remove empty placeholder on abort
+          setMessages((prev) => {
+            const msg = prev.find((m) => m.id === assistantId);
+            if (msg && !msg.content) {
+              return prev.filter((m) => m.id !== assistantId);
+            }
+            return prev;
+          });
+          return;
+        }
+        throw err;
+      } finally {
+        setIsLoading(false);
+        setIsStreaming(false);
+      }
+    },
+    [isLoading, cooldownRemaining, apiKey, facade],
+  );
+
+  // ── Public actions ─────────────────────────────────
+
+  const handleSend = useCallback(async () => {
+    const text = inputText.trim();
+    await sendMessage(text);
+  }, [inputText, sendMessage]);
+
+  const handleQuickQuestion = useCallback(
+    (question: string) => {
+      sendMessage(question);
+    },
+    [sendMessage],
+  );
+
+  const handleRetry = useCallback(
+    (messageId: string) => {
+      // Find the assistant message to retry
+      const current = messagesRef.current;
+      const msgIndex = current.findIndex((m) => m.id === messageId);
+      if (msgIndex === -1) return;
+
+      // Find preceding user message
+      let userMsg: DisplayMessage | null = null;
+      for (let i = msgIndex - 1; i >= 0; i--) {
+        if (current[i].role === 'user') {
+          userMsg = current[i];
+          break;
+        }
+      }
+      if (!userMsg) return;
+
+      // Remove the failed assistant message
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+
+      // Re-send
+      sendMessage(userMsg.content);
+    },
+    [sendMessage],
+  );
+
+  const handleClearHistory = useCallback(() => {
+    showAlert('清除聊天记录', '确定要清除所有聊天记录吗？此操作不可恢复。', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '清除',
+        style: 'destructive',
+        onPress: () => {
+          setMessages([]);
+          AsyncStorage.removeItem(STORAGE_KEY_MESSAGES).catch(() => {});
+        },
+      },
+    ]);
+  }, []);
+
+  return {
+    messages,
+    inputText,
+    setInputText,
+    isLoading,
+    isStreaming,
+    cooldownRemaining,
+    handleSend,
+    handleQuickQuestion,
+    handleClearHistory,
+    handleRetry,
+  };
+}

@@ -9,7 +9,7 @@
 
 import { Dimensions, StyleSheet } from 'react-native';
 
-import { borderRadius, shadows, spacing, type ThemeColors,typography } from '@/theme';
+import { borderRadius, shadows, spacing, type ThemeColors, typography } from '@/theme';
 
 // ── 布局常量 ──────────────────────────────────────────────
 
@@ -43,7 +43,7 @@ export interface DisplayMessage {
 
 export const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    // 悬浮按钮 - 使用 left/top 定位
+    // 悬浮按钮
     bubbleContainer: {
       position: 'absolute',
       left: 0,
@@ -63,19 +63,19 @@ export const createStyles = (colors: ThemeColors) =>
       fontSize: 28,
     },
 
-    // Modal - 使用固定尺寸，避免键盘弹出时 viewport 变化
+    // Modal
     modalContainer: {
       ...StyleSheet.absoluteFillObject,
-      justifyContent: 'flex-end', // 靠底部对齐
+      justifyContent: 'flex-end',
       alignItems: 'center',
-      paddingBottom: spacing.large, // 基础底部间距
+      paddingBottom: spacing.large,
     },
     modalBackdrop: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: colors.overlayLight,
     },
 
-    // 聊天窗口 - 高度由组件通过 getChatHeight() 动态传入
+    // Chat window
     chatWindow: {
       width: CHAT_WIDTH,
       backgroundColor: colors.surface,
@@ -111,19 +111,16 @@ export const createStyles = (colors: ThemeColors) =>
       fontSize: typography.body,
     },
 
-    // Messages
+    // Messages (wrapper for scroll-to-bottom overlay)
+    messageListWrapper: {
+      flex: 1,
+      position: 'relative',
+    },
     messageList: {
       flex: 1,
     },
     messageListContent: {
       padding: spacing.small,
-    },
-    messageRow: {
-      marginBottom: spacing.tight,
-      flexDirection: 'row',
-    },
-    messageRowUser: {
-      justifyContent: 'flex-end',
     },
     messageBubble: {
       maxWidth: '85%',
@@ -148,6 +145,23 @@ export const createStyles = (colors: ThemeColors) =>
       color: colors.textInverse,
     },
 
+    // Scroll-to-bottom FAB
+    scrollToBottomBtn: {
+      position: 'absolute',
+      right: spacing.small,
+      bottom: spacing.small,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...shadows.md,
+    },
+    scrollToBottomText: {
+      fontSize: typography.subtitle,
+      fontWeight: typography.weights.bold,
+    },
+
     // Input
     inputContainer: {
       flexDirection: 'row',
@@ -165,7 +179,7 @@ export const createStyles = (colors: ThemeColors) =>
       borderRadius: borderRadius.large,
       paddingHorizontal: spacing.small,
       paddingVertical: spacing.tight,
-      fontSize: typography.body, // 必须 >= 16px，否则 iOS Safari 会自动缩放
+      fontSize: typography.body, // ≥ 16px — prevents iOS Safari auto-zoom
       color: colors.text,
       marginRight: spacing.tight,
     },
@@ -200,7 +214,7 @@ export const createStyles = (colors: ThemeColors) =>
       lineHeight: 22,
     },
 
-    // Quick Questions - 横向滚动的 chips
+    // Quick questions
     quickQuestionsContainer: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -224,16 +238,6 @@ export const createStyles = (colors: ThemeColors) =>
     },
     quickQuestionBtnDisabled: {
       opacity: 0.5,
-    },
-    // AI 生成的跟进问题样式（更醒目）
-    aiSuggestionBtn: {
-      backgroundColor: `${colors.primary}15`,
-      borderColor: colors.primary,
-      borderWidth: 1.5,
-    },
-    aiSuggestionText: {
-      color: colors.primary,
-      fontWeight: typography.weights.medium,
     },
     quickQuestionText: {
       fontSize: typography.caption,

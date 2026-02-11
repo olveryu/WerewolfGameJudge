@@ -1,23 +1,25 @@
 /**
  * AIChatBubble - 全局悬浮聊天泡泡
  *
- * 在右下角显示一个悬浮按钮，点击后弹出聊天窗口
- * 使用 visualViewport API (Web) 处理键盘弹出
- * 支持读取游戏上下文（玩家视角，不作弊）
+ * 在右下角显示一个可拖动的悬浮按钮，点击后弹出聊天窗口。
+ * 支持 streaming 流式输出、消息长按操作、scroll-to-bottom、
+ * typing indicator、触觉反馈等。
  *
- * 逻辑层：useAIChat.ts
+ * 逻辑层：useAIChat.ts（编排 → useBubbleDrag / useKeyboardHeight / useChatMessages）
  * 样式层：AIChatBubble.styles.ts
  *
  * ✅ 允许：渲染聊天 UI、通过 useAIChat hook 交互
  * ❌ 禁止：直接 import service / 直接调用 API
  */
 
-import React, { useCallback,useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
   FlatList,
   Modal,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Platform,
   Text,
   TextInput,
@@ -28,9 +30,13 @@ import {
 
 import { useTheme } from '@/theme';
 
-import { createStyles, type DisplayMessage,getChatHeight } from './AIChatBubble.styles';
-import { SimpleMarkdown } from './SimpleMarkdown';
+import { createStyles, type DisplayMessage, getChatHeight } from './AIChatBubble.styles';
+import { MessageBubble } from './MessageBubble';
+import { TypingIndicator } from './TypingIndicator';
 import { useAIChat } from './useAIChat';
+
+/** Distance from bottom to show scroll-to-bottom FAB */
+const SCROLL_THRESHOLD = 100;
 
 export const AIChatBubble: React.FC = () => {
   const { colors } = useTheme();
@@ -41,32 +47,47 @@ export const AIChatBubble: React.FC = () => {
 
   const chat = useAIChat();
 
+  // ── Scroll-to-bottom state ─────────────────────────
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+
+  const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    const distFromBottom = contentSize.height - contentOffset.y - layoutMeasurement.height;
+    setShowScrollBtn(distFromBottom > SCROLL_THRESHOLD);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    flatListRef.current?.scrollToEnd({ animated: true });
+  }, []);
+
+  // Auto-scroll when new content arrives (streaming or new message)
+  const handleContentSizeChange = useCallback(() => {
+    if (!showScrollBtn) {
+      flatListRef.current?.scrollToEnd({ animated: false });
+    }
+  }, [showScrollBtn]);
+
+  // ── Message renderer ───────────────────────────────
   const renderMessage = useCallback(
     ({ item }: { item: DisplayMessage }) => {
       const isUser = item.role === 'user';
       return (
-        <View style={[styles.messageRow, isUser && styles.messageRowUser]}>
-          <View
-            style={[
-              styles.messageBubble,
-              isUser ? styles.userBubble : styles.assistantBubble,
-            ]}
-          >
-            {isUser ? (
-              <Text style={[styles.messageText, styles.userText]}>
-                {item.content}
-              </Text>
-            ) : (
-              <SimpleMarkdown content={item.content} colors={colors} />
-            )}
-          </View>
-        </View>
+        <MessageBubble
+          message={item}
+          colors={colors}
+          bubbleStyle={[
+            styles.messageBubble,
+            isUser ? styles.userBubble : styles.assistantBubble,
+          ]}
+          textStyle={[styles.messageText, isUser && styles.userText]}
+          onRetry={chat.handleRetry}
+        />
       );
     },
-    [styles, colors],
+    [styles, colors, chat.handleRetry],
   );
 
-  // Web 专用样式：阻止拖动时页面滚动
+  // Web drag style
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const webDragStyle: any =
     Platform.OS === 'web'
@@ -75,7 +96,7 @@ export const AIChatBubble: React.FC = () => {
 
   return (
     <>
-      {/* 悬浮按钮 - 可拖动，支持 Web 桌面点击 */}
+      {/* ── Floating bubble ─────────────────────────── */}
       <Animated.View
         style={[
           styles.bubbleContainer,
@@ -90,7 +111,6 @@ export const AIChatBubble: React.FC = () => {
         onTouchMove={chat.handleTouchMove}
         onTouchEnd={chat.handleTouchEnd}
       >
-        {/* 用 TouchableOpacity 包裹，确保 Web 桌面端鼠标点击生效 */}
         <TouchableOpacity
           style={styles.bubble}
           onPress={chat.handleBubblePress}
@@ -100,19 +120,15 @@ export const AIChatBubble: React.FC = () => {
         </TouchableOpacity>
       </Animated.View>
 
-      {/* 聊天窗口 Modal */}
+      {/* ── Chat Modal ──────────────────────────────── */}
       <Modal
         visible={chat.isOpen}
         transparent
         animationType="fade"
         onRequestClose={() => chat.setIsOpen(false)}
       >
-        {/* 使用 paddingBottom 来避开键盘 */}
         <View
-          style={[
-            styles.modalContainer,
-            { paddingBottom: chat.keyboardHeight + 10 },
-          ]}
+          style={[styles.modalContainer, { paddingBottom: chat.keyboardHeight + 10 }]}
         >
           <TouchableOpacity
             style={styles.modalBackdrop}
@@ -120,7 +136,6 @@ export const AIChatBubble: React.FC = () => {
             onPress={() => chat.setIsOpen(false)}
           />
 
-          {/* 响应式高度 */}
           <View style={[styles.chatWindow, { height: chatHeight }]}>
             {/* Header */}
             <View style={styles.chatHeader}>
@@ -142,73 +157,63 @@ export const AIChatBubble: React.FC = () => {
             </View>
 
             {/* Messages */}
-            <FlatList
-              ref={flatListRef}
-              data={chat.messages}
-              renderItem={renderMessage}
-              keyExtractor={(item) => item.id}
-              style={styles.messageList}
-              contentContainerStyle={styles.messageListContent}
-              onContentSizeChange={() =>
-                flatListRef.current?.scrollToEnd({ animated: false })
-              }
-              keyboardShouldPersistTaps="handled"
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>
-                    👋 你好！我是狼人杀助手{'\n'}
-                    可以问我游戏规则、策略建议等
-                  </Text>
-                </View>
-              }
-            />
+            <View style={styles.messageListWrapper}>
+              <FlatList
+                ref={flatListRef}
+                data={chat.messages}
+                renderItem={renderMessage}
+                keyExtractor={(item) => item.id}
+                style={styles.messageList}
+                contentContainerStyle={styles.messageListContent}
+                onContentSizeChange={handleContentSizeChange}
+                onScroll={handleScroll}
+                scrollEventThrottle={100}
+                keyboardShouldPersistTaps="handled"
+                ListEmptyComponent={
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>
+                      👋 你好！我是狼人杀助手{'\n'}
+                      可以问我游戏规则、策略建议等
+                    </Text>
+                  </View>
+                }
+                ListFooterComponent={
+                  chat.isStreaming && chat.messages.at(-1)?.content === '' ? (
+                    <TypingIndicator colors={colors} />
+                  ) : null
+                }
+              />
 
-            {/* 快捷问题 - AI 建议 + 上下文问题 */}
+              {/* Scroll-to-bottom FAB */}
+              {showScrollBtn && (
+                <TouchableOpacity
+                  style={[styles.scrollToBottomBtn, { backgroundColor: colors.surface }]}
+                  onPress={scrollToBottom}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.scrollToBottomText, { color: colors.text }]}>↓</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Quick questions */}
             <View style={styles.quickQuestionsContainer}>
-              {/* 优先显示 AI 生成的跟进问题 */}
-              {chat.aiSuggestions.map((q) => (
+              {chat.contextQuestions.slice(0, 4).map((q) => (
                 <TouchableOpacity
                   key={q}
                   style={[
                     styles.quickQuestionBtn,
-                    styles.aiSuggestionBtn,
                     chat.isLoading && styles.quickQuestionBtnDisabled,
                   ]}
                   onPress={() => chat.handleQuickQuestion(q)}
                   activeOpacity={chat.isLoading ? 1 : 0.7}
                   accessibilityState={{ disabled: chat.isLoading }}
                 >
-                  <Text
-                    style={[
-                      styles.quickQuestionText,
-                      styles.aiSuggestionText,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    💬 {q}
+                  <Text style={styles.quickQuestionText} numberOfLines={1}>
+                    {q}
                   </Text>
                 </TouchableOpacity>
               ))}
-              {/* 补充上下文问题（最多补到 4 个） */}
-              {chat.contextQuestions
-                .filter((q) => !chat.aiSuggestions.includes(q))
-                .slice(0, Math.max(0, 4 - chat.aiSuggestions.length))
-                .map((q) => (
-                  <TouchableOpacity
-                    key={q}
-                    style={[
-                      styles.quickQuestionBtn,
-                      chat.isLoading && styles.quickQuestionBtnDisabled,
-                    ]}
-                    onPress={() => chat.handleQuickQuestion(q)}
-                    activeOpacity={chat.isLoading ? 1 : 0.7}
-                    accessibilityState={{ disabled: chat.isLoading }}
-                  >
-                    <Text style={styles.quickQuestionText} numberOfLines={1}>
-                      {q}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
             </View>
 
             {/* Input */}
@@ -250,9 +255,7 @@ export const AIChatBubble: React.FC = () => {
               >
                 {(() => {
                   if (chat.isLoading) {
-                    return (
-                      <ActivityIndicator size="small" color="#fff" />
-                    );
+                    return <ActivityIndicator size="small" color="#fff" />;
                   }
                   if (chat.cooldownRemaining > 0) {
                     return (

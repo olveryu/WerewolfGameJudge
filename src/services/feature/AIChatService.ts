@@ -51,14 +51,6 @@ export interface GameContext {
   myRoleName?: string;
   /** 总人数 */
   totalPlayers?: number;
-  /** 当前阶段 */
-  currentPhase?: string;
-  /** 已使用的技能（女巫等） */
-  usedSkills?: string[];
-  /** 我知道的信息（预言家查验结果等，仅自己能看到的） */
-  myKnowledge?: string[];
-  /** 板子配置（所有角色名称，公开信息） */
-  boardRoles?: string[];
   /** 板子中每个角色的详细技能描述（公开信息） */
   boardRoleDetails?: Array<{ name: string; description: string }>;
 }
@@ -101,11 +93,7 @@ function buildGameContextPrompt(context: GameContext): string {
     lines.push(`- 总玩家数: ${context.totalPlayers} 人`);
   }
 
-  if (context.boardRoles && context.boardRoles.length > 0) {
-    lines.push(`- 板子配置: ${context.boardRoles.join('、')}`);
-  }
-
-  // 优化1: 只显示当前板子的角色技能（已去重），不再发送全部角色
+  // boardRoleDetails 已包含角色名，无需单独的 boardRoles
   if (context.boardRoleDetails && context.boardRoleDetails.length > 0) {
     const uniqueRoles = new Map<string, string>();
     context.boardRoleDetails.forEach((r) => {
@@ -113,23 +101,11 @@ function buildGameContextPrompt(context: GameContext): string {
         uniqueRoles.set(r.name, r.description);
       }
     });
+    lines.push(`- 板子配置: ${[...uniqueRoles.keys()].join('、')}`);
     lines.push(`- 本局角色技能:`);
     uniqueRoles.forEach((desc, name) => {
       lines.push(`  - ${name}: ${desc}`);
     });
-  }
-
-  if (context.currentPhase) {
-    lines.push(`- 当前阶段: ${context.currentPhase}`);
-  }
-
-  if (context.usedSkills && context.usedSkills.length > 0) {
-    lines.push(`- 已使用技能: ${context.usedSkills.join('、')}`);
-  }
-
-  if (context.myKnowledge && context.myKnowledge.length > 0) {
-    lines.push(`- 我知道的信息:`);
-    context.myKnowledge.forEach((k) => lines.push(`  - ${k}`));
   }
 
   lines.push('');
@@ -239,4 +215,133 @@ export async function sendChatMessage(
       error: error instanceof Error ? error.message : '网络请求失败',
     };
   }
+}
+
+// ══════════════════════════════════════════════════════════
+// Streaming (SSE)
+// ══════════════════════════════════════════════════════════
+
+export interface StreamChunk {
+  type: 'delta' | 'done' | 'error';
+  content: string;
+}
+
+/**
+ * 流式发送聊天消息到 AI（SSE）
+ *
+ * 使用 Groq OpenAI 兼容的 streaming endpoint，逐 token 返回。
+ * 调用者用 `for await (const chunk of streamChatMessage(...))` 消费。
+ *
+ * @param messages 聊天消息历史
+ * @param apiKey API Key
+ * @param gameContext 可选的游戏上下文
+ * @param signal 可选的 AbortSignal
+ */
+export async function* streamChatMessage(
+  messages: ChatMessage[],
+  apiKey: string,
+  gameContext?: GameContext,
+  signal?: AbortSignal,
+): AsyncGenerator<StreamChunk> {
+  if (!apiKey) {
+    yield { type: 'error', content: '请先配置 Groq API Key' };
+    return;
+  }
+
+  let systemPrompt = SYSTEM_PROMPT;
+  if (gameContext) {
+    systemPrompt += '\n\n' + buildGameContextPrompt(gameContext);
+  }
+
+  const maxMessages = TOKEN_OPTIMIZATION.maxHistoryRounds * 2;
+  const trimmedMessages = messages.length > maxMessages ? messages.slice(-maxMessages) : messages;
+
+  chatLog.debug('Starting streaming chat request', {
+    messageCount: messages.length,
+    hasContext: !!gameContext,
+  });
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_CONFIG.baseURL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: API_CONFIG.model,
+        messages: [{ role: 'system', content: systemPrompt }, ...trimmedMessages],
+        max_tokens: API_CONFIG.maxTokens,
+        temperature: 0.7,
+        stream: true,
+      }),
+      signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') throw error;
+    yield { type: 'error', content: error instanceof Error ? error.message : '网络请求失败' };
+    return;
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    chatLog.error('Streaming API error', { status: response.status, error: errorText });
+    if (response.status === 401) {
+      yield { type: 'error', content: 'Groq API Key 无效或未配置，请联系管理员' };
+    } else if (response.status === 429) {
+      yield { type: 'error', content: '请求太频繁，请稍后再试' };
+    } else {
+      yield { type: 'error', content: `API 错误: ${response.status}` };
+    }
+    return;
+  }
+
+  // Parse SSE stream
+  const reader = response.body?.getReader();
+  if (!reader) {
+    yield { type: 'error', content: '浏览器不支持流式响应' };
+    return;
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      // Keep the last potentially incomplete line in the buffer
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith(':')) continue; // SSE comment or empty
+        if (!trimmed.startsWith('data: ')) continue;
+
+        const data = trimmed.slice(6); // Remove "data: " prefix
+        if (data === '[DONE]') {
+          yield { type: 'done', content: '' };
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.choices?.[0]?.delta?.content;
+          if (delta) {
+            yield { type: 'delta', content: delta };
+          }
+        } catch {
+          // Skip malformed JSON chunks
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  yield { type: 'done', content: '' };
 }
