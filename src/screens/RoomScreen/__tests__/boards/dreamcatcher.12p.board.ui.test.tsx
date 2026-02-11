@@ -154,15 +154,16 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   });
 
   describe('confirmTrigger coverage', () => {
-    it('darkWolfKing confirm: shows confirm trigger', async () => {
+    it('darkWolfKing confirm: pressing bottom button shows confirmTrigger dialog', async () => {
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'darkWolfKingConfirm',
         currentActionRole: 'darkWolfKing',
         myRole: 'darkWolfKing',
         mySeatNumber: 7,
+        gameStateOverrides: { confirmStatus: { role: 'darkWolfKing', canShoot: true } },
       });
 
-      const { getByTestId } = render(
+      const { getByTestId, getByText } = render(
         <RoomScreen
           route={{ params: { roomNumber: '1234', isHost: false } } as any}
           navigation={mockNavigation as any}
@@ -170,8 +171,15 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
 
       await waitForRoomScreen(getByTestId);
+
+      const bottomActionText = getSchema('darkWolfKingConfirm').ui?.bottomActionText;
+      if (!bottomActionText) throw new Error('[TEST] Missing darkWolfKingConfirm.ui.bottomActionText');
+
+      await waitFor(() => expect(getByText(bottomActionText)).toBeTruthy());
+      fireEvent.press(getByText(bottomActionText));
+
       await waitFor(() =>
-        expect(harness.hasSeen('actionPrompt')).toBe(true),
+        expect(harness.hasSeen('confirmTrigger')).toBe(true),
       );
     });
   });
@@ -270,6 +278,47 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       const skipText = getSchema('seerCheck').ui?.bottomActionText;
       if (!skipText) throw new Error('[TEST] Missing seerCheck.ui.bottomActionText');
+      fireEvent.press(getByText(skipText));
+      await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
+    });
+  });
+
+  // ===========================================================================
+  // Role-specific schema: dreamcatcherDream (not proxied through seer)
+  // ===========================================================================
+
+  describe('dreamcatcherDream actionConfirm coverage', () => {
+    it('dreamcatcher: tapping seat shows actionConfirm dialog', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'dreamcatcherDream',
+        currentActionRole: 'dreamcatcher',
+        myRole: 'dreamcatcher',
+        mySeatNumber: 11,
+      });
+
+      const { getByTestId } = renderRoom();
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+      tapSeat(getByTestId, 1);
+      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+    });
+  });
+
+  describe('dreamcatcherDream skipConfirm coverage', () => {
+    it('dreamcatcher: skip button shows skipConfirm dialog', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'dreamcatcherDream',
+        currentActionRole: 'dreamcatcher',
+        myRole: 'dreamcatcher',
+        mySeatNumber: 11,
+      });
+
+      const { getByTestId, getByText } = renderRoom();
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+
+      const skipText = getSchema('dreamcatcherDream').ui?.bottomActionText;
+      if (!skipText) throw new Error('[TEST] Missing dreamcatcherDream.ui.bottomActionText');
       fireEvent.press(getByText(skipText));
       await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
     });

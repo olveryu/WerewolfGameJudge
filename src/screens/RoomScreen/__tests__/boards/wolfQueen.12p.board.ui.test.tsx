@@ -205,7 +205,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   });
 
   describe('confirmTrigger coverage', () => {
-    it('hunter confirm: shows confirm trigger', async () => {
+    it('hunter confirm: pressing bottom button shows confirmTrigger dialog', async () => {
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'hunterConfirm',
         currentActionRole: 'hunter',
@@ -214,7 +214,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         gameStateOverrides: { confirmStatus: { role: 'hunter', canShoot: true } },
       });
 
-      const { getByTestId } = render(
+      const { getByTestId, getByText } = render(
         <RoomScreen
           route={{ params: { roomNumber: '1234', isHost: false } } as any}
           navigation={mockNavigation as any}
@@ -222,8 +222,15 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
 
       await waitForRoomScreen(getByTestId);
+
+      const bottomActionText = getSchema('hunterConfirm').ui?.bottomActionText;
+      if (!bottomActionText) throw new Error('[TEST] Missing hunterConfirm.ui.bottomActionText');
+
+      await waitFor(() => expect(getByText(bottomActionText)).toBeTruthy());
+      fireEvent.press(getByText(bottomActionText));
+
       await waitFor(() =>
-        expect(harness.hasSeen('actionPrompt')).toBe(true),
+        expect(harness.hasSeen('confirmTrigger')).toBe(true),
       );
     });
   });
@@ -280,6 +287,62 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       harness.clear();
       tapSeat(getByTestId, 1);
       await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+    });
+  });
+
+  // ===========================================================================
+  // Role-specific schema: wolfQueenCharm (not proxied through seer)
+  // ===========================================================================
+
+  describe('wolfQueenCharm actionPrompt coverage', () => {
+    it('wolfQueen charm: shows action prompt', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfQueenCharm',
+        currentActionRole: 'wolfQueen',
+        myRole: 'wolfQueen',
+        mySeatNumber: 7,
+      });
+
+      const { getByTestId } = renderRoom();
+      await waitForRoomScreen(getByTestId);
+      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+    });
+  });
+
+  describe('wolfQueenCharm actionConfirm coverage', () => {
+    it('wolfQueen charm: tapping seat shows actionConfirm dialog', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfQueenCharm',
+        currentActionRole: 'wolfQueen',
+        myRole: 'wolfQueen',
+        mySeatNumber: 7,
+      });
+
+      const { getByTestId } = renderRoom();
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+      tapSeat(getByTestId, 1);
+      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+    });
+  });
+
+  describe('wolfQueenCharm skipConfirm coverage', () => {
+    it('wolfQueen charm: skip button shows skipConfirm dialog', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'wolfQueenCharm',
+        currentActionRole: 'wolfQueen',
+        myRole: 'wolfQueen',
+        mySeatNumber: 7,
+      });
+
+      const { getByTestId, getByText } = renderRoom();
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+
+      const skipText = getSchema('wolfQueenCharm').ui?.bottomActionText;
+      if (!skipText) throw new Error('[TEST] Missing wolfQueenCharm.ui.bottomActionText');
+      fireEvent.press(getByText(skipText));
+      await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
     });
   });
 

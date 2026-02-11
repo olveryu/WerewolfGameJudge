@@ -255,7 +255,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   });
 
   describe('confirmTrigger coverage', () => {
-    it('hunter confirm: shows confirm trigger dialog', async () => {
+    it('hunter confirm: pressing bottom button shows confirmTrigger dialog', async () => {
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'hunterConfirm',
         currentActionRole: 'hunter',
@@ -266,7 +266,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         },
       });
 
-      const { getByTestId } = render(
+      const { getByTestId, getByText } = render(
         <RoomScreen
           route={{ params: { roomNumber: '1234', isHost: false } } as any}
           navigation={mockNavigation as any}
@@ -275,8 +275,14 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       await waitForRoomScreen(getByTestId);
 
+      const bottomActionText = getSchema('hunterConfirm').ui?.bottomActionText;
+      if (!bottomActionText) throw new Error('[TEST] Missing hunterConfirm.ui.bottomActionText');
+
+      await waitFor(() => expect(getByText(bottomActionText)).toBeTruthy());
+      fireEvent.press(getByText(bottomActionText));
+
       await waitFor(() => {
-        expect(harness.hasSeen('actionPrompt')).toBe(true);
+        expect(harness.hasSeen('confirmTrigger')).toBe(true);
       });
     });
 
