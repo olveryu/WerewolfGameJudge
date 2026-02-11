@@ -49,6 +49,16 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
 
   return (
     <>
+      {/* Host: Restart Game - danger style (leftmost) */}
+      {showRestart && (
+        <TouchableOpacity
+          style={[styles.actionButton, styles.restartButton]}
+          onPress={onRestartPress}
+        >
+          <Text style={styles.buttonText}>重开</Text>
+        </TouchableOpacity>
+      )}
+
       {/* Host: Settings */}
       {showSettings && (
         <TouchableOpacity
@@ -81,16 +91,6 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
       {showLastNightInfo && (
         <TouchableOpacity style={styles.actionButton} onPress={onLastNightInfoPress}>
           <Text style={styles.buttonText}>查看昨晚信息</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Host: Restart Game - danger style */}
-      {showRestart && (
-        <TouchableOpacity
-          style={[styles.actionButton, styles.restartButton]}
-          onPress={onRestartPress}
-        >
-          <Text style={styles.buttonText}>重开</Text>
         </TouchableOpacity>
       )}
     </>
