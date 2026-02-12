@@ -16,11 +16,11 @@ Layered test helpers and Page Objects for Playwright E2E tests.
 
 ### Running E2E Tests
 
-| Command                                       | Supabase                        | Web Server      | Use Case                      |
-| --------------------------------------------- | ------------------------------- | --------------- | ----------------------------- |
-| `npm run e2e:core`                            | Local (`127.0.0.1:54321`)       | Local (`:8081`) | Default dev                   |
-| `npm run e2e:remote`                          | Remote (from `e2e.remote.json`) | Local (`:8081`) | Test with production Supabase |
-| `E2E_BASE_URL=https://... npm run e2e:remote` | Remote                          | Remote URL      | CI / staging                  |
+| Command                                        | Supabase                        | Web Server      | Use Case                      |
+| ---------------------------------------------- | ------------------------------- | --------------- | ----------------------------- |
+| `pnpm run e2e:core`                            | Local (`127.0.0.1:54321`)       | Local (`:8081`) | Default dev                   |
+| `pnpm run e2e:remote`                          | Remote (from `e2e.remote.json`) | Local (`:8081`) | Test with production Supabase |
+| `E2E_BASE_URL=https://... pnpm run e2e:remote` | Remote                          | Remote URL      | CI / staging                  |
 
 ### Environment Variables
 

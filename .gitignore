@@ -58,3 +58,4 @@ src/screens/RoomScreen/WerewolfGameJudge.code-workspace
 storybook-static
 .vercel
 test-output.txt
+package-lock.json

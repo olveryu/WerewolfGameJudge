@@ -30,7 +30,7 @@ function getBaseURL(): string {
   if (!envBaseURL) {
     throw new Error(
       '[gotoWithRetry] E2E_BASE_URL not set. ' +
-        'Run via `npm run e2e:core` or set E2E_BASE_URL explicitly. ' +
+        'Run via `pnpm run e2e:core` or set E2E_BASE_URL explicitly. ' +
         'No hardcoded fallback allowed.',
     );
   }
@@ -131,7 +131,7 @@ async function collectNavigationFailureEvidence(page: Page, maxRetries: number):
   console.log('  1. Is dev server running? Run: npx expo start --web --port 8081');
   console.log('  2. Port conflict? Run: lsof -i :8081');
   console.log('  3. Check Playwright webServer logs above (stdout/stderr piped)');
-  console.log('  4. Try: pkill -f "expo" && npm run e2e:core');
+  console.log('  4. Try: pkill -f "expo" && pnpm run e2e:core');
 }
 
 /**

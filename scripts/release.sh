@@ -23,8 +23,8 @@ if [[ "$BUMP_TYPE" != "patch" && "$BUMP_TYPE" != "minor" && "$BUMP_TYPE" != "maj
 fi
 
 # 先检查是否有未提交的非版本文件改动（在 bump 之前，避免取消时版本号已变）
-OTHER_CHANGES=$(git diff --name-only HEAD | grep -v -E '^(package\.json|package-lock\.json|app\.json|src/config/version\.ts)$' | head -5)
-STAGED_OTHER=$(git diff --cached --name-only | grep -v -E '^(package\.json|package-lock\.json|app\.json|src/config/version\.ts)$' | head -5)
+OTHER_CHANGES=$(git diff --name-only HEAD | grep -v -E '^(package\.json|pnpm-lock\.yaml|app\.json|src/config/version\.ts)$' | head -5)
+STAGED_OTHER=$(git diff --cached --name-only | grep -v -E '^(package\.json|pnpm-lock\.yaml|app\.json|src/config/version\.ts)$' | head -5)
 ALL_OTHER="${OTHER_CHANGES}${STAGED_OTHER}"
 if [ -n "$ALL_OTHER" ]; then
   echo ""
@@ -40,7 +40,7 @@ if [ -n "$ALL_OTHER" ]; then
 fi
 
 echo "📦 Bumping $BUMP_TYPE version..."
-npm version "$BUMP_TYPE" --no-git-tag-version
+pnpm version "$BUMP_TYPE" --no-git-tag-version
 
 VERSION=$(node -p "require('./package.json').version")
 

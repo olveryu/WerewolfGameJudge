@@ -271,13 +271,13 @@ supabase start
 bash scripts/setup-local-env.sh   # 生成 .env.local 覆盖
 
 # 3. 启动开发服务器 | Start dev server
-npm start
+pnpm start
 
 # 5. 运行测试 | Run tests
-npm test                    # Unit tests (Jest)
-npm run e2e:core            # E2E tests (Playwright)
-npm run typecheck           # TypeScript check
-npm run lint                # ESLint
+pnpm test                    # Unit tests (Jest)
+pnpm run e2e:core            # E2E tests (Playwright)
+pnpm run typecheck           # TypeScript check
+pnpm run lint                # ESLint
 ```
 
 ### 项目结构 | Project Structure
@@ -320,11 +320,11 @@ src/
 
 ```bash
 # 发版 | Release (version bump + commit + tag + push)
-npm run release              # patch (default)
-npm run release -- minor     # minor / major
+pnpm run release              # patch (default)
+pnpm run release -- minor     # minor / major
 
 # 部署 | Deploy (build + Vercel)
-npm run deploy
+pnpm run deploy
 ```
 
 **当前生产环境 | Production:** https://werewolf-judge.vercel.app
