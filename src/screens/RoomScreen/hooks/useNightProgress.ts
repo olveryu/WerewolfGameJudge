@@ -19,6 +19,7 @@ import { GameStatus } from '@/models/GameStatus';
 import type { SchemaId } from '@/models/roles';
 import { buildNightPlan } from '@/models/roles';
 import type { LocalGameState } from '@/types/GameStateTypes';
+import { roomScreenLog } from '@/utils/logger';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -107,12 +108,14 @@ export function useNightProgress({
       return;
 
     hasShownSpeakOrderRef.current = true;
+    roomScreenLog.debug('[useNightProgress] Auto-showing speak order dialog (night ended)');
     showSpeakOrderDialog();
   }, [isHost, roomStatus, isAudioPlaying, pendingRevealDialog, showSpeakOrderDialog]);
 
   // Reset speak order flag when game restarts
   useEffect(() => {
     if (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) {
+      roomScreenLog.debug('[useNightProgress] Resetting speak order flag', { roomStatus });
       hasShownSpeakOrderRef.current = false;
     }
   }, [roomStatus]);

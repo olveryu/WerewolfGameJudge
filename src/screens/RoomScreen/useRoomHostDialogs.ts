@@ -10,6 +10,7 @@ import { useCallback } from 'react';
 import type { RootStackParamList } from '@/navigation/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { showAlert } from '@/utils/alert';
+import { roomScreenLog } from '@/utils/logger';
 import { randomBool, randomIntInclusive, Rng } from '@/utils/random';
 
 /**
@@ -72,6 +73,7 @@ export const useRoomHostDialogs = ({
     const totalSeats = gameState.template.roles.length;
 
     if (seatedCount !== totalSeats) {
+      roomScreenLog.warn('[HostDialogs] Cannot prepare to flip — seats not full', { seatedCount, totalSeats });
       showAlert('无法开始游戏', '有座位尚未被占用。', [{ text: '知道了', style: 'default' }]);
       return;
     }
@@ -81,6 +83,7 @@ export const useRoomHostDialogs = ({
       {
         text: '确定',
         onPress: () => {
+          roomScreenLog.debug('[HostDialogs] Assigning roles');
           void assignRoles();
         },
       },
@@ -88,6 +91,7 @@ export const useRoomHostDialogs = ({
   }, [gameState, assignRoles]);
 
   const handleStartGame = useCallback(async () => {
+    roomScreenLog.debug('[HostDialogs] Starting game');
     setIsStartingGame(true);
     await startGame();
   }, [setIsStartingGame, startGame]);
@@ -123,6 +127,7 @@ export const useRoomHostDialogs = ({
       {
         text: '确定',
         onPress: () => {
+          roomScreenLog.debug('[HostDialogs] Restarting game');
           void restartGame();
         },
       },
@@ -134,6 +139,7 @@ export const useRoomHostDialogs = ({
 
     const playerCount = gameState.template.roles.length;
     const { startSeat, direction } = generateSpeakOrder(playerCount);
+    roomScreenLog.debug('[HostDialogs] Generated speak order', { startSeat, direction });
 
     showAlert('发言顺序', `从 ${startSeat} 号玩家开始，${direction} 发言。`, [
       { text: '知道了', style: 'default' },

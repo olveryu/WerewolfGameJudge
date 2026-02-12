@@ -225,6 +225,11 @@ export function useActionOrchestrator({
     if (key === lastRejectedKeyRef.current) return;
     lastRejectedKeyRef.current = key;
 
+    roomScreenLog.warn('[useActionOrchestrator] Action rejected by Host', {
+      action: rejected.action,
+      reason: rejected.reason,
+      targetUid: rejected.targetUid,
+    });
     actionDialogs.showActionRejectedAlert(rejected.reason);
   }, [gameState?.actionRejected, gameState?.players, myUid, effectiveSeat, actionDialogs]);
 
@@ -234,6 +239,7 @@ export function useActionOrchestrator({
     async (intent: ActionIntent) => {
       switch (intent.type) {
         case 'magicianFirst':
+          roomScreenLog.debug('[handleActionIntent] magicianFirst', { targetIndex: intent.targetIndex });
           setAnotherIndex(intent.targetIndex);
           actionDialogs.showMagicianFirstAlert(intent.targetIndex, currentSchema!);
           break;

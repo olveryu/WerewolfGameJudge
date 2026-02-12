@@ -14,6 +14,7 @@ import { useCallback } from 'react';
 import { GameStatus } from '@/models/GameStatus';
 import type { RootStackParamList } from '@/navigation/types';
 import { showAlert } from '@/utils/alert';
+import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomSeatDialogsParams {
   // Seat modal state
@@ -87,10 +88,12 @@ export function useRoomSeatDialogs({
   const handleConfirmSeat = useCallback(async () => {
     if (pendingSeatIndex === null) return;
 
+    roomScreenLog.debug('[SeatDialogs] Taking seat', { seatIndex: pendingSeatIndex });
     const success = await takeSeat(pendingSeatIndex);
     setSeatModalVisible(false);
 
     if (!success) {
+      roomScreenLog.warn('[SeatDialogs] takeSeat failed (occupied)', { seatIndex: pendingSeatIndex });
       showAlert('入座失败', `${pendingSeatIndex + 1}号座位已被占用，请选择其他位置。`);
     }
     setPendingSeatIndex(null);
@@ -112,6 +115,7 @@ export function useRoomSeatDialogs({
   const handleConfirmLeave = useCallback(async () => {
     if (pendingSeatIndex === null) return;
 
+    roomScreenLog.debug('[SeatDialogs] Leaving seat', { seatIndex: pendingSeatIndex });
     await leaveSeat();
     setSeatModalVisible(false);
     setPendingSeatIndex(null);
@@ -122,6 +126,7 @@ export function useRoomSeatDialogs({
   // ─────────────────────────────────────────────────────────────────────────
 
   const doLeaveRoom = useCallback(() => {
+    roomScreenLog.debug('[SeatDialogs] Leaving room');
     onLeaveRoom?.(); // Stop audio, cleanup
     navigation.navigate('Home');
   }, [navigation, onLeaveRoom]);

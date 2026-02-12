@@ -304,6 +304,7 @@ export function useRoomScreenState(
   // Show alert when seat request is rejected
   useEffect(() => {
     if (lastSeatError) {
+      roomScreenLog.warn('[useRoomScreenState] Seat error received', { lastSeatError });
       showAlert('入座失败', '该座位已被占用，请选择其他位置。');
       clearLastSeatError();
     }
@@ -313,6 +314,7 @@ export function useRoomScreenState(
   useEffect(() => {
     if (!gameState) return;
     if (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) {
+      roomScreenLog.debug('[useRoomScreenState] Resetting UI state for restart', { roomStatus });
       setIsStartingGame(false);
       setAnotherIndex(null);
     }

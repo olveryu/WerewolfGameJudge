@@ -221,6 +221,7 @@ export function useInteractionDispatcher({
           return;
 
         case 'ALERT':
+          roomScreenLog.debug('[dispatchInteraction] ALERT', { title: result.title });
           showAlert(result.title, result.message, [{ text: '好' }]);
           return;
 
@@ -234,6 +235,7 @@ export function useInteractionDispatcher({
               return;
             case 'roleCard':
               {
+                roomScreenLog.debug('[dispatchInteraction] Show roleCard', { effectiveSeat });
                 const effectivePlayer =
                   effectiveSeat === null ? null : gameState?.players.get(effectiveSeat);
                 const needAnimation = !(effectivePlayer?.hasViewedRole ?? false);
@@ -243,12 +245,14 @@ export function useInteractionDispatcher({
               }
               return;
             case 'leaveRoom':
+              roomScreenLog.debug('[dispatchInteraction] Show leaveRoom dialog');
               handleLeaveRoom();
               return;
           }
           return;
 
         case 'SEATING_FLOW':
+          roomScreenLog.debug('[dispatchInteraction] SEATING_FLOW', { seatIndex: result.seatIndex });
           handleSeatingTap(result.seatIndex);
           return;
 
@@ -263,6 +267,7 @@ export function useInteractionDispatcher({
           return;
 
         case 'HOST_CONTROL':
+          roomScreenLog.debug('[dispatchInteraction] HOST_CONTROL', { action: result.action });
           switch (result.action) {
             case 'settings':
               handleSettingsPress();
@@ -283,6 +288,7 @@ export function useInteractionDispatcher({
           return;
 
         case 'REVEAL_ACK':
+          roomScreenLog.debug('[dispatchInteraction] REVEAL_ACK', { revealRole: result.revealRole });
           submitRevealAckSafe(result.revealRole);
           setPendingRevealDialog(false);
           return;
@@ -304,10 +310,12 @@ export function useInteractionDispatcher({
           return;
 
         case 'TAKEOVER_BOT_SEAT':
+          roomScreenLog.debug('[dispatchInteraction] TAKEOVER_BOT_SEAT', { seatIndex: result.seatIndex });
           setControlledSeat(result.seatIndex);
           return;
 
         case 'RELEASE_BOT_SEAT':
+          roomScreenLog.debug('[dispatchInteraction] RELEASE_BOT_SEAT');
           setControlledSeat(null);
           return;
       }

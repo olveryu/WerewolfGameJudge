@@ -15,6 +15,7 @@
 
 import { useCallback, useRef } from 'react';
 
+import { roomScreenLog } from '@/utils/logger';
 import { mobileDebug } from '@/utils/mobileDebug';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ export function useHiddenDebugTrigger(): UseHiddenDebugTriggerResult {
 
     if (tapCountRef.current >= TAP_THRESHOLD) {
       tapCountRef.current = 0;
+      roomScreenLog.debug('[DebugTrigger] Toggling mobile debug panel');
       mobileDebug.toggle();
     } else {
       tapTimeoutRef.current = setTimeout(() => {
