@@ -266,7 +266,7 @@ describe('handleSubmitWolfVote', () => {
     expect(result.reason).toBe('step_mismatch');
   });
 
-  it('should fail when voter has no role (not_wolf_participant)', () => {
+  it('should fail when voter has no role (not_seated)', () => {
     const state = createWolfVoteState({
       players: {
         0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
@@ -283,8 +283,8 @@ describe('handleSubmitWolfVote', () => {
     const result = handleSubmitWolfVote(intent, context);
 
     expect(result.success).toBe(false);
-    // voterRole is undefined → placeholder triggers role_mismatch in validateActionPreconditions
-    expect(result.reason).toBe('role_mismatch');
+    // voterRole is undefined → early return with not_seated (player without role is not a valid participant)
+    expect(result.reason).toBe('not_seated');
   });
 
   // === Gate: invalid_target ===

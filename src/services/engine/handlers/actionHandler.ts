@@ -647,29 +647,25 @@ export function handleSubmitWolfVote(
   // - not_wolf_participant (meeting-specific rule)
   // Everything else is validated by `handleSubmitAction` (host/state/status/audio/step/seat/role).
 
-  // Resolve voter role. May be undefined if state/seat is missing — that's fine,
-  // validateActionPreconditions will catch it with the correct gate reason.
-  const voterRole = context.state?.players?.[seat]?.role;
-
-  // Run common preconditions first (host → state → status → audio → step → seat → role).
-  // Pass the actual role when available; otherwise 'wolf' as placeholder so that
-  // Gate 5b (wolfKill + participatesInWolfVote) passes, and Gate 6/6b catches
-  // the real error (not_seated or role_mismatch).
-  const validation = validateActionPreconditions(context, seat, voterRole ?? ('wolf' as RoleId));
-  if (!validation.valid) {
-    return normalizeWolfVoteRejection(validation.result);
+  // Guards needed to safely resolve voterRole (gates 1-2 duplicated from
+  // validateActionPreconditions — acceptable since they're trivial checks).
+  if (!context.isHost) {
+    return normalizeWolfVoteRejection({ success: false, reason: 'host_only', actions: [] });
+  }
+  if (!context.state) {
+    return normalizeWolfVoteRejection({ success: false, reason: 'no_state', actions: [] });
   }
 
-  // After validation, voterRole is guaranteed non-null:
-  // Gate 6 ensures player exists, Gate 6b ensures player.role === placeholder ('wolf').
-  // If voterRole were undefined, one of those gates would have rejected.
-  // istanbul ignore next — defensive, unreachable after validation
+  // Early return: voter seat must have a player with a role.
+  const voterRole = context.state.players[seat]?.role;
   if (!voterRole) {
-    return normalizeWolfVoteRejection({
-      success: false,
-      reason: 'not_seated',
-      actions: [],
-    });
+    return normalizeWolfVoteRejection({ success: false, reason: 'not_seated', actions: [] });
+  }
+
+  // Remaining preconditions (status → audio → step → seat → role match).
+  const validation = validateActionPreconditions(context, seat, voterRole);
+  if (!validation.valid) {
+    return normalizeWolfVoteRejection(validation.result);
   }
 
   // Meeting-specific gate: voter must participate in wolf vote.
