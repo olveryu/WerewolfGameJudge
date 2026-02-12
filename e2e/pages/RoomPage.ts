@@ -18,10 +18,10 @@ export class RoomPage {
   // Selectors
   // ---------------------------------------------------------------------------
 
-  /** Precise locator for a seat tile by 0-based index. */
-  getSeatTile(seatIndex: number) {
-    const byTestId = this.page.locator(`[data-testid="seat-tile-${seatIndex}"]`);
-    const displayNumber = seatIndex + 1;
+  /** Precise locator for a seat tile by 0-based seat number. */
+  getSeatTile(seat: number) {
+    const byTestId = this.page.locator(`[data-testid="seat-tile-${seat}"]`);
+    const displayNumber = seat + 1;
     const byText = this.page
       .locator(`text="${displayNumber}"`)
       .locator('..')
@@ -60,16 +60,16 @@ export class RoomPage {
   // ---------------------------------------------------------------------------
 
   /** Click a seat and confirm the "入座" dialog. */
-  async seatAt(seatIndex: number) {
-    await this.getSeatTile(seatIndex).click();
+  async seatAt(seat: number) {
+    await this.getSeatTile(seat).click();
     await expect(this.page.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
     await this.page.getByText('确定', { exact: true }).click();
     await this.page.waitForTimeout(500);
   }
 
   /** Click own seat and confirm "站起" dialog. */
-  async standUp(seatIndex: number) {
-    await this.getSeatTile(seatIndex).click();
+  async standUp(seat: number) {
+    await this.getSeatTile(seat).click();
     await expect(this.page.getByText('站起', { exact: true })).toBeVisible({ timeout: 5000 });
     await this.page.getByText('确定', { exact: true }).click();
     await this.page.waitForTimeout(500);

@@ -135,7 +135,7 @@ async function parseWolfVoteCount(page: Page): Promise<{ current: number; total:
     : null;
 }
 
-async function getMySeatIndex(page: Page): Promise<number | null> {
+async function getMySeat(page: Page): Promise<number | null> {
   const myBadge = page.getByText('我', { exact: true }).first();
   if (!(await myBadge.isVisible({ timeout: 500 }).catch(() => false))) return null;
 
@@ -152,9 +152,9 @@ async function getMySeatIndex(page: Page): Promise<number | null> {
   return null;
 }
 
-function getSeatTileLocator(page: Page, seatIndex: number) {
-  const byTestId = page.locator(`[data-testid="seat-tile-${seatIndex}"]`);
-  const displayNumber = seatIndex + 1;
+function getSeatTileLocator(page: Page, seat: number) {
+  const byTestId = page.locator(`[data-testid="seat-tile-${seat}"]`);
+  const displayNumber = seat + 1;
   const byText = page
     .locator(`text="${displayNumber}"`)
     .locator('..')
@@ -369,7 +369,7 @@ async function tryClickSeatTarget(
   const isWolfVote = text.includes('猎杀') || text.includes('狼人已投票');
   if (isWolfVote && state.wolfVotedPages.has(pageLabel)) return false;
 
-  const mySeat = await getMySeatIndex(page);
+  const mySeat = await getMySeat(page);
   if (mySeat === null) {
     nightLog(`[NightFlow] ${pageLabel}: target pattern matched but mySeat is null`);
     return false;

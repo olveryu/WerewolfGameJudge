@@ -50,7 +50,7 @@ grep -rn "normalizeState|BROADCAST_GAME_STATE_FIELDS" src/ --include="*.ts" --in
 | `RoomScreen.tsx:749-876`        | `handleSeatTapIntent` 中的 UI 逻辑使用 `effectiveRole`                                                     | ⚠️ **边缘用途**（见下）              |
 | `RoomScreen.helpers.ts:272-276` | `buildSeatViewModels` 中的 `effectiveRole`                                                                 | ✅ 不同语义（seat 显示用，非 actor） |
 | `actorIdentity.ts`              | `getActorIdentity()` 定义                                                                                  | ✅ 单一真相函数                      |
-| `RoomInteractionPolicy.ts:232`  | 检查 `controlledSeat === event.seatIndex` 用于 self-tap                                                    | ✅ 正确用法                          |
+| `RoomInteractionPolicy.ts:232`  | 检查 `controlledSeat === event.seat` 用于 self-tap                                                         | ✅ 正确用法                          |
 | 后端 resolvers                  | 完全不同的 `effectiveRole`（指交换后角色），与 UI 无关                                                     | ✅ 不同上下文                        |
 
 #### 2. `actorSeatForUi` / `actorRoleForUi` 使用分析

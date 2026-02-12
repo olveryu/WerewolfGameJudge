@@ -273,7 +273,7 @@ Policy 只接收一个最小的 `InteractionContext`（例如：roomStatus、isA
 ### 输入
 
 - `InteractionEvent`：必须是纯数据。
-  - `SEAT_TAP { seatIndex, disabledReason? }`
+  - `SEAT_TAP { seat, disabledReason? }`
   - `BOTTOM_ACTION { intent }`
   - `HOST_CONTROL { action }`
   - `VIEW_ROLE`
@@ -288,9 +288,9 @@ Policy 只接收一个最小的 `InteractionContext`（例如：roomStatus、isA
 - `InteractionResult`：
   - `NOOP { reason }`：不做任何副作用
   - `ALERT { title, message }`：弹窗
-  - `SHOW_DIALOG { dialogType, seatIndex? }`：展示某种 dialog
-  - `SEATING_FLOW { seatIndex }`
-  - `ACTION_FLOW { intent? / seatIndex? }`
+  - `SHOW_DIALOG { dialogType, seat? }`：展示某种 dialog
+  - `SEATING_FLOW { seat }`
+  - `ACTION_FLOW { intent? / seat? }`
   - `HOST_CONTROL { action }`
   - `REVEAL_ACK { revealRole }`
   - `HUNTER_STATUS_VIEWED`

@@ -332,7 +332,7 @@ wolfVoteTarget: wolfVotesBySeat != null && String(index) in wolfVotesBySeat
   - 全投完倒数中 → `"{X}/{Y} 狼人已投票（{N}s 后确认）"`
 - `getBottomAction` wolfVote 分支：
   - 未投票 → `[空刀]`
-  - 已投票 → `[取消投票]`（type=`wolfVote`, targetIndex=`-2`）+ `[空刀]`
+  - 已投票 → `[取消投票]`（type=`wolfVote`, targetSeat=`-2`）+ `[空刀]`
 
 #### 9e. RoomScreen.tsx
 

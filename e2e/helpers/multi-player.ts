@@ -163,7 +163,7 @@ export async function setupNPlayerGame(
   // Step 3: Joiners join and take seats
   for (let i = 0; i < joinerPages.length; i++) {
     const joinerPage = joinerPages[i];
-    const seatIndex = i + 1; // Seats 2, 3, 4, ...
+    const seat = i + 1; // Seats 2, 3, 4, ...
 
     await getVisibleText(joinerPage, '进入房间').first().click();
     await expect(joinerPage.getByText('加入房间')).toBeVisible({ timeout: 5000 });
@@ -174,7 +174,7 @@ export async function setupNPlayerGame(
 
     // Take seat
     const room = new RoomPage(joinerPage);
-    await room.seatAt(seatIndex);
+    await room.seatAt(seat);
     await expect(joinerPage.getByText('我')).toBeVisible({ timeout: 3000 });
   }
 
