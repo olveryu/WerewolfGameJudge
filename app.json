@@ -2,7 +2,7 @@
   "expo": {
     "name": "狼人杀电子法官",
     "slug": "WerewolfGameJudge",
-    "version": "1.0.186",
+    "version": "1.0.187",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -34,6 +34,10 @@
       "startUrl": "/",
       "scope": "/"
     },
-    "plugins": ["expo-audio", "expo-splash-screen", "@sentry/react-native"]
+    "plugins": [
+      "expo-audio",
+      "expo-splash-screen",
+      "@sentry/react-native"
+    ]
   }
 }
