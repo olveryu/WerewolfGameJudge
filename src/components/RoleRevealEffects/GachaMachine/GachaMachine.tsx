@@ -189,7 +189,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     // Card springs in after 200ms delay
     cardScale.value = withDelay(
       200,
-      withSpring(1, { damping: 12, stiffness: 180 }, (finished) => {
+      withSpring(1, { damping: 15, stiffness: 300 }, (finished) => {
         'worklet';
         if (finished) runOnJS(enterRevealed)();
       }),
@@ -605,6 +605,6 @@ const styles = StyleSheet.create({
     borderColor: GACHA_COLORS.capsuleRingBorder,
   },
 
-  cardWrapper: { alignItems: 'center', justifyContent: 'center' },
+  cardWrapper: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   glowBorder: { position: 'absolute', top: -4, left: -4 },
 });

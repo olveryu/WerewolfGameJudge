@@ -110,7 +110,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   const [particles, setParticles] = useState<ParticleConfig[]>([]);
 
   // ── Shared values ──
-  const entryScale = useSharedValue(0.3);
+  const entryScale = useSharedValue(0.6);
   const entryOpacity = useSharedValue(0);
   const levitateY = useSharedValue(0);
   const flipProgress = useSharedValue(0); // 0 = back, 1 = front
@@ -162,14 +162,14 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
     // Bounce sequence → revealed
     bounceY.value = withSequence(
       withTiming(-15, { duration: 100, easing: Easing.out(Easing.cubic) }),
-      withSpring(0, { damping: 8, stiffness: 200 }, (finished) => {
+      withSpring(0, { damping: 15, stiffness: 300 }, (finished) => {
         'worklet';
         if (finished) runOnJS(enterRevealed)();
       }),
     );
     bounceScale.value = withSequence(
       withTiming(1.05, { duration: 100 }),
-      withSpring(1, { damping: 8, stiffness: 200 }),
+      withSpring(1, { damping: 15, stiffness: 300 }),
     );
   }, [levitateY, bounceY, bounceScale, createParticles, enableHaptics, enterRevealed]);
 
@@ -244,9 +244,9 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
 
     // Entry: fade-in + spring scale → levitate after 300 ms delay
     entryOpacity.value = withTiming(1, { duration: 300 });
-    entryScale.value = withSpring(
+    entryScale.value = withTiming(
       1,
-      { damping: 15, stiffness: 250 },
+      { duration: 250, easing: Easing.out(Easing.back(1.5)) },
       (finished) => {
         'worklet';
         if (finished) {

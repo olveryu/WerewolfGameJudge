@@ -31,7 +31,7 @@ export const CONFIG = {
     /** GlowBorder flash count */
     glowFlashCount: 2,
     /** GlowBorder flash duration per cycle (ms) */
-    glowFlashDuration: 150,
+    glowFlashDuration: 100,
     /** GlowBorder border width */
     glowBorderWidth: 3,
     /** GlowBorder size padding (added to each side of card) */

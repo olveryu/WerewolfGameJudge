@@ -240,7 +240,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const transitionToRevealed = useCallback(() => {
     setPhase('revealed');
     cabinetOpacityAnim.value = withTiming(0, { duration: 300 });
-    revealScaleAnim.value = withSpring(1, { damping: 8, stiffness: 100 });
+    revealScaleAnim.value = withSpring(1, { damping: 20, stiffness: 300 });
     revealOpacityAnim.value = withTiming(1, { duration: 300 });
   }, [cabinetOpacityAnim, revealScaleAnim, revealOpacityAnim]);
 
@@ -252,7 +252,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
     // Short delay then transition to revealed
     revealScaleAnim.value = withDelay(
-      200,
+      100,
       withTiming(0.8, { duration: 1 }, (finished) => {
         'worklet';
         if (finished) runOnJS(transitionToRevealed)();
@@ -298,7 +298,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
         // Bounce
         bounceAnim.value = withSequence(
           withTiming(-15, { duration: 100, easing: Easing.out(Easing.cubic) }),
-          withSpring(0, { damping: 6, stiffness: 300 }, (fin2) => {
+          withSpring(0, { damping: 15, stiffness: 300 }, (fin2) => {
             'worklet';
             if (fin2) runOnJS(afterBounce)();
           }),
