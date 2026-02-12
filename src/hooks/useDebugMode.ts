@@ -39,7 +39,6 @@ interface DebugModeState {
  */
 export function useDebugMode(
   facade: IGameFacade,
-  isHost: boolean,
   mySeatNumber: number | null,
   gameState: LocalGameState | null,
 ): DebugModeState {
@@ -63,11 +62,11 @@ export function useDebugMode(
 
   // Fill all empty seats with bots
   const fillWithBots = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
-    if (!isHost) {
+    if (!facade.isHostPlayer()) {
       return { success: false, reason: 'host_only' };
     }
     // If Host is seated, leave seat first so the seat can be filled with a bot
-    if (mySeatNumber !== null) {
+    if (facade.getMySeatNumber() !== null) {
       try {
         await facade.leaveSeat();
       } catch (err) {
@@ -75,18 +74,18 @@ export function useDebugMode(
       }
     }
     return facade.fillWithBots();
-  }, [isHost, mySeatNumber, facade]);
+  }, [facade]);
 
   // Mark all bot seats as having viewed their roles
   const markAllBotsViewed = useCallback(async (): Promise<{
     success: boolean;
     reason?: string;
   }> => {
-    if (!isHost) {
+    if (!facade.isHostPlayer()) {
       return { success: false, reason: 'host_only' };
     }
     return facade.markAllBotsViewed();
-  }, [isHost, facade]);
+  }, [facade]);
 
   return {
     controlledSeat,

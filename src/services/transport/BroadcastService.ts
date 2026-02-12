@@ -148,12 +148,9 @@ export class BroadcastService {
 
     // Subscribe to channel with timeout
     const subscribePromise = new Promise<void>((resolve, reject) => {
-      const startMs = Date.now();
       let resolved = false;
-      broadcastLog.debug(`[DIAG] subscribe start t=0 room=${roomCode}`);
 
       const timeout = setTimeout(() => {
-        broadcastLog.warn(`[DIAG] subscribe TIMEOUT after ${Date.now() - startMs}ms, resolved=${resolved}`);
         if (!resolved) {
           resolved = true;
           this.setConnectionStatus('disconnected');
@@ -162,16 +159,19 @@ export class BroadcastService {
       }, 8000);
 
       this.channel!.subscribe((status) => {
-        broadcastLog.debug(`[DIAG] subscribe callback status=${status} t=${Date.now() - startMs}ms resolved=${resolved}`);
         if (status === 'SUBSCRIBED') {
-          if (resolved) {
-            broadcastLog.warn(`[DIAG] SUBSCRIBED arrived AFTER timeout! t=${Date.now() - startMs}ms`);
-            return;
-          }
+          if (resolved) return;
           resolved = true;
           clearTimeout(timeout);
           this.setConnectionStatus('syncing');
           resolve();
+        } else if (status === 'CLOSED') {
+          // Channel was replaced by a new subscribe call (leaveRoom closed it)
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeout);
+          this.setConnectionStatus('disconnected');
+          reject(new Error('BroadcastService: channel closed before subscribe completed'));
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           if (resolved) return;
           resolved = true;

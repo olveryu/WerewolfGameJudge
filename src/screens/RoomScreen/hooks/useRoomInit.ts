@@ -15,7 +15,7 @@
  *   - Create room record in DB (that's done in ConfigScreen before navigation)
  */
 
-import { useCallback,useEffect, useState } from 'react';
+import { useCallback,useEffect, useRef, useState } from 'react';
 
 import type { GameTemplate } from '@/models/Template';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
@@ -81,10 +81,14 @@ export function useRoomInit({
   const [loadingMessage, setLoadingMessage] = useState('加载房间...');
   const [showRetryButton, setShowRetryButton] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  // Guard: prevent concurrent initialization from useEffect re-triggers
+  const initInProgressRef = useRef(false);
 
   // Initialize room on mount (retryKey change forces re-trigger)
   useEffect(() => {
     if (isInitialized) return;
+    if (initInProgressRef.current) return;
+    initInProgressRef.current = true;
 
     const initRoom = async () => {
       setLoadingMessage('正在初始化...');
@@ -95,23 +99,26 @@ export function useRoomInit({
         roomScreenLog.debug('[useRoomInit] Host initializing room', { roomNumber, roleCount: template.roles.length });
         const success = await initializeHostRoom(roomNumber, template);
 
-        if (success) {
-          // Set role reveal animation if provided from ConfigScreen
-          if (initialRoleRevealAnimation && setRoleRevealAnimation) {
+        if (!success) {
+          initInProgressRef.current = false;
+          roomScreenLog.warn('[useRoomInit] Host initializeHostRoom failed', { roomNumber, error: gameRoomError ?? 'unknown' });
+          setLoadingMessage('创建失败');
+          setShowRetryButton(true);
+          return;
+        }
+
+        // Set role reveal animation if provided from ConfigScreen
+        if (initialRoleRevealAnimation && setRoleRevealAnimation) {
             roomScreenLog.debug('[useRoomInit] Setting role reveal animation', { animation: initialRoleRevealAnimation });
             await setRoleRevealAnimation(initialRoleRevealAnimation);
           }
           // Host auto-takes seat 0
           setLoadingMessage('正在入座...');
           roomScreenLog.debug('[useRoomInit] Host auto-taking seat 0');
-          await takeSeat(0);
-          setIsInitialized(true);
-          roomScreenLog.debug('[useRoomInit] Host init complete');
-        } else {
-          roomScreenLog.warn('[useRoomInit] Host initializeHostRoom failed', { roomNumber, error: gameRoomError ?? 'unknown' });
-          setLoadingMessage('创建失败');
-          setShowRetryButton(true);
-        }
+        await takeSeat(0);
+        setIsInitialized(true);
+        initInProgressRef.current = false;
+        roomScreenLog.debug('[useRoomInit] Host init complete');
       } else {
         // Player joins existing room via BroadcastService
         setLoadingMessage('正在加入房间...');
@@ -120,8 +127,10 @@ export function useRoomInit({
 
         if (joined) {
           setIsInitialized(true);
+          initInProgressRef.current = false;
           roomScreenLog.debug('[useRoomInit] Player join complete');
         } else {
+          initInProgressRef.current = false;
           roomScreenLog.warn('[useRoomInit] joinRoom failed', { roomNumber });
           setLoadingMessage('加入房间失败');
           setShowRetryButton(true);
@@ -174,6 +183,7 @@ export function useRoomInit({
     roomScreenLog.debug('[useRoomInit] Retry triggered');
     setIsInitialized(false);
     setShowRetryButton(false);
+    initInProgressRef.current = false;
     setLoadingMessage('重试中...');
     // 递增 retryKey 强制触发 useEffect 重试（即使 isInitialized 已经是 false）
     setRetryKey((prev) => prev + 1);

@@ -183,7 +183,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   const bgm = useBgmControl(isHost, gameState?.status ?? null);
 
   // Debug mode: bot control
-  const debug = useDebugMode(facade, isHost, mySeatNumber, gameState);
+  const debug = useDebugMode(facade, mySeatNumber, gameState);
 
   // Night-phase derived values (pure computation)
   const nightDerived = useNightDerived(gameState);
@@ -433,36 +433,36 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Update template (host only)
   const updateTemplate = useCallback(
     async (template: GameTemplate): Promise<void> => {
-      if (!isHost) return;
+      if (!facade.isHostPlayer()) return;
       await facade.updateTemplate(template);
     },
-    [isHost, facade],
+    [facade],
   );
 
   // Assign roles (host only)
   const assignRoles = useCallback(async (): Promise<void> => {
-    if (!isHost) return;
+    if (!facade.isHostPlayer()) return;
     await facade.assignRoles();
-  }, [isHost, facade]);
+  }, [facade]);
 
   // Start game (host only) - now uses startNight + BGM
   const startGame = useCallback(async (): Promise<void> => {
-    if (!isHost) return;
+    if (!facade.isHostPlayer()) return;
 
     // Start BGM if enabled
     bgm.startBgmIfEnabled();
     await facade.startNight();
-  }, [isHost, facade, bgm]);
+  }, [facade, bgm]);
 
   // Restart game (host only)
   const restartGame = useCallback(async (): Promise<void> => {
-    if (!isHost) return;
+    if (!facade.isHostPlayer()) return;
     // Stop BGM on restart
     bgm.stopBgm();
     // Clear controlled seat on restart
     debug.setControlledSeat(null);
     await facade.restartGame();
-  }, [isHost, facade, bgm, debug]);
+  }, [facade, bgm, debug]);
 
   // =========================================================================
   // Debug Mode & BGM: delegated to sub-hooks
@@ -471,21 +471,21 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Set role reveal animation (host only)
   const setRoleRevealAnimation = useCallback(
     async (animation: RoleRevealAnimation): Promise<void> => {
-      if (!isHost) return;
+      if (!facade.isHostPlayer()) return;
       await facade.setRoleRevealAnimation(animation);
     },
-    [isHost, facade],
+    [facade],
   );
 
   // Set audio playing (host only) - PR7 音频时序控制
   const setAudioPlaying = useCallback(
     async (isPlaying: boolean): Promise<{ success: boolean; reason?: string }> => {
-      if (!isHost) {
+      if (!facade.isHostPlayer()) {
         return { success: false, reason: 'host_only' };
       }
       return facade.setAudioPlaying(isPlaying);
     },
-    [isHost, facade],
+    [facade],
   );
 
   // Mark role as viewed

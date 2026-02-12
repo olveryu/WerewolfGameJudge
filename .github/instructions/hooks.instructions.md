@@ -30,8 +30,16 @@ applyTo: "src/hooks/**,src/screens/**/hooks/**"
 
 ## 依赖数组完整性（Hard rule）
 
+- **deps 必须诚实反映回调实际读取的值。**
 - 禁止无理由地 `// eslint-disable-next-line react-hooks/exhaustive-deps`。
 - 如果确实需要 suppress，必须附注释说明"为什么这个依赖不需要加"。
+- **Guard（`if (!x) return`）应从权威来源读取，而非 state dep。**
+  - ❌ `useCallback(() => { if (!isHost) return; ... }, [isHost, facade])` — `isHost` 是派生 state，变化导致不必要的引用更新。
+  - ✅ `useCallback(() => { if (!facade.isHostPlayer()) return; ... }, [facade])` — 从权威来源读取，deps 只含稳定引用。
+- **禁止用 `useRef` 镜像 state 来绕过 deps。**
+  - ❌ `const xRef = useRef(x); xRef.current = x;` + `useCallback(() => xRef.current, [])` — 欺骗 deps 的 workaround。
+  - ✅ 应从权威来源（facade/service 方法）读取，或接受 state 作为诚实 dep。
+  - 例外：async/setTimeout 闭包读最新值（stale closure 问题）时，ref 镜像是正确模式。
 - 常见正确做法：
   - 稳定引用（`useRef`）不需要加入 dep array → 不用 suppress，ESLint 本身不会报。
   - dispatch / navigation 等 React 保证稳定的引用 → 同上。
