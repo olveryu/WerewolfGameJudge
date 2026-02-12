@@ -273,7 +273,7 @@ test.describe('Seating', () => {
       // Joiner takes seat 2
       const roomB = new RoomPage(pageB);
       await roomB.seatAt(1);
-      const joinerSeat2 = await roomB.collectSeatState(2);
+      const joinerSeat2 = await pollSeatOccupied(roomB, 2);
       expect(joinerSeat2.hasPlayerName, 'Joiner should be seated at seat 2').toBe(true);
 
       // Host polls for seat 2 update
@@ -313,15 +313,16 @@ test.describe('Seating', () => {
       const roomB = new RoomPage(pageB);
       await roomB.seatAt(1);
 
-      const joinerSeat2 = await roomB.collectSeatState(2);
+      const joinerSeat2 = await pollSeatOccupied(roomB, 2);
       expect(joinerSeat2.hasPlayerName, 'Joiner seated at seat 2').toBe(true);
 
       // Switch to seat 5
       await roomB.seatAt(4);
       await dismissAnyConfirmAlert(pageB);
 
-      const joinerSeat5 = await roomB.collectSeatState(5);
-      const joinerSeat2After = await roomB.collectSeatState(2);
+      // Poll for seat switch to propagate (broadcast round-trip)
+      const joinerSeat5 = await pollSeatOccupied(roomB, 5);
+      const joinerSeat2After = await pollSeatEmpty(roomB, 2);
 
       expect(joinerSeat5.hasPlayerName, 'Joiner now at seat 5').toBe(true);
       expect(joinerSeat2After.isEmpty, 'Old seat 2 should be empty').toBe(true);
