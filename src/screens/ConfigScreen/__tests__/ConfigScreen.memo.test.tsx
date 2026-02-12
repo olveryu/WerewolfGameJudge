@@ -69,6 +69,8 @@ describe('ConfigScreen Performance Optimizations', () => {
         'templatePillText',
         'templatePillArrow',
         'playerCount',
+        'clearBtn',
+        'clearBtnText',
         'headerGearBtn',
         'headerGearBtnText',
         'bottomCreateBar',

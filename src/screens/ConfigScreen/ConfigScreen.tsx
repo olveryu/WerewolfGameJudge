@@ -214,17 +214,17 @@ export const ConfigScreen: React.FC = () => {
   }, []);
 
   const handlePresetSelect = useCallback((presetName: string) => {
-    if (presetName === '__empty__') {
-      setSelection((prev) => {
-        const cleared: Record<string, boolean> = {};
-        Object.keys(prev).forEach((k) => (cleared[k] = false));
-        return cleared;
-      });
-      setSelectedTemplate('__empty__');
-      return;
-    }
     const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
     if (preset) setSelection(applyPreset(preset.roles));
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelection((prev) => {
+      const cleared: Record<string, boolean> = {};
+      Object.keys(prev).forEach((k) => (cleared[k] = false));
+      return cleared;
+    });
+    setSelectedTemplate('__custom__');
   }, []);
 
   const handleCreateRoom = useCallback(async () => {
@@ -303,7 +303,6 @@ export const ConfigScreen: React.FC = () => {
         value: p.name,
         label: p.name.replace(/\d+人$/, ''),
       })),
-      { value: '__empty__', label: '清空' },
       { value: '__custom__', label: '自定义' },
     ],
     [],
@@ -541,6 +540,13 @@ export const ConfigScreen: React.FC = () => {
             <Text style={styles.templatePillArrow}>▾</Text>
           </TouchableOpacity>
           <Text style={styles.playerCount}>{totalCount}人</Text>
+          <TouchableOpacity
+            style={styles.clearBtn}
+            onPress={handleClearSelection}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.clearBtnText}>清空</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Divider */}

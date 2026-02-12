@@ -29,6 +29,8 @@ export interface ConfigScreenStyles {
   templatePillText: TextStyle;
   templatePillArrow: TextStyle;
   playerCount: TextStyle;
+  clearBtn: ViewStyle;
+  clearBtnText: TextStyle;
   // Bottom create button
   bottomCreateBar: ViewStyle;
   bottomCreateBtn: ViewStyle;
@@ -197,6 +199,14 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       fontSize: typography.secondary,
       color: colors.textSecondary,
       fontWeight: typography.weights.medium,
+    },
+    clearBtn: {
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.tight,
+    },
+    clearBtnText: {
+      fontSize: typography.caption,
+      color: colors.textSecondary,
     },
 
     // ── Bottom create button ────────────────────
