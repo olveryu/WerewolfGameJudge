@@ -33,19 +33,10 @@ const DEFAULT_SETTINGS: UserSettings = {
 };
 
 export class SettingsService {
-  private static instance: SettingsService;
   private settings: UserSettings = { ...DEFAULT_SETTINGS };
   private loaded = false;
 
   constructor() {}
-
-  /** @deprecated Use composition root DI instead of singleton. */
-  static getInstance(): SettingsService {
-    if (!SettingsService.instance) {
-      SettingsService.instance = new SettingsService();
-    }
-    return SettingsService.instance;
-  }
 
   /**
    * Load settings from storage. Call this on app startup.

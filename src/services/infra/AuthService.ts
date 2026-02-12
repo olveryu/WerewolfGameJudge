@@ -17,13 +17,11 @@ import { withTimeout } from '@/utils/withTimeout';
  * ❌ 禁止：游戏逻辑 / 游戏状态存储
  */
 export class AuthService {
-  private static instance: AuthService;
   private currentUserId: string | null = null;
   private readonly initPromise: Promise<void>;
 
   constructor() {
-    // Note: async operation in constructor is intentional for singleton initialization
-    // The promise is stored and can be awaited via ensureInitialized()
+    // Async operation in constructor — promise stored and awaitable via waitForInit()
     this.initPromise = this.autoSignIn();
   }
 
@@ -48,14 +46,6 @@ export class AuthService {
     // Add timeout to prevent infinite waiting
     // 使用用户友好的错误消息，技术上下文由 withTimeout 内部 logger 记录
     await withTimeout(this.initPromise, 10000, () => new Error('登录超时，请重试'));
-  }
-
-  /** @deprecated Use composition root DI instead of singleton. */
-  static getInstance(): AuthService {
-    if (!AuthService.instance) {
-      AuthService.instance = new AuthService();
-    }
-    return AuthService.instance;
   }
 
   isConfigured(): boolean {

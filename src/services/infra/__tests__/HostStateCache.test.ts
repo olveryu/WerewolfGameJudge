@@ -25,7 +25,6 @@ describe('HostStateCache', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    HostStateCache.resetInstance();
   });
 
   const createMinimalState = (overrides?: Partial<BroadcastGameState>): BroadcastGameState => ({
@@ -52,7 +51,7 @@ describe('HostStateCache', () => {
   // =========================================================================
   describe('saveState', () => {
     it('should save state with key = roomCode:hostUid', async () => {
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const state = createMinimalState();
 
       await cache.saveState(ROOM_CODE, HOST_UID, state, 5);
@@ -74,7 +73,7 @@ describe('HostStateCache', () => {
     it('should return null if no cache exists', async () => {
       mockAsyncStorage.getItem.mockResolvedValue(null);
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
@@ -85,7 +84,7 @@ describe('HostStateCache', () => {
       const cached = createValidCached();
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).not.toBeNull();
@@ -103,7 +102,7 @@ describe('HostStateCache', () => {
     it('should return null and removeItem when JSON is invalid', async () => {
       mockAsyncStorage.getItem.mockResolvedValue('{ invalid json !!!');
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
@@ -119,7 +118,7 @@ describe('HostStateCache', () => {
       };
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(incompleteData));
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
@@ -135,7 +134,7 @@ describe('HostStateCache', () => {
       };
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(incompleteData));
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
@@ -151,7 +150,7 @@ describe('HostStateCache', () => {
       };
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(incompleteData));
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
@@ -167,7 +166,7 @@ describe('HostStateCache', () => {
       };
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(incompleteData));
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
@@ -179,7 +178,7 @@ describe('HostStateCache', () => {
       const cached = { version: 1, state: badState, revision: 10, cachedAt: Date.now() };
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
@@ -191,7 +190,7 @@ describe('HostStateCache', () => {
       const cached = { version: 1, state: badState, revision: 10, cachedAt: Date.now() };
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
@@ -202,7 +201,7 @@ describe('HostStateCache', () => {
       const cached = createValidCached({ version: 999 });
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
@@ -220,7 +219,7 @@ describe('HostStateCache', () => {
       });
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
@@ -233,7 +232,7 @@ describe('HostStateCache', () => {
       });
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).not.toBeNull();
@@ -251,7 +250,7 @@ describe('HostStateCache', () => {
       });
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
@@ -264,7 +263,7 @@ describe('HostStateCache', () => {
       });
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(cached));
 
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
       const result = await cache.loadState(ROOM_CODE, HOST_UID);
 
       expect(result).toBeNull();
@@ -277,7 +276,7 @@ describe('HostStateCache', () => {
   // =========================================================================
   describe('clearState', () => {
     it('should remove cache from AsyncStorage with correct key', async () => {
-      const cache = HostStateCache.getInstance();
+      const cache = new HostStateCache();
 
       await cache.clearState(ROOM_CODE, HOST_UID);
 

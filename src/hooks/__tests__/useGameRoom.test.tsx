@@ -321,20 +321,6 @@ describe('useGameRoom - ACK reason transparency', () => {
       );
 
       // roomRecord 不存在时不会触发 auto-recovery，需要 mock 一个房间
-      const mockRoomService = {
-        getRoom: jest.fn().mockResolvedValue({
-          id: 'room-id',
-          room_number: 'TEST',
-          status: 'active',
-          host_uid: 'host-1',
-          created_at: new Date().toISOString(),
-        }),
-        deleteRoom: jest.fn(),
-        subscribeToRoom: jest.fn().mockReturnValue(() => {}),
-      };
-      jest.requireMock('../../services/infra/RoomService').RoomService = {
-        getInstance: () => mockRoomService,
-      };
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
 
@@ -395,21 +381,6 @@ describe('useGameRoom - ACK reason transparency', () => {
       const wrapper = ({ children }: { children: React.ReactNode }) => (
         <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
       );
-
-      const mockRoomService = {
-        getRoom: jest.fn().mockResolvedValue({
-          id: 'room-id',
-          room_number: 'TEST',
-          status: 'active',
-          host_uid: 'host-1',
-          created_at: new Date().toISOString(),
-        }),
-        deleteRoom: jest.fn(),
-        subscribeToRoom: jest.fn().mockReturnValue(() => {}),
-      };
-      jest.requireMock('../../services/infra/RoomService').RoomService = {
-        getInstance: () => mockRoomService,
-      };
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
 

@@ -6,33 +6,12 @@ jest.mock('../../../config/supabase', () => ({
   isSupabaseConfigured: jest.fn(() => false),
 }));
 
-describe('AuthService - Singleton', () => {
-  beforeEach(() => {
-    // Reset singleton for each test
-    (AuthService as any).instance = null;
-    jest.clearAllMocks();
-  });
-
-  it('should return same instance', () => {
-    const instance1 = AuthService.getInstance();
-    const instance2 = AuthService.getInstance();
-
-    expect(instance1).toBe(instance2);
-  });
-
-  it('should be defined', () => {
-    const instance = AuthService.getInstance();
-    expect(instance).toBeDefined();
-  });
-});
-
 describe('AuthService - Unconfigured state', () => {
   let authService: AuthService;
 
   beforeEach(() => {
     jest.useFakeTimers();
-    (AuthService as any).instance = null;
-    authService = AuthService.getInstance();
+    authService = new AuthService();
     jest.clearAllMocks();
   });
 
@@ -94,8 +73,7 @@ describe('AuthService - generateDisplayName', () => {
   let authService: AuthService;
 
   beforeEach(() => {
-    (AuthService as any).instance = null;
-    authService = AuthService.getInstance();
+    authService = new AuthService();
   });
 
   it('should generate a display name from uid', () => {
@@ -155,8 +133,7 @@ describe('AuthService - getCurrentDisplayName', () => {
   let authService: AuthService;
 
   beforeEach(() => {
-    (AuthService as any).instance = null;
-    authService = AuthService.getInstance();
+    authService = new AuthService();
   });
 
   it('should return generated name when not configured', async () => {
@@ -172,8 +149,7 @@ describe('AuthService - getCurrentAvatarUrl', () => {
   let authService: AuthService;
 
   beforeEach(() => {
-    (AuthService as any).instance = null;
-    authService = AuthService.getInstance();
+    authService = new AuthService();
   });
 
   it('should return null when not configured', async () => {
@@ -187,8 +163,7 @@ describe('AuthService - Display name generation diversity', () => {
   let authService: AuthService;
 
   beforeEach(() => {
-    (AuthService as any).instance = null;
-    authService = AuthService.getInstance();
+    authService = new AuthService();
   });
 
   it('should generate diverse names for many users', () => {
@@ -217,7 +192,6 @@ describe('AuthService - Display name generation diversity', () => {
 
 describe('AuthService - waitForInit timeout', () => {
   beforeEach(() => {
-    (AuthService as any).instance = null;
     jest.useFakeTimers();
   });
 
@@ -228,7 +202,7 @@ describe('AuthService - waitForInit timeout', () => {
 
   it('should timeout after 10 seconds if initPromise never resolves', async () => {
     // Create a service with a never-resolving init promise
-    const authService = AuthService.getInstance();
+    const authService = new AuthService();
 
     // Override the initPromise with one that never resolves
     (authService as any).initPromise = new Promise(() => {});
@@ -244,7 +218,7 @@ describe('AuthService - waitForInit timeout', () => {
   });
 
   it('should resolve if initPromise resolves before timeout', async () => {
-    const authService = AuthService.getInstance();
+    const authService = new AuthService();
 
     // Override with a quick-resolving promise
     (authService as any).initPromise = Promise.resolve();

@@ -1,5 +1,5 @@
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
-import { AuthService } from '@/services/infra/AuthService';
+import type { AuthService } from '@/services/infra/AuthService';
 import { randomHex } from '@/utils/id';
 import { log } from '@/utils/logger';
 
@@ -16,19 +16,10 @@ const avatarLog = log.extend('Avatar');
  * ❌ 禁止：游戏逻辑 / 游戏状态存储
  */
 export class AvatarUploadService {
-  private static instance: AvatarUploadService;
   private readonly authService: AuthService;
 
-  constructor(authService?: AuthService) {
-    this.authService = authService ?? AuthService.getInstance();
-  }
-
-  /** @deprecated Use composition root DI instead of singleton. */
-  static getInstance(): AvatarUploadService {
-    if (!AvatarUploadService.instance) {
-      AvatarUploadService.instance = new AvatarUploadService();
-    }
-    return AvatarUploadService.instance;
+  constructor(authService: AuthService) {
+    this.authService = authService;
   }
 
   private isConfigured(): boolean {

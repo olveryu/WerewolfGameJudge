@@ -37,17 +37,7 @@ interface DbRoomRecord {
 }
 
 export class RoomService {
-  private static instance: RoomService;
-
   constructor() {}
-
-  /** @deprecated Use composition root DI instead of singleton. */
-  static getInstance(): RoomService {
-    if (!RoomService.instance) {
-      RoomService.instance = new RoomService();
-    }
-    return RoomService.instance;
-  }
 
   private isConfigured(): boolean {
     return isSupabaseConfigured() && supabase !== null;

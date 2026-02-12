@@ -3,7 +3,6 @@ import React from 'react';
 
 import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
-import { AuthService } from '@/services/infra/AuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 
 // Mock navigation
@@ -83,15 +82,6 @@ const renderWithFacade = (ui: React.ReactElement) => {
 describe('ConfigScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // Setup minimal mock services for useGameRoom (used by ConfigScreen)
-    const mockAuthService = {
-      waitForInit: jest.fn().mockResolvedValue(undefined),
-      getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
-      getCurrentDisplayName: jest.fn().mockResolvedValue('Test Host'),
-      getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
-    };
-    (AuthService.getInstance as jest.Mock).mockReturnValue(mockAuthService);
   });
 
   describe('Rendering', () => {

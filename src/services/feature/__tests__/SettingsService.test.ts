@@ -1,9 +1,5 @@
 /**
  * SettingsService.test.ts - Tests for the settings service
- *
- * Note: SettingsService is a singleton, so tests need to be careful about state.
- * We test the API behavior rather than specific default values since the singleton
- * may have been modified by other tests or app initialization.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -20,16 +16,7 @@ describe('SettingsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Get the singleton instance
-    service = SettingsService.getInstance();
-  });
-
-  describe('getInstance', () => {
-    it('returns the same instance', () => {
-      const instance1 = SettingsService.getInstance();
-      const instance2 = SettingsService.getInstance();
-      expect(instance1).toBe(instance2);
-    });
+    service = new SettingsService();
   });
 
   describe('load', () => {

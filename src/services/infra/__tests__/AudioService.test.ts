@@ -96,30 +96,15 @@ describe('audioAssetToUrl', () => {
   });
 });
 
-describe('AudioService - Singleton', () => {
+describe('AudioService - Initialization', () => {
   beforeEach(() => {
-    // Reset singleton for each test
-    (AudioService as any).instance = null;
-    (AudioService as any).initPromise = null;
     jest.clearAllMocks();
   });
 
-  it('should return same instance', () => {
-    const instance1 = AudioService.getInstance();
-    const instance2 = AudioService.getInstance();
-
-    expect(instance1).toBe(instance2);
-  });
-
-  it('should be defined', () => {
-    const instance = AudioService.getInstance();
-    expect(instance).toBeDefined();
-  });
-
-  it('should initialize audio mode on first getInstance', () => {
+  it('should initialize audio mode on construction', () => {
     const { setAudioModeAsync } = require('expo-audio');
 
-    AudioService.getInstance();
+    new AudioService();
 
     expect(setAudioModeAsync).toHaveBeenCalledWith({
       playsInSilentMode: true,
@@ -133,9 +118,7 @@ describe('AudioService - Audio file mappings', () => {
   let audioService: AudioService;
 
   beforeEach(() => {
-    (AudioService as any).instance = null;
-    (AudioService as any).initPromise = null;
-    audioService = AudioService.getInstance();
+    audioService = new AudioService();
     jest.clearAllMocks();
   });
 
@@ -204,9 +187,7 @@ describe('AudioService - Playback control', () => {
   let audioService: AudioService;
 
   beforeEach(() => {
-    (AudioService as any).instance = null;
-    (AudioService as any).initPromise = null;
-    audioService = AudioService.getInstance();
+    audioService = new AudioService();
     jest.clearAllMocks();
   });
 
@@ -228,9 +209,7 @@ describe('AudioService - Play methods', () => {
   let audioService: AudioService;
 
   beforeEach(() => {
-    (AudioService as any).instance = null;
-    (AudioService as any).initPromise = null;
-    audioService = AudioService.getInstance();
+    audioService = new AudioService();
     jest.clearAllMocks();
 
     // Setup mock to simulate playback completion
@@ -300,9 +279,7 @@ describe('AudioService - Stop current player', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
-    (AudioService as any).instance = null;
-    (AudioService as any).initPromise = null;
-    audioService = AudioService.getInstance();
+    audioService = new AudioService();
     jest.clearAllMocks();
 
     // Setup mock to NOT auto-complete (so we can test stop)
@@ -355,9 +332,7 @@ describe('AudioService - Audio roles coverage', () => {
   let audioService: AudioService;
 
   beforeEach(() => {
-    (AudioService as any).instance = null;
-    (AudioService as any).initPromise = null;
-    audioService = AudioService.getInstance();
+    audioService = new AudioService();
   });
 
   const rolesWithAudio: RoleId[] = [
@@ -408,9 +383,7 @@ describe('AudioService - Fallback: unregistered audio', () => {
   let audioService: AudioService;
 
   beforeEach(() => {
-    (AudioService as any).instance = null;
-    (AudioService as any).initPromise = null;
-    audioService = AudioService.getInstance();
+    audioService = new AudioService();
     jest.clearAllMocks();
     mockAudioLogWarn.mockClear();
   });
@@ -438,9 +411,7 @@ describe('AudioService - Fallback: createAudioPlayer throws', () => {
   let audioService: AudioService;
 
   beforeEach(() => {
-    (AudioService as any).instance = null;
-    (AudioService as any).initPromise = null;
-    audioService = AudioService.getInstance();
+    audioService = new AudioService();
     mockAudioLogWarn.mockClear();
   });
 
@@ -486,9 +457,7 @@ describe('AudioService - Fallback: timeout', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
-    (AudioService as any).instance = null;
-    (AudioService as any).initPromise = null;
-    audioService = AudioService.getInstance();
+    audioService = new AudioService();
     mockAudioLogWarn.mockClear();
 
     // Mock player that never fires didJustFinish

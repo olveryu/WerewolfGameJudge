@@ -64,19 +64,6 @@ function isValidCachedState(cached: unknown): cached is CachedHostState {
 }
 
 export class HostStateCache {
-  private static instance: HostStateCache | null = null;
-
-  /** @deprecated Use composition root DI instead of singleton. */
-  static getInstance(): HostStateCache {
-    HostStateCache.instance ??= new HostStateCache();
-    return HostStateCache.instance;
-  }
-
-  /** 测试隔离：重置 instance */
-  static resetInstance(): void {
-    HostStateCache.instance = null;
-  }
-
   /**
    * 生成 cache key：roomCode:hostUid
    * 防止 roomCode 复用时误命中旧 Host 的缓存

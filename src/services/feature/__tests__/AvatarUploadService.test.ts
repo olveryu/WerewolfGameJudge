@@ -1,4 +1,5 @@
 import { AvatarUploadService } from '@/services/feature/AvatarUploadService';
+import type { AuthService } from '@/services/infra/AuthService';
 
 // Mock supabase
 jest.mock('@/config/supabase', () => ({
@@ -6,45 +7,21 @@ jest.mock('@/config/supabase', () => ({
   isSupabaseConfigured: jest.fn(() => false),
 }));
 
-// Mock AuthService
+// Shared mock AuthService instance for DI
 const mockGetCurrentUserId = jest.fn();
 const mockUpdateProfile = jest.fn();
+const mockAuthService = {
+  getCurrentUserId: mockGetCurrentUserId,
+  updateProfile: mockUpdateProfile,
+} as unknown as AuthService;
 
-jest.mock('@/services/infra/AuthService', () => ({
-  AuthService: {
-    getInstance: jest.fn(() => ({
-      getCurrentUserId: mockGetCurrentUserId,
-      updateProfile: mockUpdateProfile,
-    })),
-  },
-}));
-
-describe('AvatarUploadService - Singleton', () => {
-  beforeEach(() => {
-    // Reset singleton for each test
-    (AvatarUploadService as any).instance = null;
-    jest.clearAllMocks();
-  });
-
-  it('should return same instance', () => {
-    const instance1 = AvatarUploadService.getInstance();
-    const instance2 = AvatarUploadService.getInstance();
-
-    expect(instance1).toBe(instance2);
-  });
-
-  it('should be defined', () => {
-    const instance = AvatarUploadService.getInstance();
-    expect(instance).toBeDefined();
-  });
-});
+const createService = () => new AvatarUploadService(mockAuthService);
 
 describe('AvatarUploadService - Unconfigured state', () => {
   let avatarService: AvatarUploadService;
 
   beforeEach(() => {
-    (AvatarUploadService as any).instance = null;
-    avatarService = AvatarUploadService.getInstance();
+    avatarService = createService();
     jest.clearAllMocks();
   });
 
@@ -64,8 +41,7 @@ describe('AvatarUploadService - Image compression', () => {
   let avatarService: AvatarUploadService;
 
   beforeEach(() => {
-    (AvatarUploadService as any).instance = null;
-    avatarService = AvatarUploadService.getInstance();
+    avatarService = createService();
     jest.clearAllMocks();
   });
 
@@ -88,29 +64,10 @@ describe('AvatarUploadService - Image compression', () => {
   });
 });
 
-describe('AvatarUploadService - Service dependencies', () => {
-  beforeEach(() => {
-    (AvatarUploadService as any).instance = null;
-    jest.clearAllMocks();
-  });
-
-  it('should initialize AuthService dependency', () => {
-    const { AuthService } = require('@/services/infra/AuthService');
-
-    AvatarUploadService.getInstance();
-
-    expect(AuthService.getInstance).toHaveBeenCalled();
-  });
-});
-
 // Integration-style tests that would work with proper mocking
 describe('AvatarUploadService - Upload flow (mocked)', () => {
   beforeEach(() => {
-    (AvatarUploadService as any).instance = null;
     jest.clearAllMocks();
-
-    // This would be more complex to set up properly
-    // as it requires mocking the storage bucket chain
   });
 
   it('should be testable with full mocks', () => {
@@ -130,8 +87,7 @@ describe('AvatarUploadService - Error handling', () => {
   let avatarService: AvatarUploadService;
 
   beforeEach(() => {
-    (AvatarUploadService as any).instance = null;
-    avatarService = AvatarUploadService.getInstance();
+    avatarService = createService();
     jest.clearAllMocks();
   });
 

@@ -85,8 +85,6 @@ const BGM_VOLUME = 0.15;
  * ❌ 禁止：游戏逻辑 / 状态修改
  */
 export class AudioService {
-  private static instance: AudioService;
-  private static initPromise: Promise<void> | null = null;
   private player: AudioPlayer | null = null;
   private playerSubscription: ReturnType<AudioPlayer['addListener']> | null = null;
   private bgmPlayer: AudioPlayer | null = null;
@@ -108,17 +106,8 @@ export class AudioService {
   private preloadedWebAudios: Map<string, HTMLAudioElement> = new Map();
 
   constructor() {
-    // Constructor does not call async methods
-  }
-
-  /** @deprecated Use composition root DI instead of singleton. */
-  static getInstance(): AudioService {
-    if (!AudioService.instance) {
-      AudioService.instance = new AudioService();
-      // Initialize audio asynchronously outside constructor
-      AudioService.initPromise = AudioService.instance.initAudio();
-    }
-    return AudioService.instance;
+    // Fire-and-forget: initializes audio mode + Web visibility handler
+    void this.initAudio();
   }
 
   private async initAudio(): Promise<void> {
