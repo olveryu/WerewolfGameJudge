@@ -18,11 +18,11 @@
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import { GameStatus } from '@/models/GameStatus';
 import type { GameTemplate } from '@/models/Template';
 import type { RootStackParamList } from '@/navigation/types';
-import { AudioService } from '@/services/infra/AudioService';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { showAlert } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';
@@ -74,6 +74,8 @@ export function useRoomScreenState(
     template,
     roleRevealAnimation: initialRoleRevealAnimation,
   } = params;
+
+  const { audioService } = useServices();
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Core game room hook
@@ -370,8 +372,8 @@ export function useRoomScreenState(
   const handleLeaveRoomCleanup = useCallback(() => {
     roomScreenLog.debug('handleLeaveRoomCleanup: calling leaveRoom + cleanup');
     void leaveRoom();
-    AudioService.getInstance().cleanup();
-  }, [leaveRoom]);
+    audioService.cleanup();
+  }, [leaveRoom, audioService]);
 
   const seatDialogs = useRoomSeatDialogs({
     pendingSeatIndex,

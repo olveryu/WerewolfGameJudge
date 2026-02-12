@@ -107,10 +107,11 @@ export class AudioService {
   private preloadedPlayers: Map<string, AudioPlayer> = new Map();
   private preloadedWebAudios: Map<string, HTMLAudioElement> = new Map();
 
-  private constructor() {
+  constructor() {
     // Constructor does not call async methods
   }
 
+  /** @deprecated Use composition root DI instead of singleton. */
   static getInstance(): AudioService {
     if (!AudioService.instance) {
       AudioService.instance = new AudioService();

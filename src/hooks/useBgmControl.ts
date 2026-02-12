@@ -12,9 +12,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { useServices } from '@/contexts/ServiceContext';
 import { GameStatus } from '@/models/GameStatus';
-import { SettingsService } from '@/services/feature/SettingsService';
-import { AudioService } from '@/services/infra/AudioService';
 
 interface BgmControlState {
   isBgmEnabled: boolean;
@@ -31,14 +30,15 @@ interface BgmControlState {
  */
 export function useBgmControl(isHost: boolean, gameStatus: GameStatus | null): BgmControlState {
   const [isBgmEnabled, setIsBgmEnabled] = useState(true);
-  const settingsService = useRef(SettingsService.getInstance());
-  const audioService = useRef(AudioService.getInstance());
+  const { settingsService, audioService } = useServices();
+  const settingsRef = useRef(settingsService);
+  const audioRef = useRef(audioService);
 
   // Load settings on mount
   useEffect(() => {
     const loadSettings = async () => {
-      await settingsService.current.load();
-      setIsBgmEnabled(settingsService.current.isBgmEnabled());
+      await settingsRef.current.load();
+      setIsBgmEnabled(settingsRef.current.isBgmEnabled());
     };
     loadSettings().catch(() => {
       // Ignore — settings load failure is non-critical
@@ -55,32 +55,32 @@ export function useBgmControl(isHost: boolean, gameStatus: GameStatus | null): B
 
     // Stop BGM when transitioning from ongoing to ended
     if (prevStatus === GameStatus.ongoing && currentStatus === GameStatus.ended) {
-      audioService.current.stopBgm();
+      audioRef.current.stopBgm();
     }
   }, [isHost, gameStatus]);
 
   // Toggle BGM setting (host only)
   const toggleBgm = useCallback(async (): Promise<void> => {
-    const newValue = await settingsService.current.toggleBgm();
+    const newValue = await settingsRef.current.toggleBgm();
     setIsBgmEnabled(newValue);
     // If currently playing, stop/start based on new setting
     if (newValue) {
       // Only start if game is ongoing
       if (gameStatus === GameStatus.ongoing) {
-        audioService.current.startBgm().catch(() => {
+        audioRef.current.startBgm().catch(() => {
           // Ignore — BGM start failure is non-critical
         });
       }
     } else {
-      audioService.current.stopBgm();
+      audioRef.current.stopBgm();
     }
   }, [gameStatus]);
 
   // Start BGM if enabled (called by startGame)
   const startBgmIfEnabled = useCallback(() => {
-    const bgmEnabled = settingsService.current.isBgmEnabled();
+    const bgmEnabled = settingsRef.current.isBgmEnabled();
     if (bgmEnabled) {
-      audioService.current.startBgm().catch(() => {
+      audioRef.current.startBgm().catch(() => {
         // Ignore — BGM start failure is non-critical
       });
     }
@@ -88,7 +88,7 @@ export function useBgmControl(isHost: boolean, gameStatus: GameStatus | null): B
 
   // Stop BGM (called by restartGame)
   const stopBgm = useCallback(() => {
-    audioService.current.stopBgm();
+    audioRef.current.stopBgm();
   }, []);
 
   return {

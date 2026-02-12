@@ -66,6 +66,7 @@ function isValidCachedState(cached: unknown): cached is CachedHostState {
 export class HostStateCache {
   private static instance: HostStateCache | null = null;
 
+  /** @deprecated Use composition root DI instead of singleton. */
   static getInstance(): HostStateCache {
     HostStateCache.instance ??= new HostStateCache();
     return HostStateCache.instance;

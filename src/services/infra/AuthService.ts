@@ -21,7 +21,7 @@ export class AuthService {
   private currentUserId: string | null = null;
   private readonly initPromise: Promise<void>;
 
-  private constructor() {
+  constructor() {
     // Note: async operation in constructor is intentional for singleton initialization
     // The promise is stored and can be awaited via ensureInitialized()
     this.initPromise = this.autoSignIn();
@@ -50,6 +50,7 @@ export class AuthService {
     await withTimeout(this.initPromise, 10000, () => new Error('登录超时，请重试'));
   }
 
+  /** @deprecated Use composition root DI instead of singleton. */
   static getInstance(): AuthService {
     if (!AuthService.instance) {
       AuthService.instance = new AuthService();

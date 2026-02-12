@@ -10,10 +10,12 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
 import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
+import { useServices } from '@/contexts/ServiceContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
-import { AuthService } from '@/services/infra/AuthService';
-import { RoomService } from '@/services/infra/RoomService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
+
+// Access the jest-mocked useServices to override return values per test
+const mockUseServices = useServices as jest.Mock;
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -43,10 +45,6 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
 }));
-
-// Mock services used by useGameRoom
-jest.mock('../../../services/infra/RoomService');
-jest.mock('../../../services/infra/AuthService');
 
 const createMockFacade = (): IGameFacade =>
   ({
@@ -84,15 +82,6 @@ describe('Room creation → navigation roomNumber contract', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Auth mock
-    const mockAuthService = {
-      waitForInit: jest.fn().mockResolvedValue(undefined),
-      getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
-      getCurrentDisplayName: jest.fn().mockResolvedValue('Test Host'),
-      getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
-    };
-    (AuthService.getInstance as jest.Mock).mockReturnValue(mockAuthService);
-
     // RoomService mock — simulate 409 retry: returned roomNumber differs from any pre-generated code
     mockRoomService = {
       createRoom: jest.fn().mockResolvedValue({
@@ -101,7 +90,34 @@ describe('Room creation → navigation roomNumber contract', () => {
         createdAt: new Date(),
       }),
     };
-    (RoomService.getInstance as jest.Mock).mockReturnValue(mockRoomService);
+
+    // Override global ServiceContext mock with test-specific services
+    mockUseServices.mockReturnValue({
+      authService: {
+        waitForInit: jest.fn().mockResolvedValue(undefined),
+        getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
+        getCurrentDisplayName: jest.fn().mockResolvedValue('Test Host'),
+        getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
+      },
+      roomService: mockRoomService,
+      settingsService: {
+        load: jest.fn().mockResolvedValue(undefined),
+        getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
+        setRoleRevealAnimation: jest.fn().mockResolvedValue(undefined),
+        setBgmEnabled: jest.fn().mockResolvedValue(undefined),
+        isBgmEnabled: jest.fn().mockReturnValue(true),
+        toggleBgm: jest.fn(),
+        getThemeKey: jest.fn().mockReturnValue('dark'),
+        setThemeKey: jest.fn(),
+        addListener: jest.fn().mockReturnValue(jest.fn()),
+      },
+      audioService: {
+        startBgm: jest.fn().mockResolvedValue(undefined),
+        stopBgm: jest.fn(),
+        cleanup: jest.fn(),
+      },
+      avatarUploadService: { uploadAvatar: jest.fn() },
+    });
   });
 
   it('should navigate with the roomNumber returned by createRoomRecord, not a pre-generated code', async () => {

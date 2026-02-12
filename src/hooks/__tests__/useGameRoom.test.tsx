@@ -11,13 +11,12 @@ import { act, renderHook } from '@testing-library/react-native';
 import React from 'react';
 
 import { GameFacadeProvider } from '@/contexts';
+import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
-import { AuthService } from '@/services/infra/AuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 
-// Mock the services (only those actually needed)
-jest.mock('../../services/infra/RoomService');
-jest.mock('../../services/infra/AuthService');
+// Access the jest-mocked useServices to override return values per test
+const mockUseServices = useServices as jest.Mock;
 
 /**
  * Tests for useGameRoom ACK reason transparency
@@ -26,8 +25,6 @@ jest.mock('../../services/infra/AuthService');
  * the reason from facade without modification.
  */
 describe('useGameRoom - ACK reason transparency', () => {
-  let mockAuthService: jest.Mocked<AuthService>;
-
   // Create a mock facade for testing
   const createMockFacade = (overrides: Partial<IGameFacade> = {}): IGameFacade => ({
     addListener: jest.fn().mockReturnValue(() => {}),
@@ -67,15 +64,34 @@ describe('useGameRoom - ACK reason transparency', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Setup minimal mock services
-    mockAuthService = {
-      waitForInit: jest.fn().mockResolvedValue(undefined),
-      getCurrentUserId: jest.fn().mockReturnValue('player-uid'),
-      getCurrentDisplayName: jest.fn().mockResolvedValue('Test Player'),
-      getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
-    } as any;
-
-    (AuthService.getInstance as jest.Mock).mockReturnValue(mockAuthService);
+    // Override global useServices mock with test-specific values
+    mockUseServices.mockReturnValue({
+      authService: {
+        waitForInit: jest.fn().mockResolvedValue(undefined),
+        getCurrentUserId: jest.fn().mockReturnValue('player-uid'),
+        getCurrentDisplayName: jest.fn().mockResolvedValue('Test Player'),
+        getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
+      },
+      roomService: {
+        createRoom: jest.fn(),
+        getRoom: jest
+          .fn()
+          .mockResolvedValue({ roomNumber: '1234', hostUid: 'test-uid', createdAt: new Date() }),
+        deleteRoom: jest.fn(),
+      },
+      settingsService: {
+        load: jest.fn(),
+        isBgmEnabled: jest.fn().mockReturnValue(true),
+        toggleBgm: jest.fn(),
+        getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
+      },
+      audioService: {
+        startBgm: jest.fn().mockResolvedValue(undefined),
+        stopBgm: jest.fn(),
+        cleanup: jest.fn(),
+      },
+      avatarUploadService: { uploadAvatar: jest.fn() },
+    });
   });
 
   describe('takeSeatWithAck reason transparency', () => {
@@ -491,14 +507,34 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
   beforeEach(() => {
     jest.clearAllMocks();
 
-    const mockAuthService = {
-      waitForInit: jest.fn().mockResolvedValue(undefined),
-      getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
-      getCurrentDisplayName: jest.fn().mockResolvedValue('Host Player'),
-      getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
-    } as any;
-
-    (AuthService.getInstance as jest.Mock).mockReturnValue(mockAuthService);
+    // Override global useServices mock with test-specific values
+    mockUseServices.mockReturnValue({
+      authService: {
+        waitForInit: jest.fn().mockResolvedValue(undefined),
+        getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
+        getCurrentDisplayName: jest.fn().mockResolvedValue('Host Player'),
+        getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
+      },
+      roomService: {
+        createRoom: jest.fn(),
+        getRoom: jest
+          .fn()
+          .mockResolvedValue({ roomNumber: '1234', hostUid: 'host-uid', createdAt: new Date() }),
+        deleteRoom: jest.fn(),
+      },
+      settingsService: {
+        load: jest.fn(),
+        isBgmEnabled: jest.fn().mockReturnValue(true),
+        toggleBgm: jest.fn(),
+        getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
+      },
+      audioService: {
+        startBgm: jest.fn().mockResolvedValue(undefined),
+        stopBgm: jest.fn(),
+        cleanup: jest.fn(),
+      },
+      avatarUploadService: { uploadAvatar: jest.fn() },
+    });
   });
 
   it('submitAction should use effectiveSeat and effectiveRole when controlledSeat is set', async () => {

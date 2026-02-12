@@ -39,8 +39,9 @@ interface DbRoomRecord {
 export class RoomService {
   private static instance: RoomService;
 
-  private constructor() {}
+  constructor() {}
 
+  /** @deprecated Use composition root DI instead of singleton. */
   static getInstance(): RoomService {
     if (!RoomService.instance) {
       RoomService.instance = new RoomService();

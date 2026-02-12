@@ -54,11 +54,17 @@ interface GameFacadeDeps {
   store?: GameStore;
   /** BroadcastService 实例（可选，默认 new BroadcastService()） */
   broadcastService?: BroadcastService;
+  /** AudioService 实例（可选，默认 new AudioService()） */
+  audioService?: AudioService;
+  /** HostStateCache 实例（可选，默认 new HostStateCache()） */
+  hostStateCache?: HostStateCache;
 }
 
 export class GameFacade implements IGameFacade {
   private readonly store: GameStore;
   private readonly broadcastService: BroadcastService;
+  private readonly audioService: AudioService;
+  private readonly hostStateCache: HostStateCache;
   private isHost = false;
   private myUid: string | null = null;
 
@@ -88,6 +94,8 @@ export class GameFacade implements IGameFacade {
   constructor(deps?: GameFacadeDeps) {
     this.store = deps?.store ?? new GameStore();
     this.broadcastService = deps?.broadcastService ?? new BroadcastService();
+    this.audioService = deps?.audioService ?? new AudioService();
+    this.hostStateCache = deps?.hostStateCache ?? new HostStateCache();
   }
 
   // =========================================================================
@@ -281,8 +289,7 @@ export class GameFacade implements IGameFacade {
     this.myUid = hostUid;
 
     // 尝试从本地缓存恢复状态（key = roomCode:hostUid）
-    const hostCache = HostStateCache.getInstance();
-    const cached = await hostCache.loadState(roomCode, hostUid);
+    const cached = await this.hostStateCache.loadState(roomCode, hostUid);
 
     if (cached) {
       // 有缓存：恢复状态 + revision（Host rejoin 必须恢复 revision，否则 Player 可能拒绝后续 STATE_UPDATE）
@@ -700,7 +707,7 @@ export class GameFacade implements IGameFacade {
       },
       // P0-1/P0-5: 音频播放回调（只负责播放 IO）
       playAudio: async (audioKey: string, isEndAudio?: boolean) => {
-        const audio = AudioService.getInstance();
+        const audio = this.audioService;
         if (audioKey === 'night') {
           await audio.playNightAudio();
         } else if (audioKey === 'night_end') {
@@ -715,6 +722,7 @@ export class GameFacade implements IGameFacade {
       setAudioPlayingGate: async (isPlaying: boolean) => {
         await this.setAudioPlaying(isPlaying);
       },
+      audioService: this.audioService,
     };
   }
 
@@ -776,7 +784,7 @@ export class GameFacade implements IGameFacade {
 
     // Host: 保存状态到本地缓存（用于 rejoin 恢复）
     if (this.isHost) {
-      void HostStateCache.getInstance().saveState(state.roomCode, state.hostUid, state, revision);
+      void this.hostStateCache.saveState(state.roomCode, state.hostUid, state, revision);
     }
 
     const msg: HostBroadcast = {

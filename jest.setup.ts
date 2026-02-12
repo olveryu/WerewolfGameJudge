@@ -232,6 +232,73 @@ jest.mock('./src/config/supabase', () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// ServiceContext mock — provides default mock services globally.
+// Individual tests can override via jest.mock() or by wrapping with a real
+// ServiceProvider + custom services.
+// ---------------------------------------------------------------------------
+jest.mock('./src/contexts/ServiceContext', () => {
+  const mockServices = {
+    authService: {
+      waitForInit: jest.fn().mockResolvedValue(undefined),
+      getCurrentUserId: jest.fn().mockReturnValue('test-uid'),
+      getCurrentUser: jest.fn().mockResolvedValue({ data: { user: null } }),
+      getCurrentDisplayName: jest.fn().mockResolvedValue('Test User'),
+      getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
+      autoSignIn: jest.fn().mockResolvedValue(undefined),
+      signInAnonymously: jest.fn().mockResolvedValue({ data: null, error: null }),
+      signOut: jest.fn().mockResolvedValue(undefined),
+      updateProfile: jest.fn().mockResolvedValue({ data: null, error: null }),
+      onAuthStateChange: jest
+        .fn()
+        .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
+    },
+    roomService: {
+      createRoom: jest.fn().mockResolvedValue({
+        roomNumber: '1234',
+        hostUid: 'test-uid',
+        createdAt: new Date(),
+      }),
+      getRoom: jest.fn().mockResolvedValue({
+        roomNumber: '1234',
+        hostUid: 'test-uid',
+        createdAt: new Date(),
+      }),
+      deleteRoom: jest.fn().mockResolvedValue(undefined),
+    },
+    settingsService: {
+      load: jest.fn().mockResolvedValue(undefined),
+      getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
+      setRoleRevealAnimation: jest.fn(),
+      isBgmEnabled: jest.fn().mockReturnValue(true),
+      toggleBgm: jest.fn().mockResolvedValue(false),
+      getThemeKey: jest.fn().mockReturnValue('dark'),
+      setThemeKey: jest.fn(),
+      addListener: jest.fn().mockReturnValue(jest.fn()),
+    },
+    audioService: {
+      playNightAudio: jest.fn().mockResolvedValue(undefined),
+      playNightEndAudio: jest.fn().mockResolvedValue(undefined),
+      playRoleBeginningAudio: jest.fn().mockResolvedValue(undefined),
+      playRoleEndingAudio: jest.fn().mockResolvedValue(undefined),
+      preloadForRoles: jest.fn().mockResolvedValue(undefined),
+      clearPreloaded: jest.fn(),
+      cleanup: jest.fn(),
+      startBgm: jest.fn().mockResolvedValue(undefined),
+      stopBgm: jest.fn(),
+    },
+    avatarUploadService: {
+      uploadAvatar: jest.fn().mockResolvedValue(null),
+    },
+  };
+
+  return {
+    __esModule: true,
+    ServiceProvider: ({ children }: { children: unknown }) => children,
+    useServices: jest.fn(() => mockServices),
+  };
+});
+
+// ---------------------------------------------------------------------------
 // Logger mock for tests (silence console output)
 // ---------------------------------------------------------------------------
 jest.mock('./src/utils/logger', () => {

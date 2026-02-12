@@ -37,8 +37,9 @@ export class SettingsService {
   private settings: UserSettings = { ...DEFAULT_SETTINGS };
   private loaded = false;
 
-  private constructor() {}
+  constructor() {}
 
+  /** @deprecated Use composition root DI instead of singleton. */
   static getInstance(): SettingsService {
     if (!SettingsService.instance) {
       SettingsService.instance = new SettingsService();

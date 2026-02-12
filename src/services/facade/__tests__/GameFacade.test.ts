@@ -28,18 +28,18 @@ jest.mock('../../transport/BroadcastService', () => ({
 }));
 
 // P0-1: Mock AudioService
+const mockAudioServiceInstance = {
+  playNightAudio: jest.fn().mockResolvedValue(undefined),
+  playNightEndAudio: jest.fn().mockResolvedValue(undefined),
+  playRoleBeginningAudio: jest.fn().mockResolvedValue(undefined),
+  playRoleEndingAudio: jest.fn().mockResolvedValue(undefined),
+  preloadForRoles: jest.fn().mockResolvedValue(undefined),
+  clearPreloaded: jest.fn(),
+  cleanup: jest.fn(),
+};
 jest.mock('../../infra/AudioService', () => ({
   __esModule: true,
-  AudioService: {
-    getInstance: jest.fn(() => ({
-      playNightAudio: jest.fn().mockResolvedValue(undefined),
-      playNightEndAudio: jest.fn().mockResolvedValue(undefined),
-      playRoleBeginningAudio: jest.fn().mockResolvedValue(undefined),
-      playRoleEndingAudio: jest.fn().mockResolvedValue(undefined),
-      preloadForRoles: jest.fn().mockResolvedValue(undefined),
-      clearPreloaded: jest.fn(),
-    })),
-  },
+  AudioService: jest.fn(() => mockAudioServiceInstance),
 }));
 
 describe('GameFacade', () => {

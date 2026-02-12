@@ -22,7 +22,7 @@ import React, {
 } from 'react';
 import { Platform, StatusBar } from 'react-native';
 
-import { SettingsService } from '@/services/feature/SettingsService';
+import { useServices } from '@/contexts/ServiceContext';
 import { log } from '@/utils/logger';
 
 import { defaultTheme, Theme, ThemeColors, ThemeKey, themes } from './themes';
@@ -80,7 +80,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   initialTheme = defaultTheme,
 }) => {
   const [themeKey, setThemeKey] = useState<ThemeKey>(initialTheme);
-  const settingsService = useMemo(() => SettingsService.getInstance(), []);
+  const { settingsService } = useServices();
 
   // Load saved theme on mount
   useEffect(() => {

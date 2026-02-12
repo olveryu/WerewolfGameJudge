@@ -3,6 +3,7 @@ import React from 'react';
 
 import { useAuthContext as useAuth, type User } from '@/contexts/AuthContext';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { useServices } from '@/contexts/ServiceContext';
 
 // Mock supabase config
 jest.mock('../../config/supabase', () => ({
@@ -10,37 +11,17 @@ jest.mock('../../config/supabase', () => ({
   isSupabaseConfigured: jest.fn(() => false),
 }));
 
-// Mock AuthService
+// Mock service functions used by AuthProvider via useServices()
 const mockSignInAnonymously = jest.fn();
 const mockSignUpWithEmail = jest.fn();
 const mockSignInWithEmail = jest.fn();
 const mockUpdateProfile = jest.fn();
 const mockSignOut = jest.fn();
 const mockGetCurrentUser = jest.fn();
-
-jest.mock('@/services/infra/AuthService', () => ({
-  AuthService: {
-    getInstance: jest.fn(() => ({
-      signInAnonymously: mockSignInAnonymously,
-      signUpWithEmail: mockSignUpWithEmail,
-      signInWithEmail: mockSignInWithEmail,
-      updateProfile: mockUpdateProfile,
-      signOut: mockSignOut,
-      getCurrentUser: mockGetCurrentUser,
-    })),
-  },
-}));
-
-// Mock AvatarUploadService
 const mockUploadAvatar = jest.fn();
 
-jest.mock('@/services/feature/AvatarUploadService', () => ({
-  AvatarUploadService: {
-    getInstance: jest.fn(() => ({
-      uploadAvatar: mockUploadAvatar,
-    })),
-  },
-}));
+// Access the jest-mocked useServices to override return values
+const mockUseServices = useServices as jest.Mock;
 
 // Wrapper for renderHook that includes AuthProvider
 const wrapper = ({ children }: { children: React.ReactNode }) =>
@@ -50,6 +31,47 @@ describe('useAuth hook', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetCurrentUser.mockResolvedValue({ data: { user: null } });
+
+    // Override global ServiceContext mock with test-specific mock functions
+    mockUseServices.mockReturnValue({
+      authService: {
+        signInAnonymously: mockSignInAnonymously,
+        signUpWithEmail: mockSignUpWithEmail,
+        signInWithEmail: mockSignInWithEmail,
+        updateProfile: mockUpdateProfile,
+        signOut: mockSignOut,
+        getCurrentUser: mockGetCurrentUser,
+        waitForInit: jest.fn().mockResolvedValue(undefined),
+        getCurrentUserId: jest.fn().mockReturnValue('test-uid'),
+        getCurrentDisplayName: jest.fn().mockResolvedValue('Test User'),
+        getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
+        onAuthStateChange: jest
+          .fn()
+          .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
+      },
+      roomService: {
+        createRoom: jest.fn(),
+        getRoom: jest.fn(),
+        deleteRoom: jest.fn(),
+      },
+      settingsService: {
+        load: jest.fn(),
+        isBgmEnabled: jest.fn().mockReturnValue(true),
+        toggleBgm: jest.fn(),
+        getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
+        getThemeKey: jest.fn().mockReturnValue('dark'),
+        setThemeKey: jest.fn(),
+        addListener: jest.fn().mockReturnValue(jest.fn()),
+      },
+      audioService: {
+        startBgm: jest.fn(),
+        stopBgm: jest.fn(),
+        cleanup: jest.fn(),
+      },
+      avatarUploadService: {
+        uploadAvatar: mockUploadAvatar,
+      },
+    });
   });
 
   describe('Initial state', () => {

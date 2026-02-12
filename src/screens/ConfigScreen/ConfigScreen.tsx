@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useGameFacade } from '@/contexts';
+import { useServices } from '@/contexts/ServiceContext';
 import { Faction, ROLE_SPECS, RoleId } from '@/models/roles';
 import {
   createCustomTemplate,
@@ -24,9 +25,6 @@ import {
   validateTemplateRoles,
 } from '@/models/Template';
 import { RootStackParamList } from '@/navigation/types';
-import { SettingsService } from '@/services/feature/SettingsService';
-import { AuthService } from '@/services/infra/AuthService';
-import { RoomService } from '@/services/infra/RoomService';
 import { TESTIDS } from '@/testids';
 import { spacing, useColors } from '@/theme';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
@@ -131,9 +129,7 @@ export const ConfigScreen: React.FC = () => {
   const existingRoomNumber = route.params?.existingRoomNumber;
   const isEditMode = !!existingRoomNumber;
 
-  const settingsService = useRef(SettingsService.getInstance()).current;
-  const authService = useRef(AuthService.getInstance()).current;
-  const roomService = useRef(RoomService.getInstance()).current;
+  const { settingsService, authService, roomService } = useServices();
 
   const [selection, setSelection] = useState(getInitialSelection);
   const [isCreating, setIsCreating] = useState(false);

@@ -7,9 +7,16 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { AuthProvider, GameFacadeProvider, NetworkProvider } from '@/contexts';
+import { AuthProvider, GameFacadeProvider, NetworkProvider, ServiceProvider } from '@/contexts';
+import type { ServiceContextValue } from '@/contexts/ServiceContext';
 import { AppNavigator } from '@/navigation';
 import { GameFacade } from '@/services/facade/GameFacade';
+import { AvatarUploadService } from '@/services/feature/AvatarUploadService';
+import { SettingsService } from '@/services/feature/SettingsService';
+import { AudioService } from '@/services/infra/AudioService';
+import { AuthService } from '@/services/infra/AuthService';
+import { HostStateCache } from '@/services/infra/HostStateCache';
+import { RoomService } from '@/services/infra/RoomService';
 import { ThemeProvider, useTheme } from '@/theme';
 import { AlertConfig, setAlertListener } from '@/utils/alert';
 import { log } from '@/utils/logger';
@@ -69,21 +76,38 @@ function AppContent() {
 export default function App() {
   appLog.debug('render');
 
-  // Composition root: 创建 facade 实例并通过 Context 注入（useState lazy init 保证仅创建一次）
-  const [facade] = useState(() => new GameFacade());
+  // Composition root: 创建所有 service 实例（useState lazy init 保证仅创建一次）
+  const [services] = useState<ServiceContextValue>(() => {
+    const authService = new AuthService();
+    const roomService = new RoomService();
+    const settingsService = new SettingsService();
+    const audioService = new AudioService();
+    const avatarUploadService = new AvatarUploadService(authService);
+    return { authService, roomService, settingsService, audioService, avatarUploadService };
+  });
+
+  const [facade] = useState(
+    () =>
+      new GameFacade({
+        audioService: services.audioService,
+        hostStateCache: new HostStateCache(),
+      }),
+  );
 
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <NetworkProvider>
-              <GameFacadeProvider facade={facade}>
-                <AppContent />
-              </GameFacadeProvider>
-            </NetworkProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <ServiceProvider services={services}>
+          <ThemeProvider>
+            <AuthProvider>
+              <NetworkProvider>
+                <GameFacadeProvider facade={facade}>
+                  <AppContent />
+                </GameFacadeProvider>
+              </NetworkProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </ServiceProvider>
       </SafeAreaProvider>
     </ErrorBoundary>
   );

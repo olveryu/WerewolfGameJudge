@@ -14,8 +14,7 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 import React, { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
-import { AvatarUploadService } from '@/services/feature/AvatarUploadService';
-import { AuthService } from '@/services/infra/AuthService';
+import { useServices } from '@/contexts/ServiceContext';
 import { authLog } from '@/utils/logger';
 
 export interface User {
@@ -71,10 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Get singleton services - useMemo ensures we only call getInstance once per provider
-  // This also allows mocks to work correctly in tests
-  const authService = useMemo(() => AuthService.getInstance(), []);
-  const avatarUploadService = useMemo(() => AvatarUploadService.getInstance(), []);
+  // Get services from composition root (via ServiceContext)
+  const { authService, avatarUploadService } = useServices();
 
   // Only update user state if data actually changed (prevents unnecessary re-renders)
   const updateUserIfChanged = useCallback((newUser: User | null) => {

@@ -17,15 +17,15 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useGameFacade } from '@/contexts';
+import { useServices } from '@/contexts/ServiceContext';
 import { GameStatus } from '@/models/GameStatus';
 import { RoleId } from '@/models/roles';
 import type { ActionSchema, SchemaId } from '@/models/roles/spec';
 import { GameTemplate } from '@/models/Template';
-import { AuthService } from '@/services/infra/AuthService';
-import { RoomRecord, RoomService } from '@/services/infra/RoomService';
+import { RoomRecord } from '@/services/infra/RoomService';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from '@/types/RoleRevealAnimation';
@@ -152,6 +152,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Phase 1: 获取 facade（通过 Context 注入）
   // =========================================================================
   const facade = useGameFacade();
+  const { roomService, authService } = useServices();
 
   const [roomRecord, setRoomRecord] = useState<RoomRecord | null>(null);
   const [gameState, setGameState] = useState<LocalGameState | null>(null);
@@ -165,9 +166,6 @@ export const useGameRoom = (): UseGameRoomResult => {
   const [lastSeatError, setLastSeatError] = useState<{ seat: number; reason: 'seat_taken' } | null>(
     null,
   );
-
-  const roomService = useRef(RoomService.getInstance());
-  const authService = useRef(AuthService.getInstance());
 
   // =========================================================================
   // Sub-hooks: focused concerns extracted for SRP
@@ -241,8 +239,8 @@ export const useGameRoom = (): UseGameRoomResult => {
       setError(null);
 
       try {
-        await authService.current.waitForInit();
-        const hostUid = authService.current.getCurrentUserId();
+        await authService.waitForInit();
+        const hostUid = authService.getCurrentUserId();
         if (!hostUid) {
           throw new Error('User not authenticated');
         }
@@ -262,7 +260,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         setLoading(false);
       }
     },
-    [facade],
+    [facade, authService],
   );
 
   // Join an existing room as player
@@ -272,14 +270,14 @@ export const useGameRoom = (): UseGameRoomResult => {
       setError(null);
 
       try {
-        await authService.current.waitForInit();
-        const playerUid = authService.current.getCurrentUserId();
+        await authService.waitForInit();
+        const playerUid = authService.getCurrentUserId();
         if (!playerUid) {
           throw new Error('User not authenticated');
         }
 
         // Check if room exists
-        const record = await roomService.current.getRoom(roomNumber);
+        const record = await roomService.getRoom(roomNumber);
         if (!record) {
           setError('房间不存在');
           // 防御性清理：房间已不存在，清除过时的 lastRoomNumber
@@ -289,8 +287,8 @@ export const useGameRoom = (): UseGameRoomResult => {
         setRoomRecord(record);
 
         // Get user info
-        const displayName = await authService.current.getCurrentDisplayName();
-        const avatarUrl = await authService.current.getCurrentAvatarUrl();
+        const displayName = await authService.getCurrentDisplayName();
+        const avatarUrl = await authService.getCurrentAvatarUrl();
 
         // Phase 1B: 使用 facade 加入房间
         // Host rejoin: 使用 joinAsHost 恢复
@@ -327,7 +325,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         setLoading(false);
       }
     },
-    [facade],
+    [facade, authService, roomService],
   );
 
   // Leave the current room
@@ -352,8 +350,8 @@ export const useGameRoom = (): UseGameRoomResult => {
   const takeSeat = useCallback(
     async (seatNumber: number): Promise<boolean> => {
       try {
-        const displayName = await authService.current.getCurrentDisplayName();
-        const avatarUrl = await authService.current.getCurrentAvatarUrl();
+        const displayName = await authService.getCurrentDisplayName();
+        const avatarUrl = await authService.getCurrentAvatarUrl();
 
         // Phase 1B: 使用 facade 入座
         return await facade.takeSeat(seatNumber, displayName ?? undefined, avatarUrl ?? undefined);
@@ -362,7 +360,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         return false;
       }
     },
-    [facade],
+    [facade, authService],
   );
 
   // Leave seat (unified API)
@@ -380,8 +378,8 @@ export const useGameRoom = (): UseGameRoomResult => {
   const takeSeatWithAck = useCallback(
     async (seatNumber: number): Promise<{ success: boolean; reason?: string }> => {
       try {
-        const displayName = await authService.current.getCurrentDisplayName();
-        const avatarUrl = await authService.current.getCurrentAvatarUrl();
+        const displayName = await authService.getCurrentDisplayName();
+        const avatarUrl = await authService.getCurrentAvatarUrl();
 
         // facade 的 takeSeatWithAck 直接返回 {success, reason}
         return await facade.takeSeatWithAck(
@@ -394,7 +392,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         return { success: false, reason: String(err) };
       }
     },
-    [facade],
+    [facade, authService],
   );
 
   // Leave seat with ack (unified API)

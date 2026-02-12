@@ -21,23 +21,21 @@ jest.mock('../../transport/BroadcastService', () => ({
 // Mock AudioService
 jest.mock('../../infra/AudioService', () => ({
   __esModule: true,
-  AudioService: {
-    getInstance: jest.fn(() => ({
-      playAudio: jest.fn().mockResolvedValue(undefined),
-      stopAudio: jest.fn(),
-    })),
-  },
+  AudioService: jest.fn(() => ({
+    playAudio: jest.fn().mockResolvedValue(undefined),
+    stopAudio: jest.fn(),
+    cleanup: jest.fn(),
+  })),
 }));
 
 // Mock HostStateCache
 jest.mock('../../infra/HostStateCache', () => ({
-  HostStateCache: {
-    getInstance: jest.fn(() => ({
-      saveState: jest.fn(),
-      getState: jest.fn().mockReturnValue(null),
-      clearState: jest.fn(),
-    })),
-  },
+  HostStateCache: jest.fn(() => ({
+    saveState: jest.fn(),
+    loadState: jest.fn().mockResolvedValue(null),
+    getState: jest.fn().mockReturnValue(null),
+    clearState: jest.fn(),
+  })),
 }));
 
 describe('GameFacade.leaveRoom() listener lifecycle contract', () => {

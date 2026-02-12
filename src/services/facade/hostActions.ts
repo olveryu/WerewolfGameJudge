@@ -62,7 +62,7 @@ import type {
 import { gameReducer } from '@/services/engine/reducer';
 import type { StateAction } from '@/services/engine/reducer/types';
 import type { GameStore } from '@/services/engine/store';
-import { AudioService } from '@/services/infra/AudioService';
+import type { AudioService } from '@/services/infra/AudioService';
 import type { BroadcastGameState } from '@/services/protocol/types';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { facadeLog } from '@/utils/logger';
@@ -98,6 +98,8 @@ export interface HostActionsContext {
    * 由 submitWolfVote 管理：set / clear / 在 leaveRoom 时清除
    */
   wolfVoteTimer: ReturnType<typeof setTimeout> | null;
+  /** AudioService 实例（用于 preload 等直接调用） */
+  audioService: AudioService;
 }
 
 /**
@@ -302,7 +304,7 @@ export async function startNight(
   // This eliminates 100-500ms first-play decode latency for each role's audio.
   const stateAfterStart = ctx.store.getState();
   if (result.success && stateAfterStart?.templateRoles) {
-    AudioService.getInstance()
+    ctx.audioService
       .preloadForRoles(stateAfterStart.templateRoles as import('@/models/roles').RoleId[])
       .catch(() => {
         // Preload failure is non-critical; normal playback will still work.

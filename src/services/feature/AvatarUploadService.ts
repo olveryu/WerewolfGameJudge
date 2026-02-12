@@ -19,10 +19,11 @@ export class AvatarUploadService {
   private static instance: AvatarUploadService;
   private readonly authService: AuthService;
 
-  private constructor() {
-    this.authService = AuthService.getInstance();
+  constructor(authService?: AuthService) {
+    this.authService = authService ?? AuthService.getInstance();
   }
 
+  /** @deprecated Use composition root DI instead of singleton. */
   static getInstance(): AvatarUploadService {
     if (!AvatarUploadService.instance) {
       AvatarUploadService.instance = new AvatarUploadService();
