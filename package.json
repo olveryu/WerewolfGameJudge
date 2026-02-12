@@ -19,7 +19,9 @@
     "fix": "npm run lint:fix && npm run format:write",
     "quality": "npm run typecheck && npm run lint && npm run format && npm run test -- --passWithNoTests",
     "e2e:night": "playwright test night-2p night-6p restart",
-    "e2e:ui": "playwright test --ui"
+    "e2e:ui": "playwright test --ui",
+    "deploy": "bash scripts/deploy.sh",
+    "release": "bash scripts/release.sh"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
