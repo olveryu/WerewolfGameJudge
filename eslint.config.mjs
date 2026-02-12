@@ -3,6 +3,7 @@ import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactNative from 'eslint-plugin-react-native';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
+import testingLibrary from 'eslint-plugin-testing-library';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -44,7 +45,7 @@ export default tseslint.config(
       'simple-import-sort': simpleImportSort,
     },
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: 'latest',
       sourceType: 'module',
       globals: {
         ...globals.browser,
@@ -87,6 +88,9 @@ export default tseslint.config(
       'react-native/no-unused-styles': 'off',
       'react-native/no-color-literals': 'off',
 
+      // Console — use project logger (src/utils/logger.ts) instead
+      'no-console': 'error',
+
       // Import sorting
       'simple-import-sort/imports': 'warn',
       'simple-import-sort/exports': 'warn',
@@ -98,9 +102,20 @@ export default tseslint.config(
   // =========================================================================
   {
     files: ['**/__tests__/**', '**/*.test.ts', '**/*.test.tsx', 'jest.setup.ts'],
+    plugins: {
+      'testing-library': testingLibrary,
+    },
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
+      'no-console': 'off',
+
+      // testing-library best practices
+      'testing-library/await-async-queries': 'error',
+      'testing-library/no-await-sync-queries': 'error',
+      'testing-library/no-debugging-utils': 'warn',
+      'testing-library/no-unnecessary-act': 'warn',
+      'testing-library/prefer-screen-queries': 'off',
     },
   },
 

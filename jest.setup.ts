@@ -38,101 +38,69 @@ console.warn = function (...args: unknown[]) {
 };
 
 // ---------------------------------------------------------------------------
-// Theme mock for tests
+// Theme mock for tests — shared data (single source of truth)
 // ---------------------------------------------------------------------------
-// Mock ThemeProvider
-jest.mock('./src/theme/ThemeProvider', () => {
-  const React = require('react');
+const mockColors = {
+  background: '#FFFFFF',
+  surface: '#F5F5F5',
+  text: '#1A1A1A',
+  textSecondary: '#666666',
+  textInverse: '#FFFFFF',
+  primary: '#4A90D9',
+  primaryLight: '#7AB3E8',
+  secondary: '#6C757D',
+  error: '#DC3545',
+  warning: '#FFC107',
+  success: '#28A745',
+  border: '#E0E0E0',
+  divider: '#EEEEEE',
+  wolf: '#8B0000',
+  wolfLight: '#CD5C5C',
+  god: '#2196F3',
+  villager: '#4CAF50',
+  special: '#9C27B0',
+};
 
-  const colors = {
-    background: '#FFFFFF',
-    surface: '#F5F5F5',
-    text: '#1A1A1A',
-    textSecondary: '#666666',
-    textInverse: '#FFFFFF',
-    primary: '#4A90D9',
-    primaryLight: '#7AB3E8',
-    secondary: '#6C757D',
-    error: '#DC3545',
-    warning: '#FFC107',
-    success: '#28A745',
-    border: '#E0E0E0',
-    divider: '#EEEEEE',
-    wolf: '#8B0000',
-    wolfLight: '#CD5C5C',
-    god: '#2196F3',
-    villager: '#4CAF50',
-    special: '#9C27B0',
-  };
+const mockAvailableThemes = [
+  { key: 'light', name: '浅色', colors: mockColors },
+  { key: 'dark', name: '深色', colors: mockColors },
+];
 
-  const availableThemes = [
-    { key: 'light', name: '浅色', colors },
-    { key: 'dark', name: '深色', colors },
-  ];
-
-  const theme = {
-    colors,
+function mockCreateTheme() {
+  return {
+    colors: mockColors,
     isDark: false,
     toggleTheme: jest.fn(),
     setColorScheme: jest.fn(),
     themeKey: 'light',
     setTheme: jest.fn(),
-    availableThemes,
+    availableThemes: mockAvailableThemes,
   };
+}
+
+// Mock ThemeProvider
+jest.mock('./src/theme/ThemeProvider', () => {
+  const React = require('react');
+  const theme = mockCreateTheme();
 
   return {
     ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
     ThemeContext: React.createContext(theme),
     useTheme: () => theme,
-    useColors: () => colors,
+    useColors: () => mockColors,
   };
 });
 
 // Mock theme index - must define all exports inline to avoid circular reference
 jest.mock('./src/theme', () => {
   const React = require('react');
-
-  const colors = {
-    background: '#FFFFFF',
-    surface: '#F5F5F5',
-    text: '#1A1A1A',
-    textSecondary: '#666666',
-    textInverse: '#FFFFFF',
-    primary: '#4A90D9',
-    primaryLight: '#7AB3E8',
-    secondary: '#6C757D',
-    error: '#DC3545',
-    warning: '#FFC107',
-    success: '#28A745',
-    border: '#E0E0E0',
-    divider: '#EEEEEE',
-    wolf: '#8B0000',
-    wolfLight: '#CD5C5C',
-    god: '#2196F3',
-    villager: '#4CAF50',
-    special: '#9C27B0',
-  };
-
-  const availableThemes = [
-    { key: 'light', name: '浅色', colors },
-    { key: 'dark', name: '深色', colors },
-  ];
-
-  const theme = {
-    colors,
-    isDark: false,
-    toggleTheme: jest.fn(),
-    setColorScheme: jest.fn(),
-    themeKey: 'light',
-    setTheme: jest.fn(),
-    availableThemes,
-  };
+  const theme = mockCreateTheme();
 
   return {
     ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
     ThemeContext: React.createContext(theme),
     useTheme: () => theme,
-    useColors: () => colors,
+    useColors: () => mockColors,
     spacing: {
       tight: 4,
       small: 8,
