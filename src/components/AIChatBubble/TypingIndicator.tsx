@@ -8,7 +8,9 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { Animated, Platform, StyleSheet, View } from 'react-native';
+
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 import { borderRadius, spacing, type ThemeColors } from '@/theme';
 
@@ -34,12 +36,12 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ colors }) => {
           Animated.timing(dot, {
             toValue: 1,
             duration: ANIMATION_DURATION,
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
           Animated.timing(dot, {
             toValue: 0,
             duration: ANIMATION_DURATION,
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
         ]),
       ),

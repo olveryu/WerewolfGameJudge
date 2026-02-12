@@ -7,7 +7,9 @@
  * ❌ 禁止：import service / 业务逻辑
  */
 import { useEffect, useRef } from 'react';
-import { Animated, Image,StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Platform, StyleSheet, Text, View } from 'react-native';
+
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 import { borderRadius, shadows,spacing, typography } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -38,12 +40,12 @@ export function LoadingScreen({ message = '加载中...', fullScreen = true }: L
         Animated.timing(pulseAnim, {
           toValue: 1.05,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]),
     );

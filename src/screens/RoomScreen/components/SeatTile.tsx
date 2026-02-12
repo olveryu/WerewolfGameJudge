@@ -10,6 +10,7 @@
 import React, { memo, useCallback, useEffect, useMemo,useRef } from 'react';
 import {
   Animated,
+  Platform,
   StyleSheet,
   Text,
   type TextStyle,
@@ -17,6 +18,8 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
+
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 import { Avatar } from '@/components/Avatar';
 import type { RoleId } from '@/models/roles';
@@ -150,18 +153,18 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           toValue: 0,
           friction: 6,
           tension: 100,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.spring(scaleAnim, {
           toValue: 1,
           friction: 5,
           tension: 120,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(opacityAnim, {
           toValue: 1,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]).start();
     } else if (prevHasPlayerRef.current === true && !hasPlayer) {

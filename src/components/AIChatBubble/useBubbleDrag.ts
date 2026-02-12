@@ -10,7 +10,9 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, type GestureResponderEvent, useWindowDimensions } from 'react-native';
+import { Animated, type GestureResponderEvent, Platform, useWindowDimensions } from 'react-native';
+
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 import { BUBBLE_MARGIN, BUBBLE_SIZE, DEFAULT_POSITION } from './AIChatBubble.styles';
 
@@ -58,8 +60,8 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
       return;
     }
     Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 0.9, duration: 100, useNativeDriver: true }),
-      Animated.timing(scaleAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 0.9, duration: 100, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(scaleAnim, { toValue: 1, duration: 100, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start();
     onOpen();
   }, [scaleAnim, onOpen]);

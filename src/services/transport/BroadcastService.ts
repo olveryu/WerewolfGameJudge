@@ -220,11 +220,7 @@ export class BroadcastService {
     }
 
     broadcastLog.info(' Broadcasting as host:', message.type);
-    await this.channel.send({
-      type: 'broadcast',
-      event: 'host',
-      payload: message,
-    });
+    await this.channel.httpSend('host', message);
   }
 
   /**
@@ -237,11 +233,7 @@ export class BroadcastService {
     }
 
     broadcastLog.info(' Sending to host:', message.type);
-    await this.channel.send({
-      type: 'broadcast',
-      event: 'player',
-      payload: message,
-    });
+    await this.channel.httpSend('player', message);
   }
 
   /**
