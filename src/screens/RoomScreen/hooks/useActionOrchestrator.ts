@@ -20,7 +20,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { GameStatus } from '@/models/GameStatus';
 import type { RoleId } from '@/models/roles';
-import { getRoleDisplayName } from '@/models/roles';
+import { getRoleDisplayName, getWolfKillImmuneRoleIds } from '@/models/roles';
 import type { ActionSchema, InlineSubStepSchema } from '@/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
 import type { UseRoomActionDialogsResult } from '@/screens/RoomScreen/useRoomActionDialogs';
@@ -342,7 +342,7 @@ export function useActionOrchestrator({
                 if (intent.targetSeat < 0) return undefined;
                 const targetRole = gameStateRef.current?.players?.get(intent.targetSeat)?.role;
                 if (currentSchema?.id !== 'wolfKill' || !targetRole) return undefined;
-                const immune = targetRole === 'spiritKnight' || targetRole === 'wolfQueen';
+                const immune = getWolfKillImmuneRoleIds().includes(targetRole);
                 if (!immune) return undefined;
                 const tpl = currentSchema.ui!.voteConfirmTemplate!;
                 const resolved = tpl

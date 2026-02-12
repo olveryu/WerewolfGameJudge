@@ -647,13 +647,24 @@ export function handleSubmitWolfVote(
   // - not_wolf_participant (meeting-specific rule)
   // Everything else is validated by `handleSubmitAction` (host/state/status/audio/step/seat/role).
 
-  // Guards needed to safely resolve voterRole (gates 1-2 duplicated from
-  // validateActionPreconditions — acceptable since they're trivial checks).
+  // Guards needed to safely resolve voterRole (gates 1-4 duplicated from
+  // validateActionPreconditions — acceptable since they're trivial checks
+  // and keeping the canonical gate order avoids confusing rejection reasons).
   if (!context.isHost) {
     return normalizeWolfVoteRejection({ success: false, reason: 'host_only', actions: [] });
   }
   if (!context.state) {
     return normalizeWolfVoteRejection({ success: false, reason: 'no_state', actions: [] });
+  }
+  if (context.state.status !== 'ongoing') {
+    return normalizeWolfVoteRejection({ success: false, reason: 'invalid_status', actions: [] });
+  }
+  if (context.state.isAudioPlaying) {
+    return normalizeWolfVoteRejection({
+      success: false,
+      reason: 'forbidden_while_audio_playing',
+      actions: [],
+    });
   }
 
   // Early return: voter seat must have a player with a role.
@@ -662,7 +673,7 @@ export function handleSubmitWolfVote(
     return normalizeWolfVoteRejection({ success: false, reason: 'not_seated', actions: [] });
   }
 
-  // Remaining preconditions (status → audio → step → seat → role match).
+  // Remaining preconditions (step → seat → role match).
   const validation = validateActionPreconditions(context, seat, voterRole);
   if (!validation.valid) {
     return normalizeWolfVoteRejection(validation.result);

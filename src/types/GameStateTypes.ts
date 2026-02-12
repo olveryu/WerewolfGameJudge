@@ -10,12 +10,12 @@
  * No runtime logic or service dependencies.
  */
 
+import type { RoleAction } from '@/models/actions/RoleAction';
 import { GameStatus } from '@/models/GameStatus';
 import { RoleId } from '@/models/roles';
 import { GameTemplate } from '@/models/Template';
 import type { CurrentNightResults } from '@/services/night/resolvers/types';
-
-import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from './RoleRevealAnimation';
+import type { BroadcastGameState } from '@/services/protocol/types';
 
 // =============================================================================
 // Game Status Enum (canonical definition in src/models/GameStatus.ts)
@@ -42,155 +42,41 @@ export interface LocalPlayer {
 // Game State Types
 // =============================================================================
 
-import { RoleAction } from '@/models/actions/RoleAction';
+/**
+ * Fields from BroadcastGameState that LocalGameState transforms
+ * (different shape or required-ness) or replaces entirely.
+ *
+ * Everything NOT listed here is auto-inherited from BroadcastGameState,
+ * so adding a new optional field to BroadcastGameState automatically
+ * makes it available on LocalGameState — no manual sync needed.
+ */
+type BroadcastTransformedKeys =
+  | 'status' // string literal union → GameStatus enum
+  | 'templateRoles' // RoleId[] → GameTemplate
+  | 'players' // Record<number, BroadcastPlayer> → Map<number, LocalPlayer>
+  | 'actions' // ProtocolAction[] → Map<RoleId, RoleAction>
+  | 'currentNightResults' // optional → required (default {})
+  | 'lastNightDeaths'; // optional → required (default [])
 
-export interface LocalGameState {
-  roomCode: string;
-  hostUid: string;
+/**
+ * LocalGameState — UI-facing game state
+ *
+ * Passthrough fields are auto-inherited from BroadcastGameState (via Omit).
+ * Only the transformed / local-only fields are declared here.
+ *
+ * ✅ Adding a new BroadcastGameState field: automatically available here.
+ * ✅ Adding a new required BroadcastGameState field: adapter MUST set it (TS error).
+ * ❌ If a new field needs transformation: add it to BroadcastTransformedKeys and declare below.
+ */
+export interface LocalGameState extends Omit<BroadcastGameState, BroadcastTransformedKeys> {
+  // --- Transformed fields (different shape from BroadcastGameState) ---
   status: GameStatus;
   template: GameTemplate;
-  players: Map<number, LocalPlayer | null>; // seat -> player
-  actions: Map<RoleId, RoleAction>; // role -> structured action
-  wolfVotes: Map<number, number>; // wolf seat -> target
-  currentStepIndex: number;
-  /**
-   * UI-only: authoritative current stepId broadcast from Host via ROLE_TURN.
-   * This is used for schema-driven UI mapping (e.g. NIGHT_STEPS.audioKey display).
-   * It must not be used to drive game logic.
-   */
-  currentStepId?: import('@/models/roles/spec').SchemaId;
-  isAudioPlaying: boolean;
-  /**
-   * 开牌动画配置（Host 控制）
-   * 可为具体动画、none 或 random
-   */
-  roleRevealAnimation?: RoleRevealAnimation;
-  /**
-   * 解析后的开牌动画（Host 解析 random 后广播）
-   * 客户端使用此字段渲染，不含 random
-   */
-  resolvedRoleRevealAnimation?: ResolvedRoleRevealAnimation;
-  /**
-   * 本局开牌动画随机种子（用于 random 解析）
-   */
-  roleRevealRandomNonce?: string;
-  lastNightDeaths: number[]; // Calculated after night ends
-  nightmareBlockedSeat?: number; // Seat blocked by nightmare (skill disabled for this night)
-  /**
-   * Wolf kill disabled: true if nightmare blocked a wolf.
-   * When true, all wolves can only skip during wolf vote phase (no kill this night).
-   */
-  wolfKillDisabled?: boolean;
+  players: Map<number, LocalPlayer | null>; // Record → Map
+  lastNightDeaths: number[]; // optional → required (default [])
+  currentNightResults: CurrentNightResults; // optional → required (default {})
 
-  /**
-   * Current night's accumulated resolver results.
-   * Used to pass resolved results between steps (e.g., nightmare block → wolf kill disabled).
-   * Reset at the start of each night.
-   */
-  currentNightResults: CurrentNightResults;
-
-  // =========================================================================
-  // Role-specific context (previously sent via PRIVATE_EFFECT, now public)
-  // UI filters what to display based on myRole.
-  // =========================================================================
-
-  /** Witch turn context - only display to witch via UI filter */
-  witchContext?: {
-    killedSeat: number; // seat killed by wolves (-1 = empty kill)
-    canSave: boolean;
-    canPoison: boolean;
-  };
-
-  /** Seer reveal result - only display to seer via UI filter */
-  seerReveal?: {
-    targetSeat: number;
-    result: '好人' | '狼人';
-  };
-
-  /** Psychic reveal result - only display to psychic via UI filter */
-  psychicReveal?: {
-    targetSeat: number;
-    result: string; // specific role name
-  };
-
-  /** Gargoyle reveal result - only display to gargoyle via UI filter */
-  gargoyleReveal?: {
-    targetSeat: number;
-    result: string;
-  };
-
-  /** Wolf Robot reveal result - only display to wolf robot via UI filter */
-  wolfRobotReveal?: {
-    targetSeat: number;
-    result: string;
-    /**
-     * The learned role ID (strict RoleId) - REQUIRED for hunter gate check and disguise.
-     * This is never optional when wolfRobotReveal exists.
-     */
-    learnedRoleId: RoleId;
-    canShootAsHunter?: boolean;
-  };
-
-  /** Gate: wolfRobot learned hunter and must view status before advancing */
-  wolfRobotHunterStatusViewed?: boolean;
-
-  /** Confirm status for hunter/darkWolfKing - only display to that role via UI filter */
-  confirmStatus?: {
-    role: 'hunter' | 'darkWolfKing';
-    canShoot: boolean;
-  };
-
-  /** Action rejected feedback - only display to the rejected player via UI filter */
-  actionRejected?: {
-    action: string;
-    reason: string;
-    targetUid: string; // which player was rejected
-    /** Unique id for this rejection event (UI uses it for dedupe). */
-    rejectionId: string;
-  };
-
-  // =========================================================================
-  // 狼人投票倒计时
-  // =========================================================================
-
-  /**
-   * 全部狼人投票完成后的截止时间（epoch ms）。
-   * Host 写入，UI 读取计算剩余秒数并展示。
-   */
-  wolfVoteDeadline?: number;
-
-  // =========================================================================
-  // UI Hints（Host 广播驱动，UI 只读展示）
-  // =========================================================================
-
-  /**
-   * UI hint for current step - Host writes, UI reads only (no derivation).
-   *
-   * 职责：允许 Host 向特定角色广播"提前提示"（如被封锁/狼刀被禁用）。
-   * Host 通过 resolver/handler 判定后写入，进入下一 step 时清空。
-   *
-   * UI 规则：按 targetRoleIds + myRole 过滤。
-   */
-  ui?: {
-    currentActorHint?: {
-      kind: 'blocked_by_nightmare' | 'wolf_kill_disabled';
-      targetRoleIds: RoleId[];
-      message: string;
-      bottomAction?: 'skipOnly' | 'wolfEmptyOnly';
-      promptOverride?: { title?: string; text?: string };
-    } | null;
-  };
-
-  // =========================================================================
-  // Debug Mode
-  // =========================================================================
-
-  /**
-   * Debug mode settings (optional, for development/testing only).
-   * When debugMode.botsEnabled is true, bot-related UI and features are enabled.
-   */
-  debugMode?: {
-    /** Whether bot placeholder mode is enabled */
-    botsEnabled: boolean;
-  };
+  // --- Local-only fields (adapter-created, not in BroadcastGameState) ---
+  actions: Map<RoleId, RoleAction>; // derived from ProtocolAction[]
+  wolfVotes: Map<number, number>; // derived from currentNightResults.wolfVotesBySeat
 }

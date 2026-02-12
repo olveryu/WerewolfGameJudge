@@ -21,6 +21,7 @@ import {
 import { makeWitchNone, makeWitchPoison, makeWitchSave } from '@/models/actions/WitchAction';
 import { GameStatus } from '@/models/GameStatus';
 import type { RoleId } from '@/models/roles';
+import { NIGHT_STEPS, SCHEMAS } from '@/models/roles/spec';
 import { createTemplateFromRoles } from '@/models/Template';
 import type { BroadcastGameState, BroadcastPlayer } from '@/services/protocol/types';
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
@@ -50,17 +51,34 @@ function toGameStatusEnum(status: BroadcastGameState['status']): GameStatus {
 
 /**
  * 将 BroadcastGameState 转换为 LocalGameState
+ *
+ * Passthrough fields are auto-forwarded via object spread.
+ * Only fields that need transformation are destructured and re-mapped.
+ * ✅ Adding a new BroadcastGameState field: automatically passed through.
  */
 export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameState {
+  // =========================================================================
+  // Destructure fields that need transformation; rest auto-passthrough.
+  // =========================================================================
+  const {
+    players: broadcastPlayers,
+    templateRoles,
+    actions: protocolActions,
+    currentNightResults: nightResults,
+    lastNightDeaths,
+    status,
+    ...passthroughFields
+  } = broadcast;
+
   // 1. players: Record<number, ...> → Map<number, ...>
   const playersMap = new Map<number, LocalPlayer | null>();
-  for (const [seatStr, bp] of Object.entries(broadcast.players)) {
+  for (const [seatStr, bp] of Object.entries(broadcastPlayers)) {
     const seat = Number.parseInt(seatStr, 10);
     playersMap.set(seat, bp ? toLocalPlayer(bp, seat) : null);
   }
 
   // 2. templateRoles → template (使用 createTemplateFromRoles)
-  const template = createTemplateFromRoles(broadcast.templateRoles);
+  const template = createTemplateFromRoles(templateRoles);
 
   // 3. actions: ProtocolAction[]  Map<RoleId, RoleAction>
   // This is an adapter-only mapping so the existing UI can keep reading
@@ -74,23 +92,15 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
   //   - witchAction: uses witchContext + recorded ProtocolAction target
   const actionsMap = new Map<RoleId, RoleAction>();
 
-  const actions = broadcast.actions ?? [];
-  const findBySchemaId = (schemaId: string) => actions.find((a) => a.schemaId === schemaId);
+  const rawActions = protocolActions ?? [];
+  const findBySchemaId = (schemaId: string) => rawActions.find((a) => a.schemaId === schemaId);
 
   // ---------------------------------------------------------------------------
-  // Target-based chooseSeat schemas
+  // Target-based chooseSeat schemas (derived from NIGHT_STEPS + SCHEMAS SSOT)
   // ---------------------------------------------------------------------------
-  const schemaToRoleTarget: Array<{ schemaId: string; roleId: RoleId }> = [
-    { schemaId: 'seerCheck', roleId: 'seer' },
-    { schemaId: 'guardProtect', roleId: 'guard' },
-    { schemaId: 'psychicCheck', roleId: 'psychic' },
-    { schemaId: 'dreamcatcherDream', roleId: 'dreamcatcher' },
-    { schemaId: 'wolfQueenCharm', roleId: 'wolfQueen' },
-    { schemaId: 'nightmareBlock', roleId: 'nightmare' },
-    { schemaId: 'gargoyleCheck', roleId: 'gargoyle' },
-    { schemaId: 'wolfRobotLearn', roleId: 'wolfRobot' },
-    { schemaId: 'slackerChooseIdol', roleId: 'slacker' },
-  ];
+  const schemaToRoleTarget = NIGHT_STEPS.filter(
+    (step) => SCHEMAS[step.id]?.kind === 'chooseSeat',
+  ).map((step) => ({ schemaId: step.id, roleId: step.roleId }));
 
   for (const { schemaId, roleId } of schemaToRoleTarget) {
     const a = findBySchemaId(schemaId);
@@ -100,21 +110,21 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
   }
 
   // ---------------------------------------------------------------------------
-  // Confirm schemas - representing as "none" is enough for most UI compatibility.
+  // Confirm schemas - derived from NIGHT_STEPS + SCHEMAS SSOT.
+  // Representing as "none" is enough for most UI compatibility.
   // (The actual effect is provided via confirmStatus broadcast fields.)
   // ---------------------------------------------------------------------------
-  if (findBySchemaId('hunterConfirm')) {
-    actionsMap.set('hunter', { kind: 'none' });
-  }
-  if (findBySchemaId('darkWolfKingConfirm')) {
-    actionsMap.set('darkWolfKing', { kind: 'none' });
+  for (const step of NIGHT_STEPS) {
+    if (SCHEMAS[step.id]?.kind === 'confirm' && findBySchemaId(step.id)) {
+      actionsMap.set(step.roleId, { kind: 'none' });
+    }
   }
 
   // ---------------------------------------------------------------------------
   // magicianSwap - prefer resolver output (swappedSeats) over encoded targets.
   // ---------------------------------------------------------------------------
-  if (Array.isArray(broadcast.currentNightResults?.swappedSeats)) {
-    const [firstSeat, secondSeat] = broadcast.currentNightResults.swappedSeats;
+  if (nightResults && Array.isArray(nightResults.swappedSeats)) {
+    const [firstSeat, secondSeat] = nightResults.swappedSeats;
     if (typeof firstSeat === 'number' && typeof secondSeat === 'number') {
       actionsMap.set('magician', makeActionMagicianSwap(firstSeat, secondSeat));
     }
@@ -130,7 +140,7 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
   // ---------------------------------------------------------------------------
   const witchAction = findBySchemaId('witchAction');
   if (witchAction) {
-    const ctx = broadcast.witchContext;
+    const ctx = passthroughFields.witchContext;
     const targetSeat = witchAction.targetSeat;
 
     if (typeof targetSeat !== 'number') {
@@ -144,10 +154,10 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
 
   // ---------------------------------------------------------------------------
   // wolfKill (wolfVote)
-  // single source of truth: broadcast.currentNightResults.wolfVotesBySeat
+  // single source of truth: currentNightResults.wolfVotesBySeat
   // ---------------------------------------------------------------------------
   const wolfVotesMap = new Map<number, number>();
-  const wolfVotes = broadcast.currentNightResults?.wolfVotesBySeat;
+  const wolfVotes = nightResults?.wolfVotesBySeat;
   if (wolfVotes) {
     for (const [voterStr, target] of Object.entries(wolfVotes)) {
       wolfVotesMap.set(Number.parseInt(voterStr, 10), target);
@@ -155,37 +165,19 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
   }
 
   return {
-    roomCode: broadcast.roomCode,
-    hostUid: broadcast.hostUid,
-    status: toGameStatusEnum(broadcast.status),
+    // Auto-passthrough: all BroadcastGameState fields not in BroadcastTransformedKeys
+    // (new optional fields are forwarded automatically — no manual sync needed)
+    ...passthroughFields,
+
+    // Transformed fields
+    status: toGameStatusEnum(status),
     template,
     players: playersMap,
+    lastNightDeaths: lastNightDeaths ?? [],
+    currentNightResults: nightResults ?? {},
+
+    // Local-only fields (derived from BroadcastGameState data)
     actions: actionsMap,
     wolfVotes: wolfVotesMap,
-    currentStepIndex: broadcast.currentStepIndex,
-    currentStepId: broadcast.currentStepId, // PR9: 透传 currentStepId
-    isAudioPlaying: broadcast.isAudioPlaying,
-    roleRevealAnimation: broadcast.roleRevealAnimation,
-    resolvedRoleRevealAnimation: broadcast.resolvedRoleRevealAnimation,
-    roleRevealRandomNonce: broadcast.roleRevealRandomNonce,
-    lastNightDeaths: broadcast.lastNightDeaths ?? [],
-    nightmareBlockedSeat: broadcast.nightmareBlockedSeat,
-    wolfKillDisabled: broadcast.wolfKillDisabled,
-    currentNightResults: broadcast.currentNightResults ?? {},
-    // Role-specific context (直接透传)
-    witchContext: broadcast.witchContext,
-    seerReveal: broadcast.seerReveal,
-    psychicReveal: broadcast.psychicReveal,
-    gargoyleReveal: broadcast.gargoyleReveal,
-    wolfRobotReveal: broadcast.wolfRobotReveal,
-    wolfRobotHunterStatusViewed: broadcast.wolfRobotHunterStatusViewed,
-    confirmStatus: broadcast.confirmStatus,
-    actionRejected: broadcast.actionRejected,
-    // 狼人投票倒计时 (直接透传)
-    wolfVoteDeadline: broadcast.wolfVoteDeadline,
-    // UI Hints (Host 广播驱动，直接透传)
-    ui: broadcast.ui,
-    // Debug mode (直接透传)
-    debugMode: broadcast.debugMode,
   };
 }
