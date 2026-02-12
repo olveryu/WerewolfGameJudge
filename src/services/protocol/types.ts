@@ -8,6 +8,7 @@
  */
 
 // ⚠️ 以现有 repo 导出路径为准
+import type { GameStatus } from '@/models/GameStatus';
 import type { RoleId } from '@/models/roles';
 import type { SchemaId } from '@/models/roles/spec';
 import type { CurrentNightResults } from '@/services/night/resolvers/types';
@@ -48,7 +49,7 @@ export interface BroadcastGameState {
   // --- 核心字段（现有） ---
   roomCode: string;
   hostUid: string;
-  status: 'unseated' | 'seated' | 'assigned' | 'ready' | 'ongoing' | 'ended';
+  status: `${GameStatus}`;
   templateRoles: RoleId[];
 
   // ⚠️ Phase 1: players 保持 Record<number, ...> 不改，与现有实现一致

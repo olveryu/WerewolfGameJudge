@@ -15,7 +15,7 @@
  */
 
 import type { GameStatus } from '@/models/GameStatus';
-import type { RoleId } from '@/models/roles';
+import type { RevealKind, RoleId } from '@/models/roles';
 import type { ActionIntent } from '@/screens/RoomScreen/hooks/useRoomActions';
 
 // =============================================================================
@@ -57,7 +57,7 @@ export interface LeaveRoomEvent {
 export interface RevealAckEvent {
   kind: 'REVEAL_ACK';
   /** The role that revealed (determines which ack to send) */
-  revealRole: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot';
+  revealRole: RevealKind;
 }
 
 /** WolfRobot hunter status viewed - user acknowledged the hunter status */
@@ -137,7 +137,7 @@ export interface InteractionResultHostControl {
 /** Submit reveal ack (seer/psychic/gargoyle/wolfRobot) */
 export interface InteractionResultRevealAck {
   kind: 'REVEAL_ACK';
-  revealRole: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot';
+  revealRole: RevealKind;
 }
 
 /** Submit wolf robot hunter status viewed */

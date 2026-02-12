@@ -22,7 +22,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import type { RoleAction } from '@/models/actions/RoleAction';
 import { GameStatus } from '@/models/GameStatus';
-import type { RoleId } from '@/models/roles';
+import type { RevealKind, RoleId } from '@/models/roles';
 import type { GameTemplate } from '@/models/Template';
 import type { RootStackParamList } from '@/navigation/types';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
@@ -143,7 +143,7 @@ export function useRoomScreenState(
   }, [gameState]);
 
   const submitRevealAckSafe = useCallback(
-    (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => {
+    (role: RevealKind) => {
       void submitRevealAck(role);
     },
     [submitRevealAck],

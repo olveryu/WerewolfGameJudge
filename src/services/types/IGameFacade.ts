@@ -5,7 +5,7 @@
  * Facade 只做编排，不写业务逻辑。
  */
 
-import type { RoleId } from '@/models/roles';
+import type { RevealKind, RoleId } from '@/models/roles';
 import type { GameTemplate } from '@/models/Template';
 import type { BroadcastGameState } from '@/services/protocol/types';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
@@ -184,9 +184,7 @@ export interface IGameFacade {
   /**
    * 提交 reveal 确认（seer/psychic/gargoyle/wolfRobot）
    */
-  submitRevealAck(
-    role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot',
-  ): Promise<{ success: boolean; reason?: string }>;
+  submitRevealAck(role: RevealKind): Promise<{ success: boolean; reason?: string }>;
 
   /**
    * 提交机械狼查看猎人状态确认

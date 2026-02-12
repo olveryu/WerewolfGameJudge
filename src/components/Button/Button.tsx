@@ -17,6 +17,7 @@ import {
   ViewStyle,
 } from 'react-native';
 
+import { TESTIDS } from '@/testids';
 import { borderRadius, spacing, ThemeColors, typography, useColors } from '@/theme';
 
 /** Metadata passed to onPress callback */
@@ -150,7 +151,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
     >
       {loading ? (
         <ActivityIndicator
-          testID="button-loading-indicator"
+          testID={TESTIDS.buttonLoadingIndicator}
           color={variant === 'outline' ? colors.primary : colors.textInverse}
         />
       ) : (

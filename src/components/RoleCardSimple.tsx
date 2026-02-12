@@ -13,30 +13,7 @@ import type { RoleId } from '@/models/roles';
 import { getRoleSpec, isWolfRole } from '@/models/roles';
 import { borderRadius, shadows, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
-// 角色对应的 emoji 图标
-const ROLE_ICONS: Record<string, string> = {
-  // 狼人阵营
-  wolf: '🐺',
-  wolfKing: '👑🐺',
-  darkWolfKing: '🌑👑',
-  whiteWolfKing: '⚪👑',
-  wolfQueen: '👸🐺',
-  nightmare: '😱',
-  gargoyle: '🗿',
-  wolfRobot: '🤖🐺',
-  // 神职阵营
-  seer: '🔮',
-  witch: '🧙‍♀️',
-  hunter: '🏹',
-  guard: '🛡️',
-  psychic: '👁️',
-  dreamcatcher: '🌙',
-  magician: '🎩',
-  spiritKnight: '⚔️',
-  // 平民
-  villager: '👤',
-  slacker: '😴',
-};
+import { getFactionName, ROLE_ICONS } from './roleDisplayUtils';
 
 // 阵营颜色 — 使用 theme token
 const getFactionColor = (roleId: RoleId, colors: ThemeColors): string => {
@@ -44,13 +21,6 @@ const getFactionColor = (roleId: RoleId, colors: ThemeColors): string => {
   const spec = getRoleSpec(roleId);
   if (spec?.faction === 'god') return colors.god;
   return colors.textMuted; // 平民
-};
-
-const getFactionName = (roleId: RoleId): string => {
-  if (isWolfRole(roleId)) return '狼人阵营';
-  const spec = getRoleSpec(roleId);
-  if (spec?.faction === 'god') return '神职阵营';
-  return '平民阵营';
 };
 
 export interface RoleCardSimpleProps {

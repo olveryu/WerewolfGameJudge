@@ -9,6 +9,8 @@
 import { memo, type ReactNode, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
+import { TESTIDS } from '@/testids';
+
 import { ConfigScreenStyles } from './styles';
 
 export interface FactionTabItem {
@@ -61,7 +63,7 @@ const FactionTab = memo<FactionTabProps>(({ tab, isActive, onPress, styles }) =>
 
   return (
     <TouchableOpacity
-      testID={`config-faction-tab-${tab.key}`}
+      testID={TESTIDS.configFactionTab(tab.key)}
       style={[styles.tab, isActive && styles.tabActive]}
       onPress={handlePress}
       activeOpacity={0.7}

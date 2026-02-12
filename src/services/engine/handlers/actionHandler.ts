@@ -11,7 +11,7 @@
  * ❌ 禁止：直接修改 state（返回 StateAction 列表由 reducer 执行）
  */
 
-import type { RoleId } from '@/models/roles';
+import type { RevealKind, RoleId } from '@/models/roles';
 import { doesRoleParticipateInWolfVote } from '@/models/roles';
 import type { SchemaId } from '@/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS, NIGHT_STEPS, SCHEMAS } from '@/models/roles/spec';
@@ -204,6 +204,22 @@ function handleWolfRobotReveal(
 }
 
 /**
+ * Reveal handler registry — keyed by RevealKind (SSOT).
+ * Adding a new RevealKind to schema.types.ts forces a compile error here.
+ */
+type RevealHandler = (
+  result: ResolverResult,
+  targetSeat: number,
+) => Partial<ApplyResolverResultAction['payload']>;
+
+const REVEAL_HANDLERS: Record<RevealKind, RevealHandler> = {
+  seer: handleSeerReveal,
+  psychic: handlePsychicReveal,
+  gargoyle: handleGargoyleReveal,
+  wolfRobot: handleWolfRobotReveal,
+};
+
+/**
  * 从 resolver result 构建 ApplyResolverResultAction payload
  */
 function buildRevealPayload(
@@ -215,15 +231,10 @@ function buildRevealPayload(
     updates: result.updates,
   };
 
-  // 根据角色类型设置对应的 reveal
-  if (role === 'seer') {
-    Object.assign(payload, handleSeerReveal(result, targetSeat));
-  } else if (role === 'psychic') {
-    Object.assign(payload, handlePsychicReveal(result, targetSeat));
-  } else if (role === 'gargoyle') {
-    Object.assign(payload, handleGargoyleReveal(result, targetSeat));
-  } else if (role === 'wolfRobot') {
-    Object.assign(payload, handleWolfRobotReveal(result, targetSeat));
+  // 根据角色类型查表设置对应的 reveal
+  const handler = REVEAL_HANDLERS[role as RevealKind];
+  if (handler) {
+    Object.assign(payload, handler(result, targetSeat));
   }
 
   return payload;

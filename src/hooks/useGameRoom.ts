@@ -20,7 +20,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
 import { GameStatus } from '@/models/GameStatus';
-import type { RoleId } from '@/models/roles';
+import type { RevealKind, RoleId } from '@/models/roles';
 import type { ActionSchema, SchemaId } from '@/models/roles/spec';
 import type { GameTemplate } from '@/models/Template';
 import type { RoomRecord } from '@/services/infra/RoomService';
@@ -103,7 +103,7 @@ export interface UseGameRoomResult {
   viewedRole: () => Promise<void>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
   submitWolfVote: (target: number) => Promise<void>;
-  submitRevealAck: (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => Promise<void>;
+  submitRevealAck: (role: RevealKind) => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   getLastNightInfo: () => string;
   hasWolfVoted: (seatNumber: number) => boolean;

@@ -254,8 +254,14 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
       return isWolf && wolfSeat !== null ? { type: 'wolfVote', targetSeat: seat, wolfSeat } : null;
     case 'chooseSeat':
       return deriveChooseSeatIntent(ctx);
-    default:
+    case 'skip':
+    case 'confirmTarget':
+    case undefined:
       return null;
+    default: {
+      const _exhaustive: never = schemaKind;
+      return _exhaustive;
+    }
   }
 }
 

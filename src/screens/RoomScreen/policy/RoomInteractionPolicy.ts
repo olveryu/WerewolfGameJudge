@@ -15,6 +15,7 @@
  */
 
 import { GameStatus } from '@/models/GameStatus';
+import type { RevealKind } from '@/models/roles';
 import { getSeatTapResult } from '@/screens/RoomScreen/seatTap/SeatTapPolicy';
 
 import type { InteractionContext, InteractionEvent, InteractionResult } from './types';
@@ -194,9 +195,7 @@ function handleLeaveRoom(): InteractionResult {
  * Handle reveal ack event.
  * Simply returns the ack instruction to be executed by the orchestrator.
  */
-function handleRevealAck(event: {
-  revealRole: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot';
-}): InteractionResult {
+function handleRevealAck(event: { revealRole: RevealKind }): InteractionResult {
   return { kind: 'REVEAL_ACK', revealRole: event.revealRole };
 }
 

@@ -18,7 +18,7 @@
 import { useCallback, useMemo } from 'react';
 
 import { GameStatus } from '@/models/GameStatus';
-import type { RoleId } from '@/models/roles';
+import type { RevealKind, RoleId } from '@/models/roles';
 import {
   getInteractionResult,
   type InteractionContext,
@@ -76,7 +76,7 @@ interface UseInteractionDispatcherParams {
   showRestartDialog: () => void;
 
   // ── Submission callbacks ──
-  submitRevealAckSafe: (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => void;
+  submitRevealAckSafe: (role: RevealKind) => void;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   setControlledSeat: (seat: number | null) => void;
 

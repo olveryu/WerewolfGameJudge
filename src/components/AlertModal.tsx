@@ -9,6 +9,7 @@
 import React, { useMemo } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
+import { TESTIDS } from '@/testids';
 import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
 export interface AlertButton {
@@ -52,13 +53,13 @@ export const AlertModal: React.FC<AlertModalProps> = ({
 
   return (
     <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay} testID="alert-modal-overlay">
-        <View style={styles.alertBox} testID="alert-modal">
-          <Text style={styles.title} testID="alert-title">
+      <View style={styles.overlay} testID={TESTIDS.alertModalOverlay}>
+        <View style={styles.alertBox} testID={TESTIDS.alertModal}>
+          <Text style={styles.title} testID={TESTIDS.alertTitle}>
             {title}
           </Text>
           {message ? (
-            <Text style={styles.message} testID="alert-message">
+            <Text style={styles.message} testID={TESTIDS.alertMessage}>
               {message}
             </Text>
           ) : null}
@@ -67,7 +68,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
             {buttons.map((button, index) => (
               <TouchableOpacity
                 key={`alert-btn-${button.text}-${index}`}
-                testID={`alert-button-${index}`}
+                testID={TESTIDS.alertButton(index)}
                 style={[
                   styles.button,
                   button.style === 'cancel' && styles.cancelButton,

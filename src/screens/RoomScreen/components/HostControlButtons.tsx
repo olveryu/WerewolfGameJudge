@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 
+import { TESTIDS } from '@/testids';
 import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
 interface HostControlButtonsProps {
@@ -64,7 +65,7 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: colors.info }]}
           onPress={onSettingsPress}
-          testID="room-settings-button"
+          testID={TESTIDS.roomSettingsButton}
         >
           <Text style={styles.buttonText}>
             <Ionicons name="settings-outline" size={14} color={colors.textInverse} />

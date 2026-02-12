@@ -14,6 +14,7 @@
 
 import { useCallback } from 'react';
 
+import type { RevealKind } from '@/models/roles';
 import type { GameTemplate } from '@/models/Template';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -39,7 +40,7 @@ export interface HostGameActionsState {
   viewedRole: () => Promise<void>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
   submitWolfVote: (target: number) => Promise<void>;
-  submitRevealAck: (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => Promise<void>;
+  submitRevealAck: (role: RevealKind) => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
 
   // Game state queries
@@ -156,7 +157,7 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
   const submitRevealAck = useCallback(
-    async (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot'): Promise<void> => {
+    async (role: RevealKind): Promise<void> => {
       await facade.submitRevealAck(role);
     },
     [facade],

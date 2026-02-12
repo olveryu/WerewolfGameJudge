@@ -525,7 +525,7 @@ export const ConfigScreen: React.FC = () => {
           style={styles.headerGearBtn}
           onPress={handleOpenSettings}
           activeOpacity={0.7}
-          testID="config-gear-btn"
+          testID={TESTIDS.configGearButton}
         >
           <Ionicons name="settings-outline" size={18} color={colors.text} />
         </TouchableOpacity>

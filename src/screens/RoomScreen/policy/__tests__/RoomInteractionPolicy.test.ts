@@ -11,6 +11,7 @@
  */
 
 import { GameStatus } from '@/models/GameStatus';
+import type { RevealKind } from '@/models/roles';
 import { getInteractionResult } from '@/screens/RoomScreen/policy/RoomInteractionPolicy';
 import type { InteractionContext, InteractionEvent } from '@/screens/RoomScreen/policy/types';
 import { INTERACTION_PRIORITY } from '@/screens/RoomScreen/policy/types';
@@ -67,9 +68,7 @@ function createLeaveRoomEvent(): InteractionEvent {
   return { kind: 'LEAVE_ROOM' };
 }
 
-function createRevealAckEvent(
-  revealRole: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot',
-): InteractionEvent {
+function createRevealAckEvent(revealRole: RevealKind): InteractionEvent {
   return { kind: 'REVEAL_ACK', revealRole };
 }
 

@@ -66,6 +66,13 @@ const AUDIO_END_FILES: Partial<Record<RoleId, AudioAsset>> = {
 const NIGHT_AUDIO: AudioAsset = require('../../../assets/audio/night.mp3');
 const NIGHT_END_AUDIO: AudioAsset = require('../../../assets/audio/night_end.mp3');
 
+/**
+ * Exported for contract testing — verifies audio coverage of NIGHT_STEPS.
+ * @internal Do not use outside __tests__/.
+ */
+export const _AUDIO_ROLE_IDS: readonly RoleId[] = Object.keys(AUDIO_FILES) as RoleId[];
+export const _AUDIO_END_ROLE_IDS: readonly RoleId[] = Object.keys(AUDIO_END_FILES) as RoleId[];
+
 // Background music
 const BGM_NIGHT: AudioAsset = require('../../../assets/audio/bgm_night.mp3');
 

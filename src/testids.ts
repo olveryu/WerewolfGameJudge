@@ -34,6 +34,14 @@ export const TESTIDS = {
   configScreenRoot: 'config-screen-root',
   configBackButton: 'config-back-button',
   configPresetSection: 'config-preset-section',
+  configGearButton: 'config-gear-btn',
+  configSettingsOverlay: 'config-settings-overlay',
+  configAnimation: 'config-animation',
+  configBgm: 'config-bgm',
+  configRoleChip: (id: string) => `config-role-chip-${id}`,
+  configStepperDec: (roleId: string) => `config-stepper-dec-${roleId}`,
+  configStepperInc: (roleId: string) => `config-stepper-inc-${roleId}`,
+  configFactionTab: (key: string) => `config-faction-tab-${key}`,
 
   roomScreenRoot: 'room-screen-root',
   roomBackButton: 'room-back-button',
@@ -55,6 +63,19 @@ export const TESTIDS = {
 
   // NightProgressIndicator
   nightProgressIndicator: 'night-progress-indicator',
+
+  // AlertModal
+  alertModalOverlay: 'alert-modal-overlay',
+  alertModal: 'alert-modal',
+  alertTitle: 'alert-title',
+  alertMessage: 'alert-message',
+  alertButton: (index: number) => `alert-button-${index}`,
+
+  // Button
+  buttonLoadingIndicator: 'button-loading-indicator',
+
+  // NumPad
+  numpadKey: (key: string) => `numpad-${key}`,
 
   // RoleRevealEffects
   // Used by: RoleRevealEffects components, unit tests

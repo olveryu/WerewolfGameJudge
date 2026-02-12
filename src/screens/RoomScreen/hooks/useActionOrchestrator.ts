@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { GameStatus } from '@/models/GameStatus';
-import type { RoleId } from '@/models/roles';
+import type { RevealKind, RoleId } from '@/models/roles';
 import { getRoleDisplayName, getWolfKillImmuneRoleIds } from '@/models/roles';
 import type { ActionSchema, InlineSubStepSchema } from '@/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
@@ -57,7 +57,7 @@ interface UseActionOrchestratorParams {
   // ── Submission callbacks ──
   submitAction: (targetSeat: number | null, extra?: unknown) => Promise<void>;
   submitWolfVote: (targetSeat: number) => Promise<void>;
-  submitRevealAckSafe: (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => void;
+  submitRevealAckSafe: (role: RevealKind) => void;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
 
   // ── Intent helpers (from useRoomActions) ──

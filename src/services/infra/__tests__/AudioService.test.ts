@@ -80,7 +80,13 @@ jest.mock('../../../../assets/audio_end/dark_wolf_king.mp3', () => 'dark_wolf_ki
 });
 
 // Now import AudioService after mocks are set up
-import { audioAssetToUrl, AudioService } from '@/services/infra/AudioService';
+import { NIGHT_STEPS } from '@/models/roles/spec';
+import {
+  _AUDIO_END_ROLE_IDS,
+  _AUDIO_ROLE_IDS,
+  audioAssetToUrl,
+  AudioService,
+} from '@/services/infra/AudioService';
 
 describe('audioAssetToUrl', () => {
   it('should passthrough string URL', () => {
@@ -481,5 +487,29 @@ describe('AudioService - Fallback: timeout', () => {
 
     // The important contract: it must resolve (not hang). Logging is optional.
     // We don't assert on logging here as timeout logging may be debug-level.
+  });
+});
+
+// =============================================================================
+// Contract: AUDIO_FILES / AUDIO_END_FILES cover all NIGHT_STEPS roleIds
+// =============================================================================
+
+describe('Audio coverage contract', () => {
+  const nightStepRoleIds = [...new Set(NIGHT_STEPS.map((s) => s.roleId))];
+
+  it('AUDIO_FILES covers every unique NIGHT_STEPS roleId', () => {
+    for (const roleId of nightStepRoleIds) {
+      expect(_AUDIO_ROLE_IDS).toContain(roleId);
+    }
+  });
+
+  it('AUDIO_END_FILES covers every unique NIGHT_STEPS roleId', () => {
+    for (const roleId of nightStepRoleIds) {
+      expect(_AUDIO_END_ROLE_IDS).toContain(roleId);
+    }
+  });
+
+  it('AUDIO_FILES and AUDIO_END_FILES have same keys', () => {
+    expect([..._AUDIO_ROLE_IDS].sort()).toEqual([..._AUDIO_END_ROLE_IDS].sort());
   });
 });

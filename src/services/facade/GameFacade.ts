@@ -25,7 +25,7 @@
 import type { AppStateStatus } from 'react-native';
 import { AppState, Platform } from 'react-native';
 
-import type { RoleId } from '@/models/roles';
+import type { RevealKind, RoleId } from '@/models/roles';
 import type { GameTemplate } from '@/models/Template';
 import { shouldTriggerWolfVoteRecovery } from '@/services/engine/handlers/progressionEvaluator';
 import { GameStore } from '@/services/engine/store';
@@ -561,9 +561,7 @@ export class GameFacade implements IGameFacade {
    * - Host: 直接调用 clearRevealAcks
    * - Player: 发送 REVEAL_ACK 消息给 Host
    */
-  async submitRevealAck(
-    role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot',
-  ): Promise<{ success: boolean; reason?: string }> {
+  async submitRevealAck(role: RevealKind): Promise<{ success: boolean; reason?: string }> {
     if (this.isHost) {
       // Host 直接执行
       return hostActions.clearRevealAcks(this.getHostActionsContext());

@@ -9,6 +9,8 @@
 import { memo } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
+import { TESTIDS } from '@/testids';
+
 import { Dropdown, type DropdownOption } from './Dropdown';
 import type { ConfigScreenStyles } from './styles';
 
@@ -41,7 +43,7 @@ export const SettingsSheet = memo(function SettingsSheet({
         style={styles.settingsSheetOverlay}
         activeOpacity={1}
         onPress={onClose}
-        testID="config-settings-overlay"
+        testID={TESTIDS.configSettingsOverlay}
       >
         <View style={styles.settingsSheetContent}>
           <View style={styles.settingsSheetHandle} />
@@ -53,7 +55,7 @@ export const SettingsSheet = memo(function SettingsSheet({
               options={animationOptions}
               onSelect={onAnimationChange}
               styles={styles}
-              testID="config-animation"
+              testID={TESTIDS.configAnimation}
             />
             <Dropdown
               label="BGM"
@@ -61,7 +63,7 @@ export const SettingsSheet = memo(function SettingsSheet({
               options={bgmOptions}
               onSelect={onBgmChange}
               styles={styles}
-              testID="config-bgm"
+              testID={TESTIDS.configBgm}
             />
           </View>
         </View>

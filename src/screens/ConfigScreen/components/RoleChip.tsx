@@ -9,6 +9,8 @@
 import { memo } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 
+import { TESTIDS } from '@/testids';
+
 import { ConfigScreenStyles } from './styles';
 
 export type FactionColorKey = 'wolf' | 'good' | 'neutral';
@@ -39,7 +41,7 @@ export const RoleChip = memo<RoleChipProps>(
 
     return (
       <TouchableOpacity
-        testID={`config-role-chip-${id}`}
+        testID={TESTIDS.configRoleChip(id)}
         style={[styles.chip, selected && selectedStyle]}
         onPress={() => onToggle(id)}
         activeOpacity={0.7}

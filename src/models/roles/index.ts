@@ -26,6 +26,7 @@ export {
 export {
   type ActionSchema,
   getSchema,
+  type RevealKind,
   type SchemaId,
   // Schemas
   SCHEMAS,

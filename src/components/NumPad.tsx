@@ -9,6 +9,7 @@
 import React, { memo, useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { TESTIDS } from '@/testids';
 import { borderRadius, spacing, ThemeColors, typography, useColors } from '@/theme';
 
 interface NumPadProps {
@@ -118,7 +119,7 @@ const NumPadComponent: React.FC<NumPadProps> = ({
         onPress={() => handlePress(key)}
         activeOpacity={disabled ? 1 : 0.7}
         accessibilityState={{ disabled }}
-        testID={`numpad-${key}`}
+        testID={TESTIDS.numpadKey(key)}
       >
         <Text style={[styles.buttonText, isSpecial && styles.specialButtonText]}>{label}</Text>
       </TouchableOpacity>

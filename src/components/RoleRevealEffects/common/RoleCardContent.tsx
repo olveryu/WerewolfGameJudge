@@ -9,6 +9,7 @@
 import React, { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
+import { getFactionName, ROLE_ICONS } from '@/components/roleDisplayUtils';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import type { RoleId } from '@/models/roles';
 import { getRoleSpec, isWolfRole } from '@/models/roles';
@@ -17,44 +18,12 @@ import { borderRadius, shadows, spacing, type ThemeColors, typography, useColors
 /** White text color for badges/overlays on colored backgrounds */
 const BADGE_TEXT_WHITE = '#fff';
 
-// 角色对应的 emoji 图标
-const ROLE_ICONS: Record<string, string> = {
-  // 狼人阵营
-  wolf: '🐺',
-  wolfKing: '👑🐺',
-  darkWolfKing: '🌑👑',
-  whiteWolfKing: '⚪👑',
-  wolfQueen: '👸🐺',
-  nightmare: '😱',
-  gargoyle: '🗿',
-  wolfRobot: '🤖🐺',
-  // 神职阵营
-  seer: '🔮',
-  witch: '🧙‍♀️',
-  hunter: '🏹',
-  guard: '🛡️',
-  psychic: '👁️',
-  dreamcatcher: '🌙',
-  magician: '🎩',
-  spiritKnight: '⚔️',
-  // 平民
-  villager: '👤',
-  slacker: '😴',
-};
-
 // 阵营颜色
 const getFactionColor = (roleId: RoleId): string => {
   if (isWolfRole(roleId)) return ALIGNMENT_THEMES.wolf.primaryColor;
   const spec = getRoleSpec(roleId);
   if (spec?.faction === 'god') return ALIGNMENT_THEMES.god.primaryColor;
   return ALIGNMENT_THEMES.villager.primaryColor;
-};
-
-const getFactionName = (roleId: RoleId): string => {
-  if (isWolfRole(roleId)) return '狼人阵营';
-  const spec = getRoleSpec(roleId);
-  if (spec?.faction === 'god') return '神职阵营';
-  return '平民阵营';
 };
 
 export interface RoleCardContentProps {
