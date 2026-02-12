@@ -187,9 +187,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
     const { findByTestId } = render(<RoomScreen {...props} />);
 
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
-    await act(async () => {
-      fireEvent.press(seatPressable);
-    });
+    fireEvent.press(seatPressable);
 
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith('确认行动', expect.any(String), expect.any(Array));
@@ -225,10 +223,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
 
     const { findByTestId } = render(<RoomScreen {...props} />);
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
-
-    await act(async () => {
-      fireEvent.press(seatPressable);
-    });
+    fireEvent.press(seatPressable);
 
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith('确认行动', expect.any(String), expect.any(Array));

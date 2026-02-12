@@ -263,9 +263,7 @@ describe('RoomScreen wolf vote UI', () => {
 
     // Tap seat 3 (index 2)
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
-    await act(async () => {
-      fireEvent.press(seatPressable);
-    });
+    fireEvent.press(seatPressable);
 
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
@@ -344,9 +342,7 @@ describe('RoomScreen wolf vote UI', () => {
 
     // Tap seat 3 (index 2) -> spiritKnight (Host will reject)
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
-    await act(async () => {
-      fireEvent.press(seatPressable);
-    });
+    fireEvent.press(seatPressable);
 
     // First: wolf vote confirm dialog should still appear (with immune warning)
     await waitFor(() => {
@@ -412,9 +408,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
 
     // Tap seat 3 (index 2)
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
-    await act(async () => {
-      fireEvent.press(seatPressable);
-    });
+    fireEvent.press(seatPressable);
 
     // wolfVote dialog should appear
     await waitFor(() => {
@@ -446,9 +440,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
     harness.clear();
 
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
-    await act(async () => {
-      fireEvent.press(seatPressable);
-    });
+    fireEvent.press(seatPressable);
 
     await waitFor(() => {
       harness.expectSeen('wolfVote');
@@ -478,9 +470,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
     harness.clear();
 
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(4));
-    await act(async () => {
-      fireEvent.press(seatPressable);
-    });
+    fireEvent.press(seatPressable);
 
     await waitFor(() => {
       harness.expectSeen('wolfVote');

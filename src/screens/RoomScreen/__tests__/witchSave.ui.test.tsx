@@ -142,9 +142,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     // Find and click the save button (bottom action button)
     const saveLabel = `对${killedSeat + 1}号用解药`;
     const saveButton = getByText(saveLabel);
-    await act(async () => {
-      fireEvent.press(saveButton);
-    });
+    fireEvent.press(saveButton);
 
     // Confirm dialog should appear
     await waitFor(() => {

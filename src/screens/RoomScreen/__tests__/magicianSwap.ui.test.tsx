@@ -191,9 +191,7 @@ describe('RoomScreen magician swap UI (smoke)', () => {
 
     // first target: seat 3 (index 2)
     const seat3 = await findByTestId(TESTIDS.seatTilePressable(2));
-    await act(async () => {
-      fireEvent.press(seat3);
-    });
+    fireEvent.press(seat3);
 
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
@@ -205,9 +203,7 @@ describe('RoomScreen magician swap UI (smoke)', () => {
 
     // second target: seat 5 (index 4)
     const seat5 = await findByTestId(TESTIDS.seatTilePressable(4));
-    await act(async () => {
-      fireEvent.press(seat5);
-    });
+    fireEvent.press(seat5);
 
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith('确认交换', expect.any(String), expect.any(Array));

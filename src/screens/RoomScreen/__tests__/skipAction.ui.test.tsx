@@ -211,10 +211,7 @@ describe('RoomScreen skip action UI', () => {
     const { findByText } = render(<RoomScreen {...props} />);
 
     const skipButton = await findByText(skipText);
-
-    await act(async () => {
-      fireEvent.press(skipButton);
-    });
+    fireEvent.press(skipButton);
 
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalled();
