@@ -115,6 +115,31 @@ describe('RoleRevealAnimation', () => {
       // TypeScript compilation ensures this is valid
       expect(result).toBeDefined();
     });
+
+    it('should never repeat previous animation when previous is provided', () => {
+      // For every possible previous, resolveRandomAnimation must return something different
+      for (let i = 0; i < 1000; i++) {
+        const seed = `anti-repeat-${i}`;
+        const withoutPrevious = resolveRandomAnimation(seed);
+        const result = resolveRandomAnimation(seed, withoutPrevious);
+        expect(result).not.toBe(withoutPrevious);
+      }
+    });
+
+    it('should remain deterministic with previous parameter', () => {
+      const r1 = resolveRandomAnimation('seed-x', 'flip');
+      const r2 = resolveRandomAnimation('seed-x', 'flip');
+      expect(r1).toBe(r2);
+    });
+
+    it('should return original result when previous differs', () => {
+      // When previous != hash result, the output should be unchanged
+      const base = resolveRandomAnimation('test-no-collision');
+      const others = RANDOMIZABLE_ANIMATIONS.filter((a) => a !== base);
+      for (const prev of others) {
+        expect(resolveRandomAnimation('test-no-collision', prev)).toBe(base);
+      }
+    });
   });
 
   describe('type contracts', () => {

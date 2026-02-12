@@ -86,7 +86,10 @@ function handleRestartGame(state: GameState): GameState {
   let resolvedAnimation = state.resolvedRoleRevealAnimation;
   if (state.roleRevealAnimation === 'random') {
     const seed = `${state.roomCode}:${newNonce}`;
-    resolvedAnimation = resolveRandomAnimation(seed);
+    const previous = state.resolvedRoleRevealAnimation !== 'none'
+      ? state.resolvedRoleRevealAnimation as import('@/types/RoleRevealAnimation').RandomizableAnimation
+      : undefined;
+    resolvedAnimation = resolveRandomAnimation(seed, previous);
   }
 
   return {
@@ -439,7 +442,10 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
         }
         // seed = roomCode + ':' + nonce，确保同一房间同一局同一动画
         const seed = `${state.roomCode ?? 'default'}:${nonce}`;
-        resolved = resolveRandomAnimation(seed);
+        const previous = state.resolvedRoleRevealAnimation !== 'none'
+          ? state.resolvedRoleRevealAnimation as import('@/types/RoleRevealAnimation').RandomizableAnimation
+          : undefined;
+        resolved = resolveRandomAnimation(seed, previous);
       } else {
         resolved = animation;
       }
