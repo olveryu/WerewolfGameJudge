@@ -359,6 +359,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     }
 
     return `${base}（可点击改票或取消）`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- countdownTick is a trigger to re-compute remaining time via Date.now()
   }, [
     currentSchema?.kind,
     getWolfVoteSummary,

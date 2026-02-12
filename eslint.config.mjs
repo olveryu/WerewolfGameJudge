@@ -23,6 +23,7 @@ export default tseslint.config(
       '*.config.mjs',
       'web/',
       'scripts/',
+      'supabase/',
     ],
   },
 
