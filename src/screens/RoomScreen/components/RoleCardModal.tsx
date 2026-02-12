@@ -16,7 +16,7 @@
  *   - 使用 StyleSheet.create（样式由父组件传入或使用共享组件）
  */
 
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import {
@@ -64,8 +64,15 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   allRoleIds,
   onClose,
 }) => {
+  const [animationDone, setAnimationDone] = useState(false);
+
+  const handleAnimationComplete = useCallback(() => {
+    setAnimationDone(true);
+  }, []);
+
   // 如果动画是 none 或不需要播放动画，直接显示静态卡片
-  if (resolvedAnimation === 'none' || !shouldPlayAnimation) {
+  // 动画播完后也切到静态卡片（带"我知道了"按钮）
+  if (resolvedAnimation === 'none' || !shouldPlayAnimation || animationDone) {
     return (
       <RoleCardSimple
         visible={visible}
@@ -101,7 +108,7 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
       role={effectiveRoleData}
       effectType={effectType}
       allRoles={allRolesData}
-      onComplete={onClose}
+      onComplete={handleAnimationComplete}
     />
   );
 };

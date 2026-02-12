@@ -382,8 +382,8 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
             borderWidth={3}
             borderRadius={borderRadius.medium + 4}
             animate={!reducedMotion}
-            flashCount={3}
-            flashDuration={200}
+            flashCount={2}
+            flashDuration={150}
             onComplete={handleGlowComplete}
             style={{ position: 'absolute', top: -4, left: -4 }}
           />

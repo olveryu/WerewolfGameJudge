@@ -10,6 +10,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, type ViewStyle } from 'react-native';
 import Animated, {
+  Easing,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -48,31 +49,30 @@ export const GlowBorder: React.FC<GlowBorderProps> = ({
   borderWidth = 3,
   borderRadius = 12,
   animate = false,
-  flashCount = 3,
-  flashDuration = 200,
+  flashCount = 2,
+  flashDuration = 150,
   onComplete,
   width,
   height,
   style,
 }) => {
   const opacity = useSharedValue(1);
-  const scale = useSharedValue(1);
 
   useEffect(() => {
     if (!animate) {
       opacity.value = 1;
-      scale.value = 1;
       onComplete?.();
       return;
     }
 
     const half = flashDuration / 2;
+    const easeFn = Easing.inOut(Easing.sin);
 
-    // Flash opacity: 1 → 0.3 → 1, repeated flashCount times
+    // Smooth breathing: 1 → 0.6 → 1, repeated flashCount times
     opacity.value = withRepeat(
       withSequence(
-        withTiming(0.3, { duration: half }),
-        withTiming(1, { duration: half }),
+        withTiming(0.6, { duration: half, easing: easeFn }),
+        withTiming(1, { duration: half, easing: easeFn }),
       ),
       flashCount,
       false,
@@ -83,21 +83,10 @@ export const GlowBorder: React.FC<GlowBorderProps> = ({
         }
       },
     );
-
-    // Flash scale: 1 → 1.05 → 1, same timing
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.05, { duration: half }),
-        withTiming(1, { duration: half }),
-      ),
-      flashCount,
-      false,
-    );
-  }, [animate, flashCount, flashDuration, onComplete, opacity, scale]);
+  }, [animate, flashCount, flashDuration, onComplete, opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [{ scale: scale.value }],
   }));
 
   return (

@@ -37,11 +37,11 @@ export const CONFIG = {
     /** Tick sound interval during slow spin (ms) */
     tickIntervalSlow: 200,
     /** Golden border flash count */
-    highlightFlashCount: 3,
+    highlightFlashCount: 2,
     /** Flash duration per cycle (ms) */
-    highlightFlashDuration: 200,
+    highlightFlashDuration: 150,
     /** Hold duration after reveal before calling onComplete (ms) */
-    revealHoldDuration: 1500,
+    revealHoldDuration: 0,
     /** Particle count for flow effect */
     particleCount: 12,
     /** Particle trail length */
@@ -71,7 +71,7 @@ export const CONFIG = {
     /** Particle animation duration */
     particleDuration: 800,
     /** Hold duration after reveal before calling onComplete (ms) */
-    revealHoldDuration: 1500,
+    revealHoldDuration: 0,
   },
 
   // =====================================================
@@ -91,7 +91,7 @@ export const CONFIG = {
     /** Grid size for scratch detection - smaller = finer scratch effect */
     gridSize: 3,
     /** Hold duration after reveal before calling onComplete (ms) */
-    revealHoldDuration: 1500,
+    revealHoldDuration: 0,
   },
 
   // =====================================================
@@ -109,7 +109,7 @@ export const CONFIG = {
     /** Aura pulse duration (ms) */
     auraPulseDuration: 400,
     /** Hold duration after reveal before calling onComplete (ms) */
-    revealHoldDuration: 1500,
+    revealHoldDuration: 0,
   },
 
   // =====================================================
@@ -127,7 +127,7 @@ export const CONFIG = {
     /** Capsule open duration (ms) */
     capsuleOpenDuration: 500,
     /** Hold duration after reveal before calling onComplete (ms) */
-    revealHoldDuration: 1500,
+    revealHoldDuration: 0,
   },
 
   // =====================================================
