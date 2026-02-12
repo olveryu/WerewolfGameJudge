@@ -30,9 +30,7 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
     actorRoleId: 'wolf',
     players: defaultPlayers,
     currentNightResults: {},
-    gameState: {
-      isNight1: true,
-    },
+    gameState: { isNight1: true },
     ...overrides,
   };
 }

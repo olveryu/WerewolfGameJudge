@@ -62,15 +62,19 @@ function buildResolverContext(
     }
   }
 
+  // FAIL-FAST: currentNightResults must exist when status === 'ongoing'
+  if (!state.currentNightResults) {
+    throw new Error('[FAIL-FAST] currentNightResults missing in ongoing state');
+  }
+
   return {
     actorSeat,
     actorRoleId,
     players,
-    currentNightResults: state.currentNightResults ?? {},
+    currentNightResults: state.currentNightResults,
     wolfRobotContext: state.wolfRobotContext,
+    witchState: state.witchContext,
     gameState: {
-      witchHasAntidote: state.witchContext?.canSave,
-      witchHasPoison: state.witchContext?.canPoison,
       isNight1: true, // Night-1 only
     },
   };
@@ -643,43 +647,36 @@ export function handleSubmitWolfVote(
   // - not_wolf_participant (meeting-specific rule)
   // Everything else is validated by `handleSubmitAction` (host/state/status/audio/step/seat/role).
 
-  // First, run the common preconditions gate chain (host/state/status/audio/step/seat/role).
-  // We pass `voterRole ?? 'wolf'` only to get through the preconditions checks when role is missing;
-  // we'll map missing role to not_wolf_participant below.
-  const stateForDelegate = context.state;
-  const voterRole = stateForDelegate?.players?.[seat]?.role;
+  // Resolve voter role. May be undefined if state/seat is missing — that's fine,
+  // validateActionPreconditions will catch it with the correct gate reason.
+  const voterRole = context.state?.players?.[seat]?.role;
 
-  // Validate common gates first.
-  // NOTE: wolf vote still submits through the unified action pipeline, so the actor's
-  // *real* role must be used for role/seat alignment.
-  const validation = validateActionPreconditions(context, seat, voterRole ?? 'wolf');
+  // Run common preconditions first (host → state → status → audio → step → seat → role).
+  // Pass the actual role when available; otherwise 'wolf' as placeholder so that
+  // Gate 5b (wolfKill + participatesInWolfVote) passes, and Gate 6/6b catches
+  // the real error (not_seated or role_mismatch).
+  const validation = validateActionPreconditions(context, seat, voterRole ?? ('wolf' as RoleId));
   if (!validation.valid) {
     return normalizeWolfVoteRejection(validation.result);
   }
 
-  // Meeting-specific gate: not_wolf_participant (voter must participate in wolf vote)
-  // Do this AFTER not_seated/no_state/etc, but BEFORE delegating into resolver-first action pipeline.
-  const voterForGate = context.state?.players?.[seat];
-  if (!voterForGate?.role) {
-    actionHandlerLog.warn('[wolfVote] not_wolf_participant (missing role)', {
-      seat,
-      voterRole: null,
-      currentStepId: context.state?.currentStepId ?? null,
-    });
+  // After validation, voterRole is guaranteed non-null:
+  // Gate 6 ensures player exists, Gate 6b ensures player.role === placeholder ('wolf').
+  // If voterRole were undefined, one of those gates would have rejected.
+  // istanbul ignore next — defensive, unreachable after validation
+  if (!voterRole) {
     return normalizeWolfVoteRejection({
       success: false,
-      reason: 'not_wolf_participant',
+      reason: 'not_seated',
       actions: [],
     });
   }
 
-  if (!doesRoleParticipateInWolfVote(voterForGate.role)) {
+  // Meeting-specific gate: voter must participate in wolf vote.
+  if (!doesRoleParticipateInWolfVote(voterRole)) {
     actionHandlerLog.warn('[wolfVote] not_wolf_participant', {
       seat,
-      voterRole: voterForGate?.role ?? null,
-      participatesInWolfVote: voterForGate?.role
-        ? doesRoleParticipateInWolfVote(voterForGate.role)
-        : null,
+      voterRole,
       currentStepId: context.state?.currentStepId ?? null,
     });
     return normalizeWolfVoteRejection({
@@ -689,14 +686,12 @@ export function handleSubmitWolfVote(
     });
   }
 
-  // IMPORTANT: delegate must use the voter's *actual* role.
-  // If we hardcode role='wolf', validateActionPreconditions will reject with role_mismatch
-  // for wolf-team special roles (e.g. spiritKnight), and we'd mis-map it to not_wolf_participant.
+  // Delegate to the unified action pipeline with the voter's *actual* role.
   const delegateIntent: SubmitActionIntent = {
     type: 'SUBMIT_ACTION',
     payload: {
       seat,
-      role: voterForGate.role ?? 'wolf',
+      role: voterRole,
       // wolfKill supports empty knife via target = null.
       // Map target=-1 to null for empty knife.
       target: target === -1 ? null : target,

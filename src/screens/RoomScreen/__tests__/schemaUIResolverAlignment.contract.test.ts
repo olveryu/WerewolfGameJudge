@@ -34,6 +34,8 @@ function createContext(actorSeat: number, actorRoleId: RoleId): ResolverContext 
     actorRoleId,
     players,
     currentNightResults: {},
+    witchState: { canSave: true, canPoison: true },
+    gameState: { isNight1: true },
   };
 }
 

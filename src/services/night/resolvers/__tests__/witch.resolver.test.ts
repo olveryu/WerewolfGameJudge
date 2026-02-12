@@ -27,11 +27,8 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
     actorRoleId: 'witch',
     players: defaultPlayers,
     currentNightResults: { wolfVotesBySeat: { '2': 0 } },
-    gameState: {
-      isNight1: true,
-      witchHasAntidote: true,
-      witchHasPoison: true,
-    },
+    witchState: { canSave: true, canPoison: true },
+    gameState: { isNight1: true },
     ...overrides,
   };
 }
@@ -86,7 +83,7 @@ describe('witchActionResolver', () => {
 
     it('应该拒绝解药已用完', () => {
       const ctx = createContext({
-        gameState: { witchHasAntidote: false, witchHasPoison: true },
+        witchState: { canSave: false, canPoison: true },
       });
       const input = createInput({ save: 0, poison: null });
 
@@ -124,7 +121,7 @@ describe('witchActionResolver', () => {
   describe('poison action', () => {
     it('应该拒绝毒药已用完', () => {
       const ctx = createContext({
-        gameState: { witchHasAntidote: true, witchHasPoison: false },
+        witchState: { canSave: true, canPoison: false },
       });
       const input = createInput({ save: null, poison: 1 });
 

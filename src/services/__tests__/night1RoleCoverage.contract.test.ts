@@ -79,6 +79,7 @@ describe('Night-1 Role Coverage Contract', () => {
         actorRoleId: step.roleId,
         players: new Map([[0, step.roleId]]),
         currentNightResults: {},
+        witchState: { canSave: true, canPoison: true },
         gameState: { isNight1: true },
       };
 

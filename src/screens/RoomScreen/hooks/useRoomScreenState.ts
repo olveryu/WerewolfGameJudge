@@ -20,7 +20,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
+import type { RoleAction } from '@/models/actions/RoleAction';
 import { GameStatus } from '@/models/GameStatus';
+import type { RoleId } from '@/models/roles';
 import type { GameTemplate } from '@/models/Template';
 import type { RootStackParamList } from '@/navigation/types';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
@@ -44,6 +46,13 @@ import { useInteractionDispatcher } from './useInteractionDispatcher';
 import { useNightProgress } from './useNightProgress';
 import { useRoomActions } from './useRoomActions';
 import { useRoomInit } from './useRoomInit';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Stable empty Map to avoid new reference on every render when gameState is null */
+const EMPTY_ACTIONS: Map<RoleId, RoleAction> = new Map();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -246,7 +255,7 @@ export function useRoomScreenState(
     actorSeatNumber: actorSeatForUi,
     wolfVotes: wolfVotesMap,
     isHost,
-    actions: gameState?.actions ?? new Map(),
+    actions: gameState?.actions ?? EMPTY_ACTIONS,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

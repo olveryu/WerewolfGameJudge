@@ -36,6 +36,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     actions: [],
     currentNightResults: {},
     currentStepId: 'witchAction' as SchemaId,
+    witchContext: { killedSeat: 0, canSave: true, canPoison: true },
     ...overrides,
   };
 }

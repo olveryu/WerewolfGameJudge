@@ -31,9 +31,9 @@ function validateSaveAction(
   saveTarget: number,
   actorSeat: number,
   wolfKillSeat: number | undefined,
-  hasAntidote: boolean,
+  canSave: boolean,
 ): string | null {
-  if (!hasAntidote) {
+  if (!canSave) {
     return '解药已用完';
   }
 
@@ -50,8 +50,8 @@ function validateSaveAction(
   return null;
 }
 
-function validatePoisonAction(hasPoison: boolean, hasSaveTarget: boolean): string | null {
-  if (!hasPoison) {
+function validatePoisonAction(canPoison: boolean, hasSaveTarget: boolean): string | null {
+  if (!canPoison) {
     return '毒药已用完';
   }
 
@@ -63,7 +63,13 @@ function validatePoisonAction(hasPoison: boolean, hasSaveTarget: boolean): strin
 }
 
 export const witchActionResolver: ResolverFn = (context, input): ResolverResult => {
-  const { actorSeat, gameState, currentNightResults } = context;
+  const { actorSeat, witchState, currentNightResults } = context;
+
+  // FAIL-FAST: witch resolver requires witchState sub-context
+  if (!witchState) {
+    throw new Error('[FAIL-FAST] witch resolver requires witchState in ResolverContext');
+  }
+
   const stepResults = input.stepResults;
 
   // stepResults 为 undefined 时，视为"不使用技能"（跳过）
@@ -81,12 +87,7 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
   // Validate save action
   if (saveTarget !== null) {
     const wolfKillSeat = resolveWolfKillSeatFromVotes(currentNightResults.wolfVotesBySeat);
-    const error = validateSaveAction(
-      saveTarget,
-      actorSeat,
-      wolfKillSeat,
-      gameState?.witchHasAntidote ?? true,
-    );
+    const error = validateSaveAction(saveTarget, actorSeat, wolfKillSeat, witchState.canSave);
     if (error) {
       return { valid: false, rejectReason: error };
     }
@@ -94,7 +95,7 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
 
   // Validate poison action
   if (poisonTarget !== null) {
-    const error = validatePoisonAction(gameState?.witchHasPoison ?? true, saveTarget !== null);
+    const error = validatePoisonAction(witchState.canPoison, saveTarget !== null);
     if (error) {
       return { valid: false, rejectReason: error };
     }

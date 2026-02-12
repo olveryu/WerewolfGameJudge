@@ -283,7 +283,7 @@ describe('handleSubmitWolfVote', () => {
     const result = handleSubmitWolfVote(intent, context);
 
     expect(result.success).toBe(false);
-    // Unified reason (no wolf-vote-specific mapping)
+    // voterRole is undefined → placeholder triggers role_mismatch in validateActionPreconditions
     expect(result.reason).toBe('role_mismatch');
   });
 
@@ -968,6 +968,7 @@ describe('handleSubmitAction', () => {
           3: { uid: 'p3', seatNumber: 3, role: 'witch', hasViewedRole: true },
         },
         currentNightResults: { blockedSeat: 3 }, // witch is blocked
+        witchContext: { killedSeat: 0, canSave: true, canPoison: true },
       });
       const context = createContext(state, { isHost: true });
       const intent: SubmitActionIntent = {
@@ -997,6 +998,7 @@ describe('handleSubmitAction', () => {
           blockedSeat: 99, // someone else blocked
           wolfVotesBySeat: { '1': 0 },
         },
+        witchContext: { killedSeat: 0, canSave: true, canPoison: true },
       });
       const context = createContext(state, { isHost: true });
       const intent: SubmitActionIntent = {

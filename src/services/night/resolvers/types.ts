@@ -71,11 +71,15 @@ export interface ResolverContext {
   /** WolfRobot disguise context (if wolfRobot has learned) */
   readonly wolfRobotContext?: WolfRobotContext;
 
-  /** Game state flags */
-  readonly gameState?: {
-    readonly witchHasAntidote?: boolean;
-    readonly witchHasPoison?: boolean;
-    readonly isNight1?: boolean;
+  /** Witch sub-context (only present when game includes witch role) */
+  readonly witchState?: {
+    readonly canSave: boolean;
+    readonly canPoison: boolean;
+  };
+
+  /** Game state flags shared across all resolvers */
+  readonly gameState: {
+    readonly isNight1: boolean;
   };
 }
 
