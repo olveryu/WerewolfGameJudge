@@ -34,10 +34,6 @@
       "startUrl": "/",
       "scope": "/"
     },
-    "plugins": [
-      "expo-audio",
-      "expo-splash-screen",
-      "@sentry/react-native"
-    ]
+    "plugins": ["expo-audio", "expo-splash-screen", "@sentry/react-native"]
   }
 }

@@ -367,7 +367,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     actorSeatNumber,
     gameState?.wolfVoteDeadline,
     countdownTick,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps -- countdownTick intentionally triggers countdown re-computation
+  ]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // UI-only: schema-driven bottom action button (skip / wolf empty vote / blocked)

@@ -74,12 +74,12 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 
 ### 修改后验证流水线（Hard rule）
 
-- 代码修改完成后，commit 前**必须**依次运行以下三步，全部通过才可提交：
+- 代码修改完成后，commit 前**必须**全部通过才可提交：
   1. `npx tsc --noEmit` — 类型检查
   2. `npm run lint` — ESLint
-  3. `npx jest --no-coverage --forceExit` — 单元/集成测试
-- 快捷替代：`npm run quality`（一次执行 typecheck + lint + format check + test）。
-- 如果 `npm run quality` 因 Prettier 格式问题失败，先跑 `npm run fix`（= lint:fix + format:write）修复，再重跑 `npm run quality`。
+  3. `npm run format` — Prettier 格式检查
+  4. `npx jest --no-coverage --forceExit` — 单元/集成测试
+- 快捷替代：`npm run quality`（先自动 fix 格式/lint，再依次跑以上 4 步检查，一条命令全搞定）。
 - 任一步骤失败必须修复后重跑，禁止跳过。
 
 ---
