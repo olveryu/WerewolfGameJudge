@@ -52,13 +52,27 @@ ANON_KEY=$(echo "$STATUS" | grep '"ANON_KEY"' | sed 's/.*: "\(.*\)",*/\1/' | tr 
 echo "📡 API_URL: $API_URL"
 echo "🔑 ANON_KEY: ${ANON_KEY:0:20}..."
 
-# 写入 .env.local
+# 保留已有的非 Supabase 变量（如 GROQ key）
+EXISTING=""
+if [ -f .env.local ]; then
+  EXISTING=$(grep -v '^EXPO_PUBLIC_SUPABASE_' .env.local | grep -v '^#' | grep -v '^$' || true)
+fi
+
+# 写入 .env.local（Supabase 覆盖 + 保留其他变量）
 cat > .env.local << EOF
 EXPO_PUBLIC_SUPABASE_URL=$API_URL
 EXPO_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY
 EOF
 
+# 追加保留的变量
+if [ -n "$EXISTING" ]; then
+  echo "$EXISTING" >> .env.local
+fi
+
 echo ""
 echo "✅ 已写入 .env.local"
+if [ -n "$EXISTING" ]; then
+  echo "♻️  已保留其他变量（如 GROQ key）"
+fi
 echo ""
 echo "💡 重启 Metro bundler 以应用更改 (Ctrl+C 后 npm start)"

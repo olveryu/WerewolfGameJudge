@@ -21,19 +21,27 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-# ── 1. 准备构建环境（临时切换为生产 env）──────────
+# ── 1. 准备构建环境 ─────────────────────────────
+
+# .env（已提交）包含生产 Supabase 值
+# .env.local（gitignored）包含本地覆盖 + GROQ key
+# 构建时需要移走 .env.local 让 .env 生效，但保留 GROQ key
+
+if [ ! -f .env ]; then
+  echo "❌ 缺少 .env 文件（应已提交到 git）"
+  exit 1
+fi
 
 RESTORE_ENV=false
 GROQ_KEY=""
 
 if [ -f .env.local ]; then
-  # 提取 GROQ key（需要 bake 进 JS bundle）
-  GROQ_KEY=$(grep '^EXPO_PUBLIC_GROQ_API_KEY=' .env.local | cut -d '=' -f2 || true)
+  GROQ_KEY=$(grep '^EXPO_PUBLIC_GROQ_API_KEY=' .env.local | cut -d '=' -f2- || true)
   mv .env.local .env.local.bak
   RESTORE_ENV=true
 fi
 
-# 如果有 GROQ key，写入临时 .env.local（Supabase 从 .env 读取）
+# GROQ key 需要 bake 进 JS bundle，写入临时 .env.local
 if [ -n "$GROQ_KEY" ]; then
   echo "EXPO_PUBLIC_GROQ_API_KEY=$GROQ_KEY" > .env.local
 fi

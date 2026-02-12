@@ -115,108 +115,93 @@ supabase projects api-keys --project-ref <your-project-ref>
 
 ## 环境变量配置
 
-项目使用两套环境配置，自动切换：
+项目遵循 Expo 社区标准的 `.env` 分层约定：
 
-| 文件         | 用途     | Supabase URL              |
-| ------------ | -------- | ------------------------- |
-| `.env`       | 生产环境 | `https://xxx.supabase.co` |
-| `.env.local` | 本地开发 | `http://127.0.0.1:54321`  |
+| 文件         | 用途     | Git 状态  | Supabase URL              |
+| ------------ | -------- | --------- | ------------------------- |
+| `.env`       | 生产默认 | **已提交** | `https://xxx.supabase.co` |
+| `.env.local` | 本地覆盖 | gitignored | `http://127.0.0.1:54321`  |
 
-> ⚠️ `.env.local` 优先级高于 `.env`。两个文件都不会被 Git 追踪。
+> Expo 加载优先级：`.env.local` > `.env`（[Expo 官方文档](https://docs.expo.dev/guides/environment-variables/)）。
 >
-> 部署脚本还会读取 `EXPO_PUBLIC_GROQ_API_KEY`（用于 AI 生成 commit message），如需使用请在 `.env.local` 中配置。
+> `EXPO_PUBLIC_*` 不是 secret —— 会 inline 到 JS bundle，客户端可见。Supabase anon key 是公开的（受 RLS 保护）。
+>
+> `EXPO_PUBLIC_GROQ_API_KEY`（AI 功能）仅存在于 `.env.local`，不提交到 git。
 
-### 本地开发（.env.local）
+### 零配置开始
+
+clone 后直接运行 —— `.env` 已在 git 中包含生产 Supabase 配置：
 
 ```bash
-# 本地 Supabase（开发用）
-EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-EXPO_PUBLIC_SUPABASE_ANON_KEY=<local-anon-key>
+git clone <repo>
+npm install
+npm start
 ```
 
-启动本地 Supabase：
+### 切换到本地 Supabase
 
 ```bash
 supabase start
-# 会输出本地的 URL 和 Key
-```
-
-### 生产环境（.env）
-
-```bash
-# 远程 Supabase（生产用）
-EXPO_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+bash scripts/setup-local-env.sh
+# 自动从 supabase status 读取 URL/Key，生成 .env.local
+# 已有的非 Supabase 变量（如 GROQ key）会自动保留
 ```
 
 ---
 
 ## Web 构建与部署
 
-### 方式一：使用部署脚本（推荐）
+### 职责分离
+
+| 脚本 | 职责 | 命令 |
+| --- | --- | --- |
+| `scripts/release.sh` | 版本号 + commit + tag + push | `npm run release` |
+| `scripts/deploy.sh` | 构建 Web + 部署到 Vercel | `npm run deploy` |
+
+### 标准流程（推荐）
 
 ```bash
-# 标准部署
-./scripts/deploy.sh
+# 1. 发版（bump version → commit → tag → push）
+npm run release              # 默认 patch
+npm run release -- minor     # 或 minor / major
 
-# 部署后自动恢复本地 Supabase 配置
-./scripts/deploy.sh --local
+# 2. 部署（build → deploy to Vercel）
+npm run deploy
 ```
 
-脚本会自动：
+### `release.sh` 做了什么
 
-1. 递增 patch 版本号并同步到 `app.json`
-2. Git commit + push + tag
-3. 备份 `.env.local`，切换到生产配置
-4. 清除缓存并构建 Web 版本
+1. `npm version patch` （或 minor/major）
+2. 同步版本号到 `app.json`
+3. 检测版本文件之外的改动，交互确认
+4. `git commit -m "release: vX.Y.Z"` + `git tag vX.Y.Z`
+5. `git push --tags`
+
+### `deploy.sh` 做了什么
+
+1. 校验 `.env` 存在（已提交到 git，包含生产 Supabase）
+2. 临时移走 `.env.local`（让 `.env` 生效），保留 GROQ key
+3. `npx expo export --platform web --clear`
+4. 恢复 `.env.local`（`trap` 保护，即使构建失败也恢复）
 5. 复制 PWA 文件、修复字体路径、注入自定义 `index.html`
-6. 同步环境变量（含 `EXPO_PUBLIC_GROQ_API_KEY`）并部署到 Vercel
-7. 设置别名 `werewolf-judge.vercel.app`
-8. 恢复本地开发配置（`--local` 时自动检测本地 Supabase）
+6. 复制 `vercel.json`（SPA rewrites + 缓存头）
+7. `vercel --prod` 部署 + 设置别名
 
-### 方式二：手动部署
+### 手动部署
 
-> ⚠️ 手动部署会缺少 PWA 文件复制、字体路径修复等步骤。建议优先使用部署脚本，或参考 `scripts/deploy.sh` 源码补全步骤。
-
-#### 1. 切换到生产配置
+> ⚠️ 手动部署会缺少 PWA 文件复制、字体路径修复等步骤。建议优先使用 `npm run deploy`。
 
 ```bash
-# 临时使用生产配置
-cp .env .env.local
-```
-
-#### 2. 构建 Web 版本
-
-```bash
-# 清除缓存很重要！否则可能使用旧的环境变量
+# 构建（确保 .env.local 不存在或不含 Supabase 本地值）
 npx expo export --platform web --clear
-```
 
-验证构建使用了正确的 URL：
-
-```bash
+# 验证
 grep -o "supabase.co\|127.0.0.1" dist/_expo/static/js/web/*.js
 # 应该输出 supabase.co，而不是 127.0.0.1
-```
 
-#### 3. 部署到 Vercel
-
-```bash
-cd dist
-vercel --prod --yes
-```
-
-#### 4. 设置别名
-
-```bash
+# 部署
+cd dist && vercel --prod --yes
 vercel alias <deployment-url> werewolf-judge.vercel.app
-```
-
-#### 5. 恢复本地配置
-
-```bash
-cd ..
-# 编辑 .env.local 改回 http://127.0.0.1:54321
 ```
 
 ---
@@ -261,7 +246,7 @@ supabase db push
 
 ### Q2: 部署后页面空白 / 手机上登录失败 (Load failed)
 
-**原因**: 构建时使用了本地开发的环境变量（`127.0.0.1`），手机无法访问
+**原因**: 构建时 `.env.local` 未移走，使用了本地 `127.0.0.1`
 
 **解决**:
 
@@ -269,21 +254,9 @@ supabase db push
 # 检查构建中使用的 URL
 grep -o "supabase.co\|127.0.0.1" dist/_expo/static/js/web/*.js
 
-# 如果输出 127.0.0.1，需要：
-# 1. 切换到生产配置
-cp .env .env.local
-
-# 2. 清除缓存重新构建（--clear 很重要！）
-npx expo export --platform web --clear
-
-# 3. 重新部署
-cd dist && vercel --prod --yes
-```
-
-或直接使用部署脚本：
-
-```bash
-./scripts/deploy.sh
+# 如果输出 127.0.0.1，重新部署即可：
+npm run deploy
+# deploy.sh 会自动移走 .env.local，使用 .env 中的生产值
 ```
 
 ### Q3: Realtime 不工作（加入房间后看不到更新）
@@ -298,10 +271,8 @@ cd dist && vercel --prod --yes
 ### Q4: 如何更新部署？
 
 ```bash
-# 使用部署脚本（推荐）
-./scripts/deploy.sh
-
-# 或手动：参考上面的「手动部署」步骤
+npm run release    # 版本号 + commit + tag + push
+npm run deploy     # 构建 + 部署到 Vercel
 ```
 
 ### Q5: 如何回滚？
@@ -325,7 +296,8 @@ vercel alias set <old-deployment-url> werewolf-judge.vercel.app
 | 停止本地 Supabase | `supabase stop`                                        |
 | 启动开发服务器    | `npm start`                                            |
 | **生产部署**      |                                                        |
-| 一键部署          | `./scripts/deploy.sh`                                  |
+| 发版              | `npm run release` (patch) / `npm run release -- minor`  |
+| 部署              | `npm run deploy`                                       |
 | 推送数据库迁移    | `supabase db push`                                     |
 | 获取 API Keys     | `supabase projects api-keys --project-ref <ref>`       |
 | 查看部署别名      | `vercel alias ls`                                      |

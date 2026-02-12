@@ -54,14 +54,16 @@ Go to **Authentication > Email Templates** to customize:
 
 ## Environment Setup
 
-Create a `.env` file in the project root:
+`.env`（已提交到 git）包含生产 Supabase 配置，clone 后即可使用。
 
-```env
-EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+如需连接本地 Supabase，运行：
+
+```bash
+supabase start
+bash scripts/setup-local-env.sh
 ```
 
-Get these values from **Settings > API** in your Supabase dashboard.
+这会生成 `.env.local` 覆盖 `.env` 中的 Supabase 值（Expo 优先加载 `.env.local`）。
 
 ## Files
 

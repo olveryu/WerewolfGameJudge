@@ -33,8 +33,8 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env
+# local env files (override)
+# .env is committed — contains public EXPO_PUBLIC_* defaults (not secrets)
 .env*.local
 .env.local.backup
 

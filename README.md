@@ -268,11 +268,9 @@ npm install
 
 # 2. 启动本地 Supabase (可选) | Start local Supabase (optional)
 supabase start
+bash scripts/setup-local-env.sh   # 生成 .env.local 覆盖
 
-# 3. 配置环境变量 | Configure environment
-cp .env.example .env
-
-# 4. 启动开发服务器 | Start dev server
+# 3. 启动开发服务器 | Start dev server
 npm start
 
 # 5. 运行测试 | Run tests
@@ -320,29 +318,18 @@ src/
 
 ## 🚀 部署 | Deployment
 
-### 1. 配置远程 Supabase | Configure Remote Supabase
-
 ```bash
-supabase link --project-ref <your-project-ref>
-supabase db push
-supabase projects api-keys --project-ref <your-project-ref>
-```
+# 发版 | Release (version bump + commit + tag + push)
+npm run release              # patch (default)
+npm run release -- minor     # minor / major
 
-### 2. 更新环境变量 | Update Environment Variables
-
-```env
-EXPO_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
-```
-
-### 3. 构建 & 部署 Web | Build & Deploy Web
-
-```bash
-npx expo export --platform web
-vercel deploy dist --prod
+# 部署 | Deploy (build + Vercel)
+npm run deploy
 ```
 
 **当前生产环境 | Production:** https://werewolf-judge.vercel.app
+
+> 详见 [部署指南](docs/DEPLOYMENT.md) | See [Deployment Guide](docs/DEPLOYMENT.md)
 
 ---
 
