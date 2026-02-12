@@ -8,7 +8,7 @@
  * ❌ 禁止：直接实现拖动/键盘/消息逻辑（委托给子 hook）
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Animated, GestureResponderEvent } from 'react-native';
 
 import { useGameFacade } from '@/contexts';
@@ -69,6 +69,7 @@ export function useAIChat(): UseAIChatReturn {
 
   // ── Context questions ────────────────────────────────
   const [contextQuestions, setContextQuestions] = useState<string[]>([]);
+  const prevStreamingRef = useRef(false);
 
   // Refresh quick questions when chat opens
   useEffect(() => {
@@ -79,6 +80,16 @@ export function useAIChat(): UseAIChatReturn {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]); // 故意不依赖 messages，只在打开时刷新一次
+
+  // Refresh quick questions when streaming completes（每条回复后刷新建议问题）
+  useEffect(() => {
+    if (prevStreamingRef.current && !chat.isStreaming) {
+      const gameState = facade.getState();
+      const mySeat = facade.getMySeatNumber();
+      setContextQuestions(generateQuickQuestions(gameState, mySeat, chat.messages));
+    }
+    prevStreamingRef.current = chat.isStreaming;
+  }, [chat.isStreaming, chat.messages, facade]);
 
   // ── Return ───────────────────────────────────────────
   return {

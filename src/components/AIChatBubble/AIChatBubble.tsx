@@ -67,6 +67,20 @@ export const AIChatBubble: React.FC = () => {
     }
   }, [showScrollBtn]);
 
+  // Wrap send/quickQuestion to force scroll-to-bottom on user action
+  const handleSendAndScroll = useCallback(async () => {
+    setShowScrollBtn(false);
+    await chat.handleSend();
+  }, [chat.handleSend]);
+
+  const handleQuickQuestionAndScroll = useCallback(
+    (question: string) => {
+      setShowScrollBtn(false);
+      chat.handleQuickQuestion(question);
+    },
+    [chat.handleQuickQuestion],
+  );
+
   // ── Message renderer ───────────────────────────────
   const renderMessage = useCallback(
     ({ item }: { item: DisplayMessage }) => {
@@ -192,7 +206,7 @@ export const AIChatBubble: React.FC = () => {
                     styles.quickQuestionBtn,
                     chat.isLoading && styles.quickQuestionBtnDisabled,
                   ]}
-                  onPress={() => chat.handleQuickQuestion(q)}
+                  onPress={() => handleQuickQuestionAndScroll(q)}
                   activeOpacity={chat.isLoading ? 1 : 0.7}
                   accessibilityState={{ disabled: chat.isLoading }}
                 >
@@ -215,7 +229,7 @@ export const AIChatBubble: React.FC = () => {
                 maxLength={500}
                 editable={!chat.isLoading}
                 returnKeyType="send"
-                onSubmitEditing={chat.handleSend}
+                onSubmitEditing={handleSendAndScroll}
               />
               <TouchableOpacity
                 style={[
@@ -223,7 +237,7 @@ export const AIChatBubble: React.FC = () => {
                   (!chat.inputText.trim() || chat.isLoading || chat.cooldownRemaining > 0) &&
                     styles.sendButtonDisabled,
                 ]}
-                onPress={chat.handleSend}
+                onPress={handleSendAndScroll}
                 activeOpacity={
                   !chat.inputText.trim() || chat.isLoading || chat.cooldownRemaining > 0 ? 1 : 0.7
                 }
