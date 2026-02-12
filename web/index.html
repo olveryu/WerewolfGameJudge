@@ -2,10 +2,9 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
 
     <!-- PWA Meta Tags - 使用 light 主题颜色 -->
@@ -64,6 +63,8 @@
         margin: 0;
         padding: 0;
         background-color: #fafafa;
+        /* 防止双击缩放延迟，替代 user-scalable=no（保留无障碍缩放能力） */
+        touch-action: manipulation;
       }
 
       /* iOS 安全区域适配 */

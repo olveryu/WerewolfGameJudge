@@ -22,6 +22,23 @@ if [[ "$BUMP_TYPE" != "patch" && "$BUMP_TYPE" != "minor" && "$BUMP_TYPE" != "maj
   exit 1
 fi
 
+# 先检查是否有未提交的非版本文件改动（在 bump 之前，避免取消时版本号已变）
+OTHER_CHANGES=$(git diff --name-only HEAD | grep -v -E '^(package\.json|package-lock\.json|app\.json|src/config/version\.ts)$' | head -5)
+STAGED_OTHER=$(git diff --cached --name-only | grep -v -E '^(package\.json|package-lock\.json|app\.json|src/config/version\.ts)$' | head -5)
+ALL_OTHER="${OTHER_CHANGES}${STAGED_OTHER}"
+if [ -n "$ALL_OTHER" ]; then
+  echo ""
+  echo "⚠️  检测到版本文件之外的未提交改动："
+  echo "$ALL_OTHER"
+  echo ""
+  read -p "是否一起提交？(y/N) " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "❌ 已取消。请先 commit 其他改动，再运行 release。"
+    exit 1
+  fi
+fi
+
 echo "📦 Bumping $BUMP_TYPE version..."
 npm version "$BUMP_TYPE" --no-git-tag-version
 
@@ -38,22 +55,6 @@ echo "✅ Version: v$VERSION"
 
 echo "📝 Committing..."
 git add -A
-
-# 如果除了版本文件外还有其他改动，提示用户先单独 commit
-OTHER_CHANGES=$(git diff --cached --name-only | grep -v -E '^(package\.json|package-lock\.json|app\.json|src/config/version\.ts)$' | head -5)
-if [ -n "$OTHER_CHANGES" ]; then
-  echo ""
-  echo "⚠️  检测到版本文件之外的改动："
-  echo "$OTHER_CHANGES"
-  echo ""
-  read -p "是否一起提交？(y/N) " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "❌ 已取消。请先 commit 其他改动，再运行 release。"
-    git reset HEAD > /dev/null
-    exit 1
-  fi
-fi
 
 git commit -m "release: v$VERSION"
 git tag "v$VERSION"

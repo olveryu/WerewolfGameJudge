@@ -1,6 +1,7 @@
-# Playwright test artifacts
+# Test artifacts
 playwright-report/
 test-results/
+coverage/
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
@@ -50,7 +51,6 @@ env/e2e.remote.json
 /android
 
 # Playwright
-playwright-report/
 test-results/
 src/screens/RoomScreen/WerewolfGameJudge.code-workspace
 

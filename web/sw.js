@@ -1,5 +1,6 @@
 // Service Worker for PWA offline support
-const CACHE_NAME = 'werewolf-judge-v2';
+// __SW_CACHE_VERSION__ is replaced by deploy.sh at build time
+const CACHE_NAME = '__SW_CACHE_VERSION__';
 
 // 需要缓存的资源
 const STATIC_ASSETS = [

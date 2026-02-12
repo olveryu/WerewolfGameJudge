@@ -107,6 +107,13 @@ fi
 # 复制 vercel.json（SPA rewrites + 缓存头）
 cp vercel.json dist/ 2>/dev/null || true
 
+# Service Worker 缓存版本号（使用构建时间戳自动递增）
+SW_VERSION="werewolf-judge-$(date +%Y%m%d%H%M%S)"
+if [ -f dist/sw.js ]; then
+  sed -i '' "s|__SW_CACHE_VERSION__|$SW_VERSION|g" dist/sw.js
+  echo "✅ SW 缓存版本: $SW_VERSION"
+fi
+
 # ── 4. 部署 ─────────────────────────────────────
 
 echo "🚀 部署到 Vercel..."
