@@ -35,7 +35,7 @@ export interface UseRoomActionDialogsResult {
   showActionRejectedAlert: (reason: string) => void;
 
   /** Magician first target alert (schema-driven). */
-  showMagicianFirstAlert: (index: number, schema: ActionSchema) => void;
+  showMagicianFirstAlert: (seat: number, schema: ActionSchema) => void;
 
   /** Reveal dialog (seer/psychic) */
   showRevealDialog: (title: string, message: string, onConfirm: () => void) => void;
@@ -51,7 +51,7 @@ export interface UseRoomActionDialogsResult {
   /** Wolf vote dialog (schema-driven). */
   showWolfVoteDialog: (
     wolfName: string,
-    targetIndex: number, // -1 = empty knife
+    targetSeat: number, // -1 = empty knife
     onConfirm: () => void,
     messageOverride: string | undefined,
     schema: ActionSchema,
@@ -84,9 +84,9 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // Magician first target
   // ─────────────────────────────────────────────────────────────────────────
 
-  const showMagicianFirstAlert = useCallback((index: number, schema: ActionSchema) => {
+  const showMagicianFirstAlert = useCallback((seat: number, schema: ActionSchema) => {
     const title = schema.ui!.firstTargetTitle!;
-    const body = schema.ui!.firstTargetPromptTemplate!.replace('{seat}', `${index + 1}`);
+    const body = schema.ui!.firstTargetPromptTemplate!.replace('{seat}', `${seat + 1}`);
     showAlert(title, body, [{ text: '知道了', style: 'default' }]);
   }, []);
 
@@ -119,7 +119,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   const showWolfVoteDialog = useCallback(
     (
       wolfName: string,
-      targetIndex: number,
+      targetSeat: number,
       onConfirm: () => void,
       messageOverride: string | undefined,
       schema: ActionSchema,
@@ -128,12 +128,12 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
       let msg: string;
       if (messageOverride) {
         msg = messageOverride;
-      } else if (targetIndex === -1) {
+      } else if (targetSeat === -1) {
         msg = schema.ui!.emptyVoteConfirmTemplate!.replace('{wolf}', wolfName);
       } else {
         msg = schema
           .ui!.voteConfirmTemplate!.replace('{wolf}', wolfName)
-          .replace('{seat}', `${targetIndex + 1}`);
+          .replace('{seat}', `${targetSeat + 1}`);
       }
 
       showAlert(title, msg, [

@@ -174,7 +174,7 @@ jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
     showWolfVoteDialog: (
       wolfName: string,
-      targetIndex: number,
+      targetSeat: number,
       onConfirm: () => void,
       messageOverride: string | undefined,
       schema: any,
@@ -184,12 +184,12 @@ jest.mock('../useRoomActionDialogs', () => ({
       let msg: string;
       if (messageOverride) {
         msg = messageOverride;
-      } else if (targetIndex === -1) {
+      } else if (targetSeat === -1) {
         msg = schema.ui.emptyVoteConfirmTemplate.replace('{wolf}', wolfName);
       } else {
         msg = schema.ui.voteConfirmTemplate
           .replace('{wolf}', wolfName)
-          .replace('{seat}', `${targetIndex + 1}`);
+          .replace('{seat}', `${targetSeat + 1}`);
       }
       mockShowAlert(title, msg, [
         { text: '取消', style: 'cancel' },

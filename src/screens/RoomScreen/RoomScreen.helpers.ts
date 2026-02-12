@@ -60,7 +60,7 @@ interface RoleStats {
 }
 
 export interface SeatViewModel {
-  index: number;
+  seat: number;
   role: RoleId;
   player: {
     uid: string;
@@ -278,7 +278,7 @@ export function buildSeatViewModels(
   gameState: LocalGameState,
   actorSeatNumber: number | null,
   showWolves: boolean,
-  selectedIndex: number | null,
+  selectedSeat: number | null,
   options?: {
     /**
      * Schema constraints for current action (e.g. ['notSelf']).
@@ -286,10 +286,10 @@ export function buildSeatViewModels(
      */
     schemaConstraints?: readonly TargetConstraint[];
     /**
-     * Second selected index for swap schema (magician).
+     * Second selected seat for swap schema (magician).
      * Used to highlight the second seat being selected before confirmation.
      */
-    secondSelectedIndex?: number | null;
+    secondSelectedSeat?: number | null;
     /**
      * Show ✅ ready badge on seats where player has viewed their role.
      * Typically true during 'assigned' phase.
@@ -300,8 +300,8 @@ export function buildSeatViewModels(
   // Wolf vote progress: reuse ✅ badge on wolf seats that have voted (ongoing phase only, mutually exclusive with assigned/ready badge)
   const wolfVotesBySeat = showWolves ? gameState.currentNightResults?.wolfVotesBySeat : undefined;
 
-  return gameState.template.roles.map((role, index) => {
-    const player = gameState.players.get(index);
+  return gameState.template.roles.map((role, seat) => {
+    const player = gameState.players.get(seat);
     const effectiveRole = player?.role ?? role;
     // Wolf visibility is controlled by ActionerState.showWolves.
     // When true, only wolf-faction roles with canSeeWolves=true are highlighted.
@@ -313,13 +313,13 @@ export function buildSeatViewModels(
     let disabledReason: string | undefined;
 
     // Constraint: notSelf - cannot select own seat
-    if (options?.schemaConstraints?.includes('notSelf') && index === actorSeatNumber) {
+    if (options?.schemaConstraints?.includes('notSelf') && seat === actorSeatNumber) {
       disabledReason = '不能选择自己';
     }
 
     // ✅ badge: assigned/ready → "已查看身份"
     // wolfVoteTarget badge 已包含"已投票"语义，两者互斥
-    const hasWolfVoteTarget = isWolf && wolfVotesBySeat != null && String(index) in wolfVotesBySeat;
+    const hasWolfVoteTarget = isWolf && wolfVotesBySeat != null && String(seat) in wolfVotesBySeat;
     const readyBadge =
       !hasWolfVoteTarget &&
       options?.showReadyBadges &&
@@ -327,7 +327,7 @@ export function buildSeatViewModels(
       (player.hasViewedRole ?? false);
 
     return {
-      index,
+      seat,
       role,
       player: player
         ? {
@@ -338,12 +338,12 @@ export function buildSeatViewModels(
             role: player.role, // For bot role display (debug mode)
           }
         : null,
-      isMySpot: actorSeatNumber === index,
+      isMySpot: actorSeatNumber === seat,
       isWolf,
-      isSelected: selectedIndex === index || options?.secondSelectedIndex === index,
+      isSelected: selectedSeat === seat || options?.secondSelectedSeat === seat,
       disabledReason,
       showReadyBadge: readyBadge,
-      wolfVoteTarget: hasWolfVoteTarget ? wolfVotesBySeat[String(index)] : undefined,
+      wolfVoteTarget: hasWolfVoteTarget ? wolfVotesBySeat[String(seat)] : undefined,
     };
   });
 }

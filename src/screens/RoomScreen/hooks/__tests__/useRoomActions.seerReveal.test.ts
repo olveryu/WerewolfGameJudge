@@ -55,7 +55,7 @@ describe('useRoomActions seer reveal', () => {
           actorSeatNumber: 0,
           actorRole: 'seer',
           isAudioPlaying: false,
-          anotherIndex: null,
+          firstSwapSeat: null,
         },
         deps,
       ),
@@ -67,7 +67,7 @@ describe('useRoomActions seer reveal', () => {
     expect(intent).not.toBeNull();
     expect(intent?.type).toBe('reveal');
     expect(intent?.revealKind).toBe('seer');
-    expect(intent?.targetIndex).toBe(2);
+    expect(intent?.targetSeat).toBe(2);
   });
 
   it('returns normal reveal intent when seer is blocked (Host validates)', () => {
@@ -85,7 +85,7 @@ describe('useRoomActions seer reveal', () => {
           actorSeatNumber: 0,
           actorRole: 'seer',
           isAudioPlaying: false,
-          anotherIndex: null,
+          firstSwapSeat: null,
         },
         deps,
       ),
@@ -97,7 +97,7 @@ describe('useRoomActions seer reveal', () => {
     expect(intent).not.toBeNull();
     expect(intent?.type).toBe('reveal'); // Normal intent, not 'blocked'
     expect(intent?.revealKind).toBe('seer');
-    expect(intent?.targetIndex).toBe(2);
+    expect(intent?.targetSeat).toBe(2);
   });
 
   it('returns null when actorRole is null', () => {
@@ -115,7 +115,7 @@ describe('useRoomActions seer reveal', () => {
           actorSeatNumber: 0,
           actorRole: null, // No role
           isAudioPlaying: false,
-          anotherIndex: null,
+          firstSwapSeat: null,
         },
         deps,
       ),
@@ -139,7 +139,7 @@ describe('useRoomActions seer reveal', () => {
           actorSeatNumber: 0,
           actorRole: 'seer',
           isAudioPlaying: false,
-          anotherIndex: null,
+          firstSwapSeat: null,
         },
         deps,
       ),

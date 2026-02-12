@@ -123,10 +123,10 @@ jest.mock('../hooks/useActionerState', () => ({
 // Keep dialogs deterministic by mapping to showAlert
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showMagicianFirstAlert: (index: number, schema: any) => {
+    showMagicianFirstAlert: (seat: number, schema: any) => {
       const { showAlert: mockShowAlert } = require('@/utils/alert');
       const title = schema.ui.firstTargetTitle;
-      const body = schema.ui.firstTargetPromptTemplate.replace('{seat}', `${index + 1}`);
+      const body = schema.ui.firstTargetPromptTemplate.replace('{seat}', `${seat + 1}`);
       mockShowAlert(title, body, [{ text: '好' }]);
     },
     showConfirmDialog: (
@@ -189,7 +189,7 @@ describe('RoomScreen magician swap UI (smoke)', () => {
 
     const { findByTestId } = render(<RoomScreen {...props} />);
 
-    // first target: seat 3 (index 2)
+    // first target: seat 3 (seat 2)
     const seat3 = await findByTestId(TESTIDS.seatTilePressable(2));
     fireEvent.press(seat3);
 
@@ -201,7 +201,7 @@ describe('RoomScreen magician swap UI (smoke)', () => {
       );
     });
 
-    // second target: seat 5 (index 4)
+    // second target: seat 5 (seat 4)
     const seat5 = await findByTestId(TESTIDS.seatTilePressable(4));
     fireEvent.press(seat5);
 
@@ -220,11 +220,11 @@ describe('RoomScreen magician swap UI (smoke)', () => {
     });
 
     // protocol: target = null, extra.targets = [seatA, seatB]
-    // seat 3 (index 2) and seat 5 (index 4)
+    // seat 3 (seat 2) and seat 5 (seat 4)
     expect(mockSubmitAction).toHaveBeenCalledWith(null, { targets: [2, 4] });
 
     // Regression check: actionPrompt should only trigger once at turn start,
-    // NOT re-trigger when anotherIndex changes (after selecting first seat).
+    // NOT re-trigger when firstSwapSeat changes (after selecting first seat).
     // The initial prompt is shown once, and subsequent seat taps should not
     // cause additional actionPrompt dialogs.
     expect(mockShowRoleActionPrompt).toHaveBeenCalledTimes(1);

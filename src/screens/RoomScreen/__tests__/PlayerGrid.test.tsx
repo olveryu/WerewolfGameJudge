@@ -25,7 +25,7 @@ describe('PlayerGrid', () => {
 
       const seats: any[] = [
         {
-          index: 0,
+          seat: 0,
           role: 'villager',
           player: null,
           isMySpot: false,
@@ -51,7 +51,7 @@ describe('PlayerGrid', () => {
 
       const seats: any[] = [
         {
-          index: 0,
+          seat: 0,
           role: 'villager',
           player: null,
           isMySpot: false,
@@ -77,7 +77,7 @@ describe('PlayerGrid', () => {
 
       const seats: any[] = [
         {
-          index: 0,
+          seat: 0,
           role: 'villager',
           player: null,
           isMySpot: true,
@@ -102,7 +102,7 @@ describe('PlayerGrid', () => {
 
       const seats: any[] = [
         {
-          index: 0,
+          seat: 0,
           role: 'villager',
           player: null,
           isMySpot: true,

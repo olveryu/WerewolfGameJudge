@@ -25,7 +25,7 @@ import type { ActionIntent } from '@/screens/RoomScreen/hooks/useRoomActions';
 /** Seat tap event with optional disabled reason from PlayerGrid */
 export interface SeatTapEvent {
   kind: 'SEAT_TAP';
-  seatIndex: number;
+  seat: number;
   /** UX-only disabled reason from SeatViewModel (e.g., "不能选择自己") */
   disabledReason?: string;
 }
@@ -68,7 +68,7 @@ export interface WolfRobotHunterStatusViewedEvent {
 /** Takeover bot seat - Host wants to control a bot seat (debug mode) */
 export interface TakeoverBotSeatEvent {
   kind: 'TAKEOVER_BOT_SEAT';
-  seatIndex: number;
+  seat: number;
 }
 
 /** Union of all possible interaction events */
@@ -112,19 +112,19 @@ export interface InteractionResultAlert {
 export interface InteractionResultShowDialog {
   kind: 'SHOW_DIALOG';
   dialogType: 'seatingEnter' | 'seatingLeave' | 'roleCard' | 'leaveRoom';
-  seatIndex?: number;
+  seat?: number;
 }
 
 /** Run seating flow (enter/leave seat) */
 export interface InteractionResultSeatingFlow {
   kind: 'SEATING_FLOW';
-  seatIndex: number;
+  seat: number;
 }
 
 /** Run action flow (process ActionIntent) */
 export interface InteractionResultActionFlow {
   kind: 'ACTION_FLOW';
-  seatIndex?: number;
+  seat?: number;
   intent?: ActionIntent;
 }
 
@@ -148,7 +148,7 @@ export interface InteractionResultHunterStatusViewed {
 /** Takeover bot seat (debug mode) */
 export interface InteractionResultTakeoverBotSeat {
   kind: 'TAKEOVER_BOT_SEAT';
-  seatIndex: number;
+  seat: number;
 }
 
 /** Release bot seat control (debug mode) */

@@ -19,7 +19,7 @@ function makeContext(partial: Partial<GameContext>): GameContext {
     actorSeatNumber: null,
     actorRole: null,
     isAudioPlaying: false,
-    anotherIndex: null,
+    firstSwapSeat: null,
     ...partial,
   };
 }

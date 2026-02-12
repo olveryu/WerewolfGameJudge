@@ -22,7 +22,7 @@ describe('deriveSkipIntentFromSchema (chooseSeat schemas)', () => {
     expect(intent).toEqual(
       expect.objectContaining({
         type: 'skip',
-        targetIndex: -1,
+        targetSeat: -1,
       }),
     );
   });

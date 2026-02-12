@@ -20,7 +20,7 @@ describe('SeatTapPolicy', () => {
       const input: SeatTapPolicyInput = {
         roomStatus: GameStatus.ongoing,
         isAudioPlaying: true,
-        seatIndex: 0,
+        seat: 0,
         disabledReason: undefined,
         imActioner: true,
         hasGameState: true,
@@ -40,7 +40,7 @@ describe('SeatTapPolicy', () => {
       const input: SeatTapPolicyInput = {
         roomStatus: GameStatus.ongoing,
         isAudioPlaying: true,
-        seatIndex: 0,
+        seat: 0,
         disabledReason: '不能选择自己', // Would normally trigger ALERT
         imActioner: true,
         hasGameState: true,
@@ -61,7 +61,7 @@ describe('SeatTapPolicy', () => {
       const input: SeatTapPolicyInput = {
         roomStatus: GameStatus.seated,
         isAudioPlaying: true, // Even if true, should not block seating
-        seatIndex: 0,
+        seat: 0,
         disabledReason: undefined,
         imActioner: false,
         hasGameState: true,
@@ -81,7 +81,7 @@ describe('SeatTapPolicy', () => {
       const input: SeatTapPolicyInput = {
         roomStatus: GameStatus.ongoing,
         isAudioPlaying: false,
-        seatIndex: 0,
+        seat: 0,
         disabledReason: '不能选择自己',
         imActioner: true,
         hasGameState: true,
@@ -100,7 +100,7 @@ describe('SeatTapPolicy', () => {
       const input: SeatTapPolicyInput = {
         roomStatus: GameStatus.seated,
         isAudioPlaying: false,
-        seatIndex: 0,
+        seat: 0,
         disabledReason: '某个原因',
         imActioner: false,
         hasGameState: true,
@@ -124,7 +124,7 @@ describe('SeatTapPolicy', () => {
         const input: SeatTapPolicyInput = {
           roomStatus: GameStatus.unseated,
           isAudioPlaying: false,
-          seatIndex: 3,
+          seat: 3,
           disabledReason: undefined,
           imActioner: false,
           hasGameState: true,
@@ -134,7 +134,7 @@ describe('SeatTapPolicy', () => {
 
         expect(result.kind).toBe('SEATING_FLOW');
         if (result.kind === 'SEATING_FLOW') {
-          expect(result.seatIndex).toBe(3);
+          expect(result.seat).toBe(3);
         }
       });
 
@@ -142,7 +142,7 @@ describe('SeatTapPolicy', () => {
         const input: SeatTapPolicyInput = {
           roomStatus: GameStatus.seated,
           isAudioPlaying: false,
-          seatIndex: 5,
+          seat: 5,
           disabledReason: undefined,
           imActioner: false,
           hasGameState: true,
@@ -152,7 +152,7 @@ describe('SeatTapPolicy', () => {
 
         expect(result.kind).toBe('SEATING_FLOW');
         if (result.kind === 'SEATING_FLOW') {
-          expect(result.seatIndex).toBe(5);
+          expect(result.seat).toBe(5);
         }
       });
     });
@@ -162,7 +162,7 @@ describe('SeatTapPolicy', () => {
         const input: SeatTapPolicyInput = {
           roomStatus: GameStatus.ongoing,
           isAudioPlaying: false,
-          seatIndex: 2,
+          seat: 2,
           disabledReason: undefined,
           imActioner: true,
           hasGameState: true,
@@ -172,7 +172,7 @@ describe('SeatTapPolicy', () => {
 
         expect(result.kind).toBe('ACTION_FLOW');
         if (result.kind === 'ACTION_FLOW') {
-          expect(result.seatIndex).toBe(2);
+          expect(result.seat).toBe(2);
         }
       });
 
@@ -180,7 +180,7 @@ describe('SeatTapPolicy', () => {
         const input: SeatTapPolicyInput = {
           roomStatus: GameStatus.ongoing,
           isAudioPlaying: false,
-          seatIndex: 2,
+          seat: 2,
           disabledReason: undefined,
           imActioner: false,
           hasGameState: true,
@@ -200,7 +200,7 @@ describe('SeatTapPolicy', () => {
         const input: SeatTapPolicyInput = {
           roomStatus: GameStatus.assigned,
           isAudioPlaying: false,
-          seatIndex: 0,
+          seat: 0,
           disabledReason: undefined,
           imActioner: false,
           hasGameState: true,
@@ -218,7 +218,7 @@ describe('SeatTapPolicy', () => {
         const input: SeatTapPolicyInput = {
           roomStatus: GameStatus.ready,
           isAudioPlaying: false,
-          seatIndex: 0,
+          seat: 0,
           disabledReason: undefined,
           imActioner: false,
           hasGameState: true,
@@ -236,7 +236,7 @@ describe('SeatTapPolicy', () => {
         const input: SeatTapPolicyInput = {
           roomStatus: GameStatus.ended,
           isAudioPlaying: false,
-          seatIndex: 0,
+          seat: 0,
           disabledReason: undefined,
           imActioner: false,
           hasGameState: true,
@@ -260,7 +260,7 @@ describe('SeatTapPolicy', () => {
       const input: SeatTapPolicyInput = {
         roomStatus: GameStatus.ongoing,
         isAudioPlaying: false,
-        seatIndex: 0,
+        seat: 0,
         disabledReason: undefined,
         imActioner: true,
         hasGameState: false,
@@ -278,7 +278,7 @@ describe('SeatTapPolicy', () => {
       const input: SeatTapPolicyInput = {
         roomStatus: undefined,
         isAudioPlaying: false,
-        seatIndex: 0,
+        seat: 0,
         disabledReason: undefined,
         imActioner: true,
         hasGameState: false, // No game state means undefined status

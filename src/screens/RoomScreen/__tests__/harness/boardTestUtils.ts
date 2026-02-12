@@ -506,7 +506,7 @@ const _ROOM_PROPS = {
  * Chain interaction: wolfVote confirm → submitWolfVote called
  *
  * Flow: render wolf step → tap seat → wolfVote dialog → press "确定"
- *       → assert submitWolfVote was called with correct targetIndex
+ *       → assert submitWolfVote was called with correct targetSeat
  *
  * @returns The submitWolfVote mock for further assertions if needed
  */

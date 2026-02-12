@@ -97,7 +97,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     isStartingGame,
     // Seat modal
     seatModalVisible,
-    pendingSeatIndex,
+    pendingSeat,
     modalType,
     handleConfirmSeat,
     handleCancelSeat,
@@ -319,12 +319,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       </BottomActionPanel>
 
       {/* Seat Confirmation Modal */}
-      {/* Seat Confirmation Modal - only render when pendingSeatIndex is set */}
-      {pendingSeatIndex !== null && (
+      {/* Seat Confirmation Modal - only render when pendingSeat is set */}
+      {pendingSeat !== null && (
         <SeatConfirmModal
           visible={seatModalVisible}
           modalType={modalType}
-          seatNumber={pendingSeatIndex + 1}
+          seatNumber={pendingSeat + 1}
           onConfirm={modalType === 'enter' ? handleConfirmSeat : handleConfirmLeave}
           onCancel={handleCancelSeat}
           styles={componentStyles.seatConfirmModal}

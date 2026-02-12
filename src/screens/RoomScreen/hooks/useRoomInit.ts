@@ -33,7 +33,7 @@ interface UseRoomInitParams {
   /** From useGameRoom: join existing room */
   joinRoom: (roomNumber: string) => Promise<boolean>;
   /** From useGameRoom: take a seat */
-  takeSeat: (seatIndex: number) => Promise<boolean>;
+  takeSeat: (seat: number) => Promise<boolean>;
   /** Check if we have received game state */
   hasGameState: boolean;
   /** Initial role reveal animation setting from ConfigScreen (host only) */

@@ -99,12 +99,12 @@ function checkPendingHunterGate(
  */
 function handleSeatTap(
   ctx: InteractionContext,
-  event: { seatIndex: number; disabledReason?: string },
+  event: { seat: number; disabledReason?: string },
 ): InteractionResult {
   const seatResult = getSeatTapResult({
     roomStatus: ctx.roomStatus,
     isAudioPlaying: ctx.isAudioPlaying,
-    seatIndex: event.seatIndex,
+    seat: event.seat,
     disabledReason: event.disabledReason,
     imActioner: ctx.imActioner,
     hasGameState: ctx.hasGameState,
@@ -117,9 +117,9 @@ function handleSeatTap(
     case 'ALERT':
       return { kind: 'ALERT', title: seatResult.title, message: seatResult.message };
     case 'SEATING_FLOW':
-      return { kind: 'SEATING_FLOW', seatIndex: seatResult.seatIndex };
+      return { kind: 'SEATING_FLOW', seat: seatResult.seat };
     case 'ACTION_FLOW':
-      return { kind: 'ACTION_FLOW', seatIndex: seatResult.seatIndex };
+      return { kind: 'ACTION_FLOW', seat: seatResult.seat };
   }
 }
 
@@ -214,7 +214,7 @@ function handleHunterStatusViewed(): InteractionResult {
  */
 function handleTakeoverBotSeat(
   ctx: InteractionContext,
-  event: { seatIndex: number },
+  event: { seat: number },
 ): InteractionResult {
   // Must be Host
   if (!ctx.isHost) {
@@ -228,16 +228,16 @@ function handleTakeoverBotSeat(
 
   // Check if seat is a bot
   const botSeats = ctx.getBotSeats?.() ?? [];
-  if (!botSeats.includes(event.seatIndex)) {
+  if (!botSeats.includes(event.seat)) {
     return { kind: 'ALERT', title: '无法接管', message: '只能接管机器人座位' };
   }
 
   // Toggle: if already controlling this seat, release it
-  if (ctx.controlledSeat === event.seatIndex) {
+  if (ctx.controlledSeat === event.seat) {
     return { kind: 'RELEASE_BOT_SEAT' };
   }
 
-  return { kind: 'TAKEOVER_BOT_SEAT', seatIndex: event.seatIndex };
+  return { kind: 'TAKEOVER_BOT_SEAT', seat: event.seat };
 }
 
 // =============================================================================

@@ -18,8 +18,8 @@ import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomSeatDialogsParams {
   // Seat modal state
-  pendingSeatIndex: number | null;
-  setPendingSeatIndex: React.Dispatch<React.SetStateAction<number | null>>;
+  pendingSeat: number | null;
+  setPendingSeat: React.Dispatch<React.SetStateAction<number | null>>;
   setSeatModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
   setModalType: React.Dispatch<React.SetStateAction<'enter' | 'leave'>>;
 
@@ -36,8 +36,8 @@ interface UseRoomSeatDialogsParams {
 }
 
 interface UseRoomSeatDialogsResult {
-  showEnterSeatDialog: (index: number) => void;
-  showLeaveSeatDialog: (index: number) => void;
+  showEnterSeatDialog: (seat: number) => void;
+  showLeaveSeatDialog: (seat: number) => void;
   handleConfirmSeat: () => Promise<void>;
   handleCancelSeat: () => void;
   handleConfirmLeave: () => Promise<void>;
@@ -45,8 +45,8 @@ interface UseRoomSeatDialogsResult {
 }
 
 export function useRoomSeatDialogs({
-  pendingSeatIndex,
-  setPendingSeatIndex,
+  pendingSeat,
+  setPendingSeat,
   setSeatModalVisible,
   setModalType,
   takeSeat,
@@ -60,12 +60,12 @@ export function useRoomSeatDialogs({
   // ─────────────────────────────────────────────────────────────────────────
 
   const showEnterSeatDialog = useCallback(
-    (index: number) => {
-      setPendingSeatIndex(index);
+    (seat: number) => {
+      setPendingSeat(seat);
       setModalType('enter');
       setSeatModalVisible(true);
     },
-    [setPendingSeatIndex, setModalType, setSeatModalVisible],
+    [setPendingSeat, setModalType, setSeatModalVisible],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -73,12 +73,12 @@ export function useRoomSeatDialogs({
   // ─────────────────────────────────────────────────────────────────────────
 
   const showLeaveSeatDialog = useCallback(
-    (index: number) => {
-      setPendingSeatIndex(index);
+    (seat: number) => {
+      setPendingSeat(seat);
       setModalType('leave');
       setSeatModalVisible(true);
     },
-    [setPendingSeatIndex, setModalType, setSeatModalVisible],
+    [setPendingSeat, setModalType, setSeatModalVisible],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -86,20 +86,20 @@ export function useRoomSeatDialogs({
   // ─────────────────────────────────────────────────────────────────────────
 
   const handleConfirmSeat = useCallback(async () => {
-    if (pendingSeatIndex === null) return;
+    if (pendingSeat === null) return;
 
-    roomScreenLog.debug('[SeatDialogs] Taking seat', { seatIndex: pendingSeatIndex });
-    const success = await takeSeat(pendingSeatIndex);
+    roomScreenLog.debug('[SeatDialogs] Taking seat', { seat: pendingSeat });
+    const success = await takeSeat(pendingSeat);
     setSeatModalVisible(false);
 
     if (!success) {
       roomScreenLog.warn('[SeatDialogs] takeSeat failed (occupied)', {
-        seatIndex: pendingSeatIndex,
+        seat: pendingSeat,
       });
-      showAlert('入座失败', `${pendingSeatIndex + 1}号座位已被占用，请选择其他位置。`);
+      showAlert('入座失败', `${pendingSeat + 1}号座位已被占用，请选择其他位置。`);
     }
-    setPendingSeatIndex(null);
-  }, [pendingSeatIndex, takeSeat, setSeatModalVisible, setPendingSeatIndex]);
+    setPendingSeat(null);
+  }, [pendingSeat, takeSeat, setSeatModalVisible, setPendingSeat]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Cancel seat
@@ -107,21 +107,21 @@ export function useRoomSeatDialogs({
 
   const handleCancelSeat = useCallback(() => {
     setSeatModalVisible(false);
-    setPendingSeatIndex(null);
-  }, [setSeatModalVisible, setPendingSeatIndex]);
+    setPendingSeat(null);
+  }, [setSeatModalVisible, setPendingSeat]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Confirm leave (seat)
   // ─────────────────────────────────────────────────────────────────────────
 
   const handleConfirmLeave = useCallback(async () => {
-    if (pendingSeatIndex === null) return;
+    if (pendingSeat === null) return;
 
-    roomScreenLog.debug('[SeatDialogs] Leaving seat', { seatIndex: pendingSeatIndex });
+    roomScreenLog.debug('[SeatDialogs] Leaving seat', { seat: pendingSeat });
     await leaveSeat();
     setSeatModalVisible(false);
-    setPendingSeatIndex(null);
-  }, [pendingSeatIndex, leaveSeat, setSeatModalVisible, setPendingSeatIndex]);
+    setPendingSeat(null);
+  }, [pendingSeat, leaveSeat, setSeatModalVisible, setPendingSeat]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Leave room

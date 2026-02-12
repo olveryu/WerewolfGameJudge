@@ -152,7 +152,7 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
             mySeatNumber: room.mySeatNumber,
             myRole: room.myRole,
             isAudioPlaying: false,
-            anotherIndex: null,
+            firstSwapSeat: null,
           },
           {
             hasWolfVoted: room.hasWolfVoted,

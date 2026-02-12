@@ -278,7 +278,7 @@ describe('buildSeatViewModels', () => {
     expect(seats).toHaveLength(3);
 
     // Seat 0: my spot, not wolf
-    expect(seats[0].index).toBe(0);
+    expect(seats[0].seat).toBe(0);
     expect(seats[0].isMySpot).toBe(true);
     expect(seats[0].isWolf).toBe(false);
     expect(seats[0].player?.displayName).toBe('Player1');

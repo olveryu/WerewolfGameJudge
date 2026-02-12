@@ -270,10 +270,10 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   describe('actionConfirm coverage', () => {
     /**
      * Magician swap requires TWO taps in the same render instance:
-     * 1. First tap → triggers magicianFirst dialog, sets anotherIndex
+     * 1. First tap → triggers magicianFirst dialog, sets firstSwapSeat
      * 2. Dismiss dialog, second tap → triggers actionConfirm dialog
      *
-     * NOTE: anotherIndex is internal state that gets set by handleActionIntent
+     * NOTE: firstSwapSeat is internal state that gets set by handleActionIntent
      * when processing magicianFirst. We MUST execute both taps in same render.
      */
     it('magician swap: second tap shows actionConfirm', async () => {
@@ -294,14 +294,14 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
       harness.clear();
 
-      // First tap: triggers magicianFirst (sets anotherIndex internally)
+      // First tap: triggers magicianFirst (sets firstSwapSeat internally)
       tapSeat(getByTestId, 1);
       await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
 
       // Press OK to dismiss first dialog and confirm first target
       harness.pressPrimaryOnType('magicianFirst');
 
-      // Second tap: triggers actionConfirm (uses the set anotherIndex)
+      // Second tap: triggers actionConfirm (uses the set firstSwapSeat)
       tapSeat(getByTestId, 2);
       await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
     });

@@ -45,7 +45,7 @@ type ActionIntentType =
 
 export interface ActionIntent {
   type: ActionIntentType;
-  targetIndex: number;
+  targetSeat: number;
 
   // Optional fields (based on type)
   wolfSeat?: number; // for wolfVote
@@ -76,7 +76,7 @@ export interface GameContext {
   actorRole: RoleId | null;
 
   isAudioPlaying: boolean;
-  anotherIndex: number | null; // Magician first target
+  firstSwapSeat: number | null; // Magician first target
   /** Counter that ticks every second during wolf vote countdown, forcing re-render. */
   countdownTick?: number;
 }
@@ -100,7 +100,7 @@ export interface ActionDeps {
 
 interface UseRoomActionsResult {
   /** Get intent when seat is tapped */
-  getActionIntent: (index: number) => ActionIntent | null;
+  getActionIntent: (seat: number) => ActionIntent | null;
 
   /** Get skip action intent */
   getSkipIntent: () => ActionIntent | null;
@@ -109,7 +109,7 @@ interface UseRoomActionsResult {
   getAutoTriggerIntent: () => ActionIntent | null;
 
   /** Build action confirm message */
-  buildActionMessage: (index: number) => string;
+  buildActionMessage: (seat: number) => string;
 
   /** Find voting wolf seat */
   findVotingWolfSeat: () => number | null;
@@ -144,8 +144,8 @@ interface IntentContext {
   schemaKind: ActionSchema['kind'] | undefined;
   schemaId: SchemaId | undefined;
   uiRevealKind: RevealKind | undefined;
-  index: number;
-  anotherIndex: number | null;
+  seat: number;
+  firstSwapSeat: number | null;
   isWolf: boolean;
   wolfSeat: number | null;
   buildMessage: (idx: number) => string;
@@ -172,7 +172,7 @@ export function deriveSkipIntentFromSchema(
   // chooseSeat schemas: only allow generic skip when schema allows skipping
   if (currentSchema?.kind === 'chooseSeat') {
     if (currentSchema.canSkip) {
-      return { type: 'skip', targetIndex: -1, message: buildMessage(-1) };
+      return { type: 'skip', targetSeat: -1, message: buildMessage(-1) };
     }
     return null;
   }
@@ -185,21 +185,21 @@ export function deriveSkipIntentFromSchema(
 
   // wolfVote schema: skip means "vote empty knife" (handled elsewhere as wolfVote intent)
   if (currentSchema?.kind === 'wolfVote' && isWolf && wolfSeat !== null) {
-    return { type: 'wolfVote', targetIndex: -1, wolfSeat };
+    return { type: 'wolfVote', targetSeat: -1, wolfSeat };
   }
 
   // default: confirm skip
-  return { type: 'skip', targetIndex: -1, message: buildMessage(-1) };
+  return { type: 'skip', targetSeat: -1, message: buildMessage(-1) };
 }
 
 /** chooseSeat schema: seer/psychic/gargoyle/wolfRobot reveal, or normal action */
 function deriveChooseSeatIntent(ctx: IntentContext): ActionIntent {
-  const { uiRevealKind, index, buildMessage } = ctx;
+  const { uiRevealKind, seat, buildMessage } = ctx;
 
   if (uiRevealKind) {
-    return { type: 'reveal', revealKind: uiRevealKind, targetIndex: index };
+    return { type: 'reveal', revealKind: uiRevealKind, targetSeat: seat };
   }
-  return { type: 'actionConfirm', targetIndex: index, message: buildMessage(index) };
+  return { type: 'actionConfirm', targetSeat: seat, message: buildMessage(seat) };
 }
 
 /**
@@ -207,7 +207,7 @@ function deriveChooseSeatIntent(ctx: IntentContext): ActionIntent {
  * Uses focused sub-helpers to keep each branch simple.
  */
 function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
-  const { schemaKind, index, anotherIndex, isWolf, wolfSeat } = ctx;
+  const { schemaKind, seat, firstSwapSeat, isWolf, wolfSeat } = ctx;
 
   switch (schemaKind) {
     case 'confirm':
@@ -216,16 +216,16 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
       return null;
     case 'swap':
       // swap (magician): two-step selection
-      // - anotherIndex === null → first seat selection (magicianFirst)
-      // - anotherIndex !== null → second seat selection (actionConfirm for swap)
-      if (anotherIndex === null) {
-        return { type: 'magicianFirst', targetIndex: index };
+      // - firstSwapSeat === null → first seat selection (magicianFirst)
+      // - firstSwapSeat !== null → second seat selection (actionConfirm for swap)
+      if (firstSwapSeat === null) {
+        return { type: 'magicianFirst', targetSeat: seat };
       } else {
         // Second seat: confirm the swap
         return {
           type: 'actionConfirm',
-          targetIndex: index,
-          message: ctx.buildMessage?.(index),
+          targetSeat: seat,
+          message: ctx.buildMessage?.(seat),
         };
       }
     case 'compound':
@@ -243,7 +243,7 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
         }
         return {
           type: 'actionConfirm',
-          targetIndex: index,
+          targetSeat: seat,
           message: poison.ui?.confirmText,
           stepKey: 'poison',
         };
@@ -251,9 +251,7 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
     case 'wolfVote':
       // NOTE: wolfKillDisabled is now handled by Host resolver.
       // UI no longer blocks seat taps. All votes go through submit → Host validates.
-      return isWolf && wolfSeat !== null
-        ? { type: 'wolfVote', targetIndex: index, wolfSeat }
-        : null;
+      return isWolf && wolfSeat !== null ? { type: 'wolfVote', targetSeat: seat, wolfSeat } : null;
     case 'chooseSeat':
       return deriveChooseSeatIntent(ctx);
     default:
@@ -274,7 +272,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     actorSeatNumber,
     actorRole,
     isAudioPlaying,
-    anotherIndex,
+    firstSwapSeat,
     countdownTick,
   } = gameContext;
 
@@ -299,7 +297,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   // ─────────────────────────────────────────────────────────────────────────
 
   const buildActionMessage = useCallback(
-    (_index: number): string => {
+    (_seat: number): string => {
       const confirmText = currentSchema?.ui?.confirmText;
 
       // Hardcore schema-driven UI contract:
@@ -314,7 +312,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
         }
       }
 
-      // NOTE: index/anotherIndex are not used in the confirm copy (schema-driven).
+      // NOTE: seat/firstSwapSeat are not used in the confirm copy (schema-driven).
       // They're kept in the signature for interface compatibility.
       return confirmText || '';
     },
@@ -398,7 +396,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
             {
               key: 'skip',
               label: hint.message,
-              intent: { type: 'skip', targetIndex: -1, message: hint.message },
+              intent: { type: 'skip', targetSeat: -1, message: hint.message },
             },
           ],
         };
@@ -409,7 +407,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
             {
               key: 'wolfEmpty',
               label: hint.message,
-              intent: { type: 'wolfVote', targetIndex: -1, wolfSeat: actorSeatNumber ?? undefined },
+              intent: { type: 'wolfVote', targetSeat: -1, wolfSeat: actorSeatNumber ?? undefined },
             },
           ],
         };
@@ -437,7 +435,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
           {
             key: 'viewHunterStatus',
             label: gateButtonText,
-            intent: { type: 'wolfRobotViewHunterStatus', targetIndex: -1 },
+            intent: { type: 'wolfRobotViewHunterStatus', targetSeat: -1 },
           },
         ],
       };
@@ -455,7 +453,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
           label: '取消投票',
           intent: {
             type: 'wolfVote',
-            targetIndex: -2,
+            targetSeat: -2,
             wolfSeat: actorSeatNumber ?? undefined,
           },
         });
@@ -467,7 +465,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
         label: currentSchema.ui!.emptyVoteText!,
         intent: {
           type: 'wolfVote',
-          targetIndex: -1,
+          targetSeat: -1,
           wolfSeat: actorSeatNumber ?? undefined,
         },
       });
@@ -486,7 +484,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
             label: currentSchema.ui!.bottomActionText!,
             intent: {
               type: 'skip',
-              targetIndex: -1,
+              targetSeat: -1,
               message: currentSchema.ui!.bottomActionText!,
             },
           },
@@ -525,7 +523,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
           label,
           intent: {
             type: 'actionConfirm',
-            targetIndex: witchCtx.killedSeat,
+            targetSeat: witchCtx.killedSeat,
             message: saveStep.ui?.confirmText,
             stepKey: 'save',
           },
@@ -539,7 +537,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       buttons.push({
         key: 'skip',
         label: skipLabel,
-        intent: { type: 'skip', targetIndex: -1, message: skipLabel, stepKey: 'skipAll' },
+        intent: { type: 'skip', targetSeat: -1, message: skipLabel, stepKey: 'skipAll' },
       });
 
       return { buttons };
@@ -554,7 +552,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
           {
             key: 'confirm',
             label: currentSchema.ui!.bottomActionText!,
-            intent: { type: 'confirmTrigger', targetIndex: -1 },
+            intent: { type: 'confirmTrigger', targetSeat: -1 },
           },
         ],
       };
@@ -601,26 +599,26 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       // ANTI-CHEAT: 仅在 WitchContext 到达后才弹 prompt（避免没有 killedSeat 时误导 UI）。
       const witchCtx = getWitchContext();
       if (!witchCtx) return null;
-      return { type: 'actionPrompt', targetIndex: -1 };
+      return { type: 'actionPrompt', targetSeat: -1 };
     }
 
     // Schema-driven: confirm schema (hunterConfirm/darkWolfKingConfirm)
     if (currentSchema?.kind === 'confirm') {
-      return { type: 'actionPrompt', targetIndex: -1 };
+      return { type: 'actionPrompt', targetSeat: -1 };
     }
 
     // Schema-driven: swap schema (magician)
-    // When first target is already selected (anotherIndex !== null),
+    // When first target is already selected (firstSwapSeat !== null),
     // do NOT re-trigger actionPrompt - user is selecting second target.
     if (currentSchema?.kind === 'swap') {
-      if (anotherIndex !== null) {
+      if (firstSwapSeat !== null) {
         return null; // Suppress auto-trigger while selecting second seat
       }
-      return { type: 'actionPrompt', targetIndex: -1 };
+      return { type: 'actionPrompt', targetSeat: -1 };
     }
 
     // All other schemas: show generic action prompt, dismiss → wait for seat tap
-    return { type: 'actionPrompt', targetIndex: -1 };
+    return { type: 'actionPrompt', targetSeat: -1 };
   }, [
     actorRole,
     imActioner,
@@ -628,7 +626,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     currentSchema,
     gameState?.wolfRobotReveal,
     getWitchContext,
-    anotherIndex,
+    firstSwapSeat,
   ]);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -642,7 +640,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   // ─────────────────────────────────────────────────────────────────────────
 
   const getActionIntent = useCallback(
-    (index: number): ActionIntent | null => {
+    (seat: number): ActionIntent | null => {
       if (!actorRole) return null;
 
       // wolfRobotLearn: after learning is done (wolfRobotReveal exists),
@@ -664,8 +662,8 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
           currentSchema?.id && isValidSchemaId(currentSchema.id) ? currentSchema.id : undefined,
         uiRevealKind:
           currentSchema?.kind === 'chooseSeat' ? currentSchema.ui?.revealKind : undefined,
-        index,
-        anotherIndex,
+        seat,
+        firstSwapSeat,
         // Schema-driven wolf vote eligibility.
         // Participation is defined by ROLE_SPECS[*].wolfMeeting.participatesInWolfVote.
         // Do NOT additionally gate by isWolfRole(): the meeting participation flag is the
@@ -687,7 +685,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     [
       actorRole,
       currentSchema,
-      anotherIndex,
+      firstSwapSeat,
       findVotingWolfSeat,
       buildActionMessage,
       gameState?.wolfRobotReveal,

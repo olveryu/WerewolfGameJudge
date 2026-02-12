@@ -60,11 +60,11 @@ interface UseInteractionDispatcherParams {
 
   // ── Action intent handler (from useActionOrchestrator) ──
   handleActionIntent: (intent: ActionIntent) => Promise<void>;
-  getActionIntent: (seatIndex: number) => ActionIntent | null;
+  getActionIntent: (seat: number) => ActionIntent | null;
 
   // ── Dialog callbacks ──
-  showEnterSeatDialog: (index: number) => void;
-  showLeaveSeatDialog: (index: number) => void;
+  showEnterSeatDialog: (seat: number) => void;
+  showLeaveSeatDialog: (seat: number) => void;
   handleLeaveRoom: () => void;
   viewedRole: () => Promise<void>;
 
@@ -77,7 +77,7 @@ interface UseInteractionDispatcherParams {
 
   // ── Submission callbacks ──
   submitRevealAckSafe: (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => void;
-  sendWolfRobotHunterStatusViewed: (seatIndex: number) => Promise<void>;
+  sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   setControlledSeat: (seat: number | null) => void;
 
   // ── Role card state setters (owned by RoomScreen) ──
@@ -90,9 +90,9 @@ interface UseInteractionDispatcherResult {
   /** Unified interaction entry point — calls policy → executes side effects. */
   dispatchInteraction: (event: InteractionEvent) => void;
   /** Main seat tap handler — wraps dispatchInteraction with SEAT_TAP event. */
-  onSeatTapped: (index: number, disabledReason?: string) => void;
+  onSeatTapped: (seat: number, disabledReason?: string) => void;
   /** Seat long-press handler for bot takeover (debug mode). */
-  onSeatLongPressed: (seatIndex: number) => void;
+  onSeatLongPressed: (seat: number) => void;
   /** Computed interaction context (exposed for BottomActionPanel / tests). */
   interactionContext: InteractionContext;
 }
@@ -138,19 +138,19 @@ export function useInteractionDispatcher({
   // ─── Seat tap sub-handlers ───────────────────────────────────────────────
 
   const handleSeatingTap = useCallback(
-    (index: number) => {
-      if (mySeatNumber !== null && index === mySeatNumber) {
-        showLeaveSeatDialog(index);
+    (seat: number) => {
+      if (mySeatNumber !== null && seat === mySeatNumber) {
+        showLeaveSeatDialog(seat);
       } else {
-        showEnterSeatDialog(index);
+        showEnterSeatDialog(seat);
       }
     },
     [mySeatNumber, showLeaveSeatDialog, showEnterSeatDialog],
   );
 
   const handleActionTap = useCallback(
-    (index: number) => {
-      const intent = getActionIntent(index);
+    (seat: number) => {
+      const intent = getActionIntent(seat);
       if (intent) {
         void handleActionIntent(intent).catch((err) =>
           roomScreenLog.error('[handleActionTap] Unhandled error in handleActionIntent', err),
@@ -185,7 +185,7 @@ export function useInteractionDispatcher({
         if (!gameState) return [];
         return Array.from(gameState.players.entries())
           .filter(([, player]) => player?.isBot)
-          .map(([seatIndex]) => seatIndex);
+          .map(([seat]) => seat);
       },
     }),
     [
@@ -228,10 +228,10 @@ export function useInteractionDispatcher({
         case 'SHOW_DIALOG':
           switch (result.dialogType) {
             case 'seatingEnter':
-              if (result.seatIndex !== undefined) showEnterSeatDialog(result.seatIndex);
+              if (result.seat !== undefined) showEnterSeatDialog(result.seat);
               return;
             case 'seatingLeave':
-              if (result.seatIndex !== undefined) showLeaveSeatDialog(result.seatIndex);
+              if (result.seat !== undefined) showLeaveSeatDialog(result.seat);
               return;
             case 'roleCard':
               {
@@ -253,9 +253,9 @@ export function useInteractionDispatcher({
 
         case 'SEATING_FLOW':
           roomScreenLog.debug('[dispatchInteraction] SEATING_FLOW', {
-            seatIndex: result.seatIndex,
+            seat: result.seat,
           });
-          handleSeatingTap(result.seatIndex);
+          handleSeatingTap(result.seat);
           return;
 
         case 'ACTION_FLOW':
@@ -263,8 +263,8 @@ export function useInteractionDispatcher({
             void handleActionIntent(result.intent).catch((err) =>
               roomScreenLog.error('[ACTION_FLOW] Unhandled error in handleActionIntent', err),
             );
-          } else if (result.seatIndex !== undefined) {
-            handleActionTap(result.seatIndex);
+          } else if (result.seat !== undefined) {
+            handleActionTap(result.seat);
           }
           return;
 
@@ -315,9 +315,9 @@ export function useInteractionDispatcher({
 
         case 'TAKEOVER_BOT_SEAT':
           roomScreenLog.debug('[dispatchInteraction] TAKEOVER_BOT_SEAT', {
-            seatIndex: result.seatIndex,
+            seat: result.seat,
           });
-          setControlledSeat(result.seatIndex);
+          setControlledSeat(result.seat);
           return;
 
         case 'RELEASE_BOT_SEAT':
@@ -355,15 +355,15 @@ export function useInteractionDispatcher({
   // ─── Public seat tap handlers ────────────────────────────────────────────
 
   const onSeatTapped = useCallback(
-    (index: number, disabledReason?: string) => {
-      dispatchInteraction({ kind: 'SEAT_TAP', seatIndex: index, disabledReason });
+    (seat: number, disabledReason?: string) => {
+      dispatchInteraction({ kind: 'SEAT_TAP', seat: seat, disabledReason });
     },
     [dispatchInteraction],
   );
 
   const onSeatLongPressed = useCallback(
-    (seatIndex: number) => {
-      dispatchInteraction({ kind: 'TAKEOVER_BOT_SEAT', seatIndex });
+    (seat: number) => {
+      dispatchInteraction({ kind: 'TAKEOVER_BOT_SEAT', seat });
     },
     [dispatchInteraction],
   );

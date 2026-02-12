@@ -42,14 +42,14 @@ function createBaseContext(overrides: Partial<InteractionContext> = {}): Interac
   };
 }
 
-function createSeatTapEvent(seatIndex: number, disabledReason?: string): InteractionEvent {
-  return { kind: 'SEAT_TAP', seatIndex, disabledReason };
+function createSeatTapEvent(seat: number, disabledReason?: string): InteractionEvent {
+  return { kind: 'SEAT_TAP', seat, disabledReason };
 }
 
 function createBottomActionEvent(): InteractionEvent {
   return {
     kind: 'BOTTOM_ACTION',
-    intent: { type: 'actionConfirm', targetIndex: 1, message: 'Test' },
+    intent: { type: 'actionConfirm', targetSeat: 1, message: 'Test' },
   };
 }
 
@@ -316,7 +316,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
       const result = getInteractionResult(ctx, event);
 
       expect(result.kind).toBe('SEATING_FLOW');
-      expect(result).toHaveProperty('seatIndex', 3);
+      expect(result).toHaveProperty('seat', 3);
     });
 
     test('routes to SEATING_FLOW during seated phase', () => {
@@ -326,7 +326,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
       const result = getInteractionResult(ctx, event);
 
       expect(result.kind).toBe('SEATING_FLOW');
-      expect(result).toHaveProperty('seatIndex', 5);
+      expect(result).toHaveProperty('seat', 5);
     });
 
     test('routes to ACTION_FLOW when imActioner during ongoing', () => {
@@ -339,7 +339,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
       const result = getInteractionResult(ctx, event);
 
       expect(result.kind).toBe('ACTION_FLOW');
-      expect(result).toHaveProperty('seatIndex', 2);
+      expect(result).toHaveProperty('seat', 2);
     });
 
     test('returns NOOP when not actioner during ongoing', () => {

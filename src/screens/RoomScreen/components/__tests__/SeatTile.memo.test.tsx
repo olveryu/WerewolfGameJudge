@@ -39,7 +39,7 @@ beforeEach(() => {
 
 describe('SeatTile memo optimization', () => {
   const baseProps: SeatTileProps = {
-    index: 0,
+    seat: 0,
     roomNumber: '1234',
     tileSize: 80,
     disabled: false,
@@ -132,7 +132,7 @@ describe('SeatTile memo logic', () => {
   it('should correctly compare all UI-relevant props', () => {
     // This test validates that default memo shallow-compares all props
     const props1: SeatTileProps = {
-      index: 0,
+      seat: 0,
       roomNumber: '1234',
       tileSize: 80,
       disabled: false,
@@ -158,7 +158,7 @@ describe('SeatTile memo logic', () => {
     };
 
     // Verify props2 differs only in isSelected
-    expect(props1.index).toBe(props2.index);
+    expect(props1.seat).toBe(props2.seat);
     expect(props1.isSelected).not.toBe(props2.isSelected);
   });
 
@@ -166,7 +166,7 @@ describe('SeatTile memo logic', () => {
     // Verify that SeatTileProps has styles property
     // Styles are created once in PlayerGrid and passed to all tiles
     const props: SeatTileProps = {
-      index: 0,
+      seat: 0,
       roomNumber: '1234',
       tileSize: 80,
       disabled: false,
@@ -224,7 +224,7 @@ describe('createSeatTileStyles optimization', () => {
     // Simulate 12 tiles receiving the same styles reference
     const tilePropsArray = Array.from({ length: 12 }, (_, i) => ({
       ...baseProps,
-      index: i,
+      seat: i,
       playerDisplayName: `Player ${i + 1}`,
       styles: gridStyles, // Same reference for all
     }));
@@ -236,7 +236,7 @@ describe('createSeatTileStyles optimization', () => {
 
   // Helper for base props in this describe block
   const baseProps: Omit<SeatTileProps, 'styles'> = {
-    index: 0,
+    seat: 0,
     roomNumber: '1234',
     tileSize: 80,
     disabled: false,

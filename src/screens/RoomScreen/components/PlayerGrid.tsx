@@ -26,12 +26,12 @@ interface PlayerGridProps {
   roomNumber: string;
   /**
    * Callback when a seat is pressed.
-   * Always called with seatIndex and optional disabledReason.
+   * Always called with seat and optional disabledReason.
    * Caller (RoomScreen) is responsible for handling the logic.
    */
-  onSeatPress: (seatIndex: number, disabledReason?: string) => void;
+  onSeatPress: (seat: number, disabledReason?: string) => void;
   /** Callback when a seat is long-pressed (for bot takeover in debug mode) */
-  onSeatLongPress?: (seatIndex: number) => void;
+  onSeatLongPress?: (seat: number) => void;
   /** Whether seat presses are disabled (e.g., during audio) */
   disabled?: boolean;
   /** Currently controlled bot seat (debug mode) */
@@ -79,8 +79,8 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
 
   // Stable callback reference that uses ref internally
   const handleSeatPress = useCallback(
-    (seatIndex: number, disabledReason?: string) => {
-      onSeatPressRef.current(seatIndex, disabledReason);
+    (seat: number, disabledReason?: string) => {
+      onSeatPressRef.current(seat, disabledReason);
     },
     [], // No dependencies - callback is stable, always uses ref
   );
@@ -92,8 +92,8 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   });
 
   const handleSeatLongPress = useCallback(
-    (seatIndex: number) => {
-      onSeatLongPressRef.current?.(seatIndex);
+    (seat: number) => {
+      onSeatLongPressRef.current?.(seat);
     },
     [], // No dependencies - callback is stable, always uses ref
   );
@@ -102,8 +102,8 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
     <View style={styles.gridContainer}>
       {seats.map((seat) => (
         <SeatTile
-          key={`seat-${seat.index}`}
-          index={seat.index}
+          key={`seat-${seat.seat}`}
+          seat={seat.seat}
           roomNumber={roomNumber}
           tileSize={tileSize}
           disabled={disabled}
@@ -112,7 +112,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           isWolf={seat.isWolf}
           isSelected={seat.isSelected}
           isBot={seat.player?.isBot === true}
-          isControlled={controlledSeat === seat.index}
+          isControlled={controlledSeat === seat.seat}
           playerUid={seat.player?.uid ?? null}
           playerAvatarUrl={seat.player?.avatarUrl}
           playerAvatarIndex={seat.player?.uid ? avatarMap.get(seat.player.uid) : undefined}

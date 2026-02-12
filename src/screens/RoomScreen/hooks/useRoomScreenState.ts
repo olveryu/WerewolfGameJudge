@@ -153,11 +153,11 @@ export function useRoomScreenState(
   // Local UI state
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const [anotherIndex, setAnotherIndex] = useState<number | null>(null);
-  const [secondSeatIndex, setSecondSeatIndex] = useState<number | null>(null);
+  const [firstSwapSeat, setFirstSwapSeat] = useState<number | null>(null);
+  const [secondSeat, setSecondSeat] = useState<number | null>(null);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [seatModalVisible, setSeatModalVisible] = useState(false);
-  const [pendingSeatIndex, setPendingSeatIndex] = useState<number | null>(null);
+  const [pendingSeat, setPendingSeat] = useState<number | null>(null);
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
 
   // ── Wolf vote countdown tick ─────────────────────────────────────────────
@@ -276,17 +276,17 @@ export function useRoomScreenState(
     const skipConstraints =
       currentSchema?.id === 'wolfRobotLearn' && gameState.wolfRobotReveal != null;
 
-    return buildSeatViewModels(gameState, actorSeatForUi, showWolves, anotherIndex, {
+    return buildSeatViewModels(gameState, actorSeatForUi, showWolves, firstSwapSeat, {
       schemaConstraints: imActioner && !skipConstraints ? currentSchemaConstraints : undefined,
-      secondSelectedIndex: secondSeatIndex,
+      secondSelectedSeat: secondSeat,
       showReadyBadges: roomStatus === GameStatus.assigned || roomStatus === GameStatus.ready,
     });
   }, [
     gameState,
     actorSeatForUi,
     showWolves,
-    anotherIndex,
-    secondSeatIndex,
+    firstSwapSeat,
+    secondSeat,
     imActioner,
     currentSchemaConstraints,
     currentSchema?.id,
@@ -319,7 +319,7 @@ export function useRoomScreenState(
     if (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) {
       roomScreenLog.debug('[useRoomScreenState] Resetting UI state for restart', { roomStatus });
       setIsStartingGame(false);
-      setAnotherIndex(null);
+      setFirstSwapSeat(null);
     }
   }, [gameState, roomStatus]);
 
@@ -337,7 +337,7 @@ export function useRoomScreenState(
       actorSeatNumber: actorSeatForUi,
       actorRole: actorRoleForUi,
       isAudioPlaying,
-      anotherIndex,
+      firstSwapSeat,
       countdownTick,
     }),
     [
@@ -349,7 +349,7 @@ export function useRoomScreenState(
       actorSeatForUi,
       actorRoleForUi,
       isAudioPlaying,
-      anotherIndex,
+      firstSwapSeat,
       countdownTick,
     ],
   );
@@ -385,8 +385,8 @@ export function useRoomScreenState(
   }, [leaveRoom, audioService]);
 
   const seatDialogs = useRoomSeatDialogs({
-    pendingSeatIndex,
-    setPendingSeatIndex,
+    pendingSeat,
+    setPendingSeat,
     setSeatModalVisible,
     setModalType,
     takeSeat,
@@ -426,9 +426,9 @@ export function useRoomScreenState(
     imActioner,
     isAudioPlaying,
     myUid,
-    anotherIndex,
-    setAnotherIndex,
-    setSecondSeatIndex,
+    firstSwapSeat,
+    setFirstSwapSeat,
+    setSecondSeat,
     submitAction,
     submitWolfVote,
     submitRevealAckSafe,
@@ -618,7 +618,7 @@ export function useRoomScreenState(
 
     // ── Seat modal ──
     seatModalVisible,
-    pendingSeatIndex,
+    pendingSeat,
     modalType,
     handleConfirmSeat,
     handleCancelSeat,

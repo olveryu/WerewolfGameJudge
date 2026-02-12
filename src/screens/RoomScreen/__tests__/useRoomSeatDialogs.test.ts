@@ -46,8 +46,8 @@ describe('useRoomSeatDialogs', () => {
   });
 
   const createHookParams = (overrides: Partial<Parameters<typeof useRoomSeatDialogs>[0]> = {}) => ({
-    pendingSeatIndex: null as number | null,
-    setPendingSeatIndex: mockSetPendingSeatIndex,
+    pendingSeat: null as number | null,
+    setPendingSeat: mockSetPendingSeatIndex,
     setSeatModalVisible: mockSetSeatModalVisible,
     setModalType: mockSetModalType,
     takeSeat: mockTakeSeat,
@@ -62,7 +62,7 @@ describe('useRoomSeatDialogs', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('showEnterSeatDialog', () => {
-    it('should set pendingSeatIndex, modalType to enter, and show modal', () => {
+    it('should set pendingSeat, modalType to enter, and show modal', () => {
       const { result } = renderHook(() => useRoomSeatDialogs(createHookParams()));
 
       act(() => {
@@ -80,7 +80,7 @@ describe('useRoomSeatDialogs', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('showLeaveSeatDialog', () => {
-    it('should set pendingSeatIndex, modalType to leave, and show modal', () => {
+    it('should set pendingSeat, modalType to leave, and show modal', () => {
       const { result } = renderHook(() => useRoomSeatDialogs(createHookParams()));
 
       act(() => {
@@ -98,11 +98,11 @@ describe('useRoomSeatDialogs', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('handleConfirmSeat', () => {
-    it('should early return when pendingSeatIndex is null', async () => {
+    it('should early return when pendingSeat is null', async () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
-            pendingSeatIndex: null,
+            pendingSeat: null,
           }),
         ),
       );
@@ -121,7 +121,7 @@ describe('useRoomSeatDialogs', () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
-            pendingSeatIndex: 2,
+            pendingSeat: 2,
           }),
         ),
       );
@@ -142,7 +142,7 @@ describe('useRoomSeatDialogs', () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
-            pendingSeatIndex: 4,
+            pendingSeat: 4,
           }),
         ),
       );
@@ -163,11 +163,11 @@ describe('useRoomSeatDialogs', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('handleCancelSeat', () => {
-    it('should close modal and reset pendingSeatIndex', () => {
+    it('should close modal and reset pendingSeat', () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
-            pendingSeatIndex: 7,
+            pendingSeat: 7,
           }),
         ),
       );
@@ -186,11 +186,11 @@ describe('useRoomSeatDialogs', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('handleConfirmLeave', () => {
-    it('should early return when pendingSeatIndex is null', async () => {
+    it('should early return when pendingSeat is null', async () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
-            pendingSeatIndex: null,
+            pendingSeat: null,
           }),
         ),
       );
@@ -203,13 +203,13 @@ describe('useRoomSeatDialogs', () => {
       expect(mockSetSeatModalVisible).not.toHaveBeenCalled();
     });
 
-    it('should call leaveSeat and close modal when pendingSeatIndex is set', async () => {
+    it('should call leaveSeat and close modal when pendingSeat is set', async () => {
       mockLeaveSeat.mockResolvedValue(undefined);
 
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
-            pendingSeatIndex: 3,
+            pendingSeat: 3,
           }),
         ),
       );

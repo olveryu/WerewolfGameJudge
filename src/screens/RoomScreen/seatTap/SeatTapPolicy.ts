@@ -37,13 +37,13 @@ interface SeatTapResultAlert {
 /** Result when seating flow should be triggered */
 interface SeatTapResultSeatingFlow {
   kind: 'SEATING_FLOW';
-  seatIndex: number;
+  seat: number;
 }
 
 /** Result when action flow should be triggered */
 interface SeatTapResultActionFlow {
   kind: 'ACTION_FLOW';
-  seatIndex: number;
+  seat: number;
 }
 
 /** Union of all possible seat tap results */
@@ -60,7 +60,7 @@ export interface SeatTapPolicyInput {
   /** Whether audio is currently playing (gate) */
   isAudioPlaying: boolean;
   /** The seat index that was tapped */
-  seatIndex: number;
+  seat: number;
   /** UX-only disabled reason from SeatViewModel (e.g., "不能选择自己") */
   disabledReason?: string;
   /** Whether the current player can act (imActioner) - used for ongoing phase */
@@ -83,7 +83,7 @@ export interface SeatTapPolicyInput {
  * @returns An instruction telling the caller what to do
  */
 export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
-  const { roomStatus, isAudioPlaying, seatIndex, disabledReason, imActioner, hasGameState } = input;
+  const { roomStatus, isAudioPlaying, seat, disabledReason, imActioner, hasGameState } = input;
 
   // Guard: no game state
   if (!hasGameState) {
@@ -117,13 +117,13 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
 
   // Seating phase: allow seat selection/leaving
   if (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) {
-    return { kind: 'SEATING_FLOW', seatIndex };
+    return { kind: 'SEATING_FLOW', seat };
   }
 
   // Ongoing phase: action flow if player can act
   if (roomStatus === GameStatus.ongoing) {
     if (imActioner) {
-      return { kind: 'ACTION_FLOW', seatIndex };
+      return { kind: 'ACTION_FLOW', seat };
     }
     // Player cannot act (not their turn, already acted, etc.)
     return { kind: 'NOOP', reason: 'not_actioner' };

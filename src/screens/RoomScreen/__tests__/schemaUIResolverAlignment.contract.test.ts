@@ -180,7 +180,7 @@ describe('UI reads constraints from schema (no hardcode)', () => {
    *
    * 相关代码：
    * - RoomScreen.tsx: currentSchemaConstraints = currentSchema.constraints
-   * - RoomScreen.helpers.ts: if (options?.schemaConstraints?.includes('notSelf') && index === mySeatNumber)
+   * - RoomScreen.helpers.ts: if (options?.schemaConstraints?.includes('notSelf') && seat === actorSeatNumber)
    */
   it('buildSeatViewModels uses schemaConstraints parameter (not hardcoded role checks)', () => {
     // 这个测试在 RoomScreen.helpers.test.ts 中有详细覆盖

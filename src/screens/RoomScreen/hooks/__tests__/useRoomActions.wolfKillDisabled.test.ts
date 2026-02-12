@@ -27,7 +27,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     actorSeatNumber: 0,
     actorRole: 'wolf',
     isAudioPlaying: false,
-    anotherIndex: null,
+    firstSwapSeat: null,
   };
   return { ...base, ...overrides };
 }
@@ -47,7 +47,7 @@ describe('useRoomActions wolf vote (Host-authoritative)', () => {
       const intent = result.current.getActionIntent(3);
       expect(intent).not.toBeNull();
       expect(intent?.type).toBe('wolfVote');
-      expect(intent?.targetIndex).toBe(3);
+      expect(intent?.targetSeat).toBe(3);
     });
 
     it('returns null for non-wolf (not their turn)', () => {

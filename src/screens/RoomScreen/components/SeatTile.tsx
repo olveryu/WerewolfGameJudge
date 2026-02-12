@@ -59,7 +59,7 @@ export interface SeatTileStyles {
 
 export interface SeatTileProps {
   // Primitive props for stable comparison
-  index: number;
+  seat: number;
   roomNumber: string;
   tileSize: number;
   disabled: boolean;
@@ -72,7 +72,7 @@ export interface SeatTileProps {
   // Player info (null if empty seat)
   playerUid: string | null;
   playerAvatarUrl?: string;
-  /** Pre-computed unique avatar index (from room-level dedup). Undefined = use hash fallback. */
+  /** Pre-computed unique avatar seat (from room-level dedup). Undefined = use hash fallback. */
   playerAvatarIndex?: number;
   playerDisplayName: string | null;
   // Role info for bot display (debug mode only)
@@ -84,13 +84,13 @@ export interface SeatTileProps {
   wolfVoteTarget?: number;
   // Styles (created once in PlayerGrid)
   styles: SeatTileStyles;
-  onPress: (seatIndex: number, disabledReason?: string) => void;
+  onPress: (seat: number, disabledReason?: string) => void;
   /** Long press callback for takeover bot seat (debug mode) */
-  onLongPress?: (seatIndex: number) => void;
+  onLongPress?: (seat: number) => void;
 }
 
 const SeatTileComponent: React.FC<SeatTileProps> = ({
-  index,
+  seat,
   roomNumber,
   tileSize,
   disabled,
@@ -115,12 +115,12 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   // Note: onPress callback stability is handled by PlayerGrid using ref pattern.
   // SeatTile receives a stable callback that always calls the latest parent callback.
   const handlePress = useCallback(() => {
-    onPress(index, disabledReason);
-  }, [onPress, index, disabledReason]);
+    onPress(seat, disabledReason);
+  }, [onPress, seat, disabledReason]);
 
   const handleLongPress = useCallback(() => {
-    onLongPress?.(index);
-  }, [onLongPress, index]);
+    onLongPress?.(seat);
+  }, [onLongPress, seat]);
 
   const hasPlayer = playerUid !== null;
 
@@ -186,10 +186,10 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   const botRoleDisplayName = showBotRole && roleId ? getRoleDisplayName(roleId) : null;
 
   return (
-    <View style={styles.tileWrapper} testID={TESTIDS.seatTile(index)}>
+    <View style={styles.tileWrapper} testID={TESTIDS.seatTile(seat)}>
       <TouchableOpacity
-        testID={TESTIDS.seatTilePressable(index)}
-        accessibilityLabel={TESTIDS.seatTilePressable(index)}
+        testID={TESTIDS.seatTilePressable(seat)}
+        accessibilityLabel={TESTIDS.seatTilePressable(seat)}
         style={[
           styles.playerTile,
           isMySpot && styles.mySpotTile,
@@ -238,7 +238,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 
       {/* Floating seat number badge - overlaps top-left corner of tile */}
       <View style={styles.seatNumberBadge}>
-        <Text style={styles.seatNumberText}>{index + 1}</Text>
+        <Text style={styles.seatNumberText}>{seat + 1}</Text>
       </View>
       {hasPlayer ? (
         <>

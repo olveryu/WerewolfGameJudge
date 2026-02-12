@@ -42,7 +42,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     actorSeatNumber: 0,
     actorRole: 'seer',
     isAudioPlaying: false,
-    anotherIndex: null,
+    firstSwapSeat: null,
     ...overrides,
   };
 }
@@ -170,7 +170,7 @@ describe('B) 狼人投票 - UI 返回正常 wolfVote intent', () => {
       expect(bottomAction.buttons[0].key).toBe('wolfEmpty');
       expect(bottomAction.buttons[0].label).toBe('空刀');
       expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
-      expect(bottomAction.buttons[0].intent.targetIndex).toBe(-1); // empty vote
+      expect(bottomAction.buttons[0].intent.targetSeat).toBe(-1); // empty vote
     });
   });
 });

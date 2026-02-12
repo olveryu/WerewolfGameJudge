@@ -2,7 +2,7 @@
  * Tests for getAutoTriggerIntent with swap schema (magician)
  *
  * Regression test for: Magician should not re-trigger actionPrompt
- * after selecting the first seat (anotherIndex is set).
+ * after selecting the first seat (firstSwapSeat is set).
  */
 import { renderHook } from '@testing-library/react-native';
 
@@ -22,7 +22,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     actorSeatNumber: 0,
     actorRole: 'magician',
     isAudioPlaying: false,
-    anotherIndex: null,
+    firstSwapSeat: null,
   };
   return { ...base, ...overrides };
 }
@@ -34,18 +34,18 @@ const defaultDeps = {
 };
 
 describe('useRoomActions.getAutoTriggerIntent (swap schema)', () => {
-  it('returns actionPrompt when anotherIndex is null (first seat not yet selected)', () => {
-    const ctx = makeContext({ anotherIndex: null });
+  it('returns actionPrompt when firstSwapSeat is null (first seat not yet selected)', () => {
+    const ctx = makeContext({ firstSwapSeat: null });
     const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
     const intent = result.current.getAutoTriggerIntent();
 
-    expect(intent).toEqual({ type: 'actionPrompt', targetIndex: -1 });
+    expect(intent).toEqual({ type: 'actionPrompt', targetSeat: -1 });
   });
 
-  it('returns null when anotherIndex is set (first seat already selected)', () => {
+  it('returns null when firstSwapSeat is set (first seat already selected)', () => {
     // This is the regression fix: after selecting first seat, should NOT re-trigger prompt
-    const ctx = makeContext({ anotherIndex: 2 });
+    const ctx = makeContext({ firstSwapSeat: 2 });
     const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
     const intent = result.current.getAutoTriggerIntent();

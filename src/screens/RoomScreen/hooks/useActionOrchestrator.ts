@@ -50,15 +50,15 @@ interface UseActionOrchestratorParams {
   myUid: string | null;
 
   // ── Magician state (owned by RoomScreen, passed in + out) ──
-  anotherIndex: number | null;
-  setAnotherIndex: (v: number | null) => void;
-  setSecondSeatIndex: (v: number | null) => void;
+  firstSwapSeat: number | null;
+  setFirstSwapSeat: (v: number | null) => void;
+  setSecondSeat: (v: number | null) => void;
 
   // ── Submission callbacks ──
-  submitAction: (targetIndex: number | null, extra?: unknown) => Promise<void>;
-  submitWolfVote: (targetIndex: number) => Promise<void>;
+  submitAction: (targetSeat: number | null, extra?: unknown) => Promise<void>;
+  submitWolfVote: (targetSeat: number) => Promise<void>;
   submitRevealAckSafe: (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => void;
-  sendWolfRobotHunterStatusViewed: (seatIndex: number) => Promise<void>;
+  sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
 
   // ── Intent helpers (from useRoomActions) ──
   getAutoTriggerIntent: () => ActionIntent | null;
@@ -95,9 +95,9 @@ export function useActionOrchestrator({
   imActioner,
   isAudioPlaying,
   myUid,
-  anotherIndex,
-  setAnotherIndex,
-  setSecondSeatIndex,
+  firstSwapSeat,
+  setFirstSwapSeat,
+  setSecondSeat,
   submitAction,
   submitWolfVote,
   submitRevealAckSafe,
@@ -128,8 +128,8 @@ export function useActionOrchestrator({
   // ─── Submission helpers ──────────────────────────────────────────────────
 
   const proceedWithAction = useCallback(
-    async (targetIndex: number | null, extra?: unknown): Promise<boolean> => {
-      await submitAction(targetIndex, extra);
+    async (targetSeat: number | null, extra?: unknown): Promise<boolean> => {
+      await submitAction(targetSeat, extra);
       // Submission success/failure UX is handled by the state-driven
       // `gameState.actionRejected` effect below (covers submitAction + submitWolfVote).
       return true;
@@ -167,8 +167,8 @@ export function useActionOrchestrator({
   );
 
   const proceedWithActionTyped = useCallback(
-    async (targetIndex: number | null, extra?: ActionExtra): Promise<boolean> => {
-      return proceedWithAction(targetIndex, extra);
+    async (targetSeat: number | null, extra?: ActionExtra): Promise<boolean> => {
+      return proceedWithAction(targetSeat, extra);
     },
     [proceedWithAction],
   );
@@ -179,25 +179,25 @@ export function useActionOrchestrator({
   }, [currentSchema]);
 
   const getConfirmTextForSeatAction = useCallback(
-    (targetIndex: number): string => {
+    (targetSeat: number): string => {
       return currentSchema?.kind === 'chooseSeat'
         ? currentSchema.ui!.confirmText!
-        : `是否对${targetIndex + 1}号玩家使用技能？`;
+        : `是否对${targetSeat + 1}号玩家使用技能？`;
     },
     [currentSchema],
   );
 
   const confirmThenAct = useCallback(
     (
-      targetIndex: number,
+      targetSeat: number,
       onAccepted: () => Promise<void> | void,
       opts?: { title?: string; message?: string },
     ) => {
       const title = opts?.title ?? getConfirmTitleForSchema();
-      const message = opts?.message ?? getConfirmTextForSeatAction(targetIndex);
+      const message = opts?.message ?? getConfirmTextForSeatAction(targetSeat);
 
       actionDialogs.showConfirmDialog(title, message, async () => {
-        const accepted = await proceedWithActionTyped(targetIndex);
+        const accepted = await proceedWithActionTyped(targetSeat);
         if (!accepted) return;
         await onAccepted();
       });
@@ -241,10 +241,10 @@ export function useActionOrchestrator({
       switch (intent.type) {
         case 'magicianFirst':
           roomScreenLog.debug('[handleActionIntent] magicianFirst', {
-            targetIndex: intent.targetIndex,
+            targetSeat: intent.targetSeat,
           });
-          setAnotherIndex(intent.targetIndex);
-          actionDialogs.showMagicianFirstAlert(intent.targetIndex, currentSchema!);
+          setFirstSwapSeat(intent.targetSeat);
+          actionDialogs.showMagicianFirstAlert(intent.targetSeat, currentSchema!);
           break;
 
         case 'reveal': {
@@ -273,7 +273,7 @@ export function useActionOrchestrator({
             }
           };
 
-          confirmThenAct(intent.targetIndex, async () => {
+          confirmThenAct(intent.targetSeat, async () => {
             setPendingRevealDialog(true);
 
             const maxRetries = 10;
@@ -324,7 +324,7 @@ export function useActionOrchestrator({
               effectiveRole,
               controlledSeat,
               seat,
-              targetIndex: intent.targetIndex,
+              targetSeat: intent.targetSeat,
             });
             if (seat === null) {
               roomScreenLog.warn(
@@ -335,19 +335,19 @@ export function useActionOrchestrator({
             }
             actionDialogs.showWolfVoteDialog(
               `${seat + 1}号狼人`,
-              intent.targetIndex,
-              () => void submitWolfVote(intent.targetIndex),
+              intent.targetSeat,
+              () => void submitWolfVote(intent.targetSeat),
               (() => {
                 // Only override for immune targets — normal text comes from schema templates.
-                if (intent.targetIndex < 0) return undefined;
-                const targetRole = gameStateRef.current?.players?.get(intent.targetIndex)?.role;
+                if (intent.targetSeat < 0) return undefined;
+                const targetRole = gameStateRef.current?.players?.get(intent.targetSeat)?.role;
                 if (currentSchema?.id !== 'wolfKill' || !targetRole) return undefined;
                 const immune = targetRole === 'spiritKnight' || targetRole === 'wolfQueen';
                 if (!immune) return undefined;
                 const tpl = currentSchema.ui!.voteConfirmTemplate!;
                 const resolved = tpl
                   .replace('{wolf}', `${seat + 1}号狼人`)
-                  .replace('{seat}', `${intent.targetIndex + 1}`);
+                  .replace('{seat}', `${intent.targetSeat + 1}`);
                 return `${resolved}\n（提示：该角色免疫狼刀，Host 会拒绝）`;
               })(),
               currentSchema!,
@@ -359,28 +359,28 @@ export function useActionOrchestrator({
           roomScreenLog.debug('[actionConfirm] Processing:', {
             effectiveRole,
             effectiveSeat,
-            anotherIndex,
+            firstSwapSeat,
             schemaKind: currentSchema?.kind,
             schemaId: currentSchema?.id,
-            'intent.targetIndex': intent.targetIndex,
+            'intent.targetSeat': intent.targetSeat,
             'intent.stepKey': intent.stepKey,
           });
 
-          if (effectiveRole === 'magician' && anotherIndex !== null) {
-            const swapTargets: [number, number] = [anotherIndex, intent.targetIndex];
-            setSecondSeatIndex(intent.targetIndex);
+          if (effectiveRole === 'magician' && firstSwapSeat !== null) {
+            const swapTargets: [number, number] = [firstSwapSeat, intent.targetSeat];
+            setSecondSeat(intent.targetSeat);
             setTimeout(() => {
               actionDialogs.showConfirmDialog(
                 currentSchema!.ui!.confirmTitle!,
                 intent.message!,
                 () => {
-                  setAnotherIndex(null);
-                  setSecondSeatIndex(null);
+                  setFirstSwapSeat(null);
+                  setSecondSeat(null);
                   void proceedWithActionTyped(null, { targets: swapTargets });
                 },
                 () => {
-                  setAnotherIndex(null);
-                  setSecondSeatIndex(null);
+                  setFirstSwapSeat(null);
+                  setSecondSeat(null);
                 },
               );
             }, 0);
@@ -399,23 +399,23 @@ export function useActionOrchestrator({
               targetToSubmit = effectiveSeat;
               if (stepSchema?.key === 'save') {
                 extra = buildWitchStepResults({
-                  saveTarget: intent.targetIndex,
+                  saveTarget: intent.targetSeat,
                   poisonTarget: null,
                 });
               } else if (stepSchema?.key === 'poison') {
                 extra = buildWitchStepResults({
                   saveTarget: null,
-                  poisonTarget: intent.targetIndex,
+                  poisonTarget: intent.targetSeat,
                 });
               }
             } else {
-              targetToSubmit = intent.targetIndex;
+              targetToSubmit = intent.targetSeat;
             }
 
             roomScreenLog.debug('[actionConfirm] Submitting:', {
               schemaKind: currentSchema?.kind,
               targetToSubmit,
-              'intent.targetIndex': intent.targetIndex,
+              'intent.targetSeat': intent.targetSeat,
               extra,
             });
 
@@ -614,7 +614,7 @@ export function useActionOrchestrator({
       gameState,
       effectiveRole,
       effectiveSeat,
-      anotherIndex,
+      firstSwapSeat,
       actionDialogs,
       buildWitchStepResults,
       confirmThenAct,
@@ -626,8 +626,8 @@ export function useActionOrchestrator({
       sendWolfRobotHunterStatusViewed,
       submitRevealAckSafe,
       submitWolfVote,
-      setAnotherIndex,
-      setSecondSeatIndex,
+      setFirstSwapSeat,
+      setSecondSeat,
       controlledSeat,
     ],
   );
@@ -659,7 +659,7 @@ export function useActionOrchestrator({
       imActioner ? 'A' : 'N',
       isAudioPlaying ? 'P' : 'S',
       effectiveRole ?? 'null',
-      anotherIndex ?? 'null',
+      firstSwapSeat ?? 'null',
       autoIntent.type,
     ].join('|');
 
@@ -677,7 +677,7 @@ export function useActionOrchestrator({
     isAudioPlaying,
     effectiveRole,
     actorSeatForUi,
-    anotherIndex,
+    firstSwapSeat,
     roomStatus,
     currentActionRole,
     gameState?.currentStepIndex,

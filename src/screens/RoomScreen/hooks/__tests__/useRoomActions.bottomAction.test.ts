@@ -25,7 +25,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     actorSeatNumber: 0,
     actorRole: 'seer',
     isAudioPlaying: false,
-    anotherIndex: null,
+    firstSwapSeat: null,
   };
   return { ...base, ...overrides };
 }
@@ -99,7 +99,7 @@ describe('useRoomActions.getBottomAction (Host-authoritative)', () => {
           label: '空刀',
           intent: {
             type: 'wolfVote',
-            targetIndex: -1,
+            targetSeat: -1,
             wolfSeat: 0,
           },
         },
@@ -169,7 +169,7 @@ describe('useRoomActions.getBottomAction (Host-authoritative)', () => {
     // UI no longer forces skip - normal wolfVote button
     expect(bottomAction.buttons).toHaveLength(1);
     expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
-    expect(bottomAction.buttons[0].intent.targetIndex).toBe(-1);
+    expect(bottomAction.buttons[0].intent.targetSeat).toBe(-1);
     expect(bottomAction.buttons[0].label).toBe('空刀');
   });
 });
@@ -199,7 +199,7 @@ describe('useRoomActions.getActionIntent (Host-authoritative)', () => {
       actorSeatNumber: 0,
       actorRole: 'seer',
       isAudioPlaying: false,
-      anotherIndex: null,
+      firstSwapSeat: null,
     };
 
     const { result } = renderHook(() =>
@@ -214,7 +214,7 @@ describe('useRoomActions.getActionIntent (Host-authoritative)', () => {
     // UI no longer intercepts - returns normal reveal intent
     expect(intent).not.toBeNull();
     expect(intent?.type).toBe('reveal');
-    expect(intent?.targetIndex).toBe(3);
+    expect(intent?.targetSeat).toBe(3);
   });
 
   it('non-blocked player tapping seat returns normal intent', () => {
@@ -241,7 +241,7 @@ describe('useRoomActions.getActionIntent (Host-authoritative)', () => {
       actorSeatNumber: 0,
       actorRole: 'seer',
       isAudioPlaying: false,
-      anotherIndex: null,
+      firstSwapSeat: null,
     };
 
     const { result } = renderHook(() =>
@@ -255,6 +255,6 @@ describe('useRoomActions.getActionIntent (Host-authoritative)', () => {
     const intent = result.current.getActionIntent(3);
     expect(intent).not.toBeNull();
     expect(intent?.type).toBe('reveal');
-    expect(intent?.targetIndex).toBe(3);
+    expect(intent?.targetSeat).toBe(3);
   });
 });
