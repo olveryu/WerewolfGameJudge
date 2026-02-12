@@ -13,8 +13,11 @@ module.exports = {
     '^react-native-worklets$': '<rootDir>/__mocks__/react-native-worklets.ts',
     '^expo-audio$': '<rootDir>/__mocks__/expo-audio.ts',
     '^expo-haptics$': '<rootDir>/__mocks__/expo-haptics.ts',
+    '^expo-image$': '<rootDir>/__mocks__/expo-image.tsx',
+    '^expo-splash-screen$': '<rootDir>/__mocks__/expo-splash-screen.ts',
     '^@react-native-async-storage/async-storage$':
       '<rootDir>/__mocks__/@react-native-async-storage/async-storage.ts',
     '^@expo/vector-icons$': '<rootDir>/__mocks__/@expo/vector-icons.tsx',
+    '^@sentry/react-native$': '<rootDir>/__mocks__/@sentry/react-native.ts',
   },
 };

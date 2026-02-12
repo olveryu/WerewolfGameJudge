@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback,useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -12,6 +14,17 @@ import { ThemeProvider, useTheme } from '@/theme';
 import { AlertConfig,setAlertListener } from '@/utils/alert';
 import { log } from '@/utils/logger';
 
+// Initialize Sentry — DSN is public (like Supabase anon key), safe to commit.
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  // Disable in development to avoid noise
+  enabled: !__DEV__,
+  tracesSampleRate: 0.2,
+});
+
+// Keep splash screen visible while app initializes
+SplashScreen.preventAutoHideAsync();
+
 const appLog = log.extend('App');
 
 function AppContent() {
@@ -24,6 +37,11 @@ function AppContent() {
       setAlertConfig(config);
     });
     return () => setAlertListener(null);
+  }, []);
+
+  // Hide splash screen once app content is ready
+  useEffect(() => {
+    SplashScreen.hideAsync();
   }, []);
 
   const handleAlertClose = useCallback(() => {

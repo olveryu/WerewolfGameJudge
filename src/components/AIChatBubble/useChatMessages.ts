@@ -15,7 +15,7 @@ import { Keyboard } from 'react-native';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import {
   type ChatMessage,
-  getDefaultApiKey,
+  isAIChatReady,
   streamChatMessage,
 } from '@/services/feature/AIChatService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
@@ -64,7 +64,6 @@ export function useChatMessages(
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
-  const apiKey = getDefaultApiKey();
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const loadingRef = useRef(false);
@@ -125,7 +124,7 @@ export function useChatMessages(
     async (text: string) => {
       if (!text || loadingRef.current) return;
       if (cooldownRemaining > 0) return;
-      if (!apiKey) {
+      if (!isAIChatReady()) {
         showAlert('配置错误', 'AI 服务未配置');
         return;
       }
@@ -196,7 +195,6 @@ export function useChatMessages(
 
         for await (const chunk of streamChatMessage(
           contextMessages,
-          apiKey,
           gameContext,
           controller.signal,
         )) {
@@ -273,7 +271,7 @@ export function useChatMessages(
         setIsStreaming(false);
       }
     },
-    [cooldownRemaining, apiKey, facade],
+    [cooldownRemaining, facade],
   );
 
   // ── Public actions ─────────────────────────────────

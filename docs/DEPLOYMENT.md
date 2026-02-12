@@ -95,7 +95,19 @@ supabase db push
 
 > ⚠️ 这是必须的，否则玩家无法加入房间。
 
-### 6. 获取 API Keys
+### 6. 部署 Edge Function（AI 代理）
+
+```bash
+# 设置 GROQ API key（服务端密钥，不会暴露到客户端）
+supabase secrets set GROQ_API_KEY=gsk_你的key
+
+# 部署 Edge Function
+supabase functions deploy groq-proxy
+```
+
+> AI 聊天功能通过 `groq-proxy` Edge Function 代理 Groq API。客户端只需知道 Supabase URL + anon key。
+
+### 7. 获取 API Keys
 
 ```bash
 supabase projects api-keys --project-ref <your-project-ref>
@@ -126,7 +138,8 @@ supabase projects api-keys --project-ref <your-project-ref>
 >
 > `EXPO_PUBLIC_*` 不是 secret —— 会 inline 到 JS bundle，客户端可见。Supabase anon key 是公开的（受 RLS 保护）。
 >
-> `EXPO_PUBLIC_GROQ_API_KEY`（AI 功能）仅存在于 `.env.local`，不提交到 git。
+> `EXPO_PUBLIC_GROQ_API_KEY` 已废弃 —— AI 功能改由 Supabase Edge Function 代理，GROQ API key 存储在服务端 secrets 中。
+> `EXPO_PUBLIC_SENTRY_DSN`（Sentry 崩溃报告）在 `.env` 中配置（公开值，与 anon key 同理）。
 
 ### 零配置开始
 
@@ -299,6 +312,8 @@ vercel alias set <old-deployment-url> werewolf-judge.vercel.app
 | 发版              | `npm run release` (patch) / `npm run release -- minor`  |
 | 部署              | `npm run deploy`                                       |
 | 推送数据库迁移    | `supabase db push`                                     |
+| 部署 Edge Function | `supabase functions deploy groq-proxy`                |
+| 设置 GROQ 密钥    | `supabase secrets set GROQ_API_KEY=gsk_...`            |
 | 获取 API Keys     | `supabase projects api-keys --project-ref <ref>`       |
 | 查看部署别名      | `vercel alias ls`                                      |
 | 回滚部署          | `vercel alias set <old-url> werewolf-judge.vercel.app` |
@@ -309,5 +324,7 @@ vercel alias set <old-deployment-url> werewolf-judge.vercel.app
 
 | 服务     | URL                                      |
 | -------- | ---------------------------------------- |
-| **前端** | https://werewolf-judge.vercel.app        |
-| **后端** | https://abmzjezdvpzyeooqhhsn.supabase.co |
+| **前端**         | https://werewolf-judge.vercel.app         |
+| **后端**         | https://abmzjezdvpzyeooqhhsn.supabase.co |
+| **AI 代理**      | Edge Function `groq-proxy`                |
+| **崩溃监控**     | Sentry                                    |

@@ -6,6 +6,7 @@
  * ✅ 允许：渲染 UI + 上报用户 intent
  * ❌ 禁止：import service / 业务逻辑判断
  */
+import { Image as ExpoImage } from 'expo-image';
 import { memo } from 'react';
 import {
   ActivityIndicator,
@@ -23,6 +24,8 @@ import { SettingsScreenStyles } from './styles';
 export interface AvatarSectionProps {
   isAnonymous: boolean;
   avatarSource: ImageSourcePropType;
+  /** Whether the avatar source is a remote URL (use expo-image) */
+  isRemote?: boolean;
   uploadingAvatar: boolean;
   onPickAvatar: () => void;
   styles: SettingsScreenStyles;
@@ -30,7 +33,7 @@ export interface AvatarSectionProps {
 }
 
 export const AvatarSection = memo<AvatarSectionProps>(
-  ({ isAnonymous, avatarSource, uploadingAvatar, onPickAvatar, styles, colors }) => {
+  ({ isAnonymous, avatarSource, isRemote, uploadingAvatar, onPickAvatar, styles, colors }) => {
     if (isAnonymous) {
       return (
         <View style={styles.avatarPlaceholder}>
@@ -51,7 +54,17 @@ export const AvatarSection = memo<AvatarSectionProps>(
           </View>
         ) : (
           <View>
-            <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
+            {isRemote ? (
+              <ExpoImage
+                source={avatarSource}
+                style={styles.avatar}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="disk"
+              />
+            ) : (
+              <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
+            )}
             <View style={styles.avatarEditBadge}>
               <Text style={styles.avatarEditIcon}>📷</Text>
             </View>

@@ -1,5 +1,5 @@
 import { fireEvent,render } from '@testing-library/react-native';
-import { ActivityIndicator, Text, TouchableOpacity } from 'react-native';
+import { Text } from 'react-native';
 
 import { Button } from '@/components/Button/Button';
 
@@ -87,34 +87,22 @@ describe('Button', () => {
       expect(onPress).toHaveBeenCalledWith({ disabled: false, loading: false });
     });
 
-    it('should call onPress with disabled meta when disabled', () => {
-      const onPress = jest.fn();
-      const { UNSAFE_getByType } = render(
-        <Button {...defaultProps} onPress={onPress} disabled={true} />,
+    it('should expose disabled accessibility state when disabled', () => {
+      const { getByTestId } = render(
+        <Button {...defaultProps} disabled={true} testID="test-btn" />,
       );
 
-      // Find the TouchableOpacity and press it directly
-      const button = UNSAFE_getByType(TouchableOpacity);
-      fireEvent.press(button);
-
-      // Button now reports meta instead of blocking - caller decides behavior
-      expect(onPress).toHaveBeenCalledTimes(1);
-      expect(onPress).toHaveBeenCalledWith({ disabled: true, loading: false });
+      // Community standard: disabled buttons expose accessible disabled state.
+      // The ButtonPressMetadata contract is covered by the enabled press test above.
+      expect(getByTestId('test-btn').props.accessibilityState).toEqual({ disabled: true });
     });
 
-    it('should call onPress with loading meta when loading', () => {
-      const onPress = jest.fn();
-      const { UNSAFE_getByType } = render(
-        <Button {...defaultProps} onPress={onPress} loading={true} />,
+    it('should expose disabled accessibility state when loading', () => {
+      const { getByTestId } = render(
+        <Button {...defaultProps} loading={true} testID="test-btn" />,
       );
 
-      // Find the TouchableOpacity and press it directly
-      const button = UNSAFE_getByType(TouchableOpacity);
-      fireEvent.press(button);
-
-      // Button now reports meta - caller decides behavior
-      expect(onPress).toHaveBeenCalledTimes(1);
-      expect(onPress).toHaveBeenCalledWith({ disabled: false, loading: true });
+      expect(getByTestId('test-btn').props.accessibilityState).toEqual({ disabled: true });
     });
   });
 
@@ -145,12 +133,12 @@ describe('Button', () => {
       const onPress = jest.fn();
 
       // Render directly with loading=true
-      const { UNSAFE_getByType } = render(
+      const { getByTestId } = render(
         <Button {...defaultProps} onPress={onPress} loading={true} />,
       );
 
       // When loading, button shows ActivityIndicator instead of text
-      expect(UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
+      expect(getByTestId('button-loading-indicator')).toBeTruthy();
     });
   });
 

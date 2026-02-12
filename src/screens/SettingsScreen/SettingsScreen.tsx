@@ -204,6 +204,7 @@ export const SettingsScreen: React.FC = () => {
             <AvatarSection
               isAnonymous={user?.isAnonymous ?? true}
               avatarSource={avatarSource}
+              isRemote={!!user?.avatarUrl && !user?.isAnonymous}
               uploadingAvatar={uploadingAvatar}
               onPickAvatar={handlePickAvatar}
               styles={styles}

@@ -8,9 +8,13 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 
 - React Native 0.81 + React 19 + Expo SDK 54
 - TypeScript ~5.9
-- Supabase (auth + realtime broadcast)
+- Supabase (auth + realtime broadcast + Edge Functions)
+- Sentry (crash reporting, production only)
+- expo-image (remote avatar caching)
+- expo-splash-screen
+- Groq Llama 4 Scout (AI chat via Edge Function proxy)
 - Jest 29 (单元/集成测试) | Playwright (E2E)
-- ESLint 8 (`.eslintrc.js`) | Prettier
+- ESLint 9 (`eslint.config.mjs`) | Prettier
 - Path alias: `@/` → `src/`
 
 ## Key Directories
@@ -20,7 +24,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 - `src/services/facade/` — UI 层 facade（编排 + IO）
 - `src/services/transport/` — Supabase realtime broadcast
 - `src/services/infra/` — 基础设施（AudioService / AuthService / RoomService）
-- `src/services/feature/` — 功能服务（SettingsService / AvatarUploadService）
+- `src/services/feature/` — 功能服务（SettingsService / AvatarUploadService / AIChatService）
 - `src/screens/` — React Native screens（Home / Config / Room / Settings）
 - `src/theme/` — Design tokens (`tokens.ts`) + themes (`themes.ts`)
 - `src/components/` — 通用 UI 组件
@@ -33,7 +37,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 ## Common Commands
 
 - `npm run web` — 启动 Web 开发服务器
-- `npx jest --no-coverage --forceExit` — 跑全部单元/集成测试（153 suites / 2428 tests）
+- `npx jest --no-coverage --forceExit` — 跑全部单元/集成测试（165 suites / 2613 tests）
 - `npx playwright test --reporter=list` — 跑 E2E（必须加 `--reporter=list`，否则会阻塞终端）
 - `npx tsc --noEmit` — 类型检查
 - `npm run lint` — ESLint

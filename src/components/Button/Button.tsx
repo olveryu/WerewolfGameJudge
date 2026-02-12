@@ -41,6 +41,7 @@ interface ButtonProps {
   style?: ViewStyle;
   textStyle?: TextStyle;
   icon?: React.ReactNode;
+  testID?: string;
 }
 
 const createStyles = (colors: ThemeColors) => ({
@@ -102,6 +103,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
   style,
   textStyle,
   icon,
+  testID,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -134,6 +136,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
 
   return (
     <TouchableOpacity
+      testID={testID}
       style={[
         styles.base.button,
         variantStyle.button,
@@ -146,7 +149,10 @@ const ButtonComponent: React.FC<ButtonProps> = ({
       accessibilityState={{ disabled: isDisabled }}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' ? colors.primary : colors.textInverse} />
+        <ActivityIndicator
+          testID="button-loading-indicator"
+          color={variant === 'outline' ? colors.primary : colors.textInverse}
+        />
       ) : (
         <>
           {icon}

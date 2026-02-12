@@ -1,7 +1,7 @@
 /**
- * AI Chat Service - Groq (Llama 4 Scout)
+ * AI Chat Service - Groq (Llama 4 Scout) via Supabase Edge Function
  *
- * 使用 Groq 提供 Llama 4 Scout API
+ * 通过 Supabase Edge Function 代理 Groq API，API key 仅存在服务端。
  * 免费额度：30K TPM, 1K RPD（TPM 比 Qwen3 高 5 倍）
  * 文档: https://console.groq.com/docs/models
  */
@@ -10,26 +10,27 @@ import { log } from '@/utils/logger';
 
 const chatLog = log.extend('AIChatService');
 
-// Groq API 配置 - Llama 4 Scout（TPM 最高，Llama 4 最新架构）
+// Supabase Edge Function 代理配置
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+
 const API_CONFIG = {
-  baseURL: 'https://api.groq.com/openai/v1',
+  /** Edge Function endpoint（代理到 Groq） */
+  baseURL: `${SUPABASE_URL}/functions/v1/groq-proxy`,
   model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-  maxTokens: 512, // 优化5: 降低回复长度，节省 tokens
+  maxTokens: 512,
 };
 
 // Token 优化配置
 const TOKEN_OPTIMIZATION = {
-  maxHistoryRounds: 3, // 优化6: 最多保留最近 3 轮对话
+  maxHistoryRounds: 3, // 最多保留最近 3 轮对话
 };
 
-// 从环境变量获取默认 API Key（用户无需手动配置）
-const DEFAULT_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || '';
-
 /**
- * 获取 API Key（优先使用环境变量）
+ * 检查 AI 服务是否就绪（Supabase 已配置）
  */
-export function getDefaultApiKey(): string {
-  return DEFAULT_API_KEY;
+export function isAIChatReady(): boolean {
+  return !!SUPABASE_URL && !!SUPABASE_ANON_KEY;
 }
 
 
@@ -135,20 +136,18 @@ interface ChatResponse {
 }
 
 /**
- * 发送聊天消息到 AI
+ * 发送聊天消息到 AI（通过 Edge Function 代理）
  * @param messages 聊天消息历史
- * @param apiKey API Key
  * @param gameContext 可选的游戏上下文（玩家视角）
  * @param signal 可选的 AbortSignal，用于取消请求（关闭聊天时中断）
  */
 export async function sendChatMessage(
   messages: ChatMessage[],
-  apiKey: string,
   gameContext?: GameContext,
   signal?: AbortSignal,
 ): Promise<ChatResponse> {
-  if (!apiKey) {
-    return { success: false, error: '请先配置 Groq API Key' };
+  if (!isAIChatReady()) {
+    return { success: false, error: 'AI 服务未配置' };
   }
 
   try {
@@ -163,15 +162,16 @@ export async function sendChatMessage(
       systemPrompt += '\n\n' + buildGameContextPrompt(gameContext);
     }
 
-    // 优化2: 限制历史轮数，只保留最近 N 轮对话
+    // 限制历史轮数，只保留最近 N 轮对话
     const maxMessages = TOKEN_OPTIMIZATION.maxHistoryRounds * 2; // 每轮 = 1 user + 1 assistant
     const trimmedMessages = messages.length > maxMessages ? messages.slice(-maxMessages) : messages;
 
-    const response = await fetch(`${API_CONFIG.baseURL}/chat/completions`, {
+    const response = await fetch(API_CONFIG.baseURL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({
         model: API_CONFIG.model,
@@ -187,7 +187,7 @@ export async function sendChatMessage(
       chatLog.error('API error', { status: response.status, error: errorText });
 
       if (response.status === 401) {
-        return { success: false, error: 'Groq API Key 无效或未配置，请联系管理员' };
+        return { success: false, error: 'AI 服务认证失败，请联系管理员' };
       }
       if (response.status === 429) {
         return { success: false, error: '请求太频繁，请稍后再试' };
@@ -227,24 +227,22 @@ export interface StreamChunk {
 }
 
 /**
- * 流式发送聊天消息到 AI（SSE）
+ * 流式发送聊天消息到 AI（SSE，通过 Edge Function 代理）
  *
- * 使用 Groq OpenAI 兼容的 streaming endpoint，逐 token 返回。
+ * 使用 Supabase Edge Function 代理 Groq streaming endpoint，逐 token 返回。
  * 调用者用 `for await (const chunk of streamChatMessage(...))` 消费。
  *
  * @param messages 聊天消息历史
- * @param apiKey API Key
  * @param gameContext 可选的游戏上下文
  * @param signal 可选的 AbortSignal
  */
 export async function* streamChatMessage(
   messages: ChatMessage[],
-  apiKey: string,
   gameContext?: GameContext,
   signal?: AbortSignal,
 ): AsyncGenerator<StreamChunk> {
-  if (!apiKey) {
-    yield { type: 'error', content: '请先配置 Groq API Key' };
+  if (!isAIChatReady()) {
+    yield { type: 'error', content: 'AI 服务未配置' };
     return;
   }
 
@@ -263,11 +261,12 @@ export async function* streamChatMessage(
 
   let response: Response;
   try {
-    response = await fetch(`${API_CONFIG.baseURL}/chat/completions`, {
+    response = await fetch(API_CONFIG.baseURL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({
         model: API_CONFIG.model,
@@ -288,7 +287,7 @@ export async function* streamChatMessage(
     const errorText = await response.text();
     chatLog.error('Streaming API error', { status: response.status, error: errorText });
     if (response.status === 401) {
-      yield { type: 'error', content: 'Groq API Key 无效或未配置，请联系管理员' };
+      yield { type: 'error', content: 'AI 服务认证失败，请联系管理员' };
     } else if (response.status === 429) {
       yield { type: 'error', content: '请求太频繁，请稍后再试' };
     } else {

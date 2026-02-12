@@ -15,18 +15,18 @@ describe('Avatar', () => {
 
   describe('Rendering', () => {
     it('should render with value and size', () => {
-      const { UNSAFE_root } = render(<Avatar value="test-user" size={50} />);
+      const { toJSON } = render(<Avatar value="test-user" size={50} />);
 
       // Avatar renders an Image component
-      expect(UNSAFE_root).toBeTruthy();
+      expect(toJSON()).toBeTruthy();
     });
 
     it('should render with custom avatar URL', () => {
-      const { UNSAFE_root } = render(
+      const { toJSON } = render(
         <Avatar value="test-user" size={50} avatarUrl="https://example.com/avatar.jpg" />,
       );
 
-      expect(UNSAFE_root).toBeTruthy();
+      expect(toJSON()).toBeTruthy();
     });
   });
 

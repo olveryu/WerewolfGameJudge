@@ -7,8 +7,9 @@
  * ✅ 允许：渲染头像图片、通过 props 配置
  * ❌ 禁止：import service / 业务逻辑
  */
+import { Image as ExpoImage } from 'expo-image';
 import React, { memo, useMemo } from 'react';
-import { Image, ImageSourcePropType,StyleSheet } from 'react-native';
+import { Image, ImageSourcePropType, StyleSheet } from 'react-native';
 
 import { useColors } from '@/theme';
 import { getAvatarByUid, getAvatarImage, getAvatarImageByIndex } from '@/utils/avatar';
@@ -64,9 +65,17 @@ const AvatarComponent: React.FC<AvatarProps> = ({
     return roomId ? getAvatarByUid(roomId, value) : getAvatarImage(value);
   }, [avatarUrl, avatarIndex, roomId, value]);
 
-  // Use custom avatar URL if provided, otherwise use local image
+  // Use custom avatar URL if provided (expo-image for caching + transitions)
   if (uriSource) {
-    return <Image source={uriSource} style={imageStyle} resizeMode="cover" />;
+    return (
+      <ExpoImage
+        source={uriSource}
+        style={imageStyle}
+        contentFit="cover"
+        transition={200}
+        cachePolicy="disk"
+      />
+    );
   }
 
   return (
