@@ -1,1 +1,1 @@
-npm run quality
+npx tsc --noEmit
