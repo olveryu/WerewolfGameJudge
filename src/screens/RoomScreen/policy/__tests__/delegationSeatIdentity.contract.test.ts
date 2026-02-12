@@ -175,7 +175,7 @@ describe('Delegation Seat Identity Contract', () => {
      * submitAction must use effectiveSeat, not mySeatNumber
      */
     it('submitAction should use effectiveSeat', () => {
-      const content = readFileContent('src/hooks/useGameRoom.ts');
+      const content = readFileContent('src/hooks/useHostGameActions.ts');
 
       // Find submitAction definition
       const submitActionRegex = /const\s+submitAction\s*=\s*useCallback/g;
@@ -197,7 +197,7 @@ describe('Delegation Seat Identity Contract', () => {
      * submitWolfVote must use effectiveSeat, not mySeatNumber
      */
     it('submitWolfVote should use effectiveSeat', () => {
-      const content = readFileContent('src/hooks/useGameRoom.ts');
+      const content = readFileContent('src/hooks/useHostGameActions.ts');
 
       // Find submitWolfVote definition
       const submitWolfVoteRegex = /const\s+submitWolfVote\s*=\s*useCallback/g;
@@ -220,7 +220,7 @@ describe('Delegation Seat Identity Contract', () => {
      * (caller must pass effectiveSeat). Verify JSDoc / comment signals this.
      */
     it('sendWolfRobotHunterStatusViewed must accept seat param (caller passes effectiveSeat)', () => {
-      const content = readFileContent('src/hooks/useGameRoom.ts');
+      const content = readFileContent('src/hooks/useHostGameActions.ts');
 
       // Find sendWolfRobotHunterStatusViewed definition
       const regex = /const\s+sendWolfRobotHunterStatusViewed\s*=\s*useCallback/g;

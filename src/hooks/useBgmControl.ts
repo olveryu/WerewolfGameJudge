@@ -15,7 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useServices } from '@/contexts/ServiceContext';
 import { GameStatus } from '@/models/GameStatus';
 
-interface BgmControlState {
+export interface BgmControlState {
   isBgmEnabled: boolean;
   toggleBgm: () => Promise<void>;
   /** Start BGM if enabled — call when game starts */

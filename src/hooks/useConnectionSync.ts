@@ -18,7 +18,7 @@ import { gameRoomLog } from '@/utils/logger';
 
 const STALE_THRESHOLD_MS = 30000;
 
-interface ConnectionSyncState {
+export interface ConnectionSyncState {
   connectionStatus: ConnectionStatus;
   setConnectionStatus: (status: ConnectionStatus) => void;
   stateRevision: number;
@@ -29,6 +29,9 @@ interface ConnectionSyncState {
   /** Call when a state update is received to reset auto-recovery throttle */
   onStateReceived: () => void;
 }
+
+/** Subset of ConnectionSyncState used by useRoomLifecycle for status updates */
+export type ConnectionSyncActions = Pick<ConnectionSyncState, 'setConnectionStatus'>;
 
 /**
  * Tracks connection status and handles Player auto-recovery after reconnect.

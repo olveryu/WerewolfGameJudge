@@ -1,31 +1,29 @@
 /**
- * useGameRoom - Hook for managing game room with Broadcast architecture
+ * useGameRoom - Composition hook for game room management
  *
- * This hook combines:
- * - GameFacade (via useGameFacade) for all game operations
- * - RoomService (for DB)
- * - Sub-hooks for focused concerns:
- *   - useNightDerived: pure derivations for night phase UI
- *   - useConnectionSync: connection status + Player auto-recovery
- *   - useBgmControl: BGM state management
- *   - useDebugMode: debug bot control
+ * Orchestrates 6 sub-hooks into a single flat interface:
+ * - useRoomLifecycle: room creation/joining/leaving + seat management
+ * - useHostGameActions: host game control + night actions
+ * - useConnectionSync: connection status + Player auto-recovery
+ * - useBgmControl: BGM state management
+ * - useDebugMode: debug bot control
+ * - useNightDerived: pure night-phase derivations
  *
  * Host device is the Single Source of Truth for all game state.
  *
- * ✅ 允许：组合子 hooks、通过 facade 操作游戏、派生 UI 状态
- * ❌ 禁止：直接调用 Supabase、绕过 facade 修改状态
+ * ✅ 允许：组合子 hooks、订阅 facade state、派生 identity/roomStatus
+ * ❌ 禁止：直接调用 Supabase、包含业务 callback 逻辑（应在子 hooks 中）
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
 import { GameStatus } from '@/models/GameStatus';
-import { RoleId } from '@/models/roles';
+import type { RoleId } from '@/models/roles';
 import type { ActionSchema, SchemaId } from '@/models/roles/spec';
-import { GameTemplate } from '@/models/Template';
-import { RoomRecord } from '@/services/infra/RoomService';
+import type { GameTemplate } from '@/models/Template';
+import type { RoomRecord } from '@/services/infra/RoomService';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from '@/types/RoleRevealAnimation';
@@ -35,9 +33,15 @@ import { broadcastToLocalState } from './adapters/broadcastToLocalState';
 import { useBgmControl } from './useBgmControl';
 import { useConnectionSync } from './useConnectionSync';
 import { useDebugMode } from './useDebugMode';
+import { useHostGameActions } from './useHostGameActions';
 import { useNightDerived } from './useNightDerived';
+import { useRoomLifecycle } from './useRoomLifecycle';
 
-interface UseGameRoomResult {
+// ─────────────────────────────────────────────────────────────────────────────
+// Return type
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface UseGameRoomResult {
   // Room info
   roomRecord: RoomRecord | null;
 
@@ -50,125 +54,83 @@ interface UseGameRoomResult {
   mySeatNumber: number | null;
   myRole: RoleId | null;
 
-  // Debug mode: controlled seat (Host takes over a bot seat)
+  // Debug mode (from useDebugMode)
   controlledSeat: number | null;
-  effectiveSeat: number | null; // = controlledSeat ?? mySeatNumber
-  effectiveRole: RoleId | null; // role of effectiveSeat
+  effectiveSeat: number | null;
+  effectiveRole: RoleId | null;
   setControlledSeat: (seat: number | null) => void;
-
-  // Debug mode: bot actions
   isDebugMode: boolean;
   fillWithBots: () => Promise<{ success: boolean; reason?: string }>;
   markAllBotsViewed: () => Promise<{ success: boolean; reason?: string }>;
 
-  // Computed values
+  // Night-derived (from useNightDerived)
   roomStatus: GameStatus;
   currentActionRole: RoleId | null;
   isAudioPlaying: boolean;
-
-  // Role reveal animation (Host controlled, all players use)
-  roleRevealAnimation: RoleRevealAnimation;
-
-  // Resolved animation for UI rendering (never 'random')
   resolvedRoleRevealAnimation: ResolvedRoleRevealAnimation;
-
-  // Schema-driven UI (Phase 3)
-  currentSchemaId: SchemaId | null; // schemaId for current action role (null if no action)
-  currentSchema: ActionSchema | null; // Full schema (derived from schemaId, null if no schema)
-
-  // Schema-driven UI (Phase 3.5): authoritative current stepId from Host ROLE_TURN
+  currentSchemaId: SchemaId | null;
+  currentSchema: ActionSchema | null;
   currentStepId: SchemaId | null;
 
-  // Connection status
+  // Connection (from useConnectionSync)
   connectionStatus: ConnectionStatus;
-  stateRevision: number;
 
-  // Status
+  // Sync status (Player reconnection)
+  lastStateReceivedAt: number | null;
+  isStateStale: boolean;
+
+  // Status (from useRoomLifecycle)
   loading: boolean;
   error: string | null;
 
-  // Actions
-  /** Initialize host room (facade only, no DB). Call AFTER room record creation + navigation. */
+  // Room lifecycle (from useRoomLifecycle)
   initializeHostRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
   joinRoom: (roomNumber: string) => Promise<boolean>;
   leaveRoom: () => Promise<void>;
-
-  // Seat actions
   takeSeat: (seatNumber: number) => Promise<boolean>;
-  takeSeatWithAck: (seatNumber: number) => Promise<{ success: boolean; reason?: string }>;
   leaveSeat: () => Promise<void>;
+  takeSeatWithAck: (seatNumber: number) => Promise<{ success: boolean; reason?: string }>;
   leaveSeatWithAck: () => Promise<{ success: boolean; reason?: string }>;
+  requestSnapshot: () => Promise<boolean>;
+  lastSeatError: { seat: number; reason: 'seat_taken' } | null;
+  clearLastSeatError: () => void;
 
-  // Host game control
-  updateTemplate: (template: GameTemplate) => Promise<void>;
+  // Host game actions (from useHostGameActions)
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
   setRoleRevealAnimation: (animation: RoleRevealAnimation) => Promise<void>;
-
-  // Host audio control (PR7: 音频时序控制)
-  setAudioPlaying: (isPlaying: boolean) => Promise<{ success: boolean; reason?: string }>;
-
-  // BGM control (Host only)
-  isBgmEnabled: boolean;
-  toggleBgm: () => Promise<void>;
-
-  // Player actions
   viewedRole: () => Promise<void>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
   submitWolfVote: (target: number) => Promise<void>;
   submitRevealAck: (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot') => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
-
-  // Sync actions
-  requestSnapshot: () => Promise<boolean>;
-
-  // Info
   getLastNightInfo: () => string;
-
-  // Seat error (BUG-2 fix)
-  lastSeatError: { seat: number; reason: 'seat_taken' } | null;
-  clearLastSeatError: () => void;
-
-  // Utility
   hasWolfVoted: (seatNumber: number) => boolean;
-
-  // Sync status (Player reconnection)
-  lastStateReceivedAt: number | null; // timestamp of last STATE_UPDATE
-  isStateStale: boolean; // true if connection not live or state possibly outdated
-
-  // Role-specific context is now read directly from gameState:
-  // - gameState.witchContext (only display to witch)
-  // - gameState.seerReveal (only display to seer)
-  // - gameState.psychicReveal (only display to psychic)
-  // - gameState.gargoyleReveal (only display to gargoyle)
-  // - gameState.wolfRobotReveal (only display to wolfRobot)
-  // - gameState.confirmStatus (only display to hunter/darkWolfKing)
-  // - gameState.actionRejected (only display to targetUid)
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hook
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const useGameRoom = (): UseGameRoomResult => {
   // =========================================================================
-  // Phase 1: 获取 facade（通过 Context 注入）
+  // Core: facade + services
   // =========================================================================
   const facade = useGameFacade();
   const { roomService, authService } = useServices();
 
-  const [roomRecord, setRoomRecord] = useState<RoomRecord | null>(null);
+  // Identity state (set by facade listener)
   const [gameState, setGameState] = useState<LocalGameState | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Track these in state so they trigger re-renders
   const [isHost, setIsHost] = useState(false);
   const [myUid, setMyUid] = useState<string | null>(null);
   const [mySeatNumber, setMySeatNumber] = useState<number | null>(null);
-  const [lastSeatError, setLastSeatError] = useState<{ seat: number; reason: 'seat_taken' } | null>(
-    null,
-  );
+
+  // roomRecord is owned here so both useConnectionSync and useRoomLifecycle can use it
+  const [roomRecord, setRoomRecord] = useState<RoomRecord | null>(null);
 
   // =========================================================================
-  // Sub-hooks: focused concerns extracted for SRP
+  // Sub-hooks
   // =========================================================================
 
   // Connection status + Player auto-recovery
@@ -183,13 +145,36 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Night-phase derived values (pure computation)
   const nightDerived = useNightDerived(gameState);
 
+  // Stable setGameState(null) callback for lifecycle.leaveRoom
+  const clearGameState = useCallback(() => setGameState(null), []);
+
+  // Room lifecycle: creation/joining/leaving + seats
+  const lifecycle = useRoomLifecycle({
+    facade,
+    authService,
+    roomService,
+    connection,
+    setGameState: clearGameState,
+    setIsHost,
+    setMyUid,
+    setRoomRecord,
+  });
+
+  // Host game actions: game control + night actions
+  const actions = useHostGameActions({
+    facade,
+    bgm,
+    debug,
+    mySeatNumber,
+    gameState,
+  });
+
   // =========================================================================
-  // Phase 1A: 订阅 facade state（转换为 LocalGameState）
+  // Facade state subscription → identity derivation
   // =========================================================================
   useEffect(() => {
     const unsubscribe = facade.addListener((broadcastState) => {
       if (broadcastState) {
-        // Phase 1 证据：state 来源是 facade
         gameRoomLog.debug('[facade] State update from facade', {
           roomCode: broadcastState.roomCode,
           status: broadcastState.status,
@@ -215,345 +200,23 @@ export const useGameRoom = (): UseGameRoomResult => {
     return unsubscribe;
   }, [facade, connection]);
 
-  // Derive myRole from gameState
+  // =========================================================================
+  // Derived values
+  // =========================================================================
+
   const myRole = useMemo(() => {
     if (mySeatNumber === null || !gameState) return null;
     return gameState.players.get(mySeatNumber)?.role ?? null;
   }, [gameState, mySeatNumber]);
 
-  // GameStatus
   const roomStatus = useMemo((): GameStatus => {
     if (!gameState) return GameStatus.unseated;
     return gameState.status;
   }, [gameState]);
 
   // =========================================================================
-  // Phase 1B: createRoom / joinRoom 使用 facade
+  // Return flat bag
   // =========================================================================
-
-  // Initialize host room: facade only, no DB creation.
-  // RoomScreen/useRoomInit calls this AFTER navigation with the confirmed roomNumber.
-  const initializeHostRoom = useCallback(
-    async (roomNumber: string, template: GameTemplate): Promise<boolean> => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        await authService.waitForInit();
-        const hostUid = authService.getCurrentUserId();
-        if (!hostUid) {
-          throw new Error('User not authenticated');
-        }
-
-        // Set roomRecord for connection sync & leaveRoom cleanup
-        setRoomRecord({ roomNumber, hostUid, createdAt: new Date() });
-
-        await facade.initializeAsHost(roomNumber, hostUid, template);
-
-        return true;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to initialize room';
-        gameRoomLog.error('[initializeHostRoom] Failed', { error: message, roomNumber });
-        setError(message);
-        return false;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [facade, authService],
-  );
-
-  // Join an existing room as player
-  const joinRoom = useCallback(
-    async (roomNumber: string): Promise<boolean> => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        await authService.waitForInit();
-        const playerUid = authService.getCurrentUserId();
-        if (!playerUid) {
-          throw new Error('User not authenticated');
-        }
-
-        // Check if room exists
-        const record = await roomService.getRoom(roomNumber);
-        if (!record) {
-          setError('房间不存在');
-          // 防御性清理：房间已不存在，清除过时的 lastRoomNumber
-          void AsyncStorage.removeItem('lastRoomNumber');
-          return false;
-        }
-        setRoomRecord(record);
-
-        // Get user info
-        const displayName = await authService.getCurrentDisplayName();
-        const avatarUrl = await authService.getCurrentAvatarUrl();
-
-        // Phase 1B: 使用 facade 加入房间
-        // Host rejoin: 使用 joinAsHost 恢复
-        if (record.hostUid === playerUid) {
-          gameRoomLog.debug('Host rejoin detected, attempting recovery');
-          const result = await facade.joinAsHost(roomNumber, playerUid);
-          if (!result.success) {
-            gameRoomLog.error('Host rejoin failed', { reason: result.reason });
-            setError('房间状态已过期，请重新创建房间');
-            return false;
-          }
-          // 立即同步 identity，避免 useConnectionSync 在 facade listener 触发前误判
-          setIsHost(true);
-          setMyUid(playerUid);
-          gameRoomLog.debug('Host rejoin successful');
-          return true;
-        }
-
-        // Player: 正常加入
-
-        await facade.joinAsPlayer(
-          roomNumber,
-          playerUid,
-          displayName ?? undefined,
-          avatarUrl ?? undefined,
-        );
-
-        return true;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to join room';
-        setError(message);
-        return false;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [facade, authService, roomService],
-  );
-
-  // Leave the current room
-  // NOTE: Room record is NOT deleted here — GitHub Actions cleanup-rooms.yml
-  // automatically deletes rooms older than 24 hours, so host can rejoin after leaving.
-  const leaveRoom = useCallback(async (): Promise<void> => {
-    try {
-      // Phase 1B: 使用 facade 离开房间
-      await facade.leaveRoom();
-      setRoomRecord(null);
-      setGameState(null);
-    } catch (err) {
-      gameRoomLog.error(' Error leaving room:', err);
-    }
-  }, [facade]);
-
-  // =========================================================================
-  // Phase 1B: takeSeat / leaveSeat 使用 facade
-  // =========================================================================
-
-  // Take a seat (unified API)
-  const takeSeat = useCallback(
-    async (seatNumber: number): Promise<boolean> => {
-      try {
-        const displayName = await authService.getCurrentDisplayName();
-        const avatarUrl = await authService.getCurrentAvatarUrl();
-
-        // Phase 1B: 使用 facade 入座
-        return await facade.takeSeat(seatNumber, displayName ?? undefined, avatarUrl ?? undefined);
-      } catch (err) {
-        gameRoomLog.error(' Error taking seat:', err);
-        return false;
-      }
-    },
-    [facade, authService],
-  );
-
-  // Leave seat (unified API)
-  const leaveSeat = useCallback(async (): Promise<void> => {
-    try {
-      // Phase 1B: 使用 facade 离座
-      await facade.leaveSeat();
-    } catch (err) {
-      gameRoomLog.error(' Error leaving seat:', err);
-    }
-  }, [facade]);
-
-  // Take seat with ack (unified API)
-  // Phase 1: 使用 facade（ACK 机制已实现，reason 透传）
-  const takeSeatWithAck = useCallback(
-    async (seatNumber: number): Promise<{ success: boolean; reason?: string }> => {
-      try {
-        const displayName = await authService.getCurrentDisplayName();
-        const avatarUrl = await authService.getCurrentAvatarUrl();
-
-        // facade 的 takeSeatWithAck 直接返回 {success, reason}
-        return await facade.takeSeatWithAck(
-          seatNumber,
-          displayName ?? undefined,
-          avatarUrl ?? undefined,
-        );
-      } catch (err) {
-        gameRoomLog.error(' Error taking seat with ack:', err);
-        return { success: false, reason: String(err) };
-      }
-    },
-    [facade, authService],
-  );
-
-  // Leave seat with ack (unified API)
-  // Phase 1: 使用 facade（ACK 机制已实现，reason 透传）
-  const leaveSeatWithAck = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
-    try {
-      // facade 的 leaveSeatWithAck 直接返回 {success, reason}
-      return await facade.leaveSeatWithAck();
-    } catch (err) {
-      gameRoomLog.error(' Error leaving seat with ack:', err);
-      return { success: false, reason: String(err) };
-    }
-  }, [facade]);
-
-  // Request snapshot from host (force sync)
-  const requestSnapshot = useCallback(async (): Promise<boolean> => {
-    try {
-      connection.setConnectionStatus('syncing');
-      const result = await facade.requestSnapshot();
-      if (result) {
-        connection.setConnectionStatus('live');
-      } else {
-        connection.setConnectionStatus('disconnected');
-      }
-      return result;
-    } catch (err) {
-      gameRoomLog.error(' Error requesting snapshot:', err);
-      connection.setConnectionStatus('disconnected');
-      return false;
-    }
-  }, [facade, connection]);
-
-  // Update template (host only)
-  const updateTemplate = useCallback(
-    async (template: GameTemplate): Promise<void> => {
-      if (!facade.isHostPlayer()) return;
-      await facade.updateTemplate(template);
-    },
-    [facade],
-  );
-
-  // Assign roles (host only)
-  const assignRoles = useCallback(async (): Promise<void> => {
-    if (!facade.isHostPlayer()) return;
-    await facade.assignRoles();
-  }, [facade]);
-
-  // Start game (host only) - now uses startNight + BGM
-  const startGame = useCallback(async (): Promise<void> => {
-    if (!facade.isHostPlayer()) return;
-
-    // Start BGM if enabled
-    bgm.startBgmIfEnabled();
-    await facade.startNight();
-  }, [facade, bgm]);
-
-  // Restart game (host only)
-  const restartGame = useCallback(async (): Promise<void> => {
-    if (!facade.isHostPlayer()) return;
-    // Stop BGM on restart
-    bgm.stopBgm();
-    // Clear controlled seat on restart
-    debug.setControlledSeat(null);
-    await facade.restartGame();
-  }, [facade, bgm, debug]);
-
-  // =========================================================================
-  // Debug Mode & BGM: delegated to sub-hooks
-  // =========================================================================
-
-  // Set role reveal animation (host only)
-  const setRoleRevealAnimation = useCallback(
-    async (animation: RoleRevealAnimation): Promise<void> => {
-      if (!facade.isHostPlayer()) return;
-      await facade.setRoleRevealAnimation(animation);
-    },
-    [facade],
-  );
-
-  // Set audio playing (host only) - PR7 音频时序控制
-  const setAudioPlaying = useCallback(
-    async (isPlaying: boolean): Promise<{ success: boolean; reason?: string }> => {
-      if (!facade.isHostPlayer()) {
-        return { success: false, reason: 'host_only' };
-      }
-      return facade.setAudioPlaying(isPlaying);
-    },
-    [facade],
-  );
-
-  // Mark role as viewed
-  // Debug mode: when delegating (controlledSeat !== null), mark the bot's seat as viewed
-  // Normal mode: mark my own seat as viewed
-  const viewedRole = useCallback(async (): Promise<void> => {
-    const seat = debug.controlledSeat ?? mySeatNumber;
-    if (seat === null) return;
-    await facade.markViewedRole(seat);
-  }, [debug.controlledSeat, mySeatNumber, facade]);
-
-  // Submit action (uses effectiveSeat/effectiveRole for debug bot control)
-  const submitAction = useCallback(
-    async (target: number | null, extra?: unknown): Promise<void> => {
-      const seat = debug.effectiveSeat;
-      const role = debug.effectiveRole;
-      if (seat === null || !role) return;
-      await facade.submitAction(seat, role, target, extra);
-    },
-    [debug.effectiveSeat, debug.effectiveRole, facade],
-  );
-
-  // Submit wolf vote (uses effectiveSeat for debug bot control)
-  const submitWolfVote = useCallback(
-    async (target: number): Promise<void> => {
-      const seat = debug.effectiveSeat;
-      if (seat === null) return;
-      await facade.submitWolfVote(seat, target);
-    },
-    [debug.effectiveSeat, facade],
-  );
-
-  // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
-  const submitRevealAck = useCallback(
-    async (role: 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot'): Promise<void> => {
-      await facade.submitRevealAck(role);
-    },
-    [facade],
-  );
-
-  // WolfRobot hunter status viewed gate
-  // seat 参数由调用方传入 effectiveSeat，以支持 debug bot 接管模式
-  const sendWolfRobotHunterStatusViewed = useCallback(
-    async (seat: number): Promise<void> => {
-      await facade.sendWolfRobotHunterStatusViewed(seat);
-    },
-    [facade],
-  );
-
-  // Get last night info - now derived from gameState
-  const getLastNightInfo = useCallback((): string => {
-    if (!gameState) return '无信息';
-    // deaths are stored in lastNightDeaths field
-    const deaths = gameState.lastNightDeaths;
-    if (!deaths || deaths.length === 0) return '昨夜平安夜';
-    const deathList = deaths.map((d: number) => (d + 1).toString() + '号').join(', ');
-    return '昨夜死亡: ' + deathList;
-  }, [gameState]);
-
-  // Check if a wolf has voted
-  const hasWolfVotedFn = useCallback(
-    (seatNumber: number): boolean => {
-      if (!gameState) return false;
-      return gameState.wolfVotes.has(seatNumber);
-    },
-    [gameState],
-  );
-
-  // Clear seat error (BUG-2 fix)
-  const clearLastSeatError = useCallback(() => {
-    setLastSeatError(null);
-  }, []);
-
   return {
     roomRecord,
     gameState,
@@ -561,7 +224,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     myUid,
     mySeatNumber,
     myRole,
-    // Debug mode (from useDebugMode)
+    // Debug mode
     controlledSeat: debug.controlledSeat,
     effectiveSeat: debug.effectiveSeat,
     effectiveRole: debug.effectiveRole,
@@ -569,48 +232,42 @@ export const useGameRoom = (): UseGameRoomResult => {
     isDebugMode: debug.isDebugMode,
     fillWithBots: debug.fillWithBots,
     markAllBotsViewed: debug.markAllBotsViewed,
-    // Computed values (from useNightDerived)
+    // Night-derived
     roomStatus,
     currentActionRole: nightDerived.currentActionRole,
     isAudioPlaying: nightDerived.isAudioPlaying,
-    roleRevealAnimation: nightDerived.roleRevealAnimation,
     resolvedRoleRevealAnimation: nightDerived.resolvedRoleRevealAnimation,
     currentSchemaId: nightDerived.currentSchemaId,
     currentSchema: nightDerived.currentSchema,
     currentStepId: nightDerived.currentStepId,
-    loading,
-    error,
-    // Connection (from useConnectionSync)
+    // Connection
     connectionStatus: connection.connectionStatus,
-    stateRevision: connection.stateRevision,
     lastStateReceivedAt: connection.lastStateReceivedAt,
     isStateStale: connection.isStateStale,
-    initializeHostRoom,
-    joinRoom,
-    leaveRoom,
-    takeSeat,
-    leaveSeat,
-    takeSeatWithAck,
-    leaveSeatWithAck,
-    requestSnapshot,
-    updateTemplate,
-    assignRoles,
-    startGame,
-    restartGame,
-    setRoleRevealAnimation,
-    setAudioPlaying,
-    // BGM (from useBgmControl)
-    isBgmEnabled: bgm.isBgmEnabled,
-    toggleBgm: bgm.toggleBgm,
-    viewedRole,
-    submitAction,
-    submitWolfVote,
-    submitRevealAck,
-    sendWolfRobotHunterStatusViewed,
-    getLastNightInfo,
-    lastSeatError,
-    clearLastSeatError,
-    hasWolfVoted: hasWolfVotedFn,
-    // Role-specific context is now read directly from gameState
+    // Lifecycle
+    loading: lifecycle.loading,
+    error: lifecycle.error,
+    initializeHostRoom: lifecycle.initializeHostRoom,
+    joinRoom: lifecycle.joinRoom,
+    leaveRoom: lifecycle.leaveRoom,
+    takeSeat: lifecycle.takeSeat,
+    leaveSeat: lifecycle.leaveSeat,
+    takeSeatWithAck: lifecycle.takeSeatWithAck,
+    leaveSeatWithAck: lifecycle.leaveSeatWithAck,
+    requestSnapshot: lifecycle.requestSnapshot,
+    lastSeatError: lifecycle.lastSeatError,
+    clearLastSeatError: lifecycle.clearLastSeatError,
+    // Host game actions
+    assignRoles: actions.assignRoles,
+    startGame: actions.startGame,
+    restartGame: actions.restartGame,
+    setRoleRevealAnimation: actions.setRoleRevealAnimation,
+    viewedRole: actions.viewedRole,
+    submitAction: actions.submitAction,
+    submitWolfVote: actions.submitWolfVote,
+    submitRevealAck: actions.submitRevealAck,
+    sendWolfRobotHunterStatusViewed: actions.sendWolfRobotHunterStatusViewed,
+    getLastNightInfo: actions.getLastNightInfo,
+    hasWolfVoted: actions.hasWolfVoted,
   };
 };

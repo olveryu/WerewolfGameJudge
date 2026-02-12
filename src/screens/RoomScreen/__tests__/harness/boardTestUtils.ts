@@ -201,7 +201,6 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     currentStepId: schemaId,
     currentSchemaId: schemaId,
     isAudioPlaying,
-    roleRevealAnimation: null,
     resolvedRoleRevealAnimation: null,
     loading: false,
     mySeatNumber,
@@ -210,7 +209,6 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     error: null,
 
     // Connection
-    stateRevision: 1,
     lastStateReceivedAt: Date.now(),
     isStateStale: false,
 
@@ -232,22 +230,16 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     takeSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
     leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
     requestSnapshot: jest.fn(),
-    updateTemplate: jest.fn().mockResolvedValue(undefined),
     assignRoles: jest.fn(),
     startGame: jest.fn(),
     restartGame: jest.fn(),
     setRoleRevealAnimation: jest.fn().mockResolvedValue(undefined),
-    setAudioPlaying: jest.fn(),
     submitAction: jest.fn().mockResolvedValue(undefined),
     submitWolfVote: jest.fn().mockResolvedValue(undefined),
     hasWolfVoted: jest.fn().mockReturnValue(false),
     viewedRole: jest.fn(),
     submitRevealAck: jest.fn().mockResolvedValue(undefined),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
-
-    // BGM
-    isBgmEnabled: false,
-    toggleBgm: jest.fn(),
 
     // Error plumbing
     lastSeatError: null,
