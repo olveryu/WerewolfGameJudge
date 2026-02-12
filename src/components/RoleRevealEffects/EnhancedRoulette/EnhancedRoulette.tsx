@@ -159,8 +159,9 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const containerHeight = config.itemHeight * config.visibleItems;
   const frameWidth = containerWidth + 40;
   const frameHeight = containerHeight + 100;
-  const cardWidth = Math.min(screenWidth * 0.85, 320);
-  const cardHeight = cardWidth * 1.4;
+  const common = CONFIG.common;
+  const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
+  const cardHeight = cardWidth * common.cardAspectRatio;
   const centeringOffset = config.itemHeight;
 
   // ── Bulb pattern init ──
@@ -382,15 +383,15 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
             height={cardHeight}
           />
           <GlowBorder
-            width={cardWidth + 8}
-            height={cardHeight + 8}
-            color={SLOT_COLORS.gold}
-            glowColor={SLOT_COLORS.glowOrange}
-            borderWidth={3}
+            width={cardWidth + common.glowPadding}
+            height={cardHeight + common.glowPadding}
+            color={theme.primaryColor}
+            glowColor={theme.glowColor}
+            borderWidth={common.glowBorderWidth}
             borderRadius={borderRadius.medium + 4}
             animate={!reducedMotion}
-            flashCount={config.highlightFlashCount}
-            flashDuration={config.highlightFlashDuration}
+            flashCount={common.glowFlashCount}
+            flashDuration={common.glowFlashDuration}
             onComplete={handleRevealComplete}
             style={{ position: 'absolute', top: -4, left: -4 }}
           />

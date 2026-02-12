@@ -18,6 +18,24 @@ export const CONFIG = {
     reducedMotionFadeDuration: 500,
     /** Minimum scale for reduced motion */
     reducedMotionMinScale: 0.95,
+
+    // ── Unified card dimensions ──
+    /** Max card width (px) */
+    cardMaxWidth: 280,
+    /** Card width as fraction of screen width */
+    cardWidthRatio: 0.75,
+    /** Card height = cardWidth * aspectRatio */
+    cardAspectRatio: 1.4,
+
+    // ── Unified GlowBorder params ──
+    /** GlowBorder flash count */
+    glowFlashCount: 2,
+    /** GlowBorder flash duration per cycle (ms) */
+    glowFlashDuration: 150,
+    /** GlowBorder border width */
+    glowBorderWidth: 3,
+    /** GlowBorder size padding (added to each side of card) */
+    glowPadding: 8,
   },
 
   // =====================================================
@@ -36,10 +54,7 @@ export const CONFIG = {
     tickIntervalFast: 80,
     /** Tick sound interval during slow spin (ms) */
     tickIntervalSlow: 200,
-    /** Golden border flash count */
-    highlightFlashCount: 2,
-    /** Flash duration per cycle (ms) */
-    highlightFlashDuration: 150,
+
     /** Hold duration after reveal before calling onComplete (ms) */
     revealHoldDuration: 0,
     /** Particle count for flow effect */
@@ -54,9 +69,6 @@ export const CONFIG = {
   flip: {
     /** Flip animation duration */
     flipDuration: 600,
-    /** Card dimensions */
-    cardWidth: 280,
-    cardHeight: 400,
     /** Shadow animation range */
     shadowOpacityRange: [0.2, 0.5] as [number, number],
     shadowBlurRange: [10, 25] as [number, number],

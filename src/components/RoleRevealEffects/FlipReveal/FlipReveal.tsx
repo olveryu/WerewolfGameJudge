@@ -120,8 +120,9 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   const bounceY = useSharedValue(0);
   const bounceScale = useSharedValue(1);
 
-  const cardWidth = Math.min(screenWidth * 0.75, 280);
-  const cardHeight = cardWidth * 1.4;
+  const common = CONFIG.common;
+  const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
+  const cardHeight = cardWidth * common.cardAspectRatio;
 
   // ── Particle burst ──
   const createParticles = useCallback(() => {
@@ -375,15 +376,15 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
         {/* Glow border on reveal */}
         {phase === 'revealed' && (
           <GlowBorder
-            width={cardWidth + 8}
-            height={cardHeight + 8}
+            width={cardWidth + common.glowPadding}
+            height={cardHeight + common.glowPadding}
             color={theme.primaryColor}
             glowColor={theme.glowColor}
-            borderWidth={3}
+            borderWidth={common.glowBorderWidth}
             borderRadius={borderRadius.medium + 4}
             animate={!reducedMotion}
-            flashCount={2}
-            flashDuration={150}
+            flashCount={common.glowFlashCount}
+            flashDuration={common.glowFlashDuration}
             onComplete={handleGlowComplete}
             style={{ position: 'absolute', top: -4, left: -4 }}
           />

@@ -9,7 +9,7 @@
  */
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
@@ -111,8 +111,10 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   >('ready');
   const onCompleteCalledRef = useRef(false);
 
-  const cardWidth = 260;
-  const cardHeight = 364;
+  const { width: screenWidth } = Dimensions.get('window');
+  const common = CONFIG.common;
+  const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
+  const cardHeight = cardWidth * common.cardAspectRatio;
 
   // ── Shared values ──
   const dialRotation = useSharedValue(0);
@@ -382,15 +384,15 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
           />
           {phase === 'revealed' && (
             <GlowBorder
-              width={cardWidth + 8}
-              height={cardHeight + 8}
+              width={cardWidth + common.glowPadding}
+              height={cardHeight + common.glowPadding}
               color={theme.primaryColor}
               glowColor={theme.glowColor}
-              borderWidth={3}
+              borderWidth={common.glowBorderWidth}
               borderRadius={borderRadius.medium + 4}
               animate={!reducedMotion}
-              flashCount={2}
-              flashDuration={150}
+              flashCount={common.glowFlashCount}
+              flashDuration={common.glowFlashDuration}
               onComplete={handleGlowComplete}
               style={styles.glowBorder}
             />

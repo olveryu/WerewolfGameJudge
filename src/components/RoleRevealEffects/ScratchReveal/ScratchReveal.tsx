@@ -127,8 +127,9 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   const lastHapticTime = useRef(0);
   const shavingIdRef = useRef(0);
 
-  const cardWidth = Math.min(280, screenWidth * 0.75);
-  const cardHeight = cardWidth * 1.4;
+  const common = CONFIG.common;
+  const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
+  const cardHeight = cardWidth * common.cardAspectRatio;
   const totalArea = cardWidth * cardHeight;
   const brushRadius = config.brushRadius;
 
@@ -468,15 +469,15 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
         {/* Glow border on reveal */}
         {showGlow && (
           <GlowBorder
-            width={cardWidth + 8}
-            height={cardHeight + 8}
+            width={cardWidth + common.glowPadding}
+            height={cardHeight + common.glowPadding}
             color={theme.primaryColor}
             glowColor={theme.glowColor}
-            borderWidth={3}
+            borderWidth={common.glowBorderWidth}
             borderRadius={borderRadius.medium + 4}
             animate={!reducedMotion}
-            flashCount={2}
-            flashDuration={150}
+            flashCount={common.glowFlashCount}
+            flashDuration={common.glowFlashDuration}
             onComplete={handleGlowComplete}
             style={{ position: 'absolute', top: -4, left: -4 }}
           />
