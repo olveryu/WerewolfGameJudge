@@ -1,14 +1,26 @@
 /**
- * GachaMachine - 复古日式扭蛋机揭示效果
+ * GachaMachine - 复古日式扭蛋机揭示效果（Reanimated 4）
  *
- * 特点：圆形透明球体顶部、投币口、旋转手柄、扭蛋滚出。
+ * 特点：圆形透明球体顶部、投币口、旋转手柄、扭蛋滚出 → 打开 → 揭示。
+ * 使用 `useSharedValue` 驱动所有动画，`runOnJS` 切换阶段。
  *
  * ✅ 允许：渲染动画 + 触觉反馈
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useRef,useState } from 'react';
-import { Animated, Easing,Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
@@ -16,10 +28,10 @@ import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { canUseNativeDriver } from '@/components/RoleRevealEffects/utils/platform';
 import type { RoleId } from '@/models/roles';
 import { borderRadius } from '@/theme';
 
+// ─── Visual constants ──────────────────────────────────────────────────
 const CAPSULE_COLORS = [
   '#FF6B6B',
   '#4ECDC4',
@@ -30,63 +42,60 @@ const CAPSULE_COLORS = [
   '#F0E68C',
 ];
 
-/** Decorative colors for the gacha machine UI (not theme tokens) */
 const GACHA_COLORS = {
-  // Machine body gradient
   bodyGradient: ['#FF7F7F', '#FF6B6B', '#E55555'] as const,
-  // Background gradient (warm cream)
   backgroundGradient: ['#FFF5E6', '#FFE4CC', '#FFF5E6'] as const,
-  // Base gradient (metallic dark)
   baseGradient: ['#666', '#444', '#333'] as const,
-  // Coin slot
   coinSlotBg: '#333',
   coinSlotInnerBg: '#111',
-  // Label
   labelBg: '#FFF',
   labelText: '#FF6B6B',
-  // Outlet
   outletBg: '#222',
   outletInnerBg: '#111',
-  // Dial
   dialCenterBg: '#FFD700',
   dialCenterBorder: '#DAA520',
   dialArmBg: '#888',
   dialKnobBg: '#E74C3C',
   dialKnobBorder: '#C0392B',
-  // Hint text
   hintTextColor: '#D35400',
-  // Capsule
   capsuleTopBg: '#FF69B4',
   capsuleBottomBg: '#FFF',
   capsuleRingBg: '#EEE',
   capsuleRingBorder: '#DDD',
 };
 
-// 圆形透明球内的小扭蛋
-const TinyCapsule: React.FC<{ angle: number; distance: number; color: string; size: number }> =
-  React.memo(({ angle, distance, color, size }) => {
-    const x = Math.cos(angle) * distance;
-    const y = Math.sin(angle) * distance + 10;
-    return (
+// ─── Tiny capsule inside dome ───────────────────────────────────────────
+const TinyCapsule: React.FC<{
+  angle: number;
+  distance: number;
+  color: string;
+  size: number;
+}> = React.memo(({ angle, distance, color, size }) => {
+  const x = Math.cos(angle) * distance;
+  const y = Math.sin(angle) * distance + 10;
+  return (
+    <View
+      style={[
+        styles.tinyCapsule,
+        {
+          left: 75 + x - size / 2,
+          top: 75 + y - size / 2,
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+        },
+      ]}
+    >
       <View
-        style={[
-          styles.tinyCapsule,
-          {
-            left: 75 + x - size / 2,
-            top: 75 + y - size / 2,
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            backgroundColor: color,
-          },
-        ]}
-      >
-        <View style={[styles.tinyCapsuleShine, { width: size * 0.3, height: size * 0.3 }]} />
-      </View>
-    );
-  });
+        style={[styles.tinyCapsuleShine, { width: size * 0.3, height: size * 0.3 }]}
+      />
+    </View>
+  );
+});
 TinyCapsule.displayName = 'TinyCapsule';
 
+// ─── Main component ─────────────────────────────────────────────────────
 export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   role,
   onComplete,
@@ -101,23 +110,22 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     'ready' | 'spinning' | 'dropping' | 'waiting' | 'opening' | 'revealed'
   >('ready');
   const onCompleteCalledRef = useRef(false);
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const cardWidth = 260;
   const cardHeight = 364;
 
-  // 动画值
-  const dialRotation = useMemo(() => new Animated.Value(0), []);
-  const capsuleY = useMemo(() => new Animated.Value(-30), []);
-  const capsuleOpacity = useMemo(() => new Animated.Value(0), []);
-  const capsuleRotate = useMemo(() => new Animated.Value(0), []);
-  const shellScale = useMemo(() => new Animated.Value(1), []);
-  const shellOpacity = useMemo(() => new Animated.Value(1), []);
-  const cardScale = useMemo(() => new Animated.Value(0), []);
-  const cardOpacity = useMemo(() => new Animated.Value(0), []);
-  const bobble = useMemo(() => new Animated.Value(0), []);
+  // ── Shared values ──
+  const dialRotation = useSharedValue(0);
+  const capsuleY = useSharedValue(-30);
+  const capsuleOpacity = useSharedValue(0);
+  const capsuleRotate = useSharedValue(0);
+  const shellScale = useSharedValue(1);
+  const shellOpacity = useSharedValue(1);
+  const cardScale = useSharedValue(0);
+  const cardOpacity = useSharedValue(0);
+  const bobble = useSharedValue(0);
 
-  // 随机小扭蛋位置 — lazy initializer avoids Math.random() on re-render
+  // Random tiny capsules (stable across re-renders)
   const [tinyCapsules] = useState(() => {
     const result = [];
     for (let i = 0; i < 12; i++) {
@@ -132,140 +140,163 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     return result;
   });
 
-  const cleanup = useCallback(() => {
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current = [];
-  }, []);
-  useEffect(() => cleanup, [cleanup]);
-
-  // 小球轻微晃动
+  // ── Bobble animation for dome ──
   useEffect(() => {
-    if (phase === 'ready') {
-      const anim = Animated.loop(
-        Animated.sequence([
-          Animated.timing(bobble, {
-            toValue: 3,
-            duration: 800,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: canUseNativeDriver,
-          }),
-          Animated.timing(bobble, {
-            toValue: -3,
-            duration: 800,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: canUseNativeDriver,
-          }),
-        ]),
-      );
-      anim.start();
-      return () => anim.stop();
-    }
-  }, [phase, bobble]);
+    if (phase !== 'ready' || reducedMotion) return;
+
+    bobble.value = withRepeat(
+      withSequence(
+        withTiming(3, { duration: 800, easing: Easing.inOut(Easing.sin) }),
+        withTiming(-3, { duration: 800, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      false,
+    );
+
+    return () => {
+      cancelBobble();
+    };
+  }, [phase, reducedMotion, bobble]);
+
+  const cancelBobble = useCallback(() => {
+    bobble.value = 0;
+  }, [bobble]);
+
+  // ── Phase transitions ──
+  const enterRevealed = useCallback(() => {
+    setPhase('revealed');
+  }, []);
 
   const handleGlowComplete = useCallback(() => {
     if (onCompleteCalledRef.current) return;
     onCompleteCalledRef.current = true;
-    const t = setTimeout(() => onComplete(), config.revealHoldDuration ?? 1200);
-    timersRef.current.push(t);
+    const timer = setTimeout(() => onComplete(), config.revealHoldDuration ?? 1200);
+    return () => clearTimeout(timer);
   }, [onComplete, config.revealHoldDuration]);
 
-  // 旋转手柄 → 扭蛋掉落
-  const spinDial = useCallback(() => {
-    if (phase !== 'ready') return;
-    setPhase('spinning');
-    if (enableHaptics) triggerHaptic('medium', true);
-
-    Animated.timing(dialRotation, {
-      toValue: 360,
-      duration: 600,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: canUseNativeDriver,
-    }).start(() => {
-      setPhase('dropping');
-      capsuleOpacity.setValue(1);
-
-      Animated.parallel([
-        Animated.timing(capsuleY, {
-          toValue: 200,
-          duration: 800,
-          easing: Easing.bounce,
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(capsuleRotate, {
-          toValue: 540,
-          duration: 800,
-          useNativeDriver: canUseNativeDriver,
-        }),
-      ]).start(() => setPhase('waiting'));
-    });
-  }, [phase, dialRotation, capsuleY, capsuleOpacity, capsuleRotate, enableHaptics]);
-
-  // 打开扭蛋
+  // Open capsule → reveal card
   const openCapsule = useCallback(() => {
     if (phase !== 'waiting') return;
     setPhase('opening');
     if (enableHaptics) triggerHaptic('heavy', true);
 
-    Animated.parallel([
-      Animated.timing(shellScale, {
-        toValue: 1.3,
-        duration: 250,
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(shellOpacity, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: canUseNativeDriver,
-      }),
-    ]).start();
+    // Shell explodes outward
+    shellScale.value = withTiming(1.3, { duration: 250 });
+    shellOpacity.value = withTiming(0, { duration: 250 });
 
-    Animated.sequence([
-      Animated.delay(200),
-      Animated.parallel([
-        Animated.spring(cardScale, {
-          toValue: 1,
-          tension: 60,
-          friction: 7,
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(cardOpacity, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: canUseNativeDriver,
-        }),
-      ]),
-    ]).start(() => setPhase('revealed'));
-  }, [phase, shellScale, shellOpacity, cardScale, cardOpacity, enableHaptics]);
+    // Card springs in after 200ms delay
+    cardScale.value = withDelay(
+      200,
+      withSpring(1, { damping: 10, stiffness: 60 }, (finished) => {
+        'worklet';
+        if (finished) runOnJS(enterRevealed)();
+      }),
+    );
+    cardOpacity.value = withDelay(200, withTiming(1, { duration: 250 }));
+  }, [
+    phase,
+    shellScale,
+    shellOpacity,
+    cardScale,
+    cardOpacity,
+    enableHaptics,
+    enterRevealed,
+  ]);
 
+  const enterWaiting = useCallback(() => {
+    setPhase('waiting');
+  }, []);
+
+  // Spin dial → drop capsule
+  const spinDial = useCallback(() => {
+    if (phase !== 'ready') return;
+    setPhase('spinning');
+    if (enableHaptics) triggerHaptic('medium', true);
+
+    dialRotation.value = withTiming(
+      360,
+      { duration: 600, easing: Easing.out(Easing.cubic) },
+      (finished) => {
+        'worklet';
+        if (!finished) return;
+
+        // Phase: dropping
+        runOnJS(setPhase)('dropping');
+        capsuleOpacity.value = 1;
+
+        capsuleY.value = withTiming(
+          200,
+          { duration: 800, easing: Easing.bounce },
+          (fin2) => {
+            'worklet';
+            if (fin2) runOnJS(enterWaiting)();
+          },
+        );
+        capsuleRotate.value = withTiming(540, { duration: 800 });
+      },
+    );
+  }, [
+    phase,
+    dialRotation,
+    capsuleY,
+    capsuleOpacity,
+    capsuleRotate,
+    enableHaptics,
+    enterWaiting,
+  ]);
+
+  // ── Reduced motion ──
   useEffect(() => {
     if (reducedMotion) {
-      cardScale.setValue(1);
-      cardOpacity.setValue(1);
-      shellOpacity.setValue(0);
+      cardScale.value = 1;
+      cardOpacity.value = 1;
+      shellOpacity.value = 0;
       setPhase('revealed');
     }
   }, [reducedMotion, cardScale, cardOpacity, shellOpacity]);
 
-  const dialRotateZ = dialRotation.interpolate({
-    inputRange: [0, 360],
-    outputRange: ['0deg', '360deg'],
-  });
-  const capsuleRotateZ = capsuleRotate.interpolate({
-    inputRange: [0, 540],
-    outputRange: ['0deg', '540deg'],
-  });
+  // ── Animated styles ──
+  const bobbleStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: bobble.value }],
+  }));
 
+  const dialStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${dialRotation.value}deg` }],
+  }));
+
+  const capsuleStyle = useAnimatedStyle(() => ({
+    opacity: capsuleOpacity.value * shellOpacity.value,
+    transform: [
+      { translateY: capsuleY.value },
+      { scale: shellScale.value },
+      { rotate: `${capsuleRotate.value}deg` },
+    ],
+  }));
+
+  const cardStyle = useAnimatedStyle(() => ({
+    opacity: cardOpacity.value,
+    transform: [{ scale: cardScale.value }],
+  }));
+
+  // ── Render ──
   return (
     <View testID={`${testIDPrefix}-container`} style={styles.container}>
-      <LinearGradient colors={[...GACHA_COLORS.backgroundGradient]} style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={[...GACHA_COLORS.backgroundGradient]}
+        style={StyleSheet.absoluteFill}
+      />
 
-      {/* 扭蛋机 */}
+      {/* Machine */}
       {phase !== 'revealed' && (
         <View style={styles.machine}>
-          {/* 圆形透明球顶 */}
-          <Animated.View style={[styles.dome, { transform: [{ translateY: bobble }] }]}>
+          {/* Dome */}
+          <Animated.View style={[styles.dome, bobbleStyle]}>
             <LinearGradient
-              colors={['rgba(255,255,255,0.9)', 'rgba(200,220,255,0.6)', 'rgba(255,255,255,0.8)']}
+              colors={[
+                'rgba(255,255,255,0.9)',
+                'rgba(200,220,255,0.6)',
+                'rgba(255,255,255,0.8)',
+              ]}
               style={styles.domeGradient}
             />
             {tinyCapsules.map((c) => (
@@ -280,43 +311,43 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
             <View style={styles.domeHighlight} />
           </Animated.View>
 
-          {/* 机身 */}
+          {/* Body */}
           <View style={styles.body}>
             <LinearGradient
               colors={[...GACHA_COLORS.bodyGradient]}
               style={StyleSheet.absoluteFill}
             />
-
             <View style={styles.coinSlot}>
               <View style={styles.coinSlotInner} />
             </View>
-
             <View style={styles.label}>
               <Text style={styles.labelText}>GACHA</Text>
             </View>
-
             <View style={styles.outlet}>
               <View style={styles.outletInner} />
             </View>
           </View>
 
-          {/* 旋转手柄 */}
+          {/* Dial */}
           <Pressable onPress={spinDial} style={styles.dialContainer}>
-            <Animated.View style={[styles.dial, { transform: [{ rotate: dialRotateZ }] }]}>
+            <Animated.View style={[styles.dial, dialStyle]}>
               <View style={styles.dialCenter} />
               <View style={styles.dialArm} />
               <View style={styles.dialKnob} />
             </Animated.View>
           </Pressable>
 
-          {/* 底座 */}
+          {/* Base */}
           <View style={styles.base}>
-            <LinearGradient colors={[...GACHA_COLORS.baseGradient]} style={StyleSheet.absoluteFill} />
+            <LinearGradient
+              colors={[...GACHA_COLORS.baseGradient]}
+              style={StyleSheet.absoluteFill}
+            />
           </View>
         </View>
       )}
 
-      {/* 提示 */}
+      {/* Hints */}
       {phase === 'ready' && (
         <View style={styles.hint}>
           <Text style={styles.hintText}>🎯 点击转盘抽蛋!</Text>
@@ -328,21 +359,9 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
         </View>
       )}
 
-      {/* 掉落的扭蛋 */}
+      {/* Falling capsule */}
       {(phase === 'dropping' || phase === 'waiting' || phase === 'opening') && (
-        <Animated.View
-          style={[
-            styles.capsule,
-            {
-              opacity: Animated.multiply(capsuleOpacity, shellOpacity),
-              transform: [
-                { translateY: capsuleY },
-                { scale: shellScale },
-                { rotate: capsuleRotateZ },
-              ],
-            },
-          ]}
-        >
+        <Animated.View style={[styles.capsule, capsuleStyle]}>
           <Pressable onPress={openCapsule} style={styles.capsuleTouch}>
             <View style={styles.capsuleTop}>
               <View style={styles.capsuleTopShine} />
@@ -353,12 +372,14 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
         </Animated.View>
       )}
 
-      {/* 角色卡 */}
+      {/* Revealed card */}
       {(phase === 'opening' || phase === 'revealed') && (
-        <Animated.View
-          style={[styles.cardWrapper, { opacity: cardOpacity, transform: [{ scale: cardScale }] }]}
-        >
-          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
+        <Animated.View style={[styles.cardWrapper, cardStyle]}>
+          <RoleCardContent
+            roleId={role.id as RoleId}
+            width={cardWidth}
+            height={cardHeight}
+          />
           {phase === 'revealed' && (
             <GlowBorder
               width={cardWidth + 8}
@@ -380,6 +401,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   );
 };
 
+// ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   machine: { alignItems: 'center' },
@@ -429,7 +451,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  coinSlotInner: { width: 30, height: 3, backgroundColor: GACHA_COLORS.coinSlotInnerBg, borderRadius: 2 },
+  coinSlotInner: {
+    width: 30,
+    height: 3,
+    backgroundColor: GACHA_COLORS.coinSlotInnerBg,
+    borderRadius: 2,
+  },
   label: {
     marginTop: 8,
     backgroundColor: GACHA_COLORS.labelBg,
@@ -437,7 +464,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
   },
-  labelText: { fontSize: 14, fontWeight: '900', color: GACHA_COLORS.labelText, letterSpacing: 2 },
+  labelText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: GACHA_COLORS.labelText,
+    letterSpacing: 2,
+  },
   outlet: {
     position: 'absolute',
     bottom: 10,
@@ -448,10 +480,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  outletInner: { width: 50, height: 25, backgroundColor: GACHA_COLORS.outletInnerBg, borderRadius: 6 },
+  outletInner: {
+    width: 50,
+    height: 25,
+    backgroundColor: GACHA_COLORS.outletInnerBg,
+    borderRadius: 6,
+  },
 
-  dialContainer: { position: 'absolute', right: -50, top: 160, width: 60, height: 60 },
-  dial: { width: 60, height: 60, justifyContent: 'center', alignItems: 'center' },
+  dialContainer: {
+    position: 'absolute',
+    right: -50,
+    top: 160,
+    width: 60,
+    height: 60,
+  },
+  dial: {
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   dialCenter: {
     width: 30,
     height: 30,
@@ -488,7 +536,11 @@ const styles = StyleSheet.create({
   },
 
   hint: { position: 'absolute', bottom: 80 },
-  hintText: { fontSize: 22, fontWeight: '700', color: GACHA_COLORS.hintTextColor },
+  hintText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: GACHA_COLORS.hintTextColor,
+  },
 
   capsule: { position: 'absolute', width: 80, height: 80 },
   capsuleTouch: { width: '100%', height: '100%' },

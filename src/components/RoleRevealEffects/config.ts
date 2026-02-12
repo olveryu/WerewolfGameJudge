@@ -131,20 +131,6 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Sound effects
-  // =====================================================
-  sound: {
-    /** Tick sound volume (0-1) */
-    tickVolume: 0.3,
-    /** Confirm sound volume */
-    confirmVolume: 0.5,
-    /** Whoosh sound volume */
-    whooshVolume: 0.4,
-    /** Sound fade duration */
-    fadeDuration: 100,
-  },
-
-  // =====================================================
   // Haptics
   // =====================================================
   haptics: {

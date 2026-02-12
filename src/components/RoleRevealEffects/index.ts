@@ -17,7 +17,6 @@
  *       effectType="flip" // 'roulette' | 'flip' | 'scratch' | 'tarot' | 'gachaMachine'
  *       role={role}
  *       onComplete={() => setShowReveal(false)}
- *       enableSound={true}
  *       enableHaptics={true}
  *     />
  *   );
@@ -50,12 +49,8 @@ export { ALIGNMENT_THEMES } from './types';
 export { CONFIG } from './config';
 
 // Utilities (for advanced usage)
-export { type HapticStyle,triggerHaptic } from './utils/haptics';
-export {
-  canUseHaptics,
-  canUseNativeDriver,
-} from './utils/platform';
-export { createTickPlayer, playSound, type SoundType } from './utils/sound';
+export { type HapticStyle, triggerHaptic } from './utils/haptics';
+export { canUseHaptics } from './utils/platform';
 
 // Common components (for building custom effects)
 export { GlowBorder, type GlowBorderProps } from './common/GlowBorder';

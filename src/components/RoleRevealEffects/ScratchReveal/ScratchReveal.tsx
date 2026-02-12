@@ -1,24 +1,25 @@
 /**
- * ScratchReveal - 刮刮卡风格揭示动画
+ * ScratchReveal - 刮刮卡风格揭示动画（Reanimated 4 + Gesture Handler 2）
  *
  * 特点：金属银刮层、刮痕纹理、金属碎片粒子、触觉反馈、进度条。
+ * 使用 `Gesture.Pan()` 替代 PanResponder，`useSharedValue` 驱动所有动画。
  *
  * ✅ 允许：渲染动画 + 触觉反馈
  * ❌ 禁止：import service / 业务逻辑判断
  */
-// No SVG imports needed - using native View clipping
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo,useRef, useState } from 'react';
-import {
-  Animated,
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
   Easing,
-  PanResponder,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
@@ -26,16 +27,14 @@ import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { canUseNativeDriver } from '@/components/RoleRevealEffects/utils/platform';
 import type { RoleId } from '@/models/roles';
-import { borderRadius,spacing, typography, useColors } from '@/theme';
+import { borderRadius, spacing, typography, useColors } from '@/theme';
 
-// Scratch effect colors
+// ─── Visual constants ──────────────────────────────────────────────────
 const SCRATCH_COLORS = {
   metalBase: '#C0C0C0',
   metalLight: '#E8E8E8',
   metalDark: '#909090',
-  metalSheen: '#FFFFFF',
   shavingColors: ['#D4D4D4', '#B8B8B8', '#A0A0A0', '#888888'],
 };
 
@@ -45,17 +44,60 @@ interface ScratchPoint {
   id: string;
 }
 
-interface MetalShaving {
+// ─── Self-animating metal shaving particle ──────────────────────────────
+interface ShavingConfig {
   id: number;
-  x: Animated.Value;
-  y: Animated.Value;
-  rotation: Animated.Value;
-  opacity: Animated.Value;
-  scale: Animated.Value;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
   color: string;
   size: number;
 }
 
+const MetalShaving: React.FC<ShavingConfig> = React.memo(
+  ({ startX, startY, targetX, targetY, color, size }) => {
+    const progress = useSharedValue(0);
+
+    useEffect(() => {
+      progress.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.quad) });
+    }, [progress]);
+
+    const animStyle = useAnimatedStyle(() => ({
+      transform: [
+        {
+          translateX: interpolate(progress.value, [0, 1], [startX, targetX]),
+        },
+        {
+          translateY: interpolate(progress.value, [0, 1], [startY, targetY]),
+        },
+        { scale: interpolate(progress.value, [0, 1], [1, 0.3]) },
+        {
+          rotate: `${interpolate(progress.value, [0, 1], [0, Math.random() * 360 - 180])}deg`,
+        },
+      ],
+      opacity: interpolate(progress.value, [0, 0.7, 1], [1, 0.6, 0]),
+    }));
+
+    return (
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.shaving,
+          {
+            width: size,
+            height: size * 0.6,
+            backgroundColor: color,
+          },
+          animStyle,
+        ]}
+      />
+    );
+  },
+);
+MetalShaving.displayName = 'MetalShaving';
+
+// ─── Main component ─────────────────────────────────────────────────────
 export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   role,
   onComplete,
@@ -71,191 +113,133 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   const [scratchPoints, setScratchPoints] = useState<ScratchPoint[]>([]);
   const [isRevealed, setIsRevealed] = useState(false);
   const [scratchProgress, setScratchProgress] = useState(0);
-  const [shavings, setShavings] = useState<MetalShaving[]>([]);
+  const [shavings, setShavings] = useState<ShavingConfig[]>([]);
   const [showGlow, setShowGlow] = useState(false);
 
-  const revealAnim = useMemo(() => new Animated.Value(0), []);
-  const burstScale = useMemo(() => new Animated.Value(0), []);
-  const burstOpacity = useMemo(() => new Animated.Value(0), []);
-  const sheenPosition = useMemo(() => new Animated.Value(0), []);
-  const progressWidth = useMemo(() => new Animated.Value(0), []);
+  // ── Shared values ──
+  const revealAnim = useSharedValue(0);
+  const burstScale = useSharedValue(0);
+  const burstOpacity = useSharedValue(0);
+  const sheenPosition = useSharedValue(0);
+  const progressWidth = useSharedValue(0);
 
   const scratchedAreaRef = useRef(0);
   const lastHapticTime = useRef(0);
   const shavingIdRef = useRef(0);
 
-  // Use same calculation as RoleCardSimple: Math.min(screenWidth * 0.75, 280) and ratio 1.4
   const cardWidth = Math.min(280, screenWidth * 0.75);
   const cardHeight = cardWidth * 1.4;
   const totalArea = cardWidth * cardHeight;
   const brushRadius = config.brushRadius;
 
-  // Animate metallic sheen
+  // ── Metallic sheen animation ──
   useEffect(() => {
     if (reducedMotion || isRevealed) return;
 
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(sheenPosition, {
-          toValue: 1,
-          duration: 2000,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(sheenPosition, {
-          toValue: 0,
-          duration: 2000,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: canUseNativeDriver,
-        }),
-      ]),
-    );
-    animation.start();
-
-    return () => animation.stop();
+    sheenPosition.value = withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) });
+    // Loop via repeat pattern
+    const loop = () => {
+      sheenPosition.value = 0;
+      sheenPosition.value = withTiming(1, {
+        duration: 4000,
+        easing: Easing.inOut(Easing.sin),
+      }, (finished) => {
+        'worklet';
+        if (finished) runOnJS(loop)();
+      });
+    };
+    loop();
   }, [sheenPosition, reducedMotion, isRevealed]);
 
-  // Calculate scratch progress based on scratched area
+  // ── Progress calculation ──
   const calculateProgress = useCallback(() => {
     const brushArea = Math.PI * brushRadius * brushRadius;
-    // Overlap factor: points are close together when scratching,
-    // so actual revealed area is much smaller than brush count × brush area
-    // Using 0.15 to account for ~85% overlap between consecutive scratch points
     const estimatedArea = scratchedAreaRef.current * brushArea * 0.15;
     return Math.min(1, estimatedArea / totalArea);
   }, [brushRadius, totalArea]);
 
-  // Create metal shaving particle
+  // ── Create metal shaving ──
   const createShaving = useCallback((x: number, y: number) => {
     const id = shavingIdRef.current++;
     const angle = Math.random() * Math.PI * 2;
     const distance = 30 + Math.random() * 40;
-    const targetX = x + Math.cos(angle) * distance;
-    const targetY = y + Math.sin(angle) * distance + 20; // Gravity
 
-    const shaving: MetalShaving = {
-      id,
-      x: new Animated.Value(x),
-      y: new Animated.Value(y),
-      rotation: new Animated.Value(0),
-      opacity: new Animated.Value(1),
-      scale: new Animated.Value(1),
-      color: SCRATCH_COLORS.shavingColors[id % SCRATCH_COLORS.shavingColors.length],
-      size: 4 + Math.random() * 6,
-    };
-
-    setShavings((prev) => [...prev.slice(-30), shaving]); // Keep max 30 shavings
-
-    // Animate shaving
-    Animated.parallel([
-      Animated.timing(shaving.x, {
-        toValue: targetX,
-        duration: 400,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(shaving.y, {
-        toValue: targetY,
-        duration: 400,
-        easing: Easing.in(Easing.quad),
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(shaving.rotation, {
-        toValue: Math.random() * 4 - 2,
-        duration: 400,
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(shaving.opacity, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(shaving.scale, {
-        toValue: 0.3,
-        duration: 400,
-        useNativeDriver: canUseNativeDriver,
-      }),
-    ]).start();
+    setShavings((prev) => [
+      ...prev.slice(-30),
+      {
+        id,
+        startX: x,
+        startY: y,
+        targetX: x + Math.cos(angle) * distance,
+        targetY: y + Math.sin(angle) * distance + 20,
+        color: SCRATCH_COLORS.shavingColors[id % SCRATCH_COLORS.shavingColors.length],
+        size: 4 + Math.random() * 6,
+      },
+    ]);
   }, []);
 
-  // Handle reveal animation
+  // ── Reveal trigger ──
   const triggerReveal = useCallback(() => {
     if (isRevealed) return;
     setIsRevealed(true);
 
-    if (enableHaptics) {
-      triggerHaptic('success', true);
-    }
+    if (enableHaptics) triggerHaptic('success', true);
 
-    // Light burst effect
-    Animated.parallel([
-      Animated.timing(burstScale, {
-        toValue: 2,
-        duration: 400,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.sequence([
-        Animated.timing(burstOpacity, {
-          toValue: 0.8,
-          duration: 100,
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(burstOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: canUseNativeDriver,
-        }),
-      ]),
-    ]).start();
+    // Light burst
+    burstOpacity.value = withSequence(
+      withTiming(0.8, { duration: 100 }),
+      withTiming(0, { duration: 300 }),
+    );
+    burstScale.value = withTiming(2, {
+      duration: 400,
+      easing: Easing.out(Easing.cubic),
+    });
 
     // Reveal animation
-    Animated.timing(revealAnim, {
-      toValue: 1,
-      duration: config.revealDuration,
-      useNativeDriver: canUseNativeDriver,
-    }).start(() => {
-      setShowGlow(true);
-    });
-  }, [isRevealed, revealAnim, burstScale, burstOpacity, config.revealDuration, enableHaptics]);
+    revealAnim.value = withTiming(
+      1,
+      { duration: config.revealDuration },
+      (finished) => {
+        'worklet';
+        if (finished) runOnJS(setShowGlow)(true);
+      },
+    );
+  }, [
+    isRevealed,
+    revealAnim,
+    burstScale,
+    burstOpacity,
+    config.revealDuration,
+    enableHaptics,
+  ]);
 
-  // Handle glow complete
+  // ── Glow complete ──
   const handleGlowComplete = useCallback(() => {
-    setTimeout(() => {
-      onComplete();
-    }, config.revealHoldDuration);
+    const timer = setTimeout(() => onComplete(), config.revealHoldDuration);
+    return () => clearTimeout(timer);
   }, [onComplete, config.revealHoldDuration]);
 
-  // Add scratch point
+  // ── Add scratch point ──
   const addScratchPoint = useCallback(
     (x: number, y: number) => {
       if (isRevealed) return;
 
-      const newPoint: ScratchPoint = {
-        x,
-        y,
-        id: `scratch-${Date.now()}-${Math.random()}`,
-      };
-
-      setScratchPoints((prev) => [...prev, newPoint]);
+      setScratchPoints((prev) => [
+        ...prev,
+        { x, y, id: `scratch-${Date.now()}-${Math.random()}` },
+      ]);
       scratchedAreaRef.current += 1;
 
       const progress = calculateProgress();
       setScratchProgress(progress);
+      progressWidth.value = withTiming(progress, { duration: 100 });
 
-      // Update progress bar
-      Animated.timing(progressWidth, {
-        toValue: progress,
-        duration: 100,
-        useNativeDriver: false,
-      }).start();
-
-      // Create metal shaving
+      // Create shaving particle occasionally
       if (Math.random() > 0.7) {
         createShaving(x, y);
       }
 
-      // Haptic feedback (throttled)
+      // Throttled haptic
       if (enableHaptics) {
         const now = Date.now();
         if (now - lastHapticTime.current > 50) {
@@ -279,9 +263,9 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     ],
   );
 
-  // Refs for PanResponder
+  // ── Gesture Handler (replaces PanResponder) ──
+  // Refs to avoid stale closures in gesture callbacks
   const isRevealedRef = useRef(isRevealed);
-  const reducedMotionRef = useRef(reducedMotion);
   const addScratchPointRef = useRef(addScratchPoint);
 
   useEffect(() => {
@@ -289,58 +273,62 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   }, [isRevealed]);
 
   useEffect(() => {
-    reducedMotionRef.current = reducedMotion;
-  }, [reducedMotion]);
-
-  useEffect(() => {
     addScratchPointRef.current = addScratchPoint;
   }, [addScratchPoint]);
 
-  // PanResponder reads refs inside callbacks (not during render) — safe pattern
-  /* eslint-disable react-hooks/refs */
-  const panResponder = useMemo(
+  const panGesture = useMemo(
     () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => !reducedMotionRef.current && !isRevealedRef.current,
-        onMoveShouldSetPanResponder: () => !reducedMotionRef.current && !isRevealedRef.current,
-        onPanResponderGrant: (evt) => {
-          const { locationX, locationY } = evt.nativeEvent;
-          addScratchPointRef.current(locationX, locationY);
-        },
-        onPanResponderMove: (evt) => {
-          const { locationX, locationY } = evt.nativeEvent;
-          addScratchPointRef.current(locationX, locationY);
-        },
-      }),
-    [],
+      Gesture.Pan()
+        .enabled(!reducedMotion)
+        .onBegin((e) => {
+          'worklet';
+          if (isRevealedRef.current) return;
+          runOnJS(addScratchPointRef.current)(e.x, e.y);
+        })
+        .onUpdate((e) => {
+          'worklet';
+          if (isRevealedRef.current) return;
+          runOnJS(addScratchPointRef.current)(e.x, e.y);
+        }),
+    [reducedMotion],
   );
-  /* eslint-enable react-hooks/refs */
 
-  // Reduced motion: tap to reveal
+  // ── Reduced motion: tap to reveal ──
   const handleTapReveal = useCallback(() => {
     if (reducedMotion && !isRevealed) {
       triggerReveal();
     }
   }, [reducedMotion, isRevealed, triggerReveal]);
 
-  // Sheen animation interpolation
-  const sheenTranslateX = sheenPosition.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-cardWidth, cardWidth],
-  });
+  // ── Animated styles ──
+  const sheenStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateX: interpolate(
+          sheenPosition.value,
+          [0, 1],
+          [-cardWidth, cardWidth],
+        ),
+      },
+    ],
+  }));
 
-  // Progress bar width interpolation
-  const progressBarWidth = progressWidth.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
+  const burstStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: burstScale.value }],
+    opacity: burstOpacity.value,
+  }));
 
+  const progressBarStyle = useAnimatedStyle(() => ({
+    width: `${progressWidth.value * 100}%` as `${number}%`,
+  }));
+
+  // ── Render ──
   return (
     <View
       testID={`${testIDPrefix}-container`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      {/* Light burst effect */}
+      {/* Light burst */}
       <Animated.View
         style={[
           styles.lightBurst,
@@ -349,9 +337,8 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
             height: cardHeight * 1.5,
             borderRadius: cardWidth,
             backgroundColor: theme.glowColor,
-            transform: [{ scale: burstScale }],
-            opacity: burstOpacity,
           },
+          burstStyle,
         ]}
       />
 
@@ -368,136 +355,114 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       >
         {/* Role card underneath */}
         <View style={styles.roleCardLayer}>
-          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
+          <RoleCardContent
+            roleId={role.id as RoleId}
+            width={cardWidth}
+            height={cardHeight}
+          />
         </View>
 
-        {/* Scratch overlay layer */}
+        {/* Scratch overlay */}
         {!isRevealed && (
-          <View
-            {...panResponder.panHandlers}
-            style={[
-              styles.scratchLayer,
-              {
-                width: cardWidth,
-                height: cardHeight,
-                borderRadius: borderRadius.medium,
-              },
-            ]}
-          >
-            {/* Metallic base layer */}
-            <LinearGradient
-              colors={[
-                SCRATCH_COLORS.metalLight,
-                SCRATCH_COLORS.metalBase,
-                SCRATCH_COLORS.metalDark,
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-
-            {/* Animated sheen */}
-            <Animated.View
+          <GestureDetector gesture={panGesture}>
+            <View
               style={[
-                styles.sheen,
+                styles.scratchLayer,
                 {
-                  transform: [{ translateX: sheenTranslateX }],
+                  width: cardWidth,
+                  height: cardHeight,
+                  borderRadius: borderRadius.medium,
                 },
               ]}
             >
+              {/* Metallic base */}
               <LinearGradient
-                colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
+                colors={[
+                  SCRATCH_COLORS.metalLight,
+                  SCRATCH_COLORS.metalBase,
+                  SCRATCH_COLORS.metalDark,
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
               />
-            </Animated.View>
 
-            {/* Scratch holes - each hole shows the role card beneath */}
-            {scratchPoints.map((point) => (
-              <View
-                key={point.id}
-                style={[
-                  styles.scratchHole,
-                  {
-                    left: point.x - brushRadius,
-                    top: point.y - brushRadius,
-                    width: brushRadius * 2,
-                    height: brushRadius * 2,
-                    borderRadius: brushRadius,
-                  },
-                ]}
-              >
-                {/* Clipped view of the role card at this position */}
-                <View
-                  style={{
-                    width: cardWidth,
-                    height: cardHeight,
-                    position: 'absolute',
-                    left: -(point.x - brushRadius),
-                    top: -(point.y - brushRadius),
-                  }}
-                >
-                  <RoleCardContent
-                    roleId={role.id as RoleId}
-                    width={cardWidth}
-                    height={cardHeight}
-                  />
-                </View>
-              </View>
-            ))}
+              {/* Animated sheen */}
+              <Animated.View style={[styles.sheen, sheenStyle]}>
+                <LinearGradient
+                  colors={[
+                    'rgba(255,255,255,0)',
+                    'rgba(255,255,255,0.4)',
+                    'rgba(255,255,255,0)',
+                  ]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={StyleSheet.absoluteFill}
+                />
+              </Animated.View>
 
-            {/* Scratch texture overlay */}
-            <View style={styles.textureOverlay}>
-              {scratchPoints.slice(-50).map((point, index) => (
+              {/* Scratch holes */}
+              {scratchPoints.map((point) => (
                 <View
-                  key={`texture-${point.id}`}
+                  key={point.id}
                   style={[
-                    styles.scratchMark,
+                    styles.scratchHole,
                     {
-                      left: point.x - 2,
-                      top: point.y - 2,
-                      opacity: 0.3 + (index / 50) * 0.4,
+                      left: point.x - brushRadius,
+                      top: point.y - brushRadius,
+                      width: brushRadius * 2,
+                      height: brushRadius * 2,
+                      borderRadius: brushRadius,
                     },
                   ]}
-                />
+                >
+                  <View
+                    style={{
+                      width: cardWidth,
+                      height: cardHeight,
+                      position: 'absolute',
+                      left: -(point.x - brushRadius),
+                      top: -(point.y - brushRadius),
+                    }}
+                  >
+                    <RoleCardContent
+                      roleId={role.id as RoleId}
+                      width={cardWidth}
+                      height={cardHeight}
+                    />
+                  </View>
+                </View>
               ))}
-            </View>
 
-            {/* Hint text */}
-            <View style={styles.hintContainer}>
-              <Text style={styles.hintText}>刮开查看角色</Text>
-              <Text style={styles.hintIcon}>👆</Text>
+              {/* Scratch texture */}
+              <View style={styles.textureOverlay}>
+                {scratchPoints.slice(-50).map((point, index) => (
+                  <View
+                    key={`texture-${point.id}`}
+                    style={[
+                      styles.scratchMark,
+                      {
+                        left: point.x - 2,
+                        top: point.y - 2,
+                        opacity: 0.3 + (index / 50) * 0.4,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+
+              {/* Hint text */}
+              <View style={styles.hintContainer}>
+                <Text style={styles.hintText}>刮开查看角色</Text>
+                <Text style={styles.hintIcon}>👆</Text>
+              </View>
             </View>
-          </View>
+          </GestureDetector>
         )}
 
         {/* Metal shavings */}
-        {shavings.map((shaving) => (
-          <Animated.View
-            key={shaving.id}
-            pointerEvents="none"
-            style={[
-              styles.shaving,
-              {
-                width: shaving.size,
-                height: shaving.size * 0.6,
-                backgroundColor: shaving.color,
-                transform: [
-                  { translateX: shaving.x },
-                  { translateY: shaving.y },
-                  { scale: shaving.scale },
-                  {
-                    rotate: shaving.rotation.interpolate({
-                      inputRange: [-2, 2],
-                      outputRange: ['-180deg', '180deg'],
-                    }),
-                  },
-                ],
-                opacity: shaving.opacity,
-              },
-            ]}
-          />
+        {shavings.map((s) => (
+          <MetalShaving key={s.id} {...s} />
         ))}
 
         {/* Glow border on reveal */}
@@ -513,11 +478,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
             flashCount={3}
             flashDuration={200}
             onComplete={handleGlowComplete}
-            style={{
-              position: 'absolute',
-              top: -4,
-              left: -4,
-            }}
+            style={{ position: 'absolute', top: -4, left: -4 }}
           />
         )}
       </View>
@@ -529,10 +490,8 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
             <Animated.View
               style={[
                 styles.progressFill,
-                {
-                  width: progressBarWidth,
-                  backgroundColor: theme.primaryColor,
-                },
+                { backgroundColor: theme.primaryColor },
+                progressBarStyle,
               ]}
             />
           </View>
@@ -556,6 +515,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   );
 };
 
+// ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,

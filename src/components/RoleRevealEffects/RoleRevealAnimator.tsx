@@ -26,7 +26,6 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
   allRoles,
   onComplete,
   reducedMotion: reducedMotionProp,
-  enableSound = true,
   enableHaptics = true,
   testIDPrefix = 'role-reveal',
 }) => {
@@ -62,7 +61,6 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
     role,
     onComplete,
     reducedMotion,
-    enableSound,
     enableHaptics,
     testIDPrefix,
   };

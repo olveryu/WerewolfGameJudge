@@ -24,13 +24,6 @@ export const isIOS = Platform.OS === 'ios';
 export const isAndroid = Platform.OS === 'android';
 
 /**
- * Check if native driver is available for animations
- * Web doesn't support native driver for all animations
- */
-export const canUseNativeDriver = !isWeb;
-
-
-/**
  * Check if haptics are available on this platform
  */
 export function canUseHaptics(): boolean {

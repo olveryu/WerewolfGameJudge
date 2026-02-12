@@ -1,28 +1,40 @@
 /**
- * EnhancedRoulette - 老虎机风格角色揭示动画
+ * EnhancedRoulette - 老虎机风格角色揭示动画（Reanimated 4）
  *
- * 特点：金属框架、霓虹灯、3D 转轮、弹跳停止、庆祝粒子。
+ * 特点：金属框架、霓虹灯、转轮滚动、弹跳停止、庆祝粒子。
+ * 使用 `useSharedValue` + `withTiming`/`withSpring`/`withSequence` 驱动，
+ * 无 `setTimeout`（通过 `runOnJS` 回调驱动阶段切换）。
  *
- * ✅ 允许：渲染动画 + 触觉/音效反馈
+ * ✅ 允许：渲染动画 + 触觉反馈
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback,useEffect, useMemo, useState } from 'react';
-import { Animated, Easing,StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated, {
+  Easing,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-import type { RoleData,RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
+import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { canUseNativeDriver } from '@/components/RoleRevealEffects/utils/platform';
-import { createTickPlayer,playSound } from '@/components/RoleRevealEffects/utils/sound';
 import type { RoleId } from '@/models/roles';
-import { borderRadius, shadows,spacing, typography, useColors } from '@/theme';
+import { borderRadius, shadows, spacing, typography, useColors } from '@/theme';
 import { shuffleArray } from '@/utils/shuffle';
 
-// Slot machine colors
+// ─── Visual constants ──────────────────────────────────────────────────
 const SLOT_COLORS = {
   frameOuter: '#2D2D2D',
   frameInner: '#1A1A1A',
@@ -44,7 +56,11 @@ const SLOT_COLORS = {
   reelWindowBorder: '#333',
 };
 
-// Decorative bulb component
+const CELEBRATION_EMOJIS = ['⭐', '✨', '🎉', '🎊', '💫', '🌟'];
+const TOP_BULB_IDS = ['t1', 't2', 't3', 't4', 't5', 't6'] as const;
+const BOTTOM_BULB_IDS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'] as const;
+
+// ─── Decorative bulb ────────────────────────────────────────────────────
 const Bulb: React.FC<{ on: boolean; color?: string; size?: number }> = ({
   on,
   color = SLOT_COLORS.bulbOn,
@@ -67,38 +83,59 @@ const Bulb: React.FC<{ on: boolean; color?: string; size?: number }> = ({
   />
 );
 
-// Celebration particle
-interface Particle {
+// ─── Self-animating emoji particle ──────────────────────────────────────
+interface EmojiParticleConfig {
   id: number;
-  x: Animated.Value;
-  y: Animated.Value;
-  scale: Animated.Value;
-  opacity: Animated.Value;
-  rotation: Animated.Value;
+  targetX: number;
+  targetY: number;
   emoji: string;
+  duration: number;
 }
 
-const CELEBRATION_EMOJIS = ['⭐', '✨', '🎉', '🎊', '💫', '🌟'];
+const EmojiParticle: React.FC<EmojiParticleConfig> = React.memo(
+  ({ targetX, targetY, emoji, duration }) => {
+    const progress = useSharedValue(0);
 
-// Fixed bulb identifiers (stable keys for decoration)
-const TOP_BULB_IDS = ['t1', 't2', 't3', 't4', 't5', 't6'] as const;
-const BOTTOM_BULB_IDS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'] as const;
+    useEffect(() => {
+      progress.value = withTiming(1, {
+        duration,
+        easing: Easing.out(Easing.cubic),
+      });
+    }, [duration, progress]);
 
-// Bulb pattern helper
-const generateRandomBulbPattern = (count: number, threshold: number = 0.5): boolean[] =>
-  new Array(count).fill(false).map(() => Math.random() > threshold);
+    const animStyle = useAnimatedStyle(() => ({
+      transform: [
+        { translateX: progress.value * targetX },
+        { translateY: progress.value * targetY },
+        { scale: interpolate(progress.value, [0, 0.2, 0.4, 1], [0, 1, 1, 0]) },
+      ],
+      opacity: interpolate(progress.value, [0, 0.7, 1], [1, 0.5, 0]),
+    }));
 
+    return (
+      <Animated.Text style={[styles.particle, animStyle]}>{emoji}</Animated.Text>
+    );
+  },
+);
+EmojiParticle.displayName = 'EmojiParticle';
+
+// ─── Bulb pattern helpers ───────────────────────────────────────────────
+const BULB_COUNT = 12;
+const generateRandomBulbPattern = (threshold = 0.5): boolean[] =>
+  new Array(BULB_COUNT).fill(false).map(() => Math.random() > threshold);
+
+// ─── Props ──────────────────────────────────────────────────────────────
 export interface EnhancedRouletteProps extends RoleRevealEffectProps {
   /** All roles to show in the roulette */
   allRoles: RoleData[];
 }
 
+// ─── Main component ─────────────────────────────────────────────────────
 export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   role,
   allRoles,
   onComplete,
   reducedMotion = false,
-  enableSound = true,
   enableHaptics = true,
   testIDPrefix = 'enhanced-roulette',
 }) => {
@@ -109,80 +146,68 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const [phase, setPhase] = useState<'spinning' | 'stopping' | 'revealed'>('spinning');
   const [shuffledRoles, setShuffledRoles] = useState<RoleData[]>([]);
   const [bulbPattern, setBulbPattern] = useState<boolean[]>([]);
-  const [particles, setParticles] = useState<Particle[]>([]);
+  const [particles, setParticles] = useState<EmojiParticleConfig[]>([]);
 
-  const scrollAnim = useMemo(() => new Animated.Value(0), []);
-  const bounceAnim = useMemo(() => new Animated.Value(0), []);
-  const frameGlowAnim = useMemo(() => new Animated.Value(0), []);
-  const revealScaleAnim = useMemo(() => new Animated.Value(0.8), []);
-  const revealOpacityAnim = useMemo(() => new Animated.Value(0), []);
+  // ── Shared values ──
+  const scrollAnim = useSharedValue(0);
+  const bounceAnim = useSharedValue(0);
+  const frameGlowAnim = useSharedValue(0);
+  const revealScaleAnim = useSharedValue(0.8);
+  const revealOpacityAnim = useSharedValue(0);
 
   const containerWidth = Math.min(screenWidth * 0.9, 340);
   const containerHeight = config.itemHeight * config.visibleItems;
   const frameWidth = containerWidth + 40;
   const frameHeight = containerHeight + 100;
+  const cardWidth = Math.min(screenWidth * 0.85, 320);
+  const cardHeight = cardWidth * 1.4;
+  const centeringOffset = config.itemHeight;
 
-  // Number of decorative bulbs
-  const bulbCount = 12;
-
-  // Initialize bulb pattern
+  // ── Bulb pattern init ──
   useEffect(() => {
-    setBulbPattern(generateRandomBulbPattern(bulbCount));
+    setBulbPattern(generateRandomBulbPattern());
   }, []);
 
-  // Animate bulbs during spinning
+  // ── Bulb animation during spinning ──
   useEffect(() => {
     if (phase !== 'spinning' || reducedMotion) return;
-
     const interval = setInterval(() => {
-      setBulbPattern(generateRandomBulbPattern(bulbCount, 0.3));
+      setBulbPattern(generateRandomBulbPattern(0.3));
     }, 150);
-
     return () => clearInterval(interval);
   }, [phase, reducedMotion]);
 
-  // Frame glow animation
+  // ── Frame glow pulsing ──
   useEffect(() => {
     if (reducedMotion) return;
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(frameGlowAnim, {
-          toValue: 1,
-          duration: 1500,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(frameGlowAnim, {
-          toValue: 0,
-          duration: 1500,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: canUseNativeDriver,
-        }),
-      ]),
-    ).start();
+    frameGlowAnim.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      false,
+    );
   }, [frameGlowAnim, reducedMotion]);
 
-  // Shuffle roles on mount
+  // ── Shuffle roles on mount ──
   useEffect(() => {
     const unique = [...new Set(allRoles.map((r) => r.id))];
     const roles = unique.map((id) => allRoles.find((r) => r.id === id)!);
     if (!roles.some((r) => r.id === role.id)) {
       roles.push(role);
     }
-    const shuffled = shuffleArray(roles);
-    setShuffledRoles(shuffled);
+    setShuffledRoles(shuffleArray(roles));
   }, [allRoles, role]);
 
-  // Target index in the shuffled array
-  const targetIndex = useMemo(() => {
-    return shuffledRoles.findIndex((r) => r.id === role.id);
-  }, [shuffledRoles, role]);
+  const targetIndex = useMemo(
+    () => shuffledRoles.findIndex((r) => r.id === role.id),
+    [shuffledRoles, role],
+  );
 
-  // Create repeated list for smooth scrolling
-  // Need enough items for all spins plus buffer
+  // Repeated list for smooth scrolling
   const repeatedRoles = useMemo(() => {
-    const repeats = config.spinRotations + 2; // Extra buffer for safety
+    const repeats = config.spinRotations + 2;
     const result: RoleData[] = [];
     for (let i = 0; i < repeats; i++) {
       result.push(...shuffledRoles);
@@ -190,230 +215,133 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     return result;
   }, [shuffledRoles, config.spinRotations]);
 
-  // Tick player for sound
-  const tickPlayer = useMemo(
-    () => createTickPlayer(enableSound && !reducedMotion),
-    [enableSound, reducedMotion],
-  );
-
-  // Create celebration particles
+  // ── Celebration particles ──
   const createParticles = useCallback(() => {
-    const newParticles: Particle[] = [];
+    const configs: EmojiParticleConfig[] = [];
     const count = 20;
-
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
       const distance = 100 + Math.random() * 100;
-      const targetX = Math.cos(angle) * distance;
-      const targetY = Math.sin(angle) * distance - 50;
-
-      newParticles.push({
+      configs.push({
         id: i,
-        x: new Animated.Value(0),
-        y: new Animated.Value(0),
-        scale: new Animated.Value(0),
-        opacity: new Animated.Value(1),
-        rotation: new Animated.Value(0),
+        targetX: Math.cos(angle) * distance,
+        targetY: Math.sin(angle) * distance - 50,
         emoji: CELEBRATION_EMOJIS[i % CELEBRATION_EMOJIS.length],
+        duration: 800 + Math.random() * 400,
       });
-
-      // Animate particle
-      Animated.parallel([
-        Animated.timing(newParticles[i].x, {
-          toValue: targetX,
-          duration: 800 + Math.random() * 400,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(newParticles[i].y, {
-          toValue: targetY,
-          duration: 800 + Math.random() * 400,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.sequence([
-          Animated.timing(newParticles[i].scale, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: canUseNativeDriver,
-          }),
-          Animated.timing(newParticles[i].scale, {
-            toValue: 0,
-            duration: 600,
-            delay: 200,
-            useNativeDriver: canUseNativeDriver,
-          }),
-        ]),
-        Animated.timing(newParticles[i].opacity, {
-          toValue: 0,
-          duration: 1000,
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(newParticles[i].rotation, {
-          toValue: Math.random() * 4 - 2,
-          duration: 1000,
-          useNativeDriver: canUseNativeDriver,
-        }),
-      ]).start();
     }
-
-    setParticles(newParticles);
+    setParticles(configs);
   }, []);
 
-  // Transition to revealed phase
+  // ── Transition to revealed ──
   const transitionToRevealed = useCallback(() => {
     setPhase('revealed');
-    Animated.parallel([
-      Animated.spring(revealScaleAnim, {
-        toValue: 1,
-        friction: 6,
-        tension: 100,
-        useNativeDriver: canUseNativeDriver,
-      }),
-      Animated.timing(revealOpacityAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: canUseNativeDriver,
-      }),
-    ]).start();
+    revealScaleAnim.value = withSpring(1, { damping: 8, stiffness: 100 });
+    revealOpacityAnim.value = withTiming(1, { duration: 300 });
   }, [revealScaleAnim, revealOpacityAnim]);
 
-  // Spin animation
+  // ── After bounce completes ──
+  const afterBounce = useCallback(() => {
+    if (enableHaptics) triggerHaptic('heavy', true);
+    setBulbPattern(new Array(BULB_COUNT).fill(true));
+    createParticles();
+
+    // Short delay then transition to revealed
+    revealScaleAnim.value = withDelay(
+      500,
+      withTiming(0.8, { duration: 1 }, (finished) => {
+        'worklet';
+        if (finished) runOnJS(transitionToRevealed)();
+      }),
+    );
+  }, [enableHaptics, createParticles, revealScaleAnim, transitionToRevealed]);
+
+  // ── Spin animation ──
   useEffect(() => {
-    if (shuffledRoles.length === 0 || targetIndex < 0) {
-      return;
-    }
+    if (shuffledRoles.length === 0 || targetIndex < 0) return;
 
     if (reducedMotion) {
       setPhase('revealed');
-      Animated.parallel([
-        Animated.timing(revealScaleAnim, {
-          toValue: 1,
-          duration: CONFIG.common.reducedMotionFadeDuration,
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.timing(revealOpacityAnim, {
-          toValue: 1,
-          duration: CONFIG.common.reducedMotionFadeDuration,
-          useNativeDriver: canUseNativeDriver,
-        }),
-      ]).start();
+      revealScaleAnim.value = withTiming(1, {
+        duration: CONFIG.common.reducedMotionFadeDuration,
+      });
+      revealOpacityAnim.value = withTiming(1, {
+        duration: CONFIG.common.reducedMotionFadeDuration,
+      });
       const timer = setTimeout(
-        () => {
-          onComplete();
-        },
+        onComplete,
         CONFIG.common.reducedMotionFadeDuration + (config.revealHoldDuration ?? 1500),
       );
       return () => clearTimeout(timer);
     }
 
-    // Start tick sounds
-    tickPlayer.start(config.tickIntervalFast);
+    const targetPosition =
+      config.spinRotations * shuffledRoles.length + targetIndex;
 
-    // Calculate target position
-    const totalSpins = config.spinRotations;
-    const targetPosition = totalSpins * shuffledRoles.length + targetIndex;
+    // Main spin
+    scrollAnim.value = withTiming(
+      targetPosition,
+      { duration: config.spinDuration, easing: Easing.out(Easing.cubic) },
+      (finished) => {
+        'worklet';
+        if (!finished) return;
 
-    // Animate spin with bounce at end
-    Animated.timing(scrollAnim, {
-      toValue: targetPosition,
-      duration: config.spinDuration,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: canUseNativeDriver,
-    }).start(() => {
-      setPhase('stopping');
-      tickPlayer.stop();
+        runOnJS(setPhase)('stopping');
 
-      // Bounce effect
-      Animated.sequence([
-        Animated.timing(bounceAnim, {
-          toValue: -15,
-          duration: 100,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: canUseNativeDriver,
-        }),
-        Animated.spring(bounceAnim, {
-          toValue: 0,
-          friction: 4,
-          tension: 300,
-          useNativeDriver: canUseNativeDriver,
-        }),
-      ]).start(() => {
-        // Play confirm sound and haptic
-        if (enableSound) {
-          playSound('confirm');
-        }
-        if (enableHaptics) {
-          triggerHaptic('heavy', true);
-        }
-
-        // All bulbs on for celebration
-        setBulbPattern(new Array(bulbCount).fill(true));
-
-        // Create particles
-        createParticles();
-
-        // Transition to revealed after a short delay
-        setTimeout(transitionToRevealed, 500);
-      });
-    });
-
-    // Gradually slow down tick sounds
-    const slowdownTimer = setTimeout(() => {
-      tickPlayer.updateInterval(config.tickIntervalSlow);
-    }, config.spinDuration * 0.6);
-
-    return () => {
-      tickPlayer.stop();
-      clearTimeout(slowdownTimer);
-    };
+        // Bounce
+        bounceAnim.value = withSequence(
+          withTiming(-15, { duration: 100, easing: Easing.out(Easing.cubic) }),
+          withSpring(0, { damping: 6, stiffness: 300 }, (fin2) => {
+            'worklet';
+            if (fin2) runOnJS(afterBounce)();
+          }),
+        );
+      },
+    );
   }, [
     reducedMotion,
     scrollAnim,
     bounceAnim,
     shuffledRoles.length,
     targetIndex,
-    tickPlayer,
-    enableSound,
-    enableHaptics,
     config,
-    createParticles,
+    afterBounce,
     transitionToRevealed,
     revealScaleAnim,
     revealOpacityAnim,
     onComplete,
   ]);
 
-  // Handle reveal complete
+  // ── Reveal complete handler ──
   const handleRevealComplete = useCallback(() => {
-    const holdDuration = config.revealHoldDuration ?? 1500;
-    setTimeout(() => {
-      onComplete();
-    }, holdDuration);
+    const timer = setTimeout(onComplete, config.revealHoldDuration ?? 1500);
+    return () => clearTimeout(timer);
   }, [onComplete, config.revealHoldDuration]);
 
-  // Calculate scroll position
-  // When scrollAnim = N, item N should be at the center of the window
-  // With visibleItems=3, center position is at index 1 (0-indexed)
-  // So we offset by 1 item height to center item 0 initially
-  const centeringOffset = config.itemHeight; // One item height to center first item
+  // ── Animated styles ──
+  const scrollStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY: interpolate(
+          scrollAnim.value,
+          [0, 1],
+          [centeringOffset, centeringOffset - config.itemHeight],
+        ),
+      },
+      { translateY: bounceAnim.value },
+    ],
+  }));
 
-  const scrollTranslateY = scrollAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [centeringOffset, centeringOffset - config.itemHeight],
-  });
+  const frameGlowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(frameGlowAnim.value, [0, 1], [0.3, 0.8]),
+  }));
 
-  // Card dimensions for revealed state
-  const cardWidth = Math.min(screenWidth * 0.85, 320);
-  const cardHeight = cardWidth * 1.4;
+  const revealedCardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: revealScaleAnim.value }],
+    opacity: revealOpacityAnim.value,
+  }));
 
-  // Frame glow opacity
-  const frameGlowOpacity = frameGlowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.3, 0.8],
-  });
-
-  // Wait for shuffledRoles to be ready
+  // ── Loading state ──
   if (shuffledRoles.length === 0) {
     return (
       <View
@@ -427,7 +355,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     );
   }
 
-  // Revealed phase - show RoleCardContent
+  // ── Revealed phase ──
   if (phase === 'revealed') {
     return (
       <View
@@ -437,43 +365,22 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
         {/* Celebration particles */}
         <View style={styles.particleContainer}>
           {particles.map((p) => (
-            <Animated.Text
-              key={p.id}
-              style={[
-                styles.particle,
-                {
-                  transform: [
-                    { translateX: p.x },
-                    { translateY: p.y },
-                    { scale: p.scale },
-                    {
-                      rotate: p.rotation.interpolate({
-                        inputRange: [-2, 2],
-                        outputRange: ['-360deg', '360deg'],
-                      }),
-                    },
-                  ],
-                  opacity: p.opacity,
-                },
-              ]}
-            >
-              {p.emoji}
-            </Animated.Text>
+            <EmojiParticle key={p.id} {...p} />
           ))}
         </View>
 
         <Animated.View
           style={[
             styles.revealedCardContainer,
-            {
-              width: cardWidth,
-              height: cardHeight,
-              transform: [{ scale: revealScaleAnim }],
-              opacity: revealOpacityAnim,
-            },
+            { width: cardWidth, height: cardHeight },
+            revealedCardStyle,
           ]}
         >
-          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
+          <RoleCardContent
+            roleId={role.id as RoleId}
+            width={cardWidth}
+            height={cardHeight}
+          />
           <GlowBorder
             width={cardWidth + 8}
             height={cardHeight + 8}
@@ -485,38 +392,34 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
             flashCount={config.highlightFlashCount}
             flashDuration={config.highlightFlashDuration}
             onComplete={handleRevealComplete}
-            style={{
-              position: 'absolute',
-              top: -4,
-              left: -4,
-            }}
+            style={{ position: 'absolute', top: -4, left: -4 }}
           />
         </Animated.View>
       </View>
     );
   }
 
+  // ── Spinning / Stopping phase ──
   return (
     <View
       testID={`${testIDPrefix}-container`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      {/* Slot Machine Cabinet */}
+      {/* Slot machine cabinet */}
       <View style={[styles.cabinet, { width: frameWidth, height: frameHeight }]}>
-        {/* Outer metallic frame */}
         <LinearGradient
           colors={[...SLOT_COLORS.metalGradient]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.outerFrame}
         >
-          {/* Decorative corner screws */}
+          {/* Corner screws */}
           <View style={[styles.screw, styles.screwTopLeft]} />
           <View style={[styles.screw, styles.screwTopRight]} />
           <View style={[styles.screw, styles.screwBottomLeft]} />
           <View style={[styles.screw, styles.screwBottomRight]} />
 
-          {/* Top decorative panel with bulbs */}
+          {/* Top panel */}
           <View style={styles.topPanel}>
             <Text style={styles.slotTitle}>🎰 JACKPOT 🎰</Text>
             <View style={styles.bulbRow}>
@@ -524,26 +427,30 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
                 <Bulb
                   key={id}
                   on={bulbPattern[i] ?? false}
-                  color={i % 2 === 0 ? SLOT_COLORS.neonPink : SLOT_COLORS.neonBlue}
+                  color={
+                    i % 2 === 0 ? SLOT_COLORS.neonPink : SLOT_COLORS.neonBlue
+                  }
                 />
               ))}
             </View>
           </View>
 
-          {/* Neon glow border */}
+          {/* Neon glow */}
           <Animated.View
             style={[
               styles.neonBorder,
-              {
-                opacity: frameGlowOpacity,
-                shadowColor: SLOT_COLORS.neonPink,
-              },
+              { shadowColor: SLOT_COLORS.neonPink },
+              frameGlowStyle,
             ]}
           />
 
-          {/* Inner frame with reel window */}
-          <View style={[styles.innerFrame, { backgroundColor: SLOT_COLORS.frameInner }]}>
-            {/* Reel window */}
+          {/* Inner frame */}
+          <View
+            style={[
+              styles.innerFrame,
+              { backgroundColor: SLOT_COLORS.frameInner },
+            ]}
+          >
             <View
               testID={`${testIDPrefix}-window`}
               style={[
@@ -556,39 +463,33 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
               ]}
             >
               {/* Scrolling items */}
-              <Animated.View
-                style={[
-                  styles.scrollContainer,
-                  {
-                    transform: [
-                      { translateY: scrollTranslateY },
-                      { translateY: bounceAnim },
-                    ],
-                  },
-                ]}
-              >
+              <Animated.View style={[styles.scrollContainer, scrollStyle]}>
                 {repeatedRoles.map((r, index) => {
-                  const theme = ALIGNMENT_THEMES[r.alignment];
+                  const itemTheme = ALIGNMENT_THEMES[r.alignment];
                   return (
                     <View
                       key={`role-${r.id}-${index}`}
-                      style={[
-                        styles.item,
-                        {
-                          height: config.itemHeight,
-                        },
-                      ]}
+                      style={[styles.item, { height: config.itemHeight }]}
                     >
-                      {/* Item card with 3D effect */}
                       <LinearGradient
-                        colors={[SLOT_COLORS.itemCard, SLOT_COLORS.itemCardHighlight, SLOT_COLORS.itemCard]}
+                        colors={[
+                          SLOT_COLORS.itemCard,
+                          SLOT_COLORS.itemCardHighlight,
+                          SLOT_COLORS.itemCard,
+                        ]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={[styles.itemCard, { borderColor: SLOT_COLORS.itemCardBorder }]}
+                        style={[
+                          styles.itemCard,
+                          { borderColor: SLOT_COLORS.itemCardBorder },
+                        ]}
                       >
                         <Text style={styles.itemIcon}>{r.avatar || '❓'}</Text>
                         <Text
-                          style={[styles.itemName, { color: theme.primaryColor }]}
+                          style={[
+                            styles.itemName,
+                            { color: itemTheme.primaryColor },
+                          ]}
                           numberOfLines={1}
                         >
                           {r.name}
@@ -599,7 +500,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
                 })}
               </Animated.View>
 
-              {/* Gradient masks for 3D depth */}
+              {/* Gradient masks */}
               <LinearGradient
                 colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)']}
                 style={[styles.gradientMask, styles.gradientMaskTop]}
@@ -609,27 +510,44 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
                 style={[styles.gradientMask, styles.gradientMaskBottom]}
               />
 
-              {/* Center selection indicators */}
-              <View style={[styles.selectionIndicator, styles.selectionIndicatorLeft]}>
+              {/* Selection indicators */}
+              <View
+                style={[
+                  styles.selectionIndicator,
+                  styles.selectionIndicatorLeft,
+                ]}
+              >
                 <Text style={styles.indicatorArrow}>▶</Text>
               </View>
-              <View style={[styles.selectionIndicator, styles.selectionIndicatorRight]}>
+              <View
+                style={[
+                  styles.selectionIndicator,
+                  styles.selectionIndicatorRight,
+                ]}
+              >
                 <Text style={styles.indicatorArrow}>◀</Text>
               </View>
 
-              {/* Center highlight line */}
-              <View style={[styles.centerHighlight, { backgroundColor: SLOT_COLORS.gold }]} />
+              {/* Center highlight */}
+              <View
+                style={[
+                  styles.centerHighlight,
+                  { backgroundColor: SLOT_COLORS.gold },
+                ]}
+              />
             </View>
           </View>
 
-          {/* Bottom decorative panel with bulbs */}
+          {/* Bottom panel */}
           <View style={styles.bottomPanel}>
             <View style={styles.bulbRow}>
               {BOTTOM_BULB_IDS.map((id, i) => (
                 <Bulb
                   key={id}
                   on={bulbPattern[6 + i] ?? false}
-                  color={i % 2 === 0 ? SLOT_COLORS.neonGreen : SLOT_COLORS.gold}
+                  color={
+                    i % 2 === 0 ? SLOT_COLORS.neonGreen : SLOT_COLORS.gold
+                  }
                 />
               ))}
             </View>
@@ -640,34 +558,14 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       {/* Celebration particles */}
       <View style={styles.particleContainer}>
         {particles.map((p) => (
-          <Animated.Text
-            key={p.id}
-            style={[
-              styles.particle,
-              {
-                transform: [
-                  { translateX: p.x },
-                  { translateY: p.y },
-                  { scale: p.scale },
-                  {
-                    rotate: p.rotation.interpolate({
-                      inputRange: [-2, 2],
-                      outputRange: ['-360deg', '360deg'],
-                    }),
-                  },
-                ],
-                opacity: p.opacity,
-              },
-            ]}
-          >
-            {p.emoji}
-          </Animated.Text>
+          <EmojiParticle key={p.id} {...p} />
         ))}
       </View>
     </View>
   );
 };
 
+// ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -692,7 +590,6 @@ const styles = StyleSheet.create({
     padding: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    // 3D shadow effect - 使用新的 boxShadow 语法
     boxShadow: '0px 8px 12px rgba(0, 0, 0, 0.5)',
     elevation: 10,
   },
@@ -708,7 +605,6 @@ const styles = StyleSheet.create({
     padding: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    // Inner shadow - 使用新的 boxShadow 语法
     boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.3)',
   },
   topPanel: {
@@ -719,7 +615,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: SLOT_COLORS.gold,
-    // 保留旧语法（RN 类型定义尚未支持 textShadow 复合属性）
     textShadowColor: SLOT_COLORS.goldDark,
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
@@ -746,22 +641,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: SLOT_COLORS.screwBorder,
   },
-  screwTopLeft: {
-    top: 8,
-    left: 8,
-  },
-  screwTopRight: {
-    top: 8,
-    right: 8,
-  },
-  screwBottomLeft: {
-    bottom: 8,
-    left: 8,
-  },
-  screwBottomRight: {
-    bottom: 8,
-    right: 8,
-  },
+  screwTopLeft: { top: 8, left: 8 },
+  screwTopRight: { top: 8, right: 8 },
+  screwBottomLeft: { bottom: 8, left: 8 },
+  screwBottomRight: { bottom: 8, right: 8 },
   reelWindow: {
     borderRadius: 8,
     overflow: 'hidden',
@@ -784,7 +667,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     width: '95%',
-    // 3D effect
     shadowColor: shadows.md.shadowColor,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -809,23 +691,15 @@ const styles = StyleSheet.create({
     height: 40,
     pointerEvents: 'none',
   },
-  gradientMaskTop: {
-    top: 0,
-  },
-  gradientMaskBottom: {
-    bottom: 0,
-  },
+  gradientMaskTop: { top: 0 },
+  gradientMaskBottom: { bottom: 0 },
   selectionIndicator: {
     position: 'absolute',
     top: '50%',
     marginTop: -12,
   },
-  selectionIndicatorLeft: {
-    left: 4,
-  },
-  selectionIndicatorRight: {
-    right: 4,
-  },
+  selectionIndicatorLeft: { left: 4 },
+  selectionIndicatorRight: { right: 4 },
   indicatorArrow: {
     fontSize: 16,
     color: SLOT_COLORS.gold,

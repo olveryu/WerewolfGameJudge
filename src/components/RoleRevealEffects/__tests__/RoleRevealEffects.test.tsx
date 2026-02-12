@@ -363,7 +363,7 @@ describe('RoleRevealEffects', () => {
       expect(queryByTestId('flip-reveal-particle-burst')).toBeNull();
     });
 
-    it('disables sound and haptics with reducedMotion', async () => {
+    it('disables haptics with reducedMotion', async () => {
       const onComplete = jest.fn();
 
       render(
@@ -371,7 +371,6 @@ describe('RoleRevealEffects', () => {
           role={mockGodRole}
           onComplete={onComplete}
           reducedMotion={true}
-          enableSound={true}
           enableHaptics={true}
           testIDPrefix="flip-reveal"
         />,

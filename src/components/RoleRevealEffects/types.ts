@@ -43,8 +43,6 @@ export interface RoleRevealEffectProps {
   onComplete: () => void;
   /** Respect system "reduce motion" preference */
   reducedMotion?: boolean;
-  /** Enable sound effects */
-  enableSound?: boolean;
   /** Enable haptic feedback (mobile only) */
   enableHaptics?: boolean;
   /** Optional test ID prefix */
