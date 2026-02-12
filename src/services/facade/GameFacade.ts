@@ -48,16 +48,19 @@ import * as seatActions from './seatActions';
 
 /**
  * GameFacade 可注入依赖
+ *
+ * 所有字段必填 — 由 composition root（App.tsx）显式创建并注入。
+ * 测试中同样显式传入 mock 实例。
  */
 interface GameFacadeDeps {
-  /** GameStore 实例（可选，默认 new GameStore()） */
-  store?: GameStore;
-  /** BroadcastService 实例（可选，默认 new BroadcastService()） */
-  broadcastService?: BroadcastService;
-  /** AudioService 实例（可选，默认 new AudioService()） */
-  audioService?: AudioService;
-  /** HostStateCache 实例（可选，默认 new HostStateCache()） */
-  hostStateCache?: HostStateCache;
+  /** GameStore 实例 */
+  store: GameStore;
+  /** BroadcastService 实例 */
+  broadcastService: BroadcastService;
+  /** AudioService 实例 */
+  audioService: AudioService;
+  /** HostStateCache 实例 */
+  hostStateCache: HostStateCache;
 }
 
 export class GameFacade implements IGameFacade {
@@ -89,13 +92,13 @@ export class GameFacade implements IGameFacade {
   private readonly pendingSeatAction: { current: PendingSeatAction | null } = { current: null };
 
   /**
-   * @param deps - 可选依赖注入。未提供时使用生产默认值。
+   * @param deps - 必须由 composition root 或测试显式提供所有依赖。
    */
-  constructor(deps?: GameFacadeDeps) {
-    this.store = deps?.store ?? new GameStore();
-    this.broadcastService = deps?.broadcastService ?? new BroadcastService();
-    this.audioService = deps?.audioService ?? new AudioService();
-    this.hostStateCache = deps?.hostStateCache ?? new HostStateCache();
+  constructor(deps: GameFacadeDeps) {
+    this.store = deps.store;
+    this.broadcastService = deps.broadcastService;
+    this.audioService = deps.audioService;
+    this.hostStateCache = deps.hostStateCache;
   }
 
   // =========================================================================

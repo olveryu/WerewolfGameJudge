@@ -14,6 +14,7 @@
 
 import { gameReducer } from '@/services/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@/services/engine/reducer/types';
+import { GameStore } from '@/services/engine/store';
 import { GameFacade } from '@/services/facade/GameFacade';
 import type { BroadcastPlayer, HostBroadcast } from '@/services/protocol/types';
 
@@ -72,7 +73,25 @@ describe('restartGame Contract', () => {
     };
 
     // DI: 直接注入 mock
-    facade = new GameFacade({ broadcastService: mockBroadcastService as any });
+    facade = new GameFacade({
+      store: new GameStore(),
+      broadcastService: mockBroadcastService as any,
+      audioService: {
+        playNightAudio: jest.fn().mockResolvedValue(undefined),
+        playNightEndAudio: jest.fn().mockResolvedValue(undefined),
+        playRoleBeginningAudio: jest.fn().mockResolvedValue(undefined),
+        playRoleEndingAudio: jest.fn().mockResolvedValue(undefined),
+        preloadForRoles: jest.fn().mockResolvedValue(undefined),
+        clearPreloaded: jest.fn(),
+        cleanup: jest.fn(),
+      } as any,
+      hostStateCache: {
+        saveState: jest.fn(),
+        loadState: jest.fn().mockResolvedValue(null),
+        getState: jest.fn().mockReturnValue(null),
+        clearState: jest.fn(),
+      } as any,
+    });
   });
 
   afterEach(() => {

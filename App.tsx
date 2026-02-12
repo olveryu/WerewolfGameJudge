@@ -10,6 +10,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider, GameFacadeProvider, NetworkProvider, ServiceProvider } from '@/contexts';
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
 import { AppNavigator } from '@/navigation';
+import { GameStore } from '@/services/engine/store';
 import { GameFacade } from '@/services/facade/GameFacade';
 import { AvatarUploadService } from '@/services/feature/AvatarUploadService';
 import { SettingsService } from '@/services/feature/SettingsService';
@@ -17,6 +18,7 @@ import { AudioService } from '@/services/infra/AudioService';
 import { AuthService } from '@/services/infra/AuthService';
 import { HostStateCache } from '@/services/infra/HostStateCache';
 import { RoomService } from '@/services/infra/RoomService';
+import { BroadcastService } from '@/services/transport/BroadcastService';
 import { ThemeProvider, useTheme } from '@/theme';
 import { AlertConfig, setAlertListener } from '@/utils/alert';
 import { log } from '@/utils/logger';
@@ -89,6 +91,8 @@ export default function App() {
   const [facade] = useState(
     () =>
       new GameFacade({
+        store: new GameStore(),
+        broadcastService: new BroadcastService(),
         audioService: services.audioService,
         hostStateCache: new HostStateCache(),
       }),

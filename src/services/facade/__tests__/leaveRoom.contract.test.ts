@@ -4,6 +4,7 @@
  * 验证离开房间后不会有残留的 store listeners 导致内存/逻辑泄漏
  */
 
+import { GameStore } from '@/services/engine/store';
 import { GameFacade } from '@/services/facade/GameFacade';
 
 // Mock BroadcastService
@@ -38,9 +39,32 @@ jest.mock('../../infra/HostStateCache', () => ({
   })),
 }));
 
+const mockHostStateCache = () =>
+  ({
+    saveState: jest.fn(),
+    loadState: jest.fn().mockResolvedValue(null),
+    getState: jest.fn().mockReturnValue(null),
+    clearState: jest.fn(),
+  }) as any;
+
+const mockAudio = () =>
+  ({
+    playAudio: jest.fn().mockResolvedValue(undefined),
+    stopAudio: jest.fn(),
+    cleanup: jest.fn(),
+  }) as any;
+
+const createTestFacade = () =>
+  new GameFacade({
+    store: new GameStore(),
+    broadcastService: new (jest.requireMock('../../transport/BroadcastService').BroadcastService)(),
+    audioService: mockAudio(),
+    hostStateCache: mockHostStateCache(),
+  });
+
 describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
   it('should have zero listeners after leaveRoom when all subscribers have unsubscribed', async () => {
-    const facade = new GameFacade();
+    const facade = createTestFacade();
 
     // 初始状态应该没有 listeners
     expect(facade.getListenerCount()).toBe(0);
@@ -67,7 +91,7 @@ describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
   });
 
   it('should preserve listeners after leaveRoom (reset does not clear listeners)', async () => {
-    const facade = new GameFacade();
+    const facade = createTestFacade();
 
     // 订阅但不取消（模拟组件未正确 cleanup）
     facade.addListener(() => {});
@@ -84,7 +108,7 @@ describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
   });
 
   it('should allow unsubscribe to be called multiple times safely', async () => {
-    const facade = new GameFacade();
+    const facade = createTestFacade();
 
     const unsubscribe = facade.addListener(() => {});
     expect(facade.getListenerCount()).toBe(1);
@@ -100,7 +124,7 @@ describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
   });
 
   it('should notify listeners with null state on leaveRoom', async () => {
-    const facade = new GameFacade();
+    const facade = createTestFacade();
     const listener = jest.fn();
 
     facade.addListener(listener);
