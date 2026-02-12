@@ -72,6 +72,15 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 - 日志内容必须包含关键上下文（当前值 vs 预期值、调用栈片段等），争取一轮测试就定位。
 - 定位完成并修复后，必须清除所有 `[DIAG]` 日志。
 
+### 修改后验证流水线（Hard rule）
+
+- 代码修改完成后，commit 前**必须**依次运行以下三步，全部通过才可提交：
+  1. `npx tsc --noEmit` — 类型检查
+  2. `npm run lint` — ESLint
+  3. `npx jest --no-coverage --forceExit` — 单元/集成测试
+- 快捷替代：`npm run quality`（一次执行 typecheck + lint + format + test）。
+- 任一步骤失败必须修复后重跑，禁止跳过。
+
 ---
 
 ## 不可协商规则

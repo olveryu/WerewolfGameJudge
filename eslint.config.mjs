@@ -133,12 +133,42 @@ export default tseslint.config(
   },
 
   // =========================================================================
-  // E2E (Playwright) — not React components, disable hooks rules
+  // E2E (Playwright) — not React components, disable hooks rules + allow console
   // =========================================================================
   {
     files: ['e2e/**/*.ts'],
     rules: {
       'react-hooks/rules-of-hooks': 'off',
+      'no-console': 'off',
+    },
+  },
+
+  // =========================================================================
+  // Mocks — allow require() and console
+  // =========================================================================
+  {
+    files: ['__mocks__/**'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      'no-console': 'off',
+    },
+  },
+
+  // =========================================================================
+  // Animation components — Animated.Value mutations are expected in RN
+  // react-hooks/immutability: `.value = x` on shared values / Animated.Value
+  // react-hooks/refs: `useRef(new Animated.Value()).current` is standard RN pattern
+  // =========================================================================
+  {
+    files: [
+      'src/components/RoleRevealEffects/**/*.tsx',
+      'src/components/AIChatBubble/**/*.tsx',
+      'src/components/AIChatBubble/**/*.ts',
+    ],
+    rules: {
+      'react-hooks/immutability': 'off',
+      'react-hooks/refs': 'off',
     },
   },
 );

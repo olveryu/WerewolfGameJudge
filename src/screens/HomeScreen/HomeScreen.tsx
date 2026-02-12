@@ -169,7 +169,7 @@ export const HomeScreen: React.FC = () => {
       setShowJoinModal(false);
       navigation.navigate('Room', { roomNumber: roomCode, isHost: false });
       setRoomCode('');
-    } catch (e) {
+    } catch {
       setJoinError('加入失败，请重试');
     } finally {
       setIsJoining(false);

@@ -231,6 +231,7 @@ function addLog(message: string, level: LogEntry['level'] = 'log', silent = fals
 
   // Also log to console (skip when called from logger transport to avoid double-logging)
   if (!silent) {
+    // eslint-disable-next-line no-console -- mobileDebug IS the debug transport, console output is intentional
     console[level === 'debug' ? 'log' : level]('[MobileDebug]', message);
   }
 

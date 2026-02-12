@@ -151,6 +151,7 @@ export function useRoomInit({
     takeSeat,
     initialRoleRevealAnimation,
     setRoleRevealAnimation,
+    gameRoomError,
   ]);
 
   // Loading timeout

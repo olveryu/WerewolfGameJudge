@@ -8,7 +8,7 @@
  * ❌ 禁止：直接调用 service
  */
 
-import React, { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
