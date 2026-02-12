@@ -17,9 +17,6 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - name: Enable Corepack
-        run: corepack enable
-
       - run: npm ci
 
       - name: Typecheck

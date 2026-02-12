@@ -24,7 +24,6 @@
     "release": "bash scripts/release.sh",
     "prepare": "husky"
   },
-  "packageManager": "npm@10.9.4",
   "engines": {
     "node": ">=22"
   },
