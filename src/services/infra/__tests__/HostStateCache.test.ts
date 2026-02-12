@@ -6,7 +6,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { CachedHostState,HostStateCache } from '@/services/infra/HostStateCache';
+import { CachedHostState, HostStateCache } from '@/services/infra/HostStateCache';
 import type { BroadcastGameState } from '@/services/protocol/types';
 
 // Mock AsyncStorage

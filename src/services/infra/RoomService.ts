@@ -16,7 +16,7 @@
  * - updated_at: timestamptz
  */
 
-import { isSupabaseConfigured,supabase } from '@/config/supabase';
+import { isSupabaseConfigured, supabase } from '@/config/supabase';
 import { roomLog } from '@/utils/logger';
 import { generateRoomCode } from '@/utils/roomCode';
 
@@ -80,7 +80,8 @@ export class RoomService {
     let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      const roomNumber = attempt === 1 && initialRoomNumber ? initialRoomNumber : generateRoomCode();
+      const roomNumber =
+        attempt === 1 && initialRoomNumber ? initialRoomNumber : generateRoomCode();
 
       const { error } = await supabase!.from('rooms').insert({
         code: roomNumber,

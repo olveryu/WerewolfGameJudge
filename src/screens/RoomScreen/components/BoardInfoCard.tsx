@@ -6,8 +6,8 @@
  * ✅ 允许：渲染 UI + 折叠交互
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { memo,useEffect, useState } from 'react';
-import { Text, TouchableOpacity,View } from 'react-native';
+import React, { memo, useEffect, useState } from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 import { type BoardInfoCardStyles } from './styles';
 

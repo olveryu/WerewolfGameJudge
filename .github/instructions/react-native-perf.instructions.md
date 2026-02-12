@@ -1,4 +1,4 @@
-```instructions
+````instructions
 ---
 applyTo: "src/screens/**/*.tsx,src/components/**/*.tsx"
 ---
@@ -43,7 +43,7 @@ const renderSeat = useCallback(
   [styles],
 );
 <FlatList renderItem={renderSeat} ... />
-```
+````
 
 ## 禁止循环内创建内联 style 对象
 
@@ -75,4 +75,7 @@ InteractionManager.runAfterInteractions(() => {
 
 - 优先使用 `react-native-reanimated`（或 `Animated` + `useNativeDriver: true`）。
 - ❌ 禁止在动画回调中频繁 `setState`（会导致 JS 线程抖动）。
+
+```
+
 ```

@@ -103,27 +103,27 @@ const animation = gameState.resolvedRoleRevealAnimation; // 直接读取，不�
 
 ## 文件职责
 
-| 文件                                        | 职责                             | 依赖                    |
-| ------------------------------------------- | -------------------------------- | ----------------------- |
-| `src/utils/id.ts`                           | 唯一 ID、nonce 生成              | expo-crypto, Web Crypto |
-| `src/utils/random.ts`                       | 可测试随机（rng 注入）           | expo-crypto, Web Crypto |
-| `src/utils/shuffle.ts`                      | 数组打乱（rng 注入）             | random.ts               |
-| `src/utils/roomCode.ts`                     | 4 位房间号生成                   | random.ts               |
-| `src/types/RoleRevealAnimation.ts`          | 动画随机解析（领域特定）         | 确定性 hash             |
+| 文件                               | 职责                     | 依赖                    |
+| ---------------------------------- | ------------------------ | ----------------------- |
+| `src/utils/id.ts`                  | 唯一 ID、nonce 生成      | expo-crypto, Web Crypto |
+| `src/utils/random.ts`              | 可测试随机（rng 注入）   | expo-crypto, Web Crypto |
+| `src/utils/shuffle.ts`             | 数组打乱（rng 注入）     | random.ts               |
+| `src/utils/roomCode.ts`            | 4 位房间号生成           | random.ts               |
+| `src/types/RoleRevealAnimation.ts` | 动画随机解析（领域特定） | 确定性 hash             |
 
 ### 工具函数速查
 
-| 函数                  | 文件         | 用途                           |
-| --------------------- | ------------ | ------------------------------ |
-| `randomHex(n)`        | `id.ts`      | n 位十六进制字符串             |
-| `newRequestId()`      | `id.ts`      | 请求 ID（UUID / 时间戳+随机） |
-| `newRejectionId()`    | `id.ts`      | 拒绝 ID（去重用）             |
-| `secureRng()`         | `random.ts`  | [0,1) 安全随机浮点            |
-| `randomIntInclusive`  | `random.ts`  | [min,max] 随机整数            |
-| `randomBool`          | `random.ts`  | 随机布尔值                     |
-| `randomPick(arr)`     | `random.ts`  | 从数组随机选一个               |
-| `shuffleArray(arr)`   | `shuffle.ts` | Fisher-Yates 打乱数组         |
-| `generateRoomCode()`  | `roomCode.ts`| 4 位房间号 (1000-9999)        |
+| 函数                 | 文件          | 用途                          |
+| -------------------- | ------------- | ----------------------------- |
+| `randomHex(n)`       | `id.ts`       | n 位十六进制字符串            |
+| `newRequestId()`     | `id.ts`       | 请求 ID（UUID / 时间戳+随机） |
+| `newRejectionId()`   | `id.ts`       | 拒绝 ID（去重用）             |
+| `secureRng()`        | `random.ts`   | [0,1) 安全随机浮点            |
+| `randomIntInclusive` | `random.ts`   | [min,max] 随机整数            |
+| `randomBool`         | `random.ts`   | 随机布尔值                    |
+| `randomPick(arr)`    | `random.ts`   | 从数组随机选一个              |
+| `shuffleArray(arr)`  | `shuffle.ts`  | Fisher-Yates 打乱数组         |
+| `generateRoomCode()` | `roomCode.ts` | 4 位房间号 (1000-9999)        |
 
 ---
 

@@ -1,4 +1,4 @@
-import { AudioPlayer, AudioStatus,createAudioPlayer, setAudioModeAsync } from 'expo-audio';
+import { AudioPlayer, AudioStatus, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { Platform } from 'react-native';
 
 import { RoleId } from '@/models/roles';
@@ -633,4 +633,3 @@ export class AudioService {
     audioLog.debug('clearPreloaded: all preloaded audio released');
   }
 }
-

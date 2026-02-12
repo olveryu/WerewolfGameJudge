@@ -60,7 +60,11 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
       return;
     }
     Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 0.9, duration: 100, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(scaleAnim, {
+        toValue: 0.9,
+        duration: 100,
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }),
       Animated.timing(scaleAnim, { toValue: 1, duration: 100, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start();
     onOpen();

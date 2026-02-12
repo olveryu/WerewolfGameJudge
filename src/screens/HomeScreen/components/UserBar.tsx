@@ -7,7 +7,7 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo, useCallback } from 'react';
-import { Text, TouchableOpacity,View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { TESTIDS } from '@/testids';

@@ -7,10 +7,10 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import { Ionicons } from '@expo/vector-icons';
-import React, { memo,useMemo } from 'react';
-import { StyleSheet,Text, TouchableOpacity } from 'react-native';
+import React, { memo, useMemo } from 'react';
+import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 
-import { borderRadius, spacing, type ThemeColors,typography, useColors } from '@/theme';
+import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
 interface HostControlButtonsProps {
   // Visibility flags

@@ -7,7 +7,7 @@
  * ✅ 允许：渲染 UI + 上报 onPress
  * ❌ 禁止：import service / showAlert / 业务逻辑判断
  */
-import React, { memo, useCallback, useEffect, useMemo,useRef } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
   Platform,
@@ -25,7 +25,7 @@ import { Avatar } from '@/components/Avatar';
 import type { RoleId } from '@/models/roles';
 import { getRoleDisplayName } from '@/models/roles';
 import { TESTIDS } from '@/testids';
-import { borderRadius, spacing, type ThemeColors,typography } from '@/theme';
+import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 // Re-export for PlayerGrid
@@ -185,7 +185,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   // Get role display name for bot (debug mode only)
   const botRoleDisplayName = showBotRole && roleId ? getRoleDisplayName(roleId) : null;
 
-    return (
+  return (
     <View style={styles.tileWrapper} testID={TESTIDS.seatTile(index)}>
       <TouchableOpacity
         testID={TESTIDS.seatTilePressable(index)}

@@ -6,7 +6,7 @@
 
 import type { RoleId } from '@/models/roles';
 import { seerCheckResolver } from '@/services/night/resolvers/seer';
-import type { ActionInput,ResolverContext } from '@/services/night/resolvers/types';
+import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
 
 // =============================================================================
 // Test Helpers

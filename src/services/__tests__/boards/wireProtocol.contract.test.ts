@@ -9,9 +9,9 @@
  */
 
 import { RoleId } from '@/models/roles';
-import { NIGHT_STEPS,SCHEMAS } from '@/models/roles/spec';
+import { NIGHT_STEPS, SCHEMAS } from '@/models/roles/spec';
 
-import { cleanupHostGame,createHostGame } from './hostGameFactory';
+import { cleanupHostGame, createHostGame } from './hostGameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 // ACTION message 类型

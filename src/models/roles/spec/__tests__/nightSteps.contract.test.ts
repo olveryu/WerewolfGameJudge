@@ -4,7 +4,7 @@
  * Validates NIGHT_STEPS as the single source of truth for night action order.
  */
 
-import { isValidRoleId,ROLE_SPECS } from '@/models/roles';
+import { isValidRoleId, ROLE_SPECS } from '@/models/roles';
 import {
   getAllStepIds,
   getStepsByRole,

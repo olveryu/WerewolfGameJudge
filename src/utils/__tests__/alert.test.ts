@@ -1,4 +1,4 @@
-import { AlertConfig,setAlertListener, showAlert } from '@/utils/alert';
+import { AlertConfig, setAlertListener, showAlert } from '@/utils/alert';
 
 describe('alert utility', () => {
   afterEach(() => {

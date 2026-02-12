@@ -3,9 +3,9 @@
  *
  * Created once in parent, passed to all sub-components to avoid redundant StyleSheet.create calls.
  */
-import { ImageStyle,StyleSheet, TextStyle, ViewStyle } from 'react-native';
+import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from 'react-native';
 
-import { borderRadius, shadows, spacing, ThemeColors,typography } from '@/theme';
+import { borderRadius, shadows, spacing, ThemeColors, typography } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 export interface SettingsScreenStyles {

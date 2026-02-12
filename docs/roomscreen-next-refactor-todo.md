@@ -3,21 +3,22 @@
 ## 本次 PR 完成内容
 
 ### 目标
+
 将 `RoomScreen.tsx` 从 **1830 行 → 985 行**，提取三个模块化 hooks，保持全部 500+ 测试绿灯。
 
 ### 新增/修改文件
 
-| 文件 | 行数 | 职责 |
-|---|---|---|
-| `hooks/useRoomInit.ts` | 167 | Room 初始化 + retryKey + roleRevealAnimation 状态 |
-| `hooks/useActionOrchestrator.ts` | 669 | Night action intent 大 switch + auto-trigger + rejection effect + pendingRevealDialog / pendingHunterStatusViewed gate |
-| `hooks/useInteractionDispatcher.ts` | 355 | Interaction context 构建 + policy dispatch + seat tap / long-press / bot takeover |
-| `hooks/useNightProgress.ts` | 119 | Night progress 计算 + speak order dialog 自动弹窗 |
-| `hooks/useHiddenDebugTrigger.ts` | 63 | 5 连击 debug 面板触发器 |
-| `hooks/index.ts` | 40 | 统一导出 |
-| `RoomScreen.styles.ts` | 109 | Styles factory（`createRoomScreenStyles`） |
-| `components/RoleCardModal.tsx` | 108 | Role Card 弹窗（静态/动画两模式） |
-| `RoomScreen.tsx` | 793 | 顶层 wiring + JSX 渲染（不再包含任何业务逻辑） |
+| 文件                                | 行数 | 职责                                                                                                                   |
+| ----------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------- |
+| `hooks/useRoomInit.ts`              | 167  | Room 初始化 + retryKey + roleRevealAnimation 状态                                                                      |
+| `hooks/useActionOrchestrator.ts`    | 669  | Night action intent 大 switch + auto-trigger + rejection effect + pendingRevealDialog / pendingHunterStatusViewed gate |
+| `hooks/useInteractionDispatcher.ts` | 355  | Interaction context 构建 + policy dispatch + seat tap / long-press / bot takeover                                      |
+| `hooks/useNightProgress.ts`         | 119  | Night progress 计算 + speak order dialog 自动弹窗                                                                      |
+| `hooks/useHiddenDebugTrigger.ts`    | 63   | 5 连击 debug 面板触发器                                                                                                |
+| `hooks/index.ts`                    | 40   | 统一导出                                                                                                               |
+| `RoomScreen.styles.ts`              | 109  | Styles factory（`createRoomScreenStyles`）                                                                             |
+| `components/RoleCardModal.tsx`      | 108  | Role Card 弹窗（静态/动画两模式）                                                                                      |
+| `RoomScreen.tsx`                    | 793  | 顶层 wiring + JSX 渲染（不再包含任何业务逻辑）                                                                         |
 
 ### 关键设计决策
 
@@ -42,12 +43,14 @@ RoomScreen 当前仍有 **793 行**，目标是 < 600 行。以下是可继续�
 ### 1. ~~`useNightProgress` hook~~ ✅ 已完成（−49 行）
 
 **已提取到** `hooks/useNightProgress.ts`（119 行）：
+
 - Night progress derived state（`buildNightPlan` → step index/total/roleName）
 - Speak order dialog auto-show effect（Host-only, one-shot + restart reset）
 
 ### 2. ~~`useHiddenDebugTrigger` hook~~ ✅ 已完成（−14 行）
 
 **已提取到** `hooks/useHiddenDebugTrigger.ts`（63 行）：
+
 - 5 连击 debug 面板触发器（`tapCountRef` + `tapTimeoutRef` + `handleDebugTitleTap`）
 - 常量 `TAP_THRESHOLD=5`、`TAP_TIMEOUT_MS=2000`
 
@@ -60,12 +63,14 @@ RoomScreen 当前仍有 **793 行**，目标是 < 600 行。以下是可继续�
 ### 3a. ✅ Styles extraction（−97 行）
 
 **已提取到** `RoomScreen.styles.ts`（109 行）：
+
 - `createRoomScreenStyles(colors)` factory（原 `createStyles`）
 - 移除了 RoomScreen 中对 `typography`、`borderRadius`、`componentSizes`、`fixed`、`StyleSheet` 的直接依赖
 
 ### 3b. ✅ `RoleCardModal` component（−47 行）
 
 **已提取到** `components/RoleCardModal.tsx`（108 行）：
+
 - 角色身份展示弹窗（静态 RoleCardSimple / 动画 RoleRevealAnimator）
 - 内聚 `ALIGNMENT_MAP`、`getRoleSpec`/`getRoleDisplayName`/`Faction` 等角色数据转换
 - React.memo 优化
@@ -74,6 +79,7 @@ RoomScreen 当前仍有 **793 行**，目标是 < 600 行。以下是可继续�
 ### 4. JSX 分区抽取（预估 −60~100 行）
 
 **提取内容：**
+
 - Header 区域 → `<RoomHeader />` 组件
 - Footer / BottomActionPanel wiring → 可进一步简化
 - Role Card Modal 区域 → 已有 `RoleCardSimple`，但 Modal wrapper 仍在 RoomScreen

@@ -136,9 +136,7 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({
               localStyles.codeBlockText,
               {
                 color: textColor,
-                backgroundColor: inverted
-                  ? 'rgba(255,255,255,0.1)'
-                  : 'rgba(0,0,0,0.04)',
+                backgroundColor: inverted ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)',
               },
             ]}
           >

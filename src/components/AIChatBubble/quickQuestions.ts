@@ -67,12 +67,7 @@ const FOLLOW_UP_QUESTIONS: Record<string, string[]> = {
 };
 
 /** 通用跟进模板 */
-const GENERIC_FOLLOW_UPS = [
-  '继续说说？',
-  '还有别的吗？',
-  '具体怎么做？',
-  '为什么呢？',
-];
+const GENERIC_FOLLOW_UPS = ['继续说说？', '还有别的吗？', '具体怎么做？', '为什么呢？'];
 
 // ── 纯函数 ───────────────────────────────────────────────
 
@@ -136,12 +131,14 @@ export function generateQuickQuestions(
 
   // 4. 板子里其他角色
   if (state?.templateRoles && state.templateRoles.length > 0 && questions.length < 4) {
-    const otherRoles = [...new Set(
-      state.templateRoles.filter((r) => {
-        if (mySeat !== null && state.players[mySeat]?.role === r) return false;
-        return ROLE_QUESTIONS[r] !== undefined;
-      }),
-    )];
+    const otherRoles = [
+      ...new Set(
+        state.templateRoles.filter((r) => {
+          if (mySeat !== null && state.players[mySeat]?.role === r) return false;
+          return ROLE_QUESTIONS[r] !== undefined;
+        }),
+      ),
+    ];
     if (otherRoles.length > 0) {
       const role = randomPick(otherRoles);
       const available = ROLE_QUESTIONS[role]?.filter((q) => !used.has(q)) ?? [];

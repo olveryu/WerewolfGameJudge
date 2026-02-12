@@ -78,7 +78,8 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
   1. `npx tsc --noEmit` — 类型检查
   2. `npm run lint` — ESLint
   3. `npx jest --no-coverage --forceExit` — 单元/集成测试
-- 快捷替代：`npm run quality`（一次执行 typecheck + lint + format + test）。
+- 快捷替代：`npm run quality`（一次执行 typecheck + lint + format check + test）。
+- 如果 `npm run quality` 因 Prettier 格式问题失败，先跑 `npm run fix`（= lint:fix + format:write）修复，再重跑 `npm run quality`。
 - 任一步骤失败必须修复后重跑，禁止跳过。
 
 ---
@@ -173,11 +174,11 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 
 格式：`<type>(<scope>): <description>`
 
-| Type | 用途 |
-|------|------|
-| `feat` | 新功能 | `fix` | Bug 修复 | `refactor` | 重构 |
-| `perf` | 性能优化 | `style` | 格式化 | `chore` | 杂务 |
-| `test` | 测试 | `docs` | 文档 | | |
+| Type   | 用途     |
+| ------ | -------- | ------- | -------- | ---------- | ---- |
+| `feat` | 新功能   | `fix`   | Bug 修复 | `refactor` | 重构 |
+| `perf` | 性能优化 | `style` | 格式化   | `chore`    | 杂务 |
+| `test` | 测试     | `docs`  | 文档     |            |      |
 
 - Scope：`night` / `room` / `config` / `hooks` / `theme` / `e2e` / `models` / `services` / `audio`
 - 英文、小写开头、祈使语气、不加句号。破坏性变更加 `!`。

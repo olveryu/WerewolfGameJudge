@@ -12,7 +12,7 @@ import { Platform, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import type { RoleId } from '@/models/roles';
 import { getRoleSpec, isWolfRole } from '@/models/roles';
-import { borderRadius, shadows, spacing, type ThemeColors,typography, useColors } from '@/theme';
+import { borderRadius, shadows, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
 /** White text color for badges/overlays on colored backgrounds */
 const BADGE_TEXT_WHITE = '#fff';

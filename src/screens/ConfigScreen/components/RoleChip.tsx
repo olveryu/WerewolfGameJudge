@@ -7,7 +7,7 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import { memo } from 'react';
-import { Text,TouchableOpacity } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 
 import { ConfigScreenStyles } from './styles';
 

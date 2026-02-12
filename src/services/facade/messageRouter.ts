@@ -15,11 +15,11 @@
 import type { RoleId } from '@/models/roles';
 import type { GameStore } from '@/services/engine/store';
 import { REASON_INVALID_ACTION } from '@/services/protocol/reasonCodes';
-import type { HostBroadcast,PlayerMessage } from '@/services/protocol/types';
+import type { HostBroadcast, PlayerMessage } from '@/services/protocol/types';
 import type { BroadcastService } from '@/services/transport/BroadcastService';
 import { facadeLog } from '@/utils/logger';
 
-import type { PendingSeatAction,SeatActionsContext } from './seatActions';
+import type { PendingSeatAction, SeatActionsContext } from './seatActions';
 import { hostProcessJoinSeat, hostProcessLeaveMySeat } from './seatActions';
 
 /**

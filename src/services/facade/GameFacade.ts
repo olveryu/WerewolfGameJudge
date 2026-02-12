@@ -23,7 +23,7 @@
  */
 
 import type { AppStateStatus } from 'react-native';
-import { AppState,Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import type { RoleId } from '@/models/roles';
 import type { GameTemplate } from '@/models/Template';
@@ -31,9 +31,9 @@ import { shouldTriggerWolfVoteRecovery } from '@/services/engine/handlers/progre
 import { GameStore } from '@/services/engine/store';
 import { AudioService } from '@/services/infra/AudioService';
 import { HostStateCache } from '@/services/infra/HostStateCache';
-import type { BroadcastGameState, HostBroadcast,PlayerMessage } from '@/services/protocol/types';
+import type { BroadcastGameState, HostBroadcast, PlayerMessage } from '@/services/protocol/types';
 import { BroadcastService } from '@/services/transport/BroadcastService';
-import type { FacadeStateListener,IGameFacade } from '@/services/types/IGameFacade';
+import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFacade';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import { newRequestId } from '@/utils/id';
 import { facadeLog } from '@/utils/logger';
@@ -43,7 +43,7 @@ import type { HostActionsContext } from './hostActions';
 import * as hostActions from './hostActions';
 import type { MessageRouterContext } from './messageRouter';
 import * as messageRouter from './messageRouter';
-import type { PendingSeatAction,SeatActionsContext } from './seatActions';
+import type { PendingSeatAction, SeatActionsContext } from './seatActions';
 import * as seatActions from './seatActions';
 
 /**
@@ -680,7 +680,9 @@ export class GameFacade implements IGameFacade {
   private getHostActionsContext(): HostActionsContext {
     // Arrow closures capture `this` lexically — no self-alias needed
     const getTimer = (): NodeJS.Timeout | null => this._wolfVoteTimer;
-    const setTimer = (v: NodeJS.Timeout | null): void => { this._wolfVoteTimer = v; };
+    const setTimer = (v: NodeJS.Timeout | null): void => {
+      this._wolfVoteTimer = v;
+    };
     return {
       store: this.store,
       isHost: this.isHost,

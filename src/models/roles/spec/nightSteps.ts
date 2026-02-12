@@ -144,4 +144,3 @@ export function getStepsByRole(roleId: string): StepSpec[] {
 export function getStepsByRoleStrict(roleId: StepSpec['roleId']): StepSpec[] {
   return getStepsByRole(roleId);
 }
-

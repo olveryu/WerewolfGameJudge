@@ -10,7 +10,7 @@
  * ❌ 禁止：直接操作游戏状态、调用 Supabase
  */
 
-import { useCallback,useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { GameStatus } from '@/models/GameStatus';
 import { SettingsService } from '@/services/feature/SettingsService';
@@ -29,10 +29,7 @@ interface BgmControlState {
  * Manages BGM playback state.
  * Auto-stops BGM when game transitions from ongoing → ended (Host only).
  */
-export function useBgmControl(
-  isHost: boolean,
-  gameStatus: GameStatus | null,
-): BgmControlState {
+export function useBgmControl(isHost: boolean, gameStatus: GameStatus | null): BgmControlState {
   const [isBgmEnabled, setIsBgmEnabled] = useState(true);
   const settingsService = useRef(SettingsService.getInstance());
   const audioService = useRef(AudioService.getInstance());

@@ -89,4 +89,3 @@ export const Avatar = memo(AvatarComponent);
 const styles = StyleSheet.create({
   avatar: {},
 });
-

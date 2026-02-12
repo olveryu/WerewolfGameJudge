@@ -14,11 +14,8 @@ import type { RoleId } from '@/models/roles';
 import { doesRoleParticipateInWolfVote } from '@/models/roles';
 import { normalizeState } from '@/services/engine/state/normalize';
 
-import {
-  cleanupHostGame,
-  createHostGame,
-} from './hostGameFactory';
-import { executeFullNight,sendMessageOrThrow } from './stepByStepRunner';
+import { cleanupHostGame, createHostGame } from './hostGameFactory';
+import { executeFullNight, sendMessageOrThrow } from './stepByStepRunner';
 
 // =============================================================================
 // Constants
@@ -28,9 +25,20 @@ const TEMPLATE_NAME = '标准板12人';
 
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
-  ['villager', 'villager', 'villager', 'villager', 'wolf', 'wolf', 'wolf', 'wolf', 'seer', 'witch', 'hunter', 'idiot'].forEach(
-    (role, idx) => map.set(idx, role as RoleId),
-  );
+  [
+    'villager',
+    'villager',
+    'villager',
+    'villager',
+    'wolf',
+    'wolf',
+    'wolf',
+    'wolf',
+    'seer',
+    'witch',
+    'hunter',
+    'idiot',
+  ].forEach((role, idx) => map.set(idx, role as RoleId));
   return map;
 }
 
@@ -45,7 +53,10 @@ function createRoleAssignment(): Map<number, RoleId> {
  * 关键断言：raw 中的所有 key 必须出现在 normalized 中（不能丢失字段）。
  * normalized 多出的 key（undefined 字段被显式写出）是 expected behavior。
  */
-function assertNoKeysLost(original: Record<string, unknown> | object, normalized: Record<string, unknown> | object) {
+function assertNoKeysLost(
+  original: Record<string, unknown> | object,
+  normalized: Record<string, unknown> | object,
+) {
   const origKeys = new Set(Object.keys(original));
   const normKeys = new Set(Object.keys(normalized));
   const lostKeys = [...origKeys].filter((k) => !normKeys.has(k));
@@ -116,15 +127,37 @@ describe('normalizeState round-trip (integration with real board state)', () => 
         sendMessageOrThrow(ctx, { type: 'WOLF_VOTE', seat, target: 0 }, 'wolfKill');
       }
     }
-    sendMessageOrThrow(ctx, { type: 'ACTION', seat: 4, role: 'wolf', target: 0, extra: undefined }, 'wolfKill');
+    sendMessageOrThrow(
+      ctx,
+      { type: 'ACTION', seat: 4, role: 'wolf', target: 0, extra: undefined },
+      'wolfKill',
+    );
     ctx.advanceNightOrThrow('past wolfKill');
-    sendMessageOrThrow(ctx, { type: 'ACTION', seat: 9, role: 'witch', target: -1, extra: { usePoison: false, poisonTarget: -1 } }, 'witchAction');
+    sendMessageOrThrow(
+      ctx,
+      {
+        type: 'ACTION',
+        seat: 9,
+        role: 'witch',
+        target: -1,
+        extra: { usePoison: false, poisonTarget: -1 },
+      },
+      'witchAction',
+    );
     ctx.advanceNightOrThrow('past witchAction');
-    sendMessageOrThrow(ctx, { type: 'ACTION', seat: 10, role: 'hunter', target: null, extra: { confirmed: true } }, 'hunterConfirm');
+    sendMessageOrThrow(
+      ctx,
+      { type: 'ACTION', seat: 10, role: 'hunter', target: null, extra: { confirmed: true } },
+      'hunterConfirm',
+    );
     ctx.advanceNightOrThrow('past hunterConfirm');
 
     // seer checks seat 4 (wolf → bad)
-    sendMessageOrThrow(ctx, { type: 'ACTION', seat: 8, role: 'seer', target: 4, extra: undefined }, 'seerCheck');
+    sendMessageOrThrow(
+      ctx,
+      { type: 'ACTION', seat: 8, role: 'seer', target: 4, extra: undefined },
+      'seerCheck',
+    );
 
     const state = ctx.getBroadcastState();
     const normalized = normalizeState(state);

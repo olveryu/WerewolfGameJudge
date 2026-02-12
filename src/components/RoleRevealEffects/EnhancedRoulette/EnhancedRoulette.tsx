@@ -111,9 +111,7 @@ const EmojiParticle: React.FC<EmojiParticleConfig> = React.memo(
       opacity: interpolate(progress.value, [0, 0.7, 1], [1, 0.5, 0]),
     }));
 
-    return (
-      <Animated.Text style={[styles.particle, animStyle]}>{emoji}</Animated.Text>
-    );
+    return <Animated.Text style={[styles.particle, animStyle]}>{emoji}</Animated.Text>;
   },
 );
 EmojiParticle.displayName = 'EmojiParticle';
@@ -281,8 +279,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       return () => clearTimeout(timer);
     }
 
-    const targetPosition =
-      config.spinRotations * shuffledRoles.length + targetIndex;
+    const targetPosition = config.spinRotations * shuffledRoles.length + targetIndex;
 
     // Main spin
     scrollAnim.value = withTiming(
@@ -374,7 +371,9 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       {/* Slot machine cabinet - fades out on reveal */}
-      <Animated.View style={[styles.cabinet, { width: frameWidth, height: frameHeight }, cabinetFadeStyle]}>
+      <Animated.View
+        style={[styles.cabinet, { width: frameWidth, height: frameHeight }, cabinetFadeStyle]}
+      >
         <LinearGradient
           colors={[...SLOT_COLORS.metalGradient]}
           start={{ x: 0, y: 0 }}
@@ -395,9 +394,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
                 <Bulb
                   key={id}
                   on={bulbPattern[i] ?? false}
-                  color={
-                    i % 2 === 0 ? SLOT_COLORS.neonPink : SLOT_COLORS.neonBlue
-                  }
+                  color={i % 2 === 0 ? SLOT_COLORS.neonPink : SLOT_COLORS.neonBlue}
                 />
               ))}
             </View>
@@ -405,20 +402,11 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
           {/* Neon glow */}
           <Animated.View
-            style={[
-              styles.neonBorder,
-              { shadowColor: SLOT_COLORS.neonPink },
-              frameGlowStyle,
-            ]}
+            style={[styles.neonBorder, { shadowColor: SLOT_COLORS.neonPink }, frameGlowStyle]}
           />
 
           {/* Inner frame */}
-          <View
-            style={[
-              styles.innerFrame,
-              { backgroundColor: SLOT_COLORS.frameInner },
-            ]}
-          >
+          <View style={[styles.innerFrame, { backgroundColor: SLOT_COLORS.frameInner }]}>
             <View
               testID={`${testIDPrefix}-window`}
               style={[
@@ -447,17 +435,11 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
                         ]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={[
-                          styles.itemCard,
-                          { borderColor: SLOT_COLORS.itemCardBorder },
-                        ]}
+                        style={[styles.itemCard, { borderColor: SLOT_COLORS.itemCardBorder }]}
                       >
                         <Text style={styles.itemIcon}>{r.avatar || '❓'}</Text>
                         <Text
-                          style={[
-                            styles.itemName,
-                            { color: itemTheme.primaryColor },
-                          ]}
+                          style={[styles.itemName, { color: itemTheme.primaryColor }]}
                           numberOfLines={1}
                         >
                           {r.name}
@@ -479,30 +461,15 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
               />
 
               {/* Selection indicators */}
-              <View
-                style={[
-                  styles.selectionIndicator,
-                  styles.selectionIndicatorLeft,
-                ]}
-              >
+              <View style={[styles.selectionIndicator, styles.selectionIndicatorLeft]}>
                 <Text style={styles.indicatorArrow}>▶</Text>
               </View>
-              <View
-                style={[
-                  styles.selectionIndicator,
-                  styles.selectionIndicatorRight,
-                ]}
-              >
+              <View style={[styles.selectionIndicator, styles.selectionIndicatorRight]}>
                 <Text style={styles.indicatorArrow}>◀</Text>
               </View>
 
               {/* Center highlight */}
-              <View
-                style={[
-                  styles.centerHighlight,
-                  { backgroundColor: SLOT_COLORS.gold },
-                ]}
-              />
+              <View style={[styles.centerHighlight, { backgroundColor: SLOT_COLORS.gold }]} />
             </View>
           </View>
 
@@ -513,9 +480,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
                 <Bulb
                   key={id}
                   on={bulbPattern[6 + i] ?? false}
-                  color={
-                    i % 2 === 0 ? SLOT_COLORS.neonGreen : SLOT_COLORS.gold
-                  }
+                  color={i % 2 === 0 ? SLOT_COLORS.neonGreen : SLOT_COLORS.gold}
                 />
               ))}
             </View>
@@ -529,16 +494,9 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
         pointerEvents={phase === 'revealed' ? 'auto' : 'none'}
       >
         <Animated.View
-          style={[
-            styles.revealedCardContainer,
-            { width: cardWidth, height: cardHeight },
-          ]}
+          style={[styles.revealedCardContainer, { width: cardWidth, height: cardHeight }]}
         >
-          <RoleCardContent
-            roleId={role.id as RoleId}
-            width={cardWidth}
-            height={cardHeight}
-          />
+          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
           {phase === 'revealed' && (
             <GlowBorder
               width={cardWidth + common.glowPadding}

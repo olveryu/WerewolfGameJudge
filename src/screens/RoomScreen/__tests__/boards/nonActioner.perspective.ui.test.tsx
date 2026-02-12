@@ -8,7 +8,7 @@
  * 策略：与 standard board UI test 同模板，但 useActionerState mock 返回 imActioner=false。
  */
 
-import { act,render } from '@testing-library/react-native';
+import { act, render } from '@testing-library/react-native';
 
 import {
   createGameRoomMock,

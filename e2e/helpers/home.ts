@@ -1,4 +1,4 @@
-import { expect,Page } from '@playwright/test';
+import { expect, Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
 import { clickIfVisible, screenshotOnFail } from './ui';
@@ -535,7 +535,6 @@ export async function extractRoomNumber(page: Page): Promise<string> {
   if (!match) throw new Error(`Could not extract room number from: ${headerText}`);
   return match[1];
 }
-
 
 /**
  * Enter a room code using the NumPad component.

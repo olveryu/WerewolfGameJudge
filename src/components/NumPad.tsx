@@ -6,10 +6,10 @@
  * ✅ 允许：渲染数字键盘 + 上报 onValueChange
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { memo,useMemo } from 'react';
-import { StyleSheet,Text, TouchableOpacity, View } from 'react-native';
+import React, { memo, useMemo } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { borderRadius, spacing, ThemeColors,typography, useColors } from '@/theme';
+import { borderRadius, spacing, ThemeColors, typography, useColors } from '@/theme';
 
 interface NumPadProps {
   /** Current value (max 4 digits) */

@@ -29,4 +29,3 @@ export const isAndroid = Platform.OS === 'android';
 export function canUseHaptics(): boolean {
   return isIOS || isAndroid;
 }
-

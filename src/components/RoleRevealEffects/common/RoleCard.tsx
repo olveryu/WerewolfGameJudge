@@ -9,9 +9,9 @@
 import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 
-import type { RoleAlignment,RoleData } from '@/components/RoleRevealEffects/types';
+import type { RoleAlignment, RoleData } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
-import { borderRadius, shadows,spacing, typography, useColors } from '@/theme';
+import { borderRadius, shadows, spacing, typography, useColors } from '@/theme';
 
 /** White text color for alignment badge on colored backgrounds */
 const BADGE_TEXT_WHITE = '#FFFFFF';

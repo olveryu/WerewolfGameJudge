@@ -1,4 +1,4 @@
-```instructions
+````instructions
 ---
 applyTo: "src/**/*.ts,src/**/*.tsx"
 ---
@@ -45,7 +45,7 @@ switch (action.type) {
     throw new Error(`Unhandled action: ${action.type}`);
   }
 }
-```
+````
 
 ## 优先使用 Discriminated Union
 
@@ -54,9 +54,7 @@ switch (action.type) {
 
 ```typescript
 // ✅ 正确
-type Result =
-  | { type: 'success'; data: Player[] }
-  | { type: 'error'; reason: string };
+type Result = { type: 'success'; data: Player[] } | { type: 'error'; reason: string };
 
 // ❌ 避免
 type Result = { data?: Player[]; reason?: string };
@@ -76,4 +74,7 @@ type Result = { data?: Player[]; reason?: string };
 
 - 导出类型时必须用 `export type`（而非 `export`），确保被 `isolatedModules` 正确擦除。
 - 同理 re-export：`export type { Foo } from './bar';`。
+
+```
+
 ```

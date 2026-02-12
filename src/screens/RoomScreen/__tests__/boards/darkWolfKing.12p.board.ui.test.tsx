@@ -8,7 +8,7 @@
  * - actionPrompt, wolfVote, confirmTrigger, witchSavePrompt, witchPoisonPrompt, skipConfirm
  */
 
-import { fireEvent,render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { getSchema } from '@/models/roles/spec';
 import {
@@ -174,14 +174,13 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
 
       const bottomActionText = getSchema('darkWolfKingConfirm').ui?.bottomActionText;
-      if (!bottomActionText) throw new Error('[TEST] Missing darkWolfKingConfirm.ui.bottomActionText');
+      if (!bottomActionText)
+        throw new Error('[TEST] Missing darkWolfKingConfirm.ui.bottomActionText');
 
       await waitFor(() => expect(getByText(bottomActionText)).toBeTruthy());
       fireEvent.press(getByText(bottomActionText));
 
-      await waitFor(() =>
-        expect(harness.hasSeen('confirmTrigger')).toBe(true),
-      );
+      await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
     });
 
     it('hunter confirm: pressing bottom button shows confirmTrigger dialog', async () => {
@@ -208,9 +207,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitFor(() => expect(getByText(bottomActionText)).toBeTruthy());
       fireEvent.press(getByText(bottomActionText));
 
-      await waitFor(() =>
-        expect(harness.hasSeen('confirmTrigger')).toBe(true),
-      );
+      await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
     });
   });
 
@@ -258,9 +255,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
       harness.clear();
       tapSeat(getByTestId, 1);
-      await waitFor(() =>
-        expect(harness.hasSeen('witchPoisonPrompt')).toBe(true),
-      );
+      await waitFor(() => expect(harness.hasSeen('witchPoisonPrompt')).toBe(true));
     });
   });
 

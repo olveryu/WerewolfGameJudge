@@ -8,7 +8,7 @@
  * - actionPrompt, wolfVote, confirmTrigger, witchSavePrompt, witchPoisonPrompt
  */
 
-import { fireEvent,render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { getSchema } from '@/models/roles/spec';
 import {
@@ -173,14 +173,13 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
 
       const bottomActionText = getSchema('darkWolfKingConfirm').ui?.bottomActionText;
-      if (!bottomActionText) throw new Error('[TEST] Missing darkWolfKingConfirm.ui.bottomActionText');
+      if (!bottomActionText)
+        throw new Error('[TEST] Missing darkWolfKingConfirm.ui.bottomActionText');
 
       await waitFor(() => expect(getByText(bottomActionText)).toBeTruthy());
       fireEvent.press(getByText(bottomActionText));
 
-      await waitFor(() =>
-        expect(harness.hasSeen('confirmTrigger')).toBe(true),
-      );
+      await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
     });
   });
 
@@ -228,9 +227,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
       harness.clear();
       tapSeat(getByTestId, 1);
-      await waitFor(() =>
-        expect(harness.hasSeen('witchPoisonPrompt')).toBe(true),
-      );
+      await waitFor(() => expect(harness.hasSeen('witchPoisonPrompt')).toBe(true));
     });
   });
 
@@ -417,7 +414,15 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   describe('Coverage Assertion (MUST PASS)', () => {
     it('all required UI dialog types covered with chain interactions and effect assertions', async () => {
       // Step 1: actionPrompt (dreamcatcher)
-      await coverageChainActionPrompt(harness, setMock, renderRoom, 'dreamcatcherDream', 'dreamcatcher', 'dreamcatcher', 11);
+      await coverageChainActionPrompt(
+        harness,
+        setMock,
+        renderRoom,
+        'dreamcatcherDream',
+        'dreamcatcher',
+        'dreamcatcher',
+        11,
+      );
 
       // Step 2: wolfVote → press confirm → submitWolfVote(1) called
       const { submitWolfVote } = await coverageChainWolfVote(

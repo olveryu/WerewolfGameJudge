@@ -36,12 +36,7 @@ export const SettingsSheet = memo(function SettingsSheet({
   styles,
 }: SettingsSheetProps) {
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity
         style={styles.settingsSheetOverlay}
         activeOpacity={1}

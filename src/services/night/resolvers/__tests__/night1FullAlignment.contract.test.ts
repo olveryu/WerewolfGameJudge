@@ -12,12 +12,8 @@
  */
 
 import type { RoleId } from '@/models/roles';
-import { NIGHT_STEPS, ROLE_SPECS, type SchemaId,SCHEMAS } from '@/models/roles/spec';
-import type {
-  ActionSchema,
-  CompoundSchema,
-  RevealKind,
-} from '@/models/roles/spec/schema.types';
+import { NIGHT_STEPS, ROLE_SPECS, type SchemaId, SCHEMAS } from '@/models/roles/spec';
+import type { ActionSchema, CompoundSchema, RevealKind } from '@/models/roles/spec/schema.types';
 import { RESOLVERS } from '@/services/night/resolvers/index';
 import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
 

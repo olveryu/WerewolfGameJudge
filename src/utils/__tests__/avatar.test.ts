@@ -8,11 +8,7 @@
  * 4. Index wrapping: getAvatarImageByIndex handles edge cases
  */
 
-import {
-  getAvatarByUid,
-  getAvatarImageByIndex,
-  getUniqueAvatarMap,
-} from '@/utils/avatar';
+import { getAvatarByUid, getAvatarImageByIndex, getUniqueAvatarMap } from '@/utils/avatar';
 
 /** Number of avatar images (29 dark fantasy portraits) */
 const AVATAR_COUNT = 29;

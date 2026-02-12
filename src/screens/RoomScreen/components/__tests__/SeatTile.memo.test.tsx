@@ -12,7 +12,12 @@
 import { render } from '@testing-library/react-native';
 import React from 'react';
 
-import { createSeatTileStyles,SeatTile, SeatTileProps, SeatTileStyles } from '@/screens/RoomScreen/components/SeatTile';
+import {
+  createSeatTileStyles,
+  SeatTile,
+  SeatTileProps,
+  SeatTileStyles,
+} from '@/screens/RoomScreen/components/SeatTile';
 import { themes } from '@/theme/themes';
 
 // Create mock styles once (simulating what PlayerGrid does)

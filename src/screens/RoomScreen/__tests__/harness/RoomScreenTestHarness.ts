@@ -103,7 +103,10 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   // Witch save flow
   { type: 'witchNoKill', match: (t) => t === '昨夜无人倒台' },
   // Schema-driven: title is '女巫请行动', body contains promptTemplate or cannotSavePrompt text
-  { type: 'witchSavePrompt', match: (t, m) => t.includes('女巫') && (m.includes('被狼人杀了') || m.includes('解药')) },
+  {
+    type: 'witchSavePrompt',
+    match: (t, m) => t.includes('女巫') && (m.includes('被狼人杀了') || m.includes('解药')),
+  },
 
   // Witch poison flow
   { type: 'witchPoisonPrompt', match: (t, m) => t.includes('毒药') || m.includes('毒药') },
@@ -123,7 +126,10 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
       return t === title && (m === canShootText || m === cannotShootText);
     },
   },
-  { type: 'wolfRobotReveal', match: (t) => t.includes('机械狼') || t.includes('你学习了') || t.includes('学习结果') },
+  {
+    type: 'wolfRobotReveal',
+    match: (t) => t.includes('机械狼') || t.includes('你学习了') || t.includes('学习结果'),
+  },
 
   // Magician
   { type: 'magicianFirst', match: (t) => t.includes('已选择第一位') },
@@ -141,9 +147,17 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
       const darkCannot = SCHEMAS.darkWolfKingConfirm.ui?.cannotShootText;
 
       const isHunterConfirm =
-        !!hunterTitle && !!hunterCan && !!hunterCannot && t === hunterTitle && (m === hunterCan || m === hunterCannot);
+        !!hunterTitle &&
+        !!hunterCan &&
+        !!hunterCannot &&
+        t === hunterTitle &&
+        (m === hunterCan || m === hunterCannot);
       const isDarkWolfKingConfirm =
-        !!darkTitle && !!darkCan && !!darkCannot && t === darkTitle && (m === darkCan || m === darkCannot);
+        !!darkTitle &&
+        !!darkCan &&
+        !!darkCannot &&
+        t === darkTitle &&
+        (m === darkCan || m === darkCannot);
 
       return isHunterConfirm || isDarkWolfKingConfirm;
     },

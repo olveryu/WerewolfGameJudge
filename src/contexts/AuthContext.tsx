@@ -11,9 +11,9 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import React, { createContext, use, useCallback, useEffect, useMemo,useState } from 'react';
+import React, { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
 
-import { isSupabaseConfigured,supabase } from '@/config/supabase';
+import { isSupabaseConfigured, supabase } from '@/config/supabase';
 import { AvatarUploadService } from '@/services/feature/AvatarUploadService';
 import { AuthService } from '@/services/infra/AuthService';
 import { authLog } from '@/utils/logger';

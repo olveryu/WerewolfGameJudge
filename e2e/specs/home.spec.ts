@@ -1,4 +1,4 @@
-import { expect,test } from '../fixtures/app.fixture';
+import { expect, test } from '../fixtures/app.fixture';
 import { HomePage } from '../pages/HomePage';
 
 /**

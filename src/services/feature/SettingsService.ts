@@ -13,15 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const SETTINGS_KEY = '@werewolf_settings';
 
 /** Valid theme keys (must match themes.ts ThemeKey) */
-type ThemeKey =
-  | 'light'
-  | 'minimal'
-  | 'dark'
-  | 'midnight'
-  | 'blood'
-  | 'discord'
-  | 'forest'
-  | 'snow';
+type ThemeKey = 'light' | 'minimal' | 'dark' | 'midnight' | 'blood' | 'discord' | 'forest' | 'snow';
 
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
@@ -176,4 +168,3 @@ export class SettingsService {
     this.listeners.forEach((listener) => listener(snapshot));
   }
 }
-

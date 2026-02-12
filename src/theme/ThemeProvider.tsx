@@ -25,8 +25,8 @@ import { Platform, StatusBar } from 'react-native';
 import { SettingsService } from '@/services/feature/SettingsService';
 import { log } from '@/utils/logger';
 
-import { defaultTheme, Theme, ThemeColors,ThemeKey, themes } from './themes';
-import { borderRadius, layout,shadows, spacing, typography } from './tokens';
+import { defaultTheme, Theme, ThemeColors, ThemeKey, themes } from './themes';
+import { borderRadius, layout, shadows, spacing, typography } from './tokens';
 
 const themeLog = log.extend('Theme');
 
@@ -196,5 +196,5 @@ export function useColors(): ThemeColors {
 // ============================================
 // Re-export tokens for direct import
 // ============================================
-export { type Theme,type ThemeColors, type ThemeKey, themes } from './themes';
-export { borderRadius, layout,shadows, spacing, typography } from './tokens';
+export { type Theme, type ThemeColors, type ThemeKey, themes } from './themes';
+export { borderRadius, layout, shadows, spacing, typography } from './tokens';

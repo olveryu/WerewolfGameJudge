@@ -9,7 +9,10 @@
  * These are unit tests for the harness itself (no React rendering).
  */
 
-import { createShowAlertMock,RoomScreenTestHarness } from '@/screens/RoomScreen/__tests__/harness/RoomScreenTestHarness';
+import {
+  createShowAlertMock,
+  RoomScreenTestHarness,
+} from '@/screens/RoomScreen/__tests__/harness/RoomScreenTestHarness';
 
 describe('RoomScreenTestHarness enhanced button API', () => {
   let harness: RoomScreenTestHarness;
@@ -226,7 +229,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
         onPress: () => {
           dismissed = true;
           // After dismiss, a second dialog appears (action confirm)
-      mockShowAlert('确认行动', '确定对5号使用技能吗？', [{ text: '取消' }, { text: '确定' }]);
+          mockShowAlert('确认行动', '确定对5号使用技能吗？', [{ text: '取消' }, { text: '确定' }]);
         },
       },
     ]);
@@ -242,5 +245,4 @@ describe('RoomScreenTestHarness enhanced button API', () => {
     expect(harness.events().length).toBe(2);
     expect(harness.hasSeen('actionConfirm')).toBe(true);
   });
-
 });

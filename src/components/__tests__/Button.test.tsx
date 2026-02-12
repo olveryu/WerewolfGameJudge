@@ -1,4 +1,4 @@
-import { fireEvent,render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
 import { Button } from '@/components/Button/Button';
@@ -98,9 +98,7 @@ describe('Button', () => {
     });
 
     it('should expose disabled accessibility state when loading', () => {
-      const { getByTestId } = render(
-        <Button {...defaultProps} loading={true} testID="test-btn" />,
-      );
+      const { getByTestId } = render(<Button {...defaultProps} loading={true} testID="test-btn" />);
 
       expect(getByTestId('test-btn').props.accessibilityState).toEqual({ disabled: true });
     });
@@ -133,9 +131,7 @@ describe('Button', () => {
       const onPress = jest.fn();
 
       // Render directly with loading=true
-      const { getByTestId } = render(
-        <Button {...defaultProps} onPress={onPress} loading={true} />,
-      );
+      const { getByTestId } = render(<Button {...defaultProps} onPress={onPress} loading={true} />);
 
       // When loading, button shows ActivityIndicator instead of text
       expect(getByTestId('button-loading-indicator')).toBeTruthy();

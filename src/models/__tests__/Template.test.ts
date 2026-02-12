@@ -1,4 +1,4 @@
-import { buildNightPlan,RoleId } from '@/models/roles';
+import { buildNightPlan, RoleId } from '@/models/roles';
 import {
   createCustomTemplate,
   createTemplateFromRoles,

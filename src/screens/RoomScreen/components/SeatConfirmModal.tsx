@@ -7,7 +7,7 @@
  * ✅ Allowed: types, styles, UI components
  */
 import React, { memo } from 'react';
-import { Modal, Text, TouchableOpacity,View } from 'react-native';
+import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
 

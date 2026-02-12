@@ -16,7 +16,7 @@
  *   - Modify BroadcastGameState directly
  */
 
-import { useCallback,useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { GameStatus } from '@/models/GameStatus';
 import type { RoleId } from '@/models/roles';
@@ -139,7 +139,10 @@ export function useActionOrchestrator({
 
   // ── Action extra typing (UI -> Host wire payload) ──
   type WitchStepResults = { save: number | null; poison: number | null };
-  type ActionExtra = { stepResults: WitchStepResults } | { targets: readonly [number, number] } | { confirmed: boolean };
+  type ActionExtra =
+    | { stepResults: WitchStepResults }
+    | { targets: readonly [number, number] }
+    | { confirmed: boolean };
 
   /**
    * Get a compound sub-step by key (e.g., 'save', 'poison' for witchAction).
@@ -172,9 +175,7 @@ export function useActionOrchestrator({
 
   // UI-only helpers: keep confirm copy schema-driven
   const getConfirmTitleForSchema = useCallback((): string => {
-    return currentSchema?.kind === 'chooseSeat'
-      ? currentSchema.ui!.confirmTitle!
-      : '确认行动';
+    return currentSchema?.kind === 'chooseSeat' ? currentSchema.ui!.confirmTitle! : '确认行动';
   }, [currentSchema]);
 
   const getConfirmTextForSeatAction = useCallback(
@@ -239,7 +240,9 @@ export function useActionOrchestrator({
     async (intent: ActionIntent) => {
       switch (intent.type) {
         case 'magicianFirst':
-          roomScreenLog.debug('[handleActionIntent] magicianFirst', { targetIndex: intent.targetIndex });
+          roomScreenLog.debug('[handleActionIntent] magicianFirst', {
+            targetIndex: intent.targetIndex,
+          });
           setAnotherIndex(intent.targetIndex);
           actionDialogs.showMagicianFirstAlert(intent.targetIndex, currentSchema!);
           break;

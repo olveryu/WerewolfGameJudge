@@ -142,10 +142,7 @@ function handleMatchingRole(
   isWolfMeetingSchema: boolean,
 ): ActionerState {
   // Wolf meeting phase: always imActioner (revote allowed)
-  if (
-    isWolfMeetingSchema &&
-    doesRoleParticipateInWolfVote(actorRole)
-  ) {
+  if (isWolfMeetingSchema && doesRoleParticipateInWolfVote(actorRole)) {
     return { imActioner: true, showWolves: true };
   }
 
@@ -179,7 +176,9 @@ export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
     const raw =
       gameState.currentNightResults?.wolfVotesBySeat ??
       // legacy fallback
-      ((gameState as unknown as Record<string, unknown>).wolfVotes as Map<number, number> | undefined);
+      ((gameState as unknown as Record<string, unknown>).wolfVotes as
+        | Map<number, number>
+        | undefined);
     if (!raw) return new Map();
     if (raw instanceof Map) return raw;
     const map = new Map<number, number>();
@@ -299,9 +298,7 @@ export function buildSeatViewModels(
   },
 ): SeatViewModel[] {
   // Wolf vote progress: reuse ✅ badge on wolf seats that have voted (ongoing phase only, mutually exclusive with assigned/ready badge)
-  const wolfVotesBySeat = showWolves
-    ? gameState.currentNightResults?.wolfVotesBySeat
-    : undefined;
+  const wolfVotesBySeat = showWolves ? gameState.currentNightResults?.wolfVotesBySeat : undefined;
 
   return gameState.template.roles.map((role, index) => {
     const player = gameState.players.get(index);
@@ -322,8 +319,7 @@ export function buildSeatViewModels(
 
     // ✅ badge: assigned/ready → "已查看身份"
     // wolfVoteTarget badge 已包含"已投票"语义，两者互斥
-    const hasWolfVoteTarget =
-      isWolf && wolfVotesBySeat != null && String(index) in wolfVotesBySeat;
+    const hasWolfVoteTarget = isWolf && wolfVotesBySeat != null && String(index) in wolfVotesBySeat;
     const readyBadge =
       !hasWolfVoteTarget &&
       options?.showReadyBadges &&
@@ -347,9 +343,7 @@ export function buildSeatViewModels(
       isSelected: selectedIndex === index || options?.secondSelectedIndex === index,
       disabledReason,
       showReadyBadge: readyBadge,
-      wolfVoteTarget: hasWolfVoteTarget
-        ? wolfVotesBySeat[String(index)]
-        : undefined,
+      wolfVoteTarget: hasWolfVoteTarget ? wolfVotesBySeat[String(index)] : undefined,
     };
   });
 }

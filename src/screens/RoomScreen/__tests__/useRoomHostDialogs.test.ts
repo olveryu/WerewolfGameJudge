@@ -1,7 +1,7 @@
 /**
  * Tests for useRoomHostDialogs hook
  */
-import { act,renderHook } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
 
 import type { RoleAction } from '@/models/actions/RoleAction';
 import { GameStatus } from '@/models/GameStatus';

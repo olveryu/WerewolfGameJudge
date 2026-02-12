@@ -16,7 +16,7 @@
 import { normalizeState } from '@/services/engine/state/normalize';
 import { log } from '@/utils/logger';
 
-import type { GameState, IHostGameStore,StoreStateListener } from './types';
+import type { GameState, IHostGameStore, StoreStateListener } from './types';
 
 const gameStoreLog = log.extend('GameStore');
 

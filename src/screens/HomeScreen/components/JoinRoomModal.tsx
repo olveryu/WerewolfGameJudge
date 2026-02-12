@@ -7,7 +7,7 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { memo, useMemo } from 'react';
-import { Modal, Text, TouchableOpacity,View } from 'react-native';
+import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import { NumPad } from '@/components/NumPad';
 

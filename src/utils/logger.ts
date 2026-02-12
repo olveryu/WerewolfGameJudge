@@ -26,10 +26,7 @@ import { mobileDebugTransport } from './mobileDebug';
  * quiet in production while mobileDebugTransport sees everything.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const withMinSeverity = <T extends (...args: any[]) => any>(
-  minSeverity: number,
-  inner: T,
-): T => {
+const withMinSeverity = <T extends (...args: any[]) => any>(minSeverity: number, inner: T): T => {
   return ((props: { level: { severity: number } }) => {
     if (props.level.severity >= minSeverity) {
       inner(props);

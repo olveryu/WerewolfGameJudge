@@ -8,7 +8,7 @@
  * - UI shows error from gameState.actionRejected
  */
 
-import { fireEvent,render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';

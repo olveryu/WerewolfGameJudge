@@ -99,10 +99,7 @@ export function isWolfVoteAllComplete(state: BroadcastGameState): boolean {
  * 当 App 从后台回到前台时，Timer 可能已错过。
  * 通过检查 `wolfVoteDeadline` 是否已过期来决定是否需要补偿推进。
  */
-export function shouldTriggerWolfVoteRecovery(
-  state: BroadcastGameState,
-  now: number,
-): boolean {
+export function shouldTriggerWolfVoteRecovery(state: BroadcastGameState, now: number): boolean {
   return (
     state.currentStepId === 'wolfKill' &&
     state.wolfVoteDeadline != null &&

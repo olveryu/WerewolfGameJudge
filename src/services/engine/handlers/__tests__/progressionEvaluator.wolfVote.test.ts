@@ -21,9 +21,7 @@ import type { BroadcastGameState } from '@/services/protocol/types';
 // Test Helpers
 // =============================================================================
 
-function createWolfKillState(
-  overrides: Partial<BroadcastGameState> = {},
-): BroadcastGameState {
+function createWolfKillState(overrides: Partial<BroadcastGameState> = {}): BroadcastGameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host',

@@ -17,7 +17,11 @@
 import type { RoleId } from '@/models/roles';
 import { NIGHT_STEPS } from '@/models/roles/spec';
 import { buildNightPlan } from '@/models/roles/spec/plan';
-import { handleAdvanceNight, handleEndNight, handleSetAudioPlaying } from '@/services/engine/handlers/stepTransitionHandler';
+import {
+  handleAdvanceNight,
+  handleEndNight,
+  handleSetAudioPlaying,
+} from '@/services/engine/handlers/stepTransitionHandler';
 import type { HandlerContext } from '@/services/engine/handlers/types';
 import type {
   AdvanceNightIntent,

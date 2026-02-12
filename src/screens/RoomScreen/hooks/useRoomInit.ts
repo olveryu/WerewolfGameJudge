@@ -15,7 +15,7 @@
  *   - Create room record in DB (that's done in ConfigScreen before navigation)
  */
 
-import { useCallback,useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { GameTemplate } from '@/models/Template';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
@@ -96,12 +96,18 @@ export function useRoomInit({
       if (isHostParam && template) {
         // Host initializes room (DB record already created before navigation)
         setLoadingMessage('正在初始化房间...');
-        roomScreenLog.debug('[useRoomInit] Host initializing room', { roomNumber, roleCount: template.roles.length });
+        roomScreenLog.debug('[useRoomInit] Host initializing room', {
+          roomNumber,
+          roleCount: template.roles.length,
+        });
         const success = await initializeHostRoom(roomNumber, template);
 
         if (!success) {
           initInProgressRef.current = false;
-          roomScreenLog.warn('[useRoomInit] Host initializeHostRoom failed', { roomNumber, error: gameRoomError ?? 'unknown' });
+          roomScreenLog.warn('[useRoomInit] Host initializeHostRoom failed', {
+            roomNumber,
+            error: gameRoomError ?? 'unknown',
+          });
           setLoadingMessage('创建失败');
           setShowRetryButton(true);
           return;
@@ -109,12 +115,14 @@ export function useRoomInit({
 
         // Set role reveal animation if provided from ConfigScreen
         if (initialRoleRevealAnimation && setRoleRevealAnimation) {
-            roomScreenLog.debug('[useRoomInit] Setting role reveal animation', { animation: initialRoleRevealAnimation });
-            await setRoleRevealAnimation(initialRoleRevealAnimation);
-          }
-          // Host auto-takes seat 0
-          setLoadingMessage('正在入座...');
-          roomScreenLog.debug('[useRoomInit] Host auto-taking seat 0');
+          roomScreenLog.debug('[useRoomInit] Setting role reveal animation', {
+            animation: initialRoleRevealAnimation,
+          });
+          await setRoleRevealAnimation(initialRoleRevealAnimation);
+        }
+        // Host auto-takes seat 0
+        setLoadingMessage('正在入座...');
+        roomScreenLog.debug('[useRoomInit] Host auto-taking seat 0');
         await takeSeat(0);
         setIsInitialized(true);
         initInProgressRef.current = false;
@@ -168,10 +176,16 @@ export function useRoomInit({
         // - 已加入频道但没收到 state → 房主可能不在线
         // - 初始化本身失败 → 通用加载超时
         if (isInitialized && !hasGameState) {
-          roomScreenLog.warn('[useRoomInit] Loading timeout — waiting for host state', { isInitialized, hasGameState });
+          roomScreenLog.warn('[useRoomInit] Loading timeout — waiting for host state', {
+            isInitialized,
+            hasGameState,
+          });
           setLoadingMessage('等待房主上线...（房主可能不在房间内）');
         } else {
-          roomScreenLog.warn('[useRoomInit] Loading timeout — init incomplete', { isInitialized, hasGameState });
+          roomScreenLog.warn('[useRoomInit] Loading timeout — init incomplete', {
+            isInitialized,
+            hasGameState,
+          });
           setLoadingMessage('加载超时');
         }
       }

@@ -18,7 +18,11 @@ import { gargoyleCheckResolver } from '@/services/night/resolvers/gargoyle';
 import { magicianSwapResolver } from '@/services/night/resolvers/magician';
 import { psychicCheckResolver } from '@/services/night/resolvers/psychic';
 import { seerCheckResolver } from '@/services/night/resolvers/seer';
-import type { ActionInput, CurrentNightResults,ResolverContext } from '@/services/night/resolvers/types';
+import type {
+  ActionInput,
+  CurrentNightResults,
+  ResolverContext,
+} from '@/services/night/resolvers/types';
 import { wolfRobotLearnResolver } from '@/services/night/resolvers/wolfRobot';
 
 // =============================================================================

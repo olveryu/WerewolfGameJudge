@@ -116,7 +116,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     if (isError) {
       return (
         <View style={styles.loadingContainer}>
-          <Ionicons name="warning-outline" size={spacing.xxlarge + spacing.medium} color={colors.error} style={{ marginBottom: spacing.medium }} />
+          <Ionicons
+            name="warning-outline"
+            size={spacing.xxlarge + spacing.medium}
+            color={colors.error}
+            style={{ marginBottom: spacing.medium }}
+          />
           <Text style={[styles.loadingText, styles.errorMessageText]}>{displayMessage}</Text>
           <View style={styles.retryButtonRow}>
             <TouchableOpacity
@@ -168,7 +173,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* Connection Status Bar */}
       {!isHost && (
-        <ConnectionStatusBar status={connectionStatus} onForceSync={() => requestSnapshot()} styles={componentStyles.connectionStatusBar} />
+        <ConnectionStatusBar
+          status={connectionStatus}
+          onForceSync={() => requestSnapshot()}
+          styles={componentStyles.connectionStatusBar}
+        />
       )}
 
       {/* Night Progress Indicator - only show during ongoing game */}
@@ -226,7 +235,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       </ScrollView>
 
       {/* Bottom Action Panel - floating card with message + buttons */}
-      <BottomActionPanel message={actionMessage} showMessage={imActioner && !isAudioPlaying} styles={componentStyles.bottomActionPanel}>
+      <BottomActionPanel
+        message={actionMessage}
+        showMessage={imActioner && !isAudioPlaying}
+        styles={componentStyles.bottomActionPanel}
+      >
         {/* Host Control Buttons - dispatch events to policy */}
         <HostControlButtons
           isHost={isHost}

@@ -13,7 +13,7 @@
  */
 
 import type { SchemaId } from '@/models/roles/spec';
-import { BLOCKED_UI_DEFAULTS,SCHEMAS } from '@/models/roles/spec';
+import { BLOCKED_UI_DEFAULTS, SCHEMAS } from '@/models/roles/spec';
 import {
   checkNightmareBlockGuard,
   handleSubmitAction,

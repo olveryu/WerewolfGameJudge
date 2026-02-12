@@ -7,9 +7,9 @@
  * ❌ 禁止：import service / 业务逻辑
  */
 import React, { useMemo } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions,View } from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
-import { borderRadius, spacing, type ThemeColors,typography, useColors } from '@/theme';
+import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
 export interface AlertButton {
   text: string;
@@ -34,7 +34,10 @@ export const AlertModal: React.FC<AlertModalProps> = ({
 }) => {
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
-  const styles = useMemo(() => createStyles(colors, buttons.length, screenWidth), [colors, buttons.length, screenWidth]);
+  const styles = useMemo(
+    () => createStyles(colors, buttons.length, screenWidth),
+    [colors, buttons.length, screenWidth],
+  );
 
   const handleButtonPress = (button: AlertButton) => {
     // First close the modal, then execute the callback

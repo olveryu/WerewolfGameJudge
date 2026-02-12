@@ -3,11 +3,15 @@
  *
  * Verifies that memoized sub-components don't re-render when unrelated state changes.
  */
-import { fireEvent,render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import React, { useState } from 'react';
-import { Text, TouchableOpacity,View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 
-import { createHomeScreenStyles, type HomeScreenStyles,MenuItem } from '@/screens/HomeScreen/components';
+import {
+  createHomeScreenStyles,
+  type HomeScreenStyles,
+  MenuItem,
+} from '@/screens/HomeScreen/components';
 
 // Mock theme colors - complete ThemeColors interface
 const mockColors = {

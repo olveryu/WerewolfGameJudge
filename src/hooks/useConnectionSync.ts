@@ -101,8 +101,14 @@ export function useConnectionSync(
   const [isStateStale, setIsStateStale] = useState(true);
   useEffect(() => {
     const check = () => {
-      if (connectionStatus !== 'live') { setIsStateStale(true); return; }
-      if (!lastStateReceivedAt) { setIsStateStale(true); return; }
+      if (connectionStatus !== 'live') {
+        setIsStateStale(true);
+        return;
+      }
+      if (!lastStateReceivedAt) {
+        setIsStateStale(true);
+        return;
+      }
       setIsStateStale(Date.now() - lastStateReceivedAt > STALE_THRESHOLD_MS);
     };
     check();

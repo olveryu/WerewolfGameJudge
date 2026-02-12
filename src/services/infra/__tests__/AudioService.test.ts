@@ -31,7 +31,9 @@ jest.mock('expo-audio', () => ({
 jest.mock('../../../../assets/audio/slacker.mp3', () => 'slacker-audio', { virtual: true });
 jest.mock('../../../../assets/audio/wolf_robot.mp3', () => 'wolf_robot-audio', { virtual: true });
 jest.mock('../../../../assets/audio/magician.mp3', () => 'magician-audio', { virtual: true });
-jest.mock('../../../../assets/audio/dreamcatcher.mp3', () => 'dreamcatcher-audio', { virtual: true });
+jest.mock('../../../../assets/audio/dreamcatcher.mp3', () => 'dreamcatcher-audio', {
+  virtual: true,
+});
 jest.mock('../../../../assets/audio/gargoyle.mp3', () => 'gargoyle-audio', { virtual: true });
 jest.mock('../../../../assets/audio/nightmare.mp3', () => 'nightmare-audio', { virtual: true });
 jest.mock('../../../../assets/audio/guard.mp3', () => 'guard-audio', { virtual: true });
@@ -52,11 +54,15 @@ jest.mock('../../../../assets/audio_end/slacker.mp3', () => 'slacker-end-audio',
 jest.mock('../../../../assets/audio_end/wolf_robot.mp3', () => 'wolf_robot-end-audio', {
   virtual: true,
 });
-jest.mock('../../../../assets/audio_end/magician.mp3', () => 'magician-end-audio', { virtual: true });
+jest.mock('../../../../assets/audio_end/magician.mp3', () => 'magician-end-audio', {
+  virtual: true,
+});
 jest.mock('../../../../assets/audio_end/dreamcatcher.mp3', () => 'dreamcatcher-end-audio', {
   virtual: true,
 });
-jest.mock('../../../../assets/audio_end/gargoyle.mp3', () => 'gargoyle-end-audio', { virtual: true });
+jest.mock('../../../../assets/audio_end/gargoyle.mp3', () => 'gargoyle-end-audio', {
+  virtual: true,
+});
 jest.mock('../../../../assets/audio_end/nightmare.mp3', () => 'nightmare-end-audio', {
   virtual: true,
 });
@@ -74,7 +80,7 @@ jest.mock('../../../../assets/audio_end/dark_wolf_king.mp3', () => 'dark_wolf_ki
 });
 
 // Now import AudioService after mocks are set up
-import { audioAssetToUrl,AudioService } from '@/services/infra/AudioService';
+import { audioAssetToUrl, AudioService } from '@/services/infra/AudioService';
 
 describe('audioAssetToUrl', () => {
   it('should passthrough string URL', () => {

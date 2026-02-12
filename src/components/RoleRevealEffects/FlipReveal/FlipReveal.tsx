@@ -103,9 +103,9 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   const config = CONFIG.flip;
   const theme = ALIGNMENT_THEMES[role.alignment];
 
-  const [phase, setPhase] = useState<
-    'entry' | 'levitate' | 'flipping' | 'landing' | 'revealed'
-  >('entry');
+  const [phase, setPhase] = useState<'entry' | 'levitate' | 'flipping' | 'landing' | 'revealed'>(
+    'entry',
+  );
   const [particles, setParticles] = useState<ParticleConfig[]>([]);
   const onCompleteCalledRef = useRef(false);
 
@@ -180,10 +180,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
     // Edge glow pulse during flip
     edgeGlowOpacity.value = withSequence(
       withTiming(1, { duration: config.flipDuration * 0.3 }),
-      withDelay(
-        config.flipDuration * 0.3,
-        withTiming(0, { duration: config.flipDuration * 0.4 }),
-      ),
+      withDelay(config.flipDuration * 0.3, withTiming(0, { duration: config.flipDuration * 0.4 })),
     );
 
     // Air ripple
@@ -255,7 +252,15 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
         }
       },
     );
-  }, [reducedMotion, flipProgress, entryOpacity, entryScale, startLevitation, onComplete, config.revealHoldDuration]);
+  }, [
+    reducedMotion,
+    flipProgress,
+    entryOpacity,
+    entryScale,
+    startLevitation,
+    onComplete,
+    config.revealHoldDuration,
+  ]);
 
   // ── Animated styles ──
   const cardContainerStyle = useAnimatedStyle(() => ({
@@ -269,11 +274,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   const frontFaceStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        rotateY: `${interpolate(
-          flipProgress.value,
-          [0, 0.5, 1],
-          [0, 90, 180],
-        )}deg`,
+        rotateY: `${interpolate(flipProgress.value, [0, 0.5, 1], [0, 90, 180])}deg`,
       },
     ],
     opacity: flipProgress.value < 0.5 ? 1 : 0,
@@ -282,11 +283,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   const backFaceStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        rotateY: `${interpolate(
-          flipProgress.value,
-          [0, 0.5, 1],
-          [180, 90, 0],
-        )}deg`,
+        rotateY: `${interpolate(flipProgress.value, [0, 0.5, 1], [180, 90, 0])}deg`,
       },
     ],
     opacity: flipProgress.value >= 0.5 ? 1 : 0,
@@ -330,19 +327,11 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
 
       {/* Main card container */}
       <Animated.View
-        style={[
-          styles.cardContainer,
-          { width: cardWidth, height: cardHeight },
-          cardContainerStyle,
-        ]}
+        style={[styles.cardContainer, { width: cardWidth, height: cardHeight }, cardContainerStyle]}
       >
         {/* Card back (question mark) */}
         <Animated.View
-          style={[
-            styles.cardFace,
-            { width: cardWidth, height: cardHeight },
-            frontFaceStyle,
-          ]}
+          style={[styles.cardFace, { width: cardWidth, height: cardHeight }, frontFaceStyle]}
         >
           <RoleCard role={role} showBack={true} width={cardWidth} height={cardHeight} />
         </Animated.View>
@@ -356,11 +345,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
             backFaceStyle,
           ]}
         >
-          <RoleCardContent
-            roleId={role.id as RoleId}
-            width={cardWidth}
-            height={cardHeight}
-          />
+          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
 
           {/* Edge glow during flip */}
           <Animated.View

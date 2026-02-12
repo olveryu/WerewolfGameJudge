@@ -10,10 +10,7 @@
  * is correct, so when reveals DO appear, they are properly tracked.
  */
 
-import {
-  createShowAlertMock,
-  RoomScreenTestHarness,
-} from '@/screens/RoomScreen/__tests__/harness';
+import { createShowAlertMock, RoomScreenTestHarness } from '@/screens/RoomScreen/__tests__/harness';
 
 describe('Reveal Dialog Classification', () => {
   let harness: RoomScreenTestHarness;

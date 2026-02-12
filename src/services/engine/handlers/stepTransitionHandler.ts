@@ -15,7 +15,7 @@
  */
 
 import type { WitchAction } from '@/models/actions/WitchAction';
-import { makeWitchNone,makeWitchPoison, makeWitchSave } from '@/models/actions/WitchAction';
+import { makeWitchNone, makeWitchPoison, makeWitchSave } from '@/models/actions/WitchAction';
 import type { RoleId } from '@/models/roles';
 import { getWolfRoleIds } from '@/models/roles';
 import type { SchemaId } from '@/models/roles/spec';
@@ -25,7 +25,11 @@ import { BLOCKED_UI_DEFAULTS, type SchemaUi } from '@/models/roles/spec/schema.t
 import { SCHEMAS } from '@/models/roles/spec/schemas';
 import type { NightActions, RoleSeatMap } from '@/services/engine/DeathCalculator';
 import { calculateDeaths } from '@/services/engine/DeathCalculator';
-import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '@/services/engine/intents/types';
+import type {
+  AdvanceNightIntent,
+  EndNightIntent,
+  SetAudioPlayingIntent,
+} from '@/services/engine/intents/types';
 import type {
   AdvanceToNextActionAction,
   EndNightAction,

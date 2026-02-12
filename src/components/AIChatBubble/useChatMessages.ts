@@ -55,10 +55,7 @@ export interface UseChatMessagesReturn {
  * @param facade 游戏 facade（用于构建玩家上下文）
  * @param isOpen 聊天窗口是否打开（关闭时 abort 请求）
  */
-export function useChatMessages(
-  facade: IGameFacade,
-  isOpen: boolean,
-): UseChatMessagesReturn {
+export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMessagesReturn {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);

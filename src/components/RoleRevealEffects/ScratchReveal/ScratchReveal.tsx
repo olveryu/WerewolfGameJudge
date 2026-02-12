@@ -196,22 +196,11 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     });
 
     // Reveal animation
-    revealAnim.value = withTiming(
-      1,
-      { duration: config.revealDuration },
-      (finished) => {
-        'worklet';
-        if (finished) runOnJS(setShowGlow)(true);
-      },
-    );
-  }, [
-    isRevealed,
-    revealAnim,
-    burstScale,
-    burstOpacity,
-    config.revealDuration,
-    enableHaptics,
-  ]);
+    revealAnim.value = withTiming(1, { duration: config.revealDuration }, (finished) => {
+      'worklet';
+      if (finished) runOnJS(setShowGlow)(true);
+    });
+  }, [isRevealed, revealAnim, burstScale, burstOpacity, config.revealDuration, enableHaptics]);
 
   // ── Glow complete ──
   const handleGlowComplete = useCallback(() => {
@@ -225,10 +214,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     (x: number, y: number) => {
       if (isRevealed) return;
 
-      setScratchPoints((prev) => [
-        ...prev,
-        { x, y, id: `scratch-${Date.now()}-${Math.random()}` },
-      ]);
+      setScratchPoints((prev) => [...prev, { x, y, id: `scratch-${Date.now()}-${Math.random()}` }]);
       scratchedAreaRef.current += 1;
 
       const progress = calculateProgress();
@@ -305,11 +291,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   const sheenStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        translateX: interpolate(
-          sheenPosition.value,
-          [0, 1],
-          [-cardWidth, cardWidth],
-        ),
+        translateX: interpolate(sheenPosition.value, [0, 1], [-cardWidth, cardWidth]),
       },
     ],
   }));
@@ -356,11 +338,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       >
         {/* Role card underneath */}
         <View style={styles.roleCardLayer}>
-          <RoleCardContent
-            roleId={role.id as RoleId}
-            width={cardWidth}
-            height={cardHeight}
-          />
+          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
         </View>
 
         {/* Scratch overlay */}
@@ -391,11 +369,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
               {/* Animated sheen */}
               <Animated.View style={[styles.sheen, sheenStyle]}>
                 <LinearGradient
-                  colors={[
-                    'rgba(255,255,255,0)',
-                    'rgba(255,255,255,0.4)',
-                    'rgba(255,255,255,0)',
-                  ]}
+                  colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
                   start={{ x: 0, y: 0.5 }}
                   end={{ x: 1, y: 0.5 }}
                   style={StyleSheet.absoluteFill}

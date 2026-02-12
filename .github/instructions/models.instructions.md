@@ -15,11 +15,11 @@ applyTo: src/models/**
 
 ## 三层表驱动架构（单一真相）
 
-| 层 | 文件 | 职责 |
-|---|---|---|
-| `ROLE_SPECS` | `src/models/roles/spec/specs.ts` | 角色固有属性（不随步骤变化） |
-| `SCHEMAS` | `src/models/roles/spec/schemas.ts` | 行动输入协议（约束/提示/meeting） |
-| `NIGHT_STEPS` | `src/models/roles/spec/nightSteps.ts` | Night-1 步骤顺序 + 音频 |
+| 层            | 文件                                  | 职责                              |
+| ------------- | ------------------------------------- | --------------------------------- |
+| `ROLE_SPECS`  | `src/models/roles/spec/specs.ts`      | 角色固有属性（不随步骤变化）      |
+| `SCHEMAS`     | `src/models/roles/spec/schemas.ts`    | 行动输入协议（约束/提示/meeting） |
+| `NIGHT_STEPS` | `src/models/roles/spec/nightSteps.ts` | Night-1 步骤顺序 + 音频           |
 
 ## 规则
 

@@ -78,9 +78,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   const theme = ALIGNMENT_THEMES[role.alignment];
   const config = CONFIG.tarot ?? { flipDuration: 800, revealHoldDuration: 1500 };
 
-  const [phase, setPhase] = useState<'waiting' | 'drawing' | 'flipping' | 'revealed'>(
-    'waiting',
-  );
+  const [phase, setPhase] = useState<'waiting' | 'drawing' | 'flipping' | 'revealed'>('waiting');
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
   const onCompleteCalledRef = useRef(false);
 
@@ -255,10 +253,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   // ── Animated styles ──
   const wheelStyle = useAnimatedStyle(() => ({
     opacity: wheelOpacity.value,
-    transform: [
-      { scale: wheelScale.value },
-      { rotate: `${wheelRotation.value * 360}deg` },
-    ],
+    transform: [{ scale: wheelScale.value }, { rotate: `${wheelRotation.value * 360}deg` }],
   }));
 
   const drawnCardStyle = useAnimatedStyle(() => ({
@@ -331,11 +326,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
                     width: cardWidth * 0.55,
                     height: cardHeight * 0.55,
                     opacity: isSelected ? 0 : 1,
-                    transform: [
-                      { translateX: x },
-                      { translateY: y },
-                      { rotate: `${rotation}deg` },
-                    ],
+                    transform: [{ translateX: x }, { translateY: y }, { rotate: `${rotation}deg` }],
                   },
                 ]}
               >
@@ -344,10 +335,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
                   disabled={phase !== 'waiting'}
                   style={{ flex: 1 }}
                 >
-                  <CardBackFace
-                    width={cardWidth * 0.55}
-                    height={cardHeight * 0.55}
-                  />
+                  <CardBackFace width={cardWidth * 0.55} height={cardHeight * 0.55} />
                 </Pressable>
               </View>
             );
@@ -358,28 +346,16 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       {/* Drawn card (fly to center → flip) */}
       <Animated.View
         testID={`${testIDPrefix}-drawn-card`}
-        style={[
-          styles.drawnCard,
-          { width: cardWidth, height: cardHeight },
-          drawnCardStyle,
-        ]}
+        style={[styles.drawnCard, { width: cardWidth, height: cardHeight }, drawnCardStyle]}
       >
         {/* Card back */}
-        <Animated.View
-          style={[styles.cardFace, styles.cardBackZ, backOpacityStyle]}
-        >
+        <Animated.View style={[styles.cardFace, styles.cardBackZ, backOpacityStyle]}>
           <CardBackFace width={cardWidth} height={cardHeight} />
         </Animated.View>
 
         {/* Card front */}
-        <Animated.View
-          style={[styles.cardFace, styles.cardFrontZ, frontOpacityStyle]}
-        >
-          <RoleCardContent
-            roleId={role.id as RoleId}
-            width={cardWidth}
-            height={cardHeight}
-          />
+        <Animated.View style={[styles.cardFace, styles.cardFrontZ, frontOpacityStyle]}>
+          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
 
           {phase === 'revealed' && (
             <GlowBorder

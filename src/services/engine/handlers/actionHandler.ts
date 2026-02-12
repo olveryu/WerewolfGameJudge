@@ -14,8 +14,12 @@
 import type { RoleId } from '@/models/roles';
 import { doesRoleParticipateInWolfVote } from '@/models/roles';
 import type { SchemaId } from '@/models/roles/spec';
-import { BLOCKED_UI_DEFAULTS,NIGHT_STEPS, SCHEMAS } from '@/models/roles/spec';
-import type { SubmitActionIntent, SubmitWolfVoteIntent, ViewedRoleIntent } from '@/services/engine/intents/types';
+import { BLOCKED_UI_DEFAULTS, NIGHT_STEPS, SCHEMAS } from '@/models/roles/spec';
+import type {
+  SubmitActionIntent,
+  SubmitWolfVoteIntent,
+  ViewedRoleIntent,
+} from '@/services/engine/intents/types';
 import type {
   ActionRejectedAction,
   ApplyResolverResultAction,
@@ -24,7 +28,11 @@ import type {
   StateAction,
 } from '@/services/engine/reducer/types';
 import { RESOLVERS } from '@/services/night/resolvers';
-import type { ActionInput, ResolverContext, ResolverResult } from '@/services/night/resolvers/types';
+import type {
+  ActionInput,
+  ResolverContext,
+  ResolverResult,
+} from '@/services/night/resolvers/types';
 import type { ProtocolAction } from '@/services/protocol/types';
 import { newRejectionId } from '@/utils/id';
 import { log } from '@/utils/logger';
@@ -423,7 +431,7 @@ function checkNightmareBlockGuard(
   return undefined;
 }
 
-export { checkNightmareBlockGuard,isSkipAction };
+export { checkNightmareBlockGuard, isSkipAction };
 
 /**
  * 处理提交行动（PR4: SUBMIT_ACTION）

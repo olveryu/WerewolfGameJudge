@@ -11,7 +11,7 @@ import { Animated, Image, Platform, StyleSheet, Text, View } from 'react-native'
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-import { borderRadius, shadows,spacing, typography } from '@/theme';
+import { borderRadius, shadows, spacing, typography } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports

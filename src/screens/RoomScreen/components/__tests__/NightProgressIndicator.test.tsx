@@ -92,9 +92,7 @@ describe('NightProgressIndicator', () => {
 
     expect(getByText(/3\/5/)).toBeTruthy();
 
-    rerender(
-      <NightProgressIndicator currentStep={7} totalSteps={15} styles={mockStyles} />,
-    );
+    rerender(<NightProgressIndicator currentStep={7} totalSteps={15} styles={mockStyles} />);
     expect(getByText(/7\/15/)).toBeTruthy();
   });
 });

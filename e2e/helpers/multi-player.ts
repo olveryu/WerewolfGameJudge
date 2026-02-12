@@ -1,10 +1,10 @@
 import type { Browser } from '@playwright/test';
-import { expect,Page } from '@playwright/test';
+import { expect, Page } from '@playwright/test';
 
-import { createPlayerContexts,MultiPlayerFixture } from '../fixtures/app.fixture';
+import { createPlayerContexts, MultiPlayerFixture } from '../fixtures/app.fixture';
 import { ConfigPage } from '../pages/ConfigPage';
 import { RoomPage } from '../pages/RoomPage';
-import { enterRoomCodeViaNumPad,extractRoomNumber } from './home';
+import { enterRoomCodeViaNumPad, extractRoomNumber } from './home';
 import { getVisibleText } from './ui';
 import { waitForRoomScreenReady } from './waits';
 

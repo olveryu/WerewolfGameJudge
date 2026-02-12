@@ -7,18 +7,11 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useMemo } from 'react';
-import {
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 import type { RoleId } from '@/models/roles';
 import { getRoleSpec, isWolfRole } from '@/models/roles';
-import { borderRadius, shadows, spacing, type ThemeColors,typography, useColors } from '@/theme';
+import { borderRadius, shadows, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
 // 角色对应的 emoji 图标
 const ROLE_ICONS: Record<string, string> = {
@@ -71,7 +64,10 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({ visible, roleId,
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.min(screenWidth * 0.75, 280);
   const cardHeight = cardWidth * 1.4;
-  const styles = useMemo(() => createStyles(colors, cardWidth, cardHeight), [colors, cardWidth, cardHeight]);
+  const styles = useMemo(
+    () => createStyles(colors, cardWidth, cardHeight),
+    [colors, cardWidth, cardHeight],
+  );
 
   if (!visible || !roleId) return null;
 

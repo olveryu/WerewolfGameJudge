@@ -1,5 +1,5 @@
 ---
-applyTo: "**/*.test.ts,**/*.test.tsx,**/__tests__/**"
+applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**'
 ---
 
 # 测试规范

@@ -8,15 +8,15 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RouteProp,useNavigation, useRoute } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useEffect, useMemo, useRef,useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useGameFacade } from '@/contexts';
-import { Faction,ROLE_SPECS, RoleId } from '@/models/roles';
+import { Faction, ROLE_SPECS, RoleId } from '@/models/roles';
 import {
   createCustomTemplate,
   findMatchingPresetName,
@@ -45,7 +45,7 @@ import {
   SettingsSheet,
   TemplatePicker,
 } from './components';
-import { buildInitialSelection,FACTION_GROUPS } from './configData';
+import { buildInitialSelection, FACTION_GROUPS } from './configData';
 
 // ============================================
 // Helper functions
@@ -484,7 +484,13 @@ export const ConfigScreen: React.FC = () => {
         const accentColor = getFactionAccentColor(group.faction);
         return {
           key: group.faction,
-          icon: <Ionicons name={group.iconName as keyof typeof Ionicons.glyphMap} size={14} color={accentColor} />,
+          icon: (
+            <Ionicons
+              name={group.iconName as keyof typeof Ionicons.glyphMap}
+              size={14}
+              color={accentColor}
+            />
+          ),
           title: group.title,
           count: getFactionSelectedCount(group),
           accentColor,

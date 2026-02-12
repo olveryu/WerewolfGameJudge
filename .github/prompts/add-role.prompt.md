@@ -9,7 +9,7 @@
 
 1. **角色名称**（中文 displayName + 英文 id，例如 `守墓人 / graveyardKeeper`）
 2. **阵营**（`Faction.God` / `Faction.Wolf` / `Faction.Villager` / `Faction.ThirdParty`
-）
+   ）
 3. **team**（`'good'` / `'evil'` / `'neutral'`）
 4. **Night-1 是否有行动**（`hasAction: true/false`）
 5. **行动类型**
@@ -45,6 +45,7 @@ newRole: {
 ```
 
 **狼阵营特殊字段**（如需）：
+
 ```typescript
 wolfMeeting: {
   canSeeWolves: true,  // 在狼人会议阶段看到狼队友高亮
@@ -52,6 +53,7 @@ wolfMeeting: {
 ```
 
 **检查项**:
+
 - [ ] `id` 与对象 key 一致
 - [ ] `team` 与 `faction` 匹配（God/Villager→good, Wolf→evil, ThirdParty→neutral）
 - [ ] `RoleId` 类型自动推导（`keyof typeof ROLE_SPECS`），无需手动添加
@@ -80,6 +82,7 @@ newRoleAction: {
 ```
 
 **compound 类型示例**（参考 witchAction）：
+
 ```typescript
 newRoleAction: {
   id: 'newRoleAction',
@@ -94,6 +97,7 @@ newRoleAction: {
 ```
 
 **检查项**:
+
 - [ ] `id` 与对象 key 一致
 - [ ] constraints 完整（`notSelf` 等），schema-first 原则
 - [ ] `SchemaId` 类型自动推导（`keyof typeof SCHEMAS`），无需手动添加
@@ -116,6 +120,7 @@ newRoleAction: {
 ```
 
 **检查项**:
+
 - [ ] `id` 是有效的 `SchemaId`（与 SCHEMAS 中的 key 一致）
 - [ ] `roleId` 是有效的 `RoleId`（与 ROLE_SPECS 中的 key 一致）
 - [ ] `audioKey` 非空
@@ -176,6 +181,7 @@ export const newRoleActionResolver: ResolverFn = (context, input) => {
 ```
 
 **检查项**:
+
 - [ ] 纯函数，无副作用，无 IO
 - [ ] Nightmare 阻断已由 actionHandler 层统一处理，resolver 无需重复检查
 - [ ] 校验与 `SCHEMAS[*].constraints` 完全一致
@@ -197,6 +203,7 @@ export const RESOLVERS: ResolverRegistry = {
 ```
 
 **检查项**:
+
 - [ ] key 是 `SchemaId`
 - [ ] import 路径正确
 
@@ -209,6 +216,7 @@ export const RESOLVERS: ResolverRegistry = {
 **文件**: `src/services/engine/protocol/types.ts`（或对应的 state 类型文件）
 
 添加 reveal 字段到 `BroadcastGameState` 类型：
+
 ```typescript
 newRoleReveal?: {
   targetSeat: number;
@@ -221,6 +229,7 @@ newRoleReveal?: {
 **文件**: `src/services/engine/state/normalize.ts`
 
 在 `normalizeState` 返回值中添加新字段：
+
 ```typescript
 return {
   // ... 已有字段
@@ -233,10 +242,11 @@ return {
 **文件**: `src/services/engine/handlers/actionHandler.ts`
 
 添加 reveal 处理函数：
+
 ```typescript
 function handleNewRoleReveal(
   result: ResolverResult,
-  targetSeat: number
+  targetSeat: number,
 ): Pick<ApplyResolverResultAction['payload'], 'newRoleReveal'> {
   return { newRoleReveal: { targetSeat, result: result.result.xxx } };
 }
@@ -245,6 +255,7 @@ function handleNewRoleReveal(
 在 `handlePlayerAction` / `applyResolverResult` 中调用。
 
 **检查项**:
+
 - [ ] 新字段已加到 `BroadcastGameState` 类型
 - [ ] 新字段已加到 `normalizeState` 返回值
 - [ ] Reveal 从 resolver 返回值读取，Host 不做二次计算
@@ -256,6 +267,7 @@ function handleNewRoleReveal(
 **文件**: `src/services/night/resolvers/types.ts`
 
 在 `CurrentNightResults` 接口添加新字段：
+
 ```typescript
 export interface CurrentNightResults {
   // ... 已有字段
@@ -265,6 +277,7 @@ export interface CurrentNightResults {
 ```
 
 **检查项**:
+
 - [ ] 类型为 `readonly`
 - [ ] 后续 resolver 可通过 `context.currentNightResults.newRoleEffect` 读取
 
@@ -306,6 +319,7 @@ describe('newRoleActionResolver', () => {
 ```
 
 **检查项**:
+
 - [ ] 纯函数调用，无 mock service
 - [ ] 覆盖 skip / 约束拒绝 / 目标不存在 / happy path
 - [ ] 如果角色有与 nightmare / magician swap 的交互，单独覆盖
@@ -319,6 +333,7 @@ describe('newRoleActionResolver', () => {
 在已有的 board integration test 中加入新角色的行动步骤：
 
 **硬规则**:
+
 - [ ] 跑真实 NightFlow（按 NIGHT_STEPS 顺序）
 - [ ] 禁止跳步 / 自动清 gate
 - [ ] fail-fast（失败立即抛错）
@@ -331,6 +346,7 @@ describe('newRoleActionResolver', () => {
 **文件**: `src/screens/RoomScreen/__tests__/boards-ui/` 下对应板子测试
 
 **最低覆盖**:
+
 - [ ] 行动 prompt 显示
 - [ ] 行动 confirm 对话框
 - [ ] reveal 显示（如有）+ REVEAL_ACK
@@ -338,6 +354,7 @@ describe('newRoleActionResolver', () => {
 - [ ] 额外 gate 的点击/解除（如 `wolfRobotHunterStatusViewed`）
 
 **硬规则**:
+
 - [ ] 使用 `RoomScreenTestHarness`
 - [ ] 覆盖断言用字面量数组
 - [ ] 禁止 `.skip`

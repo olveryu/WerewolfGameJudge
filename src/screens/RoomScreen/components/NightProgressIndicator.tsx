@@ -10,7 +10,7 @@
  * ✅ Allowed: types, styles, UI components
  */
 import React, { memo } from 'react';
-import { Text,View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
 

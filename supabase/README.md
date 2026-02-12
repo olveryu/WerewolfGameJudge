@@ -93,7 +93,7 @@ bash scripts/setup-local-env.sh
 | File          | Purpose                                        |
 | ------------- | ---------------------------------------------- |
 | `config.toml` | Supabase CLI configuration                     |
-| `functions/`  | Edge Functions (groq-proxy 等)                  |
+| `functions/`  | Edge Functions (groq-proxy 等)                 |
 | `migrations/` | Database migrations (versioned schema changes) |
 
 ## Creating New Migrations

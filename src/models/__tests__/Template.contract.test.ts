@@ -17,7 +17,7 @@ import {
   isWolfRole,
   RoleId,
 } from '@/models/roles';
-import { createTemplateFromRoles,PRESET_TEMPLATES } from '@/models/Template';
+import { createTemplateFromRoles, PRESET_TEMPLATES } from '@/models/Template';
 
 /**
  * Helper: Get action order from roles via NightPlan

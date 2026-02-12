@@ -13,7 +13,7 @@
 
 import { StyleSheet } from 'react-native';
 
-import { borderRadius, spacing, type ThemeColors,typography } from '@/theme';
+import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 export function createRoomScreenStyles(colors: ThemeColors) {

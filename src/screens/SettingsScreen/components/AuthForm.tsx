@@ -7,7 +7,7 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import { memo, useMemo } from 'react';
-import { Text, TextInput,TouchableOpacity, View } from 'react-native';
+import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { ThemeColors } from '@/theme';
 

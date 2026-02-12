@@ -7,22 +7,22 @@
 
 ## 一、功能概述
 
-| 功能 | 描述 |
-|------|------|
-| **改票（revote）** | 已投票狼人可重新点击座位改票，覆盖旧 vote |
-| **撤回（withdraw）** | 已投票狼人可取消投票，回到未投状态 |
-| **倒计时（countdown）** | 全部狼人投完后 5 秒倒数，改票/撤回重置倒数 |
-| **队友投票 Badge** | 狼人视角下，队友座位显示 `→{目标}` 或 `→空刀` |
+| 功能                    | 描述                                          |
+| ----------------------- | --------------------------------------------- |
+| **改票（revote）**      | 已投票狼人可重新点击座位改票，覆盖旧 vote     |
+| **撤回（withdraw）**    | 已投票狼人可取消投票，回到未投状态            |
+| **倒计时（countdown）** | 全部狼人投完后 5 秒倒数，改票/撤回重置倒数    |
+| **队友投票 Badge**      | 狼人视角下，队友座位显示 `→{目标}` 或 `→空刀` |
 
 ---
 
 ## 二、Wire 协议 — 狼人投票 target 语义
 
-| Wire 值 | 含义 | Resolver 行为 | wolfVotesBySeat 变化 | Evaluator "done"? |
-|---------|------|-------------|---------------------|-------------------|
-| `>= 0` | 刀人 | 写入 `[seat]: target` | 新增/覆盖 key | ✅ |
-| `-1` | 空刀 | 写入 `[seat]: -1` | 新增/覆盖 key | ✅ |
-| `-2` | 撤回 | 删除 `[seat]` key | 删除 key | ❌ |
+| Wire 值 | 含义 | Resolver 行为         | wolfVotesBySeat 变化 | Evaluator "done"? |
+| ------- | ---- | --------------------- | -------------------- | ----------------- |
+| `>= 0`  | 刀人 | 写入 `[seat]: target` | 新增/覆盖 key        | ✅                |
+| `-1`    | 空刀 | 写入 `[seat]: -1`     | 新增/覆盖 key        | ✅                |
+| `-2`    | 撤回 | 删除 `[seat]` key     | 删除 key             | ❌                |
 
 `-2` 全程不转换（不 map 到 `null`），端到端保持 `-2` 直到 resolver 处理。
 
@@ -39,13 +39,13 @@
 
 **规则：改票 / 撤回均重置 5 秒。**
 
-| 场景 | allVoted 之前 | allVoted 之后 | Timer 动作 |
-|------|-------------|-------------|-----------|
-| 最后一人投票 | false | true | **set** deadline + timer |
-| 已全投完，某人改票 | true | true | **set**（重置：clear 旧 + 设新） |
-| 已全投完，某人撤回 | true | false | **clear** timer + 清 deadline |
-| 未全投完，某人改票 | false | false | **noop** |
-| 未全投完，某人撤回 | false | false | **noop** |
+| 场景               | allVoted 之前 | allVoted 之后 | Timer 动作                       |
+| ------------------ | ------------- | ------------- | -------------------------------- |
+| 最后一人投票       | false         | true          | **set** deadline + timer         |
+| 已全投完，某人改票 | true          | true          | **set**（重置：clear 旧 + 设新） |
+| 已全投完，某人撤回 | true          | false         | **clear** timer + 清 deadline    |
+| 未全投完，某人改票 | false         | false         | **noop**                         |
+| 未全投完，某人撤回 | false         | false         | **noop**                         |
 
 Timer 是 "best effort" 触发器，`wolfVoteDeadline`（epoch ms）在 `BroadcastGameState` 中是权威时间戳。
 
@@ -54,6 +54,7 @@ Timer 是 "best effort" 触发器，`wolfVoteDeadline`（epoch ms）在 `Broadca
 选定策略 **A（接受重置）**：任何成功 submit 都重置 5 秒。
 
 理由：
+
 - 防拖延的收益低（狼人同阵营，没有对抗动机；且倒数只有 5 秒）
 - 策略 B（比较前后 wolfVotesBySeat）增加复杂度但收益不大
 - Resolver 对相同目标的重复提交本身就是有效 submit（覆盖写），语义上等同改票
@@ -105,6 +106,7 @@ if (target === -2) {
 > 这意味着如果某个座位 player 存在但 role 缺失，该座位会被静默忽略，可能导致误判 allVoted 提前推进。
 >
 > 新函数改为 **fail-closed**：
+>
 > - `!player?.role` → 立即 `return false`（无法确定角色 → 无法确定是否全完成）
 > - `participatingWolfSeats.length === 0` → `return false`（wolfKill step 下无狼人是异常，不应推进）
 >
@@ -117,12 +119,12 @@ export function isWolfVoteAllComplete(state: BroadcastGameState): boolean {
   for (const [seatStr, player] of Object.entries(state.players)) {
     const seat = Number.parseInt(seatStr, 10);
     if (!Number.isFinite(seat)) continue;
-    if (!player?.role) return false;  // fail-closed：role 缺失 → 不确定 → false
+    if (!player?.role) return false; // fail-closed：role 缺失 → 不确定 → false
     if (doesRoleParticipateInWolfVote(player.role)) {
       participatingWolfSeats.push(seat);
     }
   }
-  if (participatingWolfSeats.length === 0) return false;  // fail-closed：0 狼人 → 异常 → false
+  if (participatingWolfSeats.length === 0) return false; // fail-closed：0 狼人 → 异常 → false
   return participatingWolfSeats.every((seat) => {
     const v = wolfVotes[String(seat)];
     return typeof v === 'number' && (v >= 0 || v === -1);
@@ -135,10 +137,7 @@ export function isWolfVoteAllComplete(state: BroadcastGameState): boolean {
 #### 4b. `shouldTriggerWolfVoteRecovery(state, now)` — 前台恢复判断
 
 ```typescript
-export function shouldTriggerWolfVoteRecovery(
-  state: BroadcastGameState,
-  now: number,
-): boolean {
+export function shouldTriggerWolfVoteRecovery(state: BroadcastGameState, now: number): boolean {
   return (
     state.currentStepId === 'wolfKill' &&
     state.wolfVoteDeadline != null &&
@@ -277,6 +276,7 @@ private _teardownForegroundRecovery(): void {
 - Timer 清除也在 `leaveRoom`：`clearTimeout(this._hostActionsCtx.wolfVoteTimer)`
 
 **幂等保证**：
+
 - 注册幂等：`_foregroundCleanups.length > 0` 检查，重复调用 `_setupForegroundRecovery()` 不会注册第二套监听器
 - 清理幂等：`_teardownForegroundRecovery` 清空数组后可重新注册
 - 推进幂等：`evaluateNightProgression` 有 `ProgressionTracker`（`{revision, currentStepId}` key），同一状态最多推进一次
@@ -343,32 +343,32 @@ wolfVoteTarget: wolfVotesBySeat != null && String(index) in wolfVotesBySeat
 
 ## 五、架构合规性
 
-| 规则 | 合规 | 说明 |
-|------|------|------|
-| auto-advance 在 evaluator | ✅ | countdown gate 在 `evaluateNightProgression` |
-| facade 透传不决策 | ✅ | facade 只判断 timer set/clear（通过纯函数），不决定推不推进 |
-| BroadcastGameState 单一真相 | ✅ | `wolfVoteDeadline` 在 state 中 |
-| 新字段必须 normalizeState 透传 | ✅ | 已含 |
-| hardGates: facade 不直接调 evaluateNightProgression | ✅ | 通过 `callNightProgression` → `handleNightProgression` |
-| allVoted 判断不漂移 | ✅ | `isWolfVoteAllComplete` 单一导出，evaluator + facade 共用 |
-| timer 绑定实例 | ✅ | `ctx.wolfVoteTimer` 在 HostActionsContext 上，leaveRoom 清除 |
-| 前台恢复幂等 | ✅ | `_setupForegroundRecovery` 幂等注册；evaluator 有 ProgressionTracker |
-| Web + Native 双通道 | ✅ | Web: `document.visibilitychange`；Native: `AppState`；`Platform.OS` 互斥 |
-| isWolfVoteAllComplete fail-closed | ✅ | role 缺失/0 狼人返回 false，防止异常模板误推进 |
-| 倒计时防拖延 | ✅（选 A）| 任何成功 submit 都重置 5 秒，复杂度低、收益匹配 |
+| 规则                                                | 合规       | 说明                                                                     |
+| --------------------------------------------------- | ---------- | ------------------------------------------------------------------------ |
+| auto-advance 在 evaluator                           | ✅         | countdown gate 在 `evaluateNightProgression`                             |
+| facade 透传不决策                                   | ✅         | facade 只判断 timer set/clear（通过纯函数），不决定推不推进              |
+| BroadcastGameState 单一真相                         | ✅         | `wolfVoteDeadline` 在 state 中                                           |
+| 新字段必须 normalizeState 透传                      | ✅         | 已含                                                                     |
+| hardGates: facade 不直接调 evaluateNightProgression | ✅         | 通过 `callNightProgression` → `handleNightProgression`                   |
+| allVoted 判断不漂移                                 | ✅         | `isWolfVoteAllComplete` 单一导出，evaluator + facade 共用                |
+| timer 绑定实例                                      | ✅         | `ctx.wolfVoteTimer` 在 HostActionsContext 上，leaveRoom 清除             |
+| 前台恢复幂等                                        | ✅         | `_setupForegroundRecovery` 幂等注册；evaluator 有 ProgressionTracker     |
+| Web + Native 双通道                                 | ✅         | Web: `document.visibilitychange`；Native: `AppState`；`Platform.OS` 互斥 |
+| isWolfVoteAllComplete fail-closed                   | ✅         | role 缺失/0 狼人返回 false，防止异常模板误推进                           |
+| 倒计时防拖延                                        | ✅（选 A） | 任何成功 submit 都重置 5 秒，复杂度低、收益匹配                          |
 
 ---
 
 ## 六、风险评估
 
-| 风险 | 等级 | 缓解 |
-|------|------|------|
-| Revote 后 readyBadge 闪烁 | 低 | Badge 由 `wolfVotesBySeat` 驱动，覆盖 key → 立即更新 |
-| Timer 在 App 后台暂停 | 中 | Deadline 在 evaluator 层做权威检查 + AppState 前台恢复兜底 |
-| 多狼同时 revote 导致 deadline 反复重设 | 低 | `decideWolfVoteTimerAction` 是幂等纯函数，每次调用原子判断 |
-| `-2` 穿透 `RECORD_ACTION` 日志 | 可接受 | targetSeat=-2 明确表示撤回 |
-| `isWolfVoteAllComplete` player.role 缺失 | 已缓解 | fail-closed 返回 false，不误推进（行为变更，有回归测试） |
-| 重复提交相同目标可重置倒数 | 低 | 策略 A：接受重置；5 秒窗口短、同阵营无对抗动机 |
+| 风险                                     | 等级   | 缓解                                                       |
+| ---------------------------------------- | ------ | ---------------------------------------------------------- |
+| Revote 后 readyBadge 闪烁                | 低     | Badge 由 `wolfVotesBySeat` 驱动，覆盖 key → 立即更新       |
+| Timer 在 App 后台暂停                    | 中     | Deadline 在 evaluator 层做权威检查 + AppState 前台恢复兜底 |
+| 多狼同时 revote 导致 deadline 反复重设   | 低     | `decideWolfVoteTimerAction` 是幂等纯函数，每次调用原子判断 |
+| `-2` 穿透 `RECORD_ACTION` 日志           | 可接受 | targetSeat=-2 明确表示撤回                                 |
+| `isWolfVoteAllComplete` player.role 缺失 | 已缓解 | fail-closed 返回 false，不误推进（行为变更，有回归测试）   |
+| 重复提交相同目标可重置倒数               | 低     | 策略 A：接受重置；5 秒窗口短、同阵营无对抗动机             |
 
 ---
 
@@ -376,61 +376,61 @@ wolfVoteTarget: wolfVotesBySeat != null && String(index) in wolfVotesBySeat
 
 ### Resolver (2)
 
-| # | 文件 | 用例 | 断言 |
-|---|------|------|------|
-| 1 | `wolf.resolver.test.ts` | `target=-2 应删除 wolfVotesBySeat key` | `updates` 不含 actorSeat key |
-| 2 | `wolf.resolver.test.ts` | `target=-2 后再投票应正常写入` | key 重新出现且值正确 |
+| #   | 文件                    | 用例                                   | 断言                         |
+| --- | ----------------------- | -------------------------------------- | ---------------------------- |
+| 1   | `wolf.resolver.test.ts` | `target=-2 应删除 wolfVotesBySeat key` | `updates` 不含 actorSeat key |
+| 2   | `wolf.resolver.test.ts` | `target=-2 后再投票应正常写入`         | key 重新出现且值正确         |
 
 ### Evaluator — isWolfVoteAllComplete (5)
 
-| # | 文件 | 用例 | 断言 |
-|---|------|------|------|
-| 3 | `progressionEvaluator.test.ts` | 全投完 → true | `true` |
-| 4 | `progressionEvaluator.test.ts` | 有撤回(key 不存在) → false | `false` |
-| 5 | `progressionEvaluator.test.ts` | player.role 缺失 → false（回归：旧逻辑 continue 会误判完成） | `false` |
-| 6 | `progressionEvaluator.test.ts` | 无参与狼人(0 wolves) → false | `false` |
-| 6b | `progressionEvaluator.test.ts` | 重复提交相同目标后 allVoted 仍为 true | `true` |
+| #   | 文件                           | 用例                                                         | 断言    |
+| --- | ------------------------------ | ------------------------------------------------------------ | ------- |
+| 3   | `progressionEvaluator.test.ts` | 全投完 → true                                                | `true`  |
+| 4   | `progressionEvaluator.test.ts` | 有撤回(key 不存在) → false                                   | `false` |
+| 5   | `progressionEvaluator.test.ts` | player.role 缺失 → false（回归：旧逻辑 continue 会误判完成） | `false` |
+| 6   | `progressionEvaluator.test.ts` | 无参与狼人(0 wolves) → false                                 | `false` |
+| 6b  | `progressionEvaluator.test.ts` | 重复提交相同目标后 allVoted 仍为 true                        | `true`  |
 
 ### Evaluator — shouldTriggerWolfVoteRecovery (4)
 
-| # | 文件 | 用例 | 断言 |
-|---|------|------|------|
-| 7 | `progressionEvaluator.test.ts` | wolfKill + deadline 已过 → true | `true` |
-| 8 | `progressionEvaluator.test.ts` | deadline 未过 → false | `false` |
-| 9 | `progressionEvaluator.test.ts` | 非 wolfKill step → false | `false` |
-| 10 | `progressionEvaluator.test.ts` | 无 deadline → false | `false` |
+| #   | 文件                           | 用例                            | 断言    |
+| --- | ------------------------------ | ------------------------------- | ------- |
+| 7   | `progressionEvaluator.test.ts` | wolfKill + deadline 已过 → true | `true`  |
+| 8   | `progressionEvaluator.test.ts` | deadline 未过 → false           | `false` |
+| 9   | `progressionEvaluator.test.ts` | 非 wolfKill step → false        | `false` |
+| 10  | `progressionEvaluator.test.ts` | 无 deadline → false             | `false` |
 
 ### Evaluator — decideWolfVoteTimerAction (5)
 
-| # | 文件 | 用例 | 断言 |
-|---|------|------|------|
-| 11 | `progressionEvaluator.test.ts` | allVoted+无timer → set | `type=set, deadline=now+5000` |
-| 12 | `progressionEvaluator.test.ts` | allVoted+有timer → set (重置) | `type=set` |
-| 13 | `progressionEvaluator.test.ts` | !allVoted+有timer → clear | `type=clear` |
-| 14 | `progressionEvaluator.test.ts` | !allVoted+无timer → noop | `type=noop` |
-| 14b | `progressionEvaluator.test.ts` | allVoted+有timer+内容未变 → set（策略 A：仍重置） | `type=set` |
+| #   | 文件                           | 用例                                              | 断言                          |
+| --- | ------------------------------ | ------------------------------------------------- | ----------------------------- |
+| 11  | `progressionEvaluator.test.ts` | allVoted+无timer → set                            | `type=set, deadline=now+5000` |
+| 12  | `progressionEvaluator.test.ts` | allVoted+有timer → set (重置)                     | `type=set`                    |
+| 13  | `progressionEvaluator.test.ts` | !allVoted+有timer → clear                         | `type=clear`                  |
+| 14  | `progressionEvaluator.test.ts` | !allVoted+无timer → noop                          | `type=noop`                   |
+| 14b | `progressionEvaluator.test.ts` | allVoted+有timer+内容未变 → set（策略 A：仍重置） | `type=set`                    |
 
 ### Evaluator — evaluateNightProgression countdown gate (3)
 
-| # | 文件 | 用例 | 断言 |
-|---|------|------|------|
-| 15 | `progressionEvaluator.test.ts` | 全投完 + deadline 未过 → none | `action=none, reason=wolf_vote_countdown` |
-| 16 | `progressionEvaluator.test.ts` | 全投完 + deadline 已过 → advance | `action=advance` |
-| 17 | `progressionEvaluator.test.ts` | 全投完 + 无 deadline → advance（向后兼容） | `action=advance` |
+| #   | 文件                           | 用例                                       | 断言                                      |
+| --- | ------------------------------ | ------------------------------------------ | ----------------------------------------- |
+| 15  | `progressionEvaluator.test.ts` | 全投完 + deadline 未过 → none              | `action=none, reason=wolf_vote_countdown` |
+| 16  | `progressionEvaluator.test.ts` | 全投完 + deadline 已过 → advance           | `action=advance`                          |
+| 17  | `progressionEvaluator.test.ts` | 全投完 + 无 deadline → advance（向后兼容） | `action=advance`                          |
 
 ### UI — RoomScreen.helpers (3)
 
-| # | 文件 | 用例 | 断言 |
-|---|------|------|------|
-| 18 | `RoomScreen.helpers.test.ts` | showWolves=true 时 SeatVM 含 wolfVoteTarget | `wolfVoteTarget === target` |
-| 19 | `RoomScreen.helpers.test.ts` | showWolves=false 时 SeatVM 无 wolfVoteTarget | `wolfVoteTarget === undefined` |
-| 20 | `RoomScreen.helpers.test.ts` | revote: 已投票狼人 imActioner 仍为 true | `imActioner === true` |
+| #   | 文件                         | 用例                                         | 断言                           |
+| --- | ---------------------------- | -------------------------------------------- | ------------------------------ |
+| 18  | `RoomScreen.helpers.test.ts` | showWolves=true 时 SeatVM 含 wolfVoteTarget  | `wolfVoteTarget === target`    |
+| 19  | `RoomScreen.helpers.test.ts` | showWolves=false 时 SeatVM 无 wolfVoteTarget | `wolfVoteTarget === undefined` |
+| 20  | `RoomScreen.helpers.test.ts` | revote: 已投票狼人 imActioner 仍为 true      | `imActioner === true`          |
 
 ### Normalize (1)
 
-| # | 文件 | 用例 | 断言 |
-|---|------|------|------|
-| 21 | `normalize.contract.test.ts` | wolfVoteDeadline 透传 | roundtrip 通过 |
+| #   | 文件                         | 用例                  | 断言           |
+| --- | ---------------------------- | --------------------- | -------------- |
+| 21  | `normalize.contract.test.ts` | wolfVoteDeadline 透传 | roundtrip 通过 |
 
 ### 总计
 

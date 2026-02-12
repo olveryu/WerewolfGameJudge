@@ -53,11 +53,7 @@ function BlinkingCursor({ color }: { color: string }) {
     return () => anim.stop();
   }, [opacity]);
 
-  return (
-    <Animated.Text style={[localStyles.cursor, { opacity, color }]}>
-      ▊
-    </Animated.Text>
-  );
+  return <Animated.Text style={[localStyles.cursor, { opacity, color }]}>▊</Animated.Text>;
 }
 
 // ── Component ────────────────────────────────────────────

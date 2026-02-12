@@ -16,7 +16,7 @@ import { useGameFacade } from '@/contexts';
 import type { DisplayMessage } from './AIChatBubble.styles';
 import { generateQuickQuestions } from './quickQuestions';
 import { useBubbleDrag } from './useBubbleDrag';
-import { useChatMessages,type UseChatMessagesReturn } from './useChatMessages';
+import { useChatMessages, type UseChatMessagesReturn } from './useChatMessages';
 import { useKeyboardHeight } from './useKeyboardHeight';
 
 // ══════════════════════════════════════════════════════════

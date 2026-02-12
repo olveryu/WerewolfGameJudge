@@ -88,7 +88,6 @@ describe('confirm schema contract (hunter/darkWolfKing)', () => {
       expect(SCHEMAS.darkWolfKingConfirm.ui?.bottomActionText).toBeDefined();
     });
 
-
     it('both should use the same bottom button text', () => {
       // They should have identical button text for consistency
       expect(SCHEMAS.hunterConfirm.ui?.bottomActionText).toBe(

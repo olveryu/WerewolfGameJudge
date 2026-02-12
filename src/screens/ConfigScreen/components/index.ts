@@ -1,11 +1,11 @@
 /**
  * ConfigScreen components barrel export
  */
-export type { DropdownOption,DropdownProps } from './Dropdown';
+export type { DropdownOption, DropdownProps } from './Dropdown';
 export { Dropdown } from './Dropdown';
-export type { FactionTabItem,FactionTabsProps } from './FactionTabs';
+export type { FactionTabItem, FactionTabsProps } from './FactionTabs';
 export { FactionTabs } from './FactionTabs';
-export type { FactionColorKey,RoleChipProps } from './RoleChip';
+export type { FactionColorKey, RoleChipProps } from './RoleChip';
 export { RoleChip } from './RoleChip';
 export type { RoleStepperProps } from './RoleStepper';
 export { RoleStepper } from './RoleStepper';

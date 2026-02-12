@@ -7,14 +7,14 @@
  * ✅ 允许：渲染 UI + 上报 onSeatPress
  * ❌ 禁止：import service / showAlert / 业务逻辑判断
  */
-import React, { memo, useCallback, useLayoutEffect,useMemo, useRef } from 'react';
-import { StyleSheet, useWindowDimensions,View } from 'react-native';
+import React, { memo, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
-import { type ThemeColors,useColors } from '@/theme';
+import { type ThemeColors, useColors } from '@/theme';
 import { getUniqueAvatarMap } from '@/utils/avatar';
 
-import { createSeatTileStyles,GRID_COLUMNS, SeatTile } from './SeatTile';
+import { createSeatTileStyles, GRID_COLUMNS, SeatTile } from './SeatTile';
 
 // Re-export GRID_COLUMNS for external use
 export { GRID_COLUMNS } from './SeatTile';

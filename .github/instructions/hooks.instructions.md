@@ -1,4 +1,4 @@
-```instructions
+````instructions
 ---
 applyTo: "src/hooks/**,src/screens/**/hooks/**"
 ---
@@ -60,7 +60,7 @@ useEffect(() => {
 useEffect(() => {
   channel.subscribe(handler);
 }, [channel]);
-```
+````
 
 ## `useMemo` / `useCallback` 使用口径
 
@@ -78,4 +78,7 @@ useEffect(() => {
 
 - 一个 hook 只做一件事。如果 hook 超过 ~80 行，考虑拆分成更小的 hook。
 - 禁止在一个 hook 里同时管理多个不相关的 state + effect。
+
+```
+
 ```

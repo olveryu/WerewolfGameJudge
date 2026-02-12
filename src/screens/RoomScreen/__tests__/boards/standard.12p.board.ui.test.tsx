@@ -15,7 +15,7 @@
  * - seerReveal
  */
 
-import { fireEvent,render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { getSchema } from '@/models/roles/spec';
 import {

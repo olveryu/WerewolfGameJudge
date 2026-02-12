@@ -19,7 +19,7 @@ import type { JoinSeatIntent, LeaveMySeatIntent } from '@/services/engine/intent
 import { gameReducer } from '@/services/engine/reducer';
 import type { StateAction } from '@/services/engine/reducer/types';
 import type { GameStore } from '@/services/engine/store';
-import { REASON_CANCELLED,REASON_TIMEOUT } from '@/services/protocol/reasonCodes';
+import { REASON_CANCELLED, REASON_TIMEOUT } from '@/services/protocol/reasonCodes';
 import type { BroadcastGameState, PlayerMessage } from '@/services/protocol/types';
 import type { BroadcastService } from '@/services/transport/BroadcastService';
 import { facadeLog } from '@/utils/logger';

@@ -5,7 +5,7 @@
  * Provides mock factories and common test patterns.
  */
 
-import { fireEvent,waitFor } from '@testing-library/react-native';
+import { fireEvent, waitFor } from '@testing-library/react-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -1007,10 +1007,7 @@ export async function coverageChainWitchPoisonPrompt(
 
   tapSeat(result.getByTestId, 1);
   await waitFor(() =>
-    expect(
-      harness.hasSeen('witchPoisonPrompt') ||
-        harness.hasSeen('actionConfirm'),
-    ).toBe(true),
+    expect(harness.hasSeen('witchPoisonPrompt') || harness.hasSeen('actionConfirm')).toBe(true),
   );
   result.unmount();
 }
@@ -1087,13 +1084,10 @@ export async function coverageChainNightmareBlocked(
   reactiveMock.connect((newMock) => {
     mockSetter(newMock);
     result.rerender(
-      React.createElement(
-        require('@/screens/RoomScreen/RoomScreen').RoomScreen,
-        {
-          route: { params: { roomNumber: '1234', isHost: false } } as any,
-          navigation: mockNavigation as any,
-        },
-      ),
+      React.createElement(require('@/screens/RoomScreen/RoomScreen').RoomScreen, {
+        route: { params: { roomNumber: '1234', isHost: false } } as any,
+        navigation: mockNavigation as any,
+      }),
     );
   });
 
@@ -1267,9 +1261,7 @@ export async function coverageChainWitchSkipAll(
 
   // Witch compound skip uses poison step's bottomActionText
   const { SCHEMAS } = require('@/models/roles/spec/schemas');
-  const poisonStep = SCHEMAS.witchAction.steps?.find(
-    (s: any) => s.key === 'poison',
-  );
+  const poisonStep = SCHEMAS.witchAction.steps?.find((s: any) => s.key === 'poison');
   const skipText = poisonStep?.ui?.bottomActionText || '不使用技能';
 
   const skipButton = result.getByText(skipText);

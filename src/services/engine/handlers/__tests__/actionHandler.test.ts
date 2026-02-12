@@ -3,7 +3,11 @@
  */
 
 import type { SchemaId } from '@/models/roles/spec';
-import { handleSubmitAction, handleSubmitWolfVote, handleViewedRole } from '@/services/engine/handlers/actionHandler';
+import {
+  handleSubmitAction,
+  handleSubmitWolfVote,
+  handleViewedRole,
+} from '@/services/engine/handlers/actionHandler';
 import type { HandlerContext } from '@/services/engine/handlers/types';
 import type {
   SubmitActionIntent,

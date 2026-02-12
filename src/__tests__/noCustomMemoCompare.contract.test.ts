@@ -64,8 +64,8 @@ describe('No custom React.memo comparator', () => {
       //
       // Strip comments first to avoid false positives from JSDoc/inline comments.
       const stripped = content
-        .replace(/\/\*[\s\S]*?\*\//g, '')  // block comments
-        .replace(/\/\/.*/g, '');           // line comments
+        .replace(/\/\*[\s\S]*?\*\//g, '') // block comments
+        .replace(/\/\/.*/g, ''); // line comments
 
       const violations: string[] = [];
 

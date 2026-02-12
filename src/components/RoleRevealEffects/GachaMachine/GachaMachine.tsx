@@ -87,9 +87,7 @@ const TinyCapsule: React.FC<{
         },
       ]}
     >
-      <View
-        style={[styles.tinyCapsuleShine, { width: size * 0.3, height: size * 0.3 }]}
-      />
+      <View style={[styles.tinyCapsuleShine, { width: size * 0.3, height: size * 0.3 }]} />
     </View>
   );
 });
@@ -194,15 +192,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       }),
     );
     cardOpacity.value = withDelay(200, withTiming(1, { duration: 250 }));
-  }, [
-    phase,
-    shellScale,
-    shellOpacity,
-    cardScale,
-    cardOpacity,
-    enableHaptics,
-    enterRevealed,
-  ]);
+  }, [phase, shellScale, shellOpacity, cardScale, cardOpacity, enableHaptics, enterRevealed]);
 
   const enterWaiting = useCallback(() => {
     setPhase('waiting');
@@ -225,26 +215,14 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
         runOnJS(setPhase)('dropping');
         capsuleOpacity.value = 1;
 
-        capsuleY.value = withTiming(
-          200,
-          { duration: 800, easing: Easing.bounce },
-          (fin2) => {
-            'worklet';
-            if (fin2) runOnJS(enterWaiting)();
-          },
-        );
+        capsuleY.value = withTiming(200, { duration: 800, easing: Easing.bounce }, (fin2) => {
+          'worklet';
+          if (fin2) runOnJS(enterWaiting)();
+        });
         capsuleRotate.value = withTiming(540, { duration: 800 });
       },
     );
-  }, [
-    phase,
-    dialRotation,
-    capsuleY,
-    capsuleOpacity,
-    capsuleRotate,
-    enableHaptics,
-    enterWaiting,
-  ]);
+  }, [phase, dialRotation, capsuleY, capsuleOpacity, capsuleRotate, enableHaptics, enterWaiting]);
 
   // ── Reduced motion ──
   useEffect(() => {
@@ -257,7 +235,15 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       const timer = setTimeout(() => onComplete(), config.revealHoldDuration ?? 0);
       return () => clearTimeout(timer);
     }
-  }, [reducedMotion, cardScale, cardOpacity, shellOpacity, machineOpacityAnim, onComplete, config.revealHoldDuration]);
+  }, [
+    reducedMotion,
+    cardScale,
+    cardOpacity,
+    shellOpacity,
+    machineOpacityAnim,
+    onComplete,
+    config.revealHoldDuration,
+  ]);
 
   // ── Auto-spin after 1.5s ──
   useEffect(() => {
@@ -313,62 +299,52 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
         style={[styles.machine, machineOpacityStyle]}
         pointerEvents={phase === 'revealed' ? 'none' : 'auto'}
       >
-          {/* Dome */}
-          <Animated.View style={[styles.dome, bobbleStyle]}>
-            <LinearGradient
-              colors={[
-                'rgba(255,255,255,0.9)',
-                'rgba(200,220,255,0.6)',
-                'rgba(255,255,255,0.8)',
-              ]}
-              style={styles.domeGradient}
+        {/* Dome */}
+        <Animated.View style={[styles.dome, bobbleStyle]}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.9)', 'rgba(200,220,255,0.6)', 'rgba(255,255,255,0.8)']}
+            style={styles.domeGradient}
+          />
+          {tinyCapsules.map((c) => (
+            <TinyCapsule
+              key={c.id}
+              angle={c.angle}
+              distance={c.distance}
+              color={c.color}
+              size={c.size}
             />
-            {tinyCapsules.map((c) => (
-              <TinyCapsule
-                key={c.id}
-                angle={c.angle}
-                distance={c.distance}
-                color={c.color}
-                size={c.size}
-              />
-            ))}
-            <View style={styles.domeHighlight} />
-          </Animated.View>
-
-          {/* Body */}
-          <View style={styles.body}>
-            <LinearGradient
-              colors={[...GACHA_COLORS.bodyGradient]}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={styles.coinSlot}>
-              <View style={styles.coinSlotInner} />
-            </View>
-            <View style={styles.label}>
-              <Text style={styles.labelText}>GACHA</Text>
-            </View>
-            <View style={styles.outlet}>
-              <View style={styles.outletInner} />
-            </View>
-          </View>
-
-          {/* Dial */}
-          <Pressable onPress={spinDial} style={styles.dialContainer}>
-            <Animated.View style={[styles.dial, dialStyle]}>
-              <View style={styles.dialCenter} />
-              <View style={styles.dialArm} />
-              <View style={styles.dialKnob} />
-            </Animated.View>
-          </Pressable>
-
-          {/* Base */}
-          <View style={styles.base}>
-            <LinearGradient
-              colors={[...GACHA_COLORS.baseGradient]}
-              style={StyleSheet.absoluteFill}
-            />
-          </View>
+          ))}
+          <View style={styles.domeHighlight} />
         </Animated.View>
+
+        {/* Body */}
+        <View style={styles.body}>
+          <LinearGradient colors={[...GACHA_COLORS.bodyGradient]} style={StyleSheet.absoluteFill} />
+          <View style={styles.coinSlot}>
+            <View style={styles.coinSlotInner} />
+          </View>
+          <View style={styles.label}>
+            <Text style={styles.labelText}>GACHA</Text>
+          </View>
+          <View style={styles.outlet}>
+            <View style={styles.outletInner} />
+          </View>
+        </View>
+
+        {/* Dial */}
+        <Pressable onPress={spinDial} style={styles.dialContainer}>
+          <Animated.View style={[styles.dial, dialStyle]}>
+            <View style={styles.dialCenter} />
+            <View style={styles.dialArm} />
+            <View style={styles.dialKnob} />
+          </Animated.View>
+        </Pressable>
+
+        {/* Base */}
+        <View style={styles.base}>
+          <LinearGradient colors={[...GACHA_COLORS.baseGradient]} style={StyleSheet.absoluteFill} />
+        </View>
+      </Animated.View>
 
       {/* Hints */}
       {phase === 'ready' && (
@@ -399,11 +375,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       {(phase === 'opening' || phase === 'revealed') && (
         <Animated.View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
-            <RoleCardContent
-              roleId={role.id as RoleId}
-              width={cardWidth}
-              height={cardHeight}
-            />
+            <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
             {phase === 'revealed' && (
               <GlowBorder
                 width={cardWidth + common.glowPadding}

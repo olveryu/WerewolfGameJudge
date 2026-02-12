@@ -1,6 +1,6 @@
-import { fireEvent,render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 
-import { AlertButton,AlertModal } from '@/components/AlertModal';
+import { AlertButton, AlertModal } from '@/components/AlertModal';
 
 describe('AlertModal', () => {
   const defaultProps = {

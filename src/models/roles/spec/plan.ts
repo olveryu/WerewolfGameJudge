@@ -15,7 +15,7 @@
 
 import { NIGHT_STEPS } from './nightSteps';
 import { type NightPlan, NightPlanBuildError, type NightPlanStep } from './plan.types';
-import { isValidRoleId,ROLE_SPECS, type RoleId } from './specs';
+import { isValidRoleId, ROLE_SPECS, type RoleId } from './specs';
 
 /**
  * Build night plan from template roles.

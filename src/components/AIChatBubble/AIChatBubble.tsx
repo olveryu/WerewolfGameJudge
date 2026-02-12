@@ -75,14 +75,9 @@ export const AIChatBubble: React.FC = () => {
         <MessageBubble
           message={item}
           colors={colors}
-          bubbleStyle={[
-            styles.messageBubble,
-            isUser ? styles.userBubble : styles.assistantBubble,
-          ]}
+          bubbleStyle={[styles.messageBubble, isUser ? styles.userBubble : styles.assistantBubble]}
           textStyle={[styles.messageText, isUser && styles.userText]}
-          isStreaming={
-            chat.isStreaming && item.id === chat.messages.at(-1)?.id
-          }
+          isStreaming={chat.isStreaming && item.id === chat.messages.at(-1)?.id}
         />
       );
     },
@@ -92,9 +87,7 @@ export const AIChatBubble: React.FC = () => {
   // Web drag style
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const webDragStyle: any =
-    Platform.OS === 'web'
-      ? { touchAction: 'none', cursor: 'grab', userSelect: 'none' }
-      : {};
+    Platform.OS === 'web' ? { touchAction: 'none', cursor: 'grab', userSelect: 'none' } : {};
 
   return (
     <>
@@ -129,9 +122,7 @@ export const AIChatBubble: React.FC = () => {
         animationType="fade"
         onRequestClose={() => chat.setIsOpen(false)}
       >
-        <View
-          style={[styles.modalContainer, { paddingBottom: chat.keyboardHeight + 10 }]}
-        >
+        <View style={[styles.modalContainer, { paddingBottom: chat.keyboardHeight + 10 }]}>
           <TouchableOpacity
             style={styles.modalBackdrop}
             activeOpacity={1}
@@ -143,16 +134,10 @@ export const AIChatBubble: React.FC = () => {
             <View style={styles.chatHeader}>
               <Text style={styles.chatTitle}>🐺 狼人杀助手</Text>
               <View style={styles.headerButtons}>
-                <TouchableOpacity
-                  onPress={chat.handleClearHistory}
-                  style={styles.headerBtn}
-                >
+                <TouchableOpacity onPress={chat.handleClearHistory} style={styles.headerBtn}>
                   <Text style={styles.headerBtnText}>🗑️</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => chat.setIsOpen(false)}
-                  style={styles.headerBtn}
-                >
+                <TouchableOpacity onPress={() => chat.setIsOpen(false)} style={styles.headerBtn}>
                   <Text style={styles.headerBtnText}>✕</Text>
                 </TouchableOpacity>
               </View>
@@ -235,24 +220,15 @@ export const AIChatBubble: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.sendButton,
-                  (!chat.inputText.trim() ||
-                    chat.isLoading ||
-                    chat.cooldownRemaining > 0) &&
+                  (!chat.inputText.trim() || chat.isLoading || chat.cooldownRemaining > 0) &&
                     styles.sendButtonDisabled,
                 ]}
                 onPress={chat.handleSend}
                 activeOpacity={
-                  !chat.inputText.trim() ||
-                  chat.isLoading ||
-                  chat.cooldownRemaining > 0
-                    ? 1
-                    : 0.7
+                  !chat.inputText.trim() || chat.isLoading || chat.cooldownRemaining > 0 ? 1 : 0.7
                 }
                 accessibilityState={{
-                  disabled:
-                    !chat.inputText.trim() ||
-                    chat.isLoading ||
-                    chat.cooldownRemaining > 0,
+                  disabled: !chat.inputText.trim() || chat.isLoading || chat.cooldownRemaining > 0,
                 }}
               >
                 {(() => {
@@ -260,11 +236,7 @@ export const AIChatBubble: React.FC = () => {
                     return <ActivityIndicator size="small" color="#fff" />;
                   }
                   if (chat.cooldownRemaining > 0) {
-                    return (
-                      <Text style={styles.sendButtonText}>
-                        {chat.cooldownRemaining}
-                      </Text>
-                    );
+                    return <Text style={styles.sendButtonText}>{chat.cooldownRemaining}</Text>;
                   }
                   return <Text style={styles.sendButtonText}>↑</Text>;
                 })()}

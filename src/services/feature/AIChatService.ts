@@ -33,7 +33,6 @@ export function isAIChatReady(): boolean {
   return !!SUPABASE_URL && !!SUPABASE_ANON_KEY;
 }
 
-
 /**
  * 游戏上下文信息（玩家视角，不包含作弊信息）
  */

@@ -252,7 +252,9 @@ export function useInteractionDispatcher({
           return;
 
         case 'SEATING_FLOW':
-          roomScreenLog.debug('[dispatchInteraction] SEATING_FLOW', { seatIndex: result.seatIndex });
+          roomScreenLog.debug('[dispatchInteraction] SEATING_FLOW', {
+            seatIndex: result.seatIndex,
+          });
           handleSeatingTap(result.seatIndex);
           return;
 
@@ -288,7 +290,9 @@ export function useInteractionDispatcher({
           return;
 
         case 'REVEAL_ACK':
-          roomScreenLog.debug('[dispatchInteraction] REVEAL_ACK', { revealRole: result.revealRole });
+          roomScreenLog.debug('[dispatchInteraction] REVEAL_ACK', {
+            revealRole: result.revealRole,
+          });
           submitRevealAckSafe(result.revealRole);
           setPendingRevealDialog(false);
           return;
@@ -310,7 +314,9 @@ export function useInteractionDispatcher({
           return;
 
         case 'TAKEOVER_BOT_SEAT':
-          roomScreenLog.debug('[dispatchInteraction] TAKEOVER_BOT_SEAT', { seatIndex: result.seatIndex });
+          roomScreenLog.debug('[dispatchInteraction] TAKEOVER_BOT_SEAT', {
+            seatIndex: result.seatIndex,
+          });
           setControlledSeat(result.seatIndex);
           return;
 

@@ -24,9 +24,7 @@ const ANIMATION_DURATION = 400;
 const STAGGER_DELAY = 150;
 
 export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ colors }) => {
-  const dots = useRef(
-    Array.from({ length: DOT_COUNT }, () => new Animated.Value(0)),
-  ).current;
+  const dots = useRef(Array.from({ length: DOT_COUNT }, () => new Animated.Value(0))).current;
 
   useEffect(() => {
     const animations = dots.map((dot, i) =>

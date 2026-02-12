@@ -20,7 +20,7 @@ import {
   REASON_SEAT_TAKEN,
   REASON_TIMEOUT,
 } from '@/services/protocol/reasonCodes';
-import type { BroadcastPlayer,HostBroadcast, PlayerMessage } from '@/services/protocol/types';
+import type { BroadcastPlayer, HostBroadcast, PlayerMessage } from '@/services/protocol/types';
 
 // Mock BroadcastService (constructor mock — DI 测试直接注入，此处仅防止真实 import)
 jest.mock('../../transport/BroadcastService', () => ({

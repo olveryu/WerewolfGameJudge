@@ -51,9 +51,7 @@ export class RoomPage {
 
   /** Count visible seat tiles (excludes pressable overlay). */
   async getSeatCount(): Promise<number> {
-    const tiles = this.page.locator(
-      '[data-testid^="seat-tile-"]:not([data-testid*="pressable"])',
-    );
+    const tiles = this.page.locator('[data-testid^="seat-tile-"]:not([data-testid*="pressable"])');
     return tiles.count();
   }
 

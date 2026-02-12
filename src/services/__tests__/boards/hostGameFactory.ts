@@ -13,9 +13,12 @@ import type { RoleId } from '@/models/roles';
 import type { SchemaId } from '@/models/roles/spec';
 import type { NightPlan } from '@/models/roles/spec/plan';
 import { buildNightPlan } from '@/models/roles/spec/plan';
-import { createTemplateFromRoles, GameTemplate,PRESET_TEMPLATES } from '@/models/Template';
+import { createTemplateFromRoles, GameTemplate, PRESET_TEMPLATES } from '@/models/Template';
 import { handleSubmitAction, handleSubmitWolfVote } from '@/services/engine/handlers/actionHandler';
-import { handleAdvanceNight, handleEndNight } from '@/services/engine/handlers/stepTransitionHandler';
+import {
+  handleAdvanceNight,
+  handleEndNight,
+} from '@/services/engine/handlers/stepTransitionHandler';
 import type { HandlerContext, HandlerResult } from '@/services/engine/handlers/types';
 import { handleSetWolfRobotHunterStatusViewed } from '@/services/engine/handlers/wolfRobotHunterGateHandler';
 import type { SubmitActionIntent, SubmitWolfVoteIntent } from '@/services/engine/intents/types';
@@ -25,8 +28,8 @@ import type { GameState } from '@/services/engine/store/types';
 import type { BroadcastGameState, PlayerMessage } from '@/services/protocol/types';
 
 // Re-export types from hostGameContext.ts for backward compatibility
-export type { CapturedMessage,HostGameContext } from './hostGameContext';
-import type { CapturedMessage,HostGameContext } from './hostGameContext';
+export type { CapturedMessage, HostGameContext } from './hostGameContext';
+import type { CapturedMessage, HostGameContext } from './hostGameContext';
 
 // =============================================================================
 // Internal State Management

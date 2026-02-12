@@ -8,7 +8,7 @@
  * ❌ 禁止：import service / 业务逻辑判断 / disabled={true}
  */
 import React, { memo } from 'react';
-import { Text,TouchableOpacity } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 
 import { type ActionButtonStyles } from './styles';
 

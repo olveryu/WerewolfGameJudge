@@ -24,7 +24,7 @@
 import type { RoleId } from '@/models/roles';
 
 import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
-import { executeFullNight, executeRemainingSteps,executeStepsUntil } from './stepByStepRunner';
+import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '石像鬼守墓人12人';
 

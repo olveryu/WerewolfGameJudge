@@ -1,17 +1,17 @@
 import * as Sentry from '@sentry/react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback,useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { AuthProvider,GameFacadeProvider, NetworkProvider } from '@/contexts';
+import { AuthProvider, GameFacadeProvider, NetworkProvider } from '@/contexts';
 import { AppNavigator } from '@/navigation';
 import { GameFacade } from '@/services/facade/GameFacade';
 import { ThemeProvider, useTheme } from '@/theme';
-import { AlertConfig,setAlertListener } from '@/utils/alert';
+import { AlertConfig, setAlertListener } from '@/utils/alert';
 import { log } from '@/utils/logger';
 
 // Initialize Sentry — DSN is public (like Supabase anon key), safe to commit.

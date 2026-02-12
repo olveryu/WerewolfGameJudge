@@ -247,9 +247,7 @@ describe('Cancel Paths (cross-board)', () => {
 
       tapSeat(getByTestId, 1);
       await waitFor(() =>
-        expect(
-          harness.hasSeen('witchPoisonPrompt') || harness.hasSeen('actionConfirm'),
-        ).toBe(true),
+        expect(harness.hasSeen('witchPoisonPrompt') || harness.hasSeen('actionConfirm')).toBe(true),
       );
 
       // Press cancel on whichever dialog appeared

@@ -26,7 +26,7 @@ import {
   RoleRevealAnimator,
 } from '@/components/RoleRevealEffects';
 import type { RoleId } from '@/models/roles';
-import { Faction,getRoleDisplayName, getRoleSpec } from '@/models/roles';
+import { Faction, getRoleDisplayName, getRoleSpec } from '@/models/roles';
 import type { ResolvedRoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 // ─── Alignment map (Faction → reveal alignment) ────────────────────────────
@@ -73,13 +73,7 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   // 如果动画是 none 或不需要播放动画，直接显示静态卡片
   // 动画播完后也切到静态卡片（带"我知道了"按钮）
   if (resolvedAnimation === 'none' || !shouldPlayAnimation || animationDone) {
-    return (
-      <RoleCardSimple
-        visible={visible}
-        roleId={roleId}
-        onClose={onClose}
-      />
-    );
+    return <RoleCardSimple visible={visible} roleId={roleId} onClose={onClose} />;
   }
 
   // 首次查看，播放动画
@@ -92,11 +86,7 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
 
   const allRolesData: RoleData[] = allRoleIds.map((id) => {
     const spec = getRoleSpec(id);
-    return createRoleData(
-      id,
-      getRoleDisplayName(id),
-      ALIGNMENT_MAP[spec.faction] ?? 'villager',
-    );
+    return createRoleData(id, getRoleDisplayName(id), ALIGNMENT_MAP[spec.faction] ?? 'villager');
   });
 
   // resolvedAnimation 直接作为 effectType（Host 已解析 random → 具体动画）

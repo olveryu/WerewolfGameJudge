@@ -166,12 +166,12 @@ NIGHT_STEPS (步骤序列)                Step sequence
 
 ## 🧪 测试覆盖 | Test Coverage
 
-| 类型 Type             | 数量 Count | 说明 Description                                     |
-| --------------------- | ---------- | ---------------------------------------------------- |
-| **Unit Tests**        | 2613       | 165 test suites                                      |
-| **UI Board Tests**    | 10 boards  | 覆盖所有预设板子<br/>_Cover all preset boards_       |
-| **Integration Tests** | 25+        | 夜晚流程全链路<br/>_Full night flow chains_          |
-| **Contract Tests**    | 15+        | Schema/Resolver 对齐<br/>_Schema/Resolver alignment_ |
+| 类型 Type             | 数量 Count | 说明 Description                                                          |
+| --------------------- | ---------- | ------------------------------------------------------------------------- |
+| **Unit Tests**        | 2613       | 165 test suites                                                           |
+| **UI Board Tests**    | 10 boards  | 覆盖所有预设板子<br/>_Cover all preset boards_                            |
+| **Integration Tests** | 25+        | 夜晚流程全链路<br/>_Full night flow chains_                               |
+| **Contract Tests**    | 15+        | Schema/Resolver 对齐<br/>_Schema/Resolver alignment_                      |
 | **E2E Tests**         | 16         | 6 spec files, Playwright 端到端<br/>_6 spec files, Playwright end-to-end_ |
 
 ---
@@ -346,17 +346,17 @@ npm run deploy
 
 ## 📊 技术栈 | Tech Stack
 
-| 类别 Category  | 技术 Technology                     |
-| -------------- | ----------------------------------- |
-| **Frontend**   | React Native + Expo                 |
-| **Language**   | TypeScript ~5.9                     |
-| **Backend**    | Supabase (Realtime, Auth, Edge Functions) |
+| 类别 Category  | 技术 Technology                              |
+| -------------- | -------------------------------------------- |
+| **Frontend**   | React Native + Expo                          |
+| **Language**   | TypeScript ~5.9                              |
+| **Backend**    | Supabase (Realtime, Auth, Edge Functions)    |
 | **AI**         | Groq (Llama 4 Scout) via Edge Function proxy |
-| **Monitoring** | Sentry (crash reporting)            |
-| **Images**     | expo-image (disk cache + transitions) |
-| **Testing**    | Jest + Testing Library + Playwright |
-| **Deployment** | Vercel (Web)                        |
-| **State**      | Custom GameStateService (Host-only) |
+| **Monitoring** | Sentry (crash reporting)                     |
+| **Images**     | expo-image (disk cache + transitions)        |
+| **Testing**    | Jest + Testing Library + Playwright          |
+| **Deployment** | Vercel (Web)                                 |
+| **State**      | Custom GameStateService (Host-only)          |
 
 ---
 

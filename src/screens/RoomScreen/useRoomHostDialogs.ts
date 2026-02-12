@@ -73,7 +73,10 @@ export const useRoomHostDialogs = ({
     const totalSeats = gameState.template.roles.length;
 
     if (seatedCount !== totalSeats) {
-      roomScreenLog.warn('[HostDialogs] Cannot prepare to flip — seats not full', { seatedCount, totalSeats });
+      roomScreenLog.warn('[HostDialogs] Cannot prepare to flip — seats not full', {
+        seatedCount,
+        totalSeats,
+      });
       showAlert('无法开始游戏', '有座位尚未被占用。', [{ text: '知道了', style: 'default' }]);
       return;
     }

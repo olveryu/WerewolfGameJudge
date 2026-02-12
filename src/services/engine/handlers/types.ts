@@ -56,4 +56,3 @@ export type SideEffect =
   | { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean }
   | { type: 'SEND_MESSAGE'; message: unknown }
   | { type: 'SAVE_STATE' };
-

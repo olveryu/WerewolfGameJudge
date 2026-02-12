@@ -43,7 +43,12 @@ function extractReturnKeys(source: string): string[] {
   for (const line of block.split('\n')) {
     const trimmed = line.trim();
     // Skip comments and empty lines
-    if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) {
+    if (
+      !trimmed ||
+      trimmed.startsWith('//') ||
+      trimmed.startsWith('*') ||
+      trimmed.startsWith('/*')
+    ) {
       continue;
     }
 

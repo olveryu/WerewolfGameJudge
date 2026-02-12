@@ -16,7 +16,7 @@ import {
   isWolfVoteAllComplete,
 } from '@/services/engine/handlers/progressionEvaluator';
 
-import { cleanupHostGame,createHostGame } from './hostGameFactory';
+import { cleanupHostGame, createHostGame } from './hostGameFactory';
 import { sendMessageOrThrow } from './stepByStepRunner';
 
 // =============================================================================
@@ -28,9 +28,20 @@ const TEMPLATE_NAME = '标准板12人';
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
   // seat 0-3: villager, seat 4-7: wolf, seat 8: seer, seat 9: witch, seat 10: hunter, seat 11: idiot
-  ['villager', 'villager', 'villager', 'villager', 'wolf', 'wolf', 'wolf', 'wolf', 'seer', 'witch', 'hunter', 'idiot'].forEach(
-    (role, idx) => map.set(idx, role as RoleId),
-  );
+  [
+    'villager',
+    'villager',
+    'villager',
+    'villager',
+    'wolf',
+    'wolf',
+    'wolf',
+    'wolf',
+    'seer',
+    'witch',
+    'hunter',
+    'idiot',
+  ].forEach((role, idx) => map.set(idx, role as RoleId));
   return map;
 }
 
@@ -110,7 +121,12 @@ describe('evaluateNightProgression (integration with real board state)', () => {
         wolfVoteDeadline: Date.now() + 10000,
       };
 
-      const decision = evaluateNightProgression(stateWithDeadline, ctx.getRevision(), undefined, true);
+      const decision = evaluateNightProgression(
+        stateWithDeadline,
+        ctx.getRevision(),
+        undefined,
+        true,
+      );
       expect(decision.action).toBe('none');
       expect(decision.reason).toBe('wolf_vote_countdown');
     });
@@ -216,7 +232,13 @@ describe('evaluateNightProgression (integration with real board state)', () => {
       // 提交 witch action (skip = 不用药)
       sendMessageOrThrow(
         ctx,
-        { type: 'ACTION', seat: 9, role: 'witch', target: null, extra: { stepResults: { save: null, poison: null } } },
+        {
+          type: 'ACTION',
+          seat: 9,
+          role: 'witch',
+          target: null,
+          extra: { stepResults: { save: null, poison: null } },
+        },
         'witchAction',
       );
 
@@ -246,7 +268,13 @@ describe('evaluateNightProgression (integration with real board state)', () => {
       ctx.assertStep('witchAction');
       sendMessageOrThrow(
         ctx,
-        { type: 'ACTION', seat: 9, role: 'witch', target: null, extra: { stepResults: { save: null, poison: null } } },
+        {
+          type: 'ACTION',
+          seat: 9,
+          role: 'witch',
+          target: null,
+          extra: { stepResults: { save: null, poison: null } },
+        },
         'witchAction',
       );
       ctx.advanceNightOrThrow('past witchAction');

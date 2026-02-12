@@ -12,10 +12,7 @@
 import type { RoleId } from '@/models/roles';
 import { doesRoleParticipateInWolfVote } from '@/models/roles';
 
-import {
-  cleanupHostGame,
-  createHostGame,
-} from './hostGameFactory';
+import { cleanupHostGame, createHostGame } from './hostGameFactory';
 import { sendMessageOrThrow } from './stepByStepRunner';
 
 // =============================================================================
@@ -27,9 +24,20 @@ const TEMPLATE_NAME = '标准板12人';
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
   // seat 0-3: villager, seat 4-7: wolf, seat 8: seer, seat 9: witch, seat 10: hunter, seat 11: idiot
-  ['villager', 'villager', 'villager', 'villager', 'wolf', 'wolf', 'wolf', 'wolf', 'seer', 'witch', 'hunter', 'idiot'].forEach(
-    (role, idx) => map.set(idx, role as RoleId),
-  );
+  [
+    'villager',
+    'villager',
+    'villager',
+    'villager',
+    'wolf',
+    'wolf',
+    'wolf',
+    'wolf',
+    'seer',
+    'witch',
+    'hunter',
+    'idiot',
+  ].forEach((role, idx) => map.set(idx, role as RoleId));
   return map;
 }
 
@@ -102,7 +110,13 @@ describe('Night-1: intermediate state assertions (标准板12人)', () => {
     // Witch skips (no save, no poison)
     sendMessageOrThrow(
       ctx,
-      { type: 'ACTION', seat: 9, role: 'witch', target: null, extra: { stepResults: { save: null, poison: null } } },
+      {
+        type: 'ACTION',
+        seat: 9,
+        role: 'witch',
+        target: null,
+        extra: { stepResults: { save: null, poison: null } },
+      },
       'witchAction',
     );
 
@@ -196,7 +210,13 @@ describe('Night-1: intermediate state assertions (标准板12人)', () => {
     ctx.assertStep('witchAction');
     sendMessageOrThrow(
       ctx,
-      { type: 'ACTION', seat: 9, role: 'witch', target: null, extra: { stepResults: { save: 0, poison: null } } },
+      {
+        type: 'ACTION',
+        seat: 9,
+        role: 'witch',
+        target: null,
+        extra: { stepResults: { save: 0, poison: null } },
+      },
       'witchAction save',
     );
     ctx.advanceNightOrThrow('past witchAction');
@@ -250,7 +270,13 @@ describe('Night-1: intermediate state assertions (标准板12人)', () => {
     ctx.assertStep('witchAction');
     sendMessageOrThrow(
       ctx,
-      { type: 'ACTION', seat: 9, role: 'witch', target: null, extra: { stepResults: { save: null, poison: 2 } } },
+      {
+        type: 'ACTION',
+        seat: 9,
+        role: 'witch',
+        target: null,
+        extra: { stepResults: { save: null, poison: 2 } },
+      },
       'witchAction poison',
     );
     ctx.advanceNightOrThrow('past witchAction');

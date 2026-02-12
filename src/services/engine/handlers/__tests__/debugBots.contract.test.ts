@@ -7,7 +7,10 @@
  * 3. debug 未开启时调用必须 reject
  */
 
-import { handleFillWithBots, handleMarkAllBotsViewed } from '@/services/engine/handlers/gameControlHandler';
+import {
+  handleFillWithBots,
+  handleMarkAllBotsViewed,
+} from '@/services/engine/handlers/gameControlHandler';
 import type { HandlerContext } from '@/services/engine/handlers/types';
 import type { GameState } from '@/services/engine/store/types';
 import type { BroadcastPlayer } from '@/services/protocol/types';

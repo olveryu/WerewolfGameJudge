@@ -1,4 +1,4 @@
-import { act,fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import type { ChooseSeatSchema } from '@/models/roles/spec/schema.types';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
@@ -210,7 +210,7 @@ describe('RoomScreen skip action UI', () => {
 
     const { findByText } = render(<RoomScreen {...props} />);
 
-  const skipButton = await findByText(skipText);
+    const skipButton = await findByText(skipText);
 
     await act(async () => {
       fireEvent.press(skipButton);

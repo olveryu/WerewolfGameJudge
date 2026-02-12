@@ -129,8 +129,8 @@ supabase projects api-keys --project-ref <your-project-ref>
 
 项目遵循 Expo 社区标准的 `.env` 分层约定：
 
-| 文件         | 用途     | Git 状态  | Supabase URL              |
-| ------------ | -------- | --------- | ------------------------- |
+| 文件         | 用途     | Git 状态   | Supabase URL              |
+| ------------ | -------- | ---------- | ------------------------- |
 | `.env`       | 生产默认 | **已提交** | `https://xxx.supabase.co` |
 | `.env.local` | 本地覆盖 | gitignored | `http://127.0.0.1:54321`  |
 
@@ -166,10 +166,10 @@ bash scripts/setup-local-env.sh
 
 ### 职责分离
 
-| 脚本 | 职责 | 命令 |
-| --- | --- | --- |
+| 脚本                 | 职责                         | 命令              |
+| -------------------- | ---------------------------- | ----------------- |
 | `scripts/release.sh` | 版本号 + commit + tag + push | `npm run release` |
-| `scripts/deploy.sh` | 构建 Web + 部署到 Vercel | `npm run deploy` |
+| `scripts/deploy.sh`  | 构建 Web + 部署到 Vercel     | `npm run deploy`  |
 
 ### 标准流程（推荐）
 
@@ -302,29 +302,29 @@ vercel alias set <old-deployment-url> werewolf-judge.vercel.app
 
 ## 快速参考
 
-| 操作              | 命令                                                   |
-| ----------------- | ------------------------------------------------------ |
-| **本地开发**      |                                                        |
-| 启动本地 Supabase | `supabase start`                                       |
-| 停止本地 Supabase | `supabase stop`                                        |
-| 启动开发服务器    | `npm start`                                            |
-| **生产部署**      |                                                        |
-| 发版              | `npm run release` (patch) / `npm run release -- minor`  |
-| 部署              | `npm run deploy`                                       |
-| 推送数据库迁移    | `supabase db push`                                     |
-| 部署 Edge Function | `supabase functions deploy groq-proxy`                |
-| 设置 GROQ 密钥    | `supabase secrets set GROQ_API_KEY=gsk_...`            |
-| 获取 API Keys     | `supabase projects api-keys --project-ref <ref>`       |
-| 查看部署别名      | `vercel alias ls`                                      |
-| 回滚部署          | `vercel alias set <old-url> werewolf-judge.vercel.app` |
+| 操作               | 命令                                                   |
+| ------------------ | ------------------------------------------------------ |
+| **本地开发**       |                                                        |
+| 启动本地 Supabase  | `supabase start`                                       |
+| 停止本地 Supabase  | `supabase stop`                                        |
+| 启动开发服务器     | `npm start`                                            |
+| **生产部署**       |                                                        |
+| 发版               | `npm run release` (patch) / `npm run release -- minor` |
+| 部署               | `npm run deploy`                                       |
+| 推送数据库迁移     | `supabase db push`                                     |
+| 部署 Edge Function | `supabase functions deploy groq-proxy`                 |
+| 设置 GROQ 密钥     | `supabase secrets set GROQ_API_KEY=gsk_...`            |
+| 获取 API Keys      | `supabase projects api-keys --project-ref <ref>`       |
+| 查看部署别名       | `vercel alias ls`                                      |
+| 回滚部署           | `vercel alias set <old-url> werewolf-judge.vercel.app` |
 
 ---
 
 ## 当前生产环境
 
-| 服务     | URL                                      |
-| -------- | ---------------------------------------- |
-| **前端**         | https://werewolf-judge.vercel.app         |
-| **后端**         | https://abmzjezdvpzyeooqhhsn.supabase.co |
-| **AI 代理**      | Edge Function `groq-proxy`                |
-| **崩溃监控**     | Sentry                                    |
+| 服务         | URL                                      |
+| ------------ | ---------------------------------------- |
+| **前端**     | https://werewolf-judge.vercel.app        |
+| **后端**     | https://abmzjezdvpzyeooqhhsn.supabase.co |
+| **AI 代理**  | Edge Function `groq-proxy`               |
+| **崩溃监控** | Sentry                                   |

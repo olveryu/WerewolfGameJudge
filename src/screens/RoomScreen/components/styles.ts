@@ -7,15 +7,9 @@
  * Each component receives only its own sub-styles via the grouped interface.
  * SeatTile/PlayerGrid have their own styles (performance: depends on tileSize).
  */
-import { Platform, StyleSheet, type TextStyle,type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
-import {
-  borderRadius,
-  shadows,
-  spacing,
-  type ThemeColors,
-  typography,
-} from '@/theme';
+import { borderRadius, shadows, spacing, type ThemeColors, typography } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 // ─── Per-component style interfaces ─────────────────────────────────────────
@@ -119,9 +113,7 @@ export interface RoomScreenComponentStyles {
 
 // ─── Factory ────────────────────────────────────────────────────────────────
 
-export function createRoomScreenComponentStyles(
-  colors: ThemeColors,
-): RoomScreenComponentStyles {
+export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreenComponentStyles {
   return {
     actionButton: StyleSheet.create<ActionButtonStyles>({
       actionButton: {

@@ -124,9 +124,7 @@ describe('Witch Compound Sequence', () => {
       tapSeat(getByTestId, 2);
 
       await waitFor(() =>
-        expect(
-          harness.hasSeen('witchPoisonPrompt') || harness.hasSeen('actionConfirm'),
-        ).toBe(true),
+        expect(harness.hasSeen('witchPoisonPrompt') || harness.hasSeen('actionConfirm')).toBe(true),
       );
 
       // Step 4: confirm the poison action

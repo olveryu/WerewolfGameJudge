@@ -8,7 +8,7 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import React, { useEffect, useState } from 'react';
-import { AccessibilityInfo,Modal, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Modal, StyleSheet, View } from 'react-native';
 
 import { useColors } from '@/theme';
 
@@ -17,7 +17,7 @@ import { FlipReveal } from './FlipReveal';
 import { GachaMachine } from './GachaMachine';
 import { ScratchReveal } from './ScratchReveal';
 import { TarotDraw } from './TarotDraw';
-import type { RoleData,RoleRevealAnimatorProps } from './types';
+import type { RoleData, RoleRevealAnimatorProps } from './types';
 
 export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
   visible,

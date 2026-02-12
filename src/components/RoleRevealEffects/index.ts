@@ -25,7 +25,7 @@
  */
 
 // Main animator component
-export { createRoleData,RoleRevealAnimator } from './RoleRevealAnimator';
+export { createRoleData, RoleRevealAnimator } from './RoleRevealAnimator';
 
 // Individual effect components (for advanced usage)
 export { EnhancedRoulette, type EnhancedRouletteProps } from './EnhancedRoulette';

@@ -1,11 +1,11 @@
-import { act,fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
 // We assert on showAlert calls (RoomScreen uses this wrapper)
 import { showAlert } from '@/utils/alert';
 
-import { createShowAlertMock,RoomScreenTestHarness } from './harness';
+import { createShowAlertMock, RoomScreenTestHarness } from './harness';
 
 jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
@@ -217,10 +217,16 @@ describe('RoomScreen wolf vote UI', () => {
     const { useRoomActionDialogs } = require('@/screens/RoomScreen/useRoomActionDialogs');
     const dialogs = useRoomActionDialogs();
 
-    dialogs.showWolfVoteDialog('1号狼人', 2, () => mockSubmitWolfVote(2), undefined, (() => {
-      const { getSchema } = require('@/models/roles/spec/schemas');
-      return getSchema('wolfKill');
-    })());
+    dialogs.showWolfVoteDialog(
+      '1号狼人',
+      2,
+      () => mockSubmitWolfVote(2),
+      undefined,
+      (() => {
+        const { getSchema } = require('@/models/roles/spec/schemas');
+        return getSchema('wolfKill');
+      })(),
+    );
 
     expect(showAlert).toHaveBeenCalledWith(
       '狼人投票',

@@ -25,10 +25,7 @@ import {
   waitForRoomScreen,
 } from '@/screens/RoomScreen/__tests__/harness';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
-import {
-  cleanupHostGame,
-  createHostGame,
-} from '@/services/__tests__/boards/hostGameFactory';
+import { cleanupHostGame, createHostGame } from '@/services/__tests__/boards/hostGameFactory';
 import { sendMessageOrThrow } from '@/services/__tests__/boards/stepByStepRunner';
 import { showAlert } from '@/utils/alert';
 
@@ -86,9 +83,20 @@ const MY_SEAT = 9; // witch seat
 
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
-  ['villager', 'villager', 'villager', 'villager', 'wolf', 'wolf', 'wolf', 'wolf', 'seer', 'witch', 'hunter', 'idiot'].forEach(
-    (role, idx) => map.set(idx, role as RoleId),
-  );
+  [
+    'villager',
+    'villager',
+    'villager',
+    'villager',
+    'wolf',
+    'wolf',
+    'wolf',
+    'wolf',
+    'seer',
+    'witch',
+    'hunter',
+    'idiot',
+  ].forEach((role, idx) => map.set(idx, role as RoleId));
   return map;
 }
 
@@ -237,11 +245,29 @@ describe('Vertical Slice: real state → UI rendering', () => {
         sendMessageOrThrow(ctx, { type: 'WOLF_VOTE', seat, target: 0 }, 'wolfKill');
       }
     }
-    sendMessageOrThrow(ctx, { type: 'ACTION', seat: 4, role: 'wolf', target: 0, extra: undefined }, 'wolfKill');
+    sendMessageOrThrow(
+      ctx,
+      { type: 'ACTION', seat: 4, role: 'wolf', target: 0, extra: undefined },
+      'wolfKill',
+    );
     ctx.advanceNightOrThrow('past wolfKill');
-    sendMessageOrThrow(ctx, { type: 'ACTION', seat: 9, role: 'witch', target: null, extra: { stepResults: { save: null, poison: null } } }, 'witchAction');
+    sendMessageOrThrow(
+      ctx,
+      {
+        type: 'ACTION',
+        seat: 9,
+        role: 'witch',
+        target: null,
+        extra: { stepResults: { save: null, poison: null } },
+      },
+      'witchAction',
+    );
     ctx.advanceNightOrThrow('past witchAction');
-    sendMessageOrThrow(ctx, { type: 'ACTION', seat: 10, role: 'hunter', target: null, extra: { confirmed: true } }, 'hunterConfirm');
+    sendMessageOrThrow(
+      ctx,
+      { type: 'ACTION', seat: 10, role: 'hunter', target: null, extra: { confirmed: true } },
+      'hunterConfirm',
+    );
     ctx.advanceNightOrThrow('past hunterConfirm');
     ctx.assertStep('seerCheck');
 

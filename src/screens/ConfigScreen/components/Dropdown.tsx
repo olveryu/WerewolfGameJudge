@@ -24,8 +24,8 @@
  *   Dropdowns on the same screen won't collide (each has a unique prefix).
  */
 import { Ionicons } from '@expo/vector-icons';
-import { memo, useCallback,useState } from 'react';
-import { Modal, ScrollView,Text, TouchableOpacity, View } from 'react-native';
+import { memo, useCallback, useState } from 'react';
+import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 import { typography } from '@/theme';
 
@@ -94,7 +94,11 @@ export const Dropdown = memo<DropdownProps>(
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{label || '选择'}</Text>
                 <TouchableOpacity style={styles.modalCloseBtn} onPress={handleClose}>
-                  <Ionicons name="close" size={typography.title} color={styles.modalCloseBtnText.color as string} />
+                  <Ionicons
+                    name="close"
+                    size={typography.title}
+                    color={styles.modalCloseBtnText.color as string}
+                  />
                 </TouchableOpacity>
               </View>
               <ScrollView>
@@ -116,7 +120,13 @@ export const Dropdown = memo<DropdownProps>(
                     >
                       {option.label}
                     </Text>
-                    {option.value === value && <Ionicons name="checkmark" size={typography.body} color={styles.modalOptionCheck.color as string} />}
+                    {option.value === value && (
+                      <Ionicons
+                        name="checkmark"
+                        size={typography.body}
+                        color={styles.modalOptionCheck.color as string}
+                      />
+                    )}
                   </TouchableOpacity>
                 ))}
               </ScrollView>

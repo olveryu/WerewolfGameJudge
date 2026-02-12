@@ -7,7 +7,7 @@
  * ✅ 允许：渲染 UI + 上报用户 intent（onPress 回调）
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { memo,useMemo } from 'react';
+import React, { memo, useMemo } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -17,7 +17,7 @@ import {
   ViewStyle,
 } from 'react-native';
 
-import { borderRadius, spacing, ThemeColors,typography, useColors } from '@/theme';
+import { borderRadius, spacing, ThemeColors, typography, useColors } from '@/theme';
 
 /** Metadata passed to onPress callback */
 export interface ButtonPressMetadata {
@@ -175,4 +175,3 @@ const ButtonComponent: React.FC<ButtonProps> = ({
 
 // Memoize to prevent unnecessary re-renders
 export const Button = memo(ButtonComponent);
-

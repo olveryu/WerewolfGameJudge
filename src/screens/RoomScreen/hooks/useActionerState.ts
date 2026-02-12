@@ -12,7 +12,10 @@ import { useMemo } from 'react';
 import type { RoleAction } from '@/models/actions/RoleAction';
 import type { RoleId } from '@/models/roles';
 import type { ActionSchema } from '@/models/roles/spec';
-import { type ActionerState,determineActionerState } from '@/screens/RoomScreen/RoomScreen.helpers';
+import {
+  type ActionerState,
+  determineActionerState,
+} from '@/screens/RoomScreen/RoomScreen.helpers';
 
 export interface UseActionerStateParams {
   /** Actor's role (actorRoleForUi — may be bot's role when Host is delegating) */

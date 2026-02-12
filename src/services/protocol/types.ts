@@ -11,10 +11,7 @@
 import type { RoleId } from '@/models/roles';
 import type { SchemaId } from '@/models/roles/spec';
 import type { CurrentNightResults } from '@/services/night/resolvers/types';
-import type {
-  ResolvedRoleRevealAnimation,
-  RoleRevealAnimation,
-} from '@/types/RoleRevealAnimation';
+import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 // =============================================================================
 // 协议动作记录（ProtocolAction）— 线安全、稳定

@@ -27,10 +27,7 @@ import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { showAlert } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';
 
-import {
-  getActorIdentity,
-  isActorIdentityValid,
-} from '../policy';
+import { getActorIdentity, isActorIdentityValid } from '../policy';
 import {
   buildSeatViewModels,
   getRoleStats,
@@ -173,12 +170,7 @@ export function useRoomScreenState(
 
   const { handleDebugTitleTap } = useHiddenDebugTrigger();
 
-  const {
-    isInitialized,
-    loadingMessage,
-    showRetryButton,
-    handleRetry,
-  } = useRoomInit({
+  const { isInitialized, loadingMessage, showRetryButton, handleRetry } = useRoomInit({
     roomNumber,
     isHostParam,
     template,
@@ -547,7 +539,13 @@ export function useRoomScreenState(
     }
 
     return baseMessage;
-  }, [currentActionRole, currentSchema, gameState?.wolfRobotReveal, gameState?.wolfRobotHunterStatusViewed, getWolfStatusLine]);
+  }, [
+    currentActionRole,
+    currentSchema,
+    gameState?.wolfRobotReveal,
+    gameState?.wolfRobotHunterStatusViewed,
+    getWolfStatusLine,
+  ]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Return bag

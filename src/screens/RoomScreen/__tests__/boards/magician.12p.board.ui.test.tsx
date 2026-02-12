@@ -9,7 +9,7 @@
  *   magicianFirst, actionConfirm
  */
 
-import { fireEvent,render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { getSchema } from '@/models/roles/spec';
 import {
@@ -172,9 +172,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
 
       await waitForRoomScreen(getByTestId);
-      await waitFor(() =>
-        expect(harness.hasSeen('actionPrompt')).toBe(true),
-      );
+      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
     });
 
     it('hunter confirm: shows confirm trigger', async () => {
@@ -194,9 +192,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
 
       await waitForRoomScreen(getByTestId);
-      await waitFor(() =>
-        expect(harness.hasSeen('actionPrompt')).toBe(true),
-      );
+      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
     });
   });
 
@@ -244,9 +240,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
       harness.clear();
       tapSeat(getByTestId, 1);
-      await waitFor(() =>
-        expect(harness.hasSeen('witchPoisonPrompt')).toBe(true),
-      );
+      await waitFor(() => expect(harness.hasSeen('witchPoisonPrompt')).toBe(true));
     });
   });
 

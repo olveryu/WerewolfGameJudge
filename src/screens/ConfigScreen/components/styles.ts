@@ -5,9 +5,9 @@
  *
  * Layout: Tab-based faction switching (方案 A)
  */
-import { StyleSheet, TextStyle,ViewStyle } from 'react-native';
+import { StyleSheet, TextStyle, ViewStyle } from 'react-native';
 
-import { borderRadius, layout,shadows, spacing, ThemeColors, typography } from '@/theme';
+import { borderRadius, layout, shadows, spacing, ThemeColors, typography } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 export interface ConfigScreenStyles {

@@ -19,7 +19,7 @@
  * SPECIAL: Hunter gate MUST use pressPrimaryOnType + assertNoLoop
  */
 
-import { fireEvent,render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { getSchema } from '@/models/roles/spec';
 import { SCHEMAS } from '@/models/roles/spec/schemas';

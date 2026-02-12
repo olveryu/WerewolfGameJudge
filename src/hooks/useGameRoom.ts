@@ -17,7 +17,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useMemo,useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useGameFacade } from '@/contexts';
 import { GameStatus } from '@/models/GameStatus';
@@ -25,13 +25,10 @@ import { RoleId } from '@/models/roles';
 import type { ActionSchema, SchemaId } from '@/models/roles/spec';
 import { GameTemplate } from '@/models/Template';
 import { AuthService } from '@/services/infra/AuthService';
-import { RoomRecord,RoomService } from '@/services/infra/RoomService';
+import { RoomRecord, RoomService } from '@/services/infra/RoomService';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import type {
-  ResolvedRoleRevealAnimation,
-  RoleRevealAnimation,
-} from '@/types/RoleRevealAnimation';
+import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { gameRoomLog } from '@/utils/logger';
 
 import { broadcastToLocalState } from './adapters/broadcastToLocalState';

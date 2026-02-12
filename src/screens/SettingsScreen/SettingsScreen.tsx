@@ -10,13 +10,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useCallback,useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity,View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { RootStackParamList } from '@/navigation/types';
-import { ThemeKey, typography,useTheme } from '@/theme';
+import { ThemeKey, typography, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { getAvatarImage } from '@/utils/avatar';
 
@@ -312,4 +312,3 @@ export const SettingsScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-

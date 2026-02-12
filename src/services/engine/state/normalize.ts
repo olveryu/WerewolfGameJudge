@@ -102,5 +102,3 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
     debugMode: raw.debugMode,
   };
 }
-
-

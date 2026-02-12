@@ -11,7 +11,7 @@
  * ❌ 禁止：直接修改 BroadcastGameState、跳过 facade 操作游戏
  */
 
-import { useCallback,useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import type { RoleId } from '@/models/roles';
 import type { IGameFacade } from '@/services/types/IGameFacade';

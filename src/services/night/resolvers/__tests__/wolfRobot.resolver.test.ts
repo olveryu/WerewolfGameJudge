@@ -11,7 +11,7 @@
  */
 
 import type { RoleId } from '@/models/roles';
-import type { ActionInput,ResolverContext } from '@/services/night/resolvers/types';
+import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
 import { wolfRobotLearnResolver } from '@/services/night/resolvers/wolfRobot';
 
 // =============================================================================

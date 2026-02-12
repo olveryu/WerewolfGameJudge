@@ -8,7 +8,10 @@ import { renderHook } from '@testing-library/react-native';
 
 import type { RoleAction } from '@/models/actions/RoleAction';
 import type { RoleId } from '@/models/roles';
-import { useActionerState, UseActionerStateParams } from '@/screens/RoomScreen/hooks/useActionerState';
+import {
+  useActionerState,
+  UseActionerStateParams,
+} from '@/screens/RoomScreen/hooks/useActionerState';
 
 // =============================================================================
 // Test Helpers
@@ -166,9 +169,7 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'nightmare',
             currentActionRole: 'nightmare',
-            currentSchema: require('@/models/roles/spec/schemas').getSchema(
-              'nightmareBlock',
-            ),
+            currentSchema: require('@/models/roles/spec/schemas').getSchema('nightmareBlock'),
             actorSeatNumber: 0,
           }),
         ),

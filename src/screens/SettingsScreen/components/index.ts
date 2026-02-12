@@ -11,5 +11,5 @@ export type { NameSectionProps } from './NameSection';
 export { NameSection } from './NameSection';
 export type { SettingsScreenStyles } from './styles';
 export { createSettingsScreenStyles } from './styles';
-export type { ThemeOption,ThemeSelectorProps } from './ThemeSelector';
+export type { ThemeOption, ThemeSelectorProps } from './ThemeSelector';
 export { ThemeSelector } from './ThemeSelector';

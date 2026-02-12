@@ -21,7 +21,7 @@
  * - UI shows actionRejected with BLOCKED_UI_DEFAULTS message
  */
 
-import { fireEvent,render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { BLOCKED_UI_DEFAULTS, getSchema } from '@/models/roles/spec';
 import {

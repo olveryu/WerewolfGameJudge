@@ -19,7 +19,7 @@
 
 import { RealtimeChannel } from '@supabase/supabase-js';
 
-import { isSupabaseConfigured,supabase } from '@/config/supabase';
+import { isSupabaseConfigured, supabase } from '@/config/supabase';
 // Protocol types - Import for local use
 import type { HostBroadcast, PlayerMessage } from '@/services/protocol/types';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
@@ -131,7 +131,7 @@ export class BroadcastService {
     this.channel.on('broadcast', { event: 'player' }, (payload) => {
       broadcastLog.info(' Received player message:', payload.payload?.type);
       if (this.onPlayerMessage && payload.payload) {
-        const senderId = (payload as Record<string, unknown>).presence_ref as string || 'unknown';
+        const senderId = ((payload as Record<string, unknown>).presence_ref as string) || 'unknown';
         this.onPlayerMessage(payload.payload as PlayerMessage, senderId);
       }
     });

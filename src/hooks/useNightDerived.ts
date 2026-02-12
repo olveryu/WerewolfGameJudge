@@ -11,7 +11,7 @@
 import { useMemo } from 'react';
 
 import { GameStatus } from '@/models/GameStatus';
-import { buildNightPlan,RoleId } from '@/models/roles';
+import { buildNightPlan, RoleId } from '@/models/roles';
 import {
   type ActionSchema,
   getRoleSpec,
@@ -21,10 +21,7 @@ import {
   type SchemaId,
 } from '@/models/roles/spec';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import type {
-  ResolvedRoleRevealAnimation,
-  RoleRevealAnimation,
-} from '@/types/RoleRevealAnimation';
+import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 interface NightDerivedValues {
   /** Current action role derived from NightPlan */

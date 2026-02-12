@@ -1,7 +1,7 @@
 /**
  * RoleCardSimple.test.tsx - Tests for the no-animation role card modal
  */
-import { fireEvent,render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import type { RoleId } from '@/models/roles';

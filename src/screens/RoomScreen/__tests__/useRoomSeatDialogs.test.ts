@@ -9,7 +9,7 @@
  * - handleConfirmLeave: confirm leave, early return when null
  * - handleLeaveRoom: ongoing/ended direct navigate, other status shows confirm dialog
  */
-import { act,renderHook } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
 
 import { GameStatus } from '@/models/GameStatus';
 import { useRoomSeatDialogs } from '@/screens/RoomScreen/useRoomSeatDialogs';

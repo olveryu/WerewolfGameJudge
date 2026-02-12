@@ -10,7 +10,7 @@
  * Note: This board has NO hunter/guard, so no confirmTrigger/skipConfirm required
  */
 
-import { fireEvent,render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { getSchema } from '@/models/roles/spec';
 import {
@@ -216,9 +216,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       await waitForRoomScreen(getByTestId);
       harness.clear();
       tapSeat(getByTestId, 1);
-      await waitFor(() =>
-        expect(harness.hasSeen('witchPoisonPrompt')).toBe(true),
-      );
+      await waitFor(() => expect(harness.hasSeen('witchPoisonPrompt')).toBe(true));
     });
   });
 

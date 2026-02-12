@@ -1,4 +1,4 @@
-import { expect,Page } from '@playwright/test';
+import { expect, Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
 import { getVisibleText } from '../helpers/ui';

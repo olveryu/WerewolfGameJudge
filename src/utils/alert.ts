@@ -82,5 +82,3 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
     Alert.alert(title, message || '', alertButtons);
   }
 };
-
-

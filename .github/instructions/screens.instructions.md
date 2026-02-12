@@ -28,12 +28,12 @@ applyTo: src/screens/**/*.ts,src/screens/**/*.tsx
 
 ### 拆分判断标准
 
-| 信号 | 行动 |
-|------|------|
-| hook 调用 10+、useMemo/useCallback 10+、副作用 5+ | ✅ 拆 |
-| 行数 300-400，hook 调用少、主要是 JSX | ❌ 不拆 |
-| 行数 >400 但大部分是 JSX（表单/列表 UI） | ❌ 不急拆，优先提取子组件 |
-| 逻辑已通过子 hook 分散，Screen 只是"接线" | ✅ 拆（接线本身就是认知负荷） |
+| 信号                                              | 行动                          |
+| ------------------------------------------------- | ----------------------------- |
+| hook 调用 10+、useMemo/useCallback 10+、副作用 5+ | ✅ 拆                         |
+| 行数 300-400，hook 调用少、主要是 JSX             | ❌ 不拆                       |
+| 行数 >400 但大部分是 JSX（表单/列表 UI）          | ❌ 不急拆，优先提取子组件     |
+| 逻辑已通过子 hook 分散，Screen 只是"接线"         | ✅ 拆（接线本身就是认知负荷） |
 
 ### 硬规则
 
@@ -151,11 +151,11 @@ applyTo: src/screens/**/*.ts,src/screens/**/*.tsx
 
 ## RoomScreen 交互三层分工（MUST follow）
 
-| 层 | 职责 | 位置 |
-|---|---|---|
-| **Policy** | 纯逻辑：输入 → Instruction（NOOP/ALERT/SUBMIT 等） | `src/screens/RoomScreen/policy/**` |
-| **Orchestrator** | 调用 policy → 执行副作用 | RoomScreen / hooks |
-| **Presentational** | 渲染 + 上报 intent | `src/screens/RoomScreen/components/**` |
+| 层                 | 职责                                               | 位置                                   |
+| ------------------ | -------------------------------------------------- | -------------------------------------- |
+| **Policy**         | 纯逻辑：输入 → Instruction（NOOP/ALERT/SUBMIT 等） | `src/screens/RoomScreen/policy/**`     |
+| **Orchestrator**   | 调用 policy → 执行副作用                           | RoomScreen / hooks                     |
+| **Presentational** | 渲染 + 上报 intent                                 | `src/screens/RoomScreen/components/**` |
 
 - Policy 必须可单元测试（contract tests），禁止 `showAlert`/navigation/service/hooks/副作用。
 - Orchestrator 禁止写与 policy 并行的业务判断。

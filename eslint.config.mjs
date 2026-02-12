@@ -123,10 +123,7 @@ export default tseslint.config(
   // Metro require() — assets must use require() for bundler
   // =========================================================================
   {
-    files: [
-      'src/services/infra/AudioService.ts',
-      'src/utils/avatar.ts',
-    ],
+    files: ['src/services/infra/AudioService.ts', 'src/utils/avatar.ts'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
     },

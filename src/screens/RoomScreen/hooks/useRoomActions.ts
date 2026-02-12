@@ -13,9 +13,9 @@
 import { useCallback } from 'react';
 
 import { GameStatus } from '@/models/GameStatus';
-import { doesRoleParticipateInWolfVote,isWolfRole, RoleId } from '@/models/roles';
-import type { ActionSchema, RevealKind,SchemaId } from '@/models/roles/spec';
-import { isValidSchemaId,SCHEMAS } from '@/models/roles/spec';
+import { doesRoleParticipateInWolfVote, isWolfRole, RoleId } from '@/models/roles';
+import type { ActionSchema, RevealKind, SchemaId } from '@/models/roles/spec';
+import { isValidSchemaId, SCHEMAS } from '@/models/roles/spec';
 import type { LocalGameState } from '@/types/GameStateTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -288,11 +288,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     if (!gameState) return null;
     // Only wolves that participate in wolf vote can vote (excludes gargoyle, wolfRobot, etc.)
     // Revote allowed: no longer check hasWolfVoted
-    if (
-      actorSeatNumber !== null &&
-      actorRole &&
-      doesRoleParticipateInWolfVote(actorRole)
-    ) {
+    if (actorSeatNumber !== null && actorRole && doesRoleParticipateInWolfVote(actorRole)) {
       return actorSeatNumber;
     }
     return null;
@@ -363,7 +359,15 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     }
 
     return `${base}（可点击改票或取消）`;
-  }, [currentSchema?.kind, getWolfVoteSummary, hasWolfVoted, actorRole, actorSeatNumber, gameState?.wolfVoteDeadline, countdownTick]); // eslint-disable-line react-hooks/exhaustive-deps -- countdownTick intentionally triggers countdown re-computation
+  }, [
+    currentSchema?.kind,
+    getWolfVoteSummary,
+    hasWolfVoted,
+    actorRole,
+    actorSeatNumber,
+    gameState?.wolfVoteDeadline,
+    countdownTick,
+  ]); // eslint-disable-line react-hooks/exhaustive-deps -- countdownTick intentionally triggers countdown re-computation
 
   // ─────────────────────────────────────────────────────────────────────────
   // UI-only: schema-driven bottom action button (skip / wolf empty vote / blocked)

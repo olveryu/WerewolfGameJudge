@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 
-import { Locator,Page } from '@playwright/test';
+import { Locator, Page } from '@playwright/test';
 
 /**
  * UI Helpers (通用原语层，纯工具)
@@ -380,4 +380,3 @@ export async function debugProbe(page: Page, label: string): Promise<void> {
   }
   console.log(`========== END PROBE ==========\n`);
 }
-
