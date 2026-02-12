@@ -8,7 +8,7 @@
  * ✅ 允许：渲染动画 + 触觉反馈
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
@@ -107,6 +107,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
     'entry' | 'levitate' | 'flipping' | 'landing' | 'revealed'
   >('entry');
   const [particles, setParticles] = useState<ParticleConfig[]>([]);
+  const onCompleteCalledRef = useRef(false);
 
   // ── Shared values ──
   const entryScale = useSharedValue(0.6);
@@ -226,8 +227,9 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
 
   // Glow border flash done → hold → onComplete
   const handleGlowComplete = useCallback(() => {
-    const timer = setTimeout(() => onComplete(), config.revealHoldDuration);
-    return () => clearTimeout(timer);
+    if (onCompleteCalledRef.current) return;
+    onCompleteCalledRef.current = true;
+    setTimeout(() => onComplete(), config.revealHoldDuration);
   }, [onComplete, config.revealHoldDuration]);
 
   // ── Kick-off ──

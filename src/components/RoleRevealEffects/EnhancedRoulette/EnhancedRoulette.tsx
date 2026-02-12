@@ -9,7 +9,7 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
@@ -320,9 +320,11 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   ]);
 
   // ── Reveal complete handler ──
+  const onCompleteCalledRef = useRef(false);
   const handleRevealComplete = useCallback(() => {
-    const timer = setTimeout(onComplete, config.revealHoldDuration ?? 1500);
-    return () => clearTimeout(timer);
+    if (onCompleteCalledRef.current) return;
+    onCompleteCalledRef.current = true;
+    setTimeout(onComplete, config.revealHoldDuration ?? 1500);
   }, [onComplete, config.revealHoldDuration]);
 
   // ── Animated styles ──

@@ -97,7 +97,7 @@ export interface HostActionsContext {
    * 狼人投票倒计时 Timer 引用
    * 由 submitWolfVote 管理：set / clear / 在 leaveRoom 时清除
    */
-  wolfVoteTimer?: ReturnType<typeof setTimeout>;
+  wolfVoteTimer: ReturnType<typeof setTimeout> | null;
 }
 
 /**
@@ -464,7 +464,7 @@ export async function submitWolfVote(
     switch (timerAction.type) {
       case 'set': {
         // 同步序列：clear 旧 timer → 写 deadline →（await 广播）→ set 新 timer
-        clearTimeout(ctx.wolfVoteTimer);
+        if (ctx.wolfVoteTimer != null) clearTimeout(ctx.wolfVoteTimer);
         if (state) {
           applyActions(ctx.store, state, [
             { type: 'SET_WOLF_VOTE_DEADLINE', payload: { deadline: timerAction.deadline } },
@@ -472,15 +472,15 @@ export async function submitWolfVote(
         }
         await ctx.broadcastCurrentState();
         ctx.wolfVoteTimer = setTimeout(async () => {
-          ctx.wolfVoteTimer = undefined;
+          ctx.wolfVoteTimer = null;
           if (!ctx.isAborted?.()) await callNightProgression(ctx);
         }, WOLF_VOTE_COUNTDOWN_MS);
         break;
       }
       case 'clear': {
         // 同步序列：clear timer → 清 deadline →（await 广播）
-        clearTimeout(ctx.wolfVoteTimer);
-        ctx.wolfVoteTimer = undefined;
+        if (ctx.wolfVoteTimer != null) clearTimeout(ctx.wolfVoteTimer);
+        ctx.wolfVoteTimer = null;
         if (state) {
           applyActions(ctx.store, state, [{ type: 'CLEAR_WOLF_VOTE_DEADLINE' }]);
         }

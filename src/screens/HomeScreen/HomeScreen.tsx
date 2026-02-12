@@ -165,25 +165,12 @@ export const HomeScreen: React.FC = () => {
     setIsJoining(true);
 
     try {
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('timeout')), 10000);
-      });
-
-      await Promise.race([
-        (async () => {
-          await AsyncStorage.setItem('lastRoomNumber', roomCode);
-          setShowJoinModal(false);
-          navigation.navigate('Room', { roomNumber: roomCode, isHost: false });
-          setRoomCode('');
-        })(),
-        timeoutPromise,
-      ]);
+      await AsyncStorage.setItem('lastRoomNumber', roomCode);
+      setShowJoinModal(false);
+      navigation.navigate('Room', { roomNumber: roomCode, isHost: false });
+      setRoomCode('');
     } catch (e) {
-      if (e instanceof Error && e.message === 'timeout') {
-        setJoinError('网络较慢，请重试');
-      } else {
-        setJoinError('加入失败，请重试');
-      }
+      setJoinError('加入失败，请重试');
     } finally {
       setIsJoining(false);
     }

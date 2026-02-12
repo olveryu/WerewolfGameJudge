@@ -155,7 +155,7 @@ describe('Night-1: intermediate state assertions (标准板12人)', () => {
     expect(afterSeer.pendingRevealAcks?.length).toBeGreaterThan(0);
 
     // Ack the reveal
-    sendMessageOrThrow(ctx, { type: 'REVEAL_ACK', seat: 8 }, 'seer ack');
+    sendMessageOrThrow(ctx, { type: 'REVEAL_ACK', seat: 8, role: 'seer', revision: 0 }, 'seer ack');
 
     const afterAck = ctx.getBroadcastState();
     expect(afterAck.pendingRevealAcks?.length ?? 0).toBe(0);
@@ -217,7 +217,7 @@ describe('Night-1: intermediate state assertions (标准板12人)', () => {
       { type: 'ACTION', seat: 8, role: 'seer', target: 1, extra: undefined },
       'seerCheck',
     );
-    sendMessageOrThrow(ctx, { type: 'REVEAL_ACK', seat: 8 }, 'seer ack');
+    sendMessageOrThrow(ctx, { type: 'REVEAL_ACK', seat: 8, role: 'seer', revision: 0 }, 'seer ack');
     ctx.advanceNightOrThrow('past seerCheck');
 
     ctx.endNight();
@@ -271,7 +271,7 @@ describe('Night-1: intermediate state assertions (标准板12人)', () => {
       { type: 'ACTION', seat: 8, role: 'seer', target: 1, extra: undefined },
       'seerCheck',
     );
-    sendMessageOrThrow(ctx, { type: 'REVEAL_ACK', seat: 8 }, 'seer ack');
+    sendMessageOrThrow(ctx, { type: 'REVEAL_ACK', seat: 8, role: 'seer', revision: 0 }, 'seer ack');
     ctx.advanceNightOrThrow('past seerCheck');
 
     ctx.endNight();

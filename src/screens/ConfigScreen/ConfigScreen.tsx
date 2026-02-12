@@ -227,8 +227,10 @@ export const ConfigScreen: React.FC = () => {
     setSelectedTemplate('__custom__');
   }, []);
 
+  const creatingRef = useRef(false);
   const handleCreateRoom = useCallback(async () => {
-    if (isCreating || isLoading) return;
+    if (creatingRef.current || isLoading) return;
+    creatingRef.current = true;
 
     const roles = selectionToRoles(selection);
     if (roles.length === 0) {
@@ -280,6 +282,7 @@ export const ConfigScreen: React.FC = () => {
       showAlert('错误', isEditMode ? '更新房间失败' : '创建房间失败');
     } finally {
       setIsCreating(false);
+      creatingRef.current = false;
     }
   }, [
     selection,
@@ -290,7 +293,6 @@ export const ConfigScreen: React.FC = () => {
     roleRevealAnimation,
     settingsService,
     bgmEnabled,
-    isCreating,
     isLoading,
     authService,
     roomService,
@@ -545,7 +547,7 @@ export const ConfigScreen: React.FC = () => {
             onPress={handleClearSelection}
             activeOpacity={0.7}
           >
-            <Text style={styles.clearBtnText}>清空</Text>
+            <Ionicons name="trash-outline" size={14} color={styles.clearBtnText.color as string} />
           </TouchableOpacity>
         </View>
 

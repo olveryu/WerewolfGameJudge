@@ -77,7 +77,7 @@ export class GameFacade implements IGameFacade {
    * 存储在 Facade 实例上以跨 getHostActionsContext() 调用持久化。
    * 通过 HostActionsContext 的 getter/setter 暴露给 hostActions 模块。
    */
-  private _wolfVoteTimer?: ReturnType<typeof setTimeout>;
+  private _wolfVoteTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Pending seat action request (Player: waiting for ACK) */
   private readonly pendingSeatAction: { current: PendingSeatAction | null } = { current: null };
@@ -341,7 +341,7 @@ export class GameFacade implements IGameFacade {
     this._teardownForegroundRecovery();
     if (this._wolfVoteTimer != null) {
       clearTimeout(this._wolfVoteTimer);
-      this._wolfVoteTimer = undefined;
+      this._wolfVoteTimer = null;
     }
 
     const mySeat = this.getMySeatNumber();

@@ -128,6 +128,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   const scratchedAreaRef = useRef(0);
   const lastHapticTime = useRef(0);
   const shavingIdRef = useRef(0);
+  const onCompleteCalledRef = useRef(false);
 
   const common = CONFIG.common;
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
@@ -214,8 +215,9 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
 
   // ── Glow complete ──
   const handleGlowComplete = useCallback(() => {
-    const timer = setTimeout(() => onComplete(), config.revealHoldDuration);
-    return () => clearTimeout(timer);
+    if (onCompleteCalledRef.current) return;
+    onCompleteCalledRef.current = true;
+    setTimeout(() => onComplete(), config.revealHoldDuration);
   }, [onComplete, config.revealHoldDuration]);
 
   // ── Add scratch point ──

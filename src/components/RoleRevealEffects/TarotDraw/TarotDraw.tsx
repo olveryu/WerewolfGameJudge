@@ -238,6 +238,8 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     drawnCardOpacity,
     drawnCardScale,
     wheelRotation,
+    onComplete,
+    config.revealHoldDuration,
   ]);
 
   // ── Auto-select after 3s if user doesn't tap ──

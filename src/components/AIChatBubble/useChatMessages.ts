@@ -67,6 +67,8 @@ export function useChatMessages(
   const apiKey = getDefaultApiKey();
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const loadingRef = useRef(false);
+  const drainTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Ref to access latest messages inside callbacks without stale closure
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
@@ -102,6 +104,10 @@ export function useChatMessages(
     return () => {
       abortControllerRef.current?.abort();
       abortControllerRef.current = null;
+      if (drainTimerRef.current) {
+        clearInterval(drainTimerRef.current);
+        drainTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -117,7 +123,7 @@ export function useChatMessages(
   // ── Send message (streaming) ───────────────────────
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!text || isLoading) return;
+      if (!text || loadingRef.current) return;
       if (cooldownRemaining > 0) return;
       if (!apiKey) {
         showAlert('配置错误', 'AI 服务未配置');
@@ -144,6 +150,7 @@ export function useChatMessages(
       setMessages((prev) => [...prev, userMessage]);
       setInputText('');
       setIsLoading(true);
+      loadingRef.current = true;
       setIsStreaming(true);
 
       Keyboard.dismiss();
@@ -217,8 +224,15 @@ export function useChatMessages(
           // Wait for typewriter to drain remaining characters
           await new Promise<void>((resolve) => {
             const drainTimer = setInterval(() => {
+              if (controller.signal.aborted) {
+                clearInterval(drainTimer);
+                drainTimerRef.current = null;
+                resolve();
+                return;
+              }
               if (displayedLength >= finalContent.length) {
                 clearInterval(drainTimer);
+                drainTimerRef.current = null;
                 // Ensure final content is fully displayed
                 setMessages((prev) =>
                   prev.map((m) => (m.id === assistantId ? { ...m, content: finalContent } : m)),
@@ -235,6 +249,7 @@ export function useChatMessages(
                 );
               }
             }, TYPEWRITER_INTERVAL_MS);
+            drainTimerRef.current = drainTimer;
           });
 
           triggerHaptic('success');
@@ -254,10 +269,11 @@ export function useChatMessages(
         throw err;
       } finally {
         setIsLoading(false);
+        loadingRef.current = false;
         setIsStreaming(false);
       }
     },
-    [isLoading, cooldownRemaining, apiKey, facade],
+    [cooldownRemaining, apiKey, facade],
   );
 
   // ── Public actions ─────────────────────────────────

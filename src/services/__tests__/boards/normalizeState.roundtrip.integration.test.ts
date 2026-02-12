@@ -45,7 +45,7 @@ function createRoleAssignment(): Map<number, RoleId> {
  * 关键断言：raw 中的所有 key 必须出现在 normalized 中（不能丢失字段）。
  * normalized 多出的 key（undefined 字段被显式写出）是 expected behavior。
  */
-function assertNoKeysLost(original: Record<string, unknown>, normalized: Record<string, unknown>) {
+function assertNoKeysLost(original: Record<string, unknown> | object, normalized: Record<string, unknown> | object) {
   const origKeys = new Set(Object.keys(original));
   const normKeys = new Set(Object.keys(normalized));
   const lostKeys = [...origKeys].filter((k) => !normKeys.has(k));
