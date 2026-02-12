@@ -6,11 +6,11 @@
 _An automated judge app designed for in-person Werewolf games_
 
 [![Live Demo](https://img.shields.io/badge/Live-werewolf--judge.vercel.app-blue?style=flat-square)](https://werewolf-judge.vercel.app)
+[![CI](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml/badge.svg)](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![React Native](https://img.shields.io/badge/React%20Native-Expo-purple?style=flat-square&logo=expo)](https://expo.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-Realtime-green?style=flat-square&logo=supabase)](https://supabase.com/)
 [![Tests](https://img.shields.io/badge/Tests-2613%20passed-brightgreen?style=flat-square)](.)
-[![Version](https://img.shields.io/badge/Version-1.0.175-orange?style=flat-square)](.)
 
 ---
 
