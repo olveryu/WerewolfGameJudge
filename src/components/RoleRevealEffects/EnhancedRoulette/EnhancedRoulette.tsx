@@ -154,6 +154,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const frameGlowAnim = useSharedValue(0);
   const revealScaleAnim = useSharedValue(0.8);
   const revealOpacityAnim = useSharedValue(0);
+  const cabinetOpacityAnim = useSharedValue(1);
 
   const containerWidth = Math.min(screenWidth * 0.9, 340);
   const containerHeight = config.itemHeight * config.visibleItems;
@@ -162,6 +163,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const common = CONFIG.common;
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
+  const theme = ALIGNMENT_THEMES[role.alignment];
   const centeringOffset = config.itemHeight;
 
   // ── Bulb pattern init ──
@@ -237,9 +239,10 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   // ── Transition to revealed ──
   const transitionToRevealed = useCallback(() => {
     setPhase('revealed');
+    cabinetOpacityAnim.value = withTiming(0, { duration: 300 });
     revealScaleAnim.value = withSpring(1, { damping: 8, stiffness: 100 });
     revealOpacityAnim.value = withTiming(1, { duration: 300 });
-  }, [revealScaleAnim, revealOpacityAnim]);
+  }, [cabinetOpacityAnim, revealScaleAnim, revealOpacityAnim]);
 
   // ── After bounce completes ──
   const afterBounce = useCallback(() => {
@@ -263,6 +266,9 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
     if (reducedMotion) {
       setPhase('revealed');
+      cabinetOpacityAnim.value = withTiming(0, {
+        duration: CONFIG.common.reducedMotionFadeDuration,
+      });
       revealScaleAnim.value = withTiming(1, {
         duration: CONFIG.common.reducedMotionFadeDuration,
       });
@@ -301,6 +307,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     );
   }, [
     reducedMotion,
+    cabinetOpacityAnim,
     scrollAnim,
     bounceAnim,
     shuffledRoles.length,
@@ -337,6 +344,10 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     opacity: interpolate(frameGlowAnim.value, [0, 1], [0.3, 0.8]),
   }));
 
+  const cabinetFadeStyle = useAnimatedStyle(() => ({
+    opacity: cabinetOpacityAnim.value,
+  }));
+
   const revealedCardStyle = useAnimatedStyle(() => ({
     transform: [{ scale: revealScaleAnim.value }],
     opacity: revealOpacityAnim.value,
@@ -356,58 +367,13 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     );
   }
 
-  // ── Revealed phase ──
-  if (phase === 'revealed') {
-    return (
-      <View
-        testID={`${testIDPrefix}-container`}
-        style={[styles.container, { backgroundColor: colors.background }]}
-      >
-        {/* Celebration particles */}
-        <View style={styles.particleContainer}>
-          {particles.map((p) => (
-            <EmojiParticle key={p.id} {...p} />
-          ))}
-        </View>
-
-        <Animated.View
-          style={[
-            styles.revealedCardContainer,
-            { width: cardWidth, height: cardHeight },
-            revealedCardStyle,
-          ]}
-        >
-          <RoleCardContent
-            roleId={role.id as RoleId}
-            width={cardWidth}
-            height={cardHeight}
-          />
-          <GlowBorder
-            width={cardWidth + common.glowPadding}
-            height={cardHeight + common.glowPadding}
-            color={theme.primaryColor}
-            glowColor={theme.glowColor}
-            borderWidth={common.glowBorderWidth}
-            borderRadius={borderRadius.medium + 4}
-            animate={!reducedMotion}
-            flashCount={common.glowFlashCount}
-            flashDuration={common.glowFlashDuration}
-            onComplete={handleRevealComplete}
-            style={{ position: 'absolute', top: -4, left: -4 }}
-          />
-        </Animated.View>
-      </View>
-    );
-  }
-
-  // ── Spinning / Stopping phase ──
   return (
     <View
       testID={`${testIDPrefix}-container`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      {/* Slot machine cabinet */}
-      <View style={[styles.cabinet, { width: frameWidth, height: frameHeight }]}>
+      {/* Slot machine cabinet - fades out on reveal */}
+      <Animated.View style={[styles.cabinet, { width: frameWidth, height: frameHeight }, cabinetFadeStyle]}>
         <LinearGradient
           colors={[...SLOT_COLORS.metalGradient]}
           start={{ x: 0, y: 0 }}
@@ -554,7 +520,39 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
             </View>
           </View>
         </LinearGradient>
-      </View>
+      </Animated.View>
+
+      {/* Revealed card - cross-fades in */}
+      <Animated.View
+        style={[styles.revealedOverlay, revealedCardStyle]}
+        pointerEvents={phase === 'revealed' ? 'auto' : 'none'}
+      >
+        <Animated.View
+          style={[
+            styles.revealedCardContainer,
+            { width: cardWidth, height: cardHeight },
+          ]}
+        >
+          <RoleCardContent
+            roleId={role.id as RoleId}
+            width={cardWidth}
+            height={cardHeight}
+          />
+          <GlowBorder
+            width={cardWidth + common.glowPadding}
+            height={cardHeight + common.glowPadding}
+            color={theme.primaryColor}
+            glowColor={theme.glowColor}
+            borderWidth={common.glowBorderWidth}
+            borderRadius={borderRadius.medium + 4}
+            animate={phase === 'revealed' && !reducedMotion}
+            flashCount={common.glowFlashCount}
+            flashDuration={common.glowFlashDuration}
+            onComplete={handleRevealComplete}
+            style={{ position: 'absolute', top: -4, left: -4 }}
+          />
+        </Animated.View>
+      </Animated.View>
 
       {/* Celebration particles */}
       <View style={styles.particleContainer}>
@@ -716,6 +714,11 @@ const styles = StyleSheet.create({
     height: 2,
     marginTop: -1,
     opacity: 0.5,
+  },
+  revealedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   revealedCardContainer: {
     alignItems: 'center',
