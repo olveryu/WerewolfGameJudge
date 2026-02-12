@@ -203,7 +203,6 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     clearBtn: {
       paddingHorizontal: spacing.small,
       paddingVertical: spacing.tight,
-      marginLeft: 'auto' as any,
     },
     clearBtnText: {
       fontSize: typography.caption,
