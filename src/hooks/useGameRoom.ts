@@ -258,6 +258,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to initialize room';
+        gameRoomLog.error('[initializeHostRoom] Failed', { error: message, roomNumber });
         setError(message);
         return false;
       } finally {

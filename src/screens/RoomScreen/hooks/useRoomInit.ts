@@ -108,7 +108,7 @@ export function useRoomInit({
           setIsInitialized(true);
           roomScreenLog.debug('[useRoomInit] Host init complete');
         } else {
-          roomScreenLog.warn('[useRoomInit] Host initializeHostRoom failed', { roomNumber });
+          roomScreenLog.warn('[useRoomInit] Host initializeHostRoom failed', { roomNumber, error: gameRoomError ?? 'unknown' });
           setLoadingMessage('创建失败');
           setShowRetryButton(true);
         }
