@@ -217,7 +217,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
     setPhase('levitate');
     levitateY.value = withTiming(
       -30,
-      { duration: 400, easing: Easing.out(Easing.cubic) },
+      { duration: 250, easing: Easing.out(Easing.cubic) },
       (finished) => {
         'worklet';
         if (finished) runOnJS(startFlip)();
@@ -238,14 +238,15 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
       entryOpacity.value = 1;
       entryScale.value = 1;
       setPhase('revealed');
-      return;
+      const timer = setTimeout(() => onComplete(), config.revealHoldDuration);
+      return () => clearTimeout(timer);
     }
 
     // Entry: fade-in + spring scale → levitate after 300 ms delay
     entryOpacity.value = withTiming(1, { duration: 300 });
     entryScale.value = withSpring(
       1,
-      { damping: 12, stiffness: 100 },
+      { damping: 15, stiffness: 250 },
       (finished) => {
         'worklet';
         if (finished) {
@@ -253,7 +254,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
         }
       },
     );
-  }, [reducedMotion, flipProgress, entryOpacity, entryScale, startLevitation]);
+  }, [reducedMotion, flipProgress, entryOpacity, entryScale, startLevitation, onComplete, config.revealHoldDuration]);
 
   // ── Animated styles ──
   const cardContainerStyle = useAnimatedStyle(() => ({

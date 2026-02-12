@@ -189,7 +189,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     // Card springs in after 200ms delay
     cardScale.value = withDelay(
       200,
-      withSpring(1, { damping: 10, stiffness: 60 }, (finished) => {
+      withSpring(1, { damping: 12, stiffness: 180 }, (finished) => {
         'worklet';
         if (finished) runOnJS(enterRevealed)();
       }),
@@ -255,8 +255,10 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       shellOpacity.value = 0;
       machineOpacityAnim.value = 0;
       setPhase('revealed');
+      const timer = setTimeout(() => onComplete(), config.revealHoldDuration ?? 0);
+      return () => clearTimeout(timer);
     }
-  }, [reducedMotion, cardScale, cardOpacity, shellOpacity, machineOpacityAnim]);
+  }, [reducedMotion, cardScale, cardOpacity, shellOpacity, machineOpacityAnim, onComplete, config.revealHoldDuration]);
 
   // ── Auto-spin after 1.5s ──
   useEffect(() => {

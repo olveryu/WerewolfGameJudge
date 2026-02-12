@@ -538,19 +538,21 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
             width={cardWidth}
             height={cardHeight}
           />
-          <GlowBorder
-            width={cardWidth + common.glowPadding}
-            height={cardHeight + common.glowPadding}
-            color={theme.primaryColor}
-            glowColor={theme.glowColor}
-            borderWidth={common.glowBorderWidth}
-            borderRadius={borderRadius.medium + 4}
-            animate={phase === 'revealed' && !reducedMotion}
-            flashCount={common.glowFlashCount}
-            flashDuration={common.glowFlashDuration}
-            onComplete={handleRevealComplete}
-            style={{ position: 'absolute', top: -4, left: -4 }}
-          />
+          {phase === 'revealed' && (
+            <GlowBorder
+              width={cardWidth + common.glowPadding}
+              height={cardHeight + common.glowPadding}
+              color={theme.primaryColor}
+              glowColor={theme.glowColor}
+              borderWidth={common.glowBorderWidth}
+              borderRadius={borderRadius.medium + 4}
+              animate={!reducedMotion}
+              flashCount={common.glowFlashCount}
+              flashDuration={common.glowFlashDuration}
+              onComplete={handleRevealComplete}
+              style={{ position: 'absolute', top: -4, left: -4 }}
+            />
+          )}
         </Animated.View>
       </Animated.View>
 

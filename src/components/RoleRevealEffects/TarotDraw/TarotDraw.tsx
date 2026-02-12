@@ -221,7 +221,8 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       drawnCardOpacity.value = 1;
       drawnCardScale.value = 1;
       setPhase('revealed');
-      return;
+      const timer = setTimeout(() => onComplete(), config.revealHoldDuration ?? 0);
+      return () => clearTimeout(timer);
     }
 
     // Slow spin: 4 seconds per revolution, infinite loop

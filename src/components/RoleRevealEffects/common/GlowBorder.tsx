@@ -61,7 +61,6 @@ export const GlowBorder: React.FC<GlowBorderProps> = ({
   useEffect(() => {
     if (!animate) {
       opacity.value = 1;
-      onComplete?.();
       return;
     }
 
