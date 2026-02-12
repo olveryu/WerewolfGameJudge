@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   runOnJS,
   useAnimatedStyle,
@@ -125,6 +126,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   const shellOpacity = useSharedValue(1);
   const cardScale = useSharedValue(0);
   const cardOpacity = useSharedValue(0);
+  const machineOpacityAnim = useSharedValue(1);
   const bobble = useSharedValue(0);
 
   // Random tiny capsules (stable across re-renders)
@@ -156,18 +158,16 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     );
 
     return () => {
-      cancelBobble();
+      cancelAnimation(bobble);
+      bobble.value = 0;
     };
   }, [phase, reducedMotion, bobble]);
-
-  const cancelBobble = useCallback(() => {
-    bobble.value = 0;
-  }, [bobble]);
 
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => {
     setPhase('revealed');
-  }, []);
+    machineOpacityAnim.value = withTiming(0, { duration: 300 });
+  }, [machineOpacityAnim]);
 
   const handleGlowComplete = useCallback(() => {
     if (onCompleteCalledRef.current) return;
@@ -253,9 +253,24 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       cardScale.value = 1;
       cardOpacity.value = 1;
       shellOpacity.value = 0;
+      machineOpacityAnim.value = 0;
       setPhase('revealed');
     }
-  }, [reducedMotion, cardScale, cardOpacity, shellOpacity]);
+  }, [reducedMotion, cardScale, cardOpacity, shellOpacity, machineOpacityAnim]);
+
+  // ── Auto-spin after 1.5s ──
+  useEffect(() => {
+    if (phase !== 'ready' || reducedMotion) return;
+    const timer = setTimeout(() => spinDial(), 1500);
+    return () => clearTimeout(timer);
+  }, [phase, reducedMotion, spinDial]);
+
+  // ── Auto-open capsule after 1s ──
+  useEffect(() => {
+    if (phase !== 'waiting' || reducedMotion) return;
+    const timer = setTimeout(() => openCapsule(), 1000);
+    return () => clearTimeout(timer);
+  }, [phase, reducedMotion, openCapsule]);
 
   // ── Animated styles ──
   const bobbleStyle = useAnimatedStyle(() => ({
@@ -275,6 +290,10 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     ],
   }));
 
+  const machineOpacityStyle = useAnimatedStyle(() => ({
+    opacity: machineOpacityAnim.value,
+  }));
+
   const cardStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
     transform: [{ scale: cardScale.value }],
@@ -288,9 +307,11 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Machine */}
-      {phase !== 'revealed' && (
-        <View style={styles.machine}>
+      {/* Machine - fades out on reveal */}
+      <Animated.View
+        style={[styles.machine, machineOpacityStyle]}
+        pointerEvents={phase === 'revealed' ? 'none' : 'auto'}
+      >
           {/* Dome */}
           <Animated.View style={[styles.dome, bobbleStyle]}>
             <LinearGradient
@@ -346,8 +367,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
               style={StyleSheet.absoluteFill}
             />
           </View>
-        </View>
-      )}
+        </Animated.View>
 
       {/* Hints */}
       {phase === 'ready' && (

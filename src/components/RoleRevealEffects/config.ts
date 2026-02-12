@@ -49,7 +49,7 @@ export const CONFIG = {
     /** Number of full rotations before stopping */
     spinRotations: 5,
     /** Total spin duration in ms */
-    spinDuration: 4000,
+    spinDuration: 2500,
     /** Tick sound interval during fast spin (ms) */
     tickIntervalFast: 80,
     /** Tick sound interval during slow spin (ms) */

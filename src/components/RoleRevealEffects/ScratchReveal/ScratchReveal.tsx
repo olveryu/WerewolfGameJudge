@@ -12,11 +12,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  cancelAnimation,
   Easing,
   interpolate,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
@@ -137,19 +139,15 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   useEffect(() => {
     if (reducedMotion || isRevealed) return;
 
-    sheenPosition.value = withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) });
-    // Loop via repeat pattern
-    const loop = () => {
-      sheenPosition.value = 0;
-      sheenPosition.value = withTiming(1, {
-        duration: 4000,
-        easing: Easing.inOut(Easing.sin),
-      }, (finished) => {
-        'worklet';
-        if (finished) runOnJS(loop)();
-      });
+    sheenPosition.value = withRepeat(
+      withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+
+    return () => {
+      cancelAnimation(sheenPosition);
     };
-    loop();
   }, [sheenPosition, reducedMotion, isRevealed]);
 
   // ── Progress calculation ──

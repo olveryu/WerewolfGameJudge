@@ -239,6 +239,16 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     wheelRotation,
   ]);
 
+  // ── Auto-select after 3s if user doesn't tap ──
+  useEffect(() => {
+    if (phase !== 'waiting' || reducedMotion) return;
+    const timer = setTimeout(() => {
+      const randomIndex = Math.floor(Math.random() * wheelCards.length);
+      handleCardSelect(randomIndex);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [phase, reducedMotion, wheelCards.length, handleCardSelect]);
+
   // ── Animated styles ──
   const wheelStyle = useAnimatedStyle(() => ({
     opacity: wheelOpacity.value,

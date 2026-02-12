@@ -252,7 +252,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
     // Short delay then transition to revealed
     revealScaleAnim.value = withDelay(
-      500,
+      200,
       withTiming(0.8, { duration: 1 }, (finished) => {
         'worklet';
         if (finished) runOnJS(transitionToRevealed)();
