@@ -35,6 +35,18 @@ function getTimestamp(date: Date): string {
   return `${h}:${m}:${s}.${ms}`;
 }
 
+const TOOLBAR_BTN = `
+  background: rgba(255,255,255,0.12);
+  color: #ccc;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  cursor: pointer;
+  line-height: 1.4;
+`;
+
 function createPanel(): HTMLDivElement {
   if (panelElement) return panelElement;
 
@@ -45,61 +57,102 @@ function createPanel(): HTMLDivElement {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 200px;
-    background: rgba(0, 0, 0, 0.9);
-    color: #00ff00;
-    font-family: monospace;
-    font-size: 10px;
-    overflow-y: auto;
+    height: 260px;
+    background: rgba(22, 22, 26, 0.96);
+    color: #e0e0e0;
+    font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+    font-size: 11px;
     z-index: 99999;
-    padding: 8px;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
     pointer-events: auto;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   `;
 
-  // Add close button
+  // ── Toolbar ──
+  const toolbar = document.createElement('div');
+  toolbar.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    flex-shrink: 0;
+  `;
+
+  // Title
+  const title = document.createElement('span');
+  title.textContent = '🔍 Debug';
+  title.style.cssText = `
+    font-size: 12px;
+    font-weight: 600;
+    color: #9ca3af;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    margin-right: auto;
+  `;
+  toolbar.appendChild(title);
+
+  // Copy button
+  const copyBtn = document.createElement('button');
+  copyBtn.textContent = '📋 Copy';
+  copyBtn.style.cssText = TOOLBAR_BTN;
+  copyBtn.onclick = () => {
+    const text = logs
+      .map((e) => `[${getTimestamp(e.timestamp)}] [${e.level.toUpperCase()}] ${e.message}`)
+      .join('\n');
+    navigator.clipboard.writeText(text).then(
+      () => {
+        copyBtn.textContent = '✅ Copied';
+        setTimeout(() => {
+          copyBtn.textContent = '📋 Copy';
+        }, 1200);
+      },
+      () => {
+        // Fallback for environments where clipboard API is not available
+        copyBtn.textContent = '❌ Failed';
+        setTimeout(() => {
+          copyBtn.textContent = '📋 Copy';
+        }, 1200);
+      },
+    );
+  };
+  toolbar.appendChild(copyBtn);
+
+  // Clear button
+  const clearBtn = document.createElement('button');
+  clearBtn.textContent = '🗑 Clear';
+  clearBtn.style.cssText = TOOLBAR_BTN;
+  clearBtn.onclick = () => mobileDebug.clear();
+  toolbar.appendChild(clearBtn);
+
+  // Close button
   const closeBtn = document.createElement('button');
-  closeBtn.textContent = '✕ Close';
+  closeBtn.textContent = '✕';
   closeBtn.style.cssText = `
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    background: #333;
-    color: #fff;
-    border: none;
-    padding: 4px 8px;
-    font-size: 10px;
-    cursor: pointer;
-    z-index: 100000;
+    ${TOOLBAR_BTN}
+    color: #999;
+    padding: 3px 7px;
+    font-size: 13px;
   `;
   closeBtn.onclick = () => mobileDebug.hide();
-  panel.appendChild(closeBtn);
+  toolbar.appendChild(closeBtn);
 
-  // Add clear button
-  const clearBtn = document.createElement('button');
-  clearBtn.textContent = 'Clear';
-  clearBtn.style.cssText = `
-    position: absolute;
-    top: 4px;
-    right: 60px;
-    background: #333;
-    color: #fff;
-    border: none;
-    padding: 4px 8px;
-    font-size: 10px;
-    cursor: pointer;
-    z-index: 100000;
-  `;
-  clearBtn.onclick = () => mobileDebug.clear();
-  panel.appendChild(clearBtn);
+  panel.appendChild(toolbar);
 
-  // Add log container
+  // ── Log container (scrollable) ──
   const logContainer = document.createElement('div');
   logContainer.id = 'mobile-debug-logs';
   logContainer.style.cssText = `
-    margin-top: 24px;
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 10px;
     white-space: pre-wrap;
     word-break: break-all;
+    -webkit-overflow-scrolling: touch;
   `;
   panel.appendChild(logContainer);
 
@@ -118,13 +171,22 @@ function updatePanel(): void {
     .map((entry) => {
       const color =
         entry.level === 'error'
-          ? '#ff4444'
+          ? '#f87171'
           : entry.level === 'warn'
-            ? '#ffaa00'
+            ? '#fbbf24'
             : entry.level === 'debug'
-              ? '#888888'
-              : '#00ff00';
-      return `<div style="color: ${color}">[${getTimestamp(entry.timestamp)}] ${entry.message}</div>`;
+              ? '#6b7280'
+              : '#a5f3fc';
+      const badge =
+        entry.level === 'error'
+          ? '<span style="background:#7f1d1d;color:#fca5a5;padding:0 3px;border-radius:2px;font-size:9px;margin-right:4px">ERR</span>'
+          : entry.level === 'warn'
+            ? '<span style="background:#78350f;color:#fde68a;padding:0 3px;border-radius:2px;font-size:9px;margin-right:4px">WRN</span>'
+            : entry.level === 'debug'
+              ? '<span style="background:#1f2937;color:#9ca3af;padding:0 3px;border-radius:2px;font-size:9px;margin-right:4px">DBG</span>'
+              : '';
+      const ts = `<span style="color:#4b5563">${getTimestamp(entry.timestamp)}</span>`;
+      return `<div style="color:${color};padding:1px 0;border-bottom:1px solid rgba(255,255,255,0.03)">${ts} ${badge}${entry.message}</div>`;
     })
     .join('');
 

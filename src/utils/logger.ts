@@ -15,13 +15,40 @@
  * ❌ 禁止：import React / service / 游戏状态
  */
 
-import { consoleTransport,logger } from 'react-native-logs';
+import { consoleTransport, logger } from 'react-native-logs';
 
 import { mobileDebugTransport } from './mobileDebug';
 
+/**
+ * Wraps a transport so it only receives messages at or above `minSeverity`.
+ * react-native-logs applies severity globally before transports, so we set
+ * global severity to 'debug' and use this wrapper to keep consoleTransport
+ * quiet in production while mobileDebugTransport sees everything.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const withMinSeverity = <T extends (...args: any[]) => any>(
+  minSeverity: number,
+  inner: T,
+): T => {
+  return ((props: { level: { severity: number } }) => {
+    if (props.level.severity >= minSeverity) {
+      inner(props);
+    }
+  }) as unknown as T;
+};
+
+// severity levels: debug=0, info=1, warn=2, error=3
+const WARN_SEVERITY = 2;
+
 const config = {
-  transport: [consoleTransport, mobileDebugTransport],
-  severity: __DEV__ ? 'debug' : ('warn' as const),
+  transport: [
+    // In dev: console shows everything; in prod: console shows warn+ only
+    __DEV__ ? consoleTransport : withMinSeverity(WARN_SEVERITY, consoleTransport),
+    // Debug panel always receives all levels
+    mobileDebugTransport,
+  ],
+  // Global minimum = debug so mobileDebugTransport can receive everything
+  severity: 'debug' as const,
   transportOptions: {
     colors: {
       debug: 'white',
