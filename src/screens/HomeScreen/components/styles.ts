@@ -59,6 +59,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     container: {
       flex: 1,
       backgroundColor: colors.background,
+      overflow: 'hidden',
     },
     scrollView: {
       flex: 1,

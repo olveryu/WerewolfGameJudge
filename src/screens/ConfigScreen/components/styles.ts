@@ -106,6 +106,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     container: {
       flex: 1,
       backgroundColor: colors.background,
+      overflow: 'hidden', // Ensures flex children respect height constraints on web
     },
 
     // ── Header row 1: ← | 配置 | ⚙️ ────────────

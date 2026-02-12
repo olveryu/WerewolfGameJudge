@@ -81,6 +81,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     container: {
       flex: 1,
       backgroundColor: colors.background,
+      overflow: 'hidden',
     },
     header: {
       flexDirection: 'row',

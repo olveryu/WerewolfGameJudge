@@ -50,27 +50,47 @@ const TOOLBAR_BTN = `
 function createPanel(): HTMLDivElement {
   if (panelElement) return panelElement;
 
+  // ── Full-screen modal overlay ──
   const panel = document.createElement('div');
   panel.id = 'mobile-debug-panel';
   panel.style.cssText = `
     position: fixed;
-    bottom: 0;
+    top: 0;
     left: 0;
     right: 0;
-    height: 260px;
-    background: rgba(22, 22, 26, 0.96);
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+  `;
+
+  // Click backdrop to close
+  panel.addEventListener('click', (e) => {
+    if (e.target === panel) mobileDebug.hide();
+  });
+
+  // ── Modal card ──
+  const card = document.createElement('div');
+  card.style.cssText = `
+    width: 92%;
+    max-width: 600px;
+    height: 80%;
+    max-height: 700px;
+    background: rgba(22, 22, 26, 0.98);
+    border-radius: 12px;
     color: #e0e0e0;
     font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
     font-size: 11px;
-    z-index: 99999;
-    box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    pointer-events: auto;
-    border-top: 1px solid rgba(255,255,255,0.08);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
   `;
+  panel.appendChild(card);
 
   // ── Toolbar ──
   const toolbar = document.createElement('div');
@@ -78,7 +98,7 @@ function createPanel(): HTMLDivElement {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 10px;
+    padding: 10px 14px;
     background: rgba(255,255,255,0.04);
     border-bottom: 1px solid rgba(255,255,255,0.08);
     flex-shrink: 0;
@@ -86,9 +106,9 @@ function createPanel(): HTMLDivElement {
 
   // Title
   const title = document.createElement('span');
-  title.textContent = '🔍 Debug';
+  title.textContent = '🔍 Debug Console';
   title.style.cssText = `
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: #9ca3af;
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
@@ -136,25 +156,26 @@ function createPanel(): HTMLDivElement {
     ${TOOLBAR_BTN}
     color: #999;
     padding: 3px 7px;
-    font-size: 13px;
+    font-size: 14px;
   `;
   closeBtn.onclick = () => mobileDebug.hide();
   toolbar.appendChild(closeBtn);
 
-  panel.appendChild(toolbar);
+  card.appendChild(toolbar);
 
-  // ── Log container (scrollable) ──
+  // ── Log container (scrollable — native overflow inside modal) ──
   const logContainer = document.createElement('div');
   logContainer.id = 'mobile-debug-logs';
   logContainer.style.cssText = `
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    padding: 6px 10px;
+    padding: 8px 14px;
     white-space: pre-wrap;
     word-break: break-all;
     -webkit-overflow-scrolling: touch;
   `;
-  panel.appendChild(logContainer);
+  card.appendChild(logContainer);
 
   document.body.appendChild(panel);
   panelElement = panel;
@@ -192,8 +213,8 @@ function updatePanel(): void {
 
   logContainer.innerHTML = html;
 
-  // Auto-scroll to bottom
-  panelElement.scrollTop = panelElement.scrollHeight;
+  // Auto-scroll to bottom — target the scrollable log container, not the panel
+  logContainer.scrollTop = logContainer.scrollHeight;
 }
 
 function addLog(message: string, level: LogEntry['level'] = 'log', silent = false): void {
@@ -270,7 +291,7 @@ export const mobileDebug = {
     isVisible = true;
     createPanel();
     if (panelElement) {
-      panelElement.style.display = 'block';
+      panelElement.style.display = 'flex';
     }
     updatePanel();
   },
