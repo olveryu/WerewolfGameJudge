@@ -9,6 +9,17 @@
 import type { BroadcastGameState } from '@/services/protocol/types';
 
 /**
+ * Compile-time exhaustiveness guard for normalizeState.
+ *
+ * Requires all keys of T to be explicitly present in the object literal.
+ * Value correctness is guaranteed by the function's return type annotation.
+ *
+ * Effect: adding a new field to BroadcastGameState without listing it in
+ * normalizeState's return → TS error (missing property).
+ */
+type Complete<T> = Record<keyof T, unknown>;
+
+/**
  * 规范化座位键记录（canonicalize），确保所有 key 都是 string。
  * 用于任何 Record<string, T> 在运行时可能收到 number key 的场景。
  */
@@ -41,6 +52,10 @@ function requireField<T>(value: T | undefined, fieldName: string): T {
  * - 如果需要为测试工厂提供便捷默认值，建议拆分：
  *   - normalizeStateForBroadcast(state: BroadcastGameState): BroadcastGameState
  *   - normalizeStateForTests(partial: Partial<BroadcastGameState>): BroadcastGameState
+ *
+ * 🛡️ Compile-time guard:
+ * 返回对象使用 `satisfies Complete<BroadcastGameState>` 确保每个字段都被显式列出。
+ * 新增 BroadcastGameState 字段但忘记在此透传 → 编译报错（不再静默丢弃）。
  */
 export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
   // single source of truth: currentNightResults.wolfVotesBySeat
@@ -100,5 +115,5 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
 
     // Debug mode（透传）
     debugMode: raw.debugMode,
-  };
+  } satisfies Complete<BroadcastGameState>;
 }
