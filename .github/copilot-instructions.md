@@ -75,13 +75,14 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 ### 修改后验证流水线（Hard rule）
 
 - **pre-commit hook**（husky + lint-staged）自动对暂存文件跑 eslint --fix + prettier --write，保证格式/lint 不脏。
-- **pre-push hook**（husky）自动跑 `npm run quality`（fix → typecheck → lint → format → test），push 前完整验证。
+- **pre-push hook**（husky）自动跑 `npm run quality`（fix → typecheck → lint → test），push 前完整验证。
+- **GitHub Actions CI**（push/PR to main）自动跑 typecheck → lint → format check → test，服务端兜底。
 - **完整验证**也可手动跑，lint-staged 不覆盖跨文件类型检查和测试：
   1. `npx tsc --noEmit` — 类型检查
   2. `npm run lint` — ESLint
   3. `npm run format` — Prettier 格式检查
   4. `npx jest --no-coverage --forceExit` — 单元/集成测试
-- 快捷替代：`npm run quality`（先自动 fix 格式/lint，再依次跑以上 4 步检查，一条命令全搞定）。
+- 快捷替代：`npm run quality`（先自动 fix 格式/lint，再依次跑 typecheck → lint → test，一条命令全搞定）。
 - 任一步骤失败必须修复后重跑，禁止跳过。
 
 ---
