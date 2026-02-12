@@ -29,7 +29,7 @@ export const CONFIG = {
 
     // ── Unified GlowBorder params ──
     /** GlowBorder flash count */
-    glowFlashCount: 2,
+    glowFlashCount: 1,
     /** GlowBorder flash duration per cycle (ms) */
     glowFlashDuration: 100,
     /** GlowBorder border width */

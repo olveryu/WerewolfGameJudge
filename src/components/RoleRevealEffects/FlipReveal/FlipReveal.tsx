@@ -2,7 +2,7 @@
  * FlipReveal - 3D 翻牌揭示动画（Reanimated 4）
  *
  * 特点：悬浮 → 翻转气压波纹 → 边缘发光 → 金粒子爆发 → 弹跳落地。
- * 使用 `useSharedValue` + `withTiming`/`withSpring`/`withSequence` 驱动，
+ * 使用 `useSharedValue` + `withTiming`/`withSequence` 驱动，
  * 阶段切换通过 `runOnJS` 回调，无 `setTimeout`。
  *
  * ✅ 允许：渲染动画 + 触觉反馈
@@ -18,7 +18,6 @@ import Animated, {
   useSharedValue,
   withDelay,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -159,17 +158,17 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
       easing: Easing.in(Easing.cubic),
     });
 
-    // Bounce sequence → revealed
+    // Bounce sequence → revealed (deterministic timing, no spring oscillation)
     bounceY.value = withSequence(
       withTiming(-15, { duration: 100, easing: Easing.out(Easing.cubic) }),
-      withSpring(0, { damping: 15, stiffness: 300 }, (finished) => {
+      withTiming(0, { duration: 150, easing: Easing.out(Easing.cubic) }, (finished) => {
         'worklet';
         if (finished) runOnJS(enterRevealed)();
       }),
     );
     bounceScale.value = withSequence(
       withTiming(1.05, { duration: 100 }),
-      withSpring(1, { damping: 15, stiffness: 300 }),
+      withTiming(1, { duration: 150, easing: Easing.out(Easing.cubic) }),
     );
   }, [levitateY, bounceY, bounceScale, createParticles, enableHaptics, enterRevealed]);
 

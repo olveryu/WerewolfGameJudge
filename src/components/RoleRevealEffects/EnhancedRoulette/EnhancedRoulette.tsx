@@ -2,7 +2,7 @@
  * EnhancedRoulette - 老虎机风格角色揭示动画（Reanimated 4）
  *
  * 特点：金属框架、霓虹灯、转轮滚动、弹跳停止、庆祝粒子。
- * 使用 `useSharedValue` + `withTiming`/`withSpring`/`withSequence` 驱动，
+ * 使用 `useSharedValue` + `withTiming`/`withSequence` 驱动，
  * 无 `setTimeout`（通过 `runOnJS` 回调驱动阶段切换）。
  *
  * ✅ 允许：渲染动画 + 触觉反馈
@@ -20,7 +20,6 @@ import Animated, {
   withDelay,
   withRepeat,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -240,7 +239,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const transitionToRevealed = useCallback(() => {
     setPhase('revealed');
     cabinetOpacityAnim.value = withTiming(0, { duration: 300 });
-    revealScaleAnim.value = withSpring(1, { damping: 20, stiffness: 300 });
+    revealScaleAnim.value = withTiming(1, { duration: 200, easing: Easing.out(Easing.cubic) });
     revealOpacityAnim.value = withTiming(1, { duration: 300 });
   }, [cabinetOpacityAnim, revealScaleAnim, revealOpacityAnim]);
 
@@ -295,10 +294,10 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
         runOnJS(setPhase)('stopping');
 
-        // Bounce
+        // Bounce (deterministic timing, no spring oscillation)
         bounceAnim.value = withSequence(
           withTiming(-15, { duration: 100, easing: Easing.out(Easing.cubic) }),
-          withSpring(0, { damping: 15, stiffness: 300 }, (fin2) => {
+          withTiming(0, { duration: 150, easing: Easing.out(Easing.cubic) }, (fin2) => {
             'worklet';
             if (fin2) runOnJS(afterBounce)();
           }),
