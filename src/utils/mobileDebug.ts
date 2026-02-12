@@ -22,7 +22,7 @@ interface LogEntry {
   level: 'log' | 'warn' | 'error' | 'debug';
 }
 
-const MAX_LOGS = 100;
+const MAX_LOGS = 500;
 let logs: LogEntry[] = [];
 let panelElement: HTMLDivElement | null = null;
 let isVisible = false;

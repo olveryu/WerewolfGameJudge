@@ -52,6 +52,29 @@ Go to **Authentication > Email Templates** to customize:
 - Confirmation email
 - Password reset email
 
+## Edge Functions
+
+### groq-proxy — AI 聊天代理
+
+客户端通过 Supabase Edge Function 代理 Groq API，避免在前端暴露 API Key。
+
+```bash
+# 设置 GROQ API Key（服务端密钥，不会暴露到客户端）
+supabase secrets set GROQ_API_KEY=<your-groq-api-key>
+
+# 部署 Edge Function
+supabase functions deploy groq-proxy
+```
+
+验证部署：
+
+```bash
+supabase functions list
+# 应看到 groq-proxy 状态为 Active
+```
+
+> 客户端只需 Supabase URL + anon key 即可调用，无需知道 GROQ API Key。
+
 ## Environment Setup
 
 `.env`（已提交到 git）包含生产 Supabase 配置，clone 后即可使用。
@@ -70,6 +93,7 @@ bash scripts/setup-local-env.sh
 | File          | Purpose                                        |
 | ------------- | ---------------------------------------------- |
 | `config.toml` | Supabase CLI configuration                     |
+| `functions/`  | Edge Functions (groq-proxy 等)                  |
 | `migrations/` | Database migrations (versioned schema changes) |
 
 ## Creating New Migrations
