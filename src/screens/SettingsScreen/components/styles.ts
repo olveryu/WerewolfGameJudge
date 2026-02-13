@@ -399,6 +399,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       marginTop: spacing.small,
     },
     themeOption: {
+      flexGrow: 1,
       paddingHorizontal: spacing.medium,
       paddingVertical: spacing.small,
       borderRadius: borderRadius.medium,
@@ -413,6 +414,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     themeOptionText: {
       fontSize: typography.secondary,
       color: colors.text,
+      textAlign: 'center',
     },
     themeOptionTextActive: {
       color: colors.primary,

@@ -6,7 +6,7 @@
  * ✅ 允许：渲染 UI + 上报用户 intent
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { SettingsScreenStyles } from './styles';
@@ -43,10 +43,23 @@ export const ThemeSelector = memo<ThemeSelectorProps>(
       [currentThemeKey, onThemeChange, styles],
     );
 
+    const COLUMNS = 4;
+    const spacerCount = (COLUMNS - (availableThemes.length % COLUMNS)) % COLUMNS;
+    const spacers = useMemo(
+      () =>
+        Array.from({ length: spacerCount }, (_, i) => (
+          <View key={`spacer-${i}`} style={styles.themeOption} />
+        )),
+      [spacerCount, styles.themeOption],
+    );
+
     return (
       <View style={styles.card}>
         <Text style={styles.cardTitle}>主题</Text>
-        <View style={styles.themeOptions}>{availableThemes.map(renderThemeOption)}</View>
+        <View style={styles.themeOptions}>
+          {availableThemes.map(renderThemeOption)}
+          {spacers}
+        </View>
       </View>
     );
   },
