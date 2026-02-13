@@ -78,9 +78,13 @@ export const HomeScreen: React.FC = () => {
   // (room-not-found clears AsyncStorage, need to re-read on focus)
   useEffect(() => {
     const readLastRoom = () => {
-      AsyncStorage.getItem('lastRoomNumber').then((value) => {
-        setLastRoomNumber(value);
-      });
+      AsyncStorage.getItem('lastRoomNumber')
+        .then((value) => {
+          setLastRoomNumber(value);
+        })
+        .catch(() => {
+          // AsyncStorage read failure — not critical, leave lastRoomNumber as-is
+        });
     };
     readLastRoom();
     const unsubscribeFocus = navigation.addListener('focus', readLastRoom);

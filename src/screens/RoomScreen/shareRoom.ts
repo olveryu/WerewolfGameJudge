@@ -17,18 +17,23 @@ export function buildRoomUrl(roomNumber: string): string {
   return `https://werewolf-judge.vercel.app/room/${roomNumber}`;
 }
 
-/** Attempt to share or copy the room link. Returns true on success. */
-export async function shareOrCopyRoomLink(roomNumber: string): Promise<boolean> {
+/** Result of a share/copy attempt. */
+export type ShareResult = 'shared' | 'copied' | 'cancelled' | 'failed';
+
+/** Attempt to share or copy the room link. */
+export async function shareOrCopyRoomLink(roomNumber: string): Promise<ShareResult> {
   const url = buildRoomUrl(roomNumber);
   const text = `加入狼人杀房间 ${roomNumber}`;
 
   // Native: use RN Share API
   if (Platform.OS !== 'web') {
     try {
-      await Share.share({ message: `${text}\n${url}`, url });
-      return true;
+      const result = await Share.share({ message: `${text}\n${url}`, url });
+      // iOS returns 'dismissedAction' when user cancels
+      if (result.action === Share.dismissedAction) return 'cancelled';
+      return 'shared';
     } catch {
-      return false;
+      return 'failed';
     }
   }
 
@@ -36,10 +41,10 @@ export async function shareOrCopyRoomLink(roomNumber: string): Promise<boolean> 
   if (typeof navigator !== 'undefined' && navigator.share) {
     try {
       await navigator.share({ title: text, url });
-      return true;
+      return 'shared';
     } catch {
-      // User cancelled share sheet — not an error
-      return true;
+      // User cancelled share sheet
+      return 'cancelled';
     }
   }
 
@@ -47,11 +52,11 @@ export async function shareOrCopyRoomLink(roomNumber: string): Promise<boolean> 
   if (typeof navigator !== 'undefined' && navigator.clipboard) {
     try {
       await navigator.clipboard.writeText(url);
-      return true;
+      return 'copied';
     } catch {
-      return false;
+      return 'failed';
     }
   }
 
-  return false;
+  return 'failed';
 }
