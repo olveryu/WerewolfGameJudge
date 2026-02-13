@@ -1,0 +1,51 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "schedule": ["before 9am on monday"],
+  "timezone": "Asia/Shanghai",
+  "packageRules": [
+    {
+      "description": "Group Expo SDK packages",
+      "matchPackagePatterns": ["^expo", "^@expo/"],
+      "groupName": "expo",
+      "groupSlug": "expo"
+    },
+    {
+      "description": "Group React Native packages",
+      "matchPackagePatterns": ["^react-native", "^@react-native"],
+      "groupName": "react-native",
+      "groupSlug": "react-native"
+    },
+    {
+      "description": "Group ESLint packages",
+      "matchPackagePatterns": ["eslint"],
+      "groupName": "eslint",
+      "groupSlug": "eslint"
+    },
+    {
+      "description": "Group testing packages",
+      "matchPackagePatterns": ["jest", "@testing-library", "@playwright"],
+      "groupName": "testing",
+      "groupSlug": "testing"
+    },
+    {
+      "description": "Group Sentry packages",
+      "matchPackagePatterns": ["@sentry/"],
+      "groupName": "sentry",
+      "groupSlug": "sentry"
+    },
+    {
+      "description": "Group Supabase packages",
+      "matchPackagePatterns": ["@supabase/"],
+      "groupName": "supabase",
+      "groupSlug": "supabase"
+    },
+    {
+      "description": "Group dev tooling (prettier, husky, lint-staged, typescript)",
+      "matchPackageNames": ["prettier", "husky", "lint-staged", "typescript", "globals", "glob"],
+      "groupName": "dev-tooling",
+      "groupSlug": "dev-tooling"
+    }
+  ]
+}

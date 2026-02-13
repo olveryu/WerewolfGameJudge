@@ -32,3 +32,40 @@ jobs:
 
       - name: Test
         run: pnpm exec jest --no-coverage --forceExit
+
+  e2e:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Create E2E remote config
+        run: cp env/e2e.remote.example.json env/e2e.remote.json
+
+      - name: Run E2E tests
+        run: pnpm exec playwright test --reporter=list
+        env:
+          E2E_ENV: remote
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
