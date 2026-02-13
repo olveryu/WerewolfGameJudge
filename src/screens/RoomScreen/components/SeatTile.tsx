@@ -210,6 +210,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
               avatarUrl={playerAvatarUrl}
               avatarIndex={playerAvatarIndex}
               roomId={roomNumber}
+              borderRadius={borderRadius.medium}
             />
             {(isWolf || isSelected) && (
               <View

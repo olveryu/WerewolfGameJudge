@@ -23,6 +23,8 @@ interface AvatarProps {
   roomId?: string;
   /** Pre-computed unique avatar index from getUniqueAvatarMap. Takes priority over roomId hash. */
   avatarIndex?: number;
+  /** Override border radius. Defaults to size / 4. */
+  borderRadius?: number;
 }
 
 /**
@@ -43,16 +45,24 @@ const AvatarComponent: React.FC<AvatarProps> = ({
   avatarUrl,
   roomId,
   avatarIndex,
+  borderRadius: borderRadiusProp,
 }) => {
   const colors = useColors();
+  const radius = borderRadiusProp ?? size / 4;
 
   // Memoize style object to prevent new object creation on each render
   const imageStyle = useMemo(
     () => [
       styles.avatar,
-      { width: size, height: size, borderRadius: size / 4, backgroundColor: colors.border },
+      {
+        width: size,
+        height: size,
+        borderRadius: radius,
+        backgroundColor: colors.border,
+        overflow: 'hidden' as const,
+      },
     ],
-    [size, colors.border],
+    [size, radius, colors.border],
   );
 
   // Memoize URI source object to prevent new object creation
