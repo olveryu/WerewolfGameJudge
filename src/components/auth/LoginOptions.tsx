@@ -27,8 +27,8 @@ export const LoginOptions = memo<LoginOptionsProps>(
         <TouchableOpacity
           style={[styles.outlineButton, authLoading && styles.buttonDisabled]}
           onPress={onAnonymousLogin}
-          activeOpacity={authLoading ? 1 : 0.7}
-          accessibilityState={{ disabled: authLoading }}
+          disabled={authLoading}
+          activeOpacity={0.7}
           testID={TESTIDS.homeAnonLoginButton}
         >
           <Text style={styles.outlineButtonText}>{authLoading ? '处理中...' : '👤 匿名登录'}</Text>
