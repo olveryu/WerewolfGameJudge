@@ -16,16 +16,16 @@ _An automated judge app designed for in-person Werewolf games_
 
 ## ✨ 核心特性 | Features
 
-| 中文                                                              | English                                                                          |
-| ----------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| 🎙️ **自动语音播报** - 第一晚全流程自动引导，Host 也能闭眼参与     | 🎙️ **Auto Voice Narration** - Fully guided Night-1 flow, Host can close eyes too |
-| 📱 **多设备同步** - 一人建房，多人扫码加入，实时同步              | 📱 **Multi-device Sync** - One host creates room, others join via 4-digit code   |
-| 🎭 **22 种角色** - 完整狼人杀角色库，含多种特殊狼人和神职         | 🎭 **22 Roles** - Complete role library with special wolves and gods             |
-| 🤖 **AI 狼人杀助手** - 悬浮聊天泡泡，随时咨询规则和策略           | 🤖 **AI Werewolf Assistant** - Floating chat bubble for rules and strategy help  |
-| ⚡ **即开即用** - 匿名登录，无需注册，4位房间码快速加入           | ⚡ **Instant Play** - Anonymous login, no registration, quick join               |
-| 🌐 **跨平台** - iOS / Android / Web 全平台支持                    | 🌐 **Cross-platform** - iOS / Android / Web supported                            |
-| 🎨 **多主题** - 6 种主题风格可选（暗黑/浅色/午夜/血月/紫霞/极简） | 🎨 **Themes** - 6 theme styles (Dark/Light/Midnight/Blood/Purple/Minimal)        |
-| 🧪 **高测试覆盖** - 2643 个单元测试 + UI 测试 + E2E 测试          | 🧪 **High Test Coverage** - 2643 unit tests + UI tests + E2E tests               |
+| 中文                                                                        | English                                                                                |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 🎙️ **自动语音播报** - 第一晚全流程自动引导，Host 也能闭眼参与               | 🎙️ **Auto Voice Narration** - Fully guided Night-1 flow, Host can close eyes too       |
+| 📱 **多设备同步** - 一人建房，多人扫码加入，实时同步                        | 📱 **Multi-device Sync** - One host creates room, others join via 4-digit code         |
+| 🎭 **22 种角色** - 完整狼人杀角色库，含多种特殊狼人和神职                   | 🎭 **22 Roles** - Complete role library with special wolves and gods                   |
+| 🤖 **AI 狼人杀助手** - 悬浮聊天泡泡，随时咨询规则和策略                     | 🤖 **AI Werewolf Assistant** - Floating chat bubble for rules and strategy help        |
+| ⚡ **即开即用** - 匿名登录，无需注册，4位房间码快速加入                     | ⚡ **Instant Play** - Anonymous login, no registration, quick join                     |
+| 🌐 **跨平台** - iOS / Android / Web 全平台支持                              | 🌐 **Cross-platform** - iOS / Android / Web supported                                  |
+| 🎨 **多主题** - 8 种主题风格可选（暗黑/浅色/午夜/血月/紫霞/极简/森林/雪夜） | 🎨 **Themes** - 8 theme styles (Dark/Light/Midnight/Blood/Discord/Minimal/Forest/Snow) |
+| 🧪 **高测试覆盖** - 2643 个单元测试 + UI 测试 + E2E 测试                    | 🧪 **High Test Coverage** - 2643 unit tests + UI tests + E2E tests                     |
 
 ---
 
@@ -131,7 +131,7 @@ _The 🐺 floating button at the bottom-right is your personal Werewolf consulta
 ### 系统架构 | System Architecture
 
 ```
-Host 设备 (GameStateService)          Host Device (GameStateService)
+Host 设备 (Engine + Facade)            Host Device (Engine + Facade)
     │                                     │
     │ Realtime Broadcast                  │ Realtime Broadcast
     │ (BroadcastGameState)                │ (BroadcastGameState)
@@ -172,7 +172,7 @@ NIGHT_STEPS (步骤序列)                Step sequence
 | **UI Board Tests**    | 10 boards  | 覆盖所有预设板子<br/>_Cover all preset boards_                            |
 | **Integration Tests** | 25+        | 夜晚流程全链路<br/>_Full night flow chains_                               |
 | **Contract Tests**    | 15+        | Schema/Resolver 对齐<br/>_Schema/Resolver alignment_                      |
-| **E2E Tests**         | 16         | 6 spec files, Playwright 端到端<br/>_6 spec files, Playwright end-to-end_ |
+| **E2E Tests**         | 18         | 7 spec files, Playwright 端到端<br/>_7 spec files, Playwright end-to-end_ |
 
 ---
 
@@ -183,13 +183,13 @@ _5 visual effect animations when revealing roles, enhancing game experience!_
 
 ### 特效类型 | Effect Types
 
-| 类型 Type             | 描述 Description                                       |
-| --------------------- | ------------------------------------------------------ |
-| 🎰 **轮盘** roulette  | 老虎机滚动效果<br/>_Slot machine spinning effect_      |
-| 🃏 **翻牌** flip      | 3D 卡牌翻转动画<br/>_3D card flip animation_           |
-| ✨ **刮刮卡** scratch | 手指刮开揭示身份<br/>_Scratch to reveal with finger_   |
-| 🧩 **碎片** fragment  | 碎片从四周飞入拼合<br/>_Fragments fly in and assemble_ |
-| 🌫️ **迷雾** fog       | 迷雾散开揭示卡牌<br/>_Fog disperses to reveal card_    |
+| 类型 Type                  | 描述 Description                                           |
+| -------------------------- | ---------------------------------------------------------- |
+| 🎰 **轮盘** roulette       | 老虎机滚动效果<br/>_Slot machine spinning effect_          |
+| 🃏 **翻牌** flip           | 3D 卡牌翻转动画<br/>_3D card flip animation_               |
+| ✨ **刮刮卡** scratch      | 手指刮开揭示身份<br/>_Scratch to reveal with finger_       |
+| 🔮 **塔罗** tarot          | 转盘抽卡揭示效果<br/>_Tarot card draw reveal effect_       |
+| 🎪 **扭蛋机** gachaMachine | 复古扭蛋机揭示效果<br/>_Retro gacha machine reveal effect_ |
 
 ### 特性 | Features
 
@@ -230,7 +230,7 @@ function MyScreen() {
   return (
     <RoleRevealAnimator
       visible={showReveal}
-      effectType="flip" // 'roulette' | 'flip' | 'scratch' | 'fragment' | 'fog'
+      effectType="flip" // 'roulette' | 'flip' | 'scratch' | 'tarot' | 'gachaMachine'
       role={role}
       onComplete={() => setShowReveal(false)}
       enableSound={true}
@@ -255,16 +255,15 @@ function MyScreen() {
 
 ### 环境要求 | Requirements
 
-- Node.js >= 18
-- npm 或 yarn
-- Expo CLI
+- Node.js >= 22
+- pnpm (项目使用 pnpm 管理依赖 | project uses pnpm)
 - Supabase CLI (可选 optional)
 
 ### 本地开发 | Local Development
 
 ```bash
 # 1. 安装依赖 | Install dependencies
-npm install
+pnpm install
 
 # 2. 启动本地 Supabase (可选) | Start local Supabase (optional)
 supabase start
@@ -273,7 +272,7 @@ bash scripts/setup-local-env.sh   # 生成 .env.local 覆盖
 # 3. 启动开发服务器 | Start dev server
 pnpm start
 
-# 5. 运行测试 | Run tests
+# 4. 运行测试 | Run tests
 pnpm test                    # Unit tests (Jest)
 pnpm run e2e:core            # E2E tests (Playwright)
 pnpm run typecheck           # TypeScript check
@@ -308,7 +307,7 @@ src/
 │           ├── boards/         # 板子 UI 测试 | Board UI tests
 │           ├── harness/        # 测试工具 | Test harness
 │           └── contracts/      # 契约测试 | Contract tests
-├── contexts/                   # React Context (Auth / GameFacade / Theme)
+├── contexts/                   # React Context (Auth / GameFacade / Network / Service)
 ├── theme/                      # Design tokens + themes
 ├── utils/                      # 工具函数 | Utility functions
 └── hooks/                      # 全局 Hooks | Global hooks
@@ -356,7 +355,7 @@ pnpm run deploy
 | **Images**     | expo-image (disk cache + transitions)        |
 | **Testing**    | Jest + Testing Library + Playwright          |
 | **Deployment** | Vercel (Web)                                 |
-| **State**      | Custom GameStateService (Host-only)          |
+| **State**      | Custom engine (reducer + handlers + facade)  |
 
 ---
 

@@ -84,6 +84,7 @@ e2e/
     ├── seating.spec.ts         ← seating assignment / broadcast
     ├── night-2p.spec.ts        ← 2-player night-1 flow
     ├── night-6p.spec.ts        ← 6-player night-1 flow
+    ├── rejoin.spec.ts          ← host & player rejoin mid-game
     └── restart.spec.ts         ← restart + settings change
 ```
 

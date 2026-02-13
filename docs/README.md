@@ -26,10 +26,12 @@
 
 ## 审计与规范
 
-| 文档                                                       | 说明                                                                 |
-| ---------------------------------------------------------- | -------------------------------------------------------------------- |
-| [DRIFT_AUDIT.md](DRIFT_AUDIT.md)                           | Actor Identity / Night Steps / BroadcastGameState 双写与语义漂移审计 |
-| [random-and-id-guidelines.md](random-and-id-guidelines.md) | 随机数、唯一 ID、确定性选择的使用规则                                |
+| 文档                                                               | 说明                                                                 |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| [DRIFT_AUDIT.md](DRIFT_AUDIT.md)                                   | Actor Identity / Night Steps / BroadcastGameState 双写与语义漂移审计 |
+| [random-and-id-guidelines.md](random-and-id-guidelines.md)         | 随机数、唯一 ID、确定性选择的使用规则                                |
+| [board-test-100-coverage-plan.md](board-test-100-coverage-plan.md) | Board UI 测试100%覆盖计划                                            |
+| [wolf-vote-revote-countdown.md](wolf-vote-revote-countdown.md)     | 狼人投票/重投倒计时设计方案                                          |
 
 ## 开发工具
 

@@ -29,7 +29,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 - `src/theme/` — Design tokens (`tokens.ts`) + themes (`themes.ts`)
 - `src/components/` — 通用 UI 组件
 - `src/hooks/` — 通用 hooks
-- `src/contexts/` — React Context（AuthContext / GameFacadeContext / ThemeProvider）
+- `src/contexts/` — React Context（AuthContext / GameFacadeContext / NetworkContext / ServiceContext）
 - `src/utils/` — 工具函数（logger / alert / random / id）
 - `src/config/` — 配置（Supabase / version）
 - `src/navigation/` — React Navigation 路由

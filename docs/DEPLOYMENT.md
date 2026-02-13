@@ -147,8 +147,8 @@ clone 后直接运行 —— `.env` 已在 git 中包含生产 Supabase 配置�
 
 ```bash
 git clone <repo>
-npm install
-npm start
+pnpm install
+pnpm start
 ```
 
 ### 切换到本地 Supabase
@@ -166,25 +166,25 @@ bash scripts/setup-local-env.sh
 
 ### 职责分离
 
-| 脚本                 | 职责                         | 命令              |
-| -------------------- | ---------------------------- | ----------------- |
-| `scripts/release.sh` | 版本号 + commit + tag + push | `npm run release` |
-| `scripts/deploy.sh`  | 构建 Web + 部署到 Vercel     | `npm run deploy`  |
+| 脚本                 | 职责                         | 命令               |
+| -------------------- | ---------------------------- | ------------------ |
+| `scripts/release.sh` | 版本号 + commit + tag + push | `pnpm run release` |
+| `scripts/deploy.sh`  | 构建 Web + 部署到 Vercel     | `pnpm run deploy`  |
 
 ### 标准流程（推荐）
 
 ```bash
 # 1. 发版（bump version → commit → tag → push）
-npm run release              # 默认 patch
-npm run release -- minor     # 或 minor / major
+pnpm run release              # 默认 patch
+pnpm run release -- minor     # 或 minor / major
 
 # 2. 部署（build → deploy to Vercel）
-npm run deploy
+pnpm run deploy
 ```
 
 ### `release.sh` 做了什么
 
-1. `npm version patch` （或 minor/major）
+1. `pnpm version patch` （或 minor/major）
 2. 同步版本号到 `app.json`
 3. 检测版本文件之外的改动，交互确认
 4. `git commit -m "release: vX.Y.Z"` + `git tag vX.Y.Z`
@@ -202,7 +202,7 @@ npm run deploy
 
 ### 手动部署
 
-> ⚠️ 手动部署会缺少 PWA 文件复制、字体路径修复等步骤。建议优先使用 `npm run deploy`。
+> ⚠️ 手动部署会缺少 PWA 文件复制、字体路径修复等步骤。建议优先使用 `pnpm run deploy`。
 
 ```bash
 # 构建（确保 .env.local 不存在或不含 Supabase 本地值）
@@ -268,7 +268,7 @@ supabase db push
 grep -o "supabase.co\|127.0.0.1" dist/_expo/static/js/web/*.js
 
 # 如果输出 127.0.0.1，重新部署即可：
-npm run deploy
+pnpm run deploy
 # deploy.sh 会自动移走 .env.local，使用 .env 中的生产值
 ```
 
@@ -284,8 +284,8 @@ npm run deploy
 ### Q4: 如何更新部署？
 
 ```bash
-npm run release    # 版本号 + commit + tag + push
-npm run deploy     # 构建 + 部署到 Vercel
+pnpm run release    # 版本号 + commit + tag + push
+pnpm run deploy     # 构建 + 部署到 Vercel
 ```
 
 ### Q5: 如何回滚？
@@ -302,21 +302,21 @@ vercel alias set <old-deployment-url> werewolf-judge.vercel.app
 
 ## 快速参考
 
-| 操作               | 命令                                                   |
-| ------------------ | ------------------------------------------------------ |
-| **本地开发**       |                                                        |
-| 启动本地 Supabase  | `supabase start`                                       |
-| 停止本地 Supabase  | `supabase stop`                                        |
-| 启动开发服务器     | `npm start`                                            |
-| **生产部署**       |                                                        |
-| 发版               | `npm run release` (patch) / `npm run release -- minor` |
-| 部署               | `npm run deploy`                                       |
-| 推送数据库迁移     | `supabase db push`                                     |
-| 部署 Edge Function | `supabase functions deploy groq-proxy`                 |
-| 设置 GROQ 密钥     | `supabase secrets set GROQ_API_KEY=gsk_...`            |
-| 获取 API Keys      | `supabase projects api-keys --project-ref <ref>`       |
-| 查看部署别名       | `vercel alias ls`                                      |
-| 回滚部署           | `vercel alias set <old-url> werewolf-judge.vercel.app` |
+| 操作               | 命令                                                     |
+| ------------------ | -------------------------------------------------------- |
+| **本地开发**       |                                                          |
+| 启动本地 Supabase  | `supabase start`                                         |
+| 停止本地 Supabase  | `supabase stop`                                          |
+| 启动开发服务器     | `pnpm start`                                             |
+| **生产部署**       |                                                          |
+| 发版               | `pnpm run release` (patch) / `pnpm run release -- minor` |
+| 部署               | `pnpm run deploy`                                        |
+| 推送数据库迁移     | `supabase db push`                                       |
+| 部署 Edge Function | `supabase functions deploy groq-proxy`                   |
+| 设置 GROQ 密钥     | `supabase secrets set GROQ_API_KEY=gsk_...`              |
+| 获取 API Keys      | `supabase projects api-keys --project-ref <ref>`         |
+| 查看部署别名       | `vercel alias ls`                                        |
+| 回滚部署           | `vercel alias set <old-url> werewolf-judge.vercel.app`   |
 
 ---
 
