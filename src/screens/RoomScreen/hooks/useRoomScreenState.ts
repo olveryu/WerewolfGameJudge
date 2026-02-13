@@ -55,6 +55,13 @@ import { useRoomInit } from './useRoomInit';
 const EMPTY_ACTIONS: Map<RoleId, RoleAction> = new Map();
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Errors that cannot be recovered by retrying — auto-redirect to Home */
+const FATAL_ROOM_ERRORS = new Set(['房间不存在', '房间状态已过期，请重新创建房间']);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -79,7 +86,9 @@ export function useRoomScreenState(
 ) {
   const {
     roomNumber,
-    isHost: isHostParam,
+    // Default to false: URL navigation (refresh) may omit isHost;
+    // joinRoom auto-detects host status from DB record.hostUid
+    isHost: isHostParam = false,
     template,
     roleRevealAnimation: initialRoleRevealAnimation,
   } = params;
@@ -197,6 +206,21 @@ export function useRoomScreenState(
     setRoleRevealAnimation,
     gameRoomError,
   });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Fatal error auto-redirect: room gone → alert + navigate Home
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  useEffect(() => {
+    if (!gameRoomError) return;
+    const fatal = FATAL_ROOM_ERRORS.has(gameRoomError);
+    if (!fatal) return;
+    roomScreenLog.debug('[useRoomScreenState] Fatal room error, redirecting to Home', {
+      error: gameRoomError,
+    });
+    showAlert('提示', gameRoomError);
+    navigation.navigate('Home');
+  }, [gameRoomError, navigation]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Actor Identity

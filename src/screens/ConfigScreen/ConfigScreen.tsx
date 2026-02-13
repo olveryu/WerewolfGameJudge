@@ -201,7 +201,11 @@ export const ConfigScreen: React.FC = () => {
   // ============================================
 
   const handleGoBack = useCallback(() => {
-    navigation.goBack();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Home');
+    }
   }, [navigation]);
 
   const toggleRole = useCallback((key: string) => {
@@ -253,7 +257,11 @@ export const ConfigScreen: React.FC = () => {
           return;
         }
         await facade.setRoleRevealAnimation(roleRevealAnimation);
-        navigation.goBack();
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate('Home');
+        }
       } else {
         await settingsService.setRoleRevealAnimation(roleRevealAnimation);
         // Create room record in DB first — get confirmed/final roomNumber

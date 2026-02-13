@@ -93,7 +93,15 @@ export function useRoomInit({
     const initRoom = async () => {
       setLoadingMessage('正在初始化...');
 
-      if (isHostParam && template) {
+      // Guard: template must be a real GameTemplate object, not a URL-parsed string.
+      // On refresh, URL params may produce isHost=true + template="[object Object]".
+      const hasValidTemplate =
+        isHostParam &&
+        template != null &&
+        typeof template === 'object' &&
+        Array.isArray(template.roles);
+
+      if (hasValidTemplate) {
         // Host initializes room (DB record already created before navigation)
         setLoadingMessage('正在初始化房间...');
         roomScreenLog.debug('[useRoomInit] Host initializing room', {

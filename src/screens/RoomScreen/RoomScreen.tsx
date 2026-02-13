@@ -16,7 +16,7 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -43,6 +43,7 @@ import { createRoomScreenComponentStyles } from './components/styles';
 import { useRoomScreenState } from './hooks/useRoomScreenState';
 import { formatRoleList } from './RoomScreen.helpers';
 import { createRoomScreenStyles } from './RoomScreen.styles';
+import { shareOrCopyRoomLink } from './shareRoom';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -50,6 +51,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const colors = useColors();
   const styles = useMemo(() => createRoomScreenStyles(colors), [colors]);
   const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), [colors]);
+
+  const handleShareRoom = useCallback(() => {
+    void shareOrCopyRoomLink(route.params.roomNumber).then((success) => {
+      if (success) {
+        showAlert('已复制', '房间链接已复制到剪贴板');
+      } else {
+        showAlert('分享失败', '无法复制链接，请手动分享房间号');
+      }
+    });
+  }, [route.params.roomNumber]);
 
   const {
     // Route params
@@ -134,8 +145,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             >
               <Text style={styles.errorBackButtonText}>重试</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.errorBackButton} onPress={() => navigation.goBack()}>
-              <Text style={styles.errorBackButtonText}>返回</Text>
+            <TouchableOpacity
+              style={styles.errorBackButton}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Text style={styles.errorBackButtonText}>返回首页</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -162,7 +176,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           <TouchableOpacity onPress={handleDebugTitleTap} activeOpacity={1}>
             <Text style={styles.headerTitle}>房间 {roomNumber}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerSubtitle}>{gameState.template.roles.length}人局</Text>
+          <TouchableOpacity onPress={handleShareRoom} activeOpacity={0.6}>
+            <Text style={styles.headerSubtitle}>
+              {gameState.template.roles.length}人局 · 复制链接
+            </Text>
+          </TouchableOpacity>
         </View>
         {/* Host Menu Dropdown - replaces headerSpacer */}
         <HostMenuDropdown

@@ -85,7 +85,11 @@ export const SettingsScreen: React.FC = () => {
   // ============================================
 
   const handleGoBack = useCallback(() => {
-    navigation.goBack();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Home');
+    }
   }, [navigation]);
 
   const handlePickAvatar = useCallback(async () => {
