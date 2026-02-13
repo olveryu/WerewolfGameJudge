@@ -31,6 +31,7 @@ import { ActionButton } from './components/ActionButton';
 import { BoardInfoCard } from './components/BoardInfoCard';
 import { BottomActionPanel } from './components/BottomActionPanel';
 import { ConnectionStatusBar } from './components/ConnectionStatusBar';
+import { ContinueGameOverlay } from './components/ContinueGameOverlay';
 import { ControlledSeatBanner } from './components/ControlledSeatBanner';
 import { HostControlButtons } from './components/HostControlButtons';
 import { HostMenuDropdown } from './components/HostMenuDropdown';
@@ -106,6 +107,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     roleCardVisible,
     shouldPlayRevealAnimation,
     handleRoleCardClose,
+    // Rejoin recovery
+    resumeAfterRejoin,
+    needsContinueOverlay,
   } = useRoomScreenState(route.params, navigation);
 
   // ─── Loading / Error early returns ─────────────────────────────────────
@@ -317,6 +321,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             />
           )}
       </BottomActionPanel>
+
+      {/* Continue Game Overlay — shown after Host rejoin to unlock audio */}
+      <ContinueGameOverlay
+        visible={needsContinueOverlay}
+        onContinue={resumeAfterRejoin}
+        styles={componentStyles.continueGameOverlay}
+      />
 
       {/* Seat Confirmation Modal */}
       {/* Seat Confirmation Modal - only render when pendingSeat is set */}

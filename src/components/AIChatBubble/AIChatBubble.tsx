@@ -68,17 +68,19 @@ export const AIChatBubble: React.FC = () => {
   }, [showScrollBtn]);
 
   // Wrap send/quickQuestion to force scroll-to-bottom on user action
+  const { handleSend, handleQuickQuestion } = chat;
+
   const handleSendAndScroll = useCallback(async () => {
     setShowScrollBtn(false);
-    await chat.handleSend();
-  }, [chat.handleSend]);
+    await handleSend();
+  }, [handleSend]);
 
   const handleQuickQuestionAndScroll = useCallback(
     (question: string) => {
       setShowScrollBtn(false);
-      chat.handleQuickQuestion(question);
+      handleQuickQuestion(question);
     },
-    [chat.handleQuickQuestion],
+    [handleQuickQuestion],
   );
 
   // ── Message renderer ───────────────────────────────

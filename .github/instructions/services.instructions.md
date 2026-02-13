@@ -122,6 +122,17 @@ advanceToNextAction()
   - ❌ 禁止 `useEffect` 主动播放音频。
   - ❌ 禁止 UI toggle `setAudioPlaying`。
 
+### Host Rejoin 音频恢复
+
+Facade 负责两个音频生命周期路径：
+
+1. **正常夜晚推进**：执行 Handler 返回的 `PLAY_AUDIO` 副作用（`setAudioPlaying(true)` → 播放 → `finally { setAudioPlaying(false) }`）。
+2. **Rejoin 恢复**：`joinAsHost()` 从 HostStateCache 恢复 state 时，检测 `isAudioPlaying` 是否被中断（标记 `_wasAudioInterrupted`），同时重置 `isAudioPlaying = false`。UI 层通过 `ContinueGameOverlay`（用户手势 gate）调用 `resumeAfterRejoin()`，重播当前 step 的音频，重建 wolfVoteTimer（如有残留 deadline），最后调用 `callNightProgression` 恢复推进。
+
+- ✅ 两条路径都由 Facade 编排 IO — rejoin 恢复属于 Facade 的生命周期管理职责，不涉及 Handler。
+- ✅ Web autoplay policy 要求用户手势解锁 AudioContext，因此 rejoin 路径必须经过 UI 手势 gate（`ContinueGameOverlay`）。
+- ❌ 禁止在 UI `useEffect` 中自动触发 `resumeAfterRejoin()`（会被 autoplay policy 拦截）。
+
 ### 音频 Gate（`isAudioPlaying`）硬性护栏
 
 - `isAudioPlaying` 是事实状态，不是推导状态。

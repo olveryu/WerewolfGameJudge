@@ -131,6 +131,10 @@ export function useRoomScreenState(
     setControlledSeat,
     effectiveSeat,
     effectiveRole,
+    // Rejoin recovery
+    resumeAfterRejoin,
+    needsContinueOverlay,
+    dismissContinueOverlay,
   } = useGameRoom();
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -628,5 +632,10 @@ export function useRoomScreenState(
     roleCardVisible,
     shouldPlayRevealAnimation,
     handleRoleCardClose,
+
+    // ── Rejoin recovery ──
+    resumeAfterRejoin,
+    needsContinueOverlay,
+    dismissContinueOverlay,
   };
 }

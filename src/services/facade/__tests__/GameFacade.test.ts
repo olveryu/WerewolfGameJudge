@@ -1518,4 +1518,424 @@ describe('GameFacade', () => {
       expect(result.success).toBe(true);
     });
   });
+
+  // ===========================================================================
+  // Host Rejoin: joinAsHost + wasAudioInterrupted + resumeAfterRejoin
+  // ===========================================================================
+
+  describe('Host: joinAsHost (cache restore)', () => {
+    /** Build a cached ongoing state for rejoin tests */
+    const buildOngoingCache = (overrides: Record<string, unknown> = {}) => ({
+      version: 1,
+      revision: 10,
+      cachedAt: Date.now(),
+      state: {
+        roomCode: 'REJN',
+        hostUid: 'host-uid',
+        status: 'ongoing' as const,
+        templateRoles: ['wolf', 'villager'],
+        players: {
+          0: {
+            uid: 'host-uid',
+            seatNumber: 0,
+            displayName: 'Host',
+            avatarUrl: undefined,
+            role: 'wolf',
+            hasViewedRole: true,
+          },
+          1: {
+            uid: 'player-2',
+            seatNumber: 1,
+            displayName: 'P2',
+            avatarUrl: undefined,
+            role: 'villager',
+            hasViewedRole: true,
+          },
+        },
+        currentStepIndex: 0,
+        currentStepId: 'wolfKill',
+        isAudioPlaying: false,
+        ...overrides,
+      },
+    });
+
+    it('should restore state from cache and set wasAudioInterrupted=true when ongoing', async () => {
+      const cached = buildOngoingCache();
+      const facadeWithCache = new GameFacade({
+        store: new GameStore(),
+        broadcastService: mockBroadcastService as any,
+        audioService: mockAudioServiceInstance as any,
+        hostStateCache: {
+          saveState: jest.fn(),
+          loadState: jest.fn().mockResolvedValue(cached),
+          getState: jest.fn().mockReturnValue(null),
+          clearState: jest.fn(),
+        } as any,
+      });
+
+      const result = await facadeWithCache.joinAsHost('REJN', 'host-uid');
+
+      expect(result.success).toBe(true);
+      expect(facadeWithCache.wasAudioInterrupted).toBe(true);
+      expect(facadeWithCache.isHostPlayer()).toBe(true);
+      expect(facadeWithCache.getState()?.status).toBe('ongoing');
+    });
+
+    it('should set wasAudioInterrupted=false when cached status is not ongoing', async () => {
+      const cached = buildOngoingCache({ status: 'ready' });
+      const facadeWithCache = new GameFacade({
+        store: new GameStore(),
+        broadcastService: mockBroadcastService as any,
+        audioService: mockAudioServiceInstance as any,
+        hostStateCache: {
+          saveState: jest.fn(),
+          loadState: jest.fn().mockResolvedValue(cached),
+          getState: jest.fn().mockReturnValue(null),
+          clearState: jest.fn(),
+        } as any,
+      });
+
+      const result = await facadeWithCache.joinAsHost('REJN', 'host-uid');
+
+      expect(result.success).toBe(true);
+      expect(facadeWithCache.wasAudioInterrupted).toBe(false);
+    });
+
+    it('should broadcast restored state after host rejoin', async () => {
+      const cached = buildOngoingCache();
+      const facadeWithCache = new GameFacade({
+        store: new GameStore(),
+        broadcastService: mockBroadcastService as any,
+        audioService: mockAudioServiceInstance as any,
+        hostStateCache: {
+          saveState: jest.fn(),
+          loadState: jest.fn().mockResolvedValue(cached),
+          getState: jest.fn().mockReturnValue(null),
+          clearState: jest.fn(),
+        } as any,
+      });
+
+      await facadeWithCache.joinAsHost('REJN', 'host-uid');
+
+      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'STATE_UPDATE',
+          state: expect.objectContaining({
+            roomCode: 'REJN',
+            status: 'ongoing',
+          }),
+        }),
+      );
+    });
+
+    it('should return no_cached_state when no cache and no template', async () => {
+      const result = await facade.joinAsHost('REJN', 'host-uid');
+
+      expect(result).toEqual({ success: false, reason: 'no_cached_state' });
+      expect(facade.isHostPlayer()).toBe(false);
+    });
+
+    it('should initialize with template when no cache but template provided', async () => {
+      const result = await facade.joinAsHost('REJN', 'host-uid', [
+        'wolf' as any,
+        'villager' as any,
+      ]);
+
+      expect(result.success).toBe(true);
+      expect(facade.getState()?.status).toBe('unseated');
+      expect(facade.wasAudioInterrupted).toBe(false);
+    });
+  });
+
+  describe('Host: resumeAfterRejoin', () => {
+    /** Helper: create facade with ongoing cached state, already joined */
+    const createRejoinedFacade = async (
+      stateOverrides: Record<string, unknown> = {},
+    ): Promise<GameFacade> => {
+      const cached = {
+        version: 1,
+        revision: 10,
+        cachedAt: Date.now(),
+        state: {
+          roomCode: 'REJN',
+          hostUid: 'host-uid',
+          status: 'ongoing' as const,
+          templateRoles: ['wolf', 'villager'],
+          players: {
+            0: {
+              uid: 'host-uid',
+              seatNumber: 0,
+              displayName: 'Host',
+              avatarUrl: undefined,
+              role: 'wolf',
+              hasViewedRole: true,
+            },
+            1: {
+              uid: 'player-2',
+              seatNumber: 1,
+              displayName: 'P2',
+              avatarUrl: undefined,
+              role: 'villager',
+              hasViewedRole: true,
+            },
+          },
+          currentStepIndex: 0,
+          currentStepId: 'wolfKill',
+          isAudioPlaying: true,
+          ...stateOverrides,
+        },
+      };
+
+      const f = new GameFacade({
+        store: new GameStore(),
+        broadcastService: mockBroadcastService as any,
+        audioService: mockAudioServiceInstance as any,
+        hostStateCache: {
+          saveState: jest.fn(),
+          loadState: jest.fn().mockResolvedValue(cached),
+          getState: jest.fn().mockReturnValue(null),
+          clearState: jest.fn(),
+        } as any,
+      });
+
+      await f.joinAsHost('REJN', 'host-uid');
+      mockBroadcastService.broadcastAsHost.mockClear();
+      mockAudioServiceInstance.playRoleBeginningAudio.mockClear();
+      return f;
+    };
+
+    it('should replay current step audio and release gate when isAudioPlaying=true', async () => {
+      const f = await createRejoinedFacade();
+
+      await f.resumeAfterRejoin();
+
+      // Should replay wolf audio
+      expect(mockAudioServiceInstance.playRoleBeginningAudio).toHaveBeenCalledWith('wolf');
+      // Should release audio gate (setAudioPlaying(false) broadcasts)
+      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalled();
+      const lastBroadcast =
+        mockBroadcastService.broadcastAsHost.mock.calls[
+          mockBroadcastService.broadcastAsHost.mock.calls.length - 1
+        ][0];
+      expect(lastBroadcast.state.isAudioPlaying).toBe(false);
+    });
+
+    it('should release gate even if audio fails (finally block)', async () => {
+      mockAudioServiceInstance.playRoleBeginningAudio.mockRejectedValueOnce(
+        new Error('audio error'),
+      );
+      const f = await createRejoinedFacade();
+
+      // Error propagates (caller uses fire-and-forget `void`), but finally block still runs
+      await expect(f.resumeAfterRejoin()).rejects.toThrow('audio error');
+
+      // Gate should still be released via finally
+      const broadcasts = mockBroadcastService.broadcastAsHost.mock.calls;
+      const lastState = broadcasts[broadcasts.length - 1]?.[0]?.state;
+      expect(lastState?.isAudioPlaying).toBe(false);
+    });
+
+    it('should noop on second call (re-entry guard)', async () => {
+      const f = await createRejoinedFacade();
+
+      await f.resumeAfterRejoin();
+      mockAudioServiceInstance.playRoleBeginningAudio.mockClear();
+      mockBroadcastService.broadcastAsHost.mockClear();
+
+      // Second call should be no-op
+      await f.resumeAfterRejoin();
+
+      expect(mockAudioServiceInstance.playRoleBeginningAudio).not.toHaveBeenCalled();
+    });
+
+    it('should clear wasAudioInterrupted after call', async () => {
+      const f = await createRejoinedFacade();
+      expect(f.wasAudioInterrupted).toBe(true);
+
+      await f.resumeAfterRejoin();
+
+      expect(f.wasAudioInterrupted).toBe(false);
+    });
+
+    it('should skip audio when isAudioPlaying=false but still trigger progression', async () => {
+      const f = await createRejoinedFacade({ isAudioPlaying: false });
+
+      await f.resumeAfterRejoin();
+
+      // No audio replay
+      expect(mockAudioServiceInstance.playRoleBeginningAudio).not.toHaveBeenCalled();
+      // Should still broadcast (progression may trigger state changes)
+      expect(f.wasAudioInterrupted).toBe(false);
+    });
+
+    it('should release gate when currentStepId is undefined (endNight interrupted)', async () => {
+      const f = await createRejoinedFacade({
+        currentStepId: undefined,
+        currentStepIndex: -1,
+      });
+
+      await f.resumeAfterRejoin();
+
+      // No audio for undefined step
+      expect(mockAudioServiceInstance.playRoleBeginningAudio).not.toHaveBeenCalled();
+      // Gate released via setAudioPlaying(false)
+      const broadcasts = mockBroadcastService.broadcastAsHost.mock.calls;
+      const lastState = broadcasts[broadcasts.length - 1]?.[0]?.state;
+      expect(lastState?.isAudioPlaying).toBe(false);
+    });
+  });
+
+  describe('Host: _rebuildWolfVoteTimerIfNeeded', () => {
+    it('should rebuild timer when deadline is in the future', async () => {
+      jest.useFakeTimers();
+      try {
+        const futureDeadline = Date.now() + 3000;
+        const cached = {
+          version: 1,
+          revision: 10,
+          cachedAt: Date.now(),
+          state: {
+            roomCode: 'REJN',
+            hostUid: 'host-uid',
+            status: 'ongoing' as const,
+            templateRoles: ['wolf', 'villager'],
+            players: {
+              0: {
+                uid: 'host-uid',
+                seatNumber: 0,
+                displayName: 'Host',
+                avatarUrl: undefined,
+                role: 'wolf',
+                hasViewedRole: true,
+              },
+              1: {
+                uid: 'player-2',
+                seatNumber: 1,
+                displayName: 'P2',
+                avatarUrl: undefined,
+                role: 'villager',
+                hasViewedRole: true,
+              },
+            },
+            currentStepIndex: 0,
+            currentStepId: 'wolfKill',
+            isAudioPlaying: false,
+            wolfVoteDeadline: futureDeadline,
+          },
+        };
+
+        const f = new GameFacade({
+          store: new GameStore(),
+          broadcastService: mockBroadcastService as any,
+          audioService: mockAudioServiceInstance as any,
+          hostStateCache: {
+            saveState: jest.fn(),
+            loadState: jest.fn().mockResolvedValue(cached),
+            getState: jest.fn().mockReturnValue(null),
+            clearState: jest.fn(),
+          } as any,
+        });
+
+        await f.joinAsHost('REJN', 'host-uid');
+
+        // Calling resumeAfterRejoin triggers _rebuildWolfVoteTimerIfNeeded
+        await f.resumeAfterRejoin();
+
+        // Timer should be set — verify by checking the private field via bracket notation
+        expect(f['_wolfVoteTimer']).not.toBeNull();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('should not rebuild timer when not on wolfKill step', async () => {
+      const cached = {
+        version: 1,
+        revision: 10,
+        cachedAt: Date.now(),
+        state: {
+          roomCode: 'REJN',
+          hostUid: 'host-uid',
+          status: 'ongoing' as const,
+          templateRoles: ['wolf', 'seer', 'villager'],
+          players: {
+            0: {
+              uid: 'host-uid',
+              seatNumber: 0,
+              displayName: 'Host',
+              avatarUrl: undefined,
+              role: 'seer',
+              hasViewedRole: true,
+            },
+          },
+          currentStepIndex: 1,
+          currentStepId: 'seerCheck',
+          isAudioPlaying: false,
+          wolfVoteDeadline: Date.now() + 3000,
+        },
+      };
+
+      const f = new GameFacade({
+        store: new GameStore(),
+        broadcastService: mockBroadcastService as any,
+        audioService: mockAudioServiceInstance as any,
+        hostStateCache: {
+          saveState: jest.fn(),
+          loadState: jest.fn().mockResolvedValue(cached),
+          getState: jest.fn().mockReturnValue(null),
+          clearState: jest.fn(),
+        } as any,
+      });
+
+      await f.joinAsHost('REJN', 'host-uid');
+      await f.resumeAfterRejoin();
+
+      expect(f['_wolfVoteTimer']).toBeNull();
+    });
+
+    it('should not rebuild timer when no wolfVoteDeadline in state', async () => {
+      const cached = {
+        version: 1,
+        revision: 10,
+        cachedAt: Date.now(),
+        state: {
+          roomCode: 'REJN',
+          hostUid: 'host-uid',
+          status: 'ongoing' as const,
+          templateRoles: ['wolf', 'villager'],
+          players: {
+            0: {
+              uid: 'host-uid',
+              seatNumber: 0,
+              displayName: 'Host',
+              avatarUrl: undefined,
+              role: 'wolf',
+              hasViewedRole: true,
+            },
+          },
+          currentStepIndex: 0,
+          currentStepId: 'wolfKill',
+          isAudioPlaying: false,
+          // no wolfVoteDeadline
+        },
+      };
+
+      const f = new GameFacade({
+        store: new GameStore(),
+        broadcastService: mockBroadcastService as any,
+        audioService: mockAudioServiceInstance as any,
+        hostStateCache: {
+          saveState: jest.fn(),
+          loadState: jest.fn().mockResolvedValue(cached),
+          getState: jest.fn().mockReturnValue(null),
+          clearState: jest.fn(),
+        } as any,
+      });
+
+      await f.joinAsHost('REJN', 'host-uid');
+      await f.resumeAfterRejoin();
+
+      expect(f['_wolfVoteTimer']).toBeNull();
+    });
+  });
 });

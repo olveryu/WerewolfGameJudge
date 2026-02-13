@@ -97,6 +97,15 @@ export interface SeatConfirmModalStyles {
   modalConfirmText: TextStyle;
 }
 
+export interface ContinueGameOverlayStyles {
+  overlay: ViewStyle;
+  content: ViewStyle;
+  title: TextStyle;
+  message: TextStyle;
+  button: ViewStyle;
+  buttonText: TextStyle;
+}
+
 // ─── Combined styles container ──────────────────────────────────────────────
 
 export interface RoomScreenComponentStyles {
@@ -109,6 +118,7 @@ export interface RoomScreenComponentStyles {
   hostMenuDropdown: HostMenuDropdownStyles;
   nightProgressIndicator: NightProgressIndicatorStyles;
   seatConfirmModal: SeatConfirmModalStyles;
+  continueGameOverlay: ContinueGameOverlayStyles;
 }
 
 // ─── Factory ────────────────────────────────────────────────────────────────
@@ -476,6 +486,48 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         color: colors.textInverse,
         fontSize: typography.body,
         fontWeight: typography.weights.semibold,
+      },
+    }),
+
+    continueGameOverlay: StyleSheet.create<ContinueGameOverlayStyles>({
+      overlay: {
+        flex: 1,
+        backgroundColor: colors.overlay,
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+      content: {
+        backgroundColor: colors.surface,
+        borderRadius: borderRadius.xlarge,
+        padding: spacing.xlarge,
+        minWidth: spacing.xxlarge * 6 + spacing.large, // ~280
+        alignItems: 'center',
+      },
+      title: {
+        fontSize: typography.heading,
+        fontWeight: typography.weights.bold,
+        color: colors.text,
+        marginBottom: spacing.small,
+      },
+      message: {
+        fontSize: typography.body,
+        color: colors.textSecondary,
+        marginBottom: spacing.large,
+        textAlign: 'center',
+        lineHeight: typography.body * 1.5,
+      },
+      button: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: spacing.xlarge,
+        paddingVertical: spacing.medium,
+        borderRadius: borderRadius.full,
+        minWidth: spacing.xxlarge * 4, // ~160
+        alignItems: 'center',
+      },
+      buttonText: {
+        color: colors.textInverse,
+        fontSize: typography.body,
+        fontWeight: typography.weights.bold,
       },
     }),
   };

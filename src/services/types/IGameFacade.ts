@@ -214,6 +214,17 @@ export interface IGameFacade {
    */
   requestSnapshot(): Promise<boolean>;
 
+  /**
+   * Host rejoin 后是否有音频被中断
+   */
+  readonly wasAudioInterrupted: boolean;
+
+  /**
+   * Host rejoin + 用户点击"继续游戏"后调用。
+   * 在 user gesture 上下文中启动 BGM + 重播当前步骤音频（如果需要）。
+   */
+  resumeAfterRejoin(): Promise<void>;
+
   // === Connection ===
   /**
    * 订阅连接状态变化

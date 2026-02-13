@@ -107,6 +107,11 @@ export interface UseGameRoomResult {
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   getLastNightInfo: () => string;
   hasWolfVoted: (seatNumber: number) => boolean;
+
+  // Rejoin recovery
+  resumeAfterRejoin: () => void;
+  needsContinueOverlay: boolean;
+  dismissContinueOverlay: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -138,6 +143,9 @@ export const useGameRoom = (): UseGameRoomResult => {
 
   // BGM state management
   const bgm = useBgmControl(isHost, gameState?.status ?? null);
+
+  // Rejoin overlay state: shown when Host rejoins an ongoing game
+  const [showContinueOverlay, setShowContinueOverlay] = useState(false);
 
   // Debug mode: bot control
   const debug = useDebugMode(facade, mySeatNumber, gameState);
@@ -188,6 +196,17 @@ export const useGameRoom = (): UseGameRoomResult => {
         connection.setStateRevision(facade.getStateRevision());
         // Notify connection sync (resets throttle + clears timer)
         connection.onStateReceived();
+
+        // Host rejoin to ongoing game → show "continue game" overlay
+        // wasAudioInterrupted is a one-shot flag set during joinAsHost cache restore,
+        // cleared after resumeAfterRejoin(). setState(true) is idempotent.
+        if (
+          facade.isHostPlayer() &&
+          broadcastState.status === 'ongoing' &&
+          facade.wasAudioInterrupted
+        ) {
+          setShowContinueOverlay(true);
+        }
       } else {
         setGameState(null);
         setIsHost(false);
@@ -199,6 +218,21 @@ export const useGameRoom = (): UseGameRoomResult => {
     });
     return unsubscribe;
   }, [facade, connection]);
+
+  // =========================================================================
+  // Rejoin recovery
+  // =========================================================================
+
+  const resumeAfterRejoin = useCallback(() => {
+    setShowContinueOverlay(false);
+    bgm.startBgmIfEnabled();
+    // Fire-and-forget: 音频后台播放，overlay 已立即消失
+    void facade.resumeAfterRejoin();
+  }, [facade, bgm]);
+
+  const dismissContinueOverlay = useCallback(() => {
+    setShowContinueOverlay(false);
+  }, []);
 
   // =========================================================================
   // Derived values
@@ -269,5 +303,9 @@ export const useGameRoom = (): UseGameRoomResult => {
     sendWolfRobotHunterStatusViewed: actions.sendWolfRobotHunterStatusViewed,
     getLastNightInfo: actions.getLastNightInfo,
     hasWolfVoted: actions.hasWolfVoted,
+    // Rejoin recovery
+    resumeAfterRejoin,
+    needsContinueOverlay: showContinueOverlay,
+    dismissContinueOverlay,
   };
 };

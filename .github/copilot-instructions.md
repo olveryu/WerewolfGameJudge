@@ -134,6 +134,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 - Night-1 推进顺序来自 `NIGHT_STEPS`（表驱动），step id = 稳定 `SchemaId`。
 - 音频编排：Handler 声明 → Facade 执行 → UI 只读 Gate。
 - `isAudioPlaying` 是事实状态，唯一通过 `SET_AUDIO_PLAYING` 修改。
+- Host rejoin 时 `joinAsHost` 从缓存恢复后重置 `isAudioPlaying`，Facade 通过 `resumeAfterRejoin()` + `ContinueGameOverlay` 用户手势恢复音频。
 
 ### Resolver 集成
 

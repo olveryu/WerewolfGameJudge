@@ -38,6 +38,8 @@ function createFakeFacade(): IGameFacade {
     requestSnapshot: async () => true,
     sendWolfRobotHunterStatusViewed: async () => ({ success: true }),
     addConnectionStatusListener: () => () => {},
+    wasAudioInterrupted: false,
+    resumeAfterRejoin: async () => {},
   };
 }
 

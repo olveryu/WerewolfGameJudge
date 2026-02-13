@@ -26,6 +26,7 @@ import type { AppStateStatus } from 'react-native';
 import { AppState, Platform } from 'react-native';
 
 import type { RevealKind, RoleId } from '@/models/roles';
+import { getStepSpec } from '@/models/roles/spec/nightSteps';
 import type { GameTemplate } from '@/models/Template';
 import { shouldTriggerWolfVoteRecovery } from '@/services/engine/handlers/progressionEvaluator';
 import { GameStore } from '@/services/engine/store';
@@ -90,6 +91,13 @@ export class GameFacade implements IGameFacade {
 
   /** Pending seat action request (Player: waiting for ACK) */
   private readonly pendingSeatAction: { current: PendingSeatAction | null } = { current: null };
+
+  /**
+   * 标记 Host rejoin 时音频是否被中断（缓存中 isAudioPlaying === true）。
+   * 用于 UI 层判断是否需要重播当前步骤音频。
+   * @see resumeAfterRejoin
+   */
+  private _wasAudioInterrupted = false;
 
   /**
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
@@ -297,6 +305,15 @@ export class GameFacade implements IGameFacade {
     if (cached) {
       // 有缓存：恢复状态 + revision（Host rejoin 必须恢复 revision，否则 Player 可能拒绝后续 STATE_UPDATE）
       // 注意：loadState 已经校验了 cached.state.hostUid === hostUid
+
+      // 必须在 applyHostSnapshot 之前设置：applyHostSnapshot 同步触发 listener，
+      // listener 检查 wasAudioInterrupted 决定是否弹 overlay。
+      // ongoing 状态下的 rejoin 都需要 overlay（用户手势解锁 Web AudioContext 恢复 BGM）。
+      this._wasAudioInterrupted = cached.state.status === 'ongoing';
+
+      // Reload 后音频硬件已销毁，但保留 isAudioPlaying = true 作为 gate：
+      // rejoin → overlay → 用户点击 → 音频重播 → 音频结束 setAudioPlaying(false)
+      // 全程 gate 阻断座位操作，零 gap。
       this.store.applyHostSnapshot(cached.state, cached.revision);
     } else if (templateRoles && templateRoles.length > 0) {
       // 没有缓存但有模板：创建初始状态
@@ -341,6 +358,99 @@ export class GameFacade implements IGameFacade {
     this._setupForegroundRecovery();
 
     return { success: true };
+  }
+
+  /**
+   * Host rejoin 后是否有音频被中断（缓存 isAudioPlaying === true）
+   * UI 层读取此值决定"继续游戏"overlay 是否需要重播当前步骤音频。
+   */
+  get wasAudioInterrupted(): boolean {
+    return this._wasAudioInterrupted;
+  }
+
+  /**
+   * Host rejoin + 用户点击"继续游戏"后调用。
+   * 触发 user gesture → 解锁 Web AudioContext。
+   *
+   * 行为：
+   * 1. 如果 BGM 设置开启 → 启动 BGM（由 useGameRoom 调用）
+   * 2. 如果断开时音频正在播放 → 重播当前步骤的 begin 音频
+   * 3. 音频结束后 setAudioPlaying(false) 解锁 gate
+   * 4. 重建 wolfVoteTimer（如果 deadline 残留）
+   * 5. 调用 callNightProgression 恢复推进（Timer 丢失 / endNight 未触发）
+   *
+   * 注意：isAudioPlaying 从 cache 保持为 true，不需要再 setAudioPlaying(true)。
+   */
+  async resumeAfterRejoin(): Promise<void> {
+    // Early clear — 阻断 listener 重新设 overlay + 防止多次点击重入
+    if (!this._wasAudioInterrupted) return;
+    this._wasAudioInterrupted = false;
+
+    const state = this.store.getState();
+    if (!state) return;
+
+    // 如果音频没在播放（cache 中 isAudioPlaying=false），只需恢复 BGM（caller 已处理）
+    if (!state.isAudioPlaying) {
+      // 仍需重建 timer + 触发推进（狼人投完票 → 倒计时内刷新 → timer 丢失）
+      this._rebuildWolfVoteTimerIfNeeded();
+      await hostActions.callNightProgression(this.getHostActionsContext());
+      return;
+    }
+
+    // 重播当前步骤音频（isAudioPlaying 已从 cache 保持为 true，gate 已激活）
+    if (state.currentStepId) {
+      const stepSpec = getStepSpec(state.currentStepId);
+      if (stepSpec) {
+        facadeLog.info('Replaying current step audio after rejoin', {
+          stepId: state.currentStepId,
+          audioKey: stepSpec.audioKey,
+        });
+        try {
+          await this.audioService.playRoleBeginningAudio(stepSpec.audioKey as RoleId);
+        } finally {
+          await this.setAudioPlaying(false);
+        }
+      } else {
+        // 无 stepSpec（不该发生），兜底释放 gate
+        await this.setAudioPlaying(false);
+      }
+    } else {
+      // 无 currentStepId，兜底释放 gate
+      await this.setAudioPlaying(false);
+    }
+
+    // gate 释放后：重建 timer + 触发推进
+    this._rebuildWolfVoteTimerIfNeeded();
+    await hostActions.callNightProgression(this.getHostActionsContext());
+  }
+
+  /**
+   * 重建 wolfVoteTimer（如果 state 中残留 deadline 且已过期，立即推进；未过期则 set timer）。
+   * Rejoin 后所有 JS Timer 丢失，需根据 state.wolfVoteDeadline 重建。
+   */
+  private _rebuildWolfVoteTimerIfNeeded(): void {
+    if (this._wolfVoteTimer != null) return; // 已有 timer，无需重建
+
+    const state = this.store.getState();
+    if (!state || state.currentStepId !== 'wolfKill' || state.wolfVoteDeadline == null) return;
+
+    const remaining = state.wolfVoteDeadline - Date.now();
+    if (remaining <= 0) {
+      // deadline 已过期，立即触发推进（callNightProgression 会在后续被调用）
+      facadeLog.info(
+        'Rebuilding wolfVoteTimer: deadline already passed, will progress immediately',
+      );
+      return;
+    }
+
+    // deadline 未到，重建 timer
+    facadeLog.info('Rebuilding wolfVoteTimer after rejoin', { remaining });
+    this._wolfVoteTimer = setTimeout(async () => {
+      this._wolfVoteTimer = null;
+      if (!this._aborted) {
+        await hostActions.callNightProgression(this.getHostActionsContext());
+      }
+    }, remaining);
   }
 
   async leaveRoom(): Promise<void> {

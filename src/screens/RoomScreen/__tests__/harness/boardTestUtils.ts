@@ -248,6 +248,11 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     // Info getters
     getLastNightInfo: jest.fn().mockReturnValue(''),
 
+    // Continue game overlay (rejoin recovery)
+    resumeAfterRejoin: jest.fn().mockResolvedValue(undefined),
+    needsContinueOverlay: false,
+    dismissContinueOverlay: jest.fn(),
+
     ...hookOverrides,
   };
 }

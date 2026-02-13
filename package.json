@@ -17,7 +17,7 @@
     "format": "prettier . --check",
     "format:write": "prettier . --write",
     "fix": "pnpm run lint:fix && pnpm run format:write",
-    "quality": "pnpm run fix && pnpm run typecheck && pnpm run lint && pnpm run test -- --passWithNoTests --forceExit",
+    "quality": "pnpm run fix && pnpm run typecheck && pnpm run lint && pnpm exec jest --passWithNoTests --forceExit",
     "e2e:night": "playwright test night-2p night-6p restart",
     "e2e:ui": "playwright test --ui",
     "deploy": "bash scripts/deploy.sh",

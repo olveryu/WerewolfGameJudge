@@ -58,6 +58,8 @@ describe('useGameRoom - ACK reason transparency', () => {
     requestSnapshot: jest.fn().mockResolvedValue(true),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),
     addConnectionStatusListener: jest.fn().mockReturnValue(() => {}),
+    wasAudioInterrupted: false,
+    resumeAfterRejoin: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   });
 
@@ -472,6 +474,8 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     requestSnapshot: jest.fn().mockResolvedValue(true),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),
     addConnectionStatusListener: jest.fn().mockReturnValue(() => {}),
+    wasAudioInterrupted: false,
+    resumeAfterRejoin: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   });
 
@@ -782,5 +786,252 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
 
     expect(result.current.effectiveSeat).toBe(1);
     expect(result.current.effectiveRole).toBeNull();
+  });
+});
+
+// =============================================================================
+// Rejoin overlay integration tests
+// =============================================================================
+
+describe('useGameRoom - rejoin continue overlay', () => {
+  /** Create a mock facade (duplicated from outer describe, which scopes it) */
+  const createMockFacade = (overrides: Partial<IGameFacade> = {}): IGameFacade => ({
+    addListener: jest.fn().mockReturnValue(() => {}),
+    getState: jest.fn().mockReturnValue(null),
+    isHostPlayer: jest.fn().mockReturnValue(false),
+    getMyUid: jest.fn().mockReturnValue('player-uid'),
+    getMySeatNumber: jest.fn().mockReturnValue(null),
+    getStateRevision: jest.fn().mockReturnValue(0),
+    initializeAsHost: jest.fn().mockResolvedValue(undefined),
+    joinAsPlayer: jest.fn().mockResolvedValue(undefined),
+    joinAsHost: jest.fn().mockResolvedValue({ success: true }),
+    leaveRoom: jest.fn().mockResolvedValue(undefined),
+    takeSeat: jest.fn().mockResolvedValue(true),
+    takeSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
+    leaveSeat: jest.fn().mockResolvedValue(true),
+    leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
+    assignRoles: jest.fn().mockResolvedValue({ success: true }),
+    updateTemplate: jest.fn().mockResolvedValue({ success: true }),
+    setRoleRevealAnimation: jest.fn().mockResolvedValue({ success: true }),
+    startNight: jest.fn().mockResolvedValue({ success: true }),
+    restartGame: jest.fn().mockResolvedValue({ success: true }),
+    fillWithBots: jest.fn().mockResolvedValue({ success: true }),
+    markAllBotsViewed: jest.fn().mockResolvedValue({ success: true }),
+    markViewedRole: jest.fn().mockResolvedValue({ success: true }),
+    submitAction: jest.fn().mockResolvedValue({ success: true }),
+    submitWolfVote: jest.fn().mockResolvedValue({ success: true }),
+    submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
+    advanceNight: jest.fn().mockResolvedValue({ success: true }),
+    endNight: jest.fn().mockResolvedValue({ success: true }),
+    setAudioPlaying: jest.fn().mockResolvedValue({ success: true }),
+    requestSnapshot: jest.fn().mockResolvedValue(true),
+    sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),
+    addConnectionStatusListener: jest.fn().mockReturnValue(() => {}),
+    wasAudioInterrupted: false,
+    resumeAfterRejoin: jest.fn().mockResolvedValue(undefined),
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseServices.mockReturnValue({
+      authService: {
+        waitForInit: jest.fn().mockResolvedValue(undefined),
+        getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
+        getCurrentDisplayName: jest.fn().mockResolvedValue('Host'),
+        getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
+      },
+      roomService: {
+        createRoom: jest.fn(),
+        getRoom: jest
+          .fn()
+          .mockResolvedValue({ roomNumber: '1234', hostUid: 'host-uid', createdAt: new Date() }),
+        deleteRoom: jest.fn(),
+      },
+      settingsService: {
+        load: jest.fn(),
+        isBgmEnabled: jest.fn().mockReturnValue(true),
+        toggleBgm: jest.fn(),
+        getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
+      },
+      audioService: {
+        startBgm: jest.fn().mockResolvedValue(undefined),
+        stopBgm: jest.fn(),
+        cleanup: jest.fn(),
+      },
+      avatarUploadService: { uploadAvatar: jest.fn() },
+    });
+  });
+
+  /** Ongoing broadcast state for rejoin scenarios */
+  const ongoingBroadcastState = {
+    roomCode: 'REJN',
+    hostUid: 'host-uid',
+    status: 'ongoing' as const,
+    templateRoles: ['wolf', 'villager'],
+    players: {
+      0: {
+        uid: 'host-uid',
+        seatNumber: 0,
+        displayName: 'Host',
+        avatarUrl: undefined,
+        role: 'wolf',
+        hasViewedRole: true,
+      },
+    },
+    currentStepIndex: 0,
+    currentStepId: 'wolfKill',
+    isAudioPlaying: false,
+  };
+
+  it('should set needsContinueOverlay=true when host + ongoing + wasAudioInterrupted', async () => {
+    let stateListener: ((state: unknown) => void) | undefined;
+    const mockFacade = createMockFacade({
+      addListener: jest.fn().mockImplementation((fn) => {
+        stateListener = fn;
+        return () => {};
+      }),
+      isHostPlayer: jest.fn().mockReturnValue(true),
+      wasAudioInterrupted: true,
+      getState: jest.fn().mockReturnValue(ongoingBroadcastState),
+      getMyUid: jest.fn().mockReturnValue('host-uid'),
+      getMySeatNumber: jest.fn().mockReturnValue(0),
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+    );
+
+    const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+    await act(async () => {
+      stateListener?.(ongoingBroadcastState);
+    });
+
+    expect(result.current.needsContinueOverlay).toBe(true);
+  });
+
+  it('should NOT set overlay when wasAudioInterrupted=false', async () => {
+    let stateListener: ((state: unknown) => void) | undefined;
+    const mockFacade = createMockFacade({
+      addListener: jest.fn().mockImplementation((fn) => {
+        stateListener = fn;
+        return () => {};
+      }),
+      isHostPlayer: jest.fn().mockReturnValue(true),
+      wasAudioInterrupted: false,
+      getState: jest.fn().mockReturnValue(ongoingBroadcastState),
+      getMyUid: jest.fn().mockReturnValue('host-uid'),
+      getMySeatNumber: jest.fn().mockReturnValue(0),
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+    );
+
+    const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+    await act(async () => {
+      stateListener?.(ongoingBroadcastState);
+    });
+
+    expect(result.current.needsContinueOverlay).toBe(false);
+  });
+
+  it('should NOT set overlay for non-host player', async () => {
+    let stateListener: ((state: unknown) => void) | undefined;
+    const mockFacade = createMockFacade({
+      addListener: jest.fn().mockImplementation((fn) => {
+        stateListener = fn;
+        return () => {};
+      }),
+      isHostPlayer: jest.fn().mockReturnValue(false),
+      wasAudioInterrupted: true,
+      getState: jest.fn().mockReturnValue(ongoingBroadcastState),
+      getMyUid: jest.fn().mockReturnValue('player-2'),
+      getMySeatNumber: jest.fn().mockReturnValue(1),
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+    );
+
+    const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+    await act(async () => {
+      stateListener?.(ongoingBroadcastState);
+    });
+
+    expect(result.current.needsContinueOverlay).toBe(false);
+  });
+
+  it('resumeAfterRejoin should close overlay and call facade.resumeAfterRejoin', async () => {
+    let stateListener: ((state: unknown) => void) | undefined;
+    const mockFacade = createMockFacade({
+      addListener: jest.fn().mockImplementation((fn) => {
+        stateListener = fn;
+        return () => {};
+      }),
+      isHostPlayer: jest.fn().mockReturnValue(true),
+      wasAudioInterrupted: true,
+      getState: jest.fn().mockReturnValue(ongoingBroadcastState),
+      getMyUid: jest.fn().mockReturnValue('host-uid'),
+      getMySeatNumber: jest.fn().mockReturnValue(0),
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+    );
+
+    const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+    // Trigger overlay
+    await act(async () => {
+      stateListener?.(ongoingBroadcastState);
+    });
+    expect(result.current.needsContinueOverlay).toBe(true);
+
+    // Call resume
+    await act(async () => {
+      result.current.resumeAfterRejoin();
+    });
+
+    expect(result.current.needsContinueOverlay).toBe(false);
+    expect(mockFacade.resumeAfterRejoin).toHaveBeenCalledTimes(1);
+  });
+
+  it('dismissContinueOverlay should close overlay without calling facade', async () => {
+    let stateListener: ((state: unknown) => void) | undefined;
+    const mockFacade = createMockFacade({
+      addListener: jest.fn().mockImplementation((fn) => {
+        stateListener = fn;
+        return () => {};
+      }),
+      isHostPlayer: jest.fn().mockReturnValue(true),
+      wasAudioInterrupted: true,
+      getState: jest.fn().mockReturnValue(ongoingBroadcastState),
+      getMyUid: jest.fn().mockReturnValue('host-uid'),
+      getMySeatNumber: jest.fn().mockReturnValue(0),
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+    );
+
+    const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+    // Trigger overlay
+    await act(async () => {
+      stateListener?.(ongoingBroadcastState);
+    });
+    expect(result.current.needsContinueOverlay).toBe(true);
+
+    // Dismiss without resuming
+    await act(async () => {
+      result.current.dismissContinueOverlay();
+    });
+
+    expect(result.current.needsContinueOverlay).toBe(false);
+    expect(mockFacade.resumeAfterRejoin).not.toHaveBeenCalled();
   });
 });
