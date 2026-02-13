@@ -114,13 +114,33 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 - `src/services/engine/**` — Host-only 引擎逻辑。→ 详见 `services.instructions.md`
 - `src/screens/**/components/**` — 仅 UI。→ 详见 `components.instructions.md`
 
-### 日志
+### 日志与错误处理
 
 - 统一从 `src/utils/logger.ts` 获取（`gameRoomLog`、`roomScreenLog` 等）。
 - ❌ 禁止 `src/**` 业务代码 `console.*`。
 - ✅ 允许：`__tests__/**`、`e2e/**`、`scripts/**`。
 - 状态迁移、action 提交、错误、关键分支决策必须打日志（带 context + 关键数据）。
 - 级别：`.debug()`（正常）/ `.warn()`（可恢复）/ `.error()`（失败）。
+
+#### 三层错误处理（catch 块必遵）
+
+| 层       | 目的     | 方式                                      |
+| -------- | -------- | ----------------------------------------- |
+| 本地日志 | 开发调试 | `log.error('context', err)`               |
+| 远端上报 | 生产监控 | `Sentry.captureException(err)`            |
+| 用户提示 | 友好反馈 | `showAlert(title, msg)` / `setError(msg)` |
+
+- 关键 catch（auth / room / 游戏逻辑 / screen 兜底）三层齐备。
+- 可预期错误（用户取消分享、剪贴板权限受限、AsyncStorage 读写）只需 `log.warn()`，不加 Sentry。
+- `ErrorBoundary.componentDidCatch` 使用 `Sentry.withScope` 附加 `componentStack`。
+
+#### 用户友好错误信息
+
+- ❌ 禁止向用户暴露英文原始错误（`error.message`、Supabase 错误码）。
+- ✅ 面向用户的文本一律中文，描述操作结果而非技术细节。
+- ✅ Supabase auth 错误使用 `mapAuthError(msg)` 映射（`src/utils/logger.ts` 导出）。
+- ✅ `showAlert` title 使用具体动作（`'创建失败'`、`'登录失败'`），禁止泛化 `'错误'`。
+- ✅ 未知错误 fallback 使用 `'请稍后重试'`，禁止 `'未知错误'`。
 
 ---
 
