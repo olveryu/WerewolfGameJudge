@@ -37,7 +37,17 @@ export async function shareOrCopyRoomLink(roomNumber: string): Promise<ShareResu
     }
   }
 
-  // Web: try navigator.share first (mobile browsers), then clipboard fallback
+  // Web: clipboard first (matches "复制链接" intent), share sheet as fallback
+  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(url);
+      return 'copied';
+    } catch {
+      // Clipboard blocked (e.g. non-secure context) — fall through to share
+    }
+  }
+
+  // Fallback: navigator.share (mobile browsers without clipboard access)
   if (typeof navigator !== 'undefined' && navigator.share) {
     try {
       await navigator.share({ title: text, url });
@@ -45,16 +55,6 @@ export async function shareOrCopyRoomLink(roomNumber: string): Promise<ShareResu
     } catch {
       // User cancelled share sheet
       return 'cancelled';
-    }
-  }
-
-  // Clipboard fallback
-  if (typeof navigator !== 'undefined' && navigator.clipboard) {
-    try {
-      await navigator.clipboard.writeText(url);
-      return 'copied';
-    } catch {
-      return 'failed';
     }
   }
 
