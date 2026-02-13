@@ -74,12 +74,18 @@ export const HomeScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
 
-  // Load last room number (重新加载当 user 变化时，因为退出登录会清除)
+  // Load last room number on mount and when returning to screen
+  // (room-not-found clears AsyncStorage, need to re-read on focus)
   useEffect(() => {
-    AsyncStorage.getItem('lastRoomNumber').then((value) => {
-      setLastRoomNumber(value);
-    });
-  }, [user]);
+    const readLastRoom = () => {
+      AsyncStorage.getItem('lastRoomNumber').then((value) => {
+        setLastRoomNumber(value);
+      });
+    };
+    readLastRoom();
+    const unsubscribeFocus = navigation.addListener('focus', readLastRoom);
+    return unsubscribeFocus;
+  }, [user, navigation]);
 
   // Get user display name
   const userName = useMemo(() => {
