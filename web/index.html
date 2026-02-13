@@ -15,10 +15,6 @@
     <meta name="apple-mobile-web-app-title" content="狼人杀电子法官" />
     <meta name="format-detection" content="telephone=no" />
 
-    <!-- WeChat X5 内核 (其他浏览器忽略) -->
-    <meta name="x5-orientation" content="portrait" />
-    <meta name="x5-fullscreen" content="true" />
-
     <!-- iOS Icons -->
     <link rel="apple-touch-icon" href="/assets/pwa/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/pwa/apple-touch-icon.png" />
@@ -43,7 +39,7 @@
       body {
         height: 100%; /* fallback */
         height: 100dvh; /* 现代浏览器动态视口 */
-        height: calc(var(--vh, 1vh) * 100); /* JS fallback (微信等旧内核) */
+        height: calc(var(--vh, 1vh) * 100); /* JS fallback (不支持 dvh 的旧内核) */
       }
       /* These styles disable body scrolling if you are using <ScrollView> */
       body {
@@ -239,7 +235,7 @@
         if (guide) guide.style.display = 'flex';
       }
 
-      // 动态视口高度（修复移动浏览器 100vh 不准，含微信/Safari/Chrome）
+      // 动态视口高度（修复移动浏览器 100vh 不准，Safari/Chrome 地址栏收缩）
       (function () {
         function setVH() {
           document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
@@ -301,16 +297,6 @@
           }
         }, 500);
       });
-
-      // 开发环境 + 微信 WebView 时注入 vConsole（方便调试）
-      if (/MicroMessenger/i.test(navigator.userAgent) && location.hostname === 'localhost') {
-        var s = document.createElement('script');
-        s.src = 'https://unpkg.com/vconsole@latest/dist/vconsole.min.js';
-        s.onload = function () {
-          new window.VConsole();
-        };
-        document.head.appendChild(s);
-      }
 
       // 注册 Service Worker（如果支持）
       if ('serviceWorker' in navigator) {
