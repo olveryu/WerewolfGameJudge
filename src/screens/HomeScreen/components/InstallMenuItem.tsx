@@ -2,8 +2,8 @@
  * InstallMenuItem - PWA 安装到主屏幕菜单项 + iOS 引导 Modal
  *
  * Android/桌面 Chrome：点击直接触发系统安装弹窗。
- * iOS Safari：点击弹出引导 Modal（分享 → 添加到主屏幕）。
- * 已安装 / 不支持 / 用户已关闭：不渲染。
+ * iOS 浏览器（Safari / Chrome）：点击弹出引导 Modal，按浏览器类型显示对应步骤。
+ * 已安装 / 不支持：不渲染。
  *
  * ✅ 允许：渲染 UI + 调用 usePWAInstall hook
  * ❌ 禁止：import service / 业务逻辑判断
@@ -23,7 +23,7 @@ interface InstallMenuItemProps {
 }
 
 const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colors }) => {
-  const { mode, install, dismiss } = usePWAInstall();
+  const { mode, iosBrowser, install } = usePWAInstall();
   const [showGuide, setShowGuide] = useState(false);
 
   const handlePress = useCallback(async () => {
@@ -36,8 +36,7 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
 
   const handleCloseGuide = useCallback(() => {
     setShowGuide(false);
-    dismiss();
-  }, [dismiss]);
+  }, []);
 
   if (mode === 'hidden') return null;
 
@@ -54,7 +53,7 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
         <Text style={styles.menuArrow}>›</Text>
       </TouchableOpacity>
 
-      {/* iOS Safari 引导 Modal */}
+      {/* iOS 浏览器引导 Modal */}
       <Modal visible={showGuide} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -62,25 +61,53 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
             <Text style={styles.modalSubtitle}>按以下步骤操作，即可像 App 一样使用</Text>
 
             <View style={{ gap: 16, marginBottom: 20 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Text style={{ fontSize: 24 }}>①</Text>
-                <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
-                  点击 Safari 底部工具栏的{' '}
-                  <Ionicons name="share-outline" size={16} color={colors.primary} /> 分享按钮
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Text style={{ fontSize: 24 }}>②</Text>
-                <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
-                  滚动菜单，找到「添加到主屏幕」
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Text style={{ fontSize: 24 }}>③</Text>
-                <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
-                  点击右上角「添加」确认
-                </Text>
-              </View>
+              {iosBrowser === 'chrome' ? (
+                /* Chrome on iOS */
+                <>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <Text style={{ fontSize: 24 }}>①</Text>
+                    <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
+                      点击右上角 <Ionicons name="share-outline" size={16} color={colors.primary} />{' '}
+                      分享按钮
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <Text style={{ fontSize: 24 }}>②</Text>
+                    <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
+                      选择「添加到主屏幕」
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <Text style={{ fontSize: 24 }}>③</Text>
+                    <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
+                      点击「添加」确认
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                /* Safari (default) */
+                <>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <Text style={{ fontSize: 24 }}>①</Text>
+                    <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
+                      点击底部工具栏的{' '}
+                      <Ionicons name="share-outline" size={16} color={colors.primary} /> 分享按钮
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <Text style={{ fontSize: 24 }}>②</Text>
+                    <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
+                      滚动菜单，找到「添加到主屏幕」
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <Text style={{ fontSize: 24 }}>③</Text>
+                    <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
+                      点击右上角「添加」确认
+                    </Text>
+                  </View>
+                </>
+              )}
             </View>
 
             <TouchableOpacity

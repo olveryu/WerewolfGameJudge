@@ -1,7 +1,7 @@
 /**
  * usePWAInstall - PWA 安装到主屏幕
  *
- * 封装 `beforeinstallprompt`（Android/桌面 Chrome）与 iOS Safari 手动引导逻辑。
+ * 封装 `beforeinstallprompt`（Android/桌面 Chrome）与 iOS 浏览器手动引导逻辑。
  * 仅在 Web 平台 + 非 standalone 模式下有效。
  *
  * ✅ 允许：平台检测、localStorage 读写、触发系统安装弹窗
@@ -25,9 +25,14 @@ declare global {
 
 export type PWAInstallMode = 'prompt' | 'ios-guide' | 'hidden';
 
+/** iOS 浏览器类型，用于展示对应的引导步骤 */
+export type IOSBrowser = 'safari' | 'chrome' | 'other';
+
 export interface PWAInstallResult {
   /** 当前安装模式：prompt（可一键安装）、ios-guide（需引导）、hidden（不显示） */
   mode: PWAInstallMode;
+  /** iOS 浏览器类型（仅 ios-guide 模式有意义），用于展示对应引导步骤 */
+  iosBrowser: IOSBrowser | null;
   /** 触发安装。prompt 模式调用系统弹窗；ios-guide 模式由调用方展示引导 UI */
   install: () => Promise<void>;
   /** 用户关闭引导后调用，记住不再显示 */
@@ -47,21 +52,34 @@ function isStandalone(): boolean {
 }
 
 /**
- * 检测 iOS Safari（非 Chrome/Firefox on iOS）
+ * 检测 iOS 浏览器（排除微信 WebView，因为有独立引导蒙层）
  */
-function isIOSSafari(): boolean {
+function isIOSBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent;
   const isIOS =
     /iPad|iPhone|iPod/.test(ua) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  // 排除 CriOS (Chrome) / FxiOS (Firefox) / 微信
-  const isSafari = !/CriOS|FxiOS|MicroMessenger/i.test(ua);
-  return isIOS && isSafari;
+  // 仅排除微信（有独立蒙层引导），Chrome/Firefox on iOS 均支持添加到主屏幕
+  const isNotWeChat = !/MicroMessenger/i.test(ua);
+  return isIOS && isNotWeChat;
+}
+
+/**
+ * 检测 iOS 上的具体浏览器类型
+ */
+function detectIOSBrowser(): IOSBrowser {
+  if (typeof navigator === 'undefined') return 'other';
+  const ua = navigator.userAgent;
+  if (/CriOS/i.test(ua)) return 'chrome';
+  // 排除内嵌 WebView / 其他第三方浏览器后，默认 Safari
+  if (!/FxiOS|EdgiOS|OPiOS/i.test(ua)) return 'safari';
+  return 'other';
 }
 
 export function usePWAInstall(): PWAInstallResult {
   const [mode, setMode] = useState<PWAInstallMode>('hidden');
+  const [iosBrowser, setIOSBrowser] = useState<IOSBrowser | null>(null);
 
   useEffect(() => {
     // 非 Web 平台或已安装，不显示
@@ -92,9 +110,10 @@ export function usePWAInstall(): PWAInstallResult {
     };
     window.addEventListener('beforeinstallprompt', handler);
 
-    // iOS Safari
-    if (isIOSSafari()) {
+    // iOS 浏览器（Safari / Chrome / Firefox 等）
+    if (isIOSBrowser()) {
       setMode('ios-guide');
+      setIOSBrowser(detectIOSBrowser());
       return;
     }
 
@@ -126,5 +145,5 @@ export function usePWAInstall(): PWAInstallResult {
     setMode('hidden');
   }, []);
 
-  return { mode, install, dismiss };
+  return { mode, iosBrowser, install, dismiss };
 }
