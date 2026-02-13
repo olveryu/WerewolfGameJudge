@@ -1720,14 +1720,14 @@ describe('GameFacade', () => {
       expect(lastBroadcast.state.isAudioPlaying).toBe(false);
     });
 
-    it('should release gate even if audio fails (finally block)', async () => {
+    it('should release gate even if audio fails (try/catch absorbs error)', async () => {
       mockAudioServiceInstance.playRoleBeginningAudio.mockRejectedValueOnce(
         new Error('audio error'),
       );
       const f = await createRejoinedFacade();
 
-      // Error propagates (caller uses fire-and-forget `void`), but finally block still runs
-      await expect(f.resumeAfterRejoin()).rejects.toThrow('audio error');
+      // Should NOT throw — outer try/catch in resumeAfterRejoin absorbs the error
+      await f.resumeAfterRejoin();
 
       // Gate should still be released via finally
       const broadcasts = mockBroadcastService.broadcastAsHost.mock.calls;

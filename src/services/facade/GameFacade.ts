@@ -296,6 +296,7 @@ export class GameFacade implements IGameFacade {
     hostUid: string,
     templateRoles?: RoleId[],
   ): Promise<{ success: boolean; reason?: string }> {
+    this._aborted = false; // Reset abort flag when rejoining (matches initializeAsHost/joinAsPlayer)
     this.isHost = true;
     this.myUid = hostUid;
 
@@ -389,39 +390,44 @@ export class GameFacade implements IGameFacade {
     const state = this.store.getState();
     if (!state) return;
 
-    // 如果音频没在播放（cache 中 isAudioPlaying=false），只需恢复 BGM（caller 已处理）
-    if (!state.isAudioPlaying) {
-      // 仍需重建 timer + 触发推进（狼人投完票 → 倒计时内刷新 → timer 丢失）
-      this._rebuildWolfVoteTimerIfNeeded();
-      await hostActions.callNightProgression(this.getHostActionsContext());
-      return;
-    }
+    try {
+      // 如果音频没在播放（cache 中 isAudioPlaying=false），只需恢复 BGM（caller 已处理）
+      if (!state.isAudioPlaying) {
+        // 仍需重建 timer + 触发推进（狼人投完票 → 倒计时内刷新 → timer 丢失）
+        this._rebuildWolfVoteTimerIfNeeded();
+        await hostActions.callNightProgression(this.getHostActionsContext());
+        return;
+      }
 
-    // 重播当前步骤音频（isAudioPlaying 已从 cache 保持为 true，gate 已激活）
-    if (state.currentStepId) {
-      const stepSpec = getStepSpec(state.currentStepId);
-      if (stepSpec) {
-        facadeLog.info('Replaying current step audio after rejoin', {
-          stepId: state.currentStepId,
-          audioKey: stepSpec.audioKey,
-        });
-        try {
-          await this.audioService.playRoleBeginningAudio(stepSpec.audioKey as RoleId);
-        } finally {
+      // 重播当前步骤音频（isAudioPlaying 已从 cache 保持为 true，gate 已激活）
+      if (state.currentStepId) {
+        const stepSpec = getStepSpec(state.currentStepId);
+        if (stepSpec) {
+          facadeLog.info('Replaying current step audio after rejoin', {
+            stepId: state.currentStepId,
+            audioKey: stepSpec.audioKey,
+          });
+          try {
+            await this.audioService.playRoleBeginningAudio(stepSpec.audioKey as RoleId);
+          } finally {
+            await this.setAudioPlaying(false);
+          }
+        } else {
+          // 无 stepSpec（不该发生），兜底释放 gate
           await this.setAudioPlaying(false);
         }
       } else {
-        // 无 stepSpec（不该发生），兜底释放 gate
+        // 无 currentStepId，兜底释放 gate
         await this.setAudioPlaying(false);
       }
-    } else {
-      // 无 currentStepId，兜底释放 gate
-      await this.setAudioPlaying(false);
-    }
 
-    // gate 释放后：重建 timer + 触发推进
-    this._rebuildWolfVoteTimerIfNeeded();
-    await hostActions.callNightProgression(this.getHostActionsContext());
+      // gate 释放后：重建 timer + 触发推进
+      this._rebuildWolfVoteTimerIfNeeded();
+      await hostActions.callNightProgression(this.getHostActionsContext());
+    } catch (e) {
+      // Caller uses fire-and-forget `void` — catch here to prevent unhandled rejection
+      facadeLog.error('resumeAfterRejoin failed', e);
+    }
   }
 
   /**
