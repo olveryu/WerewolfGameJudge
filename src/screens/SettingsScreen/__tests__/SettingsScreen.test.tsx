@@ -79,8 +79,8 @@ describe('SettingsScreen', () => {
       const { getByText } = render(<SettingsScreen />);
 
       // Unauthenticated state shows login options
-      expect(getByText('邮箱登录/注册')).toBeTruthy();
-      expect(getByText('匿名登录')).toBeTruthy();
+      expect(getByText('📧 邮箱登录/注册')).toBeTruthy();
+      expect(getByText('👤 匿名登录')).toBeTruthy();
     });
   });
 

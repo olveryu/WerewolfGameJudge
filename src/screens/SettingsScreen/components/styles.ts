@@ -45,25 +45,24 @@ export interface SettingsScreenStyles {
   saveBtnText: TextStyle;
   cancelBtn: ViewStyle;
   cancelBtnText: TextStyle;
-  // Auth form
-  authForm: ViewStyle;
-  authTitle: TextStyle;
+  // Auth form (AuthStyles-compatible)
+  formContainer: ViewStyle;
+  formTitle: TextStyle;
+  formSubtitle: TextStyle;
   input: TextStyle;
+  emailDomainDropdown: ViewStyle;
+  emailDomainItem: ViewStyle;
+  emailDomainText: TextStyle;
   errorText: TextStyle;
-  authBtn: ViewStyle;
-  authBtnDisabled: ViewStyle;
-  authBtnText: TextStyle;
-  switchAuthBtn: ViewStyle;
-  switchAuthText: TextStyle;
-  cancelAuthBtn: ViewStyle;
-  cancelAuthText: TextStyle;
-  // Auth options
-  authOptions: ViewStyle;
-  authOptionBtn: ViewStyle;
-  authOptionBtnSecondary: ViewStyle;
-  authOptionIcon: TextStyle;
-  authOptionText: TextStyle;
-  authOptionTextSecondary: TextStyle;
+  primaryButton: ViewStyle;
+  primaryButtonText: TextStyle;
+  secondaryButton: ViewStyle;
+  secondaryButtonText: TextStyle;
+  linkButton: ViewStyle;
+  linkButtonText: TextStyle;
+  outlineButton: ViewStyle;
+  outlineButtonText: TextStyle;
+  buttonDisabled: ViewStyle;
   // Theme section
   themeSection: ViewStyle;
   themeRow: ViewStyle;
@@ -74,6 +73,13 @@ export interface SettingsScreenStyles {
   themeOptionActive: ViewStyle;
   themeOptionText: TextStyle;
   themeOptionTextActive: TextStyle;
+  // About section
+  aboutRow: ViewStyle;
+  aboutLabel: TextStyle;
+  aboutValue: TextStyle;
+  aboutLink: ViewStyle;
+  aboutLinkText: TextStyle;
+  aboutLinkIcon: TextStyle;
 }
 
 export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenStyles =>
@@ -281,15 +287,22 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       color: colors.textSecondary,
       fontSize: typography.secondary,
     },
-    // Auth form
-    authForm: {
+    // Auth form (AuthStyles-compatible)
+    formContainer: {
       paddingVertical: spacing.medium,
     },
-    authTitle: {
+    formTitle: {
       fontSize: typography.subtitle,
       fontWeight: typography.weights.semibold,
       color: colors.text,
       textAlign: 'center',
+      marginBottom: spacing.large,
+    },
+    formSubtitle: {
+      fontSize: typography.secondary,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginTop: spacing.tight,
       marginBottom: spacing.large,
     },
     input: {
@@ -303,13 +316,32 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       borderColor: colors.border,
       marginBottom: spacing.medium,
     },
+    emailDomainDropdown: {
+      marginTop: -spacing.small,
+      marginBottom: spacing.medium,
+      backgroundColor: colors.surface,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      borderRadius: borderRadius.medium,
+      overflow: 'hidden',
+    },
+    emailDomainItem: {
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
+      borderBottomWidth: fixed.borderWidth,
+      borderBottomColor: colors.borderLight,
+    },
+    emailDomainText: {
+      fontSize: typography.secondary,
+      color: colors.text,
+    },
     errorText: {
       color: colors.error,
       fontSize: typography.secondary,
       textAlign: 'center',
       marginBottom: spacing.medium,
     },
-    authBtn: {
+    primaryButton: {
       backgroundColor: colors.primary,
       height: spacing.xxlarge,
       borderRadius: borderRadius.medium,
@@ -317,61 +349,44 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       alignItems: 'center',
       marginBottom: spacing.medium,
     },
-    authBtnDisabled: {
-      opacity: 0.6,
-    },
-    authBtnText: {
+    primaryButtonText: {
       color: colors.textInverse,
       fontSize: typography.body,
       fontWeight: typography.weights.semibold,
     },
-    switchAuthBtn: {
+    secondaryButton: {
       alignItems: 'center',
       paddingVertical: spacing.small,
     },
-    switchAuthText: {
-      color: colors.primary,
-      fontSize: typography.secondary,
-    },
-    cancelAuthBtn: {
-      alignItems: 'center',
-      paddingVertical: spacing.small,
-    },
-    cancelAuthText: {
+    secondaryButtonText: {
       color: colors.textSecondary,
       fontSize: typography.secondary,
     },
-    // Auth options
-    authOptions: {
-      gap: spacing.medium,
-      paddingVertical: spacing.medium,
-    },
-    authOptionBtn: {
-      flexDirection: 'row',
+    linkButton: {
       alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.primary,
-      height: spacing.xxlarge,
-      borderRadius: borderRadius.medium,
-      gap: spacing.small,
+      paddingVertical: spacing.small,
     },
-    authOptionBtnSecondary: {
+    linkButtonText: {
+      color: colors.primary,
+      fontSize: typography.secondary,
+    },
+    outlineButton: {
       backgroundColor: colors.background,
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
+      height: spacing.xxlarge,
+      borderRadius: borderRadius.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: spacing.medium,
     },
-    authOptionIcon: {
-      fontSize: typography.title,
-    },
-    authOptionText: {
-      color: colors.textInverse,
-      fontSize: typography.body,
-      fontWeight: typography.weights.medium,
-    },
-    authOptionTextSecondary: {
+    outlineButtonText: {
       color: colors.text,
       fontSize: typography.body,
       fontWeight: typography.weights.medium,
+    },
+    buttonDisabled: {
+      opacity: 0.6,
     },
     // Theme section
     themeSection: {
@@ -419,5 +434,36 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     themeOptionTextActive: {
       color: colors.primary,
       fontWeight: typography.weights.semibold,
+    },
+    // About section
+    aboutRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing.small,
+    },
+    aboutLabel: {
+      fontSize: typography.secondary,
+      color: colors.textSecondary,
+    },
+    aboutValue: {
+      fontSize: typography.secondary,
+      color: colors.text,
+    },
+    aboutLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing.small + spacing.tight,
+      borderTopWidth: fixed.borderWidth,
+      borderTopColor: colors.borderLight,
+    },
+    aboutLinkText: {
+      fontSize: typography.secondary,
+      color: colors.primary,
+    },
+    aboutLinkIcon: {
+      fontSize: typography.body,
+      color: colors.textMuted,
     },
   });

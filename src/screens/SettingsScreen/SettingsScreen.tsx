@@ -15,7 +15,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmailForm, LoginOptions } from '@/components/auth';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
+import { useAuthForm } from '@/hooks/useAuthForm';
 import { RootStackParamList } from '@/navigation/types';
 import { ThemeKey, typography, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
@@ -23,8 +25,7 @@ import { getAvatarImage } from '@/utils/avatar';
 import { settingsLog } from '@/utils/logger';
 
 import {
-  AuthForm,
-  AuthOptions,
+  AboutSection,
   AvatarSection,
   createSettingsScreenStyles,
   NameSection,
@@ -41,9 +42,6 @@ export const SettingsScreen: React.FC = () => {
     user,
     signOut,
     isAuthenticated,
-    signInAnonymously,
-    signUpWithEmail,
-    signInWithEmail,
     updateProfile,
     uploadAvatar,
     error: authError,
@@ -52,10 +50,24 @@ export const SettingsScreen: React.FC = () => {
 
   // Auth form state
   const [showAuthForm, setShowAuthForm] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+
+  const handleAuthSuccess = useCallback(() => {
+    setShowAuthForm(false);
+  }, []);
+
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    displayName,
+    setDisplayName,
+    isSignUp,
+    handleEmailAuth,
+    handleAnonymousLogin,
+    resetForm,
+    toggleSignUp,
+  } = useAuthForm({ onSuccess: handleAuthSuccess, logger: settingsLog, showSuccessOnLogin: true });
 
   // Edit profile state
   const [isEditingName, setIsEditingName] = useState(false);
@@ -130,32 +142,6 @@ export const SettingsScreen: React.FC = () => {
     }
   }, [uploadAvatar]);
 
-  const handleEmailAuth = useCallback(async () => {
-    if (!email || !password) {
-      showAlert('请输入邮箱和密码');
-      return;
-    }
-
-    try {
-      if (isSignUp) {
-        await signUpWithEmail(email, password, displayName || undefined);
-        showAlert('注册成功！');
-      } else {
-        await signInWithEmail(email, password);
-        showAlert('登录成功！');
-      }
-      setShowAuthForm(false);
-      setEmail('');
-      setPassword('');
-      setDisplayName('');
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '请稍后重试';
-      settingsLog.error('Email auth failed:', message, e);
-      Sentry.captureException(e);
-      showAlert(isSignUp ? '注册失败' : '登录失败', message);
-    }
-  }, [email, password, displayName, isSignUp, signUpWithEmail, signInWithEmail]);
-
   const handleUpdateName = useCallback(async () => {
     if (!editName.trim()) {
       showAlert('请输入名字');
@@ -176,10 +162,8 @@ export const SettingsScreen: React.FC = () => {
 
   const handleCancelAuthForm = useCallback(() => {
     setShowAuthForm(false);
-    setEmail('');
-    setPassword('');
-    setDisplayName('');
-  }, []);
+    resetForm();
+  }, [resetForm]);
 
   const handleStartEditName = useCallback(() => {
     setEditName(user?.displayName || '');
@@ -192,10 +176,6 @@ export const SettingsScreen: React.FC = () => {
 
   const handleShowAuthForm = useCallback(() => {
     setShowAuthForm(true);
-  }, []);
-
-  const handleToggleSignUp = useCallback(() => {
-    setIsSignUp((prev) => !prev);
   }, []);
 
   const handleThemeChange = useCallback(
@@ -252,11 +232,6 @@ export const SettingsScreen: React.FC = () => {
             </View>
           )}
 
-          <View style={styles.accountRow}>
-            <Text style={styles.accountLabel}>用户 ID</Text>
-            <Text style={styles.accountValue}>{user?.uid.slice(0, 12)}...</Text>
-          </View>
-
           <TouchableOpacity style={styles.logoutBtn} onPress={signOut}>
             <Text style={styles.logoutBtnText}>登出</Text>
           </TouchableOpacity>
@@ -266,7 +241,7 @@ export const SettingsScreen: React.FC = () => {
 
     if (showAuthForm) {
       return (
-        <AuthForm
+        <EmailForm
           isSignUp={isSignUp}
           email={email}
           password={password}
@@ -277,8 +252,8 @@ export const SettingsScreen: React.FC = () => {
           onPasswordChange={setPassword}
           onDisplayNameChange={setDisplayName}
           onSubmit={handleEmailAuth}
-          onToggleMode={handleToggleSignUp}
-          onCancel={handleCancelAuthForm}
+          onToggleMode={toggleSignUp}
+          onBack={handleCancelAuthForm}
           styles={styles}
           colors={colors}
         />
@@ -286,10 +261,10 @@ export const SettingsScreen: React.FC = () => {
     }
 
     return (
-      <AuthOptions
+      <LoginOptions
         authLoading={authLoading}
-        onShowForm={handleShowAuthForm}
-        onAnonymousLogin={signInAnonymously}
+        onEmailLogin={handleShowAuthForm}
+        onAnonymousLogin={handleAnonymousLogin}
         styles={styles}
       />
     );
@@ -319,6 +294,8 @@ export const SettingsScreen: React.FC = () => {
           onThemeChange={handleThemeChange}
           styles={styles}
         />
+
+        <AboutSection styles={styles} />
 
         <View style={{ height: 32 }} />
       </ScrollView>

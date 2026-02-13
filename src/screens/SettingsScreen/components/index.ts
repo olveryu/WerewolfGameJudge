@@ -1,10 +1,8 @@
 /**
  * SettingsScreen components barrel export
  */
-export type { AuthFormProps } from './AuthForm';
-export { AuthForm } from './AuthForm';
-export type { AuthOptionsProps } from './AuthOptions';
-export { AuthOptions } from './AuthOptions';
+export type { AboutSectionProps } from './AboutSection';
+export { AboutSection } from './AboutSection';
 export type { AvatarSectionProps } from './AvatarSection';
 export { AvatarSection } from './AvatarSection';
 export type { NameSectionProps } from './NameSection';

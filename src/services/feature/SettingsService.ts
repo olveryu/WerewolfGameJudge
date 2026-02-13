@@ -15,7 +15,7 @@ import { settingsServiceLog } from '@/utils/logger';
 const SETTINGS_KEY = '@werewolf_settings';
 
 /** Valid theme keys (must match themes.ts ThemeKey) */
-type ThemeKey = 'light' | 'minimal' | 'dark' | 'midnight' | 'blood' | 'discord' | 'forest' | 'snow';
+type ThemeKey = 'light' | 'dark' | 'amoled' | 'sand' | 'midnight' | 'blood' | 'forest' | 'snow';
 
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 

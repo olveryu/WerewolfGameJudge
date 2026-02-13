@@ -51,11 +51,11 @@ export interface ThemeColors {
 
 export type ThemeKey =
   | 'light'
-  | 'minimal'
   | 'dark'
+  | 'amoled'
+  | 'sand'
   | 'midnight'
   | 'blood'
-  | 'discord'
   | 'forest'
   | 'snow';
 
@@ -214,84 +214,6 @@ const bloodTheme: Theme = {
   },
 };
 
-const discordTheme: Theme = {
-  key: 'discord',
-  name: '紫霞',
-  isDark: true,
-  colors: {
-    primary: '#5865F2',
-    primaryLight: '#7289DA',
-    primaryDark: '#4752C4',
-
-    background: '#36393F',
-    surface: '#2F3136',
-    surfaceHover: '#40444B',
-    card: '#32353B',
-
-    text: '#FFFFFF',
-    textSecondary: '#B9BBBE',
-    textMuted: '#72767D',
-    textInverse: '#000000',
-
-    border: '#202225',
-    borderLight: '#40444B',
-
-    success: '#3BA55C',
-    warning: '#FAA61A',
-    error: '#ED4245',
-    info: '#5865F2',
-
-    wolf: '#ED4245',
-    villager: '#3BA55C',
-    god: '#5865F2',
-
-    overlay: 'rgba(0, 0, 0, 0.7)',
-    overlayLight: 'rgba(0, 0, 0, 0.4)',
-  },
-};
-
-const minimalTheme: Theme = {
-  key: 'minimal',
-  name: '极简',
-  isDark: false,
-  colors: {
-    // 纯黑白灰，无彩色
-    primary: '#333333',
-    primaryLight: '#555555',
-    primaryDark: '#111111',
-
-    // 纯白背景
-    background: '#FFFFFF',
-    surface: '#F5F5F5',
-    surfaceHover: '#EEEEEE',
-    card: '#FFFFFF',
-
-    // 黑白灰文字层次
-    text: '#000000',
-    textSecondary: '#444444',
-    textMuted: '#888888',
-    textInverse: '#FFFFFF',
-
-    // 灰色边框
-    border: '#CCCCCC',
-    borderLight: '#E0E0E0',
-
-    // 状态色也用灰度
-    success: '#333333',
-    warning: '#666666',
-    error: '#000000',
-    info: '#555555',
-
-    // 游戏角色色（保持区分度）
-    wolf: '#222222',
-    villager: '#666666',
-    god: '#444444',
-
-    overlay: 'rgba(0, 0, 0, 0.5)',
-    overlayLight: 'rgba(0, 0, 0, 0.2)',
-  },
-};
-
 // 🌲 森林主题 - 神秘绿色森林氛围
 const forestTheme: Theme = {
   key: 'forest',
@@ -366,17 +288,91 @@ const snowTheme: Theme = {
   },
 };
 
+// 🟤 暖沙主题 - 护眼暖色调 (f.lux 风格)
+const sandTheme: Theme = {
+  key: 'sand',
+  name: '暖沙',
+  isDark: false,
+  colors: {
+    primary: '#8B6914',
+    primaryLight: '#A68B2C',
+    primaryDark: '#6B4F0A',
+
+    background: '#F5F0E8',
+    surface: '#FAF6EF',
+    surfaceHover: '#EDE7DB',
+    card: '#FAF6EF',
+
+    text: '#3D2B1F',
+    textSecondary: '#6B5744',
+    textMuted: '#A08C76',
+    textInverse: '#FFFFFF',
+
+    border: '#D9CCBB',
+    borderLight: '#E8DDD0',
+
+    success: '#5D8C3E',
+    warning: '#B8860B',
+    error: '#A0522D',
+    info: '#6B7B3A',
+
+    wolf: '#8B2500',
+    villager: '#5D8C3E',
+    god: '#6B4F0A',
+
+    overlay: 'rgba(61, 43, 31, 0.5)',
+    overlayLight: 'rgba(61, 43, 31, 0.2)',
+  },
+};
+
+// ⬛ 纯黑主题 - AMOLED 省电
+const amoledTheme: Theme = {
+  key: 'amoled',
+  name: '纯黑',
+  isDark: true,
+  colors: {
+    primary: '#6366F1',
+    primaryLight: '#818CF8',
+    primaryDark: '#4F46E5',
+
+    background: '#000000',
+    surface: '#0A0A0A',
+    surfaceHover: '#141414',
+    card: '#0A0A0A',
+
+    text: '#FFFFFF',
+    textSecondary: '#A1A1AA',
+    textMuted: '#52525B',
+    textInverse: '#000000',
+
+    border: '#1A1A1A',
+    borderLight: '#262626',
+
+    success: '#22C55E',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    info: '#3B82F6',
+
+    wolf: '#DC2626',
+    villager: '#059669',
+    god: '#7C3AED',
+
+    overlay: 'rgba(0, 0, 0, 0.85)',
+    overlayLight: 'rgba(0, 0, 0, 0.5)',
+  },
+};
+
 // ============================================
 // 导出
 // ============================================
 
 export const themes: Record<ThemeKey, Theme> = {
   light: lightTheme,
-  minimal: minimalTheme,
   dark: darkTheme,
+  amoled: amoledTheme,
+  sand: sandTheme,
   midnight: midnightTheme,
   blood: bloodTheme,
-  discord: discordTheme,
   forest: forestTheme,
   snow: snowTheme,
 };

@@ -10,13 +10,14 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as Sentry from '@sentry/react-native';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Modal, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmailForm, LoginOptions } from '@/components/auth';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
+import { useAuthForm } from '@/hooks/useAuthForm';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { useTheme } from '@/theme';
@@ -25,10 +26,8 @@ import { homeLog } from '@/utils/logger';
 
 import {
   createHomeScreenStyles,
-  EmailForm,
   InstallMenuItem,
   JoinRoomModal,
-  LoginOptions,
   MenuItem,
   UserBar,
 } from './components';
@@ -41,15 +40,7 @@ export const HomeScreen: React.FC = () => {
   const styles = useMemo(() => createHomeScreenStyles(colors), [colors]);
 
   const navigation = useNavigation<NavigationProp>();
-  const {
-    user,
-    signInAnonymously,
-    signUpWithEmail,
-    signInWithEmail,
-    signOut,
-    loading: authLoading,
-    error: authError,
-  } = useAuth();
+  const { user, signOut, loading: authLoading, error: authError } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
@@ -69,12 +60,26 @@ export const HomeScreen: React.FC = () => {
     return unsubscribe;
   }, [navigation]);
 
-  // Email auth form state
   const [showEmailForm, setShowEmailForm] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+
+  const handleAuthSuccess = useCallback(() => {
+    setShowLoginModal(false);
+    setShowEmailForm(false);
+  }, []);
+
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    displayName,
+    setDisplayName,
+    isSignUp,
+    handleEmailAuth,
+    handleAnonymousLogin,
+    resetForm,
+    toggleSignUp,
+  } = useAuthForm({ onSuccess: handleAuthSuccess, logger: homeLog });
 
   // Load last room number on mount and when returning to screen
   // (room-not-found clears AsyncStorage, need to re-read on focus)
@@ -122,53 +127,11 @@ export const HomeScreen: React.FC = () => {
   // Stable callback handlers
   // ============================================
 
-  const handleAnonymousLogin = useCallback(async () => {
-    try {
-      await signInAnonymously();
-      setShowLoginModal(false);
-      setShowEmailForm(false);
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      homeLog.error(' Error:', e);
-      Sentry.captureException(e);
-      showAlert('登录失败', message || '请稍后重试');
-    }
-  }, [signInAnonymously]);
-
-  const handleEmailAuth = useCallback(async () => {
-    if (!email || !password) {
-      showAlert('请输入邮箱和密码');
-      return;
-    }
-
-    try {
-      if (isSignUp) {
-        await signUpWithEmail(email, password, displayName || undefined);
-        showAlert('注册成功！');
-      } else {
-        await signInWithEmail(email, password);
-      }
-      setShowLoginModal(false);
-      setShowEmailForm(false);
-      setEmail('');
-      setPassword('');
-      setDisplayName('');
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '请稍后重试';
-      homeLog.error('Email auth failed:', message, e);
-      Sentry.captureException(e);
-      showAlert(isSignUp ? '注册失败' : '登录失败', message);
-    }
-  }, [email, password, displayName, isSignUp, signUpWithEmail, signInWithEmail]);
-
   const resetLoginModal = useCallback(() => {
     setShowLoginModal(false);
     setShowEmailForm(false);
-    setEmail('');
-    setPassword('');
-    setDisplayName('');
-    setIsSignUp(false);
-  }, []);
+    resetForm();
+  }, [resetForm]);
 
   const handleJoinRoom = useCallback(async () => {
     if (roomCode.length !== 4) {
@@ -221,10 +184,6 @@ export const HomeScreen: React.FC = () => {
 
   const handleLogin = useCallback(() => {
     setShowLoginModal(true);
-  }, []);
-
-  const handleToggleSignUp = useCallback(() => {
-    setIsSignUp((prev) => !prev);
   }, []);
 
   const handleShowEmailForm = useCallback(() => {
@@ -355,7 +314,7 @@ export const HomeScreen: React.FC = () => {
                 onPasswordChange={setPassword}
                 onDisplayNameChange={setDisplayName}
                 onSubmit={handleEmailAuth}
-                onToggleMode={handleToggleSignUp}
+                onToggleMode={toggleSignUp}
                 onBack={handleHideEmailForm}
                 styles={styles}
                 colors={colors}
@@ -363,6 +322,8 @@ export const HomeScreen: React.FC = () => {
             ) : (
               <LoginOptions
                 authLoading={authLoading}
+                title="登录"
+                subtitle="选择登录方式继续"
                 onEmailLogin={handleShowEmailForm}
                 onAnonymousLogin={handleAnonymousLogin}
                 onCancel={resetLoginModal}

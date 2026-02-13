@@ -50,6 +50,14 @@ export interface HomeScreenStyles {
   linkButtonText: TextStyle;
   outlineButton: ViewStyle;
   outlineButtonText: TextStyle;
+  // Auth shared (AuthStyles-compatible aliases)
+  formContainer: ViewStyle;
+  formTitle: TextStyle;
+  formSubtitle: TextStyle;
+  emailDomainDropdown: ViewStyle;
+  emailDomainItem: ViewStyle;
+  emailDomainText: TextStyle;
+  // Footer
   footer: ViewStyle;
   footerText: TextStyle;
   footerLink: ViewStyle;
@@ -281,6 +289,42 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       color: colors.textSecondary,
       fontSize: typography.body,
       fontWeight: typography.weights.medium,
+    },
+    // Auth shared aliases (AuthStyles-compatible)
+    formContainer: {
+      // No extra wrapper needed — parent modal provides padding
+    },
+    formTitle: {
+      fontSize: typography.title,
+      fontWeight: typography.weights.bold,
+      color: colors.text,
+      textAlign: 'center',
+    },
+    formSubtitle: {
+      fontSize: typography.secondary,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginTop: spacing.tight,
+      marginBottom: spacing.large,
+    },
+    emailDomainDropdown: {
+      marginTop: -spacing.tight,
+      marginBottom: spacing.small,
+      backgroundColor: colors.surface,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      borderRadius: borderRadius.medium,
+      overflow: 'hidden',
+    },
+    emailDomainItem: {
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
+      borderBottomWidth: fixed.borderWidth,
+      borderBottomColor: colors.borderLight,
+    },
+    emailDomainText: {
+      fontSize: typography.secondary,
+      color: colors.text,
     },
     footer: {
       alignItems: 'center',
