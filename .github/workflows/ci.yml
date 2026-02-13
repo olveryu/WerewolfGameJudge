@@ -35,7 +35,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && vars.E2E_ENABLED == 'true'
     needs: quality
     steps:
       - uses: actions/checkout@v4
