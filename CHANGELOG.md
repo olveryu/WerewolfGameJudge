@@ -7,6 +7,10 @@ and this project adheres to [Conventional Commits](https://www.conventionalcommi
 
 > Older entries (before v1.0.197) can be found via `git log --oneline`.
 
+## [1.0.212] - 2026-02-13
+
+- chore: auto-update CHANGELOG on release + GitHub Release workflow
+
 ## [1.0.210] - 2026-02-13
 
 - fix(components): add borderRadius prop to Avatar for proper photo clipping
