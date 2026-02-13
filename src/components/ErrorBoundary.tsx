@@ -7,6 +7,7 @@
  * ✅ 允许：渲染降级 UI、记录错误日志
  * ❌ 禁止：import service / 业务逻辑
  */
+import * as Sentry from '@sentry/react-native';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -37,6 +38,10 @@ export class ErrorBoundary extends Component<Props, State> {
       error: error.message,
       componentStack: info.componentStack,
     });
+    Sentry.withScope((scope) => {
+      scope.setExtra('componentStack', info.componentStack);
+      Sentry.captureException(error);
+    });
   }
 
   private handleRetry = () => {
@@ -51,7 +56,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <View style={styles.container}>
           <Text style={styles.emoji}>😵</Text>
           <Text style={styles.title}>出了点问题</Text>
-          <Text style={styles.message}>{this.state.error?.message ?? '未知错误'}</Text>
+          <Text style={styles.message}>应用遇到了问题，请点击重试</Text>
           <TouchableOpacity style={styles.button} onPress={this.handleRetry}>
             <Text style={styles.buttonText}>重试</Text>
           </TouchableOpacity>

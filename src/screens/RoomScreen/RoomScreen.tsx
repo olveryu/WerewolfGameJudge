@@ -16,6 +16,7 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as Sentry from '@sentry/react-native';
 import React, { useCallback, useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -66,6 +67,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       })
       .catch((e) => {
         roomScreenLog.error('Share room failed:', e);
+        Sentry.captureException(e);
         showAlert('分享失败', '无法复制链接，请手动分享房间号');
       });
   }, [route.params.roomNumber]);

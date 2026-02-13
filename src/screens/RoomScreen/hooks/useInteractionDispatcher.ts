@@ -15,6 +15,7 @@
  *   - Duplicate any policy logic (single-source-of-truth is policy layer)
  */
 
+import * as Sentry from '@sentry/react-native';
 import { useCallback, useMemo } from 'react';
 
 import { GameStatus } from '@/models/GameStatus';
@@ -152,9 +153,10 @@ export function useInteractionDispatcher({
     (seat: number) => {
       const intent = getActionIntent(seat);
       if (intent) {
-        void handleActionIntent(intent).catch((err) =>
-          roomScreenLog.error('[handleActionTap] Unhandled error in handleActionIntent', err),
-        );
+        void handleActionIntent(intent).catch((err) => {
+          roomScreenLog.error('[handleActionTap] Unhandled error in handleActionIntent', err);
+          Sentry.captureException(err);
+        });
       }
     },
     [getActionIntent, handleActionIntent],
@@ -260,9 +262,10 @@ export function useInteractionDispatcher({
 
         case 'ACTION_FLOW':
           if (result.intent) {
-            void handleActionIntent(result.intent).catch((err) =>
-              roomScreenLog.error('[ACTION_FLOW] Unhandled error in handleActionIntent', err),
-            );
+            void handleActionIntent(result.intent).catch((err) => {
+              roomScreenLog.error('[ACTION_FLOW] Unhandled error in handleActionIntent', err);
+              Sentry.captureException(err);
+            });
           } else if (result.seat !== undefined) {
             handleActionTap(result.seat);
           }
