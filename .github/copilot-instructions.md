@@ -37,7 +37,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 ## Common Commands
 
 - `pnpm run web` — 启动 Web 开发服务器
-- `pnpm exec jest --no-coverage --forceExit` — 跑全部单元/集成测试（165 suites / 2613 tests）
+- `pnpm exec jest --no-coverage --forceExit` — 跑全部单元/集成测试（166 suites / 2643 tests）
 - `pnpm exec playwright test --reporter=list` — 跑 E2E（必须加 `--reporter=list`，否则会阻塞终端）
 - `pnpm exec tsc --noEmit` — 类型检查
 - `pnpm run lint` — ESLint

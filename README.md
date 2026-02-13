@@ -10,7 +10,7 @@ _An automated judge app designed for in-person Werewolf games_
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![React Native](https://img.shields.io/badge/React%20Native-Expo-purple?style=flat-square&logo=expo)](https://expo.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-Realtime-green?style=flat-square&logo=supabase)](https://supabase.com/)
-[![Tests](https://img.shields.io/badge/Tests-2613%20passed-brightgreen?style=flat-square)](.)
+[![Tests](https://img.shields.io/badge/Tests-2643%20passed-brightgreen?style=flat-square)](.)
 
 ---
 
@@ -25,7 +25,7 @@ _An automated judge app designed for in-person Werewolf games_
 | ⚡ **即开即用** - 匿名登录，无需注册，4位房间码快速加入           | ⚡ **Instant Play** - Anonymous login, no registration, quick join               |
 | 🌐 **跨平台** - iOS / Android / Web 全平台支持                    | 🌐 **Cross-platform** - iOS / Android / Web supported                            |
 | 🎨 **多主题** - 6 种主题风格可选（暗黑/浅色/午夜/血月/紫霞/极简） | 🎨 **Themes** - 6 theme styles (Dark/Light/Midnight/Blood/Purple/Minimal)        |
-| 🧪 **高测试覆盖** - 2613 个单元测试 + UI 测试 + E2E 测试          | 🧪 **High Test Coverage** - 2613 unit tests + UI tests + E2E tests               |
+| 🧪 **高测试覆盖** - 2643 个单元测试 + UI 测试 + E2E 测试          | 🧪 **High Test Coverage** - 2643 unit tests + UI tests + E2E tests               |
 
 ---
 
@@ -168,7 +168,7 @@ NIGHT_STEPS (步骤序列)                Step sequence
 
 | 类型 Type             | 数量 Count | 说明 Description                                                          |
 | --------------------- | ---------- | ------------------------------------------------------------------------- |
-| **Unit Tests**        | 2613       | 165 test suites                                                           |
+| **Unit Tests**        | 2643       | 166 test suites                                                           |
 | **UI Board Tests**    | 10 boards  | 覆盖所有预设板子<br/>_Cover all preset boards_                            |
 | **Integration Tests** | 25+        | 夜晚流程全链路<br/>_Full night flow chains_                               |
 | **Contract Tests**    | 15+        | Schema/Resolver 对齐<br/>_Schema/Resolver alignment_                      |
