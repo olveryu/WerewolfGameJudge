@@ -41,8 +41,8 @@
       /* These styles make the body full-height */
       html,
       body {
-        height: 100%;          /* fallback */
-        height: 100dvh;        /* 现代浏览器动态视口 */
+        height: 100%; /* fallback */
+        height: 100dvh; /* 现代浏览器动态视口 */
         height: calc(var(--vh, 1vh) * 100); /* JS fallback (微信等旧内核) */
       }
       /* These styles disable body scrolling if you are using <ScrollView> */
@@ -221,7 +221,9 @@
       if (/MicroMessenger/i.test(navigator.userAgent) && location.hostname === 'localhost') {
         var s = document.createElement('script');
         s.src = 'https://unpkg.com/vconsole@latest/dist/vconsole.min.js';
-        s.onload = function () { new window.VConsole(); };
+        s.onload = function () {
+          new window.VConsole();
+        };
         document.head.appendChild(s);
       }
 
