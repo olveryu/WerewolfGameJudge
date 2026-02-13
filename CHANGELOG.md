@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.213] - 2026-02-13
+
+- docs: generate complete CHANGELOG for all 209 versions
+- fix(e2e): use existing SUPABASE_URL/ANON_KEY secrets in CI
+- fix(e2e): gate CI e2e job behind E2E_ENABLED variable
+
 ## [1.0.212] - 2026-02-13
 
 - chore: auto-update CHANGELOG on release + GitHub Release workflow
