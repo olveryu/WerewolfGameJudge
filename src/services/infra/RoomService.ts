@@ -45,7 +45,7 @@ export class RoomService {
 
   private ensureConfigured(): void {
     if (!this.isConfigured()) {
-      throw new Error('Supabase is not configured');
+      throw new Error('服务未配置，请检查网络连接');
     }
   }
 

@@ -94,5 +94,10 @@ export function mapAuthError(message: string): string {
   if (lower.includes('only request this once every')) return '请求过于频繁，请稍等后重试';
   if (lower.includes('network') || lower.includes('fetch')) return '网络连接失败，请检查网络后重试';
 
+  // 其他未匹配的英文错误信息，返回通用中文提示，避免用户看到原始英文
+  if (/[a-z]/i.test(message) && !/[一-鿿]/.test(message)) {
+    return '操作失败，请稍后重试';
+  }
+
   return message;
 }

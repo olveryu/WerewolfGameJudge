@@ -9,6 +9,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Sentry from '@sentry/react-native';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -114,15 +115,16 @@ export const SettingsScreen: React.FC = () => {
           await uploadAvatar(result.assets[0].uri);
           showAlert('头像已更新！');
         } catch (e: unknown) {
-          const message = e instanceof Error ? e.message : '未知错误';
+          const message = e instanceof Error ? e.message : '请稍后重试';
           settingsLog.error('Avatar upload failed:', message, e);
+          Sentry.captureException(e);
           showAlert('上传失败', message);
         } finally {
           setUploadingAvatar(false);
         }
       }
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '未知错误';
+      const message = e instanceof Error ? e.message : '请稍后重试';
       settingsLog.error('Image picker failed:', message, e);
       showAlert('选择图片失败', message);
     }
@@ -147,8 +149,9 @@ export const SettingsScreen: React.FC = () => {
       setPassword('');
       setDisplayName('');
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '未知错误';
+      const message = e instanceof Error ? e.message : '请稍后重试';
       settingsLog.error('Email auth failed:', message, e);
+      Sentry.captureException(e);
       showAlert(isSignUp ? '注册失败' : '登录失败', message);
     }
   }, [email, password, displayName, isSignUp, signUpWithEmail, signInWithEmail]);
@@ -164,8 +167,9 @@ export const SettingsScreen: React.FC = () => {
       setIsEditingName(false);
       showAlert('名字已更新！');
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '未知错误';
+      const message = e instanceof Error ? e.message : '请稍后重试';
       settingsLog.error('Update name failed:', message, e);
+      Sentry.captureException(e);
       showAlert('更新失败', message);
     }
   }, [editName, updateProfile]);

@@ -148,7 +148,7 @@ describe('Room creation → navigation roomNumber contract', () => {
 
   it('should NOT navigate when createRoomRecord fails', async () => {
     // Simulate DB creation failure
-    mockRoomService.createRoom.mockRejectedValueOnce(new Error('Supabase is not configured'));
+    mockRoomService.createRoom.mockRejectedValueOnce(new Error('服务未配置'));
 
     const mockFacade = createMockFacade();
     const { getByText } = render(

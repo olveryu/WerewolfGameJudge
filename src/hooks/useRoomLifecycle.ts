@@ -14,6 +14,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sentry from '@sentry/react-native';
 import { useCallback, useState } from 'react';
 
 import { GameTemplate } from '@/models/Template';
@@ -100,7 +101,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         await authService.waitForInit();
         const hostUid = authService.getCurrentUserId();
         if (!hostUid) {
-          throw new Error('User not authenticated');
+          throw new Error('请先登录后再创建房间');
         }
 
         // Set roomRecord for connection sync & leaveRoom cleanup
@@ -110,8 +111,9 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to initialize room';
+        const message = err instanceof Error ? err.message : '房间初始化失败，请重试';
         gameRoomLog.error('[initializeHostRoom] Failed', { error: message, roomNumber });
+        Sentry.captureException(err);
         setError(message);
         return false;
       } finally {
@@ -131,7 +133,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         await authService.waitForInit();
         const playerUid = authService.getCurrentUserId();
         if (!playerUid) {
-          throw new Error('User not authenticated');
+          throw new Error('请先登录后再加入房间');
         }
 
         // Check if room exists
@@ -174,8 +176,9 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to join room';
+        const message = err instanceof Error ? err.message : '加入房间失败，请重试';
         gameRoomLog.error('Player joinRoom failed:', message, err);
+        Sentry.captureException(err);
         setError(message);
         return false;
       } finally {

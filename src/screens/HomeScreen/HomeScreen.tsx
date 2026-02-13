@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Sentry from '@sentry/react-native';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Modal, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -128,6 +129,7 @@ export const HomeScreen: React.FC = () => {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
       homeLog.error(' Error:', e);
+      Sentry.captureException(e);
       showAlert('登录失败', message || '请稍后重试');
     }
   }, [signInAnonymously]);
@@ -151,8 +153,9 @@ export const HomeScreen: React.FC = () => {
       setPassword('');
       setDisplayName('');
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '未知错误';
+      const message = e instanceof Error ? e.message : '请稍后重试';
       homeLog.error('Email auth failed:', message, e);
+      Sentry.captureException(e);
       showAlert(isSignUp ? '注册失败' : '登录失败', message);
     }
   }, [email, password, displayName, isSignUp, signUpWithEmail, signInWithEmail]);

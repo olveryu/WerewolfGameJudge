@@ -34,29 +34,27 @@ describe('AuthService - Unconfigured state', () => {
   });
 
   it('signInAnonymously should throw when not configured', async () => {
-    await expect(authService.signInAnonymously()).rejects.toThrow('Supabase is not configured');
+    await expect(authService.signInAnonymously()).rejects.toThrow('服务未配置');
   });
 
   it('signUpWithEmail should throw when not configured', async () => {
     await expect(authService.signUpWithEmail('test@test.com', 'password123')).rejects.toThrow(
-      'Supabase is not configured',
+      '服务未配置',
     );
   });
 
   it('signInWithEmail should throw when not configured', async () => {
     await expect(authService.signInWithEmail('test@test.com', 'password123')).rejects.toThrow(
-      'Supabase is not configured',
+      '服务未配置',
     );
   });
 
   it('updateProfile should throw when not configured', async () => {
-    await expect(authService.updateProfile({ displayName: 'Test' })).rejects.toThrow(
-      'Supabase is not configured',
-    );
+    await expect(authService.updateProfile({ displayName: 'Test' })).rejects.toThrow('服务未配置');
   });
 
   it('signOut should throw when not configured', async () => {
-    await expect(authService.signOut()).rejects.toThrow('Supabase is not configured');
+    await expect(authService.signOut()).rejects.toThrow('服务未配置');
   });
 
   it('initAuth should return null when not configured', async () => {

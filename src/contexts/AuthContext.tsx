@@ -10,6 +10,7 @@
  * ❌ 禁止：游戏业务逻辑、直接操作游戏状态
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sentry from '@sentry/react-native';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import React, { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -93,9 +94,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updateUserIfChanged(toUser(result.data.user));
         }
       } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : String(e);
-        authLog.error('Failed to load user:', message, e);
-        setError(message);
+        const raw = e instanceof Error ? e.message : String(e);
+        authLog.error('Failed to load user:', raw, e);
+        Sentry.captureException(e);
+        setError(mapAuthError(raw));
       } finally {
         setLoading(false);
       }
@@ -131,6 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const raw = e instanceof Error ? e.message : String(e);
       const friendly = mapAuthError(raw);
       authLog.error('Anonymous sign-in failed:', raw, e);
+      Sentry.captureException(e);
       setError(friendly);
       throw new Error(friendly);
     } finally {
@@ -151,6 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const raw = e instanceof Error ? e.message : String(e);
         const friendly = mapAuthError(raw);
         authLog.error('Email sign-up failed:', raw, e);
+        Sentry.captureException(e);
         setError(friendly);
         throw new Error(friendly);
       } finally {
@@ -174,6 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const raw = e instanceof Error ? e.message : String(e);
         const friendly = mapAuthError(raw);
         authLog.error('Email sign-in failed:', raw, e);
+        Sentry.captureException(e);
         setError(friendly);
         throw new Error(friendly);
       } finally {
@@ -196,6 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const raw = e instanceof Error ? e.message : String(e);
         const friendly = mapAuthError(raw);
         authLog.error('Update profile failed:', raw, e);
+        Sentry.captureException(e);
         setError(friendly);
         throw new Error(friendly);
       }
@@ -217,6 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const raw = e instanceof Error ? e.message : String(e);
         const friendly = mapAuthError(raw);
         authLog.error('Upload avatar failed:', raw, e);
+        Sentry.captureException(e);
         setError(friendly);
         throw new Error(friendly);
       }
@@ -233,6 +240,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e: unknown) {
       const raw = e instanceof Error ? e.message : String(e);
       authLog.error('Sign-out failed:', raw, e);
+      Sentry.captureException(e);
       setError(mapAuthError(raw));
     } finally {
       setLoading(false);

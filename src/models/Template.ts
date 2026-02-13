@@ -28,7 +28,7 @@ export function validateTemplateRoles(roles: RoleId[]): string | null {
   // Rule 2: all roles must be valid RoleId (defensive, in case of external data)
   for (const r of roles) {
     if (!isValidRoleId(r)) {
-      return `无效角色: ${r}`;
+      return '包含无效角色配置，请重新选择';
     }
   }
 

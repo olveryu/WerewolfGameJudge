@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Sentry from '@sentry/react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -234,7 +235,7 @@ export const ConfigScreen: React.FC = () => {
 
     const roles = selectionToRoles(selection);
     if (roles.length === 0) {
-      showAlert('错误', '请至少选择一个角色');
+      showAlert('配置提示', '请至少选择一个角色');
       creatingRef.current = false;
       return;
     }
@@ -255,7 +256,7 @@ export const ConfigScreen: React.FC = () => {
       if (isEditMode && existingRoomNumber) {
         const result = await facade.updateTemplate(template);
         if (!result.success) {
-          showAlert('错误', result.reason ?? '更新房间失败');
+          showAlert('更新失败', result.reason ?? '更新房间设置失败，请重试');
           return;
         }
         await facade.setRoleRevealAnimation(roleRevealAnimation);
@@ -270,7 +271,7 @@ export const ConfigScreen: React.FC = () => {
         await authService.waitForInit();
         const hostUid = authService.getCurrentUserId();
         if (!hostUid) {
-          showAlert('错误', '用户未认证');
+          showAlert('提示', '请先登录后再创建房间');
           return;
         }
         const record = await roomService.createRoom(hostUid);
@@ -285,7 +286,11 @@ export const ConfigScreen: React.FC = () => {
       }
     } catch (e) {
       configLog.error('Room create/join failed', e);
-      showAlert('错误', isEditMode ? '更新房间失败' : '创建房间失败');
+      Sentry.captureException(e);
+      showAlert(
+        isEditMode ? '更新失败' : '创建失败',
+        isEditMode ? '更新房间失败，请重试' : '创建房间失败，请重试',
+      );
     } finally {
       setIsCreating(false);
       creatingRef.current = false;

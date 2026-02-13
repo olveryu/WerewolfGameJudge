@@ -191,7 +191,7 @@ export async function sendChatMessage(
       if (response.status === 429) {
         return { success: false, error: '请求太频繁，请稍后再试' };
       }
-      return { success: false, error: `API 错误: ${response.status}` };
+      return { success: false, error: 'AI 服务暂时不可用，请稍后重试' };
     }
 
     const data = await response.json();
@@ -211,7 +211,7 @@ export async function sendChatMessage(
     chatLog.error('Chat request failed', { error });
     return {
       success: false,
-      error: error instanceof Error ? error.message : '网络请求失败',
+      error: '网络请求失败，请检查网络后重试',
     };
   }
 }
@@ -278,7 +278,7 @@ export async function* streamChatMessage(
     });
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') throw error;
-    yield { type: 'error', content: error instanceof Error ? error.message : '网络请求失败' };
+    yield { type: 'error', content: '网络请求失败，请检查网络后重试' };
     return;
   }
 
@@ -290,7 +290,7 @@ export async function* streamChatMessage(
     } else if (response.status === 429) {
       yield { type: 'error', content: '请求太频繁，请稍后再试' };
     } else {
-      yield { type: 'error', content: `API 错误: ${response.status}` };
+      yield { type: 'error', content: 'AI 服务暂时不可用，请稍后重试' };
     }
     return;
   }

@@ -27,7 +27,7 @@ describe('AvatarUploadService - Unconfigured state', () => {
 
   it('uploadAvatar should throw when not configured', async () => {
     await expect(avatarService.uploadAvatar('file:///path/to/image.jpg')).rejects.toThrow(
-      'Supabase is not configured',
+      '服务未配置',
     );
   });
 });
@@ -102,7 +102,7 @@ describe('AvatarUploadService - Error handling', () => {
       fail('Should have thrown');
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toContain('not configured');
+      expect((error as Error).message).toContain('服务未配置');
     }
   });
 });

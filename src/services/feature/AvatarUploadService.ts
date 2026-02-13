@@ -28,14 +28,14 @@ export class AvatarUploadService {
 
   private ensureConfigured(): void {
     if (!this.isConfigured()) {
-      throw new Error('Supabase is not configured.');
+      throw new Error('服务未配置，请检查网络连接');
     }
   }
 
   async uploadAvatar(fileUri: string): Promise<string> {
     this.ensureConfigured();
     const userId = this.authService.getCurrentUserId();
-    if (!userId) throw new Error('Not authenticated');
+    if (!userId) throw new Error('请先登录后再上传头像');
 
     // Compress image before upload (512x512 for crisp display on high-DPI screens)
     const compressedBlob = await this.compressImage(fileUri, 512, 0.85);
@@ -120,7 +120,7 @@ export class AvatarUploadService {
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          reject(new Error('Failed to get canvas context'));
+          reject(new Error('图片处理失败，请换一张图片重试'));
           return;
         }
 
@@ -132,7 +132,7 @@ export class AvatarUploadService {
               avatarLog.debug(`Compressed image: ${Math.round(blob.size / 1024)}KB`);
               resolve(blob);
             } else {
-              reject(new Error('Failed to compress image'));
+              reject(new Error('图片压缩失败，请换一张图片重试'));
             }
           },
           'image/jpeg',
@@ -140,7 +140,7 @@ export class AvatarUploadService {
         );
       };
 
-      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onerror = () => reject(new Error('图片加载失败，请换一张图片重试'));
       img.src = fileUri;
     });
   }

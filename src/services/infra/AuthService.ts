@@ -54,7 +54,7 @@ export class AuthService {
 
   private ensureConfigured(): void {
     if (!this.isConfigured()) {
-      throw new Error('Supabase is not configured. Please set up Supabase or use demo mode.');
+      throw new Error('服务未配置，请检查网络连接');
     }
   }
 
