@@ -235,20 +235,18 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         ))}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Board Info - hidden during ongoing/ended, shown during setup phases */}
-        {roomStatus !== GameStatus.ongoing && roomStatus !== GameStatus.ended && (
-          <BoardInfoCard
-            playerCount={gameState.template.roles.length}
-            wolfRolesText={formatRoleList(wolfRoles, roleCounts)}
-            godRolesText={formatRoleList(godRoles, roleCounts)}
-            specialRolesText={
-              specialRoles.length > 0 ? formatRoleList(specialRoles, roleCounts) : undefined
-            }
-            villagerCount={villagerCount}
-            collapsed={false}
-            styles={componentStyles.boardInfoCard}
-          />
-        )}
+        {/* Board Info - collapsed during ongoing/ended, expanded during setup */}
+        <BoardInfoCard
+          playerCount={gameState.template.roles.length}
+          wolfRolesText={formatRoleList(wolfRoles, roleCounts)}
+          godRolesText={formatRoleList(godRoles, roleCounts)}
+          specialRolesText={
+            specialRoles.length > 0 ? formatRoleList(specialRoles, roleCounts) : undefined
+          }
+          villagerCount={villagerCount}
+          collapsed={roomStatus === GameStatus.ongoing || roomStatus === GameStatus.ended}
+          styles={componentStyles.boardInfoCard}
+        />
 
         {/* Player Grid */}
         <PlayerGrid
