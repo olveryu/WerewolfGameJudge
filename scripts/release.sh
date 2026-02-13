@@ -53,6 +53,37 @@ fs.writeFileSync('./app.json', JSON.stringify(appJson, null, 2) + '\n');
 "
 echo "✅ Version: v$VERSION"
 
+# ── 自动更新 CHANGELOG.md ──
+PREV_TAG=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "")
+TODAY=$(date +%Y-%m-%d)
+
+if [ -n "$PREV_TAG" ]; then
+  # 收集自上个 tag 以来的非 release commit
+  CHANGES=$(git log --format='- %s' "$PREV_TAG..HEAD" | grep -v '^- release:')
+else
+  CHANGES="- Initial release"
+fi
+
+if [ -n "$CHANGES" ]; then
+  HEADER="## [$VERSION] - $TODAY"
+  # 在 CHANGELOG.md 的第一个 "## " 之前插入新条目
+  if [ -f CHANGELOG.md ] && grep -q '^## ' CHANGELOG.md; then
+    # 用 node 做文本插入（避免 sed 跨平台差异）
+    node -e "
+const fs = require('fs');
+const cl = fs.readFileSync('CHANGELOG.md', 'utf8');
+const entry = '$HEADER\n\n' + $(echo "$CHANGES" | node -e "
+  const lines = require('fs').readFileSync('/dev/stdin','utf8').trim();
+  process.stdout.write(JSON.stringify(lines));
+") + '\n\n';
+const idx = cl.indexOf('\n## ');
+const updated = cl.slice(0, idx + 1) + entry + cl.slice(idx + 1);
+fs.writeFileSync('CHANGELOG.md', updated);
+"
+    echo "📋 CHANGELOG.md updated"
+  fi
+fi
+
 echo "📝 Committing..."
 git add -A
 
