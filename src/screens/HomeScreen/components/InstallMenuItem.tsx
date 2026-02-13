@@ -42,15 +42,9 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
 
   return (
     <>
-      <TouchableOpacity style={styles.menuItem} onPress={handlePress} activeOpacity={0.7}>
-        <View style={styles.menuIcon}>
-          <Ionicons name="download-outline" size={22} color={colors.text} />
-        </View>
-        <View style={styles.menuContent}>
-          <Text style={styles.menuTitle}>安装到主屏幕</Text>
-          <Text style={styles.menuSubtitle}>像原生 App 一样使用</Text>
-        </View>
-        <Text style={styles.menuArrow}>›</Text>
+      <TouchableOpacity style={styles.footerLink} onPress={handlePress} activeOpacity={0.7}>
+        <Ionicons name="download-outline" size={14} color={colors.primary} />
+        <Text style={styles.footerLinkText}>安装到主屏幕</Text>
       </TouchableOpacity>
 
       {/* iOS 浏览器引导 Modal */}

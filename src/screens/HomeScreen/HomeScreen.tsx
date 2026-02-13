@@ -330,13 +330,12 @@ export const HomeScreen: React.FC = () => {
             onPress={handleNavigateSettings}
             styles={styles}
           />
-          <View style={styles.divider} />
-          <InstallMenuItem styles={styles} colors={colors} />
         </View>
 
         {/* Footer with author and version */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>{APP_VERSION} · 作者：严振宇</Text>
+          <InstallMenuItem styles={styles} colors={colors} />
         </View>
       </ScrollView>
 

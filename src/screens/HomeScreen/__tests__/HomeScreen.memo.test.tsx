@@ -98,6 +98,8 @@ describe('HomeScreen Performance Optimizations', () => {
         'outlineButtonText',
         'footer',
         'footerText',
+        'footerLink',
+        'footerLinkText',
       ];
       expectedKeys.forEach((key) => {
         expect(styles).toHaveProperty(key);

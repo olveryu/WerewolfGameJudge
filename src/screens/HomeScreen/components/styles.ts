@@ -52,6 +52,8 @@ export interface HomeScreenStyles {
   outlineButtonText: TextStyle;
   footer: ViewStyle;
   footerText: TextStyle;
+  footerLink: ViewStyle;
+  footerLinkText: TextStyle;
 }
 
 export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
@@ -288,6 +290,16 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     footerText: {
       fontSize: typography.caption,
       color: colors.textMuted,
+    },
+    footerLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: spacing.small,
+      gap: spacing.tight,
+    },
+    footerLinkText: {
+      fontSize: typography.caption,
+      color: colors.primary,
     },
   });
 }
