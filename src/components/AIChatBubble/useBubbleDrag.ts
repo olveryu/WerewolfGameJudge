@@ -14,6 +14,8 @@ import { Animated, type GestureResponderEvent, Platform, useWindowDimensions } f
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
+import { chatLog } from '@/utils/logger';
+
 import { BUBBLE_MARGIN, BUBBLE_SIZE, DEFAULT_POSITION } from './AIChatBubble.styles';
 
 const STORAGE_KEY_POSITION = '@ai_chat_bubble_position';
@@ -50,7 +52,9 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
       .then((saved) => {
         if (saved) setPosition(JSON.parse(saved));
       })
-      .catch(() => {});
+      .catch((e) => {
+        chatLog.warn('Failed to load bubble position:', e);
+      });
   }, []);
 
   // ── Bubble press (short tap) ───────────────────────

@@ -175,6 +175,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to join room';
+        gameRoomLog.error('Player joinRoom failed:', message, err);
         setError(message);
         return false;
       } finally {

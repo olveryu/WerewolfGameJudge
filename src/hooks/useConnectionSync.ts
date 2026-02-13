@@ -87,8 +87,8 @@ export function useConnectionSync(
       if (hasRequestedInSessionRef.current) return; // 双重保险
       hasRequestedInSessionRef.current = true;
       gameRoomLog.debug('Player auto-recovery: requesting state after reconnect');
-      facade.requestSnapshot().catch(() => {
-        // Ignore — best-effort recovery
+      facade.requestSnapshot().catch((e) => {
+        gameRoomLog.warn('Player auto-recovery requestSnapshot failed:', e);
       });
     }, 2000);
 

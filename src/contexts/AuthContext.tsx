@@ -15,7 +15,7 @@ import React, { createContext, use, useCallback, useEffect, useMemo, useState } 
 
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
 import { useServices } from '@/contexts/ServiceContext';
-import { authLog } from '@/utils/logger';
+import { authLog, mapAuthError } from '@/utils/logger';
 
 export interface User {
   uid: string;
@@ -128,9 +128,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await authService.signInAnonymously();
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
-      throw e;
+      const raw = e instanceof Error ? e.message : String(e);
+      const friendly = mapAuthError(raw);
+      authLog.error('Anonymous sign-in failed:', raw, e);
+      setError(friendly);
+      throw new Error(friendly);
     } finally {
       setLoading(false);
     }
@@ -146,9 +148,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(toUser(result.user));
         }
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setError(msg);
-        throw e;
+        const raw = e instanceof Error ? e.message : String(e);
+        const friendly = mapAuthError(raw);
+        authLog.error('Email sign-up failed:', raw, e);
+        setError(friendly);
+        throw new Error(friendly);
       } finally {
         setLoading(false);
       }
@@ -167,9 +171,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(toUser(result.data.user));
         }
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setError(msg);
-        throw e;
+        const raw = e instanceof Error ? e.message : String(e);
+        const friendly = mapAuthError(raw);
+        authLog.error('Email sign-in failed:', raw, e);
+        setError(friendly);
+        throw new Error(friendly);
       } finally {
         setLoading(false);
       }
@@ -187,9 +193,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(toUser(result.data.user));
         }
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setError(msg);
-        throw e;
+        const raw = e instanceof Error ? e.message : String(e);
+        const friendly = mapAuthError(raw);
+        authLog.error('Update profile failed:', raw, e);
+        setError(friendly);
+        throw new Error(friendly);
       }
     },
     [authService],
@@ -206,9 +214,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return url;
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setError(msg);
-        throw e;
+        const raw = e instanceof Error ? e.message : String(e);
+        const friendly = mapAuthError(raw);
+        authLog.error('Upload avatar failed:', raw, e);
+        setError(friendly);
+        throw new Error(friendly);
       }
     },
     [authService, avatarUploadService],
@@ -221,8 +231,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await AsyncStorage.removeItem('lastRoomNumber');
       setUser(null);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
+      const raw = e instanceof Error ? e.message : String(e);
+      authLog.error('Sign-out failed:', raw, e);
+      setError(mapAuthError(raw));
     } finally {
       setLoading(false);
     }

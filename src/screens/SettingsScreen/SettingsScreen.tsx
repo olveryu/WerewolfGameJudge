@@ -19,6 +19,7 @@ import { RootStackParamList } from '@/navigation/types';
 import { ThemeKey, typography, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { getAvatarImage } from '@/utils/avatar';
+import { settingsLog } from '@/utils/logger';
 
 import {
   AuthForm,
@@ -114,6 +115,7 @@ export const SettingsScreen: React.FC = () => {
           showAlert('头像已更新！');
         } catch (e: unknown) {
           const message = e instanceof Error ? e.message : '未知错误';
+          settingsLog.error('Avatar upload failed:', message, e);
           showAlert('上传失败', message);
         } finally {
           setUploadingAvatar(false);
@@ -121,6 +123,7 @@ export const SettingsScreen: React.FC = () => {
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '未知错误';
+      settingsLog.error('Image picker failed:', message, e);
       showAlert('选择图片失败', message);
     }
   }, [uploadAvatar]);
@@ -145,7 +148,8 @@ export const SettingsScreen: React.FC = () => {
       setDisplayName('');
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '未知错误';
-      showAlert('错误', message);
+      settingsLog.error('Email auth failed:', message, e);
+      showAlert(isSignUp ? '注册失败' : '登录失败', message);
     }
   }, [email, password, displayName, isSignUp, signUpWithEmail, signInWithEmail]);
 
@@ -161,6 +165,7 @@ export const SettingsScreen: React.FC = () => {
       showAlert('名字已更新！');
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '未知错误';
+      settingsLog.error('Update name failed:', message, e);
       showAlert('更新失败', message);
     }
   }, [editName, updateProfile]);

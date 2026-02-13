@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { AccessibilityInfo, Modal, StyleSheet, View } from 'react-native';
 
 import { useColors } from '@/theme';
+import { log } from '@/utils/logger';
 
 import { EnhancedRoulette } from './EnhancedRoulette';
 import { FlipReveal } from './FlipReveal';
@@ -36,7 +37,10 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled()
       .then(setSystemReducedMotion)
-      .catch(() => setSystemReducedMotion(false));
+      .catch((e) => {
+        log.warn('Failed to query reduced motion preference:', e);
+        setSystemReducedMotion(false);
+      });
 
     const subscription = AccessibilityInfo.addEventListener(
       'reduceMotionChanged',

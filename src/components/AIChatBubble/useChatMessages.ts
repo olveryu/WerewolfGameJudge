@@ -21,6 +21,7 @@ import {
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { showAlert } from '@/utils/alert';
 import { newRequestId } from '@/utils/id';
+import { chatLog } from '@/utils/logger';
 
 import type { DisplayMessage } from './AIChatBubble.styles';
 import { buildPlayerContext } from './playerContext';
@@ -75,7 +76,9 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
       .then((saved) => {
         if (saved) setMessages(JSON.parse(saved));
       })
-      .catch(() => {});
+      .catch((e) => {
+        chatLog.warn('Failed to load saved messages:', e);
+      });
   }, []);
 
   // ── Persist messages ───────────────────────────────
@@ -84,7 +87,9 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
       AsyncStorage.setItem(
         STORAGE_KEY_MESSAGES,
         JSON.stringify(messages.slice(-MAX_PERSISTED_MESSAGES)),
-      ).catch(() => {});
+      ).catch((e) => {
+        chatLog.warn('Failed to persist messages:', e);
+      });
     }
   }, [messages]);
 
@@ -296,7 +301,9 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
         style: 'destructive',
         onPress: () => {
           setMessages([]);
-          AsyncStorage.removeItem(STORAGE_KEY_MESSAGES).catch(() => {});
+          AsyncStorage.removeItem(STORAGE_KEY_MESSAGES).catch((e) => {
+            chatLog.warn('Failed to clear message storage:', e);
+          });
         },
       },
     ]);

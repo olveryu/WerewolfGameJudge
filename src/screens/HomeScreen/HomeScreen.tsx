@@ -152,7 +152,8 @@ export const HomeScreen: React.FC = () => {
       setDisplayName('');
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '未知错误';
-      showAlert('错误', message);
+      homeLog.error('Email auth failed:', message, e);
+      showAlert(isSignUp ? '注册失败' : '登录失败', message);
     }
   }, [email, password, displayName, isSignUp, signUpWithEmail, signInWithEmail]);
 

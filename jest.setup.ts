@@ -339,5 +339,10 @@ jest.mock('./src/utils/logger', () => {
     homeLog: mockLogger,
     facadeLog: mockLogger,
     gameStateLog: mockLogger,
+    settingsLog: mockLogger,
+    settingsServiceLog: mockLogger,
+    bgmLog: mockLogger,
+    chatLog: mockLogger,
+    mapAuthError: jest.fn((msg: string) => msg),
   };
 });

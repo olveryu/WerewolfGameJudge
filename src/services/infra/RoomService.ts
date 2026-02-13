@@ -123,6 +123,9 @@ export class RoomService {
       .single();
 
     if (error || !data) {
+      if (error) {
+        roomLog.error('getRoom DB error for room', roomNumber, ':', error.message);
+      }
       return null;
     }
 

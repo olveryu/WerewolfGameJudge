@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
 import { GameStatus } from '@/models/GameStatus';
+import { bgmLog } from '@/utils/logger';
 
 export interface BgmControlState {
   isBgmEnabled: boolean;
@@ -40,8 +41,8 @@ export function useBgmControl(isHost: boolean, gameStatus: GameStatus | null): B
       await settingsRef.current.load();
       setIsBgmEnabled(settingsRef.current.isBgmEnabled());
     };
-    loadSettings().catch(() => {
-      // Ignore — settings load failure is non-critical
+    loadSettings().catch((e) => {
+      bgmLog.warn('Failed to load BGM settings:', e);
     });
   }, []);
 
@@ -67,8 +68,8 @@ export function useBgmControl(isHost: boolean, gameStatus: GameStatus | null): B
     if (newValue) {
       // Only start if game is ongoing
       if (gameStatus === GameStatus.ongoing) {
-        audioRef.current.startBgm().catch(() => {
-          // Ignore — BGM start failure is non-critical
+        audioRef.current.startBgm().catch((e) => {
+          bgmLog.warn('BGM start failed after toggle:', e);
         });
       }
     } else {
@@ -80,8 +81,8 @@ export function useBgmControl(isHost: boolean, gameStatus: GameStatus | null): B
   const startBgmIfEnabled = useCallback(() => {
     const bgmEnabled = settingsRef.current.isBgmEnabled();
     if (bgmEnabled) {
-      audioRef.current.startBgm().catch(() => {
-        // Ignore — BGM start failure is non-critical
+      audioRef.current.startBgm().catch((e) => {
+        bgmLog.warn('BGM start failed:', e);
       });
     }
   }, []);

@@ -26,6 +26,7 @@ import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { spacing, useColors } from '@/theme';
 import { showAlert } from '@/utils/alert';
+import { roomScreenLog } from '@/utils/logger';
 
 import { ActionButton } from './components/ActionButton';
 import { BoardInfoCard } from './components/BoardInfoCard';
@@ -63,7 +64,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         // 'shared' → system share sheet already provided feedback
         // 'cancelled' → user dismissed intentionally, no alert needed
       })
-      .catch(() => {
+      .catch((e) => {
+        roomScreenLog.error('Share room failed:', e);
         showAlert('分享失败', '无法复制链接，请手动分享房间号');
       });
   }, [route.params.roomNumber]);

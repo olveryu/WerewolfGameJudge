@@ -10,6 +10,8 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { settingsServiceLog } from '@/utils/logger';
+
 const SETTINGS_KEY = '@werewolf_settings';
 
 /** Valid theme keys (must match themes.ts ThemeKey) */
@@ -53,8 +55,9 @@ export class SettingsService {
       }
 
       this.loaded = true;
-    } catch {
+    } catch (e) {
       // If load fails, use defaults
+      settingsServiceLog.warn('Failed to load settings, using defaults:', e);
       this.settings = { ...DEFAULT_SETTINGS };
       this.loaded = true;
     }
@@ -67,8 +70,8 @@ export class SettingsService {
     try {
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
       this.notifyListeners();
-    } catch {
-      // Ignore save errors
+    } catch (e) {
+      settingsServiceLog.error('Failed to save settings:', e);
     }
   }
 
