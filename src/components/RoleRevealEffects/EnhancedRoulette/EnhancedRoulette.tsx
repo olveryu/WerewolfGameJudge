@@ -318,10 +318,19 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
   // ── Reveal complete handler ──
   const onCompleteCalledRef = useRef(false);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up hold timer on unmount
+  useEffect(() => {
+    return () => {
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    };
+  }, []);
+
   const handleRevealComplete = useCallback(() => {
     if (onCompleteCalledRef.current) return;
     onCompleteCalledRef.current = true;
-    setTimeout(onComplete, config.revealHoldDuration ?? 1500);
+    holdTimerRef.current = setTimeout(onComplete, config.revealHoldDuration ?? 1500);
   }, [onComplete, config.revealHoldDuration]);
 
   // ── Animated styles ──

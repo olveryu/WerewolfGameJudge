@@ -53,15 +53,19 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), [colors]);
 
   const handleShareRoom = useCallback(() => {
-    void shareOrCopyRoomLink(route.params.roomNumber).then((result) => {
-      if (result === 'copied') {
-        showAlert('已复制', '房间链接已复制到剪贴板');
-      } else if (result === 'failed') {
+    void shareOrCopyRoomLink(route.params.roomNumber)
+      .then((result) => {
+        if (result === 'copied') {
+          showAlert('已复制', '房间链接已复制到剪贴板');
+        } else if (result === 'failed') {
+          showAlert('分享失败', '无法复制链接，请手动分享房间号');
+        }
+        // 'shared' → system share sheet already provided feedback
+        // 'cancelled' → user dismissed intentionally, no alert needed
+      })
+      .catch(() => {
         showAlert('分享失败', '无法复制链接，请手动分享房间号');
-      }
-      // 'shared' → system share sheet already provided feedback
-      // 'cancelled' → user dismissed intentionally, no alert needed
-    });
+      });
   }, [route.params.roomNumber]);
 
   const {

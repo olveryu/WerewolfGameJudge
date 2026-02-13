@@ -108,6 +108,14 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   );
   const [particles, setParticles] = useState<ParticleConfig[]>([]);
   const onCompleteCalledRef = useRef(false);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up hold timer on unmount
+  useEffect(() => {
+    return () => {
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    };
+  }, []);
 
   // ── Shared values ──
   const entryScale = useSharedValue(0.6);
@@ -226,7 +234,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   const handleGlowComplete = useCallback(() => {
     if (onCompleteCalledRef.current) return;
     onCompleteCalledRef.current = true;
-    setTimeout(() => onComplete(), config.revealHoldDuration);
+    holdTimerRef.current = setTimeout(() => onComplete(), config.revealHoldDuration);
   }, [onComplete, config.revealHoldDuration]);
 
   // ── Kick-off ──

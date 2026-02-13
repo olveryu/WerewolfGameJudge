@@ -235,12 +235,14 @@ export const ConfigScreen: React.FC = () => {
     const roles = selectionToRoles(selection);
     if (roles.length === 0) {
       showAlert('错误', '请至少选择一个角色');
+      creatingRef.current = false;
       return;
     }
 
     const validationError = validateTemplateRoles(roles);
     if (validationError) {
       showAlert('配置不合法', validationError);
+      creatingRef.current = false;
       return;
     }
 

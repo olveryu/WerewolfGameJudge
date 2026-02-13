@@ -280,7 +280,10 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
 
   const handleQuickQuestion = useCallback(
     (question: string) => {
-      sendMessage(question);
+      void sendMessage(question).catch(() => {
+        // Error already handled inside sendMessage (sets error state).
+        // Catch here to prevent unhandled promise rejection from re-thrown errors.
+      });
     },
     [sendMessage],
   );

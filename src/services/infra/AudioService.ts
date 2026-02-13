@@ -490,6 +490,11 @@ export class AudioService {
     audioLog.debug('cleanup: stopping all audio');
     this.stopCurrentPlayer();
     this.stopBgm();
+    // Remove visibilitychange listener if registered (web only)
+    if (this.visibilityHandler && typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
   }
 
   // ============ BGM Methods ============
