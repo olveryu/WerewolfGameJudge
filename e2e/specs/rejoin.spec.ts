@@ -33,31 +33,6 @@ test.setTimeout(180_000);
 // ---------------------------------------------------------------------------
 
 /**
- * Wait for night flow to reach a point where at least one action prompt
- * or night indicator is visible, meaning the night is actively running.
- */
-async function waitForNightActive(pages: Page[], maxWaitMs = 15_000): Promise<void> {
-  const startTime = Date.now();
-  const indicators = ['请睁眼', '请行动', '狼人', '请选择', '投票空刀', '不使用技能'];
-
-  while (Date.now() - startTime < maxWaitMs) {
-    for (const page of pages) {
-      for (const text of indicators) {
-        const visible = await page
-          .getByText(text)
-          .first()
-          .isVisible({ timeout: 200 })
-          .catch(() => false);
-        if (visible) return;
-      }
-    }
-    await pages[0].waitForTimeout(500);
-  }
-  // Don't throw — night might still be progressing even without these texts
-  console.log('[waitForNightActive] No night indicator found within timeout, continuing anyway');
-}
-
-/**
  * Dismiss the "继续游戏" overlay if it appears.
  * Returns true if the overlay was visible and dismissed.
  */
