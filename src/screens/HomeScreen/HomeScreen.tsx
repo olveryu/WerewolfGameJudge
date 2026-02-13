@@ -26,6 +26,7 @@ import { homeLog } from '@/utils/logger';
 import {
   createHomeScreenStyles,
   EmailForm,
+  InstallMenuItem,
   JoinRoomModal,
   LoginOptions,
   MenuItem,
@@ -329,6 +330,8 @@ export const HomeScreen: React.FC = () => {
             onPress={handleNavigateSettings}
             styles={styles}
           />
+          <View style={styles.divider} />
+          <InstallMenuItem styles={styles} colors={colors} />
         </View>
 
         {/* Footer with author and version */}

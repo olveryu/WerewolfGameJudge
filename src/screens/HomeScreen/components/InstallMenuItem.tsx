@@ -1,0 +1,100 @@
+/**
+ * InstallMenuItem - PWA 安装到主屏幕菜单项 + iOS 引导 Modal
+ *
+ * Android/桌面 Chrome：点击直接触发系统安装弹窗。
+ * iOS Safari：点击弹出引导 Modal（分享 → 添加到主屏幕）。
+ * 已安装 / 不支持 / 用户已关闭：不渲染。
+ *
+ * ✅ 允许：渲染 UI + 调用 usePWAInstall hook
+ * ❌ 禁止：import service / 业务逻辑判断
+ */
+import { Ionicons } from '@expo/vector-icons';
+import React, { memo, useCallback, useState } from 'react';
+import { Modal, Text, TouchableOpacity, View } from 'react-native';
+
+import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { type ThemeColors } from '@/theme';
+
+import { type HomeScreenStyles } from './styles';
+
+interface InstallMenuItemProps {
+  styles: HomeScreenStyles;
+  colors: ThemeColors;
+}
+
+const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colors }) => {
+  const { mode, install, dismiss } = usePWAInstall();
+  const [showGuide, setShowGuide] = useState(false);
+
+  const handlePress = useCallback(async () => {
+    if (mode === 'prompt') {
+      await install();
+    } else if (mode === 'ios-guide') {
+      setShowGuide(true);
+    }
+  }, [mode, install]);
+
+  const handleCloseGuide = useCallback(() => {
+    setShowGuide(false);
+    dismiss();
+  }, [dismiss]);
+
+  if (mode === 'hidden') return null;
+
+  return (
+    <>
+      <TouchableOpacity style={styles.menuItem} onPress={handlePress} activeOpacity={0.7}>
+        <View style={styles.menuIcon}>
+          <Ionicons name="download-outline" size={22} color={colors.text} />
+        </View>
+        <View style={styles.menuContent}>
+          <Text style={styles.menuTitle}>安装到主屏幕</Text>
+          <Text style={styles.menuSubtitle}>像原生 App 一样使用</Text>
+        </View>
+        <Text style={styles.menuArrow}>›</Text>
+      </TouchableOpacity>
+
+      {/* iOS Safari 引导 Modal */}
+      <Modal visible={showGuide} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>添加到主屏幕</Text>
+            <Text style={styles.modalSubtitle}>按以下步骤操作，即可像 App 一样使用</Text>
+
+            <View style={{ gap: 16, marginBottom: 20 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Text style={{ fontSize: 24 }}>①</Text>
+                <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
+                  点击 Safari 底部工具栏的{' '}
+                  <Ionicons name="share-outline" size={16} color={colors.primary} /> 分享按钮
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Text style={{ fontSize: 24 }}>②</Text>
+                <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
+                  滚动菜单，找到「添加到主屏幕」
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Text style={{ fontSize: 24 }}>③</Text>
+                <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
+                  点击右上角「添加」确认
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleCloseGuide}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.primaryButtonText}>我知道了</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+};
+
+export const InstallMenuItem = memo(InstallMenuItemComponent);

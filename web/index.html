@@ -229,6 +229,12 @@
     <div id="root"></div>
 
     <script>
+      // PWA 安装事件拦截（Android/桌面 Chrome 触发，iOS 不触发）
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__pwaInstallPrompt = e;
+      });
+
       // 微信 WebView 检测：引导用户用外部浏览器打开（localhost 排除，方便开发调试）
       if (/MicroMessenger/i.test(navigator.userAgent) && location.hostname !== 'localhost') {
         var guide = document.getElementById('wechat-guide');

@@ -6,6 +6,7 @@
  */
 export type { EmailFormProps } from './EmailForm';
 export { EmailForm } from './EmailForm';
+export { InstallMenuItem } from './InstallMenuItem';
 export type { JoinRoomModalProps } from './JoinRoomModal';
 export { JoinRoomModal } from './JoinRoomModal';
 export type { LoginOptionsProps } from './LoginOptions';
