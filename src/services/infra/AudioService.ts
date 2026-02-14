@@ -76,8 +76,8 @@ export const _AUDIO_END_ROLE_IDS: readonly RoleId[] = Object.keys(AUDIO_END_FILE
 // Background music
 const BGM_NIGHT: AudioAsset = require('../../../assets/audio/bgm_night.mp3');
 
-/** BGM volume (0.0 to 1.0) - lower so TTS narration is clearly audible */
-const BGM_VOLUME = 0.15;
+/** BGM volume (0.0 to 1.0) - keep low so TTS narration is clearly audible */
+const BGM_VOLUME = 0.08;
 
 /**
  * AudioService - 音频播放引擎
