@@ -601,14 +601,10 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   /**
-   * 提交夜晚行动
+   * 提交夜晚行动（HTTP API）
    *
-   * PR9: Player 发送 ACTION 消息给 Host（与 markViewedRole 模式一致）
-   * - Host: 直接调用 hostActions.submitAction
-   * - Player: 发送 PlayerMessage { type: 'ACTION' } 给 Host
-   *
-   * 注：Facade 只负责 transport，不做推进决策。
-   * 推进由 hostActions.submitAction 内部的 handler 返回 sideEffect 触发。
+   * Host 和 Player 统一走 HTTP API。
+   * 推进由 hostActions.submitAction 内部触发（仅 Host）。
    */
   async submitAction(
     seat: number,
@@ -616,42 +612,20 @@ export class GameFacade implements IGameFacade {
     target: number | null,
     extra?: unknown,
   ): Promise<{ success: boolean; reason?: string }> {
-    // Host: 直接处理
-    if (this.isHost) {
-      return hostActions.submitAction(this.getHostActionsContext(), seat, role, target, extra);
-    }
-
-    // Player: 发送 PlayerMessage 给 Host
-    const msg: PlayerMessage = { type: 'ACTION', seat, role, target, extra };
-    await this.broadcastService.sendToHost(msg);
-    // Player 端不等待确认，依赖 Host 广播 STATE_UPDATE
-    return { success: true };
+    return hostActions.submitAction(this.getHostActionsContext(), seat, role, target, extra);
   }
 
   /**
-   * 提交狼人投票
+   * 提交狼人投票（HTTP API）
    *
-   * PR9: Player 发送 WOLF_VOTE 消息给 Host（与 markViewedRole 模式一致）
-   * - Host: 直接调用 hostActions.submitWolfVote
-   * - Player: 发送 PlayerMessage { type: 'WOLF_VOTE' } 给 Host
-   *
-   * 注：Facade 只负责 transport，不做推进决策。
-   * 推进由 hostActions.submitWolfVote 内部的 handler 返回 sideEffect 触发。
+   * Host 和 Player 统一走 HTTP API。
+   * 推进和 Timer 管理由 hostActions.submitWolfVote 内部触发（仅 Host）。
    */
   async submitWolfVote(
     voterSeat: number,
     targetSeat: number,
   ): Promise<{ success: boolean; reason?: string }> {
-    // Host: 直接处理
-    if (this.isHost) {
-      return hostActions.submitWolfVote(this.getHostActionsContext(), voterSeat, targetSeat);
-    }
-
-    // Player: 发送 PlayerMessage 给 Host
-    const msg: PlayerMessage = { type: 'WOLF_VOTE', seat: voterSeat, target: targetSeat };
-    await this.broadcastService.sendToHost(msg);
-    // Player 端不等待确认，依赖 Host 广播 STATE_UPDATE
-    return { success: true };
+    return hostActions.submitWolfVote(this.getHostActionsContext(), voterSeat, targetSeat);
   }
 
   /**
@@ -860,10 +834,9 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
-   * MessageRouter 上下文（action handlers）
+   * MessageRouter 上下文
    *
-   * PR9: 接入 handleAction / handleWolfVote，支持 Player→Host 夜晚行动消息
-   * 注：Facade 只负责 transport，不做推进决策。
+   * 注：ACTION / WOLF_VOTE 已迁移至 HTTP API，不再经过 messageRouter。
    */
   private getMessageRouterContext(): MessageRouterContext {
     return {
@@ -872,10 +845,6 @@ export class GameFacade implements IGameFacade {
       isHost: this.isHost,
       myUid: this.myUid,
       broadcastCurrentState: () => this.broadcastCurrentState(),
-      handleAction: (seat: number, role: RoleId, target: number | null, extra?: unknown) =>
-        hostActions.submitAction(this.getHostActionsContext(), seat, role, target, extra),
-      handleWolfVote: (voterSeat: number, targetSeat: number) =>
-        hostActions.submitWolfVote(this.getHostActionsContext(), voterSeat, targetSeat),
       handleRevealAck: () => hostActions.clearRevealAcks(this.getHostActionsContext()),
       handleWolfRobotHunterStatusViewed: (seat: number) =>
         hostActions.setWolfRobotHunterStatusViewed(this.getHostActionsContext(), seat),

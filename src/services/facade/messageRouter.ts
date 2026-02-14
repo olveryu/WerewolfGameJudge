@@ -14,7 +14,6 @@
  * - 直接修改 state
  */
 
-import type { RoleId } from '@/models/roles';
 import type { GameStore } from '@/services/engine/store';
 import type { HostBroadcast, PlayerMessage } from '@/services/protocol/types';
 import type { BroadcastService } from '@/services/transport/BroadcastService';
@@ -33,26 +32,6 @@ export interface MessageRouterContext {
   // ===========================================================================
   // Host 处理 Player 消息的回调（由 GameFacade 注入）
   // ===========================================================================
-
-  /**
-   * Host 处理 Player 发来的 ACTION 消息
-   * 由 GameFacade 注入 hostActions.submitAction 实现
-   */
-  handleAction?: (
-    seat: number,
-    role: RoleId,
-    target: number | null,
-    extra?: unknown,
-  ) => Promise<{ success: boolean; reason?: string }>;
-
-  /**
-   * Host 处理 Player 发来的 WOLF_VOTE 消息
-   * 由 GameFacade 注入 hostActions.submitWolfVote 实现
-   */
-  handleWolfVote?: (
-    voterSeat: number,
-    targetSeat: number,
-  ) => Promise<{ success: boolean; reason?: string }>;
 
   /**
    * Host 处理 Player 发来的 REVEAL_ACK 消息
@@ -125,45 +104,17 @@ export async function hostHandlePlayerMessage(
     // Host 直接处理这些行动，Player 应通过新入口发送
     // =========================================================================
     case 'ACTION':
-      if (ctx.handleAction) {
-        try {
-          await ctx.handleAction(msg.seat, msg.role, msg.target, msg.extra);
-        } catch (e) {
-          const err = e as { message?: string };
-          facadeLog.error('[messageRouter] ACTION handler error', {
-            seat: msg.seat,
-            role: msg.role,
-            error: err?.message ?? String(e),
-          });
-        }
-      } else {
-        facadeLog.warn('[messageRouter] ACTION received but handleAction not wired', {
-          type: msg.type,
-          seat: msg.seat,
-          role: msg.role,
-        });
-      }
+      facadeLog.warn('[messageRouter] Legacy PlayerMessage type received', {
+        type: msg.type,
+        guidance: 'ACTION now uses HTTP API (/api/game/night/action)',
+      });
       break;
 
     case 'WOLF_VOTE':
-      if (ctx.handleWolfVote) {
-        try {
-          await ctx.handleWolfVote(msg.seat, msg.target);
-        } catch (e) {
-          const err = e as { message?: string };
-          facadeLog.error('[messageRouter] WOLF_VOTE handler error', {
-            seat: msg.seat,
-            target: msg.target,
-            error: err?.message ?? String(e),
-          });
-        }
-      } else {
-        facadeLog.warn('[messageRouter] WOLF_VOTE received but handleWolfVote not wired', {
-          type: msg.type,
-          seat: msg.seat,
-          target: msg.target,
-        });
-      }
+      facadeLog.warn('[messageRouter] Legacy PlayerMessage type received', {
+        type: msg.type,
+        guidance: 'WOLF_VOTE now uses HTTP API (/api/game/night/wolf-vote)',
+      });
       break;
 
     case 'REVEAL_ACK': {

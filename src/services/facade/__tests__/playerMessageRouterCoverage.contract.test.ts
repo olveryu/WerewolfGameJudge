@@ -72,8 +72,6 @@ function createMockContext(overrides?: Partial<MessageRouterContext>): MessageRo
     isHost: true,
     myUid: 'host-uid',
     broadcastCurrentState: jest.fn(() => Promise.resolve()),
-    handleAction: jest.fn(() => Promise.resolve({ success: true })),
-    handleWolfVote: jest.fn(() => Promise.resolve({ success: true })),
     ...overrides,
   };
 }
@@ -184,22 +182,28 @@ describe('PlayerMessage Router Coverage Contract', () => {
       );
     });
 
-    it('ACTION should call handleAction when wired', () => {
+    it('ACTION should trigger legacy warn (now uses HTTP API)', () => {
       const ctx = createMockContext();
       const msg = createMinimalPayload('ACTION');
 
       hostHandlePlayerMessage(ctx, msg, 'sender-uid');
 
-      expect(ctx.handleAction).toHaveBeenCalledWith(0, 'seer', 1, undefined);
+      expect(facadeLog.warn).toHaveBeenCalledWith(
+        '[messageRouter] Legacy PlayerMessage type received',
+        expect.objectContaining({ type: 'ACTION' }),
+      );
     });
 
-    it('WOLF_VOTE should call handleWolfVote when wired', () => {
+    it('WOLF_VOTE should trigger legacy warn (now uses HTTP API)', () => {
       const ctx = createMockContext();
       const msg = createMinimalPayload('WOLF_VOTE');
 
       hostHandlePlayerMessage(ctx, msg, 'sender-uid');
 
-      expect(ctx.handleWolfVote).toHaveBeenCalledWith(0, 1);
+      expect(facadeLog.warn).toHaveBeenCalledWith(
+        '[messageRouter] Legacy PlayerMessage type received',
+        expect.objectContaining({ type: 'WOLF_VOTE' }),
+      );
     });
   });
 
@@ -207,7 +211,8 @@ describe('PlayerMessage Router Coverage Contract', () => {
    * 强门禁：Legacy types 必须触发 facadeLog.warn
    *
    * PR9 升级：禁止 silent drop
-   * - JOIN/LEAVE 是 legacy，已被 SEAT_ACTION_REQUEST 替代
+   * - JOIN/LEAVE 是 legacy，已被 HTTP API 替代
+   * - ACTION/WOLF_VOTE 是 legacy，已被 HTTP API 替代
    * - 必须 warn 提示开发者使用新入口
    */
   describe('Strong Gate: legacy types must trigger warn', () => {
@@ -247,37 +252,36 @@ describe('PlayerMessage Router Coverage Contract', () => {
   });
 
   /**
-   * 强门禁：Unimplemented types 必须触发 warn（若无 handler）
+   * 强门禁：特定 types 处理
    *
-   * PR9 升级：禁止 silent drop
-   * - 若 handler 未接入，必须 warn
-   * - 若 handler 已接入，不应 warn
+   * ACTION/WOLF_VOTE 已迁移至 HTTP API，现在是 legacy
+   * REVEAL_ACK/SNAPSHOT_REQUEST 仍有 handler 处理
    */
-  describe('Strong Gate: unimplemented types without handler must trigger warn', () => {
+  describe('Strong Gate: types with handler or legacy status', () => {
     beforeEach(() => {
       jest.clearAllMocks();
     });
 
-    it('ACTION without handleAction should trigger warn', () => {
-      const ctx = createMockContext({ handleAction: undefined });
+    it('ACTION should trigger legacy warn', () => {
+      const ctx = createMockContext();
       const msg = createMinimalPayload('ACTION');
 
       hostHandlePlayerMessage(ctx, msg, 'sender-uid');
 
       expect(facadeLog.warn).toHaveBeenCalledWith(
-        '[messageRouter] ACTION received but handleAction not wired',
+        '[messageRouter] Legacy PlayerMessage type received',
         expect.objectContaining({ type: 'ACTION' }),
       );
     });
 
-    it('WOLF_VOTE without handleWolfVote should trigger warn', () => {
-      const ctx = createMockContext({ handleWolfVote: undefined });
+    it('WOLF_VOTE should trigger legacy warn', () => {
+      const ctx = createMockContext();
       const msg = createMinimalPayload('WOLF_VOTE');
 
       hostHandlePlayerMessage(ctx, msg, 'sender-uid');
 
       expect(facadeLog.warn).toHaveBeenCalledWith(
-        '[messageRouter] WOLF_VOTE received but handleWolfVote not wired',
+        '[messageRouter] Legacy PlayerMessage type received',
         expect.objectContaining({ type: 'WOLF_VOTE' }),
       );
     });
@@ -323,9 +327,6 @@ describe('PlayerMessage Router Coverage Contract', () => {
   describe('Implementation Progress Tracking', () => {
     const IMPLEMENTED_TYPES: PlayerMessage['type'][] = [
       'REQUEST_STATE',
-      'VIEWED_ROLE',
-      'ACTION', // PR9: now wired via handleAction
-      'WOLF_VOTE', // PR9: now wired via handleWolfVote
       'REVEAL_ACK', // P0-FIX: now wired via handleRevealAck
       'WOLF_ROBOT_HUNTER_STATUS_VIEWED', // WolfRobot Hunter gate ack
     ];
@@ -333,18 +334,21 @@ describe('PlayerMessage Router Coverage Contract', () => {
     const LEGACY_TYPES: PlayerMessage['type'][] = [
       'JOIN', // Legacy: 现在用 HTTP API /api/game/seat
       'LEAVE', // Legacy: 现在用 HTTP API /api/game/seat
+      'VIEWED_ROLE', // Legacy: 现在用 HTTP API /api/game/view-role
+      'ACTION', // Legacy: 现在用 HTTP API /api/game/night/action
+      'WOLF_VOTE', // Legacy: 现在用 HTTP API /api/game/night/wolf-vote
     ];
 
     const UNIMPLEMENTED_TYPES: PlayerMessage['type'][] = [
       'SNAPSHOT_REQUEST', // Tracked: reserved for future differential sync
     ];
 
-    it('should have 6 implemented types', () => {
-      expect(IMPLEMENTED_TYPES.length).toBe(6);
+    it('should have 3 implemented types', () => {
+      expect(IMPLEMENTED_TYPES.length).toBe(3);
     });
 
-    it('should have 2 legacy types', () => {
-      expect(LEGACY_TYPES.length).toBe(2);
+    it('should have 5 legacy types', () => {
+      expect(LEGACY_TYPES.length).toBe(5);
     });
 
     it('should have 1 unimplemented types', () => {
@@ -377,8 +381,6 @@ describe('PlayerMessage Router Coverage Contract', () => {
 
       // 任何 handler 都不应被调用
       expect(ctx.broadcastCurrentState).not.toHaveBeenCalled();
-      expect(ctx.handleAction).not.toHaveBeenCalled();
-      expect(ctx.handleWolfVote).not.toHaveBeenCalled();
       // warn 也不应被调用（直接 early return）
       expect(facadeLog.warn).not.toHaveBeenCalled();
     });
@@ -391,19 +393,13 @@ describe('PlayerMessage Router Coverage Contract', () => {
 
 describe('PlayerMessage Router Coverage Report', () => {
   it('validates coverage expectations', () => {
-    const IMPLEMENTED = [
-      'REQUEST_STATE',
-      'ACTION',
-      'WOLF_VOTE',
-      'REVEAL_ACK',
-      'WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-    ];
-    const LEGACY = ['JOIN', 'LEAVE', 'VIEWED_ROLE'];
+    const IMPLEMENTED = ['REQUEST_STATE', 'REVEAL_ACK', 'WOLF_ROBOT_HUNTER_STATUS_VIEWED'];
+    const LEGACY = ['JOIN', 'LEAVE', 'VIEWED_ROLE', 'ACTION', 'WOLF_VOTE'];
     const UNIMPLEMENTED = ['SNAPSHOT_REQUEST'];
 
     // Validate counts instead of printing
-    expect(IMPLEMENTED.length).toBe(5);
-    expect(LEGACY.length).toBe(3);
+    expect(IMPLEMENTED.length).toBe(3);
+    expect(LEGACY.length).toBe(5);
     expect(UNIMPLEMENTED.length).toBe(1);
     expect(ALL_PLAYER_MESSAGE_TYPES.length).toBe(
       IMPLEMENTED.length + LEGACY.length + UNIMPLEMENTED.length,

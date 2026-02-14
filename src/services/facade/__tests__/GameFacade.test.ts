@@ -874,29 +874,39 @@ describe('GameFacade', () => {
   // ===========================================================================
 
   describe('submitAction (PR4)', () => {
-    it('should send PlayerMessage when not host (Player transport)', async () => {
-      // Player 发送 ACTION 消息给 Host，而不是返回 host_only 错误
-      await facade.joinAsPlayer('TEST', 'player-uid', 'Player 1');
+    const originalFetch = global.fetch;
 
-      const result = await facade.submitAction(0, 'seer', 1);
-
-      // Player 端返回 success: true（消息已发送）
-      expect(result.success).toBe(true);
-
-      // 验证发送了正确的 PlayerMessage
-      expect(mockBroadcastService.sendToHost).toHaveBeenCalledWith({
-        type: 'ACTION',
-        seat: 0,
-        role: 'seer',
-        target: 1,
-        extra: undefined,
-      });
-    });
-
-    it('should fail when status is not ongoing (gate: invalid_status)', async () => {
+    beforeEach(async () => {
       await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
       fillAllSeatsViaReducer(facade, mockTemplate);
-      // 不开始夜晚，status 是 'seated'
+      mockBroadcastService.broadcastAsHost.mockClear();
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it('should call HTTP API for both Host and Player', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      const result = await facade.submitAction(2, 'seer', 0);
+
+      expect(result.success).toBe(true);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/night/action'),
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"role":"seer"'),
+        }),
+      );
+    });
+
+    it('should return failure reason from API', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
+      });
 
       const result = await facade.submitAction(2, 'seer', 0);
 
@@ -904,32 +914,13 @@ describe('GameFacade', () => {
       expect(result.reason).toBe('invalid_status');
     });
 
-    it('should broadcast on rejection (reject also broadcasts)', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
-      fillAllSeatsViaReducer(facade, mockTemplate);
-      // 不开始夜晚，status 是 'seated'
+    it('should return NETWORK_ERROR on fetch failure', async () => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('network'));
 
-      mockBroadcastService.broadcastAsHost.mockClear();
+      const result = await facade.submitAction(2, 'seer', 0);
 
-      await facade.submitAction(2, 'seer', 0);
-
-      // 失败时也应该 broadcast
-      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'STATE_UPDATE',
-        }),
-      );
-    });
-
-    it('should return reason from handler (not facade)', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
-      // 不填座位，state.status 是 'unseated'
-
-      const result = await facade.submitAction(0, 'seer', 1);
-
-      // reason 必须来自 handler，不是 facade 自定义
       expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
+      expect(result.reason).toBe('NETWORK_ERROR');
     });
   });
 
@@ -938,77 +929,53 @@ describe('GameFacade', () => {
   // ===========================================================================
 
   describe('submitWolfVote (PR5)', () => {
-    it('should send PlayerMessage when not host (Player transport)', async () => {
-      // Player 发送 WOLF_VOTE 消息给 Host，而不是返回 host_only 错误
-      await facade.joinAsPlayer('TEST', 'player-uid', 'Player 1');
+    const originalFetch = global.fetch;
 
-      const result = await facade.submitWolfVote(1, 0);
-
-      // Player 端返回 success: true（消息已发送）
-      expect(result.success).toBe(true);
-
-      // 验证发送了正确的 PlayerMessage
-      expect(mockBroadcastService.sendToHost).toHaveBeenCalledWith({
-        type: 'WOLF_VOTE',
-        seat: 1,
-        target: 0,
-      });
-    });
-
-    it('should fail when status is not ongoing (gate: invalid_status)', async () => {
+    beforeEach(async () => {
       await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
       fillAllSeatsViaReducer(facade, mockTemplate);
-      // 不开始夜晚，status 是 'seated'
-
-      const result = await facade.submitWolfVote(1, 0);
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
-    });
-
-    it('should broadcast on rejection (reject also broadcasts)', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
-      fillAllSeatsViaReducer(facade, mockTemplate);
-      // 不开始夜晚，status 是 'seated'
-
       mockBroadcastService.broadcastAsHost.mockClear();
+    });
 
-      await facade.submitWolfVote(1, 0);
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
 
-      // 失败时也应该 broadcast
-      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
+    it('should call HTTP API for both Host and Player', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true, wolfVoteTimer: 'noop' }),
+      });
+
+      const result = await facade.submitWolfVote(1, 0);
+
+      expect(result.success).toBe(true);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/night/wolf-vote'),
         expect.objectContaining({
-          type: 'STATE_UPDATE',
+          method: 'POST',
+          body: expect.stringContaining('"voterSeat":1'),
         }),
       );
     });
 
-    it('should return reason from handler (reason passthrough)', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
-      // 不填座位，state.status 是 'unseated'
+    it('should return failure reason from API', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
+      });
 
       const result = await facade.submitWolfVote(1, 0);
 
-      // reason 必须来自 handler，不是 facade 自定义
       expect(result.success).toBe(false);
       expect(result.reason).toBe('invalid_status');
     });
 
-    it('should write actionRejected into store on rejection (regression: applyActionsOnFailure)', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
-      fillAllSeatsViaReducer(facade, mockTemplate);
+    it('should return NETWORK_ERROR on fetch failure', async () => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('network'));
+
       const result = await facade.submitWolfVote(1, 0);
 
       expect(result.success).toBe(false);
-
-      const state = facade['store'].getState()!;
-      expect(state.actionRejected).toEqual(
-        expect.objectContaining({
-          action: 'wolfKill',
-          targetUid: 'player-1',
-        }),
-      );
-      expect(state.actionRejected?.reason).toEqual(expect.any(String));
+      expect(result.reason).toBe('NETWORK_ERROR');
     });
   });
 

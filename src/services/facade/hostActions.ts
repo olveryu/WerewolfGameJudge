@@ -5,8 +5,8 @@
  *
  * 职责：
  * - Host-only 游戏控制方法（assignRoles/markViewedRole/startNight）→ HTTP API
- * - Host-only 夜晚行动方法（submitAction/submitWolfVote）→ 本地 handler（Phase 3 scope）
- * - 夜晚推进 & 音频编排（Phase 3 scope）
+ * - Host-only 夜晚行动方法（submitAction/submitWolfVote）→ HTTP API
+ * - 夜晚推进 & 音频编排（Phase 3 scope — Commit 3）
  *
  * 禁止：
  * - 业务逻辑/校验规则（全部在 handler / 服务端）
@@ -15,13 +15,9 @@
 
 import { API_BASE_URL } from '@/config/api';
 import type { RoleId } from '@/models/roles';
-import { doesRoleParticipateInWolfVote } from '@/models/roles';
 import type { GameTemplate } from '@/models/Template';
-import { handleSubmitAction, handleSubmitWolfVote } from '@/services/engine/handlers/actionHandler';
 import {
-  decideWolfVoteTimerAction,
   handleNightProgression,
-  isWolfVoteAllComplete,
   resetProgressionTracker,
   WOLF_VOTE_COUNTDOWN_MS,
 } from '@/services/engine/handlers/progressionEvaluator';
@@ -37,8 +33,6 @@ import type {
   AdvanceNightIntent,
   EndNightIntent,
   SetAudioPlayingIntent,
-  SubmitActionIntent,
-  SubmitWolfVoteIntent,
 } from '@/services/engine/intents/types';
 import { gameReducer } from '@/services/engine/reducer';
 import type { StateAction } from '@/services/engine/reducer/types';
@@ -426,11 +420,9 @@ export async function setRoleRevealAnimation(
 }
 
 /**
- * Host: 处理玩家提交的夜晚行动
+ * Host: 处理玩家提交的夜晚行动（HTTP API）
  *
- * PR4: SUBMIT_ACTION（Night-1 only）
- *
- * 成功后自动评估并执行夜晚推进（幂等，基于 revision + currentStepId）。
+ * Night-1 only. 成功后自动评估并执行夜晚推进。
  */
 export async function submitAction(
   ctx: HostActionsContext,
@@ -441,32 +433,41 @@ export async function submitAction(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('submitAction called', { seat, role, target, isHost: ctx.isHost });
 
-  const intent: SubmitActionIntent = {
-    type: 'SUBMIT_ACTION',
-    payload: { seat, role, target, extra },
-  };
-  const context = buildHandlerContext(ctx);
-  const result = handleSubmitAction(intent, context);
+  const roomCode = ctx.store.getState()?.roomCode;
+  const hostUid = ctx.store.getState()?.hostUid;
+  if (!roomCode || !hostUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
 
-  const submitResult = await processHandlerResult(ctx, result, {
-    logPrefix: 'submitAction',
-    logData: { seat, role, target },
+  const result = await callGameControlApi('/api/game/night/action', {
+    roomCode,
+    hostUid,
+    seat,
+    role,
+    target,
+    extra,
   });
 
-  // Host-only 自动推进：成功提交后透传调用 handler 层推进
-  if (submitResult.success) {
+  if (!result.success) {
+    facadeLog.warn('submitAction failed', { reason: result.reason, seat, role, target });
+    return { success: false, reason: result.reason };
+  }
+
+  // 播放服务端返回的音频 sideEffects
+  await playApiSideEffects(ctx, result.sideEffects);
+
+  // Host-only 自动推进
+  if (ctx.isHost) {
     await callNightProgression(ctx);
   }
 
-  return submitResult;
+  return { success: true };
 }
 
 /**
- * Host: 处理狼人投票
+ * Host: 处理狼人投票（HTTP API）
  *
- * PR5: WOLF_VOTE（Night-1 only）
- *
- * 成功后自动评估并执行夜晚推进（幂等，基于 revision + currentStepId）。
+ * Night-1 only. 成功后管理本地 wolf vote timer + 自动推进。
  */
 export async function submitWolfVote(
   ctx: HostActionsContext,
@@ -475,53 +476,33 @@ export async function submitWolfVote(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('submitWolfVote called', { voterSeat, targetSeat, isHost: ctx.isHost });
 
-  const intent: SubmitWolfVoteIntent = {
-    type: 'SUBMIT_WOLF_VOTE',
-    payload: { seat: voterSeat, target: targetSeat },
-  };
-  const context = buildHandlerContext(ctx);
-  const result = handleSubmitWolfVote(intent, context);
-
-  const submitResult = await processHandlerResult(ctx, result, {
-    logPrefix: 'submitWolfVote',
-    logData: { voterSeat, targetSeat },
-  });
-
-  if (!submitResult.success) {
-    const state = ctx.store.getState();
-    const voterRole = state?.players?.[voterSeat]?.role ?? null;
-    const participatesInWolfVote = voterRole ? doesRoleParticipateInWolfVote(voterRole) : null;
-    facadeLog.warn('submitWolfVote failed (context)', {
-      voterSeat,
-      targetSeat,
-      voterRole,
-      participatesInWolfVote,
-      currentStepId: state?.currentStepId ?? null,
-      status: state?.status ?? null,
-      reason: submitResult.reason,
-    });
+  const roomCode = ctx.store.getState()?.roomCode;
+  const hostUid = ctx.store.getState()?.hostUid;
+  if (!roomCode || !hostUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  // Host-only 自动推进：成功提交后透传调用 handler 层推进
-  if (submitResult.success) {
-    // Wolf vote timer lifecycle（store 同步更新后 await 广播；广播期间 event-loop 可插入其他 microtask，但 store 已是最新状态）
-    const state = ctx.store.getState();
-    const timerAction = decideWolfVoteTimerAction(
-      state ? isWolfVoteAllComplete(state) : false,
-      ctx.wolfVoteTimer != null,
-      Date.now(),
-    );
+  const result = await callWolfVoteApi(roomCode, hostUid, voterSeat, targetSeat);
 
-    switch (timerAction.type) {
+  if (!result.success) {
+    facadeLog.warn('submitWolfVote failed', {
+      voterSeat,
+      targetSeat,
+      reason: result.reason,
+    });
+    return { success: false, reason: result.reason };
+  }
+
+  // 播放服务端返回的音频 sideEffects
+  await playApiSideEffects(ctx, result.sideEffects);
+
+  // Host-only: wolf vote timer + 推进
+  if (ctx.isHost) {
+    const wolfVoteTimer = result.wolfVoteTimer as 'set' | 'clear' | 'noop' | undefined;
+
+    switch (wolfVoteTimer) {
       case 'set': {
-        // 同步序列：clear 旧 timer → 写 deadline →（await 广播）→ set 新 timer
         if (ctx.wolfVoteTimer != null) clearTimeout(ctx.wolfVoteTimer);
-        if (state) {
-          applyActions(ctx.store, state, [
-            { type: 'SET_WOLF_VOTE_DEADLINE', payload: { deadline: timerAction.deadline } },
-          ]);
-        }
-        await ctx.broadcastCurrentState();
         ctx.wolfVoteTimer = setTimeout(async () => {
           ctx.wolfVoteTimer = null;
           if (!ctx.isAborted?.()) await callNightProgression(ctx);
@@ -529,13 +510,8 @@ export async function submitWolfVote(
         break;
       }
       case 'clear': {
-        // 同步序列：clear timer → 清 deadline →（await 广播）
         if (ctx.wolfVoteTimer != null) clearTimeout(ctx.wolfVoteTimer);
         ctx.wolfVoteTimer = null;
-        if (state) {
-          applyActions(ctx.store, state, [{ type: 'CLEAR_WOLF_VOTE_DEADLINE' }]);
-        }
-        await ctx.broadcastCurrentState();
         break;
       }
       // noop: do nothing
@@ -544,7 +520,30 @@ export async function submitWolfVote(
     await callNightProgression(ctx);
   }
 
-  return submitResult;
+  return { success: true };
+}
+
+/**
+ * Wolf Vote API 专用调用（响应含 wolfVoteTimer 字段）
+ */
+async function callWolfVoteApi(
+  roomCode: string,
+  hostUid: string,
+  voterSeat: number,
+  targetSeat: number,
+): Promise<GameControlApiResponse & { wolfVoteTimer?: string }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/game/night/wolf-vote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomCode, hostUid, voterSeat, targetSeat }),
+    });
+    return (await res.json()) as GameControlApiResponse & { wolfVoteTimer?: string };
+  } catch (e) {
+    const err = e as { message?: string };
+    facadeLog.error('callWolfVoteApi failed', { error: err?.message ?? String(e) });
+    return { success: false, reason: 'NETWORK_ERROR' };
+  }
 }
 
 /**
