@@ -562,6 +562,18 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
         wolfVoteDeadline: undefined,
       };
 
+    case 'SET_PENDING_AUDIO_EFFECTS':
+      return {
+        ...state,
+        pendingAudioEffects: action.payload.effects,
+      };
+
+    case 'CLEAR_PENDING_AUDIO_EFFECTS':
+      return {
+        ...state,
+        pendingAudioEffects: undefined,
+      };
+
     default: {
       const _exhaustive: never = action;
       return _exhaustive;

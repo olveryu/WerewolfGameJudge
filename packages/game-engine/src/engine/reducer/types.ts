@@ -7,6 +7,7 @@
 import type { RoleId } from '../../models/roles';
 import type { SchemaId } from '../../models/roles/spec';
 import type { BroadcastPlayer, ProtocolAction } from '../../protocol/types';
+import type { AudioEffect } from '../../protocol/types';
 import type { CurrentNightResults } from '../../resolvers/types';
 import type { RoleRevealAnimation } from '../../types/RoleRevealAnimation';
 
@@ -314,6 +315,29 @@ export interface ClearWolfVoteDeadlineAction {
 }
 
 // =============================================================================
+// 待消费音频队列动作
+// =============================================================================
+
+/**
+ * 设置待消费音频队列（服务端内联推进产物）
+ * 服务端推进后写入 pendingAudioEffects。
+ */
+export interface SetPendingAudioEffectsAction {
+  type: 'SET_PENDING_AUDIO_EFFECTS';
+  payload: {
+    effects: AudioEffect[];
+  };
+}
+
+/**
+ * 清除待消费音频队列
+ * Host 播放完成后 POST audio-ack 清除。
+ */
+export interface ClearPendingAudioEffectsAction {
+  type: 'CLEAR_PENDING_AUDIO_EFFECTS';
+}
+
+// =============================================================================
 // StateAction 联合类型
 // =============================================================================
 
@@ -360,4 +384,7 @@ export type StateAction =
   | MarkAllBotsViewedAction
   // 狼人投票倒计时
   | SetWolfVoteDeadlineAction
-  | ClearWolfVoteDeadlineAction;
+  | ClearWolfVoteDeadlineAction
+  // 待消费音频队列
+  | SetPendingAudioEffectsAction
+  | ClearPendingAudioEffectsAction;

@@ -110,6 +110,9 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
     // 狼人投票倒計時（透传）
     wolfVoteDeadline: raw.wolfVoteDeadline,
 
+    // 待消費音频隊列（透传）
+    pendingAudioEffects: raw.pendingAudioEffects,
+
     // UI Hints（Host 広播駆動，UI 只読展示，必須透伝）
     ui: raw.ui,
 

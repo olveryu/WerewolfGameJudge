@@ -30,6 +30,24 @@ export interface ProtocolAction {
 }
 
 // =============================================================================
+// 音频效果（AudioEffect）— 服务端内联推进产物
+// =============================================================================
+
+/**
+ * 音频效果描述符
+ *
+ * 服务端内联推进时产生，写入 `BroadcastGameState.pendingAudioEffects`。
+ * Host 设备消费队列播放音频，播放完成后 POST `/api/game/night/audio-ack` 清除。
+ * Non-Host 设备忽略。
+ */
+export interface AudioEffect {
+  /** 音频资源 key（角色 ID / 'night' / 'night_end'） */
+  readonly audioKey: string;
+  /** 是否为结束音频（true → audio_end 目录） */
+  readonly isEndAudio?: boolean;
+}
+
+// =============================================================================
 // 广播玩家（BroadcastPlayer）
 // =============================================================================
 
@@ -205,6 +223,20 @@ export interface BroadcastGameState {
    * Timer 是 best-effort 触发器，此字段是权威时间戳。
    */
   wolfVoteDeadline?: number;
+
+  // --- 待消费音频队列（服务端内联推进产物） ---
+  /**
+   * 服务端推进时写入的待播放音频列表。
+   *
+   * Host 设备消费并按序播放，播放完成后 POST `/api/game/night/audio-ack` 清除。
+   * Non-Host 设备忽略。
+   *
+   * 生命周期：
+   * - 写入：服务端内联推进（action → advance/endNight）时从 sideEffects 提取
+   * - 消费：Host 设备监听 state 变化 → 检测非空 → 播放 → POST ack 清除
+   * - 清除：`/api/game/night/audio-ack` 清空数组 + 设 isAudioPlaying=false
+   */
+  pendingAudioEffects?: AudioEffect[];
 
   // --- UI Hints（Host 广播驱动，UI 只读展示） ---
   /**

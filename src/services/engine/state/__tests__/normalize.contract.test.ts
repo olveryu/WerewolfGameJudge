@@ -60,6 +60,9 @@ const BROADCAST_GAME_STATE_FIELDS: (keyof BroadcastGameState)[] = [
   // 狼人投票倒计时
   'wolfVoteDeadline',
 
+  // 待消费音频队列
+  'pendingAudioEffects',
+
   // Debug 模式
   'debugMode',
 
@@ -122,6 +125,9 @@ describe('normalizeState contract', () => {
 
       // 狼人投票倒计时
       wolfVoteDeadline: Date.now() + 5000,
+
+      // 待消费音频队列
+      pendingAudioEffects: [{ audioKey: 'wolfKill', isEndAudio: true }],
 
       // Debug 模式
       debugMode: { botsEnabled: true },

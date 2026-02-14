@@ -65,6 +65,7 @@ export {
 } from './engine/handlers/stepTransitionHandler';
 export * from './engine/handlers/types';
 export { handleSetWolfRobotHunterStatusViewed } from './engine/handlers/wolfRobotHunterGateHandler';
+export { type InlineProgressionResult, runInlineProgression } from './engine/inlineProgression';
 export * from './engine/intents/types';
 export * from './engine/reducer';
 export * from './engine/reducer/types';
