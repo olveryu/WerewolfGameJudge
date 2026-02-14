@@ -16,7 +16,6 @@ import { AvatarUploadService } from '@/services/feature/AvatarUploadService';
 import { SettingsService } from '@/services/feature/SettingsService';
 import { AudioService } from '@/services/infra/AudioService';
 import { AuthService } from '@/services/infra/AuthService';
-import { HostStateCache } from '@/services/infra/HostStateCache';
 import { RoomService } from '@/services/infra/RoomService';
 import { BroadcastService } from '@/services/transport/BroadcastService';
 import { ThemeProvider, useTheme } from '@/theme';
@@ -94,7 +93,6 @@ export default function App() {
         store: new GameStore(),
         broadcastService: new BroadcastService(),
         audioService: services.audioService,
-        hostStateCache: new HostStateCache(),
         roomService: services.roomService,
       }),
   );

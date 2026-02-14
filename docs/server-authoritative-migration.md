@@ -1347,6 +1347,369 @@ async joinRoom(
 
 ---
 
+### Phase 5：消除 HostStateCache + 统一 rejoin + 合并入口方法
+
+**目标：** 消除 P2P 时代遗留的 `HostStateCache` 本地缓存机制，Host rejoin 改为从 DB 读取状态（与 Player 一致），合并 3 个入口方法为 2 个。
+
+**对应审计项：** C1（HostStateCache rejoin → DB）、C2（messageRouter 缓存写入）、C3（HostStateCache 类删除）、C5（合并入口方法）、C8（简化 rejoin 恢复）。
+
+#### 5.1 当前问题
+
+| 问题                               | 位置                                               | 说明                                                                     |
+| ---------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------ |
+| Host rejoin 从 AsyncStorage 读状态 | `GameFacade.joinAsHost()`                          | 与 Player 的 DB 读路径完全不同，两套恢复逻辑                             |
+| Host 额外写 AsyncStorage           | `messageRouter.ts` L64-70                          | `if (ctx.isHost && ctx.hostStateCache)` 每次 STATE_UPDATE 都写           |
+| HostStateCache 整个类              | `src/services/infra/HostStateCache.ts`             | 192 行代码，仅服务 Host rejoin，Supabase 已有 DB 持久化                  |
+| `applyHostSnapshot` 方法           | `GameStore.ts`                                     | 绕过 revision 门控的 Host 专属方法（cache 恢复用），是 leaky abstraction |
+| 3 个入口方法                       | `initializeAsHost` / `joinAsPlayer` / `joinAsHost` | Host 创建/Host rejoin/Player 加入，路径各不同，可合并为 create + join    |
+| 复杂的 rejoin 音频恢复             | `_wasAudioInterrupted` / `resumeAfterRejoin`       | 依赖 cache 中的 `isAudioPlaying`，可从 DB state 判断                     |
+
+#### 5.2 变更计划
+
+##### 5.2.1 `GameFacade.ts`
+
+**删除：**
+
+- `private readonly hostStateCache: HostStateCache` 字段
+- `GameFacadeDeps.hostStateCache` 接口字段 + import
+- `constructor` 中 `this.hostStateCache = deps.hostStateCache`
+- `getMessageRouterContext()` 中 `hostStateCache` + `isHost` 字段
+
+**改造 `joinAsHost()` → 从 DB 读取：**
+
+```typescript
+async joinAsHost(
+  roomCode: string,
+  hostUid: string,
+  templateRoles?: RoleId[],
+): Promise<{ success: boolean; reason?: string }> {
+  this._aborted = false;
+  this.isHost = true;
+  this.myUid = hostUid;
+  this.store.reset();
+
+  // 加入频道（统一 callbacks）
+  await this.broadcastService.joinRoom(roomCode, hostUid, { ... });
+
+  // 从 DB 读取最新状态（与 joinAsPlayer 统一）
+  const dbState = await this.roomService.getGameState(roomCode);
+  if (dbState) {
+    this.store.applySnapshot(dbState.state, dbState.revision);
+    this.broadcastService.markAsLive();
+    // 判断是否需要音频恢复 overlay
+    this._wasAudioInterrupted = dbState.state.status === 'ongoing';
+  } else if (templateRoles && templateRoles.length > 0) {
+    // 没有 DB 状态但有模板：创建初始状态
+    const initialState = buildInitialGameState(roomCode, hostUid, { roles: templateRoles });
+    this.store.initialize(initialState);
+  } else {
+    this.isHost = false;
+    this.myUid = null;
+    return { success: false, reason: 'no_state' };
+  }
+
+  this._setupForegroundRecovery();
+  return { success: true };
+}
+```
+
+**可选 C5 — 合并入口方法（如实施）：**
+
+- `initializeAsHost` + `joinAsHost` → `createRoom(roomCode, hostUid, template)` — 新建房间
+- `joinAsPlayer` + `joinAsHost`（非创建场景）→ `joinRoom(roomCode, uid, isHost)` — Host rejoin 和 Player join 统一
+
+##### 5.2.2 `messageRouter.ts`
+
+**删除：**
+
+- `MessageRouterContext.isHost` 字段
+- `MessageRouterContext.hostStateCache` 字段
+- `if (ctx.isHost && ctx.hostStateCache)` 块（L64-70）
+- `HostStateCache` type import
+
+**简化后的 `MessageRouterContext`：**
+
+```typescript
+export interface MessageRouterContext {
+  readonly store: GameStore;
+  readonly broadcastService: BroadcastService;
+  myUid: string | null;
+}
+```
+
+##### 5.2.3 `App.tsx`
+
+- 删除 `import { HostStateCache }` + `hostStateCache: new HostStateCache()` DI
+
+##### 5.2.4 删除文件
+
+| 文件                                                  | 行数 | 原因           |
+| ----------------------------------------------------- | ---- | -------------- |
+| `src/services/infra/HostStateCache.ts`                | 192  | 整个类不再需要 |
+| `src/services/infra/__tests__/HostStateCache.test.ts` | ~210 | 对应测试       |
+
+##### 5.2.5 `GameStore.ts`（game-engine）
+
+- 删除 `applyHostSnapshot()` 方法 — 唯一消费者 `joinAsHost` 改为 `applySnapshot`
+- 对应测试 `GameStore.test.ts` 中删除 `applyHostSnapshot` describe 块
+
+##### 5.2.6 测试更新
+
+| 文件                           | 变更                                                                                   |
+| ------------------------------ | -------------------------------------------------------------------------------------- |
+| `GameFacade.test.ts`           | 删除 `hostStateCache` mock deps；`joinAsHost` 测试改为 mock `roomService.getGameState` |
+| `messageRouter.test.ts`        | 删除 `isHost` / `hostStateCache` 上下文；删除 Host 缓存保存测试                        |
+| `leaveRoom.contract.test.ts`   | 删除 `HostStateCache` mock                                                             |
+| `restartGame.contract.test.ts` | 删除 `hostStateCache` mock deps                                                        |
+| `GameStore.test.ts`            | 删除 `applyHostSnapshot` 测试块                                                        |
+
+#### 5.3 符号验证
+
+| 符号                                  | 消费者                                                                             | 处理                 |
+| ------------------------------------- | ---------------------------------------------------------------------------------- | -------------------- |
+| `HostStateCache` class                | App.tsx, GameFacade.ts, messageRouter.ts (type only), 测试文件                     | 全部清除             |
+| `applyHostSnapshot`                   | GameFacade.ts L309（唯一）                                                         | 改为 `applySnapshot` |
+| `GameFacadeDeps.hostStateCache`       | GameFacade.ts + App.tsx + 测试                                                     | 全部删除             |
+| `MessageRouterContext.isHost`         | messageRouter.ts + GameFacade.ts `getMessageRouterContext` + messageRouter.test.ts | 全部删除             |
+| `MessageRouterContext.hostStateCache` | 同上                                                                               | 全部删除             |
+
+#### 5.4 行为差异
+
+| 方面                   | 之前（Cache）                        | 之后（DB）                                        | 影响                                    |
+| ---------------------- | ------------------------------------ | ------------------------------------------------- | --------------------------------------- |
+| rejoin 延迟            | ~1ms (本地读)                        | ~50-200ms (网络)                                  | 可接受，与 Player 一致                  |
+| 离线 rejoin            | 可用（AsyncStorage 有缓存）          | 不可用（需网络）                                  | 无影响 — Supabase Realtime 本身需要网络 |
+| `_wasAudioInterrupted` | 从 cache state 的 `status` 判断      | 从 DB state 的 `status` 判断                      | 行为一致                                |
+| isAudioPlaying gate    | cache 保持 true → overlay → 音频重播 | DB state 的 `isAudioPlaying` → overlay → 音频重播 | 行为一致                                |
+
+#### 5.5 验证标准
+
+- `pnpm exec tsc --noEmit` — 通过
+- `pnpm exec jest --no-coverage --forceExit` — 全部通过
+- E2E：Host 刷新 → 从 DB 恢复状态 + 音频恢复 overlay
+- 手动测试：Host rejoin → 状态一致 → 音频恢复正常
+
+#### 5.6 Commit 计划（2 commits）
+
+| #   | message                                                          | 内容                                                                                                                                                                      | 验证             |
+| --- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 1   | `refactor(services)!: remove HostStateCache, unify rejoin to DB` | `joinAsHost` 改 DB 读；删除 `HostStateCache` 类 + 测试；删除 `applyHostSnapshot`；`messageRouter` 删除 `isHost` + `hostStateCache`；`App.tsx` 删除 DI；更新所有受影响测试 | tsc + jest       |
+| 2   | `refactor(services): merge entry methods` (可选)                 | `initializeAsHost` + `joinAsHost` → `createRoom`；`joinAsPlayer` → `joinRoom`（Host/Player 统一）；更新 `useRoomLifecycle` + `IGameFacade` + 测试                         | tsc + jest + E2E |
+
+#### 5.7 风险
+
+- **低风险**：DB 读路径已被 `joinAsPlayer` 和 `fetchStateFromDB` 验证过
+- **唯一行为差异**：Host rejoin 从 ~1ms 变为 ~50-200ms（网络读），可接受
+- **C5（合并入口方法）可选**：如影响面过大可先 skip，单独做或留到后续
+
+---
+
+### Phase 6：夜晚推进 + 音频计时迁移到服务端
+
+**目标：** 将 Host 设备负责的夜晚推进驱动（`callNightProgression`）、wolf vote 倒计时（`wolfVoteTimer`）、前台恢复（`_setupForegroundRecovery`）迁移到服务端，使 Host 掉线后游戏仍能继续。
+
+**对应审计项：** C4（前台恢复）、C6（submitAction 后 Host-only 推进）、C7（submitWolfVote 后 Host-only timer + 推进）。
+
+**架构方案：** 方案 E（服务端内联推进 + 客户端兜底 deadline），社区标准做法。
+
+#### 6.1 社区做法参考
+
+以下三个模式是多人回合制游戏的社区通行做法，无需新基础设施（Vercel Serverless + Supabase Realtime 即可）：
+
+##### 模式 1：服务端内联推进（Server-Inline Progression）
+
+所有 server-authoritative 回合制游戏的标准做法。Action API handler 在同一请求内完成「验证 → 写入 → 评估推进 → 广播」，不把推进权交给客户端。
+
+```
+客户端 POST /api/game/night/action { seat, target }
+  → 服务端:
+    1. validate + apply action
+    2. evaluate: 所有该 step 的 action 都到齐了吗？
+    3. 如果是 → advance step / end night（同一请求内）
+    4. 写 DB + 广播新 state（包含 sideEffects）
+    5. 返回 { success: true }
+  → 客户端: 收到广播，播放音频
+```
+
+**效果：** 客户端只需 fire-and-forget POST，不再需要 `callNightProgression` 循环。
+
+##### 模式 2：客户端兜底 deadline（Client-Polled Deadline）
+
+解决 Vercel 无原生 delayed invocation 的问题。服务端在 state 中写 `wolfVoteDeadline` 时间戳，**所有在线客户端**（不只 Host）本地跑 timer，到期后 POST `/api/game/night/progression`。服务端用乐观锁保证**只有第一个到达的请求生效**，后续请求被幂等拒绝。
+
+```
+服务端写入 state: { wolfVoteDeadline: Date.now() + 30000 }
+  → 所有客户端收到广播，各自 setTimeout(30s)
+  → 最快的客户端到期: POST /api/game/night/progression
+  → 服务端: 检查 deadline 已过 + revision 锁 → advance
+  → 其他客户端到期: POST → 服务端 revision 已变 → 409 幂等拒绝
+```
+
+**效果：** Host 掉线后任意在线客户端都能触发推进。`wolfVoteTimer` 从 Host-only 变为 all-client。
+
+##### 模式 3：pendingAudioEffects 事件队列（Audio Event Log）
+
+将音频编排从 API 响应同步播放改为 state 中的事件队列。服务端推进时写入 `pendingAudioEffects`，Host 设备消费并播放，播放完成后 POST `/api/game/audio/ack` 清除。Non-Host 设备忽略。
+
+```
+服务端推进后写入 state:
+  pendingAudioEffects: [
+    { id: 'uuid', type: 'step_audio', stepId: 'wolf', file: 'wolf_open.mp3' },
+    { id: 'uuid', type: 'step_audio', stepId: 'wolf', file: 'wolf_close.mp3' }
+  ]
+
+Host 设备: 收到广播 → 检查 pendingAudioEffects → 播放 → POST ack 清除
+Non-Host 设备: 收到广播 → pendingAudioEffects 存在但 isHost=false → 忽略
+```
+
+**效果：** 音频与推进解耦。Host 刷新后从 state 中读取未消费的 effects 恢复播放。
+
+#### 6.2 当前问题
+
+| 问题                         | 位置                                    | 说明                                                 |
+| ---------------------------- | --------------------------------------- | ---------------------------------------------------- |
+| 夜晚推进仅 Host 驱动         | `hostActions.ts` L310 `if (ctx.isHost)` | submitAction 后只有 Host 调用 `callNightProgression` |
+| Wolf vote timer 在 Host 本地 | `hostActions.ts` L350 `if (ctx.isHost)` | `setTimeout` 倒计时在 Host 设备，刷新即丢失          |
+| 前台恢复仅 Host              | `GameFacade._setupForegroundRecovery`   | Host 回到前台时检查 wolf vote deadline 并推进        |
+| Host 掉线 → 游戏卡住         | —                                       | 所有推进都依赖 Host 设备在线                         |
+
+#### 6.3 变更设计
+
+##### 6.3.1 服务端改造
+
+| API                                | 变更                                                                                                                                                 |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/game/night/action`      | action 写入后，**同请求内**调用 progression 评估。如果所有 action 到齐 → 自动 advance step / end night。sideEffects 写入 `state.pendingAudioEffects` |
+| `POST /api/game/night/wolf-vote`   | wolf vote 写入后，如果投票结束 → 写 `wolfVoteDeadline` 到 state。如果 deadline 已过 → 直接 resolve                                                   |
+| `POST /api/game/night/progression` | 改为**幂等兜底端点**：检查 deadline 是否已过 + revision 乐观锁，只有第一个请求生效                                                                   |
+| `POST /api/game/audio/ack`         | （新增）Host 播放完成后清除 `pendingAudioEffects` 中对应项                                                                                           |
+
+##### 6.3.2 State 新增字段
+
+```typescript
+interface BroadcastGameState {
+  // ... existing fields
+  wolfVoteDeadline?: number; // Unix timestamp (ms)，所有客户端本地 timer
+  pendingAudioEffects?: AudioEffect[]; // Host 消费队列
+}
+
+interface AudioEffect {
+  id: string; // 用于 ack 清除
+  type: 'step_audio' | 'bgm_change' | 'sfx';
+  stepId?: SchemaId;
+  file: string;
+  createdAt: number;
+}
+```
+
+> ⚠️ 新增 `BroadcastGameState` 字段必须同步 `normalizeState`。
+
+##### 6.3.3 客户端改造
+
+| 文件                         | 变更                                                                                                                             |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `hostActions.ts`             | 删除 `callNightProgression` 函数；`submitAction` / `submitWolfVote` 中删除 `if (ctx.isHost)` 推进逻辑，改为 fire-and-forget POST |
+| `GameFacade.ts`              | 删除 `_setupForegroundRecovery` / `_teardownForegroundRecovery`；删除 `_wolfVoteTimer` / `_rebuildWolfVoteTimerIfNeeded`         |
+| `HostActionsContext`         | 删除 `wolfVoteTimer` getter/setter                                                                                               |
+| `messageRouter.ts` 或新 hook | 所有客户端监听 `wolfVoteDeadline`，到期 POST progression（幂等）                                                                 |
+| `messageRouter.ts` 或新 hook | Host 设备监听 `pendingAudioEffects`，消费 → 播放 → POST ack                                                                      |
+
+#### 6.4 前置依赖
+
+- Phase 5 完成（HostStateCache 已消除，rejoin 统一从 DB 读取）
+- 服务端 API 已稳定运行（Phase 1-3）
+
+#### 6.5 Commit 计划（3-4 commits）
+
+| #   | message                                                      | 内容                                                                                                                                | 验证             |
+| --- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 1   | `feat(api): server inline progression on action submit`      | action/wolf-vote API 内联推进评估 + 自动 advance；客户端删除 `callNightProgression` 循环                                            | tsc + jest + E2E |
+| 2   | `feat(api): wolf vote deadline + all-client timer`           | 服务端写 `wolfVoteDeadline` 到 state；所有客户端本地 timer + 幂等 POST；删除 Host-only `wolfVoteTimer` + `_setupForegroundRecovery` | tsc + jest       |
+| 3   | `feat(services): pendingAudioEffects queue + host consumer`  | 新增 `AudioEffect` 类型 + `POST /api/game/audio/ack`；Host 设备消费队列 + 播放 + ack；Non-Host 忽略                                 | tsc + jest + E2E |
+| 4   | `refactor(services): cleanup progression legacy code` (可选) | 清理残留的推进相关代码 + 测试                                                                                                       | tsc + jest       |
+
+#### 6.6 验证标准
+
+- Host 提交 action → 服务端自动推进 → pendingAudioEffects 写入 state → Host 消费播放
+- Wolf vote deadline 到期 → 任意在线客户端 POST → 服务端推进 → 广播（Host 掉线也能推进）
+- Host 刷新 → 从 state 读取未消费的 pendingAudioEffects → 恢复播放
+- `pnpm exec tsc --noEmit` + `pnpm exec jest --no-coverage --forceExit` 通过
+- E2E：`night-2p.spec.ts` 全流程通过
+
+#### 6.7 风险
+
+- **中风险**：音频编排模式变更（同步 → 异步队列），需仔细验证音频时序
+- **低风险**：所有客户端跑 deadline timer 不会冲突（服务端乐观锁幂等保证）
+- **需关注**：`pendingAudioEffects` 队列的清理时机 — Host ack 后清除，或新 step 覆盖
+- **可单独评估 ROI**：当前 Night-1 only 范围内，Host 掉线是低频场景
+
+---
+
+### Phase 7：清理冗余 isHost 双保险门控
+
+**目标：** 清除 Phase 1-6 迁移后遗留的客户端 `isHost` 冗余检查。这些位置在服务端已有 `hostUid` 校验，客户端 `isHost` 门控是冗余的"快速失败"。保留无害，删除也无副作用。统一清除以减少代码噪音。
+
+**性质：** 纯清理，零行为变化。
+
+#### 7.1 清理范围
+
+##### 7.1.1 `GameFacade.ts` — 客户端快速拦截（3 处）
+
+| 位置                  | 代码                       | 服务端校验                           |
+| --------------------- | -------------------------- | ------------------------------------ |
+| `restartGame()`       | `if (!this.isHost) return` | `/api/game/restart` 校验 `hostUid`   |
+| `fillWithBots()`      | `if (!this.isHost) return` | `/api/game/fill-bots` 校验 `hostUid` |
+| `markAllBotsViewed()` | `if (!this.isHost) return` | 服务端校验 `hostUid`                 |
+
+**处理：** 删除 `if (!this.isHost)` 门控。服务端已保证非 Host 调用会被拒绝（返回 403）。
+
+##### 7.1.2 `hostActions.ts` — debug telemetry（~15 处）
+
+| 位置               | 代码                          | 说明                        |
+| ------------------ | ----------------------------- | --------------------------- |
+| 各 submit 函数日志 | `{ isHost: ctx.isHost }` ×~15 | 纯 debug 元数据，无逻辑影响 |
+
+**处理：** 从日志 payload 中移除 `isHost` 字段。Phase 6 后推进不再依赖 Host，该字段在 telemetry 中不再有意义。
+
+##### 7.1.3 `HostActionsContext` — `isHost` 属性
+
+| 位置                                 | 代码                  | 说明                                                   |
+| ------------------------------------ | --------------------- | ------------------------------------------------------ |
+| `HostActionsContext` interface       | `isHost: boolean`     | Phase 6 后不再有消费者（推进门控已删，telemetry 已删） |
+| `GameFacade.getHostActionsContext()` | `isHost: this.isHost` | 同上                                                   |
+
+**处理：** 从 `HostActionsContext` interface 中删除 `isHost`；从 `getHostActionsContext()` 中删除该字段传递。
+
+##### 7.1.4 `game-engine` — `HandlerContext.isHost` + handler gates
+
+| 位置                       | 代码              | 说明                                         |
+| -------------------------- | ----------------- | -------------------------------------------- |
+| `HandlerContext` interface | `isHost: boolean` | handler 层权限校验                           |
+| 各 handler `if (!isHost)`  | 权限门控          | Vercel Serverless 调用时始终传 `isHost=true` |
+
+**处理：** 保留。`game-engine` 是共享包，本地复用场景（测试 / 未来 CLI 工具）仍需要 `isHost` 校验。服务端 handler 传 `isHost=true` 是 caller 职责，handler 本身的校验是正确的防御性编程。
+
+#### 7.2 符号验证
+
+| 符号                                | 消费者                                                                                                                                                                 | 处理                                                                                                                                                 |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GameFacade.isHost` (private field) | `restartGame` / `fillWithBots` / `markAllBotsViewed` / `getHostActionsContext` / `getMessageRouterContext` / `isHostPlayer()` / `useBgmControl` / `useHostGameActions` | Phase 7 删除 `restartGame` 等 3 处门控 + `getHostActionsContext` 传递；`isHostPlayer()` / `useBgmControl` / `useHostGameActions` 保留（UI 角色标记） |
+| `HostActionsContext.isHost`         | `submitAction` / `submitWolfVote` 门控（Phase 6 已删）+ telemetry ~15 处                                                                                               | Phase 7 删除 telemetry + interface 字段                                                                                                              |
+| `HandlerContext.isHost`             | game-engine handlers                                                                                                                                                   | 保留不动                                                                                                                                             |
+
+#### 7.3 Commit 计划（1 commit）
+
+| #   | message                                                          | 内容                                                                                                                  | 验证       |
+| --- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 1   | `refactor(services): remove redundant client-side isHost guards` | 删除 `GameFacade` 3 处快速拦截 + `HostActionsContext.isHost` 字段 + `hostActions.ts` telemetry ~15 处；更新受影响测试 | tsc + jest |
+
+#### 7.4 风险
+
+- **极低风险**：纯删除冗余代码，服务端校验兜底
+- **唯一注意点**：删除 `HostActionsContext.isHost` 后确认无其他消费者遗漏（需 `grep_search` 验证）
+
+---
+
 ## 不变的部分
 
 | 功能                | 方式                          | 原因                    |
@@ -1395,23 +1758,29 @@ rooms (
 
 ## 工期估算
 
-| 阶段                    | Commits | 工作量       | 说明                                          |
-| ----------------------- | ------- | ------------ | --------------------------------------------- |
-| Phase 0: 共享包提取     | 4       | 1-2 天       | 文件移动 + import 更新 + 依赖抽象，纯机械操作 |
-| Phase 1: 入座/离座 API  | 3       | 1-2 天       | 第一个 API Route + 客户端改造 + 测试更新      |
-| Phase 2: 游戏控制 API   | 3       | 2-3 天       | 7 个 API Route + 音频 sideEffects + 测试更新  |
-| Phase 3: 夜晚流程 API   | 4       | 3-5 天       | 8 个 API Route + 自动推进改造 + timer + 测试  |
-| Phase 4: 统一客户端架构 | 3       | 1-2 天       | 消除 Host/Player 分叉 + 删除 P2P 消息         |
-| 清理 + 集成测试         | 1       | 1-2 天       | 删除废弃代码 + E2E 全量回归                   |
-| **总计**                | **18**  | **10-17 天** |                                               |
+| 阶段                          | Commits   | 工作量       | 说明                                                             |
+| ----------------------------- | --------- | ------------ | ---------------------------------------------------------------- |
+| Phase 0: 共享包提取           | 4         | 1-2 天       | 文件移动 + import 更新 + 依赖抽象，纯机械操作                    |
+| Phase 1: 入座/离座 API        | 3         | 1-2 天       | 第一个 API Route + 客户端改造 + 测试更新                         |
+| Phase 2: 游戏控制 API         | 3         | 2-3 天       | 7 个 API Route + 音频 sideEffects + 测试更新                     |
+| Phase 3: 夜晚流程 API         | 4         | 3-5 天       | 8 个 API Route + 自动推进改造 + timer + 测试                     |
+| Phase 4: 统一客户端架构       | 3         | 1-2 天       | 消除 Host/Player 分叉 + 删除 P2P 消息                            |
+| Phase 5: 消除 HostStateCache  | 2         | 1 天         | 删除 HostStateCache + 统一 rejoin 到 DB + 合并入口方法           |
+| Phase 6: 推进/计时迁移服务端  | 3-4       | 3-5 天       | 服务端内联推进 + pendingAudioEffects 队列 + 客户端 deadline 兜底 |
+| Phase 7: 清理冗余 isHost 门控 | 1         | 0.5 天       | 删除 GameFacade 快速拦截 + HostActionsContext.isHost + telemetry |
+| 集成测试 + 文档               | 1         | 1 天         | E2E 全量回归 + 文档更新                                          |
+| **总计**                      | **24-26** | **15-25 天** |                                                                  |
 
 ---
 
 ## 执行顺序
 
-1. **Phase 0**: 提取 `@werewolf/game-engine` — **无功能变化，纯重构**
-2. **Phase 1**: 入座/离座 → HTTP — 最简单的操作，验证端到端 + 基础设施
-3. **Phase 2**: 游戏控制 → HTTP — 引入音频 sideEffects 模式
-4. **Phase 3**: 夜晚流程 → HTTP — 最复杂，音频编排 + 自动推进
-5. **Phase 4**: 统一客户端架构 — 消除 Host/Player 代码分叉，所有客户端平等
-6. **清理**: E2E 全量回归 + 文档更新
+1. **Phase 0**: 提取 `@werewolf/game-engine` — **无功能变化，纯重构** ✅
+2. **Phase 1**: 入座/离座 → HTTP — 最简单的操作，验证端到端 + 基础设施 ✅
+3. **Phase 2**: 游戏控制 → HTTP — 引入音频 sideEffects 模式 ✅
+4. **Phase 3**: 夜晚流程 → HTTP — 最复杂，音频编排 + 自动推进 ✅
+5. **Phase 4**: 统一客户端架构 — 消除 Host/Player 代码分叉，所有客户端平等 ✅
+6. **Phase 5**: 消除 HostStateCache — 统一 rejoin 到 DB + 合并入口方法（纯客户端，零服务端改动）
+7. **Phase 6**: 推进/计时迁移服务端 — 服务端内联推进 + pendingAudioEffects 队列 + 客户端 deadline 兜底
+8. **Phase 7**: 清理冗余 isHost 门控 — 删除 GameFacade 快速拦截 + HostActionsContext.isHost + telemetry（纯清理，零行为变化）
+9. **集成测试 + 文档**: E2E 全量回归 + 文档更新

@@ -75,12 +75,6 @@ describe('restartGame Contract (HTTP API)', () => {
         clearPreloaded: jest.fn(),
         cleanup: jest.fn(),
       } as any,
-      hostStateCache: {
-        saveState: jest.fn(),
-        loadState: jest.fn().mockResolvedValue(null),
-        getState: jest.fn().mockReturnValue(null),
-        clearState: jest.fn(),
-      } as any,
       roomService: {
         upsertGameState: jest.fn().mockResolvedValue(undefined),
         getGameState: jest.fn().mockResolvedValue(null),

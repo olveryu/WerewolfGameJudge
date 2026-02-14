@@ -69,12 +69,6 @@ describe('GameFacade', () => {
       store: new GameStore(),
       broadcastService: mockBroadcastService as any,
       audioService: mockAudioServiceInstance as any,
-      hostStateCache: {
-        saveState: jest.fn(),
-        loadState: jest.fn().mockResolvedValue(null),
-        getState: jest.fn().mockReturnValue(null),
-        clearState: jest.fn(),
-      } as any,
       roomService: mockRoomService(),
     });
   });
@@ -583,12 +577,6 @@ describe('GameFacade', () => {
         store: new GameStore(),
         broadcastService: mockBroadcastService as any,
         audioService: mockAudioServiceInstance as any,
-        hostStateCache: {
-          saveState: jest.fn(),
-          loadState: jest.fn().mockResolvedValue(null),
-          getState: jest.fn().mockReturnValue(null),
-          clearState: jest.fn(),
-        } as any,
         roomService: mockRoomService(),
       });
 
@@ -651,12 +639,6 @@ describe('GameFacade', () => {
         store: playerStore,
         broadcastService: mockBroadcastService as any,
         audioService: mockAudioServiceInstance as any,
-        hostStateCache: {
-          saveState: jest.fn(),
-          loadState: jest.fn().mockResolvedValue(null),
-          getState: jest.fn().mockReturnValue(null),
-          clearState: jest.fn(),
-        } as any,
         roomService: {
           upsertGameState: jest.fn().mockResolvedValue(undefined),
           // Return a state with roomCode so the player store has it
@@ -757,12 +739,6 @@ describe('GameFacade', () => {
         store: new GameStore(),
         broadcastService: mockBroadcastService as any,
         audioService: mockAudioServiceInstance as any,
-        hostStateCache: {
-          saveState: jest.fn(),
-          loadState: jest.fn().mockResolvedValue(null),
-          getState: jest.fn().mockReturnValue(null),
-          clearState: jest.fn(),
-        } as any,
         roomService: mockRoomService(),
       });
 
@@ -1109,12 +1085,9 @@ describe('GameFacade', () => {
   // Host Rejoin: joinAsHost + wasAudioInterrupted + resumeAfterRejoin
   // ===========================================================================
 
-  describe('Host: joinAsHost (cache restore)', () => {
-    /** Build a cached ongoing state for rejoin tests */
-    const buildOngoingCache = (overrides: Record<string, unknown> = {}) => ({
-      version: 1,
-      revision: 10,
-      cachedAt: Date.now(),
+  describe('Host: joinAsHost (DB restore)', () => {
+    /** Build an ongoing state as returned from DB for rejoin tests */
+    const buildOngoingDbState = (overrides: Record<string, unknown> = {}) => ({
       state: {
         roomCode: 'REJN',
         hostUid: 'host-uid',
@@ -1143,60 +1116,55 @@ describe('GameFacade', () => {
         isAudioPlaying: false,
         ...overrides,
       },
+      revision: 10,
     });
 
-    it('should restore state from cache and set wasAudioInterrupted=true when ongoing', async () => {
-      const cached = buildOngoingCache();
-      const facadeWithCache = new GameFacade({
+    it('should restore state from DB and set wasAudioInterrupted=true when ongoing', async () => {
+      const dbState = buildOngoingDbState();
+      const facadeWithDb = new GameFacade({
         store: new GameStore(),
         broadcastService: mockBroadcastService as any,
         audioService: mockAudioServiceInstance as any,
-        hostStateCache: {
-          saveState: jest.fn(),
-          loadState: jest.fn().mockResolvedValue(cached),
-          getState: jest.fn().mockReturnValue(null),
-          clearState: jest.fn(),
+        roomService: {
+          upsertGameState: jest.fn().mockResolvedValue(undefined),
+          getGameState: jest.fn().mockResolvedValue(dbState),
         } as any,
-        roomService: mockRoomService(),
       });
 
-      const result = await facadeWithCache.joinAsHost('REJN', 'host-uid');
+      const result = await facadeWithDb.joinAsHost('REJN', 'host-uid');
 
       expect(result.success).toBe(true);
-      expect(facadeWithCache.wasAudioInterrupted).toBe(true);
-      expect(facadeWithCache.isHostPlayer()).toBe(true);
-      expect(facadeWithCache.getState()?.status).toBe('ongoing');
+      expect(facadeWithDb.wasAudioInterrupted).toBe(true);
+      expect(facadeWithDb.isHostPlayer()).toBe(true);
+      expect(facadeWithDb.getState()?.status).toBe('ongoing');
     });
 
-    it('should set wasAudioInterrupted=false when cached status is not ongoing', async () => {
-      const cached = buildOngoingCache({ status: 'ready' });
-      const facadeWithCache = new GameFacade({
+    it('should set wasAudioInterrupted=false when DB status is not ongoing', async () => {
+      const dbState = buildOngoingDbState({ status: 'ready' });
+      const facadeWithDb = new GameFacade({
         store: new GameStore(),
         broadcastService: mockBroadcastService as any,
         audioService: mockAudioServiceInstance as any,
-        hostStateCache: {
-          saveState: jest.fn(),
-          loadState: jest.fn().mockResolvedValue(cached),
-          getState: jest.fn().mockReturnValue(null),
-          clearState: jest.fn(),
+        roomService: {
+          upsertGameState: jest.fn().mockResolvedValue(undefined),
+          getGameState: jest.fn().mockResolvedValue(dbState),
         } as any,
-        roomService: mockRoomService(),
       });
 
-      const result = await facadeWithCache.joinAsHost('REJN', 'host-uid');
+      const result = await facadeWithDb.joinAsHost('REJN', 'host-uid');
 
       expect(result.success).toBe(true);
-      expect(facadeWithCache.wasAudioInterrupted).toBe(false);
+      expect(facadeWithDb.wasAudioInterrupted).toBe(false);
     });
 
-    it('should return no_cached_state when no cache and no template', async () => {
+    it('should return no_db_state when no DB state and no template', async () => {
       const result = await facade.joinAsHost('REJN', 'host-uid');
 
-      expect(result).toEqual({ success: false, reason: 'no_cached_state' });
+      expect(result).toEqual({ success: false, reason: 'no_db_state' });
       expect(facade.isHostPlayer()).toBe(false);
     });
 
-    it('should initialize with template when no cache but template provided', async () => {
+    it('should initialize with template when no DB state but template provided', async () => {
       const result = await facade.joinAsHost('REJN', 'host-uid', [
         'wolf' as any,
         'villager' as any,
@@ -1214,14 +1182,11 @@ describe('GameFacade', () => {
       global.fetch = origFetch;
     });
 
-    /** Helper: create facade with ongoing cached state, already joined */
+    /** Helper: create facade with ongoing DB state, already joined */
     const createRejoinedFacade = async (
       stateOverrides: Record<string, unknown> = {},
     ): Promise<GameFacade> => {
-      const cached = {
-        version: 1,
-        revision: 10,
-        cachedAt: Date.now(),
+      const dbState = {
         state: {
           roomCode: 'REJN',
           hostUid: 'host-uid',
@@ -1250,6 +1215,7 @@ describe('GameFacade', () => {
           isAudioPlaying: true,
           ...stateOverrides,
         },
+        revision: 10,
       };
 
       // Mock fetch for HTTP API calls during resumeAfterRejoin
@@ -1261,13 +1227,10 @@ describe('GameFacade', () => {
         store: new GameStore(),
         broadcastService: mockBroadcastService as any,
         audioService: mockAudioServiceInstance as any,
-        hostStateCache: {
-          saveState: jest.fn(),
-          loadState: jest.fn().mockResolvedValue(cached),
-          getState: jest.fn().mockReturnValue(null),
-          clearState: jest.fn(),
+        roomService: {
+          upsertGameState: jest.fn().mockResolvedValue(undefined),
+          getGameState: jest.fn().mockResolvedValue(dbState),
         } as any,
-        roomService: mockRoomService(),
       });
 
       await f.joinAsHost('REJN', 'host-uid');
@@ -1370,10 +1333,7 @@ describe('GameFacade', () => {
       jest.useFakeTimers();
       try {
         const futureDeadline = Date.now() + 3000;
-        const cached = {
-          version: 1,
-          revision: 10,
-          cachedAt: Date.now(),
+        const dbState = {
           state: {
             roomCode: 'REJN',
             hostUid: 'host-uid',
@@ -1402,19 +1362,17 @@ describe('GameFacade', () => {
             isAudioPlaying: false,
             wolfVoteDeadline: futureDeadline,
           },
+          revision: 10,
         };
 
         const f = new GameFacade({
           store: new GameStore(),
           broadcastService: mockBroadcastService as any,
           audioService: mockAudioServiceInstance as any,
-          hostStateCache: {
-            saveState: jest.fn(),
-            loadState: jest.fn().mockResolvedValue(cached),
-            getState: jest.fn().mockReturnValue(null),
-            clearState: jest.fn(),
+          roomService: {
+            upsertGameState: jest.fn().mockResolvedValue(undefined),
+            getGameState: jest.fn().mockResolvedValue(dbState),
           } as any,
-          roomService: mockRoomService(),
         });
 
         await f.joinAsHost('REJN', 'host-uid');
@@ -1430,10 +1388,7 @@ describe('GameFacade', () => {
     });
 
     it('should not rebuild timer when not on wolfKill step', async () => {
-      const cached = {
-        version: 1,
-        revision: 10,
-        cachedAt: Date.now(),
+      const dbState = {
         state: {
           roomCode: 'REJN',
           hostUid: 'host-uid',
@@ -1454,19 +1409,17 @@ describe('GameFacade', () => {
           isAudioPlaying: false,
           wolfVoteDeadline: Date.now() + 3000,
         },
+        revision: 10,
       };
 
       const f = new GameFacade({
         store: new GameStore(),
         broadcastService: mockBroadcastService as any,
         audioService: mockAudioServiceInstance as any,
-        hostStateCache: {
-          saveState: jest.fn(),
-          loadState: jest.fn().mockResolvedValue(cached),
-          getState: jest.fn().mockReturnValue(null),
-          clearState: jest.fn(),
+        roomService: {
+          upsertGameState: jest.fn().mockResolvedValue(undefined),
+          getGameState: jest.fn().mockResolvedValue(dbState),
         } as any,
-        roomService: mockRoomService(),
       });
 
       await f.joinAsHost('REJN', 'host-uid');
@@ -1476,10 +1429,7 @@ describe('GameFacade', () => {
     });
 
     it('should not rebuild timer when no wolfVoteDeadline in state', async () => {
-      const cached = {
-        version: 1,
-        revision: 10,
-        cachedAt: Date.now(),
+      const dbState = {
         state: {
           roomCode: 'REJN',
           hostUid: 'host-uid',
@@ -1500,19 +1450,17 @@ describe('GameFacade', () => {
           isAudioPlaying: false,
           // no wolfVoteDeadline
         },
+        revision: 10,
       };
 
       const f = new GameFacade({
         store: new GameStore(),
         broadcastService: mockBroadcastService as any,
         audioService: mockAudioServiceInstance as any,
-        hostStateCache: {
-          saveState: jest.fn(),
-          loadState: jest.fn().mockResolvedValue(cached),
-          getState: jest.fn().mockReturnValue(null),
-          clearState: jest.fn(),
+        roomService: {
+          upsertGameState: jest.fn().mockResolvedValue(undefined),
+          getGameState: jest.fn().mockResolvedValue(dbState),
         } as any,
-        roomService: mockRoomService(),
       });
 
       await f.joinAsHost('REJN', 'host-uid');

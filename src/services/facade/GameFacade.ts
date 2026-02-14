@@ -32,7 +32,6 @@ import { shouldTriggerWolfVoteRecovery } from '@/services/engine/handlers/progre
 import { buildInitialGameState } from '@/services/engine/state/buildInitialState';
 import { GameStore } from '@/services/engine/store';
 import { AudioService } from '@/services/infra/AudioService';
-import { HostStateCache } from '@/services/infra/HostStateCache';
 import { RoomService } from '@/services/infra/RoomService';
 import type { BroadcastGameState, HostBroadcast } from '@/services/protocol/types';
 import { BroadcastService } from '@/services/transport/BroadcastService';
@@ -62,8 +61,6 @@ interface GameFacadeDeps {
   broadcastService: BroadcastService;
   /** AudioService 实例 */
   audioService: AudioService;
-  /** HostStateCache 实例 */
-  hostStateCache: HostStateCache;
   /** RoomService 实例（DB state 持久化） */
   roomService: RoomService;
 }
@@ -72,7 +69,6 @@ export class GameFacade implements IGameFacade {
   private readonly store: GameStore;
   private readonly broadcastService: BroadcastService;
   private readonly audioService: AudioService;
-  private readonly hostStateCache: HostStateCache;
   private readonly roomService: RoomService;
   private isHost = false;
   private myUid: string | null = null;
@@ -108,7 +104,6 @@ export class GameFacade implements IGameFacade {
     this.store = deps.store;
     this.broadcastService = deps.broadcastService;
     this.audioService = deps.audioService;
-    this.hostStateCache = deps.hostStateCache;
     this.roomService = deps.roomService;
   }
 
@@ -277,10 +272,11 @@ export class GameFacade implements IGameFacade {
   /**
    * Host rejoin: 房主断线重连后重新加入房间
    *
-   * 策略：
-   * 1. 尝试从本地缓存恢复状态
-   * 2. 如果有缓存，恢复并立即广播 STATE_UPDATE
-   * 3. 如果没有缓存，返回 false（调用方需提示用户）
+   * 策略（服务端权威）：
+   * 1. 从 DB 读取最新状态（与 joinAsPlayer 一致）
+   * 2. 如果有 DB 状态，恢复并加入频道
+   * 3. 如果没有 DB 状态但有 template，初始化为新房间
+   * 4. 如果都没有，返回 false（调用方需提示用户）
    */
   async joinAsHost(
     roomCode: string,
@@ -290,25 +286,22 @@ export class GameFacade implements IGameFacade {
     this._aborted = false; // Reset abort flag when rejoining (matches initializeAsHost/joinAsPlayer)
     this.isHost = true;
     this.myUid = hostUid;
+    this.store.reset();
 
-    // 尝试从本地缓存恢复状态（key = roomCode:hostUid）
-    const cached = await this.hostStateCache.loadState(roomCode, hostUid);
+    // 从 DB 读取最新状态（服务端权威 — 与 joinAsPlayer 使用相同数据源）
+    const dbState = await this.roomService.getGameState(roomCode);
 
-    if (cached) {
-      // 有缓存：恢复状态 + revision（Host rejoin 必须恢复 revision，否则 Player 可能拒绝后续 STATE_UPDATE）
-      // 注意：loadState 已经校验了 cached.state.hostUid === hostUid
-
-      // 必须在 applyHostSnapshot 之前设置：applyHostSnapshot 同步触发 listener，
+    if (dbState) {
+      // 必须在 applySnapshot 之前设置：applySnapshot 同步触发 listener，
       // listener 检查 wasAudioInterrupted 决定是否弹 overlay。
       // ongoing 状态下的 rejoin 都需要 overlay（用户手势解锁 Web AudioContext 恢复 BGM）。
-      this._wasAudioInterrupted = cached.state.status === 'ongoing';
+      this._wasAudioInterrupted = dbState.state.status === 'ongoing';
 
-      // Reload 后音频硬件已销毁，但保留 isAudioPlaying = true 作为 gate：
-      // rejoin → overlay → 用户点击 → 音频重播 → 音频结束 setAudioPlaying(false)
-      // 全程 gate 阻断座位操作，零 gap。
-      this.store.applyHostSnapshot(cached.state, cached.revision);
+      this.store.applySnapshot(dbState.state, dbState.revision);
+      this.broadcastService.markAsLive();
     } else if (templateRoles && templateRoles.length > 0) {
-      // 没有缓存但有模板：创建初始状态
+      // 没有 DB 状态但有模板：创建初始状态
+      this._wasAudioInterrupted = false;
       const players: BroadcastGameState['players'] = {};
       for (let i = 0; i < templateRoles.length; i++) {
         players[i] = null;
@@ -326,10 +319,10 @@ export class GameFacade implements IGameFacade {
 
       this.store.initialize(initialState);
     } else {
-      // 没有缓存且没有模板：无法恢复
+      // 没有 DB 状态且没有模板：无法恢复
       this.isHost = false;
       this.myUid = null;
-      return { success: false, reason: 'no_cached_state' };
+      return { success: false, reason: 'no_db_state' };
     }
 
     // 加入频道（Host 和 Player 统一监听 onHostBroadcast + onDbStateChange）
@@ -745,8 +738,6 @@ export class GameFacade implements IGameFacade {
     return {
       store: this.store,
       broadcastService: this.broadcastService,
-      hostStateCache: this.isHost ? this.hostStateCache : null,
-      isHost: this.isHost,
       myUid: this.myUid,
     };
   }

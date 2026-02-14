@@ -29,24 +29,6 @@ jest.mock('../../infra/AudioService', () => ({
   })),
 }));
 
-// Mock HostStateCache
-jest.mock('../../infra/HostStateCache', () => ({
-  HostStateCache: jest.fn(() => ({
-    saveState: jest.fn(),
-    loadState: jest.fn().mockResolvedValue(null),
-    getState: jest.fn().mockReturnValue(null),
-    clearState: jest.fn(),
-  })),
-}));
-
-const mockHostStateCache = () =>
-  ({
-    saveState: jest.fn(),
-    loadState: jest.fn().mockResolvedValue(null),
-    getState: jest.fn().mockReturnValue(null),
-    clearState: jest.fn(),
-  }) as any;
-
 const mockAudio = () =>
   ({
     playAudio: jest.fn().mockResolvedValue(undefined),
@@ -59,7 +41,6 @@ const createTestFacade = () =>
     store: new GameStore(),
     broadcastService: new (jest.requireMock('../../transport/BroadcastService').BroadcastService)(),
     audioService: mockAudio(),
-    hostStateCache: mockHostStateCache(),
     roomService: {
       upsertGameState: jest.fn().mockResolvedValue(undefined),
       getGameState: jest.fn().mockResolvedValue(null),

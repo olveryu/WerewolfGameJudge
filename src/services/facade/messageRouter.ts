@@ -6,16 +6,14 @@
  *
  * 职责：
  * - 处理 HostBroadcast（STATE_UPDATE）→ applySnapshot
- * - Host 额外保存本地缓存（用于 rejoin 恢复）
  *
- * ✅ 允许：applySnapshot + markAsLive + Host 缓存
+ * ✅ 允许：applySnapshot + markAsLive
  * ❌ 禁止：业务逻辑/校验规则
  * ❌ 禁止：直接修改 state
  * ❌ 禁止：Host/Player 分叉逻辑
  */
 
 import type { GameStore } from '@/services/engine/store';
-import type { HostStateCache } from '@/services/infra/HostStateCache';
 import type { HostBroadcast } from '@/services/protocol/types';
 import type { BroadcastService } from '@/services/transport/BroadcastService';
 import { facadeLog } from '@/utils/logger';
@@ -23,15 +21,12 @@ import { facadeLog } from '@/utils/logger';
 /**
  * Message Router 依赖的上下文接口
  *
- * ✅ store / broadcastService / isHost / myUid / hostStateCache
+ * ✅ store / broadcastService / myUid
  * ❌ 无 broadcastCurrentState — 客户端不广播（服务端权威）
  */
 export interface MessageRouterContext {
   readonly store: GameStore;
   readonly broadcastService: BroadcastService;
-  /** Host 本地缓存（用于 rejoin 恢复），Player 传 null */
-  readonly hostStateCache: HostStateCache | null;
-  isHost: boolean;
   myUid: string | null;
 }
 
@@ -43,7 +38,6 @@ export interface MessageRouterContext {
  * 处理服务端广播的 STATE_UPDATE
  *
  * Host 和 Player 走完全相同的路径：applySnapshot → markAsLive。
- * Host 额外保存到本地缓存（用于断线 rejoin 恢复）。
  */
 export function handleStateUpdate(ctx: MessageRouterContext, msg: HostBroadcast): void {
   switch (msg.type) {
@@ -59,16 +53,6 @@ export function handleStateUpdate(ctx: MessageRouterContext, msg: HostBroadcast)
       }
       ctx.store.applySnapshot(msg.state, msg.revision);
       ctx.broadcastService.markAsLive();
-
-      // Host: 保存到本地缓存（用于 rejoin 恢复）
-      if (ctx.isHost && ctx.hostStateCache) {
-        void ctx.hostStateCache.saveState(
-          msg.state.roomCode,
-          msg.state.hostUid,
-          msg.state,
-          msg.revision,
-        );
-      }
       break;
     }
   }

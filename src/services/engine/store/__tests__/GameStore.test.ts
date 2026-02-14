@@ -167,17 +167,6 @@ describe('GameStore', () => {
     });
   });
 
-  describe('applyHostSnapshot() (Host-only)', () => {
-    it('should set state and preserve the provided revision', () => {
-      const state = createMinimalState({ status: 'ongoing' });
-
-      store.applyHostSnapshot(state, 42);
-
-      expect(store.getState()).toEqual(state);
-      expect(store.getRevision()).toBe(42);
-    });
-  });
-
   describe('subscribe()', () => {
     it('should return unsubscribe function', () => {
       const listener = jest.fn();
