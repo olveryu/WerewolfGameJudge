@@ -47,7 +47,6 @@ const ALL_PLAYER_MESSAGE_TYPES: PlayerMessage['type'][] = [
   'WOLF_VOTE',
   'VIEWED_ROLE',
   'REVEAL_ACK',
-  'SEAT_ACTION_REQUEST',
   'SNAPSHOT_REQUEST',
   'WOLF_ROBOT_HUNTER_STATUS_VIEWED',
 ];
@@ -72,10 +71,7 @@ function createMockContext(overrides?: Partial<MessageRouterContext>): MessageRo
     } as unknown as MessageRouterContext['broadcastService'],
     isHost: true,
     myUid: 'host-uid',
-    getMySeatNumber: jest.fn(() => 0),
     broadcastCurrentState: jest.fn(() => Promise.resolve()),
-    findSeatByUid: jest.fn(() => null),
-    generateRequestId: jest.fn(() => 'mock-request-id'),
     handleViewedRole: jest.fn(() => Promise.resolve({ success: true })),
     handleAction: jest.fn(() => Promise.resolve({ success: true })),
     handleWolfVote: jest.fn(() => Promise.resolve({ success: true })),
@@ -102,14 +98,6 @@ function createMinimalPayload(type: PlayerMessage['type']): PlayerMessage {
       return { type: 'VIEWED_ROLE', seat: 0 };
     case 'REVEAL_ACK':
       return { type: 'REVEAL_ACK', seat: 0, role: 'seer', revision: 1 };
-    case 'SEAT_ACTION_REQUEST':
-      return {
-        type: 'SEAT_ACTION_REQUEST',
-        requestId: 'req-1',
-        action: 'sit',
-        seat: 0,
-        uid: 'player-uid',
-      };
     case 'SNAPSHOT_REQUEST':
       return { type: 'SNAPSHOT_REQUEST', requestId: 'req-1', uid: 'player-uid' };
     case 'WOLF_ROBOT_HUNTER_STATUS_VIEWED':
@@ -146,10 +134,10 @@ describe('PlayerMessage Router Coverage Contract', () => {
       }
     });
 
-    it('should have exactly 10 message types (update this if adding new types)', () => {
+    it('should have exactly 9 message types (update this if adding new types)', () => {
       // 门禁：如果新增消息类型，这个数字必须更新
       // 这会提醒开发者同时更新 router 和这个测试
-      expect(ALL_PLAYER_MESSAGE_TYPES.length).toBe(10);
+      expect(ALL_PLAYER_MESSAGE_TYPES.length).toBe(9);
     });
   });
 
@@ -194,18 +182,6 @@ describe('PlayerMessage Router Coverage Contract', () => {
       expect(ctx.handleViewedRole).toHaveBeenCalledWith(0);
     });
 
-    it('SEAT_ACTION_REQUEST should send ACK via broadcastAsHost', () => {
-      const ctx = createMockContext();
-      const msg = createMinimalPayload('SEAT_ACTION_REQUEST');
-
-      hostHandlePlayerMessage(ctx, msg, 'sender-uid');
-
-      // Should call broadcastAsHost with SEAT_ACTION_ACK
-      expect(ctx.broadcastService.broadcastAsHost).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'SEAT_ACTION_ACK' }),
-      );
-    });
-
     it('ACTION should call handleAction when wired', () => {
       const ctx = createMockContext();
       const msg = createMinimalPayload('ACTION');
@@ -247,7 +223,7 @@ describe('PlayerMessage Router Coverage Contract', () => {
         '[messageRouter] Legacy PlayerMessage type received',
         expect.objectContaining({
           type: 'JOIN',
-          guidance: expect.stringContaining('SEAT_ACTION_REQUEST'),
+          guidance: expect.stringContaining('HTTP API'),
         }),
       );
     });
@@ -262,7 +238,7 @@ describe('PlayerMessage Router Coverage Contract', () => {
         '[messageRouter] Legacy PlayerMessage type received',
         expect.objectContaining({
           type: 'LEAVE',
-          guidance: expect.stringContaining('SEAT_ACTION_REQUEST'),
+          guidance: expect.stringContaining('HTTP API'),
         }),
       );
     });
@@ -346,7 +322,6 @@ describe('PlayerMessage Router Coverage Contract', () => {
     const IMPLEMENTED_TYPES: PlayerMessage['type'][] = [
       'REQUEST_STATE',
       'VIEWED_ROLE',
-      'SEAT_ACTION_REQUEST',
       'ACTION', // PR9: now wired via handleAction
       'WOLF_VOTE', // PR9: now wired via handleWolfVote
       'REVEAL_ACK', // P0-FIX: now wired via handleRevealAck
@@ -354,16 +329,16 @@ describe('PlayerMessage Router Coverage Contract', () => {
     ];
 
     const LEGACY_TYPES: PlayerMessage['type'][] = [
-      'JOIN', // Legacy: 现在用 SEAT_ACTION_REQUEST.sit
-      'LEAVE', // Legacy: 现在用 SEAT_ACTION_REQUEST.standup
+      'JOIN', // Legacy: 现在用 HTTP API /api/game/seat
+      'LEAVE', // Legacy: 现在用 HTTP API /api/game/seat
     ];
 
     const UNIMPLEMENTED_TYPES: PlayerMessage['type'][] = [
       'SNAPSHOT_REQUEST', // Tracked: reserved for future differential sync
     ];
 
-    it('should have 7 implemented types', () => {
-      expect(IMPLEMENTED_TYPES.length).toBe(7);
+    it('should have 6 implemented types', () => {
+      expect(IMPLEMENTED_TYPES.length).toBe(6);
     });
 
     it('should have 2 legacy types', () => {
@@ -418,7 +393,6 @@ describe('PlayerMessage Router Coverage Report', () => {
     const IMPLEMENTED = [
       'REQUEST_STATE',
       'VIEWED_ROLE',
-      'SEAT_ACTION_REQUEST',
       'ACTION',
       'WOLF_VOTE',
       'REVEAL_ACK',
@@ -428,7 +402,7 @@ describe('PlayerMessage Router Coverage Report', () => {
     const UNIMPLEMENTED = ['SNAPSHOT_REQUEST'];
 
     // Validate counts instead of printing
-    expect(IMPLEMENTED.length).toBe(7);
+    expect(IMPLEMENTED.length).toBe(6);
     expect(LEGACY.length).toBe(2);
     expect(UNIMPLEMENTED.length).toBe(1);
     expect(ALL_PLAYER_MESSAGE_TYPES.length).toBe(
