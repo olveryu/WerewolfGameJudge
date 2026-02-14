@@ -141,7 +141,13 @@ export class AudioService {
                 audioLog.warn('[visibility] error pausing player', e);
               }
             }
-            if (this.bgmPlayer) {
+            if (this.webBgmElement) {
+              try {
+                this.webBgmElement.pause();
+              } catch (e) {
+                audioLog.warn('[visibility] error pausing web bgm', e);
+              }
+            } else if (this.bgmPlayer) {
               try {
                 this.bgmPlayer.pause();
               } catch (e) {
@@ -162,12 +168,21 @@ export class AudioService {
                 audioLog.warn('[visibility] error resuming player', e);
               }
             }
-            if (this.wasBgmPlayingBeforeHidden && this.bgmPlayer) {
-              try {
-                this.bgmPlayer.play();
-                audioLog.debug('[visibility] resumed BGM');
-              } catch (e) {
-                audioLog.warn('[visibility] error resuming bgm', e);
+            if (this.wasBgmPlayingBeforeHidden) {
+              if (this.webBgmElement) {
+                try {
+                  this.webBgmElement.play();
+                  audioLog.debug('[visibility] resumed web BGM');
+                } catch (e) {
+                  audioLog.warn('[visibility] error resuming web bgm', e);
+                }
+              } else if (this.bgmPlayer) {
+                try {
+                  this.bgmPlayer.play();
+                  audioLog.debug('[visibility] resumed BGM');
+                } catch (e) {
+                  audioLog.warn('[visibility] error resuming bgm', e);
+                }
               }
             }
           }
@@ -504,13 +519,28 @@ export class AudioService {
    * Does nothing if BGM is already playing.
    */
   async startBgm(): Promise<void> {
-    if (this.isBgmPlaying || this.bgmPlayer) {
+    if (this.isBgmPlaying || this.bgmPlayer || this.webBgmElement) {
       audioLog.debug('BGM already playing, skipping');
       return; // Already playing
     }
 
     try {
       audioLog.debug('Starting BGM...');
+
+      // Web: use HTML Audio for stable volume control across loop iterations
+      if (isWeb && typeof document !== 'undefined') {
+        const audioUrl = audioAssetToUrl(BGM_NIGHT);
+        const audio = new Audio(audioUrl);
+        audio.volume = BGM_VOLUME;
+        audio.loop = true;
+        this.webBgmElement = audio;
+        this.isBgmPlaying = true;
+        audio.play();
+        audioLog.debug('BGM started successfully (Web HTML Audio)');
+        return;
+      }
+
+      // Native: use expo-audio player
       const player = createAudioPlayer(BGM_NIGHT);
       this.bgmPlayer = player;
       this.isBgmPlaying = true;
@@ -527,6 +557,7 @@ export class AudioService {
       audioLog.warn('Failed to start BGM:', error);
       this.isBgmPlaying = false;
       this.bgmPlayer = null;
+      this.webBgmElement = null;
     }
   }
 
@@ -534,6 +565,17 @@ export class AudioService {
    * Stop background music.
    */
   stopBgm(): void {
+    if (this.webBgmElement) {
+      try {
+        this.webBgmElement.pause();
+        this.webBgmElement.src = '';
+      } catch {
+        // Ignore errors
+      }
+      this.webBgmElement = null;
+      this.isBgmPlaying = false;
+      audioLog.debug('BGM stopped (Web)');
+    }
     if (this.bgmPlayer) {
       try {
         this.bgmPlayer.pause();
