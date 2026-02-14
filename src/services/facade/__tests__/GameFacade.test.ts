@@ -866,7 +866,7 @@ describe('GameFacade', () => {
 
     it('should call HTTP API for both Host and Player', async () => {
       global.fetch = jest.fn().mockResolvedValue({
-        json: () => Promise.resolve({ success: true, wolfVoteTimer: 'noop' }),
+        json: () => Promise.resolve({ success: true }),
       });
 
       const result = await facade.submitWolfVote(1, 0);
@@ -903,52 +903,8 @@ describe('GameFacade', () => {
   });
 
   // ===========================================================================
-  // PR6: advanceNight / endNight tests
+  // PR6: endNight tests
   // ===========================================================================
-
-  describe('advanceNight (PR6)', () => {
-    const origFetch = global.fetch;
-    beforeEach(async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
-      fillAllSeatsViaReducer(facade, mockTemplate);
-    });
-    afterEach(() => {
-      global.fetch = origFetch;
-    });
-
-    it('should call HTTP API with roomCode and hostUid', async () => {
-      global.fetch = jest.fn().mockResolvedValue({
-        json: () => Promise.resolve({ success: true }),
-      });
-
-      await facade.advanceNight();
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/night/advance'),
-        expect.objectContaining({ method: 'POST' }),
-      );
-    });
-
-    it('should pass through failure reason from API', async () => {
-      global.fetch = jest.fn().mockResolvedValue({
-        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
-      });
-
-      const result = await facade.advanceNight();
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
-    });
-
-    it('should return NETWORK_ERROR on fetch failure', async () => {
-      global.fetch = jest.fn().mockRejectedValue(new Error('network'));
-
-      const result = await facade.advanceNight();
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('NETWORK_ERROR');
-    });
-  });
 
   describe('endNight (PR6)', () => {
     const origFetch = global.fetch;
@@ -1061,7 +1017,7 @@ describe('GameFacade', () => {
       global.fetch = origFetch;
     });
 
-    it('advanceNight / endNight gates are now server-side', async () => {
+    it('endNight gate is now server-side', async () => {
       // With HTTP API migration, isAudioPlaying gate is enforced server-side.
       // Client simply forwards the request; server returns rejection reason.
       await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
@@ -1070,10 +1026,6 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         json: () => Promise.resolve({ success: false, reason: 'forbidden_while_audio_playing' }),
       });
-
-      const advResult = await facade.advanceNight();
-      expect(advResult.success).toBe(false);
-      expect(advResult.reason).toBe('forbidden_while_audio_playing');
 
       const endResult = await facade.endNight();
       expect(endResult.success).toBe(false);
@@ -1243,21 +1195,21 @@ describe('GameFacade', () => {
       return f;
     };
 
-    it('should replay current step audio and call setAudioPlaying API when isAudioPlaying=true', async () => {
+    it('should replay current step audio and call audio-ack API when isAudioPlaying=true', async () => {
       const f = await createRejoinedFacade();
 
       await f.resumeAfterRejoin();
 
       // Should replay wolf audio
       expect(mockAudioServiceInstance.playRoleBeginningAudio).toHaveBeenCalledWith('wolf');
-      // Should call audio-gate API to release gate
+      // Should call audio-ack API to release gate + trigger progression
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/night/audio-gate'),
+        expect.stringContaining('/api/game/night/audio-ack'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
 
-    it('should call setAudioPlaying API even if audio fails (finally block)', async () => {
+    it('should call audio-ack API even if audio fails (finally block)', async () => {
       mockAudioServiceInstance.playRoleBeginningAudio.mockRejectedValueOnce(
         new Error('audio error'),
       );
@@ -1266,9 +1218,9 @@ describe('GameFacade', () => {
       // Should NOT throw — outer try/catch in resumeAfterRejoin absorbs the error
       await f.resumeAfterRejoin();
 
-      // Gate should still be released via finally → setAudioPlaying(false) → HTTP API
+      // Gate should still be released via finally → postAudioAck → HTTP API
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/night/audio-gate'),
+        expect.stringContaining('/api/game/night/audio-ack'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -1295,22 +1247,19 @@ describe('GameFacade', () => {
       expect(f.wasAudioInterrupted).toBe(false);
     });
 
-    it('should skip audio when isAudioPlaying=false but still trigger progression', async () => {
+    it('should skip audio and skip API call when isAudioPlaying=false', async () => {
       const f = await createRejoinedFacade({ isAudioPlaying: false });
 
       await f.resumeAfterRejoin();
 
       // No audio replay
       expect(mockAudioServiceInstance.playRoleBeginningAudio).not.toHaveBeenCalled();
-      // Should still call progression API
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/night/progression'),
-        expect.objectContaining({ method: 'POST' }),
-      );
+      // No API call — server inline progression handles everything
+      expect(global.fetch).not.toHaveBeenCalled();
       expect(f.wasAudioInterrupted).toBe(false);
     });
 
-    it('should call setAudioPlaying API when currentStepId is undefined (endNight interrupted)', async () => {
+    it('should call audio-ack API when currentStepId is undefined (endNight interrupted)', async () => {
       const f = await createRejoinedFacade({
         currentStepId: undefined,
         currentStepIndex: -1,
@@ -1320,153 +1269,11 @@ describe('GameFacade', () => {
 
       // No audio for undefined step
       expect(mockAudioServiceInstance.playRoleBeginningAudio).not.toHaveBeenCalled();
-      // Gate released via setAudioPlaying(false) → HTTP API
+      // Gate released via postAudioAck → HTTP API
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/night/audio-gate'),
+        expect.stringContaining('/api/game/night/audio-ack'),
         expect.objectContaining({ method: 'POST' }),
       );
-    });
-  });
-
-  describe('Host: _rebuildWolfVoteTimerIfNeeded', () => {
-    it('should rebuild timer when deadline is in the future', async () => {
-      jest.useFakeTimers();
-      try {
-        const futureDeadline = Date.now() + 3000;
-        const dbState = {
-          state: {
-            roomCode: 'REJN',
-            hostUid: 'host-uid',
-            status: 'ongoing' as const,
-            templateRoles: ['wolf', 'villager'],
-            players: {
-              0: {
-                uid: 'host-uid',
-                seatNumber: 0,
-                displayName: 'Host',
-                avatarUrl: undefined,
-                role: 'wolf',
-                hasViewedRole: true,
-              },
-              1: {
-                uid: 'player-2',
-                seatNumber: 1,
-                displayName: 'P2',
-                avatarUrl: undefined,
-                role: 'villager',
-                hasViewedRole: true,
-              },
-            },
-            currentStepIndex: 0,
-            currentStepId: 'wolfKill',
-            isAudioPlaying: false,
-            wolfVoteDeadline: futureDeadline,
-          },
-          revision: 10,
-        };
-
-        const f = new GameFacade({
-          store: new GameStore(),
-          broadcastService: mockBroadcastService as any,
-          audioService: mockAudioServiceInstance as any,
-          roomService: {
-            upsertGameState: jest.fn().mockResolvedValue(undefined),
-            getGameState: jest.fn().mockResolvedValue(dbState),
-          } as any,
-        });
-
-        await f.joinAsHost('REJN', 'host-uid');
-
-        // Calling resumeAfterRejoin triggers _rebuildWolfVoteTimerIfNeeded
-        await f.resumeAfterRejoin();
-
-        // Timer should be set — verify by checking the private field via bracket notation
-        expect(f['_wolfVoteTimer']).not.toBeNull();
-      } finally {
-        jest.useRealTimers();
-      }
-    });
-
-    it('should not rebuild timer when not on wolfKill step', async () => {
-      const dbState = {
-        state: {
-          roomCode: 'REJN',
-          hostUid: 'host-uid',
-          status: 'ongoing' as const,
-          templateRoles: ['wolf', 'seer', 'villager'],
-          players: {
-            0: {
-              uid: 'host-uid',
-              seatNumber: 0,
-              displayName: 'Host',
-              avatarUrl: undefined,
-              role: 'seer',
-              hasViewedRole: true,
-            },
-          },
-          currentStepIndex: 1,
-          currentStepId: 'seerCheck',
-          isAudioPlaying: false,
-          wolfVoteDeadline: Date.now() + 3000,
-        },
-        revision: 10,
-      };
-
-      const f = new GameFacade({
-        store: new GameStore(),
-        broadcastService: mockBroadcastService as any,
-        audioService: mockAudioServiceInstance as any,
-        roomService: {
-          upsertGameState: jest.fn().mockResolvedValue(undefined),
-          getGameState: jest.fn().mockResolvedValue(dbState),
-        } as any,
-      });
-
-      await f.joinAsHost('REJN', 'host-uid');
-      await f.resumeAfterRejoin();
-
-      expect(f['_wolfVoteTimer']).toBeNull();
-    });
-
-    it('should not rebuild timer when no wolfVoteDeadline in state', async () => {
-      const dbState = {
-        state: {
-          roomCode: 'REJN',
-          hostUid: 'host-uid',
-          status: 'ongoing' as const,
-          templateRoles: ['wolf', 'villager'],
-          players: {
-            0: {
-              uid: 'host-uid',
-              seatNumber: 0,
-              displayName: 'Host',
-              avatarUrl: undefined,
-              role: 'wolf',
-              hasViewedRole: true,
-            },
-          },
-          currentStepIndex: 0,
-          currentStepId: 'wolfKill',
-          isAudioPlaying: false,
-          // no wolfVoteDeadline
-        },
-        revision: 10,
-      };
-
-      const f = new GameFacade({
-        store: new GameStore(),
-        broadcastService: mockBroadcastService as any,
-        audioService: mockAudioServiceInstance as any,
-        roomService: {
-          upsertGameState: jest.fn().mockResolvedValue(undefined),
-          getGameState: jest.fn().mockResolvedValue(dbState),
-        } as any,
-      });
-
-      await f.joinAsHost('REJN', 'host-uid');
-      await f.resumeAfterRejoin();
-
-      expect(f['_wolfVoteTimer']).toBeNull();
     });
   });
 });

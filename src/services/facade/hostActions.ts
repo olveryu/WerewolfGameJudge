@@ -6,7 +6,13 @@
  * 职责：
  * - Host-only 游戏控制方法（assignRoles/markViewedRole/startNight）→ HTTP API
  * - Host-only 夜晚行动方法（submitAction/submitWolfVote）→ HTTP API
- * - 夜晚推进 & 音频编排（advanceNight/endNight/setAudioPlaying/callNightProgression）→ HTTP API
+ * - 夜晚控制（endNight/setAudioPlaying/postAudioAck/postProgression）→ HTTP API
+ *
+ * 服务端内联推进（inline progression）在 action 处理后自动执行。
+ * 客户端不再驱动推进循环，只需：
+ * - 提交操作 → 服务端返回 pendingAudioEffects
+ * - 播放音频 → POST audio-ack → 服务端继续推进
+ * - wolf vote deadline 到期 → POST progression
  *
  * 禁止：
  * - 业务逻辑/校验规则（全部在 handler / 服务端）
@@ -16,8 +22,6 @@
 import { API_BASE_URL } from '@/config/api';
 import type { RoleId } from '@/models/roles';
 import type { GameTemplate } from '@/models/Template';
-import { WOLF_VOTE_COUNTDOWN_MS } from '@/services/engine/handlers/progressionEvaluator';
-import type { SideEffect } from '@/services/engine/handlers/types';
 import type { GameStore } from '@/services/engine/store';
 import type { AudioService } from '@/services/infra/AudioService';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
@@ -32,27 +36,6 @@ export interface HostActionsContext {
   isHost: boolean;
   myUid: string | null;
   getMySeatNumber: () => number | null;
-  /**
-   * Abort check: returns true if room has been left.
-   * Used by playApiSideEffects to stop audio queue when leaving room.
-   */
-  isAborted?: () => boolean;
-  /**
-   * P0-1/P0-5 修复: 音频播放回调
-   * @param audioKey - 'night' | 'night_end' | RoleId
-   * @param isEndAudio - 如果为 true，使用 audio_end 目录
-   */
-  playAudio?: (audioKey: string, isEndAudio?: boolean) => Promise<void>;
-  /**
-   * 设置音频播放状态（Audio Gate）
-   * 根据 copilot-instructions.md：音频播放前设 true，结束后设 false
-   */
-  setAudioPlayingGate?: (isPlaying: boolean) => Promise<void>;
-  /**
-   * 狼人投票倒计时 Timer 引用
-   * 由 submitWolfVote 管理：set / clear / 在 leaveRoom 时清除
-   */
-  wolfVoteTimer: ReturnType<typeof setTimeout> | null;
   /** AudioService 实例（用于 preload 等直接调用） */
   audioService: AudioService;
 }
@@ -65,7 +48,6 @@ export interface HostActionsContext {
 interface GameControlApiResponse {
   success: boolean;
   reason?: string;
-  sideEffects?: SideEffect[];
 }
 
 /**
@@ -86,40 +68,6 @@ async function callGameControlApi(
     const err = e as { message?: string };
     facadeLog.error('callGameControlApi failed', { path, error: err?.message ?? String(e) });
     return { success: false, reason: 'NETWORK_ERROR' };
-  }
-}
-
-/**
- * 播放 API 返回的 PLAY_AUDIO sideEffects（客户端音频编排）
- */
-async function playApiSideEffects(
-  ctx: HostActionsContext,
-  sideEffects: SideEffect[] | undefined,
-): Promise<void> {
-  const audioEffects =
-    sideEffects?.filter(
-      (e): e is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } =>
-        e.type === 'PLAY_AUDIO',
-    ) ?? [];
-
-  if (audioEffects.length === 0 || !ctx.playAudio) return;
-
-  if (ctx.setAudioPlayingGate) {
-    await ctx.setAudioPlayingGate(true);
-  }
-
-  try {
-    for (const effect of audioEffects) {
-      if (ctx.isAborted?.()) {
-        facadeLog.debug('playApiSideEffects: aborted, skipping remaining audio');
-        break;
-      }
-      await ctx.playAudio(effect.audioKey, effect.isEndAudio);
-    }
-  } finally {
-    if (ctx.setAudioPlayingGate && !ctx.isAborted?.()) {
-      await ctx.setAudioPlayingGate(false);
-    }
   }
 }
 
@@ -194,9 +142,6 @@ export async function startNight(
       // Preload failure is non-critical; normal playback will still work.
     });
   }
-
-  // 播放服务端返回的音频 sideEffects（夜晚开始音频 + 第一步音频）
-  await playApiSideEffects(ctx, result.sideEffects);
 
   return { success: true };
 }
@@ -303,21 +248,13 @@ export async function submitAction(
     return { success: false, reason: result.reason };
   }
 
-  // 播放服务端返回的音频 sideEffects
-  await playApiSideEffects(ctx, result.sideEffects);
-
-  // Host-only 自动推进
-  if (ctx.isHost) {
-    await callNightProgression(ctx);
-  }
-
   return { success: true };
 }
 
 /**
  * Host: 处理狼人投票（HTTP API）
  *
- * Night-1 only. 成功后管理本地 wolf vote timer + 自动推进。
+ * Night-1 only. 服务端内联推进自动处理 deadline + 步骤推进。
  */
 export async function submitWolfVote(
   ctx: HostActionsContext,
@@ -332,7 +269,12 @@ export async function submitWolfVote(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  const result = await callWolfVoteApi(roomCode, hostUid, voterSeat, targetSeat);
+  const result = await callGameControlApi('/api/game/night/wolf-vote', {
+    roomCode,
+    hostUid,
+    voterSeat,
+    targetSeat,
+  });
 
   if (!result.success) {
     facadeLog.warn('submitWolfVote failed', {
@@ -343,95 +285,13 @@ export async function submitWolfVote(
     return { success: false, reason: result.reason };
   }
 
-  // 播放服务端返回的音频 sideEffects
-  await playApiSideEffects(ctx, result.sideEffects);
-
-  // Host-only: wolf vote timer + 推进
-  if (ctx.isHost) {
-    const wolfVoteTimer = result.wolfVoteTimer as 'set' | 'clear' | 'noop' | undefined;
-
-    switch (wolfVoteTimer) {
-      case 'set': {
-        if (ctx.wolfVoteTimer != null) clearTimeout(ctx.wolfVoteTimer);
-        ctx.wolfVoteTimer = setTimeout(async () => {
-          ctx.wolfVoteTimer = null;
-          if (!ctx.isAborted?.()) await callNightProgression(ctx);
-        }, WOLF_VOTE_COUNTDOWN_MS);
-        break;
-      }
-      case 'clear': {
-        if (ctx.wolfVoteTimer != null) clearTimeout(ctx.wolfVoteTimer);
-        ctx.wolfVoteTimer = null;
-        break;
-      }
-      // noop: do nothing
-    }
-
-    await callNightProgression(ctx);
-  }
-
-  return { success: true };
-}
-
-/**
- * Wolf Vote API 专用调用（响应含 wolfVoteTimer 字段）
- */
-async function callWolfVoteApi(
-  roomCode: string,
-  hostUid: string,
-  voterSeat: number,
-  targetSeat: number,
-): Promise<GameControlApiResponse & { wolfVoteTimer?: string }> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/game/night/wolf-vote`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomCode, hostUid, voterSeat, targetSeat }),
-    });
-    return (await res.json()) as GameControlApiResponse & { wolfVoteTimer?: string };
-  } catch (e) {
-    const err = e as { message?: string };
-    facadeLog.error('callWolfVoteApi failed', { error: err?.message ?? String(e) });
-    return { success: false, reason: 'NETWORK_ERROR' };
-  }
-}
-
-/**
- * Host: 推进夜晚到下一步（HTTP API）
- *
- * PR6: ADVANCE_NIGHT（音频结束后调用）
- */
-export async function advanceNight(
-  ctx: HostActionsContext,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('advanceNight called', { isHost: ctx.isHost });
-
-  const roomCode = ctx.store.getState()?.roomCode;
-  const hostUid = ctx.store.getState()?.hostUid;
-  if (!roomCode || !hostUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
-
-  const result = await callGameControlApi('/api/game/night/advance', {
-    roomCode,
-    hostUid,
-  });
-
-  if (!result.success) {
-    facadeLog.warn('advanceNight failed', { reason: result.reason });
-    return { success: false, reason: result.reason };
-  }
-
-  // 播放服务端返回的音频 sideEffects
-  await playApiSideEffects(ctx, result.sideEffects);
-
   return { success: true };
 }
 
 /**
  * Host: 结束夜晚，进行死亡结算（HTTP API）
  *
- * PR6: END_NIGHT（夜晚结束音频结束后调用）
+ * 保留：作为手动触发 endNight 的 fallback。
  */
 export async function endNight(
   ctx: HostActionsContext,
@@ -453,9 +313,6 @@ export async function endNight(
     facadeLog.warn('endNight failed', { reason: result.reason });
     return { success: false, reason: result.reason };
   }
-
-  // 播放服务端返回的音频 sideEffects
-  await playApiSideEffects(ctx, result.sideEffects);
 
   return { success: true };
 }
@@ -516,9 +373,6 @@ export async function clearRevealAcks(
     return { success: false, reason: result.reason };
   }
 
-  // 推进夜晚流程
-  await callNightProgression(ctx);
-
   return { success: true };
 }
 
@@ -550,89 +404,57 @@ export async function setWolfRobotHunterStatusViewed(
     return { success: false, reason: result.reason };
   }
 
-  // 推进夜晚流程（gate 解除后自动推进到下一步）
-  await callNightProgression(ctx);
-
   return { success: true };
 }
 
 // =============================================================================
-// 夜晚推进透传（调用 handler 层的 handleNightProgression）
+// Audio Ack & Progression（音频确认 + 手动推进触发）
 // =============================================================================
 
 /**
- * Host: HTTP-driven 夜晚推进循环
+ * Host: 音频播放完毕后确认（HTTP API）
  *
- * 1. POST /api/game/night/progression → { decision }
- * 2. if advance → POST /api/game/night/advance → { sideEffects } → playApiSideEffects → recurse
- * 3. if end_night → POST /api/game/night/end → { sideEffects } → playApiSideEffects
- * 4. if none → done
- *
- * Exported：Facade foreground recovery 需要调用此方法。
+ * 客户端播放完 pendingAudioEffects 后调用。
+ * 服务端清除 effects + isAudioPlaying，然后执行内联推进。
  */
-export async function callNightProgression(ctx: HostActionsContext): Promise<void> {
+export async function postAudioAck(
+  ctx: HostActionsContext,
+): Promise<{ success: boolean; reason?: string }> {
+  facadeLog.debug('postAudioAck called', { isHost: ctx.isHost });
+
   const roomCode = ctx.store.getState()?.roomCode;
   const hostUid = ctx.store.getState()?.hostUid;
-  if (!roomCode || !hostUid) return;
+  if (!roomCode || !hostUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
 
-  // 防止离开房间后继续推进
-  if (ctx.isAborted?.()) return;
-
-  const progResult = await callGameControlApi('/api/game/night/progression', {
+  return callGameControlApi('/api/game/night/audio-ack', {
     roomCode,
     hostUid,
   });
+}
 
-  if (!progResult.success) {
-    facadeLog.warn('callNightProgression: progression API failed', {
-      reason: progResult.reason,
-    });
-    return;
+/**
+ * Host: 触发服务端推进（HTTP API）
+ *
+ * 用于 wolf vote deadline 到期时客户端触发推进。
+ * 服务端执行内联推进（evaluate + advance/endNight 循环）。
+ */
+export async function postProgression(
+  ctx: HostActionsContext,
+): Promise<{ success: boolean; reason?: string }> {
+  facadeLog.debug('postProgression called', { isHost: ctx.isHost });
+
+  const roomCode = ctx.store.getState()?.roomCode;
+  const hostUid = ctx.store.getState()?.hostUid;
+  if (!roomCode || !hostUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  const decision = (progResult as unknown as Record<string, unknown>).decision as
-    | string
-    | undefined;
-  const reason = (progResult as unknown as Record<string, unknown>).reason as string | undefined;
-
-  facadeLog.debug('callNightProgression: decision', { decision, reason });
-
-  switch (decision) {
-    case 'advance': {
-      if (ctx.isAborted?.()) return;
-      const advResult = await callGameControlApi('/api/game/night/advance', {
-        roomCode,
-        hostUid,
-      });
-      if (advResult.success) {
-        await playApiSideEffects(ctx, advResult.sideEffects);
-        // 递归：推进后继续评估（可能连续跳步）
-        await callNightProgression(ctx);
-      } else {
-        facadeLog.warn('callNightProgression: advance failed', { reason: advResult.reason });
-      }
-      break;
-    }
-
-    case 'end_night': {
-      if (ctx.isAborted?.()) return;
-      const endResult = await callGameControlApi('/api/game/night/end', {
-        roomCode,
-        hostUid,
-      });
-      if (endResult.success) {
-        await playApiSideEffects(ctx, endResult.sideEffects);
-      } else {
-        facadeLog.warn('callNightProgression: end_night failed', { reason: endResult.reason });
-      }
-      break;
-    }
-
-    case 'none':
-    default:
-      // 无需推进
-      break;
-  }
+  return callGameControlApi('/api/game/night/progression', {
+    roomCode,
+    hostUid,
+  });
 }
 
 // =============================================================================

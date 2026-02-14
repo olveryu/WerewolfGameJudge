@@ -32,7 +32,6 @@ function createFakeFacade(): IGameFacade {
     submitAction: async () => ({ success: true }),
     submitWolfVote: async () => ({ success: true }),
     submitRevealAck: async () => ({ success: true }),
-    advanceNight: async () => ({ success: true }),
     endNight: async () => ({ success: true }),
     setAudioPlaying: async () => ({ success: true }),
     fetchStateFromDB: async () => true,

@@ -194,11 +194,6 @@ export interface IGameFacade {
 
   // === Night Flow (Host-only) ===
   /**
-   * 推进夜晚到下一步
-   */
-  advanceNight(): Promise<{ success: boolean; reason?: string }>;
-
-  /**
    * 结束夜晚
    */
   endNight(): Promise<{ success: boolean; reason?: string }>;

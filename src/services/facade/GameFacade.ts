@@ -22,13 +22,9 @@
  * - messageRouter.ts: 统一 STATE_UPDATE 处理（Host + Player 共用）
  */
 
-import type { AppStateStatus } from 'react-native';
-import { AppState, Platform } from 'react-native';
-
 import type { RevealKind, RoleId } from '@/models/roles';
 import { getStepSpec } from '@/models/roles/spec/nightSteps';
 import type { GameTemplate } from '@/models/Template';
-import { shouldTriggerWolfVoteRecovery } from '@/services/engine/handlers/progressionEvaluator';
 import { buildInitialGameState } from '@/services/engine/state/buildInitialState';
 import { GameStore } from '@/services/engine/store';
 import { AudioService } from '@/services/infra/AudioService';
@@ -79,16 +75,6 @@ export class GameFacade implements IGameFacade {
    * Reset to false when creating/joining a new room.
    */
   private _aborted = false;
-
-  /** 前台恢复监听器清理函数（双通道：Web visibilitychange + Native AppState） */
-  private _foregroundCleanups: Array<() => void> = [];
-
-  /**
-   * 狼人投票倒计时 Timer（Host-only）
-   * 存储在 Facade 实例上以跨 getHostActionsContext() 调用持久化。
-   * 通过 HostActionsContext 的 getter/setter 暴露给 hostActions 模块。
-   */
-  private _wolfVoteTimer: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * 标记 Host rejoin 时音频是否被中断（缓存中 isAudioPlaying === true）。
@@ -163,52 +149,6 @@ export class GameFacade implements IGameFacade {
   // Foreground Recovery（前台恢复 — 双通道兜底）
   // =========================================================================
 
-  /**
-   * 注册前台恢复监听器（幂等：已注册则跳过）
-   *
-   * 双通道：
-   * - Web: `document.visibilitychange`
-   * - Native (iOS/Android): `AppState`
-   * - `Platform.OS !== 'web'` 保证不会双触发
-   */
-  private _setupForegroundRecovery(): void {
-    if (this._foregroundCleanups.length > 0) return; // 幂等：已注册则跳过
-
-    const onForeground = (): void => {
-      if (!this.isHost || this._aborted) return;
-      const state = this.store.getState();
-      if (!state || !shouldTriggerWolfVoteRecovery(state, Date.now())) return;
-      void hostActions.callNightProgression(this.getHostActionsContext());
-    };
-
-    // Channel 1: Web — document.visibilitychange
-    if (typeof document !== 'undefined') {
-      const handler = (): void => {
-        if (document.visibilityState === 'visible') onForeground();
-      };
-      document.addEventListener('visibilitychange', handler);
-      this._foregroundCleanups.push(() =>
-        document.removeEventListener('visibilitychange', handler),
-      );
-    }
-
-    // Channel 2: Native — AppState（iOS/Android only）
-    if (Platform.OS !== 'web') {
-      const subscription = AppState.addEventListener('change', (next: AppStateStatus) => {
-        if (next === 'active') onForeground();
-      });
-      this._foregroundCleanups.push(() => subscription.remove());
-    }
-  }
-
-  /**
-   * 清理前台恢复监听器
-   */
-  private _teardownForegroundRecovery(): void {
-    for (const cleanup of this._foregroundCleanups) cleanup();
-    this._foregroundCleanups = [];
-  }
-
   // =========================================================================
   // Room Lifecycle
   // =========================================================================
@@ -233,9 +173,6 @@ export class GameFacade implements IGameFacade {
         this.broadcastService.markAsLive();
       },
     });
-
-    // 注册前台恢复（Host-only）
-    this._setupForegroundRecovery();
   }
 
   async joinAsPlayer(
@@ -337,9 +274,6 @@ export class GameFacade implements IGameFacade {
       },
     });
 
-    // 注册前台恢复（Host-only）
-    this._setupForegroundRecovery();
-
     return { success: true };
   }
 
@@ -358,11 +292,9 @@ export class GameFacade implements IGameFacade {
    * 行为：
    * 1. 如果 BGM 设置开启 → 启动 BGM（由 useGameRoom 调用）
    * 2. 如果断开时音频正在播放 → 重播当前步骤的 begin 音频
-   * 3. 音频结束后 setAudioPlaying(false) 解锁 gate
-   * 4. 重建 wolfVoteTimer（如果 deadline 残留）
-   * 5. 调用 callNightProgression 恢复推进（Timer 丢失 / endNight 未触发）
+   * 3. 音频结束后 POST audio-ack 解锁 gate
    *
-   * 注意：isAudioPlaying 从 cache 保持为 true，不需要再 setAudioPlaying(true)。
+   * 注意：isAudioPlaying 从 DB 保持为 true，不需要再 setAudioPlaying(true)。
    */
   async resumeAfterRejoin(): Promise<void> {
     // Early clear — 阻断 listener 重新设 overlay + 防止多次点击重入
@@ -373,15 +305,13 @@ export class GameFacade implements IGameFacade {
     if (!state) return;
 
     try {
-      // 如果音频没在播放（cache 中 isAudioPlaying=false），只需恢复 BGM（caller 已处理）
+      // 如果音频没在播放（DB 中 isAudioPlaying=false），只需恢复 BGM（caller 已处理）
+      // 服务端内联推进会自动处理后续步骤
       if (!state.isAudioPlaying) {
-        // 仍需重建 timer + 触发推进（狼人投完票 → 倒计时内刷新 → timer 丢失）
-        this._rebuildWolfVoteTimerIfNeeded();
-        await hostActions.callNightProgression(this.getHostActionsContext());
         return;
       }
 
-      // 重播当前步骤音频（isAudioPlaying 已从 cache 保持为 true，gate 已激活）
+      // 重播当前步骤音频（isAudioPlaying 已从 DB 保持为 true，gate 已激活）
       if (state.currentStepId) {
         const stepSpec = getStepSpec(state.currentStepId);
         if (stepSpec) {
@@ -392,65 +322,26 @@ export class GameFacade implements IGameFacade {
           try {
             await this.audioService.playRoleBeginningAudio(stepSpec.audioKey as RoleId);
           } finally {
-            await this.setAudioPlaying(false);
+            // 音频完成（或失败）后，POST audio-ack 释放 gate + 触发推进
+            await hostActions.postAudioAck(this.getHostActionsContext());
           }
         } else {
           // 无 stepSpec（不该发生），兜底释放 gate
-          await this.setAudioPlaying(false);
+          await hostActions.postAudioAck(this.getHostActionsContext());
         }
       } else {
         // 无 currentStepId，兜底释放 gate
-        await this.setAudioPlaying(false);
+        await hostActions.postAudioAck(this.getHostActionsContext());
       }
-
-      // gate 释放后：重建 timer + 触发推进
-      this._rebuildWolfVoteTimerIfNeeded();
-      await hostActions.callNightProgression(this.getHostActionsContext());
     } catch (e) {
       // Caller uses fire-and-forget `void` — catch here to prevent unhandled rejection
       facadeLog.error('resumeAfterRejoin failed', e);
     }
   }
 
-  /**
-   * 重建 wolfVoteTimer（如果 state 中残留 deadline 且已过期，立即推进；未过期则 set timer）。
-   * Rejoin 后所有 JS Timer 丢失，需根据 state.wolfVoteDeadline 重建。
-   */
-  private _rebuildWolfVoteTimerIfNeeded(): void {
-    if (this._wolfVoteTimer != null) return; // 已有 timer，无需重建
-
-    const state = this.store.getState();
-    if (!state || state.currentStepId !== 'wolfKill' || state.wolfVoteDeadline == null) return;
-
-    const remaining = state.wolfVoteDeadline - Date.now();
-    if (remaining <= 0) {
-      // deadline 已过期，立即触发推进（callNightProgression 会在后续被调用）
-      facadeLog.info(
-        'Rebuilding wolfVoteTimer: deadline already passed, will progress immediately',
-      );
-      return;
-    }
-
-    // deadline 未到，重建 timer
-    facadeLog.info('Rebuilding wolfVoteTimer after rejoin', { remaining });
-    this._wolfVoteTimer = setTimeout(async () => {
-      this._wolfVoteTimer = null;
-      if (!this._aborted) {
-        await hostActions.callNightProgression(this.getHostActionsContext());
-      }
-    }, remaining);
-  }
-
   async leaveRoom(): Promise<void> {
     // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
     this._aborted = true;
-
-    // 清理前台恢复 + wolf vote timer
-    this._teardownForegroundRecovery();
-    if (this._wolfVoteTimer != null) {
-      clearTimeout(this._wolfVoteTimer);
-      this._wolfVoteTimer = null;
-    }
 
     const mySeat = this.getMySeatNumber();
 
@@ -651,14 +542,6 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   /**
-   * Host: 推进夜晚到下一步
-   * 音频结束后调用
-   */
-  async advanceNight(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.advanceNight(this.getHostActionsContext());
-  }
-
-  /**
    * Host: 结束夜晚，进行死亡结算
    * 夜晚结束音频结束后调用
    */
@@ -682,42 +565,11 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   private getHostActionsContext(): HostActionsContext {
-    // Arrow closures capture `this` lexically — no self-alias needed
-    const getTimer = (): NodeJS.Timeout | null => this._wolfVoteTimer;
-    const setTimer = (v: NodeJS.Timeout | null): void => {
-      this._wolfVoteTimer = v;
-    };
     return {
       store: this.store,
       isHost: this.isHost,
       myUid: this.myUid,
       getMySeatNumber: () => this.getMySeatNumber(),
-      // Abort check: used by playApiSideEffects to stop audio queue when leaving room
-      isAborted: () => this._aborted,
-      // wolfVoteTimer: getter/setter backed by Facade instance field
-      get wolfVoteTimer() {
-        return getTimer();
-      },
-      set wolfVoteTimer(v) {
-        setTimer(v);
-      },
-      // P0-1/P0-5: 音频播放回调（只负责播放 IO）
-      playAudio: async (audioKey: string, isEndAudio?: boolean) => {
-        const audio = this.audioService;
-        if (audioKey === 'night') {
-          await audio.playNightAudio();
-        } else if (audioKey === 'night_end') {
-          await audio.playNightEndAudio();
-        } else if (isEndAudio) {
-          await audio.playRoleEndingAudio(audioKey as RoleId);
-        } else {
-          await audio.playRoleBeginningAudio(audioKey as RoleId);
-        }
-      },
-      // 设置 isAudioPlaying Gate（根据 copilot-instructions.md）
-      setAudioPlayingGate: async (isPlaying: boolean) => {
-        await this.setAudioPlaying(isPlaying);
-      },
       audioService: this.audioService,
     };
   }
