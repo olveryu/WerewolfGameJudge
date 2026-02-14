@@ -33,7 +33,6 @@ import { facadeLog } from '@/utils/logger';
  */
 export interface HostActionsContext {
   readonly store: GameStore;
-  isHost: boolean;
   myUid: string | null;
   getMySeatNumber: () => number | null;
   /** AudioService 实例（用于 preload 等直接调用） */
@@ -77,7 +76,7 @@ async function callGameControlApi(
 export async function assignRoles(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('assignRoles called', { isHost: ctx.isHost });
+  facadeLog.debug('assignRoles called');
 
   const roomCode = ctx.store.getState()?.roomCode;
   if (!roomCode || !ctx.myUid) {
@@ -97,7 +96,7 @@ export async function markViewedRole(
   ctx: HostActionsContext,
   seat: number,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('markViewedRole called', { seat, isHost: ctx.isHost });
+  facadeLog.debug('markViewedRole called', { seat });
 
   const roomCode = ctx.store.getState()?.roomCode;
   if (!roomCode || !ctx.myUid) {
@@ -119,7 +118,7 @@ export async function markViewedRole(
 export async function startNight(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('startNight called', { isHost: ctx.isHost });
+  facadeLog.debug('startNight called');
 
   const roomCode = ctx.store.getState()?.roomCode;
   if (!roomCode || !ctx.myUid) {
@@ -155,7 +154,7 @@ export async function updateTemplate(
   ctx: HostActionsContext,
   template: GameTemplate,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('updateTemplate called', { isHost: ctx.isHost });
+  facadeLog.debug('updateTemplate called');
 
   const roomCode = ctx.store.getState()?.roomCode;
   if (!roomCode || !ctx.myUid) {
@@ -178,7 +177,7 @@ export async function updateTemplate(
 export async function restartGame(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('restartGame called', { isHost: ctx.isHost });
+  facadeLog.debug('restartGame called');
 
   const roomCode = ctx.store.getState()?.roomCode;
   if (!roomCode || !ctx.myUid) {
@@ -200,7 +199,7 @@ export async function setRoleRevealAnimation(
   ctx: HostActionsContext,
   animation: RoleRevealAnimation,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('setRoleRevealAnimation called', { isHost: ctx.isHost, animation });
+  facadeLog.debug('setRoleRevealAnimation called', { animation });
 
   const roomCode = ctx.store.getState()?.roomCode;
   if (!roomCode || !ctx.myUid) {
@@ -226,7 +225,7 @@ export async function submitAction(
   target: number | null,
   extra?: unknown,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('submitAction called', { seat, role, target, isHost: ctx.isHost });
+  facadeLog.debug('submitAction called', { seat, role, target });
 
   const roomCode = ctx.store.getState()?.roomCode;
   const hostUid = ctx.store.getState()?.hostUid;
@@ -261,7 +260,7 @@ export async function submitWolfVote(
   voterSeat: number,
   targetSeat: number,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('submitWolfVote called', { voterSeat, targetSeat, isHost: ctx.isHost });
+  facadeLog.debug('submitWolfVote called', { voterSeat, targetSeat });
 
   const roomCode = ctx.store.getState()?.roomCode;
   const hostUid = ctx.store.getState()?.hostUid;
@@ -296,7 +295,7 @@ export async function submitWolfVote(
 export async function endNight(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('endNight called', { isHost: ctx.isHost });
+  facadeLog.debug('endNight called');
 
   const roomCode = ctx.store.getState()?.roomCode;
   const hostUid = ctx.store.getState()?.hostUid;
@@ -328,7 +327,7 @@ export async function setAudioPlaying(
   ctx: HostActionsContext,
   isPlaying: boolean,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('setAudioPlaying called', { isPlaying, isHost: ctx.isHost });
+  facadeLog.debug('setAudioPlaying called', { isPlaying });
 
   const roomCode = ctx.store.getState()?.roomCode;
   const hostUid = ctx.store.getState()?.hostUid;
@@ -355,7 +354,7 @@ export async function setAudioPlaying(
 export async function clearRevealAcks(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('clearRevealAcks called', { isHost: ctx.isHost });
+  facadeLog.debug('clearRevealAcks called');
 
   const roomCode = ctx.store.getState()?.roomCode;
   const hostUid = ctx.store.getState()?.hostUid;
@@ -385,7 +384,7 @@ export async function setWolfRobotHunterStatusViewed(
   ctx: HostActionsContext,
   seat: number,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('setWolfRobotHunterStatusViewed called', { isHost: ctx.isHost, seat });
+  facadeLog.debug('setWolfRobotHunterStatusViewed called', { seat });
 
   const roomCode = ctx.store.getState()?.roomCode;
   const hostUid = ctx.store.getState()?.hostUid;
@@ -420,7 +419,7 @@ export async function setWolfRobotHunterStatusViewed(
 export async function postAudioAck(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('postAudioAck called', { isHost: ctx.isHost });
+  facadeLog.debug('postAudioAck called');
 
   const roomCode = ctx.store.getState()?.roomCode;
   const hostUid = ctx.store.getState()?.hostUid;
@@ -443,7 +442,7 @@ export async function postAudioAck(
 export async function postProgression(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('postProgression called', { isHost: ctx.isHost });
+  facadeLog.debug('postProgression called');
 
   const roomCode = ctx.store.getState()?.roomCode;
   const hostUid = ctx.store.getState()?.hostUid;

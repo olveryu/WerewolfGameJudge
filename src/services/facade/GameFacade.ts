@@ -418,11 +418,7 @@ export class GameFacade implements IGameFacade {
    * 服务端会先广播 GAME_RESTARTED，再变更 state。
    */
   async restartGame(): Promise<{ success: boolean; reason?: string }> {
-    if (!this.isHost) {
-      return { success: false, reason: 'host_only' };
-    }
-
-    // 执行 HTTP API（服务端处理 GAME_RESTARTED 广播 + reducer + STATE_UPDATE）
+    // 服务端校验 hostUid，客户端不再做冗余门控
     return hostActions.restartGame(this.getHostActionsContext());
   }
 
@@ -437,9 +433,6 @@ export class GameFacade implements IGameFacade {
    * 仅在 isHost && status === 'unseated' 时可用。
    */
   async fillWithBots(): Promise<{ success: boolean; reason?: string }> {
-    if (!this.isHost) {
-      return { success: false, reason: 'host_only' };
-    }
     return hostActions.fillWithBots(this.getHostActionsContext());
   }
 
@@ -450,9 +443,6 @@ export class GameFacade implements IGameFacade {
    * 仅在 debugMode.botsEnabled === true && status === 'assigned' 时可用。
    */
   async markAllBotsViewed(): Promise<{ success: boolean; reason?: string }> {
-    if (!this.isHost) {
-      return { success: false, reason: 'host_only' };
-    }
     return hostActions.markAllBotsViewed(this.getHostActionsContext());
   }
 
@@ -567,7 +557,6 @@ export class GameFacade implements IGameFacade {
   private getHostActionsContext(): HostActionsContext {
     return {
       store: this.store,
-      isHost: this.isHost,
       myUid: this.myUid,
       getMySeatNumber: () => this.getMySeatNumber(),
       audioService: this.audioService,

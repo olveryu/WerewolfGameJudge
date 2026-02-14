@@ -154,15 +154,19 @@ describe('restartGame Contract (HTTP API)', () => {
   // ===========================================================================
 
   describe('Permission Check', () => {
-    it('should reject non-host calls without calling API', async () => {
+    it('non-host calls are now rejected server-side (no client gate)', async () => {
+      // Phase 7: 客户端不再做 isHost 门控，服务端通过 hostUid 校验拒绝
       (facade as unknown as { isHost: boolean }).isHost = false;
-      global.fetch = jest.fn();
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: false, reason: 'forbidden' }),
+      });
 
       const result = await facade.restartGame();
 
       expect(result.success).toBe(false);
-      expect(result.reason).toBe('host_only');
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(result.reason).toBe('forbidden');
+      // API IS called — server handles permission check
+      expect(global.fetch).toHaveBeenCalled();
     });
   });
 
