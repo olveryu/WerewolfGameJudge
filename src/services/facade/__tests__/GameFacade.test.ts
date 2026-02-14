@@ -1067,13 +1067,10 @@ describe('GameFacade', () => {
       // 使用 fake timers 加速 5 秒音频延迟
       jest.useFakeTimers();
       await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
-      // 停止心跳，避免 runAllTimersAsync 无限循环
-      (facade as any)._stopHeartbeat();
       mockBroadcastService.broadcastAsHost.mockClear();
     });
 
     afterEach(() => {
-      jest.clearAllTimers();
       jest.useRealTimers();
     });
 
