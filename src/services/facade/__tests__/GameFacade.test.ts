@@ -563,266 +563,65 @@ describe('GameFacade', () => {
   });
 
   // =========================================================================
-  // PR1: assignRoles (seated → assigned)
+  // PR1: assignRoles (HTTP API — Phase 2 migration)
   // =========================================================================
-  describe('Host: assignRoles', () => {
-    beforeEach(async () => {
-      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
-      mockBroadcastService.broadcastAsHost.mockClear();
-    });
-
-    it('should reject if not host, with reason from handler (host_only)', async () => {
-      // DI: 创建独立的 player facade
-      const playerFacade = new GameFacade({
-        store: new GameStore(),
-        broadcastService: mockBroadcastService as any,
-        audioService: mockAudioServiceInstance as any,
-        hostStateCache: {
-          saveState: jest.fn(),
-          loadState: jest.fn().mockResolvedValue(null),
-          getState: jest.fn().mockReturnValue(null),
-          clearState: jest.fn(),
-        } as any,
-        roomService: mockRoomService(),
-      });
-      await playerFacade.joinAsPlayer('ABCD', 'player-uid');
-
-      const result = await playerFacade.assignRoles();
-
-      // reason 必须来自 handler，不是 facade 硬编码
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('host_only');
-    });
-
-    it('should reject if status is not seated, with reason from handler', async () => {
-      // status 是 unseated（还没入座）
-      const result = await facade.assignRoles();
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
-    });
-
-    it('should broadcast current state when handler rejects', async () => {
-      // status 是 unseated → handler 会拒绝
-      mockBroadcastService.broadcastAsHost.mockClear();
-
-      await facade.assignRoles();
-
-      // 失败时也应该 broadcast 一次
-      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'STATE_UPDATE',
-        }),
-      );
-    });
-
-    it('should succeed when host and status is seated (via reducer path)', async () => {
-      // 通过 reducer 填充所有座位 → status 自动变为 'seated'
-      const seatedState = fillAllSeatsViaReducer(facade, mockTemplate);
-
-      // 验证 reducer 确实把 status 推到 'seated'
-      expect(seatedState.status).toBe('seated');
-
-      mockBroadcastService.broadcastAsHost.mockClear();
-
-      const result = await facade.assignRoles();
-
-      expect(result.success).toBe(true);
-      expect(result.reason).toBeUndefined();
-    });
-
-    it('should assign roles to all players and reset hasViewedRole (via reducer path)', async () => {
-      // 通过 reducer 填充所有座位
-      fillAllSeatsViaReducer(facade, mockTemplate);
-
-      mockBroadcastService.broadcastAsHost.mockClear();
-
-      await facade.assignRoles();
-
-      // 获取 broadcast 调用的 state
-      const broadcastCall = mockBroadcastService.broadcastAsHost.mock.calls.find(
-        (call) => call[0]?.type === 'STATE_UPDATE',
-      );
-      expect(broadcastCall).toBeDefined();
-
-      const broadcastedState = broadcastCall![0].state;
-
-      // 断言 status → assigned
-      expect(broadcastedState.status).toBe('assigned');
-
-      // 断言：至少一个玩家的 role 被分配（不是 null）
-      const players = broadcastedState.players as Record<number, BroadcastPlayer | null>;
-      const assignedPlayers = Object.values(players).filter(
-        (p): p is BroadcastPlayer => p !== null && p !== undefined && p.role !== null,
-      );
-      expect(assignedPlayers.length).toBeGreaterThan(0);
-
-      // 断言：所有玩家的 hasViewedRole 都被 reset 为 false
-      for (const player of Object.values(players)) {
-        if (player !== null && player !== undefined) {
-          expect(player.hasViewedRole).toBe(false);
-        }
-      }
-    });
-
-    it('should broadcast state with assigned status after successful assign', async () => {
-      // 通过 reducer 填充所有座位
-      fillAllSeatsViaReducer(facade, mockTemplate);
-
-      mockBroadcastService.broadcastAsHost.mockClear();
-
-      await facade.assignRoles();
-
-      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'STATE_UPDATE',
-          state: expect.objectContaining({
-            status: 'assigned',
-          }),
-        }),
-      );
-    });
-  });
-
-  // =========================================================================
-  // PR2: markViewedRole (assigned → ready)
-  // =========================================================================
-  describe('Host: markViewedRole', () => {
-    /**
-     * Helper: 设置 assigned 状态（通过 reducer 填充座位 + assignRoles）
-     */
-    const setupAssignedState = async (
-      facadeInstance: GameFacade,
-      template: typeof mockTemplate,
-    ) => {
-      fillAllSeatsViaReducer(facadeInstance, template);
-      await facadeInstance.assignRoles();
-      mockBroadcastService.broadcastAsHost.mockClear();
-    };
+  describe('Host: assignRoles (HTTP API)', () => {
+    const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
-      mockBroadcastService.broadcastAsHost.mockClear();
-    });
-
-    it('should send PlayerMessage to host when called by player (not host)', async () => {
-      // DI: 创建独立的 player facade
-      const playerFacade = new GameFacade({
-        store: new GameStore(),
-        broadcastService: mockBroadcastService as any,
-        audioService: mockAudioServiceInstance as any,
-        hostStateCache: {
-          saveState: jest.fn(),
-          loadState: jest.fn().mockResolvedValue(null),
-          getState: jest.fn().mockReturnValue(null),
-          clearState: jest.fn(),
-        } as any,
-        roomService: mockRoomService(),
-      });
-      await playerFacade.joinAsPlayer('ABCD', 'player-uid');
-
-      const result = await playerFacade.markViewedRole(0);
-
-      // Player 发送消息给 Host，返回 success（不等待确认）
-      expect(result.success).toBe(true);
-      expect(mockBroadcastService.sendToHost).toHaveBeenCalledWith({
-        type: 'VIEWED_ROLE',
-        seat: 0,
-      });
-    });
-
-    it('should reject if status is not assigned, with reason from handler', async () => {
-      // status 是 unseated（还没分配角色）
-      const result = await facade.markViewedRole(0);
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
-    });
-
-    it('should broadcast current state when handler rejects', async () => {
-      mockBroadcastService.broadcastAsHost.mockClear();
-
-      await facade.markViewedRole(0);
-
-      // 失败时也应该 broadcast 一次
-      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'STATE_UPDATE',
-        }),
-      );
-    });
-
-    it('should succeed when host and status is assigned (via reducer path)', async () => {
-      await setupAssignedState(facade, mockTemplate);
-
-      const result = await facade.markViewedRole(0);
-
-      expect(result.success).toBe(true);
-      expect(result.reason).toBeUndefined();
-    });
-
-    it('should set hasViewedRole to true for the seat', async () => {
-      await setupAssignedState(facade, mockTemplate);
-
-      await facade.markViewedRole(0);
-
-      // 获取 broadcast 调用的 state
-      const broadcastCall = mockBroadcastService.broadcastAsHost.mock.calls.find(
-        (call) => call[0]?.type === 'STATE_UPDATE',
-      );
-      expect(broadcastCall).toBeDefined();
-
-      const broadcastedState = broadcastCall![0].state;
-      const players = broadcastedState.players as Record<number, BroadcastPlayer | null>;
-
-      expect(players[0]?.hasViewedRole).toBe(true);
-    });
-
-    it('should transition to ready when all players have viewed', async () => {
-      await setupAssignedState(facade, mockTemplate);
-
-      // 让所有玩家都查看角色
-      for (let i = 0; i < mockTemplate.numberOfPlayers; i++) {
-        await facade.markViewedRole(i);
-      }
-
-      // 获取最后一次 broadcast 的 state
-      const lastCall = mockBroadcastService.broadcastAsHost.mock.calls.at(-1);
-      const broadcastedState = lastCall![0].state;
-
-      expect(broadcastedState.status).toBe('ready');
-    });
-  });
-
-  // =========================================================================
-  // PR3: startNight (ready → ongoing)
-  // =========================================================================
-  describe('Host: startNight', () => {
-    /**
-     * Helper: 设置 ready 状态（通过 reducer 填充座位 + assignRoles + 所有人 viewed）
-     */
-    const setupReadyState = async (facadeInstance: GameFacade, template: typeof mockTemplate) => {
-      fillAllSeatsViaReducer(facadeInstance, template);
-      await facadeInstance.assignRoles();
-      for (let i = 0; i < template.numberOfPlayers; i++) {
-        await facadeInstance.markViewedRole(i);
-      }
-      mockBroadcastService.broadcastAsHost.mockClear();
-    };
-
-    beforeEach(async () => {
-      // 使用 fake timers 加速 5 秒音频延迟
-      jest.useFakeTimers();
       await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
       mockBroadcastService.broadcastAsHost.mockClear();
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      global.fetch = originalFetch;
     });
 
-    it('should reject if not host, with reason from handler (host_only)', async () => {
-      // DI: 创建独立的 player facade
+    it('should call correct API endpoint with roomCode and hostUid', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      await facade.assignRoles();
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/assign'),
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"roomCode":"ABCD"'),
+        }),
+      );
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          body: expect.stringContaining('"hostUid":"host-uid"'),
+        }),
+      );
+    });
+
+    it('should return success when API succeeds', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      const result = await facade.assignRoles();
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should return failure reason from API', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
+      });
+
+      const result = await facade.assignRoles();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+
+    it('should return NOT_CONNECTED when no roomCode', async () => {
+      // Player without store state
       const playerFacade = new GameFacade({
         store: new GameStore(),
         broadcastService: mockBroadcastService as any,
@@ -835,91 +634,238 @@ describe('GameFacade', () => {
         } as any,
         roomService: mockRoomService(),
       });
-      await playerFacade.joinAsPlayer('ABCD', 'player-uid');
 
-      const result = await playerFacade.startNight();
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('host_only');
-    });
-
-    it('should reject if status is not ready, with reason from handler', async () => {
-      // status 是 unseated（还没分配角色）
-      const result = await facade.startNight();
+      const result = await playerFacade.assignRoles();
 
       expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
+      expect(result.reason).toBe('NOT_CONNECTED');
     });
 
-    it('should reject if status is assigned (not yet all viewed)', async () => {
-      fillAllSeatsViaReducer(facade, mockTemplate);
-      await facade.assignRoles();
-      // 没有人 viewed，所以还是 assigned
+    it('should handle network errors gracefully', async () => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
 
-      const result = await facade.startNight();
+      const result = await facade.assignRoles();
 
       expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
+      expect(result.reason).toBe('NETWORK_ERROR');
     });
+  });
 
-    it('should broadcast current state when handler rejects', async () => {
+  // =========================================================================
+  // PR2: markViewedRole (HTTP API — Phase 2 migration)
+  // =========================================================================
+  describe('markViewedRole (HTTP API)', () => {
+    const originalFetch = global.fetch;
+
+    beforeEach(async () => {
+      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
       mockBroadcastService.broadcastAsHost.mockClear();
+    });
 
-      await facade.startNight();
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
 
-      // 失败时也应该 broadcast 一次
-      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
+    it('should call view-role API with uid and seat', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      await facade.markViewedRole(2);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/view-role'),
         expect.objectContaining({
-          type: 'STATE_UPDATE',
+          method: 'POST',
+          body: expect.stringContaining('"seat":2'),
+        }),
+      );
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          body: expect.stringContaining('"uid":"host-uid"'),
         }),
       );
     });
 
-    it('should succeed when host and status is ready (happy path)', async () => {
-      await setupReadyState(facade, mockTemplate);
+    it('should call view-role API for player (unified HTTP path, no PlayerMessage)', async () => {
+      // Player also goes through HTTP now (no sendToHost for VIEWED_ROLE)
+      const playerStore = new GameStore();
+      const playerFacade = new GameFacade({
+        store: playerStore,
+        broadcastService: mockBroadcastService as any,
+        audioService: mockAudioServiceInstance as any,
+        hostStateCache: {
+          saveState: jest.fn(),
+          loadState: jest.fn().mockResolvedValue(null),
+          getState: jest.fn().mockReturnValue(null),
+          clearState: jest.fn(),
+        } as any,
+        roomService: {
+          upsertGameState: jest.fn().mockResolvedValue(undefined),
+          // Return a state with roomCode so the player store has it
+          getGameState: jest.fn().mockResolvedValue({
+            state: {
+              roomCode: 'ABCD',
+              hostUid: 'host-uid',
+              status: 'assigned',
+              templateRoles: [],
+              numberOfPlayers: 6,
+              players: {},
+              currentStepIndex: 0,
+              isAudioPlaying: false,
+            },
+            revision: 1,
+          }),
+        } as any,
+      });
+      await playerFacade.joinAsPlayer('ABCD', 'player-uid');
 
-      const startNightPromise = facade.startNight();
-      await jest.runAllTimersAsync();
-      const result = await startNightPromise;
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      // Clear any sendToHost calls from joinAsPlayer
+      mockBroadcastService.sendToHost.mockClear();
+
+      const result = await playerFacade.markViewedRole(0);
 
       expect(result.success).toBe(true);
-      expect(result.reason).toBeUndefined();
+      // Should use HTTP, NOT sendToHost
+      expect(mockBroadcastService.sendToHost).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'VIEWED_ROLE' }),
+      );
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/view-role'),
+        expect.objectContaining({ method: 'POST' }),
+      );
     });
 
-    it('should set status to ongoing', async () => {
-      await setupReadyState(facade, mockTemplate);
+    it('should return success from API', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
 
-      const startNightPromise = facade.startNight();
-      await jest.runAllTimersAsync();
-      await startNightPromise;
+      const result = await facade.markViewedRole(0);
 
-      // 获取 broadcast 调用的 state
-      const broadcastCall = mockBroadcastService.broadcastAsHost.mock.calls.find(
-        (call) => call[0]?.type === 'STATE_UPDATE',
-      );
-      expect(broadcastCall).toBeDefined();
-
-      const broadcastedState = broadcastCall![0].state;
-      expect(broadcastedState.status).toBe('ongoing');
+      expect(result.success).toBe(true);
     });
 
-    it('should initialize Night-1 fields correctly', async () => {
-      await setupReadyState(facade, mockTemplate);
+    it('should return failure reason from API', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
+      });
 
-      const startNightPromise = facade.startNight();
-      await jest.runAllTimersAsync();
-      await startNightPromise;
+      const result = await facade.markViewedRole(0);
 
-      // 获取 broadcast 调用的 state
-      const broadcastCall = mockBroadcastService.broadcastAsHost.mock.calls.find(
-        (call) => call[0]?.type === 'STATE_UPDATE',
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+
+    it('should handle network errors gracefully', async () => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+
+      const result = await facade.markViewedRole(0);
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('NETWORK_ERROR');
+    });
+  });
+
+  // =========================================================================
+  // PR3: startNight (HTTP API — Phase 2 migration)
+  // =========================================================================
+  describe('Host: startNight (HTTP API)', () => {
+    const originalFetch = global.fetch;
+
+    beforeEach(async () => {
+      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      mockBroadcastService.broadcastAsHost.mockClear();
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it('should call start API with roomCode and hostUid', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      await facade.startNight();
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/start'),
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"roomCode":"ABCD"'),
+        }),
       );
-      expect(broadcastCall).toBeDefined();
+    });
 
-      const broadcastedState = broadcastCall![0].state;
-      expect(broadcastedState.currentStepIndex).toBe(0);
-      expect(broadcastedState.actions).toEqual([]);
-      expect(broadcastedState.currentNightResults).toEqual({});
+    it('should return NOT_CONNECTED when not connected', async () => {
+      const emptyFacade = new GameFacade({
+        store: new GameStore(),
+        broadcastService: mockBroadcastService as any,
+        audioService: mockAudioServiceInstance as any,
+        hostStateCache: {
+          saveState: jest.fn(),
+          loadState: jest.fn().mockResolvedValue(null),
+          getState: jest.fn().mockReturnValue(null),
+          clearState: jest.fn(),
+        } as any,
+        roomService: mockRoomService(),
+      });
+
+      const result = await emptyFacade.startNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('NOT_CONNECTED');
+    });
+
+    it('should return success from API', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      const result = await facade.startNight();
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should return failure reason from API', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
+      });
+
+      const result = await facade.startNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    });
+
+    it('should preload audio for template roles after success', async () => {
+      // Set up template roles in store
+      fillAllSeatsViaReducer(facade, mockTemplate);
+
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      mockAudioServiceInstance.preloadForRoles.mockClear();
+
+      await facade.startNight();
+
+      expect(mockAudioServiceInstance.preloadForRoles).toHaveBeenCalledWith(mockTemplate.roles);
+    });
+
+    it('should handle network errors gracefully', async () => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+
+      const result = await facade.startNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('NETWORK_ERROR');
     });
   });
 

@@ -4,32 +4,20 @@
  * 拆分自 GameFacade.ts（纯重构 PR，无行为变更）
  *
  * 职责：
- * - Host-only 游戏控制方法（assignRoles/markViewedRole/startNight）
- * - Host-only 夜晚行动方法（submitAction/submitWolfVote）
- * - 统一 handler → reducer → store → broadcast 编排模式
+ * - Host-only 游戏控制方法（assignRoles/markViewedRole/startNight）→ HTTP API
+ * - Host-only 夜晚行动方法（submitAction/submitWolfVote）→ 本地 handler（Phase 3 scope）
+ * - 夜晚推进 & 音频编排（Phase 3 scope）
  *
  * 禁止：
- * - 业务逻辑/校验规则（全部在 handler）
- * - 直接修改 state（全部在 reducer）
+ * - 业务逻辑/校验规则（全部在 handler / 服务端）
+ * - 直接修改 state（全部在 reducer / 服务端）
  */
 
+import { API_BASE_URL } from '@/config/api';
 import type { RoleId } from '@/models/roles';
 import { doesRoleParticipateInWolfVote } from '@/models/roles';
 import type { GameTemplate } from '@/models/Template';
-import {
-  handleSubmitAction,
-  handleSubmitWolfVote,
-  handleViewedRole,
-} from '@/services/engine/handlers/actionHandler';
-import {
-  handleAssignRoles,
-  handleFillWithBots,
-  handleMarkAllBotsViewed,
-  handleRestartGame,
-  handleSetRoleRevealAnimation,
-  handleStartNight,
-  handleUpdateTemplate,
-} from '@/services/engine/handlers/gameControlHandler';
+import { handleSubmitAction, handleSubmitWolfVote } from '@/services/engine/handlers/actionHandler';
 import {
   decideWolfVoteTimerAction,
   handleNightProgression,
@@ -42,22 +30,15 @@ import {
   handleEndNight,
   handleSetAudioPlaying,
 } from '@/services/engine/handlers/stepTransitionHandler';
+import type { SideEffect } from '@/services/engine/handlers/types';
 import type { HandlerContext, HandlerResult } from '@/services/engine/handlers/types';
 import { handleSetWolfRobotHunterStatusViewed } from '@/services/engine/handlers/wolfRobotHunterGateHandler';
 import type {
   AdvanceNightIntent,
-  AssignRolesIntent,
   EndNightIntent,
-  FillWithBotsIntent,
-  MarkAllBotsViewedIntent,
-  RestartGameIntent,
   SetAudioPlayingIntent,
-  SetRoleRevealAnimationIntent,
-  StartNightIntent,
   SubmitActionIntent,
   SubmitWolfVoteIntent,
-  UpdateTemplateIntent,
-  ViewedRoleIntent,
 } from '@/services/engine/intents/types';
 import { gameReducer } from '@/services/engine/reducer';
 import type { StateAction } from '@/services/engine/reducer/types';
@@ -227,30 +208,92 @@ async function processHandlerResult(
 }
 
 // =============================================================================
-// Host Actions
+// Game Control API (HTTP — Phase 2)
 // =============================================================================
 
+/** Game Control API 响应 */
+interface GameControlApiResponse {
+  success: boolean;
+  reason?: string;
+  sideEffects?: SideEffect[];
+}
+
 /**
- * Host: 分配角色
- *
- * PR1: ASSIGN_ROLES (seated → assigned)
+ * 调用 Game Control API
+ */
+async function callGameControlApi(
+  path: string,
+  body: Record<string, unknown>,
+): Promise<GameControlApiResponse> {
+  try {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return (await res.json()) as GameControlApiResponse;
+  } catch (e) {
+    const err = e as { message?: string };
+    facadeLog.error('callGameControlApi failed', { path, error: err?.message ?? String(e) });
+    return { success: false, reason: 'NETWORK_ERROR' };
+  }
+}
+
+/**
+ * 播放 API 返回的 PLAY_AUDIO sideEffects（客户端音频编排）
+ */
+async function playApiSideEffects(
+  ctx: HostActionsContext,
+  sideEffects: SideEffect[] | undefined,
+): Promise<void> {
+  const audioEffects =
+    sideEffects?.filter(
+      (e): e is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } =>
+        e.type === 'PLAY_AUDIO',
+    ) ?? [];
+
+  if (audioEffects.length === 0 || !ctx.playAudio) return;
+
+  if (ctx.setAudioPlayingGate) {
+    await ctx.setAudioPlayingGate(true);
+  }
+
+  try {
+    for (const effect of audioEffects) {
+      if (ctx.isAborted?.()) {
+        facadeLog.debug('playApiSideEffects: aborted, skipping remaining audio');
+        break;
+      }
+      await ctx.playAudio(effect.audioKey, effect.isEndAudio);
+    }
+  } finally {
+    if (ctx.setAudioPlayingGate && !ctx.isAborted?.()) {
+      await ctx.setAudioPlayingGate(false);
+    }
+  }
+}
+
+/**
+ * Host: 分配角色（HTTP API）
  */
 export async function assignRoles(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('assignRoles called', { isHost: ctx.isHost });
 
-  const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
-  const context = buildHandlerContext(ctx);
-  const result = handleAssignRoles(intent, context);
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (!roomCode || !ctx.myUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
 
-  return processHandlerResult(ctx, result, { logPrefix: 'assignRoles' });
+  return callGameControlApi('/api/game/assign', {
+    roomCode,
+    hostUid: ctx.myUid,
+  });
 }
 
 /**
- * Host: 标记某座位已查看角色
- *
- * PR2: VIEWED_ROLE (assigned → ready)
+ * Host/Player: 标记某座位已查看角色（HTTP API）
  */
 export async function markViewedRole(
   ctx: HostActionsContext,
@@ -258,66 +301,63 @@ export async function markViewedRole(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('markViewedRole called', { seat, isHost: ctx.isHost });
 
-  const intent: ViewedRoleIntent = {
-    type: 'VIEWED_ROLE',
-    payload: { seat },
-  };
-  const context = buildHandlerContext(ctx);
-  const result = handleViewedRole(intent, context);
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (!roomCode || !ctx.myUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
 
-  return processHandlerResult(ctx, result, {
-    logPrefix: 'markViewedRole',
-    logData: { seat },
+  return callGameControlApi('/api/game/view-role', {
+    roomCode,
+    uid: ctx.myUid,
+    seat,
   });
 }
 
 /**
- * Host: 开始夜晚
+ * Host: 开始夜晚（HTTP API）
  *
- * PR3: START_NIGHT (ready → ongoing)
+ * ready → ongoing. 音频 sideEffects 由客户端按序播放。
  */
 export async function startNight(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('startNight called', { isHost: ctx.isHost });
 
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (!roomCode || !ctx.myUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
+
   // 重置推进追踪器（新夜晚开始）
   resetProgressionTracker();
 
-  const intent: StartNightIntent = { type: 'START_NIGHT' };
-  const context = buildHandlerContext(ctx);
-  const result = handleStartNight(intent, context);
+  const result = await callGameControlApi('/api/game/start', {
+    roomCode,
+    hostUid: ctx.myUid,
+  });
 
-  // 诊断日志：确认 handler 返回的 currentStepId
-  if (result.success && result.actions.length > 0) {
-    const startNightAction = result.actions.find((a) => a.type === 'START_NIGHT');
-    if (startNightAction && 'payload' in startNightAction) {
-      facadeLog.debug('startNight action payload', {
-        currentStepId: (startNightAction.payload as { currentStepId?: string }).currentStepId,
-        currentStepIndex: (startNightAction.payload as { currentStepIndex?: number })
-          .currentStepIndex,
-      });
-    }
+  if (!result.success) {
+    return result;
   }
 
   // Fire-and-forget: preload audio for all template roles before night flow starts.
-  // This eliminates 100-500ms first-play decode latency for each role's audio.
   const stateAfterStart = ctx.store.getState();
-  if (result.success && stateAfterStart?.templateRoles) {
-    ctx.audioService
-      .preloadForRoles(stateAfterStart.templateRoles as import('@/models/roles').RoleId[])
-      .catch(() => {
-        // Preload failure is non-critical; normal playback will still work.
-      });
+  if (stateAfterStart?.templateRoles) {
+    ctx.audioService.preloadForRoles(stateAfterStart.templateRoles as RoleId[]).catch(() => {
+      // Preload failure is non-critical; normal playback will still work.
+    });
   }
 
-  return processHandlerResult(ctx, result, { logPrefix: 'startNight' });
+  // 播放服务端返回的音频 sideEffects（夜晚开始音频 + 第一步音频）
+  await playApiSideEffects(ctx, result.sideEffects);
+
+  return { success: true };
 }
 
 /**
- * Host: 更新模板
+ * Host: 更新模板（HTTP API）
  *
- * PR8: 仅在“准备看牌前”（unseated | seated）允许
+ * 仅在"准备看牌前"（unseated | seated）允许
  */
 export async function updateTemplate(
   ctx: HostActionsContext,
@@ -325,20 +365,23 @@ export async function updateTemplate(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('updateTemplate called', { isHost: ctx.isHost });
 
-  const intent: UpdateTemplateIntent = {
-    type: 'UPDATE_TEMPLATE',
-    payload: { templateRoles: template.roles },
-  };
-  const context = buildHandlerContext(ctx);
-  const result = handleUpdateTemplate(intent, context);
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (!roomCode || !ctx.myUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
 
-  return processHandlerResult(ctx, result, { logPrefix: 'updateTemplate' });
+  return callGameControlApi('/api/game/update-template', {
+    roomCode,
+    hostUid: ctx.myUid,
+    templateRoles: template.roles,
+  });
 }
 
 /**
- * Host: 重新开始游戏
+ * Host: 重新开始游戏（HTTP API）
  *
- * PR8: RESTART_GAME（任意状态 → unseated）
+ * RESTART_GAME（任意状态 → unseated）
+ * 服务端会先广播 GAME_RESTARTED，再变更 state。
  */
 export async function restartGame(
   ctx: HostActionsContext,
@@ -348,15 +391,19 @@ export async function restartGame(
   // 重置推进追踪器（游戏重新开始）
   resetProgressionTracker();
 
-  const intent: RestartGameIntent = { type: 'RESTART_GAME' };
-  const context = buildHandlerContext(ctx);
-  const result = handleRestartGame(intent, context);
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (!roomCode || !ctx.myUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
 
-  return processHandlerResult(ctx, result, { logPrefix: 'restartGame' });
+  return callGameControlApi('/api/game/restart', {
+    roomCode,
+    hostUid: ctx.myUid,
+  });
 }
 
 /**
- * Host: 设置开牌动画
+ * Host: 设置开牌动画（HTTP API）
  *
  * Host 在房间内选择开牌动画，所有玩家统一使用
  */
@@ -366,14 +413,16 @@ export async function setRoleRevealAnimation(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('setRoleRevealAnimation called', { isHost: ctx.isHost, animation });
 
-  const intent: SetRoleRevealAnimationIntent = {
-    type: 'SET_ROLE_REVEAL_ANIMATION',
-    animation,
-  };
-  const context = buildHandlerContext(ctx);
-  const result = handleSetRoleRevealAnimation(intent, context);
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (!roomCode || !ctx.myUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
 
-  return processHandlerResult(ctx, result, { logPrefix: 'setRoleRevealAnimation' });
+  return callGameControlApi('/api/game/set-animation', {
+    roomCode,
+    hostUid: ctx.myUid,
+    animation,
+  });
 }
 
 /**
@@ -675,7 +724,7 @@ export async function callNightProgression(ctx: HostActionsContext): Promise<voi
 // =============================================================================
 
 /**
- * Host: 填充机器人（Debug-only）
+ * Host: 填充机器人（Debug-only, HTTP API）
  *
  * 为所有空座位创建 bot player，设置 debugMode.botsEnabled = true。
  * 仅在 status === 'unseated' 时可用。
@@ -683,17 +732,19 @@ export async function callNightProgression(ctx: HostActionsContext): Promise<voi
 export async function fillWithBots(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  const intent: FillWithBotsIntent = { type: 'FILL_WITH_BOTS' };
-  const handlerContext = buildHandlerContext(ctx);
-  const result = handleFillWithBots(intent, handlerContext);
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (!roomCode || !ctx.myUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
 
-  return processHandlerResult(ctx, result, {
-    logPrefix: 'fillWithBots',
+  return callGameControlApi('/api/game/fill-bots', {
+    roomCode,
+    hostUid: ctx.myUid,
   });
 }
 
 /**
- * Host: 标记所有机器人已查看角色（Debug-only）
+ * Host: 标记所有机器人已查看角色（Debug-only, HTTP API）
  *
  * 仅对 isBot === true 的玩家设置 hasViewedRole = true。
  * 仅在 debugMode.botsEnabled === true && status === 'assigned' 时可用。
@@ -701,11 +752,13 @@ export async function fillWithBots(
 export async function markAllBotsViewed(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  const intent: MarkAllBotsViewedIntent = { type: 'MARK_ALL_BOTS_VIEWED' };
-  const handlerContext = buildHandlerContext(ctx);
-  const result = handleMarkAllBotsViewed(intent, handlerContext);
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (!roomCode || !ctx.myUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
 
-  return processHandlerResult(ctx, result, {
-    logPrefix: 'markAllBotsViewed',
+  return callGameControlApi('/api/game/mark-bots-viewed', {
+    roomCode,
+    hostUid: ctx.myUid,
   });
 }

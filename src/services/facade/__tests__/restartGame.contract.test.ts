@@ -1,22 +1,19 @@
 /**
- * restartGame 行为契约测试
+ * restartGame 行为契约测试（HTTP API — Phase 2 migration）
  *
- * PR9: 对齐 v1 行为
+ * Phase 2: restartGame 已迁移到 HTTP API
  *
  * 验收标准：
- * 1. 广播顺序：先 GAME_RESTARTED，再 STATE_UPDATE
- * 2. 状态重置：
- *    - status → 'seated'（不是 'unseated'）
- *    - players 保留，但 role/hasViewedRole 清除
- *    - 夜晚状态清除（actions, wolfVotes, currentStepId, etc.）
- * 3. 权限检查：仅 Host 可调用
+ * 1. 调用正确 API endpoint（/api/game/restart）
+ * 2. 传递正确 request body（roomCode + hostUid）
+ * 3. 权限检查：仅 Host 可调用（facade-level gate）
+ * 4. 返回 API 响应
+ * 5. 网络错误处理
+ * 6. 服务端负责 GAME_RESTARTED 广播 + 状态重置
  */
 
-import { gameReducer } from '@/services/engine/reducer/gameReducer';
-import type { PlayerJoinAction } from '@/services/engine/reducer/types';
 import { GameStore } from '@/services/engine/store';
 import { GameFacade } from '@/services/facade/GameFacade';
-import type { BroadcastPlayer, HostBroadcast } from '@/services/protocol/types';
 
 // Mock BroadcastService (constructor mock — DI 测试直接注入，此处仅防止真实 import)
 jest.mock('../../transport/BroadcastService', () => ({
@@ -37,7 +34,7 @@ jest.mock('../../infra/AudioService', () => ({
   })),
 }));
 
-describe('restartGame Contract', () => {
+describe('restartGame Contract (HTTP API)', () => {
   let facade: GameFacade;
   let mockBroadcastService: {
     joinRoom: jest.Mock;
@@ -46,7 +43,8 @@ describe('restartGame Contract', () => {
     leaveRoom: jest.Mock;
     markAsLive: jest.Mock;
   };
-  let broadcastCalls: HostBroadcast[] = [];
+
+  const originalFetch = global.fetch;
 
   const mockTemplate = {
     id: 'test-template',
@@ -55,18 +53,10 @@ describe('restartGame Contract', () => {
     roles: ['wolf', 'wolf', 'seer', 'villager'] as ('wolf' | 'seer' | 'villager')[],
   };
 
-  beforeEach(() => {
-    // 使用 fake timers 加速 5 秒音频延迟
-    jest.useFakeTimers();
-
-    broadcastCalls = [];
-
+  beforeEach(async () => {
     mockBroadcastService = {
       joinRoom: jest.fn().mockResolvedValue(undefined),
-      broadcastAsHost: jest.fn((msg: HostBroadcast) => {
-        broadcastCalls.push(msg);
-        return Promise.resolve();
-      }),
+      broadcastAsHost: jest.fn().mockResolvedValue(undefined),
       sendToHost: jest.fn().mockResolvedValue(undefined),
       leaveRoom: jest.fn().mockResolvedValue(undefined),
       markAsLive: jest.fn(),
@@ -96,152 +86,55 @@ describe('restartGame Contract', () => {
         getGameState: jest.fn().mockResolvedValue(null),
       } as any,
     });
+
+    await facade.initializeAsHost('1234', 'host-uid', mockTemplate);
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    global.fetch = originalFetch;
   });
 
   // ===========================================================================
-  // Helper: 通过 reducer 填充所有座位（避免直接修改 state）
+  // API 调用测试
   // ===========================================================================
 
-  function fillAllSeatsViaReducer(): void {
-    let state = facade.getState()!;
+  describe('API Call', () => {
+    it('should call /api/game/restart with roomCode and hostUid', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
 
-    for (let i = 0; i < mockTemplate.numberOfPlayers; i++) {
-      const player: BroadcastPlayer = {
-        uid: i === 0 ? 'host-uid' : `player-${i}`,
-        seatNumber: i,
-        displayName: `Player ${i}`,
-        avatarUrl: undefined,
-        role: null,
-        hasViewedRole: false,
-      };
+      await facade.restartGame();
 
-      const action: PlayerJoinAction = {
-        type: 'PLAYER_JOIN',
-        payload: { seat: i, player },
-      };
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/restart'),
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"roomCode":"1234"'),
+        }),
+      );
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          body: expect.stringContaining('"hostUid":"host-uid"'),
+        }),
+      );
+    });
 
-      state = gameReducer(state, action);
-    }
+    it('should return success from API', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
 
-    // 写回 store（test-only: 访问私有 store）
-    (facade as any).store.setState(state);
-  }
-
-  // ===========================================================================
-  // Helper: 初始化到 ongoing 状态
-  // ===========================================================================
-
-  async function setupToOngoingState(): Promise<void> {
-    // 1. 初始化 Host
-    await facade.initializeAsHost('1234', 'host-uid', mockTemplate);
-
-    // 2. 通过 reducer 填充所有座位（避免直接修改 state）
-    fillAllSeatsViaReducer();
-
-    // 3. 分配角色
-    await facade.assignRoles();
-
-    // 4. 标记所有人已看牌
-    for (let i = 0; i < mockTemplate.numberOfPlayers; i++) {
-      await facade.markViewedRole(i);
-    }
-
-    // 5. 开始游戏（使用 runAllTimersAsync 加速 5 秒音频延迟）
-    const startNightPromise = facade.startNight();
-    await jest.runAllTimersAsync();
-    await startNightPromise;
-
-    // 清除之前的广播记录
-    broadcastCalls = [];
-  }
-
-  // ===========================================================================
-  // 契约测试
-  // ===========================================================================
-
-  describe('Broadcast Order', () => {
-    it('should broadcast GAME_RESTARTED before STATE_UPDATE', async () => {
-      await setupToOngoingState();
-
-      // 验证当前状态是 ongoing
-      expect(facade.getState()?.status).toBe('ongoing');
-
-      // 调用 restartGame
       const result = await facade.restartGame();
+
       expect(result.success).toBe(true);
-
-      // 验证广播顺序
-      expect(broadcastCalls.length).toBeGreaterThanOrEqual(2);
-      expect(broadcastCalls[0].type).toBe('GAME_RESTARTED');
-      expect(broadcastCalls[1].type).toBe('STATE_UPDATE');
-    });
-  });
-
-  describe('State Reset', () => {
-    it('should reset status to "seated" (not "unseated")', async () => {
-      await setupToOngoingState();
-
-      await facade.restartGame();
-
-      const state = facade.getState()!;
-      expect(state.status).toBe('seated');
     });
 
-    it('should keep players but clear roles and hasViewedRole', async () => {
-      await setupToOngoingState();
-
-      // 验证重置前有角色
-      const stateBefore = facade.getState()!;
-      expect(stateBefore.players[0]?.role).not.toBeNull();
-      expect(stateBefore.players[0]?.hasViewedRole).toBe(true);
-
-      await facade.restartGame();
-
-      const stateAfter = facade.getState()!;
-      // 玩家仍然存在
-      expect(stateAfter.players[0]).not.toBeNull();
-      expect(stateAfter.players[0]?.uid).toBe('host-uid');
-      // 但角色已清除
-      expect(stateAfter.players[0]?.role).toBeNull();
-      expect(stateAfter.players[0]?.hasViewedRole).toBe(false);
-    });
-
-    it('should clear night state fields', async () => {
-      await setupToOngoingState();
-
-      await facade.restartGame();
-
-      const state = facade.getState()!;
-      expect(state.currentStepId).toBeUndefined();
-      expect(state.actions).toBeUndefined();
-      expect(state.currentNightResults).toBeUndefined();
-      expect(state.witchContext).toBeUndefined();
-      expect(state.seerReveal).toBeUndefined();
-      expect(state.psychicReveal).toBeUndefined();
-      expect(state.confirmStatus).toBeUndefined();
-      expect(state.isAudioPlaying).toBe(false);
-    });
-
-    it('should reset currentStepIndex to 0', async () => {
-      await setupToOngoingState();
-
-      await facade.restartGame();
-
-      const state = facade.getState()!;
-      expect(state.currentStepIndex).toBe(0);
-    });
-  });
-
-  describe('Permission Check', () => {
-    it('should reject non-host calls', async () => {
-      await setupToOngoingState();
-
-      // 模拟变成非 Host
-      (facade as unknown as { isHost: boolean }).isHost = false;
+    it('should return failure reason from API', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: false, reason: 'host_only' }),
+      });
 
       const result = await facade.restartGame();
 
@@ -249,44 +142,63 @@ describe('restartGame Contract', () => {
       expect(result.reason).toBe('host_only');
     });
 
-    it('should allow host calls', async () => {
-      await setupToOngoingState();
-
-      const result = await facade.restartGame();
-
-      expect(result.success).toBe(true);
-    });
-  });
-
-  describe('Broadcast Content', () => {
-    it('should broadcast STATE_UPDATE with reset state', async () => {
-      await setupToOngoingState();
-
-      await facade.restartGame();
-
-      const stateUpdate = broadcastCalls.find((c) => c.type === 'STATE_UPDATE');
-      expect(stateUpdate).toBeDefined();
-
-      if (stateUpdate?.type === 'STATE_UPDATE') {
-        expect(stateUpdate.state.status).toBe('seated');
-        expect(stateUpdate.state.players[0]?.role).toBeNull();
-        expect(stateUpdate.revision).toBeGreaterThan(0);
-      }
-    });
-  });
-
-  describe('Idempotency', () => {
-    it('should be callable multiple times without error', async () => {
-      await setupToOngoingState();
+    it('should be callable multiple times', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
 
       const result1 = await facade.restartGame();
       expect(result1.success).toBe(true);
 
       const result2 = await facade.restartGame();
       expect(result2.success).toBe(true);
+    });
+  });
 
-      const state = facade.getState()!;
-      expect(state.status).toBe('seated');
+  // ===========================================================================
+  // 权限检查（facade-level gate，不依赖 API）
+  // ===========================================================================
+
+  describe('Permission Check', () => {
+    it('should reject non-host calls without calling API', async () => {
+      (facade as unknown as { isHost: boolean }).isHost = false;
+      global.fetch = jest.fn();
+
+      const result = await facade.restartGame();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('host_only');
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+  });
+
+  // ===========================================================================
+  // 网络错误处理
+  // ===========================================================================
+
+  describe('Network Error', () => {
+    it('should handle network errors gracefully', async () => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+
+      const result = await facade.restartGame();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('NETWORK_ERROR');
+    });
+  });
+
+  // ===========================================================================
+  // 服务端行为说明（不再客户端测试）
+  // ===========================================================================
+
+  describe('Server-side behavior (documented, not tested here)', () => {
+    it('NOTE: GAME_RESTARTED broadcast is now handled server-side', () => {
+      // 服务端 /api/game/restart 负责：
+      // 1. 广播 GAME_RESTARTED 消息
+      // 2. 调用 handleRestartGame handler
+      // 3. 通过 processGameAction 广播 STATE_UPDATE
+      // 这些行为由 API route 测试验证，不在 facade 测试中
+      expect(true).toBe(true);
     });
   });
 });

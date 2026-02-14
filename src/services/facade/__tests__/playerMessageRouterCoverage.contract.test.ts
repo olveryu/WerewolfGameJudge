@@ -72,7 +72,6 @@ function createMockContext(overrides?: Partial<MessageRouterContext>): MessageRo
     isHost: true,
     myUid: 'host-uid',
     broadcastCurrentState: jest.fn(() => Promise.resolve()),
-    handleViewedRole: jest.fn(() => Promise.resolve({ success: true })),
     handleAction: jest.fn(() => Promise.resolve({ success: true })),
     handleWolfVote: jest.fn(() => Promise.resolve({ success: true })),
     ...overrides,
@@ -173,13 +172,16 @@ describe('PlayerMessage Router Coverage Contract', () => {
       expect(ctx.broadcastCurrentState).toHaveBeenCalled();
     });
 
-    it('VIEWED_ROLE should call handleViewedRole', () => {
+    it('VIEWED_ROLE should log legacy warn', () => {
       const ctx = createMockContext();
       const msg = createMinimalPayload('VIEWED_ROLE');
 
       hostHandlePlayerMessage(ctx, msg, 'sender-uid');
 
-      expect(ctx.handleViewedRole).toHaveBeenCalledWith(0);
+      expect(facadeLog.warn).toHaveBeenCalledWith(
+        '[messageRouter] Legacy PlayerMessage type received',
+        expect.objectContaining({ type: 'VIEWED_ROLE' }),
+      );
     });
 
     it('ACTION should call handleAction when wired', () => {
@@ -375,7 +377,6 @@ describe('PlayerMessage Router Coverage Contract', () => {
 
       // 任何 handler 都不应被调用
       expect(ctx.broadcastCurrentState).not.toHaveBeenCalled();
-      expect(ctx.handleViewedRole).not.toHaveBeenCalled();
       expect(ctx.handleAction).not.toHaveBeenCalled();
       expect(ctx.handleWolfVote).not.toHaveBeenCalled();
       // warn 也不应被调用（直接 early return）
@@ -392,18 +393,17 @@ describe('PlayerMessage Router Coverage Report', () => {
   it('validates coverage expectations', () => {
     const IMPLEMENTED = [
       'REQUEST_STATE',
-      'VIEWED_ROLE',
       'ACTION',
       'WOLF_VOTE',
       'REVEAL_ACK',
       'WOLF_ROBOT_HUNTER_STATUS_VIEWED',
     ];
-    const LEGACY = ['JOIN', 'LEAVE'];
+    const LEGACY = ['JOIN', 'LEAVE', 'VIEWED_ROLE'];
     const UNIMPLEMENTED = ['SNAPSHOT_REQUEST'];
 
     // Validate counts instead of printing
-    expect(IMPLEMENTED.length).toBe(6);
-    expect(LEGACY.length).toBe(2);
+    expect(IMPLEMENTED.length).toBe(5);
+    expect(LEGACY.length).toBe(3);
     expect(UNIMPLEMENTED.length).toBe(1);
     expect(ALL_PLAYER_MESSAGE_TYPES.length).toBe(
       IMPLEMENTED.length + LEGACY.length + UNIMPLEMENTED.length,

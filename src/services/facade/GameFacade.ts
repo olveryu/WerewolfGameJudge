@@ -544,16 +544,8 @@ export class GameFacade implements IGameFacade {
   }
 
   async markViewedRole(seat: number): Promise<{ success: boolean; reason?: string }> {
-    // Host: 直接处理
-    if (this.isHost) {
-      return hostActions.markViewedRole(this.getHostActionsContext(), seat);
-    }
-
-    // Player: 发送 PlayerMessage 给 Host
-    const msg: PlayerMessage = { type: 'VIEWED_ROLE', seat };
-    await this.broadcastService.sendToHost(msg);
-    // Player 端不等待确认，依赖 Host 广播 STATE_UPDATE
-    return { success: true };
+    // Host 和 Player 统一走 HTTP API
+    return hostActions.markViewedRole(this.getHostActionsContext(), seat);
   }
 
   async startNight(): Promise<{ success: boolean; reason?: string }> {
@@ -561,22 +553,16 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
-   * Host: 重新开始游戏
+   * Host: 重新开始游戏（HTTP API）
    *
-   * PR9: 对齐 v1 行为
-   * - 先广播 GAME_RESTARTED
-   * - 再执行 reducer 重置状态
-   * - 最后广播 STATE_UPDATE
+   * 服务端会先广播 GAME_RESTARTED，再变更 state。
    */
   async restartGame(): Promise<{ success: boolean; reason?: string }> {
     if (!this.isHost) {
       return { success: false, reason: 'host_only' };
     }
 
-    // v1 对齐：先广播 GAME_RESTARTED
-    await this.broadcastService.broadcastAsHost({ type: 'GAME_RESTARTED' });
-
-    // 执行 reducer + 广播 STATE_UPDATE
+    // 执行 HTTP API（服务端处理 GAME_RESTARTED 广播 + reducer + STATE_UPDATE）
     return hostActions.restartGame(this.getHostActionsContext());
   }
 
@@ -886,8 +872,6 @@ export class GameFacade implements IGameFacade {
       isHost: this.isHost,
       myUid: this.myUid,
       broadcastCurrentState: () => this.broadcastCurrentState(),
-      handleViewedRole: (seat: number) =>
-        hostActions.markViewedRole(this.getHostActionsContext(), seat),
       handleAction: (seat: number, role: RoleId, target: number | null, extra?: unknown) =>
         hostActions.submitAction(this.getHostActionsContext(), seat, role, target, extra),
       handleWolfVote: (voterSeat: number, targetSeat: number) =>

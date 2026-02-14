@@ -35,12 +35,6 @@ export interface MessageRouterContext {
   // ===========================================================================
 
   /**
-   * Host 处理 Player 发来的 VIEWED_ROLE 消息
-   * 由 GameFacade 注入 hostActions.markViewedRole 实现
-   */
-  handleViewedRole?: (seat: number) => Promise<{ success: boolean; reason?: string }>;
-
-  /**
    * Host 处理 Player 发来的 ACTION 消息
    * 由 GameFacade 注入 hostActions.submitAction 实现
    */
@@ -103,9 +97,10 @@ export async function hostHandlePlayerMessage(
       break;
 
     case 'VIEWED_ROLE':
-      if (ctx.handleViewedRole) {
-        await ctx.handleViewedRole(msg.seat);
-      }
+      facadeLog.warn('[messageRouter] Legacy PlayerMessage type received', {
+        type: msg.type,
+        guidance: 'VIEWED_ROLE now uses HTTP API (/api/game/view-role)',
+      });
       break;
 
     // =========================================================================
