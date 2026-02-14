@@ -217,6 +217,17 @@ WerewolfGameJudge/
 - **低风险**：纯文件移动 + import 更新，TypeScript 编译器会抓住所有路径错误
 - **唯一注意**：co-located `__tests__/` 目录需要跟随移动或保留原位（建议跟随移动）
 
+#### 0.8 Commit 计划（4 commits）
+
+| #   | message                                                        | 内容                                                                                                                                                                                                                                                                          | 验证       |
+| --- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 1   | `chore: scaffold @werewolf/game-engine package`                | `pnpm-workspace.yaml`、`packages/game-engine/{package.json, tsconfig.json, src/index.ts}`、根 `tsconfig.json` 加 paths、`jest.config.js` 加 moduleNameMapper、`metro.config.js` 加 watchFolders、根 `package.json` 加 workspace 依赖、game-engine 内 logger/id/shuffle 抽象层 | tsc + jest |
+| 2   | `refactor(models): move models to game-engine`                 | 移动 `src/models/roles/**`、`GameStatus.ts`、`Template.ts`、`WitchAction.ts` → `packages/game-engine/src/models/`；更新 ~30 个消费者 import                                                                                                                                   | tsc + jest |
+| 3   | `refactor(services): move protocol + resolvers to game-engine` | 移动 `src/services/protocol/**`、`src/services/night/resolvers/**`、`src/types/RoleRevealAnimation.ts` → game-engine；更新 ~25 个消费者 import                                                                                                                                | tsc + jest |
+| 4   | `refactor(services): move engine to game-engine`               | 移动 `src/services/engine/{handlers,reducer,store,intents,state,DeathCalculator,resolveWolfVotes}` → game-engine；更新 ~5 个消费者 import；完善 barrel export                                                                                                                 | tsc + jest |
+
+依赖方向：models → protocol/resolvers → engine，按此顺序移动确保每个 commit 后编译通过。
+
 ---
 
 ### Phase 1：入座/离座 → Vercel API
@@ -506,6 +517,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 如果 Vercel API 有问题，可以在客户端加 feature flag 切回 broadcast 模式。两套代码共存，flag 控制走 HTTP 还是 broadcast。
 
+#### 1.8 Commit 计划（3 commits）
+
+| #   | message                                                | 内容                                                                                                                                                                                                     | 验证                     |
+| --- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| 1   | `feat(api): add seat API route + gameStateManager`     | 新增 `api/game/seat.ts`、`api/_lib/{supabase,gameStateManager,types}.ts`；更新 `vercel.json` API rewrite；Vercel 环境变量配置                                                                            | tsc                      |
+| 2   | `refactor(services): migrate seat ops to HTTP`         | `seatActions.ts` 改 HTTP 调用（删除 ACK timeout / PendingSeatAction / broadcast 协议）；`messageRouter.ts` 删除 SEAT_ACTION_REQUEST/ACK 处理；`protocol/types.ts` 删除对应类型；新增 `src/config/api.ts` | tsc + jest               |
+| 3   | `test(services): update seat tests for HTTP migration` | 更新/重写 seatActions / messageRouter 相关测试                                                                                                                                                           | tsc + jest + E2E seating |
+
 ---
 
 ### Phase 2：游戏控制 → Vercel API
@@ -692,6 +711,14 @@ const result = await processGameAction(roomCode, (state) => {
 - 单元测试：更新 hostActions / messageRouter 相关测试
 - E2E：`night-2p.spec.ts`、`night-6p.spec.ts` 全部通过
 - 手动测试：Host 分配角色 → 所有玩家看到自己的角色
+
+#### 2.8 Commit 计划（3 commits）
+
+| #   | message                                                        | 内容                                                                                                                                                                       | 验证                   |
+| --- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| 1   | `feat(api): add game control API routes`                       | 新增 `api/game/{assign,fill-bots,start,restart,view-role,update-template,set-animation}.ts`（7 个 route）                                                                  | tsc                    |
+| 2   | `refactor(services): migrate game control to HTTP`             | `hostActions.ts` 所有 game control 方法改 HTTP 调用 + 本地音频编排；`messageRouter.ts` 删除 VIEWED_ROLE / REVEAL_ACK 等 Host 端处理；`GameFacade.ts` 简化 context builders | tsc + jest             |
+| 3   | `test(services): update game control tests for HTTP migration` | 更新/重写 hostActions / messageRouter / GameFacade 相关测试                                                                                                                | tsc + jest + E2E night |
 
 ---
 
@@ -1040,6 +1067,15 @@ Player 端：
   - 带 reveal 的角色（预言家/石像鬼）→ ACK 后推进
   - 狼人机器人学到猎人 → gate → 确认后推进
 
+#### 3.10 Commit 计划（4 commits）
+
+| #   | message                                                        | 内容                                                                                                                                                                                                                                      | 验证                  |
+| --- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| 1   | `feat(api): add night flow API routes`                         | 新增 `api/game/night/{action,wolf-vote,advance,end,audio-gate,progression}.ts`（6 个 route）+ `api/game/night/reveal-ack.ts` + `api/game/night/wolf-robot-viewed.ts`                                                                      | tsc                   |
+| 2   | `refactor(services): migrate night action + wolf-vote to HTTP` | `hostActions.ts` 的 submitAction / submitWolfVote 改 HTTP；`messageRouter.ts` 删除 ACTION / WOLF_VOTE 的 Host 端转发；Wolf Vote Timer 改为客户端 timer + 服务端 `wolfVoteDeadline`                                                        | tsc + jest            |
+| 3   | `refactor(services): migrate night progression to HTTP`        | `hostActions.ts` 的 callNightProgression / advanceNight / endNight 改 HTTP 驱动循环；`progressionEvaluator.ts` 删除 module-level tracker；Reveal ACK / WolfRobotHunterGate 改 HTTP；`messageRouter.ts` 删除剩余 playerMessage Host 端处理 | tsc + jest            |
+| 4   | `test(services): update night flow tests + cleanup`            | 更新/重写 hostActions / messageRouter / progressionEvaluator 相关测试；清理废弃的 broadcast 转发代码                                                                                                                                      | tsc + jest + E2E full |
+
 ---
 
 ## 不变的部分
@@ -1090,14 +1126,14 @@ rooms (
 
 ## 工期估算
 
-| 阶段                   | 工作量      | 说明                                          |
-| ---------------------- | ----------- | --------------------------------------------- |
-| Phase 0: 共享包提取    | 1-2 天      | 文件移动 + import 更新 + 依赖抽象，纯机械操作 |
-| Phase 1: 入座/离座 API | 1-2 天      | 第一个 API Route + 客户端改造 + 测试更新      |
-| Phase 2: 游戏控制 API  | 2-3 天      | 7 个 API Route + 音频 sideEffects + 测试更新  |
-| Phase 3: 夜晚流程 API  | 3-5 天      | 6 个 API Route + 自动推进改造 + timer + 测试  |
-| 清理 + 集成测试        | 1-2 天      | 删除废弃代码 + E2E 全量回归                   |
-| **总计**               | **8-14 天** |                                               |
+| 阶段                   | Commits | 工作量      | 说明                                          |
+| ---------------------- | ------- | ----------- | --------------------------------------------- |
+| Phase 0: 共享包提取    | 4       | 1-2 天      | 文件移动 + import 更新 + 依赖抽象，纯机械操作 |
+| Phase 1: 入座/离座 API | 3       | 1-2 天      | 第一个 API Route + 客户端改造 + 测试更新      |
+| Phase 2: 游戏控制 API  | 3       | 2-3 天      | 7 个 API Route + 音频 sideEffects + 测试更新  |
+| Phase 3: 夜晚流程 API  | 4       | 3-5 天      | 8 个 API Route + 自动推进改造 + timer + 测试  |
+| 清理 + 集成测试        | 1       | 1-2 天      | 删除废弃代码 + E2E 全量回归                   |
+| **总计**               | **15**  | **8-14 天** |                                               |
 
 ---
 
