@@ -113,19 +113,6 @@ describe('GameFacade', () => {
     return state;
   };
 
-  // ===========================================================================
-  // Shared Helper: 直接通过 reducer 设置 ongoing 状态（绕过 assignRoles/viewedRole 流程）
-  // ===========================================================================
-  const setOngoingViaReducer = (facadeInstance: GameFacade) => {
-    let state = facadeInstance['store'].getState()!;
-    state = gameReducer(state, {
-      type: 'START_NIGHT',
-      payload: { currentStepIndex: 0, currentStepId: 'wolfKill' },
-    });
-    facadeInstance['store'].setState(state);
-    return state;
-  };
-
   describe('Host: initializeAsHost', () => {
     it('should initialize store with correct state', async () => {
       await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);

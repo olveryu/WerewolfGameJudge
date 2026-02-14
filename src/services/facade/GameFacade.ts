@@ -78,7 +78,7 @@ export class GameFacade implements IGameFacade {
 
   /**
    * Abort flag: set to true when leaving room.
-   * Used to abort ongoing async operations (e.g., audio queue in processHandlerResult).
+   * Used to abort ongoing async operations (e.g., audio queue in playApiSideEffects).
    * Reset to false when creating/joining a new room.
    */
   private _aborted = false;
@@ -750,7 +750,7 @@ export class GameFacade implements IGameFacade {
       myUid: this.myUid,
       getMySeatNumber: () => this.getMySeatNumber(),
       broadcastCurrentState: () => this.broadcastCurrentState(),
-      // Abort check: used by processHandlerResult to stop audio queue when leaving room
+      // Abort check: used by playApiSideEffects to stop audio queue when leaving room
       isAborted: () => this._aborted,
       // wolfVoteTimer: getter/setter backed by Facade instance field
       get wolfVoteTimer() {

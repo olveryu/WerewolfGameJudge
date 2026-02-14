@@ -35,7 +35,7 @@ export interface HostActionsContext {
   broadcastCurrentState: () => Promise<void>;
   /**
    * Abort check: returns true if room has been left.
-   * Used by processHandlerResult to stop audio queue when leaving room.
+   * Used by playApiSideEffects to stop audio queue when leaving room.
    */
   isAborted?: () => boolean;
   /**
