@@ -2,7 +2,8 @@
 /**
  * E2E Web Server Launcher
  *
- * Loads Supabase configuration based on E2E_ENV and starts Expo web server.
+ * Loads Supabase configuration based on E2E_ENV and starts `vercel dev`.
+ * `vercel dev` serves both the Expo frontend AND /api/** serverless functions.
  *
  * Usage:
  *   E2E_ENV=local node scripts/run-e2e-web.mjs   # Use local Supabase (127.0.0.1:54321)
@@ -12,7 +13,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -50,7 +51,12 @@ try {
 }
 
 // Validate required fields
-const requiredFields = ['EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_ANON_KEY'];
+const requiredFields = [
+  'EXPO_PUBLIC_SUPABASE_URL',
+  'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+  'SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY',
+];
 const missing = requiredFields.filter((field) => !config[field]);
 
 // For remote env, allow override from environment variables
@@ -83,6 +89,33 @@ if (!E2E_BASE_URL) {
   process.exit(1);
 }
 
+// === Auto-generate .env.local for local E2E ===
+// Expo/Metro reads .env.local > .env for EXPO_PUBLIC_* vars.
+// Without this, Metro would use the remote Supabase URL from .env,
+// while API routes use local Supabase — causing client/server DB mismatch.
+if (e2eEnv === 'local') {
+  const envLocalPath = join(rootDir, '.env.local');
+  const envLocalContent = [
+    `EXPO_PUBLIC_SUPABASE_URL=${config.EXPO_PUBLIC_SUPABASE_URL}`,
+    `EXPO_PUBLIC_SUPABASE_ANON_KEY=${config.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+    '', // trailing newline
+  ].join('\n');
+
+  // Preserve non-Supabase vars if .env.local already exists (e.g. GROQ key)
+  let preserved = '';
+  if (existsSync(envLocalPath)) {
+    const existing = readFileSync(envLocalPath, 'utf-8');
+    preserved = existing
+      .split('\n')
+      .filter((l) => l.trim() && !l.startsWith('#') && !l.startsWith('EXPO_PUBLIC_SUPABASE_'))
+      .join('\n');
+  }
+
+  const finalContent = preserved ? envLocalContent + preserved + '\n' : envLocalContent;
+  writeFileSync(envLocalPath, finalContent, 'utf-8');
+  console.log(`📝 .env.local written (local Supabase: ${config.EXPO_PUBLIC_SUPABASE_URL})`);
+}
+
 // Log configuration (not the key for security)
 console.log(`🌐 E2E Base URL: ${E2E_BASE_URL} (from playwright.config.ts)`);
 console.log(`📡 Supabase URL: ${config.EXPO_PUBLIC_SUPABASE_URL}`);
@@ -95,15 +128,20 @@ const childEnv = {
   ...process.env,
   EXPO_PUBLIC_SUPABASE_URL: config.EXPO_PUBLIC_SUPABASE_URL,
   EXPO_PUBLIC_SUPABASE_ANON_KEY: config.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  // Server-side env vars for API routes (Vercel serverless functions)
+  ...(config.SUPABASE_URL && { SUPABASE_URL: config.SUPABASE_URL }),
+  ...(config.SUPABASE_SERVICE_ROLE_KEY && { SUPABASE_SERVICE_ROLE_KEY: config.SUPABASE_SERVICE_ROLE_KEY }),
+  // Force official npm registry for vercel dev's internal builder installs
+  // (avoids hanging on slow corporate proxies like Nexus)
+  npm_config_registry: 'https://registry.npmjs.org/',
 };
 
-// Start Expo web server
-// Port must match E2E_BASE_URL (default 8081)
-const port = new URL(E2E_BASE_URL).port || '8081';
-const expoArgs = ['expo', 'start', '--web', '--port', port];
-console.log(`🚀 Starting: npx ${expoArgs.join(' ')}\n`);
+// Start vercel dev (serves both frontend via Expo AND /api/** serverless functions)
+const port = new URL(E2E_BASE_URL).port || '3000';
+const vercelArgs = ['dev', '--listen', port, '--yes'];
+console.log(`🚀 Starting: vercel ${vercelArgs.join(' ')}\n`);
 
-const child = spawn('npx', expoArgs, {
+const child = spawn('vercel', vercelArgs, {
   cwd: rootDir,
   env: childEnv,
   stdio: 'inherit',
@@ -111,7 +149,7 @@ const child = spawn('npx', expoArgs, {
 });
 
 child.on('error', (err) => {
-  console.error(`❌ Failed to start Expo:`, err.message);
+  console.error(`❌ Failed to start vercel dev:`, err.message);
   process.exit(1);
 });
 

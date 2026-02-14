@@ -7,10 +7,10 @@ import { defineConfig, devices } from '@playwright/test';
  * - webServer (via env inheritance)
  * - test runtime (ui.ts reads process.env.E2E_BASE_URL)
  *
- * Default: http://localhost:8081 (local dev)
+ * Default: http://localhost:3000 (vercel dev default)
  * Override: E2E_BASE_URL=https://... npx playwright test
  */
-const E2E_BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
+const E2E_BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
 
 // Export to process.env so ui.ts and webServer can access it
 process.env.E2E_BASE_URL = E2E_BASE_URL;

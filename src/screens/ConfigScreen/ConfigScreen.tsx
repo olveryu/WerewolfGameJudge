@@ -26,6 +26,7 @@ import {
   validateTemplateRoles,
 } from '@/models/Template';
 import { RootStackParamList } from '@/navigation/types';
+import { buildInitialGameState } from '@/services/engine/state/buildInitialState';
 import { TESTIDS } from '@/testids';
 import { spacing, useColors } from '@/theme';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
@@ -274,7 +275,9 @@ export const ConfigScreen: React.FC = () => {
           showAlert('提示', '请先登录后再创建房间');
           return;
         }
-        const record = await roomService.createRoom(hostUid);
+        const record = await roomService.createRoom(hostUid, undefined, undefined, (roomCode) =>
+          buildInitialGameState(roomCode, hostUid, template),
+        );
         const roomNumber = record.roomNumber;
         await AsyncStorage.setItem('lastRoomNumber', roomNumber);
         navigation.navigate('Room', {

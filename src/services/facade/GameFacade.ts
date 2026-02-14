@@ -29,6 +29,7 @@ import type { RevealKind, RoleId } from '@/models/roles';
 import { getStepSpec } from '@/models/roles/spec/nightSteps';
 import type { GameTemplate } from '@/models/Template';
 import { shouldTriggerWolfVoteRecovery } from '@/services/engine/handlers/progressionEvaluator';
+import { buildInitialGameState } from '@/services/engine/state/buildInitialState';
 import { GameStore } from '@/services/engine/store';
 import { AudioService } from '@/services/infra/AudioService';
 import { HostStateCache } from '@/services/infra/HostStateCache';
@@ -222,22 +223,8 @@ export class GameFacade implements IGameFacade {
     this.isHost = true;
     this.myUid = hostUid;
 
-    // 初始化 store
-    const players: BroadcastGameState['players'] = {};
-    for (let i = 0; i < template.numberOfPlayers; i++) {
-      players[i] = null;
-    }
-
-    const initialState: BroadcastGameState = {
-      roomCode,
-      hostUid,
-      status: 'unseated',
-      templateRoles: template.roles,
-      players,
-      currentStepIndex: -1,
-      isAudioPlaying: false,
-    };
-
+    // 初始化 store（使用共享的 buildInitialGameState，与 createRoom 保持 DRY）
+    const initialState = buildInitialGameState(roomCode, hostUid, template);
     this.store.initialize(initialState);
 
     // 加入频道

@@ -70,6 +70,7 @@ export class RoomService {
     hostUid: string,
     initialRoomNumber?: string,
     maxRetries: number = 5,
+    buildInitialState?: (roomCode: string) => BroadcastGameState,
   ): Promise<RoomRecord> {
     this.ensureConfigured();
 
@@ -79,10 +80,16 @@ export class RoomService {
       const roomNumber =
         attempt === 1 && initialRoomNumber ? initialRoomNumber : generateRoomCode();
 
-      const { error } = await supabase!.from('rooms').insert({
+      const row: Record<string, unknown> = {
         code: roomNumber,
         host_id: hostUid,
-      });
+      };
+      if (buildInitialState) {
+        row.game_state = buildInitialState(roomNumber);
+        row.state_revision = 0;
+      }
+
+      const { error } = await supabase!.from('rooms').insert(row);
 
       if (!error) {
         if (attempt > 1) {

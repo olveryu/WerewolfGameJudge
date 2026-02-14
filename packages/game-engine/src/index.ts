@@ -69,6 +69,7 @@ export * from './engine/intents/types';
 export * from './engine/reducer';
 export * from './engine/reducer/types';
 export { resolveWolfVotes } from './engine/resolveWolfVotes';
+export { buildInitialGameState } from './engine/state/buildInitialState';
 export { normalizeState } from './engine/state/normalize';
 export * from './engine/store';
 export * from './engine/store/types';
