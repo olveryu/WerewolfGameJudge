@@ -160,6 +160,14 @@ export async function setupNPlayerGame(
 
   const roomNumber = await extractRoomNumber(hostPage);
 
+  // Host manually takes seat 0 (no longer auto-seated on room creation)
+  const hostRoom = new RoomPage(hostPage);
+  await hostPage.locator('[data-testid="seat-tile-pressable-0"]').click({ timeout: 10000 });
+  await expect(hostPage.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
+  await hostPage.getByText('确定', { exact: true }).click();
+  await hostPage.waitForTimeout(500);
+  await expect(hostPage.getByText('我')).toBeVisible({ timeout: 3000 });
+
   // Step 3: Joiners join and take seats
   for (let i = 0; i < joinerPages.length; i++) {
     const joinerPage = joinerPages[i];
@@ -186,7 +194,6 @@ export async function setupNPlayerGame(
   await waitForPresenceStable(hostPage, joinerPages, roomNumber);
 
   // Step 5: Prepare roles
-  const hostRoom = new RoomPage(hostPage);
   await hostRoom.prepareRoles();
 
   // Step 6: All view roles

@@ -32,8 +32,6 @@ interface UseRoomInitParams {
   initializeHostRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
   /** From useGameRoom: join existing room */
   joinRoom: (roomNumber: string) => Promise<boolean>;
-  /** From useGameRoom: take a seat */
-  takeSeat: (seat: number) => Promise<boolean>;
   /** Check if we have received game state */
   hasGameState: boolean;
   /** Initial role reveal animation setting from ConfigScreen (host only) */
@@ -57,7 +55,7 @@ interface UseRoomInitResult {
 
 /**
  * Manages room initialization lifecycle.
- * Host: initializeHostRoom → setRoleRevealAnimation → takeSeat(0) → initialized
+ * Host: initializeHostRoom → setRoleRevealAnimation → initialized
  * Player: joinRoom → initialized
  *
  * Note: DB room creation is done in ConfigScreen BEFORE navigation.
@@ -71,7 +69,6 @@ export function useRoomInit({
   template,
   initializeHostRoom,
   joinRoom,
-  takeSeat,
   hasGameState,
   initialRoleRevealAnimation,
   setRoleRevealAnimation,
@@ -133,10 +130,6 @@ export function useRoomInit({
           });
           await setRoleRevealAnimation(initialRoleRevealAnimation);
         }
-        // Host auto-takes seat 0
-        setLoadingMessage('正在入座...');
-        roomScreenLog.debug('[useRoomInit] Host auto-taking seat 0');
-        await takeSeat(0);
         setIsInitialized(true);
         initInProgressRef.current = false;
         roomScreenLog.debug('[useRoomInit] Host init complete');
@@ -169,7 +162,6 @@ export function useRoomInit({
     roomNumber,
     initializeHostRoom,
     joinRoom,
-    takeSeat,
     initialRoleRevealAnimation,
     setRoleRevealAnimation,
     // NOTE: gameRoomError intentionally excluded — read via ref to avoid

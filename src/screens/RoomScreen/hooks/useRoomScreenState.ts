@@ -200,7 +200,6 @@ export function useRoomScreenState(
     template,
     initializeHostRoom,
     joinRoom,
-    takeSeat,
     hasGameState: !!gameState,
     initialRoleRevealAnimation,
     setRoleRevealAnimation,

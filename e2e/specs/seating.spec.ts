@@ -11,7 +11,7 @@ import { RoomPage } from '../pages/RoomPage';
  * Seating E2E Tests
  *
  * Regression tests for seat management:
- * 1. Single player auto-seat + "我" badge
+ * 1. Single player manual seat + "我" badge
  * 2. Two player seat conflict detection
  * 3. Occupied seat rejection alert
  * 4. Host sees joiner seat update (broadcast)
@@ -79,7 +79,7 @@ async function pollSeatEmpty(
 // ---------------------------------------------------------------------------
 
 test.describe('Seating', () => {
-  test('single player auto-seat shows "我" badge', async ({ browser }, testInfo) => {
+  test('single player manual seat shows "我" badge', async ({ browser }, testInfo) => {
     const fixture = await createPlayerContexts(browser, 1);
     const [page] = fixture.pages;
 
@@ -93,7 +93,9 @@ test.describe('Seating', () => {
       const room = new RoomPage(page);
       await room.waitForReady('host');
 
-      // Host auto-seated at seat 0 (display 1)
+      // Host manually takes seat 0 (display 1)
+      await room.seatAt(0);
+
       const seat1 = await room.collectSeatState(1);
       expect(seat1.hasPlayerName, 'Seat 1 should be occupied').toBe(true);
 
@@ -131,6 +133,7 @@ test.describe('Seating', () => {
 
       const roomA = new RoomPage(pageA);
       await roomA.waitForReady('host');
+      await roomA.seatAt(0);
       const roomNumber = await roomA.getRoomNumber();
 
       // Joiner joins
@@ -193,6 +196,7 @@ test.describe('Seating', () => {
 
       const roomA = new RoomPage(pageA);
       await roomA.waitForReady('host');
+      await roomA.seatAt(0);
       await settleAfterRoomReady(pageA);
       const roomNumber = await roomA.getRoomNumber();
 
@@ -255,6 +259,7 @@ test.describe('Seating', () => {
 
       const roomA = new RoomPage(pageA);
       await roomA.waitForReady('host');
+      await roomA.seatAt(0);
       await settleAfterRoomReady(pageA);
       const roomNumber = await roomA.getRoomNumber();
 
@@ -299,6 +304,7 @@ test.describe('Seating', () => {
 
       const roomA = new RoomPage(pageA);
       await roomA.waitForReady('host');
+      await roomA.seatAt(0);
       await settleAfterRoomReady(pageA);
       const roomNumber = await roomA.getRoomNumber();
 
@@ -353,6 +359,7 @@ test.describe('Seating', () => {
 
       const roomA = new RoomPage(pageA);
       await roomA.waitForReady('host');
+      await roomA.seatAt(0);
       await settleAfterRoomReady(pageA);
       const roomNumber = await roomA.getRoomNumber();
 
