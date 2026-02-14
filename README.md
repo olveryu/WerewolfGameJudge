@@ -78,7 +78,15 @@ _The 🐺 floating button at the bottom-right is your personal Werewolf consulta
 
 ## 🎭 支持角色 | Supported Roles (22)
 
-### 神职阵营 | God Faction (11)
+### 好人阵营 | Good Faction (12)
+
+#### 村民 | Villager (1)
+
+| 中文     | English  | 描述 Description                                |
+| -------- | -------- | ----------------------------------------------- |
+| 普通村民 | Villager | 依靠推理投票<br/>_Rely on deduction and voting_ |
+
+#### 神职 | God (11)
 
 | 中文   | English          | 描述 Description                                                 |
 | ------ | ---------------- | ---------------------------------------------------------------- |
@@ -108,12 +116,11 @@ _The 🐺 floating button at the bottom-right is your personal Werewolf consulta
 | 机械狼   | Wolf Robot     | 学习一人技能，隐身狼<br/>_Learn one skill, hidden wolf_              |
 | 恶灵骑士 | Spirit Knight  | 免疫夜间伤害，反伤神职<br/>_Immune to night damage, reflect to gods_ |
 
-### 其他阵营 | Other Factions (2)
+### 第三方 | Third Party (1)
 
-| 中文     | English  | 描述 Description                                                             |
-| -------- | -------- | ---------------------------------------------------------------------------- |
-| 普通村民 | Villager | 依靠推理投票<br/>_Rely on deduction and voting_                              |
-| 混子     | Slacker  | 第一晚选择榜样，与其同阵营<br/>_Choose idol on Night-1, share their faction_ |
+| 中文 | English | 描述 Description                                                             |
+| ---- | ------- | ---------------------------------------------------------------------------- |
+| 混子 | Slacker | 第一晚选择榜样，与其同阵营<br/>_Choose idol on Night-1, share their faction_ |
 
 ---
 
