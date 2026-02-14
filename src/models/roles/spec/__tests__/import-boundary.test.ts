@@ -93,8 +93,11 @@ describe('Import Boundary Enforcement', () => {
   });
 
   describe('Resolver imports should only come from services/night/', () => {
+    // Source of truth is now in @werewolf/game-engine
+    const gameEngineResolversDir = path.join(workspaceRoot, 'packages/game-engine/src/resolvers');
+
     it('resolvers/index.ts should exist and export RESOLVERS', () => {
-      const resolversIndexPath = path.join(srcRoot, 'services/night/resolvers/index.ts');
+      const resolversIndexPath = path.join(gameEngineResolversDir, 'index.ts');
       expect(fs.existsSync(resolversIndexPath)).toBe(true);
 
       const content = fs.readFileSync(resolversIndexPath, 'utf-8');
@@ -102,8 +105,7 @@ describe('Import Boundary Enforcement', () => {
     });
 
     it('resolvers should not import from UI directories', () => {
-      const resolversDir = path.join(srcRoot, 'services/night/resolvers');
-      const tsFiles = findTsFiles(resolversDir);
+      const tsFiles = findTsFiles(gameEngineResolversDir);
 
       const forbiddenPatterns = [
         /from\s+['"].*\/components\//,

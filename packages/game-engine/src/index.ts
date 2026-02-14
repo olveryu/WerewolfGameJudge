@@ -22,7 +22,17 @@ export * from './models/roles';
 export * from './models/Template';
 
 // === Protocol ===
-// (will be populated in Commit 3)
+export * from './protocol/reasonCodes';
+export * from './protocol/types';
 
-// === Engine ===
-// (will be populated in Commit 4)
+// === Types ===
+export * from './types/RoleRevealAnimation';
+
+// === Resolvers ===
+export * from './resolvers';
+export * from './resolvers/types';
+
+// === Engine (helpers) ===
+export { resolveWolfVotes } from './engine/resolveWolfVotes';
+
+// (remaining engine code will be populated in Commit 4)
