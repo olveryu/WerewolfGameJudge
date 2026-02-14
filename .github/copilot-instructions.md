@@ -49,7 +49,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 ## Common Commands
 
 - `pnpm run web` — 启动 Web 开发服务器
-- `pnpm exec jest --no-coverage --forceExit` — 跑全部单元/集成测试（166 suites / 2643 tests）
+- `pnpm exec jest --no-coverage --forceExit` — 跑全部单元/集成测试（171 suites / 2657 tests）
 - `pnpm exec playwright test --reporter=list` — 跑 E2E（必须加 `--reporter=list`，否则会阻塞终端）
 - `pnpm exec tsc --noEmit` — 类型检查
 - `pnpm run lint` — ESLint
@@ -122,7 +122,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 - **客户端** 负责：HTTP API 提交操作，Realtime broadcast 接收状态，`applySnapshot` 更新本地 store，音频播放（Host UI 角色）。
 - **所有客户端完全平等。** Host 和 Player 走相同的状态接收路径，不存在 Host 专用逻辑路径。
 - **禁止 P2P 消息。** 无 `sendToHost`、无 `broadcastAsHost`、无 `REQUEST_STATE`。所有操作走 HTTP API → 服务端广播。
-- **断线恢复统一读 DB。** Host 和 Player 都从 `rooms.game_state` 读取最新状态。`hostStateCache` 仅用于音频中断恢复。
+- **断线恢复统一读 DB。** Host 和 Player 都从 `rooms.game_state` 读取最新状态。
 
 ### 代码归属
 

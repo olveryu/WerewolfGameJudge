@@ -1780,7 +1780,7 @@ rooms (
 3. **Phase 2**: 游戏控制 → HTTP — 引入音频 sideEffects 模式 ✅
 4. **Phase 3**: 夜晚流程 → HTTP — 最复杂，音频编排 + 自动推进 ✅
 5. **Phase 4**: 统一客户端架构 — 消除 Host/Player 代码分叉，所有客户端平等 ✅
-6. **Phase 5**: 消除 HostStateCache — 统一 rejoin 到 DB + 合并入口方法（纯客户端，零服务端改动）
-7. **Phase 6**: 推进/计时迁移服务端 — 服务端内联推进 + pendingAudioEffects 队列 + 客户端 deadline 兜底
-8. **Phase 7**: 清理冗余 isHost 门控 — 删除 GameFacade 快速拦截 + HostActionsContext.isHost + telemetry（纯清理，零行为变化）
+6. **Phase 5**: 消除 HostStateCache — 统一 rejoin 到 DB + 合并入口方法（纯客户端，零服务端改动） ✅
+7. **Phase 6**: 推进/计时迁移服务端 — 服务端内联推进 + pendingAudioEffects 队列 + 客户端 deadline 兜底 ✅
+8. **Phase 7**: 清理冗余 isHost 门控 — 删除 GameFacade 快速拦截 + HostActionsContext.isHost + telemetry（纯清理，零行为变化） ✅
 9. **集成测试 + 文档**: E2E 全量回归 + 文档更新
