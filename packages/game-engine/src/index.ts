@@ -34,6 +34,7 @@ export * from './resolvers/types';
 
 // === Engine ===
 export { calculateDeaths } from './engine/DeathCalculator';
+export { handleJoinSeat, handleLeaveMySeat } from './engine/handlers/seatHandler';
 export * from './engine/handlers/types';
 export * from './engine/intents/types';
 export * from './engine/reducer';
