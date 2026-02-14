@@ -32,7 +32,13 @@ export * from './types/RoleRevealAnimation';
 export * from './resolvers';
 export * from './resolvers/types';
 
-// === Engine (helpers) ===
+// === Engine ===
+export { calculateDeaths } from './engine/DeathCalculator';
+export * from './engine/handlers/types';
+export * from './engine/intents/types';
+export * from './engine/reducer';
+export * from './engine/reducer/types';
 export { resolveWolfVotes } from './engine/resolveWolfVotes';
-
-// (remaining engine code will be populated in Commit 4)
+export { normalizeState } from './engine/state/normalize';
+export * from './engine/store';
+export * from './engine/store/types';

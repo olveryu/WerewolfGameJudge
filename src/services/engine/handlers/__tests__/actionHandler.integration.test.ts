@@ -24,13 +24,13 @@ const baseContext: any = {
   },
 };
 
-jest.mock('../../../night/resolvers', () => ({
+jest.mock('@werewolf/game-engine/resolvers', () => ({
   RESOLVERS: {
     seerCheck: jest.fn(() => ({ valid: true, updates: { someUpdate: true } })),
   },
 }));
 
-jest.mock('../../../../models/roles/spec', () => ({
+jest.mock('@werewolf/game-engine/models/roles/spec', () => ({
   NIGHT_STEPS: [{ id: 'seerCheck', roleId: 'seer' }],
   SCHEMAS: { seerCheck: { id: 'seerCheck', kind: 'chooseSeat' } }, // PR4: 必须 mock SCHEMAS
 }));
