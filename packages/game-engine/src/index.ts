@@ -34,6 +34,16 @@ export * from './resolvers/types';
 
 // === Engine ===
 export { calculateDeaths } from './engine/DeathCalculator';
+export { handleViewedRole } from './engine/handlers/actionHandler';
+export {
+  handleAssignRoles,
+  handleFillWithBots,
+  handleMarkAllBotsViewed,
+  handleRestartGame,
+  handleSetRoleRevealAnimation,
+  handleStartNight,
+  handleUpdateTemplate,
+} from './engine/handlers/gameControlHandler';
 export { handleJoinSeat, handleLeaveMySeat } from './engine/handlers/seatHandler';
 export * from './engine/handlers/types';
 export * from './engine/intents/types';

@@ -88,5 +88,5 @@ export async function processGameAction(
   });
   await supabase.removeChannel(channel);
 
-  return { success: true, state: newState };
+  return { success: true, state: newState, sideEffects: result.sideEffects };
 }
