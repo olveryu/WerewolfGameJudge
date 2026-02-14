@@ -37,6 +37,7 @@ OUT_END_DIR = ROOT_DIR / "assets" / "audio_end"
 DEFAULT_VOICE = "zh-CN-YunjianNeural"
 DEFAULT_PITCH = "-20Hz"  # Lower pitch for deeper voice
 DEFAULT_RATE = "-20%"    # Slower rate for more gravitas
+DEFAULT_VOLUME = "+50%"  # Louder TTS so role narration is clearly audible over BGM
 
 # Trailing silence duration in seconds for specific keys.
 # "night" needs 5s silence so iOS Safari doesn't break the audio chain.
@@ -87,6 +88,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--voice", default=DEFAULT_VOICE, help=f"Edge TTS voice short name (default: {DEFAULT_VOICE})")
     parser.add_argument("--pitch", default=DEFAULT_PITCH, help=f"Pitch adjustment e.g. -20Hz (default: {DEFAULT_PITCH})")
     parser.add_argument("--rate", default=DEFAULT_RATE, help=f"Rate adjustment e.g. -20%% (default: {DEFAULT_RATE})")
+    parser.add_argument("--volume", default=DEFAULT_VOLUME, help=f"Volume adjustment e.g. +50%% (default: {DEFAULT_VOLUME})")
     parser.add_argument("--only", default="", help="Generate only one key (e.g. night_end)")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be generated")
     parser.add_argument("--list-voices", action="store_true", help="Print available zh-CN male voices")
@@ -100,7 +102,7 @@ async def list_voices() -> None:
         print(v.get("ShortName"))
 
 
-async def generate_one(key: str, text: str, voice: str, pitch: str, rate: str, out_path: Path, dry_run: bool) -> None:
+async def generate_one(key: str, text: str, voice: str, pitch: str, rate: str, volume: str, out_path: Path, dry_run: bool) -> None:
     if dry_run:
         silence = TRAILING_SILENCE.get(key, 0)
         suffix = f" (+{silence}s silence)" if silence else ""
@@ -116,7 +118,7 @@ async def generate_one(key: str, text: str, voice: str, pitch: str, rate: str, o
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
             tmp_path = Path(tmp.name)
         try:
-            communicate = edge_tts.Communicate(text, voice, pitch=pitch, rate=rate)
+            communicate = edge_tts.Communicate(text, voice, pitch=pitch, rate=rate, volume=volume)
             await communicate.save(str(tmp_path))
 
             # Use ffmpeg to append silence
@@ -138,7 +140,7 @@ async def generate_one(key: str, text: str, voice: str, pitch: str, rate: str, o
         finally:
             tmp_path.unlink(missing_ok=True)
     else:
-        communicate = edge_tts.Communicate(text, voice, pitch=pitch, rate=rate)
+        communicate = edge_tts.Communicate(text, voice, pitch=pitch, rate=rate, volume=volume)
         await communicate.save(str(out_path))
         print(f"Generated {out_path}")
 
@@ -153,18 +155,19 @@ async def main() -> None:
     only = args.only.strip()
     pitch = args.pitch
     rate = args.rate
+    volume = args.volume
 
     tasks = []
 
     for key, text in BEGIN_TEXT.items():
         if only and only != key:
             continue
-        tasks.append(generate_one(key, text, args.voice, pitch, rate, OUT_BEGIN_DIR / f"{key}.mp3", args.dry_run))
+        tasks.append(generate_one(key, text, args.voice, pitch, rate, volume, OUT_BEGIN_DIR / f"{key}.mp3", args.dry_run))
 
     for key, text in END_TEXT.items():
         if only and only != key:
             continue
-        tasks.append(generate_one(key, text, args.voice, pitch, rate, OUT_END_DIR / f"{key}.mp3", args.dry_run))
+        tasks.append(generate_one(key, text, args.voice, pitch, rate, volume, OUT_END_DIR / f"{key}.mp3", args.dry_run))
 
     if not tasks:
         raise SystemExit(f"No tasks to run (only={only!r}).")
