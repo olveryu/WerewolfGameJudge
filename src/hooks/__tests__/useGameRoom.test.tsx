@@ -433,6 +433,71 @@ describe('useGameRoom - ACK reason transparency', () => {
       // 现在应该调用第二次
       expect(requestSnapshotMock).toHaveBeenCalledTimes(2);
     });
+
+    it('should auto-heal when state is stale while connected (dropped broadcast)', async () => {
+      const requestSnapshotMock = jest.fn().mockResolvedValue(true);
+      let statusListener: ((status: 'live' | 'connecting' | 'disconnected') => void) | null = null;
+      let stateListener: ((state: any) => void) | null = null;
+
+      const mockFacade = createMockFacade({
+        requestSnapshot: requestSnapshotMock,
+        isHostPlayer: jest.fn().mockReturnValue(false), // Player mode
+        addListener: jest.fn().mockImplementation((fn) => {
+          stateListener = fn;
+          return () => {};
+        }),
+        addConnectionStatusListener: jest.fn().mockImplementation((fn) => {
+          statusListener = fn;
+          return () => {};
+        }),
+      });
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      );
+
+      const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+      await act(async () => {
+        await result.current.joinRoom('TEST');
+      });
+
+      // Connect and let reconnect recovery fire
+      act(() => {
+        statusListener?.('live');
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+      });
+      expect(requestSnapshotMock).toHaveBeenCalledTimes(1);
+
+      // Receive state (establishes baseline for auto-heal)
+      const mockState = {
+        roomCode: 'TEST',
+        hostUid: 'host-1',
+        status: 'unseated',
+        templateRoles: ['villager'],
+        players: {},
+        currentStepIndex: -1,
+        isAudioPlaying: false,
+      };
+      await act(async () => {
+        stateListener?.(mockState);
+      });
+
+      // Advance past AUTO_HEAL_COOLDOWN_MS (15s) grace period from connection
+      // AND past STALE_THRESHOLD_MS (15s) so state becomes stale.
+      // State received at t=2000. Stale check interval fires every 5s from t=2000.
+      // At t=17000: diff = 15000, NOT > 15000 (strict). Not stale yet.
+      // At t=22000: diff = 20000 > 15000. Stale! Auto-heal fires.
+      // Grace period: 22000 - 0 (connectionLiveAt) = 22000 > 15000. Passed.
+      await act(async () => {
+        jest.advanceTimersByTime(20000); // t=22000
+      });
+
+      // Auto-heal should have fired (state stale + connected + grace period passed)
+      expect(requestSnapshotMock).toHaveBeenCalledTimes(2);
+    });
   });
 });
 
