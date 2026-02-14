@@ -128,12 +128,12 @@ _The 🐺 floating button at the bottom-right is your personal Werewolf consulta
 
 ### 核心原则 | Core Principles
 
-| 原则                               | Principle                                          |
-| ---------------------------------- | -------------------------------------------------- |
-| ✅ Host 是唯一游戏逻辑权威         | Host is the single authority for game logic        |
-| ✅ Supabase 只负责传输/发现/身份   | Supabase handles transport/discovery/identity only |
-| ✅ `BroadcastGameState` 是单一真相 | `BroadcastGameState` is the single source of truth |
-| ✅ UI 层按 `myRole` 过滤显示       | UI filters display based on `myRole`               |
+| 原则                                    | Principle                                                       |
+| --------------------------------------- | --------------------------------------------------------------- |
+| ✅ Host 是唯一游戏逻辑权威              | Host is the single authority for game logic                     |
+| ✅ Supabase 负责传输/发现/身份/状态备份 | Supabase handles transport/discovery/identity/state replication |
+| ✅ `BroadcastGameState` 是单一真相      | `BroadcastGameState` is the single source of truth              |
+| ✅ UI 层按 `myRole` 过滤显示            | UI filters display based on `myRole`                            |
 
 ### 系统架构 | System Architecture
 

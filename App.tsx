@@ -95,6 +95,7 @@ export default function App() {
         broadcastService: new BroadcastService(),
         audioService: services.audioService,
         hostStateCache: new HostStateCache(),
+        roomService: services.roomService,
       }),
   );
 

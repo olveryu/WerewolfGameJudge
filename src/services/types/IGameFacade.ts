@@ -215,6 +215,12 @@ export interface IGameFacade {
   requestSnapshot(): Promise<boolean>;
 
   /**
+   * Player 从 DB 直接读取最新状态（auto-heal fallback）
+   * 比 requestSnapshot 更可靠 — 不经过 broadcast 通道
+   */
+  fetchStateFromDB(): Promise<boolean>;
+
+  /**
    * Host rejoin 后是否有音频被中断
    */
   readonly wasAudioInterrupted: boolean;

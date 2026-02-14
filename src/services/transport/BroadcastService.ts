@@ -6,22 +6,24 @@
  * - Host→Player 广播 STATE_UPDATE / ACK / SNAPSHOT_RESPONSE
  * - Player→Host 发送 intent / PlayerMessage
  * - 断线重连 + SNAPSHOT_REQUEST/RESPONSE 状态恢复
+ * - 订阅 postgres_changes（DB 备份通道，可靠补偿 broadcast 丢失）
  *
- * ✅ 允许：Realtime channel 管理 + 消息收发 + presence
+ * ✅ 允许：Realtime channel 管理 + 消息收发 + presence + DB 变更订阅
  * ❌ 禁止：游戏逻辑（校验/结算/流程推进）
- * ❌ 禁止：存储游戏状态
+ * ❌ 禁止：持久化游戏状态（DB 写入由 RoomService 负责）
  *
  * Protocol Features:
  * - stateRevision: Monotonic counter for ordering state updates
  * - requestId + ACK: Reliable seat/standup actions with acknowledgment
  * - SNAPSHOT_REQUEST/RESPONSE: State recovery for reconnection/packet loss
+ * - postgres_changes: Reliable backup channel for state updates
  */
 
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
 // Protocol types - Import for local use
-import type { HostBroadcast, PlayerMessage } from '@/services/protocol/types';
+import type { BroadcastGameState, HostBroadcast, PlayerMessage } from '@/services/protocol/types';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import { broadcastLog } from '@/utils/logger';
 
@@ -34,6 +36,8 @@ type ConnectionStatusListener = (status: ConnectionStatus) => void;
 
 export class BroadcastService {
   private channel: RealtimeChannel | null = null;
+  /** DB state change subscription channel (postgres_changes on rooms table) */
+  private dbChannel: RealtimeChannel | null = null;
   private roomCode: string | null = null;
 
   // Connection status
@@ -45,6 +49,8 @@ export class BroadcastService {
   private onHostBroadcast: ((message: HostBroadcast) => void) | null = null;
   private onPlayerMessage: ((message: PlayerMessage, senderId: string) => void) | null = null;
   private onPresenceChange: ((users: string[]) => void) | null = null;
+  /** Callback for DB state changes (postgres_changes backup channel) */
+  private onDbStateChange: ((state: BroadcastGameState, revision: number) => void) | null = null;
 
   constructor() {}
 
@@ -90,6 +96,8 @@ export class BroadcastService {
       onHostBroadcast?: (message: HostBroadcast) => void;
       onPlayerMessage?: (message: PlayerMessage, senderId: string) => void;
       onPresenceChange?: (users: string[]) => void;
+      /** DB state change callback (postgres_changes backup channel for Player) */
+      onDbStateChange?: (state: BroadcastGameState, revision: number) => void;
     },
   ): Promise<void> {
     if (!this.isConfigured()) {
@@ -106,6 +114,7 @@ export class BroadcastService {
     this.onHostBroadcast = callbacks.onHostBroadcast || null;
     this.onPlayerMessage = callbacks.onPlayerMessage || null;
     this.onPresenceChange = callbacks.onPresenceChange || null;
+    this.onDbStateChange = callbacks.onDbStateChange || null;
 
     // Create channel with room code
     broadcastLog.info(
@@ -189,6 +198,34 @@ export class BroadcastService {
     // Now we're fully connected and syncing
     // Status will be set to 'live' after receiving first STATE_UPDATE
     broadcastLog.info(' Joined room:', roomCode);
+
+    // Subscribe to DB state changes (reliable backup channel)
+    // Player receives state via both broadcast (fast) and postgres_changes (reliable).
+    // Revision-based dedup in GameStore.applySnapshot() handles duplicates.
+    if (this.onDbStateChange) {
+      this.dbChannel = supabase!
+        .channel(`db-room:${roomCode}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'rooms',
+            filter: `code=eq.${roomCode}`,
+          },
+          (payload) => {
+            const newRow = payload.new as { game_state?: unknown; state_revision?: number };
+            if (newRow.game_state && newRow.state_revision != null) {
+              broadcastLog.debug(' DB state change received, revision:', newRow.state_revision);
+              this.onDbStateChange?.(
+                newRow.game_state as BroadcastGameState,
+                newRow.state_revision,
+              );
+            }
+          },
+        )
+        .subscribe();
+    }
   }
 
   /**
@@ -217,10 +254,15 @@ export class BroadcastService {
       await this.channel.unsubscribe();
       this.channel = null;
     }
+    if (this.dbChannel) {
+      await this.dbChannel.unsubscribe();
+      this.dbChannel = null;
+    }
     this.roomCode = null;
     this.onHostBroadcast = null;
     this.onPlayerMessage = null;
     this.onPresenceChange = null;
+    this.onDbStateChange = null;
     this.setConnectionStatus('disconnected');
     broadcastLog.info(' Left room');
   }

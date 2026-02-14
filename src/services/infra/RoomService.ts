@@ -1,22 +1,27 @@
 /**
- * RoomService - Supabase 房间记录的最小存储服务
+ * RoomService - Supabase 房间记录 + 游戏状态持久化服务
  *
  * 职责：
  * - 创建/查询/删除 Supabase rooms 表记录
  * - 生成唯一 4 位房间号
+ * - 持久化 game_state snapshot（供 Player 通过 postgres_changes 或 SELECT 恢复）
  *
  * ✅ 允许：Supabase rooms 表的 CRUD 操作
- * ❌ 禁止：存储/校验任何游戏状态（游戏状态由 GameFacade 在内存中管理）
+ * ✅ 允许：持久化 game_state snapshot（供 Player 恢复）
+ * ❌ 禁止：校验游戏逻辑（游戏逻辑由 Host 内存 GameStore 管理）
  *
- * Supabase rooms table schema (simplified):
+ * Supabase rooms table schema:
  * - id: uuid (primary key)
  * - code: text (unique, 4-digit room code)
  * - host_id: text
+ * - game_state: jsonb (BroadcastGameState snapshot)
+ * - state_revision: integer (monotonic revision counter)
  * - created_at: timestamptz
  * - updated_at: timestamptz
  */
 
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
+import type { BroadcastGameState } from '@/services/protocol/types';
 import { roomLog } from '@/utils/logger';
 import { generateRoomCode } from '@/utils/roomCode';
 
@@ -156,5 +161,50 @@ export class RoomService {
     if (error) {
       roomLog.error(' Failed to delete room:', error);
     }
+  }
+
+  /**
+   * Upsert game state into rooms table.
+   * Called by Host after every state mutation (broadcastCurrentState).
+   * Fire-and-forget — failure only logs a warning, does not block gameplay.
+   */
+  async upsertGameState(
+    roomCode: string,
+    state: BroadcastGameState,
+    revision: number,
+  ): Promise<void> {
+    this.ensureConfigured();
+
+    const { error } = await supabase!
+      .from('rooms')
+      .update({ game_state: state, state_revision: revision })
+      .eq('code', roomCode);
+
+    if (error) {
+      roomLog.warn('upsertGameState failed:', error.message);
+    }
+  }
+
+  /**
+   * Read latest game state from DB.
+   * Used by Player for initial load and auto-heal fallback.
+   */
+  async getGameState(
+    roomCode: string,
+  ): Promise<{ state: BroadcastGameState; revision: number } | null> {
+    this.ensureConfigured();
+
+    const { data, error } = await supabase!
+      .from('rooms')
+      .select('game_state, state_revision')
+      .eq('code', roomCode)
+      .single();
+
+    if (error || !data?.game_state) return null;
+
+    return {
+      state: data.game_state as BroadcastGameState,
+      revision: data.state_revision as number,
+    };
   }
 }

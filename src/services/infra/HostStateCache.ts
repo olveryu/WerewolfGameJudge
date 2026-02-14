@@ -6,7 +6,7 @@
  * - 用于 Host 断线重连后恢复其权威状态
  *
  * ✅ 允许：AsyncStorage 读写 + 结构校验 + cache key 防误命中
- * ❌ 禁止：作为权威存储使用（这只是本地缓存，Supabase 不存储游戏状态）
+ * ❌ 禁止：作为权威存储使用（这只是 Host 本地缓存，DB 中也有 state 备份供 Player 读取）
  * ❌ 禁止：Player 端使用
  *
  * 防误命中策略：

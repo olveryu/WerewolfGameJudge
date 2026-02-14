@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Supabase 仅做房间发现与 realtime 传输。支持 iOS / Android / Web。
+React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发现、realtime 传输、state 持久化。支持 iOS / Android / Web。
 
 ## Tech Stack
 
@@ -89,8 +89,8 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 
 ## 不可协商规则
 
-- **Host 是唯一的游戏逻辑权威。** Supabase 只负责 transport/discovery/identity。
-- **离线本地玩法。** Host 设备同时也是玩家，不是单独裁判机。
+- **Host 是唯一的游戏逻辑权威。** Supabase 负责 transport/discovery/identity/state replication。
+- **Host 设备同时也是玩家，不是单独裁判机。**
 - **仅 Night-1 范围。** 绝对不要加入跨夜状态/规则。
 - **`BroadcastGameState` 是单一真相。** 所有信息公开广播，UI 按 `myRole` 过滤显示。禁止双写/drift。
 - **优先使用成熟库。** 新增能力先找成熟 npm 库。
@@ -105,8 +105,8 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。本地/离线为主，Sup
 ### Host vs Supabase
 
 - Host 负责：night flow、validation、resolver、death calculation、audio sequencing。
-- Supabase 负责：房间生命周期（4 位房间号）、presence、auth、realtime transport。
-- Supabase **绝对不能**存储/校验游戏状态。
+- Supabase 负责：房间生命周期（4 位房间号）、presence、auth、realtime transport、game_state 持久化。
+- Supabase 持久化 state snapshot 供 Player 恢复，但**绝对不能**校验游戏逻辑。Host 内存 GameStore 是唯一权威。
 
 ### 代码归属
 

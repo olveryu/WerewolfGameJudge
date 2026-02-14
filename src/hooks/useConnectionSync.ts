@@ -3,12 +3,14 @@
  *
  * Manages:
  * - BroadcastService connection status subscription
- * - Player auto-recovery after reconnect (throttled snapshot request)
- * - State staleness detection + automatic self-healing
+ * - Player auto-recovery after reconnect (DB read + throttled snapshot request)
+ * - State staleness detection + automatic self-healing via DB fallback
  *
  * Self-healing: When a player's WebSocket stays connected but a broadcast
  * message is silently dropped (Supabase Realtime is at-most-once), the
- * staleness detector automatically requests the latest state from Host.
+ * staleness detector automatically reads the latest state from DB.
+ * This is more reliable than the old REQUEST_STATE approach which also
+ * went through the same unreliable broadcast channel.
  *
  * ✅ 允许：订阅 BroadcastService 连接状态、派生 staleness
  * ❌ 禁止：直接修改游戏状态、业务校验逻辑
@@ -102,13 +104,13 @@ export function useConnectionSync(
       return;
     }
 
-    // 启动定时器：如果 2 秒内没有收到 STATE_UPDATE，主动请求
+    // 启动定时器：如果 2 秒内没有收到 STATE_UPDATE，主动从 DB 读取
     reconnectTimerRef.current = setTimeout(() => {
       if (hasRequestedInSessionRef.current) return; // 双重保险
       hasRequestedInSessionRef.current = true;
-      gameRoomLog.debug('Player auto-recovery: requesting state after reconnect');
-      facade.requestSnapshot().catch((e) => {
-        gameRoomLog.warn('Player auto-recovery requestSnapshot failed:', e);
+      gameRoomLog.debug('Player auto-recovery: fetching state from DB after reconnect');
+      facade.fetchStateFromDB().catch((e) => {
+        gameRoomLog.warn('Player auto-recovery fetchStateFromDB failed:', e);
       });
     }, 2000);
 
@@ -139,9 +141,9 @@ export function useConnectionSync(
     return () => clearInterval(id);
   }, [connectionStatus, lastStateReceivedAt]);
 
-  // ── Player 自动自愈：连接正常但漏收广播时，主动拉取最新状态 ──
+  // ── Player 自动自愈：连接正常但漏收广播时，从 DB 直接读取最新状态 ──
   // Supabase broadcast 是 at-most-once，单条消息丢失不会触发断线重连。
-  // 此 effect 在 staleness 检测到后自动发 REQUEST_STATE，无需用户手动刷新。
+  // 此 effect 在 staleness 检测到后自动从 DB 读取，比旧的 REQUEST_STATE 更可靠。
   const lastAutoHealRef = useRef<number>(0);
   useEffect(() => {
     if (isHost) return;
@@ -161,9 +163,9 @@ export function useConnectionSync(
     }
     lastAutoHealRef.current = now;
 
-    gameRoomLog.info('Auto-heal: state stale while connected, requesting snapshot from Host');
-    facade.requestSnapshot().catch((e) => {
-      gameRoomLog.warn('Auto-heal requestSnapshot failed:', e);
+    gameRoomLog.info('Auto-heal: state stale while connected, fetching from DB');
+    facade.fetchStateFromDB().catch((e) => {
+      gameRoomLog.warn('Auto-heal fetchStateFromDB failed:', e);
     });
   }, [isStateStale, connectionStatus, isHost, roomRecord, facade, lastStateReceivedAt]);
 

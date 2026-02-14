@@ -32,6 +32,7 @@ import { shouldTriggerWolfVoteRecovery } from '@/services/engine/handlers/progre
 import { GameStore } from '@/services/engine/store';
 import { AudioService } from '@/services/infra/AudioService';
 import { HostStateCache } from '@/services/infra/HostStateCache';
+import { RoomService } from '@/services/infra/RoomService';
 import type { BroadcastGameState, HostBroadcast, PlayerMessage } from '@/services/protocol/types';
 import { BroadcastService } from '@/services/transport/BroadcastService';
 import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFacade';
@@ -62,6 +63,8 @@ interface GameFacadeDeps {
   audioService: AudioService;
   /** HostStateCache 实例 */
   hostStateCache: HostStateCache;
+  /** RoomService 实例（DB state 持久化） */
+  roomService: RoomService;
 }
 
 export class GameFacade implements IGameFacade {
@@ -69,6 +72,7 @@ export class GameFacade implements IGameFacade {
   private readonly broadcastService: BroadcastService;
   private readonly audioService: AudioService;
   private readonly hostStateCache: HostStateCache;
+  private readonly roomService: RoomService;
   private isHost = false;
   private myUid: string | null = null;
 
@@ -107,6 +111,7 @@ export class GameFacade implements IGameFacade {
     this.broadcastService = deps.broadcastService;
     this.audioService = deps.audioService;
     this.hostStateCache = deps.hostStateCache;
+    this.roomService = deps.roomService;
   }
 
   // =========================================================================
@@ -247,6 +252,7 @@ export class GameFacade implements IGameFacade {
       onPresenceChange: (_users: string[]) => {
         void this.broadcastCurrentState();
       },
+      onDbStateChange: undefined, // Host 不需要监听 DB 变更
     });
 
     await this.broadcastCurrentState();
@@ -276,9 +282,22 @@ export class GameFacade implements IGameFacade {
       },
       onPlayerMessage: undefined,
       onPresenceChange: undefined,
+      // DB 备份通道：postgres_changes 监听 rooms 表 UPDATE
+      onDbStateChange: (state: BroadcastGameState, revision: number) => {
+        facadeLog.debug('DB state change → applySnapshot, revision:', revision);
+        this.store.applySnapshot(state, revision);
+        this.broadcastService.markAsLive();
+      },
     });
 
-    // 请求当前状态
+    // 从 DB 读取初始状态（比 REQUEST_STATE 更可靠 — 不经过 broadcast 通道）
+    const dbState = await this.roomService.getGameState(roomCode);
+    if (dbState) {
+      this.store.applySnapshot(dbState.state, dbState.revision);
+      this.broadcastService.markAsLive();
+    }
+
+    // 请求当前状态（兜底，万一 DB 还没写入）
     const reqMsg: PlayerMessage = { type: 'REQUEST_STATE', uid: playerUid };
     await this.broadcastService.sendToHost(reqMsg);
   }
@@ -350,6 +369,7 @@ export class GameFacade implements IGameFacade {
       onPresenceChange: (_users: string[]) => {
         void this.broadcastCurrentState();
       },
+      onDbStateChange: undefined, // Host 不需要监听 DB 变更
     });
 
     // 立即广播当前状态，让所有 Player 同步
@@ -766,6 +786,31 @@ export class GameFacade implements IGameFacade {
     }
   }
 
+  /**
+   * Player: 从 DB 直接读取最新状态（auto-heal fallback）
+   * 比 requestSnapshot 更可靠 — 不经过 broadcast 通道，直接 SELECT from rooms。
+   */
+  async fetchStateFromDB(): Promise<boolean> {
+    if (this.isHost) return true;
+
+    const state = this.store.getState();
+    if (!state) return false;
+
+    try {
+      const dbState = await this.roomService.getGameState(state.roomCode);
+      if (dbState) {
+        this.store.applySnapshot(dbState.state, dbState.revision);
+        this.broadcastService.markAsLive();
+        return true;
+      }
+      // DB 没有 state（Host 还未写入），fallback 到 requestSnapshot
+      return this.requestSnapshot();
+    } catch (e) {
+      facadeLog.warn('fetchStateFromDB failed, falling back to requestSnapshot', e);
+      return this.requestSnapshot();
+    }
+  }
+
   // =========================================================================
   // Night Flow (委托给 hostActions) - PR6
   // =========================================================================
@@ -899,9 +944,10 @@ export class GameFacade implements IGameFacade {
 
     const revision = this.store.getRevision();
 
-    // Host: 保存状态到本地缓存（用于 rejoin 恢复）
+    // Host: 保存状态到本地缓存（用于 rejoin 恢复）+ DB（供 Player 恢复）
     if (this.isHost) {
       void this.hostStateCache.saveState(state.roomCode, state.hostUid, state, revision);
+      void this.roomService.upsertGameState(state.roomCode, state, revision);
     }
 
     const msg: HostBroadcast = {

@@ -60,6 +60,10 @@ const createTestFacade = () =>
     broadcastService: new (jest.requireMock('../../transport/BroadcastService').BroadcastService)(),
     audioService: mockAudio(),
     hostStateCache: mockHostStateCache(),
+    roomService: {
+      upsertGameState: jest.fn().mockResolvedValue(undefined),
+      getGameState: jest.fn().mockResolvedValue(null),
+    } as any,
   });
 
 describe('GameFacade.leaveRoom() listener lifecycle contract', () => {

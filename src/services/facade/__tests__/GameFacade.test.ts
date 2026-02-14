@@ -43,6 +43,13 @@ jest.mock('../../infra/AudioService', () => ({
   AudioService: jest.fn(() => mockAudioServiceInstance),
 }));
 
+// Mock RoomService (DB state persistence)
+const mockRoomService = () =>
+  ({
+    upsertGameState: jest.fn().mockResolvedValue(undefined),
+    getGameState: jest.fn().mockResolvedValue(null),
+  }) as any;
+
 describe('GameFacade', () => {
   let facade: GameFacade;
   let mockBroadcastService: {
@@ -81,6 +88,7 @@ describe('GameFacade', () => {
         getState: jest.fn().mockReturnValue(null),
         clearState: jest.fn(),
       } as any,
+      roomService: mockRoomService(),
     });
   });
 
@@ -838,6 +846,7 @@ describe('GameFacade', () => {
           getState: jest.fn().mockReturnValue(null),
           clearState: jest.fn(),
         } as any,
+        roomService: mockRoomService(),
       });
       await playerFacade.joinAsPlayer('ABCD', 'player-uid');
 
@@ -971,6 +980,7 @@ describe('GameFacade', () => {
           getState: jest.fn().mockReturnValue(null),
           clearState: jest.fn(),
         } as any,
+        roomService: mockRoomService(),
       });
       await playerFacade.joinAsPlayer('ABCD', 'player-uid');
 
@@ -1086,6 +1096,7 @@ describe('GameFacade', () => {
           getState: jest.fn().mockReturnValue(null),
           clearState: jest.fn(),
         } as any,
+        roomService: mockRoomService(),
       });
       await playerFacade.joinAsPlayer('ABCD', 'player-uid');
 
@@ -1571,6 +1582,7 @@ describe('GameFacade', () => {
           getState: jest.fn().mockReturnValue(null),
           clearState: jest.fn(),
         } as any,
+        roomService: mockRoomService(),
       });
 
       const result = await facadeWithCache.joinAsHost('REJN', 'host-uid');
@@ -1593,6 +1605,7 @@ describe('GameFacade', () => {
           getState: jest.fn().mockReturnValue(null),
           clearState: jest.fn(),
         } as any,
+        roomService: mockRoomService(),
       });
 
       const result = await facadeWithCache.joinAsHost('REJN', 'host-uid');
@@ -1613,6 +1626,7 @@ describe('GameFacade', () => {
           getState: jest.fn().mockReturnValue(null),
           clearState: jest.fn(),
         } as any,
+        roomService: mockRoomService(),
       });
 
       await facadeWithCache.joinAsHost('REJN', 'host-uid');
@@ -1696,6 +1710,7 @@ describe('GameFacade', () => {
           getState: jest.fn().mockReturnValue(null),
           clearState: jest.fn(),
         } as any,
+        roomService: mockRoomService(),
       });
 
       await f.joinAsHost('REJN', 'host-uid');
@@ -1834,6 +1849,7 @@ describe('GameFacade', () => {
             getState: jest.fn().mockReturnValue(null),
             clearState: jest.fn(),
           } as any,
+          roomService: mockRoomService(),
         });
 
         await f.joinAsHost('REJN', 'host-uid');
@@ -1885,6 +1901,7 @@ describe('GameFacade', () => {
           getState: jest.fn().mockReturnValue(null),
           clearState: jest.fn(),
         } as any,
+        roomService: mockRoomService(),
       });
 
       await f.joinAsHost('REJN', 'host-uid');
@@ -1930,6 +1947,7 @@ describe('GameFacade', () => {
           getState: jest.fn().mockReturnValue(null),
           clearState: jest.fn(),
         } as any,
+        roomService: mockRoomService(),
       });
 
       await f.joinAsHost('REJN', 'host-uid');

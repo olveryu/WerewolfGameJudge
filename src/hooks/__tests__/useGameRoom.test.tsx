@@ -305,12 +305,12 @@ describe('useGameRoom - ACK reason transparency', () => {
       jest.useRealTimers();
     });
 
-    it('should only call requestSnapshot once per live session (no spam)', async () => {
-      const requestSnapshotMock = jest.fn().mockResolvedValue(true);
+    it('should only call fetchStateFromDB once per live session (no spam)', async () => {
+      const fetchStateFromDBMock = jest.fn().mockResolvedValue(true);
       let statusListener: ((status: 'live' | 'connecting' | 'disconnected') => void) | null = null;
 
       const mockFacade = createMockFacade({
-        requestSnapshot: requestSnapshotMock,
+        fetchStateFromDB: fetchStateFromDBMock,
         isHostPlayer: jest.fn().mockReturnValue(false), // Player mode
         addConnectionStatusListener: jest.fn().mockImplementation((fn) => {
           statusListener = fn;
@@ -336,12 +336,12 @@ describe('useGameRoom - ACK reason transparency', () => {
         statusListener?.('live');
       });
 
-      // 快进 2 秒，触发 requestSnapshot
+      // 快进 2 秒，触发 fetchStateFromDB
       await act(async () => {
         jest.advanceTimersByTime(2000);
       });
 
-      expect(requestSnapshotMock).toHaveBeenCalledTimes(1);
+      expect(fetchStateFromDBMock).toHaveBeenCalledTimes(1);
 
       // 模拟断线
       act(() => {
@@ -359,16 +359,16 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       // 仍然只调用一次（throttle 生效）
-      expect(requestSnapshotMock).toHaveBeenCalledTimes(1);
+      expect(fetchStateFromDBMock).toHaveBeenCalledTimes(1);
     });
 
-    it('should allow new requestSnapshot after receiving state (throttle reset)', async () => {
-      const requestSnapshotMock = jest.fn().mockResolvedValue(true);
+    it('should allow new fetchStateFromDB after receiving state (throttle reset)', async () => {
+      const fetchStateFromDBMock = jest.fn().mockResolvedValue(true);
       let statusListener: ((status: 'live' | 'connecting' | 'disconnected') => void) | null = null;
       let stateListener: ((state: any) => void) | null = null;
 
       const mockFacade = createMockFacade({
-        requestSnapshot: requestSnapshotMock,
+        fetchStateFromDB: fetchStateFromDBMock,
         isHostPlayer: jest.fn().mockReturnValue(false), // Player mode
         addListener: jest.fn().mockImplementation((fn) => {
           stateListener = fn;
@@ -399,7 +399,7 @@ describe('useGameRoom - ACK reason transparency', () => {
         jest.advanceTimersByTime(2000);
       });
 
-      expect(requestSnapshotMock).toHaveBeenCalledTimes(1);
+      expect(fetchStateFromDBMock).toHaveBeenCalledTimes(1);
 
       // 收到 STATE_UPDATE（重置 throttle）
       const mockState = {
@@ -431,16 +431,16 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       // 现在应该调用第二次
-      expect(requestSnapshotMock).toHaveBeenCalledTimes(2);
+      expect(fetchStateFromDBMock).toHaveBeenCalledTimes(2);
     });
 
     it('should auto-heal when state is stale while connected (dropped broadcast)', async () => {
-      const requestSnapshotMock = jest.fn().mockResolvedValue(true);
+      const fetchStateFromDBMock = jest.fn().mockResolvedValue(true);
       let statusListener: ((status: 'live' | 'connecting' | 'disconnected') => void) | null = null;
       let stateListener: ((state: any) => void) | null = null;
 
       const mockFacade = createMockFacade({
-        requestSnapshot: requestSnapshotMock,
+        fetchStateFromDB: fetchStateFromDBMock,
         isHostPlayer: jest.fn().mockReturnValue(false), // Player mode
         addListener: jest.fn().mockImplementation((fn) => {
           stateListener = fn;
@@ -469,7 +469,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       await act(async () => {
         jest.advanceTimersByTime(2000);
       });
-      expect(requestSnapshotMock).toHaveBeenCalledTimes(1);
+      expect(fetchStateFromDBMock).toHaveBeenCalledTimes(1);
 
       // Receive state (establishes baseline for auto-heal)
       const mockState = {
@@ -496,7 +496,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       // Auto-heal should have fired (state stale + connected + grace period passed)
-      expect(requestSnapshotMock).toHaveBeenCalledTimes(2);
+      expect(fetchStateFromDBMock).toHaveBeenCalledTimes(2);
     });
   });
 });
@@ -537,6 +537,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     endNight: jest.fn().mockResolvedValue({ success: true }),
     setAudioPlaying: jest.fn().mockResolvedValue({ success: true }),
     requestSnapshot: jest.fn().mockResolvedValue(true),
+    fetchStateFromDB: jest.fn().mockResolvedValue(true),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),
     addConnectionStatusListener: jest.fn().mockReturnValue(() => {}),
     wasAudioInterrupted: false,
@@ -890,6 +891,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     endNight: jest.fn().mockResolvedValue({ success: true }),
     setAudioPlaying: jest.fn().mockResolvedValue({ success: true }),
     requestSnapshot: jest.fn().mockResolvedValue(true),
+    fetchStateFromDB: jest.fn().mockResolvedValue(true),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),
     addConnectionStatusListener: jest.fn().mockReturnValue(() => {}),
     wasAudioInterrupted: false,

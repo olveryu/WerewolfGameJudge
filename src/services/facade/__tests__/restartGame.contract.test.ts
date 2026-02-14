@@ -91,6 +91,10 @@ describe('restartGame Contract', () => {
         getState: jest.fn().mockReturnValue(null),
         clearState: jest.fn(),
       } as any,
+      roomService: {
+        upsertGameState: jest.fn().mockResolvedValue(undefined),
+        getGameState: jest.fn().mockResolvedValue(null),
+      } as any,
     });
   });
 

@@ -22,6 +22,7 @@ applyTo: src/services/**
 
 Player 客户端绝对不能执行：resolvers、reducers/state transitions、death calculation、night flow progression。
 Player 仅作为 transport：发送 `PlayerMessage` → 接收 `HostBroadcast.STATE_UPDATE` → `applySnapshot(broadcastState, revision)`。
+Player 也通过 `postgres_changes` 接收 DB state update（可靠备份通道），及 `SELECT game_state` 直接读取（auto-heal fallback）。
 
 ## Wire Protocol 稳定性（Transport protocol stability）
 
