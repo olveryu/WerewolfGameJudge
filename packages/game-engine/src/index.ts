@@ -15,7 +15,11 @@ export { type Rng, secureRng } from './utils/random';
 export { shuffleArray } from './utils/shuffle';
 
 // === Models ===
-// (will be populated in Commit 2)
+export * from './models/actions/RoleAction';
+export * from './models/actions/WitchAction';
+export * from './models/GameStatus';
+export * from './models/roles';
+export * from './models/Template';
 
 // === Protocol ===
 // (will be populated in Commit 3)

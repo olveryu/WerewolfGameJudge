@@ -140,8 +140,14 @@ describe('Import Boundary Enforcement', () => {
   });
 
   describe('Public API exports validation', () => {
+    // Source of truth is now in @werewolf/game-engine
+    const gameEngineSpecRoot = path.join(
+      workspaceRoot,
+      'packages/game-engine/src/models/roles/spec',
+    );
+
     it('spec/index.ts should NOT export resolvers', () => {
-      const specIndexPath = path.join(srcRoot, 'models/roles/spec/index.ts');
+      const specIndexPath = path.join(gameEngineSpecRoot, 'index.ts');
       expect(fs.existsSync(specIndexPath)).toBe(true);
 
       const content = fs.readFileSync(specIndexPath, 'utf-8');
@@ -151,7 +157,7 @@ describe('Import Boundary Enforcement', () => {
     });
 
     it('spec/index.ts should export types, schemas, specs, and plan', () => {
-      const specIndexPath = path.join(srcRoot, 'models/roles/spec/index.ts');
+      const specIndexPath = path.join(gameEngineSpecRoot, 'index.ts');
       const content = fs.readFileSync(specIndexPath, 'utf-8');
 
       expect(content).toContain('./types');

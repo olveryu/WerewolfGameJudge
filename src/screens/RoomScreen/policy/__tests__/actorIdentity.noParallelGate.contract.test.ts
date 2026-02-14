@@ -153,7 +153,9 @@ describe('Actor Identity Anti-Drift Contracts', () => {
     });
 
     it('should have exactly one NIGHT_STEPS export', () => {
-      const nightStepsFile = readFileContent('src/models/roles/spec/nightSteps.ts');
+      const nightStepsFile = readFileContent(
+        'packages/game-engine/src/models/roles/spec/nightSteps.ts',
+      );
 
       // Count export statements for NIGHT_STEPS
       const exportMatches = nightStepsFile.match(/export\s+(const|let|var)\s+NIGHT_STEPS\b/g);
@@ -162,7 +164,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
     });
 
     it('all audioKey references should come from NIGHT_STEPS (not from ROLE_SPECS)', () => {
-      const specsContent = readFileContent('src/models/roles/spec/specs.ts');
+      const specsContent = readFileContent('packages/game-engine/src/models/roles/spec/specs.ts');
 
       // ROLE_SPECS should not define audioKey (it should come from NIGHT_STEPS)
       // Look for audioKey: 'xxx' pattern which would indicate duplicate definition
