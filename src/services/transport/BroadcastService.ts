@@ -113,7 +113,7 @@ export class BroadcastService {
     );
     this.channel = supabase!.channel(`room:${roomCode}`, {
       config: {
-        broadcast: { self: true }, // Receive own broadcasts (for testing)
+        broadcast: { self: true, ack: true }, // ack: server confirms receipt before resolving
         presence: { key: userId },
       },
     });

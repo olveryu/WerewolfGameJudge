@@ -95,6 +95,7 @@ describe('restartGame Contract', () => {
   });
 
   afterEach(() => {
+    jest.clearAllTimers();
     jest.useRealTimers();
   });
 
@@ -134,6 +135,8 @@ describe('restartGame Contract', () => {
   async function setupToOngoingState(): Promise<void> {
     // 1. 初始化 Host
     await facade.initializeAsHost('1234', 'host-uid', mockTemplate);
+    // 停止心跳，避免 runAllTimersAsync 无限循环
+    (facade as any)._stopHeartbeat();
 
     // 2. 通过 reducer 填充所有座位（避免直接修改 state）
     fillAllSeatsViaReducer();

@@ -22,17 +22,16 @@ import { gameRoomLog } from '@/utils/logger';
 
 /**
  * How long without a state update before we consider the state stale.
- * Supabase broadcast is fire-and-forget — a single missed message leaves the
- * player stuck. 15 seconds is short enough to recover within a night step, but
- * long enough to avoid false positives during normal pauses.
+ * Must be longer than the Host heartbeat interval (5s) to avoid false positives.
+ * At 8s, a single dropped heartbeat won't trigger, but two consecutive misses will.
  */
-const STALE_THRESHOLD_MS = 15_000;
+const STALE_THRESHOLD_MS = 8_000;
 
 /** How often we check staleness and potentially trigger auto-heal. */
-const STALE_CHECK_INTERVAL_MS = 5_000;
+const STALE_CHECK_INTERVAL_MS = 3_000;
 
 /** Minimum gap between consecutive auto-heal requests (prevents spam). */
-const AUTO_HEAL_COOLDOWN_MS = 15_000;
+const AUTO_HEAL_COOLDOWN_MS = 8_000;
 
 export interface ConnectionSyncState {
   connectionStatus: ConnectionStatus;

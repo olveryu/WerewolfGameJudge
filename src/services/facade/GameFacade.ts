@@ -100,6 +100,13 @@ export class GameFacade implements IGameFacade {
   private _wasAudioInterrupted = false;
 
   /**
+   * Host heartbeat timer — periodically re-broadcasts current state so that
+   * players who missed a fire-and-forget update can resync within seconds.
+   */
+  private _heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private static readonly HEARTBEAT_INTERVAL_MS = 5_000;
+
+  /**
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
    */
   constructor(deps: GameFacadeDeps) {
@@ -212,6 +219,31 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
+  // Host Heartbeat（定期重播当前状态，补偿 at-most-once 丢包）
+  // =========================================================================
+
+  /**
+   * 启动 Host 心跳：每 HEARTBEAT_INTERVAL_MS 重播当前 state。
+   * 幂等：重复调用会先 stop 再 start。
+   */
+  private _startHeartbeat(): void {
+    this._stopHeartbeat();
+    this._heartbeatTimer = setInterval(() => {
+      if (!this._aborted) void this.broadcastCurrentState();
+    }, GameFacade.HEARTBEAT_INTERVAL_MS);
+  }
+
+  /**
+   * 停止 Host 心跳。
+   */
+  private _stopHeartbeat(): void {
+    if (this._heartbeatTimer !== null) {
+      clearInterval(this._heartbeatTimer);
+      this._heartbeatTimer = null;
+    }
+  }
+
+  // =========================================================================
   // Room Lifecycle
   // =========================================================================
 
@@ -253,6 +285,9 @@ export class GameFacade implements IGameFacade {
 
     // 注册前台恢复（Host-only）
     this._setupForegroundRecovery();
+
+    // 启动 Host 心跳（定期重播 state 补偿丢包）
+    this._startHeartbeat();
   }
 
   async joinAsPlayer(
@@ -357,6 +392,9 @@ export class GameFacade implements IGameFacade {
 
     // 注册前台恢复（Host-only）
     this._setupForegroundRecovery();
+
+    // 启动 Host 心跳（定期重播 state 补偿丢包）
+    this._startHeartbeat();
 
     return { success: true };
   }
@@ -463,8 +501,9 @@ export class GameFacade implements IGameFacade {
     // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
     this._aborted = true;
 
-    // 清理前台恢复 + wolf vote timer
+    // 清理前台恢复 + wolf vote timer + heartbeat
     this._teardownForegroundRecovery();
+    this._stopHeartbeat();
     if (this._wolfVoteTimer != null) {
       clearTimeout(this._wolfVoteTimer);
       this._wolfVoteTimer = null;
