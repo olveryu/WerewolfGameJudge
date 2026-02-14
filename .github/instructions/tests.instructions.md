@@ -18,6 +18,12 @@ applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**'
 - ❌ 禁止"跳过 step / 直达 step"工具（`advanceToStep` / `skipToStep`）。
 - ❌ 禁止 helper 自动清除 gate 或自动发送确认消息。
 - ❌ 禁止跑测试时用 `| grep` / `| head` / `| tail` 截断输出。
+
+## game-engine 相关测试规则
+
+- ✅ `jest.mock()` 路径使用 `@werewolf/game-engine/...` 而非相对路径（如 `@werewolf/game-engine/resolvers`）。
+- ✅ 静态分析测试读取源文件内容时，从 `packages/game-engine/src/` 读取（不从存根读取）。
+- ❌ 禁止用相对路径 mock 存根文件（存根只做 re-export，mock 应指向 game-engine 包路径）。
 - ❌ 禁止无证据宣称"已修复"。
 
 ## 通用规则

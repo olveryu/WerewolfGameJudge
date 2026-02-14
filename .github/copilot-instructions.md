@@ -8,6 +8,8 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 
 - React Native 0.81 + React 19 + Expo SDK 54
 - TypeScript ~5.9
+- **pnpm workspace monorepo**（`packages/game-engine` + 根项目）
+- `@werewolf/game-engine` — 纯游戏逻辑共享包（models / protocol / resolvers / engine），客户端与服务端共用
 - Supabase (auth + realtime broadcast + Edge Functions)
 - Sentry (crash reporting, production only)
 - expo-image (remote avatar caching)
@@ -15,12 +17,22 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 - Groq Llama 4 Scout (AI chat via Edge Function proxy)
 - Jest 29 (单元/集成测试) | Playwright (E2E)
 - ESLint 9 (`eslint.config.mjs`) | Prettier
-- Path alias: `@/` → `src/`
+- Path alias: `@/` → `src/`（仅根项目；game-engine 内使用相对路径）
 
 ## Key Directories
 
-- `src/models/roles/` — 角色 spec / schema / nightSteps（声明式，无副作用）
-- `src/services/engine/` — Host-only 游戏引擎（reducer + handlers + resolvers）
+### `packages/game-engine/src/` — 纯游戏逻辑共享包（`@werewolf/game-engine`）
+
+- `models/` — 角色 spec / schema / nightSteps（声明式，无副作用）
+- `protocol/` — 协议类型（BroadcastGameState / ProtocolAction / reasonCodes）
+- `resolvers/` — Night resolver 纯函数（校验 + 计算）
+- `engine/` — Host-only 引擎（handlers / reducer / store / state / DeathCalculator）
+- `types/` — 共享类型（RoleRevealAnimation）
+- `utils/` — 平台无关工具（id / logger / random / shuffle）
+
+### `src/` — 客户端根项目
+
+- `src/models/`, `src/services/engine/`, `src/services/protocol/`, `src/services/night/resolvers/` — **proxy re-export stubs**（源文件在 game-engine，此处仅 `export * from '@werewolf/game-engine/...'`）
 - `src/services/facade/` — UI 层 facade（编排 + IO）
 - `src/services/transport/` — Supabase realtime broadcast
 - `src/services/infra/` — 基础设施（AudioService / AuthService / RoomService）
@@ -110,8 +122,9 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 
 ### 代码归属
 
-- `src/models/roles/**` — 声明式内容。→ 详见 `models.instructions.md`
-- `src/services/engine/**` — Host-only 引擎逻辑。→ 详见 `services.instructions.md`
+- `packages/game-engine/src/**` — 纯游戏逻辑（models / protocol / resolvers / engine）。→ 详见 `game-engine.instructions.md`
+- `src/models/`, `src/services/engine/`, `src/services/protocol/`, `src/services/night/resolvers/` — **proxy re-export stubs**（源在 game-engine）。→ 详见 `game-engine.instructions.md`
+- `src/services/facade/**` — Facade 编排 + IO。→ 详见 `services.instructions.md`
 - `src/screens/**/components/**` — 仅 UI。→ 详见 `components.instructions.md`
 
 ### 日志与错误处理
@@ -204,7 +217,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 | `perf` | 性能优化 | `style` | 格式化   | `chore`    | 杂务 |
 | `test` | 测试     | `docs`  | 文档     |            |      |
 
-- Scope：`night` / `room` / `config` / `hooks` / `theme` / `e2e` / `models` / `services` / `audio`
+- Scope：`night` / `room` / `config` / `hooks` / `theme` / `e2e` / `models` / `services` / `audio` / `game-engine`
 - 英文、小写开头、祈使语气、不加句号。破坏性变更加 `!`。
 - body（可选）：空一行后写详细说明。
 - 单个 commit 只做一件事，禁止大杂烩 commit。

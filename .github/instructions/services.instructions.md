@@ -4,6 +4,24 @@ applyTo: src/services/**
 
 # Service 层规范
 
+## 源代码位置
+
+游戏逻辑源代码已迁移至 `@werewolf/game-engine` 共享包：
+
+| `src/services/` 路径              | 源代码位置                            | 说明                   |
+| --------------------------------- | ------------------------------------- | ---------------------- |
+| `src/services/engine/**`          | `packages/game-engine/src/engine/`    | proxy re-export stubs  |
+| `src/services/protocol/**`        | `packages/game-engine/src/protocol/`  | proxy re-export stubs  |
+| `src/services/night/resolvers/**` | `packages/game-engine/src/resolvers/` | proxy re-export stubs  |
+| `src/services/facade/**`          | （原地）                              | 仍在 `src/`，编排 + IO |
+| `src/services/transport/**`       | （原地）                              | 仍在 `src/`，平台相关  |
+| `src/services/infra/**`           | （原地）                              | 仍在 `src/`，平台相关  |
+| `src/services/feature/**`         | （原地）                              | 仍在 `src/`，平台相关  |
+
+> **修改游戏逻辑** → 编辑 `packages/game-engine/src/` 下的源文件。
+> **存根文件**只有一行 `export * from '@werewolf/game-engine/...'`，禁止添加逻辑。
+> 详细规则 → `game-engine.instructions.md`
+
 ## 核心原则
 
 - ✅ 纯函数 resolver / calculator / validator（无副作用、不碰 IO/UI）。
@@ -32,7 +50,10 @@ Player 也通过 `postgres_changes` 接收 DB state update（可靠备份通道�
 
 ## Resolver 规范
 
-- ✅ 位于 `src/services/engine/night/resolvers/` 或 `src/services/night/resolvers/`。
+> 源代码位于 `packages/game-engine/src/resolvers/`。
+> `src/services/night/resolvers/` 下为 proxy re-export stubs。
+
+- ✅ 位于 `packages/game-engine/src/resolvers/`（源）或通过 `src/services/night/resolvers/`（存根）导入。
 - ✅ 输入：`ActionInput` + `ResolverContext`（含 `currentNightResults`）。
 - ✅ 输出：`{ valid, rejectReason?, updates?, result? }`。
 - ✅ 必须检查 nightmare 阻断：`currentNightResults.blockedSeat === actorSeat`。
@@ -44,7 +65,7 @@ Player 也通过 `postgres_changes` 接收 DB state update（可靠备份通道�
 ## 状态管理
 
 - ✅ `BroadcastGameState` 是唯一真相，Host 与 Player 读同一份 state。
-- ✅ 新增字段必须同步到 `src/services/engine/state/normalize.ts` 的 `normalizeState`。
+- ✅ 新增字段必须同步到 `packages/game-engine/src/engine/state/normalize.ts` 的 `normalizeState`。
 - ❌ 禁止 `HostOnlyState` 或不广播的字段。
 
 ---
@@ -99,7 +120,7 @@ advanceToNextAction()
 
 ### NightPlan 表驱动单一真相
 
-- Night-1 推进顺序来自 `NIGHT_STEPS`（`src/models/roles/spec/nightSteps.ts`）。
+- Night-1 推进顺序来自 `NIGHT_STEPS`（`packages/game-engine/src/models/roles/spec/nightSteps.ts`）。
 - 数组顺序是权威顺序，step id 必须是稳定 `SchemaId`。
 - 禁止重新引入 `night1.order` 或平行 `ACTION_ORDER`。
 - Plan builder 遇到非法 `roleId` / `schemaId` 时必须 fail-fast。
@@ -154,7 +175,7 @@ Facade 负责两个音频生命周期路径：
 
 当向 `BroadcastGameState`（或其子结构）新增字段时：
 
-1. **必须检查 `src/services/engine/state/normalize.ts`** — `normalizeState` 显式列出所有要保留的字段，遗漏会被静默丢弃。
+1. **必须检查 `packages/game-engine/src/engine/state/normalize.ts`** — `normalizeState` 显式列出所有要保留的字段，遗漏会被静默丢弃。
 2. **必须把新字段加到 `normalizeState` 返回值**。
 3. **测试门禁**：新增字段后，验证 Host→Player 广播后字段仍存在。
 
