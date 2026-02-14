@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.216] - 2026-02-13
+
+- fix(audio): boost TTS volume +50% for clearer role narration
+
 ## [1.0.215] - 2026-02-13
 
 - fix(audio): lower BGM volume from 0.15 to 0.08
