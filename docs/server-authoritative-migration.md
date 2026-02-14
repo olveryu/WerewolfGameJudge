@@ -1078,6 +1078,275 @@ Player 端：
 
 ---
 
+### Phase 4：统一客户端架构（消除 Host/Player 代码分叉）
+
+**目标：** 所有客户端完全平等 — 都通过 HTTP API 提交操作，都通过同一个 Realtime broadcast 接收状态更新，代码路径零区别。`isHost` 仅作为 UI 角色标记（决定哪些按钮可见、谁播放音频）。
+
+#### 4.0 社区标准做法
+
+Server-Authoritative 架构的客户端设计遵循以下原则：
+
+1. **所有客户端完全平等**
+   - 都通过 HTTP API 提交操作
+   - 都通过同一个 Realtime broadcast 接收状态更新
+   - 都用 `applySnapshot` 更新本地 store
+   - 代码路径零区别
+
+2. **"Host" 只是 UI 角色标记**
+   - `isHost` 决定哪些按钮可见（开始夜晚、推进、结束）
+   - `isHost` 决定谁播放音频（sideEffects 从 API 响应中返回，调用者播放）
+   - 服务端校验权限（`hostUid` 匹配才允许操作）
+   - 客户端代码里**不需要** Host 专用逻辑路径
+
+3. **断线恢复也一视同仁**
+   - 所有客户端从 DB 直接读取最新状态（`SELECT game_state`）
+   - 不需要 `REQUEST_STATE` P2P 消息
+   - `hostStateCache` 仅用于 Host 音频中断恢复（`wasAudioInterrupted`），不用于状态恢复
+
+#### 4.1 当前问题
+
+Phase 0-3 完成后仍残留 Host-authoritative 时代的代码分叉：
+
+| 问题                                         | 位置                                            | 说明                                                                        |
+| -------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------- |
+| Host 不接收 Realtime broadcast               | `GameFacade.initializeAsHost/joinAsHost`        | `onHostBroadcast: undefined` — Host 自己的 store 不会被服务端广播更新       |
+| Player 被 isHost guard 阻断                  | `messageRouter.playerHandleHostBroadcast` L148  | `if (ctx.isHost) return` — 即使 Host 收到广播也会被丢弃                     |
+| Host 自己做 Realtime 广播                    | `broadcastCurrentState()`                       | Host 还在做 client→client 广播，与服务端广播重复                            |
+| Host 写 DB                                   | `broadcastCurrentState()`                       | Host 还在做 `roomService.upsertGameState()`，与服务端写入重复               |
+| onPresenceChange → broadcastCurrentState     | `initializeAsHost/joinAsHost`                   | 有人加入/退出频道 → Host 自动广播当前状态（不必要，服务端做）               |
+| REQUEST_STATE P2P 消息                       | `messageRouter`, `GameFacade.requestSnapshot()` | Player 向 Host 请求状态快照（不必要，直接读 DB）                            |
+| sendToHost 方法                              | `BroadcastService.sendToHost()`                 | Player→Host 直接消息（所有操作都已是 HTTP，不再有 P2P）                     |
+| hostHandlePlayerMessage 整个函数             | `messageRouter.ts`                              | Host 端 PlayerMessage 路由器（所有 case 都是 legacy warn 或 REQUEST_STATE） |
+| broadcastAsHost 方法                         | `BroadcastService.broadcastAsHost()`            | Host→all 直接广播（服务端已负责广播）                                       |
+| onPlayerMessage 回调                         | `BroadcastService.joinRoom()`                   | Host 监听 Player 直接消息（不再需要）                                       |
+| fetchStateFromDB fallback 到 requestSnapshot | `GameFacade.fetchStateFromDB()`                 | DB 读不到就 fallback 到 P2P REQUEST_STATE（不必要，DB 是权威）              |
+
+#### 4.2 变更计划
+
+##### 4.2.1 `messageRouter.ts` — 重写为统一处理器
+
+**删除：**
+
+- `hostHandlePlayerMessage()` 整个函数 — 不再有 P2P PlayerMessage
+- `MessageRouterContext.broadcastCurrentState` 字段 — 不再需要
+- `if (ctx.isHost) return` guard — Host 和 Player 走同一个 handler
+
+**改造：**
+
+- `playerHandleHostBroadcast()` → 重命名为 `handleStateUpdate()`
+- 删除 `!ctx.isHost` guard — Host 和 Player 都接收 `STATE_UPDATE`
+- Host 收到 `STATE_UPDATE` 时额外保存 `hostStateCache`（用于音频中断恢复）
+
+```typescript
+// 新 messageRouter.ts — 极简
+export interface MessageRouterContext {
+  readonly store: GameStore;
+  readonly broadcastService: BroadcastService;
+  isHost: boolean;
+  /** Host-only: 保存状态到本地缓存（音频中断恢复用） */
+  saveHostCache?: (state: BroadcastGameState, revision: number) => void;
+}
+
+/**
+ * 所有客户端统一处理 STATE_UPDATE
+ * Host 和 Player 走完全相同的路径
+ */
+export function handleStateUpdate(ctx: MessageRouterContext, msg: HostBroadcast): void {
+  switch (msg.type) {
+    case 'STATE_UPDATE': {
+      ctx.store.applySnapshot(msg.state, msg.revision);
+      ctx.broadcastService.markAsLive();
+      // Host: 额外保存到本地缓存（音频中断恢复用）
+      if (ctx.isHost && ctx.saveHostCache) {
+        ctx.saveHostCache(msg.state, msg.revision);
+      }
+      break;
+    }
+  }
+}
+```
+
+##### 4.2.2 `GameFacade.ts` — 统一房间接入
+
+**删除：**
+
+- `broadcastCurrentState()` 方法 — 不再由客户端广播或写 DB
+- `requestSnapshot()` 方法 — 不再有 P2P REQUEST_STATE
+- `sendToHost` 调用 — 无 P2P 消息
+- `getMessageRouterContext().broadcastCurrentState` — 不再需要
+- `onPresenceChange → broadcastCurrentState()` — 不再需要
+- `onPlayerMessage → hostHandlePlayerMessage` — 不再有 P2P 消息
+
+**改造：**
+
+- `initializeAsHost()` — 接入 `onHostBroadcast: handleStateUpdate`（和 Player 一样）
+- `joinAsHost()` — 同上
+- `joinAsPlayer()` — 简化，删除 `sendToHost(REQUEST_STATE)` fallback
+- `fetchStateFromDB()` — 删除 `requestSnapshot()` fallback（DB 是权威，无需 P2P fallback）
+- 三个 joinRoom 调用的 callbacks 统一为 `{ onHostBroadcast: handleStateUpdate, onDbStateChange: applySnapshot }`
+
+```typescript
+// 统一 joinRoom 参数 — Host 和 Player 完全相同
+const callbacks = {
+  onHostBroadcast: (msg: HostBroadcast) => {
+    handleStateUpdate(this.getMessageRouterContext(), msg);
+  },
+  onPlayerMessage: undefined, // 不再有 P2P 消息
+  onPresenceChange: undefined, // 不再需要触发广播
+  onDbStateChange: (state, rev) => {
+    this.store.applySnapshot(state, rev);
+    this.broadcastService.markAsLive();
+  },
+};
+```
+
+**`initializeAsHost()` 变化：**
+
+- 初始化 store（保留）
+- joinRoom 用统一 callbacks（改）
+- 删除 `await this.broadcastCurrentState()`（服务端在 `createRoom` 时已写入 DB + 广播）
+- 保留 `_setupForegroundRecovery()`（Host 音频恢复仍需要）
+
+**`joinAsHost()` 变化：**
+
+- 从本地缓存恢复（保留 — 仅用于 `wasAudioInterrupted` 判断）
+- joinRoom 用统一 callbacks（改）
+- 删除 `await this.broadcastCurrentState()`（改为从 DB 读取最新 state）
+- 保留 `_setupForegroundRecovery()`
+
+**`joinAsPlayer()` 变化：**
+
+- joinRoom 用统一 callbacks（和 Host 相同）
+- 删除 `sendToHost(REQUEST_STATE)` fallback — 只保留 DB 读取
+
+##### 4.2.3 `BroadcastService.ts` — 清理 P2P 方法
+
+**删除：**
+
+- `sendToHost()` 方法 — 无 P2P 消息
+- `broadcastAsHost()` 方法 — 服务端负责广播
+- `onPlayerMessage` 字段/监听器 — 不再监听 `'player'` 事件
+
+**保留：**
+
+- `joinRoom()` — 仍需订阅 Realtime 频道
+- `onHostBroadcast` 监听器 — 所有客户端都监听 `'host'` 事件
+- `onPresenceChange` — 可选，用于 UI 显示在线用户（不触发逻辑）
+- `onDbStateChange` — postgres_changes 备份通道
+- `markAsLive()` / `markAsSyncing()` — 连接状态管理
+- `leaveRoom()` — 清理
+
+**简化 joinRoom 签名：**
+
+```typescript
+async joinRoom(
+  roomCode: string,
+  userId: string,
+  callbacks: {
+    onStateUpdate: (message: HostBroadcast) => void;         // 必填，所有客户端都需要
+    onDbStateChange?: (state: BroadcastGameState, revision: number) => void;  // 备份通道
+    onPresenceChange?: (users: string[]) => void;            // 可选，仅 UI 显示
+  },
+): Promise<void>
+```
+
+##### 4.2.4 `hostActions.ts` — 对 `broadcastCurrentState` 的清理
+
+**删除：**
+
+- `HostActionsContext.broadcastCurrentState` 字段 — 不再由客户端广播
+- 所有 `ctx.broadcastCurrentState()` 调用 — 服务端在 API 中已广播
+
+**保留：**
+
+- 所有 HTTP API 调用（`callGameControlApi`）
+- `playApiSideEffects` — 音频编排
+- `callNightProgression` — 客户端驱动推进循环
+- `wolfVoteTimer` — 客户端本地 timer
+
+##### 4.2.5 `useConnectionSync.ts` — 简化
+
+**删除：**
+
+- `if (isHost) return` guards — Host 也需要 auto-recovery
+- `requestSnapshot` 相关注释
+
+**改造：**
+
+- Host 和 Player 都走 `fetchStateFromDB()` 恢复状态
+- `isHost` 参数可能移除（但保留也无碍，用于 staleness 门槛差异化）
+
+##### 4.2.6 Protocol Types — 清理
+
+**删除（从 `PlayerMessage`）：**
+
+- `REQUEST_STATE` — 无 P2P 状态请求
+- `SNAPSHOT_REQUEST` — 未实现的 future type
+
+**删除（从 `HostBroadcast`）：**
+
+- `SEAT_ACTION_ACK` — 已在 Phase 1 删除（确认）
+
+**保留：**
+
+- `STATE_UPDATE` (HostBroadcast) — 服务端广播，所有客户端消费
+
+**最终 `PlayerMessage` 类型：**
+只剩 legacy types（`JOIN`, `LEAVE`, `VIEWED_ROLE`, `ACTION`, `WOLF_VOTE`, `REVEAL_ACK`, `WOLF_ROBOT_HUNTER_STATUS_VIEWED`），可全部删除或标记 `@deprecated`。如果删除，`PlayerMessage` 类型本身成为空联合 → 删除。
+
+**最终 `HostBroadcast` 类型：**
+只剩 `STATE_UPDATE`。可简化为单一消息类型。
+
+##### 4.2.7 `GameFacade.requestSnapshot()` / `GameFacade.fetchStateFromDB()` 合并
+
+**改造：**
+
+- `fetchStateFromDB()` 不再 fallback 到 `requestSnapshot()`
+- `requestSnapshot()` 删除
+- `fetchStateFromDB()` 适用于 Host 和 Player（删除 `if (this.isHost) return true` guard）
+
+#### 4.3 `hostStateCache` 角色变化
+
+**之前（Host-authoritative）：**
+保存完整状态快照 → Host rejoin 时恢复整个 game state 作为权威源。
+
+**之后（Server-authoritative）：**
+
+- 状态恢复从 DB 读取（所有客户端统一路径）
+- `hostStateCache` 仅用于一个目的：记录 Host 当时是否在播放音频（`isAudioPlaying`）
+  - Host 刷新/断线 → 恢复时检查 `wasAudioInterrupted` → 弹 `ContinueGameOverlay` → 用户点击恢复音频
+- 可以简化 cache 内容，只存 `{ roomCode, hostUid, wasAudioPlaying: boolean }` 而不是完整 state
+- 或复用 `onHostBroadcast → handleStateUpdate` 中的 `saveHostCache` 保存完整 state（用于判断 `status === 'ongoing'` + `isAudioPlaying`）
+
+#### 4.4 验证标准
+
+- `pnpm exec tsc --noEmit` — 通过
+- 更新所有受影响的单元测试（messageRouter, GameFacade, hostActions, useConnectionSync）
+- `pnpm exec jest --no-coverage --forceExit` — 全部通过
+- E2E：`night-2p.spec.ts` 全流程通过（Host 入座应立即反映在 UI 上）
+- 手动测试：
+  - Host 创建房间 → 入座 → UI 立即显示"我"
+  - Player 加入 → 入座 → Host 和 Player 都立即看到
+  - Host 刷新 → 从 DB 恢复状态 → 音频恢复 overlay
+  - Player 断线重连 → 从 DB 恢复状态
+
+#### 4.5 Commit 计划（3 commits）
+
+| #   | message                                                     | 内容                                                                                                                                                                                                                                                                  | 验证             |
+| --- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 1   | `refactor(services)!: unify client state reception`         | `messageRouter.ts` 重写（删除 hostHandlePlayerMessage / isHost guard）；`GameFacade.ts` 统一 joinRoom callbacks（Host+Player 都监听 onHostBroadcast + onDbStateChange）；删除 `broadcastCurrentState` 客户端广播/DB写入；删除 `requestSnapshot`/`sendToHost` P2P 消息 | tsc + jest       |
+| 2   | `refactor(services): clean up BroadcastService P2P methods` | `BroadcastService.ts` 删除 `sendToHost` / `broadcastAsHost`；简化 `joinRoom` 签名；删除 `'player'` event listener；清理 `hostActions.ts` 的 `broadcastCurrentState` 引用                                                                                              | tsc + jest       |
+| 3   | `refactor(services): clean up protocol types + tests`       | 删除 `PlayerMessage.REQUEST_STATE` / `SNAPSHOT_REQUEST`；清理/精简 `PlayerMessage` 和 `HostBroadcast` 类型；更新所有受影响测试；更新 `useConnectionSync` 删除 isHost 分叉                                                                                             | tsc + jest + E2E |
+
+#### 4.6 风险
+
+- **低风险**：客户端纯重构，服务端 API 和 DB 无变更
+- **注意**：`hostStateCache` 在 `handleStateUpdate` 中频繁写入 AsyncStorage 可能有性能影响 → 加防抖或只在关键状态变更时写入
+- **注意**：删除 `broadcastAsHost` 后，Host rejoin 时不再主动广播 → Player 需依赖 DB 备份通道恢复。这应该已经可以工作（Player 的 `onDbStateChange` + staleness auto-heal）
+- **注意**：删除 `onPlayerMessage` / `'player'` event listener 后，需确认无其他代码依赖此通道
+
+---
+
 ## 不变的部分
 
 | 功能                | 方式                          | 原因                    |
@@ -1126,14 +1395,15 @@ rooms (
 
 ## 工期估算
 
-| 阶段                   | Commits | 工作量      | 说明                                          |
-| ---------------------- | ------- | ----------- | --------------------------------------------- |
-| Phase 0: 共享包提取    | 4       | 1-2 天      | 文件移动 + import 更新 + 依赖抽象，纯机械操作 |
-| Phase 1: 入座/离座 API | 3       | 1-2 天      | 第一个 API Route + 客户端改造 + 测试更新      |
-| Phase 2: 游戏控制 API  | 3       | 2-3 天      | 7 个 API Route + 音频 sideEffects + 测试更新  |
-| Phase 3: 夜晚流程 API  | 4       | 3-5 天      | 8 个 API Route + 自动推进改造 + timer + 测试  |
-| 清理 + 集成测试        | 1       | 1-2 天      | 删除废弃代码 + E2E 全量回归                   |
-| **总计**               | **15**  | **8-14 天** |                                               |
+| 阶段                    | Commits | 工作量       | 说明                                          |
+| ----------------------- | ------- | ------------ | --------------------------------------------- |
+| Phase 0: 共享包提取     | 4       | 1-2 天       | 文件移动 + import 更新 + 依赖抽象，纯机械操作 |
+| Phase 1: 入座/离座 API  | 3       | 1-2 天       | 第一个 API Route + 客户端改造 + 测试更新      |
+| Phase 2: 游戏控制 API   | 3       | 2-3 天       | 7 个 API Route + 音频 sideEffects + 测试更新  |
+| Phase 3: 夜晚流程 API   | 4       | 3-5 天       | 8 个 API Route + 自动推进改造 + timer + 测试  |
+| Phase 4: 统一客户端架构 | 3       | 1-2 天       | 消除 Host/Player 分叉 + 删除 P2P 消息         |
+| 清理 + 集成测试         | 1       | 1-2 天       | 删除废弃代码 + E2E 全量回归                   |
+| **总计**                | **18**  | **10-17 天** |                                               |
 
 ---
 
@@ -1143,4 +1413,5 @@ rooms (
 2. **Phase 1**: 入座/离座 → HTTP — 最简单的操作，验证端到端 + 基础设施
 3. **Phase 2**: 游戏控制 → HTTP — 引入音频 sideEffects 模式
 4. **Phase 3**: 夜晚流程 → HTTP — 最复杂，音频编排 + 自动推进
-5. **清理**: 删除 Host 端废弃的 broadcast 转发逻辑、整理 messageRouter
+5. **Phase 4**: 统一客户端架构 — 消除 Host/Player 代码分叉，所有客户端平等
+6. **清理**: E2E 全量回归 + 文档更新

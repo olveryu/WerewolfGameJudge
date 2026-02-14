@@ -56,7 +56,7 @@ packages/game-engine/src/
 │       └── spec/         ← types / schemas / specs / plan / nightSteps
 ├── protocol/             ← 协议类型（BroadcastGameState / ProtocolAction / reasonCodes）
 ├── resolvers/            ← Night resolver 纯函数（校验 + 计算）
-├── engine/               ← Host-only 引擎
+├── engine/               ← 服务端引擎（由 Vercel Serverless 执行）
 │   ├── DeathCalculator.ts
 │   ├── resolveWolfVotes.ts
 │   ├── handlers/         ← actionHandler / stepTransitionHandler / etc.

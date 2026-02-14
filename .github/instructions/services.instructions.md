@@ -25,7 +25,8 @@ applyTo: src/services/**
 ## 核心原则
 
 - ✅ 纯函数 resolver / calculator / validator（无副作用、不碰 IO/UI）。
-- ✅ Host-only 业务逻辑（night flow / death calc / state transition / reducer）。
+- ✅ 服务端业务逻辑（night flow / death calc / state transition / reducer）由 Vercel Serverless 执行。
+- ✅ 客户端 facade 层负责：HTTP API 提交操作 + Realtime broadcast 接收状态 + 音频编排。
 - ✅ 使用 `src/utils/logger.ts` 的命名 logger 打日志。
 - ✅ Infra service 允许 import 平台 API（`AsyncStorage`、`Platform`、`expo-audio` 等）。
 - ✅ 纯类型文件（`src/services/types/**`）可被任意层 `import type`。
@@ -36,11 +37,12 @@ applyTo: src/services/**
 - **单一职责（SRP）**：每个 module/class 只负责一件事。超过 ~400 行必须拆分。
   - **但行数是信号，不是判决。** 超过阈值时，先评估：(1) 文件内部是否已有清晰的分区和职责边界？(2) 拆出的模块是否有独立的复用/测试/修改场景？(3) 拆分后跨文件跳转成本是否超过收益？若三项都不成立，应保持现状并注释说明为何不拆。禁止机械套用行数规则无条件输出拆分方案。
 
-## Player 端禁止运行业务逻辑
+## 客户端禁止运行业务逻辑
 
-Player 客户端绝对不能执行：resolvers、reducers/state transitions、death calculation、night flow progression。
-Player 仅作为 transport：发送 `PlayerMessage` → 接收 `HostBroadcast.STATE_UPDATE` → `applySnapshot(broadcastState, revision)`。
-Player 也通过 `postgres_changes` 接收 DB state update（可靠备份通道），及 `SELECT game_state` 直接读取（auto-heal fallback）。
+客户端（Host 和 Player 平等）绝对不能执行：resolvers、reducers/state transitions、death calculation、night flow progression 计算。
+客户端职责：HTTP API 提交操作 → Realtime broadcast 接收 `STATE_UPDATE` → `applySnapshot(state, revision)` 更新本地 store。
+Host 额外职责：播放音频（sideEffects 从 API 响应中返回，调用者播放）、驱动夜晚推进循环。
+所有客户端也通过 `postgres_changes` 接收 DB state update（可靠备份通道），及 `SELECT game_state` 直接读取（auto-heal fallback）。
 
 ## Wire Protocol 稳定性（Transport protocol stability）
 
@@ -114,7 +116,7 @@ advanceToNextAction()
 ### 自动推进（auto-advance）硬性护栏
 
 - ❌ 禁止在 Facade / UI / submit 成功回调里做"自动推进夜晚"决策 — 会导致推进权威分裂、重入、Host/Player drift。
-- ✅ 自动推进必须集中在 Host-only 的 night flow handler，基于 `BroadcastGameState` 判断。
+- ✅ 自动推进必须集中在 night flow handler（服务端执行），基于 `BroadcastGameState` 判断。
 - ✅ 必须幂等：同一 `{revision, currentStepId}` 最多推进一次；重复触发 safe no-op。
 - Facade 仅限"发起 intent / request"，不得自行计算"should advance"。
 
@@ -138,8 +140,8 @@ advanceToNextAction()
 
 单一编排来源：**Handler 声明 → Facade 执行 → UI 只读**。
 
-- **Handler**（Host-only 业务状态机）：声明"何时播何音频"，通过 `SideEffect: { type: 'PLAY_AUDIO' }` 返回。禁止音频 IO、禁止碰 UI。
-- **Facade**（Host-only 编排/IO）：执行 `PLAY_AUDIO` 副作用 — `setAudioPlaying(true)` → 播放 → `finally { setAudioPlaying(false) }`。只允许 Facade 调用 `setAudioPlaying`。
+- **Handler**（服务端业务状态机）：声明"何时播何音频"，通过 `SideEffect: { type: 'PLAY_AUDIO' }` 返回。禁止音频 IO、禁止碰 UI。
+- **Facade**（客户端编排/IO）：执行 `PLAY_AUDIO` 副作用 — `setAudioPlaying(true)` → 播放 → `finally { setAudioPlaying(false) }`。只允许 Facade 调用 `setAudioPlaying`。
 - **UI**（RoomScreen）：只读 `isAudioPlaying` 禁用交互。
   - ❌ 禁止 `useEffect` 主动播放音频。
   - ❌ 禁止 UI toggle `setAudioPlaying`。
@@ -159,7 +161,7 @@ Facade 负责两个音频生命周期路径：
 
 - `isAudioPlaying` 是事实状态，不是推导状态。
 - 唯一允许修改的 action：`SET_AUDIO_PLAYING`。
-  - ✅ `handleSetAudioPlaying`（Host-only）→ reducer 处理。
+  - ✅ `handleSetAudioPlaying`（服务端校验）→ reducer 处理。
   - ❌ 禁止在其他 action 中"顺便"设置 `isAudioPlaying`（会导致 drift/卡死）。
 - Player 端绝对不能写 Gate。
 - Fail-fast：若 `isAudioPlaying===true` 持续不释放导致行动被拒绝 → 优先修复 Host 兜底链路，补 E2E/contract fail-fast。

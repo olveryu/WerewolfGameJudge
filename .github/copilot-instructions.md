@@ -26,7 +26,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 - `models/` — 角色 spec / schema / nightSteps（声明式，无副作用）
 - `protocol/` — 协议类型（BroadcastGameState / ProtocolAction / reasonCodes）
 - `resolvers/` — Night resolver 纯函数（校验 + 计算）
-- `engine/` — Host-only 引擎（handlers / reducer / store / state / DeathCalculator）
+- `engine/` — 服务端引擎（handlers / reducer / store / state / DeathCalculator），由 Vercel Serverless 执行
 - `types/` — 共享类型（RoleRevealAnimation）
 - `utils/` — 平台无关工具（id / logger / random / shuffle）
 
@@ -101,7 +101,8 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 
 ## 不可协商规则
 
-- **Host 是唯一的游戏逻辑权威。** Supabase 负责 transport/discovery/identity/state replication。
+- **服务端是唯一的游戏逻辑权威。** Vercel Serverless Functions 负责读-算-写-广播，Supabase 负责 transport/discovery/identity/state persistence。客户端完全平等。
+- **“Host” 只是 UI 角色标记。** `isHost` 决定哪些按钮可见、谁播放音频。服务端校验 `hostUid`。客户端代码里不需要 Host 专用逻辑路径。
 - **Host 设备同时也是玩家，不是单独裁判机。**
 - **仅 Night-1 范围。** 绝对不要加入跨夜状态/规则。
 - **`BroadcastGameState` 是单一真相。** 所有信息公开广播，UI 按 `myRole` 过滤显示。禁止双写/drift。
@@ -114,11 +115,14 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 
 ## 架构边界
 
-### Host vs Supabase
+### Server vs Client 架构边界
 
-- Host 负责：night flow、validation、resolver、death calculation、audio sequencing。
-- Supabase 负责：房间生命周期（4 位房间号）、presence、auth、realtime transport、game_state 持久化。
-- Supabase 持久化 state snapshot 供 Player 恢复，但**绝对不能**校验游戏逻辑。Host 内存 GameStore 是唯一权威。
+- **Vercel Serverless** 负责：游戏逻辑计算（读 DB → game-engine 纯函数 → 写 DB + 乐观锁 → Realtime 广播）。
+- **Supabase** 负责：房间生命周期（4 位房间号）、presence、auth、realtime transport、game_state 持久化。
+- **客户端** 负责：HTTP API 提交操作，Realtime broadcast 接收状态，`applySnapshot` 更新本地 store，音频播放（Host UI 角色）。
+- **所有客户端完全平等。** Host 和 Player 走相同的状态接收路径，不存在 Host 专用逻辑路径。
+- **禁止 P2P 消息。** 无 `sendToHost`、无 `broadcastAsHost`、无 `REQUEST_STATE`。所有操作走 HTTP API → 服务端广播。
+- **断线恢复统一读 DB。** Host 和 Player 都从 `rooms.game_state` 读取最新状态。`hostStateCache` 仅用于音频中断恢复。
 
 ### 代码归属
 
