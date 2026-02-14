@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.222] - 2026-02-13
+
+- test(e2e): add DB state recovery after network interruption
+
 ## [1.0.221] - 2026-02-13
 
 - test(services): add RoomService unit tests (30 cases)
