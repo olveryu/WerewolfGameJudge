@@ -34,7 +34,11 @@ export * from './resolvers/types';
 
 // === Engine ===
 export { calculateDeaths } from './engine/DeathCalculator';
-export { handleViewedRole } from './engine/handlers/actionHandler';
+export {
+  handleSubmitAction,
+  handleSubmitWolfVote,
+  handleViewedRole,
+} from './engine/handlers/actionHandler';
 export {
   handleAssignRoles,
   handleFillWithBots,
@@ -44,8 +48,23 @@ export {
   handleStartNight,
   handleUpdateTemplate,
 } from './engine/handlers/gameControlHandler';
+export {
+  buildProgressionKey,
+  createProgressionTracker,
+  decideWolfVoteTimerAction,
+  evaluateNightProgression,
+  isWolfVoteAllComplete,
+  type ProgressionTracker,
+  WOLF_VOTE_COUNTDOWN_MS,
+} from './engine/handlers/progressionEvaluator';
 export { handleJoinSeat, handleLeaveMySeat } from './engine/handlers/seatHandler';
+export {
+  handleAdvanceNight,
+  handleEndNight,
+  handleSetAudioPlaying,
+} from './engine/handlers/stepTransitionHandler';
 export * from './engine/handlers/types';
+export { handleSetWolfRobotHunterStatusViewed } from './engine/handlers/wolfRobotHunterGateHandler';
 export * from './engine/intents/types';
 export * from './engine/reducer';
 export * from './engine/reducer/types';

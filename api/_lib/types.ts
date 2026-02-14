@@ -96,3 +96,63 @@ export interface MarkBotsViewedRequestBody {
   roomCode: string;
   hostUid: string;
 }
+
+// ---------------------------------------------------------------------------
+// Night Flow API
+// ---------------------------------------------------------------------------
+
+/** POST /api/game/night/action */
+export interface ActionRequestBody {
+  roomCode: string;
+  hostUid: string;
+  seat: number;
+  role: RoleId;
+  target: number | null;
+  extra?: unknown;
+}
+
+/** POST /api/game/night/wolf-vote */
+export interface WolfVoteRequestBody {
+  roomCode: string;
+  hostUid: string;
+  voterSeat: number;
+  targetSeat: number;
+}
+
+/** POST /api/game/night/advance */
+export interface AdvanceRequestBody {
+  roomCode: string;
+  hostUid: string;
+}
+
+/** POST /api/game/night/end */
+export interface EndNightRequestBody {
+  roomCode: string;
+  hostUid: string;
+}
+
+/** POST /api/game/night/audio-gate */
+export interface AudioGateRequestBody {
+  roomCode: string;
+  hostUid: string;
+  isPlaying: boolean;
+}
+
+/** POST /api/game/night/progression */
+export interface ProgressionRequestBody {
+  roomCode: string;
+  hostUid: string;
+}
+
+/** POST /api/game/night/reveal-ack */
+export interface RevealAckRequestBody {
+  roomCode: string;
+  hostUid: string;
+}
+
+/** POST /api/game/night/wolf-robot-viewed */
+export interface WolfRobotViewedRequestBody {
+  roomCode: string;
+  hostUid: string;
+  seat: number;
+}
