@@ -45,7 +45,7 @@ import type { HostActionsContext } from './hostActions';
 import * as hostActions from './hostActions';
 import type { MessageRouterContext } from './messageRouter';
 import * as messageRouter from './messageRouter';
-import type { PendingSeatAction, SeatActionsContext } from './seatActions';
+import type { SeatActionsContext } from './seatActions';
 import * as seatActions from './seatActions';
 
 /**
@@ -92,9 +92,6 @@ export class GameFacade implements IGameFacade {
    * 通过 HostActionsContext 的 getter/setter 暴露给 hostActions 模块。
    */
   private _wolfVoteTimer: ReturnType<typeof setTimeout> | null = null;
-
-  /** Pending seat action request (Player: waiting for ACK) */
-  private readonly pendingSeatAction: { current: PendingSeatAction | null } = { current: null };
 
   /**
    * 标记 Host rejoin 时音频是否被中断（缓存中 isAudioPlaying === true）。
@@ -274,11 +271,7 @@ export class GameFacade implements IGameFacade {
 
     await this.broadcastService.joinRoom(roomCode, playerUid, {
       onHostBroadcast: (msg: HostBroadcast) => {
-        messageRouter.playerHandleHostBroadcast(
-          this.getMessageRouterContext(),
-          msg,
-          this.pendingSeatAction,
-        );
+        messageRouter.playerHandleHostBroadcast(this.getMessageRouterContext(), msg);
       },
       onPlayerMessage: undefined,
       onPresenceChange: undefined,
@@ -492,17 +485,9 @@ export class GameFacade implements IGameFacade {
 
     const mySeat = this.getMySeatNumber();
 
-    // 如果在座且不是 Host，发送离座请求
-    if (!this.isHost && mySeat !== null && this.myUid) {
-      const requestId = this.generateRequestId();
-      const msg: PlayerMessage = {
-        type: 'SEAT_ACTION_REQUEST',
-        requestId,
-        action: 'standup',
-        seat: mySeat,
-        uid: this.myUid,
-      };
-      await this.broadcastService.sendToHost(msg);
+    // 如果在座，通过 HTTP API 离座
+    if (mySeat !== null && this.myUid) {
+      await seatActions.leaveSeat(this.getSeatActionsContext());
     }
 
     await this.broadcastService.leaveRoom();
@@ -516,13 +501,7 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   async takeSeat(seatNumber: number, displayName?: string, avatarUrl?: string): Promise<boolean> {
-    return seatActions.takeSeat(
-      this.getSeatActionsContext(),
-      this.pendingSeatAction,
-      seatNumber,
-      displayName,
-      avatarUrl,
-    );
+    return seatActions.takeSeat(this.getSeatActionsContext(), seatNumber, displayName, avatarUrl);
   }
 
   async takeSeatWithAck(
@@ -532,7 +511,6 @@ export class GameFacade implements IGameFacade {
   ): Promise<{ success: boolean; reason?: string }> {
     return seatActions.takeSeatWithAck(
       this.getSeatActionsContext(),
-      this.pendingSeatAction,
       seatNumber,
       displayName,
       avatarUrl,
@@ -540,11 +518,11 @@ export class GameFacade implements IGameFacade {
   }
 
   async leaveSeat(): Promise<boolean> {
-    return seatActions.leaveSeat(this.getSeatActionsContext(), this.pendingSeatAction);
+    return seatActions.leaveSeat(this.getSeatActionsContext());
   }
 
   async leaveSeatWithAck(): Promise<{ success: boolean; reason?: string }> {
-    return seatActions.leaveSeatWithAck(this.getSeatActionsContext(), this.pendingSeatAction);
+    return seatActions.leaveSeatWithAck(this.getSeatActionsContext());
   }
 
   // =========================================================================
@@ -890,26 +868,24 @@ export class GameFacade implements IGameFacade {
 
   private getSeatActionsContext(): SeatActionsContext {
     return {
-      store: this.store,
-      broadcastService: this.broadcastService,
-      isHost: this.isHost,
       myUid: this.myUid,
-      getMySeatNumber: () => this.getMySeatNumber(),
-      broadcastCurrentState: () => this.broadcastCurrentState(),
-      findSeatByUid: (uid) => this.findSeatByUid(uid),
-      generateRequestId: () => this.generateRequestId(),
+      getRoomCode: () => this.store.getState()?.roomCode ?? null,
     };
   }
 
   /**
-   * MessageRouter 上下文（扩展 SeatActionsContext + action handlers）
+   * MessageRouter 上下文（action handlers）
    *
    * PR9: 接入 handleAction / handleWolfVote，支持 Player→Host 夜晚行动消息
    * 注：Facade 只负责 transport，不做推进决策。
    */
   private getMessageRouterContext(): MessageRouterContext {
     return {
-      ...this.getSeatActionsContext(),
+      store: this.store,
+      broadcastService: this.broadcastService,
+      isHost: this.isHost,
+      myUid: this.myUid,
+      broadcastCurrentState: () => this.broadcastCurrentState(),
       handleViewedRole: (seat: number) =>
         hostActions.markViewedRole(this.getHostActionsContext(), seat),
       handleAction: (seat: number, role: RoleId, target: number | null, extra?: unknown) =>

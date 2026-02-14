@@ -265,14 +265,6 @@ export type HostBroadcast =
   | { type: 'GAME_RESTARTED' }
   | { type: 'SEAT_REJECTED'; seat: number; requestUid: string; reason: 'seat_taken' }
   | {
-      type: 'SEAT_ACTION_ACK';
-      requestId: string;
-      toUid: string;
-      success: boolean;
-      seat: number;
-      reason?: string;
-    }
-  | {
       type: 'SNAPSHOT_RESPONSE';
       requestId: string;
       toUid: string;
@@ -292,15 +284,6 @@ export type PlayerMessage =
   | { type: 'WOLF_VOTE'; seat: number; target: number }
   | { type: 'VIEWED_ROLE'; seat: number }
   | { type: 'REVEAL_ACK'; seat: number; role: RoleId; revision: number }
-  | {
-      type: 'SEAT_ACTION_REQUEST';
-      requestId: string;
-      action: 'sit' | 'standup';
-      seat: number;
-      uid: string;
-      displayName?: string;
-      avatarUrl?: string;
-    }
   | { type: 'SNAPSHOT_REQUEST'; requestId: string; uid: string; lastRevision?: number }
   /** WolfRobot learned hunter: player viewed status, Host clears gate */
   | { type: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED'; seat: number };

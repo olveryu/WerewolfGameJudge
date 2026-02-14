@@ -4,8 +4,10 @@
  * 拆分自 GameFacade.ts（纯重构 PR，无行为变更）
  *
  * 职责：
- * - Host: 处理 PlayerMessage（REQUEST_STATE / SEAT_ACTION_REQUEST）
- * - Player: 处理 HostBroadcast（STATE_UPDATE / SEAT_ACTION_ACK）
+ * - Host: 处理 PlayerMessage（REQUEST_STATE / ACTION / WOLF_VOTE / ...）
+ * - Player: 处理 HostBroadcast（STATE_UPDATE）
+ *
+ * 注意：座位操作已迁移至 HTTP API（SEAT_ACTION_REQUEST / ACK 已删除）
  *
  * 禁止：
  * - 业务逻辑/校验规则
@@ -14,13 +16,9 @@
 
 import type { RoleId } from '@/models/roles';
 import type { GameStore } from '@/services/engine/store';
-import { REASON_INVALID_ACTION } from '@/services/protocol/reasonCodes';
 import type { HostBroadcast, PlayerMessage } from '@/services/protocol/types';
 import type { BroadcastService } from '@/services/transport/BroadcastService';
 import { facadeLog } from '@/utils/logger';
-
-import type { PendingSeatAction, SeatActionsContext } from './seatActions';
-import { hostProcessJoinSeat, hostProcessLeaveMySeat } from './seatActions';
 
 /**
  * Message Router 依赖的上下文接口
@@ -30,10 +28,7 @@ export interface MessageRouterContext {
   readonly broadcastService: BroadcastService;
   isHost: boolean;
   myUid: string | null;
-  getMySeatNumber: () => number | null;
   broadcastCurrentState: () => Promise<void>;
-  findSeatByUid: (uid: string | null) => number | null;
-  generateRequestId: () => string;
 
   // ===========================================================================
   // Host 处理 Player 消息的回调（由 GameFacade 注入）
@@ -107,10 +102,6 @@ export async function hostHandlePlayerMessage(
       await ctx.broadcastCurrentState();
       break;
 
-    case 'SEAT_ACTION_REQUEST':
-      hostHandleSeatActionRequest(ctx, msg);
-      break;
-
     case 'VIEWED_ROLE':
       if (ctx.handleViewedRole) {
         await ctx.handleViewedRole(msg.seat);
@@ -118,19 +109,19 @@ export async function hostHandlePlayerMessage(
       break;
 
     // =========================================================================
-    // Legacy types (已被 SEAT_ACTION_REQUEST 替代)
+    // Legacy types (seat operations now use HTTP API)
     // =========================================================================
     case 'JOIN':
       facadeLog.warn('[messageRouter] Legacy PlayerMessage type received', {
         type: msg.type,
-        guidance: 'Use SEAT_ACTION_REQUEST with action="sit" instead',
+        guidance: 'Seat operations now use HTTP API (/api/game/seat)',
       });
       break;
 
     case 'LEAVE':
       facadeLog.warn('[messageRouter] Legacy PlayerMessage type received', {
         type: msg.type,
-        guidance: 'Use SEAT_ACTION_REQUEST with action="standup" instead',
+        guidance: 'Seat operations now use HTTP API (/api/game/seat)',
       });
       break;
 
@@ -253,63 +244,6 @@ export async function hostHandlePlayerMessage(
   }
 }
 
-/**
- * Host 处理座位请求
- */
-function hostHandleSeatActionRequest(
-  ctx: MessageRouterContext,
-  msg: Extract<PlayerMessage, { type: 'SEAT_ACTION_REQUEST' }>,
-): void {
-  const { action, seat, uid, displayName, avatarUrl, requestId } = msg;
-
-  // 构造 SeatActionsContext
-  const seatCtx: SeatActionsContext = {
-    store: ctx.store,
-    broadcastService: ctx.broadcastService,
-    isHost: ctx.isHost,
-    myUid: ctx.myUid,
-    getMySeatNumber: ctx.getMySeatNumber,
-    broadcastCurrentState: ctx.broadcastCurrentState,
-    findSeatByUid: ctx.findSeatByUid,
-    generateRequestId: ctx.generateRequestId,
-  };
-
-  let result: { success: boolean; reason?: string };
-
-  if (action === 'sit') {
-    result = hostProcessJoinSeat(seatCtx, seat, uid, displayName, avatarUrl);
-  } else if (action === 'standup') {
-    result = hostProcessLeaveMySeat(seatCtx, uid);
-  } else {
-    result = { success: false, reason: REASON_INVALID_ACTION };
-  }
-
-  // 发送 ACK
-  void sendSeatActionAck(ctx.broadcastService, requestId, uid, result.success, seat, result.reason);
-}
-
-/**
- * Host 发送座位操作 ACK
- */
-async function sendSeatActionAck(
-  broadcastService: BroadcastService,
-  requestId: string,
-  toUid: string,
-  success: boolean,
-  seat: number,
-  reason?: string,
-): Promise<void> {
-  const ack: HostBroadcast = {
-    type: 'SEAT_ACTION_ACK',
-    requestId,
-    toUid,
-    success,
-    seat,
-    reason,
-  };
-  await broadcastService.broadcastAsHost(ack);
-}
-
 // =============================================================================
 // Player: 处理 HostBroadcast
 // =============================================================================
@@ -317,11 +251,7 @@ async function sendSeatActionAck(
 /**
  * Player 处理 HostBroadcast
  */
-export function playerHandleHostBroadcast(
-  ctx: MessageRouterContext,
-  msg: HostBroadcast,
-  pendingSeatAction: { current: PendingSeatAction | null },
-): void {
+export function playerHandleHostBroadcast(ctx: MessageRouterContext, msg: HostBroadcast): void {
   if (ctx.isHost) return;
 
   switch (msg.type) {
@@ -339,41 +269,5 @@ export function playerHandleHostBroadcast(
       ctx.broadcastService.markAsLive();
       break;
     }
-
-    case 'SEAT_ACTION_ACK':
-      playerHandleSeatActionAck(ctx, msg, pendingSeatAction);
-      break;
   }
-}
-
-/**
- * Player 处理座位操作 ACK
- */
-function playerHandleSeatActionAck(
-  ctx: MessageRouterContext,
-  msg: Extract<HostBroadcast, { type: 'SEAT_ACTION_ACK' }>,
-  pendingSeatAction: { current: PendingSeatAction | null },
-): void {
-  // 检查是否是发给自己的 ACK
-  if (msg.toUid !== ctx.myUid) return;
-
-  // 检查 requestId 是否匹配
-  if (pendingSeatAction.current?.requestId !== msg.requestId) {
-    facadeLog.warn('Received ACK for unknown request', { requestId: msg.requestId });
-    return;
-  }
-
-  // 清理 timeout
-  clearTimeout(pendingSeatAction.current.timeoutHandle);
-
-  // Resolve promise
-  const pending = pendingSeatAction.current;
-  pendingSeatAction.current = null;
-  pending.resolve({ success: msg.success, reason: msg.reason });
-
-  facadeLog.debug('playerHandleSeatActionAck', {
-    requestId: msg.requestId,
-    success: msg.success,
-    reason: msg.reason,
-  });
 }
