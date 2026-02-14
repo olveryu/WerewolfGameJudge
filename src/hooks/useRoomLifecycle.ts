@@ -264,11 +264,11 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   // Sync
   // =========================================================================
 
-  // Request snapshot from host (force sync)
+  // Force sync: read latest state from DB (reliable, bypasses broadcast channel)
   const requestSnapshot = useCallback(async (): Promise<boolean> => {
     try {
       connection.setConnectionStatus('syncing');
-      const result = await facade.requestSnapshot();
+      const result = await facade.fetchStateFromDB();
       if (result) {
         connection.setConnectionStatus('live');
       } else {
@@ -276,7 +276,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       }
       return result;
     } catch (err) {
-      gameRoomLog.error(' Error requesting snapshot:', err);
+      gameRoomLog.error('Force sync fetchStateFromDB failed:', err);
       connection.setConnectionStatus('disconnected');
       return false;
     }
