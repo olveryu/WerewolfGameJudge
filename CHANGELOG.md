@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.215] - 2026-02-13
+
+- fix(audio): lower BGM volume from 0.15 to 0.08
+- fix(hooks): add auto-heal for missed broadcast messages
+- test(utils): add tests for shuffle, logger, mobileDebug
+- chore: remove scope-enum from commitlint
+- docs(readme): fix role faction classification
+
 ## [1.0.214] - 2026-02-13
 
 - docs: add community standard files
