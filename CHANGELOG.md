@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.220] - 2026-02-13
+
+- fix(room): prevent infinite alert loop when joining non-existent room
+- feat(services): add DB-backed state persistence for reliable Player sync
+- feat(state-sync): implement DB-backed state persistence for reliable synchronization
+
 ## [1.0.219] - 2026-02-13
 
 - feat(services): add DB-backed state persistence for reliable Player sync
