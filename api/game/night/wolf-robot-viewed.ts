@@ -3,6 +3,7 @@
  *
  * 设置机械狼查看猎人状态（Host-only）。
  * 使用 game-engine handleSetWolfRobotHunterStatusViewed 纯函数 + gameStateManager。
+ * 内联推进：gate 清除后自动评估推进。
  *
  * ✅ 允许：请求解析、调用 handler + gameStateManager
  * ❌ 禁止：直接操作 DB 或 state
@@ -30,19 +31,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
-    const isHost = state.hostUid === hostUid;
-    const handlerCtx: HandlerContext = {
-      state,
-      isHost,
-      myUid: hostUid,
-      mySeat: findSeatByUid(state, hostUid),
-    };
-    return handleSetWolfRobotHunterStatusViewed(handlerCtx, {
-      type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-      seat,
-    });
-  });
+  const result = await processGameAction(
+    roomCode,
+    (state: BroadcastGameState) => {
+      const isHost = state.hostUid === hostUid;
+      const handlerCtx: HandlerContext = {
+        state,
+        isHost,
+        myUid: hostUid,
+        mySeat: findSeatByUid(state, hostUid),
+      };
+      return handleSetWolfRobotHunterStatusViewed(handlerCtx, {
+        type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
+        seat,
+      });
+    },
+    { enabled: true, hostUid },
+  );
 
   return res.status(result.success ? 200 : 400).json(result);
 }

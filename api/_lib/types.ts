@@ -119,12 +119,6 @@ export interface WolfVoteRequestBody {
   targetSeat: number;
 }
 
-/** POST /api/game/night/advance */
-export interface AdvanceRequestBody {
-  roomCode: string;
-  hostUid: string;
-}
-
 /** POST /api/game/night/end */
 export interface EndNightRequestBody {
   roomCode: string;
@@ -136,6 +130,12 @@ export interface AudioGateRequestBody {
   roomCode: string;
   hostUid: string;
   isPlaying: boolean;
+}
+
+/** POST /api/game/night/audio-ack */
+export interface AudioAckRequestBody {
+  roomCode: string;
+  hostUid: string;
 }
 
 /** POST /api/game/night/progression */

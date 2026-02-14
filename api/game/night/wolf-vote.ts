@@ -3,7 +3,7 @@
  *
  * 提交狼人投票（Host-only）。
  * 使用 game-engine handleSubmitWolfVote + decideWolfVoteTimerAction 纯函数。
- * 返回 wolfVoteTimer 指令供客户端管理本地 timer。
+ * 内联推进：投票后自动评估推进（受 wolfVoteDeadline gate 保护）。
  *
  * ✅ 允许：请求解析、调用 handler + gameStateManager
  * ❌ 禁止：直接操作 DB 或 state、管理 timer
@@ -17,11 +17,10 @@ import {
   type HandlerContext,
   handleSubmitWolfVote,
   isWolfVoteAllComplete,
-  normalizeState,
   type SubmitWolfVoteIntent,
 } from '@werewolf/game-engine';
 
-import { getServiceClient } from '../../_lib/supabase';
+import { processGameAction } from '../../_lib/gameStateManager';
 import type { WolfVoteRequestBody } from '../../_lib/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -36,96 +35,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const supabase = getServiceClient();
+  const result = await processGameAction(
+    roomCode,
+    (state: BroadcastGameState) => {
+      const isHost = state.hostUid === hostUid;
+      const handlerCtx: HandlerContext = {
+        state,
+        isHost,
+        myUid: hostUid,
+        mySeat: findSeatByUid(state, hostUid),
+      };
+      const intent: SubmitWolfVoteIntent = {
+        type: 'SUBMIT_WOLF_VOTE',
+        payload: { seat: voterSeat, target: targetSeat },
+      };
+      const voteResult = handleSubmitWolfVote(intent, handlerCtx);
+      if (!voteResult.success) return voteResult;
 
-  // Step 1: 读 DB
-  const { data, error: readError } = await supabase
-    .from('rooms')
-    .select('game_state, state_revision')
-    .eq('code', roomCode)
-    .single();
+      // Apply vote actions locally to check timer decision
+      // (processGameAction will also apply them, but we need intermediate state for timer calc)
+      let tempState = state;
+      for (const action of voteResult.actions) {
+        tempState = gameReducer(tempState, action);
+      }
 
-  if (readError || !data?.game_state) {
-    return res.status(400).json({ success: false, reason: 'ROOM_NOT_FOUND' });
-  }
+      // Wolf vote timer decision (based on post-vote state)
+      const allVoted = isWolfVoteAllComplete(tempState);
+      const hasExistingTimer = tempState.wolfVoteDeadline != null;
+      const timerAction = decideWolfVoteTimerAction(allVoted, hasExistingTimer, Date.now());
 
-  const currentState = data.game_state as BroadcastGameState;
-  const currentRevision = (data.state_revision as number) ?? 0;
+      // Add timer actions to the result
+      const actions = [...voteResult.actions];
+      if (timerAction.type === 'set') {
+        actions.push({
+          type: 'SET_WOLF_VOTE_DEADLINE' as const,
+          payload: { deadline: timerAction.deadline },
+        });
+      } else if (timerAction.type === 'clear') {
+        actions.push({ type: 'CLEAR_WOLF_VOTE_DEADLINE' as const });
+      }
 
-  // Step 2: 调用 handler
-  const isHost = currentState.hostUid === hostUid;
-  const handlerCtx: HandlerContext = {
-    state: currentState,
-    isHost,
-    myUid: hostUid,
-    mySeat: findSeatByUid(currentState, hostUid),
-  };
-  const intent: SubmitWolfVoteIntent = {
-    type: 'SUBMIT_WOLF_VOTE',
-    payload: { seat: voterSeat, target: targetSeat },
-  };
-  const result = handleSubmitWolfVote(intent, handlerCtx);
-
-  // Step 3: apply actions → 新 state
-  let newState = currentState;
-  for (const action of result.actions) {
-    newState = gameReducer(newState, action);
-  }
-
-  // Step 4: wolf vote timer 决策（基于新 state）
-  const allVoted = isWolfVoteAllComplete(newState);
-  const hasExistingTimer = newState.wolfVoteDeadline != null;
-  const timerAction = decideWolfVoteTimerAction(allVoted, hasExistingTimer, Date.now());
-
-  // Apply timer action to state
-  if (timerAction.type === 'set') {
-    newState = gameReducer(newState, {
-      type: 'SET_WOLF_VOTE_DEADLINE',
-      payload: { deadline: timerAction.deadline },
-    });
-  } else if (timerAction.type === 'clear') {
-    newState = gameReducer(newState, { type: 'CLEAR_WOLF_VOTE_DEADLINE' });
-  }
-
-  newState = normalizeState(newState);
-
-  // Step 5: 乐观锁写回 DB
-  const { data: writeData, error: writeError } = await supabase
-    .from('rooms')
-    .update({
-      game_state: newState,
-      state_revision: currentRevision + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('code', roomCode)
-    .eq('state_revision', currentRevision)
-    .select('state_revision')
-    .single();
-
-  if (writeError || !writeData) {
-    return res.status(409).json({ success: false, reason: 'CONFLICT_RETRY' });
-  }
-
-  // Step 6: 广播 STATE_UPDATE
-  const channel = supabase.channel(`room:${roomCode}`);
-  await channel.send({
-    type: 'broadcast',
-    event: 'host',
-    payload: {
-      type: 'STATE_UPDATE',
-      state: newState,
-      revision: currentRevision + 1,
+      return {
+        ...voteResult,
+        actions,
+      };
     },
-  });
-  await supabase.removeChannel(channel);
+    { enabled: true, hostUid },
+  );
 
-  return res.status(result.success ? 200 : 400).json({
-    success: result.success,
-    reason: result.reason,
-    state: newState,
-    sideEffects: result.sideEffects,
-    wolfVoteTimer: timerAction.type,
-  });
+  return res.status(result.success ? 200 : 400).json(result);
 }
 
 function findSeatByUid(state: BroadcastGameState, uid: string): number | null {

@@ -1,25 +1,24 @@
 /**
- * Reveal ACK API Route — POST /api/game/night/reveal-ack
+ * Audio Ack API Route — POST /api/game/night/audio-ack
  *
- * 清除 pendingRevealAcks，解除推进阻断（Host-only）。
- * 直接使用 CLEAR_REVEAL_ACKS reducer action + gameStateManager。
- * 内联推进：ack 清除后自动评估推进。
+ * Host 播放完 pendingAudioEffects 后调用，清除 effects 并解除 isAudioPlaying gate。
+ * 清除后触发内联推进，评估是否可以继续推进下一步。
  *
- * ✅ 允许：请求解析、reducer action + gameStateManager
+ * ✅ 允许：请求解析、清除 audio effects、内联推进
  * ❌ 禁止：直接操作 DB 或 state
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { processGameAction } from '../../_lib/gameStateManager';
-import type { RevealAckRequestBody } from '../../_lib/types';
+import type { AudioAckRequestBody } from '../../_lib/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, reason: 'METHOD_NOT_ALLOWED' });
   }
 
-  const body = req.body as RevealAckRequestBody;
+  const body = req.body as AudioAckRequestBody;
   const { roomCode, hostUid } = body;
 
   if (!roomCode || !hostUid) {
@@ -34,15 +33,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return { success: false, reason: 'host_only', actions: [] };
       }
 
-      // Gate: must have pending reveal acks
-      if (!state.pendingRevealAcks || state.pendingRevealAcks.length === 0) {
-        return { success: false, reason: 'no_pending_acks', actions: [] };
-      }
-
+      // Clear pendingAudioEffects + isAudioPlaying
       return {
         success: true,
-        actions: [{ type: 'CLEAR_REVEAL_ACKS' as const }],
-        sideEffects: [{ type: 'BROADCAST_STATE' as const }],
+        actions: [
+          { type: 'CLEAR_PENDING_AUDIO_EFFECTS' as const },
+          { type: 'SET_AUDIO_PLAYING' as const, payload: { isPlaying: false } },
+        ],
       };
     },
     { enabled: true, hostUid },

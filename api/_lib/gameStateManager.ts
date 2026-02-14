@@ -5,28 +5,48 @@
  * 1. 从 DB 读 game_state + state_revision
  * 2. 调用 game-engine 纯函数处理 intent → ProcessResult
  * 3. 用 gameReducer 将 actions apply 到 state
- * 4. 用 state_revision 做乐观锁写回 DB
- * 5. 通过 Supabase Realtime 广播新状态
+ * 4. （可选）内联推进：evaluateProgression → advance/endNight 循环
+ * 5. 用 state_revision 做乐观锁写回 DB
+ * 6. 通过 Supabase Realtime 广播新状态
  *
  * ✅ 允许：DB 读写、状态计算、Realtime 广播
  * ❌ 禁止：游戏逻辑校验（由 handler 纯函数负责）
  */
 
-import { type BroadcastGameState, gameReducer, normalizeState } from '@werewolf/game-engine';
+import {
+  type BroadcastGameState,
+  gameReducer,
+  normalizeState,
+  runInlineProgression,
+} from '@werewolf/game-engine';
 
 import { getServiceClient } from './supabase';
 import type { GameActionResult, ProcessResult } from './types';
+
+/**
+ * 内联推进选项
+ */
+export interface InlineProgressionOptions {
+  /** 启用内联推进（action 处理后自动 evaluate + advance/endNight） */
+  enabled: boolean;
+  /** Host UID（用于构建 HandlerContext） */
+  hostUid: string;
+  /** 当前时间戳（用于 wolfVoteDeadline 检查，默认 Date.now()） */
+  nowMs?: number;
+}
 
 /**
  * 通用的"读-算-写-广播"流程。
  *
  * @param roomCode 4 位房间号
  * @param process  接收当前 state 和 revision，返回 handler 计算结果
+ * @param inlineProgression 可选的内联推进选项
  * @returns 操作结果（含新 state）
  */
 export async function processGameAction(
   roomCode: string,
   process: (state: BroadcastGameState, revision: number) => ProcessResult,
+  inlineProgression?: InlineProgressionOptions,
 ): Promise<GameActionResult> {
   const supabase = getServiceClient();
 
@@ -56,6 +76,21 @@ export async function processGameAction(
   for (const action of result.actions) {
     newState = gameReducer(newState, action);
   }
+
+  // Step 3.5: 内联推进（可选）
+  // action 处理后，同一请求内评估并执行推进链（advance / endNight）
+  if (inlineProgression?.enabled) {
+    const progressionResult = runInlineProgression(
+      newState,
+      inlineProgression.hostUid,
+      inlineProgression.nowMs,
+    );
+    // Apply progression actions to state
+    for (const action of progressionResult.actions) {
+      newState = gameReducer(newState, action);
+    }
+  }
+
   newState = normalizeState(newState);
 
   // Step 4: 乐观锁写回 DB
