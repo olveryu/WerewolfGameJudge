@@ -19,7 +19,7 @@
  * 子模块划分：
  * - hostActions.ts: Host-only 业务编排（assignRoles/startNight/submitAction/submitWolfVote）
  * - seatActions.ts: 座位操作编排（takeSeat/leaveSeat + player ACK 等待逻辑）
- * - messageRouter.ts: PlayerMessage/HostBroadcast 路由分发
+ * - messageRouter.ts: 统一 STATE_UPDATE 处理（Host + Player 共用）
  */
 
 import type { AppStateStatus } from 'react-native';
@@ -34,7 +34,7 @@ import { GameStore } from '@/services/engine/store';
 import { AudioService } from '@/services/infra/AudioService';
 import { HostStateCache } from '@/services/infra/HostStateCache';
 import { RoomService } from '@/services/infra/RoomService';
-import type { BroadcastGameState, HostBroadcast, PlayerMessage } from '@/services/protocol/types';
+import type { BroadcastGameState, HostBroadcast } from '@/services/protocol/types';
 import { BroadcastService } from '@/services/transport/BroadcastService';
 import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFacade';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
@@ -45,7 +45,7 @@ import { facadeLog } from '@/utils/logger';
 import type { HostActionsContext } from './hostActions';
 import * as hostActions from './hostActions';
 import type { MessageRouterContext } from './messageRouter';
-import * as messageRouter from './messageRouter';
+import { handleStateUpdate } from './messageRouter';
 import type { SeatActionsContext } from './seatActions';
 import * as seatActions from './seatActions';
 
@@ -227,19 +227,17 @@ export class GameFacade implements IGameFacade {
     const initialState = buildInitialGameState(roomCode, hostUid, template);
     this.store.initialize(initialState);
 
-    // 加入频道
+    // 加入频道（Host 和 Player 统一监听 onHostBroadcast + onDbStateChange）
     await this.broadcastService.joinRoom(roomCode, hostUid, {
-      onHostBroadcast: undefined,
-      onPlayerMessage: (msg: PlayerMessage, senderId: string) => {
-        messageRouter.hostHandlePlayerMessage(this.getMessageRouterContext(), msg, senderId);
+      onHostBroadcast: (msg: HostBroadcast) => {
+        handleStateUpdate(this.getMessageRouterContext(), msg);
       },
-      onPresenceChange: (_users: string[]) => {
-        void this.broadcastCurrentState();
+      onDbStateChange: (state: BroadcastGameState, revision: number) => {
+        facadeLog.debug('DB state change → applySnapshot, revision:', revision);
+        this.store.applySnapshot(state, revision);
+        this.broadcastService.markAsLive();
       },
-      onDbStateChange: undefined, // Host 不需要监听 DB 变更
     });
-
-    await this.broadcastCurrentState();
 
     // 注册前台恢复（Host-only）
     this._setupForegroundRecovery();
@@ -258,10 +256,8 @@ export class GameFacade implements IGameFacade {
 
     await this.broadcastService.joinRoom(roomCode, playerUid, {
       onHostBroadcast: (msg: HostBroadcast) => {
-        messageRouter.playerHandleHostBroadcast(this.getMessageRouterContext(), msg);
+        handleStateUpdate(this.getMessageRouterContext(), msg);
       },
-      onPlayerMessage: undefined,
-      onPresenceChange: undefined,
       // DB 备份通道：postgres_changes 监听 rooms 表 UPDATE
       onDbStateChange: (state: BroadcastGameState, revision: number) => {
         facadeLog.debug('DB state change → applySnapshot, revision:', revision);
@@ -270,16 +266,12 @@ export class GameFacade implements IGameFacade {
       },
     });
 
-    // 从 DB 读取初始状态（比 REQUEST_STATE 更可靠 — 不经过 broadcast 通道）
+    // 从 DB 读取初始状态（服务端权威 — 直接 SELECT，不经过 broadcast 通道）
     const dbState = await this.roomService.getGameState(roomCode);
     if (dbState) {
       this.store.applySnapshot(dbState.state, dbState.revision);
       this.broadcastService.markAsLive();
     }
-
-    // 请求当前状态（兜底，万一 DB 还没写入）
-    const reqMsg: PlayerMessage = { type: 'REQUEST_STATE', uid: playerUid };
-    await this.broadcastService.sendToHost(reqMsg);
   }
 
   /**
@@ -340,20 +332,17 @@ export class GameFacade implements IGameFacade {
       return { success: false, reason: 'no_cached_state' };
     }
 
-    // 加入频道（作为 Host）
+    // 加入频道（Host 和 Player 统一监听 onHostBroadcast + onDbStateChange）
     await this.broadcastService.joinRoom(roomCode, hostUid, {
-      onHostBroadcast: undefined,
-      onPlayerMessage: (msg: PlayerMessage, senderId: string) => {
-        messageRouter.hostHandlePlayerMessage(this.getMessageRouterContext(), msg, senderId);
+      onHostBroadcast: (msg: HostBroadcast) => {
+        handleStateUpdate(this.getMessageRouterContext(), msg);
       },
-      onPresenceChange: (_users: string[]) => {
-        void this.broadcastCurrentState();
+      onDbStateChange: (state: BroadcastGameState, revision: number) => {
+        facadeLog.debug('DB state change → applySnapshot, revision:', revision);
+        this.store.applySnapshot(state, revision);
+        this.broadcastService.markAsLive();
       },
-      onDbStateChange: undefined, // Host 不需要监听 DB 变更
     });
-
-    // 立即广播当前状态，让所有 Player 同步
-    await this.broadcastCurrentState();
 
     // 注册前台恢复（Host-only）
     this._setupForegroundRecovery();
@@ -642,36 +631,11 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
-   * Player: 请求状态快照
-   *
-   * PR8: Player 发送 REQUEST_STATE 消息给 Host
-   */
-  async requestSnapshot(): Promise<boolean> {
-    if (this.isHost) {
-      // Host 不需要请求快照
-      return true;
-    }
-
-    const uid = this.myUid;
-    if (!uid) return false;
-
-    try {
-      const reqMsg: PlayerMessage = { type: 'REQUEST_STATE', uid };
-      await this.broadcastService.sendToHost(reqMsg);
-      return true;
-    } catch (e) {
-      facadeLog.warn('sendToHost failed (REQUEST_STATE)', e);
-      return false;
-    }
-  }
-
-  /**
-   * Player: 从 DB 直接读取最新状态（auto-heal fallback）
-   * 比 requestSnapshot 更可靠 — 不经过 broadcast 通道，直接 SELECT from rooms。
+   * 从 DB 直接读取最新状态（auto-heal / reconnect fallback）
+   * 服务端权威 — 直接 SELECT from rooms，不经过 broadcast 通道。
+   * Host 和 Player 统一使用。
    */
   async fetchStateFromDB(): Promise<boolean> {
-    if (this.isHost) return true;
-
     const state = this.store.getState();
     if (!state) return false;
 
@@ -682,11 +646,10 @@ export class GameFacade implements IGameFacade {
         this.broadcastService.markAsLive();
         return true;
       }
-      // DB 没有 state（Host 还未写入），fallback 到 requestSnapshot
-      return this.requestSnapshot();
+      return false;
     } catch (e) {
-      facadeLog.warn('fetchStateFromDB failed, falling back to requestSnapshot', e);
-      return this.requestSnapshot();
+      facadeLog.warn('fetchStateFromDB failed', e);
+      return false;
     }
   }
 
@@ -736,7 +699,6 @@ export class GameFacade implements IGameFacade {
       isHost: this.isHost,
       myUid: this.myUid,
       getMySeatNumber: () => this.getMySeatNumber(),
-      broadcastCurrentState: () => this.broadcastCurrentState(),
       // Abort check: used by playApiSideEffects to stop audio queue when leaving room
       isAborted: () => this._aborted,
       // wolfVoteTimer: getter/setter backed by Facade instance field
@@ -777,53 +739,21 @@ export class GameFacade implements IGameFacade {
   /**
    * MessageRouter 上下文
    *
-   * 注：所有夜晚操作已迁移至 HTTP API，不再经过 messageRouter。
+   * 统一 Host/Player：所有客户端共用 handleStateUpdate。
    */
   private getMessageRouterContext(): MessageRouterContext {
     return {
       store: this.store,
       broadcastService: this.broadcastService,
+      hostStateCache: this.isHost ? this.hostStateCache : null,
       isHost: this.isHost,
       myUid: this.myUid,
-      broadcastCurrentState: () => this.broadcastCurrentState(),
     };
   }
 
   // =========================================================================
   // Helpers
   // =========================================================================
-
-  private findSeatByUid(uid: string | null): number | null {
-    if (!uid) return null;
-    const state = this.store.getState();
-    if (!state) return null;
-    for (const [seatStr, player] of Object.entries(state.players)) {
-      if (player?.uid === uid) {
-        return Number.parseInt(seatStr, 10);
-      }
-    }
-    return null;
-  }
-
-  private async broadcastCurrentState(): Promise<void> {
-    const state = this.store.getState();
-    if (!state) return;
-
-    const revision = this.store.getRevision();
-
-    // Host: 保存状态到本地缓存（用于 rejoin 恢复）+ DB（供 Player 恢复）
-    if (this.isHost) {
-      void this.hostStateCache.saveState(state.roomCode, state.hostUid, state, revision);
-      void this.roomService.upsertGameState(state.roomCode, state, revision);
-    }
-
-    const msg: HostBroadcast = {
-      type: 'STATE_UPDATE',
-      state,
-      revision,
-    };
-    await this.broadcastService.broadcastAsHost(msg);
-  }
 
   private generateRequestId(): string {
     return newRequestId();

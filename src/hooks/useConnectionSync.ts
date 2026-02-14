@@ -1,16 +1,15 @@
 /**
- * useConnectionSync - Connection status tracking + Player auto-recovery
+ * useConnectionSync - Connection status tracking + auto-recovery
  *
  * Manages:
  * - BroadcastService connection status subscription
- * - Player auto-recovery after reconnect (DB read + throttled snapshot request)
+ * - Auto-recovery after reconnect (DB read — throttled)
  * - State staleness detection + automatic self-healing via DB fallback
  *
- * Self-healing: When a player's WebSocket stays connected but a broadcast
+ * Self-healing: When a client's WebSocket stays connected but a broadcast
  * message is silently dropped (Supabase Realtime is at-most-once), the
  * staleness detector automatically reads the latest state from DB.
- * This is more reliable than the old REQUEST_STATE approach which also
- * went through the same unreliable broadcast channel.
+ * Host and Player use the same recovery path (server-authoritative).
  *
  * ✅ 允许：订阅 BroadcastService 连接状态、派生 staleness
  * ❌ 禁止：直接修改游戏状态、业务校验逻辑
@@ -89,18 +88,16 @@ export function useConnectionSync(
     return unsubscribe;
   }, [facade]);
 
-  // Player 自动恢复：断线重连后自动请求状态
+  // Auto-recovery：断线重连后自动请求状态
   // Throttle: 只在同一 live session 中请求一次（收到 STATE_UPDATE 后重置）
   useEffect(() => {
-    // 只有 Player 需要自动恢复（Host 是权威）
-    if (isHost) return;
     // 只在连接恢复时触发
     if (connectionStatus !== 'live') return;
     // 如果没有 roomRecord，说明还没加入房间
     if (!roomRecord) return;
-    // Throttle: 已经请求过，跳过（避免 REQUEST_STATE spam）
+    // Throttle: 已经请求过，跳过
     if (hasRequestedInSessionRef.current) {
-      gameRoomLog.debug('Player auto-recovery: already requested in this session, skipping');
+      gameRoomLog.debug('Auto-recovery: already requested in this session, skipping');
       return;
     }
 
@@ -108,9 +105,9 @@ export function useConnectionSync(
     reconnectTimerRef.current = setTimeout(() => {
       if (hasRequestedInSessionRef.current) return; // 双重保险
       hasRequestedInSessionRef.current = true;
-      gameRoomLog.debug('Player auto-recovery: fetching state from DB after reconnect');
+      gameRoomLog.debug('Auto-recovery: fetching state from DB after reconnect');
       facade.fetchStateFromDB().catch((e) => {
-        gameRoomLog.warn('Player auto-recovery fetchStateFromDB failed:', e);
+        gameRoomLog.warn('Auto-recovery fetchStateFromDB failed:', e);
       });
     }, 2000);
 
@@ -141,12 +138,11 @@ export function useConnectionSync(
     return () => clearInterval(id);
   }, [connectionStatus, lastStateReceivedAt]);
 
-  // ── Player 自动自愈：连接正常但漏收广播时，从 DB 直接读取最新状态 ──
+  // ── 自动自愈：连接正常但漏收广播时，从 DB 直接读取最新状态 ──
   // Supabase broadcast 是 at-most-once，单条消息丢失不会触发断线重连。
-  // 此 effect 在 staleness 检测到后自动从 DB 读取，比旧的 REQUEST_STATE 更可靠。
+  // 此 effect 在 staleness 检测到后自动从 DB 读取。
   const lastAutoHealRef = useRef<number>(0);
   useEffect(() => {
-    if (isHost) return;
     if (!isStateStale) return;
     if (connectionStatus !== 'live') return;
     if (!roomRecord) return;

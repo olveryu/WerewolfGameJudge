@@ -1,29 +1,25 @@
 /**
  * BroadcastService - Supabase Realtime 广播传输服务
  *
+ * 服务端权威架构：所有客户端（Host + Player）平等接收服务端广播的 STATE_UPDATE。
+ *
  * 职责：
  * - 管理 Supabase Realtime Channel 生命周期（subscribe/unsubscribe）
- * - Host→Player 广播 STATE_UPDATE / ACK / SNAPSHOT_RESPONSE
- * - Player→Host 发送 intent / PlayerMessage
- * - 断线重连 + SNAPSHOT_REQUEST/RESPONSE 状态恢复
+ * - 监听服务端广播的 STATE_UPDATE（host event）
  * - 订阅 postgres_changes（DB 备份通道，可靠补偿 broadcast 丢失）
+ * - Presence 跟踪
  *
- * ✅ 允许：Realtime channel 管理 + 消息收发 + presence + DB 变更订阅
+ * ✅ 允许：Realtime channel 管理 + 消息接收 + presence + DB 变更订阅
+ * ❌ 禁止：客户端广播（broadcastAsHost / sendToHost 已删除）
  * ❌ 禁止：游戏逻辑（校验/结算/流程推进）
- * ❌ 禁止：持久化游戏状态（DB 写入由 RoomService 负责）
- *
- * Protocol Features:
- * - stateRevision: Monotonic counter for ordering state updates
- * - requestId + ACK: Reliable seat/standup actions with acknowledgment
- * - SNAPSHOT_REQUEST/RESPONSE: State recovery for reconnection/packet loss
- * - postgres_changes: Reliable backup channel for state updates
+ * ❌ 禁止：持久化游戏状态（DB 写入由服务端负责）
  */
 
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
 // Protocol types - Import for local use
-import type { BroadcastGameState, HostBroadcast, PlayerMessage } from '@/services/protocol/types';
+import type { BroadcastGameState, HostBroadcast } from '@/services/protocol/types';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import { broadcastLog } from '@/utils/logger';
 
@@ -45,9 +41,7 @@ export class BroadcastService {
   private readonly statusListeners: Set<ConnectionStatusListener> = new Set();
 
   // Callbacks for received messages
-  // Host broadcasts include room-public state messages only (PRIVATE_EFFECT has been removed).
   private onHostBroadcast: ((message: HostBroadcast) => void) | null = null;
-  private onPlayerMessage: ((message: PlayerMessage, senderId: string) => void) | null = null;
   private onPresenceChange: ((users: string[]) => void) | null = null;
   /** Callback for DB state changes (postgres_changes backup channel) */
   private onDbStateChange: ((state: BroadcastGameState, revision: number) => void) | null = null;
@@ -94,9 +88,8 @@ export class BroadcastService {
     userId: string,
     callbacks: {
       onHostBroadcast?: (message: HostBroadcast) => void;
-      onPlayerMessage?: (message: PlayerMessage, senderId: string) => void;
       onPresenceChange?: (users: string[]) => void;
-      /** DB state change callback (postgres_changes backup channel for Player) */
+      /** DB state change callback (postgres_changes backup channel) */
       onDbStateChange?: (state: BroadcastGameState, revision: number) => void;
     },
   ): Promise<void> {
@@ -112,7 +105,6 @@ export class BroadcastService {
 
     this.roomCode = roomCode;
     this.onHostBroadcast = callbacks.onHostBroadcast || null;
-    this.onPlayerMessage = callbacks.onPlayerMessage || null;
     this.onPresenceChange = callbacks.onPresenceChange || null;
     this.onDbStateChange = callbacks.onDbStateChange || null;
 
@@ -127,21 +119,11 @@ export class BroadcastService {
       },
     });
 
-    // Listen for host broadcasts
+    // Listen for host broadcasts (server-authoritative STATE_UPDATE)
     this.channel.on('broadcast', { event: 'host' }, (payload) => {
       broadcastLog.info(' Received host broadcast:', payload.payload?.type);
       if (this.onHostBroadcast && payload.payload) {
-        // payload.payload is HostBroadcast (public state messages only)
         this.onHostBroadcast(payload.payload as HostBroadcast);
-      }
-    });
-
-    // Listen for player messages (Host should listen to this)
-    this.channel.on('broadcast', { event: 'player' }, (payload) => {
-      broadcastLog.info(' Received player message:', payload.payload?.type);
-      if (this.onPlayerMessage && payload.payload) {
-        const senderId = ((payload as Record<string, unknown>).presence_ref as string) || 'unknown';
-        this.onPlayerMessage(payload.payload as PlayerMessage, senderId);
       }
     });
 
@@ -200,7 +182,7 @@ export class BroadcastService {
     broadcastLog.info(' Joined room:', roomCode);
 
     // Subscribe to DB state changes (reliable backup channel)
-    // Player receives state via both broadcast (fast) and postgres_changes (reliable).
+    // All clients receive state via both broadcast (fast) and postgres_changes (reliable).
     // Revision-based dedup in GameStore.applySnapshot() handles duplicates.
     if (this.onDbStateChange) {
       this.dbChannel = supabase!
@@ -260,37 +242,10 @@ export class BroadcastService {
     }
     this.roomCode = null;
     this.onHostBroadcast = null;
-    this.onPlayerMessage = null;
     this.onPresenceChange = null;
     this.onDbStateChange = null;
     this.setConnectionStatus('disconnected');
     broadcastLog.info(' Left room');
-  }
-
-  /**
-   * Host: Broadcast a message to all players
-   */
-  async broadcastAsHost(message: HostBroadcast): Promise<void> {
-    if (!this.channel) {
-      broadcastLog.warn(' Not connected to any room');
-      return;
-    }
-
-    broadcastLog.info(' Broadcasting as host:', message.type);
-    await this.channel.httpSend('host', message);
-  }
-
-  /**
-   * Player: Send a message to Host
-   */
-  async sendToHost(message: PlayerMessage): Promise<void> {
-    if (!this.channel) {
-      broadcastLog.warn(' Not connected to any room');
-      return;
-    }
-
-    broadcastLog.info(' Sending to host:', message.type);
-    await this.channel.httpSend('player', message);
   }
 
   /**

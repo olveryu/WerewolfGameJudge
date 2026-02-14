@@ -12,7 +12,7 @@ import { gameReducer } from '@/services/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@/services/engine/reducer/types';
 import { GameStore } from '@/services/engine/store';
 import { GameFacade } from '@/services/facade/GameFacade';
-import type { BroadcastPlayer, HostBroadcast, PlayerMessage } from '@/services/protocol/types';
+import type { BroadcastPlayer, HostBroadcast } from '@/services/protocol/types';
 
 // Mock BroadcastService (constructor mock — DI 测试直接注入，此处仅防止真实 import)
 jest.mock('../../transport/BroadcastService', () => ({
@@ -45,8 +45,6 @@ describe('GameFacade', () => {
   let facade: GameFacade;
   let mockBroadcastService: {
     joinRoom: jest.Mock;
-    sendToHost: jest.Mock;
-    broadcastAsHost: jest.Mock;
     leaveRoom: jest.Mock;
     markAsLive: jest.Mock;
   };
@@ -62,8 +60,6 @@ describe('GameFacade', () => {
     // Setup mock BroadcastService
     mockBroadcastService = {
       joinRoom: jest.fn().mockResolvedValue(undefined),
-      sendToHost: jest.fn().mockResolvedValue(undefined),
-      broadcastAsHost: jest.fn().mockResolvedValue(undefined),
       leaveRoom: jest.fn().mockResolvedValue(undefined),
       markAsLive: jest.fn(),
     };
@@ -129,24 +125,8 @@ describe('GameFacade', () => {
         'ABCD',
         'host-uid',
         expect.objectContaining({
-          onPlayerMessage: expect.any(Function),
-          onPresenceChange: expect.any(Function),
-        }),
-      );
-    });
-
-    it('should broadcast initial state', async () => {
-      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
-
-      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'STATE_UPDATE',
-          revision: 1,
-          state: expect.objectContaining({
-            roomCode: 'ABCD',
-            hostUid: 'host-uid',
-            status: 'unseated',
-          }),
+          onHostBroadcast: expect.any(Function),
+          onDbStateChange: expect.any(Function),
         }),
       );
     });
@@ -157,7 +137,6 @@ describe('GameFacade', () => {
 
     beforeEach(async () => {
       await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
-      mockBroadcastService.broadcastAsHost.mockClear();
     });
 
     afterEach(() => {
@@ -197,7 +176,6 @@ describe('GameFacade', () => {
 
     beforeEach(async () => {
       await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
-      mockBroadcastService.broadcastAsHost.mockClear();
     });
 
     afterEach(() => {
@@ -226,7 +204,7 @@ describe('GameFacade', () => {
   });
 
   describe('Player: joinAsPlayer', () => {
-    it('should join as player and request state', async () => {
+    it('should join as player and register correct callbacks', async () => {
       await facade.joinAsPlayer('ABCD', 'player-uid');
 
       expect(facade.isHostPlayer()).toBe(false);
@@ -237,13 +215,9 @@ describe('GameFacade', () => {
         'player-uid',
         expect.objectContaining({
           onHostBroadcast: expect.any(Function),
+          onDbStateChange: expect.any(Function),
         }),
       );
-
-      expect(mockBroadcastService.sendToHost).toHaveBeenCalledWith({
-        type: 'REQUEST_STATE',
-        uid: 'player-uid',
-      });
     });
   });
 
@@ -252,7 +226,6 @@ describe('GameFacade', () => {
 
     beforeEach(async () => {
       await facade.joinAsPlayer('ABCD', 'player-uid');
-      mockBroadcastService.sendToHost.mockClear();
 
       // Player must receive STATE_UPDATE to populate roomCode in store
       const joinRoomCall = mockBroadcastService.joinRoom.mock.calls[0];
@@ -488,7 +461,6 @@ describe('GameFacade', () => {
 
     beforeEach(async () => {
       await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
-      mockBroadcastService.broadcastAsHost.mockClear();
     });
 
     afterEach(() => {
@@ -521,7 +493,6 @@ describe('GameFacade', () => {
 
     beforeEach(async () => {
       await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
-      mockBroadcastService.broadcastAsHost.mockClear();
     });
 
     afterEach(() => {
@@ -557,7 +528,6 @@ describe('GameFacade', () => {
 
     beforeEach(async () => {
       await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
-      mockBroadcastService.broadcastAsHost.mockClear();
     });
 
     afterEach(() => {
@@ -646,7 +616,6 @@ describe('GameFacade', () => {
 
     beforeEach(async () => {
       await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
-      mockBroadcastService.broadcastAsHost.mockClear();
     });
 
     afterEach(() => {
@@ -712,16 +681,10 @@ describe('GameFacade', () => {
         json: () => Promise.resolve({ success: true }),
       });
 
-      // Clear any sendToHost calls from joinAsPlayer
-      mockBroadcastService.sendToHost.mockClear();
-
       const result = await playerFacade.markViewedRole(0);
 
       expect(result.success).toBe(true);
-      // Should use HTTP, NOT sendToHost
-      expect(mockBroadcastService.sendToHost).not.toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'VIEWED_ROLE' }),
-      );
+      // Should use HTTP API (unified path)
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/api/game/view-role'),
         expect.objectContaining({ method: 'POST' }),
@@ -767,7 +730,6 @@ describe('GameFacade', () => {
 
     beforeEach(async () => {
       await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
-      mockBroadcastService.broadcastAsHost.mockClear();
     });
 
     afterEach(() => {
@@ -866,7 +828,6 @@ describe('GameFacade', () => {
     beforeEach(async () => {
       await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
       fillAllSeatsViaReducer(facade, mockTemplate);
-      mockBroadcastService.broadcastAsHost.mockClear();
     });
 
     afterEach(() => {
@@ -921,7 +882,6 @@ describe('GameFacade', () => {
     beforeEach(async () => {
       await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
       fillAllSeatsViaReducer(facade, mockTemplate);
-      mockBroadcastService.broadcastAsHost.mockClear();
     });
 
     afterEach(() => {
@@ -1229,34 +1189,6 @@ describe('GameFacade', () => {
       expect(facadeWithCache.wasAudioInterrupted).toBe(false);
     });
 
-    it('should broadcast restored state after host rejoin', async () => {
-      const cached = buildOngoingCache();
-      const facadeWithCache = new GameFacade({
-        store: new GameStore(),
-        broadcastService: mockBroadcastService as any,
-        audioService: mockAudioServiceInstance as any,
-        hostStateCache: {
-          saveState: jest.fn(),
-          loadState: jest.fn().mockResolvedValue(cached),
-          getState: jest.fn().mockReturnValue(null),
-          clearState: jest.fn(),
-        } as any,
-        roomService: mockRoomService(),
-      });
-
-      await facadeWithCache.joinAsHost('REJN', 'host-uid');
-
-      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'STATE_UPDATE',
-          state: expect.objectContaining({
-            roomCode: 'REJN',
-            status: 'ongoing',
-          }),
-        }),
-      );
-    });
-
     it('should return no_cached_state when no cache and no template', async () => {
       const result = await facade.joinAsHost('REJN', 'host-uid');
 
@@ -1339,7 +1271,6 @@ describe('GameFacade', () => {
       });
 
       await f.joinAsHost('REJN', 'host-uid');
-      mockBroadcastService.broadcastAsHost.mockClear();
       mockAudioServiceInstance.playRoleBeginningAudio.mockClear();
       (global.fetch as jest.Mock).mockClear();
       // Re-set the mock after clearing

@@ -210,13 +210,9 @@ export interface IGameFacade {
 
   // === Sync ===
   /**
-   * 请求状态快照（Player）
-   */
-  requestSnapshot(): Promise<boolean>;
-
-  /**
-   * Player 从 DB 直接读取最新状态（auto-heal fallback）
-   * 比 requestSnapshot 更可靠 — 不经过 broadcast 通道
+   * 从 DB 直接读取最新状态（auto-heal / reconnect fallback）
+   * 服务端权威 — 直接 SELECT from rooms，不经过 broadcast 通道
+   * Host 和 Player 统一使用
    */
   fetchStateFromDB(): Promise<boolean>;
 
