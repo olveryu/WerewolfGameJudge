@@ -286,26 +286,16 @@ describe('PlayerMessage Router Coverage Contract', () => {
       );
     });
 
-    it('REVEAL_ACK should call handleRevealAck when wired', async () => {
-      const mockHandleRevealAck = jest.fn().mockResolvedValue({ success: true });
-      // 需要让 store.getRevision() 返回 1，与 createMinimalPayload 中的 revision 匹配
-      const mockStore = {
-        getState: jest.fn(() => null),
-        getRevision: jest.fn(() => 1), // 匹配 createMinimalPayload('REVEAL_ACK').revision
-        dispatch: jest.fn(),
-        applySnapshot: jest.fn(),
-        subscribe: jest.fn(() => jest.fn()),
-        destroy: jest.fn(),
-      };
-      const ctx = createMockContext({
-        handleRevealAck: mockHandleRevealAck,
-        store: mockStore as unknown as MessageRouterContext['store'],
-      });
+    it('REVEAL_ACK should trigger legacy warn (now HTTP API)', () => {
+      const ctx = createMockContext();
       const msg = createMinimalPayload('REVEAL_ACK');
 
-      await hostHandlePlayerMessage(ctx, msg, 'sender-uid');
+      hostHandlePlayerMessage(ctx, msg, 'sender-uid');
 
-      expect(mockHandleRevealAck).toHaveBeenCalled();
+      expect(facadeLog.warn).toHaveBeenCalledWith(
+        '[messageRouter] Legacy PlayerMessage type received',
+        expect.objectContaining({ type: 'REVEAL_ACK' }),
+      );
     });
 
     it('SNAPSHOT_REQUEST should trigger warn (currently unimplemented)', () => {
@@ -325,11 +315,7 @@ describe('PlayerMessage Router Coverage Contract', () => {
    * 实现进度追踪
    */
   describe('Implementation Progress Tracking', () => {
-    const IMPLEMENTED_TYPES: PlayerMessage['type'][] = [
-      'REQUEST_STATE',
-      'REVEAL_ACK', // P0-FIX: now wired via handleRevealAck
-      'WOLF_ROBOT_HUNTER_STATUS_VIEWED', // WolfRobot Hunter gate ack
-    ];
+    const IMPLEMENTED_TYPES: PlayerMessage['type'][] = ['REQUEST_STATE'];
 
     const LEGACY_TYPES: PlayerMessage['type'][] = [
       'JOIN', // Legacy: 现在用 HTTP API /api/game/seat
@@ -337,18 +323,20 @@ describe('PlayerMessage Router Coverage Contract', () => {
       'VIEWED_ROLE', // Legacy: 现在用 HTTP API /api/game/view-role
       'ACTION', // Legacy: 现在用 HTTP API /api/game/night/action
       'WOLF_VOTE', // Legacy: 现在用 HTTP API /api/game/night/wolf-vote
+      'REVEAL_ACK', // Legacy: 现在用 HTTP API /api/game/night/reveal-ack
+      'WOLF_ROBOT_HUNTER_STATUS_VIEWED', // Legacy: 现在用 HTTP API /api/game/night/wolf-robot-viewed
     ];
 
     const UNIMPLEMENTED_TYPES: PlayerMessage['type'][] = [
       'SNAPSHOT_REQUEST', // Tracked: reserved for future differential sync
     ];
 
-    it('should have 3 implemented types', () => {
-      expect(IMPLEMENTED_TYPES.length).toBe(3);
+    it('should have 1 implemented types', () => {
+      expect(IMPLEMENTED_TYPES.length).toBe(1);
     });
 
-    it('should have 5 legacy types', () => {
-      expect(LEGACY_TYPES.length).toBe(5);
+    it('should have 7 legacy types', () => {
+      expect(LEGACY_TYPES.length).toBe(7);
     });
 
     it('should have 1 unimplemented types', () => {
@@ -393,13 +381,21 @@ describe('PlayerMessage Router Coverage Contract', () => {
 
 describe('PlayerMessage Router Coverage Report', () => {
   it('validates coverage expectations', () => {
-    const IMPLEMENTED = ['REQUEST_STATE', 'REVEAL_ACK', 'WOLF_ROBOT_HUNTER_STATUS_VIEWED'];
-    const LEGACY = ['JOIN', 'LEAVE', 'VIEWED_ROLE', 'ACTION', 'WOLF_VOTE'];
+    const IMPLEMENTED = ['REQUEST_STATE'];
+    const LEGACY = [
+      'JOIN',
+      'LEAVE',
+      'VIEWED_ROLE',
+      'ACTION',
+      'WOLF_VOTE',
+      'REVEAL_ACK',
+      'WOLF_ROBOT_HUNTER_STATUS_VIEWED',
+    ];
     const UNIMPLEMENTED = ['SNAPSHOT_REQUEST'];
 
     // Validate counts instead of printing
-    expect(IMPLEMENTED.length).toBe(3);
-    expect(LEGACY.length).toBe(5);
+    expect(IMPLEMENTED.length).toBe(1);
+    expect(LEGACY.length).toBe(7);
     expect(UNIMPLEMENTED.length).toBe(1);
     expect(ALL_PLAYER_MESSAGE_TYPES.length).toBe(
       IMPLEMENTED.length + LEGACY.length + UNIMPLEMENTED.length,

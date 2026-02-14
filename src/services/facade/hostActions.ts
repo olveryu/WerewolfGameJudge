@@ -6,7 +6,7 @@
  * 职责：
  * - Host-only 游戏控制方法（assignRoles/markViewedRole/startNight）→ HTTP API
  * - Host-only 夜晚行动方法（submitAction/submitWolfVote）→ HTTP API
- * - 夜晚推进 & 音频编排（Phase 3 scope — Commit 3）
+ * - 夜晚推进 & 音频编排（advanceNight/endNight/setAudioPlaying/callNightProgression）→ HTTP API
  *
  * 禁止：
  * - 业务逻辑/校验规则（全部在 handler / 服务端）
@@ -16,29 +16,10 @@
 import { API_BASE_URL } from '@/config/api';
 import type { RoleId } from '@/models/roles';
 import type { GameTemplate } from '@/models/Template';
-import {
-  handleNightProgression,
-  resetProgressionTracker,
-  WOLF_VOTE_COUNTDOWN_MS,
-} from '@/services/engine/handlers/progressionEvaluator';
-import {
-  handleAdvanceNight,
-  handleEndNight,
-  handleSetAudioPlaying,
-} from '@/services/engine/handlers/stepTransitionHandler';
+import { WOLF_VOTE_COUNTDOWN_MS } from '@/services/engine/handlers/progressionEvaluator';
 import type { SideEffect } from '@/services/engine/handlers/types';
-import type { HandlerContext, HandlerResult } from '@/services/engine/handlers/types';
-import { handleSetWolfRobotHunterStatusViewed } from '@/services/engine/handlers/wolfRobotHunterGateHandler';
-import type {
-  AdvanceNightIntent,
-  EndNightIntent,
-  SetAudioPlayingIntent,
-} from '@/services/engine/intents/types';
-import { gameReducer } from '@/services/engine/reducer';
-import type { StateAction } from '@/services/engine/reducer/types';
 import type { GameStore } from '@/services/engine/store';
 import type { AudioService } from '@/services/infra/AudioService';
-import type { BroadcastGameState } from '@/services/protocol/types';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { facadeLog } from '@/utils/logger';
 
@@ -75,130 +56,6 @@ export interface HostActionsContext {
   wolfVoteTimer: ReturnType<typeof setTimeout> | null;
   /** AudioService 实例（用于 preload 等直接调用） */
   audioService: AudioService;
-}
-
-/**
- * 应用 actions 到 reducer → store
- */
-function applyActions(
-  store: GameStore,
-  currentState: BroadcastGameState,
-  actions: StateAction[],
-): void {
-  let newState = currentState;
-  for (const action of actions) {
-    newState = gameReducer(newState, action);
-  }
-  store.setState(newState);
-}
-
-/**
- * 构建 handler context
- */
-function buildHandlerContext(ctx: HostActionsContext): HandlerContext {
-  return {
-    state: ctx.store.getState(),
-    isHost: ctx.isHost,
-    myUid: ctx.myUid,
-    mySeat: ctx.getMySeatNumber(),
-  };
-}
-
-/**
- * 统一的 handler 结果处理
- * - 应用 actions
- * - 执行 side effects
- * - 返回 success/reason
- */
-async function processHandlerResult(
-  ctx: HostActionsContext,
-  result: HandlerResult,
-  options?: {
-    logPrefix?: string;
-    logData?: Record<string, unknown>;
-  },
-): Promise<{ success: boolean; reason?: string }> {
-  const state = ctx.store.getState();
-  const { logPrefix, logData } = options ?? {};
-
-  if (!result.success) {
-    if (logPrefix) {
-      facadeLog.warn(`${logPrefix} failed`, { reason: result.reason, ...logData });
-    }
-
-    // 失败时也需要应用 actions（如 ACTION_REJECTED），否则 UI 无法通过 STATE_UPDATE 感知拒绝。
-    // 统一放在出口层处理，避免调用点遗漏造成回归。
-    if (state && result.actions.length > 0) {
-      applyActions(ctx.store, state, result.actions);
-    }
-
-    // 无论如何都 broadcast（防 UI pending 卡死）
-    await ctx.broadcastCurrentState();
-    return { success: false, reason: result.reason };
-  }
-
-  // 成功：应用 actions
-  if (state) {
-    applyActions(ctx.store, state, result.actions);
-  }
-
-  // 收集所有 PLAY_AUDIO 副作用（支持队列播放）
-  const audioEffects =
-    result.sideEffects?.filter(
-      (e): e is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } =>
-        e.type === 'PLAY_AUDIO',
-    ) ?? [];
-
-  // 如果有音频要播放，必须在 BROADCAST_STATE 之前设置 gate
-  // 根据 copilot-instructions.md：先 gate，再 broadcast，然后播放
-  if (audioEffects.length > 0 && ctx.playAudio && ctx.setAudioPlayingGate) {
-    await ctx.setAudioPlayingGate(true);
-  }
-
-  // 执行副作用：广播状态
-  if (result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE')) {
-    await ctx.broadcastCurrentState();
-  }
-  if (result.sideEffects?.some((e) => e.type === 'SAVE_STATE')) {
-    // SAVE_STATE side effect: 用于 crash recovery，暂由 log 占位
-    facadeLog.debug('SAVE_STATE side effect triggered');
-  }
-
-  // 播放所有音频（按顺序）
-  // Gate 在上面已设置，这里逐个播放，最后 finally 释放
-  if (audioEffects.length > 0 && ctx.playAudio) {
-    facadeLog.debug('processHandlerResult: playing audio effects', {
-      count: audioEffects.length,
-      audioKeys: audioEffects.map((e) => ({ key: e.audioKey, isEnd: e.isEndAudio })),
-    });
-    try {
-      for (const effect of audioEffects) {
-        // Check abort flag before each audio play (P0 fix: stop queue when leaving room)
-        if (ctx.isAborted?.()) {
-          facadeLog.debug('processHandlerResult: aborted, skipping remaining audio');
-          break;
-        }
-        facadeLog.debug('processHandlerResult: playing audio', {
-          audioKey: effect.audioKey,
-          isEndAudio: effect.isEndAudio,
-        });
-        await ctx.playAudio(effect.audioKey, effect.isEndAudio);
-        // 注：night.mp3 已包含 5 秒尾部静音，无需额外 setTimeout
-      }
-    } finally {
-      // 无论成功/失败/中断，都必须释放 gate
-      // 但如果已 abort（离开房间），跳过释放（已经不是 host，避免 warn）
-      if (ctx.setAudioPlayingGate && !ctx.isAborted?.()) {
-        await ctx.setAudioPlayingGate(false);
-      }
-    }
-  }
-
-  if (logPrefix) {
-    facadeLog.info(`${logPrefix} success`, logData);
-  }
-
-  return { success: true };
 }
 
 // =============================================================================
@@ -322,9 +179,6 @@ export async function startNight(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  // 重置推进追踪器（新夜晚开始）
-  resetProgressionTracker();
-
   const result = await callGameControlApi('/api/game/start', {
     roomCode,
     hostUid: ctx.myUid,
@@ -381,9 +235,6 @@ export async function restartGame(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('restartGame called', { isHost: ctx.isHost });
-
-  // 重置推进追踪器（游戏重新开始）
-  resetProgressionTracker();
 
   const roomCode = ctx.store.getState()?.roomCode;
   if (!roomCode || !ctx.myUid) {
@@ -547,7 +398,7 @@ async function callWolfVoteApi(
 }
 
 /**
- * Host: 推进夜晚到下一步
+ * Host: 推进夜晚到下一步（HTTP API）
  *
  * PR6: ADVANCE_NIGHT（音频结束后调用）
  */
@@ -556,14 +407,30 @@ export async function advanceNight(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('advanceNight called', { isHost: ctx.isHost });
 
-  const intent: AdvanceNightIntent = { type: 'ADVANCE_NIGHT' };
-  const context = buildHandlerContext(ctx);
-  const result = handleAdvanceNight(intent, context);
+  const roomCode = ctx.store.getState()?.roomCode;
+  const hostUid = ctx.store.getState()?.hostUid;
+  if (!roomCode || !hostUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
 
-  return processHandlerResult(ctx, result, { logPrefix: 'advanceNight' });
+  const result = await callGameControlApi('/api/game/night/advance', {
+    roomCode,
+    hostUid,
+  });
+
+  if (!result.success) {
+    facadeLog.warn('advanceNight failed', { reason: result.reason });
+    return { success: false, reason: result.reason };
+  }
+
+  // 播放服务端返回的音频 sideEffects
+  await playApiSideEffects(ctx, result.sideEffects);
+
+  return { success: true };
 }
+
 /**
- * Host: 结束夜晚，进行死亡结算
+ * Host: 结束夜晚，进行死亡结算（HTTP API）
  *
  * PR6: END_NIGHT（夜晚结束音频结束后调用）
  */
@@ -572,15 +439,30 @@ export async function endNight(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('endNight called', { isHost: ctx.isHost });
 
-  const intent: EndNightIntent = { type: 'END_NIGHT' };
-  const context = buildHandlerContext(ctx);
-  const result = handleEndNight(intent, context);
+  const roomCode = ctx.store.getState()?.roomCode;
+  const hostUid = ctx.store.getState()?.hostUid;
+  if (!roomCode || !hostUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
 
-  return processHandlerResult(ctx, result, { logPrefix: 'endNight' });
+  const result = await callGameControlApi('/api/game/night/end', {
+    roomCode,
+    hostUid,
+  });
+
+  if (!result.success) {
+    facadeLog.warn('endNight failed', { reason: result.reason });
+    return { success: false, reason: result.reason };
+  }
+
+  // 播放服务端返回的音频 sideEffects
+  await playApiSideEffects(ctx, result.sideEffects);
+
+  return { success: true };
 }
 
 /**
- * Host: 设置音频播放状态
+ * Host: 设置音频播放状态（HTTP API）
  *
  * PR7: 音频时序控制
  * - 当音频开始播放时，调用 setAudioPlaying(true)
@@ -592,16 +474,16 @@ export async function setAudioPlaying(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('setAudioPlaying called', { isPlaying, isHost: ctx.isHost });
 
-  const intent: SetAudioPlayingIntent = {
-    type: 'SET_AUDIO_PLAYING',
-    payload: { isPlaying },
-  };
-  const context = buildHandlerContext(ctx);
-  const result = handleSetAudioPlaying(intent, context);
+  const roomCode = ctx.store.getState()?.roomCode;
+  const hostUid = ctx.store.getState()?.hostUid;
+  if (!roomCode || !hostUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
 
-  return processHandlerResult(ctx, result, {
-    logPrefix: 'setAudioPlaying',
-    logData: { isPlaying },
+  return callGameControlApi('/api/game/night/audio-gate', {
+    roomCode,
+    hostUid,
+    isPlaying,
   });
 }
 
@@ -610,7 +492,7 @@ export async function setAudioPlaying(
 // =============================================================================
 
 /**
- * Host: 清除 pending reveal acks 并推进夜晚
+ * Host: 清除 pending reveal acks 并推进夜晚（HTTP API）
  *
  * 当用户确认 reveal 弹窗后调用
  */
@@ -619,17 +501,21 @@ export async function clearRevealAcks(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('clearRevealAcks called', { isHost: ctx.isHost });
 
-  const state = ctx.store.getState();
-  if (!state) {
-    return { success: false, reason: 'no_state' };
+  const roomCode = ctx.store.getState()?.roomCode;
+  const hostUid = ctx.store.getState()?.hostUid;
+  if (!roomCode || !hostUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  // 应用 CLEAR_REVEAL_ACKS action
-  const newState = gameReducer(state, { type: 'CLEAR_REVEAL_ACKS' });
-  ctx.store.setState(newState);
+  const result = await callGameControlApi('/api/game/night/reveal-ack', {
+    roomCode,
+    hostUid,
+  });
 
-  // 必须 await broadcast，确保 Player 先收到 ack 清除再推进
-  await ctx.broadcastCurrentState();
+  if (!result.success) {
+    facadeLog.warn('clearRevealAcks failed', { reason: result.reason });
+    return { success: false, reason: result.reason };
+  }
 
   // 推进夜晚流程
   await callNightProgression(ctx);
@@ -638,12 +524,9 @@ export async function clearRevealAcks(
 }
 
 /**
- * Host: 设置机械狼查看猎人状态的 gate
+ * Host/Player: 设置机械狼查看猎人状态（HTTP API）
  *
  * 当机械狼学到猎人后查看状态按钮被点击时调用
- *
- * 编排职责：调用 handler → reducer → store → broadcast
- * 业务逻辑全部在 handler 层（handleSetWolfRobotHunterStatusViewed）
  */
 export async function setWolfRobotHunterStatusViewed(
   ctx: HostActionsContext,
@@ -651,36 +534,22 @@ export async function setWolfRobotHunterStatusViewed(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('setWolfRobotHunterStatusViewed called', { isHost: ctx.isHost, seat });
 
-  // 构建 handler context
-  const handlerCtx = {
-    state: ctx.store.getState(),
-    isHost: ctx.isHost,
-    myUid: ctx.myUid,
-    mySeat: ctx.getMySeatNumber(),
-  };
+  const roomCode = ctx.store.getState()?.roomCode;
+  const hostUid = ctx.store.getState()?.hostUid;
+  if (!roomCode || !hostUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
 
-  // 调用 handler（业务逻辑全部在 handler）
-  const result = handleSetWolfRobotHunterStatusViewed(handlerCtx, {
-    type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
+  const result = await callGameControlApi('/api/game/night/wolf-robot-viewed', {
+    roomCode,
+    hostUid,
     seat,
   });
 
   if (!result.success) {
+    facadeLog.warn('setWolfRobotHunterStatusViewed failed', { reason: result.reason, seat });
     return { success: false, reason: result.reason };
   }
-
-  // 应用 actions（通过 reducer）
-  let state = ctx.store.getState();
-  if (!state) {
-    return { success: false, reason: 'no_state_after_handler' };
-  }
-  for (const action of result.actions) {
-    state = gameReducer(state, action);
-  }
-  ctx.store.setState(state);
-
-  // 必须 await broadcast，确保 Player 先收到 gate 解除再推进
-  await ctx.broadcastCurrentState();
 
   // 推进夜晚流程（gate 解除后自动推进到下一步）
   await callNightProgression(ctx);
@@ -693,29 +562,78 @@ export async function setWolfRobotHunterStatusViewed(
 // =============================================================================
 
 /**
- * 构建夜晚推进回调
+ * Host: HTTP-driven 夜晚推进循环
  *
- * 将 HostActionsContext 转换为 handler 需要的回调接口
- */
-function buildNightProgressionCallbacks(ctx: HostActionsContext) {
-  return {
-    getRevision: () => ctx.store.getRevision(),
-    getState: () => ctx.store.getState(),
-    isHost: ctx.isHost,
-    advanceNight: () => advanceNight(ctx),
-    endNight: () => endNight(ctx),
-  };
-}
-
-/**
- * Host: 透传调用夜晚推进
+ * 1. POST /api/game/night/progression → { decision }
+ * 2. if advance → POST /api/game/night/advance → { sideEffects } → playApiSideEffects → recurse
+ * 3. if end_night → POST /api/game/night/end → { sideEffects } → playApiSideEffects
+ * 4. if none → done
  *
- * 这是一个透传方法，将 HostActionsContext 转换后调用 handler 层的 handleNightProgression。
  * Exported：Facade foreground recovery 需要调用此方法。
  */
 export async function callNightProgression(ctx: HostActionsContext): Promise<void> {
-  const callbacks = buildNightProgressionCallbacks(ctx);
-  await handleNightProgression(callbacks);
+  const roomCode = ctx.store.getState()?.roomCode;
+  const hostUid = ctx.store.getState()?.hostUid;
+  if (!roomCode || !hostUid) return;
+
+  // 防止离开房间后继续推进
+  if (ctx.isAborted?.()) return;
+
+  const progResult = await callGameControlApi('/api/game/night/progression', {
+    roomCode,
+    hostUid,
+  });
+
+  if (!progResult.success) {
+    facadeLog.warn('callNightProgression: progression API failed', {
+      reason: progResult.reason,
+    });
+    return;
+  }
+
+  const decision = (progResult as unknown as Record<string, unknown>).decision as
+    | string
+    | undefined;
+  const reason = (progResult as unknown as Record<string, unknown>).reason as string | undefined;
+
+  facadeLog.debug('callNightProgression: decision', { decision, reason });
+
+  switch (decision) {
+    case 'advance': {
+      if (ctx.isAborted?.()) return;
+      const advResult = await callGameControlApi('/api/game/night/advance', {
+        roomCode,
+        hostUid,
+      });
+      if (advResult.success) {
+        await playApiSideEffects(ctx, advResult.sideEffects);
+        // 递归：推进后继续评估（可能连续跳步）
+        await callNightProgression(ctx);
+      } else {
+        facadeLog.warn('callNightProgression: advance failed', { reason: advResult.reason });
+      }
+      break;
+    }
+
+    case 'end_night': {
+      if (ctx.isAborted?.()) return;
+      const endResult = await callGameControlApi('/api/game/night/end', {
+        roomCode,
+        hostUid,
+      });
+      if (endResult.success) {
+        await playApiSideEffects(ctx, endResult.sideEffects);
+      } else {
+        facadeLog.warn('callNightProgression: end_night failed', { reason: endResult.reason });
+      }
+      break;
+    }
+
+    case 'none':
+    default:
+      // 无需推进
+      break;
+  }
 }
 
 // =============================================================================

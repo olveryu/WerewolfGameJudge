@@ -984,96 +984,90 @@ describe('GameFacade', () => {
   // ===========================================================================
 
   describe('advanceNight (PR6)', () => {
-    it('should fail when not host (gate: host_only)', async () => {
-      await facade.joinAsPlayer('TEST', 'player-uid', 'Player 1');
-
-      const result = await facade.advanceNight();
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('host_only');
-    });
-
-    it('should fail when status is not ongoing (gate: invalid_status)', async () => {
+    const origFetch = global.fetch;
+    beforeEach(async () => {
       await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
       fillAllSeatsViaReducer(facade, mockTemplate);
-      // 不开始夜晚，status 是 'seated'
-
-      const result = await facade.advanceNight();
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
+    });
+    afterEach(() => {
+      global.fetch = origFetch;
     });
 
-    it('should broadcast on rejection (reject also broadcasts)', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
-      fillAllSeatsViaReducer(facade, mockTemplate);
-      // 不开始夜晚，status 是 'seated'
-
-      mockBroadcastService.broadcastAsHost.mockClear();
+    it('should call HTTP API with roomCode and hostUid', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
 
       await facade.advanceNight();
 
-      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'STATE_UPDATE',
-        }),
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/night/advance'),
+        expect.objectContaining({ method: 'POST' }),
       );
     });
 
-    it('should return reason from handler (reason passthrough)', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+    it('should pass through failure reason from API', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
+      });
 
       const result = await facade.advanceNight();
 
       expect(result.success).toBe(false);
       expect(result.reason).toBe('invalid_status');
+    });
+
+    it('should return NETWORK_ERROR on fetch failure', async () => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('network'));
+
+      const result = await facade.advanceNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('NETWORK_ERROR');
     });
   });
 
   describe('endNight (PR6)', () => {
-    it('should fail when not host (gate: host_only)', async () => {
-      await facade.joinAsPlayer('TEST', 'player-uid', 'Player 1');
-
-      const result = await facade.endNight();
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('host_only');
-    });
-
-    it('should fail when status is not ongoing (gate: invalid_status)', async () => {
+    const origFetch = global.fetch;
+    beforeEach(async () => {
       await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
       fillAllSeatsViaReducer(facade, mockTemplate);
-      // 不开始夜晚，status 是 'seated'
-
-      const result = await facade.endNight();
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
+    });
+    afterEach(() => {
+      global.fetch = origFetch;
     });
 
-    it('should broadcast on rejection (reject also broadcasts)', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
-      fillAllSeatsViaReducer(facade, mockTemplate);
-      // 不开始夜晚，status 是 'seated'
-
-      mockBroadcastService.broadcastAsHost.mockClear();
+    it('should call HTTP API with roomCode and hostUid', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
 
       await facade.endNight();
 
-      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'STATE_UPDATE',
-        }),
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/night/end'),
+        expect.objectContaining({ method: 'POST' }),
       );
     });
 
-    it('should return reason from handler (reason passthrough)', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+    it('should pass through failure reason from API', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
+      });
 
       const result = await facade.endNight();
 
       expect(result.success).toBe(false);
       expect(result.reason).toBe('invalid_status');
+    });
+
+    it('should return NETWORK_ERROR on fetch failure', async () => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('network'));
+
+      const result = await facade.endNight();
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('NETWORK_ERROR');
     });
   });
 
@@ -1081,35 +1075,43 @@ describe('GameFacade', () => {
   // PR7: setAudioPlaying tests
   // ===========================================================================
   describe('setAudioPlaying (PR7)', () => {
-    it('should set isAudioPlaying to true when called with true', async () => {
+    const origFetch = global.fetch;
+    beforeEach(async () => {
       await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
       fillAllSeatsViaReducer(facade, mockTemplate);
-      setOngoingViaReducer(facade);
+    });
+    afterEach(() => {
+      global.fetch = origFetch;
+    });
+
+    it('should call HTTP API with isPlaying=true', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
 
       const result = await facade.setAudioPlaying(true);
 
       expect(result.success).toBe(true);
-      const state = facade['store'].getState();
-      expect(state?.isAudioPlaying).toBe(true);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/night/audio-gate'),
+        expect.objectContaining({ method: 'POST' }),
+      );
     });
 
-    it('should set isAudioPlaying to false when called with false', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
-      fillAllSeatsViaReducer(facade, mockTemplate);
-      setOngoingViaReducer(facade);
-      await facade.setAudioPlaying(true);
+    it('should call HTTP API with isPlaying=false', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
 
       const result = await facade.setAudioPlaying(false);
 
       expect(result.success).toBe(true);
-      const state = facade['store'].getState();
-      expect(state?.isAudioPlaying).toBe(false);
     });
 
-    it('should reject when status is not ongoing', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
-      fillAllSeatsViaReducer(facade, mockTemplate);
-      // status is 'seated', not 'ongoing'
+    it('should pass through failure reason from API', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
+      });
 
       const result = await facade.setAudioPlaying(true);
 
@@ -1117,66 +1119,42 @@ describe('GameFacade', () => {
       expect(result.reason).toBe('invalid_status');
     });
 
-    it('should broadcast on rejection (reject also broadcasts)', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
-      mockBroadcastService.broadcastAsHost.mockClear();
-
-      await facade.setAudioPlaying(true);
-
-      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'STATE_UPDATE',
-        }),
-      );
-    });
-
-    it('should return reason from handler (reason passthrough)', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+    it('should return NETWORK_ERROR on fetch failure', async () => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('network'));
 
       const result = await facade.setAudioPlaying(true);
 
       expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
+      expect(result.reason).toBe('NETWORK_ERROR');
     });
   });
 
   // ===========================================================================
   // PR7: isAudioPlaying gates contract
   // ===========================================================================
-  describe('PR7 contract: isAudioPlaying gates', () => {
-    it('advanceNight should reject when isAudioPlaying=true', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
-      fillAllSeatsViaReducer(facade, mockTemplate);
-      setOngoingViaReducer(facade);
-      await facade.setAudioPlaying(true);
-
-      const result = await facade.advanceNight();
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('forbidden_while_audio_playing');
+  describe('PR7 contract: isAudioPlaying gates (server-side validation)', () => {
+    const origFetch = global.fetch;
+    afterEach(() => {
+      global.fetch = origFetch;
     });
 
-    it('endNight should reject when isAudioPlaying=true', async () => {
+    it('advanceNight / endNight gates are now server-side', async () => {
+      // With HTTP API migration, isAudioPlaying gate is enforced server-side.
+      // Client simply forwards the request; server returns rejection reason.
       await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
       fillAllSeatsViaReducer(facade, mockTemplate);
-      setOngoingViaReducer(facade);
-      await facade.setAudioPlaying(true);
 
-      const result = await facade.endNight();
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: false, reason: 'forbidden_while_audio_playing' }),
+      });
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('forbidden_while_audio_playing');
-    });
+      const advResult = await facade.advanceNight();
+      expect(advResult.success).toBe(false);
+      expect(advResult.reason).toBe('forbidden_while_audio_playing');
 
-    it('advanceNight should succeed when isAudioPlaying=false', async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
-      fillAllSeatsViaReducer(facade, mockTemplate);
-      setOngoingViaReducer(facade);
-      // isAudioPlaying defaults to false after setOngoingViaReducer
-
-      const result = await facade.advanceNight();
-
-      expect(result.success).toBe(true);
+      const endResult = await facade.endNight();
+      expect(endResult.success).toBe(false);
+      expect(endResult.reason).toBe('forbidden_while_audio_playing');
     });
   });
 
@@ -1312,6 +1290,11 @@ describe('GameFacade', () => {
   });
 
   describe('Host: resumeAfterRejoin', () => {
+    const origFetch = global.fetch;
+    afterEach(() => {
+      global.fetch = origFetch;
+    });
+
     /** Helper: create facade with ongoing cached state, already joined */
     const createRejoinedFacade = async (
       stateOverrides: Record<string, unknown> = {},
@@ -1350,6 +1333,11 @@ describe('GameFacade', () => {
         },
       };
 
+      // Mock fetch for HTTP API calls during resumeAfterRejoin
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
+
       const f = new GameFacade({
         store: new GameStore(),
         broadcastService: mockBroadcastService as any,
@@ -1366,26 +1354,29 @@ describe('GameFacade', () => {
       await f.joinAsHost('REJN', 'host-uid');
       mockBroadcastService.broadcastAsHost.mockClear();
       mockAudioServiceInstance.playRoleBeginningAudio.mockClear();
+      (global.fetch as jest.Mock).mockClear();
+      // Re-set the mock after clearing
+      (global.fetch as jest.Mock).mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
       return f;
     };
 
-    it('should replay current step audio and release gate when isAudioPlaying=true', async () => {
+    it('should replay current step audio and call setAudioPlaying API when isAudioPlaying=true', async () => {
       const f = await createRejoinedFacade();
 
       await f.resumeAfterRejoin();
 
       // Should replay wolf audio
       expect(mockAudioServiceInstance.playRoleBeginningAudio).toHaveBeenCalledWith('wolf');
-      // Should release audio gate (setAudioPlaying(false) broadcasts)
-      expect(mockBroadcastService.broadcastAsHost).toHaveBeenCalled();
-      const lastBroadcast =
-        mockBroadcastService.broadcastAsHost.mock.calls[
-          mockBroadcastService.broadcastAsHost.mock.calls.length - 1
-        ][0];
-      expect(lastBroadcast.state.isAudioPlaying).toBe(false);
+      // Should call audio-gate API to release gate
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/night/audio-gate'),
+        expect.objectContaining({ method: 'POST' }),
+      );
     });
 
-    it('should release gate even if audio fails (try/catch absorbs error)', async () => {
+    it('should call setAudioPlaying API even if audio fails (finally block)', async () => {
       mockAudioServiceInstance.playRoleBeginningAudio.mockRejectedValueOnce(
         new Error('audio error'),
       );
@@ -1394,10 +1385,11 @@ describe('GameFacade', () => {
       // Should NOT throw — outer try/catch in resumeAfterRejoin absorbs the error
       await f.resumeAfterRejoin();
 
-      // Gate should still be released via finally
-      const broadcasts = mockBroadcastService.broadcastAsHost.mock.calls;
-      const lastState = broadcasts[broadcasts.length - 1]?.[0]?.state;
-      expect(lastState?.isAudioPlaying).toBe(false);
+      // Gate should still be released via finally → setAudioPlaying(false) → HTTP API
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/night/audio-gate'),
+        expect.objectContaining({ method: 'POST' }),
+      );
     });
 
     it('should noop on second call (re-entry guard)', async () => {
@@ -1405,7 +1397,7 @@ describe('GameFacade', () => {
 
       await f.resumeAfterRejoin();
       mockAudioServiceInstance.playRoleBeginningAudio.mockClear();
-      mockBroadcastService.broadcastAsHost.mockClear();
+      (global.fetch as jest.Mock).mockClear();
 
       // Second call should be no-op
       await f.resumeAfterRejoin();
@@ -1429,11 +1421,15 @@ describe('GameFacade', () => {
 
       // No audio replay
       expect(mockAudioServiceInstance.playRoleBeginningAudio).not.toHaveBeenCalled();
-      // Should still broadcast (progression may trigger state changes)
+      // Should still call progression API
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/night/progression'),
+        expect.objectContaining({ method: 'POST' }),
+      );
       expect(f.wasAudioInterrupted).toBe(false);
     });
 
-    it('should release gate when currentStepId is undefined (endNight interrupted)', async () => {
+    it('should call setAudioPlaying API when currentStepId is undefined (endNight interrupted)', async () => {
       const f = await createRejoinedFacade({
         currentStepId: undefined,
         currentStepIndex: -1,
@@ -1443,10 +1439,11 @@ describe('GameFacade', () => {
 
       // No audio for undefined step
       expect(mockAudioServiceInstance.playRoleBeginningAudio).not.toHaveBeenCalled();
-      // Gate released via setAudioPlaying(false)
-      const broadcasts = mockBroadcastService.broadcastAsHost.mock.calls;
-      const lastState = broadcasts[broadcasts.length - 1]?.[0]?.state;
-      expect(lastState?.isAudioPlaying).toBe(false);
+      // Gate released via setAudioPlaying(false) → HTTP API
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/night/audio-gate'),
+        expect.objectContaining({ method: 'POST' }),
+      );
     });
   });
 

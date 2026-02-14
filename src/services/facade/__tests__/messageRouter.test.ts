@@ -71,8 +71,6 @@ function createMockRouterCtx(overrides?: Partial<MessageRouterContext>): Message
     isHost: true,
     myUid: 'host-uid',
     broadcastCurrentState: jest.fn(() => Promise.resolve()),
-    handleRevealAck: jest.fn(() => Promise.resolve({ success: true })),
-    handleWolfRobotHunterStatusViewed: jest.fn(() => Promise.resolve({ success: true })),
     ...overrides,
   };
 }

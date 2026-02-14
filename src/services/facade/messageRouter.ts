@@ -28,24 +28,6 @@ export interface MessageRouterContext {
   isHost: boolean;
   myUid: string | null;
   broadcastCurrentState: () => Promise<void>;
-
-  // ===========================================================================
-  // Host 处理 Player 消息的回调（由 GameFacade 注入）
-  // ===========================================================================
-
-  /**
-   * Host 处理 Player 发来的 REVEAL_ACK 消息
-   * 由 GameFacade 注入 hostActions.clearRevealAcks 实现
-   */
-  handleRevealAck?: () => Promise<{ success: boolean; reason?: string }>;
-
-  /**
-   * Host 处理 Player 发来的 WOLF_ROBOT_HUNTER_STATUS_VIEWED 消息
-   * 由 GameFacade 注入实现
-   */
-  handleWolfRobotHunterStatusViewed?: (
-    seat: number,
-  ) => Promise<{ success: boolean; reason?: string }>;
 }
 
 // =============================================================================
@@ -117,57 +99,19 @@ export async function hostHandlePlayerMessage(
       });
       break;
 
-    case 'REVEAL_ACK': {
-      // Player 确认 reveal 弹窗后，Host 需要清除 pendingRevealAcks 并推进夜晚
-      facadeLog.debug('[messageRouter] REVEAL_ACK received', {
-        seat: msg.seat,
-        role: msg.role,
-        revision: msg.revision,
+    case 'REVEAL_ACK':
+      facadeLog.warn('[messageRouter] Legacy PlayerMessage type received', {
+        type: msg.type,
+        guidance: 'REVEAL_ACK now uses HTTP API (/api/game/night/reveal-ack)',
       });
-
-      // 基本校验：revision 必须匹配当前 revision（防止过时消息）
-      const currentRevision = ctx.store.getRevision();
-      if (msg.revision !== undefined && msg.revision !== currentRevision) {
-        facadeLog.warn('[messageRouter] REVEAL_ACK revision mismatch, dropping', {
-          msgRevision: msg.revision,
-          currentRevision,
-        });
-        break;
-      }
-
-      // 必须 await，确保 ack 处理完成后再处理其他消息
-      if (ctx.handleRevealAck) {
-        try {
-          await ctx.handleRevealAck();
-        } catch (e) {
-          const err = e as { message?: string };
-          facadeLog.error('[messageRouter] REVEAL_ACK handler error', {
-            seat: msg.seat,
-            role: msg.role,
-            error: err?.message ?? String(e),
-          });
-        }
-      }
       break;
-    }
 
     case 'WOLF_ROBOT_HUNTER_STATUS_VIEWED':
-      if (ctx.handleWolfRobotHunterStatusViewed) {
-        try {
-          await ctx.handleWolfRobotHunterStatusViewed(msg.seat);
-        } catch (e) {
-          const err = e as { message?: string };
-          facadeLog.error('[messageRouter] WOLF_ROBOT_HUNTER_STATUS_VIEWED handler error', {
-            seat: msg.seat,
-            error: err?.message ?? String(e),
-          });
-        }
-      } else {
-        facadeLog.warn(
-          '[messageRouter] WOLF_ROBOT_HUNTER_STATUS_VIEWED received but handler not wired',
-          { seat: msg.seat },
-        );
-      }
+      facadeLog.warn('[messageRouter] Legacy PlayerMessage type received', {
+        type: msg.type,
+        guidance:
+          'WOLF_ROBOT_HUNTER_STATUS_VIEWED now uses HTTP API (/api/game/night/wolf-robot-viewed)',
+      });
       break;
 
     case 'SNAPSHOT_REQUEST':

@@ -629,39 +629,12 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
-   * 提交 reveal 确认（seer/psychic/gargoyle/wolfRobot）
+   * 提交 reveal 确认（seer/psychic/gargoyle/wolfRobot）（HTTP API）
    *
-   * 当用户确认 reveal 弹窗后调用：
-   * - Host: 直接调用 clearRevealAcks
-   * - Player: 发送 REVEAL_ACK 消息给 Host
+   * Host/Player 统一调用 HTTP API
    */
-  async submitRevealAck(role: RevealKind): Promise<{ success: boolean; reason?: string }> {
-    if (this.isHost) {
-      // Host 直接执行
-      return hostActions.clearRevealAcks(this.getHostActionsContext());
-    }
-
-    // Player: 发送消息给 Host
-    const seat = this.getMySeatNumber();
-    if (seat === null) {
-      return { success: false, reason: 'not_seated' };
-    }
-
-    const revision = this.store.getRevision();
-    const msg: PlayerMessage = {
-      type: 'REVEAL_ACK',
-      seat,
-      role,
-      revision,
-    };
-
-    try {
-      await this.broadcastService.sendToHost(msg);
-      return { success: true };
-    } catch (e) {
-      facadeLog.warn('sendToHost failed (REVEAL_ACK)', e);
-      return { success: false, reason: 'send_failed' };
-    }
+  async submitRevealAck(_role: RevealKind): Promise<{ success: boolean; reason?: string }> {
+    return hostActions.clearRevealAcks(this.getHostActionsContext());
   }
 
   // =========================================================================
@@ -669,35 +642,16 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   /**
-   * 提交机械狼查看猎人状态确认
+   * 提交机械狼查看猎人状态确认（HTTP API）
    *
-   * 当机械狼学到猎人并查看状态后调用：
-   * - Host: 直接调用 setWolfRobotHunterStatusViewed
-   * - Player: 发送 WOLF_ROBOT_HUNTER_STATUS_VIEWED 消息给 Host
+   * Host/Player 统一调用 HTTP API
    *
    * @param seat - wolfRobot 的座位号（由调用方传入 effectiveSeat，以支持 debug bot 接管）
    */
   async sendWolfRobotHunterStatusViewed(
     seat: number,
   ): Promise<{ success: boolean; reason?: string }> {
-    if (this.isHost) {
-      // Host 直接执行
-      return hostActions.setWolfRobotHunterStatusViewed(this.getHostActionsContext(), seat);
-    }
-
-    // Player: 发送消息给 Host
-    const msg: PlayerMessage = {
-      type: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-      seat,
-    };
-
-    try {
-      await this.broadcastService.sendToHost(msg);
-      return { success: true };
-    } catch (e) {
-      facadeLog.warn('sendToHost failed (WOLF_ROBOT_HUNTER_STATUS_VIEWED)', e);
-      return { success: false, reason: 'send_failed' };
-    }
+    return hostActions.setWolfRobotHunterStatusViewed(this.getHostActionsContext(), seat);
   }
 
   /**
@@ -836,7 +790,7 @@ export class GameFacade implements IGameFacade {
   /**
    * MessageRouter 上下文
    *
-   * 注：ACTION / WOLF_VOTE 已迁移至 HTTP API，不再经过 messageRouter。
+   * 注：所有夜晚操作已迁移至 HTTP API，不再经过 messageRouter。
    */
   private getMessageRouterContext(): MessageRouterContext {
     return {
@@ -845,9 +799,6 @@ export class GameFacade implements IGameFacade {
       isHost: this.isHost,
       myUid: this.myUid,
       broadcastCurrentState: () => this.broadcastCurrentState(),
-      handleRevealAck: () => hostActions.clearRevealAcks(this.getHostActionsContext()),
-      handleWolfRobotHunterStatusViewed: (seat: number) =>
-        hostActions.setWolfRobotHunterStatusViewed(this.getHostActionsContext(), seat),
     };
   }
 
