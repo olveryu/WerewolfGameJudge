@@ -44,6 +44,8 @@ export interface HomeScreenStyles {
   secondaryButton: ViewStyle;
   secondaryButtonText: TextStyle;
   input: TextStyle;
+  passwordWrapper: ViewStyle;
+  eyeButton: ViewStyle;
   errorText: TextStyle;
   buttonDisabled: ViewStyle;
   linkButton: ViewStyle;
@@ -258,6 +260,18 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       fontSize: typography.body,
       color: colors.text,
       marginBottom: spacing.small,
+    },
+    passwordWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.medium,
+      marginBottom: spacing.small,
+    },
+    eyeButton: {
+      paddingHorizontal: spacing.small,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     errorText: {
       color: colors.error,

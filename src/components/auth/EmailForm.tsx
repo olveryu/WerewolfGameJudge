@@ -7,7 +7,8 @@
  * ✅ 允许：渲染 UI + 上报用户 intent
  * ❌ 禁止：import service / 业务逻辑判断
  */
-import { memo, useCallback, useMemo, useRef } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { EmailDomainDropdown } from './EmailDomainDropdown';
@@ -32,6 +33,11 @@ export const EmailForm = memo<EmailFormProps>(
   }) => {
     const passwordRef = useRef<TextInput>(null);
     const nameRef = useRef<TextInput>(null);
+    const [showPassword, setShowPassword] = useState(false);
+
+    const togglePasswordVisibility = useCallback(() => {
+      setShowPassword((prev) => !prev);
+    }, []);
 
     const buttonText = useMemo(() => {
       if (authLoading) return '处理中...';
@@ -67,20 +73,34 @@ export const EmailForm = memo<EmailFormProps>(
 
         <EmailDomainDropdown email={email} onSelect={handleDomainSelect} styles={styles} />
 
-        <TextInput
-          ref={passwordRef}
-          style={styles.input}
-          placeholder="密码"
-          placeholderTextColor={colors.textSecondary}
-          value={password}
-          onChangeText={onPasswordChange}
-          secureTextEntry
-          textContentType={isSignUp ? 'newPassword' : 'password'}
-          autoComplete={isSignUp ? 'new-password' : 'password'}
-          returnKeyType={isSignUp ? 'next' : 'done'}
-          onSubmitEditing={() => (isSignUp ? nameRef.current?.focus() : onSubmit())}
-          editable={!authLoading}
-        />
+        <View style={styles.passwordWrapper}>
+          <TextInput
+            ref={passwordRef}
+            style={[styles.input, { marginBottom: 0, flex: 1 }]}
+            placeholder="密码"
+            placeholderTextColor={colors.textSecondary}
+            value={password}
+            onChangeText={onPasswordChange}
+            secureTextEntry={!showPassword}
+            textContentType={isSignUp ? 'newPassword' : 'password'}
+            autoComplete={isSignUp ? 'new-password' : 'password'}
+            returnKeyType={isSignUp ? 'next' : 'done'}
+            onSubmitEditing={() => (isSignUp ? nameRef.current?.focus() : onSubmit())}
+            editable={!authLoading}
+          />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={togglePasswordVisibility}
+            activeOpacity={0.6}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons
+              name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+        </View>
 
         {isSignUp && (
           <TextInput

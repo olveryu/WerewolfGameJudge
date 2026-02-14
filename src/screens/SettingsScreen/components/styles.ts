@@ -50,6 +50,8 @@ export interface SettingsScreenStyles {
   formTitle: TextStyle;
   formSubtitle: TextStyle;
   input: TextStyle;
+  passwordWrapper: ViewStyle;
+  eyeButton: ViewStyle;
   emailDomainDropdown: ViewStyle;
   emailDomainItem: ViewStyle;
   emailDomainText: TextStyle;
@@ -315,6 +317,20 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
       marginBottom: spacing.medium,
+    },
+    passwordWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.medium,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      marginBottom: spacing.medium,
+    },
+    eyeButton: {
+      paddingHorizontal: spacing.small,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     emailDomainDropdown: {
       marginTop: -spacing.small,

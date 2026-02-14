@@ -10,7 +10,6 @@
  * ✅ 允许：管理 form state、调用 AuthContext API、showAlert
  * ❌ 禁止：硬编码样式值 / console.* / import service 层
  */
-import * as Sentry from '@sentry/react-native';
 import { useCallback, useState } from 'react';
 
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
@@ -18,6 +17,7 @@ import { showAlert } from '@/utils/alert';
 
 /** Logger interface — matches react-native-logs extended logger */
 interface Logger {
+  warn: (...args: unknown[]) => void;
   error: (...args: unknown[]) => void;
 }
 
@@ -85,8 +85,7 @@ export function useAuthForm({
       resetForm();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '请稍后重试';
-      logger.error('Email auth failed:', message, e);
-      Sentry.captureException(e);
+      logger.warn('Email auth failed:', message);
       showAlert(isSignUp ? '注册失败' : '登录失败', message);
     }
   }, [
@@ -108,8 +107,7 @@ export function useAuthForm({
       onSuccess();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      logger.error('Anonymous login failed:', e);
-      Sentry.captureException(e);
+      logger.warn('Anonymous login failed:', message);
       showAlert('登录失败', message || '请稍后重试');
     }
   }, [signInAnonymously, onSuccess, logger]);
