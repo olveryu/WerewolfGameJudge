@@ -83,6 +83,11 @@ export function useRoomInit({
   const [retryKey, setRetryKey] = useState(0);
   // Guard: prevent concurrent initialization from useEffect re-triggers
   const initInProgressRef = useRef(false);
+  // Ref for gameRoomError — read in log only, must NOT be a dep to avoid infinite re-trigger
+  const gameRoomErrorRef = useRef(gameRoomError);
+  useEffect(() => {
+    gameRoomErrorRef.current = gameRoomError;
+  }, [gameRoomError]);
 
   // Initialize room on mount (retryKey change forces re-trigger)
   useEffect(() => {
@@ -114,7 +119,7 @@ export function useRoomInit({
           initInProgressRef.current = false;
           roomScreenLog.warn('[useRoomInit] Host initializeHostRoom failed', {
             roomNumber,
-            error: gameRoomError ?? 'unknown',
+            error: gameRoomErrorRef.current ?? 'unknown',
           });
           setLoadingMessage('创建失败');
           setShowRetryButton(true);
@@ -167,7 +172,8 @@ export function useRoomInit({
     takeSeat,
     initialRoleRevealAnimation,
     setRoleRevealAnimation,
-    gameRoomError,
+    // NOTE: gameRoomError intentionally excluded — read via ref to avoid
+    // infinite loop (error → re-trigger → joinRoom → error → …)
   ]);
 
   // Loading timeout

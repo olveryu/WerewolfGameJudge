@@ -16,7 +16,7 @@
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
@@ -211,10 +211,14 @@ export function useRoomScreenState(
   // Fatal error auto-redirect: room gone → alert + navigate Home
   // ═══════════════════════════════════════════════════════════════════════════
 
+  const fatalErrorFiredRef = useRef(false);
   useEffect(() => {
     if (!gameRoomError) return;
     const fatal = FATAL_ROOM_ERRORS.has(gameRoomError);
     if (!fatal) return;
+    // Guard: fire only once to prevent alert-storm from rapid error state toggles
+    if (fatalErrorFiredRef.current) return;
+    fatalErrorFiredRef.current = true;
     roomScreenLog.debug('[useRoomScreenState] Fatal room error, redirecting to Home', {
       error: gameRoomError,
     });
