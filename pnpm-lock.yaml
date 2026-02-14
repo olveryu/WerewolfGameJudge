@@ -22,6 +22,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.89.0
         version: 2.95.3
+      '@werewolf/game-engine':
+        specifier: workspace:*
+        version: link:packages/game-engine
       expo:
         specifier: 54.0.33
         version: 54.0.33(@babel/core@7.29.0)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -146,6 +149,8 @@ importers:
       typescript-eslint:
         specifier: ^8.55.0
         version: 8.55.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
+
+  packages/game-engine: {}
 
 packages:
   '@0no-co/graphql.web@1.2.0':

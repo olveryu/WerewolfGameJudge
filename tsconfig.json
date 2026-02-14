@@ -4,7 +4,9 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@werewolf/game-engine": ["./packages/game-engine/src/index.ts"],
+      "@werewolf/game-engine/*": ["./packages/game-engine/src/*"]
     }
   },
   "exclude": ["supabase/functions"]

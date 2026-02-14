@@ -1,8 +1,12 @@
 // Learn more https://docs.expo.io/guides/customizing-metro
 const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
+
+// Watch the packages/ directory so monorepo packages are resolved
+config.watchFolders = [path.resolve(__dirname, 'packages')];
 
 // Exclude legacy .env.e2e.local from Metro bundler (defensive)
 // New E2E config is in env/*.json and loaded by scripts/run-e2e-web.mjs

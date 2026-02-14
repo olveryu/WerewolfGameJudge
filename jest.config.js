@@ -17,6 +17,8 @@ module.exports = {
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
+    '^@werewolf/game-engine/(.*)$': '<rootDir>/packages/game-engine/src/$1',
+    '^@werewolf/game-engine$': '<rootDir>/packages/game-engine/src/index.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^react-native-worklets$': '<rootDir>/__mocks__/react-native-worklets.ts',
     '^expo-audio$': '<rootDir>/__mocks__/expo-audio.ts',
