@@ -20,10 +20,12 @@ import {
   type SubmitWolfVoteIntent,
 } from '@werewolf/game-engine';
 
+import { handleCors } from '../../_lib/cors';
 import { processGameAction } from '../../_lib/gameStateManager';
 import type { WolfVoteRequestBody } from '../../_lib/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (handleCors(req, res)) return;
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, reason: 'METHOD_NOT_ALLOWED' });
   }

@@ -48,9 +48,30 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 
 ## Common Commands
 
-- `pnpm run dev` — 启动 Web 开发服务器（`vercel dev`，同时服务 Expo 前端 + `/api/**` Serverless Functions）
-  - `E2E_ENV=local`（默认）使用本地 Supabase（`127.0.0.1:54321`），需先 `supabase start`
+### 本地开发（两进程模式，推荐）
+
+Metro 前端 (:8081) 和 API 服务 (:3000) 分离运行，避免 `vercel dev` 代理损坏静态资源（字体/图片/音频）。
+
+```bash
+# Terminal 1 — Metro 前端（热更新，icons/avatars/audio 正常）
+pnpm run web          # → localhost:8081
+
+# Terminal 2 — API 服务（自动写入 .env.local，含 EXPO_PUBLIC_API_URL）
+pnpm run dev:api      # → localhost:3000
+```
+
+- `dev:api` 自动从 `env/e2e.local.json` 加载 Supabase 配置，写入 `.env.local`（含 `EXPO_PUBLIC_API_URL=http://localhost:3000`）
+- Metro 读取 `.env.local`，所有 API 调用跨域到 `:3000`，API 路由已配置 CORS（允许 `:8081` origin）
+- 需先 `supabase start` 启动本地 Supabase
+
+### 单进程模式（E2E / CI 用）
+
+- `pnpm run dev` — 启动 `vercel dev`（同时服务 Expo 前端 + `/api/**`，但静态资源可能损坏）
+  - `E2E_ENV=local`（默认）使用本地 Supabase（`127.0.0.1:54321`）
   - `E2E_ENV=remote` 使用远端 Supabase
+
+### 测试 & 质量
+
 - `pnpm exec jest --no-coverage --forceExit` — 跑全部单元/集成测试（171 suites / 2657 tests）
 - `pnpm exec playwright test --reporter=list` — 跑 E2E（必须加 `--reporter=list`，否则会阻塞终端）
 - `pnpm exec tsc --noEmit` — 类型检查
