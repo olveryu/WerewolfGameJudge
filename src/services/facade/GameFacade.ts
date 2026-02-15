@@ -644,6 +644,7 @@ export class GameFacade implements IGameFacade {
     return {
       myUid: this.myUid,
       getRoomCode: () => this.store.getState()?.roomCode ?? null,
+      store: this.store,
     };
   }
 

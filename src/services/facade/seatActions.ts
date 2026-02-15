@@ -11,6 +11,7 @@
  */
 
 import { API_BASE_URL } from '@/config/api';
+import type { GameStore } from '@/services/engine/store';
 import { facadeLog } from '@/utils/logger';
 
 /**
@@ -21,12 +22,16 @@ import { facadeLog } from '@/utils/logger';
 export interface SeatActionsContext {
   myUid: string | null;
   getRoomCode: () => string | null;
+  /** GameStore 实例（用于 HTTP 响应即时 applySnapshot） */
+  readonly store?: GameStore;
 }
 
 /** 座位操作 API 响应 */
 interface SeatApiResponse {
   success: boolean;
   reason?: string;
+  state?: Record<string, unknown>;
+  revision?: number;
 }
 
 /**
@@ -35,6 +40,7 @@ interface SeatApiResponse {
 async function callSeatApi(
   roomCode: string,
   body: Record<string, unknown>,
+  store?: GameStore,
 ): Promise<SeatApiResponse> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/game/seat`, {
@@ -42,7 +48,14 @@ async function callSeatApi(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roomCode, ...body }),
     });
-    return (await res.json()) as SeatApiResponse;
+    const result = (await res.json()) as SeatApiResponse;
+
+    // Optimistic Response: HTTP 响应含 state 时立即 apply，不等 broadcast
+    if (result.success && result.state && result.revision != null && store) {
+      store.applySnapshot(result.state as never, result.revision);
+    }
+
+    return result;
   } catch (e) {
     const err = e as { message?: string };
     facadeLog.error('callSeatApi failed', { error: err?.message ?? String(e) });
@@ -83,13 +96,17 @@ export async function takeSeatWithAck(
 
   facadeLog.debug('takeSeatWithAck', { seat: seatNumber, uid: ctx.myUid });
 
-  return callSeatApi(roomCode, {
-    action: 'sit',
-    uid: ctx.myUid,
-    seat: seatNumber,
-    displayName,
-    avatarUrl,
-  });
+  return callSeatApi(
+    roomCode,
+    {
+      action: 'sit',
+      uid: ctx.myUid,
+      seat: seatNumber,
+      displayName,
+      avatarUrl,
+    },
+    ctx.store,
+  );
 }
 
 /**
@@ -113,8 +130,12 @@ export async function leaveSeatWithAck(
 
   facadeLog.debug('leaveSeatWithAck', { uid: ctx.myUid });
 
-  return callSeatApi(roomCode, {
-    action: 'standup',
-    uid: ctx.myUid,
-  });
+  return callSeatApi(
+    roomCode,
+    {
+      action: 'standup',
+      uid: ctx.myUid,
+    },
+    ctx.store,
+  );
 }

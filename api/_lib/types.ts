@@ -26,6 +26,8 @@ export interface GameActionResult {
   success: boolean;
   reason?: string;
   state?: BroadcastGameState;
+  /** DB state_revision（客户端用于 applySnapshot） */
+  revision?: number;
   sideEffects?: SideEffect[];
 }
 

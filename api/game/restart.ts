@@ -18,8 +18,7 @@ import {
 } from '@werewolf/game-engine';
 
 import { handleCors } from '../_lib/cors';
-import { processGameAction } from '../_lib/gameStateManager';
-import { getServiceClient } from '../_lib/supabase';
+import { broadcastViaRest, processGameAction } from '../_lib/gameStateManager';
 import type { RestartRequestBody } from '../_lib/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -35,15 +34,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  // v1 对齐：在状态变更前广播 GAME_RESTARTED 通知 Player
-  const supabase = getServiceClient();
-  const preChannel = supabase.channel(`room:${roomCode}`);
-  await preChannel.send({
-    type: 'broadcast',
-    event: 'host',
-    payload: { type: 'GAME_RESTARTED' },
+  // v1 对齐：在状态变更前广播 GAME_RESTARTED 通知 Player（fire-and-forget）
+  broadcastViaRest(roomCode, { type: 'GAME_RESTARTED' }).catch(() => {
+    /* non-blocking */
   });
-  await supabase.removeChannel(preChannel);
 
   const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
     const isHost = state.hostUid === hostUid;

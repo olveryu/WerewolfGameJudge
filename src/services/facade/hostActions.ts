@@ -48,6 +48,8 @@ export interface HostActionsContext {
 interface GameControlApiResponse {
   success: boolean;
   reason?: string;
+  state?: Record<string, unknown>;
+  revision?: number;
 }
 
 /**
@@ -59,6 +61,7 @@ interface GameControlApiResponse {
 async function callGameControlApi(
   path: string,
   body: Record<string, unknown>,
+  store?: GameStore,
 ): Promise<GameControlApiResponse> {
   const MAX_CLIENT_RETRIES = 2;
 
@@ -77,6 +80,11 @@ async function callGameControlApi(
         facadeLog.warn('CONFLICT_RETRY, client retrying', { path, attempt: attempt + 1 });
         await new Promise((r) => setTimeout(r, delay));
         continue;
+      }
+
+      // Optimistic Response: HTTP 响应含 state 时立即 apply，不等 broadcast
+      if (result.success && result.state && result.revision != null && store) {
+        store.applySnapshot(result.state as never, result.revision);
       }
 
       return result;
@@ -104,10 +112,14 @@ export async function assignRoles(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  return callGameControlApi('/api/game/assign', {
-    roomCode,
-    hostUid: ctx.myUid,
-  });
+  return callGameControlApi(
+    '/api/game/assign',
+    {
+      roomCode,
+      hostUid: ctx.myUid,
+    },
+    ctx.store,
+  );
 }
 
 /**
@@ -125,11 +137,15 @@ export async function markViewedRole(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  const result = await callGameControlApi('/api/game/view-role', {
-    roomCode,
-    uid: ctx.myUid,
-    seat,
-  });
+  const result = await callGameControlApi(
+    '/api/game/view-role',
+    {
+      roomCode,
+      uid: ctx.myUid,
+      seat,
+    },
+    ctx.store,
+  );
   facadeLog.debug('[DIAG] markViewedRole result', {
     seat,
     success: result.success,
@@ -153,10 +169,14 @@ export async function startNight(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  const result = await callGameControlApi('/api/game/start', {
-    roomCode,
-    hostUid: ctx.myUid,
-  });
+  const result = await callGameControlApi(
+    '/api/game/start',
+    {
+      roomCode,
+      hostUid: ctx.myUid,
+    },
+    ctx.store,
+  );
 
   if (!result.success) {
     return result;
@@ -189,11 +209,15 @@ export async function updateTemplate(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  return callGameControlApi('/api/game/update-template', {
-    roomCode,
-    hostUid: ctx.myUid,
-    templateRoles: template.roles,
-  });
+  return callGameControlApi(
+    '/api/game/update-template',
+    {
+      roomCode,
+      hostUid: ctx.myUid,
+      templateRoles: template.roles,
+    },
+    ctx.store,
+  );
 }
 
 /**
@@ -212,10 +236,14 @@ export async function restartGame(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  return callGameControlApi('/api/game/restart', {
-    roomCode,
-    hostUid: ctx.myUid,
-  });
+  return callGameControlApi(
+    '/api/game/restart',
+    {
+      roomCode,
+      hostUid: ctx.myUid,
+    },
+    ctx.store,
+  );
 }
 
 /**
@@ -234,11 +262,15 @@ export async function setRoleRevealAnimation(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  return callGameControlApi('/api/game/set-animation', {
-    roomCode,
-    hostUid: ctx.myUid,
-    animation,
-  });
+  return callGameControlApi(
+    '/api/game/set-animation',
+    {
+      roomCode,
+      hostUid: ctx.myUid,
+      animation,
+    },
+    ctx.store,
+  );
 }
 
 /**
@@ -261,14 +293,18 @@ export async function submitAction(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  const result = await callGameControlApi('/api/game/night/action', {
-    roomCode,
-    hostUid,
-    seat,
-    role,
-    target,
-    extra,
-  });
+  const result = await callGameControlApi(
+    '/api/game/night/action',
+    {
+      roomCode,
+      hostUid,
+      seat,
+      role,
+      target,
+      extra,
+    },
+    ctx.store,
+  );
 
   if (!result.success) {
     facadeLog.warn('submitAction failed', { reason: result.reason, seat, role, target });
@@ -296,12 +332,16 @@ export async function submitWolfVote(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  const result = await callGameControlApi('/api/game/night/wolf-vote', {
-    roomCode,
-    hostUid,
-    voterSeat,
-    targetSeat,
-  });
+  const result = await callGameControlApi(
+    '/api/game/night/wolf-vote',
+    {
+      roomCode,
+      hostUid,
+      voterSeat,
+      targetSeat,
+    },
+    ctx.store,
+  );
 
   if (!result.success) {
     facadeLog.warn('submitWolfVote failed', {
@@ -331,10 +371,14 @@ export async function endNight(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  const result = await callGameControlApi('/api/game/night/end', {
-    roomCode,
-    hostUid,
-  });
+  const result = await callGameControlApi(
+    '/api/game/night/end',
+    {
+      roomCode,
+      hostUid,
+    },
+    ctx.store,
+  );
 
   if (!result.success) {
     facadeLog.warn('endNight failed', { reason: result.reason });
@@ -363,11 +407,15 @@ export async function setAudioPlaying(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  return callGameControlApi('/api/game/night/audio-gate', {
-    roomCode,
-    hostUid,
-    isPlaying,
-  });
+  return callGameControlApi(
+    '/api/game/night/audio-gate',
+    {
+      roomCode,
+      hostUid,
+      isPlaying,
+    },
+    ctx.store,
+  );
 }
 
 // =============================================================================
@@ -390,10 +438,14 @@ export async function clearRevealAcks(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  const result = await callGameControlApi('/api/game/night/reveal-ack', {
-    roomCode,
-    hostUid,
-  });
+  const result = await callGameControlApi(
+    '/api/game/night/reveal-ack',
+    {
+      roomCode,
+      hostUid,
+    },
+    ctx.store,
+  );
 
   if (!result.success) {
     facadeLog.warn('clearRevealAcks failed', { reason: result.reason });
@@ -420,11 +472,15 @@ export async function setWolfRobotHunterStatusViewed(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  const result = await callGameControlApi('/api/game/night/wolf-robot-viewed', {
-    roomCode,
-    hostUid,
-    seat,
-  });
+  const result = await callGameControlApi(
+    '/api/game/night/wolf-robot-viewed',
+    {
+      roomCode,
+      hostUid,
+      seat,
+    },
+    ctx.store,
+  );
 
   if (!result.success) {
     facadeLog.warn('setWolfRobotHunterStatusViewed failed', { reason: result.reason, seat });
@@ -455,10 +511,14 @@ export async function postAudioAck(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  return callGameControlApi('/api/game/night/audio-ack', {
-    roomCode,
-    hostUid,
-  });
+  return callGameControlApi(
+    '/api/game/night/audio-ack',
+    {
+      roomCode,
+      hostUid,
+    },
+    ctx.store,
+  );
 }
 
 /**
@@ -478,10 +538,14 @@ export async function postProgression(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  return callGameControlApi('/api/game/night/progression', {
-    roomCode,
-    hostUid,
-  });
+  return callGameControlApi(
+    '/api/game/night/progression',
+    {
+      roomCode,
+      hostUid,
+    },
+    ctx.store,
+  );
 }
 
 // =============================================================================
@@ -502,10 +566,14 @@ export async function fillWithBots(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  return callGameControlApi('/api/game/fill-bots', {
-    roomCode,
-    hostUid: ctx.myUid,
-  });
+  return callGameControlApi(
+    '/api/game/fill-bots',
+    {
+      roomCode,
+      hostUid: ctx.myUid,
+    },
+    ctx.store,
+  );
 }
 
 /**
@@ -522,8 +590,12 @@ export async function markAllBotsViewed(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  return callGameControlApi('/api/game/mark-bots-viewed', {
-    roomCode,
-    hostUid: ctx.myUid,
-  });
+  return callGameControlApi(
+    '/api/game/mark-bots-viewed',
+    {
+      roomCode,
+      hostUid: ctx.myUid,
+    },
+    ctx.store,
+  );
 }

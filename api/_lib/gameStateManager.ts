@@ -23,6 +23,53 @@ import {
 import { getServiceClient } from './supabase';
 import type { GameActionResult, ProcessResult } from './types';
 
+// =============================================================================
+// REST Broadcast (无 websocket 开销)
+// =============================================================================
+
+/**
+ * 通过 Supabase REST RPC 发送 Realtime Broadcast 消息
+ *
+ * 社区推荐的 serverless 广播方式：纯 HTTP POST，无需建立/销毁 websocket 连接。
+ * 比 `supabase.channel().send()` + `removeChannel()` 快 200-400ms。
+ *
+ * @see https://supabase.com/docs/guides/realtime/broadcast#broadcast-using-the-rest-api
+ */
+export async function broadcastViaRest(
+  roomCode: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for broadcast');
+  }
+
+  const res = await fetch(`${url}/realtime/v1/api/broadcast`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      messages: [
+        {
+          topic: `realtime:room:${roomCode}`,
+          event: 'host',
+          payload,
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    // 广播失败不阻断主流程，但记录错误
+    // eslint-disable-next-line no-console
+    console.error(`[broadcastViaRest] Failed: ${res.status} ${res.statusText}`);
+  }
+}
+
 /**
  * 内联推进选项
  */
@@ -117,20 +164,22 @@ export async function processGameAction(
       return { success: false, reason: 'CONFLICT_RETRY' };
     }
 
-    // Step 5: 广播 STATE_UPDATE
-    const channel = supabase.channel(`room:${roomCode}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'host',
-      payload: {
-        type: 'STATE_UPDATE',
-        state: newState,
-        revision: currentRevision + 1,
-      },
+    // Step 5: 广播 STATE_UPDATE（fire-and-forget — 不阻塞 HTTP 响应）
+    // broadcast 是 best-effort 快通道，丢失由 postgres_changes 兜底
+    broadcastViaRest(roomCode, {
+      type: 'STATE_UPDATE',
+      state: newState,
+      revision: currentRevision + 1,
+    }).catch(() => {
+      /* non-blocking */
     });
-    await supabase.removeChannel(channel);
 
-    return { success: true, state: newState, sideEffects: result.sideEffects };
+    return {
+      success: true,
+      state: newState,
+      revision: currentRevision + 1,
+      sideEffects: result.sideEffects,
+    };
   }
 
   // TypeScript exhaustiveness — 不应到达此处
