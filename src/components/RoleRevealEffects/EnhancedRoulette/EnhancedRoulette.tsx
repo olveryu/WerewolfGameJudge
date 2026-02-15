@@ -9,6 +9,7 @@
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -31,7 +32,6 @@ import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEff
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { borderRadius, shadows, spacing, typography, useColors } from '@/theme';
-import { shuffleArray } from '@/utils/shuffle';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const SLOT_COLORS = {

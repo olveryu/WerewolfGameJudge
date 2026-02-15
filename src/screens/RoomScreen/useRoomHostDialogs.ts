@@ -5,13 +5,13 @@
  * RoomScreen only needs to call these returned functions.
  */
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { randomBool, randomIntInclusive, type Rng } from '@werewolf/game-engine/utils/random';
 import { useCallback, useRef, useState } from 'react';
 
 import type { RootStackParamList } from '@/navigation/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { showAlert } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';
-import { randomBool, randomIntInclusive, Rng } from '@/utils/random';
 
 /**
  * Generate random speaking order for the start of day phase.

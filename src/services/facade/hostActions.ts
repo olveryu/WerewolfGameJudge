@@ -23,11 +23,11 @@ import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
+import { secureRng } from '@werewolf/game-engine/utils/random';
 
 import { API_BASE_URL } from '@/config/api';
 import type { AudioService } from '@/services/infra/AudioService';
 import { facadeLog } from '@/utils/logger';
-import { secureRng } from '@/utils/random';
 
 /**
  * Host Actions 依赖的上下文接口

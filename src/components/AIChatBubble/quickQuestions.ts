@@ -9,9 +9,8 @@
  */
 
 import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
-
-import { randomPick } from '@/utils/random';
-import { shuffleArray } from '@/utils/shuffle';
+import { randomPick } from '@werewolf/game-engine/utils/random';
+import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
 
 import type { DisplayMessage } from './AIChatBubble.styles';
 

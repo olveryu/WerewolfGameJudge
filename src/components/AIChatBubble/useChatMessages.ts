@@ -9,6 +9,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { newRequestId } from '@werewolf/game-engine/utils/id';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
 
@@ -20,7 +21,6 @@ import {
 } from '@/services/feature/AIChatService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { showAlert } from '@/utils/alert';
-import { newRequestId } from '@/utils/id';
 import { chatLog } from '@/utils/logger';
 
 import type { DisplayMessage } from './AIChatBubble.styles';

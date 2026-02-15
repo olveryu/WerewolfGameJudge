@@ -2,8 +2,8 @@
  * Tests for Fisher-Yates shuffle utility
  */
 
-import type { Rng } from '@/utils/random';
-import { shuffleArray } from '@/utils/shuffle';
+import type { Rng } from '@werewolf/game-engine/utils/random';
+import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
 
 describe('shuffleArray', () => {
   it('returns a new array, does not mutate original', () => {

@@ -98,9 +98,9 @@ describe('Math.random() 禁止规则', () => {
       throw new Error(
         `发现 ${violations.length} 处禁止使用 Math.random() 的代码:\n\n${report}\n\n` +
           `修复方案:\n` +
-          `- ID/nonce 生成 → import { randomHex } from '@/utils/id'\n` +
-          `- 可测试随机 → import { secureRng, randomIntInclusive, randomPick } from '@/utils/random'\n` +
-          `- 数组打乱 → import { shuffleArray } from '@/utils/shuffle'\n` +
+          `- ID/nonce 生成 → import { randomHex } from '@werewolf/game-engine/utils/id'\n` +
+          `- 可测试随机 → import { secureRng, randomIntInclusive, randomPick } from '@werewolf/game-engine/utils/random'\n` +
+          `- 数组打乱 → import { shuffleArray } from '@werewolf/game-engine/utils/shuffle'\n` +
           `- 跨客户端一致 → Host 解析并通过 BroadcastGameState 广播\n` +
           `- 详见 docs/random-and-id-guidelines.md`,
       );

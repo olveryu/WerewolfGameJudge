@@ -1,6 +1,7 @@
+import { randomHex } from '@werewolf/game-engine/utils/id';
+
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
 import type { AuthService } from '@/services/infra/AuthService';
-import { randomHex } from '@/utils/id';
 import { log } from '@/utils/logger';
 
 const avatarLog = log.extend('Avatar');

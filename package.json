@@ -53,7 +53,6 @@
     "@werewolf/game-engine": "workspace:*",
     "expo": "54.0.33",
     "expo-audio": "~1.1.1",
-    "expo-crypto": "~15.0.8",
     "expo-haptics": "^15.0.8",
     "expo-image": "~3.0.11",
     "expo-image-picker": "~17.0.10",

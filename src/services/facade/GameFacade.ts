@@ -32,13 +32,13 @@ import type {
   BroadcastGameState,
   HostBroadcast,
 } from '@werewolf/game-engine/protocol/types';
+import { newRequestId } from '@werewolf/game-engine/utils/id';
 
 import { AudioService } from '@/services/infra/AudioService';
 import { RoomService } from '@/services/infra/RoomService';
 import { BroadcastService } from '@/services/transport/BroadcastService';
 import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFacade';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
-import { newRequestId } from '@/utils/id';
 import { facadeLog } from '@/utils/logger';
 
 // 子模块

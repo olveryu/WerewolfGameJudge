@@ -8,12 +8,12 @@
  * ❌ 禁止：import React / service / Math.random() / 自建 crypto 降级逻辑
  */
 
-import { secureRng } from './random';
+import { secureRng } from '@werewolf/game-engine/utils/random';
 
 /**
  * 生成 4 位房间号（1000-9999）
  *
- * 复用 secureRng（内部已处理 Web Crypto / expo-crypto 降级）
+ * 复用 secureRng（标准 Web Crypto API）
  *
  * @returns 4 位数字字符串，范围 1000-9999
  */
