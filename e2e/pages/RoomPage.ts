@@ -123,10 +123,12 @@ export class RoomPage {
       }
       if (appeared === 'waitAlert') {
         await this.page.getByText('确定', { exact: true }).click();
-        await this.page.waitForTimeout(500);
+        // Wait for alert to disappear before retrying
+        await waitAlert.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
         continue;
       }
-      await this.page.waitForTimeout(500);
+      // Poll cadence for retry loop
+      await this.page.waitForTimeout(300);
     }
     throw new Error('viewAndDismissRole: "我知道了" never appeared after retries.');
   }
@@ -180,10 +182,16 @@ export class RoomPage {
       if (appeared === 'roleCard') {
         // Capture role name before dismissing — check longest names first
         // to avoid "狼人" matching before "狼美人" (sorted by length desc)
+        //
+        // IMPORTANT: Scope search to the modal card container, NOT the entire page.
+        // The RoomScreen's BoardInfoCard shows role composition text (e.g. "守卫")
+        // behind the modal overlay, which would cause false matches if we
+        // searched the full page.
         const sorted = [...KNOWN_ROLES].sort((a, b) => b.length - a.length);
+        const modalCard = this.page.locator('[data-testid="role-card-modal"]');
         let capturedRole = 'unknown';
         for (const name of sorted) {
-          const visible = await this.page
+          const visible = await modalCard
             .getByText(name, { exact: true })
             .first()
             .isVisible()
@@ -193,16 +201,20 @@ export class RoomPage {
             break;
           }
         }
-        await okBtn.click();
+        // evaluate click bypasses all Playwright viewport/actionability checks
+        // — role card modal may overflow the viewport on smaller screens
+        await okBtn.evaluate((el) => (el as HTMLElement).click());
         return capturedRole;
       }
 
       if (appeared === 'waitAlert') {
         await this.page.getByText('确定', { exact: true }).click();
-        await this.page.waitForTimeout(500);
+        // Wait for alert to disappear before retrying
+        await waitAlert.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
         continue;
       }
-      await this.page.waitForTimeout(500);
+      // Poll cadence for retry loop
+      await this.page.waitForTimeout(300);
     }
     throw new Error('viewRoleAndCapture: "我知道了" never appeared after retries.');
   }

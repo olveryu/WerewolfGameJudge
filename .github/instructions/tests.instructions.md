@@ -1,5 +1,5 @@
 ---
-applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**'
+applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**,e2e/**'
 ---
 
 # 测试规范
@@ -90,15 +90,16 @@ applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**'
 
 ## E2E 测试规范（Playwright）
 
-### 禁止 `waitForTimeout` 和 `.isVisible({ timeout })`（Hard rule）
+### 禁止 `waitForTimeout`（Hard rule）
 
 社区最佳实践：E2E 测试必须用事件驱动的等待，**禁止硬编码延时**。
 
-- ❌ **禁止 `page.waitForTimeout(N)`**（N > 100ms）。
+- ❌ **禁止 `page.waitForTimeout(N)`**。
   - 硬编码延时导致"慢机 flaky / 快机浪费时间"。
-  - ✅ 替代：`await expect(locator).toBeVisible({ timeout })` 或 `await locator.waitFor({ state: 'visible', timeout })`。
-  - ✅ 例外：**轮询间隔**（在 `while`/`for` retry loop 内做 poll cadence，≤300ms 可接受）。
-  - ✅ 例外：**动画去抖**（≤100ms，如 stepper 按钮间的微等待）。
+  - ✅ 替代：`await expect(locator).toBeVisible({ timeout })` / `await locator.waitFor({ state: 'visible', timeout })` / `await expect(locator).toHaveText(expected)`。
+  - ✅ **唯一例外：轮询间隔**（在 `while`/`for` retry loop 内做 poll cadence，**≤300ms**）。
+  - ❌ 禁止在 retry loop 外使用 `waitForTimeout` 做"等一下再检查"。
+  - ❌ 禁止用 `waitForTimeout` 等动画完成 / UI 去抖 / React re-render —— 改用 `expect(locator).toHaveText()` 或 `locator.waitFor()` 等事件驱动方式。
 
 - ❌ **禁止 `.isVisible({ timeout: N })`（N > 0）**。
   - Playwright 的 `locator.isVisible()` **不接受 timeout 参数**——即使传了也会被静默忽略，立即返回当前可见性。

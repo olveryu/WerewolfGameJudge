@@ -86,7 +86,8 @@ export class ConfigPage {
     const tab = this.page.locator(`[data-testid="config-faction-tab-${faction}"]`);
     await tab.waitFor({ state: 'visible', timeout: 3000 });
     await tab.click();
-    await this.page.waitForTimeout(100);
+    // Wait for tab content to render (tab panel should update)
+    await expect(tab).toBeVisible({ timeout: 2000 });
   }
 
   // ---------------------------------------------------------------------------
@@ -98,7 +99,6 @@ export class ConfigPage {
     const chip = this.page.locator(`[data-testid="config-role-chip-${roleId}"]`).first();
     await chip.waitFor({ state: 'attached', timeout: 2000 });
     await chip.click({ force: true });
-    await this.page.waitForTimeout(50);
   }
 
   /** Deselect multiple role chips. Silently skips missing chips. */
@@ -123,10 +123,13 @@ export class ConfigPage {
    */
   async decreaseStepper(roleId: string, clicks: number) {
     const btn = this.page.locator(`[data-testid="config-stepper-dec-${roleId}"]`);
+    const countLoc = this.page.locator(`[data-testid="config-stepper-count-${roleId}"]`);
     await btn.waitFor({ state: 'visible', timeout: 3000 });
     for (let i = 0; i < clicks; i++) {
+      const before = await countLoc.textContent();
       await btn.click();
-      await this.page.waitForTimeout(50);
+      // Wait for count to actually change (event-driven, no fixed delay)
+      await expect(countLoc).not.toHaveText(before!, { timeout: 2000 });
     }
   }
 
@@ -137,10 +140,13 @@ export class ConfigPage {
    */
   async increaseStepper(roleId: string, clicks: number) {
     const btn = this.page.locator(`[data-testid="config-stepper-inc-${roleId}"]`);
+    const countLoc = this.page.locator(`[data-testid="config-stepper-count-${roleId}"]`);
     await btn.waitFor({ state: 'visible', timeout: 3000 });
     for (let i = 0; i < clicks; i++) {
+      const before = await countLoc.textContent();
       await btn.click();
-      await this.page.waitForTimeout(50);
+      // Wait for count to actually change (event-driven, no fixed delay)
+      await expect(countLoc).not.toHaveText(before!, { timeout: 2000 });
     }
   }
 
@@ -237,6 +243,73 @@ export class ConfigPage {
     // Switch to 狼人阵营 tab to adjust wolf count
     await this.switchToFactionTab('wolf');
     await this.decreaseStepper('wolf', 2); // 4 → 2
+  }
+
+  // ---------------------------------------------------------------------------
+  // Custom Template Builder
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Configure a custom template from default 标准板 (4w + seer + witch + hunter + idiot + 4v = 12).
+   *
+   * Deselects all default special roles, zeros out wolf/villager steppers,
+   * then adds the requested roles.
+   *
+   * @param opts.wolves - Number of generic wolves (default 0)
+   * @param opts.villagers - Number of villagers (default 0)
+   * @param opts.goodRoles - RoleIds of god/good special roles to enable (e.g. ['seer', 'witch'])
+   * @param opts.wolfRoles - RoleIds of wolf special roles to enable (e.g. ['nightmare', 'wolfQueen'])
+   * @param opts.specialRoles - RoleIds of third-party roles to enable (e.g. ['slacker'])
+   */
+  async configureCustomTemplate(opts: {
+    wolves?: number;
+    villagers?: number;
+    goodRoles?: string[];
+    wolfRoles?: string[];
+    specialRoles?: string[];
+  }) {
+    const { wolves = 0, villagers = 0, goodRoles = [], wolfRoles = [], specialRoles = [] } = opts;
+
+    // Disable animation
+    await this.setAnimationNone();
+
+    // --- 好人阵营 (active by default) ---
+    // Deselect all default god roles
+    await this.deselectRoles(['seer', 'witch', 'hunter', 'idiot']);
+    // Adjust villager count from default 4 → target
+    // Go directly to target (minimize clicks to avoid React batching issues)
+    const villagerDelta = 4 - villagers; // default is 4
+    if (villagerDelta > 0) {
+      await this.decreaseStepper('villager', villagerDelta);
+    } else if (villagerDelta < 0) {
+      await this.increaseStepper('villager', -villagerDelta);
+    }
+    // Enable good special roles
+    for (const roleId of goodRoles) {
+      await this.toggleRole(roleId);
+    }
+
+    // --- 狼人阵营 ---
+    await this.switchToFactionTab('wolf');
+    // Adjust wolf count from default 4 → target
+    const wolfDelta = 4 - wolves;
+    if (wolfDelta > 0) {
+      await this.decreaseStepper('wolf', wolfDelta);
+    } else if (wolfDelta < 0) {
+      await this.increaseStepper('wolf', -wolfDelta);
+    }
+    // Enable wolf special roles
+    for (const roleId of wolfRoles) {
+      await this.toggleRole(roleId);
+    }
+
+    // --- 中立阵营 (if needed) ---
+    if (specialRoles.length > 0) {
+      await this.switchToFactionTab('special');
+      for (const roleId of specialRoles) {
+        await this.toggleRole(roleId);
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------

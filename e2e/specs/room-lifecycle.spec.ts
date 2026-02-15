@@ -34,30 +34,30 @@ test.describe('Room Lifecycle', () => {
 
       // The app navigates to RoomScreen, which discovers the room doesn't exist.
       // Fatal error triggers showAlert('提示', '房间不存在') + auto-redirect to Home.
-      // Wait for either the "房间不存在" alert text or re-arrival at Home.
-      const backAtHome = await Promise.race([
-        page
-          .getByText('房间不存在')
-          .waitFor({ state: 'visible', timeout: 15_000 })
-          .then(() => 'alert' as const),
-        page
-          .getByText('创建房间')
-          .waitFor({ state: 'visible', timeout: 15_000 })
-          .then(() => 'home' as const),
-      ]).catch(() => 'timeout' as const);
+      // Wait for the alert modal to appear (global AlertModal persists across screens)
+      const alertModal = page.locator('[data-testid="alert-modal"]');
+      const alertAppeared = await alertModal
+        .waitFor({ state: 'visible', timeout: 15_000 })
+        .then(() => true)
+        .catch(() => false);
 
-      // If we saw the alert, dismiss it then wait for home
-      if (backAtHome === 'alert') {
-        const okBtn = page.getByText('确定', { exact: true });
-        if (await okBtn.isVisible().catch(() => false)) {
-          await okBtn.click();
-        }
-        await expect(page.getByText('创建房间')).toBeVisible({ timeout: 10_000 });
+      if (alertAppeared) {
+        const alertText = (await alertModal.textContent()) ?? '';
+        console.log(`[room-lifecycle] Alert text: ${alertText}`);
+        expect(alertText).toContain('房间不存在');
+
+        // Dismiss alert and wait for it to close
+        const okBtn = alertModal.getByText('确定', { exact: true });
+        await okBtn.click({ force: true });
+        await alertModal.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
       }
 
-      // Verify we're back at the home screen
-      expect(backAtHome).not.toBe('timeout');
-      await expect(page.getByText('创建房间')).toBeVisible({ timeout: 5000 });
+      // After alert dismiss, page should return to Home.
+      // React Navigation may keep screens mounted with display:none — use .last()
+      // to pick the active Home instance. If only one, .last() == .first().
+      await expect(page.getByText('创建房间').last()).toBeVisible({
+        timeout: 10_000,
+      });
     } finally {
       await closeAll(fixture);
     }
@@ -81,7 +81,7 @@ test.describe('Room Lifecycle', () => {
       await hostPage.getByText('确定', { exact: true }).click();
 
       // Verify redirected to home
-      await expect(hostPage.getByText('创建房间')).toBeVisible({ timeout: 10_000 });
+      await expect(hostPage.getByText('创建房间').first()).toBeVisible({ timeout: 10_000 });
     } finally {
       await closeAll(fixture);
     }
@@ -106,7 +106,7 @@ test.describe('Room Lifecycle', () => {
       await joinerPage.getByText('确定', { exact: true }).click();
 
       // Verify redirected to home
-      await expect(joinerPage.getByText('创建房间')).toBeVisible({ timeout: 10_000 });
+      await expect(joinerPage.getByText('创建房间').first()).toBeVisible({ timeout: 10_000 });
     } finally {
       await closeAll(fixture);
     }

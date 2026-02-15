@@ -55,7 +55,10 @@ export const RoleStepper = memo<RoleStepperProps>(
                 −
               </Text>
             </TouchableOpacity>
-            <Text style={[styles.stepperCount, { color: count > 0 ? accentColor : undefined }]}>
+            <Text
+              testID={TESTIDS.configStepperCount(roleId)}
+              style={[styles.stepperCount, { color: count > 0 ? accentColor : undefined }]}
+            >
               {count}
             </Text>
             <TouchableOpacity

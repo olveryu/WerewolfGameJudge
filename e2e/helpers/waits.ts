@@ -65,7 +65,8 @@ async function waitForJoinerLive(page: Page, liveTimeoutMs: number): Promise<voi
       if (await forceSyncBtn.isVisible().catch(() => false)) {
         console.log('[waitForRoomScreenReady] Clicking force sync...');
         await forceSyncBtn.click();
-        await page.waitForTimeout(500);
+        // Wait for disconnected indicator to disappear after force sync
+        await disconnectedIndicator.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
       }
     }
 

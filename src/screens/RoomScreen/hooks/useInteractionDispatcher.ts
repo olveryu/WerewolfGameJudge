@@ -152,6 +152,10 @@ export function useInteractionDispatcher({
   const handleActionTap = useCallback(
     (seat: number) => {
       const intent = getActionIntent(seat);
+      roomScreenLog.debug('[handleActionTap]', {
+        seat,
+        intentType: intent?.type ?? null,
+      });
       if (intent) {
         void handleActionIntent(intent).catch((err) => {
           roomScreenLog.error('[handleActionTap] Unhandled error in handleActionIntent', err);
@@ -260,6 +264,12 @@ export function useInteractionDispatcher({
           return;
 
         case 'ACTION_FLOW':
+          roomScreenLog.debug('[dispatchInteraction] ACTION_FLOW', {
+            seat: result.seat,
+            hasIntent: !!result.intent,
+            isAudioPlaying: interactionContext.isAudioPlaying,
+            imActioner: interactionContext.imActioner,
+          });
           if (result.intent) {
             void handleActionIntent(result.intent).catch((err) => {
               roomScreenLog.error('[ACTION_FLOW] Unhandled error in handleActionIntent', err);

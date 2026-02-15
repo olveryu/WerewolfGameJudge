@@ -139,8 +139,12 @@ export function useActionOrchestrator({
 
   const proceedWithAction = useCallback(
     async (targetSeat: number | null, extra?: unknown): Promise<boolean> => {
-      if (actionSubmittingRef.current) return false;
+      if (actionSubmittingRef.current) {
+        roomScreenLog.debug('[proceedWithAction] Skipped: already submitting');
+        return false;
+      }
       markActionSubmitting(true);
+      roomScreenLog.debug('[proceedWithAction] Submitting', { targetSeat });
       try {
         await submitAction(targetSeat, extra);
         // Submission success/failure UX is handled by the state-driven

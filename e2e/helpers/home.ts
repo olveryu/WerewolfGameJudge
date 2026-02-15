@@ -72,7 +72,11 @@ async function handleErrorRecovery(page: Page): Promise<boolean> {
     if (hasError) {
       console.log(`[handleErrorRecovery] Found "${pattern.text}", clicking "${pattern.action}"`);
       await clickIfVisible(page, pattern.action, { timeout: 1000 });
-      await page.waitForTimeout(500);
+      // Wait for error dialog to disappear after clicking recovery action
+      await page
+        .getByText(pattern.text)
+        .waitFor({ state: 'hidden', timeout: 3000 })
+        .catch(() => {});
       return true;
     }
   }
@@ -231,7 +235,6 @@ async function completeAnonLoginIfNeeded(page: Page): Promise<boolean> {
   console.log('[completeAnonLoginIfNeeded] Login completed');
 
   // Dismiss any remaining login dialogs
-  await page.waitForTimeout(300);
   for (const prompt of loginPrompts) {
     if (
       await page
@@ -256,7 +259,7 @@ async function completeAnonLoginIfNeeded(page: Page): Promise<boolean> {
  */
 async function dismissBlockingModals(page: Page): Promise<boolean> {
   // Check if any blocking modal is visible
-  let hasBlockingModal = false;
+  let foundPattern: string | null = null;
   for (const pattern of BLOCKING_MODAL_PATTERNS) {
     if (
       await page
@@ -264,12 +267,12 @@ async function dismissBlockingModals(page: Page): Promise<boolean> {
         .isVisible()
         .catch(() => false)
     ) {
-      hasBlockingModal = true;
+      foundPattern = pattern;
       break;
     }
   }
 
-  if (!hasBlockingModal) {
+  if (!foundPattern) {
     return false;
   }
 
@@ -280,7 +283,11 @@ async function dismissBlockingModals(page: Page): Promise<boolean> {
     (await clickIfVisible(page, '关闭', { exact: true, timeout: 300 }));
 
   if (dismissed) {
-    await page.waitForTimeout(300);
+    // Wait for blocking modal to actually disappear
+    await page
+      .getByText(foundPattern)
+      .waitFor({ state: 'hidden', timeout: 2000 })
+      .catch(() => {});
   }
   return dismissed;
 }
@@ -334,8 +341,8 @@ export async function ensureHomeReady(
       return;
     }
 
-    // Short wait before retry
-    await page.waitForTimeout(500);
+    // Short wait before retry (poll cadence)
+    await page.waitForTimeout(300);
   }
 
   // Final check after all retries
@@ -447,7 +454,12 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
   const createRoomBtn = page.locator(`[data-testid="${TESTIDS.homeCreateRoomButton}"]`);
   await expect(createRoomBtn).toBeVisible({ timeout: 5000 });
   await createRoomBtn.click();
-  await page.waitForTimeout(500);
+  // Wait for login dialog to appear after triggering create room
+  await page
+    .getByText('需要登录')
+    .or(page.getByText('请先登录'))
+    .waitFor({ state: 'visible', timeout: 5000 })
+    .catch(() => {});
 
   await completeAnonLoginIfNeeded(page);
   await waitForPostLoginStable(page);
@@ -507,7 +519,11 @@ async function navigateBackToHome(page: Page): Promise<void> {
       const backBtn = page.locator('[data-testid="config-back-button"]');
       if (await backBtn.isVisible().catch(() => false)) {
         await backBtn.click();
-        await page.waitForTimeout(500);
+        // Wait for config screen to disappear
+        await page
+          .locator(`[data-testid="${TESTIDS.configScreenRoot}"]`)
+          .waitFor({ state: 'hidden', timeout: 3000 })
+          .catch(() => {});
         continue;
       }
     }
@@ -534,12 +550,13 @@ async function navigateBackToHome(page: Page): Promise<void> {
     const backBtn = page.locator('[data-testid="config-back-button"]');
     if (await backBtn.isVisible().catch(() => false)) {
       await backBtn.click();
-      await page.waitForTimeout(500);
+      // Wait for back button to disappear (screen transition)
+      await backBtn.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
       continue;
     }
 
-    // Maybe transient state - wait
-    await page.waitForTimeout(500);
+    // Poll cadence for retry loop
+    await page.waitForTimeout(300);
   }
 
   // Final check - use ensureHomeReady which handles transient states
@@ -584,7 +601,5 @@ export async function enterRoomCodeViaNumPad(page: Page, roomCode: string): Prom
     const btn = page.locator(`[data-testid="numpad-${digit}"]`);
     await expect(btn).toBeVisible({ timeout: 2000 });
     await btn.click();
-    // Small delay to ensure state updates
-    await page.waitForTimeout(50);
   }
 }

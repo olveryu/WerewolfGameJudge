@@ -217,8 +217,11 @@ async function handlePostClick(
 ): Promise<boolean> {
   if (buttonText === '投票空刀') {
     // After clicking '投票空刀', a wolf vote confirm AlertModal should appear.
-    // We just return true; the next iteration will pick up the alert and click '确定'.
-    await page.waitForTimeout(300);
+    // Wait for alert to appear; the next iteration will click '确定'.
+    await page
+      .locator('[data-testid="alert-modal"]')
+      .waitFor({ state: 'visible', timeout: 3000 })
+      .catch(() => {});
     return true;
   }
 
@@ -227,11 +230,10 @@ async function handlePostClick(
     const vc = await parseWolfVoteCount(page);
     await btn.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
     if (vc) state.wolfVotedPages.add(pageLabel);
-    await page.waitForTimeout(500);
     return true;
   }
 
-  await btn.waitFor({ state: 'hidden', timeout: 1000 }).catch(() => page.waitForTimeout(300));
+  await btn.waitFor({ state: 'hidden', timeout: 1000 }).catch(() => {});
   return true;
 }
 
@@ -299,7 +301,6 @@ async function tryConfirmSeatViaAlert(
       await confirmBtn.click({ force: true });
       await alertModal.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
       if (isWolfVote) state.wolfVotedPages.add(pageLabel);
-      await page.waitForTimeout(300);
       return true;
     }
   }
@@ -434,7 +435,6 @@ async function tryAdvanceNight(
         if (isWolfVoteConfirm && text === '确定') {
           state.wolfVotedPages.add(pageLabel);
         }
-        await page.waitForTimeout(300);
         return true;
       }
     }
@@ -628,7 +628,8 @@ export async function runNightFlowLoop(
     await logIterationState(pages, iter, advanced, state);
     await assertProgress(pages, advanced, state);
 
-    await primaryPage.waitForTimeout(advanced ? 200 : 500);
+    // Poll cadence for main driver loop
+    await primaryPage.waitForTimeout(advanced ? 200 : 300);
   }
 
   const diag = await captureDiagnostics(primaryPage, state);

@@ -51,7 +51,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({ visible, roleId,
   return (
     <Modal visible={true} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <View style={[styles.card, { borderColor: factionColor }]}>
+        <View testID="role-card-modal" style={[styles.card, { borderColor: factionColor }]}>
           <View style={[styles.factionBadge, { backgroundColor: factionColor }]}>
             <Text style={styles.factionText}>{factionName}</Text>
           </View>

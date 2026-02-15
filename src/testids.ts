@@ -41,6 +41,7 @@ export const TESTIDS = {
   configRoleChip: (id: string) => `config-role-chip-${id}`,
   configStepperDec: (roleId: string) => `config-stepper-dec-${roleId}`,
   configStepperInc: (roleId: string) => `config-stepper-inc-${roleId}`,
+  configStepperCount: (roleId: string) => `config-stepper-count-${roleId}`,
   configFactionTab: (key: string) => `config-faction-tab-${key}`,
 
   roomScreenRoot: 'room-screen-root',

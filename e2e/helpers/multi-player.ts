@@ -60,9 +60,9 @@ export interface GameSetupWithRolesResult extends GameSetupResult {
 // ---------------------------------------------------------------------------
 
 /** Max poll attempts before hard-failing. Total timeout ≈ PRESENCE_MAX_ATTEMPTS × PRESENCE_INTERVAL_MS. */
-const PRESENCE_MAX_ATTEMPTS = 30;
-/** Interval between poll attempts (ms). */
-const PRESENCE_INTERVAL_MS = 500;
+const PRESENCE_MAX_ATTEMPTS = 50;
+/** Poll cadence for presence stability checks (≤300ms per test instructions). */
+const PRESENCE_INTERVAL_MS = 300;
 
 /**
  * Hard gate: Wait for all joiner presence to be reflected on the host page.
@@ -80,7 +80,7 @@ async function waitForPresenceStable(
   roomCode: string,
 ): Promise<void> {
   for (let attempt = 1; attempt <= PRESENCE_MAX_ATTEMPTS; attempt++) {
-    // Ping joiner pages to keep WebSocket connections alive
+    // Poll cadence: ping joiner pages to keep connections alive
     for (const joinerPage of joinerPages) {
       await joinerPage.locator('body').count();
     }
@@ -152,19 +152,22 @@ export async function viewRoleWithRetry(page: Page, maxRetries = 30): Promise<vo
     ]).catch(() => 'neither' as const);
 
     if (appeared === 'roleCard') {
-      await okBtn.click();
+      // Use evaluate to bypass viewport overflow issues (role card modal
+      // may extend beyond 720px viewport in small-player-count games)
+      await okBtn.evaluate((el) => (el as HTMLElement).click());
       return;
     }
 
     if (appeared === 'waitAlert') {
-      // Dismiss the "等待房主" alert and retry after broadcast interval
+      // Dismiss the "等待房主" alert and retry after broadcast arrives
       await page.getByText('确定', { exact: true }).click();
-      await page.waitForTimeout(500);
+      // Wait for alert to disappear before retrying
+      await waitAlert.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
       continue;
     }
 
-    // Neither appeared — retry
-    await page.waitForTimeout(500);
+    // Neither appeared — poll cadence for retry loop
+    await page.waitForTimeout(300);
   }
 
   throw new Error(

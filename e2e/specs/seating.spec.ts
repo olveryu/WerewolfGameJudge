@@ -26,7 +26,11 @@ test.describe.configure({ mode: 'serial' });
 // ---------------------------------------------------------------------------
 
 async function settleAfterRoomReady(page: import('@playwright/test').Page) {
-  await page.waitForTimeout(300);
+  // Wait for room screen to be fully rendered
+  await page
+    .locator('[data-testid="room-screen-root"]')
+    .waitFor({ state: 'visible', timeout: 3000 })
+    .catch(() => {});
 }
 
 async function dismissAnyConfirmAlert(page: import('@playwright/test').Page) {
