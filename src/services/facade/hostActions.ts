@@ -19,10 +19,11 @@
  * - 直接修改 state（全部在 reducer / 服务端）
  */
 
+import type { GameStore } from '@werewolf/game-engine/engine/store';
+
 import { API_BASE_URL } from '@/config/api';
 import type { RoleId } from '@/models/roles';
 import type { GameTemplate } from '@/models/Template';
-import type { GameStore } from '@/services/engine/store';
 import type { AudioService } from '@/services/infra/AudioService';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { facadeLog } from '@/utils/logger';

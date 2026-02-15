@@ -4,8 +4,9 @@
  * Ensures resolver behavior is aligned with schema constraints.
  */
 
+import { validateConstraints } from '@werewolf/game-engine/resolvers/constraintValidator';
+
 import { SCHEMAS } from '@/models/roles/spec/schemas';
-import { validateConstraints } from '@/services/night/resolvers/constraintValidator';
 
 describe('constraintValidator', () => {
   describe('notSelf constraint', () => {

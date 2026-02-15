@@ -7,15 +7,15 @@ import {
   handleRestartGame,
   handleStartNight,
   handleUpdateTemplate,
-} from '@/services/engine/handlers/gameControlHandler';
-import type { HandlerContext } from '@/services/engine/handlers/types';
+} from '@werewolf/game-engine/engine/handlers/gameControlHandler';
+import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type {
   AssignRolesIntent,
   RestartGameIntent,
   StartNightIntent,
   UpdateTemplateIntent,
-} from '@/services/engine/intents/types';
-import type { GameState } from '@/services/engine/store/types';
+} from '@werewolf/game-engine/engine/intents/types';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {

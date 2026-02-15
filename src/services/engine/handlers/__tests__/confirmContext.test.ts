@@ -5,7 +5,8 @@
  * confirmStatus 计算逻辑通过公共 API 间接覆盖
  */
 
-import { maybeCreateConfirmStatusAction } from '@/services/engine/handlers/confirmContext';
+import { maybeCreateConfirmStatusAction } from '@werewolf/game-engine/engine/handlers/confirmContext';
+
 import type { BroadcastGameState } from '@/services/protocol/types';
 
 // =============================================================================

@@ -8,13 +8,14 @@
  * 架构：hostGameFactory → action → evaluateNightProgression → decision
  */
 
-import type { RoleId } from '@/models/roles';
-import { doesRoleParticipateInWolfVote } from '@/models/roles';
 import {
   createProgressionTracker,
   evaluateNightProgression,
   isWolfVoteAllComplete,
-} from '@/services/engine/handlers/progressionEvaluator';
+} from '@werewolf/game-engine/engine/handlers/progressionEvaluator';
+
+import type { RoleId } from '@/models/roles';
+import { doesRoleParticipateInWolfVote } from '@/models/roles';
 
 import { cleanupHostGame, createHostGame } from './hostGameFactory';
 import { sendMessageOrThrow } from './stepByStepRunner';

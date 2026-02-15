@@ -13,7 +13,8 @@
  * ❌ 禁止：Host/Player 分叉逻辑
  */
 
-import type { GameStore } from '@/services/engine/store';
+import type { GameStore } from '@werewolf/game-engine/engine/store';
+
 import type { HostBroadcast } from '@/services/protocol/types';
 import type { BroadcastService } from '@/services/transport/BroadcastService';
 import { facadeLog } from '@/utils/logger';

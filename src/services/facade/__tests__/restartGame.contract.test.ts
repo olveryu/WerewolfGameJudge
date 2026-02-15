@@ -12,7 +12,8 @@
  * 6. 服务端负责 GAME_RESTARTED 广播 + 状态重置
  */
 
-import { GameStore } from '@/services/engine/store';
+import { GameStore } from '@werewolf/game-engine/engine/store';
+
 import { GameFacade } from '@/services/facade/GameFacade';
 
 // Mock BroadcastService (constructor mock — DI 测试直接注入，此处仅防止真实 import)

@@ -22,11 +22,12 @@
  * - messageRouter.ts: 统一 STATE_UPDATE 处理（Host + Player 共用）
  */
 
+import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
+import { GameStore } from '@werewolf/game-engine/engine/store';
+
 import type { RevealKind, RoleId } from '@/models/roles';
 import { getStepSpec } from '@/models/roles/spec/nightSteps';
 import type { GameTemplate } from '@/models/Template';
-import { buildInitialGameState } from '@/services/engine/state/buildInitialState';
-import { GameStore } from '@/services/engine/store';
 import { AudioService } from '@/services/infra/AudioService';
 import { RoomService } from '@/services/infra/RoomService';
 import type { AudioEffect, BroadcastGameState, HostBroadcast } from '@/services/protocol/types';

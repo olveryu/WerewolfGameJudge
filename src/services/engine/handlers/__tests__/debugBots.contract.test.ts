@@ -10,9 +10,10 @@
 import {
   handleFillWithBots,
   handleMarkAllBotsViewed,
-} from '@/services/engine/handlers/gameControlHandler';
-import type { HandlerContext } from '@/services/engine/handlers/types';
-import type { GameState } from '@/services/engine/store/types';
+} from '@werewolf/game-engine/engine/handlers/gameControlHandler';
+import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
+
 import type { BroadcastPlayer } from '@/services/protocol/types';
 
 // =============================================================================

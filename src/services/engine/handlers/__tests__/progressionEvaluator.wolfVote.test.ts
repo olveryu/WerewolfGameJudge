@@ -14,7 +14,8 @@ import {
   isWolfVoteAllComplete,
   shouldTriggerWolfVoteRecovery,
   WOLF_VOTE_COUNTDOWN_MS,
-} from '@/services/engine/handlers/progressionEvaluator';
+} from '@werewolf/game-engine/engine/handlers/progressionEvaluator';
+
 import type { BroadcastGameState } from '@/services/protocol/types';
 
 // =============================================================================

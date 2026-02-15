@@ -4,9 +4,10 @@
  * 验证更新模板时智能保留/扩缩容座位玩家
  */
 
+import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
+
 import type { RoleId } from '@/models/roles';
-import { gameReducer } from '@/services/engine/reducer/gameReducer';
-import type { GameState } from '@/services/engine/store/types';
 
 interface PlayerInput {
   uid: string;

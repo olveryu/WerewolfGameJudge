@@ -15,14 +15,15 @@
  * 走 compound 路径，不在此测试范围。
  */
 
+import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
+import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
+import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
+import type { ApplyResolverResultAction } from '@werewolf/game-engine/engine/reducer/types';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
+
 import type { RoleId } from '@/models/roles';
 import type { SchemaId } from '@/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS, SCHEMAS } from '@/models/roles/spec';
-import { handleSubmitAction } from '@/services/engine/handlers/actionHandler';
-import type { HandlerContext } from '@/services/engine/handlers/types';
-import type { SubmitActionIntent } from '@/services/engine/intents/types';
-import type { ApplyResolverResultAction } from '@/services/engine/reducer/types';
-import type { GameState } from '@/services/engine/store/types';
 
 // =============================================================================
 // Test Data

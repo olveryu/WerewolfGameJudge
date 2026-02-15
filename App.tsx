@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react-native';
+import { GameStore } from '@werewolf/game-engine/engine/store';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
@@ -10,7 +11,6 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider, GameFacadeProvider, NetworkProvider, ServiceProvider } from '@/contexts';
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
 import { AppNavigator } from '@/navigation';
-import { GameStore } from '@/services/engine/store';
 import { GameFacade } from '@/services/facade/GameFacade';
 import { AvatarUploadService } from '@/services/feature/AvatarUploadService';
 import { SettingsService } from '@/services/feature/SettingsService';

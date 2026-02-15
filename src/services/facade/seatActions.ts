@@ -10,8 +10,9 @@
  * ❌ 禁止：直接修改 state（全部在服务端 reducer）
  */
 
+import type { GameStore } from '@werewolf/game-engine/engine/store';
+
 import { API_BASE_URL } from '@/config/api';
-import type { GameStore } from '@/services/engine/store';
 import { facadeLog } from '@/utils/logger';
 
 /**

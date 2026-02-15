@@ -8,9 +8,10 @@
  * - Player 收到 STATE_UPDATE → applySnapshot
  */
 
-import { gameReducer } from '@/services/engine/reducer/gameReducer';
-import type { PlayerJoinAction } from '@/services/engine/reducer/types';
-import { GameStore } from '@/services/engine/store';
+import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
+import type { PlayerJoinAction } from '@werewolf/game-engine/engine/reducer/types';
+import { GameStore } from '@werewolf/game-engine/engine/store';
+
 import { GameFacade } from '@/services/facade/GameFacade';
 import type { BroadcastPlayer, HostBroadcast } from '@/services/protocol/types';
 

@@ -5,7 +5,8 @@
  * 当新增字段时，如果忘记在 normalizeState 中透传，此测试会失败。
  */
 
-import { normalizeState } from '@/services/engine/state/normalize';
+import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
+
 import type { BroadcastGameState } from '@/services/protocol/types';
 
 /**

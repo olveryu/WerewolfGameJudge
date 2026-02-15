@@ -8,11 +8,12 @@
  * 这是防止 "一刀切" skip 行为的合约测试。
  */
 
+import { RESOLVERS } from '@werewolf/game-engine/resolvers';
+import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
+
 import type { RoleId } from '@/models/roles';
 import { type SchemaId, SCHEMAS } from '@/models/roles/spec';
 import type { ChooseSeatSchema, CompoundSchema } from '@/models/roles/spec/schema.types';
-import { RESOLVERS } from '@/services/night/resolvers/index';
-import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
 
 // 创建基础的 ResolverContext
 function createBaseContext(
@@ -169,7 +170,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
     const {
       evaluateNightProgression,
       createProgressionTracker,
-    } = require('@/services/engine/handlers/progressionEvaluator');
+    } = require('@werewolf/game-engine/engine/handlers/progressionEvaluator');
 
     const state = {
       status: 'ongoing',
@@ -203,7 +204,7 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
     const {
       evaluateNightProgression,
       createProgressionTracker,
-    } = require('@/services/engine/handlers/progressionEvaluator');
+    } = require('@werewolf/game-engine/engine/handlers/progressionEvaluator');
 
     const tracker = createProgressionTracker();
 
@@ -236,7 +237,9 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
   });
 
   it('returns none when not host', () => {
-    const { evaluateNightProgression } = require('@/services/engine/handlers/progressionEvaluator');
+    const {
+      evaluateNightProgression,
+    } = require('@werewolf/game-engine/engine/handlers/progressionEvaluator');
 
     const state = {
       status: 'ongoing',
@@ -255,7 +258,9 @@ describe('evaluateNightProgression idempotency (PR contract)', () => {
   });
 
   it('returns none when audio is playing', () => {
-    const { evaluateNightProgression } = require('@/services/engine/handlers/progressionEvaluator');
+    const {
+      evaluateNightProgression,
+    } = require('@werewolf/game-engine/engine/handlers/progressionEvaluator');
 
     const state = {
       status: 'ongoing',

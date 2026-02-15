@@ -2,10 +2,13 @@
  * seatHandler Unit Tests
  */
 
-import { handleJoinSeat, handleLeaveMySeat } from '@/services/engine/handlers/seatHandler';
-import type { HandlerContext } from '@/services/engine/handlers/types';
-import type { JoinSeatIntent, LeaveMySeatIntent } from '@/services/engine/intents/types';
-import type { GameState } from '@/services/engine/store/types';
+import {
+  handleJoinSeat,
+  handleLeaveMySeat,
+} from '@werewolf/game-engine/engine/handlers/seatHandler';
+import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
+import type { JoinSeatIntent, LeaveMySeatIntent } from '@werewolf/game-engine/engine/intents/types';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import {
   REASON_GAME_IN_PROGRESS,
   REASON_INVALID_SEAT,
@@ -13,7 +16,7 @@ import {
   REASON_NOT_AUTHENTICATED,
   REASON_NOT_SEATED,
   REASON_SEAT_TAKEN,
-} from '@/services/protocol/reasonCodes';
+} from '@werewolf/game-engine/protocol/reasonCodes';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {

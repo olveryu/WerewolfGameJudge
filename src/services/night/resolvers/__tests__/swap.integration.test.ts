@@ -12,12 +12,13 @@
  * - swappedSeats 是 BroadcastGameState 的单一真相
  */
 
+import { calculateDeaths } from '@werewolf/game-engine/engine/DeathCalculator';
+import { seerCheckResolver } from '@werewolf/game-engine/resolvers/seer';
+
 import type { RoleId } from '@/models/roles';
-import { calculateDeaths } from '@/services/engine/DeathCalculator';
 import { gargoyleCheckResolver } from '@/services/night/resolvers/gargoyle';
 import { magicianSwapResolver } from '@/services/night/resolvers/magician';
 import { psychicCheckResolver } from '@/services/night/resolvers/psychic';
-import { seerCheckResolver } from '@/services/night/resolvers/seer';
 import type {
   ActionInput,
   CurrentNightResults,

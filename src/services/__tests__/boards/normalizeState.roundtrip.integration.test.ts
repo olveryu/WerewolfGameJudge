@@ -10,9 +10,10 @@
  * - seat-key 规范化引入数据变形
  */
 
+import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
+
 import type { RoleId } from '@/models/roles';
 import { doesRoleParticipateInWolfVote } from '@/models/roles';
-import { normalizeState } from '@/services/engine/state/normalize';
 
 import { cleanupHostGame, createHostGame } from './hostGameFactory';
 import { executeFullNight, sendMessageOrThrow } from './stepByStepRunner';

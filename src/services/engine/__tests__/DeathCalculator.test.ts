@@ -29,8 +29,13 @@
  * - witcher, wolfQueen, dreamcatcher, spiritKnight, seer, witch, guard: number (-1 表示不在场)
  */
 
+import {
+  calculateDeaths,
+  NightActions,
+  RoleSeatMap,
+} from '@werewolf/game-engine/engine/DeathCalculator';
+
 import { makeWitchPoison, makeWitchSave } from '@/models/actions/WitchAction';
-import { calculateDeaths, NightActions, RoleSeatMap } from '@/services/engine/DeathCalculator';
 
 /** All roles absent — mirrors the module-private DEFAULT_ROLE_SEAT_MAP */
 const NO_ROLES: RoleSeatMap = {

@@ -14,20 +14,21 @@
  * - endNight 调用 calculateDeaths 并产出正确 deaths
  */
 
-import type { RoleId } from '@/models/roles';
-import { NIGHT_STEPS } from '@/models/roles/spec';
-import { buildNightPlan } from '@/models/roles/spec/plan';
 import {
   handleAdvanceNight,
   handleEndNight,
   handleSetAudioPlaying,
-} from '@/services/engine/handlers/stepTransitionHandler';
-import type { HandlerContext } from '@/services/engine/handlers/types';
+} from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
+import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type {
   AdvanceNightIntent,
   EndNightIntent,
   SetAudioPlayingIntent,
-} from '@/services/engine/intents/types';
+} from '@werewolf/game-engine/engine/intents/types';
+
+import type { RoleId } from '@/models/roles';
+import { NIGHT_STEPS } from '@/models/roles/spec';
+import { buildNightPlan } from '@/models/roles/spec/plan';
 import type { BroadcastGameState, BroadcastPlayer } from '@/services/protocol/types';
 
 /**

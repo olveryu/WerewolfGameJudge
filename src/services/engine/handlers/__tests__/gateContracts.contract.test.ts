@@ -12,16 +12,20 @@
  * 4. BLOCKED_UI_DEFAULTS.message is the single source of truth for nightmare rejection
  */
 
-import type { SchemaId } from '@/models/roles/spec';
-import { BLOCKED_UI_DEFAULTS, SCHEMAS } from '@/models/roles/spec';
 import {
   checkNightmareBlockGuard,
   handleSubmitAction,
   handleSubmitWolfVote,
-} from '@/services/engine/handlers/actionHandler';
-import type { HandlerContext } from '@/services/engine/handlers/types';
-import type { SubmitActionIntent, SubmitWolfVoteIntent } from '@/services/engine/intents/types';
-import type { GameState } from '@/services/engine/store/types';
+} from '@werewolf/game-engine/engine/handlers/actionHandler';
+import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
+import type {
+  SubmitActionIntent,
+  SubmitWolfVoteIntent,
+} from '@werewolf/game-engine/engine/intents/types';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
+
+import type { SchemaId } from '@/models/roles/spec';
+import { BLOCKED_UI_DEFAULTS, SCHEMAS } from '@/models/roles/spec';
 
 // =============================================================================
 // Helpers

@@ -2,19 +2,20 @@
  * actionHandler Unit Tests
  */
 
-import type { SchemaId } from '@/models/roles/spec';
 import {
   handleSubmitAction,
   handleSubmitWolfVote,
   handleViewedRole,
-} from '@/services/engine/handlers/actionHandler';
-import type { HandlerContext } from '@/services/engine/handlers/types';
+} from '@werewolf/game-engine/engine/handlers/actionHandler';
+import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type {
   SubmitActionIntent,
   SubmitWolfVoteIntent,
   ViewedRoleIntent,
-} from '@/services/engine/intents/types';
-import type { GameState } from '@/services/engine/store/types';
+} from '@werewolf/game-engine/engine/intents/types';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
+
+import type { SchemaId } from '@/models/roles/spec';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
@@ -1227,8 +1228,8 @@ describe('handleSubmitAction', () => {
 
 describe('isSkipAction (schema-aware skip detection)', () => {
   // Import from actionHandler (exported for testing)
-  const { isSkipAction } = require('@/services/engine/handlers/actionHandler');
-  const { SCHEMAS } = require('@/models/roles/spec');
+  const { isSkipAction } = require('@werewolf/game-engine/engine/handlers/actionHandler');
+  const { SCHEMAS } = require('@werewolf/game-engine/models/roles/spec');
 
   it('should detect skip for chooseSeat schema with target=undefined', () => {
     const result = isSkipAction(SCHEMAS.seerCheck, { schemaId: 'seerCheck', target: undefined });
@@ -1281,8 +1282,10 @@ describe('isSkipAction (schema-aware skip detection)', () => {
 });
 
 describe('checkNightmareBlockGuard (single-point guard)', () => {
-  const { checkNightmareBlockGuard } = require('@/services/engine/handlers/actionHandler');
-  const { SCHEMAS, BLOCKED_UI_DEFAULTS } = require('@/models/roles/spec');
+  const {
+    checkNightmareBlockGuard,
+  } = require('@werewolf/game-engine/engine/handlers/actionHandler');
+  const { SCHEMAS, BLOCKED_UI_DEFAULTS } = require('@werewolf/game-engine/models/roles/spec');
 
   describe('chooseSeat schema', () => {
     it('should reject blocked player with non-skip action', () => {

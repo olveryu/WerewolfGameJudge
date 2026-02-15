@@ -9,7 +9,7 @@
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
-import { resolveWolfVotes } from '@/services/engine/resolveWolfVotes';
+import { resolveWolfVotes } from '@werewolf/game-engine/engine/resolveWolfVotes';
 
 import type { ResolverFn, ResolverResult } from './types';
 

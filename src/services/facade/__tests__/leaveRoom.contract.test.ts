@@ -4,7 +4,8 @@
  * 验证离开房间后不会有残留的 store listeners 导致内存/逻辑泄漏
  */
 
-import { GameStore } from '@/services/engine/store';
+import { GameStore } from '@werewolf/game-engine/engine/store';
+
 import { GameFacade } from '@/services/facade/GameFacade';
 
 // Mock BroadcastService

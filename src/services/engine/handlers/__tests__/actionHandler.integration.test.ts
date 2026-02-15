@@ -2,7 +2,7 @@
  * ActionHandler Tests
  */
 
-import { handleSubmitAction } from '@/services/engine/handlers/actionHandler';
+import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
 
 const baseContext: any = {
   isHost: true,

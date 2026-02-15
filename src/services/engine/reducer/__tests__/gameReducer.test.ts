@@ -2,7 +2,7 @@
  * gameReducer Unit Tests
  */
 
-import { gameReducer } from '@/services/engine/reducer/gameReducer';
+import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type {
   AdvanceToNextActionAction,
   ApplyResolverResultAction,
@@ -15,8 +15,8 @@ import type {
   SetAudioPlayingAction,
   StartNightAction,
   StateAction,
-} from '@/services/engine/reducer/types';
-import type { GameState } from '@/services/engine/store/types';
+} from '@werewolf/game-engine/engine/reducer/types';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {

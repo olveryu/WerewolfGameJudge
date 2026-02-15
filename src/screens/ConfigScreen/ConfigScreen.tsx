@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
+import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,7 +27,6 @@ import {
   validateTemplateRoles,
 } from '@/models/Template';
 import { RootStackParamList } from '@/navigation/types';
-import { buildInitialGameState } from '@/services/engine/state/buildInitialState';
 import { TESTIDS } from '@/testids';
 import { spacing, useColors } from '@/theme';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';

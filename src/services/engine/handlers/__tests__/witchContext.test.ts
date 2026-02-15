@@ -5,7 +5,8 @@
  * witchContext 计算逻辑通过公共 API 间接覆盖
  */
 
-import { maybeCreateWitchContextAction } from '@/services/engine/handlers/witchContext';
+import { maybeCreateWitchContextAction } from '@werewolf/game-engine/engine/handlers/witchContext';
+
 import type { BroadcastGameState, BroadcastPlayer } from '@/services/protocol/types';
 
 // =============================================================================
