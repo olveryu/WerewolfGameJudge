@@ -39,6 +39,22 @@ export interface GameSetupResult {
   joinerPages: Page[];
 }
 
+/** Role info captured during viewRole phase. */
+export interface CapturedRole {
+  /** Chinese display name, e.g. "狼人", "预言家" */
+  displayName: string;
+  /** 0-based seat index */
+  seat: number;
+}
+
+export interface GameSetupWithRolesResult extends GameSetupResult {
+  /**
+   * Map from page index (0 = host, 1..N-1 = joiners) to captured role info.
+   * Only populated when using setupNPlayerGameWithRoles.
+   */
+  roleMap: Map<number, CapturedRole>;
+}
+
 // ---------------------------------------------------------------------------
 // Presence stabilization
 // ---------------------------------------------------------------------------
@@ -234,4 +250,78 @@ export async function setupNPlayerGame(
   await hostRoom.startGame();
 
   return { fixture, roomNumber, hostPage, joinerPages };
+}
+
+// ---------------------------------------------------------------------------
+// Role-aware game setup
+// ---------------------------------------------------------------------------
+
+/**
+ * Same as setupNPlayerGame but captures each player's role during the
+ * viewRole phase. Returns a roleMap mapping page index → CapturedRole.
+ *
+ * The game is always started (startGame is forced to true).
+ */
+export async function setupNPlayerGameWithRoles(
+  browser: Browser,
+  opts: Omit<SetupGameOptions, 'startGame'> = {},
+): Promise<GameSetupWithRolesResult> {
+  const { playerCount = 2, configureTemplate, quietConsole = false } = opts;
+
+  // Step 1: Create all player contexts
+  const fixture = await createPlayerContexts(browser, playerCount, { quietConsole });
+  const [hostPage, ...joinerPages] = fixture.pages;
+
+  // Step 2: Host creates room
+  await hostPage.getByText('创建房间').click();
+  const config = new ConfigPage(hostPage);
+  await config.waitForCreateMode();
+
+  if (configureTemplate) {
+    await configureTemplate(config);
+  }
+
+  await config.clickCreate();
+  await waitForRoomScreenReady(hostPage, { role: 'host' });
+
+  const roomNumber = await extractRoomNumber(hostPage);
+
+  // Host manually takes seat 0
+  const hostRoom = new RoomPage(hostPage);
+  await hostRoom.seatAt(0);
+
+  // Step 3: Joiners join and take seats
+  for (let i = 0; i < joinerPages.length; i++) {
+    const joinerPage = joinerPages[i];
+    const seat = i + 1;
+
+    await getVisibleText(joinerPage, '进入房间').first().click();
+    await expect(joinerPage.getByText('加入房间')).toBeVisible({ timeout: 5000 });
+
+    await enterRoomCodeViaNumPad(joinerPage, roomNumber);
+    await joinerPage.getByText('加入', { exact: true }).click();
+    await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
+
+    const room = new RoomPage(joinerPage);
+    await room.seatAt(seat);
+  }
+
+  // Step 4: Presence stabilization
+  await waitForPresenceStable(hostPage, joinerPages, roomNumber);
+
+  // Step 5: Prepare roles
+  await hostRoom.prepareRoles();
+
+  // Step 6: All view roles — capture each player's role
+  const roleMap = new Map<number, CapturedRole>();
+  for (let i = 0; i < fixture.pages.length; i++) {
+    const room = new RoomPage(fixture.pages[i]);
+    const displayName = await room.viewRoleAndCapture();
+    roleMap.set(i, { displayName, seat: i });
+  }
+
+  // Step 7: Start game
+  await hostRoom.startGame();
+
+  return { fixture, roomNumber, hostPage, joinerPages, roleMap };
 }

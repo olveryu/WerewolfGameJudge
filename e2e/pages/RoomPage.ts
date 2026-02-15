@@ -131,6 +131,82 @@ export class RoomPage {
     throw new Error('viewAndDismissRole: "我知道了" never appeared after retries.');
   }
 
+  /**
+   * Click "查看身份" → capture role displayName from RoleCardSimple → click "我知道了".
+   *
+   * Same retry logic as viewAndDismissRole but reads the visible role name
+   * before dismissing. Returns the Chinese displayName (e.g. "狼人", "预言家").
+   */
+  async viewRoleAndCapture(): Promise<string> {
+    const KNOWN_ROLES = [
+      '普通村民',
+      '预言家',
+      '女巫',
+      '猎人',
+      '守卫',
+      '白痴',
+      '骑士',
+      '狼人',
+      '狼美人',
+      '白狼王',
+      '黑狼王',
+      '梦魇',
+      '石像鬼',
+      '血月使徒',
+      '机械狼',
+      '恶灵骑士',
+      '混子',
+      '魔术师',
+      '猎魔人',
+      '通灵师',
+      '摄梦人',
+      '守墓人',
+    ];
+
+    const viewBtn = this.page.getByText('查看身份', { exact: true });
+    await expect(viewBtn).toBeVisible({ timeout: 15_000 });
+
+    for (let attempt = 1; attempt <= 30; attempt++) {
+      await viewBtn.click();
+
+      const okBtn = this.page.getByText('我知道了', { exact: true });
+      const waitAlert = this.page.getByText('等待房主点击"准备看牌"分配角色');
+
+      const appeared = await Promise.race([
+        okBtn.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'roleCard' as const),
+        waitAlert.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'waitAlert' as const),
+      ]).catch(() => 'neither' as const);
+
+      if (appeared === 'roleCard') {
+        // Capture role name before dismissing — check longest names first
+        // to avoid "狼人" matching before "狼美人" (sorted by length desc)
+        const sorted = [...KNOWN_ROLES].sort((a, b) => b.length - a.length);
+        let capturedRole = 'unknown';
+        for (const name of sorted) {
+          const visible = await this.page
+            .getByText(name, { exact: true })
+            .first()
+            .isVisible()
+            .catch(() => false);
+          if (visible) {
+            capturedRole = name;
+            break;
+          }
+        }
+        await okBtn.click();
+        return capturedRole;
+      }
+
+      if (appeared === 'waitAlert') {
+        await this.page.getByText('确定', { exact: true }).click();
+        await this.page.waitForTimeout(500);
+        continue;
+      }
+      await this.page.waitForTimeout(500);
+    }
+    throw new Error('viewRoleAndCapture: "我知道了" never appeared after retries.');
+  }
+
   /** Click "开始游戏" and confirm dialog. */
   async startGame() {
     const btn = this.page.getByText('开始游戏');
