@@ -129,11 +129,8 @@ export async function markViewedRole(
   ctx: HostActionsContext,
   seat: number,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('[DIAG] markViewedRole called', { seat, uid: ctx.myUid });
-
   const roomCode = ctx.store.getState()?.roomCode;
   if (!roomCode || !ctx.myUid) {
-    facadeLog.warn('[DIAG] markViewedRole NOT_CONNECTED', { roomCode, uid: ctx.myUid });
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
@@ -146,11 +143,6 @@ export async function markViewedRole(
     },
     ctx.store,
   );
-  facadeLog.debug('[DIAG] markViewedRole result', {
-    seat,
-    success: result.success,
-    reason: result.reason,
-  });
   return result;
 }
 
