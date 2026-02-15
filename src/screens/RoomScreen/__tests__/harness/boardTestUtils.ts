@@ -240,6 +240,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     viewedRole: jest.fn(),
     submitRevealAck: jest.fn().mockResolvedValue(undefined),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
+    postProgression: jest.fn().mockResolvedValue(undefined),
 
     // Error plumbing
     lastSeatError: null,

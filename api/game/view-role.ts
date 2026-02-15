@@ -40,8 +40,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       myUid: uid,
       mySeat: seat,
     };
-    return handleViewedRole({ type: 'VIEWED_ROLE', payload: { seat } }, handlerCtx);
+    const handlerResult = handleViewedRole({ type: 'VIEWED_ROLE', payload: { seat } }, handlerCtx);
+    return handlerResult;
   });
-
   return res.status(result.success ? 200 : 400).json(result);
 }

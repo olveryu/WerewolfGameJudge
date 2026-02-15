@@ -3,7 +3,8 @@
  *
  * Host 开始夜晚（ready → ongoing）。
  * 使用 game-engine handleStartNight 纯函数 + gameStateManager 读写广播。
- * 返回 sideEffects 供 Host 客户端播放音频。
+ * Handler 的 PLAY_AUDIO sideEffects 写入 state.pendingAudioEffects，
+ * 客户端通过 store subscription 响应式播放后 POST audio-ack 释放 gate。
  *
  * ✅ 允许：请求解析、调用 handler + gameStateManager
  * ❌ 禁止：直接操作 DB 或 state、播放音频
@@ -11,9 +12,11 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
+  type AudioEffect,
   type BroadcastGameState,
   type HandlerContext,
   handleStartNight,
+  type StateAction,
 } from '@werewolf/game-engine';
 
 import { processGameAction } from '../_lib/gameStateManager';
@@ -39,7 +42,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       myUid: hostUid,
       mySeat: findSeatByUid(state, hostUid),
     };
-    return handleStartNight({ type: 'START_NIGHT' }, handlerCtx);
+    const handlerResult = handleStartNight({ type: 'START_NIGHT' }, handlerCtx);
+    if (!handlerResult.success) return handlerResult;
+
+    // Extract PLAY_AUDIO from handler sideEffects → write to state as pendingAudioEffects
+    // This way audio flows through broadcast → client store subscription → reactive playback
+    const audioEffects: AudioEffect[] = (handlerResult.sideEffects ?? [])
+      .filter(
+        (e): e is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } =>
+          e.type === 'PLAY_AUDIO',
+      )
+      .map((e) => ({ audioKey: e.audioKey, isEndAudio: e.isEndAudio }));
+
+    if (audioEffects.length > 0) {
+      const extraActions: StateAction[] = [
+        { type: 'SET_PENDING_AUDIO_EFFECTS', payload: { effects: audioEffects } },
+        { type: 'SET_AUDIO_PLAYING', payload: { isPlaying: true } },
+      ];
+      return {
+        ...handlerResult,
+        actions: [...handlerResult.actions, ...extraActions],
+      };
+    }
+
+    return handlerResult;
   });
 
   return res.status(result.success ? 200 : 400).json(result);

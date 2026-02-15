@@ -29,7 +29,7 @@ import { buildInitialGameState } from '@/services/engine/state/buildInitialState
 import { GameStore } from '@/services/engine/store';
 import { AudioService } from '@/services/infra/AudioService';
 import { RoomService } from '@/services/infra/RoomService';
-import type { BroadcastGameState, HostBroadcast } from '@/services/protocol/types';
+import type { AudioEffect, BroadcastGameState, HostBroadcast } from '@/services/protocol/types';
 import { BroadcastService } from '@/services/transport/BroadcastService';
 import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFacade';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
@@ -71,10 +71,16 @@ export class GameFacade implements IGameFacade {
 
   /**
    * Abort flag: set to true when leaving room.
-   * Used to abort ongoing async operations (e.g., audio queue in playApiSideEffects).
+   * Used to abort ongoing async operations (e.g., audio queue in _playPendingAudioEffects).
    * Reset to false when creating/joining a new room.
    */
   private _aborted = false;
+
+  /**
+   * 防止 _playPendingAudioEffects 重入。
+   * 同一批 pendingAudioEffects 只播放一次。
+   */
+  private _isPlayingEffects = false;
 
   /**
    * 标记 Host rejoin 时音频是否被中断（缓存中 isAudioPlaying === true）。
@@ -91,6 +97,16 @@ export class GameFacade implements IGameFacade {
     this.broadcastService = deps.broadcastService;
     this.audioService = deps.audioService;
     this.roomService = deps.roomService;
+
+    // Reactive: 监听 state 中 pendingAudioEffects 出现 → Host 播放 → postAudioAck
+    this.store.subscribe((state) => {
+      if (!state) return;
+      if (!this.isHost) return;
+      if (!state.pendingAudioEffects || state.pendingAudioEffects.length === 0) return;
+      // Avoid reacting during rejoin overlay (resumeAfterRejoin handles that path)
+      if (this._wasAudioInterrupted) return;
+      void this._playPendingAudioEffects(state.pendingAudioEffects);
+    });
   }
 
   // =========================================================================
@@ -139,10 +155,11 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
-   * 获取当前 listener 数量（仅用于测试/调试）
+   * 获取当前 外部 listener 数量（仅用于测试/调试）。
+   * 排除 constructor 内部的 pendingAudioEffects reactive 订阅（固定 1 个）。
    */
   getListenerCount(): number {
-    return this.store.getListenerCount();
+    return this.store.getListenerCount() - 1;
   }
 
   // =========================================================================
@@ -337,6 +354,66 @@ export class GameFacade implements IGameFacade {
       // Caller uses fire-and-forget `void` — catch here to prevent unhandled rejection
       facadeLog.error('resumeAfterRejoin failed', e);
     }
+  }
+
+  // =========================================================================
+  // Reactive Audio Effects (Host-only)
+  // =========================================================================
+
+  /**
+   * Host 响应式播放 pendingAudioEffects 队列。
+   *
+   * 触发源：store subscription 检测到 state.pendingAudioEffects 非空。
+   * 播放完成后调用 postAudioAck 释放 isAudioPlaying gate + 触发推进。
+   *
+   * 防重入：_isPlayingEffects flag。
+   * 中断：_aborted flag（leaveRoom 时设置）。
+   */
+  private async _playPendingAudioEffects(effects: AudioEffect[]): Promise<void> {
+    if (this._isPlayingEffects) return;
+    this._isPlayingEffects = true;
+
+    try {
+      for (const effect of effects) {
+        if (this._aborted) break;
+        try {
+          if (effect.isEndAudio) {
+            await this.audioService.playRoleEndingAudio(effect.audioKey as RoleId);
+          } else if (effect.audioKey === 'night') {
+            await this.audioService.playNightAudio();
+          } else if (effect.audioKey === 'night_end') {
+            await this.audioService.playNightEndAudio();
+          } else {
+            await this.audioService.playRoleBeginningAudio(effect.audioKey as RoleId);
+          }
+        } catch (e) {
+          // 单个音频失败不阻断队列（与 resumeAfterRejoin 一致）
+          facadeLog.warn('Audio effect playback failed, continuing', {
+            audioKey: effect.audioKey,
+            error: e,
+          });
+        }
+      }
+    } finally {
+      this._isPlayingEffects = false;
+      // 无论成功/失败/中断，都 POST audio-ack 释放 gate
+      if (!this._aborted) {
+        await hostActions.postAudioAck(this.getHostActionsContext());
+      }
+    }
+  }
+
+  // =========================================================================
+  // Progression (Host-only, wolf vote deadline)
+  // =========================================================================
+
+  /**
+   * Host: wolf vote deadline 到期后触发服务端推进。
+   *
+   * 客户端倒计时到期时调用，服务端执行 inline progression。
+   */
+  async postProgression(): Promise<{ success: boolean; reason?: string }> {
+    return hostActions.postProgression(this.getHostActionsContext());
   }
 
   async leaveRoom(): Promise<void> {

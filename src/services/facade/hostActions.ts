@@ -26,6 +26,7 @@ import type { GameStore } from '@/services/engine/store';
 import type { AudioService } from '@/services/infra/AudioService';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { facadeLog } from '@/utils/logger';
+import { secureRng } from '@/utils/random';
 
 /**
  * Host Actions 依赖的上下文接口
@@ -50,24 +51,44 @@ interface GameControlApiResponse {
 }
 
 /**
- * 调用 Game Control API
+ * 调用 Game Control API（内置客户端重试）
+ *
+ * 服务端乐观锁冲突返回 CONFLICT_RETRY 时，客户端透明重试（最多 2 次），
+ * 配合服务端 3 次重试，有效重试上限为 3×3 = 9 次。
  */
 async function callGameControlApi(
   path: string,
   body: Record<string, unknown>,
 ): Promise<GameControlApiResponse> {
-  try {
-    const res = await fetch(`${API_BASE_URL}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    return (await res.json()) as GameControlApiResponse;
-  } catch (e) {
-    const err = e as { message?: string };
-    facadeLog.error('callGameControlApi failed', { path, error: err?.message ?? String(e) });
-    return { success: false, reason: 'NETWORK_ERROR' };
+  const MAX_CLIENT_RETRIES = 2;
+
+  for (let attempt = 0; attempt <= MAX_CLIENT_RETRIES; attempt++) {
+    try {
+      const res = await fetch(`${API_BASE_URL}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const result = (await res.json()) as GameControlApiResponse;
+
+      // 乐观锁冲突 → 客户端透明重试（退避 + 随机抖动）
+      if (result.reason === 'CONFLICT_RETRY' && attempt < MAX_CLIENT_RETRIES) {
+        const delay = 100 * (attempt + 1) + secureRng() * 50;
+        facadeLog.warn('CONFLICT_RETRY, client retrying', { path, attempt: attempt + 1 });
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+
+      return result;
+    } catch (e) {
+      const err = e as { message?: string };
+      facadeLog.error('callGameControlApi failed', { path, error: err?.message ?? String(e) });
+      return { success: false, reason: 'NETWORK_ERROR' };
+    }
   }
+
+  // TypeScript exhaustiveness — 不应到达此处
+  return { success: false, reason: 'CONFLICT_RETRY' };
 }
 
 /**
@@ -96,18 +117,25 @@ export async function markViewedRole(
   ctx: HostActionsContext,
   seat: number,
 ): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('markViewedRole called', { seat });
+  facadeLog.debug('[DIAG] markViewedRole called', { seat, uid: ctx.myUid });
 
   const roomCode = ctx.store.getState()?.roomCode;
   if (!roomCode || !ctx.myUid) {
+    facadeLog.warn('[DIAG] markViewedRole NOT_CONNECTED', { roomCode, uid: ctx.myUid });
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  return callGameControlApi('/api/game/view-role', {
+  const result = await callGameControlApi('/api/game/view-role', {
     roomCode,
     uid: ctx.myUid,
     seat,
   });
+  facadeLog.debug('[DIAG] markViewedRole result', {
+    seat,
+    success: result.success,
+    reason: result.reason,
+  });
+  return result;
 }
 
 /**

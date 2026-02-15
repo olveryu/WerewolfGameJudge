@@ -1783,4 +1783,8 @@ rooms (
 6. **Phase 5**: 消除 HostStateCache — 统一 rejoin 到 DB + 合并入口方法（纯客户端，零服务端改动） ✅
 7. **Phase 6**: 推进/计时迁移服务端 — 服务端内联推进 + pendingAudioEffects 队列 + 客户端 deadline 兜底 ✅
 8. **Phase 7**: 清理冗余 isHost 门控 — 删除 GameFacade 快速拦截 + HostActionsContext.isHost + telemetry（纯清理，零行为变化） ✅
-9. **集成测试 + 文档**: E2E 全量回归 + 文档更新
+9. **Phase 6 补完**: 客户端 reactive 消费 pendingAudioEffects + postProgression ✅
+   - Fix 1: GameFacade constructor 添加 store subscription，检测 `pendingAudioEffects` 非空 → 依次播放 → `postAudioAck`
+   - Fix 2: wolf vote deadline 到期后 Host 调用 `postProgression`（一次性 guard 防重入）
+   - Fix 3: `start.ts` API 从 handler sideEffects 提取 PLAY_AUDIO → 写入 `pendingAudioEffects` + `isAudioPlaying` state
+10. **集成测试 + 文档**: E2E 全量回归 + 文档更新

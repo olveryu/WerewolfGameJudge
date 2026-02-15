@@ -237,7 +237,11 @@ export function useInteractionDispatcher({
               return;
             case 'roleCard':
               {
-                roomScreenLog.debug('[dispatchInteraction] Show roleCard', { effectiveSeat });
+                roomScreenLog.debug('[DIAG][dispatchInteraction] Show roleCard', {
+                  effectiveSeat,
+                  status: gameState?.status,
+                  myRole,
+                });
                 const effectivePlayer =
                   effectiveSeat === null ? null : gameState?.players.get(effectiveSeat);
                 const needAnimation = !(effectivePlayer?.hasViewedRole ?? false);
@@ -349,6 +353,7 @@ export function useInteractionDispatcher({
       effectiveSeat,
       pendingHunterStatusViewed,
       gameState,
+      myRole,
       setPendingRevealDialog,
       setRoleCardVisible,
       setShouldPlayRevealAnimation,

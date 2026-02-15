@@ -19,9 +19,21 @@ import type { GameTemplate } from '@/models/Template';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
+import { showAlert } from '@/utils/alert';
 
 import type { BgmControlState } from './useBgmControl';
 import type { DebugModeState } from './useDebugMode';
+
+/**
+ * 公用的 API 失败通知 — 所有重试耗尽后向用户显示提示
+ *
+ * ✅ 允许：用于 useHostGameActions 内用户发起的操作
+ * ❌ 禁止：用于后台/系统操作（audio-ack / progression 等）
+ */
+function notifyIfFailed(result: { success: boolean; reason?: string }, actionLabel: string): void {
+  if (result.success) return;
+  showAlert(`${actionLabel}失败`, '请稍后重试');
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -42,6 +54,8 @@ export interface HostGameActionsState {
   submitWolfVote: (target: number) => Promise<void>;
   submitRevealAck: (role: RevealKind) => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
+  /** Host: wolf vote deadline 到期后触发服务端推进 */
+  postProgression: () => Promise<void>;
 
   // Game state queries
   getLastNightInfo: () => string;
@@ -79,7 +93,8 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
   // Assign roles (host only)
   const assignRoles = useCallback(async (): Promise<void> => {
     if (!facade.isHostPlayer()) return;
-    await facade.assignRoles();
+    const result = await facade.assignRoles();
+    notifyIfFailed(result, '分配角色');
   }, [facade]);
 
   // Start game (host only) - uses startNight + BGM
@@ -88,7 +103,8 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
 
     // Start BGM if enabled
     bgm.startBgmIfEnabled();
-    await facade.startNight();
+    const result = await facade.startNight();
+    notifyIfFailed(result, '开始游戏');
   }, [facade, bgm]);
 
   // Restart game (host only)
@@ -98,7 +114,8 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
     bgm.stopBgm();
     // Clear controlled seat on restart
     debug.setControlledSeat(null);
-    await facade.restartGame();
+    const result = await facade.restartGame();
+    notifyIfFailed(result, '重新开始');
   }, [facade, bgm, debug]);
 
   // Set role reveal animation (host only)
@@ -131,7 +148,8 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
   const viewedRole = useCallback(async (): Promise<void> => {
     const seat = debug.controlledSeat ?? mySeatNumber;
     if (seat === null) return;
-    await facade.markViewedRole(seat);
+    const result = await facade.markViewedRole(seat);
+    notifyIfFailed(result, '查看身份');
   }, [debug.controlledSeat, mySeatNumber, facade]);
 
   // Submit action (uses effectiveSeat/effectiveRole for debug bot control)
@@ -140,7 +158,8 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
       const seat = debug.effectiveSeat;
       const role = debug.effectiveRole;
       if (seat === null || !role) return;
-      await facade.submitAction(seat, role, target, extra);
+      const result = await facade.submitAction(seat, role, target, extra);
+      notifyIfFailed(result, '提交行动');
     },
     [debug.effectiveSeat, debug.effectiveRole, facade],
   );
@@ -150,7 +169,8 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
     async (target: number): Promise<void> => {
       const seat = debug.effectiveSeat;
       if (seat === null) return;
-      await facade.submitWolfVote(seat, target);
+      const result = await facade.submitWolfVote(seat, target);
+      notifyIfFailed(result, '狼人投票');
     },
     [debug.effectiveSeat, facade],
   );
@@ -171,6 +191,12 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
     },
     [facade],
   );
+
+  // Post progression (host only) — wolf vote deadline 到期时由客户端触发
+  const postProgression = useCallback(async (): Promise<void> => {
+    if (!facade.isHostPlayer()) return;
+    await facade.postProgression();
+  }, [facade]);
 
   // =========================================================================
   // Game state queries
@@ -206,6 +232,7 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
     submitWolfVote,
     submitRevealAck,
     sendWolfRobotHunterStatusViewed,
+    postProgression,
     getLastNightInfo,
     hasWolfVoted,
   };

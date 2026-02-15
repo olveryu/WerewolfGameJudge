@@ -107,6 +107,8 @@ export interface UseGameRoomResult {
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   getLastNightInfo: () => string;
   hasWolfVoted: (seatNumber: number) => boolean;
+  /** Host: wolf vote deadline 到期后触发服务端推进 */
+  postProgression: () => Promise<void>;
 
   // Rejoin recovery
   resumeAfterRejoin: () => void;
@@ -303,6 +305,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     sendWolfRobotHunterStatusViewed: actions.sendWolfRobotHunterStatusViewed,
     getLastNightInfo: actions.getLastNightInfo,
     hasWolfVoted: actions.hasWolfVoted,
+    postProgression: actions.postProgression,
     // Rejoin recovery
     resumeAfterRejoin,
     needsContinueOverlay: showContinueOverlay,

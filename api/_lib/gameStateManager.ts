@@ -49,79 +49,90 @@ export async function processGameAction(
   inlineProgression?: InlineProgressionOptions,
 ): Promise<GameActionResult> {
   const supabase = getServiceClient();
+  const MAX_RETRIES = 3;
 
-  // Step 1: 读 DB
-  const { data, error: readError } = await supabase
-    .from('rooms')
-    .select('game_state, state_revision')
-    .eq('code', roomCode)
-    .single();
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    // Step 1: 读 DB
+    const { data, error: readError } = await supabase
+      .from('rooms')
+      .select('game_state, state_revision')
+      .eq('code', roomCode)
+      .single();
 
-  if (readError || !data?.game_state) {
-    return { success: false, reason: 'ROOM_NOT_FOUND' };
-  }
+    if (readError || !data?.game_state) {
+      return { success: false, reason: 'ROOM_NOT_FOUND' };
+    }
 
-  const currentState = data.game_state as BroadcastGameState;
-  const currentRevision = (data.state_revision as number) ?? 0;
+    const currentState = data.game_state as BroadcastGameState;
+    const currentRevision = (data.state_revision as number) ?? 0;
 
-  // Step 2: 调用 game-engine 纯函数
-  const result = process(currentState, currentRevision);
+    // Step 2: 调用 game-engine 纯函数
+    const result = process(currentState, currentRevision);
 
-  if (!result.success) {
-    return { success: false, reason: result.reason };
-  }
+    if (!result.success) {
+      // Handler 逻辑失败不重试
+      return { success: false, reason: result.reason };
+    }
 
-  // Step 3: apply actions → 新 state
-  let newState = currentState;
-  for (const action of result.actions) {
-    newState = gameReducer(newState, action);
-  }
-
-  // Step 3.5: 内联推进（可选）
-  // action 处理后，同一请求内评估并执行推进链（advance / endNight）
-  if (inlineProgression?.enabled) {
-    const progressionResult = runInlineProgression(
-      newState,
-      inlineProgression.hostUid,
-      inlineProgression.nowMs,
-    );
-    // Apply progression actions to state
-    for (const action of progressionResult.actions) {
+    // Step 3: apply actions → 新 state
+    let newState = currentState;
+    for (const action of result.actions) {
       newState = gameReducer(newState, action);
     }
+
+    // Step 3.5: 内联推进（可选）
+    if (inlineProgression?.enabled) {
+      const progressionResult = runInlineProgression(
+        newState,
+        inlineProgression.hostUid,
+        inlineProgression.nowMs,
+      );
+      for (const action of progressionResult.actions) {
+        newState = gameReducer(newState, action);
+      }
+    }
+
+    newState = normalizeState(newState);
+
+    // Step 4: 乐观锁写回 DB
+    const { data: writeData, error: writeError } = await supabase
+      .from('rooms')
+      .update({
+        game_state: newState,
+        state_revision: currentRevision + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('code', roomCode)
+      .eq('state_revision', currentRevision) // 乐观锁
+      .select('state_revision')
+      .single();
+
+    if (writeError || !writeData) {
+      // 乐观锁冲突 → 重试（重新读 DB + 重新计算）
+      if (attempt < MAX_RETRIES) {
+        // 短暂退避，减少再次冲突概率
+        await new Promise((r) => setTimeout(r, 50 * attempt));
+        continue;
+      }
+      return { success: false, reason: 'CONFLICT_RETRY' };
+    }
+
+    // Step 5: 广播 STATE_UPDATE
+    const channel = supabase.channel(`room:${roomCode}`);
+    await channel.send({
+      type: 'broadcast',
+      event: 'host',
+      payload: {
+        type: 'STATE_UPDATE',
+        state: newState,
+        revision: currentRevision + 1,
+      },
+    });
+    await supabase.removeChannel(channel);
+
+    return { success: true, state: newState, sideEffects: result.sideEffects };
   }
 
-  newState = normalizeState(newState);
-
-  // Step 4: 乐观锁写回 DB
-  const { data: writeData, error: writeError } = await supabase
-    .from('rooms')
-    .update({
-      game_state: newState,
-      state_revision: currentRevision + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('code', roomCode)
-    .eq('state_revision', currentRevision) // 乐观锁
-    .select('state_revision')
-    .single();
-
-  if (writeError || !writeData) {
-    return { success: false, reason: 'CONFLICT_RETRY' };
-  }
-
-  // Step 5: 广播 STATE_UPDATE
-  const channel = supabase.channel(`room:${roomCode}`);
-  await channel.send({
-    type: 'broadcast',
-    event: 'host',
-    payload: {
-      type: 'STATE_UPDATE',
-      state: newState,
-      revision: currentRevision + 1,
-    },
-  });
-  await supabase.removeChannel(channel);
-
-  return { success: true, state: newState, sideEffects: result.sideEffects };
+  // TypeScript exhaustiveness — 不应到达此处
+  return { success: false, reason: 'CONFLICT_RETRY' };
 }

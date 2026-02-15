@@ -34,6 +34,7 @@ function createFakeFacade(): IGameFacade {
     submitRevealAck: async () => ({ success: true }),
     endNight: async () => ({ success: true }),
     setAudioPlaying: async () => ({ success: true }),
+    postProgression: async () => ({ success: true }),
     fetchStateFromDB: async () => true,
     sendWolfRobotHunterStatusViewed: async () => ({ success: true }),
     addConnectionStatusListener: () => () => {},

@@ -203,6 +203,11 @@ export interface IGameFacade {
    */
   setAudioPlaying(isPlaying: boolean): Promise<{ success: boolean; reason?: string }>;
 
+  /**
+   * Host: wolf vote deadline 到期后触发服务端推进
+   */
+  postProgression(): Promise<{ success: boolean; reason?: string }>;
+
   // === Sync ===
   /**
    * 从 DB 直接读取最新状态（auto-heal / reconnect fallback）

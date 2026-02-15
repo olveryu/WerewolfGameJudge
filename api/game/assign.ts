@@ -38,9 +38,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       myUid: hostUid,
       mySeat: findSeatByUid(state, hostUid),
     };
-    return handleAssignRoles({ type: 'ASSIGN_ROLES' }, handlerCtx);
+    const handlerResult = handleAssignRoles({ type: 'ASSIGN_ROLES' }, handlerCtx);
+    return handlerResult;
   });
-
   return res.status(result.success ? 200 : 400).json(result);
 }
 

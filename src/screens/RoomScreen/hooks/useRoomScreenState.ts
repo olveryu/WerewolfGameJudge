@@ -140,6 +140,8 @@ export function useRoomScreenState(
     setControlledSeat,
     effectiveSeat,
     effectiveRole,
+    // Progression
+    postProgression,
     // Rejoin recovery
     resumeAfterRejoin,
     needsContinueOverlay,
@@ -176,17 +178,38 @@ export function useRoomScreenState(
   // ── Wolf vote countdown tick ─────────────────────────────────────────────
   const [countdownTick, setCountdownTick] = useState(0);
   const wolfVoteDeadline = gameState?.wolfVoteDeadline;
+  const postProgressionFiredRef = useRef(false);
+
+  // Reset fire-guard when deadline changes (new deadline = new countdown)
+  useEffect(() => {
+    postProgressionFiredRef.current = false;
+  }, [wolfVoteDeadline]);
 
   useEffect(() => {
-    if (wolfVoteDeadline == null || Date.now() >= wolfVoteDeadline) return;
+    if (wolfVoteDeadline == null) return;
+
+    // Already expired on mount — fire postProgression immediately (once)
+    if (Date.now() >= wolfVoteDeadline) {
+      if (isHost && !postProgressionFiredRef.current) {
+        postProgressionFiredRef.current = true;
+        void postProgression();
+      }
+      return;
+    }
+
     const interval = setInterval(() => {
       if (Date.now() >= wolfVoteDeadline) {
         clearInterval(interval);
+        // Host triggers server-side progression when countdown expires
+        if (isHost && !postProgressionFiredRef.current) {
+          postProgressionFiredRef.current = true;
+          void postProgression();
+        }
       }
       setCountdownTick((t) => t + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [wolfVoteDeadline]);
+  }, [wolfVoteDeadline, isHost, postProgression]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Simple hooks
