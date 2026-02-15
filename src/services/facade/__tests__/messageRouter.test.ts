@@ -56,7 +56,10 @@ describe('handleStateUpdate', () => {
   });
 
   it('should warn on dual host detection', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { facadeLog } = jest.requireMock('../../../utils/logger') as {
+      facadeLog: { warn: jest.Mock };
+    };
+    facadeLog.warn.mockClear();
     const ctx = makeCtx({
       store: {
         getState: jest.fn().mockReturnValue(makeMockState({ hostUid: 'host-A' })),
@@ -70,6 +73,13 @@ describe('handleStateUpdate', () => {
 
     // Should still apply snapshot despite host mismatch
     expect(ctx.store.applySnapshot).toHaveBeenCalledWith(state, 2);
-    warnSpy.mockRestore();
+    // Should warn via facadeLog
+    expect(facadeLog.warn).toHaveBeenCalledWith(
+      expect.stringContaining('DUAL_HOST_DETECTED'),
+      expect.objectContaining({
+        knownHostUid: 'host-A',
+        receivedHostUid: 'host-B',
+      }),
+    );
   });
 });

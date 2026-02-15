@@ -119,6 +119,20 @@ describe('runInlineProgression', () => {
       const result = runInlineProgression(state, 'host', Date.now());
       expect(result.stepsAdvanced).toBe(0);
     });
+
+    it('wolfKill countdown 已过期 → should advance', () => {
+      const now = Date.now();
+      const state = make2PlayerState({
+        currentStepId: 'wolfKill',
+        currentStepIndex: 0,
+        currentNightResults: {
+          wolfVotesBySeat: { '0': 1 },
+        },
+        wolfVoteDeadline: now - 1000, // 1s in the past
+      });
+      const result = runInlineProgression(state, 'host', now);
+      expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
+    });
   });
 
   describe('2-player template (wolf + villager)', () => {

@@ -384,4 +384,87 @@ describe('useRoomSeatDialogs', () => {
       expect(mockNavigate).toHaveBeenCalledWith('Home');
     });
   });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Double-click protection (isSeatSubmitting)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('double-click protection', () => {
+    it('isSeatSubmitting should start as false', () => {
+      const { result } = renderHook(() => useRoomSeatDialogs(createHookParams()));
+      expect(result.current.isSeatSubmitting).toBe(false);
+    });
+
+    it('handleConfirmSeat should reject second call while first is in-flight', async () => {
+      let resolveTakeSeat!: (v: boolean) => void;
+      mockTakeSeat.mockImplementation(
+        () => new Promise<boolean>((resolve) => (resolveTakeSeat = resolve)),
+      );
+
+      const { result, rerender } = renderHook(
+        (props: Parameters<typeof useRoomSeatDialogs>[0]) => useRoomSeatDialogs(props),
+        { initialProps: createHookParams({ pendingSeat: 2 }) },
+      );
+
+      // First call
+      let firstPromise: Promise<void>;
+      act(() => {
+        firstPromise = result.current.handleConfirmSeat();
+      });
+      expect(mockTakeSeat).toHaveBeenCalledTimes(1);
+      expect(result.current.isSeatSubmitting).toBe(true);
+
+      // Re-render with same pendingSeat (simulates React re-render)
+      rerender(createHookParams({ pendingSeat: 2 }));
+
+      // Second call while first in-flight — should be rejected by isSeatSubmitting guard
+      await act(async () => {
+        await result.current.handleConfirmSeat();
+      });
+      expect(mockTakeSeat).toHaveBeenCalledTimes(1); // still 1
+
+      // Resolve first
+      await act(async () => {
+        resolveTakeSeat(true);
+        await firstPromise!;
+      });
+      expect(result.current.isSeatSubmitting).toBe(false);
+    });
+
+    it('handleConfirmLeave should reject second call while first is in-flight', async () => {
+      let resolveLeaveSeat!: () => void;
+      mockLeaveSeat.mockImplementation(
+        () => new Promise<void>((resolve) => (resolveLeaveSeat = resolve)),
+      );
+
+      const { result, rerender } = renderHook(
+        (props: Parameters<typeof useRoomSeatDialogs>[0]) => useRoomSeatDialogs(props),
+        { initialProps: createHookParams({ pendingSeat: 3 }) },
+      );
+
+      // First call
+      let firstPromise: Promise<void>;
+      act(() => {
+        firstPromise = result.current.handleConfirmLeave();
+      });
+      expect(mockLeaveSeat).toHaveBeenCalledTimes(1);
+      expect(result.current.isSeatSubmitting).toBe(true);
+
+      // Re-render with same pendingSeat
+      rerender(createHookParams({ pendingSeat: 3 }));
+
+      // Second call rejected
+      await act(async () => {
+        await result.current.handleConfirmLeave();
+      });
+      expect(mockLeaveSeat).toHaveBeenCalledTimes(1); // still 1
+
+      // Resolve first
+      await act(async () => {
+        resolveLeaveSeat();
+        await firstPromise!;
+      });
+      expect(result.current.isSeatSubmitting).toBe(false);
+    });
+  });
 });

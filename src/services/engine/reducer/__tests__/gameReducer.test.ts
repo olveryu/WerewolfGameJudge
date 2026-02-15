@@ -1068,4 +1068,408 @@ describe('gameReducer', () => {
       expect(newState.roleRevealRandomNonce).not.toBe('oldnonce');
     });
   });
+
+  // ===========================================================================
+  // Phase 2 migration — 新增 action type 覆盖
+  // ===========================================================================
+
+  describe('SET_WITCH_CONTEXT', () => {
+    it('should set witchContext from payload', () => {
+      const state = createMinimalState();
+      const action = {
+        type: 'SET_WITCH_CONTEXT' as const,
+        payload: { killedSeat: 2, canSave: true, canPoison: false },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.witchContext).toEqual({ killedSeat: 2, canSave: true, canPoison: false });
+    });
+
+    it('should overwrite previous witchContext', () => {
+      const state = createMinimalState({
+        witchContext: { killedSeat: 0, canSave: false, canPoison: true },
+      });
+      const action = {
+        type: 'SET_WITCH_CONTEXT' as const,
+        payload: { killedSeat: 3, canSave: true, canPoison: true },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.witchContext).toEqual({ killedSeat: 3, canSave: true, canPoison: true });
+    });
+  });
+
+  describe('SET_CONFIRM_STATUS', () => {
+    it('should set confirmStatus from payload', () => {
+      const state = createMinimalState();
+      const action = {
+        type: 'SET_CONFIRM_STATUS' as const,
+        payload: { role: 'hunter' as const, canShoot: true },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.confirmStatus).toEqual({ role: 'hunter', canShoot: true });
+    });
+
+    it('should support darkWolfKing role', () => {
+      const state = createMinimalState();
+      const action = {
+        type: 'SET_CONFIRM_STATUS' as const,
+        payload: { role: 'darkWolfKing' as const, canShoot: false },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.confirmStatus).toEqual({ role: 'darkWolfKing', canShoot: false });
+    });
+  });
+
+  describe('SET_WOLF_KILL_DISABLED', () => {
+    it('should set wolfKillDisabled and nightmareBlockedSeat', () => {
+      const state = createMinimalState();
+      const action = {
+        type: 'SET_WOLF_KILL_DISABLED' as const,
+        payload: { disabled: true, blockedSeat: 3 },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.wolfKillDisabled).toBe(true);
+      expect(newState.nightmareBlockedSeat).toBe(3);
+    });
+
+    it('should clear nightmareBlockedSeat when blockedSeat is undefined', () => {
+      const state = createMinimalState({
+        wolfKillDisabled: true,
+        nightmareBlockedSeat: 3,
+      });
+      const action = {
+        type: 'SET_WOLF_KILL_DISABLED' as const,
+        payload: { disabled: false },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.wolfKillDisabled).toBe(false);
+      expect(newState.nightmareBlockedSeat).toBeUndefined();
+    });
+  });
+
+  describe('SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED', () => {
+    it('should set wolfRobotHunterStatusViewed to true', () => {
+      const state = createMinimalState();
+      const action = {
+        type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED' as const,
+        payload: { viewed: true },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.wolfRobotHunterStatusViewed).toBe(true);
+    });
+
+    it('should set wolfRobotHunterStatusViewed to false', () => {
+      const state = createMinimalState({ wolfRobotHunterStatusViewed: true });
+      const action = {
+        type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED' as const,
+        payload: { viewed: false },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.wolfRobotHunterStatusViewed).toBe(false);
+    });
+  });
+
+  describe('SET_UI_HINT', () => {
+    it('should set ui.currentActorHint', () => {
+      const state = createMinimalState();
+      const hint = {
+        kind: 'blocked_by_nightmare' as const,
+        targetRoleIds: ['wolf' as const],
+        message: '梦魇已阻止刀人',
+      };
+      const action = {
+        type: 'SET_UI_HINT' as const,
+        payload: { currentActorHint: hint },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.ui?.currentActorHint).toEqual(hint);
+    });
+
+    it('should clear ui.currentActorHint when set to null', () => {
+      const state = createMinimalState({
+        ui: {
+          currentActorHint: {
+            kind: 'wolf_kill_disabled',
+            targetRoleIds: ['wolf'],
+            message: 'test',
+          },
+        },
+      });
+      const action = {
+        type: 'SET_UI_HINT' as const,
+        payload: { currentActorHint: null },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.ui?.currentActorHint).toBeNull();
+    });
+  });
+
+  describe('ADD_REVEAL_ACK', () => {
+    it('should add ackKey to pendingRevealAcks', () => {
+      const state = createMinimalState();
+      const action = {
+        type: 'ADD_REVEAL_ACK' as const,
+        payload: { ackKey: 'seer:host' },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.pendingRevealAcks).toEqual(['seer:host']);
+    });
+
+    it('should append to existing pendingRevealAcks', () => {
+      const state = createMinimalState({ pendingRevealAcks: ['seer:host'] });
+      const action = {
+        type: 'ADD_REVEAL_ACK' as const,
+        payload: { ackKey: 'witch:host' },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.pendingRevealAcks).toEqual(['seer:host', 'witch:host']);
+    });
+  });
+
+  describe('CLEAR_REVEAL_ACKS', () => {
+    it('should clear pendingRevealAcks', () => {
+      const state = createMinimalState({ pendingRevealAcks: ['seer:host', 'witch:host'] });
+      const action = { type: 'CLEAR_REVEAL_ACKS' as const };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.pendingRevealAcks).toBeUndefined();
+    });
+  });
+
+  describe('SET_WOLF_VOTE_DEADLINE', () => {
+    it('should set wolfVoteDeadline', () => {
+      const state = createMinimalState();
+      const deadline = Date.now() + 30000;
+      const action = {
+        type: 'SET_WOLF_VOTE_DEADLINE' as const,
+        payload: { deadline },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.wolfVoteDeadline).toBe(deadline);
+    });
+  });
+
+  describe('CLEAR_WOLF_VOTE_DEADLINE', () => {
+    it('should clear wolfVoteDeadline', () => {
+      const state = createMinimalState({ wolfVoteDeadline: Date.now() + 30000 });
+      const action = { type: 'CLEAR_WOLF_VOTE_DEADLINE' as const };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.wolfVoteDeadline).toBeUndefined();
+    });
+  });
+
+  describe('SET_PENDING_AUDIO_EFFECTS', () => {
+    it('should set pendingAudioEffects', () => {
+      const state = createMinimalState();
+      const effects = [{ audioKey: 'wolf', isEndAudio: false }];
+      const action = {
+        type: 'SET_PENDING_AUDIO_EFFECTS' as const,
+        payload: { effects },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.pendingAudioEffects).toEqual(effects);
+    });
+  });
+
+  describe('CLEAR_PENDING_AUDIO_EFFECTS', () => {
+    it('should clear pendingAudioEffects', () => {
+      const state = createMinimalState({
+        pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+      });
+      const action = { type: 'CLEAR_PENDING_AUDIO_EFFECTS' as const };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.pendingAudioEffects).toBeUndefined();
+    });
+  });
+
+  describe('SET_CURRENT_STEP', () => {
+    it('should be a no-op (reserved)', () => {
+      const state = createMinimalState();
+      const action = {
+        type: 'SET_CURRENT_STEP' as const,
+        payload: { schemaId: 'wolfKill' as any },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState).toBe(state); // identity — no mutation
+    });
+  });
+
+  describe('UPDATE_TEMPLATE', () => {
+    it('should update templateRoles and adjust players map', () => {
+      const state = createMinimalState({
+        templateRoles: ['wolf', 'seer', 'villager'],
+        players: {
+          0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
+          1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'seer' },
+          2: null,
+        },
+      });
+      const action = {
+        type: 'UPDATE_TEMPLATE' as const,
+        payload: { templateRoles: ['wolf', 'wolf', 'seer', 'villager'] as any },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.templateRoles).toEqual(['wolf', 'wolf', 'seer', 'villager']);
+      // Existing players preserved but role reset
+      expect(newState.players[0]).toMatchObject({ uid: 'p0', role: null, hasViewedRole: false });
+      expect(newState.players[1]).toMatchObject({ uid: 'p1', role: null, hasViewedRole: false });
+      // New seat = null
+      expect(newState.players[3]).toBeNull();
+      // Status → unseated (seat 2 and 3 are null)
+      expect(newState.status).toBe('unseated');
+    });
+
+    it('should set status to seated when all seats have players', () => {
+      const state = createMinimalState({
+        templateRoles: ['wolf', 'seer'],
+        players: {
+          0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
+          1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'seer' },
+        },
+      });
+      const action = {
+        type: 'UPDATE_TEMPLATE' as const,
+        payload: { templateRoles: ['wolf', 'seer'] as any },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.status).toBe('seated');
+    });
+  });
+
+  describe('FILL_WITH_BOTS', () => {
+    it('should merge bots into players and set debugMode', () => {
+      const state = createMinimalState({
+        players: {
+          0: { uid: 'p0', seatNumber: 0, hasViewedRole: false, role: null },
+          1: null,
+          2: null,
+        },
+      });
+      const bots = {
+        1: {
+          uid: 'bot-1',
+          seatNumber: 1,
+          hasViewedRole: false,
+          role: null,
+          isBot: true,
+        } as any,
+        2: {
+          uid: 'bot-2',
+          seatNumber: 2,
+          hasViewedRole: false,
+          role: null,
+          isBot: true,
+        } as any,
+      };
+      const action = {
+        type: 'FILL_WITH_BOTS' as const,
+        payload: { bots },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.players[1]).toMatchObject({ uid: 'bot-1', isBot: true });
+      expect(newState.players[2]).toMatchObject({ uid: 'bot-2', isBot: true });
+      // Original player untouched
+      expect(newState.players[0]).toMatchObject({ uid: 'p0' });
+      expect(newState.status).toBe('seated');
+      expect(newState.debugMode).toEqual({ botsEnabled: true });
+    });
+  });
+
+  describe('MARK_ALL_BOTS_VIEWED', () => {
+    it('should mark only bot players as hasViewedRole', () => {
+      const state = createMinimalState({
+        status: 'assigned',
+        players: {
+          0: { uid: 'p0', seatNumber: 0, hasViewedRole: false, role: 'wolf' } as any,
+          1: {
+            uid: 'bot-1',
+            seatNumber: 1,
+            hasViewedRole: false,
+            role: 'seer',
+            isBot: true,
+          } as any,
+          2: {
+            uid: 'bot-2',
+            seatNumber: 2,
+            hasViewedRole: false,
+            role: 'villager',
+            isBot: true,
+          } as any,
+        },
+      });
+      const action = { type: 'MARK_ALL_BOTS_VIEWED' as const };
+
+      const newState = gameReducer(state, action);
+
+      // Bots marked as viewed
+      expect(newState.players[1]?.hasViewedRole).toBe(true);
+      expect(newState.players[2]?.hasViewedRole).toBe(true);
+      // Human player unchanged
+      expect(newState.players[0]?.hasViewedRole).toBe(false);
+      // Not all viewed (human hasn't) → status stays assigned
+      expect(newState.status).toBe('assigned');
+    });
+
+    it('should transition to ready when all players (humans + bots) have viewed', () => {
+      const state = createMinimalState({
+        status: 'assigned',
+        players: {
+          0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' } as any,
+          1: {
+            uid: 'bot-1',
+            seatNumber: 1,
+            hasViewedRole: false,
+            role: 'seer',
+            isBot: true,
+          } as any,
+        },
+      });
+      const action = { type: 'MARK_ALL_BOTS_VIEWED' as const };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.players[1]?.hasViewedRole).toBe(true);
+      expect(newState.status).toBe('ready');
+    });
+  });
 });

@@ -38,8 +38,6 @@ describe('restartGame Contract (HTTP API)', () => {
   let facade: GameFacade;
   let mockBroadcastService: {
     joinRoom: jest.Mock;
-    broadcastAsHost: jest.Mock;
-    sendToHost: jest.Mock;
     leaveRoom: jest.Mock;
     markAsLive: jest.Mock;
   };
@@ -56,8 +54,6 @@ describe('restartGame Contract (HTTP API)', () => {
   beforeEach(async () => {
     mockBroadcastService = {
       joinRoom: jest.fn().mockResolvedValue(undefined),
-      broadcastAsHost: jest.fn().mockResolvedValue(undefined),
-      sendToHost: jest.fn().mockResolvedValue(undefined),
       leaveRoom: jest.fn().mockResolvedValue(undefined),
       markAsLive: jest.fn(),
     };

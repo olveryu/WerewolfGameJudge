@@ -277,7 +277,7 @@ describe('GameFacade', () => {
 
       await facade.takeSeat(1, 'Player One');
 
-      // mySeat should still be null (no optimistic update — wait for server broadcast)
+      // mySeat should still be null (response has no state/revision → no optimistic apply)
       expect(facade.getMySeatNumber()).toBeNull();
     });
   });

@@ -303,4 +303,182 @@ describe('useRoomHostDialogs', () => {
       expect(mockNavigate).toHaveBeenCalledWith('Config', { existingRoomNumber: '5678' });
     });
   });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Double-click protection (submittingRef + isHostActionSubmitting)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('double-click protection', () => {
+    it('isHostActionSubmitting should start as false', () => {
+      const gameState = createMockGameState(8);
+
+      const { result } = renderHook(() =>
+        useRoomHostDialogs({
+          gameState,
+          assignRoles: jest.fn(),
+          startGame: jest.fn(),
+          restartGame: jest.fn(),
+          getLastNightInfo: jest.fn(),
+          setIsStartingGame: jest.fn(),
+          navigation: mockNavigation,
+          roomNumber: '1234',
+        }),
+      );
+
+      expect(result.current.isHostActionSubmitting).toBe(false);
+    });
+
+    it('showPrepareToFlipDialog confirm should call assignRoles once and reject second press', async () => {
+      const gameState = createMockGameState(4);
+      let resolveAssign!: () => void;
+      const mockAssignRoles = jest.fn(
+        () => new Promise<void>((resolve) => (resolveAssign = resolve)),
+      );
+
+      const { result } = renderHook(() =>
+        useRoomHostDialogs({
+          gameState,
+          assignRoles: mockAssignRoles,
+          startGame: jest.fn(),
+          restartGame: jest.fn(),
+          getLastNightInfo: jest.fn(),
+          setIsStartingGame: jest.fn(),
+          navigation: mockNavigation,
+          roomNumber: '1234',
+        }),
+      );
+
+      // Trigger the dialog
+      act(() => {
+        result.current.showPrepareToFlipDialog();
+      });
+
+      // Get the confirm button callback
+      const alertCall = mockShowAlert.mock.calls[0];
+      const buttons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
+      const confirmBtn = buttons.find((b) => b.text === '确定');
+      expect(confirmBtn).toBeDefined();
+
+      // First press: should call assignRoles
+      act(() => {
+        confirmBtn?.onPress?.();
+      });
+      expect(mockAssignRoles).toHaveBeenCalledTimes(1);
+      expect(result.current.isHostActionSubmitting).toBe(true);
+
+      // Second press while first still in-flight: should be rejected
+      act(() => {
+        confirmBtn?.onPress?.();
+      });
+      expect(mockAssignRoles).toHaveBeenCalledTimes(1); // still 1
+
+      // Resolve the first call
+      await act(async () => {
+        resolveAssign();
+      });
+      expect(result.current.isHostActionSubmitting).toBe(false);
+    });
+
+    it('showRestartDialog confirm should call restartGame once and reject double press', async () => {
+      const gameState = createMockGameState(4);
+      let resolveRestart!: () => void;
+      const mockRestartGame = jest.fn(
+        () => new Promise<void>((resolve) => (resolveRestart = resolve)),
+      );
+
+      const { result } = renderHook(() =>
+        useRoomHostDialogs({
+          gameState,
+          assignRoles: jest.fn(),
+          startGame: jest.fn(),
+          restartGame: mockRestartGame,
+          getLastNightInfo: jest.fn(),
+          setIsStartingGame: jest.fn(),
+          navigation: mockNavigation,
+          roomNumber: '1234',
+        }),
+      );
+
+      act(() => {
+        result.current.showRestartDialog();
+      });
+
+      const alertCall = mockShowAlert.mock.calls[0];
+      const buttons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
+      const confirmBtn = buttons.find((b) => b.text === '确定');
+
+      // First press
+      act(() => {
+        confirmBtn?.onPress?.();
+      });
+      expect(mockRestartGame).toHaveBeenCalledTimes(1);
+      expect(result.current.isHostActionSubmitting).toBe(true);
+
+      // Second press rejected
+      act(() => {
+        confirmBtn?.onPress?.();
+      });
+      expect(mockRestartGame).toHaveBeenCalledTimes(1);
+
+      // Resolve
+      await act(async () => {
+        resolveRestart();
+      });
+      expect(result.current.isHostActionSubmitting).toBe(false);
+    });
+
+    it('handleStartGame should reject double press', async () => {
+      const gameState = createMockGameState(4);
+      let resolveStart!: () => void;
+      const mockStartGame = jest.fn(() => new Promise<void>((resolve) => (resolveStart = resolve)));
+
+      const { result } = renderHook(() =>
+        useRoomHostDialogs({
+          gameState,
+          assignRoles: jest.fn(),
+          startGame: mockStartGame,
+          restartGame: jest.fn(),
+          getLastNightInfo: jest.fn(),
+          setIsStartingGame: jest.fn(),
+          navigation: mockNavigation,
+          roomNumber: '1234',
+        }),
+      );
+
+      // showStartGameDialog calls showAlert, we need to press confirm
+      act(() => {
+        result.current.showStartGameDialog();
+      });
+
+      const alertCall = mockShowAlert.mock.calls[0];
+      const buttons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
+      const confirmBtn = buttons.find((b) => b.text === '确定');
+
+      // First press via dialog confirm
+      await act(async () => {
+        confirmBtn?.onPress?.();
+      });
+      expect(mockStartGame).toHaveBeenCalledTimes(1);
+
+      // Trigger dialog again and press confirm — should be rejected (still in-flight)
+      mockShowAlert.mockClear();
+      act(() => {
+        result.current.showStartGameDialog();
+      });
+      const alertCall2 = mockShowAlert.mock.calls[0];
+      const buttons2 = alertCall2[2] as Array<{ text: string; onPress?: () => void }>;
+      const confirmBtn2 = buttons2.find((b) => b.text === '确定');
+
+      await act(async () => {
+        confirmBtn2?.onPress?.();
+      });
+      expect(mockStartGame).toHaveBeenCalledTimes(1); // still 1
+
+      // Resolve
+      await act(async () => {
+        resolveStart();
+      });
+      expect(result.current.isHostActionSubmitting).toBe(false);
+    });
+  });
 });

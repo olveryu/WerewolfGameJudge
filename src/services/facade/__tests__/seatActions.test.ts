@@ -279,4 +279,51 @@ describe('seatActions (HTTP API)', () => {
       expect(result).toBe(false);
     });
   });
+
+  // ===========================================================================
+  // Optimistic Response (store.applySnapshot)
+  // ===========================================================================
+
+  describe('optimistic response (store.applySnapshot)', () => {
+    it('should call store.applySnapshot when response contains state + revision', async () => {
+      const mockState = { roomCode: 'ABCD', players: {} };
+      global.fetch = mockFetchSuccess({ success: true, state: mockState, revision: 5 });
+      const mockStore = { applySnapshot: jest.fn() };
+      const ctx = createMockCtx({ store: mockStore as any });
+
+      await takeSeatWithAck(ctx, 2, 'Alice');
+
+      expect(mockStore.applySnapshot).toHaveBeenCalledWith(mockState, 5);
+    });
+
+    it('should NOT call applySnapshot when response has no state', async () => {
+      global.fetch = mockFetchSuccess({ success: true });
+      const mockStore = { applySnapshot: jest.fn() };
+      const ctx = createMockCtx({ store: mockStore as any });
+
+      await takeSeatWithAck(ctx, 2, 'Alice');
+
+      expect(mockStore.applySnapshot).not.toHaveBeenCalled();
+    });
+
+    it('should NOT crash when ctx has no store', async () => {
+      global.fetch = mockFetchSuccess({ success: true, state: { roomCode: 'X' }, revision: 1 });
+      const ctx = createMockCtx(); // no store
+
+      const result = await takeSeatWithAck(ctx, 2, 'Alice');
+
+      expect(result).toEqual({ success: true, state: { roomCode: 'X' }, revision: 1 });
+    });
+
+    it('should call store.applySnapshot on leaveSeatWithAck response', async () => {
+      const mockState = { roomCode: 'ABCD', players: {} };
+      global.fetch = mockFetchSuccess({ success: true, state: mockState, revision: 3 });
+      const mockStore = { applySnapshot: jest.fn() };
+      const ctx = createMockCtx({ store: mockStore as any });
+
+      await leaveSeatWithAck(ctx);
+
+      expect(mockStore.applySnapshot).toHaveBeenCalledWith(mockState, 3);
+    });
+  });
 });

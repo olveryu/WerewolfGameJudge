@@ -53,6 +53,7 @@ const createMockFacade = (): IGameFacade =>
     getMySeatNumber: jest.fn(() => null),
     getStateRevision: jest.fn(() => 0),
     initializeAsHost: jest.fn(),
+    joinAsHost: jest.fn(),
     joinAsPlayer: jest.fn(),
     leaveRoom: jest.fn(),
     takeSeat: jest.fn(),
@@ -70,6 +71,16 @@ const createMockFacade = (): IGameFacade =>
     endNight: jest.fn(),
     setAudioPlaying: jest.fn(),
     requestSnapshot: jest.fn(),
+    postProgression: jest.fn(),
+    fetchStateFromDB: jest.fn(),
+    sendWolfRobotHunterStatusViewed: jest.fn(),
+    get wasAudioInterrupted() {
+      return false;
+    },
+    resumeAfterRejoin: jest.fn(),
+    fillWithBots: jest.fn(),
+    markAllBotsViewed: jest.fn(),
+    setRoleRevealAnimation: jest.fn(),
     addConnectionStatusListener: jest.fn(() => jest.fn()),
   }) as unknown as IGameFacade;
 

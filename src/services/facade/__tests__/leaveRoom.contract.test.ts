@@ -12,8 +12,6 @@ jest.mock('../../transport/BroadcastService', () => ({
   BroadcastService: jest.fn().mockImplementation(() => ({
     joinRoom: jest.fn().mockResolvedValue(undefined),
     leaveRoom: jest.fn().mockResolvedValue(undefined),
-    broadcastAsHost: jest.fn(),
-    sendToHost: jest.fn().mockResolvedValue(undefined),
     markAsLive: jest.fn(),
     addStatusListener: jest.fn().mockReturnValue(() => {}),
   })),
