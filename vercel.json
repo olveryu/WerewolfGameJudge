@@ -1,5 +1,5 @@
 {
-  "buildCommand": "",
+  "buildCommand": "cd packages/game-engine && npx tsc -p tsconfig.build.json",
   "outputDirectory": "dist",
   "installCommand": "pnpm install",
   "devCommand": "npx expo start --web --port $PORT",
