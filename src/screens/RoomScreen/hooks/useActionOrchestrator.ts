@@ -77,6 +77,8 @@ interface UseActionOrchestratorResult {
   setPendingRevealDialog: (v: boolean) => void;
   /** Whether wolfRobot hunter status viewed is pending submission. */
   pendingHunterStatusViewed: boolean;
+  /** Whether a night action is currently being submitted (disables seat taps). */
+  isActionSubmitting: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,14 +129,28 @@ export function useActionOrchestrator({
 
   // ─── Submission helpers ──────────────────────────────────────────────────
 
+  const actionSubmittingRef = useRef(false);
+  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
+
+  const markActionSubmitting = useCallback((v: boolean) => {
+    actionSubmittingRef.current = v;
+    setIsActionSubmitting(v);
+  }, []);
+
   const proceedWithAction = useCallback(
     async (targetSeat: number | null, extra?: unknown): Promise<boolean> => {
-      await submitAction(targetSeat, extra);
-      // Submission success/failure UX is handled by the state-driven
-      // `gameState.actionRejected` effect below (covers submitAction + submitWolfVote).
-      return true;
+      if (actionSubmittingRef.current) return false;
+      markActionSubmitting(true);
+      try {
+        await submitAction(targetSeat, extra);
+        // Submission success/failure UX is handled by the state-driven
+        // `gameState.actionRejected` effect below (covers submitAction + submitWolfVote).
+        return true;
+      } finally {
+        markActionSubmitting(false);
+      }
     },
-    [submitAction],
+    [submitAction, markActionSubmitting],
   );
 
   // ── Action extra typing (UI -> Host wire payload) ──
@@ -336,7 +352,13 @@ export function useActionOrchestrator({
             actionDialogs.showWolfVoteDialog(
               `${seat + 1}号狼人`,
               intent.targetSeat,
-              () => void submitWolfVote(intent.targetSeat),
+              () => {
+                if (actionSubmittingRef.current) return;
+                markActionSubmitting(true);
+                void Promise.resolve(submitWolfVote(intent.targetSeat)).finally(() => {
+                  markActionSubmitting(false);
+                });
+              },
               (() => {
                 // Only override for immune targets — normal text comes from schema templates.
                 if (intent.targetSeat < 0) return undefined;
@@ -690,5 +712,6 @@ export function useActionOrchestrator({
     pendingRevealDialog,
     setPendingRevealDialog,
     pendingHunterStatusViewed,
+    isActionSubmitting,
   };
 }

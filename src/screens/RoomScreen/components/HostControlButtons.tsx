@@ -21,6 +21,8 @@ interface HostControlButtonsProps {
   showStartGame: boolean;
   showLastNightInfo: boolean;
   showRestart: boolean;
+  /** Disable all action buttons while a host action is in-flight. */
+  disabled?: boolean;
 
   // Button press handlers (parent provides dialog/logic)
   onSettingsPress: () => void;
@@ -37,6 +39,7 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
   showStartGame,
   showLastNightInfo,
   showRestart,
+  disabled,
   onSettingsPress,
   onPrepareToFlipPress,
   onStartGamePress,
@@ -53,8 +56,9 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
       {/* Host: Restart Game - danger style (leftmost) */}
       {showRestart && (
         <TouchableOpacity
-          style={[styles.actionButton, styles.restartButton]}
+          style={[styles.actionButton, styles.restartButton, disabled && styles.disabledButton]}
           onPress={onRestartPress}
+          disabled={disabled}
         >
           <Text style={styles.buttonText}>重开</Text>
         </TouchableOpacity>
@@ -76,21 +80,33 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
 
       {/* Host: Prepare to Flip */}
       {showPrepareToFlip && (
-        <TouchableOpacity style={styles.actionButton} onPress={onPrepareToFlipPress}>
+        <TouchableOpacity
+          style={[styles.actionButton, disabled && styles.disabledButton]}
+          onPress={onPrepareToFlipPress}
+          disabled={disabled}
+        >
           <Text style={styles.buttonText}>准备看牌</Text>
         </TouchableOpacity>
       )}
 
       {/* Host: Start Game */}
       {showStartGame && (
-        <TouchableOpacity style={styles.actionButton} onPress={onStartGamePress}>
+        <TouchableOpacity
+          style={[styles.actionButton, disabled && styles.disabledButton]}
+          onPress={onStartGamePress}
+          disabled={disabled}
+        >
           <Text style={styles.buttonText}>开始游戏</Text>
         </TouchableOpacity>
       )}
 
       {/* Host: View Last Night Info */}
       {showLastNightInfo && (
-        <TouchableOpacity style={styles.actionButton} onPress={onLastNightInfoPress}>
+        <TouchableOpacity
+          style={[styles.actionButton, disabled && styles.disabledButton]}
+          onPress={onLastNightInfoPress}
+          disabled={disabled}
+        >
           <Text style={styles.buttonText}>查看昨晚信息</Text>
         </TouchableOpacity>
       )}
@@ -112,6 +128,9 @@ function createStyles(colors: ThemeColors) {
     },
     restartButton: {
       backgroundColor: colors.error,
+    },
+    disabledButton: {
+      opacity: 0.5,
     },
     buttonText: {
       color: colors.textInverse,

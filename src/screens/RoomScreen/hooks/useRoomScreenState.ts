@@ -457,6 +457,7 @@ export function useRoomScreenState(
     handleCancelSeat,
     handleConfirmLeave,
     handleLeaveRoom,
+    isSeatSubmitting,
   } = seatDialogs;
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -468,6 +469,7 @@ export function useRoomScreenState(
     pendingRevealDialog,
     setPendingRevealDialog,
     pendingHunterStatusViewed,
+    isActionSubmitting,
   } = useActionOrchestrator({
     gameState,
     roomStatus,
@@ -503,6 +505,7 @@ export function useRoomScreenState(
     showRestartDialog,
     showSpeakOrderDialog,
     handleSettingsPress,
+    isHostActionSubmitting,
   } = useRoomHostDialogs({
     gameState,
     assignRoles,
@@ -669,9 +672,12 @@ export function useRoomScreenState(
 
     // ── Local UI state ──
     isStartingGame,
+    isHostActionSubmitting,
+    isActionSubmitting,
 
     // ── Seat modal ──
     seatModalVisible,
+    isSeatSubmitting,
     pendingSeat,
     modalType,
     handleConfirmSeat,

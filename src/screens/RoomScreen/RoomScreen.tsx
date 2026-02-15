@@ -117,8 +117,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     handleDebugTitleTap,
     // Local UI state
     isStartingGame,
+    isHostActionSubmitting,
+    isActionSubmitting,
     // Seat modal
     seatModalVisible,
+    isSeatSubmitting,
     pendingSeat,
     modalType,
     handleConfirmSeat,
@@ -258,7 +261,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           roomNumber={roomNumber}
           onSeatPress={onSeatTapped}
           onSeatLongPress={onSeatLongPressed}
-          disabled={roomStatus === GameStatus.ongoing && isAudioPlaying}
+          disabled={(roomStatus === GameStatus.ongoing && isAudioPlaying) || isActionSubmitting}
           controlledSeat={controlledSeat}
           showBotRoles={isDebugMode && isHost}
         />
@@ -288,6 +291,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               roomStatus === GameStatus.ongoing ||
               roomStatus === GameStatus.ended)
           }
+          disabled={isHostActionSubmitting}
           onSettingsPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' })}
           onPrepareToFlipPress={() =>
             dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' })
@@ -364,6 +368,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           seatNumber={pendingSeat + 1}
           onConfirm={modalType === 'enter' ? handleConfirmSeat : handleConfirmLeave}
           onCancel={handleCancelSeat}
+          disabled={isSeatSubmitting}
           styles={componentStyles.seatConfirmModal}
         />
       )}

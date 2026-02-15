@@ -5,7 +5,7 @@
  * RoomScreen only needs to call these returned functions.
  */
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useCallback } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import type { RootStackParamList } from '@/navigation/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -51,6 +51,8 @@ interface UseRoomHostDialogsResult {
   showRestartDialog: () => void;
   showSpeakOrderDialog: () => void;
   handleSettingsPress: () => void;
+  /** True while any host action (assign/start/restart) is in-flight. */
+  isHostActionSubmitting: boolean;
 }
 
 export const useRoomHostDialogs = ({
@@ -63,6 +65,15 @@ export const useRoomHostDialogs = ({
   navigation,
   roomNumber,
 }: UseRoomHostDialogsParams): UseRoomHostDialogsResult => {
+  const submittingRef = useRef(false);
+  const [isHostActionSubmitting, setIsHostActionSubmitting] = useState(false);
+
+  /** Mark submission start (ref + state). */
+  const markSubmitting = useCallback((v: boolean) => {
+    submittingRef.current = v;
+    setIsHostActionSubmitting(v);
+  }, []);
+
   const showPrepareToFlipDialog = useCallback(() => {
     if (!gameState) return;
 
@@ -86,18 +97,28 @@ export const useRoomHostDialogs = ({
       {
         text: '确定',
         onPress: () => {
+          if (submittingRef.current) return;
+          markSubmitting(true);
           roomScreenLog.debug('[HostDialogs] Assigning roles');
-          void assignRoles();
+          void assignRoles().finally(() => {
+            markSubmitting(false);
+          });
         },
       },
     ]);
-  }, [gameState, assignRoles]);
+  }, [gameState, assignRoles, markSubmitting]);
 
   const handleStartGame = useCallback(async () => {
+    if (submittingRef.current) return;
+    markSubmitting(true);
     roomScreenLog.debug('[HostDialogs] Starting game');
-    setIsStartingGame(true);
-    await startGame();
-  }, [setIsStartingGame, startGame]);
+    try {
+      setIsStartingGame(true);
+      await startGame();
+    } finally {
+      markSubmitting(false);
+    }
+  }, [markSubmitting, setIsStartingGame, startGame]);
 
   const showStartGameDialog = useCallback(() => {
     showAlert('开始游戏？', '请将您的手机音量调整到最大。', [
@@ -130,12 +151,16 @@ export const useRoomHostDialogs = ({
       {
         text: '确定',
         onPress: () => {
+          if (submittingRef.current) return;
+          markSubmitting(true);
           roomScreenLog.debug('[HostDialogs] Restarting game');
-          void restartGame();
+          void restartGame().finally(() => {
+            markSubmitting(false);
+          });
         },
       },
     ]);
-  }, [restartGame]);
+  }, [restartGame, markSubmitting]);
 
   const showSpeakOrderDialog = useCallback(() => {
     if (!gameState) return;
@@ -160,5 +185,6 @@ export const useRoomHostDialogs = ({
     showRestartDialog,
     showSpeakOrderDialog,
     handleSettingsPress,
+    isHostActionSubmitting,
   };
 };
