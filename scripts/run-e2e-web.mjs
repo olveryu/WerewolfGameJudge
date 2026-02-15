@@ -81,13 +81,9 @@ if (stillMissing.length > 0) {
 }
 
 // === E2E_BASE_URL: Read from environment (set by playwright.config.ts) ===
-// Single source of truth is playwright.config.ts, this script just reads it
-const E2E_BASE_URL = process.env.E2E_BASE_URL;
-if (!E2E_BASE_URL) {
-  console.error('❌ E2E_BASE_URL not set. This should be set by playwright.config.ts.');
-  console.error('   If running standalone, set E2E_BASE_URL=http://localhost:8081');
-  process.exit(1);
-}
+// When launched by Playwright, playwright.config.ts sets this.
+// When launched standalone (`pnpm run dev`), default to localhost:3000.
+const E2E_BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
 
 // === Auto-generate .env.local for local E2E ===
 // Expo/Metro reads .env.local > .env for EXPO_PUBLIC_* vars.

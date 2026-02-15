@@ -48,7 +48,9 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 
 ## Common Commands
 
-- `pnpm run web` — 启动 Web 开发服务器
+- `pnpm run dev` — 启动 Web 开发服务器（`vercel dev`，同时服务 Expo 前端 + `/api/**` Serverless Functions）
+  - `E2E_ENV=local`（默认）使用本地 Supabase（`127.0.0.1:54321`），需先 `supabase start`
+  - `E2E_ENV=remote` 使用远端 Supabase
 - `pnpm exec jest --no-coverage --forceExit` — 跑全部单元/集成测试（171 suites / 2657 tests）
 - `pnpm exec playwright test --reporter=list` — 跑 E2E（必须加 `--reporter=list`，否则会阻塞终端）
 - `pnpm exec tsc --noEmit` — 类型检查
@@ -169,8 +171,9 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 
 - `nightFlowHandler` / `stepTransitionHandler` 是夜晚推进的单一真相。
 - Night-1 推进顺序来自 `NIGHT_STEPS`（表驱动），step id = 稳定 `SchemaId`。
-- 音频编排：Handler 声明 → Facade 执行 → UI 只读 Gate。
+- 音频编排：服务端写入 `pendingAudioEffects` → 广播 → Host Facade reactive store subscription 检测 → 播放 → `postAudioAck` 释放 gate。
 - `isAudioPlaying` 是事实状态，唯一通过 `SET_AUDIO_PLAYING` 修改。
+- Wolf vote deadline 到期后，Host 调用 `postProgression` 触发服务端推进（一次性 guard 防重入）。
 - Host rejoin 时 `joinAsHost` 从缓存恢复后重置 `isAudioPlaying`，Facade 通过 `resumeAfterRejoin()` + `ContinueGameOverlay` 用户手势恢复音频。
 
 ### Resolver 集成

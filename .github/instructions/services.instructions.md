@@ -41,7 +41,7 @@ applyTo: src/services/**
 
 客户端（Host 和 Player 平等）绝对不能执行：resolvers、reducers/state transitions、death calculation、night flow progression 计算。
 客户端职责：HTTP API 提交操作 → Realtime broadcast 接收 `STATE_UPDATE` → `applySnapshot(state, revision)` 更新本地 store。
-Host 额外职责：播放音频（`pendingAudioEffects` 从 API 响应中返回，Host 播放后 `postAudioAck` 触发服务端继续推进）。
+Host 额外职责：reactive 监听 store 中 `pendingAudioEffects`（服务端写入 state → 广播），Host 检测到后播放音频，播放完成后 `postAudioAck` 触发服务端继续推进；wolf vote deadline 到期后调用 `postProgression` 触发服务端推进。
 所有客户端也通过 `postgres_changes` 接收 DB state update（可靠备份通道），及 `SELECT game_state` 直接读取（auto-heal fallback）。
 
 ## Wire Protocol 稳定性（Transport protocol stability）
@@ -150,7 +150,7 @@ advanceToNextAction()
 
 Facade 负责两个音频生命周期路径：
 
-1. **正常夜晚推进**：服务端内联推进写入 `pendingAudioEffects` → API 响应返回 → Host Facade 播放音频（`setAudioPlaying(true)` → 播放 → `finally { setAudioPlaying(false) }`）→ `postAudioAck` 释放 gate + 触发下一轮推进。
+1. **正常夜晚推进**：服务端内联推进写入 `pendingAudioEffects` + `isAudioPlaying=true` → 广播到所有客户端 → Host Facade 通过 store subscription 检测到 `pendingAudioEffects` 非空 → 依次播放音频 → `finally { postAudioAck }` 释放 gate + 触发下一轮推进。Wolf vote deadline 到期后，Host 调用 `postProgression` 触发服务端继续推进（一次性 guard，防重入）。
 2. **Rejoin 恢复**：`joinAsHost()` 从 DB 读取最新状态（与 Player 相同数据源），检测 `status === 'ongoing'`（标记 `_wasAudioInterrupted`）。UI 层通过 `ContinueGameOverlay`（用户手势 gate）调用 `resumeAfterRejoin()`，重播当前 step 的音频，音频结束后 `postAudioAck` 释放 gate + 触发推进。
 
 - ✅ 两条路径都由 Facade 编排 IO — rejoin 恢复属于 Facade 的生命周期管理职责，不涉及 Handler。

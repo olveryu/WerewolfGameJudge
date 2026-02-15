@@ -88,6 +88,25 @@ applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**'
 - 合约测试必须覆盖：`NIGHT_STEPS` 引用有效性（`roleId`、`SchemaId`）、Step ids 顺序确定性（snapshot）与唯一性、Night-1-only 红线、`audioKey` 非空。
 - E2E 仅 smoke：核心 e2e 必须 `workers=1`，房间就绪必须用 `waitForRoomScreenReady()`。
 
+## E2E 测试规范（Playwright）
+
+### 禁止 `waitForTimeout` 和 `.isVisible({ timeout })`（Hard rule）
+
+社区最佳实践：E2E 测试必须用事件驱动的等待，**禁止硬编码延时**。
+
+- ❌ **禁止 `page.waitForTimeout(N)`**（N > 100ms）。
+  - 硬编码延时导致"慢机 flaky / 快机浪费时间"。
+  - ✅ 替代：`await expect(locator).toBeVisible({ timeout })` 或 `await locator.waitFor({ state: 'visible', timeout })`。
+  - ✅ 例外：**轮询间隔**（在 `while`/`for` retry loop 内做 poll cadence，≤300ms 可接受）。
+  - ✅ 例外：**动画去抖**（≤100ms，如 stepper 按钮间的微等待）。
+
+- ❌ **禁止 `.isVisible({ timeout: N })`（N > 0）**。
+  - Playwright 的 `locator.isVisible()` **不接受 timeout 参数**——即使传了也会被静默忽略，立即返回当前可见性。
+  - 这是一个常见误用：代码看起来像"等待 N 毫秒看是否出现"，实际瞬间返回。
+  - ✅ 替代（需要等待）：`await locator.waitFor({ state: 'visible', timeout }).then(() => true).catch(() => false)`。
+  - ✅ 替代（瞬间检查）：`await locator.isVisible()`（不传参数）。
+  - ✅ 在轮询循环内做快速检查时，`isVisible()` 不传参数是合理的。
+
 ## 修复与审计规范
 
 - 修 bug 优先根因修复；修复后回滚基于错误假设的过时 patch，避免补丁叠补丁。
