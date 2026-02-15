@@ -67,11 +67,13 @@ export function setupDiagnostics(
   // Filter console logs by prefix
   page.on('console', (msg) => {
     const text = msg.text();
-    if (LOG_PREFIXES.some((p) => text.includes(p))) {
+    // Always capture [DIAG] logs for debugging; also capture known prefixes
+    const isDiag = text.includes('[DIAG]');
+    if (isDiag || LOG_PREFIXES.some((p) => text.includes(p))) {
       const logLine = `[${label}] ${text}`;
       data.consoleLogs.push(logLine);
-      // In quiet mode, only print errors/warnings; skip verbose broadcast/state logs
-      if (!quiet) {
+      // [DIAG] logs always print; others only in non-quiet mode
+      if (isDiag || !quiet) {
         console.log('[PW console]', logLine);
       }
     }

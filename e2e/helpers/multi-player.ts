@@ -87,7 +87,7 @@ async function waitForPresenceStable(
     if (visible) visibleTexts.push(text);
   }
   const seatCount = await hostPage
-    .locator('[data-testid^="seat-tile-"]')
+    .locator('[data-testid^="seat-tile-pressable-"]')
     .count()
     .catch(() => -1);
 
@@ -106,19 +106,55 @@ async function waitForPresenceStable(
 
 async function viewRolesForAll(pages: Page[]): Promise<void> {
   for (const page of pages) {
-    const viewBtn = page.getByText('查看身份', { exact: true });
-    await expect(viewBtn).toBeVisible({ timeout: 5000 });
-    await viewBtn.click();
-    await page.waitForTimeout(500);
-    // With animation set to 'none', the static RoleCardSimple appears with "我知道了"
-    // If animation is enabled, wait longer for it to auto-complete first
-    const okBtn = page.getByText('我知道了', { exact: true });
-    await expect(okBtn).toBeVisible({ timeout: 10_000 });
-    await okBtn.click();
-    await page.waitForTimeout(300);
+    await viewRoleWithRetry(page);
   }
-  // Wait for VIEWED_ROLE messages to propagate
-  await pages[0].waitForTimeout(1000);
+  // No fixed timeout needed here — startGame() uses auto-retrying assertion
+  // to wait for "开始游戏" button which appears after all VIEWED_ROLE broadcasts.
+}
+
+/**
+ * Click "查看身份" with retry: handles the race condition where the
+ * `assigned` status broadcast hasn't arrived on a joiner page yet.
+ *
+ * If clicking triggers the "等待房主" alert (disabled button), dismiss it
+ * and retry after a brief wait for the next broadcast to arrive.
+ */
+export async function viewRoleWithRetry(page: Page, maxRetries = 30): Promise<void> {
+  const viewBtn = page.getByText('查看身份', { exact: true });
+  await expect(viewBtn).toBeVisible({ timeout: 15_000 });
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    await viewBtn.click();
+
+    // Race: either "我知道了" (role card modal) or "等待房主" (disabled alert)
+    const okBtn = page.getByText('我知道了', { exact: true });
+    const waitAlert = page.getByText('等待房主点击"准备看牌"分配角色');
+
+    const appeared = await Promise.race([
+      okBtn.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'roleCard' as const),
+      waitAlert.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'waitAlert' as const),
+    ]).catch(() => 'neither' as const);
+
+    if (appeared === 'roleCard') {
+      await okBtn.click();
+      return;
+    }
+
+    if (appeared === 'waitAlert') {
+      // Dismiss the "等待房主" alert and retry after broadcast interval
+      await page.getByText('确定', { exact: true }).click();
+      await page.waitForTimeout(500);
+      continue;
+    }
+
+    // Neither appeared — retry
+    await page.waitForTimeout(500);
+  }
+
+  throw new Error(
+    `viewRoleWithRetry: "我知道了" never appeared after ${maxRetries} attempts. ` +
+      'The assigned status broadcast may not have arrived.',
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -162,11 +198,7 @@ export async function setupNPlayerGame(
 
   // Host manually takes seat 0 (no longer auto-seated on room creation)
   const hostRoom = new RoomPage(hostPage);
-  await hostPage.locator('[data-testid="seat-tile-pressable-0"]').click({ timeout: 10000 });
-  await expect(hostPage.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
-  await hostPage.getByText('确定', { exact: true }).click();
-  await hostPage.waitForTimeout(500);
-  await expect(hostPage.getByText('我')).toBeVisible({ timeout: 3000 });
+  await hostRoom.seatAt(0);
 
   // Step 3: Joiners join and take seats
   for (let i = 0; i < joinerPages.length; i++) {
@@ -180,10 +212,9 @@ export async function setupNPlayerGame(
     await joinerPage.getByText('加入', { exact: true }).click();
     await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
 
-    // Take seat
+    // Take seat (seatAt waits for "我" badge via auto-retrying assertion)
     const room = new RoomPage(joinerPage);
     await room.seatAt(seat);
-    await expect(joinerPage.getByText('我')).toBeVisible({ timeout: 3000 });
   }
 
   if (!startGame) {

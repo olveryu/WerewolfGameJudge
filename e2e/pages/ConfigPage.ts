@@ -166,13 +166,11 @@ export class ConfigPage {
     const gearBtn = this.page.locator('[data-testid="config-gear-btn"]');
     await gearBtn.waitFor({ state: 'visible', timeout: 3000 });
     await gearBtn.click();
-    await this.page.waitForTimeout(200);
 
     // Open the animation dropdown (testID on the trigger button)
     const animTrigger = this.page.locator('[data-testid="config-animation"]');
     await animTrigger.waitFor({ state: 'visible', timeout: 3000 });
     await animTrigger.click();
-    await this.page.waitForTimeout(200);
 
     // Select "无动画" option (testID="config-animation-option-none")
     const noneOption = this.page.locator('[data-testid="config-animation-option-none"]');
@@ -180,7 +178,6 @@ export class ConfigPage {
     await noneOption.click();
     // Wait for the dropdown modal to close
     await noneOption.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
-    await this.page.waitForTimeout(200);
 
     // Close settings sheet by clicking the overlay backdrop.
     //
@@ -194,7 +191,8 @@ export class ConfigPage {
     // Click the very edge of the overlay (which is outside the settings content)
     // Use force:true because the content may obscure part of the overlay
     await overlay.click({ position: { x: 5, y: 5 }, force: true });
-    await this.page.waitForTimeout(300);
+    // Wait for overlay to close
+    await overlay.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
   }
 
   // ---------------------------------------------------------------------------

@@ -120,13 +120,13 @@ async function isTextVisible(page: Page, text: string, exact = false): Promise<b
   return page
     .getByText(text, { exact })
     .first()
-    .isVisible({ timeout: 300 })
+    .isVisible()
     .catch(() => false);
 }
 
 async function parseWolfVoteCount(page: Page): Promise<{ current: number; total: number } | null> {
   const loc = page.locator(`text=/${VOTE_COUNT_PATTERN}/`);
-  if (!(await loc.isVisible({ timeout: 100 }).catch(() => false))) return null;
+  if (!(await loc.isVisible().catch(() => false))) return null;
   const text = await loc.textContent().catch(() => null);
   if (!text) return null;
   const match = /(\d+)\/(\d+)/.exec(text);
@@ -137,14 +137,14 @@ async function parseWolfVoteCount(page: Page): Promise<{ current: number; total:
 
 async function getMySeat(page: Page): Promise<number | null> {
   const myBadge = page.getByText('我', { exact: true }).first();
-  if (!(await myBadge.isVisible({ timeout: 500 }).catch(() => false))) return null;
+  if (!(await myBadge.isVisible().catch(() => false))) return null;
 
   for (let i = 0; i < 12; i++) {
-    const tile = page.locator(`[data-testid="seat-tile-${i}"]`);
+    const tile = page.locator(`[data-testid="seat-tile-pressable-${i}"]`);
     if (
       await tile
         .locator('text="我"')
-        .isVisible({ timeout: 100 })
+        .isVisible()
         .catch(() => false)
     )
       return i;
@@ -153,17 +153,7 @@ async function getMySeat(page: Page): Promise<number | null> {
 }
 
 function getSeatTileLocator(page: Page, seat: number) {
-  const byTestId = page.locator(`[data-testid="seat-tile-${seat}"]`);
-  const displayNumber = seat + 1;
-  const byText = page
-    .locator(`text="${displayNumber}"`)
-    .locator('..')
-    .filter({
-      has: page.locator('text=/^(空|我)$/').or(page.locator(`text="${displayNumber}"`)),
-    })
-    .first()
-    .locator('..');
-  return byTestId.or(byText).first();
+  return page.locator(`[data-testid="seat-tile-pressable-${seat}"]`);
 }
 
 async function isNightEnded(page: Page): Promise<boolean> {
@@ -176,7 +166,7 @@ async function isNightEnded(page: Page): Promise<boolean> {
 async function captureNightResult(page: Page): Promise<string> {
   if (await isTextVisible(page, '平安夜')) return '昨天晚上是平安夜。';
   const deathMsg = page.locator(String.raw`text=/\d+号.*玩家死亡/`);
-  if (await deathMsg.isVisible({ timeout: 500 }).catch(() => false)) {
+  if (await deathMsg.isVisible().catch(() => false)) {
     return (await deathMsg.textContent()) || '玩家死亡';
   }
   return 'Night ended (result text not captured)';
@@ -192,7 +182,7 @@ async function captureDiagnostics(
     pageUrl: page.url(),
   };
   const actionMsg = page.locator('[data-testid="action-message"]');
-  if (await actionMsg.isVisible({ timeout: 100 }).catch(() => false)) {
+  if (await actionMsg.isVisible().catch(() => false)) {
     diag.actionMessage = await actionMsg.textContent().catch(() => null);
   }
   return diag;
@@ -304,7 +294,7 @@ async function tryConfirmSeatViaAlert(
 
   if (alertAppeared) {
     const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
-    if (await confirmBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+    if (await confirmBtn.isVisible().catch(() => false)) {
       nightLog(`[NightFlow] ${pageLabel}: confirming seat-${seatIdx} selection`);
       await confirmBtn.click({ force: true });
       await alertModal.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
@@ -341,7 +331,7 @@ async function attemptSeatSelection(
   for (const idx of targets) {
     try {
       const tile = getSeatTileLocator(page, idx);
-      if (!(await tile.isVisible({ timeout: 100 }).catch(() => false))) continue;
+      if (!(await tile.isVisible().catch(() => false))) continue;
 
       nightLog(`[NightFlow] ${pageLabel}: clicking seat-${idx} (mySeat=${mySeat})`);
       await tile.click({ force: true, timeout: 3000 });
@@ -361,7 +351,7 @@ async function tryClickSeatTarget(
   pageLabel: string,
 ): Promise<boolean> {
   const actionMsgLocator = page.locator('[data-testid="action-message"]');
-  if (!(await actionMsgLocator.isVisible({ timeout: 100 }).catch(() => false))) return false;
+  if (!(await actionMsgLocator.isVisible().catch(() => false))) return false;
 
   const text = (await actionMsgLocator.textContent().catch(() => '')) ?? '';
   if (!UI_TEXT.targetSelection.some((p) => text.includes(p))) return false;
@@ -406,7 +396,7 @@ async function tryAdvanceNight(
 ): Promise<boolean> {
   // 1. Check alert modal first (most common action blocker)
   const alertModal = page.locator('[data-testid="alert-modal"]');
-  const hasAlert = await alertModal.isVisible({ timeout: 200 }).catch(() => false);
+  const hasAlert = await alertModal.isVisible().catch(() => false);
   if (hasAlert) {
     // Use the alert TITLE (testid="alert-title") to detect wolf vote confirm.
     // See UI_TEXT.wolfVoteConfirmTitle for rationale on why title-based detection
@@ -434,7 +424,7 @@ async function tryAdvanceNight(
     // Find and click any button in the alert
     for (const text of UI_TEXT.advanceButtons) {
       const btn = alertModal.getByText(text, { exact: true }).first();
-      if (await btn.isVisible({ timeout: 100 }).catch(() => false)) {
+      if (await btn.isVisible().catch(() => false)) {
         nightLog(
           `[NightFlow] ${pageLabel}: alert title="${alertTitle}" clicking "${text}" (isWolfVoteConfirm=${isWolfVoteConfirm})`,
         );

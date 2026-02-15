@@ -296,7 +296,11 @@ export async function clickIfVisible(
   try {
     const locator = typeof target === 'string' ? page.getByText(target, { exact }) : target;
 
-    if (await locator.isVisible({ timeout })) {
+    const isVisible = await locator
+      .waitFor({ state: 'visible', timeout })
+      .then(() => true)
+      .catch(() => false);
+    if (isVisible) {
       await locator.first().click({ timeout: 1000 });
       return true;
     }
@@ -365,7 +369,7 @@ export async function debugProbe(page: Page, label: string): Promise<void> {
         typeof check.selector === 'string'
           ? page.getByText(check.selector, { exact: true })
           : page.getByText(check.selector);
-      const visible = await locator.isVisible({ timeout: 100 }).catch(() => false);
+      const visible = await locator.isVisible().catch(() => false);
       if (visible) console.log(`  ✓ ${check.name}`);
     } catch {
       // ignore

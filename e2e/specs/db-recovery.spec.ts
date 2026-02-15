@@ -70,8 +70,13 @@ test.describe('DB state recovery after network interruption', () => {
       console.log('[db-recovery] Simulating player network disconnect...');
       await joinerContext.setOffline(true);
 
-      // Step 4: Wait for the disconnect to register (~3s)
-      await joinerPage.waitForTimeout(3_000);
+      // Step 4: Wait for the disconnect to register
+      const disconnectedIndicator = joinerPage.getByText('🔴 连接断开', { exact: true });
+      const isDisconnected = await disconnectedIndicator
+        .waitFor({ state: 'visible', timeout: 10_000 })
+        .then(() => true)
+        .catch(() => false);
+      console.log(`[db-recovery] Disconnect indicator visible: ${isDisconnected}`);
 
       await joinerPage.screenshot().then((s) =>
         testInfo.attach('db-recovery-02-disconnected.png', {
@@ -79,13 +84,6 @@ test.describe('DB state recovery after network interruption', () => {
           contentType: 'image/png',
         }),
       );
-
-      // Check if disconnect indicator appeared
-      const disconnectedIndicator = joinerPage.getByText('🔴 连接断开', { exact: true });
-      const isDisconnected = await disconnectedIndicator
-        .isVisible({ timeout: 2_000 })
-        .catch(() => false);
-      console.log(`[db-recovery] Disconnect indicator visible: ${isDisconnected}`);
 
       // Step 5: Restore network
       console.log('[db-recovery] Restoring player network...');

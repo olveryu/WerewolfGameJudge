@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { closeAll } from '../fixtures/app.fixture';
-import { setupNPlayerGame } from '../helpers/multi-player';
+import { setupNPlayerGame, viewRoleWithRetry } from '../helpers/multi-player';
 import { runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
 
@@ -34,9 +34,14 @@ test.describe('Restart & Settings', () => {
 
       // Dismiss speaking order dialog if visible
       const speakingOrder = hostPage.getByText('发言顺序');
-      if (await speakingOrder.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (
+        await speakingOrder
+          .waitFor({ state: 'visible', timeout: 1000 })
+          .then(() => true)
+          .catch(() => false)
+      ) {
         await hostPage.getByText('知道了', { exact: true }).click();
-        await hostPage.waitForTimeout(300);
+        await speakingOrder.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
       }
 
       // Restart
@@ -45,7 +50,7 @@ test.describe('Restart & Settings', () => {
 
       // Wait for both pages to stabilize (seat grid visible)
       for (const page of fixture.pages) {
-        await expect(page.locator('[data-testid^="seat-tile-"]').first()).toBeVisible({
+        await expect(page.locator('[data-testid^="seat-tile-pressable-"]').first()).toBeVisible({
           timeout: 5000,
         });
       }
@@ -54,17 +59,8 @@ test.describe('Restart & Settings', () => {
       await room.prepareRoles();
 
       for (const page of fixture.pages) {
-        const viewBtn = page.getByText('查看身份', { exact: true });
-        await expect(viewBtn).toBeVisible({ timeout: 5000 });
-        await viewBtn.click();
-        await page.waitForTimeout(500);
-        // Animation is 'none' (set in configure2Player), so static card appears
-        const okBtn = page.getByText('我知道了', { exact: true });
-        await expect(okBtn).toBeVisible({ timeout: 10_000 });
-        await okBtn.click();
-        await page.waitForTimeout(300);
+        await viewRoleWithRetry(page);
       }
-      await hostPage.waitForTimeout(1000);
 
       await room.startGame();
 

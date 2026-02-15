@@ -104,9 +104,7 @@ test.describe('Seating', () => {
 
       // Click own seat → should show "站起" modal (not "入座")
       await room.getSeatTile(0).click();
-      await page.waitForTimeout(500);
-
-      await expect(page.getByText('站起', { exact: true })).toBeVisible({ timeout: 2000 });
+      await expect(page.getByText('站起', { exact: true })).toBeVisible({ timeout: 5000 });
 
       // Dismiss
       await page
@@ -147,26 +145,29 @@ test.describe('Seating', () => {
 
       // Joiner tries to click host's seat (index 0)
       await roomB.getSeatTile(0).click();
-      await pageB.waitForTimeout(500);
 
       // Should show "入座" confirm dialog → confirm → rejection alert
       const hasRuZuo = await pageB
         .getByText('入座', { exact: true })
-        .isVisible({ timeout: 2000 })
+        .waitFor({ state: 'visible', timeout: 5000 })
+        .then(() => true)
         .catch(() => false);
       if (hasRuZuo) {
         await pageB.getByText('确定', { exact: true }).click();
-        await pageB.waitForTimeout(1000);
       }
 
-      // Dismiss the "入座失败" rejection alert if present
+      // Wait for and dismiss the "入座失败" rejection alert
       const hasRejection = await pageB
         .getByText('入座失败')
-        .isVisible({ timeout: 3000 })
+        .waitFor({ state: 'visible', timeout: 5000 })
+        .then(() => true)
         .catch(() => false);
       if (hasRejection) {
         await dismissAnyConfirmAlert(pageB);
-        await pageB.waitForTimeout(500);
+        await pageB
+          .getByText('入座失败')
+          .waitFor({ state: 'hidden', timeout: 3000 })
+          .catch(() => {});
       }
 
       // Joiner takes seat 2 instead
@@ -212,26 +213,27 @@ test.describe('Seating', () => {
 
       // Click occupied seat 0
       await roomB.getSeatTile(0).click();
-      await pageB.waitForTimeout(500);
 
       // If "入座" modal shows, confirm it
       const hasRuZuo = await pageB
         .getByText('入座', { exact: true })
-        .isVisible({ timeout: 2000 })
+        .waitFor({ state: 'visible', timeout: 5000 })
+        .then(() => true)
         .catch(() => false);
       if (hasRuZuo) {
         await pageB.getByText('确定', { exact: true }).click();
-        await pageB.waitForTimeout(1000);
       }
 
       // Should see rejection alert
       const hasRejection = await pageB
         .getByText('入座失败')
-        .isVisible({ timeout: 3000 })
+        .waitFor({ state: 'visible', timeout: 5000 })
+        .then(() => true)
         .catch(() => false);
       const hasSeatTaken = await pageB
         .getByText('座位已被占用')
-        .isVisible({ timeout: 1000 })
+        .waitFor({ state: 'visible', timeout: 3000 })
+        .then(() => true)
         .catch(() => false);
 
       expect(hasRejection, 'Should see rejection alert').toBe(true);

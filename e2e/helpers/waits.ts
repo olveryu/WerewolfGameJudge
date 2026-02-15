@@ -29,7 +29,12 @@ async function waitForRoomHeaderOrRetry(page: Page, maxRetries: number): Promise
       return;
     } catch {
       const retryBtn = page.getByText('重试');
-      if (await retryBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (
+        await retryBtn
+          .waitFor({ state: 'visible', timeout: 1000 })
+          .then(() => true)
+          .catch(() => false)
+      ) {
         console.log(`[waitForRoomScreenReady] Retry attempt ${attempt + 1}...`);
         await retryBtn.click();
         continue;
@@ -49,15 +54,15 @@ async function waitForJoinerLive(page: Page, liveTimeoutMs: number): Promise<voi
 
   while (Date.now() - startTime < liveTimeoutMs) {
     const liveIndicator = page.getByText(ROOM_STATUS_TEXT.live, { exact: true });
-    if (await liveIndicator.isVisible({ timeout: 100 }).catch(() => false)) {
+    if (await liveIndicator.isVisible().catch(() => false)) {
       console.log('[waitForRoomScreenReady] Joiner is live');
       return;
     }
 
     const disconnectedIndicator = page.getByText(ROOM_STATUS_TEXT.disconnected, { exact: true });
-    if (await disconnectedIndicator.isVisible({ timeout: 100 }).catch(() => false)) {
+    if (await disconnectedIndicator.isVisible().catch(() => false)) {
       const forceSyncBtn = page.locator(`[data-testid="${TESTIDS.forceSyncButton}"]`);
-      if (await forceSyncBtn.isVisible({ timeout: 100 }).catch(() => false)) {
+      if (await forceSyncBtn.isVisible().catch(() => false)) {
         console.log('[waitForRoomScreenReady] Clicking force sync...');
         await forceSyncBtn.click();
         await page.waitForTimeout(500);

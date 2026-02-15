@@ -20,17 +20,7 @@ export class RoomPage {
 
   /** Precise locator for a seat tile by 0-based seat number. */
   getSeatTile(seat: number) {
-    const byTestId = this.page.locator(`[data-testid="seat-tile-${seat}"]`);
-    const displayNumber = seat + 1;
-    const byText = this.page
-      .locator(`text="${displayNumber}"`)
-      .locator('..')
-      .filter({
-        has: this.page.locator('text=/^(空|我)$/').or(this.page.locator(`text="${displayNumber}"`)),
-      })
-      .first()
-      .locator('..');
-    return byTestId.or(byText).first();
+    return this.page.locator(`[data-testid="seat-tile-pressable-${seat}"]`);
   }
 
   // ---------------------------------------------------------------------------
@@ -51,7 +41,7 @@ export class RoomPage {
 
   /** Count visible seat tiles (excludes pressable overlay). */
   async getSeatCount(): Promise<number> {
-    const tiles = this.page.locator('[data-testid^="seat-tile-"]:not([data-testid*="pressable"])');
+    const tiles = this.page.locator('[data-testid^="seat-tile-pressable-"]');
     return tiles.count();
   }
 
@@ -59,12 +49,13 @@ export class RoomPage {
   // Seat Actions
   // ---------------------------------------------------------------------------
 
-  /** Click a seat and confirm the "入座" dialog. */
+  /** Click a seat and confirm the "入座" dialog. Waits for "我" badge to confirm seat taken. */
   async seatAt(seat: number) {
     await this.getSeatTile(seat).click();
     await expect(this.page.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
     await this.page.getByText('确定', { exact: true }).click();
-    await this.page.waitForTimeout(500);
+    // Wait for seat broadcast to arrive — "我" badge confirms the seat is taken
+    await expect(this.page.getByText('我')).toBeVisible({ timeout: 10_000 });
   }
 
   /** Click own seat and confirm "站起" dialog. */
@@ -72,7 +63,8 @@ export class RoomPage {
     await this.getSeatTile(seat).click();
     await expect(this.page.getByText('站起', { exact: true })).toBeVisible({ timeout: 5000 });
     await this.page.getByText('确定', { exact: true }).click();
-    await this.page.waitForTimeout(500);
+    // Wait for "我" badge to disappear, confirming stand-up broadcast arrived
+    await expect(this.page.getByText('我')).not.toBeVisible({ timeout: 5000 });
   }
 
   /** Check if "我" badge is visible anywhere. */
@@ -97,32 +89,54 @@ export class RoomPage {
   // Game Flow
   // ---------------------------------------------------------------------------
 
-  /** Click "准备看牌" and confirm the dialog. */
+  /** Click "准备看牌" and confirm the dialog. Wait for role assignment to propagate. */
   async prepareRoles() {
     const btn = this.page.getByText('准备看牌');
     await expect(btn).toBeVisible({ timeout: 5000 });
     await btn.click();
     await expect(this.page.getByText('允许看牌？')).toBeVisible({ timeout: 3000 });
     await this.page.getByText('确定', { exact: true }).click();
-    await this.page.waitForTimeout(1000);
+    // Wait for role assignment broadcast to arrive ("查看身份" becomes enabled)
+    // instead of fixed timeout — server-authoritative mode has variable latency.
+    await expect(this.page.getByText('查看身份', { exact: true })).toBeEnabled({ timeout: 15_000 });
   }
 
   /** Click "查看身份" → wait for flip → click "我知道了". */
   async viewAndDismissRole() {
     const viewBtn = this.page.getByText('查看身份', { exact: true });
-    await expect(viewBtn).toBeVisible({ timeout: 5000 });
-    await viewBtn.click();
-    await this.page.waitForTimeout(500);
-    const okBtn = this.page.getByText('我知道了', { exact: true });
-    await expect(okBtn).toBeVisible({ timeout: 5000 });
-    await okBtn.click();
-    await this.page.waitForTimeout(300);
+    await expect(viewBtn).toBeVisible({ timeout: 15_000 });
+
+    for (let attempt = 1; attempt <= 30; attempt++) {
+      await viewBtn.click();
+
+      const okBtn = this.page.getByText('我知道了', { exact: true });
+      const waitAlert = this.page.getByText('等待房主点击"准备看牌"分配角色');
+
+      const appeared = await Promise.race([
+        okBtn.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'roleCard' as const),
+        waitAlert.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'waitAlert' as const),
+      ]).catch(() => 'neither' as const);
+
+      if (appeared === 'roleCard') {
+        await okBtn.click();
+        return;
+      }
+      if (appeared === 'waitAlert') {
+        await this.page.getByText('确定', { exact: true }).click();
+        await this.page.waitForTimeout(500);
+        continue;
+      }
+      await this.page.waitForTimeout(500);
+    }
+    throw new Error('viewAndDismissRole: "我知道了" never appeared after retries.');
   }
 
   /** Click "开始游戏" and confirm dialog. */
   async startGame() {
     const btn = this.page.getByText('开始游戏');
-    await expect(btn).toBeVisible({ timeout: 5000 });
+    // All players must complete viewRole before this button appears —
+    // server-authoritative broadcast propagation can take several seconds.
+    await expect(btn).toBeVisible({ timeout: 15_000 });
     await btn.click();
     await expect(this.page.getByText('开始游戏？')).toBeVisible({ timeout: 3000 });
     await this.page.getByText('确定', { exact: true }).click();
@@ -135,7 +149,8 @@ export class RoomPage {
     await btn.click();
     await expect(this.page.getByText('重新开始游戏？')).toBeVisible({ timeout: 3000 });
     await this.page.getByText('确定', { exact: true }).click();
-    await this.page.waitForTimeout(1000);
+    // Wait for restart broadcast — "准备看牌" reappears when status resets
+    await expect(this.page.getByText('准备看牌')).toBeVisible({ timeout: 15_000 });
   }
 
   /** Click the settings button to open config in edit mode. */
@@ -147,7 +162,8 @@ export class RoomPage {
   async isLastNightInfoVisible(): Promise<boolean> {
     return this.page
       .getByText('查看昨晚信息')
-      .isVisible({ timeout: 3000 })
+      .waitFor({ state: 'visible', timeout: 3000 })
+      .then(() => true)
       .catch(() => false);
   }
 
