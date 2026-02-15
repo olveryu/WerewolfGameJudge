@@ -103,9 +103,9 @@ describe('GameFacade', () => {
     return state;
   };
 
-  describe('Host: initializeAsHost', () => {
+  describe('Host: createRoom', () => {
     it('should initialize store with correct state', async () => {
-      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
 
       expect(facade.isHostPlayer()).toBe(true);
       expect(facade.getMyUid()).toBe('host-uid');
@@ -113,7 +113,7 @@ describe('GameFacade', () => {
     });
 
     it('should join broadcast channel with correct callbacks', async () => {
-      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
 
       expect(mockBroadcastService.joinRoom).toHaveBeenCalledWith(
         'ABCD',
@@ -130,7 +130,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
     });
 
     afterEach(() => {
@@ -169,7 +169,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
     });
 
     afterEach(() => {
@@ -197,9 +197,9 @@ describe('GameFacade', () => {
     });
   });
 
-  describe('Player: joinAsPlayer', () => {
+  describe('Player: joinRoom', () => {
     it('should join as player and register correct callbacks', async () => {
-      await facade.joinAsPlayer('ABCD', 'player-uid');
+      await facade.joinRoom('ABCD', 'player-uid', false);
 
       expect(facade.isHostPlayer()).toBe(false);
       expect(facade.getMyUid()).toBe('player-uid');
@@ -219,7 +219,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.joinAsPlayer('ABCD', 'player-uid');
+      await facade.joinRoom('ABCD', 'player-uid', false);
 
       // Player must receive STATE_UPDATE to populate roomCode in store
       const joinRoomCall = mockBroadcastService.joinRoom.mock.calls[0];
@@ -284,7 +284,7 @@ describe('GameFacade', () => {
 
   describe('Player: receive STATE_UPDATE', () => {
     beforeEach(async () => {
-      await facade.joinAsPlayer('ABCD', 'player-uid');
+      await facade.joinRoom('ABCD', 'player-uid', false);
     });
 
     it('should apply snapshot when receiving STATE_UPDATE', () => {
@@ -327,7 +327,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.joinAsPlayer('ABCD', 'player-uid');
+      await facade.joinRoom('ABCD', 'player-uid', false);
 
       // Player must receive STATE_UPDATE to populate roomCode in store
       const joinRoomCall = mockBroadcastService.joinRoom.mock.calls[0];
@@ -394,7 +394,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.joinAsPlayer('ABCD', 'player-uid');
+      await facade.joinRoom('ABCD', 'player-uid', false);
 
       // Player must receive STATE_UPDATE to populate roomCode in store
       const joinRoomCall = mockBroadcastService.joinRoom.mock.calls[0];
@@ -441,7 +441,7 @@ describe('GameFacade', () => {
 
   describe('leaveRoom', () => {
     it('should clean up state when leaving', async () => {
-      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
       await facade.leaveRoom();
 
       expect(mockBroadcastService.leaveRoom).toHaveBeenCalled();
@@ -454,7 +454,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
     });
 
     afterEach(() => {
@@ -486,7 +486,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
     });
 
     afterEach(() => {
@@ -521,7 +521,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
     });
 
     afterEach(() => {
@@ -603,7 +603,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
     });
 
     afterEach(() => {
@@ -657,7 +657,7 @@ describe('GameFacade', () => {
           }),
         } as any,
       });
-      await playerFacade.joinAsPlayer('ABCD', 'player-uid');
+      await playerFacade.joinRoom('ABCD', 'player-uid', false);
 
       global.fetch = jest.fn().mockResolvedValue({
         json: () => Promise.resolve({ success: true }),
@@ -711,7 +711,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.initializeAsHost('ABCD', 'host-uid', mockTemplate);
+      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
     });
 
     afterEach(() => {
@@ -802,7 +802,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      await facade.createRoom('TEST', 'host-uid', mockTemplate);
       fillAllSeatsViaReducer(facade, mockTemplate);
     });
 
@@ -856,7 +856,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      await facade.createRoom('TEST', 'host-uid', mockTemplate);
       fillAllSeatsViaReducer(facade, mockTemplate);
     });
 
@@ -909,7 +909,7 @@ describe('GameFacade', () => {
   describe('endNight (PR6)', () => {
     const origFetch = global.fetch;
     beforeEach(async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      await facade.createRoom('TEST', 'host-uid', mockTemplate);
       fillAllSeatsViaReducer(facade, mockTemplate);
     });
     afterEach(() => {
@@ -956,7 +956,7 @@ describe('GameFacade', () => {
   describe('setAudioPlaying (PR7)', () => {
     const origFetch = global.fetch;
     beforeEach(async () => {
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      await facade.createRoom('TEST', 'host-uid', mockTemplate);
       fillAllSeatsViaReducer(facade, mockTemplate);
     });
     afterEach(() => {
@@ -1020,7 +1020,7 @@ describe('GameFacade', () => {
     it('endNight gate is now server-side', async () => {
       // With HTTP API migration, isAudioPlaying gate is enforced server-side.
       // Client simply forwards the request; server returns rejection reason.
-      await facade.initializeAsHost('TEST', 'host-uid', mockTemplate);
+      await facade.createRoom('TEST', 'host-uid', mockTemplate);
       fillAllSeatsViaReducer(facade, mockTemplate);
 
       global.fetch = jest.fn().mockResolvedValue({
@@ -1034,10 +1034,10 @@ describe('GameFacade', () => {
   });
 
   // ===========================================================================
-  // Host Rejoin: joinAsHost + wasAudioInterrupted + resumeAfterRejoin
+  // Host Rejoin: joinRoom(isHost=true) + wasAudioInterrupted + resumeAfterRejoin
   // ===========================================================================
 
-  describe('Host: joinAsHost (DB restore)', () => {
+  describe('Host: joinRoom(isHost=true) (DB restore)', () => {
     /** Build an ongoing state as returned from DB for rejoin tests */
     const buildOngoingDbState = (overrides: Record<string, unknown> = {}) => ({
       state: {
@@ -1083,7 +1083,7 @@ describe('GameFacade', () => {
         } as any,
       });
 
-      const result = await facadeWithDb.joinAsHost('REJN', 'host-uid');
+      const result = await facadeWithDb.joinRoom('REJN', 'host-uid', true);
 
       expect(result.success).toBe(true);
       expect(facadeWithDb.wasAudioInterrupted).toBe(true);
@@ -1103,28 +1103,17 @@ describe('GameFacade', () => {
         } as any,
       });
 
-      const result = await facadeWithDb.joinAsHost('REJN', 'host-uid');
+      const result = await facadeWithDb.joinRoom('REJN', 'host-uid', true);
 
       expect(result.success).toBe(true);
       expect(facadeWithDb.wasAudioInterrupted).toBe(false);
     });
 
     it('should return no_db_state when no DB state and no template', async () => {
-      const result = await facade.joinAsHost('REJN', 'host-uid');
+      const result = await facade.joinRoom('REJN', 'host-uid', true);
 
       expect(result).toEqual({ success: false, reason: 'no_db_state' });
       expect(facade.isHostPlayer()).toBe(false);
-    });
-
-    it('should initialize with template when no DB state but template provided', async () => {
-      const result = await facade.joinAsHost('REJN', 'host-uid', [
-        'wolf' as any,
-        'villager' as any,
-      ]);
-
-      expect(result.success).toBe(true);
-      expect(facade.getState()?.status).toBe('unseated');
-      expect(facade.wasAudioInterrupted).toBe(false);
     });
   });
 
@@ -1185,7 +1174,7 @@ describe('GameFacade', () => {
         } as any,
       });
 
-      await f.joinAsHost('REJN', 'host-uid');
+      await f.joinRoom('REJN', 'host-uid', true);
       mockAudioServiceInstance.playRoleBeginningAudio.mockClear();
       (global.fetch as jest.Mock).mockClear();
       // Re-set the mock after clearing

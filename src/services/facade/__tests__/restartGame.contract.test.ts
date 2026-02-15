@@ -77,7 +77,7 @@ describe('restartGame Contract (HTTP API)', () => {
       } as any,
     });
 
-    await facade.initializeAsHost('1234', 'host-uid', mockTemplate);
+    await facade.createRoom('1234', 'host-uid', mockTemplate);
   });
 
   afterEach(() => {

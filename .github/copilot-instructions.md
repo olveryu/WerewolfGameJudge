@@ -195,7 +195,7 @@ pnpm run dev:api      # → localhost:3000
 - 音频编排：服务端写入 `pendingAudioEffects` → 广播 → Host Facade reactive store subscription 检测 → 播放 → `postAudioAck` 释放 gate。
 - `isAudioPlaying` 是事实状态，唯一通过 `SET_AUDIO_PLAYING` 修改。
 - Wolf vote deadline 到期后，Host 调用 `postProgression` 触发服务端推进（一次性 guard 防重入）。
-- Host rejoin 时 `joinAsHost` 从缓存恢复后重置 `isAudioPlaying`，Facade 通过 `resumeAfterRejoin()` + `ContinueGameOverlay` 用户手势恢复音频。
+- Host rejoin 时 `joinRoom(isHost=true)` 从 DB 恢复后重置 `isAudioPlaying`，Facade 通过 `resumeAfterRejoin()` + `ContinueGameOverlay` 用户手势恢复音频。
 
 ### Resolver 集成
 

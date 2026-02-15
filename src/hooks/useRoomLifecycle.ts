@@ -107,7 +107,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         // Set roomRecord for connection sync & leaveRoom cleanup
         setRoomRecord({ roomNumber, hostUid, createdAt: new Date() });
 
-        await facade.initializeAsHost(roomNumber, hostUid, template);
+        await facade.createRoom(roomNumber, hostUid, template);
 
         return true;
       } catch (err) {
@@ -146,14 +146,10 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         }
         setRoomRecord(record);
 
-        // Get user info
-        const displayName = await authService.getCurrentDisplayName();
-        const avatarUrl = await authService.getCurrentAvatarUrl();
-
-        // Host rejoin: 使用 joinAsHost 恢复
+        // Host rejoin: isHost=true
         if (record.hostUid === playerUid) {
           gameRoomLog.debug('Host rejoin detected, attempting recovery');
-          const result = await facade.joinAsHost(roomNumber, playerUid);
+          const result = await facade.joinRoom(roomNumber, playerUid, true);
           if (!result.success) {
             gameRoomLog.error('Host rejoin failed', { reason: result.reason });
             setError('房间状态已过期，请重新创建房间');
@@ -166,13 +162,8 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           return true;
         }
 
-        // Player: 正常加入
-        await facade.joinAsPlayer(
-          roomNumber,
-          playerUid,
-          displayName ?? undefined,
-          avatarUrl ?? undefined,
-        );
+        // Player: isHost=false
+        await facade.joinRoom(roomNumber, playerUid, false);
 
         return true;
       } catch (err) {

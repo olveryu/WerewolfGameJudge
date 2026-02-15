@@ -151,7 +151,7 @@ advanceToNextAction()
 Facade 负责两个音频生命周期路径：
 
 1. **正常夜晚推进**：服务端内联推进写入 `pendingAudioEffects` + `isAudioPlaying=true` → 广播到所有客户端 → Host Facade 通过 store subscription 检测到 `pendingAudioEffects` 非空 → 依次播放音频 → `finally { postAudioAck }` 释放 gate + 触发下一轮推进。Wolf vote deadline 到期后，Host 调用 `postProgression` 触发服务端继续推进（一次性 guard，防重入）。
-2. **Rejoin 恢复**：`joinAsHost()` 从 DB 读取最新状态（与 Player 相同数据源），检测 `status === 'ongoing'`（标记 `_wasAudioInterrupted`）。UI 层通过 `ContinueGameOverlay`（用户手势 gate）调用 `resumeAfterRejoin()`，重播当前 step 的音频，音频结束后 `postAudioAck` 释放 gate + 触发推进。
+2. **Rejoin 恢复**：`joinRoom(roomCode, uid, isHost=true)` 从 DB 读取最新状态（与 Player 相同数据源），检测 `status === 'ongoing'`（标记 `_wasAudioInterrupted`）。UI 层通过 `ContinueGameOverlay`（用户手势 gate）调用 `resumeAfterRejoin()`，重播当前 step 的音频，音频结束后 `postAudioAck` 释放 gate + 触发推进。
 
 - ✅ 两条路径都由 Facade 编排 IO — rejoin 恢复属于 Facade 的生命周期管理职责，不涉及 Handler。
 - ✅ Web autoplay policy 要求用户手势解锁 AudioContext，因此 rejoin 路径必须经过 UI 手势 gate（`ContinueGameOverlay`）。

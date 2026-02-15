@@ -200,7 +200,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         connection.onStateReceived();
 
         // Host rejoin to ongoing game → show "continue game" overlay
-        // wasAudioInterrupted is a one-shot flag set during joinAsHost cache restore,
+        // wasAudioInterrupted is a one-shot flag set during joinRoom(isHost=true) DB restore,
         // cleared after resumeAfterRejoin(). setState(true) is idempotent.
         if (
           facade.isHostPlayer() &&

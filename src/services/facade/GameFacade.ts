@@ -170,12 +170,12 @@ export class GameFacade implements IGameFacade {
   // Room Lifecycle
   // =========================================================================
 
-  async initializeAsHost(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
+  async createRoom(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
     this._aborted = false; // Reset abort flag when creating new room
     this.isHost = true;
     this.myUid = hostUid;
 
-    // 初始化 store（使用共享的 buildInitialGameState，与 createRoom 保持 DRY）
+    // 初始化 store（使用共享的 buildInitialGameState）
     const initialState = buildInitialGameState(roomCode, hostUid, template);
     this.store.initialize(initialState);
 
@@ -192,22 +192,34 @@ export class GameFacade implements IGameFacade {
     });
   }
 
-  async joinAsPlayer(
+  /**
+   * 加入已有房间（Host rejoin + Player join 统一入口）
+   *
+   * 社区标准模式 "subscribe first, then fetch"：
+   * 先订阅频道（不丢事件），再从 DB 读取初始状态。
+   * Host rejoin 预设 _wasAudioInterrupted guard 阻断订阅期间可能到达的 pendingAudioEffects。
+   *
+   * @returns success=false 仅在 Host rejoin 且无 DB 状态时
+   */
+  async joinRoom(
     roomCode: string,
-    playerUid: string,
-    _displayName?: string,
-    _avatarUrl?: string,
-  ): Promise<void> {
-    this._aborted = false; // Reset abort flag when joining room
-    this.isHost = false;
-    this.myUid = playerUid;
+    uid: string,
+    isHost: boolean,
+  ): Promise<{ success: boolean; reason?: string }> {
+    this._aborted = false;
+    this.isHost = isHost;
+    this.myUid = uid;
     this.store.reset();
 
-    await this.broadcastService.joinRoom(roomCode, playerUid, {
+    // Host rejoin: 预设 guard，阻断 subscribe 阶段收到 pendingAudioEffects 时 reactive 误播
+    // （非 ongoing 状态无 pendingAudioEffects，pre-set 无害；DB fetch 后按实际状态修正）
+    if (isHost) this._wasAudioInterrupted = true;
+
+    // 1. Subscribe first（社区标准：不丢 gap 期间的事件）
+    await this.broadcastService.joinRoom(roomCode, uid, {
       onHostBroadcast: (msg: HostBroadcast) => {
         handleStateUpdate(this.getMessageRouterContext(), msg);
       },
-      // DB 备份通道：postgres_changes 监听 rooms 表 UPDATE
       onDbStateChange: (state: BroadcastGameState, revision: number) => {
         facadeLog.debug('DB state change → applySnapshot, revision:', revision);
         this.store.applySnapshot(state, revision);
@@ -215,81 +227,25 @@ export class GameFacade implements IGameFacade {
       },
     });
 
-    // 从 DB 读取初始状态（服务端权威 — 直接 SELECT，不经过 broadcast 通道）
-    const dbState = await this.roomService.getGameState(roomCode);
-    if (dbState) {
-      this.store.applySnapshot(dbState.state, dbState.revision);
-      this.broadcastService.markAsLive();
-    }
-  }
-
-  /**
-   * Host rejoin: 房主断线重连后重新加入房间
-   *
-   * 策略（服务端权威）：
-   * 1. 从 DB 读取最新状态（与 joinAsPlayer 一致）
-   * 2. 如果有 DB 状态，恢复并加入频道
-   * 3. 如果没有 DB 状态但有 template，初始化为新房间
-   * 4. 如果都没有，返回 false（调用方需提示用户）
-   */
-  async joinAsHost(
-    roomCode: string,
-    hostUid: string,
-    templateRoles?: RoleId[],
-  ): Promise<{ success: boolean; reason?: string }> {
-    this._aborted = false; // Reset abort flag when rejoining (matches initializeAsHost/joinAsPlayer)
-    this.isHost = true;
-    this.myUid = hostUid;
-    this.store.reset();
-
-    // 从 DB 读取最新状态（服务端权威 — 与 joinAsPlayer 使用相同数据源）
+    // 2. Then fetch（统一 Host/Player 路径）
     const dbState = await this.roomService.getGameState(roomCode);
 
     if (dbState) {
-      // 必须在 applySnapshot 之前设置：applySnapshot 同步触发 listener，
-      // listener 检查 wasAudioInterrupted 决定是否弹 overlay。
-      // ongoing 状态下的 rejoin 都需要 overlay（用户手势解锁 Web AudioContext 恢复 BGM）。
-      this._wasAudioInterrupted = dbState.state.status === 'ongoing';
-
-      this.store.applySnapshot(dbState.state, dbState.revision);
-      this.broadcastService.markAsLive();
-    } else if (templateRoles && templateRoles.length > 0) {
-      // 没有 DB 状态但有模板：创建初始状态
-      this._wasAudioInterrupted = false;
-      const players: BroadcastGameState['players'] = {};
-      for (let i = 0; i < templateRoles.length; i++) {
-        players[i] = null;
+      if (isHost) {
+        // 在 applySnapshot 之前修正：applySnapshot 同步触发 listener，
+        // listener 检查 wasAudioInterrupted 决定是否弹 overlay。
+        this._wasAudioInterrupted = dbState.state.status === 'ongoing';
       }
-
-      const initialState: BroadcastGameState = {
-        roomCode,
-        hostUid,
-        status: 'unseated',
-        templateRoles,
-        players,
-        currentStepIndex: -1,
-        isAudioPlaying: false,
-      };
-
-      this.store.initialize(initialState);
-    } else {
-      // 没有 DB 状态且没有模板：无法恢复
+      this.store.applySnapshot(dbState.state, dbState.revision);
+      this.broadcastService.markAsLive();
+    } else if (isHost) {
+      // Host rejoin 无 DB 状态：无法恢复
+      this._wasAudioInterrupted = false;
       this.isHost = false;
       this.myUid = null;
       return { success: false, reason: 'no_db_state' };
     }
-
-    // 加入频道（Host 和 Player 统一监听 onHostBroadcast + onDbStateChange）
-    await this.broadcastService.joinRoom(roomCode, hostUid, {
-      onHostBroadcast: (msg: HostBroadcast) => {
-        handleStateUpdate(this.getMessageRouterContext(), msg);
-      },
-      onDbStateChange: (state: BroadcastGameState, revision: number) => {
-        facadeLog.debug('DB state change → applySnapshot, revision:', revision);
-        this.store.applySnapshot(state, revision);
-        this.broadcastService.markAsLive();
-      },
-    });
+    // Player 无 DB 状态：正常 — 状态将通过 broadcast 到达
 
     return { success: true };
   }

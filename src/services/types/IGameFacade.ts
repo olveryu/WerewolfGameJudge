@@ -49,32 +49,23 @@ export interface IGameFacade {
 
   // === Room Lifecycle ===
   /**
-   * Host: 创建房间
+   * Host: 创建新房间
+   * 初始化 store + 加入 broadcast 频道
    */
-  initializeAsHost(roomCode: string, hostUid: string, template: GameTemplate): Promise<void>;
+  createRoom(roomCode: string, hostUid: string, template: GameTemplate): Promise<void>;
 
   /**
-   * Player: 加入房间
-   */
-  joinAsPlayer(
-    roomCode: string,
-    playerUid: string,
-    displayName?: string,
-    avatarUrl?: string,
-  ): Promise<void>;
-
-  /**
-   * Host rejoin: 房主断线重连后重新加入房间
+   * 加入已有房间（Host rejoin + Player join 统一入口）
    *
-   * 策略：
-   * 1. 尝试从本地缓存恢复状态
-   * 2. 如果有缓存，恢复并立即广播 STATE_UPDATE
-   * 3. 如果没有缓存且没有 templateRoles，返回 false
+   * Host rejoin: isHost=true, 从 DB 恢复状态，检测 _wasAudioInterrupted
+   * Player join: isHost=false, 从 DB 读取初始状态
+   *
+   * @returns success=false 仅在 Host rejoin 且无 DB 状态时
    */
-  joinAsHost(
+  joinRoom(
     roomCode: string,
-    hostUid: string,
-    templateRoles?: RoleId[],
+    uid: string,
+    isHost: boolean,
   ): Promise<{ success: boolean; reason?: string }>;
 
   /**
