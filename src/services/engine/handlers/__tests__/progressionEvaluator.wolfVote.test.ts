@@ -15,8 +15,7 @@ import {
   shouldTriggerWolfVoteRecovery,
   WOLF_VOTE_COUNTDOWN_MS,
 } from '@werewolf/game-engine/engine/handlers/progressionEvaluator';
-
-import type { BroadcastGameState } from '@/services/protocol/types';
+import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
 // Test Helpers

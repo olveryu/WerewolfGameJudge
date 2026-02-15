@@ -16,10 +16,10 @@
  */
 
 import { RealtimeChannel } from '@supabase/supabase-js';
+// Protocol types - Import for local use
+import type { BroadcastGameState, HostBroadcast } from '@werewolf/game-engine/protocol/types';
 
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
-// Protocol types - Import for local use
-import type { BroadcastGameState, HostBroadcast } from '@/services/protocol/types';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import { broadcastLog } from '@/utils/logger';
 

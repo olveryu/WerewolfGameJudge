@@ -14,7 +14,7 @@ import {
   isValidRoleId,
   ROLE_SPECS,
   RoleId,
-} from '@/models/roles';
+} from '@werewolf/game-engine/models/roles';
 
 describe('Role Registry Contract Tests', () => {
   describe('ROLE_SPECS is single source of truth', () => {

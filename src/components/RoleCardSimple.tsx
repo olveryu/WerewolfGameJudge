@@ -6,11 +6,11 @@
  * ✅ 允许：渲染角色信息卡片 UI
  * ❌ 禁止：import service / 业务逻辑判断
  */
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';
 import React, { useMemo } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
-import type { RoleId } from '@/models/roles';
-import { getRoleSpec, isWolfRole } from '@/models/roles';
 import { borderRadius, shadows, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
 import { getFactionName, ROLE_ICONS } from './roleDisplayUtils';

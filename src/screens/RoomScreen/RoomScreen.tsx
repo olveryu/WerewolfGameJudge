@@ -17,12 +17,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import React, { useCallback, useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { GameStatus } from '@/models/GameStatus';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { spacing, useColors } from '@/theme';

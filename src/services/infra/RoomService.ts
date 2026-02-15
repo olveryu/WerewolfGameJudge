@@ -20,8 +20,9 @@
  * - updated_at: timestamptz
  */
 
+import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
-import type { BroadcastGameState } from '@/services/protocol/types';
 import { roomLog } from '@/utils/logger';
 import { generateRoomCode } from '@/utils/roomCode';
 

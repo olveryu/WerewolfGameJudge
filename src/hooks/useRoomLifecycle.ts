@@ -15,9 +15,9 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';
+import { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { useCallback, useState } from 'react';
 
-import { GameTemplate } from '@/models/Template';
 import type { AuthService } from '@/services/infra/AuthService';
 import type { RoomRecord, RoomService } from '@/services/infra/RoomService';
 import type { IGameFacade } from '@/services/types/IGameFacade';

@@ -21,9 +21,10 @@ import {
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
+
 import { Avatar } from '@/components/Avatar';
-import type { RoleId } from '@/models/roles';
-import { getRoleDisplayName } from '@/models/roles';
 import { TESTIDS } from '@/testids';
 import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';

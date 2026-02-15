@@ -16,7 +16,7 @@
  * 架构：intents → handlers → reducer → BroadcastGameState
  */
 
-import type { RoleId } from '@/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 
 import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
 import { executeFullNight } from './stepByStepRunner';

@@ -12,13 +12,13 @@
  * ❌ 禁止：直接修改 BroadcastGameState、绕过 facade
  */
 
+import type { RevealKind } from '@werewolf/game-engine/models/roles';
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback } from 'react';
 
-import type { RevealKind } from '@/models/roles';
-import type { GameTemplate } from '@/models/Template';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { showAlert } from '@/utils/alert';
 
 import type { BgmControlState } from './useBgmControl';

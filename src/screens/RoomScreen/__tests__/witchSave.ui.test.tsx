@@ -9,9 +9,9 @@
  */
 
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import type { CompoundSchema } from '@werewolf/game-engine/models/roles/spec';
+import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 
-import type { CompoundSchema } from '@/models/roles/spec';
-import { SCHEMAS } from '@/models/roles/spec';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';

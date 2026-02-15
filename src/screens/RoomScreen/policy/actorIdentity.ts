@@ -16,7 +16,7 @@
  * ❌ Do NOT provide default values (null means fail-fast at caller)
  */
 
-import type { RoleId } from '@/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 
 /**
  * Input for actor identity calculation.

@@ -9,7 +9,7 @@
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
-import type { ResolverFn } from './types';
+import type { ResolverFn } from '@werewolf/game-engine/resolvers/types';
 
 export const darkWolfKingConfirmResolver: ResolverFn = () => {
   // Dark wolf king confirm is always valid

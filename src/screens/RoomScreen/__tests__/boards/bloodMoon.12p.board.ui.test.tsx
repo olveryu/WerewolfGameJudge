@@ -11,8 +11,8 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { getSchema } from '@werewolf/game-engine/models/roles/spec';
 
-import { getSchema } from '@/models/roles/spec';
 import {
   chainWolfVoteConfirm,
   // Coverage-integrated chain drivers

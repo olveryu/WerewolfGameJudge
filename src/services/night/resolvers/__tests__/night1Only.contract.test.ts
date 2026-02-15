@@ -4,11 +4,12 @@
  * This app is Night-1 only: resolvers must not enforce cross-night constraints.
  */
 
+import type { ResolverContext } from '@werewolf/game-engine/resolvers/types';
+
 import { dreamcatcherDreamResolver } from '@/services/night/resolvers/dreamcatcher';
 import { guardProtectResolver } from '@/services/night/resolvers/guard';
 import { nightmareBlockResolver } from '@/services/night/resolvers/nightmare';
 import { slackerChooseIdolResolver } from '@/services/night/resolvers/slacker';
-import type { ResolverContext } from '@/services/night/resolvers/types';
 import { wolfKillResolver } from '@/services/night/resolvers/wolf';
 import { wolfQueenCharmResolver } from '@/services/night/resolvers/wolfQueen';
 import { wolfRobotLearnResolver } from '@/services/night/resolvers/wolfRobot';

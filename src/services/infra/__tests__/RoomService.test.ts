@@ -1,4 +1,4 @@
-import type { BroadcastGameState } from '@/services/protocol/types';
+import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock setup — must be before imports

@@ -16,6 +16,9 @@
  *   - 使用 StyleSheet.create（样式由父组件传入或使用共享组件）
  */
 
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { Faction, getRoleDisplayName, getRoleSpec } from '@werewolf/game-engine/models/roles';
+import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import React, { useCallback, useState } from 'react';
 
 import { RoleCardSimple } from '@/components/RoleCardSimple';
@@ -25,9 +28,6 @@ import {
   type RoleData,
   RoleRevealAnimator,
 } from '@/components/RoleRevealEffects';
-import type { RoleId } from '@/models/roles';
-import { Faction, getRoleDisplayName, getRoleSpec } from '@/models/roles';
-import type { ResolvedRoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 // ─── Alignment map (Faction → reveal alignment) ────────────────────────────
 const ALIGNMENT_MAP: Record<Faction, 'wolf' | 'god' | 'villager'> = {

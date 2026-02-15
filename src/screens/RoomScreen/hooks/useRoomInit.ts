@@ -15,10 +15,10 @@
  *   - Create room record in DB (that's done in ConfigScreen before navigation)
  */
 
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { GameTemplate } from '@/models/Template';
-import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomInitParams {

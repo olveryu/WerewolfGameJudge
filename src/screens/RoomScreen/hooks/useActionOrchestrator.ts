@@ -16,13 +16,13 @@
  *   - Modify BroadcastGameState directly
  */
 
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+import { getRoleDisplayName, getWolfKillImmuneRoleIds } from '@werewolf/game-engine/models/roles';
+import type { ActionSchema, InlineSubStepSchema } from '@werewolf/game-engine/models/roles/spec';
+import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { GameStatus } from '@/models/GameStatus';
-import type { RevealKind, RoleId } from '@/models/roles';
-import { getRoleDisplayName, getWolfKillImmuneRoleIds } from '@/models/roles';
-import type { ActionSchema, InlineSubStepSchema } from '@/models/roles/spec';
-import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
 import type { UseRoomActionDialogsResult } from '@/screens/RoomScreen/useRoomActionDialogs';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { roomScreenLog } from '@/utils/logger';

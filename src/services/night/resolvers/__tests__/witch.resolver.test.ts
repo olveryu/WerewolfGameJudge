@@ -4,8 +4,9 @@
  * Tests for witchActionResolver validation and resolution logic.
  */
 
-import type { RoleId } from '@/models/roles';
-import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
+
 import { witchActionResolver } from '@/services/night/resolvers/witch';
 
 // =============================================================================

@@ -6,8 +6,7 @@
  */
 
 import { maybeCreateWitchContextAction } from '@werewolf/game-engine/engine/handlers/witchContext';
-
-import type { BroadcastGameState, BroadcastPlayer } from '@/services/protocol/types';
+import type { BroadcastGameState, BroadcastPlayer } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
 // Test Helpers

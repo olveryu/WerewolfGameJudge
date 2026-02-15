@@ -17,7 +17,7 @@ const SETTINGS_KEY = '@werewolf_settings';
 /** Valid theme keys (must match themes.ts ThemeKey) */
 type ThemeKey = 'light' | 'dark' | 'amoled' | 'sand' | 'midnight' | 'blood' | 'forest' | 'snow';
 
-import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
+import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 interface UserSettings {
   /** Whether to play background music during night phase (default: true) */

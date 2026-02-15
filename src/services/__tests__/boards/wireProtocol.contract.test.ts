@@ -8,8 +8,8 @@
  * 方案 A：运行态抓包 - 捕获 harness 真实发送的 payload
  */
 
-import { RoleId } from '@/models/roles';
-import { NIGHT_STEPS, SCHEMAS } from '@/models/roles/spec';
+import { RoleId } from '@werewolf/game-engine/models/roles';
+import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 
 import { cleanupHostGame, createHostGame } from './hostGameFactory';
 import { executeFullNight } from './stepByStepRunner';

@@ -9,9 +9,9 @@
  * ✅ Allowed: call showAlert, format messages, collect user input
  */
 
+import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import { useCallback } from 'react';
 
-import type { ActionSchema } from '@/models/roles/spec';
 import { showAlert } from '@/utils/alert';
 
 /**

@@ -8,12 +8,14 @@
  * 这是防止 "一刀切" skip 行为的合约测试。
  */
 
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { type SchemaId, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
+import type {
+  ChooseSeatSchema,
+  CompoundSchema,
+} from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { RESOLVERS } from '@werewolf/game-engine/resolvers';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
-
-import type { RoleId } from '@/models/roles';
-import { type SchemaId, SCHEMAS } from '@/models/roles/spec';
-import type { ChooseSeatSchema, CompoundSchema } from '@/models/roles/spec/schema.types';
 
 // 创建基础的 ResolverContext
 function createBaseContext(

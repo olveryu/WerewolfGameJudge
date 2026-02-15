@@ -16,10 +16,10 @@
  */
 
 import * as Sentry from '@sentry/react-native';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
 import { useCallback, useMemo } from 'react';
 
-import { GameStatus } from '@/models/GameStatus';
-import type { RevealKind, RoleId } from '@/models/roles';
 import {
   getInteractionResult,
   type InteractionContext,

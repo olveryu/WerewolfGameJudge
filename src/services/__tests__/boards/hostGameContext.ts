@@ -5,11 +5,11 @@
  * 只包含 type/interface，不包含实现代码。
  */
 
-import type { RoleId } from '@/models/roles';
-import type { SchemaId } from '@/models/roles/spec';
-import type { NightPlan } from '@/models/roles/spec/plan';
-import type { GameTemplate } from '@/models/Template';
-import type { BroadcastGameState, PlayerMessage } from '@/services/protocol/types';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
+import type { NightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { BroadcastGameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
 // Types

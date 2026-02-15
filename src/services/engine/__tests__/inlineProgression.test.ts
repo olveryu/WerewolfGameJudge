@@ -10,8 +10,7 @@
 
 import type { BroadcastGameState } from '@werewolf/game-engine';
 import { runInlineProgression } from '@werewolf/game-engine';
-
-import { buildNightPlan } from '@/models/roles/spec/plan';
+import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
 
 // =============================================================================
 // Test Helpers

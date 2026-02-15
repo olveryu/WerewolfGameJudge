@@ -6,8 +6,7 @@
  */
 
 import { maybeCreateConfirmStatusAction } from '@werewolf/game-engine/engine/handlers/confirmContext';
-
-import type { BroadcastGameState } from '@/services/protocol/types';
+import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
 // Test Helper

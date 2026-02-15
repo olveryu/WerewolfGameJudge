@@ -11,7 +11,8 @@
  * ❌ 禁止：自动清除 gate / 跳过断言
  */
 
-import { SCHEMAS } from '@/models/roles/spec/schemas';
+import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
+
 import { showAlert as realShowAlert } from '@/utils/alert';
 
 // =============================================================================

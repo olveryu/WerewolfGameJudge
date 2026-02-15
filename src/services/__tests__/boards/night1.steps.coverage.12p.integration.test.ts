@@ -9,7 +9,7 @@
  * - 不绕过 handler
  */
 
-import type { RoleId } from '@/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 
 import { cleanupHostGame, createHostGame } from './hostGameFactory';
 import { executeFullNight, executeStepsUntil } from './stepByStepRunner';

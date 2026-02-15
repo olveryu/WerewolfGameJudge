@@ -14,8 +14,7 @@ import type {
   ViewedRoleIntent,
 } from '@werewolf/game-engine/engine/intents/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
-
-import type { SchemaId } from '@/models/roles/spec';
+import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {

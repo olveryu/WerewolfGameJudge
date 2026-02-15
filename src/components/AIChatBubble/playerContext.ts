@@ -8,9 +8,10 @@
  * ❌ 禁止：修改 state、调用 service
  */
 
-import { ROLE_SPECS } from '@/models/roles';
+import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
+import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+
 import type { GameContext } from '@/services/feature/AIChatService';
-import type { BroadcastGameState } from '@/services/protocol/types';
 
 /**
  * 从游戏状态构建玩家视角的上下文（不包含作弊信息）

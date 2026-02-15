@@ -15,7 +15,7 @@
 
 // Use the re-export from models/Room for consistency with RoomScreen.tsx
 // (Both point to the same enum from services/types/GameStateTypes)
-import { GameStatus } from '@/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 // =============================================================================
 // Types

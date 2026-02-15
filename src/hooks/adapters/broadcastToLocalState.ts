@@ -12,18 +12,23 @@
  * ❌ 禁止：业务逻辑、副作用、调用 service
  */
 
-import type { RoleAction } from '@/models/actions/RoleAction';
+import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import {
   makeActionMagicianSwap,
   makeActionTarget,
   makeActionWitch,
-} from '@/models/actions/RoleAction';
-import { makeWitchNone, makeWitchPoison, makeWitchSave } from '@/models/actions/WitchAction';
-import { GameStatus } from '@/models/GameStatus';
-import type { RoleId } from '@/models/roles';
-import { NIGHT_STEPS, SCHEMAS } from '@/models/roles/spec';
-import { createTemplateFromRoles } from '@/models/Template';
-import type { BroadcastGameState, BroadcastPlayer } from '@/services/protocol/types';
+} from '@werewolf/game-engine/models/actions/RoleAction';
+import {
+  makeWitchNone,
+  makeWitchPoison,
+  makeWitchSave,
+} from '@werewolf/game-engine/models/actions/WitchAction';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
+import { createTemplateFromRoles } from '@werewolf/game-engine/models/Template';
+import type { BroadcastGameState, BroadcastPlayer } from '@werewolf/game-engine/protocol/types';
+
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 
 /**

@@ -25,11 +25,10 @@ import type {
   EndNightIntent,
   SetAudioPlayingIntent,
 } from '@werewolf/game-engine/engine/intents/types';
-
-import type { RoleId } from '@/models/roles';
-import { NIGHT_STEPS } from '@/models/roles/spec';
-import { buildNightPlan } from '@/models/roles/spec/plan';
-import type { BroadcastGameState, BroadcastPlayer } from '@/services/protocol/types';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
+import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
+import type { BroadcastGameState, BroadcastPlayer } from '@werewolf/game-engine/protocol/types';
 
 /**
  * 创建完整的玩家对象

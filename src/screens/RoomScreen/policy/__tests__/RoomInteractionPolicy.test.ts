@@ -10,8 +10,9 @@
  * 5. Event Routing
  */
 
-import { GameStatus } from '@/models/GameStatus';
-import type { RevealKind } from '@/models/roles';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RevealKind } from '@werewolf/game-engine/models/roles';
+
 import { getInteractionResult } from '@/screens/RoomScreen/policy/RoomInteractionPolicy';
 import type { InteractionContext, InteractionEvent } from '@/screens/RoomScreen/policy/types';
 import { INTERACTION_PRIORITY } from '@/screens/RoomScreen/policy/types';

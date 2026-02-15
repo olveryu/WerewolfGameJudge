@@ -1,5 +1,5 @@
-import { GameTemplate } from '@/models/Template';
-import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
+import { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 export type RootStackParamList = {
   Home: undefined;

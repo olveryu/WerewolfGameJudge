@@ -24,13 +24,17 @@
 
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStore } from '@werewolf/game-engine/engine/store';
+import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+import { getStepSpec } from '@werewolf/game-engine/models/roles/spec/nightSteps';
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type {
+  AudioEffect,
+  BroadcastGameState,
+  HostBroadcast,
+} from '@werewolf/game-engine/protocol/types';
 
-import type { RevealKind, RoleId } from '@/models/roles';
-import { getStepSpec } from '@/models/roles/spec/nightSteps';
-import type { GameTemplate } from '@/models/Template';
 import { AudioService } from '@/services/infra/AudioService';
 import { RoomService } from '@/services/infra/RoomService';
-import type { AudioEffect, BroadcastGameState, HostBroadcast } from '@/services/protocol/types';
 import { BroadcastService } from '@/services/transport/BroadcastService';
 import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFacade';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';

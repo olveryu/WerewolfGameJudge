@@ -1,6 +1,6 @@
 import { render, waitFor } from '@testing-library/react-native';
+import { getAllSchemaIds, getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
 
-import { getAllSchemaIds, getSchema } from '@/models/roles/spec/schemas';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 
 import { makeBaseUseGameRoomReturn, mockNavigation } from './schemaSmokeTestUtils';

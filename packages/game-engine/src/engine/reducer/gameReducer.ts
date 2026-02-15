@@ -87,7 +87,7 @@ function handleRestartGame(state: GameState): GameState {
     const seed = `${state.roomCode}:${newNonce}`;
     const previous =
       state.resolvedRoleRevealAnimation !== 'none'
-        ? (state.resolvedRoleRevealAnimation as import('@/types/RoleRevealAnimation').RandomizableAnimation)
+        ? (state.resolvedRoleRevealAnimation as import('../../types/RoleRevealAnimation').RandomizableAnimation)
         : undefined;
     resolvedAnimation = resolveRandomAnimation(seed, previous);
   }
@@ -444,7 +444,7 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
         const seed = `${state.roomCode ?? 'default'}:${nonce}`;
         const previous =
           state.resolvedRoleRevealAnimation !== 'none'
-            ? (state.resolvedRoleRevealAnimation as import('@/types/RoleRevealAnimation').RandomizableAnimation)
+            ? (state.resolvedRoleRevealAnimation as import('../../types/RoleRevealAnimation').RandomizableAnimation)
             : undefined;
         resolved = resolveRandomAnimation(seed, previous);
       } else {

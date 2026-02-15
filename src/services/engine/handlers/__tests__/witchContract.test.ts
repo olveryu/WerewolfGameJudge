@@ -15,9 +15,8 @@ import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types
 import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
 import type { ApplyResolverResultAction } from '@werewolf/game-engine/engine/reducer/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
-
-import type { SchemaId } from '@/models/roles/spec';
-import { SCHEMAS } from '@/models/roles/spec';
+import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
+import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 
 // =============================================================================
 // Test Helpers

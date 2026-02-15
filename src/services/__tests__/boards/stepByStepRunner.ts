@@ -11,10 +11,10 @@
  * 5. advanceNightOrThrow 的单一实现来源是 ctx.advanceNightOrThrow()（在 hostGameFactory.ts）
  */
 
-import type { RoleId } from '@/models/roles';
-import { doesRoleParticipateInWolfVote } from '@/models/roles';
-import type { SchemaId } from '@/models/roles/spec';
-import type { PlayerMessage } from '@/services/protocol/types';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
+import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
+import type { PlayerMessage } from '@werewolf/game-engine/protocol/types';
 
 import type { HostGameContext } from './hostGameContext';
 

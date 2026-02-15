@@ -8,7 +8,8 @@
  * ❌ 禁止：调用 service、修改 state
  */
 
-import type { BroadcastGameState } from '@/services/protocol/types';
+import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+
 import { randomPick } from '@/utils/random';
 import { shuffleArray } from '@/utils/shuffle';
 

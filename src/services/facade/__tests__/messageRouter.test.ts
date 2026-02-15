@@ -5,9 +5,10 @@
  * Host 和 Player 走完全相同的路径，无分叉。
  */
 
+import type { BroadcastGameState, HostBroadcast } from '@werewolf/game-engine/protocol/types';
+
 import type { MessageRouterContext } from '@/services/facade/messageRouter';
 import { handleStateUpdate } from '@/services/facade/messageRouter';
-import type { BroadcastGameState, HostBroadcast } from '@/services/protocol/types';
 
 const makeMockState = (overrides?: Partial<BroadcastGameState>): BroadcastGameState => ({
   roomCode: 'ABCD',

@@ -14,7 +14,7 @@ import {
   resolveRandomAnimation,
   type RoleRevealAnimation,
   simpleHash,
-} from '@/types/RoleRevealAnimation';
+} from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 describe('RoleRevealAnimation', () => {
   describe('RANDOMIZABLE_ANIMATIONS', () => {

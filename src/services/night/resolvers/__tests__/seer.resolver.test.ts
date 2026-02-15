@@ -4,10 +4,9 @@
  * Tests for seerCheckResolver validation and resolution logic.
  */
 
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { seerCheckResolver } from '@werewolf/game-engine/resolvers/seer';
-
-import type { RoleId } from '@/models/roles';
-import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
+import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
 
 // =============================================================================
 // Test Helpers

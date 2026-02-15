@@ -1,4 +1,4 @@
-import { RoleId } from '@/models/roles';
+import { RoleId } from '@werewolf/game-engine/models/roles';
 
 // Mock logger
 const mockAudioLogWarn = jest.fn();
@@ -80,7 +80,8 @@ jest.mock('../../../../assets/audio_end/dark_wolf_king.mp3', () => 'dark_wolf_ki
 });
 
 // Now import AudioService after mocks are set up
-import { NIGHT_STEPS } from '@/models/roles/spec';
+import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
+
 import {
   _AUDIO_END_ROLE_IDS,
   _AUDIO_ROLE_IDS,

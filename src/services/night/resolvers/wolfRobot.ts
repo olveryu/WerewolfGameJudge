@@ -9,13 +9,15 @@
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { validateConstraints } from '@werewolf/game-engine/resolvers/constraintValidator';
-
-import type { RoleId } from '@/models/roles';
-import { SCHEMAS } from '@/models/roles/spec/schemas';
-
-import type { ActionInput, ResolverContext, WolfRobotResolverResult } from './types';
-import { getRoleAfterSwap } from './types';
+import type {
+  ActionInput,
+  ResolverContext,
+  WolfRobotResolverResult,
+} from '@werewolf/game-engine/resolvers/types';
+import { getRoleAfterSwap } from '@werewolf/game-engine/resolvers/types';
 
 // =============================================================================
 // 内部强类型定义（编译期保证 learnedRoleId 必须存在）

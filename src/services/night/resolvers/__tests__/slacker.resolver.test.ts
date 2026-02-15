@@ -4,9 +4,10 @@
  * Tests for slackerChooseIdolResolver validation and resolution logic.
  */
 
-import type { RoleId } from '@/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
+
 import { slackerChooseIdolResolver } from '@/services/night/resolvers/slacker';
-import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
 
 // =============================================================================
 // Test Helpers

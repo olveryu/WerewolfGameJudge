@@ -16,8 +16,8 @@ import {
   isValidRoleId,
   isWolfRole,
   RoleId,
-} from '@/models/roles';
-import { createTemplateFromRoles, PRESET_TEMPLATES } from '@/models/Template';
+} from '@werewolf/game-engine/models/roles';
+import { createTemplateFromRoles, PRESET_TEMPLATES } from '@werewolf/game-engine/models/Template';
 
 /**
  * Helper: Get action order from roles via NightPlan

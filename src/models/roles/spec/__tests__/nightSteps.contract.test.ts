@@ -4,7 +4,7 @@
  * Validates NIGHT_STEPS as the single source of truth for night action order.
  */
 
-import { isValidRoleId, ROLE_SPECS } from '@/models/roles';
+import { isValidRoleId, ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 import {
   getAllStepIds,
   getStepsByRole,
@@ -12,8 +12,8 @@ import {
   getStepSpec,
   getStepSpecStrict,
   NIGHT_STEPS,
-} from '@/models/roles/spec/nightSteps';
-import { isValidSchemaId } from '@/models/roles/spec/schemas';
+} from '@werewolf/game-engine/models/roles/spec/nightSteps';
+import { isValidSchemaId } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 describe('NIGHT_STEPS contract', () => {
   describe('uniqueness', () => {

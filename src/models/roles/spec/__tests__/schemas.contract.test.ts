@@ -10,9 +10,9 @@ import {
   isValidSchemaId,
   type SchemaId,
   SCHEMAS,
-} from '@/models/roles/spec/index';
-import { NIGHT_STEPS } from '@/models/roles/spec/index';
-import type { CompoundSchema } from '@/models/roles/spec/schema.types';
+} from '@werewolf/game-engine/models/roles/spec';
+import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
+import type { CompoundSchema } from '@werewolf/game-engine/models/roles/spec/schema.types';
 
 describe('SCHEMAS contract', () => {
   it('should include at least all NIGHT_STEPS schemas (and may include helper schemas)', () => {

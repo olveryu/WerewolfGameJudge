@@ -10,10 +10,10 @@
  * ❌ 禁止：直接操作游戏状态、调用 Supabase
  */
 
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
-import { GameStatus } from '@/models/GameStatus';
 import { bgmLog } from '@/utils/logger';
 
 export interface BgmControlState {

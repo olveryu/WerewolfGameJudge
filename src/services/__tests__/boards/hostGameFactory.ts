@@ -26,13 +26,16 @@ import type {
 import { gameReducer } from '@werewolf/game-engine/engine/reducer';
 import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
-
-import type { RoleId } from '@/models/roles';
-import type { SchemaId } from '@/models/roles/spec';
-import type { NightPlan } from '@/models/roles/spec/plan';
-import { buildNightPlan } from '@/models/roles/spec/plan';
-import { createTemplateFromRoles, GameTemplate, PRESET_TEMPLATES } from '@/models/Template';
-import type { BroadcastGameState, PlayerMessage } from '@/services/protocol/types';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
+import type { NightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
+import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
+import {
+  createTemplateFromRoles,
+  GameTemplate,
+  PRESET_TEMPLATES,
+} from '@werewolf/game-engine/models/Template';
+import type { BroadcastGameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
 
 // Re-export types from hostGameContext.ts for backward compatibility
 export type { CapturedMessage, HostGameContext } from './hostGameContext';

@@ -22,8 +22,8 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { BLOCKED_UI_DEFAULTS, getSchema } from '@werewolf/game-engine/models/roles/spec';
 
-import { BLOCKED_UI_DEFAULTS, getSchema } from '@/models/roles/spec';
 import {
   boardHasNightmare,
   chainConfirmTrigger,

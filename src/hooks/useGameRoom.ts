@@ -15,18 +15,21 @@
  * ❌ 禁止：直接调用 Supabase、包含业务 callback 逻辑（应在子 hooks 中）
  */
 
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+import type { ActionSchema, SchemaId } from '@werewolf/game-engine/models/roles/spec';
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type {
+  ResolvedRoleRevealAnimation,
+  RoleRevealAnimation,
+} from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
-import { GameStatus } from '@/models/GameStatus';
-import type { RevealKind, RoleId } from '@/models/roles';
-import type { ActionSchema, SchemaId } from '@/models/roles/spec';
-import type { GameTemplate } from '@/models/Template';
 import type { RoomRecord } from '@/services/infra/RoomService';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { gameRoomLog } from '@/utils/logger';
 
 import { broadcastToLocalState } from './adapters/broadcastToLocalState';

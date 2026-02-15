@@ -5,9 +5,9 @@
  */
 
 import { renderHook } from '@testing-library/react-native';
+import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import type { RoleAction } from '@/models/actions/RoleAction';
-import type { RoleId } from '@/models/roles';
 import {
   useActionerState,
   UseActionerStateParams,
@@ -79,7 +79,9 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'wolf',
             currentActionRole: 'wolf',
-            currentSchema: require('@/models/roles/spec/schemas').getSchema('wolfKill'),
+            currentSchema: require('@werewolf/game-engine/models/roles/spec/schemas').getSchema(
+              'wolfKill',
+            ),
             actorSeatNumber: 1,
             wolfVotes: new Map(),
           }),
@@ -99,7 +101,9 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'wolf',
             currentActionRole: 'wolf',
-            currentSchema: require('@/models/roles/spec/schemas').getSchema('wolfKill'),
+            currentSchema: require('@werewolf/game-engine/models/roles/spec/schemas').getSchema(
+              'wolfKill',
+            ),
             actorSeatNumber: 1,
             wolfVotes,
           }),
@@ -117,7 +121,9 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'nightmare',
             currentActionRole: 'wolf',
-            currentSchema: require('@/models/roles/spec/schemas').getSchema('wolfKill'),
+            currentSchema: require('@werewolf/game-engine/models/roles/spec/schemas').getSchema(
+              'wolfKill',
+            ),
             actorSeatNumber: 2,
           }),
         ),
@@ -169,7 +175,9 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'nightmare',
             currentActionRole: 'nightmare',
-            currentSchema: require('@/models/roles/spec/schemas').getSchema('nightmareBlock'),
+            currentSchema: require('@werewolf/game-engine/models/roles/spec/schemas').getSchema(
+              'nightmareBlock',
+            ),
             actorSeatNumber: 0,
           }),
         ),

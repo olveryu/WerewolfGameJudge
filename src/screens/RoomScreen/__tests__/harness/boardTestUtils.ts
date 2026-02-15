@@ -6,12 +6,12 @@
  */
 
 import { fireEvent, waitFor } from '@testing-library/react-native';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import React from 'react';
 import { View } from 'react-native';
 
-import { GameStatus } from '@/models/GameStatus';
-import type { RoleId } from '@/models/roles';
-import type { SchemaId } from '@/models/roles/spec';
 import { TESTIDS } from '@/testids';
 
 import { RoomScreenTestHarness } from './RoomScreenTestHarness';
@@ -158,7 +158,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
   );
 
   // Get schema
-  const { getSchema } = require('@/models/roles/spec/schemas');
+  const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const currentSchema = getSchema(schemaId);
 
   return {
@@ -585,7 +585,7 @@ export async function chainSkipConfirm(
   await waitForRoomScreen(result.getByTestId);
   harness.clear();
 
-  const { getSchema } = require('@/models/roles/spec/schemas');
+  const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const schema = getSchema(schemaId);
   const bottomActionText = schema.ui?.bottomActionText;
   if (!bottomActionText) {
@@ -639,7 +639,7 @@ export async function chainConfirmTrigger(
   await waitForRoomScreen(result.getByTestId);
   harness.clear();
 
-  const { getSchema } = require('@/models/roles/spec/schemas');
+  const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const schema = getSchema(schemaId);
   const bottomActionText = schema.ui?.bottomActionText;
   if (!bottomActionText) {
@@ -697,7 +697,7 @@ export async function chainWolfRobotHunterStatus(
   await waitForRoomScreen(result.getByTestId);
   harness.clear();
 
-  const { SCHEMAS } = require('@/models/roles/spec/schemas');
+  const { SCHEMAS } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const gateButtonText = SCHEMAS.wolfRobotLearn.ui?.hunterGateButtonText;
   if (!gateButtonText) {
     throw new Error('[TEST] Missing SCHEMAS.wolfRobotLearn.ui.hunterGateButtonText');
@@ -801,7 +801,7 @@ export async function coverageChainSkipConfirm(
   const result = renderFn();
   await waitForRoomScreen(result.getByTestId);
 
-  const { getSchema } = require('@/models/roles/spec/schemas');
+  const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const schema = getSchema(schemaId);
   const bottomActionText = schema.ui?.bottomActionText;
   if (!bottomActionText) {
@@ -850,7 +850,7 @@ export async function coverageChainConfirmTrigger(
   const result = renderFn();
   await waitForRoomScreen(result.getByTestId);
 
-  const { getSchema } = require('@/models/roles/spec/schemas');
+  const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const schema = getSchema(schemaId);
   const bottomActionText = schema.ui?.bottomActionText;
   if (!bottomActionText) {
@@ -907,7 +907,7 @@ export async function coverageChainWolfRobotHunterStatus(
   const result = renderFn();
   await waitForRoomScreen(result.getByTestId);
 
-  const { SCHEMAS } = require('@/models/roles/spec/schemas');
+  const { SCHEMAS } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const gateButtonText = SCHEMAS.wolfRobotLearn.ui?.hunterGateButtonText;
   if (!gateButtonText) {
     throw new Error('[TEST] Missing SCHEMAS.wolfRobotLearn.ui.hunterGateButtonText');
@@ -1183,7 +1183,7 @@ export async function coverageChainWolfVoteEmpty(
   const result = renderFn();
   await waitForRoomScreen(result.getByTestId);
 
-  const { SCHEMAS } = require('@/models/roles/spec/schemas');
+  const { SCHEMAS } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const emptyVoteText = SCHEMAS.wolfKill.ui?.emptyVoteText;
   if (!emptyVoteText) {
     throw new Error('[TEST] Missing SCHEMAS.wolfKill.ui.emptyVoteText');
@@ -1258,7 +1258,7 @@ export async function coverageChainWitchSkipAll(
   await waitForRoomScreen(result.getByTestId);
 
   // Witch compound skip uses poison step's bottomActionText
-  const { SCHEMAS } = require('@/models/roles/spec/schemas');
+  const { SCHEMAS } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const poisonStep = SCHEMAS.witchAction.steps?.find((s: any) => s.key === 'poison');
   const skipText = poisonStep?.ui?.bottomActionText || '不使用技能';
 

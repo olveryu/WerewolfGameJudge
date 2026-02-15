@@ -11,9 +11,9 @@
  * ❌ 禁止：直接修改 BroadcastGameState、跳过 facade 操作游戏
  */
 
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { useCallback, useMemo, useState } from 'react';
 
-import type { RoleId } from '@/models/roles';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
 

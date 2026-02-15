@@ -9,8 +9,8 @@
  * 2. HOST-DATA-REQUIRED: Reveal dialogs requiring Host broadcast data (covered by integration tests)
  */
 
-import type { RoleId } from '@/models/roles';
-import { PRESET_TEMPLATES } from '@/models/Template';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { PRESET_TEMPLATES } from '@werewolf/game-engine/models/Template';
 
 import type { DialogType } from './RoomScreenTestHarness';
 

@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react-native';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 
-import { GameStatus } from '@/models/GameStatus';
-import type { ActionSchema } from '@/models/roles/spec';
 import {
   type ActionDeps,
   type GameContext,

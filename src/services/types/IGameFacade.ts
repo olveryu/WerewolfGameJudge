@@ -5,10 +5,10 @@
  * Facade 只做编排，不写业务逻辑。
  */
 
-import type { RevealKind, RoleId } from '@/models/roles';
-import type { GameTemplate } from '@/models/Template';
-import type { BroadcastGameState } from '@/services/protocol/types';
-import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
+import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 /** Connection status for UI display (re-exported from BroadcastService) */
 export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected';

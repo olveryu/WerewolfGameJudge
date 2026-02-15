@@ -11,10 +11,10 @@ import {
   NIGHT_STEPS,
   ROLE_SPECS,
   type RoleId,
-} from '@/models/roles/spec/index';
-import { SCHEMAS } from '@/models/roles/spec/schemas';
-import type { RoleSpec } from '@/models/roles/spec/spec.types';
-import { Faction } from '@/models/roles/spec/types';
+} from '@werewolf/game-engine/models/roles/spec';
+import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/spec.types';
+import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
   it('should have exactly 22 roles', () => {

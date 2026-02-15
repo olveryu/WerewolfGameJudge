@@ -64,11 +64,11 @@ jest.mock('../../../hooks/useGameRoom', () => ({
     connectionStatus: 'live',
 
     isHost: false,
-    roomStatus: require('@/models/GameStatus').GameStatus.ongoing,
+    roomStatus: require('@werewolf/game-engine/models/GameStatus').GameStatus.ongoing,
 
     currentActionRole: 'magician',
     currentSchema: (() => {
-      const { getSchema } = require('@/models/roles/spec/schemas');
+      const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
       return getSchema('magicianSwap');
     })(),
 

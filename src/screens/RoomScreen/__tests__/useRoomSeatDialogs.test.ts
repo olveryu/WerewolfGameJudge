@@ -10,8 +10,8 @@
  * - handleLeaveRoom: ongoing/ended direct navigate, other status shows confirm dialog
  */
 import { act, renderHook } from '@testing-library/react-native';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
-import { GameStatus } from '@/models/GameStatus';
 import { useRoomSeatDialogs } from '@/screens/RoomScreen/useRoomSeatDialogs';
 import { showAlert } from '@/utils/alert';
 

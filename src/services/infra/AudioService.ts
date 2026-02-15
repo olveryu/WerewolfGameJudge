@@ -1,7 +1,7 @@
+import { RoleId } from '@werewolf/game-engine/models/roles';
 import { AudioPlayer, AudioStatus, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { Platform } from 'react-native';
 
-import { RoleId } from '@/models/roles';
 import { audioLog } from '@/utils/logger';
 
 /**

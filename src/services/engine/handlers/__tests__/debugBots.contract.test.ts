@@ -13,8 +13,7 @@ import {
 } from '@werewolf/game-engine/engine/handlers/gameControlHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
-
-import type { BroadcastPlayer } from '@/services/protocol/types';
+import type { BroadcastPlayer } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
 // Test Utilities

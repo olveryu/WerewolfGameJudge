@@ -1,4 +1,4 @@
-import type { RoleId } from '@/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 
 /**
  * Type-level contract: wolfRobot learn success result must include learnedRoleId.

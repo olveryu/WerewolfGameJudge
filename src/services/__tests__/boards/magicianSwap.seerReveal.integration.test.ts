@@ -13,7 +13,7 @@
  * - magician swap: target=null + extra.targets=[seatA, seatB]
  */
 
-import type { RoleId } from '@/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 
 import { createHostGame } from './hostGameFactory';
 

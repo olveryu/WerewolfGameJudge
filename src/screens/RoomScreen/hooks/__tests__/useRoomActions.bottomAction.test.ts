@@ -8,9 +8,9 @@
  * - Host handles all blocking via ACTION_REJECTED
  */
 import { renderHook } from '@testing-library/react-native';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 
-import { GameStatus } from '@/models/GameStatus';
-import type { ActionSchema } from '@/models/roles/spec';
 import type { GameContext } from '@/screens/RoomScreen/hooks/useRoomActions';
 import { useRoomActions } from '@/screens/RoomScreen/hooks/useRoomActions';
 import type { LocalGameState } from '@/types/GameStateTypes';

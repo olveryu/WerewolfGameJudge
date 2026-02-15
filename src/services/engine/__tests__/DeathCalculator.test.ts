@@ -34,8 +34,7 @@ import {
   NightActions,
   RoleSeatMap,
 } from '@werewolf/game-engine/engine/DeathCalculator';
-
-import { makeWitchPoison, makeWitchSave } from '@/models/actions/WitchAction';
+import { makeWitchPoison, makeWitchSave } from '@werewolf/game-engine/models/actions/WitchAction';
 
 /** All roles absent — mirrors the module-private DEFAULT_ROLE_SEAT_MAP */
 const NO_ROLES: RoleSeatMap = {

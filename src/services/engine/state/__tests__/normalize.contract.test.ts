@@ -6,8 +6,7 @@
  */
 
 import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
-
-import type { BroadcastGameState } from '@/services/protocol/types';
+import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
 
 /**
  * BroadcastGameState 的所有顶层字段列表（单一真相）

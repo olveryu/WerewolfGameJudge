@@ -8,6 +8,7 @@
  * ✅ 允许：渲染动画 + 触觉反馈
  * ❌ 禁止：import service / 业务逻辑判断
  */
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
@@ -28,7 +29,6 @@ import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import type { RoleId } from '@/models/roles';
 import { borderRadius, useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────

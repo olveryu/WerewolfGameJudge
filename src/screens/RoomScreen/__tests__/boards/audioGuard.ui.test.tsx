@@ -153,7 +153,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
       const { queryByText } = renderRoom();
 
       // The skip button text should not be rendered
-      const { getSchema } = require('@/models/roles/spec/schemas');
+      const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
       const skipText = getSchema('seerCheck').ui?.bottomActionText;
       if (!skipText) throw new Error('[TEST] Missing seerCheck.ui.bottomActionText');
 
@@ -179,7 +179,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
 
       const { queryByText } = renderRoom();
 
-      const { getSchema } = require('@/models/roles/spec/schemas');
+      const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
       const emptyText = getSchema('wolfKill').ui?.emptyVoteText;
       if (!emptyText) throw new Error('[TEST] Missing wolfKill.ui.emptyVoteText');
 

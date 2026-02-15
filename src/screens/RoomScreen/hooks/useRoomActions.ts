@@ -10,12 +10,16 @@
  * Phase 3: Schema-driven - uses currentSchema.kind instead of role names
  */
 
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import {
+  doesRoleParticipateInWolfVote,
+  isWolfRole,
+  RoleId,
+} from '@werewolf/game-engine/models/roles';
+import type { ActionSchema, RevealKind, SchemaId } from '@werewolf/game-engine/models/roles/spec';
+import { isValidSchemaId, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 import { useCallback } from 'react';
 
-import { GameStatus } from '@/models/GameStatus';
-import { doesRoleParticipateInWolfVote, isWolfRole, RoleId } from '@/models/roles';
-import type { ActionSchema, RevealKind, SchemaId } from '@/models/roles/spec';
-import { isValidSchemaId, SCHEMAS } from '@/models/roles/spec';
 import type { LocalGameState } from '@/types/GameStateTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -10,18 +10,18 @@
  * No runtime logic or service dependencies.
  */
 
-import type { RoleAction } from '@/models/actions/RoleAction';
-import { GameStatus } from '@/models/GameStatus';
-import { RoleId } from '@/models/roles';
-import { GameTemplate } from '@/models/Template';
-import type { CurrentNightResults } from '@/services/night/resolvers/types';
-import type { BroadcastGameState } from '@/services/protocol/types';
+import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { RoleId } from '@werewolf/game-engine/models/roles';
+import { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+import type { CurrentNightResults } from '@werewolf/game-engine/resolvers/types';
 
 // =============================================================================
 // Game Status Enum (canonical definition in src/models/GameStatus.ts)
 // =============================================================================
 
-export { GameStatus } from '@/models/GameStatus';
+export { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 // =============================================================================
 // Player Types

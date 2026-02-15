@@ -4,9 +4,10 @@
  * Tests for guardProtectResolver validation and resolution logic.
  */
 
-import type { RoleId } from '@/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
+
 import { guardProtectResolver } from '@/services/night/resolvers/guard';
-import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
 
 // =============================================================================
 // Test Helpers

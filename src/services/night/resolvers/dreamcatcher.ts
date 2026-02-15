@@ -9,11 +9,9 @@
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
+import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { validateConstraints } from '@werewolf/game-engine/resolvers/constraintValidator';
-
-import { SCHEMAS } from '@/models/roles/spec/schemas';
-
-import type { ResolverFn } from './types';
+import type { ResolverFn } from '@werewolf/game-engine/resolvers/types';
 
 export const dreamcatcherDreamResolver: ResolverFn = (context, input) => {
   const { actorSeat } = context;

@@ -8,7 +8,7 @@
  * @see docs/architecture/schema-kinds.md
  */
 
-import { SCHEMAS } from '@/models/roles/spec/schemas';
+import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 describe('useRoomActions witch schema contract', () => {
   describe('witchAction schema structure', () => {

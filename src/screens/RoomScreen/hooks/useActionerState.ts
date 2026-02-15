@@ -7,11 +7,11 @@
  * ✅ Allowed: memoize derived state from props
  */
 
+import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import { useMemo } from 'react';
 
-import type { RoleAction } from '@/models/actions/RoleAction';
-import type { RoleId } from '@/models/roles';
-import type { ActionSchema } from '@/models/roles/spec';
 import {
   type ActionerState,
   determineActionerState,

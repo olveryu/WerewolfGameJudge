@@ -13,9 +13,8 @@ import {
   evaluateNightProgression,
   isWolfVoteAllComplete,
 } from '@werewolf/game-engine/engine/handlers/progressionEvaluator';
-
-import type { RoleId } from '@/models/roles';
-import { doesRoleParticipateInWolfVote } from '@/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
 
 import { cleanupHostGame, createHostGame } from './hostGameFactory';
 import { sendMessageOrThrow } from './stepByStepRunner';

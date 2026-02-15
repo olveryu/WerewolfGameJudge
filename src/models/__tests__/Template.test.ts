@@ -1,11 +1,11 @@
-import { buildNightPlan, RoleId } from '@/models/roles';
+import { buildNightPlan, RoleId } from '@werewolf/game-engine/models/roles';
 import {
   createCustomTemplate,
   createTemplateFromRoles,
   getTemplateRoomInfo,
   PRESET_TEMPLATES,
   templateHasSkilledWolf,
-} from '@/models/Template';
+} from '@werewolf/game-engine/models/Template';
 
 /**
  * Helper: Get action order from roles via NightPlan

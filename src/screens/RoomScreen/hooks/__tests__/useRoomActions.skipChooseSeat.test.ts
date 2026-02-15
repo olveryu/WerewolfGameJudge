@@ -1,4 +1,5 @@
-import type { ChooseSeatSchema } from '@/models/roles/spec/schema.types';
+import type { ChooseSeatSchema } from '@werewolf/game-engine/models/roles/spec/schema.types';
+
 import { deriveSkipIntentFromSchema } from '@/screens/RoomScreen/hooks/useRoomActions';
 
 describe('deriveSkipIntentFromSchema (chooseSeat schemas)', () => {

@@ -6,13 +6,13 @@
  * ✅ 允许：渲染角色卡片内容 UI
  * ❌ 禁止：import service / 业务逻辑判断
  */
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';
 import React, { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { getFactionName, ROLE_ICONS } from '@/components/roleDisplayUtils';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
-import type { RoleId } from '@/models/roles';
-import { getRoleSpec, isWolfRole } from '@/models/roles';
 import { borderRadius, shadows, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
 /** White text color for badges/overlays on colored backgrounds */

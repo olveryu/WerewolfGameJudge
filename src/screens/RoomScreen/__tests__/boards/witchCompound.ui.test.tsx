@@ -11,8 +11,8 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 
-import { SCHEMAS } from '@/models/roles/spec/schemas';
 import {
   createGameRoomMock,
   createShowAlertMock,

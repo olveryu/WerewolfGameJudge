@@ -8,10 +8,8 @@
  * ❌ 禁止：副作用、修改状态、调用 service
  */
 
-import { useMemo } from 'react';
-
-import { GameStatus } from '@/models/GameStatus';
-import { buildNightPlan, RoleId } from '@/models/roles';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { buildNightPlan, RoleId } from '@werewolf/game-engine/models/roles';
 import {
   type ActionSchema,
   getRoleSpec,
@@ -19,9 +17,14 @@ import {
   getStepsByRoleStrict,
   isValidRoleId,
   type SchemaId,
-} from '@/models/roles/spec';
+} from '@werewolf/game-engine/models/roles/spec';
+import type {
+  ResolvedRoleRevealAnimation,
+  RoleRevealAnimation,
+} from '@werewolf/game-engine/types/RoleRevealAnimation';
+import { useMemo } from 'react';
+
 import type { LocalGameState } from '@/types/GameStateTypes';
-import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 
 interface NightDerivedValues {
   /** Current action role derived from NightPlan */

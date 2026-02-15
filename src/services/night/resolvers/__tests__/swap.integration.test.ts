@@ -13,17 +13,17 @@
  */
 
 import { calculateDeaths } from '@werewolf/game-engine/engine/DeathCalculator';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { seerCheckResolver } from '@werewolf/game-engine/resolvers/seer';
-
-import type { RoleId } from '@/models/roles';
-import { gargoyleCheckResolver } from '@/services/night/resolvers/gargoyle';
-import { magicianSwapResolver } from '@/services/night/resolvers/magician';
-import { psychicCheckResolver } from '@/services/night/resolvers/psychic';
 import type {
   ActionInput,
   CurrentNightResults,
   ResolverContext,
-} from '@/services/night/resolvers/types';
+} from '@werewolf/game-engine/resolvers/types';
+
+import { gargoyleCheckResolver } from '@/services/night/resolvers/gargoyle';
+import { magicianSwapResolver } from '@/services/night/resolvers/magician';
+import { psychicCheckResolver } from '@/services/night/resolvers/psychic';
 import { wolfRobotLearnResolver } from '@/services/night/resolvers/wolfRobot';
 
 // =============================================================================

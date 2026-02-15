@@ -9,8 +9,8 @@
  * 使用 harness (createHostGame)
  */
 
-import type { RoleId } from '@/models/roles';
-import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
 
 import { createHostGame } from './hostGameFactory';
 

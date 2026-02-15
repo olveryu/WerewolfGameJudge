@@ -6,8 +6,8 @@
  * ✅ 允许：纯数据常量、纯函数（基于 ROLE_SPECS 推导）
  * ❌ 禁止：import service / 副作用 / React hooks / 颜色（颜色由各组件按自身 theme 定义）
  */
-import type { RoleId } from '@/models/roles';
-import { getRoleSpec, isWolfRole } from '@/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';
 
 /** 角色对应的 emoji 图标（SSOT：所有 RoleCard 组件共用） */
 export const ROLE_ICONS: Record<string, string> = {

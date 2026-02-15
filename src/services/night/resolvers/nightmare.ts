@@ -11,9 +11,8 @@
  *       gargoyle, wolfRobot, spiritKnight, etc.
  */
 
-import { ROLE_SPECS } from '@/models/roles';
-
-import type { ResolverFn } from './types';
+import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
+import type { ResolverFn } from '@werewolf/game-engine/resolvers/types';
 
 export const nightmareBlockResolver: ResolverFn = (context, input) => {
   const { players } = context;

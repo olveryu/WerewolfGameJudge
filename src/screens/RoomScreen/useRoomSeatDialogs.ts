@@ -9,9 +9,9 @@
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { useCallback, useState } from 'react';
 
-import { GameStatus } from '@/models/GameStatus';
 import type { RootStackParamList } from '@/navigation/types';
 import { showAlert } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';

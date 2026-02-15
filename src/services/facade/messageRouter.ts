@@ -14,8 +14,8 @@
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
+import type { HostBroadcast } from '@werewolf/game-engine/protocol/types';
 
-import type { HostBroadcast } from '@/services/protocol/types';
 import type { BroadcastService } from '@/services/transport/BroadcastService';
 import { facadeLog } from '@/utils/logger';
 

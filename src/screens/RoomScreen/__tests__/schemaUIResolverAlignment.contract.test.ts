@@ -9,15 +9,15 @@
  * 如果任何层出现 drift，此测试会失败。
  */
 
-import type { RoleId } from '@/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type {
   ChooseSeatSchema,
   CompoundSchema,
   SwapSchema,
-} from '@/models/roles/spec/schema.types';
-import { type SchemaId, SCHEMAS } from '@/models/roles/spec/schemas';
-import { RESOLVERS } from '@/services/night/resolvers';
-import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
+} from '@werewolf/game-engine/models/roles/spec/schema.types';
+import { type SchemaId, SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
+import { RESOLVERS } from '@werewolf/game-engine/resolvers';
+import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
 
 // === Test Helpers ===
 

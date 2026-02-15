@@ -11,9 +11,9 @@
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@werewolf/game-engine/engine/reducer/types';
 import { GameStore } from '@werewolf/game-engine/engine/store';
+import type { BroadcastPlayer, HostBroadcast } from '@werewolf/game-engine/protocol/types';
 
 import { GameFacade } from '@/services/facade/GameFacade';
-import type { BroadcastPlayer, HostBroadcast } from '@/services/protocol/types';
 
 // Mock BroadcastService (constructor mock — DI 测试直接注入，此处仅防止真实 import)
 jest.mock('../../transport/BroadcastService', () => ({

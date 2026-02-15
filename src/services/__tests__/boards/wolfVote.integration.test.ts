@@ -10,7 +10,7 @@
  * All tests run on harness (createHostGame)
  */
 
-import type { RoleId } from '@/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 
 import { createHostGame } from './hostGameFactory';
 import { executeFullNight } from './stepByStepRunner';

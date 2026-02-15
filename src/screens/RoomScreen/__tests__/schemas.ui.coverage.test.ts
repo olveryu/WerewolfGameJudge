@@ -1,4 +1,4 @@
-import { getAllSchemaIds, getSchema } from '@/models/roles/spec/schemas';
+import { getAllSchemaIds, getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 /**
  * Minimal UI coverage contract for all schemas.

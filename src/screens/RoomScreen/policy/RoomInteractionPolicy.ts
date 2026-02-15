@@ -14,8 +14,9 @@
  * ✅ Allowed imports: types only, SeatTapPolicy (pure)
  */
 
-import { GameStatus } from '@/models/GameStatus';
-import type { RevealKind } from '@/models/roles';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RevealKind } from '@werewolf/game-engine/models/roles';
+
 import { getSeatTapResult } from '@/screens/RoomScreen/seatTap/SeatTapPolicy';
 
 import type { InteractionContext, InteractionEvent, InteractionResult } from './types';

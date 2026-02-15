@@ -10,11 +10,10 @@
  * RULE: If wolfKillDisabled (nightmare blocked a wolf), non-empty vote is REJECTED.
  */
 
-import { getRoleSpec, getWolfKillImmuneRoleIds } from '@/models/roles';
-import { isValidRoleId } from '@/models/roles';
-import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
-
-import type { ResolverFn } from './types';
+import { getRoleSpec, getWolfKillImmuneRoleIds } from '@werewolf/game-engine/models/roles';
+import { isValidRoleId } from '@werewolf/game-engine/models/roles';
+import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
+import type { ResolverFn } from '@werewolf/game-engine/resolvers/types';
 
 export const wolfKillResolver: ResolverFn = (context, input) => {
   const { players, currentNightResults, actorSeat } = context;

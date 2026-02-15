@@ -6,8 +6,7 @@
 
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
-
-import type { RoleId } from '@/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 
 interface PlayerInput {
   uid: string;

@@ -2,9 +2,10 @@
  * RoomScreen.helpers.test.ts - Unit tests for pure helper functions
  */
 
-import { GameStatus } from '@/models/GameStatus';
-import type { RoleId } from '@/models/roles';
-import { SCHEMAS } from '@/models/roles/spec/schemas';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
+
 import {
   buildSeatViewModels,
   determineActionerState,

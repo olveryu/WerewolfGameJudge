@@ -14,8 +14,9 @@
  * ✅ Allowed imports: types only (GameStatus, RoleId, ActionIntent, etc.)
  */
 
-import type { GameStatus } from '@/models/GameStatus';
-import type { RevealKind, RoleId } from '@/models/roles';
+import type { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+
 import type { ActionIntent } from '@/screens/RoomScreen/hooks/useRoomActions';
 
 // =============================================================================

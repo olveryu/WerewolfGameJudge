@@ -16,16 +16,16 @@
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
-import type { RoleAction } from '@/models/actions/RoleAction';
-import { GameStatus } from '@/models/GameStatus';
-import type { RevealKind, RoleId } from '@/models/roles';
-import type { GameTemplate } from '@/models/Template';
 import type { RootStackParamList } from '@/navigation/types';
-import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { showAlert } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';
 

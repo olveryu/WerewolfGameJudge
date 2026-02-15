@@ -2,10 +2,10 @@
  * Tests for useRoomHostDialogs hook
  */
 import { act, renderHook } from '@testing-library/react-native';
+import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import type { RoleAction } from '@/models/actions/RoleAction';
-import { GameStatus } from '@/models/GameStatus';
-import type { RoleId } from '@/models/roles';
 import { useRoomHostDialogs } from '@/screens/RoomScreen/useRoomHostDialogs';
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 import { showAlert } from '@/utils/alert';

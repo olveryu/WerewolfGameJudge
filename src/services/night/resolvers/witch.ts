@@ -10,8 +10,7 @@
  */
 
 import { resolveWolfVotes } from '@werewolf/game-engine/engine/resolveWolfVotes';
-
-import type { ResolverFn, ResolverResult } from './types';
+import type { ResolverFn, ResolverResult } from '@werewolf/game-engine/resolvers/types';
 
 function resolveWolfKillSeatFromVotes(
   wolfVotesBySeat: Readonly<Record<string, number>> | undefined,

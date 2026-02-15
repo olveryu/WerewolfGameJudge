@@ -11,11 +11,20 @@
  * 5. canSkip 行为对齐
  */
 
-import type { RoleId } from '@/models/roles';
-import { NIGHT_STEPS, ROLE_SPECS, type SchemaId, SCHEMAS } from '@/models/roles/spec';
-import type { ActionSchema, CompoundSchema, RevealKind } from '@/models/roles/spec/schema.types';
-import { RESOLVERS } from '@/services/night/resolvers/index';
-import type { ActionInput, ResolverContext } from '@/services/night/resolvers/types';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import {
+  NIGHT_STEPS,
+  ROLE_SPECS,
+  type SchemaId,
+  SCHEMAS,
+} from '@werewolf/game-engine/models/roles/spec';
+import type {
+  ActionSchema,
+  CompoundSchema,
+  RevealKind,
+} from '@werewolf/game-engine/models/roles/spec/schema.types';
+import { RESOLVERS } from '@werewolf/game-engine/resolvers';
+import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
 
 // === Test Helpers ===
 

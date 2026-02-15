@@ -8,16 +8,17 @@
  * ✅ Allowed imports: types, roles registry (getRoleSpec, isWolfRole)
  */
 
-import type { RoleAction } from '@/models/actions/RoleAction';
-import type { RoleId } from '@/models/roles';
+import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import {
   canRoleSeeWolves,
   doesRoleParticipateInWolfVote,
   getRoleSpec,
   isWolfRole,
-} from '@/models/roles';
-import type { ActionSchema, TargetConstraint } from '@/models/roles/spec';
-import type { GameTemplate } from '@/models/Template';
+} from '@werewolf/game-engine/models/roles';
+import type { ActionSchema, TargetConstraint } from '@werewolf/game-engine/models/roles/spec';
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+
 import type { LocalGameState } from '@/types/GameStateTypes';
 
 // =============================================================================

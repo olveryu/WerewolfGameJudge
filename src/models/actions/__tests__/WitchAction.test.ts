@@ -12,7 +12,7 @@ import {
   makeWitchPoison,
   makeWitchSave,
   WitchAction,
-} from '@/models/actions/WitchAction';
+} from '@werewolf/game-engine/models/actions/WitchAction';
 
 describe('WitchAction', () => {
   describe('Factory Functions', () => {

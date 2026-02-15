@@ -12,6 +12,14 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
+import { Faction, ROLE_SPECS, RoleId } from '@werewolf/game-engine/models/roles';
+import {
+  createCustomTemplate,
+  findMatchingPresetName,
+  PRESET_TEMPLATES,
+  validateTemplateRoles,
+} from '@werewolf/game-engine/models/Template';
+import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,17 +27,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
-import { Faction, ROLE_SPECS, RoleId } from '@/models/roles';
-import {
-  createCustomTemplate,
-  findMatchingPresetName,
-  PRESET_TEMPLATES,
-  validateTemplateRoles,
-} from '@/models/Template';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { spacing, useColors } from '@/theme';
-import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { showAlert } from '@/utils/alert';
 import { configLog } from '@/utils/logger';
 

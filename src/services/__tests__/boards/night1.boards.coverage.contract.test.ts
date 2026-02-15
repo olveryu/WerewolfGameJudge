@@ -10,7 +10,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { NIGHT_STEPS } from '@/models/roles/spec/nightSteps';
+import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec/nightSteps';
 
 // =============================================================================
 // 权威列表：10 个 12 人板子（来自 PRESET_TEMPLATES）

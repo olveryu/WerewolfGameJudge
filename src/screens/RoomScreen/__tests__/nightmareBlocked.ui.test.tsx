@@ -9,8 +9,8 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
 
-import { BLOCKED_UI_DEFAULTS } from '@/models/roles/spec';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';

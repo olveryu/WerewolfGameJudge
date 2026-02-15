@@ -20,12 +20,12 @@
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 import { API_BASE_URL } from '@/config/api';
-import type { RoleId } from '@/models/roles';
-import type { GameTemplate } from '@/models/Template';
 import type { AudioService } from '@/services/infra/AudioService';
-import type { RoleRevealAnimation } from '@/types/RoleRevealAnimation';
 import { facadeLog } from '@/utils/logger';
 import { secureRng } from '@/utils/random';
 
