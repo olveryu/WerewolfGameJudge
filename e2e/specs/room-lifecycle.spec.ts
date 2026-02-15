@@ -81,7 +81,8 @@ test.describe('Room Lifecycle', () => {
       await hostPage.getByText('确定', { exact: true }).click();
 
       // Verify redirected to home
-      await expect(hostPage.getByText('创建房间').first()).toBeVisible({ timeout: 10_000 });
+      // React Navigation keeps old screens mounted (display:none), so .last() picks the active one
+      await expect(hostPage.getByText('创建房间').last()).toBeVisible({ timeout: 10_000 });
     } finally {
       await closeAll(fixture);
     }
@@ -106,7 +107,8 @@ test.describe('Room Lifecycle', () => {
       await joinerPage.getByText('确定', { exact: true }).click();
 
       // Verify redirected to home
-      await expect(joinerPage.getByText('创建房间').first()).toBeVisible({ timeout: 10_000 });
+      // React Navigation keeps old screens mounted (display:none), so .last() picks the active one
+      await expect(joinerPage.getByText('创建房间').last()).toBeVisible({ timeout: 10_000 });
     } finally {
       await closeAll(fixture);
     }

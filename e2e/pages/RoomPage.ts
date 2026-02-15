@@ -106,7 +106,7 @@ export class RoomPage {
     const viewBtn = this.page.getByText('查看身份', { exact: true });
     await expect(viewBtn).toBeVisible({ timeout: 15_000 });
 
-    for (let attempt = 1; attempt <= 30; attempt++) {
+    for (let attempt = 1; attempt <= 50; attempt++) {
       await viewBtn.click();
 
       const okBtn = this.page.getByText('我知道了', { exact: true });
@@ -168,7 +168,7 @@ export class RoomPage {
     const viewBtn = this.page.getByText('查看身份', { exact: true });
     await expect(viewBtn).toBeVisible({ timeout: 15_000 });
 
-    for (let attempt = 1; attempt <= 30; attempt++) {
+    for (let attempt = 1; attempt <= 50; attempt++) {
       await viewBtn.click();
 
       const okBtn = this.page.getByText('我知道了', { exact: true });

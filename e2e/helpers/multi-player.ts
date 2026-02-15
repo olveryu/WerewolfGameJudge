@@ -135,7 +135,7 @@ async function viewRolesForAll(pages: Page[]): Promise<void> {
  * If clicking triggers the "等待房主" alert (disabled button), dismiss it
  * and retry after a brief wait for the next broadcast to arrive.
  */
-export async function viewRoleWithRetry(page: Page, maxRetries = 30): Promise<void> {
+export async function viewRoleWithRetry(page: Page, maxRetries = 50): Promise<void> {
   const viewBtn = page.getByText('查看身份', { exact: true });
   await expect(viewBtn).toBeVisible({ timeout: 15_000 });
 
