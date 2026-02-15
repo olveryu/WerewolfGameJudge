@@ -5,9 +5,8 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { magicianSwapResolver } from '@werewolf/game-engine/resolvers/magician';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
-
-import { magicianSwapResolver } from '@/services/night/resolvers/magician';
 
 // =============================================================================
 // Test Helpers

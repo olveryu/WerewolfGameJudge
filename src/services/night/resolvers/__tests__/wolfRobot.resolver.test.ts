@@ -12,8 +12,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
-
-import { wolfRobotLearnResolver } from '@/services/night/resolvers/wolfRobot';
+import { wolfRobotLearnResolver } from '@werewolf/game-engine/resolvers/wolfRobot';
 
 // =============================================================================
 // Test Helpers

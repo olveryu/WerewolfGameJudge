@@ -4,15 +4,14 @@
  * This app is Night-1 only: resolvers must not enforce cross-night constraints.
  */
 
+import { dreamcatcherDreamResolver } from '@werewolf/game-engine/resolvers/dreamcatcher';
+import { guardProtectResolver } from '@werewolf/game-engine/resolvers/guard';
+import { nightmareBlockResolver } from '@werewolf/game-engine/resolvers/nightmare';
+import { slackerChooseIdolResolver } from '@werewolf/game-engine/resolvers/slacker';
 import type { ResolverContext } from '@werewolf/game-engine/resolvers/types';
-
-import { dreamcatcherDreamResolver } from '@/services/night/resolvers/dreamcatcher';
-import { guardProtectResolver } from '@/services/night/resolvers/guard';
-import { nightmareBlockResolver } from '@/services/night/resolvers/nightmare';
-import { slackerChooseIdolResolver } from '@/services/night/resolvers/slacker';
-import { wolfKillResolver } from '@/services/night/resolvers/wolf';
-import { wolfQueenCharmResolver } from '@/services/night/resolvers/wolfQueen';
-import { wolfRobotLearnResolver } from '@/services/night/resolvers/wolfRobot';
+import { wolfKillResolver } from '@werewolf/game-engine/resolvers/wolf';
+import { wolfQueenCharmResolver } from '@werewolf/game-engine/resolvers/wolfQueen';
+import { wolfRobotLearnResolver } from '@werewolf/game-engine/resolvers/wolfRobot';
 
 function makeContext(overrides: Partial<ResolverContext> = {}): ResolverContext {
   const players = new Map<number, any>([

@@ -5,9 +5,8 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { dreamcatcherDreamResolver } from '@werewolf/game-engine/resolvers/dreamcatcher';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
-
-import { dreamcatcherDreamResolver } from '@/services/night/resolvers/dreamcatcher';
 
 // =============================================================================
 // Test Helpers

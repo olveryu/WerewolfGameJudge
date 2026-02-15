@@ -5,9 +5,8 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { darkWolfKingConfirmResolver } from '@werewolf/game-engine/resolvers/darkWolfKing';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
-
-import { darkWolfKingConfirmResolver } from '@/services/night/resolvers/darkWolfKing';
 
 // =============================================================================
 // Test Helpers

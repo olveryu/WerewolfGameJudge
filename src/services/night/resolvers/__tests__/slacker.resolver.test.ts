@@ -5,9 +5,8 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { slackerChooseIdolResolver } from '@werewolf/game-engine/resolvers/slacker';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
-
-import { slackerChooseIdolResolver } from '@/services/night/resolvers/slacker';
 
 // =============================================================================
 // Test Helpers

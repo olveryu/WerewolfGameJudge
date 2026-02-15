@@ -8,9 +8,8 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { nightmareBlockResolver } from '@werewolf/game-engine/resolvers/nightmare';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
-
-import { nightmareBlockResolver } from '@/services/night/resolvers/nightmare';
 
 // =============================================================================
 // Test Helpers

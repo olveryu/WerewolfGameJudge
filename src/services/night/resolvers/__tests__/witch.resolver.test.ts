@@ -6,8 +6,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
-
-import { witchActionResolver } from '@/services/night/resolvers/witch';
+import { witchActionResolver } from '@werewolf/game-engine/resolvers/witch';
 
 // =============================================================================
 // Test Helpers

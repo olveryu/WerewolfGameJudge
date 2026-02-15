@@ -1710,6 +1710,47 @@ interface AudioEffect {
 
 ---
 
+### Phase 8: Proxy Stub 最终清理
+
+**目标：** 删除 migration 过程中遗留的所有 proxy re-export stub 和冗余副本，让 `src/` 只保留客户端专属代码。
+
+#### 8.1 已完成的清理（3 commits）
+
+| Commit            | 内容                                                                                                                                                                      | 文件变更  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| B1: `f429acc7`    | 删除 23 个 engine/resolver proxy re-export stubs（`src/services/engine/`、`src/services/protocol/reasonCodes.ts`）                                                        | 64 files  |
+| B2+B3: `36a58dda` | 删除 16 个 models/protocol/resolver proxy stubs + `src/types/RoleRevealAnimation.ts`；~200 文件 import 路径批量更新 `@/models/` → `@werewolf/game-engine/models/` 等      | 198 files |
+| B4                | 删除 13 个冗余 resolver 源文件（`src/services/night/resolvers/*.ts`，与 game-engine 仅 import 路径不同）+ 14 个测试文件 import 更新 + 删除空目录 `src/services/protocol/` | 28 files  |
+
+#### 8.2 清理总结
+
+| 类别                     | 数量     | 说明                                                   |
+| ------------------------ | -------- | ------------------------------------------------------ |
+| 删除的 proxy stub 文件   | 39       | `export * from '@werewolf/game-engine/...'` 一行式转发 |
+| 删除的冗余 resolver 副本 | 13       | 逻辑完全相同，仅 import 路径不同                       |
+| 删除的空目录             | 1        | `src/services/protocol/`                               |
+| 更新的 import 路径       | ~400+    | `@/models/*` → `@werewolf/game-engine/models/*` 等     |
+| import + require 模式    | 均已覆盖 | 含 Jest `require()` mock 路径                          |
+
+#### 8.3 最终目录状态
+
+| 目录                            | 源文件                  | 测试文件 | 说明                                                    |
+| ------------------------------- | ----------------------- | -------- | ------------------------------------------------------- |
+| `src/models/`                   | 0                       | 11       | 测试 game-engine 逻辑，import `@werewolf/game-engine/*` |
+| `src/services/engine/`          | 0                       | 19       | 同上                                                    |
+| `src/services/night/resolvers/` | 0                       | 19       | 同上                                                    |
+| `src/services/protocol/`        | —                       | —        | 已删除                                                  |
+| `src/types/`                    | 1 (`GameStateTypes.ts`) | 1        | `GameStateTypes.ts` 含 83 行客户端专属类型，非 stub     |
+
+> **P2 后续可选：** 上述 49 个测试文件仍在 `src/` 但测试的是 game-engine 纯逻辑。待 game-engine 有自己的 jest config 后可迁移至 `packages/game-engine/__tests__/`。
+
+#### 8.4 验证
+
+- `pnpm exec tsc --noEmit` — 0 errors ✅
+- `pnpm exec jest --no-coverage --forceExit` — 171 suites / 2636 tests ✅
+
+---
+
 ## 不变的部分
 
 | 功能                | 方式                          | 原因                    |
@@ -1768,8 +1809,9 @@ rooms (
 | Phase 5: 消除 HostStateCache  | 2         | 1 天         | 删除 HostStateCache + 统一 rejoin 到 DB + 合并入口方法           |
 | Phase 6: 推进/计时迁移服务端  | 3-4       | 3-5 天       | 服务端内联推进 + pendingAudioEffects 队列 + 客户端 deadline 兜底 |
 | Phase 7: 清理冗余 isHost 门控 | 1         | 0.5 天       | 删除 GameFacade 快速拦截 + HostActionsContext.isHost + telemetry |
+| Phase 8: Proxy Stub 最终清理  | 3         | 0.5 天       | 删除 52 个 proxy stub / 冗余副本 + ~400 import 路径更新          |
 | 集成测试 + 文档               | 1         | 1 天         | E2E 全量回归 + 文档更新                                          |
-| **总计**                      | **24-26** | **15-25 天** |                                                                  |
+| **总计**                      | **27-29** | **15-25 天** |                                                                  |
 
 ---
 
@@ -1787,4 +1829,5 @@ rooms (
    - Fix 1: GameFacade constructor 添加 store subscription，检测 `pendingAudioEffects` 非空 → 依次播放 → `postAudioAck`
    - Fix 2: wolf vote deadline 到期后 Host 调用 `postProgression`（一次性 guard 防重入）
    - Fix 3: `start.ts` API 从 handler sideEffects 提取 PLAY_AUDIO → 写入 `pendingAudioEffects` + `isAudioPlaying` state
-10. **集成测试 + 文档**: E2E 全量回归 + 文档更新
+10. **Phase 8**: Proxy Stub 最终清理 — 删除 52 个 proxy stub / 冗余副本 + ~400 import 更新（3 commits: B1 engine stubs, B2+B3 models/protocol stubs, B4 resolver duplicates） ✅
+11. **集成测试 + 文档**: E2E 全量回归 + 文档更新

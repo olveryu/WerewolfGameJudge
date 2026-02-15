@@ -5,9 +5,8 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { gargoyleCheckResolver } from '@werewolf/game-engine/resolvers/gargoyle';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
-
-import { gargoyleCheckResolver } from '@/services/night/resolvers/gargoyle';
 
 // =============================================================================
 // Test Helpers

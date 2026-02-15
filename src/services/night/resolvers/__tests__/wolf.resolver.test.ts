@@ -9,8 +9,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
-
-import { wolfKillResolver } from '@/services/night/resolvers/wolf';
+import { wolfKillResolver } from '@werewolf/game-engine/resolvers/wolf';
 
 // =============================================================================
 // Test Helpers
