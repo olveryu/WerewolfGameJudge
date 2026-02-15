@@ -1742,12 +1742,36 @@ interface AudioEffect {
 | `src/services/protocol/`        | —                       | —        | 已删除                                                  |
 | `src/types/`                    | 1 (`GameStateTypes.ts`) | 1        | `GameStateTypes.ts` 含 83 行客户端专属类型，非 stub     |
 
-> **P2 后续可选：** 上述 49 个测试文件仍在 `src/` 但测试的是 game-engine 纯逻辑。待 game-engine 有自己的 jest config 后可迁移至 `packages/game-engine/__tests__/`。
+> **P2 后续可选：** ~~上述 49 个测试文件仍在 `src/` 但测试的是 game-engine 纯逻辑。待 game-engine 有自己的 jest config 后可迁移至 `packages/game-engine/__tests__/`。~~ **已完成** — 见 8.5。
 
 #### 8.4 验证
 
 - `pnpm exec tsc --noEmit` — 0 errors ✅
 - `pnpm exec jest --no-coverage --forceExit` — 171 suites / 2636 tests ✅
+
+#### 8.5 P2 测试共址迁移（Test Co-location）
+
+社区 monorepo 惯例：测试应与被测代码共址。48 个测试文件原先在 `src/` 但完全依赖 `@werewolf/game-engine/*`（零 `@/` 客户端 import），属于 game-engine 纯逻辑测试。
+
+**变更：**
+
+| 操作                                       | 数量                 | 说明                                                                                                                                                                                                   |
+| ------------------------------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 新增 `ts-jest ^29.4.6`                     | 1 devDep             | game-engine 独立 jest preset                                                                                                                                                                           |
+| 新增 `packages/game-engine/jest.config.js` | 1 文件               | `preset: 'ts-jest'`, `testEnvironment: 'node'`, self-referencing `moduleNameMapper`                                                                                                                    |
+| 更新 `packages/game-engine/tsconfig.json`  | paths                | 添加 `@werewolf/game-engine/*` 自引用路径                                                                                                                                                              |
+| 更新 `packages/game-engine/package.json`   | scripts              | 添加 `"test": "jest --no-coverage --forceExit"`                                                                                                                                                        |
+| `git mv` 测试文件                          | 48 文件 + 1 snapshot | `src/models/` → `game-engine/src/models/`, `src/services/engine/` → `game-engine/src/engine/`, `src/services/night/resolvers/` → `game-engine/src/resolvers/`, `src/types/` → `game-engine/src/types/` |
+| 保留 `import-boundary.test.ts`             | 1 文件               | 跨包架构边界测试，用 `fs`/`path` 扫描 `src/` 和 `packages/`，必须留在 root                                                                                                                             |
+| 更新 `hardGates.contract.test.ts`          | 1 文件               | engine 目录路径从 `src/services/engine` → `packages/game-engine/src/engine`                                                                                                                            |
+| 删除空目录                                 | ~15 目录             | `src/models/__tests__/`, `src/services/engine/`, `src/services/night/` 等                                                                                                                              |
+
+**验证：**
+
+- `cd packages/game-engine && pnpm test` — 48 suites / 990 tests ✅
+- `pnpm exec jest --no-coverage --forceExit`（root）— 123 suites / 1646 tests ✅
+- 合计 171 suites / 2636 tests（与迁移前一致）
+- `pnpm exec tsc --noEmit` — 0 errors ✅
 
 ---
 
@@ -1799,19 +1823,19 @@ rooms (
 
 ## 工期估算
 
-| 阶段                          | Commits   | 工作量       | 说明                                                             |
-| ----------------------------- | --------- | ------------ | ---------------------------------------------------------------- |
-| Phase 0: 共享包提取           | 4         | 1-2 天       | 文件移动 + import 更新 + 依赖抽象，纯机械操作                    |
-| Phase 1: 入座/离座 API        | 3         | 1-2 天       | 第一个 API Route + 客户端改造 + 测试更新                         |
-| Phase 2: 游戏控制 API         | 3         | 2-3 天       | 7 个 API Route + 音频 sideEffects + 测试更新                     |
-| Phase 3: 夜晚流程 API         | 4         | 3-5 天       | 8 个 API Route + 自动推进改造 + timer + 测试                     |
-| Phase 4: 统一客户端架构       | 3         | 1-2 天       | 消除 Host/Player 分叉 + 删除 P2P 消息                            |
-| Phase 5: 消除 HostStateCache  | 2         | 1 天         | 删除 HostStateCache + 统一 rejoin 到 DB + 合并入口方法           |
-| Phase 6: 推进/计时迁移服务端  | 3-4       | 3-5 天       | 服务端内联推进 + pendingAudioEffects 队列 + 客户端 deadline 兜底 |
-| Phase 7: 清理冗余 isHost 门控 | 1         | 0.5 天       | 删除 GameFacade 快速拦截 + HostActionsContext.isHost + telemetry |
-| Phase 8: Proxy Stub 最终清理  | 3         | 0.5 天       | 删除 52 个 proxy stub / 冗余副本 + ~400 import 路径更新          |
-| 集成测试 + 文档               | 1         | 1 天         | E2E 全量回归 + 文档更新                                          |
-| **总计**                      | **27-29** | **15-25 天** |                                                                  |
+| 阶段                          | Commits   | 工作量       | 说明                                                                      |
+| ----------------------------- | --------- | ------------ | ------------------------------------------------------------------------- |
+| Phase 0: 共享包提取           | 4         | 1-2 天       | 文件移动 + import 更新 + 依赖抽象，纯机械操作                             |
+| Phase 1: 入座/离座 API        | 3         | 1-2 天       | 第一个 API Route + 客户端改造 + 测试更新                                  |
+| Phase 2: 游戏控制 API         | 3         | 2-3 天       | 7 个 API Route + 音频 sideEffects + 测试更新                              |
+| Phase 3: 夜晚流程 API         | 4         | 3-5 天       | 8 个 API Route + 自动推进改造 + timer + 测试                              |
+| Phase 4: 统一客户端架构       | 3         | 1-2 天       | 消除 Host/Player 分叉 + 删除 P2P 消息                                     |
+| Phase 5: 消除 HostStateCache  | 2         | 1 天         | 删除 HostStateCache + 统一 rejoin 到 DB + 合并入口方法                    |
+| Phase 6: 推进/计时迁移服务端  | 3-4       | 3-5 天       | 服务端内联推进 + pendingAudioEffects 队列 + 客户端 deadline 兜底          |
+| Phase 7: 清理冗余 isHost 门控 | 1         | 0.5 天       | 删除 GameFacade 快速拦截 + HostActionsContext.isHost + telemetry          |
+| Phase 8: Proxy Stub 最终清理  | 4         | 0.5 天       | 删除 52 个 proxy stub / 冗余副本 + ~400 import 路径更新 + 48 测试共址迁移 |
+| 集成测试 + 文档               | 1         | 1 天         | E2E 全量回归 + 文档更新                                                   |
+| **总计**                      | **27-29** | **15-25 天** |                                                                           |
 
 ---
 
@@ -1829,5 +1853,5 @@ rooms (
    - Fix 1: GameFacade constructor 添加 store subscription，检测 `pendingAudioEffects` 非空 → 依次播放 → `postAudioAck`
    - Fix 2: wolf vote deadline 到期后 Host 调用 `postProgression`（一次性 guard 防重入）
    - Fix 3: `start.ts` API 从 handler sideEffects 提取 PLAY_AUDIO → 写入 `pendingAudioEffects` + `isAudioPlaying` state
-10. **Phase 8**: Proxy Stub 最终清理 — 删除 52 个 proxy stub / 冗余副本 + ~400 import 更新（3 commits: B1 engine stubs, B2+B3 models/protocol stubs, B4 resolver duplicates） ✅
+10. **Phase 8**: Proxy Stub 最终清理 — 删除 52 个 proxy stub / 冗余副本 + ~400 import 更新 + 48 测试共址迁移（4 commits: B1 engine stubs, B2+B3 models/protocol stubs, B4 resolver duplicates, B5 test co-location） ✅
 11. **集成测试 + 文档**: E2E 全量回归 + 文档更新

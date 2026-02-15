@@ -43,9 +43,9 @@ function scanDirForNeedle(dir: string, needle: string): Match[] {
 describe('hard gates (contract)', () => {
   const repoRoot = path.resolve(__dirname, '../../..');
   const facadeRoot = path.join(repoRoot, 'src/services/facade');
-  const engineRoot = path.join(repoRoot, 'src/services/engine');
+  const engineRoot = path.join(repoRoot, 'packages/game-engine/src/engine');
 
-  it('forbids dynamic require() in src/services/engine/** (non-tests)', () => {
+  it('forbids dynamic require() in game-engine/engine/** (non-tests)', () => {
     const matches = scanDirForNeedle(engineRoot, 'require(').filter(
       (m) => !m.file.includes(`${path.sep}__tests__${path.sep}`),
     );
