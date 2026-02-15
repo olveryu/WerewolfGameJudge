@@ -419,7 +419,7 @@ export function handleAdvanceNight(
 ): HandlerResult {
   const validation = validateNightFlowPreconditions(context);
   if (!validation.valid) {
-    return validation.result;
+    return (validation as { valid: false; result: HandlerResult }).result;
   }
 
   const { state } = validation;
@@ -530,7 +530,7 @@ export function handleAdvanceNight(
 export function handleEndNight(_intent: EndNightIntent, context: HandlerContext): HandlerResult {
   const validation = validateNightFlowPreconditions(context);
   if (!validation.valid) {
-    return validation.result;
+    return (validation as { valid: false; result: HandlerResult }).result;
   }
 
   const { state } = validation;
@@ -609,7 +609,7 @@ export function handleSetAudioPlaying(
 ): HandlerResult {
   const validation = validateSetAudioPlayingPreconditions(context);
   if (!validation.valid) {
-    return validation.result;
+    return (validation as { valid: false; result: HandlerResult }).result;
   }
 
   const setAudioAction: SetAudioPlayingAction = {

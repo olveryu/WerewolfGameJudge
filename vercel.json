@@ -1,9 +1,9 @@
 {
+  "buildCommand": "",
+  "outputDirectory": "dist",
+  "installCommand": "pnpm install",
   "devCommand": "npx expo start --web --port $PORT",
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/((?!.*\\.).*)", "destination": "/index.html" }
-  ],
+  "rewrites": [{ "source": "/((?!api/)(?!.*\\.).*)", "destination": "/index.html" }],
   "headers": [
     {
       "source": "/assets/fonts/(.*)",

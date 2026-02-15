@@ -454,7 +454,7 @@ export function handleSubmitAction(
   // 验证前置条件（完整 gate 链）
   const validation = validateActionPreconditions(context, seat, role);
   if (!validation.valid) {
-    return validation.result;
+    return (validation as { valid: false; result: HandlerResult }).result;
   }
   const { schemaId, state, schema } = validation;
 
@@ -678,7 +678,9 @@ export function handleSubmitWolfVote(
   // Remaining preconditions (step → seat → role match).
   const validation = validateActionPreconditions(context, seat, voterRole);
   if (!validation.valid) {
-    return normalizeWolfVoteRejection(validation.result);
+    return normalizeWolfVoteRejection(
+      (validation as { valid: false; result: HandlerResult }).result,
+    );
   }
 
   // Meeting-specific gate: voter must participate in wolf vote.

@@ -1,0 +1,27 @@
+# Test & quality
+test-results/
+playwright-report/
+coverage/
+e2e/
+__mocks__/
+
+# Documentation
+docs/
+
+# Scripts (not needed at runtime)
+scripts/
+
+# Config files not needed for deployment
+jest.config.js
+jest.setup.ts
+playwright.config.ts
+eslint.config.mjs
+
+# Env examples
+env/
+
+# Assets source (already copied to dist/)
+web/
+
+# Supabase local config
+supabase/

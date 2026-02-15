@@ -1,0 +1,316 @@
+/**
+ * Night Action Catch-All API Route — POST /api/game/night/[action]
+ *
+ * 将所有夜晚 API 子路由合并到一个 serverless function 中，
+ * 以满足 Vercel Hobby 计划的 12 函数限制。
+ * 根据 [action] path parameter 分派到对应的处理逻辑。
+ *
+ * 支持的 action：
+ *   action, audio-ack, audio-gate, end, progression,
+ *   reveal-ack, wolf-robot-viewed, wolf-vote
+ *
+ * ✅ 允许：请求解析、分派到对应 handler
+ * ❌ 禁止：直接操作 DB 或 state、播放音频
+ */
+
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import {
+  type BroadcastGameState,
+  decideWolfVoteTimerAction,
+  type EndNightIntent,
+  gameReducer,
+  handleEndNight,
+  type HandlerContext,
+  handleSetAudioPlaying,
+  handleSetWolfRobotHunterStatusViewed,
+  handleSubmitAction,
+  handleSubmitWolfVote,
+  isWolfVoteAllComplete,
+  type SetAudioPlayingIntent,
+  type SubmitActionIntent,
+  type SubmitWolfVoteIntent,
+} from '@werewolf/game-engine';
+
+import { handleCors } from '../../_lib/cors';
+import { processGameAction } from '../../_lib/gameStateManager';
+import type {
+  ActionRequestBody,
+  AudioAckRequestBody,
+  AudioGateRequestBody,
+  EndNightRequestBody,
+  ProgressionRequestBody,
+  RevealAckRequestBody,
+  WolfRobotViewedRequestBody,
+  WolfVoteRequestBody,
+} from '../../_lib/types';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function findSeatByUid(state: BroadcastGameState, uid: string): number | null {
+  for (const [seatKey, player] of Object.entries(state.players)) {
+    if (player?.uid === uid) return Number(seatKey);
+  }
+  return null;
+}
+
+function buildHandlerContext(state: BroadcastGameState, uid: string): HandlerContext {
+  return {
+    state,
+    isHost: state.hostUid === uid,
+    myUid: uid,
+    mySeat: findSeatByUid(state, uid),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Sub-route handlers
+// ---------------------------------------------------------------------------
+
+async function handleAction(req: VercelRequest, res: VercelResponse) {
+  const body = req.body as ActionRequestBody;
+  const { roomCode, hostUid, seat, role, target, extra } = body;
+
+  if (!roomCode || !hostUid || seat == null || !role) {
+    return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
+  }
+
+  const result = await processGameAction(
+    roomCode,
+    (state: BroadcastGameState) => {
+      const handlerCtx = buildHandlerContext(state, hostUid);
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: { seat, role, target, extra },
+      };
+      return handleSubmitAction(intent, handlerCtx);
+    },
+    { enabled: true, hostUid },
+  );
+
+  return res.status(result.success ? 200 : 400).json(result);
+}
+
+async function handleAudioAck(req: VercelRequest, res: VercelResponse) {
+  const body = req.body as AudioAckRequestBody;
+  const { roomCode, hostUid } = body;
+
+  if (!roomCode || !hostUid) {
+    return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
+  }
+
+  const result = await processGameAction(
+    roomCode,
+    (state) => {
+      if (state.hostUid !== hostUid) {
+        return { success: false, reason: 'host_only', actions: [] };
+      }
+      return {
+        success: true,
+        actions: [
+          { type: 'CLEAR_PENDING_AUDIO_EFFECTS' as const },
+          { type: 'SET_AUDIO_PLAYING' as const, payload: { isPlaying: false } },
+        ],
+      };
+    },
+    { enabled: true, hostUid },
+  );
+
+  return res.status(result.success ? 200 : 400).json(result);
+}
+
+async function handleAudioGate(req: VercelRequest, res: VercelResponse) {
+  const body = req.body as AudioGateRequestBody;
+  const { roomCode, hostUid, isPlaying } = body;
+
+  if (!roomCode || !hostUid || isPlaying == null) {
+    return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
+  }
+
+  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+    const handlerCtx = buildHandlerContext(state, hostUid);
+    const intent: SetAudioPlayingIntent = {
+      type: 'SET_AUDIO_PLAYING',
+      payload: { isPlaying },
+    };
+    return handleSetAudioPlaying(intent, handlerCtx);
+  });
+
+  return res.status(result.success ? 200 : 400).json(result);
+}
+
+async function handleEnd(req: VercelRequest, res: VercelResponse) {
+  const body = req.body as EndNightRequestBody;
+  const { roomCode, hostUid } = body;
+
+  if (!roomCode || !hostUid) {
+    return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
+  }
+
+  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+    const handlerCtx = buildHandlerContext(state, hostUid);
+    const intent: EndNightIntent = { type: 'END_NIGHT' };
+    return handleEndNight(intent, handlerCtx);
+  });
+
+  return res.status(result.success ? 200 : 400).json(result);
+}
+
+async function handleProgression(req: VercelRequest, res: VercelResponse) {
+  const body = req.body as ProgressionRequestBody;
+  const { roomCode, hostUid } = body;
+
+  if (!roomCode || !hostUid) {
+    return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
+  }
+
+  const result = await processGameAction(
+    roomCode,
+    (state) => {
+      if (state.hostUid !== hostUid) {
+        return { success: false, reason: 'host_only', actions: [] };
+      }
+      if (state.status !== 'ongoing') {
+        return { success: false, reason: 'not_ongoing', actions: [] };
+      }
+      return { success: true, actions: [] };
+    },
+    { enabled: true, hostUid },
+  );
+
+  return res.status(result.success ? 200 : 400).json(result);
+}
+
+async function handleRevealAck(req: VercelRequest, res: VercelResponse) {
+  const body = req.body as RevealAckRequestBody;
+  const { roomCode, hostUid } = body;
+
+  if (!roomCode || !hostUid) {
+    return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
+  }
+
+  const result = await processGameAction(
+    roomCode,
+    (state) => {
+      if (state.hostUid !== hostUid) {
+        return { success: false, reason: 'host_only', actions: [] };
+      }
+      if (!state.pendingRevealAcks || state.pendingRevealAcks.length === 0) {
+        return { success: false, reason: 'no_pending_acks', actions: [] };
+      }
+      return {
+        success: true,
+        actions: [{ type: 'CLEAR_REVEAL_ACKS' as const }],
+        sideEffects: [{ type: 'BROADCAST_STATE' as const }],
+      };
+    },
+    { enabled: true, hostUid },
+  );
+
+  return res.status(result.success ? 200 : 400).json(result);
+}
+
+async function handleWolfRobotViewed(req: VercelRequest, res: VercelResponse) {
+  const body = req.body as WolfRobotViewedRequestBody;
+  const { roomCode, hostUid, seat } = body;
+
+  if (!roomCode || !hostUid || seat == null) {
+    return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
+  }
+
+  const result = await processGameAction(
+    roomCode,
+    (state: BroadcastGameState) => {
+      const handlerCtx = buildHandlerContext(state, hostUid);
+      return handleSetWolfRobotHunterStatusViewed(handlerCtx, {
+        type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
+        seat,
+      });
+    },
+    { enabled: true, hostUid },
+  );
+
+  return res.status(result.success ? 200 : 400).json(result);
+}
+
+async function handleWolfVote(req: VercelRequest, res: VercelResponse) {
+  const body = req.body as WolfVoteRequestBody;
+  const { roomCode, hostUid, voterSeat, targetSeat } = body;
+
+  if (!roomCode || !hostUid || voterSeat == null || targetSeat == null) {
+    return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
+  }
+
+  const result = await processGameAction(
+    roomCode,
+    (state: BroadcastGameState) => {
+      const handlerCtx = buildHandlerContext(state, hostUid);
+      const intent: SubmitWolfVoteIntent = {
+        type: 'SUBMIT_WOLF_VOTE',
+        payload: { seat: voterSeat, target: targetSeat },
+      };
+      const voteResult = handleSubmitWolfVote(intent, handlerCtx);
+      if (!voteResult.success) return voteResult;
+
+      // Apply vote actions locally to check timer decision
+      let tempState = state;
+      for (const action of voteResult.actions) {
+        tempState = gameReducer(tempState, action);
+      }
+
+      // Wolf vote timer decision (based on post-vote state)
+      const allVoted = isWolfVoteAllComplete(tempState);
+      const hasExistingTimer = tempState.wolfVoteDeadline != null;
+      const timerAction = decideWolfVoteTimerAction(allVoted, hasExistingTimer, Date.now());
+
+      // Add timer actions to the result
+      const actions = [...voteResult.actions];
+      if (timerAction.type === 'set') {
+        actions.push({
+          type: 'SET_WOLF_VOTE_DEADLINE' as const,
+          payload: { deadline: timerAction.deadline },
+        });
+      } else if (timerAction.type === 'clear') {
+        actions.push({ type: 'CLEAR_WOLF_VOTE_DEADLINE' as const });
+      }
+
+      return { ...voteResult, actions };
+    },
+    { enabled: true, hostUid },
+  );
+
+  return res.status(result.success ? 200 : 400).json(result);
+}
+
+// ---------------------------------------------------------------------------
+// Dispatcher
+// ---------------------------------------------------------------------------
+
+const ROUTE_MAP: Record<
+  string,
+  (req: VercelRequest, res: VercelResponse) => Promise<VercelResponse | void>
+> = {
+  action: handleAction,
+  'audio-ack': handleAudioAck,
+  'audio-gate': handleAudioGate,
+  end: handleEnd,
+  progression: handleProgression,
+  'reveal-ack': handleRevealAck,
+  'wolf-robot-viewed': handleWolfRobotViewed,
+  'wolf-vote': handleWolfVote,
+};
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, reason: 'METHOD_NOT_ALLOWED' });
+  }
+
+  const actionName = req.query.action;
+  if (typeof actionName !== 'string' || !ROUTE_MAP[actionName]) {
+    return res.status(404).json({ success: false, reason: 'UNKNOWN_NIGHT_ACTION' });
+  }
+
+  return ROUTE_MAP[actionName](req, res);
+}

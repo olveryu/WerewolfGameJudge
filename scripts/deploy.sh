@@ -104,9 +104,6 @@ if [ -f dist/index.html ]; then
   fi
 fi
 
-# 复制 vercel.json（SPA rewrites + 缓存头）
-cp vercel.json dist/ 2>/dev/null || true
-
 # Service Worker 缓存版本号（使用构建时间戳自动递增）
 SW_VERSION="werewolf-judge-$(date +%Y%m%d%H%M%S)"
 if [ -f dist/sw.js ]; then
@@ -116,8 +113,10 @@ fi
 
 # ── 4. 部署 ─────────────────────────────────────
 
-echo "🚀 部署到 Vercel..."
-cd dist
+# 清理 dist/.vercel（旧的 dist-only 部署残留，现在从项目根部署）
+rm -rf dist/.vercel
+
+echo "🚀 部署到 Vercel（从项目根，包含 api/ serverless functions）..."
 
 DEPLOYMENT_URL=$(vercel --prod --yes 2>&1 | grep -oE 'https://[^ ]+\.vercel\.app' | head -1)
 echo "部署完成: $DEPLOYMENT_URL"
