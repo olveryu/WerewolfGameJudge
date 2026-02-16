@@ -552,7 +552,6 @@ test.describe('Night Roles — Check / Reveal', () => {
       },
       async ({ pages, roleMap }) => {
         const wrIdx = findRolePageIndex(roleMap, '机械狼');
-        const wolfIdx = findRolePageIndex(roleMap, '狼人');
         const hunterIdx = findRolePageIndex(roleMap, '猎人');
         expect(wrIdx).not.toBe(-1);
         expect(hunterIdx).not.toBe(-1);
