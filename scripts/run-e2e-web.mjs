@@ -56,6 +56,7 @@ const requiredFields = [
   'EXPO_PUBLIC_SUPABASE_ANON_KEY',
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
+  'DATABASE_URL',
 ];
 const missing = requiredFields.filter((field) => !config[field]);
 
@@ -116,8 +117,9 @@ if (e2eEnv === 'local') {
 console.log(`🌐 E2E Base URL: ${E2E_BASE_URL} (from playwright.config.ts)`);
 console.log(`📡 Supabase URL: ${config.EXPO_PUBLIC_SUPABASE_URL}`);
 console.log(
-  `🔑 Supabase Key: [configured, ${config.EXPO_PUBLIC_SUPABASE_ANON_KEY.length} chars]\n`,
+  `🔑 Supabase Key: [configured, ${config.EXPO_PUBLIC_SUPABASE_ANON_KEY.length} chars]`,
 );
+console.log(`🗄️  DATABASE_URL: [configured, ${config.DATABASE_URL.length} chars]\n`);
 
 // Prepare environment for child process
 const childEnv = {
@@ -129,6 +131,7 @@ const childEnv = {
   ...(config.SUPABASE_SERVICE_ROLE_KEY && {
     SUPABASE_SERVICE_ROLE_KEY: config.SUPABASE_SERVICE_ROLE_KEY,
   }),
+  ...(config.DATABASE_URL && { DATABASE_URL: config.DATABASE_URL }),
   // Force official npm registry for vercel dev's internal builder installs
   // (avoids hanging on slow corporate proxies like Nexus)
   npm_config_registry: 'https://registry.npmjs.org/',
