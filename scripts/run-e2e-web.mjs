@@ -86,39 +86,48 @@ if (stillMissing.length > 0) {
 // When launched standalone (`pnpm run dev`), default to localhost:3000.
 const E2E_BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
 
-// === Auto-generate .env.local for local E2E ===
-// Expo/Metro reads .env.local > .env for EXPO_PUBLIC_* vars.
-// Without this, Metro would use the remote Supabase URL from .env,
-// while API routes use local Supabase — causing client/server DB mismatch.
-if (e2eEnv === 'local') {
+// === Auto-generate .env.local ===
+// vercel dev reads .env.local for serverless function env vars (community standard).
+// Expo/Metro also reads .env.local > .env for EXPO_PUBLIC_* vars.
+// We write ALL required vars here so both frontend and API routes get correct config.
+{
   const envLocalPath = join(rootDir, '.env.local');
-  const envLocalContent = [
-    `EXPO_PUBLIC_SUPABASE_URL=${config.EXPO_PUBLIC_SUPABASE_URL}`,
-    `EXPO_PUBLIC_SUPABASE_ANON_KEY=${config.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-    '', // trailing newline
-  ].join('\n');
 
-  // Preserve non-Supabase vars if .env.local already exists (e.g. GROQ key)
+  // Managed keys — will be overwritten every run
+  const managedKeys = [
+    'EXPO_PUBLIC_SUPABASE_URL',
+    'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'DATABASE_URL',
+  ];
+
+  const envLocalContent = managedKeys
+    .filter((k) => config[k])
+    .map((k) => `${k}=${config[k]}`)
+    .join('\n');
+
+  // Preserve non-managed vars if .env.local already exists (e.g. GROQ key)
   let preserved = '';
   if (existsSync(envLocalPath)) {
     const existing = readFileSync(envLocalPath, 'utf-8');
     preserved = existing
       .split('\n')
-      .filter((l) => l.trim() && !l.startsWith('#') && !l.startsWith('EXPO_PUBLIC_SUPABASE_'))
+      .filter((l) => l.trim() && !l.startsWith('#') && !managedKeys.some((k) => l.startsWith(k)))
       .join('\n');
   }
 
-  const finalContent = preserved ? envLocalContent + preserved + '\n' : envLocalContent;
+  const finalContent = preserved
+    ? envLocalContent + '\n' + preserved + '\n'
+    : envLocalContent + '\n';
   writeFileSync(envLocalPath, finalContent, 'utf-8');
-  console.log(`📝 .env.local written (local Supabase: ${config.EXPO_PUBLIC_SUPABASE_URL})`);
+  console.log(`📝 .env.local written (${managedKeys.length} managed vars, env=${e2eEnv})`);
 }
 
 // Log configuration (not the key for security)
 console.log(`🌐 E2E Base URL: ${E2E_BASE_URL} (from playwright.config.ts)`);
 console.log(`📡 Supabase URL: ${config.EXPO_PUBLIC_SUPABASE_URL}`);
-console.log(
-  `🔑 Supabase Key: [configured, ${config.EXPO_PUBLIC_SUPABASE_ANON_KEY.length} chars]`,
-);
+console.log(`🔑 Supabase Key: [configured, ${config.EXPO_PUBLIC_SUPABASE_ANON_KEY.length} chars]`);
 console.log(`🗄️  DATABASE_URL: [configured, ${config.DATABASE_URL.length} chars]\n`);
 
 // Prepare environment for child process
