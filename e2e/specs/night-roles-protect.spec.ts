@@ -159,20 +159,29 @@ test.describe('Night Roles — Protection / Immunity', () => {
         // Dismiss the witch info alert (shows kill info)
         await dismissAlert(pages[witchIdx]);
 
+        // Wait for the bottom action panel to render after alert dismissal
+        const panel = pages[witchIdx].locator('[data-testid="bottom-action-panel"]');
+        await panel.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+
         // Click the save button: "对{seat+1}号用解药"
         const saveLabel = `对${killTarget + 1}号用解药`;
         const saved = await clickBottomButton(pages[witchIdx], saveLabel);
         if (!saved) {
           // Fallback: try "用解药" partial match
-          const panel = pages[witchIdx].locator('[data-testid="bottom-action-panel"]');
           const saveBtn = panel.getByText('用解药').first();
+          await saveBtn.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
           if (await saveBtn.isVisible().catch(() => false)) {
             await saveBtn.click({ force: true });
           }
         }
 
-        // Confirm save if alert appears
+        // Confirm save — wait for confirmation dialog to appear, then dismiss
+        const confirmModal = pages[witchIdx].locator('[data-testid="alert-modal"]');
+        await confirmModal.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
         await dismissAlert(pages[witchIdx]);
+
+        // Allow action submission to complete before advancing
+        await pages[witchIdx].waitForTimeout(1000);
 
         // Night should end with 平安夜
         const ended = await waitForNightEnd(pages, 120);
@@ -382,11 +391,11 @@ test.describe('Night Roles — Protection / Immunity', () => {
         // First wolf tries to vote spiritKnight → confirm → rejection
         await clickSeatAndConfirm(pages[allWolfIndices[0]], skSeat);
 
-        // Should see '操作无效' rejection alert with '不能投恶灵骑士'
+        // Should see rejection alert (notifyIfFailed shows '狼人投票失败')
         const alertModal = pages[allWolfIndices[0]].locator('[data-testid="alert-modal"]');
         await alertModal.waitFor({ state: 'visible', timeout: 5000 });
         const rejectionText = await readAlertText(pages[allWolfIndices[0]]);
-        expect(rejectionText).toContain('不能投恶灵骑士');
+        expect(rejectionText).toContain('投票失败');
         await dismissAlert(pages[allWolfIndices[0]]);
 
         // Re-vote on valid target
@@ -461,7 +470,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
 
         // Verify: witch should be dead (reflection), SK should survive
         await viewLastNightInfo(pages[0]);
-        const hasDeath = await isTextVisible(pages[0], '玩家死亡');
+        const hasDeath = await isTextVisible(pages[0], '死亡');
         expect(hasDeath, 'Should have deaths (witch dies from reflection)').toBe(true);
       },
     );

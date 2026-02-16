@@ -389,8 +389,28 @@ test.describe('Night Roles — Block / Skip', () => {
         );
         expect(wolfBlocked, 'Wolves should see kill-disabled prompt').toBe(true);
 
-        // Drive empty vote for all wolves (forced by wolfKillDisabled)
-        await driveWolfEmptyVote(pages, allWolfIndices);
+        // When wolfKillDisabled, the button label is the blocked message
+        // (not "空刀"). Each wolf must click it to submit empty vote.
+        for (const wIdx of allWolfIndices) {
+          const wPage = pages[wIdx];
+          await dismissAlert(wPage);
+
+          // Wait for the blocked button to appear in the bottom panel
+          const panel = wPage.locator('[data-testid="bottom-action-panel"]');
+          const blockedBtn = panel.getByText('无法行动').first();
+          await blockedBtn.waitFor({ state: 'visible', timeout: 5000 });
+          await blockedBtn.click({ force: true });
+
+          // Confirm the wolf vote alert if it appears
+          const alertModal = wPage.locator('[data-testid="alert-modal"]');
+          const appeared = await alertModal
+            .waitFor({ state: 'visible', timeout: 3000 })
+            .then(() => true)
+            .catch(() => false);
+          if (appeared) {
+            await dismissAlert(wPage);
+          }
+        }
 
         // Night should end with 平安夜
         const ended = await waitForNightEnd(pages, 120);
@@ -477,6 +497,24 @@ test.describe('Night Roles — Block / Skip', () => {
         expect(nmTurn).toBe(true);
         await clickSeatAndConfirm(pages[nightmareIdx], dcSeat);
 
+        // Dreamcatcher's step comes BEFORE wolf vote in night order.
+        // Wait for DC to see blocked prompt before advancing wolf vote.
+        const dcBlocked = await waitForRoleTurn(pages[dcIdx], ['封锁'], pages, 120);
+        expect(dcBlocked, 'Dreamcatcher should see blocked prompt').toBe(true);
+
+        const blockedText = await readAlertText(pages[dcIdx]);
+        expect(blockedText).toContain('封锁');
+        await dismissAlert(pages[dcIdx]);
+
+        // Skip the blocked step on DC's page (click "跳过" button if visible)
+        const skipBtn = pages[dcIdx]
+          .locator('[data-testid="bottom-action-panel"]')
+          .getByText('跳过', { exact: false })
+          .first();
+        if (await skipBtn.isVisible().catch(() => false)) {
+          await skipBtn.click({ force: true });
+        }
+
         // Wolf kill — nightmare is wolf faction
         const allWolfIndices = [...findAllRolePageIndices(roleMap, '狼人'), nightmareIdx].filter(
           (v, i, a) => a.indexOf(v) === i,
@@ -493,14 +531,6 @@ test.describe('Night Roles — Block / Skip', () => {
         );
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, allWolfIndices, killTarget ? killTarget[1].seat : 0);
-
-        // Dreamcatcher's blocked turn
-        const dcBlocked = await waitForRoleTurn(pages[dcIdx], ['封锁'], pages, 120);
-        expect(dcBlocked, 'Dreamcatcher should see blocked prompt').toBe(true);
-
-        const blockedText = await readAlertText(pages[dcIdx]);
-        expect(blockedText).toContain('封锁');
-        await dismissAlert(pages[dcIdx]);
 
         // Finish night — villager dies (no dream protection)
         const ended = await waitForNightEnd(pages, 120);

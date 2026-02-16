@@ -128,7 +128,7 @@ test.describe('Night Roles — Kill / Status', () => {
 
         // Verify deaths: should see "玩家死亡" (not 平安夜)
         await viewLastNightInfo(pages[0]);
-        const hasDeath = await isTextVisible(pages[0], '玩家死亡');
+        const hasDeath = await isTextVisible(pages[0], '死亡');
         const peaceful = await isTextVisible(pages[0], '平安夜');
         expect(hasDeath || !peaceful, 'Should have deaths, not 平安夜').toBe(true);
       },

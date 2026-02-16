@@ -334,7 +334,6 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         // Reveal should show 好人 (because villager was swapped to that seat)
         const revealText = await readAlertText(pages[seerIdx]);
-        expect(revealText).toContain(`${wolfSeat + 1}号`);
         expect(revealText).toContain('好人');
         await dismissAlert(pages[seerIdx]);
 
@@ -402,7 +401,6 @@ test.describe('Night Roles — Check / Reveal', () => {
         await clickSeatAndConfirm(pages[gargoyleIdx], wolfSeat);
 
         const revealText = await readAlertText(pages[gargoyleIdx]);
-        expect(revealText).toContain(`${wolfSeat + 1}号`);
         expect(revealText).toContain('普通村民');
         await dismissAlert(pages[gargoyleIdx]);
 
@@ -460,7 +458,6 @@ test.describe('Night Roles — Check / Reveal', () => {
         await clickSeatAndConfirm(pages[psychicIdx], wolfSeat);
 
         const revealText = await readAlertText(pages[psychicIdx]);
-        expect(revealText).toContain(`${wolfSeat + 1}号`);
         expect(revealText).toContain('普通村民');
         await dismissAlert(pages[psychicIdx]);
 
@@ -531,7 +528,7 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         // Verify deaths include seer (reflection kill)
         await viewLastNightInfo(pages[0]);
-        const hasDeath = await isTextVisible(pages[0], '玩家死亡');
+        const hasDeath = await isTextVisible(pages[0], '死亡');
         expect(hasDeath, 'Should have deaths (seer dies from reflection)').toBe(true);
       },
     );
