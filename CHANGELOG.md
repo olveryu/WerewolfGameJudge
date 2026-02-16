@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.226] - 2026-02-16
+
+- perf(infra): colocate region, merge routes, optimistic updates
+- fix(e2e): add html reporter to CI so playwright-report/ is generated
+- fix(e2e): remove unused wolfIdx variable
+- fix(e2e): fix night-roles E2E test assertions and timing
+- fix(e2e): pass server-side env vars explicitly to vercel dev child process
+- refactor(e2e): split night-roles into 4 effect-domain files
+- fix(config): use single-quoted perl regex for font path replacement
+- fix(config): set Sentry environment from VERCEL_ENV
+- refactor(e2e): remove redundant childEnv server-side vars
+- fix(e2e): write all server env vars to .env.local for vercel dev
+- fix(e2e): forward DATABASE_URL to vercel dev serverless functions
+- fix(ci): add DATABASE_URL secret to e2e job env
+- fix(ci): stop ignoring web/ needed by build.sh for PWA files
+- fix(ci): use scripts/\* instead of scripts/ to allow negation for build.sh
+- fix(ci): add VERCEL_ORG_ID and VERCEL_PROJECT_ID to e2e job
+- fix(ci): keep build.sh in vercel deploy and pass token to vercel dev
+- fix: resolve 10 bug findings from repo audit
+- chore(prompts): remove add-role prompt markdown file
+- chore(ci): add workflow_dispatch trigger for manual runs
+- test(api): add handler unit tests for all 11 API routes (85 tests)
+- fix(e2e): pass VERCEL_TOKEN to CI for vercel dev auth
+- docs: update README for post-migration server-authority architecture
+- chore(config): add test:all script for monorepo-wide testing
+- fix(e2e): install vercel CLI in CI for E2E web server
+- docs(config): add release & deploy workflow to copilot instructions
+- docs(config): add unused variable cleanup rules to typescript instructions
+- fix(config): resolve ci lint warnings and e2e env config
+- chore(config): extract build.sh for vercel git integration auto-deploy
+- fix(config): widen eslint ignore glob for nested config files
+
 ## [1.0.225] - 2026-02-16
 
 - docs: update collaboration rules to prioritize community practices
