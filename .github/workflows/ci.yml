@@ -31,7 +31,7 @@ jobs:
         run: pnpm run format
 
       - name: Test
-        run: pnpm exec jest --no-coverage --forceExit
+        run: pnpm run test:all
 
   e2e:
     runs-on: ubuntu-latest

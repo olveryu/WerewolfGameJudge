@@ -40,7 +40,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 
 ### 质量命令
 
-- `pnpm exec jest --no-coverage --forceExit` — 单元/集成测试
+- `pnpm run test:all` — 单元/集成测试（全 workspace）
 - `pnpm exec playwright test --reporter=list` — E2E（必须加 `--reporter=list`）
 - `pnpm exec tsc --noEmit` — 类型检查
 - `pnpm run quality` — typecheck + lint + format + test 一次全跑
