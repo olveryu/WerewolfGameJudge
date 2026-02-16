@@ -1,3 +1,4 @@
+```instructions
 ---
 applyTo: src/services/**
 ---
@@ -6,179 +7,47 @@ applyTo: src/services/**
 
 ## 源代码位置
 
-游戏逻辑源代码已迁移至 `@werewolf/game-engine` 共享包：
+游戏逻辑源代码在 `@werewolf/game-engine`（详见 `game-engine.instructions.md`）。`src/services/engine/`、`protocol/`、`night/resolvers/` 为 proxy stubs（仅一行 re-export）。`facade/`、`transport/`、`infra/`、`feature/` 仍在 `src/`。
 
-| `src/services/` 路径              | 源代码位置                            | 说明                   |
-| --------------------------------- | ------------------------------------- | ---------------------- |
-| `src/services/engine/**`          | `packages/game-engine/src/engine/`    | proxy re-export stubs  |
-| `src/services/protocol/**`        | `packages/game-engine/src/protocol/`  | proxy re-export stubs  |
-| `src/services/night/resolvers/**` | `packages/game-engine/src/resolvers/` | proxy re-export stubs  |
-| `src/services/facade/**`          | （原地）                              | 仍在 `src/`，编排 + IO |
-| `src/services/transport/**`       | （原地）                              | 仍在 `src/`，平台相关  |
-| `src/services/infra/**`           | （原地）                              | 仍在 `src/`，平台相关  |
-| `src/services/feature/**`         | （原地）                              | 仍在 `src/`，平台相关  |
+## 核心规则
 
-> **修改游戏逻辑** → 编辑 `packages/game-engine/src/` 下的源文件。
-> **存根文件**只有一行 `export * from '@werewolf/game-engine/...'`，禁止添加逻辑。
-> 详细规则 → `game-engine.instructions.md`
-
-## 核心原则
-
-- ✅ 纯函数 resolver / calculator / validator（无副作用、不碰 IO/UI）。
-- ✅ 服务端业务逻辑（night flow / death calc / state transition / reducer）由 Vercel Serverless 执行。
-- ✅ 客户端 facade 层负责：HTTP API 提交操作 + Realtime broadcast 接收状态 + 音频编排。
-- ✅ 使用 `src/utils/logger.ts` 的命名 logger 打日志。
-- ✅ Infra service 允许 import 平台 API（`AsyncStorage`、`Platform`、`expo-audio` 等）。
-- ✅ 纯类型文件（`src/services/types/**`）可被任意层 `import type`。
-- ❌ 禁止在 resolver / calculator / validator 中做 IO（网络请求、音频、Alert 等）。
-- ❌ 禁止 import UI 组件或 React hooks（infra service 中 `Platform` 等平台 API 除外）。
-- ❌ 禁止 `console.*`（使用命名 logger）。
-- ❌ 禁止跨夜状态（`previousActions`、`lastNightTarget` 等）。
-- **单一职责（SRP）**：每个 module/class 只负责一件事。超过 ~400 行必须拆分。
-  - **但行数是信号，不是判决。** 超过阈值时，先评估：(1) 文件内部是否已有清晰的分区和职责边界？(2) 拆出的模块是否有独立的复用/测试/修改场景？(3) 拆分后跨文件跳转成本是否超过收益？若三项都不成立，应保持现状并注释说明为何不拆。禁止机械套用行数规则无条件输出拆分方案。
-
-## 客户端禁止运行业务逻辑
-
-客户端（Host 和 Player 平等）绝对不能执行：resolvers、reducers/state transitions、death calculation、night flow progression 计算。
-客户端职责：HTTP API 提交操作 → Realtime broadcast 接收 `STATE_UPDATE` → `applySnapshot(state, revision)` 更新本地 store。
-Host 额外职责：reactive 监听 store 中 `pendingAudioEffects`（服务端写入 state → 广播），Host 检测到后播放音频，播放完成后 `postAudioAck` 触发服务端继续推进；wolf vote deadline 到期后调用 `postProgression` 触发服务端推进。
-所有客户端也通过 `postgres_changes` 接收 DB state update（可靠备份通道），及 `SELECT game_state` 直接读取（auto-heal fallback）。
-
-## Wire Protocol 稳定性（Transport protocol stability）
-
-- on-wire protocol 必须保持兼容：`HostBroadcast`、`PlayerMessage`、`BroadcastGameState`。
-- 可以引入内部 "Intent" 类型，但必须适配到现有 protocol。
-- 除非同时提供兼容层 + 合约测试，否则禁止发明平行的消息协议。
+- Resolver / calculator / validator 是纯函数，禁止 IO/UI。
+- 服务端业务逻辑（night flow / death calc / state transition / reducer）由 Vercel Serverless 执行。
+- 客户端 facade 负责：HTTP API 提交 + Realtime 接收 + 音频编排。客户端禁止运行 resolvers / reducers / death calculation。
+- Infra service 允许平台 API（AsyncStorage / Platform / expo-audio 等）。
+- 纯类型文件（`src/services/types/**`）可被任意层 `import type`。
+- 禁止 `console.*`（使用命名 logger），禁止跨夜状态（`previousActions` / `lastNightTarget` 等）。
+- SRP ~400 行拆分信号。超阈值先评估是否有独立复用/测试/修改场景，不机械套用。
+- Wire protocol（`HostBroadcast` / `PlayerMessage` / `BroadcastGameState`）必须保持兼容。
 
 ## Resolver 规范
 
-> 源代码位于 `packages/game-engine/src/resolvers/`。
-> `src/services/night/resolvers/` 下为 proxy re-export stubs。
+- 输入 `ActionInput` + `ResolverContext`（含 `currentNightResults`），输出 `{ valid, rejectReason?, updates?, result? }`。
+- 必须检查 nightmare 阻断：`blockedSeat === actorSeat` → `{ valid: true, result: {} }`（有效但无效果）。
+- 校验必须与 `SCHEMAS[*].constraints` 双向一致：schema 规定 `notSelf` → resolver 拒绝；schema 允许 → resolver 不得拒绝。
+- Resolver 是唯一验证与计算逻辑来源，Host 不做"二次计算"，reveal 结果必须从 resolver 返回值读取。
 
-- ✅ 位于 `packages/game-engine/src/resolvers/`（源）或通过 `src/services/night/resolvers/`（存根）导入。
-- ✅ 输入：`ActionInput` + `ResolverContext`（含 `currentNightResults`）。
-- ✅ 输出：`{ valid, rejectReason?, updates?, result? }`。
-- ✅ 必须检查 nightmare 阻断：`currentNightResults.blockedSeat === actorSeat`。
-- ✅ 被阻断时返回 `{ valid: true, result: {} }`（有效但无效果）。
-- ✅ 校验必须与 `SCHEMAS[*].constraints` 完全一致（双向）：schema 规定 `notSelf` → resolver 必须拒绝；schema 允许 → resolver 不得拒绝。
-- ✅ `wolfKillDisabled` 单一真相：在 `handlePlayerAction` 中 nightmare 阻断狼时设置，`toBroadcastState` 直接读取。
-- ❌ 禁止 resolver 中做 IO（网络请求、音频播放、Alert 等）。
+## 状态管理 & Anti-drift
 
-## 状态管理
+- `BroadcastGameState` 是唯一真相。禁止 `HostOnlyState` 或不广播字段。Host/Player state shape 完全一致。
+- 新增字段必须同步 `normalizeState`（`packages/game-engine/src/engine/state/normalize.ts`），遗漏会被静默丢弃。
+- 派生字段从同一份 state 计算或只写入一次，禁止双写/drift。
 
-- ✅ `BroadcastGameState` 是唯一真相，Host 与 Player 读同一份 state。
-- ✅ 新增字段必须同步到 `packages/game-engine/src/engine/state/normalize.ts` 的 `normalizeState`。
-- ❌ 禁止 `HostOnlyState` 或不广播的字段。
+## 夜晚流程
 
----
+- `nightFlowHandler` / `stepTransitionHandler` 是推进的单一真相。禁止手动推进 index。
+- Night-1 顺序来自 `NIGHT_STEPS`（表驱动），step id = 稳定 `SchemaId`。禁止重新引入 `night1.order` 或平行 `ACTION_ORDER`。
+- 自动推进集中在 night flow handler（服务端），必须幂等（同一 `{revision, currentStepId}` 最多推进一次）。Facade 仅发起 intent，禁止自行计算 "should advance"。
+- phase 不匹配事件必须是幂等 no-op。Plan builder 遇到非法 `roleId` / `schemaId` 时 fail-fast。
 
-## Resolver 集成架构（Resolver Integration Architecture）
+## 音频编排
+
+单一编排来源：Handler 声明 → Facade 执行 → UI 只读。
+
+- **Handler**（服务端）：写入 `pendingAudioEffects`，`audioKey` / `audioEndKey` 来自 `NIGHT_STEPS`，禁止 specs/steps 双写。禁止音频 IO。
+- **Facade**（客户端）：reactive 监听 store 中 `pendingAudioEffects` → 播放 → `postAudioAck` 释放 gate。Wolf vote deadline 到期后 `postProgression` 触发推进（一次性 guard 防重入）。
+- **UI**：只读 `isAudioPlaying`。禁止 useEffect 播放音频、禁止 UI toggle `setAudioPlaying`。
+- `isAudioPlaying` 是事实状态，唯一修改途径：`SET_AUDIO_PLAYING` action。禁止其他 action "顺便"设置。
+- **Rejoin 恢复**：`joinRoom(isHost=true)` 从 DB 恢复 → `ContinueGameOverlay` 用户手势（Web autoplay 需手势解锁）→ `resumeAfterRejoin()` 重播当前 step 音频 → `postAudioAck`。禁止 useEffect 自动触发。
 
 ```
-ACTION (UI submit)
-    │
-    ▼
-GameStateService.handlePlayerAction()
-    │
-    ├─ 1. buildActionInput() — 从 wire protocol 构建 ActionInput
-    │
-    ├─ 2. invokeResolver() — 调用 Resolver 纯函数
-    │      └─▶ 返回 { valid, rejectReason?, updates?, result? }
-    │
-    ├─ 3. 如果 !valid → 拒绝，广播 actionRejected
-    │
-    └─ 4. 如果 valid → applyResolverResult()
-           ├─ 合并 updates → state.currentNightResults
-           ├─ 设置 reveal 结果 (seerReveal, psychicReveal, etc.)
-           └─ 记录 action → state.actions
-    │
-    ▼
-advanceToNextAction()
-```
-
-**关键原则：**
-
-- Resolver 是唯一验证与计算逻辑来源：Host 不允许做业务逻辑"二次计算"。
-- `currentNightResults` 在步骤间传递并累积结果（例如 nightmare block → `wolfKillDisabled`）。
-- reveal 结果必须从 resolver 返回值读取：Host 不允许自行推导/重复计算。
-
----
-
-## 夜晚流程（Night Flow）
-
-### Night Flow Handler 不变量（invariants）
-
-- `nightFlowHandler` / `stepTransitionHandler` 是夜晚推进的单一真相。
-- 当 `isHost === true` 且 `state.status === ongoing` 时，夜晚流程必须处于活跃状态（违反则 fail-fast）。
-- 禁止手动推进 index（`++` 兜底策略是禁止的）。
-- phase 不匹配事件必须是幂等 no-op（仅 debug）。
-
-### 自动推进（auto-advance）硬性护栏
-
-- ❌ 禁止在 Facade / UI / submit 成功回调里做"自动推进夜晚"决策 — 会导致推进权威分裂、重入、Host/Player drift。
-- ✅ 自动推进必须集中在 night flow handler（服务端执行），基于 `BroadcastGameState` 判断。
-- ✅ 必须幂等：同一 `{revision, currentStepId}` 最多推进一次；重复触发 safe no-op。
-- Facade 仅限"发起 intent / request"，不得自行计算"should advance"。
-
-### NightPlan 表驱动单一真相
-
-- Night-1 推进顺序来自 `NIGHT_STEPS`（`packages/game-engine/src/models/roles/spec/nightSteps.ts`）。
-- 数组顺序是权威顺序，step id 必须是稳定 `SchemaId`。
-- 禁止重新引入 `night1.order` 或平行 `ACTION_ORDER`。
-- Plan builder 遇到非法 `roleId` / `schemaId` 时必须 fail-fast。
-
----
-
-## 音频时序（Audio Sequencing）
-
-### 音频时序单一真相
-
-- Night-1 的 `audioKey` / `audioEndKey` 必须来自 `NIGHT_STEPS`。
-- 禁止在 specs/steps 双写 audio key。
-
-### 音频时序分层架构
-
-单一编排来源：**Handler 声明 → Facade 执行 → UI 只读**。
-
-- **Handler**（服务端业务状态机）：声明"何时播何音频"，通过 `SideEffect: { type: 'PLAY_AUDIO' }` 返回。禁止音频 IO、禁止碰 UI。
-- **Facade**（客户端编排/IO）：执行 `PLAY_AUDIO` 副作用 — `setAudioPlaying(true)` → 播放 → `finally { setAudioPlaying(false) }`。只允许 Facade 调用 `setAudioPlaying`。
-- **UI**（RoomScreen）：只读 `isAudioPlaying` 禁用交互。
-  - ❌ 禁止 `useEffect` 主动播放音频。
-  - ❌ 禁止 UI toggle `setAudioPlaying`。
-
-### Host Rejoin 音频恢复
-
-Facade 负责两个音频生命周期路径：
-
-1. **正常夜晚推进**：服务端内联推进写入 `pendingAudioEffects` + `isAudioPlaying=true` → 广播到所有客户端 → Host Facade 通过 store subscription 检测到 `pendingAudioEffects` 非空 → 依次播放音频 → `finally { postAudioAck }` 释放 gate + 触发下一轮推进。Wolf vote deadline 到期后，Host 调用 `postProgression` 触发服务端继续推进（一次性 guard，防重入）。
-2. **Rejoin 恢复**：`joinRoom(roomCode, uid, isHost=true)` 从 DB 读取最新状态（与 Player 相同数据源），检测 `status === 'ongoing'`（标记 `_wasAudioInterrupted`）。UI 层通过 `ContinueGameOverlay`（用户手势 gate）调用 `resumeAfterRejoin()`，重播当前 step 的音频，音频结束后 `postAudioAck` 释放 gate + 触发推进。
-
-- ✅ 两条路径都由 Facade 编排 IO — rejoin 恢复属于 Facade 的生命周期管理职责，不涉及 Handler。
-- ✅ Web autoplay policy 要求用户手势解锁 AudioContext，因此 rejoin 路径必须经过 UI 手势 gate（`ContinueGameOverlay`）。
-- ❌ 禁止在 UI `useEffect` 中自动触发 `resumeAfterRejoin()`（会被 autoplay policy 拦截）。
-
-### 音频 Gate（`isAudioPlaying`）硬性护栏
-
-- `isAudioPlaying` 是事实状态，不是推导状态。
-- 唯一允许修改的 action：`SET_AUDIO_PLAYING`。
-  - ✅ `handleSetAudioPlaying`（服务端校验）→ reducer 处理。
-  - ❌ 禁止在其他 action 中"顺便"设置 `isAudioPlaying`（会导致 drift/卡死）。
-- Player 端绝对不能写 Gate。
-- Fail-fast：若 `isAudioPlaying===true` 持续不释放导致行动被拒绝 → 优先修复 Host 兜底链路，补 E2E/contract fail-fast。
-
----
-
-## Anti-drift 护栏
-
-### `normalizeState` 同步规则
-
-- Host 需要某字段 → 该字段必须属于 `BroadcastGameState`。隐私是 UI 层问题（按 `myRole`/`isHost` 过滤），不是数据模型问题。
-- 派生字段必须从同一份 state 计算，或只写入 `BroadcastGameState` 一次（禁止双写/漂移）。
-
-当向 `BroadcastGameState`（或其子结构）新增字段时：
-
-1. **必须检查 `packages/game-engine/src/engine/state/normalize.ts`** — `normalizeState` 显式列出所有要保留的字段，遗漏会被静默丢弃。
-2. **必须把新字段加到 `normalizeState` 返回值**。
-3. **测试门禁**：新增字段后，验证 Host→Player 广播后字段仍存在。
-
-> 高频 bug 源：reducer 正确设置了字段，但 `normalizeState` 没透传 → 广播后变 `undefined`。
