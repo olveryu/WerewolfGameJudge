@@ -8,8 +8,8 @@ __mocks__/
 # Documentation
 docs/
 
-# Scripts (not needed at runtime)
-scripts/
+# Scripts (not needed at runtime — keep build.sh for buildCommand)
+scripts/*
 !scripts/build.sh
 
 # Config files not needed for deployment
