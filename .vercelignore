@@ -21,8 +21,5 @@ eslint.config.mjs
 # Env examples
 env/
 
-# Assets source (already copied to dist/)
-web/
-
 # Supabase local config
 supabase/
