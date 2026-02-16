@@ -45,6 +45,12 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 - `pnpm exec tsc --noEmit` — 类型检查
 - `pnpm run quality` — typecheck + lint + format + test 一次全跑
 
+### 发版 & 部署
+
+- `pnpm run release` — bump 版本号 → 更新 CHANGELOG → commit → git tag → push。每次发版必须通过此脚本。
+- `git push` 自动触发 **Vercel Git Integration**（执行 `scripts/build.sh`）完成生产部署，同时触发 **GitHub CI**（quality + E2E）。
+- `scripts/deploy.sh` — 仅用于 Vercel 自动部署故障时的应急手动部署，日常不使用。
+
 ---
 
 ## ⚠️⚠️⚠️ 第一原则：社区惯例优先 ⚠️⚠️⚠️
