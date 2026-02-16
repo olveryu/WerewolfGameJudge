@@ -17,6 +17,12 @@ applyTo: 'src/**/*.ts,src/**/*.tsx'
 - 函数参数数组/对象优先 `readonly`，导出常量优先 `as const`。
 - 导出类型用 `export type`，re-export 用 `export type { Foo } from './bar'`。
 
+## 未使用变量 / 导入
+
+- 未使用的独立变量赋值：**直接删除整行**，禁止加 `_` 前缀消音。
+- 未使用的导入：**直接从 import 语句中移除**。
+- `_` 前缀仅限**语法上必须声明但逻辑上不使用**的场景（解构占位 `const [_, b] = ...`、回调参数 `(_, index) => ...`）。
+
 ## React Hooks 卫生
 
 - 自定义 hook 以 `use` 前缀命名，文件名与 hook 名一致（`useNightProgress.ts` → `useNightProgress()`）。
