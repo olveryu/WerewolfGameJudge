@@ -6,7 +6,8 @@ applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**,e2e/**'
 
 ## 核心原则
 
-- ✅ 测试文件中允许 `console.*`。
+- ✅ Jest 测试文件中允许 `console.*`。
+- ❌ E2E spec（`e2e/**`）禁止 `console.log` —— 用 `test.step()` + `testInfo.attach()` 替代。
 - ✅ 测试文件中允许 `as` 构造 mock 数据。
 - ✅ 允许 mock `src/utils/alert.ts` 的 `showAlert`。
 - ✅ 测试断言基于 `BroadcastGameState` 单一真相。
@@ -31,7 +32,7 @@ applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**,e2e/**'
 - 禁止 `it.skip` / `test.skip` / `describe.skip`（CI 会检测到并 fail）。
 - 测试断言必须基于 `BroadcastGameState` 单一真相，禁止直接改 state / 注入 host-only 状态。
 - 禁止用 snapshot/Storybook 截图替代交互覆盖。
-- 测试文件中允许 `console.*`。
+- Jest 测试文件中允许 `console.*`；E2E spec 禁止（见下方 E2E 日志规范）。
 
 ## Integration Board Tests（`src/services/__tests__/boards/**`）
 
@@ -89,6 +90,31 @@ applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**,e2e/**'
 - E2E 仅 smoke：核心 e2e 必须 `workers=1`，房间就绪必须用 `waitForRoomScreenReady()`。
 
 ## E2E 测试规范（Playwright）
+
+### Artifacts & 调试（社区标准）
+
+调试失败测试依赖 Playwright 内建机制，**不转发浏览器 console 到 stdout**：
+
+- `trace: 'retain-on-failure'` — 失败时自动生成 trace（含完整 console / 网络 / DOM 快照），用 `npx playwright show-trace` 查看。
+- `screenshot: 'only-on-failure'` — 失败时自动截图。
+- `testInfo.attach(name, { body, contentType })` — 在 test body 中附加截图/文本/JSON 到 HTML report。
+- `setupDiagnostics()` 只转发 `[DIAG]` 和 `error` 级别的浏览器日志，其余静默收集到 `DiagnosticData`。
+- ❌ 禁止维护 log prefix 过滤列表。
+- ❌ 禁止在 diagnostics helper 中加 quiet/verbose 开关。
+
+### 日志规范（社区标准）
+
+E2E spec 中 **禁止 `console.log`**，用 Playwright 内建方式替代：
+
+| 场景       | ❌ 禁止                                      | ✅ 替代                                                                                                  |
+| ---------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| 流程标记   | `console.log('[rejoin] Host reloading...')`  | `await test.step('Host reloading page', async () => { ... })`                                            |
+| 数据输出   | `console.log('[NightRoles] roleMap:', data)` | `await testInfo.attach('roleMap.json', { body: JSON.stringify(data), contentType: 'application/json' })` |
+| 关键值记录 | `console.log('Seer reveal:', text)`          | `await testInfo.attach('seer-reveal.txt', { body: text, contentType: 'text/plain' })`                    |
+
+- `test.step()` 自动出现在 HTML report 和 trace viewer 中，失败时可精确定位。
+- `testInfo.attach()` 的内容在 HTML report 中可直接查看。
+- E2E helpers（`e2e/helpers/**`、`e2e/pages/**`）中的 `console.log` 同样禁止，改用 `testInfo.attach` 或去掉。
 
 ### 禁止 `waitForTimeout`（Hard rule）
 

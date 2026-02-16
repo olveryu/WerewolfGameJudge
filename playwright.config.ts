@@ -59,8 +59,8 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('/')` */
     baseURL: E2E_BASE_URL,
 
-    /* Collect trace when retrying the failed test - helps debug connection issues */
-    trace: 'on-first-retry',
+    /* Collect trace on failure for debugging via `npx playwright show-trace` */
+    trace: 'retain-on-failure',
 
     /* Take screenshot on failure */
     screenshot: 'only-on-failure',
