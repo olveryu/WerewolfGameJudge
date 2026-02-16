@@ -131,13 +131,18 @@ console.log(`🔑 Supabase Key: [configured, ${config.EXPO_PUBLIC_SUPABASE_ANON_
 console.log(`🗄️  DATABASE_URL: [configured, ${config.DATABASE_URL.length} chars]\n`);
 
 // Prepare environment for child process
-// Server-side vars (SUPABASE_URL, SERVICE_ROLE_KEY, DATABASE_URL) are passed
-// via .env.local — the community-standard mechanism for vercel dev.
+// Vercel CLI 50.x loads .env.local for the devCommand (Expo/Metro) but does NOT
+// inject those vars into the serverless function worker process. We must pass
+// ALL required vars explicitly via process.env so they propagate to API routes.
 const childEnv = {
   ...process.env,
   // Expo/Metro reads EXPO_PUBLIC_* from process env at build time
   EXPO_PUBLIC_SUPABASE_URL: config.EXPO_PUBLIC_SUPABASE_URL,
   EXPO_PUBLIC_SUPABASE_ANON_KEY: config.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  // Server-side vars — must be explicit for serverless function workers
+  SUPABASE_URL: config.SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY: config.SUPABASE_SERVICE_ROLE_KEY,
+  DATABASE_URL: config.DATABASE_URL,
   // Force official npm registry for vercel dev's internal builder installs
   // (avoids hanging on slow corporate proxies like Nexus)
   npm_config_registry: 'https://registry.npmjs.org/',
