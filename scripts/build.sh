@@ -58,10 +58,8 @@ if [ -d "$FONT_SRC" ]; then
   echo "🔤 修复字体路径..."
   mkdir -p "$FONT_DST"
   cp "$FONT_SRC"/*.ttf "$FONT_DST/"
-  OLD_PATH="/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/"
-  NEW_PATH="/assets/fonts/"
   for jsfile in dist/_expo/static/js/web/*.js; do
-    perl -i -pe "s|\Q$OLD_PATH\E|$NEW_PATH|g" "$jsfile"
+    perl -i -pe 's|/assets/node_modules/\@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/|/assets/fonts/|g' "$jsfile"
   done
   FONT_COUNT=$(ls "$FONT_DST"/*.ttf 2>/dev/null | wc -l | tr -d ' ')
   echo "✅ 已复制 $FONT_COUNT 个字体文件"
