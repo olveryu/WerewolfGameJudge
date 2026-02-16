@@ -105,15 +105,15 @@ export interface BroadcastGameState {
   // NOTE: single source of truth for wolf vote is:
   // currentNightResults.wolfVotesBySeat
 
-  // --- 执行状态（可选，向后兼容） ---
-  /** 第一夜动作记录 */
-  actions?: ProtocolAction[];
+  // --- 执行状态 ---
+  /** 第一夜动作记录（normalizeState 保证非 undefined） */
+  actions: ProtocolAction[];
 
   /** 当前夜晚累积结果（type-only from resolver types，单一真相） */
   currentNightResults?: CurrentNightResults;
 
-  /** 待确认的揭示确认 */
-  pendingRevealAcks?: string[];
+  /** 待确认的揭示确认（normalizeState 保证非 undefined） */
+  pendingRevealAcks: string[];
 
   /** 上一夜死亡 */
   lastNightDeaths?: number[];

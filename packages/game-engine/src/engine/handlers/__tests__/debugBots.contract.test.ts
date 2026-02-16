@@ -45,6 +45,8 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     players: defaultPlayers,
     currentStepIndex: -1,
     isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
     currentNightResults: {},
     ...overrides,
   };

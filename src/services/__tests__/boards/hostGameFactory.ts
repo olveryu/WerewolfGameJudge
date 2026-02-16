@@ -104,6 +104,8 @@ export function createHostGame(
     players: initialPlayers,
     currentStepIndex: 0,
     isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
   };
 
   const assignments: Record<number, RoleId> = {};

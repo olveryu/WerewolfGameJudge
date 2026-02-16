@@ -172,7 +172,7 @@ function isCurrentStepComplete(state: NonNullState): boolean {
   }
 
   // 其他步骤：检查是否已有对应 schemaId 的 action
-  const actions = state.actions ?? [];
+  const actions = state.actions;
   return actions.some((a) => a.schemaId === currentStepId);
 }
 

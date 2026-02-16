@@ -313,6 +313,8 @@ describe('GameFacade', () => {
           },
           currentStepIndex: -1,
           isAudioPlaying: false,
+          actions: [],
+          pendingRevealAcks: [],
         },
       };
 

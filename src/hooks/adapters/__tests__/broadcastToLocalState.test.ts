@@ -15,6 +15,8 @@ function makeBaseBroadcastState(overrides: Partial<BroadcastGameState> = {}): Br
     },
     currentStepIndex: 0,
     isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
     ...overrides,
   };
 }

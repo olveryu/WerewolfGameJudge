@@ -39,6 +39,7 @@ function createOngoingState(
     currentStepId: 'wolfKill',
     actions: [],
     currentNightResults: {},
+    pendingRevealAcks: [],
     deaths: [],
     wolfKillDisabled: false,
     isAudioPlaying: false,

@@ -37,6 +37,8 @@ function createWolfKillState(overrides: Partial<BroadcastGameState> = {}): Broad
     currentStepIndex: 0,
     currentStepId: 'wolfKill',
     isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
     currentNightResults: {},
     ...overrides,
   };

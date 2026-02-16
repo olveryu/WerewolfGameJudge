@@ -36,6 +36,8 @@ function createTestState(overrides?: Partial<BroadcastGameState>): BroadcastGame
     currentStepIndex: 0,
     currentStepId: 'wolfRobotLearn',
     isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
     wolfRobotReveal: {
       targetSeat: 1,
       result: 'hunter',

@@ -44,6 +44,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     currentStepIndex: 0,
     isAudioPlaying: false,
     actions: [],
+    pendingRevealAcks: [],
     currentNightResults: {},
     ...overrides,
   };

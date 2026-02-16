@@ -32,6 +32,7 @@ function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState
     isAudioPlaying: false,
     lastNightDeaths: [],
     currentNightResults: {},
+    pendingRevealAcks: [],
     ...overrides,
   };
 }

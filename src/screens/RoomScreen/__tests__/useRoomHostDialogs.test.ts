@@ -52,6 +52,7 @@ const createMockGameState = (playerCount: number): LocalGameState => {
     isAudioPlaying: false,
     lastNightDeaths: [],
     currentNightResults: {},
+    pendingRevealAcks: [],
   };
 };
 

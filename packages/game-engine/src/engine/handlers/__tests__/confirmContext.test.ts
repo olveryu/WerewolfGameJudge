@@ -32,6 +32,8 @@ function createOngoingState(
     currentStepIndex: 0,
     currentStepId: 'hunterConfirm',
     isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
     currentNightResults: {},
     ...overrides,
   };

@@ -29,6 +29,7 @@ const makeGameState = (): LocalGameState =>
     isAudioPlaying: false,
     lastNightDeaths: [],
     currentNightResults: {},
+    pendingRevealAcks: [],
   }) as LocalGameState;
 
 const makeSeerSchema = (): ActionSchema => SCHEMAS.seerCheck;

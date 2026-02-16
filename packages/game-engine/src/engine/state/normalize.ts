@@ -80,10 +80,10 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
     currentStepIndex: requireField(raw.currentStepIndex, 'currentStepIndex'),
     isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
 
-    // 执行状态（可选，无需默认值）
-    actions: raw.actions,
+    // 执行状态（边界 normalize：undefined → []，内部代码无需 ?? []）
+    actions: raw.actions ?? [],
     currentNightResults,
-    pendingRevealAcks: raw.pendingRevealAcks,
+    pendingRevealAcks: raw.pendingRevealAcks ?? [],
     lastNightDeaths: raw.lastNightDeaths,
 
     // Night flow 状态（关键：currentStepId 必须透传）

@@ -99,7 +99,7 @@ function handleRestartGame(state: GameState): GameState {
     currentStepIndex: 0, // v1: 重置到 0
     isAudioPlaying: false,
     currentStepId: undefined, // 清除夜晚步骤
-    actions: undefined,
+    actions: [],
     currentNightResults: undefined,
     lastNightDeaths: undefined,
     witchContext: undefined,
@@ -112,7 +112,7 @@ function handleRestartGame(state: GameState): GameState {
     actionRejected: undefined,
     nightmareBlockedSeat: undefined,
     wolfKillDisabled: undefined,
-    pendingRevealAcks: undefined,
+    pendingRevealAcks: [],
     // 重开时更新 nonce 和 resolved 动画
     roleRevealRandomNonce: newNonce,
     resolvedRoleRevealAnimation: resolvedAnimation,
@@ -170,6 +170,7 @@ function handleStartNight(state: GameState, action: StartNightAction): GameState
     // 不在 reducer 里设置 isAudioPlaying，由 Host UI 调用 SET_AUDIO_PLAYING 控制
     actions: [],
     currentNightResults: {},
+    pendingRevealAcks: [],
   };
 }
 
@@ -207,7 +208,7 @@ function handleEndNight(state: GameState, action: EndNightAction): GameState {
 
 function handleRecordAction(state: GameState, action: RecordActionAction): GameState {
   const { action: newAction } = action.payload;
-  const existingActions = state.actions ?? [];
+  const existingActions = state.actions;
   return {
     ...state,
     actions: [...existingActions, newAction],
@@ -330,7 +331,7 @@ function handleActionRejected(state: GameState, action: ActionRejectedAction): G
 
 function handleAddRevealAck(state: GameState, action: AddRevealAckAction): GameState {
   const { ackKey } = action.payload;
-  const existing = state.pendingRevealAcks ?? [];
+  const existing = state.pendingRevealAcks;
   return {
     ...state,
     pendingRevealAcks: [...existing, ackKey],
@@ -539,7 +540,7 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     case 'CLEAR_REVEAL_ACKS':
       return {
         ...state,
-        pendingRevealAcks: undefined,
+        pendingRevealAcks: [],
       };
 
     case 'FILL_WITH_BOTS':

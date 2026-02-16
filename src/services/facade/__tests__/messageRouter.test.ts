@@ -18,6 +18,8 @@ const makeMockState = (overrides?: Partial<BroadcastGameState>): BroadcastGameSt
   players: {},
   currentStepIndex: -1,
   isAudioPlaying: false,
+  actions: [],
+  pendingRevealAcks: [],
   ...overrides,
 });
 

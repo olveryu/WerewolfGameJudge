@@ -22,6 +22,7 @@
  * - messageRouter.ts: 统一 STATE_UPDATE 处理（Host + Player 共用）
  */
 
+import * as Sentry from '@sentry/react-native';
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStore } from '@werewolf/game-engine/engine/store';
 import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
@@ -561,6 +562,7 @@ export class GameFacade implements IGameFacade {
       return false;
     } catch (e) {
       facadeLog.warn('fetchStateFromDB failed', e);
+      Sentry.captureException(e);
       return false;
     }
   }

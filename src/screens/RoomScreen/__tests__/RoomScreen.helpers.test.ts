@@ -215,6 +215,7 @@ describe('toGameRoomLike', () => {
       isAudioPlaying: false,
       lastNightDeaths: [],
       currentNightResults: {},
+      pendingRevealAcks: [],
       status: GameStatus.seated,
     };
 
@@ -271,6 +272,7 @@ describe('buildSeatViewModels', () => {
       isAudioPlaying: false,
       lastNightDeaths: [],
       currentNightResults: {},
+      pendingRevealAcks: [],
       status: GameStatus.ongoing,
     };
 
@@ -349,6 +351,7 @@ describe('buildSeatViewModels', () => {
       isAudioPlaying: false,
       lastNightDeaths: [],
       currentNightResults: {},
+      pendingRevealAcks: [],
       status: GameStatus.ongoing,
     };
 
@@ -401,6 +404,7 @@ describe('buildSeatViewModels', () => {
       isAudioPlaying: false,
       lastNightDeaths: [],
       currentNightResults: {},
+      pendingRevealAcks: [],
       status: GameStatus.ongoing,
     };
 
@@ -457,6 +461,7 @@ describe('buildSeatViewModels', () => {
         isAudioPlaying: false,
         lastNightDeaths: [],
         currentNightResults: {},
+        pendingRevealAcks: [],
         status: GameStatus.ongoing,
       };
 
@@ -519,6 +524,7 @@ describe('buildSeatViewModels', () => {
         isAudioPlaying: false,
         lastNightDeaths: [],
         currentNightResults: {},
+        pendingRevealAcks: [],
         status: GameStatus.ongoing,
       };
 
@@ -583,6 +589,7 @@ describe('buildSeatViewModels', () => {
       isAudioPlaying: false,
       lastNightDeaths: [],
       currentNightResults: { wolfVotesBySeat },
+      pendingRevealAcks: [],
       status: GameStatus.ongoing,
     });
 

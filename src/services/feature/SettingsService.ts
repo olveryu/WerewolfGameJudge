@@ -9,6 +9,7 @@
  * ❌ 禁止：游戏逻辑 / 游戏状态存储
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sentry from '@sentry/react-native';
 
 import { settingsServiceLog } from '@/utils/logger';
 
@@ -57,7 +58,8 @@ export class SettingsService {
       this.loaded = true;
     } catch (e) {
       // If load fails, use defaults
-      settingsServiceLog.warn('Failed to load settings, using defaults:', e);
+      settingsServiceLog.error('Failed to load settings, using defaults:', e);
+      Sentry.captureException(e);
       this.settings = { ...DEFAULT_SETTINGS };
       this.loaded = true;
     }
@@ -72,6 +74,7 @@ export class SettingsService {
       this.notifyListeners();
     } catch (e) {
       settingsServiceLog.error('Failed to save settings:', e);
+      Sentry.captureException(e);
     }
   }
 

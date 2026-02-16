@@ -56,7 +56,7 @@ function isStepComplete(state: BroadcastGameState): boolean {
     return isWolfVoteAllComplete(state);
   }
 
-  const actions = state.actions ?? [];
+  const actions = state.actions;
   return actions.some((a) => a.schemaId === stepId);
 }
 

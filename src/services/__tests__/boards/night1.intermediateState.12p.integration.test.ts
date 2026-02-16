@@ -59,7 +59,7 @@ describe('Night-1: intermediate state assertions (标准板12人)', () => {
     expect(s0.currentStepId).toBe('wolfKill');
     expect(s0.isAudioPlaying).toBe(false);
     expect(s0.actions).toEqual([]);
-    expect(s0.pendingRevealAcks).toBeUndefined();
+    expect(s0.pendingRevealAcks).toEqual([]);
     expect(s0.lastNightDeaths).toBeUndefined();
 
     // --- Step 1: wolfKill ---

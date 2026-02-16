@@ -70,6 +70,7 @@ function createOngoingState(overrides?: Partial<BroadcastGameState>): BroadcastG
     isAudioPlaying: false,
     actions: [],
     currentNightResults: {},
+    pendingRevealAcks: [],
     ...overrides,
   };
 }

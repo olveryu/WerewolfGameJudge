@@ -49,6 +49,8 @@ function createStateWithPlayers(
     players: playersMap,
     currentStepIndex: -1,
     isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
     ...overrides,
   };
 }

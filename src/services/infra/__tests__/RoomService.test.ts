@@ -57,6 +57,8 @@ function makeFakeState(overrides: Partial<BroadcastGameState> = {}): BroadcastGa
     players: {},
     currentStepIndex: 0,
     isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
     ...overrides,
   } as BroadcastGameState;
 }

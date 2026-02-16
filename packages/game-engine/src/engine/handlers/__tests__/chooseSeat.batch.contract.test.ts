@@ -134,6 +134,7 @@ function createMinimalState(
     currentStepIndex: 1,
     isAudioPlaying: false,
     actions: [],
+    pendingRevealAcks: [],
     currentNightResults: {},
     currentStepId: schemaId,
     ...overrides,

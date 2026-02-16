@@ -186,6 +186,8 @@ describe('normalizeState contract', () => {
       players: {},
       currentStepIndex: -1,
       isAudioPlaying: false,
+      actions: [],
+      pendingRevealAcks: [],
     };
 
     const normalized = normalizeState(minimalState);

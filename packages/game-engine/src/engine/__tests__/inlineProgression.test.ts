@@ -40,6 +40,8 @@ function make2PlayerState(overrides: Partial<BroadcastGameState> = {}): Broadcas
     currentStepIndex: 0,
     currentStepId: firstStep?.stepId,
     isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
     ...overrides,
   };
 }
@@ -62,6 +64,8 @@ function make5PlayerState(overrides: Partial<BroadcastGameState> = {}): Broadcas
     currentStepIndex: 0,
     currentStepId: firstStep?.stepId,
     isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
     ...overrides,
   };
 }

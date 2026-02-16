@@ -280,6 +280,8 @@ describe('useGameRoom - ACK reason transparency', () => {
         players: {},
         currentStepIndex: -1,
         isAudioPlaying: false,
+        actions: [],
+        pendingRevealAcks: [],
       };
 
       await act(async () => {
@@ -409,6 +411,8 @@ describe('useGameRoom - ACK reason transparency', () => {
         players: {},
         currentStepIndex: -1,
         isAudioPlaying: false,
+        actions: [],
+        pendingRevealAcks: [],
       };
 
       await act(async () => {
@@ -479,6 +483,8 @@ describe('useGameRoom - ACK reason transparency', () => {
         players: {},
         currentStepIndex: -1,
         isAudioPlaying: false,
+        actions: [],
+        pendingRevealAcks: [],
       };
       await act(async () => {
         stateListener?.(mockState);
@@ -685,6 +691,8 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
       },
       currentStepIndex: -1,
       isAudioPlaying: false,
+      actions: [],
+      pendingRevealAcks: [],
       debugMode: { botsEnabled: true },
       currentNightResults: {},
     };
@@ -754,6 +762,8 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
       },
       currentStepIndex: -1,
       isAudioPlaying: false,
+      actions: [],
+      pendingRevealAcks: [],
       debugMode: { botsEnabled: true },
       currentNightResults: {},
     };
@@ -819,6 +829,8 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
       },
       currentStepIndex: -1,
       isAudioPlaying: false,
+      actions: [],
+      pendingRevealAcks: [],
       currentNightResults: {},
     };
 
@@ -944,6 +956,8 @@ describe('useGameRoom - rejoin continue overlay', () => {
     currentStepIndex: 0,
     currentStepId: 'wolfKill',
     isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
   };
 
   it('should set needsContinueOverlay=true when host + ongoing + wasAudioInterrupted', async () => {

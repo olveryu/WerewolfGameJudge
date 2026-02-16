@@ -328,7 +328,7 @@ function extractWitchAction(currentNightResults?: {
  * Build NightActions from state for death resolution
  */
 function buildNightActions(state: NonNullState): NightActions {
-  const actions = state.actions ?? [];
+  const actions = state.actions;
   const nightActions: NightActions = {};
 
   // Wolf kill - resolve final target from wolfVotesBySeat

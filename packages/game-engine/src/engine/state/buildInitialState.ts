@@ -29,5 +29,7 @@ export function buildInitialGameState(
     players,
     currentStepIndex: -1,
     isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
   };
 }

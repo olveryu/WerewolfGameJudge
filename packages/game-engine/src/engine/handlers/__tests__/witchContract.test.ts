@@ -37,6 +37,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     currentStepIndex: 0,
     isAudioPlaying: false,
     actions: [],
+    pendingRevealAcks: [],
     currentNightResults: {},
     currentStepId: 'witchAction' as SchemaId,
     witchContext: { killedSeat: 0, canSave: true, canPoison: true },
