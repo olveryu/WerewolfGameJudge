@@ -315,6 +315,7 @@ export class GameFacade implements IGameFacade {
     } catch (e) {
       // Caller uses fire-and-forget `void` — catch here to prevent unhandled rejection
       facadeLog.error('resumeAfterRejoin failed', e);
+      Sentry.captureException(e);
     }
   }
 

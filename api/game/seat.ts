@@ -20,6 +20,7 @@ import {
 
 import { handleCors } from '../_lib/cors';
 import { processGameAction } from '../_lib/gameStateManager';
+import { resultToStatus } from '../_lib/responseStatus';
 import type { SeatRequestBody } from '../_lib/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -69,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   });
 
-  return res.status(result.success ? 200 : 400).json(result);
+  return res.status(resultToStatus(result)).json(result);
 }
 
 /** 从 state.players 中查找 uid 对应的座位号 */

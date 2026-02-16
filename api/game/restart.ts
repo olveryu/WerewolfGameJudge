@@ -19,6 +19,7 @@ import {
 
 import { handleCors } from '../_lib/cors';
 import { broadcastViaRest, processGameAction } from '../_lib/gameStateManager';
+import { resultToStatus } from '../_lib/responseStatus';
 import type { RestartRequestBody } from '../_lib/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -50,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return handleRestartGame({ type: 'RESTART_GAME' }, handlerCtx);
   });
 
-  return res.status(result.success ? 200 : 400).json(result);
+  return res.status(resultToStatus(result)).json(result);
 }
 
 function findSeatByUid(state: BroadcastGameState, uid: string): number | null {

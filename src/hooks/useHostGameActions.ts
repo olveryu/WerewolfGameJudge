@@ -178,7 +178,8 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
   const submitRevealAck = useCallback(
     async (role: RevealKind): Promise<void> => {
-      await facade.submitRevealAck(role);
+      const result = await facade.submitRevealAck(role);
+      notifyIfFailed(result, '确认揭示');
     },
     [facade],
   );
@@ -187,7 +188,8 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
   // seat 参数由调用方传入 effectiveSeat，以支持 debug bot 接管模式
   const sendWolfRobotHunterStatusViewed = useCallback(
     async (seat: number): Promise<void> => {
-      await facade.sendWolfRobotHunterStatusViewed(seat);
+      const result = await facade.sendWolfRobotHunterStatusViewed(seat);
+      notifyIfFailed(result, '确认猎人状态');
     },
     [facade],
   );

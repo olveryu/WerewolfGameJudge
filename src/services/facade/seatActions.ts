@@ -10,6 +10,7 @@
  * ❌ 禁止：直接修改 state（全部在服务端 reducer）
  */
 
+import * as Sentry from '@sentry/react-native';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 
 import { API_BASE_URL } from '@/config/api';
@@ -63,6 +64,7 @@ async function callSeatApi(
     if (e instanceof ReferenceError) throw e;
     const err = e as { message?: string };
     facadeLog.error('callSeatApi failed', { error: err?.message ?? String(e) });
+    Sentry.captureException(e);
     return { success: false, reason: 'NETWORK_ERROR' };
   }
 }

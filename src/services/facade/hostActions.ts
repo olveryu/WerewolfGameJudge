@@ -19,6 +19,7 @@
  * - 直接修改 state（全部在 reducer / 服务端）
  */
 
+import * as Sentry from '@sentry/react-native';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
@@ -95,6 +96,7 @@ async function callGameControlApi(
       if (e instanceof ReferenceError) throw e;
       const err = e as { message?: string };
       facadeLog.error('callGameControlApi failed', { path, error: err?.message ?? String(e) });
+      Sentry.captureException(e);
       return { success: false, reason: 'NETWORK_ERROR' };
     }
   }

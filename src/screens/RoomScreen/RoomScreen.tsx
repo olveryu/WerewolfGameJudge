@@ -200,8 +200,18 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           visible={isHost}
           showFillWithBots={roomStatus === GameStatus.unseated}
           showMarkAllBotsViewed={isDebugMode && roomStatus === GameStatus.assigned}
-          onFillWithBots={() => void fillWithBots()}
-          onMarkAllBotsViewed={() => void markAllBotsViewed()}
+          onFillWithBots={() =>
+            void fillWithBots().catch((err) => {
+              roomScreenLog.error('[fillWithBots] failed', err);
+              Sentry.captureException(err);
+            })
+          }
+          onMarkAllBotsViewed={() =>
+            void markAllBotsViewed().catch((err) => {
+              roomScreenLog.error('[markAllBotsViewed] failed', err);
+              Sentry.captureException(err);
+            })
+          }
           styles={componentStyles.hostMenuDropdown}
         />
       </View>

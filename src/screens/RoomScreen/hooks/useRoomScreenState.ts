@@ -16,6 +16,7 @@
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Sentry from '@sentry/react-native';
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
@@ -159,7 +160,10 @@ export function useRoomScreenState(
 
   const submitRevealAckSafe = useCallback(
     (role: RevealKind) => {
-      void submitRevealAck(role);
+      void submitRevealAck(role).catch((err) => {
+        roomScreenLog.error('[submitRevealAckSafe] Unhandled error', err);
+        Sentry.captureException(err);
+      });
     },
     [submitRevealAck],
   );
@@ -192,7 +196,10 @@ export function useRoomScreenState(
     if (Date.now() >= wolfVoteDeadline) {
       if (isHost && !postProgressionFiredRef.current) {
         postProgressionFiredRef.current = true;
-        void postProgression();
+        void postProgression().catch((err) => {
+          roomScreenLog.error('[postProgression] countdown expired fire failed', err);
+          Sentry.captureException(err);
+        });
       }
       return;
     }
@@ -203,7 +210,10 @@ export function useRoomScreenState(
         // Host triggers server-side progression when countdown expires
         if (isHost && !postProgressionFiredRef.current) {
           postProgressionFiredRef.current = true;
-          void postProgression();
+          void postProgression().catch((err) => {
+            roomScreenLog.error('[postProgression] countdown interval fire failed', err);
+            Sentry.captureException(err);
+          });
         }
       }
       setCountdownTick((t) => t + 1);

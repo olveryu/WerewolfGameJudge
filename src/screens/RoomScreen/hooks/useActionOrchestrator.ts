@@ -16,6 +16,7 @@
  *   - Modify BroadcastGameState directly
  */
 
+import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName, getWolfKillImmuneRoleIds } from '@werewolf/game-engine/models/roles';
@@ -623,6 +624,7 @@ export function useActionOrchestrator({
               await sendWolfRobotHunterStatusViewed(effectiveSeat);
             } catch (error) {
               roomScreenLog.error('[wolfRobotViewHunterStatus] Failed to send confirmation', error);
+              Sentry.captureException(error);
               actionDialogs.showRoleActionPrompt(
                 '确认失败',
                 '状态确认发送失败，请稍后重试。如问题持续，请联系房主。',

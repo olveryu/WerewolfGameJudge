@@ -33,6 +33,7 @@ import {
 
 import { handleCors } from '../../_lib/cors';
 import { processGameAction } from '../../_lib/gameStateManager';
+import { resultToStatus } from '../../_lib/responseStatus';
 import type {
   ActionRequestBody,
   AudioAckRequestBody,
@@ -89,7 +90,7 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
     { enabled: true, hostUid },
   );
 
-  return res.status(result.success ? 200 : 400).json(result);
+  return res.status(resultToStatus(result)).json(result);
 }
 
 async function handleAudioAck(req: VercelRequest, res: VercelResponse) {
@@ -117,7 +118,7 @@ async function handleAudioAck(req: VercelRequest, res: VercelResponse) {
     { enabled: true, hostUid },
   );
 
-  return res.status(result.success ? 200 : 400).json(result);
+  return res.status(resultToStatus(result)).json(result);
 }
 
 async function handleAudioGate(req: VercelRequest, res: VercelResponse) {
@@ -137,7 +138,7 @@ async function handleAudioGate(req: VercelRequest, res: VercelResponse) {
     return handleSetAudioPlaying(intent, handlerCtx);
   });
 
-  return res.status(result.success ? 200 : 400).json(result);
+  return res.status(resultToStatus(result)).json(result);
 }
 
 async function handleEnd(req: VercelRequest, res: VercelResponse) {
@@ -154,7 +155,7 @@ async function handleEnd(req: VercelRequest, res: VercelResponse) {
     return handleEndNight(intent, handlerCtx);
   });
 
-  return res.status(result.success ? 200 : 400).json(result);
+  return res.status(resultToStatus(result)).json(result);
 }
 
 async function handleProgression(req: VercelRequest, res: VercelResponse) {
@@ -179,7 +180,7 @@ async function handleProgression(req: VercelRequest, res: VercelResponse) {
     { enabled: true, hostUid },
   );
 
-  return res.status(result.success ? 200 : 400).json(result);
+  return res.status(resultToStatus(result)).json(result);
 }
 
 async function handleRevealAck(req: VercelRequest, res: VercelResponse) {
@@ -208,7 +209,7 @@ async function handleRevealAck(req: VercelRequest, res: VercelResponse) {
     { enabled: true, hostUid },
   );
 
-  return res.status(result.success ? 200 : 400).json(result);
+  return res.status(resultToStatus(result)).json(result);
 }
 
 async function handleWolfRobotViewed(req: VercelRequest, res: VercelResponse) {
@@ -231,7 +232,7 @@ async function handleWolfRobotViewed(req: VercelRequest, res: VercelResponse) {
     { enabled: true, hostUid },
   );
 
-  return res.status(result.success ? 200 : 400).json(result);
+  return res.status(resultToStatus(result)).json(result);
 }
 
 async function handleWolfVote(req: VercelRequest, res: VercelResponse) {
@@ -280,7 +281,7 @@ async function handleWolfVote(req: VercelRequest, res: VercelResponse) {
     { enabled: true, hostUid },
   );
 
-  return res.status(result.success ? 200 : 400).json(result);
+  return res.status(resultToStatus(result)).json(result);
 }
 
 // ---------------------------------------------------------------------------

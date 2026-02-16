@@ -241,6 +241,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         );
       } catch (err) {
         gameRoomLog.error(' Error taking seat with ack:', err);
+        Sentry.captureException(err);
         return { success: false, reason: String(err) };
       }
     },
@@ -253,6 +254,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       return await facade.leaveSeatWithAck();
     } catch (err) {
       gameRoomLog.error(' Error leaving seat with ack:', err);
+      Sentry.captureException(err);
       return { success: false, reason: String(err) };
     }
   }, [facade]);
@@ -274,6 +276,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       return result;
     } catch (err) {
       gameRoomLog.error('Force sync fetchStateFromDB failed:', err);
+      Sentry.captureException(err);
       connection.setConnectionStatus('disconnected');
       return false;
     }

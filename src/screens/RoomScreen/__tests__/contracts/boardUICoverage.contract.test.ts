@@ -442,16 +442,12 @@ describe('Board UI Coverage Contract', () => {
   describe('Required Dialog Types Documentation', () => {
     it.each(boards)('board "$name" required types should be documented', (board) => {
       const requiredUiTypes = getRequiredUiDialogTypes(board);
-      const requiredHostDataTypes = getRequiredHostDataDialogTypes(board);
 
       // This test documents and validates the required types
       expect(requiredUiTypes).toContain('actionPrompt');
       expect(requiredUiTypes).toContain('wolfVote');
 
-      // Log for visibility
-      console.log(
-        `[${board.name}] UI: [${requiredUiTypes.join(', ')}] | Host: [${requiredHostDataTypes.join(', ')}]`,
-      );
+      // Document required types — test expectation already validates them above
     });
   });
 });

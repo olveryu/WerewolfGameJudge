@@ -104,18 +104,18 @@ export function usePWAInstall(): PWAInstallResult {
       return;
     }
 
-    // 监听后续触发的 beforeinstallprompt
-    const handler = () => {
-      setMode('prompt');
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-
     // iOS 浏览器（Safari / Chrome / Firefox 等）
     if (isIOSBrowser()) {
       setMode('ios-guide');
       setIOSBrowser(detectIOSBrowser());
       return;
     }
+
+    // 监听后续触发的 beforeinstallprompt（iOS 不触发此事件，故移到 iOS 检查之后）
+    const handler = () => {
+      setMode('prompt');
+    };
+    window.addEventListener('beforeinstallprompt', handler);
 
     // 其他浏览器（Firefox 等）不支持安装
     setMode('hidden');

@@ -247,7 +247,10 @@ export function useInteractionDispatcher({
                 setShouldPlayRevealAnimation(needAnimation);
                 setRoleCardVisible(true);
                 if (needAnimation) {
-                  void viewedRole();
+                  void viewedRole().catch((err) => {
+                    roomScreenLog.error('[roleCard] viewedRole failed', err);
+                    Sentry.captureException(err);
+                  });
                 }
               }
               return;
@@ -323,7 +326,10 @@ export function useInteractionDispatcher({
               '[HUNTER_STATUS_VIEWED] Cannot submit without seat (effectiveSeat is null)',
             );
           } else {
-            void sendWolfRobotHunterStatusViewed(effectiveSeat);
+            void sendWolfRobotHunterStatusViewed(effectiveSeat).catch((err) => {
+              roomScreenLog.error('[HUNTER_STATUS_VIEWED] Failed', err);
+              Sentry.captureException(err);
+            });
           }
           return;
 
