@@ -62,6 +62,7 @@ jobs:
         run: pnpm exec playwright test --reporter=list
         env:
           E2E_ENV: remote
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
