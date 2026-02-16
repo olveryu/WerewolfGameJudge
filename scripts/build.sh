@@ -36,6 +36,10 @@ echo "🧹 清理 dist/..."
 mkdir -p dist
 find dist -mindepth 1 -maxdepth 1 ! -name '.vercel' -exec rm -rf {} + 2>/dev/null || true
 
+# Expose Vercel deploy environment to Expo (EXPO_PUBLIC_* prefix required for Metro inlining)
+export EXPO_PUBLIC_DEPLOY_ENV="${VERCEL_ENV:-production}"
+echo "🌐 Deploy env: $EXPO_PUBLIC_DEPLOY_ENV"
+
 echo "📦 构建 Web..."
 npx expo export --platform web --clear
 

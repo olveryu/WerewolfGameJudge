@@ -23,10 +23,12 @@ import { AlertConfig, setAlertListener } from '@/utils/alert';
 import { log } from '@/utils/logger';
 
 // Initialize Sentry — DSN is public (like Supabase anon key), safe to commit.
+// EXPO_PUBLIC_DEPLOY_ENV is set by build.sh from Vercel's VERCEL_ENV system var.
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   // Disable in development to avoid noise
   enabled: !__DEV__,
+  environment: __DEV__ ? 'development' : (process.env.EXPO_PUBLIC_DEPLOY_ENV ?? 'production'),
   tracesSampleRate: 0.2,
 });
 
