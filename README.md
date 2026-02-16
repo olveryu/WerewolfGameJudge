@@ -10,7 +10,7 @@ _An automated judge app for both in-person and remote Werewolf games_
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![React Native](https://img.shields.io/badge/React%20Native-Expo-purple?style=flat-square&logo=expo)](https://expo.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-Realtime-green?style=flat-square&logo=supabase)](https://supabase.com/)
-[![Tests](https://img.shields.io/badge/Tests-2713%20passed-brightgreen?style=flat-square)](.)
+[![Tests](https://img.shields.io/badge/Tests-2632%20passed-brightgreen?style=flat-square)](.)
 
 ---
 
@@ -26,7 +26,7 @@ _An automated judge app for both in-person and remote Werewolf games_
 | ⚡ **即开即用** - 匿名登录，无需注册，4位房间码快速加入                     | ⚡ **Instant Play** - Anonymous login, no registration, quick join                     |
 | 🌐 **跨平台** - iOS / Android / Web 全平台支持                              | 🌐 **Cross-platform** - iOS / Android / Web supported                                  |
 | 🎨 **多主题** - 8 种主题风格可选（暗黑/浅色/午夜/血月/紫霞/极简/森林/雪夜） | 🎨 **Themes** - 8 theme styles (Dark/Light/Midnight/Blood/Discord/Minimal/Forest/Snow) |
-| 🧪 **高测试覆盖** - 2713 个单元测试 + UI 测试 + E2E 测试                    | 🧪 **High Test Coverage** - 2713 unit tests + UI tests + E2E tests                     |
+| 🧪 **高测试覆盖** - 2632 个单元测试 + UI 测试 + E2E 测试                    | 🧪 **High Test Coverage** - 2632 unit tests + UI tests + E2E tests                     |
 
 ---
 
@@ -129,12 +129,13 @@ _The 🐺 floating button at the bottom-right is your personal Werewolf consulta
 
 ### 核心原则 | Core Principles
 
-| 原则                                      | Principle                                                       |
-| ----------------------------------------- | --------------------------------------------------------------- |
-| ✅ Host 是唯一游戏逻辑权威                | Host is the single authority for game logic                     |
-| ✅ Supabase 负责传输/发现/身份/状态持久化 | Supabase handles transport/discovery/identity/state persistence |
-| ✅ `BroadcastGameState` 是单一真相        | `BroadcastGameState` is the single source of truth              |
-| ✅ UI 层按 `myRole` 过滤显示              | UI filters display based on `myRole`                            |
+| 原则                                             | Principle                                                         |
+| ------------------------------------------------ | ----------------------------------------------------------------- |
+| ✅ 服务端（Vercel Serverless）是唯一游戏逻辑权威 | Server (Vercel Serverless) is the single authority for game logic |
+| ✅ 所有客户端完全平等，Host 只是 UI 角色标记     | All clients are equal; Host is a UI role only                     |
+| ✅ Supabase 负责传输/发现/身份/状态持久化        | Supabase handles transport/discovery/identity/state persistence   |
+| ✅ `BroadcastGameState` 是单一真相               | `BroadcastGameState` is the single source of truth                |
+| ✅ UI 层按 `myRole` 过滤显示                     | UI filters display based on `myRole`                              |
 
 ### 系统架构 | System Architecture
 
@@ -181,13 +182,13 @@ NIGHT_STEPS (步骤序列)                Step sequence
 
 ## 🧪 测试覆盖 | Test Coverage
 
-| 类型 Type             | 数量 Count | 说明 Description                                                                                            |
-| --------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
-| **Unit Tests**        | 2713       | 170 test suites                                                                                             |
-| **UI Board Tests**    | 10 boards  | 覆盖所有预设板子<br/>_Cover all preset boards_                                                              |
-| **Integration Tests** | 25+        | 夜晚流程全链路<br/>_Full night flow chains_                                                                 |
-| **Contract Tests**    | 15+        | Schema/Resolver 对齐<br/>_Schema/Resolver alignment_                                                        |
-| **E2E Tests**         | 20+        | 8 spec files, Playwright 端到端（含断线恢复）<br/>_8 spec files, Playwright end-to-end (incl. DB recovery)_ |
+| 类型 Type             | 数量 Count | 说明 Description                                                                                              |
+| --------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
+| **Unit Tests**        | 2632       | 171 test suites (game-engine 51 + app 120)                                                                    |
+| **UI Board Tests**    | 10 boards  | 覆盖所有预设板子<br/>_Cover all preset boards_                                                                |
+| **Integration Tests** | 25+        | 夜晚流程全链路<br/>_Full night flow chains_                                                                   |
+| **Contract Tests**    | 15+        | Schema/Resolver 对齐<br/>_Schema/Resolver alignment_                                                          |
+| **E2E Tests**         | 30+        | 11 spec files, Playwright 端到端（含断线恢复）<br/>_11 spec files, Playwright end-to-end (incl. DB recovery)_ |
 
 ---
 
@@ -297,20 +298,16 @@ pnpm run lint                # ESLint
 ### 项目结构 | Project Structure
 
 ```
-src/
-├── models/roles/spec/          # 角色定义 (声明式) | Role definitions (declarative)
-│   ├── specs.ts                # ROLE_SPECS - 角色属性 | Role properties
-│   ├── schemas.ts              # SCHEMAS - 行动协议 | Action protocols
-│   └── nightSteps.ts           # NIGHT_STEPS - 步骤序列 | Step sequence
+packages/game-engine/src/       # 纯游戏逻辑共享包 | Pure game logic shared package
+├── models/                     # 角色定义 (specs / schemas / nightSteps) | Role definitions
+├── protocol/                   # 行动协议 (schemas) | Action protocols
+├── resolvers/                  # 夜晚行动解析器 | Night action resolvers
+├── engine/                     # 游戏引擎 (reducer / handlers / store) | Game engine
+└── utils/                      # 引擎工具 | Engine utilities
+
+src/                            # 客户端 | Client app
 ├── services/
-│   ├── engine/                 # 游戏引擎 | Game engine
-│   │   ├── handlers/           # 状态处理器 | State handlers
-│   │   ├── reducer/            # 状态归约器 | State reducers
-│   │   ├── store/              # 状态存储 | State store
-│   │   ├── state/              # 状态规范化 | State normalization
-│   │   └── DeathCalculator.ts  # 死亡结算 | Death calculation
-│   ├── night/resolvers/        # 夜晚行动解析器 | Night action resolvers
-│   ├── facade/                 # Host 操作门面 | Host action facade
+│   ├── facade/                 # Facade 编排 + IO | Facade orchestration
 │   ├── transport/              # Supabase realtime 传输 | Realtime transport
 │   ├── infra/                  # 基础设施服务 | Infrastructure services
 │   └── feature/                # 功能服务 | Feature services
@@ -318,10 +315,7 @@ src/
 │   └── RoomScreen/             # 游戏房间页面 | Game room screen
 │       ├── components/         # UI 组件 | UI components
 │       ├── hooks/              # React Hooks
-│       └── __tests__/
-│           ├── boards/         # 板子 UI 测试 | Board UI tests
-│           ├── harness/        # 测试工具 | Test harness
-│           └── contracts/      # 契约测试 | Contract tests
+│       └── __tests__/          # boards / harness / contracts
 ├── contexts/                   # React Context (Auth / GameFacade / Network / Service)
 ├── theme/                      # Design tokens + themes
 ├── utils/                      # 工具函数 | Utility functions
@@ -333,12 +327,13 @@ src/
 ## 🚀 部署 | Deployment
 
 ```bash
-# 发版 | Release (version bump + commit + tag + push)
+# 发版 | Release (version bump + CHANGELOG + commit + tag + push)
 pnpm run release              # patch (default)
 pnpm run release -- minor     # minor / major
 
-# 部署 | Deploy (build + Vercel)
-pnpm run deploy
+# 部署 | Deploy
+# git push 自动触发 Vercel Git Integration 部署 + GitHub CI
+# 无需手动操作，deploy.sh 仅用于应急
 ```
 
 **当前生产环境 | Production:** https://werewolf-judge.vercel.app
@@ -369,8 +364,8 @@ pnpm run deploy
 | **Monitoring** | Sentry (crash reporting)                     |
 | **Images**     | expo-image (disk cache + transitions)        |
 | **Testing**    | Jest + Testing Library + Playwright          |
-| **Deployment** | Vercel (Web)                                 |
-| **State**      | Custom engine (reducer + handlers + facade)  |
+| **Deployment** | Vercel Serverless (API + Web auto-deploy)    |
+| **State**      | @werewolf/game-engine (monorepo shared pkg)  |
 
 ---
 
