@@ -246,7 +246,9 @@ export function useInteractionDispatcher({
                 const needAnimation = !(effectivePlayer?.hasViewedRole ?? false);
                 setShouldPlayRevealAnimation(needAnimation);
                 setRoleCardVisible(true);
-                void viewedRole();
+                if (needAnimation) {
+                  void viewedRole();
+                }
               }
               return;
             case 'leaveRoom':
