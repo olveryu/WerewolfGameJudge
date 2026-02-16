@@ -814,7 +814,7 @@ describe('gameReducer', () => {
       });
 
       // If anyone ever "helpfully" toggles audio gate inside other reducers
-      // (e.g. START_NIGHT / ADVANCE / SET_CURRENT_STEP), this test should fail.
+      // (e.g. START_NIGHT / ADVANCE), this test should fail.
       const actions: StateAction[] = [
         {
           type: 'ASSIGN_ROLES',
@@ -832,10 +832,6 @@ describe('gameReducer', () => {
           type: 'APPLY_RESOLVER_RESULT',
           payload: { updates: { wolfVotesBySeat: { '1': 0 } } },
         } satisfies ApplyResolverResultAction,
-        {
-          type: 'SET_CURRENT_STEP',
-          payload: { schemaId: 'seerCheck' },
-        },
         {
           type: 'CLEAR_REVEAL_STATE',
         },
@@ -1311,20 +1307,6 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       expect(newState.pendingAudioEffects).toBeUndefined();
-    });
-  });
-
-  describe('SET_CURRENT_STEP', () => {
-    it('should be a no-op (reserved)', () => {
-      const state = createMinimalState();
-      const action = {
-        type: 'SET_CURRENT_STEP' as const,
-        payload: { schemaId: 'wolfKill' as any },
-      };
-
-      const newState = gameReducer(state, action);
-
-      expect(newState).toBe(state); // identity — no mutation
     });
   });
 

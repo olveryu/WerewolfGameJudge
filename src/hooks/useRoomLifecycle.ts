@@ -21,6 +21,7 @@ import { useCallback, useState } from 'react';
 import type { AuthService } from '@/services/infra/AuthService';
 import type { RoomRecord, RoomService } from '@/services/infra/RoomService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
+import { showAlert } from '@/utils/alert';
 import { gameRoomLog } from '@/utils/logger';
 
 import type { ConnectionSyncActions } from './useConnectionSync';
@@ -189,6 +190,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       setGameState(null);
     } catch (err) {
       gameRoomLog.error(' Error leaving room:', err);
+      Sentry.captureException(err);
     }
   }, [facade, setGameState, setRoomRecord]);
 
@@ -206,6 +208,8 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return await facade.takeSeat(seatNumber, displayName ?? undefined, avatarUrl ?? undefined);
       } catch (err) {
         gameRoomLog.error(' Error taking seat:', err);
+        Sentry.captureException(err);
+        showAlert('入座失败', '请稍后重试');
         return false;
       }
     },
@@ -218,6 +222,8 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       await facade.leaveSeat();
     } catch (err) {
       gameRoomLog.error(' Error leaving seat:', err);
+      Sentry.captureException(err);
+      showAlert('离座失败', '请稍后重试');
     }
   }, [facade]);
 

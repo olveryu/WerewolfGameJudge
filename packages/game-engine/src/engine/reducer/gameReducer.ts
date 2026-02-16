@@ -298,7 +298,9 @@ function handleSetAudioPlaying(state: GameState, action: SetAudioPlayingAction):
 function handlePlayerViewedRole(state: GameState, action: PlayerViewedRoleAction): GameState {
   const { seat } = action.payload;
   const player = state.players[seat];
-  if (!player) return state;
+  if (!player) {
+    throw new Error(`[FAIL-FAST] PLAYER_VIEWED_ROLE: no player at seat ${seat}`);
+  }
 
   // 更新当前玩家的 hasViewedRole
   const newPlayers = {
@@ -545,10 +547,6 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
 
     case 'MARK_ALL_BOTS_VIEWED':
       return handleMarkAllBotsViewed(state);
-
-    case 'SET_CURRENT_STEP':
-      // 当前 BroadcastGameState 没有 currentStepId 字段，预留
-      return state;
 
     case 'SET_WOLF_VOTE_DEADLINE':
       return {

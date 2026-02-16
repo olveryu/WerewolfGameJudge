@@ -257,17 +257,6 @@ export interface SetWolfRobotHunterStatusViewedAction {
 }
 
 // =============================================================================
-// Schema ID 追踪（用于当前步骤）
-// =============================================================================
-
-export interface SetCurrentStepAction {
-  type: 'SET_CURRENT_STEP';
-  payload: {
-    schemaId: SchemaId | null;
-  };
-}
-
-// =============================================================================
 // Debug Bots 动作
 // =============================================================================
 
@@ -377,8 +366,6 @@ export type StateAction =
   // Reveal ACK
   | AddRevealAckAction
   | ClearRevealAcksAction
-  // 步骤追踪
-  | SetCurrentStepAction
   // Debug Bots
   | FillWithBotsAction
   | MarkAllBotsViewedAction

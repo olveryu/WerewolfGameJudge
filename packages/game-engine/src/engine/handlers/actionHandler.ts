@@ -514,7 +514,11 @@ function buildRejectionResult(
     payload: {
       action: schemaId,
       reason: rejectReason ?? 'invalid_action',
-      targetUid: state.players[seat]?.uid ?? '',
+      targetUid:
+        state.players[seat]?.uid ??
+        (() => {
+          throw new Error(`[FAIL-FAST] ACTION_REJECTED: no player at seat ${seat}`);
+        })(),
       rejectionId: newRejectionId(),
     },
   };

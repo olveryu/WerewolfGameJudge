@@ -324,7 +324,8 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
       // NOTE: seat/firstSwapSeat are not used in the confirm copy (schema-driven).
       // They're kept in the signature for interface compatibility.
-      return confirmText || '';
+      // Non-compound schemas throw above if confirmText is missing, so this is safe.
+      return confirmText as string;
     },
     [currentSchema],
   );

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { getAllRoleIds, getRoleSpec } from '@werewolf/game-engine/models/roles';
 
@@ -39,6 +40,7 @@ export class AuthService {
       authLog.info(' Auto signed in anonymously:', userId);
     } catch (error) {
       authLog.error(' Auto sign in failed:', error);
+      Sentry.captureException(error);
     }
   }
 
@@ -71,8 +73,12 @@ export class AuthService {
     this.ensureConfigured();
     const { data, error } = await supabase!.auth.signInAnonymously();
     if (error) throw error;
-    this.currentUserId = data.user?.id || null;
-    return this.currentUserId || '';
+    const userId = data.user?.id;
+    if (!userId) {
+      throw new Error('[FAIL-FAST] signInAnonymously succeeded but user.id is missing');
+    }
+    this.currentUserId = userId;
+    return userId;
   }
 
   async signUpWithEmail(
@@ -92,10 +98,14 @@ export class AuthService {
       },
     });
     if (error) throw error;
-    this.currentUserId = data.user?.id || null;
+    const userId = data.user?.id;
+    if (!userId) {
+      throw new Error('[FAIL-FAST] signUpWithEmail succeeded but user.id is missing');
+    }
+    this.currentUserId = userId;
 
     return {
-      userId: this.currentUserId || '',
+      userId,
       user: data.user,
     };
   }
@@ -107,8 +117,12 @@ export class AuthService {
       password,
     });
     if (error) throw error;
-    this.currentUserId = data.user?.id || null;
-    return this.currentUserId || '';
+    const userId = data.user?.id;
+    if (!userId) {
+      throw new Error('[FAIL-FAST] signInWithEmail succeeded but user.id is missing');
+    }
+    this.currentUserId = userId;
+    return userId;
   }
 
   async updateProfile(updates: { displayName?: string; avatarUrl?: string }): Promise<void> {

@@ -58,6 +58,9 @@ async function callSeatApi(
 
     return result;
   } catch (e) {
+    // Rethrow programming errors (ReferenceError = always a code bug).
+    // TypeError is NOT rethrown because fetch() throws TypeError for network failures.
+    if (e instanceof ReferenceError) throw e;
     const err = e as { message?: string };
     facadeLog.error('callSeatApi failed', { error: err?.message ?? String(e) });
     return { success: false, reason: 'NETWORK_ERROR' };

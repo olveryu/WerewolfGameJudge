@@ -334,7 +334,12 @@ function buildNightActions(state: NonNullState): NightActions {
   // Wolf kill - resolve final target from wolfVotesBySeat
   // Single source of truth is the votes table; final target is derived.
   if (!state.wolfKillDisabled) {
-    const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat ?? {};
+    if (!state.currentNightResults) {
+      throw new Error(
+        '[FAIL-FAST] buildNightActions: currentNightResults missing in ongoing state',
+      );
+    }
+    const wolfVotesBySeat = state.currentNightResults.wolfVotesBySeat ?? {};
     const votes = new Map<number, number>();
     for (const [seatStr, targetSeat] of Object.entries(wolfVotesBySeat)) {
       const seat = Number.parseInt(seatStr, 10);

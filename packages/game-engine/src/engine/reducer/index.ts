@@ -23,7 +23,6 @@ export type {
   RestartGameAction,
   SetAudioPlayingAction,
   SetConfirmStatusAction,
-  SetCurrentStepAction,
   SetPendingAudioEffectsAction,
   SetWitchContextAction,
   SetWolfKillDisabledAction,
