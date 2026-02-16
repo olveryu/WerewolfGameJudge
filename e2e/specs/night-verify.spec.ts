@@ -8,8 +8,6 @@ import {
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  getActionMsg,
-  isNightEnded,
   readAlertText,
   viewLastNightInfo,
   waitForNightEnd,
@@ -130,7 +128,6 @@ test.describe('Night Verification', () => {
       expect(seerIdx, 'Seer page should be identified').not.toBe(-1);
 
       const seerPage = pages[seerIdx];
-      const seerSeat = roleMap.get(seerIdx)!.seat;
       // Pick a wolf to check — use the first wolf's seat
       const targetWolfIdx = wolfIndices[0];
       const targetWolfSeat = roleMap.get(targetWolfIdx)!.seat;

@@ -11,7 +11,6 @@ import {
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  isNightEnded,
   isTextVisible,
   readAlertText,
   viewLastNightInfo,
@@ -723,7 +722,6 @@ test.describe('Night Roles', () => {
       async ({ pages, roleMap }) => {
         const gargoyleIdx = findRolePageIndex(roleMap, '石像鬼');
         const seerIdx = findRolePageIndex(roleMap, '预言家');
-        const wolfIdx = findRolePageIndex(roleMap, '狼人');
         expect(gargoyleIdx).not.toBe(-1);
         expect(seerIdx).not.toBe(-1);
 

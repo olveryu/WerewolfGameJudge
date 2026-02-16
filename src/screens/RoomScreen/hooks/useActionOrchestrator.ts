@@ -655,6 +655,7 @@ export function useActionOrchestrator({
       setFirstSwapSeat,
       setSecondSeat,
       controlledSeat,
+      markActionSubmitting,
     ],
   );
 

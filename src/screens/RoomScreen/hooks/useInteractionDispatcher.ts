@@ -360,7 +360,6 @@ export function useInteractionDispatcher({
       effectiveSeat,
       pendingHunterStatusViewed,
       gameState,
-      myRole,
       setPendingRevealDialog,
       setRoleCardVisible,
       setShouldPlayRevealAnimation,

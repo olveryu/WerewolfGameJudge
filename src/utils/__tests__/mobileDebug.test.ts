@@ -41,6 +41,7 @@ describe('mobileDebug (web)', () => {
   });
 
   it('debug does not throw on web', () => {
+    // eslint-disable-next-line testing-library/no-debugging-utils -- not a testing-library debug()
     expect(() => mobileDebug.debug('debug message')).not.toThrow();
   });
 
