@@ -6,7 +6,7 @@ applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**,e2e/**'
 
 ## 核心原则
 
-- ✅ Jest 测试文件中允许 `console.*`。
+- ❌ Jest 测试文件禁止 `console.log` —— 断言失败时自动输出 diff/值，无需手动打印。
 - ❌ E2E spec（`e2e/**`）禁止 `console.log` —— 用 `test.step()` + `testInfo.attach()` 替代。
 - ✅ 测试文件中允许 `as` 构造 mock 数据。
 - ✅ 允许 mock `src/utils/alert.ts` 的 `showAlert`。
@@ -32,7 +32,10 @@ applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**,e2e/**'
 - 禁止 `it.skip` / `test.skip` / `describe.skip`（CI 会检测到并 fail）。
 - 测试断言必须基于 `BroadcastGameState` 单一真相，禁止直接改 state / 注入 host-only 状态。
 - 禁止用 snapshot/Storybook 截图替代交互覆盖。
-- Jest 测试文件中允许 `console.*`；E2E spec 禁止（见下方 E2E 日志规范）。
+- Jest 测试文件中禁止 `console.*`；E2E spec 同样禁止（见下方 E2E 日志规范）。
+  - 断言失败时 Jest 自动输出 expected/received diff，无需 `console.log` 手动打印。
+  - 调试完成后的 `console.log` 属于垃圾代码，污染 CI 输出。
+  - 如需全局拦截，项目已配置 `jest.setup.ts` 中的 `console` spy。
 
 ## Integration Board Tests（`src/services/__tests__/boards/**`）
 
