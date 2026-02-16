@@ -206,7 +206,7 @@ describe('gameReducer', () => {
       expect(newState.status).toBe('assigned'); // NOT 'ongoing'
       expect(newState.currentStepIndex).toBe(-1); // NOT 0
       expect(newState.isAudioPlaying).toBe(false);
-      expect(newState.actions).toBeUndefined();
+      expect(newState.actions).toEqual([]);
       expect(newState.currentNightResults).toBeUndefined();
     });
   });
@@ -523,7 +523,7 @@ describe('gameReducer', () => {
       expect(newState.status).toBe('ready');
     });
 
-    it('should return unchanged state if player not found', () => {
+    it('should throw if player not found (fail-fast)', () => {
       const state = createMinimalState({
         status: 'assigned',
         players: { 0: null, 1: null, 2: null },
@@ -533,9 +533,7 @@ describe('gameReducer', () => {
         payload: { seat: 0 },
       };
 
-      const newState = gameReducer(state, action);
-
-      expect(newState).toBe(state);
+      expect(() => gameReducer(state, action)).toThrow('[FAIL-FAST]');
     });
 
     it('should NOT transition if status is not assigned', () => {
@@ -567,8 +565,7 @@ describe('gameReducer', () => {
           1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
           2: null,
         },
-        // 确保这些字段在 assigned 状态下是 undefined
-        actions: undefined,
+        // 确保这些字段在 assigned 状态下是初始值
         currentNightResults: undefined,
         currentStepIndex: -1,
       });
@@ -580,7 +577,7 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       // PR2 contract: 不触碰 night 字段
-      expect(newState.actions).toBeUndefined();
+      expect(newState.actions).toEqual([]);
       expect(newState.currentNightResults).toBeUndefined();
       expect(newState.currentStepIndex).toBe(-1);
       expect(newState.witchContext).toBeUndefined();
@@ -620,7 +617,7 @@ describe('gameReducer', () => {
       expect(newState.players[0]?.hasViewedRole).toBe(false);
 
       // 夜晚状态清除
-      expect(newState.actions).toBeUndefined();
+      expect(newState.actions).toEqual([]);
       expect(newState.lastNightDeaths).toBeUndefined();
       expect(newState.currentStepIndex).toBe(0);
     });
@@ -1254,7 +1251,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      expect(newState.pendingRevealAcks).toBeUndefined();
+      expect(newState.pendingRevealAcks).toEqual([]);
     });
   });
 

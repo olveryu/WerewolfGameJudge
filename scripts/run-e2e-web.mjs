@@ -126,7 +126,9 @@ const childEnv = {
   EXPO_PUBLIC_SUPABASE_ANON_KEY: config.EXPO_PUBLIC_SUPABASE_ANON_KEY,
   // Server-side env vars for API routes (Vercel serverless functions)
   ...(config.SUPABASE_URL && { SUPABASE_URL: config.SUPABASE_URL }),
-  ...(config.SUPABASE_SERVICE_ROLE_KEY && { SUPABASE_SERVICE_ROLE_KEY: config.SUPABASE_SERVICE_ROLE_KEY }),
+  ...(config.SUPABASE_SERVICE_ROLE_KEY && {
+    SUPABASE_SERVICE_ROLE_KEY: config.SUPABASE_SERVICE_ROLE_KEY,
+  }),
   // Force official npm registry for vercel dev's internal builder installs
   // (avoids hanging on slow corporate proxies like Nexus)
   npm_config_registry: 'https://registry.npmjs.org/',

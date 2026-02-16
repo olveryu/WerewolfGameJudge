@@ -105,12 +105,7 @@ const childEnv = {
 
 // Override devCommand to a no-op so vercel dev only serves /api/** routes
 // without spawning Expo/Metro (which runs separately on :8081).
-const vercelArgs = [
-  'dev',
-  '--listen',
-  API_PORT,
-  '--yes',
-];
+const vercelArgs = ['dev', '--listen', API_PORT, '--yes'];
 
 console.log(`🚀 Starting: vercel ${vercelArgs.join(' ')}\n`);
 
