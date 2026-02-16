@@ -60,7 +60,7 @@ jobs:
         run: cp env/e2e.remote.example.json env/e2e.remote.json
 
       - name: Run E2E tests
-        run: pnpm exec playwright test --reporter=list
+        run: pnpm exec playwright test --reporter=list --reporter=html
         env:
           E2E_ENV: remote
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
