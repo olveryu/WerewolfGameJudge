@@ -52,6 +52,9 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Install Vercel CLI
+        run: npm i -g vercel
+
       - name: Create E2E remote config
         run: cp env/e2e.remote.example.json env/e2e.remote.json
 
