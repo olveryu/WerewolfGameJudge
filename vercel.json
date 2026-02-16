@@ -1,6 +1,7 @@
 {
-  "buildCommand": "cd packages/game-engine && npx tsc -p tsconfig.build.json",
+  "buildCommand": "bash scripts/build.sh",
   "outputDirectory": "dist",
+  "framework": null,
   "installCommand": "pnpm install",
   "devCommand": "npx expo start --web --port $PORT",
   "rewrites": [{ "source": "/((?!api/)(?!.*\\.).*)", "destination": "/index.html" }],
