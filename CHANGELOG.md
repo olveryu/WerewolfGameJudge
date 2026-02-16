@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.225] - 2026-02-16
+
+- docs: update collaboration rules to prioritize community practices
+- refactor(game-engine): normalize actions/pendingRevealAcks at boundary — make required
+- fix(services): apply fail-fast policy — remove defensive fallbacks
+- fix: ensure viewedRole is called only when animation is needed
+- docs: consolidate instruction files from 14 to 7
+- fix(tests): update logging rules to prohibit console.\* in Jest and E2E specs
+- refactor(e2e): remove all console.log from specs, helpers, and pages
+- fix(playwright): update trace collection to 'retain-on-failure' for better debugging
+- refactor(diagnostics): remove quietConsole option and adjust logging behavior refactor(multi-player): eliminate quietConsole option from game setup functions test(e2e): remove quietConsole flag from night role tests for consistency
+- perf(services): replace Supabase REST with direct Postgres via Supavisor
+- fix(game-engine): pre-compile workspace package for Vercel serverless
+- fix(services): deploy from project root with consolidated night API routes
+- fix(e2e): increase viewRole retry budget and fix stale screen selector
+- feat(e2e): add night-roles tests and fix night-driver infrastructure
+- feat(game): add role-aware game setup and night verification tests
+- refactor(package): update test and quality scripts for improved execution
+- refactor(utils): consolidate id/random/shuffle into game-engine, remove expo-crypto
+- test(game-engine): co-locate 48 test files with source in game-engine package
+- refactor(services): remove duplicate resolver files and empty protocol dir
+- refactor(models): remove models/protocol/resolver proxy re-export stubs (B2+B3)
+- refactor(services): remove engine/resolver proxy re-export stubs (B1)
+- refactor(models): remove zero-consumer proxy re-export stubs
+- feat: refactor room management methods to unify host and player join logic
+- feat: add double-click protection and new action types for game state management
+- chore: remove diagnostic logs and obsolete docs
+- feat: implement REST-based broadcasting for game state updates and notifications
+- feat: implement action submission handling for host and seat dialogs
+- feat: enhance seat interaction and game progression handling
+- chore: update scripts and instructions
+- fix(e2e): replace .isVisible({ timeout }) and waitForTimeout anti-patterns
+- feat(services): add three-layer retry for server-authoritative actions
+- docs: update instructions and migration doc for phases 5-7 completion
+- refactor(services): remove redundant client-side isHost guards
+- refactor(services): delete client-side progression, use audio-ack + postProgression
+- refactor(server): inline progression in all night APIs
+- feat(game-engine): add AudioEffect + pendingAudioEffects + runInlineProgression
+- refactor(services)!: remove HostStateCache, unify rejoin to DB
+- refactor(services)!: unify client state reception
+- refactor(docs): update architecture to unify client roles and eliminate Host/Player code divergence
+- feat(services): atomic game_state in createRoom + buildInitialGameState DRY
+- chore(services): cleanup stale comments and dead code
+- refactor(services): migrate remaining night ops to HTTP
+- refactor(services): migrate night action + wolf-vote to HTTP
+- feat(api): add night flow API routes
+- refactor(services): migrate game control to HTTP
+- feat(api): add game control API routes
+- test(services): update seat tests for HTTP API migration
+- refactor(services): migrate seat ops to HTTP API
+- feat(api): add seat API route + gameStateManager
+- test(services): add seatActions + messageRouter pre-migration tests
+- docs: update instructions for game-engine monorepo
+- refactor(services): move engine to game-engine
+- refactor(services): move protocol + resolvers to game-engine
+- refactor(models): move models to game-engine with proxy re-exports
+- chore: scaffold @werewolf/game-engine package
+- docs: update migration plan with detailed commit strategies for game engine transition
+- docs: rewrite server-authoritative migration plan with full phase details
+- feat(seating): update seating logic to require manual seat selection for host
+- feat(audio): update audio files and enhance TTS volume control fix(audio): improve BGM handling for web and native environments
+- feat(ui): update prompts to include '不使用技能' option for player actions
+
 ## [1.0.222] - 2026-02-13
 
 - test(e2e): add DB state recovery after network interruption
