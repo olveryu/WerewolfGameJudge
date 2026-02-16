@@ -21,7 +21,6 @@ test.describe('Night 6-Player', () => {
     const { fixture, roomNumber, hostPage } = await setupNPlayerGame(browser, {
       playerCount: 6,
       configureTemplate: async (config) => config.configure6Player(),
-      quietConsole: true,
     });
 
     try {

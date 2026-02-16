@@ -46,13 +46,11 @@ export const test = base.extend<{
  *
  * @param browser - Playwright Browser instance
  * @param count - Number of players (first = host)
- * @param opts - Options: `quietConsole` suppresses verbose PW console output
  * @returns MultiPlayerFixture with pages, diags, contexts
  */
 export async function createPlayerContexts(
   browser: Browser,
   count: number,
-  opts?: { quietConsole?: boolean },
 ): Promise<MultiPlayerFixture> {
   const contexts: BrowserContext[] = [];
   const pages: Page[] = [];
@@ -69,7 +67,7 @@ export async function createPlayerContexts(
 
     contexts.push(ctx);
     pages.push(page);
-    diags.push(setupDiagnostics(page, label, { quiet: opts?.quietConsole }));
+    diags.push(setupDiagnostics(page, label));
   }
 
   return { pages, diags, contexts };

@@ -123,7 +123,6 @@ test.describe('Night Verification', () => {
       setup = await setupNPlayerGameWithRoles(browser, {
         playerCount: 6,
         configureTemplate: async (config) => config.configure6Player(),
-        quietConsole: true,
       });
 
       const { fixture, roleMap, roomNumber } = setup;

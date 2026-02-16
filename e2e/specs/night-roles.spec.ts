@@ -64,7 +64,6 @@ async function withSetup(
     setup = await setupNPlayerGameWithRoles(browser, {
       playerCount: opts.playerCount,
       configureTemplate: opts.configure,
-      quietConsole: true,
     });
     // Log roleMap for debugging
     console.log('[NightRoles] roleMap:');

@@ -28,8 +28,6 @@ export interface SetupGameOptions {
   configureTemplate?: (config: ConfigPage) => Promise<void>;
   /** Whether to start the game (prepare → view roles → start). Default: true. */
   startGame?: boolean;
-  /** Suppress verbose PW console output (useful for multi-page tests). Default: false. */
-  quietConsole?: boolean;
 }
 
 export interface GameSetupResult {
@@ -195,10 +193,10 @@ export async function setupNPlayerGame(
   browser: Browser,
   opts: SetupGameOptions = {},
 ): Promise<GameSetupResult> {
-  const { playerCount = 2, configureTemplate, startGame = true, quietConsole = false } = opts;
+  const { playerCount = 2, configureTemplate, startGame = true } = opts;
 
   // Step 1: Create all player contexts
-  const fixture = await createPlayerContexts(browser, playerCount, { quietConsole });
+  const fixture = await createPlayerContexts(browser, playerCount);
   const [hostPage, ...joinerPages] = fixture.pages;
 
   // Step 2: Host creates room
@@ -269,10 +267,10 @@ export async function setupNPlayerGameWithRoles(
   browser: Browser,
   opts: Omit<SetupGameOptions, 'startGame'> = {},
 ): Promise<GameSetupWithRolesResult> {
-  const { playerCount = 2, configureTemplate, quietConsole = false } = opts;
+  const { playerCount = 2, configureTemplate } = opts;
 
   // Step 1: Create all player contexts
-  const fixture = await createPlayerContexts(browser, playerCount, { quietConsole });
+  const fixture = await createPlayerContexts(browser, playerCount);
   const [hostPage, ...joinerPages] = fixture.pages;
 
   // Step 2: Host creates room

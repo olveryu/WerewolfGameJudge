@@ -3,37 +3,13 @@ import type { Page } from '@playwright/test';
 /**
  * Shared diagnostic helpers for E2E.
  *
+ * Follows Playwright community pattern: browser console is NOT forwarded
+ * by default. Only errors (`pageerror`, failed requests, 4xx/5xx responses)
+ * and explicit `[DIAG]` logs are printed. For full console output, use
+ * Playwright trace / artifacts instead.
+ *
  * NOTE: This intentionally uses console.* because it's E2E-only tooling.
  */
-
-/** Prefixes to filter from console logs */
-export const LOG_PREFIXES = [
-  // Legacy prefixes (for compatibility)
-  '[useGameRoom]',
-  '[GameStateService]',
-  '[SeatService]',
-  '[RoomService]',
-  '[BroadcastService]',
-  '[AudioService]',
-  '[NightFlowController]',
-  // legacy-style prefixes (some code still prints bracketed tags)
-  '[GameFacade]',
-  '[facade]',
-  // react-native-logs extensions
-  'Host',
-  'Player',
-  'NightFlow',
-  'Broadcast',
-  'Audio',
-  'Auth',
-  'Room',
-  'GameRoom',
-  'Config',
-  'RoomScreen',
-  'Home',
-  'Facade',
-  'GameStore',
-] as const;
 
 /** Collected diagnostic data */
 export interface DiagnosticData {
@@ -47,35 +23,29 @@ export interface DiagnosticData {
  * Setup diagnostic listeners on a page.
  * Returns a DiagnosticData object that accumulates data.
  *
+ * Only forwards `[DIAG]` console messages and `error`-level logs.
+ * All other browser console output is silently collected but not printed.
+ * Use Playwright trace viewer for full debugging.
+ *
  * @param page - Playwright Page instance
  * @param label - Label for log lines
- * @param opts - Options: `quiet` suppresses real-time console.log to reduce output volume
  */
-export function setupDiagnostics(
-  page: Page,
-  label: string,
-  opts?: { quiet?: boolean },
-): DiagnosticData {
+export function setupDiagnostics(page: Page, label: string): DiagnosticData {
   const data: DiagnosticData = {
     consoleLogs: [],
     pageErrors: [],
     failedRequests: [],
     errorResponses: [],
   };
-  const quiet = opts?.quiet ?? false;
 
-  // Filter console logs by prefix
+  // Only forward [DIAG] and error-level console messages
   page.on('console', (msg) => {
     const text = msg.text();
-    // Always capture [DIAG] logs for debugging; also capture known prefixes
-    const isDiag = text.includes('[DIAG]');
-    if (isDiag || LOG_PREFIXES.some((p) => text.includes(p))) {
-      const logLine = `[${label}] ${text}`;
-      data.consoleLogs.push(logLine);
-      // [DIAG] logs always print; others only in non-quiet mode
-      if (isDiag || !quiet) {
-        console.log('[PW console]', logLine);
-      }
+    const logLine = `[${label}] ${text}`;
+    data.consoleLogs.push(logLine);
+
+    if (text.includes('[DIAG]') || msg.type() === 'error') {
+      console.log('[PW console]', logLine);
     }
   });
 
