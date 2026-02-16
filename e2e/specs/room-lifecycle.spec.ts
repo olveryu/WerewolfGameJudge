@@ -43,7 +43,6 @@ test.describe('Room Lifecycle', () => {
 
       if (alertAppeared) {
         const alertText = (await alertModal.textContent()) ?? '';
-        console.log(`[room-lifecycle] Alert text: ${alertText}`);
         expect(alertText).toContain('房间不存在');
 
         // Dismiss alert and wait for it to close

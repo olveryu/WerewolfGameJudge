@@ -44,7 +44,6 @@ async function dismissContinueOverlayIfVisible(page: Page): Promise<boolean> {
     .catch(() => false);
 
   if (isVisible) {
-    console.log('[rejoin] "继续游戏" overlay detected, clicking...');
     await continueBtn.click();
     await continueBtn.waitFor({ state: 'hidden', timeout: 3_000 }).catch(() => {});
     return true;
@@ -67,10 +66,8 @@ async function advanceNightPartially(pages: Page[], testInfo: TestInfo): Promise
       screenshotInterval: 25,
     });
     // If night completes in 25 iterations, that's fine too (very fast 2p game)
-    console.log('[rejoin] Night completed during partial advance (fast game)');
   } catch {
     // Expected — night didn't complete in 25 iterations, which is fine
-    console.log('[rejoin] Partial advance done (night still in progress)');
   }
 }
 
@@ -99,7 +96,6 @@ test.describe('Rejoin during ongoing game', () => {
         );
 
       // Step 3: Simulate host page close & reopen (navigate to home)
-      console.log('[rejoin] Host reloading page...');
       await gotoWithRetry(hostPage, '/');
       await ensureAnonLogin(hostPage);
 
@@ -117,9 +113,6 @@ test.describe('Rejoin during ongoing game', () => {
 
       // Step 5: Handle "继续游戏" overlay if present
       const hadOverlay = await dismissContinueOverlayIfVisible(hostPage);
-      console.log(
-        `[rejoin] ContinueGameOverlay was ${hadOverlay ? 'shown and dismissed' : 'not shown'}`,
-      );
 
       // Step 6: Continue night flow to completion
       const nightResult = await runNightFlowLoop(fixture.pages, testInfo, {
@@ -175,7 +168,6 @@ test.describe('Rejoin during ongoing game', () => {
       );
 
       // Step 3: Simulate player page close & reopen (navigate to home)
-      console.log('[rejoin] Player reloading page...');
       await gotoWithRetry(joinerPage, '/');
       await ensureAnonLogin(joinerPage);
 

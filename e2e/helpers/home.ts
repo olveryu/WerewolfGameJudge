@@ -70,7 +70,6 @@ async function handleErrorRecovery(page: Page): Promise<boolean> {
       .isVisible()
       .catch(() => false);
     if (hasError) {
-      console.log(`[handleErrorRecovery] Found "${pattern.text}", clicking "${pattern.action}"`);
       await clickIfVisible(page, pattern.action, { timeout: 1000 });
       // Wait for error dialog to disappear after clicking recovery action
       await page
@@ -113,7 +112,6 @@ async function waitForTransientToClear(page: Page, maxWaitMs = 10000): Promise<b
     await page.waitForTimeout(200);
   }
 
-  console.log(`[waitForTransientToClear] Transient state still present after ${maxWaitMs}ms`);
   return sawTransient;
 }
 
@@ -138,7 +136,6 @@ async function isHomeReady(page: Page): Promise<boolean> {
       .isVisible()
       .catch(() => false);
     if (isBlocking) {
-      console.log(`[isHomeReady] Blocked by modal: "${pattern}"`);
       return false;
     }
   }
@@ -150,7 +147,6 @@ async function isHomeReady(page: Page): Promise<boolean> {
       .isVisible()
       .catch(() => false);
     if (isTransient) {
-      console.log(`[isHomeReady] Transient state: "${pattern}"`);
       return false;
     }
   }
@@ -209,8 +205,6 @@ async function completeAnonLoginIfNeeded(page: Page): Promise<boolean> {
     return false;
   }
 
-  console.log('[completeAnonLoginIfNeeded] Login required, completing flow...');
-
   // Click login trigger via testID or text fallback
   const loginBtn = page.locator(`[data-testid="${TESTIDS.homeLoginButton}"]`);
   if (
@@ -232,7 +226,6 @@ async function completeAnonLoginIfNeeded(page: Page): Promise<boolean> {
 
   // Wait for login to complete - check for user name display
   await expect(userNameLocator).toBeVisible({ timeout: 15000 });
-  console.log('[completeAnonLoginIfNeeded] Login completed');
 
   // Dismiss any remaining login dialogs
   for (const prompt of loginPrompts) {
@@ -314,8 +307,6 @@ export async function ensureHomeReady(
   const { maxRetries = 5, timeoutMs = 30000 } = opts;
   const startTime = Date.now();
 
-  console.log('[ensureHomeReady] Starting...');
-
   // Step 1: Wait for app hydration
   await waitForAppReady(page);
 
@@ -337,7 +328,6 @@ export async function ensureHomeReady(
 
     // Check if we're ready
     if (await isHomeReady(page)) {
-      console.log(`[ensureHomeReady] Stable state reached on attempt ${attempt}`);
       return;
     }
 
@@ -347,7 +337,6 @@ export async function ensureHomeReady(
 
   // Final check after all retries
   if (await isHomeReady(page)) {
-    console.log('[ensureHomeReady] Stable state reached after retries');
     return;
   }
 
@@ -382,7 +371,6 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
     .then(() => true)
     .catch(() => false);
   if (alreadyLoggedIn) {
-    console.log('[ensureAnonLogin] Already logged in');
     await ensureHomeReady(page);
     return;
   }
@@ -394,12 +382,10 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
     .then(() => true)
     .catch(() => false);
   if (hasLoginBtn) {
-    console.log('[ensureAnonLogin] Clicking login button...');
     try {
       await loginBtnLocator.click({ timeout: 2000 });
     } catch {
       // Element was replaced - login might have auto-completed
-      console.log('[ensureAnonLogin] Login button was replaced, checking if logged in...');
     }
 
     // Check if auto-sign-in already completed during the wait
@@ -409,11 +395,9 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
         .then(() => true)
         .catch(() => false)
     ) {
-      console.log('[ensureAnonLogin] Auto-sign-in completed during wait');
       // Dismiss any leftover login modal
       await dismissBlockingModals(page);
       await ensureHomeReady(page);
-      console.log('[ensureAnonLogin] Completed (auto-sign-in)');
       return;
     }
 
@@ -424,11 +408,9 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
       .then(() => true)
       .catch(() => false);
     if (hasAnonBtn) {
-      console.log('[ensureAnonLogin] Login modal open, clicking anonymous login...');
       await anonLoginBtn.click();
       // Wait for login to complete — user name should appear
       await expect(userNameLocator).toBeVisible({ timeout: 15000 });
-      console.log('[ensureAnonLogin] Anonymous login completed');
     } else {
       // Fallback: Login modal might have different shape, try generic flow
       await completeAnonLoginIfNeeded(page);
@@ -436,7 +418,6 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
 
     // Wait for home to be stable
     await ensureHomeReady(page);
-    console.log('[ensureAnonLogin] Completed via login button');
     return;
   }
 
@@ -445,12 +426,10 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
   const loginCompleted = await completeAnonLoginIfNeeded(page);
   if (loginCompleted) {
     await ensureHomeReady(page);
-    console.log('[ensureAnonLogin] Completed via login dialog');
     return;
   }
 
   // Last resort: trigger login via create room button (testID)
-  console.log('[ensureAnonLogin] No login trigger found, trying create room...');
   const createRoomBtn = page.locator(`[data-testid="${TESTIDS.homeCreateRoomButton}"]`);
   await expect(createRoomBtn).toBeVisible({ timeout: 5000 });
   await createRoomBtn.click();
@@ -464,8 +443,6 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
   await completeAnonLoginIfNeeded(page);
   await waitForPostLoginStable(page);
   await navigateBackToHome(page);
-
-  console.log('[ensureAnonLogin] Completed');
 }
 
 /**
@@ -497,8 +474,6 @@ async function waitForPostLoginStable(page: Page, maxWaitMs = 15000): Promise<vo
     // Still in transient state, wait
     await page.waitForTimeout(300);
   }
-
-  console.log('[waitForPostLoginStable] Timeout, continuing anyway');
 }
 
 /**
@@ -515,7 +490,6 @@ async function navigateBackToHome(page: Page): Promise<void> {
       .isVisible()
       .catch(() => false);
     if (onConfig) {
-      console.log('[navigateBackToHome] On ConfigScreen, clicking back');
       const backBtn = page.locator('[data-testid="config-back-button"]');
       if (await backBtn.isVisible().catch(() => false)) {
         await backBtn.click();
@@ -534,7 +508,6 @@ async function navigateBackToHome(page: Page): Promise<void> {
       .isVisible()
       .catch(() => false);
     if (onRoom) {
-      console.log('[navigateBackToHome] On RoomScreen, need to leave room');
       // This is a more complex case - for now just return and let the caller handle
       // The test might need to leave the room explicitly
       return;
@@ -542,7 +515,6 @@ async function navigateBackToHome(page: Page): Promise<void> {
 
     // Check if home is truly ready (no transient states)
     if (await isHomeReady(page)) {
-      console.log('[navigateBackToHome] Home is ready');
       return;
     }
 

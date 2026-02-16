@@ -102,17 +102,6 @@ const WOLF_VOTE_STUCK_THRESHOLD = 8;
 const NO_PROGRESS_THRESHOLD = 35;
 
 // ---------------------------------------------------------------------------
-// Logging control
-// ---------------------------------------------------------------------------
-
-/** Module-level verbose flag. Set via `opts.verbose` in `runNightFlowLoop`. */
-let _verbose = false;
-
-function nightLog(msg: string): void {
-  if (_verbose) console.log(msg);
-}
-
-// ---------------------------------------------------------------------------
 // Low-level helpers
 // ---------------------------------------------------------------------------
 
@@ -248,7 +237,6 @@ async function executeAction(
     return false;
   }
 
-  nightLog(`[NightFlow] ${pageLabel}: executeAction clicking "${buttonText}"`);
   // Strategy: try within bottom-action-panel first (for buttons like 投票空刀),
   // then try page-level getByText.
   // RN Web renders Text as <div>, so locator('text=') may not work with exact match.
@@ -267,11 +255,6 @@ async function executeAction(
     }
   }
   if (!clicked) {
-    // Diagnostic: dump bottom-action-panel inner HTML to understand DOM structure
-    const panelHtml = await panel.innerHTML().catch(() => 'N/A');
-    nightLog(
-      `[NightFlow] ${pageLabel}: could not click "${buttonText}". Panel HTML: ${panelHtml.slice(0, 500)}`,
-    );
     return false;
   }
   return handlePostClick(page, buttonText, state, pageLabel);
@@ -297,7 +280,6 @@ async function tryConfirmSeatViaAlert(
   if (alertAppeared) {
     const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
     if (await confirmBtn.isVisible().catch(() => false)) {
-      nightLog(`[NightFlow] ${pageLabel}: confirming seat-${seatIdx} selection`);
       await confirmBtn.click({ force: true });
       await alertModal.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
       if (isWolfVote) state.wolfVotedPages.add(pageLabel);
@@ -334,7 +316,6 @@ async function attemptSeatSelection(
       const tile = getSeatTileLocator(page, idx);
       if (!(await tile.isVisible().catch(() => false))) continue;
 
-      nightLog(`[NightFlow] ${pageLabel}: clicking seat-${idx} (mySeat=${mySeat})`);
       await tile.click({ force: true, timeout: 3000 });
 
       const confirmed = await tryConfirmSeatViaAlert(page, pageLabel, idx, isWolfVote, state);
@@ -362,13 +343,9 @@ async function tryClickSeatTarget(
 
   const mySeat = await getMySeat(page);
   if (mySeat === null) {
-    nightLog(`[NightFlow] ${pageLabel}: target pattern matched but mySeat is null`);
     return false;
   }
 
-  nightLog(
-    `[NightFlow] ${pageLabel}: attempting seat selection (isWolfVote=${isWolfVote}, mySeat=${mySeat})`,
-  );
   return attemptSeatSelection(page, mySeat, isWolfVote, state, pageLabel);
 }
 
@@ -413,9 +390,6 @@ async function tryAdvanceNight(
     // which would reset the 5-second countdown and cause an infinite loop.
     // Just dismiss the alert and let the countdown expire naturally.
     if (isWolfVoteConfirm && state.wolfVotedPages.has(pageLabel)) {
-      nightLog(
-        `[NightFlow] ${pageLabel}: skipping wolf vote re-confirm (already voted, waiting for countdown)`,
-      );
       // Dismiss by pressing Escape or clicking outside (don't click 确定)
       await page.keyboard.press('Escape').catch(() => {});
       await alertModal.waitFor({ state: 'hidden', timeout: 1000 }).catch(() => {});
@@ -426,9 +400,6 @@ async function tryAdvanceNight(
     for (const text of UI_TEXT.advanceButtons) {
       const btn = alertModal.getByText(text, { exact: true }).first();
       if (await btn.isVisible().catch(() => false)) {
-        nightLog(
-          `[NightFlow] ${pageLabel}: alert title="${alertTitle}" clicking "${text}" (isWolfVoteConfirm=${isWolfVoteConfirm})`,
-        );
         await btn.click({ force: true });
         await alertModal.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
         // Track wolf vote ONLY if this was the wolf vote confirm dialog ('狼人投票')
@@ -544,13 +515,10 @@ async function tryAdvanceAnyPage(
         new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 10_000)),
       ]);
       if (advanced) {
-        nightLog(`[NightFlow] Advanced on page-${i}`);
         return true;
       }
-    } catch (e) {
-      console.error(
-        `[NightFlow] ERROR on page-${i}: ${e instanceof Error ? e.message : String(e)}`,
-      );
+    } catch {
+      // Error on this page — try next page
     }
   }
   return false;
@@ -577,24 +545,6 @@ async function assertProgress(
   }
 }
 
-async function logIterationState(
-  pages: Page[],
-  iter: number,
-  advanced: boolean,
-  state: NightFlowState,
-): Promise<void> {
-  // Always log for first 10 iters, then every 3 iters (keep it frequent enough to diagnose issues)
-  if (iter > 10 && iter % 3 !== 0 && !advanced) return;
-  const actionMsgs: string[] = [];
-  for (let p = 0; p < pages.length; p++) {
-    const msg = await getActionMessageText(pages[p]);
-    if (msg) actionMsgs.push(`p${p}="${msg.replaceAll('\n', ' ').slice(0, 60)}"`);
-  }
-  nightLog(
-    `[NightFlow] iter=${iter} adv=${advanced} noP=${state.noProgressIterations} wVoted=[${Array.from(state.wolfVotedPages)}] msgs=[${actionMsgs.join(', ')}]`,
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -606,17 +556,15 @@ async function logIterationState(
 export async function runNightFlowLoop(
   pages: Page[],
   testInfo: TestInfo,
-  opts: { maxIterations?: number; screenshotInterval?: number; verbose?: boolean } = {},
+  opts: { maxIterations?: number; screenshotInterval?: number } = {},
 ): Promise<NightFlowResult> {
-  const { maxIterations = 50, screenshotInterval = 5, verbose = false } = opts;
-  _verbose = verbose;
+  const { maxIterations = 50, screenshotInterval = 5 } = opts;
   const turnLog: string[] = [];
   const primaryPage = pages[0];
   const state = createInitialState();
 
   for (let iter = 1; iter <= maxIterations; iter++) {
     if (await isNightEnded(primaryPage)) {
-      console.log(`[NightFlow] Night ended at iteration ${iter}`);
       return { resultText: await captureNightResult(primaryPage), turnLog };
     }
 
@@ -625,7 +573,6 @@ export async function runNightFlowLoop(
 
     const advanced = await tryAdvanceAnyPage(pages, turnLog, state);
 
-    await logIterationState(pages, iter, advanced, state);
     await assertProgress(pages, advanced, state);
 
     // Poll cadence for main driver loop

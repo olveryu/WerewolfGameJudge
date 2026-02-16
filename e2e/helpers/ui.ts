@@ -70,7 +70,6 @@ async function probeServerHealth(
   try {
     const response = await page.request.get(probeURL, { timeout: timeoutMs });
     // Any HTTP response means server is ready (even 404 is fine - server responded)
-    console.log(`[probeServerHealth] OK: ${probeURL} -> HTTP ${response.status()}`);
     return { ready: true, category: 'ok', message: `HTTP ${response.status()}` };
   } catch (e) {
     const error = e instanceof Error ? e : new Error(String(e));
@@ -78,60 +77,26 @@ async function probeServerHealth(
 
     // Categorize error for evidence-based logging
     if (msg.includes('ECONNREFUSED') || msg.includes('ERR_CONNECTION_REFUSED')) {
-      console.log(`[probeServerHealth] REFUSED: ${probeURL} -> ${msg}`);
       return { ready: false, category: 'refused', message: msg };
     }
 
     if (msg.includes('Timeout') || error.name === 'TimeoutError') {
-      console.log(`[probeServerHealth] TIMEOUT: ${probeURL} -> ${msg}`);
       return { ready: false, category: 'timeout', message: msg };
     }
 
     if (msg.includes('ENOTFOUND') || msg.includes('getaddrinfo')) {
-      console.log(`[probeServerHealth] DNS: ${probeURL} -> ${msg}`);
       return { ready: false, category: 'dns', message: msg };
     }
 
     // Unknown error - treat as not ready (never assume success)
-    console.log(`[probeServerHealth] UNKNOWN: ${probeURL} -> [${error.name}] ${msg}`);
     return { ready: false, category: 'unknown', message: `[${error.name}] ${msg}` };
   }
 }
 
 /** Log detailed info about a navigation failure */
-function logNavigationFailure(
-  attempt: number,
-  maxRetries: number,
-  url: string,
-  baseURL: string,
-  pageUrl: string,
-  error: Error,
-  isConnectionRefused: boolean,
-): void {
-  console.log(`[gotoWithRetry] Attempt ${attempt}/${maxRetries} navigation failed`);
-  console.log(`  URL: ${url}`);
-  console.log(`  baseURL: ${baseURL}`);
-  console.log(`  page.url(): ${pageUrl}`);
-  console.log(`  Error: ${error.message}`);
-  if (isConnectionRefused) {
-    console.log(`  Signature: ${CONNECTION_REFUSED_SIGNATURE}`);
-  }
-}
-
-/** Collect evidence and log diagnostic hints on final failure */
-async function collectNavigationFailureEvidence(page: Page, maxRetries: number): Promise<void> {
-  console.log(`\n[gotoWithRetry] ❌ FAILED after ${maxRetries} attempts - collecting evidence...`);
-
-  const screenshotPath = await screenshotOnFail(page, 'goto-refused');
-  console.log(`  Screenshot: ${screenshotPath || 'failed to capture'}`);
-
-  await debugProbe(page, 'goto-refused');
-
-  console.log('\n[gotoWithRetry] Diagnostic hints:');
-  console.log('  1. Is dev server running? Run: npx expo start --web --port 8081');
-  console.log('  2. Port conflict? Run: lsof -i :8081');
-  console.log('  3. Check Playwright webServer logs above (stdout/stderr piped)');
-  console.log('  4. Try: pkill -f "expo" && pnpm run e2e:core');
+/** Collect evidence on final failure (screenshot for trace attachment) */
+async function collectNavigationFailureEvidence(page: Page): Promise<void> {
+  await screenshotOnFail(page, 'goto-refused');
 }
 
 /**
@@ -189,14 +154,10 @@ export async function gotoWithRetry(
     lastProbeResult = probeResult;
 
     if (!probeResult.ready) {
-      console.log(
-        `[gotoWithRetry] Attempt ${attempt}/${maxRetries}: Server not ready (${probeResult.category})`,
-      );
       lastError = new Error(`Server at ${baseURL} health probe failed: ${probeResult.message}`);
 
       // Timeout/unknown are "maybe slow" - don't burn retries too fast
       if (!isLastAttempt) {
-        console.log(`[gotoWithRetry] Waiting ${backoffMs}ms before retry...`);
         await new Promise((resolve) => setTimeout(resolve, backoffMs));
       }
       continue;
@@ -205,23 +166,12 @@ export async function gotoWithRetry(
     // Step 2: Server is up, attempt navigation
     const navResult = await attemptNavigation(page, url, timeoutMs);
     if (navResult.success) {
-      console.log(`[gotoWithRetry] Navigation successful on attempt ${attempt}`);
       return;
     }
 
     lastError = navResult.error!;
-    logNavigationFailure(
-      attempt,
-      maxRetries,
-      url,
-      baseURL,
-      page.url(),
-      lastError,
-      navResult.isRefused,
-    );
 
     if (navResult.isRefused && !isLastAttempt) {
-      console.log(`[gotoWithRetry] Waiting ${backoffMs}ms before retry...`);
       await new Promise((resolve) => setTimeout(resolve, backoffMs));
       continue;
     }
@@ -233,7 +183,7 @@ export async function gotoWithRetry(
   }
 
   // Failed after all attempts - collect evidence
-  await collectNavigationFailureEvidence(page, maxRetries);
+  await collectNavigationFailureEvidence(page);
 
   // Include last probe result category for grep-friendly evidence
   const probeInfo = lastProbeResult ? ` [probe: ${lastProbeResult.category}]` : '';
@@ -332,55 +282,8 @@ export async function screenshotOnFail(page: Page, label: string): Promise<strin
     const safeName = label.replaceAll(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50);
     const screenshotPath = path.join('test-results', `fail-${safeName}-${timestamp}.png`);
     await page.screenshot({ path: screenshotPath });
-    console.log(`[screenshotOnFail] Screenshot saved: ${screenshotPath}`);
     return screenshotPath;
-  } catch (e) {
-    console.log(`[screenshotOnFail] Failed to take screenshot: ${e}`);
+  } catch {
     return null;
   }
-}
-
-/**
- * Collect page state for debugging.
- * Useful to call when a test step fails.
- *
- * @param page - Playwright Page
- * @param label - Label for debug output
- */
-export async function debugProbe(page: Page, label: string): Promise<void> {
-  console.log(`\n========== DEBUG PROBE: ${label} ==========`);
-  console.log(`URL: ${page.url()}`);
-
-  const checks = [
-    { name: '房间号', selector: /房间 \d{4}/ },
-    { name: '创建房间', selector: '创建房间' },
-    { name: '进入房间', selector: '进入房间' },
-    { name: '准备看牌', selector: '准备看牌' },
-    { name: '查看身份', selector: '查看身份' },
-    { name: '开始游戏', selector: '开始游戏' },
-    { name: '重新开始', selector: '重新开始' },
-    { name: '重试', selector: '重试' },
-    { name: '确定', selector: '确定' },
-  ];
-
-  for (const check of checks) {
-    try {
-      const locator =
-        typeof check.selector === 'string'
-          ? page.getByText(check.selector, { exact: true })
-          : page.getByText(check.selector);
-      const visible = await locator.isVisible().catch(() => false);
-      if (visible) console.log(`  ✓ ${check.name}`);
-    } catch {
-      // ignore
-    }
-  }
-
-  try {
-    const bodyText = await page.locator('body').textContent({ timeout: 1000 });
-    console.log(`Body (first 500 chars): ${bodyText?.substring(0, 500)}`);
-  } catch (e) {
-    console.log(`Body text error: ${e}`);
-  }
-  console.log(`========== END PROBE ==========\n`);
 }

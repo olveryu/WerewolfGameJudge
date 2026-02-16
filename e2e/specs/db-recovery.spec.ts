@@ -40,23 +40,20 @@ test.describe('DB state recovery after network interruption', () => {
 
     try {
       // Step 2: Advance night partially — submit some actions
-      console.log('[db-recovery] Advancing night partially...');
       try {
         await runNightFlowLoop(fixture.pages, testInfo, {
           maxIterations: 25,
           screenshotInterval: 25,
         });
-        console.log('[db-recovery] Night completed during partial advance (fast game)');
         // If night finished in 25 iterations, skip the disconnect test —
         // the game is already over. This is rare for 2p but possible.
         const room = new RoomPage(hostPage);
         const hasLastNightBtn = await room.isLastNightInfoVisible();
         if (hasLastNightBtn) {
-          console.log('[db-recovery] Night already finished, skipping disconnect test');
           return;
         }
       } catch {
-        console.log('[db-recovery] Partial advance done (night still in progress)');
+        // Expected — night didn't complete yet
       }
 
       await joinerPage.screenshot().then((s) =>
@@ -67,7 +64,6 @@ test.describe('DB state recovery after network interruption', () => {
       );
 
       // Step 3: Simulate network disconnect on the player
-      console.log('[db-recovery] Simulating player network disconnect...');
       await joinerContext.setOffline(true);
 
       // Step 4: Wait for the disconnect to register
@@ -76,7 +72,6 @@ test.describe('DB state recovery after network interruption', () => {
         .waitFor({ state: 'visible', timeout: 10_000 })
         .then(() => true)
         .catch(() => false);
-      console.log(`[db-recovery] Disconnect indicator visible: ${isDisconnected}`);
 
       await joinerPage.screenshot().then((s) =>
         testInfo.attach('db-recovery-02-disconnected.png', {
@@ -86,7 +81,6 @@ test.describe('DB state recovery after network interruption', () => {
       );
 
       // Step 5: Restore network
-      console.log('[db-recovery] Restoring player network...');
       await joinerContext.setOffline(false);
 
       // Step 6: Wait for reconnection — player should auto-recover from DB
@@ -101,7 +95,6 @@ test.describe('DB state recovery after network interruption', () => {
       );
 
       // Step 7: Continue night flow to completion
-      console.log('[db-recovery] Continuing night flow after reconnection...');
       const nightResult = await runNightFlowLoop(fixture.pages, testInfo, {
         maxIterations: 80,
         screenshotInterval: 10,

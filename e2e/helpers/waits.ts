@@ -35,7 +35,6 @@ async function waitForRoomHeaderOrRetry(page: Page, maxRetries: number): Promise
           .then(() => true)
           .catch(() => false)
       ) {
-        console.log(`[waitForRoomScreenReady] Retry attempt ${attempt + 1}...`);
         await retryBtn.click();
         continue;
       }
@@ -55,7 +54,6 @@ async function waitForJoinerLive(page: Page, liveTimeoutMs: number): Promise<voi
   while (Date.now() - startTime < liveTimeoutMs) {
     const liveIndicator = page.getByText(ROOM_STATUS_TEXT.live, { exact: true });
     if (await liveIndicator.isVisible().catch(() => false)) {
-      console.log('[waitForRoomScreenReady] Joiner is live');
       return;
     }
 
@@ -63,7 +61,6 @@ async function waitForJoinerLive(page: Page, liveTimeoutMs: number): Promise<voi
     if (await disconnectedIndicator.isVisible().catch(() => false)) {
       const forceSyncBtn = page.locator(`[data-testid="${TESTIDS.forceSyncButton}"]`);
       if (await forceSyncBtn.isVisible().catch(() => false)) {
-        console.log('[waitForRoomScreenReady] Clicking force sync...');
         await forceSyncBtn.click();
         // Wait for disconnected indicator to disappear after force sync
         await disconnectedIndicator.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});

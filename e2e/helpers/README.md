@@ -112,7 +112,6 @@ Low-level utilities with no app-specific knowledge.
 | `waitForTextGone(page, text, opts)`      | Wait for text to disappear                                |
 | `retry(fn, opts)`                        | Retry with exponential backoff                            |
 | `screenshotOnFail(page, label)`          | Save screenshot; never throws                             |
-| `debugProbe(page, label)`                | Log page state for debugging                              |
 | `withStep(name, page, fn, timeoutMs)`    | Wrap step with timeout + evidence on failure              |
 
 ### `gotoWithRetry(page, url?, opts?)`

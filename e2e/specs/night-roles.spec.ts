@@ -65,11 +65,6 @@ async function withSetup(
       playerCount: opts.playerCount,
       configureTemplate: opts.configure,
     });
-    // Log roleMap for debugging
-    console.log('[NightRoles] roleMap:');
-    for (const [idx, info] of setup.roleMap) {
-      console.log(`  page[${idx}] → seat=${info.seat}, role="${info.displayName}"`);
-    }
     await body({
       setup,
       pages: setup.fixture.pages,
@@ -303,7 +298,6 @@ test.describe('Night Roles', () => {
 
         // Read reveal
         const revealText = await readAlertText(pages[seerIdx]);
-        console.log(`[NightRoles] Seer reveal: ${revealText}`);
         expect(revealText).toContain(`${checkTarget + 1}号`);
         expect(revealText).toContain('好人');
         await dismissAlert(pages[seerIdx]);
@@ -354,7 +348,6 @@ test.describe('Night Roles', () => {
 
         // Read the alert — should say "猎人可以发动技能" or "猎人不能发动技能"
         const alertText = await readAlertText(pages[hunterIdx]);
-        console.log(`[NightRoles] Hunter status: ${alertText}`);
         expect(alertText).toContain('猎人');
         expect(alertText).toMatch(/可以发动技能|不能发动技能/);
         await dismissAlert(pages[hunterIdx]);
@@ -403,7 +396,6 @@ test.describe('Night Roles', () => {
 
         // Read reveal — "通灵结果：X号是狼人"
         const revealText = await readAlertText(pages[psychicIdx]);
-        console.log(`[NightRoles] Psychic reveal: ${revealText}`);
         expect(revealText).toContain(`${checkSeat + 1}号`);
         expect(revealText).toContain('狼人');
         await dismissAlert(pages[psychicIdx]);
@@ -701,7 +693,6 @@ test.describe('Night Roles', () => {
 
         // Read alert — "黑狼王可以发动技能" or "黑狼王不能发动技能"
         const alertText = await readAlertText(pages[dwkIdx]);
-        console.log(`[NightRoles] DWK status: ${alertText}`);
         expect(alertText).toContain('黑狼王');
         expect(alertText).toMatch(/可以发动技能|不能发动技能/);
         await dismissAlert(pages[dwkIdx]);
@@ -760,7 +751,6 @@ test.describe('Night Roles', () => {
 
         // Read reveal — "石像鬼探查：X号是预言家"
         const revealText = await readAlertText(pages[gargoyleIdx]);
-        console.log(`[NightRoles] Gargoyle reveal: ${revealText}`);
         expect(revealText).toContain(`${seerSeat + 1}号`);
         expect(revealText).toContain('预言家');
         await dismissAlert(pages[gargoyleIdx]);
@@ -820,7 +810,6 @@ test.describe('Night Roles', () => {
 
           // Read reveal — "学习结果：X号是普通村民"
           const revealText = await readAlertText(pages[wrIdx]);
-          console.log(`[NightRoles] WolfRobot reveal: ${revealText}`);
           expect(revealText).toContain(`${learnSeat + 1}号`);
           expect(revealText).toContain('普通村民');
           await dismissAlert(pages[wrIdx]);

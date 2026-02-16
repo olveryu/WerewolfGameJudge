@@ -62,11 +62,6 @@ test.describe('Night Verification', () => {
       const villagerSeat = roleMap.get(villagerIdx)!.seat;
       const hostPage = pages[0];
 
-      console.log(
-        `[NightVerify] Room ${roomNumber}: wolf=page${wolfIdx}(seat${roleMap.get(wolfIdx)!.seat}), ` +
-          `villager=page${villagerIdx}(seat${villagerSeat})`,
-      );
-
       // Wait for wolf's action message to appear
       const wolfAction = wolfPage.locator('[data-testid="action-message"]');
       await wolfAction.waitFor({ state: 'visible', timeout: 30_000 });
@@ -140,12 +135,6 @@ test.describe('Night Verification', () => {
       const targetWolfIdx = wolfIndices[0];
       const targetWolfSeat = roleMap.get(targetWolfIdx)!.seat;
 
-      console.log(
-        `[NightVerify] Room ${roomNumber}: ` +
-          `wolves=[${wolfIndices.map((i) => `p${i}(seat${roleMap.get(i)!.seat})`).join(',')}], ` +
-          `seer=p${seerIdx}(seat${seerSeat}), targetWolf=seat${targetWolfSeat}`,
-      );
-
       // --- Phase 1: Drive wolf vote ---
       const firstWolfPage = pages[wolfIndices[0]];
       await firstWolfPage
@@ -170,7 +159,6 @@ test.describe('Night Verification', () => {
 
       // Wait for the reveal dialog
       const revealText = await readAlertText(seerPage);
-      console.log(`[NightVerify] Seer reveal text: ${revealText}`);
 
       // The reveal should mention the checked seat number and "狼人"
       const expectedRevealSeat = targetWolfSeat + 1; // 0-based → 1-based
