@@ -94,15 +94,33 @@ if [ -d "$FONT_SRC" ]; then
   rm -rf dist/assets/node_modules
 fi
 
+# Vercel Build Output API 不提供 _expo 目录（underscore 前缀保留）
+# 将 JS bundle 移到 assets/js/ 下（assets/ 已知可正常提供）
+if [ -d dist/_expo/static/js/web ]; then
+  mkdir -p dist/assets/js
+  cp dist/_expo/static/js/web/*.js dist/assets/js/
+  rm -rf dist/_expo
+  echo "✅ JS bundle 移至 assets/js/（规避 Vercel _expo 限制）"
+fi
+
 # 使用自定义 index.html（保留 Expo 生成的 JS bundle）
 if [ -f dist/index.html ]; then
-  JS_BUNDLE=$(grep -oE '/_expo/static/js/web/[^"]+\.js' dist/index.html | head -1)
-  if [ -n "$JS_BUNDLE" ]; then
+  # 从原始 index.html 提取 bundle 文件名
+  JS_FILE=$(grep -oE '/_expo/static/js/web/[^"]+\.js' dist/index.html | head -1 | sed 's|.*/_expo/static/js/web/||')
+  if [ -z "$JS_FILE" ]; then
+    JS_FILE=$(ls dist/assets/js/index-*.js 2>/dev/null | head -1 | xargs basename 2>/dev/null)
+  fi
+  if [ -n "$JS_FILE" ]; then
     cp web/index.html dist/index.html
-    perl -i -pe "s|</body>|    <script src=\"$JS_BUNDLE\" defer></script>\n  </body>|" dist/index.html
-    echo "✅ 自定义 index.html，JS bundle: $JS_BUNDLE"
+    perl -i -pe "s|</body>|    <script src=\"/assets/js/$JS_FILE\" defer></script>\n  </body>|" dist/index.html
+    echo "✅ 自定义 index.html，JS bundle: /assets/js/$JS_FILE"
   fi
 fi
+
+# JS bundle 内部引用替换 _expo → assets
+for jsfile in dist/assets/js/*.js; do
+  sed -i '' "s|/_expo/static/js/web/|/assets/js/|g" "$jsfile" 2>/dev/null
+done
 
 # Service Worker 缓存版本号（使用构建时间戳自动递增）
 SW_VERSION="werewolf-judge-$(date +%Y%m%d%H%M%S)"

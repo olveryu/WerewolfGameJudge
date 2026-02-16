@@ -20,7 +20,7 @@ import {
   runInlineProgression,
 } from '@werewolf/game-engine';
 
-import { getServiceClient } from './supabase';
+import { getDb, jsonb } from './db';
 import type { GameActionResult, ProcessResult } from './types';
 
 // =============================================================================
@@ -95,93 +95,103 @@ export async function processGameAction(
   process: (state: BroadcastGameState, revision: number) => ProcessResult,
   inlineProgression?: InlineProgressionOptions,
 ): Promise<GameActionResult> {
-  const supabase = getServiceClient();
-  const MAX_RETRIES = 3;
+  try {
+    const sql = getDb();
+    const MAX_RETRIES = 3;
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    // Step 1: 读 DB
-    const { data, error: readError } = await supabase
-      .from('rooms')
-      .select('game_state, state_revision')
-      .eq('code', roomCode)
-      .single();
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      // Step 1: 读 DB（直连 Postgres，~5-15ms）
+      const rows = await sql`
+        SELECT game_state, state_revision
+        FROM rooms
+        WHERE code = ${roomCode}
+        LIMIT 1
+      `;
 
-    if (readError || !data?.game_state) {
-      return { success: false, reason: 'ROOM_NOT_FOUND' };
-    }
+      if (rows.length === 0 || !rows[0].game_state) {
+        return { success: false, reason: 'ROOM_NOT_FOUND' };
+      }
 
-    const currentState = data.game_state as BroadcastGameState;
-    const currentRevision = (data.state_revision as number) ?? 0;
+      // postgres.js + Supavisor (prepare:false) 可能将 jsonb 作为字符串返回
+      const rawState = rows[0].game_state;
+      const currentState: BroadcastGameState =
+        typeof rawState === 'string' ? JSON.parse(rawState) : rawState;
+      const currentRevision = (rows[0].state_revision as number) ?? 0;
 
-    // Step 2: 调用 game-engine 纯函数
-    const result = process(currentState, currentRevision);
+      // Step 2: 调用 game-engine 纯函数
+      const result = process(currentState, currentRevision);
 
-    if (!result.success) {
-      // Handler 逻辑失败不重试
-      return { success: false, reason: result.reason };
-    }
+      if (!result.success) {
+        // Handler 逻辑失败不重试
+        return { success: false, reason: result.reason };
+      }
 
-    // Step 3: apply actions → 新 state
-    let newState = currentState;
-    for (const action of result.actions) {
-      newState = gameReducer(newState, action);
-    }
-
-    // Step 3.5: 内联推进（可选）
-    if (inlineProgression?.enabled) {
-      const progressionResult = runInlineProgression(
-        newState,
-        inlineProgression.hostUid,
-        inlineProgression.nowMs,
-      );
-      for (const action of progressionResult.actions) {
+      // Step 3: apply actions → 新 state
+      let newState = currentState;
+      for (const action of result.actions) {
         newState = gameReducer(newState, action);
       }
-    }
 
-    newState = normalizeState(newState);
-
-    // Step 4: 乐观锁写回 DB
-    const { data: writeData, error: writeError } = await supabase
-      .from('rooms')
-      .update({
-        game_state: newState,
-        state_revision: currentRevision + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('code', roomCode)
-      .eq('state_revision', currentRevision) // 乐观锁
-      .select('state_revision')
-      .single();
-
-    if (writeError || !writeData) {
-      // 乐观锁冲突 → 重试（重新读 DB + 重新计算）
-      if (attempt < MAX_RETRIES) {
-        // 短暂退避，减少再次冲突概率
-        await new Promise((r) => setTimeout(r, 50 * attempt));
-        continue;
+      // Step 3.5: 内联推进（可选）
+      if (inlineProgression?.enabled) {
+        const progressionResult = runInlineProgression(
+          newState,
+          inlineProgression.hostUid,
+          inlineProgression.nowMs,
+        );
+        for (const action of progressionResult.actions) {
+          newState = gameReducer(newState, action);
+        }
       }
-      return { success: false, reason: 'CONFLICT_RETRY' };
+
+      newState = normalizeState(newState);
+
+      // Step 4: 乐观锁写回 DB（直连 Postgres，~5-15ms）
+      const writeRows = await sql`
+        UPDATE rooms
+        SET game_state = ${jsonb(newState)},
+            state_revision = ${currentRevision + 1},
+            updated_at = ${new Date().toISOString()}
+        WHERE code = ${roomCode}
+          AND state_revision = ${currentRevision}
+        RETURNING state_revision
+      `;
+
+      if (writeRows.length === 0) {
+        // 乐观锁冲突 → 重试（重新读 DB + 重新计算）
+        if (attempt < MAX_RETRIES) {
+          // 短暂退避，减少再次冲突概率
+          await new Promise((r) => setTimeout(r, 50 * attempt));
+          continue;
+        }
+        return { success: false, reason: 'CONFLICT_RETRY' };
+      }
+
+      // Step 5: 广播 STATE_UPDATE（fire-and-forget — 不阻塞 HTTP 响应）
+      // broadcast 是 best-effort 快通道，丢失由 postgres_changes 兜底
+      broadcastViaRest(roomCode, {
+        type: 'STATE_UPDATE',
+        state: newState,
+        revision: currentRevision + 1,
+      }).catch(() => {
+        /* non-blocking */
+      });
+
+      return {
+        success: true,
+        state: newState,
+        revision: currentRevision + 1,
+        sideEffects: result.sideEffects,
+      };
     }
 
-    // Step 5: 广播 STATE_UPDATE（fire-and-forget — 不阻塞 HTTP 响应）
-    // broadcast 是 best-effort 快通道，丢失由 postgres_changes 兜底
-    broadcastViaRest(roomCode, {
-      type: 'STATE_UPDATE',
-      state: newState,
-      revision: currentRevision + 1,
-    }).catch(() => {
-      /* non-blocking */
-    });
-
-    return {
-      success: true,
-      state: newState,
-      revision: currentRevision + 1,
-      sideEffects: result.sideEffects,
-    };
+    // TypeScript exhaustiveness — 不应到达此处
+    return { success: false, reason: 'CONFLICT_RETRY' };
+  } catch (err) {
+    // 所有未捕获异常兜底 — 返回 JSON 而非 Vercel 默认 500 HTML
+    const message = err instanceof Error ? err.message : String(err);
+    // eslint-disable-next-line no-console
+    console.error('[processGameAction] Unhandled error:', message, err);
+    return { success: false, reason: 'INTERNAL_ERROR', error: message } as GameActionResult;
   }
-
-  // TypeScript exhaustiveness — 不应到达此处
-  return { success: false, reason: 'CONFLICT_RETRY' };
 }
