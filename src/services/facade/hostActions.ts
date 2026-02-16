@@ -21,6 +21,7 @@
 
 import * as Sentry from '@sentry/react-native';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
@@ -59,13 +60,25 @@ interface GameControlApiResponse {
  *
  * 服务端乐观锁冲突返回 CONFLICT_RETRY 时，客户端透明重试（最多 2 次），
  * 配合服务端 3 次重试，有效重试上限为 3×3 = 9 次。
+ *
+ * 支持客户端乐观更新：传入 `optimisticFn` 在 fetch 前即时渲染预测 state，
+ * 服务端响应后 applySnapshot 覆盖；失败时 rollbackOptimistic。
  */
 async function callGameControlApi(
   path: string,
   body: Record<string, unknown>,
   store?: GameStore,
+  optimisticFn?: (state: GameState) => GameState,
 ): Promise<GameControlApiResponse> {
   const MAX_CLIENT_RETRIES = 2;
+
+  // 乐观更新：fetch 前立即渲染预测 state
+  if (optimisticFn && store) {
+    const currentState = store.getState();
+    if (currentState) {
+      store.applyOptimistic(optimisticFn(currentState));
+    }
+  }
 
   for (let attempt = 0; attempt <= MAX_CLIENT_RETRIES; attempt++) {
     try {
@@ -89,6 +102,11 @@ async function callGameControlApi(
         store.applySnapshot(result.state as never, result.revision);
       }
 
+      // 服务端拒绝 → 回滚乐观更新
+      if (!result.success && store) {
+        store.rollbackOptimistic();
+      }
+
       return result;
     } catch (e) {
       // Rethrow programming errors (ReferenceError = always a code bug).
@@ -97,6 +115,8 @@ async function callGameControlApi(
       const err = e as { message?: string };
       facadeLog.error('callGameControlApi failed', { path, error: err?.message ?? String(e) });
       Sentry.captureException(e);
+      // 网络错误 → 回滚乐观更新
+      if (store) store.rollbackOptimistic();
       return { success: false, reason: 'NETWORK_ERROR' };
     }
   }
@@ -148,6 +168,16 @@ export async function markViewedRole(
       seat,
     },
     ctx.store,
+    // 乐观预测：立即显示已看牌
+    (state) => ({
+      ...state,
+      players: {
+        ...state.players,
+        [seat]: state.players[seat]
+          ? { ...state.players[seat]!, hasViewedRole: true }
+          : state.players[seat],
+      },
+    }),
   );
   return result;
 }
@@ -215,6 +245,8 @@ export async function updateTemplate(
       templateRoles: template.roles,
     },
     ctx.store,
+    // 乐观预测：立即更新模板角色列表
+    (state) => ({ ...state, templateRoles: template.roles }),
   );
 }
 
@@ -268,6 +300,8 @@ export async function setRoleRevealAnimation(
       animation,
     },
     ctx.store,
+    // 乐观预测：立即更新动画设置
+    (state) => ({ ...state, roleRevealAnimation: animation }),
   );
 }
 

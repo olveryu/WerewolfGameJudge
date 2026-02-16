@@ -1,4 +1,5 @@
 {
+  "regions": ["pdx1"],
   "buildCommand": "bash scripts/build.sh",
   "outputDirectory": "dist",
   "framework": null,

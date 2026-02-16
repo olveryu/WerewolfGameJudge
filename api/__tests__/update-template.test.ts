@@ -16,27 +16,35 @@ jest.mock('../_lib/gameStateManager', () => ({
   processGameAction: (...args: unknown[]) => mockProcessGameAction(...(args as [string, unknown])),
 }));
 
-import handler from '../game/update-template';
+import handler from '../game/[action]';
+
+const QUERY = { action: 'update-template' };
 
 beforeEach(() => jest.clearAllMocks());
 
 describe('POST /api/game/update-template', () => {
   it('returns 405 for non-POST', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ method: 'GET' }), res);
+    await handler(mockRequest({ method: 'GET', query: QUERY }), res);
     expect(res._status).toBe(405);
   });
 
   it('returns 400 when roomCode is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ body: { hostUid: 'h1', templateRoles: ['wolf', 'seer'] } }), res);
+    await handler(
+      mockRequest({ query: QUERY, body: { hostUid: 'h1', templateRoles: ['wolf', 'seer'] } }),
+      res,
+    );
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when hostUid is missing', async () => {
     const res = mockResponse();
     await handler(
-      mockRequest({ body: { roomCode: 'ABCD', templateRoles: ['wolf', 'seer'] } }),
+      mockRequest({
+        query: QUERY,
+        body: { roomCode: 'ABCD', templateRoles: ['wolf', 'seer'] },
+      }),
       res,
     );
     expect(res._status).toBe(400);
@@ -44,7 +52,7 @@ describe('POST /api/game/update-template', () => {
 
   it('returns 400 when templateRoles is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
     expect(res._status).toBe(400);
   });
 
@@ -53,6 +61,7 @@ describe('POST /api/game/update-template', () => {
     const res = mockResponse();
     await handler(
       mockRequest({
+        query: QUERY,
         body: { roomCode: 'ABCD', hostUid: 'h1', templateRoles: ['wolf', 'seer', 'villager'] },
       }),
       res,
@@ -65,6 +74,7 @@ describe('POST /api/game/update-template', () => {
     const res = mockResponse();
     await handler(
       mockRequest({
+        query: QUERY,
         body: { roomCode: 'ABCD', hostUid: 'h1', templateRoles: ['wolf'] },
       }),
       res,

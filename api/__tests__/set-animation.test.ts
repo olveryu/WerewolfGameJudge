@@ -16,32 +16,37 @@ jest.mock('../_lib/gameStateManager', () => ({
   processGameAction: (...args: unknown[]) => mockProcessGameAction(...(args as [string, unknown])),
 }));
 
-import handler from '../game/set-animation';
+import handler from '../game/[action]';
+
+const QUERY = { action: 'set-animation' };
 
 beforeEach(() => jest.clearAllMocks());
 
 describe('POST /api/game/set-animation', () => {
   it('returns 405 for non-POST', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ method: 'GET' }), res);
+    await handler(mockRequest({ method: 'GET', query: QUERY }), res);
     expect(res._status).toBe(405);
   });
 
   it('returns 400 when roomCode is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ body: { hostUid: 'h1', animation: 'flip' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { hostUid: 'h1', animation: 'flip' } }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when hostUid is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', animation: 'flip' } }), res);
+    await handler(
+      mockRequest({ query: QUERY, body: { roomCode: 'ABCD', animation: 'flip' } }),
+      res,
+    );
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when animation is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
     expect(res._status).toBe(400);
   });
 
@@ -49,7 +54,10 @@ describe('POST /api/game/set-animation', () => {
     mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
     const res = mockResponse();
     await handler(
-      mockRequest({ body: { roomCode: 'ABCD', hostUid: 'h1', animation: 'roulette' } }),
+      mockRequest({
+        query: QUERY,
+        body: { roomCode: 'ABCD', hostUid: 'h1', animation: 'roulette' },
+      }),
       res,
     );
     expect(res._status).toBe(200);
@@ -59,7 +67,10 @@ describe('POST /api/game/set-animation', () => {
     mockProcessGameAction.mockResolvedValue({ success: false, reason: 'NOT_HOST' });
     const res = mockResponse();
     await handler(
-      mockRequest({ body: { roomCode: 'ABCD', hostUid: 'h1', animation: 'flip' } }),
+      mockRequest({
+        query: QUERY,
+        body: { roomCode: 'ABCD', hostUid: 'h1', animation: 'flip' },
+      }),
       res,
     );
     expect(res._status).toBe(400);

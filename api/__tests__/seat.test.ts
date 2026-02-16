@@ -23,7 +23,9 @@ jest.mock('../_lib/gameStateManager', () => ({
 }));
 
 import { handleCors } from '../_lib/cors';
-import handler from '../game/seat';
+import handler from '../game/[action]';
+
+const QUERY = { action: 'seat' };
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -32,7 +34,7 @@ beforeEach(() => {
 describe('POST /api/game/seat', () => {
   // --- Method check ---
   it('returns 405 for non-POST', async () => {
-    const req = mockRequest({ method: 'GET' });
+    const req = mockRequest({ method: 'GET', query: QUERY });
     const res = mockResponse();
     await handler(req, res);
     expect(res._status).toBe(405);
@@ -42,7 +44,7 @@ describe('POST /api/game/seat', () => {
   // --- CORS ---
   it('handles CORS preflight and returns early', async () => {
     (handleCors as jest.Mock).mockReturnValueOnce(true);
-    const req = mockRequest({ method: 'OPTIONS' });
+    const req = mockRequest({ method: 'OPTIONS', query: QUERY });
     const res = mockResponse();
     await handler(req, res);
     expect(handleCors).toHaveBeenCalledWith(req, res);
@@ -51,7 +53,7 @@ describe('POST /api/game/seat', () => {
 
   // --- Param validation ---
   it('returns 400 when roomCode is missing', async () => {
-    const req = mockRequest({ body: { action: 'sit', uid: 'u1', seat: 1 } });
+    const req = mockRequest({ query: QUERY, body: { action: 'sit', uid: 'u1', seat: 1 } });
     const res = mockResponse();
     await handler(req, res);
     expect(res._status).toBe(400);
@@ -59,21 +61,24 @@ describe('POST /api/game/seat', () => {
   });
 
   it('returns 400 when uid is missing', async () => {
-    const req = mockRequest({ body: { roomCode: 'ABCD', action: 'sit', seat: 1 } });
+    const req = mockRequest({ query: QUERY, body: { roomCode: 'ABCD', action: 'sit', seat: 1 } });
     const res = mockResponse();
     await handler(req, res);
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when action is missing', async () => {
-    const req = mockRequest({ body: { roomCode: 'ABCD', uid: 'u1', seat: 1 } });
+    const req = mockRequest({ query: QUERY, body: { roomCode: 'ABCD', uid: 'u1', seat: 1 } });
     const res = mockResponse();
     await handler(req, res);
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when action=sit but seat is missing', async () => {
-    const req = mockRequest({ body: { roomCode: 'ABCD', action: 'sit', uid: 'u1' } });
+    const req = mockRequest({
+      query: QUERY,
+      body: { roomCode: 'ABCD', action: 'sit', uid: 'u1' },
+    });
     const res = mockResponse();
     await handler(req, res);
     expect(res._status).toBe(400);
@@ -86,6 +91,7 @@ describe('POST /api/game/seat', () => {
     mockProcessGameAction.mockResolvedValue(fakeResult);
 
     const req = mockRequest({
+      query: QUERY,
       body: { roomCode: 'ABCD', action: 'sit', uid: 'u1', seat: 3, displayName: 'Alice' },
     });
     const res = mockResponse();
@@ -102,6 +108,7 @@ describe('POST /api/game/seat', () => {
     mockProcessGameAction.mockResolvedValue(fakeResult);
 
     const req = mockRequest({
+      query: QUERY,
       body: { roomCode: 'ABCD', action: 'standup', uid: 'u1' },
     });
     const res = mockResponse();
@@ -117,6 +124,7 @@ describe('POST /api/game/seat', () => {
     mockProcessGameAction.mockResolvedValue(fakeResult);
 
     const req = mockRequest({
+      query: QUERY,
       body: { roomCode: 'ABCD', action: 'sit', uid: 'u1', seat: 1 },
     });
     const res = mockResponse();
@@ -139,6 +147,7 @@ describe('POST /api/game/seat', () => {
     });
 
     const req = mockRequest({
+      query: QUERY,
       body: { roomCode: 'ABCD', action: 'sit', uid: 'u1', seat: 3 },
     });
     const res = mockResponse();
@@ -159,6 +168,7 @@ describe('POST /api/game/seat', () => {
     });
 
     const req = mockRequest({
+      query: QUERY,
       body: { roomCode: 'ABCD', action: 'standup', uid: 'u1' },
     });
     const res = mockResponse();

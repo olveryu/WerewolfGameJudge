@@ -285,10 +285,20 @@ describe('seatActions (HTTP API)', () => {
   // ===========================================================================
 
   describe('optimistic response (store.applySnapshot)', () => {
+    /** 创建包含乐观更新方法的 mock store */
+    function createMockStore(currentState: Record<string, unknown> | null = null) {
+      return {
+        getState: jest.fn().mockReturnValue(currentState),
+        applySnapshot: jest.fn(),
+        applyOptimistic: jest.fn(),
+        rollbackOptimistic: jest.fn(),
+      };
+    }
+
     it('should call store.applySnapshot when response contains state + revision', async () => {
       const mockState = { roomCode: 'ABCD', players: {} };
       global.fetch = mockFetchSuccess({ success: true, state: mockState, revision: 5 });
-      const mockStore = { applySnapshot: jest.fn() };
+      const mockStore = createMockStore({ roomCode: 'ABCD', players: { 1: null } });
       const ctx = createMockCtx({ store: mockStore as any });
 
       await takeSeatWithAck(ctx, 2, 'Alice');
@@ -298,7 +308,7 @@ describe('seatActions (HTTP API)', () => {
 
     it('should NOT call applySnapshot when response has no state', async () => {
       global.fetch = mockFetchSuccess({ success: true });
-      const mockStore = { applySnapshot: jest.fn() };
+      const mockStore = createMockStore({ roomCode: 'ABCD', players: {} });
       const ctx = createMockCtx({ store: mockStore as any });
 
       await takeSeatWithAck(ctx, 2, 'Alice');
@@ -318,12 +328,35 @@ describe('seatActions (HTTP API)', () => {
     it('should call store.applySnapshot on leaveSeatWithAck response', async () => {
       const mockState = { roomCode: 'ABCD', players: {} };
       global.fetch = mockFetchSuccess({ success: true, state: mockState, revision: 3 });
-      const mockStore = { applySnapshot: jest.fn() };
+      const mockStore = createMockStore({
+        roomCode: 'ABCD',
+        players: { 1: { uid: 'test-uid', seatNumber: 1 } },
+      });
       const ctx = createMockCtx({ store: mockStore as any });
 
       await leaveSeatWithAck(ctx);
 
       expect(mockStore.applySnapshot).toHaveBeenCalledWith(mockState, 3);
+    });
+
+    it('should apply optimistic state before fetch', async () => {
+      global.fetch = mockFetchSuccess({ success: true, state: { roomCode: 'ABCD' }, revision: 2 });
+      const mockStore = createMockStore({ roomCode: 'ABCD', players: { 1: null } });
+      const ctx = createMockCtx({ store: mockStore as any });
+
+      await takeSeatWithAck(ctx, 1, 'Alice');
+
+      expect(mockStore.applyOptimistic).toHaveBeenCalledTimes(1);
+    });
+
+    it('should rollback optimistic state on server rejection', async () => {
+      global.fetch = mockFetchSuccess({ success: false, reason: 'seat_taken' });
+      const mockStore = createMockStore({ roomCode: 'ABCD', players: { 1: null } });
+      const ctx = createMockCtx({ store: mockStore as any });
+
+      await takeSeatWithAck(ctx, 1, 'Alice');
+
+      expect(mockStore.rollbackOptimistic).toHaveBeenCalledTimes(1);
     });
   });
 });

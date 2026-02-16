@@ -12,6 +12,7 @@
 
 import * as Sentry from '@sentry/react-native';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
 
 import { API_BASE_URL } from '@/config/api';
 import { facadeLog } from '@/utils/logger';
@@ -38,12 +39,24 @@ interface SeatApiResponse {
 
 /**
  * 调用座位 API
+ *
+ * 支持客户端乐观更新：传入 `optimisticFn` 在 fetch 前即时渲染预测 state，
+ * 服务端响应后 applySnapshot 覆盖；失败时 rollbackOptimistic。
  */
 async function callSeatApi(
   roomCode: string,
   body: Record<string, unknown>,
   store?: GameStore,
+  optimisticFn?: (state: GameState) => GameState,
 ): Promise<SeatApiResponse> {
+  // 乐观更新：fetch 前立即渲染预测 state
+  if (optimisticFn && store) {
+    const currentState = store.getState();
+    if (currentState) {
+      store.applyOptimistic(optimisticFn(currentState));
+    }
+  }
+
   try {
     const res = await fetch(`${API_BASE_URL}/api/game/seat`, {
       method: 'POST',
@@ -57,6 +70,11 @@ async function callSeatApi(
       store.applySnapshot(result.state as never, result.revision);
     }
 
+    // 服务端拒绝 → 回滚乐观更新
+    if (!result.success && store) {
+      store.rollbackOptimistic();
+    }
+
     return result;
   } catch (e) {
     // Rethrow programming errors (ReferenceError = always a code bug).
@@ -65,6 +83,8 @@ async function callSeatApi(
     const err = e as { message?: string };
     facadeLog.error('callSeatApi failed', { error: err?.message ?? String(e) });
     Sentry.captureException(e);
+    // 网络错误 → 回滚乐观更新
+    if (store) store.rollbackOptimistic();
     return { success: false, reason: 'NETWORK_ERROR' };
   }
 }
@@ -112,6 +132,20 @@ export async function takeSeatWithAck(
       avatarUrl,
     },
     ctx.store,
+    // 乐观预测：立即显示玩家入座
+    (state) => ({
+      ...state,
+      players: {
+        ...state.players,
+        [seatNumber]: {
+          uid: ctx.myUid!,
+          seatNumber,
+          displayName,
+          avatarUrl,
+          hasViewedRole: false,
+        },
+      },
+    }),
   );
 }
 
@@ -136,12 +170,25 @@ export async function leaveSeatWithAck(
 
   facadeLog.debug('leaveSeatWithAck', { uid: ctx.myUid });
 
+  const uid = ctx.myUid;
+
   return callSeatApi(
     roomCode,
     {
       action: 'standup',
-      uid: ctx.myUid,
+      uid,
     },
     ctx.store,
+    // 乐观预测：立即移除玩家座位
+    (state) => {
+      const updatedPlayers = { ...state.players };
+      for (const [seat, player] of Object.entries(updatedPlayers)) {
+        if (player && player.uid === uid) {
+          updatedPlayers[Number(seat)] = null;
+          break;
+        }
+      }
+      return { ...state, players: updatedPlayers };
+    },
   );
 }

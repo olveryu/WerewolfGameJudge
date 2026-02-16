@@ -21,41 +21,43 @@ jest.mock('../_lib/gameStateManager', () => ({
 }));
 
 import { handleCors } from '../_lib/cors';
-import handler from '../game/assign';
+import handler from '../game/[action]';
+
+const QUERY = { action: 'assign' };
 
 beforeEach(() => jest.clearAllMocks());
 
 describe('POST /api/game/assign', () => {
   it('returns 405 for non-POST', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ method: 'GET' }), res);
+    await handler(mockRequest({ method: 'GET', query: QUERY }), res);
     expect(res._status).toBe(405);
   });
 
   it('handles CORS preflight', async () => {
     (handleCors as jest.Mock).mockReturnValueOnce(true);
     const res = mockResponse();
-    await handler(mockRequest({ method: 'OPTIONS' }), res);
+    await handler(mockRequest({ method: 'OPTIONS', query: QUERY }), res);
     expect(res._status).toBe(0);
   });
 
   it('returns 400 when roomCode is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ body: { hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { hostUid: 'h1' } }), res);
     expect(res._status).toBe(400);
     expect(res._json).toEqual({ success: false, reason: 'MISSING_PARAMS' });
   });
 
   it('returns 400 when hostUid is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 200 on success', async () => {
     mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
     expect(res._status).toBe(200);
     expect(mockProcessGameAction).toHaveBeenCalledWith('ABCD', expect.any(Function));
   });
@@ -63,7 +65,7 @@ describe('POST /api/game/assign', () => {
   it('returns 400 on failure', async () => {
     mockProcessGameAction.mockResolvedValue({ success: false, reason: 'NOT_HOST' });
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
     expect(res._status).toBe(400);
   });
 
@@ -74,7 +76,7 @@ describe('POST /api/game/assign', () => {
       return { success: true, _cb: result } as unknown as GameActionResult;
     });
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
     expect(mockProcessGameAction).toHaveBeenCalled();
   });
 });

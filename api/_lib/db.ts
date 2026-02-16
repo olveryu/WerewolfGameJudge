@@ -44,9 +44,9 @@ export function getDb() {
   }
 
   _sql = postgres(url, {
-    // Serverless 优化：最少连接，快速释放
+    // Serverless 优化：最少连接，配合 warm-up cron 保持连接复用
     max: 1,
-    idle_timeout: 20,
+    idle_timeout: 60,
     connect_timeout: 10,
     // Supavisor transaction mode 需要 prepare: false
     prepare: false,

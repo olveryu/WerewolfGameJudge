@@ -21,33 +21,35 @@ jest.mock('../_lib/gameStateManager', () => ({
   broadcastViaRest: (...args: unknown[]) => mockBroadcastViaRest(...args),
 }));
 
-import handler from '../game/restart';
+import handler from '../game/[action]';
+
+const QUERY = { action: 'restart' };
 
 beforeEach(() => jest.clearAllMocks());
 
 describe('POST /api/game/restart', () => {
   it('returns 405 for non-POST', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ method: 'GET' }), res);
+    await handler(mockRequest({ method: 'GET', query: QUERY }), res);
     expect(res._status).toBe(405);
   });
 
   it('returns 400 when roomCode is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ body: { hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { hostUid: 'h1' } }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when hostUid is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(400);
   });
 
   it('broadcasts GAME_RESTARTED before processing', async () => {
     mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
 
     expect(mockBroadcastViaRest).toHaveBeenCalledWith('ABCD', { type: 'GAME_RESTARTED' });
     expect(res._status).toBe(200);
@@ -56,14 +58,14 @@ describe('POST /api/game/restart', () => {
   it('returns 200 on success', async () => {
     mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
     expect(res._status).toBe(200);
   });
 
   it('returns 400 on failure', async () => {
     mockProcessGameAction.mockResolvedValue({ success: false, reason: 'NOT_HOST' });
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
     expect(res._status).toBe(400);
   });
 });

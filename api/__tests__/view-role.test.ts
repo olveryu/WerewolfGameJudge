@@ -19,60 +19,71 @@ jest.mock('../_lib/gameStateManager', () => ({
 }));
 
 import { handleCors } from '../_lib/cors';
-import handler from '../game/view-role';
+import handler from '../game/[action]';
+
+const QUERY = { action: 'view-role' };
 
 beforeEach(() => jest.clearAllMocks());
 
 describe('POST /api/game/view-role', () => {
   it('returns 405 for non-POST', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ method: 'GET' }), res);
+    await handler(mockRequest({ method: 'GET', query: QUERY }), res);
     expect(res._status).toBe(405);
   });
 
   it('handles CORS preflight', async () => {
     (handleCors as jest.Mock).mockReturnValueOnce(true);
     const res = mockResponse();
-    await handler(mockRequest({ method: 'OPTIONS' }), res);
+    await handler(mockRequest({ method: 'OPTIONS', query: QUERY }), res);
     expect(res._status).toBe(0);
   });
 
   it('returns 400 when roomCode is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ body: { uid: 'u1', seat: 1 } }), res);
+    await handler(mockRequest({ query: QUERY, body: { uid: 'u1', seat: 1 } }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when uid is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', seat: 1 } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', seat: 1 } }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when seat is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', uid: 'u1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', uid: 'u1' } }), res);
     expect(res._status).toBe(400);
   });
 
   it('accepts seat=0 (not treated as missing)', async () => {
     mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', uid: 'u1', seat: 0 } }), res);
+    await handler(
+      mockRequest({ query: QUERY, body: { roomCode: 'ABCD', uid: 'u1', seat: 0 } }),
+      res,
+    );
     expect(res._status).toBe(200);
   });
 
   it('returns 200 on success', async () => {
     mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', uid: 'u1', seat: 3 } }), res);
+    await handler(
+      mockRequest({ query: QUERY, body: { roomCode: 'ABCD', uid: 'u1', seat: 3 } }),
+      res,
+    );
     expect(res._status).toBe(200);
   });
 
   it('returns 400 on failure', async () => {
     mockProcessGameAction.mockResolvedValue({ success: false, reason: 'WRONG_STATUS' });
     const res = mockResponse();
-    await handler(mockRequest({ body: { roomCode: 'ABCD', uid: 'u1', seat: 3 } }), res);
+    await handler(
+      mockRequest({ query: QUERY, body: { roomCode: 'ABCD', uid: 'u1', seat: 3 } }),
+      res,
+    );
     expect(res._status).toBe(400);
   });
 });

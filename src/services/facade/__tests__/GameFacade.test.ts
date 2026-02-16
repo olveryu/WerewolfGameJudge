@@ -271,15 +271,15 @@ describe('GameFacade', () => {
       expect(result).toBe(false);
     });
 
-    it('should not update mySeat until STATE_UPDATE received', async () => {
+    it('should optimistically update mySeat before server response', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         json: () => Promise.resolve({ success: true }),
       });
 
       await facade.takeSeat(1, 'Player One');
 
-      // mySeat should still be null (response has no state/revision → no optimistic apply)
-      expect(facade.getMySeatNumber()).toBeNull();
+      // 乐观更新：mySeat 在 fetch 前即更新（无需等 STATE_UPDATE）
+      expect(facade.getMySeatNumber()).toBe(1);
     });
   });
 

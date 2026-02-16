@@ -33,6 +33,12 @@ export interface IGameStore {
 
   /** 应用快照（玩家端） */
   applySnapshot(state: GameState, revision: number): void;
+
+  /** 乐观更新（发 fetch 前立即渲染预测 state） */
+  applyOptimistic(state: GameState): void;
+
+  /** 回滚乐观更新（服务端拒绝时） */
+  rollbackOptimistic(): void;
 }
 
 /**
