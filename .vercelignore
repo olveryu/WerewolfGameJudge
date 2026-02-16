@@ -10,6 +10,7 @@ docs/
 
 # Scripts (not needed at runtime)
 scripts/
+!scripts/build.sh
 
 # Config files not needed for deployment
 jest.config.js

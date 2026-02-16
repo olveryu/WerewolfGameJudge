@@ -137,6 +137,12 @@ const childEnv = {
 // Start vercel dev (serves both frontend via Expo AND /api/** serverless functions)
 const port = new URL(E2E_BASE_URL).port || '3000';
 const vercelArgs = ['dev', '--listen', port, '--yes'];
+
+// In CI, vercel dev needs an explicit token for authentication
+if (process.env.VERCEL_TOKEN) {
+  vercelArgs.push('--token', process.env.VERCEL_TOKEN);
+}
+
 console.log(`🚀 Starting: vercel ${vercelArgs.join(' ')}\n`);
 
 const child = spawn('vercel', vercelArgs, {
