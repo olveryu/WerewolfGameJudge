@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.229] - 2026-02-16
+
+- refactor(config): extract shared devConfig module and add dev:full script
+- feat: enhance role management with structured role items and skill preview functionality
+
 ## [1.0.228] - 2026-02-16
 
 - fix(quality): extract inline styles, remove unused var, enforce max-warnings=0
