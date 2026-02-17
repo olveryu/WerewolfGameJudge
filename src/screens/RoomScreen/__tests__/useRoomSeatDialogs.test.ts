@@ -98,7 +98,7 @@ describe('useRoomSeatDialogs', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('handleConfirmSeat', () => {
-    it('should early return when pendingSeat is null', async () => {
+    it('should early return when pendingSeat is null', () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
@@ -107,15 +107,15 @@ describe('useRoomSeatDialogs', () => {
         ),
       );
 
-      await act(async () => {
-        await result.current.handleConfirmSeat();
+      act(() => {
+        result.current.handleConfirmSeat();
       });
 
       expect(mockTakeSeat).not.toHaveBeenCalled();
       expect(mockSetSeatModalVisible).not.toHaveBeenCalled();
     });
 
-    it('should call takeSeat with correct index on success', async () => {
+    it('should close modal immediately and call takeSeat (fire-and-forget)', async () => {
       mockTakeSeat.mockResolvedValue(true);
 
       const { result } = renderHook(() =>
@@ -126,17 +126,24 @@ describe('useRoomSeatDialogs', () => {
         ),
       );
 
-      await act(async () => {
-        await result.current.handleConfirmSeat();
+      // Confirm closes modal synchronously, API call is fire-and-forget
+      act(() => {
+        result.current.handleConfirmSeat();
       });
 
-      expect(mockTakeSeat).toHaveBeenCalledWith(2);
+      // Modal closed and pendingSeat cleared immediately (before API resolves)
       expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
-      expect(mockShowAlert).not.toHaveBeenCalled();
       expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
+      expect(mockTakeSeat).toHaveBeenCalledWith(2);
+
+      // Flush the fire-and-forget promise
+      await act(async () => {
+        await mockTakeSeat.mock.results[0].value;
+      });
+      expect(mockShowAlert).not.toHaveBeenCalled();
     });
 
-    it('should show alert when takeSeat fails', async () => {
+    it('should show alert when takeSeat fails (seat occupied)', async () => {
       mockTakeSeat.mockResolvedValue(false);
 
       const { result } = renderHook(() =>
@@ -147,14 +154,19 @@ describe('useRoomSeatDialogs', () => {
         ),
       );
 
-      await act(async () => {
-        await result.current.handleConfirmSeat();
+      act(() => {
+        result.current.handleConfirmSeat();
       });
 
-      expect(mockTakeSeat).toHaveBeenCalledWith(4);
+      // Modal closed immediately
       expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
+      expect(mockTakeSeat).toHaveBeenCalledWith(4);
+
+      // Flush fire-and-forget — failure triggers showAlert
+      await act(async () => {
+        await mockTakeSeat.mock.results[0].value;
+      });
       expect(mockShowAlert).toHaveBeenCalledWith('入座失败', '5号座位已被占用，请选择其他位置。');
-      expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
     });
   });
 
@@ -186,7 +198,7 @@ describe('useRoomSeatDialogs', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('handleConfirmLeave', () => {
-    it('should early return when pendingSeat is null', async () => {
+    it('should early return when pendingSeat is null', () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
@@ -195,15 +207,15 @@ describe('useRoomSeatDialogs', () => {
         ),
       );
 
-      await act(async () => {
-        await result.current.handleConfirmLeave();
+      act(() => {
+        result.current.handleConfirmLeave();
       });
 
       expect(mockLeaveSeat).not.toHaveBeenCalled();
       expect(mockSetSeatModalVisible).not.toHaveBeenCalled();
     });
 
-    it('should call leaveSeat and close modal when pendingSeat is set', async () => {
+    it('should close modal immediately and call leaveSeat (fire-and-forget)', async () => {
       mockLeaveSeat.mockResolvedValue(undefined);
 
       const { result } = renderHook(() =>
@@ -214,13 +226,19 @@ describe('useRoomSeatDialogs', () => {
         ),
       );
 
-      await act(async () => {
-        await result.current.handleConfirmLeave();
+      act(() => {
+        result.current.handleConfirmLeave();
       });
 
-      expect(mockLeaveSeat).toHaveBeenCalled();
+      // Modal closed immediately (before API resolves)
       expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
       expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
+      expect(mockLeaveSeat).toHaveBeenCalled();
+
+      // Flush fire-and-forget promise
+      await act(async () => {
+        await mockLeaveSeat.mock.results[0].value;
+      });
     });
   });
 
@@ -386,15 +404,10 @@ describe('useRoomSeatDialogs', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Double-click protection (isSeatSubmitting)
+  // Double-click protection (submittingRef)
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('double-click protection', () => {
-    it('isSeatSubmitting should start as false', () => {
-      const { result } = renderHook(() => useRoomSeatDialogs(createHookParams()));
-      expect(result.current.isSeatSubmitting).toBe(false);
-    });
-
     it('handleConfirmSeat should reject second call while first is in-flight', async () => {
       let resolveTakeSeat!: (v: boolean) => void;
       mockTakeSeat.mockImplementation(
@@ -406,29 +419,26 @@ describe('useRoomSeatDialogs', () => {
         { initialProps: createHookParams({ pendingSeat: 2 }) },
       );
 
-      // First call
-      let firstPromise: Promise<void>;
+      // First call — fires takeSeat, closes modal immediately
       act(() => {
-        firstPromise = result.current.handleConfirmSeat();
+        result.current.handleConfirmSeat();
       });
       expect(mockTakeSeat).toHaveBeenCalledTimes(1);
-      expect(result.current.isSeatSubmitting).toBe(true);
 
       // Re-render with same pendingSeat (simulates React re-render)
       rerender(createHookParams({ pendingSeat: 2 }));
 
-      // Second call while first in-flight — should be rejected by isSeatSubmitting guard
-      await act(async () => {
-        await result.current.handleConfirmSeat();
+      // Second call while first in-flight — should be rejected by submittingRef guard
+      act(() => {
+        result.current.handleConfirmSeat();
       });
       expect(mockTakeSeat).toHaveBeenCalledTimes(1); // still 1
 
       // Resolve first
       await act(async () => {
         resolveTakeSeat(true);
-        await firstPromise!;
+        await mockTakeSeat.mock.results[0].value;
       });
-      expect(result.current.isSeatSubmitting).toBe(false);
     });
 
     it('handleConfirmLeave should reject second call while first is in-flight', async () => {
@@ -443,28 +453,25 @@ describe('useRoomSeatDialogs', () => {
       );
 
       // First call
-      let firstPromise: Promise<void>;
       act(() => {
-        firstPromise = result.current.handleConfirmLeave();
+        result.current.handleConfirmLeave();
       });
       expect(mockLeaveSeat).toHaveBeenCalledTimes(1);
-      expect(result.current.isSeatSubmitting).toBe(true);
 
       // Re-render with same pendingSeat
       rerender(createHookParams({ pendingSeat: 3 }));
 
       // Second call rejected
-      await act(async () => {
-        await result.current.handleConfirmLeave();
+      act(() => {
+        result.current.handleConfirmLeave();
       });
       expect(mockLeaveSeat).toHaveBeenCalledTimes(1); // still 1
 
       // Resolve first
       await act(async () => {
         resolveLeaveSeat();
-        await firstPromise!;
+        await mockLeaveSeat.mock.results[0].value;
       });
-      expect(result.current.isSeatSubmitting).toBe(false);
     });
   });
 });

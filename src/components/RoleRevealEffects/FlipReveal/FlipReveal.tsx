@@ -78,7 +78,7 @@ const BurstParticle: React.FC<ParticleConfig> = React.memo(
             height: size,
             borderRadius: size / 2,
             backgroundColor: color,
-            shadowColor: EFFECT_COLORS.edgeGlow,
+            boxShadow: `0 0 4px ${EFFECT_COLORS.edgeGlow}`,
           },
           animStyle,
         ]}
@@ -359,7 +359,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
               styles.edgeGlow,
               {
                 borderColor: EFFECT_COLORS.edgeGlow,
-                shadowColor: EFFECT_COLORS.edgeGlow,
+                boxShadow: `0 0 15px ${EFFECT_COLORS.edgeGlow}`,
               },
               edgeGlowStyle,
             ]}
@@ -411,9 +411,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderWidth: 3,
     borderRadius: borderRadius.medium,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 15,
   },
   ripple: {
     position: 'absolute',
@@ -429,9 +426,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   particleGlow: {
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
+    // boxShadow applied dynamically via inline style
   },
   glowBorder: {
     position: 'absolute',

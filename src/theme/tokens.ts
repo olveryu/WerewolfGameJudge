@@ -14,7 +14,7 @@
  * ❌ 禁止：业务逻辑、import React / service、硬编码颜色（颜色在 themes.ts）
  */
 
-import { Dimensions, PixelRatio, TextStyle, ViewStyle } from 'react-native';
+import { Dimensions, PixelRatio, Platform, TextStyle, ViewStyle } from 'react-native';
 
 // ============================================================================
 // Responsive Scaling
@@ -293,37 +293,37 @@ export const fixed = {
 // Shadows
 // ============================================================================
 
-type ShadowStyle = Pick<
-  ViewStyle,
-  'shadowColor' | 'shadowOffset' | 'shadowOpacity' | 'shadowRadius' | 'elevation'
->;
+/**
+ * 跨平台 textShadow 生成器
+ * - iOS/Android: textShadowColor / textShadowOffset / textShadowRadius
+ * - Web: textShadow (string shorthand)
+ */
+export function crossPlatformTextShadow(
+  color: string,
+  offsetX: number,
+  offsetY: number,
+  blurRadius: number,
+): TextStyle {
+  return Platform.select({
+    web: { textShadow: `${offsetX}px ${offsetY}px ${blurRadius}px ${color}` },
+    default: {
+      textShadowColor: color,
+      textShadowOffset: { width: offsetX, height: offsetY },
+      textShadowRadius: blurRadius,
+    },
+  }) as TextStyle;
+}
 
 /**
- * 阴影样式
+ * 阴影样式 (跨平台)
+ *
+ * RN 0.76+ New Architecture: boxShadow 直接跨 iOS / Android / Web。
  */
-export const shadows: Record<'none' | 'sm' | 'md' | 'lg', ShadowStyle> = {
-  none: {},
-  sm: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-  },
+export const shadows = {
+  none: {} as ViewStyle,
+  sm: { boxShadow: '0px 1px 2px rgba(0,0,0,0.05)' } as ViewStyle,
+  md: { boxShadow: '0px 2px 4px rgba(0,0,0,0.1)' } as ViewStyle,
+  lg: { boxShadow: '0px 4px 8px rgba(0,0,0,0.15)' } as ViewStyle,
 } as const;
 
 // ============================================================================

@@ -99,7 +99,7 @@ export const GlowBorder: React.FC<GlowBorderProps> = ({
           borderRadius,
           borderWidth,
           borderColor: color,
-          shadowColor: glowColor,
+          boxShadow: `0 0 10px ${glowColor}`,
         },
         animatedStyle,
         style,
@@ -113,8 +113,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   glow: {
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
+    // boxShadow applied dynamically via inline style with glowColor prop
   },
 });

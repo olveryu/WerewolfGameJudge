@@ -11,7 +11,7 @@ import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import type { RoleAlignment, RoleData } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
-import { borderRadius, shadows, spacing, typography, useColors } from '@/theme';
+import { borderRadius, spacing, typography, useColors } from '@/theme';
 
 /** White text color for alignment badge on colored backgrounds */
 const BADGE_TEXT_WHITE = '#FFFFFF';
@@ -122,11 +122,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     // Shadow
-    shadowColor: shadows.md.shadowColor,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    boxShadow: '0px 4px 8px rgba(0,0,0,0.3)',
   },
   cardBack: {
     borderWidth: 1,

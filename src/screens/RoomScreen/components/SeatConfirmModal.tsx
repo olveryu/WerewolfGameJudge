@@ -28,8 +28,6 @@ interface SeatConfirmModalProps {
   onCancel: () => void;
   /** Pre-created styles from parent */
   styles: SeatConfirmModalStyles;
-  /** Disable confirm button while submission is in-flight */
-  disabled?: boolean;
 }
 
 const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
@@ -39,7 +37,6 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
   onConfirm,
   onCancel,
   styles,
-  disabled,
 }) => {
   const title = modalType === 'enter' ? '入座' : '站起';
   const message =
@@ -64,13 +61,8 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
               <Text style={styles.modalCancelText}>取消</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.modalButton,
-                styles.modalConfirmButton,
-                disabled && styles.modalButtonDisabled,
-              ]}
+              style={[styles.modalButton, styles.modalConfirmButton]}
               onPress={onConfirm}
-              disabled={disabled}
               testID={TESTIDS.seatConfirmOk}
             >
               <Text style={styles.modalConfirmText}>确定</Text>

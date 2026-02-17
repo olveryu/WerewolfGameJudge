@@ -31,7 +31,7 @@ import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { borderRadius, shadows, spacing, typography, useColors } from '@/theme';
+import { borderRadius, crossPlatformTextShadow, spacing, typography, useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const SLOT_COLORS = {
@@ -70,11 +70,9 @@ const Bulb: React.FC<{ on: boolean; color?: string; size?: number }> = ({
     height: size,
     borderRadius: size / 2,
     backgroundColor: on ? color : SLOT_COLORS.bulbOff,
-    shadowRadius: size / 2,
-    shadowColor: on ? color : 'transparent',
-    shadowOpacity: on ? 0.8 : 0,
+    boxShadow: on ? `0 0 ${size / 2}px ${color}` : 'none',
   };
-  return <View style={[styles.bulb, styles.bulbShadow, dynamicStyle]} />;
+  return <View style={[styles.bulb, dynamicStyle]} />;
 };
 
 // ─── Self-animating emoji particle ──────────────────────────────────────
@@ -405,9 +403,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
           </View>
 
           {/* Neon glow */}
-          <Animated.View
-            style={[styles.neonBorder, { shadowColor: SLOT_COLORS.neonPink }, frameGlowStyle]}
-          />
+          <Animated.View style={[styles.neonBorder, frameGlowStyle]} />
 
           {/* Inner frame */}
           <View style={[styles.innerFrame, { backgroundColor: SLOT_COLORS.frameInner }]}>
@@ -579,9 +575,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: SLOT_COLORS.gold,
-    textShadowColor: SLOT_COLORS.goldDark,
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    ...crossPlatformTextShadow(SLOT_COLORS.goldDark, 1, 1, 2),
     marginBottom: 6,
   },
   bottomPanel: {
@@ -631,10 +625,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     width: '95%',
-    shadowColor: shadows.md.shadowColor,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
+    boxShadow: '0px 2px 3px rgba(0,0,0,0.3)',
   },
   itemIcon: {
     fontSize: 36,
@@ -644,9 +635,7 @@ const styles = StyleSheet.create({
     fontSize: typography.title,
     fontWeight: '700',
     flex: 1,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    ...crossPlatformTextShadow('rgba(0,0,0,0.5)', 1, 1, 2),
   },
   gradientMask: {
     position: 'absolute',
@@ -667,9 +656,7 @@ const styles = StyleSheet.create({
   indicatorArrow: {
     fontSize: 16,
     color: SLOT_COLORS.gold,
-    textShadowColor: SLOT_COLORS.goldDark,
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    ...crossPlatformTextShadow(SLOT_COLORS.goldDark, 1, 1, 2),
   },
   centerHighlight: {
     position: 'absolute',
@@ -703,10 +690,5 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     left: -4,
-  },
-  bulbShadow: {
-    shadowOffset: { width: 0, height: 0 },
-    shadowColor: 'transparent',
-    shadowOpacity: 0,
   },
 });

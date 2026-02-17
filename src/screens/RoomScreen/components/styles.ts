@@ -7,7 +7,7 @@
  * Each component receives only its own sub-styles via the grouped interface.
  * SeatTile/PlayerGrid have their own styles (performance: depends on tileSize).
  */
-import { Platform, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
+import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
 import { borderRadius, shadows, spacing, type ThemeColors, typography } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
@@ -94,7 +94,6 @@ export interface SeatConfirmModalStyles {
   modalMessage: TextStyle;
   modalButtons: ViewStyle;
   modalButton: ViewStyle;
-  modalButtonDisabled: ViewStyle;
   modalCancelButton: ViewStyle;
   modalConfirmButton: ViewStyle;
   modalCancelText: TextStyle;
@@ -229,21 +228,8 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         paddingBottom: spacing.xlarge,
         borderTopWidth: 1,
         borderTopColor: colors.borderLight,
-        // Upward shadow — directional override not suited for global shadow tokens
-        ...Platform.select({
-          ios: {
-            shadowColor: shadows.md.shadowColor,
-            shadowOffset: { width: 0, height: -3 },
-            shadowOpacity: 0.1,
-            shadowRadius: 6,
-          },
-          android: {
-            elevation: 8,
-          },
-          web: {
-            boxShadow: '0 -3px 12px rgba(0, 0, 0, 0.08)',
-          },
-        }),
+        // Upward shadow
+        boxShadow: '0 -3px 12px rgba(0, 0, 0, 0.08)',
       },
       message: {
         textAlign: 'center',
@@ -489,9 +475,6 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         borderRadius: borderRadius.medium,
         minWidth: spacing.xxlarge * 2 + spacing.medium, // ~100
         alignItems: 'center',
-      },
-      modalButtonDisabled: {
-        opacity: 0.5,
       },
       modalCancelButton: {
         backgroundColor: colors.surfaceHover,

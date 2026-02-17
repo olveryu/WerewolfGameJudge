@@ -10,7 +10,7 @@
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef } from 'react';
 
 import type { RootStackParamList } from '@/navigation/types';
 import { showAlert } from '@/utils/alert';
@@ -38,12 +38,10 @@ interface UseRoomSeatDialogsParams {
 interface UseRoomSeatDialogsResult {
   showEnterSeatDialog: (seat: number) => void;
   showLeaveSeatDialog: (seat: number) => void;
-  handleConfirmSeat: () => Promise<void>;
+  handleConfirmSeat: () => void;
   handleCancelSeat: () => void;
-  handleConfirmLeave: () => Promise<void>;
+  handleConfirmLeave: () => void;
   handleLeaveRoom: () => void;
-  /** True while takeSeat or leaveSeat is in-flight. */
-  isSeatSubmitting: boolean;
 }
 
 export function useRoomSeatDialogs({
@@ -57,7 +55,7 @@ export function useRoomSeatDialogs({
   navigation,
   onLeaveRoom,
 }: UseRoomSeatDialogsParams): UseRoomSeatDialogsResult {
-  const [isSeatSubmitting, setIsSeatSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Enter seat dialog
@@ -89,26 +87,28 @@ export function useRoomSeatDialogs({
   // Confirm seat (enter)
   // ─────────────────────────────────────────────────────────────────────────
 
-  const handleConfirmSeat = useCallback(async () => {
-    if (pendingSeat === null || isSeatSubmitting) return;
+  const handleConfirmSeat = useCallback(() => {
+    if (pendingSeat === null || submittingRef.current) return;
 
-    setIsSeatSubmitting(true);
-    roomScreenLog.debug('[SeatDialogs] Taking seat', { seat: pendingSeat });
-    try {
-      const success = await takeSeat(pendingSeat);
-      setSeatModalVisible(false);
+    submittingRef.current = true;
+    const seat = pendingSeat;
+    roomScreenLog.debug('[SeatDialogs] Taking seat', { seat });
 
-      if (!success) {
-        roomScreenLog.warn('[SeatDialogs] takeSeat failed (occupied)', {
-          seat: pendingSeat,
-        });
-        showAlert('入座失败', `${pendingSeat + 1}号座位已被占用，请选择其他位置。`);
-      }
-      setPendingSeat(null);
-    } finally {
-      setIsSeatSubmitting(false);
-    }
-  }, [pendingSeat, isSeatSubmitting, takeSeat, setSeatModalVisible, setPendingSeat]);
+    // Close modal immediately — optimistic update already applied by takeSeat
+    setSeatModalVisible(false);
+    setPendingSeat(null);
+
+    void takeSeat(seat)
+      .then((success) => {
+        if (!success) {
+          roomScreenLog.warn('[SeatDialogs] takeSeat failed (occupied)', { seat });
+          showAlert('入座失败', `${seat + 1}号座位已被占用，请选择其他位置。`);
+        }
+      })
+      .finally(() => {
+        submittingRef.current = false;
+      });
+  }, [pendingSeat, takeSeat, setSeatModalVisible, setPendingSeat]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Cancel seat
@@ -123,19 +123,20 @@ export function useRoomSeatDialogs({
   // Confirm leave (seat)
   // ─────────────────────────────────────────────────────────────────────────
 
-  const handleConfirmLeave = useCallback(async () => {
-    if (pendingSeat === null || isSeatSubmitting) return;
+  const handleConfirmLeave = useCallback(() => {
+    if (pendingSeat === null || submittingRef.current) return;
 
-    setIsSeatSubmitting(true);
+    submittingRef.current = true;
     roomScreenLog.debug('[SeatDialogs] Leaving seat', { seat: pendingSeat });
-    try {
-      await leaveSeat();
-      setSeatModalVisible(false);
-      setPendingSeat(null);
-    } finally {
-      setIsSeatSubmitting(false);
-    }
-  }, [pendingSeat, isSeatSubmitting, leaveSeat, setSeatModalVisible, setPendingSeat]);
+
+    // Close modal immediately — optimistic update already applied by leaveSeat
+    setSeatModalVisible(false);
+    setPendingSeat(null);
+
+    void leaveSeat().finally(() => {
+      submittingRef.current = false;
+    });
+  }, [pendingSeat, leaveSeat, setSeatModalVisible, setPendingSeat]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Leave room
@@ -162,6 +163,5 @@ export function useRoomSeatDialogs({
     handleCancelSeat,
     handleConfirmLeave,
     handleLeaveRoom,
-    isSeatSubmitting,
   };
 }

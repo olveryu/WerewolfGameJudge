@@ -29,7 +29,7 @@ import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { borderRadius, shadows, useColors } from '@/theme';
+import { borderRadius, crossPlatformTextShadow, useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const TAROT_COLORS = {
@@ -393,11 +393,7 @@ const styles = StyleSheet.create({
   wheelCard: {
     position: 'absolute',
     borderRadius: borderRadius.small,
-    shadowColor: shadows.md.shadowColor,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
+    boxShadow: '0px 4px 6px rgba(0,0,0,0.3)',
   },
   cardBackFace: {
     borderRadius: borderRadius.medium,
@@ -417,17 +413,11 @@ const styles = StyleSheet.create({
   symbolText: {
     fontSize: 36,
     color: TAROT_COLORS.gold,
-    textShadowColor: TAROT_COLORS.goldGlow,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    ...crossPlatformTextShadow(TAROT_COLORS.goldGlow, 0, 0, 10),
   },
   drawnCard: {
     borderRadius: borderRadius.medium,
-    shadowColor: TAROT_COLORS.gold,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 15,
+    boxShadow: `0px 10px 20px rgba(212,175,55,0.5)`,
   },
   cardFace: {
     position: 'absolute',
@@ -464,8 +454,6 @@ const styles = StyleSheet.create({
   promptText: {
     fontSize: 20,
     fontWeight: '600',
-    textShadowColor: TAROT_COLORS.goldGlow,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    ...crossPlatformTextShadow(TAROT_COLORS.goldGlow, 0, 0, 10),
   },
 });

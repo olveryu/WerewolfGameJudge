@@ -120,7 +120,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     isActionSubmitting,
     // Seat modal
     seatModalVisible,
-    isSeatSubmitting,
     pendingSeat,
     modalType,
     handleConfirmSeat,
@@ -380,7 +379,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           seatNumber={pendingSeat + 1}
           onConfirm={modalType === 'enter' ? handleConfirmSeat : handleConfirmLeave}
           onCancel={handleCancelSeat}
-          disabled={isSeatSubmitting}
           styles={componentStyles.seatConfirmModal}
         />
       )}

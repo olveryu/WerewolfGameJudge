@@ -30,7 +30,7 @@ import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { borderRadius, spacing, typography, useColors } from '@/theme';
+import { borderRadius, crossPlatformTextShadow, spacing, typography, useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const SCRATCH_COLORS = {
@@ -509,11 +509,7 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    boxShadow: '0px 4px 8px rgba(0,0,0,0.3)',
   },
   roleCardLayer: {
     ...StyleSheet.absoluteFillObject,
@@ -555,9 +551,7 @@ const styles = StyleSheet.create({
     fontSize: typography.title,
     fontWeight: '600',
     color: 'rgba(0,0,0,0.4)',
-    textShadowColor: 'rgba(255,255,255,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    ...crossPlatformTextShadow('rgba(255,255,255,0.5)', 1, 1, 2),
   },
   hintIcon: {
     fontSize: 32,

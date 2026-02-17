@@ -11,11 +11,11 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';
 import React, { useMemo } from 'react';
-import { Platform, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { getFactionName, ROLE_ICONS } from '@/components/roleDisplayUtils';
 import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
-import { borderRadius, shadows, spacing, type ThemeColors, typography, useColors } from '@/theme';
+import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
 /** White text color for badges/overlays on colored backgrounds */
 const BADGE_TEXT_WHITE = '#fff';
@@ -93,20 +93,7 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
       padding: spacing.large,
       alignItems: 'center',
       overflow: 'hidden',
-      ...Platform.select({
-        ios: {
-          shadowColor: shadows.md.shadowColor,
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.5,
-          shadowRadius: 20,
-        },
-        android: {
-          elevation: 20,
-        },
-        web: {
-          boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
-        },
-      }),
+      boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
     },
     factionBadge: {
       position: 'absolute',
