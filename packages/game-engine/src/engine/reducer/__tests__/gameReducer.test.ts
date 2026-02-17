@@ -17,6 +17,7 @@ import type {
   StateAction,
 } from '@werewolf/game-engine/engine/reducer/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { RANDOMIZABLE_ANIMATIONS } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
@@ -909,9 +910,7 @@ describe('gameReducer', () => {
       // resolvedRoleRevealAnimation 是具体动画（不是 'random' 也不是 'none'）
       expect(newState.resolvedRoleRevealAnimation).not.toBe('random');
       expect(newState.resolvedRoleRevealAnimation).not.toBe('none');
-      expect(['roulette', 'flip', 'scratch', 'tarot', 'gachaMachine']).toContain(
-        newState.resolvedRoleRevealAnimation,
-      );
+      expect(RANDOMIZABLE_ANIMATIONS).toContain(newState.resolvedRoleRevealAnimation);
     });
 
     it('should be deterministic for same roomCode and nonce', () => {
@@ -1040,9 +1039,7 @@ describe('gameReducer', () => {
       // nonce 应该变化
       expect(newState.roleRevealRandomNonce).not.toBe('nonce_a1');
       // resolved 应该是有效动画（可能相同也可能不同，但必须有效）
-      expect(['roulette', 'flip', 'scratch', 'tarot', 'gachaMachine']).toContain(
-        newState.resolvedRoleRevealAnimation,
-      );
+      expect(RANDOMIZABLE_ANIMATIONS).toContain(newState.resolvedRoleRevealAnimation);
     });
 
     it('should NOT change resolvedRoleRevealAnimation if not random', () => {
