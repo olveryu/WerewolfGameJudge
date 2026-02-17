@@ -76,7 +76,7 @@ export const EmailForm = memo<EmailFormProps>(
         <View style={styles.passwordWrapper}>
           <TextInput
             ref={passwordRef}
-            style={[styles.input, { marginBottom: 0, flex: 1 }]}
+            style={[styles.input, styles.passwordInput]}
             placeholder="密码"
             placeholderTextColor={colors.textSecondary}
             value={password}

@@ -64,7 +64,11 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
               <Text style={styles.modalCancelText}>取消</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalButton, styles.modalConfirmButton, disabled && { opacity: 0.5 }]}
+              style={[
+                styles.modalButton,
+                styles.modalConfirmButton,
+                disabled && styles.modalButtonDisabled,
+              ]}
               onPress={onConfirm}
               disabled={disabled}
               testID={TESTIDS.seatConfirmOk}

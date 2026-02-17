@@ -19,6 +19,7 @@ export interface AuthStyles {
   formSubtitle: TextStyle;
   // Input
   input: TextStyle;
+  passwordInput: TextStyle;
   passwordWrapper: ViewStyle;
   eyeButton: ViewStyle;
   errorText: TextStyle;

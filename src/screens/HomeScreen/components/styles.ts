@@ -39,12 +39,14 @@ export interface HomeScreenStyles {
   codeDigitBox: ViewStyle;
   codeDigitText: TextStyle;
   modalButtons: ViewStyle;
+  modalButtonFlex: ViewStyle;
   primaryButton: ViewStyle;
   primaryButtonText: TextStyle;
   secondaryButton: ViewStyle;
   secondaryButtonText: TextStyle;
   input: TextStyle;
   passwordWrapper: ViewStyle;
+  passwordInput: TextStyle;
   eyeButton: ViewStyle;
   errorText: TextStyle;
   buttonDisabled: ViewStyle;
@@ -236,6 +238,9 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       flexDirection: 'row',
       gap: spacing.small,
     },
+    modalButtonFlex: {
+      flex: 1,
+    },
     primaryButton: {
       backgroundColor: colors.primary,
       padding: spacing.medium,
@@ -272,6 +277,10 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       backgroundColor: colors.background,
       borderRadius: borderRadius.medium,
       marginBottom: spacing.small,
+    },
+    passwordInput: {
+      marginBottom: 0,
+      flex: 1,
     },
     eyeButton: {
       paddingHorizontal: spacing.small,

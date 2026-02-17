@@ -94,6 +94,7 @@ export interface SeatConfirmModalStyles {
   modalMessage: TextStyle;
   modalButtons: ViewStyle;
   modalButton: ViewStyle;
+  modalButtonDisabled: ViewStyle;
   modalCancelButton: ViewStyle;
   modalConfirmButton: ViewStyle;
   modalCancelText: TextStyle;
@@ -488,6 +489,9 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         borderRadius: borderRadius.medium,
         minWidth: spacing.xxlarge * 2 + spacing.medium, // ~100
         alignItems: 'center',
+      },
+      modalButtonDisabled: {
+        opacity: 0.5,
       },
       modalCancelButton: {
         backgroundColor: colors.surfaceHover,

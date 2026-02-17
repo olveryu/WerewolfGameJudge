@@ -51,6 +51,7 @@ export interface SettingsScreenStyles {
   formSubtitle: TextStyle;
   input: TextStyle;
   passwordWrapper: ViewStyle;
+  passwordInput: TextStyle;
   eyeButton: ViewStyle;
   emailDomainDropdown: ViewStyle;
   emailDomainItem: ViewStyle;
@@ -82,6 +83,7 @@ export interface SettingsScreenStyles {
   aboutLink: ViewStyle;
   aboutLinkText: TextStyle;
   aboutLinkIcon: TextStyle;
+  bottomSpacer: ViewStyle;
 }
 
 export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenStyles =>
@@ -327,6 +329,10 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       borderColor: colors.border,
       marginBottom: spacing.medium,
     },
+    passwordInput: {
+      marginBottom: 0,
+      flex: 1,
+    },
     eyeButton: {
       paddingHorizontal: spacing.small,
       justifyContent: 'center',
@@ -481,5 +487,8 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     aboutLinkIcon: {
       fontSize: typography.body,
       color: colors.textMuted,
+    },
+    bottomSpacer: {
+      height: spacing.xlarge,
     },
   });

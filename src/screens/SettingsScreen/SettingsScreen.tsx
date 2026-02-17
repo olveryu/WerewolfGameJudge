@@ -297,7 +297,7 @@ export const SettingsScreen: React.FC = () => {
 
         <AboutSection styles={styles} />
 
-        <View style={{ height: 32 }} />
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
   );

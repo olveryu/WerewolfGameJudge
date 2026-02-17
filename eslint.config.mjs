@@ -84,7 +84,7 @@ export default tseslint.config(
       'react-native/no-raw-text': 'error',
       'react-native/split-platform-components': 'error',
       'react-native/no-single-element-style-arrays': 'warn',
-      'react-native/no-inline-styles': 'warn',
+      'react-native/no-inline-styles': 'error',
       'react-native/sort-styles': 'off',
       'react-native/no-unused-styles': 'off',
       'react-native/no-color-literals': 'off',

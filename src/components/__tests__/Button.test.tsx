@@ -140,12 +140,14 @@ describe('Button', () => {
 
   describe('Custom styles', () => {
     it('should apply custom style', () => {
+      // eslint-disable-next-line react-native/no-inline-styles
       const { getByText } = render(<Button {...defaultProps} style={{ marginTop: 10 }} />);
 
       expect(getByText('Test Button')).toBeTruthy();
     });
 
     it('should apply custom textStyle', () => {
+      // eslint-disable-next-line react-native/no-inline-styles
       const { getByText } = render(<Button {...defaultProps} textStyle={{ fontWeight: 'bold' }} />);
 
       expect(getByText('Test Button')).toBeTruthy();

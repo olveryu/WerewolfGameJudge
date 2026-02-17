@@ -65,7 +65,11 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalProps> = ({
 
           <View style={styles.modalButtons}>
             <TouchableOpacity
-              style={[styles.secondaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]}
+              style={[
+                styles.secondaryButton,
+                styles.modalButtonFlex,
+                isLoading && styles.buttonDisabled,
+              ]}
               onPress={onCancel}
               activeOpacity={isLoading ? 1 : 0.7}
               accessibilityState={{ disabled: isLoading }}
@@ -73,7 +77,11 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalProps> = ({
               <Text style={styles.secondaryButtonText}>取消</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.primaryButton, { flex: 1 }, isLoading && styles.buttonDisabled]}
+              style={[
+                styles.primaryButton,
+                styles.modalButtonFlex,
+                isLoading && styles.buttonDisabled,
+              ]}
               onPress={onJoin}
               activeOpacity={isLoading ? 1 : 0.7}
               accessibilityState={{ disabled: isLoading }}
