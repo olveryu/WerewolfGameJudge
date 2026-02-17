@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.230] - 2026-02-16
+
+- feat(ui): pulse animation, expanded quick questions, BoardInfoCard fix
+- style(config): enforce no-inline-styles as error and fix all violations
+- chore(e2e): shard E2E tests into 3 parallel jobs with merged reports
+
 ## [1.0.229] - 2026-02-16
 
 - refactor(config): extract shared devConfig module and add dev:full script
