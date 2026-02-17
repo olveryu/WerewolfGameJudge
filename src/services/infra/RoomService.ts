@@ -142,6 +142,7 @@ export class RoomService {
       return null;
     }
 
+    // Supabase .single() returns row matching our DB schema (rooms table)
     const dbRoom = data as DbRoomRecord;
     return {
       roomNumber: dbRoom.code,
@@ -210,6 +211,7 @@ export class RoomService {
 
     if (error || !data?.game_state) return null;
 
+    // Supabase .single() returns row matching our DB schema
     return {
       state: data.game_state as BroadcastGameState,
       revision: data.state_revision as number,

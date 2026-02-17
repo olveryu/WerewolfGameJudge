@@ -54,51 +54,43 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
             <Text style={styles.modalTitle}>添加到主屏幕</Text>
             <Text style={styles.modalSubtitle}>按以下步骤操作，即可像 App 一样使用</Text>
 
-            <View style={{ gap: 16, marginBottom: 20 }}>
+            <View style={styles.guideSteps}>
               {iosBrowser === 'chrome' ? (
                 /* Chrome on iOS */
                 <>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <Text style={{ fontSize: 24 }}>①</Text>
-                    <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
+                  <View style={styles.guideStepRow}>
+                    <Text style={styles.guideStepNumber}>①</Text>
+                    <Text style={styles.guideStepText}>
                       点击右上角 <Ionicons name="share-outline" size={16} color={colors.primary} />{' '}
                       分享按钮
                     </Text>
                   </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <Text style={{ fontSize: 24 }}>②</Text>
-                    <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
-                      选择「添加到主屏幕」
-                    </Text>
+                  <View style={styles.guideStepRow}>
+                    <Text style={styles.guideStepNumber}>②</Text>
+                    <Text style={styles.guideStepText}>选择「添加到主屏幕」</Text>
                   </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <Text style={{ fontSize: 24 }}>③</Text>
-                    <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
-                      点击「添加」确认
-                    </Text>
+                  <View style={styles.guideStepRow}>
+                    <Text style={styles.guideStepNumber}>③</Text>
+                    <Text style={styles.guideStepText}>点击「添加」确认</Text>
                   </View>
                 </>
               ) : (
                 /* Safari (default) */
                 <>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <Text style={{ fontSize: 24 }}>①</Text>
-                    <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
+                  <View style={styles.guideStepRow}>
+                    <Text style={styles.guideStepNumber}>①</Text>
+                    <Text style={styles.guideStepText}>
                       点击底部工具栏的{' '}
                       <Ionicons name="share-outline" size={16} color={colors.primary} /> 分享按钮
                     </Text>
                   </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <Text style={{ fontSize: 24 }}>②</Text>
-                    <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
-                      滚动菜单，找到「添加到主屏幕」
-                    </Text>
+                  <View style={styles.guideStepRow}>
+                    <Text style={styles.guideStepNumber}>②</Text>
+                    <Text style={styles.guideStepText}>滚动菜单，找到「添加到主屏幕」</Text>
                   </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <Text style={{ fontSize: 24 }}>③</Text>
-                    <Text style={{ fontSize: 15, color: colors.text, flex: 1 }}>
-                      点击右上角「添加」确认
-                    </Text>
+                  <View style={styles.guideStepRow}>
+                    <Text style={styles.guideStepNumber}>③</Text>
+                    <Text style={styles.guideStepText}>点击右上角「添加」确认</Text>
                   </View>
                 </>
               )}

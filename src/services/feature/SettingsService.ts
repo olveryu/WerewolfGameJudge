@@ -50,9 +50,11 @@ export class SettingsService {
     try {
       const raw = await AsyncStorage.getItem(SETTINGS_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as Partial<UserSettings>;
-        // Merge with defaults to handle new settings added in future versions
-        this.settings = { ...DEFAULT_SETTINGS, ...parsed };
+        const parsed: unknown = JSON.parse(raw);
+        if (typeof parsed === 'object' && parsed !== null) {
+          // Merge with defaults to handle new settings added in future versions
+          this.settings = { ...DEFAULT_SETTINGS, ...(parsed as Partial<UserSettings>) };
+        }
       }
 
       this.loaded = true;

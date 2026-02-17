@@ -4,6 +4,9 @@
  * 通过 Supabase Edge Function 代理 Groq API，API key 仅存在服务端。
  * 免费额度：30K TPM, 1K RPD（TPM 比 Qwen3 高 5 倍）
  * 文档: https://console.groq.com/docs/models
+ *
+ * ✅ 允许：调用 Edge Function 代理、管理对话历史、流式解析 SSE 响应
+ * ❌ 禁止：直接访问第三方 API、存储 API key、游戏状态操作
  */
 
 import { log } from '@/utils/logger';

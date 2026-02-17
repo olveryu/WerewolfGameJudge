@@ -122,7 +122,14 @@ export class BroadcastService {
     // Listen for host broadcasts (server-authoritative STATE_UPDATE)
     this.channel.on('broadcast', { event: 'host' }, (payload) => {
       broadcastLog.info(' Received host broadcast:', payload.payload?.type);
-      if (this.onHostBroadcast && payload.payload) {
+      // Supabase broadcast SDK does not provide typed payloads;
+      // we control the broadcast format (HostBroadcast has `type` discriminant)
+      if (
+        this.onHostBroadcast &&
+        payload.payload &&
+        typeof payload.payload === 'object' &&
+        'type' in payload.payload
+      ) {
         this.onHostBroadcast(payload.payload as HostBroadcast);
       }
     });
@@ -196,8 +203,13 @@ export class BroadcastService {
             filter: `code=eq.${roomCode}`,
           },
           (payload) => {
+            // Supabase Realtime postgres_changes payload — typed by our DB schema
             const newRow = payload.new as { game_state?: unknown; state_revision?: number };
-            if (newRow.game_state && newRow.state_revision != null) {
+            if (
+              newRow.game_state &&
+              typeof newRow.game_state === 'object' &&
+              newRow.state_revision != null
+            ) {
               broadcastLog.debug(' DB state change received, revision:', newRow.state_revision);
               this.onDbStateChange?.(
                 newRow.game_state as BroadcastGameState,

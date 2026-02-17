@@ -6,6 +6,9 @@
  *
  * ✅ 允许：渲染降级 UI、记录错误日志
  * ❌ 禁止：import service / 业务逻辑
+ *
+ * 样式例外：使用硬编码颜色/间距，因为 ErrorBoundary 是 class component，
+ * 在 ThemeProvider crash 时无法调用 useColors()，必须自包含 fallback 样式。
  */
 import * as Sentry from '@sentry/react-native';
 import { Component, type ErrorInfo, type ReactNode } from 'react';

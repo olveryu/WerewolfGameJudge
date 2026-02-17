@@ -18,7 +18,7 @@
     "format": "prettier . --check",
     "format:write": "prettier . --write",
     "fix": "pnpm run lint:fix && pnpm run format:write",
-    "quality": "pnpm run fix && pnpm run typecheck && pnpm run lint && pnpm run test:all",
+    "quality": "pnpm run typecheck && pnpm run lint && pnpm run format && pnpm run test:all",
     "e2e:night": "playwright test --reporter=list night-2p night-6p restart",
     "e2e:ui": "playwright test --ui",
     "dev": "node scripts/run-e2e-web.mjs",

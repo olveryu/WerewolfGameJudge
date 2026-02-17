@@ -64,6 +64,11 @@ export interface HomeScreenStyles {
   footerText: TextStyle;
   footerLink: ViewStyle;
   footerLinkText: TextStyle;
+  // Install guide
+  guideSteps: ViewStyle;
+  guideStepRow: ViewStyle;
+  guideStepNumber: TextStyle;
+  guideStepText: TextStyle;
 }
 
 export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
@@ -358,6 +363,23 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     footerLinkText: {
       fontSize: typography.caption,
       color: colors.primary,
+    },
+    guideSteps: {
+      gap: spacing.medium,
+      marginBottom: spacing.large,
+    },
+    guideStepRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.small,
+    },
+    guideStepNumber: {
+      fontSize: typography.heading,
+    },
+    guideStepText: {
+      fontSize: typography.secondary,
+      color: colors.text,
+      flex: 1,
     },
   });
 }

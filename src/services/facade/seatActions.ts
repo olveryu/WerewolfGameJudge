@@ -63,6 +63,7 @@ async function callSeatApi(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roomCode, ...body }),
     });
+    // Response shape matches our own API contract (SeatApiResponse)
     const result = (await res.json()) as SeatApiResponse;
 
     // Optimistic Response: HTTP 响应含 state 时立即 apply，不等 broadcast

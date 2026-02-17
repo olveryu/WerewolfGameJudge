@@ -102,14 +102,13 @@ export default tseslint.config(
   // Test file overrides
   // =========================================================================
   {
-    files: ['**/__tests__/**', '**/*.test.ts', '**/*.test.tsx', 'jest.setup.ts'],
+    files: ['**/__tests__/**', '**/*.test.ts', '**/*.test.tsx'],
     plugins: {
       'testing-library': testingLibrary,
     },
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
-      'no-console': 'off',
 
       // testing-library best practices
       'testing-library/await-async-queries': 'error',
@@ -117,6 +116,18 @@ export default tseslint.config(
       'testing-library/no-debugging-utils': 'warn',
       'testing-library/no-unnecessary-act': 'warn',
       'testing-library/prefer-screen-queries': 'off',
+    },
+  },
+
+  // =========================================================================
+  // jest.setup.ts — needs console.* for React warning filters
+  // =========================================================================
+  {
+    files: ['jest.setup.ts'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      'no-console': 'off',
     },
   },
 
@@ -131,12 +142,21 @@ export default tseslint.config(
   },
 
   // =========================================================================
-  // E2E (Playwright) — not React components, disable hooks rules + allow console
+  // E2E (Playwright) — not React components, disable hooks rules
   // =========================================================================
   {
     files: ['e2e/**/*.ts'],
     rules: {
       'react-hooks/rules-of-hooks': 'off',
+    },
+  },
+
+  // =========================================================================
+  // E2E diagnostics helper — forwards browser console for debugging
+  // =========================================================================
+  {
+    files: ['e2e/helpers/diagnostics.ts'],
+    rules: {
       'no-console': 'off',
     },
   },
