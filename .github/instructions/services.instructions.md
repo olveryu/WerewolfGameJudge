@@ -33,6 +33,14 @@ applyTo: src/services/**
 - 新增字段必须同步 `normalizeState`（`packages/game-engine/src/engine/state/normalize.ts`），遗漏会被静默丢弃。
 - 派生字段从同一份 state 计算或只写入一次，禁止双写/drift。
 
+## 乐观更新（Optimistic Update）
+
+- 仅对**客户端可完美预测结果**的操作使用乐观更新（社区标准：only optimistically update what you can perfectly predict）。
+- 适用：sit / standup / view-role / set-animation / update-template。
+- 不适用：涉及 RNG（assign）、多方聚合（wolfVote）、状态机推进（start / night actions / progression）、副作用链（restart）。
+- 机制：`callGameControlApi` / `callSeatApi` 接受可选 `optimisticFn`，fetch 前 `store.applyOptimistic()`，服务端响应后 `applySnapshot` 覆盖，失败时 `rollbackOptimistic()`。
+- 新增操作时必须评估是否适合乐观更新，不确定则不加。
+
 ## 夜晚流程
 
 - `nightFlowHandler` / `stepTransitionHandler` 是推进的单一真相。禁止手动推进 index。
