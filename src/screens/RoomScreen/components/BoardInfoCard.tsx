@@ -93,14 +93,18 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
 
       {!isCollapsed && (
         <View style={styles.boardInfoContent}>
-          <View style={styles.roleCategory}>
-            <Text style={styles.roleCategoryLabel}>🐺 狼人：</Text>
-            <RoleChipRow items={wolfRoleItems} onRolePress={onRolePress} styles={styles} />
-          </View>
-          <View style={styles.roleCategory}>
-            <Text style={styles.roleCategoryLabel}>✨ 神职：</Text>
-            <RoleChipRow items={godRoleItems} onRolePress={onRolePress} styles={styles} />
-          </View>
+          {wolfRoleItems.length > 0 && (
+            <View style={styles.roleCategory}>
+              <Text style={styles.roleCategoryLabel}>🐺 狼人：</Text>
+              <RoleChipRow items={wolfRoleItems} onRolePress={onRolePress} styles={styles} />
+            </View>
+          )}
+          {godRoleItems.length > 0 && (
+            <View style={styles.roleCategory}>
+              <Text style={styles.roleCategoryLabel}>✨ 神职：</Text>
+              <RoleChipRow items={godRoleItems} onRolePress={onRolePress} styles={styles} />
+            </View>
+          )}
           {specialRoleItems.length > 0 && (
             <View style={styles.roleCategory}>
               <Text style={styles.roleCategoryLabel}>🎭 特殊：</Text>

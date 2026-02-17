@@ -48,7 +48,10 @@ export const createStyles = (colors: ThemeColors) =>
       position: 'absolute',
       left: 0,
       top: 0,
+      width: BUBBLE_SIZE,
+      height: BUBBLE_SIZE,
       zIndex: 1000,
+      overflow: 'visible',
     },
     bubble: {
       width: BUBBLE_SIZE,
@@ -61,6 +64,14 @@ export const createStyles = (colors: ThemeColors) =>
     },
     bubbleIcon: {
       fontSize: 28,
+    },
+    pulseRing: {
+      position: 'absolute',
+      width: BUBBLE_SIZE,
+      height: BUBBLE_SIZE,
+      borderRadius: BUBBLE_SIZE / 2,
+      borderWidth: 3,
+      borderColor: colors.primary,
     },
 
     // Modal

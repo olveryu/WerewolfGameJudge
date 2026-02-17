@@ -12,7 +12,8 @@
  * ❌ 禁止：直接 import service / 直接调用 API
  */
 
-import React, { useCallback, useRef, useState } from 'react';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -28,6 +29,7 @@ import {
   View,
 } from 'react-native';
 
+import { useGameFacade } from '@/contexts';
 import { useTheme } from '@/theme';
 
 import { createStyles, type DisplayMessage, getChatHeight } from './AIChatBubble.styles';
@@ -37,6 +39,10 @@ import { useAIChat } from './useAIChat';
 
 /** Distance from bottom to show scroll-to-bottom FAB */
 const SCROLL_THRESHOLD = 100;
+/** Number of pulse cycles when entering a room */
+const PULSE_CYCLES = 3;
+/** Duration of one pulse cycle in ms */
+const PULSE_DURATION = 1000;
 
 export const AIChatBubble: React.FC = () => {
   const { colors } = useTheme();
@@ -46,6 +52,39 @@ export const AIChatBubble: React.FC = () => {
   const chatHeight = getChatHeight(screenHeight);
 
   const chat = useAIChat();
+  const facade = useGameFacade();
+
+  // ── Pulse animation after roles are assigned ────────
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  const wasAssignedRef = useRef(
+    (() => {
+      const s = facade.getState();
+      return s !== null && s.status !== GameStatus.unseated && s.status !== GameStatus.seated;
+    })(),
+  );
+
+  useEffect(() => {
+    const unsubscribe = facade.addListener((state) => {
+      const isAssigned =
+        state !== null &&
+        state.status !== GameStatus.unseated &&
+        state.status !== GameStatus.seated;
+      if (!wasAssignedRef.current && isAssigned) {
+        // Roles just assigned → start pulse
+        pulseAnim.setValue(0);
+        Animated.loop(
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: PULSE_DURATION,
+            useNativeDriver: Platform.OS !== 'web',
+          }),
+          { iterations: PULSE_CYCLES },
+        ).start();
+      }
+      wasAssignedRef.current = isAssigned;
+    });
+    return unsubscribe;
+  }, [facade, pulseAnim]);
 
   // ── Scroll-to-bottom state ─────────────────────────
   const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -122,6 +161,26 @@ export const AIChatBubble: React.FC = () => {
         onTouchMove={chat.handleTouchMove}
         onTouchEnd={chat.handleTouchEnd}
       >
+        {/* Pulse ring — draws attention on mount */}
+        <Animated.View
+          style={[
+            styles.pulseRing,
+            {
+              opacity: pulseAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.8, 0],
+              }),
+              transform: [
+                {
+                  scale: pulseAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 1.8],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
         <TouchableOpacity
           style={styles.bubble}
           onPress={chat.handleBubblePress}

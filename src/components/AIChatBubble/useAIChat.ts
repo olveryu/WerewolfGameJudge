@@ -76,7 +76,7 @@ export function useAIChat(): UseAIChatReturn {
     if (isOpen) {
       const gameState = facade.getState();
       const mySeat = facade.getMySeatNumber();
-      setContextQuestions(generateQuickQuestions(gameState, mySeat, chat.messages));
+      setContextQuestions(generateQuickQuestions(gameState, mySeat));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]); // 故意不依赖 messages，只在打开时刷新一次
@@ -86,7 +86,7 @@ export function useAIChat(): UseAIChatReturn {
     if (prevStreamingRef.current && !chat.isStreaming) {
       const gameState = facade.getState();
       const mySeat = facade.getMySeatNumber();
-      setContextQuestions(generateQuickQuestions(gameState, mySeat, chat.messages));
+      setContextQuestions(generateQuickQuestions(gameState, mySeat));
     }
     prevStreamingRef.current = chat.isStreaming;
   }, [chat.isStreaming, chat.messages, facade]);
