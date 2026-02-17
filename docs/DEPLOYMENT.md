@@ -166,10 +166,11 @@ bash scripts/setup-local-env.sh
 
 ### 职责分离
 
-| 脚本                 | 职责                         | 命令               |
-| -------------------- | ---------------------------- | ------------------ |
-| `scripts/release.sh` | 版本号 + commit + tag + push | `pnpm run release` |
-| `scripts/deploy.sh`  | 构建 Web + 部署到 Vercel     | `pnpm run deploy`  |
+| 脚本                   | 职责                                                   | 命令               |
+| ---------------------- | ------------------------------------------------------ | ------------------ |
+| `scripts/release.sh`   | 版本号 + commit + tag + push                           | `pnpm run release` |
+| Vercel Git Integration | `git push` 自动触发构建部署（执行 `scripts/build.sh`） | 自动               |
+| `scripts/deploy.sh`    | **应急手动部署**（Vercel 自动部署故障时）              | `pnpm run deploy`  |
 
 ### 标准流程（推荐）
 
@@ -178,9 +179,13 @@ bash scripts/setup-local-env.sh
 pnpm run release              # 默认 patch
 pnpm run release -- minor     # 或 minor / major
 
-# 2. 部署（build → deploy to Vercel）
-pnpm run deploy
+# 2. 部署自动完成
+# git push 自动触发 Vercel Git Integration（执行 scripts/build.sh）
+# 同时触发 GitHub CI（quality + E2E）
+# 无需手动操作
 ```
+
+> ⚠️ `pnpm run deploy`（`scripts/deploy.sh`）仅用于 Vercel 自动部署故障时的应急手动部署，日常不使用。
 
 ### `release.sh` 做了什么
 
@@ -285,7 +290,8 @@ pnpm run deploy
 
 ```bash
 pnpm run release    # 版本号 + commit + tag + push
-pnpm run deploy     # 构建 + 部署到 Vercel
+# git push 自动触发 Vercel Git Integration 部署
+# 仅应急时才用: pnpm run deploy
 ```
 
 ### Q5: 如何回滚？
@@ -310,7 +316,8 @@ vercel alias set <old-deployment-url> werewolf-judge.vercel.app
 | 启动开发服务器     | `pnpm start`                                             |
 | **生产部署**       |                                                          |
 | 发版               | `pnpm run release` (patch) / `pnpm run release -- minor` |
-| 部署               | `pnpm run deploy`                                        |
+| 部署               | `git push` 自动触发 Vercel Git Integration               |
+| 应急手动部署       | `pnpm run deploy`（仅 Vercel 自动部署故障时）            |
 | 推送数据库迁移     | `supabase db push`                                       |
 | 部署 Edge Function | `supabase functions deploy groq-proxy`                   |
 | 设置 GROQ 密钥     | `supabase secrets set GROQ_API_KEY=gsk_...`              |

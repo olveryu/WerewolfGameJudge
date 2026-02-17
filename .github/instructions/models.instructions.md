@@ -5,7 +5,7 @@ applyTo: src/models/**
 
 # Model 层规范
 
-源代码在 `packages/game-engine/src/models/`，`src/models/` 下为 proxy stubs（详见 `game-engine.instructions.md`）。
+Model 定义在 `@werewolf/game-engine`（`packages/game-engine/src/models/`）。`src/models/` 仅含测试（`roles/spec/__tests__/`）。
 
 ## 规则
 

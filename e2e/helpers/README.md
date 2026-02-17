@@ -47,6 +47,8 @@ Layered test helpers and Page Objects for Playwright E2E tests.
 │    ↓ import                                                      │
 ├───────────────────────────────────────────────────────────────────┤
 │  Orchestrators                                                   │
+│  ├── helpers/diagnostics.ts → dev server diagnostics logging     │
+│  ├── helpers/night-driver.ts → night flow test driver              │
 │  └── helpers/multi-player.ts → N-player game setup               │
 │    ↓ import                                                      │
 ├───────────────────────────────────────────────────────────────────┤
@@ -77,6 +79,7 @@ e2e/
 │   ├── home.ts                ← app entry: hydration, login, room create/join
 │   ├── waits.ts               ← room screen readiness waits
 │   ├── diagnostics.ts         ← dev server diagnostics logging
+│   ├── night-driver.ts        ← night flow test driver
 │   └── multi-player.ts        ← N-player game setup orchestrator
 └── specs/
     ├── home.spec.ts            ← home navigation smoke
@@ -84,8 +87,15 @@ e2e/
     ├── seating.spec.ts         ← seating assignment / broadcast
     ├── night-2p.spec.ts        ← 2-player night-1 flow
     ├── night-6p.spec.ts        ← 6-player night-1 flow
+    ├── night-roles-block.spec.ts  ← night role blocking tests
+    ├── night-roles-check.spec.ts  ← night role checking tests
+    ├── night-roles-kill.spec.ts   ← night role killing tests
+    ├── night-roles-protect.spec.ts ← night role protection tests
+    ├── night-verify.spec.ts    ← night verification tests
+    ├── db-recovery.spec.ts     ← DB-backed state recovery
     ├── rejoin.spec.ts          ← host & player rejoin mid-game
-    └── restart.spec.ts         ← restart + settings change
+    ├── restart.spec.ts         ← restart + settings change
+    └── room-lifecycle.spec.ts  ← room lifecycle management
 ```
 
 **Rules:**

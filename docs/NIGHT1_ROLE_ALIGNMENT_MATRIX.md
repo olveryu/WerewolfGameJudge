@@ -319,6 +319,8 @@
 
 ## 测试通过证据
 
+> 下方数字为初版对齐时的快照，实际测试数量已随后续迭代增长。当前最新数据请运行 `pnpm run test:all`。
+
 ```
 Test Suites: 23 passed, 23 total
 Tests:       485 passed, 485 total
@@ -370,7 +372,7 @@ With Audio: 14/14 (100%)
 - **Host 行为**：提交免疫目标时，Host/Resolver 返回拒绝，并写入 `actionRejected` 广播。
 - **提示入口**：`RoomScreen` 监听 `gameState.actionRejected`，弹出“操作无效”（reason 为具体原因）。
 - **测试覆盖**：
-  - Host 侧：`src/services/engine/handlers/actionHandler.ts`（wolf vote gate + ACTION_REJECTED）
+  - Host 侧：`packages/game-engine/src/engine/handlers/actionHandler.ts`（wolf vote gate + ACTION_REJECTED）
   - UI 侧：`src/screens/RoomScreen/RoomScreen.tsx`（state-driven actionRejected effect）与对应 UI 测试
 
 ---

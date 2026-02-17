@@ -10,7 +10,7 @@ _An automated judge app for both in-person and remote Werewolf games_
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![React Native](https://img.shields.io/badge/React%20Native-Expo-purple?style=flat-square&logo=expo)](https://expo.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-Realtime-green?style=flat-square&logo=supabase)](https://supabase.com/)
-[![Tests](https://img.shields.io/badge/Tests-2632%20passed-brightgreen?style=flat-square)](.)
+[![Tests](https://img.shields.io/badge/Tests-2719%20passed-brightgreen?style=flat-square)](.)
 
 ---
 
@@ -26,7 +26,7 @@ _An automated judge app for both in-person and remote Werewolf games_
 | ⚡ **即开即用** - 匿名登录，无需注册，4位房间码快速加入                     | ⚡ **Instant Play** - Anonymous login, no registration, quick join                     |
 | 🌐 **跨平台** - iOS / Android / Web 全平台支持                              | 🌐 **Cross-platform** - iOS / Android / Web supported                                  |
 | 🎨 **多主题** - 8 种主题风格可选（暗黑/浅色/午夜/血月/紫霞/极简/森林/雪夜） | 🎨 **Themes** - 8 theme styles (Dark/Light/Midnight/Blood/Discord/Minimal/Forest/Snow) |
-| 🧪 **高测试覆盖** - 2632 个单元测试 + UI 测试 + E2E 测试                    | 🧪 **High Test Coverage** - 2632 unit tests + UI tests + E2E tests                     |
+| 🧪 **高测试覆盖** - 2719 个单元测试 + UI 测试 + E2E 测试                    | 🧪 **High Test Coverage** - 2719 unit tests + UI tests + E2E tests                     |
 
 ---
 
@@ -140,22 +140,22 @@ _The 🐺 floating button at the bottom-right is your personal Werewolf consulta
 ### 系统架构 | System Architecture
 
 ```
-Host 设备 (Engine + Facade)            Host Device (Engine + Facade)
+Vercel Serverless (游戏逻辑权威)      Vercel Serverless (Game Logic Authority)
     │                                     │
-    ├─ Realtime Broadcast ──────────────  ├─ Realtime Broadcast
-    │  (BroadcastGameState)               │  (BroadcastGameState)
-    │                                     │
-    └─ DB persist (game_state) ─────────  └─ DB persist (game_state)
-       (upsert on every state change)        (upsert on every state change)
+    ├─ 读 DB + game-engine 计算           ├─ Read DB + game-engine compute
+    ├─ 写 DB (乐观锁)                    ├─ Write DB (optimistic lock)
+    └─ Realtime Broadcast                └─ Realtime Broadcast
+       (BroadcastGameState)                  (BroadcastGameState)
     ▼                                     ▼
 Supabase (传输 + 持久化)              Supabase (Transport + Persistence)
     │                                     │
     ├─ Broadcast (实时推送)               ├─ Broadcast (real-time push)
     └─ postgres_changes (DB 变更通知)     └─ postgres_changes (DB change notify)
     ▼                                     ▼
-玩家设备 (N个)                        Player Devices (N)
-  ├ 正常: Broadcast 接收                   ├ Normal: receive via Broadcast
-  ├ 丢包: postgres_changes 自愈            ├ Dropped: auto-heal via DB
+客户端设备 (N个, 包含 Host)          Client Devices (N, incl. Host)
+  ├ HTTP API 提交                         ├ Submit via HTTP API
+  ├ Realtime 接收 + applySnapshot        ├ Receive via Realtime + applySnapshot
+  ├ Host: 音频播放                      ├ Host: audio playback
   └ 断线: 重连后自动从 DB 恢复             └ Offline: auto-recover from DB
 ```
 
@@ -184,11 +184,11 @@ NIGHT_STEPS (步骤序列)                Step sequence
 
 | 类型 Type             | 数量 Count | 说明 Description                                                                                              |
 | --------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
-| **Unit Tests**        | 2632       | 171 test suites (game-engine 51 + app 120)                                                                    |
+| **Unit Tests**        | 2719       | 182 test suites (game-engine 51 + app 131)                                                                    |
 | **UI Board Tests**    | 10 boards  | 覆盖所有预设板子<br/>_Cover all preset boards_                                                                |
 | **Integration Tests** | 25+        | 夜晚流程全链路<br/>_Full night flow chains_                                                                   |
 | **Contract Tests**    | 15+        | Schema/Resolver 对齐<br/>_Schema/Resolver alignment_                                                          |
-| **E2E Tests**         | 30+        | 11 spec files, Playwright 端到端（含断线恢复）<br/>_11 spec files, Playwright end-to-end (incl. DB recovery)_ |
+| **E2E Tests**         | 30+        | 14 spec files, Playwright 端到端（含断线恢复）<br/>_14 spec files, Playwright end-to-end (incl. DB recovery)_ |
 
 ---
 
@@ -271,7 +271,7 @@ function MyScreen() {
 
 ### 环境要求 | Requirements
 
-- Node.js >= 22
+- Node.js >= 20
 - pnpm (项目使用 pnpm 管理依赖 | project uses pnpm)
 - Supabase CLI (可选 optional)
 
@@ -344,12 +344,12 @@ pnpm run release -- minor     # minor / major
 
 ## 📖 更多文档 | Documentation
 
-| 文档 Document                                        | 说明 Description                                                               |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------ |
-| [线下玩法 SOP](docs/offline-sop.md)                  | 完整的线下游戏流程指南<br/>_Complete offline game flow guide_                  |
-| [部署指南](docs/DEPLOYMENT.md)                       | Supabase + Vercel 完整部署流程<br/>_Full deployment with Supabase + Vercel_    |
-| [角色对齐矩阵](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) | Night-1 角色/Schema/Resolver 对齐<br/>_Night-1 role/schema/resolver alignment_ |
-| [服务设计](docs/services-design.md)                  | 服务层架构设计<br/>_Service layer architecture_                                |
+| 文档 Document                                        | 说明 Description                                                                     |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| [线下玩法 SOP](docs/offline-sop.md)                  | 完整的线下游戏流程指南<br/>_Complete offline game flow guide_                        |
+| [部署指南](docs/DEPLOYMENT.md)                       | Supabase + Vercel 完整部署流程<br/>_Full deployment with Supabase + Vercel_          |
+| [角色对齐矩阵](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) | Night-1 角色/Schema/Resolver 对齐<br/>_Night-1 role/schema/resolver alignment_       |
+| [服务器迁移](docs/server-authoritative-migration.md) | 服务器权威架构迁移方案（历史参考）<br/>_Server authoritative migration (historical)_ |
 
 ---
 

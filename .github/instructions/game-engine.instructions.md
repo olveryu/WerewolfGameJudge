@@ -15,20 +15,11 @@ applyTo: packages/game-engine/**
 - 禁止 `console.*`，使用 `getEngineLogger()`（DI 模式：`setEngineLogger()` 注入，未注入时 noop）。
 - 随机数/ID 使用 Web Crypto API（`crypto.getRandomValues`）。
 
-## Proxy Re-export Stubs
+## Import 规则
 
-源文件迁移后，原路径保留薄存根（仅 `export * from '@werewolf/game-engine/...'`）：
-
-| 存根目录 | 源目录 |
-|----------|--------|
-| `src/models/` | `packages/game-engine/src/models/` |
-| `src/services/protocol/` | `packages/game-engine/src/protocol/` |
-| `src/services/night/resolvers/` | `packages/game-engine/src/resolvers/` |
-| `src/services/engine/`（除 `__tests__/`） | `packages/game-engine/src/engine/` |
-
-- 修改游戏逻辑 → 编辑 `packages/game-engine/src/` 源文件，禁止在存根中加逻辑/额外 export。
-- 消费者无需修改 import（存根透明代理），禁止绕过存根用相对路径 import game-engine。
-- 新增文件：在 game-engine 创建源文件 + 对应 `src/` 存根 + 更新 `index.ts` barrel export。平台相关文件不属于 game-engine，直接放 `src/`。
+- 消费者通过 `@werewolf/game-engine` 导入：`import { ROLE_SPECS } from '@werewolf/game-engine'`。
+- 修改游戏逻辑 → 编辑 `packages/game-engine/src/` 源文件。
+- 新增文件：在 game-engine 创建源文件 + 更新 `index.ts` barrel export。平台相关文件不属于 game-engine，直接放 `src/`。
 
 ## Jest 配置
 

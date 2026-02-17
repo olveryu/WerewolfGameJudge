@@ -7,7 +7,7 @@ applyTo: src/services/**
 
 ## 源代码位置
 
-游戏逻辑源代码在 `@werewolf/game-engine`（详见 `game-engine.instructions.md`）。`src/services/engine/`、`protocol/`、`night/resolvers/` 为 proxy stubs（仅一行 re-export）。`facade/`、`transport/`、`infra/`、`feature/` 仍在 `src/`。
+游戏逻辑：`@werewolf/game-engine`（详见 `game-engine.instructions.md`）。客户端服务：`facade/`、`transport/`、`infra/`、`feature/`。
 
 ## 核心规则
 

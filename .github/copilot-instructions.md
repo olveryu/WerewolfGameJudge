@@ -28,14 +28,14 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 - `services/transport/` — Supabase realtime broadcast
 - `services/infra/` — AudioService / AuthService / RoomService
 - `services/feature/` — SettingsService / AvatarUploadService / AIChatService
-- `models/`, `services/engine/`, `services/protocol/`, `services/night/resolvers/` — proxy re-export stubs（源在 game-engine）
+- `models/roles/spec/` — 角色 spec 测试（模型定义在 `@werewolf/game-engine`）
 - `screens/` — React Native screens（详见 `screens.instructions.md`）
 - `theme/` — Design tokens (`tokens.ts`) + themes (`themes.ts`)
 - `components/` — 通用 UI 组件
 - `hooks/` — 通用 hooks
 - `contexts/` — React Context（AuthContext / GameFacadeContext / NetworkContext / ServiceContext）
-- `utils/` — logger / alert / random / id（禁止 `Math.random()` 直接调用，必须通过 `random.ts`）
-- `config/` — Supabase / version 配置（纯配置值，禁止业务逻辑/副作用）
+- `utils/` — logger / alert / avatar / roomCode / mobileDebug / storageAdapter / withTimeout
+- `config/` — api / supabase / version 配置（纯配置值，禁止业务逻辑/副作用）
 - `navigation/` — React Navigation 路由
 
 ### 质量命令
