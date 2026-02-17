@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.235] - 2026-02-17
+
+- feat(night): add cardPick animation with real-time card removal
+
 ## [1.0.234] - 2026-02-17
 
 - fix(hooks): remove dismiss mechanism from PWA install hook
