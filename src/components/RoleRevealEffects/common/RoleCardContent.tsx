@@ -1,9 +1,11 @@
 /**
  * RoleCardContent - 角色卡片内容区域（无 Modal 包裹）
  *
- * 与 RoleCardSimple 相同的卡片样式，供各动画效果组件复用。
+ * 所有角色卡片 UI 的唯一 source of truth。
+ * RoleCardSimple（静态模态框）和各动画效果组件均复用此组件。
+ * 长描述自动缩小字号以完整显示在卡片内。
  *
- * ✅ 允许：渲染角色卡片内容 UI
+ * ✅ 允许：渲染角色卡片内容 UI、通过 children 插槽扩展底部按钮
  * ❌ 禁止：import service / 业务逻辑判断
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -37,6 +39,8 @@ export interface RoleCardContentProps {
   style?: ViewStyle;
   /** Test ID */
   testID?: string;
+  /** Optional bottom slot (e.g. confirm button) rendered below description */
+  children?: React.ReactNode;
 }
 
 export const RoleCardContent: React.FC<RoleCardContentProps> = ({
@@ -45,6 +49,7 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   height = 392,
   style,
   testID,
+  children,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors, width, height), [colors, width, height]);
@@ -69,9 +74,13 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
 
       <Text style={styles.skillTitle}>技能介绍</Text>
       <Text style={styles.description}>{description}</Text>
+      {children && <View style={styles.childrenSlot}>{children}</View>}
     </View>
   );
 };
+
+/** @internal Exported for RoleCardSimple to access faction color */
+export { getFactionColor };
 
 function createStyles(colors: ThemeColors, width: number, height: number) {
   return StyleSheet.create({
@@ -135,11 +144,15 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
       marginBottom: spacing.tight,
     },
     description: {
-      fontSize: typography.secondary,
+      fontSize: typography.body,
       color: colors.text,
       textAlign: 'center',
-      lineHeight: typography.secondary * 1.5,
+      lineHeight: typography.body * 1.5,
       paddingHorizontal: spacing.small,
+    },
+    childrenSlot: {
+      marginTop: 'auto',
+      alignItems: 'center',
     },
   });
 }
