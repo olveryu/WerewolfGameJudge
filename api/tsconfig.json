@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "outDir": "../dist/api",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@werewolf/game-engine": ["../packages/game-engine/src/index.ts"],
+      "@werewolf/game-engine/*": ["../packages/game-engine/src/*"]
+    }
+  },
+  "include": ["./**/*.ts"],
+  "exclude": ["__tests__"]
+}

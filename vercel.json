@@ -4,7 +4,7 @@
   "outputDirectory": "dist",
   "framework": null,
   "installCommand": "pnpm install",
-  "devCommand": "npx expo start --web --port $PORT",
+  "devCommand": "pnpm exec expo start --web --port $PORT",
   "rewrites": [{ "source": "/((?!api/)(?!.*\\.).*)", "destination": "/index.html" }],
   "headers": [
     {

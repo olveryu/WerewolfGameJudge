@@ -1,6 +1,7 @@
 {
   "name": "werewolfgamejudge",
   "version": "1.0.226",
+  "private": true,
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
@@ -10,8 +11,8 @@
     "test:all": "pnpm -r --include-workspace-root run test",
     "test:watch": "jest --watch",
     "e2e": "playwright test --reporter=list",
-    "e2e:core": "npx playwright test --workers=1 --reporter=line --trace=on --max-failures=1",
-    "e2e:remote": "E2E_ENV=remote npx playwright test --workers=1 --reporter=line --trace=on --max-failures=1",
+    "e2e:core": "pnpm exec playwright test --workers=1 --reporter=line --trace=on --max-failures=1",
+    "e2e:remote": "E2E_ENV=remote pnpm exec playwright test --workers=1 --reporter=line --trace=on --max-failures=1",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -34,7 +35,7 @@
     ]
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=20"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -97,6 +98,5 @@
     "ts-jest": "^29.4.6",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.55.0"
-  },
-  "private": true
+  }
 }

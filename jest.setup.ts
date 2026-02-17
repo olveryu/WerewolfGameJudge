@@ -9,14 +9,13 @@ require('react-native-reanimated').setUpTests();
 // ---------------------------------------------------------------------------
 // Suppress noisy React warnings (common in async component tests)
 // These warnings are informational and don't indicate test failures.
+// Using jest.spyOn to intercept — auto-tracked by Jest, restorable if needed.
 // ---------------------------------------------------------------------------
 
-// Save originals before any other code runs
 const _originalError = console.error.bind(console);
 const _originalWarn = console.warn.bind(console);
 
-// Override globally
-console.error = function (...args: unknown[]) {
+jest.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
   const first = args[0];
   const message = typeof first === 'string' ? first : '';
   // Filter out React act() warnings - they're noisy but don't affect test validity
@@ -24,9 +23,9 @@ console.error = function (...args: unknown[]) {
     return;
   }
   _originalError(...args);
-};
+});
 
-console.warn = function (...args: unknown[]) {
+jest.spyOn(console, 'warn').mockImplementation((...args: unknown[]) => {
   // React uses format strings like "%s\n\n%s\n" with actual messages in subsequent args
   // Check all args for the error boundary message
   const allText = args.map((a) => (typeof a === 'string' ? a : '')).join(' ');
@@ -35,7 +34,7 @@ console.warn = function (...args: unknown[]) {
     return;
   }
   _originalWarn(...args);
-};
+});
 
 // ---------------------------------------------------------------------------
 // Theme mock for tests — shared data (single source of truth)

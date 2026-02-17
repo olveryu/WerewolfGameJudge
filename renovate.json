@@ -4,6 +4,8 @@
   "labels": ["dependencies"],
   "schedule": ["before 9am on monday"],
   "timezone": "Asia/Shanghai",
+  "rangeStrategy": "bump",
+  "postUpdateOptions": ["pnpmDedupe"],
   "packageRules": [
     {
       "description": "Group Expo SDK packages",
