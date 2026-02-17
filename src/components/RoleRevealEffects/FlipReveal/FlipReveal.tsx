@@ -72,15 +72,13 @@ const BurstParticle: React.FC<ParticleConfig> = React.memo(
       <Animated.View
         style={[
           styles.particle,
+          styles.particleGlow,
           {
             width: size,
             height: size,
             borderRadius: size / 2,
             backgroundColor: color,
             shadowColor: EFFECT_COLORS.edgeGlow,
-            shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: 0.8,
-            shadowRadius: 4,
           },
           animStyle,
         ]}
@@ -381,7 +379,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
             flashCount={common.glowFlashCount}
             flashDuration={common.glowFlashDuration}
             onComplete={handleGlowComplete}
-            style={{ position: 'absolute', top: -4, left: -4 }}
+            style={styles.glowBorder}
           />
         )}
       </Animated.View>
@@ -429,5 +427,15 @@ const styles = StyleSheet.create({
   },
   particle: {
     position: 'absolute',
+  },
+  particleGlow: {
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+  },
+  glowBorder: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
   },
 });

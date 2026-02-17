@@ -7,7 +7,6 @@ import {
   clickSeatAndConfirm,
   dismissAlert,
   driveMagicianSwap,
-  driveWolfEmptyVote,
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,

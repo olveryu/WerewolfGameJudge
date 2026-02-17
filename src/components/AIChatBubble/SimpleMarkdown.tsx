@@ -134,10 +134,8 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({
           <Text
             style={[
               localStyles.codeBlockText,
-              {
-                color: textColor,
-                backgroundColor: inverted ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)',
-              },
+              inverted ? localStyles.codeBlockBgInverted : localStyles.codeBlockBgNormal,
+              { color: textColor },
             ]}
           >
             {codeLines.join('\n')}
@@ -164,11 +162,9 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({
           key={lineKey}
           style={[
             baseStyle,
+            localStyles.headerText,
             {
               fontSize: sizes[level],
-              fontWeight: typography.weights.bold,
-              marginTop: spacing.tight,
-              marginBottom: 2,
             },
           ]}
         >
@@ -222,6 +218,11 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({
 };
 
 const localStyles = StyleSheet.create({
+  headerText: {
+    fontWeight: typography.weights.bold,
+    marginTop: spacing.tight,
+    marginBottom: 2,
+  },
   emptyLine: {
     height: spacing.small,
   },
@@ -245,5 +246,11 @@ const localStyles = StyleSheet.create({
     padding: spacing.small,
     borderRadius: borderRadius.small,
     overflow: 'hidden',
+  },
+  codeBlockBgInverted: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  codeBlockBgNormal: {
+    backgroundColor: 'rgba(0,0,0,0.04)',
   },
 });

@@ -400,13 +400,15 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
                   ]}
                 >
                   <View
-                    style={{
-                      width: cardWidth,
-                      height: cardHeight,
-                      position: 'absolute',
-                      left: -(point.x - brushRadius),
-                      top: -(point.y - brushRadius),
-                    }}
+                    style={[
+                      styles.scratchHoleContent,
+                      {
+                        width: cardWidth,
+                        height: cardHeight,
+                        left: -(point.x - brushRadius),
+                        top: -(point.y - brushRadius),
+                      },
+                    ]}
                   >
                     <RoleCardContent
                       roleId={role.id as RoleId}
@@ -461,7 +463,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
             flashCount={common.glowFlashCount}
             flashDuration={common.glowFlashDuration}
             onComplete={handleGlowComplete}
-            style={{ position: 'absolute', top: -4, left: -4 }}
+            style={styles.glowBorder}
           />
         )}
       </View>
@@ -566,6 +568,14 @@ const styles = StyleSheet.create({
     borderRadius: 1,
   },
   lightBurst: {
+    position: 'absolute',
+  },
+  glowBorder: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+  },
+  scratchHoleContent: {
     position: 'absolute',
   },
   progressContainer: {

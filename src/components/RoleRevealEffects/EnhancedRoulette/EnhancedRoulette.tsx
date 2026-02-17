@@ -64,23 +64,18 @@ const Bulb: React.FC<{ on: boolean; color?: string; size?: number }> = ({
   on,
   color = SLOT_COLORS.bulbOn,
   size = 8,
-}) => (
-  <View
-    style={[
-      styles.bulb,
-      {
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: on ? color : SLOT_COLORS.bulbOff,
-        shadowColor: on ? color : 'transparent',
-        shadowOpacity: on ? 0.8 : 0,
-        shadowRadius: size / 2,
-        shadowOffset: { width: 0, height: 0 },
-      },
-    ]}
-  />
-);
+}) => {
+  const dynamicStyle = {
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    backgroundColor: on ? color : SLOT_COLORS.bulbOff,
+    shadowRadius: size / 2,
+    shadowColor: on ? color : 'transparent',
+    shadowOpacity: on ? 0.8 : 0,
+  };
+  return <View style={[styles.bulb, styles.bulbShadow, dynamicStyle]} />;
+};
 
 // ─── Self-animating emoji particle ──────────────────────────────────────
 interface EmojiParticleConfig {
@@ -518,7 +513,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
               flashCount={common.glowFlashCount}
               flashDuration={common.glowFlashDuration}
               onComplete={handleRevealComplete}
-              style={{ position: 'absolute', top: -4, left: -4 }}
+              style={styles.glowBorder}
             />
           )}
         </Animated.View>
@@ -703,5 +698,15 @@ const styles = StyleSheet.create({
   particle: {
     position: 'absolute',
     fontSize: 24,
+  },
+  glowBorder: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+  },
+  bulbShadow: {
+    shadowOffset: { width: 0, height: 0 },
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
   },
 });

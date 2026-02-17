@@ -92,6 +92,7 @@ export const GlowBorder: React.FC<GlowBorderProps> = ({
     <Animated.View
       style={[
         styles.container,
+        styles.glow,
         {
           width,
           height,
@@ -99,9 +100,6 @@ export const GlowBorder: React.FC<GlowBorderProps> = ({
           borderWidth,
           borderColor: color,
           shadowColor: glowColor,
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.8,
-          shadowRadius: 10,
         },
         animatedStyle,
         style,
@@ -113,5 +111,10 @@ export const GlowBorder: React.FC<GlowBorderProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
+  },
+  glow: {
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
   },
 });

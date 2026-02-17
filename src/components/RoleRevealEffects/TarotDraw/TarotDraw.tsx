@@ -322,10 +322,10 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
                 key={card.id}
                 style={[
                   styles.wheelCard,
+                  isSelected && styles.hidden,
                   {
                     width: cardWidth * 0.55,
                     height: cardHeight * 0.55,
-                    opacity: isSelected ? 0 : 1,
                     transform: [{ translateX: x }, { translateY: y }, { rotate: `${rotation}deg` }],
                   },
                 ]}
@@ -333,7 +333,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
                 <Pressable
                   onPress={() => handleCardSelect(index)}
                   disabled={phase !== 'waiting'}
-                  style={{ flex: 1 }}
+                  style={styles.pressableFill}
                 >
                   <CardBackFace width={cardWidth * 0.55} height={cardHeight * 0.55} />
                 </Pressable>
@@ -449,6 +449,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     left: -4,
+  },
+  hidden: {
+    opacity: 0,
+  },
+  pressableFill: {
+    flex: 1,
   },
   promptContainer: {
     position: 'absolute',

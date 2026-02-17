@@ -4,6 +4,10 @@
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "--registry", "https://registry.npmjs.org/", "@upstash/context7-mcp"]
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
     }
   }
 }
