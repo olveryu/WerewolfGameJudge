@@ -24,6 +24,7 @@
     "e2e:ui": "playwright test --ui",
     "dev": "node scripts/run-e2e-web.mjs",
     "dev:api": "node scripts/dev-api.mjs",
+    "dev:full": "concurrently -n api,web -c blue,green \"pnpm run dev:api\" \"pnpm run web\"",
     "deploy": "bash scripts/deploy.sh",
     "release": "bash scripts/release.sh",
     "prepare": "husky"
@@ -82,6 +83,7 @@
     "@types/jest": "29.5.14",
     "@types/react": "~19.1.0",
     "@vercel/node": "^5.6.3",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
