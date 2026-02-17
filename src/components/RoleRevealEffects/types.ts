@@ -31,7 +31,13 @@ export interface RoleData {
 /**
  * Available reveal effect types
  */
-export type RevealEffectType = 'roulette' | 'flip' | 'scratch' | 'tarot' | 'gachaMachine';
+export type RevealEffectType =
+  | 'roulette'
+  | 'flip'
+  | 'scratch'
+  | 'tarot'
+  | 'gachaMachine'
+  | 'cardPick';
 
 /**
  * Common props for all reveal effect components
@@ -59,6 +65,8 @@ export interface RoleRevealAnimatorProps extends RoleRevealEffectProps {
   visible: boolean;
   /** For roulette effect: list of all roles to scroll through */
   allRoles?: RoleData[];
+  /** For cardPick effect: number of remaining (unviewed) cards on the table */
+  remainingCards?: number;
 }
 
 /**

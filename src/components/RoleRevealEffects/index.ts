@@ -28,6 +28,7 @@
 export { createRoleData, RoleRevealAnimator } from './RoleRevealAnimator';
 
 // Individual effect components (for advanced usage)
+export { CardPick, type CardPickProps } from './CardPick/CardPick';
 export { EnhancedRoulette, type EnhancedRouletteProps } from './EnhancedRoulette';
 export { FlipReveal } from './FlipReveal';
 export { GachaMachine } from './GachaMachine';

@@ -13,6 +13,7 @@ import { AccessibilityInfo, Modal, StyleSheet, View } from 'react-native';
 import { useColors } from '@/theme';
 import { log } from '@/utils/logger';
 
+import { CardPick } from './CardPick';
 import { EnhancedRoulette } from './EnhancedRoulette';
 import { FlipReveal } from './FlipReveal';
 import { GachaMachine } from './GachaMachine';
@@ -25,6 +26,7 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
   effectType,
   role,
   allRoles,
+  remainingCards,
   onComplete,
   reducedMotion: reducedMotionProp,
   enableHaptics = true,
@@ -82,6 +84,8 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
         return <TarotDraw {...commonProps} />;
       case 'gachaMachine':
         return <GachaMachine {...commonProps} />;
+      case 'cardPick':
+        return <CardPick {...commonProps} remainingCards={remainingCards} />;
       default:
         // Default to flip if unknown effect type
         return <FlipReveal {...commonProps} />;

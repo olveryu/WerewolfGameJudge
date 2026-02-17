@@ -90,7 +90,15 @@ export interface UpdateTemplateRequestBody {
 export interface SetAnimationRequestBody {
   roomCode: string;
   hostUid: string;
-  animation: 'roulette' | 'flip' | 'none';
+  animation:
+    | 'roulette'
+    | 'flip'
+    | 'scratch'
+    | 'tarot'
+    | 'gachaMachine'
+    | 'cardPick'
+    | 'none'
+    | 'random';
 }
 
 /** POST /api/game/mark-bots-viewed */

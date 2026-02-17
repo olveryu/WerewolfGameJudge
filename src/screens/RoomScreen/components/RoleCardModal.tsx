@@ -50,6 +50,8 @@ interface RoleCardModalProps {
   shouldPlayAnimation: boolean;
   /** 全部角色 ID 列表（用于动画中显示所有角色） */
   allRoleIds: RoleId[];
+  /** 剩余未查看的牌数（用于 cardPick 动画） */
+  remainingCards: number;
   /** 关闭回调 */
   onClose: () => void;
 }
@@ -62,6 +64,7 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   resolvedAnimation,
   shouldPlayAnimation,
   allRoleIds,
+  remainingCards,
   onClose,
 }) => {
   const [animationDone, setAnimationDone] = useState(false);
@@ -98,6 +101,7 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
       role={effectiveRoleData}
       effectType={effectType}
       allRoles={allRolesData}
+      remainingCards={remainingCards}
       onComplete={handleAnimationComplete}
     />
   );

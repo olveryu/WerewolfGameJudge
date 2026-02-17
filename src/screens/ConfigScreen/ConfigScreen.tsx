@@ -333,6 +333,7 @@ export const ConfigScreen: React.FC = () => {
       { value: 'scratch', label: '🎫 刮刮卡' },
       { value: 'tarot', label: '🎴 塔罗牌' },
       { value: 'gachaMachine', label: '🎱 扭蛋机' },
+      { value: 'cardPick', label: '🃏 抽牌' },
       { value: 'none', label: '⚡ 无动画' },
     ],
     [],

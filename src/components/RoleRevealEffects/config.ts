@@ -143,6 +143,36 @@ export const CONFIG = {
   },
 
   // =====================================================
+  // Card Pick (抽牌)
+  // =====================================================
+  cardPick: {
+    /** Duration for cards to spread onto the table (ms) */
+    spreadDuration: 600,
+    /** Stagger delay between each card appearing (ms) */
+    spreadStagger: 60,
+    /** Duration for selected card to fly to center (ms) */
+    flyToCenterDuration: 500,
+    /** Duration for remaining cards to fade out (ms) */
+    fadeOutDuration: 300,
+    /** Card flip duration (ms) */
+    flipDuration: 800,
+    /** Mini card width ratio relative to screen width */
+    miniCardWidthRatio: 0.18,
+    /** Mini card aspect ratio */
+    miniCardAspectRatio: 1.4,
+    /** Max columns in the grid */
+    maxColumns: 4,
+    /** Gap between cards (px) */
+    cardGap: 10,
+    /** Auto-select timeout if user doesn't tap (ms) */
+    autoSelectTimeout: 5000,
+    /** Duration for a card to fade out when removed by another player (ms) */
+    cardRemoveExitDuration: 400,
+    /** Hold duration after reveal before calling onComplete (ms) */
+    revealHoldDuration: 0,
+  },
+
+  // =====================================================
   // Haptics
   // =====================================================
   haptics: {

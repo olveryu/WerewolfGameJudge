@@ -21,6 +21,7 @@ export type RoleRevealAnimation =
   | 'scratch'
   | 'tarot'
   | 'gachaMachine'
+  | 'cardPick'
   | 'none'
   | 'random';
 
@@ -35,12 +36,19 @@ export type ResolvedRoleRevealAnimation =
   | 'scratch'
   | 'tarot'
   | 'gachaMachine'
+  | 'cardPick'
   | 'none';
 
 /**
  * 可随机选择的动画类型（不含 none 和 random）
  */
-export type RandomizableAnimation = 'roulette' | 'flip' | 'scratch' | 'tarot' | 'gachaMachine';
+export type RandomizableAnimation =
+  | 'roulette'
+  | 'flip'
+  | 'scratch'
+  | 'tarot'
+  | 'gachaMachine'
+  | 'cardPick';
 
 /**
  * 可随机选择的动画数组（用于 random 解析）
@@ -51,6 +59,7 @@ export const RANDOMIZABLE_ANIMATIONS: readonly RandomizableAnimation[] = [
   'scratch',
   'tarot',
   'gachaMachine',
+  'cardPick',
 ] as const;
 
 /**

@@ -391,6 +391,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           resolvedAnimation={resolvedRoleRevealAnimation}
           shouldPlayAnimation={shouldPlayRevealAnimation}
           allRoleIds={gameState?.template?.roles ?? template?.roles ?? []}
+          remainingCards={
+            gameState
+              ? Array.from(gameState.players.values()).filter((p) => p && !p.hasViewedRole).length +
+                (shouldPlayRevealAnimation ? 1 : 0)
+              : 0
+          }
           onClose={handleRoleCardClose}
         />
       )}
