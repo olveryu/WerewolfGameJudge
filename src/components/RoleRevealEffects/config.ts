@@ -21,11 +21,11 @@ export const CONFIG = {
 
     // ── Unified card dimensions ──
     /** Max card width (px) */
-    cardMaxWidth: 280,
+    cardMaxWidth: 320,
     /** Card width as fraction of screen width */
-    cardWidthRatio: 0.75,
+    cardWidthRatio: 0.82,
     /** Card height = cardWidth * aspectRatio */
-    cardAspectRatio: 1.4,
+    cardAspectRatio: 1.5,
 
     // ── Unified GlowBorder params ──
     /** GlowBorder flash count */
