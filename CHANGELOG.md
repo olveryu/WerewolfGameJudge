@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.232] - 2026-02-16
+
+- feat(room): fire-and-forget seat confirm for instant modal dismiss
+- chore(e2e): add playwright report link to ci summary
+- chore(e2e): deploy playwright report to github pages
+
 ## [1.0.231] - 2026-02-16
 
 - fix(room): fix role card description overflow and button clipping
