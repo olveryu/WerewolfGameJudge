@@ -10,10 +10,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
-import { mobileDebug } from '@/utils/mobileDebug';
-
-const DISMISS_KEY = '@werewolf_pwa_install_dismissed';
-
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -37,8 +33,6 @@ export interface PWAInstallResult {
   iosBrowser: IOSBrowser | null;
   /** 触发安装。prompt 模式调用系统弹窗；ios-guide 模式由调用方展示引导 UI */
   install: () => Promise<void>;
-  /** 用户关闭引导后调用，记住不再显示 */
-  dismiss: () => void;
 }
 
 /**
@@ -85,43 +79,21 @@ export function usePWAInstall(): PWAInstallResult {
 
   useEffect(() => {
     // 非 Web 平台或已安装，不显示
-    const standalone = isStandalone();
-    mobileDebug.log(`[DIAG] PWAInstall: platform=${Platform.OS}, standalone=${standalone}`);
-    if (Platform.OS !== 'web' || standalone) {
-      mobileDebug.log(`[DIAG] PWAInstall: hidden (non-web or standalone)`);
+    if (Platform.OS !== 'web' || isStandalone()) {
       setMode('hidden');
       return;
     }
 
-    // 用户已关闭过
-    try {
-      const dismissed = localStorage.getItem(DISMISS_KEY);
-      mobileDebug.log(`[DIAG] PWAInstall: dismissKey=${dismissed}`);
-      if (dismissed === 'true') {
-        setMode('hidden');
-        return;
-      }
-    } catch {
-      // localStorage 不可用
-    }
-
     // Android/桌面 Chrome 已捕获 prompt 事件
     if (window.__pwaInstallPrompt) {
-      mobileDebug.log(`[DIAG] PWAInstall: mode=prompt (beforeinstallprompt cached)`);
       setMode('prompt');
       return;
     }
 
     // iOS 浏览器（Safari / Chrome / Firefox 等）
-    const iosCheck = isIOSBrowser();
-    mobileDebug.log(
-      `[DIAG] PWAInstall: isIOSBrowser=${iosCheck}, UA=${typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'}`,
-    );
-    if (iosCheck) {
-      const browser = detectIOSBrowser();
-      mobileDebug.log(`[DIAG] PWAInstall: mode=ios-guide, browser=${browser}`);
+    if (isIOSBrowser()) {
       setMode('ios-guide');
-      setIOSBrowser(browser);
+      setIOSBrowser(detectIOSBrowser());
       return;
     }
 
@@ -132,7 +104,6 @@ export function usePWAInstall(): PWAInstallResult {
     window.addEventListener('beforeinstallprompt', handler);
 
     // 其他浏览器（Firefox 等）不支持安装
-    mobileDebug.log(`[DIAG] PWAInstall: mode=hidden (no matching branch)`);
     setMode('hidden');
 
     return () => {
@@ -151,14 +122,5 @@ export function usePWAInstall(): PWAInstallResult {
     }
   }, [mode]);
 
-  const dismiss = useCallback(() => {
-    try {
-      localStorage.setItem(DISMISS_KEY, 'true');
-    } catch {
-      // localStorage 不可用
-    }
-    setMode('hidden');
-  }, []);
-
-  return { mode, iosBrowser, install, dismiss };
+  return { mode, iosBrowser, install };
 }

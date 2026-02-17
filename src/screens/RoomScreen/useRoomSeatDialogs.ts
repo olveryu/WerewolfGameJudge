@@ -63,6 +63,7 @@ export function useRoomSeatDialogs({
 
   const showEnterSeatDialog = useCallback(
     (seat: number) => {
+      submittingRef.current = false; // 新对话框 → 解除旧异步锁
       setPendingSeat(seat);
       setModalType('enter');
       setSeatModalVisible(true);
@@ -76,6 +77,7 @@ export function useRoomSeatDialogs({
 
   const showLeaveSeatDialog = useCallback(
     (seat: number) => {
+      submittingRef.current = false; // 新对话框 → 解除旧异步锁
       setPendingSeat(seat);
       setModalType('leave');
       setSeatModalVisible(true);
