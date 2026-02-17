@@ -23,6 +23,7 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { spacing, useColors } from '@/theme';
@@ -43,7 +44,6 @@ import { RoleCardModal } from './components/RoleCardModal';
 import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { createRoomScreenComponentStyles } from './components/styles';
 import { useRoomScreenState } from './hooks/useRoomScreenState';
-import { formatRoleList } from './RoomScreen.helpers';
 import { createRoomScreenStyles } from './RoomScreen.styles';
 import { shareOrCopyRoomLink } from './shareRoom';
 
@@ -100,11 +100,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     handleRetry,
     // Derived view models
     seatViewModels,
-    roleCounts,
-    wolfRoles,
-    godRoles,
-    specialRoles,
     villagerCount,
+    wolfRoleItems,
+    godRoleItems,
+    specialRoleItems,
     nightProgress,
     actionMessage,
     // Actioner
@@ -131,6 +130,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     roleCardVisible,
     shouldPlayRevealAnimation,
     handleRoleCardClose,
+    // Skill preview modal
+    skillPreviewRoleId,
+    handleSkillPreviewOpen,
+    handleSkillPreviewClose,
     // Rejoin recovery
     resumeAfterRejoin,
     needsContinueOverlay,
@@ -255,13 +258,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Board Info - collapsed during ongoing/ended, expanded during setup */}
         <BoardInfoCard
           playerCount={gameState.template.roles.length}
-          wolfRolesText={formatRoleList(wolfRoles, roleCounts)}
-          godRolesText={formatRoleList(godRoles, roleCounts)}
-          specialRolesText={
-            specialRoles.length > 0 ? formatRoleList(specialRoles, roleCounts) : undefined
-          }
+          wolfRoleItems={wolfRoleItems}
+          godRoleItems={godRoleItems}
+          specialRoleItems={specialRoleItems}
           villagerCount={villagerCount}
           collapsed={roomStatus === GameStatus.ongoing || roomStatus === GameStatus.ended}
+          onRolePress={handleSkillPreviewOpen}
           styles={componentStyles.boardInfoCard}
         />
 
@@ -394,6 +396,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onClose={handleRoleCardClose}
         />
       )}
+
+      {/* Skill Preview Modal — triggered by tapping a role chip in BoardInfoCard */}
+      <RoleCardSimple
+        visible={skillPreviewRoleId !== null}
+        roleId={skillPreviewRoleId}
+        onClose={handleSkillPreviewClose}
+      />
     </SafeAreaView>
   );
 };

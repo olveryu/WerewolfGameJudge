@@ -52,12 +52,22 @@ export interface ActionerState {
   showWolves: boolean;
 }
 
+/** Structured role item for BoardInfoCard touchable chips */
+export interface RoleDisplayItem {
+  roleId: string;
+  displayName: string;
+  count: number;
+}
+
 interface RoleStats {
   roleCounts: Record<string, number>;
   wolfRoles: string[];
   godRoles: string[];
   specialRoles: string[];
   villagerCount: number;
+  wolfRoleItems: RoleDisplayItem[];
+  godRoleItems: RoleDisplayItem[];
+  specialRoleItems: RoleDisplayItem[];
 }
 
 export interface SeatViewModel {
@@ -222,6 +232,9 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
   const wolfRolesList: string[] = [];
   const godRolesList: string[] = [];
   const specialRolesList: string[] = [];
+  const wolfItemMap = new Map<string, RoleDisplayItem>();
+  const godItemMap = new Map<string, RoleDisplayItem>();
+  const specialItemMap = new Map<string, RoleDisplayItem>();
   let villagerCount = 0;
 
   roles.forEach((role) => {
@@ -233,16 +246,37 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
       if (!wolfRolesList.includes(spec.displayName)) {
         wolfRolesList.push(spec.displayName);
       }
+      const existing = wolfItemMap.get(role);
+      wolfItemMap.set(
+        role,
+        existing
+          ? { ...existing, count: existing.count + 1 }
+          : { roleId: role, displayName: spec.displayName, count: 1 },
+      );
     } else if (spec.faction === 'god') {
       roleCounts[spec.displayName] = (roleCounts[spec.displayName] || 0) + 1;
       if (!godRolesList.includes(spec.displayName)) {
         godRolesList.push(spec.displayName);
       }
+      const existing = godItemMap.get(role);
+      godItemMap.set(
+        role,
+        existing
+          ? { ...existing, count: existing.count + 1 }
+          : { roleId: role, displayName: spec.displayName, count: 1 },
+      );
     } else if (spec.faction === 'special') {
       roleCounts[spec.displayName] = (roleCounts[spec.displayName] || 0) + 1;
       if (!specialRolesList.includes(spec.displayName)) {
         specialRolesList.push(spec.displayName);
       }
+      const existing = specialItemMap.get(role);
+      specialItemMap.set(
+        role,
+        existing
+          ? { ...existing, count: existing.count + 1 }
+          : { roleId: role, displayName: spec.displayName, count: 1 },
+      );
     } else if (role === 'villager') {
       villagerCount++;
     }
@@ -254,6 +288,9 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
     godRoles: godRolesList,
     specialRoles: specialRolesList,
     villagerCount,
+    wolfRoleItems: [...wolfItemMap.values()],
+    godRoleItems: [...godItemMap.values()],
+    specialRoleItems: [...specialItemMap.values()],
   };
 }
 

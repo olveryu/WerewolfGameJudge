@@ -33,6 +33,9 @@ export interface BoardInfoCardStyles {
   roleCategory: ViewStyle;
   roleCategoryLabel: TextStyle;
   roleCategoryText: TextStyle;
+  roleChipRow: ViewStyle;
+  roleChip: ViewStyle;
+  roleChipText: TextStyle;
 }
 
 export interface BottomActionPanelStyles {
@@ -194,6 +197,23 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         flex: 1,
         fontSize: typography.secondary,
         color: colors.text,
+        lineHeight: typography.title, // ~20
+      },
+      roleChipRow: {
+        flex: 1,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: spacing.tight,
+      },
+      roleChip: {
+        paddingHorizontal: spacing.small,
+        paddingVertical: spacing.tight / 2,
+        borderRadius: borderRadius.small,
+        backgroundColor: colors.surfaceHover,
+      },
+      roleChipText: {
+        fontSize: typography.secondary,
+        color: colors.primary,
         lineHeight: typography.title, // ~20
       },
     }),

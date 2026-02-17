@@ -46,6 +46,7 @@ const requiredFields = [
   'EXPO_PUBLIC_SUPABASE_ANON_KEY',
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
+  'DATABASE_URL',
 ];
 const missing = requiredFields.filter((f) => !config[f]);
 if (missing.length) {
@@ -100,6 +101,7 @@ const childEnv = {
   EXPO_PUBLIC_SUPABASE_ANON_KEY: config.EXPO_PUBLIC_SUPABASE_ANON_KEY,
   SUPABASE_URL: config.SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY: config.SUPABASE_SERVICE_ROLE_KEY,
+  DATABASE_URL: config.DATABASE_URL,
   npm_config_registry: 'https://registry.npmjs.org/',
 };
 

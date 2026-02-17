@@ -357,9 +357,27 @@ export function useRoomScreenState(
     roomStatus,
   ]);
 
-  const { roleCounts, wolfRoles, godRoles, specialRoles, villagerCount } = useMemo(() => {
+  const {
+    roleCounts,
+    wolfRoles,
+    godRoles,
+    specialRoles,
+    villagerCount,
+    wolfRoleItems,
+    godRoleItems,
+    specialRoleItems,
+  } = useMemo(() => {
     if (!gameState) {
-      return { roleCounts: {}, wolfRoles: [], godRoles: [], specialRoles: [], villagerCount: 0 };
+      return {
+        roleCounts: {},
+        wolfRoles: [],
+        godRoles: [],
+        specialRoles: [],
+        villagerCount: 0,
+        wolfRoleItems: [],
+        godRoleItems: [],
+        specialRoleItems: [],
+      };
     }
     return getRoleStats(gameState.template.roles);
   }, [gameState]);
@@ -540,6 +558,20 @@ export function useRoomScreenState(
   }, []);
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Skill preview modal (BoardInfoCard role chip tap)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const [skillPreviewRoleId, setSkillPreviewRoleId] = useState<RoleId | null>(null);
+
+  const handleSkillPreviewOpen = useCallback((roleId: string) => {
+    setSkillPreviewRoleId(roleId as RoleId);
+  }, []);
+
+  const handleSkillPreviewClose = useCallback(() => {
+    setSkillPreviewRoleId(null);
+  }, []);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Interaction Dispatcher
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -667,6 +699,9 @@ export function useRoomScreenState(
     godRoles,
     specialRoles,
     villagerCount,
+    wolfRoleItems,
+    godRoleItems,
+    specialRoleItems,
     nightProgress,
     actionMessage,
 
@@ -698,6 +733,11 @@ export function useRoomScreenState(
     roleCardVisible,
     shouldPlayRevealAnimation,
     handleRoleCardClose,
+
+    // ── Skill preview modal ──
+    skillPreviewRoleId,
+    handleSkillPreviewOpen,
+    handleSkillPreviewClose,
 
     // ── Rejoin recovery ──
     resumeAfterRejoin,
