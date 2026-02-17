@@ -1,6 +1,6 @@
 {
   "name": "werewolfgamejudge",
-  "version": "1.0.226",
+  "version": "1.0.227",
   "private": true,
   "main": "index.ts",
   "scripts": {

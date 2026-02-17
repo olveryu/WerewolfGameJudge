@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.227] - 2026-02-16
+
+- chore: fix low-severity community convention issues
+- refactor: fix medium-severity community convention issues
+- docs(e2e): update workers rule to reflect independent room isolation
+- docs: add guidelines for optimistic updates in service layer instructions
+
 ## [1.0.226] - 2026-02-16
 
 - perf(infra): colocate region, merge routes, optimistic updates
