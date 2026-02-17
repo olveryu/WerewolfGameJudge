@@ -10,6 +10,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
+import { mobileDebug } from '@/utils/mobileDebug';
+
 const DISMISS_KEY = '@werewolf_pwa_install_dismissed';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -83,14 +85,19 @@ export function usePWAInstall(): PWAInstallResult {
 
   useEffect(() => {
     // 非 Web 平台或已安装，不显示
-    if (Platform.OS !== 'web' || isStandalone()) {
+    const standalone = isStandalone();
+    mobileDebug.log(`[DIAG] PWAInstall: platform=${Platform.OS}, standalone=${standalone}`);
+    if (Platform.OS !== 'web' || standalone) {
+      mobileDebug.log(`[DIAG] PWAInstall: hidden (non-web or standalone)`);
       setMode('hidden');
       return;
     }
 
     // 用户已关闭过
     try {
-      if (localStorage.getItem(DISMISS_KEY) === 'true') {
+      const dismissed = localStorage.getItem(DISMISS_KEY);
+      mobileDebug.log(`[DIAG] PWAInstall: dismissKey=${dismissed}`);
+      if (dismissed === 'true') {
         setMode('hidden');
         return;
       }
@@ -100,14 +107,21 @@ export function usePWAInstall(): PWAInstallResult {
 
     // Android/桌面 Chrome 已捕获 prompt 事件
     if (window.__pwaInstallPrompt) {
+      mobileDebug.log(`[DIAG] PWAInstall: mode=prompt (beforeinstallprompt cached)`);
       setMode('prompt');
       return;
     }
 
     // iOS 浏览器（Safari / Chrome / Firefox 等）
-    if (isIOSBrowser()) {
+    const iosCheck = isIOSBrowser();
+    mobileDebug.log(
+      `[DIAG] PWAInstall: isIOSBrowser=${iosCheck}, UA=${typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'}`,
+    );
+    if (iosCheck) {
+      const browser = detectIOSBrowser();
+      mobileDebug.log(`[DIAG] PWAInstall: mode=ios-guide, browser=${browser}`);
       setMode('ios-guide');
-      setIOSBrowser(detectIOSBrowser());
+      setIOSBrowser(browser);
       return;
     }
 
@@ -118,6 +132,7 @@ export function usePWAInstall(): PWAInstallResult {
     window.addEventListener('beforeinstallprompt', handler);
 
     // 其他浏览器（Firefox 等）不支持安装
+    mobileDebug.log(`[DIAG] PWAInstall: mode=hidden (no matching branch)`);
     setMode('hidden');
 
     return () => {
