@@ -7,6 +7,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   quality:
     runs-on: ubuntu-latest
@@ -116,3 +121,20 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+      - name: Upload report to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: playwright-report/
+
+  deploy-report:
+    runs-on: ubuntu-latest
+    if: always() && needs.merge-reports.result == 'success'
+    needs: merge-reports
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
