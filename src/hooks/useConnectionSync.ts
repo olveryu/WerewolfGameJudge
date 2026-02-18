@@ -15,7 +15,7 @@
  * ❌ 禁止：直接修改游戏状态、业务校验逻辑
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { IGameFacade } from '@/services/types/IGameFacade';
@@ -165,14 +165,17 @@ export function useConnectionSync(
     });
   }, [isStateStale, connectionStatus, isHost, roomRecord, facade, lastStateReceivedAt]);
 
-  return {
-    connectionStatus,
-    setConnectionStatus,
-    stateRevision,
-    setStateRevision,
-    lastStateReceivedAt,
-    setLastStateReceivedAt,
-    isStateStale,
-    onStateReceived,
-  };
+  return useMemo(
+    () => ({
+      connectionStatus,
+      setConnectionStatus,
+      stateRevision,
+      setStateRevision,
+      lastStateReceivedAt,
+      setLastStateReceivedAt,
+      isStateStale,
+      onStateReceived,
+    }),
+    [connectionStatus, stateRevision, lastStateReceivedAt, isStateStale, onStateReceived],
+  );
 }

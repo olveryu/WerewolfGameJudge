@@ -9,13 +9,12 @@
  * ❌ 禁止：直接访问第三方 API、存储 API key、游戏状态操作
  */
 
+import * as Sentry from '@sentry/react-native';
+
+import { isSupabaseConfigured, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config/supabase';
 import { log } from '@/utils/logger';
 
 const chatLog = log.extend('AIChatService');
-
-// Supabase Edge Function 代理配置
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 const API_CONFIG = {
   /** Edge Function endpoint（代理到 Groq） */
@@ -33,7 +32,7 @@ const TOKEN_OPTIMIZATION = {
  * 检查 AI 服务是否就绪（Supabase 已配置）
  */
 export function isAIChatReady(): boolean {
-  return !!SUPABASE_URL && !!SUPABASE_ANON_KEY;
+  return isSupabaseConfigured();
 }
 
 /**
@@ -212,6 +211,7 @@ export async function sendChatMessage(
       throw error;
     }
     chatLog.error('Chat request failed', { error });
+    Sentry.captureException(error);
     return {
       success: false,
       error: '网络请求失败，请检查网络后重试',
@@ -281,6 +281,7 @@ export async function* streamChatMessage(
     });
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') throw error;
+    Sentry.captureException(error);
     yield { type: 'error', content: '网络请求失败，请检查网络后重试' };
     return;
   }

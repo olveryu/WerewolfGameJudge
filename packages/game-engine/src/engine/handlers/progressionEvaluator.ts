@@ -194,12 +194,14 @@ function isCurrentStepComplete(state: NonNullState): boolean {
  * @param revision - 来自 GameStore.getRevision()
  * @param tracker - 幂等追踪器（可选，用于防止重复推进）
  * @param isHost - 是否为 Host
+ * @param nowMs - 当前时间戳（默认 Date.now()），方便测试注入
  */
 export function evaluateNightProgression(
   state: NonNullState | null,
   revision: number,
   tracker?: ProgressionTracker,
   isHost?: boolean,
+  nowMs: number = Date.now(),
 ): NightProgressionDecision {
   // Gate: host_only
   if (isHost === false) {
@@ -249,7 +251,7 @@ export function evaluateNightProgression(
     if (
       state.currentStepId === 'wolfKill' &&
       state.wolfVoteDeadline != null &&
-      Date.now() < state.wolfVoteDeadline
+      nowMs < state.wolfVoteDeadline
     ) {
       return { action: 'none', reason: 'wolf_vote_countdown' };
     }
@@ -272,6 +274,9 @@ export function evaluateNightProgression(
  *
  * 使用 {revision, currentStepId} 作为幂等 key，
  * 确保同一游戏状态最多推进一次。
+ *
+ * ⚠️ 仅限客户端使用（Host 设备）。服务端 serverless 函数每次调用
+ * 独立实例，不存在跨请求共享风险。
  */
 let progressionTracker: ProgressionTracker = createProgressionTracker();
 

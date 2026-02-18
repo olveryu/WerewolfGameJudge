@@ -125,15 +125,18 @@ async function handleRestart(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  // v1 对齐：在状态变更前广播 GAME_RESTARTED 通知 Player（fire-and-forget）
-  broadcastViaRest(roomCode, { type: 'GAME_RESTARTED' }).catch(() => {
-    /* non-blocking */
-  });
-
   const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
     const handlerCtx = buildHandlerContext(state, hostUid);
     return handleRestartGame({ type: 'RESTART_GAME' }, handlerCtx);
   });
+
+  // 广播 GAME_RESTARTED 通知 Player（仅在验证通过后，fire-and-forget）
+  if (result.success) {
+    broadcastViaRest(roomCode, { type: 'GAME_RESTARTED' }).catch(() => {
+      /* non-blocking */
+    });
+  }
+
   return res.status(resultToStatus(result)).json(result);
 }
 

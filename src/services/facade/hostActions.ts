@@ -121,7 +121,8 @@ async function callGameControlApi(
     }
   }
 
-  // TypeScript exhaustiveness — 不应到达此处
+  // 重试耗尽 → 回滚乐观更新
+  if (store) store.rollbackOptimistic();
   return { success: false, reason: 'CONFLICT_RETRY' };
 }
 
