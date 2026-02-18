@@ -73,7 +73,7 @@ export async function broadcastViaRest(
 /**
  * 内联推进选项
  */
-export interface InlineProgressionOptions {
+interface InlineProgressionOptions {
   /** 启用内联推进（action 处理后自动 evaluate + advance/endNight） */
   enabled: boolean;
   /** Host UID（用于构建 HandlerContext） */

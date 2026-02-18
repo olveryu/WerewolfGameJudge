@@ -53,13 +53,6 @@ export class BroadcastService {
   }
 
   /**
-   * Get current connection status
-   */
-  getConnectionStatus(): ConnectionStatus {
-    return this.connectionStatus;
-  }
-
-  /**
    * Subscribe to connection status changes
    */
   addStatusListener(listener: ConnectionStatusListener): () => void {
@@ -70,9 +63,9 @@ export class BroadcastService {
   }
 
   /**
-   * Set connection status (public for GameFacade to use on timeout)
+   * Set connection status
    */
-  setConnectionStatus(status: ConnectionStatus): void {
+  private setConnectionStatus(status: ConnectionStatus): void {
     if (this.connectionStatus !== status) {
       broadcastLog.info(` Connection status: ${this.connectionStatus} -> ${status}`);
       this.connectionStatus = status;
@@ -232,15 +225,6 @@ export class BroadcastService {
   }
 
   /**
-   * Mark connection as syncing (called when requesting snapshot)
-   */
-  markAsSyncing(): void {
-    if (this.connectionStatus === 'live') {
-      this.setConnectionStatus('syncing');
-    }
-  }
-
-  /**
    * Leave the current room
    */
   async leaveRoom(): Promise<void> {
@@ -258,19 +242,5 @@ export class BroadcastService {
     this.onDbStateChange = null;
     this.setConnectionStatus('disconnected');
     broadcastLog.info(' Left room');
-  }
-
-  /**
-   * Get current room code
-   */
-  getRoomCode(): string | null {
-    return this.roomCode;
-  }
-
-  /**
-   * Check if connected to a room
-   */
-  isConnected(): boolean {
-    return this.channel !== null;
   }
 }

@@ -589,13 +589,6 @@ export class AudioService {
     }
   }
 
-  /**
-   * Check if BGM is currently playing.
-   */
-  getIsBgmPlaying(): boolean {
-    return this.isBgmPlaying;
-  }
-
   // ============ Preload Methods ============
 
   /**
