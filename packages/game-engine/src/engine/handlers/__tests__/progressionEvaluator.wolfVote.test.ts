@@ -12,7 +12,6 @@ import {
   decideWolfVoteTimerAction,
   evaluateNightProgression,
   isWolfVoteAllComplete,
-  shouldTriggerWolfVoteRecovery,
   WOLF_VOTE_COUNTDOWN_MS,
 } from '@werewolf/game-engine/engine/handlers/progressionEvaluator';
 import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
@@ -132,41 +131,6 @@ describe('isWolfVoteAllComplete', () => {
     // With all roles assigned (production invariant), the fail-closed
     // `return false` branch is unreachable → no deadlock
     expect(isWolfVoteAllComplete(state)).toBe(true);
-  });
-});
-
-// =============================================================================
-// shouldTriggerWolfVoteRecovery
-// =============================================================================
-
-describe('shouldTriggerWolfVoteRecovery', () => {
-  it('wolfKill + deadline 已过 → true', () => {
-    const state = createWolfKillState({
-      wolfVoteDeadline: Date.now() - 1000,
-    });
-    expect(shouldTriggerWolfVoteRecovery(state, Date.now())).toBe(true);
-  });
-
-  it('deadline 未过 → false', () => {
-    const state = createWolfKillState({
-      wolfVoteDeadline: Date.now() + 5000,
-    });
-    expect(shouldTriggerWolfVoteRecovery(state, Date.now())).toBe(false);
-  });
-
-  it('非 wolfKill step → false', () => {
-    const state = createWolfKillState({
-      currentStepId: 'seerCheck',
-      wolfVoteDeadline: Date.now() - 1000,
-    });
-    expect(shouldTriggerWolfVoteRecovery(state, Date.now())).toBe(false);
-  });
-
-  it('无 deadline → false', () => {
-    const state = createWolfKillState({
-      wolfVoteDeadline: undefined,
-    });
-    expect(shouldTriggerWolfVoteRecovery(state, Date.now())).toBe(false);
   });
 });
 
