@@ -131,4 +131,4 @@ Fail fast：handler / reducer / 纯函数保持严格校验，违反前置条件
 
 - **Git Commit**：`<type>(<scope>): <description>`（Conventional Commits，英文小写祈使语气，单 commit 单事）。Scope：`night` / `room` / `config` / `hooks` / `theme` / `e2e` / `models` / `services` / `audio` / `game-engine`。
 - **终端**：跑测试禁止 `| grep` / `| head` / `| tail` 截断。Playwright 加 `--reporter=list`。
-- **JSDoc**：每个 class/module 必须有名称定位 + 职责 + `✅/❌` 约束。禁止只有约束没有功能介绍，或只有介绍没有约束。
+- **JSDoc**：每个 class/module 头部注释：第一行摘要（名称 + 一句话职责），后续段落展开细节，最后用自然语言点明边界约束（不做什么）。禁止 `✅/❌` emoji 格式。
